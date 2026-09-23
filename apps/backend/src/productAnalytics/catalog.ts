@@ -486,6 +486,99 @@ export const productAnalyticsEventCatalog = {
       },
     },
   },
+  // The end of a session's account relationship, the counterpart to `signin_succeeded`. It is the
+  // client's own observation of losing its credential and never a report of server-side session
+  // revocation, which happens with no client present to see it: a session revoked while nothing is
+  // running produces no row here at all.
+  //
+  // Read every count as a floor. It is not a rate against `signin_succeeded`, and it is not one
+  // series across clients. Every client wipes its analytics queue at the identity boundary that
+  // follows a sign-out — queued events belong to the person leaving, and delivering them afterwards
+  // would name the wrong person on this append-only table — so a row survives only where the client
+  // drained its queue with the departing credential still live, before the teardown started. Three
+  // consequences follow, and each is a property of the transport rather than a measurement:
+  //
+  // 1. `account_deleted` is undeliverable by construction on every client, the web included. The
+  //    client observes it only once the account is already gone, and POST /v1/analytics/events
+  //    answers `410 ACCOUNT_DELETED` for that credential before it reads the batch body. An empty
+  //    `account_deleted` series therefore says the transport refuses the row, not that nobody
+  //    deletes an account; the `account_deleted` event below, which is server-derived, is the fact
+  //    that actually counts deletions. Only the web even emits it: on iOS and Android the emit
+  //    would race a synchronous `anonymous_id` rotation whose only possible winner is a row filed
+  //    under the *next* person's identity, so those two clients report nothing rather than risk
+  //    one misattributed row that cannot be repaired.
+  // 2. `credential_expired` is web-only, and not because mobile loses the row: iOS and Android
+  //    have no producer for the value at all. Every teardown it would describe there — an expired
+  //    credential, an account context that came back naming somebody else, a silent restore that
+  //    did not resolve — is reached by code nobody pressed, so there is no control to hold a
+  //    bounded wait on, and a row emitted at one of them would either be discarded by the identity
+  //    boundary that immediately follows or survive it and be filed under the next person. Both
+  //    clients therefore declare the value in their event mirrors and emit nothing. The one
+  //    pressed teardown on those clients that still does not drain is the credential-recovery
+  //    erase, and its reason is its own: the credential it would drain with is the one being
+  //    erased, and where the recovery was entered because that credential is gone — every reason
+  //    Android raises the gate for, and on iOS all but the one where the credential is fine and
+  //    only the workspace went missing — there is nothing to drain with at all. No guest identity
+  //    is created at that moment either, on either client: both refuse to mint one while a
+  //    credential-recovery state is stored, and the erase is reachable only while one is. The web
+  //    keeps its rows because its queue is persisted per browser and its visitor
+  //    identity does not rotate at this boundary, so a tab sent back to sign in reports the fact
+  //    and a later load delivers it.
+  // 3. Mobile therefore contributes `user_initiated` and nothing else, from the deliberate sign-out
+  //    control, which is the one place a person is standing in front of something that can show a
+  //    bounded wait. Even there the wait is bounded at two seconds, so a large or offline backlog
+  //    loses its tail.
+  //
+  // All three lose in the same direction deliberately. `analytics.product_events` is append-only
+  // with no repair path, so every choice here prefers the under-count to a row that names the wrong
+  // person or the wrong moment.
+  //
+  // Upstream of all three, an install whose person turned product analytics off contributes nothing
+  // here under any reason. That switch gates the capture rather than the delivery, so the row is
+  // never written in the first place: the web returns from `enqueue` on
+  // `isProductAnalyticsCollecting()`, iOS gets nil from `makePendingEvent` and Android returns from
+  // `track`, each on the flag that setting sets. The bounded wait above does not survive it either.
+  // iOS and Android return from the drain on the same flag before it reaches the queue at all, and
+  // the web's drain runs its first pass into a flush that returns on it, so the pass loop ends
+  // there. Nobody who opted out is made to wait out a bound for a flush that could not have sent
+  // anything. A client released before the switch existed is stopped one layer further on, where
+  // POST /v1/analytics/events drops the batch for a credential whose owner holds false. So this
+  // series counts departures only among people who left collection on, and a fall in it can be that
+  // population shrinking rather than fewer sign-outs.
+  //
+  // The one place the floor does not hold is the reason split, which is not a partition of
+  // departures: one departure can produce rows under two reasons in the same session, on the web.
+  // The sign-out control's marker is per document, and the session cookie it destroys is shared by
+  // the browser. A person with two tabs open presses Log out in one — `user_initiated` there — and
+  // the other tab's next request answers 401 and reports `credential_expired`. A Back into a
+  // pre-sign-out document restored from the bfcache does the same. Each row is true to its own
+  // definition, so neither is suppressed, and both are honest facts about the document that wrote
+  // them. But summing the reasons counts that departure twice, and `user_initiated` alone counts
+  // it once, so read the reason series rather than the total.
+  //
+  // `screen` is optional and is not comparable across clients: the web stamps whatever surface its
+  // current route resolves to and carries none where the route resolves to none, while iOS and
+  // Android pass the surface the pressed control is on — `settings` for the account screen, and
+  // `signin` for the sign-out offered inside the sign-in flow.
+  signed_out: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      reason: {
+        kind: "enum",
+        values: [
+          // The deliberate sign-out control, and the only one of the three the person chose.
+          "user_initiated",
+          // Stored credentials discarded by the client because they can no longer be used.
+          "credential_expired",
+          // `credential_expired`'s known cause: the credential is equally unusable, but the client
+          // was told why, so the two are never folded together. See consequence 1 above for why
+          // this value has no deliverable producer on any client.
+          "account_deleted",
+        ],
+      },
+    },
+  },
   guest_upgrade_completed: {
     serverOnly: true,
     requiresScreen: false,

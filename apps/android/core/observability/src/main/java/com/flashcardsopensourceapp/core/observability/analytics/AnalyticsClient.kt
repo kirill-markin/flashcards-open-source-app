@@ -7,12 +7,14 @@ import com.flashcardsopensourceapp.core.observability.AndroidAnalyticsObservatio
 import com.flashcardsopensourceapp.core.observability.AndroidWarningIssueEvent
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.OkHttpClient
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
@@ -22,6 +24,14 @@ import kotlin.random.Random
 /**
  * Maximum number of batches one flush pass will deliver before yielding, so a very large backlog
  * cannot monopolise the worker.
+ *
+ * [handleDrain] runs exactly one such pass, so a pressed-control drain here delivers at most this
+ * many batches, where iOS and the web run up to ten passes of their own per-flush cap at the same
+ * moment. The asymmetry is deliberate and not a gap to close by looping: [handleFlush] returns no
+ * signal separating "stopped on the cap" from an emptied queue, a missing credential or an identity
+ * that rotated mid-flush, and a loop without one would re-enter on exits another pass cannot improve
+ * on. Ten batches is already more than the drain's two-second bound has round trips for, so the
+ * extra passes would deliver nothing a person waits for.
  */
 private const val analyticsMaxBatchesPerFlush: Int = 10
 
@@ -41,6 +51,13 @@ private sealed interface AnalyticsCommand {
     ) : AnalyticsCommand
 
     data object Flush : AnalyticsCommand
+
+    /**
+     * A flush a pressed control is waiting behind. It rides the same channel as every other command
+     * so the worker still sees writes in order: an event tracked just before it is already in the
+     * channel, so the queue it drains is guaranteed to contain that event.
+     */
+    data class Drain(val completion: CompletableDeferred<Unit>) : AnalyticsCommand
 
     data object ConnectivityRestored : AnalyticsCommand
 
@@ -190,6 +207,27 @@ class AnalyticsClient internal constructor(
         commands.trySend(AnalyticsCommand.Flush)
     }
 
+    override suspend fun drainBeforeIdentityTeardown() {
+        if (!enabled) {
+            return
+        }
+
+        val completion = CompletableDeferred<Unit>()
+        // `trySend` like every other hand-off: a full channel means the worker is already busy with
+        // more than this drain could add, and a caller on a pressed control may never block on it.
+        if (commands.trySend(AnalyticsCommand.Drain(completion = completion)).isFailure) {
+            recordHandoffOverflow()
+            return
+        }
+
+        // The drain itself is never cancelled by this: it runs on the worker, which owns the app
+        // scope, and finishing a request already on the wire is worth more than abandoning it. The
+        // bound only stops this caller waiting for it.
+        withTimeoutOrNull(analyticsPressedControlDrainBoundMillis) {
+            completion.await()
+        }
+    }
+
     override fun onConnectivityRestored() {
         if (!enabled) {
             return
@@ -257,6 +295,7 @@ class AnalyticsClient internal constructor(
                         )
 
                         AnalyticsCommand.Flush -> handleFlush()
+                        is AnalyticsCommand.Drain -> handleDrain(completion = command.completion)
                         AnalyticsCommand.ConnectivityRestored -> handleConnectivityRestored()
                         // Already applied above; the command only exists to wake the worker.
                         AnalyticsCommand.Reset -> Unit
@@ -271,6 +310,12 @@ class AnalyticsClient internal constructor(
                             else -> AndroidAnalyticsObservationName.QUEUE_STORE_READ_FAILED
                         }
                     )
+                    // A drain that threw must still release its waiter; the bound would otherwise
+                    // hold a pressed control for the full two seconds over a failure that is
+                    // already reported.
+                    if (command is AnalyticsCommand.Drain) {
+                        command.completion.complete(Unit)
+                    }
                 }
             }
         }
@@ -412,6 +457,37 @@ class AnalyticsClient internal constructor(
     }
 
     /**
+     * The flush a pressed control waits behind, run before the credential it would be delivered
+     * under is destroyed.
+     *
+     * A backoff this client chose itself is cleared first, exactly as [handleConnectivityRestored]
+     * does and for the same reason: an offline stretch walks the delay up to
+     * [analyticsMaxRetryDelayMillis], and without this the drain would return at the guard inside
+     * [handleFlush] with perfect connectivity, at the one moment these events can never be retried.
+     * A `429`/`5xx` backoff is server pressure and is left in place — that one is not ours to
+     * ignore, and these events are not worth pushing through a throttle for.
+     *
+     * It delivers nothing when product analytics are off: [handleFlush] returns at its first guard,
+     * and the worker has already emptied the queue through [applyPendingDisableQueueClear], which
+     * runs before every command. Nobody waits on that: [drainBeforeIdentityTeardown] returns on the
+     * same flag without sending this command at all, so an opted-out person's logout never joins
+     * the worker's queue behind whatever it is already doing. That is the part worth guarding: a
+     * delivery started before the switch was moved can still be inside a request, and the caller
+     * would otherwise spend its bound waiting for a turn that could only hand it an empty queue.
+     */
+    private suspend fun handleDrain(completion: CompletableDeferred<Unit>) {
+        try {
+            if (isDeliveryBackoffFromTransportFailure) {
+                isDeliveryBackoffFromTransportFailure = false
+                nextDeliveryAttemptAtMillis = 0L
+            }
+            handleFlush()
+        } finally {
+            completion.complete(Unit)
+        }
+    }
+
+    /**
      * Nothing captured before the kill switch may leave the device afterwards.
      *
      * The flag is cleared only after the delete has succeeded, so a failure leaves the clear
@@ -451,6 +527,18 @@ class AnalyticsClient internal constructor(
         purgeEventsFromPreviousIdentities(dao = dao)
         materializePendingDrops(dao = dao, nowMillis = nowMillis)
 
+        // The first half of the pair the batch below has to be composed of. The credential read
+        // suspends and this whole function can outlive an identity boundary, so the id the rows are
+        // selected on is captured here, beside the credential they will be posted under.
+        //
+        // What makes that pair mean anything is an ordering owned two modules away:
+        // `CloudIdentityResetCoordinator` clears the stored credentials *before* it runs
+        // `onCloudIdentityReset`, which is what rotates this id, and it does so in all three of its
+        // boundary entry points. So a rotation seen below always post-dates the clearing of the
+        // credential resolved above, and comparing the two ids is a real test of whether that
+        // credential belongs to the person who has left. Reorder the coordinator and this check
+        // starts passing for a pair that no longer matches.
+        val anonymousIdBeforeCredential: String = identity.currentAnonymousId()
         // Never send an unauthenticated batch: without a credential the events stay queued.
         val credential: AnalyticsCredential = credentialProvider.currentCredential() ?: return
         val deviceContext: AnalyticsDeviceContext = deviceContextProvider()
@@ -469,6 +557,17 @@ class AnalyticsClient internal constructor(
             // the process died before the worker woke — still cannot put a departed person's events
             // on the wire. Re-read per batch: a logout may land between two batches of one flush.
             val currentAnonymousId: String = identity.currentAnonymousId()
+            // Only a matched pair may be sent. Re-reading the id alone stops the departing person's
+            // rows going out on a new credential but creates the mirror error: a flush abandoned by
+            // the pressed-control drain's bound keeps running across the logout, and would then
+            // select the *next* person's rows and post them on the credential this flush resolved,
+            // which is the one that just left. The server derives `user_id` from the credential
+            // that carries the batch, and `analytics.product_events` is append-only with no repair
+            // path, so this stops instead: the next flush trigger sends those rows under the
+            // credential they belong to.
+            if (currentAnonymousId != anonymousIdBeforeCredential) {
+                return
+            }
             val oldestEvent: AnalyticsQueuedEventEntity =
                 dao.oldestEventForAnonymousId(anonymousId = currentAnonymousId) ?: return
             val batch: List<AnalyticsQueuedEventEntity> = takeBatchWithinBodyLimit(

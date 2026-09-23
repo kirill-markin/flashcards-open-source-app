@@ -1,5 +1,6 @@
 import { combineAbortSignals } from "../../abortSignals";
 import { markBrowserReauthRequired } from "../../accountDeletion";
+import { track } from "../../analytics/client";
 import { getAppConfig } from "../../config";
 import type { SessionInfo } from "../../types";
 import { buildLoginUrl, getPreferredAuthUiLocale } from "../authUrls";
@@ -158,6 +159,14 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
   let sessionTransportReadyPromise: Promise<void> | null = null;
   let sessionTransportReadyNetworkRetryMode: NetworkRetryMode | null = null;
   let redirectInFlight = false;
+  /**
+   * Whether `/me` has answered this tab with a browser session. `redirectToLogin` is reached
+   * whenever `/me` and the refresh both answer 401, which is equally the cold load of a browser
+   * that holds no session and the load that follows a deliberate sign-out, so the `signed_out` it
+   * reports is gated on this rather than on reaching the redirect. A session that had already
+   * expired when the tab opened is an accepted under-count.
+   */
+  let hasLoadedBrowserSession = false;
   let navigationHandler: NavigateToUrl | null = null;
   let indexedDbOpenRecoverySignal: AbortSignal | null = null;
 
@@ -255,6 +264,9 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
   function setSessionCsrfToken(csrfToken: string | null, authTransport: string): void {
     sessionCsrfToken = csrfToken;
     sessionCsrfState = authTransport === "session" ? "session" : "non-session";
+    if (sessionCsrfState === "session") {
+      hasLoadedBrowserSession = true;
+    }
   }
 
   /**
@@ -313,6 +325,17 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
 
     if (redirectInFlight === false) {
       redirectInFlight = true;
+      if (hasLoadedBrowserSession) {
+        // A session this tab held can no longer be used, so it has been dropped and the person is
+        // being sent back to sign in. Reported inside the burst guard, so one auth failure is one
+        // fact however many requests hit it, and before the navigation so the queue persists it.
+        //
+        // No drain in front of it, and none is needed: nothing pressed this, and this browser's
+        // queue survives the boundary on its own — it is stored per browser under the shared
+        // visitor id, which does not rotate here, so a later load delivers the row.
+        track({ name: "signed_out", reason: "credential_expired" });
+      }
+
       navigateToUrl(redirectUrl);
     }
 
@@ -679,6 +702,7 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
     sessionTransportReadyPromise = null;
     sessionTransportReadyNetworkRetryMode = null;
     redirectInFlight = false;
+    hasLoadedBrowserSession = false;
     navigationHandler = null;
   }
 

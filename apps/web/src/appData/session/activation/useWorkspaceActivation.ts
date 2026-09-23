@@ -86,7 +86,10 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
     // to whoever was signed in, and it survives this boundary like every other. Do not flush first:
     // this runs after the previous credential is gone or after `getSession()` already returned
     // somebody else's session, so a batch sent here would post the previous account's events on the
-    // new account's credential. The discarded events are counted and reported inside `reset()`.
+    // new account's credential. The drain happens on the other side of the navigation, in the
+    // control that is about to destroy the credential (`SignOutLink`, and the account deletion in
+    // `accountDeletion/AccountDeletionRecoveryGate.tsx`); what it did not deliver is discarded here
+    // and the loss is counted and reported inside `reset()`.
     resetAnalytics();
     // Removed here, synchronously, rather than by the `flashcards-` prefix sweep inside
     // `clearAllLocalBrowserData` below: that sweep is several awaits away and does not run at all

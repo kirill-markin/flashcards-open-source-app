@@ -139,6 +139,11 @@ final class FlashcardsStore {
     @ObservationIgnored var productAnalyticsPushTask: Task<Void, Never>?
     @ObservationIgnored var isAccountDeletionRunning: Bool
     @ObservationIgnored var isGuestUpgradeLocalOutboxMutationBlocked: Bool
+    /// Whether the `signed_out` row for the sign-out currently being attempted has already been
+    /// written, so a retry after a teardown that threw cannot write a second permanent row. Released
+    /// by the identity boundary, where the credential that row went out under is cleared, so it
+    /// cannot outlive the identity it describes; see `signOutCloudAccountFromPressedControl`.
+    @ObservationIgnored var hasReportedPendingSignOut: Bool
     /// Whether the presented sign-in sheet still owes one `signin_failed`.
     @ObservationIgnored var isCloudSignInAttemptOpen: Bool
     /// The surface the presented sign-in sheet was opened from, and the `screen` its `signin_failed`
@@ -531,6 +536,7 @@ final class FlashcardsStore {
         self.productAnalyticsPushTask = nil
         self.isAccountDeletionRunning = false
         self.isGuestUpgradeLocalOutboxMutationBlocked = false
+        self.hasReportedPendingSignOut = false
         self.isCloudSignInAttemptOpen = false
         self.cloudSignInOriginSurface = nil
         self.wasCredentialRecoveryGateActiveAtSignInStart = false

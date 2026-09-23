@@ -32,6 +32,7 @@ import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsClient
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsIdentity
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsNetworkMonitor
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSyncFailureReporter
+import com.flashcardsopensourceapp.core.observability.analytics.PendingSignOutReport
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.CloudObservationIdentity
 import com.flashcardsopensourceapp.core.observability.shouldCaptureAndroidThrowable
@@ -263,6 +264,13 @@ class AppGraph(
     )
     val analytics: Analytics = analyticsClient
     val syncFailureAnalyticsReporter = AnalyticsSyncFailureReporter(analytics = analytics)
+
+    /**
+     * Shared by both deliberate sign-out controls, which live on different screens behind different
+     * view models and are the retry path for each other. Held here because this is the only object
+     * below both of them that outlives either screen.
+     */
+    val pendingSignOutReport = PendingSignOutReport()
     val reviewPreferencesStore: ReviewPreferencesStore = SharedPreferencesReviewPreferencesStore(context = context)
     val storeReviewRequestStore: StoreReviewRequestStore = SharedPreferencesStoreReviewRequestStore(context = context)
     private val guestSignInAfterReviewPromptStore = SharedPreferencesGuestSignInAfterReviewPromptStore(
@@ -349,7 +357,9 @@ class AppGraph(
             // Queued events belong to the person who is leaving, and the server attributes a batch
             // to the credential that carries it, so they must never survive an identity boundary.
             // `reset()` returns immediately and does no network work, so this never delays the
-            // action.
+            // action — and nothing awaited may ever be added here, because this hook runs between
+            // the teardown's precondition and its clears. The bounded drain that saves those events
+            // runs earlier, at the control the person pressed.
             //
             // Reached from exactly the three `CloudIdentityResetCoordinator` entry points that end
             // one person's use of this install: `resetLocalStateForCloudIdentityChange` (logout, an
@@ -373,6 +383,13 @@ class AppGraph(
             //   off this hook, where the `anonymous_id` has to carry through for
             //   `analytics.identity_links` to join the guest and the account at all.
             analytics.reset()
+            // Released here rather than at the control that set it. By the time this hook runs,
+            // `CloudIdentityResetCoordinator` has already cleared the stored credentials — before
+            // this call in every one of its three boundary entry points — so a retry past this point
+            // can no longer post a second row under the departing credential. Left unreleased, a
+            // teardown that threw after those clears would strand the flag set and silence the next
+            // person's sign-out on this install.
+            pendingSignOutReport.release()
         }
     )
     private val cloudGuestSessionCoordinator = CloudGuestSessionCoordinator(

@@ -39,6 +39,27 @@ enum AnalyticsEvent: Sendable, Equatable {
     case signInCodeRequested(screen: AnalyticsSurface)
     case signInSucceeded(screen: AnalyticsSurface)
     case signInFailed(reason: AnalyticsSignInFailureReason)
+    /**
+     * The end of this install's account relationship, the counterpart to `signInSucceeded`.
+     *
+     * This client emits exactly one of the catalog's three reasons, `userInitiated`, from the two
+     * controls a person presses to leave an account — the account screen's *Log out* and the one
+     * inside the sign-in sheet. It is emitted at the press, not at the teardown, and the press then
+     * waits for a bounded drain before the credentials are cleared, because the boundary discards
+     * whatever is still queued.
+     *
+     * The other two reasons have no producer here at all, and the mirror still declares them,
+     * because the vocabulary is the shared contract rather than an inventory of what this app can
+     * do. The facts themselves do occur on this client: `credentialExpired` describes the teardowns
+     * nobody pressed, and `accountDeleted` the deletion. Neither is reported, for the same reason in
+     * two forms — there is no control to hold a bounded wait on at a teardown nobody pressed, and
+     * the ingest refuses this credential with `410 ACCOUNT_DELETED` once the account is gone — so a
+     * row written at either would only survive by losing a race with the identity rotation, and a
+     * row that survives that race is filed under the *next* person's identity, on an append-only
+     * table with no repair path. The catalog entry states all of this so an empty series is not read
+     * as nobody signing out.
+     */
+    case signedOut(reason: AnalyticsSignedOutReason)
     /// The card flip: the answer side being shown, once per card presentation. It never reaches the
     /// backend on its own, so only a client can report it, and it is the denominator the
     /// server-derived `review_answered` is read against.
@@ -276,6 +297,14 @@ enum AnalyticsSignInFailureReason: String, Sendable, Equatable {
     case cancelled
 }
 
+/// Why this install's account relationship ended. Only `userInitiated` has a producer here; see
+/// `AnalyticsEvent.signedOut` for why the other two are declared and not emitted.
+enum AnalyticsSignedOutReason: String, Sendable, Equatable {
+    case userInitiated = "user_initiated"
+    case credentialExpired = "credential_expired"
+    case accountDeleted = "account_deleted"
+}
+
 enum AnalyticsReviewAnswerFailureReason: String, Sendable, Equatable {
     case offline
     case timeout
@@ -382,6 +411,8 @@ extension AnalyticsEvent {
             return "signin_succeeded"
         case .signInFailed:
             return "signin_failed"
+        case .signedOut:
+            return "signed_out"
         case .reviewCardRevealed:
             return "review_card_revealed"
         case .reviewAnswerFailed:
@@ -463,6 +494,8 @@ extension AnalyticsEvent {
         case .signInCodeRequested, .signInSucceeded:
             return [:]
         case .signInFailed(let reason):
+            return ["reason": .string(reason.rawValue)]
+        case .signedOut(let reason):
             return ["reason": .string(reason.rawValue)]
         case .reviewCardRevealed:
             return [:]

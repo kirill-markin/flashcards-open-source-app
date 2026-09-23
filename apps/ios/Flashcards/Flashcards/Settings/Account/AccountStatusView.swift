@@ -35,6 +35,7 @@ struct AccountStatusView: View {
 
     @State private var isCloudSignInPresented: Bool = false
     @State private var isLogoutConfirmationPresented: Bool = false
+    @State private var isLoggingOut: Bool = false
     @State private var isCustomGuestWorkspaceRetrying: Bool = false
     @State private var customGuestWorkspaceRetryFailureMessage: String?
 
@@ -179,17 +180,37 @@ struct AccountStatusView: View {
                             Button(aiSettingsLocalized("settings.account.status.syncNow", "Sync now")) {
                                 self.syncNow()
                             }
-                            .disabled(isSyncInFlight(status: store.syncStatus) || self.isSyncBlocked)
+                            .disabled(
+                                isSyncInFlight(status: store.syncStatus)
+                                    || self.isSyncBlocked
+                                    || self.isLoggingOut
+                            )
                             .accessibilityIdentifier(UITestIdentifier.accountStatusSyncNowButton)
 
                             Button(aiSettingsLocalized("settings.account.status.switchAccount", "Switch account")) {
                                 self.isCloudSignInPresented = true
                             }
+                            // Closed for the length of the sign-out below, not only the Log out
+                            // button: this one opens the sign-in sheet, and starting a sign-in
+                            // while a sign-out that has already emitted its row is still draining
+                            // would run the two identity changes against each other.
+                            .disabled(self.isLoggingOut)
                             .accessibilityIdentifier(UITestIdentifier.accountStatusSwitchAccountButton)
 
-                            Button(aiSettingsLocalized("settings.account.status.logOut", "Log out"), role: .destructive) {
+                            Button(role: .destructive) {
                                 self.isLogoutConfirmationPresented = true
+                            } label: {
+                                HStack(spacing: 8) {
+                                    // The log out this confirms drains the analytics queue before
+                                    // it clears the credentials, so the person who pressed it is
+                                    // waiting in front of this row and is shown so.
+                                    if self.isLoggingOut {
+                                        ProgressView()
+                                    }
+                                    Text(aiSettingsLocalized("settings.account.status.logOut", "Log out"))
+                                }
                             }
+                            .disabled(self.isLoggingOut)
                             .accessibilityIdentifier(UITestIdentifier.accountStatusLogoutButton)
                         }
                     }
@@ -222,10 +243,21 @@ struct AccountStatusView: View {
     }
 
     private func logoutCloudAccount() {
-        do {
-            try store.logoutCloudAccount()
-        } catch {
-            self.store.presentTechnicalError(error)
+        guard self.isLoggingOut == false else {
+            return
+        }
+
+        self.isLoggingOut = true
+        Task { @MainActor in
+            defer {
+                self.isLoggingOut = false
+            }
+
+            do {
+                try await store.signOutCloudAccountFromPressedControl(screen: .settings)
+            } catch {
+                self.store.presentTechnicalError(error)
+            }
         }
     }
 

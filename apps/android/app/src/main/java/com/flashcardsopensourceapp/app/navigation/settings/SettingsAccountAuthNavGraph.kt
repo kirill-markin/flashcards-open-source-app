@@ -61,6 +61,7 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
                     syncRepository = appGraph.syncRepository,
                     messageController = appGraph.appMessageBus,
                     analytics = appGraph.analytics,
+                    pendingSignOutReport = appGraph.pendingSignOutReport,
                     originSurface = signInOriginSurface(authGraphBackStackEntry = authGraphBackStackEntry),
                     signInStepSurface = AnalyticsSurface.SIGNIN,
                     applicationContext = context.applicationContext
@@ -120,6 +121,7 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
                     syncRepository = appGraph.syncRepository,
                     messageController = appGraph.appMessageBus,
                     analytics = appGraph.analytics,
+                    pendingSignOutReport = appGraph.pendingSignOutReport,
                     originSurface = signInOriginSurface(authGraphBackStackEntry = authGraphBackStackEntry),
                     signInStepSurface = AnalyticsSurface.SIGNIN,
                     applicationContext = context.applicationContext
@@ -170,12 +172,20 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
                     syncRepository = appGraph.syncRepository,
                     messageController = appGraph.appMessageBus,
                     analytics = appGraph.analytics,
+                    pendingSignOutReport = appGraph.pendingSignOutReport,
                     originSurface = signInOriginSurface(authGraphBackStackEntry = authGraphBackStackEntry),
                     signInStepSurface = AnalyticsSurface.SIGNIN,
                     applicationContext = context.applicationContext
                 )
             )
             val uiState by signInViewModel.postAuthUiState.collectAsStateWithLifecycle()
+            // The failure action logs out, and the log out waits for the analytics queue to drain
+            // before it clears the credential, so the button reports that wait rather than looking
+            // dead. The flag is read from the ViewModel and not remembered here: a configuration
+            // change disposes this composition, and a remembered flag would come back false while
+            // the sign-out it describes is still running on the ViewModel's own scope.
+            val isFailureActionInFlight by signInViewModel.isPostAuthFailureActionInFlight
+                .collectAsStateWithLifecycle()
 
             if (uiState.completionToken != null) {
                 LaunchedEffect(uiState.completionToken) {
@@ -223,7 +233,14 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
                 onBack = {
                     navController.popBackStack()
                 },
-                canNavigateBack = true
+                // Back is closed while either failure action runs, because the flag behind this is
+                // set for both of them in `runPostAuthFailureActionOnOwnScope`. On the sign-out
+                // branch popping this destination would report the person as done while the
+                // credential is still on the device; on the recovery-state reset nothing is
+                // destroyed, and the closure only keeps the pop from racing the navigation the
+                // launch body above still has to perform once the action returns.
+                canNavigateBack = isFailureActionInFlight.not(),
+                isFailureActionInFlight = isFailureActionInFlight
             )
         }
     }

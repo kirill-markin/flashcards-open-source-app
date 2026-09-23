@@ -266,6 +266,20 @@
   text-decoration: none;
 }
 
+/* The sign-out link holds its navigation while the analytics queue drains, so it carries an
+   inline spinner in both places it is rendered: the account menu and the account settings screen. */
+.sign-out-link-spinner {
+  display: inline-block;
+  inline-size: 12px;
+  block-size: 12px;
+  margin-inline-end: 8px;
+  vertical-align: -1px;
+  border: 1.5px solid var(--panel-border-strong);
+  border-block-start-color: var(--text-secondary);
+  border-radius: 999px;
+  animation: page-state-spin 0.8s linear infinite;
+}
+
 .account-menu-item:disabled {
   cursor: default;
   opacity: 0.55;

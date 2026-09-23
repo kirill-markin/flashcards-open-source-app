@@ -29,6 +29,18 @@ extension FlashcardsStore {
         self.cloudRuntime.cancelForAccountDeletion()
         let previousStrictRemindersReconciliationTask = self.cancelStrictRemindersReconciliation()
         try self.cloudRuntime.clearCredentials()
+        // The identity the pressed-control sign-out reported is gone from here on, so its marker is
+        // released with it. Without this, a teardown that throws below — the reload, or the database
+        // reset — leaves the flag set on a device that has no credential any more, and the sign-in
+        // sheet's log out dismisses itself on its error path so no control is left to release it.
+        // The next person to sign in and out on this install would then be reported by nothing.
+        //
+        // Here rather than beside `Analytics.reset()` at the top, deliberately: the throws above
+        // this line — `requireLocalDatabase` in particular — leave the departing credential intact
+        // and the account screen inviting another press, and releasing the marker there would put a
+        // second `signed_out` row on the wire under that same credential, for one departure, on an
+        // append-only table. Past this point that duplicate cannot be written.
+        self.hasReportedPendingSignOut = false
         try self.dependencies.guestCredentialStore.clearGuestSession()
         try database.resetForAccountDeletion()
         let nextStrictReminderNotificationScope = rotateStrictReminderNotificationScope(

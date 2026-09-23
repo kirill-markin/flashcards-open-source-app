@@ -212,6 +212,16 @@ enum class AnalyticsSignInFailureReason(val wireValue: String) {
     CANCELLED(wireValue = "cancelled")
 }
 
+/**
+ * Why this install's account relationship ended. Only [USER_INITIATED] has a producer here; see
+ * [AnalyticsEvent.SignedOut] for why the other two are declared and not emitted.
+ */
+enum class AnalyticsSignedOutReason(val wireValue: String) {
+    USER_INITIATED(wireValue = "user_initiated"),
+    CREDENTIAL_EXPIRED(wireValue = "credential_expired"),
+    ACCOUNT_DELETED(wireValue = "account_deleted")
+}
+
 enum class AnalyticsReviewAnswerFailureReason(val wireValue: String) {
     OFFLINE(wireValue = "offline"),
     TIMEOUT(wireValue = "timeout"),
@@ -334,6 +344,36 @@ sealed interface AnalyticsEvent {
         override val screen: AnalyticsSurface? = null
     ) : AnalyticsEvent {
         override val eventName: String = "signin_failed"
+        override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
+            "reason" to AnalyticsPropertyValue.Text(value = reason.wireValue)
+        )
+    }
+
+    /**
+     * The end of this install's account relationship, the counterpart to [SignInSucceeded].
+     *
+     * This client emits exactly one of the catalog's three reasons,
+     * [AnalyticsSignedOutReason.USER_INITIATED], from the two controls a person presses to leave an
+     * account: the account screen's log out and the one offered inside the sign-in flow. It is
+     * emitted at the press, not at the teardown, and the press then waits for a bounded drain
+     * before the credentials are cleared, because the boundary discards whatever is still queued.
+     *
+     * The other two reasons have no producer here at all, and the mirror declares them anyway
+     * because the vocabulary is the shared contract rather than an inventory of what this app can
+     * do. The facts themselves do occur on this client:
+     * [AnalyticsSignedOutReason.CREDENTIAL_EXPIRED] describes the teardowns nobody pressed, and
+     * [AnalyticsSignedOutReason.ACCOUNT_DELETED] the deletion. Neither is reported, for the same
+     * reason in two forms — there is no control to hold a bounded wait on at a teardown nobody
+     * pressed, and the ingest refuses this credential with `410 ACCOUNT_DELETED` once the account is
+     * gone — so a row written at either would only survive by losing the race with the identity
+     * rotation, and the row that wins that race is filed under the *next* person, on an append-only
+     * table with no repair path.
+     */
+    data class SignedOut(
+        val reason: AnalyticsSignedOutReason,
+        override val screen: AnalyticsSurface? = null
+    ) : AnalyticsEvent {
+        override val eventName: String = "signed_out"
         override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
             "reason" to AnalyticsPropertyValue.Text(value = reason.wireValue)
         )

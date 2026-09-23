@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.core.observability.analytics
 
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Product analytics entry point.
@@ -14,6 +15,35 @@ interface Analytics {
 
     /** Asks for a delivery attempt. Returns immediately; delivery happens on the IO dispatcher. */
     fun flush()
+
+    /**
+     * Drains the queue and suspends until it has left the device, or until an internal two-second
+     * bound expires, whichever comes first. Never throws.
+     *
+     * The one exception to the rule above this interface, and it is the whole point of the call: a
+     * person pressed a control that is about to destroy the credential everything queued would go
+     * out on — the sign-out, or the account deletion — and [reset] then discards that queue. This is
+     * the last moment those events can be delivered, and the control shows its ordinary loading
+     * state while it happens.
+     *
+     * Only a pressed control may call it, and only the two a person presses to leave an account. A
+     * teardown nobody pressed — an expired credential, an account context that came back naming
+     * somebody else, a silent restore that did not resolve — has no control to show a wait on, and
+     * loses its queued events; the `signed_out` catalog entry states that under-count so it is
+     * visible in the data. The credential-recovery erase is pressed and still does not call it, for
+     * its own reason, the same one the `signed_out` catalog entry and the iOS client give: the
+     * credential it would drain with is the one being erased, and every reason this client raises
+     * that gate for is a stored credential that is missing or unusable, so the provider behind the
+     * drain finds nothing to send at all. Nothing is minted in its place either, here or on iOS:
+     * `AppAnalyticsCredentialProvider.mintedGuestCredential` returns null while a recovery state is
+     * stored, and `CloudIdentityResetCoordinator.eraseLocalDataForCredentialRecovery` requires one.
+     * Nothing may put this call, or any other suspension, inside
+     * `CloudIdentityResetCoordinator`, between a teardown's precondition and its clears.
+     *
+     * On expiry the drain is left running rather than cancelled: a request already on the wire is
+     * better finished than abandoned, and the caller is only released from waiting for it.
+     */
+    suspend fun drainBeforeIdentityTeardown()
 
     /**
      * Connectivity came back. Clears a backoff that only an offline stretch produced and asks for a
@@ -32,6 +62,11 @@ interface Analytics {
      * behind would land under the next person's account, permanently, on an append-only table. The
      * discarded count is reported through the platform's error reporter, never as an
      * `analytics_events_dropped` reason.
+     *
+     * Nothing rescues those events from here, and nothing may try: a flush started from this path is
+     * ordered after the credential is cleared, and an awaited one would put a suspension inside the
+     * teardown between its precondition and its clears. The rescue lives at the pressed controls
+     * instead, in [drainBeforeIdentityTeardown], called before the teardown starts.
      *
      * Unlike [track] this may not be dropped, and it may not be deferred either: the durable half of
      * the boundary — rotating the stored `anonymous_id` — happens synchronously on the calling
@@ -52,11 +87,53 @@ object NoOpAnalytics : Analytics {
 
     override fun flush() = Unit
 
+    override suspend fun drainBeforeIdentityTeardown() = Unit
+
     override fun onConnectivityRestored() = Unit
 
     override fun reset() = Unit
 
     override fun setEnabled(enabled: Boolean) = Unit
+}
+
+/**
+ * Whether the `signed_out` row for the sign-out currently being attempted has already been written.
+ *
+ * One instance per process, shared by every control that performs the deliberate sign-out, because
+ * the two that exist sit on different screens behind different view models: the account screen's
+ * *Log out*, and the log out the sign-in flow offers as its failure action. A sign-out that throws
+ * on the first leaves the person signed in with the row already delivered, and the retry is commonly
+ * made on the second, so a per-view-model flag would write a second permanent row for one departure
+ * into an append-only table. iOS holds the same flag on its shared store, for the same reason.
+ *
+ * It is not the once-per-sign-out marker the old teardown-side design needed: it keys on nothing a
+ * teardown clears, and it guards only the retry after a teardown that threw. The cost, stated: a
+ * sign-out abandoned after a failure and completed much later reports nothing. On a table with no
+ * repair path that is the direction to lose in.
+ */
+class PendingSignOutReport {
+    private val isReported = AtomicBoolean(false)
+
+    /**
+     * Claims the row for this attempt. `true` means this caller now owes the event; `false` means an
+     * earlier attempt at the same departure already wrote it and this one must not.
+     */
+    fun claim(): Boolean = isReported.compareAndSet(false, true)
+
+    /**
+     * Releases the claim so the next person on this install reports their own sign-out.
+     *
+     * Called from the identity boundary — `AppGraph`'s `onCloudIdentityReset` hook — and not from
+     * the control, for reasons in both directions. Released any earlier, before
+     * `CloudIdentityResetCoordinator` has cleared the credentials, a retry would post a second row
+     * under the departing credential and the server would file both against that same account.
+     * Never released, a teardown that threw after those clears would strand the flag set on a device
+     * that has already left, and the sign-in sheet's failure action dismisses itself on its error
+     * path, so no control would be left to release it.
+     */
+    fun release() {
+        isReported.set(false)
+    }
 }
 
 /**

@@ -6,6 +6,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.ViewModelProvider
 import com.flashcardsopensourceapp.core.observability.analytics.Analytics
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
+import com.flashcardsopensourceapp.core.observability.analytics.PendingSignOutReport
 import com.flashcardsopensourceapp.core.ui.TransientMessageController
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSelection
@@ -116,7 +117,8 @@ fun CloudPostAuthRoute(
     onFailureAction: () -> Unit,
     onShowTechnicalDetails: (String, String) -> Unit,
     onBack: () -> Unit,
-    canNavigateBack: Boolean
+    canNavigateBack: Boolean,
+    isFailureActionInFlight: Boolean
 ) {
     CloudPostAuthRouteImpl(
         uiState = uiState,
@@ -126,7 +128,8 @@ fun CloudPostAuthRoute(
         onFailureAction = onFailureAction,
         onShowTechnicalDetails = onShowTechnicalDetails,
         onBack = onBack,
-        canNavigateBack = canNavigateBack
+        canNavigateBack = canNavigateBack,
+        isFailureActionInFlight = isFailureActionInFlight
     )
 }
 
@@ -190,6 +193,7 @@ fun createCloudSignInViewModelFactory(
     syncRepository: SyncRepository,
     messageController: TransientMessageController,
     analytics: Analytics,
+    pendingSignOutReport: PendingSignOutReport,
     originSurface: AnalyticsSurface?,
     signInStepSurface: AnalyticsSurface,
     applicationContext: Context
@@ -199,6 +203,7 @@ fun createCloudSignInViewModelFactory(
         syncRepository = syncRepository,
         messageController = messageController,
         analytics = analytics,
+        pendingSignOutReport = pendingSignOutReport,
         originSurface = originSurface,
         signInStepSurface = signInStepSurface,
         applicationContext = applicationContext
