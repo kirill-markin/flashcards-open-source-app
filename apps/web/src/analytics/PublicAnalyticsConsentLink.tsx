@@ -6,6 +6,7 @@ import { useI18n } from "../i18n";
 import { isAuthenticatedAppPath } from "../routes";
 import type { AnalyticsConsentChoice } from "../types";
 import { AnalyticsConsentToggleCard } from "./AnalyticsConsentToggleCard";
+import { ProductAnalyticsCollectionToggleCard } from "./ProductAnalyticsCollectionToggleCard";
 import { readAnalyticsSessionOwnerId } from "./client";
 import { isAwaitingAnalyticsConsentDecision, subscribeToAnalyticsConsent } from "./consent";
 
@@ -41,10 +42,21 @@ async function persistAccountConsentInBackground(decision: AnalyticsConsentChoic
   void updateAccountPreferences({ analyticsConsent: decision }).catch((): void => undefined);
 }
 
+/** The same carry, for the switch that decides whether anything is collected at all. */
+async function persistAccountCollectionInBackground(isCollectionEnabled: boolean): Promise<void> {
+  if (readAnalyticsSessionOwnerId() === null) {
+    return;
+  }
+
+  void updateAccountPreferences({ productAnalyticsEnabled: isCollectionEnabled })
+    .catch((): void => undefined);
+}
+
 /**
- * The withdrawal control for a visitor who answered the banner on a public route and has no account.
- * Without it the only way back for that person is clearing browser storage, while the published
- * privacy policy describes withdrawal with no sign-in qualifier.
+ * The analytics controls for a visitor on a public route who has no account: the off switch that
+ * stops collection, and the cookie switch that withdraws the shared identifier. Without them the
+ * only way back for that person is clearing browser storage, while the published privacy policy
+ * describes both with no sign-in qualifier.
  *
  * A link in the corner opening the shared switch, rather than a route: `/settings/analytics` is
  * served by `AuthenticatedApp` and adding a second public route for the same screen would take the
@@ -52,11 +64,12 @@ async function persistAccountConsentInBackground(decision: AnalyticsConsentChoic
  * `AuthenticatedApp` wins for everyone. Rendering the switch in place needs no route at all, which
  * is also why the public route list this reads stays the one `routes.ts` already publishes.
  *
- * Shown only once this browser is no longer waiting to be asked — meaning it stored an answer, or
- * it is somewhere that asks nobody. That is exactly the set of states in which there is something to
- * withdraw, and it keeps the pre-decision silence intact twice over: the link cannot appear while
- * the strip is still asking, so the two never compete for the same corner, and it never offers a
- * switch reading "on" to a browser whose question is still open.
+ * Shown only once this browser is no longer waiting to be asked the cookie question — meaning it
+ * stored an answer, or it is somewhere that asks nobody. It keeps the pre-decision silence intact
+ * twice over: the link cannot appear while the strip is still asking, so the two never compete for
+ * the same corner, and it never offers a cookie switch reading "on" to a browser whose question is
+ * still open. The off switch is unreachable on a public route for as long as the strip is up, which
+ * is the one answer away from being reachable and is preferred to two controls in one corner.
  */
 export function PublicAnalyticsConsentLink(): ReactElement | null {
   const { t } = useI18n();
@@ -182,6 +195,9 @@ export function PublicAnalyticsConsentLink(): ReactElement | null {
         ariaDescribedBy={null}
         ariaModal={null}
       >
+        <ProductAnalyticsCollectionToggleCard
+          persistAccountCollection={persistAccountCollectionInBackground}
+        />
         <AnalyticsConsentToggleCard persistAccountConsent={persistAccountConsentInBackground} />
         <button
           className="analytics-consent-withdrawal-close"

@@ -110,7 +110,7 @@ read on `GET /v1/me` and written on `PATCH /v1/me/preferences`
 person to another browser or device. The cookie stays the per-browser record, and the two are
 reconciled at sign-in by the client rather than by either store: the account answer wins where both
 exist, and an account that has none adopts the browser's
-([web sync](../apps/web/src/analytics/accountConsent.ts)).
+([web sync](../apps/web/src/analytics/accountAnalyticsPreferences.ts)).
 
 A guest of the iOS or Android app answers on the same two endpoints, and the answer is kept on the
 guest session in `auth.guest_sessions.analytics_consent` instead: the transport picks the column, so
@@ -161,7 +161,35 @@ client-reported product analytics only: error and crash reporting and the server
 
 The two are stored apart and neither is derived from the other, so a person who already refused the
 cookie keeps analytics on. Both are read on `GET /v1/me` and written on `PATCH /v1/me/preferences`,
-and the transport picks the account column or the guest-session one in the same way for both.
+and the transport picks the account column or the guest-session one in the same way for both. They
+are reconciled with the account on different terms: the consent answer follows the account, while
+the off switch crosses in either direction only toward less collection, so an account holding `true`
+never re-enables a browser that has turned it off
+([web sync](../apps/web/src/analytics/accountAnalyticsPreferences.ts)).
+
+Turning the switch off also stops this browser asking for the shared identifier: the id exists only
+to attribute product-analytics rows, so a web client with the switch off mints no new cookie, on any
+tick or connectivity change, and asks again only when the switch goes back on. A cookie it already
+carries is left alone. A cookie grant given while the switch is off is recorded for the browser and
+carried to the account as any other grant is — it is an answer, not a failure — and only its mint
+waits for the switch. What is owed is read rather than remembered: a stored `granted`, no visitor
+cookie and no identity settled yet is a browser owing that `POST`, so the switch going back on, any
+later page load, an `online` event and the periodic tick each reattempt it — the `online` event and
+the periodic tick under a minimum spacing, so a failing browser does not ask a route that can pay a
+GeoLite download once a minute, while the switch going back on drops that window and a new page load
+starts with none — and an attempt that fails is not lost with the page that made it. While a mint is
+owed nothing answers it with the plain `GET` instead, not even a tick the spacing is still holding
+back: that `GET` settles the identity for a browser the server holds no consent record for, which
+would end the owed mint for the rest of the load and degrade a granting browser to the per-tab id.
+
+On the device the off switch takes everything it finds: the stored queue, the owner record naming
+the account that claimed it, the events held in memory, and the stored session id. The owner record
+is released here and deliberately not on the operator kill switch, which leaves a browser that is
+measurable again the moment an operator turns analytics back on, where this one leaves a person who
+asked to be measured no more. It matters most on a fresh browser signing into an account that
+already holds `false`: the claim that creates the analytics database runs before the account answer
+arrives and is legitimate when it does, so without the release such a browser would end the load
+holding an analytics store naming an account that opted out.
 
 Turning the switch off stops future collection. It deletes nothing: `analytics.product_events` is
 append-only, and account deletion stays the erasure path. The backend enforces it at ingest —
@@ -201,10 +229,10 @@ until the cookie expires or the person clears it — neither clear above is with
 `ACCOUNT_DELETED` it meets has no deletion of its own behind it, and a later sign-in to a different
 account is an account switch, which the identity survives like every other boundary.
 
-The stored consent answer is deliberately not cleared with it. It is the browser's answer rather
-than the account's — a visitor with no account gives it — and discarding it would return a browser
-that refused to undecided, askable and re-mintable again, which is the same thing the kill switch is
-kept from doing above.
+Neither stored answer is cleared with it. They are the browser's answers rather than the account's —
+a visitor with no account gives them — and discarding them would return a browser that refused to
+undecided, askable and re-mintable again, which is the same thing the kill switch is kept from doing
+above, and a browser that turned product analytics off to unanswered, which reads as on.
 
 Already-collected rows are not this cookie's concern: the deletion anonymizes the history attributed
 to the person's user ids in the same transaction it removes the account
@@ -259,8 +287,15 @@ switch rather than sitting beside it, and the switch carries the answer across i
 directions: a browser that refused stays refused when an operator turns analytics off and on again,
 instead of returning to undecided and becoming askable and mintable in between.
 
-The withdrawal control is the same switch on two surfaces, and it is offered in every region, not
-only where the banner is shown, because the published privacy policy states withdrawal without a
+Everything on this page is one decision, and it is not the decision to be measured. Whether the
+person is measured at all is `productAnalyticsEnabled`, a separate answer on the same two endpoints
+with its own switch beside this one, and the two are never read into each other: somebody who
+refused the cookie keeps analytics on, exactly as the banner copy told them, and no stored refusal
+here is ever migrated into that field
+([web decision](../apps/web/src/analytics/productAnalyticsCollection.ts)).
+
+The cookie withdrawal control is the same switch on two surfaces, and it is offered in every region,
+not only where the banner is shown, because the published privacy policy states withdrawal without a
 regional qualifier. A signed-in person has it on the settings screen at `/settings/analytics`, which
 is the route the privacy policy names ("in the web app settings"). The public catalog, invite and
 share routes carry it as a link in the corner, so a visitor who answered the banner there and has no
@@ -283,7 +318,9 @@ when it later grants, rather than adopted into the queue and stamped with the vi
 has just minted.
 
 - [Consent state, and what it allows](../apps/web/src/analytics/consent.ts)
-- [Banner](../apps/web/src/analytics/AnalyticsConsentBanner.tsx), the shared
+- [The separate product-analytics decision](../apps/web/src/analytics/productAnalyticsCollection.ts)
+  and its [switch](../apps/web/src/analytics/ProductAnalyticsCollectionToggleCard.tsx)
+- [Banner](../apps/web/src/analytics/AnalyticsConsentBanner.tsx), the shared cookie
   [withdrawal switch](../apps/web/src/analytics/AnalyticsConsentToggleCard.tsx), its
   [settings surface](../apps/web/src/screens/settings/AnalyticsSettingsScreen.tsx) and its
   [public-route link](../apps/web/src/analytics/PublicAnalyticsConsentLink.tsx)

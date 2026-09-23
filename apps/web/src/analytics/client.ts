@@ -156,6 +156,15 @@ export function declineAnalyticsConsent(): Promise<void> {
 }
 
 /**
+ * Records the person's answer to the product-analytics setting for this browser and carries it out.
+ * The caller writes the same answer to the account where there is a credential; this is the half
+ * that decides what this load collects.
+ */
+export function setProductAnalyticsCollection(isCollectionEnabled: boolean): void {
+  deliveryRuntime.applyProductAnalyticsCollection(isCollectionEnabled);
+}
+
+/**
  * Reports one of the two consent facts the catalog allows no identity at all. It never enters the
  * queue, so unlike `track` it is sent rather than collected.
  */
