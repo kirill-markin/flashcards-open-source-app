@@ -59,17 +59,25 @@ import {
 // kept here rather than corrected there.
 export type ContentWriteEntityType = "card" | "deck";
 
-// What a write did to the row, which is the whole difference between the two facts this producer
-// reports. An update is deliberately neither: the overwhelming majority of writes that reach
-// content.cards are reviews rescheduling a card, a workspace progress reset touching every card in
-// the library at once, or background media settlement with no person acting at all, so a single
-// "content was written" event would have counted review volume under an authoring name. Deciding
-// what counts as an authoring update is its own question; a row appearing and a row being
-// tombstoned have no such ambiguity.
-type ContentWriteAction = "created" | "deleted";
+// What a write did to the row, which is what separates the facts this producer reports.
+//
+// "updated" is deliberately not "the row was written again". The overwhelming majority of writes
+// that reach content.cards are reviews rescheduling a card, a workspace progress reset putting a
+// whole library back to new, or background media settlement with no person acting at all, so a
+// single "content was written" event would have counted review volume under an authoring name.
+//
+// What "updated" means here is one authoring edit: a write that left the entity alive and left at
+// least one authored field different from the value the server held before it. Authored fields are
+// a card's front text, back text and tags, and a deck's name and the tags its filter selects, and
+// nothing else. Everything else these two tables carry is scheduling state, provenance metadata,
+// sync bookkeeping or the tombstone, and a write that moves only those reports nothing.
+// ../catalog.ts states that boundary for readers of the table, which is where it has to be
+// legible.
+type ContentWriteAction = "created" | "updated" | "deleted";
 
 /**
- * One card or deck a product transaction brought into existence or tombstoned.
+ * One card or deck a product transaction brought into existence, authored an edit to, or
+ * tombstoned.
  */
 export type ContentWrite = Readonly<{
   entityType: ContentWriteEntityType;
@@ -86,22 +94,28 @@ export type ContentWrite = Readonly<{
   clientUpdatedAt: string;
 }>;
 
-type CollectedContentWrite = ContentWrite & Readonly<{ action: ContentWriteAction }>;
+// An authoring edit carries the writing operation's own id beside the entity id, because unlike a
+// creation and a first tombstone an entity can be edited any number of times, so the entity alone
+// cannot key it. The other two actions deliberately keep their entity-only key: see
+// toContentWriteEvent.
+type CollectedContentWrite =
+  | (ContentWrite & Readonly<{ action: "created" | "deleted" }>)
+  | (ContentWrite & Readonly<{ action: "updated"; operationId: string }>);
 
 const contentWriteEventNames: Readonly<
   Record<ContentWriteEntityType, Readonly<Record<ContentWriteAction, ProductAnalyticsEventName>>>
 > = {
-  card: { created: "card_created", deleted: "card_deleted" },
-  deck: { created: "deck_created", deleted: "deck_deleted" },
+  card: { created: "card_created", updated: "card_updated", deleted: "card_deleted" },
+  deck: { created: "deck_created", updated: "deck_updated", deleted: "deck_deleted" },
 };
 
 // Reporting inline would hold sync.workspace_sync_metadata's write lock across a second database
 // transaction per write, and that analytics transaction could not roll back with the product
 // write. The shared lifecycle keeps the facts on this executor until its transaction commits.
 //
-// Both actions share one buffer, so a transaction that creates and deletes - the agent SQL batch
-// mutation does both - drains once, resolves its replicas with one read and spends the post-commit
-// budget once for everything it wrote.
+// All three actions share one buffer, so a transaction that creates, edits and deletes - the agent
+// SQL batch mutation can do all three - drains once, resolves its replicas with one read and spends
+// the post-commit budget once for everything it wrote.
 const collectedContentWrites = createPostCommitFactBuffer<CollectedContentWrite>();
 
 /**
@@ -120,6 +134,57 @@ export function collectContentCreation(
   write: ContentWrite,
 ): void {
   collectPostCommitFact(collectedContentWrites, executor, { ...write, action: "created" });
+}
+
+/**
+ * Records that this transaction made one authoring edit to a card or deck, to be reported once it
+ * commits.
+ *
+ * Callers must only reach this from a branch that compared the authored fields the write found
+ * against the authored fields it left, on a row the write left alive. Four rules hold at every call
+ * site and all four exist to keep this from counting something that is not authoring:
+ *
+ *  - Only the authored fields count. A card's front text, back text and tags, a deck's name and
+ *    the tags its filter selects. Scheduling state, provenance metadata, `card_type`, `created_at`
+ *    and the sync bookkeeping columns are not authored, so a review, a progress reset and a re-sync
+ *    report nothing whenever the write leaves the authored fields holding what the row already
+ *    held. For a progress reset that is certain rather than ordinary: it is a server-side UPDATE
+ *    of scheduling columns (../../workspaces/management.ts) that reaches no branch here at all.
+ *    Do not read the other two as a guarantee, though. A review and a re-sync each arrive as a
+ *    whole snapshot carrying authored text as well, frozen into the client's outbox when the write
+ *    was queued, and a snapshot whose text is stale reverts the stored text, which is a change and
+ *    is collected here. That needs no server-side writer: the usual source of the newer text is
+ *    another of the person's own devices. ../catalog.ts discloses that over-count to readers of
+ *    the table, which is where it has to be legible.
+ *  - The comparison is against the row the server actually held, never against the request body. A
+ *    client pushing a full snapshot re-sends every field on every write, so "the request named this
+ *    field" says nothing at all about whether anything changed.
+ *  - A write that tombstones a live row reports its deletion and no edit, even if it also carried
+ *    different text. The write's meaning is the deletion, and collectContentDeletion covers it.
+ *  - A write to a row that is already tombstoned reports nothing, because editing a tombstone is
+ *    not authoring. A write that brings a tombstoned row back alive with different authored text
+ *    does report an edit: the row is live again and carries text a person wrote.
+ *
+ * Nothing that writes card or deck text as a side effect may call this. Backend managed-image
+ * append and settlement rewrite a card's own text with no person acting, through a statement of
+ * their own (../../cards/managedMedia/managedImageSettlement.ts) that reaches no branch here. A
+ * person attaching media in a client does reach one, because there the reference is written into
+ * the card's text locally and pushed as an edit of it; `media_attached` is that person's own
+ * client event for the same action.
+ *
+ * `operationId` must be the writing operation's own `last_operation_id`, because the event id is
+ * derived from it beside the entity id. On the sync push that is the client's own queued operation
+ * id, so a replayed push of one edit derives the same event id and the writer drops it. The agent
+ * surfaces mint a fresh id per call instead (../../aiTools/agentSql/operations.ts and
+ * ../../aiTools/agentSql/batchMutation.ts), so a repeated agent call derives a different event id
+ * and is stopped by the comparison rather than by the key: the first call already stored the text
+ * the second one sends, so the second finds nothing changed and collects nothing.
+ */
+export function collectContentAuthoringUpdate(
+  executor: DatabaseExecutor,
+  write: ContentWrite & Readonly<{ operationId: string }>,
+): void {
+  collectPostCommitFact(collectedContentWrites, executor, { ...write, action: "updated" });
 }
 
 /**
@@ -445,14 +510,27 @@ function toContentWriteEvent(
 ): ServerDerivedProductAnalyticsEvent {
   const eventName = contentWriteEventNames[write.entityType][write.action];
   return {
-    // Keyed on the row id alone, under an event name that already separates the two actions. There
-    // is only ever one creation and one first tombstone per row, so any path that reaches this
-    // producer again for the same row - a replayed sync push, a guest merge, a re-sent delete -
-    // derives the same id and conflicts on event_id in the writer instead of counting a second
-    // fact. Only a path that preserves the row id dedupes this way: the workspace-package import
-    // mints a fresh card id per card, so a re-import is genuinely new cards and correctly counts
-    // new creations.
-    eventId: deriveServerDerivedProductAnalyticsEventId(eventName, [write.entityId]),
+    // A creation and a deletion are keyed on the row id alone, under an event name that already
+    // separates them. There is only ever one creation and one first tombstone per row, so any path
+    // that reaches this producer again for the same row - a replayed sync push, a guest merge, a
+    // re-sent delete - derives the same id and conflicts on event_id in the writer instead of
+    // counting a second fact. Only a path that preserves the row id dedupes this way: the
+    // workspace-package import mints a fresh card id per card, so a re-import is genuinely new
+    // cards and correctly counts new creations.
+    //
+    // An authoring edit cannot use that key and does not: an entity can be edited any number of
+    // times, and an entity-keyed edit would count "entities ever edited" rather than edits. It is
+    // keyed on the row id and the writing operation's id together, so one row here is one write
+    // that changed what a person authored. A replayed sync push carries the client's own queued
+    // operation id again, derives the same event id and conflicts in the writer; a repeated agent
+    // call mints a new operation id and would not, which is why the collection points compare the
+    // stored row rather than the request - the repeat finds the text it sends already stored and
+    // collects nothing. Two genuine edits made inside one millisecond are two operations and stay
+    // two rows, which a timestamp key would have collapsed.
+    eventId: deriveServerDerivedProductAnalyticsEventId(
+      eventName,
+      write.action === "updated" ? [write.entityId, write.operationId] : [write.entityId],
+    ),
     eventName,
     occurredAt: resolveContentWriteOccurredAt(write.clientUpdatedAt, recordedAt),
     // The server clock, read once in Node after the product transaction committed and shared by
@@ -716,11 +794,16 @@ function resolvePostCommitAnalyticsBudget(
 }
 
 /**
- * Opens one workspace-scoped product transaction and reports the cards and decks it created.
+ * Opens one workspace-scoped product transaction and reports the card and deck writes it made -
+ * every action the buffer above holds, not only creations.
  *
- * Every transaction that can reach a card or deck insert must be opened through this instead of
- * transactionWithWorkspaceScope, otherwise its writes are collected and then dropped. The scope's
- * own user is the actor, because it is the identity every statement in the transaction runs as.
+ * Every transaction that can reach any collect* function in this module must be opened through this
+ * instead of transactionWithWorkspaceScope, otherwise its writes are collected and then dropped
+ * with no error raised anywhere. Do not read that rule as being about inserts: a card or deck
+ * deletion and a card or deck authoring edit are collected the same way and vanish the same way, so
+ * a new caller of updateCard, updateCards or any other editing path needs this wrapper exactly as
+ * much as a creating one does. The scope's own user is the actor, because it is the identity every
+ * statement in the transaction runs as.
  */
 export async function transactionWithWorkspaceScopeReportingContentWrites<Result>(
   scope: WorkspaceDatabaseScope,

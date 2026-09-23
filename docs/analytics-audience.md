@@ -51,10 +51,13 @@ publication deliverable; this implementation makes no compliance or consent-exem
 ## Automation installations
 
 A client may declare that its installation runs under automation. The declaration is stored on the
-installation, is never cleared, and stops product analytics for the five facts that resolve a
-replica (`review_answered`, `card_created`, `card_deleted`, `deck_created` and `deck_deleted`) plus
-everything that installation uploads through the client ingest. Those are the ones no in-app switch
-could prevent, because
+installation, is never cleared, and stops product analytics for every fact that resolves a replica -
+`review_answered`, and each of the card and deck creation, authoring-update and deletion facts -
+plus everything that installation uploads through the client ingest. The content facts are covered
+as a group rather than by name: `dropAutomationContentWrites` in
+[contentWrites.ts](../apps/backend/src/productAnalytics/serverFacts/contentWrites.ts) drops every
+write the producer collected whose replica carries the marker, whichever of the three it is. Those
+are the ones no in-app switch could prevent, because
 the backend derives them from synced data rather than from anything the client sends. Absence of the
 declaration and an explicit `false` are the same negative case, and only `true` marks anything, so a
 client that says nothing, or that always sends `false`, behaves exactly as before.

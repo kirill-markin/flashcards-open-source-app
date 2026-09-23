@@ -105,8 +105,20 @@ export const boundaryDefinitions = Object.freeze([
   Object.freeze({
     migrationFileName: "0149_product_analytics_off_switch.sql",
     expectedMigrationCount: 151,
+    //
+    // serverFacts/authoringUpdates joined this boundary rather than taking one of its own, and not
+    // for the profile read above: it authenticates nothing. It drives the real exported card and
+    // deck mutations through the real post-commit drain and the real analytics writer, so its floor
+    // is 0141, whose sync.installations.is_automation the drain's replica resolution names in its
+    // LEFT JOIN. Above that floor it wants the newest schema rather than an older one, because it
+    // exists to pin what production runs - the statement in updateCardInExecutor that captures a
+    // card's authored fields before its own UPDATE is executed nowhere else in the repository, and
+    // an ambiguous column or a RETURNING list that stopped matching CARD_COLUMNS would otherwise
+    // first be seen in production. Nothing ties the two files in this entry together, so moving
+    // either one later does not free the other.
     testFiles: Object.freeze([
       "src/agent/reviews.postgres.integration.ts",
+      "src/productAnalytics/serverFacts/authoringUpdates.postgres.integration.ts",
       "src/routes/system/account/accountPreferences.postgres.integration.ts",
     ]),
   }),
@@ -127,17 +139,18 @@ export const boundaryDefinitions = Object.freeze([
   }),
   // 0141 adds sync.installations.is_automation and recreates sync.claim_installation with it as an
   // extra output column, and the shared replica reads now name that column: the claim SELECT in
-  // sync/identity/replica.ts, and the LEFT JOIN behind the product analytics content-creation and
+  // sync/identity/replica.ts, and the LEFT JOIN behind the product analytics content-write and
   // review-answer producers. Boundaries run current backend code against their own older schema, so
   // every test whose path reaches one of those reads has to be pinned at or after this migration or
-  // it fails with `column installations.is_automation does not exist`. Three tests reach those
-  // reads and are the complete set: freshBootstrap (the /sync/bootstrap replica claim) and
+  // it fails with `column installations.is_automation does not exist`. The tests that reach those
+  // reads are the two listed here - freshBootstrap (the /sync/bootstrap replica claim) and
   // jobsSettlement (which verifies a promoted asset through a real processSyncPull), both moved
-  // here from 0107, and agent/reviews (processSyncPull, processSyncReviewHistoryPull, and the
-  // post-commit content-creation resolution), which came here from 0138 and which the 0149
-  // boundary above now pins further forward, satisfying this one too. Moving them retires the
-  // older-schema coverage they used to give, because each test runs only at its pinned boundary
-  // and there is no full-schema pass.
+  // here from 0107 - plus every test the 0149 entry above pins further forward, which satisfies
+  // this migration too: agent/reviews (processSyncPull, processSyncReviewHistoryPull, and the
+  // post-commit content-write resolution), which came here from 0138, and
+  // serverFacts/authoringUpdates, which was written above this boundary and never sat at it.
+  // Moving a test retires the older-schema coverage it used to give, because each test runs only at
+  // its pinned boundary and there is no full-schema pass.
   Object.freeze({
     migrationFileName: "0141_sync_installation_automation_marker.sql",
     expectedMigrationCount: 143,

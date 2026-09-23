@@ -31,8 +31,9 @@ import {
 } from "../sync/conflicts/fork";
 import type { LegacyEffortLevel } from "../sync/contracts/legacyEffort";
 import { isLegacyEffortLevel } from "../sync/contracts/legacyEffort";
-import { appendLegacyEffortTag } from "../cards/shared";
+import { appendLegacyEffortTag, authoredTagsChanged } from "../cards/shared";
 import {
+  collectContentAuthoringUpdate,
   collectContentCreation,
   collectContentDeletion,
   transactionWithWorkspaceScopeReportingContentWrites,
@@ -296,6 +297,27 @@ export function mapDeck(row: DeckRow): Deck {
     updatedAt: toIsoString(row.updated_at),
     deletedAt: row.deleted_at === null ? null : toIsoString(row.deleted_at),
   };
+}
+
+/**
+ * Whether a write changed what a person authored on a deck.
+ *
+ * A deck is a saved tag filter, so everything a person authors about one is its name and the tags
+ * its filter selects. `DeckFilterDefinition` carries only `version` and `tags`, and `version` is the
+ * stored shape rather than anything a person chose; `created_at`, the tombstone and the sync
+ * bookkeeping columns are the rest of the row and none of them is authoring either.
+ *
+ * Both sides must be decks the database returned, never a request body: a client re-sends the whole
+ * deck on every push, so "the request named this field" says nothing about whether it changed.
+ *
+ * Tags are compared by ../cards/shared.ts, which owns that rule for decks and cards alike.
+ */
+function deckAuthoringFieldsChanged(before: Deck, after: Deck): boolean {
+  if (before.name !== after.name) {
+    return true;
+  }
+
+  return authoredTagsChanged(before.filterDefinition.tags, after.filterDefinition.tags);
 }
 
 function decodeDeckPageCursor(cursor: string): DeckPageCursor {
@@ -783,6 +805,31 @@ export async function upsertDeckSnapshotInExecutor(
       workspaceId,
       replicaId: updatedDeck.lastModifiedByReplicaId,
       clientUpdatedAt: updatedDeck.clientUpdatedAt,
+    });
+  }
+
+  // The authoring edit, and every deck update in the product reaches it: the sync push, the sync
+  // bootstrap push, updateDeckInExecutor and deleteDeckInExecutor all write a deck through this
+  // one function, which is why decks need nothing like the second collection point cards have.
+  //
+  // Both sides of the comparison are rows the database returned, so this is an edit test and not a
+  // write test. deleteDeckInExecutor re-sends the deck's own stored name and filter, so a deletion
+  // reports the tombstone above and no edit; the deletedAt guard says the same thing for a client
+  // push that tombstones and would hold even if that ever stopped being true.
+  //
+  // `created_at` is written by the statement above and is deliberately not an authored field: a
+  // client correcting a deck's creation timestamp authored nothing.
+  if (
+    updatedDeck.deletedAt === null
+    && deckAuthoringFieldsChanged(existingDeck, updatedDeck)
+  ) {
+    collectContentAuthoringUpdate(executor, {
+      entityType: "deck",
+      entityId: updatedDeck.deckId,
+      workspaceId,
+      replicaId: updatedDeck.lastModifiedByReplicaId,
+      clientUpdatedAt: updatedDeck.clientUpdatedAt,
+      operationId: updatedDeck.lastOperationId,
     });
   }
 
