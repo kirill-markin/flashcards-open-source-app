@@ -20,6 +20,13 @@ export type ManagedMediaLifecycleReference = Readonly<{
   isImage: boolean;
 }>;
 
+export type ManagedMediaImageReferenceSource = Readonly<{
+  mediaAssetId: string;
+  state: ManagedMediaLifecycleState;
+  destination: string;
+  source: string;
+}>;
+
 export type ManagedMediaLifecycleIssues = Readonly<{
   pendingDestinations: ReadonlyArray<string>;
   failedDestinations: ReadonlyArray<string>;
@@ -352,6 +359,45 @@ export function extractMarkdownManagedMediaLifecycleReferences(
   return runMarkdownHelper(() => (
     extractMarkdownManagedMediaLifecycleReferencesUnchecked(markdown)
   ));
+}
+
+function extractManagedMediaImageReferenceSourcesUnchecked(
+  markdown: string,
+): ReadonlyArray<ManagedMediaImageReferenceSource> {
+  const references: Array<ManagedMediaImageReferenceSource> = [];
+  for (const destination of iterateMarkdownActiveDestinations(markdown)) {
+    if (!destination.hasDestination || !destination.isImage) {
+      continue;
+    }
+    const reference = parseManagedMediaLifecycleReference(destination.destination);
+    if (reference === null) {
+      continue;
+    }
+    // The label frame of an image starts at its `[`, so the `!` that makes it an image sits one
+    // character earlier. Slicing from there lifts the whole `![alt](destination)` node exactly as
+    // the source holds it, which is what lets a caller reproduce a reference verbatim instead of
+    // rebuilding one and losing the alt text a person or the generator wrote.
+    const nodeStartIndex = markdown[destination.labelStartIndex - 1] === "!"
+      ? destination.labelStartIndex - 1
+      : destination.labelStartIndex;
+    references.push({
+      ...reference,
+      source: markdown.slice(nodeStartIndex, destination.linkEndIndex),
+    });
+  }
+  return references;
+}
+
+/**
+ * Every managed-media image reference in `markdown`, each with the exact source text of its node.
+ *
+ * Only active image destinations are returned, so a reference inside a code fence or an inline code
+ * span is not one, exactly as every other extractor in this file treats it.
+ */
+export function extractManagedMediaImageReferenceSources(
+  markdown: string,
+): ReadonlyArray<ManagedMediaImageReferenceSource> {
+  return runMarkdownHelper(() => extractManagedMediaImageReferenceSourcesUnchecked(markdown));
 }
 
 function extractMarkdownManagedMediaLifecycleIssuesUnchecked(

@@ -46,6 +46,7 @@ export {
 export {
   appendManagedImageToCardSideInExecutor,
   appendManagedImageToCardText,
+  createManagedImageRestoreLedger,
   appendPendingManagedImageToCardSideInExecutor,
   buildManagedImageMarkdownReference,
   hasPendingManagedImageOnCardSideInExecutor,
@@ -58,6 +59,7 @@ export {
 } from "./managedMedia";
 
 export type {
+  ManagedImageRestoreLedger,
   ManagedImageSettlementConflictError,
 } from "./managedMedia";
 

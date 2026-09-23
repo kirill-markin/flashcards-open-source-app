@@ -1,6 +1,8 @@
 import {
   appendReviewEventSnapshotInExecutor,
+  createManagedImageRestoreLedger,
   upsertCardSnapshotInExecutor,
+  type ManagedImageRestoreLedger,
 } from "../../cards";
 import {
   createCurrentUserPublicProfileResolver,
@@ -100,6 +102,7 @@ export async function processOperationInExecutor(
   replicaId: string,
   operation: SyncPushOperation,
   resolveReviewedBy: CurrentUserPublicProfileResolver,
+  managedImageRestoreLedger?: ManagedImageRestoreLedger,
 ): Promise<SyncPushOperationResult> {
   let resultingHotChangeId: number | null = null;
   let status: SyncPushOperationResult["status"] = "applied";
@@ -125,6 +128,7 @@ export async function processOperationInExecutor(
         lastModifiedByReplicaId: replicaId,
         lastOperationId: operation.operationId,
       }),
+      { managedImageRestoreLedger },
     );
     status = mutation.applied ? "applied" : "ignored";
     resultingHotChangeId = mutation.changeId;
@@ -307,6 +311,10 @@ export async function processSyncPushOperationsInExecutor(
   // Resolve the syncing user's public profile at most once for the whole push batch;
   // the resolver stays lazy, so a push with no applied review event never creates one.
   const resolveReviewedBy = createCurrentUserPublicProfileResolver(executor);
+  // One ledger for the whole batch. A client queues one snapshot per action and coalesces nothing,
+  // so two ratings of the same card in one offline session arrive here as two operations carrying
+  // the same stale text; the second must not read the first one's merge as the device catching up.
+  const managedImageRestoreLedger = createManagedImageRestoreLedger();
   const results: Array<SyncPushOperationResult> = [];
 
   for (const operation of operations) {
@@ -323,7 +331,14 @@ export async function processSyncPushOperationsInExecutor(
       continue;
     }
 
-    results.push(await processOperationInExecutor(executor, workspaceId, replicaId, operation, resolveReviewedBy));
+    results.push(await processOperationInExecutor(
+      executor,
+      workspaceId,
+      replicaId,
+      operation,
+      resolveReviewedBy,
+      managedImageRestoreLedger,
+    ));
   }
 
   return results;
