@@ -16,6 +16,39 @@ import type {
 } from "./types";
 import type { LegacyEffortLevel } from "../sync/contracts/legacyEffort";
 
+/**
+ * Whether two stored tag lists differ in what they hold rather than in the order they hold it.
+ *
+ * Shared by the two authoring-edit tests, `card_updated` in ./mutations.ts and `deck_updated` in
+ * ../decks/index.ts, so one rule covers both and neither can drift from what ../productAnalytics/
+ * catalog.ts states for the pair.
+ *
+ * Order is ignored because a client that stores the same tags in a different order from the one the
+ * server happens to hold would otherwise make every push of an untouched entity look like an edit,
+ * permanently, on an append-only table. Multiplicity is not ignored: a card row written before the
+ * card write paths deduped may still hold a tag twice, mapCard below passes a card row's tags
+ * through exactly as stored, and comparing as a set would call dropping that duplicate no change at
+ * all. That half of the rationale belongs to the card caller alone. A stored deck can never present
+ * a duplicate here, because mapDeck parses every deck row it returns through normalizeDeckTags,
+ * which dedupes (../decks/index.ts), so both sides of the deck comparison are unique before they
+ * arrive and only the order rule does any work there.
+ *
+ * The cost runs the other way and is accepted: reordering tags and changing nothing else is not
+ * counted as an edit.
+ */
+export function authoredTagsChanged(
+  before: ReadonlyArray<string>,
+  after: ReadonlyArray<string>,
+): boolean {
+  if (before.length !== after.length) {
+    return true;
+  }
+
+  const sortedBefore = [...before].sort();
+  const sortedAfter = [...after].sort();
+  return sortedBefore.some((tag, index) => tag !== sortedAfter[index]);
+}
+
 export const CARD_COLUMNS = [
   "card_id, front_text, back_text, card_type, metadata, tags, effort_level, due_at, created_at, reps, lapses,",
   "fsrs_card_state, fsrs_step_index, fsrs_stability, fsrs_difficulty, fsrs_last_reviewed_at, fsrs_scheduled_days,",

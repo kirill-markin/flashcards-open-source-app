@@ -1,9 +1,7 @@
 import { randomUUID } from "node:crypto";
+import type { DatabaseExecutor } from "../database";
 import {
-  transactionWithWorkspaceScope,
-  type DatabaseExecutor,
-} from "../database";
-import {
+  collectContentAuthoringUpdate,
   collectContentCreation,
   collectContentDeletion,
   transactionWithWorkspaceScopeReportingContentWrites,
@@ -23,6 +21,7 @@ import {
 } from "../sync/conflicts/fork";
 import { assertConsistentFsrsState } from "./review/fsrs";
 import {
+  authoredTagsChanged,
   CARD_COLUMNS,
   createDefaultCardMetadata,
   loadCardRowForMutation,
@@ -49,6 +48,41 @@ import type {
 } from "./types";
 
 const MAX_CARD_BATCH_SIZE = 100;
+
+// What updateCardInExecutor's statement returns: the written row, plus the authored fields the row
+// held before the write, captured by the same statement.
+type UpdatedCardRow = CardRow & Readonly<{
+  previous_front_text: string;
+  previous_back_text: string;
+  previous_tags: ReadonlyArray<string>;
+}>;
+
+// The three card fields a person authors, and the only ones `card_updated` is measured on. Every
+// other column content.cards carries is scheduling state (due_at and the FSRS columns), provenance
+// bookkeeping (metadata), the card's shape (card_type), or sync bookkeeping, so a review, a
+// progress reset, a settled managed image and a re-sync that moves only those is not an edit.
+type CardAuthoredFields = Readonly<{
+  frontText: string;
+  backText: string;
+  tags: ReadonlyArray<string>;
+}>;
+
+/**
+ * Whether a write changed what a person authored on a card.
+ *
+ * Both sides must be values the database held or returned, never a request body: an offline-first
+ * client re-sends every field of a card on every push, so "the request named this field" carries no
+ * information about whether anything changed.
+ *
+ * Tags are compared by ./shared.ts, which owns that rule for cards and decks alike.
+ */
+function cardAuthoringFieldsChanged(before: CardAuthoredFields, after: CardAuthoredFields): boolean {
+  if (before.frontText !== after.frontText || before.backText !== after.backText) {
+    return true;
+  }
+
+  return authoredTagsChanged(before.tags, after.tags);
+}
 
 function normalizeRequiredCardText(value: string, fieldName: string): string {
   const normalizedValue = value.trim();
@@ -398,6 +432,49 @@ export async function upsertCardSnapshotInExecutor(
     });
   }
 
+  // The authoring edit, and the only place a client's own card edits are counted at all: all three
+  // clients are offline-first and push their edits as snapshots through this function rather than
+  // through any card-update route.
+  //
+  // Both sides of the comparison are rows the database returned, which is what makes it an edit
+  // test rather than a write test. A push carrying a review's new scheduling, a progress reset
+  // syncing back, or a settled managed image the device pulled and re-sent leaves the authored
+  // fields identical and reports nothing.
+  //
+  // That holds for the text the pushing device was holding, not for the text the server was
+  // holding, and the two are the same only while the device is caught up. A client freezes the
+  // whole snapshot into its outbox when it queues the write, so a device that has not pulled a
+  // newer text sends the stale text in the next snapshot it pushes for any reason at all, and
+  // pulling before pushing cannot refresh an already-queued payload. That snapshot is stamped with
+  // the moment of the action that queued it, so it wins last-write-wins, reverts the stored text a
+  // few lines above, and is collected here as an edit - correctly by this function's definition,
+  // and attributed to a review rather than to a person.
+  //
+  // The newer text it reverts most often came from another of the person's own devices, and no
+  // server-side writer is needed for any of it: phone edits, laptop is behind, laptop reviews and
+  // pushes. Backend managed-image append and settlement opens the same window from the server side
+  // (./managedMedia/managedImageSettlement.ts) and is one instance of the mechanism rather than its
+  // cause. ../productAnalytics/catalog.ts discloses both to readers of the table.
+  //
+  // `updatedCard.deletedAt === null` is what keeps deletion and authoring apart. A write that
+  // tombstoned the card is the deletion collected just above and nothing else, even if it also
+  // carried different text, and a write over a card the server already held tombstoned is not
+  // authoring. The one write that passes this guard having found a tombstone is a card coming back
+  // alive with different text, which is a real edit and is counted: the row is live again and
+  // carries text a person wrote. `card_deleted` is keyed on the card alone and so does not count
+  // that card's second deletion, which is why the two series can show an edit after a deletion for
+  // one card.
+  if (updatedCard.deletedAt === null && cardAuthoringFieldsChanged(existingCard, updatedCard)) {
+    collectContentAuthoringUpdate(executor, {
+      entityType: "card",
+      entityId: updatedCard.cardId,
+      workspaceId,
+      replicaId: updatedCard.lastModifiedByReplicaId,
+      clientUpdatedAt: updatedCard.clientUpdatedAt,
+      operationId: updatedCard.lastOperationId,
+    });
+  }
+
   return {
     card: updatedCard,
     applied: true,
@@ -527,14 +604,45 @@ export async function updateCardInExecutor(
     cardId,
   ];
 
-  const result = await executor.query<CardRow>(
+  const workspaceIdParam = `$${params.length - 1}`;
+  const cardIdParam = `$${params.length}`;
+  const result = await executor.query<UpdatedCardRow>(
     [
+      // The authored fields as the row held them before this write, captured by the same statement
+      // that does the write rather than by a second read of the row. That is the whole reason for
+      // the CTE: this path serves the agent surfaces, where one SQL batch can update a hundred
+      // cards, and a preceding SELECT per card would be a hundred extra round trips to answer an
+      // analytics question.
+      //
+      // The CTE reads the row under the statement's own snapshot, so it is genuinely the previous
+      // version and not the one this UPDATE leaves. It cannot go stale under a concurrent writer
+      // either: every path that UPDATEs a row of content.cards first takes
+      // sync.workspace_sync_metadata FOR UPDATE for the workspace
+      // (lockWorkspaceSyncMetadataForHotChangesInExecutor, called above), so those writers are
+      // serialized per workspace and none of them can change this row between the CTE and the
+      // UPDATE. Exactly one writer stands outside that lock and it cannot make this read wrong:
+      // guest-workspace teardown (../guestAuth/store/deletion.ts) DELETEs the workspace's cards
+      // wholesale under the workspace access-lifecycle lock instead, and a row it removed makes
+      // this UPDATE match nothing, which is the 404 below rather than a stale previous value.
+      //
+      // Every selected column is aliased, which is what keeps CARD_COLUMNS usable unqualified in
+      // RETURNING: front_text, back_text, tags and card_id would otherwise be ambiguous across the
+      // join.
+      "WITH previous AS (",
+      "SELECT card_id AS previous_card_id, front_text AS previous_front_text,",
+      "back_text AS previous_back_text, tags AS previous_tags",
+      "FROM content.cards",
+      `WHERE workspace_id = ${workspaceIdParam} AND card_id = ${cardIdParam} AND deleted_at IS NULL`,
+      ")",
       "UPDATE content.cards",
       `SET ${updateParts.assignments.join(", ")}, client_updated_at = $${params.length - 4},`,
       `last_modified_by_replica_id = $${params.length - 3}, last_operation_id = $${params.length - 2}, updated_at = now()`,
-      `WHERE workspace_id = $${params.length - 1} AND card_id = $${params.length} AND deleted_at IS NULL`,
+      "FROM previous",
+      `WHERE workspace_id = ${workspaceIdParam} AND card_id = ${cardIdParam} AND deleted_at IS NULL`,
+      "AND card_id = previous.previous_card_id",
       "RETURNING",
-      CARD_COLUMNS,
+      `${CARD_COLUMNS},`,
+      "previous.previous_front_text, previous.previous_back_text, previous.previous_tags",
     ].join(" "),
     params,
   );
@@ -546,14 +654,36 @@ export async function updateCardInExecutor(
 
   const card = mapCard(row);
   await recordCardSyncChange(executor, workspaceId, hotChangeWriteLock, card);
+  // The authoring edit for the agent surfaces, which are the only callers of this path: the sync
+  // push and the sync bootstrap push write through upsertCardSnapshotInExecutor instead and collect
+  // their own. The statement matches on deleted_at IS NULL and 404s otherwise, so a card reached
+  // here was alive before the write and is alive after it, and neither the deletion nor the
+  // tombstone-edit case the snapshot path has to rule out can occur.
+  if (cardAuthoringFieldsChanged(
+    {
+      frontText: row.previous_front_text,
+      backText: row.previous_back_text,
+      tags: row.previous_tags,
+    },
+    card,
+  )) {
+    collectContentAuthoringUpdate(executor, {
+      entityType: "card",
+      entityId: card.cardId,
+      workspaceId,
+      replicaId: card.lastModifiedByReplicaId,
+      clientUpdatedAt: card.clientUpdatedAt,
+      operationId: card.lastOperationId,
+    });
+  }
+
   return card;
 }
 
-// The card update transactions below stay on the plain scoped transaction, because
-// updateCardInExecutor writes its own UPDATE against a row it already required to exist and never
-// reaches the snapshot upsert's insert branch, so it can collect no content write to report. The
-// delete transactions further down are on the reporting wrapper instead: deleteCardInExecutor
-// collects a content deletion, which needs the wrapper's post-commit drain to emit it.
+// The card update transactions below are on the reporting wrapper, like the delete transactions
+// further down: updateCardInExecutor collects an authoring edit when a write changed a card's
+// authored fields, and that collection is dropped unless the wrapper's post-commit drain emits it.
+// Neither of them can reach the snapshot upsert's insert branch, so neither ever reports a creation.
 export async function updateCard(
   userId: string,
   workspaceId: string,
@@ -561,7 +691,7 @@ export async function updateCard(
   input: UpdateCardInput,
   metadata: CardMutationMetadata,
 ): Promise<Card> {
-  return transactionWithWorkspaceScope(
+  return transactionWithWorkspaceScopeReportingContentWrites(
     { userId, workspaceId },
     async (executor) => updateCardInExecutor(executor, workspaceId, cardId, input, metadata),
   );
@@ -575,7 +705,7 @@ export async function updateCards(
   validateCardBatchCount(items.length);
   validateUniqueCardIds(items.map((item) => item.cardId));
 
-  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
+  return transactionWithWorkspaceScopeReportingContentWrites({ userId, workspaceId }, async (executor) => {
     const updatedCards: Array<Card> = [];
     for (const item of items) {
       updatedCards.push(
