@@ -81,10 +81,32 @@ func makeDefaultAccountPreferences() -> AccountPreferences {
     AccountPreferences(reviewReactionAnimationsEnabled: true, productAnalyticsEnabled: nil)
 }
 
+/**
+ * Who asked for the analytics value beside it in one PATCH /me/preferences body.
+ *
+ * `userAction` is the person pressing the control on this device, now, with the control still
+ * waiting on the result. `reconciliation` is this device carrying over an answer it has been
+ * holding, given at a time nothing in the request records and possibly for another identity.
+ *
+ * The route refuses a `reconciliation` that would loosen a stored refusal and answers with the
+ * stored value instead, so a remembered opt-in cannot revert an opt-out taken since on another
+ * device. A `userAction` is always stored, which is what keeps the switch reversible by the control
+ * that moved it. A body that names no origin is read as `user_action`, which is what every client
+ * sent before the field existed.
+ */
+enum AnalyticsPreferenceWriteOrigin: String, Encodable, Hashable, Sendable {
+    case userAction = "user_action"
+    case reconciliation = "reconciliation"
+}
+
 /// One PATCH /me/preferences body. A nil field is left out of the JSON and keeps its stored value.
 struct AccountPreferencesPatchRequest: Encodable, Hashable, Sendable {
     var reviewReactionAnimationsEnabled: Bool?
     var productAnalyticsEnabled: Bool?
+    /// Who asked for `productAnalyticsEnabled`. Named on every push that carries an answer, rather
+    /// than left to the route's default, so the one difference between a person's press and a retry
+    /// of it is visible at the site that decides which of the two this is.
+    var productAnalyticsEnabledOrigin: AnalyticsPreferenceWriteOrigin?
 }
 
 /// Client-safe community profile from GET/PATCH /me/community/profile.
