@@ -1,0 +1,31 @@
+-- Migration status: Current / additive.
+-- Introduces: read-only reporting access to auth.guest_sessions.product_analytics_enabled, the
+--   guest half of the product-analytics off switch, so a report can count the people who switched
+--   collection off. It is the grant db/migrations/0149_product_analytics_off_switch.sql deferred:
+--   "No report reads this switch today, so nothing is named here; the first report that counts guest
+--   opt-outs adds GRANT SELECT (product_analytics_enabled) ON TABLE auth.guest_sessions TO
+--   reporting_readonly in its own migration." That report is the analytics-settings field of the
+--   admin Audience section (apps/admin/src/reports/audience/query.ts), which counts the people in
+--   its cohort who currently hold the off switch, and it reads the database through
+--   reporting_readonly alone.
+-- Current guidance: db/migrations/0066_reporting_readonly_operational_analytics.sql gave that role a
+--   column list on auth.guest_sessions rather than the whole row, so a new column on that table
+--   stays unreadable to reporting until it is named here. The account half needs nothing:
+--   db/migrations/0044_reporting_readonly_role.sql granted reporting_readonly table-level SELECT on
+--   org.user_settings, which covers product_analytics_enabled on sight. auth.guest_sessions carries
+--   no row-level security, so no policy accompanies this grant, and 0066 already granted
+--   USAGE ON SCHEMA auth to the role.
+-- Current guidance: deploy this before the admin build that reads the column. The Audience query
+--   reads it unconditionally, so until the grant is in place the entire section fails rather than
+--   only the new field, and it fails as an HTTP 500 INTERNAL_ERROR: a permission error raised by a
+--   reporting query is not translated into a readable message anywhere on that path.
+-- Current guidance: this grants the off switch and nothing else. analytics_consent on the same table
+--   was already granted by db/migrations/0147_guest_session_analytics_consent.sql, and 0149 states
+--   why neither column may ever be derived from the other: they answer different questions, and the
+--   Audience section counts them as two separate fields for that reason.
+-- Schemas touched/read explicitly: auth.
+-- See also: db/migrations/0149_product_analytics_off_switch.sql,
+--   db/migrations/0147_guest_session_analytics_consent.sql,
+--   db/migrations/0066_reporting_readonly_operational_analytics.sql, docs/admin-app.md.
+
+GRANT SELECT (product_analytics_enabled) ON TABLE auth.guest_sessions TO reporting_readonly;
