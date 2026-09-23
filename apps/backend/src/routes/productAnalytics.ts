@@ -398,6 +398,50 @@ export function createProductAnalyticsRoutes(options: ProductAnalyticsRoutesOpti
         scope,
       );
 
+      // A person who switched product analytics off stores nothing they report themselves. The
+      // switch is read from the credential this request authenticated with - the account for a
+      // signed-in person, the guest session for a guest - so a stale client that keeps sending is
+      // refused here rather than trusted to stop. Only an explicit false is an opt-out: null is
+      // "never answered", which reads as on, and that is every credential until a client writes the
+      // preference.
+      //
+      // Dropped before the events, the identity link and the installation profile are written, so
+      // an opted-out batch leaves nothing behind, not even the anonymous-id-to-account link it
+      // carried. The batch is still validated and still answered with its rejections, and the
+      // accepted count stays the number of events this request took responsibility for, so a client
+      // released before this switch existed retires its queue instead of redelivering a batch that
+      // will never be stored. Nothing already stored is removed: this stops future collection only.
+      //
+      // Error and crash reporting and the server-derived facts in ../productAnalytics/serverFacts/
+      // are outside the switch and are not affected here.
+      if (loadedContext.requestContext.preferences.productAnalyticsEnabled === false) {
+        addBackendBreadcrumb({
+          action: "analytics_events_ingest_analytics_off_dropped",
+          scope,
+          details: {
+            statusCode: 200,
+            authTransport: loadedContext.requestContext.transport,
+            trustLevel: toTrustLevel(loadedContext.requestContext),
+            platform: facts.platform,
+            appVersion: facts.appVersion,
+            eventCount: rows.length + rejected.length,
+            acceptedCount: rows.length,
+            rejectedCount: rejected.length,
+            outOfWindowCount: countOutOfWindowRejections(rejected),
+            contractRejectedCount: countContractRejections(rejected),
+            // The whole difference this rule makes: the batch was accepted and stored nowhere.
+            // acceptedCount above is the count of events dropped by it.
+            storedCount: 0,
+            identityLinked: null,
+          },
+        });
+
+        return context.json({
+          accepted: rows.length,
+          rejected,
+        } satisfies ProductAnalyticsIngestEnvelope);
+      }
+
       // An installation that declared itself automation stores nothing, whichever way its events
       // reach the backend: the server-derived producers drop its facts
       // (../productAnalytics/serverFacts/), and its own uploads stop here, before the events, the

@@ -41,7 +41,8 @@ export function handleUserSettingsExecutorQuery<Row extends pg.QueryResultRow>(
 
   if (
     text.startsWith(
-      "SELECT workspace_id, email, locale, review_reaction_animations_enabled, analytics_consent, created_at",
+      "SELECT workspace_id, email, locale, review_reaction_animations_enabled, analytics_consent,"
+      + " product_analytics_enabled, created_at",
     )
     && text.includes("FROM org.user_settings")
     && text.includes("FOR UPDATE")
@@ -55,6 +56,7 @@ export function handleUserSettingsExecutorQuery<Row extends pg.QueryResultRow>(
       locale: "en",
       review_reaction_animations_enabled: true,
       analytics_consent: row.analytics_consent,
+      product_analytics_enabled: row.product_analytics_enabled,
       created_at: "2026-04-02T13:00:00.000Z",
     } as unknown as Row]);
   }
@@ -143,6 +145,33 @@ export function handleUserSettingsExecutorQuery<Row extends pg.QueryResultRow>(
       `Unexpected analytics consent written to org.user_settings for ${userId}:`
       + ` ${String(analyticsConsent)}. Only granted and declined are storable.`,
     );
+  }
+
+  if (
+    text === "UPDATE org.user_settings SET product_analytics_enabled = $2"
+      + " WHERE user_id = $1 AND product_analytics_enabled IS NULL"
+  ) {
+    const userId = String(params[0]);
+    const productAnalyticsEnabled = params[1];
+    if (typeof productAnalyticsEnabled !== "boolean") {
+      // The real column is BOOLEAN and the carry only runs on a non-null guest answer, so anything
+      // else here is the caller being wrong rather than a state the database could hold.
+      throw new Error(
+        `Unexpected product analytics switch written to org.user_settings for ${userId}:`
+        + ` ${String(productAnalyticsEnabled)}. Only true and false are storable.`,
+      );
+    }
+
+    scope.requireCurrentUserScope(userId);
+    const current = state.userSettings.get(userId);
+    if (current !== undefined && current.product_analytics_enabled === null) {
+      state.userSettings.set(userId, {
+        ...current,
+        product_analytics_enabled: productAnalyticsEnabled,
+      });
+    }
+
+    return createQueryResult<Row>([]);
   }
 
   if (text === "UPDATE org.user_settings SET workspace_id = $1 WHERE user_id = $2") {

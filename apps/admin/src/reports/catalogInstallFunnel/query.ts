@@ -120,6 +120,16 @@ export type CatalogInstallFailureBucket = Readonly<{
 export type CatalogInstallFunnelVisit = Readonly<{
   actorId: string;
   packageVersionId: string;
+  /**
+   * The deck behind that version, which only the `Group by` field's deck dimension reads: it is keyed
+   * on `packageId`, so two versions of one deck are one bar, and named by `deckSlug`, the deck's
+   * public slug on the marketing site and in the catalog API.
+   *
+   * Both are null together for a version the catalog no longer holds a row for, which the analytics
+   * rows outlive; such a visit is kept and grouped as `Unresolved` rather than dropped.
+   */
+  packageId: string | null;
+  deckSlug: string | null;
   visitedAt: string;
   source: CatalogInstallSource;
   deviceCategory: CatalogInstallDeviceCategory;
@@ -299,6 +309,8 @@ function parseVisitRow(row: Readonly<Record<string, AdminQueryValue>>): CatalogI
       catalogInstallFunnelReportLabel,
       "package_version_id",
     ),
+    packageId: assertNullableString(row.package_id ?? null, "package_id"),
+    deckSlug: assertNullableString(row.deck_slug ?? null, "deck_slug"),
     visitedAt: assertTimestamp(row.visited_at ?? null, "visited_at"),
     source: assertEnumValue(row.source ?? null, catalogInstallSources, "source"),
     deviceCategory: assertEnumValue(
@@ -974,6 +986,8 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     "SELECT",
     "  visit.actor_id::text AS actor_id,",
     "  visit.package_version_id,",
+    "  deck.package_id::text AS package_id,",
+    "  deck.slug AS deck_slug,",
     "  visit.anchor_at AS visited_at,",
     "  visit.source,",
     "  visit.device_category,",
@@ -1008,24 +1022,40 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     "  AND engagement.package_version_id = visit.package_version_id",
     "LEFT JOIN install_actor_first_event AS first_event",
     "  ON first_event.actor_id = visit.actor_id",
+    // The deck behind the row's version, which is what the `Group by` field's deck dimension is keyed
+    // and named on. Both joins are outer because the analytics rows outlive the catalog: a version
+    // whose row is gone keeps its visit with a NULL package and slug, and groups as `Unresolved`.
+    //
+    // `::text` on the catalog column rather than `::uuid` on the property, the way every other join
+    // between this store and a UUID column is written here: the property is client-reported JSON text,
+    // and casting it would fail all four statements of the page on one malformed id rather than leave
+    // that one visit unnamed. `reporting_readonly` may read these two columns of each table and no
+    // other (`db/migrations/0148_reporting_readonly_catalog_deck_names.sql`).
+    "LEFT JOIN catalog.package_versions AS deck_version",
+    "  ON deck_version.package_version_id::text = visit.package_version_id",
+    "LEFT JOIN catalog.packages AS deck",
+    "  ON deck.package_id = deck_version.package_id",
     // BOTH PER-ACTOR SOURCES ON EVERY LOAD, never only the one a selected dimension reads, which is
     // where this funnel departs from the mobile one. Its `Group by` field reloads the report and can
     // therefore join the one source its key needs; this one regroups rows the browser already holds,
     // so a column joined only while its own dimension is selected would never be there to read.
     //
-    // WHAT MAKES THAT AFFORDABLE IS THE MEMBERSHIP PREDICATE ON EACH OF THEM, so the cost follows
-    // this funnel's own cohort rather than the range. Unbounded, the country source cross-joins the
-    // retained connection samples to two endpoints each and hash-joins the view again, and the
-    // language source is a second full pass of the view over the range, for every actor in it and
-    // not only the ones a visit row can name - on a statement group whose 30 s timeout fails the
-    // visits, both no-visit diagnostics and the cookieless counts together.
+    // WHAT MAKES THAT AFFORDABLE IS THE MEMBERSHIP PREDICATE ON EACH OF THEM - but it bounds what
+    // survives rather than what is read. An `EXPLAIN (ANALYZE, BUFFERS)` against production on
+    // 2026-09-23 lands it as a post-scan `Filter` instead of pushing it through the source's own
+    // `GROUP BY` onto the scan beneath, so each source still passes over the whole selected range and
+    // its cost follows that range rather than this cohort: the two of them are ~200 ms of the
+    // dominant statement's 440 ms. What the predicate does buy is everything above those scans -
+    // unbounded, the country source cross-joins the retained connection samples to two endpoints each
+    // and hash-joins the view again, and the language source alone reaches 2,060 ms with every actor
+    // in the cohort - on a statement group whose 30 s timeout fails the visits, both no-visit
+    // diagnostics and the cookieless counts together.
     //
     // The predicate sits inside each subquery rather than in this query's own WHERE for two
     // reasons: a qual on the nullable side of a `LEFT JOIN` cannot be pushed into it at all, and a
     // row here must survive with a NULL country or locale. `buildActorMembershipSql` yields
     // `actor_id = ANY (ARRAY(...))`, an uncorrelated subselect the planner evaluates once as an
-    // InitPlan and leaves in the qual as a plain parameter, which is what lets it push on down
-    // through the source's own `GROUP BY` onto the scan that feeds it.
+    // InitPlan and leaves in the qual as a plain parameter rather than re-running it per row.
     "LEFT JOIN (",
     "  SELECT cohort_country.actor_id, cohort_country.country",
     "  FROM (",

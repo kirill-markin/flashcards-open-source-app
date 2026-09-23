@@ -83,7 +83,13 @@ that installation permanently.
   [content writes](../apps/backend/src/productAnalytics/serverFacts/contentWrites.ts).
 - [Client ingest](../apps/backend/src/routes/productAnalytics.ts): a batch declaring
   `isAutomation: true` is validated, answered, and stored nowhere;
-  `analytics_events_ingest_automation_dropped` records it.
+  `analytics_events_ingest_automation_dropped` records it. It is no longer the only breadcrumb for a
+  validated-but-unstored batch: a credential whose owner turned the product-analytics off switch off
+  ([`0149_product_analytics_off_switch.sql`](../db/migrations/0149_product_analytics_off_switch.sql))
+  is dropped the same way and records `analytics_events_ingest_analytics_off_dropped`. That check
+  runs first, so a batch that is both an automation run and an opt-out records only the second
+  action. Neither action is matched by the ingest metric filters in
+  [`product-analytics-monitoring.ts`](../infra/aws/lib/product-analytics-monitoring.ts).
 - [Android declaration](../apps/android/app/src/main/java/com/flashcardsopensourceapp/app/automation/AutomationEnvironment.kt):
   emulator detection, an `isAutomation` instrumentation argument, or the `firebase.test.lab` device
   setting; decided and logged once per process as `event=automation_environment_resolved` with each

@@ -5,7 +5,6 @@ import {
   type AnalyticsFilterField,
   type AnalyticsFilterState,
 } from "../../filters/analyticsFilters";
-import type { CatalogDeckOption } from "../../filters/optionsQuery";
 import {
   CatalogInstallFunnelSection,
   catalogInstallFunnelAnchor,
@@ -34,15 +33,6 @@ export type FunnelSectionProps = Readonly<{
   isRangeLoading: boolean;
   /** The funnel's own filter row over `filterFields`, or null when it has none. */
   filterRow: JSX.Element | null;
-  /**
-   * The deck versions the `Catalog deck version` field offers, for a funnel that has to print one.
-   *
-   * It is here rather than inside the filter row because a grouped chart names its own bars: the
-   * deck funnel grouped by deck version would otherwise legend five 36-character UUIDs, while the
-   * field on the same page names those very values by slug. Every version somebody completed an
-   * install of is in the list; a funnel that shows a version outside it falls back to the raw id.
-   */
-  catalogDeckOptions: ReadonlyArray<CatalogDeckOption>;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
 }>;
 

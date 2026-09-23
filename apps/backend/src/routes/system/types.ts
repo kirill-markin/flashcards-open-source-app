@@ -8,6 +8,10 @@ import type {
 } from "../../community/friendInvitations";
 import type { PublicProfile } from "../../community/publicProfiles";
 import type {
+  GuestSessionAnalyticsPreferencesUpdate,
+  StoredGuestSessionAnalyticsPreferences,
+} from "../../guestAuth/store/session";
+import type {
   loadLeaderboardProfile,
   loadProgressLeaderboard,
   loadStreakLeaderboard,
@@ -28,7 +32,7 @@ export type SystemRoutesOptions = Readonly<{
   loadProgressLeaderboardFn?: typeof loadProgressLeaderboard;
   loadStreakLeaderboardFn?: typeof loadStreakLeaderboard;
   updateAccountPreferencesFn?: UpdateAccountPreferencesFn;
-  updateGuestSessionAnalyticsConsentFn?: UpdateGuestSessionAnalyticsConsentFn;
+  updateGuestSessionAnalyticsPreferencesFn?: UpdateGuestSessionAnalyticsPreferencesFn;
   ensurePublicProfileForUserFn?: EnsurePublicProfileForUserFn;
   updateLeaderboardParticipationFn?: UpdateLeaderboardParticipationFn;
   createFriendInvitationFn?: CreateFriendInvitationFn;
@@ -52,6 +56,7 @@ export type ProgressRequestedParameters = Readonly<{
 export type AccountPreferencesUpdate = Readonly<{
   reviewReactionAnimationsEnabled: boolean | null;
   analyticsConsent: AnalyticsConsentChoice | null;
+  productAnalyticsEnabled: boolean | null;
 }>;
 
 export type UpdateAccountPreferencesFn = (
@@ -60,11 +65,16 @@ export type UpdateAccountPreferencesFn = (
 ) => Promise<AccountPreferences>;
 
 /** No null here, unlike above: an omitted field must leave the guest consent column untouched. */
-export type UpdateGuestSessionAnalyticsConsentFn = (
+/**
+ * Both guest-session analytics answers in one call, because they are stored in one transaction.
+ * Null in the update is "the request left this field out" and is not written; null in the result is
+ * the same field, reported as untouched rather than as an erasure.
+ */
+export type UpdateGuestSessionAnalyticsPreferencesFn = (
   guestUserId: string,
   guestSessionId: string,
-  analyticsConsent: AnalyticsConsentChoice,
-) => Promise<AnalyticsConsentChoice>;
+  update: GuestSessionAnalyticsPreferencesUpdate,
+) => Promise<StoredGuestSessionAnalyticsPreferences>;
 
 export type EnsurePublicProfileForUserFn = (userId: string, localeHint: string) => Promise<PublicProfile>;
 

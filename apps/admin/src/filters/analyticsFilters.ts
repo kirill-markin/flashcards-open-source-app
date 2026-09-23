@@ -21,6 +21,10 @@ import type { AnalyticsArea } from "../routing";
 // and a field that does not apply to an area is not rendered there at all rather than rendered
 // disabled.
 
+// How much of a version UUID the deck-version filter's summary shows to tell two picked versions of
+// one deck apart.
+export const deckVersionDiscriminatorLength = 8;
+
 export type AnalyticsDateRange = Readonly<{
   from: string;
   to: string;

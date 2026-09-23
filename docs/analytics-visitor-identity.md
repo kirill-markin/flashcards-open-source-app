@@ -145,6 +145,31 @@ the browser accepted its `Set-Cookie`. A caller that finds the returned id absen
 `document.cookie` afterwards must therefore treat the identity as unavailable rather than count a
 new visitor on every page load.
 
+### The analytics off switch is a second, separate decision
+
+Everything above is one decision: whether this browser may carry the shared `analytics_visitor`
+identifier. Refusing it is not refusing analytics. The banner's own copy says so, and a refusing
+browser keeps reporting — identity-free while signed out, under the account once signed in.
+
+The second decision is the product-analytics off switch,
+`org.user_settings.product_analytics_enabled` and `auth.guest_sessions.product_analytics_enabled`
+([migration](../db/migrations/0149_product_analytics_off_switch.sql)). It is on unless a person
+explicitly turns it off, because the basis is legitimate interest rather than consent, so NULL —
+every row until someone answers — reads as on, and nothing prompts for it. It covers
+client-reported product analytics only: error and crash reporting and the server-derived facts in
+[`serverFacts/`](../apps/backend/src/productAnalytics/serverFacts/) are outside it.
+
+The two are stored apart and neither is derived from the other, so a person who already refused the
+cookie keeps analytics on. Both are read on `GET /v1/me` and written on `PATCH /v1/me/preferences`,
+and the transport picks the account column or the guest-session one in the same way for both.
+
+Turning the switch off stops future collection. It deletes nothing: `analytics.product_events` is
+append-only, and account deletion stays the erasure path. The backend enforces it at ingest —
+[`POST /v1/analytics/events`](../apps/backend/src/routes/productAnalytics.ts) drops an opted-out
+credential's batch and still answers `200`, so a client released before the switch existed retires
+its queue instead of redelivering. The credential-free collector cannot enforce it and does not try;
+see [anonymous client analytics](anonymous-client-analytics.md).
+
 ## Account deletion
 
 The identity survives a logout by design and does not survive the deletion of the account it was
