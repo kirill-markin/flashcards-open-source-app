@@ -48,10 +48,33 @@ data class AccountPreferences(
     val productAnalyticsEnabled: Boolean?
 )
 
+/**
+ * Who asked for the analytics value beside it in one `PATCH /v1/me/preferences`.
+ *
+ * [USER_ACTION] is the person pressing the control on this device, now, with the control still
+ * waiting on the result. [RECONCILIATION] is this device carrying over an answer it has been
+ * holding, given at a time nothing in the request records and possibly for another identity.
+ *
+ * The route refuses a [RECONCILIATION] that would loosen a stored refusal and answers with the
+ * stored value instead, so a remembered opt-in cannot revert an opt-out taken since on another
+ * device. A [USER_ACTION] is always stored, which is what keeps the switch reversible by the
+ * control that moved it. An omitted origin means `user_action` on the route, which is what every
+ * client sent before the field existed.
+ */
+enum class AnalyticsPreferenceWriteOrigin(val wireValue: String) {
+    USER_ACTION("user_action"),
+    RECONCILIATION("reconciliation")
+}
+
 /** Mirrors `PATCH /v1/me/preferences`: a null field is one this update leaves alone. */
 data class AccountPreferencesUpdate(
     val reviewReactionAnimationsEnabled: Boolean?,
-    val productAnalyticsEnabled: Boolean?
+    val productAnalyticsEnabled: Boolean?,
+    /**
+     * Who asked for [productAnalyticsEnabled]. Null leaves the route's `user_action` default, which
+     * is what the controls a person presses want, so only a carried-over answer names it.
+     */
+    val productAnalyticsEnabledOrigin: AnalyticsPreferenceWriteOrigin? = null
 )
 
 fun defaultAccountPreferences(): AccountPreferences {

@@ -88,7 +88,7 @@ extension FlashcardsStore {
             // holds is the analytics-only guest credential. An answer owed to it still has to reach
             // the server, so it goes out here. Its failure is reported rather than thrown: a refresh
             // that only carries a retry must not turn an offline stretch into an error on screen.
-            _ = await self.pushProductAnalyticsPreferenceToAnalyticsOnlyGuest()
+            _ = await self.pushProductAnalyticsPreferenceToAnalyticsOnlyGuest(origin: .reconciliation)
             return
         }
         let refreshGeneration = self.accountPreferencesRefreshGeneration
@@ -163,7 +163,7 @@ extension FlashcardsStore {
             // credential's stored answer, so the push goes there instead. Thrown rather than only
             // reported, unlike the refresh path: this is the user's own tap, and for an install that
             // never signs in this is the whole server side of the answer.
-            if let failure = await self.pushProductAnalyticsPreferenceToAnalyticsOnlyGuest() {
+            if let failure = await self.pushProductAnalyticsPreferenceToAnalyticsOnlyGuest(origin: .userAction) {
                 throw failure
             }
 
@@ -182,9 +182,18 @@ extension FlashcardsStore {
         await self.serializedProductAnalyticsPush {
             outcome.failure = await self.drainOwedProductAnalyticsAnswer(
                 identityKey: identity.productAnalyticsKey,
-                send: { owedAnswer in
+                // The press itself, with the switch still waiting on it, so the route stores it even
+                // over a stored refusal. Every body this drain sends is a person's: `recordLocalAnswer`
+                // just above wrote the debt it reads, `adoptServerAnswer` cannot re-own one while
+                // this device holds an answer of its own, and the identity reset that can re-owns it
+                // to another identity, which this drain refuses to pay.
+                origin: .userAction,
+                send: { owedAnswer, origin in
                     try await self.updateCloudAccountPreferences(
-                        patch: AccountPreferencesPatchRequest(productAnalyticsEnabled: owedAnswer),
+                        patch: AccountPreferencesPatchRequest(
+                            productAnalyticsEnabled: owedAnswer,
+                            productAnalyticsEnabledOrigin: origin
+                        ),
                         validateResolvedSession: { session in
                             try self.requireProductAnalyticsIdentity(
                                 expectedIdentityKey: identity.productAnalyticsKey,
@@ -268,14 +277,22 @@ extension FlashcardsStore {
             let pushIdentityKey = self.accountPreferencesIdentityKey
             outcome.failure = await self.drainOwedProductAnalyticsAnswer(
                 identityKey: productAnalyticsIdentityKey,
-                send: { owedAnswer in
+                // Nobody is pressing anything here. This is an answer an earlier press left owed -
+                // possibly days earlier, possibly made for an identity this install has since left,
+                // and `adoptServerAnswer` re-owes one to an identity the person never answered for
+                // at all - while the account may have moved past it on another device meanwhile.
+                origin: .reconciliation,
+                send: { owedAnswer, origin in
                     // Resolved here rather than reused from the refresh that reached this push: the
                     // wait for the slot is unbounded, and a bearer captured before it can already be
                     // expired by the time the body goes out. Which is also why the identity is
                     // re-checked on the resolved session — resolving it suspends, and the identity
                     // can move inside that suspension.
                     try await self.updateCloudAccountPreferences(
-                        patch: AccountPreferencesPatchRequest(productAnalyticsEnabled: owedAnswer),
+                        patch: AccountPreferencesPatchRequest(
+                            productAnalyticsEnabled: owedAnswer,
+                            productAnalyticsEnabledOrigin: origin
+                        ),
                         validateResolvedSession: { session in
                             try self.requireProductAnalyticsIdentity(
                                 expectedIdentityKey: productAnalyticsIdentityKey,
@@ -368,7 +385,9 @@ extension FlashcardsStore {
      * nothing was owed, the column now holds it, or nothing could carry it yet — which is not the
      * same as this being the wrong credential to ask, and the two are told apart below.
      */
-    private func pushProductAnalyticsPreferenceToAnalyticsOnlyGuest() async -> Error? {
+    private func pushProductAnalyticsPreferenceToAnalyticsOnlyGuest(
+        origin: AnalyticsPreferenceWriteOrigin
+    ) async -> Error? {
         guard self.isProductAnalyticsPreferenceStoredRemotely else {
             return nil
         }
@@ -415,7 +434,11 @@ extension FlashcardsStore {
         await self.serializedProductAnalyticsPush {
             outcome.failure = await self.drainOwedProductAnalyticsAnswer(
                 identityKey: nil,
-                send: { owedAnswer in
+                // The caller's, because this credential carries both kinds: the toggle on an install
+                // with no account to store the answer on reaches it with the press in hand, and the
+                // refresh reaches it with a retry.
+                origin: origin,
+                send: { owedAnswer, sendOrigin in
                     // Re-read here rather than reused from the load above, for the same reason the
                     // linked path resolves its session at send time: the wait for the slot is
                     // unbounded, and an identity reset landing in that window replaces the very
@@ -424,8 +447,17 @@ extension FlashcardsStore {
                         throw LocalStoreError.uninitialized("Analytics-only guest credential is unavailable")
                     }
 
+                    // The guest columns are not guarded the way the account ones are - one
+                    // credential on one device is the only writer either has - so the origin decides
+                    // nothing there today. Sent anyway, because it is a statement about where this
+                    // answer came from rather than about which column receives it, and the guard
+                    // moves to that path the day a client reconciles a guest column from a
+                    // remembered one.
                     return try await self.updateCloudAccountPreferences(
-                        patch: AccountPreferencesPatchRequest(productAnalyticsEnabled: owedAnswer),
+                        patch: AccountPreferencesPatchRequest(
+                            productAnalyticsEnabled: owedAnswer,
+                            productAnalyticsEnabledOrigin: sendOrigin
+                        ),
                         session: CloudLinkedSession(
                             userId: guestSession.userId,
                             workspaceId: guestSession.workspaceId,
@@ -503,7 +535,24 @@ extension FlashcardsStore {
      * generation still guards the shared `accountPreferences` the caller applies, which is the state
      * a stale response really can corrupt.
      *
-     * Returns nil only once a response has confirmed that `identityKey`'s column holds the answer. A
+     * `origin` says who asked for what this drain delivers, and every body it sends carries it. It is
+     * fixed for the whole drain because it is decided by the path that reached it, not by how many
+     * attempts this answer has had or how long it has been owed: a press being handled right now,
+     * with the control still waiting, is `userAction`, and an answer this device is carrying from
+     * before is `reconciliation`. So a first attempt that fails is already reconciled the next time a
+     * refresh picks it up, seconds later or days later alike - what makes the claim "a person is
+     * asking for this, now" false is that they may have answered again elsewhere since, and no
+     * elapsed time makes that safer. Within one drain the claim keeps holding, including on the
+     * attempt that carries an answer the person gave while the previous body was in flight.
+     *
+     * Handed to `send` rather than captured by each closure, even where the caller already knows it
+     * as a literal: the refusal below is classified on this same value, so the body and the
+     * classification cannot name different origins. A closure writing its own literal would put that
+     * agreement back in two places on every call site.
+     *
+     * Returns nil once a response has confirmed that `identityKey`'s column holds the answer, and
+     * also when the route refused a `reconciliation` for loosening what it already holds - that is
+     * the guard working rather than a failure, the answer stays owed, and nothing is reported. A
      * drain that ran every attempt it has without the column agreeing, or that stopped because the
      * identity moved, returns `ProductAnalyticsPushUnsettledError` instead of falling out silently:
      * the answer is not stored, and a caller that cannot tell that apart from success reports a
@@ -516,12 +565,17 @@ extension FlashcardsStore {
      */
     private func drainOwedProductAnalyticsAnswer(
         identityKey: String?,
-        send: (Bool) async throws -> (preferences: AccountPreferences, session: CloudLinkedSession),
+        origin: AnalyticsPreferenceWriteOrigin,
+        send: (Bool, AnalyticsPreferenceWriteOrigin) async throws -> (
+            preferences: AccountPreferences,
+            session: CloudLinkedSession
+        ),
         applyAcknowledged: (AccountPreferences, CloudLinkedSession) -> Void
     ) async -> Error? {
         var failure: Error?
         var didSend = false
         var didSettle = false
+        var didRefuseReconciliation = false
         var unsettledReason: ProductAnalyticsPushUnsettledReason = .attemptsExhausted
 
         drainLoop: for _ in 0 ..< maxProductAnalyticsPushAttempts {
@@ -555,7 +609,7 @@ extension FlashcardsStore {
                 // identity is current afterwards, so a sign-out and sign-in completing inside that
                 // window would otherwise PATCH this debt onto the account that replaced it and
                 // overwrite that person's own answer.
-                updateResult = try await send(owedAnswer)
+                updateResult = try await send(owedAnswer, origin)
             } catch {
                 failure = error
                 break drainLoop
@@ -575,6 +629,42 @@ extension FlashcardsStore {
                 unsettledReason = .identityChanged
                 break drainLoop
             case .disagreed:
+                // A reconciliation the route refused, recognised by the only disagreement the guard
+                // can produce and by nothing else:
+                //
+                // - the origin was `reconciliation`, because a `userAction` is never refused;
+                // - the direction was the guarded one, an owed `true` answered with a stored
+                //   `false`. The route refuses only that. A reconciled opt-out answered with `true`
+                //   is some other disagreement, and calling it the guard would report success while
+                //   nothing stored the answer;
+                // - the acknowledged value is an explicit `false` rather than nil. The field is
+                //   nullable because the column is, and nil means nobody has answered on that row
+                //   (`db/migrations/0149_product_analytics_off_switch.sql`) rather than that a
+                //   stored refusal stood. It leaves the owed answer unstored, so it has to keep
+                //   burning attempts and filing `pending_unsettled`;
+                // - the same answer is still owed now, so nothing was answered again while the body
+                //   was in flight - that is the race this loop exists for, and it must keep retrying.
+                //
+                // Repeating an identical body earns an identical refusal, so this drain stops here
+                // rather than spending its remaining attempts on it.
+                //
+                // The debt survives, and deliberately is not retired: it is undelivered, not doomed.
+                // The next press sends it as `userAction` and the route stores it, and until then
+                // every refresh re-offers it and the account takes it as soon as it is no longer the
+                // looser answer. Not an error either - the guard refusing a carried-over answer is
+                // the guard working - so nothing is reported for it.
+                let isRefusedLoosening = origin == .reconciliation
+                    && owedAnswer
+                    && updateResult.preferences.productAnalyticsEnabled == false
+                    && ProductAnalyticsPreference.answerOwed(
+                        toIdentityKey: identityKey,
+                        userDefaults: self.userDefaults
+                    ) == owedAnswer
+                if isRefusedLoosening {
+                    didRefuseReconciliation = true
+                    break drainLoop
+                }
+
                 continue drainLoop
             }
         }
@@ -589,7 +679,7 @@ extension FlashcardsStore {
         if let failure {
             return failure
         }
-        guard didSettle else {
+        guard didSettle || didRefuseReconciliation else {
             return ProductAnalyticsPushUnsettledError(reason: unsettledReason)
         }
 

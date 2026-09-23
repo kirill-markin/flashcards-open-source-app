@@ -34,6 +34,13 @@ let productAnalyticsAnsweredOnDeviceUserDefaultsKey: String = "product-analytics
  * arriving `/me` cannot quietly undo it. The flag is scoped to the identity the answer was made
  * under, because a debt owed to one account must never be paid onto another person's: an answer is
  * pushed only to the identity it was made under, or to one the server reports no answer for at all.
+ *
+ * What a push tells the server about where its answer came from is deliberately not recorded beside
+ * the debt, because it is not a property of the debt: it belongs to the delivery. The push a
+ * person's own press makes is `user_action`; every delivery of a debt that outlived that press is
+ * `reconciliation`, including one re-owed below to an identity the person never gave it for. The
+ * server refuses a `reconciliation` that would loosen what it already holds, which is what stops a
+ * stale opt-in idling here from reverting an opt-out taken since on another device.
  */
 enum ProductAnalyticsPreference {
     /// The effective answer, or nil when nobody has answered on this device or for its identity.

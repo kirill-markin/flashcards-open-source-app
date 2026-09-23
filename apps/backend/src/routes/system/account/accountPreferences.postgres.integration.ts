@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
 import pg from "pg";
+import { parseAccountPreferencesInput } from "../support";
 import { updateAccountPreferences } from "./accountPreferences";
 
 /**
@@ -245,6 +246,66 @@ test("a reconciliation still switches product analytics off, and one PATCH carri
   } finally {
     await ownerPool.query("DELETE FROM org.user_settings WHERE user_id = ANY($1::text[])", [
       [optedInUserId, mixedOriginUserId],
+    ]);
+    await ownerPool.end();
+  }
+});
+
+/**
+ * The two bodies a mobile client can put on the wire for one owed answer, parsed from raw JSON and
+ * run through the same write, because the pair is what both clients' new refusal branches rest on.
+ *
+ * `parseAccountPreferencesInput` is in the path rather than a hand-built update: the origin default
+ * lives there, and the whole backward-compatibility claim is that a body which names no origin
+ * writes as a person's. A check that passed the field explicitly would never touch that default.
+ */
+test("the mobile bodies for one owed answer: refused as a reconciliation, stored without an origin", async () => {
+  const ownerPool = new pg.Pool({
+    connectionString: requireOwnerDatabaseUrl(),
+    application_name: "account-preferences-integration-owner",
+  });
+  const refusedUserId = randomUUID();
+  const originlessUserId = randomUUID();
+
+  try {
+    await ownerPool.query(
+      "INSERT INTO org.user_settings (user_id, analytics_consent, product_analytics_enabled)"
+      + " VALUES ($1, 'granted', FALSE), ($2, 'granted', FALSE)",
+      [refusedUserId, originlessUserId],
+    );
+
+    // Exactly what a retry of an owed opt-in sends: the one column and its origin, nothing else.
+    // The response has to repeat the stored FALSE explicitly, because that is the only signal
+    // either client has that the guard fired - both read the refusal off `productAnalyticsEnabled`
+    // being an explicit `false` beside an owed `true`, and neither can tell an absent field from a
+    // refusal.
+    const afterRefusedReconciliation = await updateAccountPreferences(
+      refusedUserId,
+      parseAccountPreferencesInput({
+        productAnalyticsEnabled: true,
+        productAnalyticsEnabledOrigin: "reconciliation",
+      }),
+    );
+    assert.equal(afterRefusedReconciliation.productAnalyticsEnabled, false);
+
+    // The same body with the origin dropped, which is what every already-released client sends. It
+    // must be written as the person's answer, or this route would start refusing presses that were
+    // stored before the field existed.
+    const afterOriginlessBody = await updateAccountPreferences(
+      originlessUserId,
+      parseAccountPreferencesInput({ productAnalyticsEnabled: true }),
+    );
+    assert.equal(afterOriginlessBody.productAnalyticsEnabled, true);
+
+    const stored = await readStoredPreferences(ownerPool, [refusedUserId, originlessUserId]);
+    assert.deepEqual(stored, [
+      // Neither body named the cookie column, so both rows keep the answer they were seeded with.
+      { analytics_consent: "granted", product_analytics_enabled: false },
+      { analytics_consent: "granted", product_analytics_enabled: true },
+    ]);
+  } finally {
+    await ownerPool.query("DELETE FROM org.user_settings WHERE user_id = ANY($1::text[])", [
+      [refusedUserId, originlessUserId],
     ]);
     await ownerPool.end();
   }
