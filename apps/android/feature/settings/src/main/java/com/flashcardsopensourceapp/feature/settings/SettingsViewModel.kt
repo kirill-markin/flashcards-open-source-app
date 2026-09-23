@@ -153,12 +153,21 @@ class SettingsViewModel(
      * The local answer stands whatever the server says, so the failure message tells the person the
      * switch already took effect here and only the account copy is still owed.
      *
-     * Only the ordinary failure promises a retry, because it is the only one that has one. A
-     * recorded refusal dropped the pending push and blocks it being re-armed, so nothing sends that
-     * answer again until the person toggles the switch themselves. An undeliverable opt-out has no
-     * account to reach at all — the client has stopped flushing, so it never mints the guest session
-     * the answer would be written to — and toggling again would find the same thing, so it is told
-     * apart from the refusal rather than folded into it.
+     * Only the ordinary failure mentions further attempts, because it is the only one that has any.
+     * A recorded refusal dropped the pending push and blocks it being re-armed, so nothing sends
+     * that answer again until the person toggles the switch themselves. An undeliverable opt-out has
+     * no account to reach at all — the client has stopped flushing, so it never mints the guest
+     * session the answer would be written to — and toggling again would find the same thing, so it
+     * is told apart from the refusal rather than folded into it.
+     *
+     * It says the app keeps trying rather than that it will retry until this is saved, because one
+     * case cannot get there: an opt-in whose own press failed on transport, over an account holding
+     * an opt-out made elsewhere. Every later delivery carries `RECONCILIATION`, which the route
+     * refuses for loosening the stored answer, and the client keeps the answer owed and re-offers it
+     * without reporting anything — the guard working is not a failure. Left undistinguished on
+     * purpose: nothing is pressing a control when that refusal arrives, so surfacing it would
+     * interrupt with a verdict on an answer that is undelivered rather than doomed, and it stops
+     * being refused the moment the account stops holding the stricter one.
      */
     fun updateProductAnalyticsEnabled(isEnabled: Boolean) {
         viewModelScope.launch {

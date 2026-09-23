@@ -118,7 +118,7 @@
     <string name="settings_product_analytics_toggle_title">Share product analytics</string>
     <string name="settings_product_analytics_toggle_body">Usage events show us which parts of the app work. Crash and error reports are separate and stay on.</string>
     <string name="settings_product_analytics_retention_body">Turning this off stops new events on this device right away. Events already recorded are kept; deleting your account permanently unlinks the ones recorded under it.</string>
-    <string name="settings_product_analytics_update_failed">Saved on this device. Not saved to your account yet; the app will retry.</string>
+    <string name="settings_product_analytics_update_failed">Saved on this device. Not saved to your account yet; the app keeps trying.</string>
     <string name="settings_product_analytics_update_refused">Saved on this device. Your account copy could not be saved, and the app will not retry on its own.</string>
     <string name="settings_product_analytics_update_undeliverable">Saved on this device. There is no account copy to update; if you sign in, it will be saved there too.</string>
     <string name="settings_language_title">Language</string>

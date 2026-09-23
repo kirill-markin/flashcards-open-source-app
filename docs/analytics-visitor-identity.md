@@ -241,6 +241,43 @@ rather than from a later read.
 Omitting an origin means `user_action`, which is what every client sent before the fields existed,
 so a released client keeps exactly the behaviour it was written against.
 
+No client drops the origin and retries against a server that rejects it, and that is deliberate.
+`parseAccountPreferencesInput` rejects an unknown key outright, so a backend older than these fields
+answers `400` `ACCOUNT_PREFERENCES_FIELD_UNKNOWN` to any body naming one — which a self-hosted server
+can still be. But that check has rejected every key it does not know since the route was written
+(`f219cf210`, 2026-06-07, when `reviewReactionAnimationsEnabled` was the only key it took), and
+`productAnalyticsEnabled` (`d1cc10efb`) and the origins (`38c05fd4d`) landed on `main` five and a
+half hours apart on 2026-09-23. So a server old enough to reject an origin is, outside that window,
+old enough to reject `productAnalyticsEnabled` beside it: it cannot store this setting at all, and
+the same body with the origin dropped earns the same `400` one request later. A self-hosted backend
+older than the off switch simply has nowhere to put this answer, and Android recording that as a
+refusal — telling the person it saved locally and will not retry on its own — is the correct outcome
+there rather than a bug.
+
+Which origin a client sends is decided by the path the write comes from, never by how many attempts
+an answer has had or how long it has been waiting. A press being handled right now, with the control
+still waiting on the result, is `user_action`; an answer the client is carrying from earlier is
+`reconciliation`, whether the delivery is seconds after the press or days after it — what makes
+"a person is asking for this, now" false is that they may have answered again on another device
+since, and no elapsed time makes that safer. The browser sync sends `reconciliation` for everything
+it writes, because that is all it ever does
+([web](../apps/web/src/analytics/accountAnalyticsPreferences.ts)). The iOS and Android off switches
+send `user_action` for the press itself and `reconciliation` for every later delivery of an answer
+still owed — including one re-owed to the credential an identity reset leaves the install with,
+which a person did give on that device but never for that account
+([iOS](../apps/ios/Flashcards/Flashcards/Cloud/Store/Account/FlashcardsStore+AccountPreferences.swift),
+[Android](../apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/repository/cloudsync/account/LocalCloudAccountRepository.kt)).
+What they re-owe at that boundary is not the same on the two: iOS carries the answer across in
+either direction, Android carries only an opt-out and drops the marker for an opt-in
+([Android store](../apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/cloud/CloudPreferencesStore.kt)).
+Both keep such an answer owed when the route refuses it, rather than retiring it: it is undelivered
+rather than doomed, so the next press carries it as `user_action` and the account takes it as soon
+as it is no longer the looser answer.
+
+Neither mobile client writes `analytics_consent` at all — there is no cookie question on a mobile
+surface, and neither client's preferences model carries the field — so nothing there needs an origin
+for it yet.
+
 The guest-session copies of both columns are not guarded
 ([guest write](../apps/backend/src/guestAuth/store/session.ts)). A guest session row is reachable
 only by the credential that owns it, and that credential lives on one device, so there is no second
@@ -256,9 +293,30 @@ What one writer does not settle is where that writer got the value. A device can
 merely adopted somewhere else — off an account it has since signed out of, among them — and on
 `product_analytics_enabled` republishing such an answer over a stricter stored one resumes ingest
 immediately rather than only restoring an identifier. So the rule for this column is about
-provenance, not about which client is speaking: a client that reconciles a guest column from a
-remembered value rather than a live read has to send an origin here too, and the guard has to move
-to the guest path with it.
+provenance, not about which client is speaking. The mobile clients already send the origin on this
+path, and the guard has not moved with it — but the reason it is still safe is a different one on
+each client, and neither reason covers both.
+
+On iOS every re-owe clears the stored credentials and the guest session before re-arming the debt,
+so the answer is handed to a credential minted afterwards; its other re-owe fires only where a `/me`
+read just reported no answer for that identity. Either way the row it reaches holds NULL, and the
+direction it re-owes in does not matter. On Android the row can already hold an answer:
+`resetInvalidCloudCredentialRecoveryState` disconnects through
+`disconnectCloudIdentityPreservingLocalState`, which preserves the stored guest session on purpose —
+unlike its deleted-account sibling, which clears it because that one is an identity boundary — so
+the debt goes out on the surviving analytics guest credential, whose row may already hold an
+explicit `true`. That is not even the row the answer was read from; the marker is re-armed off the
+account preferences being cleared. Android's other re-arm, the one a `/me` read triggers when the
+account reports no answer, lands the same way and is safe for the same reason — it too fires only
+for a stored `false`. Nor does it help that the push resolves its own credential: the account read
+goes through `loadActiveGuestSessionOrNull` and the push through
+`loadProductAnalyticsGuestSessionOrNull`, which pick different stored sessions when there is more
+than one, so the row a re-arm was decided on need not be the row the body reaches. What makes
+Android safe is only the direction: it re-owes only an opt-out, and an opt-out loosens nothing.
+
+So the day the same CASE belongs here is the day Android — or any client — re-owes an opt-**in**, or
+the day iOS re-owes onto a credential that outlived the identity the answer was made under. The
+provenance it would need is already on the wire.
 
 The guest upgrade cannot revert an account answer on either column: both carries write only where
 the account column is still NULL ([upgrade](../apps/backend/src/guestAuth/upgrade/index.ts)).

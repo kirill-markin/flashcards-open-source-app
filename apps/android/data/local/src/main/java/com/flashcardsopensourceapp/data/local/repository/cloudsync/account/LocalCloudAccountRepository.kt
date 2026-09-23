@@ -35,6 +35,7 @@ import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreak
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
 import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferencesUpdate
+import com.flashcardsopensourceapp.data.local.model.sync.AnalyticsPreferenceWriteOrigin
 import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.sync.applyAccountPreferencesUpdate
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportDownloadResponse
@@ -256,7 +257,13 @@ class LocalCloudAccountRepository(
             // on, this very answer, because `refreshAccountContextLocked` must keep going to the
             // account read. The push below then finds nothing pending and returns.
             val pushFailure: Exception? = try {
-                pushPendingProductAnalyticsPreferenceLocked()
+                // `USER_ACTION`: this is the press itself being delivered, with the control still
+                // waiting on it, so the route must store it even over a stored refusal. A refresh
+                // that raced ahead and delivered this same answer as a reconciliation left it owed
+                // if the route refused it, so the press still reaches the account from here.
+                pushPendingProductAnalyticsPreferenceLocked(
+                    origin = AnalyticsPreferenceWriteOrigin.USER_ACTION
+                )
                 null
             } catch (error: CancellationException) {
                 throw error
@@ -560,7 +567,13 @@ class LocalCloudAccountRepository(
 
     private suspend fun refreshAccountContextLocked() {
         // Before the read: an answer still owed to the server would otherwise be overwritten by the
-        // older answer the server is about to report.
+        // older answer the server is about to report. Kept in this order now that the push names its
+        // origin, because the ordering is no longer what protects a newer remote answer - the route
+        // refuses a reconciliation that would loosen what it holds, whichever side of the read the
+        // body goes out on. Moving the push below the read would also strand every install the read
+        // returns early for: `resolveAccountContextSessionLocked` answers null while a credential
+        // recovery is pending and for `DISCONNECTED` and `LINKING_READY`, and an install that never
+        // signs in is exactly the one whose answer only the analytics guest credential can carry.
         //
         // Never fatal to the refresh. A push that keeps failing — a server down, a device offline,
         // a refusal `handleRefusedProductAnalyticsPreferencePushLocked` deliberately leaves owed —
@@ -571,7 +584,12 @@ class LocalCloudAccountRepository(
         // is the one that surfaces it to the person who asked; here the answer simply stays owed
         // and the next refresh retries it.
         try {
-            pushPendingProductAnalyticsPreferenceLocked()
+            // `RECONCILIATION`: nobody is pressing anything here. This is an answer left owed by an
+            // earlier press - possibly days earlier, possibly made for an identity this install has
+            // since left - and the account may have moved past it on another device meanwhile.
+            pushPendingProductAnalyticsPreferenceLocked(
+                origin = AnalyticsPreferenceWriteOrigin.RECONCILIATION
+            )
         } catch (error: CancellationException) {
             throw error
         } catch (_: Exception) {
@@ -637,7 +655,20 @@ class LocalCloudAccountRepository(
         }
     }
 
-    private suspend fun pushPendingProductAnalyticsPreferenceLocked() {
+    /**
+     * Delivers the owed answer, saying who asked for it.
+     *
+     * [origin] is decided by the path that got here rather than by how many attempts this answer has
+     * had or how long it has been owed, because that is the only thing the field can honestly claim:
+     * a press being handled right now is [AnalyticsPreferenceWriteOrigin.USER_ACTION], and an answer
+     * this device is carrying from before is [AnalyticsPreferenceWriteOrigin.RECONCILIATION]. A
+     * first attempt that fails is therefore already reconciled the next time a refresh picks it up,
+     * seconds later or days later alike: what makes the claim false is that the person may have
+     * answered again elsewhere since, and no elapsed time makes that safer.
+     */
+    private suspend fun pushPendingProductAnalyticsPreferenceLocked(
+        origin: AnalyticsPreferenceWriteOrigin
+    ) {
         if (preferencesStore.isProductAnalyticsEnabledPendingPush().not()) {
             return
         }
@@ -657,7 +688,8 @@ class LocalCloudAccountRepository(
                 authorizationHeader = session.authorizationHeader,
                 update = AccountPreferencesUpdate(
                     reviewReactionAnimationsEnabled = null,
-                    productAnalyticsEnabled = enabled
+                    productAnalyticsEnabled = enabled,
+                    productAnalyticsEnabledOrigin = origin
                 )
             )
         } catch (error: CloudRemoteException) {
@@ -685,12 +717,46 @@ class LocalCloudAccountRepository(
         // match, the newer answer is already owed and carries its own marker, so the next push
         // delivers it.
         //
-        // A server that accepts the PATCH but does not know the field answers with it absent, which
-        // decodes as null, keeps the stored answer, and lets this clear mark as delivered something
-        // the server ignored. Left as is: the hosted product deploys the backend ahead of its
-        // clients, so only a custom origin can reach a server that does not know the field.
+        // Nothing here has to cope with a server that stores the answer and leaves it out of the
+        // acknowledgement. `parseAccountPreferencesInput` rejects any key it does not know with a
+        // `400` `ACCOUNT_PREFERENCES_FIELD_UNKNOWN`, and has since the route was written, so a
+        // backend that has never heard of `productAnalyticsEnabled` - or of the origin sent beside
+        // it, which landed on `main` five and a half hours later the same day - refuses the whole
+        // body rather than ignoring part of it. That `400` never reaches this line: it is thrown above
+        // and recorded by `handleRefusedProductAnalyticsPreferencePushLocked`, which is the right
+        // outcome against a self-hosted backend older than the off switch, because such a server
+        // cannot store this setting at all.
         preferencesStore.savePushedAccountPreferences(preferences = updatedPreferences)
-        preferencesStore.clearProductAnalyticsEnabledPendingPushIfAnswerIs(enabled = enabled)
+        // The route answers with what it stored, and a reconciliation it refused comes back holding
+        // the stricter answer the account already had. That answer is not delivered, so it stays
+        // owed rather than being marked as done: a press arriving next sends it as `USER_ACTION`
+        // and is stored, and until then every refresh re-offers it and the account takes it the
+        // moment it stops being a loosening one. A `USER_ACTION` is never refused this way, so its
+        // clear is unchanged.
+        //
+        // Read off the one disagreement the guard can produce - a reconciled `true` answered with a
+        // stored `false` - rather than off any disagreement. The route refuses only that direction,
+        // so a reconciled opt-out answered with `true` is something else entirely and must not be
+        // filed as the guard: doing so would keep the debt and silently re-offer it on every
+        // refresh with nothing recorded anywhere. `== false` names the acknowledged value rather
+        // than testing for any mismatch because the field is nullable: null means nobody has
+        // answered on that row (db/migrations/0149_product_analytics_off_switch.sql), which is not
+        // a stored refusal, leaves the owed answer unstored, and has to stay a failure.
+        //
+        // Three conjuncts where the iOS drain has four, on purpose. Its fourth re-reads the owed
+        // answer, so a press landing while the body was in flight cannot be read as a refusal of
+        // itself and reported settled. Nothing here reports on the strength of this flag: it only
+        // decides whether to call a clear that already compares, and
+        // `clearProductAnalyticsEnabledPendingPushIfAnswerIs` refuses to clear the marker that
+        // second press re-armed with its own answer. That comparison is what stands in for the
+        // fourth conjunct, so making the clear unconditional would have to add one here.
+        val storedByServer: Boolean? = updatedPreferences.productAnalyticsEnabled
+        val refusedAsLoosening: Boolean = origin == AnalyticsPreferenceWriteOrigin.RECONCILIATION
+            && enabled
+            && storedByServer == false
+        if (refusedAsLoosening.not()) {
+            preferencesStore.clearProductAnalyticsEnabledPendingPushIfAnswerIs(enabled = enabled)
+        }
     }
 
     /**

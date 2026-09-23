@@ -153,11 +153,37 @@ export function registerAccountPreferencesRoutes(
     // That is a census of the writers that exist, not a property of the column. A device can write
     // a value it merely adopted from somewhere else - an answer read off an account it has since
     // signed out of, say - and republish it onto a guest row that already holds a stricter one, and
-    // on product_analytics_enabled that resumes ingest immediately. Neither mobile client can do it
-    // in that direction today, because the only answer either re-sends without a person giving it
-    // again is an opt-out. A client that starts pushing an adopted opt-in, or reconciles a guest
-    // column from a remembered one, has to decide whether the same CASE belongs here, and must not
-    // read this comment as saying it does not.
+    // on product_analytics_enabled that resumes ingest immediately. Both mobile clients do send
+    // answers here that nobody is giving again - a retry of one still owed, and one re-owed at an
+    // identity boundary - and both label those `reconciliation`, so the provenance is already on
+    // the wire. What keeps each of them safe is not the same thing, so neither reason covers both.
+    //
+    // iOS re-owes in either direction, and every site that does it clears the stored credentials
+    // and the guest session first (`FlashcardsStore+CloudSync`, `switchCloudServer`,
+    // `resetAccountPreferencesForCloudIdentityReset`), so the debt is handed to a credential minted
+    // afterwards. Its other re-owe, in `ProductAnalyticsPreference.adoptServerAnswer`, fires only
+    // where the server has just reported no answer for that identity. Either way the row it reaches
+    // holds NULL and there is nothing to loosen.
+    //
+    // Android is safe for the opposite reason: it re-owes only an opt-out
+    // (`CloudPreferencesStore.clearAccountPreferences` keeps the marker only for FALSE), and it
+    // does land on rows that already hold an answer. `resetInvalidCloudCredentialRecoveryState`
+    // goes through `disconnectCloudIdentityPreservingLocalState`, which deliberately preserves the
+    // stored guest session - unlike its deleted-account sibling, which clears it because that one
+    // is an identity boundary - so the re-owed answer is pushed on the surviving analytics guest
+    // credential, whose row can already hold an explicit TRUE from an earlier delivered opt-in.
+    // Nor is that the row the answer was read from: the marker is re-armed off the account
+    // preferences being cleared, and Android's other re-arm - the one a /me read triggers for an
+    // account reporting no answer - cannot be trusted to name this row either, because the account
+    // read and the analytics push resolve guest credentials through different lookups
+    // (`loadActiveGuestSessionOrNull` and `loadProductAnalyticsGuestSessionOrNull`) that diverge
+    // once more than one session is stored. So here it is the DIRECTION that makes it safe, because
+    // both re-arms fire only for a stored FALSE, an opt-out loosens nothing, and this CASE refuses
+    // only TRUE over a stored FALSE.
+    //
+    // What would break it is therefore Android (or any client) re-owing an opt-IN, or iOS re-owing
+    // onto a credential that outlived the identity the answer was made under. Either one, and the
+    // same CASE belongs here; this comment must not be read as saying it does not.
     const storedGuestPreferences = (
       preferencesUpdate.analyticsConsent === null
       && preferencesUpdate.productAnalyticsEnabled === null

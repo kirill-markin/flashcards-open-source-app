@@ -71,6 +71,19 @@ internal class CloudAccountWorkspaceRemoteApi(
         return fetchCloudAccount(apiBaseUrl = apiBaseUrl, authorizationHeader = "Bearer $bearerToken").workspaces
     }
 
+    /**
+     * `PATCH /me/preferences`. The write origin goes out beside the value it speaks for, with no
+     * fallback for a server that rejects the key.
+     *
+     * `parseAccountPreferencesInput` has answered `400` `ACCOUNT_PREFERENCES_FIELD_UNKNOWN` to any
+     * key it does not know since the route was written, long before either analytics field existed,
+     * and `productAnalyticsEnabled` and the origins landed on `main` five and a half hours apart on
+     * one day. So a backend old enough to reject an origin rejects `productAnalyticsEnabled` in the
+     * same body and cannot store this setting at all; re-sending without the origin would earn the
+     * same `400` one request later. The caller recording that as a refusal, and telling the person
+     * the app will not retry on its own, is the correct outcome against such a server rather than a
+     * bug (`docs/analytics-visitor-identity.md`).
+     */
     suspend fun updateAccountPreferences(
         apiBaseUrl: String,
         authorizationHeader: String,
@@ -84,6 +97,11 @@ internal class CloudAccountWorkspaceRemoteApi(
         }
         update.productAnalyticsEnabled?.let { enabled ->
             body.put("productAnalyticsEnabled", enabled)
+        }
+        // Sent only beside the value it speaks for: an origin alone writes nothing and the route
+        // refuses a body with no writable field in it.
+        update.productAnalyticsEnabledOrigin?.let { origin ->
+            body.put("productAnalyticsEnabledOrigin", origin.wireValue)
         }
         val response = httpClient.patchJson(
             baseUrl = apiBaseUrl,
