@@ -178,14 +178,108 @@ enum Analytics {
     }
 
     /**
+     * Records one event and waits, up to `analyticsPressedControlDrainBoundSeconds`, for the queue
+     * to leave the device.
+     *
+     * The one exception to the rule above this type, and it is the whole point of the call: a person
+     * pressed a control that is about to destroy the credential everything queued would go out on,
+     * and `reset()` below then discards that queue. So this is the last moment those events can be
+     * delivered, and the control shows ordinary loading feedback while it happens.
+     *
+     * Only a pressed control may call it, and only the two a person presses to leave an account.
+     * The teardowns nobody pressed — an expired credential, an account context that came back
+     * naming somebody else, a silent restore that did not resolve — have no control to show a wait
+     * on and lose their queue, which the `signed_out` catalog entry states so the under-count is
+     * visible to whoever reads the data. The credential-recovery erase is pressed and still does not
+     * call it, for its own reason given in that entry: the credential it would drain with is the one
+     * being erased, and where the recovery was entered because that credential is gone there is
+     * nothing to drain with at all. `mintGuestCredentials` cannot stand in for it, here or on
+     * Android: `isAnalyticsGuestCredentialMintEligible` refuses while a credential-recovery state is
+     * stored, and `eraseLocalDataForCredentialRecovery` runs only while one is. Nothing may put this
+     * call, or any other suspension, between a teardown's precondition and its clears.
+     *
+     * Recording and draining are one call on the runtime rather than two awaited ones: see
+     * `AnalyticsRuntime.runPressedControlDrain` for why the event has to be stored before anything
+     * already in flight is settled, and for the follow-up passes that make the returned wait mean
+     * this event was actually attempted.
+     */
+    static func trackAndDrainForPressedControl(
+        _ event: AnalyticsEvent,
+        screen: AnalyticsSurface? = nil
+    ) async {
+        guard let pendingEvent = self.makePendingEvent(event: event, screen: screen) else {
+            return
+        }
+
+        await self.waitWithinPressedControlBound { runtime in
+            await runtime.runPressedControlDrain(pendingEvent: pendingEvent)
+        }
+    }
+
+    /// The same bounded drain with nothing to record. Two callers: the account deletion, which
+    /// reports no fact of its own here — the ingest refuses this credential with
+    /// `410 ACCOUNT_DELETED` the moment the request below it returns — and a retried sign-out, whose
+    /// row was already written and delivered by the attempt that threw. Both still owe the session's
+    /// already-queued events one last chance to leave while the credential is alive.
+    static func drainForPressedControl() async {
+        guard self.enabledState.isEnabled() else {
+            return
+        }
+
+        await self.waitWithinPressedControlBound { runtime in
+            await runtime.runPressedControlDrain(pendingEvent: nil)
+        }
+    }
+
+    /**
+     * Runs `work` on the runtime and returns when it finishes or when the bound expires, whichever
+     * comes first. The work is never cancelled: it keeps running afterwards, and this only stops
+     * waiting for it, because a request already on the wire is better finished than abandoned.
+     *
+     * A task group cannot express that. Structured concurrency awaits every child before the group
+     * returns, and the child holding this work cannot be made to return early: `AnalyticsRuntime.flush`
+     * coalesces onto an unstructured `Task` and awaits its `value`, which responds to no
+     * cancellation. One continuation, resumed by whichever of the two arrives first, is what
+     * actually abandons the loser.
+     */
+    private static func waitWithinPressedControlBound(
+        _ work: @escaping @Sendable (AnalyticsRuntime) async -> Void
+    ) async {
+        let gate = AnalyticsBoundedWaitGate()
+        Task.detached(priority: .userInitiated) {
+            await work(self.runtime)
+            gate.open()
+        }
+        let boundTask = Task.detached(priority: .userInitiated) {
+            do {
+                try await Task.sleep(
+                    nanoseconds: UInt64(analyticsPressedControlDrainBoundSeconds * 1_000_000_000)
+                )
+            } catch {
+                // Cancelled below because the drain already won. Returning rather than swallowing
+                // the error keeps the cancel meaningful: `try?` would open an already-open gate,
+                // which is harmless but makes the line below describe something it does not do.
+                return
+            }
+            gate.open()
+        }
+        await gate.wait()
+        // The drain won, so the timer has nothing left to release.
+        boundTask.cancel()
+    }
+
+    /**
      * Explicit logout or account switch.
      *
      * Queued events belong to the person who is leaving, so they are discarded here rather than
      * carried across the boundary: delivered later they would go out under whatever credential
      * exists then, and the server derives `user_id` from that credential onto an append-only table
-     * with no repair path. There is deliberately no flush-before-logout trigger to rescue them —
-     * an asynchronous flush started from this synchronous path is ordered after the credential is
-     * cleared and delivers nothing. `anonymous_id` rotates here and nowhere else.
+     * with no repair path. Nothing rescues them from here, and nothing may try: an asynchronous
+     * flush started from this synchronous path is ordered after the credential is cleared and
+     * delivers nothing, and an awaited one would put a suspension inside the teardown, between its
+     * precondition and its clears. The rescue lives at the pressed controls instead —
+     * `trackAndDrainForPressedControl` and `drainForPressedControl` above, called before the
+     * teardown starts. `anonymous_id` rotates here and nowhere else.
      *
      * The rotation, not the queue wipe, is what makes the boundary hold. It is persisted in
      * `UserDefaults` synchronously on the caller's thread before the wipe is even scheduled, and every
@@ -214,6 +308,54 @@ enum Analytics {
 
         Task.detached(priority: .utility) {
             await self.runtime.discardQueue()
+        }
+    }
+}
+
+/**
+ * A one-shot gate: whichever of two racing tasks opens it first releases the single waiter, and the
+ * other one's later `open()` does nothing.
+ *
+ * A lock rather than an actor because `open()` is called from a detached task that must not have to
+ * suspend to release somebody, and because the whole point is to resume exactly once — a check and a
+ * resume that are not atomic would either resume twice, which traps, or never.
+ */
+final class AnalyticsBoundedWaitGate: @unchecked Sendable {
+    private let lock: NSLock
+    private var continuation: CheckedContinuation<Void, Never>?
+    private var isOpen: Bool
+
+    init() {
+        self.lock = NSLock()
+        self.continuation = nil
+        self.isOpen = false
+    }
+
+    func open() {
+        self.lock.lock()
+        guard self.isOpen == false else {
+            self.lock.unlock()
+            return
+        }
+
+        self.isOpen = true
+        let waiter = self.continuation
+        self.continuation = nil
+        self.lock.unlock()
+        waiter?.resume()
+    }
+
+    func wait() async {
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            self.lock.lock()
+            guard self.isOpen == false else {
+                self.lock.unlock()
+                continuation.resume()
+                return
+            }
+
+            self.continuation = continuation
+            self.lock.unlock()
         }
     }
 }
@@ -329,6 +471,12 @@ actor AnalyticsRuntime {
     private var pendingDropCounts: [AnalyticsDroppedReason: Int]
     private var consecutiveDeferralCount: Int
     private var nextAttemptAt: Date?
+    /// The part of `nextAttemptAt` the server asked for with `Retry-After`. Only the pressed-control
+    /// drain reads it, and only to leave that part alone while it clears the rest.
+    private var serverDirectedNextAttemptAt: Date?
+    /// Whether the last `runFlush` stopped with work still queued *after* delivering something. Only
+    /// the pressed-control drain reads it, to decide whether another pass is worth running.
+    private var lastFlushLeftQueuedRemainder: Bool
     private var consecutiveInvalidBatchCount: Int
     private var firstServerErrorAt: Date?
     private var reportedOverflowThisSession: Bool
@@ -349,6 +497,8 @@ actor AnalyticsRuntime {
         self.pendingDropCounts = [:]
         self.consecutiveDeferralCount = 0
         self.nextAttemptAt = nil
+        self.serverDirectedNextAttemptAt = nil
+        self.lastFlushLeftQueuedRemainder = false
         self.consecutiveInvalidBatchCount = 0
         self.firstServerErrorAt = nil
         self.reportedOverflowThisSession = false
@@ -411,6 +561,16 @@ actor AnalyticsRuntime {
      * the new id no longer owns rather than the boundary itself. If it throws, or never runs because
      * the process died, the same sweep runs again before the next batch is selected and those rows are
      * deleted there instead of sent.
+     *
+     * The delivery state is deliberately not reset with the identity: `consecutiveDeferralCount`,
+     * `nextAttemptAt` and `serverDirectedNextAttemptAt` all carry over, so the next identity on this
+     * install can inherit a backoff curve several attempts deep and an armed deadline. That is the
+     * right way round — the backoff describes this device's transport and this server's pressure,
+     * neither of which changed because the person did, and a `Retry-After` in particular is not
+     * something a new identity may ignore. The cost is that the next identity's first events can
+     * wait behind a delay they did not earn. The pressed-control drain clears the self-chosen half
+     * of it and nothing else does: unlike Android's, this client's connectivity trigger only asks
+     * for a flush, which still returns at the guard until the delay elapses.
      */
     func resetIdentity() {
         // The next identity gets its own creation attempt: the credential this install had belongs to
@@ -568,10 +728,14 @@ actor AnalyticsRuntime {
         guard Analytics.enabledState.isEnabled() else {
             return
         }
+        // Set before the first exit, so every early return below leaves it false: a pass that
+        // delivered nothing is a pass another pass would repeat.
+        self.lastFlushLeftQueuedRemainder = false
         if let nextAttemptAt = self.nextAttemptAt, Date() < nextAttemptAt {
             return
         }
         self.nextAttemptAt = nil
+        self.serverDirectedNextAttemptAt = nil
         self.reportIdentityBoundaryDiscardIfNeeded()
 
         do {
@@ -683,6 +847,64 @@ actor AnalyticsRuntime {
 
             self.consecutiveDeferralCount = 0
             guard result.settledEventIds.isEmpty == false else {
+                return
+            }
+        }
+
+        // Reached only by exhausting the iteration cap or by cancellation, which ordinarily means
+        // every iteration settled a batch and stopped short of emptying the queue: the one exit
+        // where running the flush again would make further progress. One iteration does not settle
+        // anything and still counts — the identity-mismatch `continue` above — so a run that only
+        // ever took that branch exhausts the cap and sets this having delivered nothing. That stays
+        // bounded by the drain's own pass limit and by the caller's wait, and the flag still means
+        // what the pressed-control drain reads it as: another pass is worth running.
+        self.lastFlushLeftQueuedRemainder = true
+    }
+
+    /**
+     * The whole pressed-control drain, as one call on this actor.
+     *
+     * Recording the event and flushing are one unit here rather than two awaited calls from the
+     * caller, so nothing can interleave between the queue write and the first pass.
+     *
+     * Three things the plain `flush()` does not do, and each of them is why this exists:
+     *
+     * 1. Whatever was already in flight is settled first. `flush()` coalesces onto an in-flight
+     *    task and returns its value, and that task may have selected its batch before this event
+     *    was stored — so on its own it can return having never seen the event the caller is waiting
+     *    for. Settling it first means every pass below starts after the write.
+     * 2. A backoff this client chose itself is dropped, after that settling, so a failure inside
+     *    the in-flight flush cannot re-park the passes. See `clearSelfChosenDeliveryBackoff`.
+     * 3. It runs a pass of its own unconditionally, and keeps running passes while one keeps
+     *    making progress, up to `analyticsPressedControlDrainPassLimit`. Unconditionally because
+     *    the flush settled in 1 may have touched the queue not at all — it can return at the
+     *    backoff guard 2 has just lifted, on a deferral, or on a store error — so its remainder
+     *    flag is no answer to whether this event was attempted. One flush is also capped at
+     *    `analyticsMaximumDrainIterationsPerFlush` batches, and a backlog larger than that would
+     *    otherwise be left behind at the one moment it can never be retried.
+     *
+     * Every pass is still subject to the caller's wait bound, which abandons the waiting rather
+     * than the work.
+     */
+    func runPressedControlDrain(pendingEvent: AnalyticsPendingEvent?) async {
+        if let pendingEvent {
+            _ = self.store(pendingEvent: pendingEvent)
+        }
+
+        await self.flush()
+        self.clearSelfChosenDeliveryBackoff()
+
+        // The first pass is unconditional, and that is the whole reason the loop is shaped this way
+        // rather than as a `while`. `lastFlushLeftQueuedRemainder` describes the flush settled just
+        // above, and every way that flush can end without emptying the queue leaves it false with
+        // the pressed event still waiting: the backoff guard in `runFlush`, which is exactly what
+        // the clear above has just lifted; a deferral; a store error; or coalescing onto an
+        // in-flight flush that ended in any of those. Testing the flag before running anything would
+        // then clear the backoff and run no pass at all, at the one moment nothing can be retried.
+        // This is the web's shape in `runDrainPasses`.
+        for _ in 0..<analyticsPressedControlDrainPassLimit {
+            await self.flush()
+            if self.lastFlushLeftQueuedRemainder == false {
                 return
             }
         }
@@ -872,7 +1094,42 @@ actor AnalyticsRuntime {
         let delaySeconds = retryAfterSeconds ?? analyticsBackoffDelaySeconds(
             attempt: self.consecutiveDeferralCount
         )
-        self.nextAttemptAt = now.addingTimeInterval(delaySeconds)
+        let nextAttemptAt = now.addingTimeInterval(delaySeconds)
+        self.nextAttemptAt = nextAttemptAt
+        // Split out so `clearSelfChosenDeliveryBackoff` can tell the two apart. Every deferral with
+        // no `Retry-After` is a delay this client picked for itself.
+        self.serverDirectedNextAttemptAt = retryAfterSeconds == nil ? nil : nextAttemptAt
+    }
+
+    /**
+     * Drops a delay this client chose for itself, and only that.
+     *
+     * After a transient `5xx` or an offline stretch the local backoff walks out to
+     * `analyticsRetryMaximumDelaySeconds`, and the pressed-control drain would then return at the
+     * guard in `runFlush` with perfect connectivity — at the one moment these events can never be
+     * retried, because the credential they would go out under is about to be destroyed. A
+     * `Retry-After` the server sent is kept: that one is not ours to ignore, and these events are
+     * not worth pushing through a throttle for. Android clears the same way at the top of
+     * `handleDrain`, and the web in `runDrainPasses`. On all three the clear is only half of it:
+     * the pass after it has to run whether or not the flush before it delivered anything, or a
+     * cleared backoff buys nothing. Android's `handleDrain` calls `handleFlush` straight after the
+     * clear, the web's first loop iteration is unconditional, and so is the first iteration in
+     * `runPressedControlDrain`.
+     *
+     * `consecutiveDeferralCount` is deliberately not reset, so the next real deferral resumes the
+     * backoff curve where it left off rather than restarting it.
+     */
+    private func clearSelfChosenDeliveryBackoff() {
+        let now = Date()
+        guard let nextAttemptAt = self.nextAttemptAt, now < nextAttemptAt else {
+            return
+        }
+        if let serverDirectedNextAttemptAt = self.serverDirectedNextAttemptAt, now < serverDirectedNextAttemptAt {
+            return
+        }
+
+        self.nextAttemptAt = nil
+        self.serverDirectedNextAttemptAt = nil
     }
 
     private func updateInvalidBatchReporting(invalidBatchCount: Int) {

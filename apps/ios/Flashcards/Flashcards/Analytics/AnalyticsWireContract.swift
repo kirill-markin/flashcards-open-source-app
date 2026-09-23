@@ -17,6 +17,37 @@ let analyticsQueueTimeToLiveSeconds: TimeInterval = 14 * 24 * 60 * 60
 let analyticsPeriodicFlushIntervalSeconds: TimeInterval = 5 * 60
 let analyticsRetryBaseDelaySeconds: TimeInterval = 2
 let analyticsRetryMaximumDelaySeconds: TimeInterval = 60 * 60
+/**
+ * How long a pressed control waits for the queue to drain before it destroys the credential behind
+ * it — the sign-out and the account deletion. On expiry the teardown goes ahead and whatever did not
+ * leave is lost, which is the accepted direction: this table is append-only and has no repair path.
+ *
+ * Two seconds, and the same two seconds on web and Android, because the three clients have to count
+ * the same way. Nothing that nobody pressed ever waits here, so this is a pure interaction budget
+ * rather than a compromise with a background path: a person is looking at a spinner on the control
+ * they just used, which is the range where a wait reads as work rather than as a hang. What has to
+ * fit inside it is one round trip for one session's events — far below `analyticsMaximumEventsPerBatch`
+ * — and a queue that needs longer is one that is offline or backed off, where no bound short enough
+ * to put in front of a person would have delivered it either.
+ */
+let analyticsPressedControlDrainBoundSeconds: TimeInterval = 2
+
+/**
+ * How many flush passes one pressed-control drain may run, matching the web's
+ * `identityTeardownFlushPassLimit`.
+ *
+ * One flush stops after `analyticsMaximumDrainIterationsPerFlush` batches, and this is the one
+ * moment a remainder cannot be picked up by a later trigger. The first pass always runs, whatever
+ * the flush before it did; after that the passes stop as soon as one ends for a reason another pass
+ * would not improve on — an emptied queue, a deferral, a store failure — and continue only while a
+ * pass keeps exhausting its own batch cap. That ordinarily means a pass settled every batch it sent
+ * and stopped short of emptying the queue, but not always: `runFlush` counts an iteration that sent
+ * nothing because the identity rotated under it, so a pass can exhaust the cap having delivered
+ * nothing and still ask for another. The limit therefore bounds a queue that keeps making progress
+ * and one that keeps failing this way, and the caller's two-second bound stops the waiting well
+ * before either is a factor.
+ */
+let analyticsPressedControlDrainPassLimit: Int = 10
 
 /**
  * How many batches one flush may post before it stops and waits for the next trigger.

@@ -14,6 +14,7 @@ struct CloudSignInSheet: View {
 
     @State private var technicalErrorPresentation: TechnicalErrorPresentation?
     @State private var isLogoutConfirmationPresented: Bool = false
+    @State private var isLoggingOut: Bool = false
     @State private var hasRecordedSurfacePresence: Bool = false
 
     init(presentationContext: CloudSignInPresentationContext) {
@@ -145,6 +146,7 @@ struct CloudSignInSheet: View {
                 CloudPostAuthRecoveryNeededSheet(
                     state: recoveryState,
                     allowsLogoutAction: self.isStandardPresentation,
+                    isLogoutInFlight: self.isLoggingOut,
                     onClose: {
                         self.store.cloudSignInAttempt.postAuthRecoveryNeededState = nil
                         self.dismiss()
@@ -162,6 +164,7 @@ struct CloudSignInSheet: View {
                         || self.presentationContext == .credentialRecoveryGate,
                     allowsLogoutAction: failureState.allowsAccountExitActions
                         && self.isStandardPresentation,
+                    isLogoutInFlight: self.isLoggingOut,
                     onRetry: {
                         self.retryPostAuthFailure(failureState)
                     },
@@ -173,7 +176,9 @@ struct CloudSignInSheet: View {
                         self.isLogoutConfirmationPresented = true
                     }
                 )
-                .interactiveDismissDisabled(failureState.kind == .guestLocalRecovery)
+                // Also while the sign-out runs: a swipe-dismiss there would take the sheet away
+                // while the credentials are still on the device.
+                .interactiveDismissDisabled(failureState.kind == .guestLocalRecovery || self.isLoggingOut)
                 .environment(self.store)
             }
             .alert(aiSettingsLocalized("settings.account.status.logoutAlertTitle", "Log out and clear this device?"), isPresented: self.$isLogoutConfirmationPresented) {
@@ -706,21 +711,34 @@ struct CloudSignInSheet: View {
     }
 
     private func logoutAndDismiss() {
-        self.cancelPostAuthTasksAndClearInFlightState()
-        do {
-            try self.store.logoutCloudAccount()
-        } catch {
-            self.store.cloudSignInAttempt.authErrorPresentation = CloudAuthInlineErrorPresentation(
-                message: Flashcards.errorMessage(error: error),
-                technicalError: nil
-            )
+        guard self.isLoggingOut == false else {
+            return
         }
 
-        self.store.cloudSignInAttempt.postAuthFailureState = nil
-        self.store.cloudSignInAttempt.workspaceLinkContext = nil
-        self.store.cloudSignInAttempt.postAuthRecoveryNeededState = nil
-        self.store.cloudSignInAttempt.otpSheetState = nil
-        self.dismiss()
+        self.cancelPostAuthTasksAndClearInFlightState()
+        // The sheet stays on screen while the sign-out drains the analytics queue, so the button
+        // that opened this confirmation reports the wait rather than the sheet looking stuck.
+        self.isLoggingOut = true
+        Task { @MainActor in
+            defer {
+                self.isLoggingOut = false
+            }
+
+            do {
+                try await self.store.signOutCloudAccountFromPressedControl(screen: .signin)
+            } catch {
+                self.store.cloudSignInAttempt.authErrorPresentation = CloudAuthInlineErrorPresentation(
+                    message: Flashcards.errorMessage(error: error),
+                    technicalError: nil
+                )
+            }
+
+            self.store.cloudSignInAttempt.postAuthFailureState = nil
+            self.store.cloudSignInAttempt.workspaceLinkContext = nil
+            self.store.cloudSignInAttempt.postAuthRecoveryNeededState = nil
+            self.store.cloudSignInAttempt.otpSheetState = nil
+            self.dismiss()
+        }
     }
 }
 

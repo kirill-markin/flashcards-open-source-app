@@ -187,6 +187,16 @@ export function flush(): void {
   deliveryRuntime.flush();
 }
 
+/**
+ * The bounded drain a control runs before it destroys the credential this browser reports under:
+ * the sign-out link before it leaves for the auth origin, and the account deletion before it
+ * dispatches the request that invalidates the session. `reset()` is too late for it — see
+ * `flushBeforeIdentityTeardown` in `deliveryRuntime.ts`.
+ */
+export function flushBeforeIdentityTeardown(): Promise<void> {
+  return deliveryRuntime.flushBeforeIdentityTeardown();
+}
+
 export function reset(): void {
   // The open visit belongs to the person leaving, and this runs inside a live app rather than at a
   // page load, so the pointer is set. Carrying it over would make the dedupe swallow the next

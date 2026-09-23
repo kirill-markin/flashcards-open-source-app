@@ -20,10 +20,59 @@ extension FlashcardsStore {
         try self.resetLocalStateForCloudIdentityChange()
     }
 
+    /**
+     * The deliberate sign-out, from one of the two controls a person presses to leave an account:
+     * the account screen's *Log out* and the one inside the sign-in sheet.
+     *
+     * It reports `signed_out(user_initiated)` and drains the queue here, before the teardown, while
+     * the departing person's credential is still live — that is the whole difference from
+     * `logoutCloudAccount`, which the sync reconciler also calls when it finds a linked state with
+     * no stored session at all. That path is nobody's press: it has no control to show a wait on,
+     * and it loses its queued events, which the `signed_out` catalog entry states.
+     *
+     * The suspension is here and never inside `resetLocalStateForCloudIdentityChange`. That function
+     * checks preconditions and then clears credentials, and a suspension between the two would let a
+     * sign-in arriving meanwhile believe a boundary ran when it did not.
+     *
+     * One press is one row. The emit is attached to a discrete confirmation a person gives rather
+     * than to the teardown that half a dozen code paths reach, and each caller holds its own
+     * in-flight flag so a second tap on the same control does nothing.
+     *
+     * `hasReportedPendingSignOut` covers the one case those two do not, and is the only marker this
+     * design keeps. `logoutCloudAccount` can throw — at `requireLocalDatabase`, `clearCredentials`,
+     * `resetForAccountDeletion` or the reload — and both callers correctly restore their control and
+     * surface the error, so the person presses again while the first row has already been delivered.
+     * The emit cannot simply move after the throwing part instead: the first statement of the
+     * teardown is `Analytics.reset()`, which rotates `anonymous_id` and discards the queue, so a row
+     * written on the far side is either swept or filed under the next identity — the exact
+     * misattribution this whole arrangement exists to prevent. So the retry reuses the row it
+     * already wrote. It is released by the identity boundary itself — in
+     * `resetLocalStateForCloudIdentityChange`, the moment the departing credential is cleared —
+     * rather than here, so a teardown that throws past that point does not strand it set on a
+     * device that has already left. A sign-out abandoned before that point and completed much later
+     * reports nothing; on an append-only table with no repair path that is the direction to lose in.
+     *
+     * The flag lives on the store rather than on either view, so it holds across the two controls:
+     * both reach the same store instance.
+     */
+    func signOutCloudAccountFromPressedControl(screen: AnalyticsSurface) async throws {
+        if self.hasReportedPendingSignOut {
+            await Analytics.drainForPressedControl()
+        } else {
+            self.hasReportedPendingSignOut = true
+            await Analytics.trackAndDrainForPressedControl(
+                .signedOut(reason: .userInitiated),
+                screen: screen
+            )
+        }
+        try self.logoutCloudAccount()
+    }
+
     func beginAccountDeletion() {
         self.userDefaults.set(true, forKey: accountDeletionPendingUserDefaultsKey)
         self.accountDeletionState = .inProgress
         Task { @MainActor in
+            await self.drainAnalyticsBeforeAccountDeletionRequest()
             await self.runPendingAccountDeletion()
         }
     }
@@ -31,8 +80,28 @@ extension FlashcardsStore {
     func retryPendingAccountDeletion() {
         self.accountDeletionState = .inProgress
         Task { @MainActor in
+            await self.drainAnalyticsBeforeAccountDeletionRequest()
             await self.runPendingAccountDeletion()
         }
+    }
+
+    /**
+     * The last moment this install's queued events can be delivered when a person deletes their
+     * account, so it runs before the deletion request rather than after it.
+     *
+     * After the request the ingest answers `410 ACCOUNT_DELETED` for this credential before it even
+     * reads the batch body, so a drain placed on the far side provably delivers nothing while still
+     * costing a wait on a pressed control and arming a retry deferral the next identity inherits.
+     * Nothing is reported here for the same reason: `signed_out(account_deleted)` could not be
+     * delivered, and writing it anyway would leave a row whose only way to survive is to lose the
+     * race with the identity rotation and be filed under the next person.
+     *
+     * Both callers have already set `accountDeletionState` to `.inProgress`, so the deletion screen
+     * is showing its progress while this waits. The resume path deliberately does not call it: that
+     * one runs at launch with nobody watching, and its request usually answers `410` anyway.
+     */
+    private func drainAnalyticsBeforeAccountDeletionRequest() async {
+        await Analytics.drainForPressedControl()
     }
 
     func resumePendingAccountDeletionIfNeeded() async {

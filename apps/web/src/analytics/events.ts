@@ -86,6 +86,16 @@ export type AnalyticsSignInFailureReason =
   | "server_error"
   | "cancelled";
 
+/**
+ * Why this browser's account relationship ended. `user_initiated` is the sign-out control,
+ * `credential_expired` a session this tab held that can no longer be used, and `account_deleted`
+ * the deletion this browser confirmed.
+ */
+export type AnalyticsSignedOutReason =
+  | "user_initiated"
+  | "credential_expired"
+  | "account_deleted";
+
 export type AnalyticsReviewAnswerFailureReason =
   | "offline"
   | "timeout"
@@ -206,6 +216,20 @@ export type AnalyticsEvent =
   | Readonly<{
     name: "signin_failed";
     reason: AnalyticsSignInFailureReason;
+  }>
+  /**
+   * The end of this browser's account relationship. This client reports all three reasons, and it
+   * is the only one that does: see the catalog entry for why the mobile clients report only
+   * `user_initiated`, and why `account_deleted` cannot be delivered anywhere.
+   *
+   * `user_initiated` is tracked by `SignOutLink`, which then holds its navigation for the bounded
+   * drain — the load that comes back has no credential left to send anything under, and discards
+   * the queue. The other two are tracked and left to an ordinary flush, because neither retires the
+   * visitor identity this browser's queue is delivered under.
+   */
+  | Readonly<{
+    name: "signed_out";
+    reason: AnalyticsSignedOutReason;
   }>
   /**
    * The card flip. It never reaches the backend on its own, so only a client can report it, and it
@@ -369,6 +393,8 @@ export function buildAnalyticsEventProperties(event: AnalyticsEvent): AnalyticsE
     case "screen_viewed":
       return null;
     case "signin_failed":
+      return { reason: event.reason };
+    case "signed_out":
       return { reason: event.reason };
     case "review_card_revealed":
       return null;

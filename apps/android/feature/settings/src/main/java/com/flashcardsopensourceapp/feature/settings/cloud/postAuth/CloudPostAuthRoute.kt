@@ -3,9 +3,12 @@ package com.flashcardsopensourceapp.feature.settings.cloud.postAuth
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
@@ -47,7 +50,10 @@ fun CloudPostAuthRoute(
     onFailureAction: () -> Unit,
     onShowTechnicalDetails: (String, String) -> Unit,
     onBack: () -> Unit,
-    canNavigateBack: Boolean
+    canNavigateBack: Boolean,
+    /** The failure action is a log out, which drains the analytics queue before it clears the
+     *  credential, so the button it was pressed on has to report that wait. */
+    isFailureActionInFlight: Boolean
 ) {
     LaunchedEffect(uiState.mode, uiState.pendingWorkspaceTitle) {
         if (uiState.mode == CloudPostAuthMode.READY_TO_AUTO_LINK) {
@@ -247,9 +253,17 @@ fun CloudPostAuthRoute(
                     item {
                         OutlinedButton(
                             onClick = onFailureAction,
-                            enabled = uiState.mode == CloudPostAuthMode.FAILED,
+                            enabled = uiState.mode == CloudPostAuthMode.FAILED &&
+                                isFailureActionInFlight.not(),
                             modifier = Modifier.fillMaxWidth()
                         ) {
+                            if (isFailureActionInFlight) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                            }
                             Text(uiState.failureActionLabel)
                         }
                     }

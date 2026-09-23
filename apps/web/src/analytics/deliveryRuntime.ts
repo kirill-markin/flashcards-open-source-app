@@ -79,6 +79,26 @@ const retryMaxDelayMs = 60 * 60 * 1000;
 const sustainedFailureWindowMs = 60 * 60 * 1000;
 const periodicFlushIntervalMs = 60 * 1000;
 /**
+ * How long a pressed control waits for the queue to drain before it destroys the credential behind
+ * it. On expiry the sign-out or the deletion goes ahead and whatever did not leave is lost.
+ *
+ * Two seconds, and the same two seconds on iOS and Android, because the three clients have to count
+ * the same way. Nothing that nobody pressed ever waits here, so this is a pure interaction budget
+ * rather than a compromise with a background path: a person is looking at a spinner on the control
+ * they just used, which is the range where a wait reads as work rather than as a hang. What has to
+ * fit inside it is one round trip for one session's events — far below the fifty-event batch limit
+ * — and a queue that needs longer than this is one that is offline or backed off, where no bound
+ * short enough to put in front of a person would have delivered it either.
+ */
+const identityTeardownFlushTimeoutMs = 2 * 1000;
+/**
+ * Flush passes one identity teardown will start. A pass has to have delivered something and left
+ * more queued to earn the next, so an ordinary backlog ends the loop on its own; the cap is only
+ * there so a queue being appended to as fast as it drains cannot keep passing after the bound above
+ * has already released the person.
+ */
+const identityTeardownFlushPassLimit = 10;
+/**
  * Requests one flush may spend. A whole-batch refusal splits and retries, and an unbounded split of a
  * fully refused 50-event batch is ~99 back-to-back requests against a 20 rps endpoint throttle. The
  * budget must stay above the depth needed to isolate one event from a full batch — seven requests for
@@ -129,6 +149,7 @@ type AnalyticsDeliveryRuntime = Readonly<{
   applyAnalyticsConsentDecline: () => Promise<void>;
   applyProductAnalyticsCollection: (isCollectionEnabled: boolean) => void;
   flush: () => void;
+  flushBeforeIdentityTeardown: () => Promise<void>;
   reset: () => void;
   setEnabled: (enabled: boolean) => void;
   startAnalytics: () => () => void;
@@ -160,7 +181,24 @@ export function createAnalyticsDeliveryRuntime(
   let firstDeliveryFailureAtMs: number | null = null;
   let lastFailureStatusCode: number | null = null;
   let retryNotBeforeMs = 0;
+  /**
+   * The part of `retryNotBeforeMs` the server asked for with `Retry-After`. Only the identity
+   * teardown reads it, to tell a delay the server set from one this client chose after a transport
+   * failure or a 5xx.
+   */
+  let serverDirectedRetryNotBeforeMs = 0;
   let isFlushing = false;
+  /**
+   * The flush that is running now, or the last one that ran. `runFlush` returns immediately while
+   * another is in flight, so this is the only handle an identity teardown can wait on.
+   */
+  let activeFlushTask: Promise<void> = Promise.resolve();
+  /**
+   * Whether the last flush stopped with events still queued — the batch limit was filled, or the
+   * sent run stopped at a session boundary. It is the identity teardown's only way to tell a queue
+   * that is empty from one that merely needs another pass.
+   */
+  let didLastFlushLeaveQueuedRemainder = false;
   let hasDeliveredInFlush = false;
   let remainingFlushRequestCount = 0;
   /**
@@ -445,7 +483,9 @@ export function createAnalyticsDeliveryRuntime(
       flushTimerId = null;
       flushDueAtMs = null;
       try {
-        void runFlush();
+        // Tracked like every other flush, so an identity teardown waits for a scheduled drain
+        // rather than starting a second one beside it.
+        startTrackedFlush();
       } catch {
         // Nothing scheduled by analytics may surface as an uncaught error.
       }
@@ -596,6 +636,7 @@ export function createAnalyticsDeliveryRuntime(
     const retryAfterMs = error instanceof ApiError ? error.retryAfterMs : null;
     const delayMs = retryAfterMs ?? createBackoffDelayMs(consecutiveFailureCount);
     retryNotBeforeMs = Date.now() + delayMs;
+    serverDirectedRetryNotBeforeMs = retryAfterMs === null ? 0 : retryNotBeforeMs;
     scheduleFlush(delayMs);
   }
 
@@ -1304,6 +1345,13 @@ export function createAnalyticsDeliveryRuntime(
   }
 
   async function runFlush(): Promise<void> {
+    // Cleared before every exit, so no path that sends nothing can leave a stale `true` behind: the
+    // identity teardown's loop reads it to decide whether another pass is worth starting, and would
+    // otherwise spend all of them on flushes that cannot progress. It sits above the guard rather
+    // than below it for that reason — a browser that is not collecting returns on the very next
+    // line, and that is one of the paths that must not leave a remainder claimed.
+    didLastFlushLeaveQueuedRemainder = false;
+
     if (isProductAnalyticsCollecting() === false || isFlushing) {
       return;
     }
@@ -1405,7 +1453,8 @@ export function createAnalyticsDeliveryRuntime(
       // sessions would otherwise advance by one session run per periodic timer tick.
       const hasQueuedRemainder = queued.events.length >= batchEventLimit
         || sendableEvents.length < queued.events.length;
-      if (hasDeliveredInFlush && hasQueuedRemainder) {
+      didLastFlushLeaveQueuedRemainder = hasDeliveredInFlush && hasQueuedRemainder;
+      if (didLastFlushLeaveQueuedRemainder) {
         scheduleFlush(0);
       }
     } catch (error) {
@@ -1551,8 +1600,105 @@ export function createAnalyticsDeliveryRuntime(
     schedulePersist();
   }
 
+  /**
+   * Starts a flush and keeps a handle on it.
+   *
+   * A call made while one is already running is dropped by `runFlush` itself and comes back as an
+   * immediately resolved promise; storing that would hide the flush that is actually running from
+   * the identity teardown waiting on it, and the teardown would return having drained nothing.
+   */
+  function startTrackedFlush(): void {
+    if (isFlushing) {
+      return;
+    }
+
+    activeFlushTask = runFlush();
+  }
+
   function flush(): void {
-    void runFlush();
+    startTrackedFlush();
+  }
+
+  /**
+   * Drains the queue while the credential that would carry it still exists, bounded because a
+   * person is waiting behind it.
+   *
+   * On this client the identity boundary is split across a navigation: `reset()` runs on the load
+   * *after* the sign-out, the deletion or the account switch, by which point the credential is
+   * gone and a flush there would either post nothing or post the previous account's events on
+   * whoever is signed in now. So this is called from the control that is about to destroy the
+   * credential, never from `reset()`.
+   *
+   * The in-flight flush is awaited first: it read the queue before the event this teardown is
+   * waiting on was appended, so only the flush started after it can carry that event. Then passes
+   * run until one leaves nothing queued, because a single flush sends at most one session run and
+   * at most `batchEventLimit` events: an older session's backlog would otherwise sit in front of
+   * the event this exists to deliver, and the follow-up `scheduleFlush(0)` is a timer the sign-out
+   * navigation destroys. Every await carries its own catch, so a stale rejected flush cannot abort
+   * the chain and reduce the whole drain to nothing.
+   *
+   * No flush is cancelled on expiry — a request already sent has left the browser, and abandoning
+   * it would lose more than waiting longer would save.
+   */
+  async function flushBeforeIdentityTeardown(): Promise<void> {
+    // A browser that is not collecting has nothing to drain and no way to send it: `enqueue` never
+    // wrote the event this drain exists for, and every pass below would reach a `runFlush` that
+    // returns on this same call before it reads the queue. Returning here rather than letting the passes
+    // discover it is what keeps the wait off a person who opted out — `settledFlushTask` below can
+    // otherwise hold a pressed control while a delivery started before the switch was moved
+    // finishes, which is a wait spent entirely on analytics by somebody who asked for none. iOS and
+    // Android refuse the same wait at the entry to their own drains, on their own copy of this flag.
+    if (isProductAnalyticsCollecting() === false) {
+      return;
+    }
+
+    const drain = (async (): Promise<void> => {
+      try {
+        await runDrainPasses();
+      } catch (error) {
+        // The action the person pressed is a sign-out or an account deletion. Neither may fail, or
+        // even look like it failed, because analytics could not empty a queue.
+        reportAnalyticsQueueFailure(error);
+      }
+    })();
+
+    let deadlineTimerId = 0;
+    const deadline = new Promise<void>((resolve): void => {
+      deadlineTimerId = window.setTimeout(resolve, identityTeardownFlushTimeoutMs);
+    });
+
+    await Promise.race([drain, deadline]);
+    // The sign-out navigates away and takes the timer with it, but the account deletion stays on
+    // the page, and a timer nothing is waiting on any more has no reason to be alive.
+    window.clearTimeout(deadlineTimerId);
+  }
+
+  async function runDrainPasses(): Promise<void> {
+    await settledFlushTask();
+    persistTrackedAnalyticsEvents();
+    // A delay this client chose itself is not this drain's to inherit. After a transient 5xx or an
+    // offline stretch it reaches the one-hour cap, and the passes below would then all return at
+    // the guard in `runFlush` with perfect connectivity — at the one moment these events can never
+    // be retried. A `Retry-After` the server sent is kept: that one is not ours to ignore. Cleared
+    // after the in-flight flush has settled, so a failure inside it cannot re-park the first pass.
+    if (Date.now() < retryNotBeforeMs && Date.now() >= serverDirectedRetryNotBeforeMs) {
+      retryNotBeforeMs = 0;
+    }
+    for (let pass = 0; pass < identityTeardownFlushPassLimit; pass += 1) {
+      startTrackedFlush();
+      await settledFlushTask();
+      if (didLastFlushLeaveQueuedRemainder === false) {
+        return;
+      }
+    }
+  }
+
+  /**
+   * The current flush as something a waiter can always await. A failure inside analytics never
+   * fails the action the person asked for, and `runFlush` reports what it can itself.
+   */
+  function settledFlushTask(): Promise<void> {
+    return activeFlushTask.catch((): void => {});
   }
 
   /**
@@ -2045,6 +2191,7 @@ export function createAnalyticsDeliveryRuntime(
     applyAnalyticsConsentDecline,
     applyProductAnalyticsCollection,
     flush,
+    flushBeforeIdentityTeardown,
     reset,
     setEnabled,
     startAnalytics,

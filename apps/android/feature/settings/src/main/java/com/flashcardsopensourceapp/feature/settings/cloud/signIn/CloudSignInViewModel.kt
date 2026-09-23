@@ -46,7 +46,9 @@ import com.flashcardsopensourceapp.feature.settings.createSettingsStringResolver
 import com.flashcardsopensourceapp.core.observability.analytics.Analytics
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSignInFailureReason
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSignedOutReason
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
+import com.flashcardsopensourceapp.core.observability.analytics.PendingSignOutReport
 import java.net.SocketTimeoutException
 import java.io.IOException
 import kotlinx.coroutines.CancellationException
@@ -55,6 +57,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -98,7 +101,13 @@ class CloudSignInViewModel(
     private val analytics: Analytics,
     private val originSurface: AnalyticsSurface?,
     private val signInStepSurface: AnalyticsSurface,
-    private val strings: SettingsStringResolver
+    private val strings: SettingsStringResolver,
+    /**
+     * Defaulted only so the unit tests, which construct this model directly, do not each have to
+     * name it. Every production path goes through [createCloudSignInViewModelFactory], where the
+     * parameter has no default and the process-wide instance has to be passed in.
+     */
+    private val pendingSignOutReport: PendingSignOutReport = PendingSignOutReport()
 ) : ViewModel() {
     private val draftState = MutableStateFlow(
         value = initialCloudSignInDraftState()
@@ -120,6 +129,22 @@ class CloudSignInViewModel(
      * saw stay two events, because the surface is present for both and neither is an abandonment.
      */
     private var isSignInSurfacePresent: Boolean = true
+
+    private val isPostAuthFailureActionInFlightState = MutableStateFlow(value = false)
+
+    /**
+     * Whether the post-auth failure action — a log out, which waits for the analytics drain before
+     * it clears the credential — is running.
+     *
+     * On this ViewModel rather than on the screen that shows it, and for the same reason the action
+     * itself runs on [viewModelScope]: a configuration change disposes the composition, and a flag
+     * remembered there would reset to `false` across exactly the rotation the action was moved here
+     * to survive, re-enabling the button and Back while the sign-out is still running. This
+     * ViewModel is scoped to the auth graph's back stack entry, which the configuration change does
+     * not take with it.
+     */
+    val isPostAuthFailureActionInFlight: StateFlow<Boolean> =
+        isPostAuthFailureActionInFlightState.asStateFlow()
 
     val uiState: StateFlow<CloudSignInUiState> = draftState.mapToStateIn(
         scope = viewModelScope,
@@ -511,8 +536,41 @@ class CloudSignInViewModel(
         }
     }
 
+    /**
+     * The body runs on [viewModelScope] and the caller only joins it.
+     *
+     * The caller is a composable's `rememberCoroutineScope`, which a configuration change disposes;
+     * the sign-out branch below emits an analytics row and then waits for a bounded drain before
+     * `logout()` clears the credential, and a cancellation landing between the two would leave the
+     * person signed in with a row already delivered. Joining a job owned by this ViewModel — which
+     * outlives the composition — keeps the emit and the teardown together. Cancelling the join only
+     * skips the caller's navigation.
+     */
     suspend fun runPostAuthFailureAction() {
-        when (resolveCloudPostAuthFailureAction(draft = draftState.value) ?: return) {
+        viewModelScope.launch { runPostAuthFailureActionOnOwnScope() }.join()
+    }
+
+    private suspend fun runPostAuthFailureActionOnOwnScope() {
+        val action: CloudPostAuthFailureAction =
+            resolveCloudPostAuthFailureAction(draft = draftState.value) ?: return
+        // The button is disabled and Back is closed while this runs, but the guard is still here:
+        // `viewModelScope` dispatches on `Dispatchers.Main.immediate`, so this body runs eagerly on
+        // the caller's thread up to its first suspension, and the flag below is set before any of
+        // them. A second press therefore cannot get past this line, which on the LOGOUT branch is
+        // the difference between one `signed_out` row and two.
+        if (isPostAuthFailureActionInFlightState.value) {
+            return
+        }
+        isPostAuthFailureActionInFlightState.value = true
+        try {
+            runPostAuthFailureActionBody(action = action)
+        } finally {
+            isPostAuthFailureActionInFlightState.value = false
+        }
+    }
+
+    private suspend fun runPostAuthFailureActionBody(action: CloudPostAuthFailureAction) {
+        when (action) {
             CloudPostAuthFailureAction.RESET_INVALID_RECOVERY -> {
                 cloudAccountRepository.resetInvalidCloudCredentialRecoveryState()
                 clearPostAuthState()
@@ -522,9 +580,28 @@ class CloudSignInViewModel(
             }
 
             CloudPostAuthFailureAction.LOGOUT -> {
-                // No analytics call belongs here. There is deliberately no flush-before-logout
-                // trigger, and the identity boundary is handled where logout actually clears the
-                // account, in `AppGraph`'s `onCloudIdentityReset` hook.
+                // The deliberate sign-out this flow offers, reported at the press rather than at
+                // the teardown: one press is one row, so no once-per-sign-out marker is needed. The
+                // drain that follows is the last moment this and everything else queued can leave,
+                // because the boundary inside `logout()` rotates `anonymous_id` and discards the
+                // queue — see `AppGraph`'s `onCloudIdentityReset` hook. The sheet's log out button
+                // shows its in-flight state for the wait, which the client bounds.
+                //
+                // [PendingSignOutReport] guards one narrow case and nothing else: `logout()` can
+                // throw, the sheet invites another press, and the row for the first press has
+                // already left. It is the process-wide instance rather than a field here because
+                // the failed press is often the account screen's own Log out and this flow is where
+                // the person retries it. It keys on nothing the teardown clears and the identity
+                // boundary releases it once the credentials are gone.
+                if (pendingSignOutReport.claim()) {
+                    analytics.track(
+                        event = AnalyticsEvent.SignedOut(
+                            reason = AnalyticsSignedOutReason.USER_INITIATED,
+                            screen = signInStepSurface
+                        )
+                    )
+                }
+                analytics.drainBeforeIdentityTeardown()
                 cloudAccountRepository.logout()
                 clearPostAuthState()
                 messageController.showMessage(
@@ -1049,6 +1126,7 @@ fun createCloudSignInViewModelFactory(
     syncRepository: SyncRepository,
     messageController: TransientMessageController,
     analytics: Analytics,
+    pendingSignOutReport: PendingSignOutReport,
     originSurface: AnalyticsSurface?,
     signInStepSurface: AnalyticsSurface,
     applicationContext: Context
@@ -1062,7 +1140,8 @@ fun createCloudSignInViewModelFactory(
                 analytics = analytics,
                 originSurface = originSurface,
                 signInStepSurface = signInStepSurface,
-                strings = createSettingsStringResolver(context = applicationContext)
+                strings = createSettingsStringResolver(context = applicationContext),
+                pendingSignOutReport = pendingSignOutReport
             )
         }
     }

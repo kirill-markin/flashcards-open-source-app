@@ -39,6 +39,8 @@ internal fun NavGraphBuilder.registerSettingsAccountNavGraph(
                 syncRepository = appGraph.syncRepository,
                 messageController = appGraph.appMessageBus,
                 technicalErrorController = appGraph.appMessageBus,
+                analytics = appGraph.analytics,
+                pendingSignOutReport = appGraph.pendingSignOutReport,
                 syncFailureReporter = appGraph.syncFailureAnalyticsReporter,
                 applicationContext = context.applicationContext
             )
@@ -59,11 +61,10 @@ internal fun NavGraphBuilder.registerSettingsAccountNavGraph(
             },
             onRequestLogout = accountStatusViewModel::requestLogoutConfirmation,
             onDismissLogoutConfirmation = accountStatusViewModel::dismissLogoutConfirmation,
-            onConfirmLogout = {
-                coroutineScope.launch {
-                    accountStatusViewModel.confirmLogout()
-                }
-            },
+            // Not launched on `coroutineScope`: the sign-out emits an analytics row and then waits
+            // for a bounded drain before it clears the credential, and that scope dies with the
+            // composition on any configuration change. The ViewModel owns the coroutine instead.
+            onConfirmLogout = accountStatusViewModel::confirmLogout,
             onBack = {
                 navController.popBackStack()
             }
@@ -165,6 +166,7 @@ internal fun NavGraphBuilder.registerSettingsAccountNavGraph(
         val accountDangerZoneViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.account.AccountDangerZoneViewModel>(
             factory = createAccountDangerZoneViewModelFactory(
                 cloudAccountRepository = appGraph.cloudAccountRepository,
+                analytics = appGraph.analytics,
                 applicationContext = context.applicationContext
             )
         )
@@ -175,11 +177,9 @@ internal fun NavGraphBuilder.registerSettingsAccountNavGraph(
             onRequestDeleteConfirmation = accountDangerZoneViewModel::requestDeleteConfirmation,
             onDismissDeleteConfirmation = accountDangerZoneViewModel::dismissDeleteConfirmation,
             onConfirmationTextChange = accountDangerZoneViewModel::updateConfirmationText,
-            onDeleteAccount = {
-                coroutineScope.launch {
-                    accountDangerZoneViewModel.deleteAccount()
-                }
-            },
+            // Owned by the ViewModel for the same reason as the sign-out above: a configuration
+            // change must not cancel the drain between it and the deletion request.
+            onDeleteAccount = accountDangerZoneViewModel::deleteAccount,
             onShowTechnicalDetails = { technicalDetails, reportId ->
                 appGraph.showTechnicalErrorDialog(
                     source = "account_danger_zone",

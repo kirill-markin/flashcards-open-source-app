@@ -9,6 +9,7 @@ import {
   deleteMyAccount,
   primeSessionCsrfToken,
 } from "../api";
+import { flushBeforeIdentityTeardown as flushAnalyticsBeforeIdentityTeardown, track } from "../analytics";
 import { clearAnalyticsVisitorCookie, resetAnalyticsSession } from "../analytics/identity";
 import { useI18n } from "../i18n";
 import { captureApiContractError } from "../observability/apiContractObservation";
@@ -132,6 +133,13 @@ export function AccountDeletionRecoveryGate(props: AccountDeletionRecoveryGatePr
           setAccountDeletionTechnicalError(null);
 
           if (isServerConfirmed === false) {
+            // The last moment anything this browser queued can still be delivered. The request
+            // below ends the account, and from then on the ingest answers `410 ACCOUNT_DELETED`
+            // for this credential before it reads the batch body, so a drain placed after it
+            // could not deliver a single row. The wait is bounded inside the analytics client and
+            // the gate is already showing its submitting state, so the person sees work rather
+            // than a pause.
+            await flushAnalyticsBeforeIdentityTeardown();
             const persistedCsrfToken = loadAccountDeletionCsrfToken();
             if (persistedCsrfToken !== null) {
               primeSessionCsrfToken(persistedCsrfToken);
@@ -149,6 +157,14 @@ export function AccountDeletionRecoveryGate(props: AccountDeletionRecoveryGatePr
 
               markAccountDeletionServerConfirmed();
             }
+
+            // The end of this session's account relationship, reported before the identity it
+            // belongs to is retired below. It is knowingly undeliverable — the account is already
+            // gone and the ingest refuses this credential with `410 ACCOUNT_DELETED` — and it is
+            // still reported here because this is where the fact is observed; the catalog entry
+            // for `signed_out` says so rather than leaving an empty series to be read as nobody
+            // deleting an account.
+            track({ name: "signed_out", reason: "account_deleted" });
 
             // Paired with the confirmation itself, synchronously and before the next guard check,
             // because everything after it is skippable: the recovery guard below aborts the cleanup

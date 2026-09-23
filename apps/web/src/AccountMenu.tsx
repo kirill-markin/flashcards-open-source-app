@@ -5,6 +5,7 @@ import {
 } from "./appError/AppErrorContext";
 import { AnchoredFloatingOverlay, useAnchoredFloatingOutsidePointerDismiss } from "./floating";
 import { useI18n } from "./i18n";
+import { SignOutLink } from "./SignOutLink";
 import type { WorkspaceSummary } from "./types";
 import { useTransientMessage } from "./useTransientMessage";
 
@@ -265,9 +266,11 @@ export function AccountMenu(props: Props): ReactElement {
         <a className="account-menu-item account-menu-link" href={accountSettingsUrl}>
           {t("navigation.settings")}
         </a>
-        <a className="account-menu-item account-menu-link" href={logoutUrl}>
-          {t("accountMenu.logout")}
-        </a>
+        <SignOutLink
+          className="account-menu-item account-menu-link"
+          href={logoutUrl}
+          label={t("accountMenu.logout")}
+        />
       </AnchoredFloatingOverlay>
     </div>
   );
