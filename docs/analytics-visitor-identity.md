@@ -191,8 +191,10 @@ already holds `false`: the claim that creates the analytics database runs before
 arrives and is legitimate when it does, so without the release such a browser would end the load
 holding an analytics store naming an account that opted out.
 
-Turning the switch off stops future collection. It deletes nothing: `analytics.product_events` is
-append-only, and account deletion stays the erasure path. The backend enforces it at ingest —
+Turning the switch off stops future collection. It deletes nothing already stored, and nothing
+later erases it either: account deletion anonymizes those rows in place
+([account deletion](../apps/backend/src/auth/accountDeletion.ts)), as the section below describes.
+The backend enforces the switch at ingest —
 [`POST /v1/analytics/events`](../apps/backend/src/routes/productAnalytics.ts) drops an opted-out
 credential's batch and still answers `200`, so a client released before the switch existed retires
 its queue instead of redelivering. The credential-free collector cannot enforce it and does not try;

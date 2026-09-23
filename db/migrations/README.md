@@ -86,3 +86,35 @@ per-request id is not substituted. That still holds for `anonymous_id`. But sinc
 `0144_anonymous_client_daily_visitor_hash.sql`, a cookieless credential-free row that is not a
 consent fact carries a separate server-derived `daily_visitor_hash`, which links one browser's events
 within one UTC day. The consent facts still carry neither.
+
+### `0149_product_analytics_off_switch.sql` — account deletion anonymizes, it does not erase
+
+Its header says twice that turning the switch off "deletes nothing: `analytics.product_events` is
+append-only and account deletion stays the erasure path" — once in a `Current guidance` block and
+once inside `COMMENT ON COLUMN org.user_settings.product_analytics_enabled`, which is the copy now
+living in the database. The first half is true. The second names something that does not exist:
+nothing erases those events, and account deletion least of all.
+
+`anonymizeProductAnalyticsInExecutor` (`apps/backend/src/auth/accountDeletion.ts`) rewrites them in
+place. It deletes the person's `analytics.installation_profiles` rows, `UPDATE`s every
+`analytics.product_events` row belonging to any user id that person ever reported under — guest
+phase included, walked through `auth.guest_upgrade_history` and the `server_derived`
+`analytics.identity_links` — onto a single `randomUUID()` pseudonym that is stored nowhere, nulls
+every remaining joinable column (`anonymous_id`, `session_id`, `guest_session_id`, `workspace_id`,
+`request_id`, the device, locale and `country` columns), sets `identity_state = 'anonymized'`, and
+only then deletes `analytics.identity_links` so nothing can resolve the pseudonym back. The rows
+survive and keep being counted, as `docs/admin-app.md` describes where a deleted person shows up as
+a `(no email)` actor. The person behind them is what is gone. The one true erasure in that
+transaction is `analytics.excluded_actors`, which `0140_analytics_excluded_actors.sql` already
+covers.
+
+"Append-only" is the same slip, narrowed. `0114_product_analytics_storage.sql` grants `backend_app`
+`UPDATE` on this table for this path alone and calls the table append-only "for every other writer".
+The account-deletion path is the carve-out from that rule, not an example of it.
+
+The rest of that header still holds, the switch's own behavior included: it writes no tombstone,
+stops future collection only, and leaves everything already stored exactly where it is. What was
+never true is the name the header gave to what happens to those rows afterwards.
+
+`docs/analytics-visitor-identity.md` had repeated the sentence and is corrected in place; that file
+is editable, so it carries no entry here.
