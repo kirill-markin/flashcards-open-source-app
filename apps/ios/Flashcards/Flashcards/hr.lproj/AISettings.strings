@@ -192,6 +192,9 @@
 "settings.leaderboardParticipation.toggle" = "Prikaži me na ljestvici";
 "settings.leaderboardParticipation.description" = "Kad je ovo isključeno, vaša se anonimna aktivnost neće prikazivati na ljestvici.";
 "settings.leaderboardParticipation.signInRequired" = "Povežite sinkronizaciju s oblakom da biste upravljali sudjelovanjem na ljestvici.";
+"settings.productAnalytics.title" = "Analitika proizvoda";
+"settings.productAnalytics.toggle" = "Dijeli analitiku proizvoda";
+"settings.productAnalytics.footer" = "Analitika proizvoda govori nam koje dijelove aplikacije ljudi koriste, nikada što je na tvojim karticama. Kada je isključena, aplikacija ništa ne bilježi ni ne šalje. Izvješća o rušenjima i pogreškama time nisu obuhvaćena.";
 "settings.language.title" = "Jezik";
 "settings.language.systemDescription" = "iOS upravlja jezikom aplikacije. U Postavkama iOS-a otvorite Nibomo i odaberite Željeni jezik. Ako se ta opcija ne prikazuje, najprije dodajte drugi jezik u Postavke > Općenito > Jezik i regija.";
 "settings.language.action.openAppSettings" = "Otvori postavke aplikacije Nibomo";

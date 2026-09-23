@@ -151,6 +151,18 @@ struct SettingsView: View {
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsLeaderboardParticipationRow)
 
+                NavigationLink(value: SettingsNavigationDestination.productAnalytics) {
+                    SettingsNavigationRow(
+                        title: aiSettingsLocalized("settings.productAnalytics.title", "Product Analytics"),
+                        value: store.isProductAnalyticsEnabled
+                            ? aiSettingsLocalized("common.on", "On")
+                            : aiSettingsLocalized("common.off", "Off"),
+                        systemImage: "chart.bar",
+                        attentionCount: nil
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.settingsProductAnalyticsRow)
+
                 NavigationLink(value: SettingsNavigationDestination.language) {
                     SettingsNavigationRow(
                         title: aiSettingsLocalized("settings.row.language", "Language"),

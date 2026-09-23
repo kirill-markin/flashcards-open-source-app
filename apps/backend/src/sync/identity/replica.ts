@@ -107,7 +107,7 @@ export function buildSystemWorkspaceReplicaId(
  * `stored OR declared`. The stored side is what the claim just read back, so a client that declared
  * automation when it registered and declares nothing afterwards is still automation on every later
  * request - the same answer the drain would reach by reading sync.installations itself, which is why
- * the caller may declare it to the content-creation producer instead.
+ * the caller may declare it to the content writes producer instead.
  */
 async function ensureInstallationInExecutor(
   executor: DatabaseExecutor,

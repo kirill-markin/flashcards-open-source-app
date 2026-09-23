@@ -107,6 +107,14 @@ export function parseBoolean(value: unknown, endpoint: string, path: string): bo
   return value;
 }
 
+export function parseNullableBoolean(value: unknown, endpoint: string, path: string): boolean | null {
+  if (value === null) {
+    return null;
+  }
+
+  return parseBoolean(value, endpoint, path);
+}
+
 export function parseObject(value: unknown, endpoint: string, path: string): JsonObject {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new ApiContractError(endpoint, describePath(path), "object");

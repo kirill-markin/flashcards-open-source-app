@@ -192,6 +192,9 @@
 "settings.leaderboardParticipation.toggle" = "순위표에 나 표시";
 "settings.leaderboardParticipation.description" = "끄면 익명 활동이 순위표에 표시되지 않습니다.";
 "settings.leaderboardParticipation.signInRequired" = "순위표 참여를 관리하려면 클라우드 동기화를 연결하세요.";
+"settings.productAnalytics.title" = "제품 분석";
+"settings.productAnalytics.toggle" = "제품 분석 공유";
+"settings.productAnalytics.footer" = "제품 분석은 앱의 어떤 부분이 사용되는지를 알려줄 뿐, 카드 내용은 절대 포함하지 않습니다. 이 설정을 끄면 앱은 아무것도 기록하거나 전송하지 않습니다. 충돌 및 오류 보고에는 영향을 주지 않습니다.";
 "settings.language.title" = "언어";
 "settings.language.systemDescription" = "iOS에서 앱 언어를 관리합니다. iOS 설정에서 Nibomo를 열고 선호하는 언어를 선택하세요. 선호하는 언어가 표시되지 않으면 먼저 설정 > 일반 > 언어 및 지역에서 다른 언어를 추가하세요.";
 "settings.language.action.openAppSettings" = "Nibomo 설정 열기";

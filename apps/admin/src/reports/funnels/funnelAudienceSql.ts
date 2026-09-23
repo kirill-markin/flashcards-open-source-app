@@ -8,7 +8,7 @@ import { laterCalendarDate } from "../reportValues";
 
 // The SQL half of the funnel audience mode: who each funnel counts as a person. The three modes and
 // what they mean to a reader live in `apps/admin/src/filters/analyticsFilters.ts`; this file owns how
-// each one is expressed against `analytics.product_events_resolved`, once, for all four funnels.
+// each one is expressed against `analytics.product_events_resolved`, once, for every funnel.
 
 /**
  * The first UTC day a cookieless visitor can be counted from, whatever range is selected.

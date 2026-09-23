@@ -192,6 +192,9 @@
 "settings.leaderboardParticipation.toggle" = "Nionyeshe kwenye ubao wa viwango";
 "settings.leaderboardParticipation.description" = "Huu ukiwa umezimwa, shughuli zako zisizotambulisha jina hazitaonekana kwenye ubao wa viwango.";
 "settings.leaderboardParticipation.signInRequired" = "Unganisha usawazishaji wa wingu ili kudhibiti ushiriki kwenye ubao wa viwango.";
+"settings.productAnalytics.title" = "Uchanganuzi wa bidhaa";
+"settings.productAnalytics.toggle" = "Shiriki uchanganuzi wa bidhaa";
+"settings.productAnalytics.footer" = "Uchanganuzi wa bidhaa hutuonyesha sehemu za programu zinazotumiwa na watu, si kilichomo kwenye kadi zako. Ukiwa umezimwa, programu hairekodi wala haitumi chochote. Ripoti za hitilafu na makosa haziathiriwi.";
 "settings.language.title" = "Lugha";
 "settings.language.systemDescription" = "iOS hudhibiti lugha ya programu. Katika Mipangilio ya iOS, fungua Nibomo na utumie Lugha Unayopendelea. Ikiwa Lugha Unayopendelea haionekani, ongeza lugha nyingine kwanza katika Mipangilio > Jumla > Lugha na Eneo.";
 "settings.language.action.openAppSettings" = "Fungua mipangilio ya Nibomo";

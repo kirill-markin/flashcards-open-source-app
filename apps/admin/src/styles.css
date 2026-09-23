@@ -358,7 +358,7 @@ h2 {
 
 /* The funnel's own `Group by` field sits in the funnel's own filter row area, under its heading and
    above everything the report's state can unmount: the field regroups this one funnel, so it belongs
-   to the funnel rather than to the shared bar, where every field narrows all four at once. */
+   to the funnel rather than to the shared bar, where every field narrows them all at once. */
 .funnel-group-by-row {
   display: flex;
   flex-wrap: wrap;
@@ -401,10 +401,19 @@ h2 {
 }
 
 /* The group colour key, on its own row above the plot. It is the platform key's markup, but it can
-   hold up to seven entries named by a country code or a locale, so it reads left to right. */
+   hold up to seven entries named by a country code, a locale or the path of an entry article, so it
+   reads left to right. */
 .funnel-group-key {
   justify-content: flex-start;
   padding: 10px 18px 0;
+}
+
+/* THE ONE KEY THAT IS NOT UPPERCASED, unlike the platform key it borrows its markup from. A funnel
+   group key can be an entry page's own `page_path`: a case-sensitive route the site lowercases at
+   ingest, so uppercasing it would draw a legend entry that is not the URL and that reads differently
+   from the very same group in the table below the plot. */
+.funnel-group-key .platform-key-item {
+  text-transform: none;
 }
 
 /* Grouped, the bars have no room for their numbers, so this table is where they are read: visible,

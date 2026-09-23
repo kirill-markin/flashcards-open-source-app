@@ -20,7 +20,7 @@ protocol CloudSyncServing {
     func updateAccountPreferences(
         apiBaseUrl: String,
         authorizationHeader: String,
-        preferences: AccountPreferences
+        patch: AccountPreferencesPatchRequest
     ) async throws -> AccountPreferences
     func loadProgressSummary(
         apiBaseUrl: String,
@@ -222,11 +222,11 @@ extension CloudSyncServing {
     func updateAccountPreferences(
         apiBaseUrl: String,
         authorizationHeader: String,
-        preferences: AccountPreferences
+        patch: AccountPreferencesPatchRequest
     ) async throws -> AccountPreferences {
         _ = apiBaseUrl
         _ = authorizationHeader
-        _ = preferences
+        _ = patch
         throw LocalStoreError.validation("Account preferences update is unavailable")
     }
 

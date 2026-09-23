@@ -192,6 +192,9 @@
 "settings.leaderboardParticipation.toggle" = "مجھے درجہ بندی میں دکھائیں";
 "settings.leaderboardParticipation.description" = "یہ بند ہونے پر آپ کی گمنام سرگرمی درجہ بندی میں ظاہر نہیں ہو گی۔";
 "settings.leaderboardParticipation.signInRequired" = "درجہ بندی میں شرکت کا انتظام کرنے کے لیے کلاؤڈ ہم وقت سازی سے جڑیں۔";
+"settings.productAnalytics.title" = "پروڈکٹ اینالیٹکس";
+"settings.productAnalytics.toggle" = "پروڈکٹ اینالیٹکس شیئر کریں";
+"settings.productAnalytics.footer" = "پروڈکٹ اینالیٹکس ہمیں بتاتا ہے کہ لوگ ایپ کے کن حصوں کو استعمال کرتے ہیں، یہ نہیں کہ آپ کے کارڈز پر کیا ہے۔ بند ہونے پر ایپ کچھ بھی ریکارڈ نہیں کرتی اور کچھ بھی ارسال نہیں کرتی۔ کریش اور خرابی کی رپورٹس اس سے متاثر نہیں ہوتیں۔";
 "settings.language.title" = "زبان";
 "settings.language.systemDescription" = "iOS ایپ کی زبان طے کرتا ہے۔ iOS کی ترتیبات میں Nibomo کھولیں اور ترجیحی زبان منتخب کریں۔ اگر ترجیحی زبان نظر نہ آئے تو پہلے ترتیبات > عمومی > زبان اور علاقہ میں دوسری زبان شامل کریں۔";
 "settings.language.action.openAppSettings" = "Nibomo کی ترتیبات کھولیں";

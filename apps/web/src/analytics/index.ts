@@ -10,6 +10,7 @@ export {
   reset,
   setAnalyticsConfirmedOwner,
   setEnabled,
+  setProductAnalyticsCollection,
   track,
   trackCatalogDeckInstallStarted,
   trackScreenViewed,
@@ -38,9 +39,10 @@ export type {
   CatalogInstallFailureStage,
   CatalogInstallReportScope,
 } from "./catalogInstall";
-export { syncAnalyticsConsentWithAccount } from "./accountConsent";
+export { syncAnalyticsPreferencesWithAccount } from "./accountAnalyticsPreferences";
 export { AnalyticsConsentBanner } from "./AnalyticsConsentBanner";
 export { AnalyticsConsentToggleCard } from "./AnalyticsConsentToggleCard";
+export { ProductAnalyticsCollectionToggleCard } from "./ProductAnalyticsCollectionToggleCard";
 export { PublicAnalyticsConsentLink } from "./PublicAnalyticsConsentLink";
 export { AnalyticsLifecycle } from "./AnalyticsLifecycle";
 export {
@@ -48,4 +50,5 @@ export {
   readAnalyticsConsentDecision,
   subscribeToAnalyticsConsent,
 } from "./consent";
+export { isProductAnalyticsCollectionEnabled } from "./productAnalyticsCollection";
 export { useAnalyticsScreenView } from "./useAnalyticsScreenView";

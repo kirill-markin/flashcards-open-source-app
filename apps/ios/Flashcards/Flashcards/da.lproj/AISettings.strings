@@ -192,6 +192,9 @@
 "settings.leaderboardParticipation.toggle" = "Vis mig på ranglisten";
 "settings.leaderboardParticipation.description" = "Når dette er slået fra, vises din anonyme aktivitet ikke på ranglisten.";
 "settings.leaderboardParticipation.signInRequired" = "Tilslut skysynkronisering for at administrere din deltagelse på ranglisten.";
+"settings.productAnalytics.title" = "Produktanalyse";
+"settings.productAnalytics.toggle" = "Del produktanalyse";
+"settings.productAnalytics.footer" = "Produktanalyse fortæller os, hvilke dele af appen folk bruger, aldrig hvad der står på dine kort. Når den er slået fra, registrerer og sender appen intet. Nedbruds- og fejlrapporter påvirkes ikke.";
 "settings.language.title" = "Sprog";
 "settings.language.systemDescription" = "iOS styrer appens sprog. Åbn Nibomo i iOS-indstillingerne, og brug Foretrukket sprog. Hvis Foretrukket sprog ikke vises, skal du først tilføje et andet sprog under Indstillinger > Generelt > Sprog & område.";
 "settings.language.action.openAppSettings" = "Åbn Nibomo-indstillinger";

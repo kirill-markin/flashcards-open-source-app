@@ -195,6 +195,9 @@
 "settings.leaderboardParticipation.toggle" = "Mostrar meu perfil no ranking";
 "settings.leaderboardParticipation.description" = "Quando isto está desativado, sua atividade anônima não aparece no ranking.";
 "settings.leaderboardParticipation.signInRequired" = "Conecte a sincronização na nuvem para gerenciar a participação no ranking.";
+"settings.productAnalytics.title" = "Análise do produto";
+"settings.productAnalytics.toggle" = "Compartilhar análise do produto";
+"settings.productAnalytics.footer" = "A análise do produto mostra quais partes do app as pessoas usam, nunca o que está nos seus cartões. Quando está desativada, o app não registra nem envia nada. Os relatórios de falhas e erros não são afetados.";
 "settings.language.title" = "Idioma";
 "settings.language.systemDescription" = "O iOS controla o idioma do app. Nos Ajustes do iOS, abra o Nibomo e use Idioma Preferido. Se Idioma Preferido não aparecer, primeiro adicione outro idioma em Ajustes > Geral > Idioma e Região.";
 "settings.language.action.openAppSettings" = "Abrir ajustes do Nibomo";
