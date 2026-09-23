@@ -41,6 +41,11 @@ import {
   reportAnalyticsSustainedDeliveryFailure,
 } from "./observation";
 import {
+  isProductAnalyticsCollectionEnabled,
+  recordProductAnalyticsCollectionDecision,
+  subscribeToProductAnalyticsCollection,
+} from "./productAnalyticsCollection";
+import {
   appendAnalyticsEvents,
   claimAnalyticsQueueOwner,
   clearAnalyticsQueue,
@@ -86,6 +91,15 @@ const flushRequestBudget = 12;
  * other, on the first flush the browser is allowed.
  */
 const heldEventLimit = 200;
+/**
+ * The shortest gap between two attempts at an owed mint. Nothing schedules that `POST` any more —
+ * `startVisitorIdentityResolution` performs it whenever the browser owes one, so the load, every
+ * `online` event and every periodic tick reattempt it by themselves — and this is the one thing a
+ * ladder of timers was still doing that nothing else does: keeping a failing browser from asking a
+ * route that can pay a GeoLite download once a minute for the life of the page. It matches the plain
+ * resolution's own retry spacing, because it bounds the same route for the same reason.
+ */
+const deferredConsentMintRetryDelayMs = 5 * 60 * 1000;
 
 function readInitialEnabled(): boolean {
   try {
@@ -113,6 +127,7 @@ type AnalyticsDeliveryRuntime = Readonly<{
   reportIdentityFreeEvent: (eventName: IdentityFreeAnalyticsEventName) => void;
   applyAnalyticsConsentGrant: () => Promise<boolean>;
   applyAnalyticsConsentDecline: () => Promise<void>;
+  applyProductAnalyticsCollection: (isCollectionEnabled: boolean) => void;
   flush: () => void;
   reset: () => void;
   setEnabled: (enabled: boolean) => void;
@@ -219,9 +234,42 @@ export function createAnalyticsDeliveryRuntime(
    * granted would keep `isQueueOwnerReconciled` false and park their events until the next load.
    */
   let isQueueOwnerClaimDeferred = false;
+  /**
+   * A consent mint in flight, and the earliest a failed owed one may be attempted again. Both are
+   * per document and neither is stored: whether a mint is owed at all is read from the stored
+   * consent decision and the visitor cookie, so a load that ends mid-attempt owes exactly the same
+   * thing to the next one. The in-flight flag is what keeps the callers that reattempt the mint —
+   * the load, `online`, the periodic tick — from overlapping two `POST`s, which would mint two ids
+   * and count one browser as two visitors.
+   *
+   * It covers the banner's own grant as well as the owed mint, and in both cases it stays raised
+   * across the identity resolution that follows the `POST`: that resolution clears the settled flag
+   * for the length of its `GET`, which is exactly the shape a tick landing inside it would read as
+   * an owed mint and answer with a second, redundant `POST`.
+   */
+  let isConsentIdentityMintInFlight = false;
+  let deferredConsentMintNotBeforeMs = 0;
+  /**
+   * The collection answer this runtime has already carried out. The person can move the switch in
+   * another tab, where only that document runs `applyProductAnalyticsCollection`, so the shared
+   * decision publishes the change to this one as well; this is what tells an answer that still has
+   * to be carried out from the one already in force.
+   */
+  let lastCarriedOutCollection = isProductAnalyticsCollectionEnabled();
 
   function isAnalyticsEnabledForCurrentRuntime(): boolean {
     return isEnabled;
+  }
+
+  /**
+   * Whether anything may be collected or sent at all: the operator kill switch and the person's own
+   * product-analytics setting each close this, and nothing reopens it but the switch that closed it.
+   *
+   * It is deliberately not the consent banner's answer, which decides only whether what is reported
+   * carries an identifier (`productAnalyticsCollection.ts`).
+   */
+  function isProductAnalyticsCollecting(): boolean {
+    return isEnabled && isProductAnalyticsCollectionEnabled();
   }
 
   /** Losses are counted here and emitted as `analytics_events_dropped` on the next flush. */
@@ -1077,7 +1125,9 @@ export function createAnalyticsDeliveryRuntime(
    * nothing analytics does may surface to the user or block the banner they are answering.
    */
   function reportIdentityFreeEvent(eventName: IdentityFreeAnalyticsEventName): void {
-    if (isEnabled === false) {
+    // Identity-free or not, this is a product-analytics event and it is sent rather than queued, so
+    // a browser that is not collecting reports nothing here either.
+    if (isProductAnalyticsCollecting() === false) {
       return;
     }
 
@@ -1107,21 +1157,41 @@ export function createAnalyticsDeliveryRuntime(
       return false;
     }
 
-    const visitor = await submitAnalyticsVisitorConsent(true);
-    if (visitor.visitorId === null) {
-      return false;
+    // The person's own collection switch outranks it too, and on the same asymmetry — but it refuses
+    // only the mint. Their cookie answer did not fail and is not being declined, so it is recorded
+    // here and carried to the account by the caller exactly as any other grant is; what waits is the
+    // identifier, which has nothing to attribute while collection is off. Turning collection back on
+    // performs the mint this defers.
+    if (isProductAnalyticsCollectionEnabled() === false) {
+      recordAnalyticsConsentDecision("granted");
+      return true;
     }
 
-    // Consent is not retroactive. Whatever was collected while a refusal stood was collected under
-    // an answer that said this person was not to be measured, so the grant releases what follows it
-    // and nothing before it. Not reported as a loss, for the same reason the refusal's own discard
-    // is not: it is the recorded answer taking effect, not something anybody needs to be told about.
-    if (readAnalyticsConsentDecision() === "declined") {
-      heldWireEvents = [];
+    // The banner's grant is a consent mint like the owed one, and it is raised across the resolution
+    // that follows: between recording `granted` and that resolution settling, this browser reads as
+    // owing a mint, and a periodic tick landing there would answer it with a second `POST`.
+    isConsentIdentityMintInFlight = true;
+    try {
+      const visitor = await submitAnalyticsVisitorConsent(true);
+      if (visitor.visitorId === null) {
+        return false;
+      }
+
+      // Consent is not retroactive. Whatever was collected while a refusal stood was collected under
+      // an answer that said this person was not to be measured, so the grant releases what follows
+      // it and nothing before it. Not reported as a loss, for the same reason the refusal's own
+      // discard is not: it is the recorded answer taking effect, not something anybody needs to be
+      // told about.
+      if (readAnalyticsConsentDecision() === "declined") {
+        heldWireEvents = [];
+      }
+
+      recordAnalyticsConsentDecision("granted");
+      await resolveAnalyticsVisitorIdentityAfterConsentGrant();
+    } finally {
+      isConsentIdentityMintInFlight = false;
     }
 
-    recordAnalyticsConsentDecision("granted");
-    await resolveAnalyticsVisitorIdentityAfterConsentGrant();
     flush();
     return true;
   }
@@ -1234,7 +1304,7 @@ export function createAnalyticsDeliveryRuntime(
   }
 
   async function runFlush(): Promise<void> {
-    if (isEnabled === false || isFlushing) {
+    if (isProductAnalyticsCollecting() === false || isFlushing) {
       return;
     }
 
@@ -1354,11 +1424,17 @@ export function createAnalyticsDeliveryRuntime(
    */
   function claimQueueOwner(userId: string): void {
     // The claim writes the owner record, and writing it is what creates the analytics database. It
-    // is therefore storage like any other and takes the same gate: a signed-in visitor looking at an
-    // unanswered banner, and one who refused, must not be given an analytics store they never agreed
-    // to. Nothing is lost by waiting — the account is held in memory — so the claim is deferred and
-    // `claimDeferredQueueOwner` runs it on the first flush this browser is allowed.
-    if (isAnalyticsDeviceStorageAllowed() === false) {
+    // is therefore storage like any other and takes both gates that decide whether this browser may
+    // be written to at all: a signed-in visitor looking at an unanswered banner, and one who refused,
+    // must not be given an analytics store they never agreed to — and neither may a person whose
+    // collection switch is off, for whom nothing is sent, queued, held or stored. The collection gate
+    // is not implied by the consent one: a browser that answered `Grant` and then turned collection
+    // off passes the storage question and must still write nothing, and the session layer publishes
+    // an owner on every verified session, so without this every signed-in page load would create the
+    // database and record the account in it. Nothing is lost by waiting — the account is held in
+    // memory — so the claim is deferred, and `claimDeferredQueueOwner` runs it from the first flush
+    // this browser is allowed, which the off→on transition performs itself.
+    if (isProductAnalyticsCollecting() === false || isAnalyticsDeviceStorageAllowed() === false) {
       isQueueOwnerClaimDeferred = true;
       return;
     }
@@ -1389,9 +1465,11 @@ export function createAnalyticsDeliveryRuntime(
   }
 
   /**
-   * Runs a claim that was deferred because this browser could be written to nothing at the time.
-   * Called from the flush, which is the first thing that happens once the answer allows storage —
-   * the grant flushes, and so does every periodic tick.
+   * Runs a claim that was deferred because this browser could be written to nothing at the time —
+   * the consent question was open or refused, or collection was off. Called from the flush, which is
+   * the first thing that happens once an answer allows storage — the grant flushes, and so does every
+   * periodic tick — and directly from the collection switch going back on, because that transition's
+   * own flush can find one already in flight and return without re-arming anything.
    */
   function claimDeferredQueueOwner(): void {
     if (isQueueOwnerClaimDeferred === false || confirmedOwnerId === null) {
@@ -1462,7 +1540,7 @@ export function createAnalyticsDeliveryRuntime(
   }
 
   function enqueue(event: AnalyticsEvent, surface: AnalyticsSurface | null): void {
-    if (isEnabled === false) {
+    if (isProductAnalyticsCollecting() === false) {
       return;
     }
 
@@ -1479,16 +1557,27 @@ export function createAnalyticsDeliveryRuntime(
 
   /**
    * Asks for the shared visitor identity and flushes once it has settled: reporting with no
-   * credential waits for that, so this is what releases a signed-out browser's first page view. One
-   * answer is asked for once; `resolveAnalyticsVisitorIdentity` re-asks only after a call that threw
-   * and only under its own bounds, so calling this on every connectivity change and every periodic
-   * tick costs nothing once the identity has settled. Never awaited and never on a render path,
-   * because a first visit can pay a GeoLite download inside the request. The kill switch and a
-   * refused banner are both explicit opt-outs and this call can set a 13-month cookie, so neither
-   * browser asks for anything.
+   * credential waits for that, so this is what releases a signed-out browser's first page view. It
+   * is also the only path that performs a mint owed to a grant, which is why every caller that
+   * reattempts the identity reattempts that too. One answer is asked for once;
+   * `resolveAnalyticsVisitorIdentity` re-asks only after a call that threw and only under its own
+   * bounds, and an owed mint has a minimum spacing of its own, so calling this on every connectivity
+   * change and every periodic tick costs nothing once the identity has settled or the browser holds
+   * one. Never awaited and never on a render path,
+   * because a first visit can pay a GeoLite download inside the request. The kill switch, the
+   * product-analytics setting and a refused banner are all explicit opt-outs and this call can set a
+   * 13-month cookie, so none of those browsers asks for anything.
    */
   function startVisitorIdentityResolution(): void {
     if (isEnabled === false) {
+      return;
+    }
+
+    // The shared identifier exists only to attribute product-analytics rows, and the switch has just
+    // guaranteed there will be none. Keeping a cookie this browser already carries is a separate
+    // question; minting a new one — which the route does unasked for every country that requires no
+    // consent — is not defensible once collection is off.
+    if (isProductAnalyticsCollectionEnabled() === false) {
       return;
     }
 
@@ -1498,9 +1587,31 @@ export function createAnalyticsDeliveryRuntime(
       return;
     }
 
+    // A browser that granted and carries no identity is owed the `POST`, not this `GET` — and it is
+    // owed it for as long as it owes it, whether or not this particular call may attempt one. Where
+    // consent is required the `GET` withholds an identity from a browser the server holds no consent
+    // record for, and then settles anyway on the stored `granted`, which permanently satisfies the
+    // mint's own gate: one such `GET` ends the owed mint for the rest of the load and degrades a
+    // granting browser to the per-tab id. So the owed state alone returns here, and the attempt
+    // below is what the in-flight flag and the retry spacing bound. Suppressing the `GET` costs this
+    // browser nothing else: a stored decision already answers `isAwaitingAnalyticsConsentDecision`,
+    // so only the credential-free delivery waits, which is what owing a mint means.
+    if (isDeferredAnalyticsConsentMintOwed()) {
+      attemptDeferredAnalyticsConsentMint();
+      return;
+    }
+
     void resolveAnalyticsVisitorIdentity().then((): void => {
       flush();
     });
+  }
+
+  /** Drops the coalescing timer, so nothing it was holding is written after this point. */
+  function cancelScheduledPersist(): void {
+    if (persistTimerId !== null) {
+      window.clearTimeout(persistTimerId);
+      persistTimerId = null;
+    }
   }
 
   /**
@@ -1510,9 +1621,12 @@ export function createAnalyticsDeliveryRuntime(
    */
   function persistTrackedAnalyticsEvents(): void {
     try {
-      if (persistTimerId !== null) {
-        window.clearTimeout(persistTimerId);
-        persistTimerId = null;
+      cancelScheduledPersist();
+      // The same gate every other write to the store passes. Nothing collected by a browser that is
+      // no longer collecting may reach the disk on the way out, rather than only where the discard
+      // happens to have emptied what this would have written.
+      if (isProductAnalyticsCollecting() === false) {
+        return;
       }
 
       void persistPendingRecords();
@@ -1634,7 +1748,239 @@ export function createAnalyticsDeliveryRuntime(
     }
   }
 
+  /**
+   * Empties a stored queue this load never opened, once the switch has gone off. `discardQueuedWork`
+   * returns before the clear while `hasOpenedAnalyticsQueue` is false, and a load that never reached
+   * the store — the flush gate returns on the switch itself, and on an unanswered consent question
+   * before that — would otherwise end with an earlier load's events still on disk, which is exactly
+   * what turning collection off promises to take.
+   *
+   * The presence probe creates nothing, so a browser with no analytics database still ends the load
+   * with none. Where the engine enumerates no databases, the same trade as the refusal path is made:
+   * a browser that was allowed an identity opens the store rather than keeping its events, and one
+   * that never was keeps the promise that nothing is written to it.
+   */
+  function clearStoredQueueAfterCollectionOff(): void {
+    const wasIdentityAllowed = wasAllowedAnalyticsIdentity();
+    persistTask = persistTask.then(async (): Promise<void> => {
+      try {
+        const storedQueuePresence = await readStoredAnalyticsQueuePresence();
+        if (storedQueuePresence === "absent") {
+          return;
+        }
+
+        if (storedQueuePresence === "unknown" && wasIdentityAllowed === false) {
+          return;
+        }
+
+        // The answer can have changed while the probe ran, and clearing then would delete what the
+        // person has just allowed again.
+        if (isProductAnalyticsCollecting()) {
+          return;
+        }
+
+        hasOpenedAnalyticsQueue = true;
+        // The owner an earlier load stored is released with the events, for the same reason the
+        // discard above releases this load's: an account named on a device whose owner is no longer
+        // measured is exactly what turning collection off promises to take.
+        await clearAnalyticsQueue(true);
+      } catch (error) {
+        reportAnalyticsQueueFailure(error);
+      }
+    });
+  }
+
+  /**
+   * Records the person's answer to the product-analytics setting and carries it out on this load.
+   * The caller carries the same answer to the account; this is the browser's half.
+   *
+   * Turning it off takes everything already collected with it — the stored queue, the events held
+   * in memory, the drop counts, and the stored session id — because an off switch that still
+   * shipped what it found would report the person after they asked not to be, and a session id left
+   * behind is an analytics identifier kept for somebody who is no longer measured. The discard is
+   * not reported as a loss, for the same reason the kill switch's own is not: it is the recorded
+   * answer taking effect. Events already stored on the server stay; this stops future collection
+   * and nothing else.
+   *
+   * The consent banner's answer is untouched in both directions. The cookie decision is a separate
+   * question, and a person turning collection back on is measured under whatever they answered
+   * there.
+   */
+  function applyProductAnalyticsCollection(isCollectionEnabled: boolean): void {
+    // Latched before the record, because recording publishes the answer to every subscriber — this
+    // runtime included, which is how another tab's answer arrives — and the same answer must not be
+    // carried out twice.
+    lastCarriedOutCollection = isCollectionEnabled;
+    recordProductAnalyticsCollectionDecision(isCollectionEnabled);
+    carryOutProductAnalyticsCollection(isCollectionEnabled);
+  }
+
+  /**
+   * The half of the answer that acts on this load. It runs on the tab the switch was moved in and,
+   * from the published answer, on every other tab of this browser — so nothing that may only happen
+   * once per answer belongs here.
+   */
+  function carryOutProductAnalyticsCollection(isCollectionEnabled: boolean): void {
+    lastCarriedOutCollection = isCollectionEnabled;
+    if (isCollectionEnabled === false) {
+      // Before the discard, so a coalescing persist cannot fire between the two and write what the
+      // discard is about to take.
+      cancelScheduledPersist();
+      // The stored owner goes with the events here, where the kill switch keeps its own: an operator
+      // turning analytics off leaves a browser that is still measurable the moment they turn it back
+      // on, and this leaves one whose person asked to be measured no more. An owner record is an
+      // account name stored on that device, and it is normally already on disk by the time this
+      // answer arrives: the claim that writes it — and writing it is what creates the analytics
+      // database — is legitimate on a fresh browser that holds no answer yet, so an account carrying
+      // `productAnalyticsEnabled: false` reaches this with both. Releasing it is what leaves nothing
+      // of the account behind. The claim is marked deferred again rather than dropped, because the
+      // account is still held in memory and turning collection back on has to write the owner once
+      // more before anything may ship under its credential.
+      isQueueOwnerReconciled = false;
+      isQueueOwnerClaimDeferred = confirmedOwnerId !== null;
+      discardQueuedWork({
+        shouldReportDiscard: false,
+        shouldReleaseOwner: true,
+        shouldDiscardHeldEvents: true,
+      });
+      if (hasOpenedAnalyticsQueue === false) {
+        clearStoredQueueAfterCollectionOff();
+      }
+
+      resetAnalyticsSession();
+      return;
+    }
+
+    // A person moving the switch is not the flaky network the mint spacing exists to bound, and the
+    // window standing here may have been armed for an attempt the off answer cut short, so the
+    // transition back on drops it and the resolution below may mint at once. Every tab carries out
+    // the answer, so none of them holds a stale window over a switch just turned back on.
+    deferredConsentMintNotBeforeMs = 0;
+
+    // Turning it back on is the first moment an opted-out browser may ask for the shared identity
+    // again, exactly as it is for the kill switch: without this a signed-out browser reports nothing
+    // until a periodic tick asks, a minute later. Where a grant taken while collection was off left
+    // a mint owed, this is also what performs it — the resolution is the one path that does.
+    startVisitorIdentityResolution();
+
+    // A queue-owner claim published while collection was off was deferred, exactly as one published
+    // under an open consent banner is. The flush below is what normally runs it, but it returns
+    // without re-arming anything when one is already in flight, so the transition runs it directly:
+    // the claim itself re-checks both gates and simply defers again where one is still shut.
+    claimDeferredQueueOwner();
+    scheduleFlush(0);
+  }
+
+  /**
+   * Whether a granted browser carrying no identity still owes the mint `POST`. The `POST` is what
+   * such a browser owes: where consent is required the plain `GET` withholds an identity from a
+   * browser the server holds no consent record for, so asking again would never mint the identifier
+   * the person has already granted.
+   *
+   * What makes it owed is read rather than remembered — the stored decision says `granted` and the
+   * visitor cookie is absent — so this is a fact about the browser, not about the page load that
+   * noticed it, and deliberately not about whether an attempt may be made right now.
+   *
+   * A settled identity is not owed a mint, and that is what stops this from reading true forever.
+   * A browser that minted and kept no cookie has the record the server needed and degrades to the
+   * per-tab id its grant allows, exactly as one that blocks cookies always has; `granted` alone
+   * would otherwise read as owed on every tick for the rest of its life.
+   */
+  function isDeferredAnalyticsConsentMintOwed(): boolean {
+    return readAnalyticsConsentDecision() === "granted"
+      && readAnalyticsVisitorId() === null
+      && hasResolvedAnalyticsVisitorIdentity() === false;
+  }
+
+  /**
+   * Attempts the owed mint where both bounds allow one, and does nothing where they do not: a mint
+   * already in flight would otherwise be doubled, and a failed one would be retried on the next tick
+   * a minute later against a route whose first call can pay a GeoLite download.
+   *
+   * Its one caller is `startVisitorIdentityResolution`, which the load, the `online` event, the
+   * periodic tick and both switches going back on already call, and that is the whole retry story:
+   * nothing here schedules anything.
+   */
+  function attemptDeferredAnalyticsConsentMint(): void {
+    if (isConsentIdentityMintInFlight || Date.now() < deferredConsentMintNotBeforeMs) {
+      return;
+    }
+
+    isConsentIdentityMintInFlight = true;
+    // Armed for the attempt, not for one of its outcomes. A `POST` that answers with an identifier
+    // this browser cannot store settles nothing: the browser owes the mint still, the flag is down
+    // again the moment the attempt ends, and without a window already standing the next tick would
+    // answer with a fresh `POST` — one more server-side visitor per minute for the life of the page.
+    deferredConsentMintNotBeforeMs = Date.now() + deferredConsentMintRetryDelayMs;
+    // Never awaited and never on a render path: nothing analytics does may block or fail a person
+    // moving a switch. The `catch` is the file's usual backstop — the request's own failure is
+    // handled inside, so only an unexpected throw reaches here and it may not surface.
+    void runDeferredAnalyticsConsentMint().catch((): void => undefined);
+  }
+
+  /**
+   * One attempt at the owed `POST`. A rejected call and an answer carrying no identifier are the
+   * same unfinished mint, and neither is answered with the plain `GET`: that `GET` settles the
+   * identity on a `granted` browser while the server is still holding no consent record for it,
+   * which is precisely the state this exists to leave behind — and the owed check above is what
+   * keeps any later caller from issuing it either. It is answered with nothing instead — the browser
+   * still owes a mint, nothing recorded that it does not, and the next caller of
+   * `startVisitorIdentityResolution` asks again once the spacing allows it.
+   */
+  async function runDeferredAnalyticsConsentMint(): Promise<void> {
+    try {
+      let mintedVisitorId: string | null = null;
+      try {
+        mintedVisitorId = (await submitAnalyticsVisitorConsent(true)).visitorId;
+      } catch {
+        // Nothing analytics does may surface to the user.
+      }
+
+      if (mintedVisitorId === null) {
+        return;
+      }
+
+      // The switch can go off during the round trip. The cookie the answer planted is already on
+      // this browser and is left alone like any other it carries, but nothing further is asked for:
+      // resolving here would send one more identity request after the off answer was recorded, and
+      // that request re-writes the cookie — the one thing a switched-off browser may never do.
+      if (isProductAnalyticsCollecting() === false) {
+        return;
+      }
+
+      await resolveAnalyticsVisitorIdentityAfterConsentGrant();
+    } finally {
+      isConsentIdentityMintInFlight = false;
+    }
+
+    flush();
+  }
+
+  /**
+   * The answer another one of this browser's tabs gave. The shared decision reseeds itself from the
+   * `storage` event and publishes it here, so this document stops collecting and drops what it holds
+   * on the same terms as the tab the switch was moved in, rather than running to the end of its life
+   * on the answer it read at boot.
+   */
+  function handleProductAnalyticsCollectionChange(): void {
+    const nextCollection = isProductAnalyticsCollectionEnabled();
+    if (nextCollection === lastCarriedOutCollection) {
+      return;
+    }
+
+    carryOutProductAnalyticsCollection(nextCollection);
+  }
+
   function startAnalytics(): () => void {
+    const unsubscribeFromCollection = subscribeToProductAnalyticsCollection(
+      handleProductAnalyticsCollectionChange,
+    );
+    // Subscribing catches every change from here on; this catches the one already published. The
+    // shared answer reseeds itself from its own `storage` listener, so a change made in another tab
+    // between a teardown and this start updates it while reaching no subscriber — and the latch
+    // would still name the answer before it. A later transition back to that same value would then
+    // read as already carried out, skipping its discard, session reset and flush.
+    handleProductAnalyticsCollectionChange();
     startVisitorIdentityResolution();
 
     function handleVisibilityChange(): void {
@@ -1681,11 +2027,8 @@ export function createAnalyticsDeliveryRuntime(
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("pagehide", handlePageHide);
       window.clearInterval(intervalId);
-      if (persistTimerId !== null) {
-        window.clearTimeout(persistTimerId);
-        persistTimerId = null;
-      }
-      void persistPendingRecords();
+      unsubscribeFromCollection();
+      persistTrackedAnalyticsEvents();
       if (flushTimerId !== null) {
         window.clearTimeout(flushTimerId);
         flushTimerId = null;
@@ -1700,6 +2043,7 @@ export function createAnalyticsDeliveryRuntime(
     reportIdentityFreeEvent,
     applyAnalyticsConsentGrant,
     applyAnalyticsConsentDecline,
+    applyProductAnalyticsCollection,
     flush,
     reset,
     setEnabled,

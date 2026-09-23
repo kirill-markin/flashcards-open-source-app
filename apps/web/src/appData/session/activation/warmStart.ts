@@ -42,6 +42,8 @@ function isSessionInfo(value: unknown): value is SessionInfo {
     && (value.preferences.analyticsConsent === null
       || value.preferences.analyticsConsent === "granted"
       || value.preferences.analyticsConsent === "declined")
+    && (value.preferences.productAnalyticsEnabled === null
+      || typeof value.preferences.productAnalyticsEnabled === "boolean")
     && isRecord(value.profile)
     && (typeof value.profile.email === "string" || value.profile.email === null)
     && typeof value.profile.locale === "string"
