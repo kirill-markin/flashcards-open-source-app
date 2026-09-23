@@ -14,6 +14,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.time.ZoneId
 import kotlin.random.Random
@@ -45,7 +46,7 @@ private sealed interface AnalyticsCommand {
 
     data object Reset : AnalyticsCommand
 
-    data class SetEnabled(val enabled: Boolean) : AnalyticsCommand
+    data object SetEnabled : AnalyticsCommand
 }
 
 /**
@@ -112,6 +113,19 @@ class AnalyticsClient internal constructor(
 
     @Volatile
     private var enabled: Boolean = true
+
+    /**
+     * Set synchronously by [setEnabled] when collection is turned off, cleared by the worker only
+     * once the captured rows are actually gone.
+     *
+     * The [AnalyticsCommand.SetEnabled] hand-off is droppable — `trySend` on a full channel silently
+     * loses it — and losing this one leaves rows captured before the kill switch sitting on disk,
+     * free to ship on the next flush. Same defence as [reset]: the flag is the boundary, the
+     * command only makes the cleanup prompt, and the worker applies it before every command until
+     * the delete succeeds. A dropped hand-off means the channel was full, which means there are
+     * queued commands still to process, so the delete runs on the very next one.
+     */
+    private val pendingDisableQueueClear = AtomicBoolean(false)
 
     private val pendingDropCounts: MutableMap<AnalyticsDroppedReason, Int> = mutableMapOf()
     private val handoffOverflowCount = AtomicInteger(0)
@@ -206,7 +220,10 @@ class AnalyticsClient internal constructor(
 
     override fun setEnabled(enabled: Boolean) {
         this.enabled = enabled
-        commands.trySend(AnalyticsCommand.SetEnabled(enabled = enabled))
+        if (!enabled) {
+            pendingDisableQueueClear.set(true)
+        }
+        commands.trySend(AnalyticsCommand.SetEnabled)
     }
 
     /**
@@ -229,6 +246,7 @@ class AnalyticsClient internal constructor(
                     // Before anything else, so no command can reach the queue or the network with a
                     // requested boundary still unapplied.
                     applyRequestedIdentityBoundary()
+                    applyPendingDisableQueueClear()
                     when (command) {
                         is AnalyticsCommand.Enqueue -> handleEnqueue(
                             event = command.event,
@@ -242,7 +260,7 @@ class AnalyticsClient internal constructor(
                         AnalyticsCommand.ConnectivityRestored -> handleConnectivityRestored()
                         // Already applied above; the command only exists to wake the worker.
                         AnalyticsCommand.Reset -> Unit
-                        is AnalyticsCommand.SetEnabled -> handleSetEnabled(enabled = command.enabled)
+                        AnalyticsCommand.SetEnabled -> Unit
                     }
                 } catch (error: CancellationException) {
                     throw error
@@ -393,14 +411,21 @@ class AnalyticsClient internal constructor(
         handleFlush()
     }
 
-    private suspend fun handleSetEnabled(enabled: Boolean) {
-        if (enabled) {
+    /**
+     * Nothing captured before the kill switch may leave the device afterwards.
+     *
+     * The flag is cleared only after the delete has succeeded, so a failure leaves the clear
+     * pending and retries on the next command, exactly like [applyRequestedIdentityBoundary].
+     */
+    private suspend fun applyPendingDisableQueueClear() {
+        if (!pendingDisableQueueClear.get()) {
             return
         }
-        // Nothing captured before the kill switch may leave the device afterwards.
+
         database.analyticsQueueDao().deleteAll()
         pendingDropCounts.clear()
         handoffOverflowCount.set(0)
+        pendingDisableQueueClear.set(false)
     }
 
     private suspend fun handleFlush() {
@@ -432,6 +457,13 @@ class AnalyticsClient internal constructor(
 
         var deliveredBatchCount = 0
         while (deliveredBatchCount < analyticsMaxBatchesPerFlush) {
+            // Re-read per batch, like the identity below: the kill switch sets this flag from the
+            // caller's thread, so a person tapping the setting off mid-flush must stop a delivery
+            // that has already started instead of watching the remaining batches leave. The queue
+            // delete still runs when the command loop applies the pending clear.
+            if (!enabled) {
+                return
+            }
             // Selection is filtered on the stored `anonymous_id` rather than on whatever row happens
             // to be oldest, so a delete that failed at a boundary — or one that never ran because
             // the process died before the worker woke — still cannot put a departed person's events
@@ -477,6 +509,12 @@ class AnalyticsClient internal constructor(
         pendingChunks.addLast(batch)
 
         while (pendingChunks.isNotEmpty()) {
+            // Re-read here too, not only per batch: a whole-batch refusal splits one batch into many
+            // sends, so the kill switch flipping mid-split must stop the remaining halves instead of
+            // shipping them one by one. The unsent chunks stay queued for the pending disable clear.
+            if (!enabled) {
+                return false
+            }
             val chunk: List<AnalyticsQueuedEventEntity> = pendingChunks.removeFirst()
             val outcome: AnalyticsBatchOutcome = transport.sendBatch(
                 credential = credential,

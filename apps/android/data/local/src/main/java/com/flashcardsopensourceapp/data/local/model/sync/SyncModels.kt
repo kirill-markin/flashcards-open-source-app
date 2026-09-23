@@ -40,11 +40,40 @@ data class SyncStatusSnapshot(
 )
 
 data class AccountPreferences(
-    val reviewReactionAnimationsEnabled: Boolean
+    val reviewReactionAnimationsEnabled: Boolean,
+    /**
+     * The product-analytics off switch. Null is "nobody answered", which reads as on: the basis is
+     * legitimate interest and nothing prompts for it, so only an explicit false opts out.
+     */
+    val productAnalyticsEnabled: Boolean?
+)
+
+/** Mirrors `PATCH /v1/me/preferences`: a null field is one this update leaves alone. */
+data class AccountPreferencesUpdate(
+    val reviewReactionAnimationsEnabled: Boolean?,
+    val productAnalyticsEnabled: Boolean?
 )
 
 fun defaultAccountPreferences(): AccountPreferences {
-    return AccountPreferences(reviewReactionAnimationsEnabled = true)
+    return AccountPreferences(
+        reviewReactionAnimationsEnabled = true,
+        productAnalyticsEnabled = null
+    )
+}
+
+fun isProductAnalyticsEnabled(preferences: AccountPreferences): Boolean {
+    return preferences.productAnalyticsEnabled != false
+}
+
+fun applyAccountPreferencesUpdate(
+    preferences: AccountPreferences,
+    update: AccountPreferencesUpdate
+): AccountPreferences {
+    return AccountPreferences(
+        reviewReactionAnimationsEnabled = update.reviewReactionAnimationsEnabled
+            ?: preferences.reviewReactionAnimationsEnabled,
+        productAnalyticsEnabled = update.productAnalyticsEnabled ?: preferences.productAnalyticsEnabled
+    )
 }
 
 data class CloudAccountSnapshot(

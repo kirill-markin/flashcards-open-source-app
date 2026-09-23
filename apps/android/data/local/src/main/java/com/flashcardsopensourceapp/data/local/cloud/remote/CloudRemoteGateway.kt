@@ -9,6 +9,7 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteReviewHist
 import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteReviewHistoryPullResponse
 import com.flashcardsopensourceapp.data.local.model.cloud.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
+import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferencesUpdate
 import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackPromptEventRequest
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackState
@@ -106,7 +107,7 @@ interface CloudRemoteGateway {
     suspend fun updateAccountPreferences(
         apiBaseUrl: String,
         authorizationHeader: String,
-        preferences: AccountPreferences
+        update: AccountPreferencesUpdate
     ): AccountPreferences
     suspend fun listLinkedWorkspaces(apiBaseUrl: String, bearerToken: String): List<CloudWorkspaceSummary>
     suspend fun linkGuestIdentity(apiBaseUrl: String, bearerToken: String, guestToken: String)

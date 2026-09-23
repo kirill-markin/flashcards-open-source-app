@@ -34,6 +34,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.shouldRefreshCloudIdTo
 import com.flashcardsopensourceapp.data.local.network.isLikelyTransientNetworkIoException
 import com.flashcardsopensourceapp.data.local.repository.SyncBlockedException
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.AnalyticsGuestSessionMinter
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.loadProductAnalyticsGuestSessionOrNull
 import com.flashcardsopensourceapp.data.local.repository.media.ManagedMediaAuthoringImportException
 import com.flashcardsopensourceapp.feature.ai.input.AiAttachmentEncodeFailedException
 import com.flashcardsopensourceapp.feature.ai.input.AiAttachmentImportUserException
@@ -143,11 +144,15 @@ internal class AppAnalyticsCredentialProvider(
     /**
      * Retires an analytics-only guest the server has revoked, so a later process mints a fresh one.
      *
-     * Nothing else on this install ever exercises such a credential. A cloud guest is validated and
-     * cleared on `GUEST_AUTH_INVALID` by AI chat, feedback and sync; an analytics-only guest has no
-     * other user, and [guestCredential] returns whatever is stored while [mintedGuestCredential] is
-     * unreachable as long as it is. Left in place it would be handed back on every flush and
-     * analytics for that install would stay silent until the 14-day queue TTL discarded the events.
+     * A cloud guest is validated and cleared on `GUEST_AUTH_INVALID` by AI chat, feedback and sync.
+     * An analytics-only guest is presented by this flush path and by the product-analytics
+     * preference push in `LocalCloudAccountRepository`, which retires it on the same two status
+     * codes; one dead token can be refused on both in the same process. Whichever runs second finds
+     * the session already gone, or a replacement the check below rejects as not the refused one, so
+     * the second retire is a no-op and the two need no coordination. Left in place the token would
+     * be handed back on every flush — [guestCredential] returns whatever is stored while
+     * [mintedGuestCredential] is unreachable as long as it is — and analytics for that install would
+     * stay silent until the 14-day queue TTL discarded the events.
      *
      * Only `401` and `410` retire it: those are the revoked-credential and deleted-account answers.
      * A `403` is an authorization refusal that says nothing about the credential being dead.
@@ -174,7 +179,11 @@ internal class AppAnalyticsCredentialProvider(
 
     private fun retireRefusedAnalyticsGuestSession(credential: AnalyticsCredential) {
         val configuration: CloudServiceConfiguration = cloudPreferencesStore.currentServerConfiguration()
-        val guestSession: StoredGuestAiSession = guestAiSessionStore.loadAnySession(
+        // The same lookup the batches and the preference push resolve through, so this retires the
+        // credential that was actually presented rather than whichever session happens to be read
+        // another way.
+        val guestSession: StoredGuestAiSession = loadProductAnalyticsGuestSessionOrNull(
+            guestSessionStore = guestAiSessionStore,
             configuration = configuration
         ) ?: return
         if (guestSession.isAnalyticsOnly.not()) {
@@ -247,7 +256,10 @@ internal class AppAnalyticsCredentialProvider(
     }
 
     private fun guestCredential(configuration: CloudServiceConfiguration): AnalyticsCredential? {
-        val guestSession: StoredGuestAiSession = guestAiSessionStore.loadAnySession(
+        // Shared with the product-analytics preference push, so the answer always lands on the
+        // credential these batches are actually sent under.
+        val guestSession: StoredGuestAiSession = loadProductAnalyticsGuestSessionOrNull(
+            guestSessionStore = guestAiSessionStore,
             configuration = configuration
         ) ?: return null
 
