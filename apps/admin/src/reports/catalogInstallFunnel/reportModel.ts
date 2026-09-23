@@ -1,5 +1,3 @@
-import { deckVersionDiscriminatorLength } from "../../filters/analyticsFilters";
-import type { CatalogDeckOption } from "../../filters/optionsQuery";
 import type { FunnelAnchor } from "../funnels/funnelAnchorUrl";
 import {
   buildFunnelGroupLabel,
@@ -49,7 +47,9 @@ export type CatalogInstallFunnelGroupByDimension = FunnelGroupByField & Readonly
 const deckGroupByDimensionId = "deck";
 
 export const catalogInstallFunnelGroupByDimensions: ReadonlyArray<CatalogInstallFunnelGroupByDimension> = [
-  { id: deckGroupByDimensionId, label: "Deck version", readGroupKey: (visit) => visit.packageVersionId },
+  // Keyed on the package rather than on the row's version, so two versions of one deck are one bar,
+  // and named by that package's public slug in `buildGroupLabel` below.
+  { id: deckGroupByDimensionId, label: "Deck", readGroupKey: (visit) => visit.packageId },
   { id: "country", label: "Connection country", readGroupKey: (visit) => visit.connectionCountry },
   { id: "language", label: "App interface language", readGroupKey: (visit) => visit.appUiLanguage },
   { id: "placement", label: "Catalog link placement", readGroupKey: (visit) => visit.clickPlacement },
@@ -190,36 +190,24 @@ type CatalogInstallFunnelGroup = FunnelGroupCounts<FunnelMainStepId> & Readonly<
   visits: ReadonlyArray<CatalogInstallFunnelVisit>;
 }>;
 
-function buildGroupLabeller(
+/**
+ * A group's name on screen. Every dimension but the deck has a key that is already the value it
+ * shows; a deck group is keyed on the package id, so it is named off its own rows instead - all of
+ * them carry that package's public slug, and a key exists only where one was resolved.
+ *
+ * The pinned `Unresolved` group is renamed by the fold whatever is returned for it, which is what
+ * lets it stand with no rows at all.
+ */
+function buildGroupLabel(
   dimension: CatalogInstallFunnelGroupByDimension,
-  groupKeys: ReadonlyArray<string>,
-  catalogDeckOptions: ReadonlyArray<CatalogDeckOption>,
-): (groupKey: string) => string {
+  groupKey: string,
+  groupVisits: ReadonlyArray<CatalogInstallFunnelVisit>,
+): string {
   if (dimension.id !== deckGroupByDimensionId) {
-    return (groupKey) => buildFunnelGroupLabel(dimension, groupKey);
+    return buildFunnelGroupLabel(dimension, groupKey);
   }
 
-  const slugByPackageVersionId = new Map(
-    catalogDeckOptions.map((deck) => [deck.packageVersionId, deck.packageSlug] as const),
-  );
-  const groupCountBySlug = new Map<string, number>();
-  for (const groupKey of groupKeys) {
-    const slug = slugByPackageVersionId.get(groupKey);
-    if (slug !== undefined) {
-      groupCountBySlug.set(slug, (groupCountBySlug.get(slug) ?? 0) + 1);
-    }
-  }
-
-  return (groupKey) => {
-    const slug = slugByPackageVersionId.get(groupKey);
-    if (slug === undefined) {
-      return buildFunnelGroupLabel(dimension, groupKey);
-    }
-
-    return (groupCountBySlug.get(slug) ?? 0) > 1
-      ? `${slug} — ${groupKey.slice(0, deckVersionDiscriminatorLength)}`
-      : slug;
-  };
+  return groupVisits[0]?.deckSlug ?? buildFunnelGroupLabel(dimension, groupKey);
 }
 
 function buildGroups(
@@ -227,7 +215,6 @@ function buildGroups(
   hashedDeckPageViewCount: number,
   hashedInstallClickCount: number,
   dimension: CatalogInstallFunnelGroupByDimension,
-  catalogDeckOptions: ReadonlyArray<CatalogDeckOption>,
 ): ReadonlyArray<CatalogInstallFunnelGroup> {
   const visitsByGroupKey = new Map<string, Array<CatalogInstallFunnelVisit>>();
   for (const visit of visits) {
@@ -241,17 +228,9 @@ function buildGroups(
     visitsByGroupKey.set(unresolvedFunnelGroupKey, []);
   }
 
-  // Named after every key is known, because a deck slug is shortened only against the other decks
-  // on this chart.
-  const buildGroupLabel = buildGroupLabeller(
-    dimension,
-    Array.from(visitsByGroupKey.keys()),
-    catalogDeckOptions,
-  );
-
   return Array.from(visitsByGroupKey, ([groupKey, groupVisits]) => ({
     key: groupKey,
-    label: buildGroupLabel(groupKey),
+    label: buildGroupLabel(dimension, groupKey, groupVisits),
     visits: groupVisits,
     stages: groupKey === unresolvedFunnelGroupKey
       ? buildMainStages(groupVisits, hashedDeckPageViewCount, hashedInstallClickCount)
@@ -308,7 +287,6 @@ function buildFailureTotals(visits: ReadonlyArray<CatalogInstallFunnelVisit>): R
 function buildFoldedGroups(
   report: CatalogInstallFunnelReport | null,
   groupByDimensionId: string | null,
-  catalogDeckOptions: ReadonlyArray<CatalogDeckOption>,
 ): ReadonlyArray<FunnelGroup<FunnelMainStepId>> | null {
   if (report === null || groupByDimensionId === null) {
     return null;
@@ -326,7 +304,6 @@ function buildFoldedGroups(
       report.hashedDeckPageViewCount,
       report.hashedInstallClickCount,
       dimension,
-      catalogDeckOptions,
     ),
     // One actor can occur in several folded groups. Recount their visits instead of summing groups;
     // cookieless counts stay in Unresolved, which is never folded.
@@ -337,7 +314,6 @@ function buildFoldedGroups(
 export function buildCatalogInstallFunnelReportModel(
   report: CatalogInstallFunnelReport | null,
   groupByDimensionId: string | null,
-  catalogDeckOptions: ReadonlyArray<CatalogDeckOption>,
 ): CatalogInstallFunnelReportModel {
   const visits = report === null ? [] : report.visits;
   const hashedDeckPageViewCount = report === null ? 0 : report.hashedDeckPageViewCount;
@@ -348,7 +324,7 @@ export function buildCatalogInstallFunnelReportModel(
   // Grouping changes only the chart; summaries always use the complete report.
   return {
     mainStages,
-    groups: buildFoldedGroups(report, groupByDimensionId, catalogDeckOptions),
+    groups: buildFoldedGroups(report, groupByDimensionId),
     authStages: buildAuthStages(visits),
     failureTotals: buildFailureTotals(visits),
     medianInstallSeconds: getMedianInstallSeconds(firstInstallVisits),
