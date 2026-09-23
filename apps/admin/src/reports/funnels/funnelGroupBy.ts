@@ -286,7 +286,7 @@ export function foldFunnelGroups<StepId extends string>(
  *
  * `mergeFoldedStages` is handed the groups below the five drawn and returns the one stage list that
  * replaces them. A funnel whose groups partition its cohort sums them, through `foldFunnelGroups`
- * above. The deck funnel grouped by deck version cannot: a person's rows are one per deck they
+ * above. The deck funnel grouped by deck cannot: a person's rows are one per deck they
  * viewed, so the same person can sit in two folded groups and a sum would count them twice; it
  * re-reduces the underlying rows instead. Everything else about the fold - the ranking, the five,
  * the pinned `Unresolved` and the colours - is the same on every funnel, which is the point of
