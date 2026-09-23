@@ -192,6 +192,9 @@
 "settings.leaderboardParticipation.toggle" = "ലീഡർബോർഡിൽ എന്നെ കാണിക്കുക";
 "settings.leaderboardParticipation.description" = "ഇത് ഓഫാണെങ്കിൽ നിങ്ങളുടെ അജ്ഞാത പ്രവർത്തനം ലീഡർബോർഡിൽ കാണിക്കില്ല.";
 "settings.leaderboardParticipation.signInRequired" = "ലീഡർബോർഡ് പങ്കാളിത്തം നിയന്ത്രിക്കാൻ ക്ലൗഡ് സമന്വയം ബന്ധിപ്പിക്കുക.";
+"settings.productAnalytics.title" = "ഉൽപ്പന്ന അനലിറ്റിക്സ്";
+"settings.productAnalytics.toggle" = "ഉൽപ്പന്ന അനലിറ്റിക്സ് പങ്കിടുക";
+"settings.productAnalytics.footer" = "ആപ്പിന്റെ ഏതൊക്കെ ഭാഗങ്ങളാണ് ആളുകൾ ഉപയോഗിക്കുന്നതെന്ന് ഉൽപ്പന്ന അനലിറ്റിക്സ് ഞങ്ങളോട് പറയുന്നു; നിങ്ങളുടെ കാർഡുകളിലുള്ളത് ഒരിക്കലും അല്ല. ഇത് ഓഫായിരിക്കുമ്പോൾ ആപ്പ് ഒന്നും രേഖപ്പെടുത്തുകയോ അയയ്ക്കുകയോ ചെയ്യുന്നില്ല. ക്രാഷ്, പിശക് റിപ്പോർട്ടുകളെ ഇത് ബാധിക്കുന്നില്ല.";
 "settings.language.title" = "ഭാഷ";
 "settings.language.systemDescription" = "ആപ്പിന്റെ ഭാഷ iOS നിയന്ത്രിക്കുന്നു. iOS ക്രമീകരണങ്ങളിൽ Nibomo തുറന്ന് ഇഷ്ട ഭാഷ തിരഞ്ഞെടുക്കുക. ഇഷ്ട ഭാഷ കാണുന്നില്ലെങ്കിൽ ആദ്യം ക്രമീകരണങ്ങൾ > പൊതുവായത് > ഭാഷയും പ്രദേശവും എന്നതിൽ മറ്റൊരു ഭാഷ ചേർക്കുക.";
 "settings.language.action.openAppSettings" = "Nibomo ക്രമീകരണങ്ങൾ തുറക്കുക";

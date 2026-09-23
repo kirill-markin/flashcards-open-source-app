@@ -192,6 +192,9 @@
 "settings.leaderboardParticipation.toggle" = "ਮੈਨੂੰ ਦਰਜਾਬੰਦੀ ਵਿੱਚ ਦਿਖਾਓ";
 "settings.leaderboardParticipation.description" = "ਇਹ ਬੰਦ ਹੋਣ ਉੱਤੇ ਤੁਹਾਡੀ ਅਗਿਆਤ ਸਰਗਰਮੀ ਦਰਜਾਬੰਦੀ ਵਿੱਚ ਨਹੀਂ ਦਿਸੇਗੀ।";
 "settings.leaderboardParticipation.signInRequired" = "ਦਰਜਾਬੰਦੀ ਵਿੱਚ ਭਾਗੀਦਾਰੀ ਸੰਭਾਲਣ ਲਈ ਕਲਾਊਡ ਸਿੰਕ ਜੋੜੋ।";
+"settings.productAnalytics.title" = "ਪ੍ਰੋਡਕਟ ਐਨਾਲਿਟਿਕਸ";
+"settings.productAnalytics.toggle" = "ਪ੍ਰੋਡਕਟ ਐਨਾਲਿਟਿਕਸ ਸਾਂਝਾ ਕਰੋ";
+"settings.productAnalytics.footer" = "ਪ੍ਰੋਡਕਟ ਐਨਾਲਿਟਿਕਸ ਸਾਨੂੰ ਦੱਸਦਾ ਹੈ ਕਿ ਲੋਕ ਐਪ ਦੇ ਕਿਹੜੇ ਹਿੱਸੇ ਵਰਤਦੇ ਹਨ, ਨਾ ਕਿ ਤੁਹਾਡੇ ਕਾਰਡਾਂ ਉੱਤੇ ਕੀ ਹੈ। ਬੰਦ ਹੋਣ ਸਮੇਂ ਐਪ ਕੁਝ ਵੀ ਰਿਕਾਰਡ ਨਹੀਂ ਕਰਦੀ ਅਤੇ ਕੁਝ ਵੀ ਨਹੀਂ ਭੇਜਦੀ। ਕਰੈਸ਼ ਅਤੇ ਗਲਤੀ ਰਿਪੋਰਟਾਂ ਉੱਤੇ ਇਸ ਦਾ ਅਸਰ ਨਹੀਂ ਪੈਂਦਾ।";
 "settings.language.title" = "ਭਾਸ਼ਾ";
 "settings.language.systemDescription" = "iOS ਐਪ ਦੀ ਭਾਸ਼ਾ ਨਿਯੰਤਰਿਤ ਕਰਦਾ ਹੈ। iOS ਸੈਟਿੰਗਾਂ ਵਿੱਚ Nibomo ਖੋਲ੍ਹੋ ਅਤੇ ਤਰਜੀਹੀ ਭਾਸ਼ਾ ਵਰਤੋ। ਜੇ ਤਰਜੀਹੀ ਭਾਸ਼ਾ ਨਹੀਂ ਦਿਸਦੀ ਤਾਂ ਪਹਿਲਾਂ ਸੈਟਿੰਗਾਂ > ਆਮ > ਭਾਸ਼ਾ ਅਤੇ ਖੇਤਰ ਵਿੱਚ ਹੋਰ ਭਾਸ਼ਾ ਸ਼ਾਮਲ ਕਰੋ।";
 "settings.language.action.openAppSettings" = "Nibomo ਦੀਆਂ ਸੈਟਿੰਗਾਂ ਖੋਲ੍ਹੋ";

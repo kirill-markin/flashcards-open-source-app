@@ -192,6 +192,9 @@
 "settings.leaderboardParticipation.toggle" = "என்னைத் தரவரிசையில் காட்டு";
 "settings.leaderboardParticipation.description" = "இது முடக்கப்பட்டால் உங்கள் பெயரற்ற செயல்பாடு தரவரிசையில் இடம்பெறாது.";
 "settings.leaderboardParticipation.signInRequired" = "தரவரிசைப் பங்கேற்பை நிர்வகிக்க கிளவுட் ஒத்திசைவை இணைக்கவும்.";
+"settings.productAnalytics.title" = "தயாரிப்புப் பகுப்பாய்வு";
+"settings.productAnalytics.toggle" = "தயாரிப்புப் பகுப்பாய்வைப் பகிரவும்";
+"settings.productAnalytics.footer" = "செயலியின் எந்தப் பகுதிகளை மக்கள் பயன்படுத்துகிறார்கள் என்பதை தயாரிப்புப் பகுப்பாய்வு எங்களுக்குத் தெரிவிக்கிறது; உங்கள் அட்டைகளில் உள்ளதை அல்ல. இது அணைக்கப்பட்டிருக்கும்போது செயலி எதையும் பதிவு செய்யாது, அனுப்பாது. செயலிழப்பு மற்றும் பிழை அறிக்கைகள் இதனால் பாதிக்கப்படாது.";
 "settings.language.title" = "மொழி";
 "settings.language.systemDescription" = "செயலியின் மொழியை iOS கட்டுப்படுத்துகிறது. iOS அமைப்புகளில் Nibomo-வைத் திறந்து விருப்ப மொழியைப் பயன்படுத்தவும். விருப்ப மொழி தெரியாவிட்டால் முதலில் அமைப்புகள் > பொது > மொழி மற்றும் வட்டாரத்தில் மற்றொரு மொழியைச் சேர்க்கவும்.";
 "settings.language.action.openAppSettings" = "Nibomo அமைப்புகளைத் திற";

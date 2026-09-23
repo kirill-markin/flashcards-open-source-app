@@ -192,6 +192,9 @@
 "settings.leaderboardParticipation.toggle" = "Visa mig på topplistan";
 "settings.leaderboardParticipation.description" = "När detta är avstängt visas inte din anonyma aktivitet på topplistan.";
 "settings.leaderboardParticipation.signInRequired" = "Anslut molnsynkronisering för att hantera deltagande i topplistan.";
+"settings.productAnalytics.title" = "Produktanalys";
+"settings.productAnalytics.toggle" = "Dela produktanalys";
+"settings.productAnalytics.footer" = "Produktanalys visar oss vilka delar av appen som används, aldrig vad som står på dina kort. När den är av registrerar och skickar appen ingenting. Krasch- och felrapporter påverkas inte.";
 "settings.language.title" = "Språk";
 "settings.language.systemDescription" = "Appens språk styrs av iOS. Öppna Nibomo i iOS-inställningarna och välj Föredraget språk. Om Föredraget språk inte visas lägger du först till ett annat språk under Inställningar > Allmänt > Språk och region.";
 "settings.language.action.openAppSettings" = "Öppna Nibomo-inställningar";

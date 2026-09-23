@@ -636,6 +636,16 @@ extension FlashcardsStore {
                 // rotate `anonymous_id` again on every attempt if a clear kept failing. Neither
                 // statement above suspends, so no new credential can appear in between.
                 Analytics.reset()
+                // Same boundary for the analytics answer: an answer given here survives, because it
+                // is this person's privacy choice on this device, and becomes owed to the credential
+                // this install obtains next, which is the only one that can carry it server-side. A
+                // value only mirrored from the identity just cleared is dropped with it, so the
+                // switch is republished from whatever is left.
+                ProductAnalyticsPreference.clearIdentityBindingForCloudIdentityReset(
+                    userDefaults: self.userDefaults
+                )
+                self.applyStoredProductAnalyticsPreference()
+                self.clearProductAnalyticsPushFailureReportsForCloudIdentityReset()
                 self.globalErrorMessage = ""
                 return .stopSync
             }
