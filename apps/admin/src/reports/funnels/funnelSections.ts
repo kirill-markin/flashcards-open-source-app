@@ -6,6 +6,16 @@ import {
   type AnalyticsFilterState,
 } from "../../filters/analyticsFilters";
 import {
+  BlogPlatformChoiceFunnelSection,
+  blogPlatformChoiceFunnelAnchor,
+  blogPlatformChoiceFunnelTitle,
+} from "../blogFunnels/BlogPlatformChoiceFunnelSection";
+import {
+  BlogToWebAppFunnelSection,
+  blogToWebAppFunnelAnchor,
+  blogToWebAppFunnelTitle,
+} from "../blogFunnels/BlogToWebAppFunnelSection";
+import {
   CatalogInstallFunnelSection,
   catalogInstallFunnelAnchor,
   catalogInstallFunnelTitle,
@@ -16,10 +26,7 @@ import {
   mobileFirstLaunchFunnelTitle,
 } from "../mobileFirstLaunchFunnel/MobileFirstLaunchFunnelSection";
 import {
-  BlogToWebAppFunnelSection,
   HomeToWebAppFunnelSection,
-  blogToWebAppFunnelAnchor,
-  blogToWebAppFunnelTitle,
   homeToWebAppFunnelAnchor,
   homeToWebAppFunnelTitle,
 } from "../siteEntryFunnel/SiteEntryFunnelSection";
@@ -47,11 +54,20 @@ export type FunnelSectionDefinition = Readonly<{
 
 /**
  * Every funnel on the Funnels area, top to bottom. The order is fixed: mobile first launch, home page
- * to web app, deck page to install, blog article to web app. A new funnel is inserted here at its
- * place and nowhere else.
+ * to web app, deck page to install, blog article to platform choice, blog article to web app. A new
+ * funnel is inserted here at its place and nowhere else.
  *
  * THE FUNNEL RULE, which every funnel here follows: each step grows by at most one per person, and a
  * person counts at a step only if the same person reached every earlier step.
+ *
+ * A FUNNEL EXISTS FOR ONE MAIN USER FLOW, and each of its steps is written as the designed path rather
+ * than as a union of every way that step could be reached. The blog funnels are where that bites: every
+ * call to action in an article leads to the home page, so "viewed the home page" is a step of the
+ * platform-choice funnel, and a blog reader who clicks a footer store badge without ever seeing the home
+ * page is deliberately in no funnel at all rather than in a widened one. Widening a step to hold such a
+ * bypass would trade a small, knowable gap for a funnel that no longer describes any single path, and it
+ * would keep having to be widened again for the next bypass. Where a flow genuinely splits, it becomes
+ * its own funnel with its own first step, which is why there are two blog funnels and not one.
  *
  * WHAT A PERSON IS, is the one thing the audience mode changes, and the rule holds unchanged in all
  * three (`funnelAudienceModes` in `apps/admin/src/filters/analyticsFilters.ts` names them; the SQL
@@ -64,7 +80,10 @@ export type FunnelSectionDefinition = Readonly<{
  *   - `all` adds a second cohort whose person key is a daily visitor hash on one UTC day, and the rule
  *     holds inside it on that pair: each of those steps is a distinct count over that key, and the
  *     later step is read only for a person the earlier one kept. Those people can reach the site steps
- *     alone, so every step below is identified-only and the two cohorts are simply added per step.
+ *     alone, so every step below is identified-only and the two cohorts are simply added per step. A
+ *     funnel whose own first step is already below that line does not read the cohort at all rather
+ *     than adding it to its base: that is the blog web-app funnel, whose first step is the click, and
+ *     counting cookieless clickers there would raise the base of four steps they can never appear in.
  *
  * `all` IS AN UPPER BOUND ON PEOPLE, NOT A COUNT OF THEM, which is the one place the rule as written
  * does not survive the mode, and it is why `all` is not the default. A hash and an actor are disjoint
@@ -98,6 +117,12 @@ export const funnelSections: ReadonlyArray<FunnelSectionDefinition> = [
     title: catalogInstallFunnelTitle,
     filterFields: catalogInstallFunnelFilterFields,
     Section: CatalogInstallFunnelSection,
+  },
+  {
+    anchor: blogPlatformChoiceFunnelAnchor,
+    title: blogPlatformChoiceFunnelTitle,
+    filterFields: [],
+    Section: BlogPlatformChoiceFunnelSection,
   },
   {
     anchor: blogToWebAppFunnelAnchor,
