@@ -14,8 +14,11 @@ import {
 import { FunnelMaturingWarning } from "../funnels/FunnelMaturingWarning";
 import type { FunnelSectionProps } from "../funnels/funnelSections";
 import { formatPercentage, FunnelStepsChart, type FunnelStage } from "../funnels/FunnelStepsChart";
-import { siteEntryFunnelGroupByDimensions } from "../siteEntryFunnel/query";
-import { blogFunnelStartDate, buildBlogFunnelStartDateNote } from "./blogFunnelEntry";
+import {
+  blogFunnelGroupByDimensions,
+  blogFunnelStartDate,
+  buildBlogFunnelStartDateNote,
+} from "./blogFunnelEntry";
 import {
   blogPlatformChoiceTargets,
   loadBlogPlatformChoiceFunnelReport,
@@ -153,7 +156,7 @@ export function BlogPlatformChoiceFunnelSection(props: FunnelSectionProps): JSX.
     () => parseFunnelGroupByDimension(
       new URLSearchParams(window.location.search),
       funnelId,
-      siteEntryFunnelGroupByDimensions,
+      blogFunnelGroupByDimensions,
     ),
   );
 
@@ -270,7 +273,7 @@ export function BlogPlatformChoiceFunnelSection(props: FunnelSectionProps): JSX.
       <div className="funnel-group-by-row">
         <FunnelGroupByPicker
           funnelId={funnelId}
-          dimensions={siteEntryFunnelGroupByDimensions}
+          dimensions={blogFunnelGroupByDimensions}
           selectedDimensionId={groupByDimension === null ? null : groupByDimension.id}
           isReportLoading={props.isRangeLoading || loadState.status === "loading"}
           onSelect={selectGroupByDimension}
@@ -325,7 +328,7 @@ export function BlogPlatformChoiceFunnelSection(props: FunnelSectionProps): JSX.
           <p>The date range, the client platform, the connection country and the app interface language are applied in SQL. The platform is the entry page view&rsquo;s, and the site always reports as web, so a selection without web empties this funnel. The country and language keep a person the way they do on General, from their trusted events in the selected dates, so narrowing either keeps only people who signed in. An <code>@example.com</code> account, an admin and an actor on the analytics exclusion list are excluded.</p>
           <p>&ldquo;Who the funnels count&rdquo; picks the audience. <strong>With anonymous ID</strong>, the default, is everything described above: a person is the visitor cookie. <strong>Signed-in only</strong> keeps just the people whose identity resolves to a real, non-guest account at some point up to now, read from a Cognito row in <code>auth.user_identities</code>. <strong>All</strong> adds the cookieless visitors, drawn as the lighter part of every bar: where the site may not set a cookie it still reports a daily hash, and one hash on one UTC day is one person. <strong>This is the one funnel those people reach the bottom of</strong>, because all three steps are marketing-site facts that a browser with no cookie reports exactly as an identified one does; on every other funnel their segment ends partway down against a step that needs an identity the app or the server can meet again. They carry no actor, so the exclusion list and the test-account and admin rules cannot reach them, and their language is the one their own page view recorded.</p>
           <p><strong>All counts people at most once per cohort, not once per person, so it is an upper bound.</strong> A hash and a visitor cookie are never linked, by design: the daily salt is unreadable and no query may resolve one to the other. Where the site must ask before setting a cookie (the EEA and the UK), the same human sends hashed page views before consenting and cookie-bearing ones after, so when the first page they see after consenting is a blog article they can enter once in each part of a step and be added. Nothing here can subtract that overlap, which is why <strong>With anonymous ID</strong> is the default and <strong>All</strong> is a ceiling to read against it rather than a better count.</p>
-          <p><strong>Group by</strong> splits exactly those people and measures each group inside itself: one bar per group at every step, every percentage taken from that group&rsquo;s own first step, and a selected step re-bases each group on its own count there, so two groups of very different size are compared by their rates. <strong>Entry page language</strong> is the one dimension here, and its key is the language the entry page view itself was read in, taken off that very row, exactly as on the home page funnel. Everyone enters on exactly one page view, so everyone carries exactly one key and the groups always sum back to the numbers above; only a visit whose page view reported no language at all is <strong>Unresolved</strong>, and beyond the five largest groups the rest are summed into <strong>Other</strong>. The cookieless visitors of <strong>All</strong> are grouped on the same key, read from their own page view the same way. Neither a person&rsquo;s connection country nor their app interface language is offered, because both are read from trusted events that a visitor who never signs in never sends; nor is the client platform, because the entry is a site page view and the site always reports as web. The clicked target is not offered either, for the reason the breakdown above gives.</p>
+          <p><strong>Group by</strong> splits exactly those people and measures each group inside itself: one bar per group at every step, every percentage taken from that group&rsquo;s own first step, and a selected step re-bases each group on its own count there, so two groups of very different size are compared by their rates. There are two dimensions, and both are keyed on the entry page view itself rather than on anything read from a person&rsquo;s history. <strong>Entry page language</strong> is the language that page view was read in, taken off that very row, exactly as on the home page funnel. <strong>Entry article</strong> is the post the reader entered on, keyed on that same row&rsquo;s own <code>page_path</code> — the route the site reports with its locale prefix already stripped, lowercase and with a leading and a trailing slash, so one post is one group across every language — which is how this chart answers which posts pull people into the product while it measures the flow. Everyone enters on exactly one page view, so whichever dimension is selected everyone carries exactly one key and the groups always sum back to the numbers above; <strong>Unresolved</strong> is a visit whose page view reported no language at all under the first dimension and no path at all under the second, and beyond the five largest groups the rest are summed into <strong>Other</strong>. The cookieless visitors of <strong>All</strong> are grouped on the same key under both dimensions, read from their own page view the same way, so their lighter segments sit inside their own language and their own article rather than apart from them. Of the two blog funnels only this one reads that cohort at all, so only here is it split into groups. Neither a person&rsquo;s connection country nor their app interface language is offered, because both are read from trusted events that a visitor who never signs in never sends; nor is the client platform, because the entry is a site page view and the site always reports as web. The clicked target is not offered either, for the reason the breakdown above gives.</p>
         </details>
       ) : null}
     </section>
