@@ -198,7 +198,7 @@ updated or deleted", and, closing the comment, "Row level security is enabled, a
 permissive reads plus the one insert `backend_app` is granted: nothing may rewrite or remove a row
 here."
 
-`0153_ai_usage_identity_rewrites.sql` grants `backend_app` `UPDATE (user_id, workspace_id, request_id)`
+`0154_ai_usage_identity_rewrites.sql` grants `backend_app` `UPDATE (user_id, workspace_id, request_id)`
 on that table and adds the `usage_events_backend_update` policy the grant needs in order to match a row
 at all. Those three columns are the ones that name somebody; every counter stays ungranted.
 Two statements use it, and no third may without being named in that migration:

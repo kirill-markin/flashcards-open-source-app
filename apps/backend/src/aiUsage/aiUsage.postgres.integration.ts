@@ -326,7 +326,7 @@ test("every reported counter lands in its own column, and only the token counter
   });
 });
 
-// Both statements here are the callers db/migrations/0153_ai_usage_identity_rewrites.sql grants
+// Both statements here are the callers db/migrations/0154_ai_usage_identity_rewrites.sql grants
 // UPDATE (user_id, workspace_id, request_id) for, and a grant is exactly what no pure test can reach:
 // the table is
 // append-only for everything else, and 0152 created one row-level-security policy per granted command,

@@ -4,7 +4,7 @@ import type { DatabaseExecutor } from "../database";
  * The two statements that rewrite which person and which workspace an `ai.usage_events` row belongs to.
  * Together with the append in `record.ts` they are the only writers of that table.
  *
- * Both are the callers `db/migrations/0153_ai_usage_identity_rewrites.sql` grants
+ * Both are the callers `db/migrations/0154_ai_usage_identity_rewrites.sql` grants
  * `UPDATE (user_id, workspace_id, request_id)` for, and names: the three columns that name somebody, and
  * no counter. The counters stay immutable and no row can be removed, because neither privilege was
  * granted back, so nothing here can be extended into a statement
