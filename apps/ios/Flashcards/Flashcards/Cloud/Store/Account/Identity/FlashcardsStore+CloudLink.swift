@@ -594,7 +594,10 @@ extension FlashcardsStore {
             try await self.finishCloudLink(linkedSession: linkedSession, trigger: trigger)
             return linkedSession
         } catch {
-            guard self.isCloudAuthorizationError(error) else {
+            // `finishCloudLink` captures its failure and rethrows it boxed in
+            // `ObservedTechnicalError`, so the relink retry only sees a rejected token
+            // through the box.
+            guard self.isCloudAuthorizationError(technicalErrorPresentationSource(error: error)) else {
                 throw error
             }
         }
