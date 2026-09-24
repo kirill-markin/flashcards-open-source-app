@@ -158,9 +158,9 @@ export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<Auth
         maskedEmail: maskEmail(email),
       });
       // This branch completes a sign-in inside `send-code`, so it owes the same success sequence as
-      // `verify-code`: the event, the identity link, and the retired visitor cookie. Without it this
-      // path would mint visitor identities that are never linked and never revoked.
-      await reportSignInSucceeded(c, tokens.idToken);
+      // `verify-code`: the event, and the retired guest cookie an older build may have left on this
+      // browser.
+      await reportSignInSucceeded(c);
       return c.json({
         ok: true,
         idToken: tokens.idToken,
