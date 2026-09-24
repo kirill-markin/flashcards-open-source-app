@@ -16,6 +16,7 @@ import {
   settingsNotificationsRoute,
   settingsSchedulerRoute,
   settingsServerRoute,
+  workspaceRoutePrefix,
 } from "../../../src/routes";
 import { localUiTimeoutMs } from "../config";
 import { runLiveSmokeStep } from "../steps";
@@ -176,8 +177,13 @@ async function openSettingsRoot(session: LiveSmokeSession, actionName: string): 
   );
 }
 
+/**
+ * The workspace segment is optional so this holds both before and after each in-app link is moved
+ * under `/w/:workspaceId`: a flat link lands on the same route through the redirect in `App.tsx`.
+ */
 function buildRouteUrlPattern(baseUrl: string, route: string): RegExp {
-  return new RegExp(`^${escapeRegExp(`${baseUrl}${route}`)}(?:[?#].*)?$`);
+  const workspaceSegment = `(?:${escapeRegExp(`${workspaceRoutePrefix}/`)}[^/]+)?`;
+  return new RegExp(`^${escapeRegExp(baseUrl)}${workspaceSegment}${escapeRegExp(route)}(?:[?#].*)?$`);
 }
 
 function escapeRegExp(value: string): string {
