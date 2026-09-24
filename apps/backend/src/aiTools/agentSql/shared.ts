@@ -164,6 +164,16 @@ export type AgentSqlBatchPayload = Readonly<{
 
 export type AgentSqlPayload = AgentSqlReadPayload | AgentSqlMutationPayload | AgentSqlBatchPayload;
 
+/**
+ * The payload a tool spec returns: the executed payload plus the workspace the
+ * statement ran in, which the spec knows because it resolved it
+ * (`apps/backend/src/aiTools/toolRegistry/specs.ts`). It is there so an agent can
+ * build a card web link without a `list_workspaces` round trip, and it is added
+ * after `apps/backend/src/aiTools/agentSql/resultBudget.ts` measured the payload,
+ * so those characters are outside the budget accounting.
+ */
+export type AgentSqlPayloadWithWorkspace = AgentSqlPayload & Readonly<{ workspaceId: string }>;
+
 export type AgentSqlReadExecutionResult = Readonly<{
   data: AgentSqlReadPayload;
   instructions: string;
