@@ -1,5 +1,5 @@
 import { Suspense, lazy, useCallback, useEffect, useRef, useState, type ReactElement } from "react";
-import { BrowserRouter, NavLink, Navigate, Route, Routes as RouterRoutes, useLocation, useParams } from "react-router";
+import { BrowserRouter, NavLink, Navigate, Route, Routes as RouterRoutes, useLocation, useNavigate, useParams } from "react-router";
 import { AccountMenu } from "./AccountMenu";
 import { AccountDeletionRecoveryGate } from "./accountDeletionRecovery";
 import {
@@ -31,12 +31,14 @@ import {
   accountSupportRoute,
   buildSettingsDeckDetailRoute,
   buildSettingsDeckEditRoute,
+  buildWorkspaceRoute,
   catalogImportRoutePattern,
   cardsRoute,
   chatRoute,
   friendInviteRoutePattern,
   friendInvitePreviewIndexRoute,
   friendInvitePreviewRoutePattern,
+  normalizeRoutePath,
   progressRoute,
   reviewRoute,
   settingsAccessRoute,
@@ -66,6 +68,9 @@ import {
   settingsTestLocalSyncDiagnosticsRoute,
   settingsTestRoute,
   shareRoute,
+  splitWorkspaceRoutePath,
+  workspaceRoutePattern,
+  workspaceRoutePrefix,
 } from "./routes";
 import { isWorkspaceManagementLocked } from "./workspaceManagement";
 import { TestModeProvider, useTestMode } from "./testMode";
@@ -338,6 +343,55 @@ function LegacyDeckEditRedirect(): ReactElement {
   return <Navigate replace to={buildSettingsDeckEditRoute(deckId)} />;
 }
 
+/**
+ * Every path the app served before it moved under `/w/:workspaceId`, forwarded to the same path in
+ * the active workspace with its `search` and `hash` intact. It stays permanently: external bookmarks
+ * and the in-app links that still point at flat paths both arrive here. `/` is the one path whose
+ * target differs, because there is no workspace-relative screen at the site root.
+ *
+ * A path already addressed under `/w` is left where it is, so a deep link no `<Route>` above matches
+ * renders nothing, the way an unmatched path does today, instead of being prefixed twice. The second
+ * half of that test is wider than `splitWorkspaceRoutePath` on purpose: a path whose segment this
+ * build rejects reaches here only when the shell's forwarding branch rejected it too, which is the
+ * divergence case that branch falls through on, and prefixing it again would grow the address on
+ * every render instead of resting on a blank content area.
+ */
+function LegacyFlatPathRedirect(): ReactElement {
+  const location = useLocation();
+  const { activeWorkspace } = useAppData();
+  const activeWorkspaceId: string | null = activeWorkspace?.workspaceId ?? null;
+
+  const normalizedPathname: string = normalizeRoutePath(location.pathname);
+  if (
+    splitWorkspaceRoutePath(location.pathname).workspaceId !== null
+    || normalizedPathname === workspaceRoutePrefix
+    || normalizedPathname.startsWith(`${workspaceRoutePrefix}/`)
+  ) {
+    return <></>;
+  }
+
+  if (activeWorkspaceId === null) {
+    return <RouteContentFallback messageKey="loading.generic" />;
+  }
+
+  const appPath: string = normalizedPathname === "/" ? reviewRoute : location.pathname;
+  return <Navigate replace to={`${buildWorkspaceRoute(activeWorkspaceId, appPath)}${location.search}${location.hash}`} />;
+}
+
+/**
+ * The app path carried under a `/w/<segment>` whose segment is not a workspace id.
+ * `splitWorkspaceRoutePath` hands such a path back unsplit, because it reports the workspace it could
+ * read rather than the shape it matched, so the segment is dropped here instead. Sliced out of the
+ * raw pathname, which keeps a case-sensitive token in the remainder intact, and `/` becomes the
+ * review screen for the same reason it does in `LegacyFlatPathRedirect`: no screen sits at the root.
+ */
+function readUnrecognisedWorkspaceAppPath(pathname: string): string {
+  const afterPrefix: string = pathname.slice(workspaceRoutePrefix.length + 1);
+  const appPathStart: number = afterPrefix.indexOf("/");
+  const appPath: string = appPathStart === -1 ? "/" : afterPrefix.slice(appPathStart);
+  return appPath === "/" ? reviewRoute : appPath;
+}
+
 function TestModeRouteGuard(props: Readonly<{ children: ReactElement }>): ReactElement {
   const { children } = props;
   const { isTestModeEnabled } = useTestMode();
@@ -393,6 +447,7 @@ function resolveSessionGateSurface(sessionLoadState: SessionLoadState): Analytic
 
 export function AppShell(): ReactElement {
   const location = useLocation();
+  const navigate = useNavigate();
   const { locale, t, formatDateTime } = useI18n();
   const {
     sessionLoadState,
@@ -421,6 +476,27 @@ export function AppShell(): ReactElement {
   const workspaceManagementLockedMessage = t("workspaceManagement.lockedMessage");
   const activeWorkspaceId: string | null = activeWorkspace?.workspaceId ?? null;
   const activeWorkspaceName: string | null = activeWorkspace?.name ?? null;
+  const { workspaceId: urlWorkspaceId, appPath: urlAppPath } = splitWorkspaceRoutePath(location.pathname);
+  // The address the browser is at, in the shape every target below is built in, so a target that
+  // would navigate nowhere can be recognised as one.
+  const currentAddress: string = `${location.pathname}${location.search}${location.hash}`;
+  // `splitWorkspaceRoutePath` lowercases the segment it reads while `buildWorkspaceRoute` keeps the
+  // id as given, so the two are only ever comparable case-insensitively.
+  const isUrlWorkspaceActive: boolean = urlWorkspaceId !== null
+    && activeWorkspaceId?.toLowerCase() === urlWorkspaceId;
+  // The active workspace moves away from the one the URL names when the account switches workspaces
+  // or deletes the one it was in, and the address has to go with it: reloading the stale URL would
+  // otherwise hand back the workspace that was just left.
+  const alignedWorkspaceUrl: string | null = urlWorkspaceId !== null
+    && activeWorkspaceId !== null
+    && isUrlWorkspaceActive === false
+    ? `${buildWorkspaceRoute(activeWorkspaceId, urlAppPath)}${location.search}${location.hash}`
+    : null;
+  // A replace onto the address already showing is a no-op at best and a loop at worst, so a target
+  // equal to the current address is dropped instead of navigated. It cannot arise today — the
+  // workspace the URL names differs from the active one here, by construction — but the guard keeps
+  // that a property of this line rather than of a comparison two definitions away.
+  const staleWorkspaceUrl: string | null = alignedWorkspaceUrl === currentAddress ? null : alignedWorkspaceUrl;
   const visibleTechnicalErrorMessage = t("appError.technicalError.message");
   const visibleSessionErrorMessage = sessionErrorMessage === ""
     ? ""
@@ -511,6 +587,19 @@ export function AppShell(): ReactElement {
     setIsMobileNavigationOpen((currentValue: boolean): boolean => !currentValue);
   }
 
+  // Navigated from an effect rather than by returning `<Navigate>` in place of the shell: returning
+  // it unmounts the topbar and the current screen for the commit the navigation takes, so a blank
+  // frame can paint on a workspace switch or a workspace delete, both of which have to feel
+  // instantaneous. Every screen reads `activeWorkspace` rather than the URL, so the frame that
+  // renders under the stale address is already showing the workspace being moved to.
+  useEffect(() => {
+    if (staleWorkspaceUrl === null) {
+      return;
+    }
+
+    navigate(staleWorkspaceUrl, { replace: true });
+  }, [navigate, staleWorkspaceUrl]);
+
   // Called before the early returns below so it runs on every render, as a hook must. A gate that
   // replaces the app is the screen while it is up, and reporting it is also what keeps every other
   // event tracked underneath it off the route's surface.
@@ -592,6 +681,41 @@ export function AppShell(): ReactElement {
         </section>
       </main>
     );
+  }
+
+  // `workspaceRoutePattern` matches any first segment while `splitWorkspaceRoutePath` accepts only a
+  // workspace id (`workspaceIdPattern`), so `/w/<garbage>/review` renders `ReviewScreen` under an
+  // address that names no workspace, and the `/*` legacy redirect inside `RoutedShell` never sees
+  // it. One predicate has to decide what a workspace segment is: a path carrying an unrecognised one
+  // names no workspace, so it is forwarded the way a flat path is, onto the same screen in the
+  // active workspace. Returned rather than navigated from an effect, unlike the alignment above:
+  // there is no shell standing here to keep, and a screen nothing downstream can classify should not
+  // mount at all.
+  //
+  // `/w` and `/w/` carry no segment at all and normalize to the bare prefix, so they are matched
+  // separately from the paths that carry one: this branch is the only thing that forwards them,
+  // because `LegacyFlatPathRedirect` declines everything already under the prefix and no `<Route>`
+  // matches the bare prefix either, so without it they would rest on a blank content area.
+  const normalizedPathname: string = normalizeRoutePath(location.pathname);
+  if (
+    urlWorkspaceId === null
+    && activeWorkspaceId !== null
+    && (normalizedPathname === workspaceRoutePrefix || normalizedPathname.startsWith(`${workspaceRoutePrefix}/`))
+  ) {
+    const workspaceAppPath: string = readUnrecognisedWorkspaceAppPath(location.pathname);
+    const workspaceUrl: string = `${buildWorkspaceRoute(activeWorkspaceId, workspaceAppPath)}${location.search}${location.hash}`;
+
+    // Forwarding to the address already showing would be a fixed point, and this `<Navigate>` stands
+    // in place of the entire shell: the account would see a blank page on every route, or a replace
+    // loop, with no client-side way out because the workspace id comes from the server. It cannot
+    // happen while `workspaceIdPattern` matches the platform contract, since the only way in is a
+    // target this branch's own predicate rejects; if the two ever diverge again, falling through
+    // hands the address to `LegacyFlatPathRedirect`, which declines everything already under the
+    // workspace prefix, so it degrades to today's blank content area rather than to a dead app or a
+    // redirect loop that grows the URL.
+    if (workspaceUrl !== currentAddress) {
+      return <Navigate replace to={workspaceUrl} />;
+    }
   }
 
   return (
@@ -717,7 +841,7 @@ function buildChatMainContentClassName(isFullscreenChat: boolean, isOpen: boolea
 export function RoutedShell(): ReactElement {
   const location = useLocation();
   const { isOpen } = useChatLayout();
-  const isFullscreenChat = location.pathname === "/chat";
+  const isFullscreenChat = normalizeRoutePath(splitWorkspaceRoutePath(location.pathname).appPath) === chatRoute;
   const contentRef = useRef<HTMLDivElement | null>(null);
   const shellClassName = buildChatLayoutShellClassName(isFullscreenChat, isOpen);
   const contentClassName = buildChatMainContentClassName(isFullscreenChat, isOpen);
@@ -738,45 +862,45 @@ export function RoutedShell(): ReactElement {
       ) : null}
       <div ref={contentRef} className={contentClassName}>
         <SentryRoutes>
-          <Route path="/" element={<Navigate replace to={reviewRoute} />} />
-          <Route path={cardsRoute} element={<CardsScreen />} />
-          <Route path={`${cardsRoute}/new`} element={<CardFormScreen />} />
-          <Route path={`${cardsRoute}/:cardId`} element={<CardFormScreen />} />
-          <Route path="/decks" element={<Navigate replace to={settingsDecksRoute} />} />
-          <Route path="/decks/new" element={<Navigate replace to={settingsDeckNewRoute} />} />
-          <Route path="/decks/:deckId/edit" element={<LegacyDeckEditRedirect />} />
-          <Route path="/decks/:deckId" element={<LegacyDeckDetailRedirect />} />
-          <Route path="/tags" element={<Navigate replace to={settingsTagsRoute} />} />
-          <Route path={reviewRoute} element={<ReviewScreen />} />
-          <Route path={progressRoute} element={<ProgressScreen />} />
-          <Route path={settingsHubRoute} element={renderDeferredRoute(<SettingsScreen />, "loading.settings")} />
+          <Route path={workspaceRoutePattern} element={<Navigate replace to={reviewRoute} />} />
+          <Route path={`${workspaceRoutePattern}${cardsRoute}`} element={<CardsScreen />} />
+          <Route path={`${workspaceRoutePattern}${cardsRoute}/new`} element={<CardFormScreen />} />
+          <Route path={`${workspaceRoutePattern}${cardsRoute}/:cardId`} element={<CardFormScreen />} />
+          <Route path={`${workspaceRoutePattern}/decks`} element={<Navigate replace to={settingsDecksRoute} />} />
+          <Route path={`${workspaceRoutePattern}/decks/new`} element={<Navigate replace to={settingsDeckNewRoute} />} />
+          <Route path={`${workspaceRoutePattern}/decks/:deckId/edit`} element={<LegacyDeckEditRedirect />} />
+          <Route path={`${workspaceRoutePattern}/decks/:deckId`} element={<LegacyDeckDetailRedirect />} />
+          <Route path={`${workspaceRoutePattern}/tags`} element={<Navigate replace to={settingsTagsRoute} />} />
+          <Route path={`${workspaceRoutePattern}${reviewRoute}`} element={<ReviewScreen />} />
+          <Route path={`${workspaceRoutePattern}${progressRoute}`} element={<ProgressScreen />} />
+          <Route path={`${workspaceRoutePattern}${settingsHubRoute}`} element={renderDeferredRoute(<SettingsScreen />, "loading.settings")} />
           <Route
-            path={settingsCurrentWorkspaceRoute}
+            path={`${workspaceRoutePattern}${settingsCurrentWorkspaceRoute}`}
             element={renderDeferredRoute(<CurrentWorkspaceScreen />, "loading.currentWorkspace")}
           />
-          <Route path={settingsFeedbackRoute} element={renderDeferredRoute(<FeedbackSettingsScreen />, "loading.settings")} />
-          <Route path={settingsLanguageRoute} element={renderDeferredRoute(<LanguageSettingsScreen />, "loading.deviceDetails")} />
-          <Route path={settingsLeaderboardParticipationRoute} element={renderDeferredRoute(<LeaderboardParticipationSettingsScreen />, "loading.settings")} />
-          <Route path={settingsServerRoute} element={renderDeferredRoute(<ServerSettingsInfoScreen />, "loading.settings")} />
-          <Route path={settingsAccessRoute} element={renderDeferredRoute(<AccessSettingsScreen />, "loading.accessSettings")} />
-          <Route path={settingsAccessDetailRoutePattern} element={renderDeferredRoute(<AccessPermissionDetailScreen />, "loading.accessDetails")} />
-          <Route path={settingsNotificationsRoute} element={renderDeferredRoute(<NotificationsSettingsScreen />, "loading.notificationSettings")} />
-          <Route path={settingsReviewAnimationsRoute} element={renderDeferredRoute(<ReviewAnimationsSettingsScreen />, "loading.settings")} />
-          <Route path={settingsAIChatSuggestionsRoute} element={renderDeferredRoute(<AIChatSuggestionsSettingsScreen />, "loading.settings")} />
-          <Route path={settingsAnalyticsRoute} element={renderDeferredRoute(<AnalyticsSettingsScreen />, "loading.settings")} />
-          <Route path={settingsSchedulerRoute} element={renderDeferredRoute(<WorkspaceSchedulerScreen />, "loading.schedulerSettings")} />
-          <Route path={settingsImportRoute} element={renderDeferredRoute(<WorkspaceImportScreen />, "loading.importSettings")} />
-          <Route path={settingsExportRoute} element={renderDeferredRoute(<WorkspaceExportScreen />, "loading.exportSettings")} />
-          <Route path={settingsResetStudyProgressRoute} element={renderDeferredRoute(<ResetStudyProgressScreen />, "loading.settings")} />
-          <Route path={settingsDeleteCurrentWorkspaceRoute} element={renderDeferredRoute(<DeleteCurrentWorkspaceScreen />, "loading.currentWorkspace")} />
-          <Route path={settingsDecksRoute} element={renderDeferredRoute(<DecksScreen />, "loading.decks")} />
-          <Route path={settingsDeckNewRoute} element={renderDeferredRoute(<DeckFormScreen />, "loading.deckEditor")} />
-          <Route path={`${settingsDecksRoute}/:deckId/edit`} element={renderDeferredRoute(<DeckFormScreen />, "loading.deckEditor")} />
-          <Route path={`${settingsDecksRoute}/:deckId`} element={renderDeferredRoute(<DeckDetailScreen />, "loading.deckDetails")} />
-          <Route path={settingsTagsRoute} element={renderDeferredRoute(<TagsScreen />, "loading.tags")} />
-          <Route path={settingsDeviceRoute} element={renderDeferredRoute(<ThisDeviceSettingsScreen />, "loading.deviceDetails")} />
+          <Route path={`${workspaceRoutePattern}${settingsFeedbackRoute}`} element={renderDeferredRoute(<FeedbackSettingsScreen />, "loading.settings")} />
+          <Route path={`${workspaceRoutePattern}${settingsLanguageRoute}`} element={renderDeferredRoute(<LanguageSettingsScreen />, "loading.deviceDetails")} />
+          <Route path={`${workspaceRoutePattern}${settingsLeaderboardParticipationRoute}`} element={renderDeferredRoute(<LeaderboardParticipationSettingsScreen />, "loading.settings")} />
+          <Route path={`${workspaceRoutePattern}${settingsServerRoute}`} element={renderDeferredRoute(<ServerSettingsInfoScreen />, "loading.settings")} />
+          <Route path={`${workspaceRoutePattern}${settingsAccessRoute}`} element={renderDeferredRoute(<AccessSettingsScreen />, "loading.accessSettings")} />
+          <Route path={`${workspaceRoutePattern}${settingsAccessDetailRoutePattern}`} element={renderDeferredRoute(<AccessPermissionDetailScreen />, "loading.accessDetails")} />
+          <Route path={`${workspaceRoutePattern}${settingsNotificationsRoute}`} element={renderDeferredRoute(<NotificationsSettingsScreen />, "loading.notificationSettings")} />
+          <Route path={`${workspaceRoutePattern}${settingsReviewAnimationsRoute}`} element={renderDeferredRoute(<ReviewAnimationsSettingsScreen />, "loading.settings")} />
+          <Route path={`${workspaceRoutePattern}${settingsAIChatSuggestionsRoute}`} element={renderDeferredRoute(<AIChatSuggestionsSettingsScreen />, "loading.settings")} />
+          <Route path={`${workspaceRoutePattern}${settingsAnalyticsRoute}`} element={renderDeferredRoute(<AnalyticsSettingsScreen />, "loading.settings")} />
+          <Route path={`${workspaceRoutePattern}${settingsSchedulerRoute}`} element={renderDeferredRoute(<WorkspaceSchedulerScreen />, "loading.schedulerSettings")} />
+          <Route path={`${workspaceRoutePattern}${settingsImportRoute}`} element={renderDeferredRoute(<WorkspaceImportScreen />, "loading.importSettings")} />
+          <Route path={`${workspaceRoutePattern}${settingsExportRoute}`} element={renderDeferredRoute(<WorkspaceExportScreen />, "loading.exportSettings")} />
+          <Route path={`${workspaceRoutePattern}${settingsResetStudyProgressRoute}`} element={renderDeferredRoute(<ResetStudyProgressScreen />, "loading.settings")} />
+          <Route path={`${workspaceRoutePattern}${settingsDeleteCurrentWorkspaceRoute}`} element={renderDeferredRoute(<DeleteCurrentWorkspaceScreen />, "loading.currentWorkspace")} />
+          <Route path={`${workspaceRoutePattern}${settingsDecksRoute}`} element={renderDeferredRoute(<DecksScreen />, "loading.decks")} />
+          <Route path={`${workspaceRoutePattern}${settingsDeckNewRoute}`} element={renderDeferredRoute(<DeckFormScreen />, "loading.deckEditor")} />
+          <Route path={`${workspaceRoutePattern}${settingsDecksRoute}/:deckId/edit`} element={renderDeferredRoute(<DeckFormScreen />, "loading.deckEditor")} />
+          <Route path={`${workspaceRoutePattern}${settingsDecksRoute}/:deckId`} element={renderDeferredRoute(<DeckDetailScreen />, "loading.deckDetails")} />
+          <Route path={`${workspaceRoutePattern}${settingsTagsRoute}`} element={renderDeferredRoute(<TagsScreen />, "loading.tags")} />
+          <Route path={`${workspaceRoutePattern}${settingsDeviceRoute}`} element={renderDeferredRoute(<ThisDeviceSettingsScreen />, "loading.deviceDetails")} />
           <Route
-            path={settingsTestRoute}
+            path={`${workspaceRoutePattern}${settingsTestRoute}`}
             element={renderDeferredRoute((
               <TestModeRouteGuard>
                 <TestSettingsScreen />
@@ -784,7 +908,7 @@ export function RoutedShell(): ReactElement {
             ), "loading.testSettings")}
           />
           <Route
-            path={settingsTestAnimationsRoute}
+            path={`${workspaceRoutePattern}${settingsTestAnimationsRoute}`}
             element={renderDeferredRoute((
               <TestModeRouteGuard>
                 <TestAnimationsScreen />
@@ -792,7 +916,7 @@ export function RoutedShell(): ReactElement {
             ), "loading.testAnimations")}
           />
           <Route
-            path={settingsTestAppPlatformLinksRoute}
+            path={`${workspaceRoutePattern}${settingsTestAppPlatformLinksRoute}`}
             element={renderDeferredRoute((
               <TestModeRouteGuard>
                 <TestAppPlatformLinksScreen />
@@ -800,7 +924,7 @@ export function RoutedShell(): ReactElement {
             ), "loading.testAppPlatformLinks")}
           />
           <Route
-            path={settingsTestCatalogImportSuccessRoute}
+            path={`${workspaceRoutePattern}${settingsTestCatalogImportSuccessRoute}`}
             element={renderDeferredRoute((
               <TestModeRouteGuard>
                 <TestCatalogImportSuccessScreen />
@@ -808,21 +932,21 @@ export function RoutedShell(): ReactElement {
             ), "loading.testCatalogImportSuccess")}
           />
           <Route
-            path={settingsTestLocalSyncDiagnosticsRoute}
+            path={`${workspaceRoutePattern}${settingsTestLocalSyncDiagnosticsRoute}`}
             element={renderDeferredRoute((
               <TestModeRouteGuard>
                 <TestLocalSyncDiagnosticsScreen />
               </TestModeRouteGuard>
             ), "loading.testSettings")}
           />
-          <Route path={accountStatusRoute} element={renderDeferredRoute(<AccountStatusScreen />, "loading.accountStatus")} />
-          <Route path={accountLegalRoute} element={renderDeferredRoute(<LegalScreen />, "loading.legal")} />
-          <Route path={accountSupportRoute} element={renderDeferredRoute(<SupportScreen />, "loading.support")} />
-          <Route path={accountOpenSourceRoute} element={renderDeferredRoute(<OpenSourceSettingsScreen />, "loading.openSourceSettings")} />
-          <Route path={accountAgentConnectionsRoute} element={renderDeferredRoute(<AgentConnectionsScreen />, "loading.agentConnections")} />
-          <Route path={accountDangerZoneRoute} element={renderDeferredRoute(<DangerZoneScreen />, "loading.dangerZone")} />
+          <Route path={`${workspaceRoutePattern}${accountStatusRoute}`} element={renderDeferredRoute(<AccountStatusScreen />, "loading.accountStatus")} />
+          <Route path={`${workspaceRoutePattern}${accountLegalRoute}`} element={renderDeferredRoute(<LegalScreen />, "loading.legal")} />
+          <Route path={`${workspaceRoutePattern}${accountSupportRoute}`} element={renderDeferredRoute(<SupportScreen />, "loading.support")} />
+          <Route path={`${workspaceRoutePattern}${accountOpenSourceRoute}`} element={renderDeferredRoute(<OpenSourceSettingsScreen />, "loading.openSourceSettings")} />
+          <Route path={`${workspaceRoutePattern}${accountAgentConnectionsRoute}`} element={renderDeferredRoute(<AgentConnectionsScreen />, "loading.agentConnections")} />
+          <Route path={`${workspaceRoutePattern}${accountDangerZoneRoute}`} element={renderDeferredRoute(<DangerZoneScreen />, "loading.dangerZone")} />
           <Route
-            path={chatRoute}
+            path={`${workspaceRoutePattern}${chatRoute}`}
             element={(
               <Suspense fallback={(
                 <main className="container chat-page">
@@ -836,6 +960,7 @@ export function RoutedShell(): ReactElement {
               </Suspense>
             )}
           />
+          <Route path="/*" element={<LegacyFlatPathRedirect />} />
         </SentryRoutes>
       </div>
       {!isFullscreenChat && !isOpen ? <ChatToggle /> : null}
