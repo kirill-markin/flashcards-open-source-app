@@ -27,6 +27,9 @@ import {
   GUIDE_TOPICS,
   type GuideTopic,
 } from "../aiTools/toolContract/sqlToolContract";
+import { USAGE_LIMITS_RESULT_INSTRUCTIONS } from "../aiTools/toolContract/usageToolContract";
+import { loadAiUsageStatus } from "../aiUsage";
+import { resolveAccountKindForTransport } from "../billing/snapshot";
 import { createSourceDiscoveryResponse } from "../shared/sourceDiscovery";
 import { parseOptionalCursorQuery, parseRequiredPageLimit } from "../shared/pagination";
 import {
@@ -155,6 +158,31 @@ export function createAgentRoutes(options: AgentRoutesOptions): Hono<AppEnv> {
     const { requestContext } = await loadAgentRequest(context.req.raw, options.allowedOrigins);
     const agentWorkspaceReplicaId = await loadAgentWorkspaceReplicaIdForSetup(requestContext);
     return context.json(createAgentAccountEnvelope(context.req.url, requestContext, agentWorkspaceReplicaId));
+  });
+
+  /**
+   * The REST half of the `get_usage_limits` tool: the same payload, built from the same modules, with
+   * the same result instructions. It is account-scoped, so unlike the SQL and review routes it takes
+   * no `workspaceId` and resolves no workspace.
+   *
+   * The account kind comes from the request's own transport rather than from a stored column, the
+   * reading `resolveAccountKindForTransport` owns. Every caller that gets past `loadAgentRequest`
+   * holds an agent connection and is therefore an account today, but asking the transport keeps that
+   * a consequence of who authenticated instead of an assumption this route makes.
+   */
+  app.get("/agent/usage-limits", async (context) => {
+    const { requestContext } = await loadAgentRequest(context.req.raw, options.allowedOrigins);
+    const status = await loadAiUsageStatus(
+      requestContext.userId,
+      resolveAccountKindForTransport(requestContext.transport),
+      new Date(),
+    );
+
+    return context.json(createAgentEnvelope(
+      context.req.url,
+      status,
+      USAGE_LIMITS_RESULT_INSTRUCTIONS,
+    ));
   });
 
   app.get("/agent/workspaces", async (context) => {

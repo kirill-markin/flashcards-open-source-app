@@ -1,5 +1,6 @@
 import type { z } from "zod";
 import type { BoundAgentReviewSubmit, nextReviewCard, revealAnswer } from "../../agent/reviews";
+import type { AiUsageStatus } from "../../aiUsage";
 import type { WorkspaceSummaryWithStats } from "../../workspaces";
 import type {
   AgentSqlContext,
@@ -40,6 +41,12 @@ export type AgentToolActions = Readonly<{
   revealAnswer: typeof revealAnswer;
   /** Already bound to the surface's own sync replica, which the review write does not choose itself. */
   submitAgentReview: BoundAgentReviewSubmit;
+  /**
+   * Already bound to the account kind the surface's own credential implies, which a tool cannot read:
+   * a limit is resolved per tier and account kind (`apps/backend/src/billing/limits.ts`), and only the
+   * surface knows whether a guest or an account is calling it.
+   */
+  loadAiUsageStatus: (userId: string, now: Date) => Promise<AiUsageStatus>;
 }>;
 
 /**

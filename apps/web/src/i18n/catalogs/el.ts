@@ -743,7 +743,6 @@ const elCatalog: TranslationCatalog = {
       updated: "Ενημερώθηκε",
       note: "Σημείωση",
     },
-    maximumIntervalDays: "{{count}}",
     note: "Αυτές οι ρυθμίσεις επηρεάζουν μόνο τον μελλοντικό προγραμματισμό. Η υπάρχουσα κατάσταση των καρτών παραμένει η έγκυρη.",
   },
   workspaceExport: {
@@ -794,7 +793,6 @@ const elCatalog: TranslationCatalog = {
     customSeparatorRequired: "Εισαγάγετε προσαρμοσμένο διαχωριστικό για προεπισκόπηση των καρτών.",
     textTagsDescription: "Επιλέξτε ετικέτες για κάθε κάρτα που εισάγεται. Αφήστε το κενό για αυτόματη προσθήκη μοναδικής ετικέτας εισαγωγής.",
     textPreviewTitle: "Προεπισκόπηση",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "Επικολλήστε κείμενο για προεπισκόπηση των καρτών.",
     textInvalidCount: "{{count}} χρειάζονται προσοχή",
     textInvalidHelp: "Προσθέστε μπροστινή και πίσω πλευρά σε κάθε κάρτα ή διαγράψτε τις ημιτελείς κάρτες.",
@@ -1024,7 +1022,6 @@ const elCatalog: TranslationCatalog = {
       videoLabel: "Συνημμένο βίντεο",
     },
     queue: {
-      cards: "{{count}} κάρτες",
       close: "Κλείσιμο ουράς",
       loading: "φόρτωση",
       title: "Ουρά",
@@ -1236,7 +1233,6 @@ const elCatalog: TranslationCatalog = {
       systemDeckDelete: "Η δέσμη συστήματος δεν μπορεί να διαγραφεί.",
     },
     matchingCards: {
-      count: "{{count}} κάρτες",
       title: "Αντίστοιχες κάρτες",
     },
     meta: {

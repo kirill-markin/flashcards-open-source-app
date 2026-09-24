@@ -34,6 +34,7 @@ export function createParams(
     generatedImageOperationDeadlineMs: Date.now() + 600_000,
     clientPlatform: null,
     tierAtCall: "free",
+    initiatingAuthIsSignedIn: true,
     modelId: "gpt-5.6-terra",
     reasoningEffort: "xhigh",
     timezone: "Europe/Madrid",

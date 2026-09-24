@@ -743,7 +743,6 @@ const hiCatalog: TranslationCatalog = {
       updated: "अपडेट किया गया",
       note: "नोट",
     },
-    maximumIntervalDays: "{{count}}",
     note: "ये सेटिंग्स केवल भविष्य की शेड्यूलिंग को प्रभावित करती हैं। मौजूदा कार्ड स्थिति ही आधिकारिक बनी रहती है।",
   },
   workspaceExport: {
@@ -794,7 +793,6 @@ const hiCatalog: TranslationCatalog = {
     customSeparatorRequired: "कार्ड का प्रीव्यू करने के लिए कस्टम सेपरेटर डालें।",
     textTagsDescription: "हर इम्पोर्ट किए गए कार्ड के लिए टैग चुनें। खाली छोड़ने पर एक अद्वितीय इम्पोर्ट टैग अपने-आप जुड़ जाएगा।",
     textPreviewTitle: "प्रीव्यू",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "कार्ड का प्रीव्यू करने के लिए टेक्स्ट पेस्ट करें।",
     textInvalidCount: "{{count}} पर ध्यान देना ज़रूरी है",
     textInvalidHelp: "हर कार्ड में सामने और पीछे दोनों जोड़ें, या अधूरे कार्ड हटा दें।",
@@ -1024,7 +1022,6 @@ const hiCatalog: TranslationCatalog = {
       videoLabel: "वीडियो अटैचमेंट",
     },
     queue: {
-      cards: "{{count}} कार्ड",
       close: "कतार बंद करें",
       loading: "लोड हो रहा है",
       title: "कतार",
@@ -1238,7 +1235,6 @@ const hiCatalog: TranslationCatalog = {
       systemDeckDelete: "सिस्टम डेक हटाया नहीं जा सकता।",
     },
     matchingCards: {
-      count: "{{count}} कार्ड",
       title: "मिलते-जुलते कार्ड",
     },
     meta: {

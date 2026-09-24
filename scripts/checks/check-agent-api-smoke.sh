@@ -392,6 +392,34 @@ assert workspace["name"] == workspace_name
 assert workspace["isSelected"] is True
 PY
 
+request_json "GET" "${API_BASE_URL%/}/agent/usage-limits" "" "authorization: ApiKey ${AGENT_API_KEY}"
+assert_status "200" "GET /v1/agent/usage-limits"
+python3 - <<'PY' "${LAST_BODY_FILE}"
+import json
+import sys
+
+payload = json.load(open(sys.argv[1], encoding="utf-8"))
+data = payload["data"]
+entitlement = data["entitlement"]
+usage = data["usage"]
+
+assert payload["ok"] is True
+# An API key can only be created from a signed-in human session, so an agent caller is an account.
+assert data["accountKind"] == "account"
+assert isinstance(entitlement["tier"], str) and entitlement["tier"] != ""
+assert isinstance(entitlement["tierRank"], int)
+assert isinstance(entitlement["tierDisplayName"], str) and entitlement["tierDisplayName"] != ""
+limit = entitlement["limits"]["aiMonthlyWeightedTokens"]
+assert limit is None or isinstance(limit, int)
+assert isinstance(usage["usedWeightedTokens"], int) and usage["usedWeightedTokens"] >= 0
+# The remaining allowance is absent for exactly as long as the limit is: a null limit means uncapped
+# and must never be reported as a number, and a number must always carry a remainder.
+assert (usage["remainingWeightedTokens"] is None) == (limit is None)
+assert usage["monthStartsAt"].endswith("Z") and usage["monthEndsAt"].endswith("Z")
+assert usage["monthStartsAt"] < usage["monthEndsAt"]
+assert isinstance(payload["instructions"], str) and payload["instructions"] != ""
+PY
+
 request_json "GET" "${API_BASE_URL%/}/agent/guide/sql_dialect" "" "authorization: ApiKey ${AGENT_API_KEY}"
 assert_status "200" "GET /v1/agent/guide/sql_dialect"
 python3 - <<'PY' "${LAST_BODY_FILE}"

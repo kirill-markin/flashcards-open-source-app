@@ -743,7 +743,6 @@ const svCatalog: TranslationCatalog = {
       updated: "Uppdaterad",
       note: "Notering",
     },
-    maximumIntervalDays: "{{count}}",
     note: "Inställningarna påverkar bara framtida schemaläggning. Kortens befintliga tillstånd gäller fortfarande.",
   },
   workspaceExport: {
@@ -794,7 +793,6 @@ const svCatalog: TranslationCatalog = {
     customSeparatorRequired: "Ange en anpassad avgränsare för att förhandsgranska kort.",
     textTagsDescription: "Välj taggar för varje importerat kort. Lämna tomt för att automatiskt lägga till en unik importtagg.",
     textPreviewTitle: "Förhandsgranskning",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "Klistra in text för att förhandsgranska kort.",
     textInvalidCount: "{{count}} behöver åtgärdas",
     textInvalidHelp: "Lägg till både framsida och baksida på varje kort, eller ta bort ofullständiga kort.",
@@ -1024,7 +1022,6 @@ const svCatalog: TranslationCatalog = {
       videoLabel: "Videobilaga",
     },
     queue: {
-      cards: "{{count}} kort",
       close: "Stäng kön",
       loading: "läser in",
       title: "Kö",
@@ -1236,7 +1233,6 @@ const svCatalog: TranslationCatalog = {
       systemDeckDelete: "Systemkortleken går inte att radera.",
     },
     matchingCards: {
-      count: "{{count}} kort",
       title: "Matchande kort",
     },
     meta: {

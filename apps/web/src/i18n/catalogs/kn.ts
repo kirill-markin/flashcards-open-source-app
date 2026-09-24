@@ -743,7 +743,6 @@ const knCatalog: TranslationCatalog = {
       updated: "ನವೀಕರಿಸಲಾಗಿದೆ",
       note: "ಟಿಪ್ಪಣಿ",
     },
-    maximumIntervalDays: "{{count}}",
     note: "ಈ ಸೆಟ್ಟಿಂಗ್‌ಗಳು ಮುಂದಿನ ವೇಳಾಪಟ್ಟಿಗೆ ಮಾತ್ರ ಪರಿಣಾಮ ಬೀರುತ್ತವೆ. ಅಸ್ತಿತ್ವದಲ್ಲಿರುವ ಕಾರ್ಡ್ ಸ್ಥಿತಿಯೇ ಅಧಿಕೃತವಾಗಿ ಉಳಿಯುತ್ತದೆ.",
   },
   workspaceExport: {
@@ -794,7 +793,6 @@ const knCatalog: TranslationCatalog = {
     customSeparatorRequired: "ಕಾರ್ಡ್‌ಗಳ ಮುನ್ನೋಟ ನೋಡಲು ಕಸ್ಟಮ್ ವಿಭಾಜಕ ನಮೂದಿಸಿ.",
     textTagsDescription: "ಆಮದು ಮಾಡುವ ಎಲ್ಲ ಕಾರ್ಡ್‌ಗಳಿಗೆ ಟ್ಯಾಗ್‌ಗಳನ್ನು ಆಯ್ಕೆಮಾಡಿ. ಅನನ್ಯ ಆಮದು ಟ್ಯಾಗ್ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಸೇರಿಸಲು ಖಾಲಿ ಬಿಡಿ.",
     textPreviewTitle: "ಮುನ್ನೋಟ",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "ಕಾರ್ಡ್‌ಗಳ ಮುನ್ನೋಟ ನೋಡಲು ಪಠ್ಯ ಅಂಟಿಸಿ.",
     textInvalidCount: "{{count}} ಕಾರ್ಡ್‌ಗಳಿಗೆ ಗಮನ ಅಗತ್ಯ",
     textInvalidHelp: "ಪ್ರತಿ ಕಾರ್ಡ್‌ಗೆ ಮುಂಭಾಗ ಮತ್ತು ಹಿಂಭಾಗ ಎರಡನ್ನೂ ಸೇರಿಸಿ, ಅಥವಾ ಅಪೂರ್ಣ ಕಾರ್ಡ್‌ಗಳನ್ನು ಅಳಿಸಿ.",
@@ -1024,7 +1022,6 @@ const knCatalog: TranslationCatalog = {
       videoLabel: "ವೀಡಿಯೊ ಲಗತ್ತು",
     },
     queue: {
-      cards: "{{count}} ಕಾರ್ಡ್‌ಗಳು",
       close: "ಸರತಿ ಮುಚ್ಚಿ",
       loading: "ಲೋಡ್ ಆಗುತ್ತಿದೆ",
       title: "ಸರತಿ",
@@ -1236,7 +1233,6 @@ const knCatalog: TranslationCatalog = {
       systemDeckDelete: "ಸಿಸ್ಟಂ ಡೆಕ್ ಅಳಿಸಲಾಗುವುದಿಲ್ಲ.",
     },
     matchingCards: {
-      count: "{{count}} ಕಾರ್ಡ್‌ಗಳು",
       title: "ಹೊಂದುವ ಕಾರ್ಡ್‌ಗಳು",
     },
     meta: {

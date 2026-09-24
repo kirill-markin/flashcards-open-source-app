@@ -6,6 +6,9 @@
  * allowance before the provider is called, and the fact is appended after the provider answered. The
  * two halves are separate because they fail differently - a refusal is the caller's answer, while a fact
  * that cannot be stored must never become one.
+ *
+ * `./status` neither checks nor appends: it reports the allowance and the month's facts together for a
+ * caller that asks what it is on and what it has spent.
  */
 export {
   aiLimitReachedCode,
@@ -39,3 +42,5 @@ export type {
   AiUsageProvider,
   AiUsageSurface,
 } from "./record";
+export { loadAiUsageStatus } from "./status";
+export type { AiMonthlyUsage, AiUsageStatus } from "./status";

@@ -163,11 +163,15 @@ session-bearing transport.
 
 ## The MCP request record
 
-`agent_sql` only sees SQL, so MCP requests that run none were invisible:
-`initialize`, `tools/list`, and the `list_workspaces` and `get_guide` tools
-produced no record at all. Each authenticated `/mcp` request therefore emits
-exactly one `action = "mcp_request"` record into the MCP Lambda log group
-(`service = "backend-api"`), from the `/mcp` route in
+`agent_sql` only sees SQL, so MCP requests that run none were invisible. The
+rule rather than a list, because the tool inventory grows: only `sql_query` and
+`sql_execute` produce an `agent_sql` record, because `logAgentSqlEvent` is
+reached from exactly one place — `withAgentSqlTelemetry` in
+`apps/backend/src/aiTools/agentSql.ts`, which wraps those two on every surface
+and nothing else. `initialize`, `tools/list`, and every other tool produce
+none, whatever the registry holds at the time. Each authenticated `/mcp`
+request therefore emits exactly one `action = "mcp_request"` record into the
+MCP Lambda log group (`service = "backend-api"`), from the `/mcp` route in
 `apps/backend/src/entrypoints/lambda-mcp.ts`. Every branch that answers an
 authenticated client emits it once: the transport response, a transport fault,
 and the 405 that rejects a non-POST request alike.

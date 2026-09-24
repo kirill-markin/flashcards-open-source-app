@@ -743,7 +743,6 @@ const esMxCatalog: TranslationCatalog = {
       updated: "Actualizado",
       note: "Nota",
     },
-    maximumIntervalDays: "{{count}}",
     note: "Esta configuración solo afecta la programación futura. El estado actual de las tarjetas sigue siendo la referencia.",
   },
   workspaceExport: {
@@ -794,7 +793,6 @@ const esMxCatalog: TranslationCatalog = {
     customSeparatorRequired: "Ingresa un separador personalizado para previsualizar las tarjetas.",
     textTagsDescription: "Elige etiquetas para todas las tarjetas importadas. Déjalo vacío para agregar automáticamente una etiqueta de importación única.",
     textPreviewTitle: "Vista previa",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "Pega texto para previsualizar las tarjetas.",
     textInvalidCount: "{{count}} necesitan atención",
     textInvalidHelp: "Agrega frente y reverso a cada tarjeta o elimina las tarjetas incompletas.",
@@ -1024,7 +1022,6 @@ const esMxCatalog: TranslationCatalog = {
       videoLabel: "Adjunto de video",
     },
     queue: {
-      cards: "{{count}} tarjetas",
       close: "Cerrar cola",
       loading: "cargando",
       title: "Cola",
@@ -1236,7 +1233,6 @@ const esMxCatalog: TranslationCatalog = {
       systemDeckDelete: "El mazo del sistema no se puede eliminar.",
     },
     matchingCards: {
-      count: "{{count}} tarjetas",
       title: "Tarjetas coincidentes",
     },
     meta: {
