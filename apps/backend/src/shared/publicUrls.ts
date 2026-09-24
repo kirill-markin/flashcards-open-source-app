@@ -160,8 +160,9 @@ export function getConfiguredPublicCatalogCorsOrigins(): ReadonlyArray<string> {
   return origins;
 }
 
-export function getConfiguredAnonymousAnalyticsCorsOrigins(): ReadonlyArray<string> {
-  const origins = [...getConfiguredPublicCatalogCorsOrigins()];
+/** The auth origins of this deployment, empty when no auth host is configured. */
+export function getConfiguredPublicAuthOrigins(): ReadonlyArray<string> {
+  const origins: Array<string> = [];
   const publicAuthBaseUrl = process.env.PUBLIC_AUTH_BASE_URL;
   if (publicAuthBaseUrl !== undefined && publicAuthBaseUrl !== "") {
     origins.push(
@@ -175,6 +176,10 @@ export function getConfiguredAnonymousAnalyticsCorsOrigins(): ReadonlyArray<stri
   origins.push(...getConfiguredSecondHostOrigin("PUBLIC_AUTH_ALTERNATE_BASE_URL"));
 
   return origins;
+}
+
+export function getConfiguredAnonymousAnalyticsCorsOrigins(): ReadonlyArray<string> {
+  return [...getConfiguredPublicCatalogCorsOrigins(), ...getConfiguredPublicAuthOrigins()];
 }
 
 /**

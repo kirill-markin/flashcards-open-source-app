@@ -112,11 +112,15 @@ export function buildFunnelAudienceActorSqlLines(
 /**
  * Whether a funnel with site steps should read the hashed cohort at all.
  *
- * Two things switch it off, and only the first is a mode: a narrowed connection country, because a
- * hashed row carries no country and keeping it would answer a country question with people whose
- * country is unknown. Each section says so where it shows the split. When this is false the queries
- * below are left out of the statement entirely rather than executed and discarded, so the default
- * mode costs exactly what it cost before the modes existed.
+ * Two things switch it off, and only the first is a mode: a narrowed connection country, because
+ * that filter places a person by the `analytics.installation_country_observations` samples joined
+ * to an actor (`buildConnectionCountrySamplesSql`, apps/admin/src/filters/filterSql.ts) and a
+ * hashed row has neither an actor nor an installation. The credential-free collector does stamp an
+ * ingest-time `country` on such a row, but it is different evidence rather than a narrower answer
+ * to the same question, so the cohort is left out instead of filtered. Each section says so where
+ * it shows the split. When this is false the queries below are left out of the statement entirely
+ * rather than executed and discarded, so the default mode costs exactly what it cost before the
+ * modes existed.
  */
 export function isFunnelHashedCohortRead(filters: AnalyticsFilterState): boolean {
   return filters.funnelAudienceMode === "all" && filters.connectionCountries.length === 0;
@@ -208,9 +212,11 @@ export function buildHashedSiteRowSqlLines(
  *
  * The app interface language is the locale the row itself carries, rather than the person-level test
  * `buildAppUiLanguagesFilterSql` applies to an actor: a hashed person is one page view's worth of
- * evidence, with no history to ask. The connection country is absent for the same reason and is
- * handled by `isFunnelHashedCohortRead` instead, because there is no answer to narrow rather than a
- * different one.
+ * evidence, with no history to ask. The connection country is not asked here at all and is handled
+ * by `isFunnelHashedCohortRead` instead: the row carries an ingest-time `country` of its own, but
+ * the filter places a person by the installation samples kept for an actor, and a hashed row has
+ * neither, so answering from that column would answer a different question rather than narrow this
+ * one.
  */
 export function buildHashedPageViewFilterSqlLines(
   rowAlias: string,
