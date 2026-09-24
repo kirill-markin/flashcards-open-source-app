@@ -43,6 +43,7 @@
 "ai.error.requestTooLarge.message" = "AI چیٹ ایک ساتھ اتنا مواد نہیں بھیج سکتی۔ ایک یا زیادہ منسلکات ہٹائیں، چھوٹی فائل یا تصویر چنیں، یا درخواست تقسیم کر کے دوبارہ کوشش کریں۔";
 "ai.error.attachmentUnsupported.title" = "غیر معاون فائل کی قسم";
 "ai.error.attachmentUnsupported.message" = "AI چیٹ اس فائل کی قسم کو معاونت نہیں دیتی۔ فائل ہٹائیں یا اسے PDF، TXT، CSV، JSON، XML، Markdown، HTML، Python، JavaScript، TypeScript، YAML، XLS/XLSX، DOCX یا تصویر کے طور پر محفوظ کر کے دوبارہ کوشش کریں۔";
+"ai.error.limitReached" = "اس ماہ کے لیے آپ کی AI کی حد ختم ہو گئی ہے۔ یہ اگلے ماہ کے آغاز پر ری سیٹ ہو جائے گی۔";
 "ai.error.summary.couldNotContinue" = "AI کا جواب جاری نہیں رہ سکا";
 "ai.error.summary.invalidResponse" = "AI کا غلط جواب موصول ہوا";
 "ai.error.summary.configuration" = "AI کی ترتیب میں خرابی";

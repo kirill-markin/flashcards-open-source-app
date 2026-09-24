@@ -43,6 +43,7 @@
 "ai.error.requestTooLarge.message" = "ИИ чатът не може да изпрати толкова много съдържание наведнъж. Премахнете един или повече прикачени файлове, изберете по-малък файл или снимка или разделете заявката и опитайте отново.";
 "ai.error.attachmentUnsupported.title" = "Неподдържан файлов тип";
 "ai.error.attachmentUnsupported.message" = "Този тип файл не се поддържа за ИИ чат. Премахнете файла или го запазете като PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX или изображение, след което опитайте отново.";
+"ai.error.limitReached" = "Изчерпахте лимита си за ИИ за този месец. Той се нулира в началото на следващия месец.";
 "ai.error.summary.couldNotContinue" = "Не може да продължи отговорът на ИИ";
 "ai.error.summary.invalidResponse" = "Получен е невалиден ИИ отговор";
 "ai.error.summary.configuration" = "Грешка в конфигурацията на ИИ";

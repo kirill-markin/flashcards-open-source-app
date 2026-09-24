@@ -43,6 +43,7 @@
 "ai.error.requestTooLarge.message" = "AI-chatten kan inte skicka så mycket innehåll på en gång. Ta bort en eller flera bilagor, välj en mindre fil eller bild eller dela upp begäran och försök igen.";
 "ai.error.attachmentUnsupported.title" = "Filtypen stöds inte";
 "ai.error.attachmentUnsupported.message" = "Den här filtypen stöds inte i AI-chatten. Ta bort filen eller spara den som PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX eller en bild och försök igen.";
+"ai.error.limitReached" = "Din AI-gräns för den här månaden är förbrukad. Den återställs i början av nästa månad.";
 "ai.error.summary.couldNotContinue" = "AI-svaret kunde inte fortsätta";
 "ai.error.summary.invalidResponse" = "Ett ogiltigt AI-svar togs emot";
 "ai.error.summary.configuration" = "Fel i AI-konfigurationen";

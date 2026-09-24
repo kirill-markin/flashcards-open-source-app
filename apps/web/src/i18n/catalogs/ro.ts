@@ -1314,6 +1314,7 @@ const roCatalog: TranslationCatalog = {
     errorTitle: "Eroare în chatul AI",
     errors: {
       activeRunInProgress: "Un răspuns este deja în curs. Așteaptă să se termine sau oprește-l înainte de a trimite alt mesaj.",
+      aiLimitReached: "Ți-ai epuizat limita AI pentru luna aceasta. Se resetează la începutul lunii viitoare.",
       emptyBackendResponse: "Backendul a returnat un răspuns de eroare gol.",
       genericFailure: "Chatul AI a eșuat.",
       liveStreamEndedBeforeCompletion: "Fluxul AI în timp real s-a încheiat înainte de finalizarea execuției.",

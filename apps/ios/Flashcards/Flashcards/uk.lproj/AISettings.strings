@@ -43,6 +43,7 @@
 "ai.error.requestTooLarge.message" = "Чат ШІ не може надіслати стільки вмісту за раз. Приберіть одне чи кілька вкладень, виберіть менший файл або фото чи розділіть запит і спробуйте ще раз.";
 "ai.error.attachmentUnsupported.title" = "Непідтримуваний тип файлу";
 "ai.error.attachmentUnsupported.message" = "Цей тип файлу не підтримується в чаті ШІ. Приберіть файл або збережіть його як PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX чи зображення та спробуйте ще раз.";
+"ai.error.limitReached" = "Ваш ліміт ШІ на цей місяць вичерпано. Він оновиться на початку наступного місяця.";
 "ai.error.summary.couldNotContinue" = "Не вдалося продовжити відповідь ШІ";
 "ai.error.summary.invalidResponse" = "Отримано недійсну відповідь ШІ";
 "ai.error.summary.configuration" = "Помилка конфігурації ШІ";

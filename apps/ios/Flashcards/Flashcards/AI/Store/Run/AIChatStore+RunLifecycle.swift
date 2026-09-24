@@ -222,7 +222,10 @@ extension AIChatStore {
         draftText: String,
         draftAttachments: [AIChatAttachment]
     ) {
-        let shouldShowGuestQuotaUpgradePrompt = didAcceptRun == false && isGuestAiLimitError(error: error)
+        let isAiLimitReached = didAcceptRun == false && isAiLimitReachedError(error: error)
+        // Signing in is the fix only while this install has no account; a signed-in caller must not be
+        // told to create one, so only the unlinked states keep the upgrade prompt.
+        let shouldShowGuestQuotaUpgradePrompt = isAiLimitReached && self.usesGuestAIRestrictions
         self.repairStatus = nil
         self.transitionToIdle()
         self.activeStreamingMessageId = nil
@@ -256,6 +259,11 @@ extension AIChatStore {
             if shouldShowGuestQuotaUpgradePrompt {
                 return
             }
+        }
+
+        if isAiLimitReached {
+            self.showGeneralError(message: aiChatLimitReachedMessage())
+            return
         }
 
         if didAcceptRun == false && isAIChatOfflineSendError(error: error) {

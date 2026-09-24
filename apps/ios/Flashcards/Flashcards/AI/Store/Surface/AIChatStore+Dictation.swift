@@ -165,11 +165,13 @@ extension AIChatStore {
                     screen: .ai
                 )
                 switch transcriptionError {
-                case .guestLimitReached:
+                case .aiLimitReached where self.usesGuestAIRestrictions:
                     await self.appendStandaloneAssistantAccountUpgradePromptAndPersist(
                         message: aiChatGuestQuotaReachedMessage,
                         buttonTitle: aiChatGuestQuotaButtonTitle
                     )
+                case .aiLimitReached:
+                    self.showGeneralError(message: aiChatLimitReachedMessage())
                 default:
                     self.showGeneralError(error: transcriptionError)
                 }
