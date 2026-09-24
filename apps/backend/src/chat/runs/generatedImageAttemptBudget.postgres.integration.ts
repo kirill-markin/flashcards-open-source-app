@@ -502,6 +502,12 @@ test("chat run deduplication preserves the initiating guest classification and c
   await withPostgresIntegrationFixture(async (fixture) => {
     const requestId = randomUUID();
     const content = [{ type: "text" as const, text: "Generate an image." }];
+    // The AI allowance check the route passes in. A turn that was already accepted must not be refused
+    // on its retry, so the replay below must not reach it at all.
+    let allowanceChecks = 0;
+    const countAllowanceCheck = async (): Promise<void> => {
+      allowanceChecks += 1;
+    };
     const guestRun = await prepareChatRun(
       fixture.userId,
       fixture.workspaceId,
@@ -512,8 +518,10 @@ test("chat run deduplication preserves the initiating guest classification and c
       null,
       false,
       "ios",
+      countAllowanceCheck,
     );
     assert.equal(guestRun.initiatingAuthIsSignedIn, false);
+    assert.equal(allowanceChecks, 1);
 
     const signedInReplay = await prepareChatRun(
       fixture.userId,
@@ -525,9 +533,11 @@ test("chat run deduplication preserves the initiating guest classification and c
       null,
       true,
       "web",
+      countAllowanceCheck,
     );
     assert.equal(signedInReplay.deduplicated, true);
     assert.equal(signedInReplay.initiatingAuthIsSignedIn, false);
+    assert.equal(allowanceChecks, 1);
 
     const claimed = await claimChatRun(
       fixture.userId,

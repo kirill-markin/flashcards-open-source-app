@@ -10,6 +10,11 @@ import {
 import { getOpenAIClient } from "./openai/client";
 import { buildOpenAISafetyIdentifier } from "./openai/safetyIdentifier";
 import type { ContentPart } from "./types";
+import {
+  appendAiUsageEvent,
+  toOpenAIResponsesUsageCounters,
+  type AiUsageCallAttribution,
+} from "../aiUsage";
 
 export type ChatComposerSuggestionSource = "initial" | "assistant_follow_up";
 export type ChatComposerSuggestionInvalidationReason =
@@ -28,10 +33,12 @@ export type ChatComposerSuggestion = Readonly<{
 
 export type ChatComposerSuggestionsDependencies = Readonly<{
   getOpenAIClient: typeof getOpenAIClient;
+  appendAiUsageEvent: typeof appendAiUsageEvent;
 }>;
 
 const DEFAULT_CHAT_COMPOSER_SUGGESTIONS_DEPENDENCIES: ChatComposerSuggestionsDependencies = {
   getOpenAIClient,
+  appendAiUsageEvent,
 };
 
 const MAX_CHAT_COMPOSER_SUGGESTIONS = 2;
@@ -587,6 +594,7 @@ export async function generateFollowUpChatComposerSuggestions(
   assistantContent: ReadonlyArray<ContentPart>,
   assistantItemId: string,
   uiLocale: string | null | undefined,
+  usageAttribution: AiUsageCallAttribution,
 ): Promise<ReadonlyArray<ChatComposerSuggestion>> {
   return generateFollowUpChatComposerSuggestionsWithDependencies(
     userId,
@@ -594,6 +602,7 @@ export async function generateFollowUpChatComposerSuggestions(
     assistantContent,
     assistantItemId,
     uiLocale,
+    usageAttribution,
     DEFAULT_CHAT_COMPOSER_SUGGESTIONS_DEPENDENCIES,
   );
 }
@@ -604,6 +613,7 @@ export async function generateFollowUpChatComposerSuggestionsWithDependencies(
   assistantContent: ReadonlyArray<ContentPart>,
   assistantItemId: string,
   uiLocale: string | null | undefined,
+  usageAttribution: AiUsageCallAttribution,
   dependencies: ChatComposerSuggestionsDependencies,
 ): Promise<ReadonlyArray<ChatComposerSuggestion>> {
   const userMessage = extractPlainText(userContent);
@@ -636,6 +646,23 @@ export async function generateFollowUpChatComposerSuggestionsWithDependencies(
         text: buildFollowUpSuggestionPrompt(userMessage, assistantReply, normalizedUiLocale),
       }],
     }],
+  });
+
+  // Appended before the response is parsed, because an unparseable answer was paid for exactly like a
+  // usable one, and the throws below would otherwise drop the fact.
+  await dependencies.appendAiUsageEvent({
+    userId,
+    workspaceId: usageAttribution.workspaceId,
+    occurredAt: new Date(),
+    surface: "composer_suggestion",
+    provider: "openai",
+    modelId: CHAT_MODEL_ID,
+    requestId: usageAttribution.requestId,
+    tierAtCall: usageAttribution.tierAtCall,
+    counters: toOpenAIResponsesUsageCounters(response.usage),
+    imageCount: null,
+    imageSize: null,
+    imageQuality: null,
   });
 
   const responseText = response.output_text.trim();

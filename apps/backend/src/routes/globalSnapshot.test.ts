@@ -6,7 +6,6 @@ import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { createApp, type AppEnv } from "../server/app";
 import { resetAuthConfigForTests } from "../auth/config";
 import { HttpError } from "../shared/errors";
-import { resetGuestAiQuotaConfigForTests } from "../guestAiQuota/config";
 import {
   buildGlobalMetricsSnapshot,
   createGlobalMetricsSnapshotWindow,
@@ -151,14 +150,12 @@ function createMountedAppTestCleanup(): () => void {
   process.env.ALLOW_INSECURE_LOCAL_AUTH = "true";
   process.env.BACKEND_ALLOWED_ORIGINS = "https://app.flashcards-open-source-app.com";
   resetAuthConfigForTests();
-  resetGuestAiQuotaConfigForTests();
 
   return () => {
     restoreEnvironmentVariable("AUTH_MODE", originalAuthMode);
     restoreEnvironmentVariable("ALLOW_INSECURE_LOCAL_AUTH", originalAllowInsecureLocalAuth);
     restoreEnvironmentVariable("BACKEND_ALLOWED_ORIGINS", originalBackendAllowedOrigins);
     resetAuthConfigForTests();
-    resetGuestAiQuotaConfigForTests();
   };
 }
 

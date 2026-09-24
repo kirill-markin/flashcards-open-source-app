@@ -75,6 +75,21 @@ import type {
  * The `ai_message_sent` analytics event is deliberately not emitted here. The caller writes it once
  * the worker has been dispatched, so generation never waits on the analytics pool, and a new caller
  * of this function has to call `recordAiMessageSentAnalytics` itself.
+ *
+ * `assertAiUsageAllowance` is passed in rather than called before this function because the refusal has
+ * to sit behind the deduplication: this function is idempotent by `(session, clientRequestId)`, and a
+ * replay of a turn that was already persisted is the retry that dispatches its worker, not a next turn.
+ * Refusing a replay would leave that turn undispatched and its session `running` until a later recovery.
+ * It runs inside the transaction and only on the branch that inserts a new run, so the run that crosses
+ * the allowance is still the one that completes.
+ *
+ * What it is allowed to be is narrow, and the caller is what keeps it so: the comparison of an allowance
+ * the caller already resolved against the usage facts already appended. `apps/backend/src/aiUsage/cap.ts`
+ * splits that comparison from the resolution for this reason - resolving reads the billing tables and can
+ * refresh `billing.entitlement_snapshots` in a transaction of its own, which would commit independently
+ * of this one and survive a rollback. So: this closure reads `ai.usage_events`, on a pooled connection of
+ * its own while this transaction holds the session row, and writes nothing. A refusal therefore rolls
+ * back having written nothing, and anything added to this closure later has to keep that true.
  */
 export async function prepareChatRun(
   userId: string,
@@ -86,6 +101,7 @@ export async function prepareChatRun(
   uiLocale: ChatComposerSuggestionsLocale | null,
   initiatingAuthIsSignedIn: boolean,
   clientPlatform: ProductAnalyticsClientReportablePlatform | null,
+  assertAiUsageAllowance: () => Promise<void>,
 ): Promise<PreparedChatRun> {
   return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
     const scope = { userId, workspaceId };
@@ -111,6 +127,8 @@ export async function prepareChatRun(
         initiatingAuthIsSignedIn: existingRun.initiating_auth_is_signed_in,
       };
     }
+
+    await assertAiUsageAllowance();
 
     if (lockedSession.status === "running") {
       const recovered = await recoverStaleRunWithExecutor(executor, scope, lockedSession);

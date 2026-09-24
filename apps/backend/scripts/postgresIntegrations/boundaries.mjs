@@ -70,33 +70,33 @@ export const createdRolesByMigration = new Map([
   ["0044_reporting_readonly_role.sql", Object.freeze(["reporting_readonly"])],
 ]);
 export const boundaryDefinitions = Object.freeze([
-  // 0151 creates the billing schema, and the sync pull route now reads it: the route assembly point in
-  // routes/sync/index.ts resolves the caller's entitlement through billing/snapshot.ts, which selects
-  // from billing.purchases and billing.grants and upserts billing.entitlement_snapshots. Boundaries run
-  // current backend code against their own older schema, so a test that executes that read below this
-  // migration fails with `relation "billing.purchases" does not exist`. billing/entitlement is the only
-  // test that executes it, and it is listed here rather than left unlisted because an unlisted
-  // integration file is never executed by any workflow: it drives the real /sync/pull route for the
-  // wire field, and the resolver and its snapshot cache against the real tables, which is the only way
-  // to see that the reads match the shipped schema and that an unchanged entitlement is not rewritten
-  // on every pull.
-  // No pinned test moves here for the billing read. Re-derived from scratch rather than taken from the
-  // plan, which expected two of them to move while the read was still going to sit inside
-  // processSyncPull:
-  // - sync/freshBootstrap: value-imports createSyncRoutes and therefore now value-imports the billing
-  //   module, but it only requests /sync/bootstrap. The entitlement is attached to /sync/pull alone, so
-  //   nothing in that request reaches a billing table, and it stays at 0141.
-  // - agent/reviews and chat/cardImages/promotion/jobsSettlement: both call processSyncPull directly,
-  //   which is below the route and resolves no entitlement. The HTTP half of agent/reviews drives
-  //   createAgentRoutes, which does not mount the sync routes.
-  // - every other pinned test: no import path to routes/sync/index.ts or to src/billing at all.
-  // Attaching the read at the route instead of inside the shared authenticated-request profile read is
-  // what keeps that list this short: a billing read inside ensureUserProfileInExecutor would pin every
-  // boundary in this file to this migration, exactly as 0149 below had to.
+  // 0152 creates ai.usage_events and ai.model_prices, and the AI metering module now reads and writes
+  // the first of them: aiUsage/record.ts inserts one row per provider call and aiUsage/cap.ts sums that
+  // person's current UTC month to decide whether the next call is refused. Boundaries run current
+  // backend code against their own older schema, so a test that executes either statement below this
+  // migration fails with `relation "ai.usage_events" does not exist`.
+  // aiUsage/aiUsage is the only test that executes them, and it is listed here rather than left
+  // unlisted because an unlisted integration file is never executed by any workflow: it drives the real
+  // append against the real grants - backend_app holds SELECT and INSERT and nothing else there - and
+  // the real monthly sum across a UTC month boundary, which is the only way to see that the insert
+  // matches the shipped columns and that the window really excludes the month before.
+  // No pinned test moves here for the metering reads, re-derived from scratch rather than assumed:
+  // - chat/cardImages/operation: the card-image operation now appends a usage fact, but it appends it
+  //   through an injected dependency, and every external dependency set this test builds stubs it, so
+  //   no request in it reaches ai.usage_events. It stays at 0136.
+  // - chat/cardImages/promotion/jobsSettlement and chat/runs/generatedImageAttemptBudget: neither
+  //   drives the card-image operation at all. The first settles promotion jobs and reads them back
+  //   through processSyncPull; the second drives the attempt budget, which sits below the provider call
+  //   a usage fact belongs to.
+  // - every other pinned test: none of them executes a metering statement. The chat and dictation routes
+  //   are where the allowance is enforced, and no pinned test drives either of them; several do pull
+  //   src/aiUsage into their module graph through the chat modules, which loads the code without
+  //   running a statement against it.
+  // Nothing pins the billing read the allowance resolves through either, for the same reason.
   //
-  // The other two files here have nothing to do with billing. Each exists to pin what production runs
+  // The other two files here have nothing to do with metering. Each exists to pin what production runs
   // rather than to cover an older schema, so each belongs at whichever entry is newest; both moved up
-  // from 0149 because this entry landed above it, and leaving them behind would have made that stated
+  // from 0151 because this entry landed above it, and leaving them behind would have made that stated
   // reason untrue. Nothing ties the three files in this entry together, so moving any one of them later
   // does not free the others.
   // - serverFacts/authoringUpdates authenticates nothing. It drives the real exported card and deck
@@ -115,14 +115,50 @@ export const boundaryDefinitions = Object.freeze([
   //   CARD_COLUMNS.
   // Moving a test retires the older-schema coverage it used to give, because each test runs only at its
   // pinned boundary and there is no full-schema pass. Both files keep covering every migration below
-  // this one, which is what their own floors ask for; what 0149 loses is a pass at exactly 0149.
+  // this one, which is what their own floors ask for; what 0151 loses is a pass at exactly 0151.
+  Object.freeze({
+    migrationFileName: "0152_ai_usage_facts.sql",
+    expectedMigrationCount: 154,
+    testFiles: Object.freeze([
+      "src/aiUsage/aiUsage.postgres.integration.ts",
+      "src/cards/managedMedia/managedImageSnapshotMerge.postgres.integration.ts",
+      "src/productAnalytics/serverFacts/authoringUpdates.postgres.integration.ts",
+    ]),
+  }),
+  // 0151 creates the billing schema, and the sync pull route now reads it: the route assembly point in
+  // routes/sync/index.ts resolves the caller's entitlement through billing/snapshot.ts, which selects
+  // from billing.purchases and billing.grants and upserts billing.entitlement_snapshots. Boundaries run
+  // current backend code against their own older schema, so a test that executes that read below this
+  // migration fails with `relation "billing.purchases" does not exist`. billing/entitlement is the only
+  // test that executes it, and it is listed here rather than left unlisted because an unlisted
+  // integration file is never executed by any workflow: it drives the real /sync/pull route for the
+  // wire field, and the resolver and its snapshot cache against the real tables, which is the only way
+  // to see that the reads match the shipped schema and that an unchanged entitlement is not rewritten
+  // on every pull. It also drives the real analytics writer for the entitlement_changed fact the
+  // refresh emits, whose own floor is far below this entry, so nothing about the placement changes:
+  // that fact exists only where the resolver, the snapshot upsert and the writer run together.
+  // No pinned test moves here for the billing read. Re-derived from scratch rather than taken from the
+  // plan, which expected two of them to move while the read was still going to sit inside
+  // processSyncPull:
+  // - sync/freshBootstrap: value-imports createSyncRoutes and therefore now value-imports the billing
+  //   module, but it only requests /sync/bootstrap. The entitlement is attached to /sync/pull alone, so
+  //   nothing in that request reaches a billing table, and it stays at 0141.
+  // - agent/reviews and chat/cardImages/promotion/jobsSettlement: both call processSyncPull directly,
+  //   which is below the route and resolves no entitlement. The HTTP half of agent/reviews drives
+  //   createAgentRoutes, which does not mount the sync routes.
+  // - every other pinned test: no import path to routes/sync/index.ts or to src/billing at all.
+  // Attaching the read at the route instead of inside the shared authenticated-request profile read is
+  // what keeps that list this short: a billing read inside ensureUserProfileInExecutor would pin every
+  // boundary in this file to this migration, exactly as 0149 below had to.
+  //
+  // The two files that used to sit here to pin what production runs - serverFacts/authoringUpdates and
+  // managedMedia/managedImageSnapshotMerge - moved to the 0152 entry above when that became the newest
+  // boundary. Neither was ever here for the billing read: they authenticate nothing.
   Object.freeze({
     migrationFileName: "0151_billing_schema.sql",
     expectedMigrationCount: 153,
     testFiles: Object.freeze([
       "src/billing/entitlement.postgres.integration.ts",
-      "src/cards/managedMedia/managedImageSnapshotMerge.postgres.integration.ts",
-      "src/productAnalytics/serverFacts/authoringUpdates.postgres.integration.ts",
     ]),
   }),
   // 0149 adds org.user_settings.product_analytics_enabled, and the shared profile read now names
@@ -162,8 +198,8 @@ export const boundaryDefinitions = Object.freeze([
     expectedMigrationCount: 151,
     //
     // The two files that used to sit here to pin what production runs - serverFacts/authoringUpdates
-    // and managedMedia/managedImageSnapshotMerge - moved to the 0151 entry above when that became the
-    // newest boundary. Neither is here for the profile read: they authenticate nothing.
+    // and managedMedia/managedImageSnapshotMerge - now sit at the newest entry in this file, which is
+    // 0152. Neither is here for the profile read: they authenticate nothing.
     testFiles: Object.freeze([
       "src/agent/reviews.postgres.integration.ts",
       "src/routes/system/account/accountPreferences.postgres.integration.ts",
@@ -192,11 +228,11 @@ export const boundaryDefinitions = Object.freeze([
   // it fails with `column installations.is_automation does not exist`. The tests that reach those
   // reads are the two listed here - freshBootstrap (the /sync/bootstrap replica claim) and
   // jobsSettlement (which verifies a promoted asset through a real processSyncPull), both moved
-  // here from 0107 - plus every test the 0151 and 0149 entries above pin further forward, which
+  // here from 0107 - plus every test the 0152, 0151 and 0149 entries above pin further forward, which
   // satisfies this migration too: agent/reviews (processSyncPull, processSyncReviewHistoryPull, and
   // the post-commit content-write resolution), which came here from 0138 and is pinned at 0149, and
   // serverFacts/authoringUpdates, which was written above this boundary, never sat at it, and is now
-  // pinned at 0151.
+  // pinned at 0152.
   // Moving a test retires the older-schema coverage it used to give, because each test runs only at
   // its pinned boundary and there is no full-schema pass.
   Object.freeze({

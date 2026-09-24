@@ -5,13 +5,14 @@
  * carries the catalog's whole surface list, so a well-typed event's `screen` is a value the server
  * accepts as well.
  *
- * Twenty events are server-derived and deliberately absent, because a client batch that carries one
- * is rejected `server_only_event`: `guest_upgrade_completed`, `review_answered`, `card_created`,
+ * Twenty-five events are server-derived and deliberately absent, because a client batch that carries
+ * one is rejected `server_only_event`: `guest_upgrade_completed`, `review_answered`, `card_created`,
  * `card_updated`, `card_deleted`, `deck_created`, `deck_updated`, `deck_deleted`, `account_deleted`,
  * `workspace_deleted`, `study_progress_reset`, `workspace_package_imported`,
  * `workspace_package_exported`, `agent_connection_created`, `feedback_submitted`,
- * `friend_invitation_created`, `friendship_created`, `ai_message_sent`, `ai_run_failed` and
- * `catalog_deck_installed`. `onboarding_step_completed`,
+ * `friend_invitation_created`, `friendship_created`, `entitlement_changed`, `trial_started`,
+ * `purchase_completed`, `subscription_revoked`, `autorenew_disabled`, `ai_message_sent`,
+ * `ai_run_failed` and `catalog_deck_installed`. `onboarding_step_completed`,
  * `review_session_started` and `review_session_ended` remain outside the active catalog. The server
  * keeps exact backend-only tombstones for old queued copies and rejects them `retired_event_name`.
  *
@@ -34,7 +35,7 @@
  * `signin_after_review_prompt`, the two prompts above that this app does not have, and
  * `settings_legal`, a screen this app does have but never reports under its own value.
  *
- * `signin` and `credential_recovery` are reachable, from `resolveSessionGateSurface` in `App.tsx`.
+ * `signin` and `credential_recovery` are reachable, from `resolveRootGateReport` in `App.tsx`.
  * The email and code steps of signing in do live on the auth service's origin, but the catalog
  * counts the workspace choice as part of the same screen, and this app hosts that; the account-
  * deleted gate that takes over the app root is this client's `credential_recovery`.
