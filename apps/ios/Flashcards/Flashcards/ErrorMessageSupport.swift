@@ -1,10 +1,23 @@
 import Foundation
 
-struct ObservedTechnicalError: LocalizedError {
+struct ObservedTechnicalError: LocalizedError, CustomNSError {
     let underlyingError: Error
 
     var errorDescription: String? {
         errorMessage(error: self.underlyingError)
+    }
+
+    /// Classifiers such as `flashcardsURLErrorCode` and `isRequestCancellationError` follow
+    /// Foundation's `NSUnderlyingErrorKey` chain, which an empty bridged `userInfo` ends at the box.
+    /// `errorDomain` and `errorCode` stay defaulted so that `error as NSError` bridges to the same
+    /// domain and code as before the conformance, which is what leaves their readers untouched. Both
+    /// are read directly by `makeIOSNetworkTransportDiagnostics`, as `nsErrorDomain` and
+    /// `nsErrorCode`; `sanitizedNSError` forwards only the code — and with it Sentry grouping and
+    /// `cloudSyncFailureRepetitionSignature` — because it derives its own domain from this type's
+    /// name instead. So a custom `errorDomain` here would move the transport diagnostics field even
+    /// though neither of those two keys would change.
+    var errorUserInfo: [String: Any] {
+        [NSUnderlyingErrorKey: self.underlyingError]
     }
 }
 
