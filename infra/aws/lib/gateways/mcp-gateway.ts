@@ -30,6 +30,10 @@ export interface McpGatewayProps {
   backendDbSecret: cdk.aws_secretsmanager.Secret;
   baseDomain: string;
   siteBaseUrl: string | undefined;
+  // Where backend-generated links to the web app point, resolved once by the
+  // stack so no consumer derives a host of its own. The card_authoring guide
+  // that get_guide serves names it in the card web link it hands the agent.
+  publicAppOrigin: string;
   // Optional per-deploy override for the API origin the MCP tools advertise.
   // Unset means api.<baseDomain>, exactly as before it was settable.
   apiBaseUrl: string | undefined;
@@ -254,6 +258,9 @@ export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGateway
       // metadata (websiteUrl). Defaults to the apex domain; an optional CDK
       // `siteBaseUrl` context overrides it for self-host deployments.
       PUBLIC_SITE_BASE_URL: props.siteBaseUrl ?? `https://${props.baseDomain}`,
+      // Origin of the card web link stated in the card_authoring guide that
+      // get_guide serves.
+      PUBLIC_APP_BASE_URL: props.publicAppOrigin,
       // Second public MCP host the handler may answer as. Absent unless both
       // alternate context values are set, so the deployed environment of every
       // other deployment is unchanged.
