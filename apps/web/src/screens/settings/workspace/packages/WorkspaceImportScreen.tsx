@@ -89,6 +89,7 @@ function buildWorkspaceImportPreviewModel(
   t: (key: TranslationKey, values?: TranslationValues) => string,
   formatDateTimeValue: (dateValue: Date) => string,
   formatNumberValue: (value: number) => string,
+  formatCardCountValue: (value: number) => string,
 ): WorkspaceImportPreviewModel {
   const metadataRows: ReadonlyArray<WorkspaceImportPreviewMetadataRow> = [
     preview.packageMetadata.label === null ? null : {
@@ -164,7 +165,7 @@ function buildWorkspaceImportPreviewModel(
       tag: tagCount.tag,
       removalLabel: t("workspaceImport.previewRemoveTagLabel", {
         tag: tagCount.tag,
-        count: tagCount.cardsCount,
+        count: formatCardCountValue(tagCount.cardsCount),
       }),
     })),
     suggestedImportTag: preview.defaultOptions.suggestedImportTag,
@@ -181,7 +182,7 @@ export function WorkspaceImportScreen(): ReactElement {
     session,
   } = useAppData();
   const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
-  const { t, formatDateTime, formatNumber } = useI18n();
+  const { messages, t, formatCount, formatDateTime, formatNumber } = useI18n();
   const packageImportInputRef = useRef<HTMLInputElement | null>(null);
   const [isTextImporting, setIsTextImporting] = useState<boolean>(false);
   const [isPackagePreviewing, setIsPackagePreviewing] = useState<boolean>(false);
@@ -217,7 +218,13 @@ export function WorkspaceImportScreen(): ReactElement {
     || indexedDbOpenRecoveryState.hasFailed();
   const packageImportPreviewModel = packageImportPreview === null
     ? null
-    : buildWorkspaceImportPreviewModel(packageImportPreview, t, formatDateTime, formatNumber);
+    : buildWorkspaceImportPreviewModel(
+      packageImportPreview,
+      t,
+      formatDateTime,
+      formatNumber,
+      (value) => formatCount(value, messages.common.countLabels.card),
+    );
 
   function captureWorkspaceImportError(error: unknown): boolean {
     return captureAppOperationError(error, {
@@ -308,10 +315,11 @@ export function WorkspaceImportScreen(): ReactElement {
   }
 
   function showWorkspaceImportSuccess(result: WorkspacePackageImportConfirmResponse): void {
+    const importedCardCount = formatCount(result.summary.cardCount, messages.common.countLabels.card);
     setSuccessMessage(result.summary.importTag === null
-      ? t("workspaceImport.packageImportSuccess", { count: result.summary.cardCount })
+      ? t("workspaceImport.packageImportSuccess", { count: importedCardCount })
       : t("workspaceImport.packageImportSuccessWithTag", {
-        count: result.summary.cardCount,
+        count: importedCardCount,
         tag: result.summary.importTag,
       }));
   }

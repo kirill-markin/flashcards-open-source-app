@@ -40,7 +40,7 @@ function CatalogImportSuccessCheck(): ReactElement {
 
 export function CatalogImportSuccessPanel(props: CatalogImportSuccessPanelProps): ReactElement {
   const { cardCount, importTag, workspaceName, accountEmail, webHref } = props;
-  const { t } = useI18n();
+  const { messages, t, formatCount } = useI18n();
   const platformOptions = buildAppPlatformOptions({
     platforms: ["ios", "android", "web", "mcp"],
     storeLinks: catalogImportStoreLinks,
@@ -57,9 +57,10 @@ export function CatalogImportSuccessPanel(props: CatalogImportSuccessPanelProps)
     },
     clientPlatform: resolveClientPlatform(navigator.userAgent),
   });
+  const importedCardCount = formatCount(cardCount, messages.common.countLabels.card);
   const summaryMessage = importTag === null
-    ? t("catalogImport.success", { count: cardCount })
-    : t("catalogImport.successWithTag", { count: cardCount, tag: importTag });
+    ? t("catalogImport.success", { count: importedCardCount })
+    : t("catalogImport.successWithTag", { count: importedCardCount, tag: importTag });
   const sameEmailNote = accountEmail === null
     ? t("catalogImport.successSameEmailNote")
     : t("catalogImport.successSameEmailNoteWithAddress", { email: accountEmail });
