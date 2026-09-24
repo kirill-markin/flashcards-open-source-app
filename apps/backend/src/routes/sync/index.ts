@@ -20,6 +20,11 @@ import {
 } from "../../workspaces";
 import { bindGuestSessionPlatform } from "../../guestAuth";
 import {
+  resolveAccountKindForTransport,
+  resolveEntitlementSnapshotForUser,
+  type EntitlementWire,
+} from "../../billing/snapshot";
+import {
   loadRequestContextFromRequest,
   parseWorkspaceIdParam,
   type RequestContext,
@@ -28,7 +33,13 @@ import { parseJsonBody } from "../../server/requestParsing";
 import {
   createBackendFailureDetails,
 } from "../../server/logging";
-import { withTransientDatabaseRetry } from "../../database/transient";
+import {
+  DatabaseCommitOutcomeUnknownError,
+  getDatabaseErrorFields,
+  isServiceUnavailableDatabaseError,
+  isTransientDatabaseError,
+  withTransientDatabaseRetry,
+} from "../../database/transient";
 import {
   addBackendBreadcrumb,
   normalizeCaughtError,
@@ -58,6 +69,7 @@ type SyncRoutesOptions = Readonly<{
   processSyncReviewHistoryPullFn?: typeof processSyncReviewHistoryPull;
   withTransientDatabaseRetryFn?: typeof withTransientDatabaseRetry;
   bindGuestSessionPlatformFn?: typeof bindGuestSessionPlatform;
+  resolveEntitlementSnapshotForUserFn?: typeof resolveEntitlementSnapshotForUser;
 }>;
 
 type SyncPullRouteState = Readonly<{
@@ -65,6 +77,9 @@ type SyncPullRouteState = Readonly<{
   workspaceId: string;
   input: SyncPullInput;
   result: SyncPullResult;
+  // Absent when the entitlement could not be resolved, which the response reflects by omitting the
+  // field rather than by failing the pull.
+  entitlement: EntitlementWire | null;
 }>;
 
 type SyncReviewHistoryPullRouteState = Readonly<{
@@ -84,6 +99,8 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
   const processSyncReviewHistoryPullFn = options.processSyncReviewHistoryPullFn ?? processSyncReviewHistoryPull;
   const withTransientDatabaseRetryFn = options.withTransientDatabaseRetryFn ?? withTransientDatabaseRetry;
   const bindGuestSessionPlatformFn = options.bindGuestSessionPlatformFn ?? bindGuestSessionPlatform;
+  const resolveEntitlementSnapshotForUserFn = options.resolveEntitlementSnapshotForUserFn
+    ?? resolveEntitlementSnapshotForUser;
 
   app.post("/workspaces/:workspaceId/sync/push", async (context) => {
     const { requestContext } = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
@@ -146,6 +163,82 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
       return parseSyncPullInput(parsedBody);
     }
 
+    // A billing-data problem degrades the paywall, never sync. The resolve is awaited inside the state
+    // that produces the 200, so an operator grant naming a tier outside the catalogue, a stored status
+    // this code cannot read, or a failing billing read would otherwise become a /sync/pull 500 and stop
+    // this device receiving remote changes at all. The field is omitted instead of falling back to a
+    // free resolution, because publishing `free` for someone who paid would silently downgrade them,
+    // while an absent field leaves the client on the last snapshot it saw - which is how client-side
+    // premium is specified to fail (docs/premium-entitlements.md, "Offline behaviour").
+    async function resolvePullEntitlement(
+      pullRequestContext: RequestContext,
+      pullWorkspaceId: string,
+    ): Promise<EntitlementWire | null> {
+      const accountKind = resolveAccountKindForTransport(pullRequestContext.transport);
+      try {
+        return await resolveEntitlementSnapshotForUserFn(
+          pullRequestContext.userId,
+          accountKind,
+          new Date(),
+        );
+      } catch (error) {
+        const scope = createSyncScope(
+          requestId,
+          context.req.path,
+          context.req.method,
+          pullRequestContext.userId,
+          pullWorkspaceId,
+          context.get("clientAppVersion"),
+          context.get("clientPlatform"),
+        );
+        const details = {
+          accountKind,
+          ...createBackendFailureDetails(error),
+        };
+        // A transient database failure is the same self-healing condition the enclosing retry wrapper
+        // absorbs without any report one line above, so it is recorded rather than opened as an issue:
+        // a failover would otherwise burst one exception per request through the whole window. Both
+        // predicates are asked, exactly as the retry wrapper asks them, because the database layer
+        // wraps such a failure before it reaches here: what arrives is a 503 boundary error that no
+        // longer carries the driver's code or message, so only isServiceUnavailableDatabaseError
+        // recognises it.
+        // An unconfirmed commit is recorded the same way for a reason that belongs to this one table
+        // and must not be generalised to any other write: the only write behind this call is the
+        // billing.entitlement_snapshots cache, which is droppable, so not knowing whether it committed
+        // costs nothing. The next pull resolves again and either finds the row or writes it, and the
+        // clock guard on that upsert keeps an older resolution from overwriting a newer one.
+        // The exception path below is for what a retry cannot fix - an unreadable tier or status, or a
+        // permission failure.
+        if (
+          isTransientDatabaseError(error)
+          || isServiceUnavailableDatabaseError(error)
+          || error instanceof DatabaseCommitOutcomeUnknownError
+        ) {
+          // The driver diagnostics ride along, because both classes keep their SQLSTATE and message on
+          // the error rather than in the failure details, and this breadcrumb is the whole record: the
+          // pull answered 200 and nothing else reports. Same field names as database_transient_retry.
+          addBackendBreadcrumb({
+            action: "sync_pull_entitlement_error",
+            scope,
+            details: { ...details, ...getDatabaseErrorFields(error) },
+          });
+          return null;
+        }
+
+        reportBackendExceptionOrBreadcrumb(
+          error,
+          {
+            action: "sync_pull_entitlement_error",
+            error: normalizeCaughtError(error),
+            scope,
+            details,
+          },
+          { action: "sync_pull_entitlement_error", scope, details },
+        );
+        return null;
+      }
+    }
+
     try {
       const routeState = await withTransientDatabaseRetryFn(
         async (): Promise<SyncPullRouteState> => {
@@ -156,11 +249,16 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
           input = await loadSyncPullInput();
           await requireSupportedSyncPlatformForTransport(requestContext, input.platform, bindGuestSessionPlatformFn);
           const result = await processSyncPullFn(workspaceId, requestContext.userId, input);
+          // Assembled here rather than inside the hot-change reader: the entitlement belongs to the
+          // person, not to the workspace changes, and naming a billing table inside a read that every
+          // authenticated request shares would pin every Postgres integration boundary to this schema.
+          const entitlement = await resolvePullEntitlement(requestContext, workspaceId);
           return {
             requestContext,
             workspaceId,
             input,
             result,
+            entitlement,
           };
         },
         () => createSyncScope(
@@ -194,7 +292,13 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
           changesCount: routeState.result.changes.length,
         },
       });
-      return context.json(routeState.result);
+      // Additive field, omitted when the entitlement could not be resolved. Released clients ignore
+      // unknown keys, and none of them reads it yet.
+      return context.json(
+        routeState.entitlement === null
+          ? routeState.result
+          : { ...routeState.result, entitlement: routeState.entitlement },
+      );
     } catch (error) {
       const scope = createSyncScope(
         requestId,
