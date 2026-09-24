@@ -430,9 +430,11 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       webHosts,
     );
     // The one place this stack decides where backend-generated links send people:
-    // invites and the published catalog dump's install links. Every consumer
-    // takes this value rather than deriving its own, so they cannot disagree
-    // about which host is the app. Share links are built by the clients.
+    // invites, the published catalog dump's install links, and the card link an
+    // agent is handed by the card_authoring guide and by the in-app chat system
+    // prompt. Every consumer takes this value rather than deriving its own, so
+    // they cannot disagree about which host is the app. Share links are built by
+    // the clients.
     const publicAppOrigin = parsePublicOrigin(
       `https://${webPrimaryHostRedirectTarget ?? webPrimaryHost}`,
       "appBaseUrl",
@@ -494,6 +496,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       backendDbSecret: dbResult.backendDbSecret,
       baseDomain,
       siteBaseUrl,
+      publicAppOrigin,
       apiBaseUrl,
       mcpCertificateArn,
       mcpAlternateDomainName,
