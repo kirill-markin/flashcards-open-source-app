@@ -1314,6 +1314,7 @@ const plCatalog: TranslationCatalog = {
     errorTitle: "Błąd czatu AI",
     errors: {
       activeRunInProgress: "Odpowiedź jest już w toku. Poczekaj na jej zakończenie lub zatrzymaj ją przed wysłaniem kolejnej wiadomości.",
+      aiLimitReached: "Limit AI na ten miesiąc został wykorzystany. Zostanie odnowiony na początku następnego miesiąca.",
       emptyBackendResponse: "Backend zwrócił pustą odpowiedź błędu.",
       genericFailure: "Czat AI nie powiódł się.",
       liveStreamEndedBeforeCompletion: "Strumień AI zakończył się przed końcem odpowiedzi.",

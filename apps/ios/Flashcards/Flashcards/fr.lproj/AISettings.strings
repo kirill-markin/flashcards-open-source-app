@@ -43,6 +43,7 @@
 "ai.error.requestTooLarge.message" = "Le chat IA ne peut pas envoyer autant de contenu en une seule fois. Supprimez une ou plusieurs pièces jointes, choisissez un fichier ou une photo plus petite, ou divisez la demande et réessayez.";
 "ai.error.attachmentUnsupported.title" = "Type de fichier non pris en charge";
 "ai.error.attachmentUnsupported.message" = "Ce type de fichier n’est pas pris en charge dans le chat IA. Supprimez le fichier ou enregistrez-le au format PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX ou image, puis réessayez.";
+"ai.error.limitReached" = "Votre limite d’IA pour ce mois est épuisée. Elle est réinitialisée au début du mois prochain.";
 "ai.error.summary.couldNotContinue" = "Impossible de poursuivre la réponse de l’IA";
 "ai.error.summary.invalidResponse" = "Réponse de l’IA non valide reçue";
 "ai.error.summary.configuration" = "Erreur de configuration de l’IA";

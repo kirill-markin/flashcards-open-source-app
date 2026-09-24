@@ -43,6 +43,7 @@
 "ai.error.requestTooLarge.message" = "DI pokalbis negali vienu metu išsiųsti tiek turinio. Pašalinkite vieną ar daugiau priedų, pasirinkite mažesnį failą ar nuotrauką arba padalykite užklausą ir bandykite dar kartą.";
 "ai.error.attachmentUnsupported.title" = "Nepalaikomas failo tipas";
 "ai.error.attachmentUnsupported.message" = "Šis failo tipas DI pokalbyje nepalaikomas. Pašalinkite failą arba išsaugokite jį kaip PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX ar paveikslėlį ir bandykite dar kartą.";
+"ai.error.limitReached" = "Išnaudojote šio mėnesio DI limitą. Jis atkuriamas kito mėnesio pradžioje.";
 "ai.error.summary.couldNotContinue" = "Nepavyko tęsti DI atsakymo";
 "ai.error.summary.invalidResponse" = "Gautas netinkamas DI atsakymas";
 "ai.error.summary.configuration" = "DI konfigūracijos klaida";

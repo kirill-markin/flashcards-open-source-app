@@ -43,6 +43,7 @@
 "ai.error.requestTooLarge.message" = "O chat com IA não consegue enviar tanto conteúdo de uma vez. Remova um ou mais anexos, escolha um arquivo ou uma foto menor, ou divida a solicitação e tente novamente.";
 "ai.error.attachmentUnsupported.title" = "Tipo de arquivo não compatível";
 "ai.error.attachmentUnsupported.message" = "Este tipo de arquivo não é compatível com o chat com IA. Remova o arquivo ou salve-o como PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX ou imagem e tente novamente.";
+"ai.error.limitReached" = "Seu limite de IA deste mês acabou. Ele é redefinido no início do próximo mês.";
 "ai.error.summary.couldNotContinue" = "Não foi possível continuar a resposta da IA";
 "ai.error.summary.invalidResponse" = "A resposta da IA é inválida";
 "ai.error.summary.configuration" = "Erro de configuração da IA";
