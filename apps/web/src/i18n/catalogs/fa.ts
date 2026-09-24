@@ -743,7 +743,6 @@ const faCatalog: TranslationCatalog = {
       updated: "به‌روزرسانی‌شده",
       note: "یادداشت",
     },
-    maximumIntervalDays: "{{count}}",
     note: "این تنظیمات فقط بر زمان‌بندی آینده اثر دارند. وضعیت فعلی کارت‌ها همچنان معتبر است.",
   },
   workspaceExport: {
@@ -794,7 +793,6 @@ const faCatalog: TranslationCatalog = {
     customSeparatorRequired: "برای دیدن پیش‌نمایش کارت‌ها یک جداکنندهٔ سفارشی وارد کنید.",
     textTagsDescription: "برای همهٔ کارت‌های درون‌ریزی‌شده برچسب انتخاب کنید. خالی بگذارید تا یک برچسب درون‌ریزی یکتا به‌طور خودکار افزوده شود.",
     textPreviewTitle: "پیش‌نمایش",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "برای دیدن پیش‌نمایش کارت‌ها متن را بچسبانید.",
     textInvalidCount: "{{count}} کارت نیاز به بررسی دارد",
     textInvalidHelp: "برای هر کارت هم روی و هم پشت را کامل کنید یا کارت‌های ناقص را حذف کنید.",
@@ -1024,7 +1022,6 @@ const faCatalog: TranslationCatalog = {
       videoLabel: "پیوست ویدیویی",
     },
     queue: {
-      cards: "{{count}} کارت",
       close: "بستن صف",
       loading: "در حال بارگیری",
       title: "صف",
@@ -1236,7 +1233,6 @@ const faCatalog: TranslationCatalog = {
       systemDeckDelete: "دستهٔ سیستمی قابل حذف نیست.",
     },
     matchingCards: {
-      count: "{{count}} کارت",
       title: "کارت‌های مطابق",
     },
     meta: {

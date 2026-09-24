@@ -743,7 +743,6 @@ const etCatalog: TranslationCatalog = {
       updated: "Värskendatud",
       note: "Märkus",
     },
-    maximumIntervalDays: "{{count}}",
     note: "Need seaded mõjutavad ainult edaspidist ajastamist. Kaartide olemasolev olek jääb määravaks.",
   },
   workspaceExport: {
@@ -794,7 +793,6 @@ const etCatalog: TranslationCatalog = {
     customSeparatorRequired: "Kaartide eelvaate nägemiseks sisesta kohandatud eraldaja.",
     textTagsDescription: "Vali sildid kõigile imporditavatele kaartidele. Jäta tühjaks, et lisada automaatselt unikaalne impordisilt.",
     textPreviewTitle: "Eelvaade",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "Kaartide eelvaate nägemiseks kleebi tekst.",
     textInvalidCount: "Vajavad tähelepanu: {{count}}",
     textInvalidHelp: "Lisa igale kaardile nii esikülg kui ka tagakülg või kustuta poolikud kaardid.",
@@ -1024,7 +1022,6 @@ const etCatalog: TranslationCatalog = {
       videoLabel: "Videomanus",
     },
     queue: {
-      cards: "Kaarte: {{count}}",
       close: "Sulge järjekord",
       loading: "laadimine",
       title: "Järjekord",
@@ -1236,7 +1233,6 @@ const etCatalog: TranslationCatalog = {
       systemDeckDelete: "Süsteemipakki ei saa kustutada.",
     },
     matchingCards: {
-      count: "Kaarte: {{count}}",
       title: "Sobivad kaardid",
     },
     meta: {

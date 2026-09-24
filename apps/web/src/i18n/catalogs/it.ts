@@ -743,7 +743,6 @@ const itCatalog: TranslationCatalog = {
       updated: "Aggiornato",
       note: "Nota",
     },
-    maximumIntervalDays: "{{count}}",
     note: "Queste impostazioni influiscono solo sulla pianificazione futura. Lo stato attuale delle carte resta prevalente.",
   },
   workspaceExport: {
@@ -794,7 +793,6 @@ const itCatalog: TranslationCatalog = {
     customSeparatorRequired: "Inserisci un separatore personalizzato per vedere l’anteprima delle carte.",
     textTagsDescription: "Scegli i tag per tutte le carte importate. Lascia vuoto per aggiungere automaticamente un tag di importazione univoco.",
     textPreviewTitle: "Anteprima",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "Incolla il testo per vedere l’anteprima delle carte.",
     textInvalidCount: "{{count}} richiedono attenzione",
     textInvalidHelp: "Aggiungi sia il fronte sia il retro a ogni carta, oppure elimina le carte incomplete.",
@@ -1024,7 +1022,6 @@ const itCatalog: TranslationCatalog = {
       videoLabel: "Allegato video",
     },
     queue: {
-      cards: "{{count}} carte",
       close: "Chiudi la coda",
       loading: "caricamento",
       title: "Coda",
@@ -1236,7 +1233,6 @@ const itCatalog: TranslationCatalog = {
       systemDeckDelete: "Il mazzo di sistema non può essere eliminato.",
     },
     matchingCards: {
-      count: "{{count}} carte",
       title: "Carte corrispondenti",
     },
     meta: {

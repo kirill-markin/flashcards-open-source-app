@@ -743,7 +743,6 @@ const koCatalog: TranslationCatalog = {
       updated: "업데이트",
       note: "참고",
     },
-    maximumIntervalDays: "{{count}}",
     note: "이 설정은 앞으로의 일정에만 영향을 줍니다. 기존 카드 상태는 그대로 유지됩니다.",
   },
   workspaceExport: {
@@ -794,7 +793,6 @@ const koCatalog: TranslationCatalog = {
     customSeparatorRequired: "카드를 미리 보려면 구분자를 입력하세요.",
     textTagsDescription: "가져올 모든 카드에 붙일 태그를 고르세요. 비워 두면 고유한 가져오기 태그가 자동으로 추가됩니다.",
     textPreviewTitle: "미리 보기",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "카드를 미리 보려면 텍스트를 붙여넣으세요.",
     textInvalidCount: "{{count}}장을 확인해야 합니다",
     textInvalidHelp: "모든 카드에 앞면과 뒷면을 모두 채우거나, 미완성 카드를 삭제하세요.",
@@ -1024,7 +1022,6 @@ const koCatalog: TranslationCatalog = {
       videoLabel: "동영상 첨부 파일",
     },
     queue: {
-      cards: "카드 {{count}}장",
       close: "대기열 닫기",
       loading: "불러오는 중",
       title: "대기열",
@@ -1236,7 +1233,6 @@ const koCatalog: TranslationCatalog = {
       systemDeckDelete: "시스템 덱은 삭제할 수 없습니다.",
     },
     matchingCards: {
-      count: "카드 {{count}}장",
       title: "해당하는 카드",
     },
     meta: {

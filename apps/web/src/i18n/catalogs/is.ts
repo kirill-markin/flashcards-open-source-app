@@ -743,7 +743,6 @@ const isCatalog: TranslationCatalog = {
       updated: "Uppfært",
       note: "Athugasemd",
     },
-    maximumIntervalDays: "{{count}}",
     note: "Þessar stillingar hafa aðeins áhrif á komandi tímasetningar. Núverandi staða spjalda gildir áfram.",
   },
   workspaceExport: {
@@ -794,7 +793,6 @@ const isCatalog: TranslationCatalog = {
     customSeparatorRequired: "Sláðu inn sérsniðinn aðskilnað til að forskoða spjöld.",
     textTagsDescription: "Veldu merki fyrir öll innflutt spjöld. Skildu eftir autt til að bæta einkvæmu innflutningsmerki við sjálfkrafa.",
     textPreviewTitle: "Forskoðun",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "Límdu inn texta til að forskoða spjöld.",
     textInvalidCount: "Þarfnast athygli: {{count}}",
     textInvalidHelp: "Bættu bæði framhlið og bakhlið við öll spjöld, eða eyddu ófullgerðum spjöldum.",
@@ -1024,7 +1022,6 @@ const isCatalog: TranslationCatalog = {
       videoLabel: "Myndskeiðsviðhengi",
     },
     queue: {
-      cards: "Spjöld: {{count}}",
       close: "Loka röð",
       loading: "hleð",
       title: "Röð",
@@ -1236,7 +1233,6 @@ const isCatalog: TranslationCatalog = {
       systemDeckDelete: "Ekki er hægt að eyða kerfisstokki.",
     },
     matchingCards: {
-      count: "Spjöld: {{count}}",
       title: "Samsvarandi spjöld",
     },
     meta: {
