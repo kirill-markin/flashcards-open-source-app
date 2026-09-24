@@ -115,7 +115,7 @@ export function getAiUsageMonthWindow(now: Date): AiUsageMonthWindow {
  * Sums the facts themselves. A monthly total is never stored: it is derived from the rows every call
  * appended, so a correction is a new row and nothing has to be rewritten, which is what lets
  * `ai.usage_events` stay append-only in the counters: they carry no `UPDATE` grant at all. The columns
- * that name somebody are the exception, and the only one — `db/migrations/0153_ai_usage_identity_rewrites.sql`
+ * that name somebody are the exception, and the only one — `db/migrations/0154_ai_usage_identity_rewrites.sql`
  * grants `UPDATE (user_id, workspace_id, request_id)` so an upgrade can move a row and a deletion can
  * anonymise it (`identity.ts`).
  *
