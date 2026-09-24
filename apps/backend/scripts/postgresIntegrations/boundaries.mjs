@@ -79,7 +79,9 @@ export const boundaryDefinitions = Object.freeze([
   // integration file is never executed by any workflow: it drives the real /sync/pull route for the
   // wire field, and the resolver and its snapshot cache against the real tables, which is the only way
   // to see that the reads match the shipped schema and that an unchanged entitlement is not rewritten
-  // on every pull.
+  // on every pull. It also drives the real analytics writer for the entitlement_changed fact the
+  // refresh emits, whose own floor is far below this entry, so nothing about the placement changes:
+  // that fact exists only where the resolver, the snapshot upsert and the writer run together.
   // No pinned test moves here for the billing read. Re-derived from scratch rather than taken from the
   // plan, which expected two of them to move while the read was still going to sit inside
   // processSyncPull:

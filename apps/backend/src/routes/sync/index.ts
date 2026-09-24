@@ -203,10 +203,12 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
         // longer carries the driver's code or message, so only isServiceUnavailableDatabaseError
         // recognises it.
         // An unconfirmed commit is recorded the same way for a reason that belongs to this one table
-        // and must not be generalised to any other write: the only write behind this call is the
-        // billing.entitlement_snapshots cache, which is droppable, so not knowing whether it committed
-        // costs nothing. The next pull resolves again and either finds the row or writes it, and the
-        // clock guard on that upsert keeps an older resolution from overwriting a newer one.
+        // and must not be generalised to any other write: the only write behind this call inside that
+        // transaction is the billing.entitlement_snapshots cache, which is droppable, so not knowing
+        // whether it committed costs nothing. The next pull resolves again and either finds the row or
+        // writes it. The entitlement change analytics fact this call can also produce is not at risk
+        // here either: it is emitted only after that commit is confirmed, so an unconfirmed one reports
+        // nothing rather than a transition the database may not have kept.
         // The exception path below is for what a retry cannot fix - an unreadable tier or status, or a
         // permission failure.
         if (
