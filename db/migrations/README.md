@@ -260,3 +260,20 @@ is "later work" and that `anonymizeProductAnalyticsInExecutor` "does not cover `
 That work is what the grant exists for, so the two claims could never both stay true — the table comment
 promises that "account deletion anonymises them rather than cascading them away", and an anonymisation
 is a rewrite.
+
+### `0152_ai_usage_facts.sql` — the module it points at is gone, and so is the table it compares itself to
+
+Its `See also` block names `apps/backend/src/guestAiQuota/index.ts`, and its header says of
+`auth.guest_ai_monthly_usage` that it "keeps working untouched by this migration; retiring it is separate
+later work". That work has happened. The metering cutover deleted the `guestAiQuota` module, so the
+pointer names a file that no longer exists, and `0157_drop_guest_ai_monthly_usage.sql` dropped the table
+itself along with the `reporting_readonly` column grant `0066` had on it.
+
+What took the module's place is `apps/backend/src/aiUsage/`: `cap.ts` resolves the UTC monthly window and
+the allowance, which is where the `usage_month` key's rule now lives, and `record.ts` appends the facts
+that sum is taken over. Read the pointer as `apps/backend/src/aiUsage/` instead.
+
+The comparison the header draws between the two tables is still the reason this one exists, and reads the
+same with the older table in the past tense: a weights-applied total per user-month could not be
+re-priced, split by surface or attributed to a model. Its rows were not carried over when it was dropped,
+so guest AI consumption from before the cutover is gone rather than restated here.
