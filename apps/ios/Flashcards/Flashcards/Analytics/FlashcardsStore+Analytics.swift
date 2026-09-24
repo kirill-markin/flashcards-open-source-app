@@ -146,9 +146,13 @@ func analyticsSyncFailureReason(error: Error) -> AnalyticsSyncFailureReason {
  * reports this event: a microphone refusal and a cancelled recording never reach the server at all.
  * Everything else is told apart by the same retryable-network split
  * `analyticsReviewAnswerFailureReason` and `analyticsSyncFailureReason` use, and lands in
- * `.serverError` when it cannot be. That split is where this mapper stops: it reads no HTTP status,
- * so a gateway timeout the server did answer is `.serverError` here where
- * `analyticsSyncFailureReason` would call it `.timeout`.
+ * `.serverError` when it cannot be. This mapper reads no HTTP status itself.
+ * `AIChatTranscriptionError.serverTimeout` is the single status distinction handed to it, raised by
+ * `AIChatTranscriptionService` on a 408 or 504 and only for the transcription request, and it is what
+ * makes such a failure `.timeout` here as it already is on web and in `analyticsSyncFailureReason`.
+ * `finishDictation` awaits `cloudSessionForAI()` and `ensureRemoteSessionIfNeeded(session:)` in the
+ * same attempt and reports their failures through this mapper too, so a 408 or 504 answered on the
+ * session or `/chat/new` leg lands in `.serverError` even though those errors do carry the status.
  */
 func analyticsDictationFailureReason(error: Error) -> AnalyticsDictationFailureReason {
     if error is CancellationError {
@@ -163,6 +167,10 @@ func analyticsDictationFailureReason(error: Error) -> AnalyticsDictationFailureR
         case .microphoneUnavailable, .invalidRecording, .recordingStartFailed:
             return .serverError
         }
+    }
+    if let transcriptionError = error as? AIChatTranscriptionError,
+       case .serverTimeout = transcriptionError {
+        return .timeout
     }
     if isRetryableNetworkTransportFailure(error: error) {
         return flashcardsURLErrorCode(error: error, remainingDepth: 4) == .timedOut ? .timeout : .offline

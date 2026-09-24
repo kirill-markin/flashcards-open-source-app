@@ -94,6 +94,10 @@ enum AIChatTranscriptionError: LocalizedError {
     case serviceUnavailable
     case guestLimitReached
     case serverMessage(String)
+    /// A `408` or `504` the server did answer, carrying the copy `serverMessage` would have carried.
+    /// It exists so `analyticsDictationFailureReason` can report `timeout` where the status alone
+    /// says so, as web and `analyticsSyncFailureReason` already do. Nothing the person sees changes.
+    case serverTimeout(String)
 
     var errorDescription: String? {
         switch self {
@@ -114,7 +118,7 @@ enum AIChatTranscriptionError: LocalizedError {
             )
         case .guestLimitReached:
             return aiChatGuestQuotaReachedMessage
-        case .serverMessage(let message):
+        case .serverMessage(let message), .serverTimeout(let message):
             return message
         }
     }
@@ -313,6 +317,10 @@ extension AIChatTranscriptionService: AIChatAudioTranscribing {
     /**
      Normalize backend dictation failures through the shared AI availability
      mapper so official and custom servers present consistent user-facing copy.
+
+     A `408` or `504` returns `.serverTimeout` instead of `.serverMessage`, with the identical
+     message: the status is the only thing carried out of here, and only so the analytics mapper can
+     name that failure `timeout`.
      */
     private func mapTranscriptionFailure(
         statusCode: Int,
@@ -328,15 +336,19 @@ extension AIChatTranscriptionService: AIChatAudioTranscribing {
             return .guestLimitReached
         }
 
-        return .serverMessage(
-            makeAIChatUserFacingErrorMessage(
-                rawMessage: errorDetails.message,
-                code: errorDetails.code,
-                requestId: errorDetails.requestId,
-                configurationMode: configurationMode,
-                surface: .dictation
-            )
+        let message = makeAIChatUserFacingErrorMessage(
+            rawMessage: errorDetails.message,
+            code: errorDetails.code,
+            requestId: errorDetails.requestId,
+            configurationMode: configurationMode,
+            surface: .dictation
         )
+        // Checked after the invalid-audio branch: a 408 carrying that code is invalid audio, not a timeout.
+        if statusCode == 408 || statusCode == 504 {
+            return .serverTimeout(message)
+        }
+
+        return .serverMessage(message)
     }
 
     private func makeMultipartBody(
