@@ -83,15 +83,15 @@ struct ProductAnalyticsSettingsView: View {
         // Classified on the unwrapped error, presented on the wrapped one. What arrives wrapped is a
         // failure the push reporter really did capture: a Keychain load failure, a
         // `carrier_unavailable` answer no credential could carry, or any other non-transport push
-        // failure. That wrapper is a bridged Swift struct — it carries no `URLError`, no
-        // `NSURLErrorDomain` and no `NSUnderlyingErrorKey` — so unwrapping is the only way
-        // `isRequestCancellationError` and `blockedCloudIdentityConflictMessage` can see the shape
-        // underneath and answer about it at all. An ordinary offline opt-out is not one of these: the
-        // reporter filters transport failures ahead of its dedupe and returns false, so every caller
-        // hands those back unwrapped, and the transport filter below — not this unwrap — is what
-        // keeps them on the soft inline line. Presenting the still-wrapped error is what keeps the
-        // captured marker intact, so a failure already reported once is not reported to Sentry a
-        // second time on presentation.
+        // failure. That wrapper is a bridged Swift struct and not the failure itself, and
+        // `blockedCloudIdentityConflictMessage` classifies with an `as?` cast, which never follows a
+        // wrapper — so unwrapping is the only way it can see the shape underneath and answer about it
+        // at all. An ordinary offline opt-out is not one of these: the reporter filters transport
+        // failures ahead of its dedupe and returns false, so every caller hands those back
+        // unwrapped, and the transport filter below — not this unwrap — is what keeps them on the
+        // soft inline line. Presenting the still-wrapped error is what keeps the captured marker
+        // intact, so a failure already reported once is not reported to Sentry a second time on
+        // presentation.
         let classifiedError = technicalErrorPresentationSource(error: error)
         if isRequestCancellationError(error: classifiedError) {
             return
