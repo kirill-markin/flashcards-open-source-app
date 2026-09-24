@@ -192,6 +192,12 @@ test("deleteAccountForAuthenticatedUser rereads the mapping under the identity l
         || text.includes("DELETE FROM analytics.identity_links")
         || text.includes("DELETE FROM analytics.installation_profiles")
         || text.includes("DELETE FROM analytics.excluded_actors")
+        || text.includes("UPDATE billing.provider_events")
+        || text.includes("UPDATE billing.purchases")
+        || text.includes("UPDATE billing.grants")
+        || text.includes("UPDATE billing.user_billing_state")
+        || text.includes("DELETE FROM billing.entitlement_snapshots")
+        || text.includes("UPDATE ai.usage_events")
       ) {
         return createQueryResult<Row>([]);
       }
@@ -256,6 +262,22 @@ test("deleteAccountForAuthenticatedUser rereads the mapping under the identity l
   ));
   const exclusionEraseQuery = recordedQueries[exclusionEraseIndex];
 
+  const analyticsRewriteQuery = recordedQueries.find((query) => (
+    query.text.includes("UPDATE analytics.product_events")
+  ));
+  const purchaseRewriteQuery = recordedQueries.find((query) => (
+    query.text.includes("UPDATE billing.purchases")
+  ));
+  const usageRewriteQuery = recordedQueries.find((query) => (
+    query.text.includes("UPDATE ai.usage_events")
+  ));
+  const providerEventRewriteIndex = recordedQueries.findIndex((query) => (
+    query.text.includes("UPDATE billing.provider_events")
+  ));
+  const purchaseRewriteIndex = recordedQueries.findIndex((query) => (
+    query.text.includes("UPDATE billing.purchases")
+  ));
+
   assert.equal(scopeQuery?.params[0], authoritativeUserId);
   assert.equal(deleteUserQuery?.params[0], authoritativeUserId);
   assert.equal(tombstoneQuery?.params[0], hashDeletedSubject(subjectUserId));
@@ -268,6 +290,21 @@ test("deleteAccountForAuthenticatedUser rereads the mapping under the identity l
   // The erasure key is the person, not the account: an exclusion row naming the guest id this
   // account absorbed has to go too, so the walk has to reach the erase intact.
   assert.deepEqual(exclusionEraseQuery?.params[0], [authoritativeUserId, mergedGuestUserId]);
+  // One pseudonym for all three histories. Two would leave this person's analytics, their purchases and
+  // their AI spend under identifiers nothing can ever rejoin, which no later support or accounting
+  // question could undo.
+  const anonymizedUserId = analyticsRewriteQuery?.params[0];
+  assert.equal(typeof anonymizedUserId, "string");
+  assert.equal(purchaseRewriteQuery?.params[0], anonymizedUserId);
+  assert.equal(usageRewriteQuery?.params[0], anonymizedUserId);
+  // And the same person-wide ids: a purchase or an AI call made during the guest phase is theirs.
+  assert.deepEqual(purchaseRewriteQuery?.params[1], [authoritativeUserId, mergedGuestUserId]);
+  assert.deepEqual(usageRewriteQuery?.params[1], [authoritativeUserId, mergedGuestUserId]);
+  // The provider events are reached through the purchases as well as through their own user_id, because
+  // most providers name the purchase and not the buyer, so they have to be rewritten while
+  // billing.purchases still carries the real ids.
+  assert.notEqual(providerEventRewriteIndex, -1);
+  assert.ok(providerEventRewriteIndex < purchaseRewriteIndex);
 });
 
 test("deleteAccountForAuthenticatedUser retries Cognito deletion for an existing tombstone without touching app data", async () => {
