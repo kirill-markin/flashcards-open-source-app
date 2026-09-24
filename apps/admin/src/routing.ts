@@ -1,4 +1,4 @@
-export const analyticsAreas = ["general", "funnels", "audience"] as const;
+export const analyticsAreas = ["general", "funnels", "audience", "ai-usage"] as const;
 
 export type AnalyticsArea = (typeof analyticsAreas)[number];
 
@@ -6,6 +6,7 @@ export const analyticsAreaLabels: Readonly<Record<AnalyticsArea, string>> = {
   general: "General",
   funnels: "Funnels",
   audience: "Audience",
+  "ai-usage": "Study vs AI",
 };
 
 export type AdminRoute =
