@@ -23,6 +23,15 @@ export type PurchaseStatus = "active" | "in_grace" | "expired" | "revoked";
  */
 export type EntitlementStatus = "none" | "active" | "in_grace";
 
+/**
+ * Whether a stored string is one of those three. The cached snapshot keeps its status as text and is
+ * healed by comparison (store.ts), so this is how a reader that has to name the status it read - and
+ * not merely compare it - finds out whether it can.
+ */
+export function isEntitlementStatus(value: string): value is EntitlementStatus {
+  return value === "none" || value === "active" || value === "in_grace";
+}
+
 export type EntitlementSource = "none" | "purchase" | "grant";
 
 /**
@@ -212,9 +221,7 @@ function isBetterCandidate(candidate: GrantingCandidate, best: GrantingCandidate
  * The pure derivation: stored purchases and grants in, one effective entitlement out, no I/O and no
  * clock read beyond the injected `now` (docs/premium-entitlements.md, "Derivation is a pure function;
  * the snapshot is a cache"). Every field of the result is resolved together, so no caller can publish
- * a half-resolved entitlement. The guest AI cap is an argument for the same reason the clock is: it is
- * parsed from the environment into module state, so reading it here would make the result depend on
- * something the arguments do not carry.
+ * a half-resolved entitlement.
  *
  * `environment` is not consulted. Whether a purchase marked `sandbox` grants entitlement outside a
  * sandbox context is still open, and no purchase row exists yet, so the question has no observable
@@ -224,7 +231,6 @@ export function resolveEntitlement(
   purchases: ReadonlyArray<EntitlementPurchaseInput>,
   grants: ReadonlyArray<EntitlementGrantInput>,
   accountKind: AccountKind,
-  guestAiWeightedMonthlyTokenCap: number,
   now: Date,
 ): ResolvedEntitlement {
   const candidates: ReadonlyArray<GrantingCandidate> = [
@@ -251,7 +257,7 @@ export function resolveEntitlement(
       isTrial: false,
       willRenew: false,
       source: "none",
-      limits: resolveEntitlementLimits(freeEntitlementTier, accountKind, guestAiWeightedMonthlyTokenCap),
+      limits: resolveEntitlementLimits(freeEntitlementTier, accountKind),
     };
   }
 
@@ -262,6 +268,6 @@ export function resolveEntitlement(
     isTrial: winner.isTrial,
     willRenew: winner.willRenew,
     source: winner.source,
-    limits: resolveEntitlementLimits(winner.tier, accountKind, guestAiWeightedMonthlyTokenCap),
+    limits: resolveEntitlementLimits(winner.tier, accountKind),
   };
 }

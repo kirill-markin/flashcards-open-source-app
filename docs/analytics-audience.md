@@ -71,6 +71,17 @@ an `ai_chat` or `agent_connection` replica, whose `installation_id` is NULL and 
 carries no marker by design. A marked installation is not an installation that produces zero events;
 read residue as these producers rather than as a defect in the marker.
 
+The five billing facts in
+[billingFacts.ts](../apps/backend/src/productAnalytics/serverFacts/billingFacts.ts) -
+`entitlement_changed`, `trial_started`, `purchase_completed`, `subscription_revoked` and
+`autorenew_disabled` - escape the marker by a decision rather than by omission, and that decision is
+recorded in the module's own header. A billing transition is not an action of any installation: it
+happens at a provider or at an operator's hand, and the only thing a device does is be the next one
+to sync, which is what makes the change visible. These producers therefore read no replica and no
+installation. Suppressing them by the marker would not drop a synthetic fact; it would make a real
+one depend on which of a person's devices pulled first, and the entitlement change is unrecoverable
+once the snapshot row is refreshed.
+
 Also accepted rather than fixed: `sync.claim_installation` hands an installation to whoever presents
 its id with the matching platform, so a takeover can mark an installation that was somebody's real
 device, and there is no unset path to undo it. That zeroes the replica-resolving facts for

@@ -66,6 +66,11 @@ async function generateTerminalComposerSuggestions(
       assistantContent,
       params.assistantItemId,
       params.uiLocale,
+      {
+        workspaceId: params.workspaceId,
+        requestId: params.requestId,
+        tierAtCall: params.tierAtCall,
+      },
     );
   } catch (error) {
     logChatWorkerLifecycleEvent("chat_worker_composer_suggestions_failed", logContext, {

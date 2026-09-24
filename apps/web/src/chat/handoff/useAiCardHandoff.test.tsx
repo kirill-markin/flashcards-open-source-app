@@ -7,11 +7,19 @@ import type { ChatComposerSendPhase } from "../composer/drafts/ChatDraftContext"
 import type { PendingAttachment } from "../attachments/FileAttachment";
 
 const {
+  indexedDbOpenRecoveryState,
   setErrorMessageMock,
   useOptionalChatLayoutMock,
   useOptionalChatDraftMock,
   useOptionalChatSessionMock,
 } = vi.hoisted(() => ({
+  indexedDbOpenRecoveryState: {
+    hasFailed: (): boolean => false,
+    isFailed: false,
+    markFailed: (): "not_recovery" => "not_recovery",
+    signal: new AbortController().signal,
+    throwIfFailed: (): void => {},
+  },
   setErrorMessageMock: vi.fn(),
   useOptionalChatLayoutMock: vi.fn(),
   useOptionalChatDraftMock: vi.fn(),
@@ -23,6 +31,16 @@ vi.mock("../../appData", () => ({
     setErrorMessage: setErrorMessageMock,
   }),
 }));
+
+vi.mock("../../appError/AppErrorContext", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../appError/AppErrorContext")>();
+  return {
+    ...actual,
+    useAppErrorDialog: () => ({
+      indexedDbOpenRecoveryState,
+    }),
+  };
+});
 
 vi.mock("../composer/drafts/ChatDraftContext", () => ({
   useOptionalChatDraft: useOptionalChatDraftMock,
@@ -102,6 +120,7 @@ describe("useAiCardHandoff", () => {
   let root: ReactDOM.Root | null = null;
 
   beforeEach(() => {
+    (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
     container = document.createElement("div");
     document.body.appendChild(container);
     root = ReactDOM.createRoot(container);
