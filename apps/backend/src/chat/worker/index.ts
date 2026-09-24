@@ -5,6 +5,8 @@
 import { claimChatRun } from "../runs";
 import { runPersistedChatSession, type ChatWorkerRunResult } from "../runtime";
 import { logChatWorkerLifecycleEvent } from "./logging";
+import { resolveAiUsageTierForFacts } from "../../aiUsage";
+import { resolveAccountKindForSignedInAuth } from "../../billing/snapshot";
 import type { BackendTraceCarrier } from "../../observability/sentry";
 
 export type ChatWorkerEvent = Readonly<{
@@ -93,6 +95,17 @@ export async function handleChatWorkerEvent(
     outcome: null,
   }, false);
 
+  // Resolved once per claimed run, and only resolved: the allowance was already enforced when the turn
+  // was accepted, and refusing here would abandon a run the caller is waiting on. What the worker needs
+  // from it is the tier every usage fact this run appends is attributed to, which is why this call
+  // cannot reject - the run is already claimed, so a rejection here would strand it until stale-run
+  // recovery over a label.
+  const tierAtCall = await resolveAiUsageTierForFacts(
+    claimedRun.userId,
+    resolveAccountKindForSignedInAuth(claimedRun.initiatingAuthIsSignedIn),
+    new Date(),
+  );
+
   const result: ChatWorkerRunResult = await runPersistedChatSession({
     lambdaRequestId: executionContext.lambdaRequestId,
     runId: claimedRun.runId,
@@ -113,6 +126,7 @@ export async function handleChatWorkerEvent(
       claimedRun.initiatingAuthIsSignedIn,
     ),
     clientPlatform: claimedRun.clientPlatform,
+    tierAtCall,
     diagnostics: claimedRun.diagnostics,
     getRemainingTimeInMillis: executionContext.getRemainingTimeInMillis,
   });

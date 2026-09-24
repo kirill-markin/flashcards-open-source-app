@@ -45,7 +45,6 @@ import { createWorkspaceRoutes } from "../routes/workspaces/index";
 import {
   createAgentConnectionManagementErrorEnvelope,
 } from "../agent/setup";
-import { getGuestAiWeightedMonthlyTokenCap } from "../guestAiQuota/config";
 import { logRequestError } from "./logging";
 import { getAllowedOrigins } from "./requestContext";
 import {
@@ -534,7 +533,6 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
  */
 export function createApp(basePath: string): Hono<AppEnv> {
   getAuthConfig();
-  getGuestAiWeightedMonthlyTokenCap();
   validatePublicUrlConfiguration();
   const allowedOrigins = getAllowedOrigins();
   const routeMountPaths = getRouteMountPaths(basePath);

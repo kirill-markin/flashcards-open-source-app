@@ -4,6 +4,11 @@
  */
 import { Buffer } from "node:buffer";
 import { toFile } from "openai";
+import {
+  toOpenAITranscriptionUsageCounters,
+  type AiUsageCounters,
+  type OpenAITranscriptionUsage,
+} from "../aiUsage";
 import { HttpError } from "../shared/errors";
 import {
   addBackendBreadcrumb,
@@ -30,7 +35,14 @@ type OpenAITranscriptionClient = Readonly<{
           file: File;
           model: "gpt-4o-transcribe";
         }>,
-      ) => Promise<Readonly<{ text: string }>>;
+      ) => Promise<Readonly<{
+        text: string;
+        // Optional because the provider decides whether to report usage for a call, and a call it
+        // reports nothing for is still metered, with null counters. The field and its two shapes are
+        // the pinned SDK's own `Transcription.usage`; which of them this model returns is recorded in
+        // `apps/backend/src/aiUsage/openaiUsage.ts`.
+        usage?: OpenAITranscriptionUsage;
+      }>>;
     }>;
   }>;
 }>;
@@ -47,7 +59,52 @@ export type ChatTranscriptionRequestContext = Readonly<{
   sessionId: string;
 }>;
 
-const CHAT_TRANSCRIPTION_MODEL = "gpt-4o-transcribe";
+/**
+ * The transcript and what the provider charged for producing it. The counters travel back to the caller
+ * rather than being appended here, because this module knows the provider and not who is paying: the
+ * route holds the person, the workspace and the resolved tier a usage fact has to carry.
+ */
+export type ChatTranscriptionResult = Readonly<{
+  text: string;
+  usageCounters: AiUsageCounters | null;
+}>;
+
+/**
+ * An empty transcript, carrying what the provider already charged for producing it. Silence or no speech
+ * is an ordinary outcome of tapping the mic rather than a provider failure, and the call is paid for
+ * either way, so the counters leave this module with the failure and the route appends the fact before
+ * it answers. The status, the message and the code are the ones this failure has always carried, so no
+ * released client sees a new shape.
+ */
+export class ChatTranscriptionEmptyTranscriptError extends HttpError {
+  readonly usageCounters: AiUsageCounters | null;
+
+  constructor(
+    usageCounters: AiUsageCounters | null,
+    statusCode: number,
+    message: string,
+    code: string,
+  ) {
+    super(statusCode, message, code);
+    this.usageCounters = usageCounters;
+  }
+}
+
+/**
+ * The same empty transcript before it is classified. It is thrown inside the provider call's `try` so
+ * that an empty transcript is logged and classified through exactly the path it already went through,
+ * and only then rewritten into the exported error with its counters attached.
+ */
+class EmptyTranscriptTextError extends Error {
+  readonly usageCounters: AiUsageCounters | null;
+
+  constructor(usageCounters: AiUsageCounters | null) {
+    super("Transcription response was empty");
+    this.usageCounters = usageCounters;
+  }
+}
+
+export const CHAT_TRANSCRIPTION_MODEL = "gpt-4o-transcribe";
 const CHAT_TRANSCRIPTION_INVALID_AUDIO_ERROR_MESSAGE = "We couldn’t process that recording. Please try again.";
 const SUPPORTED_AUDIO_FILE_EXTENSIONS = new Set(["m4a", "wav", "webm"]);
 const SUPPORTED_AUDIO_MEDIA_TYPES = new Set([
@@ -232,13 +289,13 @@ const DEFAULT_CHAT_TRANSCRIPTION_DEPENDENCIES: ChatTranscriptionDependencies = {
 };
 
 /**
- * Sends a validated audio upload to OpenAI and returns the trimmed transcript text.
+ * Sends a validated audio upload to OpenAI and returns the trimmed transcript with its provider usage.
  */
 export async function transcribeChatAudioUpload(
   upload: ChatTranscriptionUpload,
   requestContext: ChatTranscriptionRequestContext,
   client?: OpenAITranscriptionClient,
-): Promise<string> {
+): Promise<ChatTranscriptionResult> {
   return transcribeChatAudioUploadWithDependencies(
     upload,
     requestContext,
@@ -252,7 +309,7 @@ export async function transcribeChatAudioUploadWithDependencies(
   requestContext: ChatTranscriptionRequestContext,
   client: OpenAITranscriptionClient | undefined,
   dependencies: ChatTranscriptionDependencies,
-): Promise<string> {
+): Promise<ChatTranscriptionResult> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (apiKey === undefined || apiKey.trim() === "") {
     throw makeChatTranscriptionNotConfiguredError();
@@ -267,12 +324,18 @@ export async function transcribeChatAudioUploadWithDependencies(
       file,
       model: CHAT_TRANSCRIPTION_MODEL,
     });
+    // Read before the emptiness check, because the provider has already answered and been paid by this
+    // point: an empty transcript must lose the transcript, not the fact.
+    const usageCounters = toOpenAITranscriptionUsageCounters(result.usage);
     const trimmedText = result.text.trim();
     if (trimmedText === "") {
-      throw new Error("Transcription response was empty");
+      throw new EmptyTranscriptTextError(usageCounters);
     }
 
-    return trimmedText;
+    return {
+      text: trimmedText,
+      usageCounters,
+    };
   } catch (error) {
     const metadata = getAIProviderFailureMetadata(error);
     const errorDetails = getBackendErrorLogDetails(error);
@@ -301,6 +364,15 @@ export async function transcribeChatAudioUploadWithDependencies(
 
     logChatTranscriptionFailure(failureDetails);
     const normalizedFailure = classifyChatTranscriptionFailure(error);
+    if (error instanceof EmptyTranscriptTextError) {
+      throw new ChatTranscriptionEmptyTranscriptError(
+        error.usageCounters,
+        normalizedFailure.statusCode,
+        normalizedFailure.message,
+        normalizedFailure.code,
+      );
+    }
+
     throw new HttpError(
       normalizedFailure.statusCode,
       normalizedFailure.message,

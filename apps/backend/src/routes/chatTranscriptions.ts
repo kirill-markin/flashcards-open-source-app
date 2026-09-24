@@ -1,22 +1,27 @@
 /**
  * Route factory for the shared backend-owned dictation endpoint.
- * The endpoint stays thin: it authenticates, enforces guest quota, and delegates upload parsing and transcription to the chat module.
+ * The endpoint stays thin: it authenticates, enforces the caller's monthly AI allowance, meters the provider call, and delegates upload parsing and transcription to the chat module.
  */
 import { Hono } from "hono";
 import { isChatSessionRequestedSessionIdConflictError } from "../chat/errors";
 import { getRecoveredChatSessionSnapshot } from "../chat/runs";
 import {
+  CHAT_TRANSCRIPTION_MODEL,
+  ChatTranscriptionEmptyTranscriptError,
   parseChatTranscriptionUpload,
   transcribeChatAudioUpload,
   type ChatTranscriptionRequestContext,
+  type ChatTranscriptionResult,
   type ChatTranscriptionUpload,
 } from "../chat/transcriptions";
 import { HttpError } from "../shared/errors";
 import { startChatTranscriptionObservation } from "../telemetry/langfuse";
 import {
-  assertGuestAiLimitAllowsTranscription,
-  recordGuestDictationUsage,
-} from "../guestAiQuota";
+  appendAiUsageEvent,
+  requireAiUsageAllowance,
+  type AiUsageCounters,
+} from "../aiUsage";
+import { resolveAccountKindForTransport } from "../billing/snapshot";
 import {
   loadRequestContextFromRequest,
   resolveAccessibleAiDictationWorkspaceId,
@@ -32,7 +37,9 @@ type ChatTranscriptionsRoutesOptions = Readonly<{
   transcribeAudioFn?: (
     upload: ChatTranscriptionUpload,
     requestContext: ChatTranscriptionRequestContext,
-  ) => Promise<string>;
+  ) => Promise<ChatTranscriptionResult>;
+  requireAiUsageAllowanceFn?: typeof requireAiUsageAllowance;
+  appendAiUsageEventFn?: typeof appendAiUsageEvent;
 }>;
 
 type ChatTranscriptionRouteResponse = Readonly<{
@@ -99,6 +106,8 @@ export function createChatTranscriptionsRoutes(options: ChatTranscriptionsRoutes
       });
   const transcribeAudioFn = options.transcribeAudioFn
     ?? (async (upload, requestContext) => transcribeChatAudioUpload(upload, requestContext));
+  const requireAiUsageAllowanceFn = options.requireAiUsageAllowanceFn ?? requireAiUsageAllowance;
+  const appendAiUsageEventFn = options.appendAiUsageEventFn ?? appendAiUsageEvent;
 
   app.post("/chat/transcriptions", async (context) => {
     const { requestContext } = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
@@ -121,28 +130,53 @@ export function createChatTranscriptionsRoutes(options: ChatTranscriptionsRoutes
         fileSize: upload.file.size,
       },
       async (): Promise<string> => {
-        if (requestContext.transport === "guest") {
-          await assertGuestAiLimitAllowsTranscription(
-            requestContext.userId,
-            upload.file.size,
-            new Date(),
-          );
+        // Checked for every caller, with no branch on who they are: the resolved allowance decides,
+        // and an uncapped one admits the call without a count to compare.
+        const allowance = await requireAiUsageAllowanceFn(
+          requestContext.userId,
+          resolveAccountKindForTransport(requestContext.transport),
+          new Date(),
+        );
+
+        const appendDictationUsageFact = async (
+          counters: AiUsageCounters | null,
+        ): Promise<void> => {
+          await appendAiUsageEventFn({
+            userId: requestContext.userId,
+            workspaceId,
+            occurredAt: new Date(),
+            surface: "dictation",
+            provider: "openai",
+            modelId: CHAT_TRANSCRIPTION_MODEL,
+            requestId: context.get("requestId"),
+            tierAtCall: allowance.tier,
+            counters,
+            imageCount: null,
+            imageSize: null,
+            imageQuality: null,
+          });
+        };
+
+        let transcription: ChatTranscriptionResult;
+        try {
+          transcription = await transcribeAudioFn(upload, {
+            requestId: context.get("requestId"),
+            sessionId,
+          });
+        } catch (error) {
+          // A transcript that came back empty is still a call the provider was paid for, and it carries
+          // its counters out with it, so the fact is appended here exactly once and the failure is
+          // re-raised with the status, message and code it already had.
+          if (error instanceof ChatTranscriptionEmptyTranscriptError) {
+            await appendDictationUsageFact(error.usageCounters);
+          }
+
+          throw error;
         }
 
-        const transcribedText = await transcribeAudioFn(upload, {
-          requestId: context.get("requestId"),
-          sessionId,
-        });
+        await appendDictationUsageFact(transcription.usageCounters);
 
-        if (requestContext.transport === "guest") {
-          await recordGuestDictationUsage(
-            requestContext.userId,
-            upload.file.size,
-            new Date(),
-          );
-        }
-
-        return transcribedText;
+        return transcription.text;
       },
     );
     return context.json({
