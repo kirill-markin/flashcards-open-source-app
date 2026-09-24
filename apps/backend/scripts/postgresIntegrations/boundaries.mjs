@@ -70,6 +70,61 @@ export const createdRolesByMigration = new Map([
   ["0044_reporting_readonly_role.sql", Object.freeze(["reporting_readonly"])],
 ]);
 export const boundaryDefinitions = Object.freeze([
+  // 0151 creates the billing schema, and the sync pull route now reads it: the route assembly point in
+  // routes/sync/index.ts resolves the caller's entitlement through billing/snapshot.ts, which selects
+  // from billing.purchases and billing.grants and upserts billing.entitlement_snapshots. Boundaries run
+  // current backend code against their own older schema, so a test that executes that read below this
+  // migration fails with `relation "billing.purchases" does not exist`. billing/entitlement is the only
+  // test that executes it, and it is listed here rather than left unlisted because an unlisted
+  // integration file is never executed by any workflow: it drives the real /sync/pull route for the
+  // wire field, and the resolver and its snapshot cache against the real tables, which is the only way
+  // to see that the reads match the shipped schema and that an unchanged entitlement is not rewritten
+  // on every pull.
+  // No pinned test moves here for the billing read. Re-derived from scratch rather than taken from the
+  // plan, which expected two of them to move while the read was still going to sit inside
+  // processSyncPull:
+  // - sync/freshBootstrap: value-imports createSyncRoutes and therefore now value-imports the billing
+  //   module, but it only requests /sync/bootstrap. The entitlement is attached to /sync/pull alone, so
+  //   nothing in that request reaches a billing table, and it stays at 0141.
+  // - agent/reviews and chat/cardImages/promotion/jobsSettlement: both call processSyncPull directly,
+  //   which is below the route and resolves no entitlement. The HTTP half of agent/reviews drives
+  //   createAgentRoutes, which does not mount the sync routes.
+  // - every other pinned test: no import path to routes/sync/index.ts or to src/billing at all.
+  // Attaching the read at the route instead of inside the shared authenticated-request profile read is
+  // what keeps that list this short: a billing read inside ensureUserProfileInExecutor would pin every
+  // boundary in this file to this migration, exactly as 0149 below had to.
+  //
+  // The other two files here have nothing to do with billing. Each exists to pin what production runs
+  // rather than to cover an older schema, so each belongs at whichever entry is newest; both moved up
+  // from 0149 because this entry landed above it, and leaving them behind would have made that stated
+  // reason untrue. Nothing ties the three files in this entry together, so moving any one of them later
+  // does not free the others.
+  // - serverFacts/authoringUpdates authenticates nothing. It drives the real exported card and deck
+  //   mutations through the real post-commit drain and the real analytics writer, so its floor is 0141,
+  //   whose sync.installations.is_automation the drain's replica resolution names in its LEFT JOIN.
+  //   Above that floor it wants the newest schema rather than an older one: the statement in
+  //   updateCardInExecutor that captures a card's authored fields before its own UPDATE is executed
+  //   nowhere else in the repository, and an ambiguous column or a RETURNING list that stopped matching
+  //   CARD_COLUMNS would otherwise first be seen in production.
+  // - managedMedia/managedImageSnapshotMerge runs the real managed-image settlement and the real
+  //   snapshot upsert against one card in sequence, which is the only way to prove a rule whose inputs
+  //   are the stored front_text/back_text and the stored last_modified_by_replica_id rather than
+  //   anything in the request. Its own floor is far below this migration - it names no column newer
+  //   than the card and replica tables have had for a long time - but it is pinned at the newest
+  //   boundary on purpose, for the same reason: the snapshot UPDATE it drives has to keep matching
+  //   CARD_COLUMNS.
+  // Moving a test retires the older-schema coverage it used to give, because each test runs only at its
+  // pinned boundary and there is no full-schema pass. Both files keep covering every migration below
+  // this one, which is what their own floors ask for; what 0149 loses is a pass at exactly 0149.
+  Object.freeze({
+    migrationFileName: "0151_billing_schema.sql",
+    expectedMigrationCount: 153,
+    testFiles: Object.freeze([
+      "src/billing/entitlement.postgres.integration.ts",
+      "src/cards/managedMedia/managedImageSnapshotMerge.postgres.integration.ts",
+      "src/productAnalytics/serverFacts/authoringUpdates.postgres.integration.ts",
+    ]),
+  }),
   // 0149 adds org.user_settings.product_analytics_enabled, and the shared profile read now names
   // that column as well: the SELECT in ensureUserProfileInExecutor (auth/ensureUser.ts), which
   // loadAuthenticatedRequestContext runs for every authenticated request on every transport.
@@ -106,29 +161,11 @@ export const boundaryDefinitions = Object.freeze([
     migrationFileName: "0149_product_analytics_off_switch.sql",
     expectedMigrationCount: 151,
     //
-    // serverFacts/authoringUpdates joined this boundary rather than taking one of its own, and not
-    // for the profile read above: it authenticates nothing. It drives the real exported card and
-    // deck mutations through the real post-commit drain and the real analytics writer, so its floor
-    // is 0141, whose sync.installations.is_automation the drain's replica resolution names in its
-    // LEFT JOIN. Above that floor it wants the newest schema rather than an older one, because it
-    // exists to pin what production runs - the statement in updateCardInExecutor that captures a
-    // card's authored fields before its own UPDATE is executed nowhere else in the repository, and
-    // an ambiguous column or a RETURNING list that stopped matching CARD_COLUMNS would otherwise
-    // first be seen in production. Nothing ties the two files in this entry together, so moving
-    // either one later does not free the other.
-    //
-    // managedMedia/managedImageSnapshotMerge is here for the same reason and is tied to neither of
-    // the others. It runs the real managed-image settlement and the real snapshot upsert against
-    // one card in sequence, which is the only way to prove a rule whose inputs are the stored
-    // front_text/back_text and the stored last_modified_by_replica_id rather than anything in the
-    // request. Its own floor is far below this migration - it names no column newer than the card
-    // and replica tables have had for a long time - but it is pinned at the newest boundary on
-    // purpose, because it exists to pin what production runs and the snapshot UPDATE it drives has
-    // to keep matching CARD_COLUMNS.
+    // The two files that used to sit here to pin what production runs - serverFacts/authoringUpdates
+    // and managedMedia/managedImageSnapshotMerge - moved to the 0151 entry above when that became the
+    // newest boundary. Neither is here for the profile read: they authenticate nothing.
     testFiles: Object.freeze([
       "src/agent/reviews.postgres.integration.ts",
-      "src/cards/managedMedia/managedImageSnapshotMerge.postgres.integration.ts",
-      "src/productAnalytics/serverFacts/authoringUpdates.postgres.integration.ts",
       "src/routes/system/account/accountPreferences.postgres.integration.ts",
     ]),
   }),
@@ -155,10 +192,11 @@ export const boundaryDefinitions = Object.freeze([
   // it fails with `column installations.is_automation does not exist`. The tests that reach those
   // reads are the two listed here - freshBootstrap (the /sync/bootstrap replica claim) and
   // jobsSettlement (which verifies a promoted asset through a real processSyncPull), both moved
-  // here from 0107 - plus every test the 0149 entry above pins further forward, which satisfies
-  // this migration too: agent/reviews (processSyncPull, processSyncReviewHistoryPull, and the
-  // post-commit content-write resolution), which came here from 0138, and
-  // serverFacts/authoringUpdates, which was written above this boundary and never sat at it.
+  // here from 0107 - plus every test the 0151 and 0149 entries above pin further forward, which
+  // satisfies this migration too: agent/reviews (processSyncPull, processSyncReviewHistoryPull, and
+  // the post-commit content-write resolution), which came here from 0138 and is pinned at 0149, and
+  // serverFacts/authoringUpdates, which was written above this boundary, never sat at it, and is now
+  // pinned at 0151.
   // Moving a test retires the older-schema coverage it used to give, because each test runs only at
   // its pinned boundary and there is no full-schema pass.
   Object.freeze({

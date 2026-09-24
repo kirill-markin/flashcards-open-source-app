@@ -19,6 +19,7 @@ import {
   workspaceRoutePrefix,
 } from "../../../src/routes";
 import { localUiTimeoutMs } from "../config";
+import { primaryNavigationLinkSelector } from "../navigation";
 import { runLiveSmokeStep } from "../steps";
 import type { LiveSmokeSession } from "../types";
 
@@ -167,7 +168,7 @@ async function openSettingsDetailFromRoot(
 
 async function openSettingsRoot(session: LiveSmokeSession, actionName: string): Promise<void> {
   const { page, diagnostics, baseUrl } = session;
-  await trackedClick(diagnostics, actionName, page.locator('nav.nav a[href="/settings"]').first());
+  await trackedClick(diagnostics, actionName, page.locator(primaryNavigationLinkSelector("/settings")).first());
   await trackedWaitForUrl(
     page,
     diagnostics,
@@ -178,8 +179,8 @@ async function openSettingsRoot(session: LiveSmokeSession, actionName: string): 
 }
 
 /**
- * The workspace segment is optional so this holds both before and after each in-app link is moved
- * under `/w/:workspaceId`: a flat link lands on the same route through the redirect in `App.tsx`.
+ * The workspace segment is optional because the flat address reaches the same route through the
+ * permanent redirect in `App.tsx`, which external bookmarks still arrive on.
  */
 function buildRouteUrlPattern(baseUrl: string, route: string): RegExp {
   const workspaceSegment = `(?:${escapeRegExp(`${workspaceRoutePrefix}/`)}[^/]+)?`;

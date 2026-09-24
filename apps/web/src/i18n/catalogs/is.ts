@@ -1331,6 +1331,7 @@ const isCatalog: TranslationCatalog = {
     errorTitle: "Villa í gervigreindarspjalli",
     errors: {
       activeRunInProgress: "Svar er þegar í vinnslu. Bíddu þar til því lýkur eða stöðvaðu það áður en þú sendir önnur skilaboð.",
+      aiLimitReached: "Þú hefur fullnýtt gervigreindarhámarkið þitt fyrir þennan mánuð. Það endurstillist í byrjun næsta mánaðar.",
       emptyBackendResponse: "Bakendinn skilaði tómu villusvari.",
       genericFailure: "Gervigreindarspjall mistókst.",
       liveStreamEndedBeforeCompletion: "Beinstreymi gervigreindar lauk áður en keyrslunni lauk.",

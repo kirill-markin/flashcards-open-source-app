@@ -1331,6 +1331,7 @@ const heCatalog: TranslationCatalog = {
     errorTitle: "שגיאה בצ'אט AI",
     errors: {
       activeRunInProgress: "תשובה כבר בתהליך. המתן שתסתיים או עצור אותה לפני שליחת הודעה נוספת.",
+      aiLimitReached: "מגבלת ה-AI שלך לחודש הזה נגמרה. היא מתאפסת בתחילת החודש הבא.",
       emptyBackendResponse: "השרת החזיר תשובת שגיאה ריקה.",
       genericFailure: "צ'אט AI נכשל.",
       liveStreamEndedBeforeCompletion: "השידור החי של ה-AI הסתיים לפני שהריצה הושלמה.",

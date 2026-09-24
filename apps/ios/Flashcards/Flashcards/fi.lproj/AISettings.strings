@@ -43,6 +43,7 @@
 "ai.error.requestTooLarge.message" = "Tekoälykeskustelu ei voi lähettää näin paljon sisältöä kerralla. Poista liitteitä, valitse pienempi tiedosto tai kuva tai jaa pyyntö osiin ja yritä uudelleen.";
 "ai.error.attachmentUnsupported.title" = "Tiedostotyyppiä ei tueta";
 "ai.error.attachmentUnsupported.message" = "Tätä tiedostotyyppiä ei tueta tekoälykeskustelussa. Poista tiedosto tai tallenna se muodossa PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX tai kuvana ja yritä uudelleen.";
+"ai.error.limitReached" = "Tämän kuukauden tekoälyraja on käytetty loppuun. Se nollautuu ensi kuun alussa.";
 "ai.error.summary.couldNotContinue" = "Tekoälyn vastausta ei voitu jatkaa";
 "ai.error.summary.invalidResponse" = "Saatiin virheellinen tekoälyn vastaus";
 "ai.error.summary.configuration" = "Tekoälyn määritysvirhe";

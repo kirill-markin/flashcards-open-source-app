@@ -8,6 +8,7 @@ import type { IndexedDbOpenRecoveryState } from "../../../appError/AppErrorConte
 
 export type ChatSessionControllerUiMessages = Readonly<{
   activeRunInProgress: string;
+  aiLimitReached: string;
   attachmentLimit: string;
   attachmentUnsupported: string;
   errorFallbacks: ChatErrorFallbackMessages;

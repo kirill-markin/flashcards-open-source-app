@@ -1331,6 +1331,7 @@ const nlCatalog: TranslationCatalog = {
     errorTitle: "Fout in de AI-chat",
     errors: {
       activeRunInProgress: "Er wordt al een antwoord gegeven. Wacht tot het klaar is of stop het voordat je een nieuw bericht stuurt.",
+      aiLimitReached: "Je AI-limiet voor deze maand is opgebruikt. De limiet wordt aan het begin van volgende maand opnieuw ingesteld.",
       emptyBackendResponse: "De backend gaf een lege foutmelding terug.",
       genericFailure: "De AI-chat is mislukt.",
       liveStreamEndedBeforeCompletion: "De live-stream van de AI stopte voordat de run klaar was.",

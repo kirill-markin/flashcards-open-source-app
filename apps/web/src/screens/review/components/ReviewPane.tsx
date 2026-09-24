@@ -4,6 +4,7 @@ import type { ReviewRating } from "../../../../../backend/src/scheduling";
 import { track } from "../../../analytics";
 import { useI18n } from "../../../i18n";
 import { cardsRoute, chatRoute } from "../../../routes";
+import { useWorkspacePath } from "../../../useWorkspacePath";
 import type { Card } from "../../../types";
 import type { ReviewLoadingSnapshot } from "../../shared/loadingSnapshots";
 import { ReviewRepetitionBadgeIcon } from "../../shared/ReviewProgressBadgeIcon";
@@ -218,6 +219,7 @@ function ReviewLoadingPane(props: ReviewLoadingPaneProps): ReactElement {
 function ReviewEmptyPane(props: ReviewEmptyPaneProps): ReactElement {
   const { hasCards, onSwitchToAllCards, shouldShowSwitchToAllCardsAction } = props;
   const { t } = useI18n();
+  const workspacePath = useWorkspacePath();
 
   return (
     <div className="review-empty">
@@ -230,13 +232,13 @@ function ReviewEmptyPane(props: ReviewEmptyPaneProps): ReactElement {
       <div className="review-empty-actions">
         <Link
           className="ghost-btn"
-          to={`${cardsRoute}/new`}
+          to={workspacePath(`${cardsRoute}/new`)}
           onClick={() => track({ name: "card_create_started", entryPoint: "review" })}
         >
           {t("reviewScreen.actions.createCard")}
         </Link>
         <p className="review-empty-or">{t("reviewScreen.empty.or")}</p>
-        <Link className="primary-btn" to={chatRoute}>
+        <Link className="primary-btn" to={workspacePath(chatRoute)}>
           {t("reviewScreen.actions.createWithAi")}
         </Link>
         {shouldShowSwitchToAllCardsAction ? (

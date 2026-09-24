@@ -1331,6 +1331,7 @@ const thCatalog: TranslationCatalog = {
     errorTitle: "ข้อผิดพลาดของแชท AI",
     errors: {
       activeRunInProgress: "กำลังตอบอยู่ รอให้เสร็จหรือหยุดก่อนส่งข้อความใหม่",
+      aiLimitReached: "คุณใช้ขีดจำกัด AI ของเดือนนี้หมดแล้ว ขีดจำกัดจะรีเซ็ตในต้นเดือนหน้า",
       emptyBackendResponse: "แบ็กเอนด์ส่งข้อความแสดงข้อผิดพลาดที่ว่างเปล่ากลับมา",
       genericFailure: "แชท AI ล้มเหลว",
       liveStreamEndedBeforeCompletion: "สตรีมสดของ AI จบก่อนที่การตอบจะเสร็จ",

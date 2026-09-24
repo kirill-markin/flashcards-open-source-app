@@ -1331,6 +1331,7 @@ const huCatalog: TranslationCatalog = {
     errorTitle: "AI-csevegési hiba",
     errors: {
       activeRunInProgress: "Egy válasz már folyamatban van. Várd meg a végét, vagy állítsd le, mielőtt új üzenetet küldesz.",
+      aiLimitReached: "Elhasználtad az AI-korlátodat erre a hónapra. A következő hónap elején áll vissza.",
       emptyBackendResponse: "A backend üres hibaválaszt adott.",
       genericFailure: "Az AI-csevegés nem sikerült.",
       liveStreamEndedBeforeCompletion: "Az AI élő adatfolyama a futás befejezése előtt véget ért.",

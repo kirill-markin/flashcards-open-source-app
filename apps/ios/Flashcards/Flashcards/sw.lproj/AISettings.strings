@@ -43,6 +43,7 @@
 "ai.error.requestTooLarge.message" = "Gumzo la AI haliwezi kutuma maudhui mengi hivi kwa wakati mmoja. Ondoa kiambatisho kimoja au zaidi, chagua faili au picha ndogo, au gawanya ombi na ujaribu tena.";
 "ai.error.attachmentUnsupported.title" = "Aina ya faili isiyotumika";
 "ai.error.attachmentUnsupported.message" = "Aina hii ya faili haitumiki kwenye gumzo la AI. Ondoa faili au ihifadhi kama PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, au picha, kisha ujaribu tena.";
+"ai.error.limitReached" = "Kikomo chako cha AI kwa mwezi huu kimeisha. Kitawekwa upya mwanzoni wa mwezi ujao.";
 "ai.error.summary.couldNotContinue" = "Jibu la AI Halikuweza Kuendelea";
 "ai.error.summary.invalidResponse" = "Jibu Batili la AI Limepokelewa";
 "ai.error.summary.configuration" = "Hitilafu ya Usanidi wa AI";

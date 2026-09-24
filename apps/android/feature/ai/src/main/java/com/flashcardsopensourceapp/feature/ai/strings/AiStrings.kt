@@ -80,6 +80,7 @@ data class AiTextProvider(
     val consentRequiredMessage: String,
     val guestQuotaReachedMessage: String,
     val guestQuotaButtonTitle: String,
+    val aiLimitReachedMessage: String,
     private val messageWithRequestIdFormat: String,
     private val bidiLocale: Locale
 ) {
@@ -280,6 +281,7 @@ fun aiTextProvider(context: Context): AiTextProvider {
         consentRequiredMessage = context.getString(R.string.ai_consent_required_message),
         guestQuotaReachedMessage = context.getString(R.string.ai_guest_quota_reached_message),
         guestQuotaButtonTitle = context.getString(R.string.ai_guest_quota_button_title),
+        aiLimitReachedMessage = context.getString(R.string.ai_limit_reached_message),
         messageWithRequestIdFormat = context.getString(R.string.ai_message_with_request_id),
         bidiLocale = currentResourceLocale(resources = context.resources)
     )
@@ -356,6 +358,7 @@ fun testAiTextProvider(): AiTextProvider {
         consentRequiredMessage = "Review AI data use and accept it on this device before using AI features.",
         guestQuotaReachedMessage = "Your free guest AI limit for this month is used up. Create an account or log in to keep using AI.",
         guestQuotaButtonTitle = "Create account or Log in",
+        aiLimitReachedMessage = "Your AI limit for this month is used up. It resets at the start of next month.",
         messageWithRequestIdFormat = "%1\$s Request ID: %2\$s",
         bidiLocale = Locale.ENGLISH
     )

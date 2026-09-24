@@ -1331,6 +1331,7 @@ const arCatalog: TranslationCatalog = {
     errorTitle: "خطأ في دردشة الذكاء الاصطناعي",
     errors: {
       activeRunInProgress: "هناك استجابة قيد التنفيذ بالفعل. انتظر حتى تنتهي أو أوقفها قبل إرسال رسالة أخرى.",
+      aiLimitReached: "لقد استنفدت حد الذكاء الاصطناعي لهذا الشهر. يُعاد ضبطه في بداية الشهر المقبل.",
       emptyBackendResponse: "أعاد الخادم الخلفي استجابة خطأ فارغة.",
       genericFailure: "فشلت دردشة الذكاء الاصطناعي.",
       liveStreamEndedBeforeCompletion: "انتهى البث المباشر للذكاء الاصطناعي قبل اكتمال التشغيل.",

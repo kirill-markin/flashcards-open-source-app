@@ -9,6 +9,7 @@ import {
 import { useAnchoredFloatingOutsidePointerDismiss } from "../../../floating";
 import { useI18n } from "../../../i18n";
 import { settingsDecksRoute } from "../../../routes";
+import { useWorkspacePath, type WorkspacePathBuilder } from "../../../useWorkspacePath";
 import type { DeckSummary, ReviewFilter, WorkspaceTagSummary } from "../../../types";
 
 const REVIEW_FILTER_DECK_PREFIX = "deck:";
@@ -172,12 +173,15 @@ function resolveMaterializedTags(
     : normalizeReviewFilterTags(selectedDeck.filterDefinition.tags);
 }
 
-function buildReviewFilterMenuItems(label: string): Array<ReviewFilterMenuItem> {
+function buildReviewFilterMenuItems(
+  label: string,
+  workspacePath: WorkspacePathBuilder,
+): Array<ReviewFilterMenuItem> {
   return [{
     kind: "action",
     key: "edit-decks",
     label,
-    href: settingsDecksRoute,
+    href: workspacePath(settingsDecksRoute),
   }];
 }
 
@@ -262,6 +266,7 @@ export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseRevie
     workspaceId,
   } = params;
   const { t } = useI18n();
+  const workspacePath = useWorkspacePath();
   const [isReviewFilterMenuOpen, setIsReviewFilterMenuOpen] = useState<boolean>(false);
   const [reviewFilterDraft, setReviewFilterDraft] = useState<ReviewFilter | null>(null);
   const [reviewDeckSearchText, setReviewDeckSearchText] = useState<string>("");
@@ -294,7 +299,7 @@ export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseRevie
     reviewTagSummaries,
     displayedReviewFilter,
   );
-  const reviewFilterMenuItems = buildReviewFilterMenuItems(t("reviewFilterMenu.editDecks"));
+  const reviewFilterMenuItems = buildReviewFilterMenuItems(t("reviewFilterMenu.editDecks"), workspacePath);
   const totalReviewFilterChoicesCount = reviewDeckFilterMenuItems.length
     + reviewTagFilterMenuItems.length;
   const shouldShowReviewDeckSearch = totalReviewFilterChoicesCount > 7;

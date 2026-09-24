@@ -858,7 +858,7 @@ final class AIChatStoreRunStartTests: XCTestCase {
             )
             XCTFail("Expected the runtime to rethrow the guest AI quota failure.")
         } catch {
-            XCTAssertTrue(isGuestAiLimitError(error: error))
+            XCTAssertTrue(isAiLimitReachedError(error: error))
             guard let serviceError = error as? AIChatServiceError else {
                 return XCTFail("Expected an invalid-response guest quota error.")
             }

@@ -638,7 +638,7 @@ describe("CatalogImportScreen", () => {
         "https://play.google.com/store/apps/details?id=com.flashcardsopensourceapp.app&utm_source=flashcards_website&utm_medium=referral&utm_campaign=catalog_import",
         "_blank",
       ],
-      ["catalog-import-success-link-web", "http://localhost:3000/review", "_blank"],
+      ["catalog-import-success-link-web", "http://localhost:3000/w/workspace-1/review", "_blank"],
     ]);
     expect(container.querySelector("[data-testid='catalog-import-success-qr-ios']")).not.toBeNull();
     expect(container.querySelector("[data-testid='catalog-import-success-qr-android']")).not.toBeNull();

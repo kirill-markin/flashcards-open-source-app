@@ -43,6 +43,7 @@
 "ai.error.requestTooLarge.message" = "AI-chatten kan ikke sende så mye innhold på én gang. Fjern ett eller flere vedlegg, velg en mindre fil eller et mindre bilde, eller del opp forespørselen og prøv igjen.";
 "ai.error.attachmentUnsupported.title" = "Filtypen støttes ikke";
 "ai.error.attachmentUnsupported.message" = "Denne filtypen støttes ikke i AI-chatten. Fjern filen eller lagre den som PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX eller et bilde, og prøv igjen.";
+"ai.error.limitReached" = "AI-grensen din for denne måneden er brukt opp. Den nullstilles i begynnelsen av neste måned.";
 "ai.error.summary.couldNotContinue" = "Kunne ikke fortsette AI-svaret";
 "ai.error.summary.invalidResponse" = "Mottok et ugyldig AI-svar";
 "ai.error.summary.configuration" = "Feil i AI-konfigurasjonen";

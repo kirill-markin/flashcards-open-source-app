@@ -43,6 +43,7 @@
 "ai.error.requestTooLarge.message" = "AI razgovor ne može poslati toliko sadržaja odjednom. Uklonite jedan ili više privitaka, odaberite manju datoteku ili fotografiju ili podijelite zahtjev i pokušajte ponovno.";
 "ai.error.attachmentUnsupported.title" = "Nepodržana vrsta datoteke";
 "ai.error.attachmentUnsupported.message" = "Ova vrsta datoteke nije podržana u AI razgovoru. Uklonite datoteku ili je spremite kao PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX ili sliku pa pokušajte ponovno.";
+"ai.error.limitReached" = "Iskoristili ste svoje AI ograničenje za ovaj mjesec. Ponovno se postavlja na početku sljedećeg mjeseca.";
 "ai.error.summary.couldNotContinue" = "Nije moguće nastaviti AI odgovor";
 "ai.error.summary.invalidResponse" = "Primljen je nevaljan AI odgovor";
 "ai.error.summary.configuration" = "Pogreška konfiguracije AI-ja";

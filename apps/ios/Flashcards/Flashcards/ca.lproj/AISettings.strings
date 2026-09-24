@@ -43,6 +43,7 @@
 "ai.error.requestTooLarge.message" = "El xat d'IA no pot enviar tant de contingut alhora. Elimina un o més fitxers adjunts, tria un fitxer o una foto més petit o divideix la sol·licitud i torna-ho a provar.";
 "ai.error.attachmentUnsupported.title" = "Tipus de fitxer no compatible";
 "ai.error.attachmentUnsupported.message" = "Aquest tipus de fitxer no és compatible amb el xat d'IA. Traieu el fitxer o deseu-lo com a PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX o com a imatge i torneu-ho a provar.";
+"ai.error.limitReached" = "Has esgotat el teu límit d'IA d'aquest mes. Es restableix al principi del mes que ve.";
 "ai.error.summary.couldNotContinue" = "No s'ha pogut continuar la resposta de l'IA";
 "ai.error.summary.invalidResponse" = "S'ha rebut una resposta d'IA no vàlida";
 "ai.error.summary.configuration" = "Error de configuració de l'IA";

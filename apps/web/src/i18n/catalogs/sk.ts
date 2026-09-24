@@ -1343,6 +1343,7 @@ const skCatalog: TranslationCatalog = {
     errorTitle: "Chyba AI chatu",
     errors: {
       activeRunInProgress: "Odpoveď sa už pripravuje. Pred odoslaním ďalšej správy počkajte na jej dokončenie alebo ju zastavte.",
+      aiLimitReached: "Vyčerpali ste svoj limit AI na tento mesiac. Obnoví sa na začiatku ďalšieho mesiaca.",
       emptyBackendResponse: "Server vrátil prázdnu chybovú odpoveď.",
       genericFailure: "AI chat zlyhal.",
       liveStreamEndedBeforeCompletion: "Živý prenos AI sa skončil skôr, ako sa spracovanie dokončilo.",

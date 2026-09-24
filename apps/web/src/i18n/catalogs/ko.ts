@@ -1331,6 +1331,7 @@ const koCatalog: TranslationCatalog = {
     errorTitle: "AI 채팅 오류",
     errors: {
       activeRunInProgress: "이미 응답을 생성하고 있습니다. 끝날 때까지 기다리거나 중지한 뒤 다음 메시지를 보내세요.",
+      aiLimitReached: "이번 달 AI 사용 한도를 모두 사용했습니다. 한도는 다음 달 초에 초기화됩니다.",
       emptyBackendResponse: "백엔드가 빈 오류 응답을 반환했습니다.",
       genericFailure: "AI 채팅에 실패했습니다.",
       liveStreamEndedBeforeCompletion: "실행이 끝나기 전에 AI 라이브 스트림이 종료되었습니다.",

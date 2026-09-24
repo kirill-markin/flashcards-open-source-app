@@ -3,12 +3,24 @@
 import { act } from "react";
 import ReactDOM from "react-dom/client";
 import { MemoryRouter } from "react-router";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppErrorDialogProvider } from "../../appError/AppErrorContext";
 import { createStorageMock } from "../../api/ApiTestSupport";
 import { I18nProvider } from "../../i18n";
 import { LOCALE_PREFERENCE_STORAGE_KEY } from "../../i18n/runtime";
 import { TestSettingsScreen } from "./TestSettingsScreen";
+
+// The screen reads the active workspace only to address its rows under `/w/<workspaceId>`.
+vi.mock("../../appData", () => ({
+  useAppData: () => ({
+    activeWorkspace: {
+      workspaceId: "workspace-1",
+      name: "Primary",
+      createdAt: "2026-03-10T00:00:00.000Z",
+      isSelected: true,
+    },
+  }),
+}));
 
 function requireElement(container: HTMLElement, testId: string): HTMLElement {
   const element = container.querySelector(`[data-testid='${testId}']`);

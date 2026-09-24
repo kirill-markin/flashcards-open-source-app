@@ -1331,6 +1331,7 @@ const viCatalog: TranslationCatalog = {
     errorTitle: "Lỗi trò chuyện AI",
     errors: {
       activeRunInProgress: "Đã có một phản hồi đang chạy. Hãy đợi nó xong hoặc dừng lại trước khi gửi tin nhắn khác.",
+      aiLimitReached: "Bạn đã dùng hết giới hạn AI cho tháng này. Giới hạn sẽ được đặt lại vào đầu tháng sau.",
       emptyBackendResponse: "Máy chủ trả về phản hồi lỗi rỗng.",
       genericFailure: "Trò chuyện AI thất bại.",
       liveStreamEndedBeforeCompletion: "Luồng trực tiếp của AI kết thúc trước khi phản hồi hoàn tất.",

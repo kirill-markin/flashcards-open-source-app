@@ -5,10 +5,25 @@ derived, and what each client is allowed to trust. Every later change to billing
 paywalls reads this document instead of re-deriving the rules, and every client reads the same
 rules as the backend.
 
-No store integration exists yet. There is no Apple, Google Play, or Stripe code and no billing
-table in `db/migrations`. This document is the contract those rails must satisfy, so it is
-deliberately written ahead of the code. The backend module will be `apps/backend/src/billing/`;
-until that directory exists, a link here points at the code the contract already touches.
+No store integration exists yet. No client asks a store to buy anything, and the backend validates
+no receipt and handles no provider webhook: the only store SDKs linked anywhere are the review
+prompts, `StoreKit` on iOS and Play review on Android. The `billing` schema is already migrated
+(`db/migrations/0151_billing_schema.sql`), and every table a purchase or a grant would land in is
+still empty and has no writer at all: `provider_events`, `purchases`, `grants` and
+`user_billing_state`. This document is the contract those rails must satisfy, so it is deliberately
+written ahead of the code.
+
+The entitlement half of it is built, in `apps/backend/src/billing/`: `tiers.ts` is the catalogue,
+`limits.ts` the limits keyed by tier and account kind, `resolver.ts` the pure derivation,
+`store.ts` the reads and the cached row it writes, and `snapshot.ts` the cache and the shape
+clients receive. That module settles the derivation and its cache and nothing else: no store rail
+exists to feed it, and the billing work still missing elsewhere is named by the sections that own
+it. One billing table therefore does have a writer: `entitlement_snapshots`, which `snapshot.ts`
+refreshes through `store.ts` when the answer it just resolved differs from the stored row — on the
+first resolution for that person as much as on a later change. The derivation itself writes
+nothing, and nothing pushes the refresh: the only trigger is that person's next authenticated sync
+pull, so the row lags a change in their purchases or grants until that pull arrives. Anything
+reaching those rows, account deletion included, has to account for them.
 
 This document links to source rather than restating mechanism, because the source is what ships.
 
@@ -23,8 +38,9 @@ placeholder anywhere in the codebase as a decision:
 - Paywall UI, placement, and trigger copy on every client.
 - Per-person limit overrides (see [Limits resolve on the backend](#limits-resolve-on-the-backend)).
 - Whether a purchase marked `sandbox` grants entitlement outside a sandbox context, or only ever
-  appears in reports. The entitlement resolver settles this when it is built; until then no code may
-  assume either answer.
+  appears in reports. The resolver consults no `environment` value, and that settles nothing: no
+  purchase row exists for such a rule to affect. The first store rail owns this decision, and until
+  it lands no code may assume either answer.
 
 ## Tiers
 
@@ -153,6 +169,28 @@ time, and doing so must produce the same result. This means:
 - A bug fixed in the function is deployed and the snapshots are rebuilt; there is no migration to
   patch derived values.
 - A missing snapshot is never an error state. It is a cache miss, resolved by computing.
+
+## What a client receives
+
+The resolved entitlement reaches clients inside the sync pull response, carrying `tier`, `tierRank`,
+`tierDisplayName`, `status`, `until`, `isTrial`, `willRenew` and `limits`. The rank travels with the
+id so gating stays a rank comparison on every already-shipped client (see [Tiers](#tiers)). Which
+row won is not published: `source` is stored for support only. Current AI consumption is absent on
+purpose, so the object does not change after every AI call.
+
+The published `status` is `none`, `active` or `in_grace`, and never the other two. Those belong to a
+single purchase, and a purchase that grants nothing cannot be the effective entitlement, so `none`
+is how holding nothing is expressed.
+
+A client reads `status` before `until`, because a null `until` means something different under each
+one. With `active` it is access with no end we know of, which is the shape of a lifetime purchase.
+With `in_grace` it is a provider that has not told us when the grace ends: the end is unknown rather
+than absent, and no client may read it as unlimited access. With `none` there is nothing to end.
+
+The field is omitted from the response when the entitlement cannot be resolved. An absent
+entitlement means unknown, never free: a client keeps the last value it saw and downgrades nobody on
+it. A billing-data problem may cost the paywall its input, and must never cost a person their access
+or their sync.
 
 ## Offline behaviour
 
@@ -297,4 +335,5 @@ are indistinguishable from revenue once the column is missing.
 
 Reports filter to production by default. A query that wants sandbox rows asks for them
 explicitly. Whether the entitlement resolver also ignores `sandbox` rows outside a sandbox context
-is undecided; the resolver settles it.
+is undecided, and the resolver shipping without an `environment` filter is not an answer either way:
+there is no purchase row for the rule to apply to. The first store rail settles it.

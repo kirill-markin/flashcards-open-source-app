@@ -1331,6 +1331,7 @@ const zuCatalog: TranslationCatalog = {
     errorTitle: "Iphutha lengxoxo ye-AI",
     errors: {
       activeRunInProgress: "Impendulo isiyaqhubeka. Linda ize iqede noma uyimise ngaphambi kokuthumela omunye umlayezo.",
+      aiLimitReached: "Umkhawulo wakho we-AI walenyanga usuphelile. Uzosethwa kabusha ekuqaleni kwenyanga elandelayo.",
       emptyBackendResponse: "Iseva ibuyise impendulo yephutha engenalutho.",
       genericFailure: "Ingxoxo ye-AI yehlulekile.",
       liveStreamEndedBeforeCompletion: "Ukusakaza bukhoma kwe-AI kuphele ngaphambi kokuthi umsebenzi uqede.",

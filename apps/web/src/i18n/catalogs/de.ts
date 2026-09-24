@@ -1331,6 +1331,7 @@ const deCatalog: TranslationCatalog = {
     errorTitle: "AI-Chat-Fehler",
     errors: {
       activeRunInProgress: "Eine Antwort läuft bereits. Warte, bis sie beendet ist, oder stoppe sie, bevor du eine weitere Nachricht sendest.",
+      aiLimitReached: "Dein AI-Limit für diesen Monat ist aufgebraucht. Es wird zu Beginn des nächsten Monats zurückgesetzt.",
       emptyBackendResponse: "Das Backend hat eine leere Fehlerantwort zurückgegeben.",
       genericFailure: "AI-Chat ist fehlgeschlagen.",
       liveStreamEndedBeforeCompletion: "Der AI-Livestream endete, bevor der Lauf abgeschlossen war.",

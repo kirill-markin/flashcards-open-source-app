@@ -299,10 +299,10 @@ export function createVerifyCodeApp(dependencies: VerifyCodeDependencies): Hono<
     dependencies.setBrowserSessionCookies(c, tokens.idToken, tokens.refreshToken);
     dependencies.clearOtpSessionCookie(c);
 
-    // Reports the sign-in and hands this browser's anonymous history to the account it just became.
-    // Both are bounded and best-effort: the person is signed in above whatever happens here, and the
-    // budget that keeps this from delaying the response is derived in server/analytics/signInFunnel.ts.
-    await reportSignInSucceeded(c, tokens.idToken);
+    // Reports the sign-in. Bounded and best-effort: the person is signed in above whatever happens
+    // here, and the budget that keeps this from delaying the response is derived in
+    // server/analytics/signInFunnel.ts.
+    await reportSignInSucceeded(c);
 
     return c.json({
       ok: true,

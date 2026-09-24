@@ -1331,6 +1331,7 @@ const guCatalog: TranslationCatalog = {
     errorTitle: "AI ચૅટની ભૂલ",
     errors: {
       activeRunInProgress: "જવાબ પહેલેથી તૈયાર થઈ રહ્યો છે. બીજો સંદેશ મોકલતાં પહેલાં તે પૂરો થાય ત્યાં સુધી રાહ જુઓ અથવા તેને રોકો.",
+      aiLimitReached: "આ મહિના માટેની તમારી AI મર્યાદા વપરાઈ ગઈ છે. તે આવતા મહિનાની શરૂઆતમાં રીસેટ થશે.",
       emptyBackendResponse: "બૅકએન્ડે ખાલી ભૂલનો જવાબ પાછો આપ્યો.",
       genericFailure: "AI ચૅટ નિષ્ફળ ગઈ.",
       liveStreamEndedBeforeCompletion: "પ્રક્રિયા પૂરી થાય તે પહેલાં AI લાઇવ સ્ટ્રીમ સમાપ્ત થઈ ગઈ.",

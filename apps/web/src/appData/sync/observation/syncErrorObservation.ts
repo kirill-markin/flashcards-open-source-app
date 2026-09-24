@@ -19,34 +19,58 @@ const workspaceNotFoundErrorCode = "WORKSPACE_NOT_FOUND";
 const workspaceSyncDiscardedErrorName = "WorkspaceSyncDiscardedError";
 const syncFailureCapturedProperty = "__flashcardsSyncFailureCaptured";
 
-type TrackedSyncFailure = Readonly<{
+type SyncFailureEpisode = Readonly<{
   userId: string;
-  reason: AnalyticsSyncFailureReason;
+  /** The reasons already emitted in the current failure episode. */
+  reportedReasons: Set<AnalyticsSyncFailureReason>;
 }>;
 
 /**
- * `sync_failed` is emitted on the transition into failure rather than once per failed run. Sync runs
- * on every resume, poll and local write, so an extended offline stretch would otherwise fill a
- * meaningful share of the 5000-event analytics queue with identical rows and let drop-oldest evict
- * the review events that carry the only quantitative fields in the catalog.
+ * `sync_failed` is bounded at one event per distinct reason per failure episode rather than one per
+ * failed run. Sync runs on every resume, poll and local write, so an extended offline stretch would
+ * otherwise fill a meaningful share of the 5000-event analytics queue with identical rows and let
+ * drop-oldest evict the review events that carry the only quantitative fields in the catalog.
  *
- * The transition is kept per workspace because sync itself is per workspace: for an account with one
+ * The reasons already emitted are held as a set rather than as a single last-reason slot. The two
+ * behave identically while one reason persists, which is the case the rule is written for, but a
+ * flapping connection maps alternately onto `offline` and `timeout`, and a slot would emit on every
+ * alternation — the per-run behaviour again, arriving by a different route. A set bounds the episode
+ * at one event per distinct reason however the cause moves around inside it.
+ *
+ * That bound is a cross-client contract rather than a local choice: a client that emits more often
+ * than one event per distinct key per episode makes the series incomparable with the others, and
+ * `product_events` is append-only, so an over-count cannot be repaired afterwards. Each client's
+ * gate holds its own key, and this one keys on the reason alone: the episode is already scoped per
+ * workspace and per account, and nothing else enters the check below. The ambient `screen` the wire
+ * stamps onto every event is outside that key, so these rows carry a column the gate never looked
+ * at — a row shows the screen of the episode's first failure of that reason, and an episode whose
+ * rows show several screens still costs one row per reason rather than one per reason and screen.
+ *
+ * The episode is kept per workspace because sync itself is per workspace: for an account with one
  * healthy and one persistently failing workspace, a single shared entry would have every healthy run
  * re-arm the gate and every failing run emit again — one `sync_failed` per sync cycle, exactly the
- * flood the gate exists to prevent. The account and the reason are part of the transition too, so a
- * failure that changes cause is emitted again, and so is the first failure seen by a different
- * account after an in-page switch. iOS and Android emit on the same transition, which is what keeps
- * the three clients comparable.
+ * flood the gate exists to prevent. The account bounds the episode too, so the first failure seen by
+ * a different account after an in-page switch starts a fresh one.
  */
-const lastTrackedSyncFailureByWorkspace = new Map<string, TrackedSyncFailure>();
+const syncFailureEpisodeByWorkspace = new Map<string, SyncFailureEpisode>();
 
 /**
- * Re-arms the transition for the workspace that synced cleanly. Deliberately scoped to that
- * workspace: a healthy sync says nothing about another workspace's ongoing failure, and clearing
- * theirs too would let the next failing run emit again on every cycle.
+ * Ends the failure episode for the workspace that synced cleanly, re-arming its next failure of
+ * every reason. Deliberately scoped to that workspace: a healthy sync says nothing about another
+ * workspace's ongoing failure, and clearing theirs too would let the next failing run emit again on
+ * every cycle.
  */
 export function observeSyncSuccess(workspaceId: string): void {
-  lastTrackedSyncFailureByWorkspace.delete(workspaceId);
+  syncFailureEpisodeByWorkspace.delete(workspaceId);
+}
+
+function startSyncFailureEpisode(workspaceId: string, userId: string): SyncFailureEpisode {
+  const episode: SyncFailureEpisode = {
+    userId,
+    reportedReasons: new Set<AnalyticsSyncFailureReason>(),
+  };
+  syncFailureEpisodeByWorkspace.set(workspaceId, episode);
+  return episode;
 }
 
 type SyncFailureCapturedCarrier = Readonly<{
@@ -253,16 +277,12 @@ export function observeSyncFailure(input: SyncFailureObservationInput): boolean 
   // Reached only for genuine sync failures: auth redirects, discarded workspaces and stale workspace
   // lookups return before this call.
   const analyticsFailureReason = toAnalyticsSyncFailureReason(input.error);
-  const lastTrackedFailure = lastTrackedSyncFailureByWorkspace.get(input.workspaceId);
-  if (
-    lastTrackedFailure === undefined
-    || lastTrackedFailure.userId !== input.userId
-    || lastTrackedFailure.reason !== analyticsFailureReason
-  ) {
-    lastTrackedSyncFailureByWorkspace.set(input.workspaceId, {
-      userId: input.userId,
-      reason: analyticsFailureReason,
-    });
+  const trackedEpisode = syncFailureEpisodeByWorkspace.get(input.workspaceId);
+  const episode = trackedEpisode !== undefined && trackedEpisode.userId === input.userId
+    ? trackedEpisode
+    : startSyncFailureEpisode(input.workspaceId, input.userId);
+  if (episode.reportedReasons.has(analyticsFailureReason) === false) {
+    episode.reportedReasons.add(analyticsFailureReason);
     track({ name: "sync_failed", reason: analyticsFailureReason });
   }
 

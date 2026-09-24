@@ -1331,6 +1331,7 @@ const teCatalog: TranslationCatalog = {
     errorTitle: "AI చాట్ లోపం",
     errors: {
       activeRunInProgress: "ఇప్పటికే ఒక ప్రతిస్పందన కొనసాగుతోంది. మరో సందేశం పంపే ముందు అది పూర్తయ్యే వరకు వేచి ఉండండి లేదా దాన్ని ఆపండి.",
+      aiLimitReached: "ఈ నెలకు మీ AI పరిమితి పూర్తయింది. ఇది వచ్చే నెల ప్రారంభంలో రీసెట్ అవుతుంది.",
       emptyBackendResponse: "బ్యాకెండ్ ఖాళీ లోప ప్రతిస్పందనను ఇచ్చింది.",
       genericFailure: "AI చాట్ విఫలమైంది.",
       liveStreamEndedBeforeCompletion: "రన్ పూర్తయ్యేలోపే AI లైవ్ స్ట్రీమ్ ముగిసింది.",

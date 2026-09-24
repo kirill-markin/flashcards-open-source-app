@@ -1331,6 +1331,7 @@ const trCatalog: TranslationCatalog = {
     errorTitle: "AI sohbet hatası",
     errors: {
       activeRunInProgress: "Zaten süren bir yanıt var. Başka bir mesaj göndermeden önce bitmesini bekleyin veya durdurun.",
+      aiLimitReached: "Bu aya ait AI limitinizi doldurdunuz. Limit, gelecek ayın başında sıfırlanır.",
       emptyBackendResponse: "Sunucu boş bir hata yanıtı döndürdü.",
       genericFailure: "AI sohbeti başarısız oldu.",
       liveStreamEndedBeforeCompletion: "AI canlı akışı, işlem bitmeden sona erdi.",

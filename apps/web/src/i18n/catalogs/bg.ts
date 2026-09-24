@@ -1331,6 +1331,7 @@ const bgCatalog: TranslationCatalog = {
     errorTitle: "Грешка в ИИ чата",
     errors: {
       activeRunInProgress: "Вече е в ход отговор. Изчакайте да приключи или го спрете, преди да изпратите друго съобщение.",
+      aiLimitReached: "Изчерпахте лимита си за ИИ за този месец. Той се нулира в началото на следващия месец.",
       emptyBackendResponse: "Сървърът върна празен отговор за грешка.",
       genericFailure: "ИИ чатът не успя.",
       liveStreamEndedBeforeCompletion: "Потокът на ИИ на живо приключи, преди изпълнението да завърши.",
