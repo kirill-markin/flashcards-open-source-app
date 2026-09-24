@@ -8,6 +8,8 @@ import {
   lockCognitoIdentityLifecycleInExecutor,
 } from "../../auth/userIdentities";
 import { assertSubjectIsNotDeletedInExecutor } from "../../auth/deletedSubjects";
+import { transferAiUsageToUpgradedAccountInExecutor } from "../../aiUsage/identity";
+import { transferBillingToUpgradedAccountInExecutor } from "../../billing/identity";
 import { HttpError } from "../../shared/errors";
 import {
   captureBackendWarning,
@@ -630,7 +632,26 @@ export async function completeGuestUpgradeInExecutor(
     guestUpgradeResolution.targetWorkspaceId,
   );
 
-  // Phase 12: carry the guest's analytics answers - the consent decision and the product
+  // Phase 12: move what the guest paid for and what their AI calls consumed onto the destination
+  // account, before the cleanup below deletes the guest org.user_settings row. A mover placed after it
+  // matches nothing and still returns successfully. Usage crosses over deliberately: the monthly AI
+  // allowance is a sum over those rows for one person, so leaving them would reset the allowance for
+  // signing up. A destination that already holds an active purchase keeps it, and so does the guest's:
+  // two active purchases on one person is a supported state and the resolver decides which one wins.
+  await transferBillingToUpgradedAccountInExecutor(
+    executor,
+    guestSession.userId,
+    guestUpgradeResolution.targetUserId,
+  );
+  await transferAiUsageToUpgradedAccountInExecutor(
+    executor,
+    guestSession.userId,
+    guestUpgradeResolution.guestWorkspaceId,
+    guestUpgradeResolution.targetUserId,
+    guestUpgradeResolution.targetWorkspaceId,
+  );
+
+  // Phase 13: carry the guest's analytics answers - the consent decision and the product
   // analytics switch - onto the destination account, while the guest
   // session still exists. The cleanup below deletes the guest org.user_settings row, and the guest
   // session cascades away with it, so a withdrawal not copied here is lost.
@@ -647,7 +668,7 @@ export async function completeGuestUpgradeInExecutor(
     guestUpgradeResolution.targetUserId,
   );
 
-  // Phase 13: revoke and delete guest source rows.
+  // Phase 14: revoke and delete guest source rows.
   await cleanupGuestSessionSourceInExecutor(
     executor,
     guestSession.userId,
@@ -655,7 +676,7 @@ export async function completeGuestUpgradeInExecutor(
     guestUpgradeResolution.guestWorkspaceId,
   );
 
-  // Phase 14: load the final workspace summary for the response.
+  // Phase 15: load the final workspace summary for the response.
   return {
     workspace: await loadWorkspaceSummaryInExecutor(
       executor,
