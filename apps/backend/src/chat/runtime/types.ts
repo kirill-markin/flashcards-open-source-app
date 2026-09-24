@@ -53,6 +53,13 @@ export type StartPersistedChatRunParams = Readonly<{
    * composer-suggestion call, and a tier that changes mid-run is not worth a billing read per call.
    */
   tierAtCall: EntitlementTier;
+  /**
+   * Whether the request that started this turn authenticated as a signed-in account
+   * (`ai.chat_runs.initiating_auth_is_signed_in`). It is the same claim `tierAtCall` above was
+   * resolved from, carried on as well because a tool that reports an allowance has to resolve the
+   * account kind the route enforced with, not ask the identity tables a question of its own.
+   */
+  initiatingAuthIsSignedIn: boolean;
   diagnostics: ChatRunDiagnostics;
   getRemainingTimeInMillis: () => number;
 }>;

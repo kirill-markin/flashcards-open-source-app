@@ -67,6 +67,9 @@ const UNREACHED_DEPENDENCIES: McpServerDependencies = {
   listUserWorkspacesWithStatsForSelectedWorkspace: async () => {
     throw new Error("Unexpected dependency call during a metadata-only listing");
   },
+  loadAiUsageStatus: async () => {
+    throw new Error("Unexpected dependency call during a metadata-only listing");
+  },
 };
 
 const UNREACHED_TELEMETRY: McpRequestTelemetryChannel = {
