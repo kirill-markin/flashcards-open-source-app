@@ -12,7 +12,7 @@ function formatStepList(
 
 export function WorkspaceSchedulerScreen(): ReactElement {
   const { workspaceSettings } = useAppData();
-  const { t, formatDateTime, formatNumber } = useI18n();
+  const { messages, t, formatCount, formatDateTime, formatNumber } = useI18n();
 
   return (
     <SettingsShell
@@ -47,7 +47,7 @@ export function WorkspaceSchedulerScreen(): ReactElement {
             <span className="cell-secondary">{t("workspaceScheduler.labels.maximumInterval")}</span>
             <strong className="panel-subtitle">
               {t("workspaceScheduler.maximumIntervalDays", {
-                count: formatNumber(workspaceSettings.maximumIntervalDays),
+                count: formatCount(workspaceSettings.maximumIntervalDays, messages.common.countLabels.day),
               })}
             </strong>
           </article>

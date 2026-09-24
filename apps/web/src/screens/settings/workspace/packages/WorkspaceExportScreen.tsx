@@ -194,7 +194,7 @@ function formatApproximateBytes(byteCount: number, formatNumberValue: NumberForm
 export function WorkspaceExportScreen(): ReactElement {
   const { activeWorkspace, cloudSettings, session } = useAppData();
   const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
-  const { t, formatDateTime, formatNumber } = useI18n();
+  const { messages, t, formatCount, formatDateTime, formatNumber } = useI18n();
   const [isPackageExporting, setIsPackageExporting] = useState<boolean>(false);
   const [isPackageExportPreviewing, setIsPackageExportPreviewing] = useState<boolean>(false);
   const [packageExportPreview, setPackageExportPreview] = useState<WorkspacePackageExportPreviewResponse | null>(null);
@@ -500,7 +500,7 @@ export function WorkspaceExportScreen(): ReactElement {
                         />
                         <span>{t("workspaceExport.cardSelectionTagLabel", {
                           tag: tagCount.tag,
-                          count: tagCount.cardsCount,
+                          count: formatCount(tagCount.cardsCount, messages.common.countLabels.card),
                         })}</span>
                       </label>
                     ))}
@@ -524,7 +524,7 @@ export function WorkspaceExportScreen(): ReactElement {
                         />
                         <span>{t("workspaceExport.includedTagLabel", {
                           tag: tagCount.tag,
-                          count: tagCount.cardsCount,
+                          count: formatCount(tagCount.cardsCount, messages.common.countLabels.card),
                         })}</span>
                       </label>
                     ))}
