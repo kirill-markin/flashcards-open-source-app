@@ -9,6 +9,7 @@ import { useI18n } from "../../../i18n";
 import { loadWorkspaceTagsSummary } from "../../../localDb/cards/workspace";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
 import { reviewRoute } from "../../../routes";
+import { useWorkspacePath } from "../../../useWorkspacePath";
 import { handleRefreshLocalDataError } from "../../shared/refreshLocalDataError";
 import type { ReviewFilter, WorkspaceTagsSummary } from "../../../types";
 
@@ -22,6 +23,7 @@ export function TagsScreen(): ReactElement {
   const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const { messages, t, formatCount, formatNumber } = useI18n();
   const navigate = useNavigate();
+  const workspacePath = useWorkspacePath();
   const [tagsSummary, setTagsSummary] = useState<WorkspaceTagsSummary>(emptyTagsSummary);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string>("");
@@ -111,7 +113,7 @@ export function TagsScreen(): ReactElement {
     };
 
     openReview(reviewFilter);
-    navigate(reviewRoute);
+    navigate(workspacePath(reviewRoute));
   }
 
   async function handleRefreshLocalData(): Promise<void> {

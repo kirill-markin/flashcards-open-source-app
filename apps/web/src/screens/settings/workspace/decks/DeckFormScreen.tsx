@@ -9,6 +9,7 @@ import {
 import { ALL_CARDS_DECK_SLUG, buildDeckFilterDefinition } from "../../../../deckFilters";
 import { useI18n } from "../../../../i18n";
 import { buildSettingsDeckDetailRoute, settingsDecksRoute } from "../../../../routes";
+import { useWorkspacePath } from "../../../../useWorkspacePath";
 import { CardFormTagsField } from "../../../cards/form/CardFormTagsField";
 import { loadWorkspaceTagsSummary } from "../../../../localDb/cards/workspace";
 import { captureAppOperationError } from "../../../../observability/appOperationObservation";
@@ -112,6 +113,7 @@ function createRefreshBarrier(
 export function DeckFormScreen(): ReactElement {
   const { deckId } = useParams();
   const navigate = useNavigate();
+  const workspacePath = useWorkspacePath();
   const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const { t } = useI18n();
   const {
@@ -151,7 +153,7 @@ export function DeckFormScreen(): ReactElement {
   const tagsFieldId = "deck-tags-input";
   const isCreateMode = deckId === undefined;
   const screenTitle = isCreateMode ? t("deckForm.title.new") : t("deckForm.title.edit");
-  const backHref = isCreateMode || deckId === undefined ? settingsDecksRoute : buildSettingsDeckDetailRoute(deckId);
+  const backHref = workspacePath(isCreateMode || deckId === undefined ? settingsDecksRoute : buildSettingsDeckDetailRoute(deckId));
   const technicalErrorMessage = t("appError.technicalError.message");
   observationIdentityRef.current = {
     userId: session?.userId ?? null,
@@ -449,11 +451,11 @@ export function DeckFormScreen(): ReactElement {
       if (isCreateMode) {
         const createdDeck = await createDeckItem(payload);
         indexedDbOpenRecoveryState.throwIfFailed();
-        navigate(buildSettingsDeckDetailRoute(createdDeck.deckId));
+        navigate(workspacePath(buildSettingsDeckDetailRoute(createdDeck.deckId)));
       } else if (deckId !== undefined) {
         const updatedDeck = await updateDeckItem(deckId, payload);
         indexedDbOpenRecoveryState.throwIfFailed();
-        navigate(buildSettingsDeckDetailRoute(updatedDeck.deckId));
+        navigate(workspacePath(buildSettingsDeckDetailRoute(updatedDeck.deckId)));
       }
     } catch (error) {
       if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {

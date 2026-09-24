@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { buildLoginUrl } from "../../../api";
 import { useI18n, type PluralCountLabels } from "../../../i18n";
 import { settingsLeaderboardParticipationRoute } from "../../../routes";
+import { useWorkspacePath } from "../../../useWorkspacePath";
 import type {
   ProgressStreakLeaderboardReadySnapshot,
   ProgressStreakLeaderboardSourceState,
@@ -68,6 +69,7 @@ function ProgressStreakLeaderboardBody(props: Readonly<{
   onOpenProfile: (profile: ProgressLeaderboardProfileDialogSeed) => void;
 }>): ReactElement {
   const { messages, t, formatCount } = useI18n();
+  const workspacePath = useWorkspacePath();
   const { sourceState, canRenderServerBase, onOpenProfile } = props;
   const leaderboard = sourceState.renderedSnapshot;
 
@@ -107,7 +109,7 @@ function ProgressStreakLeaderboardBody(props: Readonly<{
     return (
       <div className="progress-leaderboard-placeholder" data-testid="progress-streak-leaderboard-participation-disabled">
         <p className="subtitle">{t("progressScreen.streakLeaderboard.participationDisabledBody")}</p>
-        <Link className="ghost-btn" to={settingsLeaderboardParticipationRoute}>
+        <Link className="ghost-btn" to={workspacePath(settingsLeaderboardParticipationRoute)}>
           {t("progressScreen.leaderboard.openParticipationSettings")}
         </Link>
       </div>

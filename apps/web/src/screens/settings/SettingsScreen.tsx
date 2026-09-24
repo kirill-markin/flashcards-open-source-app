@@ -42,6 +42,7 @@ import {
   settingsTestRoute,
   shareRoute,
 } from "../../routes";
+import { useWorkspacePath } from "../../useWorkspacePath";
 import { useAIChatPreferences } from "../../chat/preferences/AIChatPreferencesContext";
 import { useTestMode } from "../../testMode";
 import { FriendInviteCreateDialog } from "../friends/FriendInviteCreateDialog";
@@ -99,6 +100,7 @@ export function SettingsScreen(): ReactElement {
     setErrorMessage,
     workspaceSettings,
   } = useAppData();
+  const workspacePath = useWorkspacePath();
   const { indexedDbOpenRecoveryState } = useAppErrorDialog();
   const { localePreference, t } = useI18n();
   const { aiChatComposerSuggestionsEnabled } = useAIChatPreferences();
@@ -208,7 +210,7 @@ export function SettingsScreen(): ReactElement {
             title={t("settingsHome.privateFeedback.title")}
             description={t("settingsHome.privateFeedback.description")}
             value={null}
-            to={settingsFeedbackRoute}
+            to={workspacePath(settingsFeedbackRoute)}
             testId="settings-row-private-feedback"
           />
         </div>
@@ -255,14 +257,14 @@ export function SettingsScreen(): ReactElement {
             title={t("accountSettings.accountStatus.title")}
             description={t("accountSettings.accountStatus.description")}
             value={accountStatus}
-            to={accountStatusRoute}
+            to={workspacePath(accountStatusRoute)}
             testId="settings-row-account-status"
           />
           <SettingsNavigationCard
             title={t("settingsCurrentWorkspace.title")}
             description={t("settingsCurrentWorkspace.subtitle")}
             value={currentWorkspaceName}
-            to={settingsCurrentWorkspaceRoute}
+            to={workspacePath(settingsCurrentWorkspaceRoute)}
             testId="settings-row-current-workspace"
           />
         </div>
@@ -274,77 +276,77 @@ export function SettingsScreen(): ReactElement {
             title={t("notificationsSettings.title")}
             description={t("notificationsSettings.subtitle")}
             value={t("notificationsSettings.value")}
-            to={settingsNotificationsRoute}
+            to={workspacePath(settingsNotificationsRoute)}
             testId="settings-row-review-reminders"
           />
           <SettingsNavigationCard
             title={t("reviewAnimationsSettings.title")}
             description={t("reviewAnimationsSettings.subtitle")}
             value={session?.preferences.reviewReactionAnimationsEnabled === false ? t("common.off") : t("common.on")}
-            to={settingsReviewAnimationsRoute}
+            to={workspacePath(settingsReviewAnimationsRoute)}
             testId="settings-row-review-animations"
           />
           <SettingsNavigationCard
             title={t("aiChatSuggestionsSettings.title")}
             description={t("aiChatSuggestionsSettings.subtitle")}
             value={aiChatComposerSuggestionsEnabled ? t("common.on") : t("common.off")}
-            to={settingsAIChatSuggestionsRoute}
+            to={workspacePath(settingsAIChatSuggestionsRoute)}
             testId="settings-row-ai-chat-suggestions"
           />
           <SettingsNavigationCard
             title={t("leaderboardParticipationSettings.title")}
             description={t("leaderboardParticipationSettings.subtitle")}
             value={null}
-            to={settingsLeaderboardParticipationRoute}
+            to={workspacePath(settingsLeaderboardParticipationRoute)}
             testId="settings-row-leaderboard-participation"
           />
           <SettingsNavigationCard
             title={t("analyticsSettings.title")}
             description={t("analyticsSettings.subtitle")}
             value={null}
-            to={settingsAnalyticsRoute}
+            to={workspacePath(settingsAnalyticsRoute)}
             testId="settings-row-analytics"
           />
           <SettingsNavigationCard
             title={t("settingsHome.language.title")}
             description={t("settingsHome.language.description")}
             value={languagePreferenceLabel}
-            to={settingsLanguageRoute}
+            to={workspacePath(settingsLanguageRoute)}
             testId="settings-row-language"
           />
           <SettingsNavigationCard
             title={t("accessSettings.title")}
             description={t("accessSettings.subtitle")}
             value={t("settingsHome.access.value")}
-            to={settingsAccessRoute}
+            to={workspacePath(settingsAccessRoute)}
             testId="settings-row-access"
           />
           <SettingsNavigationCard
             title={t("settingsWorkspace.decks.title")}
             description={t("settingsWorkspace.decks.description")}
             value={t("common.open")}
-            to={settingsDecksRoute}
+            to={workspacePath(settingsDecksRoute)}
             testId="settings-row-decks"
           />
           <SettingsNavigationCard
             title={t("settingsWorkspace.tags.title")}
             description={t("settingsWorkspace.tags.description")}
             value={t("common.open")}
-            to={settingsTagsRoute}
+            to={workspacePath(settingsTagsRoute)}
             testId="settings-row-tags"
           />
           <SettingsNavigationCard
             title={t("settingsWorkspace.import.title")}
             description={t("settingsWorkspace.import.description")}
             value={t("settingsWorkspace.import.value")}
-            to={settingsImportRoute}
+            to={workspacePath(settingsImportRoute)}
             testId="settings-row-import"
           />
           <SettingsNavigationCard
             title={t("settingsWorkspace.export.title")}
             description={t("settingsWorkspace.export.description")}
             value={t("settingsWorkspace.export.value")}
-            to={settingsExportRoute}
+            to={workspacePath(settingsExportRoute)}
             testId="settings-row-export"
           />
         </div>
@@ -356,28 +358,28 @@ export function SettingsScreen(): ReactElement {
             title={t("settingsHome.feedback.title")}
             description={t("settingsHome.feedback.description")}
             value={t("settingsHome.feedback.value")}
-            to={settingsFeedbackRoute}
+            to={workspacePath(settingsFeedbackRoute)}
             testId="settings-row-feedback"
           />
           <SettingsNavigationCard
             title={t("support.title")}
             description={t("support.subtitle")}
             value={null}
-            to={accountSupportRoute}
+            to={workspacePath(accountSupportRoute)}
             testId="settings-row-support"
           />
           <SettingsNavigationCard
             title={t("legal.title")}
             description={t("legal.subtitle")}
             value={null}
-            to={accountLegalRoute}
+            to={workspacePath(accountLegalRoute)}
             testId="settings-row-legal"
           />
           <SettingsNavigationCard
             title={t("openSourceSettings.title")}
             description={t("openSourceSettings.subtitle")}
             value={t("accountSettings.openSource.value")}
-            to={accountOpenSourceRoute}
+            to={workspacePath(accountOpenSourceRoute)}
             testId="settings-row-open-source"
           />
         </div>
@@ -389,49 +391,49 @@ export function SettingsScreen(): ReactElement {
             title={t("workspaceScheduler.title")}
             description={t("workspaceScheduler.subtitle")}
             value={schedulerValue}
-            to={settingsSchedulerRoute}
+            to={workspacePath(settingsSchedulerRoute)}
             testId="settings-row-scheduling"
           />
           <SettingsNavigationCard
             title={t("agentConnections.title")}
             description={t("agentConnections.subtitle")}
             value={t("accountSettings.agentConnections.value")}
-            to={accountAgentConnectionsRoute}
+            to={workspacePath(accountAgentConnectionsRoute)}
             testId="settings-row-agent-connections"
           />
           <SettingsNavigationCard
             title={t("settingsHome.server.title")}
             description={t("settingsHome.server.description")}
             value={t("settingsHome.server.value")}
-            to={settingsServerRoute}
+            to={workspacePath(settingsServerRoute)}
             testId="settings-row-server"
           />
           <SettingsNavigationCard
             title={t("settingsDevice.title")}
             description={t("settingsDevice.subtitle")}
             value={null}
-            to={settingsDeviceRoute}
+            to={workspacePath(settingsDeviceRoute)}
             testId="settings-row-device-diagnostics"
           />
           <SettingsNavigationCard
             title={t("settingsWorkspace.resetProgress.title")}
             description={t("settingsWorkspace.resetProgress.description")}
             value={t("settingsWorkspace.resetProgress.value")}
-            to={settingsResetStudyProgressRoute}
+            to={workspacePath(settingsResetStudyProgressRoute)}
             testId="settings-row-reset-study-progress"
           />
           <SettingsNavigationCard
             title={t("settingsHome.deleteCurrentWorkspace.title")}
             description={t("settingsHome.deleteCurrentWorkspace.description")}
             value={t("settingsHome.deleteCurrentWorkspace.value")}
-            to={settingsDeleteCurrentWorkspaceRoute}
+            to={workspacePath(settingsDeleteCurrentWorkspaceRoute)}
             testId="settings-row-delete-current-workspace"
           />
           <SettingsNavigationCard
             title={t("dangerZone.deleteTitle")}
             description={t("dangerZone.deleteDescription")}
             value={t("accountSettings.dangerZone.value")}
-            to={accountDangerZoneRoute}
+            to={workspacePath(accountDangerZoneRoute)}
             testId="settings-row-delete-account"
           />
           {isTestModeEnabled ? (
@@ -439,7 +441,7 @@ export function SettingsScreen(): ReactElement {
               title={t("settingsTest.title")}
               description={t("settingsTest.subtitle")}
               value={t("settingsHome.test.value")}
-              to={settingsTestRoute}
+              to={workspacePath(settingsTestRoute)}
               testId="settings-row-test"
             />
           ) : null}
