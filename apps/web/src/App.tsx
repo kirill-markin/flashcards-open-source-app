@@ -73,6 +73,7 @@ import {
   workspaceRoutePattern,
   workspaceRoutePrefix,
 } from "./routes";
+import { useWorkspacePath } from "./useWorkspacePath";
 import { isWorkspaceManagementLocked } from "./workspaceManagement";
 import { TestModeProvider, useTestMode } from "./testMode";
 import { AIChatPreferencesProvider } from "./chat/preferences/AIChatPreferencesContext";
@@ -467,6 +468,7 @@ export function AppShell(): ReactElement {
     createWorkspace,
     cloudSettings,
   } = useAppData();
+  const workspacePath = useWorkspacePath();
   const { indexedDbOpenRecoveryState } = useAppErrorDialog();
   const [isMobileNavigationOpen, setIsMobileNavigationOpen] = useState<boolean>(false);
   const topbarShellRef = useRef<HTMLElement | null>(null);
@@ -800,7 +802,7 @@ export function AppShell(): ReactElement {
             </div>
             <nav className="nav" aria-label={t("shell.primaryNavigation")}>
               {primaryNavigationItems.map((item) => (
-                <NavLink key={item.route} className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to={item.route}>
+                <NavLink key={item.route} className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to={workspacePath(item.route)}>
                   {t(item.labelKey)}
                 </NavLink>
               ))}
@@ -826,7 +828,7 @@ export function AppShell(): ReactElement {
                 isBusy={isChoosingWorkspace}
                 isWorkspaceManagementLocked={isWorkspaceLocked}
                 workspaceManagementLockedMessage={workspaceManagementLockedMessage}
-                accountSettingsUrl={settingsHubRoute}
+                accountSettingsUrl={workspacePath(settingsHubRoute)}
                 logoutUrl={buildLogoutUrl()}
                 onSelectWorkspace={chooseWorkspace}
                 onCreateWorkspace={createWorkspace}
@@ -855,7 +857,7 @@ export function AppShell(): ReactElement {
               <NavLink
                 key={item.route}
                 className={({ isActive }) => `mobile-nav-link${isActive ? " mobile-nav-link-active" : ""}`}
-                to={item.route}
+                to={workspacePath(item.route)}
                 onClick={closeMobileNavigation}
               >
                 {t(item.labelKey)}

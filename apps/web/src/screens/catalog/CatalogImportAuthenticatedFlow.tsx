@@ -23,9 +23,11 @@ import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
   useAppErrorDialog,
 } from "../../appError/AppErrorContext";
+import { getAppConfig } from "../../config";
 import { type TranslationKey, type TranslationValues, useI18n } from "../../i18n";
 import { buildClientWorkspaceReplicaId } from "../../media/mediaCrypto";
 import { captureAppOperationError } from "../../observability/appOperationObservation";
+import { buildWorkspaceRoute, reviewRoute } from "../../routes";
 import type {
   CatalogPackageInstallConfirmOptions,
   CatalogPackageInstallPreviewResponse,
@@ -61,6 +63,7 @@ type CatalogInstallAttempt = Readonly<{
 type CatalogInstallCompletion = Readonly<{
   cardCount: number;
   importTag: string | null;
+  workspaceId: string;
   workspaceName: string;
 }>;
 
@@ -824,6 +827,7 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
       setCompletion({
         cardCount: result.summary.cardCount,
         importTag: result.summary.importTag,
+        workspaceId: requestIdentity.workspaceId,
         workspaceName: requestWorkspaceName,
       });
       hasLeftInitialStepRef.current = true;
@@ -993,6 +997,9 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
             importTag={completion.importTag}
             workspaceName={completion.workspaceName}
             accountEmail={session?.profile.email ?? null}
+            webHref={
+              `${getAppConfig().appBaseUrl}${buildWorkspaceRoute(completion.workspaceId, reviewRoute)}`
+            }
           />
           <CatalogImportSyncStatus
             state={syncState}

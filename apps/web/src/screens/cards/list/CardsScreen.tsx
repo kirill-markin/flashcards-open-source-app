@@ -15,6 +15,8 @@ import { CardTagsInput, type CardTagsInputHandle } from "../CardTagsInput";
 import { queryLocalCardsPage } from "../../../localDb/cards/cards";
 import { loadWorkspaceTagsSummary } from "../../../localDb/cards/workspace";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
+import { cardsRoute } from "../../../routes";
+import { useWorkspacePath } from "../../../useWorkspacePath";
 import type { Card, CardFilter, CardQuerySort, CardQuerySortDirection, CardQuerySortKey, QueryCardsPage, TagSuggestion } from "../../../types";
 import {
   buildCardsLoadingRowPreview,
@@ -210,6 +212,7 @@ export function CardsScreen(): ReactElement {
   } = useAppData();
   const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const { t, formatDateTime, formatNumber } = useI18n();
+  const workspacePath = useWorkspacePath();
   const [searchText, setSearchText] = useState<string>("");
   const [debouncedSearchText, setDebouncedSearchText] = useState<string>("");
   const [sorts, setSorts] = useState<ReadonlyArray<CardQuerySort>>([]);
@@ -728,7 +731,7 @@ export function CardsScreen(): ReactElement {
             <span className="badge">{visibleCountLabel}</span>
             <Link
               className="primary-btn"
-              to="/cards/new"
+              to={workspacePath(`${cardsRoute}/new`)}
               data-testid="cards-new-card"
               onClick={() => track({ name: "card_create_started", entryPoint: "cards" })}
             >
@@ -867,7 +870,7 @@ export function CardsScreen(): ReactElement {
                   data-card-front-text={card.frontText}
                 >
                   <td className="txn-cell cards-col-front cards-cell-multiline">
-                    <Link className="cards-row-link" to={`/cards/${card.cardId}`} data-testid="cards-row-link">
+                    <Link className="cards-row-link" to={workspacePath(`${cardsRoute}/${card.cardId}`)} data-testid="cards-row-link">
                       <span className="cards-cell-multiline-display">{card.frontText}</span>
                     </Link>
                   </td>

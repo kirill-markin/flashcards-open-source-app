@@ -9,6 +9,7 @@ import { ALL_CARDS_REVIEW_FILTER, isCardDue } from "../../../../appData/domain";
 import { ALL_CARDS_DECK_SLUG } from "../../../../deckFilters";
 import { useI18n } from "../../../../i18n";
 import { buildSettingsDeckEditRoute, reviewRoute, settingsDecksRoute } from "../../../../routes";
+import { useWorkspacePath, type WorkspacePathBuilder } from "../../../../useWorkspacePath";
 import { loadCardsMatchingDeck } from "../../../../localDb/cards/cards";
 import { loadDeckById, loadDecksListSnapshot } from "../../../../localDb/cards/decks";
 import { captureAppOperationError } from "../../../../observability/appOperationObservation";
@@ -27,8 +28,8 @@ type DeckDetailState = Readonly<{
   emptyMessage: string;
 }>;
 
-function buildDeckEditPath(deckId: string): string {
-  return buildSettingsDeckEditRoute(deckId);
+function buildDeckEditPath(deckId: string, workspacePath: WorkspacePathBuilder): string {
+  return workspacePath(buildSettingsDeckEditRoute(deckId));
 }
 
 function hasDeckFilterRules(filterDefinition: DeckFilterDefinition): boolean {
@@ -38,6 +39,7 @@ function hasDeckFilterRules(filterDefinition: DeckFilterDefinition): boolean {
 export function DeckDetailScreen(): ReactElement {
   const { deckId } = useParams();
   const navigate = useNavigate();
+  const workspacePath = useWorkspacePath();
   const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const { messages, t, formatCount, formatDateTime, formatNumber } = useI18n();
   const {
@@ -190,7 +192,7 @@ export function DeckDetailScreen(): ReactElement {
     try {
       await deleteDeckItem(deckId);
       indexedDbOpenRecoveryState.throwIfFailed();
-      navigate(settingsDecksRoute);
+      navigate(workspacePath(settingsDecksRoute));
     } catch (error) {
       if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
         return;
@@ -222,7 +224,7 @@ export function DeckDetailScreen(): ReactElement {
     }
 
     openReview(detailState.reviewFilter);
-    navigate(reviewRoute);
+    navigate(workspacePath(reviewRoute));
   }
 
   async function handleRefreshLocalData(): Promise<void> {
@@ -295,14 +297,14 @@ export function DeckDetailScreen(): ReactElement {
             </p>
           </div>
           <div className="screen-actions">
-            <Link className="ghost-btn" to={settingsDecksRoute}>{t("deckDetail.actions.back")}</Link>
+            <Link className="ghost-btn" to={workspacePath(settingsDecksRoute)}>{t("deckDetail.actions.back")}</Link>
             {detailState !== null ? (
               <button type="button" className="primary-btn" onClick={handleOpenReview} data-testid="deck-detail-open-review">
                 {detailState.isPersistedDeck ? t("deckDetail.actions.reviewDeck") : t("deckDetail.actions.reviewAllCards")}
               </button>
             ) : null}
             {detailState?.allowsEditing ? (
-              <Link className="ghost-btn" to={buildDeckEditPath(currentDeckId)}>{t("deckDetail.actions.edit")}</Link>
+              <Link className="ghost-btn" to={buildDeckEditPath(currentDeckId, workspacePath)}>{t("deckDetail.actions.edit")}</Link>
             ) : null}
           </div>
         </div>
