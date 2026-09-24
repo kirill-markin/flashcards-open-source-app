@@ -46,10 +46,12 @@ export { AnalyticsConsentToggleCard } from "./AnalyticsConsentToggleCard";
 export { ProductAnalyticsCollectionToggleCard } from "./ProductAnalyticsCollectionToggleCard";
 export { PublicAnalyticsConsentLink } from "./PublicAnalyticsConsentLink";
 export { AnalyticsLifecycle } from "./AnalyticsLifecycle";
+export { publishAnalyticsRootGate } from "./rootGate";
+export type { AnalyticsRootGate } from "./rootGate";
 export {
   isAwaitingAnalyticsConsentDecision,
   readAnalyticsConsentDecision,
   subscribeToAnalyticsConsent,
 } from "./consent";
 export { isProductAnalyticsCollectionEnabled } from "./productAnalyticsCollection";
-export { useAnalyticsScreenView, useAnalyticsUnreportableScreen } from "./useAnalyticsScreenView";
+export { useAnalyticsScreenView } from "./useAnalyticsScreenView";
