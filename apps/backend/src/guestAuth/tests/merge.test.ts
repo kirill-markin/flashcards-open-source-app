@@ -18,7 +18,12 @@ import {
   setGuestSessionProductAnalyticsEnabled,
   setUserSettingsAnalyticsConsent,
   setUserSettingsProductAnalyticsEnabled,
+  type AiUsageEventState,
+  type EntitlementSnapshotState,
+  type GrantState,
   type GuestUpgradeExecutorParam,
+  type PurchaseState,
+  type UserBillingStateState,
 } from "../../guestAuthTestHarness";
 
 type RecordedGuestUpgradeQuery = Readonly<{
@@ -1126,4 +1131,164 @@ test("completeGuestUpgradeInExecutor carries a guest product analytics opt-out o
   // The bound shape keeps both rows, so the answer now stands on the account column as well.
   assert.equal(state.userSettings.get(guestUserId)?.product_analytics_enabled, false);
   assert.equal(state.guestSession?.product_analytics_enabled, false);
+});
+
+test("completeGuestUpgradeInExecutor moves the guest's paid history onto the merge target", async () => {
+  const guestToken = "guest-token-billing-merge";
+  const guestUserId = "guest-user-billing-merge";
+  const guestWorkspaceId = "guest-workspace-billing-merge";
+  const targetUserId = "linked-user-billing-merge";
+  const targetWorkspaceId = "target-workspace-billing-merge";
+  const targetSubject = "cognito-subject-billing-merge";
+  const guestAppleToken = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+  const targetAppleToken = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+  const state = createMergeState({
+    guestToken,
+    guestSessionId: "guest-session-billing-merge",
+    guestUserId,
+    guestWorkspaceId,
+    targetSubject,
+    targetUserId,
+    targetWorkspaceId,
+    guestReplicaId: "guest-replica-billing-merge",
+    installationId: "installation-billing-merge",
+    guestSchedulerUpdatedAt: "2026-04-02T14:00:00.000Z",
+    targetSchedulerUpdatedAt: "2026-04-02T14:05:00.000Z",
+  });
+  state.purchases.push({
+    purchase_id: "78787878-7878-4787-8787-787878787878",
+    user_id: guestUserId,
+    previous_user_id: null,
+    status: "active",
+  } satisfies PurchaseState);
+  state.grants.push({
+    grant_id: "89898989-8989-4898-8898-989898989898",
+    user_id: guestUserId,
+  } satisfies GrantState);
+  state.userBillingState.push({
+    user_id: guestUserId,
+    trial_consumed_at: "2026-01-01T00:00:00.000Z",
+    trial_provider: "apple",
+    ever_purchased_at: "2026-03-01T00:00:00.000Z",
+    stripe_customer_id: "cus_guest_billing_merge",
+    apple_app_account_token: guestAppleToken,
+    google_obfuscated_account_id: null,
+  } satisfies UserBillingStateState);
+  state.userBillingState.push({
+    user_id: targetUserId,
+    trial_consumed_at: "2026-02-01T00:00:00.000Z",
+    trial_provider: "stripe",
+    ever_purchased_at: null,
+    stripe_customer_id: null,
+    apple_app_account_token: targetAppleToken,
+    google_obfuscated_account_id: null,
+  } satisfies UserBillingStateState);
+  state.entitlementSnapshots.push({ user_id: guestUserId, tier: "premium" } satisfies EntitlementSnapshotState);
+  state.entitlementSnapshots.push({ user_id: targetUserId, tier: "free" } satisfies EntitlementSnapshotState);
+  state.aiUsageEvents.push({
+    usage_event_id: "90909090-9090-4909-8909-090909090909",
+    user_id: guestUserId,
+    workspace_id: guestWorkspaceId,
+  } satisfies AiUsageEventState);
+
+  const result = await completeGuestUpgradeInExecutor(
+    createGuestUpgradeExecutor(state),
+    guestToken,
+    targetSubject,
+    {
+      type: "existing",
+      workspaceId: targetWorkspaceId,
+    },
+    DROPPED_ENTITIES_UNSUPPORTED,
+  );
+
+  assert.equal(result.targetUserId, targetUserId);
+  assert.deepEqual(state.purchases.map((purchase) => ({
+    userId: purchase.user_id,
+    previousUserId: purchase.previous_user_id,
+  })), [{ userId: targetUserId, previousUserId: guestUserId }]);
+  assert.deepEqual(state.grants.map((grant) => grant.user_id), [targetUserId]);
+  // The allowance is a sum over these rows for one person, so a row left behind is a free allowance.
+  assert.deepEqual(state.aiUsageEvents.map((usageEvent) => ({
+    userId: usageEvent.user_id,
+    workspaceId: usageEvent.workspace_id,
+  })), [{ userId: targetUserId, workspaceId: targetWorkspaceId }]);
+  const targetBillingState = state.userBillingState.find((entry) => entry.user_id === targetUserId);
+  // The earlier consumed trial wins, and its provider travels with it: the pair has to stay consistent
+  // or the row cannot be reconciled against the store that granted the trial.
+  assert.equal(targetBillingState?.trial_consumed_at, "2026-01-01T00:00:00.000Z");
+  assert.equal(targetBillingState?.trial_provider, "apple");
+  assert.equal(targetBillingState?.ever_purchased_at, "2026-03-01T00:00:00.000Z");
+  // A handle moves into a NULL and never over a value: the target's own Apple token survives and the
+  // guest's stays on the retired row, because dropping it would leave Apple's notifications for the
+  // purchase it paid for unattributable.
+  assert.equal(targetBillingState?.stripe_customer_id, "cus_guest_billing_merge");
+  assert.equal(targetBillingState?.apple_app_account_token, targetAppleToken);
+  const retiredBillingState = state.userBillingState.find((entry) => entry.user_id === guestUserId);
+  assert.equal(retiredBillingState?.stripe_customer_id, null);
+  assert.equal(retiredBillingState?.apple_app_account_token, guestAppleToken);
+  // The guest's cache entry goes and the target's is left to heal: the next resolution recomputes it
+  // from the purchase that just moved.
+  assert.deepEqual(state.entitlementSnapshots.map((snapshot) => snapshot.user_id), [targetUserId]);
+});
+
+test("completeGuestUpgradeInExecutor moves the paid history before deleting the guest account row", async () => {
+  const guestToken = "guest-token-billing-order";
+  const guestUserId = "guest-user-billing-order";
+  const guestWorkspaceId = "guest-workspace-billing-order";
+  const targetUserId = "linked-user-billing-order";
+  const targetWorkspaceId = "target-workspace-billing-order";
+  const targetSubject = "cognito-subject-billing-order";
+  const state = createMergeState({
+    guestToken,
+    guestSessionId: "guest-session-billing-order",
+    guestUserId,
+    guestWorkspaceId,
+    targetSubject,
+    targetUserId,
+    targetWorkspaceId,
+    guestReplicaId: "guest-replica-billing-order",
+    installationId: "installation-billing-order",
+    guestSchedulerUpdatedAt: "2026-04-02T14:00:00.000Z",
+    targetSchedulerUpdatedAt: "2026-04-02T14:05:00.000Z",
+  });
+  const recordedQueries: Array<RecordedGuestUpgradeQuery> = [];
+  const baseExecutor = createGuestUpgradeExecutor(state);
+  const executor: DatabaseExecutor = {
+    query: async <Row extends pg.QueryResultRow>(
+      text: string,
+      params: ReadonlyArray<GuestUpgradeExecutorParam>,
+    ): Promise<pg.QueryResult<Row>> => {
+      recordedQueries.push({ text, params: [...params] });
+      return baseExecutor.query<Row>(text, params);
+    },
+  };
+
+  await completeGuestUpgradeInExecutor(
+    executor,
+    guestToken,
+    targetSubject,
+    {
+      type: "existing",
+      workspaceId: targetWorkspaceId,
+    },
+    DROPPED_ENTITIES_UNSUPPORTED,
+  );
+
+  const purchaseTransferIndex = recordedQueries.findIndex((query) => (
+    query.text.startsWith("UPDATE billing.purchases SET")
+  ));
+  const usageTransferIndex = recordedQueries.findIndex((query) => (
+    query.text.startsWith("UPDATE ai.usage_events SET")
+  ));
+  const guestUserSettingsDeleteIndex = recordedQueries.findIndex((query) => (
+    query.text === "DELETE FROM org.user_settings WHERE user_id = $1"
+  ));
+  // A mover placed after the cleanup matches no row and still returns successfully, so the ordering is
+  // the only thing that makes this transfer happen at all.
+  assert.notEqual(purchaseTransferIndex, -1);
+  assert.notEqual(usageTransferIndex, -1);
+  assert.notEqual(guestUserSettingsDeleteIndex, -1);
+  assert.ok(purchaseTransferIndex < guestUserSettingsDeleteIndex);
+  assert.ok(usageTransferIndex < guestUserSettingsDeleteIndex);
 });

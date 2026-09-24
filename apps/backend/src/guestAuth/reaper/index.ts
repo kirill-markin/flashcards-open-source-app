@@ -68,6 +68,29 @@ const bootstrapWorkspaceReplicaActorKind = "workspace_seed";
 // back, and nothing was deleted - so both are the run running out of time, not a guest that failed.
 const guestBudgetExhaustedSqlStates: ReadonlySet<string> = new Set(["57014", "55P03"]);
 
+/**
+ * The purchase guard, as one clause both readers of it run.
+ *
+ * A guest who ever paid is never deleted, however long they have been gone. It reads the durable
+ * per-person fact rather than joining `billing.purchases`, because a purchase row moves with a transfer
+ * and a refund can take it away, while `ever_purchased_at` is never cleared and never recomputed - which
+ * migration `0151` records as the whole reason that column exists.
+ *
+ * Shared rather than written twice because the candidate scan and the in-transaction re-check must never
+ * disagree about who is spared, and exported because it is the one clause here that an integration test
+ * can execute on its own, under both of the roles that have to be able to see through it.
+ */
+export function createWebGuestEverPurchasedGuardSql(guestUserIdExpression: string): string {
+  return [
+    "NOT EXISTS (",
+    "SELECT 1",
+    "FROM billing.user_billing_state AS billing_state",
+    `WHERE billing_state.user_id = ${guestUserIdExpression}`,
+    "AND billing_state.ever_purchased_at IS NOT NULL",
+    ")",
+  ].join(" ");
+}
+
 type WebGuestReaperCursor = Readonly<{
   latestSessionCreatedAt: string;
   guestUserId: string;
@@ -272,6 +295,10 @@ async function loadWebGuestReaperCandidatesInExecutor(
       "WHERE identity_links.anonymous_id = guests.analytics_user_id",
       "AND identity_links.source = $2",
       ")",
+      // Read as reporting_readonly here, which needs both the column grant and the policy migration 0151
+      // gives that role: with either missing the subquery sees nothing, the clause turns true, and every
+      // paying guest silently becomes a candidate. An integration test executes it under this role.
+      `AND ${createWebGuestEverPurchasedGuardSql("guests.guest_user_id")}`,
       "AND COALESCE(latest_event.last_seen_at, guests.latest_session_created_at) < $1::timestamptz",
       "AND (",
       "$4::timestamptz IS NULL",
@@ -296,11 +323,13 @@ async function loadWebGuestReaperCandidatesInExecutor(
  * Re-asserts the candidate rule inside the deletion transaction.
  *
  * Candidates are selected once per page as the reporting role and then deleted one at a time, so a
- * guest that produced an event, signed in, or opened a new session between its selection and its
- * own turn would otherwise be deleted on stale evidence, and the deletion is permanent. The runtime
- * role reads both analytics tables under `USING (true)` policies (migration `0114`) and
+ * guest that produced an event, signed in, bought something, or opened a new session between its
+ * selection and its own turn would otherwise be deleted on stale evidence, and the deletion is
+ * permanent. The runtime role reads both analytics tables under `USING (true)` policies (migration
+ * `0114`) and `billing.user_billing_state` under an unrestricted one (migration `0151`), and
  * `auth.guest_sessions` has no row level security, so the whole rule is available here, and
- * `idx_product_events_user_id` plus `idx_guest_sessions_user_created` serve both lookups.
+ * `idx_product_events_user_id`, the billing primary key and `idx_guest_sessions_user_created` serve
+ * every lookup.
  *
  * This narrows the window, it does not close it. The `FOR UPDATE` the caller already holds on
  * `org.user_settings` pins nothing read here: analytics ingest inserts into
@@ -339,6 +368,11 @@ async function webGuestIsStillReapableInExecutor(
       "OR guest_sessions.created_at >= $4::timestamptz",
       ")",
       ")",
+      // Re-asserted here as well, and not only in the candidate scan: a purchase can arrive between the
+      // page and this guest's turn, and this deletion is permanent. It narrows the same window the
+      // analytics clauses above narrow and closes it no further - the FOR UPDATE the caller holds on
+      // org.user_settings pins this row no more than it pins an event insert.
+      `AND ${createWebGuestEverPurchasedGuardSql("$1")}`,
       ") AS still_reapable",
     ].join(" "),
     [

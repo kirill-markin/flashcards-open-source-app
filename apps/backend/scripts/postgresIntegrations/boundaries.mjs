@@ -70,16 +70,28 @@ export const createdRolesByMigration = new Map([
   ["0044_reporting_readonly_role.sql", Object.freeze(["reporting_readonly"])],
 ]);
 export const boundaryDefinitions = Object.freeze([
-  // 0152 creates ai.usage_events and ai.model_prices, and the AI metering module now reads and writes
-  // the first of them: aiUsage/record.ts inserts one row per provider call and aiUsage/cap.ts sums that
-  // person's current UTC month to decide whether the next call is refused. Boundaries run current
-  // backend code against their own older schema, so a test that executes either statement below this
-  // migration fails with `relation "ai.usage_events" does not exist`.
-  // aiUsage/aiUsage is the only test that executes them, and it is listed here rather than left
+  // 0153 grants backend_app UPDATE (user_id, workspace_id, request_id) on ai.usage_events and adds the
+  // row level security policy that grant needs, which is what lets account deletion anonymise a usage row
+  // and a guest upgrade transfer one (aiUsage/identity.ts). 0152, one migration below, created the table
+  // itself along with ai.model_prices, and the AI metering module reads and writes the first of them:
+  // aiUsage/record.ts inserts one row per provider call and aiUsage/cap.ts sums that person's current
+  // UTC month to decide whether the next call is refused. Boundaries run current backend code against
+  // their own older schema, so a test that executes the append below 0152 fails with
+  // `relation "ai.usage_events" does not exist`, and one that executes either identity rewrite below
+  // this migration fails with `permission denied for table usage_events`.
+  // aiUsage/aiUsage is the only test that executes any of them, and it is listed here rather than left
   // unlisted because an unlisted integration file is never executed by any workflow: it drives the real
-  // append against the real grants - backend_app holds SELECT and INSERT and nothing else there - and
-  // the real monthly sum across a UTC month boundary, which is the only way to see that the insert
-  // matches the shipped columns and that the window really excludes the month before.
+  // append against the real grants - backend_app holds SELECT and INSERT on the table, from 0152, and
+  // UPDATE on the three columns that name somebody and nothing else, from 0153; the insert is table-wide
+  // because otherwise the append below could not write a counter at all - the real monthly sum across a
+  // UTC month boundary, and the two rewrites, which
+  // is the only way to see that the insert matches the shipped columns, that the window really excludes
+  // the month before, and that the grant and the policy this migration adds are both present, since a
+  // missing UPDATE policy would leave either rewrite matching no row and reporting success.
+  // The file moved up from the 0152 entry it used to sit at, which is gone: it held these same three
+  // files and nothing else, and an entry with no test file left would still build a database to run
+  // nothing in. What 0152 loses is a pass at exactly its own schema, which is the standing consequence
+  // of moving a test here.
   // No pinned test moves here for the metering reads, re-derived from scratch rather than assumed:
   // - chat/cardImages/operation: the card-image operation now appends a usage fact, but it appends it
   //   through an injected dependency, and every external dependency set this test builds stubs it, so
@@ -92,13 +104,16 @@ export const boundaryDefinitions = Object.freeze([
   //   are where the allowance is enforced, and no pinned test drives either of them; several do pull
   //   src/aiUsage into their module graph through the chat modules, which loads the code without
   //   running a statement against it.
+  // - auth/accountDeletion and guestAuth/upgrade are the two callers of the identity rewrites, and
+  //   neither has an integration file at all: both are covered by node:test files driving a recorded
+  //   fake executor, which never reaches a database and is therefore not pinned anywhere.
   // Nothing pins the billing read the allowance resolves through either, for the same reason.
   //
   // The other two files here have nothing to do with metering. Each exists to pin what production runs
   // rather than to cover an older schema, so each belongs at whichever entry is newest; both moved up
-  // from 0151 because this entry landed above it, and leaving them behind would have made that stated
-  // reason untrue. Nothing ties the three files in this entry together, so moving any one of them later
-  // does not free the others.
+  // from 0151 to 0152 and then here for the same reason, and leaving them behind would have made that
+  // stated reason untrue. Nothing ties the three files in this entry together, so moving any one of them
+  // later does not free the others.
   // - serverFacts/authoringUpdates authenticates nothing. It drives the real exported card and deck
   //   mutations through the real post-commit drain and the real analytics writer, so its floor is 0141,
   //   whose sync.installations.is_automation the drain's replica resolution names in its LEFT JOIN.
@@ -115,10 +130,11 @@ export const boundaryDefinitions = Object.freeze([
   //   CARD_COLUMNS.
   // Moving a test retires the older-schema coverage it used to give, because each test runs only at its
   // pinned boundary and there is no full-schema pass. Both files keep covering every migration below
-  // this one, which is what their own floors ask for; what 0151 loses is a pass at exactly 0151.
+  // this one, which is what their own floors ask for; what 0151 and 0152 lose is a pass at exactly
+  // their own schema.
   Object.freeze({
-    migrationFileName: "0152_ai_usage_facts.sql",
-    expectedMigrationCount: 154,
+    migrationFileName: "0153_ai_usage_identity_rewrites.sql",
+    expectedMigrationCount: 155,
     testFiles: Object.freeze([
       "src/aiUsage/aiUsage.postgres.integration.ts",
       "src/cards/managedMedia/managedImageSnapshotMerge.postgres.integration.ts",
@@ -150,10 +166,17 @@ export const boundaryDefinitions = Object.freeze([
   // Attaching the read at the route instead of inside the shared authenticated-request profile read is
   // what keeps that list this short: a billing read inside ensureUserProfileInExecutor would pin every
   // boundary in this file to this migration, exactly as 0149 below had to.
+  // billing/entitlement stays here rather than moving up with the AI usage file, even though it now also
+  // drives the two billing identity rewrites that account deletion and guest upgrade perform
+  // (billing/identity.ts). Those statements need no privilege 0151 did not already grant - UPDATE on the
+  // four durable tables, DELETE on the snapshot cache alone - so this is the earliest schema they run
+  // against, and they are exactly what this schema has to be pinned for: the partial unique indexes on
+  // the three provider handles, the trial-shape CHECK and the primary key on user_billing_state are all
+  // rules only a real transaction can refuse.
   //
   // The two files that used to sit here to pin what production runs - serverFacts/authoringUpdates and
-  // managedMedia/managedImageSnapshotMerge - moved to the 0152 entry above when that became the newest
-  // boundary. Neither was ever here for the billing read: they authenticate nothing.
+  // managedMedia/managedImageSnapshotMerge - moved to the newest entry above when 0152 landed, and moved
+  // with it to 0153. Neither was ever here for the billing read: they authenticate nothing.
   Object.freeze({
     migrationFileName: "0151_billing_schema.sql",
     expectedMigrationCount: 153,
@@ -199,7 +222,7 @@ export const boundaryDefinitions = Object.freeze([
     //
     // The two files that used to sit here to pin what production runs - serverFacts/authoringUpdates
     // and managedMedia/managedImageSnapshotMerge - now sit at the newest entry in this file, which is
-    // 0152. Neither is here for the profile read: they authenticate nothing.
+    // 0153. Neither is here for the profile read: they authenticate nothing.
     testFiles: Object.freeze([
       "src/agent/reviews.postgres.integration.ts",
       "src/routes/system/account/accountPreferences.postgres.integration.ts",
@@ -228,11 +251,11 @@ export const boundaryDefinitions = Object.freeze([
   // it fails with `column installations.is_automation does not exist`. The tests that reach those
   // reads are the two listed here - freshBootstrap (the /sync/bootstrap replica claim) and
   // jobsSettlement (which verifies a promoted asset through a real processSyncPull), both moved
-  // here from 0107 - plus every test the 0152, 0151 and 0149 entries above pin further forward, which
+  // here from 0107 - plus every test the 0153, 0151 and 0149 entries above pin further forward, which
   // satisfies this migration too: agent/reviews (processSyncPull, processSyncReviewHistoryPull, and
   // the post-commit content-write resolution), which came here from 0138 and is pinned at 0149, and
   // serverFacts/authoringUpdates, which was written above this boundary, never sat at it, and is now
-  // pinned at 0152.
+  // pinned at 0153.
   // Moving a test retires the older-schema coverage it used to give, because each test runs only at
   // its pinned boundary and there is no full-schema pass.
   Object.freeze({
