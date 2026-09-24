@@ -294,14 +294,14 @@ actor AIChatSessionRuntime {
     }
 }
 
-func isGuestAiLimitError(error: Error) -> Bool {
+func isAiLimitReachedError(error: Error) -> Bool {
     guard let serviceError = error as? AIChatServiceError else {
         return false
     }
 
     switch serviceError {
     case .invalidResponse(let errorDetails, _, _):
-        return isGuestAiLimitCode(errorDetails.code)
+        return isAiLimitReachedCode(errorDetails.code)
     case .invalidBaseUrl, .invalidHttpResponse, .invalidPayload:
         return false
     }

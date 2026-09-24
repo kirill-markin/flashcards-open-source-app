@@ -1302,6 +1302,7 @@ const frCatalog: TranslationCatalog = {
     errorTitle: "Erreur du chat IA",
     errors: {
       activeRunInProgress: "Une réponse est déjà en cours. Attendez la fin ou arrêtez-la avant d'envoyer un autre message.",
+      aiLimitReached: "Votre limite d'IA pour ce mois est épuisée. Elle est réinitialisée au début du mois prochain.",
       emptyBackendResponse: "Le backend a renvoyé une réponse d'erreur vide.",
       genericFailure: "Le chat IA a échoué.",
       liveStreamEndedBeforeCompletion: "Le flux IA en direct s'est terminé avant la fin de l'exécution.",

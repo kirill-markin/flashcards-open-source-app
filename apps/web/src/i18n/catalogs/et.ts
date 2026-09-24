@@ -1302,6 +1302,7 @@ const etCatalog: TranslationCatalog = {
     errorTitle: "Tehisintellekti vestluse viga",
     errors: {
       activeRunInProgress: "Vastus on juba koostamisel. Enne uue sõnumi saatmist oota selle valmimist või peata see.",
+      aiLimitReached: "Selle kuu tehisintellekti limiit on ära kasutatud. See lähtestatakse järgmise kuu alguses.",
       emptyBackendResponse: "Server tagastas tühja veavastuse.",
       genericFailure: "Tehisintellekti vestlus ebaõnnestus.",
       liveStreamEndedBeforeCompletion: "Tehisintellekti otsevoog lõppes enne töö valmimist.",

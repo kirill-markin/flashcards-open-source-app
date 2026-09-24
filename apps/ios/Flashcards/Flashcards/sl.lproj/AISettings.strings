@@ -43,6 +43,7 @@
 "ai.error.requestTooLarge.message" = "Klepet z UI ne more poslati toliko vsebine hkrati. Odstranite eno ali več prilog, izberite manjšo datoteko ali fotografijo ali razdelite zahtevo in poskusite znova.";
 "ai.error.attachmentUnsupported.title" = "Nepodprta vrsta datoteke";
 "ai.error.attachmentUnsupported.message" = "Ta vrsta datoteke ni podprta v klepetu z UI. Odstranite datoteko ali jo shranite kot PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX ali sliko in poskusite znova.";
+"ai.error.limitReached" = "Porabili ste svojo omejitev UI za ta mesec. Ponastavi se na začetku naslednjega meseca.";
 "ai.error.summary.couldNotContinue" = "Odgovora UI ni bilo mogoče nadaljevati";
 "ai.error.summary.invalidResponse" = "Prejet je neveljaven odgovor UI";
 "ai.error.summary.configuration" = "Napaka konfiguracije UI";

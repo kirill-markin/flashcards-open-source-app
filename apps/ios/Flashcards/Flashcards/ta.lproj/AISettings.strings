@@ -43,6 +43,7 @@
 "ai.error.requestTooLarge.message" = "AI அரட்டையால் ஒரே நேரத்தில் இவ்வளவு உள்ளடக்கத்தை அனுப்ப முடியாது. ஓர் இணைப்பையோ பலவற்றையோ நீக்கவும், சிறிய கோப்பு அல்லது புகைப்படத்தைத் தேர்ந்தெடுக்கவும் அல்லது கோரிக்கையைப் பிரித்து மீண்டும் முயலவும்.";
 "ai.error.attachmentUnsupported.title" = "ஆதரிக்கப்படாத கோப்பு வகை";
 "ai.error.attachmentUnsupported.message" = "இந்தக் கோப்பு வகை AI அரட்டையில் ஆதரிக்கப்படவில்லை. கோப்பை அகற்றவும் அல்லது PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX அல்லது படமாகச் சேமித்து மீண்டும் முயலவும்.";
+"ai.error.limitReached" = "இந்த மாதத்திற்கான உங்கள் AI வரம்பு தீர்ந்துவிட்டது. இது அடுத்த மாதத் தொடக்கத்தில் மீட்டமைக்கப்படும்.";
 "ai.error.summary.couldNotContinue" = "AI பதிலைத் தொடர முடியவில்லை";
 "ai.error.summary.invalidResponse" = "தவறான AI பதில் கிடைத்தது";
 "ai.error.summary.configuration" = "AI உள்ளமைவுப் பிழை";

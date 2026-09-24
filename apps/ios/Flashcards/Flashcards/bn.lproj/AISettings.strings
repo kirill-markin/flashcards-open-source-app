@@ -43,6 +43,7 @@
 "ai.error.requestTooLarge.message" = "এআই চ্যাট একবারে এত কন্টেন্ট পাঠাতে পারে না। এক বা একাধিক সংযুক্তি সরান, একটি ছোট ফাইল বা ফটো চয়ন করুন, বা অনুরোধটি বিভক্ত করুন এবং আবার চেষ্টা করুন।";
 "ai.error.attachmentUnsupported.title" = "অসমর্থিত ফাইল প্রকার";
 "ai.error.attachmentUnsupported.message" = "এই ফাইল টাইপ এআই চ্যাটের জন্য সমর্থিত নয়। ফাইলটি সরান বা এটিকে PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX হিসাবে সংরক্ষণ করুন, বা একটি চিত্র, তারপর আবার চেষ্টা করুন।";
+"ai.error.limitReached" = "এই মাসের জন্য আপনার এআই সীমা শেষ হয়ে গেছে। এটি পরের মাসের শুরুতে রিসেট হবে।";
 "ai.error.summary.couldNotContinue" = "এআই প্রতিক্রিয়া চালিয়ে যেতে পারেনি";
 "ai.error.summary.invalidResponse" = "একটি অবৈধ এআই প্রতিক্রিয়া গৃহীত হয়েছে।";
 "ai.error.summary.configuration" = "এআই কনফিগারেশন ত্রুটি";

@@ -43,6 +43,7 @@
 "ai.error.requestTooLarge.message" = "AI 채팅은 한 번에 이렇게 많은 내용을 보낼 수 없습니다. 첨부 파일을 줄이거나 더 작은 파일 또는 사진을 선택하거나 요청을 나눠 다시 시도하세요.";
 "ai.error.attachmentUnsupported.title" = "지원하지 않는 파일 형식";
 "ai.error.attachmentUnsupported.message" = "AI 채팅에서 지원하지 않는 파일 형식입니다. 파일을 제거하거나 PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX 또는 이미지로 저장한 후 다시 시도하세요.";
+"ai.error.limitReached" = "이번 달 AI 사용 한도를 모두 사용했습니다. 한도는 다음 달 초에 초기화됩니다.";
 "ai.error.summary.couldNotContinue" = "AI 응답을 이어가지 못함";
 "ai.error.summary.invalidResponse" = "잘못된 AI 응답 수신";
 "ai.error.summary.configuration" = "AI 구성 오류";

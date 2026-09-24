@@ -43,6 +43,7 @@
 "ai.error.requestTooLarge.message" = "AI चॅट एकावेळी एवढा मजकूर पाठवू शकत नाही. एक किंवा अधिक जोडलेल्या फाइल काढा, लहान फाइल किंवा फोटो निवडा, किंवा विनंती विभागून पुन्हा प्रयत्न करा.";
 "ai.error.attachmentUnsupported.title" = "असमर्थित फाइल प्रकार";
 "ai.error.attachmentUnsupported.message" = "AI चॅटसाठी हा फाइल प्रकार समर्थित नाही. फाइल काढा किंवा ती PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX किंवा प्रतिमा म्हणून जतन करून पुन्हा प्रयत्न करा.";
+"ai.error.limitReached" = "या महिन्याची तुमची AI मर्यादा संपली आहे. ती पुढील महिन्याच्या सुरुवातीला रीसेट होईल.";
 "ai.error.summary.couldNotContinue" = "AI प्रतिसाद पुढे सुरू ठेवता आला नाही";
 "ai.error.summary.invalidResponse" = "अवैध AI प्रतिसाद मिळाला";
 "ai.error.summary.configuration" = "AI संरचना त्रुटी";
