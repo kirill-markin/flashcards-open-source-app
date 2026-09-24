@@ -1039,7 +1039,9 @@ h2 {
  * the selected mode keeps its accent border instead of dropping back to the neutral hover one.
  */
 .funnel-audience-mode-selected,
-.funnel-audience-mode-selected:not(:disabled):hover {
+.funnel-audience-mode-selected:not(:disabled):hover,
+.ai-usage-mode-selected,
+.ai-usage-mode-selected:not(:disabled):hover {
   border-color: var(--accent-strong);
   background: var(--accent);
 }
@@ -1418,6 +1420,53 @@ h2 {
 .axis-label {
   fill: var(--muted);
   font-size: 12px;
+}
+
+/*
+ * The log scatter panels `charts/logScatterPanels.ts` draws. Their tick labels and grid lines already
+ * come from `.axis` and `.grid` above; these are the marks that only this chart has.
+ *
+ * The zero strip is the point of most of it. A person whose value is exactly zero cannot sit on a log
+ * axis, so each axis keeps a strip at its low edge, fenced off by a dashed rule and labelled `0` in
+ * bold, and the dots inside it are jittered so that overlapping people stay countable. The bold label
+ * is what stops the strip being read as the first decade of the axis beside it.
+ */
+/* A panel is a fraction of a full chart's width, so its ticks take a size of their own rather than
+   the 12px the wide charts read at. */
+.log-scatter-panel .axis text {
+  font-size: 10px;
+}
+
+.log-scatter-dot {
+  cursor: pointer;
+}
+
+.log-scatter-dot:hover {
+  stroke: var(--text);
+  stroke-width: 1.5;
+  fill-opacity: 1;
+}
+
+.log-scatter-zero-divider line {
+  stroke: var(--muted-soft);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+}
+
+.axis text.log-scatter-zero-label {
+  font-weight: 800;
+  fill: var(--text);
+}
+
+/* Drawn over the cloud it describes, in the accent, so it reads as annotation rather than as data. */
+.log-scatter-median line {
+  stroke: var(--accent-strong);
+  stroke-width: 1.5;
+}
+
+.log-scatter-frame {
+  fill: none;
+  stroke: var(--panel-border);
 }
 
 .grid line {
