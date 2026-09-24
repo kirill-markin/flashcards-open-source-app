@@ -8,6 +8,7 @@ import {
   trackedIsVisible,
   trackedWaitForUrl,
 } from "../../live-smoke.actions";
+import { reviewRoute, workspaceRoutePrefix } from "../../../src/routes";
 import { authBaseUrl, externalUiTimeoutMs, localUiTimeoutMs } from "../config";
 import { seedLinkedWorkspaceForTest } from "../seedBridge";
 import { runLiveSmokeStep } from "../steps";
@@ -50,7 +51,8 @@ async function signInWithReviewAccount(session: LiveSmokeSession): Promise<void>
     page,
     diagnostics,
     "wait for review redirect after auth",
-    new RegExp(`^${escapeRegExp(`${baseUrl}/review`)}`),
+    // The app moves the post-login landing under `/w/:workspaceId` once it knows the workspace.
+    new RegExp(`^${escapeRegExp(baseUrl)}(?:${escapeRegExp(`${workspaceRoutePrefix}/`)}[^/]+)?${escapeRegExp(reviewRoute)}`),
     externalUiTimeoutMs,
   );
 

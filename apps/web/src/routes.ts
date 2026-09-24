@@ -134,21 +134,29 @@ export function normalizeRoutePath(pathname: string): string {
   return withoutTrailingSlashes === "" ? "/" : withoutTrailingSlashes.toLowerCase();
 }
 
-/** Tested against an already normalized path, which is lowercased, hence no case-insensitive flag. */
-const workspaceIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
+/**
+ * The platform's workspace-id contract, copied from `apps/backend/src/workspaces/identity.ts` so the
+ * two stay one contract rather than two coincidences: loose hex in 8-4-4-4-12, with no RFC 4122
+ * version or variant nibble required. Migration 0018 mints ids by slicing a raw `md5()` digest, so
+ * they set neither nibble, and a stricter pattern here would reject live workspaces — and with them
+ * every `/w/<workspaceId>` address the app builds for one.
+ *
+ * Tested against an already normalized path, which is lowercased, hence no case-insensitive flag.
+ */
+const workspaceIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u;
 
 /**
  * Splits `/w/<workspaceId><appPath>` into the workspace it names and the path the app serves under
  * it, so the classifiers below can read a workspace-scoped path as the app path it carries. A first
- * segment that is not a UUID names no workspace, so that path is returned unsplit and classifies as
- * it does today.
+ * segment that is not a workspace id under `workspaceIdPattern` above names no workspace, so that
+ * path is returned unsplit and classifies as it does today.
  *
  * `appPath` is always sliced out of the raw `pathname` — the remainder after the workspace segment
  * when the prefix matched, `/` when nothing follows the workspace, and the untouched `pathname` when
  * it did not match. Only the matching and the workspace-id check run on the normalized path, so a
  * caller that forwards `appPath` into a redirect keeps a case-sensitive invite token or
- * `packageVersionId` intact. Every classifier below normalizes what it gets back, so the three
- * shapes classify alike. `workspaceId` is the normalized, lowercased segment.
+ * `packageVersionId` intact. A caller that instead compares `appPath` to a route constant has to
+ * normalize it first. `workspaceId` is the normalized, lowercased segment.
  */
 export function splitWorkspaceRoutePath(pathname: string): Readonly<{ workspaceId: string | null; appPath: string }> {
   const path = normalizeRoutePath(pathname);

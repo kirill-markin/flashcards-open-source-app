@@ -59,9 +59,9 @@ function isDeckEditorRoute(pathname: string): boolean {
  * Maps a web route onto the platform-independent surface enum shared with iOS and Android. Routes
  * with no shared surface return null and emit no `screen_viewed`; a route path is never sent.
  *
- * A route that renders no screen maps to null, redirect-only routes included. `/` is a bare
- * `<Navigate replace to={reviewRoute} />`, so counting it as `review` would emit `screen_viewed`
- * twice for every cold start at the site root — permanently, on an append-only table, and only on
+ * A route that renders no screen maps to null, redirect-only routes included. `/` is redirect-only —
+ * `LegacyFlatPathRedirect` forwards it to the review route — so counting it as `review` would emit
+ * `screen_viewed` twice for every cold start at the site root — permanently, on an append-only table, and only on
  * web, where iOS and Android have no such route. The legacy `/decks`, `/decks/:deckId`,
  * `/decks/:deckId/edit` and `/tags` redirects reach the same null by falling through.
  *
@@ -81,10 +81,10 @@ function isDeckEditorRoute(pathname: string): boolean {
  * themselves through `useAnalyticsScreenView`, as does the sign-in gate a signed-out visitor sees.
  */
 export function resolveAnalyticsSurface(rawPathname: string): AnalyticsSurface | null {
-  // Matched on the same stripped and normalized path `isAuthenticatedAppPath` uses, because the
-  // comparisons below are against the same workspace-relative route constants: a raw `/Review` or
-  // `/review/`, and a path under `/w/:workspaceId` once the app mounts there, would report no
-  // surface at all while React Router renders the screen.
+  // Matched on the path left once `splitWorkspaceRoutePath` strips the workspace segment, normalized
+  // here because the comparisons below are against the workspace-relative route constants: a raw
+  // `/Review` or `/review/`, and a path under `/w/:workspaceId` once the app mounts there, would
+  // report no surface at all while React Router renders the screen.
   const pathname = normalizeRoutePath(splitWorkspaceRoutePath(rawPathname).appPath);
 
   if (pathname === reviewRoute) {
