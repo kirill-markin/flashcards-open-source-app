@@ -439,7 +439,10 @@ extension FlashcardsStore {
             )
             return try await operation(credentials, configuration)
         } catch {
-            if self.isCloudAuthorizationError(error) == false {
+            // The operation above captures its own failure and rethrows it boxed in
+            // `ObservedTechnicalError`, so the forced-refresh retry only sees a rejected token
+            // through the box.
+            if self.isCloudAuthorizationError(technicalErrorPresentationSource(error: error)) == false {
                 throw error
             }
         }
