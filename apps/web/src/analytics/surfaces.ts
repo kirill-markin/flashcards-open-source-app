@@ -11,6 +11,7 @@ import {
   settingsHubRoute,
   settingsTagsRoute,
   shareRoute,
+  splitWorkspaceRoutePath,
 } from "../routes";
 import type { AnalyticsSurface } from "./events";
 
@@ -80,10 +81,11 @@ function isDeckEditorRoute(pathname: string): boolean {
  * themselves through `useAnalyticsScreenView`, as does the sign-in gate a signed-out visitor sees.
  */
 export function resolveAnalyticsSurface(rawPathname: string): AnalyticsSurface | null {
-  // Matched on the same normalized path `isAuthenticatedAppPath` uses, because the comparisons
-  // below are against the same route constants: a raw `/Review` or `/review/` would report no
+  // Matched on the same stripped and normalized path `isAuthenticatedAppPath` uses, because the
+  // comparisons below are against the same workspace-relative route constants: a raw `/Review` or
+  // `/review/`, and a path under `/w/:workspaceId` once the app mounts there, would report no
   // surface at all while React Router renders the screen.
-  const pathname = normalizeRoutePath(rawPathname);
+  const pathname = normalizeRoutePath(splitWorkspaceRoutePath(rawPathname).appPath);
 
   if (pathname === reviewRoute) {
     return "review";
