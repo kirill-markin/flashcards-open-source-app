@@ -132,6 +132,31 @@ per-request id is not substituted. That still holds for `anonymous_id`. But sinc
 consent fact carries a separate server-derived `daily_visitor_hash`, which links one browser's events
 within one UTC day. The consent facts still carry neither.
 
+### `0144_anonymous_client_daily_visitor_hash.sql` — the refusal list is longer than three names
+
+Its header says the hash is computed only for a cookieless row "that is not one of the three consent
+facts", it names those three again when it explains why a grant is excluded with them, and the
+`COMMENT ON COLUMN analytics.product_events.daily_visitor_hash` it installed — the copy now living in
+the database — says the same in its own words, "not a consent fact". The
+`product_events_daily_visitor_hash_shape` constraint it added listed exactly `consent_prompt_shown`,
+`consent_granted` and `consent_declined`. All of that describes the surfaces that existed when it ran.
+
+`0156_site_consent_daily_visitor_hash_exclusion.sql` re-adds that constraint over eight names. The
+marketing site has a consent banner of its own, reported as `site_consent_prompt_shown`,
+`site_consent_granted` and `site_consent_declined`, and a collection switch answered after it,
+reported as `site_collection_disabled` and `site_collection_enabled`. Read `0156` for the current
+list.
+
+The backend's rule is the broader of the two because it is not a list alone:
+`isDailyVisitorHashAllowed` (`apps/backend/src/productAnalytics/dailyVisitorHash.ts`) refuses the
+hash on every `identityFree` catalog entry, so an identity-free event added later is refused it
+before any migration names it. The by-name half exists for the two grants alone, which are
+identity-bearing on purpose and would otherwise pass that check.
+
+The rest of that header still holds, and it is the part that carries the promise: the hash is not an
+actor, it is never folded into `actor_id` and never linked to a visitor id, an identity link or an
+account, a day's salt is deleted once that day has ended, and no raw IP is stored anywhere.
+
 ### `0149_product_analytics_off_switch.sql` — account deletion anonymizes, it does not erase
 
 Its header makes the same claim twice, in words that differ between the copies. The `Current
