@@ -243,9 +243,10 @@ rows exist to avoid, so it is deliberately not done
 
 ## The marketing site facts
 
-`site_page_viewed`, `site_app_entry_shown`, `site_app_entry_clicked` and `site_internal_cta_clicked`
-are what the marketing site reports about its own pages: a page was viewed, a link into the web app
-or an app store was seen, one was clicked, and a CTA leading to another marketing page was clicked.
+`site_page_viewed`, `site_app_entry_shown`, `site_app_entry_clicked`, `site_store_qr_shown` and
+`site_internal_cta_clicked` are what the marketing site reports about its own pages: a page was
+viewed, a link into the web app or an app store was seen, one was clicked, a store link's QR card
+was opened, and a CTA leading to another marketing page was clicked.
 Their properties are in the
 [event catalog](../apps/backend/src/productAnalytics/catalog.ts), which also owns how an impression
 is deduplicated. None of them is `identityFree`: like `catalog_install_clicked`, each carries the
