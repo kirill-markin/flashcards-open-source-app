@@ -752,7 +752,6 @@ const ltCatalog: TranslationCatalog = {
       updated: "Atnaujinta",
       note: "Pastaba",
     },
-    maximumIntervalDays: "{{count}}",
     note: "Šie nustatymai veikia tik būsimą planavimą. Esama kortelių būsena lieka lemiama.",
   },
   workspaceExport: {
@@ -803,7 +802,6 @@ const ltCatalog: TranslationCatalog = {
     customSeparatorRequired: "Įveskite pasirinktinį skirtuką, kad matytumėte kortelių peržiūrą.",
     textTagsDescription: "Pasirinkite žymas kiekvienai importuojamai kortelei. Palikite tuščią, kad unikali importavimo žyma būtų pridėta automatiškai.",
     textPreviewTitle: "Peržiūra",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "Įklijuokite tekstą, kad matytumėte kortelių peržiūrą.",
     textInvalidCount: "Reikia patikrinti: {{count}}",
     textInvalidHelp: "Kiekvienai kortelei įrašykite ir priekinę, ir galinę pusę arba ištrinkite nebaigtas korteles.",
@@ -1033,7 +1031,6 @@ const ltCatalog: TranslationCatalog = {
       videoLabel: "Vaizdo priedas",
     },
     queue: {
-      cards: "Kortelių: {{count}}",
       close: "Uždaryti eilę",
       loading: "įkeliama",
       title: "Eilė",
@@ -1248,7 +1245,6 @@ const ltCatalog: TranslationCatalog = {
       systemDeckDelete: "Sisteminės kaladės ištrinti negalima.",
     },
     matchingCards: {
-      count: "Kortelių: {{count}}",
       title: "Atitinkančios kortelės",
     },
     meta: {

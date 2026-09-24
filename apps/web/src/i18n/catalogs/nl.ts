@@ -743,7 +743,6 @@ const nlCatalog: TranslationCatalog = {
       updated: "Bijgewerkt",
       note: "Opmerking",
     },
-    maximumIntervalDays: "{{count}}",
     note: "Deze instellingen gelden alleen voor toekomstige planning. De bestaande status van een kaart blijft leidend.",
   },
   workspaceExport: {
@@ -794,7 +793,6 @@ const nlCatalog: TranslationCatalog = {
     customSeparatorRequired: "Vul een aangepast scheidingsteken in om een voorbeeld van de kaarten te zien.",
     textTagsDescription: "Kies tags voor elke geïmporteerde kaart. Laat leeg om automatisch een unieke importtag toe te voegen.",
     textPreviewTitle: "Voorbeeld",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "Plak tekst om een voorbeeld van de kaarten te zien.",
     textInvalidCount: "{{count}} hebben aandacht nodig",
     textInvalidHelp: "Voeg aan elke kaart zowel een voorkant als een achterkant toe, of verwijder onvolledige kaarten.",
@@ -1024,7 +1022,6 @@ const nlCatalog: TranslationCatalog = {
       videoLabel: "Videobijlage",
     },
     queue: {
-      cards: "{{count}} kaarten",
       close: "Wachtrij sluiten",
       loading: "laden",
       title: "Wachtrij",
@@ -1236,7 +1233,6 @@ const nlCatalog: TranslationCatalog = {
       systemDeckDelete: "Een systeemdeck kan niet worden verwijderd.",
     },
     matchingCards: {
-      count: "{{count}} kaarten",
       title: "Passende kaarten",
     },
     meta: {

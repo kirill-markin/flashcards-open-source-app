@@ -46,9 +46,7 @@ export function WorkspaceSchedulerScreen(): ReactElement {
           <article className="content-card settings-summary-card">
             <span className="cell-secondary">{t("workspaceScheduler.labels.maximumInterval")}</span>
             <strong className="panel-subtitle">
-              {t("workspaceScheduler.maximumIntervalDays", {
-                count: formatCount(workspaceSettings.maximumIntervalDays, messages.common.countLabels.day),
-              })}
+              {formatCount(workspaceSettings.maximumIntervalDays, messages.common.countLabels.day)}
             </strong>
           </article>
           <article className="content-card settings-summary-card">

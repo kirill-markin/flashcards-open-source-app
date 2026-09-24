@@ -743,7 +743,6 @@ const lvCatalog: TranslationCatalog = {
       updated: "Atjaunināts",
       note: "Piezīme",
     },
-    maximumIntervalDays: "{{count}}",
     note: "Šie iestatījumi ietekmē tikai turpmāko plānošanu. Esošais kartīšu stāvoklis paliek noteicošais.",
   },
   workspaceExport: {
@@ -794,7 +793,6 @@ const lvCatalog: TranslationCatalog = {
     customSeparatorRequired: "Ievadiet pielāgotu atdalītāju, lai priekšskatītu kartītes.",
     textTagsDescription: "Izvēlieties birkas katrai importētajai kartītei. Atstājiet tukšu, lai automātiski pievienotu unikālu importa birku.",
     textPreviewTitle: "Priekšskatījums",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "Ielīmējiet tekstu, lai priekšskatītu kartītes.",
     textInvalidCount: "Jāpārbauda: {{count}}",
     textInvalidHelp: "Katrai kartītei aizpildiet gan priekšpusi, gan aizmuguri vai izdzēsiet nepabeigtās kartītes.",
@@ -1024,7 +1022,6 @@ const lvCatalog: TranslationCatalog = {
       videoLabel: "Video pielikums",
     },
     queue: {
-      cards: "Kartītes: {{count}}",
       close: "Aizvērt rindu",
       loading: "ielādē",
       title: "Rinda",
@@ -1236,7 +1233,6 @@ const lvCatalog: TranslationCatalog = {
       systemDeckDelete: "Sistēmas kavu nevar dzēst.",
     },
     matchingCards: {
-      count: "Kartītes: {{count}}",
       title: "Atbilstošās kartītes",
     },
     meta: {

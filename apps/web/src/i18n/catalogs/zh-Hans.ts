@@ -743,7 +743,6 @@ export const zhHansCatalog = {
       updated: "更新时间",
       note: "说明",
     },
-    maximumIntervalDays: "{{count}}",
     note: "这些设置只会影响未来的调度。现有卡片状态仍然是权威来源。",
   },
   workspaceExport: {
@@ -794,7 +793,6 @@ export const zhHansCatalog = {
     customSeparatorRequired: "请输入自定义分隔符以预览卡片。",
     textTagsDescription: "为每张导入的卡片选择标签。留空则自动添加一个唯一导入标签。",
     textPreviewTitle: "预览",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "粘贴文本以预览卡片。",
     textInvalidCount: "{{count}} 张需要处理",
     textInvalidHelp: "为每张卡片补齐正面和背面，或删除不完整的卡片。",
@@ -1024,7 +1022,6 @@ export const zhHansCatalog = {
       videoLabel: "视频附件",
     },
     queue: {
-      cards: "{{count}} 张卡片",
       close: "关闭队列",
       loading: "加载中",
       title: "队列",
@@ -1236,7 +1233,6 @@ export const zhHansCatalog = {
       systemDeckDelete: "系统牌组不能删除。",
     },
     matchingCards: {
-      count: "{{count}} 张卡片",
       title: "匹配的卡片",
     },
     meta: {

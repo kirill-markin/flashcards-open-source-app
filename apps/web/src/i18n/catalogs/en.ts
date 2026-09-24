@@ -741,7 +741,6 @@ const enCatalog = {
       updated: "Updated",
       note: "Note",
     },
-    maximumIntervalDays: "{{count}}",
     note: "These settings affect future scheduling only. Existing card state remains authoritative.",
   },
   workspaceExport: {
@@ -792,7 +791,6 @@ const enCatalog = {
     customSeparatorRequired: "Enter a custom separator to preview cards.",
     textTagsDescription: "Choose tags for every imported card. Leave empty to add a unique import tag automatically.",
     textPreviewTitle: "Preview",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "Paste text to preview cards.",
     textInvalidCount: "{{count}} need attention",
     textInvalidHelp: "Add both a front and a back to every card, or delete incomplete cards.",
@@ -1022,7 +1020,6 @@ const enCatalog = {
       videoLabel: "Video attachment",
     },
     queue: {
-      cards: "{{count}} cards",
       close: "Close queue",
       loading: "loading",
       title: "Queue",
@@ -1234,7 +1231,6 @@ const enCatalog = {
       systemDeckDelete: "System deck cannot be deleted.",
     },
     matchingCards: {
-      count: "{{count}} cards",
       title: "Matching cards",
     },
     meta: {

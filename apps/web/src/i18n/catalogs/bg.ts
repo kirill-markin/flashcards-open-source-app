@@ -743,7 +743,6 @@ const bgCatalog: TranslationCatalog = {
       updated: "Актуализирано",
       note: "Бележка",
     },
-    maximumIntervalDays: "{{count}}",
     note: "Тези настройки засягат само бъдещото планиране. Текущото състояние на картите остава определящо.",
   },
   workspaceExport: {
@@ -794,7 +793,6 @@ const bgCatalog: TranslationCatalog = {
     customSeparatorRequired: "Въведете персонализиран разделител, за да прегледате картите.",
     textTagsDescription: "Изберете етикети за всяка импортирана карта. Оставете празно, за да се добави автоматично уникален етикет за импортиране.",
     textPreviewTitle: "Преглед",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "Поставете текст, за да прегледате картите.",
     textInvalidCount: "Изискват внимание: {{count}}",
     textInvalidHelp: "Добавете лице и гръб на всяка карта или изтрийте незавършените карти.",
@@ -1024,7 +1022,6 @@ const bgCatalog: TranslationCatalog = {
       videoLabel: "Прикачен видеоклип",
     },
     queue: {
-      cards: "Карти: {{count}}",
       close: "Затваряне на опашката",
       loading: "зареждане",
       title: "Опашка",
@@ -1236,7 +1233,6 @@ const bgCatalog: TranslationCatalog = {
       systemDeckDelete: "Системното тесте не може да бъде изтрито.",
     },
     matchingCards: {
-      count: "Карти: {{count}}",
       title: "Съответстващи карти",
     },
     meta: {

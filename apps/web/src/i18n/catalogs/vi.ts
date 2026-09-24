@@ -743,7 +743,6 @@ const viCatalog: TranslationCatalog = {
       updated: "Đã cập nhật",
       note: "Ghi chú",
     },
-    maximumIntervalDays: "{{count}}",
     note: "Các cài đặt này chỉ ảnh hưởng đến lịch trong tương lai. Trạng thái hiện tại của thẻ vẫn được giữ nguyên.",
   },
   workspaceExport: {
@@ -794,7 +793,6 @@ const viCatalog: TranslationCatalog = {
     customSeparatorRequired: "Hãy nhập dấu phân tách tùy chỉnh để xem trước thẻ.",
     textTagsDescription: "Chọn nhãn cho mọi thẻ được nhập. Để trống để tự động thêm một nhãn nhập riêng.",
     textPreviewTitle: "Xem trước",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "Dán văn bản để xem trước thẻ.",
     textInvalidCount: "{{count}} thẻ cần chỉnh sửa",
     textInvalidHelp: "Hãy thêm cả mặt trước và mặt sau cho mọi thẻ, hoặc xóa những thẻ chưa hoàn chỉnh.",
@@ -1024,7 +1022,6 @@ const viCatalog: TranslationCatalog = {
       videoLabel: "Video đính kèm",
     },
     queue: {
-      cards: "{{count}} thẻ",
       close: "Đóng hàng đợi",
       loading: "đang tải",
       title: "Hàng đợi",
@@ -1236,7 +1233,6 @@ const viCatalog: TranslationCatalog = {
       systemDeckDelete: "Không thể xóa bộ thẻ hệ thống.",
     },
     matchingCards: {
-      count: "{{count}} thẻ",
       title: "Thẻ phù hợp",
     },
     meta: {

@@ -743,7 +743,6 @@ const swCatalog: TranslationCatalog = {
       updated: "Imesasishwa",
       note: "Kumbuka",
     },
-    maximumIntervalDays: "{{count}}",
     note: "Mipangilio hii huathiri upangaji wa baadaye pekee. Hali iliyopo ya kadi hubaki kuwa halisi.",
   },
   workspaceExport: {
@@ -794,7 +793,6 @@ const swCatalog: TranslationCatalog = {
     customSeparatorRequired: "Weka kitenganishi maalum ili kuona onyesho la awali la kadi.",
     textTagsDescription: "Chagua lebo kwa kila kadi inayoingizwa. Acha wazi ili kuongeza lebo ya kipekee ya uingizaji kiotomatiki.",
     textPreviewTitle: "Onyesho la awali",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "Bandika maandishi ili kuona onyesho la awali la kadi.",
     textInvalidCount: "{{count}} zinahitaji kurekebishwa",
     textInvalidHelp: "Ongeza upande wa mbele na wa nyuma kwenye kila kadi, au futa kadi ambazo hazijakamilika.",
@@ -1024,7 +1022,6 @@ const swCatalog: TranslationCatalog = {
       videoLabel: "Kiambatisho cha video",
     },
     queue: {
-      cards: "kadi {{count}}",
       close: "Funga foleni",
       loading: "inapakia",
       title: "Foleni",
@@ -1236,7 +1233,6 @@ const swCatalog: TranslationCatalog = {
       systemDeckDelete: "Fungu la mfumo haliwezi kufutwa.",
     },
     matchingCards: {
-      count: "kadi {{count}}",
       title: "Kadi zinazolingana",
     },
     meta: {

@@ -752,7 +752,6 @@ const skCatalog: TranslationCatalog = {
       updated: "Aktualizované",
       note: "Poznámka",
     },
-    maximumIntervalDays: "{{count}}",
     note: "Tieto nastavenia ovplyvňujú iba budúce plánovanie. Existujúci stav kariet zostáva rozhodujúci.",
   },
   workspaceExport: {
@@ -803,7 +802,6 @@ const skCatalog: TranslationCatalog = {
     customSeparatorRequired: "Zadajte vlastný oddeľovač, aby sa zobrazila ukážka kariet.",
     textTagsDescription: "Vyberte značky pre každú importovanú kartu. Ak pole necháte prázdne, automaticky sa pridá jedinečná značka importu.",
     textPreviewTitle: "Ukážka",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "Prilepte text, aby sa zobrazila ukážka kariet.",
     textInvalidCount: "Vyžadujú pozornosť: {{count}}",
     textInvalidHelp: "Ku každej karte doplňte prednú aj zadnú stranu alebo neúplné karty odstráňte.",
@@ -1033,7 +1031,6 @@ const skCatalog: TranslationCatalog = {
       videoLabel: "Video príloha",
     },
     queue: {
-      cards: "Karty: {{count}}",
       close: "Zavrieť rad",
       loading: "načítava sa",
       title: "Rad",
@@ -1248,7 +1245,6 @@ const skCatalog: TranslationCatalog = {
       systemDeckDelete: "Systémový balíček nemožno vymazať.",
     },
     matchingCards: {
-      count: "Karty: {{count}}",
       title: "Zodpovedajúce karty",
     },
     meta: {
