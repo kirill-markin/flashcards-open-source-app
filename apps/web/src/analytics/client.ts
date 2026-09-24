@@ -7,28 +7,13 @@ import {
   type IdentityFreeAnalyticsEventName,
 } from "./events";
 
-/**
- * The stamp a screen that no value in the shared `screen` enum names holds while it is on display.
- * Module-private and produced by `takeDownCurrentAnalyticsSurface` alone, so it is a token only
- * that screen can hold: `null` is not, because it is equally what `AnalyticsLifecycle` stamps for a
- * route with no surface and what any `setCurrentAnalyticsSurface(null)` leaves behind, and a
- * handover keyed on it would depend on which effect flushed last rather than on who holds the
- * stamp. Every reader below sees it as `null`, which is what it means for an event: no surface the
- * catalog declares.
- */
-const unreportableScreenSurface: unique symbol = Symbol("analytics.unreportableScreen");
-
-let currentSurface: AnalyticsSurface | typeof unreportableScreenSurface | null = null;
+let currentSurface: AnalyticsSurface | null = null;
 // The surface the open `screen_viewed` visit named, or null while no visit is open. Separate from
 // `currentSurface`, which is a stamp rather than a visit: every caller writes the stamp, including
 // the ones that must not report a view.
 let lastViewedSurface: AnalyticsSurface | null = null;
 
-function readStampedSurface(): AnalyticsSurface | null {
-  return currentSurface === unreportableScreenSurface ? null : currentSurface;
-}
-
-const deliveryRuntime = createAnalyticsDeliveryRuntime(readStampedSurface);
+const deliveryRuntime = createAnalyticsDeliveryRuntime(readCurrentAnalyticsSurface);
 
 export function isAnalyticsEnabledForCurrentRuntime(): boolean {
   return deliveryRuntime.isAnalyticsEnabledForCurrentRuntime();
@@ -64,7 +49,7 @@ export function setCurrentAnalyticsSurface(surface: AnalyticsSurface | null): vo
  * route with no value in the enum.
  */
 export function readCurrentAnalyticsSurface(): AnalyticsSurface | null {
-  return readStampedSurface();
+  return currentSurface;
 }
 
 /**
@@ -110,37 +95,19 @@ export function trackScreenViewedOnDismiss(
 }
 
 /**
- * Hands the stamp back to `restored` without reporting anything, for a screen that took it — by
- * reporting itself, or by taking the stamp down because no value in the enum names it — and is now
- * gone. Carries the same guard as `trackScreenViewedOnDismiss` and for the same reason:
+ * Hands the stamp back to `restored` without reporting anything, for a screen that reported itself
+ * and is now gone. Carries the same guard as `trackScreenViewedOnDismiss` and for the same reason:
  * something else may already own the surface, and a caller whose effect flushes late — a parent's
  * does, after every child's — would otherwise file later events against a screen nobody is on.
  */
 export function restoreCurrentAnalyticsSurface(
-  params: Readonly<{
-    dismissed: AnalyticsSurface | typeof unreportableScreenSurface;
-    restored: AnalyticsSurface | null;
-  }>,
+  params: Readonly<{ dismissed: AnalyticsSurface; restored: AnalyticsSurface | null }>,
 ): void {
   if (currentSurface !== params.dismissed) {
     return;
   }
 
   currentSurface = params.restored;
-}
-
-/**
- * Takes the stamp down for a screen this client cannot report at all, under the token above rather
- * than under the `null` anything else may stamp. Every event tracked while it is up carries no
- * surface, exactly as a plain `null` stamp would.
- */
-export function takeDownCurrentAnalyticsSurface(): void {
-  currentSurface = unreportableScreenSurface;
-}
-
-/** The counterpart hand-back, which the guard above grants only while that take-down still holds. */
-export function restoreCurrentAnalyticsSurfaceAfterTakeDown(restored: AnalyticsSurface | null): void {
-  restoreCurrentAnalyticsSurface({ dismissed: unreportableScreenSurface, restored });
 }
 
 /**
@@ -159,7 +126,7 @@ export function endAnalyticsScreenVisit(): void {
  */
 export function track(event: AnalyticsEvent): void {
   try {
-    deliveryRuntime.enqueue(event, readStampedSurface());
+    deliveryRuntime.enqueue(event, currentSurface);
   } catch {
     // A failure inside analytics is swallowed on purpose; the queue reporting path covers the rest.
   }

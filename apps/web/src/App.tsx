@@ -6,9 +6,8 @@ import {
   AnalyticsConsentBanner,
   AnalyticsLifecycle,
   PublicAnalyticsConsentLink,
-  useAnalyticsScreenView,
-  useAnalyticsUnreportableScreen,
-  type AnalyticsSurface,
+  publishAnalyticsRootGate,
+  type AnalyticsRootGate,
 } from "./analytics";
 import {
   AppDataProvider,
@@ -412,9 +411,42 @@ function TestModeRouteGuard(props: Readonly<{ children: ReactElement }>): ReactE
 }
 
 /**
- * The screen a session gate puts on display in place of the whole app, or null while the route's own
- * screen is showing.
+ * The gate the shell below puts on display in place of the whole app, beyond the ones
+ * `SessionLoadState` names. A separate argument rather than a member of that type: an address naming
+ * a workspace the account cannot open is a product condition rather than a state of loading the
+ * session, and `SessionLoadState` is spread across `appData`, its provider and the test helpers.
+ */
+type WorkspaceRootGateState = "workspace_unavailable" | "none";
+
+/**
+ * What a gate that replaces the app root reports, and the only place it is decided: `Analytics-
+ * Lifecycle` reports this and nothing else while a gate is up, so a gate added to the shell below
+ * answers here rather than leaving the route's screen reported and taking its surface down
+ * afterwards.
  *
+ * The workspace-unavailable panel reports no screen at all — no value in the closed cross-client
+ * `screen` enum names it — and it takes the route's surface down with it, so nothing tracked while
+ * it stands is filed against the route whose screen it kept from rendering.
+ *
+ * Answered before the session states although the shell renders this panel after them, which changes
+ * nothing: it is reachable only at `ready`, so the two can never both be up. Exhaustive over
+ * `WorkspaceRootGateState` the way the session switch below is exhaustive over `SessionLoadState`,
+ * and for the same reason: `"none"` returns the session's answer rather than falling out of the
+ * switch, so a gate added to this type fails to compile until it says what it reports.
+ */
+function resolveRootGateReport(
+  sessionLoadState: SessionLoadState,
+  workspaceGateState: WorkspaceRootGateState,
+): AnalyticsRootGate {
+  switch (workspaceGateState) {
+    case "workspace_unavailable":
+      return { status: "gated", surface: null };
+    case "none":
+      return resolveSessionRootGateReport(sessionLoadState);
+  }
+}
+
+/**
  * `selecting_workspace` replaces everything with the workspace chooser, and the catalog is explicit
  * that the choice is part of the sign-in screen: "the email step, the code step and the workspace
  * choice are one screen here". The steps themselves live on the auth service's origin, so this is
@@ -426,10 +458,13 @@ function TestModeRouteGuard(props: Readonly<{ children: ReactElement }>): ReactE
  * it for (`CloudCredentialRecoveryReason.linkedCredentialsMissing` and its siblings). It is not
  * `signin`, which names the sign-in steps themselves, and this gate hosts none of them.
  *
- * `ready` is the route's own screen showing normally. `loading`, `redirecting` and `error` report
- * nothing and leave that surface in place: they are the route's own loading and error states, which
- * the catalog keeps on the surface of the route they belong to rather than giving a screen of their
- * own.
+ * The session's own loading, redirect and error panels report no screen either — no value in the
+ * enum names one of them — and they leave the stamp exactly where the route set it on the first
+ * commit, which is where the catalog keeps a route's own loading and error states. A `warm`
+ * `app_opened` from a tab return during a slow load, and everything else tracked while one of them
+ * is up, still carries the route's surface, as it did before any of this was published.
+ *
+ * `ready` is the route's own screen showing, and it reports itself.
  *
  * Exhaustive over `SessionLoadState` with no `default`, the way `productAnalyticsClientReportable-
  * PlatformFlags` is exhaustive over its stored domain in `apps/backend/src/productAnalytics/
@@ -437,19 +472,20 @@ function TestModeRouteGuard(props: Readonly<{ children: ReactElement }>): ReactE
  * report none — by omission, because `analytics.product_events` is append-only and has no repair
  * path. Adding one fails to compile here until this question is answered for it.
  */
-function resolveSessionGateSurface(sessionLoadState: SessionLoadState): AnalyticsSurface | null {
+function resolveSessionRootGateReport(sessionLoadState: SessionLoadState): AnalyticsRootGate {
   switch (sessionLoadState) {
     case "selecting_workspace":
-      return "signin";
+      return { status: "gated", surface: "signin" };
     case "deleted":
-      return "credential_recovery";
-    case "ready":
+      return { status: "gated", surface: "credential_recovery" };
     case "loading":
     case "redirecting":
     case "error":
     // A browser without storage also has no analytics queue to record a screen view into.
     case "storage_unavailable":
-      return null;
+      return { status: "gated_keeping_route_stamp" };
+    case "ready":
+      return { status: "open" };
   }
 }
 
@@ -520,7 +556,7 @@ export function AppShell(): ReactElement {
   // that publishes the account default is an IndexedDB write or an HTTP round trip later, so between
   // the two this panel would stand with the entry workspace still active: its only exit is a
   // document load onto the active workspace's own review screen, which would land straight back on
-  // it, and the surface take-down below would start inside that window. `ready` keeps the take-down
+  // it, and the gate report below would start inside that window. `ready` keeps that report
   // out of that window only on a cold start, where the session is still loading while the record is
   // written; on a warm start the session is already `ready` and is held there across
   // `listWorkspaces`, so the whole window sits inside `ready` and the published workspace is the
@@ -653,16 +689,20 @@ export function AppShell(): ReactElement {
     navigate(staleWorkspaceUrl, { replace: true });
   }, [navigate, staleWorkspaceUrl]);
 
-  // Called before the early returns below so it runs on every render, as a hook must. A gate that
-  // replaces the app is the screen while it is up, and reporting it is also what keeps every other
-  // event tracked underneath it off the route's surface.
-  useAnalyticsScreenView(resolveSessionGateSurface(sessionLoadState));
-  // The workspace-unavailable panel below replaces the app root too, but it is not a
-  // `SessionLoadState` and no value in the closed `screen` enum names it, so it cannot report itself
-  // the way the gates above do. It takes the route's surface down instead: `resolveAnalyticsSurface`
-  // reads `review` off `/w/<unreachable>/review` — the workspace segment is stripped before the
-  // route is classified — and that surface would otherwise stand under a screen that never rendered.
-  useAnalyticsUnreportableScreen(isEntryWorkspaceUnreachable);
+  // Resolved and published before the early returns below, so it runs on every render as a hook
+  // must and so every gate this shell renders reaches the reporting mechanism rather than only the
+  // ones that remember to report themselves. `AnalyticsLifecycle` reports what this says, and for
+  // the workspace-unavailable gate that is also what keeps the events tracked underneath off the
+  // route's surface: `resolveAnalyticsSurface` reads `review` off `/w/<unreachable>/review` — the
+  // workspace segment is stripped before the route is classified — and that surface would otherwise
+  // stand under a screen that never rendered.
+  const rootGateReport: AnalyticsRootGate = resolveRootGateReport(
+    sessionLoadState,
+    isEntryWorkspaceUnreachable ? "workspace_unavailable" : "none",
+  );
+  useEffect(() => {
+    publishAnalyticsRootGate(rootGateReport);
+  }, [rootGateReport]);
 
   if (sessionLoadState === "loading" || sessionLoadState === "redirecting") {
     return (
@@ -753,10 +793,6 @@ export function AppShell(): ReactElement {
   // own review screen rather than nowhere. A document load rather than a `Link`, because the entry
   // address is what decides the workspace and it is captured once per document: a client-side
   // navigation would leave this panel standing.
-  //
-  // `AnalyticsLifecycle` has already emitted `screen_viewed` for the route under this address by the
-  // time this panel can take that surface down, so `review` views still include opens of links into
-  // a workspace the account cannot reach. Deferred to its own analytics item.
   if (isEntryWorkspaceUnreachable) {
     return (
       <main className="page-state">
