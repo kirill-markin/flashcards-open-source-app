@@ -743,7 +743,6 @@ const mrCatalog: TranslationCatalog = {
       updated: "अद्यतनित",
       note: "टीप",
     },
-    maximumIntervalDays: "{{count}}",
     note: "या सेटिंग्जचा परिणाम फक्त पुढील वेळापत्रकावर होतो. कार्डांची सध्याची स्थिती तशीच अधिकृत राहते.",
   },
   workspaceExport: {
@@ -794,7 +793,6 @@ const mrCatalog: TranslationCatalog = {
     customSeparatorRequired: "कार्डांचे पूर्वावलोकन पाहण्यासाठी सानुकूल विभाजक भरा.",
     textTagsDescription: "प्रत्येक आयात केलेल्या कार्डसाठी टॅग निवडा. आपोआप अद्वितीय आयात टॅग जोडण्यासाठी रिकामे ठेवा.",
     textPreviewTitle: "पूर्वावलोकन",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "कार्डांचे पूर्वावलोकन पाहण्यासाठी मजकूर पेस्ट करा.",
     textInvalidCount: "{{count}} तपासणे आवश्यक आहे",
     textInvalidHelp: "प्रत्येक कार्डाला पुढील आणि मागील दोन्ही बाजू द्या, किंवा अपूर्ण कार्डे हटवा.",
@@ -1024,7 +1022,6 @@ const mrCatalog: TranslationCatalog = {
       videoLabel: "जोडलेला व्हिडिओ",
     },
     queue: {
-      cards: "{{count}} कार्डे",
       close: "रांग बंद करा",
       loading: "लोड करत आहे",
       title: "रांग",
@@ -1236,7 +1233,6 @@ const mrCatalog: TranslationCatalog = {
       systemDeckDelete: "सिस्टम संच हटवता येत नाही.",
     },
     matchingCards: {
-      count: "{{count}} कार्डे",
       title: "जुळणारी कार्डे",
     },
     meta: {

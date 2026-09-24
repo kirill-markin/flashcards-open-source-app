@@ -743,7 +743,6 @@ const heCatalog: TranslationCatalog = {
       updated: "עודכן",
       note: "הערה",
     },
-    maximumIntervalDays: "{{count}}",
     note: "ההגדרות האלה משפיעות רק על תזמון עתידי. מצב הכרטיסים הקיים נשאר המקור הקובע.",
   },
   workspaceExport: {
@@ -794,7 +793,6 @@ const heCatalog: TranslationCatalog = {
     customSeparatorRequired: "הזן מפריד מותאם אישית כדי להציג תצוגה מקדימה של הכרטיסים.",
     textTagsDescription: "בחר תגיות לכל הכרטיסים המיובאים. השאר ריק כדי להוסיף אוטומטית תגית ייבוא ייחודית.",
     textPreviewTitle: "תצוגה מקדימה",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "הדבק טקסט כדי להציג תצוגה מקדימה של הכרטיסים.",
     textInvalidCount: "{{count}} דורשים תשומת לב",
     textInvalidHelp: "הוסף לכל כרטיס צד קדמי וצד אחורי, או מחק את הכרטיסים החלקיים.",
@@ -1024,7 +1022,6 @@ const heCatalog: TranslationCatalog = {
       videoLabel: "סרטון מצורף",
     },
     queue: {
-      cards: "{{count}} כרטיסים",
       close: "סגירת התור",
       loading: "טוען",
       title: "תור",
@@ -1236,7 +1233,6 @@ const heCatalog: TranslationCatalog = {
       systemDeckDelete: "לא ניתן למחוק חפיסת מערכת.",
     },
     matchingCards: {
-      count: "{{count}} כרטיסים",
       title: "כרטיסים תואמים",
     },
     meta: {

@@ -761,7 +761,6 @@ const slCatalog: TranslationCatalog = {
       updated: "Posodobljeno",
       note: "Opomba",
     },
-    maximumIntervalDays: "{{count}}",
     note: "Te nastavitve vplivajo le na prihodnje razporejanje. Obstoječe stanje kartic ostane merodajno.",
   },
   workspaceExport: {
@@ -812,7 +811,6 @@ const slCatalog: TranslationCatalog = {
     customSeparatorRequired: "Vnesite ločilo po meri za predogled kartic.",
     textTagsDescription: "Izberite oznake za vsako uvoženo kartico. Če pustite prazno, se samodejno doda edinstvena oznaka uvoza.",
     textPreviewTitle: "Predogled",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "Prilepite besedilo za predogled kartic.",
     textInvalidCount: "Zahtevajo pozornost: {{count}}",
     textInvalidHelp: "Vsaki kartici dodajte sprednjo in zadnjo stran ali izbrišite nepopolne kartice.",
@@ -1042,7 +1040,6 @@ const slCatalog: TranslationCatalog = {
       videoLabel: "Video priloga",
     },
     queue: {
-      cards: "Število kartic: {{count}}",
       close: "Zapri čakalno vrsto",
       loading: "nalaganje",
       title: "Čakalna vrsta",
@@ -1260,7 +1257,6 @@ const slCatalog: TranslationCatalog = {
       systemDeckDelete: "Sistemskega kompleta ni mogoče izbrisati.",
     },
     matchingCards: {
-      count: "Število kartic: {{count}}",
       title: "Ustrezne kartice",
     },
     meta: {

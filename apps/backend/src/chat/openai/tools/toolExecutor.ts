@@ -151,6 +151,7 @@ export async function runOneToolCall(
     signal: AbortSignal | null;
     generatedImageOperationDeadlineMs: number;
     clientPlatform: ProductAnalyticsClientReportablePlatform | null;
+    initiatingAuthIsSignedIn: boolean;
     rootObservation: LangfuseObservation | null;
   }>,
 ): Promise<ExecutedChatToolCall> {
@@ -195,6 +196,7 @@ export async function runOneToolCall(
         signal: params.signal,
         generatedImageOperationDeadlineMs: params.generatedImageOperationDeadlineMs,
         clientPlatform: params.clientPlatform,
+        initiatingAuthIsSignedIn: params.initiatingAuthIsSignedIn,
         generatedImageObservationContext: {
           scope: createBackendObservationScope(
             "chat-worker", null, null, null, params.userId, params.workspaceId,

@@ -743,7 +743,6 @@ const idCatalog: TranslationCatalog = {
       updated: "Diperbarui",
       note: "Catatan",
     },
-    maximumIntervalDays: "{{count}}",
     note: "Pengaturan ini hanya memengaruhi penjadwalan mendatang. Status kartu yang sudah ada tetap menjadi acuan.",
   },
   workspaceExport: {
@@ -794,7 +793,6 @@ const idCatalog: TranslationCatalog = {
     customSeparatorRequired: "Masukkan pemisah kustom untuk melihat pratinjau kartu.",
     textTagsDescription: "Pilih tag untuk setiap kartu yang diimpor. Biarkan kosong agar tag impor unik ditambahkan otomatis.",
     textPreviewTitle: "Pratinjau",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "Tempel teks untuk melihat pratinjau kartu.",
     textInvalidCount: "{{count}} perlu diperiksa",
     textInvalidHelp: "Isi sisi depan dan belakang pada setiap kartu, atau hapus kartu yang belum lengkap.",
@@ -1024,7 +1022,6 @@ const idCatalog: TranslationCatalog = {
       videoLabel: "Lampiran video",
     },
     queue: {
-      cards: "{{count}} kartu",
       close: "Tutup antrean",
       loading: "memuat",
       title: "Antrean",
@@ -1236,7 +1233,6 @@ const idCatalog: TranslationCatalog = {
       systemDeckDelete: "Dek sistem tidak dapat dihapus.",
     },
     matchingCards: {
-      count: "{{count}} kartu",
       title: "Kartu yang cocok",
     },
     meta: {

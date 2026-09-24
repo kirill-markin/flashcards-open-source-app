@@ -743,7 +743,6 @@ const fiCatalog: TranslationCatalog = {
       updated: "Päivitetty",
       note: "Huomautus",
     },
-    maximumIntervalDays: "{{count}}",
     note: "Nämä asetukset vaikuttavat vain tulevaan ajastukseen. Korttien nykyinen tila säilyy määräävänä.",
   },
   workspaceExport: {
@@ -794,7 +793,6 @@ const fiCatalog: TranslationCatalog = {
     customSeparatorRequired: "Anna mukautettu erotin, niin näet korttien esikatselun.",
     textTagsDescription: "Valitse tunnisteet kaikille tuoduille korteille. Jätä tyhjäksi, niin yksilöllinen tuontitunniste lisätään automaattisesti.",
     textPreviewTitle: "Esikatselu",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "Liitä tekstiä, niin näet korttien esikatselun.",
     textInvalidCount: "{{count}} vaatii huomiota",
     textInvalidHelp: "Lisää jokaiseen korttiin sekä etupuoli että kääntöpuoli tai poista keskeneräiset kortit.",
@@ -1024,7 +1022,6 @@ const fiCatalog: TranslationCatalog = {
       videoLabel: "Videoliite",
     },
     queue: {
-      cards: "{{count}} korttia",
       close: "Sulje jono",
       loading: "ladataan",
       title: "Jono",
@@ -1236,7 +1233,6 @@ const fiCatalog: TranslationCatalog = {
       systemDeckDelete: "Järjestelmäpakkaa ei voi poistaa.",
     },
     matchingCards: {
-      count: "{{count}} korttia",
       title: "Vastaavat kortit",
     },
     meta: {

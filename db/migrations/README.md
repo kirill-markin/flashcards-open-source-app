@@ -20,6 +20,25 @@ recorded here instead of in the file.
 Its header says "the trigram/search indexing remains relevant". `0133_drop_cards_search_trgm_index.sql`
 drops `content.idx_cards_active_search_trgm` and records why the planner could never choose it.
 
+### `0066_reporting_readonly_operational_analytics.sql` — chat content is no longer hidden
+
+Its header says that "Secret hashes, raw chat payloads, prompts, suggestions, and legacy
+payload-heavy sync feeds remain hidden". Three of those five stopped being true with
+`0153_reporting_readonly_ai_chat_content.sql`, which grants `reporting_readonly` the transcript
+column list on `ai.chat_items` and a `SELECT` policy to go with it, `turn_input`,
+`last_error_message` and `client_platform` on `ai.chat_runs`, `composer_suggestions` on
+`ai.chat_sessions`, and `suggestions` on `ai.chat_composer_suggestion_generations`. Raw chat
+payloads, prompts and suggestions are readable by that role from there on. It is a decision rather
+than a repair: administrator access to hosted AI chat content was opened deliberately, so that
+dashboards can analyze how people use the AI and make it better, and the privacy policy in
+`kirill-markin/flashcards-open-source-app-website` discloses it.
+
+The other two still hold, and nothing in `0153` touches either: secret hashes stay hidden, and so do
+the legacy payload-heavy sync feeds, `sync.changes` and `sync.applied_operations`. Every table
+`0066` granted, it granted as an explicit column list rather than whole rows, which is why
+`ai.chat_runs.client_platform`, added by `0136_ai_chat_run_client_platform.sql` after `0066`
+enumerated that table, had to be named again in `0153`.
+
 ### `0128_catalog_educational_alignment.sql` — the guard list is out of date
 
 Its header says that "Nothing in the admin API writes catalog.package_versions.educational_* after

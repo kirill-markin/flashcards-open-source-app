@@ -191,7 +191,7 @@ function buildGeneratedImagePolicySection(): string {
 function buildRepairSection(): string {
   return joinLines([
     "If a previous tool call was rejected for invalid arguments, correct the tool call shape and continue without repeating earlier assistant text.",
-    "If a sql_query, sql_execute, list_workspaces, get_guide, next_review_card, reveal_answer, or submit_review tool output returns structured error JSON with ok=false, follow its instructions field and use error.message to correct the next tool call and continue.",
+    "If a sql_query, sql_execute, list_workspaces, get_guide, next_review_card, reveal_answer, submit_review, or get_usage_limits tool output returns structured error JSON with ok=false, follow its instructions field and use error.message to correct the next tool call and continue.",
   ]);
 }
 

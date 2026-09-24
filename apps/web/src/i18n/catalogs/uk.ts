@@ -752,7 +752,6 @@ const ukCatalog: TranslationCatalog = {
       updated: "Оновлено",
       note: "Примітка",
     },
-    maximumIntervalDays: "{{count}}",
     note: "Ці налаштування впливають лише на майбутнє планування. Поточний стан карток залишається основним.",
   },
   workspaceExport: {
@@ -803,7 +802,6 @@ const ukCatalog: TranslationCatalog = {
     customSeparatorRequired: "Введіть власний роздільник, щоб побачити перегляд карток.",
     textTagsDescription: "Оберіть теги для всіх імпортованих карток. Залиште поле порожнім, щоб автоматично додати унікальний тег імпорту.",
     textPreviewTitle: "Перегляд",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "Вставте текст, щоб побачити перегляд карток.",
     textInvalidCount: "Потребують уваги: {{count}}",
     textInvalidHelp: "Додайте кожній картці передню та зворотну сторону або вилучіть незаповнені картки.",
@@ -1033,7 +1031,6 @@ const ukCatalog: TranslationCatalog = {
       videoLabel: "Відеовкладення",
     },
     queue: {
-      cards: "{{count}} карток",
       close: "Закрити чергу",
       loading: "завантаження",
       title: "Черга",
@@ -1248,7 +1245,6 @@ const ukCatalog: TranslationCatalog = {
       systemDeckDelete: "Системну колоду не можна видалити.",
     },
     matchingCards: {
-      count: "{{count}} карток",
       title: "Відповідні картки",
     },
     meta: {

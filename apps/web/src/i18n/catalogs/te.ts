@@ -743,7 +743,6 @@ const teCatalog: TranslationCatalog = {
       updated: "అప్‌డేట్ అయింది",
       note: "గమనిక",
     },
-    maximumIntervalDays: "{{count}}",
     note: "ఈ సెట్టింగ్‌లు భవిష్యత్ షెడ్యూలింగ్‌పై మాత్రమే ప్రభావం చూపుతాయి. ఉన్న కార్డుల స్థితి అలాగే ప్రామాణికంగా ఉంటుంది.",
   },
   workspaceExport: {
@@ -794,7 +793,6 @@ const teCatalog: TranslationCatalog = {
     customSeparatorRequired: "కార్డుల ప్రివ్యూ కోసం అనుకూల విభాజకాన్ని నమోదు చేయండి.",
     textTagsDescription: "దిగుమతి చేసే ప్రతి కార్డుకు ట్యాగ్‌లను ఎంచుకోండి. ఖాళీగా వదిలితే ప్రత్యేకమైన దిగుమతి ట్యాగ్ ఆటోమేటిక్‌గా చేరుతుంది.",
     textPreviewTitle: "ప్రివ్యూ",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "కార్డుల ప్రివ్యూ కోసం టెక్స్ట్‌ను అతికించండి.",
     textInvalidCount: "{{count}}కి శ్రద్ధ అవసరం",
     textInvalidHelp: "ప్రతి కార్డుకు ముందు వైపు, వెనుక వైపు రెండింటినీ చేర్చండి లేదా అసంపూర్ణ కార్డులను తొలగించండి.",
@@ -1024,7 +1022,6 @@ const teCatalog: TranslationCatalog = {
       videoLabel: "వీడియో జోడింపు",
     },
     queue: {
-      cards: "{{count}} కార్డులు",
       close: "క్యూను మూసివేయి",
       loading: "లోడ్ అవుతోంది",
       title: "క్యూ",
@@ -1236,7 +1233,6 @@ const teCatalog: TranslationCatalog = {
       systemDeckDelete: "సిస్టమ్ డెక్‌ను తొలగించలేరు.",
     },
     matchingCards: {
-      count: "{{count}} కార్డులు",
       title: "సరిపోలే కార్డులు",
     },
     meta: {

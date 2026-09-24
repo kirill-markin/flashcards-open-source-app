@@ -215,8 +215,41 @@ type EntitlementRefresh = Readonly<{
 }>;
 
 /**
+ * The same resolution without the cache refresh: the inputs read, the pure resolver, and the wire
+ * mapper, and nothing else. It writes nothing at all - no snapshot upsert, and therefore no
+ * `entitlement_changed` fact.
+ *
+ * Which of the two a caller takes is decided by whether it is allowed to change stored state, not by
+ * convenience. A surface whose answer the person acts on calls the writing one below, so the cached row
+ * keeps up and a real entitlement change is reported once, where it happened: the sync pull does, and a
+ * paywall input would. A surface that only reports calls this one, and the agent usage tool
+ * (`apps/backend/src/aiUsage/status.ts`) is the first: it is annotated read-only on every agent
+ * surface, and an agent asking what it has left must neither be the discoverer of an entitlement change
+ * nor time that fact to its own call.
+ *
+ * The two cannot disagree about the answer. Both publish `toEntitlementWire` over the same
+ * `resolveEntitlement`, and the row the other one refreshes is a cache that may be truncated and
+ * rebuilt at any time (docs/premium-entitlements.md, "Derivation is a pure function; the snapshot is a
+ * cache"), so skipping the refresh costs a later reader one recomputation and nothing else.
+ */
+export async function resolveEntitlementForUserWithoutRefresh(
+  userId: string,
+  accountKind: AccountKind,
+  now: Date,
+): Promise<EntitlementWire> {
+  const inputs = await loadEntitlementResolutionInputs(userId);
+  return toEntitlementWire(resolveEntitlement(
+    inputs.purchases,
+    inputs.grants,
+    accountKind,
+    now,
+  ));
+}
+
+/**
  * Resolve the person's entitlement, refresh the cached row when the answer moved, and return the wire
- * shape. This is the I/O boundary the pure resolver sits behind.
+ * shape. This is the I/O boundary the pure resolver sits behind. A caller that must not write reads
+ * through `resolveEntitlementForUserWithoutRefresh` above instead.
  *
  * A missing cached row is a cache miss rather than an error state, and an unchanged entitlement is not
  * rewritten, so the hot sync path runs one read and writes nothing for the overwhelming majority of

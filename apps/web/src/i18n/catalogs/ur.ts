@@ -743,7 +743,6 @@ const urCatalog: TranslationCatalog = {
       updated: "اپ ڈیٹ",
       note: "نوٹ",
     },
-    maximumIntervalDays: "{{count}}",
     note: "یہ ترتیبات صرف آئندہ شیڈولنگ پر اثر ڈالتی ہیں۔ کارڈ کی موجودہ حالت ہی معتبر رہتی ہے۔",
   },
   workspaceExport: {
@@ -794,7 +793,6 @@ const urCatalog: TranslationCatalog = {
     customSeparatorRequired: "کارڈز کا پیش منظر دیکھنے کے لیے حسبِ ضرورت علیحدہ کار درج کریں۔",
     textTagsDescription: "ہر درآمد ہونے والے کارڈ کے لیے ٹیگز چنیں۔ خالی چھوڑیں تو منفرد درآمدی ٹیگ خودکار طور پر شامل ہو جائے گا۔",
     textPreviewTitle: "پیش منظر",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "کارڈز کا پیش منظر دیکھنے کے لیے متن چسپاں کریں۔",
     textInvalidCount: "{{count}} پر توجہ درکار ہے",
     textInvalidHelp: "ہر کارڈ میں سامنے کا رخ اور پچھلا رخ دونوں شامل کریں، یا نامکمل کارڈز حذف کریں۔",
@@ -1024,7 +1022,6 @@ const urCatalog: TranslationCatalog = {
       videoLabel: "ویڈیو منسلکہ",
     },
     queue: {
-      cards: "{{count}} کارڈز",
       close: "قطار بند کریں",
       loading: "لوڈ ہو رہی ہے",
       title: "قطار",
@@ -1236,7 +1233,6 @@ const urCatalog: TranslationCatalog = {
       systemDeckDelete: "سسٹم ڈیک حذف نہیں کیا جا سکتا۔",
     },
     matchingCards: {
-      count: "{{count}} کارڈز",
       title: "مماثل کارڈز",
     },
     meta: {

@@ -743,7 +743,6 @@ const taCatalog: TranslationCatalog = {
       updated: "புதுப்பிக்கப்பட்டது",
       note: "குறிப்பு",
     },
-    maximumIntervalDays: "{{count}}",
     note: "இந்த அமைப்புகள் எதிர்கால அட்டவணையிடலை மட்டுமே பாதிக்கும். தற்போதைய அட்டை நிலையே அதிகாரப்பூர்வமாக இருக்கும்.",
   },
   workspaceExport: {
@@ -794,7 +793,6 @@ const taCatalog: TranslationCatalog = {
     customSeparatorRequired: "அட்டைகளை முன்னோட்டமிட தனிப்பயன் பிரிப்பானை உள்ளிடவும்.",
     textTagsDescription: "இறக்குமதி செய்யும் ஒவ்வொரு அட்டைக்கும் குறிச்சொற்களைத் தேர்ந்தெடுக்கவும். காலியாக விட்டால் தனித்துவமான இறக்குமதிக் குறிச்சொல் தானாகச் சேர்க்கப்படும்.",
     textPreviewTitle: "முன்னோட்டம்",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "அட்டைகளை முன்னோட்டமிட உரையை ஒட்டவும்.",
     textInvalidCount: "{{count}} கவனம் தேவை",
     textInvalidHelp: "ஒவ்வொரு அட்டைக்கும் முன்புறத்தையும் பின்புறத்தையும் சேர்க்கவும், அல்லது முழுமையடையாத அட்டைகளை நீக்கவும்.",
@@ -1024,7 +1022,6 @@ const taCatalog: TranslationCatalog = {
       videoLabel: "காணொளி இணைப்பு",
     },
     queue: {
-      cards: "{{count}} அட்டைகள்",
       close: "வரிசையை மூடு",
       loading: "ஏற்றுகிறது",
       title: "வரிசை",
@@ -1236,7 +1233,6 @@ const taCatalog: TranslationCatalog = {
       systemDeckDelete: "அமைப்பின் தொகுப்பை நீக்க முடியாது.",
     },
     matchingCards: {
-      count: "{{count}} அட்டைகள்",
       title: "பொருந்தும் அட்டைகள்",
     },
     meta: {

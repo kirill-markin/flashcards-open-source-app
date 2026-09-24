@@ -20,7 +20,7 @@ Card scheduling uses FSRS-based spaced repetition. Detailed scheduling rules liv
 
 ## MCP connector
 
-The hosted MCP server is available at `https://mcp.nibomo.com/mcp` and publishes to MCP registries under `com.nibomo/flashcards`. It exposes seven tools, most of them workspace-scoped: `list_workspaces`, `sql_query`, `sql_execute`, `get_guide`, `next_review_card`, `reveal_answer`, and `submit_review`.
+The hosted MCP server is available at `https://mcp.nibomo.com/mcp` and publishes to MCP registries under `com.nibomo/flashcards`. It exposes eight tools, most of them workspace-scoped: `list_workspaces`, `sql_query`, `sql_execute`, `get_guide`, `next_review_card`, `reveal_answer`, `submit_review`, and the account-scoped `get_usage_limits`.
 
 The dedicated review tools support one-question-at-a-time conversations and idempotent FSRS scheduling. See [conversational reviews](docs/conversational-reviews.md) for the contract shared by MCP, the in-app chat, and the Agent API, and for voice-session examples. ChatGPT Voice currently does not invoke apps/MCP; these tools do not remove that external limitation.
 

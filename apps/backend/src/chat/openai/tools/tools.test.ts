@@ -62,6 +62,7 @@ const context: OpenAIToolContext = {
   signal: new AbortController().signal,
   generatedImageOperationDeadlineMs: Date.now() + 120_000,
   clientPlatform: null,
+  initiatingAuthIsSignedIn: true,
   generatedImageObservationContext: {
     scope: createBackendObservationScope(
       "chat-worker",
@@ -152,6 +153,9 @@ const dependencies: OpenAIToolDependencies = {
   submitAgentReview: async () => {
     throw new Error("A review write was not expected.");
   },
+  loadAiUsageStatus: async () => {
+    throw new Error("A usage read was not expected.");
+  },
 };
 
 function executeImage(
@@ -226,14 +230,15 @@ test("generated image tool schema is strict and signed-in-only", () => {
     buildOpenAIChatTools(false).map((tool) => tool.name),
     [
       "sql_query", "sql_execute", "list_workspaces", "get_guide",
-      "next_review_card", "reveal_answer", "submit_review",
+      "next_review_card", "reveal_answer", "submit_review", "get_usage_limits",
     ],
   );
   assert.deepEqual(
     buildOpenAIChatTools(true).map((tool) => tool.name),
     [
       "sql_query", "sql_execute", "list_workspaces", "get_guide",
-      "next_review_card", "reveal_answer", "submit_review", "add_generated_image_to_card",
+      "next_review_card", "reveal_answer", "submit_review", "get_usage_limits",
+      "add_generated_image_to_card",
     ],
   );
 });

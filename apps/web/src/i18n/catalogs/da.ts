@@ -743,7 +743,6 @@ const daCatalog: TranslationCatalog = {
       updated: "Opdateret",
       note: "Bemærk",
     },
-    maximumIntervalDays: "{{count}}",
     note: "Indstillingerne gælder kun fremtidig planlægning. Kortenes nuværende tilstand er stadig den gældende.",
   },
   workspaceExport: {
@@ -794,7 +793,6 @@ const daCatalog: TranslationCatalog = {
     customSeparatorRequired: "Indtast et tilpasset skilletegn for at forhåndsvise kortene.",
     textTagsDescription: "Vælg tags til alle importerede kort. Lad feltet stå tomt for automatisk at tilføje et unikt import-tag.",
     textPreviewTitle: "Forhåndsvisning",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "Indsæt tekst for at forhåndsvise kortene.",
     textInvalidCount: "{{count}} kræver opmærksomhed",
     textInvalidHelp: "Tilføj både forside og bagside til hvert kort, eller slet ufuldstændige kort.",
@@ -1024,7 +1022,6 @@ const daCatalog: TranslationCatalog = {
       videoLabel: "Videovedhæftning",
     },
     queue: {
-      cards: "{{count}} kort",
       close: "Luk køen",
       loading: "indlæser",
       title: "Kø",
@@ -1236,7 +1233,6 @@ const daCatalog: TranslationCatalog = {
       systemDeckDelete: "Systembunken kan ikke slettes.",
     },
     matchingCards: {
-      count: "{{count}} kort",
       title: "Kort der matcher",
     },
     meta: {
