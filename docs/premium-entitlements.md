@@ -217,10 +217,11 @@ complexity. Enforcement lives on the server for everything that costs money.
 
 ## The monthly AI window is UTC
 
-The AI usage window is a calendar month in UTC, for everyone, regardless of where they are. This
-matches the convention of the guest quota it replaces, which keys usage by a `YYYY-MM` month
-resolved in UTC (`auth.guest_ai_monthly_usage.usage_month`, added in
-`db/migrations/0031_guest_ai_identity_and_quota.sql`).
+The AI usage window is a calendar month in UTC, for everyone, regardless of where they are.
+`getAiUsageMonthWindow` (`apps/backend/src/aiUsage/cap.ts`) is the rule's only home in code: it
+resolves the window that both the usage sum and the allowance are read against. It kept the
+convention of the guest quota it replaced, which keyed usage by a `YYYY-MM` month resolved in UTC
+in a table `db/migrations/0157_drop_guest_ai_monthly_usage.sql` has since dropped.
 
 This deliberately differs from the progress and streak endpoints, which resolve days in the
 caller's timezone and echo it back (`apps/backend/src/progress/timeZone.ts`). Those answer "what
@@ -263,9 +264,11 @@ That transfer is built, in `completeGuestUpgradeInExecutor`
 (`apps/backend/src/guestAuth/upgrade/index.ts`). It has to stay ahead of
 `cleanupGuestSessionSourceInExecutor` (`apps/backend/src/guestAuth/delete/index.ts`), which deletes
 the guest's `org.user_settings` row: once that row is gone there is no guest identity left to move
-anything away from, and a mover placed after it moves nothing while still reporting success. What
-still cascades away with that row is `auth.guest_ai_monthly_usage`, the quota table `ai.usage_events`
-replaced and that no allowance reads any more; retiring it is separate work.
+anything away from, and a mover placed after it moves nothing while still reporting success. Nothing
+cascades the usage away: `ai.usage_events` holds no foreign key into `org.user_settings`, so those
+rows survive that delete and are simply left naming a user id nobody can resolve, which is the
+failure a mover placed too late produces. The quota table that did cascade,
+`auth.guest_ai_monthly_usage`, no longer exists (`db/migrations/0157_drop_guest_ai_monthly_usage.sql`).
 
 **Reaping.** A guest that ever made a purchase is never reaped. Deleting the account row cascades
 its guest-scoped tables, which would destroy the only link between a paid transaction and the
