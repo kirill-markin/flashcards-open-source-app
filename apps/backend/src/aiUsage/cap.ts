@@ -12,7 +12,10 @@ import {
   captureBackendRuntimeWarning,
   createBackendRuntimeObservationScope,
 } from "../observability/runtime";
-import { getBackendErrorLogDetails } from "../observability/sentry";
+import {
+  getBackendErrorLogDetails,
+  type BackendWarningEvent,
+} from "../observability/sentry";
 import { HttpError } from "../shared/errors";
 import type { AiUsageCounters } from "./record";
 
@@ -214,34 +217,70 @@ async function resolveAiUsageAllowanceOrReportFailure(
 }
 
 /**
- * Reports a resolution that failed, and cannot fail in its turn. That `resolveAiUsageTierForFacts` never
- * rejects, and that a caller nothing can refuse is never failed by a billing read, rests entirely on this
- * call, so it is contained the way `appendAiUsageEvent` contains the same one: on the worker's path a
- * throw here would strand a run that is already claimed until stale-run recovery, over a warning. A
- * reporting failure has nowhere left to be reported, because the sink is what just failed, so it is
- * swallowed rather than rethrown.
+ * Reports a metering warning and cannot fail in its turn. That `resolveAiUsageTierForFacts` never
+ * rejects, that a caller nothing can refuse is never failed by a billing read, and that the chat route's
+ * deferred failure below is recorded whichever way the request ends, all rest on these calls, so each is
+ * contained the way `appendAiUsageEvent` contains the same one: on the worker's path a throw here would
+ * strand a run that is already claimed until stale-run recovery, over a warning. A reporting failure has
+ * nowhere left to be reported, because the sink is what just failed, so it is swallowed rather than
+ * rethrown.
  */
+function captureContainedAiUsageWarning(event: BackendWarningEvent): void {
+  try {
+    captureBackendRuntimeWarning(event);
+  } catch {
+    // Deliberately empty: nothing can be reported about a reporting failure.
+  }
+}
+
 function reportAiUsageAllowanceResolutionFailure(
   userId: string,
   accountKind: AccountKind,
   error: unknown,
 ): void {
-  try {
-    const errorDetails = getBackendErrorLogDetails(error);
-    captureBackendRuntimeWarning({
-      action: "ai_usage_allowance_resolution_failed",
-      message: "An AI usage allowance could not be resolved, so the call was attributed to the fallback tier.",
-      scope: { ...createBackendRuntimeObservationScope(), userId },
-      details: {
-        accountKind,
-        fallbackTier: fallbackAiUsageTier,
-        errorClass: errorDetails.errorClass,
-        errorMessage: errorDetails.errorMessage,
-      },
-    });
-  } catch {
-    // Deliberately empty: nothing can be reported about a reporting failure.
-  }
+  const errorDetails = getBackendErrorLogDetails(error);
+  captureContainedAiUsageWarning({
+    action: "ai_usage_allowance_resolution_failed",
+    message: "An AI usage allowance could not be resolved, so the call was attributed to the fallback tier.",
+    scope: { ...createBackendRuntimeObservationScope(), userId },
+    details: {
+      accountKind,
+      fallbackTier: fallbackAiUsageTier,
+      errorClass: errorDetails.errorClass,
+      errorMessage: errorDetails.errorMessage,
+    },
+  });
+}
+
+/**
+ * Reports a resolution whose failure a surface captured instead of answering, for a caller who can be
+ * refused and therefore has no allowance to fall back to.
+ *
+ * It is called where the failure is captured rather than where it is consumed, because one consumer
+ * discards it by design: the chat route holds the failure until `prepareChatRun` has told it whether this
+ * request is a new turn or a replay of one already persisted. A new turn fails closed and the error is
+ * visible in the response; a replay is admitted, correctly - the run exists and nothing is metered twice
+ * - and without this report nothing would record that billing was unreadable for it. Reporting here also
+ * means no later consumer of that captured outcome has to remember to.
+ */
+export function reportDeferredAiUsageAllowanceResolutionFailure(
+  userId: string,
+  accountKind: AccountKind,
+  error: unknown,
+): void {
+  const errorDetails = getBackendErrorLogDetails(error);
+  captureContainedAiUsageWarning({
+    action: "ai_usage_allowance_resolution_deferred",
+    message:
+      "An AI usage allowance could not be resolved for a caller who can be refused, so the failure was "
+      + "held until the request's outcome was known.",
+    scope: { ...createBackendRuntimeObservationScope(), userId },
+    details: {
+      accountKind,
+      errorClass: errorDetails.errorClass,
+      errorMessage: errorDetails.errorMessage,
+    },
+  });
 }
 
 /**

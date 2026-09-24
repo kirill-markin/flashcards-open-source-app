@@ -12,7 +12,10 @@ import {
   startBackendSpan,
 } from "../../observability/sentry";
 import { readProductAnalyticsClientPlatform } from "../../productAnalytics/catalog";
-import type { AiUsageAllowance } from "../../aiUsage";
+import {
+  reportDeferredAiUsageAllowanceResolutionFailure,
+  type AiUsageAllowance,
+} from "../../aiUsage";
 import type { AccountKind } from "../../billing/limits";
 import { resolveAccountKindForTransport } from "../../billing/snapshot";
 import { parseOptionalWorkspaceIdParam } from "../../server/requestContext";
@@ -167,6 +170,10 @@ async function resolveAiUsageAllowanceOutcome(
   try {
     return { allowance: await resolveAiUsageAllowanceForEnforcementFn(userId, accountKind, now) };
   } catch (error) {
+    // Reported here rather than where the outcome is read, because one reader discards it: a replay is
+    // admitted on the run that already exists, correctly and without an allowance, so this is the only
+    // place that records that billing was unreadable for this request whichever way it ends.
+    reportDeferredAiUsageAllowanceResolutionFailure(userId, accountKind, error);
     return { error };
   }
 }
@@ -197,11 +204,16 @@ export function createPostChatHandler(dependencies: ChatRouteDependencies): Hand
     // break a replay of a turn already persisted - the case a database incident makes likely, because
     // the first POST died of the same thing. Both the refusal and the deferred failure are raised inside
     // the closure below, which `prepareChatRun` reaches only past its deduplication check.
+    //
+    // One clock for both halves, the way `requireAiUsageAllowance` uses one: the tier this resolves and
+    // the month the refusal sums must not come from different UTC months when a turn starts on the
+    // boundary.
+    const aiUsageNow = new Date();
     const aiUsageAllowanceOutcome = await resolveAiUsageAllowanceOutcome(
       dependencies.resolveAiUsageAllowanceForEnforcementFn,
       requestContext.userId,
       resolveAccountKindForTransport(requestContext.transport),
-      new Date(),
+      aiUsageNow,
     );
 
     let preparedRun: PreparedChatRun;
@@ -236,7 +248,7 @@ export function createPostChatHandler(dependencies: ChatRouteDependencies): Hand
           await dependencies.assertAiUsageAllowanceNotReachedFn(
             aiUsageAllowanceOutcome.allowance,
             requestContext.userId,
-            new Date(),
+            aiUsageNow,
           );
         },
       ));

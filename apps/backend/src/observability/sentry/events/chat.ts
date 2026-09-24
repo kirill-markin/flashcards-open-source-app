@@ -177,6 +177,18 @@ export type AiUsageAllowanceResolutionFailureDetails = Readonly<{
   errorMessage: string;
 }>;
 
+/**
+ * An allowance that could not be resolved for a caller who can be refused, on a surface that captured
+ * the failure instead of answering it. There is no fallback to name: the caller's turn either fails
+ * closed on it or, on an idempotent replay, is admitted because it was already admitted once. Reported
+ * at the capture site, so the record exists whichever of the two happens.
+ */
+export type AiUsageAllowanceResolutionDeferralDetails = Readonly<{
+  accountKind: string;
+  errorClass: string;
+  errorMessage: string;
+}>;
+
 export type GeneratedCardImageProviderDetails = Readonly<{
   model: string;
   size: string;
@@ -304,6 +316,12 @@ export type ChatWarningEvent =
   | (EventByAction<
     "ai_usage_allowance_resolution_failed",
     AiUsageAllowanceResolutionFailureDetails
+  > & Readonly<{ message: string }>)
+  // A billing read that failed for a caller who can be refused, on a surface that had to hold the
+  // failure until it knew whether the request was a new turn or a replay of one already accepted.
+  | (EventByAction<
+    "ai_usage_allowance_resolution_deferred",
+    AiUsageAllowanceResolutionDeferralDetails
   > & Readonly<{ message: string }>)
   // A provider call that was paid for and whose fact could not be stored. Reported rather than thrown,
   // because the money is already spent and failing the caller's request would not recover the row.

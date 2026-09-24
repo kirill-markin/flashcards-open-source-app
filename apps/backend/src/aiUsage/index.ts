@@ -14,6 +14,7 @@ export {
   countersCarryWeightedAiUsage,
   getAiUsageMonthWindow,
   loadAiUsageWeightedTokensForMonth,
+  reportDeferredAiUsageAllowanceResolutionFailure,
   requireAiUsageAllowance,
   resolveAiUsageAllowance,
   resolveAiUsageAllowanceForEnforcement,

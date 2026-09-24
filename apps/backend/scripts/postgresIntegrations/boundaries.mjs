@@ -228,11 +228,11 @@ export const boundaryDefinitions = Object.freeze([
   // it fails with `column installations.is_automation does not exist`. The tests that reach those
   // reads are the two listed here - freshBootstrap (the /sync/bootstrap replica claim) and
   // jobsSettlement (which verifies a promoted asset through a real processSyncPull), both moved
-  // here from 0107 - plus every test the 0151 and 0149 entries above pin further forward, which
+  // here from 0107 - plus every test the 0152, 0151 and 0149 entries above pin further forward, which
   // satisfies this migration too: agent/reviews (processSyncPull, processSyncReviewHistoryPull, and
   // the post-commit content-write resolution), which came here from 0138 and is pinned at 0149, and
   // serverFacts/authoringUpdates, which was written above this boundary, never sat at it, and is now
-  // pinned at 0151.
+  // pinned at 0152.
   // Moving a test retires the older-schema coverage it used to give, because each test runs only at
   // its pinned boundary and there is no full-schema pass.
   Object.freeze({
