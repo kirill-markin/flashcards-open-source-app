@@ -1302,6 +1302,7 @@ const knCatalog: TranslationCatalog = {
     errorTitle: "AI ಚಾಟ್ ದೋಷ",
     errors: {
       activeRunInProgress: "ಈಗಾಗಲೇ ಉತ್ತರ ಸಿದ್ಧವಾಗುತ್ತಿದೆ. ಮತ್ತೊಂದು ಸಂದೇಶ ಕಳುಹಿಸುವ ಮೊದಲು ಅದು ಮುಗಿಯಲು ಕಾಯಿರಿ ಅಥವಾ ನಿಲ್ಲಿಸಿ.",
+      aiLimitReached: "ಈ ತಿಂಗಳ ನಿಮ್ಮ AI ಮಿತಿ ಮುಗಿದಿದೆ. ಮುಂದಿನ ತಿಂಗಳ ಆರಂಭದಲ್ಲಿ ಇದನ್ನು ಮರುಹೊಂದಿಸಲಾಗುತ್ತದೆ.",
       emptyBackendResponse: "ಬ್ಯಾಕೆಂಡ್ ಖಾಲಿ ದೋಷ ಪ್ರತಿಕ್ರಿಯೆ ನೀಡಿದೆ.",
       genericFailure: "AI ಚಾಟ್ ವಿಫಲವಾಗಿದೆ.",
       liveStreamEndedBeforeCompletion: "ಕಾರ್ಯ ಮುಗಿಯುವ ಮೊದಲು AI ನೇರ ಸ್ಟ್ರೀಮ್ ಕೊನೆಗೊಂಡಿತು.",

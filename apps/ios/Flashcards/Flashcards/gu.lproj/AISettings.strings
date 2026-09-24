@@ -43,6 +43,7 @@
 "ai.error.requestTooLarge.message" = "AI ચૅટ એકસાથે આટલી સામગ્રી મોકલી શકતી નથી. એક કે વધુ જોડાણ દૂર કરો, નાની ફાઇલ કે ફોટો પસંદ કરો, અથવા વિનંતી વહેંચીને ફરી પ્રયાસ કરો.";
 "ai.error.attachmentUnsupported.title" = "ફાઇલનો પ્રકાર સમર્થિત નથી";
 "ai.error.attachmentUnsupported.message" = "AI ચૅટમાં આ પ્રકારની ફાઇલ સમર્થિત નથી. ફાઇલ દૂર કરો અથવા તેને PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX અથવા છબી તરીકે સાચવીને ફરી પ્રયાસ કરો.";
+"ai.error.limitReached" = "આ મહિના માટેની તમારી AI મર્યાદા વપરાઈ ગઈ છે. તે આવતા મહિનાની શરૂઆતમાં રીસેટ થશે.";
 "ai.error.summary.couldNotContinue" = "AI નો જવાબ ચાલુ રાખી શકાયો નહીં";
 "ai.error.summary.invalidResponse" = "અમાન્ય AI જવાબ મળ્યો";
 "ai.error.summary.configuration" = "AI કન્ફિગરેશનમાં ભૂલ";

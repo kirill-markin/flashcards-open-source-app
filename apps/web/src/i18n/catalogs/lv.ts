@@ -1302,6 +1302,7 @@ const lvCatalog: TranslationCatalog = {
     errorTitle: "MI sarunas kļūda",
     errors: {
       activeRunInProgress: "Atbilde jau tiek veidota. Pirms citas ziņas sūtīšanas pagaidiet, līdz tā ir pabeigta, vai apturiet to.",
+      aiLimitReached: "Šī mēneša MI ierobežojums ir izlietots. Tas tiek atjaunots nākamā mēneša sākumā.",
       emptyBackendResponse: "Serveris atgrieza tukšu kļūdas atbildi.",
       genericFailure: "MI saruna neizdevās.",
       liveStreamEndedBeforeCompletion: "MI tiešraides straume beidzās pirms izpildes pabeigšanas.",

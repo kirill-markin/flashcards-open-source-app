@@ -1314,6 +1314,7 @@ const ukCatalog: TranslationCatalog = {
     errorTitle: "Помилка AI-чату",
     errors: {
       activeRunInProgress: "Відповідь уже готується. Дочекайтеся завершення або зупиніть її, перш ніж надсилати нове повідомлення.",
+      aiLimitReached: "Ваш ліміт AI на цей місяць вичерпано. Він оновиться на початку наступного місяця.",
       emptyBackendResponse: "Бекенд повернув порожню відповідь про помилку.",
       genericFailure: "Помилка AI-чату.",
       liveStreamEndedBeforeCompletion: "Потік AI завершився до закінчення відповіді.",

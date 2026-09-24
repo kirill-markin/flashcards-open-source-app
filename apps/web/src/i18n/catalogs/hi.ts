@@ -1304,6 +1304,7 @@ const hiCatalog: TranslationCatalog = {
     errorTitle: "AI चैट त्रुटि",
     errors: {
       activeRunInProgress: "एक प्रतिक्रिया पहले से चल रही है। दूसरी संदेश भेजने से पहले उसके खत्म होने का इंतज़ार करें या उसे रोकें।",
+      aiLimitReached: "इस महीने के लिए आपकी AI सीमा समाप्त हो गई है। यह अगले महीने की शुरुआत में रीसेट हो जाएगी।",
       emptyBackendResponse: "बैकएंड ने खाली त्रुटि प्रतिक्रिया लौटाई।",
       genericFailure: "AI चैट विफल रही।",
       liveStreamEndedBeforeCompletion: "AI लाइव स्ट्रीम रन पूरा होने से पहले समाप्त हो गई।",

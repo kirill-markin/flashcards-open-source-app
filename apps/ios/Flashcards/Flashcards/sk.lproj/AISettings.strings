@@ -43,6 +43,7 @@
 "ai.error.requestTooLarge.message" = "AI chat nedokáže naraz odoslať toľko obsahu. Odstráňte jednu alebo viac príloh, vyberte menší súbor alebo fotku, prípadne rozdeľte požiadavku a skúste to znova.";
 "ai.error.attachmentUnsupported.title" = "Nepodporovaný typ súboru";
 "ai.error.attachmentUnsupported.message" = "Tento typ súboru nie je v AI chate podporovaný. Odstráňte súbor alebo ho uložte ako PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX alebo obrázok a skúste to znova.";
+"ai.error.limitReached" = "Vyčerpali ste svoj limit AI na tento mesiac. Obnoví sa na začiatku ďalšieho mesiaca.";
 "ai.error.summary.couldNotContinue" = "V odpovedi AI sa nepodarilo pokračovať";
 "ai.error.summary.invalidResponse" = "Prijatá neplatná odpoveď AI";
 "ai.error.summary.configuration" = "Chyba konfigurácie AI";

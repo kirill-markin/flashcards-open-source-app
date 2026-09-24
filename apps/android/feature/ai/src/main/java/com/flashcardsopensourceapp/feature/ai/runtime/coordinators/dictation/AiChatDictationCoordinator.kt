@@ -4,9 +4,11 @@ import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsDictati
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
 import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteException
+import com.flashcardsopensourceapp.data.local.ai.remote.isAiLimitReachedRemoteError
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState
 import com.flashcardsopensourceapp.data.local.model.ai.effectiveAiChatServerConfig
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.feature.ai.runtime.AiChatRuntimeContext
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiChatRuntimeState
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiConversationBootstrapState
@@ -231,6 +233,37 @@ internal class AiChatDictationCoordinator(
                         dictationJob = dictationJob
                     ).not()
                 ) {
+                    return@launch
+                }
+
+                if ((error as? AiChatRemoteException)?.let(::isAiLimitReachedRemoteError) == true) {
+                    // Dictation has always reported this as a plain alert, so only the copy is chosen
+                    // here. An install without an account keeps the sign-in guidance the guest-only
+                    // server message used to carry; a signed-in caller must not be told to create one.
+                    val limitMessage = if (context.currentCloudState() == CloudAccountState.LINKED) {
+                        context.textProvider.aiLimitReachedMessage
+                    } else {
+                        context.textProvider.guestQuotaReachedMessage
+                    }
+                    context.runtimeStateMutable.update { state ->
+                        if (
+                            canApplyDictationResult(
+                                state = state,
+                                originWorkspaceId = originWorkspaceId,
+                                targetSessionId = targetSessionId,
+                                dictationJob = dictationJob
+                            ).not()
+                        ) {
+                            return@update state
+                        }
+                        state.copy(
+                            dictationState = AiChatDictationState.IDLE,
+                            activeAlert = context.textProvider.generalError(
+                                message = limitMessage
+                            ),
+                            errorMessage = ""
+                        )
+                    }
                     return@launch
                 }
 
