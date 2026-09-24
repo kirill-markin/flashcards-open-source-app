@@ -41,6 +41,7 @@ type WorkspaceTransitionEventName =
   | "workspace_activate_started"
   | "workspace_activate_cloud_settings_saved"
   | "workspace_activate_published"
+  | "workspace_entry_default_persist_failed"
   | "workspace_select_client_started"
   | "workspace_select_client_succeeded"
   | "workspace_create_client_started"
@@ -55,6 +56,7 @@ type WorkspaceTransitionFailureEventName =
   | "session_bootstrap_failed"
   | "session_account_switch_failed"
   | "workspace_activate_bootstrap_failed"
+  | "workspace_entry_default_persist_failed"
   | "workspace_select_client_failed"
   | "workspace_create_client_failed"
   | "workspace_delete_client_failed";

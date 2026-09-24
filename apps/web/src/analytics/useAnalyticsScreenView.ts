@@ -1,6 +1,11 @@
 import { useEffect, useRef } from "react";
 import { useLocation } from "react-router";
-import { restoreCurrentAnalyticsSurface, trackScreenViewed } from "./client";
+import {
+  endAnalyticsScreenVisit,
+  restoreCurrentAnalyticsSurface,
+  setCurrentAnalyticsSurface,
+  trackScreenViewed,
+} from "./client";
 import type { AnalyticsSurface } from "./events";
 import { resolveAnalyticsSurface } from "./surfaces";
 
@@ -47,4 +52,38 @@ export function useAnalyticsScreenView(surface: AnalyticsSurface | null): void {
     reportedSurfaceRef.current = surface;
     trackScreenViewed(surface);
   }, [routeSurface, surface]);
+}
+
+/**
+ * The same handover for a screen that replaces the app root and has no value in the shared `screen`
+ * enum, so it cannot report itself at all: the route's surface comes down and its open visit ends
+ * while the screen is up, and the route gets its surface back when the screen goes away.
+ *
+ * Nothing is emitted for the screen itself — `screen` is a closed cross-client enum and
+ * `analytics.product_events` is append-only with no repair path, so a value the catalog does not
+ * declare cannot be invented here. Leaving the route's surface standing is the part that must not
+ * happen: every event tracked underneath, a background `sync_failed` included, would be filed
+ * against a screen nobody is on. Ending the visit is the reading `AnalyticsLifecycle` already gives
+ * a route with no surface, so coming back to that route reports a second view rather than having it
+ * swallowed as a repeat.
+ */
+export function useAnalyticsUnreportableScreen(isOnDisplay: boolean): void {
+  const location = useLocation();
+  const routeSurface = resolveAnalyticsSurface(location.pathname);
+
+  useEffect(() => {
+    if (isOnDisplay === false) {
+      return undefined;
+    }
+
+    setCurrentAnalyticsSurface(null);
+    endAnalyticsScreenVisit();
+
+    return () => {
+      // Handed back only while the stamp is still the null this hook set, the same guard the
+      // reportable handover above carries: a parent's effects flush after every child's, so an
+      // unconditional setter here would overwrite a surface some other screen had just taken.
+      restoreCurrentAnalyticsSurface({ dismissed: null, restored: routeSurface });
+    };
+  }, [isOnDisplay, routeSurface]);
 }
