@@ -670,6 +670,22 @@ export type FriendshipCreatedAnalyticsSkippedDetails = Readonly<{
   errorMessage: string | null;
 }>;
 
+// A deliberate skip, not a dropped write: the person's entitlement moved, the refreshed snapshot row
+// committed, and no entitlement_changed row was attempted because the state they moved *from* cannot
+// be named. billing.entitlement_snapshots stores tier and status as text and the cache heals by
+// comparison, so a value outside the tier catalogue or the resolved status vocabulary is a row written
+// by another generation of that code. Reported under its own action so it never looks like
+// product_analytics_server_event_write_failed, which means the opposite - a row that was attempted and
+// rejected. The fact is unrecoverable: the row is refreshed by the same resolution, so no later sync
+// pull sees that change again.
+export type EntitlementChangedAnalyticsSkippedDetails = Readonly<{
+  reason: "unreadable_cached_entitlement";
+  cachedTier: string;
+  cachedStatus: string;
+  resolvedTier: string;
+  resolvedStatus: string;
+}>;
+
 /**
  * One record per actor the synthetic-actor detector inserted into `analytics.excluded_actors`. It
  * is the audit trail the automatic insertion is allowed to happen without human confirmation
@@ -806,6 +822,7 @@ export type OperationsWarningEvent =
   | EventByAction<"guest_upgrade_analytics_skipped", GuestUpgradeAnalyticsSkippedDetails>
   | EventByAction<"catalog_deck_installed_analytics_skipped", CatalogDeckInstalledAnalyticsSkippedDetails>
   | EventByAction<"friendship_created_analytics_skipped", FriendshipCreatedAnalyticsSkippedDetails>
+  | EventByAction<"entitlement_changed_analytics_skipped", EntitlementChangedAnalyticsSkippedDetails>
   | (EventByAction<
     "progress_active_days_backfill_candidate_failed",
     ProgressActiveDaysBackfillCandidateFailureDetails

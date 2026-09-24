@@ -284,16 +284,21 @@ never be brought back together.
 
 ## Analytics facts written by the billing layer
 
-The billing layer writes exactly these facts, as facts, and no others. None of them exists yet:
-each must be added to the event catalog like any other
-(`apps/backend/src/productAnalytics/catalog.ts`) and emitted server-side
-(`apps/backend/src/productAnalytics/serverFacts/serverEvents.ts`):
+The billing layer writes exactly these facts, as facts, and no others:
 
 - an entitlement change
 - a trial start
 - a first paid purchase
 - a revoke
 - auto-renew disabled
+
+All five are declared in the event catalog (`apps/backend/src/productAnalytics/catalog.ts`) and have
+a server-side producer (`apps/backend/src/productAnalytics/serverFacts/billingFacts.ts`). Only the
+entitlement change has a call site: the snapshot refresh in `apps/backend/src/billing/snapshot.ts`.
+The other four are emitted by the writer that records a provider's purchase transition, which
+arrives with the first store rail, so until then an empty series on any of them is a producer nobody
+calls rather than a measurement. The refresh is triggered by that person's next authenticated sync
+pull and by nothing else, so an entitlement change is timed to the pull that discovered it.
 
 Per the repository rule, these record what happened; conversion funnels, cohorts, and churn are
 queries over them at analysis time, never an event shaped to feed one report.
