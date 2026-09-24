@@ -20,6 +20,7 @@ import type {
   WorkspaceSummary,
 } from "../../../types";
 import { getErrorMessage } from "../../domain";
+import { retireEntryWorkspaceAddress } from "../activation/workspaceActivationHelpers";
 import {
   createRemoteActionLockedError,
   replaceWorkspaceSummary,
@@ -123,6 +124,13 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
       ));
       const selectedWorkspace = await selectWorkspace(workspaceId);
       indexedDbOpenRecoveryState.throwIfFailed();
+      // The account default has moved by an explicit choice, so the address this document was opened
+      // on is the older answer and stops deciding anything: a later `initialize()` must resolve to
+      // the workspace just picked, and the workspace picker must not be answered with the
+      // unavailable panel this same address may have raised. Retired only once the selection is
+      // stored, so a failed one leaves the address usable for the retry. Creating and deleting a
+      // workspace move the same default and retire it the same way.
+      retireEntryWorkspaceAddress();
       logWorkspaceTransition("workspace_select_client_succeeded", buildWorkspaceInteractionLogDetails(
         sessionVerificationState,
         verifiedSession,
@@ -201,6 +209,11 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
       ));
       const createdWorkspace = await createWorkspaceRequest(trimmedName);
       indexedDbOpenRecoveryState.throwIfFailed();
+      // The new workspace is the account default now, by an action of the user's, so the address
+      // this document was opened on is the older answer here too: without this a later
+      // `initialize()` would relocate the account off the workspace it just created and back onto
+      // the one the address names.
+      retireEntryWorkspaceAddress();
       logWorkspaceTransition("workspace_create_client_succeeded", buildWorkspaceInteractionLogDetails(
         sessionVerificationState,
         verifiedSession,
@@ -333,6 +346,11 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
       });
       const response = await deleteWorkspaceRequest(workspaceId, confirmationText);
       indexedDbOpenRecoveryState.throwIfFailed();
+      // The replacement workspace is the account default now, and the address this document was
+      // opened on may name the workspace that has just stopped existing: without this a later
+      // `initialize()` would record it unavailable and raise the panel over a deletion the user
+      // performed themselves.
+      retireEntryWorkspaceAddress();
       logWorkspaceTransition("workspace_delete_client_succeeded", {
         workspaceId,
         deletedWorkspaceId: response.deletedWorkspaceId,
