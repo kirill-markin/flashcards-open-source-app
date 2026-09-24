@@ -110,6 +110,7 @@ export type {
   DatabasePoolErrorDetails,
   DatabaseRollbackFailureDetails,
   DatabaseTransientRetryDetails,
+  EntitlementChangedAnalyticsSkippedDetails,
   FeedbackEmailFailureDetails,
   FeedbackEmailRetryDetails,
   FriendshipCreatedAnalyticsSkippedDetails,

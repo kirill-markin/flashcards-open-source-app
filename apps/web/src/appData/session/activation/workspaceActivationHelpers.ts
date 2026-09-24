@@ -90,8 +90,10 @@ export function findEntryWorkspace(workspaces: ReadonlyArray<WorkspaceSummary>):
  *
  * Module state rather than React state, because the three readers are not one component:
  * `warmStart.ts` runs outside React entirely, the gate reads the outcome from `App.tsx`, and
- * activation writes it from the session layer. It only ever changes alongside a session state update
- * that re-renders, so a reader in render sees it settled.
+ * activation writes it from the session layer. Every write goes through
+ * `writeEntryWorkspaceActivation`, which publishes it to `subscribeToEntryWorkspaceActivation`, so a
+ * reader in render is told about a change rather than depending on its writer happening to update
+ * session state in the same breath.
  */
 type EntryWorkspaceActivation =
   | Readonly<{ status: "unused" }>
@@ -101,6 +103,28 @@ type EntryWorkspaceActivation =
   | Readonly<{ status: "retired" }>;
 
 let entryWorkspaceActivation: EntryWorkspaceActivation = { status: "unused" };
+
+const entryWorkspaceActivationListeners = new Set<() => void>();
+
+/** The one writer of the record above, so no change can reach a state without reaching a reader. */
+function writeEntryWorkspaceActivation(activation: EntryWorkspaceActivation): void {
+  entryWorkspaceActivation = activation;
+  for (const listener of entryWorkspaceActivationListeners) {
+    listener();
+  }
+}
+
+/**
+ * The record's own subscription, for the `useSyncExternalStore` the gate in `App.tsx` reads
+ * `isEntryWorkspaceUnavailable()` through: reaching into this module state from render would leave
+ * the gate correct only while every writer is paired with a `setState` that re-renders it anyway.
+ */
+export function subscribeToEntryWorkspaceActivation(listener: () => void): () => void {
+  entryWorkspaceActivationListeners.add(listener);
+  return function unsubscribeFromEntryWorkspaceActivation(): void {
+    entryWorkspaceActivationListeners.delete(listener);
+  };
+}
 
 /** Exhaustive over the union so a state added later has to answer whose account it belongs to. */
 function readActivationUserId(activation: EntryWorkspaceActivation): string | null {
@@ -139,7 +163,7 @@ export function didEntryAddressOverrideAccountDefault(): boolean {
 }
 
 export function retireEntryWorkspaceAddress(): void {
-  entryWorkspaceActivation = { status: "retired" };
+  writeEntryWorkspaceActivation({ status: "retired" });
 }
 
 /**
@@ -182,7 +206,7 @@ export async function activateEntryWorkspace(
 
   const entryWorkspace = findEntryWorkspace(workspaces);
   if (entryWorkspace === null) {
-    entryWorkspaceActivation = { status: "unavailable", userId };
+    writeEntryWorkspaceActivation({ status: "unavailable", userId });
     return false;
   }
 
@@ -194,14 +218,14 @@ export async function activateEntryWorkspace(
   // Published before the first await, which is what an overlapping run joins instead of activating
   // the same workspace a second time.
   const activation = activate(entryWorkspace);
-  entryWorkspaceActivation = { status: "activating", userId, activation, overridesAccountDefault };
+  writeEntryWorkspaceActivation({ status: "activating", userId, activation, overridesAccountDefault });
   try {
     await activation;
   } catch (error) {
-    entryWorkspaceActivation = { status: "unused" };
+    writeEntryWorkspaceActivation({ status: "unused" });
     throw error;
   }
 
-  entryWorkspaceActivation = { status: "activated", userId, overridesAccountDefault };
+  writeEntryWorkspaceActivation({ status: "activated", userId, overridesAccountDefault });
   return true;
 }

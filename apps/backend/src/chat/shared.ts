@@ -11,6 +11,7 @@ import {
   CARD_MANAGED_IMAGE_RULE_LINES,
   CARD_STYLE_ALIGNMENT_RULE_LINES,
   CARD_TAGGING_RULE_LINES,
+  CARD_WEB_URL_LINES,
   SQL_MUTATION_TAG_FILTER_DESCRIPTION,
 } from "../aiTools/toolContract/sqlToolContract";
 
@@ -48,10 +49,16 @@ function buildCardSideContractSection(): string {
   ]);
 }
 
+/**
+ * `CARD_WEB_URL_LINES` is the one line this chat would otherwise only learn from the
+ * `card_authoring` guide that `buildSqlRoutingSection` below tells it not to fetch. It is empty
+ * unless the deployment configured a usable app origin.
+ */
 function buildCardAuthoringSection(): string {
   return joinLines([
     CARD_AUTHORING_CONTRACT,
     `Example: ${CARD_AUTHORING_TOOL_CALL_EXAMPLE}`,
+    ...CARD_WEB_URL_LINES,
   ]);
 }
 

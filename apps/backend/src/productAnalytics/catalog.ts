@@ -95,6 +95,57 @@ const productAnalyticsSiteAppEntryProperties = {
 // notification fact at all.
 const productAnalyticsNotificationKinds = ["review_reminder", "strict_reminder"] as const;
 
+// The vocabularies the server-derived billing facts report. Each mirrors whatever owns it: the tier
+// catalogue in apps/backend/src/billing/tiers.ts, the resolved status and source in
+// apps/backend/src/billing/resolver.ts, the provider and the purchase kind as
+// db/migrations/0151_billing_schema.sql constrains them (purchases_provider_valid and
+// purchases_kind_valid), and the period and the revoke reason from the provider's own notification,
+// because no column stores either.
+//
+// They are enums rather than bounded token patterns because each is a closed set that only a decision
+// changes. That makes a value the billing modules gain without being declared here unstorable: the
+// row would be refused at the writer's catalog assertion and dropped as a warning. The producers
+// therefore assign the billing types to these, so the omission is a compile error in the backend
+// instead of a silently missing series.
+const productAnalyticsEntitlementTiers = ["free", "premium", "lifetime"] as const;
+
+// The resolved status, which is not a purchase status: `expired` and `revoked` describe one purchase
+// and a purchase that grants nothing can never be the effective entitlement, so `none` is how holding
+// nothing is expressed (docs/premium-entitlements.md, "Access status").
+const productAnalyticsEntitlementStatuses = ["none", "active", "in_grace"] as const;
+
+// Which kind of row the entitlement now rests on. It is neither billing.grants.source, whose values
+// are `admin_grant` and `gift`, nor the cause of the change: the call site that reports an
+// entitlement change learns only that the resolved answer moved, never why.
+const productAnalyticsEntitlementSources = ["none", "purchase", "grant"] as const;
+
+const productAnalyticsBillingProviders = ["apple", "google", "stripe"] as const;
+const productAnalyticsPurchaseKinds = ["subscription", "one_time"] as const;
+
+// The billing period sold, which no column stores: a store rail reads it off the product identifier
+// the person bought. A `one_time` purchase has none, which is why the property is optional wherever
+// it appears.
+const productAnalyticsSubscriptionPeriods = ["monthly", "annual"] as const;
+
+// Why a provider pulled a purchase. `unknown` is the honest answer for a provider that reports a
+// revoke and no cause - a Google RTDN `SUBSCRIPTION_REVOKED` carries none - and never a value a
+// producer reaches for instead of reading what the provider sent.
+const productAnalyticsSubscriptionRevokedReasons = [
+  "refund",
+  "chargeback",
+  "family_removal",
+  "unknown",
+] as const;
+
+export type ProductAnalyticsEntitlementTier = (typeof productAnalyticsEntitlementTiers)[number];
+export type ProductAnalyticsEntitlementStatus = (typeof productAnalyticsEntitlementStatuses)[number];
+export type ProductAnalyticsEntitlementSource = (typeof productAnalyticsEntitlementSources)[number];
+export type ProductAnalyticsBillingProvider = (typeof productAnalyticsBillingProviders)[number];
+export type ProductAnalyticsPurchaseKind = (typeof productAnalyticsPurchaseKinds)[number];
+export type ProductAnalyticsSubscriptionPeriod = (typeof productAnalyticsSubscriptionPeriods)[number];
+export type ProductAnalyticsSubscriptionRevokedReason =
+  (typeof productAnalyticsSubscriptionRevokedReasons)[number];
+
 // Platform-independent surfaces so funnels compare across clients. Each client maps its own
 // native screens onto these and never sends a native screen name.
 //
@@ -1057,6 +1108,91 @@ export const productAnalyticsEventCatalog = {
     serverOnly: true,
     requiresScreen: false,
     properties: {},
+  },
+  // The billing transitions that change what a person may do, and nothing else the billing layer
+  // observes: a renewal, a payment retry and a provider redelivery are deliberately not facts here
+  // (docs/premium-entitlements.md, "Analytics facts written by the billing layer"). Conversion, churn
+  // and cohorts are queries over these five at analysis time, so no entry below is shaped to feed
+  // one report.
+  //
+  // All five are server-only because each is a change in what we sold or granted. They are also
+  // exempt from the user-facing product-analytics off switch, for the reason stated beside the code
+  // that writes them (apps/backend/src/productAnalytics/serverFacts/billingFacts.ts) rather than only
+  // in the document.
+  //
+  // `provider` is optional on `entitlement_changed` alone, because an entitlement can rest on an
+  // operator grant, which has no provider at all, and an absent value is what says so. On the other
+  // four it is required: each of them is a provider's own transition, and a producer that cannot name
+  // the provider has not read the purchase it is reporting.
+  //
+  // `entitlement_changed` is the one entry whose timing is not the fact's own. The refresh that
+  // discovers the change is triggered by that person's next authenticated sync pull and by nothing
+  // else, so `occurred_at` is when we learned the answer moved and not when the provider or the
+  // operator moved it; the lag is one pull, and for a person who stops opening the app it is
+  // unbounded. Nothing earlier is readable at that call site, and taking the purchase's own timestamp
+  // would claim we knew sooner than we did.
+  //
+  // It reports a tier or status move and nothing else. The cached row it is derived from also changes
+  // when only the paid-through date moves, which is a renewal rather than a change in access, so the
+  // producer's call site emits nothing for it.
+  entitlement_changed: {
+    serverOnly: true,
+    requiresScreen: false,
+    properties: {
+      from_tier: { kind: "enum", values: productAnalyticsEntitlementTiers },
+      to_tier: { kind: "enum", values: productAnalyticsEntitlementTiers },
+      from_status: { kind: "enum", values: productAnalyticsEntitlementStatuses },
+      to_status: { kind: "enum", values: productAnalyticsEntitlementStatuses },
+      source: { kind: "enum", values: productAnalyticsEntitlementSources },
+      provider: { kind: "enum", values: productAnalyticsBillingProviders, optional: true },
+    },
+  },
+  // A provider-granted free trial beginning. A trial is an `active` purchase and not a status of its
+  // own, so this is the only place the start of one is a fact; a grant is never a trial, because
+  // nobody is going to be charged for it.
+  trial_started: {
+    serverOnly: true,
+    requiresScreen: false,
+    properties: {
+      tier: { kind: "enum", values: productAnalyticsEntitlementTiers },
+      provider: { kind: "enum", values: productAnalyticsBillingProviders },
+    },
+  },
+  // One purchase that completed and was paid for, which is the conversion fact. A renewal of it is
+  // not reported: the person decided once, and the provider charging again on schedule is revenue
+  // rather than a product event, and revenue reconciliation lives in the provider reports.
+  purchase_completed: {
+    serverOnly: true,
+    requiresScreen: false,
+    properties: {
+      tier: { kind: "enum", values: productAnalyticsEntitlementTiers },
+      provider: { kind: "enum", values: productAnalyticsBillingProviders },
+      kind: { kind: "enum", values: productAnalyticsPurchaseKinds },
+      period: { kind: "enum", values: productAnalyticsSubscriptionPeriods, optional: true },
+    },
+  },
+  // A provider pulling a purchase it had granted: a refund, a chargeback or a family-sharing removal.
+  // This is the terminal `revoked` status and never an expiry, which ends access without anybody
+  // taking it back and is visible as `entitlement_changed` alone.
+  subscription_revoked: {
+    serverOnly: true,
+    requiresScreen: false,
+    properties: {
+      tier: { kind: "enum", values: productAnalyticsEntitlementTiers },
+      provider: { kind: "enum", values: productAnalyticsBillingProviders },
+      reason: { kind: "enum", values: productAnalyticsSubscriptionRevokedReasons },
+    },
+  },
+  // Auto-renewal turned off on a subscription the person still holds. It exists because neither the
+  // tier nor the status changes at that moment - access runs to the end of the period already paid
+  // for - so no other fact here can see it, which makes it the earliest churn signal available.
+  autorenew_disabled: {
+    serverOnly: true,
+    requiresScreen: false,
+    properties: {
+      tier: { kind: "enum", values: productAnalyticsEntitlementTiers },
+      provider: { kind: "enum", values: productAnalyticsBillingProviders },
+    },
   },
   ai_message_sent: {
     serverOnly: true,

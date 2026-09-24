@@ -11,14 +11,19 @@ import {
   useAppErrorDialog,
 } from "../../../../appError/AppErrorContext";
 import { type TranslationKey, type TranslationValues, useI18n } from "../../../../i18n";
+import { loadWorkspaceTagsSummary } from "../../../../localDb/cards/workspace";
 import { buildClientWorkspaceReplicaId } from "../../../../media/mediaCrypto";
 import { captureAppOperationError } from "../../../../observability/appOperationObservation";
 import type {
+  TagSuggestion,
   WorkspacePackageImportConfirmOptions,
+  WorkspacePackageImportConfirmResponse,
   WorkspacePackageImportPreviewResponse,
 } from "../../../../types";
 import { SettingsShell } from "../../SettingsShared";
 import { WorkspaceImportPresentation } from "./WorkspaceImportPresentation";
+import { WorkspaceTextImportEditor } from "./WorkspaceTextImportEditor";
+import { createTextImportPackageFile, type TextImportCard } from "./textImport";
 import type {
   WorkspaceImportOptions,
   WorkspaceImportPreviewMetadataRow,
@@ -29,6 +34,8 @@ type PackageImportPreviewIdentity = Readonly<{
   workspaceId: string;
   installationId: string;
 }>;
+
+type WorkspaceImportStatusOwner = "package" | "text";
 
 function getWorkspacePackageValidationErrorMessage(
   error: unknown,
@@ -165,12 +172,21 @@ function buildWorkspaceImportPreviewModel(
 }
 
 export function WorkspaceImportScreen(): ReactElement {
-  const { activeWorkspace, cloudSettings, isSessionVerified, refreshLocalData, session } = useAppData();
+  const {
+    activeWorkspace,
+    cloudSettings,
+    isSessionVerified,
+    localReadVersion,
+    refreshLocalData,
+    session,
+  } = useAppData();
   const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const { t, formatDateTime, formatNumber } = useI18n();
   const packageImportInputRef = useRef<HTMLInputElement | null>(null);
+  const [isTextImporting, setIsTextImporting] = useState<boolean>(false);
   const [isPackagePreviewing, setIsPackagePreviewing] = useState<boolean>(false);
   const [isPackageImporting, setIsPackageImporting] = useState<boolean>(false);
+  const [tagSuggestions, setTagSuggestions] = useState<ReadonlyArray<TagSuggestion>>([]);
   const [packageImportFile, setPackageImportFile] = useState<File | null>(null);
   const [packageImportPreview, setPackageImportPreview] = useState<WorkspacePackageImportPreviewResponse | null>(null);
   const [packageImportPreviewIdentity, setPackageImportPreviewIdentity] = useState<PackageImportPreviewIdentity | null>(null);
@@ -179,10 +195,12 @@ export function WorkspaceImportScreen(): ReactElement {
     importTag: "",
     removeTags: [],
   });
+  const [statusOwner, setStatusOwner] = useState<WorkspaceImportStatusOwner>("text");
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [successMessage, setSuccessMessage] = useState<string>("");
   const technicalErrorMessage = t("appError.technicalError.message");
   const isPackageImportBusy = isPackagePreviewing || isPackageImporting;
+  const isAnyImportBusy = isTextImporting || isPackageImportBusy;
   const activeWorkspaceId = activeWorkspace?.workspaceId ?? null;
   const currentInstallationId = cloudSettings?.cloudState === "linked" && cloudSettings.installationId.trim() !== ""
     ? cloudSettings.installationId
@@ -195,7 +213,7 @@ export function WorkspaceImportScreen(): ReactElement {
     && packageImportPreviewIdentity.workspaceId === activeWorkspaceId
     && packageImportPreviewIdentity.installationId === currentInstallationId;
   const isPackageImportControlDisabled = !isPackageImportAvailable
-    || isPackageImportBusy
+    || isAnyImportBusy
     || indexedDbOpenRecoveryState.hasFailed();
   const packageImportPreviewModel = packageImportPreview === null
     ? null
@@ -212,6 +230,41 @@ export function WorkspaceImportScreen(): ReactElement {
     });
   }
 
+  useEffect(() => {
+    let isCancelled = false;
+    if (activeWorkspaceId === null || indexedDbOpenRecoveryState.hasFailed()) {
+      setTagSuggestions([]);
+      return () => {
+        isCancelled = true;
+      };
+    }
+
+    void loadWorkspaceTagsSummary(activeWorkspaceId)
+      .then((summary) => {
+        if (isCancelled || indexedDbOpenRecoveryState.hasFailed()) {
+          return;
+        }
+        setTagSuggestions(summary.tags.map((tag) => ({
+          tag: tag.tag,
+          countState: "ready",
+          cardsCount: tag.cardsCount,
+        })));
+      })
+      .catch((error: unknown) => {
+        if (isCancelled) {
+          return;
+        }
+        if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+          return;
+        }
+        setTagSuggestions([]);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [activeWorkspaceId, indexedDbOpenRecoveryState, localReadVersion]);
+
   function resetPackageImportPreview(): void {
     setPackageImportFile(null);
     setPackageImportPreview(null);
@@ -221,6 +274,46 @@ export function WorkspaceImportScreen(): ReactElement {
       importTag: "",
       removeTags: [],
     });
+  }
+
+  async function executeWorkspacePackageImport(
+    workspaceId: string,
+    installationId: string,
+    file: File,
+    importOptions: WorkspaceImportOptions,
+    onConfirmed: () => void,
+  ): Promise<WorkspacePackageImportConfirmResponse> {
+    await refreshLocalData();
+    indexedDbOpenRecoveryState.throwIfFailed();
+    const replicaId = await buildClientWorkspaceReplicaId(workspaceId, installationId);
+    indexedDbOpenRecoveryState.throwIfFailed();
+    const importId = crypto.randomUUID().toLowerCase();
+    const importedAt = new Date().toISOString();
+    const options: WorkspacePackageImportConfirmOptions = {
+      addImportTag: importOptions.addImportTag,
+      importTag: importOptions.importTag.trim(),
+      removeTags: importOptions.removeTags,
+      importedAt,
+      importId,
+      clientUpdatedAt: importedAt,
+      lastModifiedByReplicaId: replicaId,
+      operationIdPrefix: importId,
+    };
+    const result = await confirmWorkspacePackageImport(workspaceId, file, options);
+    indexedDbOpenRecoveryState.throwIfFailed();
+    onConfirmed();
+    await refreshLocalData();
+    indexedDbOpenRecoveryState.throwIfFailed();
+    return result;
+  }
+
+  function showWorkspaceImportSuccess(result: WorkspacePackageImportConfirmResponse): void {
+    setSuccessMessage(result.summary.importTag === null
+      ? t("workspaceImport.packageImportSuccess", { count: result.summary.cardCount })
+      : t("workspaceImport.packageImportSuccessWithTag", {
+        count: result.summary.cardCount,
+        tag: result.summary.importTag,
+      }));
   }
 
   useEffect(() => {
@@ -237,6 +330,7 @@ export function WorkspaceImportScreen(): ReactElement {
   }, [activeWorkspaceId, currentInstallationId, indexedDbOpenRecoveryState, packageImportPreviewIdentity]);
 
   async function previewPackageImportFile(file: File): Promise<void> {
+    setStatusOwner("package");
     if (indexedDbOpenRecoveryState.hasFailed()) {
       return;
     }
@@ -295,6 +389,7 @@ export function WorkspaceImportScreen(): ReactElement {
   }
 
   async function confirmPackageImport(importOptions: WorkspaceImportOptions): Promise<void> {
+    setStatusOwner("package");
     if (indexedDbOpenRecoveryState.hasFailed()) {
       return;
     }
@@ -328,35 +423,18 @@ export function WorkspaceImportScreen(): ReactElement {
       indexedDbOpenRecoveryState.throwIfFailed();
       const workspaceId = activeWorkspace.workspaceId;
       const installationId = requireCloudInstallationId(cloudSettings);
-      await refreshLocalData();
-      indexedDbOpenRecoveryState.throwIfFailed();
-      const replicaId = await buildClientWorkspaceReplicaId(workspaceId, installationId);
-      indexedDbOpenRecoveryState.throwIfFailed();
-      const importId = crypto.randomUUID().toLowerCase();
-      const importedAt = new Date().toISOString();
-      const options: WorkspacePackageImportConfirmOptions = {
-        addImportTag: importOptions.addImportTag,
-        importTag: confirmedPackageImportTag,
-        removeTags: importOptions.removeTags,
-        importedAt,
-        importId,
-        clientUpdatedAt: importedAt,
-        lastModifiedByReplicaId: replicaId,
-        operationIdPrefix: importId,
-      };
-      indexedDbOpenRecoveryState.throwIfFailed();
-      const result = await confirmWorkspacePackageImport(workspaceId, packageImportFile, options);
-      indexedDbOpenRecoveryState.throwIfFailed();
+      const result = await executeWorkspacePackageImport(
+        workspaceId,
+        installationId,
+        packageImportFile,
+        {
+          ...importOptions,
+          importTag: confirmedPackageImportTag,
+        },
+        resetPackageImportPreview,
+      );
 
-      resetPackageImportPreview();
-      await refreshLocalData();
-      indexedDbOpenRecoveryState.throwIfFailed();
-      setSuccessMessage(result.summary.importTag === null
-        ? t("workspaceImport.packageImportSuccess", { count: result.summary.cardCount })
-        : t("workspaceImport.packageImportSuccessWithTag", {
-          count: result.summary.cardCount,
-          tag: result.summary.importTag,
-        }));
+      showWorkspaceImportSuccess(result);
     } catch (error) {
       if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
         return;
@@ -381,6 +459,71 @@ export function WorkspaceImportScreen(): ReactElement {
     }
   }
 
+  async function importTextCards(
+    cards: ReadonlyArray<TextImportCard>,
+    tags: ReadonlyArray<string>,
+  ): Promise<boolean> {
+    setStatusOwner("text");
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return false;
+    }
+
+    if (!isPackageImportAvailable) {
+      setErrorMessage(t("workspaceImport.workspaceUnavailable"));
+      setSuccessMessage("");
+      return false;
+    }
+
+    setIsTextImporting(true);
+    setErrorMessage("");
+    setSuccessMessage("");
+    resetPackageImportPreview();
+
+    try {
+      indexedDbOpenRecoveryState.throwIfFailed();
+      const file = createTextImportPackageFile(cards, tags);
+      const preview = await previewWorkspacePackageImport(activeWorkspace.workspaceId, file);
+      indexedDbOpenRecoveryState.throwIfFailed();
+      if (preview.cardCount !== cards.length) {
+        throw new Error(
+          `Pasted card preview count mismatch. expected=${cards.length} actual=${preview.cardCount}`,
+        );
+      }
+
+      const workspaceId = activeWorkspace.workspaceId;
+      const installationId = requireCloudInstallationId(cloudSettings);
+      const usesAutomaticImportTag = tags.length === 0;
+      const result = await executeWorkspacePackageImport(workspaceId, installationId, file, {
+        addImportTag: usesAutomaticImportTag,
+        importTag: usesAutomaticImportTag ? preview.defaultOptions.suggestedImportTag : "",
+        removeTags: [],
+      }, () => undefined);
+      showWorkspaceImportSuccess(result);
+      return true;
+    } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return false;
+      }
+
+      if (error instanceof ApiError && error.statusCode === 413) {
+        setErrorMessage(t("workspaceImport.textTooLarge"));
+      } else {
+        const wasCaptured = captureWorkspaceImportError(error);
+        if (wasCaptured) {
+          showCapturedTechnicalError(error);
+          setErrorMessage(technicalErrorMessage);
+        } else {
+          setErrorMessage(error instanceof Error ? error.message : String(error));
+        }
+      }
+      return false;
+    } finally {
+      if (indexedDbOpenRecoveryState.hasFailed() === false) {
+        setIsTextImporting(false);
+      }
+    }
+  }
+
   function handlePackageImportInputChange(): void {
     if (indexedDbOpenRecoveryState.hasFailed()) {
       return;
@@ -401,6 +544,14 @@ export function WorkspaceImportScreen(): ReactElement {
       activeTab="workspace"
     >
       <section className="settings-group">
+        <WorkspaceTextImportEditor
+          isDisabled={isPackageImportControlDisabled}
+          isImporting={isTextImporting}
+          errorMessage={statusOwner === "text" ? errorMessage : ""}
+          successMessage={statusOwner === "text" ? successMessage : ""}
+          tagSuggestions={tagSuggestions}
+          onImport={importTextCards}
+        />
         <input
           ref={packageImportInputRef}
           type="file"
@@ -433,8 +584,8 @@ export function WorkspaceImportScreen(): ReactElement {
           unavailableMessage={activeWorkspace !== null && !isPackageImportAvailable
             ? isSessionVerified ? t("workspaceImport.workspaceUnavailable") : t("loading.restoringSession")
             : null}
-          errorMessage={errorMessage}
-          successMessage={successMessage}
+          errorMessage={statusOwner === "package" ? errorMessage : ""}
+          successMessage={statusOwner === "package" ? successMessage : ""}
           onSelect={() => {
             if (indexedDbOpenRecoveryState.hasFailed() === false) {
               packageImportInputRef.current?.click();
