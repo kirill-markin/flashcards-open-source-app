@@ -233,12 +233,22 @@ export const catalogInstallFunnelFilterFields: ReadonlyArray<AnalyticsFilterFiel
 const funnelsAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = analyticsFilterFields
   .filter((field) => funnelsAnalyticsFilterFieldApplicability[field]);
 
+// `ai-usage` offers the date range and nothing else, and the omissions are a decision rather than
+// unfinished wiring. That area plots one dot per person from two sources at once - review events and
+// hosted AI chat messages - and a chat message answers none of the other fields: it carries no
+// platform, no cohort, no catalog click and no UI locale of its own. A field applied there would
+// therefore narrow the review half of every dot and leave the AI half whole, which moves people
+// across the chart without removing them and is worse than not offering the field. The area says so
+// on screen beside its own two controls.
+const aiUsageAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = ["dateRange"];
+
 export const analyticsFilterFieldsByArea: Readonly<
   Record<AnalyticsArea, ReadonlyArray<AnalyticsFilterField>>
 > = {
   general: analyticsFilterFields,
   funnels: funnelsAnalyticsFilterFields,
   audience: analyticsFilterFields,
+  "ai-usage": aiUsageAnalyticsFilterFields,
 };
 
 // The wordings of the user-scoped areas, read through `getAnalyticsFilterFieldLabel` below rather
@@ -423,12 +433,22 @@ const audienceAnalyticsFilterFieldExplanations: Readonly<
     "Keeps only events recorded on the client platforms you pick, read from the event row itself, where unattributed is the bucket for every event that carries no resolved device. The catalog install event never carries a platform, so picking any device platform drops every catalog install row from anything that counts one.",
 };
 
+// The range is what the periods are cut out of rather than a plain event window, and the panels are
+// anchored at its recent end, so the field says where the remainder falls off.
+const aiUsageAnalyticsFilterFieldExplanations: Readonly<
+  Partial<Record<AnalyticsFilterField, string>>
+> = {
+  dateRange:
+    "The span the equal-length periods are cut out of. They are anchored at the recent end, so the most recent period is always whole and any leftover days fall off the old end of this range rather than forming a short panel.",
+};
+
 const analyticsFilterFieldExplanationOverridesByArea: Readonly<
   Record<AnalyticsArea, Readonly<Partial<Record<AnalyticsFilterField, string>>>>
 > = {
   general: {},
   funnels: funnelsAnalyticsFilterFieldExplanations,
   audience: audienceAnalyticsFilterFieldExplanations,
+  "ai-usage": aiUsageAnalyticsFilterFieldExplanations,
 };
 
 /** What one filter means in one area, because the same field can count people or site visits. */
@@ -452,12 +472,19 @@ const funnelsAnalyticsFilterFieldLabels: Readonly<
   dateRange: "Date range of the entry",
 };
 
+const aiUsageAnalyticsFilterFieldLabels: Readonly<
+  Partial<Record<AnalyticsFilterField, string>>
+> = {
+  dateRange: "Date range the periods are cut from",
+};
+
 const analyticsFilterFieldLabelOverridesByArea: Readonly<
   Record<AnalyticsArea, Readonly<Partial<Record<AnalyticsFilterField, string>>>>
 > = {
   general: {},
   funnels: funnelsAnalyticsFilterFieldLabels,
   audience: {},
+  "ai-usage": aiUsageAnalyticsFilterFieldLabels,
 };
 
 /** What one filter is called in one area, for the reason the explanation accessor above exists. */
