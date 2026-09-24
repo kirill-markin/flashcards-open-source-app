@@ -138,6 +138,13 @@ extension FlashcardsStore {
         do {
             _ = try await self.prepareAuthenticatedCloudSessionForAI()
         } catch {
+            // A cancellation is the person or the app ending the work, not a failure to report, so
+            // it is not warned about either: the same first test every other capture on these paths
+            // already applies.
+            if isRequestCancellationError(error: error) {
+                return
+            }
+
             FlashcardsObservability.captureWarning(
                 .aiChatLifecycle(
                     AIChatLifecycleObservation(
@@ -452,9 +459,21 @@ extension FlashcardsStore {
                 )
             }
         } catch {
-            if self.isCloudAccountDeletedError(error) {
+            // Unwrapped here rather than inside `isCloudAccountDeletedError`: the restore this
+            // branch guards fails through `performSameWorkspaceCloudRestore`, which captures the
+            // failure and rethrows it boxed in `ObservedTechnicalError`, so the classifier's own
+            // `as? CloudSyncError` stops matching the error that actually arrives here. The rule is
+            // local: this branch receives an error the restore path has already captured and boxed.
+            // It says nothing about the form any other caller of the classifier sees, and the shared
+            // classifier stays untouched so no other path changes behaviour.
+            if self.isCloudAccountDeletedError(technicalErrorPresentationSource(error: error)) {
                 self.handleRemoteAccountDeletedCleanup()
-                return
+                // The cleanup just erased this install, so there is no restored session to hand
+                // back. Returning normally reads as success to every caller, and each one goes
+                // straight on to `withAuthenticatedCloudSession`, which fails on the credentials
+                // the cleanup removed and stacks a technical error on top of the deletion notice.
+                // Ending as a cancellation stops the caller's remaining work quietly instead.
+                throw CancellationError()
             }
 
             if self.isCloudAuthorizationError(error) {
