@@ -476,7 +476,9 @@ extension FlashcardsStore {
                 throw CancellationError()
             }
 
-            if self.isCloudAuthorizationError(error) {
+            // Same already-captured error as the branch above: the restore path boxed it in
+            // `ObservedTechnicalError`, so this classification has to look through the box.
+            if self.isCloudAuthorizationError(technicalErrorPresentationSource(error: error)) {
                 try self.logoutCloudAccount()
             }
 

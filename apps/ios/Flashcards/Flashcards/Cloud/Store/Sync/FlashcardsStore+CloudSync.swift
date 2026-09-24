@@ -501,6 +501,14 @@ extension FlashcardsStore {
                 )
                 return
             }
+            // Left classifying the error exactly as it arrives, without
+            // `technicalErrorPresentationSource`, unlike the other checks in this patch:
+            // unwrapping here would re-run the account-deleted cleanup on the path where
+            // `withAuthenticatedCloudSession` has already run it, and that cleanup drops and
+            // re-migrates the local database.
+            //
+            // This is not a claim that every 410 arriving here has already been cleaned up. The
+            // case where one has not is a known gap, recorded rather than handled here.
             if self.isCloudAccountDeletedError(error) {
                 self.handleRemoteAccountDeletedCleanup()
                 self.addCloudSyncForegroundOperationBreadcrumb(
@@ -600,7 +608,11 @@ extension FlashcardsStore {
                         self.globalErrorMessage = ""
                         return .stopSync
                     } catch {
-                        if self.shouldResetLocalStateAfterAuthenticatedSilentRestoreFailure(error: error) {
+                        // The silent restore captures its failure and rethrows it boxed in
+                        // `ObservedTechnicalError`, so this check has to look through the box.
+                        if self.shouldResetLocalStateAfterAuthenticatedSilentRestoreFailure(
+                            error: technicalErrorPresentationSource(error: error)
+                        ) {
                             try self.resetLocalStateForCloudIdentityChange()
                             self.globalErrorMessage = ""
                             return .stopSync
