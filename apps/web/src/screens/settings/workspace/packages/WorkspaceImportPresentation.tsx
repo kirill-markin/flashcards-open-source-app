@@ -148,7 +148,10 @@ export function WorkspaceImportPresentation(props: WorkspaceImportPresentationPr
 
   return (
     <Fragment>
-      <article className="content-card workspace-export-format-card">
+      <article
+        className="content-card workspace-export-format-card"
+        data-testid="workspace-package-import-card"
+      >
         <div className="settings-nav-card-copy">
           <strong className="panel-subtitle">{copy.title}</strong>
           <p className="subtitle">{copy.description}</p>

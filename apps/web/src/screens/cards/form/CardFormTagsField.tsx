@@ -17,6 +17,7 @@ type CardFormTagsFieldProps = Readonly<{
   suggestions: ReadonlyArray<TagSuggestion>;
   inputId?: string;
   inputName?: string;
+  triggerTestId?: string;
   onChange: (nextValue: ReadonlyArray<string>) => void;
   disabled: boolean;
 }>;
@@ -76,7 +77,15 @@ export const CardFormTagsField = forwardRef<CardFormTagsFieldHandle, CardFormTag
   props,
   ref,
 ): ReactElement {
-  const { value, suggestions, inputId, inputName, onChange, disabled } = props;
+  const {
+    value,
+    suggestions,
+    inputId,
+    inputName,
+    triggerTestId = "card-form-tags-trigger",
+    onChange,
+    disabled,
+  } = props;
   const { t } = useI18n();
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [draftTags, setDraftTags] = useState<ReadonlyArray<string>>(value);
@@ -162,7 +171,7 @@ export const CardFormTagsField = forwardRef<CardFormTagsFieldHandle, CardFormTag
         ref={triggerRef}
         className={triggerClassName}
         onClick={disabled ? undefined : handleTriggerClick}
-        data-testid="card-form-tags-trigger"
+        data-testid={triggerTestId}
       >
         <CardTagsValue tags={value} emptyLabel={t("cardTags.triggerEmpty")} />
       </div>

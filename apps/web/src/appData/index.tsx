@@ -5,4 +5,7 @@ export {
 export type { AppDataContextValue, SessionLoadState } from "./context/types";
 export { useReviewLeaderboardBadge } from "./progress/badge/reviewLeaderboardBadge";
 export { useReviewProgressBadge } from "./progress/badge/reviewProgressBadge";
-export { isEntryWorkspaceUnavailable } from "./session/activation/workspaceActivationHelpers";
+export {
+  isEntryWorkspaceUnavailable,
+  subscribeToEntryWorkspaceActivation,
+} from "./session/activation/workspaceActivationHelpers";
