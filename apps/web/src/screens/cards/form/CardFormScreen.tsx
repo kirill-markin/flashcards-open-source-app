@@ -44,6 +44,7 @@ import { markMediaUploadTransferDueForRetry } from "../../../localDb/mediaTransf
 import { UnsupportedImagePreparationError } from "../../../media/imagePreparation";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
 import { cardsRoute } from "../../../routes";
+import { useWorkspacePath } from "../../../useWorkspacePath";
 
 function toTagSuggestions(tags: Awaited<ReturnType<typeof loadWorkspaceTagsSummary>>["tags"]): ReadonlyArray<TagSuggestion> {
   return tags.map((tagSummary) => ({
@@ -100,6 +101,7 @@ function areCardFormIdentitiesEqual(
 export function CardFormScreen(): ReactElement {
   const { cardId } = useParams();
   const navigate = useNavigate();
+  const workspacePath = useWorkspacePath();
   const { t } = useI18n();
   const {
     activeWorkspace,
@@ -599,7 +601,7 @@ export function CardFormScreen(): ReactElement {
         indexedDbOpenRecoveryState.throwIfFailed();
       }
 
-      navigate(cardsRoute);
+      navigate(workspacePath(cardsRoute));
     } catch (error) {
       if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
         return;
@@ -812,7 +814,7 @@ export function CardFormScreen(): ReactElement {
     try {
       await deleteCardItem(cardId);
       indexedDbOpenRecoveryState.throwIfFailed();
-      navigate(cardsRoute);
+      navigate(workspacePath(cardsRoute));
     } catch (error) {
       if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
         return;
@@ -913,7 +915,7 @@ export function CardFormScreen(): ReactElement {
             <p className="subtitle">{t("cardForm.subtitle")}</p>
           </div>
           <div className="screen-actions">
-            <Link className="ghost-btn" to={cardsRoute}>{t("cardForm.actions.back")}</Link>
+            <Link className="ghost-btn" to={workspacePath(cardsRoute)}>{t("cardForm.actions.back")}</Link>
             {!isCreateMode && currentCard !== null ? (
               <button
                 type="button"

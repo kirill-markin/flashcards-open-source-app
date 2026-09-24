@@ -43,6 +43,7 @@
 "ai.error.requestTooLarge.message" = "AI sohbeti bu kadar içeriği tek seferde gönderemez. Bir veya daha fazla eki kaldırın, daha küçük bir dosya veya fotoğraf seçin ya da isteği bölüp tekrar deneyin.";
 "ai.error.attachmentUnsupported.title" = "Desteklenmeyen dosya türü";
 "ai.error.attachmentUnsupported.message" = "Bu dosya türü AI sohbetinde desteklenmiyor. Dosyayı kaldırın veya PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX ya da görsel olarak kaydedip tekrar deneyin.";
+"ai.error.limitReached" = "Bu aya ait AI limitinizi doldurdunuz. Limit, gelecek ayın başında sıfırlanır.";
 "ai.error.summary.couldNotContinue" = "AI Yanıtına Devam Edilemedi";
 "ai.error.summary.invalidResponse" = "Geçersiz AI Yanıtı Alındı";
 "ai.error.summary.configuration" = "AI Yapılandırma Hatası";

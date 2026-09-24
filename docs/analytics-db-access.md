@@ -134,7 +134,7 @@ The baseline schema migration creates a dedicated login role and its read-only g
 - role name: `reporting_readonly`
 - login enabled
 - `CONNECT` on database `flashcards`
-- `USAGE` on schemas `org`, `content`, `sync`, `support`, `community`, `auth`, `ai`, `analytics`
+- `USAGE` on schemas `org`, `content`, `sync`, `support`, `community`, `auth`, `ai`, `progress`, `analytics`, `catalog`, `billing`
 - `SELECT` only on the allowed tables listed below
 
 The baseline schema migration also enforces the persistent runtime policy for this role:
@@ -163,7 +163,10 @@ The role gets `USAGE` on these schemas:
 - `community`
 - `auth`
 - `ai`
+- `progress`
 - `analytics`
+- `catalog`
+- `billing`
 
 ## Granted tables
 
@@ -175,6 +178,7 @@ The role gets `SELECT` on these tables only:
 - `content.cards`
 - `content.decks`
 - `content.review_events`
+- `content.media_assets`
 - `sync.workspace_replicas`
 - `sync.installations`
 - `support.feedback_submissions`
@@ -194,12 +198,23 @@ The role gets `SELECT` on these tables only:
 - selected metadata columns on `ai.chat_sessions`
 - selected metadata columns on `ai.chat_runs`
 - selected metadata columns on `ai.chat_composer_suggestion_generations`
+- `ai.usage_events`
+- `ai.model_prices`
 - `sync.workspace_sync_metadata`
-- selected metadata columns on `sync.hot_changes`
-- selected metadata columns on `sync.applied_operations_current`
+- `sync.hot_changes`
+- `sync.applied_operations_current`
+- selected key columns on `progress.user_active_review_days`
 - `analytics.product_events`
 - `analytics.identity_links`
 - `analytics.product_events_resolved`, the view that resolves anonymous events to their eventual account at read time
+- `analytics.installation_profiles`
+- `analytics.installation_country_observations`
+- `analytics.excluded_actors`
+- selected key columns on `catalog.package_versions`
+- selected key and slug columns on `catalog.packages`, the deck label an admin report prints instead of a raw package version id
+- `billing.purchases`
+- `billing.grants`
+- selected trial, purchase-history, and row-timestamp columns on `billing.user_billing_state`
 
 No write access is granted.
 
@@ -305,6 +320,14 @@ Use guest and account-conversion tables when the investigation needs guest activ
 
 Guest analytics intentionally do not expose guest session secret hashes, replay secret hashes, raw provider subjects, OTP challenge state, or API key hashes.
 
+Use billing tables when the investigation needs purchase and provider state, operator grants and gifts, trial consumption, or whether a person has ever paid:
+
+- `billing.purchases`
+- `billing.grants`
+- `billing.user_billing_state`
+
+Billing analytics intentionally do expose the store transaction identifiers `billing.purchases.provider_purchase_id` and `billing.purchases.linked_from_purchase_id`, because support and reconciliation have to be able to name the purchase a provider is talking about. They do not expose `billing.provider_events`, whose `payload_raw` is verbatim provider input, or `billing.entitlement_snapshots`, which is a derived cache rather than a fact and may be truncated at any time, so resolve what a person is entitled to from the purchase and grant rows instead. They also do not expose the provider-side account handles `billing.user_billing_state.stripe_customer_id`, `apple_app_account_token`, and `google_obfuscated_account_id`, which exist only as attribution lookup keys; a report names a person by `user_id`.
+
 Use AI operational tables when the investigation needs chat session volume, run health, model/cost-policy distribution, or stuck/failed run timing:
 
 - `ai.chat_sessions`
@@ -312,6 +335,13 @@ Use AI operational tables when the investigation needs chat session volume, run 
 - `ai.chat_composer_suggestion_generations`
 
 AI operational analytics intentionally expose metadata only. They do not expose `ai.chat_items`, `ai.chat_items.payload`, `ai.chat_runs.turn_input`, `ai.chat_runs.last_error_message`, `ai.chat_sessions.composer_suggestions`, or `ai.chat_composer_suggestion_generations.suggestions`.
+
+Use AI usage facts when the investigation needs per-call model usage, token and unit counters, or spend, which prices a usage row against the `ai.model_prices` window in effect at its `occurred_at`:
+
+- `ai.usage_events`
+- `ai.model_prices`
+
+These two tables are readable in full, because they carry counters and call metadata only and no prompt or completion text. `ai.model_prices` is still empty because no migration has entered a price yet, so a cost report returns nothing until one does, and an empty spend result never means usage went unrecorded. Cost comes from `ai.model_prices`: price a counter against the row for its own `provider`, `model_id` and `unit_kind` whose window contains the usage row's `occurred_at`, and where two windows overlap take the later `effective_from`. Not every counter is billed on its own — some are reported as breakdowns of another counter, and the `ai.usage_events` column comments say which — so a total that prices all of them overstates spend, while a counter with no matching window understates it. Treat a spend number as unverified in either direction until it is reconciled against those comments, and never read a low or empty total as evidence that usage went unrecorded. Image prices vary by size and quality, which the dictionary does not key yet, so image spend is approximate.
 
 Use current sync diagnostic tables when the investigation needs sync retention metadata, hot-state mutation volume, or idempotency ledger diagnostics:
 

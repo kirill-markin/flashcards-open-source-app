@@ -43,6 +43,7 @@
 "ai.error.requestTooLarge.message" = "AI ਚੈਟ ਇਕੱਠੀ ਇੰਨੀ ਸਮੱਗਰੀ ਨਹੀਂ ਭੇਜ ਸਕਦੀ। ਇੱਕ ਜਾਂ ਵੱਧ ਅਟੈਚਮੈਂਟ ਹਟਾਓ, ਛੋਟੀ ਫ਼ਾਈਲ ਜਾਂ ਫ਼ੋਟੋ ਚੁਣੋ ਜਾਂ ਬੇਨਤੀ ਵੰਡ ਕੇ ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ।";
 "ai.error.attachmentUnsupported.title" = "ਗੈਰ-ਸਮਰਥਿਤ ਫ਼ਾਈਲ ਕਿਸਮ";
 "ai.error.attachmentUnsupported.message" = "AI ਚੈਟ ਵਿੱਚ ਇਹ ਫ਼ਾਈਲ ਕਿਸਮ ਸਮਰਥਿਤ ਨਹੀਂ ਹੈ। ਫ਼ਾਈਲ ਹਟਾਓ ਜਾਂ ਇਸਨੂੰ PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX ਜਾਂ ਚਿੱਤਰ ਵਜੋਂ ਸੰਭਾਲੋ ਅਤੇ ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ।";
+"ai.error.limitReached" = "ਇਸ ਮਹੀਨੇ ਲਈ ਤੁਹਾਡੀ AI ਸੀਮਾ ਖਤਮ ਹੋ ਗਈ ਹੈ। ਇਹ ਅਗਲੇ ਮਹੀਨੇ ਦੇ ਸ਼ੁਰੂ ਵਿੱਚ ਰੀਸੈਟ ਹੋ ਜਾਵੇਗੀ।";
 "ai.error.summary.couldNotContinue" = "AI ਜਵਾਬ ਜਾਰੀ ਨਹੀਂ ਰਹਿ ਸਕਿਆ";
 "ai.error.summary.invalidResponse" = "ਗਲਤ AI ਜਵਾਬ ਮਿਲਿਆ";
 "ai.error.summary.configuration" = "AI ਸੰਰਚਨਾ ਵਿੱਚ ਗਲਤੀ";

@@ -38,9 +38,13 @@ extension Analytics {
  * alternation — the per-attempt behaviour again, arriving by a different route. A set bounds a
  * failure episode at one event per distinct reason.
  *
- * Web and Android carry the identical rule, so the three clients stay comparable. Android keys its
- * gate on the reason *and* the screen because its emissions carry a screen; every emission here comes
- * from the one cloud sync failure path and carries none, so the reason alone is the same key.
+ * The bound is a cross-client contract, not a local choice: a client that emits more often than one
+ * event per distinct key per episode makes the series incomparable with the others, and
+ * `product_events` is append-only, so an over-count cannot be repaired afterwards. Each client's
+ * gate holds its own key, and this one keys on the reason alone: every emission comes from the one
+ * cloud sync failure path, and these rows go out carrying no screen at all. The key cannot be read
+ * off the rows — a column a row carries need not be part of what bounded it — so another client's
+ * ceiling follows from its own gate rather than from this one.
  *
  * Touched from the sync paths and from `Analytics.reset()`, none of which may await, so it is
  * lock-protected rather than actor state.

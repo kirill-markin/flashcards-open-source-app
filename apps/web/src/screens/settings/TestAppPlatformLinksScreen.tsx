@@ -13,6 +13,7 @@ import {
 import { getAppConfig } from "../../config";
 import { type TranslationKey, type TranslationValues, useI18n } from "../../i18n";
 import { progressLeaderboardRoute, reviewRoute } from "../../routes";
+import { useWorkspacePath, type WorkspacePathBuilder } from "../../useWorkspacePath";
 import { CatalogImportSuccessPanel } from "../catalog/CatalogImportSuccessPanel";
 import { SettingsGroup, SettingsShell } from "./SettingsShared";
 
@@ -31,8 +32,15 @@ const testCatalogImportSuccessImportTag: string = "spanish-a1";
 const testCatalogImportSuccessWorkspaceName: string = "Personal";
 const testCatalogImportSuccessAccountEmail: string = "learner@example.com";
 
-function buildTestAppPlatformSurfaces(t: Translate, appBaseUrl: string): ReadonlyArray<TestAppPlatformSurface> {
-  const reviewWebHref: string = `${appBaseUrl}${reviewRoute}`;
+function buildTestAppPlatformSurfaces(
+  t: Translate,
+  appBaseUrl: string,
+  workspacePath: WorkspacePathBuilder,
+): ReadonlyArray<TestAppPlatformSurface> {
+  // `share` and `friend-invite` hand their address to a different person, so they stay flat like the
+  // real surfaces they mirror; only `catalog-import` carries a workspace, as its real surface does.
+  const shareWebHref: string = `${appBaseUrl}${reviewRoute}`;
+  const catalogImportWebHref: string = `${appBaseUrl}${workspacePath(reviewRoute)}`;
 
   return [
     {
@@ -40,7 +48,7 @@ function buildTestAppPlatformSurfaces(t: Translate, appBaseUrl: string): Readonl
       heading: t("settingsTest.appPlatformLinks.surfaces.share"),
       platforms: ["ios", "android", "web", "mcp"],
       storeLinks: shareAppStoreLinks,
-      webHref: reviewWebHref,
+      webHref: shareWebHref,
     },
     {
       id: "review-promo",
@@ -54,7 +62,7 @@ function buildTestAppPlatformSurfaces(t: Translate, appBaseUrl: string): Readonl
       heading: t("settingsTest.appPlatformLinks.surfaces.catalogImport"),
       platforms: ["ios", "android", "web", "mcp"],
       storeLinks: catalogImportStoreLinks,
-      webHref: reviewWebHref,
+      webHref: catalogImportWebHref,
     },
     {
       id: "friend-invite",
@@ -68,8 +76,9 @@ function buildTestAppPlatformSurfaces(t: Translate, appBaseUrl: string): Readonl
 
 export function TestAppPlatformLinksScreen(): ReactElement {
   const { t } = useI18n();
+  const workspacePath = useWorkspacePath();
   const clientPlatform = resolveClientPlatform(navigator.userAgent);
-  const surfaces = buildTestAppPlatformSurfaces(t, getAppConfig().appBaseUrl);
+  const surfaces = buildTestAppPlatformSurfaces(t, getAppConfig().appBaseUrl, workspacePath);
 
   return (
     <SettingsShell
@@ -108,6 +117,7 @@ export function TestAppPlatformLinksScreen(): ReactElement {
 
 export function TestCatalogImportSuccessScreen(): ReactElement {
   const { t } = useI18n();
+  const workspacePath = useWorkspacePath();
 
   return (
     <SettingsShell
@@ -121,6 +131,7 @@ export function TestCatalogImportSuccessScreen(): ReactElement {
           importTag={testCatalogImportSuccessImportTag}
           workspaceName={testCatalogImportSuccessWorkspaceName}
           accountEmail={testCatalogImportSuccessAccountEmail}
+          webHref={`${getAppConfig().appBaseUrl}${workspacePath(reviewRoute)}`}
         />
       </div>
     </SettingsShell>

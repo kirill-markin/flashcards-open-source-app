@@ -1302,6 +1302,7 @@ const esEsCatalog: TranslationCatalog = {
     errorTitle: "Error del chat con IA",
     errors: {
       activeRunInProgress: "Ya hay una respuesta en curso. Espera a que termine o detenla antes de enviar otro mensaje.",
+      aiLimitReached: "Has agotado tu límite de IA de este mes. Se restablece al principio del mes que viene.",
       emptyBackendResponse: "El backend devolvió una respuesta de error vacía.",
       genericFailure: "El chat con IA ha fallado.",
       liveStreamEndedBeforeCompletion: "La transmisión en vivo con IA terminó antes de que finalizara la ejecución.",

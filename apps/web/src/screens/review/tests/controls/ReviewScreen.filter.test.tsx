@@ -128,7 +128,7 @@ describe("ReviewScreen filter controls", () => {
     expect(leaderboardShortcut.className).not.toContain("review-leaderboard-shortcut-ranked");
     expect(leaderboardShortcut.querySelector(".review-progress-badge-value")).toBeNull();
     expect(leaderboardShortcut.getAttribute("aria-label")).toBe("Open leaderboard");
-    expect(leaderboardShortcut.getAttribute("href")).toBe("/progress#leaderboard");
+    expect(leaderboardShortcut.getAttribute("href")).toBe("/w/workspace-1/progress#leaderboard");
     expect(reviewStylesContain(
       ".review-leaderboard-shortcut .review-progress-badge-icon",
       "color: #fbbf24",

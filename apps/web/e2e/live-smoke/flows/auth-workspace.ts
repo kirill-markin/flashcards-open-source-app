@@ -9,6 +9,7 @@ import {
   trackedWaitForUrl,
 } from "../../live-smoke.actions";
 import { reviewRoute, workspaceRoutePrefix } from "../../../src/routes";
+import { primaryNavigationLinkSelector } from "../navigation";
 import { authBaseUrl, externalUiTimeoutMs, localUiTimeoutMs } from "../config";
 import { seedLinkedWorkspaceForTest } from "../seedBridge";
 import { runLiveSmokeStep } from "../steps";
@@ -80,14 +81,14 @@ async function signInWithReviewAccount(session: LiveSmokeSession): Promise<void>
   await trackedExpectVisible(
     diagnostics,
     "confirm review navigation link is visible after auth",
-    page.locator('nav.nav a[href="/review"]').first(),
+    page.locator(primaryNavigationLinkSelector("/review")).first(),
     externalUiTimeoutMs,
   );
 }
 
 async function createEphemeralWorkspace(session: LiveSmokeSession): Promise<void> {
   const { page, diagnostics, scenario } = session;
-  await trackedClick(diagnostics, "open settings navigation", page.locator('nav.nav a[href="/settings"]').first());
+  await trackedClick(diagnostics, "open settings navigation", page.locator(primaryNavigationLinkSelector("/settings")).first());
   await trackedClick(
     diagnostics,
     "open current workspace settings",
@@ -136,7 +137,7 @@ async function createEphemeralWorkspace(session: LiveSmokeSession): Promise<void
 
 async function assertLinkedAccountStatus(session: LiveSmokeSession): Promise<void> {
   const { page, diagnostics, reviewEmail, scenario } = session;
-  await trackedClick(diagnostics, "open settings navigation for account verification", page.locator('nav.nav a[href="/settings"]').first());
+  await trackedClick(diagnostics, "open settings navigation for account verification", page.locator(primaryNavigationLinkSelector("/settings")).first());
   await trackedExpectText(
     diagnostics,
     `confirm settings shows workspace ${scenario.workspaceName}`,

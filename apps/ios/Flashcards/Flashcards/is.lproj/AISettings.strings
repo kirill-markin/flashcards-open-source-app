@@ -43,6 +43,7 @@
 "ai.error.requestTooLarge.message" = "Gervigreindarspjallið getur ekki sent svona mikið efni í einu. Fjarlægðu viðhengi, veldu minni skrá eða mynd eða skiptu beiðninni upp og reyndu aftur.";
 "ai.error.attachmentUnsupported.title" = "Óstudd skráartegund";
 "ai.error.attachmentUnsupported.message" = "Gervigreindarspjallið styður ekki þessa skráartegund. Fjarlægðu skrána eða vistaðu sem PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX eða mynd og reyndu aftur.";
+"ai.error.limitReached" = "Þú hefur fullnýtt gervigreindarhámarkið þitt fyrir þennan mánuð. Það endurstillist í byrjun næsta mánaðar.";
 "ai.error.summary.couldNotContinue" = "Ekki tókst að halda áfram með svar gervigreindar";
 "ai.error.summary.invalidResponse" = "Ógilt svar barst frá gervigreind";
 "ai.error.summary.configuration" = "Villa í uppsetningu gervigreindar";

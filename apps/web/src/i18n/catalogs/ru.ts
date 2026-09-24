@@ -1314,6 +1314,7 @@ export const ruCatalog = {
     errorTitle: "Ошибка AI-чата",
     errors: {
       activeRunInProgress: "Ответ уже формируется. Дождитесь его завершения или остановите его перед отправкой нового сообщения.",
+      aiLimitReached: "Ваш лимит AI на этот месяц исчерпан. Он обновится в начале следующего месяца.",
       emptyBackendResponse: "Бэкенд вернул пустой ответ с ошибкой.",
       genericFailure: "AI-чат завершился с ошибкой.",
       liveStreamEndedBeforeCompletion: "Поток AI завершился до окончания выполнения.",

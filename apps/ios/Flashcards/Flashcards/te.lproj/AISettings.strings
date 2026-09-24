@@ -43,6 +43,7 @@
 "ai.error.requestTooLarge.message" = "AI చాట్ ఒకేసారి ఇంత కంటెంట్‌ను పంపలేకపోతుంది. ఒకటి లేదా అంతకంటే ఎక్కువ జోడింపులను తీసివేయండి, చిన్న ఫైల్ లేదా ఫొటోను ఎంచుకోండి లేదా అభ్యర్థనను విడగొట్టి మళ్లీ ప్రయత్నించండి.";
 "ai.error.attachmentUnsupported.title" = "మద్దతు లేని ఫైల్ రకం";
 "ai.error.attachmentUnsupported.message" = "ఈ ఫైల్ రకానికి AI చాట్‌లో మద్దతు లేదు. ఫైల్‌ను తీసివేయండి లేదా PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX లేదా చిత్రంగా సేవ్ చేసి మళ్లీ ప్రయత్నించండి.";
+"ai.error.limitReached" = "ఈ నెలకు మీ AI పరిమితి పూర్తయింది. ఇది వచ్చే నెల ప్రారంభంలో రీసెట్ అవుతుంది.";
 "ai.error.summary.couldNotContinue" = "AI ప్రతిస్పందనను కొనసాగించలేకపోయాము";
 "ai.error.summary.invalidResponse" = "చెల్లని AI ప్రతిస్పందన వచ్చింది";
 "ai.error.summary.configuration" = "AI కాన్ఫిగరేషన్ లోపం";

@@ -7,9 +7,10 @@ import {
   AnalyticsLifecycle,
   PublicAnalyticsConsentLink,
   useAnalyticsScreenView,
+  useAnalyticsUnreportableScreen,
   type AnalyticsSurface,
 } from "./analytics";
-import { AppDataProvider, useAppData, type SessionLoadState } from "./appData";
+import { AppDataProvider, isEntryWorkspaceUnavailable, useAppData, type SessionLoadState } from "./appData";
 import { AppErrorDialogProvider } from "./appError/AppErrorContext";
 import { HeaderStoreButtons } from "./appPlatformLinks";
 import { buildLoginUrl, buildLogoutUrl } from "./api";
@@ -72,6 +73,7 @@ import {
   workspaceRoutePattern,
   workspaceRoutePrefix,
 } from "./routes";
+import { useWorkspacePath } from "./useWorkspacePath";
 import { isWorkspaceManagementLocked } from "./workspaceManagement";
 import { TestModeProvider, useTestMode } from "./testMode";
 import { AIChatPreferencesProvider } from "./chat/preferences/AIChatPreferencesContext";
@@ -466,6 +468,7 @@ export function AppShell(): ReactElement {
     createWorkspace,
     cloudSettings,
   } = useAppData();
+  const workspacePath = useWorkspacePath();
   const { indexedDbOpenRecoveryState } = useAppErrorDialog();
   const [isMobileNavigationOpen, setIsMobileNavigationOpen] = useState<boolean>(false);
   const topbarShellRef = useRef<HTMLElement | null>(null);
@@ -484,12 +487,30 @@ export function AppShell(): ReactElement {
   // id as given, so the two are only ever comparable case-insensitively.
   const isUrlWorkspaceActive: boolean = urlWorkspaceId !== null
     && activeWorkspaceId?.toLowerCase() === urlWorkspaceId;
+  // The address this document was opened on named a workspace the account's own list does not hold,
+  // which `resolveInitialWorkspace` recorded on the entry-address model while it fell back to the
+  // account default (`appData/session/activation/workspaceActivationHelpers.ts`). Read from there
+  // rather than from `location.pathname`, which is the app's own output — `LegacyFlatPathRedirect`
+  // rewrites a flat path into `/w/<active workspace>/…` inside this same document — so a gate keyed
+  // on the live address would raise this panel for someone who opened the app normally and followed
+  // no link. A workspace deleted while it was on screen was activated rather than recorded
+  // unavailable, so that case leaves through the alignment below instead of through a panel about
+  // what the user just did.
+  //
+  // `ready` on top of the record, because the record is written before the account default is
+  // activated: evaluating it any earlier would take the route's analytics surface down during the
+  // loading window, with no gate on screen to replace it, and `ready` is the only state that renders
+  // one at all.
+  const isEntryWorkspaceUnreachable: boolean = sessionLoadState === "ready" && isEntryWorkspaceUnavailable();
   // The active workspace moves away from the one the URL names when the account switches workspaces
   // or deletes the one it was in, and the address has to go with it: reloading the stale URL would
   // otherwise hand back the workspace that was just left.
   const alignedWorkspaceUrl: string | null = urlWorkspaceId !== null
     && activeWorkspaceId !== null
     && isUrlWorkspaceActive === false
+    // The panel below is about the address itself, so realigning it would erase what is being
+    // reported and leave the panel standing over an address that no longer names its workspace.
+    && isEntryWorkspaceUnreachable === false
     ? `${buildWorkspaceRoute(activeWorkspaceId, urlAppPath)}${location.search}${location.hash}`
     : null;
   // A replace onto the address already showing is a no-op at best and a loop at worst, so a target
@@ -604,6 +625,12 @@ export function AppShell(): ReactElement {
   // replaces the app is the screen while it is up, and reporting it is also what keeps every other
   // event tracked underneath it off the route's surface.
   useAnalyticsScreenView(resolveSessionGateSurface(sessionLoadState));
+  // The workspace-unavailable panel below replaces the app root too, but it is not a
+  // `SessionLoadState` and no value in the closed `screen` enum names it, so it cannot report itself
+  // the way the gates above do. It takes the route's surface down instead: `resolveAnalyticsSurface`
+  // reads `review` off `/w/<unreachable>/review` — the workspace segment is stripped before the
+  // route is classified — and that surface would otherwise stand under a screen that never rendered.
+  useAnalyticsUnreportableScreen(isEntryWorkspaceUnreachable);
 
   if (sessionLoadState === "loading" || sessionLoadState === "redirecting") {
     return (
@@ -683,6 +710,37 @@ export function AppShell(): ReactElement {
     );
   }
 
+  // Placed after the session gates above, so the workspace picker wins while it is up: an account
+  // with no stored selection reaches `selecting_workspace` with this record already written, and
+  // choosing there retires the entry address rather than being answered with this panel.
+  //
+  // The exit is the workspace this session did activate, which is the account's own server-side
+  // default — reaching this state means the entry address named something absent from the account's
+  // list, so `resolveInitialWorkspace` fell through to that selection. It also covers an address
+  // left over from a previous account on this browser, which lands the account that signed in on its
+  // own review screen rather than nowhere. A document load rather than a `Link`, because the entry
+  // address is what decides the workspace and it is captured once per document: a client-side
+  // navigation would leave this panel standing.
+  //
+  // `AnalyticsLifecycle` has already emitted `screen_viewed` for the route under this address by the
+  // time this panel can take that surface down, so `review` views still include opens of links into
+  // a workspace the account cannot reach. Deferred to its own analytics item.
+  if (isEntryWorkspaceUnreachable) {
+    return (
+      <main className="page-state">
+        <section className="panel panel-center state-panel">
+          <h1 className="title">{t("app.title")}</h1>
+          <p className="subtitle">{t("app.workspaceUnavailable")}</p>
+          {activeWorkspaceId === null ? null : (
+            <a className="primary-btn" href={buildWorkspaceRoute(activeWorkspaceId, reviewRoute)}>
+              {t("navigation.review")}
+            </a>
+          )}
+        </section>
+      </main>
+    );
+  }
+
   // `workspaceRoutePattern` matches any first segment while `splitWorkspaceRoutePath` accepts only a
   // workspace id (`workspaceIdPattern`), so `/w/<garbage>/review` renders `ReviewScreen` under an
   // address that names no workspace, and the `/*` legacy redirect inside `RoutedShell` never sees
@@ -744,7 +802,7 @@ export function AppShell(): ReactElement {
             </div>
             <nav className="nav" aria-label={t("shell.primaryNavigation")}>
               {primaryNavigationItems.map((item) => (
-                <NavLink key={item.route} className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to={item.route}>
+                <NavLink key={item.route} className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to={workspacePath(item.route)}>
                   {t(item.labelKey)}
                 </NavLink>
               ))}
@@ -770,7 +828,7 @@ export function AppShell(): ReactElement {
                 isBusy={isChoosingWorkspace}
                 isWorkspaceManagementLocked={isWorkspaceLocked}
                 workspaceManagementLockedMessage={workspaceManagementLockedMessage}
-                accountSettingsUrl={settingsHubRoute}
+                accountSettingsUrl={workspacePath(settingsHubRoute)}
                 logoutUrl={buildLogoutUrl()}
                 onSelectWorkspace={chooseWorkspace}
                 onCreateWorkspace={createWorkspace}
@@ -799,7 +857,7 @@ export function AppShell(): ReactElement {
               <NavLink
                 key={item.route}
                 className={({ isActive }) => `mobile-nav-link${isActive ? " mobile-nav-link-active" : ""}`}
-                to={item.route}
+                to={workspacePath(item.route)}
                 onClick={closeMobileNavigation}
               >
                 {t(item.labelKey)}
