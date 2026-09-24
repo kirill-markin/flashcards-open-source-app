@@ -90,7 +90,7 @@ rg -n "navigator\\.language|localStorage" apps/web/src
 
 ## Verification
 
-CI runs the parity check and `tsc -b` in `Build web app`. The i18n tests in `apps/web/src/i18n/` are not in the explicit `npm test` list of [apps/web/package.json](../apps/web/package.json), so CI never runs them; run them directly with `npx vitest run src/i18n src/api/authUrls.test.ts` from `apps/web` when detection, storage, or week logic changes.
+CI runs the parity check and `tsc -b` in `Build web app`.
 
 Validate the locale in a real browser:
 
