@@ -12,6 +12,12 @@ import {
   startBackendSpan,
 } from "../../observability/sentry";
 import { readProductAnalyticsClientPlatform } from "../../productAnalytics/catalog";
+import {
+  reportDeferredAiUsageAllowanceResolutionFailure,
+  type AiUsageAllowance,
+} from "../../aiUsage";
+import type { AccountKind } from "../../billing/limits";
+import { resolveAccountKindForTransport } from "../../billing/snapshot";
 import { parseOptionalWorkspaceIdParam } from "../../server/requestContext";
 import {
   parseJsonBody,
@@ -146,6 +152,32 @@ export function createGetChatHandler(dependencies: ChatRouteDependencies): Handl
   };
 }
 
+/**
+ * What resolving the caller's AI allowance produced, kept rather than acted on. A failed resolution is
+ * carried instead of thrown because whether it may end this request depends on something only
+ * `prepareChatRun` knows: whether this POST is a new turn or a replay of one already persisted.
+ */
+type AiUsageAllowanceOutcome =
+  | Readonly<{ allowance: AiUsageAllowance; error?: undefined }>
+  | Readonly<{ allowance?: undefined; error: unknown }>;
+
+async function resolveAiUsageAllowanceOutcome(
+  resolveAiUsageAllowanceForEnforcementFn: ChatRouteDependencies["resolveAiUsageAllowanceForEnforcementFn"],
+  userId: string,
+  accountKind: AccountKind,
+  now: Date,
+): Promise<AiUsageAllowanceOutcome> {
+  try {
+    return { allowance: await resolveAiUsageAllowanceForEnforcementFn(userId, accountKind, now) };
+  } catch (error) {
+    // Reported here rather than where the outcome is read, because one reader discards it: a replay is
+    // admitted on the run that already exists, correctly and without an allowance, so this is the only
+    // place that records that billing was unreadable for this request whichever way it ends.
+    reportDeferredAiUsageAllowanceResolutionFailure(userId, accountKind, error);
+    return { error };
+  }
+}
+
 export function createPostChatHandler(dependencies: ChatRouteDependencies): Handler<AppEnv> {
   return async (context) => {
     const requestContext = await loadSupportedRequestContext(
@@ -165,6 +197,25 @@ export function createPostChatHandler(dependencies: ChatRouteDependencies): Hand
     const traceContext = getBackendTraceCarrier();
     context.header("X-Chat-Request-Id", body.clientRequestId);
 
+    // Resolved before the run transaction opens, because resolving reads the billing tables and can
+    // refresh the derived entitlement snapshot in a transaction of its own, which must not run inside the
+    // one that persists the turn. Its outcome is captured rather than acted on: a caller who can be
+    // capped has no allowance to compare when that read fails, and answering that failure here would
+    // break a replay of a turn already persisted - the case a database incident makes likely, because
+    // the first POST died of the same thing. Both the refusal and the deferred failure are raised inside
+    // the closure below, which `prepareChatRun` reaches only past its deduplication check.
+    //
+    // One clock for both halves, the way `requireAiUsageAllowance` uses one: the tier this resolves and
+    // the month the refusal sums must not come from different UTC months when a turn starts on the
+    // boundary.
+    const aiUsageNow = new Date();
+    const aiUsageAllowanceOutcome = await resolveAiUsageAllowanceOutcome(
+      dependencies.resolveAiUsageAllowanceForEnforcementFn,
+      requestContext.userId,
+      resolveAccountKindForTransport(requestContext.transport),
+      aiUsageNow,
+    );
+
     let preparedRun: PreparedChatRun;
     try {
       preparedRun = await startBackendSpan("chat.prepare_run", "app.chat", () => dependencies.prepareChatRunFn(
@@ -180,6 +231,26 @@ export function createPostChatHandler(dependencies: ChatRouteDependencies): Hand
         body.uiLocale ?? null,
         requestContext.transport === "bearer" || requestContext.transport === "session",
         readProductAnalyticsClientPlatform(context.get("clientPlatform") ?? null),
+        // The turn is refused before it is persisted, so a caller who has spent their month never starts
+        // a run the worker would then have to pay for. Every caller is checked the same way and the
+        // allowance resolved above decides; the model calls the run goes on to make append their facts
+        // without asking again, because a run admitted here is not abandoned halfway through.
+        // `prepareChatRun` runs this on the branch that inserts a run and not on a deduplicated replay,
+        // which is a retry of a turn already accepted rather than a next turn. A new turn therefore
+        // fails closed when the allowance could not be resolved at all, and a replay never depends on
+        // billing being readable. Nothing here writes, so the transaction it runs in stays free of any
+        // write but its own.
+        async () => {
+          if (aiUsageAllowanceOutcome.allowance === undefined) {
+            throw aiUsageAllowanceOutcome.error;
+          }
+
+          await dependencies.assertAiUsageAllowanceNotReachedFn(
+            aiUsageAllowanceOutcome.allowance,
+            requestContext.userId,
+            aiUsageNow,
+          );
+        },
       ));
     } catch (error) {
       return mapStoreError(error);

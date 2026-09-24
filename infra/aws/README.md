@@ -44,7 +44,6 @@ Keep these values in root `.env` before running setup or deploy scripts:
 - Optional web Sentry setup:
   `VITE_SENTRY_DSN`; `VITE_SENTRY_TRACES_SAMPLE_RATE`; and `SENTRY_WEB_PROJECT` for web source map uploads. Web source map uploads reuse `SENTRY_ORG` and `SENTRY_AUTH_TOKEN`.
 - `DEMO_EMAIL_DOSTIP` and `DEMO_PASSWORD_DOSTIP` when review/demo bypass is enabled
-- `GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP` when you want deployed guest AI enabled
 - `GLOBAL_METRICS_VISIBLE` when you want `GET /v1/global/snapshot` exposed externally; use the exact raw string `true`, and leave it unset or use any other value to keep the endpoint hidden
 - `ADMIN_EMAILS` for initial bootstrap admin-grant setup
 - optional `ANALYTICS_ACCESS_ENABLED` when you want to remove the analytical bastion; it is enabled by default, and only the exact strings `true` and `false` are accepted
