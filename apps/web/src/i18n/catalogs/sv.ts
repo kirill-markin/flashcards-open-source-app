@@ -1302,6 +1302,7 @@ const svCatalog: TranslationCatalog = {
     errorTitle: "Fel i AI-chatten",
     errors: {
       activeRunInProgress: "Ett svar pågår redan. Vänta tills det är klart eller stoppa det innan du skickar ett nytt meddelande.",
+      aiLimitReached: "Din AI-gräns för den här månaden är förbrukad. Den återställs i början av nästa månad.",
       emptyBackendResponse: "Backend returnerade ett tomt felsvar.",
       genericFailure: "AI-chatten misslyckades.",
       liveStreamEndedBeforeCompletion: "AI-strömmen avslutades innan körningen var klar.",

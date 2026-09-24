@@ -43,6 +43,7 @@
 "ai.error.requestTooLarge.message" = "Chat s AI nemůže odeslat tolik obsahu najednou. Odeberte jednu či více příloh, vyberte menší soubor nebo fotku nebo rozdělte požadavek a zkuste to znovu.";
 "ai.error.attachmentUnsupported.title" = "Nepodporovaný typ souboru";
 "ai.error.attachmentUnsupported.message" = "Tento typ souboru není v chatu s AI podporován. Odeberte soubor nebo jej uložte jako PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX nebo obrázek a zkuste to znovu.";
+"ai.error.limitReached" = "Vyčerpali jste svůj limit AI pro tento měsíc. Obnoví se na začátku příštího měsíce.";
 "ai.error.summary.couldNotContinue" = "V odpovědi AI se nepodařilo pokračovat";
 "ai.error.summary.invalidResponse" = "Byla přijata neplatná odpověď AI";
 "ai.error.summary.configuration" = "Chyba konfigurace AI";

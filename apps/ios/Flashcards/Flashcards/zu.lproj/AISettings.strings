@@ -43,6 +43,7 @@
 "ai.error.requestTooLarge.message" = "Ingxoxo ye-AI ayikwazi ukuthumela okuqukethwe okungaka ngesikhathi esisodwa. Susa okunamathiselwe okuthile, khetha ifayela noma isithombe esincane, noma uhlukanise isicelo bese uzama futhi.";
 "ai.error.attachmentUnsupported.title" = "Uhlobo lwefayela alusekelwe";
 "ai.error.attachmentUnsupported.message" = "Lolu hlobo lwefayela alusekelwe engxoxweni ye-AI. Susa ifayela noma ulilondoloze njenge-PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, noma isithombe, bese uzama futhi.";
+"ai.error.limitReached" = "Umkhawulo wakho we-AI walenyanga usuphelile. Uzosethwa kabusha ekuqaleni kwenyanga elandelayo.";
 "ai.error.summary.couldNotContinue" = "Impendulo ye-AI ayiqhubekanga";
 "ai.error.summary.invalidResponse" = "Kutholwe impendulo ye-AI engavumelekile";
 "ai.error.summary.configuration" = "Iphutha lokumiswa kwe-AI";

@@ -43,6 +43,7 @@
 "ai.error.requestTooLarge.message" = "צ׳אט AI אינו יכול לשלוח כמות כזו של תוכן בבת אחת. יש להסיר קובץ מצורף אחד או יותר, לבחור קובץ או תמונה קטנים יותר, או לפצל את הבקשה ולנסות שוב.";
 "ai.error.attachmentUnsupported.title" = "סוג הקובץ אינו נתמך";
 "ai.error.attachmentUnsupported.message" = "סוג הקובץ הזה אינו נתמך בצ׳אט AI. יש להסיר את הקובץ או לשמור אותו כ-PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX או כתמונה, ואז לנסות שוב.";
+"ai.error.limitReached" = "מגבלת ה-AI שלך לחודש הזה נגמרה. היא מתאפסת בתחילת החודש הבא.";
 "ai.error.summary.couldNotContinue" = "לא ניתן להמשיך את תשובת AI";
 "ai.error.summary.invalidResponse" = "התקבלה תשובת AI לא תקינה";
 "ai.error.summary.configuration" = "שגיאה בתצורת AI";

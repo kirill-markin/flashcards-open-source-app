@@ -4,6 +4,7 @@ import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRequestTooLargeException
 import com.flashcardsopensourceapp.data.local.ai.remote.isAiChatAttachmentUnsupportedTypeRemoteError
 import com.flashcardsopensourceapp.data.local.ai.remote.isAiChatRequestTooLargeRemoteError
+import com.flashcardsopensourceapp.data.local.ai.remote.isAiLimitReachedRemoteError
 import com.flashcardsopensourceapp.data.local.ai.remote.requireAiChatStartRunRequestSize
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
@@ -389,7 +390,23 @@ internal class AiChatSendCoordinator(
                 pendingAttachments = pendingAttachments
             )
         }
-        if (remoteError?.code == "GUEST_AI_LIMIT_REACHED") {
+        if (remoteError?.let(::isAiLimitReachedRemoteError) == true) {
+            // Signing in is the fix only while this install has no account, so a signed-in caller gets
+            // the plain limit message instead of a prompt to create an account.
+            if (currentCloudState() == CloudAccountState.LINKED) {
+                context.runtimeStateMutable.update { state ->
+                    state.copy(
+                        activeRun = null,
+                        isLiveAttached = false,
+                        composerPhase = AiComposerPhase.IDLE,
+                        activeAlert = context.textProvider.generalError(
+                            context.textProvider.aiLimitReachedMessage
+                        ),
+                        errorMessage = ""
+                    )
+                }
+                return
+            }
             context.runtimeStateMutable.update { state ->
                 state.copy(
                     persistedState = appendAssistantAccountUpgradePrompt(

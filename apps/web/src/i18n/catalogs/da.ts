@@ -1302,6 +1302,7 @@ const daCatalog: TranslationCatalog = {
     errorTitle: "Fejl i AI-chatten",
     errors: {
       activeRunInProgress: "Der er allerede et svar undervejs. Vent til det er færdigt, eller stop det, før du sender en ny besked.",
+      aiLimitReached: "Du har brugt hele din AI-grænse for denne måned. Den nulstilles i begyndelsen af næste måned.",
       emptyBackendResponse: "Backend returnerede et tomt fejlsvar.",
       genericFailure: "AI-chatten mislykkedes.",
       liveStreamEndedBeforeCompletion: "AI-livestrømmen sluttede, før kørslen var færdig.",

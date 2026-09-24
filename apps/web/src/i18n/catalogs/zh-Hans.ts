@@ -1302,6 +1302,7 @@ export const zhHansCatalog = {
     errorTitle: "AI 聊天错误",
     errors: {
       activeRunInProgress: "已有响应正在进行中。请等待其完成，或先停止后再发送新消息。",
+      aiLimitReached: "本月的 AI 使用额度已用完。额度将在下月初重置。",
       emptyBackendResponse: "后端返回了空的错误响应。",
       genericFailure: "AI 聊天失败。",
       liveStreamEndedBeforeCompletion: "AI 实时流在运行完成前结束。",
