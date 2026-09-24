@@ -10,7 +10,13 @@ import {
   SUBMIT_REVIEW_DESCRIPTION,
 } from "../../agent/reviewContract";
 import type { AgentReviewContext } from "../../agent/reviews";
+import type { AiUsageStatus } from "../../aiUsage";
 import type { AgentSqlContext, AgentSqlPayloadWithWorkspace } from "../agentSql/shared";
+import {
+  USAGE_LIMITS_RESULT_INSTRUCTIONS,
+  USAGE_LIMITS_TOOL_DESCRIPTION,
+  USAGE_LIMITS_TOOL_NAME,
+} from "../toolContract/usageToolContract";
 import {
   GET_GUIDE_RESULT_INSTRUCTIONS,
   GUIDE_BODIES,
@@ -271,6 +277,29 @@ export const SUBMIT_REVIEW_TOOL_SPEC = defineAgentTool({
 });
 
 /**
+ * Account-scoped on purpose: an allowance belongs to the person rather than to one of their
+ * workspaces, so it takes no `workspaceId` and resolves no workspace, as `list_workspaces` and
+ * `get_guide` also do. What is particular to this spec is that its answer depends on the caller's
+ * account kind, which is why the surface binds `loadAiUsageStatus` with that kind instead of this
+ * handler reading one.
+ *
+ * It is also the only place a caller can learn its consumption. The entitlement reaches clients in the
+ * sync pull response, but without the month's spend, so that the published object does not change
+ * after every AI call (docs/premium-entitlements.md, "What a client receives"). The tier, the limit
+ * and the window are read through `loadAiUsageStatus`, never re-derived here.
+ */
+export const GET_USAGE_LIMITS_TOOL_SPEC = defineAgentTool({
+  name: USAGE_LIMITS_TOOL_NAME,
+  surfaces: ["mcp", "chat"],
+  description: USAGE_LIMITS_TOOL_DESCRIPTION,
+  inputSchema: z.strictObject({}),
+  execute: async (context): Promise<AgentToolResult<AiUsageStatus>> => ({
+    data: await context.actions.loadAiUsageStatus(context.userId, new Date()),
+    instructions: USAGE_LIMITS_RESULT_INSTRUCTIONS,
+  }),
+});
+
+/**
  * Every agent tool this backend exposes, on every surface.
  *
  * A spec carries what both surfaces need to expose and run a tool. What differs per surface stays
@@ -286,6 +315,7 @@ export const AGENT_TOOL_SPECS: ReadonlyArray<AgentToolSpec> = Object.freeze([
   NEXT_REVIEW_CARD_TOOL_SPEC,
   REVEAL_ANSWER_TOOL_SPEC,
   SUBMIT_REVIEW_TOOL_SPEC,
+  GET_USAGE_LIMITS_TOOL_SPEC,
 ]);
 
 export function listAgentToolSpecsForSurface(

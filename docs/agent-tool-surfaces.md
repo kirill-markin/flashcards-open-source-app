@@ -23,7 +23,20 @@ registers the specs that list its own surface
 | `next_review_card` | MCP, chat |
 | `reveal_answer` | MCP, chat |
 | `submit_review` | MCP, chat |
+| `get_usage_limits` | MCP, chat |
 | `add_generated_image_to_card` | chat only, not a registry spec |
+
+`get_usage_limits` is account-scoped, because an allowance belongs to the person
+rather than to one of their workspaces: it takes no arguments at all, and its
+REST sibling `GET /v1/agent/usage-limits` takes no body. Taking no `workspaceId`
+and resolving no workspace is not new in itself — `list_workspaces` and
+`get_guide` do neither either, and `get_guide` still requires its own `topic`.
+What is new is that its answer depends on the caller's *account kind*, since a
+limit is resolved per tier and account kind, so each adapter binds that kind
+from the credential it authenticated rather than the spec reading one. It is
+also the only way to read current AI consumption, which the entitlement the sync
+pull publishes deliberately leaves out ([premium
+entitlements](premium-entitlements.md)).
 
 Every workspace-scoped registry spec takes the same optional `workspaceId`
 argument; omit it to stay on the surface's selected workspace, which on the chat
@@ -46,7 +59,7 @@ the MCP gateway's 29-second integration timeout
 (`infra/aws/lib/gateways/mcp-gateway.ts`). That is one dated sample rather than a
 standing contract; re-measure before deciding.
 
-The chat serves all seven registry tools, review included. The model supplies
+The chat serves all eight registry tools, review included. The model supplies
 the `reviewId` there exactly as it does on MCP, and a `reviewId` reused on a
 different card is refused on every surface with its own code instead of passing
 as a retry (`submitAgentReview` in `apps/backend/src/agent/reviews.ts`). What

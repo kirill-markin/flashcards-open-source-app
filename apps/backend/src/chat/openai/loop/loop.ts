@@ -96,6 +96,7 @@ export type StartOpenAILoopParams = Readonly<{
   generatedImageOperationDeadlineMs: number;
   clientPlatform: ProductAnalyticsClientReportablePlatform | null;
   tierAtCall: EntitlementTier;
+  initiatingAuthIsSignedIn: boolean;
   modelId: ChatRuntimeModelId;
   reasoningEffort: ChatRuntimeReasoningEffort;
   timezone: string;
@@ -121,6 +122,7 @@ async function runOneToolCall(
     signal: AbortSignal | null;
     generatedImageOperationDeadlineMs: number;
     clientPlatform: ProductAnalyticsClientReportablePlatform | null;
+    initiatingAuthIsSignedIn: boolean;
     rootObservation: LangfuseObservation | null;
   }>,
 ): Promise<ExecutedChatToolCall> {
@@ -377,6 +379,7 @@ async function runLoopWithDeps(
       signal: params.signal,
       generatedImageOperationDeadlineMs: params.generatedImageOperationDeadlineMs,
       clientPlatform: params.clientPlatform,
+      initiatingAuthIsSignedIn: params.initiatingAuthIsSignedIn,
       rootObservation: params.rootObservation,
       onExecutionPhaseChanged: params.onExecutionPhaseChanged,
       shouldStopBeforeNextStep: params.shouldStopBeforeNextStep,

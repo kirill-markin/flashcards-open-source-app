@@ -28,6 +28,7 @@ import {
   findAgentToolSpecForSurface,
   listAgentToolSpecsForSurface,
   GET_GUIDE_TOOL_SPEC,
+  GET_USAGE_LIMITS_TOOL_SPEC,
   LIST_WORKSPACES_TOOL_SPEC,
   NEXT_REVIEW_CARD_TOOL_SPEC,
   REVEAL_ANSWER_TOOL_SPEC,
@@ -64,6 +65,7 @@ import {
 } from "./generatedImageToolContract";
 import {
   aiLimitReachedCode,
+  loadAiUsageStatus,
   requireAiUsageAllowance,
 } from "../../../aiUsage";
 import { resolveAccountKindForSignedInAuth } from "../../../billing/snapshot";
@@ -85,6 +87,14 @@ export type OpenAIToolContext = Readonly<{
   signal: AbortSignal | null;
   generatedImageOperationDeadlineMs: number;
   clientPlatform: ProductAnalyticsClientReportablePlatform | null;
+  /**
+   * Whether the request that started this run authenticated as a signed-in account, carried from
+   * `ai.chat_runs.initiating_auth_is_signed_in`. It is the reading the chat route enforced this
+   * turn's allowance with (`resolveAccountKindForTransport` in `apps/backend/src/chat/http/handlers.ts`)
+   * and the one the worker attributes every usage fact by, so a tool that reports an allowance
+   * resolves the account kind from it rather than asking the identity tables.
+   */
+  initiatingAuthIsSignedIn: boolean;
   generatedImageObservationContext: GeneratedCardImageObservationContext;
 }>;
 
@@ -148,6 +158,7 @@ export type OpenAIToolDependencies = Readonly<{
   nextReviewCard: typeof nextReviewCard;
   revealAnswer: typeof revealAnswer;
   submitAgentReview: typeof submitAgentReview;
+  loadAiUsageStatus: typeof loadAiUsageStatus;
 }>;
 
 type GeneratedImageToolSafeErrorCode = "MEDIA_ASSET_STORAGE_UNAVAILABLE";
@@ -391,6 +402,19 @@ const OPENAI_SUBMIT_REVIEW_TOOL: OpenAI.Responses.FunctionTool = {
   },
 };
 
+const OPENAI_GET_USAGE_LIMITS_TOOL: OpenAI.Responses.FunctionTool = {
+  type: "function",
+  name: GET_USAGE_LIMITS_TOOL_SPEC.name,
+  description: GET_USAGE_LIMITS_TOOL_SPEC.description,
+  strict: false,
+  parameters: {
+    type: "object",
+    properties: {},
+    required: [],
+    additionalProperties: false,
+  },
+};
+
 /**
  * How each registry tool is advertised to OpenAI. The JSON Schema stays hand-written rather than
  * derived from the spec's zod schema so the payload the provider receives is exactly what it is;
@@ -405,6 +429,7 @@ const CHAT_FUNCTION_TOOLS: Readonly<Record<string, OpenAI.Responses.FunctionTool
   [NEXT_REVIEW_CARD_TOOL_SPEC.name]: OPENAI_NEXT_REVIEW_CARD_TOOL,
   [REVEAL_ANSWER_TOOL_SPEC.name]: OPENAI_REVEAL_ANSWER_TOOL,
   [SUBMIT_REVIEW_TOOL_SPEC.name]: OPENAI_SUBMIT_REVIEW_TOOL,
+  [GET_USAGE_LIMITS_TOOL_SPEC.name]: OPENAI_GET_USAGE_LIMITS_TOOL,
 };
 
 function readAdvertisedSchemaKeys(
@@ -503,6 +528,7 @@ const DEFAULT_OPENAI_TOOL_DEPENDENCIES: OpenAIToolDependencies = {
   nextReviewCard,
   revealAnswer,
   submitAgentReview,
+  loadAiUsageStatus,
 };
 
 export function buildOpenAIChatTools(
@@ -675,6 +701,12 @@ async function executeGeneratedImageToolCall(
     // sign-in check above, through the same mapping the request path uses, and the resolved allowance
     // decides on its own whether anything is refused. Like the sign-in refusal, a refusal here has
     // already consumed one of the run's image attempts.
+    //
+    // This reading is the identity mapping rather than the run's own claim, which is deliberately not
+    // what `loadAiUsageStatus` is bound to below: reporting must match what the route enforced, while
+    // this gate re-checks sign-in at the moment it is about to spend. The two answer differently for a
+    // guest credential whose user has since become an account, and if that is ever unified it has to
+    // be decided for both at once rather than drifted into from either side.
     const allowance = await dependencies.requireAiUsageAllowance(
       context.userId,
       resolveAccountKindForSignedInAuth(signedIn),
@@ -892,6 +924,19 @@ function buildChatAgentToolContext(
           context.signal,
         ),
         context.clientPlatform,
+      ),
+      // This is the one surface a guest reaches, and a guest is the only account kind capped today,
+      // so the kind has to be right rather than assumed. It comes from the claim the request that
+      // started this run authenticated with, which is the single reading the route enforced the
+      // turn's allowance with and the worker attributed its usage facts by. Probing the Cognito
+      // identity mapping instead would answer differently in a documented state: after a bound
+      // guest upgrade the guest session stays live while its user_id is the account's own, so a call
+      // still arriving on the guest credential is enforced against the guest cell and refused, while
+      // the probe would say "account" and this tool would report that no cap exists at all.
+      loadAiUsageStatus: async (userId, now) => dependencies.loadAiUsageStatus(
+        userId,
+        resolveAccountKindForSignedInAuth(context.initiatingAuthIsSignedIn),
+        now,
       ),
     },
   };
@@ -1172,6 +1217,8 @@ const CHAT_TOOL_RUNNERS: Readonly<Record<string, ChatToolRunner | undefined>> = 
     executeReviewChatToolCall(REVEAL_ANSWER_TOOL_SPEC, rawArguments, context, dependencies),
   [SUBMIT_REVIEW_TOOL_SPEC.name]: (rawArguments, context, dependencies) =>
     executeReviewChatToolCall(SUBMIT_REVIEW_TOOL_SPEC, rawArguments, context, dependencies),
+  [GET_USAGE_LIMITS_TOOL_SPEC.name]: (rawArguments, context, dependencies) =>
+    executeReadOnlyChatToolCall(GET_USAGE_LIMITS_TOOL_SPEC, rawArguments, context, dependencies),
 };
 
 function requireChatToolRunner(toolName: string): ChatToolRunner {

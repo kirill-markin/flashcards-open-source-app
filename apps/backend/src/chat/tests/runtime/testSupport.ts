@@ -94,6 +94,7 @@ export function createParams(): StartPersistedChatRunParams {
     generatedImageEligible: false,
     clientPlatform: null,
     tierAtCall: "free",
+    initiatingAuthIsSignedIn: true,
     diagnostics: {
       requestId: "chat-request-1",
       userId: "user-1",

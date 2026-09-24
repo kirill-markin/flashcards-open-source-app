@@ -86,6 +86,11 @@
           "name": "submit_review",
           "description": "Records one Again, Hard, Good, or Easy rating and advances the card's FSRS schedule.",
           "readOnly": false
+        },
+        {
+          "name": "get_usage_limits",
+          "description": "Returns the account's plan tier, its limits, and this month's AI consumption.",
+          "readOnly": true
         }
       ]
     }

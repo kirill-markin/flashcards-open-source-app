@@ -14,6 +14,8 @@ import {
   SQL_QUERY_TOOL_NAME,
 } from "../aiTools/toolContract/sqlToolContract";
 import { MAX_SQL_RESULT_CHARS } from "../aiTools/toolContract/sqlToolLimits";
+import { USAGE_LIMITS_TOOL_NAME } from "../aiTools/toolContract/usageToolContract";
+import { loadAiUsageStatus } from "../aiUsage";
 import {
   listAgentToolSpecsForSurface,
   GET_GUIDE_TOOL_NAME,
@@ -58,7 +60,7 @@ const SERVER_VERSION = "v1";
  * must not get wrong, and `get_guide` topic `card_authoring` carries the rest.
  */
 const SERVER_INSTRUCTIONS = [
-  "Call list_workspaces first to pick a workspaceId, or omit it for the selected default. Then use sql_query for reads and sql_execute for authoring writes. To review, call next_review_card, then reveal_answer, then submit_review. Call get_guide for detail.",
+  "Call list_workspaces first to pick a workspaceId, or omit it for the selected default. Then use sql_query for reads and sql_execute for authoring writes. To review, call next_review_card, then reveal_answer, then submit_review. Call get_guide for detail, and get_usage_limits for the plan tier, its limits and this month's AI usage.",
   "Hard rules: front_text is a question and never the answer; every new card needs at least one tag; reuse existing workspace tags; check for duplicates with sql_query before creating; describe broad deletes or updates before running them.",
   "The dialect is not full PostgreSQL. Published resources, already workspace-scoped: workspace, cards, decks, review_events. A deck is a saved tag filter, so a card has no deck_id and belongs to a deck only by matching tags. get_guide topics: sql_dialect for the grammar, limits, and examples; card_authoring for the card contract, formatting, and a card's web link; bulk_authoring for splitting and verifying a large write job; review_flow for the review loop.",
 ].join(" ");
@@ -128,6 +130,14 @@ const MCP_TOOL_PRESENTATION: Readonly<Record<string, McpToolPresentation | undef
     },
     maxResultSizeChars: null,
   },
+  // get_usage_limits reads the caller's own billing and metering rows and writes nothing a caller can
+  // see. idempotentHint is true in the sense the hint carries - repeating the call has no additional
+  // effect - even though the answer moves as AI is spent.
+  [USAGE_LIMITS_TOOL_NAME]: {
+    title: "Get AI usage and limits",
+    annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true },
+    maxResultSizeChars: null,
+  },
 };
 
 function requireMcpToolPresentation(toolName: string): McpToolPresentation {
@@ -163,6 +173,7 @@ export type McpServerDependencies = Readonly<{
     userId: string,
     selectedWorkspaceId: string | null,
   ) => Promise<ReadonlyArray<WorkspaceSummaryWithStats>>;
+  loadAiUsageStatus: typeof loadAiUsageStatus;
 }>;
 
 const DEFAULT_MCP_SERVER_DEPENDENCIES: McpServerDependencies = {
@@ -173,6 +184,7 @@ const DEFAULT_MCP_SERVER_DEPENDENCIES: McpServerDependencies = {
   runSqlQuery,
   runSqlExecute,
   listUserWorkspacesWithStatsForSelectedWorkspace,
+  loadAiUsageStatus,
 };
 
 /**
@@ -504,6 +516,16 @@ export function createMcpServerWithDependencies(
         request,
         resolveAgentConnectionReviewReplica,
         null,
+      ),
+      // Every caller here holds an agent connection, and a connection can only be created from a
+      // signed-in human session: `requireHumanManagedConnectionAccess`
+      // (apps/backend/src/routes/workspaces/connectionAccess.ts) refuses a guest transport with
+      // ACCOUNT_SIGN_IN_REQUIRED. So this surface has no guest to distinguish and binds the account
+      // kind rather than reading one. Letting a guest hold a connection would have to change this.
+      loadAiUsageStatus: async (userId, now) => dependencies.loadAiUsageStatus(
+        userId,
+        "account",
+        now,
       ),
     },
   };

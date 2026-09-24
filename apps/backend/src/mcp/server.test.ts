@@ -182,6 +182,7 @@ function createFakeDependencies(
     nextReviewCard: async () => { throw new Error("Unexpected review read"); },
     revealAnswer: async () => { throw new Error("Unexpected answer read"); },
     submitAgentReview: async () => { throw new Error("Unexpected review write"); },
+    loadAiUsageStatus: async () => { throw new Error("Unexpected usage read"); },
     resolveAccessibleAgentWorkspaceId: async (
       requestContext: WorkspaceRequestContext,
       explicitWorkspaceId: string | undefined,
@@ -302,6 +303,7 @@ test("MCP server exposes workspace and SQL tools through the protocol path", asy
     const toolNames = toolList.tools.map((tool) => tool.name).sort();
     assert.deepEqual(toolNames, [
       "get_guide",
+      "get_usage_limits",
       LIST_WORKSPACES_TOOL_NAME,
       "next_review_card",
       "reveal_answer",
