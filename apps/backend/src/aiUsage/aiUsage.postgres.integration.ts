@@ -229,10 +229,11 @@ test("an uncapped allowance is never refused, and a call the provider reported n
 // The counters reach the database as positional parameters in one eighteen-column insert, and a swap
 // between two adjacent nullable counters is invisible to a test that leaves them null or asserts only
 // the weighted sum. Every counter therefore carries a distinct value here and is read back on its own
-// column: the four that no monthly allowance weighs are the ones a cost report reads, some as price
-// multipliers and some as breakdowns it must not price - reasoning tokens sit inside output_tokens, so
-// pricing both double-counts them (db/migrations/0152_ai_usage_facts.sql) - which makes a swap between
-// them silently wrong reporting rather than a failing request.
+// column: the four that no monthly allowance weighs are read only by a cost report and never by the
+// allowance, some of them as price multipliers and some as breakdowns a cost report must not price -
+// reasoning tokens sit inside output_tokens, so pricing both double-counts them
+// (db/migrations/0152_ai_usage_facts.sql) - which makes a swap between them silently wrong reporting
+// rather than a failing request.
 test("every reported counter lands in its own column, and only the token counters are weighted", async () => {
   await withPostgresIntegrationFixture(async (fixture) => {
     try {
