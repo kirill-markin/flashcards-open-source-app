@@ -190,6 +190,40 @@ export type FeedbackSubmissionState = Readonly<{
   message: string;
 }>;
 
+export type PurchaseState = Readonly<{
+  purchase_id: string;
+  user_id: string | null;
+  previous_user_id: string | null;
+  status: string;
+}>;
+
+export type GrantState = Readonly<{
+  grant_id: string;
+  user_id: string;
+}>;
+
+/** The durable per-person billing facts, as the harness needs them: identity plus the three handles. */
+export type UserBillingStateState = Readonly<{
+  user_id: string;
+  trial_consumed_at: string | null;
+  trial_provider: string | null;
+  ever_purchased_at: string | null;
+  stripe_customer_id: string | null;
+  apple_app_account_token: string | null;
+  google_obfuscated_account_id: string | null;
+}>;
+
+export type EntitlementSnapshotState = Readonly<{
+  user_id: string;
+  tier: string;
+}>;
+
+export type AiUsageEventState = Readonly<{
+  usage_event_id: string;
+  user_id: string;
+  workspace_id: string | null;
+}>;
+
 export type PublicProfileState = Readonly<{
   user_id: string;
   public_profile_id: string;
@@ -231,6 +265,11 @@ export type MutableState = {
   hotChanges: Array<HotChangeState>;
   feedbackPromptEvents: Array<FeedbackPromptEventState>;
   feedbackSubmissions: Array<FeedbackSubmissionState>;
+  purchases: Array<PurchaseState>;
+  grants: Array<GrantState>;
+  userBillingState: Array<UserBillingStateState>;
+  entitlementSnapshots: Array<EntitlementSnapshotState>;
+  aiUsageEvents: Array<AiUsageEventState>;
   publicProfiles: Array<PublicProfileState>;
   publicReviewActivityFacts: Array<PublicReviewActivityFactState>;
 };

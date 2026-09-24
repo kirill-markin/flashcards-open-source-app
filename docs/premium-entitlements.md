@@ -8,19 +8,25 @@ rules as the backend.
 No store integration exists yet. No client asks a store to buy anything, and the backend validates
 no receipt and handles no provider webhook: the only store SDKs linked anywhere are the review
 prompts, `StoreKit` on iOS and Play review on Android. The `billing` schema is already migrated
-(`db/migrations/0151_billing_schema.sql`), and every table a purchase or a grant would land in is
-still empty and has no writer at all: `provider_events`, `purchases`, `grants` and
-`user_billing_state`. This document is the contract those rails must satisfy, so it is deliberately
-written ahead of the code.
+(`db/migrations/0151_billing_schema.sql`), and `provider_events`, `purchases`, `grants` and
+`user_billing_state` are all still empty, because no writer yet creates a table's first row. Each
+does have a writer now, and none of it is ingestion: the identity lifecycle rewrites rows it finds,
+on account deletion and on guest upgrade (`apps/backend/src/billing/identity.ts`). The one insert
+among those is the `user_billing_state` merge an upgrade performs, and it can only run when a guest
+already has a row to merge, so it cannot create the table's first row. A store rail still has
+to write the first row. This document is the contract those rails must satisfy, so it is
+deliberately written ahead of the code.
 
 The entitlement half of it is built, in `apps/backend/src/billing/`: `tiers.ts` is the catalogue,
 `limits.ts` the limits keyed by tier and account kind, `resolver.ts` the pure derivation,
-`store.ts` the reads and the cached row it writes, and `snapshot.ts` the cache and the shape
-clients receive. That module settles the derivation and its cache and nothing else: no store rail
-exists to feed it, and the billing work still missing elsewhere is named by the sections that own
-it. One billing table therefore does have a writer: `entitlement_snapshots`, which `snapshot.ts`
-refreshes through `store.ts` when the answer it just resolved differs from the stored row — on the
-first resolution for that person as much as on a later change. The derivation itself writes
+`store.ts` the reads and the cached row it writes, `snapshot.ts` the cache and the shape
+clients receive, and `identity.ts` the rewrites that move a person's rows to another account or
+anonymise them. That module settles the derivation, its cache and those rewrites and nothing else:
+no store rail exists to feed it, and the billing work still missing elsewhere is named by the
+sections that own it. `entitlement_snapshots` is the table that writer keeps: `snapshot.ts` refreshes
+it through `store.ts` when the answer it just resolved differs from the stored row — on the first
+resolution for that person as much as on a later change, and it is the one billing row that may be
+created out of nothing, because it is derived. The derivation itself writes
 nothing, and nothing pushes the refresh: the only trigger is that person's next authenticated sync
 pull, so the row lags a change in their purchases or grants until that pull arrives. Anything
 reaching those rows, account deletion included, has to account for them.
@@ -253,10 +259,13 @@ AI usage row the guest owns moves, not only the window in progress: moving all o
 same and keeps per-person reporting continuous across an upgrade. AI usage must move so that
 upgrading is not a way to reset a monthly budget.
 
-That transfer does not exist yet, and today's behaviour is the opposite. Upgrade finishes in
+That transfer is built, in `completeGuestUpgradeInExecutor`
+(`apps/backend/src/guestAuth/upgrade/index.ts`). It has to stay ahead of
 `cleanupGuestSessionSourceInExecutor` (`apps/backend/src/guestAuth/delete/index.ts`), which deletes
-the guest's `org.user_settings` row, and `auth.guest_ai_monthly_usage` cascades from it, so guest AI
-usage is discarded and upgrading does reset the monthly guest AI budget. The move has to be built.
+the guest's `org.user_settings` row: once that row is gone there is no guest identity left to move
+anything away from, and a mover placed after it moves nothing while still reporting success. What
+still cascades away with that row is `auth.guest_ai_monthly_usage`, the quota table `ai.usage_events`
+replaced and that no allowance reads any more; retiring it is separate work.
 
 **Reaping.** A guest that ever made a purchase is never reaped. Deleting the account row cascades
 its guest-scoped tables, which would destroy the only link between a paid transaction and the
@@ -275,12 +284,21 @@ the analytics rewrite does, and under the same fresh identifier that rewrite min
 ids, the verbatim provider status — must be retained on accounting and claim-defence grounds, and
 personal fields inside stored provider payloads must be cleared.
 
-Sharing that identifier costs plumbing that does not exist yet. It is minted inside the private
-`anonymizeProductAnalyticsInExecutor`, which by its own docstring generates it "here and stored
-nowhere" and returns only the person ids it covered. Whoever adds the identity-lifecycle hooks has
-to hand that value to a billing anonymiser inside the same transaction; a billing anonymiser that
-mints its own pseudonym instead leaves one person's two histories under two identifiers that can
-never be brought back together.
+A store rail must stamp `provider_events.user_id` as soon as it has decoded the payload far enough to
+know whose notification it is. That is a requirement of the rail, not an optimisation: it is what puts
+a row within reach of the erasure at all. The erasure finds a person's events by that column or by the
+purchase the event names, and for Google and Stripe the insert precedes the decode, so `user_id`,
+`provider_purchase_id` and `environment` are all NULL at insert time. An event whose handling then
+failed permanently is named by neither, and it keeps `payload_raw` — the bytes exactly as received,
+which is why reporting is denied that column at all — with the buyer's details still in it. Such a row
+is outside the erasure's reach for good, and no later rewrite can find it. Treat an undecoded event as
+a row that must be either decoded and stamped, or not retained.
+
+That identifier is minted once per deletion in `deleteRealAccountDataInExecutor` and handed to the
+analytics, billing and AI usage rewrites inside the one transaction
+(`apps/backend/src/auth/accountDeletion.ts`). The rule it exists to serve is the part that may not be
+relaxed: an anonymiser that mints its own pseudonym instead leaves one person's histories under
+identifiers that can never be brought back together.
 
 ## Analytics facts written by the billing layer
 
