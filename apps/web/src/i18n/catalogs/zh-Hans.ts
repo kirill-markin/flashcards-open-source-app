@@ -1,4 +1,5 @@
 import type { TranslationCatalog } from "../catalogTypes";
+import { workspaceTextImportEnglishFallback } from "./en";
 
 export const zhHansCatalog = {
   common: {
@@ -778,6 +779,7 @@ export const zhHansCatalog = {
     title: "导入",
     subtitle: "从可移植包添加卡片。",
     workspaceUnavailable: "工作区不可用",
+    ...workspaceTextImportEnglishFallback,
     packageTitle: "flashcards.zip",
     packageDescription: "选择一个包，预览其内容，然后将卡片导入此工作区。",
     packageImporting: "正在导入...",

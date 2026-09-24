@@ -1,4 +1,5 @@
 import type { TranslationCatalog } from "../catalogTypes";
+import { workspaceTextImportEnglishFallback } from "./en";
 
 const esMxCatalog: TranslationCatalog = {
   common: {
@@ -778,6 +779,7 @@ const esMxCatalog: TranslationCatalog = {
     title: "Importar",
     subtitle: "Añade tarjetas desde un paquete portátil.",
     workspaceUnavailable: "El espacio de trabajo no está disponible",
+    ...workspaceTextImportEnglishFallback,
     packageTitle: "flashcards.zip",
     packageDescription: "Elige un paquete, previsualiza su contenido y luego importa tarjetas a este espacio de trabajo.",
     packageImporting: "Importando...",

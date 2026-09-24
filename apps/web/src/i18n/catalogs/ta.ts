@@ -1,4 +1,5 @@
 import type { TranslationCatalog } from "../catalogTypes";
+import { workspaceTextImportEnglishFallback } from "./en";
 
 const taCatalog: TranslationCatalog = {
   common: {
@@ -778,6 +779,7 @@ const taCatalog: TranslationCatalog = {
     title: "இறக்குமதி",
     subtitle: "எடுத்துச் செல்லக்கூடிய தொகுப்பிலிருந்து அட்டைகளைச் சேர்க்கவும்.",
     workspaceUnavailable: "பணியிடம் கிடைக்கவில்லை",
+    ...workspaceTextImportEnglishFallback,
     packageTitle: "flashcards.zip",
     packageDescription: "ஒரு தொகுப்பைத் தேர்ந்தெடுத்து, அதன் உள்ளடக்கத்தை முன்னோட்டமிட்டு, பிறகு இந்தப் பணியிடத்தில் அட்டைகளை இறக்குமதி செய்யவும்.",
     packageImporting: "இறக்குமதி செய்கிறது...",

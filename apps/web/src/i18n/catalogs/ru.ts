@@ -1,4 +1,5 @@
 import type { TranslationCatalog } from "../catalogTypes";
+import { workspaceTextImportEnglishFallback } from "./en";
 
 export const ruCatalog = {
   common: {
@@ -787,6 +788,7 @@ export const ruCatalog = {
     title: "Импорт",
     subtitle: "Добавьте карточки из переносимого пакета.",
     workspaceUnavailable: "Рабочее пространство недоступно",
+    ...workspaceTextImportEnglishFallback,
     packageTitle: "flashcards.zip",
     packageDescription: "Выберите пакет, просмотрите его содержимое, затем импортируйте карточки в это рабочее пространство.",
     packageImporting: "Импорт...",

@@ -18,11 +18,12 @@ import type {
 } from "../../../../types";
 import { WorkspaceImportScreen } from "./WorkspaceImportScreen";
 
-const workspaceReplicaId = "45268888-5620-5912-9ed1-4bd6f2105aff";
+const workspaceReplicaId = "ed46c6cc-17c9-5b1c-a82a-169543e8a453";
 
 const {
   captureAppOperationErrorMock,
   confirmWorkspacePackageImportMock,
+  loadWorkspaceTagsSummaryMock,
   previewWorkspacePackageImportMock,
   useAppDataMock,
 } = vi.hoisted(() => ({
@@ -32,6 +33,7 @@ const {
     file: File,
     options: WorkspacePackageImportConfirmOptions,
   ) => Promise<WorkspacePackageImportConfirmResponse>>(),
+  loadWorkspaceTagsSummaryMock: vi.fn(),
   previewWorkspacePackageImportMock: vi.fn<(
     workspaceId: string,
     fileOrBlob: Blob,
@@ -50,6 +52,10 @@ vi.mock("../../../../api", async (importOriginal) => {
 
 vi.mock("../../../../appData", () => ({
   useAppData: useAppDataMock,
+}));
+
+vi.mock("../../../../localDb/cards/workspace", () => ({
+  loadWorkspaceTagsSummary: loadWorkspaceTagsSummaryMock,
 }));
 
 vi.mock("../../../../observability/appOperationObservation", () => ({
@@ -217,6 +223,14 @@ function setupWorkspaceImportScreen(): WorkspaceImportScreenHarness {
     captureAppOperationErrorMock.mockReturnValue(true);
     previewWorkspacePackageImportMock.mockReset();
     confirmWorkspacePackageImportMock.mockReset();
+    loadWorkspaceTagsSummaryMock.mockReset();
+    loadWorkspaceTagsSummaryMock.mockResolvedValue({
+      tags: [
+        { tag: "demo", cardsCount: 1 },
+        { tag: "geography", cardsCount: 3 },
+      ],
+      totalCards: 4,
+    });
     appData = createAppData();
     useAppDataMock.mockReturnValue(appData);
     previewWorkspacePackageImportMock.mockResolvedValue(createPreviewResponse());
@@ -297,6 +311,18 @@ function requireElement<ElementType extends Element>(
   return element;
 }
 
+function requireDocumentElement<ElementType extends Element>(
+  selector: string,
+  elementType: new () => ElementType,
+): ElementType {
+  const element = document.querySelector(selector);
+  if (!(element instanceof elementType)) {
+    throw new Error(`Element was not found: ${selector}`);
+  }
+
+  return element;
+}
+
 function setInputFiles(input: HTMLInputElement, files: ReadonlyArray<File>): void {
   Object.defineProperty(input, "files", {
     configurable: true,
@@ -346,6 +372,37 @@ async function setTextInputValue(input: HTMLInputElement, value: string): Promis
   });
 }
 
+async function setTextAreaValue(textarea: HTMLTextAreaElement, value: string): Promise<void> {
+  const valueSetter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")?.set;
+  if (valueSetter === undefined) {
+    throw new Error("HTML textarea value setter is unavailable");
+  }
+
+  await act(async () => {
+    valueSetter.call(textarea, value);
+    textarea.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+}
+
+async function pressInputKey(input: HTMLInputElement, key: string): Promise<void> {
+  await act(async () => {
+    input.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
+  });
+}
+
+async function readPackageCardTags(file: Blob): Promise<ReadonlyArray<string>> {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const fileNameLength = view.getUint16(26, true);
+  const extraFieldLength = view.getUint16(28, true);
+  const contentLength = view.getUint32(18, true);
+  const contentStart = 30 + fileNameLength + extraFieldLength;
+  const packageJson = JSON.parse(new TextDecoder().decode(
+    bytes.slice(contentStart, contentStart + contentLength),
+  )) as { cards: Array<{ tags: Array<string> }> };
+  return packageJson.cards[0]?.tags ?? [];
+}
+
 async function waitForPreview(): Promise<void> {
   await waitForCondition("Package preview did not finish", () => (
     previewWorkspacePackageImportMock.mock.calls.length > 0
@@ -369,6 +426,189 @@ function readConfirmOptions(): WorkspacePackageImportConfirmOptions {
 }
 
 describe("WorkspaceImportScreen package import", () => {
+  it("presents pasted text as the primary import path and identifies ZIP as a Nibomo package", async () => {
+    await renderScreen();
+
+    expect(requireElement("[data-testid='workspace-text-import-editor']", HTMLElement).textContent).toContain(
+      "Paste text",
+    );
+    expect(requireElement("[data-testid='workspace-package-import-card']", HTMLElement).textContent).toContain(
+      "Nibomo package",
+    );
+  });
+
+  it("imports edited pasted cards through package preview and confirm", async () => {
+    previewWorkspacePackageImportMock.mockResolvedValueOnce({
+      ...createPreviewResponse(),
+      cardCount: 1,
+      tagCounts: [],
+      referencedMediaCount: 0,
+      packageMediaFileCount: 0,
+      warnings: [],
+      defaultOptions: {
+        addImportTag: true,
+        suggestedImportTag: "import:2026-07-01",
+        keptTags: [],
+        removedTags: [],
+      },
+    });
+
+    await renderScreen();
+    await setTextAreaValue(
+      requireElement("[data-testid='workspace-text-import-input']", HTMLTextAreaElement),
+      "Canada\tOttawa\nUnited States\tWashington D.C.",
+    );
+
+    const previewRows = getContainer().querySelectorAll("[data-testid='workspace-text-import-preview-row']");
+    expect(previewRows).toHaveLength(2);
+    const secondBackInput = requireElement(
+      "[data-testid='workspace-text-import-back-input'][data-card-id='source-row-2']",
+      HTMLTextAreaElement,
+    );
+    await setTextAreaValue(secondBackInput, "Washington, D.C.");
+    await clickElement(requireElement(
+      "[data-testid='workspace-text-import-remove-card'][data-card-id='source-row-1']",
+      HTMLButtonElement,
+    ));
+
+    await clickElement(requireElement("[data-testid='workspace-text-import-confirm-button']", HTMLButtonElement));
+    await waitForConfirm();
+
+    const previewFile = previewWorkspacePackageImportMock.mock.calls[0]?.[1];
+    const confirmedFile = confirmWorkspacePackageImportMock.mock.calls[0]?.[1];
+    expect(previewFile).toBeInstanceOf(File);
+    expect(confirmedFile).toBe(previewFile);
+    expect(readConfirmOptions()).toEqual(expect.objectContaining({
+      addImportTag: true,
+      importTag: "import:2026-07-01",
+      removeTags: [],
+    }));
+  });
+
+  it("blocks pasted text import until every preview card has a front and back", async () => {
+    await renderScreen();
+    await setTextAreaValue(
+      requireElement("[data-testid='workspace-text-import-input']", HTMLTextAreaElement),
+      "Complete\tAnswer\nMissing answer",
+    );
+
+    expect(requireElement("[data-testid='workspace-text-import-invalid-count']", HTMLElement).textContent).toContain("1");
+    expect(requireElement("[data-testid='workspace-text-import-confirm-button']", HTMLButtonElement).disabled).toBe(true);
+    expect(previewWorkspacePackageImportMock).not.toHaveBeenCalled();
+    expect(confirmWorkspacePackageImportMock).not.toHaveBeenCalled();
+  });
+
+  it("deletes every invalid pasted card in one action", async () => {
+    await renderScreen();
+    await setTextAreaValue(
+      requireElement("[data-testid='workspace-text-import-input']", HTMLTextAreaElement),
+      "Complete\tAnswer\nMissing answer\n\tMissing front",
+    );
+
+    expect(getContainer().querySelectorAll("[data-testid='workspace-text-import-preview-row']")).toHaveLength(3);
+    expect(requireElement("[data-testid='workspace-text-import-confirm-button']", HTMLButtonElement).disabled).toBe(true);
+
+    await clickElement(requireElement(
+      "[data-testid='workspace-text-import-delete-invalid']",
+      HTMLButtonElement,
+    ));
+
+    expect(getContainer().querySelectorAll("[data-testid='workspace-text-import-preview-row']")).toHaveLength(1);
+    expect(getContainer().querySelector("[data-testid='workspace-text-import-invalid-count']")).toBeNull();
+    expect(requireElement("[data-testid='workspace-text-import-front-input']", HTMLTextAreaElement).value).toBe("Complete");
+    expect(requireElement("[data-testid='workspace-text-import-confirm-button']", HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("applies picker tags to every pasted card instead of adding the automatic import tag", async () => {
+    previewWorkspacePackageImportMock.mockResolvedValueOnce({
+      ...createPreviewResponse(),
+      cardCount: 1,
+      tagCounts: [{ tag: "exam", cardsCount: 1 }],
+      referencedMediaCount: 0,
+      packageMediaFileCount: 0,
+      warnings: [],
+      defaultOptions: {
+        addImportTag: true,
+        suggestedImportTag: "import:2026-07-01",
+        keptTags: ["exam"],
+        removedTags: [],
+      },
+    });
+
+    await renderScreen();
+    await waitForCondition("Tag suggestions were not loaded", () => loadWorkspaceTagsSummaryMock.mock.calls.length === 1);
+    await setTextAreaValue(
+      requireElement("[data-testid='workspace-text-import-input']", HTMLTextAreaElement),
+      "Canada\tOttawa",
+    );
+    await clickElement(requireElement(
+      "[data-testid='workspace-text-import-tags-trigger']",
+      HTMLElement,
+    ));
+    const tagInput = requireDocumentElement("#workspace-text-import-tags-input", HTMLInputElement);
+    await setTextInputValue(tagInput, "exam");
+    await pressInputKey(tagInput, "Enter");
+    await clickElement(requireElement(
+      "[data-testid='workspace-text-import-tags-trigger']",
+      HTMLElement,
+    ));
+
+    await clickElement(requireElement("[data-testid='workspace-text-import-confirm-button']", HTMLButtonElement));
+    await waitForConfirm();
+
+    const previewFile = previewWorkspacePackageImportMock.mock.calls[0]?.[1];
+    if (previewFile === undefined) {
+      throw new Error("Pasted card package was not previewed");
+    }
+    expect(await readPackageCardTags(previewFile)).toEqual(["exam"]);
+    expect(readConfirmOptions()).toEqual(expect.objectContaining({
+      addImportTag: false,
+      importTag: "",
+      removeTags: [],
+    }));
+  });
+
+  it("offers existing workspace tags in the pasted-card tag picker", async () => {
+    await renderScreen();
+    await waitForCondition("Tag suggestions were not loaded", () => loadWorkspaceTagsSummaryMock.mock.calls.length === 1);
+    await clickElement(requireElement(
+      "[data-testid='workspace-text-import-tags-trigger']",
+      HTMLElement,
+    ));
+
+    const pickerText = requireDocumentElement(".cell-tags-overlay", HTMLElement).textContent;
+    expect(pickerText).toContain("geography");
+    expect(pickerText).toContain("3");
+  });
+
+  it("shows pasted-data errors beside the text editor", async () => {
+    previewWorkspacePackageImportMock.mockRejectedValueOnce(new ApiError({
+      statusCode: 413,
+      message: "Request body is too large",
+      code: null,
+      requestId: null,
+      retryAfterMs: null,
+      endpoint: "POST /workspaces/workspace-1/packages/import/preview",
+      responseBodyKind: "empty",
+    }));
+
+    await renderScreen();
+    const editor = requireElement("[data-testid='workspace-text-import-editor']", HTMLElement);
+    await setTextAreaValue(
+      requireElement("[data-testid='workspace-text-import-input']", HTMLTextAreaElement),
+      "Canada\tOttawa",
+    );
+    await clickElement(requireElement("[data-testid='workspace-text-import-confirm-button']", HTMLButtonElement));
+    await waitForCondition("Pasted-data error was not shown", () => (
+      getContainer().querySelector("[data-testid='workspace-import-error']") !== null
+    ));
+
+    const error = requireElement("[data-testid='workspace-import-error']", HTMLParagraphElement);
+    expect(editor.contains(error)).toBe(true);
+    expect(error.textContent).toContain("The pasted data is too large");
+    expect(confirmWorkspacePackageImportMock).not.toHaveBeenCalled();
+  });
+
   it("initializes the editable import tag option from preview defaults", async () => {
     const file = createZipFile("flashcards.zip");
 

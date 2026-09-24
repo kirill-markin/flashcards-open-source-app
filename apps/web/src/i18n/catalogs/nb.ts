@@ -1,4 +1,5 @@
 import type { TranslationCatalog } from "../catalogTypes";
+import { workspaceTextImportEnglishFallback } from "./en";
 
 const nbCatalog: TranslationCatalog = {
   common: {
@@ -778,6 +779,7 @@ const nbCatalog: TranslationCatalog = {
     title: "Import",
     subtitle: "Legg til kort fra en flyttbar pakke.",
     workspaceUnavailable: "Arbeidsområdet er utilgjengelig",
+    ...workspaceTextImportEnglishFallback,
     packageTitle: "flashcards.zip",
     packageDescription: "Velg en pakke, forhåndsvis innholdet, og importer så kortene til dette arbeidsområdet.",
     packageImporting: "Importerer...",

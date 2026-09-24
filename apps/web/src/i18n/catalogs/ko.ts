@@ -1,4 +1,5 @@
 import type { TranslationCatalog } from "../catalogTypes";
+import { workspaceTextImportEnglishFallback } from "./en";
 
 const koCatalog: TranslationCatalog = {
   common: {
@@ -778,6 +779,7 @@ const koCatalog: TranslationCatalog = {
     title: "가져오기",
     subtitle: "패키지에서 카드를 추가합니다.",
     workspaceUnavailable: "워크스페이스를 사용할 수 없음",
+    ...workspaceTextImportEnglishFallback,
     packageTitle: "flashcards.zip",
     packageDescription: "패키지를 고르고 내용을 미리 본 다음 이 워크스페이스로 카드를 가져오세요.",
     packageImporting: "가져오는 중...",

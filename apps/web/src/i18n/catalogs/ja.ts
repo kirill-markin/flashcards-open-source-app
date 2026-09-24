@@ -1,4 +1,5 @@
 import type { TranslationCatalog } from "../catalogTypes";
+import { workspaceTextImportEnglishFallback } from "./en";
 
 export const jaCatalog = {
   common: {
@@ -778,6 +779,7 @@ export const jaCatalog = {
     title: "インポート",
     subtitle: "ポータブルパッケージからカードを追加します。",
     workspaceUnavailable: "ワークスペースを利用できません",
+    ...workspaceTextImportEnglishFallback,
     packageTitle: "flashcards.zip",
     packageDescription: "パッケージを選択し、内容をプレビューしてから、このワークスペースへカードをインポートします。",
     packageImporting: "インポートしています...",

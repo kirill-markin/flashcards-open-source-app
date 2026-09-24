@@ -1,4 +1,5 @@
 import type { TranslationCatalog } from "../catalogTypes";
+import { workspaceTextImportEnglishFallback } from "./en";
 
 const roCatalog: TranslationCatalog = {
   common: {
@@ -787,6 +788,7 @@ const roCatalog: TranslationCatalog = {
     title: "Import",
     subtitle: "Adaugă fișe dintr-un pachet portabil.",
     workspaceUnavailable: "Spațiul de lucru nu este disponibil",
+    ...workspaceTextImportEnglishFallback,
     packageTitle: "flashcards.zip",
     packageDescription: "Alege un pachet, previzualizează-i conținutul, apoi importă fișele în acest spațiu de lucru.",
     packageImporting: "Se importă...",
