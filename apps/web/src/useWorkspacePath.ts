@@ -14,11 +14,13 @@ export type WorkspacePathBuilder = (appPath: string) => string;
  * workspace-less address here would send the click through the redirect this exists to avoid, or
  * nowhere at all. A surface `App.tsx` mounts above `AuthenticatedApp` — catalog import, friend
  * invite, share, the friend-invite dev preview — never passes those gates, so none of them may
- * call this hook: a throw there is not the shell's error boundary but `AppErrorBoundary`'s
- * full-page crash screen on a public page. Only catalog import takes the workspace from its own
- * data instead, because only it has one. Share and friend invite address a different account, so
- * they stay flat — a workspace segment would aim the recipient at the sender's workspace — and the
- * friend-invite dev preview navigates flat for the same reason.
+ * call this hook: the shell has no error boundary of its own, so a throw from either side reaches
+ * the root `AppErrorBoundary` in `App.tsx` and the same full-page `AppCrashFallback`, and only the
+ * page it takes down differs. Only catalog import takes the workspace from its own data instead,
+ * because only it has one. Share and friend invite address a different account, so they stay flat —
+ * a workspace segment would aim the recipient at the sender's workspace — while the friend-invite
+ * dev preview navigates flat because it mounts above `AuthenticatedApp` with no `AppDataProvider`,
+ * so it has no workspace to build a segment from at all.
  */
 export function useWorkspacePath(): WorkspacePathBuilder {
   const { activeWorkspace } = useAppData();
