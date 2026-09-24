@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
+import type { AiUsageAllowance } from "../../../aiUsage";
 import { HttpError } from "../../../shared/errors";
 import type { ChatSessionSnapshot } from "../../store";
 import type { RequestContext } from "../../../server/requestContext";
@@ -9,6 +10,17 @@ export const SESSION_TWO = "22222222-2222-4222-8222-222222222222";
 export const EXPLICIT_WORKSPACE_ID = "33333333-3333-4333-8333-333333333333";
 export const RUN_ONE = "44444444-4444-4444-8444-444444444444";
 export const LEGACY_WORKSPACE_ID = "workspace-legacy";
+
+// Starting a turn resolves the caller's monthly AI allowance, which reads the billing tables, and then
+// compares it against the month's usage facts inside the run transaction. These route tests stub both
+// halves, with the uncapped allowance a signed-in caller resolves and the refusal it can never reach.
+export const aiUsageAllowanceTestOptions = {
+  resolveAiUsageAllowanceForEnforcementFn: async (): Promise<AiUsageAllowance> => ({
+    tier: "free",
+    monthlyWeightedTokens: null,
+  }),
+  assertAiUsageAllowanceNotReachedFn: async (): Promise<void> => undefined,
+} as const;
 
 export function createRequestContext(): RequestContext {
   return {

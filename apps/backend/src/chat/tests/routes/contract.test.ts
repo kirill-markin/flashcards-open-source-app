@@ -4,6 +4,7 @@ import { Hono } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { HttpError } from "../../../shared/errors";
 import { createChatRoutes } from "../../../routes/chat";
+import { aiUsageAllowanceTestOptions } from "./testSupport";
 import type { AppEnv } from "../../../server/app";
 import type { RequestContext } from "../../../server/requestContext";
 import {
@@ -436,6 +437,7 @@ test("parseChatRequestBody rejects unsupported attachment file extensions with a
 
 test("GET /chat fails with a stable contract code when running snapshot has no in-progress assistant item", async () => {
   const routes = createChatRoutes({
+    ...aiUsageAllowanceTestOptions,
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
@@ -470,6 +472,7 @@ test("GET /chat fails with a stable contract code when running snapshot has no i
 
 test("GET /chat resume contract warnings include the Hono request id", async () => {
   const routes = createChatRoutes({
+    ...aiUsageAllowanceTestOptions,
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
@@ -502,6 +505,7 @@ test("GET /chat resume contract warnings include the Hono request id", async () 
 
 test("GET /chat fails with a stable contract code when a running snapshot cannot create a live stream", async () => {
   const routes = createChatRoutes({
+    ...aiUsageAllowanceTestOptions,
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
@@ -534,6 +538,7 @@ test("POST /chat captures unexpected live envelope failures before returning the
   let interruptCount = 0;
   const postChatCallOrder: Array<string> = [];
   const routes = createChatRoutes({
+    ...aiUsageAllowanceTestOptions,
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
@@ -612,6 +617,7 @@ test("POST /chat captures unexpected live envelope failures before returning the
 test("POST /chat returns a structured request-too-large error above the app soft limit", async () => {
   let prepareChatRunCount = 0;
   const routes = createChatRoutes({
+    ...aiUsageAllowanceTestOptions,
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
@@ -656,6 +662,7 @@ test("POST /chat returns a structured request-too-large error above the app soft
 test("POST /chat rejects unsupported attachments before preparing a run", async () => {
   let prepareChatRunCount = 0;
   const routes = createChatRoutes({
+    ...aiUsageAllowanceTestOptions,
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
@@ -701,6 +708,7 @@ test("POST /chat rejects unsupported attachments before preparing a run", async 
 test("POST /chat rejects invalid attachment payloads before preparing a run", async () => {
   let prepareChatRunCount = 0;
   const routes = createChatRoutes({
+    ...aiUsageAllowanceTestOptions,
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
@@ -789,6 +797,7 @@ test("POST /chat rejects invalid attachment payloads before preparing a run", as
 
 test("POST /chat fails with a stable contract code when a running response cannot create a live stream", async () => {
   const routes = createChatRoutes({
+    ...aiUsageAllowanceTestOptions,
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,

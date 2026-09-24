@@ -7,6 +7,7 @@ import type { BackendTraceCarrier } from "../../../observability/sentry";
 import { createChatRoutes } from "../../../routes/chat";
 import { ChatSessionConflictError } from "../../store";
 import {
+  aiUsageAllowanceTestOptions,
   EXPLICIT_WORKSPACE_ID,
   GUEST_SESSION_ID,
   GUEST_SUBJECT_USER_ID,
@@ -32,6 +33,7 @@ test("POST /chat can return an active run before the current turn appears in mes
     guestSessionId: string | null;
   }>> = [];
   const app = createChatRoutes({
+    ...aiUsageAllowanceTestOptions,
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
@@ -185,6 +187,7 @@ test("POST /chat dispatches worker without a route-supplied trace carrier", asyn
     guestSessionId: string | null;
   }>> = [];
   const routes = createChatRoutes({
+    ...aiUsageAllowanceTestOptions,
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
@@ -322,6 +325,7 @@ test("POST /chat reports the sent turn when the worker dispatch fails", async ()
     guestSessionId: string | null;
   }>> = [];
   const routes = createChatRoutes({
+    ...aiUsageAllowanceTestOptions,
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
@@ -393,6 +397,7 @@ test("POST /chat reports the sent turn when the worker dispatch fails", async ()
 test("POST /chat rejects an inaccessible explicit workspaceId before preparing a run", async () => {
   let prepareChatRunRequested = false;
   const routes = createChatRoutes({
+    ...aiUsageAllowanceTestOptions,
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
@@ -437,6 +442,7 @@ test("POST /chat rejects an inaccessible explicit workspaceId before preparing a
 test("POST /chat without uiLocale preserves the legacy request contract", async () => {
   let preparedUiLocale: string | null = "unexpected";
   const app = createChatRoutes({
+    ...aiUsageAllowanceTestOptions,
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
@@ -514,6 +520,7 @@ test("POST /chat without uiLocale preserves the legacy request contract", async 
 
 test("POST /chat maps active-run conflicts to a stable machine-readable code", async () => {
   const routes = createChatRoutes({
+    ...aiUsageAllowanceTestOptions,
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,

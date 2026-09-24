@@ -4,6 +4,7 @@ import { createChatRoutes } from "../../../routes/chat";
 import { buildInitialChatComposerSuggestions } from "../../composerSuggestions";
 import { createChatSessionRequestedSessionIdConflictError } from "../../errors";
 import {
+  aiUsageAllowanceTestOptions,
   EXPLICIT_WORKSPACE_ID,
   LEGACY_WORKSPACE_ID,
   SESSION_ONE,
@@ -19,6 +20,7 @@ import {
 test("POST /chat/new returns the current session when history is empty", async () => {
   let rolloverCallCount = 0;
   const app = createChatRoutes({
+    ...aiUsageAllowanceTestOptions,
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
@@ -58,6 +60,7 @@ test("POST /chat/new returns the current session when history is empty", async (
 
 test("POST /chat/new localizes initial suggestions from uiLocale", async () => {
   const app = createChatRoutes({
+    ...aiUsageAllowanceTestOptions,
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
@@ -93,6 +96,7 @@ test("POST /chat/new localizes initial suggestions from uiLocale", async () => {
 
 test("POST /chat/new rejects an invalid uiLocale", async () => {
   const routes = createChatRoutes({
+    ...aiUsageAllowanceTestOptions,
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
@@ -126,6 +130,7 @@ test("POST /chat/new returns the existing explicit session unchanged when histor
   const requestedSessionIds: Array<string | undefined> = [];
   let rolloverCallCount = 0;
   const app = createChatRoutes({
+    ...aiUsageAllowanceTestOptions,
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
@@ -184,6 +189,7 @@ test("POST /chat/new returns the existing explicit session unchanged when histor
 test("POST /chat/new returns the existing explicit session unchanged when run state is active", async () => {
   let rolloverCallCount = 0;
   const app = createChatRoutes({
+    ...aiUsageAllowanceTestOptions,
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
@@ -232,6 +238,7 @@ test("POST /chat/new creates the exact explicit session when it does not exist y
   const createdSessionIds: string[] = [];
   const createdUiLocales: Array<string | null> = [];
   const app = createChatRoutes({
+    ...aiUsageAllowanceTestOptions,
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
@@ -280,6 +287,7 @@ test("POST /chat/new creates the exact explicit session when it does not exist y
 test("POST /chat/new persists localized initial suggestions for a created explicit session", async () => {
   let persistedUiLocale: string | null = null;
   const app = createChatRoutes({
+    ...aiUsageAllowanceTestOptions,
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
@@ -338,6 +346,7 @@ test("POST /chat/new persists localized initial suggestions for a created explic
 
 test("POST /chat/new returns a stable conflict when the requested session id is owned by another scope", async () => {
   const routes = createChatRoutes({
+    ...aiUsageAllowanceTestOptions,
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
@@ -375,6 +384,7 @@ test("POST /chat/new without sessionId preserves the legacy rollover behavior", 
   let rolloverCallCount = 0;
   const rolloverUiLocales: Array<string | null> = [];
   const app = createChatRoutes({
+    ...aiUsageAllowanceTestOptions,
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
@@ -426,6 +436,7 @@ test("POST /chat/new without sessionId preserves the legacy rollover behavior", 
 test("POST /chat/new persists localized initial suggestions for rollover-created sessions", async () => {
   let persistedUiLocale: string | null = null;
   const app = createChatRoutes({
+    ...aiUsageAllowanceTestOptions,
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
@@ -501,6 +512,7 @@ test("POST /chat/new persists localized initial suggestions for rollover-created
 test("POST /chat/new uses an explicit workspaceId from JSON before the legacy selected-workspace fallback", async () => {
   const requestedWorkspaceIds: string[] = [];
   const app = createChatRoutes({
+    ...aiUsageAllowanceTestOptions,
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,

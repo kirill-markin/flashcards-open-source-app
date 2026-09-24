@@ -88,6 +88,7 @@ function createInput(
     imagePrompt: "Draw a deterministic integration diagram.",
     altText: "Generated integration diagram",
     replicaId: fixture.replicaId,
+    tierAtCall: "free",
     observationContext: {
       scope: createBackendObservationScope(
         "chat-worker", "generated-image-postgres-integration", null, null, fixture.userId,
@@ -104,6 +105,9 @@ async function createClaimedImageRun(fixture: PostgresIntegrationFixture): Promi
     fixture.userId, fixture.workspaceId, undefined,
     [{ type: "text", text: "Generate an image for this card." }],
     randomUUID(), "Europe/Madrid", null, true, null,
+    // A signed-in caller resolves an uncapped allowance, and this test is about the image attempt
+    // budget rather than metering, so the check the route passes in is a no-op here.
+    async () => undefined,
   );
   const claimed = await claimChatRun(fixture.userId, fixture.workspaceId, prepared.runId);
   if (claimed === null) {
@@ -253,6 +257,7 @@ test("generated image operation reconciles ambiguous enqueue without early card 
         enqueueRunlessGeneratedMediaPromotionJobFn: async () => {
           throw new Error("Chat operations must not enqueue a run-less promotion job.");
         },
+        appendAiUsageEventFn: async () => undefined,
         generateProviderImageFn: async () => {
           providerCalls += 1;
           providerStarted.resolve();
@@ -260,6 +265,7 @@ test("generated image operation reconciles ambiguous enqueue without early card 
           return {
             bytes: Buffer.from("deterministic-provider-image"),
             providerRequestId: null,
+            usageCounters: null,
           };
         },
         normalizeImageBytesForCardFn: async () => ({
@@ -457,6 +463,7 @@ test("persisted provider start blocks replay without staging and permits staged 
         enqueueRunlessGeneratedMediaPromotionJobFn: async () => {
           throw new Error("Chat operations must not enqueue a run-less promotion job.");
         },
+        appendAiUsageEventFn: async () => undefined,
         generateProviderImageFn: async () => {
           providerCalls += 1;
           throw new Error("Provider must not run after a durable provider start.");

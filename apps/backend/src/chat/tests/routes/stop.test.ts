@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createChatRoutes } from "../../../routes/chat";
 import {
+  aiUsageAllowanceTestOptions,
   EXPLICIT_WORKSPACE_ID,
   LEGACY_WORKSPACE_ID,
   RUN_ONE,
@@ -14,6 +15,7 @@ import {
 
 test("POST /chat/stop returns not found for an unknown explicit session id", async () => {
   const routes = createChatRoutes({
+    ...aiUsageAllowanceTestOptions,
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
@@ -49,6 +51,7 @@ test("POST /chat/stop returns not found for an unknown explicit session id", asy
 test("POST /chat/stop uses an explicit workspaceId from JSON before the legacy selected-workspace fallback", async () => {
   const requestedWorkspaceIds: string[] = [];
   const app = createChatRoutes({
+    ...aiUsageAllowanceTestOptions,
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
@@ -96,6 +99,7 @@ test("POST /chat/stop uses an explicit workspaceId from JSON before the legacy s
 test("POST /chat/stop passes the expected runId when the client provides it", async () => {
   let requestedRunId: string | null = null;
   const app = createChatRoutes({
+    ...aiUsageAllowanceTestOptions,
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
