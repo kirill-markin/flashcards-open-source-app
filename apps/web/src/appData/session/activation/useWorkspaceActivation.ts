@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  ApiError,
   createWorkspace as createWorkspaceRequest,
   isAuthRedirectError,
   listWorkspaces,
@@ -26,7 +27,9 @@ import {
 } from "../cloud/workspaceSessionCloud";
 import { resetWebGuestSession } from "../guest/webGuestSession";
 import {
+  activateEntryWorkspace,
   defaultWorkspaceName,
+  retireEntryWorkspaceAddress,
 } from "./workspaceActivationHelpers";
 import {
   captureWorkspaceTransitionError,
@@ -50,6 +53,37 @@ type UseWorkspaceActivationParams =
   & WorkspaceSessionSetters
   & WorkspaceSessionSyncActions
   & WorkspaceSessionUiActions;
+
+/**
+ * What persisting the account's first default may legitimately answer with, and therefore what is
+ * reported as a transition rather than as a fault: the session stopped being usable between
+ * `GET /workspaces` and this call, or the workspace it names stopped existing under it. Anything
+ * else is a server or contract problem worth seeing even though this write is not fatal.
+ *
+ * Status-guarded like `isExpectedWorkspaceActionApiError` in `useWorkspaceActions.ts`, rather than
+ * code-only like `isExpectedWorkspaceSessionApiError` in `useWorkspaceLifecycle.ts`: the codes say
+ * what a client-expected rejection looks like, not what a broken server may answer with, so a 5xx
+ * carrying one of them is a server fault that must still reach Sentry.
+ */
+function isExpectedFirstAccountDefaultPersistError(error: Error): boolean {
+  if (error instanceof ApiError === false) {
+    return false;
+  }
+
+  if (error.statusCode < 400 || error.statusCode >= 500) {
+    return false;
+  }
+
+  switch (error.code) {
+    case "AUTH_UNAUTHORIZED":
+    case "SESSION_CSRF_TOKEN_INVALID":
+    case "WORKSPACE_NOT_FOUND":
+    case "WORKSPACE_SELECTION_REQUIRED":
+      return true;
+  }
+
+  return false;
+}
 
 export function useWorkspaceActivation(params: UseWorkspaceActivationParams): WorkspaceSessionActivation {
   const {
@@ -357,6 +391,67 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
 
     const workspaces = await listWorkspaces();
     if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
+    // The address the browser arrived on decides the workspace, ahead of the account's server-side
+    // selection and without moving it. The bootstrap is the usual one, so the workspace a card link
+    // names syncs before that card is looked up. Asked first, so an address naming a workspace this
+    // account cannot open is recorded as unavailable — for the gate in `App.tsx` — even on the
+    // account that has no workspace yet and gets one created below. What a second run, a rejected
+    // activation, an overlapping `StrictMode` pair and an account switch each do is decided by the
+    // entry-address model in `workspaceActivationHelpers.ts`, not here.
+    const didActivateEntryWorkspace = await activateEntryWorkspace(
+      currentSession.userId,
+      workspaces,
+      (entryWorkspace) => activateWorkspace(currentSession, workspaces, entryWorkspace),
+    );
+    if (didActivateEntryWorkspace) {
+      // Following a link must not move an account default, but it must not leave the account without
+      // one either. An account whose single workspace was never selected keeps answering
+      // `GET /session` with `selectedWorkspaceId: null` to iOS, Android and the agent surfaces until
+      // something persists a first default, and the branch below — the one that used to persist it —
+      // is no longer reached on this address. Only when there is no server-side selection at all, so
+      // an existing default is never moved, and only for the single workspace that branch would have
+      // persisted anyway, which on this path is the workspace the address named.
+      if (currentSession.selectedWorkspaceId === null && workspaces.length === 1) {
+        const firstAccountDefault = workspaces[0];
+        try {
+          await selectWorkspace(firstAccountDefault.workspaceId);
+          // The address and the account's stored default now name the same workspace, so the
+          // address has nothing left to decide and a later `resolveInitialWorkspace` reaches that
+          // workspace through the ordinary default path. Retiring it is also what stops
+          // `overridesAccountDefault` — read off the server's mark before this write — from
+          // outliving the divergence it recorded and making `storeWarmStartSnapshot` refuse every
+          // write for the life of a document whose address and default agree.
+          retireEntryWorkspaceAddress();
+        } catch (error) {
+          if (isAuthRedirectError(error)) {
+            throw error;
+          }
+
+          // Bookkeeping for the other clients, written after this workspace was already published
+          // and its bootstrap started. Failing it leaves the account exactly where it already was
+          // (`selectedWorkspaceId: null`), which the next boot retries, so it must not reject the
+          // bootstrap: that would replace the link's workspace with the error gate, leave the
+          // session unverified, and loop on a retry that re-runs this same call. The address stays
+          // whatever it was, so the snapshot guard keeps holding while the divergence does.
+          const normalizedError = normalizeCaughtError(error);
+          const persistErrorMessage = getErrorMessage(normalizedError);
+          logWorkspaceTransition("workspace_entry_default_persist_failed", {
+            workspaceId: firstAccountDefault.workspaceId,
+            selectedWorkspaceId: currentSession.selectedWorkspaceId,
+            errorMessage: persistErrorMessage,
+          });
+          if (isExpectedFirstAccountDefaultPersistError(normalizedError) === false) {
+            captureWorkspaceTransitionError("workspace_entry_default_persist_failed", {
+              workspaceId: firstAccountDefault.workspaceId,
+              errorMessage: persistErrorMessage,
+            }, normalizedError);
+          }
+        }
+      }
+
       return;
     }
 
