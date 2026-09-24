@@ -12,6 +12,10 @@ import { loadAnalyticsFilterOptions, type AnalyticsFilterOptions } from "./filte
 import { AnalyticsIndexPage } from "./navigation/AnalyticsIndexPage";
 import { NotFoundPage } from "./navigation/NotFoundPage";
 import { RootIndexPage } from "./navigation/RootIndexPage";
+import {
+  parseAiUsageControls,
+  withAiUsageControlSearchParams,
+} from "./reports/aiUsageCohorts/aiUsageCohortsUrl";
 import { loadCatalogInstallFunnelAvailableRange } from "./reports/catalogInstallFunnel/query";
 import { loadCatalogInstallsReport } from "./reports/catalogInstalls/query";
 import { loadDailyActiveUsersReport } from "./reports/dailyActiveUsers/query";
@@ -125,6 +129,54 @@ function buildUnionRange(
 /** Every analytics area renders the shared filter bar and carries its selection in the URL. */
 function doesRouteUseAnalyticsFilters(route: AdminRoute): boolean {
   return route.kind === "analyticsArea";
+}
+
+/**
+ * The query string of one area: the shared filter selection, plus whatever parameters that area owns.
+ *
+ * An area-specific parameter is carried over from the URL the browser is on rather than held in this
+ * component, because the control that owns it lives inside the area and writes it there directly.
+ * Every one of them is added on its own route only, so none can leak into another area's links: the
+ * filter writer starts from a fresh `URLSearchParams` each time, which is what drops them again on
+ * the way out.
+ *
+ * The Funnels parameters are validated on the way through - an anchor against that funnel's own steps
+ * - while a group-by value is only carried, because the option list is per funnel and lives with the
+ * funnel. The Study-vs-AI controls are validated by their own parser, which falls back to the default
+ * for anything outside the two closed option lists.
+ */
+function buildAreaSearchParams(
+  route: AdminRoute,
+  filterSearchParams: URLSearchParams,
+  currentSearchParams: URLSearchParams,
+): URLSearchParams {
+  if (route.kind !== "analyticsArea") {
+    return filterSearchParams;
+  }
+
+  if (route.area === "funnels") {
+    return funnelSections.reduce(
+      (nextSearchParams, funnel) => withFunnelGroupBySearchParams(
+        withFunnelAnchorSearchParams(
+          nextSearchParams,
+          funnel.anchor,
+          parseFunnelAnchorStepId(currentSearchParams, funnel.anchor),
+        ),
+        funnel.anchor.funnelId,
+        readFunnelGroupByParam(currentSearchParams, funnel.anchor.funnelId),
+      ),
+      filterSearchParams,
+    );
+  }
+
+  if (route.area === "ai-usage") {
+    return withAiUsageControlSearchParams(
+      filterSearchParams,
+      parseAiUsageControls(currentSearchParams),
+    );
+  }
+
+  return filterSearchParams;
 }
 
 function redirectToLogin(config: AdminAppConfig): void {
@@ -448,11 +500,9 @@ export default function App(): JSX.Element {
   // stepping through every click, and the single write this does on load is the canonicalization of a
   // hand-typed query string rather than a filter change of its own. The selection lives above the
   // areas, so switching area re-writes it onto the new path instead of being read back from it.
-  // The Funnels charts' anchors and group-by fields are the only area-specific parameters: each funnel
-  // owns its own pair, so on that route a value already in the URL is carried over and on every other
-  // route they are left out, so they cannot leak into another area. An anchor is validated here
-  // against the funnel's steps and an invalid one is dropped; a group-by value is only carried,
-  // because the option list is per funnel and lives with the funnel, which is what validates it.
+  // Area-specific parameters - the Funnels charts' anchors and group-by fields, and the Study-vs-AI
+  // period length and audience - are carried over by `buildAreaSearchParams` above, on their own
+  // route only.
   useEffect(() => {
     if (filterState === null || reportRanges === null || doesRouteUseAnalyticsFilters(route) === false) {
       return;
@@ -460,20 +510,7 @@ export default function App(): JSX.Element {
 
     const filterSearchParams = toAnalyticsFilterSearchParams(filterState, reportRanges.availableRange);
     const currentSearchParams = new URLSearchParams(window.location.search);
-    const searchParams = route.kind === "analyticsArea" && route.area === "funnels"
-      ? funnelSections.reduce(
-        (nextSearchParams, funnel) => withFunnelGroupBySearchParams(
-          withFunnelAnchorSearchParams(
-            nextSearchParams,
-            funnel.anchor,
-            parseFunnelAnchorStepId(currentSearchParams, funnel.anchor),
-          ),
-          funnel.anchor.funnelId,
-          readFunnelGroupByParam(currentSearchParams, funnel.anchor.funnelId),
-        ),
-        filterSearchParams,
-      )
-      : filterSearchParams;
+    const searchParams = buildAreaSearchParams(route, filterSearchParams, currentSearchParams);
     const serializedParams = searchParams.toString();
     const nextSearch = serializedParams === "" ? "" : `?${serializedParams}`;
     if (nextSearch === window.location.search) {
