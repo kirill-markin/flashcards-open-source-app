@@ -1,4 +1,5 @@
 import type { TranslationCatalog } from "../catalogTypes";
+import { workspaceTextImportEnglishFallback } from "./en";
 
 const knCatalog: TranslationCatalog = {
   common: {
@@ -778,6 +779,7 @@ const knCatalog: TranslationCatalog = {
     title: "ಆಮದು",
     subtitle: "ಪೋರ್ಟಬಲ್ ಪ್ಯಾಕೇಜ್‌ನಿಂದ ಕಾರ್ಡ್‌ಗಳನ್ನು ಸೇರಿಸಿ.",
     workspaceUnavailable: "ಕಾರ್ಯಸ್ಥಳ ಲಭ್ಯವಿಲ್ಲ",
+    ...workspaceTextImportEnglishFallback,
     packageTitle: "flashcards.zip",
     packageDescription: "ಪ್ಯಾಕೇಜ್ ಆಯ್ಕೆಮಾಡಿ, ಅದರ ವಿಷಯ ನೋಡಿ, ನಂತರ ಈ ಕಾರ್ಯಸ್ಥಳಕ್ಕೆ ಕಾರ್ಡ್‌ಗಳನ್ನು ಆಮದು ಮಾಡಿ.",
     packageImporting: "ಆಮದು ಮಾಡಲಾಗುತ್ತಿದೆ...",

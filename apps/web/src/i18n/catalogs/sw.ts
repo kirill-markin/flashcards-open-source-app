@@ -1,4 +1,5 @@
 import type { TranslationCatalog } from "../catalogTypes";
+import { workspaceTextImportEnglishFallback } from "./en";
 
 const swCatalog: TranslationCatalog = {
   common: {
@@ -778,6 +779,7 @@ const swCatalog: TranslationCatalog = {
     title: "Ingiza",
     subtitle: "Ongeza kadi kutoka kifurushi kinachohamishika.",
     workspaceUnavailable: "Nafasi ya kazi haipatikani",
+    ...workspaceTextImportEnglishFallback,
     packageTitle: "flashcards.zip",
     packageDescription: "Chagua kifurushi, angalia yaliyomo, kisha ingiza kadi kwenye nafasi hii ya kazi.",
     packageImporting: "Inaingiza...",

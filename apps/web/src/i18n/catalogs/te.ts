@@ -1,4 +1,5 @@
 import type { TranslationCatalog } from "../catalogTypes";
+import { workspaceTextImportEnglishFallback } from "./en";
 
 const teCatalog: TranslationCatalog = {
   common: {
@@ -778,6 +779,7 @@ const teCatalog: TranslationCatalog = {
     title: "దిగుమతి",
     subtitle: "పోర్టబుల్ ప్యాకేజీ నుంచి కార్డులను చేర్చండి.",
     workspaceUnavailable: "వర్క్‌స్పేస్ అందుబాటులో లేదు",
+    ...workspaceTextImportEnglishFallback,
     packageTitle: "flashcards.zip",
     packageDescription: "ప్యాకేజీని ఎంచుకోండి, దాని విషయాలను ప్రివ్యూ చూడండి, ఆపై ఈ వర్క్‌స్పేస్‌లోకి కార్డులను దిగుమతి చేయండి.",
     packageImporting: "దిగుమతి చేస్తోంది...",

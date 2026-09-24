@@ -1,4 +1,5 @@
 import type { TranslationCatalog } from "../catalogTypes";
+import { workspaceTextImportEnglishFallback } from "./en";
 
 const viCatalog: TranslationCatalog = {
   common: {
@@ -778,6 +779,7 @@ const viCatalog: TranslationCatalog = {
     title: "Nhập",
     subtitle: "Thêm thẻ từ một gói di động.",
     workspaceUnavailable: "Không gian làm việc không khả dụng",
+    ...workspaceTextImportEnglishFallback,
     packageTitle: "flashcards.zip",
     packageDescription: "Chọn một gói, xem trước nội dung, rồi nhập thẻ vào không gian làm việc này.",
     packageImporting: "Đang nhập...",

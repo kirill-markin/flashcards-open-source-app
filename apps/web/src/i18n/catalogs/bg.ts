@@ -1,4 +1,5 @@
 import type { TranslationCatalog } from "../catalogTypes";
+import { workspaceTextImportEnglishFallback } from "./en";
 
 const bgCatalog: TranslationCatalog = {
   common: {
@@ -778,6 +779,7 @@ const bgCatalog: TranslationCatalog = {
     title: "Импортиране",
     subtitle: "Добавете карти от преносим пакет.",
     workspaceUnavailable: "Работното пространство е недостъпно",
+    ...workspaceTextImportEnglishFallback,
     packageTitle: "flashcards.zip",
     packageDescription: "Изберете пакет, прегледайте съдържанието му и след това импортирайте картите в това работно пространство.",
     packageImporting: "Импортира се...",

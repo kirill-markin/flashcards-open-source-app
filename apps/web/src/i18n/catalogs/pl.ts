@@ -1,4 +1,5 @@
 import type { TranslationCatalog } from "../catalogTypes";
+import { workspaceTextImportEnglishFallback } from "./en";
 
 const plCatalog: TranslationCatalog = {
   common: {
@@ -787,6 +788,7 @@ const plCatalog: TranslationCatalog = {
     title: "Import",
     subtitle: "Dodaj karty z przenośnego pakietu.",
     workspaceUnavailable: "Przestrzeń robocza jest niedostępna",
+    ...workspaceTextImportEnglishFallback,
     packageTitle: "flashcards.zip",
     packageDescription: "Wybierz pakiet, zobacz jego zawartość, a potem zaimportuj karty do tej przestrzeni roboczej.",
     packageImporting: "Importowanie...",

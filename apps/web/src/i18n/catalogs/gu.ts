@@ -1,4 +1,5 @@
 import type { TranslationCatalog } from "../catalogTypes";
+import { workspaceTextImportEnglishFallback } from "./en";
 
 const guCatalog: TranslationCatalog = {
   common: {
@@ -778,6 +779,7 @@ const guCatalog: TranslationCatalog = {
     title: "આયાત",
     subtitle: "પોર્ટેબલ પૅકેજમાંથી કાર્ડ ઉમેરો.",
     workspaceUnavailable: "કાર્યક્ષેત્ર ઉપલબ્ધ નથી",
+    ...workspaceTextImportEnglishFallback,
     packageTitle: "flashcards.zip",
     packageDescription: "પૅકેજ પસંદ કરો, તેની સામગ્રી જુઓ, પછી આ કાર્યક્ષેત્રમાં કાર્ડ આયાત કરો.",
     packageImporting: "આયાત થઈ રહી છે...",

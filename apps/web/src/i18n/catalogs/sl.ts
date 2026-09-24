@@ -1,4 +1,5 @@
 import type { TranslationCatalog } from "../catalogTypes";
+import { workspaceTextImportEnglishFallback } from "./en";
 
 const slCatalog: TranslationCatalog = {
   common: {
@@ -796,6 +797,7 @@ const slCatalog: TranslationCatalog = {
     title: "Uvoz",
     subtitle: "Dodajte kartice iz prenosnega paketa.",
     workspaceUnavailable: "Delovni prostor ni na voljo",
+    ...workspaceTextImportEnglishFallback,
     packageTitle: "flashcards.zip",
     packageDescription: "Izberite paket, si oglejte predogled vsebine in nato uvozite kartice v ta delovni prostor.",
     packageImporting: "Uvažanje ...",

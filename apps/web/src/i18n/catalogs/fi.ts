@@ -1,4 +1,5 @@
 import type { TranslationCatalog } from "../catalogTypes";
+import { workspaceTextImportEnglishFallback } from "./en";
 
 const fiCatalog: TranslationCatalog = {
   common: {
@@ -778,6 +779,7 @@ const fiCatalog: TranslationCatalog = {
     title: "Tuonti",
     subtitle: "Lisää kortteja siirrettävästä paketista.",
     workspaceUnavailable: "Työtila ei käytettävissä",
+    ...workspaceTextImportEnglishFallback,
     packageTitle: "flashcards.zip",
     packageDescription: "Valitse paketti, esikatsele sen sisältö ja tuo sitten kortit tähän työtilaan.",
     packageImporting: "Tuodaan...",
