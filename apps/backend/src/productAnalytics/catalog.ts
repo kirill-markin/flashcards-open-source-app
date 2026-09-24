@@ -438,9 +438,10 @@ export const productAnalyticsEventCatalog = {
   },
   // The two middle steps of the sign-in funnel, read against `signin_failed` below. Neither is
   // server-only, deliberately: the web funnel's producer is apps/auth, which is a server, but it
-  // reports through the public client ingest route POST /v1/analytics/events as a `web` client, and
-  // that route rejects a serverOnly entry outright — the spec union above makes serverOnly together
-  // with requiresScreen unwritable in any case.
+  // reports through the credential-free collector POST /v1/analytics/anonymous-events as a `web`
+  // client, and `findClientReportableDefinition`
+  // (apps/backend/src/productAnalytics/anonymousEvent.ts) rejects a serverOnly entry there outright
+  // — the spec union above makes serverOnly together with requiresScreen unwritable in any case.
   //
   // Both require a surface so a producer always names where the sign-in happened: the auth origin
   // sends `signin`, and a client adopting these would send `signin` or `credential_recovery`. That

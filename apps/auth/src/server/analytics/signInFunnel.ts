@@ -1,48 +1,68 @@
 /**
- * The auth origin's sign-in funnel: which browser request reports which step, how much of a person's
- * wait a report may spend, and the identity link that hands the visitor's anonymous history to the
- * account at the end of it.
+ * The auth origin's sign-in funnel: which browser request reports which step, and how much of a
+ * person's wait a report may spend.
  *
  * Every export here is best-effort and guarded. Nothing throws into a handler and nothing changes a
  * status, a response body, or a cookie the sign-in itself sets. The budget below is what keeps "best
  * effort" from meaning "for as long as it takes", which on this Lambda is not a latency preference
  * but the difference between a slow sign-in and a broken one.
+ *
+ * Where these rows land, and what a report over them owes: the collector reads no credential, so
+ * they are stored with `trust_level = 'anonymous_client'`, no `user_id` and the visitor's shared
+ * `anonymous_id`. `analytics.product_events_resolved` then reaches them through its
+ * `first_anonymous_link` arm, which is the arm for a row carrying no `user_id`
+ * (`db/migrations/0137_audience_context.sql`), so a visitor's signed-out sign-in steps resolve to the
+ * account whenever that shared id is linked to one — by the web app on the product domain, which
+ * links it, rather than by a credential minted here.
+ *
+ * That is what this service stopped minting a `web` guest session for. A row delivered on a guest
+ * credential carried the guest's `user_id`, and that column is permanent, because
+ * `analytics.product_events` is append-only. Where such a row resolves is not: `user_id` outranks
+ * the anonymous link in that view's COALESCE, but the `server_derived` guest-upgrade arm outranks
+ * `user_id` in turn and joins on the row's `subject_user_id`, which guest transport stamps with the
+ * guest's own id (`db/migrations/0137_audience_context.sql`). Such a row therefore resolves to the
+ * account wherever that link landed, and to the guest only where it did not — which a first-ever
+ * sign-in, writing the link inside the budget below, usually lost.
+ *
+ * No report caught that for us. `apps/admin/src/reports/catalogInstallFunnel/query.ts` is silent on
+ * the auth origin's rows rather than excluding them, and what it does with one depends on the
+ * relation. No step takes one, because no step's relation admits the event name or the screen: its
+ * event window admits six catalog event names and no `signin_*`, and its `screen_viewed` relation
+ * admits only the three catalog screens or an `authenticated_client` row. A relation that reads an
+ * actor's whole history under `buildTrustedActorRowsFilterSql` (`trust_level <> 'anonymous_client'`)
+ * takes the guest-era rows of this origin and not the ones written now, so such a row that resolved
+ * to the account can still set the `first_event_at` in `install_actor_first_event` that decides
+ * whether an installer counts as new.
+ *
+ * What a future report must declare: `buildTrustedActorRowsFilterSql` in the admin app excludes
+ * `anonymous_client` rows, so a sign-in funnel report built over these has to except them the way
+ * the catalog-install funnel already excepts its own credential-free site rows. There is no such
+ * report today, and no admin SQL is changed here.
  */
 import type { Context } from "hono";
-import { normalizeSupportedLoginPageLocale, type LoginPageLocale } from "../../routes/browser/loginPageLocale.js";
+import { normalizeSupportedLoginPageLocale } from "../../routes/browser/loginPageLocale.js";
 import { type AuthAppEnv, getRequestId, getTraceId } from "../apiErrors.js";
-import { log, logWarning } from "../logger.js";
-import { getPublicApiBaseUrl } from "../publicUrls.js";
+import { logWarning } from "../logger.js";
+import { getPublicApiBaseUrl, getPublicAuthBaseUrl } from "../publicUrls.js";
 import {
-  createSignInCodeRequestedBatch,
-  createSignInFailedBatchFactory,
-  createSignInScreenViewedBatch,
-  createSignInSucceededBatch,
-  type AuthAnalyticsBatchFactory,
+  createSignInCodeRequestedEvent,
+  createSignInFailedEventFactory,
+  createSignInScreenViewedEvent,
+  createSignInSucceededEvent,
+  type AuthAnalyticsEventFactory,
   type AuthSignInFailureReason,
 } from "./catalog.js";
-import {
-  ensureAccountIdentityRow,
-  linkVisitorGuestToAccount,
-  mintWebGuestSession,
-  postAnalyticsEvents,
-  type AuthAnalyticsTarget,
-} from "./client.js";
+import { postAnonymousAnalyticsEvent, type AuthAnalyticsCall } from "./client.js";
 import {
   clearAuthAnalyticsGuestSession,
-  createAuthAnalyticsGuestState,
-  readAuthAnalyticsGuestSession,
+  hasAuthAnalyticsGuestSession,
   readSharedAnalyticsVisitorId,
-  refreshAuthAnalyticsVisitorSession,
-  writeAuthAnalyticsGuestSession,
-  type AuthAnalyticsVisitor,
 } from "./visitorSession.js";
 
 /**
- * The added wait one instrumented request may spend, shared by everything that request reports: on
- * `/api/verify-code` that is the success event *and* the identity link inside one deadline, not one
- * deadline each. Whatever does not fit is abandoned and logged, exactly like every other failure on
- * this surface.
+ * The added wait one instrumented request may spend. It is the whole of it, and it belongs to the
+ * one call a report now makes: the credential-free collector takes the event with no credential to
+ * obtain first, so there is nothing left to apportion between.
  *
  * The size of it is a concurrency limit, and it is derived rather than chosen. Concurrency is
  * arrival rate x invocation duration, so residency added here is multiplied by the rate at which
@@ -62,10 +82,10 @@ import {
  *
  * The 20 bounds all of those routes together rather than each of them, because they are literally
  * one method, and added concurrency is linear in the rate. So one budget per instrumented *request*
- * is the whole bound: however the 20 rps is split between reporting a screen, a code request, an
- * outcome, or a success plus its link, the added concurrency stays at 20 x 0.150 = 3 containers.
- * Instrumenting more of these routes therefore spends no headroom beyond this one; raising the
- * per-request budget spends it immediately, and multiplies by 20 while doing so.
+ * is the whole bound: however the 20 rps is split between reporting a screen, a code request or an
+ * outcome, the added concurrency stays at 20 x 0.150 = 3 containers. Instrumenting more of these
+ * routes therefore spends no headroom beyond this one; raising this budget spends it immediately,
+ * and multiplies by 20 while doing so.
  *
  * The bound is against the stage's sustained `throttlingRateLimit`, not the `throttlingBurstLimit`
  * beside it, and what it bounds is added residency rather than whole duration. `/api/send-code` and
@@ -86,73 +106,15 @@ import {
  * connection budget the same file documents as deliberately thin. Re-do the arithmetic above against
  * both before touching it.
  *
- * What 150 ms buys is deliberately modest, and that is the price of the bound rather than an
- * oversight: two calls on a warm connection, so the ordinary success path — post the event, then
- * link — usually completes, while a first-ever sign-in, which needs two more, usually does not. A
- * call abandoned at the deadline is not the same as work lost. The mint, the ingest write and the
- * link each commit on the backend whether or not this caller is still waiting; what the deadline
- * ends is the waiting, and with it this producer's knowledge of the outcome.
+ * The ceiling has not moved, and what fits inside it has. It used to carry a guest-session mint and
+ * then the post, which is why it was split — a mint share capped at 90 ms, a 25 ms floor below which
+ * a call was not worth opening, a 10 ms margin so a late timer could not squeeze the post under that
+ * floor, and 60 ms for the success event so the identity link behind it kept room. The whole 150 is
+ * now one `fetch`, so the tightest case this producer had — a success event with 25 ms, the floor
+ * exactly — is gone along with the mint that caused it, without spending a millisecond more of the
+ * reservation.
  */
 const analyticsReportBudgetMs = 150;
-
-/**
- * The ceiling on the mint's share of a deadline. It is a ceiling and not the share itself: the share
- * is derived from the budget actually in force by `guestMintBudgetMs` below, so that a slow backend
- * cannot make a slow mint and a lost event the same event. The post is what this work exists to
- * produce, and it must always have room left to run.
- *
- * A constant alone cannot state that guarantee, because a constant is sized against one budget and
- * these paths do not share one: 90 leaves the post 60 under `analyticsReportBudgetMs`, and nothing
- * at all under the tighter `signInSucceededEventBudgetMs`. Only subtracting the post's floor from the
- * budget in force keeps it true under every caller, including one added later with a third budget.
- *
- * The mint stays on these paths because there is nowhere cheaper to put it. `GET /login` is the same
- * function behind the same throttle, so minting there would relocate the residency rather than
- * remove it, and it would spend it on every render rather than on the requests that report. What
- * replaying the visitor cookie forces is a guest row, and `POST /v1/guest-auth/session` is itself
- * public and unauthenticated, so those rows can be written straight against the backend without ever
- * touching this function. What only this function can lose is a container of its reservation, and
- * that is what the budget above bounds.
- */
-const analyticsGuestMintBudgetMs = 90;
-
-/**
- * The success path's share for its event, so the link is never squeezed out by a slow post. The two
- * are not interchangeable: the event is one row, while the link is what resolves that row and every
- * earlier row this visitor produced to the account. A budget spent entirely on the post would buy
- * the funnel's last step and leave the whole funnel orphaned, which is the state this item exists to
- * end.
- *
- * Cutting the post short and starting the link anyway is what that costs, and it is the right way
- * round. A post still in flight can then be refused by the revoke the link performs, losing the one
- * event; waiting for it instead would risk losing the link, and with it every event this visitor
- * ever sent.
- */
-const signInSucceededEventBudgetMs = 60;
-
-/**
- * Below this there is no call left worth making, only an `AbortSignal` that fires before the
- * connection opens. The call is skipped and logged for what it is, so an exhausted budget is not
- * disguised in the log group as a network failure.
- */
-const analyticsMinimumCallBudgetMs = 25;
-
-/**
- * The slop the mint's share gives back to the post on top of the floor, so the post's room is a
- * margin rather than an equality. `AbortSignal.timeout` is a lower bound: the timer callback can run
- * late, and a mint that resolves inside that slop would leave the post below the floor and skip it,
- * turning a sign-in into a freshly minted guest with no event on it at all.
- *
- * 10 ms is the largest margin the tightest deadline can carry. Under
- * `signInSucceededEventBudgetMs` the mint's share is `60 - 25 - 10 = 25`, which is the floor exactly,
- * so the mint is still made rather than skipped for the sake of the margin; one millisecond more —
- * or one millisecond of drift in the derivation, which is why `guestMintBudgetMs` takes the share
- * from the budget rather than from a clock read — and the success path would stop minting
- * altogether. Under `analyticsReportBudgetMs` the share stays at its `analyticsGuestMintBudgetMs`
- * ceiling — `150 - 25 - 10 = 115` is still above 90 — so the ordinary path is unchanged and only
- * the tight one pays for the guarantee.
- */
-const analyticsCallOverrunMarginMs = 10;
 
 /**
  * The login page marks its own calls with this, and it is what makes these events mean what they
@@ -194,159 +156,55 @@ const analyticsCallOverrunMarginMs = 10;
  */
 const signInScreenMarker = "signin";
 
-function remainingBudgetMs(deadlineMs: number): number {
-  return Math.max(deadlineMs - Date.now(), 0);
-}
-
-/**
- * What is left of the budget in force once the post's floor and its overrun margin are reserved,
- * capped at `analyticsGuestMintBudgetMs`. Reserving first and capping second is what makes the cap
- * unable to decide whether the post has room: it can only lower the mint's share, never raise it
- * past what the budget leaves. Reserving the margin as well as the floor is what makes the post's
- * room something the code enforces rather than something an on-time timer happens to allow. A share
- * that comes out below the floor itself buys nothing either, and the caller skips the mint rather
- * than opening a connection an `AbortSignal` is about to close.
- *
- * The share is taken from the budget as granted, not from a fresh reading of what remains of the
- * deadline. The mint is the first call under that deadline, so in intent the two readings are the
- * same instant — but the floor is cleared exactly under `signInSucceededEventBudgetMs`, and a single
- * millisecond elapsing between the caller sampling its start and a re-read here would put the share
- * at 24 and skip the mint. The post below still measures what actually remains, because by then time
- * really has been spent.
- */
-function guestMintBudgetMs(budgetMs: number): number {
-  return Math.min(
-    analyticsGuestMintBudgetMs,
-    budgetMs - analyticsMinimumCallBudgetMs - analyticsCallOverrunMarginMs,
-  );
-}
-
-type AuthAnalyticsSkipAction = "analytics_ingest_error" | "analytics_identity_link_error";
-
-/** Names an exhausted budget as itself, in the same records the calls it replaces would have made. */
-function logSkippedCall(
-  target: AuthAnalyticsTarget,
-  action: AuthAnalyticsSkipAction,
-  errorMessage: string,
-): void {
-  logWarning({
-    domain: "auth",
-    action,
-    requestId: target.requestId,
-    traceId: target.traceId,
-    route: target.route,
-    errorMessage,
-  });
-}
-
-function createReportTarget(c: Context<AuthAppEnv>): AuthAnalyticsTarget {
-  return {
-    apiBaseUrl: getPublicApiBaseUrl(c.req.url),
-    requestId: getRequestId(c),
-    traceId: getTraceId(c),
-    route: c.req.path,
-  };
-}
-
-function logReportFailure(c: Context<AuthAppEnv>, error: unknown): void {
+function logReportFailure(c: Context<AuthAppEnv>, errorMessage: string): void {
   logWarning({
     domain: "auth",
     action: "analytics_ingest_error",
     requestId: getRequestId(c),
     traceId: getTraceId(c),
     route: c.req.path,
-    errorMessage: error instanceof Error ? error.message : String(error),
+    errorMessage,
   });
 }
 
-async function mintVisitorGuestSession(
-  visitor: AuthAnalyticsVisitor,
-  target: AuthAnalyticsTarget,
-  mintBudgetMs: number,
-): Promise<AuthAnalyticsVisitor> {
-  if (mintBudgetMs < analyticsMinimumCallBudgetMs) {
-    logSkippedCall(
-      target,
-      "analytics_ingest_error",
-      "Report budget left no room to mint a guest session and still post the event.",
-    );
-    return visitor;
-  }
-
-  const guestSession = await mintWebGuestSession({ ...target, timeoutMs: mintBudgetMs });
-  if (guestSession === null) {
-    return visitor;
-  }
-
-  return { ...visitor, guestToken: guestSession.guestToken, guestUserId: guestSession.userId };
-}
-
 /**
- * Delivers one event inside `deadlineMs` and returns the visitor state that must be stored, which is
- * not always the one it started from.
+ * The browser's own `User-Agent`, or null where it sent none.
  *
- * A guest session minted here is part of that returned state whatever then happens to the event, so
- * the caller stores it on the response that minted it. That is what keeps a dropped event from
- * turning into a re-mint — and a fresh orphaned guest identity — on every later load. In the other
- * direction `lastEventAtMs` advances only for an event whose acceptance this producer finished
- * reading, because that is what the 30-minute session rule reads. That is narrower than "stored",
- * and deliberately so: the ingest envelope adjudicates each event of a batch into `accepted` and
- * `rejected`, so a 2xx on its own says nothing about whether this event was kept, and only a body
- * that was read tells a stored event from a refused one. What that costs a reader of the data is
- * written where the session id is declared, in `server/analytics/catalog.ts`.
+ * A request without one is not reported at all, and that is the point rather than a shortcut. The
+ * collector classifies a row `automated_client` from this header and from nothing else, stores no
+ * `User-Agent` beside the row, and so can never recompute that verdict — and on this branch there
+ * is no honest value to give it. Forwarding the absence means sending an empty header, which counts
+ * as automated and drops the row from every report that excludes automated traffic. Sending no
+ * header at all is worse: the runtime substitutes its own, which on the `NODEJS_24_X` this function
+ * is deployed on is `node`, matching no marker, so a caller that announced nothing would be filed as
+ * an ordinary person. Reporting nothing is the undercount this repository prefers over either, and
+ * it costs a population a browser does not belong to: every browser sends a `User-Agent`.
+ *
+ * Forwarding it also puts a real `automated_client` verdict on rows that carried NULL while they
+ * were delivered on a guest credential, and that verdict now lands on the browser's shared visitor
+ * id. `buildExcludedActorSqlLines` in `apps/admin/src/filters/filterSql.ts` drops an actor from
+ * every number it is applied to once any one row of theirs is `automated_client IS TRUE`, and
+ * `analytics.product_events` is append-only, so nothing takes that back. These routes are
+ * unauthenticated and the visitor cookie is unsigned, so a request replaying someone else's visitor
+ * id under a bot-ish `User-Agent` removes that person permanently. The collector itself is
+ * reachable the same way with a forged `Origin`, so this is an old exposure in a new place rather
+ * than a new one.
  */
-async function deliverAuthAnalyticsEvent(
-  visitor: AuthAnalyticsVisitor,
-  createBatch: AuthAnalyticsBatchFactory,
-  target: AuthAnalyticsTarget,
-  startedAtMs: number,
-  budgetMs: number,
-  uiLocale: LoginPageLocale | null,
-): Promise<AuthAnalyticsVisitor> {
-  const deadlineMs = startedAtMs + budgetMs;
-  const identifiedVisitor = visitor.guestToken === null
-    ? await mintVisitorGuestSession(visitor, target, guestMintBudgetMs(budgetMs))
-    : visitor;
-  const guestToken = identifiedVisitor.guestToken;
-  if (guestToken === null) {
-    // The mint failed or was skipped, and logged which. Nothing can carry the event and the visitor
-    // holds no guest token, so the next signed-out login-page load starts over.
-    return visitor;
-  }
-
-  const postBudgetMs = remainingBudgetMs(deadlineMs);
-  if (postBudgetMs < analyticsMinimumCallBudgetMs) {
-    logSkippedCall(
-      target,
-      "analytics_ingest_error",
-      "Report budget was spent before the sign-in funnel event could be posted.",
-    );
-    return identifiedVisitor;
-  }
-
-  const eventAtMs = Date.now();
-  const emittedVisitor = refreshAuthAnalyticsVisitorSession(identifiedVisitor, eventAtMs);
-  const delivered = await postAnalyticsEvents(
-    { ...target, timeoutMs: postBudgetMs },
-    guestToken,
-    createBatch(emittedVisitor.anonymousId, emittedVisitor.sessionId, eventAtMs, uiLocale),
-  );
-  return delivered ? emittedVisitor : identifiedVisitor;
+function readBrowserUserAgent(c: Context<AuthAppEnv>): string | null {
+  const userAgent = c.req.header("user-agent") ?? "";
+  return userAgent.trim() === "" ? null : userAgent;
 }
 
-/**
- * The identity this request reports under: the shared visitor id, and this origin's own guest
- * session where one was kept. A browser holding no shared visitor id is not measured here — this
- * origin mints none — so a first-ever touch that is the sign-in page produces no funnel rows.
- */
-function readReportingVisitor(c: Context<AuthAppEnv>, nowMs: number): AuthAnalyticsVisitor | null {
-  const anonymousId = readSharedAnalyticsVisitorId(c);
-  if (anonymousId === null) {
-    return null;
-  }
-
-  const guestState = readAuthAnalyticsGuestSession(c) ?? createAuthAnalyticsGuestState(nowMs);
-  return { anonymousId, ...guestState };
+function createReportCall(c: Context<AuthAppEnv>, userAgent: string): AuthAnalyticsCall {
+  return {
+    apiBaseUrl: getPublicApiBaseUrl(c.req.url),
+    origin: getPublicAuthBaseUrl(c.req.url),
+    userAgent,
+    requestId: getRequestId(c),
+    traceId: getTraceId(c),
+    route: c.req.path,
+    timeoutMs: analyticsReportBudgetMs,
+  };
 }
 
 /**
@@ -355,203 +213,86 @@ function readReportingVisitor(c: Context<AuthAppEnv>, nowMs: number): AuthAnalyt
  * The wait is awaited on purpose. There is no `waitUntil` on this Lambda, so work left running after
  * the response is frozen with the container and resumes, if ever, inside an unrelated later
  * invocation. Bounding the wait is therefore the only lever there is.
+ *
+ * A browser holding no shared visitor id is not measured here — this origin mints none — so a
+ * first-ever touch that is the sign-in page produces no funnel rows.
  */
 async function reportSignInFunnelEvent(
   c: Context<AuthAppEnv>,
-  createBatch: AuthAnalyticsBatchFactory,
+  createEvent: AuthAnalyticsEventFactory,
 ): Promise<void> {
   try {
     if (c.req.query("screen") !== signInScreenMarker) {
       return;
     }
 
-    const startedAtMs = Date.now();
-    const visitor = readReportingVisitor(c, startedAtMs);
-    if (visitor === null) {
+    const anonymousId = readSharedAnalyticsVisitorId(c);
+    if (anonymousId === null) {
       return;
     }
 
-    const storedVisitor = await deliverAuthAnalyticsEvent(
-      visitor,
-      createBatch,
-      createReportTarget(c),
-      startedAtMs,
-      analyticsReportBudgetMs,
-      normalizeSupportedLoginPageLocale(c.req.query("ui_locale") ?? ""),
-    );
-    // One write, on the response that actually changed the guest session.
-    if (storedVisitor !== visitor) {
-      writeAuthAnalyticsGuestSession(c, storedVisitor);
+    const userAgent = readBrowserUserAgent(c);
+    if (userAgent === null) {
+      logReportFailure(
+        c,
+        "Sign-in funnel event was not reported: the request carried no User-Agent to forward, and "
+          + "the collector would have stored the row as automated.",
+      );
+      return;
     }
+
+    await postAnonymousAnalyticsEvent(
+      createReportCall(c, userAgent),
+      createEvent(
+        anonymousId,
+        Date.now(),
+        normalizeSupportedLoginPageLocale(c.req.query("ui_locale") ?? ""),
+      ),
+    );
   } catch (error) {
-    logReportFailure(c, error);
+    logReportFailure(c, error instanceof Error ? error.message : String(error));
   }
-}
-
-/**
- * Runs the link and, on the one refusal that has an in-request remedy, the remedy and one retry.
- *
- * The refusal codes and what each of them owes are in `docs/auth-service.md`, and
- * `linkVisitorGuestToAccount` records which of those obligations a Lambda invocation can honour and
- * why the ones it cannot are still safe here.
- */
-async function linkVisitorGuest(
-  target: AuthAnalyticsTarget,
-  idToken: string,
-  guestToken: string,
-  deadlineMs: number,
-): Promise<void> {
-  const linkBudgetMs = remainingBudgetMs(deadlineMs);
-  if (linkBudgetMs < analyticsMinimumCallBudgetMs) {
-    logSkippedCall(
-      target,
-      "analytics_identity_link_error",
-      "Report budget was spent before the guest identity could be linked.",
-    );
-    return;
-  }
-
-  const outcome = await linkVisitorGuestToAccount({ ...target, timeoutMs: linkBudgetMs }, idToken, guestToken);
-  if (outcome !== "account_required") {
-    return;
-  }
-
-  // `GUEST_IDENTITY_LINK_ACCOUNT_REQUIRED` means `auth.user_identities` has no row for this Cognito
-  // subject yet, which is true of a first-ever sign-in and of nothing else. The two calls below are
-  // the documented remedy and a retry, so running the first without room for the second buys
-  // nothing.
-  const remedyBudgetMs = remainingBudgetMs(deadlineMs);
-  if (remedyBudgetMs < analyticsMinimumCallBudgetMs * 2) {
-    logSkippedCall(
-      target,
-      "analytics_identity_link_error",
-      "Report budget was spent before the first-ever sign-in could be linked.",
-    );
-    return;
-  }
-
-  const accountIsReady = await ensureAccountIdentityRow(
-    { ...target, timeoutMs: Math.floor(remedyBudgetMs / 2) },
-    idToken,
-  );
-  if (accountIsReady === false) {
-    return;
-  }
-
-  const retryBudgetMs = remainingBudgetMs(deadlineMs);
-  if (retryBudgetMs < analyticsMinimumCallBudgetMs) {
-    logSkippedCall(
-      target,
-      "analytics_identity_link_error",
-      "Report budget was spent between the account identity row and the link retry.",
-    );
-    return;
-  }
-
-  await linkVisitorGuestToAccount({ ...target, timeoutMs: retryBudgetMs }, idToken, guestToken);
 }
 
 export async function reportSignInScreenViewed(c: Context<AuthAppEnv>): Promise<void> {
-  await reportSignInFunnelEvent(c, createSignInScreenViewedBatch);
+  await reportSignInFunnelEvent(c, createSignInScreenViewedEvent);
 }
 
 export async function reportSignInCodeRequested(c: Context<AuthAppEnv>): Promise<void> {
-  await reportSignInFunnelEvent(c, createSignInCodeRequestedBatch);
+  await reportSignInFunnelEvent(c, createSignInCodeRequestedEvent);
 }
 
 export async function reportSignInFailed(
   c: Context<AuthAppEnv>,
   reason: AuthSignInFailureReason,
 ): Promise<void> {
-  await reportSignInFunnelEvent(c, createSignInFailedBatchFactory(reason));
+  await reportSignInFunnelEvent(c, createSignInFailedEventFactory(reason));
 }
 
 /**
- * Reports the sign-in and hands this visitor's anonymous history to the account it just became.
+ * Reports the sign-in, and retires the guest credential a build from before this change may have
+ * left on this browser.
  *
- * The order is forced: the event goes first because the link revokes the guest session, after which
- * the credential the event needs is dead.
- *
- * What the link buys is one `analytics.identity_links` row with `source = 'server_derived'`, keyed on
- * the guest user id. `analytics.product_events_resolved` reads that through `first_guest_upgrade_link`,
- * which joins `identity_links.anonymous_id` to `product_events.subject_user_id` and outranks the
- * row's own `user_id` (`db/migrations/0137_audience_context.sql`). That is the only arm that can
- * resolve these rows: guest-transport ingest writes the guest user id into `user_id` as well, and
- * the `first_anonymous_link` arm sits below `user_id` in the COALESCE, so it reaches only rows that
- * carry none. The visitor's own `anonymous_id` resolves nothing here.
- *
- * The guest session cookie is dropped on every outcome, including a failed link, and that is the
- * decision rather than a shortcut. A guest token kept past this sign-in would be offered at the next
- * sign-in on this browser, which need not be the same person, and `analytics.identity_links` is
- * append-only and first-link-wins on the guest user id: a token whose link never landed would hand
- * this browser's entire signed-out tail to whoever signs in next, permanently and with no repair
- * path. `docs/auth-service.md` tells clients never to drop the token
- * on a retryable refusal, and `apps/web/src/appData/session/guest/webGuestIdentityLink.ts` obeys it,
- * because a browser has a durable envelope, an account stamp and an identity generation that make
- * keeping the token safe. None of that exists inside a Lambda invocation, and the cost of dropping it
- * is one browser's signed-out tail — the undercount this repository consistently prefers to a
- * misattribution.
+ * The clear runs first and outside the marker gate, exactly as it did when this service minted that
+ * cookie: a sign-in through the OAuth consent page carries the same cookie and reports nothing, and
+ * a token left behind there is the one this service must never leave live. Nothing links it to this
+ * account any more — that call is gone with the mint — so dropping it is the whole retirement, and
+ * it is the right way round: `analytics.identity_links` is append-only and first-link-wins on the
+ * guest user id, so a surviving token offered at the next sign-in on this browser, which need not be
+ * the same person, would hand that browser's signed-out tail to the wrong account permanently. The
+ * 90-day web guest reaper collects the session itself.
  *
  * The shared visitor id is left alone, here and on every logout route. It is the product domain's
  * rather than this origin's, and nothing about a sign-in is a reason to end it.
- *
- * What the ordering costs is a measured population that never reaches an outcome. A browser counted
- * on the login page whose sign-in this measurement may not attribute — a caller that sends no
- * `signInScreenMarker`, or a browser whose shared visitor id is gone by then — is retired with no
- * success event and no link, and stays in the denominator as an abandonment. The
- * branch below logs those retirements, and only a guest session ever reaches it: one exists exactly
- * where an earlier request of this browser already ran a report.
- *
- * A report still in flight defeats the clear by writing the cookie back after it;
- * `clearAuthAnalyticsGuestSession` weighs that survivor, and the link below is what can still retire
- * it.
  */
-export async function reportSignInSucceeded(c: Context<AuthAppEnv>, idToken: string): Promise<void> {
+export async function reportSignInSucceeded(c: Context<AuthAppEnv>): Promise<void> {
   try {
-    const guestState = readAuthAnalyticsGuestSession(c);
-    if (guestState !== null) {
-      // Cleared before anything can fail or run out of budget, so no exit below can leave the
-      // credential behind, and cleared whether or not this sign-in is one this measurement may
-      // attribute: the guest identity is spent either way. A sign-in through the OAuth consent page
-      // carries the same cookie and reports nothing, and letting its guest token survive would leave
-      // exactly the credential the paragraph above refuses to keep.
+    if (hasAuthAnalyticsGuestSession(c)) {
       clearAuthAnalyticsGuestSession(c);
     }
-
-    const anonymousId = readSharedAnalyticsVisitorId(c);
-    if (anonymousId === null || c.req.query("screen") !== signInScreenMarker) {
-      if (guestState !== null) {
-        log({
-          domain: "auth",
-          action: "analytics_visitor_retired_unreported",
-          requestId: getRequestId(c),
-          traceId: getTraceId(c),
-          route: c.req.path,
-        });
-      }
-
-      return;
-    }
-
-    const target = createReportTarget(c);
-    const startedAtMs = Date.now();
-    const deliveredVisitor = await deliverAuthAnalyticsEvent(
-      { anonymousId, ...(guestState ?? createAuthAnalyticsGuestState(startedAtMs)) },
-      createSignInSucceededBatch,
-      target,
-      startedAtMs,
-      signInSucceededEventBudgetMs,
-      normalizeSupportedLoginPageLocale(c.req.query("ui_locale") ?? ""),
-    );
-    const guestToken = deliveredVisitor.guestToken;
-    if (guestToken === null) {
-      // The mint failed and logged why. There is no credential to link, and a visitor that never
-      // held one has no stored tail for the link to resolve either.
-      return;
-    }
-
-    await linkVisitorGuest(target, idToken, guestToken, startedAtMs + analyticsReportBudgetMs);
   } catch (error) {
-    logReportFailure(c, error);
+    logReportFailure(c, error instanceof Error ? error.message : String(error));
   }
+
+  await reportSignInFunnelEvent(c, createSignInSucceededEvent);
 }

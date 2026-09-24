@@ -85,9 +85,13 @@ export async function createGuestSession(
  * account deletion holds across its whole sweep, and locks the guest's `org.user_settings` and
  * `auth.guest_sessions` rows `FOR UPDATE`. A stop before the commit leaves nothing behind; one at
  * the commit answers `500 DATABASE_COMMIT_OUTCOME_UNKNOWN` instead. Neither is one attempt of several
- * for everyone: `apps/auth`'s sign-in producer drops the guest token with the visitor cookie on every
- * outcome, so a stop there loses that visitor's tail outright. Sized to stay inside the 10s the web
- * client allows one attempt, so that client sees a status code rather than its own abort.
+ * for everyone, and which it is belongs to the caller rather than to this route: a stop is
+ * recoverable only where the caller still holds the guest token afterwards, so this budget is sized
+ * for the attempt it is given rather than against a retry that may not come. `apps/auth`'s sign-in
+ * producer was the caller with no second attempt, dropping the guest token with the visitor cookie
+ * on every outcome; it is no longer a caller at all, having stopped minting a guest session to
+ * report its sign-in funnel. Sized to stay inside the 10s the web client allows one attempt, so
+ * that client sees a status code rather than its own abort.
  */
 const guestIdentityLinkTransactionBudgetMs = 5_000;
 
