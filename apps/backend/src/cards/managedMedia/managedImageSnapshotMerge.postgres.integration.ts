@@ -6,7 +6,11 @@ import type { DatabaseExecutor, SqlValue } from "../../database";
 import { type PostgresIntegrationFixture, withPostgresIntegrationFixture } from "../../testSupport/postgresIntegration";
 import { upsertCardSnapshotInExecutor } from "../mutations";
 import type { CardSnapshotInput } from "../types";
-import { appendManagedImageToCardSideInExecutor } from "./managedImageSettlement";
+import {
+  appendManagedImageToCardSideInExecutor,
+  appendPendingManagedImageToCardSideInExecutor,
+  markPendingManagedImageReadyOnCardSideInExecutor,
+} from "./managedImageSettlement";
 import { createManagedImageRestoreLedger } from "./managedImageSnapshotMerge";
 
 /**
@@ -127,6 +131,63 @@ async function appendGeneratedImage(
         lastModifiedByReplicaId: fixture.replicaId,
         lastOperationId: `managed-image-append-${mediaAssetId}`,
       },
+    );
+    assert.equal(result.applied, true);
+    return result.card.backText;
+  });
+}
+
+/**
+ * The two texts a device can be holding for one generated image: the pending placeholder that is
+ * published as a hot change while the image is still being produced, and the ready reference the
+ * promotion job rewrites it to. A device that pulled inside that window holds the first one and
+ * will push it back.
+ */
+async function appendPendingGeneratedImage(
+  fixture: PostgresIntegrationFixture,
+  mediaAssetId: string,
+): Promise<string> {
+  return withRuntimeTransaction(fixture, async (executor) => {
+    const result = await appendPendingManagedImageToCardSideInExecutor(
+      executor,
+      fixture.workspaceId,
+      {
+        cardId: fixture.cardId,
+        targetSide: "back",
+        mediaAssetId,
+        altText: generatedImageAltText,
+      },
+      {
+        clientUpdatedAt: fixture.createdAt,
+        lastModifiedByReplicaId: fixture.replicaId,
+        lastOperationId: `managed-image-pending-${mediaAssetId}`,
+      },
+    );
+    assert.equal(result.placeholderApplied, true);
+    return result.card.backText;
+  });
+}
+
+async function settlePendingGeneratedImage(
+  fixture: PostgresIntegrationFixture,
+  mediaAssetId: string,
+): Promise<string> {
+  return withRuntimeTransaction(fixture, async (executor) => {
+    const result = await markPendingManagedImageReadyOnCardSideInExecutor(
+      executor,
+      fixture.workspaceId,
+      {
+        cardId: fixture.cardId,
+        targetSide: "back",
+        mediaAssetId,
+        altText: generatedImageAltText,
+      },
+      {
+        clientUpdatedAt: fixture.createdAt,
+        lastModifiedByReplicaId: fixture.replicaId,
+        lastOperationId: `managed-image-settle-${mediaAssetId}`,
+      },
+      async () => {},
     );
     assert.equal(result.applied, true);
     return result.card.backText;
@@ -326,6 +387,93 @@ test(
           `![${generatedImageAltText}](fcasset:${secondMediaAssetId})`,
         ].join("\n\n"),
       );
+    });
+  },
+);
+
+test(
+  "a snapshot pushing the pending placeholder back does not un-settle the ready image",
+  async () => {
+    await withPostgresIntegrationFixture(async (fixture) => {
+      const deviceReplicaId = await createDeviceReplica(fixture);
+      const mediaAssetId = randomUUID();
+      const pendingBackText = await appendPendingGeneratedImage(fixture, mediaAssetId);
+      const settledBackText = await settlePendingGeneratedImage(fixture, mediaAssetId);
+      assert.match(pendingBackText, /!\[A folded paper crane\]\(fcasset:[^)]+\?state=pending\)/u);
+      assert.notEqual(pendingBackText, settledBackText);
+
+      // The device pulled the card inside the window between the two writes above, so its outbox
+      // snapshot carries the placeholder for an image it has never had. The asset id is still in
+      // the text, so nothing here is dropped and nothing is restored - only the lifecycle state
+      // disagrees, and the stored one wins.
+      const staleResult = await withRuntimeTransaction(fixture, (executor) => upsertCardSnapshotInExecutor(
+        executor,
+        fixture.workspaceId,
+        buildStaleSnapshot(fixture, pendingBackText),
+        {
+          clientUpdatedAt: staleReviewClientUpdatedAt,
+          lastModifiedByReplicaId: deviceReplicaId,
+          lastOperationId: `stale-pending-${randomUUID()}`,
+        },
+      ));
+      assert.equal(staleResult.applied, true);
+
+      const afterStalePush = await loadPersistedCardText(fixture);
+      assert.equal(afterStalePush.back_text, settledBackText);
+      assert.equal(afterStalePush.last_modified_by_replica_id, deviceReplicaId);
+      // The rewrite moves the row for the same reason a restore does, so the device applies the
+      // corrected card on its next pull instead of skipping it on a replica-id tie-break.
+      assert.equal(afterStalePush.client_updated_at.toISOString(), "2099-01-01T00:00:00.001Z");
+
+      // Pushing it a second time from the same device is corrected again. The rule needs no ledger
+      // and no replica check: no client exposes the lifecycle query string, so a state that
+      // disagrees with the stored one is never a deliberate edit to honour.
+      await withRuntimeTransaction(fixture, (executor) => upsertCardSnapshotInExecutor(
+        executor,
+        fixture.workspaceId,
+        buildStaleSnapshot(fixture, pendingBackText),
+        {
+          clientUpdatedAt: secondStaleReviewClientUpdatedAt,
+          lastModifiedByReplicaId: deviceReplicaId,
+          lastOperationId: `stale-pending-again-${randomUUID()}`,
+        },
+      ));
+
+      const afterSecondStalePush = await loadPersistedCardText(fixture);
+      assert.equal(afterSecondStalePush.back_text, settledBackText);
+      assert.equal(
+        afterSecondStalePush.client_updated_at.toISOString(),
+        "2099-01-01T00:05:00.001Z",
+      );
+    });
+  },
+);
+
+test(
+  "a snapshot carrying the same managed image in the same state is stored exactly as it arrived",
+  async () => {
+    await withPostgresIntegrationFixture(async (fixture) => {
+      const deviceReplicaId = await createDeviceReplica(fixture);
+      const mediaAssetId = randomUUID();
+      const settledBackText = await appendGeneratedImage(fixture, mediaAssetId);
+
+      // A device that did pull the settlement. Nothing is dropped and no state disagrees, so the
+      // merge has to be a no-op down to the stamp: bumping it here would make the next snapshot
+      // the same offline session already queued lose last-write-wins and silently drop its review.
+      await withRuntimeTransaction(fixture, (executor) => upsertCardSnapshotInExecutor(
+        executor,
+        fixture.workspaceId,
+        buildStaleSnapshot(fixture, settledBackText),
+        {
+          clientUpdatedAt: staleReviewClientUpdatedAt,
+          lastModifiedByReplicaId: deviceReplicaId,
+          lastOperationId: `caught-up-review-${randomUUID()}`,
+        },
+      ));
+
+      const stored = await loadPersistedCardText(fixture);
+      assert.equal(stored.back_text, settledBackText);
+      assert.equal(stored.client_updated_at.toISOString(), staleReviewClientUpdatedAt);
     });
   },
 );

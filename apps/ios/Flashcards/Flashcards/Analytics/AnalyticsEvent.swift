@@ -336,9 +336,13 @@ enum AnalyticsCardCreateEntryPoint: String, Sendable, Equatable {
  * `AnalyticsSyncFailureReason` — the attempt could not complete for a reason the person cannot act
  * on, a recorder that refused to start included.
  *
- * `offline` and `timeout` come from the transport failures that reach the dictation paths with their
- * `URLError` intact. The transcription client collapses its own transport failures into
- * `AIChatTranscriptionError.serviceUnavailable`, so those land in `serverError`; the event's own
+ * `offline` comes from the transport failures that reach the dictation paths with their `URLError`
+ * intact, and `timeout` from those plus the 408 and 504 the transcription client names apart, which
+ * is the reading web gives that status too. That is the only status distinction
+ * `analyticsDictationFailureReason` is handed, and it comes from the transcription request alone, so
+ * a 408 or 504 answered on the session or `/chat/new` leg of the same attempt is `serverError` there
+ * despite its error carrying the status. The client also collapses its own transport failures into
+ * `AIChatTranscriptionError.serviceUnavailable`, so those land in `serverError` too; the event's own
  * `network_state` field is what still says whether the device had a connection.
  */
 enum AnalyticsDictationFailureReason: String, Sendable, Equatable {
