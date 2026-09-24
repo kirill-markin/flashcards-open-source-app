@@ -10,10 +10,12 @@ import { I18nProvider } from "../../i18n";
 import {
   accountDangerZoneRoute,
   accountStatusRoute,
+  buildWorkspaceRoute,
   settingsAIChatSuggestionsRoute,
   settingsCurrentWorkspaceRoute,
   settingsExportRoute,
   settingsFeedbackRoute,
+  settingsHubRoute,
   settingsImportRoute,
   settingsLanguageRoute,
   settingsLeaderboardParticipationRoute,
@@ -31,6 +33,12 @@ import type {
   WorkspaceResetProgressPreview,
 } from "../../types";
 import { SettingsScreen } from "./SettingsScreen";
+
+const testWorkspaceId: string = "workspace-1";
+
+function workspacePath(appPath: string): string {
+  return buildWorkspaceRoute(testWorkspaceId, appPath);
+}
 
 const {
   useAppDataMock,
@@ -106,7 +114,7 @@ function createAppData(): Mutable<AppDataContextValue> {
     sessionTechnicalError: null,
     session: {
       userId: "user-1",
-      selectedWorkspaceId: "workspace-1",
+      selectedWorkspaceId: testWorkspaceId,
       authTransport: "session",
       csrfToken: "csrf-token-1",
       preferences: {
@@ -119,7 +127,7 @@ function createAppData(): Mutable<AppDataContextValue> {
       },
     },
     activeWorkspace: {
-      workspaceId: "workspace-1",
+      workspaceId: testWorkspaceId,
       name: "Primary",
       createdAt: "2026-03-10T00:00:00.000Z",
       isSelected: true,
@@ -142,7 +150,7 @@ function createAppData(): Mutable<AppDataContextValue> {
       installationId: "installation-1",
       cloudState: "linked",
       linkedUserId: "user-1",
-      linkedWorkspaceId: "workspace-1",
+      linkedWorkspaceId: testWorkspaceId,
       linkedEmail: "user@example.com",
       onboardingCompleted: true,
       updatedAt: "2026-03-10T00:00:00.000Z",
@@ -244,7 +252,7 @@ function setupSettingsScreenTest(): SettingsScreenTestHarness {
         <I18nProvider>
           <AppErrorDialogProvider>
             <AIChatPreferencesProvider>
-              <MemoryRouter initialEntries={["/settings"]}>
+              <MemoryRouter initialEntries={[workspacePath(settingsHubRoute)]}>
                 <SettingsScreen />
                 <LocationProbe />
               </MemoryRouter>
@@ -446,51 +454,51 @@ describe("SettingsScreen navigation", () => {
     await renderSettingsScreen();
 
     await clickRow("settings-row-account-status");
-    expect(currentPathname()).toBe(accountStatusRoute);
+    expect(currentPathname()).toBe(workspacePath(accountStatusRoute));
 
     await clickRow("settings-row-current-workspace");
-    expect(currentPathname()).toBe(settingsCurrentWorkspaceRoute);
+    expect(currentPathname()).toBe(workspacePath(settingsCurrentWorkspaceRoute));
 
     await clickRow("settings-row-language");
-    expect(currentPathname()).toBe(settingsLanguageRoute);
+    expect(currentPathname()).toBe(workspacePath(settingsLanguageRoute));
 
     await clickRow("settings-row-review-reminders");
-    expect(currentPathname()).toBe(settingsNotificationsRoute);
+    expect(currentPathname()).toBe(workspacePath(settingsNotificationsRoute));
 
     await clickRow("settings-row-review-animations");
-    expect(currentPathname()).toBe(settingsReviewAnimationsRoute);
+    expect(currentPathname()).toBe(workspacePath(settingsReviewAnimationsRoute));
 
     await clickRow("settings-row-ai-chat-suggestions");
-    expect(currentPathname()).toBe(settingsAIChatSuggestionsRoute);
+    expect(currentPathname()).toBe(workspacePath(settingsAIChatSuggestionsRoute));
 
     await clickRow("settings-row-leaderboard-participation");
-    expect(currentPathname()).toBe(settingsLeaderboardParticipationRoute);
+    expect(currentPathname()).toBe(workspacePath(settingsLeaderboardParticipationRoute));
 
     await clickRow("settings-row-scheduling");
-    expect(currentPathname()).toBe(settingsSchedulerRoute);
+    expect(currentPathname()).toBe(workspacePath(settingsSchedulerRoute));
 
     await clickRow("settings-row-import");
-    expect(currentPathname()).toBe(settingsImportRoute);
+    expect(currentPathname()).toBe(workspacePath(settingsImportRoute));
 
     await clickRow("settings-row-export");
-    expect(currentPathname()).toBe(settingsExportRoute);
+    expect(currentPathname()).toBe(workspacePath(settingsExportRoute));
 
     await clickRow("settings-row-server");
-    expect(currentPathname()).toBe(settingsServerRoute);
+    expect(currentPathname()).toBe(workspacePath(settingsServerRoute));
 
     await clickRow("settings-row-delete-account");
-    expect(currentPathname()).toBe(accountDangerZoneRoute);
+    expect(currentPathname()).toBe(workspacePath(accountDangerZoneRoute));
   });
 
   it("navigates both feedback rows to the feedback settings screen", async () => {
     await renderSettingsScreen();
 
     await clickRow("settings-row-private-feedback");
-    expect(currentPathname()).toBe(settingsFeedbackRoute);
+    expect(currentPathname()).toBe(workspacePath(settingsFeedbackRoute));
 
     await clickRow("settings-row-feedback");
 
-    expect(currentPathname()).toBe(settingsFeedbackRoute);
+    expect(currentPathname()).toBe(workspacePath(settingsFeedbackRoute));
   });
 
   it("opens the locale-neutral App Store listing externally", async () => {

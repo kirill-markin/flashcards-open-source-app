@@ -6,6 +6,7 @@ import {
   trackedFill,
 } from "../../live-smoke.actions";
 import { externalUiTimeoutMs, localUiTimeoutMs, reviewPostSubmitTimeoutMs } from "../config";
+import { primaryNavigationLinkSelector } from "../navigation";
 import { runLiveSmokeStep } from "../steps";
 import type { LiveSmokeSession } from "../types";
 
@@ -34,7 +35,7 @@ export async function runSeededCardReviewFlow(session: LiveSmokeSession): Promis
 
 async function assertSeededCardVisibleInCards(session: LiveSmokeSession): Promise<void> {
   const { page, diagnostics, scenario } = session;
-  await trackedClick(diagnostics, "open cards navigation for verification", page.locator('nav.nav a[href="/cards"]').first());
+  await trackedClick(diagnostics, "open cards navigation for verification", page.locator(primaryNavigationLinkSelector("/cards")).first());
   const searchInput = page.getByTestId("cards-search-input");
   await trackedFill(diagnostics, "clear cards search input", searchInput, "");
   await trackedFill(diagnostics, `fill cards search input with ${scenario.seededFrontText}`, searchInput, scenario.seededFrontText);
@@ -63,7 +64,7 @@ async function reviewSeededCardFromQueue(session: LiveSmokeSession): Promise<voi
   const reviewedQueueCard = page.locator(
     `[data-testid="review-queue-card"][data-card-front-text=${JSON.stringify(scenario.seededFrontText)}]`,
   ).first();
-  await trackedClick(diagnostics, "open review navigation", page.locator('nav.nav a[href="/review"]').first());
+  await trackedClick(diagnostics, "open review navigation", page.locator(primaryNavigationLinkSelector("/review")).first());
   await trackedExpectAttribute(
     diagnostics,
     `confirm review queue shows ${scenario.seededFrontText}`,

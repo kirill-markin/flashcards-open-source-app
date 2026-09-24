@@ -5,15 +5,19 @@ import {
   catalogImportStoreLinks,
   resolveClientPlatform,
 } from "../../appPlatformLinks";
-import { getAppConfig } from "../../config";
 import { useI18n } from "../../i18n";
-import { reviewRoute } from "../../routes";
 
 type CatalogImportSuccessPanelProps = Readonly<{
   cardCount: number;
   importTag: string | null;
   workspaceName: string;
   accountEmail: string | null;
+  /**
+   * The full address of the review screen in the workspace the cards landed in. The panel renders
+   * above `AuthenticatedApp` as well, where no active workspace is guaranteed, so the workspace
+   * comes from the caller rather than from `useWorkspacePath`.
+   */
+  webHref: string;
 }>;
 
 function CatalogImportSuccessCheck(): ReactElement {
@@ -35,12 +39,12 @@ function CatalogImportSuccessCheck(): ReactElement {
 }
 
 export function CatalogImportSuccessPanel(props: CatalogImportSuccessPanelProps): ReactElement {
-  const { cardCount, importTag, workspaceName, accountEmail } = props;
+  const { cardCount, importTag, workspaceName, accountEmail, webHref } = props;
   const { t } = useI18n();
   const platformOptions = buildAppPlatformOptions({
     platforms: ["ios", "android", "web", "mcp"],
     storeLinks: catalogImportStoreLinks,
-    webHref: `${getAppConfig().appBaseUrl}${reviewRoute}`,
+    webHref,
     labels: {
       ios: t("appPlatformLinks.ios"),
       android: t("appPlatformLinks.android"),
