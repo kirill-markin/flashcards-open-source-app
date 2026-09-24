@@ -95,13 +95,14 @@ export function trackScreenViewedOnDismiss(
 }
 
 /**
- * Hands the stamp back to `restored` without reporting anything, for a screen that reported itself
- * and is now gone. Carries the same guard as `trackScreenViewedOnDismiss` and for the same reason:
+ * Hands the stamp back to `restored` without reporting anything, for a screen that took it — by
+ * reporting itself, or by taking the stamp down because no value in the enum names it — and is now
+ * gone. Carries the same guard as `trackScreenViewedOnDismiss` and for the same reason:
  * something else may already own the surface, and a caller whose effect flushes late — a parent's
  * does, after every child's — would otherwise file later events against a screen nobody is on.
  */
 export function restoreCurrentAnalyticsSurface(
-  params: Readonly<{ dismissed: AnalyticsSurface; restored: AnalyticsSurface | null }>,
+  params: Readonly<{ dismissed: AnalyticsSurface | null; restored: AnalyticsSurface | null }>,
 ): void {
   if (currentSurface !== params.dismissed) {
     return;
