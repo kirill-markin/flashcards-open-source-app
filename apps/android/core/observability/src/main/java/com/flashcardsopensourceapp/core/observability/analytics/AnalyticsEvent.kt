@@ -477,6 +477,12 @@ sealed interface AnalyticsEvent {
      * Build the reason with `analyticsMediaUploadFailureReason` rather than choosing one at a call
      * site: the reason must be a distinction this client can prove, and that is the one place that
      * knows which error types carry it.
+     *
+     * `screen` is required and has no default even though the server allows this one to be absent,
+     * unlike [MediaAttached] above, which the server rejects without it. Both emit sites are
+     * screen-bound — the AI chat composer and the card editor — so the surface is always known
+     * there, and a default would only let a future site file a failure against whichever one was
+     * hardcoded.
      */
     data class MediaUploadFailed(
         val reason: AnalyticsMediaUploadFailureReason,
