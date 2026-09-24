@@ -56,6 +56,8 @@ export type {
   StreakLeaderboardDetails,
   SyncBootstrapDetails,
   SyncPullDetails,
+  SyncPullEntitlementDatabaseDetails,
+  SyncPullEntitlementDetails,
   SyncPushDetails,
   SyncReviewHistoryImportDetails,
   SyncReviewHistoryPullDetails,

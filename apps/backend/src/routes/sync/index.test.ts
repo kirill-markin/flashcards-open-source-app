@@ -8,11 +8,37 @@ import { isTransientDatabaseError } from "../../database/transient";
 import { formatCapturedConsoleMessage } from "../../observability/consoleCapture.testSupport";
 import type { RequestContext } from "../../server/requestContext";
 import type { GuestSessionPlatform } from "../../guestAuth";
+import type { AccountKind } from "../../billing/limits";
+import type { EntitlementWire } from "../../billing/snapshot";
 import { createSyncRoutes } from "./index";
 
 const workspaceId = "11111111-1111-4111-8111-111111111111";
 const legacyWorkspaceId = "35274129-ef97-d366-954c-955b4bb0fbf0";
 const installationId = "22222222-2222-4222-8222-222222222222";
+
+// The pull route resolves the person's entitlement against the billing tables, which these route
+// tests do not reach: they inject this resolver and assert only that the route publishes what it
+// returns, and for which account kind it asked.
+const freeEntitlement: EntitlementWire = {
+  tier: "free",
+  tierRank: 10,
+  tierDisplayName: "Free",
+  status: "none",
+  until: null,
+  isTrial: false,
+  willRenew: false,
+  limits: { aiMonthlyWeightedTokens: null },
+};
+
+function createEntitlementResolver(
+  expectedAccountKind: AccountKind,
+): (userId: string, accountKind: AccountKind, now: Date) => Promise<EntitlementWire> {
+  return async (userId, accountKind) => {
+    assert.equal(userId, "user-1");
+    assert.equal(accountKind, expectedAccountKind);
+    return freeEntitlement;
+  };
+}
 
 function createCodedError(code: string, message: string): Error & Readonly<{ code: string }> {
   const error = new Error(message) as Error & { code: string };
@@ -100,6 +126,21 @@ function parseLogRecord(message: string): Readonly<Record<string, unknown>> {
   }
 
   return parsedValue as Readonly<Record<string, unknown>>;
+}
+
+async function captureConsoleErrorAsync(run: () => Promise<void>): Promise<ReadonlyArray<string>> {
+  const originalError = console.error;
+  const messages: Array<string> = [];
+  console.error = (message?: unknown): void => {
+    messages.push(formatCapturedConsoleMessage(message));
+  };
+
+  try {
+    await run();
+    return messages;
+  } finally {
+    console.error = originalError;
+  }
 }
 
 async function retryTransientOnce<Result>(operation: () => Promise<Result>): Promise<Result> {
@@ -441,6 +482,7 @@ for (const platform of ["ios", "android"] as const) {
       bindGuestSessionPlatformFn: async () => {
         throw new Error("Bound guest platform should not be rebound");
       },
+      resolveEntitlementSnapshotForUserFn: createEntitlementResolver("guest"),
       withTransientDatabaseRetryFn: retryTransientOnce,
     });
     const app = createSyncTestApp(routes);
@@ -464,6 +506,7 @@ for (const platform of ["ios", "android"] as const) {
       changes: [],
       nextHotChangeId: 0,
       hasMore: false,
+      entitlement: freeEntitlement,
     });
     assert.equal(processCalls, 1);
   });
@@ -546,6 +589,7 @@ test("POST /sync/pull binds a legacy guest session to the first mobile platform"
       bindGuestSessionId = guestSessionId;
       bindPlatform = platform;
     },
+    resolveEntitlementSnapshotForUserFn: createEntitlementResolver("guest"),
     withTransientDatabaseRetryFn: retryTransientOnce,
   });
   const app = createSyncTestApp(routes);
@@ -569,6 +613,7 @@ test("POST /sync/pull binds a legacy guest session to the first mobile platform"
     changes: [],
     nextHotChangeId: 0,
     hasMore: false,
+    entitlement: freeEntitlement,
   });
   assert.equal(bindGuestSessionId, "guest-session-1");
   assert.equal(bindPlatform, "ios");
@@ -601,6 +646,7 @@ test("POST /sync/pull allows signed-in web sync without guest platform binding",
     bindGuestSessionPlatformFn: async () => {
       throw new Error("Signed-in web sync should not bind a guest session platform");
     },
+    resolveEntitlementSnapshotForUserFn: createEntitlementResolver("account"),
     withTransientDatabaseRetryFn: retryTransientOnce,
   });
   const app = createSyncTestApp(routes);
@@ -624,8 +670,72 @@ test("POST /sync/pull allows signed-in web sync without guest platform binding",
     changes: [],
     nextHotChangeId: 0,
     hasMore: false,
+    entitlement: freeEntitlement,
   });
   assert.equal(processCalls, 1);
+});
+
+// A billing-data problem must not cost this device its remote changes. This covers the omitted-field
+// path the route falls back to, which is otherwise unreachable from any test and would ship unproven.
+test("POST /sync/pull omits the entitlement when resolving it fails", async () => {
+  let processCalls = 0;
+  const routes = createSyncRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => ({
+      requestAuthInputs: {} as never,
+      requestContext: createRequestContext(),
+    }),
+    assertUserHasWorkspaceAccessFn: async (userId, requestedWorkspaceId) => {
+      assert.equal(userId, "user-1");
+      assert.equal(requestedWorkspaceId, workspaceId);
+    },
+    processSyncPullFn: async () => {
+      processCalls += 1;
+      return {
+        changes: [],
+        nextHotChangeId: 0,
+        hasMore: false,
+      };
+    },
+    resolveEntitlementSnapshotForUserFn: async () => {
+      throw new Error("Billing grant g-1 names a tier outside the catalogue: platinum");
+    },
+    withTransientDatabaseRetryFn: retryTransientOnce,
+  });
+  const app = createSyncTestApp(routes);
+
+  let responseStatus = 0;
+  let responseBody: unknown = null;
+  const errorMessages = await captureConsoleErrorAsync(async () => {
+    const response = await app.request(`http://localhost/workspaces/${workspaceId}/sync/pull`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        installationId,
+        platform: "web",
+        appVersion: "1.0.0",
+        afterHotChangeId: 0,
+        limit: 100,
+      }),
+    });
+    responseStatus = response.status;
+    responseBody = await response.json();
+  });
+
+  assert.equal(responseStatus, 200);
+  assert.deepEqual(responseBody, {
+    changes: [],
+    nextHotChangeId: 0,
+    hasMore: false,
+  });
+  assert.equal(processCalls, 1);
+  const entitlementLog = errorMessages
+    .map(parseLogRecord)
+    .find((record) => record.action === "sync_pull_entitlement_error");
+  assert.notEqual(entitlementLog, undefined);
+  assert.equal(entitlementLog?.accountKind, "account");
 });
 
 test("POST /sync/pull retries transient database failures during request preflight", async () => {
@@ -659,6 +769,7 @@ test("POST /sync/pull retries transient database failures during request preflig
         hasMore: false,
       };
     },
+    resolveEntitlementSnapshotForUserFn: createEntitlementResolver("account"),
     withTransientDatabaseRetryFn: retryTransientOnce,
   });
   const app = createSyncTestApp(routes);
@@ -682,6 +793,7 @@ test("POST /sync/pull retries transient database failures during request preflig
     changes: [],
     nextHotChangeId: 7,
     hasMore: false,
+    entitlement: freeEntitlement,
   });
   assert.equal(loadCalls, 2);
   assert.equal(processCalls, 1);

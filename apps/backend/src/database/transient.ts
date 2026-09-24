@@ -118,7 +118,12 @@ function getSqlStateFromCode(code: string | null): string | null {
   return code;
 }
 
-function isServiceUnavailableDatabaseError(error: unknown): boolean {
+/**
+ * A transient failure the database layer already wrapped at its boundary. isTransientDatabaseError
+ * inspects a driver error's code and message, which a boundary error no longer carries, so callers
+ * that classify an error caught above the database have to ask both.
+ */
+export function isServiceUnavailableDatabaseError(error: unknown): boolean {
   return error instanceof TransientDatabaseHttpError;
 }
 
