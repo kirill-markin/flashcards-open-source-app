@@ -1148,6 +1148,30 @@ export const productAnalyticsEventCatalog = {
       },
     },
   },
+  // Bounded by the clients at one event per distinct key per failure episode, not one per failed
+  // attempt: sync retries on a timer, so a per-attempt event would measure poll cadence rather than
+  // failure incidence, and this table is append-only. Each client's gate holds its own key, and the
+  // ceiling is one row per distinct value of that key and nothing else. A column a row carries is
+  // not necessarily part of what bounded it: a client may stamp an ambient field such as `screen`
+  // onto every event it sends while its gate keys on the reason alone, and that column then records
+  // the episode's first failure of that reason rather than a dimension the count splits on. So rows
+  // whose `screen` varies within one episode are not evidence that the screen is in the key, and the
+  // exact key for any one client can be read only from that client's gate.
+  //
+  // Two limits follow, and both bite hardest on the failures worth finding. The episode gate is held
+  // in memory for the lifetime of the client process and is never persisted, so it never bounds a
+  // device: a device that never recovers emits again after every cold launch or page load instead of
+  // once in total, and the row count moves with how often the app is opened as much as with how many
+  // installs are stuck. Nor does it always bound a whole run — where sync is scoped per workspace
+  // and per signed-in account, the episode is scoped the same way — so one run that fails on two
+  // workspaces, or that switches account in place, reports each of them separately.
+  //
+  // And the analytics transport shares the host and the credential with sync itself, so a condition
+  // that stops sync is also a condition that can keep its own report on the device. That is a
+  // property of the shared transport rather than of any one reason, `offline`, `unauthorized` and
+  // `server_error` being only its clearest cases. Those events arrive late, once the client
+  // recovers, or not at all, which makes silence after a failure partly a delivery artifact rather
+  // than evidence that sync recovered.
   sync_failed: {
     serverOnly: false,
     requiresScreen: false,
