@@ -743,7 +743,6 @@ const arCatalog: TranslationCatalog = {
       updated: "تم التحديث",
       note: "ملاحظة",
     },
-    maximumIntervalDays: "{{count}}",
     note: "تؤثر هذه الإعدادات على الجدولة المستقبلية فقط. تظل حالة البطاقات الحالية هي المرجع المعتمد.",
   },
   workspaceExport: {
@@ -794,7 +793,6 @@ const arCatalog: TranslationCatalog = {
     customSeparatorRequired: "أدخل فاصلًا مخصصًا لمعاينة البطاقات.",
     textTagsDescription: "اختر وسومًا لكل بطاقة مستوردة. اتركه فارغًا لإضافة وسم استيراد فريد تلقائيًا.",
     textPreviewTitle: "معاينة",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "الصق نصًا لمعاينة البطاقات.",
     textInvalidCount: "{{count}} تحتاج إلى مراجعة",
     textInvalidHelp: "أضف الأمام والخلف لكل بطاقة، أو احذف البطاقات غير المكتملة.",
@@ -1024,7 +1022,6 @@ const arCatalog: TranslationCatalog = {
       videoLabel: "مرفق فيديو",
     },
     queue: {
-      cards: "{{count}} بطاقة",
       close: "إغلاق قائمة الانتظار",
       loading: "جارٍ التحميل",
       title: "قائمة الانتظار",
@@ -1236,7 +1233,6 @@ const arCatalog: TranslationCatalog = {
       systemDeckDelete: "لا يمكن حذف مجموعة النظام.",
     },
     matchingCards: {
-      count: "{{count}} بطاقة",
       title: "بطاقات مطابقة",
     },
     meta: {

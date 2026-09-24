@@ -743,7 +743,6 @@ const bnCatalog: TranslationCatalog = {
       updated: "আপডেট হয়েছে",
       note: "নোট",
     },
-    maximumIntervalDays: "{{count}}",
     note: "এই সেটিংস শুধু ভবিষ্যতের সময়সূচিতে প্রভাব ফেলে। কার্ডের বর্তমান অবস্থাই চূড়ান্ত থাকে।",
   },
   workspaceExport: {
@@ -794,7 +793,6 @@ const bnCatalog: TranslationCatalog = {
     customSeparatorRequired: "কার্ডের পূর্বরূপ দেখতে একটি কাস্টম বিভাজক লিখুন।",
     textTagsDescription: "প্রতিটি আমদানি করা কার্ডের জন্য ট্যাগ বেছে নিন। খালি রাখলে স্বয়ংক্রিয়ভাবে একটি অনন্য আমদানি ট্যাগ যোগ হবে।",
     textPreviewTitle: "পূর্বরূপ",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "কার্ডের পূর্বরূপ দেখতে টেক্সট পেস্ট করুন।",
     textInvalidCount: "{{count}}টির প্রতি নজর দিন",
     textInvalidHelp: "প্রতিটি কার্ডে সামনের ও পেছনের দিক দুটোই যোগ করুন, অথবা অসম্পূর্ণ কার্ড মুছে ফেলুন।",
@@ -1024,7 +1022,6 @@ const bnCatalog: TranslationCatalog = {
       videoLabel: "ভিডিও সংযুক্তি",
     },
     queue: {
-      cards: "{{count}} কার্ড",
       close: "সারি বন্ধ করুন",
       loading: "লোড হচ্ছে",
       title: "সারি",
@@ -1236,7 +1233,6 @@ const bnCatalog: TranslationCatalog = {
       systemDeckDelete: "সিস্টেম ডেক মোছা যায় না।",
     },
     matchingCards: {
-      count: "{{count}} কার্ড",
       title: "মিলে যাওয়া কার্ড",
     },
     meta: {

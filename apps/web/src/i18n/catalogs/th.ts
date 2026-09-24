@@ -743,7 +743,6 @@ const thCatalog: TranslationCatalog = {
       updated: "อัปเดตเมื่อ",
       note: "หมายเหตุ",
     },
-    maximumIntervalDays: "{{count}}",
     note: "การตั้งค่านี้มีผลกับการจัดตารางในอนาคตเท่านั้น สถานะของการ์ดที่มีอยู่ยังคงเป็นข้อมูลหลัก",
   },
   workspaceExport: {
@@ -794,7 +793,6 @@ const thCatalog: TranslationCatalog = {
     customSeparatorRequired: "กรอกตัวคั่นที่กำหนดเองเพื่อดูตัวอย่างการ์ด",
     textTagsDescription: "เลือกแท็กสำหรับการ์ดที่นำเข้าทุกใบ เว้นว่างไว้เพื่อเพิ่มแท็กการนำเข้าเฉพาะโดยอัตโนมัติ",
     textPreviewTitle: "ตัวอย่าง",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "วางข้อความเพื่อดูตัวอย่างการ์ด",
     textInvalidCount: "{{count}} ต้องแก้ไข",
     textInvalidHelp: "ใส่ทั้งด้านหน้าและด้านหลังให้การ์ดทุกใบ หรือลบการ์ดที่ไม่สมบูรณ์",
@@ -1024,7 +1022,6 @@ const thCatalog: TranslationCatalog = {
       videoLabel: "วิดีโอแนบ",
     },
     queue: {
-      cards: "{{count}} การ์ด",
       close: "ปิดคิว",
       loading: "กำลังโหลด",
       title: "คิว",
@@ -1236,7 +1233,6 @@ const thCatalog: TranslationCatalog = {
       systemDeckDelete: "ลบเด็คของระบบไม่ได้",
     },
     matchingCards: {
-      count: "{{count}} การ์ด",
       title: "การ์ดที่ตรงกัน",
     },
     meta: {

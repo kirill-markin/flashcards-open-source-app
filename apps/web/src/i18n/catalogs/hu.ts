@@ -743,7 +743,6 @@ const huCatalog: TranslationCatalog = {
       updated: "Frissítve",
       note: "Megjegyzés",
     },
-    maximumIntervalDays: "{{count}}",
     note: "Ezek a beállítások csak a jövőbeli ütemezésre hatnak. A kártyák meglévő állapota marad a mérvadó.",
   },
   workspaceExport: {
@@ -794,7 +793,6 @@ const huCatalog: TranslationCatalog = {
     customSeparatorRequired: "Adj meg egyéni elválasztót a kártyák előnézetéhez.",
     textTagsDescription: "Válassz címkéket minden importált kártyához. Hagyd üresen, és automatikusan egyedi importálási címke kerül rájuk.",
     textPreviewTitle: "Előnézet",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "Illessz be szöveget a kártyák előnézetéhez.",
     textInvalidCount: "{{count}} figyelmet igényel",
     textInvalidHelp: "Adj meg előlapot és hátlapot is minden kártyához, vagy töröld a hiányos kártyákat.",
@@ -1024,7 +1022,6 @@ const huCatalog: TranslationCatalog = {
       videoLabel: "Videómelléklet",
     },
     queue: {
-      cards: "{{count}} kártya",
       close: "Sor bezárása",
       loading: "betöltés",
       title: "Sor",
@@ -1236,7 +1233,6 @@ const huCatalog: TranslationCatalog = {
       systemDeckDelete: "A rendszerpakli nem törölhető.",
     },
     matchingCards: {
-      count: "{{count}} kártya",
       title: "Megfelelő kártyák",
     },
     meta: {

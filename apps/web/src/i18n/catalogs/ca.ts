@@ -743,7 +743,6 @@ const caCatalog: TranslationCatalog = {
       updated: "Actualitzat",
       note: "Nota",
     },
-    maximumIntervalDays: "{{count}}",
     note: "Aquesta configuració només afecta la programació futura. L'estat actual de cada targeta continua sent el de referència.",
   },
   workspaceExport: {
@@ -794,7 +793,6 @@ const caCatalog: TranslationCatalog = {
     customSeparatorRequired: "Escriu un separador personalitzat per previsualitzar les targetes.",
     textTagsDescription: "Tria etiquetes per a totes les targetes importades. Deixa-ho buit per afegir automàticament una etiqueta d'importació única.",
     textPreviewTitle: "Vista prèvia",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "Enganxa text per previsualitzar les targetes.",
     textInvalidCount: "{{count}} necessiten atenció",
     textInvalidHelp: "Afegeix anvers i revers a cada targeta o elimina les targetes incompletes.",
@@ -1024,7 +1022,6 @@ const caCatalog: TranslationCatalog = {
       videoLabel: "Vídeo adjunt",
     },
     queue: {
-      cards: "{{count}} targetes",
       close: "Tanca la cua",
       loading: "s'està carregant",
       title: "Cua",
@@ -1236,7 +1233,6 @@ const caCatalog: TranslationCatalog = {
       systemDeckDelete: "La baralla del sistema no es pot suprimir.",
     },
     matchingCards: {
-      count: "{{count}} targetes",
       title: "Targetes coincidents",
     },
     meta: {

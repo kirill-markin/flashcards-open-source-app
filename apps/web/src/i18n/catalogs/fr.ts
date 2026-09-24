@@ -743,7 +743,6 @@ const frCatalog: TranslationCatalog = {
       updated: "Mis à jour",
       note: "Remarque",
     },
-    maximumIntervalDays: "{{count}}",
     note: "Ces paramètres n'affectent que la planification future. L'état actuel des cartes fait toujours foi.",
   },
   workspaceExport: {
@@ -794,7 +793,6 @@ const frCatalog: TranslationCatalog = {
     customSeparatorRequired: "Saisissez un séparateur personnalisé pour prévisualiser les cartes.",
     textTagsDescription: "Choisissez des étiquettes pour toutes les cartes importées. Laissez vide pour ajouter automatiquement une étiquette d'import unique.",
     textPreviewTitle: "Aperçu",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "Collez du texte pour prévisualiser les cartes.",
     textInvalidCount: "{{count}} à corriger",
     textInvalidHelp: "Ajoutez un recto et un verso à chaque carte, ou supprimez les cartes incomplètes.",
@@ -1024,7 +1022,6 @@ const frCatalog: TranslationCatalog = {
       videoLabel: "Pièce jointe vidéo",
     },
     queue: {
-      cards: "{{count}} cartes",
       close: "Fermer la file",
       loading: "chargement",
       title: "File",
@@ -1236,7 +1233,6 @@ const frCatalog: TranslationCatalog = {
       systemDeckDelete: "Un paquet système ne peut pas être supprimé.",
     },
     matchingCards: {
-      count: "{{count}} cartes",
       title: "Cartes correspondantes",
     },
     meta: {

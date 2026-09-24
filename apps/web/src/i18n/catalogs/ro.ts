@@ -752,7 +752,6 @@ const roCatalog: TranslationCatalog = {
       updated: "Actualizat",
       note: "Notă",
     },
-    maximumIntervalDays: "{{count}}",
     note: "Aceste setări afectează doar programarea viitoare. Starea existentă a fișelor rămâne neschimbată.",
   },
   workspaceExport: {
@@ -803,7 +802,6 @@ const roCatalog: TranslationCatalog = {
     customSeparatorRequired: "Introdu un separator personalizat pentru a previzualiza fișele.",
     textTagsDescription: "Alege etichete pentru fiecare fișă importată. Lasă gol pentru a adăuga automat o etichetă de import unică.",
     textPreviewTitle: "Previzualizare",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "Lipește text pentru a previzualiza fișele.",
     textInvalidCount: "Necesită atenție: {{count}}",
     textInvalidHelp: "Adaugă și față, și verso la fiecare fișă sau șterge fișele incomplete.",
@@ -1033,7 +1031,6 @@ const roCatalog: TranslationCatalog = {
       videoLabel: "Atașament video",
     },
     queue: {
-      cards: "Fișe: {{count}}",
       close: "Închide coada",
       loading: "se încarcă",
       title: "Coadă",
@@ -1248,7 +1245,6 @@ const roCatalog: TranslationCatalog = {
       systemDeckDelete: "Pachetul de sistem nu poate fi șters.",
     },
     matchingCards: {
-      count: "Fișe: {{count}}",
       title: "Fișe corespunzătoare",
     },
     meta: {

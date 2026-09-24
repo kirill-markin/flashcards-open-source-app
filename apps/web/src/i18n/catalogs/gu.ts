@@ -743,7 +743,6 @@ const guCatalog: TranslationCatalog = {
       updated: "અપડેટ થયું",
       note: "નોંધ",
     },
-    maximumIntervalDays: "{{count}}",
     note: "આ સેટિંગ્સ ફક્ત ભવિષ્યના સમયનિયોજનને અસર કરે છે. કાર્ડની હાલની સ્થિતિ જ અધિકૃત રહે છે.",
   },
   workspaceExport: {
@@ -794,7 +793,6 @@ const guCatalog: TranslationCatalog = {
     customSeparatorRequired: "કાર્ડનું પૂર્વાવલોકન જોવા માટે કસ્ટમ વિભાજક દાખલ કરો.",
     textTagsDescription: "આયાત થતાં દરેક કાર્ડ માટે ટૅગ પસંદ કરો. ખાલી રાખશો તો આપમેળે અનન્ય આયાત ટૅગ ઉમેરાશે.",
     textPreviewTitle: "પૂર્વાવલોકન",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "કાર્ડનું પૂર્વાવલોકન જોવા માટે ટેક્સ્ટ પેસ્ટ કરો.",
     textInvalidCount: "{{count}} પર ધ્યાન આપવું જરૂરી છે",
     textInvalidHelp: "દરેક કાર્ડમાં આગળની અને પાછળની બંને બાજુ ઉમેરો, અથવા અધૂરાં કાર્ડ કાઢી નાખો.",
@@ -1024,7 +1022,6 @@ const guCatalog: TranslationCatalog = {
       videoLabel: "વિડિયો જોડાણ",
     },
     queue: {
-      cards: "{{count}} કાર્ડ",
       close: "કતાર બંધ કરો",
       loading: "લોડ થઈ રહ્યું છે",
       title: "કતાર",
@@ -1236,7 +1233,6 @@ const guCatalog: TranslationCatalog = {
       systemDeckDelete: "સિસ્ટમ ડેક કાઢી શકાતું નથી.",
     },
     matchingCards: {
-      count: "{{count}} કાર્ડ",
       title: "મેળ ખાતાં કાર્ડ",
     },
     meta: {

@@ -752,7 +752,6 @@ const hrCatalog: TranslationCatalog = {
       updated: "Ažurirano",
       note: "Napomena",
     },
-    maximumIntervalDays: "{{count}}",
     note: "Ove postavke utječu samo na buduće raspoređivanje. Postojeće stanje kartica ostaje mjerodavno.",
   },
   workspaceExport: {
@@ -803,7 +802,6 @@ const hrCatalog: TranslationCatalog = {
     customSeparatorRequired: "Unesite prilagođeni razdjelnik za pregled kartica.",
     textTagsDescription: "Odaberite oznake za svaku uvezenu karticu. Ostavite prazno da se automatski doda jedinstvena oznaka uvoza.",
     textPreviewTitle: "Pregled",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "Zalijepite tekst za pregled kartica.",
     textInvalidCount: "Zahtijeva pozornost: {{count}}",
     textInvalidHelp: "Dodajte i prednju stranu i poleđinu svakoj kartici ili izbrišite nepotpune kartice.",
@@ -1033,7 +1031,6 @@ const hrCatalog: TranslationCatalog = {
       videoLabel: "Videoprivitak",
     },
     queue: {
-      cards: "Kartica: {{count}}",
       close: "Zatvori red",
       loading: "učitavanje",
       title: "Red",
@@ -1248,7 +1245,6 @@ const hrCatalog: TranslationCatalog = {
       systemDeckDelete: "Sustavni špil ne može se izbrisati.",
     },
     matchingCards: {
-      count: "Kartica: {{count}}",
       title: "Odgovarajuće kartice",
     },
     meta: {

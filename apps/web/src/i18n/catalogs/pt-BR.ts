@@ -743,7 +743,6 @@ const ptBrCatalog: TranslationCatalog = {
       updated: "Atualizado",
       note: "Observação",
     },
-    maximumIntervalDays: "{{count}}",
     note: "Estas configurações afetam apenas o agendamento futuro. O estado atual dos cartões continua valendo.",
   },
   workspaceExport: {
@@ -794,7 +793,6 @@ const ptBrCatalog: TranslationCatalog = {
     customSeparatorRequired: "Digite um separador personalizado para ver a prévia dos cartões.",
     textTagsDescription: "Escolha etiquetas para cada cartão importado. Deixe vazio para adicionar uma etiqueta de importação exclusiva automaticamente.",
     textPreviewTitle: "Prévia",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "Cole o texto para ver a prévia dos cartões.",
     textInvalidCount: "{{count}} precisam de atenção",
     textInvalidHelp: "Adicione frente e verso a cada cartão ou exclua os cartões incompletos.",
@@ -1024,7 +1022,6 @@ const ptBrCatalog: TranslationCatalog = {
       videoLabel: "Anexo de vídeo",
     },
     queue: {
-      cards: "{{count}} cartões",
       close: "Fechar fila",
       loading: "carregando",
       title: "Fila",
@@ -1236,7 +1233,6 @@ const ptBrCatalog: TranslationCatalog = {
       systemDeckDelete: "O baralho do sistema não pode ser excluído.",
     },
     matchingCards: {
-      count: "{{count}} cartões",
       title: "Cartões correspondentes",
     },
     meta: {

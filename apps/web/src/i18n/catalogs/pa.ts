@@ -743,7 +743,6 @@ const paCatalog: TranslationCatalog = {
       updated: "ਅੱਪਡੇਟ ਹੋਇਆ",
       note: "ਨੋਟ",
     },
-    maximumIntervalDays: "{{count}}",
     note: "ਇਹ ਸੈਟਿੰਗਾਂ ਸਿਰਫ਼ ਭਵਿੱਖ ਦੀ ਸਮਾਂ-ਸਾਰਣੀ ਉੱਤੇ ਅਸਰ ਕਰਦੀਆਂ ਹਨ. ਕਾਰਡ ਦੀ ਮੌਜੂਦਾ ਸਥਿਤੀ ਹੀ ਪ੍ਰਮਾਣਿਕ ਰਹਿੰਦੀ ਹੈ.",
   },
   workspaceExport: {
@@ -794,7 +793,6 @@ const paCatalog: TranslationCatalog = {
     customSeparatorRequired: "ਕਾਰਡਾਂ ਦੀ ਝਲਕ ਵੇਖਣ ਲਈ ਕਸਟਮ ਵੱਖਰੇਵਾਂ ਭਰੋ.",
     textTagsDescription: "ਹਰ ਆਯਾਤ ਕੀਤੇ ਕਾਰਡ ਲਈ ਟੈਗ ਚੁਣੋ. ਆਪਣੇ-ਆਪ ਵੱਖਰਾ ਆਯਾਤ ਟੈਗ ਜੁੜਨ ਲਈ ਖਾਲੀ ਛੱਡੋ.",
     textPreviewTitle: "ਝਲਕ",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "ਕਾਰਡਾਂ ਦੀ ਝਲਕ ਵੇਖਣ ਲਈ ਲਿਖਤ ਚੇਪੋ.",
     textInvalidCount: "{{count}} ਵੱਲ ਧਿਆਨ ਦੇਣ ਦੀ ਲੋੜ ਹੈ",
     textInvalidHelp: "ਹਰ ਕਾਰਡ ਵਿੱਚ ਅਗਲਾ ਅਤੇ ਪਿਛਲਾ ਪਾਸਾ ਦੋਵੇਂ ਭਰੋ, ਜਾਂ ਅਧੂਰੇ ਕਾਰਡ ਮਿਟਾਓ.",
@@ -1024,7 +1022,6 @@ const paCatalog: TranslationCatalog = {
       videoLabel: "ਵੀਡੀਓ ਅਟੈਚਮੈਂਟ",
     },
     queue: {
-      cards: "{{count}} ਕਾਰਡ",
       close: "ਕਤਾਰ ਬੰਦ ਕਰੋ",
       loading: "ਲੋਡ ਹੋ ਰਿਹਾ ਹੈ",
       title: "ਕਤਾਰ",
@@ -1236,7 +1233,6 @@ const paCatalog: TranslationCatalog = {
       systemDeckDelete: "ਸਿਸਟਮ ਡੈੱਕ ਮਿਟਾਇਆ ਨਹੀਂ ਜਾ ਸਕਦਾ.",
     },
     matchingCards: {
-      count: "{{count}} ਕਾਰਡ",
       title: "ਮੇਲ ਖਾਂਦੇ ਕਾਰਡ",
     },
     meta: {
