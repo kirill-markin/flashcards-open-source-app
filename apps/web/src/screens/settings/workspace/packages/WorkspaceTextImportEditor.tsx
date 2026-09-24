@@ -72,7 +72,7 @@ export function WorkspaceTextImportEditor(props: WorkspaceTextImportEditorProps)
     tagSuggestions,
     onImport,
   } = props;
-  const { t } = useI18n();
+  const { messages, t, formatCount } = useI18n();
   const [sourceText, setSourceText] = useState<string>("");
   const [fieldSeparatorChoice, setFieldSeparatorChoice] = useState<FieldSeparatorChoice>("tab");
   const [cardSeparatorChoice, setCardSeparatorChoice] = useState<CardSeparatorChoice>("newline");
@@ -299,7 +299,7 @@ export function WorkspaceTextImportEditor(props: WorkspaceTextImportEditorProps)
         <div className="workspace-text-import-preview-heading">
           <div>
             <strong>{t("workspaceImport.textPreviewTitle")}</strong>
-            <span className="subtitle">{t("workspaceImport.textPreviewCount", { count: cards.length })}</span>
+            <span className="subtitle">{t("workspaceImport.textPreviewCount", { count: formatCount(cards.length, messages.common.countLabels.card) })}</span>
           </div>
           {invalidCardCount === 0 ? null : (
             <span className="workspace-text-import-invalid-count" data-testid="workspace-text-import-invalid-count">
@@ -427,7 +427,7 @@ export function WorkspaceTextImportEditor(props: WorkspaceTextImportEditorProps)
         >
           {isImporting
             ? t("workspaceImport.textImporting")
-            : t("workspaceImport.textImportButton", { count: cards.length })}
+            : t("workspaceImport.textImportButton", { count: formatCount(cards.length, messages.common.countLabels.card) })}
         </button>
       </div>
       {errorMessage === "" ? null : (
