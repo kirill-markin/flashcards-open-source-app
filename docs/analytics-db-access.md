@@ -372,7 +372,7 @@ owned by the source it names, else by a comment in `apps/auth/src/server/analyti
   leaves the table.
 - The pair (`screen_viewed`, `screen = 'signin'`) has a second `platform = 'web'` producer: the web
   app reports it for the workspace-choice step, downstream of `signin_succeeded`, inflating a
-  login-page denominator (`resolveSessionGateSurface` in `apps/web/src/App.tsx`). Auth-origin rows
+  login-page denominator (`resolveRootGateReport` in `apps/web/src/App.tsx`). Auth-origin rows
   are the ones with a null `app_version`: the collector stores none for any caller, and the
   guest-era producer sent no `x-client-version`. `device_locale`, `timezone` and `network_state` are
   null on both populations: a `platform = 'web'` breakdown grouped by one buckets the funnel, and

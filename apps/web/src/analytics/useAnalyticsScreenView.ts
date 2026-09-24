@@ -1,19 +1,15 @@
 import { useEffect, useRef } from "react";
 import { useLocation } from "react-router";
-import {
-  endAnalyticsScreenVisit,
-  restoreCurrentAnalyticsSurface,
-  restoreCurrentAnalyticsSurfaceAfterTakeDown,
-  takeDownCurrentAnalyticsSurface,
-  trackScreenViewed,
-} from "./client";
+import { restoreCurrentAnalyticsSurface, trackScreenViewed } from "./client";
 import type { AnalyticsSurface } from "./events";
 import { resolveAnalyticsSurface } from "./surfaces";
 
 /**
  * Reports a screen whose identity is component state rather than a route, for the screens
- * `resolveAnalyticsSurface` cannot see: the steps of the catalog install flow, its sign-in gate, the
- * two session gates that replace the whole app root, and the friend invitation dialog.
+ * `resolveAnalyticsSurface` cannot see: the steps of the catalog install flow, its sign-in gate, and
+ * the friend invitation dialog. A gate that replaces the whole app root is not one of them — that is
+ * decided in `App.tsx` and reported by `AnalyticsLifecycle`, so the route underneath is never
+ * reported for a screen the gate kept from rendering.
  *
  * One `screen_viewed` per entry, which `trackScreenViewed` enforces for every caller rather than
  * this hook: React re-renders and re-runs effects for reasons that have nothing to do with the
@@ -30,10 +26,9 @@ import { resolveAnalyticsSurface } from "./surfaces";
  * commit on data it already had — is one visit rather than two.
  *
  * The handover happens once and only while the stamp is still what this hook last set, which is what
- * keeps it from reaching past its own screen. React flushes a parent's passive effects after every
- * child's, so `AppShell`'s copy of this hook runs last of all: without the one-shot ref and the
- * `restoreCurrentAnalyticsSurface` guard, a gate it had reported once would keep re-running its null
- * branch on every later route change and overwrite whatever a screen-level caller had just set.
+ * keeps it from reaching past its own screen: React flushes a parent's passive effects after every
+ * child's, so an unguarded null branch re-running on a later route change would overwrite whatever
+ * another caller had just set.
  */
 export function useAnalyticsScreenView(surface: AnalyticsSurface | null): void {
   const location = useLocation();
@@ -53,41 +48,4 @@ export function useAnalyticsScreenView(surface: AnalyticsSurface | null): void {
     reportedSurfaceRef.current = surface;
     trackScreenViewed(surface);
   }, [routeSurface, surface]);
-}
-
-/**
- * The same handover for a screen that replaces the app root and has no value in the shared `screen`
- * enum, so it cannot report itself at all: the route's surface comes down and its open visit ends
- * while the screen is up, and the route gets its surface back when the screen goes away.
- *
- * Nothing is emitted for the screen itself — `screen` is a closed cross-client enum and
- * `analytics.product_events` is append-only with no repair path, so a value the catalog does not
- * declare cannot be invented here. Leaving the route's surface standing is the part that must not
- * happen: every event tracked underneath, a background `sync_failed` included, would be filed
- * against a screen nobody is on. Ending the visit is the reading `AnalyticsLifecycle` already gives
- * a route with no surface, so coming back to that route reports a second view rather than having it
- * swallowed as a repeat.
- */
-export function useAnalyticsUnreportableScreen(isOnDisplay: boolean): void {
-  const location = useLocation();
-  const routeSurface = resolveAnalyticsSurface(location.pathname);
-
-  useEffect(() => {
-    if (isOnDisplay === false) {
-      return undefined;
-    }
-
-    takeDownCurrentAnalyticsSurface();
-    endAnalyticsScreenVisit();
-
-    return () => {
-      // Handed back only while the stamp is still the take-down this hook performed, the same guard
-      // the reportable handover above carries: a parent's effects flush after every child's, so an
-      // unconditional setter here would overwrite a surface some other screen had just taken. The
-      // take-down holds a token of its own rather than a plain `null` stamp, so the hand-back is
-      // refused after anything else has stamped — including the `null` `AnalyticsLifecycle` leaves
-      // for a route no surface names.
-      restoreCurrentAnalyticsSurfaceAfterTakeDown(routeSurface);
-    };
-  }, [isOnDisplay, routeSurface]);
 }

@@ -34,7 +34,7 @@
  * `signin_after_review_prompt`, the two prompts above that this app does not have, and
  * `settings_legal`, a screen this app does have but never reports under its own value.
  *
- * `signin` and `credential_recovery` are reachable, from `resolveSessionGateSurface` in `App.tsx`.
+ * `signin` and `credential_recovery` are reachable, from `resolveRootGateReport` in `App.tsx`.
  * The email and code steps of signing in do live on the auth service's origin, but the catalog
  * counts the workspace choice as part of the same screen, and this app hosts that; the account-
  * deleted gate that takes over the app root is this client's `credential_recovery`.
