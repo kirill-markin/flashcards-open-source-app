@@ -14,6 +14,7 @@ import type {
   ContentPart,
 } from "../types";
 import type { ChatRunClaimToken } from "../runs";
+import type { EntitlementTier } from "../../billing/tiers";
 
 type ChatRunDiagnostics = Readonly<{
   requestId: string;
@@ -46,6 +47,12 @@ export type StartPersistedChatRunParams = Readonly<{
   turnInput: ReadonlyArray<ContentPart>;
   generatedImageEligible: boolean;
   clientPlatform: ProductAnalyticsClientReportablePlatform | null;
+  /**
+   * The tier every usage fact this run appends is attributed to, resolved once when the run was claimed.
+   * It is carried rather than re-resolved because one turn makes up to thirty model calls plus a
+   * composer-suggestion call, and a tier that changes mid-run is not worth a billing read per call.
+   */
+  tierAtCall: EntitlementTier;
   diagnostics: ChatRunDiagnostics;
   getRemainingTimeInMillis: () => number;
 }>;

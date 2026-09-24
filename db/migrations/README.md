@@ -163,3 +163,25 @@ never true is the name the header gave to what happens to those rows afterwards.
 `docs/analytics-visitor-identity.md` had carried the same claim in wording of its own, close to the
 database copy and identical to neither, and is corrected in place; that file is editable, so it
 carries no entry here.
+
+### `0152_ai_usage_facts.sql` — `cache_write_tokens` is written, not left NULL
+
+`COMMENT ON COLUMN ai.usage_events.cache_write_tokens` says the column "stays NULL for the OpenAI calls
+this repository makes today: their automatic prompt caching discounts reads and bills nothing to write."
+The first half is false. The pinned provider SDK, `openai@7.22.0`, reports the counter on the Responses
+API — `ResponseUsage.InputTokensDetails.cache_write_tokens`, a required field of a required object — and
+`appendAiUsageEvent` (`apps/backend/src/aiUsage/record.ts`) records whatever arrives there. Chat and
+composer-suggestion rows therefore carry the provider's number. The dictation and card-image calls report
+no such counter, and their rows do carry NULL.
+
+The pricing half still holds and is why the first half was written: the default in-memory prompt cache
+bills nothing for a cache write, so every price this counter is multiplied by is zero today. That makes
+it a zero-priced fact rather than a fact not worth storing. What a row in this table stores is what the
+provider reported; what it costs is a dated row in `ai.model_prices`, which is the whole reason the two
+are separate tables. Extended prompt-cache retention is what would start charging for it, and nothing
+here asks for it: `prompt_cache_retention` is never set on the model call
+(`apps/backend/src/chat/openai/loop/modelCall.ts`).
+
+The closing sentence still holds too, and is now doing less work than it was written to do: a provider
+that charges for cache writes needs no migration, because the column is already there and already
+populated.

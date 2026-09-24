@@ -70,7 +70,6 @@ export interface ApiGatewayProps {
   resendApiKeySecretArn: string | undefined;
   resendSenderEmail: string | undefined;
   demoEmailDostip: string | undefined;
-  guestAiWeightedMonthlyTokenCap: string | undefined;
   globalMetricsVisible: boolean;
   globalMetricsSnapshotBucket: s3.IBucket;
   globalMetricsSnapshotObjectKey: string;
@@ -125,7 +124,6 @@ interface BackendFunctionProps {
   resendApiKeySecretArn: string | undefined;
   resendSenderEmail: string | undefined;
   demoEmailDostip: string | undefined;
-  guestAiWeightedMonthlyTokenCap: string | undefined;
   globalMetricsConfig: GlobalMetricsConfig | undefined;
   mediaAssetsBucket: s3.IBucket | undefined;
   catalogDumpFunction: lambda.IFunction | undefined;
@@ -151,7 +149,6 @@ interface DirectImageIngestionFunctionProps {
   userPoolId: string;
   userPoolClientId: string;
   demoEmailDostip: string | undefined;
-  guestAiWeightedMonthlyTokenCap: string | undefined;
   mediaAssetsBucket: s3.IBucket;
   catalogDumpFunction: lambda.IFunction;
 }
@@ -790,7 +787,6 @@ function createBackendFunction(scope: Construct, props: BackendFunctionProps): l
       ...(props.publicAuthAlternateOrigin === undefined
         ? {}
         : { PUBLIC_AUTH_ALTERNATE_BASE_URL: props.publicAuthAlternateOrigin }),
-      GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP: props.guestAiWeightedMonthlyTokenCap ?? "0",
       ...(langfuseConfig === null
         ? {}
         : { LANGFUSE_BASE_URL: langfuseConfig.baseUrl }),
@@ -910,8 +906,6 @@ function createDirectImageIngestionFunction(
       PUBLIC_API_BASE_URL: `${props.publicApiOrigin}/v1`,
       PUBLIC_AUTH_BASE_URL: `https://auth.${props.baseDomain}`,
       PUBLIC_SITE_BASE_URL: props.publicSiteOrigin,
-      GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP:
-        props.guestAiWeightedMonthlyTokenCap ?? "0",
       MEDIA_ASSETS_S3_BUCKET_NAME: props.mediaAssetsBucket.bucketName,
       ...(props.demoEmailDostip === undefined || props.demoEmailDostip === ""
         ? {}
@@ -1057,7 +1051,6 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     resendApiKeySecretArn: props.resendApiKeySecretArn,
     resendSenderEmail: props.resendSenderEmail,
     demoEmailDostip: props.demoEmailDostip,
-    guestAiWeightedMonthlyTokenCap: props.guestAiWeightedMonthlyTokenCap,
     globalMetricsConfig: {
       visible: props.globalMetricsVisible,
       snapshotBucket: props.globalMetricsSnapshotBucket,
@@ -1092,7 +1085,6 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     userPoolId: props.userPoolId,
     userPoolClientId: props.userPoolClientId,
     demoEmailDostip: props.demoEmailDostip,
-    guestAiWeightedMonthlyTokenCap: props.guestAiWeightedMonthlyTokenCap,
     mediaAssetsBucket: props.mediaAssetsBucket,
     catalogDumpFunction: props.catalogDumpFunction,
   });
@@ -1129,7 +1121,6 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     resendApiKeySecretArn: undefined,
     resendSenderEmail: undefined,
     demoEmailDostip: props.demoEmailDostip,
-    guestAiWeightedMonthlyTokenCap: props.guestAiWeightedMonthlyTokenCap,
     globalMetricsConfig: undefined,
     mediaAssetsBucket: props.mediaAssetsBucket,
     catalogDumpFunction: undefined,
@@ -1175,7 +1166,6 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     resendApiKeySecretArn: undefined,
     resendSenderEmail: undefined,
     demoEmailDostip: props.demoEmailDostip,
-    guestAiWeightedMonthlyTokenCap: props.guestAiWeightedMonthlyTokenCap,
     globalMetricsConfig: undefined,
     mediaAssetsBucket: undefined,
     catalogDumpFunction: undefined,

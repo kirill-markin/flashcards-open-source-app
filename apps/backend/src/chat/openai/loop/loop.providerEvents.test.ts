@@ -281,6 +281,7 @@ test("startOpenAILoopWithDeps retries a callIndex > 1 overflow once with the red
   const { sink, events } = collectEvents();
 
   const dependencies: OpenAILoopDependencies = {
+    appendAiUsageEvent: async () => undefined,
     buildChatCompletionInput: async () => [],
     buildChatCompletionInputWithBudget: async () => {
       reducedBudgetRebuilds += 1;

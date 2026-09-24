@@ -33,6 +33,7 @@ export function createParams(
     generatedImageEligible: false,
     generatedImageOperationDeadlineMs: Date.now() + 600_000,
     clientPlatform: null,
+    tierAtCall: "free",
     modelId: "gpt-5.6-terra",
     reasoningEffort: "xhigh",
     timezone: "Europe/Madrid",
@@ -339,6 +340,7 @@ export function createDependencies(
   return {
     buildChatCompletionInput: async () => [],
     buildChatCompletionInputWithBudget: async () => [],
+    appendAiUsageEvent: async () => undefined,
     getObservedOpenAIClient: () => ({
       responses: {
         create: async (

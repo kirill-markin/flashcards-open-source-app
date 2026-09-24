@@ -7,6 +7,10 @@ import {
   type GeneratedCardImageProviderDetails,
 } from "../../../observability/sentry";
 import { maximumImageIngestionOriginalBytes } from "../../../mediaAssets/validators";
+import {
+  toOpenAIImageUsageCounters,
+  type AiUsageCounters,
+} from "../../../aiUsage";
 import { GeneratedCardImageDeadlineExceededError } from "../providerTypes";
 import {
   type GeneratedProviderImage,
@@ -554,9 +558,12 @@ export class OpenAIGeneratedCardImageProvider {
           const providerRequestId = rawProviderResponse.headers.get("x-request-id");
 
           let imageBytes: Buffer;
+          let usageCounters: AiUsageCounters | null;
           try {
+            const providerResponse = await providerRequest;
+            usageCounters = toOpenAIImageUsageCounters(providerResponse.usage);
             imageBytes = decodeGeneratedCardImageBase64(
-              extractGeneratedImageBase64(await providerRequest),
+              extractGeneratedImageBase64(providerResponse),
             );
           } catch (error) {
             throw createInvalidProviderResponseError(
@@ -586,6 +593,7 @@ export class OpenAIGeneratedCardImageProvider {
           return {
             bytes: imageBytes,
             providerRequestId,
+            usageCounters,
           };
         } catch (error) {
           if (input.signal.aborted) {
