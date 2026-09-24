@@ -54,6 +54,18 @@ export const accountOpenSourceRoute: string = "/settings/open-source";
 export const accountAgentConnectionsRoute: string = "/settings/agent-connections";
 export const accountDangerZoneRoute: string = "/settings/delete-account";
 
+/**
+ * The workspace-scoped path space the app renders under: the route constants above that
+ * `AuthenticatedApp` serves are workspace-relative suffixes that `buildWorkspaceRoute` appends to
+ * `/w/<workspaceId>`. The public routes are the exception — `shareRoute`, the friend-invite,
+ * catalog-import and dev-preview prefixes and their patterns, collected in
+ * `unauthenticatedRoutePaths` and `unauthenticatedRoutePrefixes` below, are signed-out entry points
+ * that `App.tsx` mounts above `AuthenticatedApp`, so they stay top-level and never sit under a
+ * workspace.
+ */
+export const workspaceRoutePrefix: string = "/w";
+export const workspaceRoutePattern: string = `${workspaceRoutePrefix}/:workspaceId`;
+
 export function buildSettingsDeckDetailRoute(deckId: string): string {
   return `${settingsDecksRoute}/${deckId}`;
 }
@@ -72,6 +84,15 @@ export function buildFriendInvitePreviewRoute(state: string): string {
 
 export function buildSettingsAccessDetailRoute(accessKind: "camera" | "microphone" | "photos-and-files"): string {
   return `${settingsAccessRoute}/${accessKind}`;
+}
+
+/**
+ * `appPath` is one of the workspace-relative route constants above — never a public route, which
+ * `App.tsx` serves top-level — so it already starts with `/` and a `#hash` suffix such as
+ * `progressStreakRoute`'s rides along with the concatenation.
+ */
+export function buildWorkspaceRoute(workspaceId: string, appPath: string): string {
+  return `${workspaceRoutePrefix}/${encodeURIComponent(workspaceId)}${appPath}`;
 }
 
 /**
@@ -113,6 +134,41 @@ export function normalizeRoutePath(pathname: string): string {
   return withoutTrailingSlashes === "" ? "/" : withoutTrailingSlashes.toLowerCase();
 }
 
+/** Tested against an already normalized path, which is lowercased, hence no case-insensitive flag. */
+const workspaceIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
+
+/**
+ * Splits `/w/<workspaceId><appPath>` into the workspace it names and the path the app serves under
+ * it, so the classifiers below can read a workspace-scoped path as the app path it carries. A first
+ * segment that is not a UUID names no workspace, so that path is returned unsplit and classifies as
+ * it does today.
+ *
+ * `appPath` is always sliced out of the raw `pathname` — the remainder after the workspace segment
+ * when the prefix matched, `/` when nothing follows the workspace, and the untouched `pathname` when
+ * it did not match. Only the matching and the workspace-id check run on the normalized path, so a
+ * caller that forwards `appPath` into a redirect keeps a case-sensitive invite token or
+ * `packageVersionId` intact. Every classifier below normalizes what it gets back, so the three
+ * shapes classify alike. `workspaceId` is the normalized, lowercased segment.
+ */
+export function splitWorkspaceRoutePath(pathname: string): Readonly<{ workspaceId: string | null; appPath: string }> {
+  const path = normalizeRoutePath(pathname);
+  if (path.startsWith(`${workspaceRoutePrefix}/`) === false) {
+    return { workspaceId: null, appPath: pathname };
+  }
+
+  const afterPrefix = path.slice(workspaceRoutePrefix.length + 1);
+  const appPathStart = afterPrefix.indexOf("/");
+  const workspaceId = appPathStart === -1 ? afterPrefix : afterPrefix.slice(0, appPathStart);
+  if (workspaceIdPattern.test(workspaceId) === false) {
+    return { workspaceId: null, appPath: pathname };
+  }
+
+  // Sliced out of the raw `pathname` at the offset the normalized path reports, which holds because
+  // the prefix and the workspace id matched above are ASCII and identical in length in both.
+  const rawAppPath = pathname.slice(workspaceRoutePrefix.length + 1 + workspaceId.length);
+  return { workspaceId, appPath: rawAppPath === "" ? "/" : rawAppPath };
+}
+
 /**
  * Whether this path is served by `AuthenticatedApp`, which is the only element that mounts the app
  * data provider — and with it the analytics session owner publisher. Analytics reads this to tell a
@@ -120,7 +176,14 @@ export function normalizeRoutePath(pathname: string): string {
  * (apps/web/src/analytics/deliveryRuntime.ts).
  */
 export function isAuthenticatedAppPath(pathname: string): boolean {
-  const path = normalizeRoutePath(pathname);
+  const { workspaceId, appPath } = splitWorkspaceRoutePath(pathname);
+  if (workspaceId !== null) {
+    // Nothing is mounted above `AuthenticatedApp` under `/w/<workspaceId>`: the public routes are
+    // top-level only, so any path carrying a recognised workspace segment falls to `/*`.
+    return true;
+  }
+
+  const path = normalizeRoutePath(appPath);
   return unauthenticatedRoutePaths.includes(path) === false
     && unauthenticatedRoutePrefixes.some((prefix) => hasOneSegmentUnder(prefix, path)) === false;
 }
