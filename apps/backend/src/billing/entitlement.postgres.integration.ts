@@ -630,6 +630,14 @@ test("a guest upgrade moves the paid history and merges the billing state withou
       );
       assert.deepEqual(billingStates.rows, [
         {
+          user_id: fixture.userId,
+          ever_purchased_at: new Date("2026-03-01T00:00:00.000Z"),
+          // The earlier consumed trial wins, and its provider travels with it.
+          trial_provider: "apple",
+          stripe_customer_id: movingStripeCustomerId,
+          apple_app_account_token: targetAppleToken,
+        },
+        {
           // The retired row survives, because nothing may delete it, and keeps the handle that did not
           // move: the destination already had an Apple token, and overwriting it would make Apple's
           // notifications for that purchase unattributable.
@@ -638,14 +646,6 @@ test("a guest upgrade moves the paid history and merges the billing state withou
           trial_provider: "apple",
           stripe_customer_id: null,
           apple_app_account_token: guestAppleToken,
-        },
-        {
-          user_id: fixture.userId,
-          ever_purchased_at: new Date("2026-03-01T00:00:00.000Z"),
-          // The earlier consumed trial wins, and its provider travels with it.
-          trial_provider: "apple",
-          stripe_customer_id: movingStripeCustomerId,
-          apple_app_account_token: targetAppleToken,
         },
       ]);
 
