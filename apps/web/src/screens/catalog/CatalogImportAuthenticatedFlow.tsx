@@ -177,6 +177,7 @@ function buildCatalogPreviewModel(
   preview: CatalogPackageInstallPreviewResponse,
   t: (key: TranslationKey, values?: TranslationValues) => string,
   formatNumber: (value: number) => string,
+  formatCardCount: (value: number) => string,
 ): WorkspaceImportPreviewModel {
   return {
     statistics: [
@@ -218,7 +219,7 @@ function buildCatalogPreviewModel(
       tag: tagCount.tag,
       removalLabel: t("workspaceImport.previewRemoveTagLabel", {
         tag: tagCount.tag,
-        count: tagCount.cardsCount,
+        count: formatCardCount(tagCount.cardsCount),
       }),
     })),
     suggestedImportTag: preview.defaultOptions.suggestedImportTag,
@@ -318,7 +319,7 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
     sessionLoadState,
   } = useAppData();
   const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
-  const { t, formatNumber } = useI18n();
+  const { messages, t, formatCount, formatNumber } = useI18n();
   const isWorkspaceChoiceAvailable = availableWorkspaces.length > 1;
   const [step, setStep] = useState<CatalogImportStep>(() => (isWorkspaceChoiceAvailable ? "workspace" : "confirm"));
   const [hasWorkspaceStep, setHasWorkspaceStep] = useState<boolean>(isWorkspaceChoiceAvailable);
@@ -372,7 +373,9 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
     && workspaceIdentity !== null
     && isSameCatalogWorkspaceIdentity(previewIdentity, workspaceIdentity);
   const areImportOptionsLocked = installAttempt !== null;
-  const previewModel = preview === null ? null : buildCatalogPreviewModel(preview, t, formatNumber);
+  const previewModel = preview === null
+    ? null
+    : buildCatalogPreviewModel(preview, t, formatNumber, (value) => formatCount(value, messages.common.countLabels.card));
   const workspaceErrorMessage = syncState.status === "idle" ? appDataErrorMessage : "";
   const canRetryPreview = preview === null && errorMessage !== "" && isImportAvailable && !isImportBusy;
 
