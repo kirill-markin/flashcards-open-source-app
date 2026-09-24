@@ -2,10 +2,20 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
 import { Hono } from "hono";
+import type pg from "pg";
+import type { DatabaseExecutor, SqlValue } from "../database";
 import { createSyncRoutes } from "../routes/sync";
 import type { AppEnv } from "../server/app";
 import type { RequestContext } from "../server/requestContext";
-import { withPostgresIntegrationFixture } from "../testSupport/postgresIntegration";
+import {
+  withPostgresIntegrationFixture,
+  type PostgresIntegrationFixture,
+} from "../testSupport/postgresIntegration";
+import { createWebGuestEverPurchasedGuardSql } from "../guestAuth/reaper";
+import {
+  anonymizeBillingForDeletedPersonInExecutor,
+  transferBillingToUpgradedAccountInExecutor,
+} from "./identity";
 import {
   resolveEntitlementSnapshotForUser,
   type EntitlementWire,
@@ -444,6 +454,455 @@ test("an entitlement change that moves access is recorded as a server-derived fa
         [billingUserId],
       );
       await fixture.ownerPool.query("DELETE FROM billing.grants WHERE user_id = $1", [billingUserId]);
+    }
+  });
+});
+
+// One person's billing rows as an identity rewrite leaves them.
+type BillingIdentityRow = Readonly<{
+  user_id: string | null;
+  previous_user_id: string | null;
+  account_deleted_at: Date | null;
+}>;
+
+type BillingStateIdentityRow = Readonly<{
+  user_id: string;
+  ever_purchased_at: Date | null;
+  trial_provider: string | null;
+  stripe_customer_id: string | null;
+  apple_app_account_token: string | null;
+}>;
+
+type ProviderEventIdentityRow = Readonly<{
+  user_id: string | null;
+  payload: unknown;
+  payload_raw: string;
+}>;
+
+type SnapshotUserIdRow = Readonly<{ user_id: string }>;
+
+/**
+ * Runs one identity rewrite as `backend_app` and throws the rows away afterwards.
+ *
+ * Rolled back rather than cleaned up because these tables are the ones this role may not delete from,
+ * and because the rewrites mint identifiers of their own that a cleanup statement could not name. The
+ * seeds, the rewrite and the read-back all run on the one connection, so what is asserted is what the
+ * statements actually left behind.
+ */
+async function withRolledBackBillingTransaction(
+  fixture: PostgresIntegrationFixture,
+  work: (executor: DatabaseExecutor) => Promise<void>,
+): Promise<void> {
+  const client = await fixture.runtimePool.connect();
+  try {
+    await client.query("BEGIN");
+    await work({
+      query: async <Row extends pg.QueryResultRow>(
+        text: string,
+        params: ReadonlyArray<SqlValue>,
+      ): Promise<pg.QueryResult<Row>> => client.query<Row>(text, [...params]),
+    });
+  } finally {
+    await client.query("ROLLBACK");
+    client.release();
+  }
+}
+
+async function insertPurchase(
+  executor: DatabaseExecutor,
+  userId: string,
+  previousUserId: string | null,
+  providerPurchaseId: string,
+): Promise<void> {
+  await executor.query(
+    [
+      "INSERT INTO billing.purchases (",
+      "provider, provider_purchase_id, kind, user_id, previous_user_id, tier, status, environment",
+      ") VALUES ('stripe', $1, 'subscription', $2, $3, 'premium', 'active', 'production')",
+    ].join(" "),
+    [providerPurchaseId, userId, previousUserId],
+  );
+}
+
+async function insertBillingState(
+  executor: DatabaseExecutor,
+  row: Readonly<{
+    userId: string;
+    createdAt: string;
+    trialConsumedAt: string | null;
+    trialProvider: string | null;
+    everPurchasedAt: string | null;
+    stripeCustomerId: string | null;
+    appleAppAccountToken: string | null;
+  }>,
+): Promise<void> {
+  await executor.query(
+    [
+      "INSERT INTO billing.user_billing_state (",
+      "user_id, trial_consumed_at, trial_provider, ever_purchased_at, stripe_customer_id,",
+      "apple_app_account_token, created_at",
+      ") VALUES ($1, $2, $3, $4, $5, $6::uuid, $7)",
+    ].join(" "),
+    [
+      row.userId,
+      row.trialConsumedAt,
+      row.trialProvider,
+      row.everPurchasedAt,
+      row.stripeCustomerId,
+      row.appleAppAccountToken,
+      row.createdAt,
+    ],
+  );
+}
+
+// The transfer's hard part is a database rule rather than a decision: each provider handle carries a
+// partial unique index (0151), the retired guest row is not deletable, and a partial unique index cannot
+// be deferred, so writing a moving handle on the destination before clearing it on the guest fails with
+// 23505. Only a real transaction shows that, and only a real one shows that a person's whole paid
+// history survives an upgrade under the grants this role actually holds.
+test("a guest upgrade moves the paid history and merges the billing state without colliding on a handle", async () => {
+  await withPostgresIntegrationFixture(async (fixture) => {
+    const guestUserId = `${fixture.userId}-guest`;
+    const movingStripeCustomerId = `cus_${randomUUID()}`;
+    const guestAppleToken = randomUUID();
+    const targetAppleToken = randomUUID();
+    await withRolledBackBillingTransaction(fixture, async (executor) => {
+      await insertPurchase(executor, guestUserId, null, `transfer-${randomUUID()}`);
+      await executor.query(
+        [
+          "INSERT INTO billing.grants (user_id, tier, source, reason)",
+          "VALUES ($1, 'premium', 'gift', 'Billing identity integration test')",
+        ].join(" "),
+        [guestUserId],
+      );
+      await insertBillingState(executor, {
+        userId: guestUserId,
+        createdAt: "2026-01-01T00:00:00.000Z",
+        trialConsumedAt: "2026-01-01T00:00:00.000Z",
+        trialProvider: "apple",
+        everPurchasedAt: "2026-03-01T00:00:00.000Z",
+        stripeCustomerId: movingStripeCustomerId,
+        appleAppAccountToken: guestAppleToken,
+      });
+      await insertBillingState(executor, {
+        userId: fixture.userId,
+        createdAt: "2026-02-01T00:00:00.000Z",
+        trialConsumedAt: "2026-02-01T00:00:00.000Z",
+        trialProvider: "stripe",
+        everPurchasedAt: null,
+        stripeCustomerId: null,
+        appleAppAccountToken: targetAppleToken,
+      });
+      await executor.query(
+        [
+          "INSERT INTO billing.entitlement_snapshots (user_id, tier, status, source)",
+          "VALUES ($1, 'premium', 'active', 'purchase')",
+        ].join(" "),
+        [guestUserId],
+      );
+
+      await transferBillingToUpgradedAccountInExecutor(executor, guestUserId, fixture.userId);
+
+      const purchases = await executor.query<BillingIdentityRow>(
+        [
+          "SELECT user_id, previous_user_id, account_deleted_at",
+          "FROM billing.purchases",
+          "WHERE user_id = ANY($1::text[]) OR previous_user_id = ANY($1::text[])",
+        ].join(" "),
+        [[guestUserId, fixture.userId]],
+      );
+      assert.deepEqual(purchases.rows, [{
+        user_id: fixture.userId,
+        previous_user_id: guestUserId,
+        // A transfer is not a deletion: the purchase stays live for the person who now holds it.
+        account_deleted_at: null,
+      }]);
+
+      const billingStates = await executor.query<BillingStateIdentityRow>(
+        [
+          "SELECT user_id, ever_purchased_at, trial_provider, stripe_customer_id,",
+          "apple_app_account_token::text AS apple_app_account_token",
+          "FROM billing.user_billing_state",
+          "WHERE user_id = ANY($1::text[])",
+          "ORDER BY user_id",
+        ].join(" "),
+        [[guestUserId, fixture.userId]],
+      );
+      assert.deepEqual(billingStates.rows, [
+        {
+          user_id: fixture.userId,
+          ever_purchased_at: new Date("2026-03-01T00:00:00.000Z"),
+          // The earlier consumed trial wins, and its provider travels with it.
+          trial_provider: "apple",
+          stripe_customer_id: movingStripeCustomerId,
+          apple_app_account_token: targetAppleToken,
+        },
+        {
+          // The retired row survives, because nothing may delete it, and keeps the handle that did not
+          // move: the destination already had an Apple token, and overwriting it would make Apple's
+          // notifications for that purchase unattributable.
+          user_id: guestUserId,
+          ever_purchased_at: new Date("2026-03-01T00:00:00.000Z"),
+          trial_provider: "apple",
+          stripe_customer_id: null,
+          apple_app_account_token: guestAppleToken,
+        },
+      ]);
+
+      // The guest's cache entry goes rather than moving: the destination's next resolution recomputes
+      // its own from the purchase and grant that just arrived.
+      const snapshots = await executor.query<SnapshotUserIdRow>(
+        "SELECT user_id FROM billing.entitlement_snapshots WHERE user_id = ANY($1::text[])",
+        [[guestUserId, fixture.userId]],
+      );
+      assert.deepEqual(snapshots.rows, []);
+    });
+  });
+});
+
+// Erasure here is an UPDATE throughout, because this role holds no DELETE on four of the five tables.
+// What a real transaction proves is that the rewrite is possible at all under those grants, that
+// stamping a deleted account cannot invalidate a purchase somebody else now holds, and that a person
+// carrying two billing-state rows does not collide on the primary key those rows are keyed by.
+test("account deletion anonymises the billing history without deleting a row", async () => {
+  await withPostgresIntegrationFixture(async (fixture) => {
+    const mergedGuestUserId = `${fixture.userId}-merged-guest`;
+    const otherPersonUserId = `${fixture.userId}-other-person`;
+    const anonymizedUserId = randomUUID();
+    const personUserIds = [fixture.userId, mergedGuestUserId];
+    const ownPurchaseId = `erasure-own-${randomUUID()}`;
+    const transferredPurchaseId = `erasure-transferred-${randomUUID()}`;
+    const accountStripeCustomerId = `cus_${randomUUID()}`;
+    await withRolledBackBillingTransaction(fixture, async (executor) => {
+      await insertPurchase(executor, fixture.userId, null, ownPurchaseId);
+      // Bought by this person and since transferred away, so it is somebody else's live access now.
+      await insertPurchase(executor, otherPersonUserId, fixture.userId, transferredPurchaseId);
+      await executor.query(
+        [
+          "INSERT INTO billing.provider_events (",
+          "provider, event_id, event_type, payload_raw, payload, provider_purchase_id, environment",
+          ") VALUES ('stripe', $1, 'customer.subscription.updated', $2, $3::jsonb, $4, 'production')",
+        ].join(" "),
+        [
+          `erasure-event-${randomUUID()}`,
+          '{"customer_email":"person@example.com"}',
+          '{"customer_email":"person@example.com"}',
+          ownPurchaseId,
+        ],
+      );
+      // A second event on the same purchase, this one already attributed, so both arms of the user_id
+      // CASE are executed: this row is renamed, the row above keeps the NULL it was inserted with.
+      await executor.query(
+        [
+          "INSERT INTO billing.provider_events (",
+          "provider, event_id, event_type, payload_raw, payload, user_id, provider_purchase_id,",
+          "environment",
+          ") VALUES ('stripe', $1, 'customer.subscription.deleted', $2, $3::jsonb, $4, $5, 'production')",
+        ].join(" "),
+        [
+          `erasure-event-attributed-${randomUUID()}`,
+          '{"customer_email":"person@example.com"}',
+          '{"customer_email":"person@example.com"}',
+          fixture.userId,
+          ownPurchaseId,
+        ],
+      );
+      // A third event on that same purchase, from before it was transferred in, so it names the person
+      // who held it then. This is the case the CASE exists for: the row is in reach through the purchase,
+      // which is this person's now, so its payload goes — but the id belongs to somebody who has asked
+      // for nothing, and an unconditional assignment would stamp this person's pseudonym over it and
+      // misattribute their notification.
+      await executor.query(
+        [
+          "INSERT INTO billing.provider_events (",
+          "provider, event_id, event_type, payload_raw, payload, user_id, provider_purchase_id,",
+          "environment",
+          ") VALUES ('stripe', $1, 'customer.subscription.created', $2, $3::jsonb, $4, $5, 'production')",
+        ].join(" "),
+        [
+          `erasure-event-previous-holder-${randomUUID()}`,
+          '{"customer_email":"previous-holder@example.com"}',
+          '{"customer_email":"previous-holder@example.com"}',
+          otherPersonUserId,
+          ownPurchaseId,
+        ],
+      );
+      await insertBillingState(executor, {
+        userId: fixture.userId,
+        createdAt: "2026-02-01T00:00:00.000Z",
+        trialConsumedAt: null,
+        trialProvider: null,
+        everPurchasedAt: "2026-03-01T00:00:00.000Z",
+        stripeCustomerId: accountStripeCustomerId,
+        appleAppAccountToken: null,
+      });
+      // The second row exists because a guest upgrade merged two identities that each already had
+      // billing state, and the row retired there cannot be deleted.
+      await insertBillingState(executor, {
+        userId: mergedGuestUserId,
+        createdAt: "2026-01-01T00:00:00.000Z",
+        trialConsumedAt: "2026-01-01T00:00:00.000Z",
+        trialProvider: "apple",
+        everPurchasedAt: null,
+        stripeCustomerId: null,
+        appleAppAccountToken: randomUUID(),
+      });
+      await executor.query(
+        [
+          "INSERT INTO billing.entitlement_snapshots (user_id, tier, status, source)",
+          "VALUES ($1, 'premium', 'active', 'purchase')",
+        ].join(" "),
+        [fixture.userId],
+      );
+
+      await anonymizeBillingForDeletedPersonInExecutor(executor, personUserIds, anonymizedUserId);
+
+      const purchases = await executor.query<BillingIdentityRow>(
+        [
+          "SELECT user_id, previous_user_id, account_deleted_at",
+          "FROM billing.purchases",
+          "WHERE provider_purchase_id = ANY($1::text[])",
+          "ORDER BY provider_purchase_id",
+        ].join(" "),
+        [[ownPurchaseId, transferredPurchaseId]],
+      );
+      const ownPurchase = purchases.rows[0];
+      const transferredPurchase = purchases.rows[1];
+      assert.equal(ownPurchase?.user_id, anonymizedUserId);
+      assert.notEqual(ownPurchase?.account_deleted_at, null);
+      // The purchase this person sold on keeps naming its current holder and keeps granting: the
+      // resolver ignores a purchase carrying account_deleted_at, so stamping it here would strip
+      // somebody else of access they paid for.
+      assert.equal(transferredPurchase?.user_id, otherPersonUserId);
+      assert.equal(transferredPurchase?.previous_user_id, anonymizedUserId);
+      assert.equal(transferredPurchase?.account_deleted_at, null);
+
+      const providerEvents = await executor.query<ProviderEventIdentityRow>(
+        [
+          "SELECT user_id, payload, payload_raw",
+          "FROM billing.provider_events",
+          "WHERE provider_purchase_id = $1",
+          "ORDER BY event_type",
+        ].join(" "),
+        [ownPurchaseId],
+      );
+      // All three rows are reached through the purchase, and all three lose the payload the buyer's
+      // details were in. Only the one that named this person is renamed: writing the pseudonym into a
+      // NULL would assert that the notification concerned them, which the row never said, and writing it
+      // over the previous holder's id would take a third party's attribution with it.
+      assert.deepEqual(providerEvents.rows, [
+        { user_id: otherPersonUserId, payload: null, payload_raw: "" },
+        { user_id: anonymizedUserId, payload: null, payload_raw: "" },
+        { user_id: null, payload: null, payload_raw: "" },
+      ]);
+
+      const billingStates = await executor.query<BillingStateIdentityRow>(
+        [
+          "SELECT user_id, ever_purchased_at, trial_provider, stripe_customer_id,",
+          "apple_app_account_token::text AS apple_app_account_token",
+          "FROM billing.user_billing_state",
+          "WHERE user_id = ANY($1::text[]) OR user_id = $2",
+          "ORDER BY created_at",
+        ].join(" "),
+        [personUserIds, anonymizedUserId],
+      );
+      // Both rows survive, and neither names the person. user_id is this table's primary key, so only
+      // the older can take the shared pseudonym; the other takes a fresh id of its own.
+      assert.equal(billingStates.rows.length, 1);
+      assert.equal(billingStates.rows[0]?.user_id, anonymizedUserId);
+      assert.equal(billingStates.rows[0]?.trial_provider, "apple");
+      // The younger row is found by the handle it still holds, because the id it now carries is one the
+      // statement minted. Nothing was deleted, it no longer names the person, and it did not collide
+      // with the pseudonym the older row took.
+      const retiredStates = await executor.query<SnapshotUserIdRow>(
+        "SELECT user_id FROM billing.user_billing_state WHERE stripe_customer_id = $1",
+        [accountStripeCustomerId],
+      );
+      assert.equal(retiredStates.rows.length, 1);
+      const retiredStateUserId = retiredStates.rows[0]?.user_id ?? "";
+      assert.equal(personUserIds.includes(retiredStateUserId), false);
+      assert.notEqual(retiredStateUserId, anonymizedUserId);
+
+      // The one billing row erasure may drop, because it is a cache: a copy of it under a pseudonym is a
+      // row no rebuild would ever produce again.
+      const snapshots = await executor.query<SnapshotUserIdRow>(
+        "SELECT user_id FROM billing.entitlement_snapshots WHERE user_id = ANY($1::text[]) OR user_id = $2",
+        [personUserIds, anonymizedUserId],
+      );
+      assert.deepEqual(snapshots.rows, []);
+    });
+  });
+});
+
+// The reaper's purchase guard is the only thing between a person who paid and permanent deletion, and
+// both of its readers are SQL: nothing in a unit test can execute either. It is also the failure mode
+// that hides, because it fails open - if the reporting role ever lost the column grant or the policy
+// migration 0151 gives it, the subquery would see nothing, `NOT EXISTS` would turn true, and every
+// paying guest would quietly become reapable. So this runs the exported clause itself, under both roles
+// that have to be able to see through it: backend_app, which runs the in-transaction re-check, and
+// reporting_readonly, which runs the candidate scan. The reporting side reaches the role through
+// `SET LOCAL ROLE` on the owner connection, because the boundary child is given no reporting connection
+// string; the administrative role is a superuser, and a superuser that has set a non-owner role is
+// subject to row-level security exactly as that role is, which is the property being tested.
+type GuardRow = Readonly<{ spared: boolean }>;
+
+const everPurchasedGuardQuery =
+  `SELECT NOT (${createWebGuestEverPurchasedGuardSql("$1")}) AS spared`;
+
+test("the reaper's purchase guard spares a paying guest under both roles that read it", async () => {
+  await withPostgresIntegrationFixture(async (fixture) => {
+    const payingGuestUserId = `${fixture.userId}-paying-guest`;
+    const freeGuestUserId = `${fixture.userId}-free-guest`;
+    try {
+      await fixture.ownerPool.query(
+        [
+          "INSERT INTO billing.user_billing_state (user_id, ever_purchased_at)",
+          "VALUES ($1, $2::timestamptz)",
+        ].join(" "),
+        [payingGuestUserId, "2026-03-01T00:00:00.000Z"],
+      );
+      // A guest who never paid, so the clause is shown to discriminate rather than always spare.
+      await fixture.ownerPool.query(
+        "INSERT INTO billing.user_billing_state (user_id) VALUES ($1)",
+        [freeGuestUserId],
+      );
+
+      const runtimeSpared = await fixture.runtimePool.query<GuardRow>(
+        everPurchasedGuardQuery,
+        [payingGuestUserId],
+      );
+      assert.equal(runtimeSpared.rows[0]?.spared, true);
+      const runtimeReapable = await fixture.runtimePool.query<GuardRow>(
+        everPurchasedGuardQuery,
+        [freeGuestUserId],
+      );
+      assert.equal(runtimeReapable.rows[0]?.spared, false);
+
+      const reportingClient = await fixture.ownerPool.connect();
+      try {
+        await reportingClient.query("BEGIN");
+        await reportingClient.query("SET LOCAL ROLE reporting_readonly");
+        const reportingSpared = await reportingClient.query<GuardRow>(
+          everPurchasedGuardQuery,
+          [payingGuestUserId],
+        );
+        // The row is visible to the scanning role through 0151's policy and its column grant. A false
+        // here is the silent failure: the guest looks like they never paid.
+        assert.equal(reportingSpared.rows[0]?.spared, true);
+        const reportingReapable = await reportingClient.query<GuardRow>(
+          everPurchasedGuardQuery,
+          [freeGuestUserId],
+        );
+        assert.equal(reportingReapable.rows[0]?.spared, false);
+        await reportingClient.query("COMMIT");
+      } finally {
+        reportingClient.release();
+      }
+    } finally {
+      await fixture.ownerPool.query(
+        "DELETE FROM billing.user_billing_state WHERE user_id = ANY($1::text[])",
+        [[payingGuestUserId, freeGuestUserId]],
+      );
     }
   });
 });

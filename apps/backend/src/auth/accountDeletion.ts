@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { deleteCognitoUser } from "./cognitoUsers";
+import { anonymizeAiUsageForDeletedPersonInExecutor } from "../aiUsage/identity";
+import { anonymizeBillingForDeletedPersonInExecutor } from "../billing/identity";
 import {
   applyUserDatabaseScopeInExecutor,
   type DatabaseExecutor,
@@ -120,8 +122,8 @@ async function loadAnalyticsUserIdsForPersonInExecutor(
 /**
  * Anonymizes the analytics history of one account instead of erasing it.
  *
- * The replacement pseudonym is generated here and stored nowhere, the links that
- * could resolve it back to the person are removed in the same transaction, and
+ * The replacement pseudonym is minted by the caller and stored nowhere, the links
+ * that could resolve it back to the person are removed in the same transaction, and
  * every remaining column that a table outliving account deletion could join on
  * is cleared, the identity, session and workspace columns alike. So this is
  * one-way: no mapping survives anywhere and it cannot be undone.
@@ -130,14 +132,14 @@ async function loadAnalyticsUserIdsForPersonInExecutor(
  * phase included, so their whole history collapses to a single unlinkable
  * identity rather than to several that stay separable from each other.
  *
- * Returns the person-wide ids it covered, which only a permanent deletion goes on
- * to erase the analytics exclusion rows for.
+ * Returns the person-wide ids it covered, which the billing and usage rewrites need
+ * and which only a permanent deletion goes on to erase the analytics exclusion rows for.
  */
 async function anonymizeProductAnalyticsInExecutor(
   executor: DatabaseExecutor,
   appUserId: string,
+  anonymizedUserId: string,
 ): Promise<Array<string>> {
-  const anonymizedUserId = randomUUID();
   const personUserIds = await loadAnalyticsUserIdsForPersonInExecutor(executor, appUserId);
 
   // Resolve installations before clearing event identities and links. Shared-device profiles are
@@ -308,7 +310,21 @@ async function deleteRealAccountDataInExecutor(
   // connection, so the row is already stored when the sweep runs and is collapsed onto the same
   // pseudonym as the rest of this person's history. See recordAccountDeletedAnalytics.
   await recordAccountDeletedAnalytics(appUserId);
-  const personUserIds = await anonymizeProductAnalyticsInExecutor(executor, appUserId);
+  // One pseudonym for all three histories, minted here rather than inside any of them: an anonymiser
+  // that minted its own would leave one person's analytics, purchases and AI spend under identifiers
+  // nothing could ever bring back together (docs/premium-entitlements.md, "Deletion"). Analytics keys on
+  // a UUID column while billing and AI usage key on the textual org.user_settings.user_id space, where a
+  // Cognito subject is a UUID string too, so one value is the right shape for both.
+  const anonymizedUserId = randomUUID();
+  const personUserIds = await anonymizeProductAnalyticsInExecutor(
+    executor,
+    appUserId,
+    anonymizedUserId,
+  );
+  // Both rewrites take the person-wide ids the analytics walk resolved rather than the account id: a
+  // purchase or an AI call made during the guest phase belongs to the same person.
+  await anonymizeBillingForDeletedPersonInExecutor(executor, personUserIds, anonymizedUserId);
+  await anonymizeAiUsageForDeletedPersonInExecutor(executor, personUserIds, anonymizedUserId);
   await eraseAnalyticsExclusionsInExecutor(executor, personUserIds);
   await markDeletedSubjectInExecutor(executor, authSubjectUserId);
 }
@@ -321,7 +337,9 @@ async function deleteRealAccountDataInExecutor(
  * the `@example.com` domain. Real user accounts must not use it.
  *
  * The account id survives the reset and signs in again, so no person is erased here
- * and any analytics exclusion row naming that id stays, restore included.
+ * and any analytics exclusion row naming that id stays, restore included. Its billing rows and AI usage
+ * facts stay under that id for the same reason: nobody has left, and stamping a purchase as belonging to
+ * a deleted account would strip the review account of access it still holds.
  *
  * It reports no `account_deleted` for the same reason: nobody left, and the same review account is
  * reset again on every review cycle, so counting these would make the deletion metric a measure of
@@ -332,7 +350,7 @@ async function deleteDemoAccountDataInExecutor(
   appUserId: string,
 ): Promise<void> {
   await deleteAccountDataInExecutor(executor, appUserId);
-  await anonymizeProductAnalyticsInExecutor(executor, appUserId);
+  await anonymizeProductAnalyticsInExecutor(executor, appUserId, randomUUID());
 }
 
 async function deleteCognitoIdentity(
