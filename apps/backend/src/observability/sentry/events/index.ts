@@ -75,6 +75,9 @@ export type {
   WorkspaceTransactionDetails,
 } from "./product";
 export type {
+  AiUsageAllowanceResolutionFailureDetails,
+  AiUsageEventWriteFailureDetails,
+  AiUsageMeteringDetails,
   ChatLiveAttachDetails,
   ChatLiveBootstrapFailureDetails,
   ChatLiveLifecycleDetails,

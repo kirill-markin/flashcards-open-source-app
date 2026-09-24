@@ -1,0 +1,306 @@
+import {
+  isAiMonthlyAllowanceUncappedForEveryTier,
+  type AccountKind,
+} from "../billing/limits";
+import { resolveEntitlementSnapshotForUser } from "../billing/snapshot";
+import {
+  freeEntitlementTier,
+  type EntitlementTier,
+} from "../billing/tiers";
+import { unsafeQuery } from "../database/unsafe";
+import {
+  captureBackendRuntimeWarning,
+  createBackendRuntimeObservationScope,
+} from "../observability/runtime";
+import { getBackendErrorLogDetails } from "../observability/sentry";
+import { HttpError } from "../shared/errors";
+import type { AiUsageCounters } from "./record";
+
+/**
+ * The error code every refused AI call carries, on every surface and for every caller. It replaces the
+ * guest-only `GUEST_AI_LIMIT_REACHED`, and the status and body around it are unchanged so that the
+ * handling path already shipped in every client is reused: iOS, Android and web accept this code beside
+ * the old one and choose their own copy from the account state they already know.
+ */
+export const aiLimitReachedCode: string = "AI_LIMIT_REACHED";
+
+/**
+ * Kept verbatim from the guest quota this replaces. A client that only knows the old code falls back to
+ * showing this string, so changing it would change what already-released clients say.
+ */
+const aiLimitReachedMessage =
+  "Your free monthly AI limit is used up on this device. Create an account to keep going.";
+
+/**
+ * How raw counters become the one number a monthly allowance is compared against. Output tokens weigh
+ * six times an input token, which is the weighting the guest quota already applied
+ * (`calculateGuestChatWeightedTokens`), kept so the allowance keeps its unit across the cutover.
+ *
+ * Only the two token counters take part. `cache_read_tokens`, `cache_write_tokens` and
+ * `reasoning_tokens` are breakdowns of those two on the OpenAI APIs this repository calls, so weighting
+ * them as well would count the same token twice. `audio_seconds` and `image_count` carry no weight
+ * because every surface here reports tokens today.
+ *
+ * A row that carries none of the weighted counters therefore weighs zero, and the surface it came from
+ * is uncapped until a weight is decided for the counter it does carry. That is the standing decision for
+ * the duration-billed transcription shape in particular: a `{ type: "duration" }` dictation report is
+ * recorded, is priceable against `ai.model_prices`, and counts as nothing against the allowance. No
+ * weight is invented for it here, because the weight of a second of audio is a pricing decision rather
+ * than an arithmetic one. It is not silent either: `appendAiUsageEvent` warns on every such row through
+ * `countersCarryWeightedAiUsage` below, so the gap is countable while it lasts.
+ */
+export const aiWeightedOutputTokenMultiplier: number = 6;
+
+/**
+ * Whether a counters object carries anything the weighting above turns into a number. It lives beside
+ * that weighting on purpose: the predicate and the SQL that weighs the rows must never disagree about
+ * which counters count.
+ */
+export function countersCarryWeightedAiUsage(counters: AiUsageCounters): boolean {
+  return counters.inputTokens !== null || counters.outputTokens !== null;
+}
+
+const MONTHLY_WEIGHTED_TOKENS_SQL = [
+  "SELECT COALESCE(SUM(",
+  "COALESCE(input_tokens, 0)",
+  `+ (${String(aiWeightedOutputTokenMultiplier)} * COALESCE(output_tokens, 0))`,
+  "), 0)::bigint AS weighted_tokens",
+  "FROM ai.usage_events",
+  "WHERE user_id = $1 AND occurred_at >= $2 AND occurred_at < $3",
+].join(" ");
+
+type MonthlyWeightedTokensRow = Readonly<{
+  weighted_tokens: string | number;
+}>;
+
+/**
+ * The window a monthly allowance is measured over: `[startsAt, endsAt)`.
+ */
+export type AiUsageMonthWindow = Readonly<{
+  startsAt: Date;
+  endsAt: Date;
+}>;
+
+/**
+ * What this person may spend this month, resolved rather than inferred. `monthlyWeightedTokens` is
+ * `null` when no cap is enforced for them, which is how the limits table expresses "uncapped" - it is
+ * not a missing value and must never be read as zero.
+ */
+export type AiUsageAllowance = Readonly<{
+  tier: EntitlementTier;
+  monthlyWeightedTokens: number | null;
+}>;
+
+/**
+ * The AI spend window is a calendar month in UTC for everybody, whatever timezone they are in. This is
+ * the rule's only home in code: it used to live in the guest quota's `YYYY-MM` month key, which this
+ * change deletes, and in `auth.guest_ai_monthly_usage.usage_month`, which stops being read here.
+ *
+ * It deliberately differs from the progress and streak endpoints, which resolve a day in the caller's
+ * timezone and echo it back (`apps/backend/src/progress/timeZone.ts`). Those answer "what did I do
+ * today", a question about the person's day; this answers "how much have we paid for", a question about
+ * our month. The two must not be unified.
+ */
+export function getAiUsageMonthWindow(now: Date): AiUsageMonthWindow {
+  return {
+    startsAt: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)),
+    endsAt: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)),
+  };
+}
+
+/**
+ * Sums the facts themselves. A monthly total is never stored: it is derived from the rows every call
+ * appended, so a correction is a new row and nothing has to be rewritten, which is what lets
+ * `ai.usage_events` stay append-only.
+ *
+ * `SUM` of `bigint` comes back as `numeric`, which the driver hands over as a string.
+ */
+export async function loadAiUsageWeightedTokensForMonth(
+  userId: string,
+  window: AiUsageMonthWindow,
+): Promise<number> {
+  const result = await unsafeQuery<MonthlyWeightedTokensRow>(
+    MONTHLY_WEIGHTED_TOKENS_SQL,
+    [userId, window.startsAt.toISOString(), window.endsAt.toISOString()],
+  );
+  const row = result.rows[0];
+  if (row === undefined) {
+    throw new Error("The AI monthly usage sum returned no row.");
+  }
+
+  const weightedTokens = typeof row.weighted_tokens === "number"
+    ? row.weighted_tokens
+    : Number.parseInt(row.weighted_tokens, 10);
+  if (!Number.isSafeInteger(weightedTokens)) {
+    throw new Error(`The AI monthly usage sum is not a readable integer: ${String(row.weighted_tokens)}`);
+  }
+
+  return weightedTokens;
+}
+
+/**
+ * The person's allowance, read through the billing module so that no surface re-derives a tier or maps
+ * one to a number of its own (docs/premium-entitlements.md, "Limits resolve on the backend").
+ */
+export async function resolveAiUsageAllowance(
+  userId: string,
+  accountKind: AccountKind,
+  now: Date,
+): Promise<AiUsageAllowance> {
+  const entitlement = await resolveEntitlementSnapshotForUser(userId, accountKind, now);
+  return {
+    tier: entitlement.tier,
+    monthlyWeightedTokens: entitlement.limits.aiMonthlyWeightedTokens,
+  };
+}
+
+/**
+ * Refuses the next call once this month's facts reach the allowance.
+ *
+ * There is no pre-call estimate and no mid-call abort: the call that crosses the allowance completes,
+ * and the next one is refused. Estimating what a call will cost before making it would need a number
+ * nobody has, and the alternative of charging an estimate and correcting it afterwards is exactly the
+ * pre-weighted total the fact table exists to avoid.
+ *
+ * On an already-resolved allowance this is the half that is safe to call inside somebody else's
+ * transaction: it reads `ai.usage_events` and writes nothing, and on an uncapped allowance it returns
+ * before reading anything at all.
+ */
+export async function assertAiUsageAllowanceNotReached(
+  allowance: AiUsageAllowance,
+  userId: string,
+  now: Date,
+): Promise<void> {
+  const monthlyWeightedTokens = allowance.monthlyWeightedTokens;
+  if (monthlyWeightedTokens === null) {
+    return;
+  }
+
+  const usedWeightedTokens = await loadAiUsageWeightedTokensForMonth(
+    userId,
+    getAiUsageMonthWindow(now),
+  );
+  if (usedWeightedTokens >= monthlyWeightedTokens) {
+    throw new HttpError(429, aiLimitReachedMessage, aiLimitReachedCode);
+  }
+}
+
+/**
+ * The tier a fact is attributed to when the allowance could not be resolved at all. It is the tier
+ * everybody holds until a purchase or a grant says otherwise, so the guess understates rather than
+ * inventing a paid tier, and it is only ever reached together with the warning beside it.
+ */
+const fallbackAiUsageTier: EntitlementTier = freeEntitlementTier;
+
+/**
+ * Resolves the allowance, or reports that it could not be resolved and returns `null`.
+ *
+ * `resolveAiUsageAllowance` reads the billing tables and can reject for reasons that have nothing to do
+ * with metering - an unreadable stored timestamp, a tier outside the catalogue, a write transaction on a
+ * snapshot cache miss - and on the paths below nothing could have been refused anyway. Turning that into
+ * the caller's answer would fail a request, or abandon a claimed run, over a label.
+ */
+async function resolveAiUsageAllowanceOrReportFailure(
+  userId: string,
+  accountKind: AccountKind,
+  now: Date,
+): Promise<AiUsageAllowance | null> {
+  try {
+    return await resolveAiUsageAllowance(userId, accountKind, now);
+  } catch (error) {
+    reportAiUsageAllowanceResolutionFailure(userId, accountKind, error);
+    return null;
+  }
+}
+
+/**
+ * Reports a resolution that failed, and cannot fail in its turn. That `resolveAiUsageTierForFacts` never
+ * rejects, and that a caller nothing can refuse is never failed by a billing read, rests entirely on this
+ * call, so it is contained the way `appendAiUsageEvent` contains the same one: on the worker's path a
+ * throw here would strand a run that is already claimed until stale-run recovery, over a warning. A
+ * reporting failure has nowhere left to be reported, because the sink is what just failed, so it is
+ * swallowed rather than rethrown.
+ */
+function reportAiUsageAllowanceResolutionFailure(
+  userId: string,
+  accountKind: AccountKind,
+  error: unknown,
+): void {
+  try {
+    const errorDetails = getBackendErrorLogDetails(error);
+    captureBackendRuntimeWarning({
+      action: "ai_usage_allowance_resolution_failed",
+      message: "An AI usage allowance could not be resolved, so the call was attributed to the fallback tier.",
+      scope: { ...createBackendRuntimeObservationScope(), userId },
+      details: {
+        accountKind,
+        fallbackTier: fallbackAiUsageTier,
+        errorClass: errorDetails.errorClass,
+        errorMessage: errorDetails.errorMessage,
+      },
+    });
+  } catch {
+    // Deliberately empty: nothing can be reported about a reporting failure.
+  }
+}
+
+/**
+ * The tier a surface that only appends attributes its facts to. Never rejects.
+ *
+ * The chat worker resolves this once per claimed run and wants nothing else from it: the allowance was
+ * enforced when the turn was accepted, and refusing here would abandon a run the caller is waiting on.
+ * An async retry would find the claim and skip, so the turn would hang until stale-run recovery - which
+ * is why this path may not reject even when the billing tables are unreadable.
+ */
+export async function resolveAiUsageTierForFacts(
+  userId: string,
+  accountKind: AccountKind,
+  now: Date,
+): Promise<EntitlementTier> {
+  const allowance = await resolveAiUsageAllowanceOrReportFailure(userId, accountKind, now);
+  return allowance?.tier ?? fallbackAiUsageTier;
+}
+
+/**
+ * The first half of the enforcement point: what this caller is allowed this month, resolved and nothing
+ * else. It is separate from the refusal because the two have different homes when the surface enforcing
+ * them is inside a transaction: resolving reads the billing tables and can refresh the derived
+ * `billing.entitlement_snapshots` row in a transaction of its own, which must not sit inside somebody
+ * else's, while the refusal is a read of already-appended facts and belongs wherever the decision does
+ * (`prepareChatRun` in apps/backend/src/chat/runs/lifecycleService.ts).
+ *
+ * When no tier can be capped for this account kind, no refusal is possible before anything is read, so
+ * the read decides the fact's tier label and nothing else: its failure is a warning rather than the
+ * caller's 500. Only a caller whose account kind can be capped - a guest today - has a refusal that
+ * depends on the billing tables being readable, and there a failed read still propagates rather than
+ * silently admitting the call.
+ */
+export async function resolveAiUsageAllowanceForEnforcement(
+  userId: string,
+  accountKind: AccountKind,
+  now: Date,
+): Promise<AiUsageAllowance> {
+  if (isAiMonthlyAllowanceUncappedForEveryTier(accountKind)) {
+    const resolved = await resolveAiUsageAllowanceOrReportFailure(userId, accountKind, now);
+    return resolved ?? { tier: fallbackAiUsageTier, monthlyWeightedTokens: null };
+  }
+
+  return resolveAiUsageAllowance(userId, accountKind, now);
+}
+
+/**
+ * Both halves in one call, for a surface that has no transaction to keep clean: it refuses a caller who
+ * has spent their month and otherwise hands back the allowance it just resolved, so the surface can
+ * attribute the fact it appends afterwards without resolving the same entitlement twice. Surfaces that
+ * only append - the model calls inside a run the enforcement point already admitted - ask for the tier
+ * alone, above.
+ */
+export async function requireAiUsageAllowance(
+  userId: string,
+  accountKind: AccountKind,
+  now: Date,
+): Promise<AiUsageAllowance> {
+  const allowance = await resolveAiUsageAllowanceForEnforcement(userId, accountKind, now);
+  await assertAiUsageAllowanceNotReached(allowance, userId, now);
+  return allowance;
+}

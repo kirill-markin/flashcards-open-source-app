@@ -1,4 +1,5 @@
 import type { CardTextSide } from "../../cards";
+import type { EntitlementTier } from "../../billing/tiers";
 import type { ChatRunClaimToken } from "../runs";
 import type { GeneratedCardImageObservationContext } from "./providerTypes";
 
@@ -14,6 +15,8 @@ export type GeneratedCardImageInput = Readonly<{
   imagePrompt: string;
   altText: string;
   replicaId: string;
+  /** The tier the appended usage fact is attributed to, resolved by the caller that checked the cap. */
+  tierAtCall: EntitlementTier;
   observationContext: GeneratedCardImageObservationContext;
   signal: AbortSignal;
   operationDeadlineMs: number;

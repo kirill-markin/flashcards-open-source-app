@@ -148,6 +148,35 @@ export type ChatTranscriptionFailureDetails = Readonly<{
   errorMessage: string;
 }>;
 
+/**
+ * One metered AI provider call, named by what it would be priced against. The person and the request
+ * travel on the scope rather than here, so a query can group these by surface and model without
+ * reading anyone's ids.
+ */
+export type AiUsageMeteringDetails = Readonly<{
+  surface: string;
+  provider: string;
+  modelId: string;
+  tierAtCall: string;
+}>;
+
+export type AiUsageEventWriteFailureDetails = AiUsageMeteringDetails & Readonly<{
+  errorClass: string;
+  errorMessage: string;
+}>;
+
+/**
+ * An allowance that could not be resolved, on a surface where nothing could have been refused anyway.
+ * The fact is attributed to `fallbackTier` instead, which is what this has to make visible: the tier on
+ * those rows is a guess rather than a reading of the billing tables.
+ */
+export type AiUsageAllowanceResolutionFailureDetails = Readonly<{
+  accountKind: string;
+  fallbackTier: string;
+  errorClass: string;
+  errorMessage: string;
+}>;
+
 export type GeneratedCardImageProviderDetails = Readonly<{
   model: string;
   size: string;
@@ -263,6 +292,24 @@ export type ChatWarningEvent =
   | (EventByAction<"chat_worker_terminal_state_persisted", ChatWorkerLifecycleDetails> & Readonly<{ message: string }>)
   | (EventByAction<"chat_worker_composer_suggestions_failed", ChatWorkerLifecycleDetails> & Readonly<{ message: string }>)
   | (EventByAction<"chat_transcription_failed", ChatTranscriptionFailureDetails> & Readonly<{ message: string }>)
+  // A provider that answered without any usage numbers. The fact row is still appended with null
+  // counters, so this warning is what makes an unpriceable call countable instead of invisible.
+  | (EventByAction<"ai_usage_counters_missing", AiUsageMeteringDetails> & Readonly<{ message: string }>)
+  // A provider that reported counters carrying nothing the monthly allowance weighs. The call is
+  // metered and priceable, and it counts as zero against the allowance, so this is what keeps a surface
+  // from going quietly uncapped after a model change.
+  | (EventByAction<"ai_usage_counters_unweighted", AiUsageMeteringDetails> & Readonly<{ message: string }>)
+  // A billing read that failed where no refusal was possible. The call proceeds on the fallback tier
+  // rather than failing a caller the resolved allowance could never have refused.
+  | (EventByAction<
+    "ai_usage_allowance_resolution_failed",
+    AiUsageAllowanceResolutionFailureDetails
+  > & Readonly<{ message: string }>)
+  // A provider call that was paid for and whose fact could not be stored. Reported rather than thrown,
+  // because the money is already spent and failing the caller's request would not recover the row.
+  | (EventByAction<"ai_usage_event_write_failed", AiUsageEventWriteFailureDetails> & Readonly<{
+    message: string;
+  }>)
   | (EventByAction<
     "generated_card_image_provider_retry",
     GeneratedCardImageProviderDetails

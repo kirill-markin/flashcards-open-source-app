@@ -6,11 +6,19 @@ import { createChatSessionRequestedSessionIdConflictError } from "../../errors";
 import { HttpError } from "../../../shared/errors";
 import { createChatTranscriptionsRoutes } from "../../../routes/chatTranscriptions";
 import type { RequestContext } from "../../../server/requestContext";
+import { aiUsageAllowanceTestOptions } from "./testSupport";
 
 const SESSION_ONE = "11111111-1111-4111-8111-111111111111";
 const EXPLICIT_WORKSPACE_ID = "33333333-3333-4333-8333-333333333333";
 const LEGACY_POSTGRES_WORKSPACE_ID = "35274129-ef97-d366-954c-955b4bb0fbf0";
 const LEGACY_WORKSPACE_ID = "workspace-legacy";
+
+// The route meters every call, so these route tests stub the append as well as the allowance rather
+// than reach the database.
+const aiUsageMeteringTestOptions = {
+  ...aiUsageAllowanceTestOptions,
+  appendAiUsageEventFn: async (): Promise<void> => undefined,
+} as const;
 
 function createRequestContext(): RequestContext {
   return {
@@ -62,6 +70,7 @@ test("POST /chat/transcriptions prefers an explicit workspaceId multipart field 
   const requestedWorkspaceIds: string[] = [];
   const app = createChatTranscriptionsRoutes({
     allowedOrigins: [],
+    ...aiUsageMeteringTestOptions,
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
       requestContext: createRequestContextWithSelectedWorkspace(LEGACY_WORKSPACE_ID),
@@ -79,7 +88,7 @@ test("POST /chat/transcriptions prefers an explicit workspaceId multipart field 
         messages: [],
       };
     },
-    transcribeAudioFn: async () => "hello",
+    transcribeAudioFn: async () => ({ text: "hello", usageCounters: null }),
   });
 
   const formData = new FormData();
@@ -105,6 +114,7 @@ test("POST /chat/transcriptions accepts and trims a legacy PostgreSQL workspaceI
   const requestedWorkspaceIds: string[] = [];
   const app = createChatTranscriptionsRoutes({
     allowedOrigins: [],
+    ...aiUsageMeteringTestOptions,
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
       requestContext: createRequestContext(),
@@ -122,7 +132,7 @@ test("POST /chat/transcriptions accepts and trims a legacy PostgreSQL workspaceI
         messages: [],
       };
     },
-    transcribeAudioFn: async () => "hello",
+    transcribeAudioFn: async () => ({ text: "hello", usageCounters: null }),
   });
 
   const formData = new FormData();
@@ -148,6 +158,7 @@ test("POST /chat/transcriptions preserves malformed workspaceId validation", asy
   let sessionRecoveryRequested = false;
   const routes = createChatTranscriptionsRoutes({
     allowedOrigins: [],
+    ...aiUsageMeteringTestOptions,
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
       requestContext: createRequestContext(),
@@ -156,7 +167,7 @@ test("POST /chat/transcriptions preserves malformed workspaceId validation", asy
       sessionRecoveryRequested = true;
       throw new Error("Malformed workspaceId must stop before session recovery");
     },
-    transcribeAudioFn: async () => "hello",
+    transcribeAudioFn: async () => ({ text: "hello", usageCounters: null }),
   });
   const app = new Hono();
   app.onError((error, context) => {
@@ -198,6 +209,7 @@ test("POST /chat/transcriptions resolves the explicit sessionId exactly once", a
   const requestedSessionIds: Array<string | undefined> = [];
   const app = createChatTranscriptionsRoutes({
     allowedOrigins: [],
+    ...aiUsageMeteringTestOptions,
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
       requestContext: createRequestContext(),
@@ -215,7 +227,7 @@ test("POST /chat/transcriptions resolves the explicit sessionId exactly once", a
         messages: [],
       };
     },
-    transcribeAudioFn: async () => "hello",
+    transcribeAudioFn: async () => ({ text: "hello", usageCounters: null }),
   });
 
   const formData = new FormData();
@@ -239,6 +251,7 @@ test("POST /chat/transcriptions resolves the explicit sessionId exactly once", a
 test("POST /chat/transcriptions returns a stable conflict when the requested session id is owned by another scope", async () => {
   const routes = createChatTranscriptionsRoutes({
     allowedOrigins: [],
+    ...aiUsageMeteringTestOptions,
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
       requestContext: createRequestContext(),
@@ -246,7 +259,7 @@ test("POST /chat/transcriptions returns a stable conflict when the requested ses
     getRecoveredChatSessionSnapshotFn: async () => {
       throw createChatSessionRequestedSessionIdConflictError(SESSION_ONE);
     },
-    transcribeAudioFn: async () => "hello",
+    transcribeAudioFn: async () => ({ text: "hello", usageCounters: null }),
   });
   const app = new Hono();
   app.onError((error, context) => {
@@ -292,6 +305,7 @@ test("POST /chat/transcriptions stops before session recovery when the selected 
   let transcriptionStarted = false;
   const routes = createChatTranscriptionsRoutes({
     allowedOrigins: [],
+    ...aiUsageMeteringTestOptions,
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
       requestContext: createRequestContext(),
@@ -314,7 +328,7 @@ test("POST /chat/transcriptions stops before session recovery when the selected 
     },
     transcribeAudioFn: async () => {
       transcriptionStarted = true;
-      return "hello";
+      return { text: "hello", usageCounters: null };
     },
   });
   const app = new Hono();

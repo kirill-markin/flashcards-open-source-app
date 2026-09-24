@@ -9,6 +9,7 @@ import { buildOpenAISafetyIdentifier } from "./openai/safetyIdentifier";
 
 test("generateFollowUpChatComposerSuggestions uses the configured request metadata", async () => {
   const capturedRequests: Array<OpenAI.Responses.ResponseCreateParams> = [];
+  const appendedUsageSurfaces: Array<string> = [];
   const dependencies: ChatComposerSuggestionsDependencies = {
     getOpenAIClient: () => ({
       responses: {
@@ -20,6 +21,9 @@ test("generateFollowUpChatComposerSuggestions uses the configured request metada
         },
       },
     } as unknown as OpenAI),
+    appendAiUsageEvent: async (event) => {
+      appendedUsageSurfaces.push(event.surface);
+    },
   };
 
   const suggestions = await generateFollowUpChatComposerSuggestionsWithDependencies(
@@ -28,6 +32,7 @@ test("generateFollowUpChatComposerSuggestions uses the configured request metada
     [{ type: "text", text: "A scheduling method for durable memory." }],
     "assistant-item-1",
     "en-US",
+    { workspaceId: "workspace-1", requestId: "chat-request-1", tierAtCall: "free" },
     dependencies,
   );
 
@@ -40,4 +45,5 @@ test("generateFollowUpChatComposerSuggestions uses the configured request metada
     suggestions.map((suggestion) => suggestion.text),
     ["Review this card", "Show an example"],
   );
+  assert.deepEqual(appendedUsageSurfaces, ["composer_suggestion"]);
 });

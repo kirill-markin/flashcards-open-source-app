@@ -5,6 +5,7 @@ import { createChatRoutes } from "../../../routes/chat";
 import { createChatSessionRequestedSessionIdConflictError } from "../../errors";
 import type { RecoveredPaginatedSession } from "../../runs";
 import {
+  aiUsageAllowanceTestOptions,
   EXPLICIT_WORKSPACE_ID,
   LEGACY_WORKSPACE_ID,
   SESSION_ONE,
@@ -18,6 +19,7 @@ import {
 
 test("DELETE /chat is no longer routed", async () => {
   const app = createChatRoutes({
+    ...aiUsageAllowanceTestOptions,
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
@@ -36,6 +38,7 @@ test("DELETE /chat is no longer routed", async () => {
 test("GET /chat prefers an explicit workspaceId query param over the legacy selected-workspace fallback", async () => {
   const requestedWorkspaceIds: string[] = [];
   const app = createChatRoutes({
+    ...aiUsageAllowanceTestOptions,
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
@@ -59,6 +62,7 @@ test("GET /chat prefers an explicit workspaceId query param over the legacy sele
 test("GET /chat preserves the legacy selected-workspace fallback when workspaceId is omitted", async () => {
   let requestedWorkspaceId: string | null = null;
   const app = createChatRoutes({
+    ...aiUsageAllowanceTestOptions,
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
@@ -79,6 +83,7 @@ test("GET /chat preserves the legacy selected-workspace fallback when workspaceI
 
 test("GET /chat returns assistant item ids in snapshot history and strips attachment payloads", async () => {
   const app = createChatRoutes({
+    ...aiUsageAllowanceTestOptions,
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
@@ -152,6 +157,7 @@ test("GET /chat returns assistant item ids in snapshot history and strips attach
 
 test("GET /chat returns a stable conflict when the requested session id is owned by another scope", async () => {
   const routes = createChatRoutes({
+    ...aiUsageAllowanceTestOptions,
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
@@ -178,6 +184,7 @@ test("GET /chat returns a stable conflict when the requested session id is owned
 test("GET /chat stops before store access when the selected workspace is no longer accessible", async () => {
   let snapshotRequested = false;
   const routes = createChatRoutes({
+    ...aiUsageAllowanceTestOptions,
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
@@ -208,6 +215,7 @@ test("GET /chat stops before store access when the selected workspace is no long
 
 test("GET /chat preserves card content parts in snapshot history", async () => {
   const app = createChatRoutes({
+    ...aiUsageAllowanceTestOptions,
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
@@ -305,6 +313,7 @@ test("GET /chat paginated history returns assistant item ids and sanitized conte
   };
 
   const app = createChatRoutes({
+    ...aiUsageAllowanceTestOptions,
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,

@@ -164,7 +164,6 @@ RESEND_SECRET_ARN="$(find_secret_arn "$REGION" "flashcards-open-source-app/resen
 DEMO_PASSWORD_SECRET_ARN="$(find_secret_arn "$REGION" "flashcards-open-source-app/demo-password-dostip")"
 SENTRY_DSN_SECRET_ARN="${SENTRY_DSN_SECRET_ARN:-$(find_secret_arn "$REGION" "$SENTRY_DSN_SECRET_NAME")}"
 DEMO_EMAIL_DOSTIP="${DEMO_EMAIL_DOSTIP:-}"
-GUEST_AI_QUOTA_CAP="${GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP:-}"
 ADMIN_EMAILS="${ADMIN_EMAILS:-}"
 LANGFUSE_BASE_URL="${LANGFUSE_BASE_URL:-}"
 SENTRY_ENVIRONMENT="${SENTRY_ENVIRONMENT:-production}"
@@ -225,7 +224,6 @@ else
 fi
 set_variable_if_missing CDK_DEMO_EMAIL_DOSTIP "$DEMO_EMAIL_DOSTIP"
 set_variable_if_missing CDK_DEMO_PASSWORD_SECRET_ARN "$DEMO_PASSWORD_SECRET_ARN"
-set_variable_if_missing CDK_GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP "$GUEST_AI_QUOTA_CAP"
 set_variable_if_missing CDK_GLOBAL_METRICS_VISIBLE "$GLOBAL_METRICS_VISIBLE"
 # CDK_ADMIN_EMAILS stays write-once here on purpose. After bootstrap,
 # GitHub is the deploy-time source of truth for this non-secret CI input,

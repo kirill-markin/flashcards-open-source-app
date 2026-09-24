@@ -214,7 +214,6 @@ values = {
     "sentryEnvironment": os.environ.get("SENTRY_ENVIRONMENT", ""),
     "sentryRelease": os.environ.get("SENTRY_RELEASE", ""),
     "sentryTracesSampleRate": os.environ.get("SENTRY_TRACES_SAMPLE_RATE", ""),
-    "guestAiWeightedMonthlyTokenCap": os.environ.get("GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP", ""),
     "adminEmails": os.environ.get("ADMIN_EMAILS", ""),
     "analyticsAccessEnabled": os.environ.get("ANALYTICS_ACCESS_ENABLED", ""),
     "globalMetricsVisible": os.environ.get("GLOBAL_METRICS_VISIBLE", ""),

@@ -286,7 +286,6 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     const demoEmailDostip = getOptionalContextValue(this, "demoEmailDostip");
     const demoPasswordSecretArn = getOptionalContextValue(this, "demoPasswordSecretArn");
     const adminEmails = getOptionalContextValue(this, "adminEmails");
-    const guestAiWeightedMonthlyTokenCap = getOptionalContextValue(this, "guestAiWeightedMonthlyTokenCap");
     const resendApiKeySecretArn = getOptionalContextValue(this, "resendApiKeySecretArn");
     const resendSenderEmail = getOptionalContextValue(this, "resendSenderEmail");
     // When enabled, global stats are visible externally through the public snapshot endpoint.
@@ -541,7 +540,6 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       resendApiKeySecretArn,
       resendSenderEmail,
       demoEmailDostip,
-      guestAiWeightedMonthlyTokenCap,
       globalMetricsVisible,
       globalMetricsSnapshotBucket: globalMetricsResult.snapshotBucket,
       globalMetricsSnapshotObjectKey: globalMetricsResult.snapshotObjectKey,

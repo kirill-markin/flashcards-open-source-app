@@ -285,6 +285,7 @@ export async function runPersistedChatSessionWithDeps(
             generatedImageEligible: params.generatedImageEligible,
             generatedImageOperationDeadlineMs,
             clientPlatform: params.clientPlatform,
+            tierAtCall: params.tierAtCall,
             modelId: params.modelId,
             reasoningEffort: params.reasoningEffort,
             timezone: params.timezone,
