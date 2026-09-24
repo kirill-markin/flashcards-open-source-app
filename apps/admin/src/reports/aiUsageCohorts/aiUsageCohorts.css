@@ -1,0 +1,129 @@
+/* Layout of the Study vs AI area. The marks inside a panel are styled in `src/styles.css` beside the
+   other chart primitives, because `charts/logScatterPanels.ts` draws them and must not depend on a
+   report having imported a stylesheet. */
+
+.ai-usage-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 28px;
+  margin: 24px 0 0;
+  padding: 18px;
+  border-radius: 18px;
+  background: var(--panel);
+}
+
+.ai-usage-control {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+}
+
+.ai-usage-control h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.ai-usage-control-modes {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--panel-border);
+  border-radius: 14px;
+}
+
+.ai-usage-explanation {
+  margin: 12px 0 0;
+  max-width: 920px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* Three across is the widest row whose squares still read at this page width; below that the panels
+   stack rather than shrink, because a small multiple too small to see defeats the report. */
+.ai-usage-panel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 12px;
+  margin: 24px 0 0;
+}
+
+.ai-usage-panel {
+  margin: 0;
+  padding: 10px 10px 4px;
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  background: var(--panel);
+}
+
+.ai-usage-panel-caption {
+  display: grid;
+  gap: 2px;
+  padding: 0 2px 6px;
+}
+
+.ai-usage-panel-title {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.ai-usage-panel-stats {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.ai-usage-panel-stats strong {
+  color: var(--text);
+}
+
+.ai-usage-panel-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.ai-usage-axis-caption {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.ai-usage-axis-caption strong {
+  color: var(--text);
+}
+
+.ai-usage-summary-table {
+  width: 100%;
+  margin-top: 24px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.ai-usage-summary-table caption {
+  padding-bottom: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: left;
+}
+
+.ai-usage-summary-table th,
+.ai-usage-summary-table td {
+  padding: 10px 6px;
+  border-bottom: 1px solid var(--panel-border);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.ai-usage-summary-table th:first-child {
+  text-align: left;
+}
+
+.ai-usage-summary-table thead {
+  color: var(--muted);
+}

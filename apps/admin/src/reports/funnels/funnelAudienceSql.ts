@@ -22,7 +22,8 @@ import { laterCalendarDate } from "../reportValues";
 export const funnelDailyVisitorHashStartDate = "2026-09-23";
 
 /**
- * A REAL, NON-GUEST ACCOUNT, as `AND` lines on one actor, and the one place that rule is written.
+ * A REAL, NON-GUEST ACCOUNT, as one SQL boolean expression over one actor, and the one place that
+ * rule is written. `buildSignedInActorSqlLines` below is the same rule as an `AND` line.
  *
  * The signal is a `auth.user_identities` row for the actor. That table accepts only
  * `provider_type = 'cognito'` by its own CHECK (`db/migrations/0031_guest_ai_identity_and_quota.sql`),
@@ -64,17 +65,32 @@ export const funnelDailyVisitorHashStartDate = "2026-09-23";
  * pseudonym. This mode therefore counts who is still a registered account rather than who ever
  * completed a registration, and it is the one case where those two differ.
  */
-export function buildSignedInActorSqlLines(
-  actorIdSqlExpression: string,
-): ReadonlyArray<string> {
+export function buildSignedInActorSql(actorIdSqlExpression: string): string {
   return [
-    "  AND EXISTS (",
+    "EXISTS (",
     "    SELECT 1",
     "    FROM auth.user_identities AS signed_in_identities",
     "    WHERE signed_in_identities.provider_type = 'cognito'",
     `      AND pg_catalog.lower(signed_in_identities.user_id) = ${actorIdSqlExpression}`,
     "  )",
-  ];
+  ].join("\n");
+}
+
+/**
+ * The same rule as an `AND` line, which is how a cohort restricted to registered people reads it.
+ *
+ * A reader that needs the answer as a value rather than as a restriction - the Study-vs-AI area,
+ * which splits people into registered and guests and labels each dot with which one it is - takes
+ * `buildSignedInActorSql` above instead. Both go through one definition on purpose: two copies of
+ * this predicate would be two different answers to "is this person registered" the first time the
+ * table behind it changed.
+ */
+export function buildSignedInActorSqlLines(
+  actorIdSqlExpression: string,
+): ReadonlyArray<string> {
+  return buildSignedInActorSql(actorIdSqlExpression)
+    .split("\n")
+    .map((line, index) => (index === 0 ? `  AND ${line}` : line));
 }
 
 /**
