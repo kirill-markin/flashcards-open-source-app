@@ -19,6 +19,7 @@ import {
 import { track } from "../../../analytics/client";
 import { toAnalyticsDictationFailureReason } from "../../../analytics/failureReasons";
 import type { TranslationKey, TranslationValues } from "../../../i18n";
+import { isAiLimitReachedError } from "../../shared/chatAiLimitPolicy";
 import {
   insertDictationTranscriptIntoDraft,
   type ChatDictationState,
@@ -548,6 +549,8 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
           window.alert(t("chatPanel.transientErrors.workspaceRequired"));
         } else if (isAuthRedirectError(error)) {
           return;
+        } else if (error instanceof ApiError && isAiLimitReachedError({ code: error.code })) {
+          window.alert(t("chatPanel.errors.aiLimitReached"));
         } else if (isExpectedDictationApiError(error)) {
           window.alert(t("chatPanel.errors.genericFailure"));
         } else if (onTechnicalError(error, "chat_dictation_transcribe") === false) {

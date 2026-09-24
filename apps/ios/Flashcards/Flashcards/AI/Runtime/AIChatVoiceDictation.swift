@@ -92,7 +92,7 @@ enum AIChatTranscriptionError: LocalizedError {
     case invalidBaseUrl
     case invalidAudio
     case serviceUnavailable
-    case guestLimitReached
+    case aiLimitReached
     case serverMessage(String)
     /// A `408` or `504` the server did answer, carrying the copy `serverMessage` would have carried.
     /// It exists so `analyticsDictationFailureReason` can report `timeout` where the status alone
@@ -116,8 +116,8 @@ enum AIChatTranscriptionError: LocalizedError {
                 "ai.dictation.error.network",
                 "There is a network problem. Fix it and try again."
             )
-        case .guestLimitReached:
-            return aiChatGuestQuotaReachedMessage
+        case .aiLimitReached:
+            return aiChatLimitReachedMessage()
         case .serverMessage(let message), .serverTimeout(let message):
             return message
         }
@@ -332,8 +332,8 @@ extension AIChatTranscriptionService: AIChatAudioTranscribing {
             return .invalidAudio
         }
 
-        if isGuestAiLimitCode(errorDetails.code) {
-            return .guestLimitReached
+        if isAiLimitReachedCode(errorDetails.code) {
+            return .aiLimitReached
         }
 
         let message = makeAIChatUserFacingErrorMessage(

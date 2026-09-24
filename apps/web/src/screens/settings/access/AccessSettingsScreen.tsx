@@ -5,6 +5,7 @@ import {
 } from "../../../access/browserAccess";
 import { useI18n } from "../../../i18n";
 import { buildSettingsAccessDetailRoute } from "../../../routes";
+import { useWorkspacePath } from "../../../useWorkspacePath";
 import { SettingsNavigationCard, SettingsShell } from "../SettingsShared";
 
 type BrowserPermissionSnapshot = Readonly<{
@@ -34,6 +35,7 @@ function permissionStateKey(state: BrowserPermissionState):
 
 export function AccessSettingsScreen(): ReactElement {
   const { t } = useI18n();
+  const workspacePath = useWorkspacePath();
   const [permissionSnapshot, setPermissionSnapshot] = useState<BrowserPermissionSnapshot>({
     camera: "unsupported",
     microphone: "unsupported",
@@ -71,19 +73,19 @@ export function AccessSettingsScreen(): ReactElement {
           title={t("accessSettings.photosAndFiles.title")}
           description={t("accessSettings.photosAndFiles.description")}
           value={t("common.perAction")}
-          to={buildSettingsAccessDetailRoute("photos-and-files")}
+          to={workspacePath(buildSettingsAccessDetailRoute("photos-and-files"))}
         />
         <SettingsNavigationCard
           title={t("accessSettings.permission.titleCamera")}
           description={t("accessSettings.permission.guidanceCamera")}
           value={t(permissionStateKey(permissionSnapshot.camera))}
-          to={buildSettingsAccessDetailRoute("camera")}
+          to={workspacePath(buildSettingsAccessDetailRoute("camera"))}
         />
         <SettingsNavigationCard
           title={t("accessSettings.permission.titleMicrophone")}
           description={t("accessSettings.permission.guidanceMicrophone")}
           value={t(permissionStateKey(permissionSnapshot.microphone))}
-          to={buildSettingsAccessDetailRoute("microphone")}
+          to={workspacePath(buildSettingsAccessDetailRoute("microphone"))}
         />
       </div>
     </SettingsShell>

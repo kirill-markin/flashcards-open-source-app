@@ -5,9 +5,9 @@
  * declare, so only what the auth origin actually reports is declared here: one surface and the four
  * events of the web sign-in funnel.
  *
- * Nothing server-owned is mirrored. `schema_version`, `platform`, `app_version` and the identity
- * columns are derived by the backend from the request, and an event that carries any of them is
- * rejected as `server_owned_field`.
+ * Nothing server-owned is mirrored. `schema_version`, `platform` and the identity columns are derived
+ * by the backend from the request, and the collector this producer posts to refuses an event that
+ * carries a field it does not declare.
  */
 import { randomBytes } from "node:crypto";
 import type { LoginPageLocale } from "../../routes/browser/loginPageLocale.js";
@@ -52,18 +52,32 @@ export type AuthSignInFailureReason =
 export type AuthAnalyticsEventProperties = Readonly<{ reason: AuthSignInFailureReason }>;
 
 /**
- * Exactly the client-owned fields `apps/backend/src/productAnalytics/validation.ts` accepts. It
- * parses an event strictly: any other key rejects that event as `unknown_field`, and a server-owned
- * key as `server_owned_field`.
+ * Exactly the fields the credential-free collector accepts, and no others: `anonymousEventSchema` in
+ * `apps/backend/src/productAnalytics/anonymousEvent.ts` is strict, so one undeclared key refuses the
+ * whole request as `ANONYMOUS_ANALYTICS_INVALID_EVENT`. That route takes one event per request rather
+ * than a batch, so there is no envelope here at all.
+ *
+ * Three fields the authenticated batch route accepted are therefore gone rather than sent as null:
+ * `networkState` and `experimentAssignments`, neither of which a server could fill in honestly, and
+ * `sessionId`. These rows carry `session_id = NULL`, so the auth origin contributes to no web session
+ * count; the ids it used to send were kept only when the post was answered inside the report budget,
+ * which is the population that has just stopped being lost, so counting sessions from them was never
+ * safe.
+ *
+ * `deviceLocale` is declared by the collector and deliberately not sent: a server sees request
+ * headers, not the visitor's device, and `uiLocale` already carries the language the login page was
+ * rendered in.
  */
 export type AuthAnalyticsWireEvent = Readonly<{
   eventId: string;
   eventName: AuthAnalyticsEventName;
   clientOccurredAt: string;
+  clientSentAt: string;
+  // The shared visitor id, and the only identity these rows carry. The collector stores it in
+  // `anonymous_id` with no `user_id` beside it, which is what lets
+  // `analytics.product_events_resolved` resolve them through its anonymous-link arm.
+  anonymousId: string;
   uiLocale: LoginPageLocale | null;
-  // A server observes its own request, not the visitor's connectivity, so it reports none rather
-  // than inventing `wifi` for a column that is retained indefinitely.
-  networkState: null;
   // `screen` carries two readings in the server catalog and this producer sends both, so the two are
   // never collapsed here. On `screen_viewed`, `signin_code_requested` and `signin_succeeded` it is
   // the ordinary reading — where the person is — which is the sign-in screen itself. On
@@ -75,25 +89,6 @@ export type AuthAnalyticsWireEvent = Readonly<{
   // surface, and why a funnel must not read the three screens the same way.
   screen: AuthAnalyticsSurface | null;
   properties: AuthAnalyticsEventProperties | null;
-  experimentAssignments: null;
-}>;
-
-/** The batch envelope, parsed just as strictly as the events inside it. */
-export type AuthAnalyticsBatch = Readonly<{
-  clientSentAt: string;
-  anonymousId: string;
-  // A session id sent from here survives only if the post that carried it was answered inside the
-  // report budget: it is written back to the visitor cookie only once the acceptance envelope has
-  // been read, so an event whose row the backend committed but whose 200 body did not finish
-  // arriving is stored under an id the cookie never keeps. Read `session_id` on these rows knowing
-  // that a visitor whose posts are consistently that slow contributes one distinct session per
-  // stored event, inflating web session counts for exactly that population.
-  sessionId: string;
-  // The device context the mobile and web clients fill in. This producer is a server: it sees no OS
-  // version, device model, locale or timezone of the visitor, so it sends none rather than deriving
-  // one from request headers.
-  context: null;
-  events: ReadonlyArray<AuthAnalyticsWireEvent>;
 }>;
 
 const uuidByteCount = 16;
@@ -102,8 +97,8 @@ const uuidVariantByteIndex = 8;
 
 /**
  * UUID version 7, ported from `createAnalyticsUuidV7` in `apps/web/src/analytics/identity.ts`.
- * `randomUUID()` is version 4, and `isProductAnalyticsEventIdVersionValid` refuses it as a generic
- * `invalid_event` that is indistinguishable from a malformed one, so event ids are built explicitly.
+ * `randomUUID()` is version 4, and `isProductAnalyticsEventIdVersionValid` refuses it, so event ids
+ * are built explicitly.
  */
 function createAuthAnalyticsUuidV7(nowMs: number): string {
   const bytes = randomBytes(uuidByteCount);
@@ -127,8 +122,8 @@ function createAuthAnalyticsUuidV7(nowMs: number): string {
 }
 
 /**
- * Ingest accepts UTC only: an offset fails `z.string().datetime()` and rejects the event, or the
- * whole batch when it is `clientSentAt`. `toISOString` is always `Z`-suffixed UTC.
+ * The collector accepts UTC only: an offset fails `z.string().datetime()` and refuses the event.
+ * `toISOString` is always `Z`-suffixed UTC.
  */
 function toAuthAnalyticsTimestamp(atMs: number): string {
   return new Date(atMs).toISOString();
@@ -141,15 +136,14 @@ type AuthAnalyticsEventFacts = Readonly<{
 }>;
 
 /**
- * Builds the one-event batch for a visitor, deferred until the moment it is sent so its ids and
- * timestamps describe that moment.
+ * Builds the one event a report sends, deferred until the moment it is sent so its id and timestamps
+ * describe that moment.
  */
-export type AuthAnalyticsBatchFactory = (
+export type AuthAnalyticsEventFactory = (
   anonymousId: string,
-  sessionId: string,
   nowMs: number,
   uiLocale: LoginPageLocale | null,
-) => AuthAnalyticsBatch;
+) => AuthAnalyticsWireEvent;
 
 /**
  * `clientOccurredAt` and `clientSentAt` are the same instant on purpose. Nothing is queued here, so
@@ -157,92 +151,74 @@ export type AuthAnalyticsBatchFactory = (
  * stores `occurred_at` as its own receive time rather than shifting it by an interval this producer
  * would have to invent.
  */
-function createAuthAnalyticsBatch(
+function createAuthAnalyticsEvent(
   facts: AuthAnalyticsEventFacts,
   anonymousId: string,
-  sessionId: string,
   nowMs: number,
   uiLocale: LoginPageLocale | null,
-): AuthAnalyticsBatch {
+): AuthAnalyticsWireEvent {
   const timestamp = toAuthAnalyticsTimestamp(nowMs);
   return {
+    eventId: createAuthAnalyticsUuidV7(nowMs),
+    eventName: facts.eventName,
+    clientOccurredAt: timestamp,
     clientSentAt: timestamp,
     anonymousId,
-    sessionId,
-    context: null,
-    events: [{
-      eventId: createAuthAnalyticsUuidV7(nowMs),
-      eventName: facts.eventName,
-      clientOccurredAt: timestamp,
-      uiLocale,
-      networkState: null,
-      screen: facts.screen,
-      properties: facts.properties,
-      experimentAssignments: null,
-    }],
+    uiLocale,
+    screen: facts.screen,
+    properties: facts.properties,
   };
 }
 
-export function createSignInScreenViewedBatch(
+export function createSignInScreenViewedEvent(
   anonymousId: string,
-  sessionId: string,
   nowMs: number,
   uiLocale: LoginPageLocale | null,
-): AuthAnalyticsBatch {
-  return createAuthAnalyticsBatch(
+): AuthAnalyticsWireEvent {
+  return createAuthAnalyticsEvent(
     { eventName: "screen_viewed", screen: "signin", properties: null },
     anonymousId,
-    sessionId,
     nowMs,
     uiLocale,
   );
 }
 
-export function createSignInCodeRequestedBatch(
+export function createSignInCodeRequestedEvent(
   anonymousId: string,
-  sessionId: string,
   nowMs: number,
   uiLocale: LoginPageLocale | null,
-): AuthAnalyticsBatch {
-  return createAuthAnalyticsBatch(
+): AuthAnalyticsWireEvent {
+  return createAuthAnalyticsEvent(
     { eventName: "signin_code_requested", screen: "signin", properties: null },
     anonymousId,
-    sessionId,
     nowMs,
     uiLocale,
   );
 }
 
 /**
- * The visitor is now signed in. Sent before the identity link, which retires the credential.
- *
- * Read this event knowing it is measured under a tighter budget than the funnel's other steps: its
- * post shares one deadline with the identity link that follows it, and a post abandoned at that
- * deadline is then usually refused outright, because the link retires the credential behind it. A
- * conversion computed from these rows is therefore a lower bound rather than a rate, and what it
- * understates moves with ingest latency rather than with anything a visitor did.
+ * The visitor is now signed in, reported under the same single-call budget as every other step of
+ * this funnel: nothing follows it inside the request any more, so its post is no longer the shorter
+ * half of a deadline it shared with an identity link.
  */
-export function createSignInSucceededBatch(
+export function createSignInSucceededEvent(
   anonymousId: string,
-  sessionId: string,
   nowMs: number,
   uiLocale: LoginPageLocale | null,
-): AuthAnalyticsBatch {
-  return createAuthAnalyticsBatch(
+): AuthAnalyticsWireEvent {
+  return createAuthAnalyticsEvent(
     { eventName: "signin_succeeded", screen: "signin", properties: null },
     anonymousId,
-    sessionId,
     nowMs,
     uiLocale,
   );
 }
 
-/** The reason is fixed when the branch that refused the sign-in is taken, not when the batch is sent. */
-export function createSignInFailedBatchFactory(reason: AuthSignInFailureReason): AuthAnalyticsBatchFactory {
-  return (anonymousId, sessionId, nowMs, uiLocale) => createAuthAnalyticsBatch(
+/** The reason is fixed when the branch that refused the sign-in is taken, not when the event is sent. */
+export function createSignInFailedEventFactory(reason: AuthSignInFailureReason): AuthAnalyticsEventFactory {
+  return (anonymousId, nowMs, uiLocale) => createAuthAnalyticsEvent(
     { eventName: "signin_failed", screen: null, properties: { reason } },
     anonymousId,
-    sessionId,
     nowMs,
     uiLocale,
   );

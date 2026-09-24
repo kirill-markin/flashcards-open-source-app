@@ -1331,6 +1331,7 @@ const elCatalog: TranslationCatalog = {
     errorTitle: "Σφάλμα συνομιλίας ΤΝ",
     errors: {
       activeRunInProgress: "Υπάρχει ήδη απάντηση σε εξέλιξη. Περιμένετε να ολοκληρωθεί ή σταματήστε την πριν στείλετε άλλο μήνυμα.",
+      aiLimitReached: "Εξαντλήσατε το όριο ΤΝ για αυτόν τον μήνα. Επαναφέρεται στην αρχή του επόμενου μήνα.",
       emptyBackendResponse: "Ο διακομιστής επέστρεψε κενή απάντηση σφάλματος.",
       genericFailure: "Η συνομιλία ΤΝ απέτυχε.",
       liveStreamEndedBeforeCompletion: "Η ζωντανή ροή ΤΝ τερματίστηκε πριν ολοκληρωθεί η εκτέλεση.",

@@ -1331,6 +1331,7 @@ const mrCatalog: TranslationCatalog = {
     errorTitle: "AI चॅट त्रुटी",
     errors: {
       activeRunInProgress: "एक प्रतिसाद आधीच सुरू आहे. दुसरा संदेश पाठवण्यापूर्वी तो पूर्ण होण्याची वाट पाहा किंवा थांबवा.",
+      aiLimitReached: "या महिन्याची तुमची AI मर्यादा संपली आहे. ती पुढील महिन्याच्या सुरुवातीला रीसेट होईल.",
       emptyBackendResponse: "बॅकएंडने रिकामा त्रुटी प्रतिसाद दिला.",
       genericFailure: "AI चॅट अयशस्वी झाले.",
       liveStreamEndedBeforeCompletion: "प्रक्रिया पूर्ण होण्यापूर्वी AI चा थेट प्रवाह संपला.",

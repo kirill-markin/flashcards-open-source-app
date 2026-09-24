@@ -1331,6 +1331,7 @@ export const jaCatalog = {
     errorTitle: "AI チャットエラー",
     errors: {
       activeRunInProgress: "すでに応答を生成中です。完了するまで待つか、停止してから別のメッセージを送信してください。",
+      aiLimitReached: "今月の AI 利用上限を使い切りました。上限は来月のはじめにリセットされます。",
       emptyBackendResponse: "バックエンドが空のエラーレスポンスを返しました。",
       genericFailure: "AI チャットに失敗しました。",
       liveStreamEndedBeforeCompletion: "AI のライブストリームが実行完了前に終了しました。",

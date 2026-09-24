@@ -1331,6 +1331,7 @@ const caCatalog: TranslationCatalog = {
     errorTitle: "Error del xat d'IA",
     errors: {
       activeRunInProgress: "Ja hi ha una resposta en curs. Espera que acabi o atura-la abans d'enviar un altre missatge.",
+      aiLimitReached: "Has esgotat el teu límit d'IA d'aquest mes. Es restableix al principi del mes que ve.",
       emptyBackendResponse: "El backend ha retornat una resposta d'error buida.",
       genericFailure: "El xat d'IA ha fallat.",
       liveStreamEndedBeforeCompletion: "La reproducció en directe d'IA s'ha acabat abans que finalitzés l'execució.",

@@ -1329,6 +1329,7 @@ const enCatalog = {
     errorTitle: "AI chat error",
     errors: {
       activeRunInProgress: "A response is already in progress. Wait for it to finish or stop it before sending another message.",
+      aiLimitReached: "Your AI limit for this month is used up. It resets at the start of next month.",
       emptyBackendResponse: "The backend returned an empty error response.",
       genericFailure: "AI chat failed.",
       liveStreamEndedBeforeCompletion: "AI live stream ended before the run finished.",

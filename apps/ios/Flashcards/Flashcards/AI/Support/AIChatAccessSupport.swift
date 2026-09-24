@@ -23,6 +23,17 @@ func aiChatAccessState(
     return .ready
 }
 
-func isGuestAiLimitCode(_ code: String?) -> Bool {
-    code == "GUEST_AI_LIMIT_REACHED"
+/// `AI_LIMIT_REACHED` is accepted ahead of the backend change that starts raising it for every
+/// caller, guest and signed-in alike. `GUEST_AI_LIMIT_REACHED` is the guest-only code that change
+/// supersedes, and it stays matched for as long as a deployed backend can still be raising it.
+func isAiLimitReachedCode(_ code: String?) -> Bool {
+    code == "AI_LIMIT_REACHED" || code == "GUEST_AI_LIMIT_REACHED"
+}
+
+/// Copy for a caller who cannot fix the limit by signing in.
+func aiChatLimitReachedMessage() -> String {
+    aiSettingsLocalized(
+        "ai.error.limitReached",
+        "Your AI limit for this month is used up. It resets at the start of next month."
+    )
 }

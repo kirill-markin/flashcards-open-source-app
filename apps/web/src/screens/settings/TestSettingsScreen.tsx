@@ -12,6 +12,7 @@ import {
   settingsTestCatalogImportSuccessRoute,
   settingsTestLocalSyncDiagnosticsRoute,
 } from "../../routes";
+import { useWorkspacePath } from "../../useWorkspacePath";
 import {
   loadLocalSyncDiagnosticsReport,
   type LocalSyncDiagnosticsReport,
@@ -71,6 +72,7 @@ const probabilityFormatOptions: Readonly<Intl.NumberFormatOptions> = {
 
 export function TestSettingsScreen(): ReactElement {
   const { t } = useI18n();
+  const workspacePath = useWorkspacePath();
   const { showTechnicalErrorPreview } = useAppErrorDialog();
   const [isMobileAppPromotionDialogOpen, setIsMobileAppPromotionDialogOpen] = useState<boolean>(false);
 
@@ -87,28 +89,28 @@ export function TestSettingsScreen(): ReactElement {
               title={t("settingsTest.animations.title")}
               description={t("settingsTest.animations.description")}
               value={t("settingsTest.animations.value")}
-              to={settingsTestAnimationsRoute}
+              to={workspacePath(settingsTestAnimationsRoute)}
               testId="test-settings-animations-row"
             />
             <SettingsNavigationCard
               title={t("settingsTest.localSyncDiagnostics.title")}
               description={t("settingsTest.localSyncDiagnostics.description")}
               value={t("settingsTest.localSyncDiagnostics.value")}
-              to={settingsTestLocalSyncDiagnosticsRoute}
+              to={workspacePath(settingsTestLocalSyncDiagnosticsRoute)}
               testId="test-settings-local-sync-diagnostics-row"
             />
             <SettingsNavigationCard
               title={t("settingsTest.appPlatformLinks.title")}
               description={t("settingsTest.appPlatformLinks.description")}
               value={t("settingsTest.appPlatformLinks.value")}
-              to={settingsTestAppPlatformLinksRoute}
+              to={workspacePath(settingsTestAppPlatformLinksRoute)}
               testId="test-settings-app-platform-links-row"
             />
             <SettingsNavigationCard
               title={t("settingsTest.catalogImportSuccess.title")}
               description={t("settingsTest.catalogImportSuccess.description")}
               value={t("settingsTest.catalogImportSuccess.value")}
-              to={settingsTestCatalogImportSuccessRoute}
+              to={workspacePath(settingsTestCatalogImportSuccessRoute)}
               testId="test-settings-catalog-import-success-row"
             />
             <SettingsActionCard

@@ -1331,6 +1331,7 @@ const nbCatalog: TranslationCatalog = {
     errorTitle: "Feil i AI-chatten",
     errors: {
       activeRunInProgress: "Et svar er allerede underveis. Vent til det er ferdig, eller stopp det, før du sender en ny melding.",
+      aiLimitReached: "AI-grensen din for denne måneden er brukt opp. Den nullstilles i begynnelsen av neste måned.",
       emptyBackendResponse: "Serveren returnerte et tomt feilsvar.",
       genericFailure: "AI-chatten mislyktes.",
       liveStreamEndedBeforeCompletion: "AI-strømmen ble avsluttet før kjøringen var ferdig.",

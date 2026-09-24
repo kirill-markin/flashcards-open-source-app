@@ -1355,6 +1355,7 @@ const slCatalog: TranslationCatalog = {
     errorTitle: "Napaka klepeta z UI",
     errors: {
       activeRunInProgress: "Odgovor je že v pripravi. Pred pošiljanjem naslednjega sporočila počakajte, da se konča, ali ga ustavite.",
+      aiLimitReached: "Porabili ste svojo omejitev UI za ta mesec. Ponastavi se na začetku naslednjega meseca.",
       emptyBackendResponse: "Zaledje je vrnilo prazen odgovor o napaki.",
       genericFailure: "Klepet z UI ni uspel.",
       liveStreamEndedBeforeCompletion: "Tok UI v živo se je končal, preden se je izvajanje zaključilo.",

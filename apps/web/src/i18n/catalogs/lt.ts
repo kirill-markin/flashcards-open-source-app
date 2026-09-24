@@ -1343,6 +1343,7 @@ const ltCatalog: TranslationCatalog = {
     errorTitle: "DI pokalbio klaida",
     errors: {
       activeRunInProgress: "Atsakymas jau kuriamas. Prieš siųsdami kitą žinutę, palaukite, kol jis bus baigtas, arba sustabdykite jį.",
+      aiLimitReached: "Išnaudojote šio mėnesio DI limitą. Jis atkuriamas kito mėnesio pradžioje.",
       emptyBackendResponse: "Serveris grąžino tuščią klaidos atsakymą.",
       genericFailure: "DI pokalbis nepavyko.",
       liveStreamEndedBeforeCompletion: "DI tiesioginis srautas baigėsi anksčiau, nei buvo užbaigtas vykdymas.",

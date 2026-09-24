@@ -86,8 +86,11 @@ function createGuestIdentityLinkOtherAccountError(): HttpError {
  * and unbound, which a later `/guest-auth/upgrade/prepare` can bind to a *different* account, and
  * `first_guest_upgrade_link` in 0115 is first-link-wins, so the orphan would then attribute that
  * account's whole pre-account tail to this one permanently, with no repair path. A client retry
- * closed that window only for the callers that have one; `apps/auth`'s sign-in producer drops the
- * only copy of the guest token on every outcome and has nothing to retry with.
+ * closes that window only for a caller that still holds the guest token after a failure, which is
+ * why the pair's safety is not allowed to rest on the caller having one. `apps/auth`'s sign-in
+ * producer was the caller with nothing to retry with, holding the only copy of the guest token and
+ * dropping it on every outcome; it no longer calls this route, having stopped minting a guest
+ * session to report its sign-in funnel.
  *
  * `docs/auth-service.md` still asks a client to retry a 5xx from this route with the guest token
  * kept, because the guest's tail is still unclaimed — not because a failure left something behind to
