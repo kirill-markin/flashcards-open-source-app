@@ -43,6 +43,7 @@
 "ai.error.requestTooLarge.message" = "AI ಚಾಟ್ ಒಂದೇ ಬಾರಿ ಇಷ್ಟು ವಿಷಯ ಕಳುಹಿಸಲು ಸಾಧ್ಯವಿಲ್ಲ. ಒಂದು ಅಥವಾ ಹೆಚ್ಚು ಲಗತ್ತುಗಳನ್ನು ತೆಗೆದುಹಾಕಿ, ಚಿಕ್ಕ ಫೈಲ್ ಅಥವಾ ಫೋಟೋ ಆಯ್ಕೆಮಾಡಿ ಅಥವಾ ವಿನಂತಿಯನ್ನು ಭಾಗಿಸಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.";
 "ai.error.attachmentUnsupported.title" = "ಬೆಂಬಲವಿಲ್ಲದ ಫೈಲ್ ಪ್ರಕಾರ";
 "ai.error.attachmentUnsupported.message" = "AI ಚಾಟ್ ಈ ಫೈಲ್ ಪ್ರಕಾರ ಬೆಂಬಲಿಸುವುದಿಲ್ಲ. ಫೈಲ್ ತೆಗೆದುಹಾಕಿ ಅಥವಾ PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX ಅಥವಾ ಚಿತ್ರವಾಗಿ ಉಳಿಸಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.";
+"ai.error.limitReached" = "ಈ ತಿಂಗಳ ನಿಮ್ಮ AI ಮಿತಿ ಮುಗಿದಿದೆ. ಮುಂದಿನ ತಿಂಗಳ ಆರಂಭದಲ್ಲಿ ಇದನ್ನು ಮರುಹೊಂದಿಸಲಾಗುತ್ತದೆ.";
 "ai.error.summary.couldNotContinue" = "AI ಉತ್ತರ ಮುಂದುವರಿಸಲಾಗಲಿಲ್ಲ";
 "ai.error.summary.invalidResponse" = "ಅಮಾನ್ಯ AI ಉತ್ತರ ಸ್ವೀಕರಿಸಲಾಗಿದೆ";
 "ai.error.summary.configuration" = "AI ಸಂರಚನಾ ದೋಷ";

@@ -1302,6 +1302,7 @@ const paCatalog: TranslationCatalog = {
     errorTitle: "AI ਚੈਟ ਗਲਤੀ",
     errors: {
       activeRunInProgress: "ਜਵਾਬ ਪਹਿਲਾਂ ਹੀ ਚੱਲ ਰਿਹਾ ਹੈ. ਹੋਰ ਸੁਨੇਹਾ ਭੇਜਣ ਤੋਂ ਪਹਿਲਾਂ ਇਸਦੇ ਪੂਰਾ ਹੋਣ ਦੀ ਉਡੀਕ ਕਰੋ ਜਾਂ ਇਸਨੂੰ ਰੋਕੋ.",
+      aiLimitReached: "ਇਸ ਮਹੀਨੇ ਲਈ ਤੁਹਾਡੀ AI ਸੀਮਾ ਖਤਮ ਹੋ ਗਈ ਹੈ. ਇਹ ਅਗਲੇ ਮਹੀਨੇ ਦੇ ਸ਼ੁਰੂ ਵਿੱਚ ਰੀਸੈਟ ਹੋ ਜਾਵੇਗੀ.",
       emptyBackendResponse: "ਬੈਕਐਂਡ ਨੇ ਖਾਲੀ ਗਲਤੀ ਜਵਾਬ ਦਿੱਤਾ.",
       genericFailure: "AI ਚੈਟ ਅਸਫਲ ਰਹੀ.",
       liveStreamEndedBeforeCompletion: "AI ਲਾਈਵ ਸਟ੍ਰੀਮ ਰਨ ਪੂਰਾ ਹੋਣ ਤੋਂ ਪਹਿਲਾਂ ਖ਼ਤਮ ਹੋ ਗਈ.",

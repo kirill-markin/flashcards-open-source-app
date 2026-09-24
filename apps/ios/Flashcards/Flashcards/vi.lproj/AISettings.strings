@@ -43,6 +43,7 @@
 "ai.error.requestTooLarge.message" = "Trò chuyện AI không thể gửi nhiều nội dung như vậy cùng lúc. Xóa một hoặc nhiều tệp đính kèm, chọn tệp hoặc ảnh nhỏ hơn, hoặc chia nhỏ yêu cầu rồi thử lại.";
 "ai.error.attachmentUnsupported.title" = "Loại tệp không được hỗ trợ";
 "ai.error.attachmentUnsupported.message" = "Trò chuyện AI không hỗ trợ loại tệp này. Xóa tệp hoặc lưu thành PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX hoặc ảnh, rồi thử lại.";
+"ai.error.limitReached" = "Bạn đã dùng hết giới hạn AI cho tháng này. Giới hạn sẽ được đặt lại vào đầu tháng sau.";
 "ai.error.summary.couldNotContinue" = "Không thể tiếp tục phản hồi AI";
 "ai.error.summary.invalidResponse" = "Nhận được phản hồi AI không hợp lệ";
 "ai.error.summary.configuration" = "Lỗi cấu hình AI";

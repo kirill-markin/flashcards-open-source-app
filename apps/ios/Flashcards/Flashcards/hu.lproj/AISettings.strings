@@ -43,6 +43,7 @@
 "ai.error.requestTooLarge.message" = "Az AI-csevegés nem tud ennyi tartalmat egyszerre elküldeni. Távolíts el mellékleteket, válassz kisebb fájlt vagy fotót, vagy oszd fel a kérést, majd próbáld újra.";
 "ai.error.attachmentUnsupported.title" = "Nem támogatott fájltípus";
 "ai.error.attachmentUnsupported.message" = "Az AI-csevegés nem támogatja ezt a fájltípust. Távolítsd el, vagy mentsd PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX formátumban vagy képként, majd próbáld újra.";
+"ai.error.limitReached" = "Elhasználtad az AI-korlátodat erre a hónapra. A következő hónap elején áll vissza.";
 "ai.error.summary.couldNotContinue" = "Nem sikerült folytatni az AI válaszát";
 "ai.error.summary.invalidResponse" = "Érvénytelen AI-válasz érkezett";
 "ai.error.summary.configuration" = "AI-konfigurációs hiba";

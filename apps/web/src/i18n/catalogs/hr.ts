@@ -1314,6 +1314,7 @@ const hrCatalog: TranslationCatalog = {
     errorTitle: "Pogreška AI razgovora",
     errors: {
       activeRunInProgress: "Odgovor je već u tijeku. Pričekajte da završi ili ga zaustavite prije slanja nove poruke.",
+      aiLimitReached: "Iskoristili ste svoje AI ograničenje za ovaj mjesec. Ponovno se postavlja na početku sljedećeg mjeseca.",
       emptyBackendResponse: "Pozadinski sustav vratio je prazan odgovor o pogrešci.",
       genericFailure: "AI razgovor nije uspio.",
       liveStreamEndedBeforeCompletion: "AI prijenos uživo završio je prije dovršetka izvođenja.",

@@ -1314,6 +1314,7 @@ const csCatalog: TranslationCatalog = {
     errorTitle: "Chyba chatu s AI",
     errors: {
       activeRunInProgress: "Odpověď se již vytváří. Než odešlete další zprávu, počkejte na dokončení nebo vytváření zastavte.",
+      aiLimitReached: "Vyčerpali jste svůj limit AI pro tento měsíc. Obnoví se na začátku příštího měsíce.",
       emptyBackendResponse: "Backend vrátil prázdnou chybovou odpověď.",
       genericFailure: "Chat s AI selhal.",
       liveStreamEndedBeforeCompletion: "Živý stream AI skončil dřív, než byl běh dokončen.",

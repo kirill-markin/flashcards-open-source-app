@@ -54,6 +54,7 @@ import {
   isAiChatAttachmentUnsupportedTypeError,
   isAiChatRequestTooLargeError,
 } from "../../shared/chatSizePolicy";
+import { isAiLimitReachedError } from "../../shared/chatAiLimitPolicy";
 import type { ChatHistoryState } from "../../history/useChatHistory";
 import { useRemoteSessionProvisioning } from "./useRemoteSessionProvisioning";
 
@@ -101,6 +102,7 @@ function isExpectedChatProductErrorCode(code: string | null): boolean {
   switch (code) {
     case "ACCOUNT_DELETED":
     case "AI_CHAT_V2_HUMAN_AUTH_REQUIRED":
+    case "AI_LIMIT_REACHED":
     case "AUTH_UNAUTHORIZED":
     case "CHAT_ACTIVE_RUN_IN_PROGRESS":
     case "CHAT_ATTACHMENT_UNSUPPORTED_TYPE":
@@ -636,6 +638,14 @@ export function useChatSessionActions(
         dispatch({
           type: "error_shown",
           message: uiMessages.activeRunInProgress,
+        });
+        return createRejectedSendResult(resultSessionId);
+      }
+
+      if (isChatApiError(error) && isAiLimitReachedError({ code: error.code })) {
+        dispatch({
+          type: "error_shown",
+          message: uiMessages.aiLimitReached,
         });
         return createRejectedSendResult(resultSessionId);
       }

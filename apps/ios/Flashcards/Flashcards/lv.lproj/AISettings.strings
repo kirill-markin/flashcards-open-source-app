@@ -43,6 +43,7 @@
 "ai.error.requestTooLarge.message" = "MI saruna nevar nosūtīt tik daudz satura vienlaikus. Noņemiet vienu vai vairākus pielikumus, izvēlieties mazāku failu vai fotoattēlu vai sadaliet pieprasījumu un mēģiniet vēlreiz.";
 "ai.error.attachmentUnsupported.title" = "Neatbalstīts faila tips";
 "ai.error.attachmentUnsupported.message" = "Šis faila tips MI sarunā netiek atbalstīts. Noņemiet failu vai saglabājiet to kā PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX vai attēlu un mēģiniet vēlreiz.";
+"ai.error.limitReached" = "Šī mēneša MI ierobežojums ir izlietots. Tas tiek atjaunots nākamā mēneša sākumā.";
 "ai.error.summary.couldNotContinue" = "Neizdevās turpināt MI atbildi";
 "ai.error.summary.invalidResponse" = "Saņemta nederīga MI atbilde";
 "ai.error.summary.configuration" = "MI konfigurācijas kļūda";
