@@ -1,4 +1,4 @@
-import { Suspense, lazy, useCallback, useEffect, useRef, useState, type ReactElement } from "react";
+import { Suspense, lazy, useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactElement } from "react";
 import { BrowserRouter, NavLink, Navigate, Route, Routes as RouterRoutes, useLocation, useNavigate, useParams } from "react-router";
 import { AccountMenu } from "./AccountMenu";
 import { AccountDeletionRecoveryGate } from "./accountDeletionRecovery";
@@ -10,7 +10,13 @@ import {
   useAnalyticsUnreportableScreen,
   type AnalyticsSurface,
 } from "./analytics";
-import { AppDataProvider, isEntryWorkspaceUnavailable, useAppData, type SessionLoadState } from "./appData";
+import {
+  AppDataProvider,
+  isEntryWorkspaceUnavailable,
+  subscribeToEntryWorkspaceActivation,
+  useAppData,
+  type SessionLoadState,
+} from "./appData";
 import { AppErrorDialogProvider } from "./appError/AppErrorContext";
 import { HeaderStoreButtons } from "./appPlatformLinks";
 import { buildLoginUrl, buildLogoutUrl } from "./api";
@@ -501,7 +507,30 @@ export function AppShell(): ReactElement {
   // activated: evaluating it any earlier would take the route's analytics surface down during the
   // loading window, with no gate on screen to replace it, and `ready` is the only state that renders
   // one at all.
-  const isEntryWorkspaceUnreachable: boolean = sessionLoadState === "ready" && isEntryWorkspaceUnavailable();
+  //
+  // Subscribed rather than called in render: the record is module state, and reading it bare would
+  // leave this gate right only while every writer of that record happens to update session state in
+  // the same breath.
+  const isEntryWorkspaceRecordedUnavailable: boolean = useSyncExternalStore(
+    subscribeToEntryWorkspaceActivation,
+    isEntryWorkspaceUnavailable,
+  );
+  // The published workspace has to have moved off the one the address names as well. The record is
+  // written the moment the account's list is found not to hold the entry workspace, and the fallback
+  // that publishes the account default is an IndexedDB write or an HTTP round trip later, so between
+  // the two this panel would stand with the entry workspace still active: its only exit is a
+  // document load onto the active workspace's own review screen, which would land straight back on
+  // it, and the surface take-down below would start inside that window. `ready` keeps the take-down
+  // out of that window only on a cold start, where the session is still loading while the record is
+  // written; on a warm start the session is already `ready` and is held there across
+  // `listWorkspaces`, so the whole window sits inside `ready` and the published workspace is the
+  // only thing left to test. Once the fallback publishes, the active workspace is the account
+  // default and the two differ again. This rests on the URL continuing to name the entry workspace
+  // until the fallback publishes, so a future mover of the workspace segment that does not retire
+  // the entry address would suppress this panel permanently rather than transiently.
+  const isEntryWorkspaceUnreachable: boolean = sessionLoadState === "ready"
+    && isEntryWorkspaceRecordedUnavailable
+    && isUrlWorkspaceActive === false;
   // The active workspace moves away from the one the URL names when the account switches workspaces
   // or deletes the one it was in, and the address has to go with it: reloading the stale URL would
   // otherwise hand back the workspace that was just left.
@@ -510,6 +539,9 @@ export function AppShell(): ReactElement {
     && isUrlWorkspaceActive === false
     // The panel below is about the address itself, so realigning it would erase what is being
     // reported and leave the panel standing over an address that no longer names its workspace.
+    // While the panel is held down waiting for the account default to be published, this guard is
+    // open, and it is the `isUrlWorkspaceActive` test above that keeps the realignment off that
+    // address: the entry workspace is both what the URL names and what is still active there.
     && isEntryWorkspaceUnreachable === false
     ? `${buildWorkspaceRoute(activeWorkspaceId, urlAppPath)}${location.search}${location.hash}`
     : null;

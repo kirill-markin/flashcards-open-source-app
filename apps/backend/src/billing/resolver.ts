@@ -23,6 +23,15 @@ export type PurchaseStatus = "active" | "in_grace" | "expired" | "revoked";
  */
 export type EntitlementStatus = "none" | "active" | "in_grace";
 
+/**
+ * Whether a stored string is one of those three. The cached snapshot keeps its status as text and is
+ * healed by comparison (store.ts), so this is how a reader that has to name the status it read - and
+ * not merely compare it - finds out whether it can.
+ */
+export function isEntitlementStatus(value: string): value is EntitlementStatus {
+  return value === "none" || value === "active" || value === "in_grace";
+}
+
 export type EntitlementSource = "none" | "purchase" | "grant";
 
 /**

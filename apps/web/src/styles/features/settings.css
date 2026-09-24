@@ -567,6 +567,209 @@
   gap: 14px;
 }
 
+.workspace-text-import-editor {
+  display: grid;
+  gap: 18px;
+}
+
+.workspace-text-import-source {
+  display: grid;
+  gap: 8px;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.workspace-text-import-textarea {
+  min-height: 180px;
+  padding: 14px;
+  resize: vertical;
+  line-height: 1.55;
+}
+
+.workspace-text-import-separators {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.workspace-text-import-separator-group {
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.workspace-text-import-separator-group > legend {
+  margin-bottom: 10px;
+  padding: 0;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.workspace-text-import-separator-group > label {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  width: fit-content;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.workspace-text-import-separator-group input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.workspace-text-import-separator-group > label:has(input:checked) {
+  color: var(--text);
+}
+
+.workspace-text-import-separator-group > label:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.68;
+}
+
+.workspace-text-import-custom-separator {
+  width: min(100%, 320px);
+}
+
+.workspace-text-import-tags {
+  display: grid;
+  gap: 8px;
+}
+
+.workspace-text-import-invalid-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.workspace-text-import-invalid-actions > p {
+  margin: 0;
+  flex: 1 1 220px;
+}
+
+.workspace-text-import-invalid-actions > .ghost-btn {
+  min-height: 36px;
+  flex-shrink: 0;
+}
+
+.workspace-text-import-preview {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--content-card-inner-radius, var(--radius-sm));
+  background: var(--surface-muted);
+}
+
+.workspace-text-import-preview-heading {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.workspace-text-import-preview-heading > div {
+  display: grid;
+  gap: 3px;
+}
+
+.workspace-text-import-invalid-count {
+  padding: 5px 9px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 77, 87, 0.14);
+  color: #ffd6d9;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.workspace-text-import-empty {
+  min-height: 64px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+
+.workspace-text-import-preview-list {
+  display: grid;
+  gap: 8px;
+}
+
+.workspace-text-import-preview-row {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+  padding: 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.workspace-text-import-preview-row-invalid {
+  border-color: rgba(255, 77, 87, 0.5);
+}
+
+.workspace-text-import-card-number {
+  padding-top: 10px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.workspace-text-import-preview-row > label {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.workspace-text-import-preview-row textarea {
+  width: 100%;
+  min-height: 74px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  line-height: 1.4;
+  resize: vertical;
+}
+
+.workspace-text-import-preview-row textarea:focus {
+  outline: 2px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  outline-offset: 2px;
+}
+
+.workspace-text-import-remove {
+  min-height: 40px;
+  margin-top: 25px;
+  padding-inline: 14px;
+}
+
+.workspace-text-import-pagination {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.workspace-text-import-pagination > .ghost-btn {
+  min-height: 40px;
+}
+
 .workspace-export-actions {
   display: flex;
   gap: 10px;
@@ -739,9 +942,27 @@
   .workspace-import-preview-metadata-row {
     grid-template-columns: 1fr;
   }
+
+  .workspace-text-import-preview-row {
+    grid-template-columns: 28px minmax(0, 1fr);
+  }
+
+  .workspace-text-import-preview-row > label,
+  .workspace-text-import-remove {
+    grid-column: 2;
+  }
+
+  .workspace-text-import-remove {
+    width: fit-content;
+    margin-top: 0;
+  }
 }
 
 @media (max-width: 600px) {
+  .workspace-text-import-separators {
+    grid-template-columns: 1fr;
+  }
+
   .settings-workspace-dialog-backdrop {
     align-items: end;
     padding: 12px;

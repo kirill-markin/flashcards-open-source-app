@@ -1,4 +1,5 @@
 import { REVIEW_FLOW_INSTRUCTIONS } from "../../agent/reviewContract";
+import { getConfiguredPublicAppOrigin } from "../../shared/publicUrls";
 import { MAX_SQL_BATCH_STATEMENT_COUNT, MAX_SQL_RECORD_LIMIT } from "./sqlToolLimits";
 
 export const SQL_QUERY_TOOL_NAME = "sql_query";
@@ -419,6 +420,88 @@ export const SQL_DIALECT_GUIDE = [
   ...SQL_EXECUTE_TOOL_PROMPT_EXAMPLE_LINES,
 ].join("\n");
 
+/**
+ * Where a card lives on the web, so an agent can hand the user a link instead of
+ * an id alone. Filed under its own heading in `CARD_AUTHORING_GUIDE` below (see
+ * `CARD_WEB_URL_GUIDE_LINES`) and spread into the in-app chat's card-authoring
+ * section (`buildCardAuthoringSection` in `apps/backend/src/chat/shared.ts`),
+ * which states the card rules itself and is told never to fetch the
+ * `card_authoring` guide. It stays one sentence,
+ * because the chat pays for it on every model call of every turn while the
+ * guide body is fetched once on demand.
+ *
+ * It is not appended to a SQL result: `get_guide` serves a guide body with no
+ * result-size budget, while every SQL result is measured
+ * (`apps/backend/src/aiTools/agentSql/resultBudget.ts`), so the same sentence
+ * appended to a write result would push a mutation sitting just under the
+ * budget into truncation and cost it the payload it kept before.
+ *
+ * Empty when the deployment configured no usable app origin, whether it is
+ * unset or set to a value `parsePublicOrigin` rejects: a self-hosted backend
+ * without one has no link to give, and a template with a missing or malformed
+ * host is worse than no line at all. Catching the rejection matters beyond the
+ * text, because this resolves at module load on Lambdas that never call
+ * `validatePublicUrlConfiguration()` (`apps/backend/src/entrypoints/lambda-mcp.ts`),
+ * where a thrown parse error would fail the import and take the whole MCP
+ * surface down over one cosmetic sentence. The explicit local policy
+ * (`AUTH_MODE=none` with `ALLOW_INSECURE_LOCAL_AUTH=true` and no
+ * `PUBLIC_APP_BASE_URL`) is the unset case on purpose: a `localhost` link would
+ * be wrong for an agent talking to a deployed stack, and it is only a
+ * development convenience.
+ *
+ * The three places that advertise this subject do not follow that condition and
+ * must not. `SERVER_INSTRUCTIONS` (`apps/backend/src/mcp/server.ts`) and
+ * `GET_GUIDE_TOPIC_ARGUMENT_DESCRIPTION`
+ * (`apps/backend/src/aiTools/toolRegistry/specs.ts`) name the web link in the
+ * `initialize` instructions and in `tools/list`, which are a published contract
+ * that must not vary by environment and are measured byte for byte in
+ * `apps/backend/src/mcp/toolBudgets.test.ts`; `GUIDE_TOPIC_DESCRIPTIONS` below
+ * names it in the REST discovery topic list
+ * (`apps/backend/src/agent/discovery.ts`). A deployment with no usable app
+ * origin therefore advertises a `card_authoring` topic whose body carries no
+ * link line, which costs the agent a guide read that answers less than the
+ * advertisement promised and nothing more.
+ *
+ * It names no surface-specific field, because `get_guide` answers the MCP and
+ * chat tools and the REST agent routes alike, and only the tools put the
+ * resolved workspace on the payload
+ * (`apps/backend/src/aiTools/toolRegistry/specs.ts`). The route accepts any
+ * workspace id this backend mints rather than a strict RFC 4122 UUID.
+ *
+ * The origin resolves once at module load, because `GUIDE_BODIES` below hands
+ * its callers a plain string and serving a computed body would change that
+ * map's value type and every lookup through it, so a test that sets
+ * `PUBLIC_APP_BASE_URL` after importing this module does not move this line.
+ */
+function resolveCardWebUrlLines(): ReadonlyArray<string> {
+  try {
+    const appOrigin = getConfiguredPublicAppOrigin();
+    if (appOrigin === undefined) {
+      return [];
+    }
+
+    return [
+      `A card's web link is ${appOrigin}/w/<workspaceId>/cards/<card_id>, where workspaceId is the workspace the card is in and card_id is the card's own id, returned by a SELECT on cards and by an INSERT or UPDATE without a RETURNING clause (data.rows, or data.statements[].rows in a batch), so give the user that link when they ask where a card is.`,
+    ];
+  } catch {
+    return [];
+  }
+}
+
+export const CARD_WEB_URL_LINES: ReadonlyArray<string> = resolveCardWebUrlLines();
+
+/**
+ * The same line under its own heading, the way every other subject in
+ * `CARD_AUTHORING_GUIDE` is filed, so the guide does not read the web link as
+ * part of its Markdown and LaTeX rules. Derived rather than folded into
+ * `CARD_WEB_URL_LINES` so a deployment without a usable app origin leaves no
+ * dangling heading, and so the chat's own card-authoring section
+ * (`buildCardAuthoringSection` in `apps/backend/src/chat/shared.ts`), which is
+ * already a section of its own, keeps paying for the sentence alone.
+ */
+const CARD_WEB_URL_GUIDE_LINES: ReadonlyArray<string> =
+  CARD_WEB_URL_LINES.length === 0 ? [] : ["Card web link:", ...CARD_WEB_URL_LINES];
+
 export const CARD_AUTHORING_GUIDE = [
   "Card authoring guide.",
   FRONT_BACK_CONTRACT,
@@ -435,6 +518,7 @@ export const CARD_AUTHORING_GUIDE = [
   "Markdown and LaTeX:",
   CARD_AUTHORING_CONTRACT,
   `Example: ${CARD_AUTHORING_TOOL_CALL_EXAMPLE}`,
+  ...CARD_WEB_URL_GUIDE_LINES,
 ].join("\n");
 
 /**
@@ -528,7 +612,7 @@ export const GUIDE_BODIES: Readonly<Record<GuideTopic, string>> = Object.freeze(
  */
 export const GUIDE_TOPIC_DESCRIPTIONS: Readonly<Record<GuideTopic, string>> = Object.freeze({
   sql_dialect: "the full grammar, limits, and examples",
-  card_authoring: "the card side contract, tags, duplicate checks, matching the user's existing card style, preserving images already in card text, and Markdown and LaTeX formatting",
+  card_authoring: "the card side contract, tags, duplicate checks, matching the user's existing card style, preserving images already in card text, Markdown and LaTeX formatting, and where a card lives on the web",
   bulk_authoring: "splitting and verifying a large write job",
   review_flow: "the review and rating loop",
 });
