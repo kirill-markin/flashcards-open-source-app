@@ -114,6 +114,7 @@ export default defineConfig(({ command }) => {
       sourcemap: shouldUploadSentrySourceMaps,
     },
     test: {
+      include: ["src/**/*.test.ts", "src/**/*.test.tsx", "test/**/*.test.ts", "test/**/*.test.tsx"],
       // Progress fixtures hardcode this zone, so the suite must run in it until they become zone-independent.
       env: { TZ: "Europe/Madrid" },
       environment: "jsdom",
