@@ -496,7 +496,7 @@ export function WorkspaceImportScreen(): ReactElement {
       const result = await executeWorkspacePackageImport(workspaceId, installationId, file, {
         addImportTag: usesAutomaticImportTag,
         importTag: usesAutomaticImportTag ? preview.defaultOptions.suggestedImportTag : "",
-        removeTags: preview.defaultOptions.removedTags.filter((tag) => !tags.includes(tag)),
+        removeTags: [],
       }, () => undefined);
       showWorkspaceImportSuccess(result);
       return true;
