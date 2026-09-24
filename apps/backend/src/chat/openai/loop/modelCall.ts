@@ -79,6 +79,7 @@ export type RunOneToolCall = (params: Readonly<{
   signal: AbortSignal | null;
   generatedImageOperationDeadlineMs: number;
   clientPlatform: ProductAnalyticsClientReportablePlatform | null;
+  initiatingAuthIsSignedIn: boolean;
   rootObservation: LangfuseObservation | null;
 }>) => Promise<ExecutedChatToolCall>;
 
@@ -96,6 +97,7 @@ type ExecuteToolCallsParams = Readonly<{
   signal: AbortSignal | undefined;
   generatedImageOperationDeadlineMs: number;
   clientPlatform: ProductAnalyticsClientReportablePlatform | null;
+  initiatingAuthIsSignedIn: boolean;
   rootObservation: LangfuseObservation | null;
   onExecutionPhaseChanged: ((phase: "idle" | "model" | "tool") => void) | undefined;
   shouldStopBeforeNextStep: (() => boolean) | undefined;
@@ -286,6 +288,7 @@ export async function executeToolCalls(
         signal: params.signal ?? null,
         generatedImageOperationDeadlineMs: params.generatedImageOperationDeadlineMs,
         clientPlatform: params.clientPlatform,
+        initiatingAuthIsSignedIn: params.initiatingAuthIsSignedIn,
         rootObservation: params.rootObservation,
       });
       if (output.stopReason !== null) {

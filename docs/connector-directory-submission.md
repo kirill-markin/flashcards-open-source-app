@@ -81,7 +81,7 @@ payload at `https://api.flashcards-open-source-app.com/v1/` (mirrored at
 
 ## Tool inventory
 
-The remote MCP server exposes seven tools. Reads, authoring writes, and review submission
+The remote MCP server exposes eight tools. Reads, authoring writes, and review submission
 have separate contracts. See [conversational reviews](conversational-reviews.md)
 for the complete voice-session flow and the external ChatGPT Voice limitation.
 
@@ -94,6 +94,7 @@ for the complete voice-session flow and the external ChatGPT Voice limitation.
 | `next_review_card` | Return one eligible card's question without its answer. | `readOnlyHint: true`, `idempotentHint: true`, `openWorldHint: false` |
 | `reveal_answer` | Reveal the answer for one card after the learner attempts recall. | `readOnlyHint: true`, `idempotentHint: true`, `openWorldHint: false` |
 | `submit_review` | Append one agent-assessed or learner-selected rating and update the authoritative schedule. A repeated `reviewId` is deduplicated by the review-history uniqueness constraint. | `readOnlyHint: false`, `destructiveHint: true`, `idempotentHint: true`, `openWorldHint: false` |
+| `get_usage_limits` | Return the account's plan tier, the limits resolved for it, and this month's AI consumption; account-scoped and takes no arguments. | `readOnlyHint: true`, `idempotentHint: true`, `openWorldHint: false` |
 
 ### SQL DSL safety model
 
@@ -114,9 +115,10 @@ parser-enforced DSL, not arbitrary database access:
 - **Bounded caps.** At most 100 rows per statement, at most 50 statements per
   batch, and a ~12k-token result-size cap; mutation batches are atomic.
 - **Contractual read/write split.** The split is encoded in the tool
-  annotations: `sql_query`, `list_workspaces`, and `get_guide` are
-  `readOnlyHint`, while `sql_execute` is `destructiveHint`, so a single tool
-  never mixes safe and destructive operations.
+  annotations: `sql_query`, `list_workspaces`, `get_guide`, and
+  `get_usage_limits` are `readOnlyHint`, while `sql_execute` is
+  `destructiveHint`, so a single tool never mixes safe and destructive
+  operations.
 
 Enforcement lives in `apps/backend/src/aiTools/agentSql.ts`,
 `apps/backend/src/aiTools/agentSql/shared.ts`, and

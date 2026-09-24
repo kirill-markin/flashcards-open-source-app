@@ -175,6 +175,9 @@ test("generated-image dependency races surface cancellation to the runtime termi
               submitAgentReview: async () => {
                 throw new Error("A review write was not expected.");
               },
+              loadAiUsageStatus: async () => {
+                throw new Error("A usage read was not expected.");
+              },
               generateCardImage: async () =>
                 new Promise((resolve, reject) => {
                   params.signal?.addEventListener("abort", () => {
@@ -203,6 +206,7 @@ test("generated-image dependency races surface cancellation to the runtime termi
                 generatedImageOperationDeadlineMs:
                   params.generatedImageOperationDeadlineMs,
                 clientPlatform: params.clientPlatform,
+                initiatingAuthIsSignedIn: params.initiatingAuthIsSignedIn,
                 generatedImageObservationContext: {
                   scope: createBackendObservationScope(
                     "chat-worker",
