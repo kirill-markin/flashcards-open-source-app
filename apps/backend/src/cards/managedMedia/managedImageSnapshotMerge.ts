@@ -2,7 +2,9 @@ import {
   extractManagedMediaImageReferenceSources,
   extractMarkdownManagedMediaLifecycleReferences,
   isMarkdownComplexityLimitError,
+  rewriteMarkdownImageDestinationUrl,
   type ManagedMediaImageReferenceSource,
+  type ManagedMediaLifecycleState,
 } from "../../workspacePackages/markdownMedia";
 import type { CardRow, CardTextSide } from "../types";
 import { appendMarkdownBlock } from "./managedImageSettlement";
@@ -18,7 +20,7 @@ export type ManagedImageSnapshotWrite = Readonly<{
 
 /**
  * What the snapshot UPDATE has to write. `clientUpdatedAt` is part of the result rather than left
- * to the caller because a restore is only useful if it also moves the stamp - see WHY A RESTORE
+ * to the caller because a merge is only useful if it also moves the stamp - see WHY A RESTORE
  * MOVES `client_updated_at` below - and a caller that merged the text but kept the client's stamp
  * would produce a row no iOS device ever accepts.
  */
@@ -92,8 +94,8 @@ const mediaAssetIdBoundaryCharacterPattern = /[A-Za-z0-9._-]/u;
  * referenced.
  *
  * A mention is not evidence that the sender holds the image. The needle stops at the id, so
- * `fcasset:<id>?state=pending` is a mention of `fcasset:<id>` - see THE LIFECYCLE-STATE MISMATCH
- * below for what that case does and why it is not handled here.
+ * `fcasset:<id>?state=pending` is a mention of `fcasset:<id>`: the reference is not dropped, and
+ * the state it carries is settled separately - see THE LIFECYCLE-STATE MISMATCH below.
  *
  * A stored media asset id can be a prefix of another one, so a match only counts when the id ends
  * where the needle ends.
@@ -145,6 +147,94 @@ function collectStoredImageReferencesBySide(
   return referencesBySide;
 }
 
+type StoredManagedImageLifecycleTarget = Readonly<{
+  state: ManagedMediaLifecycleState;
+  destination: string;
+}>;
+
+/**
+ * The lifecycle state the stored card holds for each managed-media asset on it, keyed by lowercased
+ * media asset id, together with the exact destination that state is written as. Rewriting to the
+ * stored destination rather than to a rebuilt one keeps the stored id spelling.
+ *
+ * An asset the stored card names twice in two DIFFERENT states is left out entirely. Nothing the
+ * backend writes produces that - it is only reachable by hand-editing a query string - and there is
+ * no way to tell which of the two states the server meant, so neither is authoritative.
+ */
+function collectStoredLifecycleTargetsByMediaAssetId(
+  storedReferencesBySide: ReadonlyMap<
+    CardTextSide,
+    ReadonlyArray<ManagedMediaImageReferenceSource>
+  >,
+): ReadonlyMap<string, StoredManagedImageLifecycleTarget> {
+  const targetByMediaAssetId = new Map<string, StoredManagedImageLifecycleTarget>();
+  const ambiguousMediaAssetIds = new Set<string>();
+  for (const storedReferences of storedReferencesBySide.values()) {
+    for (const reference of storedReferences) {
+      const normalizedMediaAssetId = reference.mediaAssetId.toLowerCase();
+      const knownTarget = targetByMediaAssetId.get(normalizedMediaAssetId);
+      if (knownTarget === undefined) {
+        targetByMediaAssetId.set(normalizedMediaAssetId, {
+          state: reference.state,
+          destination: reference.destination,
+        });
+        continue;
+      }
+      if (knownTarget.state !== reference.state) {
+        ambiguousMediaAssetIds.add(normalizedMediaAssetId);
+      }
+    }
+  }
+
+  for (const mediaAssetId of ambiguousMediaAssetIds) {
+    targetByMediaAssetId.delete(mediaAssetId);
+  }
+
+  return targetByMediaAssetId;
+}
+
+/**
+ * Rewrite every incoming managed-media image destination whose lifecycle state disagrees with the
+ * state the stored card holds for the same asset, to the destination the stored card holds. See THE
+ * LIFECYCLE-STATE MISMATCH below for why the stored state is the authoritative one.
+ *
+ * Only an active Markdown image destination is rewritten, which is exactly what the extractor
+ * returns: the same `fcasset:` text inside a code fence, an HTML tag or a reference definition is a
+ * person writing about the asset rather than a reference the server authored, and is left as it
+ * arrived. Each distinct destination is rewritten once, and a rewrite can never produce a
+ * destination a later iteration rewrites again, because the destination it produces is the stored
+ * one and a reference already in the stored state is skipped.
+ */
+function normalizeLifecycleStatesOnSide(
+  incomingText: string,
+  storedTargetsByMediaAssetId: ReadonlyMap<string, StoredManagedImageLifecycleTarget>,
+): string {
+  if (storedTargetsByMediaAssetId.size === 0 || !textMayHoldManagedMedia(incomingText)) {
+    return incomingText;
+  }
+
+  let normalizedText = incomingText;
+  const rewrittenDestinations = new Set<string>();
+  for (const reference of extractMarkdownManagedMediaLifecycleReferences(incomingText)) {
+    if (!reference.isImage || rewrittenDestinations.has(reference.destination)) {
+      continue;
+    }
+    const storedTarget = storedTargetsByMediaAssetId.get(reference.mediaAssetId.toLowerCase());
+    if (storedTarget === undefined || storedTarget.state === reference.state) {
+      continue;
+    }
+
+    rewrittenDestinations.add(reference.destination);
+    normalizedText = rewriteMarkdownImageDestinationUrl(
+      normalizedText,
+      reference.destination,
+      storedTarget.destination,
+    );
+  }
+
+  return normalizedText;
+}
+
 function restoreReferencesOntoSide(
   incomingText: string,
   references: ReadonlyArray<ManagedMediaImageReferenceSource>,
@@ -173,7 +263,7 @@ function restoreReferencesOntoSide(
 
 /**
  * Put back the managed-media images a snapshot push would drop, when the pushing device cannot have
- * known about them.
+ * known about them, and settle the lifecycle state of the ones it still carries.
  *
  * WHY THIS EXISTS. The backend writes managed images straight into card text: the AI image tool
  * appends a pending marker and the promotion job rewrites it to a ready reference
@@ -195,8 +285,8 @@ function restoreReferencesOntoSide(
  * failed - because a dropped pending marker is worse than a dropped ready one: settlement then
  * finds no marker to rewrite, fails the promotion job, and the generated image is lost before it is
  * ever shown. That is only about a reference the incoming snapshot dropped altogether; when the two
- * sides name one asset in DIFFERENT states nothing is restored at all, which is THE LIFECYCLE-STATE
- * MISMATCH below.
+ * sides name one asset in DIFFERENT states nothing is restored, and the state itself is settled by
+ * THE LIFECYCLE-STATE MISMATCH below.
  *
  * WHAT COUNTS AS DROPPED. A stored image reference whose media asset id appears nowhere in the
  * incoming snapshot, on either side. "Nowhere" is deliberately wider than an active Markdown image
@@ -204,13 +294,17 @@ function restoreReferencesOntoSide(
  * `textsMentionMediaAssetId` above for which shapes and why. Moving an image from the back to the
  * front, or turning it into a link, is a person editing their card and is left alone.
  *
- * THE LIFECYCLE-STATE MISMATCH, which this does not handle, and which is likelier than any of the
- * hand-written shapes above. `fcasset:<id>`, `fcasset:<id>?state=pending` and
+ * THE LIFECYCLE-STATE MISMATCH, which is likelier than any of the hand-written shapes above, and
+ * where the STORED state wins. `fcasset:<id>`, `fcasset:<id>?state=pending` and
  * `fcasset:<id>?state=failed` all parse to the same media asset id
  * (`managedMediaLifecycleUrlPattern` in ../../workspacePackages/markdownMedia.ts), and the mention
  * check matches the id up to its boundary character, so an incoming snapshot carrying any of them
- * reads as still referencing the asset. Nothing is dropped, nothing is restored, the stamp is not
- * moved, and the state the snapshot carries is stored over the state the server held.
+ * reads as still referencing the asset: nothing is dropped and nothing is restored. What is left is
+ * the state itself, and storing the one the snapshot carries throws away a settled image. So when
+ * the stored card names that same asset in a different state, the incoming destination is rewritten
+ * in place to the destination the stored card holds (`normalizeLifecycleStatesOnSide` above), and
+ * that counts as a merge that moved the row - the same one-millisecond stamp a restore uses, for
+ * the reason and with the consequences set out in WHY A RESTORE MOVES `client_updated_at` below.
  *
  * The direction that costs something is a device pushing the pending marker over a settled ready
  * reference, and it is an ordinary sequence rather than a corner. The marker goes into card text
@@ -221,12 +315,58 @@ function restoreReferencesOntoSide(
  * and does not run again. And a non-ready reference is a placeholder on the clients, not an image -
  * web renders "Image is being prepared. It will appear soon." and returns before it ever fetches
  * the blob (`ManagedMediaReference` in
- * apps/web/src/screens/review/components/card/managedMedia/ManagedMediaReference.tsx). The image
- * sits finished in storage and the card promises it is on its way, permanently.
+ * apps/web/src/screens/review/components/card/managedMedia/ManagedMediaReference.tsx). Left alone,
+ * the image sits finished in storage while the card promises it is on its way, permanently.
  *
- * Left alone on purpose. It is pre-existing - the same push stored the same marker before this
- * function existed - and restoring across a state mismatch would rewrite a person's text in a case
- * nothing here otherwise touches, which is a decision of its own. Tracked separately.
+ * This is the server rewriting text a device sent, which nothing else here does, so it is kept as
+ * narrow as the defect. Only the destination of a managed-media image reference changes, and only
+ * to the destination the stored card holds - the query string and the stored spelling of the asset
+ * id travel together. Only an active Markdown IMAGE destination is touched, so the same `fcasset:`
+ * text inside a code fence, an HTML tag or a reference definition stays exactly as it arrived, and
+ * so does a link-shaped reference. A link-shaped reference left in a stale state therefore keeps
+ * that state, and with it the symptom above; correcting it is out of scope here. Only an asset the
+ * stored card already holds is eligible. A person's prose is never edited. THE DELIBERATE-DELETION
+ * RULE below does not apply either, and the reason is not that the string is out of reach: the web
+ * card editor puts raw card Markdown into its textarea (`CardForm` in
+ * apps/web/src/screens/cards/form/CardForm.tsx), so hand-editing that query string is reachable
+ * through ordinary product UI. The rule is that the lifecycle query string is server-owned state
+ * rather than authored text, so a state that disagrees with the stored one is never a decision to
+ * honour - whichever replica wrote the stored row, and whoever typed the incoming one. A hand edit
+ * of it is settled back on every push rather than honoured on a second attempt, which is what
+ * owning the state means. The rewrite swaps the whole destination span for
+ * the stored one, so the stored spelling of the asset id travels with the state; the two are
+ * matched case-insensitively. No ledger is needed - a second stale snapshot of the same card in the
+ * same batch finds the corrected state stored and is corrected again.
+ *
+ * Three cases stay open. An asset the stored card names twice in two different states is ambiguous
+ * and is left untouched (`collectStoredLifecycleTargetsByMediaAssetId` above). The agent path does
+ * not merge at all: `updateCardInExecutor` in ../mutations.ts captures the previous row inside its
+ * write statement to avoid a SELECT per card, so an agent write can still store a stale state - and
+ * a device snapshot arriving afterwards is normalized TO that stale state rather than correcting
+ * it. That one is handled where the agent composes the text, not here. And this merge only ever
+ * sees the two shapes the backend itself authors: `managedMediaLifecycleUrlPattern` in
+ * ../../workspacePackages/markdownMedia.ts accepts `fcasset:<id>` and
+ * `fcasset:<id>?state=pending|failed` and nothing else, while the web client parses a much wider
+ * set - any query string carrying exactly one `state` parameter, plus leading slashes, a fragment
+ * and a case-insensitive scheme (`parseManagedMediaUrlReference` in
+ * apps/web/src/media/managedMediaMarkdown.ts) - and renders every one of them as the same
+ * placeholder. A card holding one of those wider shapes, from a hand edit or a paste, is invisible
+ * to this merge and keeps the symptom. That is a known limit, not a promise to fix: widening the
+ * pattern changes parsing for every consumer of it and is a separate decision.
+ *
+ * THE STAMP BUMP ON A NORMALIZATION HAS NO TERMINATING CONDITION, unlike a restore, and that is
+ * accepted. A restore fires at most once per device per card state, because the next push finds
+ * `last_modified_by_replica_id` equal to the pusher and is read as a deliberate deletion. A
+ * normalization has no such gate on purpose - the stored state is authoritative every time - so a
+ * device whose pull never lands (THE NARROWER RESIDUAL below) pays the millisecond on every push of
+ * that card rather than once. The bump earns that cost on a device whose pull DOES land: by WHY A
+ * RESTORE MOVES `client_updated_at` below, iOS skips a pulled card its own row outranks, and
+ * without the bump that decision falls to a replica-id tie-break the local row wins for about half
+ * of all (workspace, installation) pairs, so those devices would never converge on the normalized
+ * text; web and Android apply a pulled card unconditionally and converge either way. The cost is
+ * the one set out there, now paid per stale push rather than once per card: a later write
+ * stamped exactly one millisecond after a normalized snapshot ties on the timestamp and loses about
+ * half the time.
  *
  * WHERE A RESTORED REFERENCE LANDS. Appended as a trailing block on the side the server held it on,
  * in stored order, as the exact source text of the stored node so the alt text survives. Trailing
@@ -299,7 +439,7 @@ function restoreReferencesOntoSide(
  * acknowledged and delete the outbox row, and that review's scheduling is gone. Two milliseconds or
  * more after the snapshot is unaffected, and anything stamped before it had already lost.
  *
- * A merge that restored nothing returns the client's stamp untouched.
+ * A merge that changed nothing returns the client's stamp untouched.
  *
  * WHY THIS RUNS BEFORE THE TOMBSTONE BRANCH. A snapshot that deletes the card is merged like any
  * other, so a delete that also dropped a reference stores a reference into text nobody will render.
@@ -371,6 +511,25 @@ export function mergeManagedImageReferencesIntoCardSnapshot(
       ["back", incoming.backText],
     ]);
 
+    // Settle the lifecycle states first, so the restore below appends onto the text that is
+    // actually going to be stored. The two never touch the same asset - a reference the incoming
+    // snapshot still carries is not a dropped one - and the mention check keeps reading the text
+    // the client sent, which a query-string rewrite cannot change the answer to.
+    const storedLifecycleTargets = collectStoredLifecycleTargetsByMediaAssetId(
+      storedReferencesBySide,
+    );
+    let normalizedSideCount = 0;
+    for (const side of ["front", "back"] as const) {
+      const incomingText = mergedTextBySide.get(side) ?? "";
+      const normalizedText = normalizeLifecycleStatesOnSide(incomingText, storedLifecycleTargets);
+      if (normalizedText === incomingText) {
+        continue;
+      }
+
+      mergedTextBySide.set(side, normalizedText);
+      normalizedSideCount += 1;
+    }
+
     for (const [side, storedReferences] of storedReferencesBySide) {
       const droppedReferences: Array<ManagedMediaImageReferenceSource> = [];
       const droppedMediaAssetIds = new Set<string>();
@@ -411,7 +570,7 @@ export function mergeManagedImageReferencesIntoCardSnapshot(
       }
     }
 
-    if (restoredCount === 0) {
+    if (restoredCount === 0 && normalizedSideCount === 0) {
       return unchanged;
     }
 
