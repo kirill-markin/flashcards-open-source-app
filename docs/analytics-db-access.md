@@ -196,7 +196,7 @@ The role gets `SELECT` on these tables only:
 - `auth.guest_replica_aliases`
 - selected entitlement columns on `auth.admin_users`, the join key an admin report uses to exclude admin-generated activity
 - selected metadata and content columns on `ai.chat_sessions`, `composer_suggestions` included
-- `ai.chat_items`, the stored chat transcript, `payload` included
+- `ai.chat_items`, the stored chat transcript, `payload` included, and the generated `role` and `content_char_count` columns beside it
 - selected metadata and content columns on `ai.chat_runs`, `turn_input`, `last_error_message`, and `client_platform` included
 - selected metadata and content columns on `ai.chat_composer_suggestion_generations`, `suggestions` included
 - `ai.usage_events`
@@ -339,6 +339,8 @@ Use AI chat tables when the investigation needs chat session volume, run health,
 These tables expose hosted AI chat content, not metadata alone. `ai.chat_items` and its `payload`, which is the stored transcript, `ai.chat_runs.turn_input`, `ai.chat_runs.last_error_message`, `ai.chat_sessions.composer_suggestions`, and `ai.chat_composer_suggestion_generations.suggestions` are all readable by `reporting_readonly`, granted by `db/migrations/0153_reporting_readonly_ai_chat_content.sql`. That was opened deliberately, and it is not a secret: answering how people actually use the AI features, so the features can be made better, needs the content and not only a count of runs. The privacy policy discloses it in its `Hosted AI and External AI Clients` section. Handle what you read as personal data belonging to the person who wrote it.
 
 Nothing outside AI chat content was opened with it: secret hashes, raw provider subjects, and API key hashes stay hidden, and so do the legacy payload-heavy sync feeds named further below.
+
+`ai.chat_items` also carries two generated columns that let a report measure chat volume without touching the transcript: `role`, which is `user` or `assistant`, and `content_char_count`, the characters of written text in that one message. Both are `GENERATED ALWAYS AS (...) STORED`, so they follow `payload` on every write and cannot drift from it, and `db/migrations/0154_ai_chat_item_content_metrics.sql` grants them to `reporting_readonly`. Group by `role` and sum `content_char_count` rather than selecting `payload` to size anything: one row is one message with one role, and `payload` is hundreds of megabytes of TOASTed JSONB where reading a single key out of a row costs about what reading the whole message costs. `content_char_count` counts text content parts only, so attachment base64, tool-call input and output, card fields, and reasoning summaries are excluded; it is the visible message and not the work behind it, `0` means a message that carried no text rather than a missing value, and it is not the byte size of `payload`.
 
 Use AI usage facts when the investigation needs per-call model usage, token and unit counters, or spend, which prices a usage row against the `ai.model_prices` window in effect at its `occurred_at`:
 
