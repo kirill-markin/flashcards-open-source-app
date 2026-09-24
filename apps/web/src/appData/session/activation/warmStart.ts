@@ -1,5 +1,10 @@
 import { isBrowserReauthRequired } from "../../../accountDeletion";
 import type { SessionInfo, WorkspaceSummary } from "../../../types";
+import {
+  didEntryAddressOverrideAccountDefault,
+  findEntryWorkspace,
+  readEntryWorkspaceId,
+} from "./workspaceActivationHelpers";
 
 export type { SessionVerificationState } from "../workspaceSessionTypes";
 
@@ -90,6 +95,34 @@ function parseWarmStartSnapshot(rawValue: string | null): WarmStartSnapshot | nu
   }
 }
 
+/**
+ * The entry address decides which workspace this document shows, so a snapshot that was written in a
+ * different one is repointed at the workspace the address names, and dropped when it does not carry
+ * that workspace at all. Painting the previously active workspace under an address naming another
+ * one would put one workspace's cards on screen under the other's address; dropping the snapshot
+ * costs the warm first paint and falls back to the cold path, where the server's own list decides.
+ *
+ * Asked of the same captured entry value activation resolves from, never of a second source, so the
+ * snapshot and the first activation cannot disagree about which workspace was asked for.
+ *
+ * `isSelected` is left as the snapshot recorded it: what following a link deliberately does not move
+ * is the account's server-side selection, and the client-side copy follows whatever gets activated
+ * because `publishSelectedWorkspace` re-marks it (`useWorkspaceActivation.ts`).
+ */
+function alignSnapshotWithEntryWorkspace(snapshot: WarmStartSnapshot): WarmStartSnapshot | null {
+  const entryWorkspaceId = readEntryWorkspaceId();
+  if (entryWorkspaceId === null || snapshot.activeWorkspace.workspaceId.toLowerCase() === entryWorkspaceId) {
+    return snapshot;
+  }
+
+  const entryWorkspace = findEntryWorkspace(snapshot.availableWorkspaces);
+  if (entryWorkspace === null) {
+    return null;
+  }
+
+  return { ...snapshot, activeWorkspace: entryWorkspace };
+}
+
 function getBrowserStorage(): Storage | null {
   const storageValue = window.localStorage;
   if (
@@ -150,10 +183,42 @@ export function loadWarmStartSnapshot(): WarmStartSnapshot | null {
     return null;
   }
 
-  return parseWarmStartSnapshot(browserStorage.getItem(WARM_START_SNAPSHOT_STORAGE_KEY));
+  const snapshot = parseWarmStartSnapshot(browserStorage.getItem(WARM_START_SNAPSHOT_STORAGE_KEY));
+  return snapshot === null ? null : alignSnapshotWithEntryWorkspace(snapshot);
 }
 
+/**
+ * What the stored snapshot has to keep naming is the account's own default, because the next open is
+ * not guaranteed to carry an address that decides anything: at an address with no `/w/` segment the
+ * snapshot is returned untouched above, `AppDataProvider` starts `ready` in whatever it names, and
+ * only when `initialize()` resolves does the account default take over — a first paint of one
+ * workspace's cards that then visibly snaps to another.
+ *
+ * An entry address that put the account in a workspace other than that default is exactly the state
+ * that would break it: it publishes its workspace locally, into `activeWorkspace` and
+ * `session.selectedWorkspaceId`, while leaving the account's server-side default where it was, so
+ * it is the one activation the snapshot must not record. Every other one moved that default too,
+ * which is why this divergence cannot arise anywhere else. The entry activation moves it in exactly
+ * one case — an account that had no default at all, which is given one so the other clients stop
+ * reading `selectedWorkspaceId: null` — and a successful write retires the address as it lands, so
+ * address and default agree from then on and this guard stops holding for the rest of the document.
+ * A failed one retires nothing and leaves the divergence recorded, so the guard keeps holding, and
+ * this document refuses every snapshot write for the rest of its life. Asked of the entry-address
+ * model rather than of a comparison between the snapshot and the address, so the answer is the same
+ * one activation resolved from — including that an address naming the account's own default is not
+ * this case at all, and keeps refreshing the snapshot like any other open.
+ *
+ * Nothing is written at all while it holds, rather than a partly rewritten snapshot: whatever the
+ * previous document stored is already the account's default, and the whole record is advisory and
+ * revalidated on the next boot anyway. A document opened on somebody else's link therefore refreshes
+ * no snapshot, and one that never had a snapshot writes none, which costs that document's successor
+ * the warm first paint and falls back to the cold path the account default resolves on.
+ */
 export function storeWarmStartSnapshot(snapshot: WarmStartSnapshot): void {
+  if (didEntryAddressOverrideAccountDefault()) {
+    return;
+  }
+
   const browserStorage = getBrowserStorage();
   if (browserStorage === null) {
     return;

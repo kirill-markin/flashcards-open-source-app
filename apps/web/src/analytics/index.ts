@@ -52,4 +52,4 @@ export {
   subscribeToAnalyticsConsent,
 } from "./consent";
 export { isProductAnalyticsCollectionEnabled } from "./productAnalyticsCollection";
-export { useAnalyticsScreenView } from "./useAnalyticsScreenView";
+export { useAnalyticsScreenView, useAnalyticsUnreportableScreen } from "./useAnalyticsScreenView";
