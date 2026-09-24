@@ -8,6 +8,7 @@ import {
   trackedWaitForUrl,
 } from "../../live-smoke.actions";
 import { aiCompletionTimeoutMs, externalUiTimeoutMs, localUiTimeoutMs } from "../config";
+import { primaryNavigationLinkSelector } from "../navigation";
 import {
   createAiTransportObserver,
   isAiComposerTerminalIdle,
@@ -42,7 +43,7 @@ export async function runAiConversationResetFlow(session: LiveSmokeSession): Pro
 
 async function runAiCardCreationWithConfirmation(session: LiveSmokeSession): Promise<void> {
   const { page, diagnostics } = session;
-  await trackedClick(diagnostics, "open AI chat navigation", page.locator('nav.nav a[href="/chat"]').first());
+  await trackedClick(diagnostics, "open AI chat navigation", page.locator(primaryNavigationLinkSelector("/chat")).first());
   await trackedWaitForUrl(
     page,
     diagnostics,

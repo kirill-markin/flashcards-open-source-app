@@ -124,6 +124,16 @@ The three consent facts are marked like every other row: one boolean about bot-n
 identity, so it takes nothing back from the identity-free rules above, and exempting those facts
 would leave a way to report one unmarked.
 
+A server-side producer reporting on a browser's behalf owes this route that browser's own
+`User-Agent`, forwarded verbatim as a header on its call. Forwarding none does not leave the verdict
+open; it decides it from the producer's own string: a runtime supplies a default of its own, and
+Node 24's is `node`, which matches no marker, so such rows are stored as an ordinary person, while
+an empty header counts as TRUE and its rows are dropped by every read that excludes automated
+traffic. Neither verdict describes the browser, and nothing is kept beside the row to recompute one
+from. The auth origin's sign-in funnel is the producer that does this
+([auth service](auth-service.md#login-funnel-analytics)); it does not report at all for a request
+that carried no `User-Agent`.
+
 Such traffic is marked rather than refused, so it stays countable and each report decides. The
 column's NULL is not FALSE: it means the code that stored the row did not assess it. The cases seen
 so far are a row stored before the assessment existed, a row on another trust level, where no

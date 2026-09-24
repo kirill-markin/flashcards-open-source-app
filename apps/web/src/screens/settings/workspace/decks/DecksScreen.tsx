@@ -8,6 +8,7 @@ import {
 import { ALL_CARDS_DECK_SLUG } from "../../../../deckFilters";
 import { useI18n } from "../../../../i18n";
 import { buildSettingsDeckDetailRoute, settingsDeckNewRoute } from "../../../../routes";
+import { useWorkspacePath, type WorkspacePathBuilder } from "../../../../useWorkspacePath";
 import { loadDecksListSnapshot } from "../../../../localDb/cards/decks";
 import { captureAppOperationError } from "../../../../observability/appOperationObservation";
 import { handleRefreshLocalDataError } from "../../../shared/refreshLocalDataError";
@@ -22,17 +23,20 @@ type DeckListEntry = Readonly<{
   href: string;
 }>;
 
-function buildDeckDetailPath(deckId: string): string {
-  return buildSettingsDeckDetailRoute(deckId);
+function buildDeckDetailPath(deckId: string, workspacePath: WorkspacePathBuilder): string {
+  return workspacePath(buildSettingsDeckDetailRoute(deckId));
 }
 
-function makeDeckListEntries(decksSnapshot: DecksListSnapshot): ReadonlyArray<DeckListEntry> {
+function makeDeckListEntries(
+  decksSnapshot: DecksListSnapshot,
+  workspacePath: WorkspacePathBuilder,
+): ReadonlyArray<DeckListEntry> {
   return [{
     id: ALL_CARDS_DECK_SLUG,
     title: "",
     filterSummary: "",
     stats: decksSnapshot.allCardsStats,
-    href: buildDeckDetailPath(ALL_CARDS_DECK_SLUG),
+    href: buildDeckDetailPath(ALL_CARDS_DECK_SLUG, workspacePath),
   }, ...decksSnapshot.deckSummaries.map((deckSummary) => ({
     id: deckSummary.deckId,
     title: deckSummary.name,
@@ -43,7 +47,7 @@ function makeDeckListEntries(decksSnapshot: DecksListSnapshot): ReadonlyArray<De
       newCards: deckSummary.newCards,
       reviewedCards: deckSummary.reviewedCards,
     },
-    href: buildDeckDetailPath(deckSummary.deckId),
+    href: buildDeckDetailPath(deckSummary.deckId, workspacePath),
   }))];
 }
 
@@ -61,6 +65,7 @@ export function DecksScreen(): ReactElement {
   const { activeWorkspace, cloudSettings, localReadVersion, refreshLocalData, session } = useAppData();
   const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const { messages, t, formatNumber, selectCountLabel } = useI18n();
+  const workspacePath = useWorkspacePath();
   const [decksSnapshot, setDecksSnapshot] = useState<DecksListSnapshot>(emptyDecksSnapshot);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string>("");
@@ -139,7 +144,7 @@ export function DecksScreen(): ReactElement {
     };
   }, [activeWorkspace, indexedDbOpenRecoveryState, localReadVersion]);
 
-  const deckListEntries = makeDeckListEntries(decksSnapshot);
+  const deckListEntries = makeDeckListEntries(decksSnapshot, workspacePath);
 
   async function handleRefreshLocalData(): Promise<void> {
     if (indexedDbOpenRecoveryState.hasFailed()) {
@@ -205,7 +210,7 @@ export function DecksScreen(): ReactElement {
           </div>
           <div className="screen-actions">
             <span className="badge">{t("decksScreen.counts.total", { count: formatNumber(deckListEntries.length) })}</span>
-            <Link className="primary-btn" to={settingsDeckNewRoute} data-testid="decks-new-deck">{t("decksScreen.newDeck")}</Link>
+            <Link className="primary-btn" to={workspacePath(settingsDeckNewRoute)} data-testid="decks-new-deck">{t("decksScreen.newDeck")}</Link>
           </div>
         </div>
 

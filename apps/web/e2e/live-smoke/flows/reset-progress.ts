@@ -9,6 +9,7 @@ import {
   trackedReadRequiredTextContent,
 } from "../../live-smoke.actions";
 import { externalUiTimeoutMs, localUiTimeoutMs } from "../config";
+import { primaryNavigationLinkSelector } from "../navigation";
 import { runLiveSmokeStep } from "../steps";
 import type { LiveSmokeSession } from "../types";
 
@@ -31,7 +32,7 @@ export async function runResetProgressFlow(session: LiveSmokeSession): Promise<v
 async function confirmReviewedSeededCardStillExists(session: LiveSmokeSession): Promise<void> {
   const { page, diagnostics, scenario } = session;
 
-  await trackedClick(diagnostics, "open cards navigation before reset", page.locator('nav.nav a[href="/cards"]').first());
+  await trackedClick(diagnostics, "open cards navigation before reset", page.locator(primaryNavigationLinkSelector("/cards")).first());
   await trackedFill(
     diagnostics,
     `search cards for ${scenario.seededFrontText}`,
@@ -54,7 +55,7 @@ async function completeResetProgressFlow(session: LiveSmokeSession): Promise<voi
   await trackedClick(
     diagnostics,
     "open settings navigation before reset",
-    page.locator('nav.nav a[href="/settings"]').first(),
+    page.locator(primaryNavigationLinkSelector("/settings")).first(),
   );
   await trackedExpectVisible(
     diagnostics,
@@ -131,7 +132,7 @@ async function completeResetProgressFlow(session: LiveSmokeSession): Promise<voi
 async function confirmReviewedSeededCardBecomesDueAgain(session: LiveSmokeSession): Promise<void> {
   const { page, diagnostics, scenario } = session;
 
-  await trackedClick(diagnostics, "open review navigation after reset", page.locator('nav.nav a[href="/review"]').first());
+  await trackedClick(diagnostics, "open review navigation after reset", page.locator(primaryNavigationLinkSelector("/review")).first());
   await trackedExpectAttribute(
     diagnostics,
     `confirm the reviewed card becomes due again: ${scenario.seededFrontText}`,
@@ -158,7 +159,7 @@ async function ensureScenarioWorkspaceSelected(
     await trackedClick(
       diagnostics,
       `open settings navigation to recover workspace ${actionSuffix}`,
-      page.locator('nav.nav a[href="/settings"]').first(),
+      page.locator(primaryNavigationLinkSelector("/settings")).first(),
     );
     await trackedExpectVisible(
       diagnostics,

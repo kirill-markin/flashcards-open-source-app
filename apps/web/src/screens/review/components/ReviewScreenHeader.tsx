@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { formatReviewProgressBadgeValue } from "../../../appData/progress/badge/reviewProgressBadge";
 import { useI18n } from "../../../i18n";
 import { progressLeaderboardRoute, progressStreakRoute } from "../../../routes";
+import { useWorkspacePath } from "../../../useWorkspacePath";
 import type { ReviewProgressBadgeState } from "../../../types";
 import { ProgressLeaderboardShortcutIcon, ReviewProgressBadgeIcon, ReviewQueueShortcutIcon } from "../../shared/ReviewProgressBadgeIcon";
 import { ReviewFilterMenu } from "../filters/ReviewFilterMenu";
@@ -39,6 +40,7 @@ export function ReviewScreenHeader(props: ReviewScreenHeaderProps): ReactElement
     reviewSpeechMessage,
   } = props;
   const { messages, t, formatCount, formatNumber } = useI18n();
+  const workspacePath = useWorkspacePath();
   const reviewQueueCountLabel = formatCount(reviewQueueTotalCount, messages.common.countLabels.card);
   const reviewQueueAriaLabel = `${t("reviewScreen.queue.title")}: ${reviewQueueCountLabel}`;
   const reviewProgressBadgeTodayStatus = reviewProgressBadge.hasReviewedToday
@@ -89,7 +91,7 @@ export function ReviewScreenHeader(props: ReviewScreenHeaderProps): ReactElement
             </button>
             <Link
               className={`badge review-progress-badge review-screen-head-badge review-leaderboard-shortcut${reviewLeaderboardBadge.rank === null ? "" : " review-leaderboard-shortcut-ranked"}`}
-              to={progressLeaderboardRoute}
+              to={workspacePath(progressLeaderboardRoute)}
               aria-label={leaderboardShortcutAriaLabel}
               title={leaderboardShortcutAriaLabel}
               data-testid="review-leaderboard-shortcut"
@@ -102,7 +104,7 @@ export function ReviewScreenHeader(props: ReviewScreenHeaderProps): ReactElement
             </Link>
             <Link
               className={`badge review-progress-badge review-screen-head-badge${reviewProgressBadge.hasReviewedToday ? " review-progress-badge-active" : ""}`}
-              to={progressStreakRoute}
+              to={workspacePath(progressStreakRoute)}
               aria-label={reviewProgressBadgeAriaLabel}
               title={reviewProgressBadgeAriaLabel}
               data-testid="review-progress-badge"
