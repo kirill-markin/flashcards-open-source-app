@@ -360,30 +360,38 @@ The auth origin writes product analytics rows of its own: the web sign-in funnel
 `Login funnel analytics` section of `docs/auth-service.md`, not from the rows. Each caveat below is
 owned by the source it names, else by a comment in `apps/auth/src/server/analytics/catalog.ts`:
 
+- `trust_level` splits these rows into two populations that never mix, and both are permanent
+  because the table is append-only. `guest_client` rows were delivered on a `web` guest session this
+  service minted for each reporting browser; `anonymous_client` rows are what it writes now, posted
+  to the credential-free collector with no credential of any kind. Every caveat below that names one
+  of the two applies to that one only. `buildTrustedActorRowsFilterSql` in the admin app excludes
+  `anonymous_client`, so a report over the current rows has to except them the way the
+  catalog-install funnel already does. That exclusion also makes any cohort keyed on a person's
+  first trusted event anywhere discontinuous at the deploy of this change: a browser's login-page
+  rows can be that first event before the deploy and never after it, and neither population ever
+  leaves the table.
 - The pair (`screen_viewed`, `screen = 'signin'`) has a second `platform = 'web'` producer: the web
   app reports it for the workspace-choice step, downstream of `signin_succeeded`, inflating a
   login-page denominator (`resolveSessionGateSurface` in `apps/web/src/App.tsx`). Auth-origin rows
-  are the ones with a null `app_version`, true only because `postAnalyticsEvents` in `client.ts`
-  sends no `x-client-version`. `device_locale`, `timezone` and `network_state` are null too: a
-  `platform = 'web'` breakdown grouped by one buckets the funnel, and only a filter or join drops it.
-- Auth-origin rows resolve to the visitor's guest user id, not the account, whenever the sign-in's
-  best-effort identity link did not land, and nothing reconstructs it. A first-ever sign-in usually
-  loses it, and so does a sign-in that ran slow (`analyticsReportBudgetMs` in `signInFunnel.ts`).
-  Their `anonymous_id` is the product domain's shared visitor id, the same one the web app reports
-  under, so joining on it reaches the app-origin rows of the same browser even where `actor_id` did
-  not resolve.
-- A sign-in retires the auth origin's guest identity even where the funnel may not attribute it
-  (`reportSignInSucceeded` in `signInFunnel.ts`), so a `screen_viewed` with no outcome can be a
-  completed sign-in rather than an abandonment; `analytics_visitor_retired_unreported` in the auth
-  Lambda log group counts those retirements. Sign-out retires it too, and a report still in flight
-  can restore the cookie past any of those clears (`clearAuthAnalyticsGuestSession` in
-  `visitorSession.ts`): a revoked token then produces no rows until the cookie is gone, and a live
-  one gives the first person's tail to whichever account signs in next — always what a sign-out
-  leaves, since no link runs there, and reachable past a sign-in too. None of that touches the
-  `anonymous_id` on these rows, which is the shared visitor id and outlives every one of those
-  clears.
+  are the ones with a null `app_version`: the collector stores none for any caller, and the
+  guest-era producer sent no `x-client-version`. `device_locale`, `timezone` and `network_state` are
+  null on both populations: a `platform = 'web'` breakdown grouped by one buckets the funnel, and
+  only a filter or join drops it.
+- `anonymous_client` rows carry no `user_id`, so `analytics.product_events_resolved` reaches them
+  through `first_anonymous_link` and resolves them to whichever account the browser's shared visitor
+  id is linked to — the web app's link, since this service makes none.
+- `guest_client` rows resolve to the visitor's guest user id, not the account, whenever that
+  sign-in's best-effort identity link did not land, and nothing reconstructs it. A first-ever sign-in
+  usually lost it, and so did a sign-in that ran slow. Both populations carry the product domain's
+  shared visitor id in `anonymous_id`, the same one the web app reports under, so joining on it
+  reaches the app-origin rows of the same browser even where `actor_id` did not resolve.
+- A sign-in this funnel may not attribute still happens — the OAuth consent page runs the same
+  exchange and reports nothing — so a `screen_viewed` with no outcome can be a completed sign-in
+  rather than an abandonment.
 - `signin_failed` carries no `screen`; a funnel filtered on `screen = 'signin'` reads it as zero.
-- Web session counts include auth-origin sessions; a visitor whose posts run slow adds one per event.
+- Current auth-origin rows contribute no web sessions at all: the collector has no session field, so
+  every `anonymous_client` row carries `session_id IS NULL`. The `guest_client` rows before them do
+  carry one, and a visitor whose posts ran slow added a distinct session per stored event.
   The discriminator for the two distortions that follow is the live `logged_in` cookie, not whether an
   account has ever been confirmed on the browser: `clearBrowserSessionCookies` in
   `apps/auth/src/server/browserSession.ts` deletes that cookie on every logout route, and the web
@@ -396,5 +404,4 @@ owned by the source it names, else by a comment in `apps/auth/src/server/analyti
   person does hold a live session — keeps the `session_id` stamped while it happened, waits in the
   queue, and is delivered under whichever account is confirmed next. Correcting web session counts
   has to handle both.
-- A conversion computed from `signin_succeeded` is a lower bound rather than a rate.
 - `signin_failed` with `reason = 'server_error'` is a floor rather than the whole.

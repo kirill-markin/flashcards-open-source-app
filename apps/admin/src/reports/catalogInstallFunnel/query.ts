@@ -108,9 +108,14 @@ export type CatalogInstallFailureBucket = Readonly<{
  * `authenticated_client` identity link for that cookie; the signed-in app's rows carry the account
  * in `user_id` already. That is what carries a person from the site click to the server install.
  *
- * The auth origin's rows do not work that way: they are delivered on a guest credential, so their
- * `user_id` is the guest's and outranks the cookie. `buildCatalogInstallFunnelSql` states what that
- * leaves the sign-in branch able to read.
+ * The auth origin's rows are not part of that. No step takes one, because no step's relation admits
+ * the event name or the screen: the event window admits six catalog event names and no `signin_*`,
+ * and `surface_events` admits `screen_viewed` only for the three catalog screens or from an
+ * `authenticated_client` row, which the auth origin's sign-in screen view is not. A relation that
+ * reads an actor's whole history under `buildTrustedActorRowsFilterSql`, as
+ * `install_actor_first_event` does, takes the auth origin's `guest_client` rows and not its
+ * `anonymous_client` ones.
+ * `buildCatalogInstallFunnelSql` states what that leaves the sign-in branch able to read.
  *
  * The four `screen_viewed` steps name no deck, because that event carries no properties at all: a
  * visitor who clicked two deck versions in range has them satisfied on both rows by the same view.
@@ -839,15 +844,24 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     ") AS signed_out_gate ON TRUE",
     // Signed in on this browser: the first screen view this same browser sent with an account
     // credential after the gate. It is the account-side fact rather than the auth origin's
-    // `signin_succeeded`, and that choice is load-bearing. The auth origin posts its rows on a guest
-    // credential, so their `user_id` is the guest's and outranks the visitor cookie in
-    // `analytics.product_events_resolved` (`db/migrations/0137_audience_context.sql`); they reach the
-    // account only through the `server_derived` link `reportSignInSucceeded` writes inside a 150 ms
-    // budget that a first-ever sign-in usually overruns (`analyticsReportBudgetMs` in
-    // `apps/auth/src/server/analytics/signInFunnel.ts`). Keyed on it, this step would miss most of the
-    // people the gate is shown to. The same guest-credential rule is why the auth origin's sign-in
-    // screen and code request are not steps at all: a person who gave up there stays on a guest id
-    // this cohort never contains, so they could only ever count people who went on to succeed.
+    // `signin_succeeded`, and that choice is load-bearing, because no row of that origin carries the
+    // signing-in person's own account. The rows it writes now are credential-free with a NULL
+    // `user_id`, and reach an account only through the same web app identity link this step's own
+    // rows already carry; the `guest_client` rows it wrote before that carry the guest's `user_id`,
+    // which outranks the visitor cookie in `analytics.product_events_resolved`, and reached the
+    // account only through the `server_derived` guest-upgrade link that same view ranks above
+    // `user_id` (`db/migrations/0137_audience_context.sql`), written inside a 150 ms budget that a
+    // first-ever sign-in usually overruns (`analyticsReportBudgetMs` in
+    // `apps/auth/src/server/analytics/signInFunnel.ts`). Delivery is best effort and a lost event is
+    // never resent (`apps/auth/src/server/analytics/client.ts`). Keyed on it, this step would miss
+    // most of the people the gate is shown to. The auth origin's sign-in screen and code request are
+    // not steps at all either: the event window above admits six catalog event names and no
+    // `signin_*`, and `surface_events` takes `screen_viewed` only for the three catalog screens or
+    // from an `authenticated_client` row, so no step's relation admits them. They are not kept out
+    // of the query altogether, though: a relation that reads an actor's whole history under
+    // `buildTrustedActorRowsFilterSql`, as `install_actor_first_event` below does, takes the
+    // guest-era rows and not the ones written now, so a guest-era sign-in row that resolved to the
+    // account can still be that person's first trusted event.
     //
     // The web app's signed-in rows need no link to meet the gate: they carry the account in `user_id`,
     // and the same batch writes the `authenticated_client` link that resolves this browser's
