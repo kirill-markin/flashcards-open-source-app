@@ -16,10 +16,9 @@ import {
 } from "../analyticsVisitor/cookie";
 import { isConsentRequiredCountry } from "../analyticsVisitor/consentJurisdiction";
 import { enforceAllowedBrowserOrigin, extractRequestAuthInputs } from "../auth/requestSecurity";
+import { createCountryLookupFailureReporter } from "../geolocation/countryLookupFailure";
 import { getDirectRequestCountryLookup } from "../geolocation/requestCountry";
-import { writeCloudWatchRecord } from "../observability/cloudWatch";
 import {
-  captureBackendWarning,
   createBackendObservationScope,
   normalizeCaughtError,
   type BackendObservationScope,
@@ -31,14 +30,10 @@ import { expectBoolean, expectRecord, parseJsonBody } from "../server/requestPar
 export const analyticsVisitorPath = "/analytics/visitor";
 
 /**
- * `assertCountryDatabaseFresh` throws on every lookup once the database is stale or the wrong type,
- * and an S3 failure re-throws per request, so one broken database would otherwise become one Sentry
- * event per page load of every visitor worldwide. CloudWatch keeps every occurrence — that is what
- * the log groups are queried for — and Sentry gets at most one per container per interval, which is
- * all it takes to notice the condition.
+ * Throttled, because one broken database would otherwise become one Sentry event per page load of
+ * every visitor worldwide; the shape and the reason are in ../geolocation/countryLookupFailure.ts.
  */
-const countryLookupFailureSentryThrottleMs = 5 * 60 * 1000;
-let countryLookupFailureCapturedAtMs: number | null = null;
+const reportCountryLookupFailure = createCountryLookupFailureReporter();
 
 type AnalyticsVisitorRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;
@@ -65,18 +60,6 @@ function createObservationScope(context: Context<AppEnv>): BackendObservationSco
   );
 }
 
-function shouldCaptureCountryLookupFailure(nowMs: number): boolean {
-  if (
-    countryLookupFailureCapturedAtMs !== null
-    && nowMs - countryLookupFailureCapturedAtMs < countryLookupFailureSentryThrottleMs
-  ) {
-    return false;
-  }
-
-  countryLookupFailureCapturedAtMs = nowMs;
-  return true;
-}
-
 /**
  * A country this request cannot be placed in is consent-required, so a broken or missing GeoLite
  * database costs measurement rather than consent. The failure is reported with its text, because a
@@ -100,11 +83,7 @@ async function isConsentRequiredForRequest(context: Context<AppEnv>): Promise<bo
       scope: createObservationScope(context),
       details: { errorMessage: normalizeCaughtError(error).message },
     };
-    if (shouldCaptureCountryLookupFailure(Date.now())) {
-      captureBackendWarning(warning);
-    } else {
-      writeCloudWatchRecord(warning, "warning");
-    }
+    reportCountryLookupFailure(warning);
 
     return true;
   }

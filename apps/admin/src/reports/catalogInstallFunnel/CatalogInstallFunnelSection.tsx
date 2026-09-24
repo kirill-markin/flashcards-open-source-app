@@ -135,7 +135,7 @@ export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Elem
   const hashedCountryNote = isReady
     && wantsHashedCohort
     && props.filters.connectionCountries.length > 0
-    ? "A connection country is selected, so the cookieless visitors are left out of these bars entirely: their rows carry no country, and keeping them would answer a country question with people whose country is unknown."
+    ? "A connection country is selected, so the cookieless visitors are left out of these bars entirely: that filter places a person by the connection samples kept for an actor, and these rows have neither an actor nor an installation, so the ingest-time country stored on them answers a different question rather than narrowing this one."
     : null;
 
   return (

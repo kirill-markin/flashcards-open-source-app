@@ -135,11 +135,11 @@ function isAcceptedEnvelope(responseText: string): boolean {
  * `x-analytics-relay: auth` still travels with the call, as it did on the authenticated ingest route.
  * It tells `runWithApiGatewayCountry` (`apps/backend/src/geolocation/requestCountry.ts`) that the
  * API Gateway source IP belongs to this Lambda rather than to the visitor, which keeps that address
- * out of every derivation the backend makes from it. Nothing the collector stores for an event
- * carrying an `anonymousId` reads it today — `country` is unconditionally NULL on this route and the
- * daily visitor hash is only derived for a row with no identity at all — but without the marker one
- * NAT address shared by every sign-in would be standing in for a visitor's, and both of those
- * columns are written once and never repaired.
+ * out of every derivation the backend makes from it. The collector withholds `country` from this
+ * producer by its origin as well, and derives the daily visitor hash only for a row with no identity
+ * at all (`apps/backend/src/routes/anonymousAnalytics.ts`), but without the marker one NAT address
+ * shared by every sign-in would be standing in for a visitor's, and both of those columns are
+ * written once and never repaired.
  *
  * The path carries no trailing slash: the route answers a slash form with `404` and an instruction
  * to retry without it.

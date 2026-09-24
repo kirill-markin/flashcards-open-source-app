@@ -49,6 +49,7 @@ import { logRequestError } from "./logging";
 import { getAllowedOrigins } from "./requestContext";
 import {
   getConfiguredAnonymousAnalyticsCorsOrigins,
+  getConfiguredPublicAuthOrigins,
   getConfiguredPublicCatalogCorsOrigins,
   getConfiguredPublicSiteOrigins,
   validatePublicUrlConfiguration,
@@ -517,6 +518,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
   }));
   app.route("/", createAnonymousAnalyticsRoutes({
     allowedOrigins: anonymousAnalyticsAllowedOrigins,
+    authOrigins: getConfiguredPublicAuthOrigins(),
   }));
   app.route("/", createGlobalSnapshotRoutes({}));
   app.route("/", createGuestAuthRoutes());

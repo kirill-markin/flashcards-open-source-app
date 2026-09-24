@@ -508,6 +508,9 @@ export type ProductWarningEvent =
   | EventByAction<"analytics_contract_violation", ProductAnalyticsContractViolationDetails>
   | (EventByAction<"analytics_visitor_country_lookup_failed", Readonly<{
     errorMessage: string;
+  }>> & Readonly<{ message: string }>)
+  | (EventByAction<"anonymous_analytics_country_lookup_failed", Readonly<{
+    errorMessage: string;
   }>> & Readonly<{ message: string }>);
 
 export type ProductExceptionEvent =

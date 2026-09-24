@@ -68,8 +68,9 @@ exactly for the events whose catalog entry requires one and omitted, as above, b
 no surface: the consent banner is answered before a visitor is anywhere in the product.
 
 `platform` is always stored as `web` and is never a claim the body can make. There is no field for a
-session, an app version, a country or an experiment assignment: those belong to an authenticated
-installation, which this route by definition does not have.
+session, an app version, a country or an experiment assignment: the country is the server's own
+derivation below, and the rest belong to an authenticated installation, which this route by
+definition does not have.
 
 ## Accepted event names
 
@@ -107,6 +108,15 @@ deletes the salt at 00:00 UTC, and an event whose day has already ended gets no 
 `User-Agent` leaves it NULL
 ([storage contract](../db/migrations/0144_anonymous_client_daily_visitor_hash.sql),
 [code](../apps/backend/src/productAnalytics/dailyVisitorHash.ts)).
+
+Every row this collector stores carries the two-letter `country` the backend derived at ingest from
+the address the request arrived from ([GeoLite Country](geolite-country.md)), except an
+`identityFree` event and the auth origin's server-side sign-in funnel, whose address is that
+service's rather than a visitor's: those two never carry one. It is also NULL for an address the
+database cannot place and for a request that arrived with no direct source address of its own,
+while a lookup that fails outright refuses the event rather than storing an unknown country, so the
+producer can retry it under its own event id
+([storage contract](../db/migrations/0158_anonymous_event_country.sql)).
 
 ## Automated clients
 
