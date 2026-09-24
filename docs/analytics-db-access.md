@@ -191,7 +191,6 @@ The role gets `SELECT` on these tables only:
 - selected audit columns on `community.friendships`
 - selected operational columns on `auth.user_identities`
 - selected operational columns on `auth.guest_sessions`
-- `auth.guest_ai_monthly_usage`
 - selected audit columns on `auth.guest_upgrade_history`
 - `auth.guest_replica_aliases`
 - selected entitlement columns on `auth.admin_users`, the join key an admin report uses to exclude admin-generated activity
@@ -311,13 +310,14 @@ Friend invitation analytics intentionally expose invitation ids, inviter ids, cr
 
 Friendship analytics intentionally expose directed relationship ids and creation metadata. One accepted friendship normally creates two `community.friendships` rows, one per viewer, so aggregate reports should count unordered pairs or divide symmetric directed rows by two when they need a human friendship count.
 
-Use guest and account-conversion tables when the investigation needs guest activity, guest AI quota usage, or guest-to-account upgrade funnel data:
+Use guest and account-conversion tables when the investigation needs guest activity or guest-to-account upgrade funnel data:
 
 - `auth.user_identities`
 - `auth.guest_sessions`
-- `auth.guest_ai_monthly_usage`
 - `auth.guest_upgrade_history`
 - `auth.guest_replica_aliases`
+
+AI consumption is not among them, guests included: read it from `ai.usage_events`, which records one row per provider call for everybody and carries the surface, model and raw counters a guest-specific monthly total never did. The guest quota table that used to answer this question, `auth.guest_ai_monthly_usage`, was dropped by `db/migrations/0157_drop_guest_ai_monthly_usage.sql` without its rows being carried over, so guest AI usage recorded before the metering cutover is gone rather than stored elsewhere.
 
 Guest analytics intentionally do not expose guest session secret hashes, replay secret hashes, raw provider subjects, OTP challenge state, or API key hashes.
 
