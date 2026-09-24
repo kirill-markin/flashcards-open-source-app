@@ -25,6 +25,28 @@ export type SyncPullDetails = Readonly<{
   changesCount: number | null;
 }>;
 
+// The entitlement resolve behind a successful sync pull failed, so the response omitted the field and
+// the client kept the snapshot it already had. Its own action because it means close to the opposite of
+// sync_pull_error: the device did receive its remote changes, and only the paywall input is missing.
+// The failure details carry the status the error would have produced, which is deliberately not the
+// status of the response: the pull answered 200 without the field.
+export type SyncPullEntitlementDetails = Readonly<{
+  accountKind: string;
+}>;
+
+// The driver diagnostics of a swallowed database failure, carried only on the breadcrumb. A
+// TransientDatabaseHttpError and a DatabaseCommitOutcomeUnknownError put nothing but their public
+// 503/500 text into the failure details, and when the entitlement is dropped that breadcrumb is the
+// only record of the request, so the SQLSTATE and the driver's own message have to travel with it.
+// The names are DatabaseTransientRetryDetails's names on purpose, so one query reads both. Absent
+// when the record is not about a database failure.
+export type SyncPullEntitlementDatabaseDetails = Readonly<{
+  sqlState?: string | null;
+  errorCode?: string | null;
+  errorClass?: string;
+  errorMessage?: string;
+}>;
+
 export type SyncBootstrapDetails = Readonly<{
   statusCode: number;
   durationMs: number;
@@ -365,6 +387,10 @@ export type ProductBreadcrumbEvent =
   | EventByAction<"sync_push_error", SyncConflictFailureDetailsFor<SyncPushDetails>>
   | EventByAction<"sync_pull", SyncPullDetails>
   | EventByAction<"sync_pull_error", FailureDetailsFor<SyncPullDetails>>
+  | EventByAction<
+    "sync_pull_entitlement_error",
+    FailureDetailsFor<SyncPullEntitlementDetails> & SyncPullEntitlementDatabaseDetails
+  >
   | EventByAction<"sync_bootstrap", SyncBootstrapDetails>
   | EventByAction<"sync_bootstrap_error", SyncConflictFailureDetailsFor<SyncBootstrapDetails>>
   | EventByAction<"sync_review_history_pull", SyncReviewHistoryPullDetails>
@@ -487,6 +513,10 @@ export type ProductWarningEvent =
 export type ProductExceptionEvent =
   | (EventByAction<"sync_push_error", SyncConflictFailureDetailsFor<SyncPushDetails>> & Readonly<{ error: Error }>)
   | (EventByAction<"sync_pull_error", FailureDetailsFor<SyncPullDetails>> & Readonly<{ error: Error }>)
+  | (
+    EventByAction<"sync_pull_entitlement_error", FailureDetailsFor<SyncPullEntitlementDetails>>
+    & Readonly<{ error: Error }>
+  )
   | (EventByAction<"sync_bootstrap_error", SyncConflictFailureDetailsFor<SyncBootstrapDetails>> & Readonly<{ error: Error }>)
   | (EventByAction<"sync_review_history_pull_error", FailureDetailsFor<SyncReviewHistoryPullDetails>> & Readonly<{ error: Error }>)
   | (EventByAction<"sync_review_history_import_error", SyncConflictFailureDetailsFor<SyncReviewHistoryImportDetails>> & Readonly<{ error: Error }>)

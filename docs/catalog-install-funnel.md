@@ -79,9 +79,13 @@ events themselves. A row sent with no account credential carries the
 account once the web app records an `authenticated_client` identity link for it; the signed-in app's
 rows and the server install carry the account already. So the deck page's `site_page_viewed`, the
 site click, the import flow's `screen_viewed` rows and the server install resolve onto one identity. The auth origin's sign-in
-rows do not: they are delivered on a guest credential whose `user_id` outranks the visitor cookie,
-and reach the account only through the `server_derived` link written after `signin_succeeded`
-inside a budget a first-ever sign-in usually overruns, so they cannot reliably be joined to the rest.
+rows split by when they were written. The `guest_client` rows it delivered until it stopped minting a
+guest session were posted on a guest credential whose `user_id` outranks the visitor cookie, and
+reach the account only through the `server_derived` link written after `signin_succeeded` inside a
+budget a first-ever sign-in usually overruns, so they cannot reliably be joined to the rest. The
+`anonymous_client` rows it writes now carry no `user_id` and no `server_derived` link: they resolve
+through `first_anonymous_link` on the same shared visitor id as the rows above, so they do join, and
+what keeps them out of a report is the trusted-actor rule rather than an unreachable identity.
 A sign-in is read instead from the web app's first screen view that the same browser sends with an
 account credential. The sequence is assembled at analysis time
 from that identity and `occurred_at`. The admin funnel over it counts people, starts at the deck page view and
