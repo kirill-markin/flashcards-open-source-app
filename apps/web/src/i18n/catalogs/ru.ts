@@ -752,7 +752,6 @@ export const ruCatalog = {
       updated: "Обновлено",
       note: "Примечание",
     },
-    maximumIntervalDays: "{{count}}",
     note: "Эти настройки влияют только на будущие планирования. Текущее состояние карточек остается источником истины.",
   },
   workspaceExport: {
@@ -803,7 +802,6 @@ export const ruCatalog = {
     customSeparatorRequired: "Введите свой разделитель, чтобы увидеть предпросмотр карточек.",
     textTagsDescription: "Выберите теги для всех импортируемых карточек. Оставьте поле пустым, чтобы автоматически добавить уникальный тег импорта.",
     textPreviewTitle: "Предпросмотр",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "Вставьте текст, чтобы увидеть предпросмотр карточек.",
     textInvalidCount: "Требуют внимания: {{count}}",
     textInvalidHelp: "Добавьте каждой карточке лицевую и обратную сторону или удалите незаполненные карточки.",
@@ -1033,7 +1031,6 @@ export const ruCatalog = {
       videoLabel: "Видеовложение",
     },
     queue: {
-      cards: "{{count}} карточек",
       close: "Закрыть очередь",
       loading: "загрузка",
       title: "Очередь",
@@ -1248,7 +1245,6 @@ export const ruCatalog = {
       systemDeckDelete: "Системную колоду нельзя удалить.",
     },
     matchingCards: {
-      count: "{{count}} карточек",
       title: "Подходящие карточки",
     },
     meta: {

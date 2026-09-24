@@ -752,7 +752,6 @@ const csCatalog: TranslationCatalog = {
       updated: "Aktualizováno",
       note: "Poznámka",
     },
-    maximumIntervalDays: "{{count}}",
     note: "Tato nastavení ovlivňují pouze budoucí plánování. Stávající stav kartiček zůstává rozhodující.",
   },
   workspaceExport: {
@@ -803,7 +802,6 @@ const csCatalog: TranslationCatalog = {
     customSeparatorRequired: "Zadejte vlastní oddělovač, aby se zobrazil náhled kartiček.",
     textTagsDescription: "Vyberte štítky pro všechny importované kartičky. Ponechte prázdné, aby se automaticky přidal jedinečný štítek importu.",
     textPreviewTitle: "Náhled",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "Vložte text, aby se zobrazil náhled kartiček.",
     textInvalidCount: "Vyžadují pozornost: {{count}}",
     textInvalidHelp: "Doplňte u každé kartičky přední i zadní stranu, nebo neúplné kartičky smažte.",
@@ -1033,7 +1031,6 @@ const csCatalog: TranslationCatalog = {
       videoLabel: "Videopříloha",
     },
     queue: {
-      cards: "{{count}} kartiček",
       close: "Zavřít frontu",
       loading: "načítání",
       title: "Fronta",
@@ -1248,7 +1245,6 @@ const csCatalog: TranslationCatalog = {
       systemDeckDelete: "Systémový balíček nelze smazat.",
     },
     matchingCards: {
-      count: "{{count}} kartiček",
       title: "Odpovídající kartičky",
     },
     meta: {
