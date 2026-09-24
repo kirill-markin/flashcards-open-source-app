@@ -16,7 +16,6 @@ import {
   getPublicAppBaseUrl,
   parsePublicOrigin,
 } from "../shared/publicUrls";
-import { resetGuestAiQuotaConfigForTests } from "../guestAiQuota/config";
 import { MediaBlobLifecycleBusyError } from "../mediaAssets/blobLifecycle";
 import { createAgentApiKeyErrorEnvelope } from "../agent/envelope";
 
@@ -73,7 +72,6 @@ function parseCommaSeparatedHeader(value: string): ReadonlyArray<string> {
 test.afterEach(() => {
   restoreBackendAppTestEnvironment();
   resetAuthConfigForTests();
-  resetGuestAiQuotaConfigForTests();
 });
 
 test("public origin parsing rejects raw controls and backslashes and accepts IPv6", () => {
@@ -174,7 +172,6 @@ test("app startup requires an explicit public app origin outside local developme
   delete process.env.ALLOW_INSECURE_LOCAL_AUTH;
   delete process.env.PUBLIC_APP_BASE_URL;
   resetAuthConfigForTests();
-  resetGuestAiQuotaConfigForTests();
 
   assert.throws(
     () => createApp("/v1"),
@@ -187,7 +184,6 @@ test("explicit local development uses only fixed localhost app origins", () => {
   process.env.ALLOW_INSECURE_LOCAL_AUTH = "true";
   delete process.env.PUBLIC_APP_BASE_URL;
   resetAuthConfigForTests();
-  resetGuestAiQuotaConfigForTests();
 
   assert.doesNotThrow(() => createApp("/v1"));
   assert.equal(
@@ -222,7 +218,6 @@ for (const publicAppBaseUrl of invalidPublicAppOrigins) {
     process.env.ALLOW_INSECURE_LOCAL_AUTH = "true";
     process.env.PUBLIC_APP_BASE_URL = publicAppBaseUrl;
     resetAuthConfigForTests();
-    resetGuestAiQuotaConfigForTests();
 
     assert.throws(
       () => createApp("/v1"),
@@ -255,7 +250,6 @@ for (const publicSiteBaseUrl of invalidPublicSiteOrigins) {
     process.env.ALLOW_INSECURE_LOCAL_AUTH = "true";
     process.env.PUBLIC_SITE_BASE_URL = publicSiteBaseUrl;
     resetAuthConfigForTests();
-    resetGuestAiQuotaConfigForTests();
 
     assert.throws(
       () => createApp("/v1"),
@@ -638,7 +632,6 @@ test("app error handler returns Retry-After for service unavailable responses", 
   process.env.AUTH_MODE = "none";
   process.env.ALLOW_INSECURE_LOCAL_AUTH = "true";
   resetAuthConfigForTests();
-  resetGuestAiQuotaConfigForTests();
 
   const app = createApp("/v1");
   app.get("/transient-database-error", () => {
@@ -667,7 +660,6 @@ test("app error handler returns Retry-After for temporary auth verification fail
   process.env.AUTH_MODE = "none";
   process.env.ALLOW_INSECURE_LOCAL_AUTH = "true";
   resetAuthConfigForTests();
-  resetGuestAiQuotaConfigForTests();
 
   const app = createApp("/v1");
   app.get("/auth-verification-temporary-error", () => {
@@ -697,7 +689,6 @@ test("app browser CORS preflight allows chat metadata headers", async () => {
   process.env.ALLOW_INSECURE_LOCAL_AUTH = "true";
   process.env.BACKEND_ALLOWED_ORIGINS = "http://localhost:3000";
   resetAuthConfigForTests();
-  resetGuestAiQuotaConfigForTests();
 
   const app = createApp("/v1");
   const response = await app.request("http://localhost/v1/chat/runs", {
@@ -731,7 +722,6 @@ test("app public catalog CORS allows production site, app, and local reads witho
   process.env.PUBLIC_SITE_BASE_URL = "https://flashcards-open-source-app.com";
   process.env.PUBLIC_APP_BASE_URL = "https://app.flashcards-open-source-app.com";
   resetAuthConfigForTests();
-  resetGuestAiQuotaConfigForTests();
 
   const app = createApp("/v1");
   const requestCatalogPreflight = async (origin: string): Promise<Response> => (
@@ -786,7 +776,6 @@ test("app public catalog CORS uses only fixed origins when local configuration i
   delete process.env.PUBLIC_SITE_BASE_URL;
   delete process.env.PUBLIC_APP_BASE_URL;
   resetAuthConfigForTests();
-  resetGuestAiQuotaConfigForTests();
 
   const app = createApp("/v1");
   const requestPreflight = async (origin: string): Promise<Response> => app.request(
@@ -821,7 +810,6 @@ test("app public catalog CORS uses the configured self-hosted public app origin"
   process.env.PUBLIC_SITE_BASE_URL = "https://cards.example.test";
   process.env.PUBLIC_APP_BASE_URL = "https://study.cards.example.test";
   resetAuthConfigForTests();
-  resetGuestAiQuotaConfigForTests();
 
   const app = createApp("/v1");
   const appOriginResponse = await app.request("https://api.cards.example.test/v1/catalog", {
@@ -863,7 +851,6 @@ test("app public catalog errors keep the public envelope when an API key header 
   process.env.AUTH_MODE = "none";
   process.env.ALLOW_INSECURE_LOCAL_AUTH = "true";
   resetAuthConfigForTests();
-  resetGuestAiQuotaConfigForTests();
 
   const app = createApp("/v1");
   const response = await app.request("http://localhost/v1/catalog/package-versions/not-a-uuid/cards", {

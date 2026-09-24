@@ -103,7 +103,11 @@ func aiChatBootstrapShouldRetry(error: Error) -> Bool {
         return true
     }
 
-    if let setupStatusCode = aiChatBootstrapSetupHTTPStatus(error: error) {
+    // The setup errors reach here from `cloudSessionForAI()`, which captures them and rethrows
+    // them boxed in `ObservedTechnicalError`, so the status read has to look through the box.
+    if let setupStatusCode = aiChatBootstrapSetupHTTPStatus(
+        error: technicalErrorPresentationSource(error: error)
+    ) {
         return aiChatBootstrapCanRetryHTTPStatus(setupStatusCode)
     }
 

@@ -303,7 +303,10 @@ extension FlashcardsStore {
         if isSilentlyIgnorableNetworkTransportFailure(error: error) {
             return true
         }
-        if let statusCode = feedbackFailureDiagnostics(error: error).statusCode,
+        // The cloud session this prompt uses captures its failures and rethrows them boxed in
+        // `ObservedTechnicalError`, so the status read has to look through the box.
+        let underlyingFailure = technicalErrorPresentationSource(error: error)
+        if let statusCode = feedbackFailureDiagnostics(error: underlyingFailure).statusCode,
            isRetryableFeedbackAutomaticPromptStatusCode(statusCode) {
             return true
         }

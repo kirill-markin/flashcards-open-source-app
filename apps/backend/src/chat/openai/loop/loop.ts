@@ -28,6 +28,11 @@ import {
 import type { ChatRunClaimToken } from "../../runs";
 import type { ProductAnalyticsClientReportablePlatform } from "../../../productAnalytics/catalog";
 import {
+  appendAiUsageEvent,
+  toOpenAIResponsesUsageCounters,
+} from "../../../aiUsage";
+import type { EntitlementTier } from "../../../billing/tiers";
+import {
   buildOpenAIResponsesRequest,
   buildPromptCacheKey,
   buildToolLimitSummaryInstruction,
@@ -72,6 +77,7 @@ type OpenAILoopDependencies = Readonly<{
   buildChatCompletionInputWithBudget: typeof buildChatCompletionInputWithBudget;
   getObservedOpenAIClient: typeof getObservedOpenAIClient;
   runOneToolCall: RunOneToolCall;
+  appendAiUsageEvent: typeof appendAiUsageEvent;
 }>;
 
 export type OpenAILoopCompletion = Readonly<{
@@ -89,6 +95,7 @@ export type StartOpenAILoopParams = Readonly<{
   generatedImageEligible: boolean;
   generatedImageOperationDeadlineMs: number;
   clientPlatform: ProductAnalyticsClientReportablePlatform | null;
+  tierAtCall: EntitlementTier;
   modelId: ChatRuntimeModelId;
   reasoningEffort: ChatRuntimeReasoningEffort;
   timezone: string;
@@ -125,7 +132,35 @@ const DEFAULT_OPENAI_LOOP_DEPENDENCIES: OpenAILoopDependencies = {
   buildChatCompletionInputWithBudget,
   getObservedOpenAIClient,
   runOneToolCall,
+  appendAiUsageEvent,
 };
+
+/**
+ * One usage fact per model call the provider answered, which is what the tool loop makes many of: a
+ * single turn runs up to `CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS` tool-enabled calls, a summary call, and one
+ * more call for every context overflow it retried. A call that threw has no response and therefore no
+ * usage to append.
+ */
+async function recordModelCallUsage(
+  params: StartOpenAILoopParams,
+  dependencies: OpenAILoopDependencies,
+  modelCall: ModelCallResult,
+): Promise<void> {
+  await dependencies.appendAiUsageEvent({
+    userId: params.userId,
+    workspaceId: params.workspaceId,
+    occurredAt: new Date(),
+    surface: "chat",
+    provider: "openai",
+    modelId: params.modelId,
+    requestId: params.requestId,
+    tierAtCall: params.tierAtCall,
+    counters: toOpenAIResponsesUsageCounters(modelCall.finalResponse.usage),
+    imageCount: null,
+    imageSize: null,
+    imageQuality: null,
+  });
+}
 
 function setExecutionPhase(
   params: StartOpenAILoopParams,
@@ -175,17 +210,16 @@ async function runModelCallWithOverflowRetry(
   callIndex: number,
 ): Promise<ModelCallWithOverflowRetryResult> {
   try {
-    return {
-      baseInput,
-      modelCall: await runOneModelCallWithPhase({
-        client,
-        signal: params.signal,
-        onExecutionPhaseChanged: params.onExecutionPhaseChanged,
-        onEvent,
-        request: buildRequest(baseInput),
-        callIndex,
-      }),
-    };
+    const modelCall = await runOneModelCallWithPhase({
+      client,
+      signal: params.signal,
+      onExecutionPhaseChanged: params.onExecutionPhaseChanged,
+      onEvent,
+      request: buildRequest(baseInput),
+      callIndex,
+    });
+    await recordModelCallUsage(params, dependencies, modelCall);
+    return { baseInput, modelCall };
   } catch (error) {
     if (!isContextLengthExceededError(error)) {
       throw error;
@@ -198,17 +232,16 @@ async function runModelCallWithOverflowRetry(
       params.generatedImageEligible,
       REDUCED_HISTORY_REPLAY_TOKEN_BUDGET,
     );
-    return {
-      baseInput: reducedBaseInput,
-      modelCall: await runOneModelCallWithPhase({
-        client,
-        signal: params.signal,
-        onExecutionPhaseChanged: params.onExecutionPhaseChanged,
-        onEvent,
-        request: buildRequest(reducedBaseInput),
-        callIndex,
-      }),
-    };
+    const retriedModelCall = await runOneModelCallWithPhase({
+      client,
+      signal: params.signal,
+      onExecutionPhaseChanged: params.onExecutionPhaseChanged,
+      onEvent,
+      request: buildRequest(reducedBaseInput),
+      callIndex,
+    });
+    await recordModelCallUsage(params, dependencies, retriedModelCall);
+    return { baseInput: reducedBaseInput, modelCall: retriedModelCall };
   }
 }
 

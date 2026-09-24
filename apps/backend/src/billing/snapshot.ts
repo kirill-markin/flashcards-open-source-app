@@ -1,6 +1,5 @@
 import type { AuthTransport } from "../auth";
 import { unsafeTransaction } from "../database/unsafe";
-import { getGuestAiWeightedMonthlyTokenCap } from "../guestAiQuota/config";
 import {
   captureBackendRuntimeWarning,
   createBackendObservationScope,
@@ -71,6 +70,16 @@ export function toEntitlementWire(resolved: ResolvedEntitlement): EntitlementWir
  */
 export function resolveAccountKindForTransport(transport: AuthTransport): AccountKind {
   return transport === "guest" ? "guest" : "account";
+}
+
+/**
+ * The same rule where no request and no transport exist. The chat worker runs after the request that
+ * started the turn is gone, and carries the signed-in claim that request made on the run row
+ * (`ai.chat_runs.initiating_auth_is_signed_in`), which the route sets from exactly the transports the
+ * function above calls an account. Both readings live here so that no caller invents a third.
+ */
+export function resolveAccountKindForSignedInAuth(initiatingAuthIsSignedIn: boolean): AccountKind {
+  return initiatingAuthIsSignedIn ? "account" : "guest";
 }
 
 /**
@@ -207,8 +216,7 @@ type EntitlementRefresh = Readonly<{
 
 /**
  * Resolve the person's entitlement, refresh the cached row when the answer moved, and return the wire
- * shape. This is the I/O boundary the pure resolver sits behind, which is why the guest AI cap is read
- * from the environment here and passed in rather than read inside the derivation.
+ * shape. This is the I/O boundary the pure resolver sits behind.
  *
  * A missing cached row is a cache miss rather than an error state, and an unchanged entitlement is not
  * rewritten, so the hot sync path runs one read and writes nothing for the overwhelming majority of
@@ -228,14 +236,11 @@ export async function resolveEntitlementSnapshotForUser(
   accountKind: AccountKind,
   now: Date,
 ): Promise<EntitlementWire> {
-  // Read once for both resolutions, so the two cannot differ by a cap that changed between them.
-  const guestAiWeightedMonthlyTokenCap = getGuestAiWeightedMonthlyTokenCap();
   const inputs = await loadEntitlementResolutionInputs(userId);
   const resolved = resolveEntitlement(
     inputs.purchases,
     inputs.grants,
     accountKind,
-    guestAiWeightedMonthlyTokenCap,
     now,
   );
   const cached = inputs.cached;
@@ -256,7 +261,6 @@ export async function resolveEntitlementSnapshotForUser(
         lockedInputs.purchases,
         lockedInputs.grants,
         accountKind,
-        guestAiWeightedMonthlyTokenCap,
         now,
       );
       const outcome = await upsertEntitlementSnapshotInExecutor(

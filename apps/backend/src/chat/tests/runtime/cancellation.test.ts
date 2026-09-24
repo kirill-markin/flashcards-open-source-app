@@ -163,6 +163,7 @@ test("generated-image dependency races surface cancellation to the runtime termi
               }),
               bindGeneratedCardImageAttemptPayload: async (binding) => binding.payload,
               hasCognitoIdentityMappingForUser: async () => true,
+              requireAiUsageAllowance: async () => ({ tier: "free", monthlyWeightedTokens: null }),
               ensureAIChatSyncReplica: async () => replicaId,
               ensureAIChatSyncReplicaWithDeadline: async () => replicaId,
               nextReviewCard: async () => {

@@ -354,6 +354,7 @@ test("generated image reuse is stable when reclaim changes preceding SQL call co
               altText: "Plant cell diagram",
               replicaId,
               operationKey: params.operationKey,
+              tierAtCall: "free",
               observationContext: {
                 scope: createBackendObservationScope(
                   "chat-worker",

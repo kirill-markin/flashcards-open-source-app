@@ -17,6 +17,7 @@ import {
 } from "../../mediaAssets/storageKeys";
 import { assertReplicaBelongsToWorkspaceInExecutor } from "../../mediaAssets/workspaceReplicas";
 import { captureBackendWarning } from "../../observability/sentry";
+import { appendAiUsageEvent } from "../../aiUsage";
 import {
   expectNonEmptyString,
   expectUuidString,
@@ -39,7 +40,12 @@ import {
   deriveGeneratedCardImageOperationMetadata,
   deriveRequestContentGeneratedCardImageOperationMetadata,
 } from "./metadata";
-import { createOpenAIGeneratedCardImageProvider } from "./provider/openaiAdapter";
+import {
+  createOpenAIGeneratedCardImageProvider,
+  generatedCardImageModel,
+  generatedCardImageQuality,
+  generatedCardImageSize,
+} from "./provider/openaiAdapter";
 import { withGeneratedCardImageOperationLock } from "./operationLock";
 import {
   enqueueGeneratedMediaPromotionJob,
@@ -96,6 +102,7 @@ export type GeneratedCardImageExternalDependencies = Readonly<{
   ) => Promise<MarkGeneratedCardImageProviderStartedResult>;
   markGeneratedMediaProviderStartedObjectFn: typeof markGeneratedMediaProviderStartedObject;
   generateProviderImageFn: (input: OpenAIImageGenerationInput) => Promise<GeneratedProviderImage>;
+  appendAiUsageEventFn: typeof appendAiUsageEvent;
   normalizeImageBytesForCardFn: typeof normalizeImageBytesForCard;
   loadGeneratedMediaStagingObjectFn: typeof loadGeneratedMediaStagingObject;
   storeGeneratedMediaStagingObjectFn: typeof storeGeneratedMediaStagingObject;
@@ -163,6 +170,7 @@ function normalizeGeneratedCardImageInput(input: GeneratedCardImageInput): Gener
     imagePrompt,
     altText,
     replicaId: expectUuidString(input.replicaId, "replicaId"),
+    tierAtCall: input.tierAtCall,
     observationContext: input.observationContext,
     signal: input.signal,
     operationDeadlineMs: input.operationDeadlineMs,
@@ -182,6 +190,7 @@ function normalizeRunlessGeneratedCardImageInput(
     imagePrompt,
     altText,
     replicaId: expectUuidString(input.replicaId, "replicaId"),
+    tierAtCall: input.tierAtCall,
     observationContext: input.observationContext,
     signal: input.signal,
     operationDeadlineMs: input.operationDeadlineMs,
@@ -327,6 +336,24 @@ async function prepareStagedGeneratedCardImage(
     userId: input.userId, imagePrompt: input.imagePrompt,
     observationContext: input.observationContext,
     signal: input.signal, operationDeadlineMs: input.operationDeadlineMs,
+  });
+  // Appended before the bytes are normalized and staged: the provider has been paid by now, and the
+  // steps after this one can still fail. The size and the quality are stored because the same single
+  // image costs different money at each of them, and the count is one because the adapter refuses any
+  // response that does not carry exactly one image.
+  await dependencies.appendAiUsageEventFn({
+    userId: input.userId,
+    workspaceId: input.workspaceId,
+    occurredAt: new Date(),
+    surface: "card_image",
+    provider: "openai",
+    modelId: generatedCardImageModel,
+    requestId: input.observationContext.scope.requestId,
+    tierAtCall: input.tierAtCall,
+    counters: generatedImage.usageCounters,
+    imageCount: 1,
+    imageSize: generatedCardImageSize,
+    imageQuality: generatedCardImageQuality,
   });
   input.signal.throwIfAborted();
   const normalizedImage = await dependencies.normalizeImageBytesForCardFn(generatedImage.bytes);
@@ -526,6 +553,7 @@ const defaultExternalDependencies: GeneratedCardImageExternalDependencies = {
   markProviderStartedFn: markGeneratedCardImageProviderStarted,
   markGeneratedMediaProviderStartedObjectFn: markGeneratedMediaProviderStartedObject,
   generateProviderImageFn: async (input) => createOpenAIGeneratedCardImageProvider().generate(input),
+  appendAiUsageEventFn: appendAiUsageEvent,
   normalizeImageBytesForCardFn: normalizeImageBytesForCard,
   loadGeneratedMediaStagingObjectFn: loadGeneratedMediaStagingObject,
   storeGeneratedMediaStagingObjectFn: storeGeneratedMediaStagingObject,

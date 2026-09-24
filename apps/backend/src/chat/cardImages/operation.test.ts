@@ -45,6 +45,7 @@ function createInput(signal: AbortSignal): GeneratedCardImageInput {
     imagePrompt: "Draw a labeled plant cell.",
     altText: "Plant cell diagram",
     replicaId,
+    tierAtCall: "free",
     observationContext: {
       scope: createBackendObservationScope(
         "chat-worker",
@@ -174,6 +175,7 @@ test("provider-start commit-unknown never crosses the provider boundary", async 
     enqueueRunlessGeneratedMediaPromotionJobFn: async () => {
       throw new Error("Chat operations must not enqueue a run-less promotion job.");
     },
+    appendAiUsageEventFn: async () => undefined,
     generateProviderImageFn: async () => {
       providerCallCount += 1;
       throw new Error("Provider must not run after an ambiguous start fence.");
@@ -216,6 +218,7 @@ test("previously-started provider state without staging is authoritative", async
     enqueueRunlessGeneratedMediaPromotionJobFn: async () => {
       throw new Error("Chat operations must not enqueue a run-less promotion job.");
     },
+    appendAiUsageEventFn: async () => undefined,
     generateProviderImageFn: async () => {
       providerCallCount += 1;
       throw new Error("Provider must not replay a previously-started operation.");
@@ -265,11 +268,13 @@ test("pre-provider staging lookup failure remains safely retryable", async () =>
     enqueueRunlessGeneratedMediaPromotionJobFn: async () => {
       throw new Error("Chat operations must not enqueue a run-less promotion job.");
     },
+    appendAiUsageEventFn: async () => undefined,
     generateProviderImageFn: async () => {
       providerCallCount += 1;
       return {
         bytes: Buffer.from("provider-bytes"),
         providerRequestId: "req_pre_provider_storage",
+        usageCounters: null,
       };
     },
     normalizeImageBytesForCardFn: async (bytes) => ({
@@ -323,11 +328,13 @@ test("post-provider staging failure is authoritative and preserves its cause", a
     enqueueRunlessGeneratedMediaPromotionJobFn: async () => {
       throw new Error("Chat operations must not enqueue a run-less promotion job.");
     },
+    appendAiUsageEventFn: async () => undefined,
     generateProviderImageFn: async () => {
       providerCallCount += 1;
       return {
         bytes: Buffer.from("provider-bytes"),
         providerRequestId: "req_post_provider_storage",
+        usageCounters: null,
       };
     },
     normalizeImageBytesForCardFn: async (bytes) => ({
