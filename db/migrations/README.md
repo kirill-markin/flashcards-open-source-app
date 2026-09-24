@@ -160,8 +160,8 @@ survive and keep being counted, and `docs/admin-app.md` describes a deleted pers
 `(no email)` actor whose raw UUID the user filter and tooltips show. The person behind them is what
 is gone.
 
-One table is erased rather than rewritten, because its rows name the person by the real actor id,
-which the `UPDATE` above never touches: `analytics.excluded_actors`. That delete matches every
+One analytics table is erased rather than rewritten, because its rows name the person by the real
+actor id, which the `UPDATE` above never touches: `analytics.excluded_actors`. That delete matches every
 person-wide id at once, so it takes whatever rows — none, one or several — still name that person.
 It is `eraseAnalyticsExclusionsInExecutor`, and it runs from `deleteRealAccountDataInExecutor` only,
 never from the demo-account reset path, which anonymizes and deliberately leaves any exclusion row
@@ -169,7 +169,9 @@ naming that id in place. The `analytics.installation_profiles` and `analytics.id
 above go too, but as parts of the anonymization rather than beside it: they are what would otherwise
 resolve the pseudonym back. `0140_analytics_excluded_actors.sql` granted `backend_app` the `DELETE`
 for this one caller while stating that the call did not exist yet; that statement is false now and
-has its own entry above.
+has its own entry above. All of that is the analytics half: outside it the same deletion also drops
+this person's `billing.entitlement_snapshots` row, which is a rebuildable cache rather than a history
+and is no part of the erasure described here.
 
 "Append-only" is the same slip, narrowed. `0114_product_analytics_storage.sql` grants `backend_app`
 `UPDATE` on this table for this path alone and calls the table append-only "for every other writer".
@@ -204,3 +206,32 @@ here asks for it: `prompt_cache_retention` is never set on the model call
 The closing sentence still holds too, and is now doing less work than it was written to do: a provider
 that charges for cache writes needs no migration, because the column is already there and already
 populated.
+
+### `0152_ai_usage_facts.sql` — the identity columns are rewritable now
+
+Its header and its table comment both say that nothing may change a stored row, in words that differ
+between the copies. The `Current guidance` block: "None of them loosens append-only: `ai.usage_events`
+has no UPDATE or DELETE policy and no UPDATE or DELETE privilege."
+`COMMENT ON TABLE ai.usage_events`, the copy now living in the database, says it twice: "No row is ever
+updated or deleted", and, closing the comment, "Row level security is enabled, and the only policies are
+permissive reads plus the one insert `backend_app` is granted: nothing may rewrite or remove a row
+here."
+
+`0154_ai_usage_identity_rewrites.sql` grants `backend_app` `UPDATE (user_id, workspace_id, request_id)`
+on that table and adds the `usage_events_backend_update` policy the grant needs in order to match a row
+at all. Those three columns are the ones that name somebody; every counter stays ungranted.
+Two statements use it, and no third may without being named in that migration:
+`anonymizeAiUsageForDeletedPersonInExecutor` rewrites a deleted person's rows onto the same one-way
+pseudonym their analytics history is collapsed to and nulls `workspace_id` and `request_id`, and
+`transferAiUsageToUpgradedAccountInExecutor` moves a guest's rows to the account they upgraded into,
+both in `apps/backend/src/aiUsage/identity.ts`.
+
+Everything else those two sentences were written to protect still holds, and the grant is column-scoped
+so that the database enforces it rather than review: the counters are immutable, because `UPDATE` on
+them was never granted back, and no row can be removed, because `DELETE` is still revoked. The part that
+was never true is the reach of the word "nothing": the same header also says, as its own `Current
+guidance`, that "the account-deletion anonymisation that lets a usage row outlive the person it names"
+is "later work" and that `anonymizeProductAnalyticsInExecutor` "does not cover `ai.usage_events` yet".
+That work is what the grant exists for, so the two claims could never both stay true — the table comment
+promises that "account deletion anonymises them rather than cascading them away", and an anonymisation
+is a rewrite.

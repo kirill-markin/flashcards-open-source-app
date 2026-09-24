@@ -4,6 +4,7 @@ import type { DatabaseExecutor } from "../database";
 import { handleAuthExecutorQuery } from "./handlers/auth";
 import { handleContentExecutorQuery } from "./handlers/content";
 import { handleMediaExecutorQuery } from "./handlers/media";
+import { handleMonetizationExecutorQuery } from "./handlers/monetization";
 import { handleSyncExecutorQuery } from "./handlers/sync";
 import { handleUserSettingsExecutorQuery } from "./handlers/userSettings";
 import { handleWorkspaceExecutorQuery } from "./handlers/workspaces";
@@ -305,6 +306,11 @@ export function createGuestUpgradeExecutor(state: MutableState): DatabaseExecuto
         return mediaResult;
       }
 
+      const monetizationResult = handleMonetizationExecutorQuery<Row>(context, text, params);
+      if (monetizationResult !== null) {
+        return monetizationResult;
+      }
+
       const feedbackResult = handleFeedbackExecutorQuery<Row>(context, text, params);
       if (feedbackResult !== null) {
         return feedbackResult;
@@ -351,6 +357,11 @@ export function isGuestUpgradeMergeOnlyExecutorQuery(text: string): boolean {
     || text.includes("INSERT INTO auth.guest_replica_aliases")
     || text === "SELECT support.transfer_guest_feedback($1, $2, $3, $4)"
     || text === "SELECT community.transfer_guest_public_profile($1, $2)"
+    || text.startsWith("UPDATE billing.")
+    || text.startsWith("INSERT INTO billing.")
+    || text.startsWith("DELETE FROM billing.")
+    || (text.startsWith("SELECT") && text.includes("FROM billing.user_billing_state"))
+    || text.startsWith("UPDATE ai.usage_events SET")
     || text === "UPDATE auth.guest_sessions SET revoked_at = now() WHERE session_id = $1"
     || text === "SELECT workspace_id FROM sync.find_conflicting_workspace_id($1, $2) LIMIT 1"
     || text === "SELECT workspace_id FROM sync.workspace_sync_metadata WHERE workspace_id = $1 FOR UPDATE"
