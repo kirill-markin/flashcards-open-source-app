@@ -67,6 +67,55 @@ export const CARD_STYLE_ALIGNMENT_RULE_LINES = Object.freeze([
 ]);
 
 /**
+ * Preservation rules for the managed image references the server itself writes
+ * into card text, shared by the chat system prompt and the MCP
+ * `card_authoring` guide.
+ *
+ * They exist because the attachment is asynchronous: the generated-image tool
+ * answers as soon as the job is durable, while
+ * `appendPendingManagedImageToCardSideInExecutor` has written only a
+ * `fcasset:<id>?state=pending` marker that the promotion job
+ * (`apps/backend/src/chat/cardImages/promotion/`) rewrites to `fcasset:<id>`
+ * afterwards. A model that composes its next UPDATE from a read taken before
+ * the attachment therefore overwrites the reference without ever having seen
+ * it, and the asset keeps no record of the card it was on.
+ *
+ * A shape change on the stored text costs three things. It stops the reference
+ * rendering as an image. Before settlement it also costs the image itself,
+ * because `markPendingManagedImageReadyOnCardSideInExecutor` in
+ * `apps/backend/src/cards/managedMedia/` settles only an exact Markdown image
+ * destination and fails the promotion job permanently when it no longer finds
+ * one. And it moves the reference out of the snapshot merge's restore set:
+ * `collectStoredImageReferencesBySide` in `managedImageSnapshotMerge.ts`
+ * gathers restore candidates through
+ * `extractManagedMediaImageReferenceSources`, which returns active Markdown
+ * images only, so a link or a code-fenced reference is never a candidate. The
+ * next stale client snapshot push - the ordinary case that merge exists for,
+ * and a review alone triggers one - then stores text without the reference,
+ * nothing puts it back, and the card's record of the asset is gone for good.
+ *
+ * The leniency of `textsMentionMediaAssetId` in the same file belongs to the
+ * incoming snapshot, not to this: it counts a link, or any other mention of the
+ * id, in the text a client is pushing as still referenced, which is what leaves
+ * a person editing their own card alone.
+ *
+ * The last line repeats, in its general form, the rule the chat's
+ * generated-image policy states for its own surface: the reference lives in
+ * card text and never in a reply.
+ *
+ * Deliberately left unhandled: a re-read inside the settlement window can copy a
+ * `?state=pending` marker back over an already settled reference.
+ */
+export const CARD_MANAGED_IMAGE_RULE_LINES = Object.freeze([
+  "- The server writes generated images straight into front_text and back_text as Markdown image nodes whose destination starts with fcasset:, and it can do so seconds after the image tool has already answered, so a card you read a moment ago may already carry one you have not seen.",
+  "- Before rewriting front_text or back_text on a card that may carry one, SELECT that card's current text immediately before the write, and reproduce every fcasset: destination exactly as you just read it, character for character.",
+  "- Reproduce each reference in the shape you found it: one written as a Markdown image in ordinary body text stays exactly that, and one the person already turned into a link or moved into a code fence stays that way too, because they wrote it that way on purpose.",
+  "- Changing that shape is never a safe edit: a settled reference stops rendering as an image on the card, and a reference the server has not finished attaching yet is lost for good, because the server comes back looking for the Markdown image it wrote and gives up when it is gone.",
+  "- Dropping an fcasset: reference deletes that image from the card, and nothing records which card it belonged to, so it cannot be put back.",
+  "- These references belong in card text only: never repeat fcasset: markdown, or the storage details behind it, in a reply to the user.",
+]);
+
+/**
  * The read examples pulled out for descriptions under a character budget: one
  * stably ordered paged read, and one tag filter, because tags are the only
  * association between a card and a deck. They stay part of the full example
@@ -381,6 +430,8 @@ export const CARD_AUTHORING_GUIDE = [
   ...CARD_DUPLICATE_CHECK_RULE_LINES,
   "Card style alignment:",
   ...CARD_STYLE_ALIGNMENT_RULE_LINES,
+  "Generated images already in card text:",
+  ...CARD_MANAGED_IMAGE_RULE_LINES,
   "Markdown and LaTeX:",
   CARD_AUTHORING_CONTRACT,
   `Example: ${CARD_AUTHORING_TOOL_CALL_EXAMPLE}`,
@@ -477,7 +528,7 @@ export const GUIDE_BODIES: Readonly<Record<GuideTopic, string>> = Object.freeze(
  */
 export const GUIDE_TOPIC_DESCRIPTIONS: Readonly<Record<GuideTopic, string>> = Object.freeze({
   sql_dialect: "the full grammar, limits, and examples",
-  card_authoring: "the card side contract, tags, duplicate checks, and Markdown and LaTeX formatting",
+  card_authoring: "the card side contract, tags, duplicate checks, matching the user's existing card style, preserving images already in card text, and Markdown and LaTeX formatting",
   bulk_authoring: "splitting and verifying a large write job",
   review_flow: "the review and rating loop",
 });

@@ -396,12 +396,13 @@ export async function upsertCardSnapshotInExecutor(
   // overwriting. A managed image the backend wrote into this card's text would be erased here by a
   // device that never pulled it, so those references are put back into the text about to be stored.
   // ./managedMedia/managedImageSnapshotMerge.ts owns the rule and the reasoning, including what it
-  // does when the person removed the image on purpose.
+  // does when the person removed the image on purpose, and how it settles a reference the snapshot
+  // still carries in a lifecycle state the server has already moved past.
   //
   // It returns the `client_updated_at` to store as well, and that is not cosmetic: a restore has to
   // outrank the row the pushing device still holds, or iOS skips its own merged card on the next
   // pull and the reference dies on the push after this one. The merge returns the client's own
-  // stamp untouched whenever it restored nothing.
+  // stamp untouched whenever it changed nothing.
   const mergedCardWrite = mergeManagedImageReferencesIntoCardSnapshot(
     existingRow,
     {

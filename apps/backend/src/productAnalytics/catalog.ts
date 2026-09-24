@@ -808,20 +808,40 @@ export const productAnalyticsEventCatalog = {
   //    Backend managed-image append and settlement
   //    (../cards/managedMedia/managedImageSettlement.ts) opens the same window from the server
   //    side, and is one instance of the mechanism rather than its cause - much rarer, because it
-  //    needs that AI feature. That one instance now has a narrow exception: the snapshot write puts
-  //    back managed-image references the stored row still holds before it stores anything
-  //    (../cards/managedMedia/managedImageSnapshotMerge.ts), so a stale push whose ONLY difference
-  //    from the stored text was the missing reference reproduces that text and the comparison sees
-  //    no change at all. Where it stops: the reference is put back as a trailing block, which
-  //    reproduces the stored text only while the image is still the last thing on its side, so a
-  //    later chat turn's prose, another device's note, or a partly removed second image after it
-  //    all leave merged text that matches neither side, and one row is stored for a push that
-  //    authored nothing. It also does not reach the device-to-device case above, where the server
-  //    holds no reference to put back, or a stale push that also reverts a genuine edit. What it
-  //    removes is the silent loss of the image behind the over-count in that window, not every
-  //    managed-image loss: a stale snapshot of the same card in a LATER request is still honoured,
-  //    and a push carrying the pending marker over a settled reference still stores the marker.
-  //    Both are named at the merge.
+  //    needs that AI feature. That one instance now has a narrow exception: the snapshot write
+  //    reconciles managed-image references against the stored row before it stores anything
+  //    (../cards/managedMedia/managedImageSnapshotMerge.ts). It puts back a reference the stored
+  //    row still holds and the push dropped, and it settles a reference the push still carries in a
+  //    stale lifecycle state - the `?state=pending` or `?state=failed` marker on a `fcasset:`
+  //    destination - back to the state the stored row holds. Either way, a stale push whose ONLY
+  //    difference from the stored text was that reference reproduces the stored text and the
+  //    comparison sees no change at all. Where the restore half stops: the reference is put back as
+  //    a trailing block, which reproduces the stored text only while the image is still the last
+  //    thing on its side, so a later chat turn's prose, another device's note, or a partly removed
+  //    second image after it all leave merged text that matches neither side, and one row is stored
+  //    for a push that authored nothing. It also does not reach the device-to-device case above,
+  //    where the server holds no reference to put back, or a stale push that also reverts a genuine
+  //    edit. What the exception removes is the silent loss of the image behind the over-count in
+  //    that window, not every managed-image loss: a stale snapshot of the same card in a LATER
+  //    request is still honoured. That one is named at the merge.
+  //    THE SETTLE HALF CARRIES AN UNDER-COUNT, recorded in this bullet rather than in the list
+  //    above because the merge is what creates it. A push whose only authored difference from the
+  //    stored text was a lifecycle query string the merge actually rewrites now stores that text
+  //    byte for byte, so `cardAuthoringFieldsChanged` (../cards/mutations.ts) sees no change and no
+  //    `card_updated` is stored at all, where before the merge that push stored one. The merge does
+  //    not rewrite every such push, and a push it skips still stores its row: an asset the stored
+  //    card names twice in two different states is ambiguous and left alone, and a reference in one
+  //    of the wider shapes the backend pattern rejects is invisible to the merge. Both of those are
+  //    reachable only by hand editing. Do not read the missing rows as lost edits: the lifecycle
+  //    query string is server-owned state rather than authored text, and a person reaches it only
+  //    by hand-editing the raw card Markdown in a card editor, an edit this merge settles back
+  //    rather than counts. Web is one of the clients whose editor exposes that raw text, not the
+  //    only one, so sizing these rows against web usage alone understates them. Two shapes, bounded
+  //    separately: a stale device's push loses a row it should never have stored, which replaces an
+  //    over-count rather than adding to the total error, while a hand edit of that string loses a
+  //    row a person really did type. Only the first sits inside the same window as the over-count
+  //    above; the hand edit needs no window, because a fully caught-up device whose person types a
+  //    state differing from the stored one suppresses its row immediately.
   //  - A LEGACY EFFORT LEVEL BECOMES A TAG ON THE WAY IN, so a push that authored nothing can store
   //    an edit. The sync contract translates an older client's `effortLevel` on a card, and an
   //    older client's `effortLevels` inside a deck's filter, into ordinary tags before any write
