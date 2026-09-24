@@ -8,6 +8,7 @@ import {
   CARD_AUTHORING_TOOL_CALL_EXAMPLE,
   CARD_BACK_SIDE_RULE_LINES,
   CARD_DUPLICATE_CHECK_RULE_LINES,
+  CARD_MANAGED_IMAGE_RULE_LINES,
   CARD_STYLE_ALIGNMENT_RULE_LINES,
   CARD_TAGGING_RULE_LINES,
   SQL_MUTATION_TAG_FILTER_DESCRIPTION,
@@ -58,6 +59,18 @@ function buildCardStyleAlignmentSection(): string {
   return joinLines([
     "Card style alignment:",
     ...CARD_STYLE_ALIGNMENT_RULE_LINES,
+  ]);
+}
+
+/**
+ * Stated unconditionally, unlike `buildGeneratedImagePolicySection` below: a card can already
+ * carry a generated image from an earlier turn or another surface, so a chat that cannot itself
+ * generate one can still delete one by rewriting the card around it.
+ */
+function buildCardManagedImageSection(): string {
+  return joinLines([
+    "Generated images in card text:",
+    ...CARD_MANAGED_IMAGE_RULE_LINES,
   ]);
 }
 
@@ -156,6 +169,7 @@ function buildGeneratedImagePolicySection(): string {
     "- add_generated_image_to_card works only on cards in the workspace the user has open, so never give it a card that was read with a different workspaceId.",
     "- Prefer the back unless specified otherwise; create teaching-relevant imagery with focused, private-data-free, moderation-compliant prompts, and never put an answer or answer-revealing image on the front.",
     "- Treat queued as accepted for durable attachment processing, not as proof that presentation is already visible; for already_queued, failure, ambiguity, or cancellation, never claim a new image or expose fcasset markdown, base64, or storage internals.",
+    "- Never type an fcasset: destination you did not just read on that card, and never repeat one to the user.",
   ]);
 }
 
@@ -205,6 +219,7 @@ export function buildSystemInstructions(
     buildCardSideContractSection(),
     buildCardAuthoringSection(),
     buildCardStyleAlignmentSection(),
+    buildCardManagedImageSection(),
     buildPlainTextChatFormattingSection(),
     buildWritePolicySection(),
     buildToolCallRulesSection(),
