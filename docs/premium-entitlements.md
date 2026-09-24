@@ -5,10 +5,12 @@ derived, and what each client is allowed to trust. Every later change to billing
 paywalls reads this document instead of re-deriving the rules, and every client reads the same
 rules as the backend.
 
-No store integration exists yet. There is no Apple, Google Play, or Stripe code and no billing
-table in `db/migrations`. This document is the contract those rails must satisfy, so it is
-deliberately written ahead of the code. The backend module will be `apps/backend/src/billing/`;
-until that directory exists, a link here points at the code the contract already touches.
+No store integration exists yet. There is no purchase, receipt, or subscription code on any client
+or in the backend. The `billing` schema is already migrated
+(`db/migrations/0151_billing_schema.sql`) and nothing writes to it yet. This document is the
+contract those rails must satisfy, so it is deliberately written ahead of the code. The backend
+module will be `apps/backend/src/billing/`; until that directory exists, a link here points at the
+code the contract already touches.
 
 This document links to source rather than restating mechanism, because the source is what ships.
 
