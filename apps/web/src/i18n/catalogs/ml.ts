@@ -743,7 +743,6 @@ const mlCatalog: TranslationCatalog = {
       updated: "പുതുക്കിയത്",
       note: "കുറിപ്പ്",
     },
-    maximumIntervalDays: "{{count}}",
     note: "ഈ ക്രമീകരണങ്ങൾ ഭാവിയിലെ സമയക്രമത്തെ മാത്രമേ ബാധിക്കൂ. കാർഡുകളുടെ നിലവിലെ നില അതേപടി തുടരും.",
   },
   workspaceExport: {
@@ -794,7 +793,6 @@ const mlCatalog: TranslationCatalog = {
     customSeparatorRequired: "കാർഡുകൾ പ്രിവ്യൂ കാണാൻ ഇഷ്ടാനുസൃത വിഭജനചിഹ്നം നൽകുക.",
     textTagsDescription: "ഇംപോർട്ട് ചെയ്യുന്ന എല്ലാ കാർഡുകൾക്കും ടാഗുകൾ തിരഞ്ഞെടുക്കുക. ഒഴിച്ചിട്ടാൽ സവിശേഷമായ ഒരു ഇംപോർട്ട് ടാഗ് സ്വയമേവ ചേർക്കും.",
     textPreviewTitle: "പ്രിവ്യൂ",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "കാർഡുകൾ പ്രിവ്യൂ കാണാൻ ടെക്സ്റ്റ് ഒട്ടിക്കുക.",
     textInvalidCount: "{{count}} എണ്ണം ശ്രദ്ധിക്കണം",
     textInvalidHelp: "എല്ലാ കാർഡിനും മുൻവശവും പിൻവശവും നൽകുക, അല്ലെങ്കിൽ പൂർത്തിയാകാത്ത കാർഡുകൾ ഇല്ലാതാക്കുക.",
@@ -1024,7 +1022,6 @@ const mlCatalog: TranslationCatalog = {
       videoLabel: "വീഡിയോ അറ്റാച്ച്മെന്റ്",
     },
     queue: {
-      cards: "{{count}} കാർഡുകൾ",
       close: "ക്യൂ അടയ്ക്കുക",
       loading: "ലോഡ് ചെയ്യുന്നു",
       title: "ക്യൂ",
@@ -1236,7 +1233,6 @@ const mlCatalog: TranslationCatalog = {
       systemDeckDelete: "സിസ്റ്റം ഡെക്ക് ഇല്ലാതാക്കാനാവില്ല.",
     },
     matchingCards: {
-      count: "{{count}} കാർഡുകൾ",
       title: "പൊരുത്തപ്പെടുന്ന കാർഡുകൾ",
     },
     meta: {

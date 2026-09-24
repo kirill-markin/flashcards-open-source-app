@@ -743,7 +743,6 @@ const zuCatalog: TranslationCatalog = {
       updated: "Kubuyekeziwe",
       note: "Inothi",
     },
-    maximumIntervalDays: "{{count}}",
     note: "Lezi zilungiselelo zithinta kuphela ukuhlelwa kwesikhathi okuzayo. Isimo samakhadi esikhona sihlala siyigunya.",
   },
   workspaceExport: {
@@ -794,7 +793,6 @@ const zuCatalog: TranslationCatalog = {
     customSeparatorRequired: "Faka isihlukanisi ngokwezifiso ukuze ubuke amakhadi kuqala.",
     textTagsDescription: "Khetha amathegi kuwo wonke amakhadi angeniswayo. Shiya kungenalutho ukuze kwengezwe ithegi yokungenisa ehlukile ngokuzenzakalela.",
     textPreviewTitle: "Ukubuka kuqala",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "Namathisela umbhalo ukuze ubuke amakhadi kuqala.",
     textInvalidCount: "Adinga ukunakwa: {{count}}",
     textInvalidHelp: "Engeza kokubili ingaphambili nengemuva kuwo wonke amakhadi, noma usule amakhadi angaphelele.",
@@ -1024,7 +1022,6 @@ const zuCatalog: TranslationCatalog = {
       videoLabel: "Ividiyo enamathiselwe",
     },
     queue: {
-      cards: "Amakhadi: {{count}}",
       close: "Vala umugqa",
       loading: "kuyalayishwa",
       title: "Umugqa",
@@ -1236,7 +1233,6 @@ const zuCatalog: TranslationCatalog = {
       systemDeckDelete: "Inqwaba yesistimu ayikwazi ukususwa.",
     },
     matchingCards: {
-      count: "Amakhadi: {{count}}",
       title: "Amakhadi afanayo",
     },
     meta: {

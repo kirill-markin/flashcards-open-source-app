@@ -743,7 +743,6 @@ const deCatalog: TranslationCatalog = {
       updated: "Aktualisiert",
       note: "Hinweis",
     },
-    maximumIntervalDays: "{{count}}",
     note: "Diese Einstellungen betreffen nur zukünftige Planungen. Der bestehende Kartenstatus bleibt maßgeblich.",
   },
   workspaceExport: {
@@ -794,7 +793,6 @@ const deCatalog: TranslationCatalog = {
     customSeparatorRequired: "Gib ein eigenes Trennzeichen ein, um die Karten in der Vorschau zu sehen.",
     textTagsDescription: "Wähle Tags für alle importierten Karten. Lass das Feld leer, um automatisch einen eindeutigen Import-Tag hinzuzufügen.",
     textPreviewTitle: "Vorschau",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "Füge Text ein, um die Karten in der Vorschau zu sehen.",
     textInvalidCount: "{{count}} benötigen Aufmerksamkeit",
     textInvalidHelp: "Ergänze bei jeder Karte Vorder- und Rückseite oder lösche unvollständige Karten.",
@@ -1024,7 +1022,6 @@ const deCatalog: TranslationCatalog = {
       videoLabel: "Videoanhang",
     },
     queue: {
-      cards: "{{count}} Karten",
       close: "Warteschlange schließen",
       loading: "lädt",
       title: "Warteschlange",
@@ -1236,7 +1233,6 @@ const deCatalog: TranslationCatalog = {
       systemDeckDelete: "System-Deck kann nicht gelöscht werden.",
     },
     matchingCards: {
-      count: "{{count}} Karten",
       title: "Passende Karten",
     },
     meta: {

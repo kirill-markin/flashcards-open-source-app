@@ -743,7 +743,6 @@ const nbCatalog: TranslationCatalog = {
       updated: "Oppdatert",
       note: "Merknad",
     },
-    maximumIntervalDays: "{{count}}",
     note: "Disse innstillingene påvirker bare fremtidig planlegging. Tilstanden kortene har i dag, gjelder fortsatt.",
   },
   workspaceExport: {
@@ -794,7 +793,6 @@ const nbCatalog: TranslationCatalog = {
     customSeparatorRequired: "Skriv inn et egendefinert skilletegn for å forhåndsvise kortene.",
     textTagsDescription: "Velg tagger for hvert importerte kort. La feltet stå tomt for å legge til en unik importtagg automatisk.",
     textPreviewTitle: "Forhåndsvisning",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "Lim inn tekst for å forhåndsvise kortene.",
     textInvalidCount: "{{count}} trenger oppmerksomhet",
     textInvalidHelp: "Legg til både forside og bakside på hvert kort, eller slett ufullstendige kort.",
@@ -1024,7 +1022,6 @@ const nbCatalog: TranslationCatalog = {
       videoLabel: "Videovedlegg",
     },
     queue: {
-      cards: "{{count}} kort",
       close: "Lukk køen",
       loading: "laster inn",
       title: "Kø",
@@ -1236,7 +1233,6 @@ const nbCatalog: TranslationCatalog = {
       systemDeckDelete: "Systemkortstokken kan ikke slettes.",
     },
     matchingCards: {
-      count: "{{count}} kort",
       title: "Kort som passer",
     },
     meta: {

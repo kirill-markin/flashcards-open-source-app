@@ -743,7 +743,6 @@ export const jaCatalog = {
       updated: "更新日時",
       note: "注記",
     },
-    maximumIntervalDays: "{{count}}",
     note: "これらの設定が影響するのは今後のスケジューリングのみです。既存のカード状態が引き続き基準となります。",
   },
   workspaceExport: {
@@ -794,7 +793,6 @@ export const jaCatalog = {
     customSeparatorRequired: "カードをプレビューするにはカスタム区切り文字を入力してください。",
     textTagsDescription: "インポートするすべてのカードにタグを選びます。空のままにすると、一意のインポートタグが自動的に追加されます。",
     textPreviewTitle: "プレビュー",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "テキストを貼り付けるとカードをプレビューできます。",
     textInvalidCount: "{{count}}件に対応が必要です",
     textInvalidHelp: "すべてのカードに表面と裏面の両方を入力するか、未完成のカードを削除してください。",
@@ -1024,7 +1022,6 @@ export const jaCatalog = {
       videoLabel: "動画添付",
     },
     queue: {
-      cards: "{{count}} 枚",
       close: "キューを閉じる",
       loading: "読み込み中",
       title: "キュー",
@@ -1236,7 +1233,6 @@ export const jaCatalog = {
       systemDeckDelete: "システムデッキは削除できません。",
     },
     matchingCards: {
-      count: "{{count}} 枚",
       title: "一致するカード",
     },
     meta: {

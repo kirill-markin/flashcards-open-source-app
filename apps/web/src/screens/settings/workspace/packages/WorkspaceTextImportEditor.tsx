@@ -299,7 +299,7 @@ export function WorkspaceTextImportEditor(props: WorkspaceTextImportEditorProps)
         <div className="workspace-text-import-preview-heading">
           <div>
             <strong>{t("workspaceImport.textPreviewTitle")}</strong>
-            <span className="subtitle">{t("workspaceImport.textPreviewCount", { count: formatCount(cards.length, messages.common.countLabels.card) })}</span>
+            <span className="subtitle">{formatCount(cards.length, messages.common.countLabels.card)}</span>
           </div>
           {invalidCardCount === 0 ? null : (
             <span className="workspace-text-import-invalid-count" data-testid="workspace-text-import-invalid-count">

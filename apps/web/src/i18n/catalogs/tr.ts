@@ -743,7 +743,6 @@ const trCatalog: TranslationCatalog = {
       updated: "Güncellendi",
       note: "Not",
     },
-    maximumIntervalDays: "{{count}}",
     note: "Bu ayarlar yalnızca gelecekteki planlamayı etkiler. Mevcut kart durumu geçerliliğini korur.",
   },
   workspaceExport: {
@@ -794,7 +793,6 @@ const trCatalog: TranslationCatalog = {
     customSeparatorRequired: "Kartları önizlemek için özel bir ayırıcı girin.",
     textTagsDescription: "İçe aktarılan her kart için etiket seçin. Boş bırakırsanız benzersiz bir içe aktarma etiketi otomatik olarak eklenir.",
     textPreviewTitle: "Önizleme",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "Kartları önizlemek için metin yapıştırın.",
     textInvalidCount: "{{count}} kart düzeltilmeli",
     textInvalidHelp: "Her karta hem ön yüz hem arka yüz ekleyin ya da eksik kartları silin.",
@@ -1024,7 +1022,6 @@ const trCatalog: TranslationCatalog = {
       videoLabel: "Video eki",
     },
     queue: {
-      cards: "{{count}} kart",
       close: "Sırayı kapat",
       loading: "yükleniyor",
       title: "Sıra",
@@ -1236,7 +1233,6 @@ const trCatalog: TranslationCatalog = {
       systemDeckDelete: "Sistem destesi silinemez.",
     },
     matchingCards: {
-      count: "{{count}} kart",
       title: "Eşleşen kartlar",
     },
     meta: {

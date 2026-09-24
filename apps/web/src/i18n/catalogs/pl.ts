@@ -752,7 +752,6 @@ const plCatalog: TranslationCatalog = {
       updated: "Zaktualizowano",
       note: "Uwaga",
     },
-    maximumIntervalDays: "{{count}}",
     note: "Te ustawienia wpływają tylko na przyszłe planowanie. Obecny stan kart pozostaje nadrzędny.",
   },
   workspaceExport: {
@@ -803,7 +802,6 @@ const plCatalog: TranslationCatalog = {
     customSeparatorRequired: "Podaj własny separator, aby zobaczyć podgląd kart.",
     textTagsDescription: "Wybierz tagi dla każdej importowanej karty. Zostaw puste, aby automatycznie dodać unikalny tag importu.",
     textPreviewTitle: "Podgląd",
-    textPreviewCount: "{{count}}",
     textPreviewEmpty: "Wklej tekst, aby zobaczyć podgląd kart.",
     textInvalidCount: "Wymaga uwagi: {{count}}",
     textInvalidHelp: "Dodaj przód i tył do każdej karty albo usuń niekompletne karty.",
@@ -1033,7 +1031,6 @@ const plCatalog: TranslationCatalog = {
       videoLabel: "Załącznik wideo",
     },
     queue: {
-      cards: "{{count}} kart",
       close: "Zamknij kolejkę",
       loading: "ładowanie",
       title: "Kolejka",
@@ -1248,7 +1245,6 @@ const plCatalog: TranslationCatalog = {
       systemDeckDelete: "Nie można usunąć talii systemowej.",
     },
     matchingCards: {
-      count: "{{count}} kart",
       title: "Pasujące karty",
     },
     meta: {
