@@ -43,6 +43,7 @@
 "ai.error.requestTooLarge.message" = "แชต AI ส่งเนื้อหาปริมาณมากขนาดนี้ในครั้งเดียวไม่ได้ นำไฟล์แนบออก เลือกไฟล์หรือรูปภาพที่เล็กลง หรือแบ่งคำขอแล้วลองอีกครั้ง";
 "ai.error.attachmentUnsupported.title" = "ไม่รองรับประเภทไฟล์";
 "ai.error.attachmentUnsupported.message" = "แชต AI ไม่รองรับไฟล์ประเภทนี้ นำไฟล์ออกหรือบันทึกเป็น PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX หรือรูปภาพ แล้วลองอีกครั้ง";
+"ai.error.limitReached" = "คุณใช้ขีดจำกัด AI ของเดือนนี้หมดแล้ว ขีดจำกัดจะรีเซ็ตในต้นเดือนหน้า";
 "ai.error.summary.couldNotContinue" = "ดำเนินคำตอบ AI ต่อไม่ได้";
 "ai.error.summary.invalidResponse" = "ได้รับคำตอบ AI ที่ไม่ถูกต้อง";
 "ai.error.summary.configuration" = "ข้อผิดพลาดในการกำหนดค่า AI";

@@ -52,6 +52,7 @@ export function ChatSessionControllerProvider(props: Props): ReactElement {
     onToolRunPostSyncRequested: handleToolRunPostSyncRequested,
     uiMessages: {
       activeRunInProgress: t("chatPanel.errors.activeRunInProgress"),
+      aiLimitReached: t("chatPanel.errors.aiLimitReached"),
       attachmentLimit: t("chatPanel.alerts.attachmentLimit", {
         count: formatNumber(USER_VISIBLE_ATTACHMENT_LIMIT_MB),
       }),

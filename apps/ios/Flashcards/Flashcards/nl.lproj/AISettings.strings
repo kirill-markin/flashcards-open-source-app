@@ -43,6 +43,7 @@
 "ai.error.requestTooLarge.message" = "De AI-chat kan niet zoveel inhoud tegelijk versturen. Verwijder een of meer bijlagen, kies een kleiner bestand of een kleinere foto, of splits je verzoek en probeer het opnieuw.";
 "ai.error.attachmentUnsupported.title" = "Niet-ondersteund bestandstype";
 "ai.error.attachmentUnsupported.message" = "Dit bestandstype wordt niet ondersteund in de AI-chat. Verwijder het bestand of sla het op als PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX of een afbeelding en probeer het opnieuw.";
+"ai.error.limitReached" = "Je AI-limiet voor deze maand is opgebruikt. De limiet wordt aan het begin van volgende maand opnieuw ingesteld.";
 "ai.error.summary.couldNotContinue" = "AI-antwoord kon niet worden voortgezet";
 "ai.error.summary.invalidResponse" = "Ongeldig AI-antwoord ontvangen";
 "ai.error.summary.configuration" = "AI-configuratiefout";

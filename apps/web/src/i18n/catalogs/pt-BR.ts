@@ -1302,6 +1302,7 @@ const ptBrCatalog: TranslationCatalog = {
     errorTitle: "Erro no chat com IA",
     errors: {
       activeRunInProgress: "Já há uma resposta em andamento. Espere ela terminar ou interrompa antes de enviar outra mensagem.",
+      aiLimitReached: "Seu limite de IA deste mês acabou. Ele é redefinido no início do próximo mês.",
       emptyBackendResponse: "O backend retornou uma resposta de erro vazia.",
       genericFailure: "O chat com IA falhou.",
       liveStreamEndedBeforeCompletion: "O stream ao vivo da IA terminou antes de a execução acabar.",

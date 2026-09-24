@@ -78,6 +78,10 @@ extension AIChatStore {
             return
         }
 
+        if isAiLimitReachedError(error: error) {
+            return
+        }
+
         if let liveStreamError = error as? AIChatLiveStreamError {
             self.captureUserVisibleAILiveStreamFailure(error: liveStreamError)
             return

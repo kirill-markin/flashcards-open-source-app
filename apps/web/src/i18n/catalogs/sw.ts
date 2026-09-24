@@ -1302,6 +1302,7 @@ const swCatalog: TranslationCatalog = {
     errorTitle: "Hitilafu ya gumzo la AI",
     errors: {
       activeRunInProgress: "Jibu tayari linaendelea. Subiri limalizike au lisimamishe kabla ya kutuma ujumbe mwingine.",
+      aiLimitReached: "Kikomo chako cha AI kwa mwezi huu kimeisha. Kitawekwa upya mwanzoni wa mwezi ujao.",
       emptyBackendResponse: "Seva imerudisha jibu tupu la hitilafu.",
       genericFailure: "Gumzo la AI limeshindwa.",
       liveStreamEndedBeforeCompletion: "Mtiririko wa moja kwa moja wa AI umeisha kabla ya kukamilika.",

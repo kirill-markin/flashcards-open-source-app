@@ -1302,6 +1302,7 @@ const bnCatalog: TranslationCatalog = {
     errorTitle: "এআই চ্যাটের ত্রুটি",
     errors: {
       activeRunInProgress: "একটি প্রতিক্রিয়া ইতিমধ্যেই চলছে। আরেকটি বার্তা পাঠানোর আগে সেটি শেষ হওয়া পর্যন্ত অপেক্ষা করুন বা বন্ধ করুন।",
+      aiLimitReached: "এই মাসের জন্য আপনার এআই সীমা শেষ হয়ে গেছে। এটি পরের মাসের শুরুতে রিসেট হবে।",
       emptyBackendResponse: "ব্যাকএন্ড একটি খালি ত্রুটির প্রতিক্রিয়া ফিরিয়েছে।",
       genericFailure: "এআই চ্যাট ব্যর্থ হয়েছে।",
       liveStreamEndedBeforeCompletion: "রান শেষ হওয়ার আগেই এআই লাইভ স্ট্রিম শেষ হয়ে গেছে।",

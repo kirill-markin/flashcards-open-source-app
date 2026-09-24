@@ -43,6 +43,7 @@
 "ai.error.requestTooLarge.message" = "گفت‌وگوی هوش مصنوعی نمی‌تواند این مقدار محتوا را یک‌جا بفرستد. یک یا چند پیوست را بردارید، فایل یا عکس کوچک‌تری انتخاب کنید یا درخواست را تقسیم کنید و دوباره امتحان کنید.";
 "ai.error.attachmentUnsupported.title" = "نوع فایل پشتیبانی‌نشده";
 "ai.error.attachmentUnsupported.message" = "این نوع فایل در گفت‌وگوی هوش مصنوعی پشتیبانی نمی‌شود. فایل را بردارید یا آن را به صورت PDF، TXT، CSV، JSON، XML، Markdown، HTML، Python، JavaScript، TypeScript، YAML، XLS/XLSX، DOCX یا تصویر ذخیره کنید، سپس دوباره امتحان کنید.";
+"ai.error.limitReached" = "سهمیه هوش مصنوعی شما برای این ماه تمام شده است. در ابتدای ماه آینده بازنشانی می‌شود.";
 "ai.error.summary.couldNotContinue" = "ادامهٔ پاسخ هوش مصنوعی ممکن نشد";
 "ai.error.summary.invalidResponse" = "پاسخ نامعتبری از هوش مصنوعی دریافت شد";
 "ai.error.summary.configuration" = "خطای پیکربندی هوش مصنوعی";

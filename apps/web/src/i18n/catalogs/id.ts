@@ -1302,6 +1302,7 @@ const idCatalog: TranslationCatalog = {
     errorTitle: "Kesalahan obrolan AI",
     errors: {
       activeRunInProgress: "Sebuah respons sedang berjalan. Tunggu sampai selesai atau hentikan dulu sebelum mengirim pesan lain.",
+      aiLimitReached: "Batas AI Anda untuk bulan ini sudah habis. Batas ini disetel ulang pada awal bulan depan.",
       emptyBackendResponse: "Backend mengembalikan respons kesalahan yang kosong.",
       genericFailure: "Obrolan AI gagal.",
       liveStreamEndedBeforeCompletion: "Aliran langsung AI berakhir sebelum proses selesai.",

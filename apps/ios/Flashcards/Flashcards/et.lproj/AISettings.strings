@@ -43,6 +43,7 @@
 "ai.error.requestTooLarge.message" = "Tehisintellekti vestlus ei saa korraga nii palju sisu saata. Eemalda mõni manus, vali väiksem fail või foto või jaga päring osadeks ja proovi uuesti.";
 "ai.error.attachmentUnsupported.title" = "Toetamata failitüüp";
 "ai.error.attachmentUnsupported.message" = "Seda failitüüpi tehisintellekti vestlus ei toeta. Eemalda fail või salvesta see vormingus PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX või pildina ja proovi uuesti.";
+"ai.error.limitReached" = "Selle kuu tehisintellekti limiit on ära kasutatud. See lähtestatakse järgmise kuu alguses.";
 "ai.error.summary.couldNotContinue" = "Tehisintellekti vastust ei saanud jätkata";
 "ai.error.summary.invalidResponse" = "Saadi vigane tehisintellekti vastus";
 "ai.error.summary.configuration" = "Tehisintellekti seadistusviga";

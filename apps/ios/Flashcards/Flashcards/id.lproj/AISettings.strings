@@ -43,6 +43,7 @@
 "ai.error.requestTooLarge.message" = "Obrolan AI tidak dapat mengirim konten sebanyak ini sekaligus. Hapus lampiran, pilih file atau foto yang lebih kecil, atau bagi permintaan lalu coba lagi.";
 "ai.error.attachmentUnsupported.title" = "Jenis file tidak didukung";
 "ai.error.attachmentUnsupported.message" = "Jenis file ini tidak didukung obrolan AI. Hapus file atau simpan sebagai PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, atau gambar, lalu coba lagi.";
+"ai.error.limitReached" = "Batas AI Anda untuk bulan ini sudah habis. Batas ini disetel ulang pada awal bulan depan.";
 "ai.error.summary.couldNotContinue" = "Tidak Dapat Melanjutkan Respons AI";
 "ai.error.summary.invalidResponse" = "Menerima Respons AI Tidak Valid";
 "ai.error.summary.configuration" = "Kesalahan Konfigurasi AI";

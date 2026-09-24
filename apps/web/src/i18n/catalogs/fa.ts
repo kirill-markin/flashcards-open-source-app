@@ -1302,6 +1302,7 @@ const faCatalog: TranslationCatalog = {
     errorTitle: "خطای گفت‌وگوی هوش مصنوعی",
     errors: {
       activeRunInProgress: "یک پاسخ در حال تولید است. پیش از ارسال پیام دیگر، منتظر پایان آن بمانید یا آن را متوقف کنید.",
+      aiLimitReached: "سهمیه هوش مصنوعی شما برای این ماه تمام شده است. در ابتدای ماه آینده بازنشانی می‌شود.",
       emptyBackendResponse: "بک‌اند پاسخ خطای خالی برگرداند.",
       genericFailure: "گفت‌وگوی هوش مصنوعی ناموفق بود.",
       liveStreamEndedBeforeCompletion: "جریان زندهٔ هوش مصنوعی پیش از پایان اجرا تمام شد.",

@@ -43,6 +43,7 @@
 "ai.error.requestTooLarge.message" = "Η συνομιλία με την ΤΝ δεν μπορεί να στείλει τόσο περιεχόμενο ταυτόχρονα. Αφαιρέστε ένα ή περισσότερα συνημμένα, επιλέξτε μικρότερο αρχείο ή φωτογραφία ή χωρίστε το αίτημα και δοκιμάστε ξανά.";
 "ai.error.attachmentUnsupported.title" = "Μη υποστηριζόμενος τύπος αρχείου";
 "ai.error.attachmentUnsupported.message" = "Αυτός ο τύπος αρχείου δεν υποστηρίζεται στη συνομιλία με την ΤΝ. Αφαιρέστε το αρχείο ή αποθηκεύστε το ως PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX ή εικόνα και δοκιμάστε ξανά.";
+"ai.error.limitReached" = "Εξαντλήσατε το όριο ΤΝ για αυτόν τον μήνα. Επαναφέρεται στην αρχή του επόμενου μήνα.";
 "ai.error.summary.couldNotContinue" = "Δεν ήταν δυνατή η συνέχιση της απάντησης ΤΝ";
 "ai.error.summary.invalidResponse" = "Λήφθηκε μη έγκυρη απάντηση ΤΝ";
 "ai.error.summary.configuration" = "Σφάλμα διαμόρφωσης ΤΝ";

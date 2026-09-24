@@ -51,6 +51,8 @@ import com.flashcardsopensourceapp.data.local.network.awaitOkHttpResponse
 import com.flashcardsopensourceapp.data.local.model.ai.aiChatAttachmentUnsupportedTypeCode
 import com.flashcardsopensourceapp.data.local.model.ai.aiChatMaximumStartRunRequestBytes
 import com.flashcardsopensourceapp.data.local.model.ai.aiChatRequestTooLargeCode
+import com.flashcardsopensourceapp.data.local.model.ai.aiLimitReachedCode
+import com.flashcardsopensourceapp.data.local.model.ai.guestAiLimitReachedCode
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.InternalCoroutinesApi
 import kotlinx.coroutines.currentCoroutineContext
@@ -86,6 +88,7 @@ private val officialAiApiHosts: Set<String> = setOf(
 private const val officialAiApiPathPrefix: String = "/v1"
 private val aiJsonMediaType = "application/json".toMediaType()
 private val expectedAiChatHttpFailureCodes: Set<String> = setOf(
+    "AI_LIMIT_REACHED",
     "AI_WORKSPACE_REQUIRED",
     "AUTH_UNAUTHORIZED",
     "CHAT_ACTIVE_RUN_IN_PROGRESS",
@@ -201,6 +204,11 @@ fun isAiChatRequestTooLargeRemoteError(error: AiChatRemoteException): Boolean {
     }
 
     return error.code?.trim()?.uppercase() == aiChatRequestTooLargeCode
+}
+
+fun isAiLimitReachedRemoteError(error: AiChatRemoteException): Boolean {
+    val code = error.code?.trim()?.uppercase()
+    return code == aiLimitReachedCode || code == guestAiLimitReachedCode
 }
 
 fun isAiChatAttachmentUnsupportedTypeRemoteError(error: AiChatRemoteException): Boolean {

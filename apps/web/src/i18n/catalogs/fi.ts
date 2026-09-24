@@ -1302,6 +1302,7 @@ const fiCatalog: TranslationCatalog = {
     errorTitle: "Tekoälykeskustelun virhe",
     errors: {
       activeRunInProgress: "Vastausta muodostetaan jo. Odota sen valmistumista tai pysäytä se ennen uuden viestin lähettämistä.",
+      aiLimitReached: "Tämän kuukauden tekoälyraja on käytetty loppuun. Se nollautuu ensi kuun alussa.",
       emptyBackendResponse: "Taustapalvelu palautti tyhjän virhevastauksen.",
       genericFailure: "Tekoälykeskustelu epäonnistui.",
       liveStreamEndedBeforeCompletion: "Tekoälyn reaaliaikainen virta päättyi ennen suorituksen valmistumista.",

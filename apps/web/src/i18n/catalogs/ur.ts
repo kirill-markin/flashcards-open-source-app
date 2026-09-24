@@ -1302,6 +1302,7 @@ const urCatalog: TranslationCatalog = {
     errorTitle: "AI چیٹ کی خرابی",
     errors: {
       activeRunInProgress: "جواب پہلے ہی جاری ہے۔ نیا پیغام بھیجنے سے پہلے اس کے ختم ہونے کا انتظار کریں یا اسے روک دیں۔",
+      aiLimitReached: "اس ماہ کے لیے آپ کی AI کی حد ختم ہو گئی ہے۔ یہ اگلے ماہ کے آغاز پر ری سیٹ ہو جائے گی۔",
       emptyBackendResponse: "بیک اینڈ نے خالی خرابی کا جواب دیا۔",
       genericFailure: "AI چیٹ ناکام رہی۔",
       liveStreamEndedBeforeCompletion: "AI کی لائیو اسٹریم رن مکمل ہونے سے پہلے ختم ہو گئی۔",
