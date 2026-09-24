@@ -814,7 +814,7 @@ const csCatalog: TranslationCatalog = {
     previousPage: "Předchozí",
     nextPage: "Další",
     pageStatus: "Stránka {{current}} z {{total}}",
-    textImportButton: "Importovat {{count}} kartiček",
+    textImportButton: "Importovat kartičky: {{count}}",
     textImporting: "Kartičky se importují...",
     packageTitle: "Balíček Nibomo",
     packageDescription: "Importujte soubor flashcards.zip dříve exportovaný z Nibomo.",
