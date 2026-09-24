@@ -134,7 +134,7 @@ The baseline schema migration creates a dedicated login role and its read-only g
 - role name: `reporting_readonly`
 - login enabled
 - `CONNECT` on database `flashcards`
-- `USAGE` on schemas `org`, `content`, `sync`, `support`, `community`, `auth`, `ai`, `analytics`
+- `USAGE` on schemas `org`, `content`, `sync`, `support`, `community`, `auth`, `ai`, `progress`, `analytics`, `catalog`, `billing`
 - `SELECT` only on the allowed tables listed below
 
 The baseline schema migration also enforces the persistent runtime policy for this role:
@@ -163,7 +163,10 @@ The role gets `USAGE` on these schemas:
 - `community`
 - `auth`
 - `ai`
+- `progress`
 - `analytics`
+- `catalog`
+- `billing`
 
 ## Granted tables
 
@@ -175,6 +178,7 @@ The role gets `SELECT` on these tables only:
 - `content.cards`
 - `content.decks`
 - `content.review_events`
+- `content.media_assets`
 - `sync.workspace_replicas`
 - `sync.installations`
 - `support.feedback_submissions`
@@ -194,12 +198,23 @@ The role gets `SELECT` on these tables only:
 - selected metadata columns on `ai.chat_sessions`
 - selected metadata columns on `ai.chat_runs`
 - selected metadata columns on `ai.chat_composer_suggestion_generations`
+- `ai.usage_events`
+- `ai.model_prices`
 - `sync.workspace_sync_metadata`
-- selected metadata columns on `sync.hot_changes`
-- selected metadata columns on `sync.applied_operations_current`
+- `sync.hot_changes`
+- `sync.applied_operations_current`
+- selected key columns on `progress.user_active_review_days`
 - `analytics.product_events`
 - `analytics.identity_links`
 - `analytics.product_events_resolved`, the view that resolves anonymous events to their eventual account at read time
+- `analytics.installation_profiles`
+- `analytics.installation_country_observations`
+- `analytics.excluded_actors`
+- selected key columns on `catalog.package_versions`
+- selected key and slug columns on `catalog.packages`, the deck label an admin report prints instead of a raw package version id
+- `billing.purchases`
+- `billing.grants`
+- selected trial, purchase-history, and row-timestamp columns on `billing.user_billing_state`
 
 No write access is granted.
 
@@ -305,6 +320,14 @@ Use guest and account-conversion tables when the investigation needs guest activ
 
 Guest analytics intentionally do not expose guest session secret hashes, replay secret hashes, raw provider subjects, OTP challenge state, or API key hashes.
 
+Use billing tables when the investigation needs purchase and provider state, operator grants and gifts, trial consumption, or whether a person has ever paid:
+
+- `billing.purchases`
+- `billing.grants`
+- `billing.user_billing_state`
+
+Billing analytics intentionally do expose the store transaction identifiers `billing.purchases.provider_purchase_id` and `billing.purchases.linked_from_purchase_id`, because support and reconciliation have to be able to name the purchase a provider is talking about. They do not expose `billing.provider_events`, whose `payload_raw` is verbatim provider input, or `billing.entitlement_snapshots`, which is a derived cache rather than a fact and may be truncated at any time, so resolve what a person is entitled to from the purchase and grant rows instead. They also do not expose the provider-side account handles `billing.user_billing_state.stripe_customer_id`, `apple_app_account_token`, and `google_obfuscated_account_id`, which exist only as attribution lookup keys; a report names a person by `user_id`.
+
 Use AI operational tables when the investigation needs chat session volume, run health, model/cost-policy distribution, or stuck/failed run timing:
 
 - `ai.chat_sessions`
@@ -312,6 +335,13 @@ Use AI operational tables when the investigation needs chat session volume, run 
 - `ai.chat_composer_suggestion_generations`
 
 AI operational analytics intentionally expose metadata only. They do not expose `ai.chat_items`, `ai.chat_items.payload`, `ai.chat_runs.turn_input`, `ai.chat_runs.last_error_message`, `ai.chat_sessions.composer_suggestions`, or `ai.chat_composer_suggestion_generations.suggestions`.
+
+Use AI usage facts when the investigation needs per-call model usage, token and unit counters, or spend, which prices a usage row against the `ai.model_prices` window in effect at its `occurred_at`:
+
+- `ai.usage_events`
+- `ai.model_prices`
+
+These two tables are readable in full, because they carry counters and call metadata only and no prompt or completion text. `ai.model_prices` is still empty because no migration has entered a price yet, so a cost report returns nothing until one does, and an empty spend result never means usage went unrecorded. Cost comes from `ai.model_prices`: price a counter against the row for its own `provider`, `model_id` and `unit_kind` whose window contains the usage row's `occurred_at`, and where two windows overlap take the later `effective_from`. Not every counter is billed on its own — some are reported as breakdowns of another counter, and the `ai.usage_events` column comments say which — so a total that prices all of them overstates spend, while a counter with no matching window understates it. Treat a spend number as unverified in either direction until it is reconciled against those comments, and never read a low or empty total as evidence that usage went unrecorded. Image prices vary by size and quality, which the dictionary does not key yet, so image spend is approximate.
 
 Use current sync diagnostic tables when the investigation needs sync retention metadata, hot-state mutation volume, or idempotency ledger diagnostics:
 
@@ -330,30 +360,38 @@ The auth origin writes product analytics rows of its own: the web sign-in funnel
 `Login funnel analytics` section of `docs/auth-service.md`, not from the rows. Each caveat below is
 owned by the source it names, else by a comment in `apps/auth/src/server/analytics/catalog.ts`:
 
+- `trust_level` splits these rows into two populations that never mix, and both are permanent
+  because the table is append-only. `guest_client` rows were delivered on a `web` guest session this
+  service minted for each reporting browser; `anonymous_client` rows are what it writes now, posted
+  to the credential-free collector with no credential of any kind. Every caveat below that names one
+  of the two applies to that one only. `buildTrustedActorRowsFilterSql` in the admin app excludes
+  `anonymous_client`, so a report over the current rows has to except them the way the
+  catalog-install funnel already does. That exclusion also makes any cohort keyed on a person's
+  first trusted event anywhere discontinuous at the deploy of this change: a browser's login-page
+  rows can be that first event before the deploy and never after it, and neither population ever
+  leaves the table.
 - The pair (`screen_viewed`, `screen = 'signin'`) has a second `platform = 'web'` producer: the web
   app reports it for the workspace-choice step, downstream of `signin_succeeded`, inflating a
   login-page denominator (`resolveSessionGateSurface` in `apps/web/src/App.tsx`). Auth-origin rows
-  are the ones with a null `app_version`, true only because `postAnalyticsEvents` in `client.ts`
-  sends no `x-client-version`. `device_locale`, `timezone` and `network_state` are null too: a
-  `platform = 'web'` breakdown grouped by one buckets the funnel, and only a filter or join drops it.
-- Auth-origin rows resolve to the visitor's guest user id, not the account, whenever the sign-in's
-  best-effort identity link did not land, and nothing reconstructs it. A first-ever sign-in usually
-  loses it, and so does a sign-in that ran slow (`analyticsReportBudgetMs` in `signInFunnel.ts`).
-  Their `anonymous_id` is the product domain's shared visitor id, the same one the web app reports
-  under, so joining on it reaches the app-origin rows of the same browser even where `actor_id` did
-  not resolve.
-- A sign-in retires the auth origin's guest identity even where the funnel may not attribute it
-  (`reportSignInSucceeded` in `signInFunnel.ts`), so a `screen_viewed` with no outcome can be a
-  completed sign-in rather than an abandonment; `analytics_visitor_retired_unreported` in the auth
-  Lambda log group counts those retirements. Sign-out retires it too, and a report still in flight
-  can restore the cookie past any of those clears (`clearAuthAnalyticsGuestSession` in
-  `visitorSession.ts`): a revoked token then produces no rows until the cookie is gone, and a live
-  one gives the first person's tail to whichever account signs in next — always what a sign-out
-  leaves, since no link runs there, and reachable past a sign-in too. None of that touches the
-  `anonymous_id` on these rows, which is the shared visitor id and outlives every one of those
-  clears.
+  are the ones with a null `app_version`: the collector stores none for any caller, and the
+  guest-era producer sent no `x-client-version`. `device_locale`, `timezone` and `network_state` are
+  null on both populations: a `platform = 'web'` breakdown grouped by one buckets the funnel, and
+  only a filter or join drops it.
+- `anonymous_client` rows carry no `user_id`, so `analytics.product_events_resolved` reaches them
+  through `first_anonymous_link` and resolves them to whichever account the browser's shared visitor
+  id is linked to — the web app's link, since this service makes none.
+- `guest_client` rows resolve to the visitor's guest user id, not the account, whenever that
+  sign-in's best-effort identity link did not land, and nothing reconstructs it. A first-ever sign-in
+  usually lost it, and so did a sign-in that ran slow. Both populations carry the product domain's
+  shared visitor id in `anonymous_id`, the same one the web app reports under, so joining on it
+  reaches the app-origin rows of the same browser even where `actor_id` did not resolve.
+- A sign-in this funnel may not attribute still happens — the OAuth consent page runs the same
+  exchange and reports nothing — so a `screen_viewed` with no outcome can be a completed sign-in
+  rather than an abandonment.
 - `signin_failed` carries no `screen`; a funnel filtered on `screen = 'signin'` reads it as zero.
-- Web session counts include auth-origin sessions; a visitor whose posts run slow adds one per event.
+- Current auth-origin rows contribute no web sessions at all: the collector has no session field, so
+  every `anonymous_client` row carries `session_id IS NULL`. The `guest_client` rows before them do
+  carry one, and a visitor whose posts ran slow added a distinct session per stored event.
   The discriminator for the two distortions that follow is the live `logged_in` cookie, not whether an
   account has ever been confirmed on the browser: `clearBrowserSessionCookies` in
   `apps/auth/src/server/browserSession.ts` deletes that cookie on every logout route, and the web
@@ -366,5 +404,4 @@ owned by the source it names, else by a comment in `apps/auth/src/server/analyti
   person does hold a live session — keeps the `session_id` stamped while it happened, waits in the
   queue, and is delivered under whichever account is confirmed next. Correcting web session counts
   has to handle both.
-- A conversion computed from `signin_succeeded` is a lower bound rather than a rate.
 - `signin_failed` with `reason = 'server_error'` is a floor rather than the whole.

@@ -420,10 +420,10 @@ browser is given no identifier at all, and what it reports is rows carrying none
 The auth origin is inside this gate without a banner of its own, because it mints nothing. Its
 server-side sign-in funnel reports under this cookie and reports nothing at all for a browser that
 holds none, so a browser this gate withheld an identity from stays unmeasured there too
-([sign-in funnel](../apps/auth/src/server/analytics/signInFunnel.ts)). The one cookie it writes is
-the host-only `__Host-analytics_guest`, a guest credential it sets only for a browser that already
-holds this id; a leftover one is read by nothing that reports and is deleted by the next sign-in or
-sign-out.
+([sign-in funnel](../apps/auth/src/server/analytics/signInFunnel.ts)). It writes no analytics cookie
+of its own at all: its rows go to the credential-free collector, which needs none. The host-only
+`__Host-analytics_guest` it used to set is written by nothing now, read by nothing that reports, and
+deleted from the browsers that still hold one by their next sign-in, sign-out or token revoke.
 
 A signed-in person who refuses is the one case where rows still carry a name, and it is the
 account's rather than the browser's: their events go out on their own credential and are stored

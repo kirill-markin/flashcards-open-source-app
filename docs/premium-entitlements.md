@@ -5,8 +5,8 @@ derived, and what each client is allowed to trust. Every later change to billing
 paywalls reads this document instead of re-deriving the rules, and every client reads the same
 rules as the backend.
 
-No store integration exists yet. There is no Apple, Google Play, or Stripe client anywhere, no
-receipt validation, and no webhook handler. The `billing` schema is already migrated
+No store integration exists yet. There is no purchase, receipt, or subscription code on any client
+or in the backend. The `billing` schema is already migrated
 (`db/migrations/0151_billing_schema.sql`), and every table a purchase or a grant would land in is
 still empty and has no writer at all: `provider_events`, `purchases`, `grants` and
 `user_billing_state`. This document is the contract those rails must satisfy, so it is deliberately

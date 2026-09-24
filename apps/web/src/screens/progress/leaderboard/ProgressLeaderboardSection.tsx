@@ -4,6 +4,7 @@ import { buildLoginUrl } from "../../../api";
 import { resolveBestLeaderboardPlacement } from "../../../appData/progress/leaderboardPlacement";
 import { useI18n } from "../../../i18n";
 import { settingsLeaderboardParticipationRoute } from "../../../routes";
+import { useWorkspacePath } from "../../../useWorkspacePath";
 import type {
   ProgressLeaderboard,
   ProgressLeaderboardSourceState,
@@ -136,6 +137,7 @@ function buildRatingLeaderboardRows(
 
 function ProgressLeaderboardBody(props: ProgressLeaderboardBodyProps): ReactElement {
   const { t, formatNumber } = useI18n();
+  const workspacePath = useWorkspacePath();
   const { sourceState, canRenderServerBase, selectedWindowKey, onSelectWindowKey, onOpenProfile } = props;
   const leaderboard = sourceState.renderedSnapshot;
 
@@ -175,7 +177,7 @@ function ProgressLeaderboardBody(props: ProgressLeaderboardBodyProps): ReactElem
     return (
       <div className="progress-leaderboard-placeholder" data-testid="progress-leaderboard-participation-disabled">
         <p className="subtitle">{t("progressScreen.leaderboard.participationDisabledBody")}</p>
-        <Link className="ghost-btn" to={settingsLeaderboardParticipationRoute}>
+        <Link className="ghost-btn" to={workspacePath(settingsLeaderboardParticipationRoute)}>
           {t("progressScreen.leaderboard.openParticipationSettings")}
         </Link>
       </div>
