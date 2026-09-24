@@ -85,6 +85,22 @@ function isExpectedFirstAccountDefaultPersistError(error: Error): boolean {
   return false;
 }
 
+/**
+ * The workspace `sessionLoadState === "ready"` is ready for. Widened to the absence it refuses so
+ * the invariant is checked here, where `ready` is produced, rather than re-traced across every
+ * `setActiveWorkspace(null)` site whenever one of them changes: `useWorkspacePath` throws on a
+ * workspace-scoped address built without an active workspace, and `AppShell` builds those addresses
+ * on the strength of `ready` alone, so publishing that state over no workspace is a crash one render
+ * later with nothing left to say which publisher caused it.
+ */
+function requireWorkspaceForReadySession(workspace: WorkspaceSummary | null): WorkspaceSummary {
+  if (workspace === null) {
+    throw new Error("Session published as ready with no active workspace");
+  }
+
+  return workspace;
+}
+
 export function useWorkspaceActivation(params: UseWorkspaceActivationParams): WorkspaceSessionActivation {
   const {
     setSessionLoadState,
@@ -167,15 +183,16 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
     currentWorkspaces: ReadonlyArray<WorkspaceSummary>,
     workspace: WorkspaceSummary,
   ): void {
-    const nextWorkspaces = markSelectedWorkspaces(currentWorkspaces, workspace.workspaceId);
+    const readyWorkspace = requireWorkspaceForReadySession(workspace);
+    const nextWorkspaces = markSelectedWorkspaces(currentWorkspaces, readyWorkspace.workspaceId);
     setAvailableWorkspaces(nextWorkspaces);
     setActiveWorkspace({
-      ...workspace,
+      ...readyWorkspace,
       isSelected: true,
     });
     setSession({
       ...currentSession,
-      selectedWorkspaceId: workspace.workspaceId,
+      selectedWorkspaceId: readyWorkspace.workspaceId,
     });
     setSessionLoadState("ready");
   }, [

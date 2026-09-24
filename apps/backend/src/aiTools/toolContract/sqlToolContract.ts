@@ -449,6 +449,19 @@ export const SQL_DIALECT_GUIDE = [
  * be wrong for an agent talking to a deployed stack, and it is only a
  * development convenience.
  *
+ * The three places that advertise this subject do not follow that condition and
+ * must not. `SERVER_INSTRUCTIONS` (`apps/backend/src/mcp/server.ts`) and
+ * `GET_GUIDE_TOPIC_ARGUMENT_DESCRIPTION`
+ * (`apps/backend/src/aiTools/toolRegistry/specs.ts`) name the web link in the
+ * `initialize` instructions and in `tools/list`, which are a published contract
+ * that must not vary by environment and are measured byte for byte in
+ * `apps/backend/src/mcp/toolBudgets.test.ts`; `GUIDE_TOPIC_DESCRIPTIONS` below
+ * names it in the REST discovery topic list
+ * (`apps/backend/src/agent/discovery.ts`). A deployment with no usable app
+ * origin therefore advertises a `card_authoring` topic whose body carries no
+ * link line, which costs the agent a guide read that answers less than the
+ * advertisement promised and nothing more.
+ *
  * It names no surface-specific field, because `get_guide` answers the MCP and
  * chat tools and the REST agent routes alike, and only the tools put the
  * resolved workspace on the payload

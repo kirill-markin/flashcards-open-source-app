@@ -3,7 +3,8 @@ import { useLocation } from "react-router";
 import {
   endAnalyticsScreenVisit,
   restoreCurrentAnalyticsSurface,
-  setCurrentAnalyticsSurface,
+  restoreCurrentAnalyticsSurfaceAfterTakeDown,
+  takeDownCurrentAnalyticsSurface,
   trackScreenViewed,
 } from "./client";
 import type { AnalyticsSurface } from "./events";
@@ -76,14 +77,17 @@ export function useAnalyticsUnreportableScreen(isOnDisplay: boolean): void {
       return undefined;
     }
 
-    setCurrentAnalyticsSurface(null);
+    takeDownCurrentAnalyticsSurface();
     endAnalyticsScreenVisit();
 
     return () => {
-      // Handed back only while the stamp is still the null this hook set, the same guard the
-      // reportable handover above carries: a parent's effects flush after every child's, so an
-      // unconditional setter here would overwrite a surface some other screen had just taken.
-      restoreCurrentAnalyticsSurface({ dismissed: null, restored: routeSurface });
+      // Handed back only while the stamp is still the take-down this hook performed, the same guard
+      // the reportable handover above carries: a parent's effects flush after every child's, so an
+      // unconditional setter here would overwrite a surface some other screen had just taken. The
+      // take-down holds a token of its own rather than a plain `null` stamp, so the hand-back is
+      // refused after anything else has stamped — including the `null` `AnalyticsLifecycle` leaves
+      // for a route no surface names.
+      restoreCurrentAnalyticsSurfaceAfterTakeDown(routeSurface);
     };
   }, [isOnDisplay, routeSurface]);
 }
