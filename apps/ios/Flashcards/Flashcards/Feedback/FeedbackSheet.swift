@@ -150,7 +150,12 @@ struct FeedbackSheet: View {
             )
             self.dismiss()
         } catch {
-            self.errorMessage = Flashcards.errorMessage(error: error)
+            // A cancellation is the person or the app ending the work, not a failure to report, and
+            // `CancellationError` carries no `LocalizedError` text, so surfacing it would print the
+            // literal `CancellationError()` in red. The sheet keeps its draft and its send button.
+            if isRequestCancellationError(error: error) == false {
+                self.errorMessage = Flashcards.errorMessage(error: error)
+            }
         }
         self.isSubmitting = false
     }
