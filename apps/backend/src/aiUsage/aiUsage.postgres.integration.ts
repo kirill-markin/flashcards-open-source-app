@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import test from "node:test";
+import { unsafeTransaction } from "../database/unsafe";
 import { HttpError } from "../shared/errors";
 import {
   withPostgresIntegrationFixture,
@@ -12,6 +14,10 @@ import {
   loadAiUsageWeightedTokensForMonth,
   resolveAiUsageAllowance,
 } from "./cap";
+import {
+  anonymizeAiUsageForDeletedPersonInExecutor,
+  transferAiUsageToUpgradedAccountInExecutor,
+} from "./identity";
 import { appendAiUsageEvent, type AiUsageCounters, type AiUsageEvent } from "./record";
 
 // The allowance is a sum over rows the surfaces append, so what is worth pinning is the part no pure
@@ -95,6 +101,26 @@ async function countStoredUsageEvents(fixture: PostgresIntegrationFixture): Prom
     [fixture.userId],
   );
   return result.rows[0]?.stored ?? 0;
+}
+
+type UsageEventIdentityRow = Readonly<{
+  user_id: string;
+  workspace_id: string | null;
+  request_id: string | null;
+}>;
+
+async function loadUsageEventIdentities(
+  fixture: PostgresIntegrationFixture,
+  userId: string,
+): Promise<ReadonlyArray<UsageEventIdentityRow>> {
+  const result = await fixture.ownerPool.query<UsageEventIdentityRow>(
+    [
+      "SELECT user_id, workspace_id::text AS workspace_id, request_id",
+      "FROM ai.usage_events WHERE user_id = $1",
+    ].join(" "),
+    [userId],
+  );
+  return result.rows;
 }
 
 async function deleteStoredRows(fixture: PostgresIntegrationFixture): Promise<void> {
@@ -296,6 +322,79 @@ test("every reported counter lands in its own column, and only the token counter
       );
     } finally {
       await deleteStoredRows(fixture);
+    }
+  });
+});
+
+// Both statements here are the callers db/migrations/0154_ai_usage_identity_rewrites.sql grants
+// UPDATE (user_id, workspace_id, request_id) for, and a grant is exactly what no pure test can reach:
+// the table is
+// append-only for everything else, and 0152 created one row-level-security policy per granted command,
+// so a missing UPDATE policy would make either rewrite match no row and report success. The transfer
+// also has to keep the monthly allowance intact across an upgrade, which is a sum over these rows for
+// one person and therefore only observable end to end.
+test("the identity rewrites carry the allowance across an upgrade and anonymise it on deletion", async () => {
+  await withPostgresIntegrationFixture(async (fixture) => {
+    const guestUserId = `${fixture.userId}-guest`;
+    const guestWorkspaceId = fixture.outOfScopeWorkspaceId;
+    const anonymizedUserId = randomUUID();
+    try {
+      const occurredAt = new Date("2026-09-15T12:00:00.000Z");
+      const monthWindow = getAiUsageMonthWindow(occurredAt);
+      await appendAiUsageEvent(createChatUsageEvent(
+        guestUserId,
+        guestWorkspaceId,
+        occurredAt,
+        createCounters({ inputTokens: 10, outputTokens: 1 }),
+      ));
+      // The append swallows its own failures, so the row is read back rather than assumed.
+      assert.equal(await loadAiUsageWeightedTokensForMonth(guestUserId, monthWindow), 16);
+
+      await unsafeTransaction(async (executor) => {
+        await transferAiUsageToUpgradedAccountInExecutor(
+          executor,
+          guestUserId,
+          guestWorkspaceId,
+          fixture.userId,
+          fixture.workspaceId,
+        );
+      });
+
+      // Signing up must not reset the monthly allowance, which is the whole reason the rows move.
+      assert.equal(await loadAiUsageWeightedTokensForMonth(fixture.userId, monthWindow), 16);
+      assert.equal(await loadAiUsageWeightedTokensForMonth(guestUserId, monthWindow), 0);
+      // The request id survives a transfer: the person is still there, and it is what correlates the
+      // row with the logs of the call that produced it.
+      assert.deepEqual(await loadUsageEventIdentities(fixture, fixture.userId), [{
+        user_id: fixture.userId,
+        workspace_id: fixture.workspaceId,
+        request_id: "ai-usage-integration-request",
+      }]);
+
+      await unsafeTransaction(async (executor) => {
+        await anonymizeAiUsageForDeletedPersonInExecutor(
+          executor,
+          [fixture.userId, guestUserId],
+          anonymizedUserId,
+        );
+      });
+
+      // The row survives, because what a call cost is a fact about the product. What goes is the person,
+      // and with them every column that could name them again: the workspace id, which outlives the
+      // workspace and would rejoin this row to their content, and the request id, whose whole purpose is
+      // correlating the row with logs and error reports that still carry the real user id.
+      assert.deepEqual(await loadUsageEventIdentities(fixture, anonymizedUserId), [{
+        user_id: anonymizedUserId,
+        workspace_id: null,
+        request_id: null,
+      }]);
+      assert.deepEqual(await loadUsageEventIdentities(fixture, fixture.userId), []);
+    } finally {
+      await deleteStoredRows(fixture);
+      await fixture.ownerPool.query(
+        "DELETE FROM ai.usage_events WHERE user_id = ANY($1::text[])",
+        [[guestUserId, anonymizedUserId]],
+      );
     }
   });
 });

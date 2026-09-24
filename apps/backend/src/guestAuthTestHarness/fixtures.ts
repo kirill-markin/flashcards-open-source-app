@@ -208,6 +208,11 @@ export function createMergeState(params: Readonly<{
     hotChanges: [],
     feedbackPromptEvents: [],
     feedbackSubmissions: [],
+    purchases: [],
+    grants: [],
+    userBillingState: [],
+    entitlementSnapshots: [],
+    aiUsageEvents: [],
     publicProfiles: [],
     publicReviewActivityFacts: [],
   };
