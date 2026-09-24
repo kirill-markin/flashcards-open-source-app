@@ -1365,6 +1365,28 @@ export const productAnalyticsEventCatalog = {
     requiresScreen: false,
     properties: productAnalyticsSiteAppEntryProperties,
   },
+  // The marketing site's store QR card was opened. The card stays hidden until a mouse hover or a
+  // keyboard focus on a store link reveals it, so a touch-only visit never reports it, and it
+  // exists because a visitor who scans the code off the screen produces no click at all. It is
+  // reported as the card opens, with no visibility delay, because the reveal is already a
+  // deliberate act rather than something a scroll can cause. The marketing site is its only producer
+  // and it reports at most once per target, placement and page kind per document load, exactly the
+  // key `site_app_entry_shown` uses, so a QR show, the button impression and the click compare one to
+  // one, which is why the property names are the app-entry set exactly. The map itself is not held
+  // here: it is shared only by the app-entry click and its impression half, and `target` names only
+  // the two stores on a QR show, because the web app CTA has no QR card of its own. The
+  // `store_qr_shown` further down is the web app's own event over its own placement space, not this.
+  site_store_qr_shown: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      target: { kind: "enum", values: ["app_store", "google_play"] },
+      page_kind: { kind: "enum", values: productAnalyticsSitePageKinds },
+      placement: { kind: "string", pattern: productAnalyticsSitePlacementPattern },
+      source: { kind: "enum", values: productAnalyticsSiteSources },
+      device_category: { kind: "enum", values: productAnalyticsSiteDeviceCategories },
+    },
+  },
   // A marketing site CTA that leads to another marketing page instead of into the product, which is
   // why it is a fact of its own: a funnel that counted it as an app entry would credit an entry to a
   // visit that never left the site. It shares `page_kind`, `placement`, `source` and
