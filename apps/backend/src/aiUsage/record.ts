@@ -52,6 +52,9 @@ export type AiUsageCounters = Readonly<{
  * `imageCount`, `imageSize` and `imageQuality` sit beside `counters` rather than inside it because
  * they are facts of the call rather than of the provider's usage report: an image surface knows what
  * it asked for and what came back even when the provider reports no tokens.
+ *
+ * `userSuppliedKey` is true when the call was paid with an API key the person supplied rather than the
+ * platform key; such a row never counts against the monthly allowance (`cap.ts`).
  */
 export type AiUsageEvent = Readonly<{
   userId: string;
@@ -66,6 +69,7 @@ export type AiUsageEvent = Readonly<{
   imageCount: number | null;
   imageSize: string | null;
   imageQuality: string | null;
+  userSuppliedKey: boolean;
 }>;
 
 /** The append selects nothing back, and the query helper still needs a row shape for its generic. */
@@ -90,8 +94,8 @@ const APPEND_AI_USAGE_EVENT_SQL = [
   "INSERT INTO ai.usage_events (",
   "usage_event_id, user_id, workspace_id, occurred_at, surface, provider, model_id, request_id,",
   "tier_at_call, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens,",
-  "reasoning_tokens, audio_seconds, image_count, image_size, image_quality",
-  ") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)",
+  "reasoning_tokens, audio_seconds, image_count, image_size, image_quality, user_supplied_key",
+  ") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)",
 ].join(" ");
 
 /**
@@ -172,7 +176,7 @@ export async function appendAiUsageEvent(event: AiUsageEvent): Promise<void> {
       captureBackendRuntimeWarning({
         action: "ai_usage_counters_unweighted",
         message:
-          "An AI provider call reported only counters the monthly allowance gives no weight, so it counts as zero.",
+          "An AI provider call reported only counters the weighted total gives no weight, so it adds zero to it.",
         scope: createAiUsageScope(event),
         details: createAiUsageMeteringDetails(event),
       });
@@ -197,6 +201,7 @@ export async function appendAiUsageEvent(event: AiUsageEvent): Promise<void> {
       event.imageCount,
       event.imageSize,
       event.imageQuality,
+      event.userSuppliedKey,
     ]);
   } catch (error) {
     const errorDetails = getBackendErrorLogDetails(error);
