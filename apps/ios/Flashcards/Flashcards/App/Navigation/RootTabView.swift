@@ -630,6 +630,8 @@ struct RootTabView: View {
             ReviewAnimationsSettingsView()
         case .aiChatSuggestions:
             AIChatSuggestionsSettingsView()
+        case .ownOpenAIKey:
+            OwnOpenAIKeySettingsView()
         case .leaderboardParticipation:
             LeaderboardParticipationSettingsView()
         case .productAnalytics:

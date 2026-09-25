@@ -19,6 +19,7 @@ import {
 import { isBrowserApiNetworkError } from "../../../observability/apiNetworkErrorPolicy";
 import type { Locale } from "../../../i18n/types";
 import type {
+  AiUsageStatus,
   NewChatSessionResponse,
   StartChatRunRequestBody,
   StartChatRunResponse,
@@ -55,6 +56,10 @@ import {
   isAiChatRequestTooLargeError,
 } from "../../shared/chatSizePolicy";
 import { isAiLimitReachedError } from "../../shared/chatAiLimitPolicy";
+import {
+  formatOwnOpenAIKeyErrorMessage,
+  isOwnOpenAIKeyError,
+} from "../../shared/chatOwnOpenAIKeyErrorPolicy";
 import type { ChatHistoryState } from "../../history/useChatHistory";
 import { useRemoteSessionProvisioning } from "./useRemoteSessionProvisioning";
 
@@ -70,6 +75,8 @@ type UseChatSessionActionsParams = Readonly<{
   dispatch: Dispatch<ChatSessionControllerAction>;
   history: ChatHistoryState;
   snapshotSync: ChatSessionSnapshotSync;
+  readHeldAiUsage: () => AiUsageStatus | null;
+  refreshAiUsageInBackground: () => void;
 }>;
 
 type ChatSessionActions = Readonly<{
@@ -114,7 +121,7 @@ function isExpectedChatProductErrorCode(code: string | null): boolean {
       return true;
   }
 
-  return false;
+  return isOwnOpenAIKeyError(code);
 }
 
 function isExpectedChatValidationError(error: ApiError): boolean {
@@ -219,6 +226,8 @@ export function useChatSessionActions(
     dispatch,
     history,
     snapshotSync,
+    readHeldAiUsage,
+    refreshAiUsageInBackground,
   } = params;
   const {
     appendUserMessage,
@@ -645,7 +654,20 @@ export function useChatSessionActions(
       if (isChatApiError(error) && isAiLimitReachedError({ code: error.code })) {
         dispatch({
           type: "error_shown",
-          message: uiMessages.aiLimitReached,
+          message: uiMessages.formatAiLimitReached(readHeldAiUsage()),
+        });
+        // Brings the remaining-messages notice down to zero; the refusal above does not wait for it.
+        refreshAiUsageInBackground();
+        return createRejectedSendResult(resultSessionId);
+      }
+
+      if (isChatApiError(error) && isOwnOpenAIKeyError(error.code)) {
+        dispatch({
+          type: "error_shown",
+          message: formatOwnOpenAIKeyErrorMessage(
+            uiMessages.ownOpenAIKeyErrorPrefix,
+            toErrorMessage(error, uiMessages.errorFallbacks),
+          ),
         });
         return createRejectedSendResult(resultSessionId);
       }
@@ -813,8 +835,10 @@ export function useChatSessionActions(
     isRemoteReady,
     isRequestSequenceCurrent,
     markRunHadToolCallsFromSnapshot,
+    readHeldAiUsage,
     reconcileTerminalSnapshot,
     recoverFromSessionIdConflict,
+    refreshAiUsageInBackground,
     replaceMessages,
     resetSnapshotTracking,
     runtimeRefs,

@@ -902,6 +902,22 @@ const plCatalog: TranslationCatalog = {
     toggleTitle: "Pokazuj podpowiedzi w polu czatu AI",
     toggleDescription: "Sugerowane podpowiedzi pojawiają się nad polem tekstowym, gdy czat jest bezczynny i gotowy.",
   },
+  ownOpenAIKeySettings: {
+    title: "Twój klucz OpenAI",
+    subtitle: "Korzystaj z AI przez własne konto OpenAI.",
+    toggleTitle: "Używaj mojego klucza OpenAI",
+    toggleDescription: "Z własnym kluczem czat AI, dyktowanie i obrazy kart działają na Twoim koncie OpenAI, bez miesięcznego limitu w każdym planie. Gdy klucz jest włączony, sugerowane odpowiedzi są wyłączone. Nigdy nie przechowujemy Twojego klucza na naszych serwerach: zostaje na tym urządzeniu i jest wysyłany tylko z Twoimi żądaniami AI, więc wpisz go osobno na iOS, Androidzie i w wersji webowej.",
+    apiKeyLabel: "Klucz API OpenAI",
+    apiKeyInvalid: "Tego klucza nie można użyć. Klucz OpenAI zawiera tylko litery łacińskie, cyfry i symbole oraz ma najwyżej 512 znaków. Dopóki go nie poprawisz, żądania AI działają bez Twojego klucza.",
+    ownSpend: "W tym miesiącu z Twoim kluczem: {{count}}",
+    countLabels: {
+      message: {
+        one: "wiadomość",
+        few: "wiadomości",
+        other: "wiadomości",
+      },
+    },
+  },
   analyticsConsentBanner: {
     label: "Pliki cookie analityczne",
     message: "Używamy pliku cookie i innej pamięci przeglądarki, aby mierzyć, jak korzysta się z aplikacji. Do czasu Twojego wyboru aplikacja nic nie zapisuje na tym urządzeniu i nie wysyła niczego, co Cię identyfikuje.",
@@ -1318,6 +1334,16 @@ const plCatalog: TranslationCatalog = {
       sendAriaLabel: "Wyślij wiadomość",
       stopAriaLabel: "Zatrzymaj odpowiedź",
     },
+    aiUsage: {
+      countLabels: {
+        aiMessage: {
+          one: "wiadomość AI",
+          few: "wiadomości AI",
+          other: "wiadomości AI",
+        },
+      },
+      remaining: "Pozostało w tym miesiącu: {{count}}",
+    },
     alerts: {
       attachmentLimit: "Wiadomość jest za duża. Czat AI nie może wysłać tylu treści naraz. Usuń jeden załącznik lub więcej, wybierz mniejszy plik albo zdjęcie lub podziel zapytanie i spróbuj ponownie.",
       attachmentUnsupported: "Ten typ pliku nie jest obsługiwany w czacie AI. Usuń plik lub zapisz go jako PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX albo obraz i spróbuj ponownie.",
@@ -1339,11 +1365,14 @@ const plCatalog: TranslationCatalog = {
     errorTitle: "Błąd czatu AI",
     errors: {
       activeRunInProgress: "Odpowiedź jest już w toku. Poczekaj na jej zakończenie lub zatrzymaj ją przed wysłaniem kolejnej wiadomości.",
-      aiLimitReached: "Limit AI na ten miesiąc został wykorzystany. Zostanie odnowiony na początku następnego miesiąca.",
+      aiLimitReachedAccount: "Wykorzystano wiadomości AI na ten miesiąc. Odnowią się {{date}}. Aby kontynuować, możesz dodać własny klucz OpenAI w Ustawieniach.",
+      aiLimitReachedAccountNoDate: "Wykorzystano wiadomości AI na ten miesiąc. Aby kontynuować, możesz dodać własny klucz OpenAI w Ustawieniach.",
+      aiLimitReachedGuest: "Wykorzystano darmowe wiadomości AI na ten miesiąc. Aby kontynuować, załóż konto lub dodaj własny klucz OpenAI w Ustawieniach.",
       emptyBackendResponse: "Backend zwrócił pustą odpowiedź błędu.",
       genericFailure: "Czat AI nie powiódł się.",
       liveStreamEndedBeforeCompletion: "Strumień AI zakończył się przed końcem odpowiedzi.",
       newChatFailedPrefix: "Nie udało się utworzyć nowego czatu.",
+      ownOpenAIKeyPrefix: "Twój własny klucz OpenAI jest włączony. OpenAI zwróciło ten błąd dla Twojego klucza. Napraw go na swoim koncie OpenAI i spróbuj ponownie.",
       refreshFailedPrefix: "Nie udało się odświeżyć czatu.",
       requestFailedPrefix: "Żądanie czatu nie powiodło się.",
       stopFailedPrefix: "Nie udało się zatrzymać czatu.",

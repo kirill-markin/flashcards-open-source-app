@@ -893,6 +893,21 @@ const trCatalog: TranslationCatalog = {
     toggleTitle: "AI sohbetinin yazma alanında öneri göster",
     toggleDescription: "Sohbet boştayken ve hazırken önerilen istemler yazma alanının üstünde görünür.",
   },
+  ownOpenAIKeySettings: {
+    title: "OpenAI anahtarınız",
+    subtitle: "AI'yi kendi OpenAI hesabınızla kullanın.",
+    toggleTitle: "Kendi OpenAI anahtarımı kullan",
+    toggleDescription: "Kendi anahtarınızla AI sohbeti, dikte ve kart görselleri OpenAI hesabınızda çalışır; hiçbir planda aylık limit yoktur. Anahtarınız açıkken önerilen yanıtlar kapalıdır. Anahtarınızı asla sunucularımızda saklamayız: bu cihazda kalır ve yalnızca AI isteklerinizle gönderilir, bu yüzden iOS, Android ve web'de ayrı ayrı girin.",
+    apiKeyLabel: "OpenAI API anahtarı",
+    apiKeyInvalid: "Bu anahtar kullanılamaz. Bir OpenAI anahtarında yalnızca Latin harfleri, rakamlar ve simgeler bulunur ve en fazla 512 karakterdir. Siz düzeltene kadar AI istekleri anahtarınız olmadan çalışır.",
+    ownSpend: "Bu ay anahtarınızla: {{count}}",
+    countLabels: {
+      message: {
+        one: "mesaj",
+        other: "mesaj",
+      },
+    },
+  },
   analyticsConsentBanner: {
     label: "Analiz çerezleri",
     message: "Uygulamanın nasıl kullanıldığını ölçmek için bir çerez ve diğer tarayıcı depolamasını kullanıyoruz. Siz seçim yapana kadar bu uygulama bu cihaza hiçbir şey kaydetmez ve sizi tanımlayan hiçbir şey göndermez.",
@@ -1306,6 +1321,15 @@ const trCatalog: TranslationCatalog = {
       sendAriaLabel: "Mesajı gönder",
       stopAriaLabel: "Yanıtı durdur",
     },
+    aiUsage: {
+      countLabels: {
+        aiMessage: {
+          one: "AI mesajı",
+          other: "AI mesajı",
+        },
+      },
+      remaining: "Bu ay kalan: {{count}}",
+    },
     alerts: {
       attachmentLimit: "Mesaj çok büyük. AI sohbeti bu kadar içeriği tek seferde gönderemez. Bir veya daha fazla eki kaldırın, daha küçük bir dosya ya da fotoğraf seçin veya isteği bölüp tekrar deneyin.",
       attachmentUnsupported: "Bu dosya türü AI sohbetinde desteklenmiyor. Dosyayı kaldırın veya PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX ya da bir görsel olarak kaydedip tekrar deneyin.",
@@ -1327,11 +1351,14 @@ const trCatalog: TranslationCatalog = {
     errorTitle: "AI sohbet hatası",
     errors: {
       activeRunInProgress: "Zaten süren bir yanıt var. Başka bir mesaj göndermeden önce bitmesini bekleyin veya durdurun.",
-      aiLimitReached: "Bu aya ait AI limitinizi doldurdunuz. Limit, gelecek ayın başında sıfırlanır.",
+      aiLimitReachedAccount: "Bu ayın AI mesajlarını kullandınız. Mesajlar {{date}} tarihinde yenilenir. Devam etmek için Ayarlar'dan kendi OpenAI anahtarınızı ekleyebilirsiniz.",
+      aiLimitReachedAccountNoDate: "Bu ayın AI mesajlarını kullandınız. Devam etmek için Ayarlar'dan kendi OpenAI anahtarınızı ekleyebilirsiniz.",
+      aiLimitReachedGuest: "Bu ayın ücretsiz AI mesajlarını kullandınız. Devam etmek için bir hesap oluşturun veya Ayarlar'dan kendi OpenAI anahtarınızı ekleyin.",
       emptyBackendResponse: "Sunucu boş bir hata yanıtı döndürdü.",
       genericFailure: "AI sohbeti başarısız oldu.",
       liveStreamEndedBeforeCompletion: "AI canlı akışı, işlem bitmeden sona erdi.",
       newChatFailedPrefix: "Yeni sohbet başlatılamadı.",
+      ownOpenAIKeyPrefix: "Kendi OpenAI anahtarınız açık. OpenAI, anahtarınız için bu hatayı döndürdü. Sorunu OpenAI hesabınızda düzeltip tekrar deneyin.",
       refreshFailedPrefix: "Sohbet yenilenemedi.",
       requestFailedPrefix: "Sohbet isteği başarısız oldu.",
       stopFailedPrefix: "Sohbet durdurulamadı.",

@@ -20,16 +20,20 @@ import { HttpError } from "../shared/errors";
 import type { AiUsageCounters } from "./record";
 
 /**
- * The error code a refused chat turn carries, for every caller. It replaces the
- * guest-only `GUEST_AI_LIMIT_REACHED`, and the status and body around it are unchanged so that the
- * handling path already shipped in every client is reused: iOS, Android and web accept this code beside
- * the old one and choose their own copy from the account state they already know.
+ * The error code a refused chat turn carries for a signed-in account.
  */
 export const aiLimitReachedCode: string = "AI_LIMIT_REACHED";
 
 /**
- * Kept verbatim from the guest quota this replaces. A client that only knows the old code falls back to
- * showing this string, so changing it would change what already-released clients say.
+ * The error code a refused chat turn carries for a guest, with the same status and body. Guests keep it
+ * because released iOS and Android builds recognise only this code for the create-account prompt; the
+ * guest branch can go once no supported mobile release depends on it.
+ */
+export const guestAiLimitReachedCode: string = "GUEST_AI_LIMIT_REACHED";
+
+/**
+ * Carried under both codes, verbatim from the original guest quota. A client that only knows the guest
+ * code falls back to showing this string, so changing it would change what already-released clients say.
  */
 const aiLimitReachedMessage =
   "Your free monthly AI limit is used up on this device. Create an account to keep going.";
@@ -238,7 +242,11 @@ export async function assertAiUsageAllowanceNotReached(
 
   const messages = await loadAiUsageMessagesForMonth(userId, getAiUsageMonthWindow(now));
   if (messages.platformKeyMessages >= monthlyMessages) {
-    throw new HttpError(429, aiLimitReachedMessage, aiLimitReachedCode);
+    throw new HttpError(
+      429,
+      aiLimitReachedMessage,
+      allowance.accountKind === "guest" ? guestAiLimitReachedCode : aiLimitReachedCode,
+    );
   }
 }
 

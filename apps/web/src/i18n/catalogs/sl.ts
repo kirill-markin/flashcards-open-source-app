@@ -911,6 +911,23 @@ const slCatalog: TranslationCatalog = {
     toggleTitle: "Prikaži predloge v urejevalniku klepeta z UI",
     toggleDescription: "Predlagani pozivi se prikažejo nad urejevalnikom, ko je klepet nedejaven in pripravljen.",
   },
+  ownOpenAIKeySettings: {
+    title: "Vaš ključ OpenAI",
+    subtitle: "Uporabljajte UI prek lastnega računa OpenAI.",
+    toggleTitle: "Uporabi moj ključ OpenAI",
+    toggleDescription: "Z lastnim ključem klepet z UI, narekovanje in slike kartic delujejo prek vašega računa OpenAI, brez mesečne omejitve v katerem koli paketu. Dokler je ključ vklopljen, so predlagani odgovori izklopljeni. Vašega ključa nikoli ne shranjujemo na naših strežnikih: ostane v tej napravi in se pošlje samo z vašimi zahtevami za UI, zato ga vnesite posebej v iOS, Androidu in spletni različici.",
+    apiKeyLabel: "Ključ API OpenAI",
+    apiKeyInvalid: "Tega ključa ni mogoče uporabiti. Ključ OpenAI vsebuje samo latinične črke, števke in simbole ter največ 512 znakov. Dokler ga ne popravite, zahteve UI delujejo brez vašega ključa.",
+    ownSpend: "Ta mesec z vašim ključem: {{count}}",
+    countLabels: {
+      message: {
+        one: "sporočilo",
+        two: "sporočili",
+        few: "sporočila",
+        other: "sporočil",
+      },
+    },
+  },
   analyticsConsentBanner: {
     label: "Analitični piškotki",
     message: "Piškotek in drugo shrambo brskalnika uporabljamo za merjenje uporabe aplikacije. Dokler se ne odločite, ta aplikacija v tej napravi ne shrani ničesar in ne pošlje ničesar, kar bi vas identificiralo.",
@@ -1330,6 +1347,17 @@ const slCatalog: TranslationCatalog = {
       sendAriaLabel: "Pošlji sporočilo",
       stopAriaLabel: "Ustavi odgovor",
     },
+    aiUsage: {
+      countLabels: {
+        aiMessage: {
+          one: "sporočilo UI",
+          two: "sporočili UI",
+          few: "sporočila UI",
+          other: "sporočil UI",
+        },
+      },
+      remaining: "Preostanek ta mesec: {{count}}",
+    },
     alerts: {
       attachmentLimit: "Sporočilo je preveliko. Klepet z UI ne more naenkrat poslati toliko vsebine. Odstranite eno ali več prilog, izberite manjšo datoteko ali fotografijo ali razdelite zahtevo in poskusite znova.",
       attachmentUnsupported: "Ta vrsta datoteke v klepetu z UI ni podprta. Odstranite datoteko ali jo shranite kot PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX ali sliko, nato poskusite znova.",
@@ -1351,11 +1379,14 @@ const slCatalog: TranslationCatalog = {
     errorTitle: "Napaka klepeta z UI",
     errors: {
       activeRunInProgress: "Odgovor je že v pripravi. Pred pošiljanjem naslednjega sporočila počakajte, da se konča, ali ga ustavite.",
-      aiLimitReached: "Porabili ste svojo omejitev UI za ta mesec. Ponastavi se na začetku naslednjega meseca.",
+      aiLimitReachedAccount: "Porabili ste sporočila UI za ta mesec. Datum obnovitve: {{date}}. Če želite nadaljevati, lahko v nastavitvah dodate lasten ključ OpenAI.",
+      aiLimitReachedAccountNoDate: "Porabili ste sporočila UI za ta mesec. Če želite nadaljevati, lahko v nastavitvah dodate lasten ključ OpenAI.",
+      aiLimitReachedGuest: "Porabili ste brezplačna sporočila UI za ta mesec. Če želite nadaljevati, ustvarite račun ali v nastavitvah dodajte lasten ključ OpenAI.",
       emptyBackendResponse: "Zaledje je vrnilo prazen odgovor o napaki.",
       genericFailure: "Klepet z UI ni uspel.",
       liveStreamEndedBeforeCompletion: "Tok UI v živo se je končal, preden se je izvajanje zaključilo.",
       newChatFailedPrefix: "Novega klepeta ni bilo mogoče začeti.",
+      ownOpenAIKeyPrefix: "Vaš lastni ključ OpenAI je vklopljen. OpenAI je za vaš ključ vrnil to napako. Odpravite jo v svojem računu OpenAI in poskusite znova.",
       refreshFailedPrefix: "Osvežitev klepeta ni uspela.",
       requestFailedPrefix: "Zahteva klepeta ni uspela.",
       stopFailedPrefix: "Ustavitev klepeta ni uspela.",

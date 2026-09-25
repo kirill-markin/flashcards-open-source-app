@@ -684,7 +684,7 @@ final class AIChatStoreRunStartTests: XCTestCase {
         XCTAssertEqual(
             store.messages[0].content,
             [.accountUpgradePrompt(
-                message: aiChatGuestQuotaReachedMessage,
+                message: aiChatGuestLimitReachedMessage(),
                 buttonTitle: aiChatGuestQuotaButtonTitle
             )]
         )
@@ -802,7 +802,7 @@ final class AIChatStoreRunStartTests: XCTestCase {
         XCTAssertEqual(
             store.messages[2].content,
             [.accountUpgradePrompt(
-                message: aiChatGuestQuotaReachedMessage,
+                message: aiChatGuestLimitReachedMessage(),
                 buttonTitle: aiChatGuestQuotaButtonTitle
             )]
         )
