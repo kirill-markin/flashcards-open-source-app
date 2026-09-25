@@ -622,6 +622,8 @@ struct RootTabView: View {
     @ViewBuilder
     private func settingsDestinationView(destination: SettingsNavigationDestination) -> some View {
         switch destination {
+        case .subscription:
+            SubscriptionSettingsView()
         case .currentWorkspace:
             CurrentWorkspaceView()
         case .reviewAnimations:

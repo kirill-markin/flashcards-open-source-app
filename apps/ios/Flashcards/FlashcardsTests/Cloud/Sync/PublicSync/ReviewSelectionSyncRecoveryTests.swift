@@ -93,7 +93,8 @@ final class ReviewSelectionSyncRecoveryTests: LocalWorkspaceSyncTestCase {
                 acknowledgedReviewScheduleImpactingOperationCount: 0,
                 cleanedUpOperationCount: 0,
                 cleanedUpReviewEventOperationCount: 0,
-                cleanedUpReviewScheduleImpactingOperationCount: 0
+                cleanedUpReviewScheduleImpactingOperationCount: 0,
+                entitlement: nil
             ),
             now: now,
             trigger: self.makeManualSyncTrigger(now: now)
@@ -165,7 +166,8 @@ final class ReviewSelectionSyncRecoveryTests: LocalWorkspaceSyncTestCase {
                 acknowledgedReviewScheduleImpactingOperationCount: 0,
                 cleanedUpOperationCount: 0,
                 cleanedUpReviewEventOperationCount: 0,
-                cleanedUpReviewScheduleImpactingOperationCount: 0
+                cleanedUpReviewScheduleImpactingOperationCount: 0,
+                entitlement: nil
             ),
             now: now,
             trigger: self.makeManualSyncTrigger(now: now)
@@ -249,7 +251,8 @@ final class ReviewSelectionSyncRecoveryTests: LocalWorkspaceSyncTestCase {
                 acknowledgedReviewScheduleImpactingOperationCount: 0,
                 cleanedUpOperationCount: 0,
                 cleanedUpReviewEventOperationCount: 0,
-                cleanedUpReviewScheduleImpactingOperationCount: 0
+                cleanedUpReviewScheduleImpactingOperationCount: 0,
+                entitlement: nil
             ),
             now: now,
             trigger: self.makeManualSyncTrigger(now: now)
@@ -316,7 +319,8 @@ final class ReviewSelectionSyncRecoveryTests: LocalWorkspaceSyncTestCase {
                     acknowledgedReviewScheduleImpactingOperationCount: 0,
                     cleanedUpOperationCount: 0,
                     cleanedUpReviewEventOperationCount: 0,
-                    cleanedUpReviewScheduleImpactingOperationCount: 0
+                    cleanedUpReviewScheduleImpactingOperationCount: 0,
+                    entitlement: nil
                 ),
                 underlyingError: LocalStoreError.validation("terminal sync failure after repair")
             )
@@ -404,7 +408,8 @@ final class ReviewSelectionSyncRecoveryTests: LocalWorkspaceSyncTestCase {
                     acknowledgedReviewScheduleImpactingOperationCount: 0,
                     cleanedUpOperationCount: 0,
                     cleanedUpReviewEventOperationCount: 0,
-                    cleanedUpReviewScheduleImpactingOperationCount: 0
+                    cleanedUpReviewScheduleImpactingOperationCount: 0,
+                    entitlement: nil
                 ),
                 underlyingError: LocalStoreError.validation("terminal sync failure after repair")
             )
@@ -509,7 +514,8 @@ final class ReviewSelectionSyncRecoveryTests: LocalWorkspaceSyncTestCase {
                 acknowledgedReviewScheduleImpactingOperationCount: 0,
                 cleanedUpOperationCount: 0,
                 cleanedUpReviewEventOperationCount: 0,
-                cleanedUpReviewScheduleImpactingOperationCount: 0
+                cleanedUpReviewScheduleImpactingOperationCount: 0,
+                entitlement: nil
             ),
             now: now,
             trigger: self.makeManualSyncTrigger(now: now)
