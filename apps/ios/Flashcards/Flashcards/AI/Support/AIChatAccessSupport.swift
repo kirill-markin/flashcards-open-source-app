@@ -23,9 +23,8 @@ func aiChatAccessState(
     return .ready
 }
 
-/// `AI_LIMIT_REACHED` is accepted ahead of the backend change that starts raising it for every
-/// caller, guest and signed-in alike. `GUEST_AI_LIMIT_REACHED` is the guest-only code that change
-/// supersedes, and it stays matched for as long as a deployed backend can still be raising it.
+/// `AI_LIMIT_REACHED` is the code the backend raises when a signed-in account reaches its AI allowance;
+/// `GUEST_AI_LIMIT_REACHED` is the code it raises for a guest.
 func isAiLimitReachedCode(_ code: String?) -> Bool {
     code == "AI_LIMIT_REACHED" || code == "GUEST_AI_LIMIT_REACHED"
 }
