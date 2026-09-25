@@ -287,6 +287,7 @@ export async function runPersistedChatSessionWithDeps(
             clientPlatform: params.clientPlatform,
             tierAtCall: params.tierAtCall,
             initiatingAuthIsSignedIn: params.initiatingAuthIsSignedIn,
+            userOpenAIApiKey: params.userOpenAIApiKey,
             modelId: params.modelId,
             reasoningEffort: params.reasoningEffort,
             timezone: params.timezone,

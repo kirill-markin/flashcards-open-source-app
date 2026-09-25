@@ -10,6 +10,7 @@ import {
 } from "./tools";
 import type { ChatRunClaimToken } from "../../runs";
 import type { ProductAnalyticsClientReportablePlatform } from "../../../productAnalytics/catalog";
+import type { UserOpenAIApiKey } from "../../userOpenAIApiKey";
 
 /**
  * A tool that returned an error envelope to the model and a tool that threw are different
@@ -152,6 +153,7 @@ export async function runOneToolCall(
     generatedImageOperationDeadlineMs: number;
     clientPlatform: ProductAnalyticsClientReportablePlatform | null;
     initiatingAuthIsSignedIn: boolean;
+    userOpenAIApiKey: UserOpenAIApiKey | null;
     rootObservation: LangfuseObservation | null;
   }>,
 ): Promise<ExecutedChatToolCall> {
@@ -197,6 +199,7 @@ export async function runOneToolCall(
         generatedImageOperationDeadlineMs: params.generatedImageOperationDeadlineMs,
         clientPlatform: params.clientPlatform,
         initiatingAuthIsSignedIn: params.initiatingAuthIsSignedIn,
+        userOpenAIApiKey: params.userOpenAIApiKey,
         generatedImageObservationContext: {
           scope: createBackendObservationScope(
             "chat-worker", null, null, null, params.userId, params.workspaceId,

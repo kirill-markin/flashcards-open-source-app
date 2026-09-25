@@ -96,10 +96,14 @@ async function assertTranscriptionHttpError(
       {
         requestId: "request-1",
         sessionId: "session-1",
+        userOpenAIApiKey: null,
       },
       createFailingTranscriptionClient(error),
       {
         getObservedOpenAIClient: () => {
+          throw new Error("Expected explicit transcription client.");
+        },
+        createObservedUserOpenAIClient: () => {
           throw new Error("Expected explicit transcription client.");
         },
       },

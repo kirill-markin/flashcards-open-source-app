@@ -96,6 +96,7 @@ export function createInput(
     sha256,
     mimeType: "image/jpeg",
     sizeBytes: 4096,
+    userSuppliedKey: false,
   };
 }
 

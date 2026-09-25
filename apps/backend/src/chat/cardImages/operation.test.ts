@@ -46,6 +46,7 @@ function createInput(signal: AbortSignal): GeneratedCardImageInput {
     altText: "Plant cell diagram",
     replicaId,
     tierAtCall: "free",
+    userOpenAIApiKey: null,
     observationContext: {
       scope: createBackendObservationScope(
         "chat-worker",
@@ -166,6 +167,9 @@ test("provider-start commit-unknown never crosses the provider boundary", async 
   let providerCallCount = 0;
   const createdDependencies = createGeneratedCardImageOperationDependencies({
     assertGenerationBudgetAvailableFn: async () => undefined,
+    assertOwnKeyGenerationBudgetAvailableFn: async () => {
+      throw new Error("A platform-key generation must not check the own-key ceiling.");
+    },
     markProviderStartedFn: async () => {
       throw commitUnknownError;
     },
@@ -211,6 +215,9 @@ test("previously-started provider state without staging is authoritative", async
   let providerCallCount = 0;
   const createdDependencies = createGeneratedCardImageOperationDependencies({
     assertGenerationBudgetAvailableFn: async () => undefined,
+    assertOwnKeyGenerationBudgetAvailableFn: async () => {
+      throw new Error("A platform-key generation must not check the own-key ceiling.");
+    },
     markProviderStartedFn: async () => ({ status: "previously_started" }),
     markGeneratedMediaProviderStartedObjectFn: async () => {
       throw new Error("Chat operations must not write the storage provider-started marker.");
@@ -258,6 +265,9 @@ test("pre-provider staging lookup failure remains safely retryable", async () =>
   let storeCallCount = 0;
   const createdDependencies = createGeneratedCardImageOperationDependencies({
     assertGenerationBudgetAvailableFn: async () => undefined,
+    assertOwnKeyGenerationBudgetAvailableFn: async () => {
+      throw new Error("A platform-key generation must not check the own-key ceiling.");
+    },
     markProviderStartedFn: async () => {
       providerStartCallCount += 1;
       return { status: "first_started" };
@@ -318,6 +328,9 @@ test("post-provider staging failure is authoritative and preserves its cause", a
   let storeCallCount = 0;
   const createdDependencies = createGeneratedCardImageOperationDependencies({
     assertGenerationBudgetAvailableFn: async () => undefined,
+    assertOwnKeyGenerationBudgetAvailableFn: async () => {
+      throw new Error("A platform-key generation must not check the own-key ceiling.");
+    },
     markProviderStartedFn: async () => {
       providerStartCallCount += 1;
       return { status: "first_started" };

@@ -48,9 +48,10 @@ unknown argument rather than dropping it.
 
 `add_generated_image_to_card` is not a registry spec. It is declared in
 `apps/backend/src/chat/openai/tools/generatedImageToolContract.ts` and appended
-to the chat's tool list only for a run whose user is signed in
-(`buildOpenAIChatTools` in `apps/backend/src/chat/openai/tools/tools.ts`). Image
-generation is chat-only by decision, and extending it to MCP or the Agent REST
+to the chat's tool list only for a run whose user is signed in or that carries
+the person's own OpenAI key (`isGeneratedImageEligibleForWorker` in
+`apps/backend/src/chat/worker/index.ts`, `buildOpenAIChatTools` in
+`apps/backend/src/chat/openai/tools/tools.ts`). Image generation is chat-only by decision, and extending it to MCP or the Agent REST
 API is a planned TODO rather than a dropped idea. The open choice is a
 synchronous call that accepts a timeout tail versus an asynchronous worker,
 driven by end-to-end provider generation latency for chat card images, measured
