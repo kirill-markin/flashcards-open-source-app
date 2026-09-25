@@ -893,6 +893,21 @@ const ptBrCatalog: TranslationCatalog = {
     toggleTitle: "Mostrar sugestões no compositor do chat com IA",
     toggleDescription: "As sugestões de prompt aparecem acima do compositor quando o chat está ocioso e pronto.",
   },
+  ownOpenAIKeySettings: {
+    title: "Sua chave da OpenAI",
+    subtitle: "Use a IA com sua própria conta da OpenAI.",
+    toggleTitle: "Usar minha própria chave da OpenAI",
+    toggleDescription: "Com sua própria chave, o chat com IA, o ditado e as imagens dos cartões funcionam na sua conta da OpenAI, sem limite mensal em nenhum plano. As respostas sugeridas ficam desativadas enquanto sua chave estiver ativada. Nunca guardamos sua chave em nossos servidores: ela fica neste dispositivo e só é enviada com suas solicitações de IA, então insira-a separadamente no iOS, no Android e na web.",
+    apiKeyLabel: "Chave de API da OpenAI",
+    apiKeyInvalid: "Esta chave não pode ser usada. Uma chave da OpenAI tem apenas letras latinas, dígitos e símbolos, e no máximo 512 caracteres. Até você corrigi-la, as solicitações de IA funcionam sem a sua chave.",
+    ownSpend: "Este mês com sua chave: {{count}}",
+    countLabels: {
+      message: {
+        one: "mensagem",
+        other: "mensagens",
+      },
+    },
+  },
   analyticsConsentBanner: {
     label: "Cookies de análise",
     message: "Usamos um cookie e outros armazenamentos do navegador para medir como o app é usado. Até você escolher, este app não guarda nada neste dispositivo e não envia nada que identifique você.",
@@ -1306,6 +1321,15 @@ const ptBrCatalog: TranslationCatalog = {
       sendAriaLabel: "Enviar mensagem",
       stopAriaLabel: "Parar resposta",
     },
+    aiUsage: {
+      countLabels: {
+        aiMessage: {
+          one: "mensagem de IA",
+          other: "mensagens de IA",
+        },
+      },
+      remaining: "Restam este mês: {{count}}",
+    },
     alerts: {
       attachmentLimit: "A mensagem é grande demais. O chat com IA não consegue enviar tanto conteúdo de uma vez. Remova um ou mais anexos, escolha um arquivo ou foto menor, ou divida o pedido e tente novamente.",
       attachmentUnsupported: "Este tipo de arquivo não é compatível com o chat com IA. Remova o arquivo ou salve-o como PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX ou imagem e tente novamente.",
@@ -1327,11 +1351,14 @@ const ptBrCatalog: TranslationCatalog = {
     errorTitle: "Erro no chat com IA",
     errors: {
       activeRunInProgress: "Já há uma resposta em andamento. Espere ela terminar ou interrompa antes de enviar outra mensagem.",
-      aiLimitReached: "Seu limite de IA deste mês acabou. Ele é redefinido no início do próximo mês.",
+      aiLimitReachedAccount: "Você usou as mensagens de IA deste mês. Elas se renovam em {{date}}. Para continuar, você pode adicionar sua própria chave da OpenAI em Configurações.",
+      aiLimitReachedAccountNoDate: "Você usou as mensagens de IA deste mês. Para continuar, você pode adicionar sua própria chave da OpenAI em Configurações.",
+      aiLimitReachedGuest: "Você usou as mensagens de IA gratuitas deste mês. Para continuar, crie uma conta ou adicione sua própria chave da OpenAI em Configurações.",
       emptyBackendResponse: "O backend retornou uma resposta de erro vazia.",
       genericFailure: "O chat com IA falhou.",
       liveStreamEndedBeforeCompletion: "O stream ao vivo da IA terminou antes de a execução acabar.",
       newChatFailedPrefix: "Falha ao criar um novo chat.",
+      ownOpenAIKeyPrefix: "Sua própria chave da OpenAI está ativada. A OpenAI retornou este erro para sua chave. Corrija-o na sua conta da OpenAI e tente novamente.",
       refreshFailedPrefix: "Falha ao atualizar o chat.",
       requestFailedPrefix: "Falha na requisição do chat.",
       stopFailedPrefix: "Falha ao interromper o chat.",

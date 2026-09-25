@@ -893,6 +893,21 @@ const thCatalog: TranslationCatalog = {
     toggleTitle: "แสดงคำแนะนำในช่องพิมพ์ของแชท AI",
     toggleDescription: "คำแนะนำจะปรากฏเหนือช่องพิมพ์เมื่อแชทว่างและพร้อมใช้งาน",
   },
+  ownOpenAIKeySettings: {
+    title: "คีย์ OpenAI ของคุณ",
+    subtitle: "ใช้ AI ผ่านบัญชี OpenAI ของคุณเอง",
+    toggleTitle: "ใช้คีย์ OpenAI ของฉันเอง",
+    toggleDescription: "เมื่อใช้คีย์ของคุณเอง แชท AI การป้อนตามคำบอก และรูปภาพบนการ์ดจะทำงานบนบัญชี OpenAI ของคุณ โดยไม่มีขีดจำกัดรายเดือนในทุกแผน คำตอบที่แนะนำจะปิดอยู่ระหว่างที่เปิดใช้คีย์ของคุณ เราไม่เคยเก็บคีย์ของคุณไว้บนเซิร์ฟเวอร์ของเรา คีย์จะอยู่บนอุปกรณ์นี้และส่งไปพร้อมคำขอ AI ของคุณเท่านั้น ดังนั้นโปรดป้อนคีย์แยกกันบน iOS, Android และเว็บ",
+    apiKeyLabel: "คีย์ API ของ OpenAI",
+    apiKeyInvalid: "ใช้คีย์นี้ไม่ได้ คีย์ OpenAI มีเฉพาะตัวอักษรละติน ตัวเลข และสัญลักษณ์ และยาวไม่เกิน 512 อักขระ จนกว่าคุณจะแก้ไข คำขอ AI จะทำงานโดยไม่ใช้คีย์ของคุณ",
+    ownSpend: "เดือนนี้ใช้คีย์ของคุณไป: {{count}}",
+    countLabels: {
+      message: {
+        one: "ข้อความ",
+        other: "ข้อความ",
+      },
+    },
+  },
   analyticsConsentBanner: {
     label: "คุกกี้วิเคราะห์",
     message: "เราใช้คุกกี้และพื้นที่จัดเก็บอื่นในเบราว์เซอร์เพื่อวัดการใช้งานแอป จนกว่าคุณจะเลือก แอปนี้จะไม่เก็บอะไรไว้บนอุปกรณ์นี้และไม่ส่งข้อมูลที่ระบุตัวคุณ",
@@ -1306,6 +1321,15 @@ const thCatalog: TranslationCatalog = {
       sendAriaLabel: "ส่งข้อความ",
       stopAriaLabel: "หยุดการตอบ",
     },
+    aiUsage: {
+      countLabels: {
+        aiMessage: {
+          one: "ข้อความ AI",
+          other: "ข้อความ AI",
+        },
+      },
+      remaining: "เหลือในเดือนนี้: {{count}}",
+    },
     alerts: {
       attachmentLimit: "ข้อความใหญ่เกินไป แชท AI ส่งเนื้อหามากขนาดนี้พร้อมกันไม่ได้ ลบไฟล์แนบออกบางส่วน เลือกไฟล์หรือรูปที่เล็กลง หรือแบ่งคำขอแล้วลองใหม่",
       attachmentUnsupported: "แชท AI ไม่รองรับไฟล์ชนิดนี้ ลบไฟล์ออก หรือบันทึกเป็น PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX หรือรูปภาพ แล้วลองใหม่",
@@ -1327,11 +1351,14 @@ const thCatalog: TranslationCatalog = {
     errorTitle: "ข้อผิดพลาดของแชท AI",
     errors: {
       activeRunInProgress: "กำลังตอบอยู่ รอให้เสร็จหรือหยุดก่อนส่งข้อความใหม่",
-      aiLimitReached: "คุณใช้ขีดจำกัด AI ของเดือนนี้หมดแล้ว ขีดจำกัดจะรีเซ็ตในต้นเดือนหน้า",
+      aiLimitReachedAccount: "คุณใช้ข้อความ AI ของเดือนนี้หมดแล้ว ข้อความจะต่ออายุในวันที่ {{date}} หากต้องการใช้งานต่อ คุณสามารถเพิ่มคีย์ OpenAI ของคุณเองได้ในการตั้งค่า",
+      aiLimitReachedAccountNoDate: "คุณใช้ข้อความ AI ของเดือนนี้หมดแล้ว หากต้องการใช้งานต่อ คุณสามารถเพิ่มคีย์ OpenAI ของคุณเองได้ในการตั้งค่า",
+      aiLimitReachedGuest: "คุณใช้ข้อความ AI ฟรีของเดือนนี้หมดแล้ว หากต้องการใช้งานต่อ ให้สร้างบัญชีหรือเพิ่มคีย์ OpenAI ของคุณเองในการตั้งค่า",
       emptyBackendResponse: "แบ็กเอนด์ส่งข้อความแสดงข้อผิดพลาดที่ว่างเปล่ากลับมา",
       genericFailure: "แชท AI ล้มเหลว",
       liveStreamEndedBeforeCompletion: "สตรีมสดของ AI จบก่อนที่การตอบจะเสร็จ",
       newChatFailedPrefix: "เริ่มแชทใหม่ไม่สำเร็จ",
+      ownOpenAIKeyPrefix: "คีย์ OpenAI ของคุณเองเปิดอยู่ OpenAI ส่งข้อผิดพลาดนี้กลับมาสำหรับคีย์ของคุณ โปรดแก้ไขในบัญชี OpenAI ของคุณแล้วลองอีกครั้ง",
       refreshFailedPrefix: "รีเฟรชแชทไม่สำเร็จ",
       requestFailedPrefix: "ส่งคำขอแชทไม่สำเร็จ",
       stopFailedPrefix: "หยุดแชทไม่สำเร็จ",

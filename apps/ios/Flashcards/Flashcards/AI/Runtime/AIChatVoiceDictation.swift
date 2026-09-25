@@ -93,6 +93,8 @@ enum AIChatTranscriptionError: LocalizedError {
     case invalidAudio
     case serviceUnavailable
     case aiLimitReached
+    /// A failure the backend reports only for a request that carried the person's own OpenAI key.
+    case ownOpenAIKeyError(String)
     case serverMessage(String)
     /// A `408` or `504` the server did answer, carrying the copy `serverMessage` would have carried.
     /// It exists so `analyticsDictationFailureReason` can report `timeout` where the status alone
@@ -118,6 +120,8 @@ enum AIChatTranscriptionError: LocalizedError {
             )
         case .aiLimitReached:
             return aiChatLimitReachedMessage()
+        case .ownOpenAIKeyError(let providerMessage):
+            return aiChatOwnOpenAIKeyErrorMessage(providerMessage: providerMessage)
         case .serverMessage(let message), .serverTimeout(let message):
             return message
         }
@@ -245,10 +249,12 @@ private struct AIChatTranscriptionResponse: Decodable {
 final class AIChatTranscriptionService: @unchecked Sendable {
     private let session: URLSession
     private let decoder: JSONDecoder
+    private let ownOpenAIKeyStore: OwnOpenAIKeyStore
 
-    init(session: URLSession, decoder: JSONDecoder) {
+    init(session: URLSession, decoder: JSONDecoder, ownOpenAIKeyStore: OwnOpenAIKeyStore) {
         self.session = session
         self.decoder = decoder
+        self.ownOpenAIKeyStore = ownOpenAIKeyStore
     }
 }
 
@@ -305,6 +311,9 @@ extension AIChatTranscriptionService: AIChatAudioTranscribing {
         request.httpMethod = "POST"
         request.setValue(session.authorization.headerValue, forHTTPHeaderField: "Authorization")
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        if let ownOpenAIKey = try self.ownOpenAIKeyStore.loadActiveApiKey() {
+            request.setValue(ownOpenAIKey, forHTTPHeaderField: ownOpenAIKeyRequestHeaderName)
+        }
         request.httpBody = try self.makeMultipartBody(
             boundary: boundary,
             sessionId: sessionId,
@@ -334,6 +343,10 @@ extension AIChatTranscriptionService: AIChatAudioTranscribing {
 
         if isAiLimitReachedCode(errorDetails.code) {
             return .aiLimitReached
+        }
+
+        if isOwnOpenAIKeyErrorCode(errorDetails.code) {
+            return .ownOpenAIKeyError(errorDetails.message)
         }
 
         let message = makeAIChatUserFacingErrorMessage(

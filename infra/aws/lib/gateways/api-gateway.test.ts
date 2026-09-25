@@ -408,6 +408,7 @@ test("chat live Lambda Function URL CORS exposes recovery metadata", () => {
         "x-media-last-modified-by-replica-id",
         "x-media-last-operation-id",
         "x-package-media-key",
+        "x-openai-api-key",
       ],
       AllowMethods: ["GET"],
       AllowOrigins: ["https://app.example.test"],
@@ -506,6 +507,7 @@ test("default API Gateway generated errors expose supported request id headers",
     "x-media-last-modified-by-replica-id",
     "x-media-last-operation-id",
     "x-package-media-key",
+    "x-openai-api-key",
   ].join(",");
   const responseParameters = {
     "gatewayresponse.header.Access-Control-Allow-Credentials": "'true'",

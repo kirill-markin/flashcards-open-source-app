@@ -14,6 +14,7 @@ import {
   type ChatTranscriptionResult,
   type ChatTranscriptionUpload,
 } from "../chat/transcriptions";
+import { readUserOpenAIApiKeyHeader } from "../chat/userOpenAIApiKey";
 import { HttpError } from "../shared/errors";
 import { startChatTranscriptionObservation } from "../telemetry/langfuse";
 import {
@@ -111,6 +112,7 @@ export function createChatTranscriptionsRoutes(options: ChatTranscriptionsRoutes
 
   app.post("/chat/transcriptions", async (context) => {
     const { requestContext } = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
+    const userOpenAIApiKey = readUserOpenAIApiKeyHeader(context.req.raw);
     const upload = await parseChatTranscriptionUpload(context.req.raw);
     const workspaceId = await resolveAccessibleAiDictationWorkspaceIdFn(requestContext, upload.workspaceId);
     const sessionId = await resolveChatTranscriptionSessionId(
@@ -152,7 +154,7 @@ export function createChatTranscriptionsRoutes(options: ChatTranscriptionsRoutes
             imageCount: null,
             imageSize: null,
             imageQuality: null,
-            userSuppliedKey: false,
+            userSuppliedKey: userOpenAIApiKey !== null,
           });
         };
 
@@ -161,6 +163,7 @@ export function createChatTranscriptionsRoutes(options: ChatTranscriptionsRoutes
           transcription = await transcribeAudioFn(upload, {
             requestId: context.get("requestId"),
             sessionId,
+            userOpenAIApiKey,
           });
         } catch (error) {
           // A transcript that came back empty is still a call the provider was paid for, and it carries

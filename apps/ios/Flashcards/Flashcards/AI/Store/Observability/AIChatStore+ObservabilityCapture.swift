@@ -24,7 +24,7 @@ extension AIChatStore {
         )
         self.activeAlert = .generalError(
             title: aiSettingsLocalized("ai.error.title", "Error"),
-            message: message
+            message: self.aiChatRunFailureAlertMessage(message: message)
         )
     }
 
@@ -48,7 +48,7 @@ extension AIChatStore {
         )
         self.activeAlert = .generalError(
             title: aiSettingsLocalized("ai.error.title", "Error"),
-            message: message
+            message: self.aiChatRunFailureAlertMessage(message: message)
         )
     }
 

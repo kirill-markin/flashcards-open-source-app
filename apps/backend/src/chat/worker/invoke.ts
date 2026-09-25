@@ -12,12 +12,14 @@ import {
   type BackendTraceCarrier,
 } from "../../observability/sentry";
 import { markQueuedChatRunDispatchFailed } from "../runs";
+import type { UserOpenAIApiKey } from "../userOpenAIApiKey";
 
 export type ChatWorkerDispatch = Readonly<{
   runId: string;
   userId: string;
   workspaceId: string;
   initiatingAuthIsSignedIn: boolean;
+  userOpenAIApiKey: UserOpenAIApiKey | null;
   routeRequestId?: string | null;
   chatRequestId?: string | null;
   sessionId?: string | null;
@@ -28,6 +30,12 @@ export type ChatWorkerInvocation = Readonly<{
   userId: string;
   workspaceId: string;
   initiatingAuthIsSignedIn?: boolean;
+  /**
+   * The person's own key in the clear, the only place it leaves the request that carried it. The invoke is
+   * asynchronous (`InvocationType: "Event"`) and the chat worker has no dead-letter queue or failure
+   * destination, so nothing but Lambda's own event queue holds the payload, and only until delivery.
+   */
+  userOpenAIApiKey: string | null;
   routeRequestId?: string | null;
   chatRequestId?: string | null;
   sessionId?: string | null;
@@ -85,6 +93,7 @@ function createChatWorkerInvocation(
     userId: payload.userId,
     workspaceId: payload.workspaceId,
     initiatingAuthIsSignedIn: payload.initiatingAuthIsSignedIn,
+    userOpenAIApiKey: payload.userOpenAIApiKey === null ? null : payload.userOpenAIApiKey.revealRawValue(),
     routeRequestId: payload.routeRequestId ?? null,
     chatRequestId: payload.chatRequestId ?? null,
     sessionId: payload.sessionId ?? null,

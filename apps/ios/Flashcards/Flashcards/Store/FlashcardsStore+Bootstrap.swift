@@ -559,10 +559,12 @@ extension FlashcardsStore {
             decoder: self.decoder,
             workspaceId: self.workspace?.workspaceId
         )
+        let ownOpenAIKeyStore = makeOwnOpenAIKeyStore(userDefaults: self.userDefaults)
         let chatService = AIChatService(
             session: URLSession.shared,
             encoder: self.encoder,
-            decoder: self.decoder
+            decoder: self.decoder,
+            ownOpenAIKeyStore: ownOpenAIKeyStore
         )
         let contextLoader: any AIChatContextLoading
         if let databaseURL = self.localDatabaseURL {
@@ -579,7 +581,8 @@ extension FlashcardsStore {
             voiceRecorder: AIChatVoiceRecorder(),
             audioTranscriber: AIChatTranscriptionService(
                 session: URLSession.shared,
-                decoder: self.decoder
+                decoder: self.decoder,
+                ownOpenAIKeyStore: ownOpenAIKeyStore
             )
         )
     }
