@@ -893,6 +893,21 @@ const frCatalog: TranslationCatalog = {
     toggleTitle: "Afficher les suggestions dans la zone de saisie du chat IA",
     toggleDescription: "Les suggestions apparaissent au-dessus de la zone de saisie lorsque le chat est inactif et prêt.",
   },
+  ownOpenAIKeySettings: {
+    title: "Votre clé OpenAI",
+    subtitle: "Utilisez l'IA avec votre propre compte OpenAI.",
+    toggleTitle: "Utiliser ma propre clé OpenAI",
+    toggleDescription: "Avec votre propre clé, le chat IA, la dictée et les images des cartes passent par votre compte OpenAI, sans limite mensuelle, quel que soit votre forfait. Les réponses suggérées sont désactivées tant que votre clé est activée. Nous ne stockons jamais votre clé sur nos serveurs : elle reste sur cet appareil et n'est envoyée qu'avec vos requêtes IA, donc saisissez-la séparément sur iOS, Android et le web.",
+    apiKeyLabel: "Clé API OpenAI",
+    apiKeyInvalid: "Cette clé ne peut pas être utilisée. Une clé OpenAI ne contient que des lettres latines, des chiffres et des symboles, et 512 caractères au maximum. Tant que vous ne la corrigez pas, les requêtes IA s'exécutent sans votre clé.",
+    ownSpend: "Ce mois-ci avec votre clé : {{count}}",
+    countLabels: {
+      message: {
+        one: "message",
+        other: "messages",
+      },
+    },
+  },
   analyticsConsentBanner: {
     label: "Cookies de mesure",
     message: "Nous utilisons un cookie et d'autres stockages du navigateur pour mesurer l'usage de l'application. Avant votre choix, cette application ne stocke rien sur cet appareil et n'envoie rien qui vous identifie.",
@@ -1306,6 +1321,15 @@ const frCatalog: TranslationCatalog = {
       sendAriaLabel: "Envoyer le message",
       stopAriaLabel: "Arrêter la réponse",
     },
+    aiUsage: {
+      countLabels: {
+        aiMessage: {
+          one: "message IA",
+          other: "messages IA",
+        },
+      },
+      remaining: "Il reste {{count}} ce mois-ci",
+    },
     alerts: {
       attachmentLimit: "Le message est trop volumineux. Le chat IA ne peut pas envoyer autant de contenu à la fois. Retirez une ou plusieurs pièces jointes, choisissez un fichier ou une photo plus léger, ou divisez votre demande, puis réessayez.",
       attachmentUnsupported: "Ce type de fichier n'est pas pris en charge par le chat IA. Retirez le fichier ou enregistrez-le en PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX ou en image, puis réessayez.",
@@ -1327,11 +1351,14 @@ const frCatalog: TranslationCatalog = {
     errorTitle: "Erreur du chat IA",
     errors: {
       activeRunInProgress: "Une réponse est déjà en cours. Attendez la fin ou arrêtez-la avant d'envoyer un autre message.",
-      aiLimitReached: "Votre limite d'IA pour ce mois est épuisée. Elle est réinitialisée au début du mois prochain.",
+      aiLimitReachedAccount: "Vous avez utilisé les messages IA de ce mois. Ils sont renouvelés le {{date}}. Pour continuer, vous pouvez ajouter votre propre clé OpenAI dans les Paramètres.",
+      aiLimitReachedAccountNoDate: "Vous avez utilisé les messages IA de ce mois. Pour continuer, vous pouvez ajouter votre propre clé OpenAI dans les Paramètres.",
+      aiLimitReachedGuest: "Vous avez utilisé les messages IA gratuits de ce mois. Pour continuer, créez un compte ou ajoutez votre propre clé OpenAI dans les Paramètres.",
       emptyBackendResponse: "Le backend a renvoyé une réponse d'erreur vide.",
       genericFailure: "Le chat IA a échoué.",
       liveStreamEndedBeforeCompletion: "Le flux IA en direct s'est terminé avant la fin de l'exécution.",
       newChatFailedPrefix: "Échec du nouveau chat.",
+      ownOpenAIKeyPrefix: "Votre propre clé OpenAI est activée. OpenAI a renvoyé cette erreur pour votre clé. Corrigez-la dans votre compte OpenAI, puis réessayez.",
       refreshFailedPrefix: "Échec de l'actualisation du chat.",
       requestFailedPrefix: "Échec de la requête du chat.",
       stopFailedPrefix: "Échec de l'arrêt du chat.",

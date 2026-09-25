@@ -25,6 +25,9 @@ export {
   updateCommunityProfile,
 } from "./api/endpoints/account";
 export {
+  loadAiUsage,
+} from "./api/endpoints/aiUsage";
+export {
   requestAnalyticsVisitor,
   sendAnalyticsEventsBatch,
   sendAnonymousAnalyticsEvent,

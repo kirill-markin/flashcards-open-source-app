@@ -893,6 +893,21 @@ const zuCatalog: TranslationCatalog = {
     toggleTitle: "Bonisa iziphakamiso esibhalini sengxoxo ye-AI",
     toggleDescription: "Imiyalo ephakanyisiwe ivela ngaphezu kwesibhali uma ingxoxo ingenzi lutho futhi ilungile.",
   },
+  ownOpenAIKeySettings: {
+    title: "Ukhiye wakho we-OpenAI",
+    subtitle: "Sebenzisa i-AI nge-akhawunti yakho ye-OpenAI.",
+    toggleTitle: "Sebenzisa ukhiye wami we-OpenAI",
+    toggleDescription: "Ngokhiye wakho, ingxoxo ye-AI, ukubhala ngezwi nezithombe zamakhadi kusebenza ku-akhawunti yakho ye-OpenAI, ngaphandle komkhawulo wanyanga zonke kunoma yiluphi uhlelo. Izimpendulo eziphakanyisiwe zicishiwe ngesikhathi ukhiye wakho uvuliwe. Asilokothi sigcine ukhiye wakho kumaseva ethu: uhlala kule divayisi futhi uthunyelwa kuphela nezicelo zakho ze-AI, ngakho wufake ngokwehlukana ku-iOS, ku-Android nakuwebhu.",
+    apiKeyLabel: "Ukhiye we-API we-OpenAI",
+    apiKeyInvalid: "Lo khiye awukwazi ukusetshenziswa. Ukhiye we-OpenAI unezinhlamvu zesiLatini, izinombolo nezimpawu kuphela, futhi awudluli izinhlamvu ezingu-512. Uze uwulungise, izicelo ze-AI zisebenza ngaphandle kokhiye wakho.",
+    ownSpend: "Kule nyanga ngokhiye wakho: {{count}}",
+    countLabels: {
+      message: {
+        one: "umlayezo",
+        other: "imilayezo",
+      },
+    },
+  },
   analyticsConsentBanner: {
     label: "Amakhukhi okuhlaziya",
     message: "Sisebenzisa ikhukhi nesinye isitoreji sesiphequluli ukukala ukuthi uhlelo lokusebenza lusetshenziswa kanjani. Uze ukhethe, lolu hlelo alugcini lutho kule divayisi futhi aluthumeli lutho olukuhlonzayo.",
@@ -1306,6 +1321,15 @@ const zuCatalog: TranslationCatalog = {
       sendAriaLabel: "Thumela umlayezo",
       stopAriaLabel: "Misa impendulo",
     },
+    aiUsage: {
+      countLabels: {
+        aiMessage: {
+          one: "umlayezo we-AI",
+          other: "imilayezo ye-AI",
+        },
+      },
+      remaining: "Esele kule nyanga: {{count}}",
+    },
     alerts: {
       attachmentLimit: "Umlayezo mkhulu kakhulu. Ingxoxo ye-AI ayikwazi ukuthumela okuqukethwe okungaka ngesikhathi esisodwa. Susa okunamathiselwe okukodwa noma ngaphezulu, khetha ifayela noma isithombe esincane, noma uhlukanise isicelo bese uzama futhi.",
       attachmentUnsupported: "Lolu hlobo lwefayela alusekelwa engxoxweni ye-AI. Susa ifayela noma ulilondoloze njenge-PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, noma isithombe, bese uzama futhi.",
@@ -1327,11 +1351,14 @@ const zuCatalog: TranslationCatalog = {
     errorTitle: "Iphutha lengxoxo ye-AI",
     errors: {
       activeRunInProgress: "Impendulo isiyaqhubeka. Linda ize iqede noma uyimise ngaphambi kokuthumela omunye umlayezo.",
-      aiLimitReached: "Umkhawulo wakho we-AI walenyanga usuphelile. Uzosethwa kabusha ekuqaleni kwenyanga elandelayo.",
+      aiLimitReachedAccount: "Usuyisebenzisile imilayezo ye-AI yale nyanga. Izovuselelwa ngo-{{date}}. Ukuze uqhubeke, ungengeza ukhiye wakho we-OpenAI kuzilungiselelo.",
+      aiLimitReachedAccountNoDate: "Usuyisebenzisile imilayezo ye-AI yale nyanga. Ukuze uqhubeke, ungengeza ukhiye wakho we-OpenAI kuzilungiselelo.",
+      aiLimitReachedGuest: "Usuyisebenzisile imilayezo ye-AI yamahhala yale nyanga. Ukuze uqhubeke, dala i-akhawunti noma wengeze ukhiye wakho we-OpenAI kuzilungiselelo.",
       emptyBackendResponse: "Iseva ibuyise impendulo yephutha engenalutho.",
       genericFailure: "Ingxoxo ye-AI yehlulekile.",
       liveStreamEndedBeforeCompletion: "Ukusakaza bukhoma kwe-AI kuphele ngaphambi kokuthi umsebenzi uqede.",
       newChatFailedPrefix: "Ingxoxo entsha yehlulekile.",
+      ownOpenAIKeyPrefix: "Ukhiye wakho we-OpenAI uvuliwe. I-OpenAI ibuyise leli phutha ngokhiye wakho. Lilungise ku-akhawunti yakho ye-OpenAI bese uzama futhi.",
       refreshFailedPrefix: "Ukuvuselela ingxoxo kuhlulekile.",
       requestFailedPrefix: "Isicelo sengxoxo sihlulekile.",
       stopFailedPrefix: "Ukumisa ingxoxo kuhlulekile.",

@@ -178,11 +178,13 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
     private let session: URLSession
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
+    private let ownOpenAIKeyStore: OwnOpenAIKeyStore
 
-    init(session: URLSession, encoder: JSONEncoder, decoder: JSONDecoder) {
+    init(session: URLSession, encoder: JSONEncoder, decoder: JSONDecoder, ownOpenAIKeyStore: OwnOpenAIKeyStore) {
         self.session = session
         self.encoder = encoder
         self.decoder = decoder
+        self.ownOpenAIKeyStore = ownOpenAIKeyStore
     }
 
     func loadSnapshot(
@@ -371,7 +373,10 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
             method: "POST",
             bodyData: encodedBody,
             clientRequestId: clientRequestId,
-            additionalHeaders: ["X-Client-Platform": aiChatClientPlatform]
+            additionalHeaders: try addingOwnOpenAIKeyHeader(
+                headers: ["X-Client-Platform": aiChatClientPlatform],
+                ownOpenAIKeyStore: self.ownOpenAIKeyStore
+            )
         )
         let data = try await self.execute(
             session: session,
@@ -659,6 +664,51 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
 
         return url
     }
+}
+
+enum AIUsageRequestError: LocalizedError {
+    case invalidBaseUrl(String)
+    case invalidHttpResponse
+    case responseNotOk(Int, CloudApiErrorDetails)
+
+    var errorDescription: String? {
+        switch self {
+        case .invalidBaseUrl(let apiBaseUrl):
+            return "AI usage URL is invalid for API base URL \(apiBaseUrl)"
+        case .invalidHttpResponse:
+            return "AI usage request did not receive an HTTP response"
+        case .responseNotOk(let statusCode, let errorDetails):
+            return "AI usage request failed with status \(statusCode): \(errorDetails.message)"
+        }
+    }
+}
+
+/// Reads `GET /me/ai-usage` for the caller the session authenticates.
+func loadAIMonthlyUsage(
+    urlSession: URLSession,
+    session: CloudLinkedSession
+) async throws -> AIMonthlyUsage {
+    let trimmedBaseUrl = session.apiBaseUrl.hasSuffix("/") ? String(session.apiBaseUrl.dropLast()) : session.apiBaseUrl
+    guard let url = URL(string: "\(trimmedBaseUrl)/me/ai-usage") else {
+        throw AIUsageRequestError.invalidBaseUrl(session.apiBaseUrl)
+    }
+
+    var request = URLRequest(url: url)
+    request.httpMethod = "GET"
+    request.setValue(session.authorization.headerValue, forHTTPHeaderField: "Authorization")
+    let (data, response) = try await urlSession.data(for: request)
+    guard let httpResponse = response as? HTTPURLResponse else {
+        throw AIUsageRequestError.invalidHttpResponse
+    }
+
+    guard httpResponse.statusCode >= 200 && httpResponse.statusCode < 300 else {
+        throw AIUsageRequestError.responseNotOk(
+            httpResponse.statusCode,
+            decodeCloudApiErrorDetails(data: data, requestId: extractChatRequestId(httpResponse: httpResponse))
+        )
+    }
+
+    return try makeFlashcardsRemoteJSONDecoder().decode(AIUsageStatusResponse.self, from: data).usage
 }
 
 private func extractChatRequestId(httpResponse: HTTPURLResponse) -> String? {

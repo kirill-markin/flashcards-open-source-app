@@ -893,6 +893,21 @@ const viCatalog: TranslationCatalog = {
     toggleTitle: "Hiện gợi ý trong ô soạn tin trò chuyện AI",
     toggleDescription: "Câu lệnh gợi ý xuất hiện phía trên ô soạn tin khi trò chuyện đang rảnh và sẵn sàng.",
   },
+  ownOpenAIKeySettings: {
+    title: "Khóa OpenAI của bạn",
+    subtitle: "Dùng AI qua tài khoản OpenAI của riêng bạn.",
+    toggleTitle: "Dùng khóa OpenAI của riêng tôi",
+    toggleDescription: "Với khóa của riêng bạn, trò chuyện AI, đọc chính tả và hình ảnh thẻ chạy trên tài khoản OpenAI của bạn, không có giới hạn hằng tháng ở bất kỳ gói nào. Trả lời gợi ý sẽ tắt khi khóa của bạn đang bật. Chúng tôi không bao giờ lưu khóa của bạn trên máy chủ: khóa chỉ nằm trên thiết bị này và chỉ được gửi kèm các yêu cầu AI của bạn, vì vậy hãy nhập riêng trên iOS, Android và web.",
+    apiKeyLabel: "Khóa API OpenAI",
+    apiKeyInvalid: "Không thể dùng khóa này. Khóa OpenAI chỉ gồm chữ cái Latinh, chữ số và ký hiệu, dài tối đa 512 ký tự. Cho đến khi bạn sửa, các yêu cầu AI sẽ chạy mà không dùng khóa của bạn.",
+    ownSpend: "Tháng này với khóa của bạn: {{count}}",
+    countLabels: {
+      message: {
+        one: "tin nhắn",
+        other: "tin nhắn",
+      },
+    },
+  },
   analyticsConsentBanner: {
     label: "Cookie phân tích",
     message: "Chúng tôi dùng cookie và bộ nhớ trình duyệt khác để đo cách ứng dụng được sử dụng. Cho đến khi bạn chọn, ứng dụng không lưu gì trên thiết bị này và không gửi bất kỳ thông tin nào nhận dạng bạn.",
@@ -1306,6 +1321,15 @@ const viCatalog: TranslationCatalog = {
       sendAriaLabel: "Gửi tin nhắn",
       stopAriaLabel: "Dừng phản hồi",
     },
+    aiUsage: {
+      countLabels: {
+        aiMessage: {
+          one: "tin nhắn AI",
+          other: "tin nhắn AI",
+        },
+      },
+      remaining: "Còn lại tháng này: {{count}}",
+    },
     alerts: {
       attachmentLimit: "Tin nhắn quá lớn. Trò chuyện AI không gửi được nhiều nội dung như vậy cùng lúc. Hãy bớt một vài tệp đính kèm, chọn tệp hoặc ảnh nhỏ hơn, hoặc tách yêu cầu ra rồi thử lại.",
       attachmentUnsupported: "Loại tệp này không được hỗ trợ trong trò chuyện AI. Hãy xóa tệp hoặc lưu lại dưới dạng PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX hoặc hình ảnh, rồi thử lại.",
@@ -1327,11 +1351,14 @@ const viCatalog: TranslationCatalog = {
     errorTitle: "Lỗi trò chuyện AI",
     errors: {
       activeRunInProgress: "Đã có một phản hồi đang chạy. Hãy đợi nó xong hoặc dừng lại trước khi gửi tin nhắn khác.",
-      aiLimitReached: "Bạn đã dùng hết giới hạn AI cho tháng này. Giới hạn sẽ được đặt lại vào đầu tháng sau.",
+      aiLimitReachedAccount: "Bạn đã dùng hết tin nhắn AI của tháng này. Tin nhắn sẽ được làm mới vào {{date}}. Để tiếp tục, bạn có thể thêm khóa OpenAI của riêng mình trong Cài đặt.",
+      aiLimitReachedAccountNoDate: "Bạn đã dùng hết tin nhắn AI của tháng này. Để tiếp tục, bạn có thể thêm khóa OpenAI của riêng mình trong Cài đặt.",
+      aiLimitReachedGuest: "Bạn đã dùng hết tin nhắn AI miễn phí của tháng này. Để tiếp tục, hãy tạo tài khoản hoặc thêm khóa OpenAI của riêng bạn trong Cài đặt.",
       emptyBackendResponse: "Máy chủ trả về phản hồi lỗi rỗng.",
       genericFailure: "Trò chuyện AI thất bại.",
       liveStreamEndedBeforeCompletion: "Luồng trực tiếp của AI kết thúc trước khi phản hồi hoàn tất.",
       newChatFailedPrefix: "Tạo cuộc trò chuyện mới thất bại.",
+      ownOpenAIKeyPrefix: "Khóa OpenAI của riêng bạn đang bật. OpenAI đã trả về lỗi này cho khóa của bạn. Hãy khắc phục trong tài khoản OpenAI của bạn rồi thử lại.",
       refreshFailedPrefix: "Làm mới cuộc trò chuyện thất bại.",
       requestFailedPrefix: "Yêu cầu trò chuyện thất bại.",
       stopFailedPrefix: "Dừng cuộc trò chuyện thất bại.",

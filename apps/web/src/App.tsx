@@ -51,6 +51,7 @@ import {
   settingsAccessDetailRoutePattern,
   settingsAIChatSuggestionsRoute,
   settingsAnalyticsRoute,
+  settingsOwnOpenAIKeyRoute,
   settingsCurrentWorkspaceRoute,
   settingsDeckNewRoute,
   settingsDecksRoute,
@@ -155,6 +156,9 @@ const LeaderboardParticipationSettingsScreen = lazy(async () => import("./screen
 })));
 const AIChatSuggestionsSettingsScreen = lazy(async () => import("./screens/settings/AIChatSuggestionsSettingsScreen").then((module) => ({
   default: module.AIChatSuggestionsSettingsScreen,
+})));
+const OwnOpenAIKeySettingsScreen = lazy(async () => import("./screens/settings/OwnOpenAIKeySettingsScreen").then((module) => ({
+  default: module.OwnOpenAIKeySettingsScreen,
 })));
 const AnalyticsSettingsScreen = lazy(async () => import("./screens/settings/AnalyticsSettingsScreen").then((module) => ({
   default: module.AnalyticsSettingsScreen,
@@ -1013,6 +1017,7 @@ export function RoutedShell(): ReactElement {
           <Route path={`${workspaceRoutePattern}${settingsNotificationsRoute}`} element={renderDeferredRoute(<NotificationsSettingsScreen />, "loading.notificationSettings")} />
           <Route path={`${workspaceRoutePattern}${settingsReviewAnimationsRoute}`} element={renderDeferredRoute(<ReviewAnimationsSettingsScreen />, "loading.settings")} />
           <Route path={`${workspaceRoutePattern}${settingsAIChatSuggestionsRoute}`} element={renderDeferredRoute(<AIChatSuggestionsSettingsScreen />, "loading.settings")} />
+          <Route path={`${workspaceRoutePattern}${settingsOwnOpenAIKeyRoute}`} element={renderDeferredRoute(<OwnOpenAIKeySettingsScreen />, "loading.settings")} />
           <Route path={`${workspaceRoutePattern}${settingsAnalyticsRoute}`} element={renderDeferredRoute(<AnalyticsSettingsScreen />, "loading.settings")} />
           <Route path={`${workspaceRoutePattern}${settingsSchedulerRoute}`} element={renderDeferredRoute(<WorkspaceSchedulerScreen />, "loading.schedulerSettings")} />
           <Route path={`${workspaceRoutePattern}${settingsImportRoute}`} element={renderDeferredRoute(<WorkspaceImportScreen />, "loading.importSettings")} />

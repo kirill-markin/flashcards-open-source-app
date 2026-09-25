@@ -893,6 +893,21 @@ const idCatalog: TranslationCatalog = {
     toggleTitle: "Tampilkan saran di kolom tulis obrolan AI",
     toggleDescription: "Saran perintah muncul di atas kolom tulis saat obrolan sedang diam dan siap.",
   },
+  ownOpenAIKeySettings: {
+    title: "Kunci OpenAI Anda",
+    subtitle: "Gunakan AI melalui akun OpenAI Anda sendiri.",
+    toggleTitle: "Gunakan kunci OpenAI saya sendiri",
+    toggleDescription: "Dengan kunci Anda sendiri, obrolan AI, dikte, dan gambar kartu berjalan di akun OpenAI Anda, tanpa batas bulanan di paket apa pun. Saran balasan nonaktif selama kunci Anda aktif. Kami tidak pernah menyimpan kunci Anda di server kami: kunci tetap di perangkat ini dan hanya dikirim bersama permintaan AI Anda, jadi masukkan secara terpisah di iOS, Android, dan web.",
+    apiKeyLabel: "Kunci API OpenAI",
+    apiKeyInvalid: "Kunci ini tidak dapat digunakan. Kunci OpenAI hanya berisi huruf Latin, angka, dan simbol, dan paling banyak 512 karakter. Sampai Anda memperbaikinya, permintaan AI berjalan tanpa kunci Anda.",
+    ownSpend: "Bulan ini dengan kunci Anda: {{count}}",
+    countLabels: {
+      message: {
+        one: "pesan",
+        other: "pesan",
+      },
+    },
+  },
   analyticsConsentBanner: {
     label: "Cookie analitik",
     message: "Kami memakai cookie dan penyimpanan peramban lain untuk mengukur cara aplikasi ini dipakai. Sebelum Anda memilih, aplikasi ini tidak menyimpan apa pun di perangkat ini dan tidak mengirim apa pun yang mengidentifikasi Anda.",
@@ -1306,6 +1321,15 @@ const idCatalog: TranslationCatalog = {
       sendAriaLabel: "Kirim pesan",
       stopAriaLabel: "Hentikan respons",
     },
+    aiUsage: {
+      countLabels: {
+        aiMessage: {
+          one: "pesan AI",
+          other: "pesan AI",
+        },
+      },
+      remaining: "Tersisa bulan ini: {{count}}",
+    },
     alerts: {
       attachmentLimit: "Pesan terlalu besar. Obrolan AI tidak dapat mengirim konten sebanyak ini sekaligus. Hapus satu atau beberapa lampiran, pilih berkas atau foto yang lebih kecil, atau pecah permintaan lalu coba lagi.",
       attachmentUnsupported: "Jenis berkas ini tidak didukung untuk obrolan AI. Hapus berkasnya atau simpan sebagai PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, atau gambar, lalu coba lagi.",
@@ -1327,11 +1351,14 @@ const idCatalog: TranslationCatalog = {
     errorTitle: "Kesalahan obrolan AI",
     errors: {
       activeRunInProgress: "Sebuah respons sedang berjalan. Tunggu sampai selesai atau hentikan dulu sebelum mengirim pesan lain.",
-      aiLimitReached: "Batas AI Anda untuk bulan ini sudah habis. Batas ini disetel ulang pada awal bulan depan.",
+      aiLimitReachedAccount: "Anda sudah menggunakan pesan AI bulan ini. Pesan diperbarui pada {{date}}. Untuk melanjutkan, Anda dapat menambahkan kunci OpenAI Anda sendiri di Pengaturan.",
+      aiLimitReachedAccountNoDate: "Anda sudah menggunakan pesan AI bulan ini. Untuk melanjutkan, Anda dapat menambahkan kunci OpenAI Anda sendiri di Pengaturan.",
+      aiLimitReachedGuest: "Anda sudah menggunakan pesan AI gratis bulan ini. Untuk melanjutkan, buat akun atau tambahkan kunci OpenAI Anda sendiri di Pengaturan.",
       emptyBackendResponse: "Backend mengembalikan respons kesalahan yang kosong.",
       genericFailure: "Obrolan AI gagal.",
       liveStreamEndedBeforeCompletion: "Aliran langsung AI berakhir sebelum proses selesai.",
       newChatFailedPrefix: "Obrolan baru gagal.",
+      ownOpenAIKeyPrefix: "Kunci OpenAI Anda sendiri sedang aktif. OpenAI mengembalikan galat ini untuk kunci Anda. Perbaiki di akun OpenAI Anda, lalu coba lagi.",
       refreshFailedPrefix: "Penyegaran obrolan gagal.",
       requestFailedPrefix: "Permintaan obrolan gagal.",
       stopFailedPrefix: "Penghentian obrolan gagal.",

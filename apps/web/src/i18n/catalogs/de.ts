@@ -893,6 +893,21 @@ const deCatalog: TranslationCatalog = {
     toggleTitle: "Vorschläge im KI-Chat-Eingabefeld anzeigen",
     toggleDescription: "Vorgeschlagene Prompts erscheinen über dem Eingabefeld, wenn der Chat bereit und inaktiv ist.",
   },
+  ownOpenAIKeySettings: {
+    title: "Dein OpenAI-Schlüssel",
+    subtitle: "Nutze AI über dein eigenes OpenAI-Konto.",
+    toggleTitle: "Eigenen OpenAI-Schlüssel verwenden",
+    toggleDescription: "Mit deinem eigenen Schlüssel laufen AI-Chat, Diktat und Kartenbilder über dein OpenAI-Konto, ohne Monatslimit in jedem Tarif. Vorgeschlagene Antworten sind aus, solange dein Schlüssel aktiv ist. Wir speichern deinen Schlüssel nie auf unseren Servern: Er bleibt auf diesem Gerät und wird nur mit deinen AI-Anfragen gesendet. Gib ihn deshalb auf iOS, Android und im Web jeweils separat ein.",
+    apiKeyLabel: "OpenAI-API-Schlüssel",
+    apiKeyInvalid: "Dieser Schlüssel kann nicht verwendet werden. Ein OpenAI-Schlüssel enthält nur lateinische Buchstaben, Ziffern und Symbole und höchstens 512 Zeichen. Bis du ihn korrigierst, laufen AI-Anfragen ohne deinen Schlüssel.",
+    ownSpend: "Diesen Monat mit deinem Schlüssel: {{count}}",
+    countLabels: {
+      message: {
+        one: "Nachricht",
+        other: "Nachrichten",
+      },
+    },
+  },
   analyticsConsentBanner: {
     label: "Analyse-Cookies",
     message: "Wir nutzen ein Cookie und weiteren Browser-Speicher, um zu messen, wie die App genutzt wird. Bis zu deiner Wahl speichert diese App nichts auf diesem Gerät und sendet nichts, was dich identifiziert.",
@@ -1306,6 +1321,15 @@ const deCatalog: TranslationCatalog = {
       sendAriaLabel: "Nachricht senden",
       stopAriaLabel: "Antwort stoppen",
     },
+    aiUsage: {
+      countLabels: {
+        aiMessage: {
+          one: "AI-Nachricht",
+          other: "AI-Nachrichten",
+        },
+      },
+      remaining: "Noch {{count}} in diesem Monat",
+    },
     alerts: {
       attachmentLimit: "Die Nachricht ist zu groß. Der AI-Chat kann nicht so viele Inhalte auf einmal senden. Entferne einen oder mehrere Anhänge, wähle eine kleinere Datei oder ein kleineres Foto oder teile die Anfrage auf und versuche es erneut.",
       attachmentUnsupported: "Dieser Dateityp wird im AI-Chat nicht unterstützt. Entferne die Datei oder speichere sie als PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX oder Bild und versuche es erneut.",
@@ -1327,11 +1351,14 @@ const deCatalog: TranslationCatalog = {
     errorTitle: "AI-Chat-Fehler",
     errors: {
       activeRunInProgress: "Eine Antwort läuft bereits. Warte, bis sie beendet ist, oder stoppe sie, bevor du eine weitere Nachricht sendest.",
-      aiLimitReached: "Dein AI-Limit für diesen Monat ist aufgebraucht. Es wird zu Beginn des nächsten Monats zurückgesetzt.",
+      aiLimitReachedAccount: "Du hast die AI-Nachrichten für diesen Monat aufgebraucht. Sie werden am {{date}} erneuert. Du kannst in den Einstellungen deinen eigenen OpenAI-Schlüssel hinzufügen, um weiterzumachen.",
+      aiLimitReachedAccountNoDate: "Du hast die AI-Nachrichten für diesen Monat aufgebraucht. Du kannst in den Einstellungen deinen eigenen OpenAI-Schlüssel hinzufügen, um weiterzumachen.",
+      aiLimitReachedGuest: "Du hast die kostenlosen AI-Nachrichten für diesen Monat aufgebraucht. Erstelle ein Konto oder füge in den Einstellungen deinen eigenen OpenAI-Schlüssel hinzu, um weiterzumachen.",
       emptyBackendResponse: "Das Backend hat eine leere Fehlerantwort zurückgegeben.",
       genericFailure: "AI-Chat ist fehlgeschlagen.",
       liveStreamEndedBeforeCompletion: "Der AI-Livestream endete, bevor der Lauf abgeschlossen war.",
       newChatFailedPrefix: "Neuer Chat fehlgeschlagen.",
+      ownOpenAIKeyPrefix: "Dein eigener OpenAI-Schlüssel ist aktiv. OpenAI hat diesen Fehler für deinen Schlüssel gemeldet. Behebe ihn in deinem OpenAI-Konto und versuche es erneut.",
       refreshFailedPrefix: "Chat-Aktualisierung fehlgeschlagen.",
       requestFailedPrefix: "Chat-Anfrage fehlgeschlagen.",
       stopFailedPrefix: "Chat-Stopp fehlgeschlagen.",
