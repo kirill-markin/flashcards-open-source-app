@@ -36,7 +36,7 @@ export function createParams(
     tierAtCall: "free",
     initiatingAuthIsSignedIn: true,
     modelId: "gpt-6-sol",
-    reasoningEffort: "xhigh",
+    reasoningEffort: "medium",
     timezone: "Europe/Madrid",
     localMessages: [],
     turnInput: [{ type: "text", text: "hello" }],
