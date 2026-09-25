@@ -114,6 +114,10 @@ and reported first, because its reset is never earlier:
 - Per workspace sync replica, per UTC day.
 - Per workspace, per UTC calendar month.
 
+A generation paid with the person's own OpenAI key replaces both windows with one
+own-key ceiling per workspace, per UTC calendar month. That ceiling counts every
+generation, while the two windows count only those paid with the platform key.
+
 The two window ceilings and their numbers live in
 `apps/backend/src/chat/cardImages/generationBudget.ts`. Exhausting either raises
 `GENERATED_CARD_IMAGE_GENERATION_LIMIT_REACHED`, carrying which ceiling was hit,

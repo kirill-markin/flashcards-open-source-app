@@ -15,6 +15,7 @@ import type {
 } from "../types";
 import type { ChatRunClaimToken } from "../runs";
 import type { EntitlementTier } from "../../billing/tiers";
+import type { UserOpenAIApiKey } from "../userOpenAIApiKey";
 
 type ChatRunDiagnostics = Readonly<{
   requestId: string;
@@ -60,6 +61,11 @@ export type StartPersistedChatRunParams = Readonly<{
    * account kind the route enforced with, not ask the identity tables a question of its own.
    */
   initiatingAuthIsSignedIn: boolean;
+  /**
+   * The person's own OpenAI key when the turn was sent with one: every model call and card image of the run
+   * is paid with it, its usage facts are marked as user-supplied, and no follow-up suggestions are generated.
+   */
+  userOpenAIApiKey: UserOpenAIApiKey | null;
   diagnostics: ChatRunDiagnostics;
   getRemainingTimeInMillis: () => number;
 }>;

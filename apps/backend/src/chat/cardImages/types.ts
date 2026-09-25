@@ -1,6 +1,7 @@
 import type { CardTextSide } from "../../cards";
 import type { EntitlementTier } from "../../billing/tiers";
 import type { ChatRunClaimToken } from "../runs";
+import type { UserOpenAIApiKey } from "../userOpenAIApiKey";
 import type { GeneratedCardImageObservationContext } from "./providerTypes";
 
 export type GeneratedCardImageInput = Readonly<{
@@ -17,6 +18,11 @@ export type GeneratedCardImageInput = Readonly<{
   replicaId: string;
   /** The tier the appended usage fact is attributed to, resolved by the caller that checked the cap. */
   tierAtCall: EntitlementTier;
+  /**
+   * The person's own OpenAI key, which pays for the generation instead of the platform key and puts it under
+   * the own-key ceiling instead of the platform ceilings.
+   */
+  userOpenAIApiKey: UserOpenAIApiKey | null;
   observationContext: GeneratedCardImageObservationContext;
   signal: AbortSignal;
   operationDeadlineMs: number;

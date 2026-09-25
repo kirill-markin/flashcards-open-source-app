@@ -17,6 +17,7 @@ import {
 } from "../../config";
 import type { ChatRunClaimToken } from "../../runs";
 import type { ProductAnalyticsClientReportablePlatform } from "../../../productAnalytics/catalog";
+import type { UserOpenAIApiKey } from "../../userOpenAIApiKey";
 import { createGeneratedImageOperationKey } from "../../generatedImageOperationIdentity";
 import { GENERATED_IMAGE_TOOL_NAME } from "../tools/generatedImageToolContract";
 import {
@@ -64,6 +65,7 @@ type RunOneModelCallParams = Readonly<{
   onEvent: OpenAILoopEventSink;
   request: OpenAIResponsesRequest;
   callIndex: number;
+  userSuppliedKey: boolean;
 }>;
 
 export type RunOneToolCall = (params: Readonly<{
@@ -80,6 +82,7 @@ export type RunOneToolCall = (params: Readonly<{
   generatedImageOperationDeadlineMs: number;
   clientPlatform: ProductAnalyticsClientReportablePlatform | null;
   initiatingAuthIsSignedIn: boolean;
+  userOpenAIApiKey: UserOpenAIApiKey | null;
   rootObservation: LangfuseObservation | null;
 }>) => Promise<ExecutedChatToolCall>;
 
@@ -98,6 +101,7 @@ type ExecuteToolCallsParams = Readonly<{
   generatedImageOperationDeadlineMs: number;
   clientPlatform: ProductAnalyticsClientReportablePlatform | null;
   initiatingAuthIsSignedIn: boolean;
+  userOpenAIApiKey: UserOpenAIApiKey | null;
   rootObservation: LangfuseObservation | null;
   onExecutionPhaseChanged: ((phase: "idle" | "model" | "tool") => void) | undefined;
   shouldStopBeforeNextStep: (() => boolean) | undefined;
@@ -231,6 +235,7 @@ export async function runOneModelCallWithPhase(
       signal: params.signal,
       onEvent: params.onEvent,
       callIndex: params.callIndex,
+      userSuppliedKey: params.userSuppliedKey,
     });
   } finally {
     params.onExecutionPhaseChanged?.("idle");
@@ -289,6 +294,7 @@ export async function executeToolCalls(
         generatedImageOperationDeadlineMs: params.generatedImageOperationDeadlineMs,
         clientPlatform: params.clientPlatform,
         initiatingAuthIsSignedIn: params.initiatingAuthIsSignedIn,
+        userOpenAIApiKey: params.userOpenAIApiKey,
         rootObservation: params.rootObservation,
       });
       if (output.stopReason !== null) {
@@ -317,6 +323,7 @@ export async function executeToolCalls(
       }
       replayItems.push(toStoredOpenAIReplayItem(
         toFunctionCallOutputInputItem(functionCall.call_id, output.output),
+        params.userOpenAIApiKey !== null,
       ));
     } finally {
       params.onExecutionPhaseChanged?.("idle");
