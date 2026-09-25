@@ -37,7 +37,7 @@ export function createParams(
     initiatingAuthIsSignedIn: true,
     userOpenAIApiKey: null,
     modelId: "gpt-6-sol",
-    reasoningEffort: "xhigh",
+    reasoningEffort: "medium",
     timezone: "Europe/Madrid",
     localMessages: [],
     turnInput: [{ type: "text", text: "hello" }],

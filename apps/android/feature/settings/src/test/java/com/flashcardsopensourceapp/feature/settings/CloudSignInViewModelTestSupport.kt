@@ -6,6 +6,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCommunityProfile
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryReason
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudEntitlement
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudFriendInvitationCreateRequest
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudFriendInvitationCreateResponse
@@ -129,6 +130,7 @@ internal class FakeCloudAccountRepository : CloudAccountRepository {
     private val accountDeletionState = MutableStateFlow<AccountDeletionState>(AccountDeletionState.Hidden)
     private val serverConfiguration = MutableStateFlow(makeOfficialCloudServiceConfiguration())
     private val cloudCredentialRecoveryState = MutableStateFlow<CloudCredentialRecoveryState?>(null)
+    private val entitlement = MutableStateFlow<CloudEntitlement?>(null)
     private val sendCodeResults = ArrayDeque<CloudSendCodeResult>()
     private val sendCodeErrors = ArrayDeque<Exception>()
     private val verifyCodeErrors = ArrayDeque<Exception>()
@@ -230,6 +232,10 @@ internal class FakeCloudAccountRepository : CloudAccountRepository {
 
     override fun observeCloudCredentialRecoveryState(): Flow<CloudCredentialRecoveryState?> {
         return cloudCredentialRecoveryState
+    }
+
+    override fun observeEntitlement(): Flow<CloudEntitlement?> {
+        return entitlement
     }
 
     override suspend fun eraseLocalDataForCredentialRecovery() {

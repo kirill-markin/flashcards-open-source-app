@@ -19,6 +19,7 @@ import com.flashcardsopensourceapp.feature.settings.SettingsFriendInviteAvailabi
 import com.flashcardsopensourceapp.feature.settings.SettingsRoute
 import com.flashcardsopensourceapp.feature.settings.SettingsUiState
 import com.flashcardsopensourceapp.feature.settings.TestSettingsRoute
+import com.flashcardsopensourceapp.feature.settings.subscription.SubscriptionUiState
 import com.flashcardsopensourceapp.feature.settings.settingsAccessRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsAccountStatusRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsAgentConnectionsRowTag
@@ -340,6 +341,14 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         canManageAccountPreferences = canManageAccountPreferences,
                         isTestModeEnabled = isTestModeEnabled
                     ),
+                    subscriptionUiState = SubscriptionUiState(
+                        isSubscriptionProductAvailable = false,
+                        planName = null,
+                        statusText = "Your plan appears here after the app syncs with your account."
+                    ),
+                    onOpenSubscription = {
+                        clickedRows += "subscription"
+                    },
                     onOpenFriendInvite = {
                         clickedRows += "friend_invite"
                     },

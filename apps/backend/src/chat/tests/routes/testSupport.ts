@@ -110,11 +110,11 @@ export function createExpectedChatConfig(): Record<string, unknown> {
     model: {
       id: "gpt-6-sol",
       label: "GPT-6 Sol",
-      badgeLabel: "GPT-6 Sol · XHigh",
+      badgeLabel: "GPT-6 Sol · Medium",
     },
     reasoning: {
-      effort: "xhigh",
-      label: "XHigh",
+      effort: "medium",
+      label: "Medium",
     },
     features: {
       modelPickerEnabled: false,
