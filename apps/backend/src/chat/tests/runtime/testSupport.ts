@@ -87,7 +87,7 @@ export function createParams(): StartPersistedChatRunParams {
     timezone: "Europe/Madrid",
     uiLocale: "es-MX",
     modelId: "gpt-6-sol",
-    reasoningEffort: "xhigh",
+    reasoningEffort: "medium",
     assistantItemId: "assistant-item-1",
     localMessages: [],
     turnInput: [{ type: "text", text: "hello" }],
