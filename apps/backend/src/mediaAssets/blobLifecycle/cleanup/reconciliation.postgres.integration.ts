@@ -130,6 +130,7 @@ function createPromotionInput(
     sha256,
     mimeType: "image/jpeg",
     sizeBytes: 42,
+    userSuppliedKey: false,
   };
 }
 

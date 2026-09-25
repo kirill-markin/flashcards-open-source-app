@@ -34,6 +34,7 @@ import {
   settingsLanguageRoute,
   settingsLeaderboardParticipationRoute,
   settingsNotificationsRoute,
+  settingsOwnOpenAIKeyRoute,
   settingsReviewAnimationsRoute,
   settingsResetStudyProgressRoute,
   settingsSchedulerRoute,
@@ -44,6 +45,7 @@ import {
 } from "../../routes";
 import { useWorkspacePath } from "../../useWorkspacePath";
 import { useAIChatPreferences } from "../../chat/preferences/AIChatPreferencesContext";
+import { useOwnOpenAIKeySetting } from "../../chat/preferences/ownOpenAIKeyStorage";
 import { useTestMode } from "../../testMode";
 import { FriendInviteCreateDialog } from "../friends/FriendInviteCreateDialog";
 import {
@@ -104,6 +106,7 @@ export function SettingsScreen(): ReactElement {
   const { indexedDbOpenRecoveryState } = useAppErrorDialog();
   const { localePreference, t } = useI18n();
   const { aiChatComposerSuggestionsEnabled } = useAIChatPreferences();
+  const { isEnabled: isOwnOpenAIKeyEnabled } = useOwnOpenAIKeySetting();
   const { isTestModeEnabled } = useTestMode();
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState<boolean>(false);
   const [shareStatusMessage, setShareStatusMessage] = useState<string>("");
@@ -292,6 +295,13 @@ export function SettingsScreen(): ReactElement {
             value={aiChatComposerSuggestionsEnabled ? t("common.on") : t("common.off")}
             to={workspacePath(settingsAIChatSuggestionsRoute)}
             testId="settings-row-ai-chat-suggestions"
+          />
+          <SettingsNavigationCard
+            title={t("ownOpenAIKeySettings.title")}
+            description={t("ownOpenAIKeySettings.subtitle")}
+            value={isOwnOpenAIKeyEnabled ? t("common.on") : t("common.off")}
+            to={workspacePath(settingsOwnOpenAIKeyRoute)}
+            testId="settings-row-own-openai-key"
           />
           <SettingsNavigationCard
             title={t("leaderboardParticipationSettings.title")}

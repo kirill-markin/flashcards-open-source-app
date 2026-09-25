@@ -16,6 +16,7 @@ import {
   invokeChatWorkerWithDependencies,
   type ChatWorkerInvocation,
 } from "../../worker/invoke";
+import { UserOpenAIApiKey } from "../../userOpenAIApiKey";
 
 type ChatWorkerDispatchFailureEvent = Readonly<{
   action: "chat_worker_dispatch_failed";
@@ -68,6 +69,7 @@ test("invokeChatWorkerWithDependencies copies trace context into the Lambda even
     userId: "user-2",
     workspaceId: "workspace-2",
     initiatingAuthIsSignedIn: true,
+    userOpenAIApiKey: null,
   }, {
     getTraceCarrier: () => traceContext,
     getFunctionName: () => "chat-worker-test",
@@ -90,6 +92,7 @@ test("invokeChatWorkerWithDependencies copies trace context into the Lambda even
     userId: "user-2",
     workspaceId: "workspace-2",
     initiatingAuthIsSignedIn: true,
+    userOpenAIApiKey: null,
     routeRequestId: null,
     chatRequestId: null,
     sessionId: null,
@@ -110,6 +113,7 @@ test("invokeChatWorkerOrPersistFailureWithDependencies captures dispatch failure
       userId: "user-3",
       workspaceId: "workspace-3",
       initiatingAuthIsSignedIn: false,
+      userOpenAIApiKey: null,
       routeRequestId: "route-request-3",
       chatRequestId: "client-request-3",
       sessionId: "session-3",
@@ -164,13 +168,15 @@ test("generated image eligibility requires both immutable run state and the orig
     workspaceId: "workspace-auth",
   };
 
-  assert.equal(isGeneratedImageEligibleForWorker(baseEvent, true), false);
+  assert.equal(isGeneratedImageEligibleForWorker(baseEvent, true, null), false);
   assert.equal(isGeneratedImageEligibleForWorker({
     ...baseEvent,
     initiatingAuthIsSignedIn: true,
-  }, false), false);
+  }, false, null), false);
   assert.equal(isGeneratedImageEligibleForWorker({
     ...baseEvent,
     initiatingAuthIsSignedIn: true,
-  }, true), true);
+  }, true, null), true);
+  // A run paid with the person's own key is eligible for a guest too.
+  assert.equal(isGeneratedImageEligibleForWorker(baseEvent, false, new UserOpenAIApiKey("sk-test")), true);
 });

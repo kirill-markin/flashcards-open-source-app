@@ -306,6 +306,9 @@ test("startOpenAILoopWithDeps retries a callIndex > 1 overflow once with the red
         },
       },
     } as unknown as OpenAI),
+    createObservedUserOpenAIClient: () => {
+      throw new Error("This test runs on the platform key and never builds a client from the person's own key.");
+    },
     runOneToolCall: async () => {
       toolCallCount += 1;
       return {

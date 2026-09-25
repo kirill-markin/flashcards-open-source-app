@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { buildOpenAISafetyIdentifier } from "../../openai/safetyIdentifier";
-import { getOpenAIClient } from "../../openai/client";
+import { createUserOpenAIClient, getOpenAIClient } from "../../openai/client";
+import type { UserOpenAIApiKey } from "../../userOpenAIApiKey";
 import {
   addBackendBreadcrumb,
   captureBackendWarning,
@@ -728,4 +729,10 @@ export class OpenAIGeneratedCardImageProvider {
 
 export function createOpenAIGeneratedCardImageProvider(): OpenAIGeneratedCardImageProvider {
   return new OpenAIGeneratedCardImageProvider(getOpenAIClient());
+}
+
+export function createUserOpenAIGeneratedCardImageProvider(
+  userOpenAIApiKey: UserOpenAIApiKey,
+): OpenAIGeneratedCardImageProvider {
+  return new OpenAIGeneratedCardImageProvider(createUserOpenAIClient(userOpenAIApiKey));
 }

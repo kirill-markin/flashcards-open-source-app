@@ -25,6 +25,7 @@ type GenerationJobFixture = Readonly<{
   cardId: string;
   replicaId: string;
   createdAtMs: number;
+  userSuppliedKey: boolean;
 }>;
 
 async function insertGenerationJob(client: pg.PoolClient, job: GenerationJobFixture): Promise<void> {
@@ -35,16 +36,16 @@ async function insertGenerationJob(client: pg.PoolClient, job: GenerationJobFixt
     `INSERT INTO content.generated_media_promotion_jobs (
        job_id, operation_id, user_id, workspace_id, card_id, target_side, alt_text,
        media_asset_id, replica_id, staging_storage_key, blob_storage_key,
-       sha256, mime_type, size_bytes, created_at
+       sha256, mime_type, size_bytes, created_at, user_supplied_key
      ) VALUES (
        $1, $2, $3, $4, $5, 'back', 'Generated budget image',
-       $6, $7, $8, $9, $10, 'image/jpeg', 4096, $11
+       $6, $7, $8, $9, $10, 'image/jpeg', 4096, $11, $12
      )`,
     [
       randomUUID(), operationId, job.userId, job.workspaceId, job.cardId,
       mediaAssetId, job.replicaId,
       buildMediaUploadStagingStorageKey(job.workspaceId, mediaAssetId, operationId),
-      buildMediaBlobStorageKey(sha256), sha256, new Date(job.createdAtMs).toISOString(),
+      buildMediaBlobStorageKey(sha256), sha256, new Date(job.createdAtMs).toISOString(), job.userSuppliedKey,
     ],
   );
 }
@@ -141,7 +142,7 @@ async function loadUsageAsMember(
   });
 }
 
-test("generated card image usage counts UTC windows per replica and per workspace as backend_app", async () => {
+test("generated card image usage counts platform-key UTC windows per replica and per workspace as backend_app", async () => {
   await withPostgresIntegrationFixture(async (fixture) => {
     const ids: BudgetFixtureIds = {
       memberUserId: `postgres-integration-member-${randomUUID()}`,
@@ -158,16 +159,18 @@ test("generated card image usage counts UTC windows per replica and per workspac
       const now = new Date(nowMs);
       const dayStartMs = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
       const monthStartMs = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1);
-      const inWorkspace = { workspaceId: fixture.workspaceId, cardId: fixture.cardId };
+      const inWorkspace = { workspaceId: fixture.workspaceId, cardId: fixture.cardId, userSuppliedKey: false };
       await createBudgetFixtureRows(fixture, ids, [
         { ...inWorkspace, userId: fixture.userId, replicaId: fixture.replicaId, createdAtMs: nowMs },
         { ...inWorkspace, userId: ids.memberUserId, replicaId: fixture.replicaId, createdAtMs: dayStartMs },
         { ...inWorkspace, userId: ids.memberUserId, replicaId: ids.memberReplicaId, createdAtMs: nowMs },
         { ...inWorkspace, userId: fixture.userId, replicaId: fixture.replicaId, createdAtMs: dayStartMs - 1 },
         { ...inWorkspace, userId: ids.memberUserId, replicaId: ids.memberReplicaId, createdAtMs: monthStartMs - 1 },
+        // Paid with the person's own key, so neither platform window counts it.
+        { ...inWorkspace, userId: fixture.userId, replicaId: fixture.replicaId, createdAtMs: nowMs, userSuppliedKey: true },
         {
           workspaceId: fixture.outOfScopeWorkspaceId, cardId: ids.otherCardId,
-          userId: fixture.userId, replicaId: ids.otherReplicaId, createdAtMs: nowMs,
+          userId: fixture.userId, replicaId: ids.otherReplicaId, createdAtMs: nowMs, userSuppliedKey: false,
         },
       ]);
 

@@ -893,6 +893,21 @@ const huCatalog: TranslationCatalog = {
     toggleTitle: "Javaslatok megjelenítése az AI-csevegés szerkesztőjében",
     toggleDescription: "A javasolt utasítások a szerkesztő fölött jelennek meg, amikor a csevegés tétlen és készen áll.",
   },
+  ownOpenAIKeySettings: {
+    title: "Saját OpenAI-kulcsod",
+    subtitle: "Használd az AI-t a saját OpenAI-fiókodon keresztül.",
+    toggleTitle: "Saját OpenAI-kulcs használata",
+    toggleDescription: "Saját kulccsal az AI-csevegés, a diktálás és a kártyaképek a saját OpenAI-fiókodon futnak, havi korlát nélkül, bármelyik csomagban. Amíg a kulcs be van kapcsolva, a javasolt válaszok ki vannak kapcsolva. A kulcsodat soha nem tároljuk a szervereinken: ezen az eszközön marad, és csak az AI-kéréseiddel együtt küldjük el, ezért iOS-en, Androidon és a weben külön kell megadnod.",
+    apiKeyLabel: "OpenAI API-kulcs",
+    apiKeyInvalid: "Ez a kulcs nem használható. Egy OpenAI-kulcs csak latin betűket, számjegyeket és szimbólumokat tartalmaz, és legfeljebb 512 karakter hosszú. Amíg nem javítod, az AI-kérések a kulcsod nélkül futnak.",
+    ownSpend: "Ebben a hónapban a kulcsoddal: {{count}}",
+    countLabels: {
+      message: {
+        one: "üzenet",
+        other: "üzenet",
+      },
+    },
+  },
   analyticsConsentBanner: {
     label: "Analitikai sütik",
     message: "Sütit és más böngészőtárolót használunk annak méréséhez, hogyan használják az alkalmazást. Amíg nem választasz, az alkalmazás semmit nem tárol ezen az eszközön, és semmi olyat nem küld, ami azonosítana téged.",
@@ -1306,6 +1321,15 @@ const huCatalog: TranslationCatalog = {
       sendAriaLabel: "Üzenet küldése",
       stopAriaLabel: "Válasz leállítása",
     },
+    aiUsage: {
+      countLabels: {
+        aiMessage: {
+          one: "AI-üzenet",
+          other: "AI-üzenet",
+        },
+      },
+      remaining: "Ebben a hónapban még {{count}} maradt",
+    },
     alerts: {
       attachmentLimit: "Az üzenet túl nagy. Az AI-csevegés nem tud ennyi tartalmat egyszerre elküldeni. Távolíts el egy vagy több mellékletet, válassz kisebb fájlt vagy fotót, vagy bontsd szét a kérést, és próbáld újra.",
       attachmentUnsupported: "Ez a fájltípus nem támogatott az AI-csevegésben. Távolítsd el a fájlt, vagy mentsd PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX formátumban vagy képként, majd próbáld újra.",
@@ -1327,11 +1351,14 @@ const huCatalog: TranslationCatalog = {
     errorTitle: "AI-csevegési hiba",
     errors: {
       activeRunInProgress: "Egy válasz már folyamatban van. Várd meg a végét, vagy állítsd le, mielőtt új üzenetet küldesz.",
-      aiLimitReached: "Elhasználtad az AI-korlátodat erre a hónapra. A következő hónap elején áll vissza.",
+      aiLimitReachedAccount: "Elhasználtad az e havi AI-üzeneteket. Megújulásuk dátuma: {{date}}. A folytatáshoz hozzáadhatod a saját OpenAI-kulcsodat a Beállításokban.",
+      aiLimitReachedAccountNoDate: "Elhasználtad az e havi AI-üzeneteket. A folytatáshoz hozzáadhatod a saját OpenAI-kulcsodat a Beállításokban.",
+      aiLimitReachedGuest: "Elhasználtad az e havi ingyenes AI-üzeneteket. A folytatáshoz hozz létre fiókot, vagy add hozzá a saját OpenAI-kulcsodat a Beállításokban.",
       emptyBackendResponse: "A backend üres hibaválaszt adott.",
       genericFailure: "Az AI-csevegés nem sikerült.",
       liveStreamEndedBeforeCompletion: "Az AI élő adatfolyama a futás befejezése előtt véget ért.",
       newChatFailedPrefix: "Az új csevegés nem sikerült.",
+      ownOpenAIKeyPrefix: "A saját OpenAI-kulcsod be van kapcsolva. Az OpenAI ezt a hibát adta vissza a kulcsodra. Javítsd az OpenAI-fiókodban, és próbáld újra.",
       refreshFailedPrefix: "A csevegés frissítése nem sikerült.",
       requestFailedPrefix: "A csevegési kérés nem sikerült.",
       stopFailedPrefix: "A csevegés leállítása nem sikerült.",
