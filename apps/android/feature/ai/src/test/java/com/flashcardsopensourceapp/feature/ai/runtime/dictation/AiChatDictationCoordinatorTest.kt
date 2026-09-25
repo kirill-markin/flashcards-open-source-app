@@ -103,7 +103,7 @@ class AiChatDictationCoordinatorTest {
         val dictationCoordinator = makeDictationCoordinator(context = context)
         val sessionCoordinator = AiChatSessionCoordinator(
             context = context,
-            detachLiveStream = { _ -> Unit },
+            detachLiveStream = { _ -> },
             cancelActiveDictation = dictationCoordinator::cancelActiveTranscription
         )
         context.runtimeStateMutable.value = makeAiDraftState(
@@ -145,7 +145,7 @@ class AiChatDictationCoordinatorTest {
         lateinit var dictationCoordinator: AiChatDictationCoordinator
         val sessionCoordinator = AiChatSessionCoordinator(
             context = context,
-            detachLiveStream = { _ -> Unit },
+            detachLiveStream = { _ -> },
             cancelActiveDictation = { reason ->
                 dictationCoordinator.cancelActiveTranscription(reason = reason)
             }

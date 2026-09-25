@@ -11,7 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.FilterList
-import androidx.compose.material.icons.outlined.FormatListBulleted
+import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
 import androidx.compose.material.icons.outlined.LocalFireDepartment
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -214,7 +214,7 @@ private fun ReviewQueueAction(
             }
     ) {
         Icon(
-            imageVector = Icons.Outlined.FormatListBulleted,
+            imageVector = Icons.AutoMirrored.Outlined.FormatListBulleted,
             contentDescription = null
         )
     }
