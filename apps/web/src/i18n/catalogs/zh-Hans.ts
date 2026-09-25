@@ -893,6 +893,21 @@ export const zhHansCatalog = {
     toggleTitle: "在 AI 聊天输入框中显示建议",
     toggleDescription: "当聊天处于空闲且就绪状态时，建议提示会显示在输入框上方。",
   },
+  ownOpenAIKeySettings: {
+    title: "你的 OpenAI 密钥",
+    subtitle: "通过你自己的 OpenAI 账户使用 AI。",
+    toggleTitle: "使用我自己的 OpenAI 密钥",
+    toggleDescription: "使用你自己的密钥时，AI 聊天、语音输入和卡片图片都会在你的 OpenAI 账户上运行，任何套餐均无每月限额。密钥开启期间，建议回复会关闭。我们绝不会在服务器上存储你的密钥：它只保存在此设备上，仅随你的 AI 请求一起发送，因此请在 iOS、Android 和网页版上分别输入。",
+    apiKeyLabel: "OpenAI API 密钥",
+    apiKeyInvalid: "无法使用此密钥。OpenAI 密钥只包含拉丁字母、数字和符号，且不超过 512 个字符。在你修正之前，AI 请求将不使用你的密钥。",
+    ownSpend: "本月使用你的密钥：{{count}}",
+    countLabels: {
+      message: {
+        one: "条消息",
+        other: "条消息",
+      },
+    },
+  },
   analyticsConsentBanner: {
     label: "分析 Cookie",
     message: "我们使用一个 Cookie 和浏览器的其他存储来了解应用的使用情况。在你做出选择之前，本应用不会在此设备上存储任何内容，也不会发送任何能识别你的信息。",
@@ -1306,6 +1321,15 @@ export const zhHansCatalog = {
       sendAriaLabel: "发送消息",
       stopAriaLabel: "停止响应",
     },
+    aiUsage: {
+      countLabels: {
+        aiMessage: {
+          one: "条 AI 消息",
+          other: "条 AI 消息",
+        },
+      },
+      remaining: "本月剩余：{{count}}",
+    },
     alerts: {
       attachmentLimit: "消息太大。AI 聊天无法一次发送这么多内容。请移除一个或多个附件，选择更小的文件或照片，或拆分请求后重试。",
       attachmentUnsupported: "AI 聊天不支持此文件类型。请移除该文件，或将其另存为 PDF、TXT、CSV、JSON、XML、Markdown、HTML、Python、JavaScript、TypeScript、YAML、XLS/XLSX、DOCX 或图片，然后重试。",
@@ -1327,11 +1351,14 @@ export const zhHansCatalog = {
     errorTitle: "AI 聊天错误",
     errors: {
       activeRunInProgress: "已有响应正在进行中。请等待其完成，或先停止后再发送新消息。",
-      aiLimitReached: "本月的 AI 使用额度已用完。额度将在下月初重置。",
+      aiLimitReachedAccount: "你已用完本月的 AI 消息。消息将于 {{date}} 恢复。如需继续，可以在设置中添加你自己的 OpenAI 密钥。",
+      aiLimitReachedAccountNoDate: "你已用完本月的 AI 消息。如需继续，可以在设置中添加你自己的 OpenAI 密钥。",
+      aiLimitReachedGuest: "你已用完本月的免费 AI 消息。如需继续，请创建账户，或在设置中添加你自己的 OpenAI 密钥。",
       emptyBackendResponse: "后端返回了空的错误响应。",
       genericFailure: "AI 聊天失败。",
       liveStreamEndedBeforeCompletion: "AI 实时流在运行完成前结束。",
       newChatFailedPrefix: "新建聊天失败。",
+      ownOpenAIKeyPrefix: "你自己的 OpenAI 密钥已开启。OpenAI 为你的密钥返回了此错误。请在你的 OpenAI 账户中修复后重试。",
       refreshFailedPrefix: "刷新聊天失败。",
       requestFailedPrefix: "聊天请求失败。",
       stopFailedPrefix: "停止聊天失败。",

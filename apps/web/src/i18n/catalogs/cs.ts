@@ -902,6 +902,22 @@ const csCatalog: TranslationCatalog = {
     toggleTitle: "Zobrazovat návrhy v poli pro psaní zpráv v chatu s AI",
     toggleDescription: "Navrhované pokyny se objeví nad polem pro psaní, když je chat nečinný a připravený.",
   },
+  ownOpenAIKeySettings: {
+    title: "Váš klíč OpenAI",
+    subtitle: "Používejte AI přes vlastní účet OpenAI.",
+    toggleTitle: "Používat vlastní klíč OpenAI",
+    toggleDescription: "S vlastním klíčem běží chat s AI, diktování a obrázky kartiček přes váš účet OpenAI, bez měsíčního limitu v jakémkoli tarifu. Dokud je klíč zapnutý, navrhované odpovědi jsou vypnuté. Váš klíč nikdy neukládáme na našich serverech: zůstává v tomto zařízení a posílá se jen s vašimi požadavky na AI, proto ho zadejte zvlášť v iOS, Androidu a na webu.",
+    apiKeyLabel: "API klíč OpenAI",
+    apiKeyInvalid: "Tento klíč nelze použít. Klíč OpenAI obsahuje jen latinková písmena, číslice a symboly a má nejvýše 512 znaků. Dokud ho neopravíte, požadavky AI poběží bez vašeho klíče.",
+    ownSpend: "Tento měsíc s vaším klíčem: {{count}}",
+    countLabels: {
+      message: {
+        one: "zpráva",
+        few: "zprávy",
+        other: "zpráv",
+      },
+    },
+  },
   analyticsConsentBanner: {
     label: "Analytické cookies",
     message: "Používáme cookie a další úložiště prohlížeče, abychom měřili, jak se aplikace používá. Dokud se nerozhodnete, tato aplikace v tomto zařízení nic neukládá a neodesílá nic, co by vás identifikovalo.",
@@ -1318,6 +1334,16 @@ const csCatalog: TranslationCatalog = {
       sendAriaLabel: "Odeslat zprávu",
       stopAriaLabel: "Zastavit odpověď",
     },
+    aiUsage: {
+      countLabels: {
+        aiMessage: {
+          one: "zpráva AI",
+          few: "zprávy AI",
+          other: "zpráv AI",
+        },
+      },
+      remaining: "Zbývá tento měsíc: {{count}}",
+    },
     alerts: {
       attachmentLimit: "Zpráva je příliš velká. Chat s AI nemůže odeslat tolik obsahu najednou. Odeberte jednu či více příloh, vyberte menší soubor nebo fotku nebo rozdělte požadavek a zkuste to znovu.",
       attachmentUnsupported: "Tento typ souboru není v chatu s AI podporován. Odeberte soubor nebo jej uložte jako PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX nebo obrázek a zkuste to znovu.",
@@ -1339,11 +1365,14 @@ const csCatalog: TranslationCatalog = {
     errorTitle: "Chyba chatu s AI",
     errors: {
       activeRunInProgress: "Odpověď se již vytváří. Než odešlete další zprávu, počkejte na dokončení nebo vytváření zastavte.",
-      aiLimitReached: "Vyčerpali jste svůj limit AI pro tento měsíc. Obnoví se na začátku příštího měsíce.",
+      aiLimitReachedAccount: "Využili jste zprávy AI na tento měsíc. Obnoví se {{date}}. Chcete-li pokračovat, můžete si v Nastavení přidat vlastní klíč OpenAI.",
+      aiLimitReachedAccountNoDate: "Využili jste zprávy AI na tento měsíc. Chcete-li pokračovat, můžete si v Nastavení přidat vlastní klíč OpenAI.",
+      aiLimitReachedGuest: "Využili jste bezplatné zprávy AI na tento měsíc. Chcete-li pokračovat, vytvořte si účet nebo si v Nastavení přidejte vlastní klíč OpenAI.",
       emptyBackendResponse: "Backend vrátil prázdnou chybovou odpověď.",
       genericFailure: "Chat s AI selhal.",
       liveStreamEndedBeforeCompletion: "Živý stream AI skončil dřív, než byl běh dokončen.",
       newChatFailedPrefix: "Nový chat selhal.",
+      ownOpenAIKeyPrefix: "Váš vlastní klíč OpenAI je zapnutý. OpenAI pro váš klíč vrátilo tuto chybu. Opravte ji ve svém účtu OpenAI a zkuste to znovu.",
       refreshFailedPrefix: "Obnovení chatu selhalo.",
       requestFailedPrefix: "Požadavek chatu selhal.",
       stopFailedPrefix: "Zastavení chatu selhalo.",

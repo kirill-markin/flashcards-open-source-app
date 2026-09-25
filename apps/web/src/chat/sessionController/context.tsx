@@ -5,6 +5,7 @@ import {
   useAppErrorDialog,
 } from "../../appError/AppErrorContext";
 import { useI18n } from "../../i18n";
+import { formatAiLimitReachedMessageForHeldUsage } from "../shared/chatAiLimitPolicy";
 import { USER_VISIBLE_ATTACHMENT_LIMIT_MB } from "../shared/chatHelpers";
 import {
   useChatSessionController,
@@ -21,7 +22,7 @@ export function ChatSessionControllerProvider(props: Props): ReactElement {
   const { children } = props;
   const appData = useAppData();
   const { indexedDbOpenRecoveryState } = useAppErrorDialog();
-  const { locale, t, formatNumber } = useI18n();
+  const { locale, t, formatDate, formatNumber } = useI18n();
   const activeWorkspaceId = appData.activeWorkspace?.workspaceId ?? null;
   const runSync = appData.runSync;
   const setAppErrorMessage = appData.setErrorMessage;
@@ -52,7 +53,7 @@ export function ChatSessionControllerProvider(props: Props): ReactElement {
     onToolRunPostSyncRequested: handleToolRunPostSyncRequested,
     uiMessages: {
       activeRunInProgress: t("chatPanel.errors.activeRunInProgress"),
-      aiLimitReached: t("chatPanel.errors.aiLimitReached"),
+      formatAiLimitReached: (aiUsage) => formatAiLimitReachedMessageForHeldUsage({ aiUsage, t, formatDate }),
       attachmentLimit: t("chatPanel.alerts.attachmentLimit", {
         count: formatNumber(USER_VISIBLE_ATTACHMENT_LIMIT_MB),
       }),
@@ -64,6 +65,7 @@ export function ChatSessionControllerProvider(props: Props): ReactElement {
       genericChatFailed: t("chatPanel.errors.genericFailure"),
       liveStreamEndedBeforeCompletion: t("chatPanel.errors.liveStreamEndedBeforeCompletion"),
       newChatFailedPrefix: t("chatPanel.errors.newChatFailedPrefix"),
+      ownOpenAIKeyErrorPrefix: t("chatPanel.errors.ownOpenAIKeyPrefix"),
       refreshFailedPrefix: t("chatPanel.errors.refreshFailedPrefix"),
       remoteNotReady: t("chatPanel.transientErrors.remoteNotReady"),
       requestFailedPrefix: t("chatPanel.errors.requestFailedPrefix"),

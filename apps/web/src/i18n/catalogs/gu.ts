@@ -893,6 +893,21 @@ const guCatalog: TranslationCatalog = {
     toggleTitle: "AI ચૅટના સંદેશ ક્ષેત્રમાં સૂચનો બતાવો",
     toggleDescription: "ચૅટ ખાલી અને તૈયાર હોય ત્યારે સૂચવેલા પ્રૉમ્પ્ટ સંદેશ ક્ષેત્રની ઉપર દેખાય છે.",
   },
+  ownOpenAIKeySettings: {
+    title: "તમારી OpenAI કી",
+    subtitle: "તમારા પોતાના OpenAI એકાઉન્ટથી AI વાપરો.",
+    toggleTitle: "મારી પોતાની OpenAI કી વાપરો",
+    toggleDescription: "તમારી પોતાની કી સાથે AI ચૅટ, ડિક્ટેશન અને કાર્ડની છબીઓ તમારા OpenAI એકાઉન્ટ પર ચાલે છે, કોઈપણ પ્લાનમાં માસિક મર્યાદા વિના. તમારી કી ચાલુ હોય ત્યાં સુધી સૂચવેલા જવાબો બંધ રહે છે. અમે તમારી કી ક્યારેય અમારા સર્વર પર સંગ્રહિત કરતા નથી: તે આ જ ઉપકરણ પર રહે છે અને ફક્ત તમારી AI વિનંતીઓ સાથે મોકલાય છે, તેથી તેને iOS, Android અને વેબ પર અલગથી દાખલ કરો.",
+    apiKeyLabel: "OpenAI API કી",
+    apiKeyInvalid: "આ કી વાપરી શકાતી નથી. OpenAI કીમાં ફક્ત લેટિન અક્ષરો, અંકો અને ચિહ્નો હોય છે અને વધુમાં વધુ 512 અક્ષરો હોય છે. તમે તેને સુધારો ત્યાં સુધી AI વિનંતીઓ તમારી કી વગર ચાલશે.",
+    ownSpend: "આ મહિને તમારી કી સાથે: {{count}}",
+    countLabels: {
+      message: {
+        one: "સંદેશ",
+        other: "સંદેશા",
+      },
+    },
+  },
   analyticsConsentBanner: {
     label: "ઍનલિટિક્સ કૂકીઝ",
     message: "ઍપ કેવી રીતે વપરાય છે તે માપવા અમે એક કૂકી અને બ્રાઉઝરનું બીજું સ્ટોરેજ વાપરીએ છીએ. તમે પસંદ ન કરો ત્યાં સુધી આ ઍપ આ ઉપકરણ પર કંઈ સાચવતી નથી અને તમારી ઓળખ થાય એવું કંઈ મોકલતી નથી.",
@@ -1306,6 +1321,15 @@ const guCatalog: TranslationCatalog = {
       sendAriaLabel: "સંદેશ મોકલો",
       stopAriaLabel: "જવાબ રોકો",
     },
+    aiUsage: {
+      countLabels: {
+        aiMessage: {
+          one: "AI સંદેશ",
+          other: "AI સંદેશા",
+        },
+      },
+      remaining: "આ મહિને બાકી: {{count}}",
+    },
     alerts: {
       attachmentLimit: "સંદેશ ખૂબ મોટો છે. AI ચૅટ એકસાથે આટલી સામગ્રી મોકલી શકતી નથી. એક કે વધુ જોડાણ દૂર કરો, નાની ફાઇલ કે ફોટો પસંદ કરો, અથવા વિનંતી વહેંચીને ફરી પ્રયાસ કરો.",
       attachmentUnsupported: "AI ચૅટમાં આ પ્રકારની ફાઇલ સમર્થિત નથી. ફાઇલ દૂર કરો અથવા તેને PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX અથવા છબી તરીકે સાચવીને ફરી પ્રયાસ કરો.",
@@ -1327,11 +1351,14 @@ const guCatalog: TranslationCatalog = {
     errorTitle: "AI ચૅટની ભૂલ",
     errors: {
       activeRunInProgress: "જવાબ પહેલેથી તૈયાર થઈ રહ્યો છે. બીજો સંદેશ મોકલતાં પહેલાં તે પૂરો થાય ત્યાં સુધી રાહ જુઓ અથવા તેને રોકો.",
-      aiLimitReached: "આ મહિના માટેની તમારી AI મર્યાદા વપરાઈ ગઈ છે. તે આવતા મહિનાની શરૂઆતમાં રીસેટ થશે.",
+      aiLimitReachedAccount: "તમે આ મહિનાના AI સંદેશા વાપરી લીધા છે. તે {{date}}ના રોજ નવીકરણ થશે. ચાલુ રાખવા માટે તમે સેટિંગ્સમાં તમારી પોતાની OpenAI કી ઉમેરી શકો છો.",
+      aiLimitReachedAccountNoDate: "તમે આ મહિનાના AI સંદેશા વાપરી લીધા છે. ચાલુ રાખવા માટે તમે સેટિંગ્સમાં તમારી પોતાની OpenAI કી ઉમેરી શકો છો.",
+      aiLimitReachedGuest: "તમે આ મહિનાના મફત AI સંદેશા વાપરી લીધા છે. ચાલુ રાખવા માટે એકાઉન્ટ બનાવો અથવા સેટિંગ્સમાં તમારી પોતાની OpenAI કી ઉમેરો.",
       emptyBackendResponse: "બૅકએન્ડે ખાલી ભૂલનો જવાબ પાછો આપ્યો.",
       genericFailure: "AI ચૅટ નિષ્ફળ ગઈ.",
       liveStreamEndedBeforeCompletion: "પ્રક્રિયા પૂરી થાય તે પહેલાં AI લાઇવ સ્ટ્રીમ સમાપ્ત થઈ ગઈ.",
       newChatFailedPrefix: "નવી ચૅટ નિષ્ફળ ગઈ.",
+      ownOpenAIKeyPrefix: "તમારી પોતાની OpenAI કી ચાલુ છે. OpenAI એ તમારી કી માટે આ ભૂલ પરત કરી. તેને તમારા OpenAI એકાઉન્ટમાં સુધારો અને ફરી પ્રયાસ કરો.",
       refreshFailedPrefix: "ચૅટ રિફ્રેશ નિષ્ફળ ગયું.",
       requestFailedPrefix: "ચૅટની વિનંતી નિષ્ફળ ગઈ.",
       stopFailedPrefix: "ચૅટ રોકવાનું નિષ્ફળ ગયું.",
