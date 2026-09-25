@@ -3,16 +3,22 @@ import { resolveEntitlementForUserWithoutRefresh, type EntitlementWire } from ".
 import {
   aiWeightedOutputTokenMultiplier,
   getAiUsageMonthWindow,
+  loadAiUsageMessagesForMonth,
   loadAiUsageWeightedTokensForMonth,
 } from "./cap";
 
 /**
- * What this month has cost so far, in the weighted-token unit the allowance is expressed in.
+ * What this month has used so far. The allowance is counted in chat messages on the platform key;
+ * `ownKeyMessages` are messages answered on a key the person supplied, which never count against it.
  *
- * `remainingWeightedTokens` is `null` when no monthly AI cap is enforced for this person, the way the
- * limits table expresses "uncapped" (`apps/backend/src/billing/limits.ts`). It is not a missing value
- * and must never be read as zero: every signed-in cell is uncapped today, so a caller that turned
- * `null` into a number would invent a limit nothing enforces.
+ * `remainingMessages` is `null` when no monthly AI cap is enforced for this person, the way the limits
+ * table expresses "uncapped" (`apps/backend/src/billing/limits.ts`). It is not a missing value and must
+ * never be read as zero, because a caller that turned `null` into a number would invent a limit nothing
+ * enforces.
+ *
+ * The weighted-token fields stay because released callers read them. `usedWeightedTokens` is the
+ * platform-key total, and `remainingWeightedTokens` is always `null` because nothing is capped in
+ * tokens.
  *
  * The window is a calendar month in UTC for everybody, resolved by `getAiUsageMonthWindow` rather
  * than restated here, and `monthEndsAt` is therefore also when the allowance resets.
@@ -20,8 +26,11 @@ import {
 export type AiMonthlyUsage = Readonly<{
   monthStartsAt: string;
   monthEndsAt: string;
+  usedMessages: number;
+  remainingMessages: number | null;
+  ownKeyMessages: number;
   usedWeightedTokens: number;
-  remainingWeightedTokens: number | null;
+  remainingWeightedTokens: null;
   weightedOutputTokenMultiplier: number;
 }>;
 
@@ -42,7 +51,7 @@ export type AiUsageStatus = Readonly<{
 
 /**
  * Reads the person's tier, the limits resolved for it, and the month's consumption. It derives none
- * of the three: the tier and its limits come from the billing module and the sum and the window from
+ * of the three: the tier and its limits come from the billing module and the counts and the window from
  * the metering module, so this composition can never disagree with what enforcement uses.
  *
  * Every statement on this path is a read. The entitlement is resolved through the billing module's
@@ -50,13 +59,14 @@ export type AiUsageStatus = Readonly<{
  * entitlement-change fact - which is what lets the agent surfaces annotate the tool that serves this
  * as read-only and mean it.
  *
- * The sum is read even when the allowance is uncapped, unlike the enforcement path, which skips it
+ * The count is read even when the allowance is uncapped, unlike the enforcement path, which skips it
  * because nothing could be refused (`resolveAiUsageAllowanceForEnforcement`). Here the consumption is
  * the answer rather than an input to a refusal, and it is the only way to learn it: the sync snapshot
  * publishes the entitlement without it.
  *
- * `remainingWeightedTokens` is clamped at zero because the call that crosses the allowance completes
- * and only the next one is refused, so a used total may exceed the allowance by one call's cost.
+ * `remainingMessages` is clamped at zero because a count can exceed the allowance: turns admitted
+ * before earlier ones appended their facts are each checked against the same count, and an allowance
+ * lowered mid-month leaves the messages already sent in place.
  */
 export async function loadAiUsageStatus(
   userId: string,
@@ -65,8 +75,9 @@ export async function loadAiUsageStatus(
 ): Promise<AiUsageStatus> {
   const entitlement = await resolveEntitlementForUserWithoutRefresh(userId, accountKind, now);
   const month = getAiUsageMonthWindow(now);
+  const messages = await loadAiUsageMessagesForMonth(userId, month);
   const usedWeightedTokens = await loadAiUsageWeightedTokensForMonth(userId, month);
-  const monthlyWeightedTokens = entitlement.limits.aiMonthlyWeightedTokens;
+  const monthlyMessages = entitlement.limits.aiMonthlyMessages;
 
   return {
     accountKind,
@@ -74,10 +85,13 @@ export async function loadAiUsageStatus(
     usage: {
       monthStartsAt: month.startsAt.toISOString(),
       monthEndsAt: month.endsAt.toISOString(),
-      usedWeightedTokens,
-      remainingWeightedTokens: monthlyWeightedTokens === null
+      usedMessages: messages.platformKeyMessages,
+      remainingMessages: monthlyMessages === null
         ? null
-        : Math.max(0, monthlyWeightedTokens - usedWeightedTokens),
+        : Math.max(0, monthlyMessages - messages.platformKeyMessages),
+      ownKeyMessages: messages.ownKeyMessages,
+      usedWeightedTokens,
+      remainingWeightedTokens: null,
       weightedOutputTokenMultiplier: aiWeightedOutputTokenMultiplier,
     },
   };

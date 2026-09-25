@@ -15,6 +15,7 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatTranscriptionResult
 import com.flashcardsopensourceapp.data.local.model.cards.CardDraft
 import com.flashcardsopensourceapp.data.local.model.cards.CardFilter
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudEntitlement
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSendCodeResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkContext
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
@@ -230,6 +231,9 @@ interface CloudAccountRepository {
     fun observeAccountDeletionState(): Flow<AccountDeletionState>
     fun observeServerConfiguration(): Flow<CloudServiceConfiguration>
     fun observeCloudCredentialRecoveryState(): Flow<CloudCredentialRecoveryState?>
+
+    /** The last entitlement a sync pull delivered for the linked user; null until one arrives. */
+    fun observeEntitlement(): Flow<CloudEntitlement?>
     suspend fun eraseLocalDataForCredentialRecovery()
     suspend fun beginAccountDeletion()
     suspend fun resumePendingAccountDeletionIfNeeded()

@@ -16,6 +16,7 @@ import {
   type CreatedAgentApiKey,
 } from "../../server/agent/agentApiKeys.js";
 import { createAgentEnvelope, createAgentErrorEnvelope } from "../../server/agent/agentEnvelope.js";
+import { DeletedSubjectError } from "../../server/agent/userWorkspace.js";
 import { getDemoEmailPassword } from "../../server/demoEmailAccess.js";
 import {
   lookupAgentOtpChallenge,
@@ -307,6 +308,26 @@ export function createAgentVerifyCodeApp(dependencies: AgentVerifyCodeDependenci
       await dependencies.markAgentOtpChallengeUsed(challenge.email, challenge.cognitoSession, dependencies.now());
       createdKey = await dependencies.createAgentApiKeyFromIdToken(tokens.idToken, label);
     } catch (error) {
+      if (error instanceof DeletedSubjectError) {
+        log({
+          domain: "auth",
+          action: "agent_verify_code_error",
+          requestId,
+          route: c.req.path,
+          statusCode: 410,
+          code: "ACCOUNT_DELETED",
+          reasonCategory: "account_deleted",
+        });
+        return c.json(
+          createAgentErrorEnvelope(
+            c.req.url,
+            "ACCOUNT_DELETED",
+            error.message,
+            "This account was deleted and cannot be used again. Do not retry; tell the user the account no longer exists.",
+          ),
+          410,
+        );
+      }
       const isTransient = isTransientDatabaseError(error);
       const statusCode = isTransient ? 503 : 500;
       const code = isTransient ? "SERVICE_UNAVAILABLE" : "INTERNAL_ERROR";

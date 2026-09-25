@@ -1,17 +1,13 @@
-/**
- * Server-owned chat configuration shared by backend routes and clients that only need display metadata.
- * This module is the canonical source for the fixed provider, model, and reasoning settings.
- */
 export const CHAT_VENDOR = "openai" as const;
 export const CHAT_MODEL_ID = "gpt-6-sol" as const;
-export const CHAT_MODEL_REASONING_EFFORT = "xhigh" as const;
+export const CHAT_MODEL_REASONING_EFFORT = "medium" as const;
 export const CHAT_MODEL_REASONING_SUMMARY = "auto" as const;
 export const CHAT_LOW_COST_MODEL_ID = "gpt-6-luna" as const;
 export const CHAT_LOW_COST_MODEL_REASONING_EFFORT = "high" as const;
 export const CHAT_COMPOSER_SUGGESTIONS_REASONING_EFFORT = "none" as const;
 export const CHAT_MODEL_LABEL = "GPT-6 Sol" as const;
 export const CHAT_PROVIDER_LABEL = "OpenAI" as const;
-export const CHAT_MODEL_REASONING_LABEL = "XHigh" as const;
+export const CHAT_MODEL_REASONING_LABEL = "Medium" as const;
 export const CHAT_MODEL_BADGE_LABEL = `${CHAT_MODEL_LABEL} · ${CHAT_MODEL_REASONING_LABEL}` as const;
 
 /**
@@ -41,9 +37,7 @@ export const CHAT_MODEL_OPERATING_CONTEXT_WINDOW_TOKENS = 272_000 as const;
 
 /**
  * In the Responses API this cap covers reasoning tokens plus visible output
- * combined. We preserve the existing 32K output envelope for predictable cost
- * and latency with `xhigh` on the primary route and `high` on the low-cost
- * route. If the cap fires after visible output has streamed, the loop finishes
+ * combined. If the cap fires after visible output has streamed, the loop finishes
  * gracefully with the partial text instead of hard-failing the turn.
  *
  * `CHAT_HISTORY_REPLAY_TOKEN_BUDGET + CHAT_MAX_OUTPUT_TOKENS` (110K + 32K = 142K)

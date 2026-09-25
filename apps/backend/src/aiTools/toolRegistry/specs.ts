@@ -283,10 +283,11 @@ export const SUBMIT_REVIEW_TOOL_SPEC = defineAgentTool({
  * account kind, which is why the surface binds `loadAiUsageStatus` with that kind instead of this
  * handler reading one.
  *
- * It is also the only place a caller can learn its consumption. The entitlement reaches clients in the
- * sync pull response, but without the month's spend, so that the published object does not change
- * after every AI call (docs/premium-entitlements.md, "What a client receives"). The tier, the limit
- * and the window are read through `loadAiUsageStatus`, never re-derived here.
+ * It and the app-facing `GET /me/ai-usage`, which serves the same payload, are the only places a caller
+ * can learn its consumption. The entitlement reaches clients in the sync pull response, but without the
+ * month's spend, so that the published object does not change after every AI call
+ * (docs/premium-entitlements.md, "What a client receives"). The tier, the limit and the window are read
+ * through `loadAiUsageStatus`, never re-derived here.
  */
 export const GET_USAGE_LIMITS_TOOL_SPEC = defineAgentTool({
   name: USAGE_LIMITS_TOOL_NAME,

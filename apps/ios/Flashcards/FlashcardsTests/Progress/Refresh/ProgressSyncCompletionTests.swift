@@ -14,7 +14,8 @@ final class ProgressSyncCompletionTests: ProgressStoreTestCase {
             acknowledgedReviewScheduleImpactingOperationCount: 0,
             cleanedUpOperationCount: 0,
             cleanedUpReviewEventOperationCount: 0,
-            cleanedUpReviewScheduleImpactingOperationCount: 0
+            cleanedUpReviewScheduleImpactingOperationCount: 0,
+            entitlement: nil
         )
         let schedulePulledCardResult = CloudSyncResult(
             appliedPullChangeCount: 1,
@@ -26,7 +27,8 @@ final class ProgressSyncCompletionTests: ProgressStoreTestCase {
             acknowledgedReviewScheduleImpactingOperationCount: 0,
             cleanedUpOperationCount: 0,
             cleanedUpReviewEventOperationCount: 0,
-            cleanedUpReviewScheduleImpactingOperationCount: 0
+            cleanedUpReviewScheduleImpactingOperationCount: 0,
+            entitlement: nil
         )
         let pulledReviewHistoryResult = CloudSyncResult(
             appliedPullChangeCount: 1,
@@ -38,7 +40,8 @@ final class ProgressSyncCompletionTests: ProgressStoreTestCase {
             acknowledgedReviewScheduleImpactingOperationCount: 0,
             cleanedUpOperationCount: 0,
             cleanedUpReviewEventOperationCount: 0,
-            cleanedUpReviewScheduleImpactingOperationCount: 0
+            cleanedUpReviewScheduleImpactingOperationCount: 0,
+            entitlement: nil
         )
 
         XCTAssertTrue(textOnlyPulledCardResult.reviewDataChanged)
@@ -107,7 +110,8 @@ final class ProgressSyncCompletionTests: ProgressStoreTestCase {
                 acknowledgedReviewScheduleImpactingOperationCount: 0,
                 cleanedUpOperationCount: 0,
                 cleanedUpReviewEventOperationCount: 0,
-                cleanedUpReviewScheduleImpactingOperationCount: 0
+                cleanedUpReviewScheduleImpactingOperationCount: 0,
+                entitlement: nil
             )
         )
 
@@ -184,7 +188,8 @@ final class ProgressSyncCompletionTests: ProgressStoreTestCase {
                 acknowledgedReviewScheduleImpactingOperationCount: 1,
                 cleanedUpOperationCount: 0,
                 cleanedUpReviewEventOperationCount: 0,
-                cleanedUpReviewScheduleImpactingOperationCount: 0
+                cleanedUpReviewScheduleImpactingOperationCount: 0,
+                entitlement: nil
             )
         )
 
@@ -250,7 +255,8 @@ final class ProgressSyncCompletionTests: ProgressStoreTestCase {
                 acknowledgedReviewScheduleImpactingOperationCount: 1,
                 cleanedUpOperationCount: 0,
                 cleanedUpReviewEventOperationCount: 0,
-                cleanedUpReviewScheduleImpactingOperationCount: 0
+                cleanedUpReviewScheduleImpactingOperationCount: 0,
+                entitlement: nil
             )
         )
 
@@ -348,7 +354,8 @@ final class ProgressSyncCompletionTests: ProgressStoreTestCase {
                 acknowledgedReviewScheduleImpactingOperationCount: 0,
                 cleanedUpOperationCount: 0,
                 cleanedUpReviewEventOperationCount: 0,
-                cleanedUpReviewScheduleImpactingOperationCount: 0
+                cleanedUpReviewScheduleImpactingOperationCount: 0,
+                entitlement: nil
             )
         )
 
@@ -467,7 +474,8 @@ final class ProgressSyncCompletionTests: ProgressStoreTestCase {
                 acknowledgedReviewScheduleImpactingOperationCount: 0,
                 cleanedUpOperationCount: 0,
                 cleanedUpReviewEventOperationCount: 0,
-                cleanedUpReviewScheduleImpactingOperationCount: 0
+                cleanedUpReviewScheduleImpactingOperationCount: 0,
+                entitlement: nil
             )
         )
 
@@ -566,7 +574,8 @@ final class ProgressSyncCompletionTests: ProgressStoreTestCase {
                 acknowledgedReviewScheduleImpactingOperationCount: 0,
                 cleanedUpOperationCount: 1,
                 cleanedUpReviewEventOperationCount: 1,
-                cleanedUpReviewScheduleImpactingOperationCount: 0
+                cleanedUpReviewScheduleImpactingOperationCount: 0,
+                entitlement: nil
             )
         )
 
@@ -650,7 +659,8 @@ final class ProgressSyncCompletionTests: ProgressStoreTestCase {
                 acknowledgedReviewScheduleImpactingOperationCount: 0,
                 cleanedUpOperationCount: 0,
                 cleanedUpReviewEventOperationCount: 0,
-                cleanedUpReviewScheduleImpactingOperationCount: 0
+                cleanedUpReviewScheduleImpactingOperationCount: 0,
+                entitlement: nil
             )
         )
         await self.waitForProgressRefreshCallCounts(
@@ -747,7 +757,8 @@ final class ProgressSyncCompletionTests: ProgressStoreTestCase {
                 acknowledgedReviewScheduleImpactingOperationCount: 0,
                 cleanedUpOperationCount: 0,
                 cleanedUpReviewEventOperationCount: 0,
-                cleanedUpReviewScheduleImpactingOperationCount: 0
+                cleanedUpReviewScheduleImpactingOperationCount: 0,
+                entitlement: nil
             )
         )
         await self.waitForProgressRefreshCallCounts(

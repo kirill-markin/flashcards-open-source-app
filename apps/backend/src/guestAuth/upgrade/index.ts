@@ -4,6 +4,7 @@ import {
 } from "../../database";
 import {
   bindCognitoIdentityMappingInExecutor,
+  hasCognitoIdentityMappingForUserInExecutor,
   loadCognitoIdentityMappingInExecutor,
   lockCognitoIdentityLifecycleInExecutor,
 } from "../../auth/userIdentities";
@@ -105,6 +106,19 @@ function assertGuestWorkspaceSyncedAndOutboxDrained(
     !capabilities.guestWorkspaceSyncedAndOutboxDrained
   ) {
     throw createGuestWorkspaceNotDrainedError();
+  }
+}
+
+/**
+ * A guest user bound to a Cognito subject is that subject's account. A leftover guest token must
+ * neither bind a second subject to it nor merge it into another account, which deletes it.
+ */
+async function assertGuestUserIsNotAnAccountInExecutor(
+  executor: DatabaseExecutor,
+  guestUserId: string,
+): Promise<void> {
+  if (await hasCognitoIdentityMappingForUserInExecutor(executor, guestUserId)) {
+    throw new HttpError(401, "Guest session is invalid.", "GUEST_AUTH_INVALID");
   }
 }
 
@@ -368,17 +382,22 @@ export async function prepareGuestUpgradeInExecutor(
   assertGuestUpgradeSupportedPlatform(guestSession.platform);
   const existingMapping = await loadCognitoIdentityMappingInExecutor(executor, cognitoSubject);
 
-  if (existingMapping !== null) {
-    if (existingMapping.userId !== guestSession.userId) {
-      return {
-        mode: "merge_required",
-      };
-    }
-
+  if (existingMapping !== null && existingMapping.userId === guestSession.userId) {
     await updateUserEmailInExecutor(executor, guestSession.userId, email);
 
     return {
       mode: "bound",
+    };
+  }
+
+  // Every branch below either binds this subject to the guest user or leads to a merge that deletes
+  // it. The subject that owns an already-bound guest user never gets here: its own mapping names
+  // this guest user and returns `bound` above.
+  await assertGuestUserIsNotAnAccountInExecutor(executor, guestSession.userId);
+
+  if (existingMapping !== null) {
+    return {
+      mode: "merge_required",
     };
   }
 
@@ -569,6 +588,10 @@ export async function completeGuestUpgradeInExecutor(
     );
   }
 
+  // The owning subject of a bound guest user returned in Phase 4, and a committed merge deleted its
+  // guest user, so its replays returned above; only a different account reaches this refusal.
+  await assertGuestUserIsNotAnAccountInExecutor(executor, guestSession.userId);
+
   // Phase 6: enforce the merge precondition for clients that declare the new
   // drain protocol. Omitted capability fields are the legacy shipped-client
   // route shape and must remain compatible until those clients are out of support.
@@ -635,9 +658,10 @@ export async function completeGuestUpgradeInExecutor(
   // Phase 12: move what the guest paid for and what their AI calls consumed onto the destination
   // account, before the cleanup below deletes the guest org.user_settings row. A mover placed after it
   // matches nothing and still returns successfully. Usage crosses over deliberately: the monthly AI
-  // allowance is a sum over those rows for one person, so leaving them would reset the allowance for
-  // signing up. A destination that already holds an active purchase keeps it, and so does the guest's:
-  // two active purchases on one person is a supported state and the resolver decides which one wins.
+  // allowance is a count of chat messages over those rows for one person, so leaving them would reset
+  // the allowance for signing up. A destination that already holds an active purchase keeps it, and so
+  // does the guest's: two active purchases on one person is a supported state and the resolver decides
+  // which one wins.
   await transferBillingToUpgradedAccountInExecutor(
     executor,
     guestSession.userId,

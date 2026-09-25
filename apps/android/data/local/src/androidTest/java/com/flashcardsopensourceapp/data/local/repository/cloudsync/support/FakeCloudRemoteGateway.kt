@@ -843,7 +843,7 @@ internal class FakeCloudRemoteGateway private constructor(
     ): RemotePullResponse {
         syncRequestEvents += "pull"
         pullBodies += JSONObject(body.toString())
-        return RemotePullResponse(changes = emptyList(), nextHotChangeId = 0L, hasMore = false)
+        return RemotePullResponse(changes = emptyList(), nextHotChangeId = 0L, hasMore = false, entitlement = null)
     }
 
     override suspend fun bootstrapPull(

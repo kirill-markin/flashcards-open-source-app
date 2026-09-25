@@ -3,8 +3,11 @@ package com.flashcardsopensourceapp.data.local.cloud.remote.sync
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.cloud.remote.transport.CloudJsonHttpClient
 import com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException
+import com.flashcardsopensourceapp.data.local.cloud.wire.logUnreadableCloudEntitlement
 import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudLongOrNull
+import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudObjectOrNull
 import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudStringOrNull
+import com.flashcardsopensourceapp.data.local.cloud.wire.parseCloudEntitlement
 import com.flashcardsopensourceapp.data.local.cloud.wire.parseOptionalReviewTimeZone
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudArray
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudBoolean
@@ -13,6 +16,7 @@ import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudLong
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudNullableString
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudObject
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudString
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudEntitlement
 import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
 import org.json.JSONArray
 import org.json.JSONObject
@@ -42,7 +46,9 @@ data class RemoteBootstrapEntry(
 data class RemotePullResponse(
     val changes: List<RemoteSyncChange>,
     val nextHotChangeId: Long,
-    val hasMore: Boolean
+    val hasMore: Boolean,
+    /** Null when the backend could not resolve it or it was unreadable, which means unknown, never free. */
+    val entitlement: CloudEntitlement?
 )
 
 data class RemoteBootstrapPullResponse(
@@ -126,8 +132,21 @@ internal class CloudSyncRemoteApi(
         return RemotePullResponse(
             changes = parseHotChanges(response.requireCloudArray("changes", "pull.changes")),
             nextHotChangeId = response.requireCloudLong("nextHotChangeId", "pull.nextHotChangeId"),
-            hasMore = response.requireCloudBoolean("hasMore", "pull.hasMore")
+            hasMore = response.requireCloudBoolean("hasMore", "pull.hasMore"),
+            entitlement = parsePullEntitlementOrNull(response = response)
         )
+    }
+
+    /** Decoded apart from the hot-change contract, so a bad entitlement keeps the last one and never stops sync. */
+    private fun parsePullEntitlementOrNull(response: JSONObject): CloudEntitlement? {
+        return try {
+            response.optCloudObjectOrNull("entitlement", "pull.entitlement")?.let { entitlement ->
+                parseCloudEntitlement(json = entitlement, fieldPath = "pull.entitlement")
+            }
+        } catch (error: CloudContractMismatchException) {
+            logUnreadableCloudEntitlement(source = "pull", error = error)
+            null
+        }
     }
 
     suspend fun bootstrapPull(

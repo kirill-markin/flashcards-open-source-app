@@ -33,9 +33,10 @@ and resolving no workspace is not new in itself — `list_workspaces` and
 `get_guide` do neither either, and `get_guide` still requires its own `topic`.
 What is new is that its answer depends on the caller's *account kind*, since a
 limit is resolved per tier and account kind, so each adapter binds that kind
-from the credential it authenticated rather than the spec reading one. It is
-also the only way to read current AI consumption, which the entitlement the sync
-pull publishes deliberately leaves out ([premium
+from the credential it authenticated rather than the spec reading one. Beside
+the apps' `GET /v1/me/ai-usage`, which serves the same payload, it is also the
+only way to read current AI consumption, which the entitlement the sync pull
+publishes deliberately leaves out ([premium
 entitlements](premium-entitlements.md)).
 
 Every workspace-scoped registry spec takes the same optional `workspaceId`

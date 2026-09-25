@@ -18,9 +18,11 @@ Email + OTP authentication via AWS Cognito (passwordless).
     The first authenticated backend request (`apps/backend/src/auth/ensureUser.ts`) and an agent API
     key or OAuth/MCP connection (`apps/auth/src/server/agent/userWorkspace.ts`) are two such paths;
     a guest upgrade (`apps/backend/src/guestAuth/upgrade/`) is another, and it binds the subject to
-    the id the guest session had already minted. Creation mints the id and binds the subject in one
-    transaction, and every path that creates or binds takes one advisory lock keyed by the subject,
-    so only one of them ever gets to create.
+    the id the guest session had already minted. A path that mints an id for a subject binds the
+    subject to it in the same transaction, and every path that creates or binds takes one advisory
+    lock keyed by the subject, so only one of them ever gets to create.
+  - This service refuses a subject in `auth.deleted_subjects` with `410 ACCOUNT_DELETED`, the code
+    the backend answers it with, before it resolves, adopts, or creates an account for it.
 - Guest sessions (`POST /v1/guest-auth/session`) are bound to `ios`, `android`, or `web`. A `web`
   guest session is an analytics credential only, sent as `Authorization: Guest <token>` to
   `POST /v1/analytics/events` alone. It is requested by the browser, lazily on a signed-out
@@ -85,6 +87,10 @@ Email + OTP authentication via AWS Cognito (passwordless).
       timeout, a statement timeout and the 5s transaction budget running out are `500 INTERNAL_ERROR`.
       Neither `500` serves a delay. Retrying is safe: the link and the revoke share one commit, so a
       repeat either redoes a request that stored nothing or meets the already-revoked no-op above.
+- A guest session whose user is bound in `auth.user_identities` is that account's.
+  `Authorization: Guest` refuses it with `401 GUEST_AUTH_INVALID` 7 days after the binding, a grace
+  for draining guest sync between upgrade `prepare` and `complete`; both upgrade routes refuse it at
+  once for any subject but the bound one.
 - `POST /v1/guest-auth/session` accepts an optional `idempotencyKey`. A retry carrying a key that
   still names a live session rotates that session's secret and returns the same guest user and
   workspace, so a lost response cannot leave one device with two guest identities. Client contract:

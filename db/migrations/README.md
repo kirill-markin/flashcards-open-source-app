@@ -15,6 +15,14 @@ production, and `scripts/checks/pr/check-migration-hygiene.mjs` rejects the diff
 makes an applied migration's header state something that is no longer true, the correction is
 recorded here instead of in the file.
 
+### `0001_initial_schema.sql` — `user_id` is not the provider's id
+
+Its inline comment on `org.user_settings.user_id` calls the column an "external identity provider ID
+(e.g. Cognito sub)". Guest sessions have minted their own ids since
+`0031_guest_ai_identity_and_quota.sql`, and since `0159_surrogate_user_identity.sql` a new account gets
+a minted id too, with `auth.user_identities` mapping the Cognito subject to it. The column is the
+product's own account id; `0159` holds the rule and `docs/auth-service.md` describes it.
+
 ### `0013_cards_query_indexes.sql` — the trigram index is gone
 
 Its header says "the trigram/search indexing remains relevant". `0133_drop_cards_search_trgm_index.sql`
@@ -38,6 +46,12 @@ the legacy payload-heavy sync feeds, `sync.changes` and `sync.applied_operations
 `0066` granted, it granted as an explicit column list rather than whole rows, which is why
 `ai.chat_runs.client_platform`, added by `0136_ai_chat_run_client_platform.sql` after `0066`
 enumerated that table, had to be named again in `0153`.
+
+### `0120_backfill_product_analytics_server_facts.sql` — the auth service pointer drifted
+
+Its header cites `apps/auth/src/server/agent/userWorkspace.ts:27-34` for the auth service's copy of
+the `org.user_settings` upsert. Those lines no longer hold it; look up `upsertUserSettingsSql` in that
+file instead.
 
 ### `0128_catalog_educational_alignment.sql` — the guard list is out of date
 

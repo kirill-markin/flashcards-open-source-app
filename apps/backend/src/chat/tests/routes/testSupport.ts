@@ -13,13 +13,16 @@ export const LEGACY_WORKSPACE_ID = "workspace-legacy";
 
 // Starting a turn resolves the caller's monthly AI allowance, which reads the billing tables, and then
 // compares it against the month's usage facts inside the run transaction. These route tests stub both
-// halves, with the uncapped allowance a signed-in caller resolves and the refusal it can never reach.
+// halves, with the uncapped allowance a free signed-in caller resolves and the refusal it can never
+// reach, and the heavy-spend report that reads the same facts.
 export const aiUsageAllowanceTestOptions = {
   resolveAiUsageAllowanceForEnforcementFn: async (): Promise<AiUsageAllowance> => ({
     tier: "free",
-    monthlyWeightedTokens: null,
+    accountKind: "account",
+    monthlyMessages: null,
   }),
   assertAiUsageAllowanceNotReachedFn: async (): Promise<void> => undefined,
+  reportHeavyAiUsageWeightedTokensFn: async (): Promise<void> => undefined,
 } as const;
 
 export function createRequestContext(): RequestContext {
@@ -107,11 +110,11 @@ export function createExpectedChatConfig(): Record<string, unknown> {
     model: {
       id: "gpt-6-sol",
       label: "GPT-6 Sol",
-      badgeLabel: "GPT-6 Sol · XHigh",
+      badgeLabel: "GPT-6 Sol · Medium",
     },
     reasoning: {
-      effort: "xhigh",
-      label: "XHigh",
+      effort: "medium",
+      label: "Medium",
     },
     features: {
       modelPickerEnabled: false,
