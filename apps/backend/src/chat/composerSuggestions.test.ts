@@ -37,7 +37,7 @@ test("generateFollowUpChatComposerSuggestions uses the configured request metada
   );
 
   assert.equal(capturedRequests.length, 1);
-  assert.equal(capturedRequests[0].model, "gpt-5.6-terra");
+  assert.equal(capturedRequests[0].model, "gpt-6-sol");
   assert.equal(capturedRequests[0].reasoning?.effort, "none");
   assert.equal(capturedRequests[0].safety_identifier, buildOpenAISafetyIdentifier("user-1"));
   assert.equal(Object.hasOwn(capturedRequests[0], "user"), false);
