@@ -102,6 +102,12 @@ final class FlashcardsStore {
     var queuedTransientBanners: [TransientBanner]
     var isTestModeEnabled: Bool
     var aiChatComposerSuggestionsEnabled: Bool
+    /// The "Use my own OpenAI key" switch; the key itself is read from the Keychain only when needed.
+    var isOwnOpenAIKeyEnabled: Bool
+    /// Whether AI requests carry the person's own key now: the switch is on and the stored key is not empty.
+    var isOwnOpenAIKeyActive: Bool
+    /// The last `GET /me/ai-usage` read; see `FlashcardsStore+AIUsage`.
+    var aiUsageSnapshot: AIUsageSnapshot?
     var reviewNotificationsSettings: ReviewNotificationsSettings
     var strictRemindersSettings: StrictRemindersSettings
     var reviewReminderAttentionState: ReviewReminderAttentionState?
@@ -482,6 +488,10 @@ final class FlashcardsStore {
         self.queuedTransientBanners = []
         self.isTestModeEnabled = userDefaults.bool(forKey: testModeEnabledUserDefaultsKey)
         self.aiChatComposerSuggestionsEnabled = loadAIChatComposerSuggestionsEnabled(userDefaults: userDefaults)
+        self.isOwnOpenAIKeyEnabled = loadOwnOpenAIKeyEnabled(userDefaults: userDefaults)
+        // Read from the Keychain once every property is set, at the end of this initializer.
+        self.isOwnOpenAIKeyActive = false
+        self.aiUsageSnapshot = nil
         self.reviewNotificationsSettings = makeDefaultReviewNotificationsSettings()
         self.strictRemindersSettings = loadStrictRemindersSettings(
             userDefaults: userDefaults,
@@ -623,6 +633,16 @@ final class FlashcardsStore {
             decoder: decoder,
             workspaceId: self.workspace?.workspaceId
         )
+
+        do {
+            try self.reloadOwnOpenAIKeyActive()
+        } catch {
+            // Sending reads the same Keychain item and fails with its own error, so no request runs on the platform key.
+            logAIChatStoreEvent(
+                action: "own_openai_key_read_failed",
+                metadata: ["error": Flashcards.errorMessage(error: error)]
+            )
+        }
 
         if self.userDefaults.bool(forKey: accountDeletionPendingUserDefaultsKey) {
             self.accountDeletionState = .inProgress

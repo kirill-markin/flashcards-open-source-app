@@ -13,6 +13,27 @@ extension AIChatStore {
         )
     }
 
+    /**
+     Shown at once from the usage already read, never after a network read. The renewal date is named only
+     while that read is for the current month; otherwise the copy names no date.
+     */
+    func showAccountAILimitReachedError() {
+        let currentMonthUsage: AIMonthlyUsage? = self.flashcardsStore.currentAIMonthlyUsage.flatMap {
+            (usage: AIMonthlyUsage) -> AIMonthlyUsage? in
+            usage.monthEndsAt > Date() ? usage : nil
+        }
+        self.showGeneralError(message: aiChatAccountLimitReachedMessage(usage: currentMonthUsage))
+    }
+
+    /// A run that fails on the person's own key ends with OpenAI's text, which is shown under the key prefix.
+    func aiChatRunFailureAlertMessage(message: String) -> String {
+        guard self.flashcardsStore.isOwnOpenAIKeyActive else {
+            return message
+        }
+
+        return aiChatOwnOpenAIKeyErrorMessage(providerMessage: message)
+    }
+
     func showResumeGeneralError(message: String, resumeAttemptSequence: Int) {
         self.activeResumeErrorAttemptSequence = resumeAttemptSequence
         self.activeAlert = .generalError(
