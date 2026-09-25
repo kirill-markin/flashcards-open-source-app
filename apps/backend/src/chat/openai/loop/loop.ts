@@ -161,6 +161,7 @@ async function recordModelCallUsage(
     imageCount: null,
     imageSize: null,
     imageQuality: null,
+    userSuppliedKey: false,
   });
 }
 

@@ -166,7 +166,7 @@ test("a person without purchases or grants resolves to the free tier and is cach
         until: null,
         isTrial: false,
         willRenew: false,
-        limits: { aiMonthlyWeightedTokens: null },
+        limits: { aiMonthlyMessages: null, aiMonthlyWeightedTokens: null },
       });
 
       const cachedAfterFirst = await fixture.ownerPool.query<EntitlementSnapshotStateRow>(
@@ -245,7 +245,7 @@ test("the sync pull response publishes the highest-ranked entitlement that curre
         until: null,
         isTrial: false,
         willRenew: false,
-        limits: { aiMonthlyWeightedTokens: null },
+        limits: { aiMonthlyMessages: 1000, aiMonthlyWeightedTokens: null },
       });
       const cachedAfterGrant = await fixture.ownerPool.query<EntitlementSnapshotStateRow>(
         entitlementSnapshotStateQuery,
@@ -267,7 +267,7 @@ test("the sync pull response publishes the highest-ranked entitlement that curre
         until: purchaseUntil.toISOString(),
         isTrial: false,
         willRenew: true,
-        limits: { aiMonthlyWeightedTokens: null },
+        limits: { aiMonthlyMessages: 1000, aiMonthlyWeightedTokens: null },
       });
       const cachedAfterRevoke = await fixture.ownerPool.query<EntitlementSnapshotStateRow>(
         entitlementSnapshotStateQuery,
@@ -291,7 +291,7 @@ test("the sync pull response publishes the highest-ranked entitlement that curre
         until: null,
         isTrial: false,
         willRenew: false,
-        limits: { aiMonthlyWeightedTokens: null },
+        limits: { aiMonthlyMessages: null, aiMonthlyWeightedTokens: null },
       });
       const cachedAfterExpiry = await fixture.ownerPool.query<EntitlementSnapshotStateRow>(
         entitlementSnapshotStateQuery,
