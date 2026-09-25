@@ -392,6 +392,7 @@ export type WebAppOperation =
   | "friend_invitation_create"
   | "friend_invitation_preview"
   | "friend_invitation_share"
+  | "ai_usage_load"
   | "chat_attachment_prepare"
   | "chat_dictation_start"
   | "chat_dictation_transcribe"
