@@ -893,6 +893,21 @@ const urCatalog: TranslationCatalog = {
     toggleTitle: "AI چیٹ کے کمپوزر میں تجاویز دکھائیں",
     toggleDescription: "چیٹ خالی اور تیار ہونے پر تجویز کردہ پرامپٹ کمپوزر کے اوپر ظاہر ہوتے ہیں۔",
   },
+  ownOpenAIKeySettings: {
+    title: "آپ کی OpenAI کلید",
+    subtitle: "اپنے OpenAI اکاؤنٹ کے ذریعے AI استعمال کریں۔",
+    toggleTitle: "میری اپنی OpenAI کلید استعمال کریں",
+    toggleDescription: "اپنی کلید کے ساتھ AI چیٹ، ڈکٹیشن اور کارڈ کی تصاویر آپ کے OpenAI اکاؤنٹ پر چلتی ہیں، کسی بھی پلان میں ماہانہ حد کے بغیر۔ جب تک آپ کی کلید آن ہے، تجویز کردہ جوابات بند رہتے ہیں۔ ہم آپ کی کلید کبھی اپنے سرورز پر محفوظ نہیں کرتے: یہ اسی ڈیوائس پر رہتی ہے اور صرف آپ کی AI درخواستوں کے ساتھ بھیجی جاتی ہے، اس لیے اسے iOS، Android اور ویب پر الگ الگ درج کریں۔",
+    apiKeyLabel: "OpenAI API کلید",
+    apiKeyInvalid: "یہ کلید استعمال نہیں کی جا سکتی۔ OpenAI کلید میں صرف لاطینی حروف، ہندسے اور علامات ہوتی ہیں اور زیادہ سے زیادہ 512 حروف۔ جب تک آپ اسے درست نہیں کرتے، AI درخواستیں آپ کی کلید کے بغیر چلیں گی۔",
+    ownSpend: "اس ماہ آپ کی کلید کے ساتھ: {{count}}",
+    countLabels: {
+      message: {
+        one: "پیغام",
+        other: "پیغامات",
+      },
+    },
+  },
   analyticsConsentBanner: {
     label: "تجزیات کی کوکیز",
     message: "ہم ایک کوکی اور براؤزر کے دیگر اسٹوریج سے ماپتے ہیں کہ ایپ کیسے استعمال ہوتی ہے۔ آپ کے انتخاب سے پہلے یہ ایپ اس آلے پر کچھ محفوظ نہیں کرتی اور ایسا کچھ نہیں بھیجتی جو آپ کی شناخت کرے۔",
@@ -1306,6 +1321,15 @@ const urCatalog: TranslationCatalog = {
       sendAriaLabel: "پیغام بھیجیں",
       stopAriaLabel: "جواب روکیں",
     },
+    aiUsage: {
+      countLabels: {
+        aiMessage: {
+          one: "AI پیغام",
+          other: "AI پیغامات",
+        },
+      },
+      remaining: "اس ماہ باقی: {{count}}",
+    },
     alerts: {
       attachmentLimit: "پیغام بہت بڑا ہے۔ AI چیٹ اتنا مواد ایک ساتھ نہیں بھیج سکتی۔ ایک یا زیادہ منسلکات ہٹائیں، چھوٹی فائل یا تصویر چنیں، یا درخواست تقسیم کر کے دوبارہ کوشش کریں۔",
       attachmentUnsupported: "AI چیٹ اس فائل کی قسم کو معاونت نہیں دیتی۔ فائل ہٹائیں یا اسے PDF، TXT، CSV، JSON، XML، Markdown، HTML، Python، JavaScript، TypeScript، YAML، XLS/XLSX، DOCX یا تصویر کے طور پر محفوظ کر کے دوبارہ کوشش کریں۔",
@@ -1327,11 +1351,14 @@ const urCatalog: TranslationCatalog = {
     errorTitle: "AI چیٹ کی خرابی",
     errors: {
       activeRunInProgress: "جواب پہلے ہی جاری ہے۔ نیا پیغام بھیجنے سے پہلے اس کے ختم ہونے کا انتظار کریں یا اسے روک دیں۔",
-      aiLimitReached: "اس ماہ کے لیے آپ کی AI کی حد ختم ہو گئی ہے۔ یہ اگلے ماہ کے آغاز پر ری سیٹ ہو جائے گی۔",
+      aiLimitReachedAccount: "آپ اس ماہ کے AI پیغامات استعمال کر چکے ہیں۔ یہ {{date}} کو تجدید ہوں گے۔ جاری رکھنے کے لیے آپ ترتیبات میں اپنی OpenAI کلید شامل کر سکتے ہیں۔",
+      aiLimitReachedAccountNoDate: "آپ اس ماہ کے AI پیغامات استعمال کر چکے ہیں۔ جاری رکھنے کے لیے آپ ترتیبات میں اپنی OpenAI کلید شامل کر سکتے ہیں۔",
+      aiLimitReachedGuest: "آپ اس ماہ کے مفت AI پیغامات استعمال کر چکے ہیں۔ جاری رکھنے کے لیے اکاؤنٹ بنائیں یا ترتیبات میں اپنی OpenAI کلید شامل کریں۔",
       emptyBackendResponse: "بیک اینڈ نے خالی خرابی کا جواب دیا۔",
       genericFailure: "AI چیٹ ناکام رہی۔",
       liveStreamEndedBeforeCompletion: "AI کی لائیو اسٹریم رن مکمل ہونے سے پہلے ختم ہو گئی۔",
       newChatFailedPrefix: "نئی چیٹ ناکام رہی۔",
+      ownOpenAIKeyPrefix: "آپ کی اپنی OpenAI کلید آن ہے۔ OpenAI نے آپ کی کلید کے لیے یہ خرابی واپس کی۔ اسے اپنے OpenAI اکاؤنٹ میں ٹھیک کریں اور دوبارہ کوشش کریں۔",
       refreshFailedPrefix: "چیٹ تازہ کرنا ناکام رہا۔",
       requestFailedPrefix: "چیٹ کی درخواست ناکام رہی۔",
       stopFailedPrefix: "چیٹ روکنا ناکام رہا۔",

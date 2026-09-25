@@ -893,6 +893,21 @@ const isCatalog: TranslationCatalog = {
     toggleTitle: "Sýna tillögur í ritreit gervigreindarspjallsins",
     toggleDescription: "Tillögur birtast fyrir ofan ritreitinn þegar spjallið er aðgerðalaust og tilbúið.",
   },
+  ownOpenAIKeySettings: {
+    title: "OpenAI-lykillinn þinn",
+    subtitle: "Notaðu gervigreind í gegnum þinn eigin OpenAI-reikning.",
+    toggleTitle: "Nota minn eigin OpenAI-lykil",
+    toggleDescription: "Með þínum eigin lykli keyra gervigreindarspjall, talgreining og spjaldmyndir á OpenAI-reikningnum þínum, án mánaðarlegs hámarks í hvaða áskrift sem er. Tillögur að svörum eru óvirkar á meðan lykillinn er virkur. Við geymum lykilinn þinn aldrei á netþjónum okkar: hann helst á þessu tæki og er aðeins sendur með gervigreindarbeiðnum þínum, svo sláðu hann inn sérstaklega í iOS, Android og á vefnum.",
+    apiKeyLabel: "OpenAI API-lykill",
+    apiKeyInvalid: "Ekki er hægt að nota þennan lykil. OpenAI-lykill inniheldur aðeins latneska stafi, tölustafi og tákn og mest 512 stafi. Þar til þú lagar hann keyra gervigreindarbeiðnir án lykilsins þíns.",
+    ownSpend: "Í þessum mánuði með lyklinum þínum: {{count}}",
+    countLabels: {
+      message: {
+        one: "skilaboð",
+        other: "skilaboð",
+      },
+    },
+  },
   analyticsConsentBanner: {
     label: "Greiningarvafrakökur",
     message: "Við notum vafraköku og aðra geymslu vafrans til að mæla hvernig forritið er notað. Þar til þú velur geymir forritið ekkert á þessu tæki og sendir ekkert sem auðkennir þig.",
@@ -1306,6 +1321,15 @@ const isCatalog: TranslationCatalog = {
       sendAriaLabel: "Senda skilaboð",
       stopAriaLabel: "Stöðva svar",
     },
+    aiUsage: {
+      countLabels: {
+        aiMessage: {
+          one: "gervigreindarskilaboð",
+          other: "gervigreindarskilaboð",
+        },
+      },
+      remaining: "Eftir í þessum mánuði: {{count}}",
+    },
     alerts: {
       attachmentLimit: "Skilaboðin eru of stór. Gervigreindarspjallið getur ekki sent svona mikið efni í einu. Fjarlægðu eitt eða fleiri viðhengi, veldu minni skrá eða mynd, eða skiptu beiðninni upp og reyndu aftur.",
       attachmentUnsupported: "Þessi skráartegund er ekki studd í gervigreindarspjallinu. Fjarlægðu skrána eða vistaðu hana sem PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX eða mynd og reyndu svo aftur.",
@@ -1327,11 +1351,14 @@ const isCatalog: TranslationCatalog = {
     errorTitle: "Villa í gervigreindarspjalli",
     errors: {
       activeRunInProgress: "Svar er þegar í vinnslu. Bíddu þar til því lýkur eða stöðvaðu það áður en þú sendir önnur skilaboð.",
-      aiLimitReached: "Þú hefur fullnýtt gervigreindarhámarkið þitt fyrir þennan mánuð. Það endurstillist í byrjun næsta mánaðar.",
+      aiLimitReachedAccount: "Þú hefur notað gervigreindarskilaboð þessa mánaðar. Þau endurnýjast {{date}}. Þú getur bætt við þínum eigin OpenAI-lykli í Stillingum til að halda áfram.",
+      aiLimitReachedAccountNoDate: "Þú hefur notað gervigreindarskilaboð þessa mánaðar. Þú getur bætt við þínum eigin OpenAI-lykli í Stillingum til að halda áfram.",
+      aiLimitReachedGuest: "Þú hefur notað ókeypis gervigreindarskilaboð þessa mánaðar. Stofnaðu aðgang eða bættu við þínum eigin OpenAI-lykli í Stillingum til að halda áfram.",
       emptyBackendResponse: "Bakendinn skilaði tómu villusvari.",
       genericFailure: "Gervigreindarspjall mistókst.",
       liveStreamEndedBeforeCompletion: "Beinstreymi gervigreindar lauk áður en keyrslunni lauk.",
       newChatFailedPrefix: "Nýtt spjall mistókst.",
+      ownOpenAIKeyPrefix: "Þinn eigin OpenAI-lykill er virkur. OpenAI skilaði þessari villu fyrir lykilinn þinn. Lagaðu hana á OpenAI-reikningnum þínum og reyndu aftur.",
       refreshFailedPrefix: "Uppfærsla spjalls mistókst.",
       requestFailedPrefix: "Beiðni spjalls mistókst.",
       stopFailedPrefix: "Ekki tókst að stöðva spjall.",

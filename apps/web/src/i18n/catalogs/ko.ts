@@ -893,6 +893,21 @@ const koCatalog: TranslationCatalog = {
     toggleTitle: "AI 채팅 입력창에 추천 표시",
     toggleDescription: "채팅이 대기 상태일 때 입력창 위에 추천 프롬프트가 나타납니다.",
   },
+  ownOpenAIKeySettings: {
+    title: "내 OpenAI 키",
+    subtitle: "내 OpenAI 계정으로 AI를 사용합니다.",
+    toggleTitle: "내 OpenAI 키 사용",
+    toggleDescription: "내 키를 사용하면 AI 채팅, 받아쓰기, 카드 이미지가 내 OpenAI 계정에서 실행되며 어떤 요금제에서도 월간 한도가 없습니다. 키가 켜져 있는 동안에는 추천 답변이 꺼집니다. 키는 저희 서버에 절대 저장되지 않습니다. 이 기기에만 보관되고 AI 요청과 함께만 전송되므로 iOS, Android, 웹에서 각각 입력하세요.",
+    apiKeyLabel: "OpenAI API 키",
+    apiKeyInvalid: "이 키는 사용할 수 없습니다. OpenAI 키는 라틴 문자, 숫자, 기호로만 이루어지며 최대 512자입니다. 수정하기 전까지 AI 요청은 내 키 없이 실행됩니다.",
+    ownSpend: "이번 달 내 키 사용량: {{count}}",
+    countLabels: {
+      message: {
+        one: "개의 메시지",
+        other: "개의 메시지",
+      },
+    },
+  },
   analyticsConsentBanner: {
     label: "분석 쿠키",
     message: "앱이 어떻게 사용되는지 측정하기 위해 쿠키와 브라우저 저장소를 사용합니다. 선택하기 전까지는 이 기기에 아무것도 저장하지 않고, 신원을 알 수 있는 정보도 보내지 않습니다.",
@@ -1306,6 +1321,15 @@ const koCatalog: TranslationCatalog = {
       sendAriaLabel: "메시지 보내기",
       stopAriaLabel: "응답 중지",
     },
+    aiUsage: {
+      countLabels: {
+        aiMessage: {
+          one: "개의 AI 메시지",
+          other: "개의 AI 메시지",
+        },
+      },
+      remaining: "이번 달 잔여: {{count}}",
+    },
     alerts: {
       attachmentLimit: "메시지가 너무 큽니다. AI 채팅은 한 번에 이만큼의 내용을 보낼 수 없습니다. 첨부 파일을 줄이거나, 더 작은 파일이나 사진을 고르거나, 요청을 나눠서 다시 시도해 주세요.",
       attachmentUnsupported: "이 파일 형식은 AI 채팅에서 지원하지 않습니다. 파일을 빼거나 PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX 또는 이미지로 저장한 뒤 다시 시도해 주세요.",
@@ -1327,11 +1351,14 @@ const koCatalog: TranslationCatalog = {
     errorTitle: "AI 채팅 오류",
     errors: {
       activeRunInProgress: "이미 응답을 생성하고 있습니다. 끝날 때까지 기다리거나 중지한 뒤 다음 메시지를 보내세요.",
-      aiLimitReached: "이번 달 AI 사용 한도를 모두 사용했습니다. 한도는 다음 달 초에 초기화됩니다.",
+      aiLimitReachedAccount: "이번 달 AI 메시지를 모두 사용했습니다. {{date}}에 갱신됩니다. 계속하려면 설정에서 내 OpenAI 키를 추가할 수 있습니다.",
+      aiLimitReachedAccountNoDate: "이번 달 AI 메시지를 모두 사용했습니다. 계속하려면 설정에서 내 OpenAI 키를 추가할 수 있습니다.",
+      aiLimitReachedGuest: "이번 달 무료 AI 메시지를 모두 사용했습니다. 계속하려면 계정을 만들거나 설정에서 내 OpenAI 키를 추가하세요.",
       emptyBackendResponse: "백엔드가 빈 오류 응답을 반환했습니다.",
       genericFailure: "AI 채팅에 실패했습니다.",
       liveStreamEndedBeforeCompletion: "실행이 끝나기 전에 AI 라이브 스트림이 종료되었습니다.",
       newChatFailedPrefix: "새 채팅을 시작하지 못했습니다.",
+      ownOpenAIKeyPrefix: "내 OpenAI 키가 켜져 있습니다. OpenAI가 내 키에 대해 이 오류를 반환했습니다. OpenAI 계정에서 문제를 해결한 후 다시 시도하세요.",
       refreshFailedPrefix: "채팅을 새로 고치지 못했습니다.",
       requestFailedPrefix: "채팅 요청에 실패했습니다.",
       stopFailedPrefix: "채팅을 중지하지 못했습니다.",

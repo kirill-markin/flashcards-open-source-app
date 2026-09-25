@@ -893,6 +893,21 @@ const daCatalog: TranslationCatalog = {
     toggleTitle: "Vis forslag i AI-chattens skrivefelt",
     toggleDescription: "Foreslåede prompter vises over skrivefeltet, når chatten er klar og inaktiv.",
   },
+  ownOpenAIKeySettings: {
+    title: "Din OpenAI-nøgle",
+    subtitle: "Brug AI via din egen OpenAI-konto.",
+    toggleTitle: "Brug min egen OpenAI-nøgle",
+    toggleDescription: "Med din egen nøgle kører AI-chat, diktering og kortbilleder på din OpenAI-konto uden månedlig grænse på alle abonnementer. Foreslåede svar er slået fra, mens din nøgle er slået til. Vi gemmer aldrig din nøgle på vores servere: den bliver på denne enhed og sendes kun med dine AI-forespørgsler, så indtast den separat på iOS, Android og nettet.",
+    apiKeyLabel: "OpenAI API-nøgle",
+    apiKeyInvalid: "Denne nøgle kan ikke bruges. En OpenAI-nøgle har kun latinske bogstaver, cifre og symboler og højst 512 tegn. Indtil du retter den, kører AI-anmodninger uden din nøgle.",
+    ownSpend: "Denne måned med din nøgle: {{count}}",
+    countLabels: {
+      message: {
+        one: "besked",
+        other: "beskeder",
+      },
+    },
+  },
   analyticsConsentBanner: {
     label: "Analysecookies",
     message: "Vi bruger en cookie og andet browserlager til at måle, hvordan appen bliver brugt. Indtil du vælger, gemmer appen intet på denne enhed og sender intet, der kan identificere dig.",
@@ -1306,6 +1321,15 @@ const daCatalog: TranslationCatalog = {
       sendAriaLabel: "Send besked",
       stopAriaLabel: "Stop svaret",
     },
+    aiUsage: {
+      countLabels: {
+        aiMessage: {
+          one: "AI-besked",
+          other: "AI-beskeder",
+        },
+      },
+      remaining: "{{count}} tilbage denne måned",
+    },
     alerts: {
       attachmentLimit: "Beskeden er for stor. AI-chatten kan ikke sende så meget indhold på én gang. Fjern en eller flere vedhæftninger, vælg en mindre fil eller et mindre billede, eller del anmodningen op og prøv igen.",
       attachmentUnsupported: "Denne filtype understøttes ikke i AI-chatten. Fjern filen, eller gem den som PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX eller et billede, og prøv igen.",
@@ -1327,11 +1351,14 @@ const daCatalog: TranslationCatalog = {
     errorTitle: "Fejl i AI-chatten",
     errors: {
       activeRunInProgress: "Der er allerede et svar undervejs. Vent til det er færdigt, eller stop det, før du sender en ny besked.",
-      aiLimitReached: "Du har brugt hele din AI-grænse for denne måned. Den nulstilles i begyndelsen af næste måned.",
+      aiLimitReachedAccount: "Du har brugt denne måneds AI-beskeder. De fornyes den {{date}}. Du kan tilføje din egen OpenAI-nøgle i Indstillinger for at fortsætte.",
+      aiLimitReachedAccountNoDate: "Du har brugt denne måneds AI-beskeder. Du kan tilføje din egen OpenAI-nøgle i Indstillinger for at fortsætte.",
+      aiLimitReachedGuest: "Du har brugt denne måneds gratis AI-beskeder. Opret en konto, eller tilføj din egen OpenAI-nøgle i Indstillinger for at fortsætte.",
       emptyBackendResponse: "Backend returnerede et tomt fejlsvar.",
       genericFailure: "AI-chatten mislykkedes.",
       liveStreamEndedBeforeCompletion: "AI-livestrømmen sluttede, før kørslen var færdig.",
       newChatFailedPrefix: "Ny chat mislykkedes.",
+      ownOpenAIKeyPrefix: "Din egen OpenAI-nøgle er slået til. OpenAI returnerede denne fejl for din nøgle. Ret den på din OpenAI-konto, og prøv igen.",
       refreshFailedPrefix: "Opdatering af chatten mislykkedes.",
       requestFailedPrefix: "Chatanmodningen mislykkedes.",
       stopFailedPrefix: "Det mislykkedes at stoppe chatten.",
