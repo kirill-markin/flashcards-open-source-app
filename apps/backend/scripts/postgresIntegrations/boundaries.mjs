@@ -219,6 +219,16 @@ export const boundaryDefinitions = Object.freeze([
   // SQL can run against at all. It is pinned here rather than left unlisted because an unlisted
   // integration file is never executed by any workflow, and the stickiness guards it covers are
   // invisible to the route's unit tests, which hold a mock of the update function.
+  // auth/surrogateUserId joins it for the first of those two reasons alone: it calls
+  // ensureCognitoUserProfile, so it runs the same shared profile read this entry exists for and
+  // cannot go below this migration. Nothing in it names a column any later migration added - the
+  // mint it proves writes org.user_settings and auth.user_identities, both far older - so this is
+  // the earliest schema it can run against rather than a pin on what production runs. It covers
+  // what only a database can show about a minted account id: that a first-ever subject is bound to
+  // an id that is not itself, that a second request resolves through that binding instead of
+  // minting again, and that a subject already holding an unmapped account adopts it. The
+  // profile-before-mapping order all three rest on is a foreign key
+  // (db/migrations/0031_guest_ai_identity_and_quota.sql), which no fake executor enforces.
   Object.freeze({
     migrationFileName: "0149_product_analytics_off_switch.sql",
     expectedMigrationCount: 151,
@@ -228,6 +238,7 @@ export const boundaryDefinitions = Object.freeze([
     // 0154. Neither is here for the profile read: they authenticate nothing.
     testFiles: Object.freeze([
       "src/agent/reviews.postgres.integration.ts",
+      "src/auth/surrogateUserId.postgres.integration.ts",
       "src/routes/system/account/accountPreferences.postgres.integration.ts",
     ]),
   }),
