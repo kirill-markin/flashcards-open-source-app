@@ -119,11 +119,17 @@ const webGuestReaperSaturationMetricValue: string =
 const geoLiteCountryMetricNamespace: string = "FlashcardsOpenSourceApp/GeoLiteCountry";
 const geoLiteCountryLookupFailureMetricName: string = "LookupFailures";
 const geoLiteCountryDatabasePublishedAgeMetricName: string = "DatabasePublishedAgeHours";
-// The consent route's own record for a lookup that threw. Deliberately not a count of unresolved
-// addresses: apps/backend/src/geolocation/country.ts returns null for an address the database has
-// no country for - a private range, an unallocated block - and throws only when the database itself
-// is unusable, so ordinary traffic cannot reach this metric at all.
-const geoLiteCountryLookupFailureAction: string = "analytics_visitor_country_lookup_failed";
+// Every route that records a lookup that threw, on one metric, because the cause and the runbook
+// are the same unusable database: the consent route (apps/backend/src/routes/analyticsVisitor.ts)
+// and the credential-free collector (apps/backend/src/routes/anonymousAnalytics.ts), which refuses
+// the event rather than storing a null country. Deliberately not a count of unresolved addresses:
+// apps/backend/src/geolocation/country.ts returns null for an address the database has no country
+// for - a private range, an unallocated block - and throws only when the database itself is
+// unusable, so ordinary traffic cannot reach this metric at all.
+const geoLiteCountryLookupFailureActions: ReadonlyArray<string> = [
+  "analytics_visitor_country_lookup_failed",
+  "anonymous_analytics_country_lookup_failed",
+];
 const geoLiteCountryDatabaseLoadedAction: string = "geolite_country_database_loaded";
 // Fifteen minutes is long enough for the three retries inside one download
 // (apps/backend/src/geolocation/storage.ts) to have played out, and the two consecutive periods
@@ -188,10 +194,12 @@ export function createWebGuestReaperSaturationFilterPattern(): logs.IFilterPatte
 }
 
 export function createGeoLiteCountryLookupFailureFilterPattern(): logs.IFilterPattern {
-  return logs.FilterPattern.stringValue(
-    "$.message.action",
-    "=",
-    geoLiteCountryLookupFailureAction,
+  return logs.FilterPattern.any(
+    ...geoLiteCountryLookupFailureActions.map((action: string) => logs.FilterPattern.stringValue(
+      "$.message.action",
+      "=",
+      action,
+    )),
   );
 }
 
@@ -925,12 +933,14 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
   // Two alarms on one dependency, because its two ways of breaking have nothing in common.
   //
   // What both protect: `isConsentRequiredForRequest` (apps/backend/src/routes/analyticsVisitor.ts)
-  // treats a country it cannot determine as consent-required, so a GeoLite database that stops
-  // working is not an outage - it silently shows the consent banner to every visitor on earth
-  // rather than to the EEA and the UK, and analytics coverage collapses everywhere with nothing
-  // erroring. Neither of these conditions raises a 5xx, appears in Lambda Errors, or reaches any
-  // other alarm in this stack. Both filters read the backend API Lambda's log group; see the log
-  // group comment in ./product-analytics-monitoring.ts for why `.logGroup` is the right handle.
+  // treats a country it cannot determine as consent-required, so on that route a GeoLite database
+  // that stops working does not even error - it silently shows the consent banner to every visitor
+  // on earth rather than to the EEA and the UK, and analytics coverage collapses everywhere.
+  // Neither condition appears in Lambda Errors. The hard failure does also raise the API Gateway
+  // 5XX alarm, because the credential-free collector refuses its events rather than storing a null
+  // country, but these two alarms are the only ones that name the cause. Both filters read the
+  // backend API Lambda's log group; see the log group comment in
+  // ./product-analytics-monitoring.ts for why `.logGroup` is the right handle.
 
   // Hard failure: the object is gone or unreadable, the environment is unconfigured, the database
   // is the wrong type, or it has already crossed the 30-day cliff. All of them throw out of the
@@ -947,11 +957,10 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
       defaultValue: 0,
     },
   );
-  // The threshold is one failure, not a rate: nothing a visitor does produces this record, and the
-  // volume that would reach a higher threshold does not exist on this route at this product's
-  // stage, so a count tuned to traffic would simply never fire. The guard against paging on a
-  // transient S3 incident is the two consecutive periods instead, which a single failed download
-  // cannot span.
+  // The threshold is one failure, not a rate: ordinary traffic cannot produce this record at all,
+  // so a single occurrence already means the database is unusable and a count tuned to traffic
+  // would only delay the page. The guard against paging on a transient S3 incident is the two
+  // consecutive periods instead, which a single failed download cannot span.
   notifyAlertTopic(new cloudwatch.Alarm(scope, "GeoLiteCountryLookupFailureAlarm", {
     metric: geoLiteCountryLookupFailureMetricFilter.metric({
       period: cdk.Duration.minutes(geoLiteCountryLookupFailurePeriodMinutes),
@@ -965,10 +974,13 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
       "GeoLite country lookup threw in each of " +
       `${geoLiteCountryLookupFailureEvaluationPeriods} consecutive ` +
       `${geoLiteCountryLookupFailurePeriodMinutes}-minute periods, so the database is missing, ` +
-      "unreadable, the wrong type, or past its 30-day limit and every visitor worldwide is being " +
-      "treated as consent-required. An address the database simply has no country for returns null " +
-      "and never reaches this metric. Check the private GeoLite bucket and the last GeoLite " +
-      "Country Refresh run; docs/geolite-country.md has the runbook",
+      "unreadable, the wrong type, or past its 30-day limit: every visitor worldwide is being " +
+      "treated as consent-required and every credential-free analytics event that carries a " +
+      "country is being refused with a 500 rather than stored without one, while the events " +
+      "exempt from carrying one (docs/anonymous-client-analytics.md) keep landing with a 200. " +
+      "An address the database simply has no country for returns null and never reaches this " +
+      "metric. Check the private GeoLite bucket " +
+      "and the last GeoLite Country Refresh run; docs/geolite-country.md has the runbook",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
   }), alertTopic);
 
