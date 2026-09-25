@@ -3,21 +3,19 @@
  * This module is the canonical source for the fixed provider, model, and reasoning settings.
  */
 export const CHAT_VENDOR = "openai" as const;
-export const CHAT_MODEL_ID = "gpt-5.6-terra" as const;
+export const CHAT_MODEL_ID = "gpt-6-sol" as const;
 export const CHAT_MODEL_REASONING_EFFORT = "xhigh" as const;
 export const CHAT_MODEL_REASONING_SUMMARY = "auto" as const;
-export const CHAT_LOW_COST_MODEL_ID = "gpt-5.6-luna" as const;
+export const CHAT_LOW_COST_MODEL_ID = "gpt-6-luna" as const;
 export const CHAT_LOW_COST_MODEL_REASONING_EFFORT = "high" as const;
 export const CHAT_COMPOSER_SUGGESTIONS_REASONING_EFFORT = "none" as const;
-export const CHAT_MODEL_LABEL = "GPT-5.6 Terra" as const;
+export const CHAT_MODEL_LABEL = "GPT-6 Sol" as const;
 export const CHAT_PROVIDER_LABEL = "OpenAI" as const;
 export const CHAT_MODEL_REASONING_LABEL = "XHigh" as const;
 export const CHAT_MODEL_BADGE_LABEL = `${CHAT_MODEL_LABEL} · ${CHAT_MODEL_REASONING_LABEL}` as const;
 
 /**
- * Maximum estimated token size of replayed chat history sent to the model.
- *
- * The configured GPT-5.6 Terra and Luna models support a 1.05M-token context
+ * The configured models support a 1.05M-token context
  * window, but requests above 272K input tokens use long-context pricing. Token
  * sizes are estimated from character length, which under-counts dense,
  * non-Latin, and encrypted content. Cyrillic, CJK, and base64 reasoning tokenize
@@ -36,14 +34,12 @@ export const CHAT_HISTORY_REPLAY_TOKEN_BUDGET = 110_000 as const;
 
 /**
  * Conservative operating envelope in tokens. This intentionally stays below
- * the configured GPT-5.6 models' full context window to avoid crossing their
+ * the configured models' full context window to avoid crossing their
  * 272K input pricing threshold during long tool-driven runs.
  */
 export const CHAT_MODEL_OPERATING_CONTEXT_WINDOW_TOKENS = 272_000 as const;
 
 /**
- * Output headroom reserved on every model call via `max_output_tokens`.
- *
  * In the Responses API this cap covers reasoning tokens plus visible output
  * combined. We preserve the existing 32K output envelope for predictable cost
  * and latency with `xhigh` on the primary route and `high` on the low-cost
@@ -112,8 +108,6 @@ export const CHAT_MODEL: ChatModelDef = {
  */
 export function getChatConfig(): ChatConfig {
   return {
-    // Legacy response metadata for released clients at 1.5.0 and older. The
-    // backend remains the runtime authority for provider, model, and reasoning.
     provider: {
       id: CHAT_VENDOR,
       label: CHAT_PROVIDER_LABEL,
@@ -128,8 +122,6 @@ export function getChatConfig(): ChatConfig {
       label: CHAT_MODEL_REASONING_LABEL,
     },
     features: {
-      // Legacy response metadata for released clients at 1.5.0 and older;
-      // model selection is intentionally not client-selectable.
       modelPickerEnabled: false,
       dictationEnabled: true,
       attachmentsEnabled: true,
