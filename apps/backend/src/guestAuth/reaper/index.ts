@@ -474,9 +474,9 @@ async function reapWebGuestInExecutor(
     return { outcome: "skipped", workspaceId: guestWorkspaceId, reason: "workspace_not_sole_owned" };
   }
 
-  // Cascades org.workspace_memberships, auth.guest_sessions and auth.guest_ai_monthly_usage. The
-  // analytics schema holds no foreign key into org, so the guest's events and identity links
-  // survive untouched, which is deliberate.
+  // Cascades org.workspace_memberships and auth.guest_sessions. The analytics schema holds no
+  // foreign key into org, so the guest's events and identity links survive untouched, which is
+  // deliberate.
   //
   // This cascade is wider than the workspace probe above: org.user_settings is also the parent of
   // auth.user_identities, support.feedback_prompt_events and support.feedback_submissions, the

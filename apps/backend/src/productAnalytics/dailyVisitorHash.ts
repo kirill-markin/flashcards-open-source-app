@@ -13,12 +13,22 @@ export type DailyVisitorHashInputs = Readonly<{
 }>;
 
 // The consent decision is never recorded beside a hash, including the grant, which
-// consent_granted's catalog entry would otherwise allow. The database repeats this list in
-// product_events_daily_visitor_hash_shape.
+// consent_granted's and site_consent_granted's catalog entries would otherwise allow: both grants
+// are identity-bearing, so the identityFree check below passes them. Every surface that asks the
+// question belongs here, the marketing site's own banner included. The database repeats these six
+// names in product_events_daily_visitor_hash_shape, where 0156 also names the two site collection
+// switch events: those are refused here by the identityFree check below, and the constraint gives
+// them the same database backstop a consent fact has. The two agree on the switch through that flag
+// alone, so dropping identityFree from either entry would have this function compute a hash the
+// constraint still refuses, and the insert would fail with 23514 and lose the whole event rather
+// than store a NULL hash. The six names above cannot fail that way: both places refuse them.
 const consentEventNames: ReadonlySet<ProductAnalyticsEventName> = new Set<ProductAnalyticsEventName>([
   "consent_prompt_shown",
   "consent_granted",
   "consent_declined",
+  "site_consent_prompt_shown",
+  "site_consent_granted",
+  "site_consent_declined",
 ]);
 
 const dailyVisitorHashLength = 32;

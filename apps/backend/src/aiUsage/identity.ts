@@ -63,8 +63,9 @@ export async function anonymizeAiUsageForDeletedPersonInExecutor(
  *
  * There is no key to collide on. A row is keyed by `usage_event_id` and its counters are untouched, so
  * this is an `UPDATE` of two non-unique columns and one row per provider call still means one row; the
- * per-month collision a merged quota would face belongs to the retiring `auth.guest_ai_monthly_usage`,
- * whose primary key is `(user_id, usage_month)` and whose rows nothing carries over.
+ * per-month collision a merged quota would face belonged to `auth.guest_ai_monthly_usage`, whose
+ * primary key was `(user_id, usage_month)`; that table was dropped by
+ * `db/migrations/0157_drop_guest_ai_monthly_usage.sql` and its rows were not carried over.
  */
 export async function transferAiUsageToUpgradedAccountInExecutor(
   executor: DatabaseExecutor,
