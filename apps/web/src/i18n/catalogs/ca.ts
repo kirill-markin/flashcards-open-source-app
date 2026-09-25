@@ -893,6 +893,21 @@ const caCatalog: TranslationCatalog = {
     toggleTitle: "Mostra suggeriments al camp de missatge del xat d'IA",
     toggleDescription: "Els suggeriments de peticions apareixen damunt del camp de missatge quan el xat està inactiu i a punt.",
   },
+  ownOpenAIKeySettings: {
+    title: "La teva clau d'OpenAI",
+    subtitle: "Fes servir la IA amb el teu propi compte d'OpenAI.",
+    toggleTitle: "Fer servir la meva clau d'OpenAI",
+    toggleDescription: "Amb la teva pròpia clau, el xat d'IA, el dictat i les imatges de les targetes funcionen amb el teu compte d'OpenAI, sense límit mensual en cap pla. Les respostes suggerides es desactiven mentre la clau està activada. No desem mai la teva clau als nostres servidors: es queda en aquest dispositiu i només s'envia amb les teves sol·licituds d'IA, així que introdueix-la per separat a iOS, Android i el web.",
+    apiKeyLabel: "Clau d'API d'OpenAI",
+    apiKeyInvalid: "Aquesta clau no es pot fer servir. Una clau d'OpenAI només té lletres llatines, xifres i símbols, i com a màxim 512 caràcters. Fins que no la corregeixis, les sol·licituds d'IA funcionen sense la teva clau.",
+    ownSpend: "Aquest mes amb la teva clau: {{count}}",
+    countLabels: {
+      message: {
+        one: "missatge",
+        other: "missatges",
+      },
+    },
+  },
   analyticsConsentBanner: {
     label: "Galetes d'analítica",
     message: "Fem servir una galeta i altres emmagatzematges del navegador per mesurar com es fa servir l'app. Fins que no ho triïs, aquesta app no desa res en aquest dispositiu ni envia res que t'identifiqui.",
@@ -1306,6 +1321,15 @@ const caCatalog: TranslationCatalog = {
       sendAriaLabel: "Envia el missatge",
       stopAriaLabel: "Atura la resposta",
     },
+    aiUsage: {
+      countLabels: {
+        aiMessage: {
+          one: "missatge d'IA",
+          other: "missatges d'IA",
+        },
+      },
+      remaining: "Queden aquest mes: {{count}}",
+    },
     alerts: {
       attachmentLimit: "El missatge és massa gran. El xat d'IA no pot enviar tant de contingut alhora. Elimina un o més fitxers adjunts, tria un fitxer o una foto més petits, o divideix la petició i torna-ho a provar.",
       attachmentUnsupported: "Aquest tipus de fitxer no és compatible amb el xat d'IA. Elimina el fitxer o desa'l com a PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX o com a imatge i torna-ho a provar.",
@@ -1327,11 +1351,14 @@ const caCatalog: TranslationCatalog = {
     errorTitle: "Error del xat d'IA",
     errors: {
       activeRunInProgress: "Ja hi ha una resposta en curs. Espera que acabi o atura-la abans d'enviar un altre missatge.",
-      aiLimitReached: "Has esgotat el teu límit d'IA d'aquest mes. Es restableix al principi del mes que ve.",
+      aiLimitReachedAccount: "Has fet servir els missatges d'IA d'aquest mes. Es renoven el {{date}}. Per continuar, pots afegir la teva pròpia clau d'OpenAI a Configuració.",
+      aiLimitReachedAccountNoDate: "Has fet servir els missatges d'IA d'aquest mes. Per continuar, pots afegir la teva pròpia clau d'OpenAI a Configuració.",
+      aiLimitReachedGuest: "Has fet servir els missatges d'IA gratuïts d'aquest mes. Per continuar, crea un compte o afegeix la teva pròpia clau d'OpenAI a Configuració.",
       emptyBackendResponse: "El backend ha retornat una resposta d'error buida.",
       genericFailure: "El xat d'IA ha fallat.",
       liveStreamEndedBeforeCompletion: "La reproducció en directe d'IA s'ha acabat abans que finalitzés l'execució.",
       newChatFailedPrefix: "No s'ha pogut crear el xat nou.",
+      ownOpenAIKeyPrefix: "La teva pròpia clau d'OpenAI està activada. OpenAI ha retornat aquest error per a la teva clau. Corregeix-lo al teu compte d'OpenAI i torna-ho a provar.",
       refreshFailedPrefix: "No s'ha pogut actualitzar el xat.",
       requestFailedPrefix: "La petició del xat ha fallat.",
       stopFailedPrefix: "No s'ha pogut aturar el xat.",

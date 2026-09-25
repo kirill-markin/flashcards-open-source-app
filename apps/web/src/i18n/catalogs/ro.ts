@@ -902,6 +902,22 @@ const roCatalog: TranslationCatalog = {
     toggleTitle: "Arată sugestii în câmpul de mesaj al chatului AI",
     toggleDescription: "Instrucțiunile sugerate apar deasupra câmpului de mesaj când chatul este inactiv și pregătit.",
   },
+  ownOpenAIKeySettings: {
+    title: "Cheia ta OpenAI",
+    subtitle: "Folosește AI prin propriul cont OpenAI.",
+    toggleTitle: "Folosește propria mea cheie OpenAI",
+    toggleDescription: "Cu propria cheie, chatul AI, dictarea și imaginile fișelor rulează în contul tău OpenAI, fără limită lunară, indiferent de plan. Cât timp cheia este activă, răspunsurile sugerate sunt dezactivate. Nu îți stocăm niciodată cheia pe serverele noastre: rămâne pe acest dispozitiv și este trimisă doar împreună cu solicitările tale AI, așa că introdu-o separat pe iOS, Android și web.",
+    apiKeyLabel: "Cheie API OpenAI",
+    apiKeyInvalid: "Această cheie nu poate fi folosită. O cheie OpenAI conține doar litere latine, cifre și simboluri și cel mult 512 caractere. Până o corectezi, solicitările AI rulează fără cheia ta.",
+    ownSpend: "Luna aceasta cu cheia ta: {{count}}",
+    countLabels: {
+      message: {
+        one: "mesaj",
+        few: "mesaje",
+        other: "de mesaje",
+      },
+    },
+  },
   analyticsConsentBanner: {
     label: "Cookie-uri de analiză",
     message: "Folosim un cookie și alte forme de stocare în browser ca să măsurăm cum este folosită aplicația. Până când alegi, aplicația nu stochează nimic pe acest dispozitiv și nu trimite nimic care te identifică.",
@@ -1318,6 +1334,16 @@ const roCatalog: TranslationCatalog = {
       sendAriaLabel: "Trimite mesajul",
       stopAriaLabel: "Oprește răspunsul",
     },
+    aiUsage: {
+      countLabels: {
+        aiMessage: {
+          one: "mesaj AI",
+          few: "mesaje AI",
+          other: "de mesaje AI",
+        },
+      },
+      remaining: "Rămase luna aceasta: {{count}}",
+    },
     alerts: {
       attachmentLimit: "Mesajul este prea mare. Chatul AI nu poate trimite atât de mult conținut deodată. Elimină unul sau mai multe atașamente, alege un fișier sau o poză mai mică ori împarte cererea și încearcă din nou.",
       attachmentUnsupported: "Acest tip de fișier nu este acceptat în chatul AI. Elimină fișierul sau salvează-l ca PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX ori imagine, apoi încearcă din nou.",
@@ -1339,11 +1365,14 @@ const roCatalog: TranslationCatalog = {
     errorTitle: "Eroare în chatul AI",
     errors: {
       activeRunInProgress: "Un răspuns este deja în curs. Așteaptă să se termine sau oprește-l înainte de a trimite alt mesaj.",
-      aiLimitReached: "Ți-ai epuizat limita AI pentru luna aceasta. Se resetează la începutul lunii viitoare.",
+      aiLimitReachedAccount: "Ai folosit mesajele AI din luna aceasta. Se reînnoiesc pe {{date}}. Pentru a continua, poți adăuga propria cheie OpenAI în Setări.",
+      aiLimitReachedAccountNoDate: "Ai folosit mesajele AI din luna aceasta. Pentru a continua, poți adăuga propria cheie OpenAI în Setări.",
+      aiLimitReachedGuest: "Ai folosit mesajele AI gratuite din luna aceasta. Pentru a continua, creează un cont sau adaugă propria cheie OpenAI în Setări.",
       emptyBackendResponse: "Backendul a returnat un răspuns de eroare gol.",
       genericFailure: "Chatul AI a eșuat.",
       liveStreamEndedBeforeCompletion: "Fluxul AI în timp real s-a încheiat înainte de finalizarea execuției.",
       newChatFailedPrefix: "Crearea chatului nou a eșuat.",
+      ownOpenAIKeyPrefix: "Propria ta cheie OpenAI este activă. OpenAI a returnat această eroare pentru cheia ta. Remediaz-o în contul tău OpenAI și încearcă din nou.",
       refreshFailedPrefix: "Actualizarea chatului a eșuat.",
       requestFailedPrefix: "Cererea către chat a eșuat.",
       stopFailedPrefix: "Oprirea chatului a eșuat.",

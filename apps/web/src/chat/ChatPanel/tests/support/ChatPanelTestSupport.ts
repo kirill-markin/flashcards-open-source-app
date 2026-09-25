@@ -35,6 +35,7 @@ const {
   createNewChatSessionMock,
   stopChatRunMock,
   transcribeChatAudioMock,
+  loadAiUsageMock,
   consumeChatLiveStreamMock,
   listOutboxRecordsMock,
   checkFileSizeMock,
@@ -179,6 +180,7 @@ const {
   createNewChatSessionMock: vi.fn(),
   stopChatRunMock: vi.fn(),
   transcribeChatAudioMock: vi.fn(),
+  loadAiUsageMock: vi.fn(),
   consumeChatLiveStreamMock: vi.fn(),
   listOutboxRecordsMock: vi.fn(),
   checkFileSizeMock: vi.fn(),
@@ -214,6 +216,7 @@ vi.mock("../../../../api", () => ({
   createNewChatSession: createNewChatSessionMock,
   stopChatRun: stopChatRunMock,
   transcribeChatAudio: transcribeChatAudioMock,
+  loadAiUsage: loadAiUsageMock,
 }));
 
 // The composer's dictation path reports `dictation_started` and `dictation_failed`, and its
@@ -346,6 +349,7 @@ export {
   startChatRunMock,
   stopChatRunMock,
   transcribeChatAudioMock,
+  loadAiUsageMock,
   consumeChatLiveStreamMock,
   useAppDataMock,
   useChatLayoutMock,
@@ -606,6 +610,7 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     createNewChatSessionMock.mockReset();
     stopChatRunMock.mockReset();
     transcribeChatAudioMock.mockReset();
+    loadAiUsageMock.mockReset();
     consumeChatLiveStreamMock.mockReset();
     listOutboxRecordsMock.mockReset();
     checkFileSizeMock.mockReset();
@@ -677,6 +682,14 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
       text: "dictated text",
       sessionId,
     }));
+    loadAiUsageMock.mockResolvedValue({
+      accountKind: "account",
+      usage: {
+        monthEndsAt: "2026-04-01T00:00:00.000Z",
+        remainingMessages: null,
+        ownKeyMessages: 0,
+      },
+    });
     consumeChatLiveStreamMock.mockImplementation(() => new Promise(() => undefined));
     listOutboxRecordsMock.mockResolvedValue([]);
     checkFileSizeMock.mockReturnValue(null);

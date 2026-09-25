@@ -893,6 +893,21 @@ export const jaCatalog = {
     toggleTitle: "AIチャット入力欄に提案を表示",
     toggleDescription: "チャットが待機中で準備できているとき、入力欄の上に提案プロンプトが表示されます。",
   },
+  ownOpenAIKeySettings: {
+    title: "自分の OpenAI キー",
+    subtitle: "自分の OpenAI アカウントで AI を使います。",
+    toggleTitle: "自分の OpenAI キーを使う",
+    toggleDescription: "自分のキーを使うと、AI チャット、音声入力、カード画像はあなたの OpenAI アカウントで実行され、どのプランでも月間上限はありません。キーがオンの間、返信候補はオフになります。キーを当社のサーバーに保存することはありません。キーはこのデバイスにとどまり、AI リクエストと一緒にのみ送信されます。そのため、iOS、Android、Web でそれぞれ入力してください。",
+    apiKeyLabel: "OpenAI API キー",
+    apiKeyInvalid: "このキーは使用できません。OpenAI キーはラテン文字、数字、記号のみで、512 文字以内です。修正するまで、AI リクエストはあなたのキーを使わずに実行されます。",
+    ownSpend: "今月の自分のキーでの利用: {{count}}",
+    countLabels: {
+      message: {
+        one: "件のメッセージ",
+        other: "件のメッセージ",
+      },
+    },
+  },
   analyticsConsentBanner: {
     label: "分析用Cookie",
     message: "アプリの使われ方を把握するために、Cookieとブラウザーのその他の保存領域を使います。選ぶまで、このアプリはこの端末に何も保存せず、あなたを特定できるものも送信しません。",
@@ -1306,6 +1321,15 @@ export const jaCatalog = {
       sendAriaLabel: "メッセージを送信",
       stopAriaLabel: "応答を停止",
     },
+    aiUsage: {
+      countLabels: {
+        aiMessage: {
+          one: "件の AI メッセージ",
+          other: "件の AI メッセージ",
+        },
+      },
+      remaining: "今月の残り: {{count}}",
+    },
     alerts: {
       attachmentLimit: "メッセージが大きすぎます。AI チャットはこの量の内容を一度に送信できません。添付を1つ以上削除するか、小さいファイルや写真を選ぶか、依頼を分けてもう一度お試しください。",
       attachmentUnsupported: "このファイル形式は AI チャットでサポートされていません。ファイルを削除するか、PDF、TXT、CSV、JSON、XML、Markdown、HTML、Python、JavaScript、TypeScript、YAML、XLS/XLSX、DOCX、または画像として保存してから、もう一度お試しください。",
@@ -1327,11 +1351,14 @@ export const jaCatalog = {
     errorTitle: "AI チャットエラー",
     errors: {
       activeRunInProgress: "すでに応答を生成中です。完了するまで待つか、停止してから別のメッセージを送信してください。",
-      aiLimitReached: "今月の AI 利用上限を使い切りました。上限は来月のはじめにリセットされます。",
+      aiLimitReachedAccount: "今月の AI メッセージを使い切りました。{{date}}に更新されます。続けるには、設定で自分の OpenAI キーを追加できます。",
+      aiLimitReachedAccountNoDate: "今月の AI メッセージを使い切りました。続けるには、設定で自分の OpenAI キーを追加できます。",
+      aiLimitReachedGuest: "今月の無料 AI メッセージを使い切りました。続けるには、アカウントを作成するか、設定で自分の OpenAI キーを追加してください。",
       emptyBackendResponse: "バックエンドが空のエラーレスポンスを返しました。",
       genericFailure: "AI チャットに失敗しました。",
       liveStreamEndedBeforeCompletion: "AI のライブストリームが実行完了前に終了しました。",
       newChatFailedPrefix: "新しいチャットの開始に失敗しました。",
+      ownOpenAIKeyPrefix: "自分の OpenAI キーがオンになっています。OpenAI からあなたのキーについて次のエラーが返されました。OpenAI アカウントで問題を解決してから、もう一度お試しください。",
       refreshFailedPrefix: "チャットの更新に失敗しました。",
       requestFailedPrefix: "チャットリクエストに失敗しました。",
       stopFailedPrefix: "チャットの停止に失敗しました。",

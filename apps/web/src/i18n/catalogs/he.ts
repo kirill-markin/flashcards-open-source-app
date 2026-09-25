@@ -893,6 +893,21 @@ const heCatalog: TranslationCatalog = {
     toggleTitle: "הצג הצעות בתיבת הכתיבה של צ'אט AI",
     toggleDescription: "הצעות פרומפט מופיעות מעל תיבת הכתיבה כשהצ'אט פנוי ומוכן.",
   },
+  ownOpenAIKeySettings: {
+    title: "מפתח ה-OpenAI שלך",
+    subtitle: "שימוש ב-AI דרך חשבון OpenAI משלך.",
+    toggleTitle: "שימוש במפתח OpenAI משלי",
+    toggleDescription: "עם מפתח משלך, צ'אט ה-AI, ההכתבה ותמונות הכרטיסים פועלים בחשבון OpenAI שלך, ללא מגבלה חודשית בכל תוכנית. תשובות מוצעות כבויות כל עוד המפתח שלך פעיל. אנחנו אף פעם לא שומרים את המפתח שלך בשרתים שלנו: הוא נשאר במכשיר הזה ונשלח רק עם בקשות ה-AI שלך, לכן יש להזין אותו בנפרד ב-iOS, ב-Android ובאינטרנט.",
+    apiKeyLabel: "מפתח API של OpenAI",
+    apiKeyInvalid: "אי אפשר להשתמש במפתח הזה. מפתח OpenAI מכיל רק אותיות לטיניות, ספרות וסמלים, ועד 512 תווים. עד שתתקן אותו, בקשות ה-AI פועלות בלי המפתח שלך.",
+    ownSpend: "החודש עם המפתח שלך: {{count}}",
+    countLabels: {
+      message: {
+        one: "הודעה",
+        other: "הודעות",
+      },
+    },
+  },
   analyticsConsentBanner: {
     label: "עוגיות אנליטיקה",
     message: "אנחנו משתמשים בעוגייה ובאחסון דפדפן נוסף כדי למדוד את השימוש באפליקציה. עד שתבחר, האפליקציה לא שומרת דבר במכשיר הזה ולא שולחת מידע שמזהה אותך.",
@@ -1306,6 +1321,15 @@ const heCatalog: TranslationCatalog = {
       sendAriaLabel: "שליחת ההודעה",
       stopAriaLabel: "עצירת התשובה",
     },
+    aiUsage: {
+      countLabels: {
+        aiMessage: {
+          one: "הודעת AI",
+          other: "הודעות AI",
+        },
+      },
+      remaining: "נותרו החודש: {{count}}",
+    },
     alerts: {
       attachmentLimit: "ההודעה גדולה מדי. צ'אט AI לא יכול לשלוח כל כך הרבה תוכן בבת אחת. הסר קובץ מצורף אחד או יותר, בחר קובץ או תמונה קטנים יותר, או פצל את הבקשה ונסה שוב.",
       attachmentUnsupported: "סוג הקובץ הזה אינו נתמך בצ'אט AI. הסר את הקובץ או שמור אותו כ-PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX או כתמונה, ואז נסה שוב.",
@@ -1327,11 +1351,14 @@ const heCatalog: TranslationCatalog = {
     errorTitle: "שגיאה בצ'אט AI",
     errors: {
       activeRunInProgress: "תשובה כבר בתהליך. המתן שתסתיים או עצור אותה לפני שליחת הודעה נוספת.",
-      aiLimitReached: "מגבלת ה-AI שלך לחודש הזה נגמרה. היא מתאפסת בתחילת החודש הבא.",
+      aiLimitReachedAccount: "השתמשת בכל הודעות ה-AI של החודש. הן מתחדשות ב-{{date}}. כדי להמשיך, אפשר להוסיף מפתח OpenAI משלך בהגדרות.",
+      aiLimitReachedAccountNoDate: "השתמשת בכל הודעות ה-AI של החודש. כדי להמשיך, אפשר להוסיף מפתח OpenAI משלך בהגדרות.",
+      aiLimitReachedGuest: "השתמשת בכל הודעות ה-AI החינמיות של החודש. כדי להמשיך, יש ליצור חשבון או להוסיף מפתח OpenAI משלך בהגדרות.",
       emptyBackendResponse: "השרת החזיר תשובת שגיאה ריקה.",
       genericFailure: "צ'אט AI נכשל.",
       liveStreamEndedBeforeCompletion: "השידור החי של ה-AI הסתיים לפני שהריצה הושלמה.",
       newChatFailedPrefix: "פתיחת צ'אט חדש נכשלה.",
+      ownOpenAIKeyPrefix: "מפתח ה-OpenAI שלך פעיל. OpenAI החזירה את השגיאה הזו עבור המפתח שלך. יש לתקן אותה בחשבון OpenAI שלך ולנסות שוב.",
       refreshFailedPrefix: "רענון הצ'אט נכשל.",
       requestFailedPrefix: "בקשת הצ'אט נכשלה.",
       stopFailedPrefix: "עצירת הצ'אט נכשלה.",

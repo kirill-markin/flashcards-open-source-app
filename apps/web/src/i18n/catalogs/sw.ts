@@ -893,6 +893,21 @@ const swCatalog: TranslationCatalog = {
     toggleTitle: "Onyesha mapendekezo katika sehemu ya kuandika ya gumzo la AI",
     toggleDescription: "Maagizo yanayopendekezwa huonekana juu ya sehemu ya kuandika gumzo likiwa tulivu na tayari.",
   },
+  ownOpenAIKeySettings: {
+    title: "Ufunguo wako wa OpenAI",
+    subtitle: "Tumia AI kupitia akaunti yako mwenyewe ya OpenAI.",
+    toggleTitle: "Tumia ufunguo wangu mwenyewe wa OpenAI",
+    toggleDescription: "Ukiwa na ufunguo wako mwenyewe, gumzo la AI, imla na picha za kadi hufanya kazi kwenye akaunti yako ya OpenAI, bila kikomo cha kila mwezi kwenye mpango wowote. Majibu yanayopendekezwa huzimwa wakati ufunguo wako umewashwa. Hatuhifadhi kamwe ufunguo wako kwenye seva zetu: unabaki kwenye kifaa hiki na hutumwa tu pamoja na maombi yako ya AI, kwa hivyo uweke kando kwenye iOS, Android na wavuti.",
+    apiKeyLabel: "Ufunguo wa API wa OpenAI",
+    apiKeyInvalid: "Ufunguo huu hauwezi kutumika. Ufunguo wa OpenAI una herufi za Kilatini, tarakimu na alama pekee, na herufi zisizozidi 512. Hadi utakapourekebisha, maombi ya AI yanaendeshwa bila ufunguo wako.",
+    ownSpend: "Mwezi huu kwa ufunguo wako: {{count}}",
+    countLabels: {
+      message: {
+        one: "ujumbe",
+        other: "jumbe",
+      },
+    },
+  },
   analyticsConsentBanner: {
     label: "Vidakuzi vya uchanganuzi",
     message: "Tunatumia kidakuzi na hifadhi nyingine ya kivinjari kupima jinsi programu inavyotumika. Hadi uchague, programu hii haihifadhi chochote kwenye kifaa hiki na haitumi chochote kinachokutambulisha.",
@@ -1306,6 +1321,15 @@ const swCatalog: TranslationCatalog = {
       sendAriaLabel: "Tuma ujumbe",
       stopAriaLabel: "Simamisha jibu",
     },
+    aiUsage: {
+      countLabels: {
+        aiMessage: {
+          one: "ujumbe wa AI",
+          other: "jumbe za AI",
+        },
+      },
+      remaining: "Zimesalia mwezi huu: {{count}}",
+    },
     alerts: {
       attachmentLimit: "Ujumbe ni mkubwa mno. Gumzo la AI haliwezi kutuma maudhui mengi hivi kwa mara moja. Ondoa kiambatisho kimoja au zaidi, chagua faili au picha ndogo zaidi, au gawanya ombi kisha ujaribu tena.",
       attachmentUnsupported: "Aina hii ya faili haitumiki kwa gumzo la AI. Ondoa faili au uihifadhi kama PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX au picha, kisha ujaribu tena.",
@@ -1327,11 +1351,14 @@ const swCatalog: TranslationCatalog = {
     errorTitle: "Hitilafu ya gumzo la AI",
     errors: {
       activeRunInProgress: "Jibu tayari linaendelea. Subiri limalizike au lisimamishe kabla ya kutuma ujumbe mwingine.",
-      aiLimitReached: "Kikomo chako cha AI kwa mwezi huu kimeisha. Kitawekwa upya mwanzoni wa mwezi ujao.",
+      aiLimitReachedAccount: "Umetumia jumbe za AI za mwezi huu. Zitasasishwa tarehe {{date}}. Ili kuendelea, unaweza kuongeza ufunguo wako mwenyewe wa OpenAI kwenye Mipangilio.",
+      aiLimitReachedAccountNoDate: "Umetumia jumbe za AI za mwezi huu. Ili kuendelea, unaweza kuongeza ufunguo wako mwenyewe wa OpenAI kwenye Mipangilio.",
+      aiLimitReachedGuest: "Umetumia jumbe za bure za AI za mwezi huu. Ili kuendelea, fungua akaunti au ongeza ufunguo wako mwenyewe wa OpenAI kwenye Mipangilio.",
       emptyBackendResponse: "Seva imerudisha jibu tupu la hitilafu.",
       genericFailure: "Gumzo la AI limeshindwa.",
       liveStreamEndedBeforeCompletion: "Mtiririko wa moja kwa moja wa AI umeisha kabla ya kukamilika.",
       newChatFailedPrefix: "Gumzo jipya limeshindwa.",
+      ownOpenAIKeyPrefix: "Ufunguo wako mwenyewe wa OpenAI umewashwa. OpenAI imerudisha hitilafu hii kwa ufunguo wako. Irekebishe kwenye akaunti yako ya OpenAI kisha ujaribu tena.",
       refreshFailedPrefix: "Kuonyesha upya gumzo kumeshindwa.",
       requestFailedPrefix: "Ombi la gumzo limeshindwa.",
       stopFailedPrefix: "Kusimamisha gumzo kumeshindwa.",

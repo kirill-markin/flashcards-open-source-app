@@ -893,6 +893,21 @@ const fiCatalog: TranslationCatalog = {
     toggleTitle: "Näytä ehdotukset tekoälykeskustelun kirjoituskentässä",
     toggleDescription: "Ehdotukset näkyvät kirjoituskentän yläpuolella, kun keskustelu on valmiina eikä mitään ole kesken.",
   },
+  ownOpenAIKeySettings: {
+    title: "Oma OpenAI-avaimesi",
+    subtitle: "Käytä tekoälyä omalla OpenAI-tililläsi.",
+    toggleTitle: "Käytä omaa OpenAI-avaintani",
+    toggleDescription: "Omalla avaimellasi tekoälykeskustelu, sanelu ja korttien kuvat toimivat OpenAI-tililläsi ilman kuukausirajaa missään tilauksessa. Ehdotetut vastaukset ovat pois päältä, kun avaimesi on käytössä. Emme koskaan tallenna avaintasi palvelimillemme: se pysyy tällä laitteella ja lähetetään vain tekoälypyyntöjesi mukana, joten syötä se erikseen iOS:ssä, Androidissa ja verkossa.",
+    apiKeyLabel: "OpenAI-API-avain",
+    apiKeyInvalid: "Tätä avainta ei voi käyttää. OpenAI-avaimessa on vain latinalaisia kirjaimia, numeroita ja symboleja, ja enintään 512 merkkiä. Kunnes korjaat sen, tekoälypyynnöt toimivat ilman avaintasi.",
+    ownSpend: "Tässä kuussa avaimellasi: {{count}}",
+    countLabels: {
+      message: {
+        one: "viesti",
+        other: "viestiä",
+      },
+    },
+  },
   analyticsConsentBanner: {
     label: "Analytiikkaevästeet",
     message: "Käytämme evästettä ja muuta selaimen tallennustilaa mitataksemme, miten sovellusta käytetään. Ennen kuin teet valinnan, sovellus ei tallenna tälle laitteelle mitään eikä lähetä mitään, mistä sinut voisi tunnistaa.",
@@ -1306,6 +1321,15 @@ const fiCatalog: TranslationCatalog = {
       sendAriaLabel: "Lähetä viesti",
       stopAriaLabel: "Pysäytä vastaus",
     },
+    aiUsage: {
+      countLabels: {
+        aiMessage: {
+          one: "tekoälyviesti",
+          other: "tekoälyviestiä",
+        },
+      },
+      remaining: "Tässä kuussa jäljellä {{count}}",
+    },
     alerts: {
       attachmentLimit: "Viesti on liian suuri. Tekoälykeskustelu ei voi lähettää näin paljon sisältöä kerralla. Poista yksi tai useampi liite, valitse pienempi tiedosto tai kuva tai jaa pyyntö osiin ja yritä uudelleen.",
       attachmentUnsupported: "Tätä tiedostotyyppiä ei tueta tekoälykeskustelussa. Poista tiedosto tai tallenna se muodossa PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX tai kuvana ja yritä uudelleen.",
@@ -1327,11 +1351,14 @@ const fiCatalog: TranslationCatalog = {
     errorTitle: "Tekoälykeskustelun virhe",
     errors: {
       activeRunInProgress: "Vastausta muodostetaan jo. Odota sen valmistumista tai pysäytä se ennen uuden viestin lähettämistä.",
-      aiLimitReached: "Tämän kuukauden tekoälyraja on käytetty loppuun. Se nollautuu ensi kuun alussa.",
+      aiLimitReachedAccount: "Olet käyttänyt tämän kuun tekoälyviestit. Ne uusiutuvat {{date}}. Voit jatkaa lisäämällä oman OpenAI-avaimesi Asetuksissa.",
+      aiLimitReachedAccountNoDate: "Olet käyttänyt tämän kuun tekoälyviestit. Voit jatkaa lisäämällä oman OpenAI-avaimesi Asetuksissa.",
+      aiLimitReachedGuest: "Olet käyttänyt tämän kuun maksuttomat tekoälyviestit. Voit jatkaa luomalla tilin tai lisäämällä oman OpenAI-avaimesi Asetuksissa.",
       emptyBackendResponse: "Taustapalvelu palautti tyhjän virhevastauksen.",
       genericFailure: "Tekoälykeskustelu epäonnistui.",
       liveStreamEndedBeforeCompletion: "Tekoälyn reaaliaikainen virta päättyi ennen suorituksen valmistumista.",
       newChatFailedPrefix: "Uuden keskustelun aloitus epäonnistui.",
+      ownOpenAIKeyPrefix: "Oma OpenAI-avaimesi on käytössä. OpenAI palautti tämän virheen avaimellesi. Korjaa se OpenAI-tililläsi ja yritä uudelleen.",
       refreshFailedPrefix: "Keskustelun päivitys epäonnistui.",
       requestFailedPrefix: "Keskustelupyyntö epäonnistui.",
       stopFailedPrefix: "Keskustelun pysäytys epäonnistui.",
