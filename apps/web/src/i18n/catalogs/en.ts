@@ -891,6 +891,21 @@ const enCatalog = {
     toggleTitle: "Show suggestions in the AI chat composer",
     toggleDescription: "Suggested prompts appear above the composer when chat is idle and ready.",
   },
+  ownOpenAIKeySettings: {
+    title: "Your OpenAI key",
+    subtitle: "Run AI on your own OpenAI account.",
+    toggleTitle: "Use my own OpenAI key",
+    toggleDescription: "With your own key, AI chat, dictation and card images run on your OpenAI account, with no monthly limit on any plan. Suggested replies are off while your key is on. We never store your key on our servers: it stays on this device and is sent only with your AI requests, so enter it separately on iOS, Android and the web.",
+    apiKeyLabel: "OpenAI API key",
+    apiKeyInvalid: "This key can't be used. An OpenAI key has only Latin letters, digits and symbols, and at most 512 characters. Until you fix it, AI requests run without your key.",
+    ownSpend: "This month with your key: {{count}}",
+    countLabels: {
+      message: {
+        one: "message",
+        other: "messages",
+      },
+    },
+  },
   analyticsConsentBanner: {
     label: "Analytics cookies",
     message: "We use a cookie and other browser storage to measure how the app gets used. Until you choose, this app stores nothing on this device and sends nothing that identifies you.",
@@ -1304,6 +1319,15 @@ const enCatalog = {
       sendAriaLabel: "Send message",
       stopAriaLabel: "Stop response",
     },
+    aiUsage: {
+      countLabels: {
+        aiMessage: {
+          one: "AI message",
+          other: "AI messages",
+        },
+      },
+      remaining: "{{count}} left this month",
+    },
     alerts: {
       attachmentLimit: "Message is too large. AI chat can’t send this much content at once. Remove one or more attachments, choose a smaller file or photo, or split the request and try again.",
       attachmentUnsupported: "This file type is not supported for AI chat. Remove the file or save it as PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, or an image, then try again.",
@@ -1325,11 +1349,14 @@ const enCatalog = {
     errorTitle: "AI chat error",
     errors: {
       activeRunInProgress: "A response is already in progress. Wait for it to finish or stop it before sending another message.",
-      aiLimitReached: "Your AI limit for this month is used up. It resets at the start of next month.",
+      aiLimitReachedAccount: "You've used this month's AI messages. They renew on {{date}}. You can add your own OpenAI key in Settings to keep going.",
+      aiLimitReachedAccountNoDate: "You've used this month's AI messages. You can add your own OpenAI key in Settings to keep going.",
+      aiLimitReachedGuest: "You've used this month's free AI messages. Create an account or add your own OpenAI key in Settings to keep going.",
       emptyBackendResponse: "The backend returned an empty error response.",
       genericFailure: "AI chat failed.",
       liveStreamEndedBeforeCompletion: "AI live stream ended before the run finished.",
       newChatFailedPrefix: "New chat failed.",
+      ownOpenAIKeyPrefix: "Your own OpenAI key is on. OpenAI returned this error for your key. Fix it in your OpenAI account and try again.",
       refreshFailedPrefix: "Chat refresh failed.",
       requestFailedPrefix: "Chat request failed.",
       stopFailedPrefix: "Chat stop failed.",
