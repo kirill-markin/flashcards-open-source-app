@@ -2,6 +2,8 @@
 
 Related competitor references: [iOS competitors](competitor-store-metadata.md#ios)
 
+Premium subscription configuration and texts: [subscription store metadata](subscription-store-metadata.md)
+
 This file owns the source text and upload procedure for 42 App Store locales
 (41 languages, including both Spanish regions). These sections are repository
 inputs, not evidence of live publication. In-app language coverage belongs to

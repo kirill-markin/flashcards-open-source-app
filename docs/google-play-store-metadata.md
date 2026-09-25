@@ -2,6 +2,8 @@
 
 Related competitor references: [Android competitors](competitor-store-metadata.md#android)
 
+Premium subscription configuration and texts: [subscription store metadata](subscription-store-metadata.md)
+
 For locale mapping, assets, repository delivery, and Play publication, use the
 [listing localization runbook](../apps/android/docs/play-store-localization-runbook.md).
 
