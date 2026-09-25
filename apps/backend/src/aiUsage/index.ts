@@ -16,6 +16,7 @@ export {
   assertAiUsageAllowanceNotReached,
   countersCarryWeightedAiUsage,
   getAiUsageMonthWindow,
+  guestAiLimitReachedCode,
   loadAiUsageMessagesForMonth,
   loadAiUsageWeightedTokensForMonth,
   reportDeferredAiUsageAllowanceResolutionFailure,

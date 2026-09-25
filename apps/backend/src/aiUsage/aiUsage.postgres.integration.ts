@@ -8,9 +8,9 @@ import {
   type PostgresIntegrationFixture,
 } from "../testSupport/postgresIntegration";
 import {
-  aiLimitReachedCode,
   assertAiUsageAllowanceNotReached,
   getAiUsageMonthWindow,
+  guestAiLimitReachedCode,
   loadAiUsageMessagesForMonth,
   loadAiUsageWeightedTokensForMonth,
   resolveAiUsageAllowance,
@@ -245,7 +245,7 @@ test("the monthly allowance counts this UTC month's chat messages and refuses th
           }
 
           assert.equal(error.statusCode, 429);
-          assert.equal(error.code, aiLimitReachedCode);
+          assert.equal(error.code, guestAiLimitReachedCode);
           return true;
         },
       );

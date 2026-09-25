@@ -8,10 +8,10 @@ const val aiChatMaximumAttachmentBytes: Int = 3 * 1024 * 1024
 const val aiChatMaximumStartRunRequestBytes: Int = 5 * 1024 * 1024
 const val aiChatAttachmentUnsupportedTypeCode: String = "CHAT_ATTACHMENT_UNSUPPORTED_TYPE"
 const val aiChatRequestTooLargeCode: String = "CHAT_REQUEST_TOO_LARGE"
+// The code the backend raises when a signed-in account reaches its AI allowance.
 const val aiLimitReachedCode: String = "AI_LIMIT_REACHED"
 
-// The guest-only code that aiLimitReachedCode supersedes once the backend starts raising the new one
-// for every caller. Still matched for as long as a deployed backend can be raising the old one.
+// The code the backend raises when a guest reaches its AI allowance.
 const val guestAiLimitReachedCode: String = "GUEST_AI_LIMIT_REACHED"
 
 val aiChatSupportedFileExtensions: Set<String> = setOf(

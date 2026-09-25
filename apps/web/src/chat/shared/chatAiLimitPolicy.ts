@@ -1,5 +1,5 @@
-// `AI_LIMIT_REACHED` is accepted ahead of the backend change that starts raising it for every caller.
-// `GUEST_AI_LIMIT_REACHED` is the guest-only code that change supersedes; it cannot reach the web app,
+// `AI_LIMIT_REACHED` is the code the backend raises when a signed-in account reaches its AI allowance.
+// `GUEST_AI_LIMIT_REACHED` is the backend's guest-only code; it cannot reach the web app,
 // whose guest credential is refused on every authenticated surface, and it stays matched only so a
 // deployed backend still raising it is handled the same way.
 export const AI_LIMIT_REACHED_CODE = "AI_LIMIT_REACHED";
