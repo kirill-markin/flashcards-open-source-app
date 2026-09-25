@@ -294,8 +294,9 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
           changesCount: routeState.result.changes.length,
         },
       });
-      // Additive field, omitted when the entitlement could not be resolved. Released clients ignore
-      // unknown keys, and none of them reads it yet.
+      // Additive field, omitted when the entitlement could not be resolved. Older clients ignore it;
+      // the Android and iOS clients read it and keep their last value when it is absent, so its
+      // absence downgrades nobody.
       return context.json(
         routeState.entitlement === null
           ? routeState.result
