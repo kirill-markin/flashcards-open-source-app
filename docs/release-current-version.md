@@ -23,8 +23,12 @@ when the user explicitly asks to skip it.
    bump it before publishing it.
 2. Generate the user-visible release notes below and put them in the chat as
    reusable release content. Continue the release using those texts yourself.
-3. Start Android Release, MCP Registry Publish, and both iOS Xcode Cloud
-   workflows using [Platform Release Procedures](manual-production-release.md).
+3. Complete the mandatory local Android and iOS preflights in
+   [Platform Release Procedures](manual-production-release.md#local-mobile-release-gate)
+   before dispatching the corresponding platform's cloud workflows. Fix local
+   errors and warnings and repeat the affected preflight first. Then start
+   Android Release, MCP Registry Publish, and both iOS Xcode Cloud workflows
+   using that procedure.
    Builds, tests, and store processing take time: run the independent platform
    flows in parallel, preparing store metadata while their jobs run.
 4. Complete each platform's gate in that procedure. Track version, source SHA,
