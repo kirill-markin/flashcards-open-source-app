@@ -148,6 +148,12 @@ export type ChatTranscriptionFailureDetails = Readonly<{
   errorMessage: string;
 }>;
 
+/** Earlier turns' reasoning items one run left out of its replay, because the other OpenAI key produced them. */
+export type ChatReplayReasoningItemsDroppedDetails = Readonly<{
+  droppedReasoningItems: number;
+  userSuppliedKey: boolean;
+}>;
+
 /**
  * One metered AI provider call, named by what it would be priced against. The person and the request
  * travel on the scope rather than here, so a query can group these by surface and model without
@@ -318,6 +324,7 @@ export type ChatBreadcrumbEvent =
   | EventByAction<"chat_worker_terminal_state_persisted", ChatWorkerLifecycleDetails>
   | EventByAction<"chat_worker_composer_suggestions_failed", ChatWorkerLifecycleDetails>
   | EventByAction<"chat_transcription_invalid_audio", ChatTranscriptionFailureDetails>
+  | EventByAction<"chat_replay_reasoning_items_dropped", ChatReplayReasoningItemsDroppedDetails>
   | EventByAction<"generated_card_image_provider_complete", GeneratedCardImageProviderDetails>;
 
 export type ChatWarningEvent =

@@ -53,6 +53,7 @@ import {
   ChatSessionNotFoundError,
   type ChatSessionSnapshot,
 } from "../store";
+import { readUserOpenAIApiKeyHeader } from "../userOpenAIApiKey";
 
 type ChatNewResponse = Readonly<{
   ok: true;
@@ -184,6 +185,7 @@ export function createPostChatHandler(dependencies: ChatRouteDependencies): Hand
       context.req.raw,
       dependencies,
     );
+    const userOpenAIApiKey = readUserOpenAIApiKeyHeader(context.req.raw);
     const rawBody = await parseJsonBodyWithByteLimit(
       context.req.raw,
       chatMaximumStartRunRequestBytes,
@@ -238,8 +240,13 @@ export function createPostChatHandler(dependencies: ChatRouteDependencies): Hand
         // which is a retry of a turn already accepted rather than a next turn. A new guest turn therefore
         // fails closed when the allowance could not be resolved at all, and a replay never depends on
         // billing being readable. Nothing here writes, so the transaction it runs in stays free of any
-        // write but its own.
+        // write but its own. A turn sent with the person's own OpenAI key is never refused: its usage
+        // does not count against the allowance.
         async () => {
+          if (userOpenAIApiKey !== null) {
+            return;
+          }
+
           if (aiUsageAllowanceOutcome.allowance === undefined) {
             throw aiUsageAllowanceOutcome.error;
           }
@@ -271,6 +278,7 @@ export function createPostChatHandler(dependencies: ChatRouteDependencies): Hand
           chatRequestId: body.clientRequestId,
           sessionId: preparedRun.sessionId,
           initiatingAuthIsSignedIn: preparedRun.initiatingAuthIsSignedIn,
+          userOpenAIApiKey,
         }));
       }
     } finally {

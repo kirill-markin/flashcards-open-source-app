@@ -6,6 +6,7 @@ import type { AppEnv } from "../../../server/app";
 import type { BackendTraceCarrier } from "../../../observability/sentry";
 import { createChatRoutes } from "../../../routes/chat";
 import { ChatSessionConflictError } from "../../store";
+import type { UserOpenAIApiKey } from "../../userOpenAIApiKey";
 import {
   aiUsageAllowanceTestOptions,
   EXPLICIT_WORKSPACE_ID,
@@ -173,6 +174,7 @@ test("POST /chat dispatches worker without a route-supplied trace carrier", asyn
     userId: string;
     workspaceId: string;
     initiatingAuthIsSignedIn: boolean;
+    userOpenAIApiKey: UserOpenAIApiKey | null;
     routeRequestId?: string | null;
     chatRequestId?: string | null;
     sessionId?: string | null;
@@ -296,6 +298,7 @@ test("POST /chat dispatches worker without a route-supplied trace carrier", asyn
     chatRequestId: "client-request-dispatch",
     sessionId: SESSION_ONE,
     initiatingAuthIsSignedIn: false,
+    userOpenAIApiKey: null,
   });
   assert.equal(workerInvocationIncludesTraceContext, false);
   assert.notEqual(liveTraceContext, undefined);

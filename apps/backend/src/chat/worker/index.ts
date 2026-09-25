@@ -8,23 +8,30 @@ import { logChatWorkerLifecycleEvent } from "./logging";
 import { resolveAiUsageTierForFacts } from "../../aiUsage";
 import { resolveAccountKindForSignedInAuth } from "../../billing/snapshot";
 import type { BackendTraceCarrier } from "../../observability/sentry";
+import {
+  wrapWorkerPayloadUserOpenAIApiKey,
+  type UserOpenAIApiKey,
+} from "../userOpenAIApiKey";
 
 export type ChatWorkerEvent = Readonly<{
   runId: string;
   userId: string;
   workspaceId: string;
   initiatingAuthIsSignedIn?: boolean;
+  userOpenAIApiKey?: string | null;
   routeRequestId?: string | null;
   chatRequestId?: string | null;
   sessionId?: string | null;
   traceContext?: BackendTraceCarrier | null;
 }>;
 
+/** Card images need a signed-in account, unless the run pays with the person's own key. */
 export function isGeneratedImageEligibleForWorker(
   event: ChatWorkerEvent,
   initiatingAuthIsSignedIn: boolean,
+  userOpenAIApiKey: UserOpenAIApiKey | null,
 ): boolean {
-  return event.initiatingAuthIsSignedIn === true && initiatingAuthIsSignedIn;
+  return userOpenAIApiKey !== null || (event.initiatingAuthIsSignedIn === true && initiatingAuthIsSignedIn);
 }
 
 type ChatWorkerExecutionContext = Readonly<{
@@ -39,6 +46,7 @@ export async function handleChatWorkerEvent(
   event: ChatWorkerEvent,
   executionContext: ChatWorkerExecutionContext,
 ): Promise<void> {
+  const userOpenAIApiKey = wrapWorkerPayloadUserOpenAIApiKey(event.userOpenAIApiKey);
   const claimedRun = await claimChatRun(event.userId, event.workspaceId, event.runId);
   if (claimedRun === null) {
     logChatWorkerLifecycleEvent("chat_worker_skip", {
@@ -124,7 +132,9 @@ export async function handleChatWorkerEvent(
     generatedImageEligible: isGeneratedImageEligibleForWorker(
       event,
       claimedRun.initiatingAuthIsSignedIn,
+      userOpenAIApiKey,
     ),
+    userOpenAIApiKey,
     clientPlatform: claimedRun.clientPlatform,
     tierAtCall,
     initiatingAuthIsSignedIn: claimedRun.initiatingAuthIsSignedIn,
