@@ -18,9 +18,9 @@ Email + OTP authentication via AWS Cognito (passwordless).
     The first authenticated backend request (`apps/backend/src/auth/ensureUser.ts`) and an agent API
     key or OAuth/MCP connection (`apps/auth/src/server/agent/userWorkspace.ts`) are two such paths;
     a guest upgrade (`apps/backend/src/guestAuth/upgrade/`) is another, and it binds the subject to
-    the id the guest session had already minted. Creation mints the id and binds the subject in one
-    transaction, and every path that creates or binds takes one advisory lock keyed by the subject,
-    so only one of them ever gets to create.
+    the id the guest session had already minted. A path that mints an id for a subject binds the
+    subject to it in the same transaction, and every path that creates or binds takes one advisory
+    lock keyed by the subject, so only one of them ever gets to create.
   - This service refuses a subject in `auth.deleted_subjects` with `410 ACCOUNT_DELETED`, the code
     the backend answers it with, before it resolves, adopts, or creates an account for it.
 - Guest sessions (`POST /v1/guest-auth/session`) are bound to `ios`, `android`, or `web`. A `web`
