@@ -10,11 +10,11 @@ import { z } from "zod";
 // `site_catalog_searched.query_text` is the one deliberate exception, taken knowingly: what people
 // look for in the public catalog and do not find is unanswerable from a query length alone, and the
 // question is worth the narrowest possible breach. The bound is a shape and not merely a length cap:
-// the producer normalizes the query and sends it only when it fits the pattern below - lowercase or
-// caseless letters, digits, spaces and hyphens, at most 64 characters, with neither end a space nor
-// a hyphen - and sends no text at all otherwise. The shape admits spaces, so a short phrase someone
-// typed fits it; what the 64 characters rule out is a long one, and the exception is taken with that
-// in view.
+// the producer normalizes the query and sends it only when it fits the pattern below - lowercase,
+// caseless and modifier letters, non-spacing and spacing marks, digits, spaces and hyphens, at most
+// 64 characters, with neither end a space nor a hyphen - and sends no text at all otherwise. The
+// shape admits spaces, so a short phrase someone typed fits it; what the 64 characters rule out is a
+// long one, and the exception is taken with that in view.
 //
 // schema_version stamps the catalog generation a stored row was accepted under, and it stayed 1
 // across the revision that retired the session and onboarding events and added the fact-shaped
@@ -98,11 +98,17 @@ const productAnalyticsSiteCampaignTokenPattern = /^[a-z0-9](?:[a-z0-9_-]{0,62}[a
 const productAnalyticsSiteLanguageTagPattern = /^[a-z]{2,3}(?:-[a-z0-9]{2,8}){0,2}$/u;
 
 // The normalized public-catalog search text, the exception named at the top of this file. Bounded to
-// lowercase letters, caseless letters, digits, spaces and hyphens within 64 characters, and with
-// neither end a space nor a hyphen. A query that misses the shape is never trimmed into it: the
-// producer sends no text at all for that search.
+// lowercase letters, caseless letters, modifier letters, non-spacing and spacing marks, digits,
+// spaces and hyphens within 64 characters, and with neither end a space nor a hyphen. Marks and
+// modifier letters are inside the bound because across most scripts they are how an ordinary word is
+// spelled rather than an ornament on one: `किताब` and `กรุงเทพ` carry vowel signs, `ラーメン` a
+// length mark, and lowercasing a Turkish dotted capital leaves `istanbul` carrying a combining dot,
+// as does any decomposed input. Leaving them out reported each of those searches as a length and
+// nothing else. Format characters stay outside the bound, so the U+200C in `کتاب‌ها` still costs
+// the text, as do punctuation and symbols. A query that misses the shape is never trimmed into it:
+// the producer sends no text at all for that search.
 const productAnalyticsSiteSearchQueryPattern =
-  /^[\p{Ll}\p{Lo}\p{Nd}](?:[\p{Ll}\p{Lo}\p{Nd} -]{0,62}[\p{Ll}\p{Lo}\p{Nd}])?$/u;
+  /^[\p{Ll}\p{Lo}\p{Lm}\p{Mn}\p{Mc}\p{Nd}](?:[\p{Ll}\p{Lo}\p{Lm}\p{Mn}\p{Mc}\p{Nd} -]{0,62}[\p{Ll}\p{Lo}\p{Lm}\p{Mn}\p{Mc}\p{Nd}])?$/u;
 
 // Acquisition context the marketing site reports on its own facts, derived on the site from the
 // referrer and the user agent, which are never sent raw.
@@ -1555,6 +1561,16 @@ export const productAnalyticsEventCatalog = {
   // three, the grant included, so no consent decision on either surface is stored beside an
   // identifier of any kind - the exclusion is by name in dailyVisitorHash.ts and in the CHECK
   // constraint 0156 rewrites, because `identityFree` alone would let the grant through.
+  //
+  // The two answers may carry `placement`, the site's own placement space: the same cookie question
+  // is asked in more than one place - a banner and a corner control, which the site names `banner`
+  // and `corner_control` - and without it an answer given in one is indistinguishable from an
+  // answer given in the other. It is optional the way `page_path` above is, and permanently rather
+  // than only until the site starts sending it: the site bundles already released answer with no
+  // placement at all, so an answer carrying none stays a whole answer rather than a gap a later
+  // deploy closes, and a query that counts placements has to read it as one for good. The other
+  // three below carry no placement because each has exactly one source, so the property would be a
+  // constant on them and say nothing a query could not already assume.
   site_consent_prompt_shown: {
     serverOnly: false,
     requiresScreen: false,
@@ -1564,13 +1580,17 @@ export const productAnalyticsEventCatalog = {
   site_consent_granted: {
     serverOnly: false,
     requiresScreen: false,
-    properties: {},
+    properties: {
+      placement: { kind: "string", pattern: productAnalyticsSitePlacementPattern, optional: true },
+    },
   },
   site_consent_declined: {
     serverOnly: false,
     requiresScreen: false,
     identityFree: true,
-    properties: {},
+    properties: {
+      placement: { kind: "string", pattern: productAnalyticsSitePlacementPattern, optional: true },
+    },
   },
   // The collection switch, moved after the banner was already answered, which is a different fact
   // from the answer itself: a person who turns collection off later is not one who refused. Both
@@ -1592,14 +1612,17 @@ export const productAnalyticsEventCatalog = {
     properties: {},
   },
   // A marketing site link that leaves the site without going into the product, which is neither an
-  // app entry nor an internal CTA: it ends the visit somewhere we do not own. It shares
+  // app entry nor an internal CTA: it ends the visit off the marketing site, on a destination we
+  // may still own. `repository` is the open-source repository, `author_website` the personal site a
+  // public catalog author lists on their author page, and `activity_snapshot` the raw global
+  // activity JSON that the dashboards page and the public activity section both link to. It shares
   // `page_kind`, `placement`, `source` and `device_category` with `site_internal_cta_clicked` value
   // for value, so the three click families compare directly on those and stay disjoint on `target`.
   site_outbound_clicked: {
     serverOnly: false,
     requiresScreen: false,
     properties: {
-      target: { kind: "enum", values: ["repository"] },
+      target: { kind: "enum", values: ["repository", "author_website", "activity_snapshot"] },
       page_kind: { kind: "enum", values: productAnalyticsSitePageKinds },
       placement: { kind: "string", pattern: productAnalyticsSitePlacementPattern },
       source: { kind: "enum", values: productAnalyticsSiteSources },
