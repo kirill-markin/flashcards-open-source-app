@@ -7,6 +7,15 @@ import { z } from "zod";
 // a client-controlled channel into a column that is retained indefinitely and that account
 // anonymization deliberately keeps intact.
 //
+// `site_catalog_searched.query_text` is the one deliberate exception, taken knowingly: what people
+// look for in the public catalog and do not find is unanswerable from a query length alone, and the
+// question is worth the narrowest possible breach. The bound is a shape and not merely a length cap:
+// the producer normalizes the query and sends it only when it fits the pattern below - lowercase or
+// caseless letters, digits, spaces and hyphens, at most 64 characters, with neither end a space nor
+// a hyphen - and sends no text at all otherwise. The shape admits spaces, so a short phrase someone
+// typed fits it; what the 64 characters rule out is a long one, and the exception is taken with that
+// in view.
+//
 // schema_version stamps the catalog generation a stored row was accepted under, and it stayed 1
 // across the revision that retired the session and onboarding events and added the fact-shaped
 // ones. 0119 deleted every row written under the previous generation, so no stored row belongs to
@@ -59,6 +68,41 @@ const productAnalyticsSitePlacementPattern = /^[a-z0-9](?:[a-z0-9_]{0,62}[a-z0-9
 // stays `productAnalyticsPropertyStringMaxLength`, and that is the binding one, because the segment
 // quantifiers below admit paths well past it.
 const productAnalyticsSitePagePathPattern = /^\/(?:[a-z0-9][a-z0-9._-]{0,78}\/){0,6}$/u;
+
+// The host of the document referrer and nothing else, lowercased on the site. The path and the
+// query string of a referrer are what the visitor was reading somewhere else, so they are never
+// sent; the host names who sent them, which is what `source` above only classifies. The pattern is
+// the shape rule only; `productAnalyticsPropertyStringMaxLength` is the binding length rule.
+const productAnalyticsSiteReferrerHostPattern = /^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$/u;
+
+// The `utm_*` values of an inbound link: a campaign token rather than a slug, so both separators are
+// admitted and neither is rewritten into the other. This repository's own campaign vocabulary is
+// snake_case - docs/marketing-links.md fixes `utm_source=flashcards_website` and names
+// `marketing_site`, `web_app_header`, `catalog_import` and the rest as buckets - while ad platforms
+// and other people's links spell campaigns with hyphens. Normalizing either way would break equality
+// with the campaign as spelled in the store and in the ad platform, which is the same equality
+// `store_link_clicked.placement` below is bound to keep.
+// Case is the one normalization taken: the producer lowercases before sending and this pattern
+// admits lowercase alone, so a campaign spelled with capitals is stored folded. The equality that
+// matters survives it, because every bucket docs/marketing-links.md owns is already lowercase, as is
+// `utm_source=flashcards_website`; what a fold can cost is a comparison against somebody else's
+// campaign that was spelled with capitals.
+const productAnalyticsSiteCampaignTokenPattern = /^[a-z0-9](?:[a-z0-9_-]{0,62}[a-z0-9])?$/u;
+
+// A language tag the marketing site offers a page in, lowercase, as a shape rather than the site's
+// current locale list: the backend has no reason to refuse an event because the site gained a
+// language before this file heard about it. Lowercasing is the producer's obligation rather than a
+// convention it happens to meet: every locale the site offers today is a bare two-letter code, but a
+// tag with a script or a region subtag is conventionally spelled `zh-Hant` or `pt-BR`, and sending
+// one that way refuses the whole event rather than just the property.
+const productAnalyticsSiteLanguageTagPattern = /^[a-z]{2,3}(?:-[a-z0-9]{2,8}){0,2}$/u;
+
+// The normalized public-catalog search text, the exception named at the top of this file. Bounded to
+// lowercase letters, caseless letters, digits, spaces and hyphens within 64 characters, and with
+// neither end a space nor a hyphen. A query that misses the shape is never trimmed into it: the
+// producer sends no text at all for that search.
+const productAnalyticsSiteSearchQueryPattern =
+  /^[\p{Ll}\p{Lo}\p{Nd}](?:[\p{Ll}\p{Lo}\p{Nd} -]{0,62}[\p{Ll}\p{Lo}\p{Nd}])?$/u;
 
 // Acquisition context the marketing site reports on its own facts, derived on the site from the
 // referrer and the user agent, which are never sent raw.
@@ -1325,6 +1369,16 @@ export const productAnalyticsEventCatalog = {
   // locale-stripped route does not fit the pattern reports none rather than a truncated one.
   // Reporting none means leaving the key out: an explicit `null` or `""` is a value the property
   // does not allow, and that refuses the whole event rather than just the path.
+  //
+  // `referrer_host` and the three `utm_*` properties say where the visit came from, which `source`
+  // only classifies into six buckets: the bucket cannot tell one search engine or one campaign from
+  // another. All four are optional in the same sense `page_path` is - a direct visit has no
+  // referrer, an uncampaigned link has no `utm_*`, and a value that does not fit its shape is left
+  // out rather than truncated. Real `utm_*` values arrive spelled however the link was written, so
+  // the producer lowercases all four before sending; the patterns admit lowercase alone, and the
+  // case fold is the one normalization a campaign token takes, for the reason stated beside
+  // `productAnalyticsSiteCampaignTokenPattern`. They sit on the page view alone because that is
+  // where a visit begins, rather than being repeated onto every row the visit goes on to produce.
   site_page_viewed: {
     serverOnly: false,
     requiresScreen: false,
@@ -1334,32 +1388,50 @@ export const productAnalyticsEventCatalog = {
       package_version_id: { kind: "string", pattern: productAnalyticsUuidPattern, optional: true },
       source: { kind: "enum", values: productAnalyticsSiteSources },
       device_category: { kind: "enum", values: productAnalyticsSiteDeviceCategories },
+      referrer_host: { kind: "string", pattern: productAnalyticsSiteReferrerHostPattern, optional: true },
+      utm_source: { kind: "string", pattern: productAnalyticsSiteCampaignTokenPattern, optional: true },
+      utm_medium: { kind: "string", pattern: productAnalyticsSiteCampaignTokenPattern, optional: true },
+      utm_campaign: { kind: "string", pattern: productAnalyticsSiteCampaignTokenPattern, optional: true },
     },
   },
+  // `action` is what the web app CTA offers - sign in, sign up, or open the app someone is already
+  // signed into - and it is the click's alone: spreading the shared map rather than extending it
+  // leaves `site_app_entry_shown` on exactly the properties it had, so the click still joins its
+  // impression by equality on them. Optional because an app store click has no such choice to carry.
   site_app_entry_clicked: {
     serverOnly: false,
     requiresScreen: false,
-    properties: productAnalyticsSiteAppEntryProperties,
+    properties: {
+      ...productAnalyticsSiteAppEntryProperties,
+      action: { kind: "enum", values: ["login", "signup", "open_app"], optional: true },
+    },
   },
-  // The impression half of `site_app_entry_clicked`, carrying exactly its properties so a click and
-  // the view it came from join by equality and the click rate is a rate rather than a bare count.
-  // The producer reports it at most once per target, placement and page kind per document load,
-  // after about a second of visibility, the way `store_qr_shown` below is keyed on the store rather
-  // than on the placement alone. Every property a click can vary on has to sit in that key, or the
+  // The impression half of `site_app_entry_clicked`, carrying the shared app-entry map that the
+  // click spreads and adds `action` on top of, so a click and the view it came from join by
+  // equality on that shared map and the click rate is a rate rather than a bare count. The producer
+  // reports it at most once per target, placement and page kind per document load, after about a
+  // second of visibility, the way `store_qr_shown` below is keyed on the store rather than on the
+  // placement alone. Every shared property a click can vary on has to sit in that key, or the
   // clicks differing on the missing one join to nothing: a site placement is a container, and the
   // footer and the home platform grid each offer the web app, the App Store and Google Play side by
   // side, so `target` varies within one placement, while a client-side navigation inside one
-  // document varies `page_kind`. The impression derives `source` and `device_category` exactly as
-  // the click does, from the document's own referrer and user agent rather than from the page a
-  // client-side navigation just left, which is what completes that three-property key: neither can
-  // change inside one document load, so an impression and the click it precedes always agree on
-  // them. A document that navigates between two pages of the same kind therefore reports one
-  // impression and can produce a click on each page, so the ratio is per document load and can
-  // exceed one in a multi-page visit. A CTA that stays visible across a client-side navigation has
-  // to report again under the new page kind, because the key includes it and a producer keyed on
-  // the element alone will not do so. The visibility delay keeps a CTA that only swept past during
-  // a fast scroll out of the denominator; a CTA scrolled back into view is already covered by the
-  // per-document key. The marketing site is its only producer.
+  // document varies `page_kind`. `action` sits outside that shared map, and outside that key, by
+  // design rather than by any limit on the producer: the site knows which entry it renders, but one
+  // placement can offer two at once - a logged-out header renders a `login` and a `signup` link
+  // side by side under a single `target`, `placement` and `page_kind` - and keeping `action` off
+  // the shared map is what keeps this impression, the click that spreads it and
+  // `site_store_qr_shown` below comparable on one key. The cost is exact - one impression is the
+  // denominator for every click that differs only on `action`. The impression derives `source` and
+  // `device_category` exactly as the click does, from the document's own referrer and user agent
+  // rather than from the page a client-side navigation just left, which is what completes that
+  // three-property key: neither can change inside one document load, so an impression and the click
+  // it precedes always agree on them. A document that navigates between two pages of the same kind
+  // therefore reports one impression and can produce a click on each page, so the ratio is per
+  // document load and can exceed one in a multi-page visit. A CTA that stays visible across a
+  // client-side navigation has to report again under the new page kind, because the key includes it
+  // and a producer keyed on the element alone will not do so. The visibility delay keeps a CTA that
+  // only swept past during a fast scroll out of the denominator; a CTA scrolled back into view is
+  // already covered by the per-document key. The marketing site is its only producer.
   site_app_entry_shown: {
     serverOnly: false,
     requiresScreen: false,
@@ -1405,6 +1477,168 @@ export const productAnalyticsEventCatalog = {
       placement: { kind: "string", pattern: productAnalyticsSitePlacementPattern },
       source: { kind: "enum", values: productAnalyticsSiteSources },
       device_category: { kind: "enum", values: productAnalyticsSiteDeviceCategories },
+    },
+  },
+  // How the marketing site's public catalog was browsed. These describe the browse surface that
+  // leads to a package page; the `catalog_install_*` family below is the funnel out of one. A
+  // search, a filter, a sort and a page turn each carry `result_count`, which is the point of those
+  // four: they are questions whose answer is how many decks came back, and an empty answer is a deck
+  // we do not have.
+  //
+  // `query_length` is kept beside `query_text` rather than derived from it, because the text is
+  // absent whenever the normalized query does not fit its shape and the length is the only thing
+  // left about those searches.
+  site_catalog_searched: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      query_length: { kind: "nonNegativeInteger" },
+      result_count: { kind: "nonNegativeInteger" },
+      query_text: { kind: "string", pattern: productAnalyticsSiteSearchQueryPattern, optional: true },
+    },
+  },
+  // `action` is what the visitor did to the filter set, and `category` which facet it was.
+  // `selected_count` is how many filters stand after the action, so a `clear` reports the set it
+  // emptied as zero rather than as an absent fact, and `all` is the pseudo-facet a reset acts on
+  // rather than a fourth facet.
+  site_catalog_filtered: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      action: { kind: "enum", values: ["add", "clear", "remove", "select"] },
+      category: { kind: "enum", values: ["all", "author", "collection", "language"] },
+      result_count: { kind: "nonNegativeInteger" },
+      selected_count: { kind: "nonNegativeInteger" },
+    },
+  },
+  // `sort` mirrors `PublicCatalogSort` in the website repository (src/lib/publicCatalogBrowse.ts)
+  // value for value, so a sort the site offers and this list does not is a refused event rather
+  // than a silently missing series.
+  site_catalog_sorted: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      sort: { kind: "enum", values: ["relevance", "title", "newest"] },
+      result_count: { kind: "nonNegativeInteger" },
+    },
+  },
+  // `total_pages` travels with `page` because how deep someone went only means anything against how
+  // deep they could have gone.
+  site_catalog_paginated: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      page: { kind: "nonNegativeInteger" },
+      total_pages: { kind: "nonNegativeInteger" },
+      result_count: { kind: "nonNegativeInteger" },
+    },
+  },
+  // The deck a browse actually ended on, which no `site_page_viewed` on the package page can answer:
+  // that view happens whatever brought the visitor there, including a search engine. `placement` is
+  // a closed set of the three ways out of a browse listing and not the site placement space the
+  // CTA events use, because a listing card is one element with named parts rather than a container
+  // the site can add a placement to.
+  site_catalog_deck_opened: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      package_slug: { kind: "string", pattern: productAnalyticsSlugPattern },
+      placement: { kind: "enum", values: ["card_cover", "card_title", "related_deck"] },
+    },
+  },
+  // The marketing site's own consent decision. They are named apart from the `consent_*` family
+  // above rather than reusing it: the site and the web app ask through different banners on
+  // different origins, and one shared name would fuse two surfaces into a series neither of them
+  // describes. Everything else about them is the same decision, including which of them may carry
+  // the visitor id: only the grant, because it is the moment an id may exist at all. The
+  // server-derived daily visitor hash is refused on all three the way it is refused on the web app's
+  // three, the grant included, so no consent decision on either surface is stored beside an
+  // identifier of any kind - the exclusion is by name in dailyVisitorHash.ts and in the CHECK
+  // constraint 0156 rewrites, because `identityFree` alone would let the grant through.
+  site_consent_prompt_shown: {
+    serverOnly: false,
+    requiresScreen: false,
+    identityFree: true,
+    properties: {},
+  },
+  site_consent_granted: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {},
+  },
+  site_consent_declined: {
+    serverOnly: false,
+    requiresScreen: false,
+    identityFree: true,
+    properties: {},
+  },
+  // The collection switch, moved after the banner was already answered, which is a different fact
+  // from the answer itself: a person who turns collection off later is not one who refused. Both
+  // directions are `identityFree`, the enable side included, because the row says what we may
+  // collect about this visitor and an identifier stored beside that answer is the processing the
+  // question is about. The CHECK constraint 0156 rewrites names both beside the consent facts, so a
+  // writer that builds such a row without going through this catalog is refused the hash by the
+  // database too.
+  site_collection_disabled: {
+    serverOnly: false,
+    requiresScreen: false,
+    identityFree: true,
+    properties: {},
+  },
+  site_collection_enabled: {
+    serverOnly: false,
+    requiresScreen: false,
+    identityFree: true,
+    properties: {},
+  },
+  // A marketing site link that leaves the site without going into the product, which is neither an
+  // app entry nor an internal CTA: it ends the visit somewhere we do not own. It shares
+  // `page_kind`, `placement`, `source` and `device_category` with `site_internal_cta_clicked` value
+  // for value, so the three click families compare directly on those and stay disjoint on `target`.
+  site_outbound_clicked: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      target: { kind: "enum", values: ["repository"] },
+      page_kind: { kind: "enum", values: productAnalyticsSitePageKinds },
+      placement: { kind: "string", pattern: productAnalyticsSitePlacementPattern },
+      source: { kind: "enum", values: productAnalyticsSiteSources },
+      device_category: { kind: "enum", values: productAnalyticsSiteDeviceCategories },
+    },
+  },
+  // Something was copied to the clipboard, which is how a docs page is used rather than clicked:
+  // the visitor takes the value away and the next thing they do happens in a terminal we never see.
+  // It carries no `source` or `device_category`: a copy is an act on the page rather than a way out
+  // of it, and the visit's acquisition is already on `site_page_viewed`.
+  site_copy_action: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      target: { kind: "enum", values: ["mcp_endpoint"] },
+      page_kind: { kind: "enum", values: productAnalyticsSitePageKinds },
+      placement: { kind: "string", pattern: productAnalyticsSitePlacementPattern },
+    },
+  },
+  // The offer to read the current page in another language, and what was done with it. They are two
+  // names for the reason the consent facts are: the offer and the answer are reported by different
+  // code paths at different moments, and an offer nobody answered is the interesting half.
+  // `suggested_locale` is the language offered and never the one the page is already in, so a
+  // suggestion rate per language is a rate rather than a page count.
+  site_locale_suggestion_shown: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      suggested_locale: { kind: "string", pattern: productAnalyticsSiteLanguageTagPattern },
+      page_kind: { kind: "enum", values: productAnalyticsSitePageKinds },
+    },
+  },
+  site_locale_suggestion_answered: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      suggested_locale: { kind: "string", pattern: productAnalyticsSiteLanguageTagPattern },
+      outcome: { kind: "enum", values: ["opened", "dismissed"] },
+      page_kind: { kind: "enum", values: productAnalyticsSitePageKinds },
     },
   },
   // The catalog install facts. `install_journey_id` is optional everywhere it appears: no producer

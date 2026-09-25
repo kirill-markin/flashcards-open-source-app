@@ -99,14 +99,19 @@ A row with no identity at all resolves to `actor_id` NULL in `analytics.product_
 is an event that belongs to no actor, not an event that is missing one, and a query that counts
 actors must exclude it rather than treat NULL as a person.
 
-A row whose `anonymous_id` stays empty and that is not one of the three consent facts gets a
-`daily_visitor_hash`: the server hashes the request's source IP and `User-Agent` with a random salt
-for that UTC day. It links one browser's cookieless events within that day only. It is written to no
-browser, stores no raw IP, is never part of `actor_id`, and is never linked to the visitor id or an
-account. A [scheduled job](../infra/aws/lib/scheduled-jobs/daily-visitor-hash-salt-expiry.ts)
-deletes the salt at 00:00 UTC, and an event whose day has already ended gets no hash. Missing IP or
-`User-Agent` leaves it NULL
+A row whose `anonymous_id` stays empty gets a `daily_visitor_hash`, unless its event is one the hash
+is refused on: any `identityFree` event, or either consent grant. The grants, `consent_granted` and
+`site_consent_granted`, are identity-bearing, so only an exclusion by name keeps a consent decision
+away from a hash. Between the two branches the refusal covers every consent fact on both surfaces
+and the marketing site's collection switch. The hash itself: the server hashes the request's source
+IP and `User-Agent` with a random salt for that UTC day. It links one browser's cookieless events
+within that day only. It is written to no browser, stores no raw IP, is never part of `actor_id`,
+and is never linked to the visitor id or an account. A
+[scheduled job](../infra/aws/lib/scheduled-jobs/daily-visitor-hash-salt-expiry.ts) deletes the salt
+at 00:00 UTC, and an event whose day has already ended gets no hash. Missing IP or `User-Agent`
+leaves it NULL
 ([storage contract](../db/migrations/0144_anonymous_client_daily_visitor_hash.sql),
+[current exclusion list](../db/migrations/0156_site_consent_daily_visitor_hash_exclusion.sql),
 [code](../apps/backend/src/productAnalytics/dailyVisitorHash.ts)).
 
 Every row this collector stores carries the two-letter `country` the backend derived at ingest from
@@ -130,7 +135,7 @@ and keeps it for one week
 ([format](../infra/aws/lib/gateways/api-gateway-access-log.ts),
 [retention](../infra/aws/lib/gateways/api-gateway.ts)).
 
-The three consent facts are marked like every other row: one boolean about bot-ness is not an
+Every consent fact is marked like every other row: one boolean about bot-ness is not an
 identity, so it takes nothing back from the identity-free rules above, and exempting those facts
 would leave a way to report one unmarked.
 
@@ -259,8 +264,28 @@ viewed, a link into the web app or an app store was seen, one was clicked, a sto
 was opened, and a CTA leading to another marketing page was clicked.
 Their properties are in the
 [event catalog](../apps/backend/src/productAnalytics/catalog.ts), which also owns how an impression
-is deduplicated. None of them is `identityFree`: like `catalog_install_clicked`, each carries the
-shared visitor id only once the visitor has consented, and none before.
+is deduplicated. None of those five is `identityFree`: like `catalog_install_clicked`, each carries
+the shared visitor id only once the visitor has consented, and none before.
+
+`site_catalog_searched`, `site_catalog_filtered`, `site_catalog_sorted`, `site_catalog_paginated`
+and `site_catalog_deck_opened` are how the public catalog was browsed and which deck a browse ended
+on. `site_catalog_searched` carries the normalized search text, the one deliberate exception to the
+catalog's no-free-text rule, which states its own bounds and its reason beside that rule.
+
+`site_outbound_clicked` is a link that leaves the site without going into the product,
+`site_copy_action` a value copied off a page, and `site_locale_suggestion_shown` and
+`site_locale_suggestion_answered` the offer to read the page in another language and what was done
+with it.
+
+`site_consent_prompt_shown`, `site_consent_granted` and `site_consent_declined` are the site's own
+consent decision, named apart from the [consent facts](#the-consent-facts) above so the two surfaces
+stay distinguishable, and `site_collection_disabled` and `site_collection_enabled` are the collection
+switch moved after that decision. The identity rule is the same one: the site's prompt and refusal
+are `identityFree`, its grant is not, and both collection switch events are `identityFree` in either
+direction, because the row says what may be collected about this visitor at all. None of the five
+carries a `daily_visitor_hash`: the `identityFree` ones are refused it by the rule that covers every
+identity-free row, and the grant is excluded by name the way `consent_granted` is, because no consent
+decision is stored beside an identifier of any kind.
 
 ## Manual acceptance
 
