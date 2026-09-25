@@ -29,6 +29,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.core.ui.components.SectionTitle
+import com.flashcardsopensourceapp.feature.settings.subscription.SubscriptionUiState
 import com.flashcardsopensourceapp.feature.friendinvite.R as FriendInviteR
 
 internal val settingsScreenCardSpacing = 16.dp
@@ -87,6 +88,8 @@ internal fun SettingsScreenScaffold(
 @Composable
 fun SettingsRoute(
     uiState: SettingsUiState,
+    subscriptionUiState: SubscriptionUiState,
+    onOpenSubscription: () -> Unit,
     onOpenFriendInvite: () -> Unit,
     onShareApp: () -> Unit,
     onReviewApp: () -> Unit,
@@ -184,6 +187,18 @@ fun SettingsRoute(
                     title = stringResource(R.string.settings_section_account),
                     testTag = settingsAccountSectionTag
                 )
+            }
+
+            if (subscriptionUiState.isSubscriptionProductAvailable) {
+                item {
+                    SettingsRootRow(
+                        title = stringResource(R.string.settings_subscription_title),
+                        summary = subscriptionUiState.planName,
+                        attentionCount = null,
+                        testTag = settingsSubscriptionRowTag,
+                        onClick = onOpenSubscription
+                    )
+                }
             }
 
             item {

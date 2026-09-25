@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.feature.settings
 
+const val settingsSubscriptionRowTag: String = "settings_row_subscription"
 const val settingsAccountStatusRowTag: String = "settings_row_account_status"
 const val settingsInviteFriendButtonTag: String = "settings_invite_friend_button"
 const val settingsShareAppRowTag: String = "settings_row_share_app"
