@@ -185,6 +185,7 @@ extension FlashcardsStore {
         self.schedulerSettings = snapshot.schedulerSettings
         self.cloudSettings = snapshot.cloudSettings
         self.reloadCachedAccountPreferencesForCurrentIdentity()
+        self.reloadCachedCloudEntitlementForCurrentIdentity()
         self.reloadFeedbackPromptStateForCurrentIdentity()
         self.cards = localReadModels.cards
         self.decks = localReadModels.decks
@@ -361,6 +362,7 @@ extension FlashcardsStore {
         self.schedulerSettings = bootstrapSnapshot.schedulerSettings
         self.cloudSettings = bootstrapSnapshot.cloudSettings
         self.reloadCachedAccountPreferencesForCurrentIdentity()
+        self.reloadCachedCloudEntitlementForCurrentIdentity()
         self.reloadFeedbackPromptStateForCurrentIdentity()
         self.cards = nextCards
         self.decks = nextDecks

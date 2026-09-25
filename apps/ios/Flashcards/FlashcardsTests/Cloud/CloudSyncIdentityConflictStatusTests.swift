@@ -140,7 +140,8 @@ final class CloudSyncIdentityConflictStatusTests: CloudCredentialRecoveryTestCas
                     acknowledgedReviewScheduleImpactingOperationCount: 0,
                     cleanedUpOperationCount: 0,
                     cleanedUpReviewEventOperationCount: 0,
-                    cleanedUpReviewScheduleImpactingOperationCount: 0
+                    cleanedUpReviewScheduleImpactingOperationCount: 0,
+                    entitlement: nil
                 ),
                 underlyingError: CloudSyncError.invalidResponse(
                     CloudApiErrorDetails(

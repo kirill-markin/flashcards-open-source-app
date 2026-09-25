@@ -3,6 +3,8 @@ import Observation
 
 func makeSettingsNavigationPath(destination: SettingsNavigationDestination) -> [SettingsNavigationDestination] {
     switch destination {
+    case .subscription:
+        return [.subscription]
     case .currentWorkspace:
         return [.currentWorkspace]
     case .reviewAnimations:
