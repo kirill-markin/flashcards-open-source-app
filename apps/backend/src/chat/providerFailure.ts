@@ -1,3 +1,4 @@
+import OpenAI from "openai";
 import { HttpError } from "../shared/errors";
 
 export const CHAT_PROVIDER_TERMINAL_EVENT_ERROR_NAME = "ChatProviderTerminalEventError";
@@ -189,6 +190,25 @@ export function getAIProviderFailureMetadata(error: unknown): AIProviderFailureM
     upstreamMessage: upstreamMessageFromError(error),
     originalMessage: getErrorMessage(error),
   };
+}
+
+/**
+ * OpenAI's own `code: message` for a call it answered with an error, or null when the failure is not an
+ * OpenAI API response: an abort, a connection failure, or an error of ours. Only a call made with the
+ * person's own key shows it, because only they can act on what OpenAI says about their key or account.
+ */
+export function readOwnOpenAIKeyProviderErrorText(error: unknown): string | null {
+  if (!(error instanceof OpenAI.APIError) || error.status === undefined) {
+    return null;
+  }
+
+  const providerMessage = readStringField(asRecord(error.error), "message") ?? getErrorMessage(error);
+  const providerCode = readStringField(asRecord(error), "code") ?? readStringField(asRecord(error), "type");
+  return providerCode === null ? providerMessage : `${providerCode}: ${providerMessage}`;
+}
+
+export function makeOwnOpenAIKeyProviderError(providerErrorText: string): HttpError {
+  return new HttpError(400, providerErrorText, "OWN_OPENAI_KEY_PROVIDER_ERROR");
 }
 
 export function makeChatTranscriptionNotConfiguredError(): HttpError {
