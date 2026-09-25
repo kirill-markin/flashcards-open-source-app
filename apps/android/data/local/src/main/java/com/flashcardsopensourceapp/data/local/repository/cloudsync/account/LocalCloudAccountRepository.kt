@@ -12,6 +12,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.AgentApiKeyConnections
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCommunityProfile
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudEntitlement
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudFriendInvitationCreateRequest
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudFriendInvitationCreateResponse
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudOtpChallenge
@@ -175,6 +176,10 @@ class LocalCloudAccountRepository(
 
     override fun observeServerConfiguration(): Flow<CloudServiceConfiguration> {
         return preferencesStore.observeServerConfiguration()
+    }
+
+    override fun observeEntitlement(): Flow<CloudEntitlement?> {
+        return preferencesStore.observeEntitlement()
     }
 
     override fun observeCloudCredentialRecoveryState(): Flow<CloudCredentialRecoveryState?> {

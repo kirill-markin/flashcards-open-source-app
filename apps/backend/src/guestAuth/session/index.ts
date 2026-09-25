@@ -27,6 +27,7 @@ type GuestSessionRow = Readonly<{
   analytics_consent: AnalyticsConsentChoice | null;
   product_analytics_enabled: boolean | null;
   revoked_at: Date | string | null;
+  bound_past_grace_period: boolean;
 }>;
 
 type PreAnalyticsConsentGuestSessionRow = Readonly<{
@@ -34,12 +35,14 @@ type PreAnalyticsConsentGuestSessionRow = Readonly<{
   user_id: string;
   platform: GuestSessionPlatform | null;
   revoked_at: Date | string | null;
+  bound_past_grace_period: boolean;
 }>;
 
 type LegacyGuestSessionRow = Readonly<{
   session_id: string;
   user_id: string;
   revoked_at: Date | string | null;
+  bound_past_grace_period: boolean;
 }>;
 
 function toUndecidedGuestSessionRow(row: PreAnalyticsConsentGuestSessionRow): GuestSessionRow {
@@ -63,6 +66,24 @@ const unsafeGuestSessionExecutor: DatabaseExecutor = {
   query: unsafeQuery,
 };
 
+/**
+ * A guest session whose user is bound to a Cognito subject belongs to that account, and it stays a
+ * guest credential only this long after the binding, which `/guest-auth/upgrade/prepare` writes.
+ * The grace is for an upgrade in flight: before `/guest-auth/upgrade/complete` a client may still
+ * drain guest sync with the token. A client stuck on the token past it gets `401 GUEST_AUTH_INVALID`.
+ */
+const boundGuestSessionGracePeriodDays = 7;
+
+// Takes boundGuestSessionGracePeriodDays as $2.
+const guestUserBoundPastGracePeriodSql = [
+  "EXISTS (",
+  "SELECT 1 FROM auth.user_identities",
+  "WHERE user_identities.provider_type = 'cognito'",
+  "AND user_identities.user_id = guest_sessions.user_id",
+  "AND user_identities.created_at < now() - make_interval(days => $2::integer)",
+  ") AS bound_past_grace_period",
+].join(" ");
+
 async function loadGuestSessionRow(guestToken: string): Promise<GuestSessionRow | null> {
   const sessionSecretHash = hashGuestToken(guestToken);
   if (await guestSessionPlatformColumnExistsInExecutor(unsafeGuestSessionExecutor)) {
@@ -79,24 +100,26 @@ async function loadGuestSessionRow(guestToken: string): Promise<GuestSessionRow 
       const result = await unsafeQuery<GuestSessionRow>(
         [
           "SELECT session_id, user_id, platform, analytics_consent, product_analytics_enabled,",
-          "revoked_at",
+          "revoked_at,",
+          guestUserBoundPastGracePeriodSql,
           "FROM auth.guest_sessions",
           "WHERE session_secret_hash = $1",
           "LIMIT 1",
         ].join(" "),
-        [sessionSecretHash],
+        [sessionSecretHash, boundGuestSessionGracePeriodDays],
       );
       return result.rows[0] ?? null;
     }
 
     const preAnalyticsConsentResult = await unsafeQuery<PreAnalyticsConsentGuestSessionRow>(
       [
-        "SELECT session_id, user_id, platform, revoked_at",
+        "SELECT session_id, user_id, platform, revoked_at,",
+        guestUserBoundPastGracePeriodSql,
         "FROM auth.guest_sessions",
         "WHERE session_secret_hash = $1",
         "LIMIT 1",
       ].join(" "),
-      [sessionSecretHash],
+      [sessionSecretHash, boundGuestSessionGracePeriodDays],
     );
     const preAnalyticsConsentRow = preAnalyticsConsentResult.rows[0];
     return preAnalyticsConsentRow === undefined
@@ -109,12 +132,13 @@ async function loadGuestSessionRow(guestToken: string): Promise<GuestSessionRow 
   // sessions as legacy unbound sessions until the migration lands.
   const result = await unsafeQuery<LegacyGuestSessionRow>(
     [
-      "SELECT session_id, user_id, revoked_at",
+      "SELECT session_id, user_id, revoked_at,",
+      guestUserBoundPastGracePeriodSql,
       "FROM auth.guest_sessions",
       "WHERE session_secret_hash = $1",
       "LIMIT 1",
     ].join(" "),
-    [sessionSecretHash],
+    [sessionSecretHash, boundGuestSessionGracePeriodDays],
   );
   const row = result.rows[0];
   return row === undefined ? null : toUnboundGuestSessionRow(row);
@@ -128,7 +152,7 @@ export async function authenticateGuestSession(guestToken: string): Promise<Read
   productAnalyticsEnabled: boolean | null;
 }>> {
   const row = await loadGuestSessionRow(guestToken);
-  if (row === null || row.revoked_at !== null) {
+  if (row === null || row.revoked_at !== null || row.bound_past_grace_period) {
     throw new HttpError(401, "Guest session is invalid.", "GUEST_AUTH_INVALID");
   }
 
@@ -336,11 +360,12 @@ async function lockGuestSessionCreationIdempotencyInExecutor(
  * not make presenting one legitimate here. Treating the row as absent without clearing the key is
  * not enough either: the row is still live, so it still occupies
  * `idx_guest_sessions_active_creation_idempotency_key` and the insert below would violate it.
- * Clearing only the key leaves that account's live credential
- * untouched and retires a marker that stopped meaning "one guest creation attempt" the moment the
- * session stopped being a guest. `deleteGuestSessionInExecutor` and
- * `linkGuestAnalyticsIdentityInExecutor` guard the same state with the same
- * `hasCognitoIdentityMappingForUserInExecutor` probe: on none of the three paths may a guest session
+ * Clearing only the key leaves the session itself to `authenticateGuestSession`, which stops
+ * accepting it once the binding is past its grace period, and retires a marker that stopped meaning
+ * "one guest creation attempt" the moment the session stopped being a guest.
+ * `deleteGuestSessionInExecutor`, `linkGuestAnalyticsIdentityInExecutor` and both guest upgrade
+ * routes guard the same state with the same
+ * `hasCognitoIdentityMappingForUserInExecutor` probe: on none of these paths may a guest session
  * whose user is already a real account be treated as an ordinary guest. Each path answers it
  * differently only because their safe answers differ — here a fresh guest, there a refusal.
  *

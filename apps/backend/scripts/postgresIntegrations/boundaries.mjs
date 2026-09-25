@@ -162,8 +162,10 @@ export const boundaryDefinitions = Object.freeze([
   //   them; several do pull src/aiUsage into their module graph through the chat modules, which loads
   //   the code without running a statement against it.
   // - auth/accountDeletion and guestAuth/upgrade are the two callers of the identity rewrites, and
-  //   neither has an integration file at all: both are covered by node:test files driving a recorded
-  //   fake executor, which never reaches a database and is therefore not pinned anywhere.
+  //   no integration file reaches either rewrite: both are covered by node:test files driving a
+  //   recorded fake executor, which never reaches a database and is therefore not pinned anywhere.
+  //   guestAuth/upgrade/boundGuestSession, pinned at 0149, drives only the bound upgrade and the merge
+  //   refusal, both of which return before the rewrites.
   // Nothing pins the billing read the allowance resolves through either, for the same reason.
   Object.freeze({
     migrationFileName: "0161_ai_usage_user_supplied_key.sql",
@@ -236,10 +238,10 @@ export const boundaryDefinitions = Object.freeze([
   // - chat/cardImages/promotion/jobsSettlement: no import path to requestContext.ts at all.
   // - guestAuthTestHarness/handlers/userSettings.ts is a third SQL site naming both columns, but no
   //   pinned test imports it.
-  // The guest half of the migration adds no test of its own: auth.guest_sessions
-  // .product_analytics_enabled is named only by the guest credential lookup
-  // (guestAuth/session/index.ts) and the guest preference write, and no pinned test authenticates a
-  // real guest session against its boundary database.
+  // The guest half of the migration is covered by guestAuth/upgrade/boundGuestSession:
+  // auth.guest_sessions.product_analytics_enabled is named by the guest credential lookup
+  // (guestAuth/session/index.ts), which that test authenticates real guest sessions through, and by
+  // the guest preference write, which no pinned test drives.
   // Moving a test retires the older-schema coverage it used to give, because each test runs only at
   // its pinned boundary and there is no full-schema pass.
   // accountPreferences joins this boundary rather than an older one because it exercises both
@@ -258,6 +260,13 @@ export const boundaryDefinitions = Object.freeze([
   // minting again, and that a subject already holding an unmapped account adopts it. The
   // profile-before-mapping order all three rest on is a foreign key
   // (db/migrations/0031_guest_ai_identity_and_quota.sql), which no fake executor enforces.
+  // guestAuth/upgrade/boundGuestSession joins it for the same two reads: the guest credential lookup
+  // above and, through ensureCognitoUserProfile, the shared profile read. Its own rule - a guest
+  // session whose user is bound in auth.user_identities stops authenticating after a grace period
+  // and cannot be bound again or merged away - names nothing newer than 0031's created_at, so this
+  // is the earliest schema it can run against. It is here because the grace period compares a stored
+  // timestamp with the database clock and each refusal has to roll back a real transaction, neither of
+  // which a fake executor evaluates.
   Object.freeze({
     migrationFileName: "0149_product_analytics_off_switch.sql",
     expectedMigrationCount: 151,
@@ -268,6 +277,7 @@ export const boundaryDefinitions = Object.freeze([
     testFiles: Object.freeze([
       "src/agent/reviews.postgres.integration.ts",
       "src/auth/surrogateUserId.postgres.integration.ts",
+      "src/guestAuth/upgrade/boundGuestSession.postgres.integration.ts",
       "src/routes/system/account/accountPreferences.postgres.integration.ts",
     ]),
   }),
