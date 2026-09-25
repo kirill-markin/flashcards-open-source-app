@@ -9,12 +9,16 @@ import {
   buildChatCompletionInputWithBudget,
   estimateStoredReplayItemsTokens,
 } from "./input";
-import { getObservedOpenAIClient } from "../client";
+import {
+  createObservedUserOpenAIClient,
+  getObservedOpenAIClient,
+} from "../client";
 import { isContextLengthExceededError } from "../../runtime/providerErrors";
 import { runOneToolCall as runObservedToolCall } from "../tools/toolExecutor";
-import type {
-  ServerChatMessage,
-  StoredOpenAIReplayItem,
+import {
+  dropHistoryReasoningItemsFromOtherKey,
+  type ServerChatMessage,
+  type StoredOpenAIReplayItem,
 } from "../replayItems";
 import { buildOpenAIChatTools, type ExecutedChatToolCall } from "../tools/tools";
 import type { ContentPart } from "../../types";
@@ -32,6 +36,8 @@ import {
   toOpenAIResponsesUsageCounters,
 } from "../../../aiUsage";
 import type { EntitlementTier } from "../../../billing/tiers";
+import type { UserOpenAIApiKey } from "../../userOpenAIApiKey";
+import { addBackendBreadcrumb, createBackendObservationScope } from "../../../observability/sentry";
 import {
   buildOpenAIResponsesRequest,
   buildPromptCacheKey,
@@ -76,6 +82,7 @@ type OpenAILoopDependencies = Readonly<{
   buildChatCompletionInput: typeof buildChatCompletionInput;
   buildChatCompletionInputWithBudget: typeof buildChatCompletionInputWithBudget;
   getObservedOpenAIClient: typeof getObservedOpenAIClient;
+  createObservedUserOpenAIClient: typeof createObservedUserOpenAIClient;
   runOneToolCall: RunOneToolCall;
   appendAiUsageEvent: typeof appendAiUsageEvent;
 }>;
@@ -97,6 +104,7 @@ export type StartOpenAILoopParams = Readonly<{
   clientPlatform: ProductAnalyticsClientReportablePlatform | null;
   tierAtCall: EntitlementTier;
   initiatingAuthIsSignedIn: boolean;
+  userOpenAIApiKey: UserOpenAIApiKey | null;
   modelId: ChatRuntimeModelId;
   reasoningEffort: ChatRuntimeReasoningEffort;
   timezone: string;
@@ -123,6 +131,7 @@ async function runOneToolCall(
     generatedImageOperationDeadlineMs: number;
     clientPlatform: ProductAnalyticsClientReportablePlatform | null;
     initiatingAuthIsSignedIn: boolean;
+    userOpenAIApiKey: UserOpenAIApiKey | null;
     rootObservation: LangfuseObservation | null;
   }>,
 ): Promise<ExecutedChatToolCall> {
@@ -133,6 +142,7 @@ const DEFAULT_OPENAI_LOOP_DEPENDENCIES: OpenAILoopDependencies = {
   buildChatCompletionInput,
   buildChatCompletionInputWithBudget,
   getObservedOpenAIClient,
+  createObservedUserOpenAIClient,
   runOneToolCall,
   appendAiUsageEvent,
 };
@@ -161,7 +171,7 @@ async function recordModelCallUsage(
     imageCount: null,
     imageSize: null,
     imageQuality: null,
-    userSuppliedKey: false,
+    userSuppliedKey: params.userOpenAIApiKey !== null,
   });
 }
 
@@ -220,6 +230,7 @@ async function runModelCallWithOverflowRetry(
       onEvent,
       request: buildRequest(baseInput),
       callIndex,
+      userSuppliedKey: params.userOpenAIApiKey !== null,
     });
     await recordModelCallUsage(params, dependencies, modelCall);
     return { baseInput, modelCall };
@@ -242,6 +253,7 @@ async function runModelCallWithOverflowRetry(
       onEvent,
       request: buildRequest(reducedBaseInput),
       callIndex,
+      userSuppliedKey: params.userOpenAIApiKey !== null,
     });
     await recordModelCallUsage(params, dependencies, retriedModelCall);
     return { baseInput: reducedBaseInput, modelCall: retriedModelCall };
@@ -297,7 +309,10 @@ async function runLoopWithDeps(
   onEvent: OpenAILoopEventSink,
   dependencies: OpenAILoopDependencies,
 ): Promise<OpenAILoopCompletion> {
-  const client = dependencies.getObservedOpenAIClient();
+  // One client for every model call of the run, built from the person's own key when the turn carried one.
+  const client = params.userOpenAIApiKey === null
+    ? dependencies.getObservedOpenAIClient()
+    : dependencies.createObservedUserOpenAIClient(params.userOpenAIApiKey);
   let baseInput = await dependencies.buildChatCompletionInput(
     params.localMessages,
     params.turnInput,
@@ -381,6 +396,7 @@ async function runLoopWithDeps(
       generatedImageOperationDeadlineMs: params.generatedImageOperationDeadlineMs,
       clientPlatform: params.clientPlatform,
       initiatingAuthIsSignedIn: params.initiatingAuthIsSignedIn,
+      userOpenAIApiKey: params.userOpenAIApiKey,
       rootObservation: params.rootObservation,
       onExecutionPhaseChanged: params.onExecutionPhaseChanged,
       shouldStopBeforeNextStep: params.shouldStopBeforeNextStep,
@@ -424,7 +440,28 @@ export async function startOpenAILoopWithDeps(
   dependencies: OpenAILoopDependencies,
 ): Promise<OpenAILoopCompletion> {
   setExecutionPhase(params, "idle");
-  return runLoopWithDeps(params, onEvent, dependencies).finally(() => {
+  const userSuppliedKey = params.userOpenAIApiKey !== null;
+  const history = dropHistoryReasoningItemsFromOtherKey(params.localMessages, userSuppliedKey);
+  if (history.droppedReasoningItems > 0) {
+    addBackendBreadcrumb({
+      action: "chat_replay_reasoning_items_dropped",
+      scope: createBackendObservationScope(
+        "chat-worker",
+        null,
+        null,
+        null,
+        params.userId,
+        params.workspaceId,
+        params.requestId,
+        params.runId,
+        params.sessionId,
+        null,
+        params.clientPlatform,
+      ),
+      details: { droppedReasoningItems: history.droppedReasoningItems, userSuppliedKey },
+    });
+  }
+  return runLoopWithDeps({ ...params, localMessages: history.messages }, onEvent, dependencies).finally(() => {
     setExecutionPhase(params, "idle");
   });
 }

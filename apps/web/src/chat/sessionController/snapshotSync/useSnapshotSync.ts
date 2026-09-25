@@ -42,6 +42,7 @@ import { useChatLiveSession } from "./useLiveSession";
 import { useToolRunPostSync } from "./useToolRunPostSync";
 import type { ChatHistoryState } from "../../history/useChatHistory";
 import type { ChatLiveEvent } from "../../streaming/liveStream";
+import { formatChatRunFailureMessage } from "../../shared/chatOwnOpenAIKeyErrorPolicy";
 
 const assistantMessageDoneTerminalReconcileDelayMs = 5_000;
 
@@ -452,7 +453,10 @@ export function useChatSessionSnapshotSync(
     triggerToolRunPostSyncIfNeeded();
     dispatch({
       type: "run_interrupted",
-      message: event.message ?? extractLatestAssistantMessageText(messagesRef.current) ?? uiMessages.genericChatFailed,
+      message: formatChatRunFailureMessage(
+        uiMessages.ownOpenAIKeyErrorPrefix,
+        event.message ?? extractLatestAssistantMessageText(messagesRef.current) ?? uiMessages.genericChatFailed,
+      ),
     });
   }, [
     appendAssistantText,
@@ -597,7 +601,7 @@ export function useChatSessionSnapshotSync(
           if (snapshotErrorMessage !== null) {
             dispatch({
               type: "run_interrupted",
-              message: snapshotErrorMessage,
+              message: formatChatRunFailureMessage(uiMessages.ownOpenAIKeyErrorPrefix, snapshotErrorMessage),
             });
           }
         } catch (error) {
@@ -650,7 +654,7 @@ export function useChatSessionSnapshotSync(
           if (snapshotErrorMessage !== null) {
             dispatch({
               type: "run_interrupted",
-              message: snapshotErrorMessage,
+              message: formatChatRunFailureMessage(uiMessages.ownOpenAIKeyErrorPrefix, snapshotErrorMessage),
             });
             return;
           }

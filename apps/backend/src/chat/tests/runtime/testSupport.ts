@@ -95,6 +95,7 @@ export function createParams(): StartPersistedChatRunParams {
     clientPlatform: null,
     tierAtCall: "free",
     initiatingAuthIsSignedIn: true,
+    userOpenAIApiKey: null,
     diagnostics: {
       requestId: "chat-request-1",
       userId: "user-1",

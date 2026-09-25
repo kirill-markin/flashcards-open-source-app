@@ -49,6 +49,8 @@ import {
   GeneratedCardImageStagingOutcomeUnknownError,
 } from "../../cardImages/providerTypes";
 import { InactiveChatRunClaimError, type ChatRunClaimToken } from "../../runs";
+import { readOwnOpenAIKeyProviderErrorText } from "../../providerFailure";
+import type { UserOpenAIApiKey } from "../../userOpenAIApiKey";
 import {
   bindGeneratedCardImageAttemptPayload,
   maximumGeneratedCardImageAttemptsPerRun,
@@ -94,6 +96,8 @@ export type OpenAIToolContext = Readonly<{
    * resolves the account kind from it rather than asking the identity tables.
    */
   initiatingAuthIsSignedIn: boolean;
+  /** The person's own OpenAI key when the run carries one; a card image is then generated and paid with it. */
+  userOpenAIApiKey: UserOpenAIApiKey | null;
   generatedImageObservationContext: GeneratedCardImageObservationContext;
 }>;
 
@@ -685,7 +689,7 @@ async function executeGeneratedImageToolCall(
       context.userId, context.generatedImageOperationDeadlineMs,
     );
     operationSignal.throwIfAborted();
-    if (signedIn === false) {
+    if (signedIn === false && context.userOpenAIApiKey === null) {
       return createGeneratedImageErrorResult(
         "sign_in_required",
         false,
@@ -732,6 +736,7 @@ async function executeGeneratedImageToolCall(
       altText: immutablePayload.altText,
       replicaId,
       tierAtCall,
+      userOpenAIApiKey: context.userOpenAIApiKey,
       observationContext: context.generatedImageObservationContext,
       signal: operationSignal,
       operationDeadlineMs: context.generatedImageOperationDeadlineMs,
@@ -844,12 +849,30 @@ async function executeGeneratedImageToolCall(
       const retryable = code === "provider_unavailable"
         && attempt !== null
         && attempt < maximumGeneratedCardImageAttemptsPerRun;
-      return createGeneratedImageErrorResult(
-        code,
-        retryable,
-        attempt,
-        false,
-        null,
+      // OpenAI's own reason for refusing a call made with the person's own key goes to the model, so the
+      // assistant can relay what only that person can fix; a platform-key result carries only the code.
+      const providerMessage = context.userOpenAIApiKey === null
+        ? null
+        : readOwnOpenAIKeyProviderErrorText(error.cause);
+      if (providerMessage === null) {
+        return createGeneratedImageErrorResult(
+          code,
+          retryable,
+          attempt,
+          false,
+          null,
+        );
+      }
+      return createGeneratedImageResult(
+        { ok: false, code, retryable, ...(attempt === null ? {} : { attempt }), providerMessage },
+        {
+          attempt,
+          status: code,
+          succeeded: false,
+          isMutating: false,
+          shouldInvalidateMainContent: false,
+          stopReason: null,
+        },
       );
     }
     throw error;

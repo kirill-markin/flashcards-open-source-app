@@ -3,6 +3,10 @@ import {
   sanitizeBackendTelemetryValue,
   type SanitizedTelemetryValue,
 } from "../sanitizer";
+import {
+  USER_OPENAI_API_KEY_HEADER,
+  USER_OPENAI_API_KEY_WORKER_PAYLOAD_FIELD,
+} from "../../shared/userOpenAIApiKeyNames";
 import { hasCapturedBackendException } from "./errorNormalization";
 
 type BackendSentryInitOptions = NonNullable<Parameters<typeof Sentry.init>[0]>;
@@ -98,6 +102,12 @@ const sentryTextMaskPatterns: ReadonlyArray<Readonly<{
     replacement: "<masked-jwt>",
   },
 ];
+// Dropped rather than masked wherever they appear - request headers, extra, contexts, span data - so the
+// person's own OpenAI key never reaches Sentry in any form.
+const droppedSentryKeyNames: ReadonlySet<string> = new Set([
+  USER_OPENAI_API_KEY_HEADER,
+  USER_OPENAI_API_KEY_WORKER_PAYLOAD_FIELD,
+].map((key) => normalizeTelemetryKey(key)));
 const nonSqlStateDatabaseErrorCodes: ReadonlySet<string> = new Set([
   "ECONNRESET",
   "ECONNREFUSED",
@@ -204,7 +214,9 @@ function sanitizeBackendSentryTelemetryObject(
   value: Readonly<Record<string, unknown>>,
 ): SanitizedTelemetryValue {
   return Object.fromEntries(
-    Object.entries(value).map(([key, childValue]) => sanitizeBackendSentryTelemetryEntry(key, childValue)),
+    Object.entries(value)
+      .filter(([key]) => droppedSentryKeyNames.has(normalizeTelemetryKey(key)) === false)
+      .map(([key, childValue]) => sanitizeBackendSentryTelemetryEntry(key, childValue)),
   );
 }
 

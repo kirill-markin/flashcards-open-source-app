@@ -207,6 +207,7 @@ test("generated-image dependency races surface cancellation to the runtime termi
                   params.generatedImageOperationDeadlineMs,
                 clientPlatform: params.clientPlatform,
                 initiatingAuthIsSignedIn: params.initiatingAuthIsSignedIn,
+                userOpenAIApiKey: params.userOpenAIApiKey,
                 generatedImageObservationContext: {
                   scope: createBackendObservationScope(
                     "chat-worker",

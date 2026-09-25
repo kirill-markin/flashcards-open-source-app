@@ -14,6 +14,7 @@ import {
 } from "../worker/logging";
 import {
   classifyChatRunFailureCategory,
+  createOwnOpenAIKeyPublicTerminalErrorMessage,
   createSafeProviderErrorDetails,
   createPublicTerminalErrorMessage,
 } from "./providerErrors";
@@ -59,6 +60,11 @@ async function generateTerminalComposerSuggestions(
   logContext: ChatWorkerLogContext,
   dependencies: ChatRuntimeDependencies,
 ): Promise<ReadonlyArray<ChatComposerSuggestion>> {
+  // Suggestions would be a platform-key call on a run the person pays for themselves.
+  if (params.userOpenAIApiKey !== null) {
+    return emptyChatComposerSuggestions();
+  }
+
   try {
     return await dependencies.generateFollowUpChatComposerSuggestions(
       params.userId,
@@ -139,7 +145,9 @@ export async function persistFailedChatRun(
     sessionId: input.params.sessionId,
     assistantItemId: input.params.assistantItemId,
     assistantContent,
-    errorMessage: createPublicTerminalErrorMessage(input.error),
+    errorMessage: input.params.userOpenAIApiKey === null
+      ? createPublicTerminalErrorMessage(input.error)
+      : createOwnOpenAIKeyPublicTerminalErrorMessage(input.error),
     sessionState: "idle",
   }, input.params.claimToken);
   // After the terminal state is stored, never before: a worker that lost the run throws above, and

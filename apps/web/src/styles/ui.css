@@ -445,6 +445,10 @@
   box-shadow: 0 0 0 4px rgba(196, 75, 45, 0.14);
 }
 
+.settings-input-masked {
+  -webkit-text-security: disc;
+}
+
 .workspace-modal {
   display: grid;
   gap: 18px;

@@ -5,6 +5,10 @@ import {
   parseStartChatRunResponse,
   parseStopChatRunResponse,
 } from "../../apiContracts/chat";
+import {
+  OWN_OPENAI_KEY_HEADER_NAME,
+  readActiveOwnOpenAIKey,
+} from "../../chat/preferences/ownOpenAIKeyStorage";
 import { webAppVersion } from "../../clientIdentity";
 import type { Locale } from "../../i18n/types";
 import type {
@@ -28,6 +32,11 @@ import {
 type ChatResumeRequestDiagnostics = Readonly<{
   resumeAttemptId: number;
 }>;
+
+function buildOwnOpenAIKeyHeaders(): Record<string, string> {
+  const ownOpenAIKey = readActiveOwnOpenAIKey();
+  return ownOpenAIKey === null ? {} : { [OWN_OPENAI_KEY_HEADER_NAME]: ownOpenAIKey };
+}
 
 function buildChatSnapshotPath(sessionId: string, workspaceId: string): string {
   const searchParams = new URLSearchParams({
@@ -70,6 +79,7 @@ export async function startChatRun(body: StartChatRunRequestBody): Promise<Start
     method: "POST",
     headers: {
       "X-Client-Platform": "web",
+      ...buildOwnOpenAIKeyHeaders(),
     },
     body: JSON.stringify(body),
   }, allowAuthRecoveryWithTransientNetworkRetry), "POST /chat", parseStartChatRunResponse);
@@ -158,6 +168,7 @@ export async function transcribeChatAudio(
 
   return parseContractResponse(await requestJson("/chat/transcriptions", {
     method: "POST",
+    headers: buildOwnOpenAIKeyHeaders(),
     body: formData,
     signal,
   }, allowAuthRecovery), "POST /chat/transcriptions", parseChatTranscriptionResponse);
