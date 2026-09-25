@@ -6,7 +6,7 @@ import {
 import {
   USER_OPENAI_API_KEY_HEADER,
   USER_OPENAI_API_KEY_WORKER_PAYLOAD_FIELD,
-} from "../../chat/userOpenAIApiKey";
+} from "../../shared/userOpenAIApiKeyNames";
 import { hasCapturedBackendException } from "./errorNormalization";
 
 type BackendSentryInitOptions = NonNullable<Parameters<typeof Sentry.init>[0]>;
