@@ -10,6 +10,8 @@
  call because any of them can be the one that registers this installation.
  */
 
+import Foundation
+
 /// Wire contract for `POST /sync/push`.
 ///
 /// Keep this request aligned with `apps/backend/src/sync/contracts/input.ts`
