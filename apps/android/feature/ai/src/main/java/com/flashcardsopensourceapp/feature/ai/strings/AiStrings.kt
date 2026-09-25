@@ -8,6 +8,10 @@ import com.flashcardsopensourceapp.feature.ai.R
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiAlertState
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiAttachmentSettingsSource
 import com.flashcardsopensourceapp.feature.settings.access.AccessCapability
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import java.util.Locale
 
 data class AiTextProvider(
@@ -78,9 +82,12 @@ data class AiTextProvider(
     val toolRunning: String,
     val toolDone: String,
     val consentRequiredMessage: String,
-    val guestQuotaReachedMessage: String,
+    val aiLimitReachedGuestMessage: String,
     val guestQuotaButtonTitle: String,
-    val aiLimitReachedMessage: String,
+    private val aiLimitReachedAccountMessageFormat: String,
+    /** The account refusal while the renewal day is not known yet. */
+    val aiLimitReachedAccountMessageWithoutDate: String,
+    private val ownOpenAiKeyErrorPrefix: String,
     private val messageWithRequestIdFormat: String,
     private val bidiLocale: Locale
 ) {
@@ -194,6 +201,24 @@ data class AiTextProvider(
         )
     }
 
+    fun aiLimitReachedAccountMessage(monthEndsAtMillis: Long): String {
+        val renewalDate = DateTimeFormatter
+            .ofLocalizedDate(FormatStyle.MEDIUM)
+            .withLocale(bidiLocale)
+            .format(Instant.ofEpochMilli(monthEndsAtMillis).atZone(ZoneId.systemDefault()))
+        return aiLimitReachedAccountMessageFormat.format(
+            bidiWrap(
+                text = renewalDate,
+                locale = bidiLocale
+            )
+        )
+    }
+
+    /** The provider's text stays unchanged below the prefix. */
+    fun ownOpenAiKeyErrorMessage(providerMessage: String): String {
+        return "$ownOpenAiKeyErrorPrefix\n\n$providerMessage"
+    }
+
     fun unsupportedFileType(extension: String): String {
         val normalizedExtension = extension.trim().lowercase()
         if (normalizedExtension.isEmpty()) {
@@ -279,9 +304,13 @@ fun aiTextProvider(context: Context): AiTextProvider {
         toolRunning = context.getString(R.string.ai_tool_running),
         toolDone = context.getString(R.string.ai_tool_done),
         consentRequiredMessage = context.getString(R.string.ai_consent_required_message),
-        guestQuotaReachedMessage = context.getString(R.string.ai_guest_quota_reached_message),
+        aiLimitReachedGuestMessage = context.getString(R.string.ai_limit_reached_guest_message),
         guestQuotaButtonTitle = context.getString(R.string.ai_guest_quota_button_title),
-        aiLimitReachedMessage = context.getString(R.string.ai_limit_reached_message),
+        aiLimitReachedAccountMessageFormat = context.getString(R.string.ai_limit_reached_account_message),
+        aiLimitReachedAccountMessageWithoutDate = context.getString(
+            R.string.ai_limit_reached_account_message_without_date
+        ),
+        ownOpenAiKeyErrorPrefix = context.getString(R.string.ai_own_openai_key_error_prefix),
         messageWithRequestIdFormat = context.getString(R.string.ai_message_with_request_id),
         bidiLocale = currentResourceLocale(resources = context.resources)
     )
@@ -356,9 +385,11 @@ fun testAiTextProvider(): AiTextProvider {
         toolRunning = "Running",
         toolDone = "Done",
         consentRequiredMessage = "Review AI data use and accept it on this device before using AI features.",
-        guestQuotaReachedMessage = "Your free guest AI limit for this month is used up. Create an account or log in to keep using AI.",
+        aiLimitReachedGuestMessage = "You've used this month's free AI messages. Create an account or add your own OpenAI key in Settings to keep going.",
         guestQuotaButtonTitle = "Create account or Log in",
-        aiLimitReachedMessage = "Your AI limit for this month is used up. It resets at the start of next month.",
+        aiLimitReachedAccountMessageFormat = "You've used this month's AI messages. They renew on %1\$s. You can add your own OpenAI key in Settings to keep going.",
+        aiLimitReachedAccountMessageWithoutDate = "You've used this month's AI messages. You can add your own OpenAI key in Settings to keep going.",
+        ownOpenAiKeyErrorPrefix = "Your own OpenAI key is on. OpenAI returned this error for your key. Fix it in your OpenAI account and try again.",
         messageWithRequestIdFormat = "%1\$s Request ID: %2\$s",
         bidiLocale = Locale.ENGLISH
     )

@@ -15,6 +15,7 @@ import com.flashcardsopensourceapp.data.local.ai.wire.decodeAiChatSessionSnapsho
 import com.flashcardsopensourceapp.data.local.ai.wire.decodeAiChatStartRunResponse
 import com.flashcardsopensourceapp.data.local.ai.wire.decodeAiChatStopRunResponse
 import com.flashcardsopensourceapp.data.local.ai.wire.decodeAiChatTranscription
+import com.flashcardsopensourceapp.data.local.ai.wire.decodeAiUsageStatus
 import com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException
 import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudStringOrNull
 import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudObjectOrNull
@@ -45,6 +46,7 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatLiveStreamEnvelope
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatOlderMessagesResponse
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatStopRunResponse
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatStartRunResponse
+import com.flashcardsopensourceapp.data.local.model.ai.AiUsageStatus
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurationMode
 import com.flashcardsopensourceapp.data.local.model.ai.StoredGuestAiSession
 import com.flashcardsopensourceapp.data.local.network.awaitOkHttpResponse
@@ -53,6 +55,8 @@ import com.flashcardsopensourceapp.data.local.model.ai.aiChatMaximumStartRunRequ
 import com.flashcardsopensourceapp.data.local.model.ai.aiChatRequestTooLargeCode
 import com.flashcardsopensourceapp.data.local.model.ai.aiLimitReachedCode
 import com.flashcardsopensourceapp.data.local.model.ai.guestAiLimitReachedCode
+import com.flashcardsopensourceapp.data.local.model.ai.openAiApiKeyInvalidCode
+import com.flashcardsopensourceapp.data.local.model.ai.ownOpenAiKeyProviderErrorCode
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.InternalCoroutinesApi
 import kotlinx.coroutines.currentCoroutineContext
@@ -80,6 +84,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 internal const val chatRequestIdHeaderName: String = "X-Chat-Request-Id"
 private const val requestIdHeaderName: String = "X-Request-Id"
+private const val ownOpenAiKeyHeaderName: String = "x-openai-api-key"
 private const val guestSessionClientPlatform: String = "android"
 private val officialAiApiHosts: Set<String> = setOf(
     "api.nibomo.com",
@@ -122,6 +127,8 @@ private val expectedAiChatHttpFailureCodes: Set<String> = setOf(
     "LOCAL_CHAT_PROVIDER_AUTH_FAILED",
     "LOCAL_CHAT_RATE_LIMITED",
     "LOCAL_CHAT_UNAVAILABLE",
+    "OPENAI_API_KEY_INVALID",
+    "OWN_OPENAI_KEY_PROVIDER_ERROR",
     "WORKSPACE_ID_INVALID",
     "WORKSPACE_ID_REQUIRED",
     "WORKSPACE_NOT_FOUND",
@@ -209,6 +216,12 @@ fun isAiChatRequestTooLargeRemoteError(error: AiChatRemoteException): Boolean {
 fun isAiLimitReachedRemoteError(error: AiChatRemoteException): Boolean {
     val code = error.code?.trim()?.uppercase()
     return code == aiLimitReachedCode || code == guestAiLimitReachedCode
+}
+
+/** A failure the person's own OpenAI key caused; its message is the provider's own text. */
+fun isOwnOpenAiKeyRemoteError(error: AiChatRemoteException): Boolean {
+    val code = error.code?.trim()?.uppercase()
+    return code == openAiApiKeyInvalidCode || code == ownOpenAiKeyProviderErrorCode
 }
 
 fun isAiChatAttachmentUnsupportedTypeRemoteError(error: AiChatRemoteException): Boolean {
@@ -388,6 +401,7 @@ class AiChatRemoteService private constructor(
     suspend fun startRun(
         apiBaseUrl: String,
         authorizationHeader: String,
+        ownOpenAiKey: String?,
         request: AiChatStartRunRequest
     ): AiChatStartRunResponse = withContext(dispatchers.io) {
         requireAiChatStartRunRequestSize(request = request)
@@ -399,7 +413,8 @@ class AiChatRemoteService private constructor(
                 method = "POST",
                 authorizationHeader = authorizationHeader,
                 requestBody = requestJson.toRequestBody(aiJsonMediaType),
-                extraHeaders = mapOf("X-Client-Platform" to aiChatClientPlatform)
+                extraHeaders = mapOf("X-Client-Platform" to aiChatClientPlatform) +
+                    ownOpenAiKeyHeaders(ownOpenAiKey = ownOpenAiKey)
             )
         )
         return@withContext decodeAiChatStartRunResponse(responseBody)
@@ -544,6 +559,7 @@ class AiChatRemoteService private constructor(
     suspend fun transcribeAudio(
         apiBaseUrl: String,
         authorizationHeader: String,
+        ownOpenAiKey: String?,
         sessionId: String,
         workspaceId: String?,
         fileName: String,
@@ -566,10 +582,34 @@ class AiChatRemoteService private constructor(
                 method = "POST",
                 authorizationHeader = authorizationHeader,
                 requestBody = requestBody,
-                extraHeaders = emptyMap()
+                extraHeaders = ownOpenAiKeyHeaders(ownOpenAiKey = ownOpenAiKey)
             )
         )
         return@withContext decodeAiChatTranscription(responseBody)
+    }
+
+    suspend fun loadAiUsage(
+        apiBaseUrl: String,
+        authorizationHeader: String
+    ): AiUsageStatus = withContext(dispatchers.io) {
+        val responseBody = readResponseBody(
+            request = buildRequest(
+                apiBaseUrl = apiBaseUrl,
+                path = "/me/ai-usage",
+                method = "GET",
+                authorizationHeader = authorizationHeader,
+                requestBody = null,
+                extraHeaders = emptyMap()
+            )
+        )
+        return@withContext decodeAiUsageStatus(payload = responseBody)
+    }
+
+    private fun ownOpenAiKeyHeaders(ownOpenAiKey: String?): Map<String, String> {
+        if (ownOpenAiKey == null) {
+            return emptyMap()
+        }
+        return mapOf(ownOpenAiKeyHeaderName to ownOpenAiKey)
     }
 
     private fun buildRequest(

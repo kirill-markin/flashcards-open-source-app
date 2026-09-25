@@ -41,6 +41,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -50,6 +51,7 @@ import com.flashcardsopensourceapp.feature.ai.AiUiState
 import com.flashcardsopensourceapp.feature.ai.R
 import com.flashcardsopensourceapp.feature.ai.aiComposerMessageFieldTag
 import com.flashcardsopensourceapp.feature.ai.aiComposerPendingAttachmentTag
+import com.flashcardsopensourceapp.feature.ai.aiComposerRemainingMessagesNoticeTag
 import com.flashcardsopensourceapp.feature.ai.aiComposerSendButtonTag
 import com.flashcardsopensourceapp.feature.ai.aiComposerSuggestionPrefixTag
 import com.flashcardsopensourceapp.feature.ai.aiComposerSuggestionRowTag
@@ -307,6 +309,19 @@ internal fun AiComposer(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
+                uiState.remainingAiMessagesNotice?.let { remainingMessages ->
+                    Text(
+                        text = pluralStringResource(
+                            id = R.plurals.ai_remaining_messages_notice,
+                            count = remainingMessages,
+                            remainingMessages
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.testTag(tag = aiComposerRemainingMessagesNoticeTag)
+                    )
+                }
+
                 Spacer(modifier = Modifier.weight(1f))
 
                 IconButton(

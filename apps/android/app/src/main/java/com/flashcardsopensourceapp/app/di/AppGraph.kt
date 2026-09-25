@@ -52,6 +52,7 @@ import com.flashcardsopensourceapp.data.local.bootstrap.ensureLocalWorkspaceShel
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatLiveRemoteService
 import com.flashcardsopensourceapp.data.local.ai.store.AiChatHistoryStore
 import com.flashcardsopensourceapp.data.local.ai.store.AiChatPreferencesStore
+import com.flashcardsopensourceapp.data.local.ai.store.OwnOpenAiKeyStore
 import com.flashcardsopensourceapp.data.local.ai.remote.AiCoroutineDispatchers
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteService
 import com.flashcardsopensourceapp.data.local.ai.store.GuestAiSessionStore
@@ -209,6 +210,7 @@ class AppGraph(
         isAutomation = automationEnvironment.isAutomation
     )
     private val aiChatPreferencesStore = AiChatPreferencesStore(context = context)
+    private val ownOpenAiKeyStore = OwnOpenAiKeyStore(context = context, scope = appScope)
     private val aiChatHistoryStore = AiChatHistoryStore(context = context)
     private val guestAiSessionStore = GuestAiSessionStore(context = context)
     private val aiCoroutineDispatchers = AiCoroutineDispatchers(io = Dispatchers.IO)
@@ -352,6 +354,7 @@ class AppGraph(
         aiChatPreferencesStore = aiChatPreferencesStore,
         aiChatHistoryStore = aiChatHistoryStore,
         guestAiSessionStore = guestAiSessionStore,
+        ownOpenAiKeyStore = ownOpenAiKeyStore,
         onCloudIdentityReset = {
             strictRemindersManager.clearForCloudIdentityReset()
             // Queued events belong to the person who is leaving, and the server attributes a batch
@@ -547,7 +550,8 @@ class AppGraph(
         syncRepository = syncRepository,
         aiChatRemoteService = aiChatRemoteService,
         historyStore = aiChatHistoryStore,
-        aiChatPreferencesStore = aiChatPreferencesStore
+        aiChatPreferencesStore = aiChatPreferencesStore,
+        ownOpenAiKeyStore = ownOpenAiKeyStore
     )
     val startupState: StateFlow<AppStartupState> = startupStateMutable.asStateFlow()
 

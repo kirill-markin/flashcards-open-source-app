@@ -34,6 +34,10 @@ data object SettingsAiChatSuggestionsDestination {
     const val route: String = "settings/ai-chat-suggestions"
 }
 
+data object SettingsOwnOpenAiKeyDestination {
+    const val route: String = "settings/own-openai-key"
+}
+
 data object SettingsLeaderboardParticipationDestination {
     const val route: String = "settings/leaderboard-participation"
 }

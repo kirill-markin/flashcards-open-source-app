@@ -9,6 +9,7 @@ import com.flashcardsopensourceapp.data.local.ai.store.AiChatPreferencesStore
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteService
 import com.flashcardsopensourceapp.data.local.ai.remote.AiCoroutineDispatchers
 import com.flashcardsopensourceapp.data.local.ai.store.GuestAiSessionStore
+import com.flashcardsopensourceapp.data.local.ai.store.OwnOpenAiKeyStore
 import com.flashcardsopensourceapp.data.local.ai.remote.GuestCloudSessionCreator
 import com.flashcardsopensourceapp.data.local.bootstrap.ensureLocalWorkspaceShell
 import com.flashcardsopensourceapp.data.local.bootstrap.localWorkspaceName
@@ -37,6 +38,7 @@ import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.LocalSyn
 import com.flashcardsopensourceapp.data.local.repository.shared.SystemTimeProvider
 import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
 import com.flashcardsopensourceapp.data.local.review.SharedPreferencesReviewPreferencesStore
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 
 internal class CloudIdentityTestEnvironment private constructor(
@@ -83,7 +85,8 @@ internal class CloudIdentityTestEnvironment private constructor(
                 cloudPreferencesStore = cloudPreferencesStore,
                 aiChatPreferencesStore = aiChatPreferencesStore,
                 aiChatHistoryStore = aiChatHistoryStore,
-                guestAiSessionStore = guestAiSessionStore
+                guestAiSessionStore = guestAiSessionStore,
+                ownOpenAiKeyStore = createOwnOpenAiKeyStore(context = context)
             )
             return CloudIdentityTestEnvironment(
                 context = context,
@@ -136,7 +139,8 @@ internal class CloudIdentityTestEnvironment private constructor(
             cloudPreferencesStore = restartedCloudPreferencesStore,
             aiChatPreferencesStore = restartedAiChatPreferencesStore,
             aiChatHistoryStore = restartedAiChatHistoryStore,
-            guestAiSessionStore = restartedGuestAiSessionStore
+            guestAiSessionStore = restartedGuestAiSessionStore,
+            ownOpenAiKeyStore = createOwnOpenAiKeyStore(context = context)
         )
         val restartedSyncLocalStore = SyncLocalStore(
             database = database,
@@ -180,7 +184,8 @@ internal class CloudIdentityTestEnvironment private constructor(
             cloudPreferencesStore = restartedCloudPreferencesStore,
             aiChatPreferencesStore = restartedAiChatPreferencesStore,
             aiChatHistoryStore = restartedAiChatHistoryStore,
-            guestAiSessionStore = restartedGuestAiSessionStore
+            guestAiSessionStore = restartedGuestAiSessionStore,
+            ownOpenAiKeyStore = createOwnOpenAiKeyStore(context = context)
         )
         val restartedSyncLocalStore = SyncLocalStore(
             database = database,
@@ -357,6 +362,13 @@ internal class CloudIdentityTestEnvironment private constructor(
             timeProvider = SystemTimeProvider
         )
     }
+}
+
+private fun createOwnOpenAiKeyStore(context: Context): OwnOpenAiKeyStore {
+    return OwnOpenAiKeyStore(
+        context = context,
+        scope = CoroutineScope(context = Dispatchers.IO)
+    )
 }
 
 internal data class RestartedCloudAccountRuntime(

@@ -27,6 +27,9 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatStartRunResponse
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatStopRunResponse
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatTranscriptionResult
+import com.flashcardsopensourceapp.data.local.model.ai.AiUsageStatus
+import com.flashcardsopensourceapp.data.local.model.ai.OwnOpenAiKeySettings
+import com.flashcardsopensourceapp.data.local.model.ai.OwnOpenAiKeyStorageStatus
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.ai.defaultAiChatServerConfig
@@ -312,6 +315,18 @@ internal fun makeSessionSnapshot(
 internal class FakeAiChatRepository : AiChatRepository {
     val consent: MutableStateFlow<Boolean> = MutableStateFlow(value = true)
     val composerSuggestionsEnabled: MutableStateFlow<Boolean> = MutableStateFlow(value = true)
+    val ownOpenAiKeySettings: MutableStateFlow<OwnOpenAiKeySettings> = MutableStateFlow(
+        value = OwnOpenAiKeySettings(
+            isEnabled = false,
+            apiKey = "",
+            storageStatus = OwnOpenAiKeyStorageStatus.LOADED
+        )
+    )
+    var aiUsageStatus: AiUsageStatus = AiUsageStatus(
+        monthEndsAtMillis = 0L,
+        remainingMessages = null,
+        ownKeyMessages = 0
+    )
     val bootstrapResponses: ArrayDeque<AiChatBootstrapResponse> = ArrayDeque()
     val loadBootstrapGates: ArrayDeque<CompletableDeferred<Unit>> = ArrayDeque()
     val loadBootstrapNonCancellableGates: ArrayDeque<CompletableDeferred<Unit>> = ArrayDeque()
@@ -394,6 +409,30 @@ internal class FakeAiChatRepository : AiChatRepository {
 
     override fun updateComposerSuggestionsEnabled(isEnabled: Boolean) {
         composerSuggestionsEnabled.value = isEnabled
+    }
+
+    override fun observeOwnOpenAiKeySettings(): Flow<OwnOpenAiKeySettings> {
+        return ownOpenAiKeySettings
+    }
+
+    override fun currentOwnOpenAiKeySettings(): OwnOpenAiKeySettings {
+        return ownOpenAiKeySettings.value
+    }
+
+    override fun isOwnOpenAiKeyActive(): Boolean {
+        return ownOpenAiKeySettings.value.isEnabled && ownOpenAiKeySettings.value.apiKey.isNotEmpty()
+    }
+
+    override fun updateOwnOpenAiKeyEnabled(isEnabled: Boolean) {
+        ownOpenAiKeySettings.value = ownOpenAiKeySettings.value.copy(isEnabled = isEnabled)
+    }
+
+    override fun updateOwnOpenAiKey(apiKey: String) {
+        ownOpenAiKeySettings.value = ownOpenAiKeySettings.value.copy(apiKey = apiKey)
+    }
+
+    override suspend fun loadAiUsage(workspaceId: String?): AiUsageStatus {
+        return aiUsageStatus
     }
 
     override fun makeExplicitSessionId(): String {

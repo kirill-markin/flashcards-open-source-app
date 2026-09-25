@@ -79,6 +79,7 @@ class AiChatRemoteTransportRequestTest {
             service.startRun(
                 apiBaseUrl = "http://127.0.0.1:${server.address.port}",
                 authorizationHeader = "Bearer token-1",
+                ownOpenAiKey = null,
                 request = AiChatStartRunRequest(
                     sessionId = "session-1",
                     workspaceId = AI_CHAT_TEST_WORKSPACE_ID,
@@ -115,6 +116,7 @@ class AiChatRemoteTransportRequestTest {
                 service.startRun(
                     apiBaseUrl = "http://127.0.0.1:${server.address.port}",
                     authorizationHeader = "Bearer token-1",
+                    ownOpenAiKey = null,
                     request = AiChatStartRunRequest(
                         sessionId = "session-1",
                         workspaceId = AI_CHAT_TEST_WORKSPACE_ID,
@@ -336,6 +338,7 @@ class AiChatRemoteTransportRequestTest {
             service.transcribeAudio(
                 apiBaseUrl = "http://127.0.0.1:${server.address.port}",
                 authorizationHeader = "Bearer token-1",
+                ownOpenAiKey = null,
                 sessionId = "session-1",
                 workspaceId = AI_CHAT_TEST_WORKSPACE_ID,
                 fileName = "recording.wav",
