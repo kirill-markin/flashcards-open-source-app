@@ -354,6 +354,7 @@ async function prepareStagedGeneratedCardImage(
     imageCount: 1,
     imageSize: generatedCardImageSize,
     imageQuality: generatedCardImageQuality,
+    userSuppliedKey: false,
   });
   input.signal.throwIfAborted();
   const normalizedImage = await dependencies.normalizeImageBytesForCardFn(generatedImage.bytes);

@@ -51,6 +51,16 @@ export function assertAccountPreferencesHumanTransport(transport: AuthTransport)
   }
 }
 
+export function assertAiUsageHumanTransport(transport: AuthTransport): void {
+  if (transport !== "session" && transport !== "bearer" && transport !== "guest") {
+    throw new HttpError(
+      403,
+      "This endpoint requires Guest, Bearer, or Session authentication",
+      "AI_USAGE_HUMAN_AUTH_REQUIRED",
+    );
+  }
+}
+
 export function assertCommunityProfileHumanTransport(transport: AuthTransport): void {
   if (transport !== "session" && transport !== "bearer" && transport !== "guest") {
     throw new HttpError(

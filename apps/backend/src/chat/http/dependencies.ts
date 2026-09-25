@@ -1,6 +1,7 @@
 import type { AuthTransport } from "../../auth";
 import {
   assertAiUsageAllowanceNotReached,
+  reportHeavyAiUsageWeightedTokens,
   resolveAiUsageAllowanceForEnforcement,
 } from "../../aiUsage";
 import { assertGuestPlatformSupportsSurface } from "../../guestAuth/webPlatform";
@@ -48,6 +49,7 @@ export type ChatRoutesOptions = Readonly<{
   resolveAccessibleChatWorkspaceIdFn?: typeof resolveAccessibleChatWorkspaceId;
   resolveAiUsageAllowanceForEnforcementFn?: typeof resolveAiUsageAllowanceForEnforcement;
   assertAiUsageAllowanceNotReachedFn?: typeof assertAiUsageAllowanceNotReached;
+  reportHeavyAiUsageWeightedTokensFn?: typeof reportHeavyAiUsageWeightedTokens;
 }>;
 
 export type ChatRouteDependencies = Readonly<{
@@ -71,6 +73,7 @@ export type ChatRouteDependencies = Readonly<{
   // the refusal runs inside it. See `prepareChatRun`.
   resolveAiUsageAllowanceForEnforcementFn: typeof resolveAiUsageAllowanceForEnforcement;
   assertAiUsageAllowanceNotReachedFn: typeof assertAiUsageAllowanceNotReached;
+  reportHeavyAiUsageWeightedTokensFn: typeof reportHeavyAiUsageWeightedTokens;
 }>;
 
 /**
@@ -78,8 +81,8 @@ export type ChatRouteDependencies = Readonly<{
  *
  * `guest` here means a native guest session. The web guest platform is refused, and this repeats the
  * default-deny gate in `server/requestContext.ts` on purpose: chat is the guest surface that spends
- * money — every model call a run makes appends a usage fact to `ai.usage_events` and counts against the
- * caller's monthly allowance — while the web guest token sits in `localStorage` where the visitor and
+ * money — every model call a run makes appends a usage fact to `ai.usage_events`, and every turn counts
+ * against the caller's monthly allowance — while the web guest token sits in `localStorage` where the visitor and
  * any script on the page can read it.
  */
 function assertSupportedTransport(requestContext: RequestContext): void {
@@ -142,6 +145,8 @@ export function createChatRouteDependencies(options: ChatRoutesOptions): ChatRou
       ?? resolveAiUsageAllowanceForEnforcement,
     assertAiUsageAllowanceNotReachedFn: options.assertAiUsageAllowanceNotReachedFn
       ?? assertAiUsageAllowanceNotReached,
+    reportHeavyAiUsageWeightedTokensFn: options.reportHeavyAiUsageWeightedTokensFn
+      ?? reportHeavyAiUsageWeightedTokens,
   };
 }
 

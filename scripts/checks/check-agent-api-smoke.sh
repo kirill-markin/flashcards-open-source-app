@@ -409,12 +409,17 @@ assert data["accountKind"] == "account"
 assert isinstance(entitlement["tier"], str) and entitlement["tier"] != ""
 assert isinstance(entitlement["tierRank"], int)
 assert isinstance(entitlement["tierDisplayName"], str) and entitlement["tierDisplayName"] != ""
-limit = entitlement["limits"]["aiMonthlyWeightedTokens"]
+limit = entitlement["limits"]["aiMonthlyMessages"]
 assert limit is None or isinstance(limit, int)
-assert isinstance(usage["usedWeightedTokens"], int) and usage["usedWeightedTokens"] >= 0
+assert isinstance(usage["usedMessages"], int) and usage["usedMessages"] >= 0
+assert isinstance(usage["ownKeyMessages"], int) and usage["ownKeyMessages"] >= 0
 # The remaining allowance is absent for exactly as long as the limit is: a null limit means uncapped
 # and must never be reported as a number, and a number must always carry a remainder.
-assert (usage["remainingWeightedTokens"] is None) == (limit is None)
+assert (usage["remainingMessages"] is None) == (limit is None)
+# Nothing is limited in tokens, and the token fields stay for callers that already read them.
+assert entitlement["limits"]["aiMonthlyWeightedTokens"] is None
+assert usage["remainingWeightedTokens"] is None
+assert isinstance(usage["usedWeightedTokens"], int) and usage["usedWeightedTokens"] >= 0
 assert usage["monthStartsAt"].endswith("Z") and usage["monthEndsAt"].endswith("Z")
 assert usage["monthStartsAt"] < usage["monthEndsAt"]
 assert isinstance(payload["instructions"], str) and payload["instructions"] != ""
