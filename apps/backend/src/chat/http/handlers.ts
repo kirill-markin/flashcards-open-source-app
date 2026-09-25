@@ -199,15 +199,14 @@ export function createPostChatHandler(dependencies: ChatRouteDependencies): Hand
 
     // Resolved before the run transaction opens, because resolving reads the billing tables and can
     // refresh the derived entitlement snapshot in a transaction of its own, which must not run inside the
-    // one that persists the turn. Its outcome is captured rather than acted on: a caller who can be
-    // capped has no allowance to compare when that read fails, and answering that failure here would
-    // break a replay of a turn already persisted - the case a database incident makes likely, because
-    // the first POST died of the same thing. Both the refusal and the deferred failure are raised inside
-    // the closure below, which `prepareChatRun` reaches only past its deduplication check.
+    // one that persists the turn. Its outcome is captured rather than acted on: a guest, whom the
+    // fallback tier caps, has no allowance to compare when that read fails, and answering that failure
+    // here would break a replay of a turn already persisted - the case a database incident makes likely,
+    // because the first POST died of the same thing. Both the refusal and the deferred failure are raised
+    // inside the closure below, which `prepareChatRun` reaches only past its deduplication check.
     //
-    // One clock for both halves, the way `requireAiUsageAllowance` uses one: the tier this resolves and
-    // the month the refusal sums must not come from different UTC months when a turn starts on the
-    // boundary.
+    // One clock for both halves: the tier this resolves and the month the refusal counts must not come
+    // from different UTC months when a turn starts on the boundary.
     const aiUsageNow = new Date();
     const aiUsageAllowanceOutcome = await resolveAiUsageAllowanceOutcome(
       dependencies.resolveAiUsageAllowanceForEnforcementFn,
@@ -231,12 +230,12 @@ export function createPostChatHandler(dependencies: ChatRouteDependencies): Hand
         body.uiLocale ?? null,
         requestContext.transport === "bearer" || requestContext.transport === "session",
         readProductAnalyticsClientPlatform(context.get("clientPlatform") ?? null),
-        // The turn is refused before it is persisted, so a caller who has spent their month never starts
-        // a run the worker would then have to pay for. Every caller is checked the same way and the
-        // allowance resolved above decides; the model calls the run goes on to make append their facts
-        // without asking again, because a run admitted here is not abandoned halfway through.
+        // The turn is refused before it is persisted, so a caller who has used their month's messages
+        // never starts a run the worker would then have to pay for. Every caller is checked the same way
+        // and the allowance resolved above decides; the model calls the run goes on to make append their
+        // facts without asking again, because a run admitted here is not abandoned halfway through.
         // `prepareChatRun` runs this on the branch that inserts a run and not on a deduplicated replay,
-        // which is a retry of a turn already accepted rather than a next turn. A new turn therefore
+        // which is a retry of a turn already accepted rather than a next turn. A new guest turn therefore
         // fails closed when the allowance could not be resolved at all, and a replay never depends on
         // billing being readable. Nothing here writes, so the transaction it runs in stays free of any
         // write but its own.
@@ -283,6 +282,17 @@ export function createPostChatHandler(dependencies: ChatRouteDependencies): Hand
           subjectUserId: requestContext.subjectUserId,
           guestSessionId: requestContext.guestSessionId,
         },
+      );
+    }
+
+    // Outside the run transaction and after the dispatch, because a signal that refuses nothing must not
+    // hold the session lock, delay generation, or fail the turn: it never rejects. A replay was reported
+    // when it was first admitted.
+    if (!preparedRun.deduplicated && aiUsageAllowanceOutcome.allowance !== undefined) {
+      await dependencies.reportHeavyAiUsageWeightedTokensFn(
+        aiUsageAllowanceOutcome.allowance,
+        requestContext.userId,
+        aiUsageNow,
       );
     }
 

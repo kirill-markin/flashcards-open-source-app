@@ -635,9 +635,10 @@ export async function completeGuestUpgradeInExecutor(
   // Phase 12: move what the guest paid for and what their AI calls consumed onto the destination
   // account, before the cleanup below deletes the guest org.user_settings row. A mover placed after it
   // matches nothing and still returns successfully. Usage crosses over deliberately: the monthly AI
-  // allowance is a sum over those rows for one person, so leaving them would reset the allowance for
-  // signing up. A destination that already holds an active purchase keeps it, and so does the guest's:
-  // two active purchases on one person is a supported state and the resolver decides which one wins.
+  // allowance is a count of chat messages over those rows for one person, so leaving them would reset
+  // the allowance for signing up. A destination that already holds an active purchase keeps it, and so
+  // does the guest's: two active purchases on one person is a supported state and the resolver decides
+  // which one wins.
   await transferBillingToUpgradedAccountInExecutor(
     executor,
     guestSession.userId,

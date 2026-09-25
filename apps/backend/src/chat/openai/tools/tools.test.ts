@@ -130,7 +130,7 @@ const dependencies: OpenAIToolDependencies = {
   }),
   bindGeneratedCardImageAttemptPayload: async (params) => params.payload,
   hasCognitoIdentityMappingForUser: async () => true,
-  requireAiUsageAllowance: async () => ({ tier: "free", monthlyWeightedTokens: null }),
+  resolveAiUsageTierForFacts: async () => "free",
   ensureAIChatSyncReplica: async () => replicaId,
   ensureAIChatSyncReplicaWithDeadline: async () => replicaId,
   generateCardImage: async (input) => ({
