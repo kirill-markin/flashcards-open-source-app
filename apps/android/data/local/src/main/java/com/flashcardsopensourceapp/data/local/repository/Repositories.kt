@@ -12,6 +12,8 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatStopRunResponse
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatStartRunResponse
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatTranscriptionResult
+import com.flashcardsopensourceapp.data.local.model.ai.AiUsageStatus
+import com.flashcardsopensourceapp.data.local.model.ai.OwnOpenAiKeySettings
 import com.flashcardsopensourceapp.data.local.model.cards.CardDraft
 import com.flashcardsopensourceapp.data.local.model.cards.CardFilter
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
@@ -329,6 +331,13 @@ interface AiChatRepository {
     fun observeComposerSuggestionsEnabled(): Flow<Boolean>
     fun areComposerSuggestionsEnabled(): Boolean
     fun updateComposerSuggestionsEnabled(isEnabled: Boolean)
+    fun observeOwnOpenAiKeySettings(): Flow<OwnOpenAiKeySettings>
+    fun currentOwnOpenAiKeySettings(): OwnOpenAiKeySettings
+    /** True while chat and dictation requests carry the person's own OpenAI key. */
+    fun isOwnOpenAiKeyActive(): Boolean
+    fun updateOwnOpenAiKeyEnabled(isEnabled: Boolean)
+    fun updateOwnOpenAiKey(apiKey: String)
+    suspend fun loadAiUsage(workspaceId: String?): AiUsageStatus
     fun makeExplicitSessionId(): String
     suspend fun prepareSessionForAi(workspaceId: String?): AiChatPreparedRemoteSession
     suspend fun ensureReadyForSend(workspaceId: String?)

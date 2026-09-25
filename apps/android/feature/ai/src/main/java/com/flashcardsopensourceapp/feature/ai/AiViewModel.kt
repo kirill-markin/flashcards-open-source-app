@@ -9,6 +9,8 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.analytics.Analytics
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
+import com.flashcardsopensourceapp.data.local.model.ai.AiUsageStatus
+import com.flashcardsopensourceapp.data.local.model.ai.hasActiveOwnOpenAiKey
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.cloud.makeOfficialCloudServiceConfiguration
@@ -19,6 +21,7 @@ import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import com.flashcardsopensourceapp.feature.ai.runtime.AiChatRuntime
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiAccessContext
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiChatRuntimeState
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.runtimeKey
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiAlertState
 import com.flashcardsopensourceapp.feature.ai.runtime.initialAiAppMetadataSummary
@@ -117,15 +120,27 @@ class AiViewModel(
                 areComposerSuggestionsEnabled = areComposerSuggestionsEnabled
             )
         },
-        chatRuntime.state
-    ) { metadata, cloudSettings, syncStatus, preferences, runtimeState ->
+        combine(
+            chatRuntime.state,
+            chatRuntime.aiUsageState,
+            aiChatRepository.observeOwnOpenAiKeySettings()
+        ) { runtimeState, aiUsage, ownOpenAiKeySettings ->
+            AiChatRuntimeSnapshot(
+                runtimeState = runtimeState,
+                aiUsage = aiUsage,
+                isOwnOpenAiKeyActive = hasActiveOwnOpenAiKey(settings = ownOpenAiKeySettings)
+            )
+        }
+    ) { metadata, cloudSettings, syncStatus, preferences, runtimeSnapshot ->
         mapToAiUiState(
             metadata = metadata,
             cloudState = cloudSettings.cloudState,
             isCloudIdentityBlocked = syncStatus.status is SyncStatus.Blocked,
             hasConsent = preferences.hasConsent,
             areComposerSuggestionsEnabled = preferences.areComposerSuggestionsEnabled,
-            runtimeState = runtimeState,
+            runtimeState = runtimeSnapshot.runtimeState,
+            aiUsage = runtimeSnapshot.aiUsage,
+            isOwnOpenAiKeyActive = runtimeSnapshot.isOwnOpenAiKeyActive,
             textProvider = textProvider
         )
     }.stateIn(
@@ -276,6 +291,12 @@ class AiViewModel(
 private data class AiChatPreferenceState(
     val hasConsent: Boolean,
     val areComposerSuggestionsEnabled: Boolean
+)
+
+private data class AiChatRuntimeSnapshot(
+    val runtimeState: AiChatRuntimeState,
+    val aiUsage: AiUsageStatus?,
+    val isOwnOpenAiKeyActive: Boolean
 )
 
 fun createAiViewModelFactory(

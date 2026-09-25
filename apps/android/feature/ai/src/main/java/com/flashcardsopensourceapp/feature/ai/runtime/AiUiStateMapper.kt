@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.feature.ai.runtime
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatMessage
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatServerConfig
+import com.flashcardsopensourceapp.data.local.model.ai.AiUsageStatus
 import com.flashcardsopensourceapp.data.local.model.ai.defaultAiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.ai.effectiveAiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.ai.isSendableAiChatAttachment
@@ -23,6 +24,8 @@ import com.flashcardsopensourceapp.feature.ai.runtime.conversation.canManageAiDr
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.canPrepareAiDraftInComposerPhase
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.shouldPrepareGuestAccess
 import com.flashcardsopensourceapp.feature.ai.strings.AiTextProvider
+
+private const val aiRemainingMessagesNoticeThreshold: Int = 3
 
 internal fun initialAiAppMetadataSummary(textProvider: AiTextProvider): AppMetadataSummary {
     return AppMetadataSummary(
@@ -54,6 +57,8 @@ internal fun mapToAiUiState(
     hasConsent: Boolean,
     areComposerSuggestionsEnabled: Boolean,
     runtimeState: AiChatRuntimeState,
+    aiUsage: AiUsageStatus?,
+    isOwnOpenAiKeyActive: Boolean,
     textProvider: AiTextProvider
 ): AiUiState {
     val isLinked = cloudState == CloudAccountState.LINKED
@@ -140,6 +145,10 @@ internal fun mapToAiUiState(
         canStartNewChat = canEditConversation
             && (hasMessages || hasDraftText || runtimeState.pendingAttachments.isNotEmpty()),
         repairStatus = runtimeState.repairStatus,
+        // The monthly limit does not apply to requests on the person's own key.
+        remainingAiMessagesNotice = aiUsage?.remainingMessages?.takeIf { remainingMessages ->
+            isOwnOpenAiKeyActive.not() && remainingMessages <= aiRemainingMessagesNoticeThreshold
+        },
         activeAlert = runtimeState.activeAlert,
         errorMessage = runtimeState.errorMessage
     )
@@ -175,6 +184,7 @@ internal fun makeInitialAiUiState(hasConsent: Boolean, textProvider: AiTextProvi
         canSend = false,
         canStartNewChat = false,
         repairStatus = null,
+        remainingAiMessagesNotice = null,
         activeAlert = null,
         errorMessage = ""
     )

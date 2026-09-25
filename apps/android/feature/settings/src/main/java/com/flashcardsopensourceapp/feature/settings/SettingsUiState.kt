@@ -20,6 +20,7 @@ data class SettingsUiState(
     /** The resolved answer the switch shows: an unanswered account reads as on. */
     val productAnalyticsEnabled: Boolean,
     val aiChatComposerSuggestionsEnabled: Boolean,
+    val ownOpenAiKeyEnabled: Boolean,
     val canManageAccountPreferences: Boolean,
     val isTestModeEnabled: Boolean
 )

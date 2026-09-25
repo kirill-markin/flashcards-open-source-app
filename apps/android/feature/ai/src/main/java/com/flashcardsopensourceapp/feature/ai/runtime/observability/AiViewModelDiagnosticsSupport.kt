@@ -4,6 +4,7 @@ import com.flashcardsopensourceapp.core.observability.alreadyObservedAndroidThro
 import com.flashcardsopensourceapp.core.observability.shouldCaptureAndroidThrowable
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.ai.remote.isExpectedAiChatRemoteUserError
+import com.flashcardsopensourceapp.data.local.ai.remote.isOwnOpenAiKeyRemoteError
 import com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
 import com.flashcardsopensourceapp.feature.ai.AiBootstrapErrorPresentation
@@ -24,6 +25,12 @@ internal fun makeAiUserFacingErrorPresentation(
     textProvider: AiTextProvider
 ): AiUserFacingErrorPresentation {
     val remoteError = error as? AiChatRemoteException
+    if (remoteError != null && isOwnOpenAiKeyRemoteError(error = remoteError)) {
+        return AiUserFacingErrorPresentation(
+            message = textProvider.ownOpenAiKeyErrorMessage(providerMessage = remoteError.message.orEmpty()),
+            technicalError = null
+        )
+    }
     val presentation = makeAiChatUserFacingErrorPresentation(
         throwable = error,
         code = remoteError?.code,

@@ -49,6 +49,8 @@ data class AiUiState(
     val canSend: Boolean,
     val canStartNewChat: Boolean,
     val repairStatus: AiChatRepairAttemptStatus?,
+    /** AI messages left this month, set only once few enough remain to warn about. */
+    val remainingAiMessagesNotice: Int?,
     val activeAlert: AiAlertState?,
     val errorMessage: String
 )
