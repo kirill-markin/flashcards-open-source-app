@@ -694,11 +694,14 @@ extension FlashcardsStore {
         try self.enforceCloudCredentialRecoveryGateOutsideIdentityResolution(detectedAt: Date())
         try self.throwIfCustomGuestWorkspacePausedDuringSync(linkedSession: linkedSession)
         do {
+            let syncResult: CloudSyncResult
             if try self.shouldRunGuestLocalRecoveryLinkedSync(linkedSession: linkedSession) {
-                return try await self.cloudRuntime.runGuestLocalRecoveryLinkedSync(linkedSession: linkedSession)
+                syncResult = try await self.cloudRuntime.runGuestLocalRecoveryLinkedSync(linkedSession: linkedSession)
+            } else {
+                syncResult = try await self.cloudRuntime.runLinkedSync(linkedSession: linkedSession)
             }
-
-            return try await self.cloudRuntime.runLinkedSync(linkedSession: linkedSession)
+            self.applyPulledCloudEntitlement(syncResult: syncResult, linkedSession: linkedSession)
+            return syncResult
         } catch {
             let failureError = try await self.failureErrorAfterApplyingLocalIdRepairSideEffectsIfNeeded(
                 error: error,
@@ -739,13 +742,18 @@ extension FlashcardsStore {
         try self.enforceCloudCredentialRecoveryGateOutsideIdentityResolution(detectedAt: Date())
         try self.throwIfCustomGuestWorkspacePausedDuringSync(linkedSession: linkedSession)
         do {
+            let syncResult: CloudSyncResult
             if try self.shouldRunGuestLocalRecoveryLinkedSync(linkedSession: linkedSession) {
-                return try await self.cloudRuntime.runFreshGuestLocalRecoveryLinkedSyncAfterActiveSyncSettles(
+                syncResult = try await self.cloudRuntime.runFreshGuestLocalRecoveryLinkedSyncAfterActiveSyncSettles(
+                    linkedSession: linkedSession
+                )
+            } else {
+                syncResult = try await self.cloudRuntime.runFreshLinkedSyncAfterActiveSyncSettles(
                     linkedSession: linkedSession
                 )
             }
-
-            return try await self.cloudRuntime.runFreshLinkedSyncAfterActiveSyncSettles(linkedSession: linkedSession)
+            self.applyPulledCloudEntitlement(syncResult: syncResult, linkedSession: linkedSession)
+            return syncResult
         } catch {
             let failureError = try await self.failureErrorAfterApplyingLocalIdRepairSideEffectsIfNeeded(
                 error: error,

@@ -156,6 +156,9 @@ struct CloudSyncResult: Hashable, Sendable {
     let cleanedUpOperationCount: Int
     let cleanedUpReviewEventOperationCount: Int
     let cleanedUpReviewScheduleImpactingOperationCount: Int
+    /// The entitlement from the latest pull page in this run that carried one. Nil is unknown, never
+    /// free: the last value seen stays in place (docs/premium-entitlements.md, "What a client receives").
+    let entitlement: CloudEntitlement?
 
     static let noChanges = CloudSyncResult(
         appliedPullChangeCount: 0,
@@ -167,7 +170,8 @@ struct CloudSyncResult: Hashable, Sendable {
         acknowledgedReviewScheduleImpactingOperationCount: 0,
         cleanedUpOperationCount: 0,
         cleanedUpReviewEventOperationCount: 0,
-        cleanedUpReviewScheduleImpactingOperationCount: 0
+        cleanedUpReviewScheduleImpactingOperationCount: 0,
+        entitlement: nil
     )
 
     var appliedPullChanges: Bool {
@@ -214,7 +218,8 @@ struct CloudSyncResult: Hashable, Sendable {
             acknowledgedReviewScheduleImpactingOperationCount: self.acknowledgedReviewScheduleImpactingOperationCount + other.acknowledgedReviewScheduleImpactingOperationCount,
             cleanedUpOperationCount: self.cleanedUpOperationCount + other.cleanedUpOperationCount,
             cleanedUpReviewEventOperationCount: self.cleanedUpReviewEventOperationCount + other.cleanedUpReviewEventOperationCount,
-            cleanedUpReviewScheduleImpactingOperationCount: self.cleanedUpReviewScheduleImpactingOperationCount + other.cleanedUpReviewScheduleImpactingOperationCount
+            cleanedUpReviewScheduleImpactingOperationCount: self.cleanedUpReviewScheduleImpactingOperationCount + other.cleanedUpReviewScheduleImpactingOperationCount,
+            entitlement: other.entitlement ?? self.entitlement
         )
     }
 }
