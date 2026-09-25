@@ -36,7 +36,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
@@ -269,7 +269,7 @@ fun FlashcardsApp(
         val lifecycleOwner = LocalLifecycleOwner.current
         val currentDestination = currentTopLevelDestination(navController = navController)
         val currentVisibleAppScreen = currentVisibleAppScreen(navController = navController)
-        val adaptiveInfo = currentWindowAdaptiveInfo()
+        val adaptiveInfo = currentWindowAdaptiveInfoV2()
         val navigationSuiteType = NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(
             adaptiveInfo = adaptiveInfo
         )

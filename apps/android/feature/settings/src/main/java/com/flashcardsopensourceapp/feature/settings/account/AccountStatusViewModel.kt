@@ -161,7 +161,7 @@ class AccountStatusViewModel(
             draftState.update { state ->
                 state.copy(
                     isSubmitting = false,
-                    errorMessage = blockedMessage ?: strings.get(R.string.settings_account_status_sync_blocked_body)
+                    errorMessage = blockedMessage
                 )
             }
             return
@@ -188,7 +188,7 @@ class AccountStatusViewModel(
                 draftState.update { state ->
                     state.copy(
                         isSubmitting = false,
-                        errorMessage = syncBlockedMessage ?: strings.get(R.string.settings_account_status_sync_blocked_body)
+                        errorMessage = syncBlockedMessage
                     )
                 }
                 return

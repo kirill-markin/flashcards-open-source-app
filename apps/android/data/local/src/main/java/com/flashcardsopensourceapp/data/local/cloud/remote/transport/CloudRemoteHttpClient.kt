@@ -419,7 +419,7 @@ internal class CloudJsonHttpClient(
                 throw IllegalStateException("Cloud request attempt finished without a response or retry decision.")
             }
         }
-        completedResponse ?: throw IllegalStateException("Cloud request retry loop exited without a response.")
+        completedResponse
     }
 
     @OptIn(InternalCoroutinesApi::class)
@@ -581,7 +581,7 @@ internal class CloudJsonHttpClient(
                 throw IllegalStateException("Cloud binary request attempt finished without a response or retry decision.")
             }
         }
-        completedResponse ?: throw IllegalStateException("Cloud binary request retry loop exited without a response.")
+        completedResponse
     }
 
     private fun buildCloudRequest(

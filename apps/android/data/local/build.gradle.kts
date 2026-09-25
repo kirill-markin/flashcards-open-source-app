@@ -24,7 +24,8 @@ android {
 
     sourceSets {
         getByName("test") {
-            resources.setSrcDirs(listOf("../../../../tests"))
+            resources.directories.clear()
+            resources.directories.add("../../../../tests")
         }
     }
 }
