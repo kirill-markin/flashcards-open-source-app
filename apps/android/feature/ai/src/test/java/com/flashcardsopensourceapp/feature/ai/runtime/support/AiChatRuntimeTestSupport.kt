@@ -637,9 +637,7 @@ internal class FakeAiChatRepository : AiChatRepository {
         return transcribeAudioResponse
     }
 
-    override suspend fun warmUpLinkedSession() {
-        Unit
-    }
+    override suspend fun warmUpLinkedSession() {}
 
     override suspend fun startRun(
         workspaceId: String?,

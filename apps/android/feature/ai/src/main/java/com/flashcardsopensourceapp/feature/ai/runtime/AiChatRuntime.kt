@@ -75,12 +75,12 @@ internal class AiChatRuntime(
         observability = observability,
         analytics = analytics
     )
-    private lateinit var bootstrapCoordinator: AiChatBootstrapCoordinator
-    private lateinit var liveStreamCoordinator: AiChatLiveStreamCoordinator
-    private lateinit var lifecycleCoordinator: AiChatRuntimeLifecycleCoordinator
-    private lateinit var sessionCoordinator: AiChatSessionCoordinator
-    private lateinit var sendCoordinator: AiChatSendCoordinator
-    private lateinit var dictationCoordinator: AiChatDictationCoordinator
+    private val bootstrapCoordinator: AiChatBootstrapCoordinator
+    private val liveStreamCoordinator: AiChatLiveStreamCoordinator
+    private val lifecycleCoordinator: AiChatRuntimeLifecycleCoordinator
+    private val sessionCoordinator: AiChatSessionCoordinator
+    private val sendCoordinator: AiChatSendCoordinator
+    private val dictationCoordinator: AiChatDictationCoordinator
 
     init {
         liveStreamCoordinator = AiChatLiveStreamCoordinator(

@@ -12,6 +12,7 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
+import androidx.compose.ui.test.junit4.v2.AndroidComposeTestRule as createAndroidComposeTestRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
@@ -108,7 +109,7 @@ internal class DeferredActivityScenarioRule<A : ComponentActivity>(
 
 internal fun createMarketingScreenshotComposeRule(): MainActivityComposeRule {
     val activityRule = DeferredActivityScenarioRule(activityClass = MainActivity::class.java)
-    return AndroidComposeTestRule(
+    return createAndroidComposeTestRule(
         activityRule = activityRule,
         activityProvider = { rule -> rule.requireActivity() }
     )
