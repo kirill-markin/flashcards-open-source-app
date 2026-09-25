@@ -7,6 +7,21 @@ export type ChatTranscriptionResponse = Readonly<{
   sessionId: string;
 }>;
 
+export type AiUsageAccountKind = "account" | "guest";
+
+/**
+ * The part of `GET /me/ai-usage` this client reads. `remainingMessages` is `null` when no monthly
+ * limit applies, and `monthEndsAt` is when the allowance renews.
+ */
+export type AiUsageStatus = Readonly<{
+  accountKind: AiUsageAccountKind;
+  usage: Readonly<{
+    monthEndsAt: string;
+    remainingMessages: number | null;
+    ownKeyMessages: number;
+  }>;
+}>;
+
 export type ChatSessionHistoryMessage = Readonly<{
   role: "user" | "assistant";
   content: ReadonlyArray<ContentPart>;

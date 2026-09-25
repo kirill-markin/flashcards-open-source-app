@@ -893,6 +893,21 @@ const lvCatalog: TranslationCatalog = {
     toggleTitle: "Rādīt ieteikumus MI sarunas rakstīšanas laukā",
     toggleDescription: "Ieteiktās uzvednes parādās virs rakstīšanas lauka, kad saruna ir dīkstāvē un gatava.",
   },
+  ownOpenAIKeySettings: {
+    title: "Jūsu OpenAI atslēga",
+    subtitle: "Izmantojiet MI ar savu OpenAI kontu.",
+    toggleTitle: "Izmantot manu OpenAI atslēgu",
+    toggleDescription: "Ar savu atslēgu MI saruna, diktēšana un kartīšu attēli darbojas jūsu OpenAI kontā bez mēneša ierobežojuma jebkurā plānā. Kamēr atslēga ir ieslēgta, ieteiktās atbildes ir izslēgtas. Mēs nekad neglabājam jūsu atslēgu savos serveros: tā paliek šajā ierīcē un tiek nosūtīta tikai kopā ar jūsu MI pieprasījumiem, tāpēc ievadiet to atsevišķi iOS, Android un tīmeklī.",
+    apiKeyLabel: "OpenAI API atslēga",
+    apiKeyInvalid: "Šo atslēgu nevar izmantot. OpenAI atslēgā ir tikai latīņu burti, cipari un simboli, un tā nav garāka par 512 rakstzīmēm. Kamēr to neizlabosiet, MI pieprasījumi darbojas bez jūsu atslēgas.",
+    ownSpend: "Šomēnes ar jūsu atslēgu: {{count}}",
+    countLabels: {
+      message: {
+        one: "ziņa",
+        other: "ziņas",
+      },
+    },
+  },
   analyticsConsentBanner: {
     label: "Analītikas sīkfaili",
     message: "Mēs izmantojam sīkfailu un citu pārlūka krātuvi, lai novērtētu, kā lietotne tiek lietota. Līdz jūsu izvēlei šī lietotne šajā ierīcē neko neglabā un nesūta neko, kas jūs identificē.",
@@ -1306,6 +1321,15 @@ const lvCatalog: TranslationCatalog = {
       sendAriaLabel: "Sūtīt ziņu",
       stopAriaLabel: "Apturēt atbildi",
     },
+    aiUsage: {
+      countLabels: {
+        aiMessage: {
+          one: "MI ziņa",
+          other: "MI ziņas",
+        },
+      },
+      remaining: "Šomēnes atlikušas: {{count}}",
+    },
     alerts: {
       attachmentLimit: "Ziņa ir pārāk liela. MI saruna nevar nosūtīt tik daudz satura vienlaikus. Noņemiet vienu vai vairākus pielikumus, izvēlieties mazāku failu vai fotoattēlu vai sadaliet pieprasījumu un mēģiniet vēlreiz.",
       attachmentUnsupported: "Šis faila tips MI sarunā netiek atbalstīts. Noņemiet failu vai saglabājiet to kā PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX vai attēlu un mēģiniet vēlreiz.",
@@ -1327,11 +1351,14 @@ const lvCatalog: TranslationCatalog = {
     errorTitle: "MI sarunas kļūda",
     errors: {
       activeRunInProgress: "Atbilde jau tiek veidota. Pirms citas ziņas sūtīšanas pagaidiet, līdz tā ir pabeigta, vai apturiet to.",
-      aiLimitReached: "Šī mēneša MI ierobežojums ir izlietots. Tas tiek atjaunots nākamā mēneša sākumā.",
+      aiLimitReachedAccount: "Šī mēneša MI ziņas ir izlietotas. Atjaunošanas datums: {{date}}. Lai turpinātu, iestatījumos varat pievienot savu OpenAI atslēgu.",
+      aiLimitReachedAccountNoDate: "Šī mēneša MI ziņas ir izlietotas. Lai turpinātu, iestatījumos varat pievienot savu OpenAI atslēgu.",
+      aiLimitReachedGuest: "Šī mēneša bezmaksas MI ziņas ir izlietotas. Lai turpinātu, izveidojiet kontu vai iestatījumos pievienojiet savu OpenAI atslēgu.",
       emptyBackendResponse: "Serveris atgrieza tukšu kļūdas atbildi.",
       genericFailure: "MI saruna neizdevās.",
       liveStreamEndedBeforeCompletion: "MI tiešraides straume beidzās pirms izpildes pabeigšanas.",
       newChatFailedPrefix: "Neizdevās izveidot jaunu sarunu.",
+      ownOpenAIKeyPrefix: "Jūsu OpenAI atslēga ir ieslēgta. OpenAI atgrieza šo kļūdu jūsu atslēgai. Novērsiet to savā OpenAI kontā un mēģiniet vēlreiz.",
       refreshFailedPrefix: "Neizdevās atsvaidzināt sarunu.",
       requestFailedPrefix: "Sarunas pieprasījums neizdevās.",
       stopFailedPrefix: "Neizdevās apturēt sarunu.",

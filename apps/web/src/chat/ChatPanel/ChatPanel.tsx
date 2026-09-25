@@ -1,4 +1,4 @@
-import { useRef, type ReactElement } from "react";
+import { useEffect, useRef, type ReactElement } from "react";
 import { useAppData } from "../../appData";
 import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
@@ -16,6 +16,11 @@ import { formatCardAttachmentLabel } from "../attachments/chatCardParts";
 import {
   USER_VISIBLE_ATTACHMENT_LIMIT_MB,
 } from "../shared/chatHelpers";
+import {
+  formatAiLimitReachedMessageForHeldUsage,
+  isHeldAiUsageCurrent,
+} from "../shared/chatAiLimitPolicy";
+import { useIsOwnOpenAIKeyActive } from "../preferences/ownOpenAIKeyStorage";
 import {
   getCanSendPendingMessage,
   getCanShowComposerSuggestions,
@@ -41,8 +46,9 @@ export function ChatPanel(props: Props): ReactElement {
   const { mode } = props;
   const appData = useAppData();
   const { indexedDbOpenRecoveryState, showCapturedTechnicalError, showTechnicalError } = useAppErrorDialog();
-  const { t, formatNumber } = useI18n();
+  const { t, formatCount, formatDate, formatNumber, messages: translationMessages } = useI18n();
   const { aiChatComposerSuggestionsEnabled } = useAIChatPreferences();
+  const isOwnOpenAIKeyActive = useIsOwnOpenAIKeyActive();
   const {
     draft,
     focusComposerRequestVersion,
@@ -71,12 +77,18 @@ export function ChatPanel(props: Props): ReactElement {
     composerSuggestions,
     composerAction,
     errorDialogMessage,
+    aiUsage,
+    refreshAiUsage,
     dismissErrorDialog,
     ensureRemoteSession,
     sendMessage: sendChatMessage,
     stopMessage,
     clearConversation,
   } = useChatSession();
+
+  useEffect(() => {
+    refreshAiUsage();
+  }, [refreshAiUsage]);
 
   const rootRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
@@ -131,6 +143,8 @@ export function ChatPanel(props: Props): ReactElement {
     inputText: draftInputText,
     indexedDbOpenRecoveryState,
     onTechnicalError: showChatTechnicalError,
+    formatAiLimitReachedMessage: () => formatAiLimitReachedMessageForHeldUsage({ aiUsage, t, formatDate }),
+    refreshAiUsage,
     t,
     textareaRef,
     updateInputText,
@@ -253,6 +267,15 @@ export function ChatPanel(props: Props): ReactElement {
     sendPhase,
   });
   const visibleComposerSuggestions = canShowComposerSuggestions ? composerSuggestions : [];
+  const remainingAiMessages = aiUsage !== null && isHeldAiUsageCurrent(aiUsage)
+    ? aiUsage.usage.remainingMessages
+    : null;
+  // The monthly limit does not apply to requests on the person's own key.
+  const remainingAiMessagesNotice = remainingAiMessages !== null
+    && remainingAiMessages <= 3
+    && isOwnOpenAIKeyActive === false
+    ? remainingAiMessages
+    : null;
   const microphoneAriaLabel = dictationState === "recording" ? t("chatPanel.dictation.stop") : t("chatPanel.dictation.start");
   const dictationStatusLabel = dictationState === "requesting_permission"
     ? t("chatPanel.dictation.waitingForPermission")
@@ -418,6 +441,14 @@ export function ChatPanel(props: Props): ReactElement {
         data-draft-state={hasDraftContent ? "filled" : "empty"}
         data-can-send={canSendPendingMessage ? "true" : "false"}
       >
+        {remainingAiMessagesNotice !== null ? (
+          <p className="chat-ai-usage-notice" data-testid="chat-ai-usage-remaining">
+            {t("chatPanel.aiUsage.remaining", {
+              count: formatCount(remainingAiMessagesNotice, translationMessages.chatPanel.aiUsage.countLabels.aiMessage),
+            })}
+          </p>
+        ) : null}
+
         {pendingAttachments.length > 0 ? (
           <div className="chat-attachment-preview">
             {pendingAttachments.map((attachment, index) => (

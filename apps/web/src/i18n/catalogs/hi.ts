@@ -893,6 +893,21 @@ const hiCatalog: TranslationCatalog = {
     toggleTitle: "AI चैट कम्पोज़र में सुझाव दिखाएँ",
     toggleDescription: "जब चैट खाली और तैयार होती है, तो सुझाए गए प्रॉम्प्ट कम्पोज़र के ऊपर दिखते हैं।",
   },
+  ownOpenAIKeySettings: {
+    title: "आपकी OpenAI कुंजी",
+    subtitle: "अपने OpenAI खाते से AI का उपयोग करें।",
+    toggleTitle: "मेरी अपनी OpenAI कुंजी का उपयोग करें",
+    toggleDescription: "अपनी कुंजी के साथ AI चैट, डिक्टेशन और कार्ड की इमेज आपके OpenAI खाते पर चलती हैं, किसी भी प्लान में मासिक सीमा के बिना। जब तक आपकी कुंजी चालू है, सुझाए गए जवाब बंद रहते हैं। हम आपकी कुंजी कभी अपने सर्वर पर संग्रहीत नहीं करते: यह इसी डिवाइस पर रहती है और केवल आपके AI अनुरोधों के साथ भेजी जाती है, इसलिए इसे iOS, Android और वेब पर अलग-अलग दर्ज करें।",
+    apiKeyLabel: "OpenAI API कुंजी",
+    apiKeyInvalid: "यह कुंजी इस्तेमाल नहीं की जा सकती। OpenAI कुंजी में केवल लैटिन अक्षर, अंक और चिह्न होते हैं, और अधिकतम 512 वर्ण। जब तक आप इसे ठीक नहीं करते, AI अनुरोध आपकी कुंजी के बिना चलेंगे।",
+    ownSpend: "इस महीने आपकी कुंजी से: {{count}}",
+    countLabels: {
+      message: {
+        one: "संदेश",
+        other: "संदेश",
+      },
+    },
+  },
   analyticsConsentBanner: {
     label: "एनालिटिक्स कुकीज़",
     message: "ऐप कैसे इस्तेमाल होता है यह मापने के लिए हम एक कुकी और ब्राउज़र का कुछ और स्टोरेज इस्तेमाल करते हैं। आपके चुनने तक यह ऐप इस डिवाइस पर कुछ भी सेव नहीं करता और आपकी पहचान बताने वाला कुछ भी नहीं भेजता।",
@@ -1308,6 +1323,15 @@ const hiCatalog: TranslationCatalog = {
       sendAriaLabel: "संदेश भेजें",
       stopAriaLabel: "प्रतिक्रिया रोकें",
     },
+    aiUsage: {
+      countLabels: {
+        aiMessage: {
+          one: "AI संदेश",
+          other: "AI संदेश",
+        },
+      },
+      remaining: "इस महीने शेष: {{count}}",
+    },
     alerts: {
       attachmentLimit: "संदेश बहुत बड़ा है। AI चैट एक बार में इतना कंटेंट नहीं भेज सकती। एक या अधिक अटैचमेंट हटाएँ, छोटी फ़ाइल या फ़ोटो चुनें, या अनुरोध को बाँटकर फिर कोशिश करें।",
       attachmentUnsupported: "AI चैट में यह फ़ाइल प्रकार समर्थित नहीं है। फ़ाइल हटाएँ या उसे PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX या इमेज के रूप में सहेजें, फिर दोबारा कोशिश करें।",
@@ -1329,11 +1353,14 @@ const hiCatalog: TranslationCatalog = {
     errorTitle: "AI चैट त्रुटि",
     errors: {
       activeRunInProgress: "एक प्रतिक्रिया पहले से चल रही है। दूसरी संदेश भेजने से पहले उसके खत्म होने का इंतज़ार करें या उसे रोकें।",
-      aiLimitReached: "इस महीने के लिए आपकी AI सीमा समाप्त हो गई है। यह अगले महीने की शुरुआत में रीसेट हो जाएगी।",
+      aiLimitReachedAccount: "आपने इस महीने के AI संदेश इस्तेमाल कर लिए हैं। ये {{date}} को नवीनीकृत होंगे। जारी रखने के लिए आप सेटिंग्स में अपनी OpenAI कुंजी जोड़ सकते हैं।",
+      aiLimitReachedAccountNoDate: "आपने इस महीने के AI संदेश इस्तेमाल कर लिए हैं। जारी रखने के लिए आप सेटिंग्स में अपनी OpenAI कुंजी जोड़ सकते हैं।",
+      aiLimitReachedGuest: "आपने इस महीने के मुफ़्त AI संदेश इस्तेमाल कर लिए हैं। जारी रखने के लिए खाता बनाएँ या सेटिंग्स में अपनी OpenAI कुंजी जोड़ें।",
       emptyBackendResponse: "बैकएंड ने खाली त्रुटि प्रतिक्रिया लौटाई।",
       genericFailure: "AI चैट विफल रही।",
       liveStreamEndedBeforeCompletion: "AI लाइव स्ट्रीम रन पूरा होने से पहले समाप्त हो गई।",
       newChatFailedPrefix: "नई चैट विफल रही।",
+      ownOpenAIKeyPrefix: "आपकी अपनी OpenAI कुंजी चालू है। OpenAI ने आपकी कुंजी के लिए यह त्रुटि लौटाई। इसे अपने OpenAI खाते में ठीक करें और फिर से कोशिश करें।",
       refreshFailedPrefix: "चैट रीफ़्रेश विफल रहा।",
       requestFailedPrefix: "चैट अनुरोध विफल रहा।",
       stopFailedPrefix: "चैट रोकना विफल रहा।",

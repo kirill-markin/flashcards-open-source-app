@@ -893,6 +893,21 @@ const etCatalog: TranslationCatalog = {
     toggleTitle: "Näita soovitusi tehisintellekti vestluse sisestusväljas",
     toggleDescription: "Soovitatud päringud kuvatakse sisestusvälja kohal, kui vestlus on jõude ja valmis.",
   },
+  ownOpenAIKeySettings: {
+    title: "Sinu OpenAI võti",
+    subtitle: "Kasuta tehisintellekti oma OpenAI kontoga.",
+    toggleTitle: "Kasuta minu OpenAI võtit",
+    toggleDescription: "Oma võtmega töötavad tehisintellekti vestlus, dikteerimine ja kaardipildid sinu OpenAI kontol, ilma kuise limiidita mis tahes paketis. Kui võti on sees, on soovitatud vastused välja lülitatud. Me ei salvesta sinu võtit kunagi oma serveritesse: see jääb sellesse seadmesse ja saadetakse ainult koos sinu tehisintellekti päringutega, seega sisesta see eraldi iOS-is, Androidis ja veebis.",
+    apiKeyLabel: "OpenAI API-võti",
+    apiKeyInvalid: "Seda võtit ei saa kasutada. OpenAI võtmes on ainult ladina tähed, numbrid ja sümbolid ning kuni 512 märki. Kuni sa seda ei paranda, töötavad tehisintellekti päringud ilma sinu võtmeta.",
+    ownSpend: "Sel kuul sinu võtmega: {{count}}",
+    countLabels: {
+      message: {
+        one: "sõnum",
+        other: "sõnumit",
+      },
+    },
+  },
   analyticsConsentBanner: {
     label: "Analüütikaküpsised",
     message: "Kasutame küpsist ja muud brauseri salvestusruumi, et mõõta, kuidas rakendust kasutatakse. Kuni sa pole valinud, ei salvesta see rakendus sellesse seadmesse midagi ega saada midagi, mis sind tuvastaks.",
@@ -1306,6 +1321,15 @@ const etCatalog: TranslationCatalog = {
       sendAriaLabel: "Saada sõnum",
       stopAriaLabel: "Peata vastus",
     },
+    aiUsage: {
+      countLabels: {
+        aiMessage: {
+          one: "tehisintellekti sõnum",
+          other: "tehisintellekti sõnumit",
+        },
+      },
+      remaining: "Sel kuul alles {{count}}",
+    },
     alerts: {
       attachmentLimit: "Sõnum on liiga suur. Tehisintellekti vestlus ei saa korraga nii palju sisu saata. Eemalda üks või mitu manust, vali väiksem fail või foto või jaga päring osadeks ja proovi uuesti.",
       attachmentUnsupported: "Seda failitüüpi tehisintellekti vestlus ei toeta. Eemalda fail või salvesta see vormingus PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX või pildina ja proovi uuesti.",
@@ -1327,11 +1351,14 @@ const etCatalog: TranslationCatalog = {
     errorTitle: "Tehisintellekti vestluse viga",
     errors: {
       activeRunInProgress: "Vastus on juba koostamisel. Enne uue sõnumi saatmist oota selle valmimist või peata see.",
-      aiLimitReached: "Selle kuu tehisintellekti limiit on ära kasutatud. See lähtestatakse järgmise kuu alguses.",
+      aiLimitReachedAccount: "Oled selle kuu tehisintellekti sõnumid ära kasutanud. Need uuenevad {{date}}. Jätkamiseks saad seadetes lisada oma OpenAI võtme.",
+      aiLimitReachedAccountNoDate: "Oled selle kuu tehisintellekti sõnumid ära kasutanud. Jätkamiseks saad seadetes lisada oma OpenAI võtme.",
+      aiLimitReachedGuest: "Oled selle kuu tasuta tehisintellekti sõnumid ära kasutanud. Jätkamiseks loo konto või lisa seadetes oma OpenAI võti.",
       emptyBackendResponse: "Server tagastas tühja veavastuse.",
       genericFailure: "Tehisintellekti vestlus ebaõnnestus.",
       liveStreamEndedBeforeCompletion: "Tehisintellekti otsevoog lõppes enne töö valmimist.",
       newChatFailedPrefix: "Uue vestluse alustamine ebaõnnestus.",
+      ownOpenAIKeyPrefix: "Sinu oma OpenAI võti on sees. OpenAI tagastas sinu võtme kohta selle vea. Paranda see oma OpenAI kontol ja proovi uuesti.",
       refreshFailedPrefix: "Vestluse värskendamine ebaõnnestus.",
       requestFailedPrefix: "Vestluse päring ebaõnnestus.",
       stopFailedPrefix: "Vestluse peatamine ebaõnnestus.",

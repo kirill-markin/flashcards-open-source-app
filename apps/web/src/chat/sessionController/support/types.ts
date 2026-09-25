@@ -1,5 +1,5 @@
 import type { Locale } from "../../../i18n/types";
-import type { ChatConfig, ChatComposerSuggestion } from "../../../types";
+import type { AiUsageStatus, ChatConfig, ChatComposerSuggestion } from "../../../types";
 import type { ChatErrorFallbackMessages } from "../../shared/chatHelpers";
 import type { PendingAttachment } from "../../attachments/FileAttachment";
 import type { StoredMessage } from "../../history/useChatHistory";
@@ -8,13 +8,14 @@ import type { IndexedDbOpenRecoveryState } from "../../../appError/AppErrorConte
 
 export type ChatSessionControllerUiMessages = Readonly<{
   activeRunInProgress: string;
-  aiLimitReached: string;
+  formatAiLimitReached: (aiUsage: AiUsageStatus | null) => string;
   attachmentLimit: string;
   attachmentUnsupported: string;
   errorFallbacks: ChatErrorFallbackMessages;
   genericChatFailed: string;
   liveStreamEndedBeforeCompletion: string;
   newChatFailedPrefix: string;
+  ownOpenAIKeyErrorPrefix: string;
   refreshFailedPrefix: string;
   remoteNotReady: string;
   requestFailedPrefix: string;
@@ -58,6 +59,8 @@ export type ChatSessionController = Readonly<{
   composerAction: ChatComposerAction;
   composerNotice: string | null;
   errorDialogMessage: string | null;
+  aiUsage: AiUsageStatus | null;
+  refreshAiUsage: () => void;
   dismissErrorDialog: () => void;
   acceptServerSessionId: (sessionId: string) => void;
   ensureRemoteSession: () => Promise<string>;
