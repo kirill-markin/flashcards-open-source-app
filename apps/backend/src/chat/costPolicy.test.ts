@@ -38,7 +38,7 @@ test("decideChatCostPolicy routes 20 chat turns with 0 good review days to low-c
   });
 
   assert.equal(decision.mode, "low_cost");
-  assert.equal(decision.modelId, "gpt-5.6-luna");
+  assert.equal(decision.modelId, "gpt-6-luna");
   assert.equal(decision.reasoningEffort, "high");
 });
 
@@ -58,7 +58,7 @@ test("decideChatCostPolicy trusts two good review days", () => {
   });
 
   assert.equal(decision.mode, "normal");
-  assert.equal(decision.modelId, "gpt-5.6-terra");
+  assert.equal(decision.modelId, "gpt-6-sol");
   assert.equal(decision.reasoningEffort, "xhigh");
 });
 
