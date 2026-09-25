@@ -54,12 +54,20 @@ class SettingsViewModel(
         workspaceRepository.observeAppMetadata(),
         cloudAccountRepository.observeCloudSettings(),
         cloudAccountRepository.observeAccountPreferences(),
-        aiChatRepository.observeComposerSuggestionsEnabled(),
+        combine(
+            aiChatRepository.observeComposerSuggestionsEnabled(),
+            aiChatRepository.observeOwnOpenAiKeySettings()
+        ) { composerSuggestionsEnabled, ownOpenAiKeySettings ->
+            SettingsAiPreferences(
+                composerSuggestionsEnabled = composerSuggestionsEnabled,
+                ownOpenAiKeyEnabled = ownOpenAiKeySettings.isEnabled
+            )
+        },
         testModeStore.observeIsEnabled()
     ) { metadata,
         cloudSettings,
         accountPreferences,
-        aiChatComposerSuggestionsEnabled,
+        aiPreferences,
         isTestModeEnabled ->
         val attentionSummary: SettingsAttentionSummary = makeSettingsAttentionSummary(
             issues = makeSettingsAttentionIssues(cloudState = cloudSettings.cloudState)
@@ -82,7 +90,8 @@ class SettingsViewModel(
             friendInviteAvailability = friendInviteAvailability(cloudState = cloudSettings.cloudState),
             reviewReactionAnimationsEnabled = accountPreferences.reviewReactionAnimationsEnabled,
             productAnalyticsEnabled = isProductAnalyticsEnabled(preferences = accountPreferences),
-            aiChatComposerSuggestionsEnabled = aiChatComposerSuggestionsEnabled,
+            aiChatComposerSuggestionsEnabled = aiPreferences.composerSuggestionsEnabled,
+            ownOpenAiKeyEnabled = aiPreferences.ownOpenAiKeyEnabled,
             canManageAccountPreferences = canManageAccountPreferences(cloudState = cloudSettings.cloudState),
             isTestModeEnabled = isTestModeEnabled
         )
@@ -102,6 +111,7 @@ class SettingsViewModel(
             reviewReactionAnimationsEnabled = true,
             productAnalyticsEnabled = true,
             aiChatComposerSuggestionsEnabled = true,
+            ownOpenAiKeyEnabled = aiChatRepository.currentOwnOpenAiKeySettings().isEnabled,
             canManageAccountPreferences = false,
             isTestModeEnabled = false
         )
@@ -262,6 +272,11 @@ class SettingsViewModel(
         messageController.showMessage(message = workspaceUpdatedOnAnotherDeviceMessage(strings = strings))
     }
 }
+
+private data class SettingsAiPreferences(
+    val composerSuggestionsEnabled: Boolean,
+    val ownOpenAiKeyEnabled: Boolean
+)
 
 private data class SettingsVisibleSignature(
     val currentWorkspaceName: String,

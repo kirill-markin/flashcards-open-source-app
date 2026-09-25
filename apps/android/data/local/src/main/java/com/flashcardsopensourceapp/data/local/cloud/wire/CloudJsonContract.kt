@@ -44,6 +44,14 @@ internal fun JSONObject.requireCloudInt(key: String, fieldPath: String): Int {
     return parseCloudInt(value = value, fieldPath = fieldPath)
 }
 
+internal fun JSONObject.requireCloudNullableInt(key: String, fieldPath: String): Int? {
+    val value = requireCloudValue(key = key, fieldPath = fieldPath)
+    if (value === JSONObject.NULL) {
+        return null
+    }
+    return parseCloudInt(value = value, fieldPath = fieldPath)
+}
+
 internal fun JSONObject.optCloudIntOrNull(key: String, fieldPath: String): Int? {
     if (has(key).not()) {
         return null

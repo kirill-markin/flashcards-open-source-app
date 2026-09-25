@@ -43,6 +43,9 @@ import com.flashcardsopensourceapp.feature.settings.SettingsFriendInviteAvailabi
 import com.flashcardsopensourceapp.feature.settings.SettingsRoute
 import com.flashcardsopensourceapp.feature.settings.TestSettingsRoute
 import com.flashcardsopensourceapp.feature.settings.ai.AiChatSuggestionsRoute
+import com.flashcardsopensourceapp.feature.settings.ai.OwnOpenAiKeyRoute
+import com.flashcardsopensourceapp.feature.settings.ai.OwnOpenAiKeyViewModel
+import com.flashcardsopensourceapp.feature.settings.ai.createOwnOpenAiKeyViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createSettingsViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.device.DeviceDiagnosticsRoute
 import com.flashcardsopensourceapp.feature.settings.device.createDeviceDiagnosticsViewModelFactory
@@ -180,6 +183,9 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
             },
             onOpenAiChatSuggestions = {
                 navController.navigate(route = SettingsAiChatSuggestionsDestination.route)
+            },
+            onOpenOwnOpenAiKey = {
+                navController.navigate(route = SettingsOwnOpenAiKeyDestination.route)
             },
             onOpenLeaderboardParticipation = {
                 navController.navigate(route = SettingsLeaderboardParticipationDestination.route)
@@ -347,6 +353,27 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
         AiChatSuggestionsRoute(
             aiChatComposerSuggestionsEnabled = uiState.aiChatComposerSuggestionsEnabled,
             onUpdateAiChatComposerSuggestionsEnabled = settingsViewModel::updateAiChatComposerSuggestionsEnabled,
+            onBack = {
+                navController.popBackStack()
+            }
+        )
+    }
+
+    composable(route = SettingsOwnOpenAiKeyDestination.route) {
+        val context = LocalContext.current
+        val ownOpenAiKeyViewModel = viewModel<OwnOpenAiKeyViewModel>(
+            factory = createOwnOpenAiKeyViewModelFactory(
+                aiChatRepository = appGraph.aiChatRepository,
+                cloudAccountRepository = appGraph.cloudAccountRepository,
+                applicationContext = context.applicationContext
+            )
+        )
+        val uiState by ownOpenAiKeyViewModel.uiState.collectAsStateWithLifecycle()
+
+        OwnOpenAiKeyRoute(
+            uiState = uiState,
+            onUpdateEnabled = ownOpenAiKeyViewModel::updateEnabled,
+            onUpdateApiKey = ownOpenAiKeyViewModel::updateApiKey,
             onBack = {
                 navController.popBackStack()
             }

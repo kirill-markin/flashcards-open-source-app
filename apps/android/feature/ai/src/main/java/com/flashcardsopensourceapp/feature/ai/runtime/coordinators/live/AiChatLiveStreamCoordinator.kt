@@ -513,11 +513,13 @@ internal class AiChatLiveStreamCoordinator(
                             errorMessage = ""
                         )
                     }
+                    context.refreshAiUsage()
                     context.triggerToolRunPostSyncIfNeeded(reason = "run_terminal_completed")
                 }
 
                 AiChatRunTerminalOutcome.STOPPED -> {
                     finalizeStoppedConversation()
+                    context.refreshAiUsage()
                     context.triggerToolRunPostSyncIfNeeded(reason = "run_terminal_stopped")
                     return
                 }
@@ -531,13 +533,16 @@ internal class AiChatLiveStreamCoordinator(
                             composerPhase = AiComposerPhase.IDLE,
                             repairStatus = null,
                             activeAlert = context.textProvider.generalError(
-                                message = event.message
-                                    ?: latestAssistantErrorMessage(messages = state.persistedState.messages)
-                                    ?: context.textProvider.chatFailed
+                                message = context.runErrorMessage(
+                                    message = event.message
+                                        ?: latestAssistantErrorMessage(messages = state.persistedState.messages)
+                                        ?: context.textProvider.chatFailed
+                                )
                             ),
                             errorMessage = ""
                         )
                     }
+                    context.refreshAiUsage()
                     context.triggerToolRunPostSyncIfNeeded(reason = "run_terminal_error")
                 }
             }
@@ -564,7 +569,9 @@ internal class AiChatLiveStreamCoordinator(
                     state.copy(
                         activeRun = null,
                         composerPhase = AiComposerPhase.IDLE,
-                        activeAlert = context.textProvider.generalError(message = errorMessage),
+                        activeAlert = context.textProvider.generalError(
+                            message = context.runErrorMessage(message = errorMessage)
+                        ),
                         errorMessage = ""
                     )
                 }

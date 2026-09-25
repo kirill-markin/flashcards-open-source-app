@@ -924,6 +924,7 @@ private fun makeAiUiState(
         canStartNewChat = messages.isNotEmpty(),
         composerSuggestions = emptyList(),
         repairStatus = null,
+        remainingAiMessagesNotice = null,
         activeAlert = null,
         errorMessage = ""
     )

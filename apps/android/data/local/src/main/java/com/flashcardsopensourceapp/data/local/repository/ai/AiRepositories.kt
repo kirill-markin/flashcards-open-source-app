@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.data.local.repository.ai
 import com.flashcardsopensourceapp.data.local.ai.store.AiChatHistoryStore
 import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.ai.store.AiChatPreferencesStore
+import com.flashcardsopensourceapp.data.local.ai.store.OwnOpenAiKeyStore
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteService
 import com.flashcardsopensourceapp.data.local.ai.store.makeAiChatHistoryScopedWorkspaceId
@@ -21,6 +22,8 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatStopRunResponse
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatStartRunRequest
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatStartRunResponse
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatTranscriptionResult
+import com.flashcardsopensourceapp.data.local.model.ai.AiUsageStatus
+import com.flashcardsopensourceapp.data.local.model.ai.OwnOpenAiKeySettings
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
@@ -52,7 +55,8 @@ class LocalAiChatRepository(
     private val syncRepository: SyncRepository,
     private val aiChatRemoteService: AiChatRemoteService,
     private val historyStore: AiChatHistoryStore,
-    private val aiChatPreferencesStore: AiChatPreferencesStore
+    private val aiChatPreferencesStore: AiChatPreferencesStore,
+    private val ownOpenAiKeyStore: OwnOpenAiKeyStore
 ) : AiChatRepository {
     override fun observeConsent(): Flow<Boolean> {
         return aiChatPreferencesStore.observeConsent()
@@ -76,6 +80,34 @@ class LocalAiChatRepository(
 
     override fun updateComposerSuggestionsEnabled(isEnabled: Boolean) {
         aiChatPreferencesStore.updateComposerSuggestionsEnabled(isEnabled = isEnabled)
+    }
+
+    override fun observeOwnOpenAiKeySettings(): Flow<OwnOpenAiKeySettings> {
+        return ownOpenAiKeyStore.observeSettings()
+    }
+
+    override fun currentOwnOpenAiKeySettings(): OwnOpenAiKeySettings {
+        return ownOpenAiKeyStore.observeSettings().value
+    }
+
+    override fun isOwnOpenAiKeyActive(): Boolean {
+        return ownOpenAiKeyStore.isActive()
+    }
+
+    override fun updateOwnOpenAiKeyEnabled(isEnabled: Boolean) {
+        ownOpenAiKeyStore.updateEnabled(isEnabled = isEnabled)
+    }
+
+    override fun updateOwnOpenAiKey(apiKey: String) {
+        ownOpenAiKeyStore.updateApiKey(apiKey = apiKey)
+    }
+
+    override suspend fun loadAiUsage(workspaceId: String?): AiUsageStatus {
+        val session = authorizedSession(workspaceId = workspaceId)
+        return aiChatRemoteService.loadAiUsage(
+            apiBaseUrl = session.apiBaseUrl,
+            authorizationHeader = session.authorizationHeader
+        )
     }
 
     override fun makeExplicitSessionId(): String {
@@ -285,6 +317,7 @@ class LocalAiChatRepository(
         return aiChatRemoteService.transcribeAudio(
             apiBaseUrl = session.apiBaseUrl,
             authorizationHeader = session.authorizationHeader,
+            ownOpenAiKey = ownOpenAiKeyStore.activeApiKeyOrNull(),
             sessionId = sessionId,
             workspaceId = remoteWorkspaceId,
             fileName = fileName,
@@ -342,6 +375,7 @@ class LocalAiChatRepository(
             aiChatRemoteService.startRun(
                 apiBaseUrl = session.apiBaseUrl,
                 authorizationHeader = session.authorizationHeader,
+                ownOpenAiKey = ownOpenAiKeyStore.activeApiKeyOrNull(),
                 request = request
             )
         } catch (error: AiChatRemoteException) {

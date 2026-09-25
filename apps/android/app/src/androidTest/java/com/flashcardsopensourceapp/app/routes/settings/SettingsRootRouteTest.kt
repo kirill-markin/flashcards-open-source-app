@@ -26,6 +26,7 @@ import com.flashcardsopensourceapp.feature.settings.settingsAgentConnectionsRowT
 import com.flashcardsopensourceapp.feature.settings.settingsAccountSectionTag
 import com.flashcardsopensourceapp.feature.settings.settingsAdvancedSectionTag
 import com.flashcardsopensourceapp.feature.settings.settingsAiChatSuggestionsRowTag
+import com.flashcardsopensourceapp.feature.settings.settingsOwnOpenAiKeyRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsCurrentWorkspaceRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsDecksRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsDeleteAccountRowTag
@@ -106,6 +107,7 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             settingsReviewRemindersRowTag,
             settingsReviewAnimationsRowTag,
             settingsAiChatSuggestionsRowTag,
+            settingsOwnOpenAiKeyRowTag,
             settingsLeaderboardParticipationRowTag,
             settingsProductAnalyticsRowTag,
             settingsLanguageRowTag,
@@ -179,6 +181,11 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         assertRowClick(
             rowTag = settingsAiChatSuggestionsRowTag,
             expectedClick = "ai_chat_suggestions",
+            clickedRows = clickedRows
+        )
+        assertRowClick(
+            rowTag = settingsOwnOpenAiKeyRowTag,
+            expectedClick = "own_openai_key",
             clickedRows = clickedRows
         )
         assertRowClick(
@@ -338,6 +345,7 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         reviewReactionAnimationsEnabled = true,
                         productAnalyticsEnabled = true,
                         aiChatComposerSuggestionsEnabled = true,
+                        ownOpenAiKeyEnabled = false,
                         canManageAccountPreferences = canManageAccountPreferences,
                         isTestModeEnabled = isTestModeEnabled
                     ),
@@ -372,6 +380,9 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     },
                     onOpenAiChatSuggestions = {
                         clickedRows += "ai_chat_suggestions"
+                    },
+                    onOpenOwnOpenAiKey = {
+                        clickedRows += "own_openai_key"
                     },
                     onOpenLeaderboardParticipation = {
                         clickedRows += "leaderboard_participation"

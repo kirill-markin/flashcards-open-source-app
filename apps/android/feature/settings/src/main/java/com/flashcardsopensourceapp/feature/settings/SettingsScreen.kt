@@ -98,6 +98,7 @@ fun SettingsRoute(
     onOpenReviewReminders: () -> Unit,
     onOpenReviewAnimations: () -> Unit,
     onOpenAiChatSuggestions: () -> Unit,
+    onOpenOwnOpenAiKey: () -> Unit,
     onOpenLeaderboardParticipation: () -> Unit,
     onOpenProductAnalytics: () -> Unit,
     onOpenLanguage: () -> Unit,
@@ -265,6 +266,20 @@ fun SettingsRoute(
                     attentionCount = null,
                     testTag = settingsAiChatSuggestionsRowTag,
                     onClick = onOpenAiChatSuggestions
+                )
+            }
+
+            item {
+                SettingsRootRow(
+                    title = stringResource(R.string.settings_own_openai_key_title),
+                    summary = if (uiState.ownOpenAiKeyEnabled) {
+                        stringResource(R.string.settings_common_on)
+                    } else {
+                        stringResource(R.string.settings_common_off)
+                    },
+                    attentionCount = null,
+                    testTag = settingsOwnOpenAiKeyRowTag,
+                    onClick = onOpenOwnOpenAiKey
                 )
             }
 
