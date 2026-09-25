@@ -15,7 +15,7 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -36,6 +36,7 @@ import com.flashcardsopensourceapp.app.support.AppStateResetRule
 import com.flashcardsopensourceapp.data.local.model.cards.CardFilter
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
 import com.flashcardsopensourceapp.feature.ai.R as AiFeatureR
+import com.flashcardsopensourceapp.feature.review.R as ReviewFeatureR
 import com.flashcardsopensourceapp.feature.ai.aiConversationSurfaceTag
 import com.flashcardsopensourceapp.feature.cards.cardEditorBackSummaryCardTag
 import com.flashcardsopensourceapp.feature.cards.cardEditorBackTextFieldTag
@@ -543,7 +544,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Gamma")).assertIsOff()
         composeRule.onNodeWithTag(reviewFilterButtonTag).assertTextEquals("All cards")
         composeRule.onNodeWithTag(reviewQueueButtonTag)
-            .assertContentDescriptionEquals("Review queue 3 cards.")
+            .assertContentDescriptionEquals(reviewQueueContentDescription(count = 3))
 
         pressBack()
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
@@ -552,7 +553,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         }
         waitForReviewFilterState(
             filterTitle = "No tags",
-            queueContentDescription = "Review queue 0 cards."
+            queueContentDescription = reviewQueueContentDescription(count = 0)
         )
 
         composeRule.onNodeWithTag(reviewFilterButtonTag).performClick()
@@ -570,7 +571,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Gamma")).assertIsOff()
         composeRule.onNodeWithTag(reviewFilterButtonTag).assertTextEquals("No tags")
         composeRule.onNodeWithTag(reviewQueueButtonTag)
-            .assertContentDescriptionEquals("Review queue 0 cards.")
+            .assertContentDescriptionEquals(reviewQueueContentDescription(count = 0))
 
         recreateActivity()
         waitForTagToExist(tag = reviewFilterSheetTag)
@@ -580,7 +581,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Gamma")).assertIsOff()
         composeRule.onNodeWithTag(reviewFilterButtonTag).assertTextEquals("No tags")
         composeRule.onNodeWithTag(reviewQueueButtonTag)
-            .assertContentDescriptionEquals("Review queue 0 cards.")
+            .assertContentDescriptionEquals(reviewQueueContentDescription(count = 0))
 
         pressBack()
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
@@ -588,7 +589,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         }
         waitForReviewFilterState(
             filterTitle = "Alpha",
-            queueContentDescription = "Review queue 1 card."
+            queueContentDescription = reviewQueueContentDescription(count = 1)
         )
 
         composeRule.onNodeWithTag(reviewFilterButtonTag).performClick()
@@ -599,7 +600,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Gamma")).assertIsOff()
         composeRule.onNodeWithTag(reviewFilterButtonTag).assertTextEquals("Alpha")
         composeRule.onNodeWithTag(reviewQueueButtonTag)
-            .assertContentDescriptionEquals("Review queue 1 card.")
+            .assertContentDescriptionEquals(reviewQueueContentDescription(count = 1))
 
         pressBack()
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
@@ -607,14 +608,14 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         }
         waitForReviewFilterState(
             filterTitle = "2 tags",
-            queueContentDescription = "Review queue 2 cards."
+            queueContentDescription = reviewQueueContentDescription(count = 2)
         )
 
         openCardsTab()
         openReviewTab()
         waitForReviewFilterState(
             filterTitle = "2 tags",
-            queueContentDescription = "Review queue 2 cards."
+            queueContentDescription = reviewQueueContentDescription(count = 2)
         )
 
         composeRule.onNodeWithTag(reviewFilterButtonTag).performClick()
@@ -629,7 +630,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Gamma")).assertIsOn()
         composeRule.onNodeWithTag(reviewFilterButtonTag).assertTextEquals("2 tags")
         composeRule.onNodeWithTag(reviewQueueButtonTag)
-            .assertContentDescriptionEquals("Review queue 2 cards.")
+            .assertContentDescriptionEquals(reviewQueueContentDescription(count = 2))
 
         pressBack()
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
@@ -637,7 +638,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         }
         waitForReviewFilterState(
             filterTitle = "All cards",
-            queueContentDescription = "Review queue 3 cards."
+            queueContentDescription = reviewQueueContentDescription(count = 3)
         )
 
         composeRule.onNodeWithTag(reviewFilterButtonTag).performClick()
@@ -988,6 +989,14 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.onNodeWithTag(reviewFilterButtonTag).assertTextEquals(filterTitle)
         composeRule.onNodeWithTag(reviewQueueButtonTag)
             .assertContentDescriptionEquals(queueContentDescription)
+    }
+
+    private fun reviewQueueContentDescription(count: Int): String {
+        return composeRule.activity.resources.getQuantityString(
+            ReviewFeatureR.plurals.review_queue_button_content_description,
+            count,
+            count
+        )
     }
 
     private fun aiString(@StringRes resId: Int): String {

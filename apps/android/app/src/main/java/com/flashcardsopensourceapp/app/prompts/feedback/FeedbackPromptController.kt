@@ -382,8 +382,9 @@ class FeedbackPromptController(
             return applicationContext.getString(R.string.feedback_prompt_empty_message)
         }
         if (message.length > cloudFeedbackMessageMaximumLength) {
-            return applicationContext.getString(
-                R.string.feedback_prompt_message_too_long,
+            return applicationContext.resources.getQuantityString(
+                R.plurals.feedback_prompt_message_too_long,
+                cloudFeedbackMessageMaximumLength,
                 cloudFeedbackMessageMaximumLength
             )
         }
