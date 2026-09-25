@@ -161,8 +161,8 @@ struct AIChatView: View {
             .onChange(of: self.chatStore.bootstrapPhase) { _, nextPhase in
                 self.handleBootstrapPhaseChange(nextPhase: nextPhase)
             }
-            .onChange(of: self.chatStore.composerPhase) { _, nextPhase in
-                self.handleComposerPhaseChange(nextPhase: nextPhase)
+            .onChange(of: self.chatStore.composerPhase) { previousPhase, nextPhase in
+                self.handleComposerPhaseChange(previousPhase: previousPhase, nextPhase: nextPhase)
             }
             .onChange(of: self.chatStore.hasExternalProviderConsent) { _, hasConsent in
                 self.handleExternalProviderConsentChange(hasConsent: hasConsent)
@@ -752,6 +752,7 @@ struct AIChatView: View {
 
     func handleViewAppear() {
         self.syncChatSurface(refreshConsent: true)
+        self.refreshAIUsage()
         self.captureAIChatPresentationRequest(
             request: self.navigation.aiChatPresentationRequest,
             source: .viewAppear
@@ -796,7 +797,12 @@ struct AIChatView: View {
         )
     }
 
-    func handleComposerPhaseChange(nextPhase: AIChatComposerPhase) {
+    func handleComposerPhaseChange(previousPhase: AIChatComposerPhase, nextPhase: AIChatComposerPhase) {
+        // A turn ends by returning the composer to idle, and the allowance it used is read again then.
+        if nextPhase == .idle && previousPhase != .idle {
+            self.refreshAIUsage()
+        }
+
         guard aiChatComposerPhaseAllowsDraftPreparation(nextPhase) else {
             return
         }
@@ -805,6 +811,12 @@ struct AIChatView: View {
             request: self.deferredPresentationRequest,
             source: .composerPhaseReady
         )
+    }
+
+    func refreshAIUsage() {
+        Task {
+            await self.flashcardsStore.refreshAIUsage()
+        }
     }
 
     func handleExternalProviderConsentChange(hasConsent: Bool) {

@@ -155,6 +155,18 @@ struct SettingsView: View {
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsAIChatSuggestionsRow)
 
+                NavigationLink(value: SettingsNavigationDestination.ownOpenAIKey) {
+                    SettingsNavigationRow(
+                        title: aiSettingsLocalized("settings.ownOpenAIKey.title", "Your OpenAI key"),
+                        value: store.isOwnOpenAIKeyEnabled
+                            ? aiSettingsLocalized("common.on", "On")
+                            : aiSettingsLocalized("common.off", "Off"),
+                        systemImage: "key",
+                        attentionCount: nil
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.settingsOwnOpenAIKeyRow)
+
                 NavigationLink(value: SettingsNavigationDestination.leaderboardParticipation) {
                     SettingsNavigationRow(
                         title: aiSettingsLocalized("settings.row.leaderboardParticipation", "Leaderboard participation"),

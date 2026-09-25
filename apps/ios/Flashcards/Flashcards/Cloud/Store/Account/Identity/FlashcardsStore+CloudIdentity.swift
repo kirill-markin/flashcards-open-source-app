@@ -42,6 +42,9 @@ extension FlashcardsStore {
         // append-only table. Past this point that duplicate cannot be written.
         self.hasReportedPendingSignOut = false
         try self.dependencies.guestCredentialStore.clearGuestSession()
+        // Cannot throw: the credential is already gone, so a failed Keychain delete must not stop the
+        // database reset below and leave the departing person's local data on the device.
+        self.resetOwnOpenAIKeyForCloudIdentityReset()
         try database.resetForAccountDeletion()
         let nextStrictReminderNotificationScope = rotateStrictReminderNotificationScope(
             userDefaults: self.userDefaults
@@ -65,6 +68,7 @@ extension FlashcardsStore {
         self.clearFeedbackPromptState()
         self.resetAccountPreferencesForCloudIdentityReset()
         self.resetCloudEntitlementForCloudIdentityReset()
+        self.aiUsageSnapshot = nil
         self.cachedAIChatStore?.clearLocalHistory()
         clearStoredAIChatHistories(userDefaults: self.userDefaults)
         self.reviewRuntime = ReviewQueueRuntime(

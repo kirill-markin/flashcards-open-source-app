@@ -9,7 +9,6 @@ let aiChatCreateCardDraftPrompt: String = "Help me create a card."
 let aiChatExternalProviderConsentUserDefaultsKey: String = "ai-chat-external-provider-consent"
 let aiChatExternalProviderConsentRequiredMessage: String = "Review AI data use and accept it on this device before using AI features."
 let aiChatAccuracyWarningText: String = "AI responses can be inaccurate or incomplete. Review important results before relying on them."
-let aiChatGuestQuotaReachedMessage: String = "Your free guest AI limit for this month is used up. Create an account or log in to keep using AI."
 let aiChatGuestQuotaButtonTitle: String = "Create account or Log in"
 let aiChatMaximumAttachmentBytes: Int = 3 * 1024 * 1024
 let aiChatMaximumStartRunRequestBytes: Int = 5 * 1024 * 1024
