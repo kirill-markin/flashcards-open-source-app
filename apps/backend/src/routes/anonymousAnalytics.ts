@@ -7,9 +7,14 @@ import {
   getRequestOrigin,
   type RequestOriginHeaders,
 } from "../auth/requestSecurity";
-import { getDirectRequestSourceIp } from "../geolocation/requestCountry";
+import { createCountryLookupFailureReporter } from "../geolocation/countryLookupFailure";
+import {
+  getDirectRequestCountryLookup,
+  getDirectRequestSourceIp,
+} from "../geolocation/requestCountry";
 import { parseAnonymousEvent } from "../productAnalytics/anonymousEvent";
 import { isAutomatedUserAgent } from "../productAnalytics/automatedClient";
+import { findProductAnalyticsEventDefinition } from "../productAnalytics/catalog";
 import { resolveDailyVisitorHash } from "../productAnalytics/dailyVisitorHash";
 import { insertAnonymousProductAnalyticsEvent } from "../productAnalytics/writer";
 import {
@@ -17,8 +22,12 @@ import {
   createBackendObservationScope,
   normalizeCaughtError,
   type BackendObservationScope,
+  type BackendWarningEvent,
 } from "../observability/sentry";
-import { reportBackendExceptionOrBreadcrumb } from "../observability/reporting";
+import {
+  markBackendExceptionWrapperAsReported,
+  reportBackendExceptionOrBreadcrumb,
+} from "../observability/reporting";
 import type { ProductAnalyticsEventRow } from "../productAnalytics/types";
 import type { AppEnv } from "../server/app";
 
@@ -28,6 +37,9 @@ type AnonymousAnalyticsResponse = Readonly<{
 
 type AnonymousAnalyticsRouteOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;
+  // The auth origins on the allowlist above, read only to withhold a country from their rows; see
+  // resolveAnonymousEventCountry below.
+  authOrigins: ReadonlyArray<string>;
 }>;
 
 // The product-analytics off switch (org.user_settings.product_analytics_enabled and
@@ -47,6 +59,11 @@ export const legacyCatalogInstallAnalyticsEventPath = "/analytics/catalog-instal
 
 const anonymousAnalyticsBodyMaximumBytes = 8 * 1024;
 
+// This is the product's highest-volume route, so a broken GeoLite database would otherwise become
+// one Sentry event per credential-free event of every visitor worldwide. The shape and the reason
+// are in ../geolocation/countryLookupFailure.ts.
+const reportCountryLookupFailure = createCountryLookupFailureReporter();
+
 // The collector is origin-restricted instead of authenticated, so the origin is the whole of what
 // bounds who may write to it. A request that presents neither `Origin` nor `Referer` is refused too:
 // it proves nothing, and treating it as originless let a plain `curl` through, which on a route that
@@ -57,10 +74,10 @@ const anonymousAnalyticsBodyMaximumBytes = 8 * 1024;
 // deliberately not applied here. This collector is cross-site by design: the marketing site is on
 // its own domain and posts to the API host, so refusing cross-site requests would refuse the
 // producer this route exists for.
-function assertAnonymousAnalyticsOrigin(
+function requireAnonymousAnalyticsOrigin(
   request: Request,
   allowedOrigins: ReadonlyArray<string>,
-): void {
+): string {
   // Only the two headers the check reads. `extractRequestAuthInputs` would also parse the caller's
   // `session` cookie, and this collector reads no credential at all: a caller that sent a malformed
   // cookie would otherwise fail here, before the origin was even compared.
@@ -73,6 +90,8 @@ function assertAnonymousAnalyticsOrigin(
       "ANONYMOUS_ANALYTICS_ORIGIN_NOT_ALLOWED",
     );
   }
+
+  return origin;
 }
 
 // The shared helper throws its "no origin at all" and "unparseable Referer" refusals uncoded, and its
@@ -122,6 +141,77 @@ function readPathToRetryWithoutTrailingSlash(request: Request): string | null {
   return pathname.replace(/\/+$/u, "");
 }
 
+// The two-letter country the request arrived from, derived at ingest and stored with no raw address
+// anywhere. It is null for the two kinds of row that may not carry one, and for an ordinary request
+// that has no direct source address here or whose address the database cannot place.
+//
+// An `identityFree` entry gets none: those rows may be stored beside nothing that describes the
+// visitor, and the catalog is what decides it, read the way resolveDailyVisitorHash reads it so a
+// second list cannot drift from it in silence.
+//
+// The auth origin gets none because its sign-in funnel is posted server-side from the auth Lambda
+// (apps/auth/src/server/analytics/client.ts), so the address such a request arrives from is that
+// Lambda's egress address and a country derived from it would be a fabricated fact about the
+// visitor. The origin the allowlist was checked against is the signal, rather than a second one
+// invented here.
+//
+// A LOOKUP FAILURE REFUSES THE EVENT RATHER THAN STORING A NULL COUNTRY, deliberately: this column is
+// written once into an append-only table, so a NULL fabricated from a broken or expired database is
+// the irreversible choice and a rejected event is the recoverable one - its producer retries it
+// under the same idempotent event id, and nothing reconstructs a country after the fact. It is the
+// call docs/geolite-country.md states for every ingestion path and the one
+// apps/backend/src/productAnalytics/installationCountry.ts already makes. Only the report is
+// throttled, not the refusal.
+async function resolveAnonymousEventCountry(
+  row: ProductAnalyticsEventRow,
+  requestOrigin: string,
+  authOrigins: ReadonlyArray<string>,
+  scope: BackendObservationScope,
+): Promise<string | null> {
+  if (authOrigins.includes(requestOrigin)) {
+    return null;
+  }
+
+  if (findProductAnalyticsEventDefinition(row.eventName)?.identityFree === true) {
+    return null;
+  }
+
+  const countryLookup = getDirectRequestCountryLookup();
+  if (countryLookup === null) {
+    return null;
+  }
+
+  try {
+    return await countryLookup();
+  } catch (error) {
+    const warning: BackendWarningEvent = {
+      action: "anonymous_analytics_country_lookup_failed",
+      message: "Anonymous analytics country lookup failed; the event is refused so its producer retries it.",
+      scope,
+      // `errorMessage` is in the Sentry redaction set
+      // (apps/backend/src/observability/sentry/redaction.ts), so Sentry receives
+      // `<redacted-content>` while CloudWatch keeps the text; the rule for naming this detail is in
+      // ../geolocation/countryLookupFailure.ts.
+      details: { errorMessage: normalizeCaughtError(error).message },
+    };
+    reportCountryLookupFailure(warning);
+
+    // Reported once per container per interval just above, so the route's own handler adds a
+    // breadcrumb instead of the per-request Sentry exception the throttle exists to prevent. The 500
+    // and the API Gateway 5XX alarm stay: a collector that cannot derive the country it must store
+    // is an outage.
+    //
+    // Unlike the other callers, this marks a caught instance rather than a freshly constructed one,
+    // so the mark is a property of that instance and not of this request, and a caught instance can
+    // be shared: the rejected `pendingDownload` in ../geolocation/country.ts hands the same one to
+    // every awaiter, and a non-`Error` rejection is wrapped once and cached for the container's
+    // life (../observability/sentry/errorNormalization.ts). Nothing here can be relied on to keep
+    // the instance private to this request, so anything else that ends up holding it is treated as
+    // already reported too.
+    throw markBackendExceptionWrapperAsReported(normalizeCaughtError(error));
+  }
+}
+
 function createAnonymousAnalyticsScope(
   requestId: string,
   path: string,
@@ -166,7 +256,7 @@ export function createAnonymousAnalyticsRoutes(
     let row: ProductAnalyticsEventRow | null = null;
 
     try {
-      assertAnonymousAnalyticsOrigin(context.req.raw, options.allowedOrigins);
+      const requestOrigin = requireAnonymousAnalyticsOrigin(context.req.raw, options.allowedOrigins);
       assertAnonymousAnalyticsContentType(context.req.raw.headers);
       const body = await parseJsonBodyWithByteLimit(
         context.req.raw,
@@ -183,8 +273,15 @@ export function createAnonymousAnalyticsRoutes(
         sourceIp: getDirectRequestSourceIp(),
         userAgent,
       });
+      const country = await resolveAnonymousEventCountry(
+        row,
+        requestOrigin,
+        options.authOrigins,
+        scope,
+      );
       const storedCount = await insertAnonymousProductAnalyticsEvent({
         ...row,
+        country,
         dailyVisitorHash,
         automatedClient: isAutomatedUserAgent(userAgent),
       });
