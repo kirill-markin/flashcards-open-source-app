@@ -18,12 +18,15 @@ import {
   type ChatTranscriptionFailureDetails,
 } from "../observability/sentry";
 import { expectWorkspaceIdString } from "../server/requestParsing";
-import { getObservedOpenAIClient } from "./openai/client";
+import { createObservedUserOpenAIClient, getObservedOpenAIClient } from "./openai/client";
 import {
   classifyChatTranscriptionFailure,
   getAIProviderFailureMetadata,
   makeChatTranscriptionNotConfiguredError,
+  makeOwnOpenAIKeyProviderError,
+  readOwnOpenAIKeyProviderErrorText,
 } from "./providerFailure";
+import type { UserOpenAIApiKey } from "./userOpenAIApiKey";
 
 export type ChatTranscriptionSource = "android" | "ios" | "web";
 
@@ -57,6 +60,8 @@ export type ChatTranscriptionUpload = Readonly<{
 export type ChatTranscriptionRequestContext = Readonly<{
   requestId: string;
   sessionId: string;
+  /** The person's own OpenAI key, which pays for this one transcription instead of the platform key. */
+  userOpenAIApiKey: UserOpenAIApiKey | null;
 }>;
 
 /**
@@ -119,6 +124,7 @@ const SUPPORTED_AUDIO_MEDIA_TYPES = new Set([
 
 type ChatTranscriptionDependencies = Readonly<{
   getObservedOpenAIClient: () => OpenAITranscriptionClient;
+  createObservedUserOpenAIClient: (userOpenAIApiKey: UserOpenAIApiKey) => OpenAITranscriptionClient;
 }>;
 
 /**
@@ -126,6 +132,10 @@ type ChatTranscriptionDependencies = Readonly<{
  */
 function createOpenAITranscriptionClient(): OpenAITranscriptionClient {
   return getObservedOpenAIClient() as unknown as OpenAITranscriptionClient;
+}
+
+function createUserOpenAITranscriptionClient(userOpenAIApiKey: UserOpenAIApiKey): OpenAITranscriptionClient {
+  return createObservedUserOpenAIClient(userOpenAIApiKey) as unknown as OpenAITranscriptionClient;
 }
 
 /**
@@ -286,6 +296,7 @@ function logChatTranscriptionInvalidAudio(details: ChatTranscriptionFailureDetai
 
 const DEFAULT_CHAT_TRANSCRIPTION_DEPENDENCIES: ChatTranscriptionDependencies = {
   getObservedOpenAIClient: createOpenAITranscriptionClient,
+  createObservedUserOpenAIClient: createUserOpenAITranscriptionClient,
 };
 
 /**
@@ -310,13 +321,17 @@ export async function transcribeChatAudioUploadWithDependencies(
   client: OpenAITranscriptionClient | undefined,
   dependencies: ChatTranscriptionDependencies,
 ): Promise<ChatTranscriptionResult> {
+  const userOpenAIApiKey = requestContext.userOpenAIApiKey;
   const apiKey = process.env.OPENAI_API_KEY;
-  if (apiKey === undefined || apiKey.trim() === "") {
+  if (userOpenAIApiKey === null && (apiKey === undefined || apiKey.trim() === "")) {
     throw makeChatTranscriptionNotConfiguredError();
   }
 
   try {
-    const transcriptionClient = client ?? dependencies.getObservedOpenAIClient();
+    const transcriptionClient = client
+      ?? (userOpenAIApiKey === null
+        ? dependencies.getObservedOpenAIClient()
+        : dependencies.createObservedUserOpenAIClient(userOpenAIApiKey));
     const buffer = Buffer.from(await upload.file.arrayBuffer());
     const file = await toFile(buffer, upload.file.name, { type: upload.file.type });
     // OpenAI transcription requests do not expose an end-user safety identifier field.
@@ -363,6 +378,12 @@ export async function transcribeChatAudioUploadWithDependencies(
     }
 
     logChatTranscriptionFailure(failureDetails);
+    // OpenAI's answer to a call made with the person's own key is theirs to act on, so it is passed on.
+    const ownKeyProviderErrorText = userOpenAIApiKey === null ? null : readOwnOpenAIKeyProviderErrorText(error);
+    if (ownKeyProviderErrorText !== null) {
+      throw makeOwnOpenAIKeyProviderError(ownKeyProviderErrorText);
+    }
+
     const normalizedFailure = classifyChatTranscriptionFailure(error);
     if (error instanceof EmptyTranscriptTextError) {
       throw new ChatTranscriptionEmptyTranscriptError(

@@ -70,6 +70,61 @@ export const createdRolesByMigration = new Map([
   ["0044_reporting_readonly_role.sql", Object.freeze(["reporting_readonly"])],
 ]);
 export const boundaryDefinitions = Object.freeze([
+  // 0162 adds content.generated_media_promotion_jobs.user_supplied_key, which the card-image path now
+  // writes and reads: the enqueue INSERT in chat/cardImages/promotion/jobs.ts names it on every job, and
+  // the daily and monthly platform generation counts in chat/cardImages/generationBudget.ts skip the jobs
+  // where it is true. Boundaries run current backend code against their own older schema, so a test that
+  // executes the enqueue or either count below this migration fails because the column does not exist.
+  // Six pinned tests execute one of them, re-derived from the two statements rather than from the tests
+  // that would fail, and each moved here from the entry it used to sit at:
+  // - chat/cardImages/generationBudget, from 0135, runs both counts against real jobs.
+  // - chat/cardImages/operation, from 0136, drives the real enqueue through the card-image operation.
+  // - chat/cardImages/promotion/jobsLeasing and jobsRevocation, from 0107, and jobsSettlement, from 0141,
+  //   enqueue real jobs before leasing, revoking and settling them.
+  // - mediaAssets/blobLifecycle/cleanup/reconciliation, from 0111, enqueues real jobs to race cleanup
+  //   admission.
+  // The 0135 and 0111 entries are gone, because each held one of these files and nothing else. No other
+  // pinned test reaches either statement: the chat image tool is the only runtime caller of the card-image
+  // operation and no pinned test drives it, and chat/runs/generatedImageAttemptBudget stays at 0136
+  // because the attempt budget it drives sits before the generation budget and the enqueue.
+  //
+  // The other two files here have nothing to do with card images. Each exists to pin what production runs
+  // rather than to cover an older schema, so each belongs at whichever entry is newest; both moved up
+  // from 0151 through 0152, 0154 and 0161 to here for the same reason, and leaving them behind would have
+  // made that stated reason untrue.
+  // - serverFacts/authoringUpdates authenticates nothing. It drives the real exported card and deck
+  //   mutations through the real post-commit drain and the real analytics writer, so its floor is 0141,
+  //   whose sync.installations.is_automation the drain's replica resolution names in its LEFT JOIN.
+  //   Above that floor it wants the newest schema rather than an older one: the statement in
+  //   updateCardInExecutor that captures a card's authored fields before its own UPDATE is executed
+  //   nowhere else in the repository, and an ambiguous column or a RETURNING list that stopped matching
+  //   CARD_COLUMNS would otherwise first be seen in production.
+  // - managedMedia/managedImageSnapshotMerge runs the real managed-image settlement and the real
+  //   snapshot upsert against one card in sequence, which is the only way to prove a rule whose inputs
+  //   are the stored front_text/back_text and the stored last_modified_by_replica_id rather than
+  //   anything in the request. Its own floor is far below this migration - it names no column newer
+  //   than the card and replica tables have had for a long time - but it is pinned at the newest
+  //   boundary on purpose, for the same reason: the snapshot UPDATE it drives has to keep matching
+  //   CARD_COLUMNS.
+  // Moving a test retires the older-schema coverage it used to give, because each test runs only at its
+  // pinned boundary and there is no full-schema pass. Both files keep covering every migration below
+  // this one, which is what their own floors ask for; what 0151, 0152, 0154 and 0161 lose is a pass at
+  // exactly their own schema.
+  Object.freeze({
+    migrationFileName: "0162_generated_media_promotion_job_user_supplied_key.sql",
+    // Every migration file sorting at or below the boundary.
+    expectedMigrationCount: 164,
+    testFiles: Object.freeze([
+      "src/cards/managedMedia/managedImageSnapshotMerge.postgres.integration.ts",
+      "src/chat/cardImages/generationBudget.postgres.integration.ts",
+      "src/chat/cardImages/operation.postgres.integration.ts",
+      "src/chat/cardImages/promotion/jobsLeasing.postgres.integration.ts",
+      "src/chat/cardImages/promotion/jobsRevocation.postgres.integration.ts",
+      "src/chat/cardImages/promotion/jobsSettlement.postgres.integration.ts",
+      "src/mediaAssets/blobLifecycle/cleanup/reconciliation.postgres.integration.ts",
+      "src/productAnalytics/serverFacts/authoringUpdates.postgres.integration.ts",
+    ]),
+  }),
   // 0161 adds ai.usage_events.user_supplied_key, which the AI metering module now writes and reads:
   // aiUsage/record.ts inserts it on every row, and aiUsage/cap.ts counts this UTC month's chat messages
   // and sums its weighted tokens over the rows where it is false. 0154 grants backend_app UPDATE
@@ -97,7 +152,7 @@ export const boundaryDefinitions = Object.freeze([
   // No pinned test moves here for the metering reads, re-derived from scratch rather than assumed:
   // - chat/cardImages/operation: the card-image operation now appends a usage fact, but it appends it
   //   through an injected dependency, and every external dependency set this test builds stubs it, so
-  //   no request in it reaches ai.usage_events. It stays at 0136.
+  //   no request in it reaches ai.usage_events. It is pinned at 0162 for the promotion-job column.
   // - chat/cardImages/promotion/jobsSettlement and chat/runs/generatedImageAttemptBudget: neither
   //   drives the card-image operation at all. The first settles promotion jobs and reads them back
   //   through processSyncPull; the second drives the attempt budget, which sits below the provider call
@@ -110,38 +165,12 @@ export const boundaryDefinitions = Object.freeze([
   //   neither has an integration file at all: both are covered by node:test files driving a recorded
   //   fake executor, which never reaches a database and is therefore not pinned anywhere.
   // Nothing pins the billing read the allowance resolves through either, for the same reason.
-  //
-  // The other two files here have nothing to do with metering. Each exists to pin what production runs
-  // rather than to cover an older schema, so each belongs at whichever entry is newest; both moved up
-  // from 0151 through 0152 and 0154 to here for the same reason, and leaving them behind would have made
-  // that stated reason untrue. Nothing ties the three files in this entry together, so moving any one of
-  // them later does not free the others.
-  // - serverFacts/authoringUpdates authenticates nothing. It drives the real exported card and deck
-  //   mutations through the real post-commit drain and the real analytics writer, so its floor is 0141,
-  //   whose sync.installations.is_automation the drain's replica resolution names in its LEFT JOIN.
-  //   Above that floor it wants the newest schema rather than an older one: the statement in
-  //   updateCardInExecutor that captures a card's authored fields before its own UPDATE is executed
-  //   nowhere else in the repository, and an ambiguous column or a RETURNING list that stopped matching
-  //   CARD_COLUMNS would otherwise first be seen in production.
-  // - managedMedia/managedImageSnapshotMerge runs the real managed-image settlement and the real
-  //   snapshot upsert against one card in sequence, which is the only way to prove a rule whose inputs
-  //   are the stored front_text/back_text and the stored last_modified_by_replica_id rather than
-  //   anything in the request. Its own floor is far below this migration - it names no column newer
-  //   than the card and replica tables have had for a long time - but it is pinned at the newest
-  //   boundary on purpose, for the same reason: the snapshot UPDATE it drives has to keep matching
-  //   CARD_COLUMNS.
-  // Moving a test retires the older-schema coverage it used to give, because each test runs only at its
-  // pinned boundary and there is no full-schema pass. Both files keep covering every migration below
-  // this one, which is what their own floors ask for; what 0151, 0152 and 0154 lose is a pass at exactly
-  // their own schema.
   Object.freeze({
     migrationFileName: "0161_ai_usage_user_supplied_key.sql",
     // Every migration file sorting at or below the boundary.
     expectedMigrationCount: 163,
     testFiles: Object.freeze([
       "src/aiUsage/aiUsage.postgres.integration.ts",
-      "src/cards/managedMedia/managedImageSnapshotMerge.postgres.integration.ts",
-      "src/productAnalytics/serverFacts/authoringUpdates.postgres.integration.ts",
     ]),
   }),
   // 0151 creates the billing schema, and the sync pull route now reads it: the route assembly point in
@@ -179,7 +208,7 @@ export const boundaryDefinitions = Object.freeze([
   //
   // The two files that used to sit here to pin what production runs - serverFacts/authoringUpdates and
   // managedMedia/managedImageSnapshotMerge - moved to the newest entry above when 0152 landed, and moved
-  // with it to 0154 and 0161. Neither was ever here for the billing read: they authenticate nothing.
+  // with it to 0154, 0161 and 0162. Neither was ever here for the billing read: they authenticate nothing.
   Object.freeze({
     migrationFileName: "0151_billing_schema.sql",
     expectedMigrationCount: 153,
@@ -235,7 +264,7 @@ export const boundaryDefinitions = Object.freeze([
     //
     // The two files that used to sit here to pin what production runs - serverFacts/authoringUpdates
     // and managedMedia/managedImageSnapshotMerge - now sit at the newest entry in this file, which is
-    // 0161. Neither is here for the profile read: they authenticate nothing.
+    // 0162. Neither is here for the profile read: they authenticate nothing.
     testFiles: Object.freeze([
       "src/agent/reviews.postgres.integration.ts",
       "src/auth/surrogateUserId.postgres.integration.ts",
@@ -263,20 +292,19 @@ export const boundaryDefinitions = Object.freeze([
   // review-answer producers. Boundaries run current backend code against their own older schema, so
   // every test whose path reaches one of those reads has to be pinned at or after this migration or
   // it fails with `column installations.is_automation does not exist`. The tests that reach those
-  // reads are the two listed here - freshBootstrap (the /sync/bootstrap replica claim) and
-  // jobsSettlement (which verifies a promoted asset through a real processSyncPull), both moved
-  // here from 0107 - plus every test the 0161, 0151 and 0149 entries above pin further forward, which
-  // satisfies this migration too: agent/reviews (processSyncPull, processSyncReviewHistoryPull, and
-  // the post-commit content-write resolution), which came here from 0138 and is pinned at 0149, and
-  // serverFacts/authoringUpdates, which was written above this boundary, never sat at it, and is now
-  // pinned at 0161.
+  // reads are freshBootstrap (the /sync/bootstrap replica claim), listed here, and jobsSettlement
+  // (which verifies a promoted asset through a real processSyncPull), both moved here from 0107 -
+  // plus every test the 0162, 0161, 0151 and 0149 entries above pin further forward, which satisfies
+  // this migration too: jobsSettlement, which is now pinned at 0162, agent/reviews (processSyncPull,
+  // processSyncReviewHistoryPull, and the post-commit content-write resolution), which came here from
+  // 0138 and is pinned at 0149, and serverFacts/authoringUpdates, which was written above this
+  // boundary, never sat at it, and is now pinned at 0162.
   // Moving a test retires the older-schema coverage it used to give, because each test runs only at
   // its pinned boundary and there is no full-schema pass.
   Object.freeze({
     migrationFileName: "0141_sync_installation_automation_marker.sql",
     expectedMigrationCount: 143,
     testFiles: Object.freeze([
-      "src/chat/cardImages/promotion/jobsSettlement.postgres.integration.ts",
       "src/sync/freshBootstrap.postgres.integration.ts",
     ]),
   }),
@@ -292,15 +320,7 @@ export const boundaryDefinitions = Object.freeze([
     migrationFileName: "0136_ai_chat_run_client_platform.sql",
     expectedMigrationCount: 138,
     testFiles: Object.freeze([
-      "src/chat/cardImages/operation.postgres.integration.ts",
       "src/chat/runs/generatedImageAttemptBudget.postgres.integration.ts",
-    ]),
-  }),
-  Object.freeze({
-    migrationFileName: "0135_generated_media_promotion_job_created_at_select.sql",
-    expectedMigrationCount: 137,
-    testFiles: Object.freeze([
-      "src/chat/cardImages/generationBudget.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
@@ -360,13 +380,6 @@ export const boundaryDefinitions = Object.freeze([
     ]),
   }),
   Object.freeze({
-    migrationFileName: "0111_delist_catalog_test_fixture.sql",
-    expectedMigrationCount: 113,
-    testFiles: Object.freeze([
-      "src/mediaAssets/blobLifecycle/cleanup/reconciliation.postgres.integration.ts",
-    ]),
-  }),
-  Object.freeze({
     migrationFileName: "0108_multipart_absolute_lease_target.sql",
     expectedMigrationCount: 110,
     testFiles: Object.freeze([
@@ -381,8 +394,6 @@ export const boundaryDefinitions = Object.freeze([
     expectedMigrationCount: 109,
     testFiles: Object.freeze([
       "src/cards/managedMedia/generatedImageAppend.postgres.integration.ts",
-      "src/chat/cardImages/promotion/jobsLeasing.postgres.integration.ts",
-      "src/chat/cardImages/promotion/jobsRevocation.postgres.integration.ts",
       "src/database/aiChatInitiatingAuthClassification.postgres.integration.ts",
     ]),
   }),
