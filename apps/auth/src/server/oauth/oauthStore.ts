@@ -16,7 +16,7 @@ import { query, transaction, transactionWithUserScope, type DatabaseExecutor } f
 import { verifySessionTokenIdentity } from "../browserSession.js";
 import {
   ensureUserSettingsAndSelectWorkspace,
-  resolveCanonicalUserId,
+  resolveOrCreateCanonicalUserId,
 } from "../agent/userWorkspace.js";
 import { createCrockfordToken, hashOpaqueToken, normalizeCrockfordToken } from "../otp/crockford.js";
 
@@ -304,7 +304,7 @@ export async function approveAuthorizationRequest(
   nowMs: number,
 ): Promise<string> {
   const identity = await verifySessionTokenIdentity(idToken);
-  const userId = await resolveCanonicalUserId(identity.userId);
+  const userId = await resolveOrCreateCanonicalUserId(identity.userId, identity.email);
   const code = createCrockfordToken(AUTHORIZATION_CODE_SECRET_LENGTH);
   const codeHash = hashOpaqueToken(code);
   const expiresAt = new Date(nowMs + AUTHORIZATION_CODE_TTL_MS).toISOString();

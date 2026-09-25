@@ -96,6 +96,8 @@ test("deleteAccountForAuthenticatedUser locks shared workspace membership lifecy
         text === "DELETE FROM org.workspaces WHERE workspace_id = ANY($1::uuid[])"
         || text === "SELECT auth.delete_user_auth_artifacts($1, $2)"
         || text === "DELETE FROM org.user_settings WHERE user_id = $1"
+        || text === "INSERT INTO org.user_settings (user_id) VALUES ($1)"
+        || text.includes("INSERT INTO auth.user_identities")
         || text.includes("FROM auth.guest_upgrade_history")
         || text.includes("UPDATE analytics.product_events")
         || text.includes("DELETE FROM analytics.identity_links")
@@ -149,8 +151,30 @@ test("deleteAccountForAuthenticatedUser locks shared workspace membership lifecy
     query.text.includes("DELETE FROM analytics.excluded_actors")
   ));
 
+  const userSettingsDeleteIndex = recordedQueries.findIndex((query) => (
+    query.text === "DELETE FROM org.user_settings WHERE user_id = $1"
+  ));
+  const userSettingsRestoreIndex = recordedQueries.findIndex((query) => (
+    query.text === "INSERT INTO org.user_settings (user_id) VALUES ($1)"
+  ));
+  const identityRebindIndex = recordedQueries.findIndex((query) => (
+    query.text.includes("INSERT INTO auth.user_identities")
+  ));
+  const userSettingsRestoreQuery = recordedQueries[userSettingsRestoreIndex];
+  const identityRebindQuery = recordedQueries[identityRebindIndex];
+
   // A demo reset reuses the account id, so erasing its exclusion rows would undo a human restore.
   assert.equal(exclusionEraseIndex, -1);
+  // The sweep drops the profile and cascades the subject binding with it, so both come back under
+  // the same id: a fresh id would orphan the billing, AI usage and exclusion rows kept above.
+  assert.notEqual(userSettingsDeleteIndex, -1);
+  assert.equal(userSettingsRestoreQuery?.params[0], appUserId);
+  assert.deepEqual(identityRebindQuery?.params, ["subject-1", appUserId]);
+  // Both restores are order-bound, not merely present: the profile has to come back after the sweep
+  // that dropped it, and the mapping after the profile, because auth.user_identities.user_id
+  // references org.user_settings(user_id) (db/migrations/0031_guest_ai_identity_and_quota.sql).
+  assert.ok(userSettingsDeleteIndex < userSettingsRestoreIndex);
+  assert.ok(userSettingsRestoreIndex < identityRebindIndex);
   assert.notEqual(identityLockIndex, -1);
   assert.notEqual(tombstoneReadIndex, -1);
   assert.notEqual(mappingReadIndex, -1);
@@ -167,6 +191,76 @@ test("deleteAccountForAuthenticatedUser locks shared workspace membership lifecy
   assert.ok(identityLockIndex < membershipLifecycleLockIndices[0]!.index);
   assert.ok(membershipLifecycleLockIndices.every(({ index }) => index < ownMembershipLockIndex));
   assert.ok(membershipLifecycleLockIndices.every(({ index }) => index < allMembershipRowsLockIndex));
+});
+
+test("deleteAccountForAuthenticatedUser restores nothing for a review subject that has no account", async () => {
+  // A configured review subject that has never hit a profile-ensuring route: POST /v1/me/delete
+  // only authenticates, so it arrives with no mapping and no profile, and the id the deletion
+  // carries is the Cognito subject itself. Restoring here would not bring an account back, it would
+  // create one under the subject (db/migrations/0159_surrogate_user_identity.sql).
+  const subjectUserId = "unprovisioned-review-subject";
+  const recordedQueries: Array<RecordedQuery> = [];
+  const executor: DatabaseExecutor = {
+    query: async <Row extends pg.QueryResultRow>(
+      text: string,
+      params: ReadonlyArray<SqlValue>,
+    ): Promise<pg.QueryResult<Row>> => {
+      recordedQueries.push({ text, params: [...params] });
+
+      if (
+        text.includes("pg_advisory_xact_lock")
+        || text.includes("set_config('app.user_id'")
+        || text.includes("FROM auth.deleted_subjects")
+        || text.includes("FROM auth.user_identities")
+        || text.includes("FROM auth.guest_upgrade_history")
+        || text === "SELECT email FROM org.user_settings WHERE user_id = $1 FOR UPDATE"
+        || text === "SELECT workspace_id FROM org.workspace_memberships WHERE user_id = $1"
+        || text === "SELECT auth.delete_user_auth_artifacts($1, $2)"
+        || text === "DELETE FROM org.user_settings WHERE user_id = $1"
+        || text.includes("DELETE FROM analytics.installation_profiles")
+        || text.includes("UPDATE analytics.product_events")
+        || text.includes("DELETE FROM analytics.identity_links")
+      ) {
+        return createQueryResult<Row>([]);
+      }
+
+      throw new Error(`Unexpected query: ${text}`);
+    },
+  };
+
+  await deleteAccountForAuthenticatedUser(
+    {
+      authSubjectUserId: subjectUserId,
+      email: "review@example.com",
+      cognitoUsername: null,
+      confirmationText: deleteAccountConfirmationText,
+    },
+    {
+      unsafeTransaction: async <Result>(
+        callback: (transactionExecutor: DatabaseExecutor) => Promise<Result>,
+      ): Promise<Result> => callback(executor),
+      deleteCognitoUser: async () => {
+        throw new Error("Demo account deletion must not delete Cognito identity.");
+      },
+      isConfiguredDemoEmail: () => true,
+    },
+  );
+
+  const userSettingsDeleteQuery = recordedQueries.find((query) => (
+    query.text === "DELETE FROM org.user_settings WHERE user_id = $1"
+  ));
+
+  // The sweep still ran, and it ran under the subject, which is exactly why nothing may be written
+  // back under that id afterwards.
+  assert.equal(userSettingsDeleteQuery?.params[0], subjectUserId);
+  assert.equal(
+    recordedQueries.some((query) => query.text === "INSERT INTO org.user_settings (user_id) VALUES ($1)"),
+    false,
+  );
+  assert.equal(
+    recordedQueries.some((query) => query.text.includes("INSERT INTO auth.user_identities")),
+    false,
+  );
 });
 
 test("deleteAccountForAuthenticatedUser rereads the mapping under the identity lock and deletes the authoritative user", async () => {

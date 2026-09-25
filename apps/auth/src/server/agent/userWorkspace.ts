@@ -2,14 +2,25 @@
  * Shared identity -> workspace resolution used when minting a first-party
  * connection from a freshly verified Cognito ID token. Both the long-lived
  * agent API key flow (agentApiKeys.ts) and the OAuth authorization-code flow
- * (server/oauth/oauthStore.ts) resolve the same canonical user, ensure
+ * (server/oauth/oauthStore.ts) resolve or create the same canonical user, ensure
  * org.user_settings, and select-or-bootstrap the connection's workspace, so the
  * logic lives here to stay identical across both paths.
+ *
+ * An agent API key or an OAuth connection can be a person's first touch of the
+ * product, so this module creates accounts. It is not the only path that does:
+ * whichever path first sees a Cognito subject may have to create the account
+ * behind it, so no path may assume it is the first, and every one of them must
+ * adopt an account that already exists rather than mint a second. The backend's
+ * first authenticated request (apps/backend/src/auth/ensureUser.ts) is one other
+ * such path. They agree because they all serialize on one advisory lock per
+ * subject, which this module takes too.
  */
 import { randomUUID } from "node:crypto";
 import {
+  applyUserDatabaseScopeInExecutor,
   applyWorkspaceDatabaseScopeInExecutor,
   query,
+  transaction,
   type DatabaseExecutor,
 } from "../../db.js";
 import { buildSystemWorkspaceReplicaId } from "../sync/workspaceReplicaId.js";
@@ -17,6 +28,10 @@ import { buildSystemWorkspaceReplicaId } from "../sync/workspaceReplicaId.js";
 const AUTO_CREATED_WORKSPACE_NAME = "Personal";
 
 type IdentityMappingRow = Readonly<{
+  user_id: string;
+}>;
+
+type UserSettingsRow = Readonly<{
   user_id: string;
 }>;
 
@@ -33,22 +48,182 @@ const upsertUserSettingsSql = [
   "AND EXCLUDED.email IS NOT NULL",
 ].join(" ");
 
+const selectIdentityMappingSql = [
+  "SELECT user_id",
+  "FROM auth.user_identities",
+  "WHERE provider_type = 'cognito' AND provider_subject = $1",
+  "LIMIT 1",
+].join(" ");
+
 /**
- * Maps a Cognito subject to the canonical org user id via auth.user_identities,
- * falling back to the subject itself when no mapping row exists.
+ * The canonical org user id a Cognito subject maps to via auth.user_identities, or null when no
+ * mapping row exists. Null is deliberately not the subject: only a caller that already knows the
+ * subject names an account may read it that way.
  */
-export async function resolveCanonicalUserId(providerSubject: string): Promise<string> {
-  const result = await query<IdentityMappingRow>(
-    [
-      "SELECT user_id",
-      "FROM auth.user_identities",
-      "WHERE provider_type = 'cognito' AND provider_subject = $1",
-      "LIMIT 1",
-    ].join(" "),
+async function resolveCanonicalUserId(providerSubject: string): Promise<string | null> {
+  const result = await query<IdentityMappingRow>(selectIdentityMappingSql, [providerSubject]);
+
+  return result.rows[0]?.user_id ?? null;
+}
+
+async function resolveCanonicalUserIdInExecutor(
+  executor: DatabaseExecutor,
+  providerSubject: string,
+): Promise<string | null> {
+  const result = await executor.query<IdentityMappingRow>(selectIdentityMappingSql, [providerSubject]);
+
+  return result.rows[0]?.user_id ?? null;
+}
+
+/**
+ * Serializes one Cognito subject's identity lifecycle against every other path that may create the
+ * account behind it. The key text and the seed must stay byte-identical to
+ * lockCognitoIdentityLifecycleInExecutor in apps/backend/src/auth/userIdentities.ts: the two
+ * services share no code, so this is one lock only for as long as both hash the same string.
+ */
+async function lockIdentityLifecycleInExecutor(
+  executor: DatabaseExecutor,
+  providerSubject: string,
+): Promise<void> {
+  await executor.query(
+    "SELECT pg_advisory_xact_lock(hashtextextended('auth.cognito_identity:' || $1::text, 2::bigint))",
     [providerSubject],
   );
+}
 
-  return result.rows[0]?.user_id ?? providerSubject;
+/**
+ * Raised when the subject turned out to be bound to another user id between the read and the
+ * insert. The transaction that raises it rolls back, so it never leaves a profile behind.
+ */
+class CognitoIdentityMappingConflictError extends Error {
+  constructor(providerSubject: string, requestedUserId: string, existingUserId: string) {
+    super(
+      `Cognito subject ${providerSubject} is already bound to application user ${existingUserId}; cannot bind it to ${requestedUserId}.`,
+    );
+    this.name = "CognitoIdentityMappingConflictError";
+  }
+}
+
+/**
+ * Binds the subject while the caller's transaction is open. The row is always reread so a writer
+ * that bound the subject first is raised rather than hidden by ON CONFLICT DO NOTHING.
+ *
+ * Equivalent to bindCognitoIdentityMappingInExecutor in apps/backend/src/auth/userIdentities.ts,
+ * restated here because the two services share no code.
+ */
+async function bindIdentityMappingInExecutor(
+  executor: DatabaseExecutor,
+  providerSubject: string,
+  userId: string,
+): Promise<void> {
+  await applyUserDatabaseScopeInExecutor(executor, { userId });
+  await executor.query(
+    [
+      "INSERT INTO auth.user_identities (provider_type, provider_subject, user_id)",
+      "VALUES ('cognito', $1, $2)",
+      "ON CONFLICT (provider_type, provider_subject) DO NOTHING",
+    ].join(" "),
+    [providerSubject, userId],
+  );
+
+  const boundUserId = await resolveCanonicalUserIdInExecutor(executor, providerSubject);
+  if (boundUserId === null) {
+    throw new Error(`Failed to load Cognito identity mapping for subject ${providerSubject} after binding.`);
+  }
+  if (boundUserId !== userId) {
+    throw new CognitoIdentityMappingConflictError(providerSubject, userId, boundUserId);
+  }
+}
+
+/**
+ * Returns the account already bound to the subject, adopts the account stored under the subject
+ * itself, or mints a surrogate id for a subject that has never been seen, binding the subject to
+ * whichever it is. The lifecycle lock is the first statement, so the read that decides between
+ * those three is not racing the backend or the guest flows. Profile and binding share one
+ * transaction, so a lost race takes the profile back out with it.
+ */
+async function createOrAdoptAccountForSubject(
+  providerSubject: string,
+  email: string,
+): Promise<string> {
+  return transaction(async (executor) => {
+    await lockIdentityLifecycleInExecutor(executor, providerSubject);
+    // Reread under the lock. The caller's read ran unlocked and may have missed a writer that has
+    // committed since; adopting or minting on that stale answer is what gives one person two
+    // accounts, and it is also what would make the other paths' bind throw at them.
+    const mappedUserId = await resolveCanonicalUserIdInExecutor(executor, providerSubject);
+    if (mappedUserId !== null) {
+      return mappedUserId;
+    }
+
+    await applyUserDatabaseScopeInExecutor(executor, { userId: providerSubject });
+    const adopted = await executor.query<UserSettingsRow>(
+      "SELECT user_id FROM org.user_settings WHERE user_id = $1 LIMIT 1",
+      [providerSubject],
+    );
+
+    if (adopted.rows[0] !== undefined) {
+      await bindIdentityMappingInExecutor(executor, providerSubject, providerSubject);
+      return providerSubject;
+    }
+
+    const mintedUserId = randomUUID();
+    await applyUserDatabaseScopeInExecutor(executor, { userId: mintedUserId });
+    // Deliberately no ON CONFLICT: a minted id that already names an account must fail here rather
+    // than hand this subject that account. The caller's own upsert fills the email in either case.
+    await executor.query(
+      "INSERT INTO org.user_settings (user_id, email) VALUES ($1, $2)",
+      [mintedUserId, email],
+    );
+    // Profile before mapping: auth.user_identities.user_id references org.user_settings(user_id)
+    // (db/migrations/0031_guest_ai_identity_and_quota.sql).
+    await bindIdentityMappingInExecutor(executor, providerSubject, mintedUserId);
+
+    return mintedUserId;
+  });
+}
+
+/**
+ * Resolves the canonical user id for a verified Cognito subject, creating the account when this
+ * connection is the person's first touch of the product. A created account gets a minted surrogate
+ * id, never the subject, and the auth.user_identities row the backend would otherwise write on the
+ * next request (apps/backend/src/auth/ensureUser.ts).
+ */
+export async function resolveOrCreateCanonicalUserId(
+  providerSubject: string,
+  email: string,
+): Promise<string> {
+  const mappedUserId = await resolveCanonicalUserId(providerSubject);
+  if (mappedUserId !== null) {
+    return mappedUserId;
+  }
+
+  // No mapping row: either an account stored under the subject itself that nothing has bound yet,
+  // or no account at all. Only the org.user_settings read inside the locked transaction tells those
+  // two apart.
+  try {
+    return await createOrAdoptAccountForSubject(providerSubject, email);
+  } catch (error) {
+    if (!(error instanceof CognitoIdentityMappingConflictError)) {
+      throw error;
+    }
+
+    // Unreachable while every writer takes the lock above, and kept because the alternative is a
+    // 500 on a question with an obvious answer: whoever bound the subject won, and their mapping is
+    // the account.
+    const boundUserId = await resolveCanonicalUserId(providerSubject);
+    if (boundUserId === null) {
+      // The mapping vanished between the throw and this read. Returning the subject here would hand
+      // the caller an id nothing names, and its org.user_settings upsert would then create the
+      // subject-keyed account this module exists to stop creating
+      // (db/migrations/0159_surrogate_user_identity.sql), so this fails instead.
+      throw new Error(
+        `Cognito subject ${providerSubject} lost its identity mapping while this request resolved it; retry the request.`,
+      );
+    }
+
+    return boundUserId;
+  }
 }
 
 async function createWorkspaceInExecutor(

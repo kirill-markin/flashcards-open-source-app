@@ -3,6 +3,24 @@
 Email + OTP authentication via AWS Cognito (passwordless).
 
 - `AUTH_MODE`: `none` (local dev, no auth) or `cognito` (verify JWT from `Authorization: Bearer`)
+- Account identity: an account's `user_id` is a surrogate identifier the product owns, and
+  `auth.user_identities` maps a Cognito subject to it. The two are not required to be equal, and the
+  id is not derived from the subject; the column rule lives in
+  `db/migrations/0159_surrogate_user_identity.sql`. Where a mapping row exists, its `user_id` is the
+  account id.
+  - A new account gets a minted id. An account that already exists keeps the id it has, the subject
+    itself included, and is never rewritten onto a new one.
+  - An account can have an `org.user_settings` row and no `auth.user_identities` row until something
+    binds one. Readers resolve such an account by subject, and provisioning paths adopt it under its
+    existing id and bind it rather than mint a second account.
+  - An account is created by whichever path first sees the subject, so no path may assume it is the
+    first, and every one of them adopts an account that already exists rather than minting a second.
+    The first authenticated backend request (`apps/backend/src/auth/ensureUser.ts`) and an agent API
+    key or OAuth/MCP connection (`apps/auth/src/server/agent/userWorkspace.ts`) are two such paths;
+    a guest upgrade (`apps/backend/src/guestAuth/upgrade/`) is another, and it binds the subject to
+    the id the guest session had already minted. Creation mints the id and binds the subject in one
+    transaction, and every path that creates or binds takes one advisory lock keyed by the subject,
+    so only one of them ever gets to create.
 - Guest sessions (`POST /v1/guest-auth/session`) are bound to `ios`, `android`, or `web`. A `web`
   guest session is an analytics credential only, sent as `Authorization: Guest <token>` to
   `POST /v1/analytics/events` alone. It is requested by the browser, lazily on a signed-out
