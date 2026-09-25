@@ -7,7 +7,7 @@ import { verifySessionTokenIdentity } from "../browserSession.js";
 import { createCrockfordToken } from "../otp/crockford.js";
 import {
   ensureUserSettingsAndSelectWorkspace,
-  resolveCanonicalUserId,
+  resolveOrCreateCanonicalUserId,
 } from "./userWorkspace.js";
 
 const AGENT_API_KEY_PREFIX = "fca";
@@ -95,7 +95,7 @@ function mapConnection(row: AgentApiKeyRow): AgentApiKeyConnection {
  */
 export async function createAgentApiKeyFromIdToken(idToken: string, label: string): Promise<CreatedAgentApiKey> {
   const identity = await verifySessionTokenIdentity(idToken);
-  const userId = await resolveCanonicalUserId(identity.userId);
+  const userId = await resolveOrCreateCanonicalUserId(identity.userId, identity.email);
   const normalizedLabel = normalizeAgentApiKeyLabel(label);
   const connectionId = randomUUID();
   const keyId = createKeyId();

@@ -12,6 +12,7 @@ import {
   markDeletedSubjectInExecutor,
 } from "./deletedSubjects";
 import {
+  bindCognitoIdentityMappingInExecutor,
   loadCognitoIdentityMappingInExecutor,
   lockCognitoIdentityLifecycleInExecutor,
 } from "./userIdentities";
@@ -228,11 +229,15 @@ async function eraseAnalyticsExclusionsInExecutor(
  *
  * The anonymization is the caller's because only a real deletion reports itself to analytics first,
  * and that report has to be stored before the sweep to be swept with everything else.
+ *
+ * Returns whether there was an account here at all, as the profile read under `FOR UPDATE` below
+ * saw it; the review-account reset needs the answer before it restores anything. Nothing on the
+ * real-deletion path reads it.
  */
 async function deleteAccountDataInExecutor(
   executor: DatabaseExecutor,
   appUserId: string,
-): Promise<void> {
+): Promise<boolean> {
   const userSettingsResult = await executor.query<UserSettingsEmailRow>(
     "SELECT email FROM org.user_settings WHERE user_id = $1 FOR UPDATE",
     [appUserId],
@@ -290,6 +295,17 @@ async function deleteAccountDataInExecutor(
     [appUserId, email],
   );
   await executor.query("DELETE FROM org.user_settings WHERE user_id = $1", [appUserId]);
+
+  // A row read above is locked, so the DELETE removes exactly it. An empty read locks nothing, and it
+  // still matches the DELETE for two reasons. A mapped id always has a profile, because
+  // auth.user_identities.user_id references org.user_settings(user_id)
+  // (db/migrations/0031_guest_ai_identity_and_quota.sql), so an empty read means appUserId is the
+  // unmapped subject. And every path that creates or binds an account for a subject takes the
+  // identity lifecycle lock deleteAccountForAuthenticatedUser holds. The writers that skip it
+  // (ensureUserSettingsAndSelectWorkspace in apps/auth, ensureUserSettingsRowInExecutor,
+  // ensureUserProfile) upsert only an id resolved earlier, so one reaches this subject only if it
+  // resolved it before an earlier deletion and writes after it.
+  return userSettingsResult.rows.length > 0;
 }
 
 /**
@@ -341,6 +357,24 @@ async function deleteRealAccountDataInExecutor(
  * facts stay under that id for the same reason: nobody has left, and stamping a purchase as belonging to
  * a deleted account would strip the review account of access it still holds.
  *
+ * Surviving is not automatic. The sweep ends in `DELETE FROM org.user_settings`, which cascades any
+ * `auth.user_identities` binding away with it, and the returning subject would then be minted a
+ * brand-new id (`apps/backend/src/auth/ensureUser.ts`) that none of those rows name. So the profile
+ * and the binding are written back under the same id before this transaction commits.
+ *
+ * The binding written back is not always one the cascade removed. An account can have its profile
+ * and no `auth.user_identities` row until something binds one, and `appUserId` is then the subject
+ * because nothing mapped it; the write is that account's adopt bind, the same one
+ * `apps/backend/src/auth/ensureUser.ts` makes when it adopts such an account. Either shape leaves
+ * the account under the id it already had, which is the point.
+ *
+ * Written back only when the sweep found an account to clear. `POST /v1/me/delete` authenticates
+ * without ensuring a profile, so a configured review subject that has never been provisioned
+ * reaches here with nothing to delete, and `appUserId` is then the Cognito subject itself. Writing
+ * the profile and the binding on that would not restore an account, it would create a new one whose
+ * id is the provider's subject rather than a minted one (`docs/auth-service.md`). A subject with no
+ * account keeps it that way and is provisioned like anyone else on its next request.
+ *
  * It reports no `account_deleted` for the same reason: nobody left, and the same review account is
  * reset again on every review cycle, so counting these would make the deletion metric a measure of
  * how often the review accounts are recycled.
@@ -348,8 +382,19 @@ async function deleteRealAccountDataInExecutor(
 async function deleteDemoAccountDataInExecutor(
   executor: DatabaseExecutor,
   appUserId: string,
+  authSubjectUserId: string,
 ): Promise<void> {
-  await deleteAccountDataInExecutor(executor, appUserId);
+  const accountExisted = await deleteAccountDataInExecutor(executor, appUserId);
+
+  if (accountExisted) {
+    // Only user_id is restored. Everything the next sign-in fills in itself, the email included, is
+    // left to it, so the review account comes back as empty as the sweep left it.
+    await executor.query("INSERT INTO org.user_settings (user_id) VALUES ($1)", [appUserId]);
+    // Profile before mapping: auth.user_identities.user_id references org.user_settings(user_id)
+    // (db/migrations/0031_guest_ai_identity_and_quota.sql).
+    await bindCognitoIdentityMappingInExecutor(executor, authSubjectUserId, appUserId);
+  }
+
   await anonymizeProductAnalyticsInExecutor(executor, appUserId, randomUUID());
 }
 
@@ -387,7 +432,7 @@ export async function deleteAccountForAuthenticatedUser(
     await applyUserDatabaseScopeInExecutor(executor, { userId: authoritativeUserId });
 
     if (isDemoAccount) {
-      await deleteDemoAccountDataInExecutor(executor, authoritativeUserId);
+      await deleteDemoAccountDataInExecutor(executor, authoritativeUserId, input.authSubjectUserId);
       return;
     }
 
