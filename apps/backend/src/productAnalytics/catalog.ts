@@ -1613,8 +1613,9 @@ export const productAnalyticsEventCatalog = {
   },
   // A marketing site link that leaves the site without going into the product, which is neither an
   // app entry nor an internal CTA: it ends the visit off the marketing site, on a destination we
-  // may still own. `repository` is the open-source repository, `author_website` the personal site a
-  // public catalog author lists on their author page, and `activity_snapshot` the raw global
+  // may still own. `repository` is the open-source repository, `author_website` an author's
+  // personal site wherever the site links to one, with `placement` telling the catalog author page
+  // (`author_page`) from every blog byline (`blog_byline`), and `activity_snapshot` the raw global
   // activity JSON that the dashboards page and the public activity section both link to. It shares
   // `page_kind`, `placement`, `source` and `device_category` with `site_internal_cta_clicked` value
   // for value, so the three click families compare directly on those and stay disjoint on `target`.
