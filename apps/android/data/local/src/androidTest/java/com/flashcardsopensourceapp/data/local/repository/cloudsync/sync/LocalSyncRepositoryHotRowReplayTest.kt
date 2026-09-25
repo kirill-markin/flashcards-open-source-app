@@ -132,7 +132,8 @@ class LocalSyncRepositoryHotRowReplayTest {
                     return RemotePullResponse(
                         changes = emptyList(),
                         nextHotChangeId = afterHotChangeId,
-                        hasMore = false
+                        hasMore = false,
+                        entitlement = null
                     )
                 }
                 return RemotePullResponse(
@@ -146,7 +147,8 @@ class LocalSyncRepositoryHotRowReplayTest {
                         )
                     ),
                     nextHotChangeId = 25L,
-                    hasMore = false
+                    hasMore = false,
+                    entitlement = null
                 )
             }
         }
@@ -282,7 +284,8 @@ class LocalSyncRepositoryHotRowReplayTest {
                     return RemotePullResponse(
                         changes = emptyList(),
                         nextHotChangeId = afterHotChangeId,
-                        hasMore = false
+                        hasMore = false,
+                        entitlement = null
                     )
                 }
                 return RemotePullResponse(
@@ -296,7 +299,8 @@ class LocalSyncRepositoryHotRowReplayTest {
                         )
                     ),
                     nextHotChangeId = 25L,
-                    hasMore = false
+                    hasMore = false,
+                    entitlement = null
                 )
             }
         }
@@ -372,7 +376,8 @@ class LocalSyncRepositoryHotRowReplayTest {
                     return RemotePullResponse(
                         changes = emptyList(),
                         nextHotChangeId = afterHotChangeId,
-                        hasMore = false
+                        hasMore = false,
+                        entitlement = null
                     )
                 }
                 return RemotePullResponse(
@@ -386,7 +391,8 @@ class LocalSyncRepositoryHotRowReplayTest {
                         )
                     ),
                     nextHotChangeId = 100L,
-                    hasMore = false
+                    hasMore = false,
+                    entitlement = null
                 )
             }
         }

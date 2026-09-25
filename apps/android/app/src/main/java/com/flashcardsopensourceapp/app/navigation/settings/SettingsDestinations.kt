@@ -14,6 +14,10 @@ internal data object SettingsAccessGraph {
     const val route: String = "settings/access/graph"
 }
 
+data object SettingsSubscriptionDestination {
+    const val route: String = "settings/subscription"
+}
+
 data object SettingsCurrentWorkspaceDestination {
     const val route: String = "settings/current-workspace"
 }
