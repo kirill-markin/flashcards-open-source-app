@@ -8,8 +8,8 @@
  *
  * The display name is sent on the wire beside the stable id so a client renders a tier shipped after
  * its own release instead of falling back to "unknown", and never holds a tier table of its own.
- * These names are the tier ids in title case on purpose: customer-facing plan names are a product
- * decision that is deliberately still open, and nothing here may be read as one.
+ * "Premium" is the decided customer-facing plan name (docs/premium-offer.md, "Plan name"); the
+ * other names are the tier ids in title case.
  */
 export type EntitlementTier = "free" | "premium" | "lifetime";
 

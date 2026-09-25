@@ -6,8 +6,10 @@ paywalls reads this document instead of re-deriving the rules, and every client 
 rules as the backend.
 
 No store integration exists yet. No client asks a store to buy anything, and the backend validates
-no receipt and handles no provider webhook: the only store SDKs linked anywhere are the review
-prompts, `StoreKit` on iOS and Play review on Android. The `billing` schema is already migrated
+no receipt and handles no provider webhook: the only store SDKs linked anywhere are `StoreKit` on
+iOS, for the review prompt and the Subscription page's product lookup and Manage subscription
+sheet, and on Android Play review plus the Play Billing Library, used only for the Subscription
+page's product lookup. The `billing` schema is already migrated
 (`db/migrations/0151_billing_schema.sql`), and `provider_events`, `purchases`, `grants` and
 `user_billing_state` are all still empty, because no writer yet creates a table's first row. Each
 does have a writer now, and none of it is ingestion: the identity lifecycle rewrites rows it finds,
@@ -38,15 +40,11 @@ This document links to source rather than restating mechanism, because the sourc
 These are open by explicit decision, not by oversight. Do not invent them, and do not read a
 placeholder anywhere in the codebase as a decision:
 
-- Prices and the currency/region matrix.
-- Customer-facing plan names and marketing copy.
-- Concrete limit numbers for any tier.
 - Paywall UI, placement, and trigger copy on every client.
 - Per-person limit overrides (see [Limits resolve on the backend](#limits-resolve-on-the-backend)).
-- Whether a purchase marked `sandbox` grants entitlement outside a sandbox context, or only ever
-  appears in reports. The resolver consults no `environment` value, and that settles nothing: no
-  purchase row exists for such a rule to affect. The first store rail owns this decision, and until
-  it lands no code may assume either answer.
+
+Prices, the plan name, limit numbers, and whether sandbox purchases grant entitlement are decided in
+[docs/premium-offer.md](premium-offer.md).
 
 ## Tiers
 
@@ -57,7 +55,7 @@ future tier can land between two existing ones without a renumber:
 | --- | --- | --- |
 | `free` | 10 | No paid access. Every account starts here, including guests. |
 | `premium` | 20 | The recurring paid tier. |
-| `lifetime` | 30 | A one-time purchase that never expires. |
+| `lifetime` | 30 | Access that never expires. Granted as a gift, not sold for now (see [docs/premium-offer.md](premium-offer.md#lifetime-is-a-gift)). |
 
 Tier comparisons use the rank, never the name. No code may branch on `tier === 'premium'` to mean
 "has paid": a `lifetime` holder would fail that test. The only correct question is whether the
@@ -151,9 +149,8 @@ for.
 A person's effective entitlement is the highest-ranked tier across all of their purchases and
 grants that currently grant access. Nothing else is consulted.
 
-One input to that set is still open on purpose: whether a purchase marked `sandbox` takes part at
-all outside a sandbox context. Read neither this rule nor the `environment` column below as an
-answer (see [Decided later, on purpose](#decided-later-on-purpose)).
+A purchase marked `sandbox` takes part in that set like any other, in production too (see
+[docs/premium-offer.md](premium-offer.md#sandbox-purchases-grant-entitlement)).
 
 There is deliberately no uniqueness rule of one active purchase per person. Someone can hold an
 App Store `premium` subscription and a `lifetime` purchase from the web at the same time, and the
@@ -202,7 +199,7 @@ or their sync.
 
 The two halves of "premium" fail in opposite directions on purpose.
 
-AI usage is checked server-side on every request. There is no client-side AI budget, no optimistic
+The chat turn is checked server-side on every request. There is no client-side AI budget, no optimistic
 local counter, and no offline AI allowance. A client cannot know what other devices have spent, so
 letting it decide would give away as much AI per month as the person owns devices.
 
@@ -360,6 +357,5 @@ real-looking transactions with real-looking renewals, and test purchases in the 
 are indistinguishable from revenue once the column is missing.
 
 Reports filter to production by default. A query that wants sandbox rows asks for them
-explicitly. Whether the entitlement resolver also ignores `sandbox` rows outside a sandbox context
-is undecided, and the resolver shipping without an `environment` filter is not an answer either way:
-there is no purchase row for the rule to apply to. The first store rail settles it.
+explicitly. The entitlement resolver does not filter on `environment`: sandbox purchases grant
+entitlement in production (see [docs/premium-offer.md](premium-offer.md#sandbox-purchases-grant-entitlement)).

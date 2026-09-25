@@ -129,7 +129,8 @@ extension CloudSyncRunner {
                         acknowledgedReviewScheduleImpactingOperationCount: 0,
                         cleanedUpOperationCount: 0,
                         cleanedUpReviewEventOperationCount: 0,
-                        cleanedUpReviewScheduleImpactingOperationCount: 0
+                        cleanedUpReviewScheduleImpactingOperationCount: 0,
+                        entitlement: nil
                     ),
                     requiresPostPushHotHydration: requiresPostPushHotHydration
                 )
@@ -252,7 +253,8 @@ extension CloudSyncRunner {
             acknowledgedReviewScheduleImpactingOperationCount: 0,
             cleanedUpOperationCount: pendingOutboxCount,
             cleanedUpReviewEventOperationCount: pendingReviewEventOutboxCount,
-            cleanedUpReviewScheduleImpactingOperationCount: pendingReviewScheduleImpactingOutboxCount
+            cleanedUpReviewScheduleImpactingOperationCount: pendingReviewScheduleImpactingOutboxCount,
+            entitlement: nil
         )
     }
 }

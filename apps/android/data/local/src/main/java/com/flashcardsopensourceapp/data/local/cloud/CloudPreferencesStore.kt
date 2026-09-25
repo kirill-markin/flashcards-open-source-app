@@ -11,6 +11,7 @@ import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryReason
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudEntitlement
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeCompletion
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeDroppedEntity
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeDroppedEntityType
@@ -88,6 +89,7 @@ class CloudPreferencesStore(
 
     private val cloudSettingsState = MutableStateFlow(loadLegacyCloudSettingsEntity().toCloudSettings())
     private val accountPreferencesStore = CloudAccountPreferencesStore(metadataPreferences = metadataPreferences)
+    private val entitlementStore = CloudEntitlementStore(metadataPreferences = metadataPreferences)
     private val accountDeletionState = MutableStateFlow(loadAccountDeletionState())
     private val serverConfigurationState = MutableStateFlow(loadServerConfiguration())
     private val cloudCredentialRecoveryStateJson = MutableStateFlow(loadCloudCredentialRecoveryStateJsonFromPreferences())
@@ -106,6 +108,14 @@ class CloudPreferencesStore(
 
     fun observeServerConfiguration(): StateFlow<CloudServiceConfiguration> {
         return serverConfigurationState.asStateFlow()
+    }
+
+    fun observeEntitlement(): StateFlow<CloudEntitlement?> {
+        return entitlementStore.observeEntitlement()
+    }
+
+    fun saveEntitlement(entitlement: CloudEntitlement) {
+        entitlementStore.saveEntitlement(entitlement = entitlement)
     }
 
     fun observeAccountDeletionState(): StateFlow<AccountDeletionState> {
@@ -376,6 +386,10 @@ class CloudPreferencesStore(
     ) {
         val updatedAtMillis = System.currentTimeMillis()
         val currentSettings = currentCloudSettingsEntity()
+        // The entitlement belongs to the user it was pulled for, so it never outlives a user change.
+        if (currentSettings.linkedUserId != linkedUserId) {
+            entitlementStore.clearEntitlement()
+        }
         val updatedSettings = currentSettings.copy(
             cloudState = cloudState.name,
             linkedUserId = linkedUserId,

@@ -23,6 +23,7 @@ import { getCookie } from "hono/cookie";
 import type { Context } from "hono";
 import type { AuthAppEnv } from "../../server/apiErrors.js";
 import { getClient, approveAuthorizationRequest } from "../../server/oauth/oauthStore.js";
+import { DeletedSubjectError } from "../../server/agent/userWorkspace.js";
 import { getPublicAuthBaseUrl, isSupportedMcpResource } from "../../server/publicUrls.js";
 import { validateSessionToken } from "../../server/browserSession.js";
 import { resolveLoginPageLocale } from "../browser/loginPageLocale.js";
@@ -234,18 +235,26 @@ export function createAuthorizeApp(now: () => number): Hono<AuthAppEnv> {
       return c.json({ error: "login_required", error_description: "Sign in before approving access." }, 401);
     }
 
-    const code = await approveAuthorizationRequest(
-      sessionToken,
-      {
-        clientId,
-        redirectUri,
-        codeChallenge,
-        scope,
-        resource,
-        connectionLabel: buildConnectionLabel(client.clientName),
-      },
-      now(),
-    );
+    let code: string;
+    try {
+      code = await approveAuthorizationRequest(
+        sessionToken,
+        {
+          clientId,
+          redirectUri,
+          codeChallenge,
+          scope,
+          resource,
+          connectionLabel: buildConnectionLabel(client.clientName),
+        },
+        now(),
+      );
+    } catch (error) {
+      if (error instanceof DeletedSubjectError) {
+        return c.json({ error: "ACCOUNT_DELETED", error_description: error.message }, 410);
+      }
+      throw error;
+    }
 
     const redirectTo = new URL(redirectUri);
     redirectTo.searchParams.set("code", code);

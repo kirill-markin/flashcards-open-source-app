@@ -12,6 +12,7 @@ import com.flashcardsopensourceapp.data.local.database.entities.ReviewLogEntity
 import com.flashcardsopensourceapp.data.local.database.entities.SyncStateEntity
 import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceEntity
 import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceSchedulerSettingsEntity
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudEntitlement
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.sync.PersistedOutboxEntry
 import com.flashcardsopensourceapp.data.local.model.sync.ReviewEventSyncPayload
@@ -30,7 +31,7 @@ import org.json.JSONArray
 
 class SyncLocalStore(
     database: AppDatabase,
-    preferencesStore: CloudPreferencesStore,
+    private val preferencesStore: CloudPreferencesStore,
     reviewPreferencesStore: ReviewPreferencesStore,
     localProgressCacheStore: LocalProgressCacheStore,
     timeProvider: TimeProvider
@@ -251,6 +252,10 @@ class SyncLocalStore(
 
     suspend fun applyPullChanges(workspaceId: String, changes: List<RemoteSyncChange>) {
         hotStateLocalStore.applyPullChanges(workspaceId = workspaceId, changes = changes)
+    }
+
+    fun saveEntitlement(entitlement: CloudEntitlement) {
+        preferencesStore.saveEntitlement(entitlement = entitlement)
     }
 
     suspend fun applyReviewHistory(events: List<RemoteReviewHistoryEvent>) {

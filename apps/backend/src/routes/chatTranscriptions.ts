@@ -1,6 +1,6 @@
 /**
  * Route factory for the shared backend-owned dictation endpoint.
- * The endpoint stays thin: it authenticates, enforces the caller's monthly AI allowance, meters the provider call, and delegates upload parsing and transcription to the chat module.
+ * The endpoint stays thin: it authenticates, meters the provider call against the caller's tier, and delegates upload parsing and transcription to the chat module. The monthly AI allowance never refuses dictation.
  */
 import { Hono } from "hono";
 import { isChatSessionRequestedSessionIdConflictError } from "../chat/errors";
@@ -18,7 +18,7 @@ import { HttpError } from "../shared/errors";
 import { startChatTranscriptionObservation } from "../telemetry/langfuse";
 import {
   appendAiUsageEvent,
-  requireAiUsageAllowance,
+  resolveAiUsageTierForFacts,
   type AiUsageCounters,
 } from "../aiUsage";
 import { resolveAccountKindForTransport } from "../billing/snapshot";
@@ -38,7 +38,7 @@ type ChatTranscriptionsRoutesOptions = Readonly<{
     upload: ChatTranscriptionUpload,
     requestContext: ChatTranscriptionRequestContext,
   ) => Promise<ChatTranscriptionResult>;
-  requireAiUsageAllowanceFn?: typeof requireAiUsageAllowance;
+  resolveAiUsageTierForFactsFn?: typeof resolveAiUsageTierForFacts;
   appendAiUsageEventFn?: typeof appendAiUsageEvent;
 }>;
 
@@ -106,7 +106,7 @@ export function createChatTranscriptionsRoutes(options: ChatTranscriptionsRoutes
       });
   const transcribeAudioFn = options.transcribeAudioFn
     ?? (async (upload, requestContext) => transcribeChatAudioUpload(upload, requestContext));
-  const requireAiUsageAllowanceFn = options.requireAiUsageAllowanceFn ?? requireAiUsageAllowance;
+  const resolveAiUsageTierForFactsFn = options.resolveAiUsageTierForFactsFn ?? resolveAiUsageTierForFacts;
   const appendAiUsageEventFn = options.appendAiUsageEventFn ?? appendAiUsageEvent;
 
   app.post("/chat/transcriptions", async (context) => {
@@ -130,9 +130,7 @@ export function createChatTranscriptionsRoutes(options: ChatTranscriptionsRoutes
         fileSize: upload.file.size,
       },
       async (): Promise<string> => {
-        // Checked for every caller, with no branch on who they are: the resolved allowance decides,
-        // and an uncapped one admits the call without a count to compare.
-        const allowance = await requireAiUsageAllowanceFn(
+        const tierAtCall = await resolveAiUsageTierForFactsFn(
           requestContext.userId,
           resolveAccountKindForTransport(requestContext.transport),
           new Date(),
@@ -149,11 +147,12 @@ export function createChatTranscriptionsRoutes(options: ChatTranscriptionsRoutes
             provider: "openai",
             modelId: CHAT_TRANSCRIPTION_MODEL,
             requestId: context.get("requestId"),
-            tierAtCall: allowance.tier,
+            tierAtCall,
             counters,
             imageCount: null,
             imageSize: null,
             imageQuality: null,
+            userSuppliedKey: false,
           });
         };
 
