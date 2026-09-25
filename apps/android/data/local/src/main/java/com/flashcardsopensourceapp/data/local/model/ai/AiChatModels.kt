@@ -13,6 +13,51 @@ const val aiLimitReachedCode: String = "AI_LIMIT_REACHED"
 // The guest-only code that aiLimitReachedCode supersedes once the backend starts raising the new one
 // for every caller. Still matched for as long as a deployed backend can be raising the old one.
 const val guestAiLimitReachedCode: String = "GUEST_AI_LIMIT_REACHED"
+const val openAiApiKeyInvalidCode: String = "OPENAI_API_KEY_INVALID"
+const val ownOpenAiKeyProviderErrorCode: String = "OWN_OPENAI_KEY_PROVIDER_ERROR"
+
+/**
+ * The person's own OpenAI key on this device. Turning it off keeps [apiKey], so turning it on again
+ * reuses the same key.
+ */
+data class OwnOpenAiKeySettings(
+    val isEnabled: Boolean,
+    /** Empty until [storageStatus] leaves [OwnOpenAiKeyStorageStatus.NOT_LOADED]. */
+    val apiKey: String,
+    val storageStatus: OwnOpenAiKeyStorageStatus
+) {
+    override fun toString(): String {
+        return "OwnOpenAiKeySettings(isEnabled=$isEnabled, apiKey=${redactedOwnOpenAiKey(apiKey = apiKey)}, " +
+            "storageStatus=$storageStatus)"
+    }
+}
+
+enum class OwnOpenAiKeyStorageStatus {
+    /** The encrypted key has not been read yet; it is read only while the switch is on. */
+    NOT_LOADED,
+    LOADED,
+    /** The encrypted key could not be read or written, so it was deleted and counts as absent. */
+    UNREADABLE
+}
+
+/** True while AI requests carry the key: the switch is on and the field is not empty. */
+fun hasActiveOwnOpenAiKey(settings: OwnOpenAiKeySettings): Boolean {
+    return settings.isEnabled && settings.apiKey.isNotEmpty()
+}
+
+/** Keeps the key out of logs and crash reports that print a state object. */
+fun redactedOwnOpenAiKey(apiKey: String): String {
+    return if (apiKey.isEmpty()) "<empty>" else "<redacted>"
+}
+
+/** The part of `GET /me/ai-usage` the app shows. */
+data class AiUsageStatus(
+    /** When this month's allowance renews. */
+    val monthEndsAtMillis: Long,
+    /** Null when no monthly AI cap is enforced, never a limit of zero. */
+    val remainingMessages: Int?,
+    val ownKeyMessages: Int
+)
 
 val aiChatSupportedFileExtensions: Set<String> = setOf(
     "pdf",

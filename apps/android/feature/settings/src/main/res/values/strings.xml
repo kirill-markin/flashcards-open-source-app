@@ -105,6 +105,16 @@
     <string name="settings_ai_chat_suggestions_toggle_title">Show composer suggestions</string>
     <string name="settings_ai_chat_suggestions_toggle_body">Suggested prompts appear above the AI chat composer when the conversation is ready.</string>
     <string name="settings_ai_chat_suggestions_update_failed">Could not update AI chat suggestions.</string>
+    <string name="settings_own_openai_key_title">Your OpenAI key</string>
+    <string name="settings_own_openai_key_toggle_title">Use my own OpenAI key</string>
+    <string name="settings_own_openai_key_toggle_body">With your own key, AI chat, dictation and card images run on your OpenAI account, with no monthly limit on any plan. Suggested replies are off while your key is on. We never store your key on our servers: it stays on this device and is sent only with your AI requests, so enter it separately on iOS, Android and the web.</string>
+    <string name="settings_own_openai_key_field_label">OpenAI API key</string>
+    <plurals name="settings_own_openai_key_month_messages">
+        <item quantity="one">This month with your key: %d message</item>
+        <item quantity="other">This month with your key: %d messages</item>
+    </plurals>
+    <string name="settings_own_openai_key_storage_unreadable">Your OpenAI key could not be read or saved on this device, so it was removed. Enter it again.</string>
+    <string name="settings_own_openai_key_usage_load_failed">Could not load this month\'s messages with your key.</string>
     <string name="settings_technical_error_title">Something went wrong</string>
     <string name="settings_leaderboard_participation_title">Leaderboard participation</string>
     <string name="settings_leaderboard_participation_summary">Control community leaderboard visibility</string>

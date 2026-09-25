@@ -194,6 +194,8 @@ class AiUiStateMapperTest {
             hasConsent = true,
             areComposerSuggestionsEnabled = areComposerSuggestionsEnabled,
             runtimeState = runtimeState,
+            aiUsage = null,
+            isOwnOpenAiKeyActive = false,
             textProvider = testAiTextProvider()
         )
     }

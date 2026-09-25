@@ -10,6 +10,7 @@ const val aiComposerPendingAttachmentTag: String = "ai_composer_pending_attachme
 const val aiComposerSendButtonTag: String = "ai_composer_send_button"
 const val aiComposerSuggestionRowTag: String = "ai_composer_suggestion_row"
 const val aiComposerSuggestionPrefixTag: String = "ai_composer_suggestion_"
+const val aiComposerRemainingMessagesNoticeTag: String = "ai_composer_remaining_messages_notice"
 const val aiToolCallCardTag: String = "ai_tool_call_card"
 const val aiToolCallSummaryTag: String = "ai_tool_call_summary"
 const val aiToolCallStatusTag: String = "ai_tool_call_status"
