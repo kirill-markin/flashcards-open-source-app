@@ -15,7 +15,7 @@
  * such path. They agree because they all serialize on one advisory lock per
  * subject, which this module takes too.
  */
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import {
   applyUserDatabaseScopeInExecutor,
   applyWorkspaceDatabaseScopeInExecutor,
@@ -33,6 +33,10 @@ type IdentityMappingRow = Readonly<{
 
 type UserSettingsRow = Readonly<{
   user_id: string;
+}>;
+
+type DeletedSubjectRow = Readonly<{
+  subject_sha256: string;
 }>;
 
 type WorkspaceMembershipRow = Readonly<{
@@ -92,6 +96,39 @@ async function lockIdentityLifecycleInExecutor(
 }
 
 /**
+ * Raised when the subject's account was deleted. A Cognito ID token cannot be revoked and outlives
+ * the deletion, so the tombstone is what refuses it; the backend answers the same case with
+ * 410 ACCOUNT_DELETED (apps/backend/src/auth/deletedSubjects.ts).
+ */
+export class DeletedSubjectError extends Error {
+  constructor() {
+    super("This account has already been deleted.");
+    this.name = "DeletedSubjectError";
+  }
+}
+
+/**
+ * Must stay byte-identical to hashDeletedSubject in apps/backend/src/auth/deletedSubjects.ts, which
+ * writes the tombstones this reads: the two services share no code.
+ */
+function hashDeletedSubject(providerSubject: string): string {
+  return createHash("sha256").update(providerSubject, "utf8").digest("hex");
+}
+
+async function assertSubjectIsNotDeletedInExecutor(
+  executor: DatabaseExecutor,
+  providerSubject: string,
+): Promise<void> {
+  const result = await executor.query<DeletedSubjectRow>(
+    "SELECT subject_sha256 FROM auth.deleted_subjects WHERE subject_sha256 = $1 LIMIT 1",
+    [hashDeletedSubject(providerSubject)],
+  );
+  if (result.rows.length > 0) {
+    throw new DeletedSubjectError();
+  }
+}
+
+/**
  * Raised when the subject turned out to be bound to another user id between the read and the
  * insert. The transaction that raises it rolls back, so it never leaves a profile behind.
  */
@@ -148,6 +185,7 @@ async function createOrAdoptAccountForSubject(
 ): Promise<string> {
   return transaction(async (executor) => {
     await lockIdentityLifecycleInExecutor(executor, providerSubject);
+    await assertSubjectIsNotDeletedInExecutor(executor, providerSubject);
     // Reread under the lock. The caller's read ran unlocked and may have missed a writer that has
     // committed since; adopting or minting on that stale answer is what gives one person two
     // accounts, and it is also what would make the other paths' bind throw at them.
@@ -193,6 +231,11 @@ export async function resolveOrCreateCanonicalUserId(
   providerSubject: string,
   email: string,
 ): Promise<string> {
+  // Checked before the mapping read, not only under the lock below. Deleting an account cascades the
+  // subject's mapping away, but a mapping can still exist for a deleted subject: one written after
+  // the deletion by a writer that did not check tombstones. The locked check stays, because this
+  // unlocked read can miss a deletion that commits after it.
+  await assertSubjectIsNotDeletedInExecutor({ query }, providerSubject);
   const mappedUserId = await resolveCanonicalUserId(providerSubject);
   if (mappedUserId !== null) {
     return mappedUserId;

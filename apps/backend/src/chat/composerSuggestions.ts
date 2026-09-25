@@ -663,6 +663,7 @@ export async function generateFollowUpChatComposerSuggestionsWithDependencies(
     imageCount: null,
     imageSize: null,
     imageQuality: null,
+    userSuppliedKey: false,
   });
 
   const responseText = response.output_text.trim();

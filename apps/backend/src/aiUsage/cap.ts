@@ -1,5 +1,5 @@
 import {
-  isAiMonthlyAllowanceUncappedForEveryTier,
+  resolveEntitlementLimits,
   type AccountKind,
 } from "../billing/limits";
 import { resolveEntitlementSnapshotForUser } from "../billing/snapshot";
@@ -20,7 +20,7 @@ import { HttpError } from "../shared/errors";
 import type { AiUsageCounters } from "./record";
 
 /**
- * The error code every refused AI call carries, on every surface and for every caller. It replaces the
+ * The error code a refused chat turn carries, for every caller. It replaces the
  * guest-only `GUEST_AI_LIMIT_REACHED`, and the status and body around it are unchanged so that the
  * handling path already shipped in every client is reused: iOS, Android and web accept this code beside
  * the old one and choose their own copy from the account state they already know.
@@ -35,22 +35,22 @@ const aiLimitReachedMessage =
   "Your free monthly AI limit is used up on this device. Create an account to keep going.";
 
 /**
- * How raw counters become the one number a monthly allowance is compared against. Output tokens weigh
- * six times an input token, which is the weighting the guest quota already applied
- * (`calculateGuestChatWeightedTokens`), kept so the allowance keeps its unit across the cutover.
+ * How raw counters become the one number the heavy-spend warning and the usage report read. Output
+ * tokens weigh six times an input token. Nothing is refused on this number: the allowance is counted in
+ * chat messages.
  *
  * Only the two token counters take part. `cache_read_tokens`, `cache_write_tokens` and
  * `reasoning_tokens` are breakdowns of those two on the OpenAI APIs this repository calls, so weighting
  * them as well would count the same token twice. `audio_seconds` and `image_count` carry no weight
  * because every surface here reports tokens today.
  *
- * A row that carries none of the weighted counters therefore weighs zero, and the surface it came from
- * is uncapped until a weight is decided for the counter it does carry. That is the standing decision for
- * the duration-billed transcription shape in particular: a `{ type: "duration" }` dictation report is
- * recorded, is priceable against `ai.model_prices`, and counts as nothing against the allowance. No
- * weight is invented for it here, because the weight of a second of audio is a pricing decision rather
- * than an arithmetic one. It is not silent either: `appendAiUsageEvent` warns on every such row through
- * `countersCarryWeightedAiUsage` below, so the gap is countable while it lasts.
+ * A row that carries none of the weighted counters therefore weighs zero until a weight is decided for
+ * the counter it does carry. That is the standing decision for the duration-billed transcription shape
+ * in particular: a `{ type: "duration" }` dictation report is recorded, is priceable against
+ * `ai.model_prices`, and adds nothing to the weighted total. No weight is invented for it here, because
+ * the weight of a second of audio is a pricing decision rather than an arithmetic one. It is not silent
+ * either: `appendAiUsageEvent` warns on every such row through `countersCarryWeightedAiUsage` below, so
+ * the gap is countable while it lasts.
  */
 export const aiWeightedOutputTokenMultiplier: number = 6;
 
@@ -69,12 +69,45 @@ const MONTHLY_WEIGHTED_TOKENS_SQL = [
   `+ (${String(aiWeightedOutputTokenMultiplier)} * COALESCE(output_tokens, 0))`,
   "), 0)::bigint AS weighted_tokens",
   "FROM ai.usage_events",
-  "WHERE user_id = $1 AND occurred_at >= $2 AND occurred_at < $3",
+  "WHERE user_id = $1 AND occurred_at >= $2 AND occurred_at < $3 AND user_supplied_key = false",
 ].join(" ");
 
 type MonthlyWeightedTokensRow = Readonly<{
   weighted_tokens: string | number;
 }>;
+
+/**
+ * One message is one chat turn that reached the model: every model call a turn makes appends a `chat`
+ * row carrying the run's `request_id`, so the turn is the distinct `request_id`, however many calls it
+ * took. Composer suggestions, dictation and card images are other surfaces and are never counted.
+ */
+const MONTHLY_MESSAGES_SQL = [
+  "SELECT",
+  "COUNT(DISTINCT request_id) FILTER (WHERE user_supplied_key = false)::int AS platform_key_messages,",
+  "COUNT(DISTINCT request_id) FILTER (WHERE user_supplied_key = true)::int AS own_key_messages",
+  "FROM ai.usage_events",
+  "WHERE user_id = $1 AND occurred_at >= $2 AND occurred_at < $3 AND surface = 'chat'",
+].join(" ");
+
+type MonthlyMessagesRow = Readonly<{
+  platform_key_messages: number;
+  own_key_messages: number;
+}>;
+
+/**
+ * This month's chat messages, split by whose key paid for them. Only `platformKeyMessages` counts
+ * against the allowance.
+ */
+export type AiUsageMonthlyMessages = Readonly<{
+  platformKeyMessages: number;
+  ownKeyMessages: number;
+}>;
+
+/**
+ * At or above this many weighted tokens on the platform key in one month, an admitted chat turn is
+ * reported so that unusually heavy spend is seen. It refuses nothing.
+ */
+const aiUsageHeavyWeightedTokensThreshold = 5_000_000;
 
 /**
  * The window a monthly allowance is measured over: `[startsAt, endsAt)`.
@@ -85,19 +118,19 @@ export type AiUsageMonthWindow = Readonly<{
 }>;
 
 /**
- * What this person may spend this month, resolved rather than inferred. `monthlyWeightedTokens` is
- * `null` when no cap is enforced for them, which is how the limits table expresses "uncapped" - it is
- * not a missing value and must never be read as zero.
+ * What this person may spend this month, resolved rather than inferred. `monthlyMessages` is `null`
+ * when no cap is enforced for them, which is how the limits table expresses "uncapped" - it is not a
+ * missing value and must never be read as zero.
  */
 export type AiUsageAllowance = Readonly<{
   tier: EntitlementTier;
-  monthlyWeightedTokens: number | null;
+  accountKind: AccountKind;
+  monthlyMessages: number | null;
 }>;
 
 /**
  * The AI spend window is a calendar month in UTC for everybody, whatever timezone they are in. This is
- * the rule's only home in code: it used to live in the guest quota's `YYYY-MM` month key, which this
- * change deletes, and in `auth.guest_ai_monthly_usage.usage_month`, which stops being read here.
+ * the rule's only home in code.
  *
  * It deliberately differs from the progress and streak endpoints, which resolve a day in the caller's
  * timezone and echo it back (`apps/backend/src/progress/timeZone.ts`). Those answer "what did I do
@@ -112,12 +145,12 @@ export function getAiUsageMonthWindow(now: Date): AiUsageMonthWindow {
 }
 
 /**
- * Sums the facts themselves. A monthly total is never stored: it is derived from the rows every call
- * appended, so a correction is a new row and nothing has to be rewritten, which is what lets
- * `ai.usage_events` stay append-only in the counters: they carry no `UPDATE` grant at all. The columns
- * that name somebody are the exception, and the only one — `db/migrations/0154_ai_usage_identity_rewrites.sql`
- * grants `UPDATE (user_id, workspace_id, request_id)` so an upgrade can move a row and a deletion can
- * anonymise it (`identity.ts`).
+ * Sums the facts themselves, on the platform key only. A monthly total is never stored: it is derived
+ * from the rows every call appended, so a correction is a new row and nothing has to be rewritten, which
+ * is what lets `ai.usage_events` stay append-only in the counters: they carry no `UPDATE` grant at all.
+ * The columns that name somebody are the exception, and the only one —
+ * `db/migrations/0154_ai_usage_identity_rewrites.sql` grants `UPDATE (user_id, workspace_id, request_id)`
+ * so an upgrade can move a row and a deletion can anonymise it (`identity.ts`).
  *
  * `SUM` of `bigint` comes back as `numeric`, which the driver hands over as a string.
  */
@@ -145,6 +178,30 @@ export async function loadAiUsageWeightedTokensForMonth(
 }
 
 /**
+ * Counts from `ai.usage_events` rather than from the chat tables, because a guest upgrade moves usage
+ * rows to the account (`identity.ts`) while the guest's chat sessions are deleted, and an upgrade must
+ * not reset the month.
+ */
+export async function loadAiUsageMessagesForMonth(
+  userId: string,
+  window: AiUsageMonthWindow,
+): Promise<AiUsageMonthlyMessages> {
+  const result = await unsafeQuery<MonthlyMessagesRow>(
+    MONTHLY_MESSAGES_SQL,
+    [userId, window.startsAt.toISOString(), window.endsAt.toISOString()],
+  );
+  const row = result.rows[0];
+  if (row === undefined) {
+    throw new Error("The AI monthly message count returned no row.");
+  }
+
+  return {
+    platformKeyMessages: row.platform_key_messages,
+    ownKeyMessages: row.own_key_messages,
+  };
+}
+
+/**
  * The person's allowance, read through the billing module so that no surface re-derives a tier or maps
  * one to a number of its own (docs/premium-entitlements.md, "Limits resolve on the backend").
  */
@@ -156,17 +213,14 @@ export async function resolveAiUsageAllowance(
   const entitlement = await resolveEntitlementSnapshotForUser(userId, accountKind, now);
   return {
     tier: entitlement.tier,
-    monthlyWeightedTokens: entitlement.limits.aiMonthlyWeightedTokens,
+    accountKind,
+    monthlyMessages: entitlement.limits.aiMonthlyMessages,
   };
 }
 
 /**
- * Refuses the next call once this month's facts reach the allowance.
- *
- * There is no pre-call estimate and no mid-call abort: the call that crosses the allowance completes,
- * and the next one is refused. Estimating what a call will cost before making it would need a number
- * nobody has, and the alternative of charging an estimate and correcting it afterwards is exactly the
- * pre-weighted total the fact table exists to avoid.
+ * Refuses the next chat turn once this month's platform-key messages reach the allowance. Only the chat
+ * turn is refused: dictation, card images and composer suggestions are never refused here.
  *
  * On an already-resolved allowance this is the half that is safe to call inside somebody else's
  * transaction: it reads `ai.usage_events` and writes nothing, and on an uncapped allowance it returns
@@ -177,18 +231,61 @@ export async function assertAiUsageAllowanceNotReached(
   userId: string,
   now: Date,
 ): Promise<void> {
-  const monthlyWeightedTokens = allowance.monthlyWeightedTokens;
-  if (monthlyWeightedTokens === null) {
+  const monthlyMessages = allowance.monthlyMessages;
+  if (monthlyMessages === null) {
     return;
   }
 
-  const usedWeightedTokens = await loadAiUsageWeightedTokensForMonth(
-    userId,
-    getAiUsageMonthWindow(now),
-  );
-  if (usedWeightedTokens >= monthlyWeightedTokens) {
+  const messages = await loadAiUsageMessagesForMonth(userId, getAiUsageMonthWindow(now));
+  if (messages.platformKeyMessages >= monthlyMessages) {
     throw new HttpError(429, aiLimitReachedMessage, aiLimitReachedCode);
   }
+}
+
+/**
+ * Reports an admitted chat turn from a person whose platform-key weighted tokens this month are at or
+ * above the heavy-spend threshold. It refuses nothing, so it never rejects: a failed read is a warning
+ * too, and the turn it describes goes on regardless.
+ */
+export async function reportHeavyAiUsageWeightedTokens(
+  allowance: AiUsageAllowance,
+  userId: string,
+  now: Date,
+): Promise<void> {
+  let usedWeightedTokens: number;
+  try {
+    usedWeightedTokens = await loadAiUsageWeightedTokensForMonth(userId, getAiUsageMonthWindow(now));
+  } catch (error) {
+    const errorDetails = getBackendErrorLogDetails(error);
+    captureContainedAiUsageWarning({
+      action: "ai_usage_weighted_tokens_read_failed",
+      message: "This month's weighted AI usage could not be read for an admitted chat turn.",
+      scope: { ...createBackendRuntimeObservationScope(), userId },
+      details: {
+        tier: allowance.tier,
+        accountKind: allowance.accountKind,
+        errorClass: errorDetails.errorClass,
+        errorMessage: errorDetails.errorMessage,
+      },
+    });
+    return;
+  }
+
+  if (usedWeightedTokens < aiUsageHeavyWeightedTokensThreshold) {
+    return;
+  }
+
+  captureContainedAiUsageWarning({
+    action: "ai_usage_weighted_tokens_heavy",
+    message: "A chat turn was admitted for a person whose platform-key AI usage this month is unusually heavy.",
+    scope: { ...createBackendRuntimeObservationScope(), userId },
+    details: {
+      tier: allowance.tier,
+      accountKind: allowance.accountKind,
+      usedWeightedTokens,
+      thresholdWeightedTokens: aiUsageHeavyWeightedTokensThreshold,
+    },
+  });
 }
 
 /**
@@ -203,8 +300,8 @@ const fallbackAiUsageTier: EntitlementTier = freeEntitlementTier;
  *
  * `resolveAiUsageAllowance` reads the billing tables and can reject for reasons that have nothing to do
  * with metering - an unreadable stored timestamp, a tier outside the catalogue, a write transaction on a
- * snapshot cache miss - and on the paths below nothing could have been refused anyway. Turning that into
- * the caller's answer would fail a request, or abandon a claimed run, over a label.
+ * snapshot cache miss - and on the paths below the fallback tier could not have refused the call anyway.
+ * Turning that into the caller's answer would fail a request, or abandon a claimed run, over a label.
  */
 async function resolveAiUsageAllowanceOrReportFailure(
   userId: string,
@@ -220,9 +317,10 @@ async function resolveAiUsageAllowanceOrReportFailure(
 }
 
 /**
- * Reports a metering warning and cannot fail in its turn. That `resolveAiUsageTierForFacts` never
- * rejects, that a caller nothing can refuse is never failed by a billing read, and that the chat route's
- * deferred failure below is recorded whichever way the request ends, all rest on these calls, so each is
+ * Reports a metering warning and cannot fail in its turn. That `resolveAiUsageTierForFacts` and the
+ * heavy-spend report never reject, that a caller the fallback tier leaves uncapped is never failed by a
+ * billing read, and that the chat route's deferred failure below is recorded whichever way the request
+ * ends, all rest on these calls, so each is
  * contained the way `appendAiUsageEvent` contains the same one: on the worker's path a throw here would
  * strand a run that is already claimed until stale-run recovery, over a warning. A reporting failure has
  * nowhere left to be reported, because the sink is what just failed, so it is swallowed rather than
@@ -256,8 +354,8 @@ function reportAiUsageAllowanceResolutionFailure(
 }
 
 /**
- * Reports a resolution whose failure a surface captured instead of answering, for a caller who can be
- * refused and therefore has no allowance to fall back to.
+ * Reports a resolution whose failure a surface captured instead of answering, for a caller the fallback
+ * tier caps - today only a guest - who therefore has no allowance to fall back to.
  *
  * It is called where the failure is captured rather than where it is consumed, because one consumer
  * discards it by design: the chat route holds the failure until `prepareChatRun` has told it whether this
@@ -275,7 +373,7 @@ export function reportDeferredAiUsageAllowanceResolutionFailure(
   captureContainedAiUsageWarning({
     action: "ai_usage_allowance_resolution_deferred",
     message:
-      "An AI usage allowance could not be resolved for a caller who can be refused, so the failure was "
+      "An AI usage allowance could not be resolved for a caller the fallback tier caps, so the failure was "
       + "held until the request's outcome was known.",
     scope: { ...createBackendRuntimeObservationScope(), userId },
     details: {
@@ -289,10 +387,11 @@ export function reportDeferredAiUsageAllowanceResolutionFailure(
 /**
  * The tier a surface that only appends attributes its facts to. Never rejects.
  *
- * The chat worker resolves this once per claimed run and wants nothing else from it: the allowance was
- * enforced when the turn was accepted, and refusing here would abandon a run the caller is waiting on.
- * An async retry would find the claim and skip, so the turn would hang until stale-run recovery - which
- * is why this path may not reject even when the billing tables are unreadable.
+ * Dictation and card image generation are never refused, so this is all they resolve. The chat worker
+ * resolves it once per claimed run and wants nothing else from it: the allowance was enforced when the
+ * turn was accepted, and refusing here would abandon a run the caller is waiting on. An async retry
+ * would find the claim and skip, so the turn would hang until stale-run recovery - which is why this
+ * path may not reject even when the billing tables are unreadable.
  */
 export async function resolveAiUsageTierForFacts(
   userId: string,
@@ -311,38 +410,21 @@ export async function resolveAiUsageTierForFacts(
  * else's, while the refusal is a read of already-appended facts and belongs wherever the decision does
  * (`prepareChatRun` in apps/backend/src/chat/runs/lifecycleService.ts).
  *
- * When no tier can be capped for this account kind, no refusal is possible before anything is read, so
- * the read decides the fact's tier label and nothing else: its failure is a warning rather than the
- * caller's 500. Only a caller whose account kind can be capped - a guest today - has a refusal that
- * depends on the billing tables being readable, and there a failed read still propagates rather than
- * silently admitting the call.
+ * When the fallback tier leaves this account kind uncapped - a free signed-in account today - a failed
+ * read is a warning and the call proceeds uncapped on that tier: failing it would protect nothing,
+ * because the fallback could never refuse it. A caller the fallback tier caps - a guest - has a refusal
+ * that depends on the billing tables being readable, and there a failed read still propagates rather
+ * than silently admitting the call.
  */
 export async function resolveAiUsageAllowanceForEnforcement(
   userId: string,
   accountKind: AccountKind,
   now: Date,
 ): Promise<AiUsageAllowance> {
-  if (isAiMonthlyAllowanceUncappedForEveryTier(accountKind)) {
+  if (resolveEntitlementLimits(fallbackAiUsageTier, accountKind).aiMonthlyMessages === null) {
     const resolved = await resolveAiUsageAllowanceOrReportFailure(userId, accountKind, now);
-    return resolved ?? { tier: fallbackAiUsageTier, monthlyWeightedTokens: null };
+    return resolved ?? { tier: fallbackAiUsageTier, accountKind, monthlyMessages: null };
   }
 
   return resolveAiUsageAllowance(userId, accountKind, now);
-}
-
-/**
- * Both halves in one call, for a surface that has no transaction to keep clean: it refuses a caller who
- * has spent their month and otherwise hands back the allowance it just resolved, so the surface can
- * attribute the fact it appends afterwards without resolving the same entitlement twice. Surfaces that
- * only append - the model calls inside a run the enforcement point already admitted - ask for the tier
- * alone, above.
- */
-export async function requireAiUsageAllowance(
-  userId: string,
-  accountKind: AccountKind,
-  now: Date,
-): Promise<AiUsageAllowance> {
-  const allowance = await resolveAiUsageAllowanceForEnforcement(userId, accountKind, now);
-  await assertAiUsageAllowanceNotReached(allowance, userId, now);
-  return allowance;
 }
