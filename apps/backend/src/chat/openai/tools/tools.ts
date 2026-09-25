@@ -64,9 +64,8 @@ import {
   OPENAI_GENERATED_IMAGE_TOOL,
 } from "./generatedImageToolContract";
 import {
-  aiLimitReachedCode,
   loadAiUsageStatus,
-  requireAiUsageAllowance,
+  resolveAiUsageTierForFacts,
 } from "../../../aiUsage";
 import { resolveAccountKindForSignedInAuth } from "../../../billing/snapshot";
 import {
@@ -151,7 +150,7 @@ export type OpenAIToolDependencies = Readonly<{
     params: BindGeneratedCardImageAttemptPayloadParams,
   ) => Promise<GeneratedCardImageImmutablePayload>;
   hasCognitoIdentityMappingForUser: typeof hasCognitoIdentityMappingForUser;
-  requireAiUsageAllowance: typeof requireAiUsageAllowance;
+  resolveAiUsageTierForFacts: typeof resolveAiUsageTierForFacts;
   ensureAIChatSyncReplica: typeof ensureAIChatSyncReplica;
   ensureAIChatSyncReplicaWithDeadline: typeof ensureAIChatSyncReplicaWithDeadline;
   generateCardImage: typeof generateCardImage;
@@ -521,7 +520,7 @@ const DEFAULT_OPENAI_TOOL_DEPENDENCIES: OpenAIToolDependencies = {
   reserveGeneratedCardImageAttempt,
   bindGeneratedCardImageAttemptPayload,
   hasCognitoIdentityMappingForUser,
-  requireAiUsageAllowance,
+  resolveAiUsageTierForFacts,
   ensureAIChatSyncReplica,
   ensureAIChatSyncReplicaWithDeadline,
   generateCardImage,
@@ -696,18 +695,16 @@ async function executeGeneratedImageToolCall(
       );
     }
 
-    // The run's own allowance check happened when the turn was accepted, and one turn can ask for
-    // several images afterwards, so the paid call is gated again here. The account kind comes from the
-    // sign-in check above, through the same mapping the request path uses, and the resolved allowance
-    // decides on its own whether anything is refused. Like the sign-in refusal, a refusal here has
-    // already consumed one of the run's image attempts.
+    // The monthly AI allowance never refuses an image: the generation ceilings are its only limits, so
+    // the tier is resolved only to attribute the usage fact. The account kind comes from the sign-in
+    // check above, through the same mapping the request path uses.
     //
     // This reading is the identity mapping rather than the run's own claim, which is deliberately not
     // what `loadAiUsageStatus` is bound to below: reporting must match what the route enforced, while
-    // this gate re-checks sign-in at the moment it is about to spend. The two answer differently for a
+    // this path re-checks sign-in at the moment it is about to spend. The two answer differently for a
     // guest credential whose user has since become an account, and if that is ever unified it has to
     // be decided for both at once rather than drifted into from either side.
-    const allowance = await dependencies.requireAiUsageAllowance(
+    const tierAtCall = await dependencies.resolveAiUsageTierForFacts(
       context.userId,
       resolveAccountKindForSignedInAuth(signedIn),
       new Date(),
@@ -734,7 +731,7 @@ async function executeGeneratedImageToolCall(
       imagePrompt: immutablePayload.imagePrompt,
       altText: immutablePayload.altText,
       replicaId,
-      tierAtCall: allowance.tier,
+      tierAtCall,
       observationContext: context.generatedImageObservationContext,
       signal: operationSignal,
       operationDeadlineMs: context.generatedImageOperationDeadlineMs,
@@ -806,17 +803,6 @@ async function executeGeneratedImageToolCall(
           shouldInvalidateMainContent: false,
           stopReason: null,
         },
-      );
-    }
-    // A reached AI allowance is the caller's answer rather than a broken run, so it becomes a tool
-    // result the model can explain, exactly as the per-workspace generation ceilings above do.
-    if (error instanceof HttpError && error.code === aiLimitReachedCode) {
-      return createGeneratedImageErrorResult(
-        "ai_limit_reached",
-        false,
-        attempt,
-        false,
-        null,
       );
     }
     // Only the code is matched: the same 404 status and wording are also raised after the provider

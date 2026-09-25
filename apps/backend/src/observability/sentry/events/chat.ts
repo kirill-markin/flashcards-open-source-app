@@ -166,7 +166,7 @@ export type AiUsageEventWriteFailureDetails = AiUsageMeteringDetails & Readonly<
 }>;
 
 /**
- * An allowance that could not be resolved, on a surface where nothing could have been refused anyway.
+ * An allowance that could not be resolved, where the fallback tier could not have refused the call.
  * The fact is attributed to `fallbackTier` instead, which is what this has to make visible: the tier on
  * those rows is a guess rather than a reading of the billing tables.
  */
@@ -178,12 +178,34 @@ export type AiUsageAllowanceResolutionFailureDetails = Readonly<{
 }>;
 
 /**
- * An allowance that could not be resolved for a caller who can be refused, on a surface that captured
+ * An allowance that could not be resolved for a caller the fallback tier caps, on a surface that captured
  * the failure instead of answering it. There is no fallback to name: the caller's turn either fails
  * closed on it or, on an idempotent replay, is admitted because it was already admitted once. Reported
  * at the capture site, so the record exists whichever of the two happens.
  */
 export type AiUsageAllowanceResolutionDeferralDetails = Readonly<{
+  accountKind: string;
+  errorClass: string;
+  errorMessage: string;
+}>;
+
+/**
+ * A chat turn admitted for a person whose platform-key weighted tokens this month are at or above the
+ * heavy-spend threshold. The person travels on the scope; nothing was refused.
+ */
+export type AiUsageHeavyWeightedTokensDetails = Readonly<{
+  tier: string;
+  accountKind: string;
+  usedWeightedTokens: number;
+  thresholdWeightedTokens: number;
+}>;
+
+/**
+ * The heavy-spend read that failed for an admitted chat turn. The turn went on: the report refuses
+ * nothing, so its failure must not fail the request either.
+ */
+export type AiUsageWeightedTokensReadFailureDetails = Readonly<{
+  tier: string;
   accountKind: string;
   errorClass: string;
   errorMessage: string;
@@ -307,21 +329,31 @@ export type ChatWarningEvent =
   // A provider that answered without any usage numbers. The fact row is still appended with null
   // counters, so this warning is what makes an unpriceable call countable instead of invisible.
   | (EventByAction<"ai_usage_counters_missing", AiUsageMeteringDetails> & Readonly<{ message: string }>)
-  // A provider that reported counters carrying nothing the monthly allowance weighs. The call is
-  // metered and priceable, and it counts as zero against the allowance, so this is what keeps a surface
-  // from going quietly uncapped after a model change.
+  // A provider that reported counters carrying nothing the weighted total weighs. The call is metered
+  // and priceable, and it adds zero to the weighted total, so this is what keeps a surface from quietly
+  // dropping out of the heavy-spend warning after a model change.
   | (EventByAction<"ai_usage_counters_unweighted", AiUsageMeteringDetails> & Readonly<{ message: string }>)
-  // A billing read that failed where no refusal was possible. The call proceeds on the fallback tier
-  // rather than failing a caller the resolved allowance could never have refused.
+  // A billing read that failed where the fallback tier refuses nothing. The call proceeds on that tier
+  // rather than failing a caller the fallback could never have refused.
   | (EventByAction<
     "ai_usage_allowance_resolution_failed",
     AiUsageAllowanceResolutionFailureDetails
   > & Readonly<{ message: string }>)
-  // A billing read that failed for a caller who can be refused, on a surface that had to hold the
+  // A billing read that failed for a caller the fallback tier caps, on a surface that had to hold the
   // failure until it knew whether the request was a new turn or a replay of one already accepted.
   | (EventByAction<
     "ai_usage_allowance_resolution_deferred",
     AiUsageAllowanceResolutionDeferralDetails
+  > & Readonly<{ message: string }>)
+  // Heavy platform-key spend this month on an admitted chat turn. Weighted tokens are never refused, so
+  // this is the only signal that one person's spend is unusually high.
+  | (EventByAction<
+    "ai_usage_weighted_tokens_heavy",
+    AiUsageHeavyWeightedTokensDetails
+  > & Readonly<{ message: string }>)
+  | (EventByAction<
+    "ai_usage_weighted_tokens_read_failed",
+    AiUsageWeightedTokensReadFailureDetails
   > & Readonly<{ message: string }>)
   // A provider call that was paid for and whose fact could not be stored. Reported rather than thrown,
   // because the money is already spent and failing the caller's request would not recover the row.

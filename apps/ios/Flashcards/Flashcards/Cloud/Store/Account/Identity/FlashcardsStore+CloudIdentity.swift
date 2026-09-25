@@ -64,6 +64,7 @@ extension FlashcardsStore {
         self.clearGuestSignInAfterReviewPromptState()
         self.clearFeedbackPromptState()
         self.resetAccountPreferencesForCloudIdentityReset()
+        self.resetCloudEntitlementForCloudIdentityReset()
         self.cachedAIChatStore?.clearLocalHistory()
         clearStoredAIChatHistories(userDefaults: self.userDefaults)
         self.reviewRuntime = ReviewQueueRuntime(

@@ -21,6 +21,8 @@ Email + OTP authentication via AWS Cognito (passwordless).
     the id the guest session had already minted. Creation mints the id and binds the subject in one
     transaction, and every path that creates or binds takes one advisory lock keyed by the subject,
     so only one of them ever gets to create.
+  - This service refuses a subject in `auth.deleted_subjects` with `410 ACCOUNT_DELETED`, the code
+    the backend answers it with, before it resolves, adopts, or creates an account for it.
 - Guest sessions (`POST /v1/guest-auth/session`) are bound to `ios`, `android`, or `web`. A `web`
   guest session is an analytics credential only, sent as `Authorization: Guest <token>` to
   `POST /v1/analytics/events` alone. It is requested by the browser, lazily on a signed-out

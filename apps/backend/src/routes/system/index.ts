@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { createAgentDiscoveryEnvelope } from "../../agent/discovery";
+import { loadAiUsageStatus } from "../../aiUsage";
 import {
   createAgentAccountEnvelope,
   loadAgentWorkspaceReplicaIdForSetup,
@@ -16,6 +17,7 @@ import {
   updateAccountPreferences,
 } from "./account/accountPreferences";
 import { registerAccountDeletionRoute } from "./account/accountDeletion";
+import { registerAiUsageRoute } from "./aiUsage";
 import {
   ensurePublicProfileForUser,
   registerCommunityProfileRoutes,
@@ -52,6 +54,7 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
   const loadProgressLeaderboardFn = options.loadProgressLeaderboardFn ?? loadProgressLeaderboard;
   const loadStreakLeaderboardFn = options.loadStreakLeaderboardFn ?? loadStreakLeaderboard;
   const loadReviewPlatformSummaryFn = options.loadReviewPlatformSummaryFn ?? loadReviewPlatformSummary;
+  const loadAiUsageStatusFn = options.loadAiUsageStatusFn ?? loadAiUsageStatus;
   const updateAccountPreferencesFn = options.updateAccountPreferencesFn ?? updateAccountPreferences;
   const updateGuestSessionAnalyticsPreferencesFn = options.updateGuestSessionAnalyticsPreferencesFn
     ?? updateGuestSessionAnalyticsPreferences;
@@ -107,6 +110,11 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
     loadRequestContextFromRequestFn,
     updateAccountPreferencesFn,
     updateGuestSessionAnalyticsPreferencesFn,
+  });
+  registerAiUsageRoute(app, {
+    allowedOrigins: options.allowedOrigins,
+    loadRequestContextFromRequestFn,
+    loadAiUsageStatusFn,
   });
   registerCommunityProfileRoutes(app, {
     allowedOrigins: options.allowedOrigins,
