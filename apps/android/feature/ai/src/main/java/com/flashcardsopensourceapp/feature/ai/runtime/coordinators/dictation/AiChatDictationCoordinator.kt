@@ -241,9 +241,9 @@ internal class AiChatDictationCoordinator(
                     // here. An install without an account keeps the sign-in guidance the guest-only
                     // server message used to carry; a signed-in caller must not be told to create one.
                     val limitMessage = if (context.currentCloudState() == CloudAccountState.LINKED) {
-                        context.textProvider.aiLimitReachedMessage
+                        context.accountAiLimitReachedMessage()
                     } else {
-                        context.textProvider.guestQuotaReachedMessage
+                        context.textProvider.aiLimitReachedGuestMessage
                     }
                     context.runtimeStateMutable.update { state ->
                         if (

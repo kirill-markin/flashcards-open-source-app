@@ -2,9 +2,11 @@ package com.flashcardsopensourceapp.feature.ai.runtime
 
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.analytics.Analytics
+import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDraftState
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatResumeDiagnostics
+import com.flashcardsopensourceapp.data.local.model.ai.AiUsageStatus
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
@@ -18,6 +20,7 @@ import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiAccessConte
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiChatRuntimeState
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.clearPendingToolRunPostSync
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.makeDefaultAiDraftState
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.shouldBootstrapConversation
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.AiChatWarning
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.createAiChatRuntimeObservability
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.recordAiChatWarning
@@ -76,6 +79,7 @@ internal class AiChatRuntimeContext(
     var activeLiveJob: Job? = null
     var activeWarmUpJob: Job? = null
     var activeBootstrapJob: Job? = null
+    var activeAiUsageRefreshJob: Job? = null
     var activeFreshSessionJob: Job? = null
     var activeFreshSessionTargetSessionId: String? = null
     var pendingWarmUpAfterWorkspaceSwitch: Boolean = false
@@ -84,6 +88,7 @@ internal class AiChatRuntimeContext(
     var isScreenVisible: Boolean = false
     var nextResumeAttemptId: Long = 0L
     val state: StateFlow<AiChatRuntimeState> = runtimeStateMutable.asStateFlow()
+    val aiUsageStateMutable = MutableStateFlow<AiUsageStatus?>(value = null)
 
     fun nextResumeDiagnostics(): AiChatResumeDiagnostics {
         nextResumeAttemptId += 1L
@@ -92,6 +97,58 @@ internal class AiChatRuntimeContext(
             clientPlatform = aiChatClientPlatform,
             clientVersion = appVersion
         )
+    }
+
+    /**
+     * Rereads this month's AI usage in the background. Only a conversation that can bootstrap has a
+     * cloud session to read it with, so no other state creates one just for this.
+     */
+    fun refreshAiUsage() {
+        activeAiUsageRefreshJob?.cancel()
+        val accessContext = activeAccessContext
+        if (shouldBootstrapConversation(accessContext = accessContext, hasConsent = hasConsent()).not()) {
+            aiUsageStateMutable.value = null
+            return
+        }
+        val workspaceId = accessContext?.workspaceId
+        activeAiUsageRefreshJob = scope.launch {
+            try {
+                aiUsageStateMutable.value = aiChatRepository.loadAiUsage(workspaceId = workspaceId)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                AiChatDiagnosticsLogger.warn(
+                    event = "ai_usage_refresh_failed",
+                    fields = listOf(
+                        "workspaceId" to workspaceId,
+                        "cloudState" to currentCloudState().name,
+                        "errorType" to error::class.java.name
+                    )
+                )
+            }
+        }
+    }
+
+    /**
+     * The refusal copy for a signed-in account, shown at once from the usage this chat already holds.
+     * It names the renewal day only when that usage is known; the background refresh it starts only
+     * updates the held usage.
+     */
+    fun accountAiLimitReachedMessage(): String {
+        val usage = aiUsageStateMutable.value
+        refreshAiUsage()
+        if (usage == null) {
+            return textProvider.aiLimitReachedAccountMessageWithoutDate
+        }
+        return textProvider.aiLimitReachedAccountMessage(monthEndsAtMillis = usage.monthEndsAtMillis)
+    }
+
+    /** A failed run's text, under the own-key prefix while the person's own OpenAI key is on. */
+    fun runErrorMessage(message: String): String {
+        if (aiChatRepository.isOwnOpenAiKeyActive().not()) {
+            return message
+        }
+        return textProvider.ownOpenAiKeyErrorMessage(providerMessage = message)
     }
 
     fun persistCurrentState() {
