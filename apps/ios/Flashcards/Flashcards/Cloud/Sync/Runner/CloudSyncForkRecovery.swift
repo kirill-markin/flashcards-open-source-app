@@ -121,7 +121,8 @@ extension CloudSyncRunner {
             acknowledgedReviewScheduleImpactingOperationCount: 0,
             cleanedUpOperationCount: 0,
             cleanedUpReviewEventOperationCount: 0,
-            cleanedUpReviewScheduleImpactingOperationCount: 0
+            cleanedUpReviewScheduleImpactingOperationCount: 0,
+            entitlement: nil
         )
     }
 

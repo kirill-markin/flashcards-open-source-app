@@ -59,6 +59,7 @@ extension CloudSyncRunner {
         var appliedPullChangeCount = 0
         var reviewScheduleImpactingPullChangeCount = 0
         var changedEntityTypes = Set<SyncEntityType>()
+        var latestEntitlement: CloudEntitlement? = nil
 
         while true {
             let pullEnvelope: RemotePullResponseEnvelope = try await self.transport.request(
@@ -76,6 +77,19 @@ extension CloudSyncRunner {
                     includeMediaAssets: true
                 )
             )
+
+            switch pullEnvelope.entitlement {
+            case .none:
+                break
+            case .some(.success(let entitlement)):
+                latestEntitlement = entitlement
+            case .some(.failure(let error)):
+                captureCloudEntitlementDecodingFailure(
+                    error: error,
+                    linkedSession: linkedSession,
+                    workspaceId: workspaceId
+                )
+            }
 
             for change in pullEnvelope.changes {
                 let applyResult = try self.database.applySyncChange(
@@ -110,9 +124,38 @@ extension CloudSyncRunner {
                     acknowledgedReviewScheduleImpactingOperationCount: 0,
                     cleanedUpOperationCount: 0,
                     cleanedUpReviewEventOperationCount: 0,
-                    cleanedUpReviewScheduleImpactingOperationCount: 0
+                    cleanedUpReviewScheduleImpactingOperationCount: 0,
+                    entitlement: latestEntitlement
                 )
             }
         }
     }
+}
+
+/// A malformed entitlement costs the Subscription page its input and nothing else: the pull and the
+/// rest of the sync go on (docs/premium-entitlements.md, "What a client receives").
+private func captureCloudEntitlementDecodingFailure(
+    error: Error,
+    linkedSession: CloudLinkedSession,
+    workspaceId: String
+) {
+    FlashcardsObservability.captureSilentFailure(
+        error: error,
+        scope: IOSObservationScope(
+            feature: .cloudSync,
+            userId: linkedSession.userId,
+            workspaceId: workspaceId,
+            requestId: nil,
+            clientRequestId: nil,
+            sessionId: nil,
+            runId: nil,
+            cloudState: nil,
+            configurationMode: linkedSession.configurationMode
+        ),
+        action: "sync_pull_entitlement_decode",
+        stage: "decode",
+        statusCode: nil,
+        backendCode: nil,
+        requestId: nil
+    )
 }

@@ -17,6 +17,8 @@ struct SettingsView: View {
 
     @State private var isCloudSignInPresented: Bool = false
     @State private var isFriendInvitePresented: Bool = false
+    /// Nil until the App Store answers; loaded once per Settings lifetime.
+    @State private var isSubscriptionProductAvailable: Bool? = nil
 
     private var accountStatusValue: String {
         displayCloudAccountStateTitle(cloudState: store.cloudSettings?.cloudState ?? .disconnected)
@@ -87,6 +89,18 @@ struct SettingsView: View {
             }
 
             Section(aiSettingsLocalized("settings.section.account", "Account")) {
+                if self.isSubscriptionProductAvailable == true {
+                    NavigationLink(value: SettingsNavigationDestination.subscription) {
+                        SettingsNavigationRow(
+                            title: aiSettingsLocalized("settings.subscription.title", "Subscription"),
+                            value: store.cloudEntitlement?.tierDisplayName,
+                            systemImage: "creditcard",
+                            attentionCount: nil
+                        )
+                    }
+                    .accessibilityIdentifier(UITestIdentifier.settingsSubscriptionRow)
+                }
+
                 NavigationLink(value: SettingsNavigationDestination.accountStatus) {
                     SettingsNavigationRow(
                         title: aiSettingsLocalized("settings.row.accountStatus", "Account Status"),
@@ -356,6 +370,9 @@ struct SettingsView: View {
         .onAppear {
             store.triggerCloudAccountContextRefreshIfActive(surfacesGlobalErrorMessage: false)
         }
+        .task {
+            await self.loadSubscriptionProductAvailabilityIfNeeded()
+        }
         .cloudSignInSheet(
             isPresented: self.$isCloudSignInPresented,
             presentationContext: .standard(originSurface: .settings)
@@ -376,6 +393,28 @@ struct SettingsView: View {
         }
         .accessibilityIdentifier(UITestIdentifier.settingsInviteFriendButton)
         .accessibilityLabel(aiSettingsLocalized("settings.inviteFriend.button", "Add Friend"))
+    }
+
+    private func loadSubscriptionProductAvailabilityIfNeeded() async {
+        guard self.isSubscriptionProductAvailable == nil else {
+            return
+        }
+
+        do {
+            self.isSubscriptionProductAvailable = try await loadIsSubscriptionProductAvailable()
+        } catch {
+            if isRequestCancellationError(error: error) {
+                // Settings left the screen mid-request; the next appearance asks again.
+                return
+            }
+            self.isSubscriptionProductAvailable = false
+            captureSubscriptionSilentFailure(
+                error: error,
+                action: "subscription_product_load",
+                cloudSettings: self.store.cloudSettings,
+                workspaceId: self.store.workspace?.workspaceId
+            )
+        }
     }
 
     private func openFriendInviteFlow() {

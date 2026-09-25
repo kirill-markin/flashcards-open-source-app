@@ -26,6 +26,7 @@ enum IOSObservationFeature: String, Sendable {
     case technicalError = "technical_error"
     case progress = "progress"
     case storeReview = "store_review"
+    case subscription = "subscription"
 }
 
 struct IOSObservationScope: Sendable, Hashable {
