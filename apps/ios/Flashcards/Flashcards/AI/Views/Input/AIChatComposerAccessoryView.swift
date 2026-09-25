@@ -137,6 +137,14 @@ extension AIChatView {
                     .accessibilityIdentifier(UITestIdentifier.aiComposerSuggestionRow)
                 }
 
+                if let remainingMessagesNotice = self.remainingMessagesNotice {
+                    Text(remainingMessagesNotice)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 12)
+                        .accessibilityIdentifier(UITestIdentifier.aiRemainingMessagesNotice)
+                }
+
                 ZStack(alignment: .bottomTrailing) {
                     TextField(
                         aiSettingsLocalized(
@@ -264,6 +272,16 @@ extension AIChatView {
             .padding(.top, aiChatComposerTopPadding)
             .padding(.bottom, 16)
         }
+    }
+
+    /// Hidden while the person's own key is active, because messages on that key have no monthly limit.
+    var remainingMessagesNotice: String? {
+        guard self.flashcardsStore.isOwnOpenAIKeyActive == false,
+              let usage = self.flashcardsStore.currentAIMonthlyUsage else {
+            return nil
+        }
+
+        return aiChatRemainingMessagesNotice(usage: usage)
     }
 
     var dictationStatusText: String {
