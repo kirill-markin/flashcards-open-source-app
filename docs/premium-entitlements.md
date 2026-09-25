@@ -202,7 +202,7 @@ or their sync.
 
 The two halves of "premium" fail in opposite directions on purpose.
 
-AI usage is checked server-side on every request. There is no client-side AI budget, no optimistic
+The chat turn is checked server-side on every request. There is no client-side AI budget, no optimistic
 local counter, and no offline AI allowance. A client cannot know what other devices have spent, so
 letting it decide would give away as much AI per month as the person owns devices.
 

@@ -11,6 +11,7 @@ import {
   aiLimitReachedCode,
   assertAiUsageAllowanceNotReached,
   getAiUsageMonthWindow,
+  loadAiUsageMessagesForMonth,
   loadAiUsageWeightedTokensForMonth,
   resolveAiUsageAllowance,
 } from "./cap";
@@ -20,12 +21,13 @@ import {
 } from "./identity";
 import { appendAiUsageEvent, type AiUsageCounters, type AiUsageEvent } from "./record";
 
-// The allowance is a sum over rows the surfaces append, so what is worth pinning is the part no pure
+// The allowance is a count over rows the surfaces append, so what is worth pinning is the part no pure
 // test can reach: that the append matches the shipped ai.usage_events grants and columns, that every
-// counter lands in the column it names rather than in the one beside it, that the sum weights the
-// counters the way the allowance is denominated in, and that the UTC month boundary really excludes the
-// month before. The append also swallows its own failures on purpose, so every test here
-// reads the stored rows back rather than trusting that the call returned.
+// counter lands in the column it names rather than in the one beside it, that a message is one chat
+// turn on the platform key however many calls it made, that the weighted sum weights the counters the
+// way it is denominated, and that the UTC month boundary really excludes the month before. The append
+// also swallows its own failures on purpose, so every test here reads the stored rows back rather than
+// trusting that the call returned.
 //
 // This file must stay listed in apps/backend/scripts/postgresIntegrations/boundaries.mjs, because an
 // unlisted integration file is never executed by any workflow.
@@ -46,6 +48,7 @@ type UsageEventRow = Readonly<{
   image_count: number | null;
   image_size: string | null;
   image_quality: string | null;
+  user_supplied_key: boolean;
 }>;
 
 type UsageEventCountRow = Readonly<{ stored: number }>;
@@ -55,7 +58,7 @@ const storedUsageEventsQuery = [
   "input_tokens::text AS input_tokens, output_tokens::text AS output_tokens,",
   "cache_read_tokens::text AS cache_read_tokens, cache_write_tokens::text AS cache_write_tokens,",
   "reasoning_tokens::text AS reasoning_tokens, audio_seconds::text AS audio_seconds,",
-  "image_count, image_size, image_quality",
+  "image_count, image_size, image_quality, user_supplied_key",
   "FROM ai.usage_events",
   "WHERE user_id = $1",
   "ORDER BY occurred_at",
@@ -77,6 +80,7 @@ function createChatUsageEvent(
   userId: string,
   workspaceId: string,
   occurredAt: Date,
+  requestId: string,
   counters: AiUsageCounters,
 ): AiUsageEvent {
   return {
@@ -86,12 +90,13 @@ function createChatUsageEvent(
     surface: "chat",
     provider: "openai",
     modelId: "gpt-5.6-terra",
-    requestId: "ai-usage-integration-request",
+    requestId,
     tierAtCall: "free",
     counters,
     imageCount: null,
     imageSize: null,
     imageQuality: null,
+    userSuppliedKey: false,
   };
 }
 
@@ -132,46 +137,105 @@ async function deleteStoredRows(fixture: PostgresIntegrationFixture): Promise<vo
   );
 }
 
-test("the monthly allowance sums this UTC month's facts and refuses the next call once it is reached", async () => {
+test("the monthly allowance counts this UTC month's chat messages and refuses the next turn once it is reached", async () => {
   await withPostgresIntegrationFixture(async (fixture) => {
     try {
       const now = new Date("2026-09-15T12:00:00.000Z");
+      const monthWindow = getAiUsageMonthWindow(now);
       const allowance = await resolveAiUsageAllowance(fixture.userId, "guest", now);
-      const monthlyWeightedTokens = allowance.monthlyWeightedTokens;
-      if (monthlyWeightedTokens === null) {
-        throw new Error("A guest must resolve a capped monthly AI allowance for this test to mean anything.");
+      const monthlyMessages = allowance.monthlyMessages;
+      if (monthlyMessages === null) {
+        throw new Error("A free guest must resolve a capped monthly AI allowance for this test to mean anything.");
       }
 
       await assertAiUsageAllowanceNotReached(allowance, fixture.userId, now);
 
-      // The last instant of the previous UTC month, spending the whole allowance. The window is
-      // half-open, so this row must not count against September however large it is.
-      await appendAiUsageEvent(createChatUsageEvent(
-        fixture.userId,
-        fixture.workspaceId,
-        new Date("2026-08-31T23:59:59.999Z"),
-        createCounters({ inputTokens: monthlyWeightedTokens }),
-      ));
-      assert.equal(await countStoredUsageEvents(fixture), 1);
+      // A whole allowance of turns at the last instant of the previous UTC month. The window is
+      // half-open, so none of them counts against September.
+      for (let index = 0; index < monthlyMessages; index += 1) {
+        await appendAiUsageEvent(createChatUsageEvent(
+          fixture.userId,
+          fixture.workspaceId,
+          new Date("2026-08-31T23:59:59.999Z"),
+          `ai-usage-integration-august-${String(index)}`,
+          createCounters({ inputTokens: 1 }),
+        ));
+      }
       await assertAiUsageAllowanceNotReached(allowance, fixture.userId, now);
 
-      // The first instant of this UTC month, six weighted tokens short of the allowance.
-      await appendAiUsageEvent(createChatUsageEvent(
-        fixture.userId,
-        fixture.workspaceId,
-        new Date("2026-09-01T00:00:00.000Z"),
-        createCounters({ inputTokens: monthlyWeightedTokens - 6 }),
-      ));
+      // One turn short of the allowance, the first at the first instant of this UTC month. Each turn
+      // makes two model calls and is still one message.
+      for (let index = 0; index < monthlyMessages - 1; index += 1) {
+        const requestId = `ai-usage-integration-september-${String(index)}`;
+        const occurredAt = index === 0 ? monthWindow.startsAt : now;
+        await appendAiUsageEvent(createChatUsageEvent(
+          fixture.userId,
+          fixture.workspaceId,
+          occurredAt,
+          requestId,
+          createCounters({ inputTokens: 1 }),
+        ));
+        await appendAiUsageEvent(createChatUsageEvent(
+          fixture.userId,
+          fixture.workspaceId,
+          occurredAt,
+          requestId,
+          createCounters({ outputTokens: 1 }),
+        ));
+      }
+
+      // Other surfaces and the person's own key are metered, and none of them is a platform-key message.
+      await appendAiUsageEvent({
+        ...createChatUsageEvent(
+          fixture.userId,
+          fixture.workspaceId,
+          now,
+          "ai-usage-integration-dictation",
+          createCounters({ inputTokens: 1 }),
+        ),
+        surface: "dictation",
+      });
+      await appendAiUsageEvent({
+        ...createChatUsageEvent(
+          fixture.userId,
+          fixture.workspaceId,
+          now,
+          "ai-usage-integration-suggestions",
+          createCounters({ inputTokens: 1 }),
+        ),
+        surface: "composer_suggestion",
+      });
+      await appendAiUsageEvent({
+        ...createChatUsageEvent(
+          fixture.userId,
+          fixture.workspaceId,
+          now,
+          "ai-usage-integration-own-key",
+          createCounters({ inputTokens: 1_000_000 }),
+        ),
+        userSuppliedKey: true,
+      });
+      assert.equal(await countStoredUsageEvents(fixture), monthlyMessages + 2 * (monthlyMessages - 1) + 3);
+      assert.deepEqual(await loadAiUsageMessagesForMonth(fixture.userId, monthWindow), {
+        platformKeyMessages: monthlyMessages - 1,
+        ownKeyMessages: 1,
+      });
+      // The weighted sum reads the same platform-key rows of the same month: 1 + 6 x 1 per turn, plus
+      // one input token each for dictation and suggestions, and nothing from the own-key row.
+      assert.equal(
+        await loadAiUsageWeightedTokensForMonth(fixture.userId, monthWindow),
+        (monthlyMessages - 1) * 7 + 2,
+      );
       await assertAiUsageAllowanceNotReached(allowance, fixture.userId, now);
 
-      // One output token weighs six, which takes the month to exactly the allowance.
+      // The turn that reaches the allowance completes; the next one is refused.
       await appendAiUsageEvent(createChatUsageEvent(
         fixture.userId,
         fixture.workspaceId,
         now,
-        createCounters({ outputTokens: 1 }),
+        "ai-usage-integration-september-last",
+        createCounters({ inputTokens: 1 }),
       ));
-      assert.equal(await countStoredUsageEvents(fixture), 3);
       await assert.rejects(
         () => assertAiUsageAllowanceNotReached(allowance, fixture.userId, now),
         (error: unknown): boolean => {
@@ -203,7 +267,7 @@ test("an uncapped allowance is never refused, and a call the provider reported n
     try {
       const now = new Date("2026-09-15T12:00:00.000Z");
       const allowance = await resolveAiUsageAllowance(fixture.userId, "account", now);
-      assert.equal(allowance.monthlyWeightedTokens, null);
+      assert.equal(allowance.monthlyMessages, null);
 
       await appendAiUsageEvent({
         userId: fixture.userId,
@@ -218,6 +282,8 @@ test("an uncapped allowance is never refused, and a call the provider reported n
         imageCount: 1,
         imageSize: "1024x1024",
         imageQuality: "low",
+        // True here because false is the column default, so only true proves the writer sets it.
+        userSuppliedKey: true,
       });
 
       const stored = await fixture.ownerPool.query<UsageEventRow>(
@@ -241,10 +307,10 @@ test("an uncapped allowance is never refused, and a call the provider reported n
         image_count: 1,
         image_size: "1024x1024",
         image_quality: "low",
+        user_supplied_key: true,
       });
 
-      // A row of null counters weighs nothing, so it can neither refuse an uncapped caller nor be
-      // mistaken for spend.
+      // A card image is never a message, so it cannot refuse an uncapped caller.
       await assertAiUsageAllowanceNotReached(allowance, fixture.userId, now);
     } finally {
       await deleteStoredRows(fixture);
@@ -252,11 +318,11 @@ test("an uncapped allowance is never refused, and a call the provider reported n
   });
 });
 
-// The counters reach the database as positional parameters in one eighteen-column insert, and a swap
+// The counters reach the database as positional parameters in one nineteen-column insert, and a swap
 // between two adjacent nullable counters is invisible to a test that leaves them null or asserts only
 // the weighted sum. Every counter therefore carries a distinct value here and is read back on its own
-// column: the four that no monthly allowance weighs are read only by a cost report and never by the
-// allowance, some of them as price multipliers and some as breakdowns a cost report must not price -
+// column: the four that the weighted sum does not weigh are read only by a cost report and never by
+// metering, some of them as price multipliers and some as breakdowns a cost report must not price -
 // reasoning tokens sit inside output_tokens, so pricing both double-counts them
 // (db/migrations/0152_ai_usage_facts.sql) - which makes a swap between them silently wrong reporting
 // rather than a failing request.
@@ -288,6 +354,7 @@ test("every reported counter lands in its own column, and only the token counter
         imageCount: null,
         imageSize: null,
         imageQuality: null,
+        userSuppliedKey: false,
       });
 
       const stored = await fixture.ownerPool.query<UsageEventRow>(
@@ -311,11 +378,12 @@ test("every reported counter lands in its own column, and only the token counter
         image_count: null,
         image_size: null,
         image_quality: null,
+        user_supplied_key: false,
       });
 
       // Only the two token counters take part: 11 + 6 x 22. The cache, reasoning and audio counters are
-      // stored facts that the allowance gives no weight, which is what makes a duration-only dictation
-      // row uncapped by decision rather than by accident.
+      // stored facts that the weighted sum gives no weight, which is what makes a duration-only
+      // dictation row weigh nothing by decision rather than by accident.
       assert.equal(
         await loadAiUsageWeightedTokensForMonth(fixture.userId, getAiUsageMonthWindow(now)),
         143,
@@ -331,7 +399,7 @@ test("every reported counter lands in its own column, and only the token counter
 // the table is
 // append-only for everything else, and 0152 created one row-level-security policy per granted command,
 // so a missing UPDATE policy would make either rewrite match no row and report success. The transfer
-// also has to keep the monthly allowance intact across an upgrade, which is a sum over these rows for
+// also has to keep the monthly allowance intact across an upgrade, which is a count over these rows for
 // one person and therefore only observable end to end.
 test("the identity rewrites carry the allowance across an upgrade and anonymise it on deletion", async () => {
   await withPostgresIntegrationFixture(async (fixture) => {
@@ -345,6 +413,7 @@ test("the identity rewrites carry the allowance across an upgrade and anonymise 
         guestUserId,
         guestWorkspaceId,
         occurredAt,
+        "ai-usage-integration-request",
         createCounters({ inputTokens: 10, outputTokens: 1 }),
       ));
       // The append swallows its own failures, so the row is read back rather than assumed.
@@ -361,6 +430,14 @@ test("the identity rewrites carry the allowance across an upgrade and anonymise 
       });
 
       // Signing up must not reset the monthly allowance, which is the whole reason the rows move.
+      assert.deepEqual(await loadAiUsageMessagesForMonth(fixture.userId, monthWindow), {
+        platformKeyMessages: 1,
+        ownKeyMessages: 0,
+      });
+      assert.deepEqual(await loadAiUsageMessagesForMonth(guestUserId, monthWindow), {
+        platformKeyMessages: 0,
+        ownKeyMessages: 0,
+      });
       assert.equal(await loadAiUsageWeightedTokensForMonth(fixture.userId, monthWindow), 16);
       assert.equal(await loadAiUsageWeightedTokensForMonth(guestUserId, monthWindow), 0);
       // The request id survives a transfer: the person is still there, and it is what correlates the
