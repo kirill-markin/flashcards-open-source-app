@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.data.local.repository.cloudsync.account
 import com.flashcardsopensourceapp.data.local.ai.store.AiChatHistoryStore
 import com.flashcardsopensourceapp.data.local.ai.store.AiChatPreferencesStore
 import com.flashcardsopensourceapp.data.local.ai.store.GuestAiSessionStore
+import com.flashcardsopensourceapp.data.local.ai.store.OwnOpenAiKeyStore
 import com.flashcardsopensourceapp.data.local.bootstrap.ensureLocalWorkspaceShell
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
@@ -18,6 +19,7 @@ class CloudIdentityResetCoordinator(
     private val aiChatPreferencesStore: AiChatPreferencesStore,
     private val aiChatHistoryStore: AiChatHistoryStore,
     private val guestAiSessionStore: GuestAiSessionStore,
+    private val ownOpenAiKeyStore: OwnOpenAiKeyStore,
     private val onCloudIdentityReset: suspend () -> Unit = {}
 ) {
     private val resetMutex = Mutex()
@@ -40,6 +42,7 @@ class CloudIdentityResetCoordinator(
                 aiChatPreferencesStore.clearConsent()
                 aiChatHistoryStore.clearAllState()
                 guestAiSessionStore.clearAllSessions()
+                ownOpenAiKeyStore.clear()
                 onCloudIdentityReset()
                 database.clearAllTables()
                 val activeWorkspaceId = ensureLocalWorkspaceShell(
@@ -90,6 +93,7 @@ class CloudIdentityResetCoordinator(
                 aiChatPreferencesStore.clearConsent()
                 aiChatHistoryStore.clearAllState()
                 guestAiSessionStore.clearAllSessions()
+                ownOpenAiKeyStore.clear()
                 onCloudIdentityReset()
                 cloudPreferencesStore.clearCloudCredentialRecoveryState()
             }
@@ -147,6 +151,7 @@ class CloudIdentityResetCoordinator(
             resetMutex.withLock {
                 disconnectCloudIdentityPreservingLocalStateLocked()
                 guestAiSessionStore.clearAllSessions()
+                ownOpenAiKeyStore.clear()
                 onCloudIdentityReset()
             }
         }

@@ -364,6 +364,7 @@ internal class AiChatSendCoordinator(
                 response = response
             )
         } else {
+            context.refreshAiUsage()
             context.triggerToolRunPostSyncIfNeeded(reason = "accepted_response_terminal")
         }
         context.persistCurrentState()
@@ -392,26 +393,28 @@ internal class AiChatSendCoordinator(
         }
         if (remoteError?.let(::isAiLimitReachedRemoteError) == true) {
             // Signing in is the fix only while this install has no account, so a signed-in caller gets
-            // the plain limit message instead of a prompt to create an account.
+            // the account refusal instead of a prompt to create an account.
             if (currentCloudState() == CloudAccountState.LINKED) {
+                val limitAlert = context.textProvider.generalError(
+                    message = context.accountAiLimitReachedMessage()
+                )
                 context.runtimeStateMutable.update { state ->
                     state.copy(
                         activeRun = null,
                         isLiveAttached = false,
                         composerPhase = AiComposerPhase.IDLE,
-                        activeAlert = context.textProvider.generalError(
-                            context.textProvider.aiLimitReachedMessage
-                        ),
+                        activeAlert = limitAlert,
                         errorMessage = ""
                     )
                 }
                 return
             }
+            context.refreshAiUsage()
             context.runtimeStateMutable.update { state ->
                 state.copy(
                     persistedState = appendAssistantAccountUpgradePrompt(
                         state = state.persistedState,
-                        message = context.textProvider.guestQuotaReachedMessage,
+                        message = context.textProvider.aiLimitReachedGuestMessage,
                         buttonTitle = context.textProvider.guestQuotaButtonTitle,
                         timestampMillis = System.currentTimeMillis()
                     ),

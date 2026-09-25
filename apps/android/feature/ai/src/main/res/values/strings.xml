@@ -82,9 +82,15 @@
     <string name="ai_chat_failed">AI chat failed.</string>
     <string name="ai_live_stream_ended_before_completion">AI live stream ended before message completion.</string>
     <string name="ai_consent_required_message">Review AI data use and accept it on this device before using AI features.</string>
-    <string name="ai_guest_quota_reached_message">Your free guest AI limit for this month is used up. Create an account or log in to keep using AI.</string>
+    <string name="ai_limit_reached_guest_message">You\'ve used this month\'s free AI messages. Create an account or add your own OpenAI key in Settings to keep going.</string>
     <string name="ai_guest_quota_button_title">Create account or Log in</string>
-    <string name="ai_limit_reached_message">Your AI limit for this month is used up. It resets at the start of next month.</string>
+    <string name="ai_limit_reached_account_message">You\'ve used this month\'s AI messages. They renew on %1$s. You can add your own OpenAI key in Settings to keep going.</string>
+    <string name="ai_limit_reached_account_message_without_date">You\'ve used this month\'s AI messages. You can add your own OpenAI key in Settings to keep going.</string>
+    <string name="ai_own_openai_key_error_prefix">Your own OpenAI key is on. OpenAI returned this error for your key. Fix it in your OpenAI account and try again.</string>
+    <plurals name="ai_remaining_messages_notice">
+        <item quantity="one">%d AI message left this month</item>
+        <item quantity="other">%d AI messages left this month</item>
+    </plurals>
     <string name="ai_alert_microphone_title">Microphone access needed</string>
     <string name="ai_alert_microphone_message">Microphone access is turned off for Nibomo. Open Settings to allow it.</string>
     <string name="ai_alert_error_title">Error</string>

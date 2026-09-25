@@ -5,6 +5,7 @@ import com.flashcardsopensourceapp.core.observability.analytics.Analytics
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState
+import com.flashcardsopensourceapp.data.local.model.ai.AiUsageStatus
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
@@ -24,6 +25,7 @@ import com.flashcardsopensourceapp.feature.ai.runtime.conversation.canEditAiDraf
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.canEditAiDraftText
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.canManageAiDraftAttachments
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.canPrepareAiDraftInComposerPhase
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.runtimeKey
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.shouldPrepareGuestAccess
 import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.bootstrap.AiChatBootstrapCoordinator
 import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.dictation.AiChatDictationCoordinator
@@ -40,6 +42,7 @@ import com.flashcardsopensourceapp.feature.ai.strings.AiTextProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
 internal class AiChatRuntime(
@@ -151,9 +154,15 @@ internal class AiChatRuntime(
         get() = context.runtimeStateMutable
 
     val state: StateFlow<AiChatRuntimeState> = context.state
+    val aiUsageState: StateFlow<AiUsageStatus?> = context.aiUsageStateMutable.asStateFlow()
 
     fun updateAccessContext(accessContext: AiAccessContext) {
+        val previousAccessContext = context.activeAccessContext
         lifecycleCoordinator.updateAccessContext(accessContext = accessContext)
+        if (previousAccessContext?.runtimeKey() != accessContext.runtimeKey()) {
+            context.aiUsageStateMutable.value = null
+            context.refreshAiUsage()
+        }
     }
 
     fun updateDraftMessage(draftMessage: String) {
@@ -480,6 +489,7 @@ internal class AiChatRuntime(
 
     fun onScreenVisible() {
         lifecycleCoordinator.onScreenVisible()
+        context.refreshAiUsage()
     }
 
     fun onScreenHidden() {
