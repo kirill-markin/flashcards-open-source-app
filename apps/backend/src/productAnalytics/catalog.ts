@@ -1555,6 +1555,16 @@ export const productAnalyticsEventCatalog = {
   // three, the grant included, so no consent decision on either surface is stored beside an
   // identifier of any kind - the exclusion is by name in dailyVisitorHash.ts and in the CHECK
   // constraint 0156 rewrites, because `identityFree` alone would let the grant through.
+  //
+  // The two answers may carry `placement`, the site's own placement space: the same cookie question
+  // is asked in more than one place - a banner and a corner control, which the site names `banner`
+  // and `corner_control` - and without it an answer given in one is indistinguishable from an
+  // answer given in the other. It is optional the way `page_path` above is, and permanently rather
+  // than only until the site starts sending it: the site bundles already released answer with no
+  // placement at all, so an answer carrying none stays a whole answer rather than a gap a later
+  // deploy closes, and a query that counts placements has to read it as one for good. The other
+  // three below carry no placement because each has exactly one source, so the property would be a
+  // constant on them and say nothing a query could not already assume.
   site_consent_prompt_shown: {
     serverOnly: false,
     requiresScreen: false,
@@ -1564,13 +1574,17 @@ export const productAnalyticsEventCatalog = {
   site_consent_granted: {
     serverOnly: false,
     requiresScreen: false,
-    properties: {},
+    properties: {
+      placement: { kind: "string", pattern: productAnalyticsSitePlacementPattern, optional: true },
+    },
   },
   site_consent_declined: {
     serverOnly: false,
     requiresScreen: false,
     identityFree: true,
-    properties: {},
+    properties: {
+      placement: { kind: "string", pattern: productAnalyticsSitePlacementPattern, optional: true },
+    },
   },
   // The collection switch, moved after the banner was already answered, which is a different fact
   // from the answer itself: a person who turns collection off later is not one who refused. Both
