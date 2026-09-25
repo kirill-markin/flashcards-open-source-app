@@ -2,6 +2,7 @@
  * Ensure the authenticated user has a profile row and an accessible selected
  * workspace. New users are auto-provisioned with a default workspace.
  */
+import { randomUUID } from "node:crypto";
 import {
   applyUserDatabaseScopeInExecutor,
   transactionWithUserScope,
@@ -113,6 +114,24 @@ export async function ensureUserProfile(userId: string, email: string | null): P
   return transactionWithUserScope({ userId }, async (executor) => ensureUserProfileInExecutor(executor, userId, email));
 }
 
+/** Reads under the caller's scope, so the caller applies the scope of the id it is asking about. */
+async function userSettingsRowExistsInExecutor(
+  executor: DatabaseExecutor,
+  userId: string,
+): Promise<boolean> {
+  const result = await executor.query<Readonly<{ user_id: string }>>(
+    "SELECT user_id FROM org.user_settings WHERE user_id = $1 LIMIT 1",
+    [userId],
+  );
+
+  return result.rows[0] !== undefined;
+}
+
+/**
+ * Resolves the application user behind a verified Cognito subject, provisioning the account on a
+ * first-ever request. A new account's id is minted here and only then bound to the subject, so the
+ * two are independent values from the start.
+ */
 export async function ensureCognitoUserProfileInExecutor(
   executor: DatabaseExecutor,
   subjectUserId: string,
@@ -121,16 +140,37 @@ export async function ensureCognitoUserProfileInExecutor(
   await lockCognitoIdentityLifecycleInExecutor(executor, subjectUserId);
   await assertSubjectIsNotDeletedInExecutor(executor, subjectUserId);
   const existingMapping = await loadCognitoIdentityMappingInExecutor(executor, subjectUserId);
-  const authoritativeUserId = existingMapping?.userId ?? subjectUserId;
 
-  await applyUserDatabaseScopeInExecutor(executor, { userId: authoritativeUserId });
-  const profile = await ensureUserProfileInExecutor(executor, authoritativeUserId, email);
-
-  if (existingMapping === null) {
-    await bindCognitoIdentityMappingInExecutor(executor, subjectUserId, subjectUserId);
+  if (existingMapping !== null) {
+    await applyUserDatabaseScopeInExecutor(executor, { userId: existingMapping.userId });
+    return ensureUserProfileInExecutor(executor, existingMapping.userId, email);
   }
 
-  return profile;
+  // An account can be stored under the subject itself with no mapping row until something binds
+  // one. Adopting it under that id is what keeps this person from getting a second account.
+  await applyUserDatabaseScopeInExecutor(executor, { userId: subjectUserId });
+  if (await userSettingsRowExistsInExecutor(executor, subjectUserId)) {
+    const adoptedProfile = await ensureUserProfileInExecutor(executor, subjectUserId, email);
+    await bindCognitoIdentityMappingInExecutor(executor, subjectUserId, subjectUserId);
+    return adoptedProfile;
+  }
+
+  const mintedUserId = randomUUID();
+  await applyUserDatabaseScopeInExecutor(executor, { userId: mintedUserId });
+  // ensureUserProfileInExecutor upserts, so a minted id that somehow already names an account would
+  // otherwise hand this subject that account instead of failing.
+  if (await userSettingsRowExistsInExecutor(executor, mintedUserId)) {
+    throw new Error(
+      `Minted user id ${mintedUserId} already names an account; refusing to bind Cognito subject ${subjectUserId} to it.`,
+    );
+  }
+
+  // Profile before mapping: auth.user_identities.user_id references org.user_settings(user_id)
+  // (db/migrations/0031_guest_ai_identity_and_quota.sql).
+  const mintedProfile = await ensureUserProfileInExecutor(executor, mintedUserId, email);
+  await bindCognitoIdentityMappingInExecutor(executor, subjectUserId, mintedUserId);
+
+  return mintedProfile;
 }
 
 export async function ensureCognitoUserProfile(

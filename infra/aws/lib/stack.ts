@@ -559,6 +559,10 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     const geoLiteCountryBucket = geoLiteCountry(this, api.backendFn);
     addDatabaseMigrationDependency(api.backendFn, migrationGate);
     addDatabaseMigrationDependency(api.directImageIngestionFn, migrationGate);
+    // The auth Lambda reads and writes the product database too, so it must not be published ahead
+    // of the migrations its statements need (db/migrations/0159_surrogate_user_identity.sql grants
+    // it the auth.user_identities INSERT its account creation performs).
+    addDatabaseMigrationDependency(authApi.authFn, migrationGate);
     addDatabaseMigrationDependency(webGuestReaperResult.reaperFunction, migrationGate);
     addDatabaseMigrationDependency(countryRetentionResult.retentionFunction, migrationGate);
     addDatabaseMigrationDependency(dailyVisitorHashSaltExpiryResult.expiryFunction, migrationGate);
