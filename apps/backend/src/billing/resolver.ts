@@ -223,9 +223,9 @@ function isBetterCandidate(candidate: GrantingCandidate, best: GrantingCandidate
  * the snapshot is a cache"). Every field of the result is resolved together, so no caller can publish
  * a half-resolved entitlement.
  *
- * `environment` is not consulted. Whether a purchase marked `sandbox` grants entitlement outside a
- * sandbox context is still open, and no purchase row exists yet, so the question has no observable
- * answer to encode here; it belongs to the change that adds the first store rail.
+ * `environment` is deliberately not consulted: a purchase marked `sandbox` grants entitlement in
+ * production (docs/premium-offer.md, "Sandbox purchases grant entitlement"), and reports separate
+ * test purchases from revenue by `environment` instead.
  */
 export function resolveEntitlement(
   purchases: ReadonlyArray<EntitlementPurchaseInput>,
