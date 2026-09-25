@@ -6,8 +6,9 @@ paywalls reads this document instead of re-deriving the rules, and every client 
 rules as the backend.
 
 No store integration exists yet. No client asks a store to buy anything, and the backend validates
-no receipt and handles no provider webhook: the only store SDKs linked anywhere are the review
-prompts, `StoreKit` on iOS and Play review on Android. The `billing` schema is already migrated
+no receipt and handles no provider webhook: the only store SDKs linked anywhere are `StoreKit` on
+iOS, for the review prompt and the Subscription page's product lookup and Manage subscription
+sheet, and Play review on Android. The `billing` schema is already migrated
 (`db/migrations/0151_billing_schema.sql`), and `provider_events`, `purchases`, `grants` and
 `user_billing_state` are all still empty, because no writer yet creates a table's first row. Each
 does have a writer now, and none of it is ingestion: the identity lifecycle rewrites rows it finds,
@@ -197,7 +198,7 @@ or their sync.
 
 The two halves of "premium" fail in opposite directions on purpose.
 
-AI usage is checked server-side on every request. There is no client-side AI budget, no optimistic
+The chat turn is checked server-side on every request. There is no client-side AI budget, no optimistic
 local counter, and no offline AI allowance. A client cannot know what other devices have spent, so
 letting it decide would give away as much AI per month as the person owns devices.
 

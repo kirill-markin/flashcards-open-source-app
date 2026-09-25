@@ -829,7 +829,8 @@ final class ProgressReviewSchedulePendingOverlayTests: ProgressStoreTestCase {
                 acknowledgedReviewScheduleImpactingOperationCount: 1,
                 cleanedUpOperationCount: 0,
                 cleanedUpReviewEventOperationCount: 0,
-                cleanedUpReviewScheduleImpactingOperationCount: 0
+                cleanedUpReviewScheduleImpactingOperationCount: 0,
+                entitlement: nil
             )
         )
         if allowsImmediateRefresh == false {
