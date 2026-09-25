@@ -622,11 +622,104 @@ struct RemoteSyncChangeEnvelope: Decodable {
     }
 }
 
-/// Decodes `/sync/pull` responses shaped by `apps/backend/src/sync/contracts/types.ts`.
+/// Decodes `/sync/pull` responses shaped by `apps/backend/src/sync/contracts/types.ts`, plus the
+/// `entitlement` field `apps/backend/src/routes/sync/index.ts` adds.
 struct RemotePullResponseEnvelope: Decodable {
     let changes: [RemoteSyncChangeEnvelope]
     let nextHotChangeId: Int64
     let hasMore: Bool
+    /// Nil when the backend omitted the field. A malformed object is kept as its decoding error
+    /// instead of failing the pull, because billing data must never cost a person their sync
+    /// (docs/premium-entitlements.md, "What a client receives").
+    let entitlement: Result<CloudEntitlement, Error>?
+
+    enum CodingKeys: String, CodingKey {
+        case changes
+        case nextHotChangeId
+        case hasMore
+        case entitlement
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.changes = try container.decode([RemoteSyncChangeEnvelope].self, forKey: .changes)
+        self.nextHotChangeId = try container.decode(Int64.self, forKey: .nextHotChangeId)
+        self.hasMore = try container.decode(Bool.self, forKey: .hasMore)
+
+        guard container.contains(.entitlement) else {
+            self.entitlement = nil
+            return
+        }
+        do {
+            self.entitlement = .success(try container.decode(CloudEntitlement.self, forKey: .entitlement))
+        } catch {
+            self.entitlement = .failure(error)
+        }
+    }
+}
+
+/// Keep aligned with `EntitlementWire` in `apps/backend/src/billing/snapshot.ts`. `limits` is not
+/// read by this client yet. Encoding writes the wire shape back, so the cached copy decodes through
+/// the same validation.
+struct CloudEntitlement: Codable, Hashable, Sendable {
+    let tier: String
+    let tierRank: Int
+    let tierDisplayName: String
+    let status: CloudEntitlementStatus
+    /// Read after `status`, because a nil means something different under each status
+    /// (docs/premium-entitlements.md, "What a client receives").
+    let until: Date?
+    let isTrial: Bool
+    let willRenew: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case tier
+        case tierRank
+        case tierDisplayName
+        case status
+        case until
+        case isTrial
+        case willRenew
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.tier = try container.decode(String.self, forKey: .tier)
+        self.tierRank = try container.decode(Int.self, forKey: .tierRank)
+        self.tierDisplayName = try container.decode(String.self, forKey: .tierDisplayName)
+        self.status = try container.decode(CloudEntitlementStatus.self, forKey: .status)
+        if let rawUntil = try container.decode(String?.self, forKey: .until) {
+            guard let until = parseStrictIsoTimestamp(value: rawUntil) else {
+                throw DecodingError.dataCorruptedError(
+                    forKey: .until,
+                    in: container,
+                    debugDescription: "Entitlement until must be an ISO 8601 UTC timestamp or null, got \(rawUntil)"
+                )
+            }
+            self.until = until
+        } else {
+            self.until = nil
+        }
+        self.isTrial = try container.decode(Bool.self, forKey: .isTrial)
+        self.willRenew = try container.decode(Bool.self, forKey: .willRenew)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(self.tier, forKey: .tier)
+        try container.encode(self.tierRank, forKey: .tierRank)
+        try container.encode(self.tierDisplayName, forKey: .tierDisplayName)
+        try container.encode(self.status, forKey: .status)
+        try container.encode(self.until.map { until in formatIsoTimestamp(date: until) }, forKey: .until)
+        try container.encode(self.isTrial, forKey: .isTrial)
+        try container.encode(self.willRenew, forKey: .willRenew)
+    }
+}
+
+enum CloudEntitlementStatus: String, Codable, Hashable, Sendable {
+    case noEntitlement = "none"
+    case active = "active"
+    case inGrace = "in_grace"
 }
 
 /// Decodes `/sync/bootstrap` pull responses shaped by `apps/backend/src/sync/contracts/types.ts`.

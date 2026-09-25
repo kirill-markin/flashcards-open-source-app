@@ -85,6 +85,8 @@ final class FlashcardsStore {
     var progressErrorMessage: String
     var isProgressRefreshing: Bool
     var communityPublicProfile: CommunityPublicProfile?
+    /// The last entitlement a sync pull reported for the current identity; see `FlashcardsStore+Entitlement`.
+    var cloudEntitlement: CloudEntitlement?
     var globalErrorMessage: String
     var syncStatus: SyncStatus
     var lastSuccessfulCloudSyncAt: String?
@@ -455,6 +457,7 @@ final class FlashcardsStore {
         self.progressErrorMessage = ""
         self.isProgressRefreshing = false
         self.communityPublicProfile = nil
+        self.cloudEntitlement = nil
         self.globalErrorMessage = initialGlobalErrorMessage
         if let initialCloudCredentialRecoveryState {
             self.syncStatus = .blocked(

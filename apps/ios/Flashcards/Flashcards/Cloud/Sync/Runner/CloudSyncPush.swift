@@ -37,7 +37,8 @@ extension CloudSyncRunner {
             // Review-event outbox rows are always enqueued non-impacting (see
             // OutboxStore.enqueueReviewEventAppendOperation), so cleanup never
             // touches the schedule-impacting counter.
-            cleanedUpReviewScheduleImpactingOperationCount: 0
+            cleanedUpReviewScheduleImpactingOperationCount: 0,
+            entitlement: nil
         )
     }
 
@@ -64,7 +65,8 @@ extension CloudSyncRunner {
                     acknowledgedReviewScheduleImpactingOperationCount: acknowledgedReviewScheduleImpactingOperationCount,
                     cleanedUpOperationCount: 0,
                     cleanedUpReviewEventOperationCount: 0,
-                    cleanedUpReviewScheduleImpactingOperationCount: 0
+                    cleanedUpReviewScheduleImpactingOperationCount: 0,
+                    entitlement: nil
                 )
             }
 
