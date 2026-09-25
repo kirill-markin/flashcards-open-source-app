@@ -5,10 +5,7 @@
  */
 import { inspect } from "node:util";
 import { HttpError } from "../shared/errors";
-
-export const USER_OPENAI_API_KEY_HEADER = "x-openai-api-key";
-/** The worker invoke payload field that carries the raw key; `observability/sentry/redaction.ts` drops it. */
-export const USER_OPENAI_API_KEY_WORKER_PAYLOAD_FIELD = "userOpenAIApiKey";
+import { USER_OPENAI_API_KEY_HEADER } from "../shared/userOpenAIApiKeyNames";
 
 const maximumUserOpenAIApiKeyLength = 512;
 const redactedUserOpenAIApiKey = "[redacted]";
