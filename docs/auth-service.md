@@ -87,6 +87,10 @@ Email + OTP authentication via AWS Cognito (passwordless).
       timeout, a statement timeout and the 5s transaction budget running out are `500 INTERNAL_ERROR`.
       Neither `500` serves a delay. Retrying is safe: the link and the revoke share one commit, so a
       repeat either redoes a request that stored nothing or meets the already-revoked no-op above.
+- A guest session whose user is bound in `auth.user_identities` is that account's.
+  `Authorization: Guest` refuses it with `401 GUEST_AUTH_INVALID` 7 days after the binding, a grace
+  for draining guest sync between upgrade `prepare` and `complete`; both upgrade routes refuse it at
+  once for any subject but the bound one.
 - `POST /v1/guest-auth/session` accepts an optional `idempotencyKey`. A retry carrying a key that
   still names a live session rotates that session's secret and returns the same guest user and
   workspace, so a lost response cannot leave one device with two guest identities. Client contract:
