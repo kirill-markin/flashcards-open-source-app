@@ -126,6 +126,9 @@ internal suspend fun runCloudSyncCore(
                         .put("includeMediaAssets", true)
                 )
                 syncLocalStore.applyPullChanges(workspaceId, pullResponse.changes)
+                pullResponse.entitlement?.let { entitlement ->
+                    syncLocalStore.saveEntitlement(entitlement = entitlement)
+                }
                 lastHotCursor = pullResponse.nextHotChangeId
                 hasMoreHotChanges = pullResponse.hasMore
             }

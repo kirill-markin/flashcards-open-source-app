@@ -30,6 +30,8 @@ import com.flashcardsopensourceapp.app.navigation.AppPackageInfo
 import com.flashcardsopensourceapp.app.navigation.SettingsDestination
 import com.flashcardsopensourceapp.app.navigation.rememberRouteBackStackEntry
 import com.flashcardsopensourceapp.app.notifications.loadNotificationDiagnosticsUiState
+import com.flashcardsopensourceapp.app.store.googlePlaySubscriptionManagementUrl
+import com.flashcardsopensourceapp.app.store.loadIsGooglePlaySubscriptionProductAvailable
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
 import com.flashcardsopensourceapp.core.ui.AppTechnicalError
 import com.flashcardsopensourceapp.feature.friendinvite.FriendInvitationDialog
@@ -58,6 +60,9 @@ import com.flashcardsopensourceapp.feature.settings.privacy.ProductAnalyticsRout
 import com.flashcardsopensourceapp.feature.settings.review.ReviewAnimationsRoute
 import com.flashcardsopensourceapp.feature.settings.settingsInviteFriendDisplayNameFieldTag
 import com.flashcardsopensourceapp.feature.settings.shareFlashcardsApp
+import com.flashcardsopensourceapp.feature.settings.subscription.SubscriptionRoute
+import com.flashcardsopensourceapp.feature.settings.subscription.SubscriptionViewModel
+import com.flashcardsopensourceapp.feature.settings.subscription.createSubscriptionViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.workspace.current.CurrentWorkspaceRoute
 import com.flashcardsopensourceapp.feature.settings.workspace.current.createCurrentWorkspaceViewModelFactory
 import java.util.Locale
@@ -97,7 +102,12 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
                 cloudAccountRepository = appGraph.cloudAccountRepository
             )
         )
+        val subscriptionViewModel = settingsSubscriptionViewModel(
+            appGraph = appGraph,
+            settingsRootBackStackEntry = settingsRootBackStackEntry
+        )
         val uiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
+        val subscriptionUiState by subscriptionViewModel.uiState.collectAsStateWithLifecycle()
         val friendInvitationUiState by friendInvitationViewModel.uiState.collectAsStateWithLifecycle()
         var isFriendInvitationDialogVisible by rememberSaveable { mutableStateOf(false) }
         val shareUrl: String = stringResource(
@@ -124,6 +134,10 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
 
         SettingsRoute(
             uiState = uiState,
+            subscriptionUiState = subscriptionUiState,
+            onOpenSubscription = {
+                navController.navigate(route = SettingsSubscriptionDestination.route)
+            },
             onOpenFriendInvite = {
                 when (uiState.friendInviteAvailability) {
                     SettingsFriendInviteAvailability.AVAILABLE -> {
@@ -247,6 +261,31 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
                 }
             )
         }
+    }
+
+    composable(route = SettingsSubscriptionDestination.route) { backStackEntry ->
+        val context = LocalContext.current
+        val subscriptionViewModel = settingsSubscriptionViewModel(
+            appGraph = appGraph,
+            settingsRootBackStackEntry = settingsRootBackStackEntry(
+                navController = navController,
+                currentBackStackEntry = backStackEntry
+            )
+        )
+        val uiState by subscriptionViewModel.uiState.collectAsStateWithLifecycle()
+
+        SubscriptionRoute(
+            uiState = uiState,
+            onManageSubscription = {
+                openExternalUrl(
+                    context = context,
+                    url = googlePlaySubscriptionManagementUrl(packageName = context.packageName)
+                )
+            },
+            onBack = {
+                navController.popBackStack()
+            }
+        )
     }
 
     composable(route = SettingsReviewAnimationsDestination.route) { backStackEntry ->
@@ -610,6 +649,24 @@ private fun openAndroidAppLanguageSettings(context: Context) {
         data = Uri.fromParts("package", context.packageName, null)
     }
     context.startActivity(intent)
+}
+
+@Composable
+private fun settingsSubscriptionViewModel(
+    appGraph: AppGraph,
+    settingsRootBackStackEntry: NavBackStackEntry
+): SubscriptionViewModel {
+    val applicationContext: Context = LocalContext.current.applicationContext
+    return viewModel<SubscriptionViewModel>(
+        viewModelStoreOwner = settingsRootBackStackEntry,
+        factory = createSubscriptionViewModelFactory(
+            cloudAccountRepository = appGraph.cloudAccountRepository,
+            loadIsSubscriptionProductAvailable = {
+                loadIsGooglePlaySubscriptionProductAvailable(context = applicationContext)
+            },
+            applicationContext = applicationContext
+        )
+    )
 }
 
 @Composable
