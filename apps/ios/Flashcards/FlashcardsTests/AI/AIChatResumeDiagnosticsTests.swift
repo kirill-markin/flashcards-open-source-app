@@ -46,7 +46,8 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
         let service = AIChatService(
             session: self.makeURLSession(),
             encoder: JSONEncoder(),
-            decoder: makeFlashcardsRemoteJSONDecoder()
+            decoder: makeFlashcardsRemoteJSONDecoder(),
+            ownOpenAIKeyStore: makeDisabledOwnOpenAIKeyStore()
         )
         AIChatTestURLProtocol.requestHandler = { request in
             XCTAssertEqual(request.value(forHTTPHeaderField: "X-Chat-Resume-Attempt-Id"), "11")
@@ -85,7 +86,8 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
         let service = AIChatService(
             session: self.makeURLSession(),
             encoder: JSONEncoder(),
-            decoder: makeFlashcardsRemoteJSONDecoder()
+            decoder: makeFlashcardsRemoteJSONDecoder(),
+            ownOpenAIKeyStore: makeDisabledOwnOpenAIKeyStore()
         )
         AIChatTestURLProtocol.requestHandler = { request in
             XCTAssertEqual(request.httpMethod, "GET")
@@ -119,7 +121,8 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
         let service = AIChatService(
             session: self.makeURLSession(),
             encoder: JSONEncoder(),
-            decoder: makeFlashcardsRemoteJSONDecoder()
+            decoder: makeFlashcardsRemoteJSONDecoder(),
+            ownOpenAIKeyStore: makeDisabledOwnOpenAIKeyStore()
         )
         AIChatTestURLProtocol.requestHandler = { request in
             XCTAssertEqual(request.httpMethod, "GET")
@@ -159,7 +162,8 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
         let service = AIChatService(
             session: self.makeURLSession(),
             encoder: JSONEncoder(),
-            decoder: makeFlashcardsRemoteJSONDecoder()
+            decoder: makeFlashcardsRemoteJSONDecoder(),
+            ownOpenAIKeyStore: makeDisabledOwnOpenAIKeyStore()
         )
         AIChatTestURLProtocol.requestHandler = { request in
             XCTAssertEqual(request.httpMethod, "POST")
@@ -204,7 +208,8 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
         let service = AIChatService(
             session: self.makeURLSession(),
             encoder: JSONEncoder(),
-            decoder: makeFlashcardsRemoteJSONDecoder()
+            decoder: makeFlashcardsRemoteJSONDecoder(),
+            ownOpenAIKeyStore: makeDisabledOwnOpenAIKeyStore()
         )
         AIChatTestURLProtocol.requestHandler = { request in
             XCTAssertEqual(request.httpMethod, "POST")
@@ -244,7 +249,8 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
         let service = AIChatService(
             session: self.makeURLSession(),
             encoder: JSONEncoder(),
-            decoder: makeFlashcardsRemoteJSONDecoder()
+            decoder: makeFlashcardsRemoteJSONDecoder(),
+            ownOpenAIKeyStore: makeDisabledOwnOpenAIKeyStore()
         )
         AIChatTestURLProtocol.requestHandler = { request in
             XCTAssertEqual(request.httpMethod, "POST")
@@ -289,7 +295,8 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
 
         let transcriptionService = AIChatTranscriptionService(
             session: self.makeURLSession(),
-            decoder: makeFlashcardsRemoteJSONDecoder()
+            decoder: makeFlashcardsRemoteJSONDecoder(),
+            ownOpenAIKeyStore: makeDisabledOwnOpenAIKeyStore()
         )
         AIChatTestURLProtocol.requestHandler = { request in
             XCTAssertEqual(request.httpMethod, "POST")
@@ -649,4 +656,13 @@ private func aiChatRequestBodyData(request: URLRequest) -> Data? {
     }
 
     return data
+}
+
+/// The switch is never turned on in this suite, so the store never reads the Keychain.
+private func makeDisabledOwnOpenAIKeyStore() -> OwnOpenAIKeyStore {
+    OwnOpenAIKeyStore(
+        userDefaults: UserDefaults(suiteName: "tests-ai-chat-resume-diagnostics-own-openai-key")!,
+        keychainService: "tests-ai-chat-resume-diagnostics-own-openai-key",
+        keychainAccount: "primary"
+    )
 }

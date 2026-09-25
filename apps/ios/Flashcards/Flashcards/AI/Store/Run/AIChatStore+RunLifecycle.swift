@@ -251,7 +251,7 @@ extension AIChatStore {
             )
             if shouldShowGuestQuotaUpgradePrompt {
                 self.appendAssistantAccountUpgradePrompt(
-                    message: aiChatGuestQuotaReachedMessage,
+                    message: aiChatGuestLimitReachedMessage(),
                     buttonTitle: aiChatGuestQuotaButtonTitle
                 )
             }
@@ -262,7 +262,21 @@ extension AIChatStore {
         }
 
         if isAiLimitReached {
-            self.showGeneralError(message: aiChatLimitReachedMessage())
+            if self.usesGuestAIRestrictions {
+                self.showGeneralError(message: aiChatGuestLimitReachedMessage())
+            } else {
+                self.showAccountAILimitReachedError()
+            }
+            return
+        }
+
+        if
+            didAcceptRun == false,
+            let serviceError = error as? AIChatServiceError,
+            case .invalidResponse(let errorDetails, _, _) = serviceError,
+            isOwnOpenAIKeyErrorCode(errorDetails.code)
+        {
+            self.showGeneralError(message: aiChatOwnOpenAIKeyErrorMessage(providerMessage: errorDetails.message))
             return
         }
 

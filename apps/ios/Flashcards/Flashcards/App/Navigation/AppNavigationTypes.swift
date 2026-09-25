@@ -31,6 +31,7 @@ enum SettingsNavigationDestination: Hashable, Sendable {
     case currentWorkspace
     case reviewAnimations
     case aiChatSuggestions
+    case ownOpenAIKey
     case leaderboardParticipation
     case productAnalytics
     case language
