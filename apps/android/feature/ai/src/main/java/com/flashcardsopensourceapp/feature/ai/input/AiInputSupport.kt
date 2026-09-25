@@ -18,6 +18,7 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.IOException
+import java.io.InputStream
 import java.util.UUID
 
 private const val cameraAttachmentFileName: String = "photo.jpg"
@@ -29,6 +30,7 @@ private const val imageAttachmentFallbackCompressionQuality: Int = 55
 private const val dictationFileName: String = "chat-dictation.m4a"
 private const val dictationMediaType: String = "audio/mp4"
 private const val dictationOutputExtension: String = "m4a"
+private const val documentAttachmentReadBufferBytes: Int = 64 * 1024
 
 data class RecordedAiChatAudio(
     val fileName: String,
@@ -215,10 +217,6 @@ fun makeAiChatDocumentAttachmentFromUri(
         uri = uri,
         textProvider = textProvider
     )
-    requireAiChatAttachmentSize(
-        byteCount = bytes.size,
-        textProvider = textProvider
-    )
 
     val displayName = queryDisplayName(context = context, uri = uri)
         ?: throw AiAttachmentImportUserException(
@@ -251,7 +249,10 @@ private fun readAiChatDocumentAttachmentBytes(
 ): ByteArray {
     return try {
         context.contentResolver.openInputStream(uri)?.use { inputStream ->
-            inputStream.readBytes()
+            readAiChatDocumentAttachmentBytesBounded(
+                inputStream = inputStream,
+                textProvider = textProvider
+            )
         } ?: throw AiAttachmentImportUserException(
             message = textProvider.selectedFileReadFailed,
             cause = null
@@ -269,6 +270,33 @@ private fun readAiChatDocumentAttachmentBytes(
             cause = error
         )
     }
+}
+
+/** Stops at the attachment limit so a huge pick fails as too large instead of exhausting the heap. */
+private fun readAiChatDocumentAttachmentBytesBounded(
+    inputStream: InputStream,
+    textProvider: AiTextProvider
+): ByteArray {
+    val outputStream = ByteArrayOutputStream()
+    val buffer = ByteArray(documentAttachmentReadBufferBytes)
+    var totalBytes = 0
+
+    while (true) {
+        val readCount: Int = inputStream.read(buffer)
+        if (readCount == -1) {
+            break
+        }
+        totalBytes += readCount
+        if (totalBytes > aiChatMaximumAttachmentBytes) {
+            throw AiAttachmentTooLargeUserException(
+                message = textProvider.attachmentTooLarge,
+                cause = null
+            )
+        }
+        outputStream.write(buffer, 0, readCount)
+    }
+
+    return outputStream.toByteArray()
 }
 
 fun aiChatDocumentPickerMimeTypes(): Array<String> {
