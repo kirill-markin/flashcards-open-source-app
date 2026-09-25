@@ -582,7 +582,7 @@ extension FlashcardsStore {
             now: now
         )
         guard self.reviewSubmissionRequestMatchesCurrentContext(request: request, now: now) else {
-            self.applyStaleSuccessfulReviewSubmissionCompletion(request: request, now: now)
+            await self.applyStaleSuccessfulReviewSubmissionCompletion(request: request, now: now)
             return
         }
 
@@ -604,7 +604,7 @@ extension FlashcardsStore {
             request: request,
             validationContext: completionValidationContext
         ) else {
-            self.applyStaleSuccessfulReviewSubmissionCompletion(request: request, now: now)
+            await self.applyStaleSuccessfulReviewSubmissionCompletion(request: request, now: now)
             return
         }
 
@@ -734,9 +734,25 @@ extension FlashcardsStore {
     private func applyStaleSuccessfulReviewSubmissionCompletion(
         request: ReviewSubmissionRequest,
         now: Date
-    ) {
+    ) async {
         self.applyStaleReviewSubmissionCompletion(request: request)
-        self.refreshLocalReadModels(now: now)
+        let reviewLoadRequestIdBeforeRefresh = self.reviewRuntime.state.activeReviewLoadRequestId
+        do {
+            try await self.refreshBootstrapSnapshotWithoutReset(now: now)
+        } catch {
+            self.settleReviewSourceRefreshFailure(error: error)
+            return
+        }
+        // Bump after the refresh: the loader treats a mid-load bump as a stale result.
+        self.localReadVersion += 1
+        // A load started during the refresh already reads the post-submission database.
+        let activeReviewLoadRequestId = self.reviewRuntime.state.activeReviewLoadRequestId
+        let didStartReviewLoadDuringRefresh = activeReviewLoadRequestId != nil
+            && activeReviewLoadRequestId != reviewLoadRequestIdBeforeRefresh
+        if didStartReviewLoadDuringRefresh == false {
+            self.startReviewLoad(reviewFilter: self.selectedReviewFilter, now: now)
+        }
+        self.requestGuestSignInAfterReviewPromptReconciliation()
     }
 
     func handleReviewSubmissionFailure(request: ReviewSubmissionRequest, submissionError: Error) async {
