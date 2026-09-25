@@ -35,13 +35,17 @@ import {
   type MarkGeneratedCardImageProviderStartedParams,
   type MarkGeneratedCardImageProviderStartedResult,
 } from "../openai/tools/generatedImageAttemptBudget";
-import { assertGeneratedCardImageGenerationBudgetAvailable } from "./generationBudget";
+import {
+  assertGeneratedCardImageGenerationBudgetAvailable,
+  assertOwnKeyGeneratedCardImageGenerationBudgetAvailable,
+} from "./generationBudget";
 import {
   deriveGeneratedCardImageOperationMetadata,
   deriveRequestContentGeneratedCardImageOperationMetadata,
 } from "./metadata";
 import {
   createOpenAIGeneratedCardImageProvider,
+  createUserOpenAIGeneratedCardImageProvider,
   generatedCardImageModel,
   generatedCardImageQuality,
   generatedCardImageSize,
@@ -79,6 +83,7 @@ import {
   maximumGeneratedImageAltTextCodePoints,
   maximumGeneratedImagePromptCodePoints,
 } from "./contract";
+import type { UserOpenAIApiKey } from "../userOpenAIApiKey";
 
 const maximumTimerDelayMs = 2_147_483_647;
 
@@ -97,11 +102,15 @@ export type GeneratedCardImageOperationDependencies = Readonly<{
 
 export type GeneratedCardImageExternalDependencies = Readonly<{
   assertGenerationBudgetAvailableFn: typeof assertGeneratedCardImageGenerationBudgetAvailable;
+  assertOwnKeyGenerationBudgetAvailableFn: typeof assertOwnKeyGeneratedCardImageGenerationBudgetAvailable;
   markProviderStartedFn: (
     params: MarkGeneratedCardImageProviderStartedParams,
   ) => Promise<MarkGeneratedCardImageProviderStartedResult>;
   markGeneratedMediaProviderStartedObjectFn: typeof markGeneratedMediaProviderStartedObject;
-  generateProviderImageFn: (input: OpenAIImageGenerationInput) => Promise<GeneratedProviderImage>;
+  generateProviderImageFn: (
+    input: OpenAIImageGenerationInput,
+    userOpenAIApiKey: UserOpenAIApiKey | null,
+  ) => Promise<GeneratedProviderImage>;
   appendAiUsageEventFn: typeof appendAiUsageEvent;
   normalizeImageBytesForCardFn: typeof normalizeImageBytesForCard;
   loadGeneratedMediaStagingObjectFn: typeof loadGeneratedMediaStagingObject;
@@ -171,6 +180,7 @@ function normalizeGeneratedCardImageInput(input: GeneratedCardImageInput): Gener
     altText,
     replicaId: expectUuidString(input.replicaId, "replicaId"),
     tierAtCall: input.tierAtCall,
+    userOpenAIApiKey: input.userOpenAIApiKey,
     observationContext: input.observationContext,
     signal: input.signal,
     operationDeadlineMs: input.operationDeadlineMs,
@@ -191,6 +201,7 @@ function normalizeRunlessGeneratedCardImageInput(
     altText,
     replicaId: expectUuidString(input.replicaId, "replicaId"),
     tierAtCall: input.tierAtCall,
+    userOpenAIApiKey: input.userOpenAIApiKey,
     observationContext: input.observationContext,
     signal: input.signal,
     operationDeadlineMs: input.operationDeadlineMs,
@@ -290,7 +301,11 @@ async function prepareStagedGeneratedCardImage(
   // Checked before the provider-start fence: a refusal after it would leave previously_started
   // behind, so every identical retry would fail as outcome-unknown instead of as this refusal. An
   // exhausted budget therefore also refuses a replay whose provider start is already recorded.
-  await dependencies.assertGenerationBudgetAvailableFn(input);
+  if (input.userOpenAIApiKey === null) {
+    await dependencies.assertGenerationBudgetAvailableFn(input);
+  } else {
+    await dependencies.assertOwnKeyGenerationBudgetAvailableFn(input);
+  }
   // A fence written after the caller gave up makes every identical retry read previously_started
   // and fail as outcome-unknown, although nothing was ever paid.
   input.signal.throwIfAborted();
@@ -336,7 +351,7 @@ async function prepareStagedGeneratedCardImage(
     userId: input.userId, imagePrompt: input.imagePrompt,
     observationContext: input.observationContext,
     signal: input.signal, operationDeadlineMs: input.operationDeadlineMs,
-  });
+  }, input.userOpenAIApiKey);
   // Appended before the bytes are normalized and staged: the provider has been paid by now, and the
   // steps after this one can still fail. The size and the quality are stored because the same single
   // image costs different money at each of them, and the count is one because the adapter refuses any
@@ -354,7 +369,7 @@ async function prepareStagedGeneratedCardImage(
     imageCount: 1,
     imageSize: generatedCardImageSize,
     imageQuality: generatedCardImageQuality,
-    userSuppliedKey: false,
+    userSuppliedKey: input.userOpenAIApiKey !== null,
   });
   input.signal.throwIfAborted();
   const normalizedImage = await dependencies.normalizeImageBytesForCardFn(generatedImage.bytes);
@@ -395,6 +410,7 @@ async function enqueueGeneratedCardImagePromotion(
     blobStorageKey: buildMediaBlobStorageKey(preparedImage.sha256),
     sha256: preparedImage.sha256, mimeType: preparedImage.mimeType,
     sizeBytes: preparedImage.sizeBytes,
+    userSuppliedKey: input.userOpenAIApiKey !== null,
   };
   return isChatRunGeneratedCardImageInput(input)
     ? dependencies.enqueueGeneratedMediaPromotionJobFn({
@@ -551,9 +567,14 @@ export async function generateRunlessCardImageWithDependencies(
 
 const defaultExternalDependencies: GeneratedCardImageExternalDependencies = {
   assertGenerationBudgetAvailableFn: assertGeneratedCardImageGenerationBudgetAvailable,
+  assertOwnKeyGenerationBudgetAvailableFn: assertOwnKeyGeneratedCardImageGenerationBudgetAvailable,
   markProviderStartedFn: markGeneratedCardImageProviderStarted,
   markGeneratedMediaProviderStartedObjectFn: markGeneratedMediaProviderStartedObject,
-  generateProviderImageFn: async (input) => createOpenAIGeneratedCardImageProvider().generate(input),
+  generateProviderImageFn: async (input, userOpenAIApiKey) => (
+    userOpenAIApiKey === null
+      ? createOpenAIGeneratedCardImageProvider()
+      : createUserOpenAIGeneratedCardImageProvider(userOpenAIApiKey)
+  ).generate(input),
   appendAiUsageEventFn: appendAiUsageEvent,
   normalizeImageBytesForCardFn: normalizeImageBytesForCard,
   loadGeneratedMediaStagingObjectFn: loadGeneratedMediaStagingObject,

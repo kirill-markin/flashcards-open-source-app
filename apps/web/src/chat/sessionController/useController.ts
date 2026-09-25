@@ -11,6 +11,7 @@ import {
   selectChatSessionComposerAction,
   selectIsAssistantRunActive,
 } from "./state/state";
+import { isChatRunActive } from "./state/runState";
 import { isChatSessionStale } from "./lifecycle/freshness";
 import type {
   ChatSessionController,
@@ -23,6 +24,7 @@ import {
   storeChatSessionWarmStartSnapshot,
 } from "./lifecycle/warmStart";
 import { useChatHistory } from "../history/useChatHistory";
+import { useChatAiUsage } from "./aiUsage/useAiUsage";
 import { useChatSessionActions } from "./actions/useActions";
 import { useChatSessionHydrationLifecycle } from "./lifecycle/useHydrationLifecycle";
 import { useChatSessionSnapshotSync } from "./snapshotSync/useSnapshotSync";
@@ -70,6 +72,11 @@ export function useChatSessionController(
   const bootstrap = bootstrapRef.current;
   const [state, dispatch] = useReducer(chatSessionControllerReducer, bootstrap.initialState);
   const history = useChatHistory(bootstrap.initialMessages);
+  const { aiUsage, readHeldAiUsage, refreshAiUsageInBackground } = useChatAiUsage({
+    indexedDbOpenRecoveryState,
+    workspaceId,
+    isRemoteReady,
+  });
   const snapshotSync = useChatSessionSnapshotSync({
     indexedDbOpenRecoveryState,
     controllerId,
@@ -94,6 +101,8 @@ export function useChatSessionController(
     dispatch,
     history,
     snapshotSync,
+    readHeldAiUsage,
+    refreshAiUsageInBackground,
   });
 
   useChatSessionHydrationLifecycle({
@@ -123,6 +132,15 @@ export function useChatSessionController(
       isHistoryLoaded: state.isHistoryLoaded,
     });
   }, []);
+
+  const previousRunStateRef = useRef(state.runState);
+  useEffect(() => {
+    const previousRunState = previousRunStateRef.current;
+    previousRunStateRef.current = state.runState;
+    if (isChatRunActive(previousRunState) && isChatRunActive(state.runState) === false) {
+      refreshAiUsageInBackground();
+    }
+  }, [refreshAiUsageInBackground, state.runState]);
 
   const persistWarmStartSnapshot = useEffectEvent((): void => {
     if (
@@ -221,6 +239,8 @@ export function useChatSessionController(
     composerAction: selectChatSessionComposerAction(state),
     composerNotice: state.composerNotice,
     errorDialogMessage: state.errorDialogMessage,
+    aiUsage,
+    refreshAiUsage: refreshAiUsageInBackground,
     dismissErrorDialog,
     acceptServerSessionId,
     ensureRemoteSession,

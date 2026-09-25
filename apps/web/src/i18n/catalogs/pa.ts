@@ -893,6 +893,21 @@ const paCatalog: TranslationCatalog = {
     toggleTitle: "AI ਚੈਟ ਦੇ ਲਿਖਣ ਵਾਲੇ ਖੇਤਰ ਵਿੱਚ ਸੁਝਾਅ ਦਿਖਾਓ",
     toggleDescription: "ਚੈਟ ਵਿਹਲੀ ਅਤੇ ਤਿਆਰ ਹੋਣ ਉੱਤੇ ਸੁਝਾਏ ਪ੍ਰੌਂਪਟ ਲਿਖਣ ਵਾਲੇ ਖੇਤਰ ਦੇ ਉੱਪਰ ਦਿਸਦੇ ਹਨ.",
   },
+  ownOpenAIKeySettings: {
+    title: "ਤੁਹਾਡੀ OpenAI ਕੁੰਜੀ",
+    subtitle: "ਆਪਣੇ OpenAI ਖਾਤੇ ਰਾਹੀਂ AI ਵਰਤੋ.",
+    toggleTitle: "ਮੇਰੀ ਆਪਣੀ OpenAI ਕੁੰਜੀ ਵਰਤੋ",
+    toggleDescription: "ਆਪਣੀ ਕੁੰਜੀ ਨਾਲ AI ਚੈਟ, ਡਿਕਟੇਸ਼ਨ ਅਤੇ ਕਾਰਡ ਦੀਆਂ ਤਸਵੀਰਾਂ ਤੁਹਾਡੇ OpenAI ਖਾਤੇ 'ਤੇ ਚੱਲਦੀਆਂ ਹਨ, ਕਿਸੇ ਵੀ ਪਲਾਨ ਵਿੱਚ ਮਹੀਨਾਵਾਰ ਸੀਮਾ ਤੋਂ ਬਿਨਾਂ. ਜਦੋਂ ਤੱਕ ਤੁਹਾਡੀ ਕੁੰਜੀ ਚਾਲੂ ਹੈ, ਸੁਝਾਏ ਜਵਾਬ ਬੰਦ ਰਹਿੰਦੇ ਹਨ. ਅਸੀਂ ਤੁਹਾਡੀ ਕੁੰਜੀ ਕਦੇ ਵੀ ਆਪਣੇ ਸਰਵਰਾਂ 'ਤੇ ਸਟੋਰ ਨਹੀਂ ਕਰਦੇ: ਇਹ ਇਸੇ ਡਿਵਾਈਸ 'ਤੇ ਰਹਿੰਦੀ ਹੈ ਅਤੇ ਸਿਰਫ਼ ਤੁਹਾਡੀਆਂ AI ਬੇਨਤੀਆਂ ਨਾਲ ਭੇਜੀ ਜਾਂਦੀ ਹੈ, ਇਸ ਲਈ ਇਸਨੂੰ iOS, Android ਅਤੇ ਵੈੱਬ 'ਤੇ ਵੱਖਰੇ ਤੌਰ 'ਤੇ ਦਰਜ ਕਰੋ.",
+    apiKeyLabel: "OpenAI API ਕੁੰਜੀ",
+    apiKeyInvalid: "ਇਹ ਕੁੰਜੀ ਵਰਤੀ ਨਹੀਂ ਜਾ ਸਕਦੀ. OpenAI ਕੁੰਜੀ ਵਿੱਚ ਸਿਰਫ਼ ਲਾਤੀਨੀ ਅੱਖਰ, ਅੰਕ ਅਤੇ ਚਿੰਨ੍ਹ ਹੁੰਦੇ ਹਨ ਅਤੇ ਵੱਧ ਤੋਂ ਵੱਧ 512 ਅੱਖਰ ਹੁੰਦੇ ਹਨ. ਜਦੋਂ ਤੱਕ ਤੁਸੀਂ ਇਸਨੂੰ ਠੀਕ ਨਹੀਂ ਕਰਦੇ, AI ਬੇਨਤੀਆਂ ਤੁਹਾਡੀ ਕੁੰਜੀ ਤੋਂ ਬਿਨਾਂ ਚੱਲਣਗੀਆਂ.",
+    ownSpend: "ਇਸ ਮਹੀਨੇ ਤੁਹਾਡੀ ਕੁੰਜੀ ਨਾਲ: {{count}}",
+    countLabels: {
+      message: {
+        one: "ਸੁਨੇਹਾ",
+        other: "ਸੁਨੇਹੇ",
+      },
+    },
+  },
   analyticsConsentBanner: {
     label: "ਵਿਸ਼ਲੇਸ਼ਣ ਕੂਕੀਜ਼",
     message: "ਅਸੀਂ ਇਹ ਮਾਪਣ ਲਈ ਕਿ ਐਪ ਕਿਵੇਂ ਵਰਤੀ ਜਾਂਦੀ ਹੈ, ਇੱਕ ਕੂਕੀ ਅਤੇ ਹੋਰ ਬ੍ਰਾਊਜ਼ਰ ਸਟੋਰੇਜ ਵਰਤਦੇ ਹਾਂ. ਤੁਹਾਡੇ ਚੁਣਨ ਤੱਕ ਇਹ ਐਪ ਇਸ ਡਿਵਾਈਸ ਉੱਤੇ ਕੁਝ ਨਹੀਂ ਸੰਭਾਲਦੀ ਅਤੇ ਤੁਹਾਡੀ ਪਛਾਣ ਵਾਲਾ ਕੁਝ ਨਹੀਂ ਭੇਜਦੀ.",
@@ -1306,6 +1321,15 @@ const paCatalog: TranslationCatalog = {
       sendAriaLabel: "ਸੁਨੇਹਾ ਭੇਜੋ",
       stopAriaLabel: "ਜਵਾਬ ਰੋਕੋ",
     },
+    aiUsage: {
+      countLabels: {
+        aiMessage: {
+          one: "AI ਸੁਨੇਹਾ",
+          other: "AI ਸੁਨੇਹੇ",
+        },
+      },
+      remaining: "ਇਸ ਮਹੀਨੇ ਬਾਕੀ: {{count}}",
+    },
     alerts: {
       attachmentLimit: "ਸੁਨੇਹਾ ਬਹੁਤ ਵੱਡਾ ਹੈ. AI ਚੈਟ ਇੱਕੋ ਵਾਰ ਵਿੱਚ ਇੰਨੀ ਸਮੱਗਰੀ ਨਹੀਂ ਭੇਜ ਸਕਦੀ. ਇੱਕ ਜਾਂ ਵੱਧ ਅਟੈਚਮੈਂਟਾਂ ਹਟਾਓ, ਛੋਟੀ ਫ਼ਾਈਲ ਜਾਂ ਫ਼ੋਟੋ ਚੁਣੋ, ਜਾਂ ਬੇਨਤੀ ਨੂੰ ਵੰਡ ਕੇ ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ.",
       attachmentUnsupported: "AI ਚੈਟ ਲਈ ਇਹ ਫ਼ਾਈਲ ਕਿਸਮ ਸਮਰਥਿਤ ਨਹੀਂ ਹੈ. ਫ਼ਾਈਲ ਹਟਾਓ ਜਾਂ ਇਸਨੂੰ PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX ਜਾਂ ਚਿੱਤਰ ਵਜੋਂ ਸੰਭਾਲੋ ਅਤੇ ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ.",
@@ -1327,11 +1351,14 @@ const paCatalog: TranslationCatalog = {
     errorTitle: "AI ਚੈਟ ਗਲਤੀ",
     errors: {
       activeRunInProgress: "ਜਵਾਬ ਪਹਿਲਾਂ ਹੀ ਚੱਲ ਰਿਹਾ ਹੈ. ਹੋਰ ਸੁਨੇਹਾ ਭੇਜਣ ਤੋਂ ਪਹਿਲਾਂ ਇਸਦੇ ਪੂਰਾ ਹੋਣ ਦੀ ਉਡੀਕ ਕਰੋ ਜਾਂ ਇਸਨੂੰ ਰੋਕੋ.",
-      aiLimitReached: "ਇਸ ਮਹੀਨੇ ਲਈ ਤੁਹਾਡੀ AI ਸੀਮਾ ਖਤਮ ਹੋ ਗਈ ਹੈ. ਇਹ ਅਗਲੇ ਮਹੀਨੇ ਦੇ ਸ਼ੁਰੂ ਵਿੱਚ ਰੀਸੈਟ ਹੋ ਜਾਵੇਗੀ.",
+      aiLimitReachedAccount: "ਤੁਸੀਂ ਇਸ ਮਹੀਨੇ ਦੇ AI ਸੁਨੇਹੇ ਵਰਤ ਲਏ ਹਨ. ਇਹ {{date}} ਨੂੰ ਨਵੇਂ ਹੋਣਗੇ. ਜਾਰੀ ਰੱਖਣ ਲਈ ਤੁਸੀਂ ਸੈਟਿੰਗਾਂ ਵਿੱਚ ਆਪਣੀ OpenAI ਕੁੰਜੀ ਜੋੜ ਸਕਦੇ ਹੋ.",
+      aiLimitReachedAccountNoDate: "ਤੁਸੀਂ ਇਸ ਮਹੀਨੇ ਦੇ AI ਸੁਨੇਹੇ ਵਰਤ ਲਏ ਹਨ. ਜਾਰੀ ਰੱਖਣ ਲਈ ਤੁਸੀਂ ਸੈਟਿੰਗਾਂ ਵਿੱਚ ਆਪਣੀ OpenAI ਕੁੰਜੀ ਜੋੜ ਸਕਦੇ ਹੋ.",
+      aiLimitReachedGuest: "ਤੁਸੀਂ ਇਸ ਮਹੀਨੇ ਦੇ ਮੁਫ਼ਤ AI ਸੁਨੇਹੇ ਵਰਤ ਲਏ ਹਨ. ਜਾਰੀ ਰੱਖਣ ਲਈ ਖਾਤਾ ਬਣਾਓ ਜਾਂ ਸੈਟਿੰਗਾਂ ਵਿੱਚ ਆਪਣੀ OpenAI ਕੁੰਜੀ ਜੋੜੋ.",
       emptyBackendResponse: "ਬੈਕਐਂਡ ਨੇ ਖਾਲੀ ਗਲਤੀ ਜਵਾਬ ਦਿੱਤਾ.",
       genericFailure: "AI ਚੈਟ ਅਸਫਲ ਰਹੀ.",
       liveStreamEndedBeforeCompletion: "AI ਲਾਈਵ ਸਟ੍ਰੀਮ ਰਨ ਪੂਰਾ ਹੋਣ ਤੋਂ ਪਹਿਲਾਂ ਖ਼ਤਮ ਹੋ ਗਈ.",
       newChatFailedPrefix: "ਨਵੀਂ ਚੈਟ ਅਸਫਲ ਰਹੀ.",
+      ownOpenAIKeyPrefix: "ਤੁਹਾਡੀ ਆਪਣੀ OpenAI ਕੁੰਜੀ ਚਾਲੂ ਹੈ. OpenAI ਨੇ ਤੁਹਾਡੀ ਕੁੰਜੀ ਲਈ ਇਹ ਗਲਤੀ ਵਾਪਸ ਕੀਤੀ. ਇਸਨੂੰ ਆਪਣੇ OpenAI ਖਾਤੇ ਵਿੱਚ ਠੀਕ ਕਰੋ ਅਤੇ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ.",
       refreshFailedPrefix: "ਚੈਟ ਤਾਜ਼ਾ ਕਰਨਾ ਅਸਫਲ ਰਿਹਾ.",
       requestFailedPrefix: "ਚੈਟ ਬੇਨਤੀ ਅਸਫਲ ਰਹੀ.",
       stopFailedPrefix: "ਚੈਟ ਰੋਕਣਾ ਅਸਫਲ ਰਿਹਾ.",

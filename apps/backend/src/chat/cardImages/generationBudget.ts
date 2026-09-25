@@ -6,6 +6,9 @@ import {
 
 const dailyGeneratedCardImageGenerationLimit = 100;
 const monthlyGeneratedCardImageGenerationLimit = 300;
+// The one anti-abuse ceiling for generations paid with the person's own OpenAI key, which replaces both
+// platform ceilings.
+const monthlyOwnKeyGeneratedCardImageGenerationLimit = 1000;
 
 export type GeneratedCardImageGenerationBudgetScope = Readonly<{
   userId: string;
@@ -41,6 +44,7 @@ SELECT
     FROM content.generated_media_promotion_jobs AS jobs
     WHERE jobs.workspace_id = $1
       AND jobs.replica_id = $2
+      AND NOT jobs.user_supplied_key
       AND jobs.created_at >= usage_window.starts_at_utc AT TIME ZONE 'UTC'
       AND jobs.created_at < (usage_window.starts_at_utc + interval '1 day') AT TIME ZONE 'UTC'
   ) AS generation_count,
@@ -48,6 +52,22 @@ SELECT
 FROM usage_window`;
 
 const MONTHLY_GENERATION_USAGE_SQL = `WITH usage_window AS (
+  SELECT date_trunc('month', statement_timestamp() AT TIME ZONE 'UTC') AS starts_at_utc
+)
+SELECT
+  (
+    SELECT count(*)::int
+    FROM content.generated_media_promotion_jobs AS jobs
+    WHERE jobs.workspace_id = $1
+      AND NOT jobs.user_supplied_key
+      AND jobs.created_at >= usage_window.starts_at_utc AT TIME ZONE 'UTC'
+      AND jobs.created_at < (usage_window.starts_at_utc + interval '1 month') AT TIME ZONE 'UTC'
+  ) AS generation_count,
+  to_char(usage_window.starts_at_utc + interval '1 month', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS resets_at
+FROM usage_window`;
+
+// The own-key ceiling's window: every generation in the workspace this UTC month, whoever paid for it.
+const MONTHLY_ALL_GENERATION_USAGE_SQL = `WITH usage_window AS (
   SELECT date_trunc('month', statement_timestamp() AT TIME ZONE 'UTC') AS starts_at_utc
 )
 SELECT
@@ -89,9 +109,9 @@ export async function loadGeneratedCardImageGenerationUsageInExecutor(
 }
 
 /**
- * Counts promotion jobs, which exist only once a generation has been staged, so a paid generation
- * that never reached staging is not counted. Distinct operations that pass this check before any of
- * them enqueues all proceed, so concurrent generations in one scope can end past a limit.
+ * Counts promotion jobs paid with the platform key, which exist only once a generation has been staged, so
+ * a paid generation that never reached staging is not counted. Distinct operations that pass this check
+ * before any of them enqueues all proceed, so concurrent generations in one scope can end past a limit.
  */
 export async function assertGeneratedCardImageGenerationBudgetAvailable(
   scope: GeneratedCardImageGenerationBudgetScope,
@@ -112,6 +132,27 @@ export async function assertGeneratedCardImageGenerationBudgetAvailable(
   if (usage.daily.count >= dailyGeneratedCardImageGenerationLimit) {
     throw new GeneratedCardImageGenerationLimitReachedError(
       "daily", dailyGeneratedCardImageGenerationLimit, usage.daily.resetsAt,
+    );
+  }
+}
+
+/** The race described above applies here too. */
+export async function assertOwnKeyGeneratedCardImageGenerationBudgetAvailable(
+  scope: GeneratedCardImageGenerationBudgetScope,
+): Promise<void> {
+  const monthly = await transactionWithWorkspaceScopeDeadline(
+    { userId: scope.userId, workspaceId: scope.workspaceId },
+    scope.operationDeadlineMs,
+    async (executor) => {
+      const result = await executor.query<GenerationWindowUsageRow>(
+        MONTHLY_ALL_GENERATION_USAGE_SQL, [scope.workspaceId],
+      );
+      return toGenerationWindowUsage(result.rows[0], "monthly");
+    },
+  );
+  if (monthly.count >= monthlyOwnKeyGeneratedCardImageGenerationLimit) {
+    throw new GeneratedCardImageGenerationLimitReachedError(
+      "monthly", monthlyOwnKeyGeneratedCardImageGenerationLimit, monthly.resetsAt,
     );
   }
 }

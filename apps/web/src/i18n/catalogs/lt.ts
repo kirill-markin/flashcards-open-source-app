@@ -902,6 +902,22 @@ const ltCatalog: TranslationCatalog = {
     toggleTitle: "Rodyti pasiūlymus DI pokalbio rašymo lauke",
     toggleDescription: "Siūlomos užklausos rodomos virš rašymo lauko, kai pokalbis neaktyvus ir paruoštas.",
   },
+  ownOpenAIKeySettings: {
+    title: "Jūsų OpenAI raktas",
+    subtitle: "Naudokite DI per savo OpenAI paskyrą.",
+    toggleTitle: "Naudoti savo OpenAI raktą",
+    toggleDescription: "Su savo raktu DI pokalbis, diktavimas ir kortelių vaizdai veikia jūsų OpenAI paskyroje, be mėnesio limito bet kuriame plane. Kol raktas įjungtas, siūlomi atsakymai išjungti. Niekada nesaugome jūsų rakto savo serveriuose: jis lieka šiame įrenginyje ir siunčiamas tik su jūsų DI užklausomis, todėl įveskite jį atskirai iOS, Android ir žiniatinklyje.",
+    apiKeyLabel: "OpenAI API raktas",
+    apiKeyInvalid: "Šio rakto naudoti negalima. OpenAI raktą sudaro tik lotyniškos raidės, skaitmenys ir simboliai, ir jis yra ne ilgesnis nei 512 simbolių. Kol jo nepataisysite, DI užklausos vykdomos be jūsų rakto.",
+    ownSpend: "Šį mėnesį su jūsų raktu: {{count}}",
+    countLabels: {
+      message: {
+        one: "žinutė",
+        few: "žinutės",
+        other: "žinučių",
+      },
+    },
+  },
   analyticsConsentBanner: {
     label: "Analitikos slapukai",
     message: "Naudojame slapuką ir kitą naršyklės saugyklą, kad įvertintume, kaip naudojama programėlė. Kol nepasirinksite, ši programėlė šiame įrenginyje nieko nesaugo ir nesiunčia nieko, kas jus identifikuotų.",
@@ -1318,6 +1334,16 @@ const ltCatalog: TranslationCatalog = {
       sendAriaLabel: "Siųsti žinutę",
       stopAriaLabel: "Sustabdyti atsakymą",
     },
+    aiUsage: {
+      countLabels: {
+        aiMessage: {
+          one: "DI žinutė",
+          few: "DI žinutės",
+          other: "DI žinučių",
+        },
+      },
+      remaining: "Šį mėnesį liko: {{count}}",
+    },
     alerts: {
       attachmentLimit: "Žinutė per didelė. DI pokalbis negali vienu metu išsiųsti tiek turinio. Pašalinkite vieną ar kelis priedus, pasirinkite mažesnį failą ar nuotrauką arba padalykite užklausą ir bandykite dar kartą.",
       attachmentUnsupported: "Šis failo tipas DI pokalbyje nepalaikomas. Pašalinkite failą arba išsaugokite jį kaip PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX ar paveikslėlį ir bandykite dar kartą.",
@@ -1339,11 +1365,14 @@ const ltCatalog: TranslationCatalog = {
     errorTitle: "DI pokalbio klaida",
     errors: {
       activeRunInProgress: "Atsakymas jau kuriamas. Prieš siųsdami kitą žinutę, palaukite, kol jis bus baigtas, arba sustabdykite jį.",
-      aiLimitReached: "Išnaudojote šio mėnesio DI limitą. Jis atkuriamas kito mėnesio pradžioje.",
+      aiLimitReachedAccount: "Išnaudojote šio mėnesio DI žinutes. Jos atsinaujins {{date}}. Norėdami tęsti, nustatymuose galite pridėti savo OpenAI raktą.",
+      aiLimitReachedAccountNoDate: "Išnaudojote šio mėnesio DI žinutes. Norėdami tęsti, nustatymuose galite pridėti savo OpenAI raktą.",
+      aiLimitReachedGuest: "Išnaudojote šio mėnesio nemokamas DI žinutes. Norėdami tęsti, susikurkite paskyrą arba nustatymuose pridėkite savo OpenAI raktą.",
       emptyBackendResponse: "Serveris grąžino tuščią klaidos atsakymą.",
       genericFailure: "DI pokalbis nepavyko.",
       liveStreamEndedBeforeCompletion: "DI tiesioginis srautas baigėsi anksčiau, nei buvo užbaigtas vykdymas.",
       newChatFailedPrefix: "Nepavyko pradėti naujo pokalbio.",
+      ownOpenAIKeyPrefix: "Jūsų OpenAI raktas įjungtas. OpenAI grąžino šią klaidą jūsų raktui. Ištaisykite ją savo OpenAI paskyroje ir bandykite dar kartą.",
       refreshFailedPrefix: "Nepavyko atnaujinti pokalbio.",
       requestFailedPrefix: "Pokalbio užklausa nepavyko.",
       stopFailedPrefix: "Nepavyko sustabdyti pokalbio.",

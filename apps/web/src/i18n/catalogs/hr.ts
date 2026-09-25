@@ -902,6 +902,22 @@ const hrCatalog: TranslationCatalog = {
     toggleTitle: "Prikaži prijedloge u polju za pisanje AI razgovora",
     toggleDescription: "Predloženi upiti pojavljuju se iznad polja za pisanje kad je razgovor neaktivan i spreman.",
   },
+  ownOpenAIKeySettings: {
+    title: "Vaš OpenAI ključ",
+    subtitle: "Koristite AI putem vlastitog OpenAI računa.",
+    toggleTitle: "Koristi moj OpenAI ključ",
+    toggleDescription: "S vlastitim ključem AI razgovor, diktiranje i slike kartica rade na vašem OpenAI računu, bez mjesečnog ograničenja u bilo kojem paketu. Dok je ključ uključen, predloženi odgovori su isključeni. Vaš ključ nikada ne spremamo na naše poslužitelje: ostaje na ovom uređaju i šalje se samo s vašim AI zahtjevima, pa ga unesite zasebno na iOS-u, Androidu i webu.",
+    apiKeyLabel: "OpenAI API ključ",
+    apiKeyInvalid: "Ovaj se ključ ne može koristiti. OpenAI ključ sadrži samo latinična slova, znamenke i simbole te najviše 512 znakova. Dok ga ne ispravite, AI zahtjevi rade bez vašeg ključa.",
+    ownSpend: "Ovaj mjesec s vašim ključem: {{count}}",
+    countLabels: {
+      message: {
+        one: "poruka",
+        few: "poruke",
+        other: "poruka",
+      },
+    },
+  },
   analyticsConsentBanner: {
     label: "Analitički kolačići",
     message: "Koristimo kolačić i drugu pohranu preglednika kako bismo mjerili kako se aplikacija koristi. Dok ne odaberete, ova aplikacija ništa ne pohranjuje na ovaj uređaj i ne šalje ništa što vas identificira.",
@@ -1318,6 +1334,16 @@ const hrCatalog: TranslationCatalog = {
       sendAriaLabel: "Pošalji poruku",
       stopAriaLabel: "Zaustavi odgovor",
     },
+    aiUsage: {
+      countLabels: {
+        aiMessage: {
+          one: "AI poruka",
+          few: "AI poruke",
+          other: "AI poruka",
+        },
+      },
+      remaining: "Preostalo ovaj mjesec: {{count}}",
+    },
     alerts: {
       attachmentLimit: "Poruka je prevelika. AI razgovor ne može odjednom poslati toliko sadržaja. Uklonite jedan ili više privitaka, odaberite manju datoteku ili fotografiju ili podijelite zahtjev i pokušajte ponovno.",
       attachmentUnsupported: "Ova vrsta datoteke nije podržana u AI razgovoru. Uklonite datoteku ili je spremite kao PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX ili sliku, a zatim pokušajte ponovno.",
@@ -1339,11 +1365,14 @@ const hrCatalog: TranslationCatalog = {
     errorTitle: "Pogreška AI razgovora",
     errors: {
       activeRunInProgress: "Odgovor je već u tijeku. Pričekajte da završi ili ga zaustavite prije slanja nove poruke.",
-      aiLimitReached: "Iskoristili ste svoje AI ograničenje za ovaj mjesec. Ponovno se postavlja na početku sljedećeg mjeseca.",
+      aiLimitReachedAccount: "Iskoristili ste AI poruke za ovaj mjesec. Obnavljaju se {{date}}. Za nastavak možete dodati vlastiti OpenAI ključ u Postavkama.",
+      aiLimitReachedAccountNoDate: "Iskoristili ste AI poruke za ovaj mjesec. Za nastavak možete dodati vlastiti OpenAI ključ u Postavkama.",
+      aiLimitReachedGuest: "Iskoristili ste besplatne AI poruke za ovaj mjesec. Za nastavak stvorite račun ili dodajte vlastiti OpenAI ključ u Postavkama.",
       emptyBackendResponse: "Pozadinski sustav vratio je prazan odgovor o pogrešci.",
       genericFailure: "AI razgovor nije uspio.",
       liveStreamEndedBeforeCompletion: "AI prijenos uživo završio je prije dovršetka izvođenja.",
       newChatFailedPrefix: "Novi razgovor nije uspio.",
+      ownOpenAIKeyPrefix: "Vaš vlastiti OpenAI ključ je uključen. OpenAI je za vaš ključ vratio ovu pogrešku. Ispravite je u svom OpenAI računu i pokušajte ponovno.",
       refreshFailedPrefix: "Osvježavanje razgovora nije uspjelo.",
       requestFailedPrefix: "Zahtjev razgovora nije uspio.",
       stopFailedPrefix: "Zaustavljanje razgovora nije uspjelo.",

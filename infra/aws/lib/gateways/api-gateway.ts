@@ -347,6 +347,7 @@ const browserCorsAllowHeaders = [
   "x-media-last-modified-by-replica-id",
   "x-media-last-operation-id",
   "x-package-media-key",
+  "x-openai-api-key",
 ] as const;
 
 const browserCorsExposeHeaders = [
@@ -1088,6 +1089,8 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     mediaAssetsBucket: props.mediaAssetsBucket,
     catalogDumpFunction: props.catalogDumpFunction,
   });
+  // No dead-letter queue or onFailure destination may be added while the person's own OpenAI key travels in
+  // this function's async invoke payload (apps/backend/src/chat/worker/invoke.ts): either would store it.
   const chatWorkerFn = createBackendFunction(scope, {
     constructId: "ChatRunWorkerHandler",
     entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "lambda-chat-worker.ts"),

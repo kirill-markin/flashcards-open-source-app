@@ -21,6 +21,10 @@ import { toAnalyticsDictationFailureReason } from "../../../analytics/failureRea
 import type { TranslationKey, TranslationValues } from "../../../i18n";
 import { isAiLimitReachedError } from "../../shared/chatAiLimitPolicy";
 import {
+  formatOwnOpenAIKeyErrorMessage,
+  isOwnOpenAIKeyError,
+} from "../../shared/chatOwnOpenAIKeyErrorPolicy";
+import {
   insertDictationTranscriptIntoDraft,
   type ChatDictationState,
   type ChatDraftSelection,
@@ -40,6 +44,8 @@ type UseChatDictationCaptureParams = Readonly<{
   inputText: string;
   indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState;
   onTechnicalError: (error: unknown, operation: ChatDictationTechnicalOperation) => boolean;
+  formatAiLimitReachedMessage: () => string;
+  refreshAiUsage: () => void;
   t: Translate;
   textareaRef: RefObject<HTMLTextAreaElement | null>;
   updateInputText: (updateDraftText: (currentInputText: string) => string) => void;
@@ -164,6 +170,8 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
     inputText,
     indexedDbOpenRecoveryState,
     onTechnicalError,
+    formatAiLimitReachedMessage,
+    refreshAiUsage,
     t,
     textareaRef,
     updateInputText,
@@ -550,7 +558,11 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
         } else if (isAuthRedirectError(error)) {
           return;
         } else if (error instanceof ApiError && isAiLimitReachedError({ code: error.code })) {
-          window.alert(t("chatPanel.errors.aiLimitReached"));
+          // Brings the remaining-messages notice down to zero; the refusal does not wait for it.
+          refreshAiUsage();
+          window.alert(formatAiLimitReachedMessage());
+        } else if (error instanceof ApiError && isOwnOpenAIKeyError(error.code)) {
+          window.alert(formatOwnOpenAIKeyErrorMessage(t("chatPanel.errors.ownOpenAIKeyPrefix"), error.message));
         } else if (isExpectedDictationApiError(error)) {
           window.alert(t("chatPanel.errors.genericFailure"));
         } else if (onTechnicalError(error, "chat_dictation_transcribe") === false) {

@@ -893,6 +893,21 @@ const nlCatalog: TranslationCatalog = {
     toggleTitle: "Suggesties tonen in het invoerveld van de AI-chat",
     toggleDescription: "Voorgestelde prompts verschijnen boven het invoerveld wanneer de chat klaar is en niets doet.",
   },
+  ownOpenAIKeySettings: {
+    title: "Je OpenAI-sleutel",
+    subtitle: "Gebruik AI via je eigen OpenAI-account.",
+    toggleTitle: "Mijn eigen OpenAI-sleutel gebruiken",
+    toggleDescription: "Met je eigen sleutel lopen AI-chat, dicteren en kaartafbeeldingen via je OpenAI-account, zonder maandlimiet in elk abonnement. Voorgestelde antwoorden staan uit zolang je sleutel aan staat. We slaan je sleutel nooit op onze servers op: hij blijft op dit apparaat en wordt alleen met je AI-verzoeken meegestuurd, dus voer hem apart in op iOS, Android en het web.",
+    apiKeyLabel: "OpenAI-API-sleutel",
+    apiKeyInvalid: "Deze sleutel kan niet worden gebruikt. Een OpenAI-sleutel bevat alleen Latijnse letters, cijfers en symbolen, en maximaal 512 tekens. Tot je hem corrigeert, lopen AI-verzoeken zonder je sleutel.",
+    ownSpend: "Deze maand met je sleutel: {{count}}",
+    countLabels: {
+      message: {
+        one: "bericht",
+        other: "berichten",
+      },
+    },
+  },
   analyticsConsentBanner: {
     label: "Analytische cookies",
     message: "We gebruiken een cookie en andere browseropslag om te meten hoe de app wordt gebruikt. Tot je een keuze maakt, slaat deze app niets op dit apparaat op en stuurt hij niets waarmee je te herkennen bent.",
@@ -1306,6 +1321,15 @@ const nlCatalog: TranslationCatalog = {
       sendAriaLabel: "Bericht versturen",
       stopAriaLabel: "Antwoord stoppen",
     },
+    aiUsage: {
+      countLabels: {
+        aiMessage: {
+          one: "AI-bericht",
+          other: "AI-berichten",
+        },
+      },
+      remaining: "Nog {{count}} deze maand",
+    },
     alerts: {
       attachmentLimit: "Het bericht is te groot. De AI-chat kan niet zoveel inhoud in één keer versturen. Verwijder een of meer bijlagen, kies een kleiner bestand of een kleinere foto, of splits je verzoek en probeer het opnieuw.",
       attachmentUnsupported: "Dit bestandstype wordt niet ondersteund in de AI-chat. Verwijder het bestand of sla het op als PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX of als afbeelding en probeer het opnieuw.",
@@ -1327,11 +1351,14 @@ const nlCatalog: TranslationCatalog = {
     errorTitle: "Fout in de AI-chat",
     errors: {
       activeRunInProgress: "Er wordt al een antwoord gegeven. Wacht tot het klaar is of stop het voordat je een nieuw bericht stuurt.",
-      aiLimitReached: "Je AI-limiet voor deze maand is opgebruikt. De limiet wordt aan het begin van volgende maand opnieuw ingesteld.",
+      aiLimitReachedAccount: "Je hebt de AI-berichten van deze maand gebruikt. Ze worden op {{date}} vernieuwd. Je kunt in Instellingen je eigen OpenAI-sleutel toevoegen om door te gaan.",
+      aiLimitReachedAccountNoDate: "Je hebt de AI-berichten van deze maand gebruikt. Je kunt in Instellingen je eigen OpenAI-sleutel toevoegen om door te gaan.",
+      aiLimitReachedGuest: "Je hebt de gratis AI-berichten van deze maand gebruikt. Maak een account aan of voeg in Instellingen je eigen OpenAI-sleutel toe om door te gaan.",
       emptyBackendResponse: "De backend gaf een lege foutmelding terug.",
       genericFailure: "De AI-chat is mislukt.",
       liveStreamEndedBeforeCompletion: "De live-stream van de AI stopte voordat de run klaar was.",
       newChatFailedPrefix: "Nieuwe chat mislukt.",
+      ownOpenAIKeyPrefix: "Je eigen OpenAI-sleutel staat aan. OpenAI gaf deze fout voor je sleutel. Los het op in je OpenAI-account en probeer het opnieuw.",
       refreshFailedPrefix: "Chat vernieuwen mislukt.",
       requestFailedPrefix: "Chatverzoek mislukt.",
       stopFailedPrefix: "Chat stoppen mislukt.",
