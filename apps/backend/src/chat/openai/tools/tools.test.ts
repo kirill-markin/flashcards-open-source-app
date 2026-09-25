@@ -63,6 +63,7 @@ const context: OpenAIToolContext = {
   generatedImageOperationDeadlineMs: Date.now() + 120_000,
   clientPlatform: null,
   initiatingAuthIsSignedIn: true,
+  userOpenAIApiKey: null,
   generatedImageObservationContext: {
     scope: createBackendObservationScope(
       "chat-worker",

@@ -46,6 +46,7 @@ type CollectResponseStreamParams = Readonly<{
   signal: AbortSignal | undefined;
   onEvent: OpenAILoopEventSink;
   callIndex: number;
+  userSuppliedKey: boolean;
 }>;
 
 type ResponseStreamCounters = Readonly<{
@@ -429,7 +430,7 @@ export async function collectResponseStream(
     functionCalls: finalResponse.output
       .filter((item) => item.type === "function_call")
       .map((item) => item as ParsedFunctionToolCall),
-    replayItems: finalResponse.output.map(toStoredOpenAIReplayItem),
+    replayItems: finalResponse.output.map((item) => toStoredOpenAIReplayItem(item, params.userSuppliedKey)),
     streamedText,
     toolStates,
     forceComplete,

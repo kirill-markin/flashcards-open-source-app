@@ -65,7 +65,14 @@ export type GeneratedMediaPromotionJobPayload = Readonly<{
   sizeBytes: number;
 }>;
 export type EnqueueRunlessGeneratedMediaPromotionJobInput =
-  GeneratedMediaPromotionJobPayload & Readonly<{ deadlineAtMs: number }>;
+  GeneratedMediaPromotionJobPayload & Readonly<{
+    deadlineAtMs: number;
+    /**
+     * Whether the person's own OpenAI key paid for the generation. Stored on a new job only: a replay that
+     * finds the job already enqueued keeps the stored value.
+     */
+    userSuppliedKey: boolean;
+  }>;
 export type EnqueueGeneratedMediaPromotionJobInput = ChatRunClaimFenceParams
   & EnqueueRunlessGeneratedMediaPromotionJobInput;
 export type EnqueueGeneratedMediaPromotionJobResult =
@@ -559,9 +566,9 @@ async function enqueueGeneratedMediaPromotionJobWithFence(
           `INSERT INTO content.generated_media_promotion_jobs (
              job_id, operation_id, user_id, workspace_id, card_id, target_side, alt_text,
              media_asset_id, replica_id, staging_storage_key, blob_storage_key,
-             sha256, mime_type, size_bytes, protocol_version
+             sha256, mime_type, size_bytes, protocol_version, user_supplied_key
            ) VALUES (
-             $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
+             $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16
            )
            ON CONFLICT DO NOTHING
            RETURNING job_id`,
@@ -570,6 +577,7 @@ async function enqueueGeneratedMediaPromotionJobWithFence(
             input.cardId, input.targetSide, input.altText, input.mediaAssetId, input.replicaId,
             input.stagingStorageKey, input.blobStorageKey, input.sha256,
             input.mimeType, input.sizeBytes, generatedMediaPromotionLifecycleProtocolVersion,
+            input.userSuppliedKey,
           ],
         );
         const insertedRow = inserted.rows[0];

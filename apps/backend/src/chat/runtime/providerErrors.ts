@@ -7,6 +7,7 @@ import {
   CHAT_PROVIDER_TERMINAL_EVENT_ERROR_NAME,
   createProviderTerminalEventError,
   getAIProviderFailureMetadata,
+  readOwnOpenAIKeyProviderErrorText,
 } from "../providerFailure";
 import {
   getErrorLogContext,
@@ -309,6 +310,19 @@ export function createPublicTerminalErrorMessage(error: unknown): string {
   }
 
   return GENERIC_RUNTIME_ERROR_MESSAGE;
+}
+
+/**
+ * The terminal message of a run paid with the person's own key: OpenAI's own text for any call OpenAI
+ * refused, which the client shows under its "your own key" prefix. A rejected attachment and an overlong
+ * conversation keep their guidance, because neither is about the key.
+ */
+export function createOwnOpenAIKeyPublicTerminalErrorMessage(error: unknown): string {
+  if (isChatAttachmentRejectedError(error) || isContextLengthExceededError(error)) {
+    return createPublicTerminalErrorMessage(error);
+  }
+
+  return readOwnOpenAIKeyProviderErrorText(error) ?? createPublicTerminalErrorMessage(error);
 }
 
 /**

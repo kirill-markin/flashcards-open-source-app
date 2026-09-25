@@ -35,6 +35,7 @@ export function createParams(
     clientPlatform: null,
     tierAtCall: "free",
     initiatingAuthIsSignedIn: true,
+    userOpenAIApiKey: null,
     modelId: "gpt-6-sol",
     reasoningEffort: "xhigh",
     timezone: "Europe/Madrid",
@@ -349,6 +350,9 @@ export function createDependencies(
         ): Promise<OpenAIResponseStream> => streamFactory(request),
       },
     } as unknown as OpenAI),
+    createObservedUserOpenAIClient: () => {
+      throw new Error("Loop tests run on the platform key and never build a client from the person's own key.");
+    },
     runOneToolCall: async (params) => {
       const result = await runOneToolCall(params);
       return {

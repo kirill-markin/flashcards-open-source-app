@@ -89,6 +89,7 @@ function createInput(
     altText: "Generated integration diagram",
     replicaId: fixture.replicaId,
     tierAtCall: "free",
+    userOpenAIApiKey: null,
     observationContext: {
       scope: createBackendObservationScope(
         "chat-worker", "generated-image-postgres-integration", null, null, fixture.userId,
@@ -250,6 +251,9 @@ test("generated image operation reconciles ambiguous enqueue without early card 
       let stagedObject: GeneratedMediaStagingObject | null = null;
       const dependencies = createGeneratedCardImageOperationDependencies({
         assertGenerationBudgetAvailableFn: async () => undefined,
+        assertOwnKeyGenerationBudgetAvailableFn: async () => {
+          throw new Error("A platform-key generation must not check the own-key ceiling.");
+        },
         markProviderStartedFn: markGeneratedCardImageProviderStarted,
         markGeneratedMediaProviderStartedObjectFn: async () => {
           throw new Error("Chat operations must not write the storage provider-started marker.");
@@ -453,6 +457,9 @@ test("persisted provider start blocks replay without staging and permits staged 
       let stagedObject: GeneratedMediaStagingObject | null = null;
       const dependencies = createGeneratedCardImageOperationDependencies({
         assertGenerationBudgetAvailableFn: async () => undefined,
+        assertOwnKeyGenerationBudgetAvailableFn: async () => {
+          throw new Error("A platform-key generation must not check the own-key ceiling.");
+        },
         markProviderStartedFn: async (params) => {
           providerStartCalls += 1;
           return markGeneratedCardImageProviderStarted(params);
