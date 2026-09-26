@@ -56,6 +56,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.flashcardsopensourceapp.app.analytics.analyticsSurfaceForRoute
@@ -92,6 +93,7 @@ import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackTrigge
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.sync.defaultAccentColor
 import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
+import com.flashcardsopensourceapp.feature.settings.accent.AccentColorViewModel
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatusSnapshot
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsReconcileTrigger
@@ -138,10 +140,15 @@ fun FlashcardsApp(
         val accountPreferences: AccountPreferences? by accountPreferencesFlow.collectAsStateWithLifecycle(
             initialValue = null
         )
+        val accentColorViewModel = viewModel<AccentColorViewModel>(
+            viewModelStoreOwner = appGraph.accentColorViewModelStoreOwner,
+            factory = appGraph.accentColorViewModelFactory
+        )
+        val accentColorState by accentColorViewModel.uiState.collectAsStateWithLifecycle()
         val entitlement by appGraph.cloudAccountRepository.observeEntitlement()
             .collectAsStateWithLifecycle(initialValue = null)
         val effectiveAccentColor = if (entitlement == null || hasPremiumAccess(entitlement)) {
-            accountPreferences?.accentColor ?: defaultAccentColor
+            accentColorState.selectedColor
         } else {
             defaultAccentColor
         }
