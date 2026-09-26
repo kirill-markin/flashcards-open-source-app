@@ -877,3 +877,14 @@
 "premium.comingSoon.title" = "Premium قادم قريبًا";
 "premium.comingSoon.message" = "الاشتراكات غير متاحة بعد.";
 "premium.aiLimit.title" = "تم بلوغ حد رسائل الذكاء الاصطناعي";
+
+"settings.accentColor.title" = "لون التمييز";
+"settings.accentColor.default" = "الافتراضي";
+"settings.accentColor.blue" = "أزرق";
+"settings.accentColor.purple" = "بنفسجي";
+"settings.accentColor.pink" = "وردي";
+"settings.accentColor.teal" = "فيروزي";
+"settings.accentColor.gold" = "ذهبي";
+"settings.accentColor.custom" = "لون مخصص";
+"settings.accentColor.invalidHex" = "أدخل لونًا بتنسيق #RRGGBB باستخدام ست خانات بالنظام الست عشري.";
+"settings.accentColor.premiumNote" = "ألوان التمييز المخصصة متاحة مع Premium. يعود لونك المحفوظ عندما يكون Premium نشطًا.";

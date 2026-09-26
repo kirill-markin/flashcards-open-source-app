@@ -849,3 +849,14 @@
 "premium.comingSoon.title" = "Premium به‌زودی عرضه می‌شود";
 "premium.comingSoon.message" = "اشتراک‌ها هنوز در دسترس نیستند.";
 "premium.aiLimit.title" = "به سقف پیام‌های هوش مصنوعی رسیده‌اید";
+
+"settings.accentColor.title" = "رنگ تأکیدی";
+"settings.accentColor.default" = "پیش‌فرض";
+"settings.accentColor.blue" = "آبی";
+"settings.accentColor.purple" = "بنفش";
+"settings.accentColor.pink" = "صورتی";
+"settings.accentColor.teal" = "فیروزه‌ای";
+"settings.accentColor.gold" = "طلایی";
+"settings.accentColor.custom" = "رنگ سفارشی";
+"settings.accentColor.invalidHex" = "رنگ را به صورت #RRGGBB با شش رقم هگزادسیمال وارد کنید.";
+"settings.accentColor.premiumNote" = "رنگ‌های تأکیدی سفارشی با Premium در دسترس هستند. وقتی Premium فعال باشد، رنگ ذخیره‌شده شما برمی‌گردد.";

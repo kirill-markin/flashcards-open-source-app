@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const paCatalog: TranslationCatalog = {
+  accentColorSettings: {
+    title: "ਐਕਸੈਂਟ ਰੰਗ",
+    subtitle: "ਐਪ ਦਾ ਐਕਸੈਂਟ ਰੰਗ ਚੁਣੋ।",
+    premiumNote: "ਪਸੰਦੀਦਾ ਐਕਸੈਂਟ ਰੰਗ Premium ਵਿੱਚ ਸ਼ਾਮਲ ਹਨ।",
+    custom: "ਪਸੰਦੀਦਾ ਰੰਗ",
+    hexHelp: "ਬਿਨਾਂ ਪਾਰਦਰਸ਼ਤਾ ਦੇ #RRGGBB ਫਾਰਮੈਟ ਵਿੱਚ ਰੰਗ ਦਰਜ ਕਰੋ।",
+    current: "ਮੌਜੂਦਾ ਰੰਗ: {{color}}",
+    saving: "ਸੰਭਾਲਿਆ ਜਾ ਰਿਹਾ ਹੈ…",
+    default: "ਡਿਫੌਲਟ",
+    blue: "ਨੀਲਾ",
+    purple: "ਜਾਮਨੀ",
+    pink: "ਗੁਲਾਬੀ",
+    teal: "ਨੀਲਾ-ਹਰਾ",
+    gold: "ਸੁਨਹਿਰੀ",
+    hex: "HEX",
+  },
   premium: {
     title: "Premium ਜਲਦੀ ਆ ਰਿਹਾ ਹੈ",
     unavailable: "ਸਬਸਕ੍ਰਿਪਸ਼ਨਾਂ ਹਾਲੇ ਉਪਲਬਧ ਨਹੀਂ ਹਨ।",

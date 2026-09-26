@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const frCatalog: TranslationCatalog = {
+  accentColorSettings: {
+    title: "Couleur d’accentuation",
+    subtitle: "Choisissez la couleur d’accentuation de l’application.",
+    premiumNote: "Les couleurs d’accentuation personnalisées sont incluses avec Premium.",
+    custom: "Couleur personnalisée",
+    hexHelp: "Saisissez une couleur au format #RRGGBB, sans transparence.",
+    current: "Couleur actuelle : {{color}}",
+    saving: "Enregistrement…",
+    default: "Par défaut",
+    blue: "Bleu",
+    purple: "Violet",
+    pink: "Rose",
+    teal: "Bleu-vert",
+    gold: "Doré",
+    hex: "HEX",
+  },
   premium: {
     title: "Premium arrive bientôt",
     unavailable: "Les abonnements ne sont pas encore disponibles.",

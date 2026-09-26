@@ -329,8 +329,8 @@
 }
 
 .account-menu-create-input:focus {
-  border-color: rgba(196, 75, 45, 0.5);
-  box-shadow: 0 0 0 4px rgba(196, 75, 45, 0.14);
+  border-color: rgba(var(--accent-rgb), 0.5);
+  box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.14);
 }
 
 .account-menu-error {
@@ -342,9 +342,9 @@
 .account-menu-banner {
   margin: 2px 2px 8px;
   padding: 10px 12px;
-  border: 1px solid rgba(196, 75, 45, 0.35);
+  border: 1px solid rgba(var(--accent-rgb), 0.35);
   border-radius: var(--radius-sm);
-  background: rgba(196, 75, 45, 0.12);
+  background: rgba(var(--accent-rgb), 0.12);
   color: #ffd7cb;
   font-size: 12px;
   line-height: 1.45;

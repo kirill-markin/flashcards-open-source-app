@@ -849,3 +849,14 @@
 "premium.comingSoon.title" = "Premium yakında geliyor";
 "premium.comingSoon.message" = "Abonelikler henüz kullanılamıyor.";
 "premium.aiLimit.title" = "Yapay zekâ mesaj sınırına ulaşıldı";
+
+"settings.accentColor.title" = "Vurgu rengi";
+"settings.accentColor.default" = "Varsayılan";
+"settings.accentColor.blue" = "Mavi";
+"settings.accentColor.purple" = "Mor";
+"settings.accentColor.pink" = "Pembe";
+"settings.accentColor.teal" = "Turkuaz";
+"settings.accentColor.gold" = "Altın";
+"settings.accentColor.custom" = "Özel renk";
+"settings.accentColor.invalidHex" = "Altı onaltılık basamakla #RRGGBB biçiminde bir renk girin.";
+"settings.accentColor.premiumNote" = "Özel vurgu renkleri Premium ile kullanılabilir. Kaydedilen renginiz Premium etkin olduğunda geri gelir.";

@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const nlCatalog: TranslationCatalog = {
+  accentColorSettings: {
+    title: "Accentkleur",
+    subtitle: "Kies de accentkleur van de app.",
+    premiumNote: "Aangepaste accentkleuren zijn inbegrepen bij Premium.",
+    custom: "Aangepaste kleur",
+    hexHelp: "Voer een kleur in als #RRGGBB, zonder transparantie.",
+    current: "Huidige kleur: {{color}}",
+    saving: "Opslaan…",
+    default: "Standaard",
+    blue: "Blauw",
+    purple: "Paars",
+    pink: "Roze",
+    teal: "Blauwgroen",
+    gold: "Goud",
+    hex: "HEX",
+  },
   premium: {
     title: "Premium komt binnenkort",
     unavailable: "Abonnementen zijn nog niet beschikbaar.",

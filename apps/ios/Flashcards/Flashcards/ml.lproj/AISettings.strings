@@ -849,3 +849,14 @@
 "premium.comingSoon.title" = "Premium ഉടൻ വരുന്നു";
 "premium.comingSoon.message" = "സബ്‌സ്‌ക്രിപ്ഷനുകൾ ഇതുവരെ ലഭ്യമല്ല.";
 "premium.aiLimit.title" = "AI സന്ദേശങ്ങളുടെ പരിധിയിലെത്തി";
+
+"settings.accentColor.title" = "ഹൈലൈറ്റ് നിറം";
+"settings.accentColor.default" = "ഡിഫോൾട്ട്";
+"settings.accentColor.blue" = "നീല";
+"settings.accentColor.purple" = "പർപ്പിൾ";
+"settings.accentColor.pink" = "പിങ്ക്";
+"settings.accentColor.teal" = "നീലപ്പച്ച";
+"settings.accentColor.gold" = "സ്വർണ്ണം";
+"settings.accentColor.custom" = "ഇഷ്ടമുള്ള നിറം";
+"settings.accentColor.invalidHex" = "ആറ് ഹെക്സാഡെസിമൽ അക്കങ്ങൾ ഉപയോഗിച്ച് #RRGGBB രൂപത്തിൽ നിറം നൽകുക.";
+"settings.accentColor.premiumNote" = "ഇഷ്ടമുള്ള ഹൈലൈറ്റ് നിറങ്ങൾ Premium-ൽ ലഭ്യമാണ്. Premium സജീവമാകുമ്പോൾ സംരക്ഷിച്ച നിറം തിരിച്ചുവരും.";

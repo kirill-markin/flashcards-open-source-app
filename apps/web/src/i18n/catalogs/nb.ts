@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const nbCatalog: TranslationCatalog = {
+  accentColorSettings: {
+    title: "Aksentfarge",
+    subtitle: "Velg appens aksentfarge.",
+    premiumNote: "Egendefinerte aksentfarger er inkludert i Premium.",
+    custom: "Egendefinert farge",
+    hexHelp: "Skriv inn en farge i formatet #RRGGBB uten gjennomsiktighet.",
+    current: "Gjeldende farge: {{color}}",
+    saving: "Lagrer…",
+    default: "Standard",
+    blue: "Blå",
+    purple: "Lilla",
+    pink: "Rosa",
+    teal: "Blågrønn",
+    gold: "Gull",
+    hex: "HEX",
+  },
   premium: {
     title: "Premium kommer snart",
     unavailable: "Abonnementer er ikke tilgjengelige ennå.",

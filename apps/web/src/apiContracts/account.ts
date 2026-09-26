@@ -12,6 +12,7 @@ import type {
   WorkspaceSummary,
 } from "../types";
 import {
+  ApiContractError,
   parseArray,
   parseBoolean,
   parseEnum,
@@ -48,9 +49,18 @@ function parseAnalyticsConsent(
   return value === null ? null : parseEnum<AnalyticsConsentChoice>(value, endpoint, path, ["granted", "declined"]);
 }
 
+function parseAccentColor(value: unknown, endpoint: string, path: string): string {
+  const color = parseString(value, endpoint, path);
+  if (color.length !== 7 || !/^#[0-9A-F]{6}$/.test(color)) {
+    throw new ApiContractError(endpoint, path, "uppercase #RRGGBB color");
+  }
+  return color;
+}
+
 function parseAccountPreferences(value: unknown, endpoint: string, path: string): AccountPreferences {
   const objectValue = parseObject(value, endpoint, path);
   return {
+    accentColor: parseRequiredField(objectValue, "accentColor", endpoint, path, parseAccentColor),
     reviewReactionAnimationsEnabled: parseRequiredField(
       objectValue,
       "reviewReactionAnimationsEnabled",

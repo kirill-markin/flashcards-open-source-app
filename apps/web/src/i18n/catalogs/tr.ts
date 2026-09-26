@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const trCatalog: TranslationCatalog = {
+  accentColorSettings: {
+    title: "Vurgu rengi",
+    subtitle: "Uygulamanın vurgu rengini seçin.",
+    premiumNote: "Özel vurgu renkleri Premium’a dahildir.",
+    custom: "Özel renk",
+    hexHelp: "Saydamlık olmadan #RRGGBB biçiminde bir renk girin.",
+    current: "Geçerli renk: {{color}}",
+    saving: "Kaydediliyor…",
+    default: "Varsayılan",
+    blue: "Mavi",
+    purple: "Mor",
+    pink: "Pembe",
+    teal: "Mavi-yeşil",
+    gold: "Altın",
+    hex: "HEX",
+  },
   premium: {
     title: "Premium yakında geliyor",
     unavailable: "Abonelikler henüz kullanılamıyor.",

@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const guCatalog: TranslationCatalog = {
+  accentColorSettings: {
+    title: "ઍક્સેન્ટ રંગ",
+    subtitle: "ઍપનો ઍક્સેન્ટ રંગ પસંદ કરો.",
+    premiumNote: "પસંદગીના ઍક્સેન્ટ રંગો Premiumમાં સામેલ છે.",
+    custom: "પસંદગીનો રંગ",
+    hexHelp: "પારદર્શિતા વગર #RRGGBB સ્વરૂપમાં રંગ દાખલ કરો.",
+    current: "હાલનો રંગ: {{color}}",
+    saving: "સાચવી રહ્યું છે…",
+    default: "ડિફૉલ્ટ",
+    blue: "વાદળી",
+    purple: "જાંબલી",
+    pink: "ગુલાબી",
+    teal: "વાદળી લીલો",
+    gold: "સોનેરી",
+    hex: "HEX",
+  },
   premium: {
     title: "Premium ટૂંક સમયમાં આવી રહ્યું છે",
     unavailable: "સબ્સ્ક્રિપ્શન હજી ઉપલબ્ધ નથી.",

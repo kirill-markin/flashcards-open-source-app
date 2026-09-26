@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const hrCatalog: TranslationCatalog = {
+  accentColorSettings: {
+    title: "Boja naglaska",
+    subtitle: "Odaberite boju naglaska aplikacije.",
+    premiumNote: "Prilagođene boje naglaska uključene su u Premium.",
+    custom: "Prilagođena boja",
+    hexHelp: "Unesite boju u obliku #RRGGBB, bez prozirnosti.",
+    current: "Trenutačna boja: {{color}}",
+    saving: "Spremanje…",
+    default: "Zadano",
+    blue: "Plava",
+    purple: "Ljubičasta",
+    pink: "Ružičasta",
+    teal: "Plavozelena",
+    gold: "Zlatna",
+    hex: "HEX",
+  },
   premium: {
     title: "Premium stiže uskoro",
     unavailable: "Pretplate još nisu dostupne.",

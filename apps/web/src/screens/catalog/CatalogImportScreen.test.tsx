@@ -86,6 +86,7 @@ function createSession(): SessionInfo {
     authTransport: "session",
     csrfToken: "csrf-token-1",
     preferences: {
+      accentColor: "#C44B2D",
       reviewReactionAnimationsEnabled: true,
       analyticsConsent: null,
       productAnalyticsEnabled: null,
@@ -265,7 +266,7 @@ function createAppData(workspaces: ReadonlyArray<WorkspaceSummary>): Mutable<App
     technicalError: null,
     setErrorMessage: vi.fn(),
     setAccountPreferences: vi.fn(),
-    refreshAccountPreferences: vi.fn(async () => ({ reviewReactionAnimationsEnabled: true })),
+    refreshAccountPreferences: vi.fn(async () => ({ accentColor: "#C44B2D", reviewReactionAnimationsEnabled: true })),
     initialize: vi.fn(async (): Promise<void> => undefined),
     chooseWorkspace: vi.fn(async (_workspaceId: string): Promise<void> => undefined),
     createWorkspace: vi.fn(async (_name: string): Promise<void> => undefined),

@@ -119,6 +119,18 @@ struct SettingsView: View {
             }
 
             Section(aiSettingsLocalized("settings.section.general", "General")) {
+                NavigationLink(value: SettingsNavigationDestination.accentColor) {
+                    HStack {
+                        Label(accentColorSettingsTitle(), systemImage: "paintpalette")
+                        Spacer()
+                        Circle()
+                            .fill(store.effectiveAccountAccentColor.color)
+                            .frame(width: 22, height: 22)
+                            .accessibilityLabel(store.effectiveAccountAccentColor.hex)
+                    }
+                }
+                .accessibilityIdentifier(UITestIdentifier.settingsAccentColorRow)
+
                 NavigationLink(value: SettingsNavigationDestination.notifications) {
                     SettingsNavigationRow(
                         title: aiSettingsLocalized("settings.row.notifications", "Notifications"),

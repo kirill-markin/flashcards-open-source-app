@@ -1,4 +1,20 @@
 const enCatalog = {
+  accentColorSettings: {
+    title: "Accent color",
+    subtitle: "Choose the app’s accent color.",
+    premiumNote: "Custom accent colors are included with Premium.",
+    custom: "Custom color",
+    hexHelp: "Enter a color in #RRGGBB format, without transparency.",
+    current: "Current color: {{color}}",
+    saving: "Saving…",
+    default: "Default",
+    blue: "Blue",
+    purple: "Purple",
+    pink: "Pink",
+    teal: "Teal",
+    gold: "Gold",
+    hex: "HEX",
+  },
   premium: {
     title: "Premium is coming soon",
     unavailable: "Subscriptions aren’t available yet.",
