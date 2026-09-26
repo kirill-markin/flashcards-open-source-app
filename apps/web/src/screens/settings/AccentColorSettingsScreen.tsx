@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, type ReactElement } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactElement } from "react";
 import { isAuthRedirectError, updateAccountPreferences } from "../../api";
-import { beginAccountPreferenceWrite, finishAccountPreferenceWrite, hasPendingAccentColorWrite, isCurrentAccountPreferenceWrite } from "../../appData/session/accentColorWrite";
+import { hasPendingAccentColorWrite, queueAccentColorWrite, subscribeToAccountPreferenceWrites } from "../../appData/session/accentColorWrite";
 import { useAppData } from "../../appData";
 import { markIndexedDbOpenRecoveryFailureAndCheckActive, useAppErrorDialog } from "../../appError/AppErrorContext";
 import { useI18n } from "../../i18n";
@@ -24,13 +24,15 @@ function AccentColorEditor(): ReactElement {
   const { selectedColor, effectiveColor, canCustomize } = useAccountAccentColor();
   const [customColor, setCustomColor] = useState(selectedColor);
   const [errorMessage, setErrorMessage] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const submittingRef = useRef(false);
   const mountedRef = useRef(false);
   const sessionRef = useRef(session);
   sessionRef.current = session;
-  const isSaving = isSubmitting || hasPendingAccentColorWrite(session?.userId ?? null);
-  const isDisabled = isSaving || !isSessionVerified || session === null;
+  const isSaving = useSyncExternalStore(
+    subscribeToAccountPreferenceWrites,
+    () => hasPendingAccentColorWrite(session?.userId ?? null),
+  );
+  const isDisabled = !isSessionVerified || session === null;
+  const isCustomSelected = !accentPresets.some((preset) => preset.color === selectedColor);
   const isValidCustomColor = customColor.length === 7 && /^#[0-9a-fA-F]{6}$/.test(customColor);
 
   useEffect(() => {
@@ -38,7 +40,9 @@ function AccentColorEditor(): ReactElement {
     return (): void => { mountedRef.current = false; };
   }, []);
 
-  useEffect(() => { setCustomColor(selectedColor); }, [selectedColor]);
+  useEffect(() => {
+    setCustomColor((draft) => /^#[0-9a-fA-F]{6}$/.test(draft) ? selectedColor : draft);
+  }, [selectedColor]);
 
   function showPreferenceError(error: unknown, operation: "account_preferences_refresh" | "account_preferences_update"): void {
     if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)
@@ -75,38 +79,25 @@ function AccentColorEditor(): ReactElement {
     return (): void => { cancelled = true; };
   }, [indexedDbOpenRecoveryState, isSessionVerified, refreshAccountPreferences, session?.userId]);
 
-  async function persistColor(color: string): Promise<void> {
+  function persistColor(color: string): void {
     const currentSession = sessionRef.current;
-    if (!mountedRef.current || submittingRef.current || currentSession === null
-      || hasPendingAccentColorWrite(currentSession?.userId ?? null)
+    if (!mountedRef.current || currentSession === null
       || !isSessionVerified || indexedDbOpenRecoveryState.hasFailed()) {
       return;
     }
-    const userId = currentSession.userId;
-    const previousColor = currentSession.preferences.accentColor;
-    const write = beginAccountPreferenceWrite(userId, "accentColor");
-    submittingRef.current = true;
-    setIsSubmitting(true);
+    setCustomColor(color);
     setErrorMessage("");
-    setAccountPreferences(userId, { accentColor: color });
-    try {
-      const response = await updateAccountPreferences({ accentColor: color });
-      indexedDbOpenRecoveryState.throwIfFailed();
-      if (isCurrentAccountPreferenceWrite(write)) {
-        setAccountPreferences(userId, { accentColor: response.preferences.accentColor });
-      }
-    } catch (error) {
-      if (isCurrentAccountPreferenceWrite(write)) {
-        setAccountPreferences(userId, { accentColor: previousColor });
-        showPreferenceError(error, "account_preferences_update");
-      }
-    } finally {
-      finishAccountPreferenceWrite(write);
-      submittingRef.current = false;
-      if (mountedRef.current) {
-        setIsSubmitting(false);
-      }
-    }
+    const userId = currentSession.userId;
+    queueAccentColorWrite(userId, color, currentSession.preferences.accentColor, {
+      apply: (nextColor): void => setAccountPreferences(userId, { accentColor: nextColor }),
+      save: async (nextColor, signal): Promise<string> => {
+        indexedDbOpenRecoveryState.throwIfFailed();
+        const response = await updateAccountPreferences({ accentColor: nextColor }, { userId, signal });
+        indexedDbOpenRecoveryState.throwIfFailed();
+        return response.preferences.accentColor;
+      },
+      onError: (error): void => showPreferenceError(error, "account_preferences_update"),
+    });
   }
 
   function chooseColor(color: string): void {
@@ -114,7 +105,7 @@ function AccentColorEditor(): ReactElement {
       return;
     }
     if (color === defaultAccentColor || canCustomize) {
-      void persistColor(color);
+      persistColor(color);
       return;
     }
     const generation = readEntitlementIdentityGeneration();
@@ -123,7 +114,7 @@ function AccentColorEditor(): ReactElement {
       requiredRank: 20,
       onResult: (result): void => {
         if (result === "granted" && mountedRef.current && generation === readEntitlementIdentityGeneration()) {
-          void persistColor(color);
+          persistColor(color);
         }
       },
     });
@@ -159,17 +150,24 @@ function AccentColorEditor(): ReactElement {
         </fieldset>
       </SettingsGroup>
       <SettingsGroup title={t("accentColorSettings.custom")}>
-        <form className="content-card accent-custom" onSubmit={(event) => {
-          event.preventDefault();
-          if (isValidCustomColor) { chooseColor(customColor.toUpperCase()); }
-        }}>
+        <div className="content-card accent-custom" data-selected={isCustomSelected}>
+          {isCustomSelected ? (
+            <span className="badge accent-custom-selected" data-testid="accent-custom-selected">
+              <span aria-hidden="true">✓</span>
+              {t("common.active")}
+            </span>
+          ) : null}
           <label className="accent-custom-picker">
             {t("accentColorSettings.custom")}
             <input
               type="color"
               value={isValidCustomColor ? customColor : selectedColor}
               disabled={isDisabled}
-              onChange={(event) => setCustomColor(event.target.value.toUpperCase())}
+              onChange={(event) => {
+                const color = event.target.value.toUpperCase();
+                setCustomColor(color);
+                chooseColor(color);
+              }}
               data-testid="accent-custom-picker"
             />
           </label>
@@ -180,7 +178,13 @@ function AccentColorEditor(): ReactElement {
               className="settings-input"
               dir="ltr"
               value={customColor}
-              onChange={(event) => setCustomColor(event.target.value)}
+              onChange={(event) => {
+                const draft = event.target.value;
+                setCustomColor(draft);
+                if (/^#[0-9a-fA-F]{6}$/.test(draft)) {
+                  chooseColor(draft.toUpperCase());
+                }
+              }}
               pattern="#[0-9a-fA-F]{6}"
               maxLength={7}
               required
@@ -191,10 +195,7 @@ function AccentColorEditor(): ReactElement {
             />
           </label>
           <p id="accent-hex-help" className="subtitle">{t("accentColorSettings.hexHelp")}</p>
-          <button className="primary-btn" type="submit" disabled={isDisabled || !isValidCustomColor} data-testid="accent-custom-save">
-            {t("common.save")}
-          </button>
-        </form>
+        </div>
         <p className="subtitle" data-testid="accent-current-color">{t("accentColorSettings.current", { color: effectiveColor })}</p>
         {isSaving ? <p className="subtitle" role="status">{t("accentColorSettings.saving")}</p> : null}
         {errorMessage !== "" ? <p className="error-banner" role="alert">{errorMessage}</p> : null}
