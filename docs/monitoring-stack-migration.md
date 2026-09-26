@@ -99,8 +99,22 @@ runs: new ownership guards cannot change the workflow code stored in old runs.
 
 `scripts/deploy/migrate-monitoring-stack.py` uses AWS CLI 2.36.24 and the public
 CloudFormation API. It assumes the existing lookup, file-publishing and deployment
-roles separately from the original GitHub OIDC credentials. No bootstrap or IAM
-change is part of this operation. A permissions failure stops the release.
+roles separately from the original GitHub OIDC credentials. Before native preview,
+the deployment role creates `FlashcardsOpenSourceAppMonitoringRefactorAccess`
+using the unchanged bootstrap CloudFormation execution role. Its single role,
+`cdk-monitoring-refactor-506210661494-eu-central-1`, trusts only the existing
+GitHub deployment role. It has AWS managed `ReadOnlyAccess`, the two native
+refactor APIs scoped to the exact source ARN and monitoring target name, and
+CloudWatch TagResource/UntagResource scoped to the 58 existing alarm ARNs.
+It has no additional provider writes or CloudFormation create/update permissions.
+
+The policy is generated inline from the current physical inventory. An existing
+access stack must match its template and single role identity. AssumeRole retries
+only propagation AccessDenied errors, with warnings and a two-minute deadline.
+The dedicated caller must read the original RDS instance before it creates or
+executes a native refactor. Private evidence continues to use the file-publishing
+role. The access stack is deleted only after verified native completion; an
+already-split rerun verifies its receipt and ownership before pending cleanup.
 
 The driver refreshes templates, stack policies, resource inventories, supported
 resource types, all alarm/filter configurations and the confirmed SNS subscription.
@@ -120,14 +134,13 @@ environments. Only sanitized mappings/counts are public artifacts.
 
 `CreateStackRefactor` must reach `CREATE_COMPLETE` / `AVAILABLE`. Every paginated
 server action must match the exact 66 physical resource moves and optionally one
-target `STACK/CREATE`. Resource creation and unexpected tags/mappings stop before
-execution. MOVE descriptions must be exactly `No configuration changes detected.`
-or `Resource configuration changes will be validated during refactor execution.`
-The [AWS procedure](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/stack-refactoring.html#stack-refactoring-cli)
-documents both descriptions before execution. Deferred validation does not permit
-configuration changes; the strict template and preservation gates still apply.
-The source template, stack,
-identities and monitoring configuration must still match the captured baseline.
+target `STACK/CREATE`. Resource creation and unexpected tags/mappings stop before execution. Informational
+action descriptions and the optional representation of STACK/CREATE are not
+configuration gates: authoritative stack IDs and the exact 66 physical moves are.
+The source template, resource identities, semantic outputs/parameters/role/tags
+and live monitoring configuration must still match the captured baseline;
+DescribeStacks timestamps and operation metadata do not establish configuration
+drift.
 The driver executes only that refactor ID and requires `EXECUTE_COMPLETE`, then
 polls both authoritative stack IDs for up to ten minutes. Only expected create/update
 progress is tolerated; failure, rollback, API errors or timeout stop before postchecks.
@@ -146,106 +159,63 @@ metadata/bootstrap bookkeeping (66 moved resources become 67 target resources).
 The current server preview remains an execution gate; prior template comparison
 alone does not prove AWS eligibility.
 
-## Interruption and recovery
+## Startup reconciliation and interruption
 
-On failure, retain the operation ID and private evidence, inspect both stacks and
-`describe-stack-refactor`, and stop before any further deployment. Failed,
-obsolete, available or in-progress operations require deliberate inspection and
-an explicitly reviewed resume; the driver never guesses or automatically retries
-a prior operation. An `EXECUTE_COMPLETE` operation without its matching verified
-receipt is also blocked with its operation ID, even when ownership already moved.
-For explicit recovery, retain the original private before/after evidence and establish
-all original identity, output and runtime preservation checks in a separately reviewed
-CI procedure before writing a receipt. Never write one merely because execution
-completed or type counts match. Recovery is limited to the reviewed operation below.
-A preview may reserve an empty target stack. Do not delete it
-or recreate resources to clear a blocked run.
+The CI-only `reconcile` command runs before ownership resolution or ordinary
+deployment, under the existing `main-release` serialization. It handles only native
+operation `b25a93ec-bef4-4f12-9083-bdb41e4a5af3`, the original core ARN and the
+original empty target ARN pinned in the helper. Original private evidence is
+downloaded from the existing bootstrap bucket and hash checked before use.
 
-### Unchanged alarm rollback recovery
+For the source's `UPDATE_ROLLBACK_FAILED` state, reconciliation verifies all 497
+original identities, the template, semantic stack settings and all 58 alarm /
+8 filter / SNS live configurations. Latest alarm failures must belong to the
+same incident's rollback interval, using the known prior recovery tokens or
+the complete-set recovery token. Forward failures, other resource types and
+unrelated failures stop the release.
 
-CI runs `recover-unchanged-alarms` before `recover-core`. This incident-only path
-requires the pinned failed native operation, both original stack ARNs, the empty
-failed target, and the original 497 identities, template, stack settings and
-58 alarm / 8 filter / SNS live configurations. Only original alarms may be failed;
-all other resources must be complete. The latest rollback interval must match the
-known prior recovery token/operation or this command's incident-specific tokens.
+Within a 600-second deadline, the helper submits the complete current failed
+alarm set: the known null AlarmName InternalFailure and dependent cancellations
+during that rollback. The [AWS rollback guide](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-continueupdaterollback.html)
+allows failures during rollback and says dependent skips might not be necessary.
+AWS remains authoritative on accepting the submitted IDs. Each mutation preserves
+the original execution role, gets one CLI attempt and a deterministic token, and
+requires fresh preservation proof. Overlapping sets are allowed when the set
+changes, bounded by the original 58 alarms. Repeating an identical complete set
+stops with failure evidence. Requests, accepted responses, events and snapshots
+are private; an API rejection retains its exact error and current ownership.
+CloudTrail omission of skip IDs or the token does not establish missing arguments.
 
-Within one 600-second deadline, CI selects currently failed alarms with the known
-null `getAlarmName()` / `InternalFailure`, refreshes preservation and event proof,
-and submits [ContinueUpdateRollback](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_ContinueUpdateRollback.html)
-with only those IDs, the original execution role and a stable token derived from
-the selected IDs. Each submission makes one CLI attempt. Further original alarms
-with the same provider failure are handled automatically, up to 58 distinct skips.
-Cancelled updates are never skipped unless a later attempt actually returns the
-known provider error. API errors, timeout, unrelated operations, other failures,
-configuration changes and no eligible progress stop recovery.
+Recovery must finish at `UPDATE_ROLLBACK_COMPLETE` with every resource complete
+and original configuration intact. Only then may reconciliation delete the exact
+`ROLLBACK_FAILED` target after proving it has zero resources. It uses standard
+DeleteStack, never force deletion or retain/import. A ten-minute wait requires
+`DELETE_COMPLETE`, followed by the complete original preservation proof.
+An interrupted deletion can resume only for that original ARN with the same proof.
 
-Exact original live configuration equality is the preservation contract; this
-path does not use the drift API. Completion (including an already restored source)
-requires full preservation and every resource complete. Private
-`alarm-recovery-*.private.json` snapshots, events and accepted requests use the
-existing encrypted evidence bucket. This creates no migration receipt: native
-`ROLLBACK_FAILED` still blocks deployment. Native/target reconciliation and live
-health verification remain separate delivery responsibilities.
+The encrypted `monitoring-refactor/aborted/<old-operation-id>.private.json`
+receipt binds the old operation, both original stack IDs, the original evidence
+hash and the final preservation evidence. It is distinct from a successful
+migration receipt. Only this receipt plus authoritative deletion of the empty
+old target permits the historical failed operation to be ignored. Once retired,
+reruns use current ownership and do not compare later legitimate core deployments
+against the incident's old Lambda versions.
 
-### Original core rollback recovery
+The normal two-pass legacy deployment then establishes the current commit's
+baseline before a fresh native preview using the same `cdk.out` staging directory.
+No saved split assembly from the failed attempt is reused. Unknown unresolved
+operations, partial ownership, AWS eligibility failures or live configuration
+changes stop with the concrete error and evidence; they never trigger resource
+recreation or a guessed native-status reset. An EXECUTE_COMPLETE operation without
+its operation-linked verified receipt requires explicit recovery.
 
-Before the reviewed native resume, CI runs `recover-core` for the pinned failed
-operation below. It requires native `ROLLBACK_FAILED`, the exact original source
-in `UPDATE_ROLLBACK_FAILED`, and the exact empty target in `ROLLBACK_FAILED`.
-The hashed original evidence must match all 497 identities, the source template,
-outputs, parameters, tags, execution role and alarm/filter/SNS configurations;
-every resource must have a completed status. The command invokes only
-[ContinueUpdateRollback](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_ContinueUpdateRollback.html)
-on the original source ARN with its original CloudFormation execution role and a
-stable incident token, without skipping resources. It polls rollback progress for
-up to ten minutes and repeats the preservation proof at `UPDATE_ROLLBACK_COMPLETE`.
-An already restored source requires the same proof without another rollback call.
-Other states remain subject to the existing native and ownership guards.
-
-Private `core-recovery-before.private.json` and `core-recovery-after.private.json`
-evidence uses the existing encrypted bucket and run/hash prefix. This does not
-produce a migration receipt, retry the native operation or change the empty target.
-The unchanged resume guard still rejects native `ROLLBACK_FAILED`, so the release
-remains blocked even after core control is restored. Further native recovery,
-permissions and cleanup require a separate reviewed plan.
-
-### Reviewed available-operation resume
-
-Before ownership resolution or any ordinary CDK deployment, `AWS/Web Release`
-runs the CI-only `resume-reviewed` command under `main-release` concurrency with
-the pinned AWS CLI. It may execute only operation
-`b25a93ec-bef4-4f12-9083-bdb41e4a5af3`, using the exact source and target ARNs and
-three SHA256 evidence digests embedded in `migrate-monitoring-stack.py`.
-It never creates another preview or realigns the source to the current commit.
-
-The original `operation.private.json`, `before.private.json` and
-`actions.private.json` are downloaded privately from the bootstrap bucket under
-`monitoring-refactor/36241107324/1/<content-hash>/` using the file-publishing role.
-Every hash is checked before parsing. Do not print these snapshots or upload them
-as artifacts. The original transport templates remain at that prefix unchanged.
-
-Execution requires `CREATE_COMPLETE` / `AVAILABLE`, no other unresolved relevant
-refactor, the original `UPDATE_COMPLETE` source with all 497 identities, template,
-stack state/outputs and alarm/filter/SNS configurations unchanged, no source stack
-policy, and the exact empty target in `REVIEW_IN_PROGRESS`. Current actions must
-match the saved actions and the exact 66 original moves, allowing only the two
-documented MOVE descriptions to differ. The driver repeats this freshness check
-immediately before executing the pinned ID, then uses the same stabilization,
-preservation, private after-snapshot and verified-receipt path as the initial move.
-
-Later releases accept this operation only at `CREATE_COMPLETE` / `EXECUTE_COMPLETE`
-with its existing verified receipt and matching current stack/moved identities.
-They do not compare obsolete core Lambda versions against the original snapshot.
-If the pinned ID is absent, the existing ownership gate must pass before returning
-to the generic fresh, legacy or split path; other unresolved operations and reserved
-empty targets remain blocked. Missing evidence, drift, unexpected statuses and
-execution without a verified receipt stop the release for a new reviewed procedure.
-
-After a verified native move, ordinary ownership resolution selects split and the existing
-two-pass deployment, database/schedule verification, web/API/MCP smokes and deployed
-SHA recording must complete. Cleanup remains separate until that full release and
-the expected 431 core / 67 monitoring resources are verified.
+After native preservation and receipt creation, the temporary access stack is
+deleted with the original deployment/execution roles and a bounded wait. The
+ordinary split deployment restores target CDKMetadata, yielding 431 core / 67
+monitoring resources. The existing database/schedule checks, web/Agent API/MCP
+smokes and deployed-SHA recording must complete. Delivery evidence must also
+confirm backend DB/auth/data health. Final removal of temporary migration
+machinery remains a separate cleanup item after the full release is green.
 
 After transfer, use fix-forward split releases. Never revert to the old topology,
 rerun old legacy workflow code, delete/recreate monitoring resources, or substitute
