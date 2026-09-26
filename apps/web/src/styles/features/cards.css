@@ -44,7 +44,7 @@
 .cards-filter-trigger-active {
   border-color: rgba(var(--accent-rgb), 0.35);
   background: rgba(var(--accent-rgb), 0.14);
-  color: var(--accent-strong);
+  color: var(--text);
 }
 
 .cards-filter-popover {
@@ -153,7 +153,7 @@
 }
 
 .cards-header-button-active {
-  color: var(--accent-strong);
+  color: var(--text);
 }
 
 .cards-header-sort-meta {
@@ -171,12 +171,13 @@
   padding: 0 4px;
   border-radius: var(--radius-pill);
   background: var(--accent-soft);
-  color: var(--accent-strong);
+  color: var(--text);
   font-size: 11px;
   font-weight: 700;
 }
 
 .cards-header-sort-direction {
+  color: var(--accent-strong);
   font-size: 12px;
 }
 

@@ -123,7 +123,7 @@ export function readEntitlementSnapshot(userId: string | null): EntitlementSnaps
   return userId !== null && userId === activeUserId ? snapshot : null;
 }
 
-function subscribeToEntitlement(listener: () => void): () => void {
+export function subscribeToEntitlement(listener: () => void): () => void {
   window.addEventListener(changeEventName, listener);
   return (): void => window.removeEventListener(changeEventName, listener);
 }
