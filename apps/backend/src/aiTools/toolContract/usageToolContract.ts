@@ -10,7 +10,7 @@
 export const USAGE_LIMITS_TOOL_NAME = "get_usage_limits";
 
 export const USAGE_LIMITS_TOOL_DESCRIPTION =
-  "Returns the account's current plan tier, the limits resolved for it, and how much AI it has consumed in the current monthly window. Call it to answer what plan the user is on or how much AI they have left, before a long AI-heavy job, and after a chat message was refused with AI_LIMIT_REACHED. It is account-scoped, takes no arguments, reads no cards, and changes nothing. A null entitlement.limits.aiMonthlyMessages means no AI cap is enforced for this account, never a limit of zero.";
+  "Reads the account's plan, monthly AI limits and usage. Use for plan/remaining-usage questions, before AI-heavy work or after AI_LIMIT_REACHED. No arguments, card access or writes. null aiMonthlyMessages means uncapped, not zero.";
 
 /**
  * Written for a reader that has only this payload in front of it. The two things it has to get right

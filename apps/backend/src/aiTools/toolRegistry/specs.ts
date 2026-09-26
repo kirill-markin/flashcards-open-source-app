@@ -45,11 +45,11 @@ const workspaceIdStringSchema = z.string().trim().check(z.guid()).toLowerCase();
 const optionalWorkspaceIdArgument = workspaceIdStringSchema
   .optional()
   .describe(
-    "Optional workspace UUID from the list_workspaces tool; omit to use your currently selected default workspace.",
+    "Workspace UUID from list_workspaces; omit for the selected default.",
   );
 
 const LIST_WORKSPACES_TOOL_DESCRIPTION =
-  "Lists the workspaces you can access, each with its workspaceId, name, active card count, last activity timestamp, and an isSelected flag marking your current default workspace. Use the returned workspaceId values for any workspace-scoped tool workspaceId argument; pick the isSelected one to stay on the default.";
+  "Lists accessible workspaces with IDs, names, card counts, activity and isSelected. Pass a returned workspaceId to other tools; omission uses the selected default.";
 
 const LIST_WORKSPACES_RESULT_INSTRUCTIONS =
   "These are the workspaces you can access. Each workspace has a workspaceId, name, cardCount (active cards), lastActivityAt (most recent card edit or review, or null), and isSelected (your current default). To target a specific one, pass its workspaceId to any workspace-scoped tool; the isSelected workspace is used by default when you omit workspaceId. Prefer the most active workspace (highest cardCount or most recent lastActivityAt) when the user has not told you which to use.";
@@ -61,9 +61,9 @@ const LIST_WORKSPACES_RESULT_INSTRUCTIONS =
  * `apps/backend/src/aiTools/toolContract/sqlToolContract.ts`.
  */
 const GET_GUIDE_TOOL_DESCRIPTION =
-  "Returns one reference guide for working with this server, as plain text. Topics: sql_dialect (the full SELECT and WHERE grammar, text-column rules, UNNEST and OVERLAP, RETURNING, row and batch limits, pagination, and worked examples), card_authoring (the front/back contract, tag and duplicate rules, matching the user's existing card style, preserving images already in card text, and Markdown/LaTeX formatting), bulk_authoring (sizing a batch against the database time budget, splitting a large authoring job into atomic batches, recovering an interrupted or unconfirmed run, and verifying it), and review_flow (the one-question-at-a-time review and rating loop). Reads no workspace data and changes nothing. Call it before your first authoring write, and again after a SQL syntax error, instead of guessing at the dialect.";
+  "Static guides: sql_dialect (grammar/limits/examples), card_authoring (content/tags/duplicates/formatting/links), bulk_authoring (batches/recovery/verification), review_flow (review/rating). Read card_authoring before writes; sql_dialect after syntax errors. No workspace access or writes.";
 const GET_GUIDE_TOPIC_ARGUMENT_DESCRIPTION =
-  "Which guide to return: sql_dialect for the SELECT and WHERE grammar, limits, and examples; card_authoring for the front/back contract, tags, duplicate checks, card formatting, and a card's web link; bulk_authoring for splitting and verifying a large write job; review_flow for the review and rating loop.";
+  "Guide topic.";
 
 /**
  * Pins the registry's strictness policy where a spec is declared. A plain `z.object` strips an
