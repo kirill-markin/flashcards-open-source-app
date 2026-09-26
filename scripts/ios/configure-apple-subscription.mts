@@ -1,6 +1,6 @@
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { createClient, object, resource, string, text } from "./app-store-connect-client.mts";
+import { AppStoreConnectHttpError, createClient, object, resource, string, text } from "./app-store-connect-client.mts";
 import type { Client, Json, JsonObject, Resource } from "./app-store-connect-client.mts";
 import { loadSubscriptionLocalizations } from "./subscription-localization-inputs.mts";
 import type { SubscriptionLocalization } from "./subscription-localization-inputs.mts";
@@ -158,7 +158,31 @@ function checkTrials(offers: RelatedResource[], territories: Resource[], today: 
 }
 
 async function availability(client: Client, productId: string, territories: Resource[]): Promise<RelatedResource | undefined> {
-  const subscription = related((await client.api("GET", endpoint("subscriptions", productId, "?include=subscriptionAvailability"), undefined)).data, "subscriptions");
+  const product = await client.read(endpoint("subscriptions", productId, ""), "subscriptions");
+  if (product.id !== productId) throw new Error(`Expected subscription ${productId}, got ${product.id}`);
+  requireDraft(product);
+  let response: JsonObject;
+  try {
+    response = await client.api("GET", endpoint("subscriptions", productId, "?include=subscriptionAvailability"), undefined);
+  } catch (error) {
+    if (!(error instanceof AppStoreConnectHttpError) || error.status !== 404) throw error;
+    let body: Json;
+    try {
+      body = JSON.parse(error.body);
+    } catch {
+      throw error;
+    }
+    if (body === null || typeof body !== "object" || Array.isArray(body)
+      || !Array.isArray(body.errors) || body.errors.length !== 1) throw error;
+    const failure = body.errors[0];
+    // Apple rejects the include when a draft has no availability resource yet.
+    if (failure === null || typeof failure !== "object" || Array.isArray(failure)
+      || failure.status !== "404" || failure.code !== "NOT_FOUND"
+      || failure.detail !== `There is no resource of type 'subscriptionAvailabilities' with id '${productId}'`) throw error;
+    console.log(JSON.stringify({ event: "apple_subscription_availability_absent", subscriptionId: productId, status: error.status, error: failure }));
+    return undefined;
+  }
+  const subscription = related(response.data, "subscriptions");
   if (relation(subscription, "subscriptionAvailability") === null) return undefined;
   const id = relatedId(subscription, "subscriptionAvailability", "subscriptionAvailabilities");
   const actual = related((await client.api("GET", endpoint("subscriptionAvailabilities", id, ""), undefined)).data, "subscriptionAvailabilities");
