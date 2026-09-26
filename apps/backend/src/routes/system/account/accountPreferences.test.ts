@@ -29,6 +29,7 @@ test("GET /me includes account preferences", async () => {
       createdAt: "2026-04-01T00:00:00.000Z",
     },
     preferences: {
+      accentColor: "#C44B2D",
       reviewReactionAnimationsEnabled: true,
       analyticsConsent: null,
       productAnalyticsEnabled: null,
@@ -58,6 +59,7 @@ test("PATCH /me/preferences persists false and GET /me returns the updated prefe
     updateAccountPreferencesFn: async (userId, update) => {
       assert.equal(userId, "user-1");
       persistedPreferences = {
+        accentColor: update.accentColor ?? persistedPreferences.accentColor,
         reviewReactionAnimationsEnabled: update.reviewReactionAnimationsEnabled
           ?? persistedPreferences.reviewReactionAnimationsEnabled,
         analyticsConsent: update.analyticsConsent ?? persistedPreferences.analyticsConsent,
@@ -71,6 +73,7 @@ test("PATCH /me/preferences persists false and GET /me returns the updated prefe
   const initialResponse = await app.request("http://localhost/me");
   assert.equal(initialResponse.status, 200);
   assert.deepEqual((await initialResponse.json() as Readonly<{ preferences: AccountPreferences }>).preferences, {
+    accentColor: "#C44B2D",
     reviewReactionAnimationsEnabled: true,
     analyticsConsent: null,
     productAnalyticsEnabled: null,
@@ -88,6 +91,7 @@ test("PATCH /me/preferences persists false and GET /me returns the updated prefe
   assert.equal(patchResponse.status, 200);
   assert.deepEqual(await patchResponse.json(), {
     preferences: {
+      accentColor: "#C44B2D",
       reviewReactionAnimationsEnabled: false,
       analyticsConsent: null,
       productAnalyticsEnabled: null,
@@ -97,6 +101,7 @@ test("PATCH /me/preferences persists false and GET /me returns the updated prefe
   const updatedResponse = await app.request("http://localhost/me");
   assert.equal(updatedResponse.status, 200);
   assert.deepEqual((await updatedResponse.json() as Readonly<{ preferences: AccountPreferences }>).preferences, {
+    accentColor: "#C44B2D",
     reviewReactionAnimationsEnabled: false,
     analyticsConsent: null,
     productAnalyticsEnabled: null,
@@ -175,6 +180,7 @@ test("PATCH /me/preferences from a guest stores the consent on the guest session
       assert.equal(userId, "user-1");
       accountUpdates.push(update);
       return {
+        accentColor: update.accentColor ?? "#C44B2D",
         reviewReactionAnimationsEnabled: update.reviewReactionAnimationsEnabled ?? true,
         analyticsConsent: null,
         productAnalyticsEnabled: null,
@@ -200,6 +206,7 @@ test("PATCH /me/preferences from a guest stores the consent on the guest session
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), {
     preferences: {
+      accentColor: "#C44B2D",
       reviewReactionAnimationsEnabled: false,
       analyticsConsent: "declined",
       productAnalyticsEnabled: null,
@@ -217,6 +224,7 @@ test("PATCH /me/preferences from a guest stores the consent on the guest session
   // The account write must never carry the consent value: a guest owns no account column for it.
   // The origins ride along and decide nothing while the value beside each of them is null.
   assert.deepEqual(accountUpdates, [{
+    accentColor: null,
     reviewReactionAnimationsEnabled: false,
     analyticsConsent: null,
     analyticsConsentOrigin: "user_action",
@@ -253,6 +261,7 @@ test("PATCH /me/preferences from a guest with only a consent leaves org.user_set
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), {
     preferences: {
+      accentColor: "#C44B2D",
       reviewReactionAnimationsEnabled: true,
       analyticsConsent: "declined",
       productAnalyticsEnabled: null,

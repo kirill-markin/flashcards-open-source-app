@@ -28,6 +28,7 @@ import { cleanupGuestSessionSourceInExecutor } from "../delete/index";
 import { mergeGuestWorkspaceIntoTargetInExecutor } from "../merge/index";
 import {
   assertTargetWorkspaceAccessInExecutor,
+  carryGuestAccentColorToAccountInExecutor,
   carryGuestAnalyticsConsentToAccountInExecutor,
   carryGuestProductAnalyticsEnabledToAccountInExecutor,
   loadGuestSessionRecordInExecutor,
@@ -692,7 +693,12 @@ export async function completeGuestUpgradeInExecutor(
     guestUpgradeResolution.targetUserId,
   );
 
-  // Phase 14: revoke and delete guest source rows.
+  await carryGuestAccentColorToAccountInExecutor(
+    executor,
+    guestSession.userId,
+    guestUpgradeResolution.targetUserId,
+  );
+
   await cleanupGuestSessionSourceInExecutor(
     executor,
     guestSession.userId,

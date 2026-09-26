@@ -3,6 +3,8 @@ import { randomUUID } from "node:crypto";
 import test from "node:test";
 import pg from "pg";
 import { ensureCognitoUserProfile } from "../../auth/ensureUser";
+import { updateAccountPreferences } from "../../routes/system/account/accountPreferences";
+import { parseAccountPreferencesInput } from "../../routes/system/support";
 import { HttpError } from "../../shared/errors";
 import {
   authenticateGuestSession,
@@ -172,6 +174,8 @@ test("a bound guest refuses a second subject and a merge into another account, a
     }
     workspaceIds.push(otherWorkspaceId);
 
+    await updateAccountPreferences(guest.userId, parseAccountPreferencesInput({ accentColor: "#2dd4bf" }));
+
     const preparation = await prepareGuestUpgrade(
       guest.guestToken,
       ownerSubject,
@@ -228,7 +232,48 @@ test("a bound guest refuses a second subject and a merge into another account, a
     );
     assert.equal(completion.targetUserId, guest.userId);
     assert.equal(completion.targetWorkspaceId, guest.workspaceId);
+    assert.equal((await ensureCognitoUserProfile(ownerSubject, null)).preferences.accentColor, "#2DD4BF");
     assert.equal((await authenticateGuestSession(guest.guestToken)).userId, guest.userId);
+  } finally {
+    try {
+      await removeAccounts(ownerPool, userIds, workspaceIds);
+    } finally {
+      await ownerPool.end();
+    }
+  }
+});
+
+test("guest merge adopts a guest accent only for a default destination and preserves it on replay", async () => {
+  const ownerPool = new pg.Pool({ connectionString: requireOwnerDatabaseUrl() });
+  const userIds: Array<string> = [];
+  const workspaceIds: Array<string> = [];
+  try {
+    for (const targetColor of ["#C44B2D", "#4D8DFF"]) {
+      const guest = await createGuestSession("android", null);
+      userIds.push(guest.userId);
+      workspaceIds.push(guest.workspaceId);
+      const subject = randomUUID();
+      const target = await ensureCognitoUserProfile(subject, null);
+      userIds.push(target.userId);
+      const targetWorkspaceId = target.selectedWorkspaceId;
+      assert.notEqual(targetWorkspaceId, null);
+      if (targetWorkspaceId === null) {
+        throw new Error(`Account ${target.userId} has no workspace.`);
+      }
+      workspaceIds.push(targetWorkspaceId);
+      await updateAccountPreferences(guest.userId, parseAccountPreferencesInput({ accentColor: "#F472B6" }));
+      await updateAccountPreferences(target.userId, parseAccountPreferencesInput({ accentColor: targetColor }));
+      assert.equal((await prepareGuestUpgrade(guest.guestToken, subject, null)).mode, "merge_required");
+      const selection = { type: "existing", workspaceId: targetWorkspaceId } as const;
+      await completeGuestUpgrade(guest.guestToken, subject, selection, UPGRADE_CAPABILITIES);
+      const expectedColor = targetColor === "#C44B2D" ? "#F472B6" : targetColor;
+      assert.equal((await ensureCognitoUserProfile(subject, null)).preferences.accentColor, expectedColor);
+
+      await updateAccountPreferences(target.userId, parseAccountPreferencesInput({ accentColor: "#EAB308" }));
+      const replay = await completeGuestUpgrade(guest.guestToken, subject, selection, UPGRADE_CAPABILITIES);
+      assert.equal(replay.outcome, "idempotent_replay");
+      assert.equal((await ensureCognitoUserProfile(subject, null)).preferences.accentColor, "#EAB308");
+    }
   } finally {
     try {
       await removeAccounts(ownerPool, userIds, workspaceIds);

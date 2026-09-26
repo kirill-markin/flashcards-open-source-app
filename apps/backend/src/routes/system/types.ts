@@ -76,6 +76,7 @@ export type AnalyticsPreferenceWriteOrigin = "user_action" | "reconciliation";
  * this field exists to stop.
  */
 export type AccountPreferencesUpdate = Readonly<{
+  accentColor: string | null;
   reviewReactionAnimationsEnabled: boolean | null;
   analyticsConsent: AnalyticsConsentChoice | null;
   analyticsConsentOrigin: AnalyticsPreferenceWriteOrigin;
@@ -88,7 +89,6 @@ export type UpdateAccountPreferencesFn = (
   update: AccountPreferencesUpdate,
 ) => Promise<AccountPreferences>;
 
-/** No null here, unlike above: an omitted field must leave the guest consent column untouched. */
 /**
  * Both guest-session analytics answers in one call, because they are stored in one transaction.
  * Null in the update is "the request left this field out" and is not written; null in the result is

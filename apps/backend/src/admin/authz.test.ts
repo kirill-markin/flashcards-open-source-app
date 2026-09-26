@@ -286,6 +286,7 @@ test("requireCatalogAdminRequestWithDependencies preserves session profile recon
           locale: "en",
           createdAt: "2026-07-11T00:00:00.000Z",
           preferences: {
+            accentColor: "#C44B2D",
             reviewReactionAnimationsEnabled: true,
             analyticsConsent: null,
             productAnalyticsEnabled: null,
@@ -438,6 +439,7 @@ test("requireAdminRequestWithDependencies accepts signed-in admins and normalize
           locale: "en",
           createdAt: "2026-07-11T00:00:00.000Z",
           preferences: {
+            accentColor: "#C44B2D",
             reviewReactionAnimationsEnabled: true,
             analyticsConsent: null,
             productAnalyticsEnabled: null,

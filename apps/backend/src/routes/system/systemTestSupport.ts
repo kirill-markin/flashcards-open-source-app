@@ -60,6 +60,7 @@ type SystemTestAppOptions = Readonly<{
 
 export function createDefaultAccountPreferences(): AccountPreferences {
   return {
+    accentColor: "#C44B2D",
     reviewReactionAnimationsEnabled: true,
     analyticsConsent: null,
     productAnalyticsEnabled: null,
