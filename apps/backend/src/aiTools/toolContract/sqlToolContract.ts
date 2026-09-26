@@ -116,23 +116,11 @@ export const CARD_MANAGED_IMAGE_RULE_LINES = Object.freeze([
   "- These references belong in card text only: never repeat fcasset: markdown, or the storage details behind it, in a reply to the user.",
 ]);
 
-/**
- * The read examples pulled out for descriptions under a character budget: one
- * stably ordered paged read, and one tag filter, because tags are the only
- * association between a card and a deck. They stay part of the full example
- * list below, which the `sql_dialect` guide serves in full.
- */
 const SQL_QUERY_PAGED_READ_EXAMPLE_LINE =
   "- sql_query => {\"sql\": \"SELECT * FROM cards ORDER BY created_at DESC, card_id ASC LIMIT 20 OFFSET 0\"}";
 const SQL_QUERY_TAG_FILTER_EXAMPLE_LINE =
   "- sql_query => {\"sql\": \"SELECT card_id, front_text, back_text, tags FROM cards WHERE tags OVERLAP ('english', 'slang') ORDER BY created_at DESC, card_id ASC LIMIT 20 OFFSET 0\"}";
 
-/**
- * The full read-only example list for the `sql_query` surface, covering only
- * the read statements (`SHOW TABLES`, `DESCRIBE`, `SHOW COLUMNS`, `SELECT`).
- * It is served in full by `SQL_DIALECT_GUIDE`; descriptions under a character
- * budget advertise only the lines pulled out above.
- */
 export const SQL_QUERY_TOOL_PROMPT_EXAMPLE_LINES = Object.freeze([
   "- sql_query => {\"sql\": \"SHOW TABLES\"}",
   "- sql_query => {\"sql\": \"DESCRIBE workspace\"}",
@@ -152,13 +140,6 @@ export const SQL_QUERY_TOOL_PROMPT_EXAMPLE_LINES = Object.freeze([
   SQL_QUERY_TAG_FILTER_EXAMPLE_LINE,
 ]);
 
-/**
- * The write examples pulled out for descriptions under a character budget:
- * one tagged card creation that reads its own result back through RETURNING,
- * and one tag-filtered mutation, the only way to target rows by tag on the
- * write side. They stay part of the full example list below, which the
- * `sql_dialect` guide serves in full.
- */
 const SQL_EXECUTE_CREATE_CARD_EXAMPLE_LINE =
   "- sql_execute => {\"sql\": \"INSERT INTO cards (front_text, back_text, tags) VALUES ('Q?', 'A', ('grammar')) RETURNING card_id, front_text, back_text\"}";
 const SQL_EXECUTE_TAG_FILTER_EXAMPLE_LINE =
@@ -190,15 +171,6 @@ export const SQL_EXECUTE_TOOL_PROMPT_EXAMPLE_LINES = Object.freeze([
  * is metadata under a character budget and restates only the few facts a call
  * cannot get right by guessing.
  *
- * The rest is reachable through `get_guide` topic `sql_dialect` on MCP and the
- * chat, and through the REST guide route. `sql_query` names that topic in its
- * own description; `sql_execute` has no room to, and relies on
- * `GET_GUIDE_TOOL_DESCRIPTION`, the surface's own standing text
- * (`SERVER_INSTRUCTIONS` on MCP, the SQL routing section of the chat system
- * prompt in `apps/backend/src/chat/shared.ts` on the chat), and the
- * `QUERY_INVALID_SQL` instruction in
- * `apps/backend/src/aiTools/toolContract/remediationInstructions.ts` naming it
- * instead.
  */
 const SQL_DIALECT_DESCRIPTION_LINES = Object.freeze([
   "This is not full PostgreSQL.",
@@ -301,9 +273,7 @@ export const SQL_RETURNING_DESCRIPTION =
 /**
  * Write-side mirror of the WHERE grammar, composed from the same predicate
  * guidance as `SQL_SELECT_SUPPORTED_FORMS_DESCRIPTION`. `SQL_DIALECT_GUIDE` is
- * its only consumer: the always-loaded MCP `sql_execute` description has no room
- * for the grammar, so a caller reaches it through `get_guide` topic
- * `sql_dialect`, which `sql_execute` has no room to name either.
+ * its only consumer.
  * Runtime parsing lives in `apps/backend/src/aiTools/sqlDialect/predicateParser.ts`.
  */
 const SQL_MUTATION_WHERE_SUPPORTED_FORMS_DESCRIPTION =
@@ -339,49 +309,21 @@ export const SQL_BATCH_ATOMICITY_DESCRIPTION =
 export const SQL_BULK_WRITE_SPLIT_DESCRIPTION =
   `Bulk-write split arithmetic: at most ${MAX_SQL_RECORD_LIMIT} rows affected per statement, at most ${MAX_SQL_BATCH_STATEMENT_COUNT} statements per batch, and a batch must not mix read and write statements. Split larger work across separate statements or separate tool calls.`;
 
-/**
- * Read-only contract description for the split `sql_query` surface.
- *
- * Always-loaded tool metadata, so it is kept to the routing facts a caller
- * cannot guess and two examples. The grammar, the text-column rules, and the
- * rest of the examples stay in `SQL_DIALECT_GUIDE`, which `get_guide` serves on
- * demand and which this description points at by name.
- */
 export const SQL_QUERY_TOOL_DESCRIPTION = [
-  "Read the flashcards workspace with the published SQL dialect.",
-  "Supported statements: SHOW TABLES, DESCRIBE <resource>, SHOW COLUMNS FROM <resource>, SELECT. Writes are rejected; use sql_execute.",
-  "Published resources, already workspace-scoped: workspace, cards, decks, review_events. A deck is a saved tag filter, so a card has no deck_id and belongs to a deck only by matching tags.",
-  `SELECT returns at most ${MAX_SQL_RECORD_LIMIT} rows per statement; page with LIMIT and OFFSET and prefer a stable ORDER BY.`,
-  "Schema discovery must be its own call: a batch is composed before any statement runs.",
-  "Examples:",
-  SQL_QUERY_PAGED_READ_EXAMPLE_LINE,
-  SQL_QUERY_TAG_FILTER_EXAMPLE_LINE,
-  "Call get_guide with topic sql_dialect for the full grammar and examples.",
+  "Read workspace-scoped workspace, cards, decks and review_events using SHOW TABLES, DESCRIBE, SHOW COLUMNS FROM or SELECT; writes require sql_execute.",
+  "Decks are tag filters; cards have no deck_id.",
+  `SELECT returns at most ${MAX_SQL_RECORD_LIMIT} rows; paginate with LIMIT, OFFSET and stable ORDER BY.`,
+  "Discover schema in a separate call before composing a batch.",
+  "Read get_guide(sql_dialect) for grammar and examples; this is not full PostgreSQL.",
 ].join(" ");
 
-/**
- * Write contract description for the split `sql_execute` surface.
- *
- * Always-loaded tool metadata, so it carries only the product rules a write
- * must not get wrong, the write-side limits, and two examples. The Markdown and
- * LaTeX contract, the style and duplicate procedure, and the batch-sizing rules
- * stay in `CARD_AUTHORING_GUIDE`, `SQL_DIALECT_GUIDE`, and
- * `BULK_AUTHORING_GUIDE`, which `get_guide` serves on demand.
- */
 export const SQL_EXECUTE_TOOL_DESCRIPTION = [
-  "Write to the flashcards workspace with the published SQL dialect.",
-  "front_text is only a question and never the answer; back_text holds the answer.",
-  "Every new card needs at least one tag; reuse existing workspace tags.",
-  "Check for duplicates with sql_query before creating.",
-  "Supported statements: INSERT, UPDATE, DELETE. Reads are rejected; use sql_query.",
-  `Up to ${MAX_SQL_BATCH_STATEMENT_COUNT} semicolon-separated statements per sql string, at most ${MAX_SQL_RECORD_LIMIT} rows each; batches are atomic and must not mix reads and writes.`,
-  "Array columns like tags take a parenthesized list: ('a', 'b'), or () to clear.",
-  "Add RETURNING * or a column list to see the affected rows.",
+  "Write workspace cards/decks with INSERT, UPDATE or DELETE; reads require sql_query.",
+  "front_text is only a question, back_text its answer. New cards need a tag; reuse existing tags and check duplicates with sql_query.",
+  `Atomic batches allow ${MAX_SQL_BATCH_STATEMENT_COUNT} semicolon-separated statements, ${MAX_SQL_RECORD_LIMIT} affected rows each; never mix reads and writes.`,
+  "Arrays use ('a', 'b'), or () to clear. RETURNING * or columns returns affected rows.",
   SQL_MUTATION_TAG_FILTER_DESCRIPTION,
-  "Examples:",
-  SQL_EXECUTE_CREATE_CARD_EXAMPLE_LINE,
-  SQL_EXECUTE_TAG_FILTER_EXAMPLE_LINE,
-  "Call get_guide with topic card_authoring before authoring.",
+  "Read get_guide(card_authoring) before authoring, sql_dialect for grammar/examples and bulk_authoring for large writes.",
 ].join(" ");
 
 /**
@@ -602,13 +544,6 @@ export const GUIDE_BODIES: Readonly<Record<GuideTopic, string>> = Object.freeze(
  * again: the `Record<GuideTopic, string>` makes adding, removing, or renaming a
  * topic a type error at this map rather than stale prose somewhere else. Each
  * value reads as the tail of `<topic> for <description>`.
- *
- * The MCP `get_guide` metadata in
- * `apps/backend/src/aiTools/toolRegistry/specs.ts` deliberately does NOT compose
- * this map: its two descriptions word the same topics differently, and that
- * payload is measured byte for byte against the `tools/list` token budget in
- * `apps/backend/src/mcp/toolBudgets.test.ts`, so rewording them to fit this map
- * would spend budget for no contract gain.
  */
 export const GUIDE_TOPIC_DESCRIPTIONS: Readonly<Record<GuideTopic, string>> = Object.freeze({
   sql_dialect: "the full grammar, limits, and examples",
