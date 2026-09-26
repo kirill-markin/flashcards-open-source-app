@@ -232,10 +232,12 @@ private struct SummaryRow: View {
                 .frame(width: 28)
 
             Text(title)
+                .foregroundStyle(Color.primary)
 
             Spacer()
 
             Text(value)
+                .foregroundStyle(Color.primary)
                 .font(.headline.monospacedDigit())
         }
         .padding(.vertical, 4)
@@ -249,6 +251,7 @@ private struct DeckListRow: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text(deckListEntry.title)
+                    .foregroundStyle(Color.primary)
                     .font(.headline)
 
                 Spacer()
