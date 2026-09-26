@@ -24,10 +24,12 @@ struct RootTabView: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
 
+    @State private var premiumPresenter: PremiumPresenter = PremiumPresenter()
     @State private var isGuestSignInCloudSignInPresented: Bool = false
 
     private var isGuestSignInAfterReviewPromptBlockedByModal: Bool {
         self.isGuestSignInCloudSignInPresented
+            || self.premiumPresenter.request != nil
             || store.feedbackPresentation != nil
             || store.activeCloudSignInSheetCount > 0
             || store.accountDeletionState != .hidden
@@ -101,6 +103,31 @@ struct RootTabView: View {
                 }
             }
         )
+    }
+
+    private var premiumPresentation: Binding<PremiumPresentationRequest?> {
+        Binding(
+            get: {
+                guard store.feedbackPresentation == nil,
+                      store.presentedTechnicalError == nil,
+                      store.activeCloudSignInSheetCount == 0,
+                      self.isGuestSignInCloudSignInPresented == false,
+                      store.isGuestSignInAfterReviewPromptPresented == false else {
+                    return nil
+                }
+                return self.premiumPresenter.request
+            },
+            set: { presentation in
+                if presentation == nil {
+                    self.premiumPresenter.finish(outcome: .dismissed)
+                }
+            }
+        )
+    }
+
+    private func clearPremiumPresentationForIdentityChange() {
+        self.premiumPresenter.finish(outcome: .identityChanged)
+        self.store.aiChatStore.quotaRefusal = nil
     }
 
     private var feedbackPresentation: Binding<FeedbackPresentation?> {
@@ -294,14 +321,25 @@ struct RootTabView: View {
     }
 
     var body: some View {
-        if let recoveryState = store.cloudCredentialRecoveryState {
-            CloudCredentialRecoveryGateView(recoveryState: recoveryState)
-                .environment(store)
-                .overlay {
-                    self.uiTestLaunchPreparationStatusMarker
-                }
-        } else {
-            self.tabRoot
+        Group {
+            if let recoveryState = store.cloudCredentialRecoveryState {
+                CloudCredentialRecoveryGateView(recoveryState: recoveryState)
+                    .environment(store)
+                    .overlay {
+                        self.uiTestLaunchPreparationStatusMarker
+                    }
+            } else {
+                self.tabRoot
+            }
+        }
+        .onChange(of: store.cloudSettings?.linkedUserId) { _, _ in
+            self.clearPremiumPresentationForIdentityChange()
+        }
+        .onChange(of: store.cloudSettings?.cloudState) { _, _ in
+            self.clearPremiumPresentationForIdentityChange()
+        }
+        .onChange(of: store.cloudEntitlement) { _, entitlement in
+            self.premiumPresenter.reconcileAccess(entitlement: entitlement)
         }
     }
 
@@ -321,6 +359,7 @@ struct RootTabView: View {
 
     private var tabRoot: some View {
         self.tabRootAlerts
+            .environment(self.premiumPresenter)
     }
 
     private var tabRootBase: some View {
@@ -416,6 +455,9 @@ struct RootTabView: View {
         .onChange(of: store.cloudSettings?.cloudState) { _, _ in
             self.reconcileGuestSignInAfterReviewPrompt()
         }
+        .onChange(of: self.premiumPresenter.request) { _, _ in
+            self.reconcileGuestSignInAfterReviewPrompt()
+        }
         .onChange(of: store.guestSignInAfterReviewPromptReconciliationToken) { _, _ in
             self.reconcileGuestSignInAfterReviewPrompt()
         }
@@ -460,6 +502,11 @@ struct RootTabView: View {
             isPresented: self.$isGuestSignInCloudSignInPresented,
             presentationContext: .standard(originSurface: .review)
         )
+        .sheet(item: self.premiumPresentation) { request in
+            PremiumComingSoon(request: request)
+                .environment(store)
+                .environment(self.premiumPresenter)
+        }
         .sheet(item: self.feedbackPresentation) { presentation in
             FeedbackSheet(presentation: presentation)
                 .environment(store)

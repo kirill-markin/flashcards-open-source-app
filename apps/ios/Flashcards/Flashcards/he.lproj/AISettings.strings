@@ -845,3 +845,7 @@
 "settings.language.supported.urdu" = "אורדו";
 "settings.language.supported.vietnamese" = "וייטנאמית";
 "settings.language.supported.zulu" = "זולו";
+
+"premium.comingSoon.title" = "Premium יגיע בקרוב";
+"premium.comingSoon.message" = "המינויים עדיין אינם זמינים.";
+"premium.aiLimit.title" = "הגעת למגבלת הודעות ה-AI";

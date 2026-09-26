@@ -131,6 +131,7 @@ final class AIChatStore {
         }
     }
 
+    var quotaRefusal: AIChatQuotaRefusal? = nil
     var activeAlert: AIChatAlert?
     var repairStatus: AIChatRepairAttemptStatus?
 
