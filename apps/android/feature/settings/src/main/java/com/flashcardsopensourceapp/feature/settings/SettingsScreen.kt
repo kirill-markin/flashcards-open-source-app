@@ -190,16 +190,14 @@ fun SettingsRoute(
                 )
             }
 
-            if (subscriptionUiState.isSubscriptionProductAvailable) {
-                item {
-                    SettingsRootRow(
-                        title = stringResource(R.string.settings_subscription_title),
-                        summary = subscriptionUiState.planName,
-                        attentionCount = null,
-                        testTag = settingsSubscriptionRowTag,
-                        onClick = onOpenSubscription
-                    )
-                }
+            item {
+                SettingsRootRow(
+                    title = stringResource(R.string.settings_subscription_title),
+                    summary = subscriptionUiState.planName,
+                    attentionCount = null,
+                    testTag = settingsSubscriptionRowTag,
+                    onClick = onOpenSubscription
+                )
             }
 
             item {

@@ -22,12 +22,14 @@ import com.flashcardsopensourceapp.feature.settings.settingsScreenCardSpacing
 import com.flashcardsopensourceapp.feature.settings.settingsScreenContentPadding
 
 const val subscriptionScreenTag: String = "subscription_screen"
+const val subscriptionPremiumPreviewTag: String = "subscription_premium_preview"
 const val subscriptionManageButtonTag: String = "subscription_manage_button"
 
 @Composable
 fun SubscriptionRoute(
     uiState: SubscriptionUiState,
     onManageSubscription: () -> Unit,
+    onPreviewPremium: () -> Unit,
     onBack: () -> Unit
 ) {
     SettingsScreenScaffold(
@@ -55,6 +57,15 @@ fun SubscriptionRoute(
                             Text(uiState.statusText)
                         }
                     )
+                }
+            }
+
+            item {
+                Button(
+                    onClick = onPreviewPremium,
+                    modifier = Modifier.fillMaxWidth().testTag(tag = subscriptionPremiumPreviewTag)
+                ) {
+                    Text(stringResource(R.string.settings_premium_preview))
                 }
             }
 
