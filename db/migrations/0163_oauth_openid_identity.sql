@@ -1,3 +1,4 @@
+-- Schemas touched/read explicitly: auth.
 -- Keep consented identity attached to each grant; reconnecting a client cannot
 -- retroactively add identity claims to tokens issued without those scopes.
 ALTER TABLE auth.oauth_authorization_codes
