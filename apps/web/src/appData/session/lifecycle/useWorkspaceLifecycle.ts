@@ -1,3 +1,4 @@
+import { clearEntitlementState, readEntitlementIdentityGeneration, setEntitlementIdentity } from "../../../premium/entitlementStore";
 import { useCallback, useEffect, useRef } from "react";
 import {
   ApiError,
@@ -61,6 +62,8 @@ import type {
 } from "../workspaceSessionTypes";
 import type { SessionInfo } from "../../../types";
 
+const sessionInitializationInvalidatedMessage = "Session changed during initialization. Retry to verify the current account.";
+
 type UseWorkspaceLifecycleParams =
   & Readonly<{
     t: (key: TranslationKey) => string;
@@ -92,6 +95,22 @@ function isExpectedWorkspaceSessionApiError(error: Error): boolean {
 
 function runLifecycleTaskInBackground(task: Promise<void>): void {
   void task.catch((): void => undefined);
+}
+
+// Cleanup invalidates the session response that preceded it, including on an account switch.
+async function restoreEntitlementIdentityAfterCleanup(userId: string): Promise<number> {
+  const generation = readEntitlementIdentityGeneration();
+  const currentSession = await revalidateSessionRequest();
+  if (generation !== readEntitlementIdentityGeneration()) {
+    throw createSessionAccountSwitchError(sessionInitializationInvalidatedMessage);
+  }
+  if (currentSession.userId !== userId) {
+    throw createSessionAccountSwitchError("Session identity changed during entitlement restoration");
+  }
+  if (setEntitlementIdentity(userId, generation) === false) {
+    throw createSessionAccountSwitchError(sessionInitializationInvalidatedMessage);
+  }
+  return generation;
 }
 
 export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): WorkspaceLifecycle {
@@ -164,6 +183,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
       setAvailableWorkspaces([]);
     }
 
+    setEntitlementIdentity(session?.userId ?? null, readEntitlementIdentityGeneration());
     setSessionVerificationState("unverified");
     setSessionErrorMessage("");
     setErrorMessage("");
@@ -208,6 +228,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
       }
 
       const wasBrowserReauthRequired = isBrowserReauthRequired();
+      let entitlementGeneration = readEntitlementIdentityGeneration();
       let currentSession: SessionInfo;
       try {
         currentSession = await getSession();
@@ -246,10 +267,17 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
         return;
       }
 
+      if (setEntitlementIdentity(currentSession.userId, entitlementGeneration) === false) {
+        throw createSessionAccountSwitchError(sessionInitializationInvalidatedMessage);
+      }
       setWebObservabilityUser({ id: currentSession.userId });
       const persistedCloudSettings = await loadCloudSettings();
       if (indexedDbOpenRecoveryState.hasFailed()) {
         return;
+      }
+
+      if (entitlementGeneration !== readEntitlementIdentityGeneration()) {
+        throw createSessionAccountSwitchError(sessionInitializationInvalidatedMessage);
       }
 
       const localDataCleanupReason = resolveLocalDataCleanupReasonForVerifiedSession(
@@ -262,6 +290,8 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
         if (indexedDbOpenRecoveryState.hasFailed()) {
           return;
         }
+        const restoredGeneration = await restoreEntitlementIdentityAfterCleanup(currentSession.userId);
+        entitlementGeneration = restoredGeneration;
       }
 
       clearBrowserReauthRequired();
@@ -271,6 +301,9 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
         return;
       }
 
+      if (setEntitlementIdentity(currentSession.userId, entitlementGeneration) === false) {
+        throw createSessionAccountSwitchError(sessionInitializationInvalidatedMessage);
+      }
       setCloudSettings(linkingReadyCloudSettings);
       await resolveInitialWorkspace(currentSession);
       if (indexedDbOpenRecoveryState.hasFailed()) {
@@ -313,6 +346,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
           redirected: true,
           sessionVerificationState,
         });
+        clearEntitlementState();
         setSession(null);
         setWebObservabilityUser(null);
         setActiveWorkspace(null);
@@ -397,9 +431,14 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
       return false;
     }
 
+    const entitlementGeneration = readEntitlementIdentityGeneration();
     try {
       const currentSession = await revalidateSessionRequest();
       if (indexedDbOpenRecoveryState.hasFailed()) {
+        return false;
+      }
+
+      if (entitlementGeneration !== readEntitlementIdentityGeneration()) {
         return false;
       }
 
@@ -411,6 +450,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
             return false;
           }
 
+          const restoredGeneration = await restoreEntitlementIdentityAfterCleanup(currentSession.userId);
           clearBrowserReauthRequired();
           const linkingReadyCloudSettings = buildLinkingReadyCloudSettings(currentSession);
           await putCloudSettings(linkingReadyCloudSettings);
@@ -418,6 +458,9 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
             return false;
           }
 
+          if (setEntitlementIdentity(currentSession.userId, restoredGeneration) === false) {
+            throw createSessionAccountSwitchError(sessionInitializationInvalidatedMessage);
+          }
           setCloudSettings(linkingReadyCloudSettings);
           await resolveInitialWorkspace(currentSession);
           if (indexedDbOpenRecoveryState.hasFailed()) {
@@ -475,6 +518,9 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
         setCloudSettings(repairedCloudSettings);
       }
 
+      if (setEntitlementIdentity(currentSession.userId, entitlementGeneration) === false) {
+        return false;
+      }
       setSession(currentSession);
       clearBrowserReauthRequired();
       setSessionErrorMessage("");

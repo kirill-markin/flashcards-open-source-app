@@ -96,15 +96,16 @@ const {
   setWebObservabilityUserMock,
 } = progressSourceMocks;
 
-vi.mock("../../../api", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../../../api")>();
+vi.mock("../../../api", async () => {
+  const { ApiError, ApiNetworkError, AuthRedirectError } = await import("../../../api/transport/errors");
+  const { ApiContractError } = await import("../../../apiContracts/core");
 
   return {
-    ApiError: actual.ApiError,
-    ApiContractError: actual.ApiContractError,
-    ApiNetworkError: actual.ApiNetworkError,
-    AuthRedirectError: actual.AuthRedirectError,
-    isAuthRedirectError: actual.isAuthRedirectError,
+    ApiError,
+    ApiContractError,
+    ApiNetworkError,
+    AuthRedirectError,
+    isAuthRedirectError: (error: unknown): boolean => error instanceof AuthRedirectError,
     loadProgressSummary: progressSourceMocks.loadProgressSummaryMock,
     loadProgressSeries: progressSourceMocks.loadProgressSeriesMock,
     loadProgressReviewSchedule: progressSourceMocks.loadProgressReviewScheduleMock,
@@ -771,6 +772,16 @@ beforeEach(() => {
   loadProgressSummaryMock.mockResolvedValue(buildServerSummary(1, "2026-04-18T09:15:00.000Z"));
   loadProgressSeriesMock.mockResolvedValue(buildServerSeries(1, "2026-04-18T09:15:00.000Z"));
   loadProgressReviewScheduleMock.mockResolvedValue(buildServerReviewSchedule(1, "2026-04-18T09:15:00.000Z"));
+  loadProgressLeaderboardMock.mockResolvedValue({
+    status: "snapshot_unavailable",
+    metric: {
+      metricVersion: "qualified_reviews_v1",
+      title: "Qualified reviews",
+      description: "Hard, Good, and Easy reviews count toward your rank. Again does not.",
+    },
+    defaultWindowKey: "last_24_hours",
+    windows: [],
+  });
   loadProgressStreakLeaderboardMock.mockResolvedValue(buildServerStreakLeaderboard(1));
 });
 

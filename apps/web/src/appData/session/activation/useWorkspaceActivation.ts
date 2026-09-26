@@ -1,3 +1,4 @@
+import { clearEntitlementState } from "../../../premium/entitlementStore";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ApiError,
@@ -147,6 +148,7 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
     // the outgoing person could still read the envelope back out of storage and bind that guest to
     // whoever signs in next (`webGuestSession.ts`).
     resetWebGuestSession();
+    clearEntitlementState();
     workspaceBootstrapGenerationRef.current += 1;
     deferredBootstrapWorkspaceRef.current = null;
     setSession(null);
