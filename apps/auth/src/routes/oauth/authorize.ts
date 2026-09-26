@@ -1,23 +1,4 @@
-/**
- * Browser-facing OAuth 2.1 authorization endpoint for the MCP authorization
- * server. This is the screen the user sees after clicking "Connect" in an MCP
- * client (Claude.ai, ChatGPT, ...).
- *
- * GET /authorize validates the public-client + PKCE authorization request
- * (client_id against auth.oauth_clients, redirect_uri, response_type=code,
- * code_challenge/S256, scope, resource) and renders a localized sign-in +
- * consent page. Sign-in reuses the existing email + OTP flow (/api/send-code +
- * /api/verify-code set the session cookie). On approval the page posts to
- * POST /authorize/consent, which resolves the user from the session cookie the
- * same way createAgentApiKeyFromIdToken does, upserts the (user, client)
- * connection, writes a single-use authorization code (server/oauth model), and
- * returns the redirect URL carrying code, state, and iss.
- *
- * Validation-error rules (RFC 6749 §4.1.2.1): if client_id or redirect_uri is
- * invalid we MUST NOT redirect (the redirect target is untrusted) and render an
- * inline error instead. For other invalid parameters we redirect back to the
- * validated redirect_uri with an `error` code.
- */
+import { hasOAuthScope, isSupportedOAuthScope } from "../../server/oauth/scopes.js";
 import { Hono } from "hono";
 import { getCookie } from "hono/cookie";
 import type { Context } from "hono";
@@ -29,7 +10,6 @@ import { validateSessionToken } from "../../server/browserSession.js";
 import { resolveLoginPageLocale } from "../browser/loginPageLocale.js";
 import { renderAuthorizePage, type AuthorizeRequestView } from "../../templates/authorize.js";
 
-const SUPPORTED_SCOPE = "flashcards";
 const MAX_CONNECTION_LABEL_LENGTH = 120;
 const CODE_CHALLENGE_RE = /^[A-Za-z0-9\-._~]{43,128}$/;
 
@@ -38,7 +18,10 @@ type AuthorizeErrorCode =
   | "unsupported_response_type"
   | "invalid_scope"
   | "access_denied"
-  | "server_error";
+  | "server_error"
+  | "consent_required"
+  | "request_not_supported"
+  | "request_uri_not_supported";
 
 /**
  * Builds the redirect back to the client carrying an OAuth error
@@ -52,6 +35,7 @@ function redirectWithError(
   description: string,
 ): Response {
   const url = new URL(redirectUri);
+  url.searchParams.set("iss", getPublicAuthBaseUrl(c.req.url));
   url.searchParams.set("error", error);
   url.searchParams.set("error_description", description);
   if (state !== null) {
@@ -60,10 +44,6 @@ function redirectWithError(
   return c.redirect(url.toString(), 302);
 }
 
-/**
- * Validates the connection label the page will show in settings, derived from
- * the registered client name. Falls back to a generic label.
- */
 function buildConnectionLabel(clientName: string | null): string {
   const trimmed = (clientName ?? "").trim();
   if (trimmed === "") {
@@ -84,6 +64,7 @@ export function createAuthorizeApp(now: () => number): Hono<AuthAppEnv> {
     const rawScope = c.req.query("scope") ?? "";
     const resource = c.req.query("resource") ?? "";
     const state = c.req.query("state") ?? null;
+    const nonce = c.req.query("nonce") ?? null;
 
     // 1. client_id + redirect_uri: invalid here MUST NOT redirect (untrusted
     //    target). Render inline plaintext errors instead.
@@ -126,13 +107,13 @@ export function createAuthorizeApp(now: () => number): Hono<AuthAppEnv> {
     }
 
     const scope = rawScope.trim() === "" ? null : rawScope.trim();
-    if (scope !== null && !scope.split(/\s+/).every((entry) => entry === SUPPORTED_SCOPE)) {
+    if (!isSupportedOAuthScope(scope)) {
       return redirectWithError(
         c,
         redirectUri,
         state,
         "invalid_scope",
-        `The only supported scope is '${SUPPORTED_SCOPE}'.`,
+        "Supported scopes are flashcards, openid, and email; email requires openid.",
       );
     }
 
@@ -159,6 +140,25 @@ export function createAuthorizeApp(now: () => number): Hono<AuthAppEnv> {
       );
     }
 
+    if (nonce !== null && (nonce === "" || nonce.length > 1024)) {
+      return redirectWithError(c, redirectUri, state, "invalid_request", "nonce must contain 1 to 1024 characters.");
+    }
+    if (hasOAuthScope(scope, "openid")) {
+      if (c.req.query("request") !== undefined) {
+        return redirectWithError(c, redirectUri, state, "request_not_supported", "Request objects are not supported.");
+      }
+      if (c.req.query("request_uri") !== undefined) {
+        return redirectWithError(c, redirectUri, state, "request_uri_not_supported", "Request URI objects are not supported.");
+      }
+      const prompt = c.req.query("prompt");
+      if (prompt === "none") {
+        return redirectWithError(c, redirectUri, state, "consent_required", "Explicit consent is required for each authorization.");
+      }
+      if ((prompt !== undefined && prompt !== "consent") || c.req.query("max_age") !== undefined) {
+        return redirectWithError(c, redirectUri, state, "invalid_request", "Only interactive consent is supported; prompt and max_age requirements cannot be satisfied.");
+      }
+    }
+
     const requestView: AuthorizeRequestView = {
       clientId,
       redirectUri,
@@ -167,6 +167,8 @@ export function createAuthorizeApp(now: () => number): Hono<AuthAppEnv> {
       scope,
       resource,
       clientName: buildConnectionLabel(client.clientName),
+      nonce,
+      issuer: getPublicAuthBaseUrl(c.req.url),
     };
 
     const locale = resolveLoginPageLocale(c.req.query("locale"), c.req.header("accept-language"));
@@ -188,6 +190,7 @@ export function createAuthorizeApp(now: () => number): Hono<AuthAppEnv> {
       code_challenge?: unknown;
       scope?: unknown;
       resource?: unknown;
+      nonce?: unknown;
     };
     try {
       body = await c.req.json();
@@ -199,7 +202,11 @@ export function createAuthorizeApp(now: () => number): Hono<AuthAppEnv> {
     const redirectUri = typeof body.redirect_uri === "string" ? body.redirect_uri : "";
     const state = typeof body.state === "string" ? body.state : null;
     const codeChallenge = typeof body.code_challenge === "string" ? body.code_challenge : "";
-    const scope = typeof body.scope === "string" && body.scope !== "" ? body.scope : null;
+    const scope = typeof body.scope === "string" && body.scope.trim() !== "" ? body.scope.trim() : null;
+    const nonce = typeof body.nonce === "string" ? body.nonce : null;
+    if (nonce !== null && (nonce === "" || nonce.length > 1024)) {
+      return c.json({ error: "invalid_request", error_description: "nonce must contain 1 to 1024 characters." }, 400);
+    }
     const resource = typeof body.resource === "string" ? body.resource : "";
 
     // Re-validate the request server-side: the page-embedded values are
@@ -217,7 +224,7 @@ export function createAuthorizeApp(now: () => number): Hono<AuthAppEnv> {
       return c.json({ error: "invalid_request", error_description: "Unexpected resource." }, 400);
     }
 
-    if (scope !== null && !scope.split(/\s+/).every((entry) => entry === SUPPORTED_SCOPE)) {
+    if (!isSupportedOAuthScope(scope)) {
       return c.json({ error: "invalid_scope", error_description: "Unsupported scope." }, 400);
     }
 
@@ -246,6 +253,7 @@ export function createAuthorizeApp(now: () => number): Hono<AuthAppEnv> {
           scope,
           resource,
           connectionLabel: buildConnectionLabel(client.clientName),
+          nonce,
         },
         now(),
       );
