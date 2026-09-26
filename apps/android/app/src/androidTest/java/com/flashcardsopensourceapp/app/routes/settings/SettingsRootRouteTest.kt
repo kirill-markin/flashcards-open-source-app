@@ -377,6 +377,7 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     onOpenReviewReminders = {
                         clickedRows += "review_reminders"
                     },
+                    onOpenAccentColor = {},
                     onOpenReviewAnimations = {
                         clickedRows += "review_animations"
                     },
