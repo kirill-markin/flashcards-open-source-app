@@ -31,6 +31,7 @@ import {
 } from "../server/requestContext";
 import { createAgentEnvelope, createAgentErrorEnvelope } from "../agent/envelope";
 import { getMcpRequestId } from "./requestTelemetry";
+import { requireMcpToolOutputSchema } from "./outputSchemas";
 import { createPublicHttpErrorDetails, HttpError } from "../shared/errors";
 import {
   listUserWorkspacesWithStatsForSelectedWorkspace,
@@ -87,7 +88,7 @@ const MCP_TOOL_PRESENTATION: Readonly<Record<string, McpToolPresentation | undef
   // effect.
   [SQL_QUERY_TOOL_NAME]: {
     title: "Nibomo SQL query (read-only)",
-    annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true },
+    annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false, idempotentHint: true },
     maxResultSizeChars: MAX_SQL_RESULT_CHARS,
   },
   // sql_execute mutates our own database. Spell out the (MCP-default) non-read-only + destructive
@@ -101,24 +102,24 @@ const MCP_TOOL_PRESENTATION: Readonly<Record<string, McpToolPresentation | undef
   },
   [LIST_WORKSPACES_TOOL_NAME]: {
     title: "List flashcards workspaces",
-    annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true },
+    annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false, idempotentHint: true },
     maxResultSizeChars: null,
   },
   // get_guide returns static contract text: no workspace is read, nothing is written, and the same
   // topic always returns the same body.
   [GET_GUIDE_TOOL_NAME]: {
     title: "Get flashcards usage guide",
-    annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true },
+    annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false, idempotentHint: true },
     maxResultSizeChars: null,
   },
   [NEXT_REVIEW_CARD_TOOL_NAME]: {
     title: "Next flashcard question",
-    annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true },
+    annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false, idempotentHint: true },
     maxResultSizeChars: null,
   },
   [REVEAL_ANSWER_TOOL_NAME]: {
     title: "Reveal flashcard answer",
-    annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true },
+    annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false, idempotentHint: true },
     maxResultSizeChars: null,
   },
   // submit_review's destructiveHint is true because the write overwrites due_at, reps, lapses and
@@ -135,7 +136,7 @@ const MCP_TOOL_PRESENTATION: Readonly<Record<string, McpToolPresentation | undef
   // effect - even though the answer moves as AI is spent.
   [USAGE_LIMITS_TOOL_NAME]: {
     title: "Get AI usage and limits",
-    annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true },
+    annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false, idempotentHint: true },
     maxResultSizeChars: null,
   },
 };
@@ -220,8 +221,9 @@ function buildToolResultText(payload: unknown): string {
   return JSON.stringify(payload);
 }
 
-function buildToolResult(payload: unknown): CallToolResult {
+function buildToolResult(payload: Record<string, unknown>): CallToolResult {
   return {
+    structuredContent: payload,
     content: [
       {
         type: "text",
@@ -541,6 +543,7 @@ export function createMcpServerWithDependencies(
           ? undefined
           : { "anthropic/maxResultSizeChars": presentation.maxResultSizeChars },
         inputSchema: spec.inputSchema,
+        outputSchema: requireMcpToolOutputSchema(spec.name),
         annotations: presentation.annotations,
       },
       async (rawInput: unknown): Promise<CallToolResult> => {

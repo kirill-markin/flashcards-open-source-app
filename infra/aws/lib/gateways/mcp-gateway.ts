@@ -68,6 +68,10 @@ export const alternateMcpHttpApiMappingConstructIdPrefix = "McpAlternateHttp";
 
 const mcpHttpApiMappings: ReadonlyArray<McpHttpApiMapping> = [
   {
+    constructIdSuffix: "OpenAiAppsChallengeApiMapping",
+    apiMappingKey: ".well-known/openai-apps-challenge",
+  },
+  {
     constructIdSuffix: "McpApiMapping",
     apiMappingKey: "mcp",
   },
@@ -188,6 +192,11 @@ export function addMcpHttpApiRoutes(
   // Keep explicit routes for raw execute-api/stage traffic and for readability
   // in the API Gateway console.
   httpApi.addRoutes({
+    path: "/.well-known/openai-apps-challenge",
+    methods: [apigwv2.HttpMethod.GET],
+    integration,
+  });
+  httpApi.addRoutes({
     path: "/.well-known/oauth-protected-resource",
     methods: [apigwv2.HttpMethod.GET],
     integration,
@@ -297,6 +306,7 @@ export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGateway
   // custom domain. Path-specific HTTP API mappings below take precedence for
   // the public MCP routes.
   const wellKnown = restApi.root.addResource(".well-known");
+  wellKnown.addResource("openai-apps-challenge").addMethod("GET", restIntegration);
   const protectedResource = wellKnown.addResource("oauth-protected-resource");
   protectedResource.addMethod("GET", restIntegration);
   protectedResource.addResource("mcp").addMethod("GET", restIntegration);
