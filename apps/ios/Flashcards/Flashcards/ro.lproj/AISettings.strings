@@ -845,3 +845,7 @@
 "settings.language.supported.urdu" = "Urdu";
 "settings.language.supported.vietnamese" = "Vietnameză";
 "settings.language.supported.zulu" = "Zulu";
+
+"premium.comingSoon.title" = "Premium va fi disponibil în curând";
+"premium.comingSoon.message" = "Abonamentele nu sunt încă disponibile.";
+"premium.aiLimit.title" = "Ai atins limita de mesaje AI";

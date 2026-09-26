@@ -845,3 +845,7 @@
 "settings.language.supported.urdu" = "우르두어";
 "settings.language.supported.vietnamese" = "베트남어";
 "settings.language.supported.zulu" = "줄루어";
+
+"premium.comingSoon.title" = "Premium이 곧 출시됩니다";
+"premium.comingSoon.message" = "구독은 아직 이용할 수 없습니다.";
+"premium.aiLimit.title" = "AI 메시지 한도에 도달했습니다";

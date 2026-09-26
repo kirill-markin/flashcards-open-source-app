@@ -873,3 +873,7 @@
 "settings.language.supported.urdu" = "الأردية";
 "settings.language.supported.vietnamese" = "الفيتنامية";
 "settings.language.supported.zulu" = "الزولو";
+
+"premium.comingSoon.title" = "Premium قادم قريبًا";
+"premium.comingSoon.message" = "الاشتراكات غير متاحة بعد.";
+"premium.aiLimit.title" = "تم بلوغ حد رسائل الذكاء الاصطناعي";

@@ -845,3 +845,7 @@
 "settings.language.supported.urdu" = "Isi-Urdu";
 "settings.language.supported.vietnamese" = "IsiVietnam";
 "settings.language.supported.zulu" = "IsiZulu";
+
+"premium.comingSoon.title" = "I-Premium iyeza maduze";
+"premium.comingSoon.message" = "Ukubhalisa akukatholakali okwamanje.";
+"premium.aiLimit.title" = "Usufinyelele emkhawulweni wemiyalezo ye-AI";

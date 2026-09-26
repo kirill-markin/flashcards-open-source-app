@@ -95,6 +95,7 @@ private func appTabDiagnosticValue(_ tab: AppTab) -> String {
 
 struct AIChatView: View {
     @Environment(FlashcardsStore.self) var flashcardsStore: FlashcardsStore
+    @Environment(PremiumPresenter.self) private var premiumPresenter: PremiumPresenter
     @Environment(AppNavigationModel.self) var navigation: AppNavigationModel
     @Environment(\.scenePhase) var scenePhase
     let chatStore: AIChatStore
@@ -155,6 +156,17 @@ struct AIChatView: View {
     var bodyLifecycleModifiers: some View {
         self.bodyBaseModifiers
             .onAppear(perform: self.handleViewAppear)
+            .onChange(of: self.chatStore.quotaRefusal, initial: true) { _, refusal in
+                guard let refusal else {
+                    return
+                }
+                self.chatStore.quotaRefusal = nil
+                guard refusal.userId == self.flashcardsStore.cloudSettings?.linkedUserId,
+                      refusal.cloudState == self.flashcardsStore.cloudSettings?.cloudState else {
+                    return
+                }
+                self.premiumPresenter.present(reason: .aiLimit, entitlement: self.flashcardsStore.cloudEntitlement)
+            }
             .onChange(of: self.navigation.aiChatPresentationRequest) { _, request in
                 self.handlePresentationRequestChange(request: request)
             }
