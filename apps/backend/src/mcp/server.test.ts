@@ -137,7 +137,7 @@ function readSingleTextContent(result: ClientToolResult): string {
     throw new Error("Expected text content item to include text.");
   }
 
-  assert.deepEqual(resultRecord.structuredContent, JSON.parse(text));
+  assert.deepEqual(resultRecord.structuredContent, { data: JSON.parse(text).data });
   return text;
 }
 
