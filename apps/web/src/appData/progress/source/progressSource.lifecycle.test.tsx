@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { ApiError, ApiNetworkError } from "../../../api";
+import { ApiError, ApiNetworkError } from "../../../api/transport/errors";
 import type {
   ProgressSeries,
   ProgressSummaryPayload,
