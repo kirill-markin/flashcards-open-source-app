@@ -38,7 +38,7 @@ export function SubscriptionSettingsScreen(): ReactElement {
             </>
           )}
         </article>
-        <button type="button" className="secondary-btn" data-testid="subscription-offer" onClick={() => { presentPremium?.({ reason: "offer" }); }}>
+        <button type="button" className="ghost-btn" data-testid="subscription-offer" onClick={() => { presentPremium?.({ reason: "offer" }); }}>
           {t("premium.offer")}
         </button>
       </SettingsGroup>
