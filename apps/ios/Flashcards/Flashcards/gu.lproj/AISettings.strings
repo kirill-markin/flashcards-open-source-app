@@ -849,3 +849,14 @@
 "premium.comingSoon.title" = "Premium ટૂંક સમયમાં આવી રહ્યું છે";
 "premium.comingSoon.message" = "સબ્સ્ક્રિપ્શન હજી ઉપલબ્ધ નથી.";
 "premium.aiLimit.title" = "AI સંદેશાઓની મર્યાદા પૂરી થઈ છે";
+
+"settings.accentColor.title" = "એક્સેન્ટ રંગ";
+"settings.accentColor.default" = "ડિફૉલ્ટ";
+"settings.accentColor.blue" = "વાદળી";
+"settings.accentColor.purple" = "જાંબલી";
+"settings.accentColor.pink" = "ગુલાબી";
+"settings.accentColor.teal" = "પીરોજી";
+"settings.accentColor.gold" = "સોનેરી";
+"settings.accentColor.custom" = "પસંદગીનો રંગ";
+"settings.accentColor.invalidHex" = "છ હેક્સાડેસિમલ અંકો સાથે #RRGGBB સ્વરૂપે રંગ દાખલ કરો.";
+"settings.accentColor.premiumNote" = "પસંદગીના એક્સેન્ટ રંગો Premium સાથે ઉપલબ્ધ છે. Premium સક્રિય હોય ત્યારે તમારો સાચવેલો રંગ પાછો આવે છે.";

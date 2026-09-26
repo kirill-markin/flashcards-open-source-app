@@ -849,3 +849,14 @@
 "premium.comingSoon.title" = "Premium on peagi tulekul";
 "premium.comingSoon.message" = "Tellimused pole veel saadaval.";
 "premium.aiLimit.title" = "AI-sõnumite limiit on täis";
+
+"settings.accentColor.title" = "Rõhuvärv";
+"settings.accentColor.default" = "Vaikimisi";
+"settings.accentColor.blue" = "Sinine";
+"settings.accentColor.purple" = "Lilla";
+"settings.accentColor.pink" = "Roosa";
+"settings.accentColor.teal" = "Türkiis";
+"settings.accentColor.gold" = "Kuldne";
+"settings.accentColor.custom" = "Kohandatud värv";
+"settings.accentColor.invalidHex" = "Sisesta värv kujul #RRGGBB kuue kuueteistkümnendsüsteemi numbriga.";
+"settings.accentColor.premiumNote" = "Kohandatud rõhuvärvid on saadaval Premiumiga. Salvestatud värv taastub, kui Premium on aktiivne.";

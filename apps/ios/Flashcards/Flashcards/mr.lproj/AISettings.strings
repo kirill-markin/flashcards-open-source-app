@@ -849,3 +849,14 @@
 "premium.comingSoon.title" = "Premium लवकरच येत आहे";
 "premium.comingSoon.message" = "सदस्यता अद्याप उपलब्ध नाहीत.";
 "premium.aiLimit.title" = "AI संदेशांची मर्यादा गाठली आहे";
+
+"settings.accentColor.title" = "ठळक रंग";
+"settings.accentColor.default" = "डीफॉल्ट";
+"settings.accentColor.blue" = "निळा";
+"settings.accentColor.purple" = "जांभळा";
+"settings.accentColor.pink" = "गुलाबी";
+"settings.accentColor.teal" = "फिरोजी";
+"settings.accentColor.gold" = "सोनेरी";
+"settings.accentColor.custom" = "पसंतीचा रंग";
+"settings.accentColor.invalidHex" = "सहा हेक्साडेसिमल अंकांसह #RRGGBB या स्वरूपात रंग प्रविष्ट करा.";
+"settings.accentColor.premiumNote" = "पसंतीचे ठळक रंग Premium सह उपलब्ध आहेत. Premium सक्रिय झाल्यावर तुमचा जतन केलेला रंग परत येतो.";

@@ -266,7 +266,7 @@ private struct ReviewQueuePreviewCardRow: View {
                         .padding(.vertical, 4)
                         .background(
                             Capsule(style: .continuous)
-                                .fill(Color.accentColor.opacity(0.14))
+                                .fill(.tint.opacity(0.14))
                         )
                 }
             }
@@ -289,7 +289,7 @@ private struct ReviewQueuePreviewCardRow: View {
         .overlay {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .stroke(
-                    isCurrent ? Color.accentColor.opacity(0.35) : Color.clear,
+                    .tint.opacity(isCurrent ? 0.35 : 0),
                     lineWidth: 1
                 )
         }

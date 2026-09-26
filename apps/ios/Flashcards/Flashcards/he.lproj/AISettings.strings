@@ -849,3 +849,14 @@
 "premium.comingSoon.title" = "Premium יגיע בקרוב";
 "premium.comingSoon.message" = "המינויים עדיין אינם זמינים.";
 "premium.aiLimit.title" = "הגעת למגבלת הודעות ה-AI";
+
+"settings.accentColor.title" = "צבע הדגשה";
+"settings.accentColor.default" = "ברירת מחדל";
+"settings.accentColor.blue" = "כחול";
+"settings.accentColor.purple" = "סגול";
+"settings.accentColor.pink" = "ורוד";
+"settings.accentColor.teal" = "טורקיז";
+"settings.accentColor.gold" = "זהב";
+"settings.accentColor.custom" = "צבע מותאם אישית";
+"settings.accentColor.invalidHex" = "יש להזין צבע בתבנית #RRGGBB עם שש ספרות הקסדצימליות.";
+"settings.accentColor.premiumNote" = "צבעי הדגשה מותאמים אישית זמינים עם Premium. הצבע השמור שלך חוזר כאשר Premium פעיל.";

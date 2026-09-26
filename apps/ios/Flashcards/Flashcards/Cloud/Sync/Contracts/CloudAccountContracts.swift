@@ -13,6 +13,7 @@ struct MeResponse: Decodable {
     struct Preferences: Decodable {
         let reviewReactionAnimationsEnabled: Bool
         let productAnalyticsEnabled: Bool?
+        let accentColor: AccountAccentColor
     }
 
     let userId: String

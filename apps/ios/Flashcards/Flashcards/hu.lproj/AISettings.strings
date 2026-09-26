@@ -849,3 +849,14 @@
 "premium.comingSoon.title" = "Hamarosan érkezik a Premium";
 "premium.comingSoon.message" = "Az előfizetések még nem érhetők el.";
 "premium.aiLimit.title" = "Elérted az AI-üzenetek korlátját";
+
+"settings.accentColor.title" = "Kiemelőszín";
+"settings.accentColor.default" = "Alapértelmezett";
+"settings.accentColor.blue" = "Kék";
+"settings.accentColor.purple" = "Lila";
+"settings.accentColor.pink" = "Rózsaszín";
+"settings.accentColor.teal" = "Türkiz";
+"settings.accentColor.gold" = "Arany";
+"settings.accentColor.custom" = "Egyéni szín";
+"settings.accentColor.invalidHex" = "Adj meg egy színt #RRGGBB formátumban, hat hexadecimális számjeggyel.";
+"settings.accentColor.premiumNote" = "Az egyéni kiemelőszínek a Premium részei. A mentett szín visszatér, amikor a Premium aktív.";

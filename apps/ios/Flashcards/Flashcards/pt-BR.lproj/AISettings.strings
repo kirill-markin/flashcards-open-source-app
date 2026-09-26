@@ -877,3 +877,14 @@
 "premium.comingSoon.title" = "Premium chega em breve";
 "premium.comingSoon.message" = "As assinaturas ainda não estão disponíveis.";
 "premium.aiLimit.title" = "Limite de mensagens de IA atingido";
+
+"settings.accentColor.title" = "Cor de destaque";
+"settings.accentColor.default" = "Padrão";
+"settings.accentColor.blue" = "Azul";
+"settings.accentColor.purple" = "Roxo";
+"settings.accentColor.pink" = "Rosa";
+"settings.accentColor.teal" = "Turquesa";
+"settings.accentColor.gold" = "Dourado";
+"settings.accentColor.custom" = "Cor personalizada";
+"settings.accentColor.invalidHex" = "Insira uma cor como #RRGGBB, com seis dígitos hexadecimais.";
+"settings.accentColor.premiumNote" = "As cores de destaque personalizadas estão disponíveis com Premium. Sua cor salva volta quando o Premium está ativo.";

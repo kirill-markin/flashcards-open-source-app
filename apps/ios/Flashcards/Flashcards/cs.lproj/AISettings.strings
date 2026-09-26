@@ -849,3 +849,14 @@
 "premium.comingSoon.title" = "Premium již brzy";
 "premium.comingSoon.message" = "Předplatné zatím není k dispozici.";
 "premium.aiLimit.title" = "Byl dosažen limit zpráv AI";
+
+"settings.accentColor.title" = "Barva zvýraznění";
+"settings.accentColor.default" = "Výchozí";
+"settings.accentColor.blue" = "Modrá";
+"settings.accentColor.purple" = "Fialová";
+"settings.accentColor.pink" = "Růžová";
+"settings.accentColor.teal" = "Tyrkysová";
+"settings.accentColor.gold" = "Zlatá";
+"settings.accentColor.custom" = "Vlastní barva";
+"settings.accentColor.invalidHex" = "Zadejte barvu ve formátu #RRGGBB se šesti šestnáctkovými číslicemi.";
+"settings.accentColor.premiumNote" = "Vlastní barvy zvýraznění jsou dostupné s Premium. Uložená barva se vrátí, jakmile bude Premium aktivní.";
