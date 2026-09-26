@@ -68,10 +68,6 @@ export const alternateMcpHttpApiMappingConstructIdPrefix = "McpAlternateHttp";
 
 const mcpHttpApiMappings: ReadonlyArray<McpHttpApiMapping> = [
   {
-    constructIdSuffix: "OpenAiAppsChallengeApiMapping",
-    apiMappingKey: ".well-known/openai-apps-challenge",
-  },
-  {
     constructIdSuffix: "McpApiMapping",
     apiMappingKey: "mcp",
   },
@@ -169,9 +165,17 @@ export function addMcpHttpApiMappings(
   httpStage: apigwv2.HttpStage,
   dependencies: ReadonlyArray<Construct>,
   constructIdPrefix: string,
+  publicHost: string,
 ): void {
   for (const mapping of mcpHttpApiMappings) {
     addHttpApiMapping(scope, domainName, httpApi, httpStage, mapping, dependencies, constructIdPrefix);
+  }
+  // domainName is a CloudFormation Ref; select the proof using the configured public hostname.
+  if (publicHost === "mcp.nibomo.com") {
+    addHttpApiMapping(scope, domainName, httpApi, httpStage, {
+      constructIdSuffix: "OpenAiAppsChallengeApiMapping",
+      apiMappingKey: ".well-known/openai-apps-challenge",
+    }, dependencies, constructIdPrefix);
   }
 }
 
@@ -191,11 +195,6 @@ export function addMcpHttpApiRoutes(
 
   // Keep explicit routes for raw execute-api/stage traffic and for readability
   // in the API Gateway console.
-  httpApi.addRoutes({
-    path: "/.well-known/openai-apps-challenge",
-    methods: [apigwv2.HttpMethod.GET],
-    integration,
-  });
   httpApi.addRoutes({
     path: "/.well-known/oauth-protected-resource",
     methods: [apigwv2.HttpMethod.GET],
@@ -306,7 +305,6 @@ export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGateway
   // custom domain. Path-specific HTTP API mappings below take precedence for
   // the public MCP routes.
   const wellKnown = restApi.root.addResource(".well-known");
-  wellKnown.addResource("openai-apps-challenge").addMethod("GET", restIntegration);
   const protectedResource = wellKnown.addResource("oauth-protected-resource");
   protectedResource.addMethod("GET", restIntegration);
   protectedResource.addResource("mcp").addMethod("GET", restIntegration);
@@ -378,7 +376,7 @@ export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGateway
   });
 
   if (customDomain !== undefined) {
-    addMcpHttpApiMappings(scope, customDomain.domainName, httpApi, httpStage, [customDomain, httpStage], primaryMcpHttpApiMappingConstructIdPrefix);
+    addMcpHttpApiMappings(scope, customDomain.domainName, httpApi, httpStage, [customDomain, httpStage], primaryMcpHttpApiMappingConstructIdPrefix, `mcp.${props.baseDomain}`);
 
     new cdk.CfnOutput(scope, "McpCustomDomainTarget", {
       value: customDomain.domainNameAliasDomainName,
@@ -386,8 +384,8 @@ export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGateway
     });
   }
 
-  if (alternateCustomDomain !== undefined) {
-    addMcpHttpApiMappings(scope, alternateCustomDomain.domainName, httpApi, httpStage, [alternateCustomDomain, httpStage], alternateMcpHttpApiMappingConstructIdPrefix);
+  if (alternateCustomDomain !== undefined && mcpAlternateHost !== undefined) {
+    addMcpHttpApiMappings(scope, alternateCustomDomain.domainName, httpApi, httpStage, [alternateCustomDomain, httpStage], alternateMcpHttpApiMappingConstructIdPrefix, mcpAlternateHost);
 
     new cdk.CfnOutput(scope, "McpAlternateCustomDomainTarget", {
       value: alternateCustomDomain.domainNameAliasDomainName,
