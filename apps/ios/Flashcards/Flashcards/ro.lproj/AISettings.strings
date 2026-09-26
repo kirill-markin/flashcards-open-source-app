@@ -849,3 +849,14 @@
 "premium.comingSoon.title" = "Premium va fi disponibil în curând";
 "premium.comingSoon.message" = "Abonamentele nu sunt încă disponibile.";
 "premium.aiLimit.title" = "Ai atins limita de mesaje AI";
+
+"settings.accentColor.title" = "Culoare de accent";
+"settings.accentColor.default" = "Implicită";
+"settings.accentColor.blue" = "Albastru";
+"settings.accentColor.purple" = "Mov";
+"settings.accentColor.pink" = "Roz";
+"settings.accentColor.teal" = "Turcoaz";
+"settings.accentColor.gold" = "Auriu";
+"settings.accentColor.custom" = "Culoare personalizată";
+"settings.accentColor.invalidHex" = "Introdu o culoare ca #RRGGBB, cu șase cifre hexazecimale.";
+"settings.accentColor.premiumNote" = "Culorile de accent personalizate sunt disponibile cu Premium. Culoarea salvată revine când Premium este activ.";

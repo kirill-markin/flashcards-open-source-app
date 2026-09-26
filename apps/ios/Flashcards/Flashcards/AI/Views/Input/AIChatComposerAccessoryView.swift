@@ -11,7 +11,7 @@ struct AIChatDictationStatusLane: View {
                 HStack(alignment: .bottom, spacing: 6) {
                     ForEach(0..<5, id: \.self) { index in
                         Capsule()
-                            .fill(Color.accentColor.opacity(index < activeDotCount + 1 ? 0.95 : 0.35))
+                            .fill(.tint.opacity(index < activeDotCount + 1 ? 0.95 : 0.35))
                             .frame(width: 6, height: index < activeDotCount + 1 ? 18 : 10)
                     }
                 }
@@ -128,7 +128,7 @@ extension AIChatView {
                                 .background(.thinMaterial, in: Capsule())
                                 .overlay {
                                     Capsule()
-                                        .strokeBorder(Color.accentColor.opacity(0.18), lineWidth: 1)
+                                        .strokeBorder(.tint.opacity(0.18), lineWidth: 1)
                                 }
                                 .accessibilityIdentifier("\(UITestIdentifier.aiComposerSuggestionPrefix)\(index)")
                             }
@@ -187,7 +187,7 @@ extension AIChatView {
                                     width: aiChatComposerSendButtonVisualSize,
                                     height: aiChatComposerSendButtonVisualSize
                                 )
-                                .foregroundStyle(self.chatStore.canStopResponse ? Color.red : Color.accentColor)
+                                .foregroundStyle(self.chatStore.canStopResponse ? AnyShapeStyle(Color.red) : AnyShapeStyle(.tint))
                         }
                     }
                     .buttonStyle(.plain)

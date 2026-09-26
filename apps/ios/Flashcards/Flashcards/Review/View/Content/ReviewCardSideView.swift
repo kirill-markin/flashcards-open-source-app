@@ -78,7 +78,7 @@ struct ReviewCardSideView: View {
                                 .foregroundStyle(.white)
                                 .frame(height: 32)
                                 .padding(.horizontal, 11)
-                                .background(Color.accentColor, in: Capsule())
+                                .background(.tint, in: Capsule())
                         }
                         .buttonStyle(.plain)
                         .accessibilityIdentifier(UITestIdentifier.reviewAiButton)
