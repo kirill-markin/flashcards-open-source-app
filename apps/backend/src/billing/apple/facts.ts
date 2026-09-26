@@ -5,7 +5,6 @@ import {
 } from "../../productAnalytics/serverFacts/billingFacts";
 import { unsafeTransaction } from "../../database/unsafe";
 import { getDatabaseErrorFields } from "../../database/transient";
-import { captureBackendRuntimeWarning, createBackendObservationScope } from "../../observability/runtime";
 import { resolveEntitlementSnapshotForUser } from "../snapshot";
 import { lockAppleAccount, type StoredApplePurchase } from "./store";
 import type { ApplePurchaseState } from "./contracts";
@@ -29,18 +28,14 @@ export async function publishCommittedTransition(transition: AppleCommittedTrans
         await resolveEntitlementSnapshotForUser(userId, account.accountKind, new Date());
       } catch (error) {
         const databaseCode = z.string().regex(/^[A-Z0-9_]{1,64}$/).safeParse(getDatabaseErrorFields(error).errorCode);
-        captureBackendRuntimeWarning({
-          action: "apple_post_commit_snapshot_refresh_failed",
-          scope: createBackendObservationScope(
-            "backend-api", null, null, null, userId, null, null, null, null, null, null,
-          ),
-          details: {
-            purchaseId: transition.purchase.purchase_id,
-            providerEventId: transition.eventId,
-            environment: transition.state.environment,
-            errorCode: databaseCode.success ? databaseCode.data : null,
-          },
-        });
+        console.warn(JSON.stringify({
+          event: "apple_post_commit_snapshot_refresh_failed",
+          userId,
+          purchaseId: transition.purchase.purchase_id,
+          providerEventId: transition.eventId,
+          environment: transition.state.environment,
+          errorCode: databaseCode.success ? databaseCode.data : null,
+        }));
       }
       if (userId !== transition.purchase.user_id || transition.purchase.account_deleted_at !== null) continue;
       // Existing provider fact producers have no environment field: sandbox must not enter them.
