@@ -845,3 +845,7 @@
 "settings.language.supported.urdu" = "Urdu";
 "settings.language.supported.vietnamese" = "Vietnam";
 "settings.language.supported.zulu" = "Zulu";
+
+"premium.comingSoon.title" = "Premium segera hadir";
+"premium.comingSoon.message" = "Langganan belum tersedia.";
+"premium.aiLimit.title" = "Batas pesan AI tercapai";

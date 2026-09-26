@@ -9,6 +9,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import com.flashcardsopensourceapp.app.analytics.analyticsMediaUploadFailureReason
 import com.flashcardsopensourceapp.app.di.AppGraph
+import com.flashcardsopensourceapp.app.premium.PremiumPresenter
+import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiAlertState
 import com.flashcardsopensourceapp.app.navigation.AiDestination
 import com.flashcardsopensourceapp.app.navigation.settings.SettingsAccountSignInEmailDestination
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
@@ -22,7 +24,8 @@ import com.flashcardsopensourceapp.feature.ai.createAiViewModelFactory
 
 internal fun NavGraphBuilder.registerAiNavGraph(
     appGraph: AppGraph,
-    navController: NavHostController
+    navController: NavHostController,
+    premiumPresenter: PremiumPresenter
 ) {
     composable(route = AiDestination.route) {
         val aiViewModel = viewModel<com.flashcardsopensourceapp.feature.ai.AiViewModel>(
@@ -39,6 +42,12 @@ internal fun NavGraphBuilder.registerAiNavGraph(
             )
         )
         val uiState by aiViewModel.uiState.collectAsStateWithLifecycle()
+        val quotaRefusal = uiState.activeAlert as? AiAlertState.AiLimitReached
+        LaunchedEffect(quotaRefusal?.requestId) {
+            val refusal = quotaRefusal ?: return@LaunchedEffect
+            aiViewModel.dismissAlert()
+            premiumPresenter.showAiLimit(refusal = refusal)
+        }
         val entryPrefillRequest by appGraph.appHandoffCoordinator.observeAiEntryPrefill().collectAsStateWithLifecycle()
         val cardHandoffRequest by appGraph.appHandoffCoordinator.observeAiCardHandoff().collectAsStateWithLifecycle()
 

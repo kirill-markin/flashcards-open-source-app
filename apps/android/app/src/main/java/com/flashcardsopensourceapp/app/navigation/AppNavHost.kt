@@ -11,6 +11,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.flashcardsopensourceapp.app.di.AppGraph
+import com.flashcardsopensourceapp.app.premium.PremiumPresenter
 import com.flashcardsopensourceapp.app.navigation.ai.registerAiNavGraph
 import com.flashcardsopensourceapp.app.navigation.cards.registerCardsNavGraph
 import com.flashcardsopensourceapp.app.navigation.progress.registerProgressNavGraph
@@ -25,14 +26,15 @@ import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionLottieConfigurationStore
 
 @Composable
-fun AppNavHost(
+internal fun AppNavHost(
     appGraph: AppGraph,
     navController: NavHostController,
     reviewReactionLottieConfigurationStore: ReviewReactionLottieConfigurationStore,
     reviewReactionAnimationsEnabled: Boolean,
     isPowerSaveMode: Boolean,
     appNotificationTapRequest: AppNotificationTapHandoffRequest?,
-    consumeAppNotificationTap: (Long) -> Unit
+    consumeAppNotificationTap: (Long) -> Unit,
+    premiumPresenter: PremiumPresenter
 ) {
     val coroutineScope = rememberCoroutineScope()
     val reviewReactionAnimationsEnabledState: State<Boolean> = rememberUpdatedState(
@@ -109,7 +111,8 @@ fun AppNavHost(
         )
         registerAiNavGraph(
             appGraph = appGraph,
-            navController = navController
+            navController = navController,
+            premiumPresenter = premiumPresenter
         )
         registerProgressNavGraph(
             appGraph = appGraph,
@@ -120,7 +123,8 @@ fun AppNavHost(
             navController = navController,
             packageInfo = packageInfo,
             coroutineScope = coroutineScope,
-            isPowerSaveModeState = isPowerSaveModeState
+            isPowerSaveModeState = isPowerSaveModeState,
+            premiumPresenter = premiumPresenter
         )
     }
 }

@@ -845,3 +845,7 @@
 "settings.language.supported.urdu" = "Urdu";
 "settings.language.supported.vietnamese" = "Vijetnamski";
 "settings.language.supported.zulu" = "Zulu";
+
+"premium.comingSoon.title" = "Premium stiže uskoro";
+"premium.comingSoon.message" = "Pretplate još nisu dostupne.";
+"premium.aiLimit.title" = "Dosegnuto je ograničenje AI poruka";

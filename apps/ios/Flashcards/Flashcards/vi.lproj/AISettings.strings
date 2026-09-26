@@ -845,3 +845,7 @@
 "settings.language.supported.urdu" = "Tiếng Urdu";
 "settings.language.supported.vietnamese" = "Tiếng Việt";
 "settings.language.supported.zulu" = "Tiếng Zulu";
+
+"premium.comingSoon.title" = "Premium sắp ra mắt";
+"premium.comingSoon.message" = "Hiện chưa thể đăng ký gói thuê bao.";
+"premium.aiLimit.title" = "Đã đạt giới hạn tin nhắn AI";

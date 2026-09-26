@@ -845,3 +845,7 @@
 "settings.language.supported.urdu" = "Urduca";
 "settings.language.supported.vietnamese" = "Vietnamca";
 "settings.language.supported.zulu" = "Zuluca";
+
+"premium.comingSoon.title" = "Premium yakında geliyor";
+"premium.comingSoon.message" = "Abonelikler henüz kullanılamıyor.";
+"premium.aiLimit.title" = "Yapay zekâ mesaj sınırına ulaşıldı";

@@ -853,4 +853,6 @@
         <item quantity="one">%d hour</item>
         <item quantity="other">%d hours</item>
     </plurals>
+    <string name="settings_premium_preview">Preview Premium</string>
+    <string name="settings_ai_limit_preview">Preview AI message limit</string>
 </resources>

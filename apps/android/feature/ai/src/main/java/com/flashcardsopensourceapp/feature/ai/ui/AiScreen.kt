@@ -633,6 +633,7 @@ internal fun AiRouteContent(
                 )
             }
 
+            is AiAlertState.AiLimitReached -> Unit
             null -> Unit
         }
     }

@@ -59,6 +59,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.flashcardsopensourceapp.app.analytics.analyticsSurfaceForRoute
 import com.flashcardsopensourceapp.app.analytics.analyticsSyncFailureReason
+import com.flashcardsopensourceapp.app.premium.PremiumPresenter
+import com.flashcardsopensourceapp.app.premium.PremiumPresentationHost
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.di.AppStartupState
 import com.flashcardsopensourceapp.app.navigation.AppNavHost
@@ -292,9 +294,28 @@ fun FlashcardsApp(
                 updatedAtMillis = 0L
             )
         )
+        val premiumPresenter = remember(
+            appGraph,
+            cloudSettings.installationId,
+            cloudSettings.linkedUserId,
+            cloudSettings.cloudState
+        ) { PremiumPresenter() }
+        DisposableEffect(premiumPresenter) {
+            onDispose { premiumPresenter.dismiss() }
+        }
+        val entitlement by appGraph.cloudAccountRepository.observeEntitlement()
+            .collectAsStateWithLifecycle(initialValue = null)
+        LaunchedEffect(premiumPresenter, entitlement) {
+            premiumPresenter.updateEntitlement(value = entitlement)
+        }
         val accountDeletionState by appGraph.cloudAccountRepository.observeAccountDeletionState().collectAsStateWithLifecycle(
             initialValue = AccountDeletionState.Hidden
         )
+        LaunchedEffect(accountDeletionState) {
+            if (accountDeletionState != AccountDeletionState.Hidden) {
+                premiumPresenter.dismiss()
+            }
+        }
         val guestSignInAfterReviewPromptUiState by appGraph.guestSignInAfterReviewPromptController
             .observeUiState()
             .collectAsStateWithLifecycle(
@@ -353,7 +374,7 @@ fun FlashcardsApp(
         val currentVisibleAppScreenState by rememberUpdatedState(newValue = currentVisibleAppScreen)
         val guestSignInAfterReviewPromptContext = GuestSignInAfterReviewPromptContext(
             isAuthFlowActive = isGuestSignInAfterReviewPromptAuthRoute(route = currentRoute),
-            isAppModalActive = isGuestSignInAfterReviewPromptModalActive(
+            isAppModalActive = premiumPresenter.reason != null || isGuestSignInAfterReviewPromptModalActive(
                 accountDeletionState = accountDeletionState,
                 isFeedbackPromptVisible = feedbackPromptUiState.isVisible,
                 isTechnicalErrorVisible = displayedTechnicalError != null
@@ -370,7 +391,7 @@ fun FlashcardsApp(
         val feedbackPromptContext = FeedbackPromptContext(
             isAppResumed = isAppResumed,
             isAuthFlowActive = isFeedbackPromptAuthRoute(route = currentRoute),
-            isAppModalActive = isFeedbackPromptModalActive(
+            isAppModalActive = premiumPresenter.reason != null || isFeedbackPromptModalActive(
                 accountDeletionState = accountDeletionState,
                 isGuestSignInAfterReviewPromptVisible = guestSignInAfterReviewPromptUiState.isVisible,
                 isTechnicalErrorVisible = displayedTechnicalError != null
@@ -687,7 +708,8 @@ fun FlashcardsApp(
                     reviewReactionAnimationsEnabled = effectiveReviewReactionAnimationsEnabled,
                     isPowerSaveMode = isPowerSaveMode,
                     appNotificationTapRequest = appNotificationTapRequest,
-                    consumeAppNotificationTap = consumeAppNotificationTap
+                    consumeAppNotificationTap = consumeAppNotificationTap,
+                    premiumPresenter = premiumPresenter
                 )
                 SnackbarHost(
                     hostState = snackbarHostState,
@@ -708,6 +730,16 @@ fun FlashcardsApp(
                     },
                     onRetryDeletion = {
                         appGraph.cloudAccountRepository.retryPendingAccountDeletion()
+                    }
+                )
+                PremiumPresentationHost(
+                    presenter = premiumPresenter,
+                    appGraph = appGraph,
+                    cloudSettings = cloudSettings,
+                    onOpenSignIn = {
+                        navController.navigate(
+                            route = SettingsAccountSignInEmailDestination.createRoute(origin = AnalyticsSurface.AI)
+                        )
                     }
                 )
                 if (isGuestSignInAfterReviewPromptShown) {

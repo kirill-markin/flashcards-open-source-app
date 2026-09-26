@@ -33,6 +33,7 @@ import com.flashcardsopensourceapp.feature.ai.runtime.conversation.setPendingToo
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.snapshotRunHasToolCalls
 import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.live.AiChatLiveStreamCoordinator
 import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.session.AiChatSessionCoordinator
+import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiAlertState
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiErrorSurface
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.AiChatBreadcrumb
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.AiChatExceptionEvent
@@ -392,36 +393,31 @@ internal class AiChatSendCoordinator(
             )
         }
         if (remoteError?.let(::isAiLimitReachedRemoteError) == true) {
-            // Signing in is the fix only while this install has no account, so a signed-in caller gets
-            // the account refusal instead of a prompt to create an account.
-            if (currentCloudState() == CloudAccountState.LINKED) {
-                val limitAlert = context.textProvider.generalError(
-                    message = context.accountAiLimitReachedMessage()
-                )
-                context.runtimeStateMutable.update { state ->
-                    state.copy(
-                        activeRun = null,
-                        isLiveAttached = false,
-                        composerPhase = AiComposerPhase.IDLE,
-                        activeAlert = limitAlert,
-                        errorMessage = ""
-                    )
-                }
-                return
-            }
+            val message = context.textProvider.aiLimitReachedAccountMessageWithoutDate
+            val alert = context.textProvider.generalError(message = message)
             context.refreshAiUsage()
             context.runtimeStateMutable.update { state ->
                 state.copy(
-                    persistedState = appendAssistantAccountUpgradePrompt(
-                        state = state.persistedState,
-                        message = context.textProvider.aiLimitReachedGuestMessage,
-                        buttonTitle = context.textProvider.guestQuotaButtonTitle,
-                        timestampMillis = System.currentTimeMillis()
-                    ),
+                    persistedState = if (currentCloudState() == CloudAccountState.GUEST) {
+                        appendAssistantAccountUpgradePrompt(
+                            state = state.persistedState,
+                            message = message,
+                            buttonTitle = context.textProvider.guestQuotaButtonTitle,
+                            timestampMillis = System.currentTimeMillis()
+                        )
+                    } else {
+                        state.persistedState
+                    },
                     activeRun = null,
                     isLiveAttached = false,
                     composerPhase = AiComposerPhase.IDLE,
-                    errorMessage = ""
+                    activeAlert = AiAlertState.AiLimitReached(
+                        requestId = UUID.randomUUID().toString(),
+                        code = requireNotNull(remoteError?.code),
+                        title = alert.title,
+                        message = message
+                    ),
+                    errorMessage = message
                 )
             }
             return

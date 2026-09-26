@@ -845,3 +845,7 @@
 "settings.language.supported.urdu" = "Urdu";
 "settings.language.supported.vietnamese" = "Vjetnamiešu";
 "settings.language.supported.zulu" = "Zulu";
+
+"premium.comingSoon.title" = "Premium būs pieejams drīzumā";
+"premium.comingSoon.message" = "Abonementi vēl nav pieejami.";
+"premium.aiLimit.title" = "Sasniegts MI ziņojumu limits";

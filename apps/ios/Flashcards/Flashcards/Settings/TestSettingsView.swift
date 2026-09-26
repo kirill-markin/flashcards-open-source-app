@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TestSettingsView: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
+    @Environment(PremiumPresenter.self) private var premiumPresenter: PremiumPresenter
 
     var body: some View {
         List {
@@ -65,6 +66,30 @@ struct TestSettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.testSettingsTechnicalErrorPreviewRow)
+
+                Button {
+                    self.premiumPresenter.present(reason: .offerPreview, entitlement: store.cloudEntitlement)
+                } label: {
+                    SettingsNavigationRow(
+                        title: premiumComingSoonTitle(),
+                        value: aiSettingsLocalized("settings.test.technicalErrorPreview.value", "Preview sheet"),
+                        systemImage: "sparkles",
+                        attentionCount: nil
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.testSettingsPremiumPreview)
+
+                Button {
+                    self.premiumPresenter.present(reason: .aiLimit, entitlement: store.cloudEntitlement)
+                } label: {
+                    SettingsNavigationRow(
+                        title: premiumAILimitTitle(),
+                        value: aiSettingsLocalized("settings.test.technicalErrorPreview.value", "Preview sheet"),
+                        systemImage: "bubble.left",
+                        attentionCount: nil
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.testSettingsAILimitPreview)
 
                 Button {
                     store.clearStoreReviewPromptStateForTests()
@@ -297,6 +322,7 @@ private func testAnimationAccessibilityLabel(
     NavigationStack {
         TestSettingsView()
             .environment(FlashcardsStore())
+            .environment(PremiumPresenter())
     }
 }
 
