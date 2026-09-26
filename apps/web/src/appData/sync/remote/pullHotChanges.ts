@@ -1,3 +1,4 @@
+import { publishEntitlementSnapshot, readEntitlementIdentityGeneration } from "../../../premium/entitlementStore";
 import { pullSyncChanges } from "../../../api";
 import { webAppVersion } from "../../../clientIdentity";
 import {
@@ -15,6 +16,7 @@ import type {
 } from "./types";
 
 export async function pullHotChanges(input: WorkspaceRemoteSyncInput): Promise<RemoteSyncFlags> {
+  const entitlementGeneration = readEntitlementIdentityGeneration();
   let afterHotChangeId = await loadLastAppliedHotChangeId(input.workspaceId);
   if (input.hasFailed()) {
     return {
@@ -50,6 +52,10 @@ export async function pullHotChanges(input: WorkspaceRemoteSyncInput): Promise<R
       };
     }
     input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
+
+    if (input.signal.aborted === false) {
+      publishEntitlementSnapshot(input.userId, pullResult.entitlement, entitlementGeneration);
+    }
 
     if (await doHotSyncEntriesAffectReviewSchedule(input.workspaceId, pullResult.changes)) {
       didChangeReviewSchedule = true;

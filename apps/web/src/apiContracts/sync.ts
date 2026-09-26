@@ -28,6 +28,7 @@ import {
   parseReviewEvent,
   parseWorkspaceSchedulerSettings,
 } from "./studyData";
+import { parseOptionalEntitlement } from "./entitlement";
 import { parseMediaAsset } from "./mediaAssets";
 
 function parseSyncBootstrapEntityType(
@@ -216,6 +217,7 @@ export function parseSyncPullResultResponse(value: unknown, endpoint: string): S
   return {
     changes: parseRequiredField(objectValue, "changes", endpoint, "", parseSyncChangeArray),
     nextHotChangeId: parseRequiredField(objectValue, "nextHotChangeId", endpoint, "", parseNumber),
+    entitlement: parseOptionalEntitlement(objectValue, endpoint),
     hasMore: parseRequiredField(objectValue, "hasMore", endpoint, "", parseBoolean),
   };
 }

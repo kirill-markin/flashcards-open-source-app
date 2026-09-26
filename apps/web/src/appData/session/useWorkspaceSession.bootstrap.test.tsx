@@ -532,6 +532,7 @@ describe("useWorkspaceSession bootstrap", () => {
 
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
       .mockResolvedValueOnce(buildSessionResponseForUser("user-2", "workspace-1", "csrf-refresh"))
+      .mockResolvedValueOnce(buildSessionResponseForUser("user-2", "workspace-1", "csrf-refresh"))
       .mockResolvedValueOnce(buildWorkspacesResponse([seededWorkspace]));
     vi.stubGlobal("fetch", fetchMock);
 
@@ -563,7 +564,7 @@ describe("useWorkspaceSession bootstrap", () => {
       expect(latestState?.sessionVerificationState).toBe("verified");
     });
 
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
     expect(deleteDatabaseSpy).toHaveBeenCalledTimes(1);
     expect(deleteDatabaseSpy.mock.invocationCallOrder[0]).toBeGreaterThan(
       fetchMock.mock.invocationCallOrder[0] ?? 0,
@@ -587,6 +588,7 @@ describe("useWorkspaceSession bootstrap", () => {
     const resetUserScopedUiStateMock = vi.fn((): void => {});
 
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"))
       .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"))
       .mockResolvedValueOnce(buildWorkspacesResponse([seededWorkspace]));
     vi.stubGlobal("fetch", fetchMock);

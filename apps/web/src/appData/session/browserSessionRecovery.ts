@@ -1,3 +1,4 @@
+import { clearEntitlementState } from "../../premium/entitlementStore";
 import { isAccountDeletionAttemptStorageKey } from "../../accountDeletion/accountDeletionAttempt";
 import { analyticsEnabledStorageKey, productAnalyticsCollectionStorageKey } from "../../analytics/identity";
 import { AI_CHAT_COMPOSER_SUGGESTIONS_STORAGE_KEY } from "../../chat/preferences/AIChatPreferencesContext";
@@ -245,6 +246,7 @@ export async function clearAllLocalBrowserData(
   reason: LocalBrowserDataCleanupReason,
   throwIfIndexedDbOpenRecoveryFailed: () => void,
 ): Promise<void> {
+  clearEntitlementState();
   const browserStorage = getBrowserStorage();
   let indexedDbError: Error | null = null;
 

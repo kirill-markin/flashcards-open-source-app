@@ -1,3 +1,4 @@
+import type { EntitlementSnapshot } from "./entitlement";
 import type { MediaAsset, MediaAssetSnapshotPayload } from "./mediaAssets";
 import type { Card, CardMetadata, Deck, FsrsCardState, ReviewEvent, ReviewRating, WorkspaceSchedulerSettings } from "./study";
 
@@ -149,6 +150,7 @@ export type SyncBootstrapPushResult = Readonly<{
 }>;
 
 export type SyncPullResult = Readonly<{
+  entitlement?: EntitlementSnapshot;
   changes: ReadonlyArray<SyncChange>;
   nextHotChangeId: number;
   hasMore: boolean;
