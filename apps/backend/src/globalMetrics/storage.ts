@@ -5,22 +5,23 @@ import {
   type BackendObservationScope,
 } from "../observability/sentry";
 import { parseGlobalMetricsSnapshotJson, type GlobalMetricsSnapshot } from "./snapshot";
+import { parseGlobalMetricsSnapshotV3Json, type GlobalMetricsSnapshotV3 } from "./snapshotV3";
 
 export type GlobalMetricsStorageConfig = Readonly<{
   bucketName: string;
   objectKey: string;
 }>;
 
-export type GlobalMetricsSnapshotWriteResult = Readonly<{
+export type GlobalMetricsSnapshotWriteResult<Snapshot = GlobalMetricsSnapshot> = Readonly<{
   bucketName: string;
   objectKey: string;
-  snapshot: GlobalMetricsSnapshot;
+  snapshot: Snapshot;
 }>;
 
-type LoadGlobalMetricsSnapshotDependencies = Readonly<{
+type LoadGlobalMetricsSnapshotDependencies<Snapshot> = Readonly<{
   s3Client: S3Client;
   getGlobalMetricsStorageConfigFn: typeof getGlobalMetricsStorageConfig;
-  parseGlobalMetricsSnapshotJsonFn: typeof parseGlobalMetricsSnapshotJson;
+  parseGlobalMetricsSnapshotJsonFn: (value: string) => Snapshot;
 }>;
 
 type WriteGlobalMetricsSnapshotDependencies = Readonly<{
@@ -149,10 +150,10 @@ function createGlobalMetricsSnapshotUnavailableError(
   );
 }
 
-export async function loadGlobalMetricsSnapshotFromS3WithDependencies(
+export async function loadGlobalMetricsSnapshotFromS3WithDependencies<Snapshot>(
   observationScope: BackendObservationScope,
-  dependencies: LoadGlobalMetricsSnapshotDependencies,
-): Promise<GlobalMetricsSnapshot> {
+  dependencies: LoadGlobalMetricsSnapshotDependencies<Snapshot>,
+): Promise<Snapshot> {
   let config: GlobalMetricsStorageConfig | null = null;
 
   try {
@@ -190,11 +191,11 @@ export async function loadGlobalMetricsSnapshotFromS3(
   });
 }
 
-export async function writeGlobalMetricsSnapshotToS3WithDependencies(
+export async function writeGlobalMetricsSnapshotToS3WithDependencies<Snapshot extends GlobalMetricsSnapshot | GlobalMetricsSnapshotV3>(
   observationScope: BackendObservationScope,
-  snapshot: GlobalMetricsSnapshot,
+  snapshot: Snapshot,
   dependencies: WriteGlobalMetricsSnapshotDependencies,
-): Promise<GlobalMetricsSnapshotWriteResult> {
+): Promise<GlobalMetricsSnapshotWriteResult<Snapshot>> {
   const config = dependencies.getGlobalMetricsStorageConfigFn();
 
   try {
@@ -230,5 +231,30 @@ export async function writeGlobalMetricsSnapshotToS3(
   return writeGlobalMetricsSnapshotToS3WithDependencies(observationScope, snapshot, {
     s3Client: getGlobalMetricsS3Client(),
     getGlobalMetricsStorageConfigFn: getGlobalMetricsStorageConfig,
+  });
+}
+
+function getGlobalMetricsV3StorageConfig(): GlobalMetricsStorageConfig {
+  const config = getGlobalMetricsStorageConfig();
+  return { ...config, objectKey: `${config.objectKey}.v3` };
+}
+
+export async function loadGlobalMetricsSnapshotV3FromS3(
+  observationScope: BackendObservationScope,
+): Promise<GlobalMetricsSnapshotV3> {
+  return loadGlobalMetricsSnapshotFromS3WithDependencies(observationScope, {
+    s3Client: getGlobalMetricsS3Client(),
+    getGlobalMetricsStorageConfigFn: getGlobalMetricsV3StorageConfig,
+    parseGlobalMetricsSnapshotJsonFn: parseGlobalMetricsSnapshotV3Json,
+  });
+}
+
+export async function writeGlobalMetricsSnapshotV3ToS3(
+  observationScope: BackendObservationScope,
+  snapshot: GlobalMetricsSnapshotV3,
+): Promise<GlobalMetricsSnapshotWriteResult<GlobalMetricsSnapshotV3>> {
+  return writeGlobalMetricsSnapshotToS3WithDependencies(observationScope, snapshot, {
+    s3Client: getGlobalMetricsS3Client(),
+    getGlobalMetricsStorageConfigFn: getGlobalMetricsV3StorageConfig,
   });
 }

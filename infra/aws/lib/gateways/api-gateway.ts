@@ -610,7 +610,10 @@ function addGlobalMetricsEnvironment(
   fn.addEnvironment("GLOBAL_METRICS_S3_OBJECT_KEY", config.snapshotObjectKey);
   fn.addToRolePolicy(new cdk.aws_iam.PolicyStatement({
     actions: ["s3:GetObject"],
-    resources: [config.snapshotBucket.arnForObjects(config.snapshotObjectKey)],
+    resources: [
+      config.snapshotBucket.arnForObjects(config.snapshotObjectKey),
+      config.snapshotBucket.arnForObjects(`${config.snapshotObjectKey}.v3`),
+    ],
   }));
 }
 

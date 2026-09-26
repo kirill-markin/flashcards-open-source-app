@@ -1,4 +1,8 @@
 import {
+  buildReviewAnswersCteSql as buildCanonicalReviewAnswersCteSql,
+  buildDailyReviewActorPlatformSql,
+} from "../../../../backend/src/reviewMetricsSql";
+import {
   reviewEventPlatforms,
   runAdminQuery,
 } from "../../adminApi";
@@ -379,197 +383,43 @@ export function buildReviewEventsByDateAvailableRangeSql(): string {
 // this report, and the expression the cohort filter is applied to.
 const reviewCohortSqlExpression = "CASE WHEN review_answers.review_date = actor_first_review_date.first_review_date THEN 'new' ELSE 'returning' END";
 
-// Per-actor breakdown for the admin "Review events by date" report (charts + tooltips).
-//
-// ONE SOURCE. This reads `analytics.product_events_resolved` and nothing else in the product
-// schemas except the identity join below and the shared `analytics.excluded_actors` list. It no longer joins `content.review_events` to
-// `sync.workspace_replicas`, and it no longer restates the client-installation identity rules that
-// `apps/backend/src/globalMetrics/reporting.ts` encodes for the public snapshot. Those two surfaces
-// have deliberately diverged: the snapshot still counts raw review rows, this dashboard counts
-// resolved actors, and the numbers are expected to differ.
-//
-// GROUP BY actor_id, NEVER BY user_id. `actor_id` already collapses a guest and the account that
-// guest became into one person (`db/migrations/0115_product_analytics_resolved_view.sql`), and
-// `0120` wrote the historical guest links, so pre-live history resolves through the same machinery.
-// That single rule is what removes the `actor_kind = 'client_installation'` filter, the guest-merge
-// reasoning and the duplicated cohort CTE at once.
-//
-// ONE IDENTITY RULE IS NOT IN THE EVENTS TABLE. An event row carries no email, so the shared
-// exclusion rule brings its own join from `actor_id` to `org.user_settings`.
-// `buildExcludedActorSqlLines` in `apps/admin/src/filters/filterSql.ts` is the only place this
-// dashboard writes that rule, and the public snapshot restates it in
-// `apps/backend/src/globalMetrics/reporting.ts`, which this package cannot import from. If the rule
-// changes - a second test domain, a different match - update both files.
-//
-// EVERY JOIN ONTO THAT TABLE FOLDS THE STORED SIDE, the displayed-email join here and the exclusion
-// rule's own lookup alike, and has to. `resolved.actor_id` is UUID, so `::text` always
-// renders canonical lowercase hex, while `org.user_settings.user_id` is an unconstrained TEXT
-// primary key (`db/migrations/0001_initial_schema.sql:26-27`) that may hold either hex case.
-// Compared as stored, an uppercase-hex row would simply miss: the exclusion would find no address
-// for that actor and a test account would be counted in every chart while displaying as
-// `(no email)`. `0120_backfill_product_analytics_server_facts.sql:445-460`
-// settles this same question for the same reason and folds both sides of its live-account guard.
-// Folding rather than `::uuid` is equally deliberate: `0001_initial_schema.sql:152` seeds this table
-// with the id `'local'` for `AUTH_MODE=none`, and a cast would abort the whole statement and take
-// the dashboard down. The cost is the primary-key index on this join, which is cheap here because
-// `org.user_settings` is one narrow row per account: the planner hashes it once and probes that hash
-// per event, rather than scanning it per event. Two rows could fold together only if two accounts
-// held ids differing in hex case alone, which `0120` already treats as one identity; if that ever
-// happened the two builders would fail differently, because here the duplicate fold silently doubles
-// `COUNT(*)` and that actor's per-day totals, while in `buildReviewEventsByDateCommunitySql` the
-// final `org.user_settings` join fans the deduped `community_user_dates` rows back out and
-// `assertCommunityRowsInRange` throws `Community report returned duplicate rows for date and user`,
-// taking the whole dashboard red rather than reporting a wrong number.
-//
-// An actor with no row there - a guest who never upgraded, an unresolved anonymous id - keeps a NULL
-// email and is included, exactly as before.
-//
-// DELETED ACCOUNTS STILL APPEAR ONCE THEY HAVE ANALYTICS HISTORY, which is a visible change from the
-// old dashboard. Account deletion anonymizes rather than erases:
-// `apps/backend/src/auth/accountDeletion.ts:177-195` rewrites `user_id` and `subject_user_id` to a
-// per-deletion pseudonym UUID and sets `identity_state = 'anonymized'`. Those rows keep resolving to
-// a stable non-NULL `actor_id`, so a departed person's review history stays in the totals as a
-// `(no email)` actor whose raw pseudonym UUID shows in the user filter popup and in tooltips. The
-// old dashboard showed nothing for them, but not because of its `sync.workspace_replicas` join: the
-// same deletion had already removed the rows that query read, since
-// `accountDeletion.ts:254` deletes the person's sole-member `org.workspaces` rows and
-// `content.review_events.workspace_id` is `ON DELETE CASCADE` (`0001_initial_schema.sql:68`).
-//
-// The reverse case is the one to hold onto when reconciling a total: an account deleted BEFORE it
-// had analytics history is absent here entirely. There was nothing to anonymize, and `0120` could
-// not reconstruct it either, because `accountDeletion.ts:264` also deletes the `org.user_settings`
-// row and the backfill keeps only reviews whose author still has one (`0120:669-674`, stated
-// outright at `0120:606-611`). Do not look for those reviews in `content.review_events` either -
-// they went with the workspace.
-//
-// Keeping the anonymized history is intended - the reviews really happened - and `identity_state` on
-// `analytics.product_events_resolved` is the handle if they ever need filtering out.
-//
-// PLATFORM IS READ OFF THE ROW AND NEVER DERIVED. The producer derives it once per drain
-// (`apps/backend/src/productAnalytics/serverFacts/reviewAnswers.ts`), from the replica that recorded
-// the review for every review except an AI-chat one, and migrations `0122` and `0123` filled the
-// same replica-derived value on the history `0120` reconstructed and on the live rows the producer
-// wrote before it could resolve one. That derivation reads
-// `sync.workspace_replicas.platform` only together with `actor_kind` on the same row, so a value
-// read off that column appears only for a `client_installation` replica on 'ios', 'android' or
-// 'web': an `agent_connection` replica stores 'web' for the machine API, an `ai_chat` replica
-// stores a hard-coded 'web' that describes no device, and seed/reset replicas store 'system'. An
-// `agent_connection` replica resolves to `agent` from its actor kind instead of from that column.
-// An AI-chat review takes the device platform stored on its chat run instead, so a device value
-// also appears for an AI-chat review whose run was started by a request that named its device, and
-// any other AI-chat review stays NULL. A seed/reset replica, and a review whose replica row is gone
-// or whose resolution failed, stays NULL too. Every NULL lands in the `unattributed` bucket, which
-// means no resolved device fact - either the actor behind the row is not a device or no device
-// could be resolved for it - rather than either case alone.
 export function buildReviewEventsByDateSql(filters: AnalyticsFilterState): string {
   const dateRange = assertValidDateRange(filters.dateRange, "Review events report");
   const from = dateRange.from;
   const to = dateRange.to;
 
+  const selectionSql = [
+    `review_answers.review_date >= ${escapeSqlStringLiteral(from)}::date`,
+    `review_answers.review_date <= ${escapeSqlStringLiteral(to)}::date`,
+    buildUserCohortsFilterSql(reviewCohortSqlExpression, filters.userCohorts),
+    buildEventPlatformsFilterSql("review_answers.platform", filters.eventPlatforms),
+    buildMinimumEventCountsFilterSql("review_answers.actor_id", filters.minimumEventCounts, dateRange),
+    buildConnectionCountriesFilterSql("review_answers.actor_id", filters.connectionCountries, dateRange),
+    buildAppUiLanguagesFilterSql("review_answers.actor_id", filters.appUiLanguages, dateRange),
+    buildCatalogAttributionFiltersSql("review_answers.actor_id", filters),
+  ].join(" AND ");
+
   return [
-    `WITH ${buildReviewAnswersCteSql(to, filters.users)}`,
-    "SELECT",
-    "  to_char(review_answers.review_date, 'YYYY-MM-DD') AS review_date,",
-    // Emitted under the name the SPA row shape already uses. The value is the resolved actor.
-    "  review_answers.actor_id AS user_id,",
-    "  review_answers.email,",
-    "  review_answers.platform,",
-    "  COUNT(*)::int AS review_event_count,",
-    "  to_char(actor_first_review_date.first_review_date, 'YYYY-MM-DD') AS user_first_review_date",
-    "FROM review_answers",
-    "INNER JOIN actor_first_review_date",
-    "  ON actor_first_review_date.actor_id = review_answers.actor_id",
-    `WHERE review_answers.review_date >= ${escapeSqlStringLiteral(from)}::date`,
-    `  AND review_answers.review_date <= ${escapeSqlStringLiteral(to)}::date`,
-    `  AND ${buildUserCohortsFilterSql(reviewCohortSqlExpression, filters.userCohorts)}`,
-    `  AND ${buildEventPlatformsFilterSql("review_answers.platform", filters.eventPlatforms)}`,
-    `  AND ${buildMinimumEventCountsFilterSql("review_answers.actor_id", filters.minimumEventCounts, dateRange)}`,
-    `  AND ${buildConnectionCountriesFilterSql("review_answers.actor_id", filters.connectionCountries, dateRange)}`,
-    `  AND ${buildAppUiLanguagesFilterSql("review_answers.actor_id", filters.appUiLanguages, dateRange)}`,
-    `  AND ${buildCatalogAttributionFiltersSql("review_answers.actor_id", filters)}`,
-    "GROUP BY",
-    "  review_answers.review_date,",
-    "  review_answers.actor_id,",
-    "  review_answers.email,",
-    "  review_answers.platform,",
-    "  actor_first_review_date.first_review_date",
-    "ORDER BY",
-    "  review_answers.review_date ASC,",
-    "  review_event_count DESC,",
-    "  review_answers.actor_id ASC,",
-    "  review_answers.platform ASC",
+    `WITH ${buildReviewAnswersCteSql(to, filters.users)},`,
+    `daily_review_activity AS (${buildDailyReviewActorPlatformSql(selectionSql)})`,
+    "SELECT to_char(activity.review_date, 'YYYY-MM-DD') AS review_date,",
+    "  activity.actor_id AS user_id,",
+    // Email is a display label, never a join that can multiply review facts.
+    "  COALESCE((SELECT MIN(NULLIF(btrim(settings.email), '')) FROM org.user_settings AS settings",
+    "    WHERE pg_catalog.lower(settings.user_id) = activity.actor_id), '(no email)') AS email,",
+    "  activity.platform, activity.review_event_count,",
+    "  to_char(activity.first_review_date, 'YYYY-MM-DD') AS user_first_review_date",
+    "FROM daily_review_activity AS activity",
+    "ORDER BY activity.review_date ASC, review_event_count DESC, activity.actor_id ASC, activity.platform ASC",
   ].join("\n");
 }
 
-// The two CTEs both statements of this report build on. Bounded above only: the cohort split needs
-// each actor's first review day over all of history, and the range filter is applied by each caller
-// against the same materialized rows. The predicate is on the raw `occurred_at` column rather than on
-// its UTC date so `idx_product_events_event_name_occurred_at` stays usable as an
-// (event_name, occurred_at) range scan.
-//
-// THE USER SELECTION IS PUSHED IN HERE, and it is the one filter field that is. It selects actors
-// rather than rows, so pushing it in keeps each selected actor's whole review history and the cohort
-// split below is still computed from all of it; what it removes is every other actor's history from
-// the rows both callers then scan. Left outside only, it was a filter on a CTE scan - which has no
-// column statistics, so the planner guessed `rows=1`, chose a nested loop and re-executed the
-// aggregate below once per row. This is an ADDITIONAL application, not a replacement for the
-// callers': `buildReviewEventsByDateSql` relies on it alone, but
-// `buildReviewEventsByDateCommunitySql` also keeps its own outer predicate on
-// `community_user_dates.actor_id`, and must. That statement emits this CTE only when the cohort or
-// platform field is narrowed, so on every unnarrowed selection the outer predicate is the only place
-// the user filter exists at all; deleting it would silently drop the filter from the whole community
-// panel. Applying both where both exist costs nothing, because the two intersect to the same set.
-// Every other field stays with the callers, for two different reasons. The person-level fields,
-// because the two statements bind them to different actor expressions. The cohort and the platform,
-// because they are derived from the CTE's own rows - the cohort from `actor_first_review_date`,
-// computed over the whole history this CTE must keep - so pushing either in would change the first
-// review day it exists to compute.
+// User selection retains a selected actor's entire history; community rows still need their own filter.
 function buildReviewAnswersCteSql(to: string, users: ReadonlyArray<string>): string {
-  return [
-    "review_answers AS (",
-    "  SELECT",
-    "    resolved.actor_id::text AS actor_id,",
-    "    (resolved.occurred_at AT TIME ZONE 'UTC')::date AS review_date,",
-    "    CASE",
-    "      WHEN resolved.platform IN ('web', 'android', 'ios', 'agent') THEN resolved.platform",
-    "      ELSE 'unattributed'",
-    "    END AS platform,",
-    "    COALESCE(NULLIF(btrim(user_settings.email), ''), '(no email)') AS email",
-    "  FROM analytics.product_events_resolved AS resolved",
-    "  LEFT JOIN org.user_settings AS user_settings",
-    "    ON pg_catalog.lower(user_settings.user_id) = resolved.actor_id::text",
-    "  WHERE resolved.event_name = 'review_answered'",
-    `    AND ${buildUsersFilterSql("resolved.actor_id::text", users)}`,
-    "    AND resolved.occurred_at < (",
-    `      (${escapeSqlStringLiteral(to)}::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC'`,
-    "    )",
-    ...buildExcludedActorSqlLines("resolved.actor_id::text"),
-    "),",
-    // `occurred_at` is the client clock, kept only inside a 30-day window that ends at a server
-    // anchor and replaced by that anchor outside the window in EITHER direction - too far in the
-    // future and too far in the past alike (`resolveReviewAnsweredOccurredAt`,
-    // `apps/backend/src/productAnalytics/serverFacts/reviewAnswers.ts:189-204`, against
-    // `productAnalyticsMaxEventAgeMs` at `validation.ts:24`; `0120:645-650` applies the identical
-    // rule as `INTERVAL '720 hours'`, and that backfill produced almost all of the history below).
-    // Inside the window this is the day the person answered rather than the day the answer synced,
-    // so a first review day can move earlier than the old dashboard reported it. Outside it the day
-    // is the anchor's, and on the review history import the anchor is that request's own clock, so
-    // an offline, imported or guest-merged history older than 30 days collapses onto sync day
-    // instead of onto the days it was answered - which is the opposite of the in-window shift and
-    // worth knowing before reading an early spike as real.
-    //
-    // MATERIALIZED ON PURPOSE. This is referenced once, so Postgres would otherwise inline it into
-    // the caller's join, where the same missing statistics on a CTE scan let a nested loop rescan the
-    // whole aggregate per outer row. Materializing computes each actor's first review day exactly
-    // once, whatever the caller's join turns out to look like.
-    "actor_first_review_date AS MATERIALIZED (",
-    "  SELECT",
-    "    review_answers.actor_id,",
-    "    MIN(review_answers.review_date) AS first_review_date",
-    "  FROM review_answers",
-    "  GROUP BY review_answers.actor_id",
-    ")",
-  ].join("\n");
+  return buildCanonicalReviewAnswersCteSql(
+    `((${escapeSqlStringLiteral(to)}::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC')`,
+    buildUsersFilterSql("resolved.actor_id::text", users),
+  );
 }
 
 // Per-actor community activity for the admin "Review events by date" report.

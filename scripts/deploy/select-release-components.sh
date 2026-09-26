@@ -57,6 +57,8 @@ components_for_path() {
     # The web client compiles this backend module into its bundle.
     apps/backend/src/scheduling/*)
       echo "platform web" ;;
+    apps/backend/src/reviewMetricsSql.ts)
+      echo "platform admin" ;;
     apps/backend/*|apps/auth/*|db/*)
       echo "platform" ;;
     apps/web/*|scripts/deploy/deploy-web.sh)

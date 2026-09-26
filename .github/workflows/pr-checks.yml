@@ -73,7 +73,7 @@ jobs:
               web_changed=true
             fi
 
-            if grep -Eq '^(apps/admin/|\.github/workflows/pr-checks\.yml$)' "${changed_files_path}"; then
+            if grep -Eq '^(apps/admin/|apps/backend/src/reviewMetricsSql\.ts$|\.github/workflows/pr-checks\.yml$)' "${changed_files_path}"; then
               admin_changed=true
             fi
 
