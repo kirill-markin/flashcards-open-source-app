@@ -24,6 +24,10 @@ REGION = "eu-central-1"
 BUCKET = f"cdk-hnb659fds-assets-{ACCOUNT}-{REGION}"
 EXPECTED = {"AWS::CloudWatch::Alarm": 58, "AWS::Logs::MetricFilter": 8}
 REVIEWED_REFACTOR = "b25a93ec-bef4-4f12-9083-bdb41e4a5af3"
+COMPLETE_RECOVERY_TOKEN = f"monitoring-full-rollback-{REVIEWED_REFACTOR}"
+ACCESS_STACK = CORE + "MonitoringRefactorAccess"
+ACCESS_ROLE = f"cdk-monitoring-refactor-{ACCOUNT}-{REGION}"
+STABLE = ("CREATE_COMPLETE", "UPDATE_COMPLETE", "UPDATE_ROLLBACK_COMPLETE")
 ALARM_RECOVERY_TOKEN = f"monitoring-alarm-recovery-{REVIEWED_REFACTOR}"
 PRIOR_RECOVERY_TOKEN = "monitoring-core-recovery-b25a93ec-bef4-4f12-9083-bdb41e4a5af3"
 PRIOR_RECOVERY_OPERATION = "dc607476-0b22-4b93-b67f-c44489e1347d"
@@ -80,7 +84,7 @@ class Aws:
         if result.returncode:
             raise RuntimeError(f"AWS {service}/{operation} failed: {result.stderr.strip()}")
         if not result.stdout.strip() and operation in (
-            "get-stack-policy", "execute-stack-refactor", "continue-update-rollback",
+            "get-stack-policy", "execute-stack-refactor", "continue-update-rollback", "delete-stack",
         ):
             return {}
         return obj(json.loads(result.stdout), operation)
@@ -113,7 +117,7 @@ def stacks(aws: Aws) -> dict[str, Json]:
              for item in rows(aws.cf("describe-stacks", []).get("Stacks"), "Stacks")
              if item.get("StackName") in (CORE, TARGET)}
     for name, item in found.items():
-        if item.get("StackStatus") not in ("CREATE_COMPLETE", "UPDATE_COMPLETE"):
+        if item.get("StackStatus") not in STABLE:
             raise ValueError(f"{name}: unstable stack {item.get('StackStatus')}; inspect before continuing")
     return found
 
@@ -157,6 +161,8 @@ def relevant_refactors(aws: Aws) -> dict[str, dict[str, Json]]:
 def ownership(aws: Aws) -> str:
     verified: dict[str, dict[str, Json]] = {}
     for refactor, details in relevant_refactors(aws).items():
+        if refactor == REVIEWED_REFACTOR and aborted_attempt(aws, details):
+            continue
         if details.get("ExecutionStatus") != "EXECUTE_COMPLETE":
             raise ValueError(f"Inspect prior refactor {refactor}: {json.dumps(details)}")
         receipt = read_verified_receipt(aws, refactor)
@@ -288,7 +294,7 @@ def wait_stacks(aws: Aws, refactor: str, stack_ids: dict[str, str]) -> dict[str,
                 raise ValueError(f"Refactor {refactor}: unexpected stack identity for {stack_id}")
             stack = response[0]
             status = stack.get("StackStatus")
-            if status in ("CREATE_COMPLETE", "UPDATE_COMPLETE"):
+            if status in STABLE:
                 current[name] = stack
             elif status not in ("UPDATE_IN_PROGRESS", "UPDATE_COMPLETE_CLEANUP_IN_PROGRESS") and not (
                 name == TARGET and status == "CREATE_IN_PROGRESS"
@@ -307,18 +313,10 @@ def validate_actions(actions: list[dict[str, Json]], status: dict[str, Json], so
     creates = 0
     for action in actions:
         if action.get("Entity") == "STACK" and action.get("Action") == "CREATE":
-            if "PhysicalResourceId" in action:
-                identity_matches = action["PhysicalResourceId"] in (TARGET, target)
-            else:
-                # AWS may omit the optional physical ID for the reserved target stack.
-                identity_matches = action.get("Description") == f"Stack {target} created."
-            if (
-                not identity_matches
-                or action.get("ResourceMapping") not in (None, {}, {"Source": {}, "Destination": {}})
-                or action.get("TagResources")
-                or action.get("UntagResources")
-            ):
-                raise ValueError("Unexpected STACK/CREATE identity or changes")
+            if action.get("PhysicalResourceId") not in (None, TARGET, target):
+                raise ValueError("Unexpected STACK/CREATE identity")
+            if action.get("TagResources") or action.get("UntagResources"):
+                raise ValueError("Unexpected STACK/CREATE tags")
             creates += 1
             continue
         if action.get("Entity") != "RESOURCE" or action.get("Action") != "MOVE":
@@ -329,11 +327,8 @@ def validate_actions(actions: list[dict[str, Json]], status: dict[str, Json], so
         if before.get("StackName") not in (CORE, source) or after.get("StackName") not in (TARGET, target) or after.get("LogicalResourceId") != key or key in moves or key not in resources:
             raise ValueError(f"{key}: unexpected or duplicate server mapping")
         equal(action.get("PhysicalResourceId"), obj(resources[key], key)["PhysicalResourceId"], key + "/physical ID")
-        if action.get("Description") not in (
-            "No configuration changes detected.",
-            "Resource configuration changes will be validated during refactor execution.",
-        ):
-            raise ValueError(f"{key}: unrecognized AWS configuration validation result; inspect private actions")
+        if action.get("ResourceType") is not None:
+            equal(action["ResourceType"], obj(resources[key], key)["ResourceType"], key + "/type")
         tags = {"aws:cloudformation:stack-name": TARGET, "aws:cloudformation:stack-id": target, "aws:cloudformation:logical-id": key}
         for tag in rows(action.get("TagResources", []), "TagResources"):
             if tag.get("Key") not in tags or tag.get("Value") != tags[tag["Key"]]:
@@ -356,6 +351,134 @@ def save(aws: Aws, directory: Path, name: str, value: Json) -> str:
     key = f"monitoring-refactor/{os.environ['GITHUB_RUN_ID']}/{os.environ['GITHUB_RUN_ATTEMPT']}/{digest}/{name}"
     aws.call("file-publishing", "s3api", "put-object", ["--bucket", BUCKET, "--key", key, "--body", str(path), "--server-side-encryption", "AES256"])
     return f"https://{BUCKET}.s3.{REGION}.amazonaws.com/{key}"
+
+
+def stack_settings(stack: dict[str, Json]) -> dict[str, Json]:
+    return {
+        "Outputs": {text(row.get("OutputKey"), "OutputKey"):
+                    {key: value for key, value in row.items() if key != "Description"}
+                    for row in rows(stack.get("Outputs", []), "Outputs")},
+        "Parameters": {text(row.get("ParameterKey"), "ParameterKey"): row
+                       for row in rows(stack.get("Parameters", []), "Parameters")},
+        "Tags": {text(row.get("Key"), "tag key"): row.get("Value")
+                 for row in rows(stack.get("Tags", []), "Tags")},
+        "RoleARN": stack.get("RoleARN"),
+    }
+
+
+def wait_stack(aws: Aws, stack_id: str, desired: str) -> dict[str, Json]:
+    deadline = time.monotonic() + 600
+    while time.monotonic() < deadline:
+        found = rows(aws.cf("describe-stacks", ["--stack-name", stack_id]).get("Stacks"), stack_id)
+        equal(len(found), 1, "stack count")
+        equal(found[0].get("StackId"), stack_id, "stack identity")
+        state = found[0].get("StackStatus")
+        if state == desired:
+            return found[0]
+        if state not in ("CREATE_IN_PROGRESS", "DELETE_IN_PROGRESS"):
+            raise ValueError(f"{stack_id}: expected {desired}, received {json.dumps(found[0])}")
+        time.sleep(5)
+    raise ValueError(f"{stack_id}: timed out waiting for {desired}; inspect before retrying")
+
+
+def access_template(source: str, resources: dict[str, Json]) -> dict[str, Json]:
+    alarms = sorted(f"arn:aws:cloudwatch:{REGION}:{ACCOUNT}:alarm:" + text(
+        obj(value, key).get("PhysicalResourceId"), key) for key, value in resources.items()
+        if obj(value, key).get("ResourceType") == "AWS::CloudWatch::Alarm")
+    equal(len(alarms), 58, "temporary caller alarm scope")
+    return {"Resources": {"NativeCaller": {"Type": "AWS::IAM::Role", "Properties": {
+        "RoleName": ACCESS_ROLE,
+        "AssumeRolePolicyDocument": {"Version": "2012-10-17", "Statement": [{
+            "Effect": "Allow", "Principal": {"AWS": f"arn:aws:iam::{ACCOUNT}:role/flashcards-open-source-app-github-deploy"},
+            "Action": "sts:AssumeRole",
+        }]},
+        "ManagedPolicyArns": ["arn:aws:iam::aws:policy/ReadOnlyAccess"],
+        "Policies": [{"PolicyName": "MonitoringNativeMove", "PolicyDocument": {
+            "Version": "2012-10-17", "Statement": [
+                {"Effect": "Allow", "Action": ["cloudformation:CreateStackRefactor", "cloudformation:ExecuteStackRefactor"],
+                 "Resource": [source, f"arn:aws:cloudformation:{REGION}:{ACCOUNT}:stack/{TARGET}/*"]},
+                {"Effect": "Allow", "Action": ["cloudwatch:TagResource", "cloudwatch:UntagResource"], "Resource": alarms},
+            ],
+        }}],
+    }}}}
+
+
+def access_stack(aws: Aws) -> dict[str, Json] | None:
+    found = [row for row in rows(aws.cf("describe-stacks", []).get("Stacks"), "stacks")
+             if row.get("StackName") == ACCESS_STACK]
+    if len(found) > 1:
+        raise ValueError("Multiple temporary access stacks")
+    return found[0] if found else None
+
+
+def verify_access(aws: Aws, stack: dict[str, Json], expected: dict[str, Json]) -> str:
+    stack_id = text(stack.get("StackId"), "access StackId")
+    if not stack_id.startswith(f"arn:aws:cloudformation:{REGION}:{ACCOUNT}:stack/{ACCESS_STACK}/"):
+        raise ValueError("Unexpected temporary access stack identity")
+    equal(stack.get("RoleARN"), CORE_EXECUTION_ROLE, "access execution role")
+    equal(template(aws, stack_id), expected, "temporary access template")
+    equal(inventory(aws, stack_id), {"NativeCaller": {
+        "PhysicalResourceId": ACCESS_ROLE, "ResourceType": "AWS::IAM::Role",
+    }}, "temporary access resources")
+    return stack_id
+
+
+def prepare_native_caller(aws: Aws, directory: Path, source: str, resources: dict[str, Json]) -> None:
+    expected = access_template(source, resources)
+    stack = access_stack(aws)
+    if stack is None:
+        path = directory / "access-template.private.json"
+        preparation.write_private(path, expected)
+        if path.stat().st_size > 51200:
+            raise ValueError("Temporary access template exceeds inline CloudFormation limit")
+        created = aws.call("deploy", "cloudformation", "create-stack", [
+            "--stack-name", ACCESS_STACK, "--template-body", "file://" + str(path),
+            "--capabilities", "CAPABILITY_NAMED_IAM", "--role-arn", CORE_EXECUTION_ROLE,
+        ])
+        stack = wait_stack(aws, text(created.get("StackId"), "access StackId"), "CREATE_COMPLETE")
+    elif stack.get("StackStatus") == "CREATE_IN_PROGRESS":
+        stack = wait_stack(aws, text(stack.get("StackId"), "access StackId"), "CREATE_COMPLETE")
+    equal(stack.get("StackStatus"), "CREATE_COMPLETE", "temporary access status")
+    verify_access(aws, stack, expected)
+    deadline = time.monotonic() + 120
+    while True:
+        try:
+            credentials = obj(aws.call("original", "sts", "assume-role", [
+                "--role-arn", f"arn:aws:iam::{ACCOUNT}:role/{ACCESS_ROLE}",
+                "--role-session-name", "monitoring-native-move", "--duration-seconds", "3600",
+            ]).get("Credentials"), "native Credentials")
+            break
+        except RuntimeError as error:
+            if "AccessDenied" not in str(error) or time.monotonic() >= deadline:
+                raise
+            print(f"::warning::Waiting for temporary role propagation: {error}", flush=True)
+            time.sleep(5)
+    aws.environments["native"] = dict(aws.original, **{
+        key: text(credentials[field], field) for key, field in (
+            ("AWS_ACCESS_KEY_ID", "AccessKeyId"), ("AWS_SECRET_ACCESS_KEY", "SecretAccessKey"),
+            ("AWS_SESSION_TOKEN", "SessionToken"),
+        )
+    })
+    databases = [text(obj(value, key)["PhysicalResourceId"], key) for key, value in resources.items()
+                 if obj(value, key).get("ResourceType") == "AWS::RDS::DBInstance"]
+    equal(len(databases), 1, "original database count")
+    aws.call("native", "rds", "describe-db-instances", ["--db-instance-identifier", databases[0]])
+
+
+def cleanup_access(aws: Aws) -> None:
+    equal(ownership(aws), "split", "verified ownership before access cleanup")
+    stack = access_stack(aws)
+    if stack is None:
+        return
+    source = text(obj(stacks(aws)[CORE], CORE)["StackId"], "source StackId")
+    stack_id = verify_access(aws, stack, access_template(source, inventory(aws, TARGET)))
+    if stack.get("StackStatus") == "CREATE_COMPLETE":
+        aws.call("deploy", "cloudformation", "delete-stack", [
+            "--stack-name", stack_id, "--role-arn", CORE_EXECUTION_ROLE,
+        ])
+    elif stack.get("StackStatus") != "DELETE_IN_PROGRESS":
+        raise ValueError(f"Unexpected access cleanup state: {stack.get('StackStatus')}")
+    wait_stack(aws, stack_id, "DELETE_COMPLETE")
 
 
 def migrate(aws: Aws, directory: Path) -> None:
@@ -382,7 +505,8 @@ def migrate(aws: Aws, directory: Path) -> None:
     request = directory / "request.private.json"
     preparation.write_private(request, {"EnableStackCreation": True, "StackDefinitions": definitions,
         "ResourceMappings": report["resourceMappings"], "Description": "Move exactly 58 alarms and 8 filters; preserve all physical resources"})
-    response = aws.call("deploy", "cloudformation", "create-stack-refactor", ["--cli-input-json", "file://" + str(request)])
+    prepare_native_caller(aws, directory, text(obj(before_stacks[CORE], CORE)["StackId"], "StackId"), before)
+    response = aws.call("native", "cloudformation", "create-stack-refactor", ["--cli-input-json", "file://" + str(request)])
     refactor = text(response.get("StackRefactorId"), "StackRefactorId")
     save(aws, directory, "operation.private.json", response)
     print(json.dumps({"StackRefactorId": refactor, "stage": "preview"}), flush=True)
@@ -393,27 +517,52 @@ def migrate(aws: Aws, directory: Path) -> None:
     equal(template(aws, CORE), deployed, "source template freshness")
     equal(inventory(aws, CORE), before, "source identity freshness")
     equal(runtime(aws, before, legacy), snapshot, "configuration freshness")
-    equal(aws.cf("describe-stacks", ["--stack-name", CORE]).get("Stacks"), [before_stacks[CORE]], "source stack freshness")
+    fresh = rows(aws.cf("describe-stacks", ["--stack-name", CORE]).get("Stacks"), CORE)
+    equal(len(fresh), 1, "fresh source count")
+    equal(fresh[0].get("StackId"), obj(before_stacks[CORE], CORE)["StackId"], "fresh source identity")
+    if fresh[0].get("StackStatus") not in STABLE:
+        raise ValueError("Source is no longer stable")
+    equal(stack_settings(fresh[0]), stack_settings(obj(before_stacks[CORE], CORE)), "source semantic settings")
     execute_and_verify(aws, directory, refactor, status, before_stacks, before, legacy, snapshot)
+    cleanup_access(aws)
+
+
+def save_failure(aws: Aws, directory: Path, stage: str, error: Exception) -> None:
+    try:
+        current = {text(row.get("StackName"), "StackName"): row
+                   for row in rows(aws.cf("describe-stacks", []).get("Stacks"), "failure stacks")
+                   if row.get("StackName") in (CORE, TARGET)}
+        save(aws, directory, stage + "-failure.private.json", {
+            "error": str(error), "stacks": current,
+            "resources": {name: inventory(aws, text(obj(row, name)["StackId"], name))
+                          for name, row in current.items()},
+        })
+    except (ValueError, OSError, RuntimeError) as evidence_error:
+        print(f"::warning::Could not save failure ownership evidence: {evidence_error}", flush=True)
 
 
 def execute_and_verify(aws: Aws, directory: Path, refactor: str, status: dict[str, Json],
                        before_stacks: dict[str, Json], before: dict[str, Json],
                        legacy: dict[str, Json], snapshot: dict[str, Json]) -> None:
     moved = selected(before)
-    aws.call("deploy", "cloudformation", "execute-stack-refactor", ["--stack-refactor-id", refactor])
-    completed = wait_refactor(aws, refactor, "EXECUTE_COMPLETE")
     stack_ids = refactor_stack_ids(status, text(obj(before_stacks[CORE], CORE)["StackId"], "StackId"))
-    equal(refactor_stack_ids(completed, stack_ids[CORE]), stack_ids, f"{refactor}/executed stack IDs")
-    after_stacks = wait_stacks(aws, refactor, stack_ids)
+    try:
+        aws.call("native", "cloudformation", "execute-stack-refactor", ["--stack-refactor-id", refactor])
+        completed = wait_refactor(aws, refactor, "EXECUTE_COMPLETE")
+        equal(refactor_stack_ids(completed, stack_ids[CORE]), stack_ids, f"{refactor}/executed stack IDs")
+        after_stacks = wait_stacks(aws, refactor, stack_ids)
+    except (ValueError, RuntimeError) as error:
+        save_failure(aws, directory, "native-execute", error)
+        raise
     after_core, after_target = inventory(aws, stack_ids[CORE]), inventory(aws, stack_ids[TARGET])
     equal(after_core, {key: value for key, value in before.items() if key not in moved}, "all surviving core identities")
     equal(after_target, moved, "all moved identities")
-    for key, value in obj(before_stacks[CORE], CORE).items():
-        if key == "Outputs":
-            outputs = {item["OutputKey"]: item for item in rows(obj(after_stacks[CORE], CORE).get(key), key)}
-            for output in rows(value, key):
-                equal(output, outputs.get(output["OutputKey"]), "original core output")
+    original_settings = stack_settings(obj(before_stacks[CORE], CORE))
+    after_settings = stack_settings(obj(after_stacks[CORE], CORE))
+    for key, value in obj(original_settings["Outputs"], "original Outputs").items():
+        equal(obj(after_settings["Outputs"], "after Outputs").get(key), value, "original output/" + key)
+    for key in ("Parameters", "RoleARN", "Tags"):
+        equal(after_settings[key], original_settings[key], "preserved source/" + key)
     after_runtime = runtime(aws, {**after_core, **after_target}, legacy)
     equal(after_runtime, snapshot, "monitoring configuration and notification subscription")
     save(aws, directory, "after.private.json", {"stacks": after_stacks, "core": after_core, "monitoring": after_target, "runtime": after_runtime})
@@ -441,51 +590,6 @@ def reviewed_status(aws: Aws) -> dict[str, Json]:
     return status
 
 
-def comparable_actions(actions: list[dict[str, Json]]) -> list[str]:
-    # Description can advance between the two documented validation phases only.
-    return sorted(json.dumps({key: value for key, value in action.items()
-        if key != "Description" or action.get("Entity") != "RESOURCE"}, sort_keys=True) for action in actions)
-
-
-def reviewed_freshness(aws: Aws, baseline: dict[str, Json], saved_actions: list[dict[str, Json]]) -> dict[str, Json]:
-    before = obj(baseline.get("resources"), "reviewed resources")
-    before_stacks = obj(baseline.get("stacks"), "reviewed stacks")
-    source = obj(before_stacks.get(CORE), CORE)
-    equal(set(before_stacks), {CORE}, "reviewed original stacks")
-    equal(source.get("StackId"), REVIEWED_STACKS[CORE], "reviewed source identity")
-    equal(source.get("StackStatus"), "UPDATE_COMPLETE", "reviewed source status")
-    equal(len(before), 497, "reviewed original resource count")
-    moved = selected(before)
-    equal(dict(Counter(obj(item, key)["ResourceType"] for key, item in moved.items())), EXPECTED, "reviewed types")
-    status = reviewed_status(aws)
-    equal(status.get("ExecutionStatus"), "AVAILABLE", f"{REVIEWED_REFACTOR}/ExecutionStatus")
-    validate_actions(saved_actions, status, REVIEWED_STACKS[CORE], moved)
-    actions = rows(aws.cf("list-stack-refactor-actions", [
-        "--stack-refactor-id", REVIEWED_REFACTOR,
-    ]).get("StackRefactorActions"), "current actions")
-    validate_actions(actions, status, REVIEWED_STACKS[CORE], moved)
-    equal(comparable_actions(actions), comparable_actions(saved_actions), "reviewed server actions")
-    legacy = obj(baseline.get("template"), "reviewed template")
-    equal(set(before), set(obj(legacy.get("Resources"), "reviewed template resources")), "reviewed logical IDs")
-    equal(template(aws, REVIEWED_STACKS[CORE]), legacy, "reviewed source template freshness")
-    equal(inventory(aws, REVIEWED_STACKS[CORE]), before, "reviewed source identity freshness")
-    equal(runtime(aws, before, legacy), baseline.get("runtime"), "reviewed configuration freshness")
-    equal(aws.cf("describe-stacks", ["--stack-name", REVIEWED_STACKS[CORE]]).get("Stacks"),
-          [source], "reviewed source stack freshness")
-    target = rows(aws.cf("describe-stacks", ["--stack-name", REVIEWED_STACKS[TARGET]]).get("Stacks"), "reviewed target")
-    equal(len(target), 1, "reviewed target count")
-    for key, expected in (("StackId", REVIEWED_STACKS[TARGET]), ("StackName", TARGET), ("StackStatus", "REVIEW_IN_PROGRESS")):
-        equal(target[0].get(key), expected, f"reviewed target/{key}")
-    equal(inventory(aws, REVIEWED_STACKS[TARGET]), {}, "reviewed empty target")
-    if aws.cf("get-stack-policy", ["--stack-name", REVIEWED_STACKS[CORE]]).get("StackPolicyBody"):
-        raise ValueError(f"Refactor {REVIEWED_REFACTOR}: source stack policy prevents execution")
-    for kind in EXPECTED:
-        equal(aws.cf("describe-type", ["--type", "RESOURCE", "--type-name", kind]).get("ProvisioningType"), "FULLY_MUTABLE", kind)
-    status = reviewed_status(aws)
-    equal(status.get("ExecutionStatus"), "AVAILABLE", f"{REVIEWED_REFACTOR}/fresh ExecutionStatus")
-    return status
-
-
 def reviewed_evidence(aws: Aws, directory: Path) -> dict[str, dict[str, Json]]:
     directory.mkdir(mode=0o700, parents=True, exist_ok=False)
     evidence: dict[str, dict[str, Json]] = {}
@@ -501,7 +605,7 @@ def reviewed_evidence(aws: Aws, directory: Path) -> dict[str, dict[str, Json]]:
 
 
 def recovery_snapshot(aws: Aws, baseline: dict[str, Json], expected_status: str,
-                      failed_alarms: set[str]) -> dict[str, Json]:
+                      failed_alarms: set[str], target_status: str) -> dict[str, Json]:
     status = reviewed_status(aws)
     equal(status.get("ExecutionStatus"), "ROLLBACK_FAILED", "recovery native status")
     original = obj(obj(baseline.get("stacks"), "original stacks").get(CORE), CORE)
@@ -538,11 +642,10 @@ def recovery_snapshot(aws: Aws, baseline: dict[str, Json], expected_status: str,
         found = rows(aws.cf("describe-stacks", ["--stack-name", stack_id]).get("Stacks"), name)
         equal(len(found), 1, f"recovery {name}/count")
         for field, expected in (("StackId", stack_id), ("StackName", name),
-                                ("StackStatus", expected_status if name == CORE else "ROLLBACK_FAILED")):
+                                ("StackStatus", expected_status if name == CORE else target_status)):
             equal(found[0].get(field), expected, f"recovery {name}/{field}")
         current_stacks[name] = found[0]
-    for field in ("Outputs", "Parameters", "RoleARN", "Tags"):
-        equal(obj(current_stacks[CORE], CORE).get(field), original.get(field), f"recovery core/{field}")
+    equal(stack_settings(obj(current_stacks[CORE], CORE)), stack_settings(original), "recovery core settings")
     return {"operation": status, "stacks": current_stacks, "resources": current,
             "resourceStatuses": resources, "template": legacy, "runtime": configuration}
 
@@ -593,7 +696,8 @@ def alarm_failure_evidence(aws: Aws, directory: Path, snapshot: dict[str, Json],
         equal(token, expected_token, "accepted alarm recovery token")
     if token == PRIOR_RECOVERY_TOKEN:
         equal(operations[0].get("OperationId"), PRIOR_RECOVERY_OPERATION, "prior recovery operation")
-    elif re.fullmatch(re.escape(ALARM_RECOVERY_TOKEN) + "-[0-9a-f]{64}", token) is None:
+    elif not any(re.fullmatch(re.escape(prefix) + "-[0-9a-f]{64}", token)
+                 for prefix in (ALARM_RECOVERY_TOKEN, COMPLETE_RECOVERY_TOKEN)):
         raise ValueError("Latest rollback belongs to an unrelated request; inspect private evidence")
     equal(events[0].get("LogicalResourceId"), CORE, "latest rollback terminal event")
     equal(events[0].get("ResourceStatus"), core.get("StackStatus"), "latest rollback terminal status")
@@ -618,101 +722,130 @@ def alarm_failure_evidence(aws: Aws, directory: Path, snapshot: dict[str, Json],
             raise ValueError(f"Unexpected recovery failure for {key}: {reason}")
     print(json.dumps({"failedAlarms": len(failures), "providerFailures": len(eligible),
                       "cancelledAlarms": len(failures) - len(eligible)}), flush=True)
-    return sorted(eligible)
+    return sorted(failures)
 
 
-def recover_unchanged_alarms(aws: Aws, directory: Path) -> None:
+def recover_unchanged_alarms(aws: Aws, directory: Path, baseline: dict[str, Json]) -> None:
     deadline = time.monotonic() + 600
     aws.recovery_deadline = deadline
-    relevant = relevant_refactors(aws)
-    if REVIEWED_REFACTOR not in relevant or relevant[REVIEWED_REFACTOR].get("ExecutionStatus") != "ROLLBACK_FAILED":
-        return
     source = rows(aws.cf("describe-stacks", ["--stack-name", REVIEWED_STACKS[CORE]]).get("Stacks"), CORE)
     equal(len(source), 1, "alarm recovery source count")
     state = text(source[0].get("StackStatus"), "alarm recovery state")
-    if state not in ("UPDATE_ROLLBACK_FAILED", "UPDATE_ROLLBACK_COMPLETE"):
-        return
-    baseline = reviewed_evidence(aws, directory)["before.private.json"]
     original = obj(baseline["resources"], "original resources")
     alarms = {key for key, value in original.items() if obj(value, key).get("ResourceType") == "AWS::CloudWatch::Alarm"}
     equal(len(alarms), 58, "original alarm count")
-    skipped: set[str] = set()
+    submitted: set[tuple[str, ...]] = set()
     accepted_token: str | None = None
     while state == "UPDATE_ROLLBACK_FAILED":
-        before = recovery_snapshot(aws, baseline, state, alarms)
+        before = recovery_snapshot(aws, baseline, state, alarms, "ROLLBACK_FAILED")
         save(aws, directory, "alarm-recovery-before.private.json", before)
         eligible = alarm_failure_evidence(aws, directory, before, accepted_token)
-        if not eligible or skipped.intersection(eligible) or len(skipped | set(eligible)) > 58:
-            raise ValueError("Alarm recovery made no new eligible progress or exceeded 58 distinct skips; inspect private evidence")
-        fresh = recovery_snapshot(aws, baseline, state, alarms)
+        if not eligible or not set(eligible) <= alarms or tuple(eligible) in submitted:
+            raise ValueError("Complete rollback failure set made no progress; inspect private evidence")
+        token = COMPLETE_RECOVERY_TOKEN + "-" + hashlib.sha256("\n".join(eligible).encode()).hexdigest()
+        latest = rows(aws.cf("describe-stack-events", ["--stack-name", REVIEWED_STACKS[CORE],
+                      "--no-paginate"]).get("StackEvents"), "latest events")
+        if latest and latest[0].get("ClientRequestToken") == token:
+            raise ValueError("This complete rollback failure set was already submitted; inspect AWS failure")
+        fresh = recovery_snapshot(aws, baseline, state, alarms, "ROLLBACK_FAILED")
         equal(alarm_failure_evidence(aws, directory, fresh, accepted_token), eligible, "fresh eligible alarms")
-        equal(obj(fresh["stacks"], "stacks")[CORE], obj(before["stacks"], "stacks")[CORE], "fresh recovery stack")
-        accepted_token = ALARM_RECOVERY_TOKEN + "-" + hashlib.sha256("\n".join(eligible).encode()).hexdigest()
-        print(json.dumps({"skippingAlarms": eligible, "distinctSkipped": len(skipped | set(eligible)),
-                          "reason": "InternalFailure: null ResourceModel.getAlarmName()"}), flush=True)
-        response = aws.call("deploy", "cloudformation", "continue-update-rollback", [
-            "--stack-name", REVIEWED_STACKS[CORE], "--role-arn", CORE_EXECUTION_ROLE,
-            "--client-request-token", accepted_token, "--resources-to-skip", *eligible,
-        ])
-        save(aws, directory, "alarm-recovery-request.private.json", {"token": accepted_token, "alarms": eligible, "response": response})
-        skipped.update(eligible)
+        accepted_token = token
+        print(json.dumps({"skippingAlarms": eligible,
+                          "reason": "Same-incident provider failures and cancellations during rollback"}), flush=True)
+        save(aws, directory, "alarm-recovery-request.private.json", {"token": accepted_token, "alarms": eligible})
+        try:
+            response = aws.call("deploy", "cloudformation", "continue-update-rollback", [
+                "--stack-name", REVIEWED_STACKS[CORE], "--role-arn", CORE_EXECUTION_ROLE,
+                "--client-request-token", accepted_token, "--resources-to-skip", *eligible,
+            ])
+        except RuntimeError as error:
+            save_failure(aws, directory, "alarm-recovery", error)
+            raise
+        save(aws, directory, "alarm-recovery-accepted.private.json", {"token": accepted_token, "alarms": eligible, "response": response})
+        submitted.add(tuple(eligible))
         state = wait_core_rollback(aws, deadline, obj(obj(fresh["stacks"], "stacks")[CORE], CORE).get("LastOperations"))
-    after = recovery_snapshot(aws, baseline, "UPDATE_ROLLBACK_COMPLETE", set())
+    after = recovery_snapshot(aws, baseline, "UPDATE_ROLLBACK_COMPLETE", set(), "ROLLBACK_FAILED")
     save(aws, directory, "alarm-recovery-after.private.json", after)
     alarm_failure_evidence(aws, directory, after, accepted_token)
     print(json.dumps({"StackRefactorId": REVIEWED_REFACTOR, "coreStatus": "UPDATE_ROLLBACK_COMPLETE",
-                      "preservedResources": 497, "nativeStatus": "ROLLBACK_FAILED", "deploymentBlocked": True}), flush=True)
+                      "preservedResources": 497, "nativeStatus": "ROLLBACK_FAILED"}), flush=True)
+    aws.recovery_deadline = None
 
 
-def recover_core(aws: Aws, directory: Path) -> None:
-    relevant = relevant_refactors(aws)
-    if REVIEWED_REFACTOR not in relevant or relevant[REVIEWED_REFACTOR].get("ExecutionStatus") != "ROLLBACK_FAILED":
-        return
-    source = rows(aws.cf("describe-stacks", ["--stack-name", REVIEWED_STACKS[CORE]]).get("Stacks"), CORE)
-    equal(len(source), 1, "recovery core count")
-    state = text(source[0].get("StackStatus"), "recovery core status")
-    if state not in ("UPDATE_ROLLBACK_FAILED", "UPDATE_ROLLBACK_COMPLETE"):
-        return
-    baseline = reviewed_evidence(aws, directory)["before.private.json"]
-    before = recovery_snapshot(aws, baseline, state, set())
-    save(aws, directory, "core-recovery-before.private.json", before)
-    if state == "UPDATE_ROLLBACK_FAILED":
-        aws.call("deploy", "cloudformation", "continue-update-rollback", [
-            "--stack-name", REVIEWED_STACKS[CORE], "--role-arn", CORE_EXECUTION_ROLE,
-            "--client-request-token", f"monitoring-core-recovery-{REVIEWED_REFACTOR}",
+def aborted_key() -> str:
+    return f"monitoring-refactor/aborted/{REVIEWED_REFACTOR}.private.json"
+
+
+def aborted_attempt(aws: Aws, status: dict[str, Json]) -> bool:
+    listed = rows(aws.call("file-publishing", "s3api", "list-objects-v2", [
+        "--bucket", BUCKET, "--prefix", aborted_key(),
+    ]).get("Contents", []), "aborted receipts")
+    if not any(item.get("Key") == aborted_key() for item in listed):
+        return False
+    with TemporaryDirectory(prefix="monitoring-aborted-") as directory:
+        path = Path(directory) / "aborted.private.json"
+        aws.call("file-publishing", "s3api", "get-object", [
+            "--bucket", BUCKET, "--key", aborted_key(), str(path),
         ])
-        equal(wait_core_rollback(aws, time.monotonic() + 600,
-              obj(obj(before["stacks"], "stacks")[CORE], CORE).get("LastOperations")),
-              "UPDATE_ROLLBACK_COMPLETE", "core recovery final status")
-    after = recovery_snapshot(aws, baseline, "UPDATE_ROLLBACK_COMPLETE", set())
-    save(aws, directory, "core-recovery-after.private.json", after)
-    print(json.dumps({"StackRefactorId": REVIEWED_REFACTOR, "coreStatus": "UPDATE_ROLLBACK_COMPLETE",
-                      "preservedResources": 497, "nativeStatus": "ROLLBACK_FAILED", "deploymentBlocked": True}), flush=True)
+        receipt = obj(json.loads(path.read_text()), "aborted receipt")
+    for key, expected in (("StackRefactorId", REVIEWED_REFACTOR), ("StackIds", REVIEWED_STACKS),
+                          ("baselineHash", REVIEWED_EVIDENCE["before.private.json"]),
+                          ("outcome", "EMPTY_TARGET_DELETED")):
+        equal(receipt.get(key), expected, f"aborted receipt/{key}")
+    text(receipt.get("preservationEvidence"), "aborted preservation evidence")
+    equal(status.get("ExecutionStatus"), "ROLLBACK_FAILED", "aborted native status")
+    equal(refactor_stack_ids(status, REVIEWED_STACKS[CORE]), REVIEWED_STACKS, "aborted operation stack IDs")
+    deleted = wait_stack(aws, REVIEWED_STACKS[TARGET], "DELETE_COMPLETE")
+    equal(deleted.get("StackName"), TARGET, "deleted target name")
+    equal(inventory(aws, REVIEWED_STACKS[TARGET]), {}, "deleted target resources")
+    source = rows(aws.cf("describe-stacks", ["--stack-name", CORE]).get("Stacks"), CORE)
+    equal(len(source), 1, "retired attempt source count")
+    equal(source[0].get("StackId"), REVIEWED_STACKS[CORE], "retired attempt source identity")
+    return True
 
 
-def resume_reviewed(aws: Aws, directory: Path) -> None:
-    print(json.dumps({"StackRefactorId": REVIEWED_REFACTOR, "stage": "reviewed recovery"}), flush=True)
-    if REVIEWED_REFACTOR not in relevant_refactors(aws):
-        print(json.dumps({"reviewedOperation": "absent", "monitoringOwnership": ownership(aws)}), flush=True)
+def reconcile(aws: Aws, directory: Path) -> None:
+    relevant = relevant_refactors(aws)
+    if REVIEWED_REFACTOR not in relevant or aborted_attempt(aws, relevant[REVIEWED_REFACTOR]):
+        if ownership(aws) == "split":
+            cleanup_access(aws)
         return
     status = reviewed_status(aws)
-    if status.get("ExecutionStatus") == "EXECUTE_COMPLETE":
-        equal(ownership(aws), "split", f"{REVIEWED_REFACTOR}/verified ownership")
-        return
-    equal(status.get("ExecutionStatus"), "AVAILABLE", f"{REVIEWED_REFACTOR}/ExecutionStatus")
-    evidence = reviewed_evidence(aws, directory)
-    baseline = evidence["before.private.json"]
-    saved_actions = rows(evidence["actions.private.json"].get("StackRefactorActions"), "reviewed actions")
-    reviewed_freshness(aws, baseline, saved_actions)
-    status = reviewed_freshness(aws, baseline, saved_actions)
-    execute_and_verify(aws, directory, REVIEWED_REFACTOR, status,
-                       obj(baseline["stacks"], "stacks"), obj(baseline["resources"], "resources"),
-                       obj(baseline["template"], "template"), obj(baseline["runtime"], "runtime"))
+    equal(status.get("ExecutionStatus"), "ROLLBACK_FAILED", "failed attempt status")
+    baseline = reviewed_evidence(aws, directory)["before.private.json"]
+    target = rows(aws.cf("describe-stacks", ["--stack-name", REVIEWED_STACKS[TARGET]]).get("Stacks"), TARGET)
+    equal(len(target), 1, "failed target count")
+    target_status = text(target[0].get("StackStatus"), "failed target status")
+    if target_status == "ROLLBACK_FAILED":
+        recover_unchanged_alarms(aws, directory, baseline)
+        before = recovery_snapshot(aws, baseline, "UPDATE_ROLLBACK_COMPLETE", set(), target_status)
+        save(aws, directory, "abort-before.private.json", before)
+        aws.call("deploy", "cloudformation", "delete-stack", [
+            "--stack-name", REVIEWED_STACKS[TARGET], "--role-arn", CORE_EXECUTION_ROLE,
+        ])
+    elif target_status in ("DELETE_IN_PROGRESS", "DELETE_COMPLETE"):
+        recovery_snapshot(aws, baseline, "UPDATE_ROLLBACK_COMPLETE", set(), target_status)
+    else:
+        raise ValueError(f"Unexpected original target state: {target_status}")
+    wait_stack(aws, REVIEWED_STACKS[TARGET], "DELETE_COMPLETE")
+    after = recovery_snapshot(aws, baseline, "UPDATE_ROLLBACK_COMPLETE", set(), "DELETE_COMPLETE")
+    evidence = save(aws, directory, "abort-after.private.json", after)
+    receipt = directory / "aborted.private.json"
+    preparation.write_private(receipt, {
+        "StackRefactorId": REVIEWED_REFACTOR, "StackIds": REVIEWED_STACKS,
+        "baselineHash": REVIEWED_EVIDENCE["before.private.json"], "outcome": "EMPTY_TARGET_DELETED",
+        "preservationEvidence": evidence,
+    })
+    aws.call("file-publishing", "s3api", "put-object", [
+        "--bucket", BUCKET, "--key", aborted_key(), "--body", str(receipt),
+        "--server-side-encryption", "AES256", "--if-none-match", "*",
+    ])
+    equal(ownership(aws), "legacy", "reconciled ownership")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("ownership", "migrate", "resume-reviewed", "recover-core", "recover-unchanged-alarms"))
+    parser.add_argument("command", choices=("ownership", "migrate", "reconcile"))
     parser.add_argument("--directory", type=Path, required=True)
     args = parser.parse_args()
     if os.environ.get("GITHUB_ACTIONS") != "true" or os.environ.get("AWS_REGION") != REGION:
@@ -724,12 +857,8 @@ def main() -> None:
         with Path(os.environ["GITHUB_OUTPUT"]).open("a") as output:
             output.write(f"state={state}\ntopology={'legacy' if state == 'legacy' else 'split'}\n")
         print(json.dumps({"monitoringOwnership": state}))
-    elif args.command == "recover-unchanged-alarms":
-        recover_unchanged_alarms(aws, args.directory)
-    elif args.command == "recover-core":
-        recover_core(aws, args.directory)
-    elif args.command == "resume-reviewed":
-        resume_reviewed(aws, args.directory)
+    elif args.command == "reconcile":
+        reconcile(aws, args.directory)
     else:
         migrate(aws, args.directory)
 
