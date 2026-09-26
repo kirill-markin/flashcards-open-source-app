@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const hrCatalog: TranslationCatalog = {
+  premium: {
+    title: "Premium stiže uskoro",
+    unavailable: "Pretplate još nisu dostupne.",
+    subscription: "Pretplata",
+    subscriptionDescription: "Vaš trenutačni pristup i ograničenje AI-ja.",
+    unknown: "Status vaše pretplate trenutačno nije poznat.",
+    statusNone: "Bez plaćene pretplate",
+    grace: "Pristup ostaje aktivan tijekom odgode plaćanja.",
+    trial: "Probno razdoblje",
+    renews: "Obnavlja se {{date}}",
+    until: "Pristup do {{date}}",
+    noExpiry: "Bez isteka",
+    monthlyMessages: "{{count}} AI poruka mjesečno",
+    offer: "Pogledaj Premium",
+    close: "Zatvori",
+    back: "Natrag",
+    limitTitle: "Dosegnuto ograničenje AI poruka",
+    previewOffer: "Pregled ponude Premium",
+    previewAi: "Pregled ograničenja AI-ja",
+    retryManually: "Vratite se u razgovor i ponovno pošaljite poruku kad budete spremni. Postavke ključa spremaju se automatski.",
+  },
   common: {
     active: "Aktivno",
     automatic: "Automatski",

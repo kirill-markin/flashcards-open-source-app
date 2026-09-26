@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const huCatalog: TranslationCatalog = {
+  premium: {
+    title: "Hamarosan érkezik a Premium",
+    unavailable: "Az előfizetések még nem érhetők el.",
+    subscription: "Előfizetés",
+    subscriptionDescription: "Jelenlegi hozzáférésed és MI-kereted.",
+    unknown: "Az előfizetésed állapota jelenleg ismeretlen.",
+    statusNone: "Nincs fizetős előfizetés",
+    grace: "A hozzáférés a fizetési türelmi idő alatt is megmarad.",
+    trial: "Próbaidőszak",
+    renews: "Megújulás: {{date}}",
+    until: "Hozzáférés eddig: {{date}}",
+    noExpiry: "Nincs lejárat",
+    monthlyMessages: "Havi {{count}} MI-üzenet",
+    offer: "Premium megtekintése",
+    close: "Bezárás",
+    back: "Vissza",
+    limitTitle: "Elérted az MI-üzenetek korlátját",
+    previewOffer: "Premium-ajánlat előnézete",
+    previewAi: "MI-korlát előnézete",
+    retryManually: "Térj vissza a csevegéshez, és küldd el újra az üzenetet, amikor készen állsz. A kulcsbeállítások automatikusan mentődnek.",
+  },
   common: {
     active: "Aktív",
     automatic: "Automatikus",

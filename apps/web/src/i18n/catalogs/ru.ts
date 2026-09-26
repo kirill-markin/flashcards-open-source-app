@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 export const ruCatalog = {
+  premium: {
+    title: "Premium скоро появится",
+    unavailable: "Подписки пока недоступны.",
+    subscription: "Подписка",
+    subscriptionDescription: "Ваш текущий доступ и лимит ИИ.",
+    unknown: "Статус вашей подписки пока неизвестен.",
+    statusNone: "Нет платной подписки",
+    grace: "Доступ сохраняется на время отсрочки оплаты.",
+    trial: "Пробный период",
+    renews: "Продление {{date}}",
+    until: "Доступ до {{date}}",
+    noExpiry: "Без срока действия",
+    monthlyMessages: "{{count}} сообщений ИИ в месяц",
+    offer: "Посмотреть Premium",
+    close: "Закрыть",
+    back: "Назад",
+    limitTitle: "Достигнут лимит сообщений ИИ",
+    previewOffer: "Предпросмотр предложения Premium",
+    previewAi: "Предпросмотр лимита ИИ",
+    retryManually: "Вернитесь в чат и отправьте сообщение снова, когда будете готовы. Настройки ключа сохраняются автоматически.",
+  },
   common: {
     active: "Активно",
     automatic: "Автоматически",

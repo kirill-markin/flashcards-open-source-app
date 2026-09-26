@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const deCatalog: TranslationCatalog = {
+  premium: {
+    title: "Premium kommt bald",
+    unavailable: "Abonnements sind noch nicht verfügbar.",
+    subscription: "Abonnement",
+    subscriptionDescription: "Dein aktueller Zugang und dein KI-Kontingent.",
+    unknown: "Dein Abonnementstatus ist derzeit unbekannt.",
+    statusNone: "Kein kostenpflichtiges Abonnement",
+    grace: "Der Zugang bleibt während der Zahlungsnachfrist bestehen.",
+    trial: "Testzeitraum",
+    renews: "Verlängerung am {{date}}",
+    until: "Zugang bis {{date}}",
+    noExpiry: "Ohne Ablaufdatum",
+    monthlyMessages: "{{count}} KI-Nachrichten pro Monat",
+    offer: "Premium ansehen",
+    close: "Schließen",
+    back: "Zurück",
+    limitTitle: "KI-Nachrichtenlimit erreicht",
+    previewOffer: "Premium-Angebot ansehen",
+    previewAi: "KI-Limit ansehen",
+    retryManually: "Kehre zum Chat zurück und sende deine Nachricht erneut, wenn du bereit bist. Deine Schlüsseleinstellungen werden automatisch gespeichert.",
+  },
   common: {
     active: "Aktiv",
     automatic: "Automatisch",

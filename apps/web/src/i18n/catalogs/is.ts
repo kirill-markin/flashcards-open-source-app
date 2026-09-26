@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const isCatalog: TranslationCatalog = {
+  premium: {
+    title: "Premium kemur bráðum",
+    unavailable: "Áskriftir eru ekki enn í boði.",
+    subscription: "Áskrift",
+    subscriptionDescription: "Núverandi aðgangur þinn og gervigreindarkvóti.",
+    unknown: "Staða áskriftarinnar þinnar er óþekkt í augnablikinu.",
+    statusNone: "Engin greidd áskrift",
+    grace: "Aðgangur helst virkur á greiðslufrestinum.",
+    trial: "Prufutímabil",
+    renews: "Endurnýjast {{date}}",
+    until: "Aðgangur til {{date}}",
+    noExpiry: "Enginn lokadagur",
+    monthlyMessages: "{{count}} gervigreindarskilaboð á mánuði",
+    offer: "Skoða Premium",
+    close: "Loka",
+    back: "Til baka",
+    limitTitle: "Hámarki gervigreindarskilaboða náð",
+    previewOffer: "Forskoða Premium-tilboð",
+    previewAi: "Forskoða gervigreindarmörk",
+    retryManually: "Farðu aftur í spjallið og sendu skilaboðin aftur þegar þú ert tilbúin(n). Stillingar lykilsins vistast sjálfkrafa.",
+  },
   common: {
     active: "Virkt",
     automatic: "Sjálfvirkt",

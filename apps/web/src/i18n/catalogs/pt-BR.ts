@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const ptBrCatalog: TranslationCatalog = {
+  premium: {
+    title: "Premium chega em breve",
+    unavailable: "As assinaturas ainda não estão disponíveis.",
+    subscription: "Assinatura",
+    subscriptionDescription: "Seu acesso atual e seu limite de IA.",
+    unknown: "O status da sua assinatura é desconhecido no momento.",
+    statusNone: "Sem assinatura paga",
+    grace: "O acesso continua durante o prazo de carência do pagamento.",
+    trial: "Período de teste",
+    renews: "Renova em {{date}}",
+    until: "Acesso até {{date}}",
+    noExpiry: "Sem expiração",
+    monthlyMessages: "{{count}} mensagens de IA por mês",
+    offer: "Ver Premium",
+    close: "Fechar",
+    back: "Voltar",
+    limitTitle: "Limite de mensagens de IA atingido",
+    previewOffer: "Prévia da oferta Premium",
+    previewAi: "Prévia do limite de IA",
+    retryManually: "Volte ao chat e envie sua mensagem novamente quando quiser. As configurações da sua chave são salvas automaticamente.",
+  },
   common: {
     active: "Ativo",
     automatic: "Automático",

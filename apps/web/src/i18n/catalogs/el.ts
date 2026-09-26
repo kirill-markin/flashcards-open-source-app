@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const elCatalog: TranslationCatalog = {
+  premium: {
+    title: "Το Premium έρχεται σύντομα",
+    unavailable: "Οι συνδρομές δεν είναι ακόμη διαθέσιμες.",
+    subscription: "Συνδρομή",
+    subscriptionDescription: "Η τρέχουσα πρόσβαση και το όριο AI σας.",
+    unknown: "Η κατάσταση της συνδρομής σας είναι προς το παρόν άγνωστη.",
+    statusNone: "Χωρίς συνδρομή επί πληρωμή",
+    grace: "Η πρόσβαση συνεχίζεται κατά την περίοδο χάριτος πληρωμής.",
+    trial: "Δοκιμαστική περίοδος",
+    renews: "Ανανεώνεται στις {{date}}",
+    until: "Πρόσβαση έως {{date}}",
+    noExpiry: "Χωρίς λήξη",
+    monthlyMessages: "{{count}} μηνύματα AI τον μήνα",
+    offer: "Προβολή Premium",
+    close: "Κλείσιμο",
+    back: "Πίσω",
+    limitTitle: "Συμπληρώθηκε το όριο μηνυμάτων AI",
+    previewOffer: "Προεπισκόπηση προσφοράς Premium",
+    previewAi: "Προεπισκόπηση ορίου AI",
+    retryManually: "Επιστρέψτε στη συνομιλία και στείλτε ξανά το μήνυμά σας όταν είστε έτοιμοι. Οι ρυθμίσεις του κλειδιού αποθηκεύονται αυτόματα.",
+  },
   common: {
     active: "Ενεργό",
     automatic: "Αυτόματα",

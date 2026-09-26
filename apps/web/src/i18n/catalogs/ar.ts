@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const arCatalog: TranslationCatalog = {
+  premium: {
+    title: "Premium قريبًا",
+    unavailable: "الاشتراكات غير متاحة بعد.",
+    subscription: "الاشتراك",
+    subscriptionDescription: "وصولك الحالي وحصتك من الذكاء الاصطناعي.",
+    unknown: "حالة اشتراكك غير معروفة حاليًا.",
+    statusNone: "لا يوجد اشتراك مدفوع",
+    grace: "يستمر الوصول خلال فترة السماح بالدفع.",
+    trial: "فترة تجريبية",
+    renews: "يتجدد في {{date}}",
+    until: "الوصول حتى {{date}}",
+    noExpiry: "بلا تاريخ انتهاء",
+    monthlyMessages: "{{count}} رسالة ذكاء اصطناعي شهريًا",
+    offer: "عرض Premium",
+    close: "إغلاق",
+    back: "رجوع",
+    limitTitle: "تم بلوغ حد رسائل الذكاء الاصطناعي",
+    previewOffer: "معاينة عرض Premium",
+    previewAi: "معاينة حد الذكاء الاصطناعي",
+    retryManually: "عُد إلى المحادثة وأرسل رسالتك مجددًا عندما تكون مستعدًا. تُحفظ إعدادات مفتاحك تلقائيًا.",
+  },
   common: {
     active: "نشط",
     automatic: "تلقائي",

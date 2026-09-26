@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const knCatalog: TranslationCatalog = {
+  premium: {
+    title: "Premium ಶೀಘ್ರದಲ್ಲೇ ಬರಲಿದೆ",
+    unavailable: "ಚಂದಾದಾರಿಕೆಗಳು ಇನ್ನೂ ಲಭ್ಯವಿಲ್ಲ.",
+    subscription: "ಚಂದಾದಾರಿಕೆ",
+    subscriptionDescription: "ನಿಮ್ಮ ಪ್ರಸ್ತುತ ಪ್ರವೇಶ ಮತ್ತು AI ಮಿತಿ.",
+    unknown: "ನಿಮ್ಮ ಚಂದಾದಾರಿಕೆಯ ಸ್ಥಿತಿ ಸದ್ಯ ತಿಳಿದಿಲ್ಲ.",
+    statusNone: "ಪಾವತಿಸಿದ ಚಂದಾದಾರಿಕೆ ಇಲ್ಲ",
+    grace: "ಪಾವತಿಯ ಹೆಚ್ಚುವರಿ ಕಾಲಾವಧಿಯಲ್ಲಿ ಪ್ರವೇಶ ಮುಂದುವರಿಯುತ್ತದೆ.",
+    trial: "ಪ್ರಾಯೋಗಿಕ ಅವಧಿ",
+    renews: "{{date}} ರಂದು ನವೀಕರಣ",
+    until: "{{date}} ವರೆಗೆ ಪ್ರವೇಶ",
+    noExpiry: "ಮುಕ್ತಾಯ ದಿನಾಂಕವಿಲ್ಲ",
+    monthlyMessages: "ತಿಂಗಳಿಗೆ {{count}} AI ಸಂದೇಶಗಳು",
+    offer: "Premium ವೀಕ್ಷಿಸಿ",
+    close: "ಮುಚ್ಚಿ",
+    back: "ಹಿಂದೆ",
+    limitTitle: "AI ಸಂದೇಶಗಳ ಮಿತಿ ತಲುಪಿದೆ",
+    previewOffer: "Premium ಕೊಡುಗೆಯ ಪೂರ್ವವೀಕ್ಷಣೆ",
+    previewAi: "AI ಮಿತಿಯ ಪೂರ್ವವೀಕ್ಷಣೆ",
+    retryManually: "ಚಾಟ್‌ಗೆ ಹಿಂತಿರುಗಿ ಮತ್ತು ಸಿದ್ಧವಾದಾಗ ಸಂದೇಶವನ್ನು ಮತ್ತೆ ಕಳುಹಿಸಿ. ನಿಮ್ಮ ಕೀ ಸೆಟ್ಟಿಂಗ್‌ಗಳು ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಉಳಿಯುತ್ತವೆ.",
+  },
   common: {
     active: "ಸಕ್ರಿಯ",
     automatic: "ಸ್ವಯಂಚಾಲಿತ",

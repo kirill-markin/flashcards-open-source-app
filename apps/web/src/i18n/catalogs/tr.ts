@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const trCatalog: TranslationCatalog = {
+  premium: {
+    title: "Premium yakında geliyor",
+    unavailable: "Abonelikler henüz kullanılamıyor.",
+    subscription: "Abonelik",
+    subscriptionDescription: "Mevcut erişiminiz ve yapay zekâ kotanız.",
+    unknown: "Abonelik durumunuz şu anda bilinmiyor.",
+    statusNone: "Ücretli abonelik yok",
+    grace: "Ödeme için tanınan ek süre boyunca erişim devam eder.",
+    trial: "Deneme süresi",
+    renews: "{{date}} tarihinde yenilenir",
+    until: "{{date}} tarihine kadar erişim",
+    noExpiry: "Süresiz",
+    monthlyMessages: "Ayda {{count}} yapay zekâ mesajı",
+    offer: "Premium’u görüntüle",
+    close: "Kapat",
+    back: "Geri",
+    limitTitle: "Yapay zekâ mesaj sınırına ulaşıldı",
+    previewOffer: "Premium teklifini önizle",
+    previewAi: "Yapay zekâ sınırını önizle",
+    retryManually: "Sohbete dönün ve hazır olduğunuzda mesajınızı yeniden gönderin. Anahtar ayarlarınız otomatik olarak kaydedilir.",
+  },
   common: {
     active: "Aktif",
     automatic: "Otomatik",

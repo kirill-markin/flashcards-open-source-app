@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const urCatalog: TranslationCatalog = {
+  premium: {
+    title: "Premium جلد آ رہا ہے",
+    unavailable: "سبسکرپشنز ابھی دستیاب نہیں ہیں۔",
+    subscription: "سبسکرپشن",
+    subscriptionDescription: "آپ کی موجودہ رسائی اور AI کی حد۔",
+    unknown: "آپ کی سبسکرپشن کی حیثیت فی الحال نامعلوم ہے۔",
+    statusNone: "کوئی بامعاوضہ سبسکرپشن نہیں",
+    grace: "ادائیگی کی اضافی مہلت کے دوران رسائی جاری رہتی ہے۔",
+    trial: "آزمائشی مدت",
+    renews: "{{date}} کو تجدید",
+    until: "{{date}} تک رسائی",
+    noExpiry: "کوئی اختتامی تاریخ نہیں",
+    monthlyMessages: "ہر ماہ {{count}} AI پیغامات",
+    offer: "Premium دیکھیں",
+    close: "بند کریں",
+    back: "واپس",
+    limitTitle: "AI پیغامات کی حد پوری ہو گئی",
+    previewOffer: "Premium پیشکش کا پیش منظر",
+    previewAi: "AI حد کا پیش منظر",
+    retryManually: "چیٹ میں واپس جائیں اور تیار ہونے پر اپنا پیغام دوبارہ بھیجیں۔ آپ کی کلید کی ترتیبات خودکار طور پر محفوظ ہوتی ہیں۔",
+  },
   common: {
     active: "سرگرم",
     automatic: "خودکار",

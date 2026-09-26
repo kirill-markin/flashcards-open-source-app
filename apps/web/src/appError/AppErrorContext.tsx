@@ -77,7 +77,7 @@ type AppErrorDialogProviderProps = Readonly<{
 
 const AppErrorDialogContext = createContext<AppErrorDialogContextValue | null>(null);
 
-function buildPresentationMessages(t: AppErrorTranslate): AppErrorPresentationMessages {
+export function buildPresentationMessages(t: AppErrorTranslate): AppErrorPresentationMessages {
   return {
     technicalError: {
       title: t("appError.technicalError.title"),

@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const ukCatalog: TranslationCatalog = {
+  premium: {
+    title: "Premium незабаром",
+    unavailable: "Підписки поки недоступні.",
+    subscription: "Підписка",
+    subscriptionDescription: "Ваш поточний доступ і ліміт ШІ.",
+    unknown: "Статус вашої підписки наразі невідомий.",
+    statusNone: "Немає платної підписки",
+    grace: "Доступ зберігається протягом пільгового періоду оплати.",
+    trial: "Пробний період",
+    renews: "Поновлення {{date}}",
+    until: "Доступ до {{date}}",
+    noExpiry: "Без терміну дії",
+    monthlyMessages: "{{count}} повідомлень ШІ на місяць",
+    offer: "Переглянути Premium",
+    close: "Закрити",
+    back: "Назад",
+    limitTitle: "Досягнуто ліміту повідомлень ШІ",
+    previewOffer: "Попередній перегляд пропозиції Premium",
+    previewAi: "Попередній перегляд ліміту ШІ",
+    retryManually: "Поверніться до чату й надішліть повідомлення знову, коли будете готові. Налаштування ключа зберігаються автоматично.",
+  },
   common: {
     active: "Активний",
     automatic: "Автоматично",

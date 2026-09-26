@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 export const jaCatalog = {
+  premium: {
+    title: "Premiumは近日公開予定です",
+    unavailable: "サブスクリプションはまだ利用できません。",
+    subscription: "サブスクリプション",
+    subscriptionDescription: "現在のアクセス権とAIの利用枠。",
+    unknown: "現在、サブスクリプションの状態は不明です。",
+    statusNone: "有料サブスクリプションなし",
+    grace: "支払いの猶予期間中もアクセスは継続します。",
+    trial: "トライアル期間",
+    renews: "{{date}}に更新",
+    until: "{{date}}まで利用可能",
+    noExpiry: "有効期限なし",
+    monthlyMessages: "毎月{{count}}件のAIメッセージ",
+    offer: "Premiumを見る",
+    close: "閉じる",
+    back: "戻る",
+    limitTitle: "AIメッセージの上限に達しました",
+    previewOffer: "Premiumオファーのプレビュー",
+    previewAi: "AI上限のプレビュー",
+    retryManually: "準備ができたらチャットに戻り、メッセージを再送信してください。キーの設定は自動保存されます。",
+  },
   common: {
     active: "アクティブ",
     automatic: "自動",
