@@ -1,5 +1,4 @@
 import * as cdk from "aws-cdk-lib";
-import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as apigw from "aws-cdk-lib/aws-apigateway";
 import * as cloudwatch from "aws-cdk-lib/aws-cloudwatch";
 import * as logs from "aws-cdk-lib/aws-logs";
@@ -140,7 +139,7 @@ const productAnalyticsLogDerivedComparisonOperator: cloudwatch.ComparisonOperato
 
 interface ProductAnalyticsMonitoringProps {
   restApi: apigw.RestApi;
-  backendFn: lambda.Function;
+  backendLogGroup: logs.ILogGroup;
   notifyAlert: (alarm: cloudwatch.Alarm) => void;
 }
 
@@ -236,41 +235,6 @@ export function addProductAnalyticsMonitoring(
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
   }));
 
-  // The backend Lambda's own log group, where the ingest record lands. It is reached through the
-  // `.logGroup` getter, the same way the direct-image-ingestion and multipart-reconciliation filters
-  // in monitoring.ts reach theirs, and not through `logs.LogGroup.fromLogGroupName`, which an
-  // earlier draft of this block used. Importing by name renders the filter's LogGroupName as
-  // `/aws/lambda/` joined to a Ref on the function, which orders the filter after the *function* but
-  // not after the *group*: Lambda only creates that group on the function's first invocation, so on
-  // a stack deployed from scratch - a fork, or `scripts/deploy/bootstrap.sh` - CloudFormation can
-  // create the metric filters before the group exists and roll the whole stack back. The getter
-  // instead renders LogGroupName as an `Fn::GetAtt` on a `Custom::LogRetention` resource whose
-  // handler creates the group when it is missing and tolerates it when it is not, which is exactly
-  // the ordering dependency the filters need.
-  //
-  // That custom resource is the thing this monitoring policy previously avoided, on the grounds
-  // that it would pin the group's retention. It does not, in this case: the getter asks for
-  // RetentionDays.INFINITE, which renders with no RetentionInDays at all, meaning "never expire" -
-  // and a read-only check of the live group returned exactly that, no finite retention. So the live
-  // group is left as it is. The stack also already carries this custom resource for
-  // `directImageIngestionFn` and `multipartCompletionReconciliationFn`, and its provider Lambda is a
-  // singleton, so this reuses what is there rather than introducing the pattern.
-  //
-  // Ownership moves with it, though, and that is the part to know before touching this group: from
-  // here on the stack declares the backend API group's retention, and what it declares is
-  // never-expire. That declaration is not re-asserted on every deploy. CloudFormation sends a custom
-  // resource an Update only when that resource's own properties change, and these - the group name
-  // and the absent RetentionInDays - are stable, so an ordinary deploy of `main` leaves this
-  // resource alone. A finite retention set on the group by hand, in the console to cut log cost,
-  // therefore keeps working while diverging from what the stack says, and is reverted only whenever
-  // this resource next changes, silently, because the handler issues DeleteRetentionPolicy rather
-  // than reading what is there. The delay makes a console change worse rather than safer: it holds,
-  // and then one deploy it does not. Retention on this group is changed by giving the function an
-  // explicit retention where it is defined, in infra/aws/lib/gateways/api-gateway.ts, never from the
-  // console. This is stated for operators in docs/agent-sql-telemetry.md as well, which is where
-  // someone reading these records would look.
-  const backendLogGroup = props.backendFn.logGroup;
-
   // `contractRejectedCount` is emitted by the route after excluding out-of-window events and exact
   // retired-name tombstones rather than being derived here. A metric filter cannot classify one
   // field from another, and the only place that knows every rejection reason is the route.
@@ -278,7 +242,7 @@ export function addProductAnalyticsMonitoring(
     scope,
     "ProductAnalyticsContractRejectedMetricFilter",
     {
-      logGroup: backendLogGroup,
+      logGroup: props.backendLogGroup,
       filterPattern: createProductAnalyticsIngestRecordFilterPattern(),
       metricNamespace: productAnalyticsLogDerivedMetricNamespace,
       metricName: productAnalyticsContractRejectedMetricName,
@@ -317,7 +281,7 @@ export function addProductAnalyticsMonitoring(
     scope,
     "ProductAnalyticsOutOfWindowMetricFilter",
     {
-      logGroup: backendLogGroup,
+      logGroup: props.backendLogGroup,
       filterPattern: createProductAnalyticsIngestRecordFilterPattern(),
       metricNamespace: productAnalyticsLogDerivedMetricNamespace,
       metricName: productAnalyticsOutOfWindowMetricName,
