@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const knCatalog: TranslationCatalog = {
+  accentColorSettings: {
+    title: "ಪ್ರಮುಖ ಬಣ್ಣ",
+    subtitle: "ಆ್ಯಪ್‌ನ ಪ್ರಮುಖ ಬಣ್ಣವನ್ನು ಆಯ್ಕೆಮಾಡಿ.",
+    premiumNote: "ಕಸ್ಟಮ್ ಪ್ರಮುಖ ಬಣ್ಣಗಳು Premiumನಲ್ಲಿ ಸೇರಿವೆ.",
+    custom: "ಕಸ್ಟಮ್ ಬಣ್ಣ",
+    hexHelp: "ಪಾರದರ್ಶಕತೆ ಇಲ್ಲದೆ #RRGGBB ಸ್ವರೂಪದಲ್ಲಿ ಬಣ್ಣವನ್ನು ನಮೂದಿಸಿ.",
+    current: "ಪ್ರಸ್ತುತ ಬಣ್ಣ: {{color}}",
+    saving: "ಉಳಿಸಲಾಗುತ್ತಿದೆ…",
+    default: "ಡೀಫಾಲ್ಟ್",
+    blue: "ನೀಲಿ",
+    purple: "ನೇರಳೆ",
+    pink: "ಗುಲಾಬಿ",
+    teal: "ನೀಲಿ ಹಸಿರು",
+    gold: "ಚಿನ್ನದ",
+    hex: "HEX",
+  },
   premium: {
     title: "Premium ಶೀಘ್ರದಲ್ಲೇ ಬರಲಿದೆ",
     unavailable: "ಚಂದಾದಾರಿಕೆಗಳು ಇನ್ನೂ ಲಭ್ಯವಿಲ್ಲ.",

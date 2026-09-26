@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactElement } from "react";
 import { isAuthRedirectError, updateAccountPreferences } from "../../api";
+import { beginAccountPreferenceWrite, finishAccountPreferenceWrite, isCurrentAccountPreferenceWrite } from "../../appData/session/accentColorWrite";
 import { useAppData } from "../../appData";
 import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
@@ -7,7 +8,6 @@ import {
 } from "../../appError/AppErrorContext";
 import { useI18n } from "../../i18n";
 import { captureAppOperationError } from "../../observability/appOperationObservation";
-import type { AccountPreferences } from "../../types";
 import { SettingsGroup, SettingsShell } from "./SettingsShared";
 
 export function ReviewAnimationsSettingsScreen(): ReactElement {
@@ -124,29 +124,30 @@ export function ReviewAnimationsSettingsScreen(): ReactElement {
     }
 
     const targetUserId = session.userId;
-    const previousPreferences = session.preferences;
-    const nextPreferences: AccountPreferences = {
-      ...previousPreferences,
-      reviewReactionAnimationsEnabled: nextEnabled,
-    };
+    const previousEnabled = session.preferences.reviewReactionAnimationsEnabled;
+    const write = beginAccountPreferenceWrite(targetUserId, "reviewReactionAnimationsEnabled");
 
     setIsSubmitting(true);
     setErrorMessage("");
-    setAccountPreferences(targetUserId, nextPreferences);
+    setAccountPreferences(targetUserId, { reviewReactionAnimationsEnabled: nextEnabled });
 
     try {
-      // Only the field this screen owns is written: a whole preferences object would carry the
-      // stored analytics consent back as a value the route refuses.
       const response = await updateAccountPreferences({ reviewReactionAnimationsEnabled: nextEnabled });
       indexedDbOpenRecoveryState.throwIfFailed();
-      setAccountPreferences(targetUserId, response.preferences);
+      if (!isCurrentAccountPreferenceWrite(write)) {
+        return;
+      }
+      setAccountPreferences(targetUserId, { reviewReactionAnimationsEnabled: response.preferences.reviewReactionAnimationsEnabled });
       await refreshPreferencesAfterPatch();
       indexedDbOpenRecoveryState.throwIfFailed();
     } catch (error) {
       if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
         return;
       }
-      setAccountPreferences(targetUserId, previousPreferences);
+      if (!isCurrentAccountPreferenceWrite(write)) {
+        return;
+      }
+      setAccountPreferences(targetUserId, { reviewReactionAnimationsEnabled: previousEnabled });
       if (isAuthRedirectError(error)) {
         return;
       }
@@ -159,6 +160,7 @@ export function ReviewAnimationsSettingsScreen(): ReactElement {
         setErrorMessage(error instanceof Error ? error.message : String(error));
       }
     } finally {
+      finishAccountPreferenceWrite(write);
       if (indexedDbOpenRecoveryState.hasFailed() === false) {
         setIsSubmitting(false);
       }

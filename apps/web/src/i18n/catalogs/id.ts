@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const idCatalog: TranslationCatalog = {
+  accentColorSettings: {
+    title: "Warna aksen",
+    subtitle: "Pilih warna aksen aplikasi.",
+    premiumNote: "Warna aksen khusus disertakan dalam Premium.",
+    custom: "Warna khusus",
+    hexHelp: "Masukkan warna dalam format #RRGGBB, tanpa transparansi.",
+    current: "Warna saat ini: {{color}}",
+    saving: "Menyimpan…",
+    default: "Default",
+    blue: "Biru",
+    purple: "Ungu",
+    pink: "Merah muda",
+    teal: "Hijau kebiruan",
+    gold: "Emas",
+    hex: "HEX",
+  },
   premium: {
     title: "Premium segera hadir",
     unavailable: "Langganan belum tersedia.",

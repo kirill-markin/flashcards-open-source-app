@@ -849,3 +849,14 @@
 "premium.comingSoon.title" = "Premium идва скоро";
 "premium.comingSoon.message" = "Абонаментите все още не са налични.";
 "premium.aiLimit.title" = "Достигнат е лимитът за съобщения с ИИ";
+
+"settings.accentColor.title" = "Цвят на акцента";
+"settings.accentColor.default" = "По подразбиране";
+"settings.accentColor.blue" = "Син";
+"settings.accentColor.purple" = "Лилав";
+"settings.accentColor.pink" = "Розов";
+"settings.accentColor.teal" = "Тюркоазен";
+"settings.accentColor.gold" = "Златист";
+"settings.accentColor.custom" = "Персонализиран цвят";
+"settings.accentColor.invalidHex" = "Въведете цвят във формат #RRGGBB с шест шестнадесетични цифри.";
+"settings.accentColor.premiumNote" = "Персонализираните цветове на акцента са достъпни с Premium. Запазеният цвят се връща, когато Premium е активен.";

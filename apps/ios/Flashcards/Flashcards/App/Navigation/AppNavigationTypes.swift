@@ -29,6 +29,7 @@ struct ProgressPresentationRequest: Hashable, Sendable {
 enum SettingsNavigationDestination: Hashable, Sendable {
     case subscription
     case currentWorkspace
+    case accentColor
     case reviewAnimations
     case aiChatSuggestions
     case ownOpenAIKey

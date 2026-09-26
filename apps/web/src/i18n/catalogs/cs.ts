@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const csCatalog: TranslationCatalog = {
+  accentColorSettings: {
+    title: "Barva zvýraznění",
+    subtitle: "Vyberte barvu zvýraznění aplikace.",
+    premiumNote: "Vlastní barvy zvýraznění jsou součástí Premium.",
+    custom: "Vlastní barva",
+    hexHelp: "Zadejte barvu ve formátu #RRGGBB bez průhlednosti.",
+    current: "Aktuální barva: {{color}}",
+    saving: "Ukládání…",
+    default: "Výchozí",
+    blue: "Modrá",
+    purple: "Fialová",
+    pink: "Růžová",
+    teal: "Modrozelená",
+    gold: "Zlatá",
+    hex: "HEX",
+  },
   premium: {
     title: "Premium již brzy",
     unavailable: "Předplatné zatím není dostupné.",

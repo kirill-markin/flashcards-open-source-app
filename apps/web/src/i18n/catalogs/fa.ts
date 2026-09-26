@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const faCatalog: TranslationCatalog = {
+  accentColorSettings: {
+    title: "رنگ تأکیدی",
+    subtitle: "رنگ تأکیدی برنامه را انتخاب کنید.",
+    premiumNote: "رنگ‌های تأکیدی سفارشی در Premium گنجانده شده‌اند.",
+    custom: "رنگ سفارشی",
+    hexHelp: "رنگ را با قالب #RRGGBB و بدون شفافیت وارد کنید.",
+    current: "رنگ فعلی: {{color}}",
+    saving: "در حال ذخیره…",
+    default: "پیش‌فرض",
+    blue: "آبی",
+    purple: "بنفش",
+    pink: "صورتی",
+    teal: "سبزآبی",
+    gold: "طلایی",
+    hex: "HEX",
+  },
   premium: {
     title: "Premium به‌زودی ارائه می‌شود",
     unavailable: "اشتراک‌ها هنوز در دسترس نیستند.",

@@ -203,7 +203,7 @@ private struct ProgressReviewScheduleLegendRow: View {
         }
         .background(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(self.isSelected ? Color.accentColor.opacity(0.12) : Color.clear)
+                .fill(.tint.opacity(self.isSelected ? 0.12 : 0))
                 .padding(.horizontal, -8)
                 .padding(.vertical, -4)
         )

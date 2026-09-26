@@ -849,3 +849,14 @@
 "premium.comingSoon.title" = "Premium komt binnenkort";
 "premium.comingSoon.message" = "Abonnementen zijn nog niet beschikbaar.";
 "premium.aiLimit.title" = "Limiet voor AI-berichten bereikt";
+
+"settings.accentColor.title" = "Accentkleur";
+"settings.accentColor.default" = "Standaard";
+"settings.accentColor.blue" = "Blauw";
+"settings.accentColor.purple" = "Paars";
+"settings.accentColor.pink" = "Roze";
+"settings.accentColor.teal" = "Turkoois";
+"settings.accentColor.gold" = "Goud";
+"settings.accentColor.custom" = "Eigen kleur";
+"settings.accentColor.invalidHex" = "Voer een kleur in als #RRGGBB, met zes hexadecimale cijfers.";
+"settings.accentColor.premiumNote" = "Eigen accentkleuren zijn beschikbaar met Premium. Je opgeslagen kleur keert terug wanneer Premium actief is.";

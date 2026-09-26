@@ -849,3 +849,14 @@
 "premium.comingSoon.title" = "Premium būs pieejams drīzumā";
 "premium.comingSoon.message" = "Abonementi vēl nav pieejami.";
 "premium.aiLimit.title" = "Sasniegts MI ziņojumu limits";
+
+"settings.accentColor.title" = "Akcenta krāsa";
+"settings.accentColor.default" = "Noklusējuma";
+"settings.accentColor.blue" = "Zila";
+"settings.accentColor.purple" = "Violeta";
+"settings.accentColor.pink" = "Rozā";
+"settings.accentColor.teal" = "Tirkīza";
+"settings.accentColor.gold" = "Zelta";
+"settings.accentColor.custom" = "Pielāgota krāsa";
+"settings.accentColor.invalidHex" = "Ievadiet krāsu formātā #RRGGBB ar sešiem heksadecimāliem cipariem.";
+"settings.accentColor.premiumNote" = "Pielāgotas akcenta krāsas ir pieejamas ar Premium. Saglabātā krāsa atgriežas, kad Premium ir aktīvs.";

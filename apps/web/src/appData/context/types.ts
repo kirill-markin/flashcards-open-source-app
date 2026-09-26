@@ -38,7 +38,7 @@ export type AppDataContextValue = Readonly<{
   errorMessage: string;
   technicalError: Error | null;
   setErrorMessage: (message: string) => void;
-  setAccountPreferences: (userId: string, preferences: AccountPreferences) => void;
+  setAccountPreferences: (userId: string, preferences: Partial<AccountPreferences>) => void;
   refreshAccountPreferences: () => Promise<AccountPreferences>;
   initialize: () => Promise<void>;
   chooseWorkspace: (workspaceId: string) => Promise<void>;

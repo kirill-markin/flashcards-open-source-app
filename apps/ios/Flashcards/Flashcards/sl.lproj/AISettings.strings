@@ -849,3 +849,14 @@
 "premium.comingSoon.title" = "Premium prihaja kmalu";
 "premium.comingSoon.message" = "Naročnine še niso na voljo.";
 "premium.aiLimit.title" = "Dosežena je omejitev sporočil UI";
+
+"settings.accentColor.title" = "Barva poudarka";
+"settings.accentColor.default" = "Privzeta";
+"settings.accentColor.blue" = "Modra";
+"settings.accentColor.purple" = "Vijolična";
+"settings.accentColor.pink" = "Rožnata";
+"settings.accentColor.teal" = "Turkizna";
+"settings.accentColor.gold" = "Zlata";
+"settings.accentColor.custom" = "Barva po meri";
+"settings.accentColor.invalidHex" = "Vnesite barvo v obliki #RRGGBB s šestimi šestnajstiškimi števkami.";
+"settings.accentColor.premiumNote" = "Barve poudarka po meri so na voljo s Premium. Shranjena barva se vrne, ko je Premium aktiven.";
