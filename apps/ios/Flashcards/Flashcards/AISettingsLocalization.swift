@@ -259,3 +259,15 @@ func localizedAIAttachmentMenuActionTitle(_ action: AIChatAttachmentMenuAction) 
         return aiSettingsLocalized("ai.composer.attachment.chooseFile", "Choose File")
     }
 }
+
+func premiumComingSoonTitle() -> String {
+    aiSettingsLocalized("premium.comingSoon.title", "Premium is coming soon")
+}
+
+func premiumComingSoonMessage() -> String {
+    aiSettingsLocalized("premium.comingSoon.message", "Subscriptions aren’t available yet.")
+}
+
+func premiumAILimitTitle() -> String {
+    aiSettingsLocalized("premium.aiLimit.title", "AI message limit reached")
+}

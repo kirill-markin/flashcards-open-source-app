@@ -2,43 +2,6 @@ import StoreKit
 import SwiftUI
 import UIKit
 
-/// The App Store Connect product whose presence decides whether the Subscription row is shown.
-let premiumMonthlyProductId: String = "premium_monthly"
-
-/// Whether the App Store returns our subscription product for this build and storefront. An empty
-/// result means the product does not exist or is not approved yet, so the entry stays hidden.
-func loadIsSubscriptionProductAvailable() async throws -> Bool {
-    let products = try await Product.products(for: [premiumMonthlyProductId])
-    return products.isEmpty == false
-}
-
-func captureSubscriptionSilentFailure(
-    error: Error,
-    action: String,
-    cloudSettings: CloudSettings?,
-    workspaceId: String?
-) {
-    FlashcardsObservability.captureSilentFailure(
-        error: error,
-        scope: IOSObservationScope(
-            feature: .subscription,
-            userId: cloudSettings?.linkedUserId,
-            workspaceId: workspaceId,
-            requestId: nil,
-            clientRequestId: nil,
-            sessionId: nil,
-            runId: nil,
-            cloudState: cloudSettings?.cloudState,
-            configurationMode: nil
-        ),
-        action: action,
-        stage: nil,
-        statusCode: nil,
-        backendCode: nil,
-        requestId: nil
-    )
-}
-
 private enum SubscriptionManagementError: LocalizedError {
     case foregroundWindowSceneUnavailable
 
@@ -100,6 +63,7 @@ private func localizedCloudEntitlementStatusTitle(entitlement: CloudEntitlement)
 
 struct SubscriptionSettingsView: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
+    @Environment(PremiumPresenter.self) private var premiumPresenter: PremiumPresenter
 
     @State private var isOpeningManageSubscriptions: Bool = false
 
@@ -128,6 +92,18 @@ struct SubscriptionSettingsView: View {
                         )
                     )
                     .foregroundStyle(.secondary)
+                }
+            }
+
+            if hasPremiumAccess(entitlement: store.cloudEntitlement) == false {
+                Section {
+                    Button(premiumComingSoonTitle()) {
+                        self.premiumPresenter.present(
+                            reason: .premiumFeature(requiredTierRank: premiumTierRank),
+                            entitlement: store.cloudEntitlement
+                        )
+                    }
+                    .accessibilityIdentifier(UITestIdentifier.subscriptionSettingsPremiumButton)
                 }
             }
 
@@ -195,5 +171,6 @@ private func requireForegroundActiveWindowScene() throws -> UIWindowScene {
     NavigationStack {
         SubscriptionSettingsView()
             .environment(FlashcardsStore())
+            .environment(PremiumPresenter())
     }
 }

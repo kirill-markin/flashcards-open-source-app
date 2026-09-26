@@ -845,3 +845,7 @@
 "settings.language.supported.urdu" = "Úrdú";
 "settings.language.supported.vietnamese" = "Víetnamska";
 "settings.language.supported.zulu" = "Súlú";
+
+"premium.comingSoon.title" = "Premium er væntanlegt";
+"premium.comingSoon.message" = "Áskriftir eru ekki enn í boði.";
+"premium.aiLimit.title" = "Hámarki AI-skilaboða náð";

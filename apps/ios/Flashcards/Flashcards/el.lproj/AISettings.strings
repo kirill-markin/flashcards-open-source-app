@@ -845,3 +845,7 @@
 "settings.language.supported.urdu" = "Ούρντου";
 "settings.language.supported.vietnamese" = "Βιετναμικά";
 "settings.language.supported.zulu" = "Ζουλού";
+
+"premium.comingSoon.title" = "Το Premium έρχεται σύντομα";
+"premium.comingSoon.message" = "Οι συνδρομές δεν είναι ακόμη διαθέσιμες.";
+"premium.aiLimit.title" = "Συμπληρώθηκε το όριο μηνυμάτων AI";
