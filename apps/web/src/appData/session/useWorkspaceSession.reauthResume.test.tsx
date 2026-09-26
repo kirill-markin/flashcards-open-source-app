@@ -198,6 +198,7 @@ describe("useWorkspaceSession reauth resume", () => {
       .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"))
       .mockResolvedValueOnce(buildWorkspacesResponse([seededWorkspace]))
       .mockResolvedValueOnce(buildSessionResponseForUser("user-2", "workspace-2", "csrf-user-2"))
+      .mockResolvedValueOnce(buildSessionResponseForUser("user-2", "workspace-2", "csrf-user-2"))
       .mockResolvedValueOnce(buildWorkspacesResponse([replacementWorkspace]));
     vi.stubGlobal("fetch", fetchMock);
 
@@ -302,6 +303,7 @@ describe("useWorkspaceSession reauth resume", () => {
       .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"))
       .mockResolvedValueOnce(buildWorkspacesResponse([seededWorkspace]))
       .mockResolvedValueOnce(buildSessionResponseForUser("user-2", "workspace-2", "csrf-user-2"))
+      .mockResolvedValueOnce(buildSessionResponseForUser("user-2", "workspace-2", "csrf-user-2"))
       .mockResolvedValueOnce(buildWorkspacesResponse([replacementWorkspace]))
       .mockResolvedValueOnce(buildSessionResponseForUser("user-2", "workspace-2", "csrf-user-2-next"));
     vi.stubGlobal("fetch", fetchMock);
@@ -381,7 +383,7 @@ describe("useWorkspaceSession reauth resume", () => {
     });
 
     expect(runSyncSilentlyMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledTimes(5);
+    expect(fetchMock).toHaveBeenCalledTimes(6);
     expect(runSyncForWorkspaceMock).toHaveBeenCalledTimes(1);
     expect(latestState?.session?.userId).toBe("user-2");
     expect(latestState?.session?.csrfToken).toBe("csrf-user-2-next");
@@ -396,6 +398,7 @@ describe("useWorkspaceSession reauth resume", () => {
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
       .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"))
       .mockResolvedValueOnce(buildWorkspacesResponse([seededWorkspace]))
+      .mockResolvedValueOnce(buildSessionResponseForUser("user-2", "workspace-2", "csrf-user-2"))
       .mockResolvedValueOnce(buildSessionResponseForUser("user-2", "workspace-2", "csrf-user-2"))
       .mockResolvedValueOnce(new Response(JSON.stringify({
         error: "Switch bootstrap failed",
@@ -449,7 +452,7 @@ describe("useWorkspaceSession reauth resume", () => {
       expect(latestState?.sessionErrorMessage).toBe("Switch bootstrap failed");
     });
 
-    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(fetchMock).toHaveBeenCalledTimes(5);
     expect(discardAllSyncWorkMock).toHaveBeenCalledTimes(1);
     expect(resetUserScopedUiStateMock).toHaveBeenCalledTimes(1);
     expect(observabilityMocks.setWebObservabilityUserMock).toHaveBeenCalledWith({ id: "user-2" });

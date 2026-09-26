@@ -10,3 +10,4 @@ export * from "./types/sync";
 export * from "./types/workspacePackageExport";
 export * from "./types/workspacePackageImport";
 export * from "./types/catalog";
+export * from "./types/entitlement";
