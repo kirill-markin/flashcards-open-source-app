@@ -145,6 +145,7 @@ test("handleLiveRequest uses the authoritative Cognito profile for downstream ac
           locale: "en",
           createdAt: "2026-03-30T00:00:00.000Z",
           preferences: {
+            accentColor: "#C44B2D",
             reviewReactionAnimationsEnabled: true,
             analyticsConsent: null,
             productAnalyticsEnabled: null,
