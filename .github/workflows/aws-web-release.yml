@@ -19,6 +19,7 @@ on:
       - 'scripts/deploy/deploy-admin.sh'
       - 'scripts/deploy/deploy-web.sh'
       - 'scripts/deploy/select-release-components.sh'
+      - 'scripts/deploy/prepare-monitoring-refactor.py'
       - 'scripts/deploy/report-cloudformation-budget.py'
       - 'scripts/generate/generate-catalog-dump.sh'
       - 'scripts/generate/generate-global-metrics-snapshot.sh'
@@ -459,6 +460,56 @@ jobs:
           bash scripts/checks/check-multipart-completion-reconciliation-schedule.sh \
             --stack-name ${{ env.STACK_NAME }} \
             --region ${{ env.AWS_REGION }}
+
+      - name: Compare monitoring split preview without changing AWS ownership
+        id: monitoring_preview
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
+        continue-on-error: true
+        working-directory: infra/aws
+        env:
+          SENTRY_UPLOAD_BACKEND_SOURCEMAPS: false
+        run: |
+          set -euo pipefail
+          umask 077
+          evidence_directory="${RUNNER_TEMP}/monitoring-refactor"
+          mkdir -p "${evidence_directory}"
+          cp -R cdk.out "${evidence_directory}/legacy"
+          npx cdk synth --all --quiet --output "${evidence_directory}/split" \
+            -c monitoringTopology=split \
+            -c generatedMediaPromotionScheduleState=ENABLED \
+            -c mediaBlobCleanupEnabled=true \
+            -c multipartCompletionReconciliationScheduleState=ENABLED
+          python3 ../../scripts/deploy/prepare-monitoring-refactor.py \
+            --legacy-assembly "${evidence_directory}/legacy" \
+            --split-assembly "${evidence_directory}/split" \
+            --output-directory "${evidence_directory}/report"
+
+      - name: Save sanitized monitoring preparation evidence
+        if: ${{ steps.monitoring_preview.outcome == 'success' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: monitoring-refactor-mappings-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            ${{ runner.temp }}/monitoring-refactor/report/resource-mappings.json
+            ${{ runner.temp }}/monitoring-refactor/report/summary.json
+
+      - name: Report monitoring preparation outcome
+        if: ${{ always() && needs.changes.outputs.deploy_platform == 'true' }}
+        env:
+          PREVIEW_OUTCOME: ${{ steps.monitoring_preview.outcome }}
+        run: |
+          if [[ "${PREVIEW_OUTCOME}" != "success" ]]; then
+            echo "::warning::Monitoring template preparation did not pass. Resource ownership is unchanged; the monitoring move is blocked."
+          fi
+          {
+            echo "## Monitoring boundary preparation"
+            echo ""
+            echo "- Template comparison: ${PREVIEW_OUTCOME}"
+            echo "- Production topology: legacy. AWS server refactor validation: pending."
+            echo "- Only sanitized mappings/counts are uploaded; templates and detailed evidence stay private on the runner."
+          } >> "${GITHUB_STEP_SUMMARY}"
 
       - name: Refresh private GeoLite Country database
         if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
