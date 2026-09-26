@@ -849,3 +849,14 @@
 "premium.comingSoon.title" = "Premium ಶೀಘ್ರದಲ್ಲೇ ಬರಲಿದೆ";
 "premium.comingSoon.message" = "ಚಂದಾದಾರಿಕೆಗಳು ಇನ್ನೂ ಲಭ್ಯವಿಲ್ಲ.";
 "premium.aiLimit.title" = "AI ಸಂದೇಶಗಳ ಮಿತಿಯನ್ನು ತಲುಪಲಾಗಿದೆ";
+
+"settings.accentColor.title" = "ಹೈಲೈಟ್ ಬಣ್ಣ";
+"settings.accentColor.default" = "ಡೀಫಾಲ್ಟ್";
+"settings.accentColor.blue" = "ನೀಲಿ";
+"settings.accentColor.purple" = "ನೇರಳೆ";
+"settings.accentColor.pink" = "ಗುಲಾಬಿ";
+"settings.accentColor.teal" = "ನೀಲಿ ಹಸಿರು";
+"settings.accentColor.gold" = "ಚಿನ್ನದ";
+"settings.accentColor.custom" = "ಆಯ್ಕೆಯ ಬಣ್ಣ";
+"settings.accentColor.invalidHex" = "ಆರು ಹೆಕ್ಸಾಡೆಸಿಮಲ್ ಅಂಕೆಗಳೊಂದಿಗೆ #RRGGBB ರೂಪದಲ್ಲಿ ಬಣ್ಣವನ್ನು ನಮೂದಿಸಿ.";
+"settings.accentColor.premiumNote" = "ಆಯ್ಕೆಯ ಹೈಲೈಟ್ ಬಣ್ಣಗಳು Premium ಜೊತೆಗೆ ಲಭ್ಯವಿವೆ. Premium ಸಕ್ರಿಯವಾದಾಗ ಉಳಿಸಿದ ಬಣ್ಣ ಮರಳಿ ಬರುತ್ತದೆ.";

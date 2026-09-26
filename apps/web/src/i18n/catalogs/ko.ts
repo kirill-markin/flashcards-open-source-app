@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const koCatalog: TranslationCatalog = {
+  accentColorSettings: {
+    title: "강조 색상",
+    subtitle: "앱의 강조 색상을 선택하세요.",
+    premiumNote: "사용자 지정 강조 색상은 Premium에 포함됩니다.",
+    custom: "사용자 지정 색상",
+    hexHelp: "투명도 없이 #RRGGBB 형식으로 색상을 입력하세요.",
+    current: "현재 색상: {{color}}",
+    saving: "저장 중…",
+    default: "기본값",
+    blue: "파랑",
+    purple: "보라",
+    pink: "분홍",
+    teal: "청록",
+    gold: "금색",
+    hex: "HEX",
+  },
   premium: {
     title: "Premium이 곧 출시됩니다",
     unavailable: "아직 구독을 이용할 수 없습니다.",

@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const fiCatalog: TranslationCatalog = {
+  accentColorSettings: {
+    title: "Korostusväri",
+    subtitle: "Valitse sovelluksen korostusväri.",
+    premiumNote: "Mukautetut korostusvärit sisältyvät Premiumiin.",
+    custom: "Mukautettu väri",
+    hexHelp: "Anna väri muodossa #RRGGBB ilman läpinäkyvyyttä.",
+    current: "Nykyinen väri: {{color}}",
+    saving: "Tallennetaan…",
+    default: "Oletus",
+    blue: "Sininen",
+    purple: "Violetti",
+    pink: "Vaaleanpunainen",
+    teal: "Sinivihreä",
+    gold: "Kulta",
+    hex: "HEX",
+  },
   premium: {
     title: "Premium on tulossa pian",
     unavailable: "Tilauksia ei ole vielä saatavilla.",

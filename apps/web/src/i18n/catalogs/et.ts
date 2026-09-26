@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const etCatalog: TranslationCatalog = {
+  accentColorSettings: {
+    title: "Rõhuvärv",
+    subtitle: "Vali rakenduse rõhuvärv.",
+    premiumNote: "Kohandatud rõhuvärvid kuuluvad Premiumi juurde.",
+    custom: "Kohandatud värv",
+    hexHelp: "Sisesta värv vormingus #RRGGBB ilma läbipaistvuseta.",
+    current: "Praegune värv: {{color}}",
+    saving: "Salvestamine…",
+    default: "Vaikimisi",
+    blue: "Sinine",
+    purple: "Lilla",
+    pink: "Roosa",
+    teal: "Sinakasroheline",
+    gold: "Kuldne",
+    hex: "HEX",
+  },
   premium: {
     title: "Premium on peagi saadaval",
     unavailable: "Tellimused pole veel saadaval.",

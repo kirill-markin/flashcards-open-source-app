@@ -849,3 +849,14 @@
 "premium.comingSoon.title" = "I-Premium iyeza maduze";
 "premium.comingSoon.message" = "Ukubhalisa akukatholakali okwamanje.";
 "premium.aiLimit.title" = "Usufinyelele emkhawulweni wemiyalezo ye-AI";
+
+"settings.accentColor.title" = "Umbala wokugqamisa";
+"settings.accentColor.default" = "Okuzenzakalelayo";
+"settings.accentColor.blue" = "Okuluhlaza okwesibhakabhaka";
+"settings.accentColor.purple" = "Okunsomi";
+"settings.accentColor.pink" = "Okuphinki";
+"settings.accentColor.teal" = "Okuluhlaza okuxube nokuluhlaza okwesibhakabhaka";
+"settings.accentColor.gold" = "Okusagolide";
+"settings.accentColor.custom" = "Umbala owukhethayo";
+"settings.accentColor.invalidHex" = "Faka umbala njengo-#RRGGBB usebenzisa amadijithi ayisithupha e-hexadecimal.";
+"settings.accentColor.premiumNote" = "Imibala yokugqamisa oyikhethayo iyatholakala nge-Premium. Umbala wakho ogciniwe ubuya lapho i-Premium isebenza.";

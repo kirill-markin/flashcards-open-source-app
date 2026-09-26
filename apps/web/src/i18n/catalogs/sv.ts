@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const svCatalog: TranslationCatalog = {
+  accentColorSettings: {
+    title: "Accentfärg",
+    subtitle: "Välj appens accentfärg.",
+    premiumNote: "Anpassade accentfärger ingår i Premium.",
+    custom: "Anpassad färg",
+    hexHelp: "Ange en färg i formatet #RRGGBB utan genomskinlighet.",
+    current: "Aktuell färg: {{color}}",
+    saving: "Sparar…",
+    default: "Standard",
+    blue: "Blå",
+    purple: "Lila",
+    pink: "Rosa",
+    teal: "Blågrön",
+    gold: "Guld",
+    hex: "HEX",
+  },
   premium: {
     title: "Premium kommer snart",
     unavailable: "Prenumerationer är inte tillgängliga ännu.",

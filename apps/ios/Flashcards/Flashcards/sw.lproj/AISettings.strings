@@ -849,3 +849,14 @@
 "premium.comingSoon.title" = "Premium inakuja hivi karibuni";
 "premium.comingSoon.message" = "Usajili bado haupatikani.";
 "premium.aiLimit.title" = "Umefikia kikomo cha ujumbe wa AI";
+
+"settings.accentColor.title" = "Rangi ya msisitizo";
+"settings.accentColor.default" = "Chaguomsingi";
+"settings.accentColor.blue" = "Buluu";
+"settings.accentColor.purple" = "Zambarau";
+"settings.accentColor.pink" = "Waridi";
+"settings.accentColor.teal" = "Bluu-kijani";
+"settings.accentColor.gold" = "Dhahabu";
+"settings.accentColor.custom" = "Rangi maalum";
+"settings.accentColor.invalidHex" = "Weka rangi kama #RRGGBB, ukitumia tarakimu sita za mfumo wa kumi na sita.";
+"settings.accentColor.premiumNote" = "Rangi maalum za msisitizo zinapatikana kwa Premium. Rangi uliyohifadhi itarudi Premium inapokuwa hai.";

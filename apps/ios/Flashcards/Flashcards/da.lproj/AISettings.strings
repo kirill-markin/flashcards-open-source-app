@@ -849,3 +849,14 @@
 "premium.comingSoon.title" = "Premium kommer snart";
 "premium.comingSoon.message" = "Abonnementer er endnu ikke tilgængelige.";
 "premium.aiLimit.title" = "Grænsen for AI-beskeder er nået";
+
+"settings.accentColor.title" = "Accentfarve";
+"settings.accentColor.default" = "Standard";
+"settings.accentColor.blue" = "Blå";
+"settings.accentColor.purple" = "Lilla";
+"settings.accentColor.pink" = "Pink";
+"settings.accentColor.teal" = "Turkis";
+"settings.accentColor.gold" = "Guld";
+"settings.accentColor.custom" = "Brugerdefineret farve";
+"settings.accentColor.invalidHex" = "Indtast en farve som #RRGGBB med seks hexadecimale cifre.";
+"settings.accentColor.premiumNote" = "Brugerdefinerede accentfarver er tilgængelige med Premium. Din gemte farve vender tilbage, når Premium er aktivt.";

@@ -849,3 +849,14 @@
 "premium.comingSoon.title" = "Premium jau netrukus";
 "premium.comingSoon.message" = "Prenumeratos dar nepasiekiamos.";
 "premium.aiLimit.title" = "Pasiektas DI žinučių limitas";
+
+"settings.accentColor.title" = "Akcento spalva";
+"settings.accentColor.default" = "Numatytoji";
+"settings.accentColor.blue" = "Mėlyna";
+"settings.accentColor.purple" = "Violetinė";
+"settings.accentColor.pink" = "Rožinė";
+"settings.accentColor.teal" = "Turkio";
+"settings.accentColor.gold" = "Auksinė";
+"settings.accentColor.custom" = "Pasirinktinė spalva";
+"settings.accentColor.invalidHex" = "Įveskite spalvą formatu #RRGGBB su šešiais šešioliktainiais skaitmenimis.";
+"settings.accentColor.premiumNote" = "Pasirinktinės akcento spalvos pasiekiamos su Premium. Išsaugota spalva grįžta, kai Premium aktyvus.";

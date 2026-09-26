@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const taCatalog: TranslationCatalog = {
+  accentColorSettings: {
+    title: "சிறப்பம்ச நிறம்",
+    subtitle: "செயலியின் சிறப்பம்ச நிறத்தைத் தேர்ந்தெடுக்கவும்.",
+    premiumNote: "விருப்ப சிறப்பம்ச நிறங்கள் Premium-இல் அடங்கும்.",
+    custom: "விருப்ப நிறம்",
+    hexHelp: "வெளிப்படைத்தன்மை இல்லாமல் #RRGGBB வடிவத்தில் நிறத்தை உள்ளிடவும்.",
+    current: "தற்போதைய நிறம்: {{color}}",
+    saving: "சேமிக்கிறது…",
+    default: "இயல்புநிலை",
+    blue: "நீலம்",
+    purple: "ஊதா",
+    pink: "இளஞ்சிவப்பு",
+    teal: "நீலப்பச்சை",
+    gold: "பொன்னிறம்",
+    hex: "HEX",
+  },
   premium: {
     title: "Premium விரைவில் வருகிறது",
     unavailable: "சந்தாக்கள் இன்னும் கிடைக்கவில்லை.",

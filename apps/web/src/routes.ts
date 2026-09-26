@@ -28,6 +28,7 @@ export const settingsAccessRoute: string = "/settings/access";
 export const settingsFeedbackRoute: string = "/settings/feedback";
 export const settingsLanguageRoute: string = "/settings/language";
 export const settingsLeaderboardParticipationRoute: string = "/settings/leaderboard-participation";
+export const settingsAccentColorRoute: string = "/settings/accent-color";
 export const settingsReviewAnimationsRoute: string = "/settings/review-animations";
 export const settingsAIChatSuggestionsRoute: string = "/settings/ai-chat-suggestions";
 export const settingsSubscriptionRoute: string = "/settings/subscription";

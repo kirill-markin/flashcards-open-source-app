@@ -1,3 +1,4 @@
+import { mergeRefreshedSessionPreferences, readAccountPreferencesWriteVersion } from "../accentColorWrite";
 import { clearEntitlementState, readEntitlementIdentityGeneration, setEntitlementIdentity } from "../../../premium/entitlementStore";
 import { useCallback, useEffect, useRef } from "react";
 import {
@@ -229,6 +230,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
 
       const wasBrowserReauthRequired = isBrowserReauthRequired();
       let entitlementGeneration = readEntitlementIdentityGeneration();
+      const preferenceWriteVersion = readAccountPreferencesWriteVersion();
       let currentSession: SessionInfo;
       try {
         currentSession = await getSession();
@@ -305,6 +307,9 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
         throw createSessionAccountSwitchError(sessionInitializationInvalidatedMessage);
       }
       setCloudSettings(linkingReadyCloudSettings);
+      setSession((previousSession): SessionInfo => previousSession === null
+        ? currentSession
+        : mergeRefreshedSessionPreferences(previousSession, currentSession, preferenceWriteVersion));
       await resolveInitialWorkspace(currentSession);
       if (indexedDbOpenRecoveryState.hasFailed()) {
         return;
@@ -432,6 +437,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
     }
 
     const entitlementGeneration = readEntitlementIdentityGeneration();
+    const preferenceWriteVersion = readAccountPreferencesWriteVersion();
     try {
       const currentSession = await revalidateSessionRequest();
       if (indexedDbOpenRecoveryState.hasFailed()) {
@@ -521,7 +527,9 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
       if (setEntitlementIdentity(currentSession.userId, entitlementGeneration) === false) {
         return false;
       }
-      setSession(currentSession);
+      setSession((previousSession): SessionInfo | null => previousSession === null
+        ? null
+        : mergeRefreshedSessionPreferences(previousSession, currentSession, preferenceWriteVersion));
       clearBrowserReauthRequired();
       setSessionErrorMessage("");
       setErrorMessage("");
