@@ -223,7 +223,6 @@ function buildToolResultText(payload: unknown): string {
 
 function buildToolResult(payload: Record<string, unknown>): CallToolResult {
   return {
-    structuredContent: payload,
     content: [
       {
         type: "text",
@@ -550,9 +549,10 @@ export function createMcpServerWithDependencies(
         telemetry.recordInvokedTool(spec.name);
         try {
           const result = await spec.execute(toolContext, rawInput);
-          return buildToolResult(
-            createAgentEnvelope(resourceUrl, result.data, result.instructions),
-          );
+          return {
+            ...buildToolResult(createAgentEnvelope(resourceUrl, result.data, result.instructions)),
+            structuredContent: { data: result.data },
+          };
         } catch (error) {
           return buildToolErrorResult(error, resourceUrl, connection, spec.name, dependencies);
         }

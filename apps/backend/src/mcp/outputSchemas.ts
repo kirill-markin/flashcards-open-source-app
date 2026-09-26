@@ -13,10 +13,10 @@ import {
   SUBMIT_REVIEW_TOOL_NAME,
 } from "../aiTools/toolRegistry/specs";
 
-const count = z.number().int().nonnegative();
+const count = z.number();
 // SELECT projections and RETURNING choose column names at runtime; nested JSON is valid SQL data.
 const sqlRows = z.array(z.record(z.string(), z.json()));
-const sqlReadStatement = z.object({
+const sqlReadStatement = z.looseObject({
   statementType: z.enum(["show_tables", "describe", "select"]),
   resource: z.enum(["workspace", "cards", "decks", "review_events"]).nullable(),
   rows: sqlRows,
@@ -27,7 +27,7 @@ const sqlReadStatement = z.object({
   offset: count.nullable(),
   hasMore: z.boolean(),
 });
-const sqlMutationStatement = z.object({
+const sqlMutationStatement = z.looseObject({
   statementType: z.enum(["insert", "update", "delete"]),
   resource: z.enum(["cards", "decks"]),
   rows: sqlRows,
@@ -42,52 +42,32 @@ const sqlOmissions = {
   rowsOmitted: z.boolean(),
   sqlOmitted: z.boolean(),
 };
-const sqlBatch = z.object({
-  ...submittedSql,
+const sqlBatch = z.looseObject({
   ...sqlOmissions,
   statementType: z.literal("batch"),
   resource: z.null(),
   statementCount: count,
 });
 
-const docs = z.object({
-  discoveryUrl: z.string(),
-  source: z.object({
-    repositoryUrl: z.string(),
-    agentRoutesUrl: z.string(),
-    authRoutesUrl: z.string(),
-  }),
-});
-
-function envelope<Data extends z.ZodType>(data: Data): z.ZodObject<{
-  ok: z.ZodLiteral<true>;
-  data: Data;
-  instructions: z.ZodString;
-  docs: typeof docs;
-}> {
-  return z.object({
-    ok: z.literal(true),
-    data,
-    instructions: z.string(),
-    docs,
-  });
+function envelope<Data extends z.ZodType>(data: Data): z.ZodObject<{ data: Data }> {
+  return z.object({ data });
 }
 
 const outputSchemas: Readonly<Record<string, z.ZodObject | undefined>> = {
-  [SQL_QUERY_TOOL_NAME]: envelope(z.union([
-    sqlReadStatement.extend(submittedSql),
+  [SQL_QUERY_TOOL_NAME]: envelope(z.intersection(z.looseObject(submittedSql), z.union([
+    sqlReadStatement,
     sqlBatch.extend({
       statements: z.array(sqlReadStatement),
       affectedCountTotal: z.null(),
     }),
-  ])),
-  [SQL_EXECUTE_TOOL_NAME]: envelope(z.union([
-    sqlMutationStatement.extend({ ...submittedSql, ...sqlOmissions }),
+  ]))),
+  [SQL_EXECUTE_TOOL_NAME]: envelope(z.intersection(z.looseObject(submittedSql), z.union([
+    sqlMutationStatement.extend(sqlOmissions),
     sqlBatch.extend({
       statements: z.array(sqlMutationStatement),
       affectedCountTotal: count,
     }),
-  ])),
+  ]))),
   [LIST_WORKSPACES_TOOL_NAME]: envelope(z.object({
     workspaces: z.array(z.object({
       workspaceId: z.string(),
@@ -119,8 +99,8 @@ const outputSchemas: Readonly<Record<string, z.ZodObject | undefined>> = {
     rating: z.enum(["Again", "Hard", "Good", "Easy"]),
     reviewedAt: z.string(),
     dueAt: z.string(),
-    intervalSeconds: z.number().nonnegative(),
-    scheduledDays: z.number().nonnegative(),
+    intervalSeconds: z.number(),
+    scheduledDays: z.number(),
     state: z.enum(["new", "learning", "review", "relearning"]),
     reps: count,
     lapses: count,
@@ -146,9 +126,9 @@ const outputSchemas: Readonly<Record<string, z.ZodObject | undefined>> = {
       usedMessages: count,
       remainingMessages: count.nullable(),
       ownKeyMessages: count,
-      usedWeightedTokens: z.number().nonnegative(),
+      usedWeightedTokens: z.number(),
       remainingWeightedTokens: z.null(),
-      weightedOutputTokenMultiplier: z.number().nonnegative(),
+      weightedOutputTokenMultiplier: z.number(),
     }),
   })),
 };
