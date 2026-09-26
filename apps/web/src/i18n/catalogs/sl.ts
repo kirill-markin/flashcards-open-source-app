@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const slCatalog: TranslationCatalog = {
+  accentColorSettings: {
+    title: "Barva poudarka",
+    subtitle: "Izberite barvo poudarka aplikacije.",
+    premiumNote: "Barve poudarka po meri so vključene v Premium.",
+    custom: "Barva po meri",
+    hexHelp: "Vnesite barvo v obliki #RRGGBB brez prosojnosti.",
+    current: "Trenutna barva: {{color}}",
+    saving: "Shranjevanje…",
+    default: "Privzeta",
+    blue: "Modra",
+    purple: "Vijolična",
+    pink: "Rožnata",
+    teal: "Modrozelena",
+    gold: "Zlata",
+    hex: "HEX",
+  },
   premium: {
     title: "Premium prihaja kmalu",
     unavailable: "Naročnine še niso na voljo.",

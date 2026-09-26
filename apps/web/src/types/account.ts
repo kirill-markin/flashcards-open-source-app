@@ -1,7 +1,10 @@
 /** A recorded analytics consent decision. No decision at all is null, never a third choice value. */
 export type AnalyticsConsentChoice = "granted" | "declined";
 
+export const defaultAccentColor = "#C44B2D";
+
 export type AccountPreferences = Readonly<{
+  accentColor: string;
   reviewReactionAnimationsEnabled: boolean;
   analyticsConsent: AnalyticsConsentChoice | null;
   /**
@@ -26,6 +29,7 @@ export type AnalyticsPreferenceWriteOrigin = "user_action" | "reconciliation";
  * one field it is changing.
  */
 export type AccountPreferencesUpdate = Readonly<{
+  accentColor?: string;
   reviewReactionAnimationsEnabled?: boolean;
   analyticsConsent?: AnalyticsConsentChoice;
   productAnalyticsEnabled?: boolean;
@@ -97,14 +101,12 @@ export type ResetWorkspaceProgressResponse = Readonly<{
   cardsResetCount: number;
 }>;
 
-/** Mirrors the iOS local workspace payload used by local AI tools. */
 export type Workspace = Readonly<{
   workspaceId: string;
   name: string;
   createdAt: string;
 }>;
 
-/** Mirrors the iOS local user settings payload used by local AI tools. */
 export type UserSettings = Readonly<{
   userId: string;
   workspaceId: string;
@@ -113,7 +115,6 @@ export type UserSettings = Readonly<{
   createdAt: string;
 }>;
 
-/** Mirrors the iOS local cloud-settings payload used by local AI tools. */
 export type CloudSettings = Readonly<{
   installationId: string;
   cloudState: CloudAccountState;
@@ -124,7 +125,6 @@ export type CloudSettings = Readonly<{
   updatedAt: string;
 }>;
 
-/** Mirrors the iOS local home snapshot payload used by local AI tools. */
 export type HomeSnapshot = Readonly<{
   deckCount: number;
   totalCards: number;

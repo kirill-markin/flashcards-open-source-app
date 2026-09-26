@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const deCatalog: TranslationCatalog = {
+  accentColorSettings: {
+    title: "Akzentfarbe",
+    subtitle: "Wähle die Akzentfarbe der App.",
+    premiumNote: "Eigene Akzentfarben sind in Premium enthalten.",
+    custom: "Eigene Farbe",
+    hexHelp: "Gib eine Farbe im Format #RRGGBB ohne Transparenz ein.",
+    current: "Aktuelle Farbe: {{color}}",
+    saving: "Wird gespeichert…",
+    default: "Standard",
+    blue: "Blau",
+    purple: "Lila",
+    pink: "Rosa",
+    teal: "Blaugrün",
+    gold: "Gold",
+    hex: "HEX",
+  },
   premium: {
     title: "Premium kommt bald",
     unavailable: "Abonnements sind noch nicht verfügbar.",

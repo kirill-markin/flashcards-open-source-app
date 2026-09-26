@@ -52,6 +52,7 @@ function createSession(): SessionInfo {
     authTransport: "session",
     csrfToken: "csrf-token-1",
     preferences: {
+      accentColor: "#C44B2D",
       reviewReactionAnimationsEnabled: true,
       analyticsConsent: null,
       productAnalyticsEnabled: null,

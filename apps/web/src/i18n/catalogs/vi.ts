@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const viCatalog: TranslationCatalog = {
+  accentColorSettings: {
+    title: "Màu nhấn",
+    subtitle: "Chọn màu nhấn của ứng dụng.",
+    premiumNote: "Màu nhấn tùy chỉnh được bao gồm trong Premium.",
+    custom: "Màu tùy chỉnh",
+    hexHelp: "Nhập màu ở định dạng #RRGGBB, không có độ trong suốt.",
+    current: "Màu hiện tại: {{color}}",
+    saving: "Đang lưu…",
+    default: "Mặc định",
+    blue: "Xanh dương",
+    purple: "Tím",
+    pink: "Hồng",
+    teal: "Xanh ngọc",
+    gold: "Vàng kim",
+    hex: "HEX",
+  },
   premium: {
     title: "Premium sắp ra mắt",
     unavailable: "Gói đăng ký hiện chưa khả dụng.",

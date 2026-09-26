@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const swCatalog: TranslationCatalog = {
+  accentColorSettings: {
+    title: "Rangi ya msisitizo",
+    subtitle: "Chagua rangi ya msisitizo ya programu.",
+    premiumNote: "Rangi maalumu za msisitizo zimejumuishwa katika Premium.",
+    custom: "Rangi maalumu",
+    hexHelp: "Weka rangi katika umbizo la #RRGGBB, bila uwazi.",
+    current: "Rangi ya sasa: {{color}}",
+    saving: "Inahifadhi…",
+    default: "Chaguomsingi",
+    blue: "Buluu",
+    purple: "Zambarau",
+    pink: "Waridi",
+    teal: "Bluu-kijani",
+    gold: "Dhahabu",
+    hex: "HEX",
+  },
   premium: {
     title: "Premium inakuja hivi karibuni",
     unavailable: "Usajili bado haupatikani.",

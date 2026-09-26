@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 export const zhHansCatalog = {
+  accentColorSettings: {
+    title: "强调色",
+    subtitle: "选择应用的强调色。",
+    premiumNote: "自定义强调色包含在Premium中。",
+    custom: "自定义颜色",
+    hexHelp: "请输入#RRGGBB格式的颜色，不支持透明度。",
+    current: "当前颜色：{{color}}",
+    saving: "正在保存…",
+    default: "默认",
+    blue: "蓝色",
+    purple: "紫色",
+    pink: "粉色",
+    teal: "青色",
+    gold: "金色",
+    hex: "HEX",
+  },
   premium: {
     title: "Premium 即将推出",
     unavailable: "订阅暂未开放。",
