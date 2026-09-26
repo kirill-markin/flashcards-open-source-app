@@ -2,8 +2,115 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
 import pg from "pg";
+import { resetAuthConfigForTests } from "../../../auth/config";
+import { ensureUserProfile, type AccountPreferences } from "../../../auth/ensureUser";
+import { createGuestSession } from "../../../guestAuth";
+import { HttpError } from "../../../shared/errors";
+import { createSystemRoutes } from "../index";
 import { parseAccountPreferencesInput } from "../support";
 import { updateAccountPreferences } from "./accountPreferences";
+
+test("accent preference persists through account reads and older PATCH bodies", async () => {
+  const ownerPool = new pg.Pool({ connectionString: requireOwnerDatabaseUrl() });
+  const userId = randomUUID();
+  let workspaceId: string | null = null;
+  try {
+    const profile = await ensureUserProfile(userId, null);
+    workspaceId = profile.selectedWorkspaceId;
+    assert.equal(profile.preferences.accentColor, "#C44B2D");
+    const selected = await updateAccountPreferences(
+      userId,
+      parseAccountPreferencesInput({ accentColor: "#0aB19f" }),
+    );
+    assert.equal(selected.accentColor, "#0AB19F");
+    assert.equal(selected.reviewReactionAnimationsEnabled, true);
+
+    for (const body of [
+      { reviewReactionAnimationsEnabled: false },
+      { analyticsConsent: "declined" },
+      { productAnalyticsEnabled: false },
+    ]) {
+      const updated = await updateAccountPreferences(userId, parseAccountPreferencesInput(body));
+      assert.equal(updated.accentColor, "#0AB19F");
+    }
+    const reloaded = await ensureUserProfile(userId, null);
+    assert.deepEqual(reloaded.preferences, {
+      accentColor: "#0AB19F",
+      reviewReactionAnimationsEnabled: false,
+      analyticsConsent: "declined",
+      productAnalyticsEnabled: false,
+    });
+    for (const invalid of [null, "#abc", "#12345678", "123456", "#GG0000", "#123456\n"]) {
+      await assert.rejects(
+        ownerPool.query("UPDATE org.user_settings SET accent_color = $2 WHERE user_id = $1", [userId, invalid]),
+        (error: unknown) => error instanceof pg.DatabaseError && (error.code === "23514" || error.code === "23502"),
+      );
+    }
+  } finally {
+    try {
+      await ownerPool.query("DELETE FROM org.workspaces WHERE workspace_id = $1", [workspaceId]);
+      await ownerPool.query("DELETE FROM org.user_settings WHERE user_id = $1", [userId]);
+    } finally {
+      await ownerPool.end();
+    }
+  }
+});
+
+test("guest HTTP preferences persist accent-only writes and reject invalid RGB without changing settings", async () => {
+  const ownerPool = new pg.Pool({ connectionString: requireOwnerDatabaseUrl() });
+  const guest = await createGuestSession("ios", null);
+  const previousAuthMode = process.env.AUTH_MODE;
+  process.env.AUTH_MODE = "cognito";
+  resetAuthConfigForTests();
+  const app = createSystemRoutes({ allowedOrigins: [] });
+  app.onError((error, context) => {
+    if (error instanceof HttpError && error.statusCode === 400) {
+      return context.json({ error: error.message }, 400);
+    }
+    throw error;
+  });
+  const headers = { Authorization: `Guest ${guest.guestToken}`, "Content-Type": "application/json" };
+  try {
+    const patch = await app.request("http://localhost/me/preferences", {
+      method: "PATCH", headers, body: JSON.stringify({ accentColor: "#aBc123" }),
+    });
+    assert.equal(patch.status, 200);
+    const result = await patch.json() as Readonly<{ preferences: AccountPreferences }>;
+    assert.equal(result.preferences.accentColor, "#ABC123");
+
+    for (const invalid of [null, 123456, "#abc", "#12345678", "123456", "#GG0000", " #123456", "#123456\n"]) {
+      const response = await app.request("http://localhost/me/preferences", {
+        method: "PATCH", headers,
+        body: JSON.stringify({ accentColor: invalid, reviewReactionAnimationsEnabled: false }),
+      });
+      assert.equal(response.status, 400);
+    }
+    const read = await app.request("http://localhost/me", { headers });
+    assert.equal(read.status, 200);
+    const loaded = await read.json() as Readonly<{ preferences: AccountPreferences }>;
+    assert.deepEqual(loaded.preferences, result.preferences);
+
+    const oldPatch = await app.request("http://localhost/me/preferences", {
+      method: "PATCH", headers, body: JSON.stringify({ reviewReactionAnimationsEnabled: false }),
+    });
+    assert.equal(oldPatch.status, 200);
+    assert.equal((await oldPatch.json() as Readonly<{ preferences: AccountPreferences }>).preferences.accentColor, "#ABC123");
+    assert.equal((await ensureUserProfile(guest.userId, null)).preferences.accentColor, "#ABC123");
+  } finally {
+    try {
+      if (previousAuthMode === undefined) {
+        delete process.env.AUTH_MODE;
+      } else {
+        process.env.AUTH_MODE = previousAuthMode;
+      }
+      resetAuthConfigForTests();
+      await ownerPool.query("DELETE FROM org.workspaces WHERE workspace_id = $1", [guest.workspaceId]);
+      await ownerPool.query("DELETE FROM org.user_settings WHERE user_id = $1", [guest.userId]);
+    } finally {
+      await ownerPool.end();
+    }
+  }
+});
 
 /**
  * The two stickiness guards, run against real PostgreSQL.
@@ -77,6 +184,7 @@ test("a reconciliation grant cannot overwrite a stored declined and a stored nul
     // A device carrying an answer it read before the withdrawal. Refused, and told so by the row it
     // gets back rather than by a later read.
     const afterReconciliation = await updateAccountPreferences(declinedUserId, {
+      accentColor: null,
       reviewReactionAnimationsEnabled: null,
       analyticsConsent: "granted",
       analyticsConsentOrigin: "reconciliation",
@@ -87,6 +195,7 @@ test("a reconciliation grant cannot overwrite a stored declined and a stored nul
 
     // The person pressing the control. A withdrawal stays reversible by the thing that took it.
     const afterUserAction = await updateAccountPreferences(reversedUserId, {
+      accentColor: null,
       reviewReactionAnimationsEnabled: null,
       analyticsConsent: "granted",
       analyticsConsentOrigin: "user_action",
@@ -99,6 +208,7 @@ test("a reconciliation grant cannot overwrite a stored declined and a stored nul
     // is unknown and the guard must not fire. A reconciliation is the only way a device that answered
     // before signing in gets its answer onto an account, so refusing here would lose it silently.
     const afterUnanswered = await updateAccountPreferences(unansweredUserId, {
+      accentColor: null,
       reviewReactionAnimationsEnabled: null,
       analyticsConsent: "granted",
       analyticsConsentOrigin: "reconciliation",
@@ -147,6 +257,7 @@ test("a reconciliation cannot switch product analytics back on and a stored null
     // The case this guard exists for: a device carrying a remembered `true` that predates the
     // opt-out. Refused, so collection stays stopped for the credential at ingest.
     const afterReconciliation = await updateAccountPreferences(optedOutUserId, {
+      accentColor: null,
       reviewReactionAnimationsEnabled: null,
       analyticsConsent: null,
       analyticsConsentOrigin: "user_action",
@@ -157,6 +268,7 @@ test("a reconciliation cannot switch product analytics back on and a stored null
 
     // The person moving the switch back. An opt-out stays reversible by the control that took it.
     const afterUserAction = await updateAccountPreferences(reversedUserId, {
+      accentColor: null,
       reviewReactionAnimationsEnabled: null,
       analyticsConsent: null,
       analyticsConsentOrigin: "user_action",
@@ -170,6 +282,7 @@ test("a reconciliation cannot switch product analytics back on and a stored null
     // it is. Refusing it would leave "never answered" and "answered yes" indistinguishable, which
     // migration 0149 keeps apart on purpose.
     const afterUnanswered = await updateAccountPreferences(unansweredUserId, {
+      accentColor: null,
       reviewReactionAnimationsEnabled: null,
       analyticsConsent: null,
       analyticsConsentOrigin: "user_action",
@@ -216,6 +329,7 @@ test("a reconciliation still switches product analytics off, and one PATCH carri
     // under-collecting direction and is stored, because a stale opt-out costs rows rather than
     // collecting rows nobody allowed.
     const afterReconciledOptOut = await updateAccountPreferences(optedInUserId, {
+      accentColor: null,
       reviewReactionAnimationsEnabled: null,
       analyticsConsent: null,
       analyticsConsentOrigin: "user_action",
@@ -228,6 +342,7 @@ test("a reconciliation still switches product analytics off, and one PATCH carri
     // switch and a reconciled consent, and each is decided on its own origin. A single shared
     // origin would have to refuse one of the two.
     const afterMixedOrigins = await updateAccountPreferences(mixedOriginUserId, {
+      accentColor: null,
       reviewReactionAnimationsEnabled: null,
       analyticsConsent: "granted",
       analyticsConsentOrigin: "reconciliation",

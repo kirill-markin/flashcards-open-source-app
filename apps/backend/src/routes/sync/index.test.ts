@@ -59,6 +59,7 @@ function createRequestContextWithTransport(transport: RequestContext["transport"
     locale: "en",
     userSettingsCreatedAt: "2026-04-17T00:00:00.000Z",
     preferences: {
+      accentColor: "#C44B2D",
       reviewReactionAnimationsEnabled: true,
       analyticsConsent: null,
       productAnalyticsEnabled: null,

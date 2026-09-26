@@ -1,7 +1,3 @@
-/**
- * Ensure the authenticated user has a profile row and an accessible selected
- * workspace. New users are auto-provisioned with a default workspace.
- */
 import { randomUUID } from "node:crypto";
 import {
   applyUserDatabaseScopeInExecutor,
@@ -27,6 +23,7 @@ export type AnalyticsConsentChoice = "granted" | "declined";
  * separate cookie-banner question; refusing that cookie leaves this switch unanswered and on.
  */
 export type AccountPreferences = Readonly<{
+  accentColor: string;
   reviewReactionAnimationsEnabled: boolean;
   analyticsConsent: AnalyticsConsentChoice | null;
   productAnalyticsEnabled: boolean | null;
@@ -42,6 +39,7 @@ export type UserProfile = Readonly<{
 }>;
 
 type UserSettingsRow = Readonly<{
+  accent_color: string;
   workspace_id: string | null;
   email: string | null;
   locale: string;
@@ -77,7 +75,7 @@ export async function ensureUserProfileInExecutor(
   const existing = await executor.query<UserSettingsRow>(
     [
       "SELECT workspace_id, email, locale, review_reaction_animations_enabled, analytics_consent,",
-      "product_analytics_enabled, created_at",
+      "product_analytics_enabled, accent_color, created_at",
       "FROM org.user_settings",
       "WHERE user_id = $1",
       "FOR UPDATE",
@@ -103,6 +101,7 @@ export async function ensureUserProfileInExecutor(
     locale: settings.locale,
     createdAt: toIsoString(settings.created_at),
     preferences: {
+      accentColor: settings.accent_color,
       reviewReactionAnimationsEnabled: settings.review_reaction_animations_enabled,
       analyticsConsent: settings.analytics_consent,
       productAnalyticsEnabled: settings.product_analytics_enabled,

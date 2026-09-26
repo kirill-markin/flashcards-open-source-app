@@ -22,6 +22,7 @@ type AccountPreferencesRoutesOptions = Readonly<{
 }>;
 
 type AccountPreferencesRow = Readonly<{
+  accent_color: string;
   review_reaction_animations_enabled: boolean;
   analytics_consent: AnalyticsConsentChoice | null;
   product_analytics_enabled: boolean | null;
@@ -29,6 +30,7 @@ type AccountPreferencesRow = Readonly<{
 
 function mapAccountPreferencesRow(row: AccountPreferencesRow): AccountPreferences {
   return {
+    accentColor: row.accent_color,
     reviewReactionAnimationsEnabled: row.review_reaction_animations_enabled,
     analyticsConsent: row.analytics_consent,
     productAnalyticsEnabled: row.product_analytics_enabled,
@@ -87,9 +89,10 @@ export async function updateAccountPreferences(
       "WHEN $5::BOOLEAN IS NULL THEN product_analytics_enabled",
       "WHEN $6::BOOLEAN AND $5::BOOLEAN AND product_analytics_enabled IS FALSE",
       "THEN product_analytics_enabled",
-      "ELSE $5::BOOLEAN END",
+      "ELSE $5::BOOLEAN END,",
+      "accent_color = COALESCE($7::TEXT, accent_color)",
       "WHERE user_id = $1",
-      "RETURNING review_reaction_animations_enabled, analytics_consent, product_analytics_enabled",
+      "RETURNING review_reaction_animations_enabled, analytics_consent, product_analytics_enabled, accent_color",
     ].join(" "),
     [
       userId,
@@ -98,6 +101,7 @@ export async function updateAccountPreferences(
       update.analyticsConsentOrigin === "reconciliation",
       update.productAnalyticsEnabled,
       update.productAnalyticsEnabledOrigin === "reconciliation",
+      update.accentColor,
     ],
   );
 
@@ -204,9 +208,10 @@ export function registerAccountPreferencesRoutes(
     const productAnalyticsEnabled = storedGuestPreferences?.productAnalyticsEnabled
       ?? requestContext.preferences.productAnalyticsEnabled;
 
-    if (preferencesUpdate.reviewReactionAnimationsEnabled === null) {
-      // Nothing left for org.user_settings to store, and writing anyway would rewrite the row for
-      // nothing. This is the shape the legal and privacy settings screen sends.
+    if (
+      preferencesUpdate.reviewReactionAnimationsEnabled === null
+      && preferencesUpdate.accentColor === null
+    ) {
       return context.json({
         preferences: {
           ...requestContext.preferences,
@@ -217,6 +222,7 @@ export function registerAccountPreferencesRoutes(
     }
 
     const accountPreferences = await options.updateAccountPreferencesFn(requestContext.userId, {
+      accentColor: preferencesUpdate.accentColor,
       reviewReactionAnimationsEnabled: preferencesUpdate.reviewReactionAnimationsEnabled,
       // Both analytics columns are the guest session's on this branch, so neither is written here.
       // The origins ride along and decide nothing while the value beside them is null.
