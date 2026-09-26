@@ -845,3 +845,7 @@
 "settings.language.supported.urdu" = "Urdu";
 "settings.language.supported.vietnamese" = "Vietnámi";
 "settings.language.supported.zulu" = "Zulu";
+
+"premium.comingSoon.title" = "Hamarosan érkezik a Premium";
+"premium.comingSoon.message" = "Az előfizetések még nem érhetők el.";
+"premium.aiLimit.title" = "Elérted az AI-üzenetek korlátját";

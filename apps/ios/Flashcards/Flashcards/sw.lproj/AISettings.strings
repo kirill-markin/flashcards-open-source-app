@@ -845,3 +845,7 @@
 "settings.language.supported.urdu" = "Kiurdu";
 "settings.language.supported.vietnamese" = "Kivietinamu";
 "settings.language.supported.zulu" = "Kizulu";
+
+"premium.comingSoon.title" = "Premium inakuja hivi karibuni";
+"premium.comingSoon.message" = "Usajili bado haupatikani.";
+"premium.aiLimit.title" = "Umefikia kikomo cha ujumbe wa AI";

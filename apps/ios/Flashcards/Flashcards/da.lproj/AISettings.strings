@@ -845,3 +845,7 @@
 "settings.language.supported.urdu" = "Urdu";
 "settings.language.supported.vietnamese" = "Vietnamesisk";
 "settings.language.supported.zulu" = "Zulu";
+
+"premium.comingSoon.title" = "Premium kommer snart";
+"premium.comingSoon.message" = "Abonnementer er endnu ikke tilgængelige.";
+"premium.aiLimit.title" = "Grænsen for AI-beskeder er nået";

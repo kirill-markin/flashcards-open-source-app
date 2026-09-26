@@ -845,3 +845,7 @@
 "settings.language.supported.urdu" = "Урду";
 "settings.language.supported.vietnamese" = "Виетнамски";
 "settings.language.supported.zulu" = "Зулуски";
+
+"premium.comingSoon.title" = "Premium идва скоро";
+"premium.comingSoon.message" = "Абонаментите все още не са налични.";
+"premium.aiLimit.title" = "Достигнат е лимитът за съобщения с ИИ";

@@ -251,22 +251,21 @@ extension AIChatStore {
             )
             if shouldShowGuestQuotaUpgradePrompt {
                 self.appendAssistantAccountUpgradePrompt(
-                    message: aiChatGuestLimitReachedMessage(),
+                    message: hasPremiumAccess(entitlement: self.flashcardsStore.cloudEntitlement)
+                        ? aiChatAccountLimitReachedMessage(usage: nil)
+                        : aiChatGuestLimitReachedMessage(),
                     buttonTitle: aiChatGuestQuotaButtonTitle
                 )
             }
             self.schedulePersistCurrentState()
-            if shouldShowGuestQuotaUpgradePrompt {
-                return
-            }
         }
 
         if isAiLimitReached {
-            if self.usesGuestAIRestrictions {
-                self.showGeneralError(message: aiChatGuestLimitReachedMessage())
-            } else {
-                self.showAccountAILimitReachedError()
-            }
+            self.quotaRefusal = AIChatQuotaRefusal(
+                id: UUID(),
+                userId: self.flashcardsStore.cloudSettings?.linkedUserId,
+                cloudState: self.flashcardsStore.cloudSettings?.cloudState
+            )
             return
         }
 

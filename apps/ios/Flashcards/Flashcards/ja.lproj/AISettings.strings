@@ -873,3 +873,7 @@
 "settings.language.supported.urdu" = "ウルドゥー語";
 "settings.language.supported.vietnamese" = "ベトナム語";
 "settings.language.supported.zulu" = "ズールー語";
+
+"premium.comingSoon.title" = "Premiumは近日公開";
+"premium.comingSoon.message" = "サブスクリプションはまだご利用いただけません。";
+"premium.aiLimit.title" = "AIメッセージの上限に達しました";

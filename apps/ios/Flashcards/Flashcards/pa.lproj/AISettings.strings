@@ -845,3 +845,7 @@
 "settings.language.supported.urdu" = "ਉਰਦੂ";
 "settings.language.supported.vietnamese" = "ਵੀਅਤਨਾਮੀ";
 "settings.language.supported.zulu" = "ਜ਼ੁਲੂ";
+
+"premium.comingSoon.title" = "Premium ਜਲਦੀ ਆ ਰਿਹਾ ਹੈ";
+"premium.comingSoon.message" = "ਸਬਸਕ੍ਰਿਪਸ਼ਨਾਂ ਅਜੇ ਉਪਲਬਧ ਨਹੀਂ ਹਨ।";
+"premium.aiLimit.title" = "AI ਸੁਨੇਹਿਆਂ ਦੀ ਸੀਮਾ ਪੂਰੀ ਹੋ ਗਈ ਹੈ";
