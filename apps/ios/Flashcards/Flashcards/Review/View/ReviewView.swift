@@ -338,6 +338,7 @@ struct ReviewView: View {
         } label: {
             HStack(spacing: 4) {
                 Text(self.selectedReviewFilterTitle)
+                    .foregroundStyle(Color.primary)
                     .lineLimit(1)
                     .truncationMode(.tail)
                     .frame(maxWidth: reviewFilterMenuTitleMaxWidth, alignment: .leading)
@@ -590,6 +591,7 @@ struct ReviewView: View {
                 Image(systemName: badgePresentation.iconSystemName)
                     .foregroundStyle(self.reviewProgressBadgeToolbarIconColor(badgeState: badgeState))
                 Text(formatReviewProgressBadgeValue(badgeState: badgeState))
+                    .foregroundStyle(Color.primary)
                     .monospacedDigit()
                     .lineLimit(1)
             }
@@ -620,6 +622,7 @@ struct ReviewView: View {
                     Image(systemName: "trophy.fill")
                         .foregroundStyle(Color.yellow)
                     Text(rank.formatted())
+                        .foregroundStyle(Color.primary)
                         .monospacedDigit()
                         .lineLimit(1)
                 }

@@ -121,7 +121,12 @@ struct SettingsView: View {
             Section(aiSettingsLocalized("settings.section.general", "General")) {
                 NavigationLink(value: SettingsNavigationDestination.accentColor) {
                     HStack {
-                        Label(accentColorSettingsTitle(), systemImage: "paintpalette")
+                        Label {
+                            Text(accentColorSettingsTitle())
+                                .foregroundStyle(Color.primary)
+                        } icon: {
+                            Image(systemName: "paintpalette")
+                        }
                         Spacer()
                         Circle()
                             .fill(store.effectiveAccountAccentColor.color)
@@ -430,7 +435,12 @@ struct SettingsNavigationRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Label(title, systemImage: systemImage)
+            Label {
+                Text(title)
+                    .foregroundStyle(Color.primary)
+            } icon: {
+                Image(systemName: systemImage)
+            }
 
             Spacer()
 

@@ -34,12 +34,11 @@ struct AccentColorSettingsView: View {
 
     @State private var customColor: AccountAccentColor = .defaultColor
     @State private var hexText: String = AccountAccentColor.defaultColor.hex
-    @State private var isSaving: Bool = false
     @State private var guidanceMessage: String = ""
     @State private var pendingSelection: PendingAccentColorSelection? = nil
 
     private var isUnavailable: Bool {
-        self.isSaving || self.store.isAccountPreferencesUpdateInFlight || self.store.canPersistAccountPreferences == false
+        self.store.canPersistAccountPreferences == false
     }
 
     var body: some View {
@@ -58,6 +57,7 @@ struct AccentColorSettingsView: View {
             Section {
                 ForEach(accentColorPresets()) { preset in
                     Button {
+                        self.hexText = preset.color.hex
                         self.selectColor(preset.color)
                     } label: {
                         HStack {
@@ -65,7 +65,7 @@ struct AccentColorSettingsView: View {
                                 .fill(preset.color.color)
                                 .frame(width: 24, height: 24)
                             Text(preset.name)
-                                .foregroundStyle(.primary)
+                                .foregroundStyle(Color.primary)
                             Spacer()
                             if self.store.effectiveAccountAccentColor == preset.color {
                                 Image(systemName: "checkmark")
@@ -81,45 +81,30 @@ struct AccentColorSettingsView: View {
             .disabled(self.isUnavailable)
 
             Section {
-                ColorPicker(
-                    aiSettingsLocalized("settings.accentColor.custom", "Custom color"),
-                    selection: self.customColorBinding,
-                    supportsOpacity: false
-                )
-                .accessibilityIdentifier(UITestIdentifier.accentColorPicker)
-
-                TextField(text: self.$hexText) {
-                    Text(verbatim: "HEX (#RRGGBB)")
-                }
-                .font(.body.monospaced())
-                .textInputAutocapitalization(.characters)
-                .autocorrectionDisabled()
-                .accessibilityIdentifier(UITestIdentifier.accentColorHexField)
-                .onChange(of: self.hexText) { _, hex in
-                    if let color = AccountAccentColor(hex: hex) {
-                        self.customColor = color
-                    }
-                }
-
-                Button {
-                    guard let color = AccountAccentColor(hex: self.hexText) else {
-                        self.guidanceMessage = aiSettingsLocalized(
-                            "settings.accentColor.invalidHex",
-                            "Enter a color as #RRGGBB, with six hexadecimal digits."
-                        )
-                        return
-                    }
-                    self.selectColor(color)
-                } label: {
+                ColorPicker(selection: self.customColorBinding, supportsOpacity: false) {
                     HStack {
-                        Text(aiSettingsLocalized("common.save", "Save"))
-                        Spacer()
-                        if self.isSaving {
+                        Text(aiSettingsLocalized("settings.accentColor.custom", "Custom color"))
+                            .foregroundStyle(Color.primary)
+                        if self.isCustomSelected {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(.tint)
+                        }
+                        if self.store.pendingAccentColor != nil {
                             ProgressView()
                         }
                     }
                 }
-                .accessibilityIdentifier(UITestIdentifier.accentColorSaveButton)
+                .accessibilityAddTraits(self.isCustomSelected ? [.isSelected] : [])
+                .accessibilityIdentifier(UITestIdentifier.accentColorPicker)
+
+                TextField(text: self.hexTextBinding) {
+                    Text(verbatim: "HEX (#RRGGBB)")
+                }
+                .foregroundStyle(Color.primary)
+                .font(.body.monospaced())
+                .textInputAutocapitalization(.characters)
+                .autocorrectionDisabled()
+                .accessibilityIdentifier(UITestIdentifier.accentColorHexField)
             }
             .disabled(self.isUnavailable)
 
@@ -141,8 +126,11 @@ struct AccentColorSettingsView: View {
                 self.handleFailure(error)
             }
         }
-        .onChange(of: self.store.accountPreferences.accentColor) { _, _ in
-            self.resetDraft()
+        .onChange(of: self.store.effectiveAccountAccentColor) { _, color in
+            self.customColor = color
+            if AccountAccentColor(hex: self.hexText) != nil {
+                self.hexText = color.hex
+            }
         }
         .onChange(of: self.store.accountPreferencesIdentityKey) { _, _ in
             self.pendingSelection = nil
@@ -158,12 +146,33 @@ struct AccentColorSettingsView: View {
             if result.outcome == .accessGranted,
                pending.identityKey == self.store.accountPreferencesIdentityKey,
                self.store.canUseCustomAccentColor {
-                self.saveColor(pending.color)
+                self.selectColor(pending.color)
             }
         }
         .onDisappear {
             self.pendingSelection = nil
         }
+    }
+
+    private var isCustomSelected: Bool {
+        accentColorPresets().contains { $0.color == self.store.effectiveAccountAccentColor } == false
+    }
+
+    private var hexTextBinding: Binding<String> {
+        Binding(
+            get: { self.hexText },
+            set: { hex in
+                self.hexText = hex
+                guard let color = AccountAccentColor(hex: hex) else {
+                    self.guidanceMessage = aiSettingsLocalized(
+                        "settings.accentColor.invalidHex",
+                        "Enter a color as #RRGGBB, with six hexadecimal digits."
+                    )
+                    return
+                }
+                self.selectColor(color)
+            }
+        )
     }
 
     private var customColorBinding: Binding<CGColor> {
@@ -188,12 +197,13 @@ struct AccentColorSettingsView: View {
                 let blue = UInt32((min(1, max(0, components[2])) * 255).rounded())
                 self.customColor = AccountAccentColor(rgb: red << 16 | green << 8 | blue)
                 self.hexText = self.customColor.hex
+                self.selectColor(self.customColor)
             }
         )
     }
 
     private func resetDraft() {
-        self.customColor = self.store.accountPreferences.accentColor
+        self.customColor = self.store.effectiveAccountAccentColor
         self.hexText = self.customColor.hex
     }
 
@@ -201,6 +211,8 @@ struct AccentColorSettingsView: View {
         guard self.isUnavailable == false else { return }
         self.guidanceMessage = ""
         if color != .defaultColor && self.store.canUseCustomAccentColor == false {
+            self.resetDraft()
+            guard self.pendingSelection == nil else { return }
             let requestId = self.premiumPresenter.present(
                 reason: .premiumFeature(requiredTierRank: premiumTierRank),
                 entitlement: self.store.cloudEntitlement
@@ -212,26 +224,12 @@ struct AccentColorSettingsView: View {
             )
             return
         }
-        self.saveColor(color)
-    }
-
-    private func saveColor(_ color: AccountAccentColor) {
-        guard self.isUnavailable == false else { return }
-        self.isSaving = true
-        let identityKey = self.store.accountPreferencesIdentityKey
-        Task { @MainActor in
-            defer { self.isSaving = false }
-            guard identityKey == self.store.accountPreferencesIdentityKey else { return }
-            do {
-                try await self.store.updateAccentColor(color)
-                if identityKey == self.store.accountPreferencesIdentityKey {
-                    self.guidanceMessage = ""
-                }
-            } catch {
-                if identityKey == self.store.accountPreferencesIdentityKey {
-                    self.handleFailure(error)
-                }
-            }
+        self.customColor = color
+        do {
+            try self.store.selectAccentColor(color)
+        } catch {
+            self.resetDraft()
+            self.handleFailure(error)
         }
     }
 
