@@ -7,7 +7,12 @@ struct AccessSettingsView: View {
                 ForEach(AccessPermissionKind.allCases) { kind in
                     NavigationLink(value: SettingsNavigationDestination.accessPermissionDetail(kind)) {
                         HStack(spacing: 12) {
-                            Label(localizedAccessPermissionKindTitle(kind), systemImage: kind.systemImage)
+                            Label {
+                                Text(localizedAccessPermissionKindTitle(kind))
+                                    .foregroundStyle(Color.primary)
+                            } icon: {
+                                Image(systemName: kind.systemImage)
+                            }
                             Spacer()
                             Text(localizedAccessPermissionStatusTitle(accessPermissionStatus(kind: kind)))
                                 .font(.subheadline.monospacedDigit())
