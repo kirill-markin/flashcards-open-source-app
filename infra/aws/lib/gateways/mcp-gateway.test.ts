@@ -45,21 +45,22 @@ function synthesizeMcpHttpApiTemplate(): Template {
     httpStage,
     [httpStage],
     primaryMcpHttpApiMappingConstructIdPrefix,
+    "mcp.example.test",
   );
   addMcpHttpApiMappings(
     stack,
-    "mcp.alternate.test",
+    "mcp.nibomo.com",
     httpApi,
     httpStage,
     [httpStage],
     alternateMcpHttpApiMappingConstructIdPrefix,
+    "mcp.nibomo.com",
   );
 
   return Template.fromStack(stack);
 }
 
 const mcpApiMappingKeys: ReadonlyArray<string> = [
-  ".well-known/openai-apps-challenge",
   "mcp",
   "health",
   "robots.txt",
@@ -83,9 +84,6 @@ test("MCP HTTP API synthesizes explicit public routes and default mapped-path ro
 
   template.hasResourceProperties("AWS::ApiGatewayV2::Route", {
     RouteKey: "$default",
-  });
-  template.hasResourceProperties("AWS::ApiGatewayV2::Route", {
-    RouteKey: "GET /.well-known/openai-apps-challenge",
   });
   template.hasResourceProperties("AWS::ApiGatewayV2::Route", {
     RouteKey: "GET /.well-known/oauth-protected-resource",
@@ -124,7 +122,7 @@ test("alternate MCP host maps the same stage under its own construct ids", () =>
 
   for (const apiMappingKey of mcpApiMappingKeys) {
     template.hasResourceProperties("AWS::ApiGatewayV2::ApiMapping", {
-      DomainName: "mcp.alternate.test",
+      DomainName: "mcp.nibomo.com",
       ApiMappingKey: apiMappingKey,
       Stage: "v1",
     });
@@ -134,7 +132,14 @@ test("alternate MCP host maps the same stage under its own construct ids", () =>
   // adding the alternate host would replace them.
   assert.ok(logicalIds.includes("McpHttpMcpApiMapping"));
   assert.ok(logicalIds.includes("McpHttpProtectedResourceMcpApiMapping"));
-  assert.equal(logicalIds.length, mcpApiMappingKeys.length * 2);
+  template.hasResourceProperties("AWS::ApiGatewayV2::ApiMapping", {
+    DomainName: "mcp.nibomo.com",
+    ApiMappingKey: ".well-known/openai-apps-challenge",
+    Stage: "v1",
+  });
+  assert.ok(logicalIds.includes("McpAlternateHttpOpenAiAppsChallengeApiMapping"));
+  assert.equal(logicalIds.includes("McpHttpOpenAiAppsChallengeApiMapping"), false);
+  assert.equal(logicalIds.length, mcpApiMappingKeys.length * 2 + 1);
 });
 
 test("MCP custom domain migration keeps the REST domain and Cloudflare target output", () => {
@@ -145,7 +150,7 @@ test("MCP custom domain migration keeps the REST domain and Cloudflare target ou
   assert.equal(source.includes("new apigwv2.DomainName(scope, \"McpCustomDomain\""), false);
   assert.match(
     source,
-    /addMcpHttpApiMappings\(scope, customDomain\.domainName, httpApi, httpStage, \[customDomain, httpStage\], primaryMcpHttpApiMappingConstructIdPrefix\)/,
+    /addMcpHttpApiMappings\(scope, customDomain\.domainName, httpApi, httpStage, \[customDomain, httpStage\], primaryMcpHttpApiMappingConstructIdPrefix, `mcp\.\$\{props\.baseDomain\}`\)/,
   );
   assert.match(source, /new cdk\.CfnOutput\(scope, "McpCustomDomainTarget"/);
   assert.match(source, /value: customDomain\.domainNameAliasDomainName/);
@@ -169,7 +174,7 @@ test("alternate MCP custom domain is additive and needs both context values", ()
   );
   assert.match(
     source,
-    /addMcpHttpApiMappings\(scope, alternateCustomDomain\.domainName, httpApi, httpStage, \[alternateCustomDomain, httpStage\], alternateMcpHttpApiMappingConstructIdPrefix\)/,
+    /addMcpHttpApiMappings\(scope, alternateCustomDomain\.domainName, httpApi, httpStage, \[alternateCustomDomain, httpStage\], alternateMcpHttpApiMappingConstructIdPrefix, mcpAlternateHost\)/,
   );
   assert.match(source, /new cdk\.CfnOutput\(scope, "McpAlternateCustomDomainTarget"/);
   assert.match(stackSource, /getOptionalContextValue\(this, "mcpAlternateDomainName"\)/);
