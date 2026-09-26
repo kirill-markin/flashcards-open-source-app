@@ -646,6 +646,7 @@ test("agent reviews select, filter, and schedule cards the way the first-party c
             (entry) => entry.name === "submit_review",
           )!;
           assert.deepEqual(submitTool.annotations, {
+            title: "Submit flashcard review",
             readOnlyHint: false,
             destructiveHint: true,
             openWorldHint: false,

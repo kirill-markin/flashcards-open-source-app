@@ -543,7 +543,7 @@ export function createMcpServerWithDependencies(
           : { "anthropic/maxResultSizeChars": presentation.maxResultSizeChars },
         inputSchema: spec.inputSchema,
         outputSchema: requireMcpToolOutputSchema(spec.name),
-        annotations: presentation.annotations,
+        annotations: { ...presentation.annotations, title: presentation.title },
       },
       async (rawInput: unknown): Promise<CallToolResult> => {
         telemetry.recordInvokedTool(spec.name);
