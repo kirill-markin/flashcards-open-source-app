@@ -35,7 +35,7 @@ function getSigningKeyArn(): string {
   return keyArn;
 }
 
-kms.middlewareStack.addRelativeTo((next, context) => async (args) => {
+kms.middlewareStack.add((next, context) => async (args) => {
   try {
     return await next(args);
   } catch (error) {
@@ -46,7 +46,7 @@ kms.middlewareStack.addRelativeTo((next, context) => async (args) => {
     });
     throw error;
   }
-}, { relation: "after", toMiddleware: "retryMiddleware", name: "oidcKmsAttemptLogger" });
+}, { step: "finalizeRequest", priority: "low", name: "oidcKmsAttemptLogger" });
 
 export async function getOidcPublicKey(): Promise<OidcPublicKey> {
   if (cachedPublicKey !== undefined) {
