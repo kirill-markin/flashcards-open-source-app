@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 export const zhHansCatalog = {
+  premium: {
+    title: "Premium 即将推出",
+    unavailable: "订阅暂未开放。",
+    subscription: "订阅",
+    subscriptionDescription: "你当前的访问权限和 AI 额度。",
+    unknown: "当前订阅状态未知。",
+    statusNone: "无付费订阅",
+    grace: "付款宽限期内仍可继续访问。",
+    trial: "试用期",
+    renews: "于 {{date}} 续订",
+    until: "可访问至 {{date}}",
+    noExpiry: "永不过期",
+    monthlyMessages: "每月 {{count}} 条 AI 消息",
+    offer: "查看 Premium",
+    close: "关闭",
+    back: "返回",
+    limitTitle: "已达到 AI 消息上限",
+    previewOffer: "预览 Premium 方案",
+    previewAi: "预览 AI 上限",
+    retryManually: "准备好后，返回聊天并重新发送消息。密钥设置会自动保存。",
+  },
   common: {
     active: "活动",
     automatic: "自动",

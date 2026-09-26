@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const bnCatalog: TranslationCatalog = {
+  premium: {
+    title: "Premium শীঘ্রই আসছে",
+    unavailable: "সাবস্ক্রিপশন এখনও উপলব্ধ নয়।",
+    subscription: "সাবস্ক্রিপশন",
+    subscriptionDescription: "আপনার বর্তমান অ্যাক্সেস ও AI কোটা।",
+    unknown: "আপনার সাবস্ক্রিপশনের অবস্থা বর্তমানে অজানা।",
+    statusNone: "কোনো পেইড সাবস্ক্রিপশন নেই",
+    grace: "পেমেন্টের অতিরিক্ত সময়সীমায় অ্যাক্সেস চালু থাকে।",
+    trial: "ট্রায়াল সময়কাল",
+    renews: "{{date}} তারিখে নবায়ন",
+    until: "{{date}} পর্যন্ত অ্যাক্সেস",
+    noExpiry: "মেয়াদ শেষ হয় না",
+    monthlyMessages: "প্রতি মাসে {{count}}টি AI বার্তা",
+    offer: "Premium দেখুন",
+    close: "বন্ধ করুন",
+    back: "ফিরে যান",
+    limitTitle: "AI বার্তার সীমা পূর্ণ হয়েছে",
+    previewOffer: "Premium অফারের প্রিভিউ",
+    previewAi: "AI সীমার প্রিভিউ",
+    retryManually: "চ্যাটে ফিরে যান এবং প্রস্তুত হলে বার্তাটি আবার পাঠান। আপনার কী-এর সেটিংস স্বয়ংক্রিয়ভাবে সেভ হয়।",
+  },
   common: {
     active: "সক্রিয়",
     automatic: "স্বয়ংক্রিয়",

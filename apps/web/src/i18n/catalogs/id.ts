@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const idCatalog: TranslationCatalog = {
+  premium: {
+    title: "Premium segera hadir",
+    unavailable: "Langganan belum tersedia.",
+    subscription: "Langganan",
+    subscriptionDescription: "Akses dan kuota AI Anda saat ini.",
+    unknown: "Status langganan Anda saat ini belum diketahui.",
+    statusNone: "Tidak ada langganan berbayar",
+    grace: "Akses berlanjut selama masa tenggang pembayaran.",
+    trial: "Masa uji coba",
+    renews: "Diperpanjang pada {{date}}",
+    until: "Akses hingga {{date}}",
+    noExpiry: "Tanpa kedaluwarsa",
+    monthlyMessages: "{{count}} pesan AI per bulan",
+    offer: "Lihat Premium",
+    close: "Tutup",
+    back: "Kembali",
+    limitTitle: "Batas pesan AI tercapai",
+    previewOffer: "Pratinjau penawaran Premium",
+    previewAi: "Pratinjau batas AI",
+    retryManually: "Kembali ke chat dan kirim ulang pesan saat Anda siap. Pengaturan kunci Anda disimpan otomatis.",
+  },
   common: {
     active: "Aktif",
     automatic: "Otomatis",

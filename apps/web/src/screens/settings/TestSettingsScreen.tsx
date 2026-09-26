@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode } from "react";
+import { usePremiumPresenter } from "../../premium/PremiumProvider";
 import { useAppData } from "../../appData";
 import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
@@ -71,6 +72,7 @@ const probabilityFormatOptions: Readonly<Intl.NumberFormatOptions> = {
 };
 
 export function TestSettingsScreen(): ReactElement {
+  const presentPremium = usePremiumPresenter();
   const { t } = useI18n();
   const workspacePath = useWorkspacePath();
   const { showTechnicalErrorPreview } = useAppErrorDialog();
@@ -85,6 +87,20 @@ export function TestSettingsScreen(): ReactElement {
       <div data-testid="test-settings-screen">
         <SettingsGroup title={t("settingsTest.toolsGroupTitle")}>
           <div className="settings-nav-list">
+            <SettingsActionCard
+              title={t("premium.previewOffer")}
+              description={t("premium.unavailable")}
+              value={null}
+              onClick={() => { presentPremium?.({ reason: "offer" }); }}
+              testId="test-settings-premium-offer"
+            />
+            <SettingsActionCard
+              title={t("premium.previewAi")}
+              description={t("premium.retryManually")}
+              value={null}
+              onClick={() => { presentPremium?.({ reason: "ai-limit", aiUsage: null }); }}
+              testId="test-settings-premium-ai-limit"
+            />
             <SettingsNavigationCard
               title={t("settingsTest.animations.title")}
               description={t("settingsTest.animations.description")}

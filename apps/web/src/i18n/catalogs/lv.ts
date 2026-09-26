@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const lvCatalog: TranslationCatalog = {
+  premium: {
+    title: "Premium būs pieejams drīzumā",
+    unavailable: "Abonementi vēl nav pieejami.",
+    subscription: "Abonements",
+    subscriptionDescription: "Jūsu pašreizējā piekļuve un MI limits.",
+    unknown: "Jūsu abonementa statuss pašlaik nav zināms.",
+    statusNone: "Nav maksas abonementa",
+    grace: "Piekļuve turpinās maksājuma labvēlības periodā.",
+    trial: "Izmēģinājuma periods",
+    renews: "Atjaunošana: {{date}}",
+    until: "Piekļuve līdz {{date}}",
+    noExpiry: "Bez derīguma termiņa",
+    monthlyMessages: "{{count}} MI ziņojumu mēnesī",
+    offer: "Skatīt Premium",
+    close: "Aizvērt",
+    back: "Atpakaļ",
+    limitTitle: "Sasniegts MI ziņojumu limits",
+    previewOffer: "Premium piedāvājuma priekšskatījums",
+    previewAi: "MI limita priekšskatījums",
+    retryManually: "Atgriezieties tērzēšanā un nosūtiet ziņojumu vēlreiz, kad būsiet gatavs. Atslēgas iestatījumi tiek saglabāti automātiski.",
+  },
   common: {
     active: "Aktīvs",
     automatic: "Automātiski",

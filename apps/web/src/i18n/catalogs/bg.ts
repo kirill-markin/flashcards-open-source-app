@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const bgCatalog: TranslationCatalog = {
+  premium: {
+    title: "Premium идва скоро",
+    unavailable: "Абонаментите все още не са налични.",
+    subscription: "Абонамент",
+    subscriptionDescription: "Текущият ви достъп и лимитът за ИИ.",
+    unknown: "Статусът на абонамента ви в момента е неизвестен.",
+    statusNone: "Няма платен абонамент",
+    grace: "Достъпът продължава по време на гратисния период за плащане.",
+    trial: "Пробен период",
+    renews: "Подновяване на {{date}}",
+    until: "Достъп до {{date}}",
+    noExpiry: "Без изтичане",
+    monthlyMessages: "{{count}} съобщения с ИИ на месец",
+    offer: "Вижте Premium",
+    close: "Затвори",
+    back: "Назад",
+    limitTitle: "Достигнат е лимитът за съобщения с ИИ",
+    previewOffer: "Преглед на офертата Premium",
+    previewAi: "Преглед на лимита за ИИ",
+    retryManually: "Върнете се в чата и изпратете съобщението отново, когато сте готови. Настройките на ключа се запазват автоматично.",
+  },
   common: {
     active: "Активно",
     automatic: "Автоматично",

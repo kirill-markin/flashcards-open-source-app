@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const fiCatalog: TranslationCatalog = {
+  premium: {
+    title: "Premium on tulossa pian",
+    unavailable: "Tilauksia ei ole vielä saatavilla.",
+    subscription: "Tilaus",
+    subscriptionDescription: "Nykyinen käyttöoikeutesi ja tekoälykiintiösi.",
+    unknown: "Tilauksesi tila ei ole tällä hetkellä tiedossa.",
+    statusNone: "Ei maksullista tilausta",
+    grace: "Käyttöoikeus jatkuu maksun lisäajan ajan.",
+    trial: "Kokeilujakso",
+    renews: "Uusiutuu {{date}}",
+    until: "Käyttöoikeus päättyy {{date}}",
+    noExpiry: "Ei päättymispäivää",
+    monthlyMessages: "{{count}} tekoälyviestiä kuukaudessa",
+    offer: "Katso Premium",
+    close: "Sulje",
+    back: "Takaisin",
+    limitTitle: "Tekoälyviestien raja saavutettu",
+    previewOffer: "Premium-tarjouksen esikatselu",
+    previewAi: "Tekoälyrajan esikatselu",
+    retryManually: "Palaa keskusteluun ja lähetä viesti uudelleen, kun olet valmis. Avaimen asetukset tallennetaan automaattisesti.",
+  },
   common: {
     active: "Aktiivinen",
     automatic: "Automaattinen",

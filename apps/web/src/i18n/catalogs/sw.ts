@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const swCatalog: TranslationCatalog = {
+  premium: {
+    title: "Premium inakuja hivi karibuni",
+    unavailable: "Usajili bado haupatikani.",
+    subscription: "Usajili",
+    subscriptionDescription: "Ufikiaji wako wa sasa na kikomo cha AI.",
+    unknown: "Hali ya usajili wako haijulikani kwa sasa.",
+    statusNone: "Hakuna usajili wa kulipia",
+    grace: "Ufikiaji unaendelea katika muda wa ziada wa malipo.",
+    trial: "Kipindi cha majaribio",
+    renews: "Husasishwa tarehe {{date}}",
+    until: "Ufikiaji hadi {{date}}",
+    noExpiry: "Haina tarehe ya mwisho",
+    monthlyMessages: "Ujumbe {{count}} wa AI kwa mwezi",
+    offer: "Angalia Premium",
+    close: "Funga",
+    back: "Rudi",
+    limitTitle: "Kikomo cha ujumbe wa AI kimefikiwa",
+    previewOffer: "Hakiki ofa ya Premium",
+    previewAi: "Hakiki kikomo cha AI",
+    retryManually: "Rudi kwenye gumzo na utume ujumbe tena ukiwa tayari. Mipangilio ya ufunguo wako huhifadhiwa kiotomatiki.",
+  },
   common: {
     active: "Inatumika",
     automatic: "Kiotomatiki",

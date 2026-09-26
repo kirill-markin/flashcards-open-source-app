@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const faCatalog: TranslationCatalog = {
+  premium: {
+    title: "Premium به‌زودی ارائه می‌شود",
+    unavailable: "اشتراک‌ها هنوز در دسترس نیستند.",
+    subscription: "اشتراک",
+    subscriptionDescription: "دسترسی فعلی و سهمیهٔ هوش مصنوعی شما.",
+    unknown: "وضعیت اشتراک شما در حال حاضر مشخص نیست.",
+    statusNone: "بدون اشتراک پولی",
+    grace: "دسترسی در مهلت ارفاقی پرداخت ادامه دارد.",
+    trial: "دورهٔ آزمایشی",
+    renews: "تمدید در {{date}}",
+    until: "دسترسی تا {{date}}",
+    noExpiry: "بدون انقضا",
+    monthlyMessages: "{{count}} پیام هوش مصنوعی در ماه",
+    offer: "مشاهدهٔ Premium",
+    close: "بستن",
+    back: "بازگشت",
+    limitTitle: "به سقف پیام‌های هوش مصنوعی رسیدید",
+    previewOffer: "پیش‌نمایش پیشنهاد Premium",
+    previewAi: "پیش‌نمایش محدودیت هوش مصنوعی",
+    retryManually: "به گفتگو برگردید و هر وقت آماده بودید، پیام خود را دوباره بفرستید. تنظیمات کلید شما خودکار ذخیره می‌شود.",
+  },
   common: {
     active: "فعال",
     automatic: "خودکار",

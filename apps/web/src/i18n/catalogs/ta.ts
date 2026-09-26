@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const taCatalog: TranslationCatalog = {
+  premium: {
+    title: "Premium விரைவில் வருகிறது",
+    unavailable: "சந்தாக்கள் இன்னும் கிடைக்கவில்லை.",
+    subscription: "சந்தா",
+    subscriptionDescription: "உங்கள் தற்போதைய அணுகலும் AI வரம்பும்.",
+    unknown: "உங்கள் சந்தா நிலை தற்போது தெரியவில்லை.",
+    statusNone: "கட்டணச் சந்தா இல்லை",
+    grace: "பணம் செலுத்துவதற்கான சலுகைக் காலத்தில் அணுகல் தொடரும்.",
+    trial: "சோதனைக் காலம்",
+    renews: "{{date}} அன்று புதுப்பிக்கப்படும்",
+    until: "{{date}} வரை அணுகல்",
+    noExpiry: "காலாவதி இல்லை",
+    monthlyMessages: "மாதத்திற்கு {{count}} AI செய்திகள்",
+    offer: "Premium பார்க்க",
+    close: "மூடு",
+    back: "பின்செல்",
+    limitTitle: "AI செய்திகளின் வரம்பை எட்டிவிட்டீர்கள்",
+    previewOffer: "Premium சலுகை முன்னோட்டம்",
+    previewAi: "AI வரம்பு முன்னோட்டம்",
+    retryManually: "அரட்டைக்குத் திரும்பி, தயாரானதும் செய்தியை மீண்டும் அனுப்பவும். உங்கள் விசி அமைப்புகள் தானாகச் சேமிக்கப்படும்.",
+  },
   common: {
     active: "செயலில்",
     automatic: "தானியங்கி",

@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const roCatalog: TranslationCatalog = {
+  premium: {
+    title: "Premium vine în curând",
+    unavailable: "Abonamentele nu sunt încă disponibile.",
+    subscription: "Abonament",
+    subscriptionDescription: "Accesul actual și limita de IA.",
+    unknown: "Starea abonamentului tău este momentan necunoscută.",
+    statusNone: "Fără abonament plătit",
+    grace: "Accesul continuă în perioada de grație a plății.",
+    trial: "Perioadă de probă",
+    renews: "Se reînnoiește la {{date}}",
+    until: "Acces până la {{date}}",
+    noExpiry: "Fără expirare",
+    monthlyMessages: "{{count}} mesaje IA pe lună",
+    offer: "Vezi Premium",
+    close: "Închide",
+    back: "Înapoi",
+    limitTitle: "Limita de mesaje IA a fost atinsă",
+    previewOffer: "Previzualizează oferta Premium",
+    previewAi: "Previzualizează limita IA",
+    retryManually: "Revino la chat și trimite mesajul din nou când ești gata. Setările cheii sunt salvate automat.",
+  },
   common: {
     active: "Activ",
     automatic: "Automat",
