@@ -1,0 +1,154 @@
+{
+  "$schema": "https://developers.openai.com/plugins/schemas/chatgpt-app-submission.v1.json",
+  "schema_version": 1,
+  "app_info": {
+    "display_name": "Nibomo",
+    "subtitle": "Create and review flashcards",
+    "description": "Create flashcards from your notes, organize your collection, and review due cards with spaced repetition. Nibomo saves your cards and review progress so you can continue studying in its web, iOS, and Android apps. Find and update existing cards, reveal answers after attempting a question, and record your review rating. Requires a Nibomo account.",
+    "category": "EDUCATION"
+  },
+  "tools": {
+    "sql_query": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Executes SELECT statements against the authenticated workspace. Mutations are rejected before execution, and database reads run in read-only transactions. It does not change cards or review schedules.",
+        "open_world_justification": "Queries only Nibomo resources in a workspace the authenticated user may access. It does not browse the web or contact arbitrary external services.",
+        "destructive_justification": "Executes read-only SELECT queries. It cannot overwrite or delete cards, decks, or review data."
+      }
+    },
+    "sql_execute": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Executes INSERT, UPDATE, and DELETE statements that create or modify flashcards and saved deck filters in the selected workspace.",
+        "open_world_justification": "Writes are restricted to Nibomo resources within an authorized workspace; the tool does not publish content or send it to outside recipients.",
+        "destructive_justification": "UPDATE and DELETE can overwrite or remove existing records. The destructive label applies even when a particular call only inserts records. Broad updates and deletes must be explained before execution."
+      }
+    },
+    "list_workspaces": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Lists the authenticated user’s accessible workspaces and their statistics without creating or modifying them.",
+        "open_world_justification": "Returns only workspaces available to the authenticated Nibomo user, not public internet content.",
+        "destructive_justification": "Lists accessible workspace metadata and statistics without changing or deleting any records."
+      }
+    },
+    "get_guide": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Returns static documentation for the requested supported topic. It does not modify application data.",
+        "open_world_justification": "Reads bundled Nibomo usage guides only. It does not retrieve arbitrary URLs or external content.",
+        "destructive_justification": "Returns bundled documentation only; it does not modify or delete application data."
+      }
+    },
+    "next_review_card": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Selects a card due for review and returns its question without the answer. It does not record a review or advance the schedule.",
+        "open_world_justification": "Reads cards only in a workspace accessible to the authenticated Nibomo user.",
+        "destructive_justification": "Reads the next due question without recording a review, reserving the card, or changing its schedule."
+      }
+    },
+    "reveal_answer": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Retrieves the answer for an existing card. It does not record a rating or change the card or its schedule.",
+        "open_world_justification": "Retrieves a card from an authorized Nibomo workspace only. It has no external publishing or browsing capability.",
+        "destructive_justification": "Reads the saved answer for a card without changing the card, review history, or schedule."
+      }
+    },
+    "submit_review": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Records a review rating and updates the card’s spaced repetition schedule and related counters.",
+        "open_world_justification": "Updates review data only within the authenticated user’s authorized Nibomo workspace.",
+        "destructive_justification": "A review changes existing scheduling fields, including the next due date and repetition counters. These overwrite prior state, so the destructive annotation is true. Reusing the same review ID prevents duplicate application of a retry."
+      }
+    },
+    "get_usage_limits": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Reads the authenticated account’s current tier, limits, and usage. It does not purchase a subscription, change entitlements, or consume an AI generation.",
+        "open_world_justification": "Reads Nibomo account usage only; it does not access arbitrary external entities or initiate checkout.",
+        "destructive_justification": "Reads existing usage and limits without consuming a generation, purchasing access, or changing entitlements."
+      }
+    }
+  },
+  "test_cases": [
+    {
+      "description": "Find saved flashcards in the demo workspace",
+      "user_prompt": "In Nibomo, use the OpenAI review demo workspace and show my cards tagged openai-demo. Do not change anything.",
+      "tools_triggered": "list_workspaces, sql_query; get_guide if needed",
+      "expected_output": "The assistant selects the workspace named OpenAI review demo from list_workspaces and queries its cards tagged openai-demo. It returns the seeded SQL cards, including a question about SELECT. It does not call sql_execute or submit_review. Card identifiers and wording may vary; no other workspace is queried."
+    },
+    {
+      "description": "Create two flashcards from supplied notes",
+      "user_prompt": "In the OpenAI review demo workspace, create two cards tagged openai-demo-created from these notes: SQL WHERE filters rows before grouping. SQL HAVING filters groups after aggregation. Check for duplicates first and reuse matching cards if they already exist.",
+      "tools_triggered": "list_workspaces, get_guide, sql_query, sql_execute when matching cards do not already exist",
+      "expected_output": "Two matching cards exist after the workflow, one about WHERE and one about HAVING, tagged openai-demo-created. Each front is a question; its answer is on the back. The assistant checks for existing matches before writing, then queries the saved cards to verify them. Repeating this scenario reuses matching cards instead of creating duplicates."
+    },
+    {
+      "description": "Update a saved card without changing other cards",
+      "user_prompt": "In the OpenAI review demo workspace, find the card tagged openai-demo whose question is \"What does SELECT do in SQL?\". Set its answer to \"SELECT retrieves data from one or more tables.\" Keep its question and tags unchanged.",
+      "tools_triggered": "list_workspaces, sql_query, sql_execute",
+      "expected_output": "The assistant identifies exactly one seeded SELECT card, updates only its back_text to the supplied answer, then reads it back. The front, tags, and all other cards remain unchanged. Running this case again produces the same final answer text."
+    },
+    {
+      "description": "Review a card and record a spaced repetition rating",
+      "user_prompt": "In the OpenAI review demo workspace, review one due card with me. Show only the question first. After I attempt an answer, reveal the saved answer and ask me to choose Again, Hard, Good, or Easy. Record only the rating I choose.",
+      "tools_triggered": "list_workspaces, get_guide, next_review_card, reveal_answer, submit_review",
+      "expected_output": "A seeded due card is shown without its answer. Reviewer replies \"I do not remember; show the answer\", then chooses \"Again\" after the answer is revealed. submit_review records Again once with a fresh review ID and returns the updated schedule. No rating is recorded before the reviewer chooses it. For repeat runs with no due cards, ask: \"Create a new card in OpenAI review demo: question What does SQL DISTINCT remove? Answer Duplicate result rows. Add the tag openai-review-repeat and append the current timestamp to the question so this is a new card. Then review it with me.\" This setup uses sql_execute; continue with the same review steps."
+    },
+    {
+      "description": "Read current account usage without changing a subscription",
+      "user_prompt": "Show my current Nibomo AI usage and limits. Do not change my plan or buy anything.",
+      "tools_triggered": "get_usage_limits",
+      "expected_output": "The assistant reports the authenticated demo account’s actual current tier, limits, and usage from get_usage_limits. Values may change over time and should match the tool response. No checkout, subscription modification, or upgrade promotion is initiated."
+    }
+  ],
+  "negative_test_cases": [
+    {
+      "description": "General SQL explanation with no intent to access or save flashcards. Answer directly without invoking Nibomo.",
+      "user_prompt": "Explain the difference between WHERE and HAVING in SQL. Do not create or look up flashcards."
+    },
+    {
+      "description": "The user asks about a different flashcard service. Nibomo has no access to Anki and should not trigger. Explain the limitation or use an authorized Anki integration if available.",
+      "user_prompt": "Show the cards due today in my Anki collection, not Nibomo."
+    },
+    {
+      "description": "The user requests a quiz confined to this conversation and explicitly declines persistence. The assistant can ask questions directly and must not call Nibomo tools or store cards.",
+      "user_prompt": "Quiz me on basic Spanish in this chat only. Do not use an app or save any flashcards."
+    }
+  ]
+}

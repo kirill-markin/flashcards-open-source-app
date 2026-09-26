@@ -1,0 +1,315 @@
+{
+  "baseLocale": {
+    "sourceLocale": "en",
+    "portalLocale": "en-US",
+    "appInfoSource": "chatgpt-app-submission.json#/app_info"
+  },
+  "versionSource": "../server.json#/version",
+  "developerName": "SAMO DANNI EOOD",
+  "websiteSource": "../server.json#/websiteUrl",
+  "supportUrlSource": "../server.json#/_meta/io.modelcontextprotocol.registry~1publisher-provided/supportUrl",
+  "privacyPolicyUrlSource": "../server.json#/_meta/io.modelcontextprotocol.registry~1publisher-provided/privacyPolicyUrl",
+  "termsOfServiceUrlSource": "../server.json#/_meta/io.modelcontextprotocol.registry~1publisher-provided/termsOfServiceUrl",
+  "directoryIconSource": "../server.json#/_meta/io.modelcontextprotocol.registry~1publisher-provided/iconUrls/logo512Png",
+  "composerIconSource": "../server.json#/_meta/io.modelcontextprotocol.registry~1publisher-provided/iconUrls/logo512Png",
+  "mcpServerUrlSource": "../server.json#/_meta/io.modelcontextprotocol.registry~1publisher-provided/mcpServerUrl",
+  "oauth": {
+    "registration": "dynamic",
+    "oidcEnabled": true,
+    "baseScopes": [
+      "openid",
+      "email"
+    ],
+    "defaultScope": "flashcards"
+  },
+  "allowedCountries": "all",
+  "starterPrompts": [
+    "Create flashcards from the notes I paste next.",
+    "Review my due flashcards with me, one question at a time.",
+    "Find my flashcards about SQL and help me improve their questions."
+  ],
+  "releaseNotes": "First release of Nibomo for ChatGPT and Codex. Create, find, and edit saved flashcards, review due cards with spaced repetition, and check account usage through a connected Nibomo account.",
+  "unavailableSourceLocales": [
+    "he",
+    "fa",
+    "zu"
+  ],
+  "localizations": [
+    {
+      "sourceLocale": "ar",
+      "portalLocale": "ar",
+      "subtitle": "أنشئ بطاقات تعليمية وراجعها",
+      "description": "أنشئ بطاقات تعليمية من ملاحظاتك، ونظّم مجموعتك، وراجع البطاقات التي حان موعدها باستخدام التكرار المتباعد. يحفظ Nibomo بطاقاتك وتقدّم مراجعتك لتتمكّن من متابعة الدراسة في تطبيقاته على الويب وiOS وAndroid. ابحث عن البطاقات الموجودة وحدّثها، وأظهر الإجابات بعد محاولة الإجابة عن السؤال، وسجّل تقييمك للمراجعة. يتطلّب حساب Nibomo."
+    },
+    {
+      "sourceLocale": "zh-Hans",
+      "portalLocale": "zh-CN",
+      "subtitle": "创建和复习记忆卡片",
+      "description": "用笔记创建记忆卡片，整理卡片集，并通过间隔重复复习到期的卡片。Nibomo 会保存你的卡片和复习进度，让你可以在网页版、iOS 和 Android 应用中继续学习。查找和更新已有卡片，尝试回答问题后查看答案，并记录你的复习评分。需要 Nibomo 账户。"
+    },
+    {
+      "sourceLocale": "de",
+      "portalLocale": "de-DE",
+      "subtitle": "Lernkarten erstellen und üben",
+      "description": "Erstelle Lernkarten aus deinen Notizen, ordne deine Sammlung und wiederhole fällige Karten mit zeitlich verteilten Wiederholungen. Nibomo speichert deine Karten und deinen Lernfortschritt, damit du in den Web-, iOS- und Android-Apps weiterlernen kannst. Finde und aktualisiere vorhandene Karten, zeige Antworten nach einem eigenen Antwortversuch an und halte deine Bewertung der Wiederholung fest. Ein Nibomo-Konto ist erforderlich."
+    },
+    {
+      "sourceLocale": "hi",
+      "portalLocale": "hi-IN",
+      "subtitle": "फ़्लैशकार्ड बनाएँ और दोहराएँ",
+      "description": "अपने नोट्स से फ़्लैशकार्ड बनाएँ, अपने संग्रह को व्यवस्थित करें और जिन कार्डों को दोहराने का समय आ गया है, उन्हें अंतराल पर दोहराव की विधि से पढ़ें। Nibomo आपके कार्ड और दोहराव की प्रगति को सहेजता है, ताकि आप इसके वेब, iOS और Android ऐप में पढ़ाई जारी रख सकें। मौजूदा कार्ड खोजें और अपडेट करें, सवाल का जवाब देने की कोशिश के बाद उत्तर देखें और दोहराव की अपनी रेटिंग दर्ज करें। Nibomo खाते की आवश्यकता है।"
+    },
+    {
+      "sourceLocale": "ja",
+      "portalLocale": "ja-JP",
+      "subtitle": "暗記カードを作成・復習",
+      "description": "ノートから暗記カードを作成し、コレクションを整理して、復習時期を迎えたカードを間隔反復で学習できます。Nibomo はカードと復習の進捗を保存するので、Web、iOS、Android の各アプリで学習を続けられます。既存のカードの検索・更新、問題に挑戦した後の解答表示、復習の評価の記録ができます。Nibomo アカウントが必要です。"
+    },
+    {
+      "sourceLocale": "ru",
+      "portalLocale": "ru-RU",
+      "subtitle": "Создавайте и учите карточки",
+      "description": "Создавайте карточки из заметок, организуйте свою коллекцию и повторяйте карточки, для которых подошёл срок, с помощью интервального повторения. Nibomo сохраняет карточки и прогресс повторений, чтобы вы могли продолжить учёбу в веб-приложении и приложениях для iOS и Android. Находите и обновляйте существующие карточки, открывайте ответы после попытки ответить на вопрос и сохраняйте свою оценку повторения. Требуется аккаунт Nibomo."
+    },
+    {
+      "sourceLocale": "es-MX",
+      "portalLocale": "es-419",
+      "subtitle": "Crea y repasa tarjetas",
+      "description": "Crea tarjetas de estudio a partir de tus notas, organiza tu colección y repasa las tarjetas pendientes con repetición espaciada. Nibomo guarda tus tarjetas y tu progreso de repaso para que puedas seguir estudiando en sus aplicaciones web, iOS y Android. Busca y actualiza tarjetas existentes, muestra las respuestas después de intentar responder una pregunta y registra tu valoración del repaso. Necesitas una cuenta de Nibomo."
+    },
+    {
+      "sourceLocale": "es-ES",
+      "portalLocale": "es-ES",
+      "subtitle": "Crea y repasa tarjetas",
+      "description": "Crea tarjetas de estudio a partir de tus apuntes, organiza tu colección y repasa las tarjetas pendientes con repetición espaciada. Nibomo guarda tus tarjetas y tu progreso de repaso para que puedas seguir estudiando en sus aplicaciones web, iOS y Android. Busca y actualiza tarjetas existentes, muestra las respuestas después de intentar responder una pregunta y registra tu valoración del repaso. Necesitas una cuenta de Nibomo."
+    },
+    {
+      "sourceLocale": "fr",
+      "portalLocale": "fr-FR",
+      "subtitle": "Créez et révisez des fiches",
+      "description": "Créez des fiches à partir de vos notes, organisez votre collection et révisez les fiches arrivées à échéance grâce à la répétition espacée. Nibomo enregistre vos fiches et votre progression pour vous permettre de poursuivre vos révisions dans ses applications web, iOS et Android. Retrouvez et modifiez des fiches existantes, affichez les réponses après avoir essayé de répondre à une question et enregistrez votre évaluation de la révision. Un compte Nibomo est nécessaire."
+    },
+    {
+      "sourceLocale": "pt-BR",
+      "portalLocale": "pt-BR",
+      "subtitle": "Crie e revise cartões",
+      "description": "Crie cartões de estudo a partir das suas anotações, organize sua coleção e revise os cartões na hora certa com repetição espaçada. O Nibomo salva seus cartões e seu progresso de revisão para que você continue estudando nos aplicativos para web, iOS e Android. Encontre e atualize cartões existentes, revele as respostas depois de tentar responder a uma pergunta e registre sua avaliação da revisão. É necessário ter uma conta no Nibomo."
+    },
+    {
+      "sourceLocale": "it",
+      "portalLocale": "it-IT",
+      "subtitle": "Crea e ripassa le flashcard",
+      "description": "Crea flashcard dai tuoi appunti, organizza la tua raccolta e ripassa le schede in scadenza con la ripetizione dilazionata. Nibomo salva le schede e i progressi del ripasso, così puoi continuare a studiare nelle sue app per web, iOS e Android. Trova e aggiorna le schede esistenti, scopri le risposte dopo aver provato a rispondere a una domanda e registra la tua valutazione del ripasso. È necessario un account Nibomo."
+    },
+    {
+      "sourceLocale": "ko",
+      "portalLocale": "ko-KR",
+      "subtitle": "플래시카드 만들기와 복습",
+      "description": "노트로 플래시카드를 만들고, 카드 모음을 정리하고, 복습할 때가 된 카드를 간격 반복으로 학습하세요. Nibomo는 카드와 복습 진행 상황을 저장하므로 웹, iOS, Android 앱에서 이어서 공부할 수 있습니다. 기존 카드를 찾고 수정하고, 질문에 답해 본 뒤 정답을 확인하고, 복습 평가를 기록하세요. Nibomo 계정이 필요합니다."
+    },
+    {
+      "sourceLocale": "id",
+      "portalLocale": "id-ID",
+      "subtitle": "Buat dan ulangi kartu belajar",
+      "description": "Buat kartu belajar dari catatan, atur koleksi Anda, dan ulangi kartu yang sudah waktunya dipelajari dengan pengulangan berjarak. Nibomo menyimpan kartu dan kemajuan pengulangan Anda agar Anda dapat melanjutkan belajar di aplikasi web, iOS, dan Android. Temukan dan perbarui kartu yang ada, tampilkan jawaban setelah mencoba menjawab pertanyaan, dan catat penilaian Anda untuk pengulangan tersebut. Memerlukan akun Nibomo."
+    },
+    {
+      "sourceLocale": "tr",
+      "portalLocale": "tr-TR",
+      "subtitle": "Bilgi kartları oluştur, çalış",
+      "description": "Notlarınızdan bilgi kartları oluşturun, koleksiyonunuzu düzenleyin ve zamanı gelen kartları aralıklı tekrar yöntemiyle çalışın. Nibomo, web, iOS ve Android uygulamalarında çalışmaya devam edebilmeniz için kartlarınızı ve tekrar ilerlemenizi kaydeder. Mevcut kartları bulun ve güncelleyin, soruyu yanıtlamayı denedikten sonra yanıtı açın ve tekrar değerlendirmenizi kaydedin. Nibomo hesabı gereklidir."
+    },
+    {
+      "sourceLocale": "nl",
+      "portalLocale": "nl-NL",
+      "subtitle": "Maak en herhaal leerkaartjes",
+      "description": "Maak leerkaartjes van je notities, orden je verzameling en herhaal kaartjes die aan de beurt zijn met gespreide herhaling. Nibomo bewaart je kaartjes en voortgang, zodat je verder kunt leren in de web-, iOS- en Android-apps. Zoek en bewerk bestaande kaartjes, bekijk antwoorden nadat je een vraag hebt geprobeerd te beantwoorden en leg je beoordeling van de herhaling vast. Een Nibomo-account is vereist."
+    },
+    {
+      "sourceLocale": "pl",
+      "portalLocale": "pl-PL",
+      "subtitle": "Twórz i powtarzaj fiszki",
+      "description": "Twórz fiszki z notatek, porządkuj swoją kolekcję i powtarzaj fiszki wyznaczone na dany termin metodą powtórek rozłożonych w czasie. Nibomo zapisuje Twoje fiszki i postępy w powtórkach, dzięki czemu możesz kontynuować naukę w aplikacjach na przeglądarkę, iOS i Androida. Wyszukuj i aktualizuj istniejące fiszki, odkrywaj odpowiedzi po próbie odpowiedzi na pytanie i zapisuj swoją ocenę powtórki. Wymagane jest konto Nibomo."
+    },
+    {
+      "sourceLocale": "vi",
+      "portalLocale": "vi-VN",
+      "subtitle": "Tạo và ôn tập thẻ ghi nhớ",
+      "description": "Tạo thẻ ghi nhớ từ ghi chú, sắp xếp bộ sưu tập và ôn tập các thẻ đến hạn bằng phương pháp lặp lại ngắt quãng. Nibomo lưu thẻ và tiến độ ôn tập để bạn có thể tiếp tục học trên các ứng dụng web, iOS và Android. Tìm và cập nhật thẻ hiện có, xem đáp án sau khi thử trả lời câu hỏi và ghi lại mức đánh giá của bạn cho lần ôn tập. Cần có tài khoản Nibomo."
+    },
+    {
+      "sourceLocale": "th",
+      "portalLocale": "th-TH",
+      "subtitle": "สร้างและทบทวนแฟลชการ์ด",
+      "description": "สร้างแฟลชการ์ดจากบันทึก จัดระเบียบคอลเลกชัน และทบทวนการ์ดที่ถึงกำหนดด้วยการทบทวนแบบเว้นระยะ Nibomo บันทึกการ์ดและความคืบหน้าในการทบทวน เพื่อให้คุณเรียนต่อได้ในแอปบนเว็บ, iOS และ Android ค้นหาและอัปเดตการ์ดที่มีอยู่ เปิดดูคำตอบหลังจากลองตอบคำถาม และบันทึกคะแนนที่คุณประเมินในการทบทวน ต้องมีบัญชี Nibomo"
+    },
+    {
+      "sourceLocale": "uk",
+      "portalLocale": "uk-UA",
+      "subtitle": "Створюйте й повторюйте картки",
+      "description": "Створюйте картки з нотаток, упорядковуйте свою колекцію та повторюйте картки, для яких настав час, за допомогою інтервального повторення. Nibomo зберігає картки й прогрес повторень, щоб ви могли продовжити навчання у вебзастосунку та застосунках для iOS і Android. Знаходьте й оновлюйте наявні картки, відкривайте відповіді після спроби відповісти на запитання та зберігайте свою оцінку повторення. Потрібен обліковий запис Nibomo."
+    },
+    {
+      "sourceLocale": "sv",
+      "portalLocale": "sv-SE",
+      "subtitle": "Skapa och repetera minneskort",
+      "description": "Skapa minneskort från dina anteckningar, ordna din samling och repetera kort som står på tur med intervallrepetition. Nibomo sparar dina kort och dina repetitionsframsteg så att du kan fortsätta studera i apparna för webben, iOS och Android. Hitta och uppdatera befintliga kort, visa svar efter att du försökt besvara en fråga och registrera ditt omdöme om repetitionen. Ett Nibomo-konto krävs."
+    },
+    {
+      "sourceLocale": "da",
+      "portalLocale": "da-DK",
+      "subtitle": "Opret og øv huskekort",
+      "description": "Opret huskekort fra dine noter, organiser din samling, og gennemgå de kort, der er klar til repetition, med gentagelser med mellemrum. Nibomo gemmer dine kort og dine fremskridt, så du kan fortsætte med at lære i apps til web, iOS og Android. Find og opdater eksisterende kort, vis svar efter at have forsøgt at besvare et spørgsmål, og registrer din vurdering af repetitionen. Kræver en Nibomo-konto."
+    },
+    {
+      "sourceLocale": "nb",
+      "portalLocale": "nb-NO",
+      "subtitle": "Lag og repeter læringskort",
+      "description": "Lag læringskort fra notatene dine, organiser samlingen og repeter kort som står for tur, med repetisjon med mellomrom. Nibomo lagrer kortene og repetisjonsfremgangen din slik at du kan fortsette å lære i appene for nett, iOS og Android. Finn og oppdater eksisterende kort, vis svar etter at du har forsøkt å svare på et spørsmål, og registrer vurderingen din av repetisjonen. Krever en Nibomo-konto."
+    },
+    {
+      "sourceLocale": "fi",
+      "portalLocale": "fi-FI",
+      "subtitle": "Luo ja kertaa muistikortteja",
+      "description": "Luo muistikortteja muistiinpanoistasi, järjestä kokoelmasi ja kertaa vuorossa olevat kortit aikavälikertauksen avulla. Nibomo tallentaa korttisi ja kertauksen edistymisen, jotta voit jatkaa opiskelua verkko-, iOS- ja Android-sovelluksissa. Etsi ja päivitä olemassa olevia kortteja, näytä vastaukset yritettyäsi vastata kysymykseen ja tallenna oma arviosi kertauksesta. Edellyttää Nibomo-tiliä."
+    },
+    {
+      "sourceLocale": "cs",
+      "portalLocale": "cs-CZ",
+      "subtitle": "Tvořte a opakujte kartičky",
+      "description": "Vytvářejte kartičky z poznámek, uspořádejte si sbírku a procvičujte kartičky, které jsou na řadě, pomocí opakování s časovými rozestupy. Nibomo ukládá kartičky i pokrok v opakování, abyste mohli pokračovat ve studiu ve webové aplikaci i v aplikacích pro iOS a Android. Vyhledávejte a upravujte existující kartičky, zobrazujte odpovědi po pokusu odpovědět na otázku a zaznamenávejte své hodnocení opakování. Je vyžadován účet Nibomo."
+    },
+    {
+      "sourceLocale": "el",
+      "portalLocale": "el-GR",
+      "subtitle": "Δημιουργία και μελέτη καρτών",
+      "description": "Δημιουργήστε κάρτες μελέτης από τις σημειώσεις σας, οργανώστε τη συλλογή σας και επαναλάβετε τις κάρτες που είναι προγραμματισμένες για μελέτη με επανάληψη σε χρονικά διαστήματα. Το Nibomo αποθηκεύει τις κάρτες και την πρόοδό σας ώστε να συνεχίζετε τη μελέτη στις εφαρμογές του για ιστό, iOS και Android. Βρείτε και ενημερώστε υπάρχουσες κάρτες, εμφανίστε τις απαντήσεις αφού προσπαθήσετε να απαντήσετε σε μια ερώτηση και καταγράψτε τη βαθμολογία σας για την επανάληψη. Απαιτείται λογαριασμός Nibomo."
+    },
+    {
+      "sourceLocale": "ro",
+      "portalLocale": "ro-RO",
+      "subtitle": "Creează și repetă fișe",
+      "description": "Creează fișe de studiu din notițe, organizează-ți colecția și repetă fișele ajunse la termen prin repetiție spațiată. Nibomo îți salvează fișele și progresul la repetare, ca să poți continua studiul în aplicațiile pentru web, iOS și Android. Găsește și actualizează fișele existente, afișează răspunsurile după ce încerci să răspunzi la o întrebare și înregistrează propria evaluare a repetării. Este necesar un cont Nibomo."
+    },
+    {
+      "sourceLocale": "hu",
+      "portalLocale": "hu-HU",
+      "subtitle": "Készíts és ismételj kártyákat",
+      "description": "Készíts tanulókártyákat a jegyzeteidből, rendszerezd a gyűjteményedet, és gyakorold az esedékes kártyákat időközönkénti ismétléssel. A Nibomo menti a kártyáidat és az ismétlési eredményeidet, így a webes, iOS- és Android-alkalmazásokban is folytathatod a tanulást. Keresd meg és frissítsd a meglévő kártyákat, nézd meg a választ, miután megpróbáltál válaszolni a kérdésre, és rögzítsd az ismétlés saját értékelését. Nibomo-fiók szükséges."
+    },
+    {
+      "sourceLocale": "ca",
+      "portalLocale": "ca-ES",
+      "subtitle": "Crea i repassa targetes",
+      "description": "Crea targetes d'estudi a partir dels teus apunts, organitza la teva col·lecció i repassa les targetes pendents amb repetició espaiada. Nibomo desa les targetes i el progrés dels repassos perquè puguis continuar estudiant a les seves aplicacions web, iOS i Android. Troba i actualitza targetes existents, mostra les respostes després d'intentar respondre una pregunta i registra la teva valoració del repàs. Cal un compte de Nibomo."
+    },
+    {
+      "sourceLocale": "bn",
+      "portalLocale": "bn-BD",
+      "subtitle": "ফ্ল্যাশকার্ড তৈরি ও অনুশীলন",
+      "description": "আপনার নোট থেকে ফ্ল্যাশকার্ড তৈরি করুন, সংগ্রহ সাজান এবং যেসব কার্ডের অনুশীলনের সময় হয়েছে, সেগুলো বিরতি দিয়ে পুনরাবৃত্তি করুন। Nibomo আপনার কার্ড ও অনুশীলনের অগ্রগতি সংরক্ষণ করে, যাতে আপনি এর ওয়েব, iOS ও Android অ্যাপে পড়াশোনা চালিয়ে যেতে পারেন। বিদ্যমান কার্ড খুঁজুন ও আপডেট করুন, প্রশ্নের উত্তর দেওয়ার চেষ্টা করার পর উত্তর দেখুন এবং অনুশীলনের জন্য নিজের রেটিং নথিভুক্ত করুন। Nibomo অ্যাকাউন্ট প্রয়োজন।"
+    },
+    {
+      "sourceLocale": "gu",
+      "portalLocale": "gu-IN",
+      "subtitle": "ફ્લૅશકાર્ડ બનાવો અને દોહરાવો",
+      "description": "તમારી નોંધોમાંથી ફ્લૅશકાર્ડ બનાવો, તમારો સંગ્રહ ગોઠવો અને જે કાર્ડ દોહરાવવાનો સમય થયો હોય તેમનું અંતરાલ સાથે પુનરાવર્તન કરો. Nibomo તમારા કાર્ડ અને પુનરાવર્તનની પ્રગતિ સાચવે છે, જેથી તમે તેની વેબ, iOS અને Android ઍપમાં અભ્યાસ ચાલુ રાખી શકો. હાલના કાર્ડ શોધો અને અપડેટ કરો, પ્રશ્નનો જવાબ આપવાનો પ્રયાસ કર્યા પછી જવાબ જુઓ અને પુનરાવર્તન માટે તમારું રેટિંગ નોંધો. Nibomo ખાતું જરૂરી છે."
+    },
+    {
+      "sourceLocale": "kn",
+      "portalLocale": "kn-IN",
+      "subtitle": "ಫ್ಲ್ಯಾಶ್‌ಕಾರ್ಡ್ ರಚಿಸಿ, ಕಲಿಯಿರಿ",
+      "description": "ನಿಮ್ಮ ಟಿಪ್ಪಣಿಗಳಿಂದ ಫ್ಲ್ಯಾಶ್‌ಕಾರ್ಡ್‌ಗಳನ್ನು ರಚಿಸಿ, ಸಂಗ್ರಹವನ್ನು ವ್ಯವಸ್ಥಿತಗೊಳಿಸಿ ಮತ್ತು ಪುನರಾವರ್ತನೆಯ ಸಮಯ ಬಂದಿರುವ ಕಾರ್ಡ್‌ಗಳನ್ನು ಅಂತರದ ಪುನರಾವರ್ತನೆ ವಿಧಾನದಿಂದ ಅಭ್ಯಾಸ ಮಾಡಿ. Nibomo ನಿಮ್ಮ ಕಾರ್ಡ್‌ಗಳು ಮತ್ತು ಪುನರಾವರ್ತನೆಯ ಪ್ರಗತಿಯನ್ನು ಉಳಿಸುತ್ತದೆ, ಹಾಗಾಗಿ ಅದರ ವೆಬ್, iOS ಮತ್ತು Android ಆ್ಯಪ್‌ಗಳಲ್ಲಿ ಕಲಿಕೆಯನ್ನು ಮುಂದುವರಿಸಬಹುದು. ಇರುವ ಕಾರ್ಡ್‌ಗಳನ್ನು ಹುಡುಕಿ ಮತ್ತು ನವೀಕರಿಸಿ, ಪ್ರಶ್ನೆಗೆ ಉತ್ತರಿಸಲು ಪ್ರಯತ್ನಿಸಿದ ನಂತರ ಉತ್ತರವನ್ನು ನೋಡಿ ಮತ್ತು ಪುನರಾವರ್ತನೆಗೆ ನಿಮ್ಮ ರೇಟಿಂಗ್ ದಾಖಲಿಸಿ. Nibomo ಖಾತೆ ಅಗತ್ಯವಿದೆ."
+    },
+    {
+      "sourceLocale": "ml",
+      "portalLocale": "ml",
+      "subtitle": "ഫ്ലാഷ്‌കാർഡുകൾ പഠിക്കൂ",
+      "description": "നിങ്ങളുടെ കുറിപ്പുകളിൽ നിന്ന് ഫ്ലാഷ്‌കാർഡുകൾ ഉണ്ടാക്കുക, ശേഖരം ക്രമീകരിക്കുക, ആവർത്തിക്കേണ്ട സമയമായ കാർഡുകൾ ഇടവേളകളോടെയുള്ള ആവർത്തനത്തിലൂടെ പഠിക്കുക. Nibomo നിങ്ങളുടെ കാർഡുകളും ആവർത്തനത്തിലെ പുരോഗതിയും സംരക്ഷിക്കുന്നതിനാൽ അതിന്റെ വെബ്, iOS, Android ആപ്പുകളിൽ പഠനം തുടരാം. നിലവിലുള്ള കാർഡുകൾ കണ്ടെത്തി പുതുക്കുക, ചോദ്യത്തിന് ഉത്തരം നൽകാൻ ശ്രമിച്ച ശേഷം ഉത്തരം കാണുക, ആവർത്തനത്തിന് നിങ്ങളുടെ റേറ്റിങ് രേഖപ്പെടുത്തുക. Nibomo അക്കൗണ്ട് ആവശ്യമാണ്."
+    },
+    {
+      "sourceLocale": "mr",
+      "portalLocale": "mr-IN",
+      "subtitle": "फ्लॅशकार्ड बनवा आणि उजळणी करा",
+      "description": "तुमच्या टिपांमधून फ्लॅशकार्ड बनवा, संग्रह व्यवस्थित ठेवा आणि ज्या कार्डांची उजळणी करण्याची वेळ झाली आहे, त्यांची ठराविक अंतराने पुनरावृत्ती करा. Nibomo तुमची कार्डे आणि उजळणीतील प्रगती जतन करते, त्यामुळे तुम्ही त्याच्या वेब, iOS आणि Android ॲपमध्ये अभ्यास पुढे सुरू ठेवू शकता. सध्याची कार्डे शोधा आणि अद्ययावत करा, प्रश्नाचे उत्तर देण्याचा प्रयत्न केल्यानंतर उत्तर पाहा आणि उजळणीसाठी तुमचे रेटिंग नोंदवा. Nibomo खाते आवश्यक आहे."
+    },
+    {
+      "sourceLocale": "pa",
+      "portalLocale": "pa",
+      "subtitle": "ਫਲੈਸ਼ਕਾਰਡ ਬਣਾਓ ਅਤੇ ਦੁਹਰਾਓ",
+      "description": "ਆਪਣੇ ਨੋਟਸ ਤੋਂ ਫਲੈਸ਼ਕਾਰਡ ਬਣਾਓ, ਆਪਣੇ ਸੰਗ੍ਰਹਿ ਨੂੰ ਵਿਵਸਥਿਤ ਕਰੋ ਅਤੇ ਜਿਨ੍ਹਾਂ ਕਾਰਡਾਂ ਨੂੰ ਦੁਹਰਾਉਣ ਦਾ ਸਮਾਂ ਹੋ ਗਿਆ ਹੈ, ਉਨ੍ਹਾਂ ਨੂੰ ਵਕਫ਼ਿਆਂ ਨਾਲ ਦੁਹਰਾਓ। Nibomo ਤੁਹਾਡੇ ਕਾਰਡ ਅਤੇ ਦੁਹਰਾਈ ਦੀ ਪ੍ਰਗਤੀ ਨੂੰ ਸੰਭਾਲਦਾ ਹੈ ਤਾਂ ਜੋ ਤੁਸੀਂ ਇਸ ਦੇ ਵੈੱਬ, iOS ਅਤੇ Android ਐਪਾਂ ਵਿੱਚ ਪੜ੍ਹਾਈ ਜਾਰੀ ਰੱਖ ਸਕੋ। ਮੌਜੂਦਾ ਕਾਰਡ ਲੱਭੋ ਅਤੇ ਅੱਪਡੇਟ ਕਰੋ, ਸਵਾਲ ਦਾ ਜਵਾਬ ਦੇਣ ਦੀ ਕੋਸ਼ਿਸ਼ ਤੋਂ ਬਾਅਦ ਜਵਾਬ ਵੇਖੋ ਅਤੇ ਦੁਹਰਾਈ ਲਈ ਆਪਣੀ ਰੇਟਿੰਗ ਦਰਜ ਕਰੋ। Nibomo ਖਾਤਾ ਲੋੜੀਂਦਾ ਹੈ।"
+    },
+    {
+      "sourceLocale": "ta",
+      "portalLocale": "ta-IN",
+      "subtitle": "அட்டைகள் உருவாக்கி படியுங்கள்",
+      "description": "உங்கள் குறிப்புகளிலிருந்து கற்றல் அட்டைகளை உருவாக்கி, தொகுப்பை ஒழுங்குபடுத்தி, மீள்பயிற்சிக்கான நேரம் வந்த அட்டைகளை இடைவெளி விட்டு மீண்டும் படியுங்கள். Nibomo உங்கள் அட்டைகளையும் மீள்பயிற்சி முன்னேற்றத்தையும் சேமிப்பதால், அதன் வலை, iOS மற்றும் Android செயலிகளில் தொடர்ந்து படிக்கலாம். ஏற்கனவே உள்ள அட்டைகளைக் கண்டறிந்து புதுப்பியுங்கள், கேள்விக்குப் பதிலளிக்க முயன்ற பிறகு விடையைப் பாருங்கள், மீள்பயிற்சிக்கான உங்கள் மதிப்பீட்டைப் பதிவு செய்யுங்கள். Nibomo கணக்கு தேவை."
+    },
+    {
+      "sourceLocale": "te",
+      "portalLocale": "te-IN",
+      "subtitle": "ఫ్లాష్‌కార్డులు చేసి చదవండి",
+      "description": "మీ నోట్స్ నుంచి ఫ్లాష్‌కార్డులను తయారుచేసి, సేకరణను క్రమబద్ధీకరించండి. పునశ్చరణ సమయం వచ్చిన కార్డులను విరామాలతో మళ్లీ చదవండి. Nibomo మీ కార్డులు, పునశ్చరణ పురోగతిని సేవ్ చేస్తుంది కాబట్టి దాని వెబ్, iOS, Android యాప్‌లలో చదువు కొనసాగించవచ్చు. ఇప్పటికే ఉన్న కార్డులను కనుగొని అప్‌డేట్ చేయండి, ప్రశ్నకు సమాధానం ఇవ్వడానికి ప్రయత్నించిన తర్వాత జవాబు చూడండి, పునశ్చరణకు మీ రేటింగ్ నమోదు చేయండి. Nibomo ఖాతా అవసరం."
+    },
+    {
+      "sourceLocale": "ur",
+      "portalLocale": "ur",
+      "subtitle": "فلیش کارڈ بنائیں اور دہرائیں",
+      "description": "اپنے نوٹس سے فلیش کارڈ بنائیں، اپنا مجموعہ ترتیب دیں اور جن کارڈز کو دہرانے کا وقت آ گیا ہو انہیں وقفوں کے ساتھ دہرائیں۔ Nibomo آپ کے کارڈز اور دہرائی کی پیش رفت محفوظ کرتا ہے تاکہ آپ اس کی ویب، iOS اور Android ایپس میں پڑھائی جاری رکھ سکیں۔ موجودہ کارڈز تلاش کریں اور اپ ڈیٹ کریں، سوال کا جواب دینے کی کوشش کے بعد جواب دیکھیں اور دہرائی کے لیے اپنی ریٹنگ درج کریں۔ Nibomo اکاؤنٹ درکار ہے۔"
+    },
+    {
+      "sourceLocale": "sw",
+      "portalLocale": "sw-TZ",
+      "subtitle": "Unda na pitia kadi za masomo",
+      "description": "Unda kadi za kujifunza kutoka kwenye madokezo yako, panga mkusanyiko wako, na pitia kadi ambazo muda wake umefika kwa kurudia kwa vipindi. Nibomo huhifadhi kadi zako na maendeleo ya marudio ili uendelee kujifunza katika programu zake za wavuti, iOS na Android. Tafuta na usasishe kadi zilizopo, onyesha majibu baada ya kujaribu kujibu swali, na rekodi tathmini yako ya marudio. Akaunti ya Nibomo inahitajika."
+    },
+    {
+      "sourceLocale": "bg",
+      "portalLocale": "bg-BG",
+      "subtitle": "Създавайте и учете с карти",
+      "description": "Създавайте учебни карти от бележките си, организирайте колекцията си и преговаряйте картите, за които е дошло време, с интервално повторение. Nibomo запазва картите и напредъка ви в преговора, за да продължите да учите в приложенията му за уеб, iOS и Android. Намирайте и актуализирайте съществуващи карти, разкривайте отговорите след опит да отговорите на въпрос и записвайте оценката си за преговора. Необходим е акаунт в Nibomo."
+    },
+    {
+      "sourceLocale": "et",
+      "portalLocale": "et-EE",
+      "subtitle": "Loo ja korda õpikaarte",
+      "description": "Loo märkmetest õpikaarte, korrasta oma kogu ja korda õige aja kätte jõudnud kaarte hajutatud kordamise abil. Nibomo salvestab su kaardid ja kordamise edenemise, et saaksid õppimist jätkata veebi-, iOS-i ja Androidi rakendustes. Leia ja uuenda olemasolevaid kaarte, ava vastused pärast küsimusele vastamise proovimist ning salvesta oma hinnang kordamisele. Vajalik on Nibomo konto."
+    },
+    {
+      "sourceLocale": "hr",
+      "portalLocale": "hr-HR",
+      "subtitle": "Izradi i ponavljaj kartice",
+      "description": "Izradi kartice za učenje iz bilješki, organiziraj zbirku i ponavljaj kartice koje su na redu metodom ponavljanja u razmacima. Nibomo sprema tvoje kartice i napredak u ponavljanju kako bi mogao nastaviti učiti u aplikacijama za web, iOS i Android. Pronađi i ažuriraj postojeće kartice, otkrij odgovore nakon što pokušaš odgovoriti na pitanje i zabilježi svoju ocjenu ponavljanja. Potreban je Nibomo račun."
+    },
+    {
+      "sourceLocale": "is",
+      "portalLocale": "is-IS",
+      "subtitle": "Búðu til og æfðu minniskort",
+      "description": "Búðu til minniskort úr glósunum þínum, skipuleggðu safnið og rifjaðu upp kort sem komið er að með endurtekningu með millibili. Nibomo vistar kortin þín og framvindu upprifjunar svo þú getir haldið áfram að læra í vef-, iOS- og Android-forritunum. Finndu og uppfærðu kort sem eru til, sýndu svör eftir að hafa reynt að svara spurningu og skráðu eigið mat á upprifjuninni. Nibomo-aðgangur er nauðsynlegur."
+    },
+    {
+      "sourceLocale": "lt",
+      "portalLocale": "lt",
+      "subtitle": "Kurkite ir kartokite korteles",
+      "description": "Kurkite mokymosi korteles iš savo užrašų, tvarkykite kolekciją ir kartokite korteles, kurioms atėjo laikas, intervalinio kartojimo metodu. Nibomo išsaugo korteles ir kartojimo pažangą, kad galėtumėte tęsti mokymąsi žiniatinklio, iOS ir Android programėlėse. Raskite ir atnaujinkite esamas korteles, atskleiskite atsakymus pabandę atsakyti į klausimą ir užfiksuokite savo kartojimo įvertinimą. Reikalinga Nibomo paskyra."
+    },
+    {
+      "sourceLocale": "lv",
+      "portalLocale": "lv-LV",
+      "subtitle": "Veido un atkārto kartītes",
+      "description": "Veido mācību kartītes no savām piezīmēm, sakārto kolekciju un atkārto kartītes, kurām pienācis laiks, izmantojot atkārtošanu ar intervāliem. Nibomo saglabā tavas kartītes un atkārtošanas progresu, lai vari turpināt mācīties tīmekļa, iOS un Android lietotnēs. Atrodi un atjaunini esošās kartītes, atklāj atbildes pēc mēģinājuma atbildēt uz jautājumu un reģistrē savu atkārtošanas vērtējumu. Nepieciešams Nibomo konts."
+    },
+    {
+      "sourceLocale": "sk",
+      "portalLocale": "sk-SK",
+      "subtitle": "Tvorte a opakujte kartičky",
+      "description": "Vytvárajte kartičky z poznámok, usporiadajte si zbierku a precvičujte kartičky, ktoré sú na rade, pomocou opakovania s časovými odstupmi. Nibomo ukladá kartičky aj pokrok v opakovaní, aby ste mohli pokračovať v štúdiu vo webovej aplikácii aj v aplikáciách pre iOS a Android. Vyhľadávajte a upravujte existujúce kartičky, zobrazujte odpovede po pokuse odpovedať na otázku a zaznamenávajte svoje hodnotenie opakovania. Vyžaduje sa účet Nibomo."
+    },
+    {
+      "sourceLocale": "sl",
+      "portalLocale": "sl-SI",
+      "subtitle": "Ustvari in ponavljaj kartice",
+      "description": "Ustvari učne kartice iz svojih zapiskov, uredi zbirko in z metodo ponavljanja v razmikih ponovi kartice, ki so na vrsti. Nibomo shrani tvoje kartice in napredek pri ponavljanju, da lahko nadaljuješ učenje v spletni aplikaciji ter aplikacijah za iOS in Android. Poišči in posodobi obstoječe kartice, razkrij odgovore po poskusu odgovora na vprašanje in zabeleži svojo oceno ponavljanja. Potreben je račun Nibomo."
+    }
+  ]
+}
