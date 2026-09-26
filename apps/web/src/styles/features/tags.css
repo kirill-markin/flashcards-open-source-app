@@ -52,7 +52,7 @@
   max-width: 100%;
   min-height: 28px;
   padding: 0 8px;
-  border: 1px solid rgba(196, 75, 45, 0.24);
+  border: 1px solid rgba(var(--accent-rgb), 0.24);
   border-radius: var(--radius-pill);
   background: var(--accent-soft);
   color: #f8d6cc;

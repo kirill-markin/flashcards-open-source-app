@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const esEsCatalog: TranslationCatalog = {
+  accentColorSettings: {
+    title: "Color de acento",
+    subtitle: "Elige el color de acento de la aplicación.",
+    premiumNote: "Los colores de acento personalizados están incluidos en Premium.",
+    custom: "Color personalizado",
+    hexHelp: "Introduce un color en formato #RRGGBB, sin transparencia.",
+    current: "Color actual: {{color}}",
+    saving: "Guardando…",
+    default: "Predeterminado",
+    blue: "Azul",
+    purple: "Morado",
+    pink: "Rosa",
+    teal: "Verde azulado",
+    gold: "Dorado",
+    hex: "HEX",
+  },
   premium: {
     title: "Premium llegará pronto",
     unavailable: "Las suscripciones aún no están disponibles.",

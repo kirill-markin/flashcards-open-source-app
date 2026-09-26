@@ -42,8 +42,8 @@
 }
 
 .cards-filter-trigger-active {
-  border-color: rgba(196, 75, 45, 0.35);
-  background: rgba(196, 75, 45, 0.14);
+  border-color: rgba(var(--accent-rgb), 0.35);
+  background: rgba(var(--accent-rgb), 0.14);
   color: var(--accent-strong);
 }
 

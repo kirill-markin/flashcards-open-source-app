@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const zuCatalog: TranslationCatalog = {
+  accentColorSettings: {
+    title: "Umbala wokugqamisa",
+    subtitle: "Khetha umbala wokugqamisa wohlelo lokusebenza.",
+    premiumNote: "Imibala yokugqamisa oyikhethayo ifakiwe ku-Premium.",
+    custom: "Umbala owukhethayo",
+    hexHelp: "Faka umbala ngefomethi ethi #RRGGBB, ngaphandle kokubonisa ngale.",
+    current: "Umbala wamanje: {{color}}",
+    saving: "Kuyalondolozwa…",
+    default: "Okuzenzakalelayo",
+    blue: "Oluhlaza okwesibhakabhaka",
+    purple: "Onsomi",
+    pink: "Obomvana",
+    teal: "Oluhlaza sasibhakabhaka noluhlaza satshani",
+    gold: "Osagolide",
+    hex: "HEX",
+  },
   premium: {
     title: "I-Premium iyeza maduze",
     unavailable: "Ukubhalisa akukatholakali.",

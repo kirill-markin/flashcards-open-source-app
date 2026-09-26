@@ -6,6 +6,7 @@ import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
   useAppErrorDialog,
 } from "../../appError/AppErrorContext";
+import { useAccountAccentColor } from "../../premium/accentColor";
 import { getAppConfig } from "../../config";
 import {
   autoLocalePreference,
@@ -22,6 +23,7 @@ import {
   accountStatusRoute,
   accountSupportRoute,
   settingsAccessRoute,
+  settingsAccentColorRoute,
   settingsAIChatSuggestionsRoute,
   settingsAnalyticsRoute,
   settingsCurrentWorkspaceRoute,
@@ -104,6 +106,7 @@ export function SettingsScreen(): ReactElement {
     workspaceSettings,
   } = useAppData();
   const workspacePath = useWorkspacePath();
+  const { effectiveColor } = useAccountAccentColor();
   const { indexedDbOpenRecoveryState } = useAppErrorDialog();
   const { localePreference, t } = useI18n();
   const { aiChatComposerSuggestionsEnabled } = useAIChatPreferences();
@@ -283,6 +286,13 @@ export function SettingsScreen(): ReactElement {
 
       <SettingsGroup title={t("settingsHome.groups.general")}>
         <div className="settings-nav-list">
+          <SettingsNavigationCard
+            title={t("accentColorSettings.title")}
+            description={t("accentColorSettings.subtitle")}
+            value={effectiveColor}
+            to={workspacePath(settingsAccentColorRoute)}
+            testId="settings-row-accent-color"
+          />
           <SettingsNavigationCard
             title={t("notificationsSettings.title")}
             description={t("notificationsSettings.subtitle")}

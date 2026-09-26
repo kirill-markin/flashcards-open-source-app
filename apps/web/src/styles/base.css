@@ -57,7 +57,7 @@ select {
 }
 
 ::selection {
-  background: rgba(196, 75, 45, 0.34);
+  background: rgba(var(--accent-rgb), 0.34);
   color: var(--text);
 }
 

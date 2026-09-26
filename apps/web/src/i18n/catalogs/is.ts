@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const isCatalog: TranslationCatalog = {
+  accentColorSettings: {
+    title: "Áherslulitur",
+    subtitle: "Veldu áherslulit appsins.",
+    premiumNote: "Sérsniðnir áherslulitir fylgja Premium.",
+    custom: "Sérsniðinn litur",
+    hexHelp: "Sláðu inn lit á sniðinu #RRGGBB, án gagnsæis.",
+    current: "Núverandi litur: {{color}}",
+    saving: "Vista…",
+    default: "Sjálfgefið",
+    blue: "Blár",
+    purple: "Fjólublár",
+    pink: "Bleikur",
+    teal: "Blágrænn",
+    gold: "Gullinn",
+    hex: "HEX",
+  },
   premium: {
     title: "Premium kemur bráðum",
     unavailable: "Áskriftir eru ekki enn í boði.",
