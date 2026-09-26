@@ -20,6 +20,7 @@ on:
       - 'scripts/deploy/deploy-web.sh'
       - 'scripts/deploy/select-release-components.sh'
       - 'scripts/deploy/prepare-monitoring-refactor.py'
+      - 'scripts/deploy/report-cloudformation-budget.py'
       - 'scripts/generate/generate-catalog-dump.sh'
       - 'scripts/generate/generate-global-metrics-snapshot.sh'
       - 'scripts/deploy/migrate-aws.sh'
@@ -306,6 +307,7 @@ jobs:
             --output cdk.context.local.json \
             --aws-deploy-role-arn "${AWS_DEPLOY_ROLE_ARN}"
           npm run synth
+          python3 ../../scripts/deploy/report-cloudformation-budget.py cdk.out
 
   aws_deploy:
     name: Deploy AWS release
@@ -425,10 +427,12 @@ jobs:
           python3 ../../scripts/generate/write-ci-cdk-context.py \
             --output cdk.context.local.json \
             --aws-deploy-role-arn "${AWS_DEPLOY_ROLE_ARN}"
-          npx cdk deploy --all --require-approval never \
+          npx cdk synth --all --quiet \
             -c generatedMediaPromotionScheduleState=DISABLED \
             -c mediaBlobCleanupEnabled=false \
             -c multipartCompletionReconciliationScheduleState=DISABLED
+          python3 ../../scripts/deploy/report-cloudformation-budget.py cdk.out
+          npx cdk deploy --app cdk.out --all --require-approval never
 
       - name: Verify required database migration
         if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
@@ -443,10 +447,12 @@ jobs:
         env:
           SENTRY_UPLOAD_BACKEND_SOURCEMAPS: false
         run: |
-          npx cdk deploy --all --require-approval never \
+          npx cdk synth --all --quiet \
             -c generatedMediaPromotionScheduleState=ENABLED \
             -c mediaBlobCleanupEnabled=true \
             -c multipartCompletionReconciliationScheduleState=ENABLED
+          python3 ../../scripts/deploy/report-cloudformation-budget.py cdk.out
+          npx cdk deploy --app cdk.out --all --require-approval never
 
       - name: Verify cleanup-capable reconciliation schedules are enabled
         if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
