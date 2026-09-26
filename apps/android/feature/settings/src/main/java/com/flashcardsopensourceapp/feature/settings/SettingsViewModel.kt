@@ -138,6 +138,7 @@ class SettingsViewModel(
             try {
                 cloudAccountRepository.updateAccountPreferences(
                     update = AccountPreferencesUpdate(
+                        accentColor = null,
                         reviewReactionAnimationsEnabled = isEnabled,
                         productAnalyticsEnabled = null
                     )

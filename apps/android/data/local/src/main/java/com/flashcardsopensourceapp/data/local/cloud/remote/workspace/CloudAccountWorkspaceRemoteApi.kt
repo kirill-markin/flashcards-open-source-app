@@ -92,6 +92,9 @@ internal class CloudAccountWorkspaceRemoteApi(
         // Only the fields this update carries: the server keeps the stored value of every field the
         // body leaves out.
         val body = JSONObject()
+        update.accentColor?.let { color ->
+            body.put("accentColor", color)
+        }
         update.reviewReactionAnimationsEnabled?.let { enabled ->
             body.put("reviewReactionAnimationsEnabled", enabled)
         }
@@ -291,6 +294,7 @@ internal fun parseAccountPreferences(
     fieldPath: String
 ): AccountPreferences {
     return AccountPreferences(
+        accentColor = preferences.requireCloudString("accentColor", "$fieldPath.accentColor"),
         reviewReactionAnimationsEnabled = preferences.requireCloudBoolean(
             "reviewReactionAnimationsEnabled",
             "$fieldPath.reviewReactionAnimationsEnabled"
