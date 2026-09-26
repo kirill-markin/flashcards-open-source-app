@@ -55,6 +55,31 @@ def require_equal(before: Json, after: Json, label: str) -> None:
         raise ValueError("Unexplained template delta at " + ", ".join(changed))
 
 
+def require_resource_ids(
+    expected: dict[str, Json], actual: dict[str, Json], label: str, message: str,
+) -> None:
+    missing = sorted(expected.keys() - actual.keys())
+    extra = sorted(actual.keys() - expected.keys())
+    if not missing and not extra:
+        return
+    diagnostics: Json = {
+        "missing": [
+            {"logicalId": key, "type": text_value(object_value(expected[key], key).get("Type"), key + "/Type")}
+            for key in missing
+        ],
+        "extra": [
+            {"logicalId": key, "type": text_value(object_value(actual[key], key).get("Type"), key + "/Type")}
+            for key in extra
+        ],
+        "commonResourceChangedPaths": [
+            path
+            for key in sorted(expected.keys() & actual.keys())
+            for path in differences(expected[key], actual[key], label + "/Resources/" + key)
+        ],
+    }
+    raise ValueError(message + ": " + json.dumps(diagnostics, sort_keys=True))
+
+
 def resource_path(resource: dict[str, Json], stack: str, logical_id: str) -> str:
     metadata = object_value(resource.get("Metadata", {}), logical_id)
     path = text_value(metadata.get("aws:cdk:path"), logical_id + "/aws:cdk:path")
@@ -129,10 +154,14 @@ def compare(legacy: dict[str, Json], core: dict[str, Json], target: dict[str, Js
     counts = Counter(text_value(item.get("Type"), key) for key, item in moved.items())
     if dict(counts) != EXPECTED:
         raise ValueError(f"Expected 58 alarms and 8 filters; found {dict(counts)}")
-    if set(remaining) != set(original) - set(moved):
-        raise ValueError("Core resource ID set changed beyond the intended 66 moves")
-    if set(destination) - {"CDKMetadata"} != set(moved):
-        raise ValueError("Monitoring resource ID set differs from the intended 66 moves")
+    require_resource_ids(
+        {key: value for key, value in original.items() if key not in moved}, remaining,
+        "core", "Core resource ID set changed beyond the intended 66 moves",
+    )
+    require_resource_ids(
+        dict(moved), {key: value for key, value in destination.items() if key != "CDKMetadata"},
+        "monitoring", "Monitoring resource ID set differs from the intended 66 moves",
+    )
 
     require_equal(
         {key: value for key, value in legacy.items() if key not in {"Resources", "Outputs"}},
