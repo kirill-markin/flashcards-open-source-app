@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const koCatalog: TranslationCatalog = {
+  premium: {
+    title: "Premium이 곧 출시됩니다",
+    unavailable: "아직 구독을 이용할 수 없습니다.",
+    subscription: "구독",
+    subscriptionDescription: "현재 이용 권한과 AI 사용 한도입니다.",
+    unknown: "현재 구독 상태를 알 수 없습니다.",
+    statusNone: "유료 구독 없음",
+    grace: "결제 유예 기간에도 이용 권한이 유지됩니다.",
+    trial: "체험 기간",
+    renews: "{{date}}에 갱신",
+    until: "{{date}}까지 이용 가능",
+    noExpiry: "만료 없음",
+    monthlyMessages: "월 AI 메시지 {{count}}개",
+    offer: "Premium 보기",
+    close: "닫기",
+    back: "뒤로",
+    limitTitle: "AI 메시지 한도에 도달했습니다",
+    previewOffer: "Premium 혜택 미리 보기",
+    previewAi: "AI 한도 미리 보기",
+    retryManually: "준비가 되면 채팅으로 돌아가 메시지를 다시 보내세요. 키 설정은 자동으로 저장됩니다.",
+  },
   common: {
     active: "활성",
     automatic: "자동",

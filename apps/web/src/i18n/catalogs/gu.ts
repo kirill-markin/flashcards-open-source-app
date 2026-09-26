@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const guCatalog: TranslationCatalog = {
+  premium: {
+    title: "Premium ટૂંક સમયમાં આવી રહ્યું છે",
+    unavailable: "સબ્સ્ક્રિપ્શન હજી ઉપલબ્ધ નથી.",
+    subscription: "સબ્સ્ક્રિપ્શન",
+    subscriptionDescription: "તમારી હાલની ઍક્સેસ અને AI મર્યાદા.",
+    unknown: "તમારા સબ્સ્ક્રિપ્શનની સ્થિતિ હાલમાં અજ્ઞાત છે.",
+    statusNone: "કોઈ પેઇડ સબ્સ્ક્રિપ્શન નથી",
+    grace: "ચુકવણીની વધારાની મુદત દરમિયાન ઍક્સેસ ચાલુ રહે છે.",
+    trial: "અજમાયશ અવધિ",
+    renews: "{{date}}ના રોજ નવીનીકરણ",
+    until: "{{date}} સુધી ઍક્સેસ",
+    noExpiry: "કોઈ સમાપ્તિ તારીખ નથી",
+    monthlyMessages: "દર મહિને {{count}} AI સંદેશા",
+    offer: "Premium જુઓ",
+    close: "બંધ કરો",
+    back: "પાછા",
+    limitTitle: "AI સંદેશાની મર્યાદા પૂરી થઈ",
+    previewOffer: "Premium ઑફરનું પૂર્વાવલોકન",
+    previewAi: "AI મર્યાદાનું પૂર્વાવલોકન",
+    retryManually: "ચેટ પર પાછા જાઓ અને તૈયાર થાઓ ત્યારે સંદેશ ફરી મોકલો. તમારી કીની સેટિંગ્સ આપમેળે સાચવાય છે.",
+  },
   common: {
     active: "સક્રિય",
     automatic: "આપમેળે",

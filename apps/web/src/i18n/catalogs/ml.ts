@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const mlCatalog: TranslationCatalog = {
+  premium: {
+    title: "Premium ഉടൻ വരുന്നു",
+    unavailable: "സബ്‌സ്‌ക്രിപ്‌ഷനുകൾ ഇതുവരെ ലഭ്യമല്ല.",
+    subscription: "സബ്‌സ്‌ക്രിപ്‌ഷൻ",
+    subscriptionDescription: "നിലവിലെ ആക്‌സസും AI പരിധിയും.",
+    unknown: "നിങ്ങളുടെ സബ്‌സ്‌ക്രിപ്‌ഷൻ നില ഇപ്പോൾ അജ്ഞാതമാണ്.",
+    statusNone: "പണമടച്ചുള്ള സബ്‌സ്‌ക്രിപ്‌ഷൻ ഇല്ല",
+    grace: "പണമടയ്ക്കാനുള്ള അധിക കാലയളവിലും ആക്‌സസ് തുടരും.",
+    trial: "ട്രയൽ കാലയളവ്",
+    renews: "{{date}}-ന് പുതുക്കും",
+    until: "{{date}} വരെ ആക്‌സസ്",
+    noExpiry: "കാലാവധി അവസാനിക്കുന്നില്ല",
+    monthlyMessages: "പ്രതിമാസം {{count}} AI സന്ദേശങ്ങൾ",
+    offer: "Premium കാണുക",
+    close: "അടയ്ക്കുക",
+    back: "തിരികെ",
+    limitTitle: "AI സന്ദേശങ്ങളുടെ പരിധിയിലെത്തി",
+    previewOffer: "Premium ഓഫർ പ്രിവ്യൂ",
+    previewAi: "AI പരിധി പ്രിവ്യൂ",
+    retryManually: "ചാറ്റിലേക്ക് മടങ്ങി തയ്യാറാകുമ്പോൾ സന്ദേശം വീണ്ടും അയയ്ക്കുക. കീ ക്രമീകരണങ്ങൾ സ്വയമേവ സംരക്ഷിക്കും.",
+  },
   common: {
     active: "സജീവം",
     automatic: "സ്വയമേവ",

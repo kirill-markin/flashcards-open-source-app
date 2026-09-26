@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const zuCatalog: TranslationCatalog = {
+  premium: {
+    title: "I-Premium iyeza maduze",
+    unavailable: "Ukubhalisa akukatholakali.",
+    subscription: "Ukubhalisa",
+    subscriptionDescription: "Ukufinyelela kwakho kwamanje nomkhawulo we-AI.",
+    unknown: "Isimo sokubhalisa kwakho asaziwa okwamanje.",
+    statusNone: "Akukho ukubhalisa okukhokhelwayo",
+    grace: "Ukufinyelela kuyaqhubeka ngesikhathi somusa sokukhokha.",
+    trial: "Isikhathi sokuzama",
+    renews: "Kuvuselelwa ngomhla ka-{{date}}",
+    until: "Ukufinyelela kuze kube {{date}}",
+    noExpiry: "Akuphelelwa isikhathi",
+    monthlyMessages: "Imiyalezo ye-AI engu-{{count}} ngenyanga",
+    offer: "Buka i-Premium",
+    close: "Vala",
+    back: "Emuva",
+    limitTitle: "Umkhawulo wemiyalezo ye-AI ufinyelelwe",
+    previewOffer: "Buka kuqala okunikezwa yi-Premium",
+    previewAi: "Buka kuqala umkhawulo we-AI",
+    retryManually: "Buyela engxoxweni bese uthumela umyalezo futhi uma usulungile. Izilungiselelo zokhiye wakho zigcinwa ngokuzenzakalelayo.",
+  },
   common: {
     active: "Kuyasebenza",
     automatic: "Okuzenzakalelayo",

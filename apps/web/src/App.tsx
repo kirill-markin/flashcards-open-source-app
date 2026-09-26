@@ -1,5 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactElement } from "react";
 import { BrowserRouter, NavLink, Navigate, Route, Routes as RouterRoutes, useLocation, useNavigate, useParams } from "react-router";
+import { PremiumProvider } from "./premium/PremiumProvider";
 import { AccountMenu } from "./AccountMenu";
 import { AccountDeletionRecoveryGate } from "./accountDeletionRecovery";
 import {
@@ -52,6 +53,7 @@ import {
   settingsAIChatSuggestionsRoute,
   settingsAnalyticsRoute,
   settingsOwnOpenAIKeyRoute,
+  settingsSubscriptionRoute,
   settingsCurrentWorkspaceRoute,
   settingsDeckNewRoute,
   settingsDecksRoute,
@@ -156,6 +158,9 @@ const LeaderboardParticipationSettingsScreen = lazy(async () => import("./screen
 })));
 const AIChatSuggestionsSettingsScreen = lazy(async () => import("./screens/settings/AIChatSuggestionsSettingsScreen").then((module) => ({
   default: module.AIChatSuggestionsSettingsScreen,
+})));
+const SubscriptionSettingsScreen = lazy(async () => import("./screens/settings/SubscriptionSettingsScreen").then((module) => ({
+  default: module.SubscriptionSettingsScreen,
 })));
 const OwnOpenAIKeySettingsScreen = lazy(async () => import("./screens/settings/OwnOpenAIKeySettingsScreen").then((module) => ({
   default: module.OwnOpenAIKeySettingsScreen,
@@ -1017,6 +1022,7 @@ export function RoutedShell(): ReactElement {
           <Route path={`${workspaceRoutePattern}${settingsNotificationsRoute}`} element={renderDeferredRoute(<NotificationsSettingsScreen />, "loading.notificationSettings")} />
           <Route path={`${workspaceRoutePattern}${settingsReviewAnimationsRoute}`} element={renderDeferredRoute(<ReviewAnimationsSettingsScreen />, "loading.settings")} />
           <Route path={`${workspaceRoutePattern}${settingsAIChatSuggestionsRoute}`} element={renderDeferredRoute(<AIChatSuggestionsSettingsScreen />, "loading.settings")} />
+          <Route path={`${workspaceRoutePattern}${settingsSubscriptionRoute}`} element={renderDeferredRoute(<SubscriptionSettingsScreen />, "loading.settings")} />
           <Route path={`${workspaceRoutePattern}${settingsOwnOpenAIKeyRoute}`} element={renderDeferredRoute(<OwnOpenAIKeySettingsScreen />, "loading.settings")} />
           <Route path={`${workspaceRoutePattern}${settingsAnalyticsRoute}`} element={renderDeferredRoute(<AnalyticsSettingsScreen />, "loading.settings")} />
           <Route path={`${workspaceRoutePattern}${settingsSchedulerRoute}`} element={renderDeferredRoute(<WorkspaceSchedulerScreen />, "loading.schedulerSettings")} />
@@ -1102,17 +1108,19 @@ export function RoutedShell(): ReactElement {
 function AuthenticatedApp(): ReactElement {
   return (
     <AppDataProvider>
-      <AIChatPreferencesProvider>
-        <ChatLayoutProvider>
-          <ChatSessionControllerProvider>
-            <ChatDraftProvider>
-              <AccountDeletionRecoveryGate>
-                <AppShell />
-              </AccountDeletionRecoveryGate>
-            </ChatDraftProvider>
-          </ChatSessionControllerProvider>
-        </ChatLayoutProvider>
-      </AIChatPreferencesProvider>
+      <PremiumProvider>
+        <AIChatPreferencesProvider>
+          <ChatLayoutProvider>
+            <ChatSessionControllerProvider>
+              <ChatDraftProvider>
+                <AccountDeletionRecoveryGate>
+                  <AppShell />
+                </AccountDeletionRecoveryGate>
+              </ChatDraftProvider>
+            </ChatSessionControllerProvider>
+          </ChatLayoutProvider>
+        </AIChatPreferencesProvider>
+      </PremiumProvider>
     </AppDataProvider>
   );
 }

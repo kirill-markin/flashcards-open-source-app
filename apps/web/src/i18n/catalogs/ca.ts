@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const caCatalog: TranslationCatalog = {
+  premium: {
+    title: "Premium arribarà aviat",
+    unavailable: "Les subscripcions encara no estan disponibles.",
+    subscription: "Subscripció",
+    subscriptionDescription: "El teu accés actual i el límit d’IA.",
+    unknown: "L’estat de la teva subscripció és desconegut ara mateix.",
+    statusNone: "Sense subscripció de pagament",
+    grace: "L’accés continua durant el període de gràcia del pagament.",
+    trial: "Període de prova",
+    renews: "Es renova el {{date}}",
+    until: "Accés fins al {{date}}",
+    noExpiry: "Sense caducitat",
+    monthlyMessages: "{{count}} missatges d’IA al mes",
+    offer: "Veure Premium",
+    close: "Tanca",
+    back: "Enrere",
+    limitTitle: "Límit de missatges d’IA assolit",
+    previewOffer: "Previsualitza l’oferta Premium",
+    previewAi: "Previsualitza el límit d’IA",
+    retryManually: "Torna al xat i envia el missatge de nou quan vulguis. La configuració de la clau es desa automàticament.",
+  },
   common: {
     active: "Activa",
     automatic: "Automàtic",

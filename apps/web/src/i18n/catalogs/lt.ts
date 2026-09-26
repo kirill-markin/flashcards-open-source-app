@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const ltCatalog: TranslationCatalog = {
+  premium: {
+    title: "Premium netrukus",
+    unavailable: "Prenumeratos dar nepasiekiamos.",
+    subscription: "Prenumerata",
+    subscriptionDescription: "Dabartinė prieiga ir DI limitas.",
+    unknown: "Jūsų prenumeratos būsena šiuo metu nežinoma.",
+    statusNone: "Nėra mokamos prenumeratos",
+    grace: "Prieiga išlieka mokėjimo atidėjimo laikotarpiu.",
+    trial: "Bandomasis laikotarpis",
+    renews: "Atnaujinama {{date}}",
+    until: "Prieiga iki {{date}}",
+    noExpiry: "Be galiojimo pabaigos",
+    monthlyMessages: "{{count}} DI žinučių per mėnesį",
+    offer: "Peržiūrėti Premium",
+    close: "Uždaryti",
+    back: "Atgal",
+    limitTitle: "Pasiektas DI žinučių limitas",
+    previewOffer: "Premium pasiūlymo peržiūra",
+    previewAi: "DI limito peržiūra",
+    retryManually: "Grįžkite į pokalbį ir vėl išsiųskite žinutę, kai būsite pasiruošę. Rakto nustatymai išsaugomi automatiškai.",
+  },
   common: {
     active: "Aktyvu",
     automatic: "Automatiškai",

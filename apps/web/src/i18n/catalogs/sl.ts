@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const slCatalog: TranslationCatalog = {
+  premium: {
+    title: "Premium prihaja kmalu",
+    unavailable: "Naročnine še niso na voljo.",
+    subscription: "Naročnina",
+    subscriptionDescription: "Vaš trenutni dostop in omejitev UI.",
+    unknown: "Stanje vaše naročnine trenutno ni znano.",
+    statusNone: "Brez plačljive naročnine",
+    grace: "Dostop ostane aktiven med odlogom plačila.",
+    trial: "Preizkusno obdobje",
+    renews: "Obnovitev {{date}}",
+    until: "Dostop do {{date}}",
+    noExpiry: "Brez poteka",
+    monthlyMessages: "{{count}} sporočil UI na mesec",
+    offer: "Ogled Premium",
+    close: "Zapri",
+    back: "Nazaj",
+    limitTitle: "Dosežena omejitev sporočil UI",
+    previewOffer: "Predogled ponudbe Premium",
+    previewAi: "Predogled omejitve UI",
+    retryManually: "Vrnite se v klepet in znova pošljite sporočilo, ko boste pripravljeni. Nastavitve ključa se shranijo samodejno.",
+  },
   common: {
     active: "Aktivno",
     automatic: "Samodejno",

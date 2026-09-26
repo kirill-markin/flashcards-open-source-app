@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const viCatalog: TranslationCatalog = {
+  premium: {
+    title: "Premium sắp ra mắt",
+    unavailable: "Gói đăng ký hiện chưa khả dụng.",
+    subscription: "Gói đăng ký",
+    subscriptionDescription: "Quyền truy cập và hạn mức AI hiện tại của bạn.",
+    unknown: "Hiện chưa xác định được trạng thái gói đăng ký của bạn.",
+    statusNone: "Chưa có gói đăng ký trả phí",
+    grace: "Quyền truy cập tiếp tục trong thời gian gia hạn thanh toán.",
+    trial: "Thời gian dùng thử",
+    renews: "Gia hạn vào {{date}}",
+    until: "Truy cập đến {{date}}",
+    noExpiry: "Không hết hạn",
+    monthlyMessages: "{{count}} tin nhắn AI mỗi tháng",
+    offer: "Xem Premium",
+    close: "Đóng",
+    back: "Quay lại",
+    limitTitle: "Đã đạt giới hạn tin nhắn AI",
+    previewOffer: "Xem trước ưu đãi Premium",
+    previewAi: "Xem trước giới hạn AI",
+    retryManually: "Quay lại cuộc trò chuyện và gửi lại tin nhắn khi bạn sẵn sàng. Cài đặt khóa được lưu tự động.",
+  },
   common: {
     active: "Đang hoạt động",
     automatic: "Tự động",

@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const teCatalog: TranslationCatalog = {
+  premium: {
+    title: "Premium త్వరలో వస్తోంది",
+    unavailable: "సబ్‌స్క్రిప్షన్‌లు ఇంకా అందుబాటులో లేవు.",
+    subscription: "సబ్‌స్క్రిప్షన్",
+    subscriptionDescription: "మీ ప్రస్తుత యాక్సెస్ మరియు AI పరిమితి.",
+    unknown: "మీ సబ్‌స్క్రిప్షన్ స్థితి ప్రస్తుతం తెలియదు.",
+    statusNone: "చెల్లింపు సబ్‌స్క్రిప్షన్ లేదు",
+    grace: "చెల్లింపు గడువు పొడిగింపు సమయంలో యాక్సెస్ కొనసాగుతుంది.",
+    trial: "ట్రయల్ వ్యవధి",
+    renews: "{{date}}న పునరుద్ధరణ",
+    until: "{{date}} వరకు యాక్సెస్",
+    noExpiry: "గడువు ముగియదు",
+    monthlyMessages: "నెలకు {{count}} AI సందేశాలు",
+    offer: "Premium చూడండి",
+    close: "మూసివేయి",
+    back: "వెనుకకు",
+    limitTitle: "AI సందేశాల పరిమితిని చేరుకున్నారు",
+    previewOffer: "Premium ఆఫర్ ప్రివ్యూ",
+    previewAi: "AI పరిమితి ప్రివ్యూ",
+    retryManually: "చాట్‌కు తిరిగి వెళ్లి, సిద్ధమైనప్పుడు సందేశాన్ని మళ్లీ పంపండి. మీ కీ సెట్టింగ్‌లు స్వయంచాలకంగా సేవ్ అవుతాయి.",
+  },
   common: {
     active: "సక్రియం",
     automatic: "స్వయంచాలకం",

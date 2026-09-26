@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const nlCatalog: TranslationCatalog = {
+  premium: {
+    title: "Premium komt binnenkort",
+    unavailable: "Abonnementen zijn nog niet beschikbaar.",
+    subscription: "Abonnement",
+    subscriptionDescription: "Je huidige toegang en AI-limiet.",
+    unknown: "Je abonnementsstatus is momenteel onbekend.",
+    statusNone: "Geen betaald abonnement",
+    grace: "De toegang blijft actief tijdens de betalingstermijn na de vervaldatum.",
+    trial: "Proefperiode",
+    renews: "Wordt verlengd op {{date}}",
+    until: "Toegang tot {{date}}",
+    noExpiry: "Geen vervaldatum",
+    monthlyMessages: "{{count}} AI-berichten per maand",
+    offer: "Bekijk Premium",
+    close: "Sluiten",
+    back: "Terug",
+    limitTitle: "Limiet voor AI-berichten bereikt",
+    previewOffer: "Premium-aanbod bekijken",
+    previewAi: "AI-limiet bekijken",
+    retryManually: "Ga terug naar de chat en stuur je bericht opnieuw wanneer je klaar bent. Je sleutelinstellingen worden automatisch opgeslagen.",
+  },
   common: {
     active: "Actief",
     automatic: "Automatisch",

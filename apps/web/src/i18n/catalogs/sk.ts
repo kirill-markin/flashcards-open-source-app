@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const skCatalog: TranslationCatalog = {
+  premium: {
+    title: "Premium už čoskoro",
+    unavailable: "Predplatné zatiaľ nie je dostupné.",
+    subscription: "Predplatné",
+    subscriptionDescription: "Váš aktuálny prístup a limit AI.",
+    unknown: "Stav vášho predplatného je momentálne neznámy.",
+    statusNone: "Bez plateného predplatného",
+    grace: "Prístup trvá počas odkladu platby.",
+    trial: "Skúšobné obdobie",
+    renews: "Obnovenie {{date}}",
+    until: "Prístup do {{date}}",
+    noExpiry: "Bez konca platnosti",
+    monthlyMessages: "{{count}} správ AI mesačne",
+    offer: "Zobraziť Premium",
+    close: "Zavrieť",
+    back: "Späť",
+    limitTitle: "Dosiahnutý limit správ AI",
+    previewOffer: "Náhľad ponuky Premium",
+    previewAi: "Náhľad limitu AI",
+    retryManually: "Vráťte sa do chatu a keď budete pripravení, odošlite správu znova. Nastavenia kľúča sa ukladajú automaticky.",
+  },
   common: {
     active: "Aktívne",
     automatic: "Automaticky",
