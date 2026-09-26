@@ -10,6 +10,7 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
+    "@aws-sdk/client-kms": "^3.1141.0",
     "@aws-sdk/client-secrets-manager": "^3.1138.0",
     "@hono/node-server": "^2.1.1",
     "@sentry/aws-serverless": "^10.75.2",

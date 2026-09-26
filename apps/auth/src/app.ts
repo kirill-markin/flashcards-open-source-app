@@ -20,6 +20,7 @@ import refreshToken from "./routes/browser/refreshToken.js";
 import revokeToken from "./routes/browser/revokeToken.js";
 import logoutPage from "./routes/browser/logoutPage.js";
 import logoutLocalPage from "./routes/browser/logoutLocalPage.js";
+import oauthUserInfo from "./routes/oauth/userinfo.js";
 import oauthMetadata from "./routes/oauth/metadata.js";
 import oauthRegister from "./routes/oauth/register.js";
 import oauthToken from "./routes/oauth/token.js";
@@ -120,12 +121,11 @@ function getApiRouteKind(path: string): ApiRouteKind {
   return "non-api";
 }
 
-// Public OAuth Authorization Server endpoints (RFC 8414 metadata, RFC 7591 DCR,
-// token). These are unauthenticated and credential-free, so browser-hosted MCP
-// clients reach them with a wildcard-origin CORS policy (NO credentials),
-// distinct from the cookie-bearing /api/* policy above.
 const oauthPublicPaths: ReadonlyArray<string> = [
   "/.well-known/oauth-authorization-server",
+  "/.well-known/openid-configuration",
+  "/.well-known/jwks.json",
+  "/userinfo",
   "/register",
   "/token",
 ];
@@ -240,8 +240,6 @@ function createMountedApp(basePath: string): Hono<AuthAppEnv> {
     });
   });
 
-  // Public, credential-free CORS for the OAuth Authorization Server endpoints so
-  // browser-hosted MCP clients can run discovery -> DCR -> token exchange.
   app.use("*", async (c, next) => {
     if (!isOAuthPublicPath(c.req.path)) {
       return next();
@@ -249,7 +247,7 @@ function createMountedApp(basePath: string): Hono<AuthAppEnv> {
 
     c.header("Access-Control-Allow-Origin", "*");
     c.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    c.header("Access-Control-Allow-Headers", "content-type");
+    c.header("Access-Control-Allow-Headers", "content-type, authorization");
     if (c.req.method === "OPTIONS") {
       return c.body(null, 204);
     }
@@ -307,6 +305,7 @@ function createMountedApp(basePath: string): Hono<AuthAppEnv> {
   app.route("/", logoutPage);
   app.route("/", logoutLocalPage);
   app.route("/", oauthMetadata);
+  app.route("/", oauthUserInfo);
   app.route("/", oauthRegister);
   app.route("/", oauthToken);
   app.route("/", oauthAuthorize);

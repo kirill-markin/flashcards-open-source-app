@@ -4,6 +4,7 @@ import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as rds from "aws-cdk-lib/aws-rds";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as lambdaNodejs from "aws-cdk-lib/aws-lambda-nodejs";
+import * as kms from "aws-cdk-lib/aws-kms";
 import * as logs from "aws-cdk-lib/aws-logs";
 import { Construct } from "constructs";
 import { createSafeApiGatewayAccessLogFormat } from "./api-gateway-access-log";
@@ -210,6 +211,13 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
     },
   });
 
+  const oidcSigningKey = new kms.Key(scope, "OidcSigningKey", {
+    keySpec: kms.KeySpec.RSA_2048,
+    keyUsage: kms.KeyUsage.SIGN_VERIFY,
+    removalPolicy: cdk.RemovalPolicy.RETAIN,
+    description: "Signs Nibomo OIDC ID tokens; private key never leaves KMS",
+  });
+
   const authFn = new lambdaNodejs.NodejsFunction(scope, "AuthHandler", {
     entry: resolveFromRepoRoot("apps", "auth", "src", "lambda.ts"),
     handler: "handler",
@@ -232,6 +240,7 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
       COGNITO_USER_POOL_ID: props.userPoolId,
       COGNITO_CLIENT_ID: props.userPoolClientId,
       COGNITO_REGION: cdk.Stack.of(scope).region,
+      OIDC_SIGNING_KEY_ARN: oidcSigningKey.keyArn,
       ALLOWED_REDIRECT_URIS: buildAllowedRedirectUris(props),
       COOKIE_DOMAIN: buildCookieDomains(props),
       // The OAuth issuer this authorization server publishes in its RFC 8414
@@ -258,6 +267,7 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
     },
   });
 
+  oidcSigningKey.grant(authFn, "kms:Sign", "kms:GetPublicKey");
   sessionEncryptionKey.grantRead(authFn);
   props.authDbSecret.grantRead(authFn);
   addOptionalSentryEnvironment(scope, authFn, props);

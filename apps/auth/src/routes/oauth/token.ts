@@ -1,18 +1,4 @@
-/**
- * OAuth 2.1 token endpoint for the MCP authorization server. Supports the
- * authorization_code grant (public client + PKCE S256) and the refresh_token
- * grant. Tokens are opaque secrets minted here and bound to an
- * auth.oauth_connections row; only their hashes are persisted.
- *
- * Library-spike note: this endpoint is hand-written rather than delegated to
- * @node-oauth/oauth2-server. That library owns token generation, expiry, and
- * scope semantics through a full Model implementation plus a Request/Response
- * adapter to bridge Hono, which is more glue than the few grant-specific
- * checks below (S256 verify, single-use code, opaque mint). The token logic
- * here reuses the existing opaque-token + SHA-256 hashing + Crockford patterns
- * (server/oauth/oauthStore.ts, server/otp/crockford.ts), so no OAuth runtime
- * dependency is added.
- */
+import { getPublicAuthBaseUrl } from "../../server/publicUrls.js";
 import { Hono } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import type { Context } from "hono";
@@ -50,6 +36,7 @@ function tokenSuccess(c: Context<AuthAppEnv>, tokens: IssuedTokens): Response {
     token_type: "Bearer",
     expires_in: tokens.expiresInSeconds,
     refresh_token: tokens.refreshToken,
+    ...(tokens.idToken !== null ? { id_token: tokens.idToken } : {}),
     ...(tokens.scope !== null ? { scope: tokens.scope } : {}),
   });
 }
@@ -99,7 +86,7 @@ async function handleAuthorizationCodeGrant(
     return tokenError(c, 400, "invalid_grant", "PKCE verification failed.");
   }
 
-  const tokens = await consumeAuthorizationCodeAndIssueTokens(code, nowMs);
+  const tokens = await consumeAuthorizationCodeAndIssueTokens(code, getPublicAuthBaseUrl(c.req.url), nowMs);
   if (tokens === null) {
     // Lost the single-use race: the code was consumed between verification and
     // the atomic consume. Treat as already used.

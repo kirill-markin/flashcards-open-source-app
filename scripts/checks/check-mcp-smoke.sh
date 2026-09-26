@@ -723,12 +723,11 @@ PY
 # it returns must name itself: an MCP client handed a resource on another origin
 # refuses to authorize.
 #
-# Deliberately last. The first failing assertion aborts the whole script, so a
-# second host that is merely misconfigured must not be able to hide the primary
-# host's authenticated sign-in and JSON-RPC coverage above.
 ALTERNATE_MCP_BASE_URL="$(normalize_mcp_base_url "${ALTERNATE_MCP_BASE_URL}")"
 if [[ -n "${ALTERNATE_MCP_BASE_URL}" ]]; then
   check_mcp_host_contract "${ALTERNATE_MCP_BASE_URL}"
 fi
+
+node "$(dirname "$0")/check-oidc-smoke.mjs"
 
 echo "MCP smoke passed for ${DEMO_EMAIL} run=${RUN_ID}"

@@ -9,13 +9,6 @@ const AGENT_API_KEY_PREFIX = "FCA_";
 
 const ACCESS_TOKEN_PREFIX = "FCO_";
 
-/**
- * Resolved MCP connection for one validated OAuth Bearer access token.
- *
- * Mirrors the agent API-key resolution result (apps/backend/src/agent/apiKeys.ts
- * `AuthenticatedAgentApiKey`): an access token maps to one OAuth connection,
- * which fixes the user and the currently selected workspace for the request.
- */
 export type AuthenticatedMcpAccessToken = Readonly<{
   userId: string;
   connectionId: string;
@@ -28,6 +21,7 @@ type McpAccessTokenRow = Readonly<{
   selected_workspace_id: string | null;
   expires_at: Date | string;
   resource: string;
+  scope: string | null;
   connection_revoked_at: Date | string | null;
 }>;
 
@@ -88,12 +82,6 @@ function toTimestampMs(value: Date | string): number {
  * user who moves their client to the other host authorizes once more; nothing
  * migrates an already-issued token across hosts.
  *
- * Scope is intentionally not enforced here: by current contract every issued MCP
- * access token is full-access (`sql_execute` writes as well as `sql_query` reads), and scope
- * issuance is owned by the OAuth authorization/consent items (03/06). The
- * `auth.oauth_access_tokens.scope` column is therefore not read yet. When a
- * future item issues narrower-scoped tokens (e.g. read-only), this resolver must
- * start selecting and asserting that scope before granting tool access.
  */
 export async function authenticateMcpAccessToken(
   token: string,
@@ -112,6 +100,7 @@ export async function authenticateMcpAccessToken(
       "  c.selected_workspace_id AS selected_workspace_id,",
       "  t.expires_at AS expires_at,",
       "  t.resource AS resource,",
+      "  t.scope AS scope,",
       "  c.revoked_at AS connection_revoked_at",
       "FROM auth.oauth_access_tokens t",
       "JOIN auth.oauth_connections c ON c.connection_id = t.connection_id",
@@ -135,6 +124,11 @@ export async function authenticateMcpAccessToken(
 
   if (row.resource !== expectedResource) {
     throw new HttpError(401, "Invalid MCP access token", MCP_TOKEN_INVALID_CODE);
+  }
+
+  // A missing scope is the legacy full-access grant; explicit identity-only grants are not.
+  if (row.scope !== null && !row.scope.split(/\s+/).includes("flashcards")) {
+    throw new HttpError(403, "The flashcards OAuth scope is required for MCP tools", "MCP_INSUFFICIENT_SCOPE");
   }
 
   const selectedWorkspaceId = await ensureMcpConnectionWorkspaceSelection(
