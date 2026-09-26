@@ -48,4 +48,14 @@
     <string name="notification_diagnostics_failed_message">Notification diagnostics failed.</string>
     <string name="review_notification_channel_name">Review reminders</string>
     <string name="review_notification_channel_description">Study reminders with cards from your review queue.</string>
+    <string name="premium_coming_soon_title">Premium is coming soon</string>
+    <string name="premium_coming_soon_message">Subscriptions aren’t available yet.</string>
+    <string name="premium_close">Close Premium</string>
+    <string name="premium_ai_limit_title">AI message limit reached</string>
+    <string name="premium_ai_limit_message">You’ve used this month’s AI messages.</string>
+    <string name="premium_ai_renewal">Your messages renew on %1$s.</string>
+    <string name="premium_ai_usage_unavailable">Couldn’t load the renewal date. You can still use your own OpenAI key.</string>
+    <string name="premium_own_key_help">Add your own OpenAI key, then return to this chat and send your message again when you’re ready. Your key enables AI usage; it doesn’t change your plan.</string>
+    <string name="premium_own_key_action">Use your own OpenAI key</string>
+    <string name="premium_sign_in">Create account or Log in</string>
 </resources>

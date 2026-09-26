@@ -10,6 +10,7 @@ import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Sync
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -20,8 +21,13 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import com.flashcardsopensourceapp.core.ui.components.SectionTitle
 
+const val testSettingsPremiumPreviewTag: String = "test_premium_preview"
+const val testSettingsAiLimitPreviewTag: String = "test_ai_limit_preview"
+
 @Composable
 fun TestSettingsRoute(
+    onPreviewPremium: () -> Unit,
+    onPreviewAiLimit: () -> Unit,
     onOpenAnimations: () -> Unit,
     onShowTechnicalErrorDialogPreview: () -> Unit,
     onOpenNotificationDiagnostics: () -> Unit,
@@ -42,6 +48,24 @@ fun TestSettingsRoute(
         ) {
             item {
                 SectionTitle(text = stringResource(R.string.settings_test_tools_section))
+            }
+
+            item {
+                Button(
+                    onClick = onPreviewPremium,
+                    modifier = Modifier.fillMaxWidth().testTag(tag = testSettingsPremiumPreviewTag)
+                ) {
+                    Text(stringResource(R.string.settings_premium_preview))
+                }
+            }
+
+            item {
+                Button(
+                    onClick = onPreviewAiLimit,
+                    modifier = Modifier.fillMaxWidth().testTag(tag = testSettingsAiLimitPreviewTag)
+                ) {
+                    Text(stringResource(R.string.settings_ai_limit_preview))
+                }
             }
 
             item {
