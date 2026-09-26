@@ -35,6 +35,7 @@ export type RequestOptions = Readonly<{
   authRecoveryMode: AuthRecoveryMode;
   networkRetryMode: NetworkRetryMode;
   prepareForAuthRedirect: PrepareForAuthRedirect | null;
+  expectedUserId: string | null;
 }>;
 export type SessionRecovery = Readonly<{
   attachRecoverySignal: (init: RequestInit) => RequestInitBinding;
@@ -85,12 +86,14 @@ export const allowAuthRecovery: RequestOptions = {
   authRecoveryMode: "allow",
   networkRetryMode: "none",
   prepareForAuthRedirect,
+  expectedUserId: null,
 };
 
 export const allowAuthRecoveryWithTransientNetworkRetry: RequestOptions = {
   authRecoveryMode: "allow",
   networkRetryMode: "transient",
   prepareForAuthRedirect,
+  expectedUserId: null,
 };
 
 export const skipAuthRecoveryWithTransientNetworkRetry: RequestOptions = createSkipAuthRecoveryOptions("transient");
@@ -100,6 +103,7 @@ function createSkipAuthRecoveryOptions(networkRetryMode: NetworkRetryMode): Requ
     authRecoveryMode: "skip",
     networkRetryMode,
     prepareForAuthRedirect: null,
+    expectedUserId: null,
   };
 }
 
@@ -151,6 +155,7 @@ function waitForRefreshSessionReconciliation(signal: AbortSignal | null): Promis
 
 export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): SessionRecovery {
   let sessionCsrfToken: string | null = null;
+  let sessionUserId: string | null = null;
   let sessionCsrfState: SessionCsrfState = "unknown";
   let sessionRecoveryPromise: Promise<void> | null = null;
   let sessionRecoveryNetworkRetryMode: NetworkRetryMode | null = null;
@@ -261,9 +266,10 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
     return indexedDbOpenRecoverySignal ?? requestSignal;
   }
 
-  function setSessionCsrfToken(csrfToken: string | null, authTransport: string): void {
-    sessionCsrfToken = csrfToken;
-    sessionCsrfState = authTransport === "session" ? "session" : "non-session";
+  function setSessionCsrfToken(session: SessionInfo): void {
+    sessionCsrfToken = session.csrfToken;
+    sessionUserId = session.userId;
+    sessionCsrfState = session.authTransport === "session" ? "session" : "non-session";
     if (sessionCsrfState === "session") {
       hasLoadedBrowserSession = true;
     }
@@ -275,6 +281,7 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
    */
   function resetSessionState(): void {
     sessionCsrfToken = null;
+    sessionUserId = null;
     sessionCsrfState = "unknown";
   }
 
@@ -352,7 +359,7 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
   ): Promise<SessionInfo> {
     const session = await loadSessionInfo(createSkipAuthRecoveryOptions(networkRetryMode), signal);
     throwIfRequestAborted(signal);
-    setSessionCsrfToken(session.csrfToken, session.authTransport);
+    setSessionCsrfToken(session);
     redirectInFlight = false;
     return session;
   }
@@ -551,9 +558,9 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
     options: RequestOptions,
     signal: AbortSignal | null,
   ): Promise<SessionInfo> {
-    const session = await loadSessionInfo(options, signal);
+    const session = await loadSessionInfo({ ...options, expectedUserId: null }, signal);
     throwIfRequestAborted(signal);
-    setSessionCsrfToken(session.csrfToken, session.authTransport);
+    setSessionCsrfToken(session);
     redirectInFlight = false;
     return session;
   }
@@ -596,7 +603,7 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
     options: RequestOptions,
     requestSignal: AbortSignal | null,
   ): Promise<void> {
-    if (sessionCsrfState !== "unknown") {
+    if (sessionCsrfState !== "unknown" && (options.expectedUserId === null || sessionUserId !== null)) {
       return;
     }
 
@@ -650,7 +657,22 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
       throwIfRequestAborted(requestSignal);
     }
 
-    let response: Response = await performRequest();
+    function performAccountBoundRequest(): Promise<Response> {
+      if (options.expectedUserId !== null && options.expectedUserId !== sessionUserId) {
+        throw new ApiError({
+          statusCode: 0,
+          message: `The signed-in account changed. Reload before saving preferences. (${endpoint})`,
+          code: "SESSION_ACCOUNT_CHANGED",
+          requestId: null,
+          retryAfterMs: null,
+          endpoint,
+          responseBodyKind: "empty",
+        });
+      }
+      return performRequest();
+    }
+
+    let response: Response = await performAccountBoundRequest();
     throwIfRequestAborted(requestSignal);
     if (options.authRecoveryMode === "skip") {
       return response;
@@ -667,7 +689,7 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
         didRecoverSession = true;
         await recoverSession(options, requestSignal);
         throwIfRequestAborted(requestSignal);
-        response = await performRequest();
+        response = await performAccountBoundRequest();
         throwIfRequestAborted(requestSignal);
         continue;
       }
@@ -683,7 +705,7 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
         didRecoverSessionCsrf = true;
         await recoverSessionCsrf(options, requestSignal);
         throwIfRequestAborted(requestSignal);
-        response = await performRequest();
+        response = await performAccountBoundRequest();
         throwIfRequestAborted(requestSignal);
         continue;
       }
@@ -694,6 +716,7 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
 
   function resetApiClientStateForTests(): void {
     sessionCsrfToken = null;
+    sessionUserId = null;
     sessionCsrfState = "unknown";
     sessionRecoveryPromise = null;
     sessionRecoveryNetworkRetryMode = null;
@@ -728,6 +751,7 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
     ),
     primeSessionCsrfToken: (csrfToken: string): void => {
       sessionCsrfToken = csrfToken;
+      sessionUserId = null;
       sessionCsrfState = "session";
     },
     requestResponse,

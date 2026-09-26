@@ -849,3 +849,14 @@
 "premium.comingSoon.title" = "Premium arriverà presto";
 "premium.comingSoon.message" = "Gli abbonamenti non sono ancora disponibili.";
 "premium.aiLimit.title" = "Limite dei messaggi IA raggiunto";
+
+"settings.accentColor.title" = "Colore di risalto";
+"settings.accentColor.default" = "Predefinito";
+"settings.accentColor.blue" = "Blu";
+"settings.accentColor.purple" = "Viola";
+"settings.accentColor.pink" = "Rosa";
+"settings.accentColor.teal" = "Turchese";
+"settings.accentColor.gold" = "Oro";
+"settings.accentColor.custom" = "Colore personalizzato";
+"settings.accentColor.invalidHex" = "Inserisci un colore nel formato #RRGGBB, con sei cifre esadecimali.";
+"settings.accentColor.premiumNote" = "I colori di risalto personalizzati sono disponibili con Premium. Il colore salvato torna quando Premium è attivo.";

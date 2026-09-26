@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const ltCatalog: TranslationCatalog = {
+  accentColorSettings: {
+    title: "Akcento spalva",
+    subtitle: "Pasirinkite programėlės akcento spalvą.",
+    premiumNote: "Pasirinktinės akcento spalvos įtrauktos į Premium.",
+    custom: "Pasirinktinė spalva",
+    hexHelp: "Įveskite spalvą #RRGGBB formatu, be skaidrumo.",
+    current: "Dabartinė spalva: {{color}}",
+    saving: "Išsaugoma…",
+    default: "Numatytoji",
+    blue: "Mėlyna",
+    purple: "Violetinė",
+    pink: "Rožinė",
+    teal: "Mėlynai žalia",
+    gold: "Auksinė",
+    hex: "HEX",
+  },
   premium: {
     title: "Premium netrukus",
     unavailable: "Prenumeratos dar nepasiekiamos.",

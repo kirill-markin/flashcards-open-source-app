@@ -849,3 +849,14 @@
 "premium.comingSoon.title" = "Το Premium έρχεται σύντομα";
 "premium.comingSoon.message" = "Οι συνδρομές δεν είναι ακόμη διαθέσιμες.";
 "premium.aiLimit.title" = "Συμπληρώθηκε το όριο μηνυμάτων AI";
+
+"settings.accentColor.title" = "Χρώμα έμφασης";
+"settings.accentColor.default" = "Προεπιλογή";
+"settings.accentColor.blue" = "Μπλε";
+"settings.accentColor.purple" = "Μοβ";
+"settings.accentColor.pink" = "Ροζ";
+"settings.accentColor.teal" = "Τιρκουάζ";
+"settings.accentColor.gold" = "Χρυσό";
+"settings.accentColor.custom" = "Προσαρμοσμένο χρώμα";
+"settings.accentColor.invalidHex" = "Εισαγάγετε ένα χρώμα ως #RRGGBB, με έξι δεκαεξαδικά ψηφία.";
+"settings.accentColor.premiumNote" = "Τα προσαρμοσμένα χρώματα έμφασης διατίθενται με το Premium. Το αποθηκευμένο χρώμα σας επιστρέφει όταν το Premium είναι ενεργό.";

@@ -12,6 +12,7 @@ import {
 import { revalidateSession } from "../../api";
 import { useAppErrorDialog } from "../../appError/AppErrorContext";
 import { useI18n } from "../../i18n";
+import { readEntitlementIdentityGeneration } from "../../premium/entitlementStore";
 import { loadActiveCardCount } from "../../localDb/cards/cards";
 import { isIndexedDbUnavailableError } from "../../localDb/core/indexedDbAvailability";
 import type {
@@ -27,6 +28,7 @@ import type { AppDataContextValue, Props, SessionLoadState } from "./types";
 import { useProgressInvalidationRefresh } from "../progress/invalidation/progressInvalidation";
 import { isTestSeedBridgeEnabled, type AppDataTestSeedBridge } from "../sync/local/testSeedBridge";
 import { useSyncEngine } from "../sync/engine/useSyncEngine";
+import { mergeRefreshedSessionPreferences, readAccountPreferencesWriteVersion } from "../session/accentColorWrite";
 import { useWorkspaceSession } from "../session/useWorkspaceSession";
 import type { SessionVerificationState } from "../session/workspaceSessionTypes";
 import { loadWarmStartSnapshot, storeWarmStartSnapshot } from "../session/activation/warmStart";
@@ -39,13 +41,13 @@ import {
 
 const AppDataContext = createContext<AppDataContextValue | null>(null);
 
-function replaceSessionAccountPreferences(
+function mergeSessionAccountPreferences(
   session: SessionInfo,
-  preferences: AccountPreferences,
+  preferences: Partial<AccountPreferences>,
 ): SessionInfo {
   return {
     ...session,
-    preferences,
+    preferences: { ...session.preferences, ...preferences },
   };
 }
 
@@ -379,15 +381,17 @@ export function AppDataProvider(props: Props): ReactElement {
 
   const setAccountPreferences = useCallback(function setAccountPreferences(
     userId: string,
-    preferences: AccountPreferences,
+    preferences: Partial<AccountPreferences>,
   ): void {
+    const generation = readEntitlementIdentityGeneration();
     accountPreferencesMutationVersionRef.current += 1;
     setSession((currentSession): SessionInfo | null => {
-      if (currentSession === null || currentSession.userId !== userId) {
+      if (currentSession === null || currentSession.userId !== userId
+        || generation !== readEntitlementIdentityGeneration()) {
         return currentSession;
       }
 
-      return replaceSessionAccountPreferences(currentSession, preferences);
+      return mergeSessionAccountPreferences(currentSession, preferences);
     });
   }, []);
 
@@ -401,14 +405,17 @@ export function AppDataProvider(props: Props): ReactElement {
       throw new Error(t("app.sessionRestoringActionLocked"));
     }
 
+    const generation = readEntitlementIdentityGeneration();
     const refreshStartedAtMutationVersion = accountPreferencesMutationVersionRef.current;
+    const preferenceWriteVersion = readAccountPreferencesWriteVersion();
     const refreshedSession = await revalidateSession();
-    if (refreshedSession.userId !== sessionUserId) {
+    if (refreshedSession.userId !== sessionUserId || generation !== readEntitlementIdentityGeneration()) {
       throw new Error(t("app.sessionUnavailable"));
     }
 
     setSession((currentSession): SessionInfo | null => {
-      if (currentSession === null || currentSession.userId !== refreshedSession.userId) {
+      if (currentSession === null || currentSession.userId !== refreshedSession.userId
+        || generation !== readEntitlementIdentityGeneration()) {
         return currentSession;
       }
 
@@ -416,7 +423,7 @@ export function AppDataProvider(props: Props): ReactElement {
         return mergeRefreshedAccountSessionWithoutPreferences(currentSession, refreshedSession);
       }
 
-      return mergeRefreshedAccountSession(currentSession, refreshedSession);
+      return mergeRefreshedAccountSession(currentSession, mergeRefreshedSessionPreferences(currentSession, refreshedSession, preferenceWriteVersion));
     });
     setSessionErrorMessage("");
     setErrorMessage("");

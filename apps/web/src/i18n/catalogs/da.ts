@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const daCatalog: TranslationCatalog = {
+  accentColorSettings: {
+    title: "Accentfarve",
+    subtitle: "Vælg appens accentfarve.",
+    premiumNote: "Tilpassede accentfarver er inkluderet i Premium.",
+    custom: "Tilpasset farve",
+    hexHelp: "Indtast en farve i formatet #RRGGBB uden gennemsigtighed.",
+    current: "Aktuel farve: {{color}}",
+    saving: "Gemmer…",
+    default: "Standard",
+    blue: "Blå",
+    purple: "Lilla",
+    pink: "Lyserød",
+    teal: "Blågrøn",
+    gold: "Guld",
+    hex: "HEX",
+  },
   premium: {
     title: "Premium kommer snart",
     unavailable: "Abonnementer er endnu ikke tilgængelige.",

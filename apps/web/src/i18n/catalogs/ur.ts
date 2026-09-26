@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const urCatalog: TranslationCatalog = {
+  accentColorSettings: {
+    title: "نمایاں رنگ",
+    subtitle: "ایپ کا نمایاں رنگ منتخب کریں۔",
+    premiumNote: "اپنی پسند کے نمایاں رنگ Premium میں شامل ہیں۔",
+    custom: "پسند کا رنگ",
+    hexHelp: "شفافیت کے بغیر #RRGGBB فارمیٹ میں رنگ درج کریں۔",
+    current: "موجودہ رنگ: {{color}}",
+    saving: "محفوظ ہو رہا ہے…",
+    default: "ڈیفالٹ",
+    blue: "نیلا",
+    purple: "جامنی",
+    pink: "گلابی",
+    teal: "نیلا سبز",
+    gold: "سنہری",
+    hex: "HEX",
+  },
   premium: {
     title: "Premium جلد آ رہا ہے",
     unavailable: "سبسکرپشنز ابھی دستیاب نہیں ہیں۔",

@@ -114,7 +114,7 @@
 }
 
 .progress-chart-column.is-selected .progress-chart-bar-shell {
-  background: rgba(196, 75, 45, 0.32);
+  background: rgba(var(--accent-rgb), 0.32);
 }
 
 .progress-chart-column.is-dimmed .progress-chart-labels {

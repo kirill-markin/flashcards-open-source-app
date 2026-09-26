@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const arCatalog: TranslationCatalog = {
+  accentColorSettings: {
+    title: "لون التمييز",
+    subtitle: "اختر لون التمييز للتطبيق.",
+    premiumNote: "ألوان التمييز المخصصة متاحة مع Premium.",
+    custom: "لون مخصص",
+    hexHelp: "أدخل لونًا بتنسيق #RRGGBB بدون شفافية.",
+    current: "اللون الحالي: {{color}}",
+    saving: "جارٍ الحفظ…",
+    default: "الافتراضي",
+    blue: "أزرق",
+    purple: "بنفسجي",
+    pink: "وردي",
+    teal: "أزرق مخضر",
+    gold: "ذهبي",
+    hex: "HEX",
+  },
   premium: {
     title: "Premium قريبًا",
     unavailable: "الاشتراكات غير متاحة بعد.",

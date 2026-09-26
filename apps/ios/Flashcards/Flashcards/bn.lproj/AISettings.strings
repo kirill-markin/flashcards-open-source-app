@@ -849,3 +849,14 @@
 "premium.comingSoon.title" = "Premium শীঘ্রই আসছে";
 "premium.comingSoon.message" = "সাবস্ক্রিপশন এখনও উপলব্ধ নয়।";
 "premium.aiLimit.title" = "AI বার্তার সীমায় পৌঁছেছেন";
+
+"settings.accentColor.title" = "অ্যাকসেন্ট রং";
+"settings.accentColor.default" = "ডিফল্ট";
+"settings.accentColor.blue" = "নীল";
+"settings.accentColor.purple" = "বেগুনি";
+"settings.accentColor.pink" = "গোলাপি";
+"settings.accentColor.teal" = "ফিরোজা";
+"settings.accentColor.gold" = "সোনালি";
+"settings.accentColor.custom" = "পছন্দের রং";
+"settings.accentColor.invalidHex" = "ছয়টি হেক্সাডেসিমেল অঙ্ক দিয়ে #RRGGBB আকারে একটি রং লিখুন।";
+"settings.accentColor.premiumNote" = "পছন্দের অ্যাকসেন্ট রং Premium-এ পাওয়া যায়। Premium সক্রিয় হলে আপনার সংরক্ষিত রং ফিরে আসে।";

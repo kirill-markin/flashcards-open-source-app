@@ -72,11 +72,13 @@ export async function revokeAgentApiKey(connectionId: string): Promise<AgentApiK
 /** Writes only the fields the caller names; anything it leaves out keeps its stored value. */
 export async function updateAccountPreferences(
   request: AccountPreferencesUpdate,
+  identity?: Readonly<{ userId: string; signal: AbortSignal }>,
 ): Promise<AccountPreferencesEnvelope> {
   return parseContractResponse(await requestJson("/me/preferences", {
     method: "PATCH",
     body: JSON.stringify(request),
-  }, allowAuthRecovery), "PATCH /me/preferences", parseAccountPreferencesEnvelopeResponse);
+    signal: identity?.signal,
+  }, { ...allowAuthRecovery, expectedUserId: identity?.userId ?? null }), "PATCH /me/preferences", parseAccountPreferencesEnvelopeResponse);
 }
 
 export async function loadCommunityProfile(): Promise<CommunityPublicProfile> {

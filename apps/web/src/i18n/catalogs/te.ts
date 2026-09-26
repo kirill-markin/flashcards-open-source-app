@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const teCatalog: TranslationCatalog = {
+  accentColorSettings: {
+    title: "ప్రధాన రంగు",
+    subtitle: "యాప్ ప్రధాన రంగును ఎంచుకోండి.",
+    premiumNote: "అనుకూల ప్రధాన రంగులు Premiumలో ఉన్నాయి.",
+    custom: "అనుకూల రంగు",
+    hexHelp: "పారదర్శకత లేకుండా #RRGGBB ఆకృతిలో రంగును నమోదు చేయండి.",
+    current: "ప్రస్తుత రంగు: {{color}}",
+    saving: "సేవ్ చేస్తోంది…",
+    default: "డిఫాల్ట్",
+    blue: "నీలం",
+    purple: "ఊదా",
+    pink: "గులాబీ",
+    teal: "నీలి ఆకుపచ్చ",
+    gold: "బంగారు",
+    hex: "HEX",
+  },
   premium: {
     title: "Premium త్వరలో వస్తోంది",
     unavailable: "సబ్‌స్క్రిప్షన్‌లు ఇంకా అందుబాటులో లేవు.",

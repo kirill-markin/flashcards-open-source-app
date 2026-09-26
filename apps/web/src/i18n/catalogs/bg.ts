@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const bgCatalog: TranslationCatalog = {
+  accentColorSettings: {
+    title: "Акцентен цвят",
+    subtitle: "Изберете акцентния цвят на приложението.",
+    premiumNote: "Персонализираните акцентни цветове са включени в Premium.",
+    custom: "Персонализиран цвят",
+    hexHelp: "Въведете цвят във формат #RRGGBB, без прозрачност.",
+    current: "Текущ цвят: {{color}}",
+    saving: "Запазване…",
+    default: "По подразбиране",
+    blue: "Син",
+    purple: "Лилав",
+    pink: "Розов",
+    teal: "Синьо-зелен",
+    gold: "Златист",
+    hex: "HEX",
+  },
   premium: {
     title: "Premium идва скоро",
     unavailable: "Абонаментите все още не са налични.",

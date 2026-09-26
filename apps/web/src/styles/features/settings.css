@@ -107,7 +107,7 @@
 }
 
 .settings-toggle-control[data-state="on"] .settings-toggle-track {
-  background: rgba(196, 75, 45, 0.78);
+  background: rgba(var(--accent-rgb), 0.78);
 }
 
 .settings-toggle-control[data-state="on"] .settings-toggle-thumb {
@@ -203,9 +203,9 @@
 .settings-temporary-banner {
   margin: 0 0 4px;
   padding: 13px 16px;
-  border: 1px solid rgba(196, 75, 45, 0.35);
+  border: 1px solid rgba(var(--accent-rgb), 0.35);
   border-radius: var(--panel-inner-radius, var(--radius-md));
-  background: rgba(196, 75, 45, 0.12);
+  background: rgba(var(--accent-rgb), 0.12);
   color: #ffd7cb;
 }
 
@@ -538,8 +538,8 @@
 }
 
 .settings-workspace-choice-active {
-  border-color: rgba(196, 75, 45, 0.45);
-  background: rgba(196, 75, 45, 0.14);
+  border-color: rgba(var(--accent-rgb), 0.45);
+  background: rgba(var(--accent-rgb), 0.14);
 }
 
 .settings-workspace-choice-name {
@@ -977,4 +977,71 @@
     align-items: flex-start;
     flex-direction: column;
   }
+}
+
+.accent-presets {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.accent-presets legend {
+  margin-block-end: 10px;
+}
+
+.accent-option {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.accent-option input {
+  accent-color: var(--accent);
+}
+
+.accent-option .badge {
+  margin-inline-start: auto;
+}
+
+.accent-swatch {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border: 1px solid var(--panel-border-strong);
+  border-radius: 50%;
+}
+
+.accent-custom {
+  display: grid;
+  gap: 12px;
+}
+
+.accent-custom-picker,
+.accent-custom-hex {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.accent-custom-picker input {
+  width: 64px;
+  height: 40px;
+  padding: 2px;
+}
+
+.accent-custom[data-selected="true"] {
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.accent-custom-selected {
+  justify-self: start;
+}
+
+.accent-custom-selected > span {
+  color: var(--accent);
 }

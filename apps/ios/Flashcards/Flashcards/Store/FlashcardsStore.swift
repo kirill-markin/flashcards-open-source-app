@@ -61,6 +61,8 @@ final class FlashcardsStore {
     var schedulerSettings: WorkspaceSchedulerSettings?
     var cloudSettings: CloudSettings?
     var accountPreferences: AccountPreferences
+    var pendingAccentColor: PendingAccountAccentColor? = nil
+    @ObservationIgnored var isAccentColorSaveScheduled: Bool = false
     /// The product-analytics switch as the client actually holds it, which is the stored answer except
     /// in a UI-test launch, where it is forced off. Read at init so it is right offline and before the
     /// launch's first `/me`; see `ProductAnalyticsPreference`.
@@ -138,13 +140,19 @@ final class FlashcardsStore {
     @ObservationIgnored var reviewRuntime: ReviewQueueRuntime
     @ObservationIgnored var reviewSubmissionOutboxMutationGate: ReviewSubmissionOutboxMutationGate
     @ObservationIgnored var cloudRuntime: CloudSessionRuntime
-    @ObservationIgnored var accountPreferencesIdentityKey: String?
+    var accountPreferencesIdentityKey: String? {
+        didSet {
+            if oldValue != self.accountPreferencesIdentityKey {
+                self.pendingAccentColor = nil
+                self.accentColorIdentityGeneration += 1
+            }
+        }
+    }
+    @ObservationIgnored var accentColorIdentityGeneration: Int = 0
     @ObservationIgnored var accountPreferencesRefreshGeneration: Int
     @ObservationIgnored var communityProfileRefreshGeneration: Int
     @ObservationIgnored var isAccountPreferencesUpdateInFlight: Bool
-    /// The product-analytics PATCH currently in flight, if any. Every push waits for it before
-    /// sending, so two bodies carrying opposite answers can never race to be the server's last writer.
-    @ObservationIgnored var productAnalyticsPushTask: Task<Void, Never>?
+    @ObservationIgnored var accountPreferencesUpdateTask: Task<Void, Never>?
     @ObservationIgnored var isAccountDeletionRunning: Bool
     @ObservationIgnored var isGuestUpgradeLocalOutboxMutationBlocked: Bool
     /// Whether the `signed_out` row for the sign-out currently being attempted has already been
@@ -546,7 +554,7 @@ final class FlashcardsStore {
         self.accountPreferencesRefreshGeneration = 0
         self.communityProfileRefreshGeneration = 0
         self.isAccountPreferencesUpdateInFlight = false
-        self.productAnalyticsPushTask = nil
+        self.accountPreferencesUpdateTask = nil
         self.isAccountDeletionRunning = false
         self.isGuestUpgradeLocalOutboxMutationBlocked = false
         self.hasReportedPendingSignOut = false

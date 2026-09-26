@@ -7,7 +7,6 @@ import * as cloudwatch from "aws-cdk-lib/aws-cloudwatch";
 import * as cloudwatchActions from "aws-cdk-lib/aws-cloudwatch-actions";
 import * as logs from "aws-cdk-lib/aws-logs";
 import * as sns from "aws-cdk-lib/aws-sns";
-import * as snsSubscriptions from "aws-cdk-lib/aws-sns-subscriptions";
 import { Construct } from "constructs";
 import {
   globalMetricsSnapshotFreshnessCheckIntervalHours,
@@ -44,16 +43,16 @@ const progressActiveDaysBackfillStaleEvaluationPeriods = 2;
 const webGuestReaperStaleEvaluationPeriods = 2;
 
 export interface MonitoringProps {
-  alertEmail: string;
+  alertTopic: sns.Topic;
+  sourceStackName: string;
   db: rds.DatabaseInstance;
   restApi: apigw.RestApi;
   authRestApi: apigw.RestApi;
   mcpHttpApi: apigwv2.HttpApi;
-  // `lambda.Function` rather than `lambda.IFunction` because product analytics monitoring reads
-  // `.logGroup`, which only the concrete class exposes. See that module's log group comment for why
-  // the getter is the right way to reach the group.
-  backendFn: lambda.Function;
-  directImageIngestionFn: lambda.Function;
+  backendFn: lambda.IFunction;
+  backendLogGroup: logs.ILogGroup;
+  directImageIngestionFn: lambda.IFunction;
+  directImageIngestionLogGroup: logs.ILogGroup;
   authFn: lambda.IFunction;
   mcpFn: lambda.IFunction;
   authApiAccessLogGroup: logs.ILogGroup;
@@ -64,14 +63,14 @@ export interface MonitoringProps {
   communityLeaderboardSnapshotFn: lambda.IFunction;
   streakLeaderboardSnapshotFn: lambda.IFunction;
   progressActiveDaysBackfillFn: lambda.IFunction;
-  // Concrete `lambda.Function` for the same reason as the two above: the saturation metric filter
-  // reads `.logGroup`.
-  webGuestReaperFn: lambda.Function;
+  webGuestReaperFn: lambda.IFunction;
+  webGuestReaperLogGroup: logs.ILogGroup;
   countryRetentionFn: lambda.IFunction;
   dailyVisitorHashSaltExpiryFn: lambda.IFunction;
   syntheticActorDetectorFn: lambda.IFunction;
   generatedMediaPromotionFn: lambda.IFunction;
-  multipartCompletionReconciliationFn: lambda.Function;
+  multipartCompletionReconciliationFn: lambda.IFunction;
+  multipartCompletionReconciliationLogGroup: logs.ILogGroup;
   catalogDumpFn: lambda.IFunction;
   baseDomain: string;
   apiCertificateArn: string | undefined;
@@ -89,10 +88,6 @@ export interface MonitoringProps {
   // The same hosts, but each undefined until it is declared live. The heartbeat
   // alarms below must cover exactly the targets the heartbeat itself probes.
   alternateHeartbeatHosts: AlternateHeartbeatHosts;
-}
-
-export interface MonitoringResult {
-  alertTopic: sns.Topic;
 }
 
 const authApiAccessLog5xxMetricNamespace: string = "FlashcardsOpenSourceApp/Auth";
@@ -258,11 +253,8 @@ function createCertificateExpiryAlarm(scope: Construct, props: CertificateExpiry
   }), props.alertTopic);
 }
 
-export function monitoring(scope: Construct, props: MonitoringProps): MonitoringResult {
-  const alertTopic = new sns.Topic(scope, "AlertTopic", {
-    topicName: "flashcards-open-source-app-alerts",
-  });
-  alertTopic.addSubscription(new snsSubscriptions.EmailSubscription(props.alertEmail));
+export function monitoring(scope: Construct, props: MonitoringProps): void {
+  const alertTopic = props.alertTopic;
 
   // Connection saturation here is a burst: a spike lasts about a minute, so a 5-minute average
   // is dominated by the idle minutes around it and two consecutive breaching periods never
@@ -498,7 +490,7 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     scope,
     "DirectImageIngestionHandled5xxMetricFilter",
     {
-      logGroup: props.directImageIngestionFn.logGroup,
+      logGroup: props.directImageIngestionLogGroup,
       filterPattern: createDirectImageIngestionHandled5xxFilterPattern(),
       metricNamespace: directImageIngestionHandled5xxMetricNamespace,
       metricName: directImageIngestionHandled5xxMetricName,
@@ -521,7 +513,7 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
 
   addProductAnalyticsMonitoring(scope, {
     restApi: props.restApi,
-    backendFn: props.backendFn,
+    backendLogGroup: props.backendLogGroup,
     notifyAlert: (alarm: cloudwatch.Alarm): void => notifyAlertTopic(alarm, alertTopic),
   });
 
@@ -619,7 +611,7 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
       namespace: globalMetricsSnapshotFreshnessMetricNamespace,
       metricName: globalMetricsSnapshotFreshnessMetricName,
       dimensionsMap: {
-        [globalMetricsSnapshotFreshnessMetricStackDimensionName]: cdk.Stack.of(scope).stackName,
+        [globalMetricsSnapshotFreshnessMetricStackDimensionName]: props.sourceStackName,
       },
       period: cdk.Duration.hours(globalMetricsSnapshotFreshnessCheckIntervalHours),
       statistic: "Maximum",
@@ -768,7 +760,7 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     scope,
     "WebGuestReaperSaturationMetricFilter",
     {
-      logGroup: props.webGuestReaperFn.logGroup,
+      logGroup: props.webGuestReaperLogGroup,
       filterPattern: createWebGuestReaperSaturationFilterPattern(),
       metricNamespace: webGuestReaperSaturationMetricNamespace,
       metricName: webGuestReaperSaturationMetricName,
@@ -904,7 +896,7 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
       scope,
       "MultipartCompletionReconciliationFailureMetricFilter",
       {
-        logGroup: props.multipartCompletionReconciliationFn.logGroup,
+        logGroup: props.multipartCompletionReconciliationLogGroup,
         filterPattern:
           createMultipartCompletionReconciliationFailureFilterPattern(),
         metricNamespace:
@@ -939,8 +931,7 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
   // Neither condition appears in Lambda Errors. The hard failure does also raise the API Gateway
   // 5XX alarm, because the credential-free collector refuses its events rather than storing a null
   // country, but these two alarms are the only ones that name the cause. Both filters read the
-  // backend API Lambda's log group; see the log group comment in
-  // ./product-analytics-monitoring.ts for why `.logGroup` is the right handle.
+  // backend API Lambda's core-owned log group.
 
   // Hard failure: the object is gone or unreadable, the environment is unconfigured, the database
   // is the wrong type, or it has already crossed the 30-day cliff. All of them throw out of the
@@ -949,7 +940,7 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     scope,
     "GeoLiteCountryLookupFailureMetricFilter",
     {
-      logGroup: props.backendFn.logGroup,
+      logGroup: props.backendLogGroup,
       filterPattern: createGeoLiteCountryLookupFailureFilterPattern(),
       metricNamespace: geoLiteCountryMetricNamespace,
       metricName: geoLiteCountryLookupFailureMetricName,
@@ -993,7 +984,7 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     scope,
     "GeoLiteCountryDatabaseAgeMetricFilter",
     {
-      logGroup: props.backendFn.logGroup,
+      logGroup: props.backendLogGroup,
       filterPattern: createGeoLiteCountryDatabaseLoadedFilterPattern(),
       metricNamespace: geoLiteCountryMetricNamespace,
       metricName: geoLiteCountryDatabasePublishedAgeMetricName,
@@ -1028,6 +1019,4 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
       "docs/geolite-country.md has the runbook",
     treatMissingData: cloudwatch.TreatMissingData.IGNORE,
   }), alertTopic);
-
-  return { alertTopic };
 }
