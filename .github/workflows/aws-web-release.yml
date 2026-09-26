@@ -385,6 +385,12 @@ jobs:
             --install-dir "${RUNNER_TEMP}/monitoring-aws" --bin-dir "${RUNNER_TEMP}/monitoring-bin"
           echo "${RUNNER_TEMP}/monitoring-bin" >> "${GITHUB_PATH}"
 
+      - name: Resume the reviewed monitoring refactor before deployment
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
+        run: |
+          python3 scripts/deploy/migrate-monitoring-stack.py resume-reviewed \
+            --directory "${RUNNER_TEMP}/monitoring-reviewed-resume"
+
       - name: Resolve authoritative monitoring ownership before deployment
         id: monitoring_ownership
         if: ${{ needs.changes.outputs.deploy_platform == 'true' }}

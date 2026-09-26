@@ -120,8 +120,13 @@ environments. Only sanitized mappings/counts are public artifacts.
 
 `CreateStackRefactor` must reach `CREATE_COMPLETE` / `AVAILABLE`. Every paginated
 server action must match the exact 66 physical resource moves and optionally one
-target `STACK/CREATE`. Resource creation, unexpected tags/mappings or deferred
-configuration validation stop before execution. The source template, stack,
+target `STACK/CREATE`. Resource creation and unexpected tags/mappings stop before
+execution. MOVE descriptions must be exactly `No configuration changes detected.`
+or `Resource configuration changes will be validated during refactor execution.`
+The [AWS procedure](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/stack-refactoring.html#stack-refactoring-cli)
+documents both descriptions before execution. Deferred validation does not permit
+configuration changes; the strict template and preservation gates still apply.
+The source template, stack,
 identities and monitoring configuration must still match the captured baseline.
 The driver executes only that refactor ID and requires `EXECUTE_COMPLETE`, then
 polls both authoritative stack IDs for up to ten minutes. Only expected create/update
@@ -152,9 +157,46 @@ receipt is also blocked with its operation ID, even when ownership already moved
 For explicit recovery, retain the original private before/after evidence and establish
 all original identity, output and runtime preservation checks in a separately reviewed
 CI procedure before writing a receipt. Never write one merely because execution
-completed or type counts match. There is no automatic recovery/resume path.
+completed or type counts match. Recovery is limited to the reviewed operation below.
 A preview may reserve an empty target stack. Do not delete it
 or recreate resources to clear a blocked run.
+
+### Reviewed available-operation resume
+
+Before ownership resolution or any ordinary CDK deployment, `AWS/Web Release`
+runs the CI-only `resume-reviewed` command under `main-release` concurrency with
+the pinned AWS CLI. It may execute only operation
+`b25a93ec-bef4-4f12-9083-bdb41e4a5af3`, using the exact source and target ARNs and
+three SHA256 evidence digests embedded in `migrate-monitoring-stack.py`.
+It never creates another preview or realigns the source to the current commit.
+
+The original `operation.private.json`, `before.private.json` and
+`actions.private.json` are downloaded privately from the bootstrap bucket under
+`monitoring-refactor/36241107324/1/<content-hash>/` using the file-publishing role.
+Every hash is checked before parsing. Do not print these snapshots or upload them
+as artifacts. The original transport templates remain at that prefix unchanged.
+
+Execution requires `CREATE_COMPLETE` / `AVAILABLE`, no other unresolved relevant
+refactor, the original `UPDATE_COMPLETE` source with all 497 identities, template,
+stack state/outputs and alarm/filter/SNS configurations unchanged, no source stack
+policy, and the exact empty target in `REVIEW_IN_PROGRESS`. Current actions must
+match the saved actions and the exact 66 original moves, allowing only the two
+documented MOVE descriptions to differ. The driver repeats this freshness check
+immediately before executing the pinned ID, then uses the same stabilization,
+preservation, private after-snapshot and verified-receipt path as the initial move.
+
+Later releases accept this operation only at `CREATE_COMPLETE` / `EXECUTE_COMPLETE`
+with its existing verified receipt and matching current stack/moved identities.
+They do not compare obsolete core Lambda versions against the original snapshot.
+If the pinned ID is absent, the existing ownership gate must pass before returning
+to the generic fresh, legacy or split path; other unresolved operations and reserved
+empty targets remain blocked. Missing evidence, drift, unexpected statuses and
+execution without a verified receipt stop the release for a new reviewed procedure.
+
+After recovery, ordinary ownership resolution selects split and the existing
+two-pass deployment, database/schedule verification, web/API/MCP smokes and deployed
+SHA recording must complete. Cleanup remains separate until that full release and
+the expected 431 core / 67 monitoring resources are verified.
 
 After transfer, use fix-forward split releases. Never revert to the old topology,
 rerun old legacy workflow code, delete/recreate monitoring resources, or substitute
