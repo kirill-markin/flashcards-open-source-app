@@ -30,10 +30,12 @@ const domainName = getRequiredContext("domainName", "Provide CDK context via the
 const alertEmail = getRequiredContext("alertEmail", "Provide CDK context via the local helper scripts or pass -c alertEmail=alerts@example.com");
 const githubRepo = getRequiredContext("githubRepo", "Provide CDK context via the local helper scripts or pass -c githubRepo=kirill-markin/flashcards-open-source-app");
 
-const monitoringTopology = app.node.tryGetContext("monitoringTopology") as string | undefined;
-if (monitoringTopology !== undefined && monitoringTopology !== "legacy" && monitoringTopology !== "split") {
+const monitoringTopology = (app.node.tryGetContext("monitoringTopology") as string | undefined) ?? "split";
+if (monitoringTopology !== "legacy" && monitoringTopology !== "split") {
   throw new Error("monitoringTopology must be legacy or split");
 }
+
+app.node.setContext("monitoringTopology", monitoringTopology);
 
 const core = new FlashcardsOpenSourceAppStack(app, "FlashcardsOpenSourceApp", {
   env: {
