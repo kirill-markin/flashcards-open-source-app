@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const thCatalog: TranslationCatalog = {
+  accentColorSettings: {
+    title: "สีเน้น",
+    subtitle: "เลือกสีเน้นของแอป",
+    premiumNote: "สีเน้นแบบกำหนดเองรวมอยู่ใน Premium",
+    custom: "สีแบบกำหนดเอง",
+    hexHelp: "ป้อนสีในรูปแบบ #RRGGBB โดยไม่มีความโปร่งใส",
+    current: "สีปัจจุบัน: {{color}}",
+    saving: "กำลังบันทึก…",
+    default: "ค่าเริ่มต้น",
+    blue: "น้ำเงิน",
+    purple: "ม่วง",
+    pink: "ชมพู",
+    teal: "เขียวอมฟ้า",
+    gold: "ทอง",
+    hex: "HEX",
+  },
   premium: {
     title: "Premium กำลังจะมาเร็ว ๆ นี้",
     unavailable: "ยังไม่สามารถสมัครสมาชิกได้ในขณะนี้",

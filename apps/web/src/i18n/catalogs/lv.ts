@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const lvCatalog: TranslationCatalog = {
+  accentColorSettings: {
+    title: "Akcenta krāsa",
+    subtitle: "Izvēlieties lietotnes akcenta krāsu.",
+    premiumNote: "Pielāgotas akcenta krāsas ir iekļautas Premium.",
+    custom: "Pielāgota krāsa",
+    hexHelp: "Ievadiet krāsu formātā #RRGGBB bez caurspīdīguma.",
+    current: "Pašreizējā krāsa: {{color}}",
+    saving: "Saglabā…",
+    default: "Noklusējums",
+    blue: "Zila",
+    purple: "Violeta",
+    pink: "Rozā",
+    teal: "Zilganzaļa",
+    gold: "Zeltaina",
+    hex: "HEX",
+  },
   premium: {
     title: "Premium būs pieejams drīzumā",
     unavailable: "Abonementi vēl nav pieejami.",

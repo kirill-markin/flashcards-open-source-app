@@ -849,3 +849,14 @@
 "premium.comingSoon.title" = "Premium kommer snart";
 "premium.comingSoon.message" = "Prenumerationer är inte tillgängliga ännu.";
 "premium.aiLimit.title" = "Gränsen för AI-meddelanden har nåtts";
+
+"settings.accentColor.title" = "Accentfärg";
+"settings.accentColor.default" = "Standard";
+"settings.accentColor.blue" = "Blå";
+"settings.accentColor.purple" = "Lila";
+"settings.accentColor.pink" = "Rosa";
+"settings.accentColor.teal" = "Turkos";
+"settings.accentColor.gold" = "Guld";
+"settings.accentColor.custom" = "Egen färg";
+"settings.accentColor.invalidHex" = "Ange en färg som #RRGGBB med sex hexadecimala siffror.";
+"settings.accentColor.premiumNote" = "Egna accentfärger är tillgängliga med Premium. Din sparade färg återkommer när Premium är aktivt.";

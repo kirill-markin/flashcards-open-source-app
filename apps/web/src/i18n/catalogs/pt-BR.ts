@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const ptBrCatalog: TranslationCatalog = {
+  accentColorSettings: {
+    title: "Cor de destaque",
+    subtitle: "Escolha a cor de destaque do aplicativo.",
+    premiumNote: "Cores de destaque personalizadas estão incluídas no Premium.",
+    custom: "Cor personalizada",
+    hexHelp: "Insira uma cor no formato #RRGGBB, sem transparência.",
+    current: "Cor atual: {{color}}",
+    saving: "Salvando…",
+    default: "Padrão",
+    blue: "Azul",
+    purple: "Roxo",
+    pink: "Rosa",
+    teal: "Verde-azulado",
+    gold: "Dourado",
+    hex: "HEX",
+  },
   premium: {
     title: "Premium chega em breve",
     unavailable: "As assinaturas ainda não estão disponíveis.",

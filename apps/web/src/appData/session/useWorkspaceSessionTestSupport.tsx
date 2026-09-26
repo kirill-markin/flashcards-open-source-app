@@ -106,6 +106,7 @@ export const seededSession: SessionInfo = {
   authTransport: "session",
   csrfToken: "csrf-seeded",
   preferences: {
+    accentColor: "#C44B2D",
     reviewReactionAnimationsEnabled: true,
     analyticsConsent: null,
     productAnalyticsEnabled: null,
@@ -198,6 +199,7 @@ export function buildSessionResponseForUser(userId: string, selectedWorkspaceId:
     authTransport: "session",
     csrfToken,
     preferences: {
+      accentColor: "#C44B2D",
       reviewReactionAnimationsEnabled: true,
       analyticsConsent: null,
       productAnalyticsEnabled: null,

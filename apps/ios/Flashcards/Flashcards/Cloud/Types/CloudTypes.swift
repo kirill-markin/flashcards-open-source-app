@@ -75,10 +75,31 @@ struct AccountPreferences: Codable, Hashable, Sendable {
     /// stored on this device and is forced off in a UI-test launch. Reading a switch state off this
     /// snapshot would bypass both.
     let productAnalyticsEnabled: Bool?
+    let accentColor: AccountAccentColor
+
+    init(reviewReactionAnimationsEnabled: Bool, productAnalyticsEnabled: Bool?, accentColor: AccountAccentColor) {
+        self.reviewReactionAnimationsEnabled = reviewReactionAnimationsEnabled
+        self.productAnalyticsEnabled = productAnalyticsEnabled
+        self.accentColor = accentColor
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case reviewReactionAnimationsEnabled, productAnalyticsEnabled, accentColor
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.reviewReactionAnimationsEnabled = try container.decode(Bool.self, forKey: .reviewReactionAnimationsEnabled)
+        self.productAnalyticsEnabled = try container.decodeIfPresent(Bool.self, forKey: .productAnalyticsEnabled)
+        // Account caches and pending guest upgrades written before this setting have no color field.
+        self.accentColor = container.contains(.accentColor)
+            ? try container.decode(AccountAccentColor.self, forKey: .accentColor)
+            : .defaultColor
+    }
 }
 
 func makeDefaultAccountPreferences() -> AccountPreferences {
-    AccountPreferences(reviewReactionAnimationsEnabled: true, productAnalyticsEnabled: nil)
+    AccountPreferences(reviewReactionAnimationsEnabled: true, productAnalyticsEnabled: nil, accentColor: .defaultColor)
 }
 
 /**
@@ -101,6 +122,7 @@ enum AnalyticsPreferenceWriteOrigin: String, Encodable, Hashable, Sendable {
 
 /// One PATCH /me/preferences body. A nil field is left out of the JSON and keeps its stored value.
 struct AccountPreferencesPatchRequest: Encodable, Hashable, Sendable {
+    var accentColor: AccountAccentColor?
     var reviewReactionAnimationsEnabled: Bool?
     var productAnalyticsEnabled: Bool?
     /// Who asked for `productAnalyticsEnabled`. Named on every push that carries an answer, rather

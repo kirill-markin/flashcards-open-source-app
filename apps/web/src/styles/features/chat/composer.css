@@ -206,7 +206,7 @@
 
 .chat-mic-btn-recording {
   color: #fff4ef;
-  background: rgba(196, 75, 45, 0.92);
+  background: rgba(var(--accent-rgb), 0.92);
   border-color: transparent;
 }
 

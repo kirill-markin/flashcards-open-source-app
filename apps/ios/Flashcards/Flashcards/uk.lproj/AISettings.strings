@@ -849,3 +849,14 @@
 "premium.comingSoon.title" = "Premium незабаром з’явиться";
 "premium.comingSoon.message" = "Підписки поки недоступні.";
 "premium.aiLimit.title" = "Досягнуто ліміту повідомлень ШІ";
+
+"settings.accentColor.title" = "Колір акценту";
+"settings.accentColor.default" = "За замовчуванням";
+"settings.accentColor.blue" = "Синій";
+"settings.accentColor.purple" = "Фіолетовий";
+"settings.accentColor.pink" = "Рожевий";
+"settings.accentColor.teal" = "Бірюзовий";
+"settings.accentColor.gold" = "Золотий";
+"settings.accentColor.custom" = "Власний колір";
+"settings.accentColor.invalidHex" = "Введіть колір у форматі #RRGGBB — шість шістнадцяткових цифр.";
+"settings.accentColor.premiumNote" = "Власні кольори акценту доступні з Premium. Збережений колір повернеться, коли Premium буде активним.";

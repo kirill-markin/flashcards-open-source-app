@@ -849,3 +849,14 @@
 "premium.comingSoon.title" = "Premium segera hadir";
 "premium.comingSoon.message" = "Langganan belum tersedia.";
 "premium.aiLimit.title" = "Batas pesan AI tercapai";
+
+"settings.accentColor.title" = "Warna aksen";
+"settings.accentColor.default" = "Default";
+"settings.accentColor.blue" = "Biru";
+"settings.accentColor.purple" = "Ungu";
+"settings.accentColor.pink" = "Merah muda";
+"settings.accentColor.teal" = "Toska";
+"settings.accentColor.gold" = "Emas";
+"settings.accentColor.custom" = "Warna khusus";
+"settings.accentColor.invalidHex" = "Masukkan warna sebagai #RRGGBB dengan enam digit heksadesimal.";
+"settings.accentColor.premiumNote" = "Warna aksen khusus tersedia dengan Premium. Warna tersimpan Anda kembali saat Premium aktif.";

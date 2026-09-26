@@ -328,7 +328,7 @@ private struct ProgressLeaderboardProfileActivityChart: View {
                     x: .value(self.dateAxisTitle, day.date, unit: .day),
                     y: .value(self.reviewAxisTitle, day.reviewCount)
                 )
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(.tint)
                 .accessibilityLabel(progressLeaderboardProfileActivityDateLabel(date: day.localDate))
                 .accessibilityValue(self.reviewCountText(reviewCount: day.reviewCount))
             }

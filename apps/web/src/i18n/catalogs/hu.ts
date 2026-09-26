@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const huCatalog: TranslationCatalog = {
+  accentColorSettings: {
+    title: "Kiemelőszín",
+    subtitle: "Válaszd ki az alkalmazás kiemelőszínét.",
+    premiumNote: "Az egyéni kiemelőszínek a Premium részei.",
+    custom: "Egyéni szín",
+    hexHelp: "Adj meg egy színt #RRGGBB formátumban, átlátszóság nélkül.",
+    current: "Jelenlegi szín: {{color}}",
+    saving: "Mentés…",
+    default: "Alapértelmezett",
+    blue: "Kék",
+    purple: "Lila",
+    pink: "Rózsaszín",
+    teal: "Kékeszöld",
+    gold: "Arany",
+    hex: "HEX",
+  },
   premium: {
     title: "Hamarosan érkezik a Premium",
     unavailable: "Az előfizetések még nem érhetők el.",
