@@ -32,6 +32,7 @@ const analyticsRequestOptions: RequestOptions = {
   authRecoveryMode: "skip",
   networkRetryMode: "none",
   prepareForAuthRedirect: null,
+  expectedUserId: null,
 };
 
 // A malformed 200 body still means the server finished the batch, so the payload is read
