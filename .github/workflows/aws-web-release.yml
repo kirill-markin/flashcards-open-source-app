@@ -385,6 +385,12 @@ jobs:
             --install-dir "${RUNNER_TEMP}/monitoring-aws" --bin-dir "${RUNNER_TEMP}/monitoring-bin"
           echo "${RUNNER_TEMP}/monitoring-bin" >> "${GITHUB_PATH}"
 
+      - name: Recover the exact unchanged alarm rollback failures
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
+        run: |
+          python3 scripts/deploy/migrate-monitoring-stack.py recover-unchanged-alarms \
+            --directory "${RUNNER_TEMP}/monitoring-alarm-recovery"
+
       - name: Restore the reviewed original core stack control
         if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
         run: |

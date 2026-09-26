@@ -161,6 +161,33 @@ completed or type counts match. Recovery is limited to the reviewed operation be
 A preview may reserve an empty target stack. Do not delete it
 or recreate resources to clear a blocked run.
 
+### Unchanged alarm rollback recovery
+
+CI runs `recover-unchanged-alarms` before `recover-core`. This incident-only path
+requires the pinned failed native operation, both original stack ARNs, the empty
+failed target, and the original 497 identities, template, stack settings and
+58 alarm / 8 filter / SNS live configurations. Only original alarms may be failed;
+all other resources must be complete. The latest rollback interval must match the
+known prior recovery token/operation or this command's incident-specific tokens.
+
+Within one 600-second deadline, CI selects currently failed alarms with the known
+null `getAlarmName()` / `InternalFailure`, refreshes preservation and event proof,
+and submits [ContinueUpdateRollback](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_ContinueUpdateRollback.html)
+with only those IDs, the original execution role and a stable token derived from
+the selected IDs. Each submission makes one CLI attempt. Further original alarms
+with the same provider failure are handled automatically, up to 58 distinct skips.
+Cancelled updates are never skipped unless a later attempt actually returns the
+known provider error. API errors, timeout, unrelated operations, other failures,
+configuration changes and no eligible progress stop recovery.
+
+Exact original live configuration equality is the preservation contract; this
+path does not use the drift API. Completion (including an already restored source)
+requires full preservation and every resource complete. Private
+`alarm-recovery-*.private.json` snapshots, events and accepted requests use the
+existing encrypted evidence bucket. This creates no migration receipt: native
+`ROLLBACK_FAILED` still blocks deployment. Native/target reconciliation and live
+health verification remain separate delivery responsibilities.
+
 ### Original core rollback recovery
 
 Before the reviewed native resume, CI runs `recover-core` for the pinned failed
