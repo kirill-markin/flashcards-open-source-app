@@ -728,7 +728,8 @@ extension FlashcardsStore {
         let rollbackIdentityKey = self.accountPreferencesIdentityKey
         let nextPreferences = AccountPreferences(
             reviewReactionAnimationsEnabled: isEnabled,
-            productAnalyticsEnabled: previousPreferences.productAnalyticsEnabled
+            productAnalyticsEnabled: previousPreferences.productAnalyticsEnabled,
+            accentColor: previousPreferences.accentColor
         )
         self.accountPreferencesRefreshGeneration += 1
         let updateGeneration = self.accountPreferencesRefreshGeneration
@@ -738,6 +739,63 @@ extension FlashcardsStore {
         do {
             let updateResult = try await self.updateCloudAccountPreferences(
                 patch: AccountPreferencesPatchRequest(reviewReactionAnimationsEnabled: isEnabled)
+            )
+            self.releaseAccountPreferencesUpdateInFlight(updateGeneration: updateGeneration)
+            if self.isCurrentAccountPreferencesUpdate(
+                identityKey: rollbackIdentityKey,
+                updateGeneration: updateGeneration
+            ) {
+                self.applyCloudAccountPreferences(preferences: updateResult.preferences, session: updateResult.session)
+                self.triggerCloudAccountContextRefreshIfActive(surfacesGlobalErrorMessage: false)
+            }
+        } catch {
+            self.releaseAccountPreferencesUpdateInFlight(updateGeneration: updateGeneration)
+            if self.isCurrentAccountPreferencesUpdate(
+                identityKey: rollbackIdentityKey,
+                updateGeneration: updateGeneration
+            ) {
+                self.accountPreferences = previousPreferences
+            }
+            throw error
+        }
+    }
+
+    func updateAccentColor(_ accentColor: AccountAccentColor) async throws {
+        guard self.isAccountPreferencesUpdateInFlight == false else {
+            throw LocalStoreError.validation("An account preference update is already in progress")
+        }
+        guard accentColor == .defaultColor || self.canUseCustomAccentColor else {
+            throw LocalStoreError.validation("A custom accent color requires Premium")
+        }
+        let previousPreferences = self.accountPreferences
+        let rollbackIdentityKey = self.accountPreferencesIdentityKey
+        let nextPreferences = AccountPreferences(
+            reviewReactionAnimationsEnabled: previousPreferences.reviewReactionAnimationsEnabled,
+            productAnalyticsEnabled: previousPreferences.productAnalyticsEnabled,
+            accentColor: accentColor
+        )
+        self.accountPreferencesRefreshGeneration += 1
+        let updateGeneration = self.accountPreferencesRefreshGeneration
+        self.accountPreferences = nextPreferences
+        self.isAccountPreferencesUpdateInFlight = true
+
+        do {
+            let updateResult = try await self.updateCloudAccountPreferences(
+                patch: AccountPreferencesPatchRequest(accentColor: accentColor),
+                validateResolvedSession: { session in
+                    let identity = AccountPreferencesIdentity(
+                        userId: session.userId,
+                        configurationMode: session.configurationMode,
+                        apiBaseUrl: session.apiBaseUrl
+                    )
+                    guard identity.storageKey == rollbackIdentityKey,
+                          self.isCurrentAccountPreferencesUpdate(
+                              identityKey: rollbackIdentityKey,
+                              updateGeneration: updateGeneration
+                          ) else {
+                        throw LocalStoreError.validation("The account changed before the accent color could be saved")
+                    }
+                }
             )
             self.releaseAccountPreferencesUpdateInFlight(updateGeneration: updateGeneration)
             if self.isCurrentAccountPreferencesUpdate(

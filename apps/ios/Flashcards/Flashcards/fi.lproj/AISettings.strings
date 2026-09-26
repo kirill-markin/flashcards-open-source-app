@@ -849,3 +849,14 @@
 "premium.comingSoon.title" = "Premium tulee pian";
 "premium.comingSoon.message" = "Tilaukset eivät ole vielä saatavilla.";
 "premium.aiLimit.title" = "Tekoälyviestien raja saavutettu";
+
+"settings.accentColor.title" = "Korostusväri";
+"settings.accentColor.default" = "Oletus";
+"settings.accentColor.blue" = "Sininen";
+"settings.accentColor.purple" = "Violetti";
+"settings.accentColor.pink" = "Vaaleanpunainen";
+"settings.accentColor.teal" = "Turkoosi";
+"settings.accentColor.gold" = "Kulta";
+"settings.accentColor.custom" = "Oma väri";
+"settings.accentColor.invalidHex" = "Anna väri muodossa #RRGGBB kuudella heksadesimaalinumerolla.";
+"settings.accentColor.premiumNote" = "Omat korostusvärit ovat käytettävissä Premiumilla. Tallennettu värisi palautuu, kun Premium on aktiivinen.";

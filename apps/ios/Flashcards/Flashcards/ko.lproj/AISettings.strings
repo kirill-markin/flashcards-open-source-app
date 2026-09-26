@@ -849,3 +849,14 @@
 "premium.comingSoon.title" = "Premium이 곧 출시됩니다";
 "premium.comingSoon.message" = "구독은 아직 이용할 수 없습니다.";
 "premium.aiLimit.title" = "AI 메시지 한도에 도달했습니다";
+
+"settings.accentColor.title" = "강조 색상";
+"settings.accentColor.default" = "기본값";
+"settings.accentColor.blue" = "파란색";
+"settings.accentColor.purple" = "보라색";
+"settings.accentColor.pink" = "분홍색";
+"settings.accentColor.teal" = "청록색";
+"settings.accentColor.gold" = "금색";
+"settings.accentColor.custom" = "사용자 지정 색상";
+"settings.accentColor.invalidHex" = "6자리 16진수를 사용하여 #RRGGBB 형식으로 색상을 입력하세요.";
+"settings.accentColor.premiumNote" = "사용자 지정 강조 색상은 Premium에서 사용할 수 있습니다. Premium이 활성화되면 저장된 색상으로 돌아갑니다.";
