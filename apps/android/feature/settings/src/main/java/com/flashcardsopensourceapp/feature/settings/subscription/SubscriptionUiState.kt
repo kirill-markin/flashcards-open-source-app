@@ -10,7 +10,6 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
 data class SubscriptionUiState(
-    /** Settings shows the entry only once Google Play returns the subscription product. */
     val isSubscriptionProductAvailable: Boolean,
     /** Null until a sync pull has delivered an entitlement. */
     val planName: String?,
