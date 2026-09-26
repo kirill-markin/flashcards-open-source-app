@@ -26,6 +26,7 @@ import com.flashcardsopensourceapp.app.R
 import com.flashcardsopensourceapp.app.analytics.trackFriendInvitationDialogDismissed
 import com.flashcardsopensourceapp.app.analytics.trackFriendInvitationDialogShown
 import com.flashcardsopensourceapp.app.di.AppGraph
+import com.flashcardsopensourceapp.app.premium.PremiumPresenter
 import com.flashcardsopensourceapp.app.navigation.AppPackageInfo
 import com.flashcardsopensourceapp.app.navigation.SettingsDestination
 import com.flashcardsopensourceapp.app.navigation.rememberRouteBackStackEntry
@@ -78,7 +79,8 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
     navController: NavHostController,
     packageInfo: AppPackageInfo,
     coroutineScope: CoroutineScope,
-    isPowerSaveModeState: State<Boolean>
+    isPowerSaveModeState: State<Boolean>,
+    premiumPresenter: PremiumPresenter
 ) {
     composable(route = SettingsDestination.route) { backStackEntry ->
         val context = LocalContext.current
@@ -282,6 +284,7 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
 
         SubscriptionRoute(
             uiState = uiState,
+            onPreviewPremium = premiumPresenter::showOfferPreview,
             onManageSubscription = {
                 openExternalUrl(
                     context = context,
@@ -543,6 +546,8 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
         val technicalErrorDetails = stringResource(id = R.string.technical_error_dialog_preview_details)
 
         TestSettingsRoute(
+            onPreviewPremium = premiumPresenter::showOfferPreview,
+            onPreviewAiLimit = premiumPresenter::showAiLimitPreview,
             onOpenAnimations = {
                 navController.navigate(route = SettingsTestAnimationsDestination.route)
             },
