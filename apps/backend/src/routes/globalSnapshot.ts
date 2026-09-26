@@ -1,10 +1,12 @@
 import { Hono } from "hono";
 import type { AppEnv } from "../server/app";
 import { HttpError } from "../shared/errors";
+import type { GlobalMetricsSnapshotV3 } from "../globalMetrics/snapshotV3";
 import type { GlobalMetricsSnapshot } from "../globalMetrics/snapshot";
 import {
   isGlobalMetricsVisible,
   loadGlobalMetricsSnapshotFromS3,
+  loadGlobalMetricsSnapshotV3FromS3,
 } from "../globalMetrics/storage";
 import {
   captureBackendWarning,
@@ -18,6 +20,7 @@ const globalMetricsSnapshotUnavailableMessage = "Global metrics snapshot is unav
 
 type GlobalSnapshotRoutesOptions = Readonly<{
   loadGlobalMetricsSnapshotFn?: (observationScope: BackendObservationScope) => Promise<GlobalMetricsSnapshot>;
+  loadGlobalMetricsSnapshotV3Fn?: (observationScope: BackendObservationScope) => Promise<GlobalMetricsSnapshotV3>;
   isGlobalMetricsVisibleFn?: () => boolean;
 }>;
 
@@ -43,6 +46,7 @@ function isGlobalMetricsSnapshotUnavailableError(error: unknown): error is HttpE
 export function createGlobalSnapshotRoutes(options: GlobalSnapshotRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
   const loadGlobalMetricsSnapshotFn = options.loadGlobalMetricsSnapshotFn ?? loadGlobalMetricsSnapshotFromS3;
+  const loadGlobalMetricsSnapshotV3Fn = options.loadGlobalMetricsSnapshotV3Fn ?? loadGlobalMetricsSnapshotV3FromS3;
   const isGlobalMetricsVisibleFn = options.isGlobalMetricsVisibleFn ?? isGlobalMetricsVisible;
 
   app.use(globalSnapshotPath, async (context, next) => {
@@ -57,6 +61,14 @@ export function createGlobalSnapshotRoutes(options: GlobalSnapshotRoutesOptions)
 
   app.get(globalSnapshotPath, async (context) => {
     assertGlobalMetricsVisible(isGlobalMetricsVisibleFn());
+    const versions = context.req.queries("schemaVersion");
+    const schemaVersion = versions?.[0];
+    if (
+      (versions !== undefined && versions.length !== 1)
+      || (schemaVersion !== undefined && schemaVersion !== "2" && schemaVersion !== "3")
+    ) {
+      throw new HttpError(400, "schemaVersion must be 2 or 3, specified once.", "INVALID_GLOBAL_METRICS_SCHEMA_VERSION");
+    }
     const observationScope = createBackendObservationScope(
       "backend-api",
       context.get("requestId"),
@@ -71,7 +83,10 @@ export function createGlobalSnapshotRoutes(options: GlobalSnapshotRoutesOptions)
       context.get("clientPlatform") ?? null,
     );
     try {
-      const response = context.json(await loadGlobalMetricsSnapshotFn(observationScope));
+      const snapshot = schemaVersion === "3"
+        ? await loadGlobalMetricsSnapshotV3Fn(observationScope)
+        : await loadGlobalMetricsSnapshotFn(observationScope);
+      const response = context.json(snapshot);
       return applyGlobalSnapshotCorsHeaders(response);
     } catch (error) {
       if (!isGlobalMetricsSnapshotUnavailableError(error)) {

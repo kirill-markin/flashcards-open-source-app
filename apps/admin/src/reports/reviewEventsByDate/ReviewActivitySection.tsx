@@ -37,6 +37,9 @@ export function ReviewActivitySection(
         <p className="dashboard-section-description">
           Daily unique reviewers, stacked review-event volume, platform activity, friend invite links, and existing friend connections by calendar date. Dates are grouped in <strong>UTC</strong>.
         </p>
+        <p className="dashboard-section-description">
+          Today’s UTC data is partial through the report’s last refresh. Public statistics include only completed UTC days and refresh daily, so recent arrivals can differ.
+        </p>
       </header>
 
       <ReviewEventsByDateSummary cards={summaryCards} />
