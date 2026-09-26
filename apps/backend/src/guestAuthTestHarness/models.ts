@@ -9,6 +9,7 @@ export type GuestSessionState = Readonly<{
 }>;
 
 export type UserSettingsState = Readonly<{
+  accent_color: string;
   user_id: string;
   workspace_id: string | null;
   email: string | null;

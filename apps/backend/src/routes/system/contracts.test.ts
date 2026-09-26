@@ -75,6 +75,7 @@ const testApiKeyRequestContext: RequestContext = {
   locale: "en",
   userSettingsCreatedAt: "2026-03-11T08:50:55.898Z",
   preferences: {
+    accentColor: "#C44B2D",
     reviewReactionAnimationsEnabled: true,
     analyticsConsent: null,
     productAnalyticsEnabled: null,
