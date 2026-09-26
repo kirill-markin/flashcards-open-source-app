@@ -161,6 +161,28 @@ completed or type counts match. Recovery is limited to the reviewed operation be
 A preview may reserve an empty target stack. Do not delete it
 or recreate resources to clear a blocked run.
 
+### Original core rollback recovery
+
+Before the reviewed native resume, CI runs `recover-core` for the pinned failed
+operation below. It requires native `ROLLBACK_FAILED`, the exact original source
+in `UPDATE_ROLLBACK_FAILED`, and the exact empty target in `ROLLBACK_FAILED`.
+The hashed original evidence must match all 497 identities, the source template,
+outputs, parameters, tags, execution role and alarm/filter/SNS configurations;
+every resource must have a completed status. The command invokes only
+[ContinueUpdateRollback](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_ContinueUpdateRollback.html)
+on the original source ARN with its original CloudFormation execution role and a
+stable incident token, without skipping resources. It polls rollback progress for
+up to ten minutes and repeats the preservation proof at `UPDATE_ROLLBACK_COMPLETE`.
+An already restored source requires the same proof without another rollback call.
+Other states remain subject to the existing native and ownership guards.
+
+Private `core-recovery-before.private.json` and `core-recovery-after.private.json`
+evidence uses the existing encrypted bucket and run/hash prefix. This does not
+produce a migration receipt, retry the native operation or change the empty target.
+The unchanged resume guard still rejects native `ROLLBACK_FAILED`, so the release
+remains blocked even after core control is restored. Further native recovery,
+permissions and cleanup require a separate reviewed plan.
+
 ### Reviewed available-operation resume
 
 Before ownership resolution or any ordinary CDK deployment, `AWS/Web Release`
@@ -193,7 +215,7 @@ to the generic fresh, legacy or split path; other unresolved operations and rese
 empty targets remain blocked. Missing evidence, drift, unexpected statuses and
 execution without a verified receipt stop the release for a new reviewed procedure.
 
-After recovery, ordinary ownership resolution selects split and the existing
+After a verified native move, ordinary ownership resolution selects split and the existing
 two-pass deployment, database/schedule verification, web/API/MCP smokes and deployed
 SHA recording must complete. Cleanup remains separate until that full release and
 the expected 431 core / 67 monitoring resources are verified.

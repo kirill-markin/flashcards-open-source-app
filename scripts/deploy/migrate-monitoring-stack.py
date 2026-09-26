@@ -23,6 +23,7 @@ REGION = "eu-central-1"
 BUCKET = f"cdk-hnb659fds-assets-{ACCOUNT}-{REGION}"
 EXPECTED = {"AWS::CloudWatch::Alarm": 58, "AWS::Logs::MetricFilter": 8}
 REVIEWED_REFACTOR = "b25a93ec-bef4-4f12-9083-bdb41e4a5af3"
+CORE_EXECUTION_ROLE = f"arn:aws:iam::{ACCOUNT}:role/cdk-hnb659fds-cfn-exec-role-{ACCOUNT}-{REGION}"
 REVIEWED_STACKS = {
     CORE: f"arn:aws:cloudformation:{REGION}:{ACCOUNT}:stack/{CORE}/436f3a30-19f9-11f1-b457-0a8d49e96987",
     TARGET: f"arn:aws:cloudformation:{REGION}:{ACCOUNT}:stack/{TARGET}/ea541f40-b9a5-11f1-bcb5-020e36761ac3",
@@ -66,12 +67,27 @@ class Aws:
                                 capture_output=True, text=True, check=False)
         if result.returncode:
             raise RuntimeError(f"AWS {service}/{operation} failed: {result.stderr.strip()}")
-        if not result.stdout.strip() and operation in ("get-stack-policy", "execute-stack-refactor"):
+        if not result.stdout.strip() and operation in (
+            "get-stack-policy", "execute-stack-refactor", "continue-update-rollback",
+        ):
             return {}
         return obj(json.loads(result.stdout), operation)
 
     def cf(self, operation: str, arguments: list[str]) -> dict[str, Json]:
         return self.call("lookup", "cloudformation", operation, arguments)
+
+    def core_rollback_status(self, deadline: float) -> dict[str, Json]:
+        try:
+            result = subprocess.run([
+                "aws", "cloudformation", "describe-stacks", "--stack-name", REVIEWED_STACKS[CORE],
+                "--region", REGION, "--output", "json", "--no-cli-pager",
+            ], env=self.environments["lookup"], capture_output=True, text=True, check=False,
+                timeout=max(0.001, deadline - time.monotonic()))
+        except subprocess.TimeoutExpired as error:
+            raise RuntimeError(f"Core recovery polling exceeded 600 seconds for {REVIEWED_STACKS[CORE]}") from error
+        if result.returncode:
+            raise RuntimeError(f"Core recovery describe-stacks failed: {result.stderr.strip()}")
+        return obj(json.loads(result.stdout), "core rollback status")
 
 
 def inventory(aws: Aws, stack: str) -> dict[str, Json]:
@@ -458,16 +474,7 @@ def reviewed_freshness(aws: Aws, baseline: dict[str, Json], saved_actions: list[
     return status
 
 
-def resume_reviewed(aws: Aws, directory: Path) -> None:
-    print(json.dumps({"StackRefactorId": REVIEWED_REFACTOR, "stage": "reviewed recovery"}), flush=True)
-    if REVIEWED_REFACTOR not in relevant_refactors(aws):
-        print(json.dumps({"reviewedOperation": "absent", "monitoringOwnership": ownership(aws)}), flush=True)
-        return
-    status = reviewed_status(aws)
-    if status.get("ExecutionStatus") == "EXECUTE_COMPLETE":
-        equal(ownership(aws), "split", f"{REVIEWED_REFACTOR}/verified ownership")
-        return
-    equal(status.get("ExecutionStatus"), "AVAILABLE", f"{REVIEWED_REFACTOR}/ExecutionStatus")
+def reviewed_evidence(aws: Aws, directory: Path) -> dict[str, dict[str, Json]]:
     directory.mkdir(mode=0o700, parents=True, exist_ok=False)
     evidence: dict[str, dict[str, Json]] = {}
     for name, digest in REVIEWED_EVIDENCE.items():
@@ -478,6 +485,94 @@ def resume_reviewed(aws: Aws, directory: Path) -> None:
         equal(hashlib.sha256(path.read_bytes()).hexdigest(), digest, f"reviewed evidence hash/{name}")
         evidence[name] = obj(json.loads(path.read_text()), name)
     equal(evidence["operation.private.json"].get("StackRefactorId"), REVIEWED_REFACTOR, "private operation binding")
+    return evidence
+
+
+def recovery_snapshot(aws: Aws, baseline: dict[str, Json], expected_status: str) -> dict[str, Json]:
+    status = reviewed_status(aws)
+    equal(status.get("ExecutionStatus"), "ROLLBACK_FAILED", "recovery native status")
+    original = obj(obj(baseline.get("stacks"), "original stacks").get(CORE), CORE)
+    equal(original.get("StackId"), REVIEWED_STACKS[CORE], "recovery original core ID")
+    equal(original.get("RoleARN"), CORE_EXECUTION_ROLE, "recovery original execution role")
+    before = obj(baseline.get("resources"), "original resources")
+    equal(len(before), 497, "recovery original resource count")
+    resources = rows(aws.cf("list-stack-resources", [
+        "--stack-name", REVIEWED_STACKS[CORE],
+    ]).get("StackResourceSummaries"), "recovery resource statuses")
+    equal(len(resources), 497, "recovery live resource count")
+    for resource in resources:
+        if resource.get("ResourceStatus") not in (
+            "CREATE_COMPLETE", "UPDATE_COMPLETE", "IMPORT_COMPLETE", "UPDATE_ROLLBACK_COMPLETE",
+        ):
+            raise ValueError(f"Recovery unsafe resource: {json.dumps(resource)}")
+    current = inventory(aws, REVIEWED_STACKS[CORE])
+    equal(current, before, "recovery all original identities")
+    equal(inventory(aws, REVIEWED_STACKS[TARGET]), {}, "recovery empty target")
+    legacy = template(aws, REVIEWED_STACKS[CORE])
+    equal(legacy, baseline.get("template"), "recovery original template")
+    configuration = runtime(aws, current, legacy)
+    equal(configuration, baseline.get("runtime"), "recovery original alarm/filter/SNS configuration")
+    current_stacks: dict[str, Json] = {}
+    for name, stack_id in REVIEWED_STACKS.items():
+        found = rows(aws.cf("describe-stacks", ["--stack-name", stack_id]).get("Stacks"), name)
+        equal(len(found), 1, f"recovery {name}/count")
+        for field, expected in (("StackId", stack_id), ("StackName", name),
+                                ("StackStatus", expected_status if name == CORE else "ROLLBACK_FAILED")):
+            equal(found[0].get(field), expected, f"recovery {name}/{field}")
+        current_stacks[name] = found[0]
+    for field in ("Outputs", "Parameters", "RoleARN", "Tags"):
+        equal(obj(current_stacks[CORE], CORE).get(field), original.get(field), f"recovery core/{field}")
+    return {"operation": status, "stacks": current_stacks, "resources": current,
+            "resourceStatuses": resources, "template": legacy, "runtime": configuration}
+
+
+def recover_core(aws: Aws, directory: Path) -> None:
+    relevant = relevant_refactors(aws)
+    if REVIEWED_REFACTOR not in relevant or relevant[REVIEWED_REFACTOR].get("ExecutionStatus") != "ROLLBACK_FAILED":
+        return
+    source = rows(aws.cf("describe-stacks", ["--stack-name", REVIEWED_STACKS[CORE]]).get("Stacks"), CORE)
+    equal(len(source), 1, "recovery core count")
+    state = text(source[0].get("StackStatus"), "recovery core status")
+    if state not in ("UPDATE_ROLLBACK_FAILED", "UPDATE_ROLLBACK_COMPLETE"):
+        return
+    baseline = reviewed_evidence(aws, directory)["before.private.json"]
+    before = recovery_snapshot(aws, baseline, state)
+    save(aws, directory, "core-recovery-before.private.json", before)
+    if state == "UPDATE_ROLLBACK_FAILED":
+        aws.call("deploy", "cloudformation", "continue-update-rollback", [
+            "--stack-name", REVIEWED_STACKS[CORE], "--role-arn", CORE_EXECUTION_ROLE,
+            "--client-request-token", f"monitoring-core-recovery-{REVIEWED_REFACTOR}",
+        ])
+        deadline = time.monotonic() + 600
+        while time.monotonic() < deadline:
+            found = rows(aws.core_rollback_status(deadline).get("Stacks"), CORE)
+            equal(len(found), 1, "recovering core count")
+            equal(found[0].get("StackId"), REVIEWED_STACKS[CORE], "recovering core identity")
+            state = text(found[0].get("StackStatus"), "recovering core status")
+            if state == "UPDATE_ROLLBACK_COMPLETE":
+                break
+            if state not in ("UPDATE_ROLLBACK_IN_PROGRESS", "UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS"):
+                raise ValueError(f"Core recovery stopped: {json.dumps(found[0])}")
+            time.sleep(min(5, max(0, deadline - time.monotonic())))
+        else:
+            raise ValueError(f"Core recovery timed out after 600 seconds for {REVIEWED_STACKS[CORE]}; stop for inspection")
+    after = recovery_snapshot(aws, baseline, "UPDATE_ROLLBACK_COMPLETE")
+    save(aws, directory, "core-recovery-after.private.json", after)
+    print(json.dumps({"StackRefactorId": REVIEWED_REFACTOR, "coreStatus": "UPDATE_ROLLBACK_COMPLETE",
+                      "preservedResources": 497, "nativeStatus": "ROLLBACK_FAILED", "deploymentBlocked": True}), flush=True)
+
+
+def resume_reviewed(aws: Aws, directory: Path) -> None:
+    print(json.dumps({"StackRefactorId": REVIEWED_REFACTOR, "stage": "reviewed recovery"}), flush=True)
+    if REVIEWED_REFACTOR not in relevant_refactors(aws):
+        print(json.dumps({"reviewedOperation": "absent", "monitoringOwnership": ownership(aws)}), flush=True)
+        return
+    status = reviewed_status(aws)
+    if status.get("ExecutionStatus") == "EXECUTE_COMPLETE":
+        equal(ownership(aws), "split", f"{REVIEWED_REFACTOR}/verified ownership")
+        return
+    equal(status.get("ExecutionStatus"), "AVAILABLE", f"{REVIEWED_REFACTOR}/ExecutionStatus")
+    evidence = reviewed_evidence(aws, directory)
     baseline = evidence["before.private.json"]
     saved_actions = rows(evidence["actions.private.json"].get("StackRefactorActions"), "reviewed actions")
     reviewed_freshness(aws, baseline, saved_actions)
@@ -489,7 +584,7 @@ def resume_reviewed(aws: Aws, directory: Path) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("ownership", "migrate", "resume-reviewed"))
+    parser.add_argument("command", choices=("ownership", "migrate", "resume-reviewed", "recover-core"))
     parser.add_argument("--directory", type=Path, required=True)
     args = parser.parse_args()
     if os.environ.get("GITHUB_ACTIONS") != "true" or os.environ.get("AWS_REGION") != REGION:
@@ -501,6 +596,8 @@ def main() -> None:
         with Path(os.environ["GITHUB_OUTPUT"]).open("a") as output:
             output.write(f"state={state}\ntopology={'legacy' if state == 'legacy' else 'split'}\n")
         print(json.dumps({"monitoringOwnership": state}))
+    elif args.command == "recover-core":
+        recover_core(aws, args.directory)
     elif args.command == "resume-reviewed":
         resume_reviewed(aws, args.directory)
     else:
