@@ -42,7 +42,7 @@ export function handleUserSettingsExecutorQuery<Row extends pg.QueryResultRow>(
   if (
     text.startsWith(
       "SELECT workspace_id, email, locale, review_reaction_animations_enabled, analytics_consent,"
-      + " product_analytics_enabled, created_at",
+      + " product_analytics_enabled, accent_color, created_at",
     )
     && text.includes("FROM org.user_settings")
     && text.includes("FOR UPDATE")
@@ -54,6 +54,7 @@ export function handleUserSettingsExecutorQuery<Row extends pg.QueryResultRow>(
       workspace_id: row.workspace_id,
       email: row.email,
       locale: "en",
+      accent_color: row.accent_color,
       review_reaction_animations_enabled: true,
       analytics_consent: row.analytics_consent,
       product_analytics_enabled: row.product_analytics_enabled,
@@ -104,6 +105,30 @@ export function handleUserSettingsExecutorQuery<Row extends pg.QueryResultRow>(
     const row = state.userSettings.get(userId) ?? null;
     const rows = row === null ? [] : [{ progress_time_zone: row.progress_time_zone } as unknown as Row];
     return createQueryResult<Row>(rows);
+  }
+
+  if (text === "SELECT accent_color FROM org.user_settings WHERE user_id = $1") {
+    const userId = String(params[0]);
+    scope.requireCurrentUserScope(userId);
+    const row = state.userSettings.get(userId);
+    return createQueryResult<Row>(row === undefined ? [] : [{ accent_color: row.accent_color } as unknown as Row]);
+  }
+
+  if (
+    text === "UPDATE org.user_settings SET accent_color = CASE WHEN accent_color = '#C44B2D'"
+      + " THEN $2::TEXT ELSE accent_color END WHERE user_id = $1 RETURNING user_id"
+  ) {
+    const userId = String(params[0]);
+    scope.requireCurrentUserScope(userId);
+    const current = state.userSettings.get(userId);
+    if (current === undefined) {
+      return createQueryResult<Row>([]);
+    }
+    state.userSettings.set(userId, {
+      ...current,
+      accent_color: current.accent_color === "#C44B2D" ? String(params[1]) : current.accent_color,
+    });
+    return createQueryResult<Row>([{ user_id: userId } as unknown as Row]);
   }
 
   if (text === "UPDATE org.user_settings SET email = $1 WHERE user_id = $2") {
