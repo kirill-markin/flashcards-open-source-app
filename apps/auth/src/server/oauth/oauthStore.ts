@@ -11,6 +11,8 @@
  * db/migrations/0074), so reads/writes use the unscoped `query`/`transaction`
  * helpers rather than the RLS-scoped variants.
  */
+import { hasOAuthScope } from "./scopes.js";
+import { signOidcIdToken } from "./oidcSigning.js";
 import { randomUUID } from "node:crypto";
 import { query, transaction, transactionWithUserScope, type DatabaseExecutor } from "../../db.js";
 import { verifySessionTokenIdentity } from "../browserSession.js";
@@ -58,16 +60,15 @@ export type IssuedTokens = Readonly<{
   expiresInSeconds: number;
   scope: string | null;
   resource: string;
+  idToken: string | null;
 }>;
 
-/**
- * Connection-bound grant context resolved when a code or refresh token is
- * consumed. It carries everything needed to mint the next access/refresh pair.
- */
 type GrantContext = Readonly<{
   connectionId: string;
   scope: string | null;
   resource: string;
+  identityEmail: string | null;
+  identityEmailVerified: boolean | null;
 }>;
 
 type OAuthClientRow = Readonly<{
@@ -87,12 +88,17 @@ type OAuthAuthorizationCodeRow = Readonly<{
   resource: string;
   expires_at: Date | string;
   consumed_at: Date | string | null;
+  nonce: string | null;
+  identity_email: string | null;
+  identity_email_verified: boolean | null;
 }>;
 
 type GrantContextRow = Readonly<{
   connection_id: string;
   resource: string;
   scope: string | null;
+  identity_email: string | null;
+  identity_email_verified: boolean | null;
 }>;
 
 function asMillis(value: Date | string): number {
@@ -132,10 +138,6 @@ function parseToken(prefix: string, token: string): string | null {
   }
 }
 
-/**
- * Generates a new opaque client identifier. Public clients have no secret
- * (token_endpoint_auth_method = none + PKCE), so the id need not be secret.
- */
 export function createClientId(): string {
   return `fcc_${createCrockfordToken(CLIENT_ID_LENGTH)}`;
 }
@@ -157,9 +159,6 @@ export async function getClient(clientId: string): Promise<OAuthClient | null> {
   return mapClient(row);
 }
 
-/**
- * Registers a new public + PKCE client (RFC 7591 Dynamic Client Registration).
- */
 export async function saveClient(
   redirectUris: ReadonlyArray<string>,
   clientName: string | null,
@@ -191,11 +190,6 @@ function mapClient(row: OAuthClientRow): OAuthClient {
   };
 }
 
-/**
- * Looks up an unconsumed, unexpired authorization code by its plaintext value
- * so the token route can verify PKCE, client_id, and redirect_uri before
- * consuming it. The plaintext is hashed for the point lookup.
- */
 export async function getActiveAuthorizationCode(
   code: string,
   nowMs: number,
@@ -204,7 +198,7 @@ export async function getActiveAuthorizationCode(
   const result = await query<OAuthAuthorizationCodeRow>(
     [
       "SELECT client_id, connection_id, redirect_uri, code_challenge, code_challenge_method,",
-      "scope, resource, expires_at, consumed_at",
+      "scope, resource, expires_at, consumed_at, nonce, identity_email, identity_email_verified",
       "FROM auth.oauth_authorization_codes",
       "WHERE code_hash = $1",
     ].join(" "),
@@ -226,12 +220,6 @@ export async function getActiveAuthorizationCode(
   };
 }
 
-/**
- * The PKCE-bound authorization request fields the browser /authorize flow
- * verified before the user approved consent. They are persisted on the
- * single-use code so the token endpoint can re-check redirect_uri + PKCE and
- * carry resource/scope through to the minted access token.
- */
 export type AuthorizationGrantRequest = Readonly<{
   clientId: string;
   redirectUri: string;
@@ -239,6 +227,7 @@ export type AuthorizationGrantRequest = Readonly<{
   scope: string | null;
   resource: string;
   connectionLabel: string;
+  nonce: string | null;
 }>;
 
 async function upsertConnectionInExecutor(
@@ -291,13 +280,6 @@ async function upsertConnectionInExecutor(
   return connectionId;
 }
 
-/**
- * Approves an OAuth authorization request: resolves the user from a freshly
- * verified Cognito ID token (mapping the subject to the canonical user and
- * ensuring a workspace, exactly like createAgentApiKeyFromIdToken), upserts the
- * (user, client) connection, and writes a single-use authorization code bound to
- * that connection. Returns the opaque code; only its hash is persisted.
- */
 export async function approveAuthorizationRequest(
   idToken: string,
   request: AuthorizationGrantRequest,
@@ -327,8 +309,8 @@ export async function approveAuthorizationRequest(
       [
         "INSERT INTO auth.oauth_authorization_codes",
         "(code_hash, client_id, connection_id, redirect_uri, code_challenge,",
-        "code_challenge_method, scope, resource, expires_at)",
-        "VALUES ($1, $2, $3, $4, $5, 'S256', $6, $7, $8)",
+        "code_challenge_method, scope, resource, expires_at, nonce, identity_email, identity_email_verified)",
+        "VALUES ($1, $2, $3, $4, $5, 'S256', $6, $7, $8, $9, $10, $11)",
       ].join(" "),
       [
         codeHash,
@@ -339,6 +321,9 @@ export async function approveAuthorizationRequest(
         request.scope,
         request.resource,
         expiresAt,
+        request.nonce,
+        hasOAuthScope(request.scope, "email") ? identity.email : null,
+        hasOAuthScope(request.scope, "email") ? identity.emailVerified : null,
       ],
     );
   });
@@ -362,18 +347,18 @@ async function issueTokensInExecutor(
   await executor.query(
     [
       "INSERT INTO auth.oauth_access_tokens",
-      "(token_hash, connection_id, scope, resource, expires_at)",
-      "VALUES ($1, $2, $3, $4, $5)",
+      "(token_hash, connection_id, scope, resource, expires_at, identity_email, identity_email_verified)",
+      "VALUES ($1, $2, $3, $4, $5, $6, $7)",
     ].join(" "),
-    [accessHash, grant.connectionId, grant.scope, grant.resource, accessExpiresAt],
+    [accessHash, grant.connectionId, grant.scope, grant.resource, accessExpiresAt, grant.identityEmail, grant.identityEmailVerified],
   );
   await executor.query(
     [
       "INSERT INTO auth.oauth_refresh_tokens",
-      "(token_hash, connection_id, scope, resource)",
-      "VALUES ($1, $2, $3, $4)",
+      "(token_hash, connection_id, scope, resource, identity_email, identity_email_verified)",
+      "VALUES ($1, $2, $3, $4, $5, $6)",
     ].join(" "),
-    [refreshHash, grant.connectionId, grant.scope, grant.resource],
+    [refreshHash, grant.connectionId, grant.scope, grant.resource, grant.identityEmail, grant.identityEmailVerified],
   );
 
   return {
@@ -382,6 +367,7 @@ async function issueTokensInExecutor(
     expiresInSeconds: ACCESS_TOKEN_TTL_SECONDS,
     scope: grant.scope,
     resource: grant.resource,
+    idToken: null,
   };
 }
 
@@ -394,12 +380,13 @@ async function issueTokensInExecutor(
  */
 export async function consumeAuthorizationCodeAndIssueTokens(
   code: string,
+  issuer: string,
   nowMs: number,
 ): Promise<IssuedTokens | null> {
   const codeHash = hashOpaqueToken(code);
 
   return transaction(async (executor) => {
-    const consumed = await executor.query<OAuthAuthorizationCodeRow>(
+    const consumed = await executor.query<OAuthAuthorizationCodeRow & Readonly<{ user_id: string }>>(
       [
         "UPDATE auth.oauth_authorization_codes",
         "SET consumed_at = now()",
@@ -410,7 +397,8 @@ export async function consumeAuthorizationCodeAndIssueTokens(
         "SELECT connection_id FROM auth.oauth_connections WHERE revoked_at IS NULL",
         ")",
         "RETURNING client_id, connection_id, redirect_uri, code_challenge, code_challenge_method,",
-        "scope, resource, expires_at, consumed_at",
+        "scope, resource, expires_at, consumed_at, nonce, identity_email, identity_email_verified,",
+        "(SELECT user_id FROM auth.oauth_connections WHERE connection_id = auth.oauth_authorization_codes.connection_id) AS user_id",
       ].join(" "),
       [codeHash],
     );
@@ -419,11 +407,19 @@ export async function consumeAuthorizationCodeAndIssueTokens(
       return null;
     }
 
-    return issueTokensInExecutor(
-      executor,
-      { connectionId: row.connection_id, scope: row.scope, resource: row.resource },
-      nowMs,
-    );
+    const idToken = hasOAuthScope(row.scope, "openid")
+      ? await signOidcIdToken({
+        iss: issuer,
+        sub: row.user_id,
+        aud: row.client_id,
+        iat: Math.floor(nowMs / 1000),
+        exp: Math.floor(nowMs / 1000) + ACCESS_TOKEN_TTL_SECONDS,
+        ...(row.nonce !== null ? { nonce: row.nonce } : {}),
+        ...getEmailClaims(row.scope, row.identity_email, row.identity_email_verified),
+      })
+      : null;
+    const tokens = await issueTokensInExecutor(executor, mapGrantContext(row), nowMs);
+    return { ...tokens, idToken };
   });
 }
 
@@ -465,7 +461,7 @@ export async function rotateRefreshToken(
         "AND conn.client_id = $2",
         "AND conn.revoked_at IS NULL",
         "AND (t.expires_at IS NULL OR t.expires_at > now())",
-        "RETURNING t.connection_id, t.resource, t.scope",
+        "RETURNING t.connection_id, t.resource, t.scope, t.identity_email, t.identity_email_verified",
       ].join(" "),
       [presentedHash, clientId],
     );
@@ -474,10 +470,56 @@ export async function rotateRefreshToken(
       return null;
     }
 
-    return issueTokensInExecutor(
-      executor,
-      { connectionId: row.connection_id, scope: row.scope, resource: row.resource },
-      nowMs,
-    );
+    return issueTokensInExecutor(executor, mapGrantContext(row), nowMs);
   });
+}
+
+function mapGrantContext(row: GrantContextRow): GrantContext {
+  return {
+    connectionId: row.connection_id,
+    resource: row.resource,
+    scope: row.scope,
+    identityEmail: row.identity_email,
+    identityEmailVerified: row.identity_email_verified,
+  };
+}
+
+function getEmailClaims(
+  scope: string | null,
+  email: string | null,
+  emailVerified: boolean | null,
+): Readonly<{ email?: string; email_verified?: boolean }> {
+  if (!hasOAuthScope(scope, "email")) {
+    return {};
+  }
+  if (email === null || emailVerified === null) {
+    throw new Error("OAuth email grant has no verified identity snapshot; reconnect the client");
+  }
+  return { email, email_verified: emailVerified };
+}
+
+export type OidcUserInfo = Readonly<{ sub: string; email?: string; email_verified?: boolean }>;
+
+export async function getOidcUserInfo(token: string, nowMs: number): Promise<OidcUserInfo | "insufficient_scope" | null> {
+  const secret = parseToken(ACCESS_TOKEN_PREFIX, token);
+  if (secret === null) {
+    return null;
+  }
+  const result = await query<GrantContextRow & Readonly<{ user_id: string }>>(
+    [
+      "SELECT c.user_id, t.connection_id, t.resource, t.scope, t.identity_email, t.identity_email_verified",
+      "FROM auth.oauth_access_tokens t",
+      "JOIN auth.oauth_connections c ON c.connection_id = t.connection_id",
+      "WHERE t.token_hash = $1 AND t.expires_at > $2 AND c.revoked_at IS NULL",
+    ].join(" "),
+    [hashOpaqueToken(secret), new Date(nowMs)],
+  );
+  const row = result.rows[0];
+  if (row === undefined) {
+    return null;
+  }
+  if (!hasOAuthScope(row.scope, "openid")) {
+    return "insufficient_scope";
+  }
+  return { sub: row.user_id, ...getEmailClaims(row.scope, row.identity_email, row.identity_email_verified) };
 }

@@ -21,11 +21,13 @@ type SessionTokenValidationResult =
 type VerifiedSessionTokenPayload = Readonly<{
   sub: string;
   email?: unknown;
+  email_verified?: unknown;
 }>;
 
 export type SessionUserIdentity = Readonly<{
   userId: string;
   email: string;
+  emailVerified: boolean;
 }>;
 
 let verifier: ReturnType<typeof CognitoJwtVerifier.create> | undefined;
@@ -111,10 +113,6 @@ export async function validateSessionToken(sessionToken: string): Promise<Sessio
   }
 }
 
-/**
- * Verifies a Cognito ID token issued for this app and returns the stable user
- * identity so the auth service can create first-party agent API keys.
- */
 export function extractVerifiedSessionIdentity(payload: VerifiedSessionTokenPayload): SessionUserIdentity {
   const email = typeof payload.email === "string" ? payload.email.trim() : "";
   if (email === "") {
@@ -124,6 +122,8 @@ export function extractVerifiedSessionIdentity(payload: VerifiedSessionTokenPayl
   return {
     userId: payload.sub,
     email,
+    // Synthetic review accounts bypass mailbox verification.
+    emailVerified: payload.email_verified === true && !email.toLowerCase().endsWith("@example.com"),
   };
 }
 
