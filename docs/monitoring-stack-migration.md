@@ -13,9 +13,20 @@ monitoring. The freshness metric retains the producer's core `StackName`.
 ## Preparation evidence
 
 `AWS/Web Release` runs the comparison after the final ENABLED deployment and
-schedule verification. It preserves that deployment's `cdk.out`, synthesizes a
-separate split assembly with the same checkout, account, region, local context
-and final schedule/cleanup flags, and leaves source-map upload disabled.
+schedule verification. It privately copies that deployment's `cdk.out` before
+synthesizing the split topology into the same `cdk.out` staging location, then
+copies the split assembly privately. The checkout, account, region, local context,
+final schedule/cleanup flags and disabled source-map upload stay identical.
+
+The pinned CDK uses output hashes for NodejsFunction assets and includes the
+staging directory in its bundling cache key. Local esbuild source maps contain
+paths relative to the bundle output directory, so synthesizing directly into a
+new evidence directory changes Lambda assets. Reusing the original output path
+preserves those inputs; it does not guarantee that bundling is skipped. Any
+remaining asset or migration-version difference must still fail comparison.
+See [CDK asset staging](https://github.com/aws/aws-cdk/blob/v2.270.0/packages/aws-cdk-lib/core/lib/asset-staging.ts),
+[NodejsFunction bundling](https://github.com/aws/aws-cdk/blob/v2.270.0/packages/aws-cdk-lib/aws-lambda-nodejs/lib/bundling.ts)
+and [esbuild source-map paths](https://github.com/evanw/esbuild/blob/v0.28.2/internal/linker/linker.go#L7097-L7111).
 
 The comparison helper requires the same alarm/filter logical IDs and relative
 construct paths, unchanged resource properties after expanding only literal CDK
@@ -34,24 +45,43 @@ A failed comparison emits an explicit warning and blocks migration; the ordinary
 legacy release remains usable. A passing comparison proves template equivalence
 within the stated boundary, **not AWS refactor eligibility**.
 
-To repeat preparation, run in the same cloud job after a fresh successful final
-legacy deployment; do not synthesize deployment artifacts locally:
+To repeat preparation, run from `infra/aws` in the same cloud job after a fresh
+successful final legacy deployment; do not synthesize deployment artifacts
+locally. The evidence directory must not already exist. Preserve earlier evidence
+separately before repeating; never reuse a split assembly as the legacy baseline.
 
 ```bash
+set -euo pipefail
 umask 077
-mkdir -p "${RUNNER_TEMP}/monitoring-refactor"
-cp -R cdk.out "${RUNNER_TEMP}/monitoring-refactor/legacy"
+evidence_directory="${RUNNER_TEMP}/monitoring-refactor"
+mkdir "${evidence_directory}"
+for baseline_file in manifest.json FlashcardsOpenSourceApp.template.json FlashcardsOpenSourceApp.assets.json; do
+  if [[ ! -s "cdk.out/${baseline_file}" ]]; then
+    echo "Missing final legacy assembly file: cdk.out/${baseline_file}" >&2
+    exit 1
+  fi
+done
+if [[ -e cdk.out/FlashcardsOpenSourceAppMonitoring.template.json ]]; then
+  echo "Expected the final legacy assembly; cdk.out contains a monitoring preview." >&2
+  exit 1
+fi
+cp -R cdk.out "${evidence_directory}/legacy"
 SENTRY_UPLOAD_BACKEND_SOURCEMAPS=false npx cdk synth --all --quiet \
-  --output "${RUNNER_TEMP}/monitoring-refactor/split" \
+  --output cdk.out \
   -c monitoringTopology=split \
   -c generatedMediaPromotionScheduleState=ENABLED \
   -c mediaBlobCleanupEnabled=true \
   -c multipartCompletionReconciliationScheduleState=ENABLED
+cp -R cdk.out "${evidence_directory}/split"
 python3 ../../scripts/deploy/prepare-monitoring-refactor.py \
-  --legacy-assembly "${RUNNER_TEMP}/monitoring-refactor/legacy" \
-  --split-assembly "${RUNNER_TEMP}/monitoring-refactor/split" \
-  --output-directory "${RUNNER_TEMP}/monitoring-refactor/report"
+  --legacy-assembly "${evidence_directory}/legacy" \
+  --split-assembly "${evidence_directory}/split" \
+  --output-directory "${evidence_directory}/report"
 ```
+
+After preview synthesis, `cdk.out` is a preview assembly, even if comparison fails.
+Never deploy it. The private `legacy` copy remains the final deployed baseline;
+ordinary release recovery starts with a fresh legacy synthesis in CI.
 
 ## Next-stage server preview
 
