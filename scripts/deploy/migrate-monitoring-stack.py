@@ -22,6 +22,16 @@ ACCOUNT = "506210661494"
 REGION = "eu-central-1"
 BUCKET = f"cdk-hnb659fds-assets-{ACCOUNT}-{REGION}"
 EXPECTED = {"AWS::CloudWatch::Alarm": 58, "AWS::Logs::MetricFilter": 8}
+REVIEWED_REFACTOR = "b25a93ec-bef4-4f12-9083-bdb41e4a5af3"
+REVIEWED_STACKS = {
+    CORE: f"arn:aws:cloudformation:{REGION}:{ACCOUNT}:stack/{CORE}/436f3a30-19f9-11f1-b457-0a8d49e96987",
+    TARGET: f"arn:aws:cloudformation:{REGION}:{ACCOUNT}:stack/{TARGET}/ea541f40-b9a5-11f1-bcb5-020e36761ac3",
+}
+REVIEWED_EVIDENCE = {
+    "operation.private.json": "0dbd4cef8673d0781b6c3379faa107b8eb2fac4891a0fa208b49cf1bdb43c484",
+    "before.private.json": "1010627950fc74ff0ff6fbb20a575a3c5cfdf5b69aef506f13da0af9ccb0c47a",
+    "actions.private.json": "82ba16ba8acbeee898a16f2e1afe045f415d678f400827dfd07c59c7cfa73513",
+}
 obj = preparation.object_value
 text = preparation.text_value
 equal = preparation.require_equal
@@ -103,8 +113,8 @@ def read_verified_receipt(aws: Aws, refactor: str) -> dict[str, Json]:
                          f"stop for explicit recovery: {error}") from error
 
 
-def ownership(aws: Aws) -> str:
-    verified: dict[str, dict[str, Json]] = {}
+def relevant_refactors(aws: Aws) -> dict[str, dict[str, Json]]:
+    relevant: dict[str, dict[str, Json]] = {}
     for summary in rows(aws.cf("list-stack-refactors", []).get("StackRefactorSummaries"), "refactors"):
         refactor = text(summary.get("StackRefactorId"), "StackRefactorId")
         details = aws.cf("describe-stack-refactor", ["--stack-refactor-id", refactor])
@@ -112,14 +122,21 @@ def ownership(aws: Aws) -> str:
         if not isinstance(ids, list):
             raise ValueError(f"{refactor}: missing StackIds; inspect operation")
         if any(isinstance(item, str) and any(f":stack/{name}/" in item for name in (CORE, TARGET)) for item in ids):
-            if details.get("ExecutionStatus") != "EXECUTE_COMPLETE":
-                raise ValueError(f"Inspect prior refactor {refactor}: {json.dumps(details)}")
-            receipt = read_verified_receipt(aws, refactor)
-            receipt_ids = obj(receipt.get("StackIds"), f"{refactor}/verified StackIds")
-            equal(set(receipt_ids), {CORE, TARGET}, f"{refactor}/verified stack names")
-            equal(sorted(text(value, "StackId") for value in receipt_ids.values()),
-                  sorted(text(value, "StackId") for value in ids), f"{refactor}/operation stack IDs")
-            verified[refactor] = receipt
+            relevant[refactor] = details
+    return relevant
+
+
+def ownership(aws: Aws) -> str:
+    verified: dict[str, dict[str, Json]] = {}
+    for refactor, details in relevant_refactors(aws).items():
+        if details.get("ExecutionStatus") != "EXECUTE_COMPLETE":
+            raise ValueError(f"Inspect prior refactor {refactor}: {json.dumps(details)}")
+        receipt = read_verified_receipt(aws, refactor)
+        receipt_ids = obj(receipt.get("StackIds"), f"{refactor}/verified StackIds")
+        equal(set(receipt_ids), {CORE, TARGET}, f"{refactor}/verified stack names")
+        equal(sorted(text(value, "StackId") for value in receipt_ids.values()),
+              sorted(text(value, "StackId") for value in details["StackIds"]), f"{refactor}/operation stack IDs")
+        verified[refactor] = receipt
     current = stacks(aws)
     if not current:
         if verified:
@@ -274,8 +291,11 @@ def validate_actions(actions: list[dict[str, Json]], status: dict[str, Json], so
         if before.get("StackName") not in (CORE, source) or after.get("StackName") not in (TARGET, target) or after.get("LogicalResourceId") != key or key in moves or key not in resources:
             raise ValueError(f"{key}: unexpected or duplicate server mapping")
         equal(action.get("PhysicalResourceId"), obj(resources[key], key)["PhysicalResourceId"], key + "/physical ID")
-        if action.get("Description") != "No configuration changes detected.":
-            raise ValueError(f"{key}: AWS has not confirmed unchanged configuration; inspect private actions")
+        if action.get("Description") not in (
+            "No configuration changes detected.",
+            "Resource configuration changes will be validated during refactor execution.",
+        ):
+            raise ValueError(f"{key}: unrecognized AWS configuration validation result; inspect private actions")
         tags = {"aws:cloudformation:stack-name": TARGET, "aws:cloudformation:stack-id": target, "aws:cloudformation:logical-id": key}
         for tag in rows(action.get("TagResources", []), "TagResources"):
             if tag.get("Key") not in tags or tag.get("Value") != tags[tag["Key"]]:
@@ -336,6 +356,13 @@ def migrate(aws: Aws, directory: Path) -> None:
     equal(inventory(aws, CORE), before, "source identity freshness")
     equal(runtime(aws, before, legacy), snapshot, "configuration freshness")
     equal(aws.cf("describe-stacks", ["--stack-name", CORE]).get("Stacks"), [before_stacks[CORE]], "source stack freshness")
+    execute_and_verify(aws, directory, refactor, status, before_stacks, before, legacy, snapshot)
+
+
+def execute_and_verify(aws: Aws, directory: Path, refactor: str, status: dict[str, Json],
+                       before_stacks: dict[str, Json], before: dict[str, Json],
+                       legacy: dict[str, Json], snapshot: dict[str, Json]) -> None:
+    moved = selected(before)
     aws.call("deploy", "cloudformation", "execute-stack-refactor", ["--stack-refactor-id", refactor])
     completed = wait_refactor(aws, refactor, "EXECUTE_COMPLETE")
     stack_ids = refactor_stack_ids(status, text(obj(before_stacks[CORE], CORE)["StackId"], "StackId"))
@@ -361,9 +388,98 @@ def migrate(aws: Aws, directory: Path) -> None:
     print(json.dumps({"StackRefactorId": refactor, "ExecutionStatus": "EXECUTE_COMPLETE", "moves": 66}), flush=True)
 
 
+def reviewed_status(aws: Aws) -> dict[str, Json]:
+    relevant = relevant_refactors(aws)
+    if REVIEWED_REFACTOR not in relevant:
+        raise ValueError(f"Refactor {REVIEWED_REFACTOR}: reviewed operation disappeared")
+    for refactor, details in relevant.items():
+        if refactor != REVIEWED_REFACTOR:
+            equal(details.get("ExecutionStatus"), "EXECUTE_COMPLETE", f"{refactor}/other relevant refactor")
+            read_verified_receipt(aws, refactor)
+    status = relevant[REVIEWED_REFACTOR]
+    equal(status.get("StackRefactorId"), REVIEWED_REFACTOR, "reviewed operation identity")
+    equal(refactor_stack_ids(status, REVIEWED_STACKS[CORE]), REVIEWED_STACKS, "reviewed stack IDs")
+    equal(status.get("Status"), "CREATE_COMPLETE", f"{REVIEWED_REFACTOR}/Status")
+    return status
+
+
+def comparable_actions(actions: list[dict[str, Json]]) -> list[str]:
+    # Description can advance between the two documented validation phases only.
+    return sorted(json.dumps({key: value for key, value in action.items()
+        if key != "Description" or action.get("Entity") != "RESOURCE"}, sort_keys=True) for action in actions)
+
+
+def reviewed_freshness(aws: Aws, baseline: dict[str, Json], saved_actions: list[dict[str, Json]]) -> dict[str, Json]:
+    before = obj(baseline.get("resources"), "reviewed resources")
+    before_stacks = obj(baseline.get("stacks"), "reviewed stacks")
+    source = obj(before_stacks.get(CORE), CORE)
+    equal(set(before_stacks), {CORE}, "reviewed original stacks")
+    equal(source.get("StackId"), REVIEWED_STACKS[CORE], "reviewed source identity")
+    equal(source.get("StackStatus"), "UPDATE_COMPLETE", "reviewed source status")
+    equal(len(before), 497, "reviewed original resource count")
+    moved = selected(before)
+    equal(dict(Counter(obj(item, key)["ResourceType"] for key, item in moved.items())), EXPECTED, "reviewed types")
+    status = reviewed_status(aws)
+    equal(status.get("ExecutionStatus"), "AVAILABLE", f"{REVIEWED_REFACTOR}/ExecutionStatus")
+    validate_actions(saved_actions, status, REVIEWED_STACKS[CORE], moved)
+    actions = rows(aws.cf("list-stack-refactor-actions", [
+        "--stack-refactor-id", REVIEWED_REFACTOR,
+    ]).get("StackRefactorActions"), "current actions")
+    validate_actions(actions, status, REVIEWED_STACKS[CORE], moved)
+    equal(comparable_actions(actions), comparable_actions(saved_actions), "reviewed server actions")
+    legacy = obj(baseline.get("template"), "reviewed template")
+    equal(set(before), set(obj(legacy.get("Resources"), "reviewed template resources")), "reviewed logical IDs")
+    equal(template(aws, REVIEWED_STACKS[CORE]), legacy, "reviewed source template freshness")
+    equal(inventory(aws, REVIEWED_STACKS[CORE]), before, "reviewed source identity freshness")
+    equal(runtime(aws, before, legacy), baseline.get("runtime"), "reviewed configuration freshness")
+    equal(aws.cf("describe-stacks", ["--stack-name", REVIEWED_STACKS[CORE]]).get("Stacks"),
+          [source], "reviewed source stack freshness")
+    target = rows(aws.cf("describe-stacks", ["--stack-name", REVIEWED_STACKS[TARGET]]).get("Stacks"), "reviewed target")
+    equal(len(target), 1, "reviewed target count")
+    for key, expected in (("StackId", REVIEWED_STACKS[TARGET]), ("StackName", TARGET), ("StackStatus", "REVIEW_IN_PROGRESS")):
+        equal(target[0].get(key), expected, f"reviewed target/{key}")
+    equal(inventory(aws, REVIEWED_STACKS[TARGET]), {}, "reviewed empty target")
+    if aws.cf("get-stack-policy", ["--stack-name", REVIEWED_STACKS[CORE]]).get("StackPolicyBody"):
+        raise ValueError(f"Refactor {REVIEWED_REFACTOR}: source stack policy prevents execution")
+    for kind in EXPECTED:
+        equal(aws.cf("describe-type", ["--type", "RESOURCE", "--type-name", kind]).get("ProvisioningType"), "FULLY_MUTABLE", kind)
+    status = reviewed_status(aws)
+    equal(status.get("ExecutionStatus"), "AVAILABLE", f"{REVIEWED_REFACTOR}/fresh ExecutionStatus")
+    return status
+
+
+def resume_reviewed(aws: Aws, directory: Path) -> None:
+    print(json.dumps({"StackRefactorId": REVIEWED_REFACTOR, "stage": "reviewed recovery"}), flush=True)
+    if REVIEWED_REFACTOR not in relevant_refactors(aws):
+        print(json.dumps({"reviewedOperation": "absent", "monitoringOwnership": ownership(aws)}), flush=True)
+        return
+    status = reviewed_status(aws)
+    if status.get("ExecutionStatus") == "EXECUTE_COMPLETE":
+        equal(ownership(aws), "split", f"{REVIEWED_REFACTOR}/verified ownership")
+        return
+    equal(status.get("ExecutionStatus"), "AVAILABLE", f"{REVIEWED_REFACTOR}/ExecutionStatus")
+    directory.mkdir(mode=0o700, parents=True, exist_ok=False)
+    evidence: dict[str, dict[str, Json]] = {}
+    for name, digest in REVIEWED_EVIDENCE.items():
+        path = directory / name
+        aws.call("file-publishing", "s3api", "get-object", [
+            "--bucket", BUCKET, "--key", f"monitoring-refactor/36241107324/1/{digest}/{name}", str(path),
+        ])
+        equal(hashlib.sha256(path.read_bytes()).hexdigest(), digest, f"reviewed evidence hash/{name}")
+        evidence[name] = obj(json.loads(path.read_text()), name)
+    equal(evidence["operation.private.json"].get("StackRefactorId"), REVIEWED_REFACTOR, "private operation binding")
+    baseline = evidence["before.private.json"]
+    saved_actions = rows(evidence["actions.private.json"].get("StackRefactorActions"), "reviewed actions")
+    reviewed_freshness(aws, baseline, saved_actions)
+    status = reviewed_freshness(aws, baseline, saved_actions)
+    execute_and_verify(aws, directory, REVIEWED_REFACTOR, status,
+                       obj(baseline["stacks"], "stacks"), obj(baseline["resources"], "resources"),
+                       obj(baseline["template"], "template"), obj(baseline["runtime"], "runtime"))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("ownership", "migrate"))
+    parser.add_argument("command", choices=("ownership", "migrate", "resume-reviewed"))
     parser.add_argument("--directory", type=Path, required=True)
     args = parser.parse_args()
     if os.environ.get("GITHUB_ACTIONS") != "true" or os.environ.get("AWS_REGION") != REGION:
@@ -375,6 +491,8 @@ def main() -> None:
         with Path(os.environ["GITHUB_OUTPUT"]).open("a") as output:
             output.write(f"state={state}\ntopology={'legacy' if state == 'legacy' else 'split'}\n")
         print(json.dumps({"monitoringOwnership": state}))
+    elif args.command == "resume-reviewed":
+        resume_reviewed(aws, args.directory)
     else:
         migrate(aws, args.directory)
 
