@@ -392,6 +392,16 @@ async function handleMcpTransportRequest(
 
 function buildMcpRoutes(app: Hono<McpAppEnv>): Hono<McpAppEnv> {
   app.get("/health", (c) => c.json({ status: "ok" }));
+  app.get("/.well-known/openai-apps-challenge", (c) => {
+    // This public ownership proof belongs only to the Nibomo submission, never to self-hosters.
+    const verificationHost = "mcp.nibomo.com";
+    const requestHost = c.req.header("host")?.toLowerCase();
+    const allowedHosts = getAllowedMcpHosts(getBaseDomain(), getAlternateMcpHost());
+    if (requestHost !== verificationHost || !allowedHosts.includes(verificationHost)) {
+      return c.notFound();
+    }
+    return c.text("y6BqD7-KrszllIQHROBAyp4dNbif44LcpJWK21K4agw");
+  });
   app.get("/robots.txt", (c) =>
     c.body("User-agent: *\nDisallow:\n", 200, {
       "Content-Type": "text/plain; charset=utf-8",
