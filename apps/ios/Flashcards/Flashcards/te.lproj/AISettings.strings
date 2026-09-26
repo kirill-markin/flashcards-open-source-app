@@ -849,3 +849,14 @@
 "premium.comingSoon.title" = "Premium త్వరలో వస్తోంది";
 "premium.comingSoon.message" = "సబ్‌స్క్రిప్షన్‌లు ఇంకా అందుబాటులో లేవు.";
 "premium.aiLimit.title" = "AI సందేశాల పరిమితిని చేరుకున్నారు";
+
+"settings.accentColor.title" = "హైలైట్ రంగు";
+"settings.accentColor.default" = "డిఫాల్ట్";
+"settings.accentColor.blue" = "నీలం";
+"settings.accentColor.purple" = "ఊదా";
+"settings.accentColor.pink" = "గులాబీ";
+"settings.accentColor.teal" = "నీలాకుపచ్చ";
+"settings.accentColor.gold" = "బంగారు";
+"settings.accentColor.custom" = "ఇష్టమైన రంగు";
+"settings.accentColor.invalidHex" = "ఆరు హెక్సాడెసిమల్ అంకెలతో #RRGGBB రూపంలో రంగును నమోదు చేయండి.";
+"settings.accentColor.premiumNote" = "ఇష్టమైన హైలైట్ రంగులు Premiumతో అందుబాటులో ఉంటాయి. Premium సక్రియంగా ఉన్నప్పుడు మీరు సేవ్ చేసిన రంగు తిరిగి వస్తుంది.";

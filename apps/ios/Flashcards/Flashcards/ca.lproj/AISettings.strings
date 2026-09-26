@@ -849,3 +849,14 @@
 "premium.comingSoon.title" = "Premium arribarà aviat";
 "premium.comingSoon.message" = "Les subscripcions encara no estan disponibles.";
 "premium.aiLimit.title" = "Has arribat al límit de missatges d’IA";
+
+"settings.accentColor.title" = "Color d’accent";
+"settings.accentColor.default" = "Per defecte";
+"settings.accentColor.blue" = "Blau";
+"settings.accentColor.purple" = "Lila";
+"settings.accentColor.pink" = "Rosa";
+"settings.accentColor.teal" = "Turquesa";
+"settings.accentColor.gold" = "Daurat";
+"settings.accentColor.custom" = "Color personalitzat";
+"settings.accentColor.invalidHex" = "Introdueix un color com a #RRGGBB, amb sis dígits hexadecimals.";
+"settings.accentColor.premiumNote" = "Els colors d’accent personalitzats estan disponibles amb Premium. El color desat torna quan Premium està actiu.";
