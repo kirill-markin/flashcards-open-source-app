@@ -213,6 +213,7 @@ struct CardsScreen: View {
                     Label(String(localized: "Add card", table: reviewCardsStringsTableName), systemImage: "plus")
                         .foregroundStyle(Color.primary)
                 }
+                .tint(Color.primary)
                 .accessibilityIdentifier(UITestIdentifier.cardsAddButton)
             }
         }

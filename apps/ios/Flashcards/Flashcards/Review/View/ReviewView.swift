@@ -338,14 +338,15 @@ struct ReviewView: View {
         } label: {
             HStack(spacing: 4) {
                 Text(self.selectedReviewFilterTitle)
-                    .foregroundStyle(Color.primary)
                     .lineLimit(1)
                     .truncationMode(.tail)
                     .frame(maxWidth: reviewFilterMenuTitleMaxWidth, alignment: .leading)
                 Image(systemName: "chevron.down")
                     .font(.caption.weight(.semibold))
             }
+            .foregroundStyle(Color.primary)
         }
+        .tint(Color.primary)
         .accessibilityIdentifier(UITestIdentifier.reviewFilterMenu)
         .popover(isPresented: self.$isReviewFilterPopoverPresented) {
             ReviewFilterPopover(
