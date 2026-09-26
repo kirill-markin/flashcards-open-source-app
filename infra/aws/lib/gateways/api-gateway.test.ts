@@ -202,7 +202,12 @@ test("direct ingestion monitoring covers handled HTTP 5xx and thrown Lambda fail
   );
   assert.match(
     monitoringSource,
-    /DirectImageIngestionHandled5xxMetricFilter[\s\S]*directImageIngestionFn\.logGroup[\s\S]*DirectImageIngestionHandled5xxAlarm/,
+    /DirectImageIngestionHandled5xxMetricFilter[\s\S]*logGroup: props\.directImageIngestionLogGroup[\s\S]*DirectImageIngestionHandled5xxAlarm/,
+  );
+  assert.match(monitoringSource, /directImageIngestionLogGroup: logs\.ILogGroup;/);
+  assert.match(
+    readFileSync(resolve(process.cwd(), "lib/stack.ts"), "utf8"),
+    /this\.monitoringInputs = \{[\s\S]*directImageIngestionLogGroup: api\.directImageIngestionFn\.logGroup,/,
   );
   assert.match(
     loadApiGatewaySource(),
