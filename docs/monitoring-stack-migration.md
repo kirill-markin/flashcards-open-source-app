@@ -1,9 +1,14 @@
 # Monitoring stack migration
 
-Normal releases use the `legacy` topology: `FlashcardsOpenSourceApp` owns all
-resources. The temporary `monitoringTopology=split` context synthesizes
-`FlashcardsOpenSourceAppMonitoring` for preparation only. Never deploy that
-assembly before the native CloudFormation refactor is approved and executed.
+Normal releases use the `split` topology. The serialized `AWS/Web Release` job
+reads actual CloudFormation ownership before deploying: no stacks takes a fresh
+split deployment; all 66 in core with no target takes the migration path. A migrated
+split installation requires its operation-linked private verified receipt and exact
+current stack IDs and moved logical/physical IDs before normal deployment. A fresh
+split installation with no prior native refactor does not need a migration receipt.
+Mixed ownership, unstable stacks and unresolved prior native refactors stop the release.
+The temporary `monitoringTopology=legacy` context is only for the initial
+migration baseline. Never deploy a legacy assembly after ownership has moved.
 
 The intended move is exactly 58 CloudWatch alarms and 8 Logs metric filters.
 SNS topic/subscription, core outputs, functions, log groups and their retention
@@ -12,8 +17,10 @@ monitoring. The freshness metric retains the producer's core `StackName`.
 
 ## Preparation evidence
 
-`AWS/Web Release` runs the comparison after the final ENABLED deployment and
-schedule verification. It privately copies that deployment's `cdk.out` before
+`AWS/Web Release` first aligns the current commit in legacy through the existing
+DISABLED deployment, database verification, ENABLED deployment and schedule
+verification. This migration release rejects schema changes since the last
+successful platform release. It privately copies that deployment's `cdk.out` before
 synthesizing the split topology into the same `cdk.out` staging location, then
 copies the split assembly privately. The checkout, account, region, local context,
 final schedule/cleanup flags and disabled source-map upload stay identical.
@@ -41,8 +48,8 @@ The private runner directory `${RUNNER_TEMP}/monitoring-refactor` contains the
 legacy/split assemblies and detailed `report/evidence.private.json`. Only
 `resource-mappings.json` and a sanitized count/status summary are uploaded.
 Do not upload templates, local context or the private report as public artifacts.
-A failed comparison emits an explicit warning and blocks migration; the ordinary
-legacy release remains usable. A passing comparison proves template equivalence
+A failed comparison blocks the release before any ownership mutation. A passing
+comparison proves template equivalence
 within the stated boundary, **not AWS refactor eligibility**.
 
 To repeat preparation, run from `infra/aws` in the same cloud job after a fresh
@@ -79,72 +86,82 @@ python3 ../../scripts/deploy/prepare-monitoring-refactor.py \
   --output-directory "${evidence_directory}/report"
 ```
 
-After preview synthesis, `cdk.out` is a preview assembly, even if comparison fails.
-Never deploy it. The private `legacy` copy remains the final deployed baseline;
-ordinary release recovery starts with a fresh legacy synthesis in CI.
+After preview synthesis, `cdk.out` must not deploy until the native move and
+identity/configuration checks pass. The workflow then deploys this original,
+unadapted split assembly and continues the existing release smoke gates.
 
-## Next-stage server preview
+## Native server gate
 
-Perform this only in the separately authorized migration stage. Serialize all
-releases, regenerate the evidence from the exact final deployed assembly in the
-same CI run, and stop if the source stack changes during preparation. Refresh
-`DescribeStacks`, `GetTemplate`, `ListStackResources`, `GetStackPolicy`, regional
-`DescribeType` provisioning support for both moved types, and SNS subscription
-confirmation. Confirm the target does not exist. Save the current 66 physical
-IDs, alert topic ARN, confirmed subscription ARN, output values, and log-group
-ownership for comparison after execution. Compare the deployed source template
-to the final legacy assembly before asking AWS to plan the move.
+Before merging the migration PR, inspect queued/in-progress `AWS/Web Release`
+runs and drain older releases. Keep the complete operation under the existing
+`main-release` concurrency group. Do not rerun historical pre-migration workflow
+runs: new ownership guards cannot change the workflow code stored in old runs.
 
-The pinned CDK CLI 2.1142.0 rejects creating a new stack during `_refactor`, even
-for dry runs. Do not invoke `cdk refactor` or replace the bootstrap to work around
-that restriction. Use the public native CloudFormation API with
-`EnableStackCreation=true` instead.
+`scripts/deploy/migrate-monitoring-stack.py` uses AWS CLI 2.36.24 and the public
+CloudFormation API. It assumes the existing lookup, file-publishing and deployment
+roles separately from the original GitHub OIDC credentials. No bootstrap or IAM
+change is part of this operation. A permissions failure stops the release.
 
-After a narrowly scoped migration role is available, create a server-side plan
-using the exact private split templates and generated mappings. From
-`${RUNNER_TEMP}/monitoring-refactor`:
+The driver refreshes templates, stack policies, resource inventories, supported
+resource types, all alarm/filter configurations and the confirmed SNS subscription.
+It checks the freshly deployed template against the exact legacy assembly and
+runs the strict raw assembly comparison before adapting transport templates.
+Following the pinned [CDK transport implementation](https://github.com/aws/aws-cdk-cli/blob/aws-cdk%40v2.1142.0/packages/%40aws-cdk/toolkit-lib/lib/api/refactoring/stack-definitions.ts),
+only deployed core CDKMetadata is preserved, target CDKMetadata is omitted, and
+the checked target BootstrapVersion/CheckBootstrapVersion bookkeeping is removed.
+Any workload reference to that parameter or other required adaptation stops work.
 
-```bash
-aws cloudformation create-stack-refactor \
-  --region eu-central-1 \
-  --enable-stack-creation \
-  --description "Move the existing monitoring resources without replacement" \
-  --resource-mappings file://report/resource-mappings.json \
-  --stack-definitions \
-    StackName=FlashcardsOpenSourceApp,TemplateBody@=file://split/FlashcardsOpenSourceApp.template.json \
-    StackName=FlashcardsOpenSourceAppMonitoring,TemplateBody@=file://split/FlashcardsOpenSourceAppMonitoring.template.json \
-  > server-preview.private.json
-```
+Templates and detailed snapshots are encrypted private objects under
+`monitoring-refactor/<run-id>/<attempt>/<content-hash>/` in the existing bootstrap
+bucket `cdk-hnb659fds-assets-506210661494-eu-central-1`. The driver supplies private
+TemplateURLs, never public templates or configuration artifacts. The operation ID
+appears in the job log and in private evidence. Credentials remain in subprocess
+environments. Only sanitized mappings/counts are public artifacts.
 
-Poll `describe-stack-refactor --stack-refactor-id <id>` until creation completes,
-then save every page from `list-stack-refactor-actions --stack-refactor-id <id>`
-privately. Require exactly the intended moves, no replacements or workload
-creation/deletion, preserved names/properties/metric dimensions, and an explicit
-AWS decision on target CDK metadata, bootstrap parameters and outputs. Any
-unexplained action or server rejection blocks execution; preparation must not
-claim success from only the local comparison.
+`CreateStackRefactor` must reach `CREATE_COMPLETE` / `AVAILABLE`. Every paginated
+server action must match the exact 66 physical resource moves and optionally one
+target `STACK/CREATE`. Resource creation, unexpected tags/mappings or deferred
+configuration validation stop before execution. The source template, stack,
+identities and monitoring configuration must still match the captured baseline.
+The driver executes only that refactor ID and requires `EXECUTE_COMPLETE`, then
+polls both authoritative stack IDs for up to ten minutes. Only expected create/update
+progress is tolerated; failure, rollback, API errors or timeout stop before postchecks.
 
-The current repository deployment policy delegates ordinary deployment to CDK
-roles and scopes stack reads to core. It does not grant native refactor actions.
-The migration stage must inspect the actual OIDC and bootstrap role policies,
-trust and resource scopes, then supply narrow permissions for
-`CreateStackRefactor`, `DescribeStackRefactor`, `ListStackRefactorActions` and
-`ExecuteStackRefactor`, the necessary stack/resource reads, and new-target stack
-creation. Do not assume CDK role assumption alone authorizes these operations.
-No IAM or bootstrap modification is part of preparation.
+Before ordinary split deployment, it verifies all remaining core identities,
+all 66 moved identities, original outputs, stable stacks, alarm configuration,
+exact filter name/log-group pairs and the confirmed subscription. Alarm evaluation
+state/timestamps are excluded. Only after every check and the private after-snapshot
+upload succeeds does the driver write the encrypted private receipt at
+`monitoring-refactor/verified/<sha256-of-operation-id>.private.json` in the same
+bootstrap bucket. It records the operation ID, both stack IDs and exact moved
+inventory. Later releases require that receipt and compare current moved identities;
+they do not recompare old Lambda versions or surviving-core snapshots after normal
+releases have legitimately updated them. The normal split deploy restores target CDK
+metadata/bootstrap bookkeeping (66 moved resources become 67 target resources).
+The current server preview remains an execution gate; prior template comparison
+alone does not prove AWS eligibility.
 
-## Recovery boundaries
+## Interruption and recovery
 
-Before execution, an unsuccessful comparison or server preview changes no
-existing resource ownership: keep releasing legacy. Creating a server preview
-can create an empty target when stack creation is enabled; inspect its status
-and follow the separately approved migration procedure before cleanup.
+On failure, retain the operation ID and private evidence, inspect both stacks and
+`describe-stack-refactor`, and stop before any further deployment. Failed,
+obsolete, available or in-progress operations require deliberate inspection and
+an explicitly reviewed resume; the driver never guesses or automatically retries
+a prior operation. An `EXECUTE_COMPLETE` operation without its matching verified
+receipt is also blocked with its operation ID, even when ownership already moved.
+For explicit recovery, retain the original private before/after evidence and establish
+all original identity, output and runtime preservation checks in a separately reviewed
+CI procedure before writing a receipt. Never write one merely because execution
+completed or type counts match. There is no automatic recovery/resume path.
+A preview may reserve an empty target stack. Do not delete it
+or recreate resources to clear a blocked run.
 
-After execution, never run a legacy deployment to roll back. Inspect both stacks,
-verify the physical identities and notification subscription, and use a reviewed
-reverse native refactor if recovery is needed. Delete/create and retain/import
-are not substitutes. The subsequent finalization removes the temporary topology
-switch only after the split is the deployed and verified source of truth.
+After transfer, use fix-forward split releases. Never revert to the old topology,
+rerun old legacy workflow code, delete/recreate monitoring resources, or substitute
+retain/import. An inverse native refactor requires its own reviewed templates,
+exact reverse physical mappings, server-action gate and CI execution. There is no
+automatic destructive recovery. Remove the temporary legacy path only in the
+separate finalization item after the move and normal release are verified.
 
 References: [native CreateStackRefactor](https://docs.aws.amazon.com/cli/latest/reference/cloudformation/create-stack-refactor.html),
 [stack refactoring](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/stack-refactoring.html),

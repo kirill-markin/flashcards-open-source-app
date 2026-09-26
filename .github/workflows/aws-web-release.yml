@@ -20,6 +20,7 @@ on:
       - 'scripts/deploy/deploy-web.sh'
       - 'scripts/deploy/select-release-components.sh'
       - 'scripts/deploy/prepare-monitoring-refactor.py'
+      - 'scripts/deploy/migrate-monitoring-stack.py'
       - 'scripts/deploy/report-cloudformation-budget.py'
       - 'scripts/generate/generate-catalog-dump.sh'
       - 'scripts/generate/generate-global-metrics-snapshot.sh'
@@ -316,10 +317,12 @@ jobs:
       - pre_deploy_checks
     if: ${{ needs.changes.outputs.deploy_any == 'true' && needs.pre_deploy_checks.result == 'success' }}
     runs-on: ubuntu-24.04-arm
-    timeout-minutes: 30
+    timeout-minutes: 60
 
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v7
         with:
@@ -369,6 +372,37 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
+
+      - name: Pin native refactor AWS CLI
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location \
+            https://awscli.amazonaws.com/awscli-exe-linux-aarch64-2.36.24.zip \
+            --output "${RUNNER_TEMP}/monitoring-awscli.zip"
+          unzip -q "${RUNNER_TEMP}/monitoring-awscli.zip" -d "${RUNNER_TEMP}/monitoring-awscli"
+          "${RUNNER_TEMP}/monitoring-awscli/aws/install" \
+            --install-dir "${RUNNER_TEMP}/monitoring-aws" --bin-dir "${RUNNER_TEMP}/monitoring-bin"
+          echo "${RUNNER_TEMP}/monitoring-bin" >> "${GITHUB_PATH}"
+
+      - name: Resolve authoritative monitoring ownership before deployment
+        id: monitoring_ownership
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
+        run: |
+          python3 scripts/deploy/migrate-monitoring-stack.py ownership \
+            --directory "${RUNNER_TEMP}/monitoring-refactor"
+
+      - name: Prohibit schema changes in the ownership migration release
+        if: ${{ steps.monitoring_ownership.outputs.state == 'legacy' }}
+        env:
+          PLATFORM_SHA: ${{ needs.changes.outputs.platform_read_sha }}
+        run: |
+          set -euo pipefail
+          git cat-file -e "${PLATFORM_SHA}^{commit}"
+          if [[ -n "$(git diff --name-only "${PLATFORM_SHA}" "${GITHUB_SHA}" -- db/migrations)" ]]; then
+            echo "::error::Publish schema changes separately before the monitoring ownership migration."
+            exit 1
+          fi
 
       - name: CDK deploy with migration-gated runtime and reconciliation schedule disabled
         if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
@@ -428,6 +462,7 @@ jobs:
             --output cdk.context.local.json \
             --aws-deploy-role-arn "${AWS_DEPLOY_ROLE_ARN}"
           npx cdk synth --all --quiet \
+            -c monitoringTopology=${{ steps.monitoring_ownership.outputs.topology }} \
             -c generatedMediaPromotionScheduleState=DISABLED \
             -c mediaBlobCleanupEnabled=false \
             -c multipartCompletionReconciliationScheduleState=DISABLED
@@ -448,6 +483,7 @@ jobs:
           SENTRY_UPLOAD_BACKEND_SOURCEMAPS: false
         run: |
           npx cdk synth --all --quiet \
+            -c monitoringTopology=${{ steps.monitoring_ownership.outputs.topology }} \
             -c generatedMediaPromotionScheduleState=ENABLED \
             -c mediaBlobCleanupEnabled=true \
             -c multipartCompletionReconciliationScheduleState=ENABLED
@@ -461,10 +497,9 @@ jobs:
             --stack-name ${{ env.STACK_NAME }} \
             --region ${{ env.AWS_REGION }}
 
-      - name: Compare monitoring split preview without changing AWS ownership
+      - name: Prepare and execute the bounded native monitoring move
         id: monitoring_preview
-        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
-        continue-on-error: true
+        if: ${{ steps.monitoring_ownership.outputs.state == 'legacy' }}
         working-directory: infra/aws
         env:
           SENTRY_UPLOAD_BACKEND_SOURCEMAPS: false
@@ -495,6 +530,9 @@ jobs:
             --legacy-assembly "${evidence_directory}/legacy" \
             --split-assembly "${evidence_directory}/split" \
             --output-directory "${evidence_directory}/report"
+          python3 ../../scripts/deploy/migrate-monitoring-stack.py migrate --directory "${evidence_directory}"
+          python3 ../../scripts/deploy/report-cloudformation-budget.py cdk.out
+          npx cdk deploy --app cdk.out --all --require-approval never
 
       - name: Save sanitized monitoring preparation evidence
         if: ${{ steps.monitoring_preview.outcome == 'success' }}
@@ -507,20 +545,17 @@ jobs:
             ${{ runner.temp }}/monitoring-refactor/report/resource-mappings.json
             ${{ runner.temp }}/monitoring-refactor/report/summary.json
 
-      - name: Report monitoring preparation outcome
+      - name: Report monitoring migration outcome
         if: ${{ always() && needs.changes.outputs.deploy_platform == 'true' }}
         env:
           PREVIEW_OUTCOME: ${{ steps.monitoring_preview.outcome }}
         run: |
-          if [[ "${PREVIEW_OUTCOME}" != "success" ]]; then
-            echo "::warning::Monitoring template preparation did not pass. Resource ownership is unchanged; the monitoring move is blocked."
-          fi
           {
-            echo "## Monitoring boundary preparation"
-            echo ""
-            echo "- Template comparison: ${PREVIEW_OUTCOME}"
-            echo "- Production topology: legacy. AWS server refactor validation: pending."
-            echo "- Only sanitized mappings/counts are uploaded; templates and detailed evidence stay private on the runner."
+            echo "## Monitoring ownership"
+            echo "- Initial ownership: ${{ steps.monitoring_ownership.outputs.state }}"
+            echo "- Native move and normal split deployment: ${PREVIEW_OUTCOME}"
+            echo "- Fresh/split ownership skips the move. Any failed gate blocks this release."
+            echo "- Detailed evidence remains in the private bootstrap bucket; public artifacts contain mappings/counts only."
           } >> "${GITHUB_STEP_SUMMARY}"
 
       - name: Refresh private GeoLite Country database
