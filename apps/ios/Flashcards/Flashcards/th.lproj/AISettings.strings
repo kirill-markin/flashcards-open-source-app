@@ -849,3 +849,14 @@
 "premium.comingSoon.title" = "Premium กำลังจะมาเร็ว ๆ นี้";
 "premium.comingSoon.message" = "ยังไม่เปิดให้สมัครสมาชิก";
 "premium.aiLimit.title" = "ใช้ข้อความ AI ถึงขีดจำกัดแล้ว";
+
+"settings.accentColor.title" = "สีเน้น";
+"settings.accentColor.default" = "ค่าเริ่มต้น";
+"settings.accentColor.blue" = "สีน้ำเงิน";
+"settings.accentColor.purple" = "สีม่วง";
+"settings.accentColor.pink" = "สีชมพู";
+"settings.accentColor.teal" = "สีเขียวอมฟ้า";
+"settings.accentColor.gold" = "สีทอง";
+"settings.accentColor.custom" = "สีที่กำหนดเอง";
+"settings.accentColor.invalidHex" = "ป้อนสีในรูปแบบ #RRGGBB โดยใช้เลขฐานสิบหกหกหลัก";
+"settings.accentColor.premiumNote" = "สีเน้นที่กำหนดเองใช้ได้กับ Premium สีที่บันทึกไว้จะกลับมาเมื่อ Premium ใช้งานอยู่";

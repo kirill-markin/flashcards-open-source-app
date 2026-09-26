@@ -849,3 +849,14 @@
 "premium.comingSoon.title" = "Premium stiže uskoro";
 "premium.comingSoon.message" = "Pretplate još nisu dostupne.";
 "premium.aiLimit.title" = "Dosegnuto je ograničenje AI poruka";
+
+"settings.accentColor.title" = "Boja naglaska";
+"settings.accentColor.default" = "Zadana";
+"settings.accentColor.blue" = "Plava";
+"settings.accentColor.purple" = "Ljubičasta";
+"settings.accentColor.pink" = "Ružičasta";
+"settings.accentColor.teal" = "Tirkizna";
+"settings.accentColor.gold" = "Zlatna";
+"settings.accentColor.custom" = "Prilagođena boja";
+"settings.accentColor.invalidHex" = "Unesite boju u obliku #RRGGBB sa šest heksadekadskih znamenki.";
+"settings.accentColor.premiumNote" = "Prilagođene boje naglaska dostupne su uz Premium. Spremljena boja vraća se kada je Premium aktivan.";

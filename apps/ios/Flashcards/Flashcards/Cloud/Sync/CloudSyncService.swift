@@ -70,7 +70,8 @@ private func makeCloudAccountContext(meResponse: MeResponse) -> CloudAccountCont
         email: meResponse.profile.email,
         preferences: AccountPreferences(
             reviewReactionAnimationsEnabled: meResponse.preferences.reviewReactionAnimationsEnabled,
-            productAnalyticsEnabled: meResponse.preferences.productAnalyticsEnabled
+            productAnalyticsEnabled: meResponse.preferences.productAnalyticsEnabled,
+            accentColor: meResponse.preferences.accentColor
         )
     )
 }
