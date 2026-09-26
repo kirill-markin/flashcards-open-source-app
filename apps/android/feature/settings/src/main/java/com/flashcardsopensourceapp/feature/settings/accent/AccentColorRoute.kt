@@ -20,13 +20,13 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -63,10 +63,11 @@ fun AccentColorRoute(
     uiState: AccentColorUiState,
     isPremiumRequired: Boolean,
     onSelectColor: (String) -> Unit,
+    onRequestCustom: (() -> Unit) -> Unit,
     onBack: () -> Unit
 ) {
     var isCustomDialogVisible by rememberSaveable { mutableStateOf(false) }
-    val isEnabled = uiState.canManagePreferences && uiState.isSaving.not()
+    val isEnabled = uiState.canManagePreferences
     SettingsScreenScaffold(
         title = stringResource(R.string.settings_accent_title),
         onBack = onBack,
@@ -86,6 +87,11 @@ fun AccentColorRoute(
                         text = stringResource(R.string.settings_accent_premium_note),
                         style = MaterialTheme.typography.bodyMedium
                     )
+                }
+            }
+            uiState.errorMessage?.let { message ->
+                item {
+                    Text(text = message, color = MaterialTheme.colorScheme.error)
                 }
             }
             if (uiState.isSaving) {
@@ -118,23 +124,38 @@ fun AccentColorRoute(
                 }
             }
             item {
-                OutlinedButton(
-                    onClick = { isCustomDialogVisible = true },
-                    enabled = isEnabled,
+                val selected = accentPresets.none { preset -> preset.color == uiState.selectedColor }
+                Card(
                     modifier = Modifier.fillMaxWidth().testTag("settings.accent.custom")
+                        .selectable(
+                            selected = selected,
+                            enabled = isEnabled,
+                            role = Role.RadioButton,
+                            onClick = { onRequestCustom { isCustomDialogVisible = true } }
+                        )
                 ) {
-                    Text(stringResource(R.string.settings_accent_custom))
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.settings_accent_custom)) },
+                        supportingContent = if (selected) {
+                            { Text(uiState.selectedColor) }
+                        } else {
+                            null
+                        },
+                        leadingContent = { AccentSwatch(color = uiState.selectedColor) },
+                        trailingContent = {
+                            RadioButton(selected = selected, onClick = null, enabled = isEnabled)
+                        }
+                    )
                 }
             }
         }
     }
     if (isCustomDialogVisible) {
         CustomAccentColorDialog(
-            initialColor = uiState.selectedColor,
-            onConfirm = { color ->
-                isCustomDialogVisible = false
-                onSelectColor(color)
-            },
+            selectedColor = uiState.selectedColor,
+            errorMessage = uiState.errorMessage,
+            isEnabled = isEnabled,
+            onSelectColor = onSelectColor,
             onDismiss = { isCustomDialogVisible = false }
         )
     }
@@ -150,14 +171,20 @@ private fun AccentSwatch(color: String) {
 
 @Composable
 private fun CustomAccentColorDialog(
-    initialColor: String,
-    onConfirm: (String) -> Unit,
+    selectedColor: String,
+    errorMessage: String?,
+    isEnabled: Boolean,
+    onSelectColor: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var hex by rememberSaveable { mutableStateOf(initialColor) }
-    var previewColor by rememberSaveable { mutableStateOf(initialColor) }
+    var hex by rememberSaveable { mutableStateOf(selectedColor) }
+    LaunchedEffect(selectedColor) {
+        if (Regex("^#[0-9A-Fa-f]{6}$").matches(hex)) {
+            hex = selectedColor
+        }
+    }
     val isValid = Regex("^#[0-9A-Fa-f]{6}$").matches(hex)
-    val rgb = previewColor.drop(1).toInt(radix = 16)
+    val rgb = selectedColor.drop(1).toInt(radix = 16)
     val channels = listOf(
         Triple(R.string.settings_accent_red, 16, "red"),
         Triple(R.string.settings_accent_green, 8, "green"),
@@ -172,19 +199,26 @@ private fun CustomAccentColorDialog(
                 modifier = Modifier.verticalScroll(rememberScrollState())
                     .testTag("settings.accent.customDialog")
             ) {
-                AccentSwatch(color = previewColor)
+                AccentSwatch(color = selectedColor)
+                val selectedPreset = accentPresets.firstOrNull { preset -> preset.color == selectedColor }
+                Text(stringResource(selectedPreset?.label ?: R.string.settings_accent_custom))
+                Text(stringResource(R.string.settings_accent_selected, selectedColor))
+                errorMessage?.let { message ->
+                    Text(text = message, color = MaterialTheme.colorScheme.error)
+                }
                 OutlinedTextField(
                     value = hex,
                     onValueChange = { value ->
                         hex = value
                         if (Regex("^#[0-9A-Fa-f]{6}$").matches(value)) {
-                            previewColor = value.uppercase(Locale.ROOT)
+                            onSelectColor(value.uppercase(Locale.ROOT))
                         }
                     },
                     label = { Text(stringResource(R.string.settings_accent_hex)) },
                     supportingText = {
                         Text(stringResource(R.string.settings_accent_hex_format))
                     },
+                    enabled = isEnabled,
                     isError = isValid.not(),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth().testTag("settings.accent.hex")
@@ -200,8 +234,9 @@ private fun CustomAccentColorDialog(
                                 (value.roundToInt() shl shift)
                             val updatedHex = String.format(Locale.ROOT, "#%06X", updatedRgb)
                             hex = updatedHex
-                            previewColor = updatedHex
+                            onSelectColor(updatedHex)
                         },
+                        enabled = isEnabled,
                         valueRange = 0f..255f,
                         steps = 254,
                         modifier = Modifier.testTag("settings.accent." + tag)
@@ -211,17 +246,8 @@ private fun CustomAccentColorDialog(
             }
         },
         confirmButton = {
-            TextButton(
-                onClick = { onConfirm(hex.uppercase(Locale.ROOT)) },
-                enabled = isValid,
-                modifier = Modifier.testTag("settings.accent.confirm")
-            ) {
-                Text(stringResource(R.string.settings_accent_apply))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss, modifier = Modifier.testTag("settings.accent.cancel")) {
-                Text(stringResource(R.string.settings_accent_cancel))
+            TextButton(onClick = onDismiss, modifier = Modifier.testTag("settings.accent.close")) {
+                Text(stringResource(R.string.settings_accent_close))
             }
         }
     )
