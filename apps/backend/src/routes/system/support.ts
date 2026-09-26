@@ -93,6 +93,7 @@ export function assertFriendInvitationPublicPreviewTransport(request: Request): 
 }
 
 const accountPreferenceFieldNames: ReadonlyArray<string> = [
+  "accentColor",
   "reviewReactionAnimationsEnabled",
   "analyticsConsent",
   "productAnalyticsEnabled",
@@ -131,6 +132,14 @@ function expectAnalyticsConsentChoice(value: unknown, fieldName: string): Analyt
   throw new HttpError(400, `${fieldName} must be "granted" or "declined"`);
 }
 
+function expectAccentColor(value: unknown): string {
+  if (typeof value !== "string" || value.length !== 7 || !/^#[0-9a-fA-F]{6}$/.test(value)) {
+    throw new HttpError(400, "accentColor must be an opaque RGB color in #RRGGBB format");
+  }
+
+  return value.toUpperCase();
+}
+
 export function parseAccountPreferencesInput(body: Record<string, unknown>): AccountPreferencesUpdate {
   const unexpectedKey = Object.keys(body).find(
     (key) => !accountPreferencesRequestFieldNames.includes(key),
@@ -144,6 +153,7 @@ export function parseAccountPreferencesInput(body: Record<string, unknown>): Acc
   }
 
   const update: AccountPreferencesUpdate = {
+    accentColor: "accentColor" in body ? expectAccentColor(body.accentColor) : null,
     reviewReactionAnimationsEnabled: "reviewReactionAnimationsEnabled" in body
       ? expectBoolean(body.reviewReactionAnimationsEnabled, "reviewReactionAnimationsEnabled")
       : null,
@@ -170,7 +180,8 @@ export function parseAccountPreferencesInput(body: Record<string, unknown>): Acc
   };
 
   if (
-    update.reviewReactionAnimationsEnabled === null
+    update.accentColor === null
+    && update.reviewReactionAnimationsEnabled === null
     && update.analyticsConsent === null
     && update.productAnalyticsEnabled === null
   ) {

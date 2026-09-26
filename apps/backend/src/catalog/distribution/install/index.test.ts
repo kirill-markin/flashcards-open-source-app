@@ -31,6 +31,7 @@ test("catalog install route rejects unauthorized workspace access before install
         locale: "en",
         userSettingsCreatedAt: testTimestamp,
         preferences: {
+          accentColor: "#C44B2D",
           reviewReactionAnimationsEnabled: true,
           analyticsConsent: null,
           productAnalyticsEnabled: null,
@@ -91,6 +92,7 @@ test("catalog install route rejects unsafe operation prefixes without sanitizing
         locale: "en",
         userSettingsCreatedAt: testTimestamp,
         preferences: {
+          accentColor: "#C44B2D",
           reviewReactionAnimationsEnabled: true,
           analyticsConsent: null,
           productAnalyticsEnabled: null,
