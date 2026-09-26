@@ -189,6 +189,7 @@ struct CardsScreen: View {
                     Image(systemName: activeFilterDimensionCount == 0
                           ? "line.3.horizontal.decrease.circle"
                           : "line.3.horizontal.decrease.circle.fill")
+                        .foregroundStyle(Color.primary)
                 }
                 .accessibilityLabel(
                     activeFilterDimensionCount == 0
@@ -210,6 +211,7 @@ struct CardsScreen: View {
                     self.beginCreating()
                 } label: {
                     Label(String(localized: "Add card", table: reviewCardsStringsTableName), systemImage: "plus")
+                        .foregroundStyle(Color.primary)
                 }
                 .accessibilityIdentifier(UITestIdentifier.cardsAddButton)
             }

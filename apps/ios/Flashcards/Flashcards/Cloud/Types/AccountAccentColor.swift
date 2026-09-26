@@ -55,6 +55,13 @@ struct AccountAccentColor: Codable, Hashable, Sendable {
     }
 }
 
+struct PendingAccountAccentColor {
+    let id: UUID
+    let identityKey: String
+    let identityGeneration: Int
+    let color: AccountAccentColor
+}
+
 @MainActor
 extension FlashcardsStore {
     // An omitted snapshot is unknown; cached local cosmetics never expire by the device clock.
@@ -63,6 +70,10 @@ extension FlashcardsStore {
     }
 
     var effectiveAccountAccentColor: AccountAccentColor {
-        self.canUseCustomAccentColor ? self.accountPreferences.accentColor : .defaultColor
+        guard self.canUseCustomAccentColor else { return .defaultColor }
+        if let pending = self.pendingAccentColor, pending.identityKey == self.accountPreferencesIdentityKey {
+            return pending.color
+        }
+        return self.accountPreferences.accentColor
     }
 }
