@@ -89,7 +89,7 @@ fun DeleteCurrentWorkspaceRoute(
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Text(
                             text = uiState.successMessage,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.padding(20.dp)
                         )
                     }
