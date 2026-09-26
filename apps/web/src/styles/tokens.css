@@ -21,9 +21,10 @@
   --scrollbar-thumb-hover: rgba(235, 235, 245, 0.36);
   --muted: var(--text-secondary);
   --accent: #c44b2d;
+  --accent-rgb: 196, 75, 45;
   --accent-strong: #d65a38;
-  --accent-muted: rgba(196, 75, 45, 0.18);
-  --accent-soft: rgba(196, 75, 45, 0.12);
+  --accent-muted: rgba(var(--accent-rgb), 0.18);
+  --accent-soft: rgba(var(--accent-rgb), 0.12);
   --danger: #ff4d57;
   --success: #32d05a;
   --shadow: 0 28px 80px rgba(0, 0, 0, 0.44);

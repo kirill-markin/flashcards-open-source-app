@@ -192,10 +192,13 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
       ...readyWorkspace,
       isSelected: true,
     });
-    setSession({
+    setSession((previousSession): SessionInfo => ({
       ...currentSession,
+      preferences: previousSession?.userId === currentSession.userId
+        ? previousSession.preferences
+        : currentSession.preferences,
       selectedWorkspaceId: readyWorkspace.workspaceId,
-    });
+    }));
     setSessionLoadState("ready");
   }, [
     setActiveWorkspace,
@@ -429,8 +432,7 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
       // Following a link must not move an account default, but it must not leave the account without
       // one either. An account whose single workspace was never selected keeps answering
       // `GET /session` with `selectedWorkspaceId: null` to iOS, Android and the agent surfaces until
-      // something persists a first default, and the branch below — the one that used to persist it —
-      // is no longer reached on this address. Only when there is no server-side selection at all, so
+      // something persists a first default. Only when there is no server-side selection at all, so
       // an existing default is never moved, and only for the single workspace that branch would have
       // persisted anyway, which on this path is the workspace the address named.
       if (currentSession.selectedWorkspaceId === null && workspaces.length === 1) {
@@ -503,7 +505,12 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
 
     setAvailableWorkspaces(workspaces);
     setActiveWorkspace(null);
-    setSession(currentSession);
+    setSession((previousSession): SessionInfo => ({
+      ...currentSession,
+      preferences: previousSession?.userId === currentSession.userId
+        ? previousSession.preferences
+        : currentSession.preferences,
+    }));
     setSessionLoadState("selecting_workspace");
   }, [activateWorkspace, indexedDbOpenRecoveryState, setActiveWorkspace, setAvailableWorkspaces, setSession, setSessionLoadState]);
 

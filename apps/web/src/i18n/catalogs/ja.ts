@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 export const jaCatalog = {
+  accentColorSettings: {
+    title: "アクセントカラー",
+    subtitle: "アプリのアクセントカラーを選択します。",
+    premiumNote: "カスタムアクセントカラーはPremiumに含まれます。",
+    custom: "カスタムカラー",
+    hexHelp: "透明度なしの#RRGGBB形式で色を入力してください。",
+    current: "現在の色：{{color}}",
+    saving: "保存中…",
+    default: "デフォルト",
+    blue: "ブルー",
+    purple: "パープル",
+    pink: "ピンク",
+    teal: "ティール",
+    gold: "ゴールド",
+    hex: "HEX",
+  },
   premium: {
     title: "Premiumは近日公開予定です",
     unavailable: "サブスクリプションはまだ利用できません。",

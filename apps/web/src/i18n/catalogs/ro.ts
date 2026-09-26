@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const roCatalog: TranslationCatalog = {
+  accentColorSettings: {
+    title: "Culoare de accent",
+    subtitle: "Alege culoarea de accent a aplicației.",
+    premiumNote: "Culorile de accent personalizate sunt incluse în Premium.",
+    custom: "Culoare personalizată",
+    hexHelp: "Introdu o culoare în formatul #RRGGBB, fără transparență.",
+    current: "Culoarea curentă: {{color}}",
+    saving: "Se salvează…",
+    default: "Implicită",
+    blue: "Albastru",
+    purple: "Mov",
+    pink: "Roz",
+    teal: "Verde-albăstrui",
+    gold: "Auriu",
+    hex: "HEX",
+  },
   premium: {
     title: "Premium vine în curând",
     unavailable: "Abonamentele nu sunt încă disponibile.",

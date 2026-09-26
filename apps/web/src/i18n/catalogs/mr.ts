@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const mrCatalog: TranslationCatalog = {
+  accentColorSettings: {
+    title: "अॅक्सेंट रंग",
+    subtitle: "अॅपचा अॅक्सेंट रंग निवडा.",
+    premiumNote: "सानुकूल अॅक्सेंट रंग Premium मध्ये समाविष्ट आहेत.",
+    custom: "सानुकूल रंग",
+    hexHelp: "पारदर्शकतेशिवाय #RRGGBB स्वरूपात रंग लिहा.",
+    current: "सध्याचा रंग: {{color}}",
+    saving: "जतन करत आहे…",
+    default: "डीफॉल्ट",
+    blue: "निळा",
+    purple: "जांभळा",
+    pink: "गुलाबी",
+    teal: "निळसर हिरवा",
+    gold: "सोनेरी",
+    hex: "HEX",
+  },
   premium: {
     title: "Premium लवकरच येत आहे",
     unavailable: "सदस्यता अद्याप उपलब्ध नाहीत.",

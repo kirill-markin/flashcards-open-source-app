@@ -441,8 +441,8 @@
 }
 
 .settings-input:focus {
-  border-color: rgba(196, 75, 45, 0.5);
-  box-shadow: 0 0 0 4px rgba(196, 75, 45, 0.14);
+  border-color: rgba(var(--accent-rgb), 0.5);
+  box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.14);
 }
 
 .settings-input-masked {

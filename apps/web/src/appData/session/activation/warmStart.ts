@@ -1,3 +1,4 @@
+import { defaultAccentColor } from "../../../types/account";
 import { isBrowserReauthRequired } from "../../../accountDeletion";
 import type { SessionInfo, WorkspaceSummary } from "../../../types";
 import {
@@ -43,6 +44,9 @@ function isSessionInfo(value: unknown): value is SessionInfo {
     && typeof value.authTransport === "string"
     && (typeof value.csrfToken === "string" || value.csrfToken === null)
     && isRecord(value.preferences)
+    && typeof value.preferences.accentColor === "string"
+    && value.preferences.accentColor.length === 7
+    && /^#[0-9A-F]{6}$/.test(value.preferences.accentColor)
     && typeof value.preferences.reviewReactionAnimationsEnabled === "boolean"
     && (value.preferences.analyticsConsent === null
       || value.preferences.analyticsConsent === "granted"
@@ -61,7 +65,20 @@ function parseWarmStartSnapshot(rawValue: string | null): WarmStartSnapshot | nu
   }
 
   try {
-    const parsedValue = JSON.parse(rawValue) as unknown;
+    const storedValue = JSON.parse(rawValue) as unknown;
+    // Only an absent local field is migrated; wire responses stay strict.
+    const parsedValue = isRecord(storedValue)
+      && isRecord(storedValue.session)
+      && isRecord(storedValue.session.preferences)
+      && !("accentColor" in storedValue.session.preferences)
+      ? {
+        ...storedValue,
+        session: {
+          ...storedValue.session,
+          preferences: { ...storedValue.session.preferences, accentColor: defaultAccentColor },
+        },
+      }
+      : storedValue;
     if (
       isRecord(parsedValue) === false
       || parsedValue.version !== WARM_START_SNAPSHOT_VERSION
@@ -187,40 +204,21 @@ export function loadWarmStartSnapshot(): WarmStartSnapshot | null {
   return snapshot === null ? null : alignSnapshotWithEntryWorkspace(snapshot);
 }
 
-/**
- * What the stored snapshot has to keep naming is the account's own default, because the next open is
- * not guaranteed to carry an address that decides anything: at an address with no `/w/` segment the
- * snapshot is returned untouched above, `AppDataProvider` starts `ready` in whatever it names, and
- * only when `initialize()` resolves does the account default take over — a first paint of one
- * workspace's cards that then visibly snaps to another.
- *
- * An entry address that put the account in a workspace other than that default is exactly the state
- * that would break it: it publishes its workspace locally, into `activeWorkspace` and
- * `session.selectedWorkspaceId`, while leaving the account's server-side default where it was, so
- * it is the one activation the snapshot must not record. Every other one moved that default too,
- * which is why this divergence cannot arise anywhere else. The entry activation moves it in exactly
- * one case — an account that had no default at all, which is given one so the other clients stop
- * reading `selectedWorkspaceId: null` — and a successful write retires the address as it lands, so
- * address and default agree from then on and this guard stops holding for the rest of the document.
- * A failed one retires nothing and leaves the divergence recorded, so the guard keeps holding, and
- * this document refuses every snapshot write for the rest of its life. Asked of the entry-address
- * model rather than of a comparison between the snapshot and the address, so the answer is the same
- * one activation resolved from — including that an address naming the account's own default is not
- * this case at all, and keeps refreshing the snapshot like any other open.
- *
- * Nothing is written at all while it holds, rather than a partly rewritten snapshot: whatever the
- * previous document stored is already the account's default, and the whole record is advisory and
- * revalidated on the next boot anyway. A document opened on somebody else's link therefore refreshes
- * no snapshot, and one that never had a snapshot writes none, which costs that document's successor
- * the warm first paint and falls back to the cold path the account default resolves on.
- */
+/** Entry links must preserve the cached account-default workspace, but account preferences are shared. */
 export function storeWarmStartSnapshot(snapshot: WarmStartSnapshot): void {
-  if (didEntryAddressOverrideAccountDefault()) {
+  const browserStorage = getBrowserStorage();
+  if (browserStorage === null) {
     return;
   }
 
-  const browserStorage = getBrowserStorage();
-  if (browserStorage === null) {
+  if (didEntryAddressOverrideAccountDefault()) {
+    const storedSnapshot = parseWarmStartSnapshot(browserStorage.getItem(WARM_START_SNAPSHOT_STORAGE_KEY));
+    if (storedSnapshot !== null && storedSnapshot.session.userId === snapshot.session.userId) {
+      browserStorage.setItem(WARM_START_SNAPSHOT_STORAGE_KEY, JSON.stringify({
+        ...storedSnapshot,
+        session: { ...storedSnapshot.session, preferences: snapshot.session.preferences },
+      }));
+    }
     return;
   }
 

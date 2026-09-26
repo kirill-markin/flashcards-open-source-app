@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const mlCatalog: TranslationCatalog = {
+  accentColorSettings: {
+    title: "ആക്സന്റ് നിറം",
+    subtitle: "ആപ്പിന്റെ ആക്സന്റ് നിറം തിരഞ്ഞെടുക്കുക.",
+    premiumNote: "ഇഷ്ടാനുസൃത ആക്സന്റ് നിറങ്ങൾ Premium-ൽ ഉൾപ്പെടുന്നു.",
+    custom: "ഇഷ്ടാനുസൃത നിറം",
+    hexHelp: "സുതാര്യത ഇല്ലാതെ #RRGGBB രൂപത്തിൽ നിറം നൽകുക.",
+    current: "നിലവിലെ നിറം: {{color}}",
+    saving: "സേവ് ചെയ്യുന്നു…",
+    default: "ഡിഫോൾട്ട്",
+    blue: "നീല",
+    purple: "പർപ്പിൾ",
+    pink: "പിങ്ക്",
+    teal: "നീലകലർന്ന പച്ച",
+    gold: "സ്വർണ്ണം",
+    hex: "HEX",
+  },
   premium: {
     title: "Premium ഉടൻ വരുന്നു",
     unavailable: "സബ്‌സ്‌ക്രിപ്‌ഷനുകൾ ഇതുവരെ ലഭ്യമല്ല.",
