@@ -73,8 +73,8 @@ export const boundaryDefinitions = Object.freeze([
   // Shared profile reads and preference writes require accent_color. The two content-write
   // integrations also pin the current production schema.
   Object.freeze({
-    migrationFileName: "0163_account_accent_color.sql",
-    expectedMigrationCount: 165,
+    migrationFileName: "0164_account_accent_color.sql",
+    expectedMigrationCount: 166,
     testFiles: Object.freeze([
       "src/agent/reviews.postgres.integration.ts",
       "src/auth/surrogateUserId.postgres.integration.ts",
