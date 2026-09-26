@@ -344,8 +344,9 @@ check_public_global_metrics_snapshot_preflight() {
 
 validate_global_metrics_snapshot_payload() {
   local response_file="$1"
+  local schema_version="$2"
 
-  python3 - "$response_file" <<'PY'
+  python3 - "$response_file" "$schema_version" <<'PY'
 import datetime
 import json
 import pathlib
@@ -357,7 +358,8 @@ payload = json.loads(response_path.read_text())
 required_top_level_keys = ["schemaVersion", "generatedAtUtc", "asOfUtc", "from", "to", "totals", "days"]
 required_total_keys = ["uniqueReviewingUsers", "reviewEvents"]
 required_review_event_keys = ["total", "byPlatform"]
-expected_platform_keys = ["web", "android", "ios"]
+schema_version = int(sys.argv[2])
+expected_platform_keys = ["web", "android", "ios"] + (["agent", "unattributed"] if schema_version == 3 else [])
 
 
 def require(condition: bool, message: str) -> None:
@@ -373,7 +375,7 @@ def require_non_negative_int(value: object, label: str) -> int:
 
 def validate_platform_totals(node: object, label: str) -> dict[str, int]:
     require(isinstance(node, dict), f"{label} must be an object")
-    require(all(platform in node for platform in expected_platform_keys), f"{label} must include {expected_platform_keys!r}")
+    require(set(node) == set(expected_platform_keys), f"{label} must include {expected_platform_keys!r}")
     return {
         platform: require_non_negative_int(node[platform], f"{label}.{platform}")
         for platform in expected_platform_keys
@@ -390,7 +392,7 @@ def validate_review_events(node: object, label: str) -> None:
 
 require(isinstance(payload, dict), "global metrics snapshot response must be a JSON object")
 require(all(key in payload for key in required_top_level_keys), f"snapshot payload is missing one of {required_top_level_keys!r}")
-require(payload["schemaVersion"] == 2, f"schemaVersion must be 2, received {payload['schemaVersion']!r}")
+require(payload["schemaVersion"] == schema_version, f"schemaVersion must be {schema_version}, received {payload['schemaVersion']!r}")
 require(isinstance(payload["generatedAtUtc"], str), "generatedAtUtc must be a string")
 generated_at = datetime.datetime.fromisoformat(payload["generatedAtUtc"].replace("Z", "+00:00"))
 require(isinstance(payload["asOfUtc"], str), "asOfUtc must be a string")
@@ -418,9 +420,8 @@ require(len(days) == expected_day_count, f"days must contain exactly {expected_d
 seen_dates: set[str] = set()
 previous_date: datetime.date | None = None
 day_review_total = 0
-day_review_web_total = 0
-day_review_android_total = 0
-day_review_ios_total = 0
+day_platform_totals = dict.fromkeys(expected_platform_keys, 0)
+new_user_total = 0
 required_day_keys = ["date", "uniqueReviewingUsers", "newReviewingUsers", "returningReviewingUsers", "reviewEvents"]
 for index, entry in enumerate(days):
     label = f"days[{index}]"
@@ -443,14 +444,16 @@ for index, entry in enumerate(days):
         require(returning_count == 0, f"{label}.returningReviewingUsers must be 0 for the first day")
     validate_review_events(entry["reviewEvents"], f"{label}.reviewEvents")
     day_review_total += entry["reviewEvents"]["total"]
-    day_review_web_total += entry["reviewEvents"]["byPlatform"]["web"]
-    day_review_android_total += entry["reviewEvents"]["byPlatform"]["android"]
-    day_review_ios_total += entry["reviewEvents"]["byPlatform"]["ios"]
+    new_user_total += new_count
+    for platform in expected_platform_keys:
+        day_platform_totals[platform] += entry["reviewEvents"]["byPlatform"][platform]
 
 require(day_review_total == totals["reviewEvents"]["total"], "totals.reviewEvents.total must equal the sum of day review events")
-require(day_review_web_total == totals["reviewEvents"]["byPlatform"]["web"], "totals.reviewEvents.byPlatform.web must equal the sum of day web review events")
-require(day_review_android_total == totals["reviewEvents"]["byPlatform"]["android"], "totals.reviewEvents.byPlatform.android must equal the sum of day android review events")
-require(day_review_ios_total == totals["reviewEvents"]["byPlatform"]["ios"], "totals.reviewEvents.byPlatform.ios must equal the sum of day ios review events")
+for platform in expected_platform_keys:
+    require(day_platform_totals[platform] == totals["reviewEvents"]["byPlatform"][platform], f"{platform} total must equal its day series")
+if schema_version == 3:
+    require(new_user_total == totals["uniqueReviewingUsers"], "all-time reviewers must equal summed first-review cohorts")
+
 PY
 }
 
@@ -480,6 +483,7 @@ check_public_global_metrics_snapshot() {
   local url="$1"
   local origin="$2"
   local description="$3"
+  local schema_version="$4"
   local response_file
   local headers_file
   local http_status
@@ -543,7 +547,7 @@ check_public_global_metrics_snapshot() {
     return 1
   fi
 
-  validate_global_metrics_snapshot_payload "$response_file"
+  validate_global_metrics_snapshot_payload "$response_file" "$schema_version"
   echo "Public global metrics snapshot check passed: ${description} (${url})"
 }
 
@@ -804,12 +808,23 @@ if [[ "$GLOBAL_METRICS_VISIBLE" == "true" ]]; then
   check_public_global_metrics_snapshot \
     "$GLOBAL_SNAPSHOT_URL" \
     "$WEB_PUBLIC_BASE" \
-    "public global metrics snapshot endpoint"
+    "public global metrics snapshot endpoint" \
+    "2"
+  check_public_global_metrics_snapshot \
+    "${GLOBAL_SNAPSHOT_URL}?schemaVersion=3" \
+    "$WEB_PUBLIC_BASE" \
+    "public global metrics v3 snapshot endpoint" \
+    "3"
+  check_url "${GLOBAL_SNAPSHOT_URL}?schemaVersion=invalid" "400" "invalid global metrics schema version"
 else
   check_hidden_global_metrics_snapshot \
     "$GLOBAL_SNAPSHOT_URL" \
     "$WEB_PUBLIC_BASE" \
     "hidden global metrics snapshot endpoint"
+  check_hidden_global_metrics_snapshot \
+    "${GLOBAL_SNAPSHOT_URL}?schemaVersion=3" \
+    "$WEB_PUBLIC_BASE" \
+    "hidden global metrics v3 snapshot endpoint"
 fi
 
 check_api_route_absent "$LEGACY_GLOBAL_SNAPSHOT_URL" "$WEB_PUBLIC_BASE" "legacy public global metrics snapshot endpoint"
