@@ -845,3 +845,7 @@
 "settings.language.supported.urdu" = "ഉർദു";
 "settings.language.supported.vietnamese" = "വിയറ്റ്നാമീസ്";
 "settings.language.supported.zulu" = "സുലു";
+
+"premium.comingSoon.title" = "Premium ഉടൻ വരുന്നു";
+"premium.comingSoon.message" = "സബ്‌സ്‌ക്രിപ്ഷനുകൾ ഇതുവരെ ലഭ്യമല്ല.";
+"premium.aiLimit.title" = "AI സന്ദേശങ്ങളുടെ പരിധിയിലെത്തി";

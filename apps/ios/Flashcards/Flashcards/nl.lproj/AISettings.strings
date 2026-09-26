@@ -845,3 +845,7 @@
 "settings.language.supported.urdu" = "Urdu";
 "settings.language.supported.vietnamese" = "Vietnamees";
 "settings.language.supported.zulu" = "Zoeloe";
+
+"premium.comingSoon.title" = "Premium komt binnenkort";
+"premium.comingSoon.message" = "Abonnementen zijn nog niet beschikbaar.";
+"premium.aiLimit.title" = "Limiet voor AI-berichten bereikt";

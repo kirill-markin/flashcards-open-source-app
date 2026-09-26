@@ -873,3 +873,7 @@
 "settings.language.supported.urdu" = "Urdu";
 "settings.language.supported.vietnamese" = "Vietnamita";
 "settings.language.supported.zulu" = "Zulu";
+
+"premium.comingSoon.title" = "Premium chega em breve";
+"premium.comingSoon.message" = "As assinaturas ainda não estão disponíveis.";
+"premium.aiLimit.title" = "Limite de mensagens de IA atingido";
