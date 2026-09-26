@@ -5,6 +5,15 @@ sealed interface AiAlertState {
     val message: String
     val showsSettingsAction: Boolean
 
+    data class AiLimitReached(
+        val requestId: String,
+        val code: String,
+        override val title: String,
+        override val message: String
+    ) : AiAlertState {
+        override val showsSettingsAction: Boolean = false
+    }
+
     data class SettingsActionRequired(
         override val title: String,
         override val message: String

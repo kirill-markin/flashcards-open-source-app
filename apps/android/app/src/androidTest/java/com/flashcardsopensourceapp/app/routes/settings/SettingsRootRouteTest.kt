@@ -257,6 +257,8 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.setContent {
             FlashcardsTheme {
                 TestSettingsRoute(
+                    onPreviewPremium = { clickedRows += "premium_preview" },
+                    onPreviewAiLimit = { clickedRows += "ai_limit_preview" },
                     onOpenAnimations = {
                         clickedRows += "animations"
                     },

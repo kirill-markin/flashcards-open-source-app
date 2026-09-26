@@ -5,6 +5,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.navigation
 import com.flashcardsopensourceapp.app.di.AppGraph
+import com.flashcardsopensourceapp.app.premium.PremiumPresenter
 import com.flashcardsopensourceapp.app.navigation.AppPackageInfo
 import com.flashcardsopensourceapp.app.navigation.SettingsDestination
 import kotlinx.coroutines.CoroutineScope
@@ -14,7 +15,8 @@ internal fun NavGraphBuilder.registerSettingsNavGraph(
     navController: NavHostController,
     packageInfo: AppPackageInfo,
     coroutineScope: CoroutineScope,
-    isPowerSaveModeState: State<Boolean>
+    isPowerSaveModeState: State<Boolean>,
+    premiumPresenter: PremiumPresenter
 ) {
     navigation(
         startDestination = SettingsDestination.route,
@@ -25,7 +27,8 @@ internal fun NavGraphBuilder.registerSettingsNavGraph(
             navController = navController,
             packageInfo = packageInfo,
             coroutineScope = coroutineScope,
-            isPowerSaveModeState = isPowerSaveModeState
+            isPowerSaveModeState = isPowerSaveModeState,
+            premiumPresenter = premiumPresenter
         )
         registerSettingsNotificationsDestination(
             appGraph = appGraph,

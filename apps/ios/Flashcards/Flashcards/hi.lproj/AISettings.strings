@@ -873,3 +873,7 @@
 "settings.language.supported.urdu" = "उर्दू";
 "settings.language.supported.vietnamese" = "वियतनामी";
 "settings.language.supported.zulu" = "ज़ुलु";
+
+"premium.comingSoon.title" = "Premium जल्द आ रहा है";
+"premium.comingSoon.message" = "सदस्यताएँ अभी उपलब्ध नहीं हैं।";
+"premium.aiLimit.title" = "AI संदेशों की सीमा पूरी हो गई है";
