@@ -59,6 +59,7 @@ function synthesizeMcpHttpApiTemplate(): Template {
 }
 
 const mcpApiMappingKeys: ReadonlyArray<string> = [
+  ".well-known/openai-apps-challenge",
   "mcp",
   "health",
   "robots.txt",
@@ -82,6 +83,9 @@ test("MCP HTTP API synthesizes explicit public routes and default mapped-path ro
 
   template.hasResourceProperties("AWS::ApiGatewayV2::Route", {
     RouteKey: "$default",
+  });
+  template.hasResourceProperties("AWS::ApiGatewayV2::Route", {
+    RouteKey: "GET /.well-known/openai-apps-challenge",
   });
   template.hasResourceProperties("AWS::ApiGatewayV2::Route", {
     RouteKey: "GET /.well-known/oauth-protected-resource",

@@ -137,6 +137,7 @@ function readSingleTextContent(result: ClientToolResult): string {
     throw new Error("Expected text content item to include text.");
   }
 
+  assert.deepEqual(resultRecord.structuredContent, { data: JSON.parse(text).data });
   return text;
 }
 
@@ -312,6 +313,9 @@ test("MCP server exposes workspace and SQL tools through the protocol path", asy
       "submit_review",
     ]);
     assert.equal(toolNames.some((toolName) => toolName.includes("media_assets")), false);
+    for (const tool of toolList.tools) {
+      assert.equal(tool.outputSchema?.type, "object", tool.name);
+    }
 
     const reviewTool = requireTool(toolList.tools, "submit_review");
     assert.deepEqual(reviewTool.annotations, {
@@ -329,6 +333,7 @@ test("MCP server exposes workspace and SQL tools through the protocol path", asy
     const sqlExecuteTool = requireTool(toolList.tools, SQL_EXECUTE_TOOL_NAME);
     assert.deepEqual(sqlQueryTool.annotations, {
       readOnlyHint: true,
+      destructiveHint: false,
       openWorldHint: false,
       idempotentHint: true,
     });
