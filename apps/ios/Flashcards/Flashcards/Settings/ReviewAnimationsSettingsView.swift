@@ -3,7 +3,7 @@ import SwiftUI
 struct ReviewAnimationsSettingsView: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
 
-    @State private var isSaving: Bool = false
+    @State private var pendingIsEnabled: Bool? = nil
     @State private var guidanceMessage: String = ""
 
     var body: some View {
@@ -21,14 +21,14 @@ struct ReviewAnimationsSettingsView: View {
                     ),
                     isOn: Binding(
                         get: {
-                            store.accountPreferences.reviewReactionAnimationsEnabled
+                            self.pendingIsEnabled ?? store.accountPreferences.reviewReactionAnimationsEnabled
                         },
                         set: { isEnabled in
                             self.updateReviewAnimationsEnabled(isEnabled: isEnabled)
                         }
                     )
                 )
-                .disabled(self.isSaving || store.canPersistAccountPreferences == false)
+                .disabled(self.pendingIsEnabled != nil || store.canPersistAccountPreferences == false)
                 .accessibilityIdentifier(UITestIdentifier.reviewAnimationsSettingsToggle)
             } footer: {
                 Text(
@@ -48,14 +48,14 @@ struct ReviewAnimationsSettingsView: View {
     }
 
     private func updateReviewAnimationsEnabled(isEnabled: Bool) {
-        guard self.isSaving == false else {
+        guard self.pendingIsEnabled == nil else {
             return
         }
+        self.pendingIsEnabled = isEnabled
 
         Task { @MainActor in
-            self.isSaving = true
             defer {
-                self.isSaving = false
+                self.pendingIsEnabled = nil
             }
 
             do {
