@@ -171,9 +171,16 @@ def compare(legacy: dict[str, Json], core: dict[str, Json], target: dict[str, Js
     allowed_target_keys = {"Resources", "Parameters", "Rules", "Conditions"}
     if set(target) - allowed_target_keys:
         raise ValueError("Unexpected monitoring template sections")
-    # The new stack may carry the same bootstrap check, and only CDK's metadata condition.
-    for key in ("Parameters", "Rules"):
-        require_equal(legacy.get(key, {}), target.get(key, {}), "monitoring/" + key)
+    target_parameters = object_value(target.get("Parameters", {}), "monitoring/Parameters")
+    unexpected_parameters = sorted(target_parameters.keys() - {"BootstrapVersion"})
+    if unexpected_parameters:
+        raise ValueError("Unexpected monitoring parameters: " + ", ".join(unexpected_parameters))
+    legacy_parameters = object_value(legacy.get("Parameters", {}), "legacy/Parameters")
+    for key, value in target_parameters.items():
+        if key not in legacy_parameters:
+            raise ValueError("Missing legacy parameter definition: " + key)
+        require_equal(legacy_parameters[key], value, "monitoring/Parameters/" + key)
+    require_equal(legacy.get("Rules", {}), target.get("Rules", {}), "monitoring/Rules")
     target_conditions = object_value(target.get("Conditions", {}), "monitoring/Conditions")
     if set(target_conditions) - {"CDKMetadataAvailable"}:
         raise ValueError("Unexpected monitoring conditions")
@@ -236,7 +243,7 @@ def compare(legacy: dict[str, Json], core: dict[str, Json], target: dict[str, Js
             "66 alarm/filter ownership and aws:cdk:path roots",
             "core resource exports and monitoring imports",
             "CDKMetadata Analytics telemetry and new target metadata resource when present",
-            "new target bootstrap Parameters/Rules identical to legacy when present",
+            "new target BootstrapVersion definition and Rules identical to legacy when present",
         ],
         "exports": exports,
         "resources": resources,
