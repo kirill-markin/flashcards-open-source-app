@@ -845,3 +845,7 @@
 "settings.language.supported.urdu" = "อูรดู";
 "settings.language.supported.vietnamese" = "เวียดนาม";
 "settings.language.supported.zulu" = "ซูลู";
+
+"premium.comingSoon.title" = "Premium กำลังจะมาเร็ว ๆ นี้";
+"premium.comingSoon.message" = "ยังไม่เปิดให้สมัครสมาชิก";
+"premium.aiLimit.title" = "ใช้ข้อความ AI ถึงขีดจำกัดแล้ว";

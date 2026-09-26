@@ -845,3 +845,7 @@
 "settings.language.supported.urdu" = "Urdština";
 "settings.language.supported.vietnamese" = "Vietnamština";
 "settings.language.supported.zulu" = "Zuluština";
+
+"premium.comingSoon.title" = "Premium již brzy";
+"premium.comingSoon.message" = "Předplatné zatím není k dispozici.";
+"premium.aiLimit.title" = "Byl dosažen limit zpráv AI";

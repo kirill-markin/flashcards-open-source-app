@@ -845,3 +845,7 @@
 "settings.language.supported.urdu" = "اردو";
 "settings.language.supported.vietnamese" = "ویتنامی";
 "settings.language.supported.zulu" = "زولو";
+
+"premium.comingSoon.title" = "Premium به‌زودی عرضه می‌شود";
+"premium.comingSoon.message" = "اشتراک‌ها هنوز در دسترس نیستند.";
+"premium.aiLimit.title" = "به سقف پیام‌های هوش مصنوعی رسیده‌اید";
