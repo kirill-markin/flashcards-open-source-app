@@ -63,7 +63,7 @@ components_for_path() {
       echo "web" ;;
     apps/admin/*|scripts/deploy/deploy-admin.sh)
       echo "admin" ;;
-    scripts/geolite/*|scripts/deploy/migrate-aws.sh|scripts/generate/write-ci-cdk-context.py)
+    scripts/geolite/*|scripts/deploy/migrate-aws.sh|scripts/generate/write-ci-cdk-context.py|scripts/deploy/report-cloudformation-budget.py)
       echo "platform" ;;
     scripts/generate/generate-catalog-dump.sh|scripts/generate/generate-global-metrics-snapshot.sh)
       echo "platform" ;;
