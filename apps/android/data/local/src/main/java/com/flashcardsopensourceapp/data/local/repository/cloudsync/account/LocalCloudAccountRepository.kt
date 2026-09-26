@@ -214,7 +214,16 @@ class LocalCloudAccountRepository(
     }
 
     override suspend fun updateAccountPreferences(update: AccountPreferencesUpdate): AccountPreferences {
+        val requestedIdentity = preferencesStore.currentCloudSettings()
         return operationCoordinator.runExclusive {
+            val currentIdentity = preferencesStore.currentCloudSettings()
+            check(
+                requestedIdentity.installationId == currentIdentity.installationId &&
+                    requestedIdentity.linkedUserId == currentIdentity.linkedUserId &&
+                    requestedIdentity.cloudState == currentIdentity.cloudState
+            ) {
+                "Account changed before preferences could be saved. Choose the preference again."
+            }
             val previousPreferences = preferencesStore.currentAccountPreferences()
             preferencesStore.saveAccountPreferences(
                 preferences = applyAccountPreferencesUpdate(
@@ -235,6 +244,7 @@ class LocalCloudAccountRepository(
                 preferencesStore.savePushedAccountPreferences(preferences = updatedPreferences)
                 updatedPreferences
             } catch (error: CancellationException) {
+                preferencesStore.saveAccountPreferences(preferences = previousPreferences)
                 throw error
             } catch (error: Exception) {
                 preferencesStore.saveAccountPreferences(preferences = previousPreferences)
@@ -692,6 +702,7 @@ class LocalCloudAccountRepository(
                 apiBaseUrl = session.apiBaseUrl,
                 authorizationHeader = session.authorizationHeader,
                 update = AccountPreferencesUpdate(
+                    accentColor = null,
                     reviewReactionAnimationsEnabled = null,
                     productAnalyticsEnabled = enabled,
                     productAnalyticsEnabledOrigin = origin

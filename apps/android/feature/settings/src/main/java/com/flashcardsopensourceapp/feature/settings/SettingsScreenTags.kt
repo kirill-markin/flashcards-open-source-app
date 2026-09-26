@@ -86,3 +86,5 @@ fun workspacePackageExportCardSelectionTagToggleTag(tag: String): String {
 fun workspacePackageExportIncludedTagToggleTag(tag: String): String {
     return workspacePackageExportIncludedTagToggleTagPrefix + tag
 }
+
+const val settingsAccentColorRowTag: String = "settings.accentColor"

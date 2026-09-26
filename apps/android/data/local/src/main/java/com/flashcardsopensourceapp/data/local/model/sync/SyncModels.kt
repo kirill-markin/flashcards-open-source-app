@@ -39,14 +39,23 @@ data class SyncStatusSnapshot(
     val lastErrorMessage: String
 )
 
+const val defaultAccentColor: String = "#C44B2D"
+
 data class AccountPreferences(
+    val accentColor: String,
     val reviewReactionAnimationsEnabled: Boolean,
     /**
      * The product-analytics off switch. Null is "nobody answered", which reads as on: the basis is
      * legitimate interest and nothing prompts for it, so only an explicit false opts out.
      */
     val productAnalyticsEnabled: Boolean?
-)
+) {
+    init {
+        require(Regex("^#[0-9A-F]{6}$").matches(accentColor)) {
+            "Account preference accentColor must be an uppercase #RRGGBB color: $accentColor"
+        }
+    }
+}
 
 /**
  * Who asked for the analytics value beside it in one `PATCH /v1/me/preferences`.
@@ -68,6 +77,7 @@ enum class AnalyticsPreferenceWriteOrigin(val wireValue: String) {
 
 /** Mirrors `PATCH /v1/me/preferences`: a null field is one this update leaves alone. */
 data class AccountPreferencesUpdate(
+    val accentColor: String?,
     val reviewReactionAnimationsEnabled: Boolean?,
     val productAnalyticsEnabled: Boolean?,
     /**
@@ -79,6 +89,7 @@ data class AccountPreferencesUpdate(
 
 fun defaultAccountPreferences(): AccountPreferences {
     return AccountPreferences(
+        accentColor = defaultAccentColor,
         reviewReactionAnimationsEnabled = true,
         productAnalyticsEnabled = null
     )
@@ -93,6 +104,7 @@ fun applyAccountPreferencesUpdate(
     update: AccountPreferencesUpdate
 ): AccountPreferences {
     return AccountPreferences(
+        accentColor = update.accentColor ?: preferences.accentColor,
         reviewReactionAnimationsEnabled = update.reviewReactionAnimationsEnabled
             ?: preferences.reviewReactionAnimationsEnabled,
         productAnalyticsEnabled = update.productAnalyticsEnabled ?: preferences.productAnalyticsEnabled
