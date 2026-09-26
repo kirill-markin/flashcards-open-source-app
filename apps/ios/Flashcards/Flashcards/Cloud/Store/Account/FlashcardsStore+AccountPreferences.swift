@@ -35,10 +35,8 @@ private struct ProductAnalyticsPushUnsettledError: LocalizedError {
     }
 }
 
-/// Carries one serialized push's failure back out of the task that ran it, so the toggle can throw
-/// what the refresh paths only report.
 @MainActor
-private final class ProductAnalyticsPushOutcome {
+private final class AccountPreferencesUpdateOutcome {
     var failure: Error?
 }
 
@@ -89,6 +87,9 @@ extension FlashcardsStore {
             // the server, so it goes out here. Its failure is reported rather than thrown: a refresh
             // that only carries a retry must not turn an offline stretch into an error on screen.
             _ = await self.pushProductAnalyticsPreferenceToAnalyticsOnlyGuest(origin: .reconciliation)
+            return
+        }
+        guard self.isAccountPreferencesUpdateInFlight == false else {
             return
         }
         let refreshGeneration = self.accountPreferencesRefreshGeneration
@@ -170,16 +171,10 @@ extension FlashcardsStore {
             return
         }
 
-        // The same invalidation the animations path uses, for the same hazard: this screen starts an
-        // account-context refresh on appear, and a `/me` already in flight would otherwise land after
-        // the PATCH and report the value the user just replaced.
-        let rollbackIdentityKey = self.accountPreferencesIdentityKey
-        self.accountPreferencesRefreshGeneration += 1
-        let updateGeneration = self.accountPreferencesRefreshGeneration
-        self.isAccountPreferencesUpdateInFlight = true
-
-        let outcome = ProductAnalyticsPushOutcome()
-        await self.serializedProductAnalyticsPush {
+        let outcome = AccountPreferencesUpdateOutcome()
+        await self.serializedAccountPreferencesUpdate {
+            let rollbackIdentityKey = self.accountPreferencesIdentityKey
+            let updateGeneration = self.accountPreferencesRefreshGeneration
             outcome.failure = await self.drainOwedProductAnalyticsAnswer(
                 identityKey: identity.productAnalyticsKey,
                 // The press itself, with the switch still waiting on it, so the route stores it even
@@ -214,8 +209,6 @@ extension FlashcardsStore {
                 }
             )
         }
-        self.releaseAccountPreferencesUpdateInFlight(updateGeneration: updateGeneration)
-
         if let failure = outcome.failure {
             // The local answer is deliberately not rolled back, unlike the animations path: a refused
             // request must not leave the app recording after the user said no. It stays owed to this
@@ -269,8 +262,8 @@ extension FlashcardsStore {
             return
         }
 
-        let outcome = ProductAnalyticsPushOutcome()
-        await self.serializedProductAnalyticsPush {
+        let outcome = AccountPreferencesUpdateOutcome()
+        await self.serializedAccountPreferencesUpdate {
             // Read inside the slot rather than before it: this push may have waited for another one,
             // and the guard is about what changed while *this* body was in flight.
             let pushGeneration = self.accountPreferencesRefreshGeneration
@@ -430,8 +423,8 @@ extension FlashcardsStore {
             return didCapture ? markTechnicalErrorObserved(error: unsettledError) : unsettledError
         }
 
-        let outcome = ProductAnalyticsPushOutcome()
-        await self.serializedProductAnalyticsPush {
+        let outcome = AccountPreferencesUpdateOutcome()
+        await self.serializedAccountPreferencesUpdate {
             outcome.failure = await self.drainOwedProductAnalyticsAnswer(
                 identityKey: nil,
                 // The caller's, because this credential carries both kinds: the toggle on an install
@@ -486,35 +479,28 @@ extension FlashcardsStore {
         return didCapture ? markTechnicalErrorObserved(error: failure) : failure
     }
 
-    /**
-     * Runs one product-analytics push after every push already queued, and makes the next one wait
-     * for it.
-     *
-     * Nothing else keeps the push paths apart: the settings screen's `task` starts a refresh that
-     * reaches a push while the toggle runs `updateProductAnalyticsEnabled` on a different code path,
-     * and for a `.disconnected` install the two never exclude each other at all. Two PATCH bodies
-     * carrying opposite answers would then be outstanding at once, the backend would keep whichever
-     * arrived last, and the newer response would clear the debt that was the only thing left to
-     * repair it. With the slot, at most one PATCH is ever outstanding and the last body sent is the
-     * last answer made.
-     */
-    private func serializedProductAnalyticsPush(
+    // Share one slot because each response and rollback owns a complete preferences snapshot.
+    private func serializedAccountPreferencesUpdate(
         _ body: @escaping @Sendable @MainActor () async -> Void
     ) async {
-        while let inFlight = self.productAnalyticsPushTask {
+        while let inFlight = self.accountPreferencesUpdateTask {
             await inFlight.value
-            if self.productAnalyticsPushTask == inFlight {
-                self.productAnalyticsPushTask = nil
+            if self.accountPreferencesUpdateTask == inFlight {
+                self.accountPreferencesUpdateTask = nil
             }
         }
 
         let push = Task { @MainActor in
+            self.accountPreferencesRefreshGeneration += 1
+            let updateGeneration = self.accountPreferencesRefreshGeneration
+            self.isAccountPreferencesUpdateInFlight = true
+            defer { self.releaseAccountPreferencesUpdateInFlight(updateGeneration: updateGeneration) }
             await body()
         }
-        self.productAnalyticsPushTask = push
+        self.accountPreferencesUpdateTask = push
         await push.value
-        if self.productAnalyticsPushTask == push {
-            self.productAnalyticsPushTask = nil
+        if self.accountPreferencesUpdateTask == push {
+            self.accountPreferencesUpdateTask = nil
         }
     }
 
@@ -528,12 +514,6 @@ extension FlashcardsStore {
      * the slot is released, is what keeps the server from settling on a value nobody chose — the debt
      * is cleared only once the acknowledged value and the owed answer agree, so a mismatch or a
      * failure always leaves a retry behind for the next refresh.
-     *
-     * Which answer wins is decided from the identity-scoped debt alone, never from
-     * `accountPreferencesRefreshGeneration`: that counter is shared with the animations switch, so
-     * toggling animations mid-flight would otherwise throw away a settled analytics answer. The
-     * generation still guards the shared `accountPreferences` the caller applies, which is the state
-     * a stale response really can corrupt.
      *
      * `origin` says who asked for what this drain delivers, and every body it sends carries it. It is
      * fixed for the whole drain because it is decided by the path that reached it, not by how many
@@ -724,96 +704,145 @@ extension FlashcardsStore {
     }
 
     func updateReviewReactionAnimationsEnabled(isEnabled: Bool) async throws {
-        let previousPreferences = self.accountPreferences
-        let rollbackIdentityKey = self.accountPreferencesIdentityKey
-        let nextPreferences = AccountPreferences(
-            reviewReactionAnimationsEnabled: isEnabled,
-            productAnalyticsEnabled: previousPreferences.productAnalyticsEnabled,
-            accentColor: previousPreferences.accentColor
-        )
-        self.accountPreferencesRefreshGeneration += 1
-        let updateGeneration = self.accountPreferencesRefreshGeneration
-        self.accountPreferences = nextPreferences
-        self.isAccountPreferencesUpdateInFlight = true
-
-        do {
-            let updateResult = try await self.updateCloudAccountPreferences(
-                patch: AccountPreferencesPatchRequest(reviewReactionAnimationsEnabled: isEnabled)
+        let identityKey = self.accountPreferencesIdentityKey
+        let identityGeneration = self.accentColorIdentityGeneration
+        let outcome = AccountPreferencesUpdateOutcome()
+        await self.serializedAccountPreferencesUpdate {
+            guard self.accountPreferencesIdentityKey == identityKey,
+                  self.accentColorIdentityGeneration == identityGeneration else {
+                outcome.failure = LocalStoreError.validation("The account changed before review animations could be saved")
+                return
+            }
+            let previousPreferences = self.accountPreferences
+            let updateGeneration = self.accountPreferencesRefreshGeneration
+            self.accountPreferences = AccountPreferences(
+                reviewReactionAnimationsEnabled: isEnabled,
+                productAnalyticsEnabled: previousPreferences.productAnalyticsEnabled,
+                accentColor: previousPreferences.accentColor
             )
-            self.releaseAccountPreferencesUpdateInFlight(updateGeneration: updateGeneration)
-            if self.isCurrentAccountPreferencesUpdate(
-                identityKey: rollbackIdentityKey,
-                updateGeneration: updateGeneration
-            ) {
-                self.applyCloudAccountPreferences(preferences: updateResult.preferences, session: updateResult.session)
-                self.triggerCloudAccountContextRefreshIfActive(surfacesGlobalErrorMessage: false)
+
+            do {
+                let updateResult = try await self.updateCloudAccountPreferences(
+                    patch: AccountPreferencesPatchRequest(reviewReactionAnimationsEnabled: isEnabled),
+                    validateResolvedSession: { session in
+                        let identity = AccountPreferencesIdentity(
+                            userId: session.userId,
+                            configurationMode: session.configurationMode,
+                            apiBaseUrl: session.apiBaseUrl
+                        )
+                        guard identity.storageKey == identityKey,
+                              self.accountPreferencesIdentityKey == identityKey,
+                              self.accentColorIdentityGeneration == identityGeneration else {
+                            throw LocalStoreError.validation("The account changed before review animations could be saved")
+                        }
+                    }
+                )
+                if self.isCurrentAccountPreferencesUpdate(
+                    identityKey: identityKey,
+                    updateGeneration: updateGeneration
+                ), self.accentColorIdentityGeneration == identityGeneration {
+                    self.applyCloudAccountPreferences(preferences: updateResult.preferences, session: updateResult.session)
+                }
+            } catch {
+                if self.isCurrentAccountPreferencesUpdate(
+                    identityKey: identityKey,
+                    updateGeneration: updateGeneration
+                ), self.accentColorIdentityGeneration == identityGeneration {
+                    self.accountPreferences = previousPreferences
+                }
+                outcome.failure = error
             }
-        } catch {
-            self.releaseAccountPreferencesUpdateInFlight(updateGeneration: updateGeneration)
-            if self.isCurrentAccountPreferencesUpdate(
-                identityKey: rollbackIdentityKey,
-                updateGeneration: updateGeneration
-            ) {
-                self.accountPreferences = previousPreferences
+        }
+        if let failure = outcome.failure {
+            throw failure
+        }
+        self.triggerCloudAccountContextRefreshIfActive(surfacesGlobalErrorMessage: false)
+    }
+
+    func selectAccentColor(_ color: AccountAccentColor) throws {
+        guard self.canPersistAccountPreferences, let identityKey = self.accountPreferencesIdentityKey else {
+            throw LocalStoreError.uninitialized("Cloud account is unavailable")
+        }
+        guard color == .defaultColor || self.canUseCustomAccentColor else {
+            throw LocalStoreError.validation("A custom accent color requires Premium")
+        }
+        if self.pendingAccentColor?.color == color {
+            return
+        }
+        guard self.effectiveAccountAccentColor != color || self.accountPreferences.accentColor != color else {
+            return
+        }
+        self.pendingAccentColor = PendingAccountAccentColor(
+            id: UUID(),
+            identityKey: identityKey,
+            identityGeneration: self.accentColorIdentityGeneration,
+            color: color
+        )
+        guard self.isAccentColorSaveScheduled == false else { return }
+        self.isAccentColorSaveScheduled = true
+        // Store ownership keeps the final choice alive after the settings screen disappears.
+        Task { @MainActor in
+            defer { self.isAccentColorSaveScheduled = false }
+            while let pending = self.pendingAccentColor {
+                do {
+                    try await Task.sleep(for: .milliseconds(300))
+                    guard self.pendingAccentColor?.id == pending.id else { continue }
+                    guard pending.identityKey == self.accountPreferencesIdentityKey else {
+                        self.pendingAccentColor = nil
+                        continue
+                    }
+                    try await self.updateAccentColor(pending)
+                    if self.pendingAccentColor?.id == pending.id {
+                        self.pendingAccentColor = nil
+                    }
+                } catch {
+                    if self.pendingAccentColor?.id == pending.id {
+                        self.pendingAccentColor = nil
+                    }
+                    if pending.identityKey == self.accountPreferencesIdentityKey,
+                       pending.identityGeneration == self.accentColorIdentityGeneration {
+                        self.presentTechnicalError(error)
+                    }
+                }
             }
-            throw error
         }
     }
 
-    func updateAccentColor(_ accentColor: AccountAccentColor) async throws {
-        guard self.isAccountPreferencesUpdateInFlight == false else {
-            throw LocalStoreError.validation("An account preference update is already in progress")
-        }
-        guard accentColor == .defaultColor || self.canUseCustomAccentColor else {
-            throw LocalStoreError.validation("A custom accent color requires Premium")
-        }
-        let previousPreferences = self.accountPreferences
-        let rollbackIdentityKey = self.accountPreferencesIdentityKey
-        let nextPreferences = AccountPreferences(
-            reviewReactionAnimationsEnabled: previousPreferences.reviewReactionAnimationsEnabled,
-            productAnalyticsEnabled: previousPreferences.productAnalyticsEnabled,
-            accentColor: accentColor
-        )
-        self.accountPreferencesRefreshGeneration += 1
-        let updateGeneration = self.accountPreferencesRefreshGeneration
-        self.accountPreferences = nextPreferences
-        self.isAccountPreferencesUpdateInFlight = true
-
-        do {
-            let updateResult = try await self.updateCloudAccountPreferences(
-                patch: AccountPreferencesPatchRequest(accentColor: accentColor),
-                validateResolvedSession: { session in
-                    let identity = AccountPreferencesIdentity(
-                        userId: session.userId,
-                        configurationMode: session.configurationMode,
-                        apiBaseUrl: session.apiBaseUrl
-                    )
-                    guard identity.storageKey == rollbackIdentityKey,
-                          self.isCurrentAccountPreferencesUpdate(
-                              identityKey: rollbackIdentityKey,
-                              updateGeneration: updateGeneration
-                          ) else {
-                        throw LocalStoreError.validation("The account changed before the accent color could be saved")
-                    }
+    private func updateAccentColor(_ selection: PendingAccountAccentColor) async throws {
+        let outcome = AccountPreferencesUpdateOutcome()
+        await self.serializedAccountPreferencesUpdate {
+            do {
+                guard self.pendingAccentColor?.id == selection.id else { return }
+                guard selection.color == .defaultColor || self.canUseCustomAccentColor else {
+                    throw LocalStoreError.validation("A custom accent color requires Premium")
                 }
-            )
-            self.releaseAccountPreferencesUpdateInFlight(updateGeneration: updateGeneration)
-            if self.isCurrentAccountPreferencesUpdate(
-                identityKey: rollbackIdentityKey,
-                updateGeneration: updateGeneration
-            ) {
+                let updateGeneration = self.accountPreferencesRefreshGeneration
+                let updateResult = try await self.updateCloudAccountPreferences(
+                    patch: AccountPreferencesPatchRequest(accentColor: selection.color),
+                    validateResolvedSession: { session in
+                        let identity = AccountPreferencesIdentity(
+                            userId: session.userId,
+                            configurationMode: session.configurationMode,
+                            apiBaseUrl: session.apiBaseUrl
+                        )
+                        guard identity.storageKey == selection.identityKey,
+                              self.accountPreferencesIdentityKey == selection.identityKey,
+                              self.accentColorIdentityGeneration == selection.identityGeneration else {
+                            throw LocalStoreError.validation("The account changed before the accent color could be saved")
+                        }
+                    }
+                )
+                guard self.isCurrentAccountPreferencesUpdate(
+                    identityKey: selection.identityKey,
+                    updateGeneration: updateGeneration
+                ), self.accentColorIdentityGeneration == selection.identityGeneration else { return }
                 self.applyCloudAccountPreferences(preferences: updateResult.preferences, session: updateResult.session)
-                self.triggerCloudAccountContextRefreshIfActive(surfacesGlobalErrorMessage: false)
+            } catch {
+                outcome.failure = error
             }
-        } catch {
-            self.releaseAccountPreferencesUpdateInFlight(updateGeneration: updateGeneration)
-            if self.isCurrentAccountPreferencesUpdate(
-                identityKey: rollbackIdentityKey,
-                updateGeneration: updateGeneration
-            ) {
-                self.accountPreferences = previousPreferences
-            }
-            throw error
+        }
+        if let failure = outcome.failure {
+            throw failure
         }
     }
 
@@ -895,6 +924,7 @@ extension FlashcardsStore {
         ProductAnalyticsPreference.clearIdentityBindingForCloudIdentityReset(userDefaults: self.userDefaults)
         self.applyStoredProductAnalyticsPreference()
         self.accountPreferencesIdentityKey = nil
+        self.pendingAccentColor = nil
         self.accountPreferencesRefreshGeneration += 1
         self.isAccountPreferencesUpdateInFlight = false
         self.clearProductAnalyticsPushFailureReportsForCloudIdentityReset()
@@ -922,15 +952,6 @@ extension FlashcardsStore {
      */
     func clearProductAnalyticsPushFailureReportsForCloudIdentityReset() {
         self.reportedProductAnalyticsPushFailureStages = []
-    }
-
-    private func updateCloudAccountPreferences(
-        patch: AccountPreferencesPatchRequest
-    ) async throws -> (preferences: AccountPreferences, session: CloudLinkedSession) {
-        try await self.updateCloudAccountPreferences(
-            patch: patch,
-            validateResolvedSession: { _ in }
-        )
     }
 
     /**

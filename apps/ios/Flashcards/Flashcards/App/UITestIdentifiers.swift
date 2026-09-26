@@ -64,7 +64,6 @@ enum UITestIdentifier {
     static let accentColorPresetPrefix: String = "accentColorSettings.preset."
     static let accentColorPicker: String = "accentColorSettings.picker"
     static let accentColorHexField: String = "accentColorSettings.hex"
-    static let accentColorSaveButton: String = "accentColorSettings.save"
     static let accentColorPremiumNote: String = "accentColorSettings.premiumNote"
     static let settingsReviewAnimationsRow: String = "settings.reviewAnimationsRow"
     static let settingsAIChatSuggestionsRow: String = "settings.aiChatSuggestionsRow"
