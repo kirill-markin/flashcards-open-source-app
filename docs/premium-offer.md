@@ -66,8 +66,9 @@ The customer-facing plan name is "Premium".
 
 ## Lifetime is a gift
 
-Lifetime is a gift only. It is granted to every account with an email and every iOS or Android guest
-that exists on the day the paywall launches. Web guests are excluded. A gift on a guest moves to the
+Lifetime is a gift only. The one-time early-user gift is complete: it covered accounts with an
+email and iOS or Android guests in the selected early cohort, excluding web guests. Opening
+public sales does not grant another cohort lifetime access. A gift on a guest moves to the
 account when the guest links an email. It is lost only if the guest identity is lost before that,
 for example on a reinstall without linking, because a gift is not a store purchase and cannot be
 restored.
