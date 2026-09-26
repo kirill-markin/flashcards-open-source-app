@@ -3,7 +3,6 @@ package com.flashcardsopensourceapp.app.navigation.settings
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
@@ -16,7 +15,6 @@ import com.flashcardsopensourceapp.app.premium.hasPremiumAccess
 import com.flashcardsopensourceapp.data.local.model.sync.defaultAccentColor
 import com.flashcardsopensourceapp.feature.settings.accent.AccentColorRoute
 import com.flashcardsopensourceapp.feature.settings.accent.AccentColorViewModel
-import com.flashcardsopensourceapp.feature.settings.accent.createAccentColorViewModelFactory
 
 internal fun NavGraphBuilder.registerAccentColorDestination(
     appGraph: AppGraph,
@@ -24,32 +22,39 @@ internal fun NavGraphBuilder.registerAccentColorDestination(
     premiumPresenter: PremiumPresenter
 ) {
     composable(route = SettingsAccentColorDestination.route) {
-        val context = LocalContext.current
         val accentColorViewModel = viewModel<AccentColorViewModel>(
-            factory = createAccentColorViewModelFactory(
-                cloudAccountRepository = appGraph.cloudAccountRepository,
-                messageController = appGraph.appMessageBus,
-                applicationContext = context.applicationContext
-            )
+            viewModelStoreOwner = appGraph.accentColorViewModelStoreOwner,
+            factory = appGraph.accentColorViewModelFactory
         )
         val uiState by accentColorViewModel.uiState.collectAsStateWithLifecycle()
-        DisposableEffect(premiumPresenter) {
+        DisposableEffect(premiumPresenter, uiState.identityKey) {
             onDispose { premiumPresenter.dismiss() }
         }
-        key(premiumPresenter) {
+        key(premiumPresenter, uiState.identityKey) {
             AccentColorRoute(
                 uiState = uiState,
                 isPremiumRequired = premiumPresenter.entitlement != null &&
                     hasPremiumAccess(entitlement = premiumPresenter.entitlement).not(),
                 onSelectColor = { color ->
+                    val identityKey = uiState.identityKey
                     if (color == defaultAccentColor) {
                         premiumPresenter.dismiss()
-                        accentColorViewModel.selectColor(color = color)
+                        accentColorViewModel.selectColor(color = color, identityKey = identityKey)
                     } else {
                         premiumPresenter.requestFeature { result ->
                             if (result == PremiumResult.ACCESS_GRANTED) {
-                                accentColorViewModel.selectColor(color = color)
+                                accentColorViewModel.selectColor(color = color, identityKey = identityKey)
                             }
+                        }
+                    }
+                },
+                onRequestCustom = { openDialog ->
+                    val identityKey = uiState.identityKey
+                    premiumPresenter.requestFeature { result ->
+                        if (result == PremiumResult.ACCESS_GRANTED &&
+                            accentColorViewModel.uiState.value.identityKey == identityKey
+                        ) {
+                            openDialog()
                         }
                     }
                 },

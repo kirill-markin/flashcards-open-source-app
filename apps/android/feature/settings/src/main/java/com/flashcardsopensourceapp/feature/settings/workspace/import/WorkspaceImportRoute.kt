@@ -121,7 +121,7 @@ fun WorkspaceImportRoute(
                 item {
                     MessageCard(
                         message = uiState.successMessage,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = MaterialTheme.colorScheme.onSurface,
                         testTag = null
                     )
                 }
