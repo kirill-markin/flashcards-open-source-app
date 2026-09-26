@@ -315,10 +315,13 @@ test("MCP server exposes workspace and SQL tools through the protocol path", asy
     assert.equal(toolNames.some((toolName) => toolName.includes("media_assets")), false);
     for (const tool of toolList.tools) {
       assert.equal(tool.outputSchema?.type, "object", tool.name);
+      assert.ok(tool.title, tool.name);
+      assert.equal(tool.annotations?.title, tool.title, tool.name);
     }
 
     const reviewTool = requireTool(toolList.tools, "submit_review");
     assert.deepEqual(reviewTool.annotations, {
+      title: "Submit flashcard review",
       readOnlyHint: false, destructiveHint: true, openWorldHint: false, idempotentHint: true,
     });
     assert.deepEqual(reviewTool.inputSchema.required, ["cardId", "reviewId", "rating", "reviewedTimeZone"]);
@@ -332,12 +335,14 @@ test("MCP server exposes workspace and SQL tools through the protocol path", asy
     const sqlQueryTool = requireTool(toolList.tools, SQL_QUERY_TOOL_NAME);
     const sqlExecuteTool = requireTool(toolList.tools, SQL_EXECUTE_TOOL_NAME);
     assert.deepEqual(sqlQueryTool.annotations, {
+      title: "Nibomo SQL query (read-only)",
       readOnlyHint: true,
       destructiveHint: false,
       openWorldHint: false,
       idempotentHint: true,
     });
     assert.deepEqual(sqlExecuteTool.annotations, {
+      title: "Nibomo SQL execute (write)",
       readOnlyHint: false,
       destructiveHint: true,
       openWorldHint: false,
