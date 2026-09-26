@@ -1,121 +1,39 @@
 # Global Metrics Snapshot
 
-The platform writes one canonical daily snapshot of product-wide review activity for simple endpoint consumers.
-It is intended for websites and future mobile-app endpoint consumers that need aggregate product stats without direct database access or live analytical queries.
-It is separate from the admin analytics flow documented in [docs/admin-app.md](./admin-app.md).
+[The public endpoint](../apps/backend/src/routes/globalSnapshot.ts) serves cached daily review aggregates. The web, iOS, and Android apps do not render them yet.
 
-`GET /v1/global/snapshot` is the only consumer endpoint for this feature.
+| Request | Contract | Calculation |
+| --- | --- | --- |
+| `GET /v1/global/snapshot` or `?schemaVersion=2` | [Compatibility v2](../apps/backend/src/globalMetrics/snapshot.ts) | [Persisted reviews](../apps/backend/src/globalMetrics/reporting.ts), server date, current replica owner, client installations on web/android/ios |
+| `GET /v1/global/snapshot?schemaVersion=3` | [Canonical v3](../apps/backend/src/globalMetrics/snapshotV3.ts) | [Resolved analytics reviews](../apps/backend/src/globalMetrics/reportingV3.ts), shared with the admin review report |
 
-- When the effective visibility value is the exact raw string `true`, clients can fetch the snapshot.
-- Any other value keeps the endpoint hidden from clients.
-- The snapshot pipeline still runs daily and the release flow still seeds the snapshot once after deploy even when the endpoint is hidden.
-- When visibility is off, clients do not see global stats through this endpoint.
-- The web, iOS, and Android apps do not render these metrics yet.
+An invalid or repeated explicit version returns HTTP 400 while visible. Visibility applies to both versions; a hidden endpoint returns HTTP 404.
 
-## Operator Controls
+## Contract and counting
 
-- Set `GLOBAL_METRICS_VISIBLE` in the root `.env` for the local/bootstrap setup surface.
-- `bash scripts/setup/setup-github.sh` copies that value into the GitHub variable `CDK_GLOBAL_METRICS_VISIBLE` only when the GitHub variable does not already exist.
-- GitHub Actions deploys from `CDK_GLOBAL_METRICS_VISIBLE`. After bootstrap, that GitHub variable is the deploy-time source of truth.
-- Only the exact raw string `true` makes `GET /v1/global/snapshot` visible. Any other value keeps it hidden.
-- If you change `.env` later and rerun `bash scripts/setup/setup-github.sh`, the script preserves an existing `CDK_GLOBAL_METRICS_VISIBLE` value and does not flip visibility automatically.
-- To change visibility after bootstrap, edit `CDK_GLOBAL_METRICS_VISIBLE` in GitHub and redeploy, or delete that GitHub variable before rerunning `bash scripts/setup/setup-github.sh`.
+Both versions contain `schemaVersion`, `generatedAtUtc`, `asOfUtc`, `from`, `to`, `totals`, and `days`. `totals` contains `uniqueReviewingUsers` and `reviewEvents`. Each day contains `date`, `uniqueReviewingUsers`, `newReviewingUsers`, `returningReviewingUsers`, and `reviewEvents`. A `reviewEvents` object contains `total` and `byPlatform`.
 
-## Snapshot Contract
+V2 retains exactly three platform keys: `web`, `android`, `ios`. V3 uses exactly five: `web`, `android`, `ios`, `agent`, `unattributed`. Each review total equals the sum of its platform counts. Platform volumes are not unique-user counts.
 
-The JSON contract is:
+The series is ordered and zero-filled from the earliest qualifying UTC day through the day before `asOfUtc`, an exclusive UTC midnight cutoff. Empty history produces one zero day before that cutoff. Day reviewers equal new plus returning reviewers. New means the person's first qualifying review across all history occurred on that day; selecting an admin range or platform never redefines that first day. Totals span all included history, and review totals equal the summed day series. V3 all-time unique reviewers equal the sum of new reviewers across days.
 
-```json
-{
-  "schemaVersion": 2,
-  "generatedAtUtc": "2026-04-23T01:00:12.345Z",
-  "asOfUtc": "2026-04-23T00:00:00.000Z",
-  "from": "2026-04-21",
-  "to": "2026-04-22",
-  "totals": {
-    "uniqueReviewingUsers": 8,
-    "reviewEvents": {
-      "total": 5,
-      "byPlatform": {
-        "web": 2,
-        "android": 2,
-        "ios": 1
-      }
-    }
-  },
-  "days": [
-    {
-      "date": "2026-04-21",
-      "uniqueReviewingUsers": 2,
-      "newReviewingUsers": 2,
-      "returningReviewingUsers": 0,
-      "reviewEvents": {
-        "total": 3,
-        "byPlatform": {
-          "web": 1,
-          "android": 1,
-          "ios": 1
-        }
-      }
-    },
-    {
-      "date": "2026-04-22",
-      "uniqueReviewingUsers": 2,
-      "newReviewingUsers": 1,
-      "returningReviewingUsers": 1,
-      "reviewEvents": {
-        "total": 2,
-        "byPlatform": {
-          "web": 1,
-          "android": 1,
-          "ios": 0
-        }
-      }
-    }
-  ]
-}
-```
+V3 and the [admin review report](../apps/admin/src/reports/reviewEventsByDate/query.ts) compose [one pure SQL calculation](../apps/backend/src/reviewMetricsSql.ts): `review_answered` in `analytics.product_events_resolved`, non-null resolved `actor_id`, UTC `occurred_at` day, platform recorded on the event, and the same actor exclusions. These exclude test addresses, anyone ever granted admin, active excluded actors, and actors with an automated collector verdict. V2 keeps its existing query and identity semantics.
 
-Contract rules:
+[Admin data semantics](../apps/admin/README.md#where-the-data-comes-from) explain guest identity resolution, anonymized account history, imported reviews, and the producer's timestamp window. Persisted review rows and analytics are not interchangeable: installation automation is intentionally suppressed, deleted accounts can retain anonymized analytics after persisted rows disappear, and historical absent-author reviews may have no analytics row. Best-effort event delivery can also leave a residual gap; alignment does not backfill or repair ingestion.
 
-- `schemaVersion` is currently `2`.
-- `generatedAtUtc` is the canonical UTC timestamp when the snapshot was generated.
-- `asOfUtc` is the UTC midnight boundary used to cut off included data.
-- `from` and `to` are inclusive UTC dates for the `days` array.
-- `totals.uniqueReviewingUsers` is a number.
-- `totals.reviewEvents.total` is a number and must equal the sum of `totals.reviewEvents.byPlatform`.
-- `days` is an ordered, zero-filled all-time UTC date series from `from` through `to`.
-- Each `days[]` entry contains `date`, `uniqueReviewingUsers`, `newReviewingUsers`, `returningReviewingUsers`, and `reviewEvents`.
-- For every `days[]` entry, `uniqueReviewingUsers === newReviewingUsers + returningReviewingUsers`.
-- `newReviewingUsers` counts users whose first qualifying review (across all-time history) falls on this UTC day.
-- `returningReviewingUsers` counts users who had at least one qualifying review on a prior UTC day and at least one on this UTC day.
-- The first `days[]` entry (date equal to `from`) always has `returningReviewingUsers === 0` because no prior qualifying review can exist before the historical start date.
-- `to` is always the UTC day immediately before `asOfUtc`.
-- `from` is the earliest included UTC day with qualifying persisted review activity before `asOfUtc`.
-- If there is no qualifying review activity before `asOfUtc`, `from` equals `to` and `days` contains one zero-value UTC day.
-- `totals.reviewEvents` equals the sum of the all-time `days[].reviewEvents` series because both cover the same all-time date range.
+## Freshness and consumers
 
-## Counting Semantics
+Render UTC bucket dates without local-time conversion. Display `generatedAtUtc` as snapshot freshness and `to` as the last complete day. Admin reports are live at their displayed refresh timestamp and visibly mark today's UTC data partial. Public snapshots refresh daily, so late-arriving events, identity changes, and newly applied exclusions can change historical days on the next generation. Comparing the two requires the same cutoff, no narrowed admin filters, and allowance for arrivals after generation.
 
-The snapshot uses `content.review_events.reviewed_at_server` and UTC calendar days.
+Consumers opt into v3 explicitly. Existing v2 consumers keep the complete old shape and calculation. The website consumer is maintained in the separate website repository.
 
-- `totals` are cumulative for all matching review activity before `asOfUtc`.
-- `days` covers all complete UTC days from `from` through `to`.
-- Missing days are represented as explicit zero-value entries instead of being omitted.
-- `reviewEvents.byPlatform` contains `web`, `android`, and `ios`.
-- The snapshot excludes the same people the admin dashboard excludes, through the rule stated once in [`buildExcludedActorSqlLines`](../apps/admin/src/filters/filterSql.ts) and restated here for this query's own identity column in [`reporting.ts`](../apps/backend/src/globalMetrics/reporting.ts): accounts with an `@example.com` address, anyone who has ever held an `auth.admin_users` row whether or not it was revoked, actors held in `analytics.excluded_actors` with an active exclusion whose recorded id matches the reviewing account, and actors any of whose collector rows are marked `automated_client IS TRUE`. That fourth arm reaches this query because the marker's verdict does not stay on the browser row it was stamped on: once `analytics.identity_links` holds an `authenticated_client` row for that browser, `analytics.product_events_resolved` resolves those marked rows onto the account that signed in, so the id it yields is a reviewing account's own. A smoke run that browses the site and then signs in is that case, and it is dropped here for the same reason the dashboard drops it. `automated_client` is read as TRUE only: NULL is a row nothing assessed, and FALSE is a client's unverified claim about itself.
-- Those exclusions apply to past days as well as future ones, so excluding an actor, or granting someone admin, lowers already-published figures on the next run.
-- Do not infer per-platform unique user counts from review-event volume.
+## Operator controls and rollout
 
-`uniqueReviewingUsers`, `newReviewingUsers`, and `returningReviewingUsers` are all derived from the current `sync.workspace_replicas.user_id` label attached to each joined `review_events.replica_id`.
-That means these counts are not immutable historical authorship: if the current replica-to-user label changes later, historical aggregate counts can be attributed to that newer label, and the first-review date used for the new/returning split moves with it.
+- Only the exact raw string `true` in `CDK_GLOBAL_METRICS_VISIBLE` exposes either version.
+- `GLOBAL_METRICS_VISIBLE` in the root `.env` bootstraps that GitHub variable through `scripts/setup/setup-github.sh` only if the variable is absent. Later visibility changes require updating the GitHub variable and deploying.
+- [The existing scheduled job](../infra/aws/lib/scheduled-jobs/global-metrics.ts) generates both versions at 01:00 UTC. [AWS/Web Release](../.github/workflows/aws-web-release.yml) seeds both after deployment through the same generator, including when hidden.
+- V2 remains at the configured S3 object key; v3 appends `.v3` to that key. The bucket remains private. Generator and API IAM grants cover both objects.
+- [The hourly freshness check](../infra/aws/lambda/global-metrics-snapshot-freshness/index.ts) reads both objects and publishes the older object's age to the existing metric/alarm. A missing object fails the check.
+- [The deployed public endpoint smoke](../scripts/checks/check-public-endpoints.sh) checks both contracts, cohort/platform sums, hidden behavior, and invalid version rejection. Deploy only through main CI/CD; seed and complete release checks before switching a consumer to v3.
 
-## Consumer Guidance
-
-- Treat the snapshot as a cached daily aggregate, not a live analytics stream.
-- Render UTC dates exactly as provided instead of converting bucket labels into local time.
-- Expect the payload to grow by one `days[]` row per UTC day after the first qualifying review date, possibly grow backward if older review history is backfilled later, and possibly shorten from the front when excluding an actor removes the earliest qualifying reviews, because that moves `from` forward rather than zeroing the leading days.
-- Treat `totals` as the canonical headline counters; for review events they should match the sum of the all-time `days` series.
-- Websites can fetch this endpoint when visibility is enabled, and future mobile-app endpoint consumers can do the same once those clients add UI.
-
-Deployment details are documented in [docs/backend-web-deployment.md](./backend-web-deployment.md).
+Deployment details: [Backend and Web Deployment](./backend-web-deployment.md).

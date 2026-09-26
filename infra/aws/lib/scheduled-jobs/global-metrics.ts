@@ -128,7 +128,10 @@ export function globalMetrics(scope: Construct, props: GlobalMetricsProps): Glob
   addOptionalSentryEnvironment(scope, snapshotFunction, props);
   snapshotFunction.addToRolePolicy(new iam.PolicyStatement({
     actions: ["s3:PutObject"],
-    resources: [snapshotBucket.arnForObjects(globalMetricsSnapshotObjectKey)],
+    resources: [
+      snapshotBucket.arnForObjects(globalMetricsSnapshotObjectKey),
+      snapshotBucket.arnForObjects(`${globalMetricsSnapshotObjectKey}.v3`),
+    ],
   }));
 
   const schedulerInvokeRole = new iam.Role(scope, "GlobalMetricsSnapshotSchedulerRole", {

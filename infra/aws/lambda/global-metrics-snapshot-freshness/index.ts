@@ -127,7 +127,12 @@ function calculateSnapshotAgeHours(lastModifiedUtc: Date, nowUtc: Date): number 
 
 export async function handler(): Promise<FreshnessCheckResult> {
   const config = loadFreshnessCheckerConfig();
-  const lastModifiedUtc = await loadSnapshotLastModifiedUtc(config);
+  const modifiedTimes = await Promise.all([
+    loadSnapshotLastModifiedUtc(config),
+    loadSnapshotLastModifiedUtc({ ...config, objectKey: `${config.objectKey}.v3` }),
+  ]);
+  // Monitor the older object so a successful write of either version cannot hide the other's failure.
+  const lastModifiedUtc = new Date(Math.min(...modifiedTimes.map((date) => date.getTime())));
   const snapshotAgeHours = calculateSnapshotAgeHours(lastModifiedUtc, new Date());
 
   await publishSnapshotAgeMetric(config, snapshotAgeHours);
@@ -137,6 +142,7 @@ export async function handler(): Promise<FreshnessCheckResult> {
     action: "global_metrics_snapshot_freshness_checked",
     bucketName: config.bucketName,
     objectKey: config.objectKey,
+    checkedObjectKeys: [config.objectKey, `${config.objectKey}.v3`],
     lastModifiedUtc: toIsoTimestamp(lastModifiedUtc),
     snapshotAgeHours,
     maxAgeHours: config.maxAgeHours,
