@@ -18,8 +18,8 @@ each product, base plan, and offer exactly as written.
 | Setting | Value |
 | --- | --- |
 | Apple app ID | `6760538964` |
-| Apple subscription group ID | Pending post-merge creation and readback |
-| Apple subscription ID | Pending post-merge creation and readback |
+| Apple subscription group ID | `22415526` |
+| Apple subscription ID | `6816418042` |
 | Subscription group reference name | `Premium` |
 | Subscription group display name | Localized per locale in [App Store Connect texts](#app-store-connect-texts); required before the first subscription is submitted |
 | Product ID | `premium_monthly` |
