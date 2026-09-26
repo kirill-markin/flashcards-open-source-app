@@ -1,11 +1,4 @@
-/**
- * OAuth /authorize screen: email + OTP sign-in followed by a consent step that
- * mints an authorization code and redirects back to the OAuth client. Vanilla
- * HTML + CSS + JS, sharing the visual language of the browser login page
- * (templates/login.ts). Sign-in reuses the existing /api/send-code and
- * /api/verify-code endpoints (which set the session cookie); consent posts to
- * /authorize/consent, which reads that cookie and returns the redirect URL.
- */
+import { hasOAuthScope } from "../server/oauth/scopes.js";
 import {
   getLoginPageLocaleDirection,
   type LoginPageLocale,
@@ -32,6 +25,8 @@ export type AuthorizeRequestView = Readonly<{
   scope: string | null;
   resource: string;
   clientName: string;
+  nonce: string | null;
+  issuer: string;
 }>;
 
 /**
@@ -246,7 +241,9 @@ export const renderAuthorizePage = (
       <div id="step-consent" class="hidden">
         <h1 class="login-title">${copy.consentTitle}</h1>
         <p class="login-hint" id="consent-lead"></p>
-        <p class="consent-scope">${copy.consentScopeAccess}</p>
+        ${request.scope === null || hasOAuthScope(request.scope, "flashcards") ? `<p class="consent-scope">${copy.consentScopeAccess}</p>` : ""}
+        ${hasOAuthScope(request.scope, "openid") ? `<p class="consent-scope">${copy.consentIdentityAccess}</p>` : ""}
+        ${hasOAuthScope(request.scope, "email") ? `<p class="consent-scope">${copy.consentEmailAccess}</p>` : ""}
         <p class="consent-account hidden" id="consent-account"></p>
         <div id="consent-error" class="login-error hidden"></div>
         <button id="approve-btn" class="login-btn" type="button">${copy.approve}</button>
@@ -418,6 +415,7 @@ export const renderAuthorizePage = (
         // RFC 6749 4.1.2.1: report access_denied to the client's redirect_uri.
         var url = new URL(request.redirectUri);
         url.searchParams.set("error", "access_denied");
+        url.searchParams.set("iss", request.issuer);
         if (request.state) url.searchParams.set("state", request.state);
         window.location.href = url.toString();
       });
@@ -439,6 +437,7 @@ export const renderAuthorizePage = (
             code_challenge: request.codeChallenge,
             scope: request.scope,
             resource: request.resource,
+            nonce: request.nonce,
           }),
         })
           .then(function(res) {
