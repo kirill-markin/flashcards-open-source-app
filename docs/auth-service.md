@@ -164,3 +164,19 @@ configured public auth origin explicitly on a call no browser makes.
 - The cost: one bounded call per reported step, and no rows of any other kind.
 - Deliberately not measured: the OAuth consent page at `GET /authorize`, and `app_version`.
 - Querying these rows: the caveats an analyst needs are in `docs/analytics-db-access.md`.
+
+## MCP identity
+
+The OAuth authorization server also provides OpenID Connect discovery and
+UserInfo for enterprise workspace domain restrictions. The implementation lives
+in [OAuth routes](../apps/auth/src/routes/oauth/) and
+[grant storage and signing](../apps/auth/src/server/oauth/). The signing key is
+managed by [the auth infrastructure](../infra/aws/lib/gateways/auth-gateway.ts).
+
+The deployed [OIDC smoke](../scripts/checks/check-oidc-smoke.mjs) runs in the MCP
+post-deploy check with the configured synthetic review account. It exercises real
+PKCE grants, signing, UserInfo, refresh and scope isolation. Synthetic accounts
+always report an unverified email; verify the enterprise-domain flow separately
+with a real mailbox. Each run registers a client labelled `OIDC smoke <run-id>`;
+its review-account connection remains until explicitly revoked in the database,
+because there is no OAuth connection-management HTTP API.
