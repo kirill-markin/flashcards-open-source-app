@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 export const ruCatalog = {
+  accentColorSettings: {
+    title: "Акцентный цвет",
+    subtitle: "Выберите акцентный цвет приложения.",
+    premiumNote: "Свои акцентные цвета доступны в Premium.",
+    custom: "Свой цвет",
+    hexHelp: "Введите цвет в формате #RRGGBB, без прозрачности.",
+    current: "Текущий цвет: {{color}}",
+    saving: "Сохранение…",
+    default: "По умолчанию",
+    blue: "Синий",
+    purple: "Фиолетовый",
+    pink: "Розовый",
+    teal: "Бирюзовый",
+    gold: "Золотой",
+    hex: "HEX",
+  },
   premium: {
     title: "Premium скоро появится",
     unavailable: "Подписки пока недоступны.",

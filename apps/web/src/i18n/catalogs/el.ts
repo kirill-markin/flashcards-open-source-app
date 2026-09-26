@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const elCatalog: TranslationCatalog = {
+  accentColorSettings: {
+    title: "Χρώμα έμφασης",
+    subtitle: "Επιλέξτε το χρώμα έμφασης της εφαρμογής.",
+    premiumNote: "Τα προσαρμοσμένα χρώματα έμφασης περιλαμβάνονται στο Premium.",
+    custom: "Προσαρμοσμένο χρώμα",
+    hexHelp: "Εισαγάγετε χρώμα σε μορφή #RRGGBB, χωρίς διαφάνεια.",
+    current: "Τρέχον χρώμα: {{color}}",
+    saving: "Αποθήκευση…",
+    default: "Προεπιλογή",
+    blue: "Μπλε",
+    purple: "Μωβ",
+    pink: "Ροζ",
+    teal: "Γαλαζοπράσινο",
+    gold: "Χρυσό",
+    hex: "HEX",
+  },
   premium: {
     title: "Το Premium έρχεται σύντομα",
     unavailable: "Οι συνδρομές δεν είναι ακόμη διαθέσιμες.",

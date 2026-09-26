@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const bnCatalog: TranslationCatalog = {
+  accentColorSettings: {
+    title: "অ্যাকসেন্ট রং",
+    subtitle: "অ্যাপের অ্যাকসেন্ট রং বেছে নিন।",
+    premiumNote: "নিজস্ব অ্যাকসেন্ট রং Premium-এ অন্তর্ভুক্ত।",
+    custom: "নিজস্ব রং",
+    hexHelp: "স্বচ্ছতা ছাড়া #RRGGBB বিন্যাসে একটি রং লিখুন।",
+    current: "বর্তমান রং: {{color}}",
+    saving: "সংরক্ষণ হচ্ছে…",
+    default: "ডিফল্ট",
+    blue: "নীল",
+    purple: "বেগুনি",
+    pink: "গোলাপি",
+    teal: "নীলচে সবুজ",
+    gold: "সোনালি",
+    hex: "HEX",
+  },
   premium: {
     title: "Premium শীঘ্রই আসছে",
     unavailable: "সাবস্ক্রিপশন এখনও উপলব্ধ নয়।",

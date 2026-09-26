@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const ukCatalog: TranslationCatalog = {
+  accentColorSettings: {
+    title: "Акцентний колір",
+    subtitle: "Виберіть акцентний колір застосунку.",
+    premiumNote: "Власні акцентні кольори доступні в Premium.",
+    custom: "Власний колір",
+    hexHelp: "Введіть колір у форматі #RRGGBB, без прозорості.",
+    current: "Поточний колір: {{color}}",
+    saving: "Збереження…",
+    default: "За замовчуванням",
+    blue: "Синій",
+    purple: "Фіолетовий",
+    pink: "Рожевий",
+    teal: "Бірюзовий",
+    gold: "Золотий",
+    hex: "HEX",
+  },
   premium: {
     title: "Premium незабаром",
     unavailable: "Підписки поки недоступні.",
