@@ -279,7 +279,17 @@ def validate_actions(actions: list[dict[str, Json]], status: dict[str, Json], so
     creates = 0
     for action in actions:
         if action.get("Entity") == "STACK" and action.get("Action") == "CREATE":
-            if action.get("PhysicalResourceId") not in (TARGET, target) or action.get("ResourceMapping") or action.get("TagResources") or action.get("UntagResources"):
+            if "PhysicalResourceId" in action:
+                identity_matches = action["PhysicalResourceId"] in (TARGET, target)
+            else:
+                # AWS may omit the optional physical ID for the reserved target stack.
+                identity_matches = action.get("Description") == f"Stack {target} created."
+            if (
+                not identity_matches
+                or action.get("ResourceMapping") not in (None, {}, {"Source": {}, "Destination": {}})
+                or action.get("TagResources")
+                or action.get("UntagResources")
+            ):
                 raise ValueError("Unexpected STACK/CREATE identity or changes")
             creates += 1
             continue
