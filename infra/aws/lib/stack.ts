@@ -1,11 +1,13 @@
 import * as cdk from "aws-cdk-lib";
+import * as sns from "aws-cdk-lib/aws-sns";
+import * as snsSubscriptions from "aws-cdk-lib/aws-sns-subscriptions";
 import { Construct } from "constructs";
 import { networking } from "./networking";
 import { database } from "./database";
 import { preSignUp } from "./pre-signup";
 import { auth } from "./auth";
 import { apiGateway } from "./gateways/api-gateway";
-import { monitoring } from "./monitoring";
+import { monitoring, type MonitoringProps } from "./monitoring";
 import { ciCd } from "./ci-cd";
 import { backupPlan } from "./backup";
 import { outputs } from "./outputs";
@@ -161,6 +163,8 @@ function validateBackendSentryContext(context: BackendSentryContextInput): Backe
 }
 
 export class FlashcardsOpenSourceAppStack extends cdk.Stack {
+  readonly monitoringInputs: MonitoringProps;
+
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
@@ -578,8 +582,21 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       hosts: adminHosts,
     });
 
-    const mon = monitoring(this, {
-      alertEmail,
+    const alertTopic = new sns.Topic(this, "AlertTopic", {
+      topicName: "flashcards-open-source-app-alerts",
+    });
+    alertTopic.addSubscription(new snsSubscriptions.EmailSubscription(alertEmail));
+
+    // These core-owned retention resources create missing groups before metric filters run.
+    // A name-only log-group import would lose that creation dependency.
+    this.monitoringInputs = {
+      alertTopic,
+      sourceStackName: this.stackName,
+      directImageIngestionLogGroup: api.directImageIngestionFn.logGroup,
+      backendLogGroup: api.backendFn.logGroup,
+      webGuestReaperLogGroup: webGuestReaperResult.reaperFunction.logGroup,
+      multipartCompletionReconciliationLogGroup:
+        multipartCompletionReconciliationResult.reconciliationFunction.logGroup,
       db: dbResult.db,
       restApi: api.restApi,
       authRestApi: authApi.restApi,
@@ -615,7 +632,10 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       mcpAlternateHost,
       mcpAlternateCertificateArn,
       alternateHeartbeatHosts,
-    });
+    };
+    if (this.node.tryGetContext("monitoringTopology") !== "split") {
+      monitoring(this, this.monitoringInputs);
+    }
 
     ciCd(this, {
       stackId: this.stackId,
@@ -651,7 +671,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       dbOwnerSecret: dbResult.dbOwnerSecret,
       backendDbSecret: dbResult.backendDbSecret,
       authDbSecret: dbResult.authDbSecret,
-      alertTopic: mon.alertTopic,
+      alertTopic,
       restApi: api.restApi,
       authRestApi: authApi.restApi,
       mcpHttpApi: mcpApi.httpApi,
