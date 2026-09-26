@@ -9,6 +9,18 @@ export type Json = null | boolean | number | string | Json[] | { [key: string]: 
 export type JsonObject = { [key: string]: Json };
 export type Resource = { id: string; type: string; attributes: JsonObject };
 
+export class AppStoreConnectHttpError extends Error {
+  readonly status: number;
+  readonly body: string;
+
+  constructor(label: string, status: number, body: string) {
+    super(`${label}: HTTP ${status}: ${body}`);
+    this.name = "AppStoreConnectHttpError";
+    this.status = status;
+    this.body = body;
+  }
+}
+
 export function object(value: Json, context: string): JsonObject {
   if (value === null || typeof value !== "object" || Array.isArray(value)) throw new Error(`Expected object: ${context}`);
   return value;
@@ -43,7 +55,7 @@ export async function request(url: string, method: string, headers: Record<strin
     }
     const result = await response.text();
     if (response.ok) return result;
-    const error = new Error(`${label}: HTTP ${response.status}: ${result}`);
+    const error = new AppStoreConnectHttpError(label, response.status, result);
     if (method === "POST" || attempt === 3 || (response.status !== 429 && response.status < 500)) throw error;
     console.warn(JSON.stringify({ event: "app_store_retry", label, attempt, status: response.status }));
     await sleep(attempt * 2000);
