@@ -201,6 +201,8 @@ struct FlashcardsApp: App {
     var body: some Scene {
         WindowGroup {
             RootTabView()
+                .tint(store.effectiveAccountAccentColor.color)
+                .accentColor(store.effectiveAccountAccentColor.color)
                 .environment(store)
                 .environment(navigation)
                 .environment(\.isLowPowerModeEnabled, self.isLowPowerModeEnabled)

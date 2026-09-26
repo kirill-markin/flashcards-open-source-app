@@ -849,3 +849,14 @@
 "premium.comingSoon.title" = "Premium sắp ra mắt";
 "premium.comingSoon.message" = "Hiện chưa thể đăng ký gói thuê bao.";
 "premium.aiLimit.title" = "Đã đạt giới hạn tin nhắn AI";
+
+"settings.accentColor.title" = "Màu nhấn";
+"settings.accentColor.default" = "Mặc định";
+"settings.accentColor.blue" = "Xanh dương";
+"settings.accentColor.purple" = "Tím";
+"settings.accentColor.pink" = "Hồng";
+"settings.accentColor.teal" = "Xanh ngọc";
+"settings.accentColor.gold" = "Vàng kim";
+"settings.accentColor.custom" = "Màu tùy chỉnh";
+"settings.accentColor.invalidHex" = "Nhập màu ở dạng #RRGGBB với sáu chữ số thập lục phân.";
+"settings.accentColor.premiumNote" = "Màu nhấn tùy chỉnh có sẵn với Premium. Màu đã lưu sẽ trở lại khi Premium hoạt động.";

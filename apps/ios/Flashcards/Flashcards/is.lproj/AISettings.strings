@@ -849,3 +849,14 @@
 "premium.comingSoon.title" = "Premium er væntanlegt";
 "premium.comingSoon.message" = "Áskriftir eru ekki enn í boði.";
 "premium.aiLimit.title" = "Hámarki AI-skilaboða náð";
+
+"settings.accentColor.title" = "Áherslulitur";
+"settings.accentColor.default" = "Sjálfgefið";
+"settings.accentColor.blue" = "Blár";
+"settings.accentColor.purple" = "Fjólublár";
+"settings.accentColor.pink" = "Bleikur";
+"settings.accentColor.teal" = "Túrkís";
+"settings.accentColor.gold" = "Gylltur";
+"settings.accentColor.custom" = "Sérsniðinn litur";
+"settings.accentColor.invalidHex" = "Sláðu inn lit sem #RRGGBB með sex sextándakerfisstöfum.";
+"settings.accentColor.premiumNote" = "Sérsniðnir áherslulitir eru í boði með Premium. Vistaði liturinn þinn kemur aftur þegar Premium er virkt.";

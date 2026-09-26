@@ -877,3 +877,14 @@
 "premium.comingSoon.title" = "Premium скоро появится";
 "premium.comingSoon.message" = "Подписки пока недоступны.";
 "premium.aiLimit.title" = "Достигнут лимит сообщений ИИ";
+
+"settings.accentColor.title" = "Цвет акцента";
+"settings.accentColor.default" = "По умолчанию";
+"settings.accentColor.blue" = "Синий";
+"settings.accentColor.purple" = "Фиолетовый";
+"settings.accentColor.pink" = "Розовый";
+"settings.accentColor.teal" = "Бирюзовый";
+"settings.accentColor.gold" = "Золотой";
+"settings.accentColor.custom" = "Свой цвет";
+"settings.accentColor.invalidHex" = "Введите цвет в формате #RRGGBB — шесть шестнадцатеричных цифр.";
+"settings.accentColor.premiumNote" = "Свои цвета акцента доступны с Premium. Сохранённый цвет вернётся, когда Premium снова будет активен.";

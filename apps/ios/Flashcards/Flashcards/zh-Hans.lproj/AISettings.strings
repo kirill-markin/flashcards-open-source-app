@@ -877,3 +877,14 @@
 "premium.comingSoon.title" = "Premium 即将推出";
 "premium.comingSoon.message" = "订阅暂未开放。";
 "premium.aiLimit.title" = "已达到 AI 消息上限";
+
+"settings.accentColor.title" = "强调色";
+"settings.accentColor.default" = "默认";
+"settings.accentColor.blue" = "蓝色";
+"settings.accentColor.purple" = "紫色";
+"settings.accentColor.pink" = "粉色";
+"settings.accentColor.teal" = "青绿色";
+"settings.accentColor.gold" = "金色";
+"settings.accentColor.custom" = "自定义颜色";
+"settings.accentColor.invalidHex" = "请输入 #RRGGBB 格式的颜色，包含六位十六进制数字。";
+"settings.accentColor.premiumNote" = "自定义强调色适用于 Premium。Premium 生效时，将恢复您保存的颜色。";
