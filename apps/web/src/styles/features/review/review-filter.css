@@ -141,7 +141,7 @@
 }
 
 .review-filter-menu-entry.review-filter-menu-entry-active {
-  color: var(--accent-strong);
+  color: var(--text);
   background: var(--accent-soft);
 }
 
@@ -156,7 +156,7 @@
 }
 
 .review-filter-menu-entry.review-filter-menu-entry-active.review-filter-menu-entry-keyboard-active {
-  color: var(--accent-strong);
+  color: var(--text);
   background: var(--accent-soft);
   box-shadow: inset 0 0 0 1px var(--accent-strong);
 }
@@ -167,7 +167,7 @@
 }
 
 .review-filter-menu-entry.review-filter-menu-entry-active:active {
-  color: var(--accent-strong);
+  color: var(--text);
   background: var(--accent-muted);
   box-shadow: inset 0 0 0 2px var(--accent-strong);
 }
@@ -195,6 +195,7 @@
 }
 
 .review-filter-menu-item-check-visible {
+  color: var(--accent-strong);
   opacity: 1;
 }
 
