@@ -97,6 +97,7 @@ fun SettingsRoute(
     onOpenCurrentWorkspace: () -> Unit,
     onOpenReviewReminders: () -> Unit,
     onOpenReviewAnimations: () -> Unit,
+    onOpenAccentColor: () -> Unit,
     onOpenAiChatSuggestions: () -> Unit,
     onOpenOwnOpenAiKey: () -> Unit,
     onOpenLeaderboardParticipation: () -> Unit,
@@ -238,6 +239,16 @@ fun SettingsRoute(
             }
 
             if (uiState.canManageAccountPreferences) {
+                item {
+                    SettingsRootRow(
+                        title = stringResource(R.string.settings_accent_title),
+                        summary = null,
+                        attentionCount = null,
+                        testTag = settingsAccentColorRowTag,
+                        onClick = onOpenAccentColor
+                    )
+                }
+
                 item {
                     SettingsRootRow(
                         title = stringResource(R.string.settings_review_animations_title),

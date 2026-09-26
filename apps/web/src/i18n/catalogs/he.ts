@@ -1,6 +1,22 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const heCatalog: TranslationCatalog = {
+  accentColorSettings: {
+    title: "צבע הדגשה",
+    subtitle: "בחרו את צבע ההדגשה של האפליקציה.",
+    premiumNote: "צבעי הדגשה מותאמים אישית כלולים ב-Premium.",
+    custom: "צבע מותאם אישית",
+    hexHelp: "הזינו צבע בפורמט #RRGGBB, ללא שקיפות.",
+    current: "הצבע הנוכחי: {{color}}",
+    saving: "שומר…",
+    default: "ברירת מחדל",
+    blue: "כחול",
+    purple: "סגול",
+    pink: "ורוד",
+    teal: "כחול-ירוק",
+    gold: "זהב",
+    hex: "HEX",
+  },
   premium: {
     title: "Premium יגיע בקרוב",
     unavailable: "המינויים עדיין לא זמינים.",

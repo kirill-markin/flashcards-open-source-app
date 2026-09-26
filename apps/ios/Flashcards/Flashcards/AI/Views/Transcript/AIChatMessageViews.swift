@@ -204,7 +204,7 @@ extension AIChatView {
         .padding(12)
         .background(
             message.role == .user
-                ? AnyShapeStyle(Color.accentColor.opacity(0.12))
+                ? AnyShapeStyle(.tint.opacity(0.12))
                 : AnyShapeStyle(.thinMaterial),
             in: RoundedRectangle(cornerRadius: 14, style: .continuous)
         )

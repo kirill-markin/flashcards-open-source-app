@@ -119,6 +119,23 @@ struct SettingsView: View {
             }
 
             Section(aiSettingsLocalized("settings.section.general", "General")) {
+                NavigationLink(value: SettingsNavigationDestination.accentColor) {
+                    HStack {
+                        Label {
+                            Text(accentColorSettingsTitle())
+                                .foregroundStyle(Color.primary)
+                        } icon: {
+                            Image(systemName: "paintpalette")
+                        }
+                        Spacer()
+                        Circle()
+                            .fill(store.effectiveAccountAccentColor.color)
+                            .frame(width: 22, height: 22)
+                            .accessibilityLabel(store.effectiveAccountAccentColor.hex)
+                    }
+                }
+                .accessibilityIdentifier(UITestIdentifier.settingsAccentColorRow)
+
                 NavigationLink(value: SettingsNavigationDestination.notifications) {
                     SettingsNavigationRow(
                         title: aiSettingsLocalized("settings.row.notifications", "Notifications"),
@@ -418,7 +435,12 @@ struct SettingsNavigationRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Label(title, systemImage: systemImage)
+            Label {
+                Text(title)
+                    .foregroundStyle(Color.primary)
+            } icon: {
+                Image(systemName: systemImage)
+            }
 
             Spacer()
 

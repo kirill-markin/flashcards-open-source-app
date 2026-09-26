@@ -37,6 +37,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
@@ -55,10 +56,12 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.flashcardsopensourceapp.app.analytics.analyticsSurfaceForRoute
 import com.flashcardsopensourceapp.app.analytics.analyticsSyncFailureReason
+import com.flashcardsopensourceapp.app.premium.hasPremiumAccess
 import com.flashcardsopensourceapp.app.premium.PremiumPresenter
 import com.flashcardsopensourceapp.app.premium.PremiumPresentationHost
 import com.flashcardsopensourceapp.app.di.AppGraph
@@ -88,7 +91,9 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryState
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackTrigger
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
+import com.flashcardsopensourceapp.data.local.model.sync.defaultAccentColor
 import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
+import com.flashcardsopensourceapp.feature.settings.accent.AccentColorViewModel
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatusSnapshot
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsReconcileTrigger
@@ -124,7 +129,30 @@ fun FlashcardsApp(
     consumeAppNotificationTap: (Long) -> Unit
 ) {
     key(appGraph) {
-        FlashcardsTheme {
+        val accountPreferencesFlow: Flow<AccountPreferences?> =
+            remember(appGraph.cloudAccountRepository) {
+                appGraph.cloudAccountRepository
+                    .observeAccountPreferences()
+                    .map<AccountPreferences, AccountPreferences?> { accountPreferences ->
+                        accountPreferences
+                    }
+            }
+        val accountPreferences: AccountPreferences? by accountPreferencesFlow.collectAsStateWithLifecycle(
+            initialValue = null
+        )
+        val accentColorViewModel = viewModel<AccentColorViewModel>(
+            viewModelStoreOwner = appGraph.accentColorViewModelStoreOwner,
+            factory = appGraph.accentColorViewModelFactory
+        )
+        val accentColorState by accentColorViewModel.uiState.collectAsStateWithLifecycle()
+        val entitlement by appGraph.cloudAccountRepository.observeEntitlement()
+            .collectAsStateWithLifecycle(initialValue = null)
+        val effectiveAccentColor = if (entitlement == null || hasPremiumAccess(entitlement)) {
+            accentColorState.selectedColor
+        } else {
+            defaultAccentColor
+        }
+        FlashcardsTheme(accentColor = Color(android.graphics.Color.parseColor(effectiveAccentColor))) {
         val startupState by appGraph.startupState.collectAsStateWithLifecycle(
             initialValue = AppStartupState.Loading
         )
@@ -175,17 +203,6 @@ fun FlashcardsApp(
 
         val snackbarHostState = remember { SnackbarHostState() }
         val isPowerSaveMode: Boolean = rememberIsPowerSaveMode()
-        val accountPreferencesFlow: Flow<AccountPreferences?> =
-            remember(appGraph.cloudAccountRepository) {
-                appGraph.cloudAccountRepository
-                    .observeAccountPreferences()
-                    .map<AccountPreferences, AccountPreferences?> { accountPreferences ->
-                        accountPreferences
-                    }
-            }
-        val accountPreferences: AccountPreferences? by accountPreferencesFlow.collectAsStateWithLifecycle(
-            initialValue = null
-        )
         val effectiveReviewReactionAnimationsEnabled: Boolean =
             accountPreferences?.reviewReactionAnimationsEnabled == true && isPowerSaveMode.not()
         val reviewReactionLottieConfigurationStore = rememberReviewReactionLottieConfigurationStore(
@@ -303,8 +320,6 @@ fun FlashcardsApp(
         DisposableEffect(premiumPresenter) {
             onDispose { premiumPresenter.dismiss() }
         }
-        val entitlement by appGraph.cloudAccountRepository.observeEntitlement()
-            .collectAsStateWithLifecycle(initialValue = null)
         LaunchedEffect(premiumPresenter, entitlement) {
             premiumPresenter.updateEntitlement(value = entitlement)
         }

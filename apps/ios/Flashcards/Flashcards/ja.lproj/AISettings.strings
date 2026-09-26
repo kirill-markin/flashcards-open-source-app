@@ -877,3 +877,14 @@
 "premium.comingSoon.title" = "Premiumは近日公開";
 "premium.comingSoon.message" = "サブスクリプションはまだご利用いただけません。";
 "premium.aiLimit.title" = "AIメッセージの上限に達しました";
+
+"settings.accentColor.title" = "アクセントカラー";
+"settings.accentColor.default" = "デフォルト";
+"settings.accentColor.blue" = "ブルー";
+"settings.accentColor.purple" = "パープル";
+"settings.accentColor.pink" = "ピンク";
+"settings.accentColor.teal" = "ティール";
+"settings.accentColor.gold" = "ゴールド";
+"settings.accentColor.custom" = "カスタムカラー";
+"settings.accentColor.invalidHex" = "6桁の16進数を使い、#RRGGBB 形式で色を入力してください。";
+"settings.accentColor.premiumNote" = "カスタムアクセントカラーは Premium で利用できます。Premium が有効になると、保存した色に戻ります。";

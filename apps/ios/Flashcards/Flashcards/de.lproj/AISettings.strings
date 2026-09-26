@@ -877,3 +877,14 @@
 "premium.comingSoon.title" = "Premium kommt bald";
 "premium.comingSoon.message" = "Abonnements sind noch nicht verfügbar.";
 "premium.aiLimit.title" = "Limit für KI-Nachrichten erreicht";
+
+"settings.accentColor.title" = "Akzentfarbe";
+"settings.accentColor.default" = "Standard";
+"settings.accentColor.blue" = "Blau";
+"settings.accentColor.purple" = "Lila";
+"settings.accentColor.pink" = "Rosa";
+"settings.accentColor.teal" = "Türkis";
+"settings.accentColor.gold" = "Gold";
+"settings.accentColor.custom" = "Eigene Farbe";
+"settings.accentColor.invalidHex" = "Gib eine Farbe als #RRGGBB mit sechs Hexadezimalziffern ein.";
+"settings.accentColor.premiumNote" = "Eigene Akzentfarben sind mit Premium verfügbar. Deine gespeicherte Farbe wird wieder verwendet, sobald Premium aktiv ist.";

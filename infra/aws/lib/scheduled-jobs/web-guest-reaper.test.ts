@@ -54,6 +54,10 @@ test("stack wires the web guest reaper function into monitoring, ci-cd, and outp
   assert.match(source, /backendDbSecret: dbResult\.backendDbSecret,/);
   assert.match(source, /reportingDbSecret: dbResult\.reportingDbSecret,/);
   assert.match(source, /webGuestReaperFn: webGuestReaperResult\.reaperFunction,/);
+  assert.match(
+    source,
+    /this\.monitoringInputs = \{[\s\S]*webGuestReaperLogGroup: webGuestReaperResult\.reaperFunction\.logGroup,/,
+  );
   assert.match(source, /webGuestReaperFunction: webGuestReaperResult\.reaperFunction,/);
 });
 
@@ -78,7 +82,8 @@ test("monitoring alarms on a web guest reaper run that left candidates behind", 
   assert.match(pattern, /\$\.message\.action = "web_guest_reaper_completed"/);
   assert.match(pattern, /\$\.message\.finished IS FALSE/);
   assert.match(source, /"WebGuestReaperSaturationMetricFilter"/);
-  assert.match(source, /logGroup: props\.webGuestReaperFn\.logGroup/);
+  assert.match(source, /webGuestReaperLogGroup: logs\.ILogGroup;/);
+  assert.match(source, /logGroup: props\.webGuestReaperLogGroup/);
   assert.match(source, /new cloudwatch\.Alarm\(scope, "WebGuestReaperSaturatedAlarm"/);
 });
 

@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.app.di
 import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStoreOwner
 import com.flashcardsopensourceapp.app.AutoSyncController
 import com.flashcardsopensourceapp.app.TestTechnicalErrorDialogPreviewController
@@ -106,6 +107,7 @@ import com.flashcardsopensourceapp.data.local.repository.ReviewRepository
 import com.flashcardsopensourceapp.data.local.repository.shared.SystemTimeProvider
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
+import com.flashcardsopensourceapp.feature.settings.accent.createAccentColorViewModelFactory
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
@@ -437,6 +439,16 @@ class AppGraph(
         appVersion = appPackageInfo.versionName,
         onAnalyticsGuestIdentityLinkRequested = ::requestAnalyticsGuestIdentityLink,
         onProductAnalyticsPreferencePushRefused = ::reportProductAnalyticsPreferencePushRefused
+    )
+    val accentColorViewModelStoreOwner: ViewModelStoreOwner = object : ViewModelStoreOwner {
+        override val viewModelStore: ViewModelStore = ViewModelStore()
+    }
+    val accentColorViewModelFactory: ViewModelProvider.Factory = createAccentColorViewModelFactory(
+        cloudAccountRepository = cloudAccountRepository,
+        preferencesStore = cloudPreferencesStore,
+        operationCoordinator = cloudOperationCoordinator,
+        messageController = appMessageBus,
+        applicationContext = applicationContext
     )
     private val localSyncRepository = LocalSyncRepository(
         database = database,
@@ -987,6 +999,7 @@ class AppGraph(
     suspend fun close() {
         analyticsNetworkMonitor.stopObservingConnectivityRestored()
         cloudCredentialRecoveryGateViewModelStoreOwner.viewModelStore.clear()
+        accentColorViewModelStoreOwner.viewModelStore.clear()
         startupJob?.cancelAndJoin()
         cloudIdentityObserverJob?.cancelAndJoin()
         analyticsGuestIdentityLinkJob?.cancelAndJoin()

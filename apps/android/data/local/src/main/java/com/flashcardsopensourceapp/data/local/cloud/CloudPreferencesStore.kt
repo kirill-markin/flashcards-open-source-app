@@ -27,6 +27,7 @@ import com.flashcardsopensourceapp.data.local.model.ai.StoredGuestAiSession
 import com.flashcardsopensourceapp.data.local.model.cloud.makeCustomCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.cloud.makeOfficialCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
+import com.flashcardsopensourceapp.data.local.model.sync.defaultAccentColor
 import com.flashcardsopensourceapp.data.local.model.sync.defaultAccountPreferences
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
@@ -728,6 +729,7 @@ private fun decodeAccountSnapshot(jsonObject: JSONObject): CloudAccountSnapshot 
 
 private fun encodeAccountPreferences(preferences: AccountPreferences): JSONObject {
     return JSONObject()
+        .put("accentColor", preferences.accentColor)
         .put("reviewReactionAnimationsEnabled", preferences.reviewReactionAnimationsEnabled)
         .put("productAnalyticsEnabled", preferences.productAnalyticsEnabled ?: JSONObject.NULL)
 }
@@ -735,6 +737,11 @@ private fun encodeAccountPreferences(preferences: AccountPreferences): JSONObjec
 private fun decodeAccountPreferences(jsonObject: JSONObject?): AccountPreferences {
     jsonObject ?: return defaultAccountPreferences()
     return AccountPreferences(
+        accentColor = if (jsonObject.has("accentColor")) {
+            jsonObject.getString("accentColor")
+        } else {
+            defaultAccentColor
+        },
         reviewReactionAnimationsEnabled = jsonObject.getBoolean("reviewReactionAnimationsEnabled"),
         productAnalyticsEnabled = if (jsonObject.isNull("productAnalyticsEnabled")) {
             null

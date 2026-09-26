@@ -855,4 +855,22 @@
     </plurals>
     <string name="settings_premium_preview">Preview Premium</string>
     <string name="settings_ai_limit_preview">Preview AI message limit</string>
+    <string name="settings_accent_title">Accent color</string>
+    <string name="settings_accent_selected">Selected color: %1$s</string>
+    <string name="settings_accent_premium_note">Custom accent colors are included with Premium. Your saved choice is kept while Default is displayed on the free plan.</string>
+    <string name="settings_accent_default">Default</string>
+    <string name="settings_accent_blue">Blue</string>
+    <string name="settings_accent_purple">Purple</string>
+    <string name="settings_accent_pink">Pink</string>
+    <string name="settings_accent_teal">Teal</string>
+    <string name="settings_accent_gold">Gold</string>
+    <string name="settings_accent_custom">Custom color</string>
+    <string name="settings_accent_hex">HEX color</string>
+    <string name="settings_accent_hex_format">Use #RRGGBB, with six hexadecimal digits.</string>
+    <string name="settings_accent_red">Red</string>
+    <string name="settings_accent_green">Green</string>
+    <string name="settings_accent_blue_channel">Blue</string>
+    <string name="settings_accent_channel_value">%1$s: %2$d</string>
+    <string name="settings_accent_close">Close</string>
+    <string name="settings_accent_update_failed">Could not save your accent color. Check your connection and try again.</string>
 </resources>
