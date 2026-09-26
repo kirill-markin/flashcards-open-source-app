@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const paCatalog: TranslationCatalog = {
+  premium: {
+    title: "Premium ਜਲਦੀ ਆ ਰਿਹਾ ਹੈ",
+    unavailable: "ਸਬਸਕ੍ਰਿਪਸ਼ਨਾਂ ਹਾਲੇ ਉਪਲਬਧ ਨਹੀਂ ਹਨ।",
+    subscription: "ਸਬਸਕ੍ਰਿਪਸ਼ਨ",
+    subscriptionDescription: "ਤੁਹਾਡੀ ਮੌਜੂਦਾ ਪਹੁੰਚ ਅਤੇ AI ਸੀਮਾ।",
+    unknown: "ਤੁਹਾਡੀ ਸਬਸਕ੍ਰਿਪਸ਼ਨ ਦੀ ਸਥਿਤੀ ਇਸ ਵੇਲੇ ਅਣਜਾਣ ਹੈ।",
+    statusNone: "ਕੋਈ ਅਦਾਇਗੀ ਵਾਲੀ ਸਬਸਕ੍ਰਿਪਸ਼ਨ ਨਹੀਂ",
+    grace: "ਭੁਗਤਾਨ ਦੀ ਵਾਧੂ ਮਿਆਦ ਦੌਰਾਨ ਪਹੁੰਚ ਜਾਰੀ ਰਹਿੰਦੀ ਹੈ।",
+    trial: "ਅਜ਼ਮਾਇਸ਼ ਦੀ ਮਿਆਦ",
+    renews: "{{date}} ਨੂੰ ਨਵੀਨੀਕਰਨ",
+    until: "{{date}} ਤੱਕ ਪਹੁੰਚ",
+    noExpiry: "ਕੋਈ ਮਿਆਦ ਪੁੱਗਣ ਦੀ ਤਾਰੀਖ ਨਹੀਂ",
+    monthlyMessages: "ਹਰ ਮਹੀਨੇ {{count}} AI ਸੁਨੇਹੇ",
+    offer: "Premium ਵੇਖੋ",
+    close: "ਬੰਦ ਕਰੋ",
+    back: "ਵਾਪਸ",
+    limitTitle: "AI ਸੁਨੇਹਿਆਂ ਦੀ ਸੀਮਾ ਪੂਰੀ ਹੋ ਗਈ",
+    previewOffer: "Premium ਪੇਸ਼ਕਸ਼ ਦੀ ਝਲਕ",
+    previewAi: "AI ਸੀਮਾ ਦੀ ਝਲਕ",
+    retryManually: "ਚੈਟ ਵਿੱਚ ਵਾਪਸ ਜਾਓ ਅਤੇ ਤਿਆਰ ਹੋਣ ’ਤੇ ਸੁਨੇਹਾ ਦੁਬਾਰਾ ਭੇਜੋ। ਤੁਹਾਡੀ ਕੁੰਜੀ ਦੀਆਂ ਸੈਟਿੰਗਾਂ ਆਪਣੇ ਆਪ ਸੁਰੱਖਿਅਤ ਹੁੰਦੀਆਂ ਹਨ।",
+  },
   common: {
     active: "ਸਰਗਰਮ",
     automatic: "ਆਪਣੇ-ਆਪ",

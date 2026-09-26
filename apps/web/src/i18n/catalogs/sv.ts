@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const svCatalog: TranslationCatalog = {
+  premium: {
+    title: "Premium kommer snart",
+    unavailable: "Prenumerationer är inte tillgängliga ännu.",
+    subscription: "Prenumeration",
+    subscriptionDescription: "Din nuvarande åtkomst och AI-kvot.",
+    unknown: "Din prenumerationsstatus är för närvarande okänd.",
+    statusNone: "Ingen betald prenumeration",
+    grace: "Åtkomsten fortsätter under betalningens respitperiod.",
+    trial: "Provperiod",
+    renews: "Förnyas {{date}}",
+    until: "Åtkomst till {{date}}",
+    noExpiry: "Inget slutdatum",
+    monthlyMessages: "{{count}} AI-meddelanden per månad",
+    offer: "Visa Premium",
+    close: "Stäng",
+    back: "Tillbaka",
+    limitTitle: "Gränsen för AI-meddelanden har nåtts",
+    previewOffer: "Förhandsvisa Premium-erbjudandet",
+    previewAi: "Förhandsvisa AI-gränsen",
+    retryManually: "Gå tillbaka till chatten och skicka ditt meddelande igen när du är redo. Dina nyckelinställningar sparas automatiskt.",
+  },
   common: {
     active: "Aktiv",
     automatic: "Automatiskt",

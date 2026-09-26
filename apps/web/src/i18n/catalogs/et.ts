@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const etCatalog: TranslationCatalog = {
+  premium: {
+    title: "Premium on peagi saadaval",
+    unavailable: "Tellimused pole veel saadaval.",
+    subscription: "Tellimus",
+    subscriptionDescription: "Sinu praegune ligipääs ja tehisaru limiit.",
+    unknown: "Sinu tellimuse olek on praegu teadmata.",
+    statusNone: "Tasuline tellimus puudub",
+    grace: "Ligipääs jätkub makse ajapikenduse jooksul.",
+    trial: "Prooviperiood",
+    renews: "Uueneb {{date}}",
+    until: "Ligipääs kuni {{date}}",
+    noExpiry: "Aegumatu",
+    monthlyMessages: "{{count}} tehisaru sõnumit kuus",
+    offer: "Vaata Premiumi",
+    close: "Sulge",
+    back: "Tagasi",
+    limitTitle: "Tehisaru sõnumite limiit on täis",
+    previewOffer: "Premiumi pakkumise eelvaade",
+    previewAi: "Tehisaru limiidi eelvaade",
+    retryManually: "Naase vestlusse ja saada sõnum uuesti, kui oled valmis. Võtme seaded salvestatakse automaatselt.",
+  },
   common: {
     active: "Aktiivne",
     automatic: "Automaatne",

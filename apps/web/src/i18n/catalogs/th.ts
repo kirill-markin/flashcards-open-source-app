@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const thCatalog: TranslationCatalog = {
+  premium: {
+    title: "Premium กำลังจะมาเร็ว ๆ นี้",
+    unavailable: "ยังไม่สามารถสมัครสมาชิกได้ในขณะนี้",
+    subscription: "การสมัครสมาชิก",
+    subscriptionDescription: "สิทธิ์การเข้าถึงและโควตา AI ปัจจุบันของคุณ",
+    unknown: "ยังไม่ทราบสถานะการสมัครสมาชิกของคุณในขณะนี้",
+    statusNone: "ไม่มีการสมัครสมาชิกแบบชำระเงิน",
+    grace: "ยังเข้าถึงได้ในช่วงผ่อนผันการชำระเงิน",
+    trial: "ช่วงทดลองใช้",
+    renews: "ต่ออายุวันที่ {{date}}",
+    until: "เข้าถึงได้จนถึง {{date}}",
+    noExpiry: "ไม่มีวันหมดอายุ",
+    monthlyMessages: "ข้อความ AI {{count}} ข้อความต่อเดือน",
+    offer: "ดู Premium",
+    close: "ปิด",
+    back: "ย้อนกลับ",
+    limitTitle: "ใช้ข้อความ AI ถึงขีดจำกัดแล้ว",
+    previewOffer: "ดูตัวอย่างข้อเสนอ Premium",
+    previewAi: "ดูตัวอย่างขีดจำกัด AI",
+    retryManually: "กลับไปที่แชตแล้วส่งข้อความอีกครั้งเมื่อพร้อม การตั้งค่าคีย์จะบันทึกโดยอัตโนมัติ",
+  },
   common: {
     active: "ใช้งานอยู่",
     automatic: "อัตโนมัติ",

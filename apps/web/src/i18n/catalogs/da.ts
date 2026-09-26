@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const daCatalog: TranslationCatalog = {
+  premium: {
+    title: "Premium kommer snart",
+    unavailable: "Abonnementer er endnu ikke tilgængelige.",
+    subscription: "Abonnement",
+    subscriptionDescription: "Din aktuelle adgang og AI-kvote.",
+    unknown: "Din abonnementsstatus er i øjeblikket ukendt.",
+    statusNone: "Intet betalt abonnement",
+    grace: "Adgangen fortsætter i betalingsfristen efter forfald.",
+    trial: "Prøveperiode",
+    renews: "Fornyes {{date}}",
+    until: "Adgang indtil {{date}}",
+    noExpiry: "Ingen udløbsdato",
+    monthlyMessages: "{{count}} AI-beskeder pr. måned",
+    offer: "Se Premium",
+    close: "Luk",
+    back: "Tilbage",
+    limitTitle: "Grænsen for AI-beskeder er nået",
+    previewOffer: "Forhåndsvis Premium-tilbud",
+    previewAi: "Forhåndsvis AI-grænse",
+    retryManually: "Vend tilbage til chatten, og send din besked igen, når du er klar. Dine nøgleindstillinger gemmes automatisk.",
+  },
   common: {
     active: "Aktiv",
     automatic: "Automatisk",

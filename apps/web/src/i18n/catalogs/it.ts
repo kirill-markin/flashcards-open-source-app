@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const itCatalog: TranslationCatalog = {
+  premium: {
+    title: "Premium arriverà presto",
+    unavailable: "Gli abbonamenti non sono ancora disponibili.",
+    subscription: "Abbonamento",
+    subscriptionDescription: "Il tuo accesso attuale e il limite IA.",
+    unknown: "Lo stato del tuo abbonamento è al momento sconosciuto.",
+    statusNone: "Nessun abbonamento a pagamento",
+    grace: "L’accesso continua durante il periodo di tolleranza del pagamento.",
+    trial: "Periodo di prova",
+    renews: "Si rinnova il {{date}}",
+    until: "Accesso fino al {{date}}",
+    noExpiry: "Senza scadenza",
+    monthlyMessages: "{{count}} messaggi IA al mese",
+    offer: "Scopri Premium",
+    close: "Chiudi",
+    back: "Indietro",
+    limitTitle: "Limite di messaggi IA raggiunto",
+    previewOffer: "Anteprima dell’offerta Premium",
+    previewAi: "Anteprima del limite IA",
+    retryManually: "Torna alla chat e invia di nuovo il messaggio quando vuoi. Le impostazioni della chiave vengono salvate automaticamente.",
+  },
   common: {
     active: "Attivo",
     automatic: "Automatico",

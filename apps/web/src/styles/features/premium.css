@@ -1,0 +1,63 @@
+.premium-dialog:not([open]) {
+  display: none;
+}
+
+.premium-dialog {
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 24px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  color: var(--text);
+  border: 1px solid var(--panel-border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.premium-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.65);
+}
+
+.premium-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding-right: 40px;
+  position: relative;
+}
+
+.premium-header .title {
+  overflow-wrap: anywhere;
+}
+
+.premium-close {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 36px;
+  min-height: 36px;
+  font-size: 24px;
+}
+
+.premium-dialog button:focus-visible,
+.premium-dialog summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.premium-dialog summary:focus-visible {
+  outline-offset: -3px;
+}
+
+.premium-dialog .settings-input {
+  min-width: 0;
+  width: 100%;
+}
+
+@media (max-width: 480px) {
+  .premium-dialog {
+    padding: 16px;
+  }
+}

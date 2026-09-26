@@ -1,4 +1,5 @@
 import { useCallback, useRef, type Dispatch } from "react";
+import { usePremiumPresenter } from "../../../premium/PremiumProvider";
 import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
   type IndexedDbOpenRecoveryState,
@@ -216,6 +217,7 @@ function captureChatRunRequestError(
 export function useChatSessionActions(
   params: UseChatSessionActionsParams,
 ): ChatSessionActions {
+  const presentPremium = usePremiumPresenter();
   const {
     indexedDbOpenRecoveryState,
     workspaceId,
@@ -656,6 +658,7 @@ export function useChatSessionActions(
           type: "error_shown",
           message: uiMessages.formatAiLimitReached(readHeldAiUsage()),
         });
+        presentPremium?.({ reason: "ai-limit", aiUsage: readHeldAiUsage() });
         // Brings the remaining-messages notice down to zero; the refusal above does not wait for it.
         refreshAiUsageInBackground();
         return createRejectedSendResult(resultSessionId);
@@ -836,6 +839,7 @@ export function useChatSessionActions(
     isRequestSequenceCurrent,
     markRunHadToolCallsFromSnapshot,
     readHeldAiUsage,
+    presentPremium,
     reconcileTerminalSnapshot,
     recoverFromSessionIdConflict,
     refreshAiUsageInBackground,

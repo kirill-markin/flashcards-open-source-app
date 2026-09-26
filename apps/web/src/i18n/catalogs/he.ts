@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "../catalogTypes";
 
 const heCatalog: TranslationCatalog = {
+  premium: {
+    title: "Premium יגיע בקרוב",
+    unavailable: "המינויים עדיין לא זמינים.",
+    subscription: "מינוי",
+    subscriptionDescription: "הגישה ומכסת ה-AI הנוכחיות שלך.",
+    unknown: "מצב המינוי שלך אינו ידוע כרגע.",
+    statusNone: "אין מינוי בתשלום",
+    grace: "הגישה נמשכת בתקופת החסד לתשלום.",
+    trial: "תקופת ניסיון",
+    renews: "מתחדש ב-{{date}}",
+    until: "גישה עד {{date}}",
+    noExpiry: "ללא תאריך תפוגה",
+    monthlyMessages: "{{count}} הודעות AI בחודש",
+    offer: "הצגת Premium",
+    close: "סגירה",
+    back: "חזרה",
+    limitTitle: "הגעת למגבלת הודעות ה-AI",
+    previewOffer: "תצוגה מקדימה של הצעת Premium",
+    previewAi: "תצוגה מקדימה של מגבלת AI",
+    retryManually: "אפשר לחזור לצ׳אט ולשלוח שוב את ההודעה כשמוכנים. הגדרות המפתח נשמרות אוטומטית.",
+  },
   common: {
     active: "פעיל",
     automatic: "אוטומטי",

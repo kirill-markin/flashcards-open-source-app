@@ -35,6 +35,7 @@ import {
   settingsLeaderboardParticipationRoute,
   settingsNotificationsRoute,
   settingsOwnOpenAIKeyRoute,
+  settingsSubscriptionRoute,
   settingsReviewAnimationsRoute,
   settingsResetStudyProgressRoute,
   settingsSchedulerRoute,
@@ -256,6 +257,13 @@ export function SettingsScreen(): ReactElement {
 
       <SettingsGroup title={t("settingsHome.groups.account")}>
         <div className="settings-nav-list">
+          <SettingsNavigationCard
+            title={t("premium.subscription")}
+            description={t("premium.subscriptionDescription")}
+            value={null}
+            to={workspacePath(settingsSubscriptionRoute)}
+            testId="settings-row-subscription"
+          />
           <SettingsNavigationCard
             title={t("accountSettings.accountStatus.title")}
             description={t("accountSettings.accountStatus.description")}
