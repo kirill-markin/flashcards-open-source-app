@@ -17,6 +17,7 @@ from typing import TypeAlias
 preparation = import_module("prepare-monitoring-refactor")
 batches = import_module("monitoring-refactor-batches")
 retry = import_module("reconcile-monitoring-retry")
+preview = import_module("reconcile-monitoring-preview")
 Json: TypeAlias = bool | int | float | str | None | list["Json"] | dict[str, "Json"]
 CORE = "FlashcardsOpenSourceApp"
 TARGET = CORE + "Monitoring"
@@ -79,7 +80,7 @@ class Aws:
         if result.returncode:
             raise RuntimeError(f"AWS {service}/{operation} failed: {result.stderr.strip()}")
         if not result.stdout.strip() and operation in (
-            "get-stack-policy", "execute-stack-refactor", "delete-stack",
+            "get-stack-policy", "execute-stack-refactor", "delete-stack", "delete-object",
         ):
             return {}
         return obj(json.loads(result.stdout), operation)
@@ -148,6 +149,7 @@ def retired_refactors(aws: Aws) -> set[str]:
     relevant = relevant_refactors(aws)
     return {refactor for refactor, validator in (
         (REVIEWED_REFACTOR, aborted_attempt), (retry.RETRY_REFACTOR, retry.aborted_attempt),
+        (preview.PREVIEW, preview.aborted_attempt),
     ) if refactor in relevant and validator(aws, relevant[refactor])}
 
 
@@ -686,11 +688,12 @@ def main() -> None:
             output.write(f"state={state}\ntopology={'legacy' if state == 'legacy' else 'split'}\n")
         print(json.dumps({"monitoringOwnership": state}))
     elif args.command == "reconcile":
+        preview_anchor = preview.reconcile(aws, args.directory / "preview")
         retry_anchor = retry.reconcile(aws, args.directory / "retry")
         original_anchor = reconcile(aws, args.directory / "original")
         ownership(aws)
         with Path(os.environ["GITHUB_OUTPUT"]).open("a") as output:
-            output.write(f"schema_anchor={retry_anchor or original_anchor}\n")
+            output.write(f"schema_anchor={preview_anchor or retry_anchor or original_anchor}\n")
     elif args.command == "prepare":
         equal(ownership(aws), "legacy", "fresh preparation ownership")
         key = batches.prepare(aws, args.directory, commit, run, attempt, retired_refactors(aws))
