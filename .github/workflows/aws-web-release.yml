@@ -22,6 +22,7 @@ on:
       - 'scripts/deploy/prepare-monitoring-refactor.py'
       - 'scripts/deploy/migrate-monitoring-stack.py'
       - 'scripts/deploy/reconcile-monitoring-retry.py'
+      - 'scripts/deploy/reconcile-monitoring-preview.py'
       - 'scripts/deploy/monitoring-refactor-batches.py'
       - 'scripts/deploy/report-cloudformation-budget.py'
       - 'scripts/generate/generate-catalog-dump.sh'

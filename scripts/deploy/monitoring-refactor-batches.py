@@ -173,13 +173,16 @@ def alarm_tags(aws: driver.Aws, resources: dict[str, Json]) -> dict[str, Json]:
 
 def active_refactors(aws: driver.Aws, retired: set[str]) -> set[str]:
     retry = import_module("reconcile-monitoring-retry")
-    if retired - {driver.REVIEWED_REFACTOR, retry.RETRY_REFACTOR}:
-        raise ValueError("Only the two exact receipt-verified historical attempts may be excluded")
+    preview = import_module("reconcile-monitoring-preview")
+    validators = {driver.REVIEWED_REFACTOR: driver.aborted_attempt, retry.RETRY_REFACTOR: retry.aborted_attempt,
+                  preview.PREVIEW: preview.aborted_attempt}
+    if retired - set(validators):
+        raise ValueError("Only exact receipt-verified historical attempts may be excluded")
     relevant = driver.relevant_refactors(aws)
     for refactor in retired:
         if refactor not in relevant:
             raise ValueError(f"Retired operation {refactor} missing from complete refactor listing")
-        check = driver.aborted_attempt if refactor == driver.REVIEWED_REFACTOR else retry.aborted_attempt
+        check = validators[refactor]
         equal(check(aws, relevant[refactor]), True, refactor + "/verified historical retirement")
     return set(relevant) - retired
 
@@ -326,7 +329,7 @@ def prove_first_preview(aws: driver.Aws, manifest: dict[str, Json], ids: dict[st
         aws.cf("describe-stacks", []).get("Stacks"), "preview stacks") if row.get("StackName") in (CORE, TARGET)}
     if TARGET in fresh:
         equal(obj(fresh[TARGET], TARGET)["StackId"], ids[TARGET], "first target authoritative ID")
-        if obj(fresh[TARGET], TARGET).get("StackStatus") not in ("CREATE_IN_PROGRESS", "CREATE_COMPLETE"):
+        if obj(fresh[TARGET], TARGET).get("StackStatus") not in ("REVIEW_IN_PROGRESS", "CREATE_IN_PROGRESS", "CREATE_COMPLETE"):
             raise ValueError("First native target is not new and empty")
     prove_snapshot(aws, manifest, [], {name: value for name, value in fresh.items() if name != TARGET})
 
