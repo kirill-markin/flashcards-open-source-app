@@ -1,4 +1,4 @@
-"""Retire only the pinned unexecuted, empty first-batch preview."""
+"""Validate immutable retirement evidence for the unexecuted first-batch preview."""
 
 from __future__ import annotations
 
@@ -6,7 +6,6 @@ from collections import Counter
 import hashlib
 from importlib import import_module
 import json
-import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import TypeAlias
@@ -29,7 +28,6 @@ ACTIONS_HASH = "139c0bdb63dd077ae1ad78e9ab2be504e64d3648c3ae1101f24d64604c1563e5
 SCHEMA_ANCHOR = {"commit": "5b09625b443307d7ac047faf29375d5dcaa794c6", "runId": "37055002073", "runAttempt": "1"}
 ROOT = f"monitoring-refactor/aborted/{PREVIEW}"
 RECEIPT = ROOT + ".private.json"
-POINTER = "monitoring-refactor/four-batches/current/66f20a7f1832e276ba437e3679dfb5fdb7853d38bdfab89d4313e8cb0f80043e.private.json"
 BINDING = {"StackRefactorId": PREVIEW, "StackIds": STACK_IDS, "manifest": MANIFEST, "manifestHash": MANIFEST_HASH,
            "operationHash": JOURNAL_HASH, "actionsHash": ACTIONS_HASH, "schemaAnchor": SCHEMA_ANCHOR,
            "outcome": "UNEXECUTED_EMPTY_PREVIEW_DELETED"}
@@ -107,33 +105,6 @@ def validate_evidence(value: dict[str, Json], manifest: dict[str, Json], target_
         text(metadata.get(field), "preserved pointer/" + field)
 
 
-def pointer(aws: migration.Aws, directory: Path) -> dict[str, Json]:
-    directory.mkdir(parents=True, exist_ok=True, mode=0o700)
-    path = directory / "pointer.private.json"
-    metadata = aws.call("file-publishing", "s3api", "get-object", [
-        "--bucket", migration.BUCKET, "--key", POINTER, "--expected-bucket-owner", migration.ACCOUNT, str(path)])
-    path.chmod(0o600)
-    equal(json.loads(path.read_text()), {"source": STACK_IDS[CORE], "manifest": MANIFEST}, "exact old pointer body")
-    equal(metadata.get("ServerSideEncryption"), "AES256", "pointer encryption")
-    return {field: metadata[field] for field in ("ETag", "VersionId", "ServerSideEncryption")}
-
-
-def snapshot(aws: migration.Aws, manifest: dict[str, Json], target_status: str, metadata: dict[str, Json]) -> dict[str, Json]:
-    current = {name: stack(aws, name) for name in STACK_IDS}
-    batches.prove_snapshot(aws, manifest, [], {CORE: current[CORE]})
-    value: dict[str, Json] = {"binding": BINDING, "stacks": current, "pointer": metadata,
-        "operation": aws.cf("describe-stack-refactor", ["--stack-refactor-id", PREVIEW]),
-        "resourceStatuses": aws.cf("list-stack-resources", ["--stack-name", STACK_IDS[CORE]])["StackResourceSummaries"],
-        "resources": migration.inventory(aws, STACK_IDS[CORE]), "targetResources": migration.inventory(aws, STACK_IDS[TARGET]),
-        "legacy": migration.template(aws, STACK_IDS[CORE]), "settings": migration.stack_settings(current[CORE]),
-        "runtime": migration.runtime(aws, obj(manifest["resources"], "original"), obj(manifest["legacy"], "legacy")),
-        "tags": batches.alarm_tags(aws, obj(manifest["resources"], "original")),
-        "provenance": {field: text(os.environ.get(variable), variable) for field, variable in
-                       (("commit", "GITHUB_SHA"), ("runId", "GITHUB_RUN_ID"), ("runAttempt", "GITHUB_RUN_ATTEMPT"))}}
-    validate_evidence(value, manifest, target_status)
-    return value
-
-
 def aborted_attempt(aws: migration.Aws, status: dict[str, Json]) -> bool:
     if status.get("StackRefactorId") != PREVIEW or RECEIPT not in batches.keys(aws, RECEIPT):
         return False
@@ -153,62 +124,3 @@ def aborted_attempt(aws: migration.Aws, status: dict[str, Json]) -> bool:
     equal(migration.inventory(aws, STACK_IDS[TARGET]), {}, "deleted preview inventory")
     stack(aws, CORE)
     return True
-
-
-def release_pointer(aws: migration.Aws, directory: Path) -> None:
-    if POINTER not in batches.keys(aws, POINTER):
-        return
-    if batches.get(aws, directory, POINTER) != {"source": STACK_IDS[CORE], "manifest": MANIFEST}:
-        batches.current_manifest(aws, directory, STACK_IDS[CORE])
-        return
-    metadata = pointer(aws, directory)
-    equal(metadata, batches.get(aws, directory, ROOT + "/before.private.json")["pointer"], "original pointer version before release")
-    aws.call("file-publishing", "s3api", "delete-object", ["--bucket", migration.BUCKET, "--key", POINTER,
-        "--if-match", text(metadata.get("ETag"), "pointer ETag"), "--expected-bucket-owner", migration.ACCOUNT])
-    equal(POINTER in batches.keys(aws, POINTER), False, "old pointer absent after conditional delete")
-
-
-def pending_operations(aws: migration.Aws) -> None:
-    relevant = migration.relevant_refactors(aws)
-    equal(set(relevant), {PREVIEW, migration.REVIEWED_REFACTOR, migration.retry.RETRY_REFACTOR}, "only reviewed pending history")
-    equal(migration.aborted_attempt(aws, relevant[migration.REVIEWED_REFACTOR]), True, "original retired")
-    equal(migration.retry.aborted_attempt(aws, relevant[migration.retry.RETRY_REFACTOR]), True, "retry retired")
-    operation(relevant[PREVIEW])
-
-
-def reconcile(aws: migration.Aws, directory: Path) -> str:
-    relevant = migration.relevant_refactors(aws)
-    if PREVIEW not in relevant:
-        return ""
-    if not aborted_attempt(aws, relevant[PREVIEW]):
-        pending_operations(aws)
-        manifest = originals(aws, directory)
-        metadata = pointer(aws, directory)
-        state = text(stack(aws, TARGET).get("StackStatus"), "preview target state")
-        if state not in ("REVIEW_IN_PROGRESS", "DELETE_IN_PROGRESS", "DELETE_COMPLETE"):
-            raise ValueError(f"Unsupported empty preview target state: {state}")
-        before_key, after_key = (f"{ROOT}/{phase}.private.json" for phase in ("before", "after"))
-        if before_key not in batches.keys(aws, before_key):
-            equal(state, "REVIEW_IN_PROGRESS", "interrupted deletion requires preserved before-evidence")
-            batches.put(aws, directory, before_key, snapshot(aws, manifest, state, metadata))
-        before = batches.get(aws, directory, before_key)
-        validate_evidence(before, manifest, "REVIEW_IN_PROGRESS")
-        equal(before["pointer"], metadata, "unchanged pointer before retirement")
-        pending_operations(aws)
-        snapshot(aws, manifest, state, metadata)
-        if state == "REVIEW_IN_PROGRESS":
-            aws.call("deploy", "cloudformation", "delete-stack", ["--stack-name", STACK_IDS[TARGET],
-                "--role-arn", migration.CORE_EXECUTION_ROLE, "--deletion-mode", "STANDARD", "--client-request-token", "retire-" + PREVIEW])
-        migration.wait_stack(aws, STACK_IDS[TARGET], "DELETE_COMPLETE")
-        after = snapshot(aws, manifest, "DELETE_COMPLETE", pointer(aws, directory))
-        pending_operations(aws)
-        originals(aws, directory)
-        if after_key not in batches.keys(aws, after_key):
-            batches.put(aws, directory, after_key, after)
-        after = batches.get(aws, directory, after_key)
-        validate_evidence(after, manifest, "DELETE_COMPLETE")
-        batches.put(aws, directory, RECEIPT, {**BINDING, "beforeHash": batches.digest(before),
-                    "afterHash": batches.digest(after), "provenance": after["provenance"]})
-    equal(aborted_attempt(aws, aws.cf("describe-stack-refactor", ["--stack-refactor-id", PREVIEW])), True, "verified preview retirement")
-    release_pointer(aws, directory)
-    return SCHEMA_ANCHOR["commit"]
