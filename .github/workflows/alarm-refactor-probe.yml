@@ -15,6 +15,7 @@ on:
           - batches
           - imports
           - cleanup-aborted-context
+          - recover-bulk-small-batch
 
 concurrency:
   group: main-release
@@ -45,6 +46,15 @@ jobs:
           --repo kirill-markin/flashcards-open-source-app
           --name alarm-refactor-probe-37034081262-1
           --dir alarm-refactor-probe-cleanup-input
+      - name: Download pinned failed native bulk evidence
+        if: inputs.suite == 'recover-bulk-small-batch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh run download 37040911612
+          --repo kirill-markin/flashcards-open-source-app
+          --name alarm-refactor-probe-37040911612-1
+          --dir alarm-refactor-probe-bulk-recovery-input
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v6.3.0
         with:
