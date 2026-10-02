@@ -1,5 +1,8 @@
 # Monitoring stack migration
 
+Read the [AWS infrastructure change procedure](aws-infrastructure-changes.md)
+before preparing or executing this migration.
+
 Normal releases use the `split` topology. The serialized `AWS/Web Release` job
 reads actual CloudFormation ownership before deploying: no stacks takes a fresh
 split deployment; all 66 in core with no target takes the migration path. A migrated

@@ -1,5 +1,8 @@
 # Release Gates and Monitoring
 
+For AWS stack boundaries, resource ownership or deployment-role changes, follow
+the [AWS infrastructure change procedure](aws-infrastructure-changes.md).
+
 Pushes to `main` use independent release and check streams:
 
 - `.github/workflows/aws-web-release.yml` handles AWS/backend/web release work
