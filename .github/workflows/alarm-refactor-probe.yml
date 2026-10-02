@@ -1,0 +1,40 @@
+name: Alarm refactor probe
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: main-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AWS_REGION: eu-central-1
+  AWS_DEFAULT_REGION: eu-central-1
+
+jobs:
+  probe:
+    if: github.ref == 'refs/heads/main' && github.repository == 'kirill-markin/flashcards-open-source-app'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: eu-central-1
+          allowed-account-ids: '506210661494'
+      - name: Run disposable experiments
+        run: python3 scripts/diagnostics/alarm-refactor-probe.py
+      - name: Upload probe evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: alarm-refactor-probe-${{ github.run_id }}-${{ github.run_attempt }}
+          path: alarm-refactor-probe-results/
+          if-no-files-found: error
+          retention-days: 14
