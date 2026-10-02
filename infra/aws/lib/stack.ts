@@ -7,7 +7,7 @@ import { database } from "./database";
 import { preSignUp } from "./pre-signup";
 import { auth } from "./auth";
 import { apiGateway } from "./gateways/api-gateway";
-import { monitoring, type MonitoringProps } from "./monitoring";
+import type { MonitoringProps } from "./monitoring";
 import { ciCd } from "./ci-cd";
 import { backupPlan } from "./backup";
 import { outputs } from "./outputs";
@@ -633,9 +633,6 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       mcpAlternateCertificateArn,
       alternateHeartbeatHosts,
     };
-    if (this.node.tryGetContext("monitoringTopology") !== "split") {
-      monitoring(this, this.monitoringInputs);
-    }
 
     ciCd(this, {
       stackId: this.stackId,

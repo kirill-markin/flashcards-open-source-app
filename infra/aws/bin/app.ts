@@ -31,11 +31,9 @@ const alertEmail = getRequiredContext("alertEmail", "Provide CDK context via the
 const githubRepo = getRequiredContext("githubRepo", "Provide CDK context via the local helper scripts or pass -c githubRepo=kirill-markin/flashcards-open-source-app");
 
 const monitoringTopology = (app.node.tryGetContext("monitoringTopology") as string | undefined) ?? "split";
-if (monitoringTopology !== "legacy" && monitoringTopology !== "split") {
-  throw new Error("monitoringTopology must be legacy or split");
+if (monitoringTopology !== "split") {
+  throw new Error("monitoringTopology must be split; legacy monitoring ownership is retired");
 }
-
-app.node.setContext("monitoringTopology", monitoringTopology);
 
 const core = new FlashcardsOpenSourceAppStack(app, "FlashcardsOpenSourceApp", {
   env: {
@@ -45,10 +43,8 @@ const core = new FlashcardsOpenSourceAppStack(app, "FlashcardsOpenSourceApp", {
   description: `Offline-first flashcards backend: API Gateway + Lambda + RDS (${domainName})`,
 });
 
-if (monitoringTopology === "split") {
-  const monitoringStack = new FlashcardsOpenSourceAppMonitoringStack(app, "FlashcardsOpenSourceAppMonitoring", {
-    env: { account: core.account, region: core.region },
-    monitoringInputs: core.monitoringInputs,
-  });
-  monitoringStack.addDependency(core);
-}
+const monitoringStack = new FlashcardsOpenSourceAppMonitoringStack(app, "FlashcardsOpenSourceAppMonitoring", {
+  env: { account: core.account, region: core.region },
+  monitoringInputs: core.monitoringInputs,
+});
+monitoringStack.addDependency(core);
