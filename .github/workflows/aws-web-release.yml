@@ -21,6 +21,8 @@ on:
       - 'scripts/deploy/select-release-components.sh'
       - 'scripts/deploy/prepare-monitoring-refactor.py'
       - 'scripts/deploy/migrate-monitoring-stack.py'
+      - 'scripts/deploy/reconcile-monitoring-retry.py'
+      - 'scripts/deploy/monitoring-refactor-batches.py'
       - 'scripts/deploy/report-cloudformation-budget.py'
       - 'scripts/generate/generate-catalog-dump.sh'
       - 'scripts/generate/generate-global-metrics-snapshot.sh'
@@ -29,6 +31,11 @@ on:
       - 'scripts/geolite/**'
       - '.github/workflows/aws-web-release.yml'
   workflow_dispatch:
+    inputs:
+      monitoring_manifest:
+        description: Exact private manifest key for explicit same-commit monitoring continuation
+        required: false
+        type: string
 
 concurrency:
   group: main-release
@@ -317,7 +324,9 @@ jobs:
       - pre_deploy_checks
     if: ${{ needs.changes.outputs.deploy_any == 'true' && needs.pre_deploy_checks.result == 'success' }}
     runs-on: ubuntu-24.04-arm
-    timeout-minutes: 60
+    timeout-minutes: 180
+    env:
+      MONITORING_MANIFEST: ${{ inputs.monitoring_manifest }}
 
     steps:
       - uses: actions/checkout@v7
@@ -374,7 +383,6 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Pin native refactor AWS CLI
-        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
         run: |
           set -euo pipefail
           curl --fail --silent --show-error --location \
@@ -387,20 +395,19 @@ jobs:
 
       - name: Reconcile the failed monitoring attempt and pending access cleanup
         id: monitoring_reconciliation
-        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
         run: |
           python3 scripts/deploy/migrate-monitoring-stack.py reconcile \
             --directory "${RUNNER_TEMP}/monitoring-reconciliation"
 
       - name: Resolve authoritative monitoring ownership before deployment
         id: monitoring_ownership
-        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
         run: |
           python3 scripts/deploy/migrate-monitoring-stack.py ownership \
-            --directory "${RUNNER_TEMP}/monitoring-refactor"
+            --directory "${RUNNER_TEMP}/monitoring-refactor" \
+            --manifest "${MONITORING_MANIFEST}"
 
       - name: Prohibit schema changes in the ownership migration release
-        if: ${{ steps.monitoring_ownership.outputs.state == 'legacy' }}
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' && steps.monitoring_ownership.outputs.state == 'legacy' }}
         env:
           PLATFORM_SHA: ${{ needs.changes.outputs.platform_read_sha }}
           INCIDENT_SCHEMA_ANCHOR: ${{ steps.monitoring_reconciliation.outputs.schema_anchor }}
@@ -423,6 +430,7 @@ jobs:
         if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
         working-directory: infra/aws
         env:
+          MONITORING_STATE: ${{ steps.monitoring_ownership.outputs.state }}
           AWS_DEPLOY_ROLE_ARN: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           CDK_CONTEXT_ALERT_EMAIL: ${{ vars.CDK_ALERT_EMAIL }}
           CDK_CONTEXT_ANALYTICS_ACCESS_ENABLED: ${{ vars.CDK_ANALYTICS_ACCESS_ENABLED }}
@@ -476,23 +484,25 @@ jobs:
           python3 ../../scripts/generate/write-ci-cdk-context.py \
             --output cdk.context.local.json \
             --aws-deploy-role-arn "${AWS_DEPLOY_ROLE_ARN}"
-          npx cdk synth --all --quiet \
-            -c monitoringTopology=${{ steps.monitoring_ownership.outputs.topology }} \
-            -c generatedMediaPromotionScheduleState=DISABLED \
-            -c mediaBlobCleanupEnabled=false \
-            -c multipartCompletionReconciliationScheduleState=DISABLED
-          python3 ../../scripts/deploy/report-cloudformation-budget.py cdk.out
-          npx cdk deploy --app cdk.out --all --require-approval never
+          if [[ "${MONITORING_STATE}" != "resume" ]]; then
+            npx cdk synth --all --quiet \
+              -c monitoringTopology=${{ steps.monitoring_ownership.outputs.topology }} \
+              -c generatedMediaPromotionScheduleState=DISABLED \
+              -c mediaBlobCleanupEnabled=false \
+              -c multipartCompletionReconciliationScheduleState=DISABLED
+            python3 ../../scripts/deploy/report-cloudformation-budget.py cdk.out
+            npx cdk deploy --app cdk.out --all --require-approval never
+          fi
 
       - name: Verify required database migration
-        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' && steps.monitoring_ownership.outputs.state != 'resume' }}
         run: |
           bash scripts/deploy/migrate-aws.sh \
             --stack-name ${{ env.STACK_NAME }} \
             --require-latest-migration
 
       - name: CDK deploy with reconciliation schedule enabled
-        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' && steps.monitoring_ownership.outputs.state != 'resume' }}
         working-directory: infra/aws
         env:
           SENTRY_UPLOAD_BACKEND_SOURCEMAPS: false
@@ -506,51 +516,141 @@ jobs:
           npx cdk deploy --app cdk.out --all --require-approval never
 
       - name: Verify cleanup-capable reconciliation schedules are enabled
-        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' && steps.monitoring_ownership.outputs.state != 'resume' }}
         run: |
           bash scripts/checks/check-multipart-completion-reconciliation-schedule.sh \
             --stack-name ${{ env.STACK_NAME }} \
             --region ${{ env.AWS_REGION }}
 
-      - name: Prepare and execute the bounded native monitoring move
-        id: monitoring_preview
-        if: ${{ steps.monitoring_ownership.outputs.state == 'legacy' }}
+      - name: Prepare the exact four-batch monitoring assembly
+        id: monitoring_preparation
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' && (steps.monitoring_ownership.outputs.state == 'legacy' || steps.monitoring_ownership.outputs.state == 'resume') }}
         working-directory: infra/aws
         env:
           SENTRY_UPLOAD_BACKEND_SOURCEMAPS: false
+          MONITORING_STATE: ${{ steps.monitoring_ownership.outputs.state }}
         run: |
           set -euo pipefail
           umask 077
           evidence_directory="${RUNNER_TEMP}/monitoring-refactor"
-          mkdir "${evidence_directory}"
-          for baseline_file in manifest.json FlashcardsOpenSourceApp.template.json FlashcardsOpenSourceApp.assets.json; do
-            if [[ ! -s "cdk.out/${baseline_file}" ]]; then
-              echo "::error::Missing final legacy assembly file: cdk.out/${baseline_file}"
+          mkdir -p "${evidence_directory}"
+          if [[ "${MONITORING_STATE}" == "legacy" ]]; then
+            for baseline_file in manifest.json FlashcardsOpenSourceApp.template.json FlashcardsOpenSourceApp.assets.json; do
+              if [[ ! -s "cdk.out/${baseline_file}" ]]; then
+                echo "::error::Missing final legacy assembly file: cdk.out/${baseline_file}"
+                exit 1
+              fi
+            done
+            if [[ -e cdk.out/FlashcardsOpenSourceAppMonitoring.template.json ]]; then
+              echo "::error::Expected the final legacy assembly; cdk.out contains a monitoring preview."
               exit 1
             fi
-          done
-          if [[ -e cdk.out/FlashcardsOpenSourceAppMonitoring.template.json ]]; then
-            echo "::error::Expected the final legacy assembly; cdk.out contains a monitoring preview."
-            exit 1
+            cp -R cdk.out "${evidence_directory}/legacy"
           fi
-          cp -R cdk.out "${evidence_directory}/legacy"
           # Local esbuild source maps depend on the absolute staging directory.
           npx cdk synth --all --quiet --output cdk.out \
             -c monitoringTopology=split \
             -c generatedMediaPromotionScheduleState=ENABLED \
             -c mediaBlobCleanupEnabled=true \
             -c multipartCompletionReconciliationScheduleState=ENABLED
-          cp -R cdk.out "${evidence_directory}/split"
-          python3 ../../scripts/deploy/prepare-monitoring-refactor.py \
-            --legacy-assembly "${evidence_directory}/legacy" \
-            --split-assembly "${evidence_directory}/split" \
-            --output-directory "${evidence_directory}/report"
-          python3 ../../scripts/deploy/migrate-monitoring-stack.py migrate --directory "${evidence_directory}"
+          if [[ "${MONITORING_STATE}" == "legacy" ]]; then
+            cp -R cdk.out "${evidence_directory}/split"
+            python3 ../../scripts/deploy/prepare-monitoring-refactor.py \
+              --legacy-assembly "${evidence_directory}/legacy" \
+              --split-assembly "${evidence_directory}/split" \
+              --output-directory "${evidence_directory}/report"
+            python3 ../../scripts/deploy/migrate-monitoring-stack.py prepare --directory "${evidence_directory}"
+          fi
+
+      - name: Renew original OIDC credentials for monitoring batch 1
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' && (steps.monitoring_ownership.outputs.state == 'legacy' || steps.monitoring_ownership.outputs.state == 'resume') }}
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          unset-current-credentials: true
+
+      - name: Execute or verify monitoring batch 1 of 4
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' && (steps.monitoring_ownership.outputs.state == 'legacy' || steps.monitoring_ownership.outputs.state == 'resume') }}
+        run: |
+          python3 scripts/deploy/migrate-monitoring-stack.py batch \
+            --directory "${RUNNER_TEMP}/monitoring-refactor" \
+            --manifest "$(cat "${RUNNER_TEMP}/monitoring-refactor/manifest-key.private.txt")" \
+            --batch-index 1 --resume-manifest "${MONITORING_MANIFEST}"
+
+      - name: Renew original OIDC credentials for monitoring batch 2
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' && (steps.monitoring_ownership.outputs.state == 'legacy' || steps.monitoring_ownership.outputs.state == 'resume') }}
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          unset-current-credentials: true
+
+      - name: Execute or verify monitoring batch 2 of 4
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' && (steps.monitoring_ownership.outputs.state == 'legacy' || steps.monitoring_ownership.outputs.state == 'resume') }}
+        run: |
+          python3 scripts/deploy/migrate-monitoring-stack.py batch \
+            --directory "${RUNNER_TEMP}/monitoring-refactor" \
+            --manifest "$(cat "${RUNNER_TEMP}/monitoring-refactor/manifest-key.private.txt")" \
+            --batch-index 2 --resume-manifest "${MONITORING_MANIFEST}"
+
+      - name: Renew original OIDC credentials for monitoring batch 3
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' && (steps.monitoring_ownership.outputs.state == 'legacy' || steps.monitoring_ownership.outputs.state == 'resume') }}
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          unset-current-credentials: true
+
+      - name: Execute or verify monitoring batch 3 of 4
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' && (steps.monitoring_ownership.outputs.state == 'legacy' || steps.monitoring_ownership.outputs.state == 'resume') }}
+        run: |
+          python3 scripts/deploy/migrate-monitoring-stack.py batch \
+            --directory "${RUNNER_TEMP}/monitoring-refactor" \
+            --manifest "$(cat "${RUNNER_TEMP}/monitoring-refactor/manifest-key.private.txt")" \
+            --batch-index 3 --resume-manifest "${MONITORING_MANIFEST}"
+
+      - name: Renew original OIDC credentials for monitoring batch 4
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' && (steps.monitoring_ownership.outputs.state == 'legacy' || steps.monitoring_ownership.outputs.state == 'resume') }}
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          unset-current-credentials: true
+
+      - name: Execute or verify monitoring batch 4 of 4
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' && (steps.monitoring_ownership.outputs.state == 'legacy' || steps.monitoring_ownership.outputs.state == 'resume') }}
+        run: |
+          python3 scripts/deploy/migrate-monitoring-stack.py batch \
+            --directory "${RUNNER_TEMP}/monitoring-refactor" \
+            --manifest "$(cat "${RUNNER_TEMP}/monitoring-refactor/manifest-key.private.txt")" \
+            --batch-index 4 --resume-manifest "${MONITORING_MANIFEST}"
+
+      - name: Renew original OIDC credentials before final deployment
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' && (steps.monitoring_ownership.outputs.state == 'legacy' || steps.monitoring_ownership.outputs.state == 'resume') }}
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          unset-current-credentials: true
+
+      - name: Verify all 66 moves and deploy the exact approved split assembly
+        id: monitoring_finalization
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' && (steps.monitoring_ownership.outputs.state == 'legacy' || steps.monitoring_ownership.outputs.state == 'resume') }}
+        working-directory: infra/aws
+        run: |
+          python3 ../../scripts/deploy/migrate-monitoring-stack.py finalize \
+            --directory "${RUNNER_TEMP}/monitoring-refactor" \
+            --manifest "$(cat "${RUNNER_TEMP}/monitoring-refactor/manifest-key.private.txt")" \
+            --resume-manifest "${MONITORING_MANIFEST}" --assembly cdk.out
           python3 ../../scripts/deploy/report-cloudformation-budget.py cdk.out
           npx cdk deploy --app cdk.out --all --require-approval never
+          bash ../../scripts/deploy/migrate-aws.sh --stack-name "${STACK_NAME}" --require-latest-migration
+          bash ../../scripts/checks/check-multipart-completion-reconciliation-schedule.sh \
+            --stack-name "${STACK_NAME}" --region "${AWS_REGION}"
 
       - name: Save sanitized monitoring preparation evidence
-        if: ${{ steps.monitoring_preview.outcome == 'success' }}
+        if: ${{ steps.monitoring_preparation.outcome == 'success' && steps.monitoring_ownership.outputs.state == 'legacy' }}
         uses: actions/upload-artifact@v7
         with:
           name: monitoring-refactor-mappings-${{ github.sha }}
@@ -563,12 +663,12 @@ jobs:
       - name: Report monitoring migration outcome
         if: ${{ always() && needs.changes.outputs.deploy_platform == 'true' }}
         env:
-          PREVIEW_OUTCOME: ${{ steps.monitoring_preview.outcome }}
+          FINALIZATION_OUTCOME: ${{ steps.monitoring_finalization.outcome }}
         run: |
           {
             echo "## Monitoring ownership"
             echo "- Initial ownership: ${{ steps.monitoring_ownership.outputs.state }}"
-            echo "- Native move and normal split deployment: ${PREVIEW_OUTCOME}"
+            echo "- Native move and normal split deployment: ${FINALIZATION_OUTCOME}"
             echo "- Fresh/split ownership skips the move. Any failed gate blocks this release."
             echo "- Detailed evidence remains in the private bootstrap bucket; public artifacts contain mappings/counts only."
           } >> "${GITHUB_STEP_SUMMARY}"
