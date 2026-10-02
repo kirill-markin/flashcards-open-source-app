@@ -23,8 +23,14 @@ monitoring. The freshness metric retains the producer's core `StackName`.
 `AWS/Web Release` first aligns the current commit in legacy through the existing
 DISABLED deployment, database verification, ENABLED deployment and schedule
 verification. This migration release rejects schema changes since the last
-successful platform release. It privately copies that deployment's `cdk.out` before
-synthesizing the split topology into the same `cdk.out` staging location, then
+successful platform release. If that SHA is missing, only the verified aborted
+incident receipt permits comparing against its pinned original attempt commit
+`968ad3a0f06f010ba6a3b51681c2fc145c8965fc`: run `36241107324` completed the final
+legacy deploy and DB verification before its failed move. This schema anchor is
+not a successful release SHA and never populates deployed-SHA parameters.
+An unreadable SHA still stops the migration. It privately copies the fresh
+legacy deployment's `cdk.out` before synthesizing the split topology into the same
+`cdk.out` staging location, then
 copies the split assembly privately. The checkout, account, region, local context,
 final schedule/cleanup flags and disabled source-map upload stay identical.
 
@@ -115,7 +121,9 @@ The policy is generated inline from the current physical inventory. An existing
 access stack must match its template and single role identity. AssumeRole retries
 only propagation AccessDenied errors, with warnings and a two-minute deadline.
 The dedicated caller must read the original RDS instance before it creates or
-executes a native refactor. Private evidence continues to use the file-publishing
+executes a native refactor. The driver privately captures its actual STS identity
+and the stored source/access execution roles, and logs sanitized role names before
+the RDS preflight. Private evidence continues to use the file-publishing
 role. The access stack is deleted only after verified native completion; an
 already-split rerun verifies its receipt and ownership before pending cleanup.
 
@@ -170,36 +178,25 @@ operation `b25a93ec-bef4-4f12-9083-bdb41e4a5af3`, the original core ARN and the
 original empty target ARN pinned in the helper. Original private evidence is
 downloaded from the existing bootstrap bucket and hash checked before use.
 
-For the source's `UPDATE_ROLLBACK_FAILED` state, reconciliation verifies all 497
-original identities, the template, semantic stack settings and all 58 alarm /
-8 filter / SNS live configurations. Latest alarm failures must belong to the
-same incident's rollback interval, using the known prior recovery tokens or
-the complete-set recovery token. Forward failures, other resource types and
-unrelated failures stop the release.
+Reconciliation accepts only both pinned stacks at `UPDATE_ROLLBACK_COMPLETE`
+with the original operation still `ROLLBACK_FAILED`. It verifies all 497 original
+identities, the template, semantic stack settings and all 58 alarm / 8 filter /
+SNS live configurations. The 22 historical alarm `UPDATE_FAILED` entries must
+match their pinned logical IDs, types, statuses, timestamps and failure reasons.
+Any other failed resource or changed historical failure stops the release. A
+regression to failed stacks stops without submitting another rollback request.
 
-Within a 600-second deadline, the helper submits the complete current failed
-alarm set: the known null AlarmName InternalFailure and dependent cancellations
-during that rollback. The [AWS rollback guide](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-continueupdaterollback.html)
-allows failures during rollback and says dependent skips might not be necessary.
-AWS remains authoritative on accepting the submitted IDs. Each mutation preserves
-the original execution role, gets one CLI attempt and a deterministic token, and
-requires fresh preservation proof. Overlapping sets are allowed when the set
-changes, bounded by the original 58 alarms. Repeating an identical complete set
-stops with failure evidence. Requests, accepted responses, events and snapshots
-are private; an API rejection retains its exact error and current ownership.
-CloudTrail omission of skip IDs or the token does not establish missing arguments.
-
-Recovery must finish at `UPDATE_ROLLBACK_COMPLETE` with every resource complete
-and original configuration intact. Only then may reconciliation delete the exact
-`ROLLBACK_FAILED` target after proving it has zero resources. It uses standard
-DeleteStack, never force deletion or retain/import. A ten-minute wait requires
-`DELETE_COMPLETE`, followed by the complete original preservation proof.
-An interrupted deletion can resume only for that original ARN with the same proof.
+Only after this preservation proof may reconciliation delete the exact recovered
+target after proving it has zero resources. It preserves the original execution
+role and uses standard DeleteStack, never force deletion or retain/import. A
+ten-minute wait requires `DELETE_COMPLETE`, followed by the complete original
+preservation proof. An interrupted deletion can resume only for that original ARN
+in `DELETE_IN_PROGRESS` or `DELETE_COMPLETE` with the same proof.
 
 The encrypted `monitoring-refactor/aborted/<old-operation-id>.private.json`
 receipt binds the old operation, both original stack IDs, the original evidence
-hash and the final preservation evidence. It is distinct from a successful
-migration receipt. Only this receipt plus authoritative deletion of the empty
+hash, schema anchor and the final preservation evidence. It is distinct from a
+successful migration receipt. Only this receipt plus authoritative deletion of the empty
 old target permits the historical failed operation to be ignored. Once retired,
 reruns use current ownership and do not compare later legitimate core deployments
 against the incident's old Lambda versions.

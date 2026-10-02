@@ -386,6 +386,7 @@ jobs:
           echo "${RUNNER_TEMP}/monitoring-bin" >> "${GITHUB_PATH}"
 
       - name: Reconcile the failed monitoring attempt and pending access cleanup
+        id: monitoring_reconciliation
         if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
         run: |
           python3 scripts/deploy/migrate-monitoring-stack.py reconcile \
@@ -402,10 +403,18 @@ jobs:
         if: ${{ steps.monitoring_ownership.outputs.state == 'legacy' }}
         env:
           PLATFORM_SHA: ${{ needs.changes.outputs.platform_read_sha }}
+          INCIDENT_SCHEMA_ANCHOR: ${{ steps.monitoring_reconciliation.outputs.schema_anchor }}
         run: |
           set -euo pipefail
-          git cat-file -e "${PLATFORM_SHA}^{commit}"
-          if [[ -n "$(git diff --name-only "${PLATFORM_SHA}" "${GITHUB_SHA}" -- db/migrations)" ]]; then
+          schema_base="${PLATFORM_SHA}"
+          if [[ "${PLATFORM_SHA}" == "missing" && -n "${INCIDENT_SCHEMA_ANCHOR}" ]]; then
+            schema_base="${INCIDENT_SCHEMA_ANCHOR}"
+            echo "Using the verified retired incident schema anchor ${schema_base}; this is not a successful release SHA."
+          fi
+          git cat-file -e "${schema_base}^{commit}"
+          git merge-base --is-ancestor "${schema_base}" "${GITHUB_SHA}"
+          schema_changes="$(git diff --name-only "${schema_base}" "${GITHUB_SHA}" -- db/migrations)"
+          if [[ -n "${schema_changes}" ]]; then
             echo "::error::Publish schema changes separately before the monitoring ownership migration."
             exit 1
           fi
