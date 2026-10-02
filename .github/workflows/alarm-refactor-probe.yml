@@ -12,12 +12,14 @@ on:
           - baseline
           - context
           - imports
+          - cleanup-aborted-context
 
 concurrency:
   group: main-release
   cancel-in-progress: false
 
 permissions:
+  actions: read
   contents: read
   id-token: write
 
@@ -32,6 +34,15 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7
+      - name: Download pinned aborted context evidence
+        if: inputs.suite == 'cleanup-aborted-context'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh run download 37034081262
+          --repo kirill-markin/flashcards-open-source-app
+          --name alarm-refactor-probe-37034081262-1
+          --dir alarm-refactor-probe-cleanup-input
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v6.3.0
         with:
