@@ -83,6 +83,9 @@ class Aws:
                 for key in ("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"):
                     if environment.get(key):
                         message = message.replace(environment[key], "[REDACTED]")
+            if "throttl" in message.lower() or "rate exceeded" in message.lower():
+                print(json.dumps({"warning": "AWS throttling after CLI standard retries", "service": service,
+                                  "operation": operation, "reason": message}), flush=True)
             raise RuntimeError(f"{role} {service}/{operation}: {message}")
         return obj(json.loads(result.stdout)) if result.stdout.strip() else {}
 
@@ -99,19 +102,20 @@ def stack_id(identifier: str, name: str) -> str:
     return identifier
 
 
-def describe(aws: Aws, identifier: str, name: str) -> dict[str, Json]:
+def describe(aws: Aws, identifier: str, name: str, role: str | None) -> dict[str, Json]:
     stack_id(identifier, name)
     found = rows(aws.cf("describe-stacks", {"StackName": identifier}).get("Stacks"))
     require(len(found) == 1 and found[0].get("StackId") == identifier and found[0].get("StackName") == name,
             "Stack identity changed")
-    require(found[0].get("RoleARN") == EXECUTION_ROLE, "Unexpected stack execution role")
+    require(found[0].get("RoleARN") == role,
+            f"Unexpected stack execution role for {identifier}: {found[0].get('RoleARN')}")
     return found[0]
 
 
 def wait_stack(aws: Aws, identifier: str, name: str, desired: str) -> dict[str, Json]:
     deadline = time.monotonic() + 240
     while time.monotonic() < deadline:
-        current = describe(aws, identifier, name)
+        current = describe(aws, identifier, name, EXECUTION_ROLE)
         status = text(current.get("StackStatus"))
         if status == desired:
             return current
@@ -148,8 +152,9 @@ def definition(case_name: str, variant: str) -> dict[str, Json]:
 
 def expected_physical(case_name: str, resource: dict[str, Json], moving: dict[str, Json], side: str) -> None:
     logical = text(resource.get("LogicalResourceId"))
-    require(logical in ("Anchor", "ProbeResource"), "Unknown logical resource; refusing cleanup")
-    expected_type = "AWS::SNS::Topic" if logical == "Anchor" else moving["Type"]
+    require(logical == "Anchor" or logical in moving, "Unknown logical resource; refusing cleanup")
+    definition = {} if logical == "Anchor" else obj(moving[logical])
+    expected_type = "AWS::SNS::Topic" if logical == "Anchor" else definition["Type"]
     require(resource.get("ResourceType") == expected_type, "Unknown resource type; refusing cleanup")
     physical = resource.get("PhysicalResourceId")
     if physical is None:
@@ -162,20 +167,23 @@ def expected_physical(case_name: str, resource: dict[str, Json], moving: dict[st
         require(physical == expected, "Unknown anchor identity")
     elif expected_type == "AWS::SNS::Topic":
         require(physical == f"arn:aws:sns:{REGION}:{ACCOUNT}:{case_name}-move", "Unknown topic identity")
-    elif "AlarmName" in obj(moving["Properties"]):
+    elif "AlarmName" in obj(definition["Properties"]):
         require(physical == case_name + "-alarm", "Unknown named alarm identity")
     else:
-        require(physical.startswith(case_name + "-source-ProbeResource-")
+        require(physical.startswith(case_name + "-source-" + logical + "-")
                 and re.fullmatch(r"[A-Za-z0-9-]+", physical) is not None, "Unknown generated alarm identity")
 
 
-def snapshot(aws: Aws, case_name: str, stacks: dict[str, str], moving: dict[str, Json]) -> dict[str, Json]:
+def snapshot(aws: Aws, case_name: str, stacks: dict[str, str], moving: dict[str, Json],
+             roles: dict[str, str | None]) -> dict[str, Json]:
     result: dict[str, Json] = {}
     for side, identifier in stacks.items():
         resources = inventory(aws, identifier)
         for resource in resources:
             expected_physical(case_name, resource, moving, side)
-        result[side] = {"stack": describe(aws, identifier, case_name + "-" + side), "resources": resources}
+        require(len({text(resource.get("LogicalResourceId")) for resource in resources}) == len(resources),
+                "Duplicate logical resources")
+        result[side] = {"stack": describe(aws, identifier, case_name + "-" + side, roles[side]), "resources": resources}
     return result
 
 
@@ -200,6 +208,73 @@ def resource_tags(aws: Aws, physical: str, kind: str) -> dict[str, Json]:
     return aws.call("lookup", "sns", "list-tags-for-resource", {"ResourceArn": physical})
 
 
+def moving_snapshots(aws: Aws, physical_ids: dict[str, str], moving: dict[str, Json]) -> dict[str, Json]:
+    result: dict[str, Json] = {}
+    for logical, physical in physical_ids.items():
+        # CloudWatch tag reads share a low account-wide limit with other workloads.
+        time.sleep(1)
+        result[physical] = resource_tags(aws, physical, text(obj(moving[logical])["Type"]))
+    return result
+
+
+def require_absent(aws: Aws, name: str) -> None:
+    try:
+        response = aws.cf("describe-stacks", {"StackName": name})
+    except RuntimeError as error:
+        require("ValidationError" in str(error) and f"Stack with id {name} does not exist" in str(error), str(error))
+    else:
+        raise ValueError(f"Stack name already exists; never adopt: {name}: {response}")
+
+
+def stored_template(aws: Aws, identifier: str) -> Json:
+    stored = aws.cf("get-template", {"StackName": identifier, "TemplateStage": "Original"}).get("TemplateBody")
+    return json.loads(stored) if isinstance(stored, str) else stored
+
+
+def native_target(aws: Aws, status: dict[str, Json], stacks: dict[str, str],
+                  report: dict[str, Json], case: dict[str, Json]) -> None:
+    proof = obj(case["nativeTarget"])
+    name = text(proof["name"])
+    require(proof.get("absentBeforeRequest") is True and status.get("StackRefactorId") == case.get("refactorId")
+            and status.get("Description") == case.get("caseName"), "Native target is not bound to this request")
+    identifiers = status.get("StackIds")
+    require(isinstance(identifiers, list) and len(set(text(value) for value in identifiers)) == len(identifiers),
+            "Unexpected refactor stack IDs")
+    candidates = [text(value) for value in identifiers if value != stacks["source"]]
+    require(stacks["source"] in identifiers and len(candidates) <= 1, "Refactor includes unexpected stacks")
+    if not candidates:
+        require_absent(aws, name)
+        return
+    identifier = stack_id(candidates[0], name)
+    proof["candidateId"] = identifier
+    save(report)
+    current = describe(aws, identifier, name, None)
+    resources = inventory(aws, identifier)
+    proof["observed"] = {"stack": current, "resources": resources}
+    save(report)
+    require(current.get("StackStatus") == "REVIEW_IN_PROGRESS" and not resources,
+            "Native target must be empty before execution; refusing adoption")
+    definitions = rows(obj(case["refactorRequest"])["StackDefinitions"])
+    submitted = [row for row in definitions if row.get("StackName") == name]
+    require(len(submitted) == 1 and json.loads(text(submitted[0]["TemplateBody"])) == proof["template"],
+            "Native target definition differs from the submitted request")
+    try:
+        body = stored_template(aws, identifier)
+    except RuntimeError as error:
+        proof["templateReadError"] = str(error)
+        save(report)
+        # Empty native review stacks can fail GetTemplate even for the Original stage.
+        require("InternalFailure" in str(error) or ("ValidationError" in str(error) and "not ready" in str(error)),
+                str(error))
+    else:
+        obj(proof["observed"])["template"] = body
+        save(report)
+        require(body == proof["template"], "Native target template differs from this request; refusing adoption")
+    stacks["target"] = identifier
+    proof["verified"] = True
+    save(report)
+
+
 def wait_refactor(aws: Aws, refactor: str, stacks: dict[str, str], report: dict[str, Json], case: dict[str, Json],
                   terminal: tuple[str, ...]) -> dict[str, Json]:
     deadline = time.monotonic() + 360
@@ -207,9 +282,19 @@ def wait_refactor(aws: Aws, refactor: str, stacks: dict[str, str], report: dict[
         status = aws.cf("describe-stack-refactor", {"StackRefactorId": refactor})
         case["refactor"] = status
         save(report)
-        require(status.get("StackRefactorId") == refactor and set(status.get("StackIds", [])) == set(stacks.values()),
-                "Refactor includes unexpected stack IDs")
+        require(status.get("StackRefactorId") == refactor, "Refactor ID changed")
         execution = status.get("ExecutionStatus")
+        if "nativeTarget" in case and "target" not in stacks:
+            if status.get("Status") == "CREATE_IN_PROGRESS":
+                identifiers = status.get("StackIds", [])
+                require(isinstance(identifiers, list), "Unexpected refactor stack IDs")
+                for identifier in identifiers:
+                    if identifier != stacks["source"]:
+                        stack_id(text(identifier), text(obj(case["nativeTarget"])["name"]))
+            else:
+                native_target(aws, status, stacks, report, case)
+        else:
+            require(set(status.get("StackIds", [])) == set(stacks.values()), "Refactor includes unexpected stack IDs")
         if status.get("Status") == "CREATE_FAILED" or execution in terminal:
             return status
         require(status.get("Status") in ("CREATE_IN_PROGRESS", "CREATE_COMPLETE") and execution in (
@@ -219,23 +304,39 @@ def wait_refactor(aws: Aws, refactor: str, stacks: dict[str, str], report: dict[
     raise TimeoutError(f"Refactor {refactor} did not reach a terminal state")
 
 
-def validate_preview(actions: dict[str, Json], stacks: dict[str, str], case_name: str, physical: str) -> None:
+def validate_preview(actions: dict[str, Json], stacks: dict[str, str], case_name: str,
+                     physical_ids: dict[str, str], native: dict[str, Json]) -> None:
     changes = rows(actions.get("StackRefactorActions"))
-    require(len(changes) == 1 and not actions.get("NextToken"), "Expected exactly one refactor action")
-    action = changes[0]
-    require(action.get("Action") == "MOVE" and action.get("Entity") == "RESOURCE"
-            and action.get("PhysicalResourceId") == physical, "Expected the probe resource MOVE only")
-    mapping = obj(action.get("ResourceMapping"))
-    for label, side in (("Source", "source"), ("Destination", "target")):
-        location = obj(mapping.get(label))
-        require(location.get("StackName") in (stacks[side], case_name + "-" + side)
-                and location.get("LogicalResourceId") == "ProbeResource", "Unexpected resource mapping")
-    tags = {"aws:cloudformation:stack-name": case_name + "-target",
-            "aws:cloudformation:stack-id": stacks["target"], "aws:cloudformation:logical-id": "ProbeResource"}
-    for tag in rows(action.get("TagResources", [])):
-        require(tag.get("Key") in tags and tag.get("Value") == tags[text(tag.get("Key"))], "Unexpected preview tag")
-    removed = action.get("UntagResources", [])
-    require(isinstance(removed, list) and all(tag in tags for tag in removed), "Unexpected tag removal")
+    require(not actions.get("NextToken"), "Incomplete refactor preview")
+    seen: set[str] = set()
+    creates = 0
+    for action in changes:
+        if action.get("Action") == "CREATE" and action.get("Entity") == "STACK":
+            require(native.get("verified") is True and action.get("PhysicalResourceId") == stacks["target"]
+                    and not action.get("ResourceMapping") and not action.get("TagResources")
+                    and not action.get("UntagResources"), "Unexpected stack creation action")
+            creates += 1
+            require(creates == 1, "Duplicate stack creation action")
+            continue
+        require(action.get("Action") == "MOVE" and action.get("Entity") == "RESOURCE",
+                "Expected probe resource MOVEs only")
+        mapping = obj(action.get("ResourceMapping"))
+        logical = text(obj(mapping.get("Source")).get("LogicalResourceId"))
+        require(logical in physical_ids and logical not in seen
+                and action.get("PhysicalResourceId") == physical_ids[logical], "Unknown or duplicate resource MOVE")
+        seen.add(logical)
+        for label, side in (("Source", "source"), ("Destination", "target")):
+            location = obj(mapping.get(label))
+            require(location.get("StackName") in (stacks[side], case_name + "-" + side)
+                    and location.get("LogicalResourceId") == logical, "Unexpected resource mapping")
+        tags = {"aws:cloudformation:stack-name": case_name + "-target",
+                "aws:cloudformation:stack-id": stacks["target"], "aws:cloudformation:logical-id": logical}
+        for tag in rows(action.get("TagResources", [])):
+            require(tag.get("Key") in tags and tag.get("Value") == tags[text(tag.get("Key"))], "Unexpected preview tag")
+        removed = action.get("UntagResources", [])
+        require(isinstance(removed, list) and all(tag in tags for tag in removed), "Unexpected tag removal")
+    require(seen == set(physical_ids), "Preview does not move every expected probe resource exactly once")
+    require(creates == (1 if native else 0), "Preview has an unexpected count of stack creation actions")
 
 
 def classify(reason: str) -> str:
@@ -248,22 +349,52 @@ def classify(reason: str) -> str:
 
 
 def cleanup(aws: Aws, case_name: str, stacks: dict[str, str], moving: dict[str, Json],
-            report: dict[str, Json], case: dict[str, Json]) -> None:
+            roles: dict[str, str | None], report: dict[str, Json], case: dict[str, Json]) -> None:
     cleanup_report: dict[str, Json] = {"verified": False, "unresolvedStackIds": list(stacks.values())}
     case["cleanup"] = cleanup_report
     save(report)
     if case.get("unsafeRefactor") or case.get("retainedAlarm"):
         raise ValueError("Unsafe operation or retained alarm; preserving exact probe identities for inspection")
-    before = snapshot(aws, case_name, stacks, moving)
+    before = snapshot(aws, case_name, stacks, moving, roles)
     cleanup_report["before"] = before
+    cleanup_report["executionRolesBeforeDeletion"] = {
+        side: obj(obj(value)["stack"]).get("RoleARN") for side, value in before.items()
+    }
     save(report)
     for side, identifier in stacks.items():
-        require(obj(obj(before[side])["stack"]).get("StackStatus") in STABLE,
+        current = obj(before[side])
+        review_target = (side == "target" and obj(case.get("nativeTarget", {})).get("verified") is True
+                         and obj(current["stack"]).get("StackStatus") == "REVIEW_IN_PROGRESS"
+                         and not rows(current["resources"]))
+        require(obj(current["stack"]).get("StackStatus") in STABLE or review_target,
                 f"Unstable stack {identifier}; refusing deletion")
+        if review_target:
+            require(obj(case["nativeTarget"])["candidateId"] == identifier
+                    and obj(case["nativeTarget"])["template"] == obj(obj(case["templates"])["after"])[side],
+                    "Native review target no longer matches the verified request")
+        else:
+            body = stored_template(aws, identifier)
+            require(body in rows(obj(case["knownTemplates"])[side]), "Unknown stack template; refusing deletion")
+            logical_ids = {text(resource["LogicalResourceId"]) for resource in rows(current["resources"])}
+            defined_ids = set(obj(obj(body)["Resources"]))
+            require(logical_ids <= defined_ids, "Resources outside the known template; refusing deletion")
+            if obj(current["stack"]).get("StackStatus") in ("CREATE_COMPLETE", "UPDATE_COMPLETE", "IMPORT_COMPLETE"):
+                require(logical_ids == defined_ids, "Incomplete stable inventory; refusing deletion")
+        for resource in rows(current["resources"]):
+            logical = text(resource["LogicalResourceId"])
+            if logical in obj(case.get("physicalIds", {})) and resource.get("PhysicalResourceId") is not None:
+                require(resource["PhysicalResourceId"] == obj(case["physicalIds"])[logical],
+                        "Probe physical identity changed; refusing deletion")
     for side, identifier in reversed(list(stacks.items())):
         name = case_name + "-" + side
         stack_id(identifier, name)
-        for resource in inventory(aws, identifier):
+        resources = inventory(aws, identifier)
+        require({text(resource["LogicalResourceId"]): [resource.get("PhysicalResourceId"), resource.get("ResourceType")]
+                 for resource in resources} == {
+                     text(resource["LogicalResourceId"]): [resource.get("PhysicalResourceId"), resource.get("ResourceType")]
+                     for resource in rows(obj(before[side])["resources"])
+                 }, "Resource inventory changed before deletion")
+        for resource in resources:
             expected_physical(case_name, resource, moving, side)
         aws.call("deploy", "cloudformation", "delete-stack", {"StackName": identifier, "RoleARN": EXECUTION_ROLE})
         cleanup_report[side] = wait_stack(aws, identifier, name, "DELETE_COMPLETE")
@@ -272,9 +403,9 @@ def cleanup(aws: Aws, case_name: str, stacks: dict[str, str], moving: dict[str, 
                                                     obj(cleanup_report[key]).get("StackId")
                                                     for key in ("source", "target") if key in cleanup_report]]
         save(report)
-    physical = case.get("physicalId")
-    if isinstance(physical, str):
-        if moving["Type"] == "AWS::CloudWatch::Alarm":
+    for logical, value in obj(case.get("physicalIds", {})).items():
+        physical = text(value)
+        if obj(moving[logical])["Type"] == "AWS::CloudWatch::Alarm":
             require(not rows(aws.call("lookup", "cloudwatch", "describe-alarms", {"AlarmNames": [physical]}).get("MetricAlarms")),
                     "Deleted stacks left an orphan probe alarm")
         else:
@@ -315,6 +446,8 @@ def wait_change_set(aws: Aws, identifier: str, change_set: str, case: dict[str, 
 
 def run_import(aws: Aws, case_name: str, stacks: dict[str, str], moving: dict[str, Json],
                initial: dict[str, Json], final: dict[str, Json], report: dict[str, Json], case: dict[str, Json]) -> None:
+    require(case.get("alarmCount") == 1, "Imports are single-alarm experiments")
+    roles = {"source": EXECUTION_ROLE, "target": EXECUTION_ROLE}
     physical = text(case["physicalId"])
     retained = {**moving, "DeletionPolicy": "Retain"}
     source_retained = template({**obj(obj(initial["source"])["Resources"]), "ProbeResource": retained})
@@ -326,7 +459,7 @@ def run_import(aws: Aws, case_name: str, stacks: dict[str, str], moving: dict[st
     case["stage"] = "detach"
     save(report)
     update(aws, stacks["source"], case_name + "-source", obj(final["source"]))
-    detached = snapshot(aws, case_name, stacks, moving)
+    detached = snapshot(aws, case_name, stacks, {"ProbeResource": moving}, roles)
     require(all(row["LogicalResourceId"] == "Anchor" for row in rows(obj(detached["source"])["resources"])),
             "Source did not detach exactly the probe alarm")
     case["detached"] = detached
@@ -357,7 +490,7 @@ def run_import(aws: Aws, case_name: str, stacks: dict[str, str], moving: dict[st
         "StackName": stacks["target"], "ChangeSetName": change_set,
     })
     wait_stack(aws, stacks["target"], case_name + "-target", "IMPORT_COMPLETE")
-    case["afterImport"] = snapshot(aws, case_name, stacks, moving)
+    case["afterImport"] = snapshot(aws, case_name, stacks, {"ProbeResource": moving}, roles)
     imported = {text(row["LogicalResourceId"]): row["PhysicalResourceId"]
                 for row in rows(obj(obj(case["afterImport"])["target"])["resources"])}
     require(imported == {"ProbeResource": physical,
@@ -382,9 +515,12 @@ def run_import(aws: Aws, case_name: str, stacks: dict[str, str], moving: dict[st
     case["stage"] = "remove-retain-policy"
     save(report)
     managed = {key: value for key, value in changed.items() if key != "DeletionPolicy"}
-    update(aws, stacks["target"], case_name + "-target", template({**obj(updated["Resources"]), "ProbeResource": managed}))
+    managed_template = template({**obj(updated["Resources"]), "ProbeResource": managed})
+    obj(case["knownTemplates"])["target"] = [initial["target"], final["target"], managed_template]
+    save(report)
+    update(aws, stacks["target"], case_name + "-target", managed_template)
     case.pop("retainedAlarm")
-    case["after"] = snapshot(aws, case_name, stacks, moving)
+    case["after"] = snapshot(aws, case_name, stacks, {"ProbeResource": moving}, roles)
     case["tagsAfter"] = resource_tags(aws, physical, "AWS::CloudWatch::Alarm")
     require(case["tagsAfter"] == case["tagsAfterUpdate"], "Policy-only update changed alarm")
     case["outcome"] = "passed"
@@ -393,29 +529,37 @@ def run_import(aws: Aws, case_name: str, stacks: dict[str, str], moving: dict[st
 
 def run_case(aws: Aws, prefix: str, variant: str, report: dict[str, Json], case: dict[str, Json]) -> None:
     case_name = prefix + variant
-    moving = definition(case_name, variant)
+    count = 58 if variant in ("context-bulk-existing-destination", "context-bulk-new-destination") else 1
+    native = variant.endswith("-new-destination")
+    moving: dict[str, Json] = {
+        "ProbeResource" if count == 1 else f"ProbeResource{index:02d}": definition(case_name, variant)
+        for index in range(1, count + 1)
+    }
     stacks: dict[str, str] = {}
+    roles: dict[str, str | None] = {"source": EXECUTION_ROLE, "target": None if native else EXECUTION_ROLE}
     case["stackIds"] = stacks
+    case["caseName"] = case_name
+    case["alarmCount"] = 0 if variant == "sns-control" else count
+    case["destinationCreation"] = "native" if native else "precreated"
     case["stage"] = "setup"
     initial: dict[str, Json] = {}
     final: dict[str, Json] = {}
     for side in ("source", "target"):
         anchor: dict[str, Json] = {"Type": "AWS::SNS::Topic", "Properties": {"TopicName": case_name + "-" + side + "-anchor"}}
-        initial[side] = template({"Anchor": anchor, **({"ProbeResource": moving} if side == "source" else {})})
-        final[side] = template({"Anchor": anchor, **({"ProbeResource": moving} if side == "target" else {})})
+        anchors: dict[str, Json] = {} if side == "target" and native else {"Anchor": anchor}
+        initial[side] = template({**anchors, **(moving if side == "source" else {})})
+        final[side] = template({**anchors, **(moving if side == "target" else {})})
     case["templates"] = {"before": initial, "after": final}
+    case["knownTemplates"] = {side: [initial[side], final[side]] for side in ("source", "target")}
     save(report)
     try:
         for side in ("source", "target"):
+            if side == "target" and native:
+                continue
             name = case_name + "-" + side
             require(re.fullmatch(PREFIX + r"[0-9]+-[0-9]+-[a-z-]+-(source|target)", name) is not None,
                     "Unsafe stack creation name")
-            try:
-                aws.cf("describe-stacks", {"StackName": name})
-            except RuntimeError as error:
-                require("ValidationError" in str(error) and f"Stack with id {name} does not exist" in str(error), str(error))
-            else:
-                raise ValueError(f"Stack name already exists; never adopt: {name}")
+            require_absent(aws, name)
             case["creating"] = name
             save(report)
             try:
@@ -444,28 +588,55 @@ def run_case(aws: Aws, prefix: str, variant: str, report: dict[str, Json], case:
             case.pop("creating")
             save(report)
             wait_stack(aws, stacks[side], name, "CREATE_COMPLETE")
-        before = snapshot(aws, case_name, stacks, moving)
+        before = snapshot(aws, case_name, stacks, moving, roles)
         case["before"] = before
+        for side, identifier in stacks.items():
+            require(stored_template(aws, identifier) == initial[side], "Initial stack template differs")
+        if not native:
+            require({text(resource["LogicalResourceId"]): resource["PhysicalResourceId"]
+                     for resource in rows(obj(before["target"])["resources"])} == {
+                         "Anchor": f"arn:aws:sns:{REGION}:{ACCOUNT}:{case_name}-target-anchor",
+                     }, "Unexpected initial target inventory")
         source_resources = rows(obj(before["source"])["resources"])
-        physical = text(next(resource["PhysicalResourceId"] for resource in source_resources
-                             if resource["LogicalResourceId"] == "ProbeResource"))
-        case["physicalId"] = physical
-        case["tagsBefore"] = resource_tags(aws, physical, text(moving["Type"]))
+        require({text(resource["LogicalResourceId"]) for resource in source_resources} == {"Anchor", *moving},
+                "Unexpected initial source inventory")
+        physical_ids = {text(resource["LogicalResourceId"]): text(resource["PhysicalResourceId"])
+                        for resource in source_resources if resource["LogicalResourceId"] != "Anchor"}
+        require(len(set(physical_ids.values())) == count, "Probe resource physical identities are not distinct")
+        case["physicalIds"] = physical_ids
+        if count == 1:
+            case["physicalId"] = physical_ids["ProbeResource"]
+        case["resourcesBefore"] = moving_snapshots(aws, physical_ids, moving)
+        if count == 1:
+            case["tagsBefore"] = obj(case["resourcesBefore"])[physical_ids["ProbeResource"]]
+        save(report)
         if variant.startswith("import-"):
-            run_import(aws, case_name, stacks, moving, initial, final, report, case)
+            run_import(aws, case_name, stacks, obj(moving["ProbeResource"]), initial, final, report, case)
             return
+        if native:
+            target_name = case_name + "-target"
+            require_absent(aws, target_name)
+            case["nativeTarget"] = {"name": target_name, "absentBeforeRequest": True,
+                                    "template": final["target"], "verified": False}
         case["stage"] = "native"
         case["unsafeRefactor"] = True
+        request: dict[str, Json] = {
+            "EnableStackCreation": native, "Description": case_name,
+            "StackDefinitions": [{"StackName": stacks.get(side, case_name + "-" + side),
+                                  "TemplateBody": json.dumps(final[side])} for side in ("source", "target")],
+            "ResourceMappings": [{"Source": {"StackName": stacks["source"], "LogicalResourceId": logical},
+                                  "Destination": {"StackName": stacks.get("target", case_name + "-target"),
+                                                  "LogicalResourceId": logical}} for logical in moving],
+        }
+        case["refactorRequest"] = request
         save(report)
         try:
-            response = aws.call("deploy", "cloudformation", "create-stack-refactor", {
-                "EnableStackCreation": False, "Description": case_name,
-                "StackDefinitions": [{"StackName": stacks[side], "TemplateBody": json.dumps(final[side])}
-                                     for side in ("source", "target")],
-                "ResourceMappings": [{"Source": {"StackName": stacks["source"], "LogicalResourceId": "ProbeResource"},
-                                      "Destination": {"StackName": stacks["target"], "LogicalResourceId": "ProbeResource"}}],
-            })
-        except RuntimeError:
+            response = aws.call("deploy", "cloudformation", "create-stack-refactor", request)
+        except RuntimeError as error:
+            if native:
+                require(classify(str(error)) in ("unsupported", "inconclusive-permission"),
+                        f"Native create response is unresolved; preserving probe resources: {error}")
+                require_absent(aws, case_name + "-target")
             case["unsafeRefactor"] = False
             raise
         refactor = text(response.get("StackRefactorId"))
@@ -478,12 +649,18 @@ def run_case(aws: Aws, prefix: str, variant: str, report: dict[str, Json], case:
         else:
             require(status.get("Status") == "CREATE_COMPLETE" and status.get("ExecutionStatus") == "AVAILABLE",
                     "Unexpected preview state")
+            require("target" in stacks, "Available refactor has no verified destination")
             case["unsafeRefactor"] = False
             actions = aws.cf("list-stack-refactor-actions", {"StackRefactorId": refactor})
             case["preview"] = actions
             save(report)
-            validate_preview(actions, stacks, case_name, physical)
-            require(snapshot(aws, case_name, stacks, moving) == before, "Stack changed during preview")
+            validate_preview(actions, stacks, case_name, physical_ids, obj(case.get("nativeTarget", {})))
+            preview_stacks = snapshot(aws, case_name, stacks, moving, roles)
+            case["previewStacks"] = preview_stacks
+            require({side: preview_stacks[side] for side in before} == before, "Stack changed during preview")
+            if native:
+                require(obj(obj(preview_stacks["target"])["stack"]).get("StackStatus") == "REVIEW_IN_PROGRESS"
+                        and not rows(obj(preview_stacks["target"])["resources"]), "Native target changed during preview")
             case["unsafeRefactor"] = True
             save(report)
             try:
@@ -501,25 +678,33 @@ def run_case(aws: Aws, prefix: str, variant: str, report: dict[str, Json], case:
             case["unsafeRefactor"] = False
             case["outcome"] = ("passed" if status["ExecutionStatus"] == "EXECUTE_COMPLETE"
                                else classify(str(status.get("ExecutionStatusReason"))))
-        case["after"] = snapshot(aws, case_name, stacks, moving)
-        case["tagsAfter"] = resource_tags(aws, physical, text(moving["Type"]))
-        require(obj(case["tagsAfter"]).get("configuration") == obj(case["tagsBefore"]).get("configuration"),
-                "Native refactor changed probe configuration")
+        case["after"] = snapshot(aws, case_name, stacks, moving, roles)
+        case["resourcesAfter"] = moving_snapshots(aws, physical_ids, moving)
+        if count == 1:
+            case["tagsAfter"] = obj(case["resourcesAfter"])[physical_ids["ProbeResource"]]
+        save(report)
+        for physical in physical_ids.values():
+            require(obj(obj(case["resourcesAfter"])[physical]).get("configuration")
+                    == obj(obj(case["resourcesBefore"])[physical]).get("configuration"),
+                    f"Native refactor changed probe configuration: {physical}")
         if case["outcome"] == "passed":
             after = obj(case["after"])
             for side in ("source", "target"):
+                require(stored_template(aws, stacks[side]) == final[side], "Refactored template differs")
                 actual = {text(row["LogicalResourceId"]): row["PhysicalResourceId"]
                           for row in rows(obj(after[side])["resources"])}
-                expected = {text(row["LogicalResourceId"]): row["PhysicalResourceId"]
-                            for row in rows(obj(before[side])["resources"]) if row["LogicalResourceId"] == "Anchor"}
+                expected: dict[str, Json] = ({} if side == "target" and native else
+                                            {"Anchor": f"arn:aws:sns:{REGION}:{ACCOUNT}:{case_name}-{side}-anchor"})
                 if side == "target":
-                    expected["ProbeResource"] = physical
+                    expected.update(physical_ids)
                 require(actual == expected, "Physical identity/ownership changed unexpectedly")
-            tags = {text(row["Key"]): row["Value"] for row in rows(obj(case["tagsAfter"]).get("Tags"))}
-            require(all(tags.get(key) == value for key, value in {
-                "aws:cloudformation:stack-name": case_name + "-target", "aws:cloudformation:stack-id": stacks["target"],
-                "aws:cloudformation:logical-id": "ProbeResource",
-            }.items()), "Refactor completed without correct system-tag ownership")
+            for logical, physical in physical_ids.items():
+                tags = {text(row["Key"]): row["Value"]
+                        for row in rows(obj(obj(case["resourcesAfter"])[physical]).get("Tags"))}
+                require(all(tags.get(key) == value for key, value in {
+                    "aws:cloudformation:stack-name": case_name + "-target", "aws:cloudformation:stack-id": stacks["target"],
+                    "aws:cloudformation:logical-id": logical,
+                }.items()), f"Refactor completed without correct system-tag ownership: {physical}")
     except (ValueError, RuntimeError, OSError, subprocess.TimeoutExpired) as error:
         case["error"] = str(error)
         case["outcome"] = classify(str(error))
@@ -528,7 +713,7 @@ def run_case(aws: Aws, prefix: str, variant: str, report: dict[str, Json], case:
             raise
     finally:
         try:
-            cleanup(aws, case_name, stacks, moving, report, case)
+            cleanup(aws, case_name, stacks, moving, roles, report, case)
             if "creating" in case:
                 obj(case["cleanup"])["verified"] = False
                 raise ValueError("Create response unresolved; inspect exact attempted stack name")
@@ -552,6 +737,17 @@ def main() -> int:
     report["cases"] = cases
     exit_code = 1
     try:
+        suite = os.environ.get("PROBE_SUITE", "baseline")
+        imports = ["import-generated-absent", "import-explicit-absent"]
+        suites = {
+            "baseline": ["sns-control"] + [name + "-" + tags for name in ("generated", "explicit")
+                                           for tags in ("absent", "empty", "tagged")] + imports,
+            "context": ["context-single-new-destination", "context-bulk-existing-destination",
+                        "context-bulk-new-destination"],
+            "imports": imports,
+        }
+        require(suite in suites, f"Unknown probe suite: {suite}")
+        report["suite"] = suite
         for key, expected in (("GITHUB_ACTIONS", "true"), ("GITHUB_REF", "refs/heads/main"),
                               ("GITHUB_EVENT_NAME", "workflow_dispatch"),
                               ("GITHUB_REPOSITORY", "kirill-markin/flashcards-open-source-app"), ("AWS_REGION", REGION)):
@@ -568,10 +764,7 @@ def main() -> int:
         aws = Aws()
         deadline = time.monotonic() + 1800
         native_permission_blocked = False
-        variants = ["sns-control"] + [name + "-" + tags for name in ("generated", "explicit")
-                                     for tags in ("absent", "empty", "tagged")] + [
-                                         "import-generated-absent", "import-explicit-absent"]
-        for variant in variants:
+        for variant in suites[suite]:
             if native_permission_blocked and not variant.startswith("import-"):
                 cases.append({"variant": variant, "outcome": "skipped-native-permission"})
                 continue
@@ -592,7 +785,8 @@ def main() -> int:
     finally:
         report["counts"] = dict(Counter(text(case["outcome"]) for case in cases))
         save(report)
-        summary = ["## Disposable alarm refactor probe", "", json.dumps(report["counts"]), "",
+        summary = ["## Disposable alarm refactor probe", "", "Suite: " + str(report.get("suite", "invalid")), "",
+                   json.dumps(report["counts"]), "",
                    "| Variant | Outcome | Cleanup verified |", "| --- | --- | --- |"]
         for case in cases:
             summary.append(f"| {case['variant']} | {case['outcome']} | {obj(case.get('cleanup', {})).get('verified', False)} |")
