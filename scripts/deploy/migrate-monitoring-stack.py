@@ -15,6 +15,8 @@ from tempfile import TemporaryDirectory
 from typing import TypeAlias
 
 preparation = import_module("prepare-monitoring-refactor")
+batches = import_module("monitoring-refactor-batches")
+retry = import_module("reconcile-monitoring-retry")
 Json: TypeAlias = bool | int | float | str | None | list["Json"] | dict[str, "Json"]
 CORE = "FlashcardsOpenSourceApp"
 TARGET = CORE + "Monitoring"
@@ -127,9 +129,13 @@ def read_verified_receipt(aws: Aws, refactor: str) -> dict[str, Json]:
 
 def relevant_refactors(aws: Aws) -> dict[str, dict[str, Json]]:
     relevant: dict[str, dict[str, Json]] = {}
-    for summary in rows(aws.cf("list-stack-refactors", []).get("StackRefactorSummaries"), "refactors"):
+    for summary in rows(aws.cf("list-stack-refactors", ["--execution-status-filter",
+        "UNAVAILABLE", "AVAILABLE", "OBSOLETE", "EXECUTE_IN_PROGRESS", "EXECUTE_COMPLETE",
+        "EXECUTE_FAILED", "ROLLBACK_IN_PROGRESS", "ROLLBACK_COMPLETE", "ROLLBACK_FAILED",
+    ]).get("StackRefactorSummaries"), "refactors"):
         refactor = text(summary.get("StackRefactorId"), "StackRefactorId")
         details = aws.cf("describe-stack-refactor", ["--stack-refactor-id", refactor])
+        equal(details.get("StackRefactorId"), refactor, "listed refactor identity")
         ids = details.get("StackIds")
         if not isinstance(ids, list):
             raise ValueError(f"{refactor}: missing StackIds; inspect operation")
@@ -138,33 +144,38 @@ def relevant_refactors(aws: Aws) -> dict[str, dict[str, Json]]:
     return relevant
 
 
+def retired_refactors(aws: Aws) -> set[str]:
+    relevant = relevant_refactors(aws)
+    return {refactor for refactor, validator in (
+        (REVIEWED_REFACTOR, aborted_attempt), (retry.RETRY_REFACTOR, retry.aborted_attempt),
+    ) if refactor in relevant and validator(aws, relevant[refactor])}
+
+
 def ownership(aws: Aws) -> str:
-    verified: dict[str, dict[str, Json]] = {}
-    for refactor, details in relevant_refactors(aws).items():
-        if refactor == REVIEWED_REFACTOR and aborted_attempt(aws, details):
-            continue
-        if details.get("ExecutionStatus") != "EXECUTE_COMPLETE":
-            raise ValueError(f"Inspect prior refactor {refactor}: {json.dumps(details)}")
-        receipt = read_verified_receipt(aws, refactor)
-        receipt_ids = obj(receipt.get("StackIds"), f"{refactor}/verified StackIds")
-        equal(set(receipt_ids), {CORE, TARGET}, f"{refactor}/verified stack names")
-        equal(sorted(text(value, "StackId") for value in receipt_ids.values()),
-              sorted(text(value, "StackId") for value in details["StackIds"]), f"{refactor}/operation stack IDs")
-        verified[refactor] = receipt
     current = stacks(aws)
+    retired = retired_refactors(aws)
+    if CORE in current:
+        source = text(obj(current[CORE], CORE)["StackId"], "source ID")
+        with TemporaryDirectory(prefix="monitoring-ownership-") as directory:
+            key = batches.current_manifest(aws, Path(directory), source)
+            if key is not None:
+                manifest, receipts = batches.verified_prefix(aws, Path(directory), key, retired)
+                if len(receipts) == 4:
+                    batches.final_ownership(aws, manifest, receipts)
+                    if "CDKMetadata" in inventory(aws, TARGET):
+                        return "split"
+                batches.prove_prefix(aws, manifest, receipts)
+                return "finalizing" if len(receipts) == 4 else "partial"
+    unexplained = set(relevant_refactors(aws)) - retired
+    if unexplained:
+        raise ValueError(f"Unexplained monitoring refactors {sorted(unexplained)}; preserve evidence and stop")
     if not current:
-        if verified:
-            raise ValueError(f"Verified refactors {list(verified)} exist without stacks; inspect ownership")
         return "fresh"
     if CORE not in current:
         raise ValueError("Monitoring exists without core; inspect ownership")
     core = selected(inventory(aws, CORE))
     target_resources = inventory(aws, TARGET) if TARGET in current else {}
     target = selected(target_resources)
-    for refactor, receipt in verified.items():
-        equal(receipt["StackIds"], {name: obj(stack, name)["StackId"] for name, stack in current.items()},
-              f"{refactor}/current stack IDs")
-        equal(obj(receipt.get("moved"), "verified moved resources"), target, f"{refactor}/current moved identities")
     if any(key != "CDKMetadata" or obj(value, key).get("ResourceType") != "AWS::CDK::Metadata"
            for key, value in target_resources.items() if key not in target):
         raise ValueError("Unexpected non-monitoring target resources; inspect ownership")
@@ -318,8 +329,6 @@ def validate_actions(actions: list[dict[str, Json]], status: dict[str, Json], so
             raise ValueError(f"{key}: unexpected removed tag")
         moves[key] = resources[key]
     equal(moves, resources, "exact server moves")
-    if len(moves) != 66:
-        raise ValueError("Preview must move exactly 66 resources")
     if creates > 1:
         raise ValueError("Duplicate target STACK/CREATE")
 
@@ -407,17 +416,7 @@ def prepare_native_caller(aws: Aws, directory: Path, source: str, resources: dic
     expected = access_template(source, resources)
     stack = access_stack(aws)
     if stack is None:
-        path = directory / "access-template.private.json"
-        preparation.write_private(path, expected)
-        if path.stat().st_size > 51200:
-            raise ValueError("Temporary access template exceeds inline CloudFormation limit")
-        created = aws.call("deploy", "cloudformation", "create-stack", [
-            "--stack-name", ACCESS_STACK, "--template-body", "file://" + str(path),
-            "--capabilities", "CAPABILITY_NAMED_IAM", "--role-arn", CORE_EXECUTION_ROLE,
-        ])
-        stack = wait_stack(aws, text(created.get("StackId"), "access StackId"), "CREATE_COMPLETE")
-    elif stack.get("StackStatus") == "CREATE_IN_PROGRESS":
-        stack = wait_stack(aws, text(stack.get("StackId"), "access StackId"), "CREATE_COMPLETE")
+        raise ValueError("The reviewed monitoring refactor access stack must already exist; do not create or expand IAM")
     equal(stack.get("StackStatus"), "CREATE_COMPLETE", "temporary access status")
     verify_access(aws, stack, expected)
     deadline = time.monotonic() + 120
@@ -466,7 +465,8 @@ def prepare_native_caller(aws: Aws, directory: Path, source: str, resources: dic
 
 
 def cleanup_access(aws: Aws) -> None:
-    equal(ownership(aws), "split", "verified ownership before access cleanup")
+    if ownership(aws) not in ("split", "finalizing"):
+        raise ValueError("Full verified monitoring ownership is required before access cleanup")
     stack = access_stack(aws)
     if stack is None:
         return
@@ -481,52 +481,6 @@ def cleanup_access(aws: Aws) -> None:
     wait_stack(aws, stack_id, "DELETE_COMPLETE")
 
 
-def migrate(aws: Aws, directory: Path) -> None:
-    equal(ownership(aws), "legacy", "pre-move ownership")
-    legacy = preparation.read_template(directory / "legacy", CORE)
-    core = preparation.read_template(directory / "split", CORE)
-    target = preparation.read_template(directory / "split", TARGET)
-    report = preparation.compare(legacy, core, target)
-    deployed = template(aws, CORE)
-    equal(deployed, legacy, "fresh deployed legacy template")
-    if aws.cf("get-stack-policy", ["--stack-name", CORE]).get("StackPolicyBody"):
-        raise ValueError("Core stack policy prevents native refactor")
-    for kind in EXPECTED:
-        equal(aws.cf("describe-type", ["--type", "RESOURCE", "--type-name", kind]).get("ProvisioningType"), "FULLY_MUTABLE", kind)
-    before_stacks, before = stacks(aws), inventory(aws, CORE)
-    moved = selected(before)
-    equal(set(before), set(obj(legacy["Resources"], "legacy")), "source inventory/template logical IDs")
-    equal(set(moved), {text(obj(row.get("Source"), "Source").get("LogicalResourceId"), "mapping")
-                       for row in rows(report["resourceMappings"], "resourceMappings")}, "selected logical IDs")
-    snapshot = runtime(aws, before, legacy)
-    save(aws, directory, "before.private.json", {"stacks": before_stacks, "resources": before, "runtime": snapshot, "template": deployed})
-    definitions = [{"StackName": name, "TemplateURL": save(aws, directory, name + ".private.json", value)}
-                   for name, value in transport(deployed, core, target).items()]
-    request = directory / "request.private.json"
-    preparation.write_private(request, {"EnableStackCreation": True, "StackDefinitions": definitions,
-        "ResourceMappings": report["resourceMappings"], "Description": "Move exactly 58 alarms and 8 filters; preserve all physical resources"})
-    prepare_native_caller(aws, directory, text(obj(before_stacks[CORE], CORE)["StackId"], "StackId"), before)
-    response = aws.call("native", "cloudformation", "create-stack-refactor", ["--cli-input-json", "file://" + str(request)])
-    refactor = text(response.get("StackRefactorId"), "StackRefactorId")
-    save(aws, directory, "operation.private.json", response)
-    print(json.dumps({"StackRefactorId": refactor, "stage": "preview"}), flush=True)
-    status = wait_refactor(aws, refactor, "AVAILABLE")
-    actions = aws.cf("list-stack-refactor-actions", ["--stack-refactor-id", refactor])
-    save(aws, directory, "actions.private.json", actions)
-    validate_actions(rows(actions.get("StackRefactorActions"), "actions"), status, text(obj(before_stacks[CORE], CORE)["StackId"], "StackId"), moved)
-    equal(template(aws, CORE), deployed, "source template freshness")
-    equal(inventory(aws, CORE), before, "source identity freshness")
-    equal(runtime(aws, before, legacy), snapshot, "configuration freshness")
-    fresh = rows(aws.cf("describe-stacks", ["--stack-name", CORE]).get("Stacks"), CORE)
-    equal(len(fresh), 1, "fresh source count")
-    equal(fresh[0].get("StackId"), obj(before_stacks[CORE], CORE)["StackId"], "fresh source identity")
-    if fresh[0].get("StackStatus") not in STABLE:
-        raise ValueError("Source is no longer stable")
-    equal(stack_settings(fresh[0]), stack_settings(obj(before_stacks[CORE], CORE)), "source semantic settings")
-    execute_and_verify(aws, directory, refactor, status, before_stacks, before, legacy, snapshot)
-    cleanup_access(aws)
-
-
 def save_failure(aws: Aws, directory: Path, stage: str, error: Exception) -> None:
     try:
         current = {text(row.get("StackName"), "StackName"): row
@@ -539,40 +493,6 @@ def save_failure(aws: Aws, directory: Path, stage: str, error: Exception) -> Non
         })
     except (ValueError, OSError, RuntimeError) as evidence_error:
         print(f"::warning::Could not save failure ownership evidence: {evidence_error}", flush=True)
-
-
-def execute_and_verify(aws: Aws, directory: Path, refactor: str, status: dict[str, Json],
-                       before_stacks: dict[str, Json], before: dict[str, Json],
-                       legacy: dict[str, Json], snapshot: dict[str, Json]) -> None:
-    moved = selected(before)
-    stack_ids = refactor_stack_ids(status, text(obj(before_stacks[CORE], CORE)["StackId"], "StackId"))
-    try:
-        aws.call("native", "cloudformation", "execute-stack-refactor", ["--stack-refactor-id", refactor])
-        completed = wait_refactor(aws, refactor, "EXECUTE_COMPLETE")
-        equal(refactor_stack_ids(completed, stack_ids[CORE]), stack_ids, f"{refactor}/executed stack IDs")
-        after_stacks = wait_stacks(aws, refactor, stack_ids)
-    except (ValueError, RuntimeError) as error:
-        save_failure(aws, directory, "native-execute", error)
-        raise
-    after_core, after_target = inventory(aws, stack_ids[CORE]), inventory(aws, stack_ids[TARGET])
-    equal(after_core, {key: value for key, value in before.items() if key not in moved}, "all surviving core identities")
-    equal(after_target, moved, "all moved identities")
-    original_settings = stack_settings(obj(before_stacks[CORE], CORE))
-    after_settings = stack_settings(obj(after_stacks[CORE], CORE))
-    for key, value in obj(original_settings["Outputs"], "original Outputs").items():
-        equal(obj(after_settings["Outputs"], "after Outputs").get(key), value, "original output/" + key)
-    for key in ("Parameters", "RoleARN", "Tags"):
-        equal(after_settings[key], original_settings[key], "preserved source/" + key)
-    after_runtime = runtime(aws, {**after_core, **after_target}, legacy)
-    equal(after_runtime, snapshot, "monitoring configuration and notification subscription")
-    save(aws, directory, "after.private.json", {"stacks": after_stacks, "core": after_core, "monitoring": after_target, "runtime": after_runtime})
-    receipt = directory / "verified.private.json"
-    preparation.write_private(receipt, {"StackRefactorId": refactor, "StackIds": stack_ids, "moved": moved})
-    aws.call("file-publishing", "s3api", "put-object", [
-        "--bucket", BUCKET, "--key", verified_key(refactor), "--body", str(receipt),
-        "--server-side-encryption", "AES256", "--if-none-match", "*",
-    ])
-    print(json.dumps({"StackRefactorId": refactor, "ExecutionStatus": "EXECUTE_COMPLETE", "moves": 66}), flush=True)
 
 
 def reviewed_status(aws: Aws) -> dict[str, Json]:
@@ -726,26 +646,75 @@ def reconcile(aws: Aws, directory: Path) -> str:
     return REVIEWED_SCHEMA_ANCHOR["commit"]
 
 
+def remember_manifest(directory: Path, key: str) -> None:
+    directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+    path = directory / "manifest-key.private.txt"
+    path.write_text(key + "\n")
+    path.chmod(0o600)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("ownership", "migrate", "reconcile"))
+    parser.add_argument("command", choices=("ownership", "reconcile", "prepare", "batch", "finalize"))
     parser.add_argument("--directory", type=Path, required=True)
+    parser.add_argument("--manifest", default="")
+    parser.add_argument("--resume-manifest", default="")
+    parser.add_argument("--batch-index", type=int, choices=range(1, 5))
+    parser.add_argument("--assembly", type=Path)
     args = parser.parse_args()
     if os.environ.get("GITHUB_ACTIONS") != "true" or os.environ.get("AWS_REGION") != REGION:
         raise ValueError("Run only in the serialized eu-central-1 GitHub release job")
     os.umask(0o077)
     aws = Aws()
+    commit, run, attempt = (text(os.environ.get(name), name) for name in (
+        "GITHUB_SHA", "GITHUB_RUN_ID", "GITHUB_RUN_ATTEMPT"))
     if args.command == "ownership":
         state = ownership(aws)
+        if args.manifest and state not in ("partial", "finalizing"):
+            raise ValueError("Explicit monitoring continuation requires a pending native migration")
+        if state in ("partial", "finalizing"):
+            source = text(obj(stacks(aws)[CORE], CORE)["StackId"], "source ID")
+            key = batches.current_manifest(aws, args.directory, source)
+            if not args.manifest:
+                manifest = batches.load_manifest(aws, args.directory, text(key, "bound manifest"))
+                raise ValueError(f"Verified migration pending; dispatch AWS/Web Release at commit {manifest['commit']} "
+                                 f"with monitoring_manifest={key}. No ordinary deployments are permitted")
+            batches.authorize_resume(aws, args.directory, source, args.manifest, commit, retired_refactors(aws))
+            remember_manifest(args.directory, args.manifest)
+            state = "resume"
         with Path(os.environ["GITHUB_OUTPUT"]).open("a") as output:
             output.write(f"state={state}\ntopology={'legacy' if state == 'legacy' else 'split'}\n")
         print(json.dumps({"monitoringOwnership": state}))
     elif args.command == "reconcile":
-        schema_anchor = reconcile(aws, args.directory)
+        retry_anchor = retry.reconcile(aws, args.directory / "retry")
+        original_anchor = reconcile(aws, args.directory / "original")
+        ownership(aws)
         with Path(os.environ["GITHUB_OUTPUT"]).open("a") as output:
-            output.write(f"schema_anchor={schema_anchor}\n")
+            output.write(f"schema_anchor={retry_anchor or original_anchor}\n")
+    elif args.command == "prepare":
+        equal(ownership(aws), "legacy", "fresh preparation ownership")
+        key = batches.prepare(aws, args.directory, commit, run, attempt, retired_refactors(aws))
+        remember_manifest(args.directory, key)
+    elif args.command == "batch":
+        if args.batch_index is None:
+            raise ValueError("batch requires --batch-index 1..4")
+        try:
+            batches.run_batch(aws, args.directory, text(args.manifest, "manifest"), args.batch_index,
+                              commit, run, attempt, args.resume_manifest, retired_refactors(aws))
+        except (ValueError, RuntimeError) as error:
+            save_failure(aws, args.directory, f"batch-{args.batch_index}", error)
+            raise
     else:
-        migrate(aws, args.directory)
+        if args.assembly is None:
+            raise ValueError("finalize requires --assembly with the standard cdk.out directory")
+        manifest, receipts = batches.verified_prefix(aws, args.directory, text(args.manifest, "manifest"), retired_refactors(aws))
+        equal(manifest["commit"], commit, "finalize exact commit")
+        if [run, attempt] != [manifest["run"], manifest["attempt"]] or args.resume_manifest:
+            equal(args.resume_manifest, args.manifest, "finalize explicit same-commit resume")
+        equal(len(receipts), 4, "four verified batches before ordinary deployment")
+        batches.prove_prefix(aws, manifest, receipts)
+        batches.verify_assembly(manifest, args.assembly)
+        cleanup_access(aws)
 
 
 if __name__ == "__main__":
