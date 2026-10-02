@@ -2,6 +2,7 @@
 """Manual CI experiment using only disposable resources and existing bootstrap roles."""
 
 from collections import Counter
+import hashlib
 import html
 import json
 import os
@@ -287,10 +288,13 @@ def wait_refactor(aws: Aws, refactor: str, stacks: dict[str, str], report: dict[
         if "nativeTarget" in case and "target" not in stacks:
             if status.get("Status") == "CREATE_IN_PROGRESS":
                 identifiers = status.get("StackIds", [])
-                require(isinstance(identifiers, list), "Unexpected refactor stack IDs")
+                require(isinstance(identifiers, list) and stacks["source"] in identifiers
+                        and len(set(text(value) for value in identifiers)) == len(identifiers)
+                        and len(identifiers) <= 2, "Unexpected refactor stack IDs")
+                target_name = text(obj(case["nativeTarget"])["name"])
                 for identifier in identifiers:
-                    if identifier != stacks["source"]:
-                        stack_id(text(identifier), text(obj(case["nativeTarget"])["name"]))
+                    if identifier not in (stacks["source"], target_name):
+                        stack_id(text(identifier), target_name)
             else:
                 native_target(aws, status, stacks, report, case)
         else:
@@ -312,8 +316,10 @@ def validate_preview(actions: dict[str, Json], stacks: dict[str, str], case_name
     creates = 0
     for action in changes:
         if action.get("Action") == "CREATE" and action.get("Entity") == "STACK":
-            require(native.get("verified") is True and action.get("PhysicalResourceId") == stacks["target"]
-                    and not action.get("ResourceMapping") and not action.get("TagResources")
+            require(native.get("verified") is True
+                    and ("PhysicalResourceId" not in action or action["PhysicalResourceId"] == stacks["target"])
+                    and ("ResourceMapping" not in action or action["ResourceMapping"] == {"Source": {}, "Destination": {}})
+                    and not action.get("TagResources")
                     and not action.get("UntagResources"), "Unexpected stack creation action")
             creates += 1
             require(creates == 1, "Duplicate stack creation action")
@@ -725,6 +731,99 @@ def run_case(aws: Aws, prefix: str, variant: str, report: dict[str, Json], case:
         save(report)
 
 
+def cleanup_aborted_context(aws: Aws, report: dict[str, Json], case: dict[str, Json]) -> None:
+    case_name = PREFIX + "37034081262-1-context-single-new-destination"
+    source = f"arn:aws:cloudformation:{REGION}:{ACCOUNT}:stack/{case_name}-source/3e967300-be7e-11f1-85ff-06fff30533e1"
+    target = f"arn:aws:cloudformation:{REGION}:{ACCOUNT}:stack/{case_name}-target/4926c3b0-be7e-11f1-8b17-06ffe8ce7fa3"
+    refactor = "8f4e89f0-7833-41ef-bfc8-6000cb92b824"
+    digest = "3e4b831eae162b0d6aaacc17ab02c9ac505e8e72b4c9f243b6fa1640a19a4afe"
+    case["originalOperation"] = {
+        "runId": "37034081262", "runAttempt": "1", "artifact": "alarm-refactor-probe-37034081262-1",
+        "resultsSha256": digest, "caseName": case_name, "refactorId": refactor,
+        "stackIds": {"source": source, "target": target},
+    }
+    case["unsafeRefactor"] = True
+    save(report)
+    evidence = Path("alarm-refactor-probe-cleanup-input/results.json").read_bytes()
+    require(hashlib.sha256(evidence).hexdigest() == digest, "Aborted context evidence SHA256 mismatch; no cleanup")
+    original = obj(json.loads(evidence))
+    require(original.get("account") == ACCOUNT and original.get("region") == REGION
+            and original.get("runId") == "37034081262" and original.get("runAttempt") == "1"
+            and original.get("suite") == "context" and original.get("complete") is False,
+            "Aborted context evidence has unexpected run bindings")
+    recorded_cases = rows(original.get("cases"))
+    require(len(recorded_cases) == 1, "Expected only the aborted context case")
+    recorded = recorded_cases[0]
+    require(recorded.get("caseName") == case_name and recorded.get("refactorId") == refactor
+            and recorded.get("variant") == "context-single-new-destination"
+            and recorded.get("stackIds") == {"source": source} and recorded.get("unsafeRefactor") is True
+            and recorded.get("stage") == "native" and recorded.get("destinationCreation") == "native"
+            and recorded.get("alarmCount") == 1 and "retainedAlarm" not in recorded,
+            "Aborted context evidence has unexpected operation bindings")
+    for key in ("caseName", "refactorId", "templates", "knownTemplates", "before", "physicalIds",
+                "resourcesBefore", "nativeTarget", "refactorRequest"):
+        case[key] = recorded[key]
+    stacks = {"source": source}
+    case["stackIds"] = stacks
+    case["stage"] = "cleanup-proof"
+    save(report)
+    initial = obj(obj(case["templates"])["before"])
+    final = obj(obj(case["templates"])["after"])
+    moving = {"ProbeResource": obj(obj(initial["source"])["Resources"])["ProbeResource"]}
+    require(moving == {"ProbeResource": definition(case_name, "context-single-new-destination")},
+            "Aborted context alarm definition changed")
+    request = obj(case["refactorRequest"])
+    definitions = rows(request.get("StackDefinitions"))
+    require(request.get("EnableStackCreation") is True and request.get("Description") == case_name
+            and len(definitions) == 2
+            and {text(row.get("StackName")) for row in definitions} == {source, case_name + "-target"}
+            and all(json.loads(text(row.get("TemplateBody"))) == final[side]
+                    for side, name in (("source", source), ("target", case_name + "-target"))
+                    for row in definitions if row.get("StackName") == name),
+            "Aborted context does not have the exact unique submitted definitions")
+    proof = obj(case["nativeTarget"])
+    require(proof.get("name") == case_name + "-target" and proof.get("absentBeforeRequest") is True
+            and proof.get("verified") is False and proof.get("template") == final["target"],
+            "Aborted context has no original absent-before-request target proof")
+    status = aws.cf("describe-stack-refactor", {"StackRefactorId": refactor})
+    case["refactor"] = status
+    save(report)
+    require(status.get("StackRefactorId") == refactor and status.get("Description") == case_name
+            and status.get("Status") == "CREATE_COMPLETE" and status.get("ExecutionStatus") == "AVAILABLE"
+            and sorted(status.get("StackIds", [])) == sorted([source, target]),
+            "Aborted refactor is not the exact unexecuted AVAILABLE operation; preserving resources")
+    native_target(aws, status, stacks, report, case)
+    roles: dict[str, str | None] = {"source": EXECUTION_ROLE, "target": None}
+    current = snapshot(aws, case_name, stacks, moving, roles)
+    case["cleanupProofStacks"] = current
+    save(report)
+    require(obj(obj(current["source"])["stack"]).get("StackStatus") == "CREATE_COMPLETE"
+            and current["source"] == obj(case["before"])["source"]
+            and stored_template(aws, source) == initial["source"],
+            "Aborted source is no longer the original CREATE_COMPLETE stack; preserving resources")
+    require(obj(obj(current["target"])["stack"]).get("StackStatus") == "REVIEW_IN_PROGRESS"
+            and not rows(obj(current["target"])["resources"]), "Aborted native target is no longer empty")
+    physical_ids = {logical: text(value) for logical, value in obj(case["physicalIds"]).items()}
+    resources = moving_snapshots(aws, physical_ids, moving)
+    case["cleanupProofResources"] = resources
+    save(report)
+    require(resources == case["resourcesBefore"], "Aborted source alarm configuration or ownership changed")
+    actions = aws.cf("list-stack-refactor-actions", {"StackRefactorId": refactor})
+    case["preview"] = actions
+    save(report)
+    validate_preview(actions, stacks, case_name, physical_ids, proof)
+    fresh = aws.cf("describe-stack-refactor", {"StackRefactorId": refactor})
+    case["refactor"] = fresh
+    save(report)
+    require(fresh == status, "Aborted refactor changed during cleanup proof; preserving resources")
+    case["unsafeRefactor"] = False
+    case["stage"] = "cleanup"
+    save(report)
+    cleanup(aws, case_name, stacks, moving, roles, report, case)
+    case["outcome"] = "cleaned"
+    save(report)
+
+
 def interrupted(signum: int, frame: object) -> None:
     raise InterruptedError(f"Runner signal {signum}; stopping experiments")
 
@@ -745,6 +844,7 @@ def main() -> int:
             "context": ["context-single-new-destination", "context-bulk-existing-destination",
                         "context-bulk-new-destination"],
             "imports": imports,
+            "cleanup-aborted-context": ["cleanup-aborted-context"],
         }
         require(suite in suites, f"Unknown probe suite: {suite}")
         report["suite"] = suite
@@ -772,12 +872,15 @@ def main() -> int:
             case: dict[str, Json] = {"variant": variant, "outcome": "started"}
             cases.append(case)
             save(report)
-            run_case(aws, f"{PREFIX}{run_id}-{attempt}-", variant, report, case)
+            if variant == "cleanup-aborted-context":
+                cleanup_aborted_context(aws, report, case)
+            else:
+                run_case(aws, f"{PREFIX}{run_id}-{attempt}-", variant, report, case)
             print(json.dumps({"variant": variant, "outcome": case["outcome"], "cleanupVerified": True}), flush=True)
             if case["outcome"] == "inconclusive-permission":
                 native_permission_blocked = True
             else:
-                require(case["outcome"] in ("passed", "unsupported"), "Inconclusive experiment; stop independent cases")
+                require(case["outcome"] in ("passed", "unsupported", "cleaned"), "Inconclusive experiment; stop independent cases")
         report["complete"] = True
         exit_code = 1 if native_permission_blocked else 0
     except (ValueError, RuntimeError, OSError, subprocess.TimeoutExpired) as error:
