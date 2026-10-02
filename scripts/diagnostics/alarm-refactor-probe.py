@@ -816,6 +816,263 @@ def cleanup_aborted_context(aws: Aws, report: dict[str, Json], case: dict[str, J
     save(report)
 
 
+def recover_bulk_small_batch(aws: Aws, report: dict[str, Json], case: dict[str, Json], deadline: float) -> None:
+    case_name = PREFIX + "37040911612-1-context-bulk-new-destination"
+    source = f"arn:aws:cloudformation:{REGION}:{ACCOUNT}:stack/{case_name}-source/b2e456c0-be86-11f1-9921-06d87ae907e3"
+    old_target = f"arn:aws:cloudformation:{REGION}:{ACCOUNT}:stack/{case_name}-target/205bb720-be87-11f1-a3de-0affd6145aaf"
+    old_refactor = "3fdf1a5e-7e9d-47e6-b8ea-4763032c1161"
+    digest = "9aee4499a03cbb25dd68f01d0e4dba0a429fc229180d719074c532d86f177130"
+    evidence = Path("alarm-refactor-probe-bulk-recovery-input/results.json").read_bytes()
+    require(hashlib.sha256(evidence).hexdigest() == digest, "Bulk recovery evidence SHA256 mismatch")
+    (DIRECTORY / "original-bulk-results.json").write_bytes(evidence)
+    original = obj(json.loads(evidence))
+    require(original.get("account") == ACCOUNT and original.get("region") == REGION
+            and original.get("runId") == "37040911612" and original.get("runAttempt") == "1"
+            and original.get("suite") == "native-bulk" and original.get("complete") is False,
+            "Unexpected bulk evidence run bindings")
+    recorded_cases = rows(original.get("cases"))
+    require(len(recorded_cases) == 1, "Expected exactly the pinned failed native bulk case")
+    recorded = recorded_cases[0]
+    stacks = {"source": source, "target": old_target}
+    require(recorded.get("caseName") == case_name and recorded.get("refactorId") == old_refactor
+            and recorded.get("stackIds") == stacks and recorded.get("alarmCount") == 58
+            and recorded.get("variant") == "context-bulk-new-destination"
+            and recorded.get("destinationCreation") == "native" and recorded.get("unsafeRefactor") is False
+            and recorded.get("stage") == "native" and "retainedAlarm" not in recorded,
+            "Unexpected pinned bulk operation bindings")
+    moving: dict[str, Json] = {f"ProbeResource{index:02d}": definition(case_name, "context-bulk-new-destination")
+                               for index in range(1, 59)}
+    anchor: dict[str, Json] = {"Anchor": {"Type": "AWS::SNS::Topic",
+                                        "Properties": {"TopicName": case_name + "-source-anchor"}}}
+    initial = {"source": template({**anchor, **moving}), "target": template({})}
+    roles: dict[str, str | None] = {"source": EXECUTION_ROLE, "target": None}
+    physical_ids = {logical: text(value) for logical, value in obj(recorded["physicalIds"]).items()}
+    require(set(physical_ids) == set(moving) and len(set(physical_ids.values())) == 58,
+            "Unexpected bulk physical mappings")
+    baseline = obj(recorded["resourcesBefore"])
+    require(set(baseline) == set(physical_ids.values()), "Incomplete original alarm baseline")
+    case.update({"caseName": case_name, "stackIds": stacks, "physicalIds": physical_ids,
+                 "originalOperation": recorded, "originalResultsSha256": digest, "unsafeRefactor": True,
+                 "alarmCount": 58, "deletedTargets": []})
+    save(report)
+
+    def proposal(selected: dict[str, str]) -> dict[str, Json]:
+        return {"source": template({**anchor, **{key: value for key, value in moving.items() if key not in selected}}),
+                "target": template({key: moving[key] for key in selected})}
+
+    def request_for(selected: dict[str, str]) -> dict[str, Json]:
+        bodies = proposal(selected)
+        return {"EnableStackCreation": True, "Description": case_name,
+                "StackDefinitions": [{"StackName": source if side == "source" else case_name + "-target",
+                                      "TemplateBody": json.dumps(bodies[side])} for side in ("source", "target")],
+                "ResourceMappings": [{"Source": {"StackName": source, "LogicalResourceId": logical},
+                                      "Destination": {"StackName": case_name + "-target", "LogicalResourceId": logical}}
+                                     for logical in selected]}
+
+    def bound_status(receipt: dict[str, Json]) -> dict[str, Json]:
+        identifier = text(receipt["refactorId"])
+        current = aws.cf("describe-stack-refactor", {"StackRefactorId": identifier})
+        case["latestOperation"] = current
+        save(report)
+        require(current.get("StackRefactorId") == identifier and current.get("Description") == case_name
+                and sorted(current.get("StackIds", [])) == sorted(obj(receipt["stackIds"]).values()),
+                "Recovery operation identity changed; preserving resources")
+        return current
+
+    def capture(label: str, bodies: dict[str, Json]) -> dict[str, Json]:
+        current = snapshot(aws, case_name, stacks, moving, roles)
+        resources = moving_snapshots(aws, physical_ids, moving)
+        case[label] = {"stacks": current, "alarms": resources}
+        save(report)
+        for side, identifier in stacks.items():
+            actual = rows(obj(current[side])["resources"])
+            expected = {logical: physical_ids[logical] if logical != "Anchor"
+                        else f"arn:aws:sns:{REGION}:{ACCOUNT}:{case_name}-source-anchor"
+                        for logical in obj(obj(bodies[side])["Resources"])}
+            require({text(row["LogicalResourceId"]): row.get("PhysicalResourceId") for row in actual} == expected,
+                    f"Recovery inventory differs: {identifier}")
+            if side == "source" or expected:
+                require(stored_template(aws, identifier) == bodies[side], "Recovery stored template differs")
+        for physical in physical_ids.values():
+            require(obj(resources[physical]).get("configuration") == obj(baseline[physical]).get("configuration"),
+                    f"Recovery alarm configuration changed: {physical}")
+        return current
+
+    def delete_empty_target(receipt: dict[str, Json], selected: dict[str, str]) -> None:
+        identifier = stacks["target"]
+        proof = obj(receipt["nativeTarget"])
+        require(receipt["refactorRequest"] == request_for(selected)
+                and proof.get("name") == case_name + "-target" and proof.get("absentBeforeRequest") is True
+                and proof.get("verified") is True and proof.get("candidateId") == identifier
+                and proof.get("template") == proposal(selected)["target"],
+                "Empty target lacks exact request and absent-name proof")
+        validate_preview(obj(receipt["preview"]), stacks, case_name, selected, proof)
+        observed = obj(proof["observed"])
+        require(obj(observed["stack"]).get("StackId") == identifier
+                and obj(observed["stack"]).get("StackStatus") == "REVIEW_IN_PROGRESS"
+                and not rows(observed["resources"]), "Missing original empty native target observation")
+        status = bound_status(receipt)
+        require(status.get("Status") == "CREATE_COMPLETE" and status.get("ExecutionStatus") == "ROLLBACK_COMPLETE",
+                "Empty target operation is not terminal rollback")
+        current = describe(aws, identifier, case_name + "-target", None)
+        require(current.get("StackStatus") == "UPDATE_ROLLBACK_COMPLETE" and not inventory(aws, identifier),
+                "Rollback target is not exactly empty")
+        deletion: dict[str, Json] = {"stackIds": dict(stacks), "operation": status,
+                                    "request": receipt["refactorRequest"], "nativeTarget": proof,
+                                    "before": current, "deleteRequest": {"StackName": identifier, "RoleARN": EXECUTION_ROLE}}
+        case["deletedTargets"] = [*rows(case["deletedTargets"]), deletion]
+        save(report)
+        # The exact native request and terminal empty inventory replace unavailable GetTemplate evidence here only.
+        aws.call("deploy", "cloudformation", "delete-stack", obj(deletion["deleteRequest"]))
+        deletion["result"] = wait_stack(aws, identifier, case_name + "-target", "DELETE_COMPLETE")
+        save(report)
+        stacks.pop("target")
+
+    require(recorded.get("templates") == {"before": initial, "after": proposal(physical_ids)}
+            and recorded.get("refactorRequest") == request_for(physical_ids),
+            "Original submitted definitions or mappings differ from the generated inactive 58")
+    before = rows(obj(obj(recorded["before"])["source"])["resources"])
+    require({text(row["LogicalResourceId"]): row.get("PhysicalResourceId") for row in before}
+            == {"Anchor": f"arn:aws:sns:{REGION}:{ACCOUNT}:{case_name}-source-anchor", **physical_ids},
+            "Original source physical mappings differ")
+    current = capture("initialProof", initial)
+    require(all(obj(obj(current[side])["stack"]).get("StackStatus") == "UPDATE_ROLLBACK_COMPLETE"
+                for side in stacks), "Pinned stacks are no longer both rolled back")
+    current_alarms = obj(obj(case["initialProof"])["alarms"])
+    stale = [logical for logical in sorted(physical_ids)
+             if any(tag.get("Key") == "aws:cloudformation:stack-id" and tag.get("Value") == old_target
+                    for tag in rows(obj(current_alarms[physical_ids[logical]])["Tags"]))]
+    require(len(stale) >= 2, "Need at least two alarms carrying the exact old target stack ID")
+    selected = {logical: physical_ids[logical] for logical in stale[:2]}
+    case["selectedPhysicalIds"] = selected
+    delete_empty_target(recorded, physical_ids)
+    case["unsafeRefactor"] = False
+    case["templates"] = {"before": initial, "after": proposal(selected)}
+    known: dict[str, Json] = {"source": [initial["source"]], "target": []}
+    case["knownTemplates"] = known
+    operations: list[dict[str, Json]] = []
+    case["candidateOperations"] = operations
+    moved: dict[str, str] = {}
+    cleanup_bodies: dict[str, Json] = initial
+    try:
+        recovered = capture("afterOldTargetDeletion", initial)
+        require(obj(obj(recovered["source"])["stack"]).get("StackStatus") == "UPDATE_ROLLBACK_COMPLETE",
+                "Source changed after empty target deletion")
+        for batch in (1, 2):
+            require(time.monotonic() < deadline, "Experiment time budget exhausted; no new refactor")
+            before = capture(f"batch{batch}Before", cleanup_bodies)
+            alarms = obj(obj(case[f"batch{batch}Before"])["alarms"])
+            require(all(alarms[physical] == obj(obj(case["batch1After"])["alarms"])[physical]
+                        for physical in moved.values()), "First batch alarms changed before continuation")
+            stale = [logical for logical in sorted(physical_ids) if logical not in moved
+                     and any(tag.get("Key") == "aws:cloudformation:stack-id" and tag.get("Value") == old_target
+                             for tag in rows(obj(alarms[physical_ids[logical]])["Tags"]))]
+            require(len(stale) >= 2, "Need two remaining alarms still carrying the exact old target stack ID")
+            selected = {logical: physical_ids[logical] for logical in stale[:2]}
+            final = proposal({**moved, **selected})
+            case["templates"] = {"before": cleanup_bodies, "after": final}
+            for side in ("source", "target"):
+                known[side] = [*rows(known[side]), final[side]]
+            operation: dict[str, Json] = {"caseName": case_name, "batch": batch, "stackIds": dict(stacks),
+                                          "selectedPhysicalIds": selected, "templates": case["templates"]}
+            if batch == 1:
+                require_absent(aws, case_name + "-target")
+                operation["nativeTarget"] = {"name": case_name + "-target", "absentBeforeRequest": True,
+                                             "template": final["target"], "verified": False}
+                case["nativeTarget"] = operation["nativeTarget"]
+                request = request_for(selected)
+            else:
+                request = {"EnableStackCreation": False, "Description": case_name,
+                           "StackDefinitions": [{"StackName": stacks[side], "TemplateBody": json.dumps(final[side])}
+                                                for side in ("source", "target")],
+                           "ResourceMappings": [{"Source": {"StackName": source, "LogicalResourceId": logical},
+                                                 "Destination": {"StackName": stacks["target"], "LogicalResourceId": logical}}
+                                                for logical in selected]}
+            operation["refactorRequest"] = request
+            operations.append(operation)
+            case["unsafeRefactor"] = True
+            save(report)
+            response = aws.call("deploy", "cloudformation", "create-stack-refactor", request)
+            operation["refactorId"] = text(response.get("StackRefactorId"))
+            save(report)
+            require(operation["refactorId"] not in [old_refactor, *[item.get("refactorId") for item in operations[:-1]]],
+                    "Recovery returned a previous operation")
+            status = wait_refactor(aws, text(operation["refactorId"]), stacks, report, operation, ("AVAILABLE",))
+            operation["stackIds"] = dict(stacks)
+            require(status == bound_status(operation), "Recovery preview operation changed")
+            require(stacks.get("target") != old_target, "Recovery returned the deleted target ARN")
+            if status.get("Status") == "CREATE_FAILED":
+                case["unsafeRefactor"] = False
+                case["outcome"] = classify(str(status.get("StatusReason")))
+            else:
+                require(status.get("Status") == "CREATE_COMPLETE" and status.get("ExecutionStatus") == "AVAILABLE"
+                        and "target" in stacks, "Unexpected recovery preview state")
+                actions = aws.cf("list-stack-refactor-actions", {"StackRefactorId": operation["refactorId"]})
+                operation["preview"] = actions
+                save(report)
+                validate_preview(actions, stacks, case_name, selected, obj(operation.get("nativeTarget", {})))
+                preview = capture(f"batch{batch}Preview", cleanup_bodies)
+                require(obj(case[f"batch{batch}Preview"])["alarms"] == obj(case[f"batch{batch}Before"])["alarms"]
+                        and all(preview[side] == before[side] for side in before)
+                        and (batch == 2 or obj(obj(preview["target"])["stack"]).get("StackStatus") == "REVIEW_IN_PROGRESS"),
+                        "Recovery stacks changed before execution")
+                require(bound_status(operation) == status, "Recovery operation changed before execution")
+                aws.call("deploy", "cloudformation", "execute-stack-refactor", {"StackRefactorId": operation["refactorId"]})
+                status = wait_refactor(aws, text(operation["refactorId"]), stacks, report, operation,
+                                       ("EXECUTE_COMPLETE", "ROLLBACK_COMPLETE", "EXECUTE_FAILED", "ROLLBACK_FAILED", "OBSOLETE"))
+                require(status == bound_status(operation)
+                        and status.get("ExecutionStatus") in ("EXECUTE_COMPLETE", "ROLLBACK_COMPLETE"),
+                        "Recovery execution state unresolved; preserving exact resources")
+                case["unsafeRefactor"] = False
+                case["outcome"] = ("passed" if status["ExecutionStatus"] == "EXECUTE_COMPLETE"
+                                   else classify(str(status.get("ExecutionStatusReason"))))
+                if status["ExecutionStatus"] == "EXECUTE_COMPLETE":
+                    moved = {**moved, **selected}
+                    cleanup_bodies = final
+            case["refactor"] = status
+            operation["outcome"] = case["outcome"]
+            after = capture(f"batch{batch}After", cleanup_bodies)
+            alarms = obj(obj(case[f"batch{batch}After"])["alarms"])
+            operation["untouchedTagsAfter"] = {logical: obj(alarms[physical])["Tags"]
+                                               for logical, physical in physical_ids.items() if logical not in {*moved, *selected}}
+            save(report)
+            if case["outcome"] != "passed":
+                break
+            require(all(obj(obj(after[side])["stack"]).get("StackStatus") in ("CREATE_COMPLETE", "UPDATE_COMPLETE")
+                        for side in stacks), "Completed recovery stacks are not stable")
+            for logical, physical in moved.items():
+                tags = {text(row["Key"]): row["Value"] for row in rows(obj(alarms[physical])["Tags"])}
+                require(all(tags.get(key) == value for key, value in {
+                    "aws:cloudformation:stack-name": case_name + "-target",
+                    "aws:cloudformation:stack-id": stacks["target"], "aws:cloudformation:logical-id": logical,
+                }.items()), "Moved alarm has incorrect system-tag ownership")
+    finally:
+        if case.get("unsafeRefactor") is False:
+            try:
+                if operations:
+                    operation = operations[-1]
+                    status = bound_status(operation)
+                    require(status == operation["refactor"], "Recovery operation changed before cleanup")
+                capture("cleanupProof", cleanup_bodies)
+                if operations and status.get("ExecutionStatus") == "ROLLBACK_COMPLETE" and not moved and "target" in stacks:
+                    require(describe(aws, source, case_name + "-source", EXECUTION_ROLE).get("StackStatus")
+                            == "UPDATE_ROLLBACK_COMPLETE", "Recovery source is not rolled back")
+                    delete_empty_target(operation, selected)
+                cleanup(aws, case_name, stacks, moving, roles, report, case)
+                for deletion in rows(case["deletedTargets"]):
+                    identifier = text(obj(deletion["stackIds"])["target"])
+                    require(describe(aws, identifier, case_name + "-target", EXECUTION_ROLE).get("StackStatus")
+                            == "DELETE_COMPLETE", "Previously deleted native target is no longer deleted")
+                save(report)
+            except (ValueError, RuntimeError, OSError, subprocess.TimeoutExpired) as error:
+                if "cleanup" in case:
+                    obj(case["cleanup"])["verified"] = False
+                case["cleanupError"] = str(error)
+                case["outcome"] = "inconclusive-cleanup"
+                save(report)
+                raise
+
+
 def interrupted(signum: int, frame: object) -> None:
     raise InterruptedError(f"Runner signal {signum}; stopping experiments")
 
@@ -840,6 +1097,7 @@ def main() -> int:
                         "batch-twenty-five-new-destination"],
             "imports": imports,
             "cleanup-aborted-context": ["cleanup-aborted-context"],
+            "recover-bulk-small-batch": ["recover-bulk-small-batch"],
         }
         require(suite in suites, f"Unknown probe suite: {suite}")
         report["suite"] = suite
@@ -869,6 +1127,8 @@ def main() -> int:
             save(report)
             if variant == "cleanup-aborted-context":
                 cleanup_aborted_context(aws, report, case)
+            elif variant == "recover-bulk-small-batch":
+                recover_bulk_small_batch(aws, report, case, deadline)
             else:
                 run_case(aws, f"{PREFIX}{run_id}-{attempt}-", variant, report, case)
             print(json.dumps({"variant": variant, "outcome": case["outcome"], "cleanupVerified": True}), flush=True)
