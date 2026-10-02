@@ -3,8 +3,8 @@
 Use this procedure before changing CloudFormation stack boundaries, resource
 ownership or deployment roles. Build, synthesize and deploy AWS artifacts only
 in CI/CD. The [release gates](release-gates.md) own ordinary release checks;
-the [monitoring migration](monitoring-stack-migration.md) owns its exact mappings,
-roles, evidence format and recovery implementation.
+the [monitoring ownership guide](monitoring-stack-migration.md) describes the
+completed split and links its current read-only evidence validators.
 
 ## Prepare while ordinary releases remain possible
 
@@ -33,16 +33,17 @@ roles, evidence format and recovery implementation.
    [CloudFormation service roles](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-servicerole.html).
    Use [IAM simulation](https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_testing-policies.html)
    as supporting evidence: its result can differ from a live request. Prepare
-   permissions and pass the read preflight before switching ownership. The
-   [monitoring native server gate](monitoring-stack-migration.md#native-server-gate)
-   documents the existing separate caller and RDS preflight.
+   permissions and pass the read preflight before switching ownership.
 4. Capture an encrypted private baseline: account/region, commit and CI run,
    authoritative stack IDs, logical-to-physical resource mappings for moved and
    surviving resources, deployed/proposed templates, parameters, outputs, roles,
    stack policies, tags and live resource settings. Record application health and
    data-preservation evidence appropriate to the affected services. Define the
-   expected after-state and comparisons before executing. Publish only sanitized
-   summaries; keep credentials, full templates and detailed configuration private.
+   expected after-state and comparisons before executing. Keep bundling inputs
+   and staging paths identical when comparing assemblies: source-map paths can
+   change asset hashes even when source code is unchanged. Reject unexplained
+   differences before a native move. Publish only sanitized summaries; keep
+   credentials, full templates and detailed configuration private.
 5. Define the execution deadline, retry limit, stop conditions and recovery owner
    in the change procedure. Drain older releases and serialize ownership mutations
    with deployment under `main-release`. Do not rerun historical workflow code
@@ -72,11 +73,11 @@ roles, evidence format and recovery implementation.
    repeated rollback requests or changing skip lists without new evidence are
    not a recovery strategy. Use the
    [AWS rollback procedure](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-continueupdaterollback.html)
-   and the reviewed migration-specific recovery path. `ResourcesToSkip` applies
-   to eligible rollback failures and requires subsequent consistency repair;
-   an accepted request alone does not prove repair. Do not delete/recreate
-   resources, substitute retain/import, revert ownership or replace execution
-   roles as an improvised way to unblock releases.
+   and a separately reviewed recovery plan for the actual operation and state.
+   `ResourcesToSkip` applies to eligible rollback failures and requires subsequent
+   consistency repair; an accepted request alone does not prove repair. Do not
+   delete/recreate resources, substitute retain/import, revert ownership or replace
+   execution roles as an improvised way to unblock releases.
 9. Escalate a stalled recovery to AWS Support with private account/region,
    stack ARNs, operation IDs, CI run/commit, UTC timeline, exact errors and
    sanitized request/response payloads, including supplied skip IDs and tokens.
@@ -109,22 +110,28 @@ roles, evidence format and recovery implementation.
     with the applicable preservation checks and release gates. Record the deployed
     commit and result. Until that deployment succeeds, report stack recovery and
     deployment verification separately. Retire temporary recovery machinery only
-    after these outcomes are verified under the migration's cleanup procedure.
+    after these outcomes are verified; retain evidence required by ordinary
+    release guards.
 
 ## Sanitized incident example
 
-A monitoring split attempted to move CloudWatch alarms and Logs metric filters
-while keeping the database in core. The RDS endpoint in core outputs still
-required an RDS read. After the refactor failed, rollback encountered a null
-`AlarmName` error, and `ResourcesToSkip` attempts did not restore deployment
-control. The resulting stack state blocked releases. AWS Support recovered both
-stack statuses to `UPDATE_ROLLBACK_COMPLETE` and said deployments could resume.
-The subsequent bulk move failed with an unsupported Alarm tag-schema error and
-rolled back with resources preserved. An isolated 58-alarm native move reproduced
-that error without RDS; 2-, 10- and 25-alarm native moves succeeded. Two successive
-2-alarm moves also verified stale-tag handling and reuse of an existing target,
-with all 58 identities/configurations preserved, correct moved tags and cleanup.
-These results support a bounded batching experiment, not a documented AWS limit,
-a confirmed root cause, a patched service defect or a guaranteed production fix.
-Production migration and a restored release remain unverified; report them
-separately from successful diagnostics and recovered stack statuses.
+A monitoring split moved CloudWatch alarms and Logs metric filters while keeping
+the database in core. The RDS endpoint in core outputs still required an RDS read.
+The first failed refactor encountered a null `AlarmName` error during rollback;
+`ResourcesToSkip` attempts did not restore deployment control. AWS performed
+internal recovery and restored both stack statuses to `UPDATE_ROLLBACK_COMPLETE`.
+Its recommendation that deployments could resume did not establish that another
+bulk move would succeed: the subsequent attempt failed with an unsupported Alarm
+tag-schema error and rolled back with resources preserved.
+
+An isolated 58-alarm native move reproduced the tag-schema error without RDS;
+2-, 10- and 25-alarm moves succeeded. Successive small moves also verified target
+reuse and stale-tag handling. These bounded experiments informed the successful
+production batches; they establish neither a universal resource limit, a proven
+root cause nor an AWS service patch. Production migration, physical preservation
+and restored ordinary deployment are verified separately in the
+[completion evidence](monitoring-stack-migration.md#verified-completion-evidence).
+
+A recovered stack status, an accepted rollback request and a successful small
+experiment answer different questions. Preserve evidence, bound experiments and
+require a complete normal release before declaring deployment control restored.
