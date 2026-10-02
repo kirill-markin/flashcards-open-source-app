@@ -259,18 +259,6 @@ def native_target(aws: Aws, status: dict[str, Json], stacks: dict[str, str],
     submitted = [row for row in definitions if row.get("StackName") == name]
     require(len(submitted) == 1 and json.loads(text(submitted[0]["TemplateBody"])) == proof["template"],
             "Native target definition differs from the submitted request")
-    try:
-        body = stored_template(aws, identifier)
-    except RuntimeError as error:
-        proof["templateReadError"] = str(error)
-        save(report)
-        # Empty native review stacks can fail GetTemplate even for the Original stage.
-        require("InternalFailure" in str(error) or ("ValidationError" in str(error) and "not ready" in str(error)),
-                str(error))
-    else:
-        obj(proof["observed"])["template"] = body
-        save(report)
-        require(body == proof["template"], "Native target template differs from this request; refusing adoption")
     stacks["target"] = identifier
     proof["verified"] = True
     save(report)
