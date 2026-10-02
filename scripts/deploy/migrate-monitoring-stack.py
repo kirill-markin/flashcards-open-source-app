@@ -118,11 +118,17 @@ def relevant_refactors(aws: Aws) -> dict[str, dict[str, Json]]:
 
 
 def retired_refactors(aws: Aws) -> set[str]:
-    relevant = relevant_refactors(aws)
-    return {refactor for refactor, validator in (
+    retired: set[str] = set()
+    # Historical operations can remain directly readable after disappearing from listings.
+    for refactor, validator in (
         (REVIEWED_REFACTOR, aborted_attempt), (retry.RETRY_REFACTOR, retry.aborted_attempt),
         (preview.PREVIEW, preview.aborted_attempt),
-    ) if refactor in relevant and validator(aws, relevant[refactor])}
+    ):
+        status = aws.cf("describe-stack-refactor", ["--stack-refactor-id", refactor])
+        equal(status.get("StackRefactorId"), refactor, "historical refactor identity")
+        equal(validator(aws, status), True, refactor + "/verified historical retirement")
+        retired.add(refactor)
+    return retired
 
 
 def ownership(aws: Aws) -> str:

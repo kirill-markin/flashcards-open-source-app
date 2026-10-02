@@ -139,10 +139,10 @@ def active_refactors(aws: driver.Aws, retired: set[str]) -> set[str]:
         raise ValueError("Only exact receipt-verified historical attempts may be excluded")
     relevant = driver.relevant_refactors(aws)
     for refactor in retired:
-        if refactor not in relevant:
-            raise ValueError(f"Retired operation {refactor} missing from complete refactor listing")
+        status = aws.cf("describe-stack-refactor", ["--stack-refactor-id", refactor])
+        equal(status.get("StackRefactorId"), refactor, "historical refactor identity")
         check = validators[refactor]
-        equal(check(aws, relevant[refactor]), True, refactor + "/verified historical retirement")
+        equal(check(aws, status), True, refactor + "/verified historical retirement")
     return set(relevant) - retired
 
 
