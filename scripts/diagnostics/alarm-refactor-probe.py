@@ -835,6 +835,7 @@ def main() -> int:
                                            for tags in ("absent", "empty", "tagged")] + imports,
             "context": ["context-single-new-destination", "context-bulk-existing-destination",
                         "context-bulk-new-destination"],
+            "native-bulk": ["context-bulk-new-destination"],
             "batches": ["batch-two-new-destination", "batch-ten-new-destination",
                         "batch-twenty-five-new-destination"],
             "imports": imports,

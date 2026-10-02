@@ -11,6 +11,7 @@ on:
         options:
           - baseline
           - context
+          - native-bulk
           - batches
           - imports
           - cleanup-aborted-context
