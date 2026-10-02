@@ -49,6 +49,10 @@ roles, evidence format and recovery implementation.
    after ownership changes. Preparation can preserve release compatibility, but a
    failed mutation of a shared stack can still block subsequent releases; there
    is no guarantee of uninterrupted deployments or zero downtime.
+   Before retrying production, isolated experiments should match resource count,
+   native-created versus existing destination, naming, tags, dependencies and
+   rollback residue. Record provided guidance separately from actual operation
+   outcomes, physical/configuration preservation and restored deployment control.
 
 ## Execute once, then follow evidence
 
@@ -114,10 +118,13 @@ while keeping the database in core. The RDS endpoint in core outputs still
 required an RDS read. After the refactor failed, rollback encountered a null
 `AlarmName` error, and `ResourcesToSkip` attempts did not restore deployment
 control. The resulting stack state blocked releases. AWS Support recovered both
-stack statuses to `UPDATE_ROLLBACK_COMPLETE` and confirmed on 2 October 2026 that
-deployments could resume; an actual resumed deployment was not yet verified in
-that evidence. Historic failed alarm entries remained, which did not by itself
-prove live alarm failure. Support's role wording differed from prior caller
-evidence, so this does not establish which role lacked access or that AWS patched
-a CloudFormation service defect. The reusable lesson is to verify each execution
-identity and each recovery outcome independently.
+stack statuses to `UPDATE_ROLLBACK_COMPLETE` and said deployments could resume.
+The subsequent bulk move failed with an unsupported Alarm tag-schema error and
+rolled back with resources preserved. An isolated 58-alarm native move reproduced
+that error without RDS; 2-, 10- and 25-alarm native moves succeeded. Two successive
+2-alarm moves also verified stale-tag handling and reuse of an existing target,
+with all 58 identities/configurations preserved, correct moved tags and cleanup.
+These results support a bounded batching experiment, not a documented AWS limit,
+a confirmed root cause, a patched service defect or a guaranteed production fix.
+Production migration and a restored release remain unverified; report them
+separately from successful diagnostics and recovered stack statuses.
