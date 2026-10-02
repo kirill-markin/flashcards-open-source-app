@@ -523,7 +523,11 @@ def run_import(aws: Aws, case_name: str, stacks: dict[str, str], moving: dict[st
 
 def run_case(aws: Aws, prefix: str, variant: str, report: dict[str, Json], case: dict[str, Json]) -> None:
     case_name = prefix + variant
-    count = 58 if variant in ("context-bulk-existing-destination", "context-bulk-new-destination") else 1
+    count = {
+        "context-bulk-existing-destination": 58, "context-bulk-new-destination": 58,
+        "batch-two-new-destination": 2, "batch-ten-new-destination": 10,
+        "batch-twenty-five-new-destination": 25,
+    }.get(variant, 1)
     native = variant.endswith("-new-destination")
     moving: dict[str, Json] = {
         "ProbeResource" if count == 1 else f"ProbeResource{index:02d}": definition(case_name, variant)
@@ -831,6 +835,8 @@ def main() -> int:
                                            for tags in ("absent", "empty", "tagged")] + imports,
             "context": ["context-single-new-destination", "context-bulk-existing-destination",
                         "context-bulk-new-destination"],
+            "batches": ["batch-two-new-destination", "batch-ten-new-destination",
+                        "batch-twenty-five-new-destination"],
             "imports": imports,
             "cleanup-aborted-context": ["cleanup-aborted-context"],
         }
