@@ -2,6 +2,16 @@ name: Alarm refactor probe
 
 on:
   workflow_dispatch:
+    inputs:
+      suite:
+        description: Disposable experiment suite
+        type: choice
+        required: true
+        default: baseline
+        options:
+          - baseline
+          - context
+          - imports
 
 concurrency:
   group: main-release
@@ -29,6 +39,8 @@ jobs:
           aws-region: eu-central-1
           allowed-account-ids: '506210661494'
       - name: Run disposable experiments
+        env:
+          PROBE_SUITE: ${{ inputs.suite }}
         run: python3 scripts/diagnostics/alarm-refactor-probe.py
       - name: Upload probe evidence
         if: always()
