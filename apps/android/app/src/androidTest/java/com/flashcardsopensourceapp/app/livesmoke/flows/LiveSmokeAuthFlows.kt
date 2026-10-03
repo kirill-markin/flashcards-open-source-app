@@ -6,7 +6,6 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
-import com.flashcardsopensourceapp.app.appSnackbarTag
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.clickTag
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.clickText
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.currentBlockingSystemDialogSummaryOrNull
@@ -14,6 +13,7 @@ import com.flashcardsopensourceapp.app.livesmoke.diagnostics.dismissExternalSyst
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.hasVisibleText
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.runWithInlineRawScreenStateOnFailure
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.tapBackIcon
+import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitForAppSnackbarToDisappear
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitUntilWithMitigation
 import com.flashcardsopensourceapp.app.livesmoke.support.LiveSmokeContext
 import com.flashcardsopensourceapp.app.livesmoke.support.appGraph
@@ -21,7 +21,6 @@ import com.flashcardsopensourceapp.app.livesmoke.support.captureVisibleWorkspace
 import com.flashcardsopensourceapp.app.livesmoke.support.cloudSyncChooserPrompt
 import com.flashcardsopensourceapp.app.livesmoke.support.currentCloudSettingsSummary
 import com.flashcardsopensourceapp.app.livesmoke.support.currentWorkspaceSummaryOrNull
-import com.flashcardsopensourceapp.app.livesmoke.support.internalUiTimeoutMillis
 import com.flashcardsopensourceapp.feature.settings.cloud.cloudPostAuthExistingButtonTag
 import com.flashcardsopensourceapp.feature.settings.cloud.cloudPostAuthWorkspaceRowTag
 import com.flashcardsopensourceapp.feature.settings.cloud.cloudSignInEmailFieldTag
@@ -185,15 +184,9 @@ private fun LiveSmokeContext.waitForLinkedAccountStatusAfterSignIn() {
         )
     }
 
-    // Completion navigation follows synchronous success-message emission. Drain its queued
-    // collection and composition before accepting absence, including snackbar exit removal.
-    composeRule.waitForIdle()
-    waitUntilWithMitigation(
-        timeoutMillis = internalUiTimeoutMillis,
+    waitForAppSnackbarToDisappear(
         context = "while waiting for the post-sign-in snackbar to leave the linked account surface"
-    ) {
-        composeRule.onAllNodesWithTag(appSnackbarTag).fetchSemanticsNodes().isEmpty()
-    }
+    )
 }
 
 private fun LiveSmokeContext.currentActiveWorkspaceIdOrNull(): String? {
