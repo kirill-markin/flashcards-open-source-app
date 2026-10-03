@@ -19,7 +19,6 @@ export type UserRow = Readonly<{
   userId: string;
   email: string | null;
   kind: UserKind;
-  signInProviders: string | null;
   mergedIntoUserId: string | null;
   createdAt: string;
   firstSeenAt: string | null;
@@ -52,7 +51,7 @@ export type UserRow = Readonly<{
 
 type UserField = keyof UserRow;
 
-function utcInstantSql(sqlExpression: string): string {
+export function utcInstantSql(sqlExpression: string): string {
   return `to_char(${sqlExpression} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`;
 }
 
@@ -63,7 +62,6 @@ const userFieldSql: Readonly<Record<UserField, string>> = {
   userId: "settings.user_id",
   email: "settings.email",
   kind: "CASE WHEN identities.user_id IS NULL THEN 'guest' ELSE 'account' END",
-  signInProviders: "identities.providers",
   mergedIntoUserId: "merged_guests.account_user_id",
   createdAt: utcInstantSql("settings.created_at"),
   firstSeenAt: utcInstantSql("activity.first_seen_at"),
@@ -119,9 +117,8 @@ export function buildUsersSql(countrySampleRange: AnalyticsDateRange): string {
     WHERE identity_links.source = 'server_derived'
     ORDER BY identity_links.anonymous_id, identity_links.linked_at, identity_links.link_id
   ), identities AS (
-    SELECT user_id, string_agg(DISTINCT provider_type, ', ' ORDER BY provider_type) AS providers
+    SELECT DISTINCT user_id
     FROM auth.user_identities
-    GROUP BY user_id
   ), activity AS (
     SELECT events.actor_id::text AS actor_id,
       min(events.occurred_at) AS first_seen_at,
@@ -283,7 +280,6 @@ function parseUserRow(value: AdminQueryValue | undefined, rowIndex: number): Use
     userId: reader.string("userId"),
     email: reader.nullableString("email"),
     kind: parseOneOf(reader.string("kind"), ["account", "guest"], "kind"),
-    signInProviders: reader.nullableString("signInProviders"),
     mergedIntoUserId: reader.nullableString("mergedIntoUserId"),
     createdAt: reader.string("createdAt"),
     firstSeenAt: reader.nullableString("firstSeenAt"),

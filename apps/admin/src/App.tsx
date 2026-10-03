@@ -34,7 +34,8 @@ import {
   loadReviewEventsByDateReport,
   type ReviewEventsByDateRange,
 } from "./reports/reviewEventsByDate/query";
-import { getAdminRoutePath, parseAdminRoute, type AdminRoute } from "./routing";
+import { getAdminRoutePath, parseAdminRoute, usersPath, type AdminRoute } from "./routing";
+import { UserPage } from "./users/userPage/UserPage";
 import { UsersPage } from "./users/UsersPage";
 
 type AppState =
@@ -234,6 +235,9 @@ export default function App(): JSX.Element {
   const [appState, setAppState] = useState<AppState>({ status: "loading" });
   const [reportState, setReportState] = useState<AdminReportState>({ status: "loading" });
   const [route, setRoute] = useState<AdminRoute>(() => parseAdminRoute(window.location.pathname));
+  // The Users list keeps its table state in its query string, so the user page's back link returns
+  // to the list exactly as it was left when the page was opened from it.
+  const [usersListPath, setUsersListPath] = useState<string>(usersPath);
   const [reportLoadRevision, setReportLoadRevision] = useState<number>(0);
   // The whole filter selection lives here, above every area, so leaving General for Funnels and
   // coming back keeps it. It is null until the available range is known, because the default
@@ -279,12 +283,17 @@ export default function App(): JSX.Element {
     };
   }, []);
 
+  // `path` may carry a query string, which is pushed with it but never read as part of the route.
   const navigateToPath = useCallback((path: string): void => {
+    if (window.location.pathname === usersPath) {
+      setUsersListPath(`${usersPath}${window.location.search}`);
+    }
+
     if (path !== window.location.pathname) {
       window.history.pushState(null, "", path);
     }
 
-    setRoute(parseAdminRoute(path));
+    setRoute(parseAdminRoute(new URL(path, window.location.origin).pathname));
   }, []);
 
   const handleTerminalAdminError = useCallback((error: unknown, config: AdminAppConfig): boolean => {
@@ -628,6 +637,21 @@ export default function App(): JSX.Element {
       <UsersPage
         config={appState.config}
         adminEmail={appState.session.email}
+        onNavigate={navigateToPath}
+        onTerminalAdminError={handleTerminalAdminError}
+      />
+    );
+  }
+
+  if (route.kind === "user") {
+    return (
+      <UserPage
+        key={route.userId}
+        config={appState.config}
+        adminEmail={appState.session.email}
+        userId={route.userId}
+        tab={route.tab}
+        usersListPath={usersListPath}
         onNavigate={navigateToPath}
         onTerminalAdminError={handleTerminalAdminError}
       />

@@ -173,3 +173,12 @@
 .data-table-row-muted td {
   color: var(--muted-soft);
 }
+
+.data-table-link {
+  color: var(--accent-strong);
+  text-decoration: none;
+}
+
+.data-table-link:hover {
+  text-decoration: underline;
+}
