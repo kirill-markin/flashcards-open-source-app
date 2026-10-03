@@ -848,8 +848,8 @@
 "settings.language.supported.vietnamese" = "Vietnamiečių";
 "settings.language.supported.zulu" = "Zulų";
 
-"premium.comingSoon.title" = "Premium jau netrukus";
-"premium.comingSoon.message" = "Prenumeratos dar nepasiekiamos.";
+"premium.offer.title" = "Premium";
+"premium.offer.benefits" = "1 000 DI žinučių per mėnesį ir pasirinktinės akcento spalvos. Sinchronizavimas visiems nemokamas.";
 "premium.aiLimit.title" = "Pasiektas DI žinučių limitas";
 
 "settings.accentColor.title" = "Akcento spalva";
@@ -863,8 +863,6 @@
 "settings.accentColor.invalidHex" = "Įveskite spalvą formatu #RRGGBB su šešiais šešioliktainiais skaitmenimis.";
 "settings.accentColor.premiumNote" = "Pasirinktinės akcento spalvos pasiekiamos su Premium. Išsaugota spalva grįžta, kai Premium aktyvus.";
 
-"premium.apple.sandbox" = "Bandomasis Premium pirkimas";
-"premium.apple.notice" = "Bandomiesiems pirkimams reikia TestFlight. Viešas pardavimas dar nepradėtas.";
 "premium.apple.renewal" = "Automatiškai atnaujinama iki atšaukimo. Tvarkykite arba atšaukite App Store prenumeratose.";
 "premium.apple.trial" = "Nemokamas bandomasis laikotarpis: %@. Tada:";
 "premium.apple.loadFailed" = "Nepavyko įkelti App Store pasiūlymo. Patikrinkite ryšį ir bandykite dar kartą.";

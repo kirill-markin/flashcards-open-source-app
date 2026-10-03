@@ -848,8 +848,8 @@
 "settings.language.supported.vietnamese" = "Vjetnamiešu";
 "settings.language.supported.zulu" = "Zulu";
 
-"premium.comingSoon.title" = "Premium būs pieejams drīzumā";
-"premium.comingSoon.message" = "Abonementi vēl nav pieejami.";
+"premium.offer.title" = "Premium";
+"premium.offer.benefits" = "1000 MI ziņojumu mēnesī un pielāgotas akcenta krāsas. Sinhronizācija visiem ir bez maksas.";
 "premium.aiLimit.title" = "Sasniegts MI ziņojumu limits";
 
 "settings.accentColor.title" = "Akcenta krāsa";
@@ -863,8 +863,6 @@
 "settings.accentColor.invalidHex" = "Ievadiet krāsu formātā #RRGGBB ar sešiem heksadecimāliem cipariem.";
 "settings.accentColor.premiumNote" = "Pielāgotas akcenta krāsas ir pieejamas ar Premium. Saglabātā krāsa atgriežas, kad Premium ir aktīvs.";
 
-"premium.apple.sandbox" = "Premium testa pirkums";
-"premium.apple.notice" = "Testa pirkumiem nepieciešams TestFlight. Publiskā pārdošana vēl nav atvērta.";
 "premium.apple.renewal" = "Automātiski atjaunojas līdz atcelšanai. Pārvaldiet vai atceliet App Store abonementos.";
 "premium.apple.trial" = "Bezmaksas izmēģinājums: %@. Pēc tam:";
 "premium.apple.loadFailed" = "Neizdevās ielādēt App Store piedāvājumu. Pārbaudiet savienojumu un mēģiniet vēlreiz.";

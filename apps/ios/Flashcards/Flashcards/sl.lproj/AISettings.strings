@@ -848,8 +848,8 @@
 "settings.language.supported.vietnamese" = "Vietnamščina";
 "settings.language.supported.zulu" = "Zulujščina";
 
-"premium.comingSoon.title" = "Premium prihaja kmalu";
-"premium.comingSoon.message" = "Naročnine še niso na voljo.";
+"premium.offer.title" = "Premium";
+"premium.offer.benefits" = "1.000 sporočil UI na mesec in barve poudarkov po meri. Sinhronizacija je brezplačna za vse.";
 "premium.aiLimit.title" = "Dosežena je omejitev sporočil UI";
 
 "settings.accentColor.title" = "Barva poudarka";
@@ -863,8 +863,6 @@
 "settings.accentColor.invalidHex" = "Vnesite barvo v obliki #RRGGBB s šestimi šestnajstiškimi števkami.";
 "settings.accentColor.premiumNote" = "Barve poudarka po meri so na voljo s Premium. Shranjena barva se vrne, ko je Premium aktiven.";
 
-"premium.apple.sandbox" = "Preizkusni nakup Premium";
-"premium.apple.notice" = "Preizkusni nakupi zahtevajo TestFlight. Javna prodaja še ni odprta.";
 "premium.apple.renewal" = "Samodejno se podaljšuje do preklica. Upravljajte ali prekličite v naročninah App Store.";
 "premium.apple.trial" = "Brezplačno preizkusno obdobje: %@. Nato:";
 "premium.apple.loadFailed" = "Ponudbe App Store ni bilo mogoče naložiti. Preverite povezavo in poskusite znova.";

@@ -848,8 +848,8 @@
 "settings.language.supported.vietnamese" = "Kivietinamu";
 "settings.language.supported.zulu" = "Kizulu";
 
-"premium.comingSoon.title" = "Premium inakuja hivi karibuni";
-"premium.comingSoon.message" = "Usajili bado haupatikani.";
+"premium.offer.title" = "Premium";
+"premium.offer.benefits" = "Ujumbe 1,000 wa AI kwa mwezi na rangi maalum za msisitizo. Usawazishaji ni bure kwa kila mtu.";
 "premium.aiLimit.title" = "Umefikia kikomo cha ujumbe wa AI";
 
 "settings.accentColor.title" = "Rangi ya msisitizo";
@@ -863,8 +863,6 @@
 "settings.accentColor.invalidHex" = "Weka rangi kama #RRGGBB, ukitumia tarakimu sita za mfumo wa kumi na sita.";
 "settings.accentColor.premiumNote" = "Rangi maalum za msisitizo zinapatikana kwa Premium. Rangi uliyohifadhi itarudi Premium inapokuwa hai.";
 
-"premium.apple.sandbox" = "Ununuzi wa majaribio wa Premium";
-"premium.apple.notice" = "Ununuzi wa majaribio unahitaji TestFlight. Mauzo kwa umma bado hayajafunguliwa.";
 "premium.apple.renewal" = "Hujisasisha kiotomatiki hadi utakapoighairi. Dhibiti au ghairi katika usajili wako wa App Store.";
 "premium.apple.trial" = "Jaribio la bure: %@. Kisha:";
 "premium.apple.loadFailed" = "Imeshindwa kupakia ofa ya App Store. Angalia muunganisho wako na ujaribu tena.";
