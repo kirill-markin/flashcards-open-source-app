@@ -10,6 +10,7 @@ import {
 } from "react-router";
 import webPackageInfo from "../../package.json";
 import { getAppConfig } from "../config";
+import { isStaleBundleReloadScheduled } from "../pageReloadState";
 
 type AppErrorBoundaryProps = Readonly<{
   children: ReactNode;
@@ -418,6 +419,12 @@ function shouldDropNonActionableSentryEvent(event: SentryEvent): boolean {
 }
 
 export function prepareSentryEventForSend(event: SentryEvent): SentryEvent | null {
+  // Once a stale-bundle reload is scheduled, Vite resolves the cancelled import
+  // to `undefined`, so errors raised before navigation are reload artifacts.
+  if (isStaleBundleReloadScheduled()) {
+    return null;
+  }
+
   if (shouldDropNonActionableSentryEvent(event)) {
     return null;
   }
