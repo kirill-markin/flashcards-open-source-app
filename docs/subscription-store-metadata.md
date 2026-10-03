@@ -4,6 +4,9 @@ Related app listings: [App Store Connect](app-store-connect-metadata.md) and
 [Google Play](google-play-store-metadata.md). Paid-access rules:
 [Premium entitlements](premium-entitlements.md).
 
+Stripe configuration, web source copy and media references live in
+[Stripe subscriptions](stripe-subscriptions.md).
+
 This file owns the configuration and source texts of the Premium subscription in
 App Store Connect and Google Play. These sections are repository inputs, not
 evidence that the products exist in either console.
