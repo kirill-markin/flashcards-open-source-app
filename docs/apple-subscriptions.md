@@ -1,14 +1,16 @@
 # Apple subscriptions
 
-The Apple catalog is prepared independently of public sales. Public clients retain
-PremiumComingSoon. Catalog setup neither submits a subscription for review nor releases
-an app. Backend ingestion and client purchases follow the
-[paid-access contract](premium-entitlements.md); their delivery is separate from this procedure.
+Catalog and review-material preparation do not submit a subscription or release an app.
+The ordinary iOS purchase offer follows the [paid-access contract](premium-entitlements.md).
+Build dispatch, App Review submission, publication, and global free-account limit activation
+remain separate authorization gates.
 
 [Subscription store metadata](subscription-store-metadata.md) owns product identity and all
 42 Apple subscription/group localizations. The store inventory is separate from the full
 iOS UI language inventory. [Premium offer](premium-offer.md) owns price, trial, allowance,
-and the completed early-user lifetime gift.
+and the completed early-user lifetime gift. The
+[canonical English App Review notes](subscription-store-metadata.md#canonical-english-app-review-notes)
+are the only source for the subscription's reviewer text.
 
 ## Backend sources
 
@@ -38,7 +40,6 @@ can be attributed by its verified `appAccountToken`.
 
 The existing `{"attached":true}` response acknowledges successful processing in both modes;
 it does not confirm that the caller owns the purchase. Sync supplies the caller's entitlement.
-Deploy this backend contract before shipping the separate iOS runtime/transport integration.
 
 ## Configure the catalog after merge
 
@@ -66,10 +67,9 @@ Deploy this backend contract before shipping the separate iOS runtime/transport 
    New territories are not enabled automatically. A changed territory inventory stops the
    run for explicit catalog correction, so availability never outruns price and trial setup.
 5. Keep the final `apple_subscription_catalog_readback` output as the operational record.
-   Replace the pending Apple group/subscription ID cells in
-   [the metadata configuration table](subscription-store-metadata.md#app-store-connect)
-   with the public IDs from this readback. Do not put user, sandbox-account, or transaction
-   data in that file.
+   Confirm the public IDs match
+   [the metadata configuration table](subscription-store-metadata.md#app-store-connect).
+   Keep user, sandbox-account, and transaction data out of that file.
 
 The command requires `--apply`; importing the module performs no operation. It creates no
 annual or lifetime sale, enables no family sharing, changes no free-user allowance, and
@@ -114,10 +114,6 @@ App Store Connect for supported manual correction if API access cannot perform t
 do not rotate unrelated credentials. Repeat the required readback after any console changes.
 
 ## Initial-price console fallback
-
-The existing product's initial price was configured in App Store Connect after the
-initial-price API returned HTTP 409. Its 175 territories and 42 store locales are configured;
-the subscription remains unsubmitted in `MISSING_METADATA`.
 
 If Apple's initial subscription-price POST returns HTTP 409, first read the product's
 prices again. For a product still without its first price, open App Store Connect →
@@ -213,36 +209,36 @@ price differs, stop for an explicit commercial correction instead of overwriting
    codes. A failed delivery or persistence operation must remain non-success so Apple can
    retry. Record no success until the Apple delivery result and database readback agree.
 
-## Sandbox purchase acceptance
+## Ordinary iOS purchase acceptance
 
-Run these steps after the iOS patch is merged and its required static gate is green,
-using a separately authorized TestFlight build and a real Apple sandbox account. Local
-StoreKit configuration transactions are insufficient. Static CI does not compile Swift
-or prove StoreKit acceptance; do not mark this procedure complete without the real build.
-Do not dispatch Xcode Cloud or submit the app/product for review as part of this procedure.
+Run these steps after the iOS offer and these materials are merged to `main` with green
+`Repository static checks`, using a separately authorized TestFlight build and a real
+Apple sandbox account. Local StoreKit configuration transactions are insufficient.
+Static CI does not compile Swift or prove StoreKit acceptance. Record unrun checks as
+pending. This procedure does not authorize Xcode Cloud dispatch or app/product submission.
 
-1. Open Settings → Tests → **Premium sandbox purchase**. The shared sheet must show the
-   App Store's localized price and billing period, a trial only when Apple reports
-   eligibility, automatic renewal terms, Privacy Policy, Apple's Standard EULA, and a
-   top-right Close control. Test an eligible and an ineligible sandbox account. An
-   App Store production installation must not permit buying through this test entry:
-   the purchase service verifies the signed AppTransaction environment again.
+1. As a free user, open Settings → Subscription and its Premium offer, then independently
+   Settings → General → Accent Color and select a premium color. Both must open the same
+   ordinary purchase sheet with Apple's localized price and billing period, a trial only
+   when Apple reports eligibility, automatic renewal terms, Privacy Policy, Apple's
+   Standard EULA, and a top-right Close control. Check an eligible and an ineligible
+   sandbox account. Purchase must not depend on Settings → Tests or a sandbox-only entry.
 2. As a fresh iOS guest without a lifetime gift, fetch the account token and complete
    the premium_monthly trial with that `appAccountToken`. Submit the verified StoreKit
    transaction JWS to `POST /v1/billing/apple/transactions` as
-   `{"signedTransaction":"<private JWS>"}`. Require HTTP 200 with `{"attached":true}`
+   `{"signedTransaction":"<private JWS>","intent":"explicit"}`. Require HTTP 200 with `{"attached":true}`
    before finishing the transaction and a sync-confirmed premium rank of 20 with
-   Apple's actual trial state before dismissing the sheet. It must return to Settings → Tests
+   Apple's actual trial state before dismissing the sheet. It must return to its source
    once, without moving tabs or recreating the navigation stack. Closing, swiping away,
    or cancelling Apple's purchase dialog must preserve the originating screen.
-3. Open the ordinary offer preview, an accent-color premium gate, and the AI quota
-   sheet. They must still show the coming-soon content. The own-OpenAI-key alternative
-   belongs only to the AI quota sheet. A paid or lifetime quota refusal must not offer
+3. Trigger the free-user AI quota sheet; it must expose the same ordinary purchase flow.
+   The own-OpenAI-key alternative belongs only to the AI quota sheet, and using a key
+   must not unlock accent colors. A paid or lifetime quota refusal must not offer
    an upgrade to the same allowance. Preserve the AI draft and transcript after close,
    cancellation, or a newly confirmed entitlement; no close or access callback may
    automatically send another billable turn. A pending accent selection may continue
    once only after its request receives confirmed access for the same account.
-4. In the sandbox sheet and Settings → Subscription, use **Restore purchases** and
+4. In the ordinary offer and Settings → Subscription, use **Restore purchases** and
    **Manage subscription**. Check immediate progress, retryable failures, and return to
    the source screen. Retry the same transaction and restore repeatedly without duplicate
    purchases. Restore into a second authenticated test account B with `intent: "explicit"`
@@ -276,7 +272,7 @@ Do not dispatch Xcode Cloud or submit the app/product for review as part of this
    finish the transaction. If the backend reports 5xx, preserve the pending transaction
    and retry. Launch and foreground in airplane mode with and without an
    Apple purchase: ordinary offline study must remain usable without a technical-error
-   sheet. Subscription Settings and the sandbox offer must expose reconciliation
+   sheet. Subscription Settings and the ordinary offer must expose reconciliation
    failures, with Restore/retry available when connectivity returns.
    Also exercise an empty product lookup and recovery through
    Retry. Failure details must remain visible, with no optimistic access grant.
@@ -287,9 +283,80 @@ Do not dispatch Xcode Cloud or submit the app/product for review as part of this
    test identities and transaction IDs private. Reports exclude sandbox from production
    revenue. Record build, device, language, outcome, and sanitized failure evidence.
 
-Public sales, the free-account allowance, the catalog, and the completed lifetime gift
-remain unchanged. The StoreKit service, presenter, root sheet, and Settings controls linked
-above are the implementation; this procedure is the manual acceptance contract.
+Do not activate global free-account limits to manufacture a quota test. If the selected
+account cannot reach an allowance refusal under the authorized configuration, record that
+check as pending. This procedure neither changes the catalog nor grants new lifetime gifts.
+
+## Prepare App Review materials
+
+Use the existing [App Store Connect client and credentials](xcode-cloud-data-access.md#required-local-secrets)
+from the reviewed checkout. The catalog covers 175 territories and 42 store locales.
+Read fresh product, screenshot, and app-version state before writing. An empty review note,
+missing screenshot, or `MISSING_METADATA` product state is an open preparation gap;
+this checklist is not evidence that those gaps have been closed.
+
+1. Capture a screenshot of the real compiled offer from Settings → Subscription in the
+   accepted build, using a free guest without a lifetime gift. Wait for the real StoreKit
+   product and price to load. Show the offer and purchase control clearly; keep account
+   details and Apple's payment confirmation out of the image. Use a PNG or JPEG meeting
+   Apple's [review screenshot requirements](https://developer.apple.com/help/app-store-connect/reference/in-app-purchases-and-subscriptions/in-app-purchase-information).
+   Save build, device, locale, and capture time with the operational evidence. Until this
+   image exists, leave screenshot preparation pending. Do not substitute a mockup,
+   coming-soon screen, marketing composite, or a locally fabricated StoreKit price.
+2. Read `GET /v1/subscriptions/6816418042` and confirm `productId: premium_monthly`.
+   Extract only the fenced text from the
+   [canonical notes](subscription-store-metadata.md#canonical-english-app-review-notes),
+   confirm it still matches the compiled offer and is at most 4000 characters, and JSON
+   encode it as `reviewNote`. Send `PATCH /v1/subscriptions/6816418042` with
+   `data.type: subscriptions`, `data.id: 6816418042` (a string), and
+   `data.attributes.reviewNote` containing that exact text. Send no other attributes.
+   Read the subscription again and require an exact text match; a PATCH response alone
+   is insufficient. Keep account credentials and unperformed testing claims out of notes.
+3. Read `GET /v1/subscriptions/6816418042/appStoreReviewScreenshot` before reserving an
+   asset. Reuse a matching completed asset. If an existing asset differs or an earlier
+   upload is incomplete, inspect its ID and state before replacing or resuming it; do
+   not blindly repeat creation after an uncertain response. Reserve a missing screenshot
+   with `POST /v1/subscriptionAppStoreReviewScreenshots`: `data.type` is
+   `subscriptionAppStoreReviewScreenshots`; `data.attributes` contains the actual
+   `fileName` and integer byte `fileSize`; `data.relationships.subscription.data` is
+   `{"type":"subscriptions","id":"6816418042"}`. Retain the returned screenshot ID.
+4. Follow every returned `uploadOperations` entry: send exactly the file bytes identified
+   by `offset` and `length` to its `url`, using its `method` and `requestHeaders`. Do not
+   send the App Store Connect bearer token to upload URLs or log their signed query
+   strings. After all parts succeed, `PATCH /v1/subscriptionAppStoreReviewScreenshots/{id}`
+   with `data.type: subscriptionAppStoreReviewScreenshots`, that string `data.id`, and
+   `data.attributes: {"uploaded":true,"sourceFileChecksum":"<whole-file MD5>"}`.
+   This follows Apple's [asset upload procedure](https://developer.apple.com/documentation/appstoreconnectapi/uploading-assets-to-app-store-connect).
+5. Read `GET /v1/subscriptionAppStoreReviewScreenshots/{id}` every 10 seconds for up to
+   two minutes, requiring `assetDeliveryState.state: COMPLETE`; `UPLOAD_COMPLETE` alone
+   is not completion.
+   If it fails or remains pending, retain sanitized errors and stop without claiming
+   readiness. Read the subscription's screenshot relationship again to confirm the
+   same ID; verify filename, byte size, checksum, and the processed image in App Store
+   Connect. If API access cannot complete the upload, use the subscription's App Review
+   Information screenshot field in the console, then perform the same API readbacks.
+   This review-only image is separate from the optional 1024-pixel promotional image;
+   subscription promotion is outside this procedure.
+6. Read `GET /v1/subscriptions/6816418042` again and require `state: READY_TO_SUBMIT`.
+   Recheck notes and screenshot plus the [catalog readback](#required-readback). If Apple
+   still reports `MISSING_METADATA`, inspect the remaining fields in App Store Connect
+   rather than treating a successful upload as product readiness. In Business, verify
+   the Paid Apps Agreement is active and banking and required tax information are
+   complete; record blockers without accepting agreements or changing financial details.
+   Verify the app listing's Terms of Use and Privacy Policy using the canonical
+   [app metadata and upload procedure](app-store-connect-metadata.md); subscription
+   review notes do not replace those public listing fields.
+7. During authorized preparation, create or select the editable new iOS version for the
+   intended build using the [release runbook](release-current-version.md). Keep the
+   version/build, manual acceptance results, screenshot ID, notes and catalog readbacks,
+   and agreement/banking/tax readiness in the pending submission checklist. Apple's
+   [first-subscription procedure](https://developer.apple.com/help/app-store-connect/manage-submissions-to-app-review/submit-an-in-app-purchase/)
+   requires this first subscription, its unapproved group, and the new iOS app version
+   in the same submission. When submission is separately authorized, add the version,
+   Premium group, and subscription to the same draft submission and verify all three
+   before Submit for Review. Metadata preparation stops before Add for Review,
+   Submit for Review, or publication; `READY_TO_SUBMIT` is not approval or evidence of
+   a production purchase.
 
 ## Apple references
 
