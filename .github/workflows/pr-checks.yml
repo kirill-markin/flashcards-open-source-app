@@ -77,7 +77,7 @@ jobs:
               admin_changed=true
             fi
 
-            if grep -Eq '^(infra/|\.github/workflows/pr-checks\.yml$)' "${changed_files_path}"; then
+            if grep -Eq '^(infra/|scripts/generate/write-ci-cdk-context\.py$|scripts/deploy/(prepare-lambda-build-inputs\.sh|lambda-asset-cache\.py|report-cloudformation-budget\.py)$|\.github/workflows/pr-checks\.yml$)' "${changed_files_path}"; then
               infra_changed=true
             fi
 
@@ -176,8 +176,9 @@ jobs:
     name: Type checks and builds
     needs: changes
     if: ${{ needs.changes.outputs.node_changed == 'true' }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    # ARM like the release synth: the Lambda asset cache is keyed by host arch, and ARM64 Lambdas bundle in Docker.
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 45
 
     steps:
       - uses: actions/checkout@v7
@@ -232,6 +233,56 @@ jobs:
       - name: Test infra
         if: ${{ needs.changes.outputs.infra_changed == 'true' }}
         run: npm run test --prefix infra/aws
+
+      # Read-only: pull requests reuse the release's Lambda assets and never save their own.
+      - name: Restore Lambda asset cache
+        if: ${{ needs.changes.outputs.infra_changed == 'true' }}
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache/lambda-assets/v1
+          key: lambda-assets-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.sha }}-pr
+          restore-keys: |
+            lambda-assets-v1-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Prepare exact Lambda copied inputs
+        if: ${{ needs.changes.outputs.infra_changed == 'true' }}
+        run: bash scripts/deploy/prepare-lambda-build-inputs.sh
+
+      # 470 leaves 30 resources below CloudFormation's hard limit. The synth runs without AWS credentials.
+      - name: Check CloudFormation resource budget
+        if: ${{ needs.changes.outputs.infra_changed == 'true' }}
+        working-directory: infra/aws
+        env:
+          CDK_VARS_JSON: ${{ toJSON(vars) }}
+          CDK_CONTEXT_REGION: ${{ vars.AWS_REGION }}
+          CDK_CONTEXT_SENTRY_RELEASE: ${{ github.sha }}
+          # Only parsed to derive githubOidcProviderArn; without it the template gains a resource.
+          AWS_DEPLOY_ROLE_ARN: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          IS_FORK: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
+        run: |
+          set -euo pipefail
+
+          if [[ "${IS_FORK}" == "true" ]] && ! jq -e '(.CDK_DOMAIN_NAME // "") != ""' <<<"${CDK_VARS_JSON}" > /dev/null; then
+            echo "::notice::The CloudFormation resource budget check needs repository variables, which this fork pull request does not receive. A maintainer must verify the per-stack resource count before merging."
+            exit 0
+          fi
+
+          # Same mapping as the aws-web-release.yml synth env: vars.CDK_<suffix> -> CDK_CONTEXT_<suffix>,
+          # except REGION and SENTRY_RELEASE, which come from the step env above.
+          vars_path="${RUNNER_TEMP}/cdk-vars.bin"
+          jq -j 'to_entries[]
+            | select((.key | startswith("CDK_")) and .key != "CDK_REGION" and .key != "CDK_SENTRY_RELEASE")
+            | .key, "\u0000", .value, "\u0000"' <<<"${CDK_VARS_JSON}" > "${vars_path}"
+          while IFS= read -r -d '' key && IFS= read -r -d '' value; do
+            export "CDK_CONTEXT_${key#CDK_}=${value}"
+          done < "${vars_path}"
+
+          python3 ../../scripts/generate/write-ci-cdk-context.py \
+            --output cdk.context.local.json \
+            --aws-deploy-role-arn "${AWS_DEPLOY_ROLE_ARN}"
+          python3 ../../scripts/deploy/lambda-asset-cache.py restore cdk.out
+          npx cdk synth --all --quiet
+          python3 ../../scripts/deploy/report-cloudformation-budget.py cdk.out --fail-at 470
 
   backend_tests:
     name: Backend test suites

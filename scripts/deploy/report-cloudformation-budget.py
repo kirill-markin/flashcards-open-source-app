@@ -75,6 +75,10 @@ def assembly_counts(
 def main() -> None:
     parser = argparse.ArgumentParser(description="Report per-template CloudFormation resource headroom.")
     parser.add_argument("assembly", type=Path)
+    parser.add_argument(
+        "--fail-at", type=int, default=None,
+        help="Fail when any template reaches this many resources (pull-request budget gate).",
+    )
     args = parser.parse_args()
     counts = list(assembly_counts(args.assembly, ()))
     if not counts:
@@ -86,6 +90,7 @@ def main() -> None:
         "| --- | --- | ---: | ---: | --- |",
     ]
     exceeded: list[str] = []
+    over_budget: list[str] = []
     for name, path, count in counts:
         remaining = RESOURCE_LIMIT - count
         status = "OVER LIMIT" if count > RESOURCE_LIMIT else "WARNING" if count >= WARNING_THRESHOLD else "OK"
@@ -95,6 +100,9 @@ def main() -> None:
             print(f"::{level}::{name} ({path}): {count}/{RESOURCE_LIMIT} resources, {remaining} remaining")
         if count > RESOURCE_LIMIT:
             exceeded.append(str(path))
+        if args.fail_at is not None and count >= args.fail_at:
+            print(f"::error::{name} ({path}): {count} resources reaches the {args.fail_at}-resource budget")
+            over_budget.append(f"{name} ({count})")
     report = "\n".join(lines) + "\n"
     print(report)
     summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
@@ -103,6 +111,8 @@ def main() -> None:
             summary.write(report)
     if exceeded:
         raise ValueError(f"CloudFormation resource limit exceeded: {', '.join(exceeded)}")
+    if over_budget:
+        raise ValueError(f"CloudFormation resource budget of {args.fail_at} reached: {', '.join(over_budget)}")
 
 
 if __name__ == "__main__":
