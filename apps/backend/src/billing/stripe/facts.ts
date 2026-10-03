@@ -1,0 +1,61 @@
+import { unsafeTransaction } from "../../database/unsafe";
+import {
+  recordTrialStartedAnalytics, recordPurchaseCompletedAnalytics,
+  recordSubscriptionRevokedAnalytics, recordAutorenewDisabledAnalytics,
+} from "../../productAnalytics/serverFacts/billingFacts";
+import { resolveEntitlementSnapshotForUser } from "../snapshot";
+import type { StripePurchaseState } from "./contracts";
+import {
+  lockStripeIdentityForLifecycleInExecutor, readStripePurchaseInExecutor, type StoredStripePurchase,
+} from "./store";
+
+export type StripeCommittedTransition = Readonly<{
+  purchase: StoredStripePurchase;
+  state: StripePurchaseState;
+  receivedAt: Date;
+}>;
+
+// The caller must commit all purchase writes before calling this function.
+export async function publishStripeTransitions(transitions: ReadonlyArray<StripeCommittedTransition>): Promise<void> {
+  await unsafeTransaction(async (executor) => {
+    const refreshed = new Set<string>();
+    const ordered = [...transitions].sort((left, right) =>
+      (left.purchase.user_id ?? "").localeCompare(right.purchase.user_id ?? "")
+      || left.state.customerId.localeCompare(right.state.customerId));
+    for (const transition of ordered) {
+      const { state, purchase, receivedAt } = transition;
+      const userId = purchase.user_id;
+      if (userId === null) continue;
+      const locked = await lockStripeIdentityForLifecycleInExecutor(executor, state.environment, state.customerId);
+      if (locked === null || locked.identity.userId !== userId) continue;
+      const current = await readStripePurchaseInExecutor(executor, state.environment, state.subscriptionId);
+      if (current === null || current.user_id !== userId
+        || current.invalidated_at !== null || current.account_deleted_at !== null) continue;
+      // This profile lock prevents erasure from completing before the post-commit facts.
+      if (!refreshed.has(userId)) {
+        await resolveEntitlementSnapshotForUser(userId, locked.accountKind, new Date());
+        refreshed.add(userId);
+      }
+      if (state.environment !== "production") continue;
+      const fact = { userId, purchaseId: purchase.purchase_id,
+        tier: "premium" as const, provider: "stripe" as const, receivedAt };
+      // Existing producers deduplicate by purchase. Historical trial/payment observations survive
+      // a refund, retry or missing delivery without turning renewals into additional first purchases.
+      if (state.trialStartedAt !== null) {
+        await recordTrialStartedAnalytics({ ...fact, occurredAt: state.trialStartedAt });
+      }
+      if (state.firstPaidAt !== null) {
+        await recordPurchaseCompletedAnalytics({ ...fact, occurredAt: state.firstPaidAt,
+          kind: "subscription", period: "monthly" });
+      }
+      if (state.revokedReason !== null) {
+        await recordSubscriptionRevokedAnalytics({ ...fact, occurredAt: state.verifiedAt, reason: state.revokedReason });
+      }
+      if (!state.willRenew && state.canceledAt !== null
+        && (state.trialStartedAt !== null || state.firstPaidAt !== null)) {
+        await recordAutorenewDisabledAnalytics({ ...fact, occurredAt: state.canceledAt,
+          providerEventId: `stripe:${state.environment}:${state.subscriptionId}:cancel:${state.canceledAt.toISOString()}` });
+      }
+    }
+  });
+}
