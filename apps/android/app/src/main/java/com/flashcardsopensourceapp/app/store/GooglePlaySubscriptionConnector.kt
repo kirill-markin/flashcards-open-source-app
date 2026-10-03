@@ -52,6 +52,7 @@ class GooglePlaySubscriptionConnector(
     val offer: StateFlow<GooglePlaySubscriptionOfferState> = offerState.asStateFlow()
     val operation: StateFlow<GooglePlaySubscriptionOperationState> = operationState.asStateFlow()
     private var launchedAccount: GoogleBillingAccount? = null
+    private var failurePhase = GooglePlaySubscriptionFailurePhase.PURCHASE_RECOVERY
     private var connectedOnce = false
     private var closed = false
     private val billingClient = BillingClient.newBuilder(context.applicationContext)
@@ -139,20 +140,38 @@ class GooglePlaySubscriptionConnector(
         }
     }
 
+    fun refreshEntitlement(): Job = runOperation {
+        failurePhase = GooglePlaySubscriptionFailurePhase.ENTITLEMENT
+        operationState.value = GooglePlaySubscriptionOperationState.Loading
+        checkNotNull(repository.refreshEntitlement()) { "The server did not return the current account entitlement." }
+        operationState.value = GooglePlaySubscriptionOperationState.Idle
+    }
+
     fun purchase(activity: Activity, displayedOffer: GooglePlaySubscriptionOffer): Job = runOperation {
         if (launchedAccount != null) return@runOperation
         val available = offerState.value as? GooglePlaySubscriptionOfferState.Available
         if (available?.offer !== displayedOffer) {
-            operationState.value = GooglePlaySubscriptionOperationState.Failed(GooglePlaySubscriptionFailure.OFFER_CHANGED, null)
+            operationState.value = GooglePlaySubscriptionOperationState.Failed(
+                GooglePlaySubscriptionFailure.OFFER_CHANGED, null, GooglePlaySubscriptionFailurePhase.PURCHASE_PREPARATION
+            )
             return@runOperation
         }
+        failurePhase = GooglePlaySubscriptionFailurePhase.PURCHASE_PREPARATION
         operationState.value = GooglePlaySubscriptionOperationState.Loading
         connect()
         val account = repository.preparePurchase()
-        val pending = loadPending()
-        savePending(GooglePlayPendingState(launch = account, pendingLaunchToken = null, purchases = pending.purchases))
         repository.withCurrentIdentity(account.identity) {
+            val entitlement = checkNotNull(repository.refreshEntitlement()) {
+                "The server did not return the current account entitlement."
+            }
+            if (entitlement.tierRank >= 20 && entitlement.status != CloudEntitlementStatus.NONE) {
+                operationState.value = GooglePlaySubscriptionOperationState.Complete(account.identity, entitlement)
+                return@withCurrentIdentity
+            }
+            val pending = loadPending()
+            savePending(GooglePlayPendingState(launch = account, pendingLaunchToken = null, purchases = pending.purchases))
             withContext(Dispatchers.Main.immediate) {
+                failurePhase = GooglePlaySubscriptionFailurePhase.PURCHASE_RECOVERY
                 launchedAccount = account
                 operationState.value = GooglePlaySubscriptionOperationState.Purchasing(account.identity)
                 val result = billingClient.launchBillingFlow(
@@ -311,7 +330,9 @@ class GooglePlaySubscriptionConnector(
         operationState.value = GooglePlaySubscriptionOperationState.Verifying(purchase.identity)
         val entitlement = repository.verifyPurchase(purchase.identity, purchase.token, intent)
         if (entitlement == null) {
-            operationState.value = GooglePlaySubscriptionOperationState.Failed(GooglePlaySubscriptionFailure.VERIFICATION_FAILED, null)
+            operationState.value = GooglePlaySubscriptionOperationState.Failed(
+                GooglePlaySubscriptionFailure.VERIFICATION_FAILED, null, GooglePlaySubscriptionFailurePhase.PURCHASE_RECOVERY
+            )
             return
         }
         val pending = loadPending()
@@ -324,7 +345,9 @@ class GooglePlaySubscriptionConnector(
         operationState.value = if (entitlement.tierRank >= 20 && entitlement.status != CloudEntitlementStatus.NONE) {
             GooglePlaySubscriptionOperationState.Complete(purchase.identity, entitlement)
         } else {
-            GooglePlaySubscriptionOperationState.Failed(GooglePlaySubscriptionFailure.ENTITLEMENT_NOT_GRANTED, null)
+            GooglePlaySubscriptionOperationState.Failed(
+                GooglePlaySubscriptionFailure.ENTITLEMENT_NOT_GRANTED, null, GooglePlaySubscriptionFailurePhase.PURCHASE_RECOVERY
+            )
         }
     }
 
@@ -367,6 +390,8 @@ class GooglePlaySubscriptionConnector(
 
     private fun runOperation(block: suspend () -> Unit): Job = scope.launch {
         mutex.withLock {
+            // Purchase callbacks can fail while loading storage, before Verifying is published.
+            failurePhase = GooglePlaySubscriptionFailurePhase.PURCHASE_RECOVERY
             try {
                 block()
             } catch (error: CancellationException) {
@@ -379,7 +404,8 @@ class GooglePlaySubscriptionConnector(
                         is GooglePlayBillingException -> GooglePlaySubscriptionFailure.PURCHASE_FAILED
                         else -> GooglePlaySubscriptionFailure.VERIFICATION_FAILED
                     },
-                    responseCode = (error as? GooglePlayBillingException)?.responseCode
+                    responseCode = (error as? GooglePlayBillingException)?.responseCode,
+                    phase = failurePhase
                 )
             }
         }
