@@ -848,8 +848,8 @@
 "settings.language.supported.vietnamese" = "וייטנאמית";
 "settings.language.supported.zulu" = "זולו";
 
-"premium.comingSoon.title" = "Premium יגיע בקרוב";
-"premium.comingSoon.message" = "המינויים עדיין אינם זמינים.";
+"premium.offer.title" = "Premium";
+"premium.offer.benefits" = "1,000 הודעות AI בחודש וצבעי הדגשה מותאמים אישית. הסנכרון חינם לכולם.";
 "premium.aiLimit.title" = "הגעת למגבלת הודעות ה-AI";
 
 "settings.accentColor.title" = "צבע הדגשה";
@@ -863,8 +863,6 @@
 "settings.accentColor.invalidHex" = "יש להזין צבע בתבנית #RRGGBB עם שש ספרות הקסדצימליות.";
 "settings.accentColor.premiumNote" = "צבעי הדגשה מותאמים אישית זמינים עם Premium. הצבע השמור שלך חוזר כאשר Premium פעיל.";
 
-"premium.apple.sandbox" = "רכישת בדיקה של Premium";
-"premium.apple.notice" = "רכישות בדיקה דורשות TestFlight. המכירה לציבור עדיין אינה פתוחה.";
 "premium.apple.renewal" = "מתחדש אוטומטית עד לביטול. אפשר לנהל או לבטל דרך המינויים ב-App Store.";
 "premium.apple.trial" = "תקופת ניסיון בחינם: %@. לאחר מכן:";
 "premium.apple.loadFailed" = "לא ניתן לטעון את הצעת App Store. יש לבדוק את החיבור ולנסות שוב.";

@@ -80,10 +80,11 @@ struct SubscriptionSettingsView: View {
 
             if hasPremiumAccess(entitlement: store.cloudEntitlement) == false {
                 Section {
-                    Button(premiumComingSoonTitle()) {
+                    Button(premiumOfferTitle()) {
                         self.premiumPresenter.present(
                             reason: .premiumFeature(requiredTierRank: premiumTierRank),
-                            entitlement: store.cloudEntitlement
+                            entitlement: store.cloudEntitlement,
+                            identity: try? store.appleSubscriptionIdentity()
                         )
                     }
                     .accessibilityIdentifier(UITestIdentifier.subscriptionSettingsPremiumButton)

@@ -848,8 +848,8 @@
 "settings.language.supported.vietnamese" = "ویتنامی";
 "settings.language.supported.zulu" = "زولو";
 
-"premium.comingSoon.title" = "Premium به‌زودی عرضه می‌شود";
-"premium.comingSoon.message" = "اشتراک‌ها هنوز در دسترس نیستند.";
+"premium.offer.title" = "Premium";
+"premium.offer.benefits" = "۱٬۰۰۰ پیام هوش مصنوعی در ماه و رنگ‌های تأکیدی دلخواه. همگام‌سازی برای همه رایگان است.";
 "premium.aiLimit.title" = "به سقف پیام‌های هوش مصنوعی رسیده‌اید";
 
 "settings.accentColor.title" = "رنگ تأکیدی";
@@ -863,8 +863,6 @@
 "settings.accentColor.invalidHex" = "رنگ را به صورت #RRGGBB با شش رقم هگزادسیمال وارد کنید.";
 "settings.accentColor.premiumNote" = "رنگ‌های تأکیدی سفارشی با Premium در دسترس هستند. وقتی Premium فعال باشد، رنگ ذخیره‌شده شما برمی‌گردد.";
 
-"premium.apple.sandbox" = "خرید آزمایشی Premium";
-"premium.apple.notice" = "خریدهای آزمایشی به TestFlight نیاز دارند. فروش عمومی هنوز آغاز نشده است.";
 "premium.apple.renewal" = "تا زمان لغو، خودکار تمدید می‌شود. در بخش اشتراک‌های App Store آن را مدیریت یا لغو کنید.";
 "premium.apple.trial" = "دورهٔ آزمایشی رایگان: %@. سپس:";
 "premium.apple.loadFailed" = "پیشنهاد App Store بارگیری نشد. اتصال خود را بررسی کنید و دوباره تلاش کنید.";

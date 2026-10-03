@@ -167,8 +167,10 @@ notes,photo,spaced,repetition,language,memorize,revision,learning,practice,decks
 
 ### What's New
 
-- Share the app using new nibomo.com links.
-- Keep access to your cards as a guest when the app moves to our new domain.
+- Subscribe to Premium, with a seven-day free trial if eligible through Apple.
+- Choose your app's accent color with Premium or lifetime access.
+- Use your own OpenAI key and see your monthly AI usage.
+- Improvements to deck organization and card reviews.
 
 ## Arabic
 
@@ -200,8 +202,10 @@ Nibomo: بطاقات ذكاء اصطناعي
 
 ### What's New
 
-- شارك التطبيق باستخدام روابط nibomo.com الجديدة.
-- احتفظ بإمكانية الوصول إلى بطاقاتك كضيف عند انتقال التطبيق إلى نطاقنا الجديد.
+- اشترك في Premium مع تجربة مجانية لمدة سبعة أيام إذا كنت مؤهلاً لدى Apple.
+- اختر لون التمييز في التطبيق مع Premium أو الوصول مدى الحياة.
+- استخدم مفتاح OpenAI الخاص بك واطّلع على استخدامك الشهري للذكاء الاصطناعي.
+- تحسينات على تنظيم مجموعات البطاقات ومراجعتها.
 
 ## Chinese (Simplified)
 
@@ -233,8 +237,10 @@ AI 功能需要联网。
 
 ### What's New
 
-- 使用新的 nibomo.com 链接分享应用。
-- 应用迁移到新域名后，您仍可在访客模式下访问自己的卡片。
+- 订阅 Premium，符合 Apple 资格要求的用户可免费试用七天。
+- Premium 或终身访问用户可自定义应用强调色。
+- 使用自己的 OpenAI 密钥，查看每月 AI 使用量。
+- 改进卡组整理和卡片复习体验。
 
 ## French
 
@@ -266,8 +272,10 @@ notes,photo,répétition,espacée,examen,langue,mémoire,apprentissage,cartes,pa
 
 ### What's New
 
-- Partagez l’app avec les nouveaux liens nibomo.com.
-- Conservez l’accès à vos fiches en tant qu’invité lorsque l’app passe à notre nouveau domaine.
+- Abonnez-vous à Premium avec sept jours d’essai gratuit si vous êtes éligible auprès d’Apple.
+- Choisissez la couleur d’accentuation de l’app avec Premium ou un accès à vie.
+- Utilisez votre propre clé OpenAI et consultez votre utilisation mensuelle de l’IA.
+- Améliorations de l’organisation des paquets et de la révision des cartes.
 
 ## German
 
@@ -299,8 +307,10 @@ Notizen,Fotos,Wiederholung,Lernen,Gedächtnis,Sprachen,Üben,Karten,Stapel,Tags
 
 ### What's New
 
-- Teile die App über die neuen nibomo.com-Links.
-- Beim Wechsel der App auf unsere neue Domain behältst du als Gast Zugriff auf deine Karten.
+- Abonniere Premium mit sieben Tagen kostenloser Probezeit, sofern du laut Apple berechtigt bist.
+- Wähle mit Premium oder lebenslangem Zugang die Akzentfarbe der App.
+- Nutze deinen eigenen OpenAI-Schlüssel und sieh deine monatliche KI-Nutzung ein.
+- Verbesserungen bei der Stapelverwaltung und Kartenwiederholung.
 
 ## Hindi
 
@@ -332,8 +342,10 @@ AI सुविधाओं के लिए इंटरनेट कनेक�
 
 ### What's New
 
-- नए nibomo.com लिंक से ऐप शेयर करें।
-- ऐप के हमारे नए डोमेन पर जाने के बाद भी अतिथि के रूप में अपने कार्ड इस्तेमाल कर सकेंगे।
+- Premium की सदस्यता लें। Apple के नियमों के अनुसार पात्र होने पर सात दिन का मुफ़्त ट्रायल पाएँ।
+- Premium या आजीवन एक्सेस के साथ ऐप का एक्सेंट रंग चुनें।
+- अपनी OpenAI कुंजी इस्तेमाल करें और हर महीने AI का उपयोग देखें।
+- कार्ड समूहों को व्यवस्थित करने और कार्ड दोहराने में सुधार।
 
 ## Japanese
 
@@ -365,8 +377,10 @@ AI機能にはインターネット接続が必要です。
 
 ### What's New
 
-- 新しい nibomo.com リンクでアプリを共有できます。
-- アプリが新しいドメインに移行しても、ゲストとして使っているカードに引き続きアクセスできます。
+- Premiumのサブスクリプションが登場。Appleの利用条件を満たす方は7日間無料でお試しいただけます。
+- Premiumまたは無期限アクセスで、アプリのアクセントカラーを選べます。
+- 自分のOpenAIキーを使い、毎月のAI使用量を確認できます。
+- デッキの整理とカードの復習を改善しました。
 
 ## Portuguese (Brazil)
 
@@ -398,8 +412,10 @@ notas,fotos,revisão,repetição,espaçada,prova,idioma,vocabulário,memória,es
 
 ### What's New
 
-- Compartilhe o app com os novos links nibomo.com.
-- Mantenha o acesso aos seus cartões como convidado quando o app passar para o nosso novo domínio.
+- Assine o Premium com sete dias de teste grátis, se você for elegível pela Apple.
+- Escolha a cor de destaque do app com Premium ou acesso vitalício.
+- Use sua própria chave OpenAI e veja seu uso mensal de IA.
+- Melhorias na organização de baralhos e na revisão de cartões.
 
 ## Russian
 
@@ -431,8 +447,10 @@ Nibomo: ИИ-флешкарты
 
 ### What's New
 
-- Делитесь приложением по новым ссылкам nibomo.com.
-- Сохраните гостевой доступ к своим карточкам при переходе приложения на наш новый домен.
+- Подпишитесь на Premium с бесплатным пробным периодом на семь дней, если он доступен вам по условиям Apple.
+- Выбирайте акцентный цвет приложения с Premium или пожизненным доступом.
+- Используйте свой ключ OpenAI и просматривайте месячную статистику использования ИИ.
+- Улучшены организация колод и повторение карточек.
 
 ## Spanish (Mexico)
 
@@ -464,8 +482,10 @@ apuntes,fotos,repaso,repetición,espaciada,examen,idioma,vocabulario,memoria,est
 
 ### What's New
 
-- Comparte la app con los nuevos enlaces de nibomo.com.
-- Conserva el acceso a tus tarjetas como invitado cuando la app pase a nuestro nuevo dominio.
+- Suscríbete a Premium con siete días de prueba gratis si cumples los requisitos de Apple.
+- Elige el color de acento de la app con Premium o acceso de por vida.
+- Usa tu propia clave de OpenAI y consulta tu uso mensual de IA.
+- Mejoras en la organización de mazos y el repaso de tarjetas.
 
 ## Spanish (Spain)
 
@@ -497,8 +517,10 @@ apuntes,fotos,repaso,repetición,espaciada,idioma,vocabulario,memoria,estudio,pr
 
 ### What's New
 
-- Comparte la app con los nuevos enlaces de nibomo.com.
-- Conserva el acceso a tus tarjetas como invitado cuando la app pase a nuestro nuevo dominio.
+- Suscríbete a Premium con siete días de prueba gratuita si cumples los requisitos de Apple.
+- Elige el color de acento de la app con Premium o acceso de por vida.
+- Utiliza tu propia clave de OpenAI y consulta tu uso mensual de IA.
+- Mejoras en la organización de mazos y el repaso de tarjetas.
 
 ## Bangla
 
@@ -532,8 +554,10 @@ AI সুবিধার জন্য ইন্টারনেট সংযো�
 
 ### What's New
 
-- নতুন nibomo.com লিংক দিয়ে অ্যাপ শেয়ার করুন।
-- অ্যাপ আমাদের নতুন ডোমেইনে চলে গেলেও অতিথি হিসেবে আপনার কার্ডগুলো ব্যবহার করতে পারবেন।
+- Premium সাবস্ক্রাইব করুন। Apple-এর শর্ত অনুযায়ী যোগ্য হলে সাত দিনের ফ্রি ট্রায়াল পান।
+- Premium বা আজীবন অ্যাক্সেসের সঙ্গে অ্যাপের অ্যাকসেন্ট রং বেছে নিন।
+- নিজের OpenAI কী ব্যবহার করুন এবং মাসিক AI ব্যবহারের হিসাব দেখুন।
+- কার্ডের ডেক সাজানো ও কার্ড রিভিউ করার অভিজ্ঞতা উন্নত হয়েছে।
 
 ## Catalan
 
@@ -567,8 +591,10 @@ apunts,fotos,repàs,repetició,espaiada,idioma,vocabulari,memòria,estudi,pràct
 
 ### What's New
 
-- Comparteix l’aplicació amb els nous enllaços de nibomo.com.
-- Conserva l’accés a les teves targetes com a convidat quan l’aplicació passi al nostre nou domini.
+- Subscriu-te a Premium amb set dies de prova gratuïta si compleixes els requisits d’Apple.
+- Tria el color d’accent de l’app amb Premium o accés de per vida.
+- Fes servir la teva pròpia clau d’OpenAI i consulta el teu ús mensual de la IA.
+- Millores en l’organització dels jocs de targetes i en els repassos.
 
 ## Czech
 
@@ -602,8 +628,10 @@ poznámky,fotky,opakování,jazyky,paměť,učení,procvičování,balíčky,št
 
 ### What's New
 
-- Sdílejte aplikaci pomocí nových odkazů na nibomo.com.
-- Při přechodu aplikace na naši novou doménu si zachováte přístup ke svým kartičkám jako host.
+- Předplaťte si Premium se sedmidenním bezplatným vyzkoušením, pokud splňujete podmínky společnosti Apple.
+- S Premium nebo doživotním přístupem si vyberte barvu zvýraznění aplikace.
+- Používejte vlastní klíč OpenAI a sledujte své měsíční využití AI.
+- Vylepšení uspořádání balíčků a opakování kartiček.
 
 ## Danish
 
@@ -637,8 +665,10 @@ noter,fotos,repetition,sprog,hukommelse,læring,øvelse,kort,bunker,tags
 
 ### What's New
 
-- Del appen med de nye nibomo.com-links.
-- Behold adgangen til dine kort som gæst, når appen flytter til vores nye domæne.
+- Abonner på Premium med syv dages gratis prøveperiode, hvis du opfylder Apples betingelser.
+- Vælg appens accentfarve med Premium eller livstidsadgang.
+- Brug din egen OpenAI-nøgle, og se dit månedlige AI-forbrug.
+- Forbedringer af organisering af kortsæt og repetition af kort.
 
 ## Greek
 
@@ -672,8 +702,10 @@ Nibomo: Κάρτες με AI
 
 ### What's New
 
-- Μοιραστείτε την εφαρμογή με τους νέους συνδέσμους nibomo.com.
-- Διατηρείτε την πρόσβαση στις κάρτες σας ως επισκέπτης όταν η εφαρμογή μεταφερθεί στο νέο μας domain.
+- Αποκτήστε συνδρομή Premium με δωρεάν δοκιμή επτά ημερών, εφόσον πληροίτε τις προϋποθέσεις της Apple.
+- Επιλέξτε το χρώμα έμφασης της εφαρμογής με Premium ή πρόσβαση εφ’ όρου ζωής.
+- Χρησιμοποιήστε το δικό σας κλειδί OpenAI και δείτε τη μηνιαία χρήση AI.
+- Βελτιώσεις στην οργάνωση των σετ και στην επανάληψη καρτών.
 
 ## Finnish
 
@@ -707,8 +739,10 @@ muistiinpanot,kuvat,kertaus,kielet,sanasto,muisti,opiskelu,harjoittelu,pakat,tun
 
 ### What's New
 
-- Jaa sovellus uusilla nibomo.com-linkeillä.
-- Säilytät pääsyn kortteihisi vierailijana, kun sovellus siirtyy uudelle verkkotunnuksellemme.
+- Tilaa Premium ja kokeile sitä maksutta seitsemän päivän ajan, jos täytät Applen kelpoisuusehdot.
+- Valitse sovelluksen korostusväri Premiumilla tai elinikäisellä käyttöoikeudella.
+- Käytä omaa OpenAI-avaintasi ja seuraa kuukausittaista tekoälyn käyttöäsi.
+- Parannuksia korttipakkojen järjestämiseen ja korttien kertaukseen.
 
 ## Gujarati
 
@@ -742,8 +776,10 @@ AI સુવિધાઓ માટે ઇન્ટરનેટ કનેક્�
 
 ### What's New
 
-- નવી nibomo.com લિંક્સથી ઍપ શેર કરો.
-- ઍપ અમારા નવા ડોમેન પર જાય ત્યારે પણ મહેમાન તરીકે તમારા કાર્ડનો ઉપયોગ કરી શકશો.
+- Premiumનું સબ્સ્ક્રિપ્શન લો. Appleની શરતો મુજબ પાત્ર હોય તો સાત દિવસની મફત ટ્રાયલ મેળવો.
+- Premium અથવા આજીવન ઍક્સેસ સાથે ઍપનો ઍક્સેન્ટ રંગ પસંદ કરો.
+- તમારી પોતાની OpenAI કી વાપરો અને માસિક AI વપરાશ જુઓ.
+- કાર્ડના ડેક ગોઠવવામાં અને કાર્ડનું પુનરાવર્તન કરવામાં સુધારા.
 
 ## Hebrew
 
@@ -777,8 +813,10 @@ Nibomo: כרטיסיות עם AI
 
 ### What's New
 
-- שתפו את האפליקציה עם הקישורים החדשים של nibomo.com.
-- הגישה שלכם לכרטיסיות כאורחים נשמרת כשהאפליקציה עוברת לדומיין החדש שלנו.
+- הצטרפו למינוי Premium עם שבעה ימי ניסיון בחינם, בכפוף לזכאות לפי תנאי Apple.
+- בחרו את צבע ההדגשה של האפליקציה עם Premium או גישה לכל החיים.
+- השתמשו במפתח OpenAI משלכם וצפו בשימוש החודשי שלכם ב-AI.
+- שיפורים בארגון חפיסות ובחזרה על כרטיסיות.
 
 ## Croatian
 
@@ -812,8 +850,10 @@ bilješke,fotografije,ponavljanje,jezici,pamćenje,učenje,vježba,špilovi,ozna
 
 ### What's New
 
-- Podijelite aplikaciju putem novih poveznica nibomo.com.
-- Zadržite pristup svojim karticama kao gost kada aplikacija prijeđe na našu novu domenu.
+- Pretplatite se na Premium uz sedam dana besplatnog probnog razdoblja ako ispunjavate Appleove uvjete.
+- Odaberite boju naglaska aplikacije uz Premium ili doživotni pristup.
+- Koristite vlastiti OpenAI ključ i pratite mjesečnu upotrebu AI-ja.
+- Poboljšanja organizacije špilova i ponavljanja kartica.
 
 ## Hungarian
 
@@ -847,8 +887,10 @@ jegyzet,fotó,ismétlés,nyelv,memória,tanulás,gyakorlás,pakli,címke
 
 ### What's New
 
-- Oszd meg az alkalmazást az új nibomo.com-hivatkozásokkal.
-- Vendégként is megmarad a hozzáférésed a kártyáidhoz, amikor az alkalmazás az új domainünkre költözik.
+- Fizess elő a Premiumra hétnapos ingyenes próbaidőszakkal, ha megfelelsz az Apple jogosultsági feltételeinek.
+- Válaszd ki az alkalmazás kiemelőszínét Premiummal vagy élethosszig tartó hozzáféréssel.
+- Használd a saját OpenAI-kulcsodat, és tekintsd meg a havi AI-használatodat.
+- Fejlesztések a paklik rendszerezésében és a kártyák ismétlésében.
 
 ## Indonesian
 
@@ -882,8 +924,10 @@ catatan,foto,pengulangan,berjarak,bahasa,ingatan,belajar,latihan,dek,tag
 
 ### What's New
 
-- Bagikan aplikasi dengan tautan nibomo.com yang baru.
-- Akses kartu Anda sebagai tamu tetap terjaga saat aplikasi beralih ke domain baru kami.
+- Berlangganan Premium dengan uji coba gratis tujuh hari jika memenuhi syarat Apple.
+- Pilih warna aksen aplikasi dengan Premium atau akses seumur hidup.
+- Gunakan kunci OpenAI sendiri dan lihat penggunaan AI bulanan Anda.
+- Peningkatan pengaturan dek dan pengulangan kartu.
 
 ## Italian
 
@@ -917,8 +961,10 @@ appunti,foto,ripasso,ripetizione,spaziata,lingue,vocabolario,memoria,studio,mazz
 
 ### What's New
 
-- Condividi l’app con i nuovi link di nibomo.com.
-- Mantieni l’accesso alle tue schede come ospite quando l’app passa al nostro nuovo dominio.
+- Abbonati a Premium con sette giorni di prova gratuita se soddisfi i requisiti di Apple.
+- Scegli il colore di risalto dell’app con Premium o accesso a vita.
+- Usa la tua chiave OpenAI e consulta il tuo utilizzo mensile dell’IA.
+- Miglioramenti all’organizzazione dei mazzi e al ripasso delle carte.
 
 ## Kannada
 
@@ -952,8 +998,10 @@ AI ಸೌಲಭ್ಯಗಳಿಗೆ ಇಂಟರ್ನೆಟ್ ಸಂಪರ್
 
 ### What's New
 
-- ಹೊಸ nibomo.com ಲಿಂಕ್‌ಗಳ ಮೂಲಕ ಆ್ಯಪ್ ಹಂಚಿಕೊಳ್ಳಿ.
-- ಆ್ಯಪ್ ನಮ್ಮ ಹೊಸ ಡೊಮೇನ್‌ಗೆ ಬದಲಾದಾಗಲೂ ಅತಿಥಿಯಾಗಿ ನಿಮ್ಮ ಕಾರ್ಡ್‌ಗಳನ್ನು ಬಳಸಬಹುದು.
+- Premium ಚಂದಾದಾರಿಕೆ ಪಡೆಯಿರಿ. Apple ನಿಯಮಗಳ ಪ್ರಕಾರ ಅರ್ಹರಾಗಿದ್ದರೆ ಏಳು ದಿನಗಳ ಉಚಿತ ಪ್ರಯೋಗ ಲಭ್ಯ.
+- Premium ಅಥವಾ ಆಜೀವ ಪ್ರವೇಶದೊಂದಿಗೆ ಆ್ಯಪ್‌ನ ಹೈಲೈಟ್ ಬಣ್ಣವನ್ನು ಆಯ್ಕೆಮಾಡಿ.
+- ನಿಮ್ಮ ಸ್ವಂತ OpenAI ಕೀ ಬಳಸಿ ಮತ್ತು ಮಾಸಿಕ AI ಬಳಕೆಯನ್ನು ನೋಡಿ.
+- ಕಾರ್ಡ್ ಡೆಕ್‌ಗಳ ವ್ಯವಸ್ಥೆ ಮತ್ತು ಕಾರ್ಡ್‌ಗಳ ಪುನರಾವರ್ತನೆಯಲ್ಲಿ ಸುಧಾರಣೆಗಳು.
 
 ## Korean
 
@@ -987,8 +1035,10 @@ AI 기능을 사용하려면 인터넷 연결이 필요해요.
 
 ### What's New
 
-- 새로운 nibomo.com 링크로 앱을 공유하세요.
-- 앱이 새 도메인으로 이전해도 게스트로 사용하던 카드에 계속 접근할 수 있어요.
+- Premium 구독이 추가되었습니다. Apple의 자격 요건을 충족하면 7일 무료 체험을 이용할 수 있습니다.
+- Premium 또는 평생 이용 권한으로 앱의 강조 색상을 선택하세요.
+- 개인 OpenAI 키를 사용하고 월별 AI 사용량을 확인하세요.
+- 덱 정리와 카드 복습 기능을 개선했습니다.
 
 ## Malayalam
 
@@ -1022,8 +1072,10 @@ AI സൗകര്യങ്ങൾക്ക് ഇന്റർനെറ്റ് 
 
 ### What's New
 
-- പുതിയ nibomo.com ലിങ്കുകൾ ഉപയോഗിച്ച് ആപ്പ് പങ്കിടൂ.
-- ആപ്പ് ഞങ്ങളുടെ പുതിയ ഡൊമെയ്‌നിലേക്ക് മാറുമ്പോഴും അതിഥിയായി നിങ്ങളുടെ കാർഡുകൾ ഉപയോഗിക്കാം.
+- Premium സബ്‌സ്‌ക്രൈബ് ചെയ്യൂ. Apple-ന്റെ നിബന്ധനകൾ പ്രകാരം യോഗ്യതയുണ്ടെങ്കിൽ ഏഴ് ദിവസത്തെ സൗജന്യ ട്രയൽ ലഭിക്കും.
+- Premium അല്ലെങ്കിൽ ആജീവനാന്ത ആക്‌സസ് ഉപയോഗിച്ച് ആപ്പിന്റെ ആക്‌സന്റ് നിറം തിരഞ്ഞെടുക്കൂ.
+- സ്വന്തം OpenAI കീ ഉപയോഗിക്കൂ, പ്രതിമാസ AI ഉപയോഗം കാണൂ.
+- കാർഡ് ഡെക്കുകൾ ക്രമീകരിക്കുന്നതിലും കാർഡുകൾ ആവർത്തിച്ച് പഠിക്കുന്നതിലും മെച്ചപ്പെടുത്തലുകൾ.
 
 ## Marathi
 
@@ -1057,8 +1109,10 @@ AI सुविधांसाठी इंटरनेट कनेक्शन
 
 ### What's New
 
-- नवीन nibomo.com लिंक्स वापरून ॲप शेअर करा.
-- ॲप आमच्या नवीन डोमेनवर गेले तरी अतिथी म्हणून तुमची कार्डे वापरता येतील.
+- Premium चे सदस्यत्व घ्या. Apple च्या अटींनुसार पात्र असल्यास सात दिवसांची मोफत चाचणी मिळवा.
+- Premium किंवा आजीवन प्रवेशासह ॲपचा ॲक्सेंट रंग निवडा.
+- तुमची स्वतःची OpenAI की वापरा आणि मासिक AI वापर पाहा.
+- कार्डांचे संच व्यवस्थित करणे आणि कार्डांची उजळणी करणे यांत सुधारणा.
 
 ## Norwegian
 
@@ -1092,8 +1146,10 @@ notater,bilder,repetisjon,språk,ordforråd,hukommelse,læring,øving,kortstokke
 
 ### What's New
 
-- Del appen med de nye nibomo.com-lenkene.
-- Behold tilgangen til kortene dine som gjest når appen flyttes til det nye domenet vårt.
+- Abonner på Premium med sju dagers gratis prøveperiode hvis du oppfyller Apples vilkår.
+- Velg appens aksentfarge med Premium eller livstidstilgang.
+- Bruk din egen OpenAI-nøkkel og se den månedlige KI-bruken din.
+- Forbedringer i organisering av kortstokker og repetisjon av kort.
 
 ## Dutch
 
@@ -1127,8 +1183,10 @@ notities,fotos,herhaling,talen,woordenschat,geheugen,leren,oefenen,stapels,tags
 
 ### What's New
 
-- Deel de app via de nieuwe nibomo.com-links.
-- Je behoudt als gast toegang tot je kaarten wanneer de app naar ons nieuwe domein verhuist.
+- Neem een Premium-abonnement met zeven dagen gratis proefperiode als je volgens Apple in aanmerking komt.
+- Kies de accentkleur van de app met Premium of levenslange toegang.
+- Gebruik je eigen OpenAI-sleutel en bekijk je maandelijkse AI-gebruik.
+- Verbeteringen in het ordenen van kaartensets en het herhalen van kaarten.
 
 ## Punjabi
 
@@ -1162,8 +1220,10 @@ AI ਸਹੂਲਤਾਂ ਲਈ ਇੰਟਰਨੈੱਟ ਕਨੈਕਸ਼ਨ �
 
 ### What's New
 
-- ਨਵੇਂ nibomo.com ਲਿੰਕਾਂ ਰਾਹੀਂ ਐਪ ਸਾਂਝੀ ਕਰੋ।
-- ਐਪ ਸਾਡੇ ਨਵੇਂ ਡੋਮੇਨ ’ਤੇ ਜਾਣ ਤੋਂ ਬਾਅਦ ਵੀ ਮਹਿਮਾਨ ਵਜੋਂ ਆਪਣੇ ਕਾਰਡ ਵਰਤ ਸਕੋਗੇ।
+- Premium ਦੀ ਸਬਸਕ੍ਰਿਪਸ਼ਨ ਲਓ। Apple ਦੀਆਂ ਸ਼ਰਤਾਂ ਮੁਤਾਬਕ ਯੋਗ ਹੋਣ 'ਤੇ ਸੱਤ ਦਿਨਾਂ ਦੀ ਮੁਫ਼ਤ ਅਜ਼ਮਾਇਸ਼ ਮਿਲੇਗੀ।
+- Premium ਜਾਂ ਉਮਰ ਭਰ ਦੀ ਪਹੁੰਚ ਨਾਲ ਐਪ ਦਾ ਐਕਸੈਂਟ ਰੰਗ ਚੁਣੋ।
+- ਆਪਣੀ OpenAI ਕੁੰਜੀ ਵਰਤੋ ਅਤੇ ਮਹੀਨਾਵਾਰ AI ਵਰਤੋਂ ਦੇਖੋ।
+- ਕਾਰਡਾਂ ਦੇ ਡੈੱਕ ਸਜਾਉਣ ਅਤੇ ਕਾਰਡ ਦੁਹਰਾਉਣ ਵਿੱਚ ਸੁਧਾਰ।
 
 ## Polish
 
@@ -1197,8 +1257,10 @@ notatki,zdjęcia,powtórki,języki,pamięć,nauka,ćwiczenia,talie,tagi
 
 ### What's New
 
-- Udostępniaj aplikację za pomocą nowych linków nibomo.com.
-- Zachowasz dostęp do swoich fiszek jako gość, gdy aplikacja przejdzie na naszą nową domenę.
+- Subskrybuj Premium z siedmiodniowym bezpłatnym okresem próbnym, jeśli spełniasz warunki Apple.
+- Wybierz kolor akcentu aplikacji z Premium lub dostępem dożywotnim.
+- Używaj własnego klucza OpenAI i sprawdzaj miesięczne wykorzystanie AI.
+- Ulepszenia organizacji talii i powtórek fiszek.
 
 ## Romanian
 
@@ -1232,8 +1294,10 @@ notițe,fotografii,recapitulare,repetiție,spațiată,limbi,vocabular,memorie,st
 
 ### What's New
 
-- Distribuie aplicația prin noile linkuri nibomo.com.
-- Îți păstrezi accesul la carduri ca vizitator când aplicația trece pe noul nostru domeniu.
+- Abonează-te la Premium cu șapte zile de probă gratuită dacă îndeplinești condițiile Apple.
+- Alege culoarea de accent a aplicației cu Premium sau acces pe viață.
+- Folosește propria cheie OpenAI și vezi utilizarea lunară a AI.
+- Îmbunătățiri pentru organizarea pachetelor și recapitularea cardurilor.
 
 ## Slovak
 
@@ -1267,8 +1331,10 @@ poznámky,fotky,opakovanie,jazyky,pamäť,učenie,precvičovanie,balíčky,ští
 
 ### What's New
 
-- Zdieľajte aplikáciu pomocou nových odkazov na nibomo.com.
-- Pri prechode aplikácie na našu novú doménu si zachováte prístup k svojim kartičkám ako hosť.
+- Predplaťte si Premium so sedemdňovou bezplatnou skúšobnou dobou, ak spĺňate podmienky spoločnosti Apple.
+- S Premium alebo doživotným prístupom si vyberte farbu zvýraznenia aplikácie.
+- Používajte vlastný kľúč OpenAI a sledujte mesačné využitie AI.
+- Vylepšenia organizácie balíčkov a opakovania kartičiek.
 
 ## Slovenian
 
@@ -1302,8 +1368,10 @@ zapiski,fotografije,ponavljanje,jeziki,besedišče,spomin,učenje,vaja,zbirke,oz
 
 ### What's New
 
-- Delite aplikacijo z novimi povezavami nibomo.com.
-- Ko aplikacija preide na našo novo domeno, kot gost ohranite dostop do svojih kartic.
+- Naročite se na Premium s sedemdnevnim brezplačnim preizkusom, če izpolnjujete Applove pogoje.
+- Izberite poudarjeno barvo aplikacije s Premium ali doživljenjskim dostopom.
+- Uporabite svoj ključ OpenAI in spremljajte mesečno uporabo umetne inteligence.
+- Izboljšave urejanja kompletov in ponavljanja kartic.
 
 ## Swedish
 
@@ -1337,8 +1405,10 @@ anteckningar,foton,repetition,språk,ordförråd,minne,lärande,övning,kortleka
 
 ### What's New
 
-- Dela appen med de nya nibomo.com-länkarna.
-- Behåll åtkomsten till dina kort som gäst när appen flyttar till vår nya domän.
+- Prenumerera på Premium med sju dagars gratis provperiod om du uppfyller Apples villkor.
+- Välj appens accentfärg med Premium eller livstidsåtkomst.
+- Använd din egen OpenAI-nyckel och se din månatliga AI-användning.
+- Förbättringar av kortlekarnas organisering och kortrepetition.
 
 ## Tamil
 
@@ -1372,8 +1442,10 @@ AI வசதிகளுக்கு இணைய இணைப்பு தே�
 
 ### What's New
 
-- புதிய nibomo.com இணைப்புகளுடன் செயலியைப் பகிருங்கள்.
-- செயலி எங்களின் புதிய டொமைனுக்கு மாறும்போதும் விருந்தினராக உங்கள் அட்டைகளைத் தொடர்ந்து அணுகலாம்.
+- Premium சந்தாவைப் பெறுங்கள். Apple விதிகளின்படி தகுதியிருந்தால் ஏழு நாள் இலவச சோதனையைப் பெறலாம்.
+- Premium அல்லது வாழ்நாள் அணுகலுடன் செயலியின் சிறப்பம்ச நிறத்தைத் தேர்ந்தெடுங்கள்.
+- உங்கள் சொந்த OpenAI விசையைப் பயன்படுத்தி, மாதாந்திர AI பயன்பாட்டைப் பாருங்கள்.
+- அட்டைத் தொகுப்புகளை ஒழுங்கமைப்பதிலும் அட்டைகளை மீள்பார்வை செய்வதிலும் மேம்பாடுகள்.
 
 ## Telugu
 
@@ -1407,8 +1479,10 @@ AI సౌకర్యాలకు ఇంటర్నెట్ కనెక్ష
 
 ### What's New
 
-- కొత్త nibomo.com లింక్‌లతో యాప్‌ను షేర్ చేయండి.
-- యాప్ మా కొత్త డొమైన్‌కు మారినప్పటికీ అతిథిగా మీ కార్డ్‌లను ఉపయోగించవచ్చు.
+- Premium సభ్యత్వం పొందండి. Apple నిబంధనల ప్రకారం అర్హులైతే ఏడు రోజుల ఉచిత ట్రయల్ లభిస్తుంది.
+- Premium లేదా జీవితకాల యాక్సెస్‌తో యాప్‌లో హైలైట్ రంగును ఎంచుకోండి.
+- మీ సొంత OpenAI కీని ఉపయోగించి, నెలవారీ AI వినియోగాన్ని చూడండి.
+- కార్డ్ డెక్‌లను క్రమబద్ధీకరించడంలో, కార్డ్‌లను పునశ్చరణ చేయడంలో మెరుగుదలలు.
 
 ## Thai
 
@@ -1442,8 +1516,10 @@ Nibomo: แฟลชการ์ด AI
 
 ### What's New
 
-- แชร์แอปด้วยลิงก์ nibomo.com ใหม่
-- ยังเข้าถึงบัตรคำในฐานะผู้เยี่ยมชมได้เมื่อแอปย้ายไปใช้โดเมนใหม่ของเรา
+- สมัคร Premium พร้อมทดลองใช้ฟรีเจ็ดวัน หากมีสิทธิ์ตามเงื่อนไขของ Apple
+- เลือกสีเน้นของแอปได้เมื่อมี Premium หรือสิทธิ์ใช้งานตลอดชีพ
+- ใช้คีย์ OpenAI ของคุณเองและดูการใช้งาน AI รายเดือน
+- ปรับปรุงการจัดระเบียบสำรับและการทบทวนการ์ด
 
 ## Turkish
 
@@ -1477,8 +1553,10 @@ not,fotoğraf,aralıklı,tekrar,dil,hafıza,çalışma,alıştırma,deste,etiket
 
 ### What's New
 
-- Uygulamayı yeni nibomo.com bağlantılarıyla paylaşın.
-- Uygulama yeni alan adımıza geçtiğinde misafir olarak kartlarınıza erişiminiz korunur.
+- Apple’ın uygunluk koşullarını karşılıyorsanız yedi günlük ücretsiz denemeyle Premium’a abone olun.
+- Premium veya ömür boyu erişim ile uygulamanın vurgu rengini seçin.
+- Kendi OpenAI anahtarınızı kullanın ve aylık AI kullanımınızı görün.
+- Deste düzenleme ve kart tekrarı iyileştirmeleri.
 
 ## Ukrainian
 
@@ -1512,8 +1590,10 @@ Nibomo: Картки з ШІ
 
 ### What's New
 
-- Діліться застосунком за новими посиланнями nibomo.com.
-- Збережіть гостьовий доступ до своїх карток, коли застосунок перейде на наш новий домен.
+- Оформте підписку Premium із безкоштовним пробним періодом на сім днів, якщо ви відповідаєте умовам Apple.
+- Обирайте акцентний колір застосунку з Premium або довічним доступом.
+- Використовуйте власний ключ OpenAI та переглядайте місячну статистику використання ШІ.
+- Покращено впорядкування колод і повторення карток.
 
 ## Urdu
 
@@ -1547,8 +1627,10 @@ AI کی سہولتوں کے لیے انٹرنیٹ کنکشن ضروری ہے۔
 
 ### What's New
 
-- نئے nibomo.com لنکس کے ذریعے ایپ شیئر کریں۔
-- ایپ ہمارے نئے ڈومین پر منتقل ہونے کے بعد بھی بطور مہمان اپنے کارڈز تک رسائی برقرار رکھیں۔
+- Premium کی سبسکرپشن لیں۔ Apple کی شرائط کے مطابق اہل ہونے پر سات دن کی مفت آزمائش حاصل کریں۔
+- Premium یا تاحیات رسائی کے ساتھ ایپ کا نمایاں رنگ منتخب کریں۔
+- اپنی OpenAI کلید استعمال کریں اور ماہانہ AI استعمال دیکھیں۔
+- کارڈز کے ڈیک ترتیب دینے اور کارڈز دہرانے میں بہتری۔
 
 ## Vietnamese
 
@@ -1582,5 +1664,7 @@ ghi chú,ảnh,ôn tập,ngắt quãng,ngoại ngữ,trí nhớ,học tập,luy�
 
 ### What's New
 
-- Chia sẻ ứng dụng bằng các liên kết nibomo.com mới.
-- Bạn vẫn có thể truy cập thẻ ở chế độ khách khi ứng dụng chuyển sang tên miền mới của chúng tôi.
+- Đăng ký Premium với bảy ngày dùng thử miễn phí nếu bạn đáp ứng điều kiện của Apple.
+- Chọn màu nhấn của ứng dụng với Premium hoặc quyền truy cập trọn đời.
+- Dùng khóa OpenAI riêng và xem mức sử dụng AI hằng tháng.
+- Cải thiện việc sắp xếp bộ thẻ và ôn tập thẻ.

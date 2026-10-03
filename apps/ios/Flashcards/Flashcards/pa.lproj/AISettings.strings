@@ -848,8 +848,8 @@
 "settings.language.supported.vietnamese" = "ਵੀਅਤਨਾਮੀ";
 "settings.language.supported.zulu" = "ਜ਼ੁਲੂ";
 
-"premium.comingSoon.title" = "Premium ਜਲਦੀ ਆ ਰਿਹਾ ਹੈ";
-"premium.comingSoon.message" = "ਸਬਸਕ੍ਰਿਪਸ਼ਨਾਂ ਅਜੇ ਉਪਲਬਧ ਨਹੀਂ ਹਨ।";
+"premium.offer.title" = "Premium";
+"premium.offer.benefits" = "ਹਰ ਮਹੀਨੇ 1,000 AI ਸੁਨੇਹੇ ਅਤੇ ਤੁਹਾਡੀ ਪਸੰਦ ਦੇ ਐਕਸੈਂਟ ਰੰਗ। ਸਿੰਕ ਸਾਰਿਆਂ ਲਈ ਮੁਫ਼ਤ ਹੈ।";
 "premium.aiLimit.title" = "AI ਸੁਨੇਹਿਆਂ ਦੀ ਸੀਮਾ ਪੂਰੀ ਹੋ ਗਈ ਹੈ";
 
 "settings.accentColor.title" = "ਐਕਸੈਂਟ ਰੰਗ";
@@ -863,8 +863,6 @@
 "settings.accentColor.invalidHex" = "ਛੇ ਹੈਕਸਾਡੈਸੀਮਲ ਅੰਕਾਂ ਨਾਲ #RRGGBB ਦੇ ਰੂਪ ਵਿੱਚ ਰੰਗ ਦਰਜ ਕਰੋ।";
 "settings.accentColor.premiumNote" = "ਪਸੰਦੀਦਾ ਐਕਸੈਂਟ ਰੰਗ Premium ਨਾਲ ਉਪਲਬਧ ਹਨ। Premium ਸਰਗਰਮ ਹੋਣ ਉੱਤੇ ਤੁਹਾਡਾ ਸੁਰੱਖਿਅਤ ਕੀਤਾ ਰੰਗ ਵਾਪਸ ਆ ਜਾਂਦਾ ਹੈ।";
 
-"premium.apple.sandbox" = "Premium ਦੀ ਟੈਸਟ ਖਰੀਦ";
-"premium.apple.notice" = "ਟੈਸਟ ਖਰੀਦਾਂ ਲਈ TestFlight ਲੋੜੀਂਦਾ ਹੈ। ਜਨਤਕ ਵਿਕਰੀ ਹਾਲੇ ਸ਼ੁਰੂ ਨਹੀਂ ਹੋਈ।";
 "premium.apple.renewal" = "ਰੱਦ ਕਰਨ ਤੱਕ ਆਪਣੇ ਆਪ ਨਵਿਆਈ ਜਾਂਦੀ ਹੈ। ਆਪਣੀਆਂ App Store ਸਬਸਕ੍ਰਿਪਸ਼ਨਾਂ ਵਿੱਚ ਇਸਨੂੰ ਪ੍ਰਬੰਧਿਤ ਜਾਂ ਰੱਦ ਕਰੋ।";
 "premium.apple.trial" = "ਮੁਫ਼ਤ ਅਜ਼ਮਾਇਸ਼: %@। ਇਸ ਤੋਂ ਬਾਅਦ:";
 "premium.apple.loadFailed" = "App Store ਪੇਸ਼ਕਸ਼ ਲੋਡ ਨਹੀਂ ਹੋ ਸਕੀ। ਆਪਣਾ ਕਨੈਕਸ਼ਨ ਜਾਂਚੋ ਅਤੇ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।";
