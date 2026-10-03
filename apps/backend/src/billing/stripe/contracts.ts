@@ -1,4 +1,5 @@
 import type Stripe from "stripe";
+import type { PurchaseStatus } from "../resolver";
 
 export type StripeEnvironment = "production" | "sandbox";
 export type StripeEnvironmentSecret = Readonly<{ apiKey: string; webhookSigningSecret: string }>;
@@ -43,4 +44,36 @@ export type StripeCheckoutAttempt = Readonly<{
   expiresAt: Date;
   createdAt: Date;
   accountDeletedAt: Date | null;
+}>;
+
+export type StripeInvoiceFinancialState = Readonly<{
+  invoice: Stripe.Invoice | null;
+  firstPaidAt: Date | null;
+  payments: ReadonlyArray<Readonly<{
+    payment: Stripe.InvoicePayment;
+    charge: Stripe.Charge;
+    refunds: ReadonlyArray<Stripe.Refund>;
+    disputes: ReadonlyArray<Stripe.Dispute>;
+  }>>;
+}>;
+
+export type StripePurchaseState = Readonly<{
+  subscriptionId: string;
+  customerId: string;
+  environment: StripeEnvironment;
+  status: PurchaseStatus;
+  providerStatus: string;
+  isTrial: boolean;
+  willRenew: boolean;
+  until: Date;
+  trialStartedAt: Date | null;
+  firstPaidAt: Date | null;
+  canceledAt: Date | null;
+  revokedReason: "refund" | "chargeback" | null;
+  verifiedAt: Date;
+}>;
+
+export type StripeLifecycleResult = Readonly<{
+  outcome: "processed" | "ignored" | "duplicate";
+  subscriptionIds: ReadonlyArray<string>;
 }>;

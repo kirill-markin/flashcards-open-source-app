@@ -61,7 +61,7 @@ Status — exactly one per purchase:
 | `active` | yes | Paid through a future date, or inside a trial. |
 | `in_grace` | yes | Past the paid-through date, still granted while the provider retries payment. |
 | `expired` | no | Access ended. Not terminal: a provider can revive the same purchase. |
-| `revoked` | no | The provider pulled the purchase (refund, chargeback, family removal). Terminal. |
+| `revoked` | no | The provider pulled the purchase (refund, chargeback, family removal). Terminal for Apple and Google; see the Stripe current-period exception below. |
 
 Two flags, independent of the status and of each other:
 
@@ -111,6 +111,13 @@ Stripe, from the subscription status:
 | `paused` | `expired` | |
 | `canceled` | `expired` | A refund or dispute is what produces `revoked`, not this status. |
 | `incomplete`, `incomplete_expired` | `expired` | Never granted. |
+
+For Stripe, a succeeded full refund or a dispute of the current paid period removes that
+payment's contribution. Partial refunds, pending or failed refunds, and financial events about
+older periods do not remove current access. A won dispute restores the contribution when the
+authoritative subscription and current payment otherwise grant access; a healthy later period
+is assessed from its own payment. Other purchases and grants remain independent. The implementation
+is [Stripe lifecycle state](../apps/backend/src/billing/stripe/state.ts).
 
 The two rows in bold are the mistake this table exists to prevent: a cancelled subscription is not
 an ended subscription. Revoking access at the cancellation signal takes away time the person paid
