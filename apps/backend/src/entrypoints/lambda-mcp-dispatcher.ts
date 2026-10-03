@@ -1,5 +1,6 @@
 import {
   InvokeCommand,
+  type InvokeCommandOutput,
   LambdaClient,
   LambdaServiceException,
   TooManyRequestsException,
@@ -8,6 +9,11 @@ import type { APIGatewayProxyEvent, APIGatewayProxyResult, Context } from "aws-l
 import { z } from "zod";
 
 const minimumRetryAfterSeconds = 1;
+// Equal-jitter backoff bases for re-invoking a worker that refused admission:
+// each wait is half its base plus a random share of the other half.
+const admissionRetryBaseDelaysMs: ReadonlyArray<number> = [200, 400, 800, 1_600];
+// No admission wait starts that would end later than this after handler entry.
+const admissionRetryBudgetMs = 3_000;
 const httpMethodSchema = z.enum([
   "GET", "HEAD", "POST", "PUT", "DELETE", "CONNECT", "OPTIONS", "TRACE", "PATCH",
 ]);
@@ -45,6 +51,15 @@ function getRetryAfterSeconds(error: TooManyRequestsException): number {
   return minimumRetryAfterSeconds;
 }
 
+function getAdmissionRetryDelayMs(error: unknown, attempts: number, elapsedMs: number): number | null {
+  const baseDelayMs = admissionRetryBaseDelaysMs[attempts - 1];
+  if (!(error instanceof TooManyRequestsException) || baseDelayMs === undefined) {
+    return null;
+  }
+  const delayMs = baseDelayMs / 2 + Math.random() * baseDelayMs / 2;
+  return elapsedMs + delayMs > admissionRetryBudgetMs ? null : delayMs;
+}
+
 function createFailureResponse(
   statusCode: number,
   code: string,
@@ -75,6 +90,7 @@ export async function handler(
   let phase = "configuration";
   let invocationRequestId: string | undefined;
   let functionError: string | undefined;
+  let attempts = 0;
   try {
     const workerFunctionName = process.env.MCP_WORKER_FUNCTION_NAME;
     if (workerFunctionName === undefined || workerFunctionName.trim() === "") {
@@ -82,11 +98,26 @@ export async function handler(
     }
 
     phase = "invoke";
-    const result = await lambdaClient.send(new InvokeCommand({
-      FunctionName: workerFunctionName,
-      InvocationType: "RequestResponse",
-      Payload: Buffer.from(JSON.stringify(event)),
-    }));
+    const payload = Buffer.from(JSON.stringify(event));
+    let result: InvokeCommandOutput | undefined;
+    while (result === undefined) {
+      attempts += 1;
+      try {
+        result = await lambdaClient.send(new InvokeCommand({
+          FunctionName: workerFunctionName,
+          InvocationType: "RequestResponse",
+          Payload: payload,
+        }));
+      } catch (error) {
+        // Safe to re-invoke: Lambda rejects a throttled synchronous invoke before
+        // the worker runs, so a retry cannot execute the request twice.
+        const delayMs = getAdmissionRetryDelayMs(error, attempts, performance.now() - startedAt);
+        if (delayMs === null) {
+          throw error;
+        }
+        await new Promise<void>((resolve) => setTimeout(resolve, delayMs));
+      }
+    }
     invocationRequestId = result.$metadata.requestId;
     functionError = result.FunctionError;
     phase = "worker_execution";
@@ -109,6 +140,7 @@ export async function handler(
       method,
       statusCode: response.statusCode,
       durationMs,
+      attempts,
     });
     return response;
   } catch (error) {
@@ -123,6 +155,7 @@ export async function handler(
         method,
         statusCode: 429,
         durationMs,
+        attempts,
         reason: error.Reason,
         retryAfterSeconds,
       });
@@ -143,6 +176,7 @@ export async function handler(
       method,
       statusCode: 502,
       durationMs,
+      attempts,
       phase,
       errorName: error instanceof Error ? error.name : "NonErrorThrown",
       invocationRequestId: error instanceof LambdaServiceException
