@@ -13,12 +13,13 @@ import {
   uniqueUserCohortLabels,
 } from "../charts/chartPrimitives";
 import type { UserColorScale } from "../dashboard/userColors";
+import { AdminLink } from "../navigation/AdminLink";
 import type {
   CatalogInstallDeviceCategory,
   CatalogInstallPlacement,
   CatalogInstallSource,
 } from "../reports/catalogInstallFunnel/query";
-import type { AnalyticsArea } from "../routing";
+import { getUserPath, type AnalyticsArea } from "../routing";
 import {
   analyticsThresholdEventTypeLabels,
   analyticsThresholdEventTypes,
@@ -116,6 +117,7 @@ type AnalyticsFilterBarProps = Readonly<{
   userColorScale: UserColorScale;
   /** Whether the selection was accepted; a rejected one keeps its popover open on the error. */
   onFiltersChange: (filters: AnalyticsFilterState) => boolean;
+  onNavigate: (path: string) => void;
 }>;
 
 type FilterOption<Value extends string> = Readonly<{
@@ -330,6 +332,22 @@ function FilterOptionList<Value extends string>(
   );
 }
 
+// A link inside the option's label: the label ignores a click on interactive content it holds, so
+// following the link never toggles the checkbox.
+function UserPageLink(
+  props: Readonly<{
+    userId: string;
+    label: string;
+    onNavigate: (path: string) => void;
+  }>,
+): JSX.Element {
+  return (
+    <AdminLink className="user-filter-open-link" path={getUserPath(props.userId, "profile")} onNavigate={props.onNavigate}>
+      Open<span className="visually-hidden"> {props.label}</span>
+    </AdminLink>
+  );
+}
+
 // Users are an open-ended list of thousands, so this one is searched rather than listed, and only
 // the first matches are rendered; the count line says how many more the search still matches. The
 // search index is built by the bar rather than here, because this component is mounted only while
@@ -345,6 +363,7 @@ function UserFilterOptions(
     userColorScale: UserColorScale;
     onSearchChange: (searchValue: string) => void;
     onToggle: (userId: string, isChecked: boolean) => void;
+    onNavigate: (path: string) => void;
   }>,
 ): JSX.Element {
   const searchableOptions = props.searchableOptions;
@@ -430,6 +449,7 @@ function UserFilterOptions(
                 <span className="user-filter-option-primary">{userFilter.label}</span>
                 <span className="user-filter-option-secondary">{userFilter.secondaryLabel}</span>
               </span>
+              <UserPageLink userId={userFilter.userId} label={userFilter.label} onNavigate={props.onNavigate} />
             </label>
           ))}
           {visibleOptions.map((user) => (
@@ -453,6 +473,7 @@ function UserFilterOptions(
                   {user.userId} - {user.totalReviewEvents.toLocaleString("en-US")} events
                 </span>
               </span>
+              <UserPageLink userId={user.userId} label={getUserFilterLabel(user)} onNavigate={props.onNavigate} />
             </label>
           ))}
         </div>
@@ -946,6 +967,7 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
                 ...props.filters,
                 users: toggleSelectedValue(props.filters.users, userId, isChecked),
               })}
+              onNavigate={props.onNavigate}
             />
             {props.filters.users.length === 0 ? null : (
               <FilterFieldResetButton
