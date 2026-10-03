@@ -862,3 +862,15 @@
 "settings.accentColor.custom" = "Eigen kleur";
 "settings.accentColor.invalidHex" = "Voer een kleur in als #RRGGBB, met zes hexadecimale cijfers.";
 "settings.accentColor.premiumNote" = "Eigen accentkleuren zijn beschikbaar met Premium. Je opgeslagen kleur keert terug wanneer Premium actief is.";
+
+"premium.apple.sandbox" = "Premium-testaankoop";
+"premium.apple.notice" = "Testaankopen vereisen TestFlight. De openbare verkoop is nog niet geopend.";
+"premium.apple.renewal" = "Wordt automatisch verlengd tot je opzegt. Beheer of annuleer via je App Store-abonnementen.";
+"premium.apple.trial" = "Gratis proefperiode: %@. Daarna:";
+"premium.apple.loadFailed" = "De App Store-aanbieding kon niet worden geladen. Controleer je verbinding en probeer opnieuw.";
+"premium.apple.pending" = "Wachten op bevestiging van Apple of het account. Herstel aankopen om opnieuw te proberen.";
+"premium.apple.cancelled" = "Aankoop geannuleerd. Er is niets in rekening gebracht.";
+"premium.apple.failed" = "De aankoop kon niet worden bevestigd. Herstel aankopen om opnieuw te proberen zonder nogmaals te kopen.";
+"premium.apple.restore" = "Herstel aankopen";
+"premium.apple.sceneUnavailable" = "Open de app op de voorgrond om je abonnement te beheren.";
+"premium.apple.deleteWarning" = "Je hebt een actief Apple-abonnement. Als je je account verwijdert, wordt dit niet opgezegd. Beheer of annuleer het in de App Store.";

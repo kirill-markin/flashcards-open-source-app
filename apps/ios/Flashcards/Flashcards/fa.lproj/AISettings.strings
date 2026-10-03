@@ -862,3 +862,15 @@
 "settings.accentColor.custom" = "رنگ سفارشی";
 "settings.accentColor.invalidHex" = "رنگ را به صورت #RRGGBB با شش رقم هگزادسیمال وارد کنید.";
 "settings.accentColor.premiumNote" = "رنگ‌های تأکیدی سفارشی با Premium در دسترس هستند. وقتی Premium فعال باشد، رنگ ذخیره‌شده شما برمی‌گردد.";
+
+"premium.apple.sandbox" = "خرید آزمایشی Premium";
+"premium.apple.notice" = "خریدهای آزمایشی به TestFlight نیاز دارند. فروش عمومی هنوز آغاز نشده است.";
+"premium.apple.renewal" = "تا زمان لغو، خودکار تمدید می‌شود. در بخش اشتراک‌های App Store آن را مدیریت یا لغو کنید.";
+"premium.apple.trial" = "دورهٔ آزمایشی رایگان: %@. سپس:";
+"premium.apple.loadFailed" = "پیشنهاد App Store بارگیری نشد. اتصال خود را بررسی کنید و دوباره تلاش کنید.";
+"premium.apple.pending" = "در انتظار تأیید Apple یا حساب. برای تلاش دوباره، خریدها را بازیابی کنید.";
+"premium.apple.cancelled" = "خرید لغو شد. هزینه‌ای از شما کسر نشده است.";
+"premium.apple.failed" = "خرید تأیید نشد. برای تلاش دوباره بدون خرید مجدد، خریدها را بازیابی کنید.";
+"premium.apple.restore" = "بازیابی خریدها";
+"premium.apple.sceneUnavailable" = "برای مدیریت اشتراک، برنامه را در پیش‌زمینه باز کنید.";
+"premium.apple.deleteWarning" = "شما یک اشتراک فعال Apple دارید. حذف حساب آن را لغو نمی‌کند. آن را در App Store مدیریت یا لغو کنید.";

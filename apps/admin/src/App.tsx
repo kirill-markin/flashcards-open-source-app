@@ -35,6 +35,7 @@ import {
   type ReviewEventsByDateRange,
 } from "./reports/reviewEventsByDate/query";
 import { getAdminRoutePath, parseAdminRoute, type AdminRoute } from "./routing";
+import { UsersPage } from "./users/UsersPage";
 
 type AppState =
   | Readonly<{ status: "loading" }>
@@ -620,6 +621,17 @@ export default function App(): JSX.Element {
 
   if (route.kind === "notFound") {
     return <NotFoundPage pathname={route.pathname} onNavigate={navigateToPath} />;
+  }
+
+  if (route.kind === "users") {
+    return (
+      <UsersPage
+        config={appState.config}
+        adminEmail={appState.session.email}
+        onNavigate={navigateToPath}
+        onTerminalAdminError={handleTerminalAdminError}
+      />
+    );
   }
 
   return (

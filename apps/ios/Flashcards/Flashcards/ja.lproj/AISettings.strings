@@ -890,3 +890,15 @@
 "settings.accentColor.custom" = "カスタムカラー";
 "settings.accentColor.invalidHex" = "6桁の16進数を使い、#RRGGBB 形式で色を入力してください。";
 "settings.accentColor.premiumNote" = "カスタムアクセントカラーは Premium で利用できます。Premium が有効になると、保存した色に戻ります。";
+
+"premium.apple.sandbox" = "Premiumのテスト購入";
+"premium.apple.notice" = "テスト購入にはTestFlightが必要です。一般販売はまだ開始していません。";
+"premium.apple.renewal" = "キャンセルするまで自動更新されます。App Storeのサブスクリプションで管理・キャンセルできます。";
+"premium.apple.trial" = "無料トライアル：%@。その後：";
+"premium.apple.loadFailed" = "App Storeのオファーを読み込めませんでした。接続を確認して再試行してください。";
+"premium.apple.pending" = "Appleまたはアカウントの確認を待っています。購入を復元して再試行してください。";
+"premium.apple.cancelled" = "購入をキャンセルしました。料金は請求されていません。";
+"premium.apple.failed" = "購入を確認できませんでした。再購入せずに、購入を復元して再試行してください。";
+"premium.apple.restore" = "購入を復元";
+"premium.apple.sceneUnavailable" = "サブスクリプションを管理するには、アプリを前面に開いてください。";
+"premium.apple.deleteWarning" = "有効なAppleのサブスクリプションがあります。アカウントを削除してもキャンセルされません。App Storeで管理・キャンセルしてください。";

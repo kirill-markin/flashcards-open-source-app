@@ -13,11 +13,14 @@ export type AdminRoute =
   | Readonly<{ kind: "root" }>
   | Readonly<{ kind: "analyticsIndex" }>
   | Readonly<{ kind: "analyticsArea"; area: AnalyticsArea }>
+  | Readonly<{ kind: "users" }>
   | Readonly<{ kind: "notFound"; pathname: string }>;
 
 export const rootPath = "/";
 
 export const analyticsIndexPath = "/analytics";
+
+export const usersPath = "/users";
 
 export function getAnalyticsAreaPath(area: AnalyticsArea): string {
   return `${analyticsIndexPath}/${area}`;
@@ -35,6 +38,8 @@ export function getAdminRoutePath(route: AdminRoute): string {
       return analyticsIndexPath;
     case "analyticsArea":
       return getAnalyticsAreaPath(route.area);
+    case "users":
+      return usersPath;
     case "notFound":
       return route.pathname;
   }
@@ -54,6 +59,10 @@ export function parseAdminRoute(pathname: string): AdminRoute {
 
   if (normalizedPathname === analyticsIndexPath) {
     return { kind: "analyticsIndex" };
+  }
+
+  if (normalizedPathname === usersPath) {
+    return { kind: "users" };
   }
 
   const area = analyticsAreas.find(

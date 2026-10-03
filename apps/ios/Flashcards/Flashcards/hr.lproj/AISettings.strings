@@ -862,3 +862,15 @@
 "settings.accentColor.custom" = "Prilagođena boja";
 "settings.accentColor.invalidHex" = "Unesite boju u obliku #RRGGBB sa šest heksadekadskih znamenki.";
 "settings.accentColor.premiumNote" = "Prilagođene boje naglaska dostupne su uz Premium. Spremljena boja vraća se kada je Premium aktivan.";
+
+"premium.apple.sandbox" = "Probna kupnja Premiuma";
+"premium.apple.notice" = "Probne kupnje zahtijevaju TestFlight. Javna prodaja još nije otvorena.";
+"premium.apple.renewal" = "Automatski se obnavlja do otkazivanja. Upravljajte ili otkažite u pretplatama App Storea.";
+"premium.apple.trial" = "Besplatno probno razdoblje: %@. Zatim:";
+"premium.apple.loadFailed" = "Ponudu App Storea nije moguće učitati. Provjerite vezu i pokušajte ponovno.";
+"premium.apple.pending" = "Čeka se potvrda Applea ili računa. Obnovite kupnje za novi pokušaj.";
+"premium.apple.cancelled" = "Kupnja je otkazana. Ništa vam nije naplaćeno.";
+"premium.apple.failed" = "Kupnju nije moguće potvrditi. Obnovite kupnje za novi pokušaj bez ponovne kupnje.";
+"premium.apple.restore" = "Obnovi kupnje";
+"premium.apple.sceneUnavailable" = "Otvorite aplikaciju u prvom planu za upravljanje pretplatom.";
+"premium.apple.deleteWarning" = "Imate aktivnu Appleovu pretplatu. Brisanje računa je ne otkazuje. Upravljajte njome ili je otkažite u App Storeu.";

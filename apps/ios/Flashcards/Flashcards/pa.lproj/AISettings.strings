@@ -862,3 +862,15 @@
 "settings.accentColor.custom" = "ਪਸੰਦੀਦਾ ਰੰਗ";
 "settings.accentColor.invalidHex" = "ਛੇ ਹੈਕਸਾਡੈਸੀਮਲ ਅੰਕਾਂ ਨਾਲ #RRGGBB ਦੇ ਰੂਪ ਵਿੱਚ ਰੰਗ ਦਰਜ ਕਰੋ।";
 "settings.accentColor.premiumNote" = "ਪਸੰਦੀਦਾ ਐਕਸੈਂਟ ਰੰਗ Premium ਨਾਲ ਉਪਲਬਧ ਹਨ। Premium ਸਰਗਰਮ ਹੋਣ ਉੱਤੇ ਤੁਹਾਡਾ ਸੁਰੱਖਿਅਤ ਕੀਤਾ ਰੰਗ ਵਾਪਸ ਆ ਜਾਂਦਾ ਹੈ।";
+
+"premium.apple.sandbox" = "Premium ਦੀ ਟੈਸਟ ਖਰੀਦ";
+"premium.apple.notice" = "ਟੈਸਟ ਖਰੀਦਾਂ ਲਈ TestFlight ਲੋੜੀਂਦਾ ਹੈ। ਜਨਤਕ ਵਿਕਰੀ ਹਾਲੇ ਸ਼ੁਰੂ ਨਹੀਂ ਹੋਈ।";
+"premium.apple.renewal" = "ਰੱਦ ਕਰਨ ਤੱਕ ਆਪਣੇ ਆਪ ਨਵਿਆਈ ਜਾਂਦੀ ਹੈ। ਆਪਣੀਆਂ App Store ਸਬਸਕ੍ਰਿਪਸ਼ਨਾਂ ਵਿੱਚ ਇਸਨੂੰ ਪ੍ਰਬੰਧਿਤ ਜਾਂ ਰੱਦ ਕਰੋ।";
+"premium.apple.trial" = "ਮੁਫ਼ਤ ਅਜ਼ਮਾਇਸ਼: %@। ਇਸ ਤੋਂ ਬਾਅਦ:";
+"premium.apple.loadFailed" = "App Store ਪੇਸ਼ਕਸ਼ ਲੋਡ ਨਹੀਂ ਹੋ ਸਕੀ। ਆਪਣਾ ਕਨੈਕਸ਼ਨ ਜਾਂਚੋ ਅਤੇ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।";
+"premium.apple.pending" = "Apple ਜਾਂ ਖਾਤੇ ਦੀ ਪੁਸ਼ਟੀ ਦੀ ਉਡੀਕ ਹੈ। ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰਨ ਲਈ ਖਰੀਦਾਂ ਬਹਾਲ ਕਰੋ।";
+"premium.apple.cancelled" = "ਖਰੀਦ ਰੱਦ ਹੋਈ। ਤੁਹਾਡੇ ਤੋਂ ਕੋਈ ਰਕਮ ਨਹੀਂ ਲਈ ਗਈ।";
+"premium.apple.failed" = "ਖਰੀਦ ਦੀ ਪੁਸ਼ਟੀ ਨਹੀਂ ਹੋ ਸਕੀ। ਮੁੜ ਖਰੀਦੇ ਬਿਨਾਂ ਕੋਸ਼ਿਸ਼ ਕਰਨ ਲਈ ਖਰੀਦਾਂ ਬਹਾਲ ਕਰੋ।";
+"premium.apple.restore" = "ਖਰੀਦਾਂ ਬਹਾਲ ਕਰੋ";
+"premium.apple.sceneUnavailable" = "ਸਬਸਕ੍ਰਿਪਸ਼ਨ ਪ੍ਰਬੰਧਿਤ ਕਰਨ ਲਈ ਐਪ ਨੂੰ ਅੱਗੇ ਖੋਲ੍ਹੋ।";
+"premium.apple.deleteWarning" = "ਤੁਹਾਡੀ Apple ਸਬਸਕ੍ਰਿਪਸ਼ਨ ਸਰਗਰਮ ਹੈ। ਖਾਤਾ ਮਿਟਾਉਣ ਨਾਲ ਇਹ ਰੱਦ ਨਹੀਂ ਹੁੰਦੀ। App Store ਵਿੱਚ ਇਸਨੂੰ ਪ੍ਰਬੰਧਿਤ ਜਾਂ ਰੱਦ ਕਰੋ।";

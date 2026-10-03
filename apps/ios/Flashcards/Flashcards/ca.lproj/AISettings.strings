@@ -862,3 +862,15 @@
 "settings.accentColor.custom" = "Color personalitzat";
 "settings.accentColor.invalidHex" = "Introdueix un color com a #RRGGBB, amb sis dígits hexadecimals.";
 "settings.accentColor.premiumNote" = "Els colors d’accent personalitzats estan disponibles amb Premium. El color desat torna quan Premium està actiu.";
+
+"premium.apple.sandbox" = "Compra de prova de Premium";
+"premium.apple.notice" = "Les compres de prova requereixen TestFlight. La venda al públic encara no està oberta.";
+"premium.apple.renewal" = "Es renova automàticament fins que la cancel·lis. Gestiona o cancel·la la subscripció a l’App Store.";
+"premium.apple.trial" = "Prova gratuïta: %@. Després:";
+"premium.apple.loadFailed" = "No s’ha pogut carregar l’oferta de l’App Store. Comprova la connexió i torna-ho a provar.";
+"premium.apple.pending" = "S’espera la confirmació d’Apple o del compte. Restaura les compres per tornar-ho a provar.";
+"premium.apple.cancelled" = "Compra cancel·lada. No se t’ha cobrat res.";
+"premium.apple.failed" = "No s’ha pogut confirmar la compra. Restaura les compres per tornar-ho a provar sense comprar de nou.";
+"premium.apple.restore" = "Restaura les compres";
+"premium.apple.sceneUnavailable" = "Obre l’app en primer pla per gestionar la subscripció.";
+"premium.apple.deleteWarning" = "Tens una subscripció d’Apple activa. Eliminar el compte no la cancel·la. Gestiona-la o cancel·la-la a l’App Store.";

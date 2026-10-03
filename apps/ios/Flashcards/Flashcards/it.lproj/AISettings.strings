@@ -862,3 +862,15 @@
 "settings.accentColor.custom" = "Colore personalizzato";
 "settings.accentColor.invalidHex" = "Inserisci un colore nel formato #RRGGBB, con sei cifre esadecimali.";
 "settings.accentColor.premiumNote" = "I colori di risalto personalizzati sono disponibili con Premium. Il colore salvato torna quando Premium è attivo.";
+
+"premium.apple.sandbox" = "Acquisto di prova di Premium";
+"premium.apple.notice" = "Gli acquisti di prova richiedono TestFlight. Le vendite al pubblico non sono aperte.";
+"premium.apple.renewal" = "Si rinnova automaticamente fino alla disdetta. Gestisci o annulla nei tuoi abbonamenti App Store.";
+"premium.apple.trial" = "Prova gratuita: %@. Poi:";
+"premium.apple.loadFailed" = "Impossibile caricare l’offerta App Store. Controlla la connessione e riprova.";
+"premium.apple.pending" = "In attesa della conferma di Apple o dell’account. Ripristina gli acquisti per riprovare.";
+"premium.apple.cancelled" = "Acquisto annullato. Non ti è stato addebitato nulla.";
+"premium.apple.failed" = "Impossibile confermare l’acquisto. Ripristina gli acquisti per riprovare senza acquistare di nuovo.";
+"premium.apple.restore" = "Ripristina acquisti";
+"premium.apple.sceneUnavailable" = "Apri l’app in primo piano per gestire il tuo abbonamento.";
+"premium.apple.deleteWarning" = "Hai un abbonamento Apple attivo. Eliminare l’account non lo annulla. Gestiscilo o annullalo nell’App Store.";

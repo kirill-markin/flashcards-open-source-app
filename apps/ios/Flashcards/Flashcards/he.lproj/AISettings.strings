@@ -862,3 +862,15 @@
 "settings.accentColor.custom" = "צבע מותאם אישית";
 "settings.accentColor.invalidHex" = "יש להזין צבע בתבנית #RRGGBB עם שש ספרות הקסדצימליות.";
 "settings.accentColor.premiumNote" = "צבעי הדגשה מותאמים אישית זמינים עם Premium. הצבע השמור שלך חוזר כאשר Premium פעיל.";
+
+"premium.apple.sandbox" = "רכישת בדיקה של Premium";
+"premium.apple.notice" = "רכישות בדיקה דורשות TestFlight. המכירה לציבור עדיין אינה פתוחה.";
+"premium.apple.renewal" = "מתחדש אוטומטית עד לביטול. אפשר לנהל או לבטל דרך המינויים ב-App Store.";
+"premium.apple.trial" = "תקופת ניסיון בחינם: %@. לאחר מכן:";
+"premium.apple.loadFailed" = "לא ניתן לטעון את הצעת App Store. יש לבדוק את החיבור ולנסות שוב.";
+"premium.apple.pending" = "בהמתנה לאישור מ-Apple או של החשבון. יש לשחזר רכישות כדי לנסות שוב.";
+"premium.apple.cancelled" = "הרכישה בוטלה. לא בוצע חיוב.";
+"premium.apple.failed" = "לא ניתן לאשר את הרכישה. יש לשחזר רכישות כדי לנסות שוב בלי לרכוש מחדש.";
+"premium.apple.restore" = "שחזור רכישות";
+"premium.apple.sceneUnavailable" = "יש לפתוח את האפליקציה בחזית כדי לנהל את המינוי.";
+"premium.apple.deleteWarning" = "יש לך מינוי Apple פעיל. מחיקת החשבון אינה מבטלת אותו. אפשר לנהל או לבטל אותו ב-App Store.";

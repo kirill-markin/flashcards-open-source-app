@@ -862,3 +862,15 @@
 "settings.accentColor.custom" = "Sérsniðinn litur";
 "settings.accentColor.invalidHex" = "Sláðu inn lit sem #RRGGBB með sex sextándakerfisstöfum.";
 "settings.accentColor.premiumNote" = "Sérsniðnir áherslulitir eru í boði með Premium. Vistaði liturinn þinn kemur aftur þegar Premium er virkt.";
+
+"premium.apple.sandbox" = "Premium-prufukaup";
+"premium.apple.notice" = "Prufukaup krefjast TestFlight. Almenn sala er ekki hafin.";
+"premium.apple.renewal" = "Endurnýjast sjálfkrafa þar til sagt er upp. Stjórnaðu eða segðu upp í App Store-áskriftunum þínum.";
+"premium.apple.trial" = "Ókeypis prufutímabil: %@. Síðan:";
+"premium.apple.loadFailed" = "Ekki tókst að hlaða App Store-tilboðinu. Athugaðu tenginguna og reyndu aftur.";
+"premium.apple.pending" = "Beðið er eftir staðfestingu frá Apple eða á aðgangi. Endurheimtu kaup til að reyna aftur.";
+"premium.apple.cancelled" = "Hætt við kaup. Ekkert hefur verið skuldfært.";
+"premium.apple.failed" = "Ekki tókst að staðfesta kaupin. Endurheimtu kaup til að reyna aftur án þess að kaupa aftur.";
+"premium.apple.restore" = "Endurheimta kaup";
+"premium.apple.sceneUnavailable" = "Opnaðu appið í forgrunni til að stjórna áskriftinni þinni.";
+"premium.apple.deleteWarning" = "Þú ert með virka Apple-áskrift. Henni er ekki sagt upp þegar aðganginum er eytt. Stjórnaðu henni eða segðu henni upp í App Store.";

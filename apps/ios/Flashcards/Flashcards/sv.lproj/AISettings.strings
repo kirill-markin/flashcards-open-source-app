@@ -862,3 +862,15 @@
 "settings.accentColor.custom" = "Egen färg";
 "settings.accentColor.invalidHex" = "Ange en färg som #RRGGBB med sex hexadecimala siffror.";
 "settings.accentColor.premiumNote" = "Egna accentfärger är tillgängliga med Premium. Din sparade färg återkommer när Premium är aktivt.";
+
+"premium.apple.sandbox" = "Premium-testköp";
+"premium.apple.notice" = "Testköp kräver TestFlight. Offentlig försäljning har inte öppnat ännu.";
+"premium.apple.renewal" = "Förnyas automatiskt tills du säger upp det. Hantera eller avsluta under dina App Store-abonnemang.";
+"premium.apple.trial" = "Gratis provperiod: %@. Därefter:";
+"premium.apple.loadFailed" = "Kunde inte läsa in App Store-erbjudandet. Kontrollera anslutningen och försök igen.";
+"premium.apple.pending" = "Väntar på bekräftelse från Apple eller av kontot. Återställ köp för att försöka igen.";
+"premium.apple.cancelled" = "Köpet avbröts. Du har inte debiterats.";
+"premium.apple.failed" = "Köpet kunde inte bekräftas. Återställ köp för att försöka igen utan att köpa på nytt.";
+"premium.apple.restore" = "Återställ köp";
+"premium.apple.sceneUnavailable" = "Öppna appen i förgrunden för att hantera ditt abonnemang.";
+"premium.apple.deleteWarning" = "Du har ett aktivt Apple-abonnemang. Det avslutas inte när du raderar kontot. Hantera eller avsluta det i App Store.";

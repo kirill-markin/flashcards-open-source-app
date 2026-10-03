@@ -862,3 +862,15 @@
 "settings.accentColor.custom" = "Pielāgota krāsa";
 "settings.accentColor.invalidHex" = "Ievadiet krāsu formātā #RRGGBB ar sešiem heksadecimāliem cipariem.";
 "settings.accentColor.premiumNote" = "Pielāgotas akcenta krāsas ir pieejamas ar Premium. Saglabātā krāsa atgriežas, kad Premium ir aktīvs.";
+
+"premium.apple.sandbox" = "Premium testa pirkums";
+"premium.apple.notice" = "Testa pirkumiem nepieciešams TestFlight. Publiskā pārdošana vēl nav atvērta.";
+"premium.apple.renewal" = "Automātiski atjaunojas līdz atcelšanai. Pārvaldiet vai atceliet App Store abonementos.";
+"premium.apple.trial" = "Bezmaksas izmēģinājums: %@. Pēc tam:";
+"premium.apple.loadFailed" = "Neizdevās ielādēt App Store piedāvājumu. Pārbaudiet savienojumu un mēģiniet vēlreiz.";
+"premium.apple.pending" = "Gaida Apple vai konta apstiprinājumu. Atjaunojiet pirkumus, lai mēģinātu vēlreiz.";
+"premium.apple.cancelled" = "Pirkums atcelts. Maksa nav iekasēta.";
+"premium.apple.failed" = "Neizdevās apstiprināt pirkumu. Atjaunojiet pirkumus, lai mēģinātu vēlreiz, neveicot jaunu pirkumu.";
+"premium.apple.restore" = "Atjaunot pirkumus";
+"premium.apple.sceneUnavailable" = "Atveriet lietotni priekšplānā, lai pārvaldītu abonementu.";
+"premium.apple.deleteWarning" = "Jums ir aktīvs Apple abonements. Konta dzēšana to neatceļ. Pārvaldiet vai atceliet to App Store.";

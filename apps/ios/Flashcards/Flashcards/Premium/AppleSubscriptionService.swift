@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 import StoreKit
 import UIKit
 
@@ -10,6 +11,7 @@ enum AppleSubscriptionError: LocalizedError {
     case productUnavailable
     case sandboxRequired
     case attachmentNotConfirmed
+    case entitlementNotConfirmed
     case unexpectedPurchaseResult
 
     var errorDescription: String? {
@@ -23,7 +25,9 @@ enum AppleSubscriptionError: LocalizedError {
         case .sandboxRequired:
             return "Test purchases require a verified App Store sandbox installation."
         case .attachmentNotConfirmed:
-            return "The server did not confirm attachment of the Apple transaction."
+            return "The server did not confirm processing of the Apple transaction."
+        case .entitlementNotConfirmed:
+            return "The server did not return account access after the Apple transaction. Restore purchases to retry."
         case .unexpectedPurchaseResult:
             return "The App Store returned an unsupported purchase result."
         }
@@ -44,14 +48,67 @@ enum AppleSubscriptionPurchaseResult {
 }
 
 @MainActor
+@Observable
 final class AppleSubscriptionService {
     private let store: FlashcardsStore
     private let transport: CloudSyncTransport
-    private var processing: [UInt64: (id: UUID, identity: AppleSubscriptionIdentity, task: Task<Void, Error>)] = [:]
+    @ObservationIgnored private var processing: [UInt64: (id: UUID, identity: AppleSubscriptionIdentity, intent: AppleBillingTransactionIntent, task: Task<Void, Error>)] = [:]
+
+    @ObservationIgnored private var runtimeIdentity: AppleSubscriptionIdentity?
+    @ObservationIgnored private var isRuntimeActive: Bool = false
+    @ObservationIgnored private var updatesTask: Task<Void, Never>?
+    @ObservationIgnored private var reconciliationTask: Task<Void, Never>?
+
+    private(set) var confirmationRevision: Int = 0
+    var runtimeErrorMessage: String?
+    private var detailsIdentity: AppleSubscriptionIdentity?
+    private var verifiedPurchases: [StoreKit.Transaction] = []
+
+    var currentPurchases: [StoreKit.Transaction] {
+        self.detailsIdentity == (try? self.store.appleSubscriptionIdentity()) ? self.verifiedPurchases : []
+    }
 
     init(store: FlashcardsStore, session: URLSession) {
         self.store = store
         self.transport = CloudSyncTransport(session: session)
+    }
+
+    func updateRuntime(identity: AppleSubscriptionIdentity?, isActive: Bool) {
+        guard self.runtimeIdentity != identity || self.isRuntimeActive != isActive else { return }
+        if self.runtimeIdentity != identity {
+            let previousUpdates = self.updatesTask
+            previousUpdates?.cancel()
+            self.runtimeIdentity = identity
+            self.runtimeErrorMessage = nil
+            self.updatesTask = Task { @MainActor in
+                await previousUpdates?.value
+                guard let identity else { return }
+                do {
+                    try self.store.requireAppleSubscriptionIdentity(identity)
+                    try await self.consumeTransactionUpdates { error in
+                        self.publishRuntimeError(error, identity: identity)
+                    }
+                } catch {
+                    self.publishRuntimeError(error, identity: identity)
+                }
+            }
+        }
+        self.isRuntimeActive = isActive
+        self.reconciliationTask?.cancel()
+        guard isActive, let identity else { return }
+        self.reconciliationTask = Task { @MainActor in
+            do {
+                try self.store.requireAppleSubscriptionIdentity(identity)
+                try await self.reconcileCurrentEntitlements()
+            } catch {
+                self.publishRuntimeError(error, identity: identity)
+            }
+        }
+    }
+
+    private func publishRuntimeError(_ error: Error, identity: AppleSubscriptionIdentity) {
+        guard Task.isCancelled == false, (try? self.store.appleSubscriptionIdentity()) == identity else { return }
+        self.runtimeErrorMessage = error.localizedDescription
     }
 
     func loadOffer() async throws -> AppleSubscriptionOffer {
@@ -95,7 +152,7 @@ final class AppleSubscriptionService {
                   transaction.appAccountToken == token else {
                 throw AppleSubscriptionError.unexpectedPurchaseResult
             }
-            try await self.attach(verification: verification, transaction: transaction, identity: identity)
+            try await self.attach(verification: verification, transaction: transaction, identity: identity, intent: .explicit)
             return .attached
         @unknown default:
             throw AppleSubscriptionError.unexpectedPurchaseResult
@@ -110,32 +167,34 @@ final class AppleSubscriptionService {
             try self.store.requireAppleSubscriptionIdentity(identity)
             guard let transaction = try self.verifiedPremiumTransaction(verification) else { continue }
             // An explicit restore is the deliberate last-presenter-wins transfer path.
-            try await self.attach(verification: verification, transaction: transaction, identity: identity)
+            try await self.attach(verification: verification, transaction: transaction, identity: identity, intent: .explicit)
         }
         try await self.store.refreshAppleSubscriptionEntitlement(identity: identity)
+        try await self.refreshPurchaseDetails(identity: identity)
+        self.runtimeErrorMessage = nil
     }
 
     func reconcileCurrentEntitlements() async throws {
         let identity = try self.store.appleSubscriptionIdentity()
-        let token = try await self.store.appleSubscriptionAccountToken(identity: identity, transport: self.transport)
+        try await self.refreshPurchaseDetails(identity: identity)
         for await verification in StoreKit.Transaction.currentEntitlements {
-            try await self.attachOwnedTransaction(verification, identity: identity, appAccountToken: token)
+            try await self.reconcileTransaction(verification, identity: identity)
         }
         // Revoked/expired unfinished transactions may be absent from currentEntitlements.
         for await verification in StoreKit.Transaction.unfinished {
-            try await self.attachOwnedTransaction(verification, identity: identity, appAccountToken: token)
+            try await self.reconcileTransaction(verification, identity: identity)
         }
         try await self.store.refreshAppleSubscriptionEntitlement(identity: identity)
+        try await self.refreshPurchaseDetails(identity: identity)
+        self.runtimeErrorMessage = nil
     }
 
-    // The caller owns cancellation and restarts this consumer when the authenticated identity changes.
     func consumeTransactionUpdates(onError: @MainActor (Error) -> Void) async throws {
         let identity = try self.store.appleSubscriptionIdentity()
-        let token = try await self.store.appleSubscriptionAccountToken(identity: identity, transport: self.transport)
         for await verification in StoreKit.Transaction.updates {
             try self.store.requireAppleSubscriptionIdentity(identity)
             do {
-                try await self.attachOwnedTransaction(verification, identity: identity, appAccountToken: token)
+                try await self.reconcileTransaction(verification, identity: identity)
             } catch {
                 try self.store.requireAppleSubscriptionIdentity(identity)
                 onError(error)
@@ -148,16 +207,27 @@ final class AppleSubscriptionService {
         try await AppStore.showManageSubscriptions(in: scene)
     }
 
-    private func attachOwnedTransaction(
+    func refreshPurchaseDetails(identity: AppleSubscriptionIdentity) async throws {
+        var purchases: [StoreKit.Transaction] = []
+        for await verification in StoreKit.Transaction.currentEntitlements {
+            try self.store.requireAppleSubscriptionIdentity(identity)
+            if let transaction = try self.verifiedPremiumTransaction(verification) {
+                purchases.append(transaction)
+            }
+        }
+        try self.store.requireAppleSubscriptionIdentity(identity)
+        self.verifiedPurchases = purchases
+        self.detailsIdentity = identity
+    }
+
+    private func reconcileTransaction(
         _ verification: VerificationResult<StoreKit.Transaction>,
-        identity: AppleSubscriptionIdentity,
-        appAccountToken: UUID
+        identity: AppleSubscriptionIdentity
     ) async throws {
         try self.store.requireAppleSubscriptionIdentity(identity)
-        guard let transaction = try self.verifiedPremiumTransaction(verification),
-              transaction.appAccountToken == appAccountToken else { return }
-        // Automatic redelivery must not move a previous account’s in-flight purchase.
-        try await self.attach(verification: verification, transaction: transaction, identity: identity)
+        guard let transaction = try self.verifiedPremiumTransaction(verification) else { return }
+        // Apple's original token is not ownership after Restore; only the server can resolve it.
+        try await self.attach(verification: verification, transaction: transaction, identity: identity, intent: .passive)
     }
 
     private func verifiedPremiumTransaction(
@@ -175,16 +245,16 @@ final class AppleSubscriptionService {
     private func attach(
         verification: VerificationResult<StoreKit.Transaction>,
         transaction: StoreKit.Transaction,
-        identity: AppleSubscriptionIdentity
+        identity: AppleSubscriptionIdentity,
+        intent: AppleBillingTransactionIntent
     ) async throws {
         while let active = self.processing[transaction.id] {
-            if active.identity == identity {
+            if active.identity == identity, active.intent == intent {
                 try await active.task.value
                 try self.store.requireAppleSubscriptionIdentity(identity)
                 return
             }
-            // A restore for a replacement account must send after the previous attachment settles.
-            // Its result belongs to that old caller; this caller still performs its own attachment.
+            // Different identities or intents must send separately, in order.
             _ = await active.task.result
             try self.store.requireAppleSubscriptionIdentity(identity)
             if self.processing[transaction.id]?.id == active.id {
@@ -196,14 +266,18 @@ final class AppleSubscriptionService {
         let task = Task { @MainActor in
             try await self.store.attachAppleSubscription(
                 signedTransaction: verification.jwsRepresentation,
+                intent: intent,
                 identity: identity,
                 transport: self.transport
             )
             try self.store.requireAppleSubscriptionIdentity(identity)
             await transaction.finish()
             try await self.store.refreshAppleSubscriptionEntitlement(identity: identity)
+            try self.store.requireAppleSubscriptionIdentity(identity)
+            self.confirmationRevision += 1
+            try await self.refreshPurchaseDetails(identity: identity)
         }
-        self.processing[transaction.id] = (operationId, identity, task)
+        self.processing[transaction.id] = (operationId, identity, intent, task)
         defer {
             if self.processing[transaction.id]?.id == operationId {
                 self.processing[transaction.id] = nil
