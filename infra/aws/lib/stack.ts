@@ -253,6 +253,8 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     const apexRedirectCertificateArnUsEast1 = getOptionalContextValue(this, "apexRedirectCertificateArnUsEast1");
     const githubOidcProviderArn = getOptionalContextValue(this, "githubOidcProviderArn");
     const appleIapSecretArn = getOptionalContextValue(this, "appleIapSecretArn");
+    const stripeBillingSecretArn = getOptionalContextValue(this, "stripeBillingSecretArn");
+    const stripeCheckoutLiveEnabled = getOptionalRawContextValue(this, "stripeCheckoutLiveEnabled") === "true";
     const openAiApiKeySecretArn = getOptionalContextValue(this, "openAiApiKeySecretArn");
     const langfusePublicKeySecretArn = getOptionalContextValue(this, "langfusePublicKeySecretArn");
     const langfuseSecretKeySecretArn = getOptionalContextValue(this, "langfuseSecretKeySecretArn");
@@ -541,6 +543,8 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       publicAppOrigin,
       cookieDomain,
       appleIapSecretArn,
+      stripeBillingSecretArn,
+      stripeCheckoutLiveEnabled,
       openAiApiKeySecretArn,
       langfusePublicKeySecretArn,
       langfuseSecretKeySecretArn,
