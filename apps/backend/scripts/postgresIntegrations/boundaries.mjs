@@ -70,11 +70,10 @@ export const createdRolesByMigration = new Map([
   ["0044_reporting_readonly_role.sql", Object.freeze(["reporting_readonly"])],
 ]);
 export const boundaryDefinitions = Object.freeze([
-  // Shared profile reads and preference writes require accent_color. The two content-write
-  // integrations also pin the current production schema.
+  // Guest identity merge and account deletion require the Stripe billing tables.
   Object.freeze({
-    migrationFileName: "0164_account_accent_color.sql",
-    expectedMigrationCount: 166,
+    migrationFileName: "0165_stripe_billing.sql",
+    expectedMigrationCount: 167,
     testFiles: Object.freeze([
       "src/agent/reviews.postgres.integration.ts",
       "src/auth/surrogateUserId.postgres.integration.ts",
