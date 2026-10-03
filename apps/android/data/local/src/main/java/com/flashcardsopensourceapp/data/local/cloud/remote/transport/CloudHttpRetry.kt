@@ -25,6 +25,7 @@ internal fun isTransientCloudHttpRetryEligible(
 
     val pathOnly = path.substringBefore(delimiter = "?").trim()
     return when {
+        pathOnly.endsWith(suffix = "/billing/google/purchases") -> true
         pathOnly.endsWith(suffix = "/sync/pull") -> true
         pathOnly.endsWith(suffix = "/sync/review-history/pull") -> true
         pathOnly.endsWith(suffix = "/sync/bootstrap") -> body?.optString("mode") == "pull"
