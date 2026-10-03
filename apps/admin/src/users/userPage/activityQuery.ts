@@ -12,6 +12,10 @@ export const activitySources = ["analytics", "purchase", "grant", "feedback"] as
 
 export type ActivitySource = (typeof activitySources)[number];
 
+export const activityRecordedAs = ["guest", "account", "visitor"] as const;
+
+export type ActivityRecordedAs = (typeof activityRecordedAs)[number];
+
 export type ActivityRow = Readonly<{
   /** `<source>:<row id>`, unique across sources and the tiebreak of the keyset order. */
   key: string;
@@ -28,6 +32,7 @@ export type ActivityRow = Readonly<{
   origin: string | null;
   /** Compact JSON of the event properties, or of the source row's own fields. */
   details: string;
+  recordedAs: ActivityRecordedAs;
 }>;
 
 export type ActivityCursor = Readonly<{ occurredAt: string; key: string }>;
@@ -37,14 +42,38 @@ export type ActivityCursor = Readonly<{ occurredAt: string; key: string }>;
  * `analytics.product_events_resolved` on `actor_id`, so a merged guest's history is already folded in,
  * and every trust level is kept and shown. Reviews, cards and AI chat runs are not merged in: each is
  * already an analytics event (`review_answered`, `card_created`, `ai_message_sent`).
+ *
+ * `recorded_as` is the credential an analytics event was recorded under: `visitor` without a user id;
+ * `guest` on a guest credential (`guest_client` trust or a guest session), or under a merged guest's
+ * id that resolves onto another actor; `account` on an authenticated client credential. Most server
+ * and backfill rows carry no credential of their own, as the backend's review and content-write
+ * producers say, so they take the recorded id's history instead: an id that never had a guest
+ * session was always an account, and one that did was a guest until its first sign-in identity, the
+ * boundary no guest-credential row has ever crossed. Purchases, grants and feedback are `account`.
  */
 function buildActivityUnionSql(subject: UserSubjectSql): string {
   const matches = (textColumnSql: string): string => buildMatchesUserIdSql(textColumnSql, subject);
   return `SELECT events.occurred_at, 'analytics:' || events.event_id::text AS row_key, 'analytics' AS source,
     events.event_name AS name, events.platform, events.app_version, events.screen, events.country,
     events.ui_locale, events.session_id::text AS session_id,
-    events.origin || ' / ' || events.trust_level AS origin, events.event_properties AS details
+    events.origin || ' / ' || events.trust_level AS origin, events.event_properties AS details,
+    CASE
+      WHEN events.user_id IS NULL THEN 'visitor'
+      WHEN events.trust_level = 'guest_client' OR events.guest_session_id IS NOT NULL OR events.user_id <> events.actor_id THEN 'guest'
+      WHEN events.trust_level = 'authenticated_client' OR recorded_guests.user_id IS NULL THEN 'account'
+      WHEN recorded_accounts.account_since IS NULL OR events.occurred_at < recorded_accounts.account_since THEN 'guest'
+      ELSE 'account'
+    END AS recorded_as
   FROM analytics.product_events_resolved AS events
+  LEFT JOIN (
+    SELECT DISTINCT pg_catalog.lower(guest_sessions.user_id) AS user_id
+    FROM auth.guest_sessions AS guest_sessions
+  ) AS recorded_guests ON recorded_guests.user_id = events.user_id::text
+  LEFT JOIN (
+    SELECT pg_catalog.lower(identities.user_id) AS user_id, min(identities.created_at) AS account_since
+    FROM auth.user_identities AS identities
+    GROUP BY pg_catalog.lower(identities.user_id)
+  ) AS recorded_accounts ON recorded_accounts.user_id = events.user_id::text
   WHERE events.actor_id = ${subject.uuidSql}
   UNION ALL
   SELECT purchases.created_at, 'purchase:' || purchases.purchase_id::text, 'purchase',
@@ -60,7 +89,8 @@ function buildActivityUnionSql(subject: UserSubjectSql): string {
       'linked_from_purchase_id', purchases.linked_from_purchase_id,
       'invalidated_at', purchases.invalidated_at, 'account_deleted_at', purchases.account_deleted_at,
       'updated_at', purchases.updated_at
-    )
+    ),
+    'account'
   FROM billing.purchases AS purchases
   WHERE ${matches("purchases.user_id")} OR ${matches("purchases.previous_user_id")}
   UNION ALL
@@ -70,7 +100,8 @@ function buildActivityUnionSql(subject: UserSubjectSql): string {
     jsonb_build_object(
       'grant_id', grants.grant_id, 'expires_at', grants.expires_at,
       'revoked_at', grants.revoked_at, 'reason', grants.reason
-    )
+    ),
+    'account'
   FROM billing.grants AS grants
   WHERE ${matches("grants.user_id")}
   UNION ALL
@@ -84,7 +115,8 @@ function buildActivityUnionSql(subject: UserSubjectSql): string {
       'created_at_client', feedback.created_at_client,
       'email_notification_status', feedback.email_notification_status,
       'email_notification_error', feedback.email_notification_error
-    )
+    ),
+    'account'
   FROM support.feedback_submissions AS feedback
   WHERE ${matches("feedback.user_id")}`;
 }
@@ -102,7 +134,8 @@ function buildActivityPageSql(subject: UserSubjectSql, cursor: ActivityCursor | 
     activity.row_key,
     to_char(activity.occurred_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
     activity.source, activity.name, activity.platform, activity.app_version, activity.screen,
-    activity.country, activity.ui_locale, activity.session_id, activity.origin, activity.details
+    activity.country, activity.ui_locale, activity.session_id, activity.origin, activity.details,
+    activity.recorded_as
   ) AS a
   FROM (
   ${buildActivityUnionSql(subject)}
@@ -121,11 +154,16 @@ function buildActivityTotalSql(subject: UserSubjectSql): string {
 
 function parseActivityRow(value: AdminQueryValue | undefined, rowIndex: number): ActivityRow {
   const location = `${reportLabel} row ${rowIndex}`;
-  const values = readRowArray(value, 12, location);
+  const values = readRowArray(value, 13, location);
   const source = readString(values, 2, "source", location);
   const matchedSource = activitySources.find((candidate) => candidate === source);
   if (matchedSource === undefined) {
     throw new Error(`${location} field "source" has unsupported value: ${source}`);
+  }
+  const recordedAs = readString(values, 12, "recordedAs", location);
+  const matchedRecordedAs = activityRecordedAs.find((candidate) => candidate === recordedAs);
+  if (matchedRecordedAs === undefined) {
+    throw new Error(`${location} field "recordedAs" has unsupported value: ${recordedAs}`);
   }
   const details: AdminQueryValue | undefined = values[11];
   if (details === undefined) {
@@ -144,6 +182,7 @@ function parseActivityRow(value: AdminQueryValue | undefined, rowIndex: number):
     sessionId: readNullableString(values, 9, "sessionId", location),
     origin: readNullableString(values, 10, "origin", location),
     details: JSON.stringify(details),
+    recordedAs: matchedRecordedAs,
   };
 }
 
