@@ -70,8 +70,19 @@ internal fun PremiumPresentationHost(
     var isEditingOwnKey by remember(reason) { mutableStateOf(false) }
     var renewalAtMillis: Long? by remember(reason) { mutableStateOf(null) }
     var usageRefreshFailed by remember(reason) { mutableStateOf(false) }
+    var hasRequestedEntitlement by remember(reason) { mutableStateOf(false) }
     val isAiLimit = reason is PremiumReason.AiLimit || reason == PremiumReason.AiLimitPreview
+    val billingOperation by appGraph.googlePlaySubscriptionConnector.operation.collectAsStateWithLifecycle()
     val locale = LocalConfiguration.current.locales[0]
+
+    LaunchedEffect(reason, billingOperation) {
+        if (!isAiLimit && presenter.entitlement == null && !hasRequestedEntitlement &&
+            !isBillingOperationBusy(billingOperation) && !requiresPurchaseVerification(billingOperation)
+        ) {
+            hasRequestedEntitlement = true
+            appGraph.googlePlaySubscriptionConnector.refreshEntitlement()
+        }
+    }
 
     LaunchedEffect(reason) {
         if (reason !is PremiumReason.AiLimit) {
@@ -156,11 +167,19 @@ internal fun PremiumPresentationHost(
                             )
                         }
                     }
-                    if (isAiLimit.not() || (
-                            presenter.entitlement != null &&
-                                hasPremiumAccess(entitlement = presenter.entitlement).not()
-                            )) {
-                        PremiumComingSoon()
+                    val hasAccess = hasPremiumAccess(entitlement = presenter.entitlement)
+                    if (!hasAccess && (!isAiLimit || presenter.entitlement != null)) {
+                        PremiumStoreOffer(
+                            connector = appGraph.googlePlaySubscriptionConnector,
+                            entitlement = presenter.entitlement
+                        )
+                    } else if (!isAiLimit) {
+                        Text(
+                            text = presenter.entitlement?.tierDisplayName.orEmpty(),
+                            style = MaterialTheme.typography.headlineSmall
+                        )
+                        Text(stringResource(R.string.premium_already_active))
+                        PremiumBillingActions(connector = appGraph.googlePlaySubscriptionConnector)
                     }
                     if (isAiLimit) {
                         Text(stringResource(R.string.premium_own_key_help))
@@ -186,15 +205,6 @@ internal fun PremiumPresentationHost(
             }
         }
     }
-}
-
-@Composable
-private fun PremiumComingSoon() {
-    Text(
-        text = stringResource(R.string.premium_coming_soon_title),
-        style = MaterialTheme.typography.headlineSmall
-    )
-    Text(text = stringResource(R.string.premium_coming_soon_message))
 }
 
 @Composable

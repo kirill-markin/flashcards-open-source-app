@@ -352,7 +352,7 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         isTestModeEnabled = isTestModeEnabled
                     ),
                     subscriptionUiState = SubscriptionUiState(
-                        isSubscriptionProductAvailable = false,
+                        canOpenOffer = true,
                         planName = null,
                         statusText = "Your plan appears here after the app syncs with your account."
                     ),

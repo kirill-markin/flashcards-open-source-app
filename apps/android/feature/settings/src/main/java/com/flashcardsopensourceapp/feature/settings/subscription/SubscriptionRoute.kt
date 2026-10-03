@@ -30,6 +30,7 @@ fun SubscriptionRoute(
     uiState: SubscriptionUiState,
     onManageSubscription: () -> Unit,
     onPreviewPremium: () -> Unit,
+    billingActions: @Composable () -> Unit,
     onBack: () -> Unit
 ) {
     SettingsScreenScaffold(
@@ -60,14 +61,18 @@ fun SubscriptionRoute(
                 }
             }
 
-            item {
-                Button(
-                    onClick = onPreviewPremium,
-                    modifier = Modifier.fillMaxWidth().testTag(tag = subscriptionPremiumPreviewTag)
-                ) {
-                    Text(stringResource(R.string.settings_premium_preview))
+            if (uiState.canOpenOffer) {
+                item {
+                    Button(
+                        onClick = onPreviewPremium,
+                        modifier = Modifier.fillMaxWidth().testTag(tag = subscriptionPremiumPreviewTag)
+                    ) {
+                        Text(stringResource(R.string.settings_subscription_open_offer))
+                    }
                 }
             }
+
+            item { billingActions() }
 
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {

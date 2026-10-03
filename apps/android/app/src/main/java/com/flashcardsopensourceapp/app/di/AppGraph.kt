@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.app.di
 
 import android.content.Context
 import android.util.Log
+import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStoreOwner
@@ -128,6 +129,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import java.time.ZoneId
 
@@ -478,6 +480,7 @@ class AppGraph(
             )
         )
     }
+    private var isGooglePlayLifecycleBound = false
     val googlePlaySubscriptionConnector: GooglePlaySubscriptionConnector by googlePlaySubscriptionConnectorDelegate
     val autoSyncEventRepository: AutoSyncEventRepository = localSyncRepository
     val autoSyncController = AutoSyncController(
@@ -764,6 +767,12 @@ class AppGraph(
                     )
                 }
                 startNotificationsWorkspaceObserver(initialWorkspaceId = initialWorkspaceId)
+                withContext(Dispatchers.Main.immediate) {
+                    if (!isGooglePlayLifecycleBound) {
+                        ProcessLifecycleOwner.get().lifecycle.addObserver(googlePlaySubscriptionConnector)
+                        isGooglePlayLifecycleBound = true
+                    }
+                }
                 startupStateMutable.value = AppStartupState.Ready
             } catch (error: CancellationException) {
                 throw error
@@ -1014,13 +1023,17 @@ class AppGraph(
     }
 
     suspend fun close() {
+        startupJob?.cancelAndJoin()
         if (googlePlaySubscriptionConnectorDelegate.isInitialized()) {
-            googlePlaySubscriptionConnector.closeAndJoin()
+            withContext(Dispatchers.Main.immediate) {
+                ProcessLifecycleOwner.get().lifecycle.removeObserver(googlePlaySubscriptionConnector)
+                isGooglePlayLifecycleBound = false
+                googlePlaySubscriptionConnector.closeAndJoin()
+            }
         }
         analyticsNetworkMonitor.stopObservingConnectivityRestored()
         cloudCredentialRecoveryGateViewModelStoreOwner.viewModelStore.clear()
         accentColorViewModelStoreOwner.viewModelStore.clear()
-        startupJob?.cancelAndJoin()
         cloudIdentityObserverJob?.cancelAndJoin()
         analyticsGuestIdentityLinkJob?.cancelAndJoin()
         productAnalyticsPreferenceJob?.cancelAndJoin()

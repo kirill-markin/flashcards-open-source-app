@@ -142,6 +142,7 @@
     <string name="settings_subscription_status_in_grace_until">Your last payment did not go through and is being retried. Access continues until %1$s.</string>
     <string name="settings_subscription_status_in_grace_end_unknown">Your last payment did not go through and is being retried. Access continues for now, but the end date is not known yet.</string>
     <string name="settings_subscription_status_trial_format">Free trial. %1$s</string>
+    <string name="settings_subscription_open_offer">Get Premium</string>
     <string name="settings_subscription_manage_button">Manage subscription</string>
     <string name="settings_subscription_manage_body">Opens Google Play, where you can change or cancel your subscription.</string>
     <string name="settings_language_title">Language</string>
