@@ -1,4 +1,5 @@
 import type { Context } from "aws-lambda";
+import { googleReconciliationEventSchema, reconcileGoogleSubscriptions } from "../billing/google/reconcile";
 import { runWithApiGatewayCountry } from "../geolocation/requestCountry";
 import type { APIGatewayProxyResult, LambdaEvent } from "hono/aws-lambda";
 import {
@@ -214,13 +215,20 @@ const backendApiBootstrapHandler: BackendApiHandler = async (event, context) => 
   return runWithMultipartCompletionRequestTiming(timing, handleRequest);
 };
 
-/**
- * Keeps the default buffered Lambda proxy behavior for the main backend
- * routes such as `/health`, `/me`, workspace-scoped sync JSON endpoints,
- * and the backend-owned chat control-plane endpoints.
- *
- * Those endpoints return complete JSON payloads, so streaming would add no
- * benefit and would make API Gateway treat every route as a streaming
- * integration.
- */
-export const handler = wrapBackendHandler(backendApiBootstrapHandler);
+export const handler = wrapBackendHandler(async (
+  event: LambdaEvent | Readonly<{ source: string; task: string; version: number }>, context: Context,
+): Promise<APIGatewayProxyResult> => {
+  // Internal events cannot be reached by putting their fields in an API Gateway body.
+  if ("source" in event) {
+    const internal = googleReconciliationEventSchema.safeParse(event);
+    if (!internal.success) throw new Error("Invalid internal backend invocation.");
+    try {
+      await reconcileGoogleSubscriptions(() => context.getRemainingTimeInMillis());
+    } catch {
+      // Database/SDK exceptions can contain purchase tokens; the scheduler boundary is sanitized.
+      throw new Error("Google scheduled reconciliation failed; inspect sanitized reconciliation diagnostics.");
+    }
+    return { statusCode: 204, body: "", isBase64Encoded: false };
+  }
+  return backendApiBootstrapHandler(event, context);
+});

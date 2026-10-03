@@ -45,7 +45,7 @@ export async function publishGoogleTransition(transition: GoogleCommittedTransit
         if (state.isTrial) await recordTrialStartedAnalytics({ ...fact, occurredAt: state.startedAt ?? state.verifiedAt });
         if (state.paid) await recordPurchaseCompletedAnalytics({ ...fact, kind: "subscription", period: "monthly" });
       }
-      if (purchase.status === "revoked" && previous?.status !== "revoked") {
+      if (purchase.status === "revoked") {
         await recordSubscriptionRevokedAnalytics({ ...fact, reason: "unknown" });
       }
       if (previous?.will_renew === true && !purchase.will_renew && state.completed && current.status !== "revoked") {

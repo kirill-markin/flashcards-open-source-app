@@ -1,8 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { applyUserDatabaseScopeInExecutor, type DatabaseExecutor } from "../../database";
+import type { GoogleNotification } from "./notifications";
 import type { AccountKind } from "../limits";
 import type { PurchaseStatus } from "../resolver";
-import { GoogleBillingError, type GoogleEnvironment, type GooglePurchaseState } from "./contracts";
+import { GoogleBillingError, type GoogleAcknowledgementState, type GoogleEnvironment, type GooglePurchaseState } from "./contracts";
 
 export type GoogleAccount = Readonly<{ userId: string; accountKind: AccountKind }>;
 export type StoredGooglePurchase = Readonly<{
@@ -15,6 +16,12 @@ export type StoredGooglePurchase = Readonly<{
   linked_from_purchase_id: string | null;
   invalidated_at: Date | null;
   account_deleted_at: Date | null;
+  environment: GoogleEnvironment;
+  until: Date | null;
+  provider_status_raw: string | null;
+  google_latest_order_id: string | null;
+  google_acknowledgement_state: GoogleAcknowledgementState | null;
+  google_verified_at: Date | null;
 }>;
 export type GooglePurchaseLink = Readonly<{
   purchaseToken: string;
@@ -29,7 +36,8 @@ export type LockedGooglePurchase = Readonly<{
   ownerUserId: string | null;
 }>;
 const purchaseColumns = `purchase_id, provider_purchase_id, user_id, status, is_trial, will_renew,
-  linked_from_purchase_id, invalidated_at, account_deleted_at`;
+  linked_from_purchase_id, invalidated_at, account_deleted_at, environment, until,
+  provider_status_raw, google_latest_order_id, google_acknowledgement_state, google_verified_at`;
 
 export async function lockGoogleAccount(executor: DatabaseExecutor, userId: string): Promise<GoogleAccount | null> {
   await applyUserDatabaseScopeInExecutor(executor, { userId });
@@ -179,22 +187,30 @@ export async function persistGooglePurchase(
   const result = await executor.query<StoredGooglePurchase>(`
     INSERT INTO billing.purchases
       (provider, provider_purchase_id, environment, kind, tier, user_id, status, is_trial,
-       will_renew, until, grace_until, provider_status_raw, linked_from_purchase_id)
-    VALUES ('google', $1, $2, 'subscription', 'premium', $3, $4, $5, $6, $7, $8, $9, $10)
+       will_renew, until, grace_until, provider_status_raw, linked_from_purchase_id,
+       google_verified_at, google_last_attempt_at, google_acknowledgement_state, google_latest_order_id)
+    VALUES ('google', $1, $2, 'subscription', 'premium', $3, $4, $5, $6, $7, $8, $9, $10, $12, $12, $13, $14)
     ON CONFLICT (provider, provider_purchase_id, environment) DO UPDATE SET
       previous_user_id = CASE WHEN billing.purchases.user_id IS DISTINCT FROM EXCLUDED.user_id
         THEN billing.purchases.user_id ELSE billing.purchases.previous_user_id END,
       user_id = EXCLUDED.user_id,
       status = CASE WHEN billing.purchases.status = 'revoked' THEN 'revoked' ELSE EXCLUDED.status END,
-      is_trial = EXCLUDED.is_trial, will_renew = EXCLUDED.will_renew,
+      is_trial = CASE WHEN billing.purchases.status = 'revoked' THEN false ELSE EXCLUDED.is_trial END,
+      will_renew = CASE WHEN billing.purchases.status = 'revoked' THEN false ELSE EXCLUDED.will_renew END,
       until = EXCLUDED.until, grace_until = EXCLUDED.grace_until,
       provider_status_raw = EXCLUDED.provider_status_raw,
       linked_from_purchase_id = EXCLUDED.linked_from_purchase_id,
       account_deleted_at = CASE WHEN $11::text IS NOT NULL THEN NULL ELSE billing.purchases.account_deleted_at END,
+      google_verified_at = EXCLUDED.google_verified_at,
+      google_last_attempt_at = EXCLUDED.google_last_attempt_at,
+      google_acknowledgement_state = EXCLUDED.google_acknowledgement_state,
+      google_latest_order_id = EXCLUDED.google_latest_order_id,
+      google_reconcile_stopped_at = NULL,
       updated_at = now()
     RETURNING ${purchaseColumns}`,
   [state.purchaseToken, state.environment, locked.ownerUserId, state.status, state.isTrial, state.willRenew,
-    state.until, state.graceUntil, state.providerStatus, lineage[0].predecessorToken, presentingUserId]);
+    state.until, state.graceUntil, state.providerStatus, lineage[0].predecessorToken, presentingUserId,
+    state.verifiedAt, state.acknowledgementState, state.latestSuccessfulOrderId]);
   const purchase = result.rows[0];
   if (state.completed && purchase.invalidated_at === null && purchase.status !== "revoked"
     && purchase.account_deleted_at === null && locked.accounts.some((account) => account.userId === purchase.user_id)) {
@@ -211,4 +227,107 @@ export async function persistGooglePurchase(
     [purchase.user_id, state.isTrial ? state.startedAt ?? state.verifiedAt : null, state.paid ? state.verifiedAt : null]);
   }
   return purchase;
+}
+
+export async function readGooglePurchaseByToken(
+  executor: DatabaseExecutor, purchaseToken: string,
+): Promise<StoredGooglePurchase | null> {
+  const result = await executor.query<StoredGooglePurchase>(`SELECT ${purchaseColumns}
+    FROM billing.purchases WHERE provider = 'google' AND provider_purchase_id = $1`, [purchaseToken]);
+  if (result.rows.length > 1) {
+    throw new GoogleBillingError("GOOGLE_TOKEN_ENVIRONMENT_AMBIGUOUS", false, null,
+      "Google token identifies more than one purchase environment. Contact support.");
+  }
+  return result.rows[0] ?? null;
+}
+
+export async function readGoogleNotification(
+  executor: DatabaseExecutor, notification: GoogleNotification,
+): Promise<boolean> {
+  const result = await executor.query<{
+    processed_at: Date | null; provider_purchase_id: string | null; event_type: string; occurred_at: Date;
+  }>(`SELECT processed_at, provider_purchase_id, event_type, occurred_at FROM billing.provider_events
+    WHERE provider = 'google' AND event_id = $1`, [notification.eventId]);
+  const event = result.rows[0];
+  if (event === undefined) return false;
+  if (event.provider_purchase_id !== notification.purchaseToken || event.event_type !== notification.eventType
+    || event.occurred_at.getTime() !== notification.occurredAt.getTime()) {
+    throw new GoogleBillingError("GOOGLE_EVENT_IDENTITY_MISMATCH", false, null,
+      "Google message ID already identifies a different notification.");
+  }
+  return event.processed_at !== null;
+}
+
+export async function recordGoogleNotification(
+  executor: DatabaseExecutor, notification: GoogleNotification, purchase: StoredGooglePurchase | null,
+  previousWillRenew: boolean | null,
+): Promise<void> {
+  // Keep only attributed accounting metadata. Raw push bodies, JWTs and personal provider
+  // payloads are never persisted, including on undecodable, unowned and erased purchases.
+  await executor.query(`INSERT INTO billing.provider_events
+    (provider, event_id, event_type, occurred_at, payload_raw, user_id, provider_purchase_id, environment, payload)
+    VALUES ('google', $1, $2, $3, '', $4, $5, $6, $7::jsonb) ON CONFLICT (provider, event_id) DO NOTHING`,
+  [notification.eventId, notification.eventType, notification.occurredAt, purchase?.user_id ?? null,
+    notification.purchaseToken, purchase?.environment ?? null,
+    purchase?.user_id != null && purchase.account_deleted_at === null ? JSON.stringify({ previousWillRenew }) : null]);
+  await executor.query(`SELECT event_id FROM billing.provider_events
+    WHERE provider = 'google' AND event_id = $1 FOR UPDATE`, [notification.eventId]);
+  await readGoogleNotification(executor, notification);
+  // A retry may follow deletion or transfer; never restore a scrubbed payload.
+  await executor.query(`UPDATE billing.provider_events SET user_id = $2, environment = $3
+    WHERE provider = 'google' AND event_id = $1 AND processed_at IS NULL`,
+  [notification.eventId, purchase?.user_id ?? null, purchase?.environment ?? null]);
+}
+
+export async function readGoogleNotificationPreviousRenewal(
+  executor: DatabaseExecutor, eventId: string,
+): Promise<boolean | null> {
+  const result = await executor.query<{ previous_will_renew: boolean | null }>(`
+    SELECT (payload->>'previousWillRenew')::boolean AS previous_will_renew
+    FROM billing.provider_events WHERE provider = 'google' AND event_id = $1`, [eventId]);
+  return result.rows[0]?.previous_will_renew ?? null;
+}
+
+export async function finishGoogleNotification(executor: DatabaseExecutor, eventId: string): Promise<void> {
+  await executor.query(`UPDATE billing.provider_events SET processed_at = now(), processing_error = NULL
+    WHERE provider = 'google' AND event_id = $1 AND processed_at IS NULL`, [eventId]);
+}
+
+export async function lockKnownGooglePurchase(
+  executor: DatabaseExecutor, observed: StoredGooglePurchase,
+): Promise<Readonly<{ purchase: StoredGooglePurchase; accounts: ReadonlyArray<GoogleAccount> }>> {
+  await lockGooglePurchaseTokens(executor, [{
+    purchaseToken: observed.provider_purchase_id, predecessorToken: observed.linked_from_purchase_id, state: null,
+  }], observed.environment);
+  const before = await readGooglePurchase(executor, observed.provider_purchase_id, observed.environment);
+  const account = before?.user_id == null ? null : await lockGoogleAccount(executor, before.user_id);
+  await executor.query("SELECT purchase_id FROM billing.purchases WHERE purchase_id = $1 FOR UPDATE",
+    [observed.purchase_id]);
+  const purchase = await readGooglePurchase(executor, observed.provider_purchase_id, observed.environment);
+  if (purchase === null || purchase.user_id !== before?.user_id) {
+    throw new GoogleBillingError("GOOGLE_OWNER_CHANGED", true, null,
+      "Google purchase ownership changed during reconciliation. Retry.");
+  }
+  return { purchase, accounts: account === null ? [] : [account] };
+}
+
+export async function revokeGooglePurchase(
+  executor: DatabaseExecutor, purchase: StoredGooglePurchase,
+): Promise<StoredGooglePurchase> {
+  const result = await executor.query<StoredGooglePurchase>(`UPDATE billing.purchases
+    SET status = 'revoked', will_renew = false, is_trial = false, grace_until = NULL,
+      google_reconcile_stopped_at = now(), updated_at = now()
+    WHERE purchase_id = $1 RETURNING ${purchaseColumns}`, [purchase.purchase_id]);
+  return result.rows[0];
+}
+
+export async function expireUnavailableGooglePurchase(
+  executor: DatabaseExecutor, purchase: StoredGooglePurchase,
+): Promise<StoredGooglePurchase> {
+  const result = await executor.query<StoredGooglePurchase>(`UPDATE billing.purchases
+    SET status = CASE WHEN status = 'revoked' THEN 'revoked' ELSE 'expired' END,
+      will_renew = false, is_trial = false, grace_until = NULL,
+      google_reconcile_stopped_at = now(), updated_at = now()
+    WHERE purchase_id = $1 RETURNING ${purchaseColumns}`, [purchase.purchase_id]);
+  return result.rows[0];
 }
