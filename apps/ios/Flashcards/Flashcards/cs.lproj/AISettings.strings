@@ -763,6 +763,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "Tento balíček nemá žádná pravidla, takže obsahuje všechny kartičky.";
 "settings.workspace.decks.section.matchingCards" = "Odpovídající kartičky";
 "settings.workspace.decks.deleteDeck" = "Smazat balíček";
+"settings.workspace.decks.deleteConfirmation.title" = "Smazat „%@“?";
+"settings.workspace.decks.deleteConfirmation.message" = "Vaše kartičky zůstanou zachovány. Odstraní se pouze uložený filtr balíčku.";
 "settings.workspace.decks.deck" = "Balíček";
 "settings.workspace.decks.editDeck" = "Upravit balíček";
 "settings.workspace.decks.notFound" = "Balíček nenalezen.";

@@ -763,6 +763,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "Ta komplet nima pravil, zato vključuje vse kartice.";
 "settings.workspace.decks.section.matchingCards" = "Ustrezne kartice";
 "settings.workspace.decks.deleteDeck" = "Izbriši komplet";
+"settings.workspace.decks.deleteConfirmation.title" = "Izbrišem »%@«?";
+"settings.workspace.decks.deleteConfirmation.message" = "Vaše kartice bodo ostale. Odstranjen bo samo shranjeni filter kompleta.";
 "settings.workspace.decks.deck" = "Komplet";
 "settings.workspace.decks.editDeck" = "Uredi komplet";
 "settings.workspace.decks.notFound" = "Kompleta ni mogoče najti.";

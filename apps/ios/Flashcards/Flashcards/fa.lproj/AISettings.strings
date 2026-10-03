@@ -763,6 +763,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "این دسته قاعده‌ای ندارد، پس همهٔ کارت‌ها را در بر می‌گیرد.";
 "settings.workspace.decks.section.matchingCards" = "کارت‌های مطابق";
 "settings.workspace.decks.deleteDeck" = "حذف دسته";
+"settings.workspace.decks.deleteConfirmation.title" = "«%@» حذف شود؟";
+"settings.workspace.decks.deleteConfirmation.message" = "کارت‌های شما باقی می‌مانند. فقط فیلتر ذخیره‌شدهٔ دسته حذف می‌شود.";
 "settings.workspace.decks.deck" = "دسته";
 "settings.workspace.decks.editDeck" = "ویرایش دسته";
 "settings.workspace.decks.notFound" = "دسته پیدا نشد.";

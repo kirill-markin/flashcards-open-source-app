@@ -788,6 +788,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "لا تحتوي هذه المجموعة على قواعد، لذلك تشمل كل البطاقات.";
 "settings.workspace.decks.section.matchingCards" = "بطاقات المطابقة";
 "settings.workspace.decks.deleteDeck" = "حذف المجموعة";
+"settings.workspace.decks.deleteConfirmation.title" = "حذف «%@»؟";
+"settings.workspace.decks.deleteConfirmation.message" = "ستبقى بطاقاتك. يؤدي هذا إلى إزالة مرشح المجموعة المحفوظ فقط.";
 "settings.workspace.decks.deck" = "مجموعة";
 "settings.workspace.decks.editDeck" = "تحرير المجموعة";
 "settings.workspace.decks.notFound" = "لم يتم العثور على المجموعة.";

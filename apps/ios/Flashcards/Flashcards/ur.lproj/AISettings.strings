@@ -763,6 +763,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "اس ڈیک کے کوئی قواعد نہیں، اس لیے اس میں تمام کارڈز شامل ہیں۔";
 "settings.workspace.decks.section.matchingCards" = "مماثل کارڈز";
 "settings.workspace.decks.deleteDeck" = "ڈیک حذف کریں";
+"settings.workspace.decks.deleteConfirmation.title" = "“%@” حذف کریں؟";
+"settings.workspace.decks.deleteConfirmation.message" = "آپ کے کارڈز برقرار رہیں گے۔ اس سے صرف محفوظ کردہ ڈیک فلٹر ہٹے گا۔";
 "settings.workspace.decks.deck" = "ڈیک";
 "settings.workspace.decks.editDeck" = "ڈیک میں ترمیم کریں";
 "settings.workspace.decks.notFound" = "ڈیک نہیں ملا۔";

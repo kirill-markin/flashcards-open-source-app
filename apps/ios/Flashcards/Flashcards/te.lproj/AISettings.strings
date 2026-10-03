@@ -763,6 +763,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "ఈ డెక్‌కు నియమాలు లేవు, కాబట్టి అన్ని కార్డులు ఇందులో ఉంటాయి.";
 "settings.workspace.decks.section.matchingCards" = "సరిపోలే కార్డులు";
 "settings.workspace.decks.deleteDeck" = "డెక్ తొలగించు";
+"settings.workspace.decks.deleteConfirmation.title" = "“%@” తొలగించాలా?";
+"settings.workspace.decks.deleteConfirmation.message" = "మీ కార్డులు అలాగే ఉంటాయి. సేవ్ చేసిన డెక్ ఫిల్టర్ మాత్రమే తీసివేయబడుతుంది.";
 "settings.workspace.decks.deck" = "డెక్";
 "settings.workspace.decks.editDeck" = "డెక్ సవరించు";
 "settings.workspace.decks.notFound" = "డెక్ దొరకలేదు.";

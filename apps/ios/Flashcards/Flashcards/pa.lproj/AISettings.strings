@@ -763,6 +763,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "ਇਸ ਡੈੱਕ ਦੇ ਕੋਈ ਨਿਯਮ ਨਹੀਂ ਹਨ, ਇਸ ਲਈ ਇਸ ਵਿੱਚ ਸਾਰੇ ਕਾਰਡ ਸ਼ਾਮਲ ਹਨ।";
 "settings.workspace.decks.section.matchingCards" = "ਮੇਲ ਖਾਂਦੇ ਕਾਰਡ";
 "settings.workspace.decks.deleteDeck" = "ਡੈੱਕ ਮਿਟਾਓ";
+"settings.workspace.decks.deleteConfirmation.title" = "“%@” ਮਿਟਾਉਣਾ ਹੈ?";
+"settings.workspace.decks.deleteConfirmation.message" = "ਤੁਹਾਡੇ ਕਾਰਡ ਰਹਿਣਗੇ। ਇਸ ਨਾਲ ਸਿਰਫ਼ ਸੁਰੱਖਿਅਤ ਕੀਤਾ ਡੈੱਕ ਫਿਲਟਰ ਹਟੇਗਾ।";
 "settings.workspace.decks.deck" = "ਡੈੱਕ";
 "settings.workspace.decks.editDeck" = "ਡੈੱਕ ਸੋਧੋ";
 "settings.workspace.decks.notFound" = "ਡੈੱਕ ਨਹੀਂ ਮਿਲਿਆ।";

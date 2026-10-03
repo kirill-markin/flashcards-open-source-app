@@ -788,6 +788,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "Este baralho não tem regras, então inclui todos os cartões.";
 "settings.workspace.decks.section.matchingCards" = "Cartões correspondentes";
 "settings.workspace.decks.deleteDeck" = "Excluir baralho";
+"settings.workspace.decks.deleteConfirmation.title" = "Excluir “%@”?";
+"settings.workspace.decks.deleteConfirmation.message" = "Seus cartões serão mantidos. Isso remove apenas o filtro salvo do baralho.";
 "settings.workspace.decks.deck" = "Baralho";
 "settings.workspace.decks.editDeck" = "Editar baralho";
 "settings.workspace.decks.notFound" = "Baralho não encontrado.";

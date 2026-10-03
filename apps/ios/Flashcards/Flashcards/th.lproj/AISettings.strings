@@ -763,6 +763,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "สำรับนี้ไม่มีกฎ จึงรวมการ์ดทั้งหมด";
 "settings.workspace.decks.section.matchingCards" = "การ์ดที่ตรงกัน";
 "settings.workspace.decks.deleteDeck" = "ลบสำรับ";
+"settings.workspace.decks.deleteConfirmation.title" = "ลบ “%@” หรือไม่?";
+"settings.workspace.decks.deleteConfirmation.message" = "การ์ดของคุณจะยังคงอยู่ การดำเนินการนี้จะลบเฉพาะตัวกรองสำรับที่บันทึกไว้เท่านั้น";
 "settings.workspace.decks.deck" = "สำรับ";
 "settings.workspace.decks.editDeck" = "แก้ไขสำรับ";
 "settings.workspace.decks.notFound" = "ไม่พบสำรับ";

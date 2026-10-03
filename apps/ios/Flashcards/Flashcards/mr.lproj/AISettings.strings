@@ -763,6 +763,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "या संचाला नियम नाहीत, त्यामुळे त्यात सर्व कार्डे समाविष्ट आहेत.";
 "settings.workspace.decks.section.matchingCards" = "जुळणारी कार्डे";
 "settings.workspace.decks.deleteDeck" = "संच हटवा";
+"settings.workspace.decks.deleteConfirmation.title" = "“%@” हटवायचा?";
+"settings.workspace.decks.deleteConfirmation.message" = "तुमची कार्डे कायम राहतील. यामुळे फक्त जतन केलेला संचाचा फिल्टर काढला जाईल.";
 "settings.workspace.decks.deck" = "संच";
 "settings.workspace.decks.editDeck" = "संच संपादित करा";
 "settings.workspace.decks.notFound" = "संच सापडला नाही.";
