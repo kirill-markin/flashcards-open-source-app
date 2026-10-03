@@ -645,7 +645,7 @@ extension FlashcardsStore {
         self.userDefaults.set(data, forKey: pendingGuestUpgradeUserDefaultsKey)
     }
 
-    private func loadPendingGuestUpgradeState() throws -> PendingGuestUpgradeState? {
+    func loadPendingGuestUpgradeState() throws -> PendingGuestUpgradeState? {
         guard let data = self.userDefaults.data(forKey: pendingGuestUpgradeUserDefaultsKey) else {
             return nil
         }

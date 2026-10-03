@@ -50,6 +50,10 @@ struct SubscriptionSettingsView: View {
     @Environment(AppleSubscriptionService.self) private var subscriptions: AppleSubscriptionService
     @Environment(PremiumPresenter.self) private var premiumPresenter: PremiumPresenter
 
+    @State private var isPreparingAccount: Bool = true
+    @State private var accountPreparationError: String?
+    @State private var accountPreparationAttempt: Int = 0
+
     var body: some View {
         List {
             Section {
@@ -87,7 +91,23 @@ struct SubscriptionSettingsView: View {
                             identity: try? store.appleSubscriptionIdentity()
                         )
                     }
+                    .disabled(self.isPreparingAccount || (try? store.appleSubscriptionIdentity()) == nil)
                     .accessibilityIdentifier(UITestIdentifier.subscriptionSettingsPremiumButton)
+                }
+            }
+
+            if self.isPreparingAccount {
+                Section {
+                    ProgressView(aiSettingsLocalized("common.loading", "Loading..."))
+                }
+            }
+            if let accountPreparationError {
+                Section {
+                    Text(accountPreparationError).foregroundStyle(.red)
+                    Button(aiSettingsLocalized("common.retry", "Retry")) {
+                        self.accountPreparationAttempt += 1
+                    }
+                    .disabled(self.isPreparingAccount)
                 }
             }
 
@@ -99,11 +119,25 @@ struct SubscriptionSettingsView: View {
                 }
             }
 
-            AppleSubscriptionControls(onRestore: {})
+            AppleSubscriptionControls(
+                isRestoreDisabled: self.isPreparingAccount || (try? store.appleSubscriptionIdentity()) == nil,
+                onRestore: {}
+            )
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.subscriptionSettingsScreen)
         .navigationTitle(aiSettingsLocalized("settings.subscription.title", "Subscription"))
+        .task(id: self.accountPreparationAttempt) {
+            self.isPreparingAccount = true
+            self.accountPreparationError = nil
+            defer { self.isPreparingAccount = false }
+            do {
+                _ = try await self.store.prepareAppleSubscriptionIdentity()
+            } catch {
+                guard Task.isCancelled == false, isRequestCancellationError(error: error) == false else { return }
+                self.accountPreparationError = aiSettingsLocalized("premium.apple.loadFailed", "Could not load the App Store offer. Check your connection and retry.") + "\n" + error.localizedDescription
+            }
+        }
     }
 
 }

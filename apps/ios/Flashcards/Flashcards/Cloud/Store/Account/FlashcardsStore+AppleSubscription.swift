@@ -10,6 +10,53 @@ struct AppleSubscriptionIdentity: Equatable {
 
 @MainActor
 extension FlashcardsStore {
+    func prepareAppleSubscriptionIdentity() async throws -> AppleSubscriptionIdentity {
+        try Task.checkCancellation()
+        try self.throwIfCloudCredentialRecoveryRequired()
+        try self.throwIfCustomGuestWorkspacePaused()
+        if case .blocked(let message) = self.syncStatus {
+            throw LocalStoreError.validation(message)
+        }
+        guard self.accountDeletionState == .hidden else {
+            throw AppleSubscriptionError.accountUnavailable
+        }
+        if self.cloudSettings?.cloudState == .guest || self.cloudSettings?.cloudState == .linked {
+            return try self.appleSubscriptionIdentity()
+        }
+
+        // A disconnected install may still be recovering a linked identity. Only the ordinary
+        // local-only state may adopt a guest; the existing recovery/link flows keep ownership.
+        guard let settings = self.cloudSettings, settings.cloudState == .disconnected,
+              try self.cloudRuntime.loadCredentials() == nil,
+              try self.loadPendingGuestUpgradeState() == nil else {
+            throw AppleSubscriptionError.accountUnavailable
+        }
+        let configuration = try self.currentCloudServiceConfiguration()
+        let restored = try await self.restoreGuestCloudSessionIfNeeded(
+            trigger: CloudSyncTrigger(
+                source: .manualSyncNow,
+                now: Date(),
+                extendsFastPolling: false,
+                allowsVisibleChangeBanner: false,
+                surfacesGlobalErrorMessage: false,
+                capturesTechnicalFailures: false
+            )
+        )
+        try Task.checkCancellation()
+        guard self.cloudSettings?.installationId == settings.installationId,
+              self.accountDeletionState == .hidden else {
+            throw AppleSubscriptionError.identityChanged
+        }
+        let identity = try self.appleSubscriptionIdentity()
+        guard identity.isGuest,
+              identity.configurationMode == configuration.mode,
+              identity.apiBaseUrl == configuration.apiBaseUrl else {
+            throw AppleSubscriptionError.identityChanged
+        }
+        try self.requireAppleSubscriptionSession(restored.session, identity: identity)
+        return identity
+    }
+
     func appleSubscriptionIdentity() throws -> AppleSubscriptionIdentity {
         guard let settings = self.cloudSettings,
               settings.cloudState == .guest || settings.cloudState == .linked,
