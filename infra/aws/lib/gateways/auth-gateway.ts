@@ -271,6 +271,7 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
     props.apiBaseUrl ?? `https://api.${props.baseDomain}`,
     "apiBaseUrl",
   );
+  // Issuer for the static discovery bodies; must equal PUBLIC_AUTH_BASE_URL below.
   const publicAuthBaseUrl = `https://auth.${props.baseDomain}`;
   const sessionEncryptionKey = new cdk.aws_secretsmanager.Secret(scope, "SessionEncryptionKey", {
     secretName: "flashcards-open-source-app/session-encryption-key",
@@ -324,7 +325,7 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
       // and the backend names the same string in every protected-resource
       // document (apps/backend/src/entrypoints/lambda-mcp.ts), so it is pinned to
       // baseDomain and has no override.
-      PUBLIC_AUTH_BASE_URL: publicAuthBaseUrl,
+      PUBLIC_AUTH_BASE_URL: `https://auth.${props.baseDomain}`,
       PUBLIC_API_BASE_URL: `${publicApiOrigin}/v1`,
       // Canonical MCP protected-resource identifier the /authorize endpoint binds
       // authorization codes to; must match the backend MCP handler's resource
