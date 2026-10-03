@@ -21,6 +21,8 @@ type AuthorizationServerMetadata = Readonly<{
 
 const app = new Hono<AuthAppEnv>();
 
+// Production GET on both discovery documents is served by API Gateway from
+// infra/aws/lib/gateways/auth-oauth-discovery.ts; keep the two byte-identical.
 app.get("/.well-known/oauth-authorization-server", (c) => {
   return c.json(buildAuthorizationServerMetadata(getPublicAuthBaseUrl(c.req.url)));
 });
