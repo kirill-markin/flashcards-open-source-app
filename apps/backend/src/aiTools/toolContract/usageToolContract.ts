@@ -10,7 +10,7 @@
 export const USAGE_LIMITS_TOOL_NAME = "get_usage_limits";
 
 export const USAGE_LIMITS_TOOL_DESCRIPTION =
-  "Reads the account's plan, monthly AI limits and usage. Use for plan/remaining-usage questions, before AI-heavy work or after AI_LIMIT_REACHED. No arguments, card access or writes. null aiMonthlyMessages means uncapped, not zero.";
+  "Reads the authenticated account's plan, monthly AI limits and current usage for plan or remaining-allowance questions. No arguments, card access or writes. null aiMonthlyMessages means uncapped, not zero.";
 
 /**
  * Written for a reader that has only this payload in front of it. The two things it has to get right

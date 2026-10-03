@@ -3,6 +3,7 @@ import {
   type StaleBundleReloadSkipReason,
   type WebObservationScope,
 } from "./observability/webObservability";
+import { markStaleBundleReloadScheduled } from "./pageReloadState";
 
 const PRELOAD_ERROR_RELOADED_AT_STORAGE_KEY = "flashcards-preload-error-reloaded-at";
 const PRELOAD_ERROR_REPORT_PENDING_STORAGE_KEY = "flashcards-preload-error-report-pending";
@@ -170,6 +171,7 @@ export function installStaleBundleReloadGuard(): void {
     }
 
     reportPreloadError(assetPath, true, null);
+    markStaleBundleReloadScheduled();
     event.preventDefault();
     window.location.reload();
   });

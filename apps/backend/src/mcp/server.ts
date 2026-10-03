@@ -56,13 +56,12 @@ const SERVER_VERSION = "v1";
  *
  * The review loop is deliberately absent: every review tool already returns
  * `REVIEW_FLOW_INSTRUCTIONS` in full with each result, and `get_guide` topic
- * `review_flow` serves the same block on demand. The card-authoring contract
- * and its example are likewise absent: `sql_execute` carries the rules a write
- * must not get wrong, and `get_guide` topic `card_authoring` carries the rest.
+ * `review_flow` serves the same block on demand.
  */
 const SERVER_INSTRUCTIONS = [
   "Call list_workspaces first to pick a workspaceId, or omit it for the selected default. Then use sql_query for reads and sql_execute for authoring writes. To review, call next_review_card, then reveal_answer, then submit_review. Call get_guide for detail, and get_usage_limits for the plan tier, its limits and this month's AI usage.",
   "Hard rules: front_text is a question and never the answer; every new card needs at least one tag; reuse existing workspace tags; check for duplicates with sql_query before creating; describe broad deletes or updates before running them.",
+  "Read get_guide(card_authoring) before authoring cards. Discover schema in a separate sql_query call before composing statements that depend on it. Read get_guide(sql_dialect) after a syntax error and get_guide(bulk_authoring) before a large write job.",
   "The dialect is not full PostgreSQL. Published resources, already workspace-scoped: workspace, cards, decks, review_events. A deck is a saved tag filter, so a card has no deck_id and belongs to a deck only by matching tags. get_guide topics: sql_dialect for the grammar, limits, and examples; card_authoring for the card contract, formatting, and a card's web link; bulk_authoring for splitting and verifying a large write job; review_flow for the review loop.",
 ].join(" ");
 
