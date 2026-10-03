@@ -159,6 +159,9 @@ removing, or renaming a topic is a type error there instead of stale prose here
 
 ## Error codes a caller can receive
 
+The [MCP capacity smoke procedure](mcp-capacity-smoke.md) covers the deployed
+dispatcher's pre-execution throttle response and proxy success/error preservation.
+
 The per-code map and the full remediation text live in the remediation module,
 which is keyed by HTTP error code. Four facts are surface-specific enough to
 record here:

@@ -71,7 +71,7 @@ components_for_path() {
       echo "platform" ;;
     scripts/checks/check-agent-api-smoke.sh|scripts/checks/check-api-health.sh|scripts/checks/check-demo-cognito-users.sh)
       echo "platform" ;;
-    scripts/checks/check-mcp-smoke.sh|scripts/checks/check-multipart-completion-reconciliation-schedule.sh|scripts/checks/check-public-endpoints.sh)
+    scripts/checks/check-mcp-smoke.sh|scripts/checks/check-mcp-capacity-smoke.py|scripts/checks/check-multipart-completion-reconciliation-schedule.sh|scripts/checks/check-public-endpoints.sh)
       echo "platform" ;;
     *)
       echo "" ;;
