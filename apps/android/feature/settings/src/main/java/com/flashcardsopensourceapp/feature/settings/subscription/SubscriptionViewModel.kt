@@ -9,31 +9,18 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.feature.settings.SettingsStringResolver
 import com.flashcardsopensourceapp.feature.settings.createSettingsStringResolver
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 
-/**
- * Scoped to the Settings graph, so Google Play is asked once for it rather than on every return to
- * the Settings root.
- */
 class SubscriptionViewModel(
     cloudAccountRepository: CloudAccountRepository,
-    loadIsSubscriptionProductAvailable: suspend () -> Boolean,
     private val strings: SettingsStringResolver
 ) : ViewModel() {
-    private val isSubscriptionProductAvailableState = MutableStateFlow(value = false)
-
-    val uiState: StateFlow<SubscriptionUiState> = combine(
-        cloudAccountRepository.observeEntitlement(),
-        isSubscriptionProductAvailableState
-    ) { entitlement, isSubscriptionProductAvailable ->
+    val uiState: StateFlow<SubscriptionUiState> = cloudAccountRepository.observeEntitlement().map { entitlement ->
         makeSubscriptionUiState(
             entitlement = entitlement,
-            isSubscriptionProductAvailable = isSubscriptionProductAvailable,
             strings = strings
         )
     }.stateIn(
@@ -41,28 +28,19 @@ class SubscriptionViewModel(
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
         initialValue = makeSubscriptionUiState(
             entitlement = null,
-            isSubscriptionProductAvailable = false,
             strings = strings
         )
     )
-
-    init {
-        viewModelScope.launch {
-            isSubscriptionProductAvailableState.value = loadIsSubscriptionProductAvailable()
-        }
-    }
 }
 
 fun createSubscriptionViewModelFactory(
     cloudAccountRepository: CloudAccountRepository,
-    loadIsSubscriptionProductAvailable: suspend () -> Boolean,
     applicationContext: Context
 ): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
             SubscriptionViewModel(
                 cloudAccountRepository = cloudAccountRepository,
-                loadIsSubscriptionProductAvailable = loadIsSubscriptionProductAvailable,
                 strings = createSettingsStringResolver(context = applicationContext)
             )
         }

@@ -10,25 +10,18 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
 data class SubscriptionUiState(
-    val isSubscriptionProductAvailable: Boolean,
-    /** Null until a sync pull has delivered an entitlement. */
+    val canOpenOffer: Boolean,
     val planName: String?,
     val statusText: String
 )
 
-/**
- * Renders what the backend resolved and nothing more: [CloudEntitlement.status] is read before
- * [CloudEntitlement.untilMillis], because a missing end means something different under each status
- * (docs/premium-entitlements.md, "What a client receives").
- */
 internal fun makeSubscriptionUiState(
     entitlement: CloudEntitlement?,
-    isSubscriptionProductAvailable: Boolean,
     strings: SettingsStringResolver
 ): SubscriptionUiState {
     if (entitlement == null) {
         return SubscriptionUiState(
-            isSubscriptionProductAvailable = isSubscriptionProductAvailable,
+            canOpenOffer = true,
             planName = null,
             statusText = strings.get(R.string.settings_subscription_status_unknown)
         )
@@ -36,7 +29,7 @@ internal fun makeSubscriptionUiState(
 
     val statusText: String = subscriptionStatusText(entitlement = entitlement, strings = strings)
     return SubscriptionUiState(
-        isSubscriptionProductAvailable = isSubscriptionProductAvailable,
+        canOpenOffer = entitlement.tierRank < 20 || entitlement.status == CloudEntitlementStatus.NONE,
         planName = entitlement.tierDisplayName,
         statusText = if (entitlement.isTrial) {
             strings.get(R.string.settings_subscription_status_trial_format, statusText)
