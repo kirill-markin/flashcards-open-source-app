@@ -214,11 +214,13 @@ The store transaction is the identity of a purchase. Our account is an attachmen
   notifications arrive this way routinely, before any client of ours has spoken.
 - An unattached purchase never grants anything. There is no account to grant to, and guessing by
   email or device would grant a stranger's subscription.
-- A purchase attaches when a client presents the transaction while authenticated as that account.
+- A purchase attaches when a client deliberately presents the transaction while authenticated as that account.
 
-Transfer follows from this: a store transaction presented by a different account moves to the
+Transfer follows from this: a store transaction deliberately presented by a different account moves to the
 account that presented it last. This is the behaviour a shared family device produces, and
 refusing the move would strand the purchase on whichever account happened to reach us first.
+Automatic Apple replay preserves the attached owner; its request semantics and compatibility
+rule are in [Apple subscriptions](apple-subscriptions.md#transaction-intent).
 
 ## Guest upgrade, reaping, and deletion
 
