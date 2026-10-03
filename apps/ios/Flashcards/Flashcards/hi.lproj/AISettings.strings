@@ -788,6 +788,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "इस डेक में कोई नियम नहीं हैं, इसलिए इसमें सभी कार्ड शामिल हैं.";
 "settings.workspace.decks.section.matchingCards" = "मिलान कार्ड";
 "settings.workspace.decks.deleteDeck" = "डेक हटाएं";
+"settings.workspace.decks.deleteConfirmation.title" = "“%@” हटाएं?";
+"settings.workspace.decks.deleteConfirmation.message" = "आपके कार्ड बने रहेंगे। इससे केवल सहेजा गया डेक फ़िल्टर हटेगा।";
 "settings.workspace.decks.deck" = "डेक";
 "settings.workspace.decks.editDeck" = "डेक संपादित करें";
 "settings.workspace.decks.notFound" = "डेक नहीं मिला.";

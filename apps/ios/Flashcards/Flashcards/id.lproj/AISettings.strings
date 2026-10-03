@@ -763,6 +763,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "Dek ini tidak memiliki aturan, jadi mencakup semua kartu.";
 "settings.workspace.decks.section.matchingCards" = "Kartu yang cocok";
 "settings.workspace.decks.deleteDeck" = "Hapus dek";
+"settings.workspace.decks.deleteConfirmation.title" = "Hapus “%@”?";
+"settings.workspace.decks.deleteConfirmation.message" = "Kartu Anda akan tetap ada. Ini hanya menghapus filter dek yang tersimpan.";
 "settings.workspace.decks.deck" = "Dek";
 "settings.workspace.decks.editDeck" = "Edit dek";
 "settings.workspace.decks.notFound" = "Dek tidak ditemukan.";

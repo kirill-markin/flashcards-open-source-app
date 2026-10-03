@@ -763,6 +763,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "Šai kavai nav noteikumu, tāpēc tajā ir visas kartītes.";
 "settings.workspace.decks.section.matchingCards" = "Atbilstošās kartītes";
 "settings.workspace.decks.deleteDeck" = "Dzēst kavu";
+"settings.workspace.decks.deleteConfirmation.title" = "Vai dzēst “%@”?";
+"settings.workspace.decks.deleteConfirmation.message" = "Jūsu kartītes tiks saglabātas. Tiks noņemts tikai saglabātais kavas filtrs.";
 "settings.workspace.decks.deck" = "Kava";
 "settings.workspace.decks.editDeck" = "Rediģēt kavu";
 "settings.workspace.decks.notFound" = "Kava nav atrasta.";

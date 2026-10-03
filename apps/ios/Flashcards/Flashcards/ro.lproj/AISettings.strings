@@ -763,6 +763,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "Acest pachet nu are reguli, deci include toate fișele.";
 "settings.workspace.decks.section.matchingCards" = "Fișe corespunzătoare";
 "settings.workspace.decks.deleteDeck" = "Șterge pachetul";
+"settings.workspace.decks.deleteConfirmation.title" = "Ștergi „%@”?";
+"settings.workspace.decks.deleteConfirmation.message" = "Fișele tale vor rămâne. Se elimină doar filtrul salvat al pachetului.";
 "settings.workspace.decks.deck" = "Pachet";
 "settings.workspace.decks.editDeck" = "Editează pachetul";
 "settings.workspace.decks.notFound" = "Pachetul nu a fost găsit.";

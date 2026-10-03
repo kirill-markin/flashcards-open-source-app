@@ -763,6 +763,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "Deze kaartenset heeft geen regels en bevat daarom alle kaarten.";
 "settings.workspace.decks.section.matchingCards" = "Overeenkomende kaarten";
 "settings.workspace.decks.deleteDeck" = "Kaartenset verwijderen";
+"settings.workspace.decks.deleteConfirmation.title" = "‘%@’ verwijderen?";
+"settings.workspace.decks.deleteConfirmation.message" = "Je kaarten blijven behouden. Hiermee wordt alleen het opgeslagen filter van de kaartenset verwijderd.";
 "settings.workspace.decks.deck" = "Kaartenset";
 "settings.workspace.decks.editDeck" = "Kaartenset bewerken";
 "settings.workspace.decks.notFound" = "Kaartenset niet gevonden.";

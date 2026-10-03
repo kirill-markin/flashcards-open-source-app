@@ -3,12 +3,14 @@ import SwiftUI
 struct DecksScreen: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
+    @Environment(\.locale) private var locale
     @Environment(\.dismissSearch) private var dismissSearch
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     @State private var isEditorPresented: Bool = false
     @State private var deckFormState: DeckFormState = emptyDeckFormState()
     @State private var editorErrorMessage: String = ""
+    @State private var pendingDeletion: DeckDeletionTarget? = nil
     @State private var createdDeckDestination: DeckScreenDestination? = nil
     @State private var decksSnapshot: DecksListSnapshot = DecksListSnapshot(
         deckSummaries: [],
@@ -20,7 +22,7 @@ struct DecksScreen: View {
     @State private var searchText: String = ""
 
     private var deckListEntries: [DeckScreenListItem] {
-        makeDeckScreenListItems(decksSnapshot: self.decksSnapshot)
+        makeDeckScreenListItems(decksSnapshot: self.decksSnapshot, locale: self.locale)
     }
 
     private var filteredDeckListEntries: [DeckScreenListItem] {
@@ -56,11 +58,15 @@ struct DecksScreen: View {
                                 DeckListRow(deckListEntry: deckListEntry)
                             }
                             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                Button(role: .destructive) {
-                                    self.deleteDeck(deckId: persistedDeckId)
+                                Button {
+                                    self.pendingDeletion = DeckDeletionTarget(
+                                        deckId: persistedDeckId,
+                                        name: deckListEntry.title
+                                    )
                                 } label: {
                                     Label(aiSettingsLocalized("common.delete", "Delete"), systemImage: "trash")
                                 }
+                                .tint(.red)
                             }
                         } else {
                             NavigationLink {
@@ -73,6 +79,7 @@ struct DecksScreen: View {
                 }
             }
         }
+        .modifier(DeckDeletionConfirmation(pendingDeletion: self.$pendingDeletion, onDelete: self.deleteDeck))
         .listStyle(.insetGrouped)
         .navigationTitle(aiSettingsLocalized("settings.workspace.row.decks", "Decks"))
         .searchable(
@@ -138,7 +145,8 @@ struct DecksScreen: View {
                     },
                     onSave: {
                         self.saveDeck()
-                    }
+                    },
+                    onDelete: nil
                 )
             }
             .technicalErrorSheetHost(store: self.store)
@@ -383,6 +391,8 @@ private struct DeckDetailScreen: View {
     @State private var isEditorPresented: Bool = false
     @State private var deckFormState: DeckFormState = emptyDeckFormState()
     @State private var editorErrorMessage: String = ""
+    @State private var pendingDeletion: DeckDeletionTarget? = nil
+    @State private var didDeleteDeck: Bool = false
     @State private var detailState: DeckDetailScreenState? = nil
     @State private var availableTagSuggestions: [TagSuggestion] = []
 
@@ -451,13 +461,6 @@ private struct DeckDetailScreen: View {
                     }
                 }
 
-                if detailState.allowsEditing {
-                    Section {
-                        Button(aiSettingsLocalized("settings.workspace.decks.deleteDeck", "Delete deck"), role: .destructive) {
-                            self.deleteDeck()
-                        }
-                    }
-                }
             } else {
                 Section {
                     Text(aiSettingsLocalized("settings.workspace.decks.notFound", "Deck not found."))
@@ -503,7 +506,12 @@ private struct DeckDetailScreen: View {
         .sheet(
             isPresented: $isEditorPresented,
             onDismiss: {
-                Analytics.trackScreenViewedOnDismiss(of: .deckEditor, restoring: .deckDetail)
+                if self.didDeleteDeck {
+                    Analytics.trackScreenViewedOnDismiss(of: .deckEditor, restoring: .decks)
+                    self.dismiss()
+                } else {
+                    Analytics.trackScreenViewedOnDismiss(of: .deckEditor, restoring: .deckDetail)
+                }
             }
         ) {
             NavigationStack {
@@ -517,9 +525,11 @@ private struct DeckDetailScreen: View {
                     },
                     onSave: {
                         self.saveDeckChanges()
-                    }
+                    },
+                    onDelete: self.beginDeletingDeck
                 )
             }
+            .modifier(DeckDeletionConfirmation(pendingDeletion: self.$pendingDeletion, onDelete: self.deleteDeck))
             .technicalErrorSheetHost(store: self.store)
             .onAppear {
                 Analytics.trackScreenViewed(.deckEditor)
@@ -566,14 +576,24 @@ private struct DeckDetailScreen: View {
         }
     }
 
-    private func deleteDeck() {
-        guard let deckId = currentDeckId else {
+    private func beginDeletingDeck() {
+        guard let deckId = self.currentDeckId else {
             return
         }
 
         do {
-            try store.deleteDeck(deckId: deckId)
-            dismiss()
+            let deck = try self.store.loadDeck(deckId: deckId)
+            self.pendingDeletion = DeckDeletionTarget(deckId: deck.deckId, name: deck.name)
+        } catch {
+            self.store.presentTechnicalError(error)
+        }
+    }
+
+    private func deleteDeck(deckId: String) {
+        do {
+            try self.store.deleteDeck(deckId: deckId)
+            self.didDeleteDeck = true
+            self.isEditorPresented = false
         } catch {
             self.store.presentTechnicalError(error)
         }
@@ -632,6 +652,7 @@ private struct DeckEditorView: View {
     @Binding var formState: DeckFormState
     let onCancel: () -> Void
     let onSave: () -> Void
+    let onDelete: (() -> Void)?
 
     var body: some View {
         ReadableContentLayout(
@@ -677,6 +698,12 @@ private struct DeckEditorView: View {
                         )
                     )
                     .foregroundStyle(.secondary)
+                }
+
+                if let onDelete {
+                    Section {
+                        Button(aiSettingsLocalized("settings.workspace.decks.deleteDeck", "Delete deck"), role: .destructive, action: onDelete)
+                    }
                 }
             }
         }
@@ -769,8 +796,17 @@ private func reviewActionTitle(detailState: DeckDetailScreenState) -> String {
     }
 }
 
-private func makeDeckScreenListItems(decksSnapshot: DecksListSnapshot) -> [DeckScreenListItem] {
-    [makeAllCardsDeckScreenListItem(stats: decksSnapshot.allCardsStats)] + decksSnapshot.deckSummaries.map { deckSummary in
+private func makeDeckScreenListItems(decksSnapshot: DecksListSnapshot, locale: Locale) -> [DeckScreenListItem] {
+    let sortedDeckSummaries = decksSnapshot.deckSummaries.sorted { left, right in
+        deckNamePrecedes(
+            leftName: left.name,
+            leftId: left.deckId,
+            rightName: right.name,
+            rightId: right.deckId,
+            locale: locale
+        )
+    }
+    return [makeAllCardsDeckScreenListItem(stats: decksSnapshot.allCardsStats)] + sortedDeckSummaries.map { deckSummary in
         DeckScreenListItem(
             id: deckSummary.id,
             title: deckSummary.name,
@@ -796,4 +832,44 @@ private func makeAllCardsDeckScreenListItem(stats: DeckCardStats) -> DeckScreenL
         destination: .allCards,
         persistedDeckId: nil
     )
+}
+
+private struct DeckDeletionTarget {
+    let deckId: String
+    let name: String
+}
+
+private struct DeckDeletionConfirmation: ViewModifier {
+    @Binding var pendingDeletion: DeckDeletionTarget?
+    let onDelete: (String) -> Void
+
+    func body(content: Content) -> some View {
+        content.confirmationDialog(
+            aiSettingsLocalizedFormat(
+                "settings.workspace.decks.deleteConfirmation.title",
+                "Delete “%@”?",
+                self.pendingDeletion?.name ?? ""
+            ),
+            isPresented: Binding(
+                get: { self.pendingDeletion != nil },
+                set: { isPresented in
+                    if isPresented == false {
+                        self.pendingDeletion = nil
+                    }
+                }
+            ),
+            titleVisibility: .visible,
+            presenting: self.pendingDeletion
+        ) { target in
+            Button(aiSettingsLocalized("settings.workspace.decks.deleteDeck", "Delete deck"), role: .destructive) {
+                self.onDelete(target.deckId)
+            }
+            Button(aiSettingsLocalized("common.cancel", "Cancel"), role: .cancel) {}
+        } message: { _ in
+            Text(aiSettingsLocalized(
+                "settings.workspace.decks.deleteConfirmation.message",
+                "Your cards will remain. This removes only the saved deck filter."
+            ))
+        }
+    }
 }

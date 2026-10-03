@@ -763,6 +763,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "Това тесте няма правила, затова включва всички карти.";
 "settings.workspace.decks.section.matchingCards" = "Съвпадащи карти";
 "settings.workspace.decks.deleteDeck" = "Изтриване на тесте";
+"settings.workspace.decks.deleteConfirmation.title" = "Да се изтрие ли „%@“?";
+"settings.workspace.decks.deleteConfirmation.message" = "Картите ви ще останат. Това премахва само запазения филтър на тестето.";
 "settings.workspace.decks.deck" = "Тесте";
 "settings.workspace.decks.editDeck" = "Редактиране на тесте";
 "settings.workspace.decks.notFound" = "Тестето не е намерено.";

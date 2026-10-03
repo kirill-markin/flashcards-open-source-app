@@ -788,6 +788,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "Ce paquet n’a aucune règle, il inclut donc toutes les cartes.";
 "settings.workspace.decks.section.matchingCards" = "Cartes correspondantes";
 "settings.workspace.decks.deleteDeck" = "Supprimer le paquet";
+"settings.workspace.decks.deleteConfirmation.title" = "Supprimer « %@ » ?";
+"settings.workspace.decks.deleteConfirmation.message" = "Vos cartes seront conservées. Seul le filtre enregistré du paquet sera supprimé.";
 "settings.workspace.decks.deck" = "Paquet";
 "settings.workspace.decks.editDeck" = "Modifier le paquet";
 "settings.workspace.decks.notFound" = "Paquet introuvable.";

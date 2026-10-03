@@ -763,6 +763,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "이 덱에는 규칙이 없어 모든 카드가 포함됩니다.";
 "settings.workspace.decks.section.matchingCards" = "일치하는 카드";
 "settings.workspace.decks.deleteDeck" = "덱 삭제";
+"settings.workspace.decks.deleteConfirmation.title" = "“%@”을(를) 삭제할까요?";
+"settings.workspace.decks.deleteConfirmation.message" = "카드는 유지됩니다. 저장된 덱 필터만 삭제됩니다.";
 "settings.workspace.decks.deck" = "덱";
 "settings.workspace.decks.editDeck" = "덱 편집";
 "settings.workspace.decks.notFound" = "덱을 찾을 수 없습니다.";

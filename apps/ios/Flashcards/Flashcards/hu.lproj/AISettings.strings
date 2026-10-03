@@ -763,6 +763,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "Ennek a paklinak nincsenek szabályai, ezért minden kártyát tartalmaz.";
 "settings.workspace.decks.section.matchingCards" = "Megfelelő kártyák";
 "settings.workspace.decks.deleteDeck" = "Pakli törlése";
+"settings.workspace.decks.deleteConfirmation.title" = "Törlöd ezt: „%@“?";
+"settings.workspace.decks.deleteConfirmation.message" = "A kártyáid megmaradnak. Csak a pakli mentett szűrője törlődik.";
 "settings.workspace.decks.deck" = "Pakli";
 "settings.workspace.decks.editDeck" = "Pakli szerkesztése";
 "settings.workspace.decks.notFound" = "A pakli nem található.";

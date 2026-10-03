@@ -763,6 +763,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "Ta talia nie ma reguł, więc obejmuje wszystkie fiszki.";
 "settings.workspace.decks.section.matchingCards" = "Pasujące fiszki";
 "settings.workspace.decks.deleteDeck" = "Usuń talię";
+"settings.workspace.decks.deleteConfirmation.title" = "Usunąć „%@”?";
+"settings.workspace.decks.deleteConfirmation.message" = "Twoje fiszki pozostaną. Usunięty zostanie tylko zapisany filtr talii.";
 "settings.workspace.decks.deck" = "Talia";
 "settings.workspace.decks.editDeck" = "Edytuj talię";
 "settings.workspace.decks.notFound" = "Nie znaleziono talii.";

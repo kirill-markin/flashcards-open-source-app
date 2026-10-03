@@ -763,6 +763,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "આ ડેકમાં નિયમો નથી, તેથી તેમાં બધાં કાર્ડ સામેલ છે.";
 "settings.workspace.decks.section.matchingCards" = "મેળ ખાતાં કાર્ડ";
 "settings.workspace.decks.deleteDeck" = "ડેક કાઢી નાખો";
+"settings.workspace.decks.deleteConfirmation.title" = "“%@” કાઢી નાખવું છે?";
+"settings.workspace.decks.deleteConfirmation.message" = "તમારાં કાર્ડ રહેશે. આ ફક્ત સાચવેલું ડેક ફિલ્ટર દૂર કરે છે.";
 "settings.workspace.decks.deck" = "ડેક";
 "settings.workspace.decks.editDeck" = "ડેક સંપાદિત કરો";
 "settings.workspace.decks.notFound" = "ડેક મળ્યું નહીં.";

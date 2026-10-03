@@ -763,6 +763,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "Bộ thẻ này không có quy tắc nên bao gồm tất cả thẻ.";
 "settings.workspace.decks.section.matchingCards" = "Thẻ phù hợp";
 "settings.workspace.decks.deleteDeck" = "Xóa bộ thẻ";
+"settings.workspace.decks.deleteConfirmation.title" = "Xóa “%@”?";
+"settings.workspace.decks.deleteConfirmation.message" = "Các thẻ của bạn sẽ được giữ lại. Thao tác này chỉ xóa bộ lọc đã lưu của bộ thẻ.";
 "settings.workspace.decks.deck" = "Bộ thẻ";
 "settings.workspace.decks.editDeck" = "Sửa bộ thẻ";
 "settings.workspace.decks.notFound" = "Không tìm thấy bộ thẻ.";
