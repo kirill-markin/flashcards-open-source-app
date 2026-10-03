@@ -7,6 +7,13 @@ Planned process:
 2. Write initial migration from scratch (`0001_initial_schema.sql`).
 3. Apply only additive migrations after `0001` is committed.
 
+Stripe customer identity, trial consumption and Checkout reservation storage is defined in
+[`0165_stripe_billing.sql`](0165_stripe_billing.sql). It keeps production and sandbox independent,
+preserves the legacy unscoped customer handle, and retains opaque billing history through account
+merge and erasure. The creation/recovery transaction and lock contract lives in
+[`identityStore.ts`](../../apps/backend/src/billing/stripe/identityStore.ts); provider primitives and
+private configuration live alongside it. No purchase routes or entitlement changes are activated.
+
 ## Corrections to applied migrations
 
 An applied migration is immutable. `scripts/deploy/migrate.sh` records every migration by filename

@@ -1,4 +1,5 @@
 import { GetSecretValueCommand, SecretsManagerClient } from "@aws-sdk/client-secrets-manager";
+import { StripeBillingError } from "../billing/stripe/contracts";
 
 export interface DatabaseCredentialsSecret {
   username: string;
@@ -6,6 +7,26 @@ export interface DatabaseCredentialsSecret {
 }
 
 const secretsClient = new SecretsManagerClient({});
+export async function loadStripeBillingSecretJson(secretArn: string): Promise<string> {
+  if (!/^arn:aws:secretsmanager:[a-z0-9-]+:[0-9]{12}:secret:[A-Za-z0-9/_+=.@-]+$/.test(secretArn)) {
+    throw new StripeBillingError("STRIPE_CONFIGURATION_INVALID", false,
+      "STRIPE_BILLING_SECRET_ARN must name one complete Secrets Manager secret ARN.");
+  }
+  try {
+    const response = await secretsClient.send(new GetSecretValueCommand({ SecretId: secretArn }));
+    if (!response.SecretString) {
+      throw new StripeBillingError("STRIPE_CONFIGURATION_INVALID", false,
+        "Stripe billing secret must contain a JSON SecretString.");
+    }
+    return response.SecretString;
+  } catch (error) {
+    if (error instanceof StripeBillingError) throw error;
+    // Never attach the AWS exception: request diagnostics can contain private configuration.
+    throw new StripeBillingError("STRIPE_BILLING_UNAVAILABLE", true,
+      "Stripe billing secret could not be loaded. Check the HTTP backend secret ARN and GetSecretValue grant.");
+  }
+}
+
 let resolvedBackendCsrfSecret: string | undefined;
 let resolvedBackendChatLiveAuthSecret: string | undefined;
 

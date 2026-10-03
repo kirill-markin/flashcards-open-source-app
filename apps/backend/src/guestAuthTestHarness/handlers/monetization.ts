@@ -41,6 +41,12 @@ export function handleMonetizationExecutorQuery<Row extends pg.QueryResultRow>(
 ): pg.QueryResult<Row> | null {
   const { state } = context;
 
+  // Existing guest fixtures contain no Stripe identities or Checkout reservations.
+  if (text.startsWith("UPDATE billing.stripe_customer_identities")
+    || text.startsWith("UPDATE billing.stripe_checkout_attempts")) {
+    return createQueryResult<Row>([]);
+  }
+
   if (text.startsWith("UPDATE billing.purchases SET")) {
     const guestUserId = String(params[0]);
     const targetUserId = String(params[1]);

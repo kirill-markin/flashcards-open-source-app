@@ -252,6 +252,17 @@ export async function transferBillingToUpgradedAccountInExecutor(
   guestUserId: string,
   targetUserId: string,
 ): Promise<void> {
+  // Keep the target's primary customer, but retain every merged customer for notifications and
+  // cancellation. Trial facts follow identity_id and cannot be reset by moving the account.
+  await executor.query(`UPDATE billing.stripe_customer_identities AS guest SET is_primary = false,
+    updated_at = now() WHERE guest.user_id = $1 AND guest.is_primary
+    AND EXISTS (SELECT 1 FROM billing.stripe_customer_identities AS target
+      WHERE target.user_id = $2 AND target.environment = guest.environment
+        AND target.is_primary AND target.account_deleted_at IS NULL)`, [guestUserId, targetUserId]);
+  await executor.query(`UPDATE billing.stripe_customer_identities SET user_id = $2, updated_at = now()
+    WHERE user_id = $1`, [guestUserId, targetUserId]);
+  await executor.query(`UPDATE billing.stripe_checkout_attempts SET user_id = $2, updated_at = now()
+    WHERE user_id = $1`, [guestUserId, targetUserId]);
   await executor.query(
     [
       "UPDATE billing.purchases SET",
@@ -299,6 +310,13 @@ export async function anonymizeBillingForDeletedPersonInExecutor(
   personUserIds: ReadonlyArray<string>,
   anonymizedUserId: string,
 ): Promise<void> {
+  // These opaque identities survive erasure; the trial ledger holds no independent person field.
+  await executor.query(`UPDATE billing.stripe_customer_identities SET user_id = $1,
+    is_primary = false, account_deleted_at = COALESCE(account_deleted_at, now()), updated_at = now()
+    WHERE user_id = ANY($2::text[])`, [anonymizedUserId, personUserIds]);
+  await executor.query(`UPDATE billing.stripe_checkout_attempts SET user_id = $1,
+    account_deleted_at = COALESCE(account_deleted_at, now()), updated_at = now()
+    WHERE user_id = ANY($2::text[])`, [anonymizedUserId, personUserIds]);
   // First, and while billing.purchases still carries the real ids the second half of this predicate
   // reads. An event usually names no person at all - most providers identify the purchase and not the
   // buyer - so the person's events are reached through their purchases as well as through user_id.
