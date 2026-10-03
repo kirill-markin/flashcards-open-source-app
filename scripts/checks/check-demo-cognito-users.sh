@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# Validate that every configured review/demo email has a matching Cognito user.
 
 set -euo pipefail
 
@@ -63,6 +62,15 @@ DEMO_PASSWORD_SECRET_ARN="${CONFIG_LINES[1]:-}"
 USER_POOL_ID="${CONFIG_LINES[2]:-}"
 COGNITO_REGION="${CONFIG_LINES[3]:-}"
 DEMO_EMAILS=("${CONFIG_LINES[@]:4}")
+
+if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
+  for email in "${DEMO_EMAILS[@]}"; do
+    mask="${email//%/%25}"
+    mask="${mask//$'\r'/%0D}"
+    mask="${mask//$'\n'/%0A}"
+    printf '::add-mask::%s\n' "$mask"
+  done
+fi
 
 if [[ "${#DEMO_EMAILS[@]}" -eq 0 ]]; then
   echo "No review/demo Cognito users are configured in auth Lambda."
@@ -137,25 +145,28 @@ PY
 echo "Checking review/demo Cognito users for ${AUTH_FUNCTION_NAME} in ${COGNITO_REGION}..."
 echo "User pool: ${USER_POOL_ID}"
 
-MISSING_EMAILS=()
+MISSING_ACCOUNT_NUMBERS=()
+ACCOUNT_NUMBER=0
 
 for email in "${DEMO_EMAILS[@]}"; do
+  ACCOUNT_NUMBER=$((ACCOUNT_NUMBER + 1))
   output=$(aws --region "$COGNITO_REGION" cognito-idp list-users \
     --user-pool-id "$USER_POOL_ID" \
     --filter "email = \"${email}\"" \
     --query 'length(Users)' \
     --output text 2>&1) || {
-      echo "ERROR: Failed to check ${email}: ${output}" >&2
+      output="${output//"$email"/[redacted]}"
+      echo "ERROR: Failed to check review/demo account #${ACCOUNT_NUMBER}: ${output}" >&2
       exit 1
     }
 
   if [[ "$output" == "1" ]]; then
-    echo "OK: ${email}"
+    echo "OK: review/demo account #${ACCOUNT_NUMBER}"
     continue
   fi
 
-  echo "MISSING: ${email}"
-  MISSING_EMAILS+=("$email")
+  echo "MISSING: review/demo account #${ACCOUNT_NUMBER}"
+  MISSING_ACCOUNT_NUMBERS+=("$ACCOUNT_NUMBER")
 done
 
 HAS_ERRORS="false"
@@ -168,11 +179,11 @@ if [[ "${#PASSWORD_POLICY_ERRORS[@]}" -gt 0 ]]; then
   done
 fi
 
-if [[ "${#MISSING_EMAILS[@]}" -gt 0 ]]; then
+if [[ "${#MISSING_ACCOUNT_NUMBERS[@]}" -gt 0 ]]; then
   HAS_ERRORS="true"
   echo "ERROR: Missing review/demo Cognito users detected." >&2
-  for email in "${MISSING_EMAILS[@]}"; do
-    echo "Create Cognito user for: ${email}" >&2
+  for account_number in "${MISSING_ACCOUNT_NUMBERS[@]}"; do
+    echo "Create Cognito user for review/demo account #${account_number} in the configured email list." >&2
   done
 fi
 
@@ -180,4 +191,4 @@ if [[ "$HAS_ERRORS" == "true" ]]; then
   exit 1
 fi
 
-echo "All configured review/demo emails have matching Cognito users."
+echo "All ${#DEMO_EMAILS[@]} configured review/demo accounts have matching Cognito users."
