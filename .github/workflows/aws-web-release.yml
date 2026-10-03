@@ -15,6 +15,7 @@ on:
       - 'scripts/checks/check-demo-cognito-users.sh'
       - 'scripts/checks/check-multipart-completion-reconciliation-schedule.sh'
       - 'scripts/checks/check-mcp-smoke.sh'
+      - 'scripts/checks/check-mcp-capacity-smoke.py'
       - 'scripts/checks/check-public-endpoints.sh'
       - 'scripts/deploy/deploy-admin.sh'
       - 'scripts/deploy/deploy-web.sh'
@@ -737,7 +738,7 @@ jobs:
       - aws_deploy
     if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 60
 
     steps:
       - uses: actions/checkout@v7
@@ -793,6 +794,16 @@ jobs:
 
           bash scripts/checks/check-mcp-smoke.sh
 
+      - name: Configure AWS credentials for isolated capacity smoke
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Run isolated MCP capacity smoke
+        id: mcp_capacity
+        run: python3 scripts/checks/check-mcp-capacity-smoke.py
+
       - name: Summarize smoke result
         if: always()
         run: |
@@ -800,7 +811,8 @@ jobs:
             echo "## MCP post-deploy smoke"
             echo ""
             echo "- Deployed SHA: \`${GITHUB_SHA}\`"
-            echo "- Result: \`${{ steps.mcp_smoke.outcome }}\`"
+            echo "- Endpoint contract: \`${{ steps.mcp_smoke.outcome }}\`"
+            echo "- Isolated capacity, proxy success/500 and cleanup: \`${{ steps.mcp_capacity.outcome }}\`"
           } >> "${GITHUB_STEP_SUMMARY}"
 
   # A component's SHA advances only after its deploy and its smokes pass. The
