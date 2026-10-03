@@ -31,4 +31,4 @@ fixture roles. It owns both Lambdas, their log groups and a public HTTP API usin
 payload format 1.0. Unsupported dispatcher or bootstrap configurations fail
 explicitly. The target starts at reserved concurrency zero; only its fixture
 reservation changes to one for the response checks. Production worker
-reservation (12), database pool (3), credentials and data remain untouched.
+reservation (16), database pool (3), credentials and data remain untouched.
