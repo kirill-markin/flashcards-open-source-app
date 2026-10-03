@@ -9,6 +9,14 @@ const secretsClient = new SecretsManagerClient({});
 let resolvedBackendCsrfSecret: string | undefined;
 let resolvedBackendChatLiveAuthSecret: string | undefined;
 
+export async function loadAppleSigningSecretJson(secretArn: string): Promise<string> {
+  const response = await secretsClient.send(new GetSecretValueCommand({ SecretId: secretArn }));
+  if (!response.SecretString) {
+    throw new Error("Apple signing secret does not contain SecretString.");
+  }
+  return response.SecretString;
+}
+
 async function loadDatabaseCredentialsSecret(
   secretArn: string,
   abortSignal: AbortSignal | null,
