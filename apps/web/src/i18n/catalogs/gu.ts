@@ -1274,7 +1274,7 @@ const guCatalog: TranslationCatalog = {
       reviewAllCards: "બધાં કાર્ડનું પુનરાવર્તન કરો",
       reviewDeck: "આ ડેકનું પુનરાવર્તન કરો",
     },
-    deleteConfirmation: "આ ડેક કાઢી નાખવું છે?",
+    deleteConfirmation: "“{{name}}” કાઢી નાખવું છે? તમારા કાર્ડ રહેશે. આ ફક્ત ડેકનું સાચવેલું ફિલ્ટર દૂર કરશે.",
     empty: {
       allCards: "તમે હજી કોઈ કાર્ડ બનાવ્યું નથી.",
       deckCards: "આ ડેકમાં હજી કોઈ મેળ ખાતાં કાર્ડ નથી.",

@@ -1274,7 +1274,7 @@ const urCatalog: TranslationCatalog = {
       reviewAllCards: "تمام کارڈز دہرائیں",
       reviewDeck: "یہ ڈیک دہرائیں",
     },
-    deleteConfirmation: "یہ ڈیک حذف کریں؟",
+    deleteConfirmation: "“{{name}}” حذف کریں؟ آپ کے کارڈز باقی رہیں گے۔ اس سے صرف ڈیک کا محفوظ کردہ فلٹر ہٹے گا۔",
     empty: {
       allCards: "آپ نے ابھی کوئی کارڈ نہیں بنایا۔",
       deckCards: "اس ڈیک میں ابھی کوئی مماثل کارڈ نہیں ہے۔",

@@ -7,6 +7,7 @@ import {
   normalizeTagKey,
 } from "../../../appData/domain";
 import { useAnchoredFloatingOutsidePointerDismiss } from "../../../floating";
+import { createDeckNameComparator } from "../../../deckNameOrdering";
 import { useI18n } from "../../../i18n";
 import { settingsDecksRoute } from "../../../routes";
 import { useWorkspacePath, type WorkspacePathBuilder } from "../../../useWorkspacePath";
@@ -265,7 +266,7 @@ export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseRevie
     selectedReviewFilter,
     workspaceId,
   } = params;
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const workspacePath = useWorkspacePath();
   const [isReviewFilterMenuOpen, setIsReviewFilterMenuOpen] = useState<boolean>(false);
   const [reviewFilterDraft, setReviewFilterDraft] = useState<ReviewFilter | null>(null);
@@ -289,7 +290,7 @@ export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseRevie
     ? reviewFilterDraft
     : selectedReviewFilter;
   const reviewDeckFilterMenuItems = buildReviewDeckFilterMenuItems(
-    deckSummaries,
+    [...deckSummaries].sort(createDeckNameComparator(locale)),
     displayedReviewFilter,
     t("filters.allCards"),
     t("reviewFilterMenu.deckSmartFilterLabel"),

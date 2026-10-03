@@ -1287,7 +1287,7 @@ const csCatalog: TranslationCatalog = {
       reviewAllCards: "Opakovat všechny kartičky",
       reviewDeck: "Opakovat tento balíček",
     },
-    deleteConfirmation: "Smazat tento balíček?",
+    deleteConfirmation: "Smazat „{{name}}“? Vaše karty zůstanou zachovány. Odstraní se pouze uložený filtr balíčku.",
     empty: {
       allCards: "Zatím jste nevytvořili žádné kartičky.",
       deckCards: "Tento balíček zatím nemá žádné odpovídající kartičky.",

@@ -1274,7 +1274,7 @@ const etCatalog: TranslationCatalog = {
       reviewAllCards: "Korda kõiki kaarte",
       reviewDeck: "Korda seda pakki",
     },
-    deleteConfirmation: "Kas kustutada see pakk?",
+    deleteConfirmation: "Kas kustutada „{{name}}“? Sinu kaardid jäävad alles. See eemaldab ainult paki salvestatud filtri.",
     empty: {
       allCards: "Sa pole veel ühtegi kaarti loonud.",
       deckCards: "Selles pakis pole veel ühtegi sobivat kaarti.",

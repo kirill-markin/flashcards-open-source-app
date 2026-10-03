@@ -100,13 +100,15 @@ def selected(resources: dict[str, Json]) -> dict[str, Json]:
     return {key: item for key, item in resources.items() if obj(item, key).get("ResourceType") in EXPECTED}
 
 
-def relevant_refactors(aws: Aws) -> dict[str, dict[str, Json]]:
+def relevant_refactors(aws: Aws, known: set[str]) -> dict[str, dict[str, Json]]:
     relevant: dict[str, dict[str, Json]] = {}
     for summary in rows(aws.cf("list-stack-refactors", ["--execution-status-filter",
         "UNAVAILABLE", "AVAILABLE", "OBSOLETE", "EXECUTE_IN_PROGRESS", "EXECUTE_COMPLETE",
         "EXECUTE_FAILED", "ROLLBACK_IN_PROGRESS", "ROLLBACK_COMPLETE", "ROLLBACK_FAILED",
     ]).get("StackRefactorSummaries"), "refactors"):
         refactor = text(summary.get("StackRefactorId"), "StackRefactorId")
+        if refactor in known:
+            continue
         details = aws.cf("describe-stack-refactor", ["--stack-refactor-id", refactor])
         equal(details.get("StackRefactorId"), refactor, "listed refactor identity")
         ids = details.get("StackIds")
@@ -133,24 +135,21 @@ def retired_refactors(aws: Aws) -> set[str]:
 
 def ownership(aws: Aws) -> str:
     current = stacks(aws)
-    relevant = relevant_refactors(aws)
     if not current:
-        if relevant:
+        if relevant_refactors(aws, set()):
             raise ValueError("Monitoring operations exist without managed stacks; preserve evidence and stop")
         return "fresh"
     if set(current) != {CORE, TARGET}:
         raise ValueError("Both completed split stacks are required; legacy or partial ownership blocks releases")
-    retired = retired_refactors(aws)
-    equal(retired, {REVIEWED_REFACTOR, retry.RETRY_REFACTOR, preview.PREVIEW},
-          "all three historical attempts must have verified retirement evidence")
     source = text(obj(current[CORE], CORE)["StackId"], "source ID")
+    equal(source, REVIEWED_STACKS[CORE], "authoritative core stack")
     with TemporaryDirectory(prefix="monitoring-ownership-") as directory:
-        key = batches.current_manifest(aws, Path(directory), source)
-        if key is None:
-            raise ValueError("Completed monitoring split has no bound manifest; preserve evidence and stop")
-        manifest, receipts = batches.verified_prefix(aws, Path(directory), key, retired)
-        if len(receipts) != 4:
-            raise ValueError("Monitoring migration is incomplete; ordinary releases cannot resume it")
+        manifest, receipts = batches.saved_completion(aws, Path(directory), source)
+        completed = {text(receipt.get("StackRefactorId"), "completed operation") for receipt in receipts}
+        retired = {REVIEWED_REFACTOR, retry.RETRY_REFACTOR, preview.PREVIEW}
+        equal(completed & retired, set(), "completed operations cannot be retired attempts")
+        if relevant_refactors(aws, completed | retired):
+            raise ValueError("Unknown monitoring operation; preserve evidence and stop for reviewed recovery")
         batches.final_ownership(aws, manifest, receipts)
     return "split"
 

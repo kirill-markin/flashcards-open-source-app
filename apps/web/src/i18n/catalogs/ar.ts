@@ -1274,7 +1274,7 @@ const arCatalog: TranslationCatalog = {
       reviewAllCards: "راجع كل البطاقات",
       reviewDeck: "راجع هذه المجموعة",
     },
-    deleteConfirmation: "هل تريد حذف هذه المجموعة؟",
+    deleteConfirmation: "هل تريد حذف «{{name}}»؟ ستبقى بطاقاتك. سيؤدي هذا إلى إزالة فلتر المجموعة المحفوظ فقط.",
     empty: {
       allCards: "لم تنشئ أي بطاقات بعد.",
       deckCards: "لا تحتوي هذه المجموعة على بطاقات مطابقة بعد.",

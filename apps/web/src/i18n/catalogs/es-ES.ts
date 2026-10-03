@@ -1274,7 +1274,7 @@ const esEsCatalog: TranslationCatalog = {
       reviewAllCards: "Repasar todas las tarjetas",
       reviewDeck: "Repasar este mazo",
     },
-    deleteConfirmation: "¿Eliminar este mazo?",
+    deleteConfirmation: "¿Eliminar «{{name}}»? Tus tarjetas se conservarán. Solo se eliminará el filtro guardado del mazo.",
     empty: {
       allCards: "Aún no has creado ninguna tarjeta.",
       deckCards: "Este mazo aún no tiene tarjetas coincidentes.",

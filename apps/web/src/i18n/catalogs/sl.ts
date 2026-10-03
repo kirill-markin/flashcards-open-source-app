@@ -1300,7 +1300,7 @@ const slCatalog: TranslationCatalog = {
       reviewAllCards: "Ponavljaj vse kartice",
       reviewDeck: "Ponavljaj ta komplet",
     },
-    deleteConfirmation: "Želite izbrisati ta komplet?",
+    deleteConfirmation: "Želite izbrisati »{{name}}«? Vaše kartice bodo ostale. Odstranjen bo samo shranjeni filter kompleta.",
     empty: {
       allCards: "Ustvarili niste še nobene kartice.",
       deckCards: "Ta komplet še nima ustreznih kartic.",

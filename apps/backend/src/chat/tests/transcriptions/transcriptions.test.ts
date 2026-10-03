@@ -164,6 +164,7 @@ test("invalid chat transcription audio failures create a breadcrumb without a Se
       clientPlatform: null,
       source: "web",
       provider: "openai",
+      userSuppliedKey: false,
       fileSize: 5,
       fileExtension: "m4a",
       mediaType: "audio/m4a",

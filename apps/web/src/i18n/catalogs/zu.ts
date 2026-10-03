@@ -1274,7 +1274,7 @@ const zuCatalog: TranslationCatalog = {
       reviewAllCards: "Buyekeza wonke amakhadi",
       reviewDeck: "Buyekeza le nqwaba",
     },
-    deleteConfirmation: "Susa le nqwaba?",
+    deleteConfirmation: "Susa i-“{{name}}”? Amakhadi akho azohlala ekhona. Lokhu kususa kuphela isihlungi senqwaba esilondoloziwe.",
     empty: {
       allCards: "Awukadali amakhadi.",
       deckCards: "Le nqwaba ayinawo amakhadi afanayo okwamanje.",

@@ -6,6 +6,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.flashcardsopensourceapp.core.ui.AppTechnicalErrorController
+import com.flashcardsopensourceapp.core.ui.makeAppTechnicalError
 import com.flashcardsopensourceapp.data.local.model.cards.DeckDraft
 import com.flashcardsopensourceapp.data.local.model.cards.DeckSummary
 import com.flashcardsopensourceapp.data.local.model.cards.buildDeckFilterDefinition
@@ -15,6 +17,7 @@ import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import com.flashcardsopensourceapp.feature.settings.R
 import com.flashcardsopensourceapp.feature.settings.SettingsStringResolver
 import com.flashcardsopensourceapp.feature.settings.createSettingsStringResolver
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -22,6 +25,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
 
 sealed interface DeckEditorSaveResult {
     data class Created(
@@ -35,14 +39,18 @@ class DeckEditorViewModel(
     private val decksRepository: DecksRepository,
     workspaceRepository: WorkspaceRepository,
     private val editingDeckId: String?,
+    private val technicalErrorController: AppTechnicalErrorController,
     private val strings: SettingsStringResolver
 ) : ViewModel() {
+    private val submissionMutex = Mutex()
     private val inputState = MutableStateFlow(
         value = DeckEditorInputState(
             name = "",
             selectedTags = emptyList(),
             errorMessage = "",
             loadedEditingDeckId = null,
+            persistedDeckName = null,
+            isSubmitting = false,
             isEditingDeckMissing = false
         )
     )
@@ -103,10 +111,12 @@ class DeckEditorViewModel(
     }
 
     suspend fun save(editingDeckId: String?): DeckEditorSaveResult? {
-        val state = uiState.value
+        val state = inputState.value
         val trimmedName = state.name.trim()
 
-        if (state.isDeckMissing) {
+        if (state.isSubmitting || state.isEditingDeckMissing ||
+            isDeckEditorLoading(inputState = state, editingDeckId = editingDeckId)
+        ) {
             return null
         }
 
@@ -131,19 +141,68 @@ class DeckEditorViewModel(
             )
         )
 
-        return if (editingDeckId == null) {
-            DeckEditorSaveResult.Created(
-                deckId = decksRepository.createDeck(deckDraft = deckDraft)
+        if (!submissionMutex.tryLock()) {
+            return null
+        }
+        inputState.update { currentState -> currentState.copy(isSubmitting = true, errorMessage = "") }
+        try {
+            return if (editingDeckId == null) {
+                DeckEditorSaveResult.Created(
+                    deckId = decksRepository.createDeck(deckDraft = deckDraft)
+                )
+            } else {
+                decksRepository.updateDeck(deckId = editingDeckId, deckDraft = deckDraft)
+                DeckEditorSaveResult.Updated
+            }
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            reportSubmissionError(
+                error = error,
+                message = strings.get(R.string.settings_deck_editor_save_failed)
             )
-        } else {
-            decksRepository.updateDeck(deckId = editingDeckId, deckDraft = deckDraft)
-            DeckEditorSaveResult.Updated
+            return null
+        } finally {
+            inputState.update { currentState -> currentState.copy(isSubmitting = false) }
+            submissionMutex.unlock()
         }
     }
 
     suspend fun delete(editingDeckId: String): Boolean {
-        decksRepository.deleteDeck(deckId = editingDeckId)
-        return true
+        val state = inputState.value
+        if (this.editingDeckId != editingDeckId || state.loadedEditingDeckId != editingDeckId ||
+            state.isEditingDeckMissing || !submissionMutex.tryLock()
+        ) {
+            return false
+        }
+        inputState.update { currentState -> currentState.copy(isSubmitting = true, errorMessage = "") }
+        try {
+            decksRepository.deleteDeck(deckId = editingDeckId)
+            return true
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            reportSubmissionError(
+                error = error,
+                message = strings.get(R.string.settings_deck_editor_delete_failed)
+            )
+            return false
+        } finally {
+            inputState.update { currentState -> currentState.copy(isSubmitting = false) }
+            submissionMutex.unlock()
+        }
+    }
+
+    private fun reportSubmissionError(error: Exception, message: String) {
+        inputState.update { currentState -> currentState.copy(errorMessage = message) }
+        technicalErrorController.showTechnicalError(
+            error = makeAppTechnicalError(
+                title = strings.get(R.string.settings_technical_error_title),
+                message = message,
+                throwable = error
+            ),
+            throwable = error
+        )
     }
 }
 
@@ -151,6 +210,7 @@ fun createDeckEditorViewModelFactory(
     decksRepository: DecksRepository,
     workspaceRepository: WorkspaceRepository,
     editingDeckId: String?,
+    technicalErrorController: AppTechnicalErrorController,
     applicationContext: Context
 ): ViewModelProvider.Factory {
     return viewModelFactory {
@@ -159,6 +219,7 @@ fun createDeckEditorViewModelFactory(
                 decksRepository = decksRepository,
                 workspaceRepository = workspaceRepository,
                 editingDeckId = editingDeckId,
+                technicalErrorController = technicalErrorController,
                 strings = createSettingsStringResolver(context = applicationContext)
             )
         }
@@ -184,6 +245,8 @@ private data class DeckEditorInputState(
     val selectedTags: List<String>,
     val errorMessage: String,
     val loadedEditingDeckId: String?,
+    val persistedDeckName: String?,
+    val isSubmitting: Boolean,
     val isEditingDeckMissing: Boolean
 )
 
@@ -192,17 +255,18 @@ private fun applyObservedEditingDeck(
     deck: DeckSummary?
 ): DeckEditorInputState {
     if (deck == null) {
-        return currentState.copy(isEditingDeckMissing = true)
+        return currentState.copy(isEditingDeckMissing = true, persistedDeckName = null)
     }
 
     if (currentState.loadedEditingDeckId == deck.deckId) {
-        return currentState.copy(isEditingDeckMissing = false)
+        return currentState.copy(isEditingDeckMissing = false, persistedDeckName = deck.name)
     }
 
     return currentState.copy(
         name = deck.name,
         selectedTags = deck.filterDefinition.tags,
         loadedEditingDeckId = deck.deckId,
+        persistedDeckName = deck.name,
         isEditingDeckMissing = false
     )
 }
@@ -219,6 +283,17 @@ private fun toDeckEditorUiState(
             editingDeckId = editingDeckId
         ),
         isDeckMissing = inputState.isEditingDeckMissing,
+        isSubmitting = inputState.isSubmitting,
+        deleteTarget = if (inputState.loadedEditingDeckId != null && inputState.persistedDeckName != null &&
+            !inputState.isEditingDeckMissing
+        ) {
+            DeckEditorDeleteTarget(
+                deckId = inputState.loadedEditingDeckId,
+                name = inputState.persistedDeckName
+            )
+        } else {
+            null
+        },
         title = if (editingDeckId == null) {
             strings.get(R.string.settings_deck_editor_new_title)
         } else {

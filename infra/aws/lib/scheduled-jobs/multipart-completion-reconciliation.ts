@@ -12,7 +12,8 @@ import {
   resolveFromRepoRoot,
 } from "../nodejs-project-paths";
 import { backendStructuredLoggingProps } from "../backend-lambda-logging";
-import { createSentrySourceMapUploadCommand } from "../sentry-source-maps";
+import { createSentrySourceMapInjectionCommand } from "../sentry-source-maps";
+import { getLambdaSentryRelease } from "../lambda-sentry-release";
 import { createRdsCaBundleDownloadCommand } from "../rds-ca-bundle";
 
 export interface MultipartCompletionReconciliationProps {
@@ -98,7 +99,7 @@ export function multipartCompletionReconciliation(
           beforeInstall: () => [],
           afterBundling: (_inputDir: string, outputDir: string) => [
             createRdsCaBundleDownloadCommand(outputDir),
-            createSentrySourceMapUploadCommand(outputDir),
+            createSentrySourceMapInjectionCommand(outputDir),
           ],
         },
       },
@@ -109,11 +110,11 @@ export function multipartCompletionReconciliation(
         DB_NAME: "flashcards",
         MEDIA_ASSETS_S3_BUCKET_NAME: props.mediaAssetsBucket.bucketName,
         SENTRY_ENVIRONMENT: props.sentryEnvironment,
-        SENTRY_RELEASE: props.sentryRelease,
         SENTRY_TRACES_SAMPLE_RATE: props.sentryTracesSampleRate,
       },
     },
   );
+  reconciliationFunction.addEnvironment("SENTRY_RELEASE", getLambdaSentryRelease(reconciliationFunction));
   props.backendDbSecret.grantRead(reconciliationFunction);
   const sentryDsnSecret = cdk.aws_secretsmanager.Secret.fromSecretCompleteArn(
     scope,

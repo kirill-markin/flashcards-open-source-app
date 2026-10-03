@@ -61,8 +61,14 @@ export function createAppleBillingRoutes(options: Readonly<{ allowedOrigins: Rea
     const userId = await loadAppleBillingUserId(context.req.raw, options.allowedOrigins);
     const body = await parseAppleBody(context.req.raw);
     const signedTransaction = expectNonEmptyString(body.signedTransaction, "signedTransaction");
+    const intent = body.intent;
+    if (intent !== undefined && intent !== "passive" && intent !== "explicit") {
+      throw new HttpError(400, "intent must be passive or explicit when provided.", "APPLE_INTENT_INVALID");
+    }
     try {
-      return context.json(await billing.attachTransaction(userId, signedTransaction));
+      return context.json(intent === "passive"
+        ? await billing.reconcileTransaction(signedTransaction)
+        : await billing.attachTransaction(userId, signedTransaction));
     } catch (error) {
       throw appleHttpError(error);
     }

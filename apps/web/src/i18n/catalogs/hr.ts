@@ -1287,7 +1287,7 @@ const hrCatalog: TranslationCatalog = {
       reviewAllCards: "Ponavljaj sve kartice",
       reviewDeck: "Ponavljaj ovaj špil",
     },
-    deleteConfirmation: "Izbrisati ovaj špil?",
+    deleteConfirmation: "Izbrisati „{{name}}”? Vaše će kartice ostati sačuvane. Time se uklanja samo spremljeni filtar špila.",
     empty: {
       allCards: "Još niste stvorili nijednu karticu.",
       deckCards: "Ovaj špil još nema nijednu odgovarajuću karticu.",

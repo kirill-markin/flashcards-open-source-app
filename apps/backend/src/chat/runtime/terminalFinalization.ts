@@ -121,6 +121,7 @@ export async function persistCancelledChatRun(
     lifecycleState.ownershipLost,
     input.startedAt,
     finishedAt,
+    input.params.userOpenAIApiKey !== null,
   );
   return {
     assistantContent,
@@ -171,6 +172,7 @@ export async function persistFailedChatRun(
     lifecycleState.ownershipLost,
     input.startedAt,
     finishedAt,
+    input.params.userOpenAIApiKey !== null,
   );
   return {
     assistantContent,
@@ -212,6 +214,7 @@ export async function persistInterruptedChatRun(
     lifecycleState.ownershipLost,
     input.startedAt,
     finishedAt,
+    input.params.userOpenAIApiKey !== null,
   );
   return {
     assistantContent,
@@ -257,6 +260,7 @@ export async function persistCompletedChatRun(
     lifecycleState.ownershipLost,
     input.startedAt,
     finishedAt,
+    input.params.userOpenAIApiKey !== null,
   );
   return {
     assistantContent,

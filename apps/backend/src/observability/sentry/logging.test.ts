@@ -6,7 +6,7 @@ import {
   captureBackendException,
   captureBackendWarning,
 } from "./capture";
-import { logChatWorkerLifecycleEvent } from "../../chat/worker/logging";
+import { logChatWorkerTerminalStateEvent } from "../../chat/worker/logging";
 import type { ChatWorkerLifecycleDetails } from "./events";
 import { createBackendObservationScope } from "./scope";
 import {
@@ -227,7 +227,7 @@ test("backend warnings create Sentry warning issues with explicit fingerprints",
     assert.deepEqual(capturedFingerprints, [["global_snapshot_error"]]);
 
     const terminalWarningMessages = withCapturedConsole("warn", () => {
-      logChatWorkerLifecycleEvent("chat_worker_terminal_state_persisted", {
+      logChatWorkerTerminalStateEvent({
         lambdaRequestId: "lambda-request-1",
         chatRequestId: "chat-request-1",
         runId: "run-1",
@@ -253,6 +253,7 @@ test("backend warnings create Sentry warning issues with explicit fingerprints",
         startedAt: "2026-07-22T12:00:00.000Z",
         finishedAt: "2026-07-22T12:00:01.000Z",
         outcome: null,
+        userSuppliedKey: false,
       }, true);
     });
 

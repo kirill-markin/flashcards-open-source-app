@@ -1274,7 +1274,7 @@ const viCatalog: TranslationCatalog = {
       reviewAllCards: "Ôn tất cả thẻ",
       reviewDeck: "Ôn bộ thẻ này",
     },
-    deleteConfirmation: "Xóa bộ thẻ này?",
+    deleteConfirmation: "Xóa “{{name}}”? Các thẻ của bạn sẽ được giữ lại. Thao tác này chỉ xóa bộ lọc đã lưu của bộ thẻ.",
     empty: {
       allCards: "Bạn chưa tạo thẻ nào.",
       deckCards: "Bộ thẻ này chưa có thẻ nào phù hợp.",

@@ -4,6 +4,7 @@ import {
 import {
   captureChatWorkerTerminalStateException,
   logChatWorkerLifecycleEvent,
+  logChatWorkerTerminalStateEvent,
   type ChatWorkerLogContext,
 } from "../worker/logging";
 import {
@@ -11,6 +12,7 @@ import {
   isChatAttachmentRejectedError,
   isContextLengthExceededError,
   isHandledProviderFailure,
+  isKeyOwnedProviderFailure,
 } from "./providerErrors";
 import type {
   ChatWorkerAbortReason,
@@ -111,6 +113,7 @@ export function logTerminalStatePersisted(
   ownershipLost: boolean,
   startedAt: Date,
   finishedAt: Date,
+  userSuppliedKey: boolean,
 ): void {
   const payload = {
     abortReason,
@@ -124,6 +127,7 @@ export function logTerminalStatePersisted(
     startedAt: startedAt.toISOString(),
     finishedAt: finishedAt.toISOString(),
     outcome: null,
+    userSuppliedKey,
   };
 
   if (runStatus === "failed" && error !== null && !isHandledProviderFailure(error)) {
@@ -138,14 +142,16 @@ export function logTerminalStatePersisted(
   // Demote expected, user-actionable terminals to breadcrumbs instead of Sentry warnings.
   // context_length_exceeded already carries a clean "start a new chat" message and its root
   // cause is mitigated in the OpenAI loop; a rejected attachment is the user picking a file
-  // the provider cannot read, and it is surfaced with the attachment guidance message. Neither
-  // is actionable for us, so neither should page as a warning. Provider-side and infrastructure
-  // failures stay warnings. The payload (including providerErrorCode) is unchanged, so the
-  // events stay fully searchable in CloudWatch.
+  // the provider cannot read, and it is surfaced with the attachment guidance message; a
+  // refused or exhausted own key is shown to its owner with OpenAI's own text. None is
+  // actionable for us, so none should page as a warning. Provider-side and infrastructure
+  // failures, and every failure of the platform key, stay warnings. The payload (including
+  // providerErrorCode and userSuppliedKey) is unchanged, so the events stay fully searchable
+  // in CloudWatch.
   const isExpectedUserTerminal = isContextLengthExceededError(error)
-    || isChatAttachmentRejectedError(error);
-  logChatWorkerLifecycleEvent(
-    "chat_worker_terminal_state_persisted",
+    || isChatAttachmentRejectedError(error)
+    || (userSuppliedKey && isKeyOwnedProviderFailure(error));
+  logChatWorkerTerminalStateEvent(
     context,
     payload,
     runStatus === "failed" && !isExpectedUserTerminal,

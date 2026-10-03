@@ -1287,7 +1287,7 @@ const roCatalog: TranslationCatalog = {
       reviewAllCards: "Recapitulează toate fișele",
       reviewDeck: "Recapitulează acest pachet",
     },
-    deleteConfirmation: "Ștergi acest pachet?",
+    deleteConfirmation: "Ștergi „{{name}}”? Cardurile tale vor rămâne. Se va elimina doar filtrul salvat al pachetului.",
     empty: {
       allCards: "Încă nu ai creat nicio fișă.",
       deckCards: "Acest pachet nu are încă fișe corespunzătoare.",

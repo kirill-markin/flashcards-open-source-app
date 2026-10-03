@@ -23,6 +23,23 @@ and the completed early-user lifetime gift.
 - [StoreKit service](../apps/ios/Flashcards/Flashcards/Premium/AppleSubscriptionService.swift)
   and [native transport](../apps/ios/Flashcards/Flashcards/Cloud/Sync/CloudSyncTransport+AppleBilling.swift).
 
+## Transaction intent
+
+`POST /v1/billing/apple/transactions` accepts optional `intent: "passive" | "explicit"`
+alongside `signedTransaction`. Omitted intent retains explicit attachment for existing
+clients. Unknown values, including `null`, return HTTP 400 before any billing service action.
+Both modes require the same human authentication and verified Apple transaction JWS.
+
+Purchase and Restore use explicit attachment: the last presenting account receives the
+purchase. Automatic foreground, current-entitlement, unfinished-transaction, and transaction
+update replay use passive reconciliation. It refreshes Apple's state under the existing
+original-transaction lock, preserving any attached server owner. Only an unowned purchase
+can be attributed by its verified `appAccountToken`.
+
+The existing `{"attached":true}` response acknowledges successful processing in both modes;
+it does not confirm that the caller owns the purchase. Sync supplies the caller's entitlement.
+Deploy this backend contract before shipping the separate iOS runtime/transport integration.
+
 ## Configure the catalog after merge
 
 1. Wait until the catalog patch has been reviewed, merged into `main`, and passed
@@ -210,9 +227,12 @@ Do not dispatch Xcode Cloud or submit the app/product for review as part of this
    top-right Close control. Test an eligible and an ineligible sandbox account. An
    App Store production installation must not permit buying through this test entry:
    the purchase service verifies the signed AppTransaction environment again.
-2. As a fresh iOS guest without a lifetime gift, complete the premium_monthly trial.
-   Require server attachment before finishing the transaction and a sync-confirmed
-   premium rank of 20 before dismissing the sheet. It must return to Settings → Tests
+2. As a fresh iOS guest without a lifetime gift, fetch the account token and complete
+   the premium_monthly trial with that `appAccountToken`. Submit the verified StoreKit
+   transaction JWS to `POST /v1/billing/apple/transactions` as
+   `{"signedTransaction":"<private JWS>"}`. Require HTTP 200 with `{"attached":true}`
+   before finishing the transaction and a sync-confirmed premium rank of 20 with
+   Apple's actual trial state before dismissing the sheet. It must return to Settings → Tests
    once, without moving tabs or recreating the navigation stack. Closing, swiping away,
    or cancelling Apple's purchase dialog must preserve the originating screen.
 3. Open the ordinary offer preview, an accent-color premium gate, and the AI quota
@@ -224,13 +244,17 @@ Do not dispatch Xcode Cloud or submit the app/product for review as part of this
    once only after its request receives confirmed access for the same account.
 4. In the sandbox sheet and Settings → Subscription, use **Restore purchases** and
    **Manage subscription**. Check immediate progress, retryable failures, and return to
-   the source screen. Restore repeatedly without duplicate purchases. Restore into a
-   second authenticated test account and confirm ownership follows the deliberate
-   restore after both accounts sync. An ordinary foreground reconciliation must not
-   transfer another account's purchase. After buying as A and restoring as B, return to
-   A and replay current, unfinished, and renewal/update transactions; B must retain
-   ownership after both accounts sync. Repeat passive replay alongside an explicit
-   Restore: the explicit operation must still reach the server and determine ownership.
+   the source screen. Retry the same transaction and restore repeatedly without duplicate
+   purchases. Restore into a second authenticated test account B with `intent: "explicit"`
+   and confirm ownership follows the deliberate restore after both accounts sync. An
+   ordinary foreground reconciliation must not transfer another account's purchase.
+   After buying as A and restoring as B, return to A and replay current, unfinished, and
+   renewal/update transactions with `intent: "passive"`; B must retain ownership even
+   though the verified transaction still carries A's original account token. Sync both
+   accounts: A loses subscription access and B retains it, subject to any separate
+   purchases or lifetime grants. Explicit Restore on A must move ownership back to A.
+   Repeat passive replay alongside an explicit Restore: the explicit operation must
+   still reach the server and determine ownership.
 5. Exercise a pending purchase and background/foreground transitions. After approval,
    the one transaction listener must attach, sync, and complete any still-open request
    once. Replace the app identity while a purchase or restore is in flight; old results
@@ -239,8 +263,9 @@ Do not dispatch Xcode Cloud or submit the app/product for review as part of this
    existing guest-link lifecycle. On iPad, open two windows and confirm they share one
    transaction listener and processing operation; closing either window must not stop
    the other window's subscription runtime. Each sheet must return to its own screen.
-6. Allow a sandbox renewal, disable auto-renew, then observe expiry. Cancellation keeps
-   access until the paid-through date. Exercise a sandbox refund/revocation, then sync
+6. Allow a sandbox renewal, disable auto-renew, then observe expiry. The signed notification
+   must update the stored sandbox purchase and the next sync's entitlement. Cancellation
+   keeps access until the paid-through date. Exercise a sandbox refund/revocation, then sync
    and confirm access ends. Repeat using a lifetime holder: effective rank 30 must
    survive purchase, expiry, and revocation. Settings must still show the verified
    active Apple purchase and its current period end while lifetime is effective.
@@ -248,7 +273,8 @@ Do not dispatch Xcode Cloud or submit the app/product for review as part of this
    states that deleting the account does not cancel its subscription.
 7. Interrupt connectivity after Apple's purchase completes and before attachment is
    acknowledged. Reconnect and use Restore/retry; an unsuccessful attachment must not
-   finish the transaction. Launch and foreground in airplane mode with and without an
+   finish the transaction. If the backend reports 5xx, preserve the pending transaction
+   and retry. Launch and foreground in airplane mode with and without an
    Apple purchase: ordinary offline study must remain usable without a technical-error
    sheet. Subscription Settings and the sandbox offer must expose reconciliation
    failures, with Restore/retry available when connectivity returns.

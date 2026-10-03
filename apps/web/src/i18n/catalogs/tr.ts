@@ -1274,7 +1274,7 @@ const trCatalog: TranslationCatalog = {
       reviewAllCards: "Tüm kartları tekrar et",
       reviewDeck: "Bu desteyi tekrar et",
     },
-    deleteConfirmation: "Bu deste silinsin mi?",
+    deleteConfirmation: "“{{name}}” silinsin mi? Kartlarınız korunacak. Yalnızca destenin kayıtlı filtresi kaldırılacak.",
     empty: {
       allCards: "Henüz hiç kart oluşturmadınız.",
       deckCards: "Bu destede henüz eşleşen kart yok.",

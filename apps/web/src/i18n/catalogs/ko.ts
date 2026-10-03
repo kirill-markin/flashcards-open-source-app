@@ -1274,7 +1274,7 @@ const koCatalog: TranslationCatalog = {
       reviewAllCards: "모든 카드 복습",
       reviewDeck: "이 덱 복습",
     },
-    deleteConfirmation: "이 덱을 삭제할까요?",
+    deleteConfirmation: "“{{name}}”을(를) 삭제할까요? 카드는 유지됩니다. 저장된 덱 필터만 삭제됩니다.",
     empty: {
       allCards: "아직 만든 카드가 없습니다.",
       deckCards: "이 덱에 해당하는 카드가 아직 없습니다.",

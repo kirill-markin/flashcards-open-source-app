@@ -1274,7 +1274,7 @@ const bnCatalog: TranslationCatalog = {
       reviewAllCards: "সব কার্ড পুনরালোচনা করুন",
       reviewDeck: "এই ডেক পুনরালোচনা করুন",
     },
-    deleteConfirmation: "এই ডেকটি মুছবেন?",
+    deleteConfirmation: "“{{name}}” মুছবেন? আপনার কার্ডগুলো থাকবে। এতে শুধু ডেকের সংরক্ষিত ফিল্টারটি মুছে যাবে।",
     empty: {
       allCards: "আপনি এখনও কোনো কার্ড তৈরি করেননি।",
       deckCards: "এই ডেকে এখনও মিলে যাওয়া কোনো কার্ড নেই।",

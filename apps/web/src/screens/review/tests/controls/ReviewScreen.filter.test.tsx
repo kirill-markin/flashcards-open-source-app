@@ -450,7 +450,7 @@ describe("ReviewScreen filter controls", () => {
     expect(getReviewFilterMenu().textContent).not.toContain("Alpha");
     expect([...searchableListbox.querySelectorAll("[role='option']")].map((option) => (
       option.getAttribute("data-review-filter-key")
-    ))).toEqual(["deck:deck-2", "deck:deck-4", "deck:deck-6", "deck:deck-7"]);
+    ))).toEqual(["deck:deck-2", "deck:deck-4", "deck:deck-7", "deck:deck-6"]);
 
     await vi.waitFor(() => {
       expect(getActiveReviewFilterOption(searchableInput).getAttribute("data-review-filter-key")).toBe("deck:deck-2");

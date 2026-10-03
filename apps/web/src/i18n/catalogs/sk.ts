@@ -1287,7 +1287,7 @@ const skCatalog: TranslationCatalog = {
       reviewAllCards: "Opakovať všetky karty",
       reviewDeck: "Opakovať tento balíček",
     },
-    deleteConfirmation: "Vymazať tento balíček?",
+    deleteConfirmation: "Vymazať „{{name}}“? Vaše karty zostanú zachované. Odstráni sa iba uložený filter balíčka.",
     empty: {
       allCards: "Zatiaľ ste nevytvorili žiadne karty.",
       deckCards: "Tento balíček zatiaľ neobsahuje žiadne zodpovedajúce karty.",

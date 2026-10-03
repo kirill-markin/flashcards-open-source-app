@@ -1274,7 +1274,7 @@ const lvCatalog: TranslationCatalog = {
       reviewAllCards: "Atkārtot visas kartītes",
       reviewDeck: "Atkārtot šo kavu",
     },
-    deleteConfirmation: "Dzēst šo kavu?",
+    deleteConfirmation: "Dzēst “{{name}}”? Jūsu kartītes paliks. Tiks noņemts tikai saglabātais kavas filtrs.",
     empty: {
       allCards: "Jūs vēl neesat izveidojis nevienu kartīti.",
       deckCards: "Šajā kavā vēl nav nevienas atbilstošas kartītes.",

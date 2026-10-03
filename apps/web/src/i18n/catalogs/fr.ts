@@ -1274,7 +1274,7 @@ const frCatalog: TranslationCatalog = {
       reviewAllCards: "Réviser toutes les cartes",
       reviewDeck: "Réviser ce paquet",
     },
-    deleteConfirmation: "Supprimer ce paquet ?",
+    deleteConfirmation: "Supprimer « {{name}} » ? Vos cartes seront conservées. Seul le filtre enregistré du paquet sera supprimé.",
     empty: {
       allCards: "Vous n'avez encore créé aucune carte.",
       deckCards: "Ce paquet n'a encore aucune carte correspondante.",
