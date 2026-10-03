@@ -2,6 +2,7 @@ import { runAdminQuery, type AdminQueryObject, type AdminQueryValue } from "../.
 import type { AdminAppConfig } from "../../config";
 import { buildExcludedActorReasonSql } from "../../filters/filterSql";
 import { utcInstantSql, type UserKind } from "../usersQuery";
+import { readNullableString, readRowArray } from "./queryRowValues";
 import { buildMatchesUserIdSql, buildUserSubjectSql, type UserSubjectSql } from "./userSubjectSql";
 
 const reportLabel = "User profile";
@@ -444,28 +445,19 @@ function parseSection(value: AdminQueryValue | undefined, section: ProfileSectio
   }
 }
 
-function readNullableString(values: ReadonlyArray<AdminQueryValue>, index: number, fieldName: string): string | null {
-  const value = values[index];
-  if (value === undefined || (value !== null && typeof value !== "string")) {
-    throw new Error(`${reportLabel} header field "${fieldName}" must be a string or null.`);
-  }
-  return value;
-}
-
 function parseHeader(value: AdminQueryValue | undefined): UserProfileHeader {
-  if (!Array.isArray(value) || value.length !== 5) {
-    throw new Error(`${reportLabel} header must be an array of 5 values.`);
-  }
-  const kind = readNullableString(value, 1, "kind");
+  const location = `${reportLabel} header`;
+  const values = readRowArray(value, 5, location);
+  const kind = readNullableString(values, 1, "kind", location);
   if (kind !== null && kind !== "account" && kind !== "guest") {
-    throw new Error(`${reportLabel} header field "kind" has unsupported value: ${kind}`);
+    throw new Error(`${location} field "kind" has unsupported value: ${kind}`);
   }
   return {
-    email: readNullableString(value, 0, "email"),
+    email: readNullableString(values, 0, "email", location),
     kind,
-    identityCreatedAt: readNullableString(value, 2, "identityCreatedAt"),
-    mergedIntoUserId: readNullableString(value, 3, "mergedIntoUserId"),
-    exclusionReason: readNullableString(value, 4, "exclusionReason"),
+    identityCreatedAt: readNullableString(values, 2, "identityCreatedAt", location),
+    mergedIntoUserId: readNullableString(values, 3, "mergedIntoUserId", location),
+    exclusionReason: readNullableString(values, 4, "exclusionReason", location),
   };
 }
 

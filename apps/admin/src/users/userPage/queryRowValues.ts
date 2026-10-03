@@ -1,6 +1,6 @@
 import type { AdminQueryValue } from "../../adminApi";
 
-// Readers for the positional JSON arrays the Chats and Cards queries return; `location` names the
+// Readers for the positional JSON arrays the user page queries return; `location` names the
 // report and the row in every error.
 
 export function readRowArray(value: AdminQueryValue | undefined, length: number, location: string): ReadonlyArray<AdminQueryValue> {
