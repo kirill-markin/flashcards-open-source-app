@@ -39,10 +39,10 @@ Two consequences run through everything below.
   `message.<field>` in Logs Insights and as `$.message.<field>` in a CloudWatch
   metric filter, which is what makes a metric filter over these records possible
   at all.
-- The envelope's own `requestId` is the Lambda invocation id and is not the
-  request id these records mean. The record's own is `message.requestId`, it is
-  the id returned as the `X-Request-Id` response header, and it is the one that
-  joins a record to its Sentry captures.
+- The envelope's own `requestId` is the Lambda invocation id. For agent SQL and
+  authenticated MCP records, `message.requestId` is the `X-Request-Id` response
+  header and joins a record to its Sentry captures. Dispatcher correlation is
+  described in [Dispatcher admission outcomes and timings](#dispatcher-admission-outcomes-and-timings).
 
 `level` follows the severity the record was emitted at: `INFO` for a breadcrumb,
 `WARN` for a warning, `ERROR` for an exception. The shape is the same on every
@@ -219,6 +219,43 @@ stream that MCP revisions 2025-03-26 through 2025-11-25 allow and revision
 2026-07-28 removed. This surface runs the transport statelessly and answers 405,
 which those clients accept, so a run of such rows is a client-compatibility
 signal rather than an incident.
+
+## Dispatcher admission outcomes and timings
+
+Select the `/aws/lambda/<dispatcher function name>` log group for the
+`McpDispatcher` Lambda in the deployed stack, then run this Logs Insights query:
+
+```
+filter message.action in ["mcp_worker_completed", "mcp_worker_capacity_rejected", "mcp_dispatch_failed"]
+| stats count(*) as attempts,
+        avg(message.durationMs) as avgDurationMs,
+        pct(message.durationMs, 50) as p50DurationMs,
+        pct(message.durationMs, 95) as p95DurationMs,
+        max(message.durationMs) as maxDurationMs
+  by bin(5m), message.action, message.method, message.statusCode
+```
+
+`mcp_worker_completed` means the worker returned a valid proxy response,
+including 401, 405 and 5xx responses. `mcp_worker_capacity_rejected` means AWS
+refused admission (dispatcher HTTP 429); `mcp_dispatch_failed` means the
+dispatcher returned 502, with `phase` identifying where it failed. HTTP methods
+are restricted to standard method names or `OTHER`.
+
+All three measure `durationMs` from dispatcher handler entry to the decoded
+response or caught failure, before logging. Completion duration includes worker
+authentication, cold starts and synchronous Invoke overhead; it is an elapsed
+occupancy estimate, not the post-authentication `mcp_request.durationMs` or an
+exact Lambda execution duration. It excludes dispatcher cold start and cannot
+measure work continuing after an Invoke timeout. Rejected attempts consume no
+worker slot; do not include their duration when estimating worker occupancy.
+
+For one completion, inspect `message.requestId` (API Gateway request ID),
+`message.dispatcherRequestId` (dispatcher Lambda invocation) and
+`message.invocationRequestId` (AWS Invoke request). Join
+`message.workerRequestId` to the worker's `message.requestId` in `mcp_request`
+or `agent_sql`; it is the worker's UUID `X-Request-Id` response header, or
+`null` when absent or not a UUID. The dispatcher records no authenticated
+identity, protocol method, tool name or request/response content.
 
 ## Request mix on the MCP surface
 
