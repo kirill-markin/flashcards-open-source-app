@@ -19,27 +19,63 @@ only CLI command; it requires the GitHub release environment. Follow the
 The [ownership helper](../scripts/deploy/migrate-monitoring-stack.py) and
 [receipt verifier](../scripts/deploy/monitoring-refactor-batches.py) own the exact
 contract. For the existing installation they require stable authoritative stack
-IDs, verified retirement of three exact historical operations, and four linked
-completed batch receipts bound to the immutable private manifest. They verify
-historical requests, templates and server actions as well as current ownership.
+IDs and four linked completed batch receipts bound to the immutable private
+manifest and operation journals. They validate the saved hashes, requests,
+memberships, cumulative identities and common destination without replaying
+historical refactor calls or downloading historical actions and templates.
 The original 58 alarms and 8 metric filters must retain their physical identities
 in monitoring, with none remaining in core. Additional alarms/filters are allowed
 only in monitoring; its CDK metadata proves ordinary split deployment completed.
-Legitimate later application releases are not pinned to historical Lambda versions
-or live resource settings.
-
-All three historical operations are read by exact ID and validated even if absent
-from the list response. In this incident the obsolete preview remained directly
-readable after `ListStackRefactors` omitted it; omission did not prove retirement.
-The [retry retirement validator](../scripts/deploy/reconcile-monitoring-retry.py)
-and [preview retirement validator](../scripts/deploy/reconcile-monitoring-preview.py)
-validate immutable evidence and provide no repair CLI. Preserve the encrypted
-private evidence and its bindings; publish only sanitized summaries.
+Legitimate later releases are not pinned to historical Lambda versions or alarm
+and metric-filter properties. The guard lists refactors, skips the four completed
+IDs and three exact retired historical IDs, and describes other listed IDs to
+reject unknown operations involving either managed stack. Historical retirement
+proof is audited separately below; omission from a list is not retirement proof.
 
 With neither managed stack nor relevant listed operations, the helper reports
 `fresh`. Existing stacks require the complete verified split. Partial ownership,
 missing or mismatched evidence, unstable stacks and unknown/unresolved operations
 fail explicitly. Ordinary releases cannot resume a partial migration or repair it.
+
+## Historical completion audit
+
+Use this read-only procedure when investigating the original migration evidence,
+in the serialized GitHub release environment with its existing AWS credentials.
+It replays the full evidence verification and is intentionally separate from the
+ordinary ownership gate:
+
+```bash
+python3 - <<'PY'
+from importlib import import_module
+import os
+from pathlib import Path
+import sys
+from tempfile import TemporaryDirectory
+
+sys.path.insert(0, "scripts/deploy")
+driver = import_module("migrate-monitoring-stack")
+batches = import_module("monitoring-refactor-batches")
+if os.environ.get("GITHUB_ACTIONS") != "true" or os.environ.get("AWS_REGION") != driver.REGION:
+    raise ValueError("Run only in the serialized eu-central-1 GitHub release job")
+os.umask(0o077)
+aws = driver.Aws()
+retired = driver.retired_refactors(aws)
+with TemporaryDirectory(prefix="monitoring-audit-") as directory:
+    path = Path(directory)
+    key = batches.current_manifest(aws, path, driver.REVIEWED_STACKS[driver.CORE])
+    if key is None:
+        raise ValueError("No bound completed monitoring manifest")
+    manifest, receipts = batches.verified_prefix(aws, path, key, retired)
+    batches.final_ownership(aws, manifest, receipts)
+print("Historical completion evidence and current ownership verified")
+PY
+```
+
+This reads all three historical operations by exact ID even if absent from the
+list response. The [retry retirement validator](../scripts/deploy/reconcile-monitoring-retry.py)
+and [preview retirement validator](../scripts/deploy/reconcile-monitoring-preview.py)
+validate immutable evidence and provide no repair CLI. Preserve the encrypted
+private evidence and its bindings; publish only sanitized summaries.
 
 ## Troubleshooting
 

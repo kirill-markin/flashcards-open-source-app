@@ -1,5 +1,3 @@
-"""Read-only verification of the immutable four-batch migration evidence."""
-
 from __future__ import annotations
 
 import hashlib
@@ -137,7 +135,7 @@ def active_refactors(aws: driver.Aws, retired: set[str]) -> set[str]:
                   preview.PREVIEW: preview.aborted_attempt}
     if retired - set(validators):
         raise ValueError("Only exact receipt-verified historical attempts may be excluded")
-    relevant = driver.relevant_refactors(aws)
+    relevant = driver.relevant_refactors(aws, set())
     for refactor in retired:
         status = aws.cf("describe-stack-refactor", ["--stack-refactor-id", refactor])
         equal(status.get("StackRefactorId"), refactor, "historical refactor identity")
@@ -153,6 +151,55 @@ def operation_prefix(manifest: dict[str, Json]) -> str:
 def mappings(manifest: dict[str, Json], index: int) -> list[Json]:
     members = memberships(driver.selected(obj(manifest["resources"], "original")))[index - 1]
     return [row for row in driver.rows(manifest["mappings"], "mappings") if obj(row["Source"], "mapping")["LogicalResourceId"] in members]
+
+
+def validate_batch_binding(manifest: dict[str, Json], key: str, index: int, previous: str | None,
+                           operation: dict[str, Json], receipt: dict[str, Json]) -> None:
+    for field, expected in (("manifest", key), ("index", index), ("previous", previous),
+                            ("templateHash", digest(templates(manifest, index))), ("mappingHash", digest(mappings(manifest, index)))):
+        equal(operation.get(field), expected, "accepted operation/" + field)
+    equal(operation.get("requestHash"), digest(obj(operation.get("request"), "accepted request")), "accepted request hash")
+    equal(operation["request"], request(manifest, index), "accepted exact request")
+    for field, expected in (("manifest", key), ("index", index), ("previous", previous), ("operationHash", digest(operation)),
+                            ("StackRefactorId", text(operation.get("StackRefactorId"), "journal operation")),
+                            ("members", memberships(driver.selected(obj(manifest["resources"], "original")))[index - 1]),
+                            ("moved", cumulative(manifest, index))):
+        equal(receipt.get(field), expected, "verified receipt/" + field)
+
+
+def saved_completion(aws: driver.Aws, directory: Path, source: str) -> tuple[dict[str, Json], list[dict[str, Json]]]:
+    pointer = get(aws, directory, pointer_key(source))
+    equal(pointer.get("source"), source, "current manifest source")
+    key = text(pointer.get("manifest"), "current manifest")
+    manifest = load_manifest(aws, directory, key)
+    equal(manifest.get("source"), source, "completed manifest source")
+    base = operation_prefix(manifest)
+    equal(keys(aws, base + "/operations/"),
+          {f"{base}/operations/{index}.private.json" for index in range(1, 5)}, "complete four-operation journal")
+    receipts: list[dict[str, Json]] = []
+    known: set[str] = set()
+    receipt_keys: set[str] = set()
+    for index in range(1, 5):
+        operation = get(aws, directory, f"{base}/operations/{index}.private.json")
+        refactor = text(operation.get("StackRefactorId"), "journal operation")
+        if refactor in known:
+            raise ValueError("Repeated operation in completed batch journal")
+        known.add(refactor)
+        receipt_key = f"{base}/receipts/{digest(refactor)}.private.json"
+        receipt_keys.add(receipt_key)
+        receipt = get(aws, directory, receipt_key)
+        validate_batch_binding(manifest, key, index, digest(receipts[-1]) if receipts else None, operation, receipt)
+        ids = obj(receipt.get("StackIds"), "completed stack IDs")
+        equal(set(ids), {CORE, TARGET}, "only completed split stacks")
+        equal(ids.get(CORE), source, "completed core stack ID")
+        target = text(ids.get(TARGET), "completed monitoring stack ID")
+        if not re.fullmatch(f"arn:aws:cloudformation:{driver.REGION}:{driver.ACCOUNT}:stack/{TARGET}/[0-9a-f-]{{36}}", target):
+            raise ValueError("Completed monitoring stack ID is not an authoritative ARN")
+        if receipts:
+            equal(ids, receipts[-1]["StackIds"], "same completed target")
+        receipts.append(receipt)
+    equal(keys(aws, base + "/receipts/"), receipt_keys, "all completed operation-linked receipts")
+    return manifest, receipts
 
 
 def verified_prefix(aws: driver.Aws, directory: Path, key: str, retired: set[str]) -> tuple[dict[str, Json], list[dict[str, Json]]]:
@@ -176,16 +223,7 @@ def verified_prefix(aws: driver.Aws, directory: Path, key: str, retired: set[str
         if receipt_key not in keys(aws, receipt_key):
             raise ValueError(f"Unreceipted operation {refactor}; preserve evidence and stop for reviewed recovery")
         receipt = get(aws, directory, receipt_key)
-        previous = digest(receipts[-1]) if receipts else None
-        for field, expected in (("manifest", key), ("index", index), ("previous", previous),
-                                ("templateHash", digest(templates(manifest, index))), ("mappingHash", digest(mappings(manifest, index)))):
-            equal(operation.get(field), expected, "accepted operation/" + field)
-        equal(operation.get("requestHash"), digest(obj(operation.get("request"), "accepted request")), "accepted request hash")
-        equal(operation["request"], request(manifest, index), "accepted exact request")
-        for field, expected in (("manifest", key), ("index", index), ("previous", previous), ("operationHash", digest(operation)),
-                                ("StackRefactorId", refactor), ("members", memberships(driver.selected(obj(manifest["resources"], "original")))[index - 1]),
-                                ("moved", cumulative(manifest, index))):
-            equal(receipt.get(field), expected, "verified receipt/" + field)
+        validate_batch_binding(manifest, key, index, digest(receipts[-1]) if receipts else None, operation, receipt)
         status = aws.cf("describe-stack-refactor", ["--stack-refactor-id", refactor])
         equal(status.get("StackRefactorId"), refactor, "journal described operation ID")
         equal(status.get("ExecutionStatus"), "EXECUTE_COMPLETE", refactor + "/execution")
