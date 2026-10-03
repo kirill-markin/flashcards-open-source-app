@@ -46,7 +46,7 @@
   "offer.trialEligibility": "O singură perioadă de probă gratuită per client Stripe. O perioadă de probă anterioară prin Apple sau Google nu afectează eligibilitatea.",
   "offer.allowanceWindow": "Limita de mesaje IA se resetează în fiecare lună calendaristică, după ora UTC, independent de data facturării.",
   "email.trialReminderSubject": "Perioada ta de probă Nibomo Premium se încheie curând",
-  "email.trialReminderBody": "Perioada ta de probă gratuită Nibomo Premium se încheie la {date}. După perioada de probă, abonamentul se reînnoiește automat la {price} pe lună, cu taxele aplicabile incluse. Pentru a evita prima plată, anulează înainte de încheierea perioadei de probă. Gestionează sau anulează abonamentul în setările abonamentului: {url}",
+  "email.trialReminderBody": "Perioada ta de probă gratuită Nibomo Premium se încheie la {date}. După perioada de probă, abonamentul se reînnoiește automat la un preț de bază lunar de {price}, cu taxele aplicabile incluse. Stripe afișează suma finală de plată în moneda ta de facturare. Pentru a evita prima plată, anulează înainte de încheierea perioadei de probă. Gestionează sau anulează abonamentul în setările abonamentului: {url}",
   "email.paymentReceiptSubject": "Confirmare de plată Nibomo",
   "email.paymentReceiptBody": "Am primit plata ta în valoare de {price}. Vezi confirmarea: {url}",
   "email.refundReceiptSubject": "Confirmare de rambursare Nibomo",

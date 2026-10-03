@@ -46,7 +46,7 @@
   "offer.trialEligibility": "Una prueba gratis por cliente de Stripe. Haber usado una prueba de Apple o Google no afecta a tu elegibilidad.",
   "offer.allowanceWindow": "Tu límite de mensajes de IA se restablece al inicio de cada mes natural en UTC, independientemente de tu fecha de facturación.",
   "email.trialReminderSubject": "Tu prueba de Nibomo Premium termina pronto",
-  "email.trialReminderBody": "Tu prueba gratis de Nibomo Premium termina el {date}. Después de la prueba, tu suscripción se renueva automáticamente por {price} al mes, con los impuestos aplicables incluidos. Para evitar el primer cobro, cancela antes de que termine la prueba. Gestiona o cancela tu suscripción en los ajustes de la suscripción: {url}",
+  "email.trialReminderBody": "Tu prueba gratis de Nibomo Premium termina el {date}. Después de la prueba, tu suscripción se renueva automáticamente a un precio base mensual de {price}, con los impuestos aplicables incluidos. Stripe muestra el cargo final en tu moneda de facturación. Para evitar el primer cobro, cancela antes de que termine la prueba. Gestiona o cancela tu suscripción en los ajustes de la suscripción: {url}",
   "email.paymentReceiptSubject": "Recibo de pago de Nibomo",
   "email.paymentReceiptBody": "Hemos recibido tu pago de {price}. Consulta tu recibo: {url}",
   "email.refundReceiptSubject": "Recibo de reembolso de Nibomo",

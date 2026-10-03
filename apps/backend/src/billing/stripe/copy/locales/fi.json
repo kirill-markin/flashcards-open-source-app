@@ -46,7 +46,7 @@
   "offer.trialEligibility": "Yksi ilmainen kokeilujakso Stripe-asiakasta kohden. Aiempi Applen tai Googlen kokeilujakso ei vaikuta oikeuteen saada tämä kokeilu.",
   "offer.allowanceWindow": "Tekoälyviestikiintiösi nollautuu joka kalenterikuukausi UTC-ajan mukaan laskutuspäivästäsi riippumatta.",
   "email.trialReminderSubject": "Nibomo Premium -kokeilujaksosi päättyy pian",
-  "email.trialReminderBody": "Ilmainen Nibomo Premium -kokeilujaksosi päättyy {date}. Kokeilujakson jälkeen tilauksesi uusiutuu automaattisesti hintaan {price} kuukaudessa, mukaan lukien sovellettavat verot. Vältä ensimmäinen veloitus peruuttamalla tilaus ennen kokeilujakson päättymistä. Voit hallita tai peruuttaa tilauksesi tilausasetuksissa: {url}",
+  "email.trialReminderBody": "Ilmainen Nibomo Premium -kokeilujaksosi päättyy {date}. Kokeilujakson jälkeen tilauksesi uusiutuu automaattisesti kuukausittaisella perushinnalla {price}, mukaan lukien sovellettavat verot. Stripe näyttää lopullisen veloituksen laskutusvaluutassasi. Vältä ensimmäinen veloitus peruuttamalla tilaus ennen kokeilujakson päättymistä. Voit hallita tai peruuttaa tilauksesi tilausasetuksissa: {url}",
   "email.paymentReceiptSubject": "Nibomo-maksukuitti",
   "email.paymentReceiptBody": "Olemme vastaanottaneet maksusi, jonka summa on {price}. Katso kuittisi: {url}",
   "email.refundReceiptSubject": "Nibomo-palautuskuitti",

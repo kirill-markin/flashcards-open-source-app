@@ -2,8 +2,8 @@
 
 The backend implements owned Checkout, Portal, reconciliation, account deletion
 cancellation and signed webhook receivers. Live Checkout is disabled unless the
-explicit deployment flag below is exactly `true`. Web purchase UI, product email
-delivery, legal updates and hosted-flow acceptance remain launch gates.
+explicit deployment flag below is exactly `true`. Product email dispatch is wired;
+real delivery, web purchase UI, legal updates and hosted-flow acceptance remain launch gates.
 
 [Premium offer](premium-offer.md) owns price, benefits and limits;
 [Premium entitlements](premium-entitlements.md) owns access and provider-state
@@ -126,9 +126,9 @@ does not enable that limit. Own-key copy belongs in the AI allowance context.
 `deletion.*` supplements the app’s existing account/data-deletion confirmation and
 must ship only with the cancellation behavior below. Technical errors follow the
 web app’s actionable error presentation without exposing raw provider responses.
-`email.*` prepares Nibomo-specific trial reminders and receipts for successful
-payments and refunds. It does not send mail or enable shared Stripe emails;
-the sending mechanism and schedule remain integration work.
+`email.*` supplies the [billing email dispatcher](../apps/backend/src/billing/stripe/email.ts).
+It uses all 50 canonical maps without the narrower hosted Checkout locale mapping.
+Shared Stripe email settings remain unchanged.
 
 ### Verified locale files
 
@@ -410,6 +410,76 @@ absolute expiry; cancellation failure preserves the account with HTTP 503
 `ACCOUNT_DELETE_STRIPE_CANCELLATION_FAILED`. Billing-history anonymization remains
 in [Premium entitlements](premium-entitlements.md#guest-upgrade-reaping-and-deletion).
 
+## Product billing email verification
+
+[Email dispatch](../apps/backend/src/billing/stripe/email.ts),
+[provider projections](../apps/backend/src/billing/stripe/provider.ts), and
+[delivery storage](../db/migrations/0167_stripe_email_deliveries.sql) own selection,
+amounts, locks, retries and deduplication. Access commits before dispatch. A send
+failure cannot roll back paid access. Resend acceptance is recorded separately
+from inbox delivery, which still needs the checks below.
+
+The existing HTTP backend `RESEND_API_KEY` and `RESEND_FROM_EMAIL` supply the
+private transport and sender, with display name Nibomo. The recipient is the
+currently owned Stripe customer's billing email; the language is the persisted
+Nibomo profile locale. No client-provided contact, locale or redirect is accepted.
+Payment/refund links are validated HTTPS Stripe hosted URLs; reminders link to
+[Subscription settings](https://app.nibomo.com/settings/subscription).
+
+Frozen private request bytes survive retries until acceptance or a stopped
+attempt; those terminal states clear the request and notice. The retained opaque
+customer identity supplies ownership across merges and erasure. Account deletion
+also clears pending private data and the provider message identifier, while
+preserving the entity receipt to prevent replay. Delivery data is withheld from
+reporting. No background mail queue or new scheduled job is installed.
+
+Resend's [idempotency window](https://resend.com/docs/dashboard/emails/idempotency-keys)
+is 24 hours. Automatic sends stop conservatively 23 hours after the durable first
+attempt; neither a new webhook ID nor changing the sender, recipient, locale or
+copy creates a new send key. An unresolved result past that window, or a provider
+payload conflict, requires operator reconciliation; do not delete its receipt or
+issue a new key. A concurrent-request conflict retries the same frozen payload.
+Use only sanitized error codes and provider message IDs when recording evidence.
+
+Adaptive Pricing amounts on successful charges and refunds are used directly;
+[Stripe API currency units](https://docs.stripe.com/currencies) govern formatting,
+including zero-decimal currencies, ISK/UGX versus HUF/TWD, and Stripe's
+[three-decimal charge currencies](https://support.stripe.com/questions/which-payments-methods-and-products-are-available-in-the-uae?locale=en-GB).
+The trial template
+must describe the verified monthly **base** price in the provider price currency
+and explain that Stripe shows the final charge in the billing currency. The
+[Adaptive Pricing subscription](https://docs.stripe.com/payments/currencies/localize-prices/adaptive-pricing?payment-ui=stripe-hosted)
+exposes its presentment currency without a guaranteed future converted amount.
+No exchange-rate estimate or previous charge substitutes for that future amount.
+
+After normal cloud checks and deployment, using only an authorized sandbox
+review account and a controlled real inbox:
+
+1. Set a supported persisted Nibomo locale that hosted Checkout does not support,
+   then complete the eligible trial through the actual owned flow. Confirm its
+   verified billing email differs safely from any synthetic review login.
+2. Trigger Stripe's real trial-will-end event and inspect the inbox: exact end
+   date/time, explicitly labeled verified monthly base price, final billing
+   currency disclosure, localized text and fixed settings URL. Shorten/end/cancel
+   the trial and replay the old event; no stale future charge reminder may arrive.
+3. Complete first payment and renewal, including a converted currency. Compare
+   the received amount/currency and hosted receipt with actual charge presentment
+   data. Redeliver `invoice.paid` and `invoice.payment_succeeded`: one receipt per
+   invoice, including redelivery after 24 hours.
+4. Issue authorized sandbox partial and full refunds. Each successful refund
+   gets its own actual amount and receipt; pending/failed refunds send nothing.
+   Replay charge/refund event types and confirm entity deduplication.
+5. Exercise a controlled Resend transient failure and concurrent delivery. Access
+   must already be correct; retry uses the same request and key. Inspect durable
+   pending/error state. For ambiguous or payload-conflict results, reconcile the
+   provider record without manufacturing a replacement send. Confirm accepted
+   deliveries clear private request bytes.
+6. Confirm erased, unowned and unrelated-product events send nothing; deletion
+   clears pending delivery contacts/content and keeps entity deduplication. Check
+   an account with a separate lifetime/mobile purchase and historical Stripe
+   customer mappings. Verify the existing sender's authenticated domain, inbox
+   placement and truthful From presentation; API success alone is insufficient.
+
 ## Verified settings and remaining launch gates
 
 The [configuration inventory](stripe-subscriptions/configuration.json) records the
@@ -420,13 +490,13 @@ distinguishes those observations from application work:
 | --- | --- | --- |
 | Tax | Tax active in both environments; explicit inclusive prices and product code `txcd_10105001`. Sandbox defaults use Stripe/inclusive/the same code | Exercise implemented session automatic tax and customer-location collection |
 | Registrations | Existing live BG standard and Union OSS registrations read back; their configuration and head office copied into the isolated sandbox only. Live global Tax settings preserved | Verify applicable collection in real sandbox flows; these test copies create no new real-world registration |
-| Receipts | Shared live successful-payment and refund emails off; default language English, sender `stripe.com` | Choose and implement Nibomo receipt/payment/refund communication without silently changing other products' messages; portal invoice history alone is not email delivery |
-| Trial reminders | Shared live trial reminder off; subscription-management email link and trial-over descriptor off; legacy trial link points to Kirill's LinkedIn profile | Implement the prepared product-specific `email.*` reminder with actual price/end date/management URL and verify delivery; no sender or schedule is deployed |
+| Receipts | Shared live successful-payment and refund emails off; Nibomo dispatch uses the existing private Resend sender | Verify real localized payment/refund delivery and customer presentment amounts using the procedure above |
+| Trial reminders | Shared live trial reminder off; Nibomo handles `customer.subscription.trial_will_end` | Verify future-trial guards, clearly labeled base price and sender delivery |
 | Other billing emails | Live renewal, expiring-card, failed-card-payment and failed-bank-debit emails on | Inspect the actual messages and management destination for Nibomo before launch |
 | Recovery | Smart retries enabled, maximum 4 attempts over 3 weeks; first failure leaves overdue, exhaustion cancels; incomplete authentication cancels after 15 days; disputed payment leaves overdue | Exercise grace, recovery, terminal cancellation and explicit refund/dispute handling against the entitlement mapping |
 | Billing defaults | Live Classic and sandbox Flexible Dashboard billing modes; live upcoming-invoice event 7 days before and shared Checkout one-subscription limit off | Exercise explicit flexible mode and owned trial/session orchestration |
 | Sandbox email evidence | No sandbox delivery evidence; live email/retry observations do not establish sandbox settings | Stripe does not send trial reminder emails in a sandbox; verify the chosen Nibomo sender separately |
-| Runtime | Provider, owned sessions, lifecycle, raw-byte receivers and runtime wiring are implemented; reminder copy is prepared | Complete receiver deployment/provisioning, product messages, UI and hosted acceptance |
+| Runtime | Provider, owned sessions, lifecycle, raw-byte receivers, runtime wiring and product email dispatch are implemented | Complete actual delivery, UI and hosted acceptance |
 | Legal | Dedicated portal legal URLs set; Stripe-specific website wording still pending | Update public terms/privacy against actual billing data and behavior before accepting live purchases |
 
 The product code is an **inference** from server-hosted AI chat being the primary
@@ -451,7 +521,7 @@ collection obligations.
    access, refunds/disputes, duplicate/out-of-order webhooks, logout/account switch,
    lifetime plus a separate subscription, and deletion with provider failure or
    racing checkout. Verify customer and environment ownership throughout.
-5. Complete Nibomo-specific reminder and receipt decisions/delivery, portal appearance
+5. Complete Nibomo-specific reminder and receipt delivery verification, portal appearance
    review and website legal updates. Capture implemented screens after they exist.
 6. Activate live purchases only after these gates pass. The free-account 50-message
    limit remains a separate coordinated rollout; preparation does not activate it.

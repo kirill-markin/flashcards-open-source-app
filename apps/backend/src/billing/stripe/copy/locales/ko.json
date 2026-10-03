@@ -46,7 +46,7 @@
   "offer.trialEligibility": "무료 체험은 Stripe 고객당 한 번 제공됩니다. 이전에 Apple 또는 Google 체험을 이용했더라도 자격에 영향을 주지 않습니다.",
   "offer.allowanceWindow": "AI 메시지 사용 한도는 결제일과 관계없이 UTC 기준 매월 1일에 초기화됩니다.",
   "email.trialReminderSubject": "Nibomo Premium 체험이 곧 종료됩니다",
-  "email.trialReminderBody": "Nibomo Premium 무료 체험이 {date}에 종료됩니다. 체험 후에는 적용되는 세금이 포함된 월 {price}로 구독이 자동 갱신됩니다. 첫 결제를 피하려면 체험이 끝나기 전에 취소하세요. 구독 설정에서 구독을 관리하거나 취소할 수 있습니다: {url}",
+  "email.trialReminderBody": "Nibomo Premium 무료 체험이 {date}에 종료됩니다. 체험 후에는 적용되는 세금이 포함된 월 기본 요금 {price}로 구독이 자동 갱신됩니다. Stripe에서 청구 통화로 표시된 최종 청구 금액을 확인할 수 있습니다. 첫 결제를 피하려면 체험이 끝나기 전에 취소하세요. 구독 설정에서 구독을 관리하거나 취소할 수 있습니다: {url}",
   "email.paymentReceiptSubject": "Nibomo 결제 영수증",
   "email.paymentReceiptBody": "{price} 결제가 완료되었습니다. 영수증을 확인하세요: {url}",
   "email.refundReceiptSubject": "Nibomo 환불 영수증",

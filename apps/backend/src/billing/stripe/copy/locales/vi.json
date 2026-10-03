@@ -46,7 +46,7 @@
   "offer.trialEligibility": "Mỗi khách hàng Stripe được dùng thử miễn phí một lần. Việc đã dùng thử qua Apple hoặc Google không ảnh hưởng đến điều kiện dùng thử này.",
   "offer.allowanceWindow": "Hạn mức tin nhắn AI được đặt lại mỗi tháng dương lịch theo UTC, độc lập với ngày thanh toán.",
   "email.trialReminderSubject": "Thời gian dùng thử Nibomo Premium của bạn sắp kết thúc",
-  "email.trialReminderBody": "Thời gian dùng thử miễn phí Nibomo Premium của bạn kết thúc vào {date}. Sau thời gian dùng thử, gói đăng ký sẽ tự động gia hạn với giá {price} mỗi tháng, đã bao gồm các khoản thuế áp dụng. Để tránh khoản phí đầu tiên, hãy hủy trước khi thời gian dùng thử kết thúc. Quản lý hoặc hủy gói đăng ký trong phần cài đặt Gói đăng ký: {url}",
+  "email.trialReminderBody": "Thời gian dùng thử miễn phí Nibomo Premium của bạn kết thúc vào {date}. Sau thời gian dùng thử, gói đăng ký sẽ tự động gia hạn với giá cơ bản hằng tháng là {price}, đã bao gồm các khoản thuế áp dụng. Stripe hiển thị số tiền cuối cùng được thu bằng loại tiền tệ thanh toán của bạn. Để tránh khoản phí đầu tiên, hãy hủy trước khi thời gian dùng thử kết thúc. Quản lý hoặc hủy gói đăng ký trong phần cài đặt Gói đăng ký: {url}",
   "email.paymentReceiptSubject": "Biên nhận thanh toán Nibomo",
   "email.paymentReceiptBody": "Chúng tôi đã nhận được khoản thanh toán {price} của bạn. Xem biên nhận: {url}",
   "email.refundReceiptSubject": "Biên nhận hoàn tiền Nibomo",

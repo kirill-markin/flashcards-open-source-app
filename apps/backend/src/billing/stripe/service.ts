@@ -1,4 +1,5 @@
 import type Stripe from "stripe";
+import { dispatchStripeLifecycleEmails } from "./email";
 import { z } from "zod";
 import type { DatabaseExecutor } from "../../database";
 import { unsafeTransaction } from "../../database/unsafe";
@@ -176,6 +177,15 @@ export async function handleStripeWebhook(
       return result;
     });
     await publishStripeTransitions(transitions);
+    try {
+      await dispatchStripeLifecycleEmails(provider, customerId, event.type, reference,
+        transitions.map((transition) => transition.state.subscriptionId));
+    } catch (error) {
+      const errorCode = error instanceof StripeBillingError ? error.code : "STRIPE_EMAIL_FAILED";
+      await unsafeTransaction((executor) => executor.query(`UPDATE billing.provider_events SET processing_error = $3
+        WHERE provider = 'stripe' AND event_id = $1 AND environment = $2`, [event.id, environment, errorCode]));
+      throw error;
+    }
     return { outcome: receipt.stored.processed_at === null ? "processed" : "duplicate",
       subscriptionIds: transitions.map((transition) => transition.state.subscriptionId) };
   } catch (error) {

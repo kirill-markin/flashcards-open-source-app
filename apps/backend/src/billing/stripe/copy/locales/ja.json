@@ -46,7 +46,7 @@
   "offer.trialEligibility": "無料トライアルはStripeの顧客1人につき1回です。過去にAppleまたはGoogleのトライアルを利用していても、対象資格に影響はありません。",
   "offer.allowanceWindow": "AIメッセージの利用枠は請求日とは関係なく、UTCの暦月の初めに毎月リセットされます。",
   "email.trialReminderSubject": "Nibomo Premiumのトライアルがまもなく終了します",
-  "email.trialReminderBody": "Nibomo Premiumの無料トライアルは{date}に終了します。その後、サブスクリプションは適用される税金を含む月額{price}で自動更新されます。初回の請求を避けるには、トライアル終了前に解約してください。サブスクリプション設定で管理または解約できます：{url}",
+  "email.trialReminderBody": "Nibomo Premiumの無料トライアルは{date}に終了します。その後、サブスクリプションは適用される税金を含む月額基本料金{price}で自動更新されます。Stripeには請求通貨での最終的な請求額が表示されます。初回の請求を避けるには、トライアル終了前に解約してください。サブスクリプション設定で管理または解約できます：{url}",
   "email.paymentReceiptSubject": "Nibomoのお支払い領収書",
   "email.paymentReceiptBody": "{price}のお支払いを受領しました。領収書をご確認ください：{url}",
   "email.refundReceiptSubject": "Nibomoの返金明細",

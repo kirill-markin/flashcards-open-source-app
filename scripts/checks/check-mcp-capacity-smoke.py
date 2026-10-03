@@ -84,7 +84,7 @@ def fixture_template(source: dict[str, object], name: str) -> dict[str, object]:
     for key in code:
         text_value(code[key], f"Code.{key}")
     environment = object_value(source.get("Environment"), "dispatcher Environment")
-    if set(object_value(environment.get("Variables"), "dispatcher Variables")) != {"MCP_WORKER_FUNCTION_NAME"}:
+    if set(object_value(environment.get("Variables"), "dispatcher Variables")) != {"MCP_WORKER_FUNCTION_NAME", "MCP_TOKEN_LEASE_TABLE_NAME"}:
         raise ValueError("Unsupported dispatcher environment; fixture must not copy production secrets")
     if source.get("Runtime") != "nodejs24.x" or source.get("Architectures", ["x86_64"]) != ["x86_64"]:
         raise ValueError("Unsupported dispatcher runtime or architecture")
@@ -95,7 +95,10 @@ def fixture_template(source: dict[str, object], name: str) -> dict[str, object]:
     for key in ("MemorySize", "Timeout"):
         if type(copied[key]) is not int or cast(int, copied[key]) <= 0:
             raise ValueError(f"dispatcher {key}: expected a positive integer")
-    resources: dict[str, object] = {}
+    resources: dict[str, object] = {"LeaseTable": {"Type": "AWS::DynamoDB::Table", "DeletionPolicy": "Delete", "Properties": {
+        "BillingMode": "PAY_PER_REQUEST", "AttributeDefinitions": [{"AttributeName": "pk", "AttributeType": "S"}],
+        "KeySchema": [{"AttributeName": "pk", "KeyType": "HASH"}],
+    }}}
     for function in ("Worker", "Dispatcher"):
         resources[f"{function}Logs"] = {"Type": "AWS::Logs::LogGroup", "DeletionPolicy": "Delete", "Properties": {
             "LogGroupName": f"/aws/lambda/{name}-{function}", "RetentionInDays": 1,
@@ -104,6 +107,8 @@ def fixture_template(source: dict[str, object], name: str) -> dict[str, object]:
                                      "Resource": {"Fn::GetAtt": [f"{function}Logs", "Arn"]}}]
         if function == "Dispatcher":
             statements.append({"Effect": "Allow", "Action": "lambda:InvokeFunction", "Resource": {"Fn::GetAtt": ["Worker", "Arn"]}})
+            statements.append({"Effect": "Allow", "Action": ["dynamodb:PutItem", "dynamodb:DeleteItem"],
+                               "Resource": {"Fn::GetAtt": ["LeaseTable", "Arn"]}})
         resources[f"{function}Role"] = {"Type": "AWS::IAM::Role", "Properties": {
             "AssumeRolePolicyDocument": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow",
                 "Principal": {"Service": "lambda.amazonaws.com"}, "Action": "sts:AssumeRole"}]},
@@ -126,7 +131,7 @@ def handler(event, context):
     }}
     resources["Dispatcher"] = {"Type": "AWS::Lambda::Function", "DependsOn": "DispatcherLogs", "Properties": {
         **copied, "FunctionName": f"{name}-Dispatcher", "Role": {"Fn::GetAtt": ["DispatcherRole", "Arn"]},
-        "Environment": {"Variables": {"MCP_WORKER_FUNCTION_NAME": {"Ref": "Worker"}}},
+        "Environment": {"Variables": {"MCP_WORKER_FUNCTION_NAME": {"Ref": "Worker"}, "MCP_TOKEN_LEASE_TABLE_NAME": {"Ref": "LeaseTable"}}},
     }}
     resources["Api"] = {"Type": "AWS::ApiGatewayV2::Api", "Properties": {"Name": name, "ProtocolType": "HTTP"}}
     resources["Integration"] = {"Type": "AWS::ApiGatewayV2::Integration", "Properties": {

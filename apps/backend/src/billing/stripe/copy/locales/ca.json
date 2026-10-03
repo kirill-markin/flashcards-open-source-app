@@ -46,7 +46,7 @@
   "offer.trialEligibility": "Una prova gratuïta per client de Stripe. Una prova anterior amb Apple o Google no afecta el dret a aquesta prova.",
   "offer.allowanceWindow": "El límit de missatges d’IA es restableix cada mes natural segons l’UTC, independentment de la data de facturació.",
   "email.trialReminderSubject": "La teva prova de Nibomo Premium acaba aviat",
-  "email.trialReminderBody": "La teva prova gratuïta de Nibomo Premium acaba el {date}. Després de la prova, la subscripció es renova automàticament per {price} al mes, amb els impostos aplicables inclosos. Per evitar el primer cobrament, cancel·la-la abans que acabi la prova. Gestiona o cancel·la la subscripció a la configuració de subscripció: {url}",
+  "email.trialReminderBody": "La teva prova gratuïta de Nibomo Premium acaba el {date}. Després de la prova, la subscripció es renova automàticament a un preu base mensual de {price}, amb els impostos aplicables inclosos. Stripe mostra l’import final del cobrament en la teva moneda de facturació. Per evitar el primer cobrament, cancel·la-la abans que acabi la prova. Gestiona o cancel·la la subscripció a la configuració de subscripció: {url}",
   "email.paymentReceiptSubject": "Rebut de pagament de Nibomo",
   "email.paymentReceiptBody": "Hem rebut el teu pagament de {price}. Consulta el rebut: {url}",
   "email.refundReceiptSubject": "Rebut de reemborsament de Nibomo",

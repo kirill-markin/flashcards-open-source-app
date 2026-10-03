@@ -89,13 +89,21 @@ tracked on `main`. Update these listings; do not create duplicate submissions.
    and require its **Plugin packages** cloud CI for the exact source commit.
    Merge through its normal PR/CI gates and record that commit and artifact/run
    link. Package validation alone does not verify OAuth or study flows.
-4. **Plugin update:** open the existing submission and use **Check for new
-   commits** after merging to tracked `main`. Confirm the new version and source
-   commit, inspect validation/security scan results, and fix blocking findings.
+4. **Plugin update:** after the aligned manifest version and plugin changes
+   reach `kirill-markin/nibomo-plugins` `main`, the connected GitHub push webhook
+   notifies Anthropic and triggers validation/security scans automatically.
+   Confirm the new version and source commit in the existing submission,
+   inspect scan results, and fix blocking findings. **Check for new commits**
+   is only needed if delivery/detection failed or to retry after fixes.
    Follow [Update a published plugin](https://claude.com/docs/plugins/submit#update-a-published-plugin)
-   and the actual publication policy shown in Settings. The current policy
-   requires an Anthropic reviewer for every version: after scans pass, select
-   **Publish** / **Publish update** as offered and verify the review request.
+   and [Publish a passing version](https://claude.com/docs/plugins/submit#publish-a-passing-version).
+   Check the applied policy in **Overview → Auto-publish** together with
+   **Settings → Publish new versions automatically**. Passing updates publish
+   automatically only when Anthropic's applied policy allows it, the toggle is
+   on, and no reviewer hold applies. The current policy requires an Anthropic
+   reviewer for every version, even with the toggle on: after scans pass,
+   select **Publish** / **Publish update** as offered and verify the review
+   request. The toggle alone does not waive that policy.
    Reuse an already submitted or published matching version on resume.
 5. **Publication evidence:** record plugin version, source commit, CI and scan
    results, publication policy, request/status, and public listing link when
@@ -159,13 +167,13 @@ make any concrete release exception explicit.
 A version bump is not complete until the version surfaces below, including the
 plugin repository, are aligned with their documented runtime version sources.
 
-Before merging a development bump to the plugin's tracked `main`, keep automatic
-publication off so scheduled scans cannot publish the unreleased version. Keep
-the released version's commit and pending publication request recorded and
-intact; do not change the tracked ref to bypass review. Development source/scan
-alignment does not require publication or reviewer approval. If portal state
-prevents preserving the release request, pause only the affected plugin action
-and report it while continuing independent release work.
+Before merging a development bump to the plugin's tracked `main`, turn automatic
+publication off so webhook or scheduled scans cannot publish the unreleased
+version. Keep the released version's commit and pending publication request
+recorded and intact; do not change the tracked ref to bypass review.
+Development source/scan alignment does not require publication or reviewer
+approval. If portal state prevents preserving the release request, pause only
+the affected plugin action and report it while continuing independent release work.
 
 Do not change `/v1` API paths or API Gateway stage names as part of an app release bump. Those values describe the public API contract version, not the app release version.
 
