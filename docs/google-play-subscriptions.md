@@ -7,17 +7,40 @@ Google Play locales in [Subscription store metadata](subscription-store-metadata
 
 ## Readiness
 
-Console readback as of 2026-10-03. Setup alone does not implement purchases or
-enable public sales.
+Verified snapshot as of 2026-10-03 15:29 UTC. Android billing and the backend are
+implemented; production acceptance is incomplete. No billing release,
+internal-track bundle, catalog activation, real purchase, or public rollout is
+recorded. Record later manual outcomes with their evidence and timestamp before
+updating a pending gate.
 
 | State | Readback |
 | --- | --- |
-| Completed | SAMO DANNI EOOD merchant setup and 15% service-fee enrollment; billing service account, app-scoped Play permissions, notification topic and pull subscription, RTDN setting, license testing, and restricted AWS federation saved. |
-| Pending | Linked Revolut EUR payout account awaits small-deposit verification. |
-| Blocked; upload deferred by the owner | Console has no subscriptions and shows “Upload a new APK”. A billing-enabled bundle must reach Play before catalog setup can continue; the Android Release upload is explicitly deferred. |
-| Planned only | Product `premium`, monthly base plan `monthly`, and new-customer offer `free-trial-7d` are neither created nor activated. Pricing and localized source text are repository inputs only. |
-| Transport verified | Play test notification reached the pull subscription for the correct package, with `testNotification` version `1.0`; acknowledgment succeeded and the message row cleared. This proves Play-to-Pub/Sub delivery only. |
-| Deferred | External-account credential file download is unconfirmed; runtime token exchange, purchases, restore, purchase acknowledgment, backend notification processing, and entitlement integration are untested or unimplemented. |
+| Console setup saved | SAMO DANNI EOOD merchant setup and 15% service-fee enrollment; app-scoped billing permissions, topic, pull subscription, RTDN setting, license testing, and restricted AWS federation. Bank deposit verification remains an owner step. |
+| Backend deployed | [AWS run 37130395075](https://github.com/kirill-markin/flashcards-open-source-app/actions/runs/37130395075) succeeded in all 10 jobs, including migrations, deployment and smoke gates. Platform/web/admin SSM deployment markers all read `01d6cc2e7c98693bde8ac9bcdb8ed43ab0050bde`. The live Google reconciliation rule in `eu-central-1` is `ENABLED` with `rate(15 minutes)`. |
+| Runtime authentication verified | A live Lambda guest probe returned a stable opaque Google account ID; an invalid purchase token reached `subscriptionsv2.get` and returned Google's HTTP 400 through the approved AWS federation. The temporary guest was deleted. This proves the negative authorization path, not a legitimate purchase. |
+| Android implementation merged | Native offer, Settings, Restore and lifecycle recovery are merged. [Android CI 37131601475](https://github.com/kirill-markin/flashcards-open-source-app/actions/runs/37131601475) passed on candidate `2cc70b34ff4bebfa46e2336e855c1aae078649fe`. Local CI parity passed (500 tasks, 3m 9s), with the selected compiler warnings absent. Full LiveSmoke on that candidate failed in 9m 41s: 7 tests, 5 passed, 2 failed, 0 skipped. Both failures again timed out before workspace creation at Current Workspace navigation. An isolated diagnostic is in progress; no cause or repair is verified. |
+| Signed release pending | Optimized signed/R8 verification awaits upload signing and Sentry upload inputs; specific remaining lint/upstream notices await owner disposition. No release workflow or Play upload has completed. |
+| Catalog pending | Console has no subscriptions and requests a new billing-enabled APK/bundle. `premium` / `monthly` / `free-trial-7d`, prices and 51 locale texts remain repository inputs. |
+| Notifications partly verified | Play's test message reached the pull subscription and was acknowledged. The deployed endpoint rejects unsigned requests with HTTP 401 `GOOGLE_PUSH_UNAUTHORIZED`. Authenticated push forms and the resource-only Token Creator grant are staged, unsaved and awaiting approval; the subscription remains Pull. Backend receipt of a Google push is unverified. |
+| Privacy published; store declarations pending | Google billing privacy text is merged and deployed; production rendered readback returned HTTP 200 at 15:27:51 UTC with the Google disclosures and cancellation link. Data Safety draft changes are saved, not submitted for review. See [Privacy and reviewer access](#privacy-and-reviewer-access) for deployment evidence. |
+| Store acceptance pending | No Play-installed billing candidate, version code, track, device result or completed purchase matrix is recorded. Complete the gates below before requesting public sales. |
+
+## Implemented contract and source
+
+The offer is Premium: 1000 platform-key AI messages per UTC calendar month,
+USD 6.99/month base price, and a Google-controlled seven-day trial. Prices and
+eligible phases displayed on Android come from Play. This work does not activate
+the free-account 50-message limit or sell annual/lifetime products; existing
+lifetime gifts and highest-rank entitlement resolution remain intact.
+
+| Boundary | Source and contract |
+| --- | --- |
+| Authenticated account and purchase API | [Routes](../apps/backend/src/routes/googleBilling.ts): `GET /v1/billing/google/account` returns `{ obfuscatedAccountId }`; `POST /v1/billing/google/purchases` takes `{ purchaseToken, intent }`, with required `explicit` or `passive` intent. Guest, Bearer and Session authentication are supported. |
+| Ownership and acknowledgment | [Service](../apps/backend/src/billing/google/service.ts), [store](../apps/backend/src/billing/google/store.ts), and [provider](../apps/backend/src/billing/google/provider.ts) verify authoritative Play state and linked tokens, persist ownership, acknowledge completed purchases and read back acknowledgment. Explicit purchase/Restore attaches to the current authenticated identity; passive startup/resume/replay preserves an attached owner. |
+| Android completion and recovery | [Connector](../apps/android/app/src/main/java/com/flashcardsopensourceapp/app/store/GooglePlaySubscriptionConnector.kt) and [repository](../apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/repository/billing/GooglePlayBillingRepository.kt) persist pending verification and require a fresh synced entitlement. `{ attached: true }` is a processing receipt, not permission to unlock Premium. |
+| Native offer and Settings | [Premium controls](../apps/android/app/src/main/java/com/flashcardsopensourceapp/app/premium/PremiumBillingControls.kt), [offer terms](../apps/android/app/src/main/java/com/flashcardsopensourceapp/app/premium/PremiumOfferDetails.kt), and [Subscription route](../apps/android/feature/settings/src/main/java/com/flashcardsopensourceapp/feature/settings/subscription/SubscriptionRoute.kt) own loading, unavailable, pending, recovery, Restore and management states. Unknown entitlement blocks checkout while refresh remains available. |
+| Notifications and missed updates | [Notifications](../apps/backend/src/billing/google/notifications.ts), [reconciliation](../apps/backend/src/billing/google/reconcile.ts), [schedule](../infra/aws/lib/gateways/api-gateway.ts), and [durable Google metadata](../db/migrations/0166_google_reconciliation.sql) own authenticated processing, duplicate handling, terminal correlation, acknowledgment retries and scheduled repair. |
+| Entitlements and reporting | [Shared contract](premium-entitlements.md), [Google facts](../apps/backend/src/billing/google/facts.ts), and [limits](../apps/backend/src/billing/limits.ts). Sandbox purchases grant real access; production revenue reports exclude them. Google decides trial eligibility. |
 
 ## Public configuration identities
 
@@ -32,17 +55,20 @@ repository files and public evidence.
 | Android package | `com.flashcardsopensourceapp.app` |
 | Google Cloud project / number | `flashcards-open-source-app` / `360001205059` |
 | Billing service account | `google-play-billing@flashcards-open-source-app.iam.gserviceaccount.com` |
+| Push service account / subject | `nibomo-play-notifications@flashcards-open-source-app.iam.gserviceaccount.com` / `117934371221231125176` |
 | RTDN topic | `projects/flashcards-open-source-app/topics/nibomo-play-subscriptions` |
 | Pull subscription | `projects/flashcards-open-source-app/subscriptions/nibomo-play-subscriptions-sub` |
 | AWS federation provider | `projects/360001205059/locations/global/workloadIdentityPools/nibomo-aws-billing/providers/aws-backend` |
 | AWS account | `506210661494` |
 | Allowed backend role name | `FlashcardsOpenSourceApp-BackendHandlerServiceRoleE5-gAiVg357pADF` |
+| Push endpoint and OIDC audience | `https://api.nibomo.com/v1/billing/google/notifications` |
 
-## Read back access before runtime integration
+## Read back runtime access
 
-The dedicated billing service account is enabled. Android Publisher API
-(`androidpublisher.googleapis.com`) is enabled. The service account has no JSON
-keys and no project-wide role grant; organization policy prohibits key creation.
+The dedicated billing service account, Android Publisher API, Security Token
+Service API and IAM Service Account Credentials API are enabled. The service
+account has no JSON keys and no project-wide role grant; organization policy
+prohibits key creation.
 
 In Play Console **Users and permissions**, its saved invitation is Active,
 Never expires, and restricted to Nibomo. The selected app permissions are:
@@ -53,8 +79,8 @@ Never expires, and restricted to Nibomo. The selected app permissions are:
   cancellation capability.
 
 No administrator, release, store-presence, or account-wide permissions were
-granted. Reopen the invitation and verify its scope before treating API access
-as ready; successful API authorization has not been exercised. Google's
+granted. Reopen the invitation and verify its scope when diagnosing access. The
+live negative-path probe above exercised API authorization. Google's
 [Developer API setup](https://developers.google.com/android-publisher/getting_started)
 documents the billing permissions. Do not add catalog or release permissions to
 this runtime identity to perform an operator's setup task.
@@ -80,18 +106,20 @@ before enabling billing; do not broaden them to the whole AWS account or pool.
 The existing GitHub federation and Android CI identity remain separate; see
 [Android CI/CD](android-ci-cd.md).
 
-For implementation, follow Google's
+[Runtime configuration](../apps/backend/src/billing/google/config.ts) constructs
+Google's external-account `AwsClient` from the Lambda's temporary AWS credentials
+and session token, then impersonates the billing service account with the
+`https://www.googleapis.com/auth/androidpublisher` scope. It needs no downloaded
+credential file or service-account key. Deploy through CI/CD only; never package
+credentials into Android. Google's
 [AWS federation procedure](https://cloud.google.com/iam/docs/workload-identity-federation-with-other-clouds)
-to generate and inspect an AWS external-account credential configuration for
-the provider and billing service account above. No downloaded path or deployed
-configuration is confirmed. Verify the required STS and IAM Credentials APIs,
-use the Lambda's temporary AWS credentials including its session token, and
-request the `https://www.googleapis.com/auth/androidpublisher` scope for the
-impersonated token. Prove token exchange and an authorized
-[subscription purchase read](https://developers.google.com/android-publisher/api-ref/rest/v3/purchases.subscriptionsv2/get)
-using a real test purchase before marking access complete. Never package a
-service-account key or token into Android. AWS runtime configuration and
-deployment belong to the future implementation and CI/CD.
+is the operator reference when access or the allowed role changes.
+
+Accepted transport limitation: `google-auth-library` 11.1 bounds Publisher and
+impersonation requests, but its STS exchange uses the vendor's default transport
+within the enclosing Lambda/client request deadlines. Do not claim one global
+SDK timeout or patch unsupported SDK internals. A real test purchase and its
+acknowledgment readback are still required to complete provider acceptance.
 
 ## Notifications
 
@@ -100,20 +128,38 @@ The topic grants `roles/pubsub.publisher` only on that topic to Google's
 Console **Monetization setup**, RTDN is enabled with the full topic above and
 subscriptions plus voided purchases selected. Pause remains enabled.
 
-The pull subscription has a saved 60-second acknowledgment deadline,
-7-day retention, Never expire, immediate retry, and no dead-letter topic.
-There is no production consumer or push endpoint. Before using it in production,
-review acknowledgment, retention, retry, and failure handling against the
-chosen consumer; see [Pub/Sub subscription properties](https://cloud.google.com/pubsub/docs/subscription-properties).
+The subscription is currently Pull, with a saved 60-second acknowledgment
+deadline, 7-day retention, Never expire, immediate retry, and no dead-letter topic.
+The dedicated push identity exists without keys. Finish the two staged changes
+only after the pending action approval, following Google's
+[authenticated push procedure](https://cloud.google.com/pubsub/docs/authenticate-push-subscriptions):
 
-To repeat the transport check, use **Send test notification** in Play, then
-pull from the named subscription in Cloud Console and verify the package and
-`testNotification`. Acknowledge the test message and confirm the operation
-succeeded. Follow Google's [RTDN setup](https://developer.android.com/google/play/billing/getting-ready).
-Keep this result separate from backend acceptance: a test notification contains
-no purchase to grant. Real RTDN processing must obtain authoritative purchase
-state from the Developer API, authenticate delivery/access, handle duplicates,
-retry failures, and reconcile missed updates before deriving entitlements.
+1. On the **push service account resource only**, grant
+   `roles/iam.serviceAccountTokenCreator` to
+   `service-360001205059@gcp-sa-pubsub.iam.gserviceaccount.com`. Read back the
+   exact principal, role and resource. Do not accept the subscription editor's
+   project-wide grant shortcut.
+2. Change the named subscription to Push, with the endpoint and audience in the
+   identities table, authentication enabled and the dedicated push service
+   account selected. Leave payload unwrapping disabled. Preserve the other
+   saved delivery settings, save, reopen and verify the readback.
+3. Use **Send test notification** in Play. Correlate its message ID with
+   `google_test_notification_received` in the exact deployed BackendHandler
+   CloudWatch log group and successful delivery. Do not pull/ack it manually
+   as evidence of backend receipt. A test message grants no entitlement.
+4. Test a real license-tester subscription event and the recovery rows below.
+   Verify sanitized processing/acknowledgment records and the resulting server
+   entitlement. Never expose the request body, token or Authorization header.
+
+The handler validates the signed Google ID token, audience, verified service
+account email and subject, subscription resource, package and wrapped payload.
+Success returns 204; processing failures remain retryable by Pub/Sub. Scheduled
+reconciliation invokes the same BackendHandler identity every 15 minutes, with
+bounded batches and durable attempt/stop metadata. Inspect
+`google_notification_failed`, `google_purchase_acknowledgement_failed` and
+`google_reconciliation_completed`/`google_reconciliation_purchase_failed` when
+delivery or access diverges. A green deployment or an empty reconciliation run
+does not prove purchase recovery; record actual affected-purchase readbacks.
 
 ## Finish merchant and catalog setup
 
@@ -122,7 +168,8 @@ retry failures, and reconcile missed updates before deriving entitlements.
    verification prompt and read back the verified status. Follow
    [Verify bank account](https://support.google.com/googleplay/android-developer/answer/7161378?hl=en);
    retain financial evidence privately.
-2. Resume the billing-enabled bundle upload only when the owner requests it.
+2. Finish the signed native preflight and owner decisions in the readiness table
+   before the authorized billing-enabled bundle upload.
    Follow [Android CI/CD](android-ci-cd.md) and the
    [release authorization runbook](release-current-version.md). A green PR or
    Android CI run is not an upload. Google's
@@ -150,6 +197,42 @@ retry failures, and reconcile missed updates before deriving entitlements.
    and offer token before attempting purchase. Console state alone is not
    device-query evidence.
 
+## Privacy and reviewer access
+
+The saved Data Safety draft marks Purchase history collected, not shared,
+non-ephemeral and optional, for App functionality, Analytics, and Fraud
+prevention/security/compliance. Purchases are linked to the app identity to
+verify access, restore ownership and retain billing/support records. Google
+handles card details; User payment info remains unchecked.
+
+The draft also marks existing IP-derived country as Approximate location:
+collected, not shared, non-ephemeral, optional, for Analytics. Precise location
+remains unchecked. Reconcile the whole form with
+[audience analytics](analytics-audience.md), [billing deletion rules](premium-entitlements.md#guest-upgrade-reaping-and-deletion),
+and Google's [Data Safety guidance](https://support.google.com/googleplay/android-developer/answer/10787469?hl=en)
+before submission. Saved draft does not mean reviewed or publicly published.
+The [Privacy Policy](https://nibomo.com/privacy/) includes the Google billing
+disclosures. [Website PR 508](https://github.com/kirill-markin/flashcards-open-source-app-website/pull/508)
+merged as `566f4dcb201448fa4e733cb317d3f93a04103b74` at 15:21:11 UTC on
+2026-10-03, after successful preview and
+[Catalog checks](https://github.com/kirill-markin/flashcards-open-source-app-website/actions/runs/37132775111).
+The [post-merge Catalog run](https://github.com/kirill-markin/flashcards-open-source-app-website/actions/runs/37132942106)
+and [production Vercel deployment](https://vercel.com/kirill-markins-projects/flashcards-open-source-app-website/ZL1JUMGevk9G3SDXpZn11PVzjfNn)
+succeeded; Vercel completed at 15:26:52 UTC. Rendered English HTML returned HTTP
+200 at 15:27:51 UTC with Google payment handling, server billing events, Google
+as recipient, retained billing history, and the account-deletion cancellation
+notice linking to [Play subscription management](https://play.google.com/store/account/subscriptions).
+
+For Play reviewer access instructions, describe the actual build: launch as a
+guest or sign in, open **Settings > Subscription**, then the Premium offer.
+No email is mandatory. Free users can also select a premium color in **Settings >
+General > Accent Color**; an actual AI allowance refusal opens the same offer.
+Restore is available on the offer and Subscription screen; Manage subscription
+opens Play. Explain eligible trial versus ordinary monthly pricing, the
+unavailable state when Play returns no offer, and the existing Terms/Privacy
+links. Verify these steps in the Play-delivered candidate before saving reviewer
+instructions. Account deletion does not cancel the Play subscription.
+
 ## Runtime and real-device acceptance gates
 
 The license tester list is saved with the owner account only and
@@ -160,43 +243,34 @@ offers test payment instruments. Use Google's
 [billing testing guide and Play Billing Lab](https://developer.android.com/google/play/billing/test)
 for accelerated lifecycle scenarios.
 
-Before launch, implement purchase/restore/acknowledgment, verification and
-ownership attachment, notification consumption, reconciliation, Android's
-subscription and management screens, and shared entitlement/limit handling.
-Follow [Premium entitlements](premium-entitlements.md) and preserve deliberate
-restore versus automatic replay semantics described by the
-[Apple ownership implementation](apple-subscriptions.md#transaction-intent).
-These are Google implementation requirements, not claims about current behavior.
+Use an Android 17/API 37 device and the final signed candidate. Record commit
+SHA, version code, AAB digest, track/release identifier, device/OS, test time,
+catalog readback and each observed result in private release evidence. Do not
+substitute a debug emulator or Android CI result for Play billing acceptance.
+Use license-tester instruments only; real-money transactions need separate
+authorization. At the dated readiness snapshot, all rows below are pending,
+including failure/recovery paths; record subsequent results separately from that
+snapshot.
 
-The current Console reports no policy issues and no App content declarations
-needing attention (10 actioned). Data Safety and privacy were last edited on
-2026-09-23; Financial info has both Purchase history and User payment info
-unchecked. Before paid submission, review the implemented purchase-token,
-order, and entitlement data flow and update Purchase history, its purposes,
-and the privacy policy accordingly. Google handles card details; do not infer
-app collection of card/payment information merely from using Play Billing.
-Use Google's [Data safety guidance](https://support.google.com/googleplay/android-developer/answer/10787469?hl=en).
-Update reviewer access instructions to the actual paywall and restore flow.
+| Manual action | Required observation |
+| --- | --- |
+| Fresh guest and email account: open Settings, accent color and actual AI-refusal offers. | Native offer is reachable without mandatory email; immediate loading/status feedback, Terms/Privacy and Restore work. Unknown entitlement disables checkout and offers refresh; an existing Premium/lifetime account is not offered another purchase. |
+| Query the activated catalog; compare eligible and ineligible store accounts, using Billing Lab's trial controls where needed. | IDs and localized price/phases match Play; eligible accounts see seven-day trial terms, ineligible accounts see ordinary monthly terms. No hardcoded regional price or universal trial promise. Missing catalog shows unavailable/retry. |
+| Buy with the approving test instrument as guest, then as an email account. | Backend verifies and acknowledges; a fresh synced entitlement unlocks Premium and resumes the originating action. `sandbox` access works in production; test purchases do not produce production revenue facts. |
+| Cancel the purchase sheet; use declining and delayed approve/decline instruments, restarting while pending. | Cancellation/decline does not grant access. Pending stays pending without acknowledgment or grant; completion grants only after verification, while a canceled pending payment clears recovery without starting a new charge. |
+| Interrupt connectivity before checkout preparation; retry. Then interrupt after Play payment, restart and retry verification. | Preparation can restart safely; a completed payment is reconciled, never replaced with another purchase. Restore/startup/resume recover the same token; failures remain actionable until fresh server entitlement arrives. |
+| In a controlled test, exercise verification, acknowledgment and fresh-entitlement sync failures, then restore service. | No false success from a stale snapshot; durable acknowledgment retry/readback completes; UI verification retry and scheduled reconciliation converge without duplicate billing facts. Record unexercised faults as pending rather than inventing failure results. |
+| Reinstall or use a second device with the same Play account, then select Restore. | The existing purchase attaches to the current Nibomo identity and restores access. A lost guest lifetime gift is not a Play purchase and cannot be restored this way. |
+| Explicitly Restore to a different Nibomo account; resume/replay on the former owner; switch identities during checkout/recovery. | Only the deliberate action transfers ownership. Passive updates cannot steal it back, and identity changes cannot apply completion to the wrong account. |
+| Link a purchasing guest to a fresh email identity and to an existing account. | Purchases, applicable lifetime gift, preferences and AI usage follow the shared merge rules; usage is not reset. Highest valid tier wins. |
+| Accelerate renewal; cancel; wait through paid-through expiry; resubscribe in Play and in app. | Cancellation retains access to the paid-through date with renewal disabled; expiry removes that purchase's contribution. Linked/out-of-app resubscription preserves lineage and does not revive an invalidated old token. |
+| Use Billing Lab to enter grace and hold; exercise pause/resume and recovery. | Grace grants access; hold/pause do not. Provider state, backend snapshot and synced UI agree after recovery. Read current Play state rather than assuming test timer durations. |
+| Refund/revoke the current test order, then deliver an older order's voided event after renewal. | Current revocation removes its contribution; a stale order event cannot revoke a newer healthy period. Lifetime/other valid purchases remain effective. |
+| Redeliver the same authenticated RTDN, deliver events out of order, and withhold delivery for a test purchase while the schedule runs. | Completed duplicates are harmless; stale events do not roll back current access. Authoritative reads and scheduled reconciliation converge, including acknowledgment recovery. Capture sanitized event/purchase IDs and results only. |
+| Go offline with cached Premium cosmetics; reconnect after a confirmed downgrade; resubscribe. | Offline local features retain cached access; confirmed downgrade displays Default while retaining the selected color; renewed access restores it. AI remains server-enforced with the UTC monthly allowance. |
+| Review the Play-delivered localized UI, subscription management, privacy text, saved declarations and reviewer route. | Store text, trial/renewal disclosures and implemented data handling agree; published privacy and submitted declaration readbacks are recorded separately from drafts. |
 
-Run these manual acceptance paths once that implementation and catalog exist:
-
-- Purchase as a guest and signed-in user; test eligible and ineligible trial
-  offers, completed, canceled, declined, and pending payments. Verify server
-  purchase acknowledgment, entitlement sync, and sandbox revenue separation.
-- Restore after reinstall and on a second device; deliberately restore to a
-  different Nibomo account, then replay updates on the first. Confirm ownership
-  follows the deliberate action, with guest linking and lifetime gifts intact.
-- Accelerate renewal; cancel and check access through the paid period; exercise
-  grace, hold, pause/resume, expiry, and refund/revoke. Compare provider state,
-  backend entitlement, and synced clients with the shared status contract.
-- Interrupt backend delivery, retry and replay messages, then reconcile.
-  Confirm eventual entitlement correction without duplicate purchases or facts.
-  Check offline cached access and server AI limits against the shared contract.
-- Verify localized pricing, trial eligibility, terms and privacy links, restore,
-  and Play subscription management in the final Android UI. Finalize privacy,
-  Data Safety, and reviewer metadata against the shipped implementation, then
-  complete [release gates](release-gates.md) and the
-  [platform publication procedure](manual-production-release.md).
-
-Record actual outcomes privately without tokens or personal data. Public sales
-remain deferred until these gates and the requested release are complete.
+Finish [release gates](release-gates.md) and the
+[platform publication procedure](manual-production-release.md) only within the
+authorized rollout. Passing this matrix does not itself authorize public sales
+or activation of the global free-account 50-message limit.
