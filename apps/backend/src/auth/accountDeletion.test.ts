@@ -298,6 +298,7 @@ test("deleteAccountForAuthenticatedUser rereads the mapping under the identity l
         || text.includes("UPDATE billing.user_billing_state")
         || text.includes("UPDATE billing.stripe_customer_identities")
         || text.includes("UPDATE billing.stripe_checkout_attempts")
+        || text.includes("UPDATE billing.stripe_email_deliveries")
         || text.includes("DELETE FROM billing.entitlement_snapshots")
         || text.includes("UPDATE ai.usage_events")
       ) {
