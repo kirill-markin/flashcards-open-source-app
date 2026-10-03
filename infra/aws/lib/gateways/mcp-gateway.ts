@@ -333,7 +333,9 @@ export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGateway
     },
   });
 
-  const restIntegration = new apigw.LambdaIntegration(dispatcherFn);
+  // One API-scoped invoke permission instead of two per method keeps the stack
+  // under CloudFormation's 500-resource limit.
+  const restIntegration = new apigw.LambdaIntegration(dispatcherFn, { scopePermissionToMethod: false });
 
   // Keep the existing REST API and root custom-domain mapping during the HTTP
   // API migration so CloudFormation does not create a duplicate mcp.<domain>

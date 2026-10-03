@@ -385,7 +385,9 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
     },
   });
 
-  const integration = new apigw.LambdaIntegration(authFn);
+  // One API-scoped invoke permission instead of two per method keeps the stack
+  // under CloudFormation's 500-resource limit.
+  const integration = new apigw.LambdaIntegration(authFn, { scopePermissionToMethod: false });
   restApi.root.addMethod("ANY", integration);
   restApi.root.addResource("{proxy+}").addMethod("ANY", integration);
   // API Gateway does not fall back from an explicit resource to the root
