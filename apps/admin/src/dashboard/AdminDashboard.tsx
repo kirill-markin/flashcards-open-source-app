@@ -11,7 +11,7 @@ import type { AdminAppConfig } from "../config";
 import { AnalyticsFilterBar } from "../filters/AnalyticsFilterBar";
 import { analyticsFilterFieldsByArea, type AnalyticsFilterState } from "../filters/analyticsFilters";
 import type { AnalyticsFilterOptions } from "../filters/optionsQuery";
-import { AdminLink } from "../navigation/AdminLink";
+import { AdminNavigation } from "../navigation/AdminNavigation";
 import { AiUsageCohortsSection } from "../reports/aiUsageCohorts/AiUsageCohortsSection";
 import { AudienceSection } from "../reports/audience/AudienceSection";
 import { CatalogInstallsSection } from "../reports/catalogInstalls/CatalogInstallsSection";
@@ -19,7 +19,7 @@ import { DailyActiveUsersSection } from "../reports/dailyActiveUsers/DailyActive
 import { FunnelsArea } from "../reports/funnels/FunnelsArea";
 import { ReviewActivitySection } from "../reports/reviewEventsByDate/ReviewActivitySection";
 import type { ReviewEventsByDateRange } from "../reports/reviewEventsByDate/query";
-import { analyticsAreaLabels, getAnalyticsAreaPath, type AnalyticsArea } from "../routing";
+import type { AnalyticsArea } from "../routing";
 import { getStableUserColorDomain, getUserColorScale } from "./userColors";
 
 export type AdminReportsData = Readonly<{
@@ -226,12 +226,7 @@ export function AdminDashboard(
         </div>
       </section>
 
-      <nav className="analytics-navigation" aria-label="Analytics sections">
-        <AdminLink className={props.activeArea === "general" ? "active" : ""} path={getAnalyticsAreaPath("general")} ariaCurrent={props.activeArea === "general" ? "page" : undefined} onNavigate={props.onNavigate}>{analyticsAreaLabels.general}</AdminLink>
-        <AdminLink className={props.activeArea === "funnels" ? "active" : ""} path={getAnalyticsAreaPath("funnels")} ariaCurrent={props.activeArea === "funnels" ? "page" : undefined} onNavigate={props.onNavigate}>{analyticsAreaLabels.funnels}</AdminLink>
-        <AdminLink testId="analytics-audience-tab" className={props.activeArea === "audience" ? "active" : ""} path={getAnalyticsAreaPath("audience")} ariaCurrent={props.activeArea === "audience" ? "page" : undefined} onNavigate={props.onNavigate}>{analyticsAreaLabels.audience}</AdminLink>
-        <AdminLink testId="analytics-ai-usage-tab" className={props.activeArea === "ai-usage" ? "active" : ""} path={getAnalyticsAreaPath("ai-usage")} ariaCurrent={props.activeArea === "ai-usage" ? "page" : undefined} onNavigate={props.onNavigate}>{analyticsAreaLabels["ai-usage"]}</AdminLink>
-      </nav>
+      <AdminNavigation activePage={props.activeArea} onNavigate={props.onNavigate} />
 
       {props.reportState.status === "loading" ? (
         <p className="report-state" aria-live="polite">Loading analytics reports…</p>

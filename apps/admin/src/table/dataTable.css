@@ -1,0 +1,175 @@
+.data-table {
+  display: grid;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.data-table-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+}
+
+.data-table-count {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.data-table-pager {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* The scroll container owns both axes, so the sticky header stays in view while the rows scroll. */
+.data-table-scroll {
+  max-height: 75vh;
+  overflow: auto;
+  border: 1px solid var(--panel-border);
+  border-radius: 18px;
+  background: var(--panel);
+}
+
+.data-table-grid {
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
+
+/* Both header rows stick together, so the filter row needs no offset of its own. */
+.data-table-grid thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.data-table-grid thead th {
+  background: var(--panel);
+  text-align: left;
+  vertical-align: top;
+}
+
+.data-table-grid thead tr.data-table-filter-row th {
+  padding: 4px 6px 8px;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.data-table-grid th,
+.data-table-grid td {
+  padding: 8px 10px;
+  white-space: nowrap;
+}
+
+.data-table-grid tbody td {
+  border-bottom: 1px solid var(--grid);
+}
+
+.data-table-grid td.data-table-number {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.data-table-sort-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.data-table-sort-button:hover,
+.data-table-grid th[aria-sort="ascending"] .data-table-sort-button,
+.data-table-grid th[aria-sort="descending"] .data-table-sort-button {
+  color: var(--text);
+}
+
+.data-table-filter-range {
+  display: flex;
+  gap: 4px;
+}
+
+.data-table-filter-input {
+  width: 100%;
+  min-width: 72px;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  color-scheme: dark;
+}
+
+.data-table-filter-range .data-table-filter-input {
+  width: 96px;
+}
+
+.data-table-filter-input:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.72);
+  outline-offset: 1px;
+}
+
+.data-table-enum-filter {
+  position: relative;
+}
+
+.data-table-enum-filter summary {
+  display: flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  list-style: none;
+}
+
+.data-table-enum-options {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  gap: 4px;
+  min-width: 180px;
+  max-height: 260px;
+  margin-top: 4px;
+  padding: 8px;
+  overflow: auto;
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  background: var(--tooltip-bg);
+}
+
+.data-table-enum-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.data-table-empty {
+  margin: 0;
+  padding: 22px;
+  color: var(--muted);
+}
+
+/* A row the caller marks as listed but not counted elsewhere. */
+.data-table-row-muted td {
+  color: var(--muted-soft);
+}
