@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import java.util.Locale
 
 class DecksViewModel(
     decksRepository: DecksRepository,
@@ -22,17 +23,20 @@ class DecksViewModel(
     private val strings: SettingsStringResolver
 ) : ViewModel() {
     private val searchQuery = MutableStateFlow(value = "")
+    private val locale = MutableStateFlow(value = strings.locale())
 
     val uiState: StateFlow<DecksUiState> = combine(
         decksRepository.observeDecks(),
         workspaceRepository.observeWorkspaceOverview(),
-        searchQuery
-    ) { decks, overview, query ->
+        searchQuery,
+        locale
+    ) { decks, overview, query, currentLocale ->
         DecksUiState(
             searchQuery = query,
             deckEntries = filterDeckEntries(
                 deckEntries = buildDeckListEntries(
                     decks = decks,
+                    locale = currentLocale,
                     overview = overview,
                     strings = strings
                 ),
@@ -47,6 +51,10 @@ class DecksViewModel(
             deckEntries = emptyList()
         )
     )
+
+    fun updateLocale(locale: Locale) {
+        this.locale.value = locale
+    }
 
     fun updateSearchQuery(query: String) {
         searchQuery.value = query

@@ -3,7 +3,6 @@ package com.flashcardsopensourceapp.feature.settings.deck
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -35,7 +34,6 @@ fun DeckDetailRoute(
     onEditDeck: (String) -> Unit,
     onReviewDeck: (String) -> Unit,
     onOpenCard: (String) -> Unit,
-    onDeleteDeck: (String) -> Unit,
     onBack: () -> Unit
 ) {
     val detail = uiState.detail
@@ -132,26 +130,13 @@ fun DeckDetailRoute(
                         ) {
                             Text(stringResource(R.string.settings_deck_detail_review_button))
                         }
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        OutlinedButton(
+                            onClick = {
+                                onEditDeck(detail.deckId)
+                            },
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            OutlinedButton(
-                                onClick = {
-                                    onEditDeck(detail.deckId)
-                                },
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text(stringResource(R.string.settings_deck_detail_edit_button))
-                            }
-                            OutlinedButton(
-                                onClick = {
-                                    onDeleteDeck(detail.deckId)
-                                },
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text(stringResource(R.string.settings_deck_detail_delete_button))
-                            }
+                            Text(stringResource(R.string.settings_deck_detail_edit_button))
                         }
                     }
                 }
