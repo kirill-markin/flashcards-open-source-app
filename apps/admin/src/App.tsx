@@ -235,8 +235,8 @@ export default function App(): JSX.Element {
   const [appState, setAppState] = useState<AppState>({ status: "loading" });
   const [reportState, setReportState] = useState<AdminReportState>({ status: "loading" });
   const [route, setRoute] = useState<AdminRoute>(() => parseAdminRoute(window.location.pathname));
-  // The Users list keeps its table state in its query string, so the user page's back link returns
-  // to the list exactly as it was left when the page was opened from it.
+  // The Users list reports its path, query string included, on entry and on every table change, so
+  // the user page's back link returns to the list exactly as it was last left.
   const [usersListPath, setUsersListPath] = useState<string>(usersPath);
   const [reportLoadRevision, setReportLoadRevision] = useState<number>(0);
   // The whole filter selection lives here, above every area, so leaving General for Funnels and
@@ -285,10 +285,6 @@ export default function App(): JSX.Element {
 
   // `path` may carry a query string, which is pushed with it but never read as part of the route.
   const navigateToPath = useCallback((path: string): void => {
-    if (window.location.pathname === usersPath) {
-      setUsersListPath(`${usersPath}${window.location.search}`);
-    }
-
     if (path !== window.location.pathname) {
       window.history.pushState(null, "", path);
     }
@@ -638,19 +634,21 @@ export default function App(): JSX.Element {
         config={appState.config}
         adminEmail={appState.session.email}
         onNavigate={navigateToPath}
+        onListPathChange={setUsersListPath}
         onTerminalAdminError={handleTerminalAdminError}
       />
     );
   }
 
-  if (route.kind === "user") {
+  if (route.kind === "user" || route.kind === "userChat") {
     return (
       <UserPage
         key={route.userId}
         config={appState.config}
         adminEmail={appState.session.email}
         userId={route.userId}
-        tab={route.tab}
+        tab={route.kind === "user" ? route.tab : "chats"}
+        openChatSessionId={route.kind === "userChat" ? route.sessionId : null}
         usersListPath={usersListPath}
         onNavigate={navigateToPath}
         onTerminalAdminError={handleTerminalAdminError}

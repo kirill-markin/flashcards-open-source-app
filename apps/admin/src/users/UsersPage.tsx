@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type JSX } from "react";
 import type { AdminAppConfig } from "../config";
 import { AdminLink } from "../navigation/AdminLink";
 import { AdminNavigation } from "../navigation/AdminNavigation";
-import { getUserPath } from "../routing";
+import { getUserPath, usersPath } from "../routing";
 import { DataTable } from "../table/DataTable";
 import {
   parseDataTableState,
@@ -61,6 +61,12 @@ function buildUserColumns(onNavigate: (path: string) => void): ReadonlyArray<Dat
 
 const tableParamPrefix = "";
 
+/** The table state as the list's query string, `?` included, or `""` for the default state. */
+function buildUsersListSearch(state: DataTableState, columns: ReadonlyArray<DataTableColumn<UserRow>>): string {
+  const search = toDataTableSearchParams(state, columns, tableParamPrefix).toString();
+  return search === "" ? "" : `?${search}`;
+}
+
 function getUserRowKey(user: UserRow): string {
   return user.userId;
 }
@@ -73,6 +79,8 @@ export function UsersPage(props: Readonly<{
   config: AdminAppConfig;
   adminEmail: string;
   onNavigate: (path: string) => void;
+  /** Receives the list path with its table state on entry and after every table change. */
+  onListPathChange: (path: string) => void;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
 }>): JSX.Element {
   const [loadState, setLoadState] = useState<LoadState>({ status: "loading" });
@@ -82,6 +90,12 @@ export function UsersPage(props: Readonly<{
   const [tableState, setTableState] = useState<DataTableState>(
     () => parseDataTableState(new URLSearchParams(window.location.search), userColumns, tableParamPrefix),
   );
+
+  const { onListPathChange } = props;
+  const listPath = `${usersPath}${buildUsersListSearch(tableState, userColumns)}`;
+  useEffect(() => {
+    onListPathChange(listPath);
+  }, [listPath, onListPathChange]);
 
   useEffect(() => {
     let cancelled = false;
@@ -99,11 +113,10 @@ export function UsersPage(props: Readonly<{
   // stepping through every sort and filter click.
   function handleTableStateChange(nextState: DataTableState): void {
     setTableState(nextState);
-    const search = toDataTableSearchParams(nextState, userColumns, tableParamPrefix).toString();
     window.history.replaceState(
       null,
       "",
-      `${window.location.pathname}${search === "" ? "" : `?${search}`}${window.location.hash}`,
+      `${window.location.pathname}${buildUsersListSearch(nextState, userColumns)}${window.location.hash}`,
     );
   }
 

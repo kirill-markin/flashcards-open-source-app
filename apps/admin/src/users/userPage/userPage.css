@@ -81,7 +81,8 @@
   color: var(--muted-soft);
 }
 
-.activity-tab {
+.activity-tab,
+.user-tab {
   display: grid;
   gap: 12px;
   margin-top: 24px;
@@ -120,4 +121,143 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   font-size: 12px;
+}
+
+/* Card text keeps its line breaks and wraps inside the cell instead of widening the whole table. */
+.card-text-cell {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+}
+
+.card-text {
+  display: block;
+  min-width: 220px;
+  max-width: 420px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.card-text-toggle {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-strong);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.card-text-toggle:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+
+.card-text-error {
+  max-width: 420px;
+  color: #ffb6a6;
+  font-size: 12px;
+  white-space: normal;
+}
+
+.chat-view-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chat-transcript {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chat-item {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  max-width: 880px;
+  padding: 14px 16px;
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  background: var(--panel);
+}
+
+.chat-item-user {
+  justify-self: end;
+  border-color: rgba(214, 90, 56, 0.45);
+}
+
+.chat-item-meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.chat-text {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.chat-card {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 12px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+}
+
+.chat-card dt {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.chat-card dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.chat-collapsible summary {
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.chat-collapsible > :not(summary) {
+  margin-top: 6px;
+}
+
+.chat-tool-label {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.chat-pre {
+  max-height: 320px;
+  margin: 4px 0 0;
+  padding: 8px 10px;
+  overflow: auto;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+
+.chat-truncated,
+.chat-attachment {
+  margin: 0;
+  color: var(--muted-soft);
+  font-size: 13px;
 }

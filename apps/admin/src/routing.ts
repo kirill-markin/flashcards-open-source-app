@@ -9,13 +9,15 @@ export const analyticsAreaLabels: Readonly<Record<AnalyticsArea, string>> = {
   "ai-usage": "Study vs AI",
 };
 
-export const userPageTabs = ["profile", "activity"] as const;
+export const userPageTabs = ["profile", "activity", "chats", "cards"] as const;
 
 export type UserPageTab = (typeof userPageTabs)[number];
 
 export const userPageTabLabels: Readonly<Record<UserPageTab, string>> = {
   profile: "Profile",
   activity: "Activity",
+  chats: "Chats",
+  cards: "Cards",
 };
 
 export type AdminRoute =
@@ -24,6 +26,8 @@ export type AdminRoute =
   | Readonly<{ kind: "analyticsArea"; area: AnalyticsArea }>
   | Readonly<{ kind: "users" }>
   | Readonly<{ kind: "user"; userId: string; tab: UserPageTab }>
+  /** One chat opened from the Chats tab, a path of its own so Back returns to the list. */
+  | Readonly<{ kind: "userChat"; userId: string; sessionId: string }>
   | Readonly<{ kind: "notFound"; pathname: string }>;
 
 export const rootPath = "/";
@@ -39,6 +43,10 @@ export function getAnalyticsAreaPath(area: AnalyticsArea): string {
 /** `userId` is a raw `org.user_settings.user_id` or an analytics `actor_id`, encoded as one segment. */
 export function getUserPath(userId: string, tab: UserPageTab): string {
   return `${usersPath}/${encodeURIComponent(userId)}/${tab}`;
+}
+
+export function getUserChatPath(userId: string, sessionId: string): string {
+  return `${getUserPath(userId, "chats")}/${encodeURIComponent(sessionId)}`;
 }
 
 /**
@@ -57,6 +65,8 @@ export function getAdminRoutePath(route: AdminRoute): string {
       return usersPath;
     case "user":
       return getUserPath(route.userId, route.tab);
+    case "userChat":
+      return getUserChatPath(route.userId, route.sessionId);
     case "notFound":
       return route.pathname;
   }
@@ -69,17 +79,23 @@ function stripTrailingSlashes(pathname: string): string {
 
 const userPathPattern = /^\/users\/([^/]+)(?:\/([^/]+))?$/u;
 
+const userChatPathPattern = /^\/users\/([^/]+)\/chats\/([^/]+)$/u;
+
 /** A user path without a tab opens the Profile tab, whose path is then the canonical one. */
 function parseUserRoute(normalizedPathname: string): AdminRoute | null {
-  const match = userPathPattern.exec(normalizedPathname);
-  if (match === null) {
-    return null;
-  }
-  const tab = match[2] === undefined ? "profile" : userPageTabs.find((candidateTab) => candidateTab === match[2]);
-  if (tab === undefined) {
-    return null;
-  }
   try {
+    const chatMatch = userChatPathPattern.exec(normalizedPathname);
+    if (chatMatch !== null) {
+      return { kind: "userChat", userId: decodeURIComponent(chatMatch[1]), sessionId: decodeURIComponent(chatMatch[2]) };
+    }
+    const match = userPathPattern.exec(normalizedPathname);
+    if (match === null) {
+      return null;
+    }
+    const tab = match[2] === undefined ? "profile" : userPageTabs.find((candidateTab) => candidateTab === match[2]);
+    if (tab === undefined) {
+      return null;
+    }
     return { kind: "user", userId: decodeURIComponent(match[1]), tab };
   } catch (error) {
     if (error instanceof URIError) {

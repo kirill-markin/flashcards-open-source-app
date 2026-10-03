@@ -24,6 +24,39 @@ export type ChartUser = Readonly<{
   email: string;
 }>;
 
+/**
+ * ⌘/Ctrl-click, the browser's own gesture for opening a link in a new tab. A Ctrl-click on macOS is a
+ * context-menu click and never reaches `click`, which is why the hint names ⌘ as well.
+ */
+export function isNewTabClick(event: MouseEvent): boolean {
+  return event.metaKey || event.ctrlKey;
+}
+
+export function openPathInNewTab(path: string): void {
+  window.open(path, "_blank", "noopener");
+}
+
+/**
+ * The middle-click half of the new-tab gesture on chart marks that each name one page. A middle click
+ * arrives as `auxclick` rather than `click`, and the press is cancelled so the autoscroll some
+ * platforms start on it cannot swallow the click. Bind both handlers on the concrete selection, as
+ * `.on("mousedown", preventMiddleClickAutoscroll).on("auxclick", openPathOnMiddleClick(getPath))`, so
+ * d3 resolves the event names to mouse events.
+ */
+export function preventMiddleClickAutoscroll(event: MouseEvent): void {
+  if (event.button === 1) {
+    event.preventDefault();
+  }
+}
+
+export function openPathOnMiddleClick<Datum>(getPath: (datum: Datum) => string): (event: MouseEvent, datum: Datum) => void {
+  return (event: MouseEvent, datum: Datum): void => {
+    if (event.button === 1) {
+      openPathInNewTab(getPath(datum));
+    }
+  };
+}
+
 export type MatrixChartEntry = Readonly<{
   date: string;
   valuesByKey: Readonly<Record<string, number>>;

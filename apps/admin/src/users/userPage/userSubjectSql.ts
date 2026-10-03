@@ -2,6 +2,10 @@ import { escapeSqlStringLiteral } from "../../sql";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 
+export function isUuid(value: string): boolean {
+  return uuidPattern.test(value);
+}
+
 /**
  * The user page's id - a raw `org.user_settings.user_id` or an analytics `actor_id` - as the SQL each
  * kind of key column is compared to. Text keys are folded with `pg_catalog.lower` on both sides,
@@ -17,7 +21,7 @@ export function buildUserSubjectSql(userId: string): UserSubjectSql {
   const literal = escapeSqlStringLiteral(userId);
   return {
     lowerIdSql: `pg_catalog.lower(${literal})`,
-    uuidSql: uuidPattern.test(userId) ? `${literal}::uuid` : "NULL::uuid",
+    uuidSql: isUuid(userId) ? `${literal}::uuid` : "NULL::uuid",
   };
 }
 

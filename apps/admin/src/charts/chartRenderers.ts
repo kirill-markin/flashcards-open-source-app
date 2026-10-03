@@ -6,12 +6,17 @@ import {
   type ReviewEventsByDateUser,
 } from "../adminApi";
 import type { UserColorScale } from "../dashboard/userColors";
+import { getUserPath } from "../routing";
 import {
   chartMargin,
   chartWidth,
   funnelHashedSegmentMixColor,
   getPlatformColor,
+  isNewTabClick,
+  openPathInNewTab,
+  openPathOnMiddleClick,
   platformLabels,
+  preventMiddleClickAutoscroll,
   simpleChartHeight,
   stackedChartHeight,
   uniqueUserCohortColors,
@@ -216,6 +221,13 @@ export type RenderCatalogInstallsByPackageChartParams = Readonly<{
 
 const numberFormatter = d3.format(",");
 
+/** The tooltip cannot hold a link, so a per-user segment names its two click gestures instead. */
+const userSegmentClickHintHtml = `<p class="tooltip-hint">Click to filter · ⌘/Ctrl-click opens the user</p>`;
+
+function getUserSegmentPath(entry: StackedChartRectEntry): string {
+  return getUserPath(entry.key, "profile");
+}
+
 function getInnerWidth(): number {
   return chartWidth - chartMargin.left - chartMargin.right;
 }
@@ -354,6 +366,7 @@ function renderUserStackedBarChart<User extends ChartUser>(params: UserStackedBa
           `<p class="tooltip-user-primary">${escapeHtml(user.email)}</p>`,
           `<p class="tooltip-user-secondary">${escapeHtml(user.userId)}</p>`,
           params.buildTooltipMetricsHtml(entry, user),
+          userSegmentClickHintHtml,
         ].join(""),
         event.clientX,
         event.clientY,
@@ -361,9 +374,16 @@ function renderUserStackedBarChart<User extends ChartUser>(params: UserStackedBa
     })
     .on("mouseleave", params.tooltipHandlers.hideTooltip);
 
-  bars.on("click", (_event: MouseEvent, entry: StackedChartRectEntry) => {
+  bars.on("click", (event: MouseEvent, entry: StackedChartRectEntry) => {
+    if (isNewTabClick(event)) {
+      openPathInNewTab(getUserSegmentPath(entry));
+      return;
+    }
+
     params.onUserFilterApply(entry.key);
-  });
+  })
+    .on("mousedown", preventMiddleClickAutoscroll)
+    .on("auxclick", openPathOnMiddleClick(getUserSegmentPath));
 }
 
 function renderUniqueUserCohortChart(params: UniqueUserCohortChartParams): void {
