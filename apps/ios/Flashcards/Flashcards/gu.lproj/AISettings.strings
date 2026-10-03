@@ -862,3 +862,15 @@
 "settings.accentColor.custom" = "પસંદગીનો રંગ";
 "settings.accentColor.invalidHex" = "છ હેક્સાડેસિમલ અંકો સાથે #RRGGBB સ્વરૂપે રંગ દાખલ કરો.";
 "settings.accentColor.premiumNote" = "પસંદગીના એક્સેન્ટ રંગો Premium સાથે ઉપલબ્ધ છે. Premium સક્રિય હોય ત્યારે તમારો સાચવેલો રંગ પાછો આવે છે.";
+
+"premium.apple.sandbox" = "Premiumની પરીક્ષણ ખરીદી";
+"premium.apple.notice" = "પરીક્ષણ ખરીદી માટે TestFlight જરૂરી છે. જાહેર વેચાણ હજી શરૂ થયું નથી.";
+"premium.apple.renewal" = "રદ ન કરો ત્યાં સુધી આપમેળે રિન્યૂ થાય છે. તમારા App Store સબ્સ્ક્રિપ્શનમાં તેને મેનેજ કરો અથવા રદ કરો.";
+"premium.apple.trial" = "મફત અજમાયશ: %@. ત્યાર બાદ:";
+"premium.apple.loadFailed" = "App Store ઑફર લોડ થઈ શકી નથી. તમારું કનેક્શન તપાસો અને ફરી પ્રયાસ કરો.";
+"premium.apple.pending" = "Apple અથવા ખાતાની પુષ્ટિની રાહ જોવાઈ રહી છે. ફરી પ્રયાસ કરવા ખરીદીઓ પુનઃસ્થાપિત કરો.";
+"premium.apple.cancelled" = "ખરીદી રદ થઈ. તમારી પાસેથી કોઈ ચાર્જ લેવામાં આવ્યો નથી.";
+"premium.apple.failed" = "ખરીદીની પુષ્ટિ થઈ શકી નથી. ફરી ખરીદ્યા વિના પ્રયાસ કરવા ખરીદીઓ પુનઃસ્થાપિત કરો.";
+"premium.apple.restore" = "ખરીદીઓ પુનઃસ્થાપિત કરો";
+"premium.apple.sceneUnavailable" = "તમારું સબ્સ્ક્રિપ્શન મેનેજ કરવા ઍપને આગળ ખોલો.";
+"premium.apple.deleteWarning" = "તમારું Apple સબ્સ્ક્રિપ્શન સક્રિય છે. ખાતું કાઢી નાખવાથી તે રદ થતું નથી. App Storeમાં તેને મેનેજ કરો અથવા રદ કરો.";

@@ -862,3 +862,15 @@
 "settings.accentColor.custom" = "Власний колір";
 "settings.accentColor.invalidHex" = "Введіть колір у форматі #RRGGBB — шість шістнадцяткових цифр.";
 "settings.accentColor.premiumNote" = "Власні кольори акценту доступні з Premium. Збережений колір повернеться, коли Premium буде активним.";
+
+"premium.apple.sandbox" = "Тестова покупка Premium";
+"premium.apple.notice" = "Для тестових покупок потрібен TestFlight. Публічні продажі ще не відкриті.";
+"premium.apple.renewal" = "Поновлюється автоматично до скасування. Керувати підпискою або скасувати її можна в App Store.";
+"premium.apple.trial" = "Безкоштовний пробний період: %@. Потім:";
+"premium.apple.loadFailed" = "Не вдалося завантажити пропозицію App Store. Перевірте з’єднання та спробуйте ще раз.";
+"premium.apple.pending" = "Очікується підтвердження Apple або доступу до облікового запису. Відновіть покупки, щоб спробувати ще раз.";
+"premium.apple.cancelled" = "Покупку скасовано. Кошти не списано.";
+"premium.apple.failed" = "Не вдалося підтвердити покупку. Відновіть покупки, щоб спробувати ще раз без повторної оплати.";
+"premium.apple.restore" = "Відновити покупки";
+"premium.apple.sceneUnavailable" = "Відкрийте застосунок на передньому плані, щоб керувати підпискою.";
+"premium.apple.deleteWarning" = "У вас активна підписка Apple. Видалення облікового запису не скасовує її. Керуйте підпискою або скасуйте її в App Store.";

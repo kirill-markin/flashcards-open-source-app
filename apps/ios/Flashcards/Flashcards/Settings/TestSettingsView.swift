@@ -68,6 +68,13 @@ struct TestSettingsView: View {
                 .accessibilityIdentifier(UITestIdentifier.testSettingsTechnicalErrorPreviewRow)
 
                 Button {
+                    self.premiumPresenter.present(reason: .sandboxOffer, entitlement: store.cloudEntitlement)
+                } label: {
+                    Label(aiSettingsLocalized("premium.apple.sandbox", "Premium sandbox purchase"), systemImage: "cart")
+                }
+                .accessibilityIdentifier(UITestIdentifier.testSettingsSandboxPurchase)
+
+                Button {
                     self.premiumPresenter.present(reason: .offerPreview, entitlement: store.cloudEntitlement)
                 } label: {
                     SettingsNavigationRow(

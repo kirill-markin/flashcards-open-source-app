@@ -890,3 +890,15 @@
 "settings.accentColor.custom" = "Свой цвет";
 "settings.accentColor.invalidHex" = "Введите цвет в формате #RRGGBB — шесть шестнадцатеричных цифр.";
 "settings.accentColor.premiumNote" = "Свои цвета акцента доступны с Premium. Сохранённый цвет вернётся, когда Premium снова будет активен.";
+
+"premium.apple.sandbox" = "Тестовая покупка Premium";
+"premium.apple.notice" = "Для тестовых покупок нужен TestFlight. Публичные продажи ещё не открыты.";
+"premium.apple.renewal" = "Продлевается автоматически до отмены. Управлять подпиской или отменить её можно в App Store.";
+"premium.apple.trial" = "Бесплатный пробный период: %@. Затем:";
+"premium.apple.loadFailed" = "Не удалось загрузить предложение App Store. Проверьте соединение и повторите попытку.";
+"premium.apple.pending" = "Ожидается подтверждение Apple или доступа к аккаунту. Восстановите покупки, чтобы повторить попытку.";
+"premium.apple.cancelled" = "Покупка отменена. Деньги не списаны.";
+"premium.apple.failed" = "Не удалось подтвердить покупку. Восстановите покупки, чтобы повторить попытку без повторной оплаты.";
+"premium.apple.restore" = "Восстановить покупки";
+"premium.apple.sceneUnavailable" = "Откройте приложение на переднем плане, чтобы управлять подпиской.";
+"premium.apple.deleteWarning" = "У вас активная подписка Apple. Удаление аккаунта не отменяет её. Управляйте подпиской или отмените её в App Store.";

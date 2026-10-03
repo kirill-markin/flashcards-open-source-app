@@ -46,11 +46,16 @@ extension FlashcardsStore {
 
     func attachAppleSubscription(
         signedTransaction: String,
+        intent: AppleBillingTransactionIntent,
         identity: AppleSubscriptionIdentity,
         transport: CloudSyncTransport
     ) async throws {
         try await self.withAppleSubscriptionSession(identity: identity) { session in
-            try await transport.attachAppleBillingTransaction(signedTransaction: signedTransaction, session: session)
+            try await transport.attachAppleBillingTransaction(
+                signedTransaction: signedTransaction,
+                intent: intent,
+                session: session
+            )
         }
     }
 
@@ -71,6 +76,8 @@ extension FlashcardsStore {
             trigger: self.manualCloudSyncTrigger(now: Date())
         )
         try self.requireAppleSubscriptionIdentity(identity)
+        // Keep cached offline access, but never complete a purchase using that cache as confirmation.
+        guard syncResult.entitlement != nil else { throw AppleSubscriptionError.entitlementNotConfirmed }
     }
 
     private func withAppleSubscriptionSession<Result>(

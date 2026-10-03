@@ -890,3 +890,15 @@
 "settings.accentColor.custom" = "पसंदीदा रंग";
 "settings.accentColor.invalidHex" = "छह हेक्साडेसिमल अंकों के साथ #RRGGBB के रूप में रंग दर्ज करें।";
 "settings.accentColor.premiumNote" = "पसंदीदा एक्सेंट रंग Premium के साथ उपलब्ध हैं। Premium सक्रिय होने पर आपका सहेजा गया रंग वापस आ जाता है।";
+
+"premium.apple.sandbox" = "Premium की परीक्षण खरीदारी";
+"premium.apple.notice" = "परीक्षण खरीदारी के लिए TestFlight ज़रूरी है। सार्वजनिक बिक्री अभी शुरू नहीं हुई है।";
+"premium.apple.renewal" = "रद्द करने तक अपने आप नवीनीकृत होता है। अपनी App Store सदस्यताओं में इसे प्रबंधित या रद्द करें।";
+"premium.apple.trial" = "मुफ़्त परीक्षण: %@। उसके बाद:";
+"premium.apple.loadFailed" = "App Store ऑफ़र लोड नहीं हो सका। अपना कनेक्शन जाँचें और फिर कोशिश करें।";
+"premium.apple.pending" = "Apple या खाते की पुष्टि का इंतज़ार है। फिर कोशिश करने के लिए खरीदारी बहाल करें।";
+"premium.apple.cancelled" = "खरीदारी रद्द हुई। आपसे कोई शुल्क नहीं लिया गया है।";
+"premium.apple.failed" = "खरीदारी की पुष्टि नहीं हो सकी। दोबारा खरीदे बिना फिर कोशिश करने के लिए खरीदारी बहाल करें।";
+"premium.apple.restore" = "खरीदारी बहाल करें";
+"premium.apple.sceneUnavailable" = "अपनी सदस्यता प्रबंधित करने के लिए ऐप को सामने खोलें।";
+"premium.apple.deleteWarning" = "आपकी Apple सदस्यता सक्रिय है। खाता मिटाने से सदस्यता रद्द नहीं होती। App Store में इसे प्रबंधित या रद्द करें।";

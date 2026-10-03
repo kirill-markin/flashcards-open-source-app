@@ -890,3 +890,15 @@
 "settings.accentColor.custom" = "لون مخصص";
 "settings.accentColor.invalidHex" = "أدخل لونًا بتنسيق #RRGGBB باستخدام ست خانات بالنظام الست عشري.";
 "settings.accentColor.premiumNote" = "ألوان التمييز المخصصة متاحة مع Premium. يعود لونك المحفوظ عندما يكون Premium نشطًا.";
+
+"premium.apple.sandbox" = "شراء Premium تجريبي";
+"premium.apple.notice" = "تتطلب المشتريات التجريبية TestFlight. المبيعات العامة غير متاحة بعد.";
+"premium.apple.renewal" = "يتجدد تلقائيًا حتى الإلغاء. يمكنك إدارته أو إلغاؤه من اشتراكات App Store.";
+"premium.apple.trial" = "تجربة مجانية: %@. ثم:";
+"premium.apple.loadFailed" = "تعذر تحميل عرض App Store. تحقق من اتصالك وأعد المحاولة.";
+"premium.apple.pending" = "في انتظار تأكيد Apple أو الحساب. استعد المشتريات لإعادة المحاولة.";
+"premium.apple.cancelled" = "تم إلغاء الشراء. لم يتم خصم أي مبلغ منك.";
+"premium.apple.failed" = "تعذر تأكيد الشراء. استعد المشتريات لإعادة المحاولة دون الشراء مجددًا.";
+"premium.apple.restore" = "استعادة المشتريات";
+"premium.apple.sceneUnavailable" = "افتح التطبيق في المقدمة لإدارة اشتراكك.";
+"premium.apple.deleteWarning" = "لديك اشتراك Apple نشط. حذف حسابك لا يلغيه. يمكنك إدارته أو إلغاؤه في App Store.";

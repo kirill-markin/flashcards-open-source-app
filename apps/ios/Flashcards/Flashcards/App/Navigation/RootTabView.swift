@@ -24,6 +24,7 @@ struct RootTabView: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
 
+    @Environment(AppleSubscriptionService.self) private var appleSubscriptions: AppleSubscriptionService
     @State private var premiumPresenter: PremiumPresenter = PremiumPresenter()
     @State private var isGuestSignInCloudSignInPresented: Bool = false
 
@@ -127,6 +128,7 @@ struct RootTabView: View {
 
     private func clearPremiumPresentationForIdentityChange() {
         self.premiumPresenter.finish(outcome: .identityChanged)
+        self.appleSubscriptions.runtimeErrorMessage = nil
         self.store.aiChatStore.quotaRefusal = nil
     }
 
@@ -320,6 +322,10 @@ struct RootTabView: View {
         }
     }
 
+    private var subscriptionIdentity: AppleSubscriptionIdentity? {
+        try? self.store.appleSubscriptionIdentity()
+    }
+
     var body: some View {
         Group {
             if let recoveryState = store.cloudCredentialRecoveryState {
@@ -332,11 +338,11 @@ struct RootTabView: View {
                 self.tabRoot
             }
         }
-        .onChange(of: store.cloudSettings?.linkedUserId) { _, _ in
+        .onChange(of: self.subscriptionIdentity) { _, _ in
             self.clearPremiumPresentationForIdentityChange()
         }
-        .onChange(of: store.cloudSettings?.cloudState) { _, _ in
-            self.clearPremiumPresentationForIdentityChange()
+        .onChange(of: self.appleSubscriptions.confirmationRevision) { _, _ in
+            self.premiumPresenter.confirmAppleAccess(entitlement: self.store.cloudEntitlement, identity: self.subscriptionIdentity)
         }
         .onChange(of: store.cloudEntitlement) { _, entitlement in
             self.premiumPresenter.reconcileAccess(entitlement: entitlement)
@@ -494,18 +500,20 @@ struct RootTabView: View {
 
     private var tabRootSheets: some View {
         self.tabRootChangeHandlers
-        // The origin is the surface that owns the control the person tapped, not the tab the alert
-        // happens to float over. This prompt belongs to the review flow, so it stays Review: it is a
-        // distinct entry point with its own conversion, and following the visible tab would scatter
-        // its failures across the other tabs' own sign-in buttons and make all of them unreadable.
         .cloudSignInSheet(
             isPresented: self.$isGuestSignInCloudSignInPresented,
             presentationContext: .standard(originSurface: .review)
         )
         .sheet(item: self.premiumPresentation) { request in
-            PremiumComingSoon(request: request)
-                .environment(store)
-                .environment(self.premiumPresenter)
+            Group {
+                if request.reason == .sandboxOffer {
+                    PremiumOfferView(request: request)
+                } else {
+                    PremiumComingSoon(request: request)
+                }
+            }
+            .environment(store)
+            .environment(self.premiumPresenter)
         }
         .sheet(item: self.feedbackPresentation) { presentation in
             FeedbackSheet(presentation: presentation)
@@ -738,7 +746,9 @@ struct RootTabView: View {
 }
 
 #Preview {
+    let store = FlashcardsStore()
     RootTabView()
-        .environment(FlashcardsStore())
+        .environment(store)
+        .environment(AppleSubscriptionService(store: store, session: .shared))
         .environment(AppNavigationModel())
 }

@@ -1,26 +1,10 @@
-import StoreKit
 import SwiftUI
-import UIKit
-
-private enum SubscriptionManagementError: LocalizedError {
-    case foregroundWindowSceneUnavailable
-
-    var errorDescription: String? {
-        switch self {
-        case .foregroundWindowSceneUnavailable:
-            return "Subscription management needs a foreground-active window scene, and none is connected"
-        }
-    }
-}
 
 private struct CloudEntitlementEndPresentation: Equatable {
     let title: String
     let value: String
 }
 
-/// Status first, then `until`: a missing end is lifetime access under `active` but an unknown end
-/// under `in_grace`, which must never read as unlimited (docs/premium-entitlements.md, "What a client
-/// receives").
 private func makeCloudEntitlementEndPresentation(entitlement: CloudEntitlement) -> CloudEntitlementEndPresentation? {
     switch entitlement.status {
     case .noEntitlement:
@@ -63,9 +47,8 @@ private func localizedCloudEntitlementStatusTitle(entitlement: CloudEntitlement)
 
 struct SubscriptionSettingsView: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
+    @Environment(AppleSubscriptionService.self) private var subscriptions: AppleSubscriptionService
     @Environment(PremiumPresenter.self) private var premiumPresenter: PremiumPresenter
-
-    @State private var isOpeningManageSubscriptions: Bool = false
 
     var body: some View {
         List {
@@ -107,70 +90,29 @@ struct SubscriptionSettingsView: View {
                 }
             }
 
-            Section {
-                Button {
-                    self.openManageSubscriptions()
-                } label: {
-                    HStack {
-                        Text(aiSettingsLocalized("settings.subscription.manage", "Manage subscription"))
-
-                        Spacer()
-
-                        if self.isOpeningManageSubscriptions {
-                            ProgressView()
-                        }
-                    }
+            if let errorMessage = self.subscriptions.runtimeErrorMessage {
+                Section {
+                    Text(aiSettingsLocalized("premium.apple.failed", "Purchase could not be confirmed. Restore purchases to retry without buying again.") + "\n" + errorMessage)
+                        .foregroundStyle(.red)
+                        .accessibilityIdentifier(UITestIdentifier.subscriptionSettingsMessage)
                 }
-                .disabled(self.isOpeningManageSubscriptions)
-                .accessibilityIdentifier(UITestIdentifier.subscriptionSettingsManageButton)
             }
+
+            AppleSubscriptionControls(onRestore: {})
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.subscriptionSettingsScreen)
         .navigationTitle(aiSettingsLocalized("settings.subscription.title", "Subscription"))
     }
 
-    private func openManageSubscriptions() {
-        guard self.isOpeningManageSubscriptions == false else {
-            return
-        }
-        self.isOpeningManageSubscriptions = true
-
-        Task { @MainActor in
-            defer {
-                self.isOpeningManageSubscriptions = false
-            }
-
-            do {
-                let windowScene = try requireForegroundActiveWindowScene()
-                try await AppStore.showManageSubscriptions(in: windowScene)
-            } catch {
-                self.store.presentTechnicalError(error)
-            }
-        }
-    }
-}
-
-@MainActor
-private func requireForegroundActiveWindowScene() throws -> UIWindowScene {
-    let windowScene = UIApplication.shared.connectedScenes
-        .compactMap { scene in
-            scene as? UIWindowScene
-        }
-        .first { windowScene in
-            windowScene.activationState == .foregroundActive
-        }
-    guard let windowScene else {
-        throw SubscriptionManagementError.foregroundWindowSceneUnavailable
-    }
-
-    return windowScene
 }
 
 #Preview {
+    let store = FlashcardsStore()
     NavigationStack {
         SubscriptionSettingsView()
-            .environment(FlashcardsStore())
+            .environment(store)
+            .environment(AppleSubscriptionService(store: store, session: .shared))
             .environment(PremiumPresenter())
     }
 }

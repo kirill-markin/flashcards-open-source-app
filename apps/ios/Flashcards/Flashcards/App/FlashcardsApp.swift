@@ -1,6 +1,11 @@
 import SwiftUI
 import UIKit
 
+private struct AppleSubscriptionRuntimeState: Equatable {
+    let identity: AppleSubscriptionIdentity?
+    let isActive: Bool
+}
+
 private struct CloudSyncPollingTaskID: Hashable {
     let isStartupReady: Bool
     let isSceneActive: Bool
@@ -31,6 +36,7 @@ private func nextProgressContextRolloverDate(now: Date) -> Date {
 struct FlashcardsApp: App {
     @Environment(\.scenePhase) private var scenePhase
     @UIApplicationDelegateAdaptor(ReviewNotificationsAppDelegate.self) private var reviewNotificationsAppDelegate
+    @State private var appleSubscriptions: AppleSubscriptionService
     @State private var store: FlashcardsStore
     @State private var navigation: AppNavigationModel
     @State private var progressContextWatcherRefreshToken: Int
@@ -181,6 +187,7 @@ struct FlashcardsApp: App {
         }
 
         _store = State(initialValue: store)
+        _appleSubscriptions = State(initialValue: AppleSubscriptionService(store: store, session: .shared))
         _navigation = State(
             initialValue: AppNavigationModel(
                 selectedTab: selectedTab,
@@ -204,6 +211,7 @@ struct FlashcardsApp: App {
                 .tint(store.effectiveAccountAccentColor.color)
                 .accentColor(store.effectiveAccountAccentColor.color)
                 .environment(store)
+                .environment(self.appleSubscriptions)
                 .environment(navigation)
                 .environment(\.isLowPowerModeEnabled, self.isLowPowerModeEnabled)
                 .task(id: self.isCloudCredentialRecoveryGateActive) {
@@ -299,6 +307,16 @@ struct FlashcardsApp: App {
                 }
                 .technicalErrorSheet(store: self.store)
         }
+        .onChange(of: self.appleSubscriptionRuntimeState, initial: true) { _, state in
+            self.appleSubscriptions.updateRuntime(identity: state.identity, isActive: state.isActive)
+        }
+    }
+
+    private var appleSubscriptionRuntimeState: AppleSubscriptionRuntimeState {
+        AppleSubscriptionRuntimeState(
+            identity: try? self.store.appleSubscriptionIdentity(),
+            isActive: self.scenePhase == .active
+        )
     }
 
     private var cloudSyncPollingTaskID: CloudSyncPollingTaskID {

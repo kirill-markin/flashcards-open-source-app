@@ -862,3 +862,15 @@
 "settings.accentColor.custom" = "Oma väri";
 "settings.accentColor.invalidHex" = "Anna väri muodossa #RRGGBB kuudella heksadesimaalinumerolla.";
 "settings.accentColor.premiumNote" = "Omat korostusvärit ovat käytettävissä Premiumilla. Tallennettu värisi palautuu, kun Premium on aktiivinen.";
+
+"premium.apple.sandbox" = "Premium-testiostos";
+"premium.apple.notice" = "Testiostokset edellyttävät TestFlightia. Julkinen myynti ei ole vielä alkanut.";
+"premium.apple.renewal" = "Uusiutuu automaattisesti, kunnes peruutat. Hallitse tai peruuta App Store -tilauksissasi.";
+"premium.apple.trial" = "Ilmainen kokeilu: %@. Sen jälkeen:";
+"premium.apple.loadFailed" = "App Storen tarjousta ei voitu ladata. Tarkista yhteys ja yritä uudelleen.";
+"premium.apple.pending" = "Odotetaan Applen tai tilin vahvistusta. Palauta ostokset ja yritä uudelleen.";
+"premium.apple.cancelled" = "Ostos peruutettu. Sinua ei ole veloitettu.";
+"premium.apple.failed" = "Ostosta ei voitu vahvistaa. Palauta ostokset ja yritä uudelleen ostamatta uudestaan.";
+"premium.apple.restore" = "Palauta ostokset";
+"premium.apple.sceneUnavailable" = "Avaa appi etualalle, jotta voit hallita tilaustasi.";
+"premium.apple.deleteWarning" = "Sinulla on aktiivinen Apple-tilaus. Tilin poistaminen ei peruuta sitä. Hallitse tai peruuta se App Storessa.";
