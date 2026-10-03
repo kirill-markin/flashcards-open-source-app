@@ -158,6 +158,9 @@ Turn notes and photos into AI flashcards for exam prep and vocabulary practice. 
 
 AI features need an internet connection.
 
+Privacy Policy: https://nibomo.com/privacy/
+Terms of Use (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+
 ### Keywords
 
 notes,photo,spaced,repetition,language,memorize,revision,learning,practice,decks,tags
@@ -187,6 +190,9 @@ Nibomo: بطاقات ذكاء اصطناعي
 - تابع نشاط المراجعة وأيام الدراسة المتتالية للحفاظ على عادتك.
 
 تحتاج ميزات الذكاء الاصطناعي إلى اتصال بالإنترنت.
+
+سياسة الخصوصية: https://nibomo.com/privacy/
+شروط الخدمة (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ### Keywords
 
@@ -218,6 +224,9 @@ Nibomo: AI 闪卡
 
 AI 功能需要联网。
 
+隐私政策: https://nibomo.com/privacy/
+服务条款 (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+
 ### Keywords
 
 照片,复习,间隔重复,词汇,语言,记忆,学习,练习,卡组,标签
@@ -247,6 +256,9 @@ Transformez vos notes et photos en fiches de révision avec l'IA pour préparer 
 - Consultez votre activité de révision et vos séries de jours d'étude.
 
 Les fonctions d'IA nécessitent une connexion Internet.
+
+Politique de confidentialité: https://nibomo.com/privacy/
+Conditions d’utilisation (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ### Keywords
 
@@ -278,6 +290,9 @@ Erstelle mit KI Lernkarten aus Notizen und Fotos für Prüfungen und zum Vokabel
 
 Für KI-Funktionen brauchst du eine Internetverbindung.
 
+Datenschutzrichtlinie: https://nibomo.com/privacy/
+Nutzungsbedingungen (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+
 ### Keywords
 
 Notizen,Fotos,Wiederholung,Lernen,Gedächtnis,Sprachen,Üben,Karten,Stapel,Tags
@@ -307,6 +322,9 @@ AI से नोट्स और फ़ोटो को फ़्लैशका
 - अपनी दोहराई और लगातार पढ़ाई वाले दिन देखें।
 
 AI सुविधाओं के लिए इंटरनेट कनेक्शन चाहिए।
+
+गोपनीयता नीति: https://nibomo.com/privacy/
+सेवा की शर्तें (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ### Keywords
 
@@ -338,6 +356,9 @@ Nibomo: AI暗記カード
 
 AI機能にはインターネット接続が必要です。
 
+プライバシー ポリシー: https://nibomo.com/privacy/
+利用規約 (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+
 ### Keywords
 
 ノート,写真,復習,間隔反復,語彙,語学,暗記,勉強,練習,デッキ,タグ
@@ -367,6 +388,9 @@ Transforme anotações e fotos em flashcards com IA para se preparar para provas
 - Acompanhe suas revisões e sua sequência de dias de estudo.
 
 Os recursos de IA precisam de conexão com a internet.
+
+Política de Privacidade: https://nibomo.com/privacy/
+Termos de Serviço (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ### Keywords
 
@@ -398,6 +422,9 @@ Nibomo: ИИ-флешкарты
 
 Для функций ИИ нужен интернет.
 
+Политика конфиденциальности: https://nibomo.com/privacy/
+Условия использования (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+
 ### Keywords
 
 заметки,фото,повторение,интервалы,слова,языки,память,учёба,практика,колоды,теги
@@ -428,6 +455,9 @@ Convierte tus apuntes y fotos en tarjetas de estudio con IA para preparar exáme
 
 Las funciones de IA necesitan conexión a internet.
 
+Política de privacidad: https://nibomo.com/privacy/
+Términos del servicio (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+
 ### Keywords
 
 apuntes,fotos,repaso,repetición,espaciada,examen,idioma,vocabulario,memoria,estudio,mazos
@@ -457,6 +487,9 @@ Convierte tus apuntes y fotos en tarjetas de estudio con IA para preparar exáme
 - Consulta tus repasos y tus rachas de días de estudio.
 
 Las funciones de IA necesitan conexión a internet.
+
+Política de privacidad: https://nibomo.com/privacy/
+Términos del servicio (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ### Keywords
 
@@ -490,6 +523,9 @@ AI দিয়ে নোট ও ছবি থেকে ফ্ল্যাশক
 
 AI সুবিধার জন্য ইন্টারনেট সংযোগ দরকার।
 
+গোপনীয়তা নীতি: https://nibomo.com/privacy/
+পরিষেবার শর্তাবলী (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+
 ### Keywords
 
 নোট,ছবি,রিভিশন,ভাষা,স্মৃতি,পড়াশোনা,অনুশীলন
@@ -521,6 +557,9 @@ Converteix els apunts i les fotos en targetes d'estudi amb IA per preparar exàm
 - Consulta els repassos i les ratxes de dies d'estudi.
 
 Les funcions d'IA necessiten connexió a internet.
+
+Política de privadesa: https://nibomo.com/privacy/
+Condicions del servei (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ### Keywords
 
@@ -554,6 +593,9 @@ Proměňte poznámky a fotky v kartičky s pomocí AI pro přípravu na zkoušky
 
 Funkce AI vyžadují připojení k internetu.
 
+Zásady ochrany soukromí: https://nibomo.com/privacy/
+Podmínky služby (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+
 ### Keywords
 
 poznámky,fotky,opakování,jazyky,paměť,učení,procvičování,balíčky,štítky
@@ -585,6 +627,9 @@ Lav noter og fotos om til flashcards med AI, når du læser til eksamen eller l�
 - Følg dine repetitioner og se, hvor mange dage i træk du har læst.
 
 AI-funktioner kræver internetforbindelse.
+
+Privatlivspolitik: https://nibomo.com/privacy/
+Servicevilkår (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ### Keywords
 
@@ -618,6 +663,9 @@ Nibomo: Κάρτες με AI
 
 Οι λειτουργίες AI απαιτούν σύνδεση στο διαδίκτυο.
 
+Πολιτική απορρήτου: https://nibomo.com/privacy/
+Όροι χρήσης (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+
 ### Keywords
 
 σημειώσεις,φωτογραφίες,επανάληψη,λεξιλόγιο,γλώσσες,μνήμη,μελέτη,εξάσκηση
@@ -649,6 +697,9 @@ Tee muistiinpanoista ja kuvista muistikortteja tekoälyn avulla kokeisiin ja san
 - Seuraa kertauksiasi ja peräkkäisiä opiskelupäiviäsi.
 
 Tekoälytoiminnot vaativat internetyhteyden.
+
+Tietosuojakäytäntö: https://nibomo.com/privacy/
+Käyttöehdot (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ### Keywords
 
@@ -682,6 +733,9 @@ AIથી નોંધો અને ફોટામાંથી ફ્લેશ�
 
 AI સુવિધાઓ માટે ઇન્ટરનેટ કનેક્શન જરૂરી છે.
 
+ગોપનીયતા નીતિ: https://nibomo.com/privacy/
+સેવાની શરતો (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+
 ### Keywords
 
 નોંધ,ફોટો,પુનરાવર્તન,ભાષા,યાદશક્તિ,અભ્યાસ
@@ -713,6 +767,9 @@ Nibomo: כרטיסיות עם AI
 - עקבו אחר החזרות שלכם ואחר רצף ימי הלימוד.
 
 תכונות ה-AI דורשות חיבור לאינטרנט.
+
+מדיניות פרטיות: https://nibomo.com/privacy/
+תנאי השירות (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ### Keywords
 
@@ -746,6 +803,9 @@ Pretvorite bilješke i fotografije u kartice za učenje uz AI, za pripremu ispit
 
 Za AI značajke potrebna je internetska veza.
 
+Pravila privatnosti: https://nibomo.com/privacy/
+Uvjeti pružanja usluge (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+
 ### Keywords
 
 bilješke,fotografije,ponavljanje,jezici,pamćenje,učenje,vježba,špilovi,oznake
@@ -777,6 +837,9 @@ Készíts tanulókártyákat jegyzetekből és fotókból az AI segítségével 
 - Kövesd az ismétléseidet és az egymást követő tanulási napjaidat.
 
 Az AI-funkciókhoz internetkapcsolat szükséges.
+
+Adatvédelmi szabályzat: https://nibomo.com/privacy/
+Felhasználási feltételek (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ### Keywords
 
@@ -810,6 +873,9 @@ Ubah catatan dan foto menjadi flashcard dengan AI untuk persiapan ujian dan lati
 
 Fitur AI memerlukan koneksi internet.
 
+Kebijakan Privasi: https://nibomo.com/privacy/
+Ketentuan Layanan (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+
 ### Keywords
 
 catatan,foto,pengulangan,berjarak,bahasa,ingatan,belajar,latihan,dek,tag
@@ -841,6 +907,9 @@ Trasforma appunti e foto in flashcard con l'IA per preparare gli esami e imparar
 - Segui i tuoi ripassi e le serie di giorni di studio.
 
 Le funzioni di IA richiedono una connessione a Internet.
+
+Informativa sulla privacy: https://nibomo.com/privacy/
+Termini di servizio (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ### Keywords
 
@@ -874,6 +943,9 @@ AI ಬಳಸಿ ಟಿಪ್ಪಣಿಗಳು ಮತ್ತು ಫೋಟೋಗ�
 
 AI ಸೌಲಭ್ಯಗಳಿಗೆ ಇಂಟರ್ನೆಟ್ ಸಂಪರ್ಕ ಬೇಕು.
 
+ಗೌಪ್ಯತಾ ನೀತಿ: https://nibomo.com/privacy/
+ಸೇವಾ ನಿಯಮಗಳು (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+
 ### Keywords
 
 ಟಿಪ್ಪಣಿ,ಫೋಟೋ,ಪುನರಾವರ್ತನೆ,ಭಾಷೆ,ನೆನಪು,ಅಭ್ಯಾಸ
@@ -905,6 +977,9 @@ Nibomo: AI 암기 카드
 - 복습 기록과 연속 학습 일수를 확인하며 학습 습관을 살펴보세요.
 
 AI 기능을 사용하려면 인터넷 연결이 필요해요.
+
+개인정보 처리방침: https://nibomo.com/privacy/
+서비스 이용약관 (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ### Keywords
 
@@ -938,6 +1013,9 @@ Nibomo: AI പഠന കാർഡുകൾ
 
 AI സൗകര്യങ്ങൾക്ക് ഇന്റർനെറ്റ് കണക്ഷൻ ആവശ്യമാണ്.
 
+സ്വകാര്യതാ നയം: https://nibomo.com/privacy/
+സേവന നിബന്ധനകൾ (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+
 ### Keywords
 
 കുറിപ്പ്,ഫോട്ടോ,ആവർത്തനം,ഭാഷ,ഓർമ,പഠനം,പരിശീലനം
@@ -969,6 +1047,9 @@ AI वापरून नोंदी आणि फोटोंपासून �
 - तुमची उजळणी आणि सलग अभ्यास केलेले दिवस पाहा.
 
 AI सुविधांसाठी इंटरनेट कनेक्शन आवश्यक आहे.
+
+गोपनीयता धोरण: https://nibomo.com/privacy/
+सेवेच्या अटी (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ### Keywords
 
@@ -1002,6 +1083,9 @@ Gjør notater og bilder om til læringskort med KI for eksamensøving og ordforr
 
 KI-funksjoner krever internettilkobling.
 
+Personvernerklæring: https://nibomo.com/privacy/
+Tjenestevilkår (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+
 ### Keywords
 
 notater,bilder,repetisjon,språk,ordforråd,hukommelse,læring,øving,kortstokker,etiketter
@@ -1033,6 +1117,9 @@ Maak met AI flashcards van notities en foto's om voor toetsen te leren en je woo
 - Bekijk je herhalingen en het aantal dagen dat je achter elkaar hebt geleerd.
 
 Voor AI-functies heb je een internetverbinding nodig.
+
+Privacybeleid: https://nibomo.com/privacy/
+Servicevoorwaarden (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ### Keywords
 
@@ -1066,6 +1153,9 @@ AI ਨਾਲ ਨੋਟਸ ਅਤੇ ਫੋਟੋਆਂ ਤੋਂ ਫਲੈਸ਼
 
 AI ਸਹੂਲਤਾਂ ਲਈ ਇੰਟਰਨੈੱਟ ਕਨੈਕਸ਼ਨ ਚਾਹੀਦਾ ਹੈ।
 
+ਪਰਦੇਦਾਰੀ ਨੀਤੀ: https://nibomo.com/privacy/
+ਸੇਵਾ ਦੀਆਂ ਸ਼ਰਤਾਂ (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+
 ### Keywords
 
 ਨੋਟਸ,ਫੋਟੋ,ਦੁਹਰਾਈ,ਭਾਸ਼ਾ,ਯਾਦਦਾਸ਼ਤ,ਪੜ੍ਹਾਈ,ਅਭਿਆਸ
@@ -1097,6 +1187,9 @@ Zamień notatki i zdjęcia w fiszki z pomocą AI, by przygotować się do egzami
 - Śledź swoje powtórki i serie kolejnych dni nauki.
 
 Funkcje AI wymagają połączenia z internetem.
+
+Polityka prywatności: https://nibomo.com/privacy/
+Warunki korzystania (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ### Keywords
 
@@ -1130,6 +1223,9 @@ Transformă notițele și fotografiile în fișe de studiu cu AI pentru pregăti
 
 Funcțiile AI necesită conexiune la internet.
 
+Politica de confidențialitate: https://nibomo.com/privacy/
+Condiții de utilizare (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+
 ### Keywords
 
 notițe,fotografii,recapitulare,repetiție,spațiată,limbi,vocabular,memorie,studiu,exersare
@@ -1161,6 +1257,9 @@ Premeňte poznámky a fotky na kartičky pomocou AI na prípravu na skúšky aj 
 - Sledujte svoje opakovania a počet dní, keď sa učíte bez prestávky.
 
 Funkcie AI vyžadujú pripojenie na internet.
+
+Zásady ochrany súkromia: https://nibomo.com/privacy/
+Podmienky používania (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ### Keywords
 
@@ -1194,6 +1293,9 @@ Z AI spremenite zapiske in fotografije v učne kartice za pripravo na izpite in 
 
 Funkcije AI potrebujejo internetno povezavo.
 
+Pravilnik o zasebnosti: https://nibomo.com/privacy/
+Pogoji uporabe (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+
 ### Keywords
 
 zapiski,fotografije,ponavljanje,jeziki,besedišče,spomin,učenje,vaja,zbirke,oznake
@@ -1225,6 +1327,9 @@ Gör anteckningar och foton till flashcards med AI inför prov och för att öva
 - Följ dina repetitioner och se hur många dagar i rad du har pluggat.
 
 AI-funktioner kräver internetanslutning.
+
+Integritetspolicy: https://nibomo.com/privacy/
+Användarvillkor (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ### Keywords
 
@@ -1258,6 +1363,9 @@ Nibomo: AI கற்றல் அட்டைகள்
 
 AI வசதிகளுக்கு இணைய இணைப்பு தேவை.
 
+தனியுரிமைக் கொள்கை: https://nibomo.com/privacy/
+சேவை விதிமுறைகள் (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+
 ### Keywords
 
 குறிப்பு,படம்,மீள்பார்வை,மொழி,நினைவு,படிப்பு,பயிற்சி
@@ -1289,6 +1397,9 @@ AIతో నోట్స్, ఫోటోల నుంచి అభ్యాస 
 - మీ పునశ్చరణలను, వరుసగా చదివిన రోజులను చూడండి.
 
 AI సౌకర్యాలకు ఇంటర్నెట్ కనెక్షన్ అవసరం.
+
+గోప్యతా విధానం: https://nibomo.com/privacy/
+సేవా నిబంధనలు (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ### Keywords
 
@@ -1322,6 +1433,9 @@ Nibomo: แฟลชการ์ด AI
 
 ฟีเจอร์ AI ต้องเชื่อมต่ออินเทอร์เน็ต
 
+นโยบายความเป็นส่วนตัว: https://nibomo.com/privacy/
+ข้อกำหนดการใช้บริการ (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+
 ### Keywords
 
 โน้ต,ภาพถ่าย,ทบทวน,เว้นระยะ,ภาษา,ความจำ,เรียน,ฝึก
@@ -1353,6 +1467,9 @@ Notları ve fotoğrafları yapay zekâyla bilgi kartlarına dönüştürerek sı
 - Tekrarlarını ve arka arkaya çalıştığın günleri takip et.
 
 Yapay zekâ özellikleri internet bağlantısı gerektirir.
+
+Gizlilik Politikası: https://nibomo.com/privacy/
+Hizmet Koşulları (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ### Keywords
 
@@ -1386,6 +1503,9 @@ Nibomo: Картки з ШІ
 
 Для функцій ШІ потрібен інтернет.
 
+Політика приватності: https://nibomo.com/privacy/
+Умови користування (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+
 ### Keywords
 
 нотатки,фото,повторення,інтервали,мови,пам'ять,навчання,практика,колоди,теги
@@ -1418,6 +1538,9 @@ AI سے نوٹس اور تصاویر کو فلیش کارڈز میں بدلیں�
 
 AI کی سہولتوں کے لیے انٹرنیٹ کنکشن ضروری ہے۔
 
+رازداری کی پالیسی: https://nibomo.com/privacy/
+سروس کی شرائط (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+
 ### Keywords
 
 نوٹس,تصویر,دہرائی,زبان,یادداشت,پڑھائی,مشق
@@ -1449,6 +1572,9 @@ Biến ghi chú và ảnh thành thẻ học bằng AI để ôn thi và luyện
 - Theo dõi các lần ôn và chuỗi ngày học liên tiếp của bạn.
 
 Các tính năng AI cần kết nối internet.
+
+Chính sách quyền riêng tư: https://nibomo.com/privacy/
+Điều khoản dịch vụ (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ### Keywords
 
