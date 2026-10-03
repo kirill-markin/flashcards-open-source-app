@@ -55,6 +55,7 @@ export interface McpGatewayResult {
   httpApi: apigwv2.HttpApi;
   httpStage: apigwv2.HttpStage;
   mcpFn: lambdaNodejs.NodejsFunction;
+  dispatcherFn: lambdaNodejs.NodejsFunction;
   accessLogGroup: logs.LogGroup;
 }
 
@@ -412,5 +413,5 @@ export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGateway
     });
   }
 
-  return { httpApi, httpStage, mcpFn, accessLogGroup };
+  return { httpApi, httpStage, mcpFn, dispatcherFn, accessLogGroup };
 }

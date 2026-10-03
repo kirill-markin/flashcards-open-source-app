@@ -1,4 +1,8 @@
+import stripeCopy from "../../../../backend/src/billing/stripe/copy/locales/en.json";
+import { createStripeCatalog } from "../stripeCatalog";
+
 const enCatalog = {
+  stripe: createStripeCatalog(stripeCopy),
   accentColorSettings: {
     title: "Accent color",
     subtitle: "Choose the app’s accent color.",

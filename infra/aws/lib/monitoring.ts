@@ -55,6 +55,7 @@ export interface MonitoringProps {
   directImageIngestionLogGroup: logs.ILogGroup;
   authFn: lambda.IFunction;
   mcpFn: lambda.IFunction;
+  mcpDispatcherLogGroup: logs.ILogGroup;
   authApiAccessLogGroup: logs.ILogGroup;
   customEmailSenderFn: lambda.IFunction;
   chatWorkerFn: lambda.IFunction;
@@ -99,6 +100,9 @@ const directImageIngestionHandled5xxMetricName: string =
   "DirectImageIngestionHandledHttp5xx";
 const directImageIngestionHandled5xxAction: string =
   "direct_image_ingestion_handled_http_5xx";
+const mcpCapacityRejectedMetricNamespace: string = "FlashcardsOpenSourceApp/Mcp";
+const mcpCapacityRejectedMetricName: string = "CapacityRejectedRequests";
+const mcpCapacityRejectedAction: string = "mcp_worker_capacity_rejected";
 const multipartCompletionReconciliationFailureMetricNamespace: string =
   "FlashcardsOpenSourceApp/MultipartCompletionReconciliation";
 const multipartCompletionReconciliationFailureMetricName: string =
@@ -164,6 +168,10 @@ logs.IFilterPattern {
     logs.FilterPattern.numberValue("$.message.statusCode", ">=", 500),
     logs.FilterPattern.numberValue("$.message.statusCode", "<", 600),
   );
+}
+
+function createMcpCapacityRejectedFilterPattern(): logs.IFilterPattern {
+  return logs.FilterPattern.stringValue("$.message.action", "=", mcpCapacityRejectedAction);
 }
 
 export function createMultipartCompletionReconciliationFailureFilterPattern():
@@ -539,8 +547,19 @@ export function monitoring(scope: Construct, props: MonitoringProps): void {
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
   }), alertTopic);
 
-  notifyAlertTopic(new cloudwatch.Alarm(scope, "McpWorkerThrottleAlarm", {
-    metric: props.mcpFn.metricThrottles({
+  // Counts 429s clients received; throttles the dispatcher absorbed by retrying
+  // (apps/backend/src/entrypoints/lambda-mcp-dispatcher.ts) never reach this log record.
+  const mcpCapacityRejectedMetricFilter = new logs.MetricFilter(scope, "McpCapacityRejectedMetricFilter", {
+    logGroup: props.mcpDispatcherLogGroup,
+    filterPattern: createMcpCapacityRejectedFilterPattern(),
+    metricNamespace: mcpCapacityRejectedMetricNamespace,
+    metricName: mcpCapacityRejectedMetricName,
+    metricValue: "1",
+    defaultValue: 0,
+  });
+
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "McpCapacityRejectedAlarm", {
+    metric: mcpCapacityRejectedMetricFilter.metric({
       period: cdk.Duration.minutes(5),
       statistic: "Sum",
     }),
@@ -548,7 +567,8 @@ export function monitoring(scope: Construct, props: MonitoringProps): void {
     comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
     evaluationPeriods: 2,
     datapointsToAlarm: 2,
-    alarmDescription: "MCP worker rejected 3+ invocations in each of two consecutive 5-minute periods",
+    alarmDescription:
+      "MCP clients received 3+ capacity 429s (after dispatcher retries) in each of two consecutive 5-minute periods",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
   }), alertTopic);
 

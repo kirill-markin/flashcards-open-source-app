@@ -1,6 +1,9 @@
+import stripeCopy from "../../../../backend/src/billing/stripe/copy/locales/kn.json";
+import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const knCatalog: TranslationCatalog = {
+  stripe: createStripeCatalog(stripeCopy),
   accentColorSettings: {
     title: "ಪ್ರಮುಖ ಬಣ್ಣ",
     subtitle: "ಆ್ಯಪ್‌ನ ಪ್ರಮುಖ ಬಣ್ಣವನ್ನು ಆಯ್ಕೆಮಾಡಿ.",
