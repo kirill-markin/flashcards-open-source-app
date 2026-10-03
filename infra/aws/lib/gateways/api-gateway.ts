@@ -1303,6 +1303,9 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   appleBilling.addResource("account").addMethod("GET", integration);
   appleBilling.addResource("transactions").addMethod("POST", integration);
   appleBilling.addResource("notifications").addMethod("POST", integration);
+  const googleBilling = billing.addResource("google");
+  googleBilling.addResource("account").addMethod("GET", integration);
+  googleBilling.addResource("purchases").addMethod("POST", integration);
 
   const legacyAuth = restApi.root.addResource("auth");
   legacyAuth.addMethod("ANY", notFoundIntegration, notFoundMethodOptions);
