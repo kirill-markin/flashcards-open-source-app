@@ -6,6 +6,8 @@ import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as lambdaNodejs from "aws-cdk-lib/aws-lambda-nodejs";
 import * as apigw from "aws-cdk-lib/aws-apigateway";
 import * as logs from "aws-cdk-lib/aws-logs";
+import * as events from "aws-cdk-lib/aws-events";
+import * as targets from "aws-cdk-lib/aws-events-targets";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import { Construct } from "constructs";
 import { catalogDumpPointerObjectKey } from "../catalog-dump";
@@ -1068,6 +1070,16 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   // an unsigned random UUID, so no secret is involved and only the HTTP handler needs the domain;
   // the workers never see a browser request.
   backendFn.addEnvironment("COOKIE_DOMAIN", buildCookieDomains(props));
+  new events.Rule(scope, "GoogleSubscriptionReconciliation", {
+    schedule: events.Schedule.rate(cdk.Duration.minutes(15)),
+    targets: [new targets.LambdaFunction(backendFn, {
+      event: events.RuleTargetInput.fromObject({
+        source: "nibomo.billing.google", task: "reconcile-subscriptions", version: 1,
+      }),
+      retryAttempts: 2,
+      maxEventAge: cdk.Duration.minutes(15),
+    })],
+  });
   if (hasConfiguredValue(props.appleIapSecretArn)) {
     const appleIapSecret = cdk.aws_secretsmanager.Secret.fromSecretCompleteArn(
       scope, "AppleIapSecret", props.appleIapSecretArn,
@@ -1306,6 +1318,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   const googleBilling = billing.addResource("google");
   googleBilling.addResource("account").addMethod("GET", integration);
   googleBilling.addResource("purchases").addMethod("POST", integration);
+  googleBilling.addResource("notifications").addMethod("POST", integration);
 
   const legacyAuth = restApi.root.addResource("auth");
   legacyAuth.addMethod("ANY", notFoundIntegration, notFoundMethodOptions);

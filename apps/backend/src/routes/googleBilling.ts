@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { GoogleBillingError } from "../billing/google/contracts";
 import { createGoogleBillingService } from "../billing/google/service";
+import { authenticateGooglePush, decodeGooglePush, googleNotificationPath, processGoogleNotification } from "../billing/google/notifications";
 import { getDatabaseErrorFields } from "../database/transient";
 import type { AppEnv } from "../server/appEnv";
 import { loadRequestContextFromRequest } from "../server/requestContext";
@@ -37,6 +38,25 @@ function googleHttpError(error: unknown): HttpError {
 
 export function createGoogleBillingRoutes(options: Readonly<{ allowedOrigins: ReadonlyArray<string> }>): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
+  app.post(googleNotificationPath, async (context) => {
+    context.header("Cache-Control", "no-store");
+    let eventId: string | null = null;
+    try {
+      await authenticateGooglePush(context.req.raw);
+      const notification = await decodeGooglePush(context.req.raw);
+      eventId = notification.eventId;
+      await processGoogleNotification(notification);
+      return context.body(null, 204);
+    } catch (error) {
+      console.warn(JSON.stringify({ event: "google_notification_failed", eventId,
+        errorCode: error instanceof GoogleBillingError || error instanceof HttpError
+          ? error.code : "GOOGLE_NOTIFICATION_PERSISTENCE_FAILED" }));
+      if (error instanceof HttpError) {
+        throw error;
+      }
+      throw googleHttpError(error);
+    }
+  });
   app.get("/billing/google/account", async (context) => {
     context.header("Cache-Control", "no-store");
     const userId = await loadGoogleBillingUserId(context.req.raw, options.allowedOrigins);

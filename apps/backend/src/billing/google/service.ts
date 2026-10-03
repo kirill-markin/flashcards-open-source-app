@@ -1,12 +1,16 @@
 import { randomUUID } from "node:crypto";
 import { unsafeTransaction } from "../../database/unsafe";
-import { GoogleBillingError, type GooglePurchaseState } from "./contracts";
+import { GoogleBillingError, googleProductId, googleBasePlanId, type GooglePurchaseState } from "./contracts";
 import { GoogleProvider } from "./provider";
 import {
   googleAccountId, googlePredecessorToken, lockGooglePurchaseOwners, lockGooglePurchaseTokens,
   persistGooglePurchase, readGooglePurchase, type GooglePurchaseLink,
+  readGoogleNotification, recordGoogleNotification, readGooglePurchaseByToken,
+  lockKnownGooglePurchase, revokeGooglePurchase,
+  readGoogleNotificationPreviousRenewal, expireUnavailableGooglePurchase, type StoredGooglePurchase,
 } from "./store";
 import { publishGoogleTransition, type GoogleCommittedTransition } from "./facts";
+import type { GoogleNotification } from "./notifications";
 
 export type GoogleBillingService = Readonly<{
   getOrCreateAccountId: (userId: string) => Promise<Readonly<{ obfuscatedAccountId: string }>>;
@@ -57,17 +61,22 @@ async function discoverGoogleLineage(
   });
 }
 
-// Shared by explicit presentation and passive reconciliation; notifications can call the latter.
-// Every provider fetch used for the live target is repeated under the lineage serialization locks.
-export async function persistGoogleCurrentState(
+async function commitGoogleCurrentState(
   provider: GoogleProvider, purchaseToken: string, presentingUserId: string | null,
-): Promise<GoogleCommittedTransition> {
+  notification: GoogleNotification | null,
+): Promise<GoogleCommittedTransition | null> {
   const receivedAt = new Date();
   const observed = await provider.currentState(purchaseToken);
   const lineage = await discoverGoogleLineage(provider, observed);
-  const transition = await unsafeTransaction(async (executor): Promise<GoogleCommittedTransition> => {
+  const transition = await unsafeTransaction(async (executor): Promise<GoogleCommittedTransition | null> => {
     await lockGooglePurchaseTokens(executor, lineage, observed.environment);
-    const state = await provider.currentState(purchaseToken);
+    if (notification !== null && await readGoogleNotification(executor, notification)) return null;
+    const latest = await provider.currentState(purchaseToken);
+    // A voided renewal must match the current successful order, never an older period.
+    const terminal = notification?.kind === "revoked" || (notification?.kind === "voided"
+      && notification.revokedOrderId === latest.latestSuccessfulOrderId);
+    const state = terminal ? { ...latest, status: "revoked" as const, willRenew: false, paid: false,
+      isTrial: false, graceUntil: null } : latest;
     const predecessor = googlePredecessorToken(state);
     if (state.environment !== observed.environment
       || (predecessor !== null && predecessor !== lineage[0].predecessorToken)) {
@@ -78,10 +87,16 @@ export async function persistGoogleCurrentState(
     const attributedState = { ...state, outOfAppPurchaseContext: state.outOfAppPurchaseContext ?? observed.outOfAppPurchaseContext };
     const locked = await lockGooglePurchaseOwners(executor, attributedState, lineage, presentingUserId);
     const purchase = await persistGooglePurchase(executor, attributedState, lineage, locked, presentingUserId);
-    return { previous: locked.previous, purchase, state: attributedState, receivedAt,
-      eventId: randomUUID(), affectedUserIds: locked.accounts.map((account) => account.userId) };
+    let previous = locked.previous;
+    if (notification !== null) {
+      await recordGoogleNotification(executor, notification, purchase, previous?.will_renew ?? null);
+      const previousRenewal = await readGoogleNotificationPreviousRenewal(executor, notification.eventId);
+      if (previous !== null && previousRenewal !== null) previous = { ...previous, will_renew: previousRenewal };
+    }
+    return { previous, purchase, state: attributedState, receivedAt,
+      eventId: notification?.eventId ?? randomUUID(), affectedUserIds: locked.accounts.map((account) => account.userId) };
   });
-  await publishGoogleTransition(transition);
+  if (transition === null) return null;
   console.info(JSON.stringify({ event: "google_purchase_persisted", purchaseId: transition.purchase.purchase_id,
     environment: transition.state.environment, status: transition.purchase.status,
     outcome: transition.purchase.invalidated_at !== null ? "superseded"
@@ -89,6 +104,103 @@ export async function persistGoogleCurrentState(
         : transition.purchase.user_id === null ? "unowned" : "attached",
     intent: presentingUserId === null ? "passive" : "explicit" }));
   return transition;
+}
+
+export async function persistGoogleCurrentState(
+  provider: GoogleProvider, purchaseToken: string, presentingUserId: string | null,
+): Promise<GoogleCommittedTransition> {
+  const transition = await commitGoogleCurrentState(provider, purchaseToken, presentingUserId, null);
+  if (transition === null) {
+    throw new GoogleBillingError("GOOGLE_TRANSITION_MISSING", true, null, "Google purchase was not persisted.");
+  }
+  await publishGoogleTransition(transition);
+  return transition;
+}
+
+export async function persistGoogleNotification(
+  provider: GoogleProvider, notification: GoogleNotification,
+): Promise<GoogleCommittedTransition | null> {
+  if (notification.purchaseToken === null) {
+    throw new GoogleBillingError("GOOGLE_NOTIFICATION_TOKEN_MISSING", false, null,
+      "Purchase notification requires a token.");
+  }
+  return commitGoogleCurrentState(provider, notification.purchaseToken, null, notification);
+}
+
+export async function revokeKnownGoogleNotification(
+  notification: GoogleNotification,
+): Promise<GoogleCommittedTransition | null> {
+  const purchaseToken = notification.purchaseToken;
+  if (purchaseToken === null || (notification.kind !== "revoked" && notification.kind !== "voided")) return null;
+  return unsafeTransaction(async (executor) => {
+    const observed = await readGooglePurchaseByToken(executor, purchaseToken);
+    if (observed === null) return null;
+    const locked = await lockKnownGooglePurchase(executor, observed);
+    if (await readGoogleNotification(executor, notification)) return null;
+    if (notification.kind === "voided" && notification.revokedOrderId !== locked.purchase.google_latest_order_id) return null;
+    const purchase = await revokeGooglePurchase(executor, locked.purchase);
+    await recordGoogleNotification(executor, notification, purchase, locked.purchase.will_renew);
+    // Only terminal denial is reconstructed from the correlated token; no provider access,
+    // trial, payment, or renewal state is inferred from notification delivery.
+    return storedTerminalTransition(locked.purchase, purchase, notification.occurredAt, notification.eventId,
+      locked.accounts.map((account) => account.userId));
+  });
+}
+
+export async function settleUnavailableGoogleToken(
+  purchaseToken: string, failedAt: Date, httpStatus: number, notification: GoogleNotification | null,
+): Promise<GoogleCommittedTransition | null> {
+  return unsafeTransaction(async (executor) => {
+    const observed = await readGooglePurchaseByToken(executor, purchaseToken);
+    if (observed === null) return null;
+    const locked = await lockKnownGooglePurchase(executor, observed);
+    const previous = locked.purchase;
+    if (previous.google_verified_at !== null && previous.google_verified_at.getTime() >= failedAt.getTime()) return null;
+    const lookupExpired = previous.until !== null && previous.until.getTime() < failedAt.getTime() - 60 * 86_400_000;
+    if (httpStatus !== 410 && !(httpStatus === 404 && lookupExpired)) return null;
+    const purchase = await expireUnavailableGooglePurchase(executor, previous);
+    if (notification !== null) await recordGoogleNotification(executor, notification, purchase, previous.will_renew);
+    return storedTerminalTransition(previous, purchase, failedAt, notification?.eventId ?? randomUUID(),
+      locked.accounts.map((account) => account.userId));
+  });
+}
+
+function storedTerminalTransition(
+  previous: StoredGooglePurchase, purchase: StoredGooglePurchase, occurredAt: Date, eventId: string,
+  affectedUserIds: ReadonlyArray<string>,
+): GoogleCommittedTransition {
+  const state: GooglePurchaseState = {
+    purchaseToken: purchase.provider_purchase_id, productId: googleProductId, basePlanId: googleBasePlanId,
+    offerId: null, status: purchase.status, providerStatus: purchase.provider_status_raw ?? "SUBSCRIPTION_STATE_EXPIRED",
+    environment: purchase.environment, currentPhase: "unknown", isTrial: false, willRenew: false, paid: false,
+    completed: true, until: purchase.until, graceUntil: null, startedAt: null, verifiedAt: occurredAt,
+    latestSuccessfulOrderId: purchase.google_latest_order_id, linkedPurchaseToken: purchase.linked_from_purchase_id,
+    acknowledgementState: purchase.google_acknowledgement_state ?? "pending",
+    obfuscatedExternalAccountId: null, outOfAppPurchaseContext: null,
+  };
+  return { previous, purchase, state, eventId, receivedAt: new Date(), affectedUserIds };
+}
+
+export async function acknowledgeGoogleTransition(
+  provider: GoogleProvider, transition: GoogleCommittedTransition,
+): Promise<void> {
+  if (!transition.state.completed || transition.purchase.status === "revoked"
+    || transition.purchase.invalidated_at !== null || transition.state.acknowledgementState !== "pending") return;
+  try {
+    await provider.acknowledge(transition.state.purchaseToken);
+    await unsafeTransaction(async (executor) => {
+      const locked = await lockKnownGooglePurchase(executor, transition.purchase);
+      await executor.query(`UPDATE billing.purchases SET google_acknowledgement_state = 'acknowledged'
+        WHERE purchase_id = $1`, [locked.purchase.purchase_id]);
+    });
+    console.info(JSON.stringify({ event: "google_purchase_acknowledged", purchaseId: transition.purchase.purchase_id,
+      environment: transition.state.environment }));
+  } catch (error) {
+    console.warn(JSON.stringify({ event: "google_purchase_acknowledgement_failed",
+      purchaseId: transition.purchase.purchase_id, environment: transition.state.environment,
+      errorCode: error instanceof GoogleBillingError ? error.code : "GOOGLE_ACKNOWLEDGEMENT_FAILED" }));
+    throw error;
+  }
 }
 
 async function verifyAndAcknowledge(
@@ -99,21 +211,7 @@ async function verifyAndAcknowledge(
     throw new GoogleBillingError("GOOGLE_PURCHASE_INCOMPLETE", false, null,
       "Google purchase is pending or its initial payment was canceled. Complete payment in Google Play.");
   }
-  if (transition.purchase.status !== "revoked" && transition.purchase.invalidated_at === null
-    && transition.state.acknowledgementState === "pending") {
-    // The purchase and its attribution are committed before acknowledgement. A failed acknowledgement
-    // leaves them intact, and replaying this same token retries without another entitlement grant.
-    try {
-      await provider.acknowledge(purchaseToken);
-      console.info(JSON.stringify({ event: "google_purchase_acknowledged", purchaseId: transition.purchase.purchase_id,
-        environment: transition.state.environment }));
-    } catch (error) {
-      console.warn(JSON.stringify({ event: "google_purchase_acknowledgement_failed",
-        purchaseId: transition.purchase.purchase_id, environment: transition.state.environment,
-        errorCode: error instanceof GoogleBillingError ? error.code : "GOOGLE_ACKNOWLEDGEMENT_FAILED" }));
-      throw error;
-    }
-  }
+  await acknowledgeGoogleTransition(provider, transition);
   return { attached: true };
 }
 
