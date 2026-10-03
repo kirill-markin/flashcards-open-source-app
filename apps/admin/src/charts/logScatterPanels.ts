@@ -1,5 +1,10 @@
 import * as d3 from "d3";
-import type { ChartTooltipHandlers } from "./chartPrimitives";
+import {
+  bindMiddleClickOpen,
+  isNewTabClick,
+  openPathInNewTab,
+  type ChartTooltipHandlers,
+} from "./chartPrimitives";
 
 // One small-multiple scatter panel: two logarithmic axes, a marked zero strip at the edge of each,
 // and the panel's own median lines. It lives beside the other chart primitives rather than inside the
@@ -64,6 +69,8 @@ export type LogScatterDot = Readonly<{
   x: number;
   y: number;
   tooltipHtml: string;
+  /** The page a ⌘/Ctrl-click or a middle click on the dot opens in a new tab; a plain click does nothing. */
+  path: string;
 }>;
 
 /** A median the panel draws, or `null` where the panel has nobody to take one over. */
@@ -220,7 +227,7 @@ export function renderLogScatterPanel(params: RenderLogScatterPanelParams): void
     .attr("x1", plotLeft).attr("x2", plotRight)
     .attr("y1", yZeroDividerY).attr("y2", yZeroDividerY);
 
-  svg.append("g")
+  const dots = svg.append("g")
     .selectAll("circle")
     .data([...params.dots])
     .join("circle")
@@ -239,7 +246,13 @@ export function renderLogScatterPanel(params: RenderLogScatterPanelParams): void
     })
     .on("mouseleave", () => {
       params.tooltipHandlers.hideTooltip();
+    })
+    .on("click", (event: MouseEvent, dot: LogScatterDot) => {
+      if (isNewTabClick(event)) {
+        openPathInNewTab(dot.path);
+      }
     });
+  bindMiddleClickOpen(dots, (dot: LogScatterDot) => dot.path);
 
   // Medians last but one, so they read over the cloud they describe. Each spans the whole plot,
   // including the zero strips, because it is a value of the axis and not of the log region alone.

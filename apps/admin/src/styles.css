@@ -1312,6 +1312,19 @@ h2 {
   font-weight: 700;
 }
 
+.user-filter-open-link {
+  flex: 0 0 auto;
+  margin-left: auto;
+  color: var(--accent-strong);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.user-filter-open-link:hover {
+  text-decoration: underline;
+}
+
 .user-filter-empty {
   margin: 0;
   color: var(--muted);
@@ -1559,6 +1572,12 @@ h2 {
   gap: 10px;
   font-size: 12px;
   margin: 4px 0;
+}
+
+.tooltip-hint {
+  margin: 10px 0 0;
+  font-size: 11px;
+  color: rgba(248, 250, 252, 0.56);
 }
 
 .state-panel {

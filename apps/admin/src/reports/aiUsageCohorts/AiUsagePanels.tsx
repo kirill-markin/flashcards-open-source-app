@@ -8,6 +8,7 @@ import {
   type LogScatterDomain,
   type LogScatterDot,
 } from "../../charts/logScatterPanels";
+import { getUserPath } from "../../routing";
 import type { AiUsagePanel, AiUsagePoint } from "./panels";
 
 // The small multiples and their captions. One panel per period, every panel on the same pair of
@@ -60,6 +61,7 @@ function buildDotTooltipHtml(point: AiUsagePoint): string {
     `<div class="tooltip-metric"><span>Written by the model</span><strong>${integerFormatter.format(dot.responseChars)}</strong></div>`,
     `<div class="tooltip-metric"><span>Chat messages</span><strong>${integerFormatter.format(dot.chatMessages)}</strong></div>`,
     `<div class="tooltip-metric"><span>Exposure in period</span><strong>${integerFormatter.format(dot.exposureDays)} days</strong></div>`,
+    `<p class="tooltip-hint">⌘/Ctrl-click opens the user</p>`,
   ].join("");
 }
 
@@ -89,6 +91,7 @@ function AiUsagePanelFigure(
     x: point.reviewRate,
     y: point.charRate,
     tooltipHtml: buildDotTooltipHtml(point),
+    path: getUserPath(point.dot.actorId, "profile"),
   })), [panel.points]);
   const spanLabel = formatPeriodSpan(panel);
 

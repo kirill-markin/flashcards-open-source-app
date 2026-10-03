@@ -28,6 +28,7 @@ export function FunnelsArea(
     isReportLoading: boolean;
     dateRangeError: string;
     onFiltersChange: (filters: AnalyticsFilterState) => boolean;
+    onNavigate: (path: string) => void;
     onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
   }>,
 ): JSX.Element {
@@ -70,6 +71,7 @@ export function FunnelsArea(
               dateRangeError={props.dateRangeError}
               userColorScale={props.userColorScale}
               onFiltersChange={props.onFiltersChange}
+              onNavigate={props.onNavigate}
             />
           )}
         />
