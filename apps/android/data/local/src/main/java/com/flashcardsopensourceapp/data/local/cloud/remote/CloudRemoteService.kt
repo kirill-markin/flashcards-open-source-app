@@ -1,6 +1,9 @@
 package com.flashcardsopensourceapp.data.local.cloud.remote
 
 import com.flashcardsopensourceapp.core.observability.AppObservability
+import com.flashcardsopensourceapp.data.local.cloud.remote.billing.CloudGoogleBillingGateway
+import com.flashcardsopensourceapp.data.local.cloud.remote.billing.CloudGoogleBillingRemoteApi
+import com.flashcardsopensourceapp.data.local.cloud.remote.billing.GooglePurchaseIntent
 import com.flashcardsopensourceapp.data.local.cloud.remote.agent.CloudAgentConnectionRemoteApi
 import com.flashcardsopensourceapp.data.local.cloud.remote.auth.CloudAuthRemoteApi
 import com.flashcardsopensourceapp.data.local.cloud.remote.community.CloudCommunityProfileRemoteApi
@@ -71,7 +74,7 @@ class CloudRemoteService private constructor(
     observability: AppObservability,
     observationVersions: CloudHttpObservationVersions,
     isAutomation: Boolean
-) : CloudRemoteGateway {
+) : CloudRemoteGateway, CloudGoogleBillingGateway {
     constructor(
         okHttpClient: OkHttpClient,
         observability: AppObservability,
@@ -110,6 +113,7 @@ class CloudRemoteService private constructor(
         observationVersions = observationVersions
     )
     private val authApi = CloudAuthRemoteApi(httpClient = httpClient)
+    private val googleBillingApi = CloudGoogleBillingRemoteApi(httpClient = httpClient)
     private val guestUpgradeApi = CloudGuestUpgradeRemoteApi(httpClient = httpClient)
     private val accountWorkspaceApi = CloudAccountWorkspaceRemoteApi(httpClient = httpClient)
     private val progressApi = CloudProgressRemoteApi(httpClient = httpClient)
@@ -119,6 +123,19 @@ class CloudRemoteService private constructor(
     private val agentConnectionApi = CloudAgentConnectionRemoteApi(httpClient = httpClient)
     private val syncApi = CloudSyncRemoteApi(httpClient = httpClient, isAutomation = isAutomation)
     private val workspacePackageApi = CloudWorkspacePackageRemoteApi(httpClient = httpClient)
+
+    override suspend fun loadGoogleBillingAccount(apiBaseUrl: String, authorizationHeader: String): String {
+        return googleBillingApi.loadGoogleBillingAccount(apiBaseUrl, authorizationHeader)
+    }
+
+    override suspend fun verifyGooglePurchase(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        purchaseToken: String,
+        intent: GooglePurchaseIntent
+    ) {
+        googleBillingApi.verifyGooglePurchase(apiBaseUrl, authorizationHeader, purchaseToken, intent)
+    }
 
     override suspend fun validateConfiguration(configuration: CloudServiceConfiguration) {
         requireAuthHealthResponse(

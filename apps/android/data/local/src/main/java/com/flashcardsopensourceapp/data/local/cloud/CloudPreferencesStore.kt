@@ -119,6 +119,10 @@ class CloudPreferencesStore(
         entitlementStore.saveEntitlement(entitlement = entitlement)
     }
 
+    fun currentEntitlementReceiptRevision(): Long {
+        return entitlementStore.currentReceiptRevision()
+    }
+
     fun observeAccountDeletionState(): StateFlow<AccountDeletionState> {
         return accountDeletionState.asStateFlow()
     }
