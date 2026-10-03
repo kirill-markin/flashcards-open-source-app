@@ -77,6 +77,7 @@ export const boundaryDefinitions = Object.freeze([
     testFiles: Object.freeze([
       "src/agent/reviews.postgres.integration.ts",
       "src/auth/surrogateUserId.postgres.integration.ts",
+      "src/billing/entitlement.postgres.integration.ts",
       "src/guestAuth/upgrade/boundGuestSession.postgres.integration.ts",
       "src/routes/system/account/accountPreferences.postgres.integration.ts",
       "src/cards/managedMedia/managedImageSnapshotMerge.postgres.integration.ts",
@@ -100,13 +101,6 @@ export const boundaryDefinitions = Object.freeze([
     expectedMigrationCount: 163,
     testFiles: Object.freeze([
       "src/aiUsage/aiUsage.postgres.integration.ts",
-    ]),
-  }),
-  Object.freeze({
-    migrationFileName: "0151_billing_schema.sql",
-    expectedMigrationCount: 153,
-    testFiles: Object.freeze([
-      "src/billing/entitlement.postgres.integration.ts",
     ]),
   }),
   // 0145 adds analytics.product_events.automated_client, beside the daily_visitor_hash and
