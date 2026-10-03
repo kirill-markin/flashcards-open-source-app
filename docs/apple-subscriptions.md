@@ -198,35 +198,72 @@ price differs, stop for an explicit commercial correction instead of overwriting
 
 ## Sandbox purchase acceptance
 
-Run these steps only once the separate iOS offer/runtime wiring is delivered; deploying
-these routes alone does not expose a purchase button. Use TestFlight or an authorized
-development build with a real Apple sandbox account, not local StoreKit configuration
-transactions. Keep the public coming-soon offer and free-account allowance unchanged until
-separately authorized.
+Run these steps after the iOS patch is merged and its required static gate is green,
+using a separately authorized TestFlight build and a real Apple sandbox account. Local
+StoreKit configuration transactions are insufficient. Static CI does not compile Swift
+or prove StoreKit acceptance; do not mark this procedure complete without the real build.
+Do not dispatch Xcode Cloud or submit the app/product for review as part of this procedure.
 
-1. Start as a fresh iOS guest without a lifetime grant. Fetch the account token, buy the
-   existing `premium_monthly` product with that `appAccountToken`, and submit the verified
-   StoreKit transaction JWS to `POST /v1/billing/apple/transactions` as
-   `{"signedTransaction":"<private JWS>"}`. Require HTTP 200 with `{"attached":true}` before
-   finishing the transaction. Sync must show premium rank 20 and Apple's actual trial state.
-2. Retry the same transaction and restore it; require success without duplicate purchases.
-   Restore from a second authenticated test account and confirm ownership follows the
-   presenting account after both sync. Link the original guest to an account and verify its
-   remaining billing state follows the normal identity lifecycle.
-3. Allow a sandbox renewal, disable auto-renew, then observe expiry. The signed notification
-   must update the stored sandbox purchase and the next sync's entitlement. Cancellation
-   must retain access until its paid-through date. Exercise a sandbox refund/revocation and
-   confirm access ends. Use a lifetime holder separately and verify rank 30 remains effective
-   throughout purchase, expiry, and revocation.
-4. Interrupt connectivity after StoreKit completes but before attachment is acknowledged;
-   reconnect and restore/retry. The transaction must be finished only after backend success.
-   If the backend reports 5xx, preserve the pending transaction and retry; never treat an
-   unsuccessful attach as a completed purchase.
-5. Read only necessary billing metadata to confirm `environment = 'sandbox'`, stable purchase
-   identity, processed notifications, and the expected entitlement. Keep test identities and
-   transaction IDs private. Reports must exclude sandbox from production revenue. Capture
-   credential-free outcome evidence; do not submit the product or app for review as part of
-   sandbox verification.
+1. Open Settings → Tests → **Premium sandbox purchase**. The shared sheet must show the
+   App Store's localized price and billing period, a trial only when Apple reports
+   eligibility, automatic renewal terms, Privacy Policy, Apple's Standard EULA, and a
+   top-right Close control. Test an eligible and an ineligible sandbox account. An
+   App Store production installation must not permit buying through this test entry:
+   the purchase service verifies the signed AppTransaction environment again.
+2. As a fresh iOS guest without a lifetime gift, complete the premium_monthly trial.
+   Require server attachment before finishing the transaction and a sync-confirmed
+   premium rank of 20 before dismissing the sheet. It must return to Settings → Tests
+   once, without moving tabs or recreating the navigation stack. Closing, swiping away,
+   or cancelling Apple's purchase dialog must preserve the originating screen.
+3. Open the ordinary offer preview, an accent-color premium gate, and the AI quota
+   sheet. They must still show the coming-soon content. The own-OpenAI-key alternative
+   belongs only to the AI quota sheet. A paid or lifetime quota refusal must not offer
+   an upgrade to the same allowance. Preserve the AI draft and transcript after close,
+   cancellation, or a newly confirmed entitlement; no close or access callback may
+   automatically send another billable turn. A pending accent selection may continue
+   once only after its request receives confirmed access for the same account.
+4. In the sandbox sheet and Settings → Subscription, use **Restore purchases** and
+   **Manage subscription**. Check immediate progress, retryable failures, and return to
+   the source screen. Restore repeatedly without duplicate purchases. Restore into a
+   second authenticated test account and confirm ownership follows the deliberate
+   restore after both accounts sync. An ordinary foreground reconciliation must not
+   transfer another account's purchase. After buying as A and restoring as B, return to
+   A and replay current, unfinished, and renewal/update transactions; B must retain
+   ownership after both accounts sync. Repeat passive replay alongside an explicit
+   Restore: the explicit operation must still reach the server and determine ownership.
+5. Exercise a pending purchase and background/foreground transitions. After approval,
+   the one transaction listener must attach, sync, and complete any still-open request
+   once. Replace the app identity while a purchase or restore is in flight; old results
+   and errors must not publish into the replacement account or complete its new sheet.
+   Link a purchasing guest to an account and verify billing and access follow the
+   existing guest-link lifecycle. On iPad, open two windows and confirm they share one
+   transaction listener and processing operation; closing either window must not stop
+   the other window's subscription runtime. Each sheet must return to its own screen.
+6. Allow a sandbox renewal, disable auto-renew, then observe expiry. Cancellation keeps
+   access until the paid-through date. Exercise a sandbox refund/revocation, then sync
+   and confirm access ends. Repeat using a lifetime holder: effective rank 30 must
+   survive purchase, expiry, and revocation. Settings must still show the verified
+   active Apple purchase and its current period end while lifetime is effective.
+   On the existing account deletion confirmation, verify the active-Apple warning
+   states that deleting the account does not cancel its subscription.
+7. Interrupt connectivity after Apple's purchase completes and before attachment is
+   acknowledged. Reconnect and use Restore/retry; an unsuccessful attachment must not
+   finish the transaction. Launch and foreground in airplane mode with and without an
+   Apple purchase: ordinary offline study must remain usable without a technical-error
+   sheet. Subscription Settings and the sandbox offer must expose reconciliation
+   failures, with Restore/retry available when connectivity returns.
+   Also exercise an empty product lookup and recovery through
+   Retry. Failure details must remain visible, with no optimistic access grant.
+8. Check long text, enlarged Dynamic Type, and an RTL language. All new UI strings must
+   come from the full 49 non-English app resource set; the 42 store metadata locales
+   are separate. Read only necessary billing metadata to confirm sandbox environment,
+   stable purchase identity, processed notifications, and expected entitlement. Keep
+   test identities and transaction IDs private. Reports exclude sandbox from production
+   revenue. Record build, device, language, outcome, and sanitized failure evidence.
+
+Public sales, the free-account allowance, the catalog, and the completed lifetime gift
+remain unchanged. The StoreKit service, presenter, root sheet, and Settings controls linked
+above are the implementation; this procedure is the manual acceptance contract.
 
 ## Apple references
 

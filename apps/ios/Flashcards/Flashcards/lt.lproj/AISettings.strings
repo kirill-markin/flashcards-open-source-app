@@ -862,3 +862,15 @@
 "settings.accentColor.custom" = "Pasirinktinė spalva";
 "settings.accentColor.invalidHex" = "Įveskite spalvą formatu #RRGGBB su šešiais šešioliktainiais skaitmenimis.";
 "settings.accentColor.premiumNote" = "Pasirinktinės akcento spalvos pasiekiamos su Premium. Išsaugota spalva grįžta, kai Premium aktyvus.";
+
+"premium.apple.sandbox" = "Bandomasis Premium pirkimas";
+"premium.apple.notice" = "Bandomiesiems pirkimams reikia TestFlight. Viešas pardavimas dar nepradėtas.";
+"premium.apple.renewal" = "Automatiškai atnaujinama iki atšaukimo. Tvarkykite arba atšaukite App Store prenumeratose.";
+"premium.apple.trial" = "Nemokamas bandomasis laikotarpis: %@. Tada:";
+"premium.apple.loadFailed" = "Nepavyko įkelti App Store pasiūlymo. Patikrinkite ryšį ir bandykite dar kartą.";
+"premium.apple.pending" = "Laukiama Apple arba paskyros patvirtinimo. Atkurkite pirkimus ir bandykite dar kartą.";
+"premium.apple.cancelled" = "Pirkimas atšauktas. Mokestis nenuskaičiuotas.";
+"premium.apple.failed" = "Nepavyko patvirtinti pirkimo. Atkurkite pirkimus ir bandykite dar kartą nepirkdami iš naujo.";
+"premium.apple.restore" = "Atkurti pirkimus";
+"premium.apple.sceneUnavailable" = "Atidarykite programą priekiniame plane, kad galėtumėte tvarkyti prenumeratą.";
+"premium.apple.deleteWarning" = "Turite aktyvią Apple prenumeratą. Paskyros ištrynimas jos neatšaukia. Tvarkykite arba atšaukite ją App Store.";

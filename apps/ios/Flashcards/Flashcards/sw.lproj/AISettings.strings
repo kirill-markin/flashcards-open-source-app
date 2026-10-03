@@ -862,3 +862,15 @@
 "settings.accentColor.custom" = "Rangi maalum";
 "settings.accentColor.invalidHex" = "Weka rangi kama #RRGGBB, ukitumia tarakimu sita za mfumo wa kumi na sita.";
 "settings.accentColor.premiumNote" = "Rangi maalum za msisitizo zinapatikana kwa Premium. Rangi uliyohifadhi itarudi Premium inapokuwa hai.";
+
+"premium.apple.sandbox" = "Ununuzi wa majaribio wa Premium";
+"premium.apple.notice" = "Ununuzi wa majaribio unahitaji TestFlight. Mauzo kwa umma bado hayajafunguliwa.";
+"premium.apple.renewal" = "Hujisasisha kiotomatiki hadi utakapoighairi. Dhibiti au ghairi katika usajili wako wa App Store.";
+"premium.apple.trial" = "Jaribio la bure: %@. Kisha:";
+"premium.apple.loadFailed" = "Imeshindwa kupakia ofa ya App Store. Angalia muunganisho wako na ujaribu tena.";
+"premium.apple.pending" = "Inasubiri uthibitisho wa Apple au akaunti. Rejesha manunuzi ili ujaribu tena.";
+"premium.apple.cancelled" = "Ununuzi umeghairiwa. Hujatozwa.";
+"premium.apple.failed" = "Ununuzi haukuweza kuthibitishwa. Rejesha manunuzi ili ujaribu tena bila kununua upya.";
+"premium.apple.restore" = "Rejesha manunuzi";
+"premium.apple.sceneUnavailable" = "Fungua programu mbele ili kudhibiti usajili wako.";
+"premium.apple.deleteWarning" = "Una usajili wa Apple unaotumika. Kufuta akaunti yako hakuughairi. Udhibiti au ughairi katika App Store.";

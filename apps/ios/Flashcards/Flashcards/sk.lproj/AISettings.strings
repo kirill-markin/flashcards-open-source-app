@@ -862,3 +862,15 @@
 "settings.accentColor.custom" = "Vlastná farba";
 "settings.accentColor.invalidHex" = "Zadajte farbu vo formáte #RRGGBB so šiestimi šestnástkovými číslicami.";
 "settings.accentColor.premiumNote" = "Vlastné farby zvýraznenia sú dostupné s Premium. Uložená farba sa vráti, keď bude Premium aktívne.";
+
+"premium.apple.sandbox" = "Testovací nákup Premium";
+"premium.apple.notice" = "Testovacie nákupy vyžadujú TestFlight. Verejný predaj ešte nie je otvorený.";
+"premium.apple.renewal" = "Automaticky sa obnovuje až do zrušenia. Spravujte alebo zrušte v predplatných App Storu.";
+"premium.apple.trial" = "Skúšobné obdobie zadarmo: %@. Potom:";
+"premium.apple.loadFailed" = "Ponuku App Storu sa nepodarilo načítať. Skontrolujte pripojenie a skúste to znova.";
+"premium.apple.pending" = "Čaká sa na potvrdenie od Apple alebo účtu. Na ďalší pokus obnovte nákupy.";
+"premium.apple.cancelled" = "Nákup bol zrušený. Nič vám nebolo účtované.";
+"premium.apple.failed" = "Nákup sa nepodarilo potvrdiť. Obnovte nákupy a skúste to znova bez ďalšieho nákupu.";
+"premium.apple.restore" = "Obnoviť nákupy";
+"premium.apple.sceneUnavailable" = "Na správu predplatného otvorte aplikáciu v popredí.";
+"premium.apple.deleteWarning" = "Máte aktívne predplatné Apple. Vymazaním účtu sa nezruší. Spravujte alebo zrušte ho v App Store.";
