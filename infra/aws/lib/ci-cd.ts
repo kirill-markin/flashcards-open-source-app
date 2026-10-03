@@ -86,6 +86,11 @@ export function ciCd(scope: Construct, props: CiCdProps): void {
   const cdkDeployStatements: iam.PolicyStatement[] = [
     ...geoLiteStatements,
     new iam.PolicyStatement({
+      sid: "ReadPublishedGeoLiteCountryDatabase",
+      actions: ["s3:GetObject"],
+      resources: [props.geoLiteCountryBucket.arnForObjects(geoLiteCountryObjectKey)],
+    }),
+    new iam.PolicyStatement({
       sid: "AssumeCdkRoles",
       actions: ["sts:AssumeRole"],
       resources: [`arn:aws:iam::${cdk.Aws.ACCOUNT_ID}:role/cdk-*`],

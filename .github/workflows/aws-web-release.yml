@@ -596,12 +596,12 @@ jobs:
             --stack-name ${{ env.STACK_NAME }} \
             --region ${{ env.AWS_REGION }}
 
-      - name: Refresh private GeoLite Country database
+      - name: Ensure fresh private GeoLite Country database
         if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
         env:
           MAXMIND_ACCOUNT_ID: ${{ secrets.MAXMIND_ACCOUNT_ID }}
           MAXMIND_LICENSE_KEY: ${{ secrets.MAXMIND_LICENSE_KEY }}
-        run: bash scripts/geolite/refresh-country.sh
+        run: bash scripts/geolite/ensure-country.sh
 
       - name: Check demo Cognito users
         if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
