@@ -7,9 +7,9 @@ file owns the public listing copy and the reviewer walkthrough, while this file
 covers the actions an operator performs (enabling the reviewer demo account,
 verifying the OAuth/DCR flow end-to-end, and the OpenAI-side prerequisites).
 
-Reviewer credentials are never committed here. Use `mcp-review@example.com` as
-the default reviewer email, and provide that email plus the shared private
-password to each directory through its private submission portal only.
+Active reviewer emails, passwords, and tokens are never committed here. Share
+access details only through the directory's private submission portal.
+`mcp-review@example.com` is a generic example, not a claimed live account.
 
 ## Pre-submit gate
 
@@ -56,19 +56,21 @@ Do not submit to any directory until all checks pass.
   curl -fsS https://auth.flashcards-open-source-app.com/.well-known/oauth-authorization-server | jq .
   ```
 
-- The `mcp-review@example.com` review/demo account is enabled, can complete
+- The selected review/demo account is enabled, can complete
   OAuth, and has a seeded workspace with decks and cards suitable for the
   reviewer walkthrough.
-- Reviewer credentials stay out of the repository. Paste them only into private
-  submission portals or private reviewer communication channels.
+- Active reviewer access details stay out of public listing copy, screenshots,
+  repository files, and PRs. Share them only through the private submission portal.
 
 ## Reviewer demo account
 
 The insecure review/demo bypass lets a directory reviewer sign in to a synthetic
-`@example.com` account without OTP and without receiving any email. It is gated
-to an explicit allowlist and a single shared password, and it only ever reaches
-that account's own workspace. Use one synthetic account for MCP directory
-submissions: `mcp-review@example.com`.
+`@example.com` account without OTP and without receiving any email. A
+comma-separated allowlist selects eligible accounts; the server supplies one
+shared Cognito password for all of them. Browser users need only the allowlisted
+email, so treat each active email as an access credential. Use a separate
+synthetic account for each directory review, with only disposable data and no
+access to real users' workspaces.
 
 ### Wiring already exists (no infra code needed)
 
@@ -91,27 +93,44 @@ change.
 AWS is never deployed locally. Make the configuration changes, push to `main`,
 and let CI/CD deploy.
 
-1. Use `mcp-review@example.com` as the review email. The allowlist rejects any
-   value that is not `@example.com`
-   (`apps/auth/src/server/demoEmailAccess.ts`).
-2. Create or populate the AWS Secrets Manager secret
-   `flashcards-open-source-app/demo-password-dostip` with a strong shared
-   password.
-3. Create the matching Cognito user manually for `mcp-review@example.com`: these
-   settings do not provision Cognito accounts, so the allowlisted email needs a
-   Cognito user whose password equals the shared demo password (see the README
-   section above).
-4. Set the GitHub repo variables `CDK_DEMO_EMAIL_DOSTIP`
-   (`mcp-review@example.com`) and `CDK_DEMO_PASSWORD_SECRET_ARN` (the secret
-   ARN).
-5. Push to `main` and let CI/CD deploy.
+1. Read the current GitHub `CDK_DEMO_EMAIL_DOSTIP`, deployed auth/API
+   `DEMO_EMAIL_DOSTIP`, and local root `.env` allowlist privately. Reconcile any
+   differences before editing; preserve every existing entry, including accounts
+   serving Apple, Google, and OpenAI reviews. Choose a new synthetic
+   `@example.com` email for Anthropic or the next directory.
+2. Reuse the deployed Secrets Manager secret
+   `flashcards-open-source-app/demo-password-dostip` and its existing password.
+   Preserve `CDK_DEMO_PASSWORD_SECRET_ARN`. Never replace or rotate the shared
+   password while any review is active; do not run a secret setup helper with a
+   new password merely to add an account.
+3. Manually create the new Cognito user in the deployed user pool with the
+   selected email and a permanent password equal to that existing shared
+   password. Suppress invitation email and mark the synthetic email verified;
+   it cannot receive mail. These settings do not provision Cognito users.
+4. Append the selected email to the comma-separated GitHub
+   `CDK_DEMO_EMAIL_DOSTIP` value and local explicit deploy config
+   (`DEMO_EMAIL_DOSTIP` in root `.env`), preserving the complete existing list
+   in both. Keep local `DEMO_PASSWORD_DOSTIP` aligned with the existing secret.
+   Edit the GitHub variable directly: `scripts/setup/setup-github.sh` only fills
+   missing variables and does not update an existing allowlist.
+5. Set the GitHub variable before queuing the release. Merge the infra README
+   change to `main` and watch the automatically triggered `AWS/Web Release`
+   through a successful platform deploy and post-deploy checks. Configuration
+   changes alone do not trigger a deployment; do not deploy AWS locally.
 
-After deploy, validate the deployed state with:
+After deploy, compare the auth and API Lambda allowlists with the complete
+expected list, including every previously active account. An operator can check
+Cognito user presence and the configured password policy with:
 
 ```bash
-bash scripts/checks/check-demo-cognito-users.sh \
+AWS_PROFILE=flashcards-open-source-app bash scripts/checks/check-demo-cognito-users.sh \
   --stack-name FlashcardsOpenSourceApp --region eu-central-1
 ```
+
+This check does not prove that each user's password matches the shared secret.
+Verify fresh browser sign-in for the new account and the existing review
+accounts, then complete OAuth and a tool call for the new directory. Keep
+account identifiers and verification output private.
 
 ### Seed the demo workspace
 
@@ -134,26 +153,31 @@ treat the whole workspace as disposable.
 Never put these credentials in this repository. Paste them into each directory's
 private submission portal.
 
-- **Browser / OAuth (Claude custom connector and ChatGPT):** enter
-  `mcp-review@example.com` on the auth login page. If the directory portal asks
-  for a password, provide the private shared demo password from Secrets Manager
-  or the approved deploy config. The server signs in automatically with the
-  configured shared password — no OTP, no email
-  (`apps/auth/src/routes/browser/sendCode.ts`). The full OAuth + PKCE + DCR +
-  consent handshake still runs; only the email-OTP step is replaced.
-- **Agent / API key (terminal):** enter `mcp-review@example.com` and the
-  deterministic placeholder code `00000000`
-  (`apps/auth/src/routes/agent/agentVerifyCode.ts`).
+- **Browser / OAuth (Claude custom connector and ChatGPT):** enter the selected
+  allowlisted email on the auth login page. No password entry, OTP, or email
+  delivery is required: the server supplies the shared password
+  (`apps/auth/src/routes/browser/sendCode.ts`). If a private portal requires a
+  password field, provide the existing shared password there and explain that
+  the browser login only needs the email. OAuth, PKCE, DCR, and consent still run.
+- **Agent / API key (terminal):** call `POST /api/agent/send-code` on the auth
+  host with the selected email. Pass the returned `otpSessionToken`, code
+  `00000000`, and an API-key `label` to `POST /api/agent/verify-code` before
+  the challenge expires. The placeholder is not the shared password; the server
+  supplies that password. Start a fresh challenge if it expires or is consumed
+  (`apps/auth/src/routes/agent/agentSendCode.ts` and `agentVerifyCode.ts`).
 - **Workspace data:** before submission, seed a small disposable workspace
   through `sql_execute` or `POST /v1/agent/sql/execute` using the review
   account's own connection.
 
 ### Post-review cleanup and security posture
 
-- Rotate the demo password after review completes.
-- Optionally remove `mcp-review@example.com` from `CDK_DEMO_EMAIL_DOSTIP` and
-  redeploy, or disable/delete the matching Cognito user when no active
-  directory review needs it.
+- Keep the shared password unchanged until all concurrent reviews finish.
+  Then rotate it together with the passwords of every retained allowlisted
+  Cognito user and the local secret config; refresh the deployed auth runtime
+  through CI/CD and verify sign-in before reusing any account.
+- When no active review needs an account, remove only its entry from the GitHub
+  and local allowlists and redeploy through CI/CD, or disable/delete that
+  Cognito user. Preserve all other accounts, their data, and the shared secret.
 - Keep the seeded workspace disposable and replace it before future submissions
   if it accumulates irrelevant data.
 - The demo account only ever sees its own workspace (per-user workspace
