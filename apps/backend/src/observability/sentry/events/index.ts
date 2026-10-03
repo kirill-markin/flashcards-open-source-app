@@ -90,6 +90,7 @@ export type {
   ChatWorkerDispatchFailureDetails,
   ChatWorkerFailureDetails,
   ChatWorkerLifecycleDetails,
+  ChatWorkerTerminalStateDetails,
   GeneratedCardImageProviderDetails,
   LangfuseChatTranscriptionExportFailureDetails,
   LangfuseChatTranscriptionStartFailureDetails,
