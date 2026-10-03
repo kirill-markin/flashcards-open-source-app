@@ -1,6 +1,9 @@
+import stripeCopy from "../../../../backend/src/billing/stripe/copy/locales/ta.json";
+import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const taCatalog: TranslationCatalog = {
+  stripe: createStripeCatalog(stripeCopy),
   accentColorSettings: {
     title: "சிறப்பம்ச நிறம்",
     subtitle: "செயலியின் சிறப்பம்ச நிறத்தைத் தேர்ந்தெடுக்கவும்.",

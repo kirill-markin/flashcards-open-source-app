@@ -54,8 +54,8 @@ components_for_path() {
     # are published again in the same run.
     infra/*)
       echo "platform web admin" ;;
-    # The web client compiles this backend module into its bundle.
-    apps/backend/src/scheduling/*)
+    # The web client compiles these backend sources into its bundle.
+    apps/backend/src/scheduling/*|apps/backend/src/billing/stripe/copy/*)
       echo "platform web" ;;
     apps/backend/src/reviewMetricsSql.ts)
       echo "platform admin" ;;

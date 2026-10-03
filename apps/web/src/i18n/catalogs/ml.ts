@@ -1,6 +1,9 @@
+import stripeCopy from "../../../../backend/src/billing/stripe/copy/locales/ml.json";
+import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const mlCatalog: TranslationCatalog = {
+  stripe: createStripeCatalog(stripeCopy),
   accentColorSettings: {
     title: "ആക്സന്റ് നിറം",
     subtitle: "ആപ്പിന്റെ ആക്സന്റ് നിറം തിരഞ്ഞെടുക്കുക.",
