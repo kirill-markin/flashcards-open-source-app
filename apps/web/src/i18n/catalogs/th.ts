@@ -1274,7 +1274,7 @@ const thCatalog: TranslationCatalog = {
       reviewAllCards: "ทบทวนการ์ดทั้งหมด",
       reviewDeck: "ทบทวนเด็คนี้",
     },
-    deleteConfirmation: "ลบเด็คนี้ใช่ไหม",
+    deleteConfirmation: "ลบ “{{name}}” ใช่ไหม การ์ดของคุณจะยังคงอยู่ โดยจะลบเฉพาะตัวกรองเด็คที่บันทึกไว้เท่านั้น",
     empty: {
       allCards: "คุณยังไม่ได้สร้างการ์ดเลย",
       deckCards: "เด็คนี้ยังไม่มีการ์ดที่ตรงกัน",

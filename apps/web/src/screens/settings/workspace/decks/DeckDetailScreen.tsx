@@ -45,17 +45,14 @@ export function DeckDetailScreen(): ReactElement {
   const {
     activeWorkspace,
     cloudSettings,
-    deleteDeckItem,
     openReview,
     session,
-    setErrorMessage,
     localReadVersion,
     refreshLocalData,
   } = useAppData();
   const [detailState, setDetailState] = useState<DeckDetailState | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [screenErrorMessage, setScreenErrorMessage] = useState<string>("");
-  const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const observationIdentityRef = useRef<Readonly<{
     userId: string | null;
     installationId: string | null;
@@ -170,53 +167,6 @@ export function DeckDetailScreen(): ReactElement {
   useEffect(() => {
     void loadScreenData();
   }, [loadScreenData, localReadVersion]);
-
-  async function handleDelete(): Promise<void> {
-    if (indexedDbOpenRecoveryState.hasFailed()) {
-      return;
-    }
-
-    if (deckId === undefined || deckId === ALL_CARDS_DECK_SLUG) {
-      setScreenErrorMessage(t("deckDetail.errors.systemDeckDelete"));
-      return;
-    }
-
-    if (window.confirm(t("deckDetail.deleteConfirmation")) === false) {
-      return;
-    }
-
-    setIsDeleting(true);
-    setScreenErrorMessage("");
-    setErrorMessage("");
-
-    try {
-      await deleteDeckItem(deckId);
-      indexedDbOpenRecoveryState.throwIfFailed();
-      navigate(workspacePath(settingsDecksRoute));
-    } catch (error) {
-      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
-        return;
-      }
-      const wasCaptured = captureAppOperationError(error, {
-        feature: "settings",
-        operation: "deck_delete",
-        userId: session?.userId ?? null,
-        workspaceId: activeWorkspace?.workspaceId ?? null,
-        installationId: cloudSettings?.installationId ?? null,
-        entityId: deckId,
-      });
-      if (wasCaptured) {
-        showCapturedTechnicalError(error);
-        setScreenErrorMessage(technicalErrorMessage);
-      } else {
-        setScreenErrorMessage(error instanceof Error ? error.message : String(error));
-      }
-    } finally {
-      if (indexedDbOpenRecoveryState.hasFailed() === false) {
-        setIsDeleting(false);
-      }
-    }
-  }
 
   function handleOpenReview(): void {
     if (indexedDbOpenRecoveryState.hasFailed() || detailState === null) {
@@ -339,16 +289,6 @@ export function DeckDetailScreen(): ReactElement {
                 <p className="error-banner">{t("deckDetail.warnings.emptyRules")}</p>
               ) : null}
 
-              {detailState.allowsEditing ? (
-                <button
-                  type="button"
-                  className="ghost-btn deck-detail-delete-btn"
-                  disabled={isDeleting}
-                  onClick={() => void handleDelete()}
-                >
-                  {isDeleting ? t("deckDetail.actions.deleting") : t("deckDetail.actions.delete")}
-                </button>
-              ) : null}
             </section>
 
             <section className="deck-detail-panel">

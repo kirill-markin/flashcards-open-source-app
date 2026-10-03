@@ -1274,7 +1274,7 @@ const svCatalog: TranslationCatalog = {
       reviewAllCards: "Repetera alla kort",
       reviewDeck: "Repetera den här kortleken",
     },
-    deleteConfirmation: "Radera kortleken?",
+    deleteConfirmation: "Radera ”{{name}}”? Dina kort finns kvar. Endast kortlekens sparade filter tas bort.",
     empty: {
       allCards: "Du har inte skapat några kort än.",
       deckCards: "Kortleken har inga matchande kort än.",

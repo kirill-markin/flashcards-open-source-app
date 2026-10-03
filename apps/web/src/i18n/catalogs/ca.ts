@@ -1274,7 +1274,7 @@ const caCatalog: TranslationCatalog = {
       reviewAllCards: "Repassa totes les targetes",
       reviewDeck: "Repassa aquesta baralla",
     },
-    deleteConfirmation: "Vols suprimir aquesta baralla?",
+    deleteConfirmation: "Vols suprimir «{{name}}»? Les teves targetes es conservaran. Només se suprimirà el filtre desat de la baralla.",
     empty: {
       allCards: "Encara no has creat cap targeta.",
       deckCards: "Aquesta baralla encara no té cap targeta coincident.",

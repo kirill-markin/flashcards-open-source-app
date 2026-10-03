@@ -1274,7 +1274,7 @@ const nlCatalog: TranslationCatalog = {
       reviewAllCards: "Alle kaarten herhalen",
       reviewDeck: "Dit deck herhalen",
     },
-    deleteConfirmation: "Dit deck verwijderen?",
+    deleteConfirmation: "‘{{name}}’ verwijderen? Je kaarten blijven bewaard. Alleen het opgeslagen deckfilter wordt verwijderd.",
     empty: {
       allCards: "Je hebt nog geen kaarten gemaakt.",
       deckCards: "Dit deck heeft nog geen passende kaarten.",

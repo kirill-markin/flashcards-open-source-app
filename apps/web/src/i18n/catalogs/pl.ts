@@ -1287,7 +1287,7 @@ const plCatalog: TranslationCatalog = {
       reviewAllCards: "Powtarzaj wszystkie karty",
       reviewDeck: "Powtarzaj tę talię",
     },
-    deleteConfirmation: "Usunąć tę talię?",
+    deleteConfirmation: "Usunąć „{{name}}”? Twoje karty pozostaną. Usunięty zostanie tylko zapisany filtr talii.",
     empty: {
       allCards: "Nie masz jeszcze żadnych kart.",
       deckCards: "Ta talia nie ma jeszcze pasujących kart.",

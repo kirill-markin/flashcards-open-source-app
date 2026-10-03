@@ -1274,7 +1274,7 @@ export const zhHansCatalog = {
       reviewAllCards: "复习所有卡片",
       reviewDeck: "复习这个牌组",
     },
-    deleteConfirmation: "删除这个牌组？",
+    deleteConfirmation: "删除“{{name}}”？你的卡片将被保留。此操作只会移除已保存的牌组筛选器。",
     empty: {
       allCards: "您还没有创建任何卡片。",
       deckCards: "此牌组中还没有匹配的卡片。",

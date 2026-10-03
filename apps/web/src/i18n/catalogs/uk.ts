@@ -1287,7 +1287,7 @@ const ukCatalog: TranslationCatalog = {
       reviewAllCards: "Повторювати всі картки",
       reviewDeck: "Повторювати цю колоду",
     },
-    deleteConfirmation: "Видалити цю колоду?",
+    deleteConfirmation: "Видалити «{{name}}»? Ваші картки залишаться. Буде видалено лише збережений фільтр колоди.",
     empty: {
       allCards: "Ви ще не створили жодної картки.",
       deckCards: "У цій колоді ще немає відповідних карток.",

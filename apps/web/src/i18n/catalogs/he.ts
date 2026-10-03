@@ -1274,7 +1274,7 @@ const heCatalog: TranslationCatalog = {
       reviewAllCards: "חזרה על כל הכרטיסים",
       reviewDeck: "חזרה על החפיסה הזו",
     },
-    deleteConfirmation: "למחוק את החפיסה הזו?",
+    deleteConfirmation: "למחוק את ״{{name}}״? הכרטיסיות שלך יישארו. פעולה זו מסירה רק את המסנן השמור של החפיסה.",
     empty: {
       allCards: "עדיין לא יצרת כרטיסים.",
       deckCards: "לחפיסה הזו עדיין אין כרטיסים תואמים.",

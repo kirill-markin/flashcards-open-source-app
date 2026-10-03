@@ -1274,7 +1274,7 @@ const faCatalog: TranslationCatalog = {
       reviewAllCards: "مرور همهٔ کارت‌ها",
       reviewDeck: "مرور این دسته",
     },
-    deleteConfirmation: "این دسته حذف شود؟",
+    deleteConfirmation: "«{{name}}» حذف شود؟ کارت‌های شما باقی می‌مانند. فقط فیلتر ذخیره‌شدهٔ دسته حذف می‌شود.",
     empty: {
       allCards: "هنوز هیچ کارتی نساخته‌اید.",
       deckCards: "این دسته هنوز هیچ کارت مطابقی ندارد.",

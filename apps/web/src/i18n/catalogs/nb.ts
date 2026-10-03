@@ -1274,7 +1274,7 @@ const nbCatalog: TranslationCatalog = {
       reviewAllCards: "Repeter alle kort",
       reviewDeck: "Repeter denne kortstokken",
     },
-    deleteConfirmation: "Slette denne kortstokken?",
+    deleteConfirmation: "Slette «{{name}}»? Kortene dine beholdes. Dette fjerner bare kortstokkens lagrede filter.",
     empty: {
       allCards: "Du har ikke laget noen kort ennå.",
       deckCards: "Denne kortstokken har ingen kort som passer ennå.",

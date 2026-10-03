@@ -1274,7 +1274,7 @@ const mrCatalog: TranslationCatalog = {
       reviewAllCards: "सर्व कार्डांची उजळणी करा",
       reviewDeck: "या संचाची उजळणी करा",
     },
-    deleteConfirmation: "हा संच हटवायचा?",
+    deleteConfirmation: "“{{name}}” हटवायचा? तुमची कार्डे कायम राहतील. यामुळे फक्त संचाचा जतन केलेला फिल्टर काढला जाईल.",
     empty: {
       allCards: "तुम्ही अद्याप कोणतीही कार्डे तयार केलेली नाहीत.",
       deckCards: "या संचात अद्याप जुळणारी कार्डे नाहीत.",

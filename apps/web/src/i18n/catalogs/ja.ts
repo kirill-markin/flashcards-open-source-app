@@ -1274,7 +1274,7 @@ export const jaCatalog = {
       reviewAllCards: "すべてのカードを復習",
       reviewDeck: "このデッキを復習",
     },
-    deleteConfirmation: "このデッキを削除しますか？",
+    deleteConfirmation: "「{{name}}」を削除しますか？カードは残ります。保存済みのデッキフィルターのみが削除されます。",
     empty: {
       allCards: "まだカードを作成していません。",
       deckCards: "このデッキには一致するカードがまだありません。",

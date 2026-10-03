@@ -1274,7 +1274,7 @@ const idCatalog: TranslationCatalog = {
       reviewAllCards: "Tinjau semua kartu",
       reviewDeck: "Tinjau dek ini",
     },
-    deleteConfirmation: "Hapus dek ini?",
+    deleteConfirmation: "Hapus “{{name}}”? Kartu Anda akan tetap ada. Ini hanya menghapus filter dek yang tersimpan.",
     empty: {
       allCards: "Anda belum membuat kartu apa pun.",
       deckCards: "Dek ini belum punya kartu yang cocok.",

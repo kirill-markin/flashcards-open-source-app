@@ -1274,7 +1274,7 @@ const knCatalog: TranslationCatalog = {
       reviewAllCards: "ಎಲ್ಲ ಕಾರ್ಡ್‌ಗಳನ್ನು ಪುನರಾವರ್ತಿಸಿ",
       reviewDeck: "ಈ ಡೆಕ್ ಪುನರಾವರ್ತಿಸಿ",
     },
-    deleteConfirmation: "ಈ ಡೆಕ್ ಅಳಿಸಬೇಕೆ?",
+    deleteConfirmation: "“{{name}}” ಅಳಿಸಬೇಕೆ? ನಿಮ್ಮ ಕಾರ್ಡ್‌ಗಳು ಉಳಿಯುತ್ತವೆ. ಇದು ಡೆಕ್‌ನ ಉಳಿಸಿದ ಫಿಲ್ಟರ್ ಅನ್ನು ಮಾತ್ರ ತೆಗೆದುಹಾಕುತ್ತದೆ.",
     empty: {
       allCards: "ನೀವು ಇನ್ನೂ ಯಾವುದೇ ಕಾರ್ಡ್ ರಚಿಸಿಲ್ಲ.",
       deckCards: "ಈ ಡೆಕ್‌ಗೆ ಹೊಂದುವ ಕಾರ್ಡ್‌ಗಳು ಇನ್ನೂ ಇಲ್ಲ.",

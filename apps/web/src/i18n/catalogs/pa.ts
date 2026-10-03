@@ -1274,7 +1274,7 @@ const paCatalog: TranslationCatalog = {
       reviewAllCards: "ਸਾਰੇ ਕਾਰਡਾਂ ਦੀ ਦੁਹਰਾਈ ਕਰੋ",
       reviewDeck: "ਇਸ ਡੈੱਕ ਦੀ ਦੁਹਰਾਈ ਕਰੋ",
     },
-    deleteConfirmation: "ਇਹ ਡੈੱਕ ਮਿਟਾਉਣਾ ਹੈ?",
+    deleteConfirmation: "“{{name}}” ਮਿਟਾਉਣਾ ਹੈ? ਤੁਹਾਡੇ ਕਾਰਡ ਰਹਿਣਗੇ। ਇਸ ਨਾਲ ਸਿਰਫ਼ ਡੈੱਕ ਦਾ ਸੰਭਾਲਿਆ ਫਿਲਟਰ ਹਟੇਗਾ।",
     empty: {
       allCards: "ਤੁਸੀਂ ਹਾਲੇ ਕੋਈ ਕਾਰਡ ਨਹੀਂ ਬਣਾਇਆ.",
       deckCards: "ਇਸ ਡੈੱਕ ਵਿੱਚ ਹਾਲੇ ਕੋਈ ਮੇਲ ਖਾਂਦਾ ਕਾਰਡ ਨਹੀਂ ਹੈ.",

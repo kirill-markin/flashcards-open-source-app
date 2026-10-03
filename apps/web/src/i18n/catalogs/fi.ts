@@ -1274,7 +1274,7 @@ const fiCatalog: TranslationCatalog = {
       reviewAllCards: "Kertaa kaikki kortit",
       reviewDeck: "Kertaa tämä pakka",
     },
-    deleteConfirmation: "Poistetaanko tämä pakka?",
+    deleteConfirmation: "Poistetaanko ”{{name}}”? Korttisi säilyvät. Tämä poistaa vain pakan tallennetun suodattimen.",
     empty: {
       allCards: "Et ole vielä luonut kortteja.",
       deckCards: "Tässä pakassa ei ole vielä vastaavia kortteja.",

@@ -1287,7 +1287,7 @@ const ltCatalog: TranslationCatalog = {
       reviewAllCards: "Kartoti visas korteles",
       reviewDeck: "Kartoti šią kaladę",
     },
-    deleteConfirmation: "Ištrinti šią kaladę?",
+    deleteConfirmation: "Ištrinti „{{name}}“? Jūsų kortelės liks. Bus pašalintas tik išsaugotas kaladės filtras.",
     empty: {
       allCards: "Dar nesukūrėte nė vienos kortelės.",
       deckCards: "Šioje kaladėje dar nėra atitinkančių kortelių.",

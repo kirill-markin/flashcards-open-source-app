@@ -1274,7 +1274,7 @@ const bgCatalog: TranslationCatalog = {
       reviewAllCards: "Преговор на всички карти",
       reviewDeck: "Преговор на това тесте",
     },
-    deleteConfirmation: "Изтриване на това тесте?",
+    deleteConfirmation: "Изтриване на „{{name}}“? Картите ви ще останат. Това премахва само запазения филтър на тестето.",
     empty: {
       allCards: "Все още не сте създали никакви карти.",
       deckCards: "Това тесте все още няма съответстващи карти.",

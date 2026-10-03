@@ -1274,7 +1274,7 @@ const daCatalog: TranslationCatalog = {
       reviewAllCards: "Repetér alle kort",
       reviewDeck: "Repetér denne bunke",
     },
-    deleteConfirmation: "Vil du slette denne bunke?",
+    deleteConfirmation: "Vil du slette “{{name}}”? Dine kort bliver bevaret. Dette fjerner kun bunkens gemte filter.",
     empty: {
       allCards: "Du har ikke oprettet nogen kort endnu.",
       deckCards: "Denne bunke har endnu ingen kort, der matcher.",

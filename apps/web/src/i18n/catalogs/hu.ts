@@ -1274,7 +1274,7 @@ const huCatalog: TranslationCatalog = {
       reviewAllCards: "Összes kártya ismétlése",
       reviewDeck: "Ennek a paklinak az ismétlése",
     },
-    deleteConfirmation: "Törlöd ezt a paklit?",
+    deleteConfirmation: "Törlöd ezt: „{{name}}”? A kártyáid megmaradnak. Ez csak a pakli mentett szűrőjét távolítja el.",
     empty: {
       allCards: "Még nem hoztál létre kártyát.",
       deckCards: "Ebben a pakliban még nincs megfelelő kártya.",

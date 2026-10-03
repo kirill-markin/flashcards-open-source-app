@@ -1272,7 +1272,7 @@ const enCatalog = {
       reviewAllCards: "Review all cards",
       reviewDeck: "Review this deck",
     },
-    deleteConfirmation: "Delete this deck?",
+    deleteConfirmation: "Delete “{{name}}”? Your cards will remain. This removes only the saved deck filter.",
     empty: {
       allCards: "You have not created any cards yet.",
       deckCards: "This deck does not have any matching cards yet.",
