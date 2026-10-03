@@ -1,3 +1,4 @@
+// Copied in infra/aws/lib/gateways/auth-oauth-discovery.ts (production scopes_supported); change both in the same commit.
 export const OAUTH_SCOPES = ["flashcards", "openid", "email"] as const;
 
 export function hasOAuthScope(scope: string | null, name: string): boolean {
