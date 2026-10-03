@@ -848,8 +848,8 @@
 "settings.language.supported.vietnamese" = "Tiếng Việt";
 "settings.language.supported.zulu" = "Tiếng Zulu";
 
-"premium.comingSoon.title" = "Premium sắp ra mắt";
-"premium.comingSoon.message" = "Hiện chưa thể đăng ký gói thuê bao.";
+"premium.offer.title" = "Premium";
+"premium.offer.benefits" = "1.000 tin nhắn AI mỗi tháng và màu nhấn tùy chỉnh. Đồng bộ miễn phí cho mọi người.";
 "premium.aiLimit.title" = "Đã đạt giới hạn tin nhắn AI";
 
 "settings.accentColor.title" = "Màu nhấn";
@@ -863,8 +863,6 @@
 "settings.accentColor.invalidHex" = "Nhập màu ở dạng #RRGGBB với sáu chữ số thập lục phân.";
 "settings.accentColor.premiumNote" = "Màu nhấn tùy chỉnh có sẵn với Premium. Màu đã lưu sẽ trở lại khi Premium hoạt động.";
 
-"premium.apple.sandbox" = "Mua thử nghiệm Premium";
-"premium.apple.notice" = "Giao dịch thử nghiệm yêu cầu TestFlight. Chưa mở bán công khai.";
 "premium.apple.renewal" = "Tự động gia hạn cho đến khi hủy. Quản lý hoặc hủy trong mục đăng ký App Store của bạn.";
 "premium.apple.trial" = "Dùng thử miễn phí: %@. Sau đó:";
 "premium.apple.loadFailed" = "Không thể tải ưu đãi App Store. Kiểm tra kết nối và thử lại.";

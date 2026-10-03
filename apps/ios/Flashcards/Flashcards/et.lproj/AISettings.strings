@@ -848,8 +848,8 @@
 "settings.language.supported.vietnamese" = "Vietnami";
 "settings.language.supported.zulu" = "Suulu";
 
-"premium.comingSoon.title" = "Premium on peagi tulekul";
-"premium.comingSoon.message" = "Tellimused pole veel saadaval.";
+"premium.offer.title" = "Premium";
+"premium.offer.benefits" = "1000 tehisintellekti sõnumit kuus ja kohandatud aktsentvärvid. Sünkroonimine on kõigile tasuta.";
 "premium.aiLimit.title" = "AI-sõnumite limiit on täis";
 
 "settings.accentColor.title" = "Rõhuvärv";
@@ -863,8 +863,6 @@
 "settings.accentColor.invalidHex" = "Sisesta värv kujul #RRGGBB kuue kuueteistkümnendsüsteemi numbriga.";
 "settings.accentColor.premiumNote" = "Kohandatud rõhuvärvid on saadaval Premiumiga. Salvestatud värv taastub, kui Premium on aktiivne.";
 
-"premium.apple.sandbox" = "Premiumi testost";
-"premium.apple.notice" = "Testostud vajavad TestFlighti. Avalik müük pole veel avatud.";
 "premium.apple.renewal" = "Uueneb automaatselt kuni tühistamiseni. Halda või tühista App Store’i tellimustes.";
 "premium.apple.trial" = "Tasuta prooviperiood: %@. Seejärel:";
 "premium.apple.loadFailed" = "App Store’i pakkumist ei saanud laadida. Kontrolli ühendust ja proovi uuesti.";

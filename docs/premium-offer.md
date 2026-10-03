@@ -84,7 +84,8 @@ the real backend. Reports separate test purchases from revenue by filtering on `
 
 ## Store rail order
 
-Apple first, then Google, then Stripe on the web.
+Apple purchases are available through the shared iOS Premium offer. Google and Stripe purchases
+remain pending on Android and the web.
 
 ## Accent color
 
@@ -92,7 +93,8 @@ General settings opens an Accent color subscreen. Premium and lifetime (effectiv
 can choose Default `#C44B2D`, Blue `#4D8DFF`, Purple `#A78BFA`, Pink `#F472B6`, Teal `#2DD4BF`,
 Gold `#EAB308`, or an arbitrary opaque RGB color with explicit HEX entry. The exact chosen RGB is
 used without contrast correction; alpha is unsupported. Default remains available to everyone.
-Free users see a premium note and the shared coming-soon paywall.
+Free users see a premium note and the shared Premium offer on iOS; Android and web retain the
+coming-soon paywall.
 
 The selection is account-wide, stored independently of entitlement, and distinct from the displayed
 color. A confirmed downgrade displays Default while retaining the selection; resubscription restores

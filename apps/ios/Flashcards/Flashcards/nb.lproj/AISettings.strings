@@ -848,8 +848,8 @@
 "settings.language.supported.vietnamese" = "Vietnamesisk";
 "settings.language.supported.zulu" = "Zulu";
 
-"premium.comingSoon.title" = "Premium kommer snart";
-"premium.comingSoon.message" = "Abonnementer er ikke tilgjengelige ennå.";
+"premium.offer.title" = "Premium";
+"premium.offer.benefits" = "1 000 AI-meldinger per måned og egendefinerte aksentfarger. Synkronisering er gratis for alle.";
 "premium.aiLimit.title" = "Grensen for AI-meldinger er nådd";
 
 "settings.accentColor.title" = "Aksentfarge";
@@ -863,8 +863,6 @@
 "settings.accentColor.invalidHex" = "Skriv inn en farge som #RRGGBB med seks heksadesimale sifre.";
 "settings.accentColor.premiumNote" = "Egendefinerte aksentfarger er tilgjengelige med Premium. Den lagrede fargen kommer tilbake når Premium er aktivt.";
 
-"premium.apple.sandbox" = "Premium-testkjøp";
-"premium.apple.notice" = "Testkjøp krever TestFlight. Offentlig salg er ikke åpnet ennå.";
 "premium.apple.renewal" = "Fornyes automatisk til du sier opp. Administrer eller si opp under App Store-abonnementene dine.";
 "premium.apple.trial" = "Gratis prøveperiode: %@. Deretter:";
 "premium.apple.loadFailed" = "Kunne ikke laste App Store-tilbudet. Sjekk tilkoblingen og prøv igjen.";

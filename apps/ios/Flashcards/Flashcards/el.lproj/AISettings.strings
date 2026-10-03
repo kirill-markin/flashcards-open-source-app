@@ -848,8 +848,8 @@
 "settings.language.supported.vietnamese" = "Βιετναμικά";
 "settings.language.supported.zulu" = "Ζουλού";
 
-"premium.comingSoon.title" = "Το Premium έρχεται σύντομα";
-"premium.comingSoon.message" = "Οι συνδρομές δεν είναι ακόμη διαθέσιμες.";
+"premium.offer.title" = "Premium";
+"premium.offer.benefits" = "1.000 μηνύματα AI τον μήνα και προσαρμοσμένα χρώματα έμφασης. Ο συγχρονισμός είναι δωρεάν για όλους.";
 "premium.aiLimit.title" = "Συμπληρώθηκε το όριο μηνυμάτων AI";
 
 "settings.accentColor.title" = "Χρώμα έμφασης";
@@ -863,8 +863,6 @@
 "settings.accentColor.invalidHex" = "Εισαγάγετε ένα χρώμα ως #RRGGBB, με έξι δεκαεξαδικά ψηφία.";
 "settings.accentColor.premiumNote" = "Τα προσαρμοσμένα χρώματα έμφασης διατίθενται με το Premium. Το αποθηκευμένο χρώμα σας επιστρέφει όταν το Premium είναι ενεργό.";
 
-"premium.apple.sandbox" = "Δοκιμαστική αγορά Premium";
-"premium.apple.notice" = "Οι δοκιμαστικές αγορές απαιτούν TestFlight. Οι δημόσιες πωλήσεις δεν έχουν ανοίξει.";
 "premium.apple.renewal" = "Ανανεώνεται αυτόματα μέχρι να ακυρωθεί. Διαχειριστείτε ή ακυρώστε στις συνδρομές σας στο App Store.";
 "premium.apple.trial" = "Δωρεάν δοκιμή: %@. Έπειτα:";
 "premium.apple.loadFailed" = "Δεν ήταν δυνατή η φόρτωση της προσφοράς του App Store. Ελέγξτε τη σύνδεσή σας και δοκιμάστε ξανά.";

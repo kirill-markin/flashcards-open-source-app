@@ -848,8 +848,8 @@
 "settings.language.supported.vietnamese" = "வியட்நாமியம்";
 "settings.language.supported.zulu" = "ஜூலு";
 
-"premium.comingSoon.title" = "Premium விரைவில் வருகிறது";
-"premium.comingSoon.message" = "சந்தாக்கள் இன்னும் கிடைக்கவில்லை.";
+"premium.offer.title" = "Premium";
+"premium.offer.benefits" = "மாதத்திற்கு 1,000 AI செய்திகள் மற்றும் தனிப்பயன் சிறப்புநிறங்கள். ஒத்திசைவு அனைவருக்கும் இலவசம்.";
 "premium.aiLimit.title" = "AI செய்திகளின் வரம்பை எட்டிவிட்டீர்கள்";
 
 "settings.accentColor.title" = "சிறப்பம்ச நிறம்";
@@ -863,8 +863,6 @@
 "settings.accentColor.invalidHex" = "ஆறு பதினாறும எண்களுடன் #RRGGBB வடிவத்தில் நிறத்தை உள்ளிடவும்.";
 "settings.accentColor.premiumNote" = "விருப்ப சிறப்பம்ச நிறங்கள் Premium உடன் கிடைக்கும். Premium செயலில் இருக்கும்போது சேமித்த நிறம் திரும்ப வரும்.";
 
-"premium.apple.sandbox" = "Premium சோதனைக் கொள்முதல்";
-"premium.apple.notice" = "சோதனைக் கொள்முதல்களுக்கு TestFlight தேவை. பொதுவிற்பனை இன்னும் தொடங்கவில்லை.";
 "premium.apple.renewal" = "ரத்துசெய்யும் வரை தானாகப் புதுப்பிக்கப்படும். App Store சந்தாக்களில் நிர்வகிக்கலாம் அல்லது ரத்துசெய்யலாம்.";
 "premium.apple.trial" = "இலவசச் சோதனை: %@. அதன் பிறகு:";
 "premium.apple.loadFailed" = "App Store சலுகையை ஏற்ற முடியவில்லை. இணைப்பைச் சரிபார்த்து மீண்டும் முயலவும்.";

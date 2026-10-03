@@ -260,12 +260,8 @@ func localizedAIAttachmentMenuActionTitle(_ action: AIChatAttachmentMenuAction) 
     }
 }
 
-func premiumComingSoonTitle() -> String {
-    aiSettingsLocalized("premium.comingSoon.title", "Premium is coming soon")
-}
-
-func premiumComingSoonMessage() -> String {
-    aiSettingsLocalized("premium.comingSoon.message", "Subscriptions aren’t available yet.")
+func premiumOfferTitle() -> String {
+    aiSettingsLocalized("premium.offer.title", "Premium")
 }
 
 func premiumAILimitTitle() -> String {
