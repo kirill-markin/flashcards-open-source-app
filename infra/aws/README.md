@@ -40,7 +40,7 @@ Keep these values in root `.env` before running setup or deploy scripts:
 - `OPENAI_API_KEY` when needed
 - `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, and optionally `LANGFUSE_BASE_URL` when Langfuse tracing is enabled
 - Required backend Sentry setup:
-  `SENTRY_DSN` for bootstrap-created AWS secret `flashcards-open-source-app/sentry-dsn`, or `SENTRY_DSN_SECRET_ARN` for an existing AWS Secrets Manager secret; `SENTRY_ENVIRONMENT`; `SENTRY_RELEASE` (CI should use the deployed GitHub SHA; manual/local context can use the target commit SHA); `SENTRY_TRACES_SAMPLE_RATE`; `SENTRY_ORG`; `SENTRY_BACKEND_PROJECT`; and `SENTRY_AUTH_TOKEN` for backend source map uploads
+  `SENTRY_DSN` for bootstrap-created AWS secret `flashcards-open-source-app/sentry-dsn`, or `SENTRY_DSN_SECRET_ARN` for an existing AWS Secrets Manager secret; `SENTRY_ENVIRONMENT`; `SENTRY_RELEASE` (required legacy context input; CI supplies the GitHub SHA, while Lambda release labels use the emitted code asset hash); `SENTRY_TRACES_SAMPLE_RATE`; `SENTRY_ORG`; `SENTRY_BACKEND_PROJECT`; and `SENTRY_AUTH_TOKEN` for backend source map uploads
 - Optional web Sentry setup:
   `VITE_SENTRY_DSN`; `VITE_SENTRY_TRACES_SAMPLE_RATE`; and `SENTRY_WEB_PROJECT` for web source map uploads. Web source map uploads reuse `SENTRY_ORG` and `SENTRY_AUTH_TOKEN`.
 - `DEMO_EMAIL_DOSTIP` and `DEMO_PASSWORD_DOSTIP` when review/demo bypass is enabled
@@ -74,6 +74,10 @@ That flow:
 - populates missing deploy config in GitHub Actions variables without overwriting existing values
 
 You can still run CDK manually from `infra/aws`; the local helper scripts assemble the CDK context file before the CDK step.
+
+## Lambda Sentry releases
+
+Lambda source maps receive deterministic debug IDs during every synth. Each configured Lambda uses `lambda-<CDK unique function ID>@<code asset hash>` as its Sentry release, so unchanged code retains its release across commits and deployment phases. Runtime configuration still updates through the Lambda environment independently. After both deployment phases succeed, `scripts/deploy/upload-lambda-source-maps.py` reads the final cloud assembly, matches each template’s release and S3 code key to its asset manifest, verifies matching JavaScript/map debug IDs, and uploads only that bundle pair. Sentry credentials are provided only to this upload step. Git SHA provenance remains in the workflow summary and deployed-component SSM records.
 
 ## Secret setup helpers
 
@@ -158,24 +162,15 @@ The helper flow is:
 
 ## Review/demo accounts
 
-`DEMO_EMAIL_DOSTIP` configures the insecure review/demo allowlist in the auth Lambda, and the deployed auth Lambda reads the shared password from the AWS secret `flashcards-open-source-app/demo-password-dostip`.
+`DEMO_EMAIL_DOSTIP` is a comma-separated allowlist of synthetic `@example.com`
+review accounts. The auth Lambda reads their single shared Cognito password
+from `flashcards-open-source-app/demo-password-dostip` in Secrets Manager;
+these settings do not provision users.
 
-For MCP directory review, use `mcp-review@example.com` as the single synthetic review/demo account.
-
-These settings do not provision Cognito users. If review/demo bypass is enabled:
-
-- `DEMO_EMAIL_DOSTIP` should be `mcp-review@example.com`
-- every listed email must use `@example.com`
-- the matching Cognito user must be created manually
-- the Cognito user password must match the shared demo password stored in Secrets Manager
-
-Validate deployed state with:
-
-```bash
-bash scripts/checks/check-demo-cognito-users.sh --stack-name FlashcardsOpenSourceApp --region eu-central-1
-```
-
-After review completes, rotate the shared demo password and optionally remove `mcp-review@example.com` from the allowlist or disable/delete the matching Cognito user.
+Follow the canonical [reviewer account procedure](../../docs/connector-submission-operations.md#reviewer-demo-account)
+for manual Cognito setup, allowlist updates, CI/CD deployment, verification,
+and cleanup. Append accounts without replacing existing entries, and preserve
+the shared secret while any concurrent review remains active.
 
 ## Post-deploy
 

@@ -292,17 +292,9 @@ This bootstrap-only rule also applies to `CDK_ADMIN_EMAILS`: after the first set
 
 ## Optional review account auth
 
-`DEMO_EMAIL_DOSTIP` enables insecure instant sign-in only for listed review account emails in the `example.com` domain. `DEMO_PASSWORD_DOSTIP` stores the shared review account password. Keep both values as explicit deploy config and store the shared password in AWS Secrets Manager for deployed environments.
-
-For MCP directory review, use `mcp-review@example.com` as the single synthetic review/demo account.
-
-If review account access is enabled, create the matching `@example.com` Cognito user manually and keep its email and shared password aligned with the deployed allowlist and review account password secret. The intended setup flow is:
-
-1. keep `DEMO_EMAIL_DOSTIP=mcp-review@example.com` and `DEMO_PASSWORD_DOSTIP` in the local root `.env`
-2. run `bash scripts/setup/setup-auth-secrets.sh --region <aws-region>`
-3. run `bash scripts/setup/setup-github.sh`
-
-We intentionally keep Cognito user creation manual instead of adding an automated provisioning script for these insecure review-only accounts.
+Follow the canonical [reviewer account procedure](connector-submission-operations.md#reviewer-demo-account)
+to add synthetic review accounts, preserve concurrent review access, deploy
+through CI/CD, verify access, and clean up afterward.
 
 ## Global metrics snapshot
 
