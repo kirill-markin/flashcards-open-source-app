@@ -311,6 +311,10 @@ export async function anonymizeBillingForDeletedPersonInExecutor(
   anonymizedUserId: string,
 ): Promise<void> {
   // These opaque identities survive erasure; the trial ledger holds no independent person field.
+  await executor.query(`UPDATE billing.stripe_email_deliveries SET request_body = NULL, notice = NULL,
+    provider_message_id = NULL, stopped_at = COALESCE(stopped_at, now()), last_error = NULL
+    WHERE identity_id IN (SELECT identity_id FROM billing.stripe_customer_identities
+      WHERE user_id = ANY($1::text[]))`, [personUserIds]);
   await executor.query(`UPDATE billing.stripe_customer_identities SET user_id = $1,
     is_primary = false, account_deleted_at = COALESCE(account_deleted_at, now()), updated_at = now()
     WHERE user_id = ANY($2::text[])`, [anonymizedUserId, personUserIds]);

@@ -70,10 +70,9 @@ export const createdRolesByMigration = new Map([
   ["0044_reporting_readonly_role.sql", Object.freeze(["reporting_readonly"])],
 ]);
 export const boundaryDefinitions = Object.freeze([
-  // Guest identity merge and account deletion require the Stripe billing tables.
   Object.freeze({
-    migrationFileName: "0165_stripe_billing.sql",
-    expectedMigrationCount: 167,
+    migrationFileName: "0167_stripe_email_deliveries.sql",
+    expectedMigrationCount: 169,
     testFiles: Object.freeze([
       "src/agent/reviews.postgres.integration.ts",
       "src/auth/surrogateUserId.postgres.integration.ts",
