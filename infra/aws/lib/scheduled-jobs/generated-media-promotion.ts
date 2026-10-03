@@ -9,7 +9,8 @@ import * as scheduler from "aws-cdk-lib/aws-scheduler";
 import { Construct } from "constructs";
 import { backendNodejsProjectPaths, resolveFromRepoRoot } from "../nodejs-project-paths";
 import { backendStructuredLoggingProps } from "../backend-lambda-logging";
-import { createSentrySourceMapUploadCommand } from "../sentry-source-maps";
+import { createSentrySourceMapInjectionCommand } from "../sentry-source-maps";
+import { getLambdaSentryRelease } from "../lambda-sentry-release";
 import { createRdsCaBundleDownloadCommand } from "../rds-ca-bundle";
 export interface GeneratedMediaPromotionProps {
   vpc: ec2.Vpc; lambdaSg: ec2.SecurityGroup; db: rds.DatabaseInstance;
@@ -46,7 +47,7 @@ export function generatedMediaPromotion(
           beforeBundling: () => [], beforeInstall: () => [],
           afterBundling: (_inputDir: string, outputDir: string) => [
             createRdsCaBundleDownloadCommand(outputDir),
-            createSentrySourceMapUploadCommand(outputDir),
+            createSentrySourceMapInjectionCommand(outputDir),
           ],
         },
       },
@@ -55,11 +56,12 @@ export function generatedMediaPromotion(
         DB_SECRET_ARN: props.backendDbSecret.secretArn, DB_HOST: props.db.dbInstanceEndpointAddress,
         DB_NAME: "flashcards", MEDIA_ASSETS_S3_BUCKET_NAME: props.mediaAssetsBucket.bucketName,
         MEDIA_BLOB_CLEANUP_ENABLED: props.mediaBlobCleanupEnabled ? "true" : "false",
-        SENTRY_ENVIRONMENT: props.sentryEnvironment, SENTRY_RELEASE: props.sentryRelease,
+        SENTRY_ENVIRONMENT: props.sentryEnvironment,
         SENTRY_TRACES_SAMPLE_RATE: props.sentryTracesSampleRate,
       },
     },
   );
+  promotionFunction.addEnvironment("SENTRY_RELEASE", getLambdaSentryRelease(promotionFunction));
   props.backendDbSecret.grantRead(promotionFunction);
   const sentryDsnSecret = cdk.aws_secretsmanager.Secret.fromSecretCompleteArn(
     scope, "GeneratedMediaPromotionSentryDsnSecret", props.sentryDsnSecretArn);

@@ -40,7 +40,7 @@ Keep these values in root `.env` before running setup or deploy scripts:
 - `OPENAI_API_KEY` when needed
 - `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, and optionally `LANGFUSE_BASE_URL` when Langfuse tracing is enabled
 - Required backend Sentry setup:
-  `SENTRY_DSN` for bootstrap-created AWS secret `flashcards-open-source-app/sentry-dsn`, or `SENTRY_DSN_SECRET_ARN` for an existing AWS Secrets Manager secret; `SENTRY_ENVIRONMENT`; `SENTRY_RELEASE` (CI should use the deployed GitHub SHA; manual/local context can use the target commit SHA); `SENTRY_TRACES_SAMPLE_RATE`; `SENTRY_ORG`; `SENTRY_BACKEND_PROJECT`; and `SENTRY_AUTH_TOKEN` for backend source map uploads
+  `SENTRY_DSN` for bootstrap-created AWS secret `flashcards-open-source-app/sentry-dsn`, or `SENTRY_DSN_SECRET_ARN` for an existing AWS Secrets Manager secret; `SENTRY_ENVIRONMENT`; `SENTRY_RELEASE` (required legacy context input; CI supplies the GitHub SHA, while Lambda release labels use the emitted code asset hash); `SENTRY_TRACES_SAMPLE_RATE`; `SENTRY_ORG`; `SENTRY_BACKEND_PROJECT`; and `SENTRY_AUTH_TOKEN` for backend source map uploads
 - Optional web Sentry setup:
   `VITE_SENTRY_DSN`; `VITE_SENTRY_TRACES_SAMPLE_RATE`; and `SENTRY_WEB_PROJECT` for web source map uploads. Web source map uploads reuse `SENTRY_ORG` and `SENTRY_AUTH_TOKEN`.
 - `DEMO_EMAIL_DOSTIP` and `DEMO_PASSWORD_DOSTIP` when review/demo bypass is enabled
@@ -74,6 +74,10 @@ That flow:
 - populates missing deploy config in GitHub Actions variables without overwriting existing values
 
 You can still run CDK manually from `infra/aws`; the local helper scripts assemble the CDK context file before the CDK step.
+
+## Lambda Sentry releases
+
+Lambda source maps receive deterministic debug IDs during every synth. Each configured Lambda uses `lambda-<CDK unique function ID>@<code asset hash>` as its Sentry release, so unchanged code retains its release across commits and deployment phases. Runtime configuration still updates through the Lambda environment independently. After both deployment phases succeed, `scripts/deploy/upload-lambda-source-maps.py` reads the final cloud assembly, matches each template’s release and S3 code key to its asset manifest, verifies matching JavaScript/map debug IDs, and uploads only that bundle pair. Sentry credentials are provided only to this upload step. Git SHA provenance remains in the workflow summary and deployed-component SSM records.
 
 ## Secret setup helpers
 
