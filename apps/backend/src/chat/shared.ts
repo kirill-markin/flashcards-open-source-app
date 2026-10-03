@@ -155,9 +155,7 @@ function buildSqlRoutingSection(): string {
 }
 
 /**
- * The review loop itself is served by `get_guide` topic `review_flow` and by the review tools' own
- * descriptions, so this states only what neither can: where this surface's two caller-owned values
- * come from. The timezone is printed verbatim by `buildDatetimeSection`, and the reviewId is the
+ * The timezone is printed verbatim by `buildDatetimeSection`, and the reviewId is the
  * dedup key, so a model reusing one is refused rather than recording a second review.
  */
 function buildReviewLoopSection(): string {

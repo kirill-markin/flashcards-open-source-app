@@ -471,6 +471,10 @@ tool_names = {tool["name"] for tool in tools}
 assert tool_names == {"list_workspaces", "sql_query", "sql_execute", "get_guide", "next_review_card", "reveal_answer", "submit_review", "get_usage_limits"}, sorted(tool_names)
 assert "media_assets" not in tool_names
 assert all(not tool["name"].startswith("media") for tool in tools)
+for tool in tools:
+    title = tool["title"]
+    assert isinstance(title, str) and title.strip(), tool["name"]
+    assert tool["annotations"]["title"] == title, tool["name"]
 PY
 
 request_mcp_jsonrpc '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"list_workspaces","arguments":{}}}'

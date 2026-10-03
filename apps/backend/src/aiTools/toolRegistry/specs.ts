@@ -49,7 +49,7 @@ const optionalWorkspaceIdArgument = workspaceIdStringSchema
   );
 
 const LIST_WORKSPACES_TOOL_DESCRIPTION =
-  "Lists accessible workspaces with IDs, names, card counts, activity and isSelected. Pass a returned workspaceId to other tools; omission uses the selected default.";
+  "Lists the authenticated user's accessible workspaces with IDs, names, card counts, activity and isSelected. Does not create or modify workspaces.";
 
 const LIST_WORKSPACES_RESULT_INSTRUCTIONS =
   "These are the workspaces you can access. Each workspace has a workspaceId, name, cardCount (active cards), lastActivityAt (most recent card edit or review, or null), and isSelected (your current default). To target a specific one, pass its workspaceId to any workspace-scoped tool; the isSelected workspace is used by default when you omit workspaceId. Prefer the most active workspace (highest cardCount or most recent lastActivityAt) when the user has not told you which to use.";
@@ -61,7 +61,7 @@ const LIST_WORKSPACES_RESULT_INSTRUCTIONS =
  * `apps/backend/src/aiTools/toolContract/sqlToolContract.ts`.
  */
 const GET_GUIDE_TOOL_DESCRIPTION =
-  "Static guides: sql_dialect (grammar/limits/examples), card_authoring (content/tags/duplicates/formatting/links), bulk_authoring (batches/recovery/verification), review_flow (review/rating). Read card_authoring before writes; sql_dialect after syntax errors. No workspace access or writes.";
+  "Returns a bundled Nibomo reference guide for sql_dialect (grammar/limits/examples), card_authoring (content/tags/duplicates/formatting/links), bulk_authoring (batches/recovery/verification), or review_flow (review/rating). No workspace access, external fetches or writes.";
 const GET_GUIDE_TOPIC_ARGUMENT_DESCRIPTION =
   "Guide topic.";
 

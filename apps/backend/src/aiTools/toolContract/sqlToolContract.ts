@@ -310,20 +310,19 @@ export const SQL_BULK_WRITE_SPLIT_DESCRIPTION =
   `Bulk-write split arithmetic: at most ${MAX_SQL_RECORD_LIMIT} rows affected per statement, at most ${MAX_SQL_BATCH_STATEMENT_COUNT} statements per batch, and a batch must not mix read and write statements. Split larger work across separate statements or separate tool calls.`;
 
 export const SQL_QUERY_TOOL_DESCRIPTION = [
-  "Read workspace-scoped workspace, cards, decks and review_events using SHOW TABLES, DESCRIBE, SHOW COLUMNS FROM or SELECT; writes require sql_execute.",
+  "Queries the Nibomo API (https://nibomo.com/docs/api/) with the published read-only SQL dialect, not full PostgreSQL.",
+  "Reads workspace-scoped workspace, cards, decks and review_events using SHOW TABLES, DESCRIBE, SHOW COLUMNS FROM or SELECT; rejects writes.",
   "Decks are tag filters; cards have no deck_id.",
-  `SELECT returns at most ${MAX_SQL_RECORD_LIMIT} rows; paginate with LIMIT, OFFSET and stable ORDER BY.`,
-  "Discover schema in a separate call before composing a batch.",
-  "Read get_guide(sql_dialect) for grammar and examples; this is not full PostgreSQL.",
+  `SELECT returns at most ${MAX_SQL_RECORD_LIMIT} rows; pagination uses LIMIT, OFFSET and ORDER BY in the SQL string.`,
 ].join(" ");
 
 export const SQL_EXECUTE_TOOL_DESCRIPTION = [
-  "Write workspace cards/decks with INSERT, UPDATE or DELETE; reads require sql_query.",
-  "front_text is only a question, back_text its answer. New cards need a tag; reuse existing tags and check duplicates with sql_query.",
-  `Atomic batches allow ${MAX_SQL_BATCH_STATEMENT_COUNT} semicolon-separated statements, ${MAX_SQL_RECORD_LIMIT} affected rows each; never mix reads and writes.`,
+  "Writes to the Nibomo API (https://nibomo.com/docs/api/) with the published SQL dialect, not full PostgreSQL.",
+  "Creates, updates or deletes workspace cards/decks with INSERT, UPDATE or DELETE; rejects read statements. Cannot write review_events or hidden FSRS state.",
+  "front_text is a question and back_text its answer; new cards require at least one tag.",
+  `Atomic batches allow ${MAX_SQL_BATCH_STATEMENT_COUNT} semicolon-separated write statements, ${MAX_SQL_RECORD_LIMIT} affected rows each.`,
   "Arrays use ('a', 'b'), or () to clear. RETURNING * or columns returns affected rows.",
-  SQL_MUTATION_TAG_FILTER_DESCRIPTION,
-  "Read get_guide(card_authoring) before authoring, sql_dialect for grammar/examples and bulk_authoring for large writes.",
+  "UPDATE and DELETE support tag filtering with tags OVERLAP ('tag'); UNNEST is available only in SELECT.",
 ].join(" ");
 
 /**
