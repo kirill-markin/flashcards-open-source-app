@@ -47,6 +47,10 @@
   "offer.allowanceWindow": "Jūsų DI žinučių kvota atsinaujina kiekvieną kalendorinį mėnesį pagal UTC, nepriklausomai nuo mokėjimo datos.",
   "email.trialReminderSubject": "Jūsų „Nibomo Premium“ bandomasis laikotarpis netrukus baigsis",
   "email.trialReminderBody": "Jūsų nemokamas „Nibomo Premium“ bandomasis laikotarpis baigiasi {date}. Po jo prenumerata automatiškai atnaujinama už {price} per mėnesį, įskaitant taikomus mokesčius. Kad išvengtumėte pirmojo mokėjimo, atšaukite prenumeratą iki bandomojo laikotarpio pabaigos. Tvarkykite arba atšaukite prenumeratą prenumeratos nustatymuose: {url}",
+  "email.paymentReceiptSubject": "„Nibomo“ mokėjimo kvitas",
+  "email.paymentReceiptBody": "Gavome jūsų {price} mokėjimą. Peržiūrėkite kvitą: {url}",
+  "email.refundReceiptSubject": "„Nibomo“ pinigų grąžinimo kvitas",
+  "email.refundReceiptBody": "Jums grąžinta {price}. Peržiūrėkite išsamią informaciją: {url}",
   "deletion.warning": "Ištrynus „Nibomo“ paskyrą, atšaukiami būsimi jūsų „Nibomo“ prenumeratų, už kurias mokate per „Stripe“, atnaujinimai. Prarasite prieigą prie šios paskyros. Prenumeratas, už kurias mokate per „Apple“ arba „Google“, turite atšaukti atskirai per atitinkamą teikėją.",
   "deletion.cancelling": "Prieš ištrinant paskyrą atšaukiami jūsų „Stripe“ prenumeratų atnaujinimai...",
   "deletion.cancellationFailed": "Nepavyko patvirtinti jūsų „Stripe“ prenumeratų atnaujinimų atšaukimo. Jūsų paskyra nebuvo ištrinta. Bandykite dar kartą arba kreipkitės į pagalbos tarnybą."

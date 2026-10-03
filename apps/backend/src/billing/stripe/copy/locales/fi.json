@@ -47,6 +47,10 @@
   "offer.allowanceWindow": "Tekoälyviestikiintiösi nollautuu joka kalenterikuukausi UTC-ajan mukaan laskutuspäivästäsi riippumatta.",
   "email.trialReminderSubject": "Nibomo Premium -kokeilujaksosi päättyy pian",
   "email.trialReminderBody": "Ilmainen Nibomo Premium -kokeilujaksosi päättyy {date}. Kokeilujakson jälkeen tilauksesi uusiutuu automaattisesti hintaan {price} kuukaudessa, mukaan lukien sovellettavat verot. Vältä ensimmäinen veloitus peruuttamalla tilaus ennen kokeilujakson päättymistä. Voit hallita tai peruuttaa tilauksesi tilausasetuksissa: {url}",
+  "email.paymentReceiptSubject": "Nibomo-maksukuitti",
+  "email.paymentReceiptBody": "Olemme vastaanottaneet maksusi, jonka summa on {price}. Katso kuittisi: {url}",
+  "email.refundReceiptSubject": "Nibomo-palautuskuitti",
+  "email.refundReceiptBody": "Olemme tehneet sinulle palautuksen, jonka summa on {price}. Katso lisätiedot: {url}",
   "deletion.warning": "Nibomo-tilisi poistaminen estää Stripen kautta laskutettavien Nibomo-tilaustesi tulevat uusiutumiset. Menetät tämän tilin käyttöoikeuden. Applen tai Googlen kautta laskutettavat tilaukset on peruutettava erikseen kyseisen palveluntarjoajan kautta.",
   "deletion.cancelling": "Peruutetaan Stripe-tilaustesi uusiutumiset ennen tilisi poistamista...",
   "deletion.cancellationFailed": "Emme voineet vahvistaa Stripe-tilaustesi uusiutumisten peruutusta. Tiliäsi ei ole poistettu. Yritä uudelleen tai ota yhteyttä tukeen."

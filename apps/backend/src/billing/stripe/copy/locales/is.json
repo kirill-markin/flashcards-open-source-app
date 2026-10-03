@@ -47,6 +47,10 @@
   "offer.allowanceWindow": "Gervigreindarskilaboðakvótinn þinn endurnýjast í hverjum almanaksmánuði samkvæmt UTC, óháð innheimtudegi.",
   "email.trialReminderSubject": "Nibomo Premium-prufutímabilinu þínu lýkur bráðum",
   "email.trialReminderBody": "Ókeypis Nibomo Premium-prufutímabilinu þínu lýkur {date}. Að prufu lokinni endurnýjast áskriftin sjálfkrafa fyrir {price} á mánuði, með viðeigandi sköttum inniföldum. Segðu upp áður en prufutímabilinu lýkur til að forðast fyrstu greiðsluna. Hafðu umsjón með áskriftinni eða segðu henni upp í áskriftarstillingum: {url}",
+  "email.paymentReceiptSubject": "Greiðslukvittun frá Nibomo",
+  "email.paymentReceiptBody": "Við höfum móttekið greiðsluna þína að upphæð {price}. Skoðaðu kvittunina: {url}",
+  "email.refundReceiptSubject": "Kvittun fyrir endurgreiðslu frá Nibomo",
+  "email.refundReceiptBody": "Við höfum endurgreitt þér {price}. Skoðaðu nánari upplýsingar: {url}",
   "deletion.warning": "Ef þú eyðir Nibomo-aðganginum þínum falla framtíðarendurnýjanir Nibomo-áskrifta þinna sem innheimtar eru í gegnum Stripe niður. Þú missir aðgang að þessum reikningi. Áskriftum sem innheimtar eru í gegnum Apple eða Google þarf að segja upp sérstaklega hjá viðkomandi þjónustuveitanda.",
   "deletion.cancelling": "Stöðva endurnýjanir Stripe-áskrifta þinna áður en aðganginum er eytt...",
   "deletion.cancellationFailed": "Við gátum ekki staðfest að endurnýjanir Stripe-áskrifta þinna hafi verið stöðvaðar. Aðganginum þínum hefur ekki verið eytt. Reyndu aftur eða hafðu samband við þjónustuver."

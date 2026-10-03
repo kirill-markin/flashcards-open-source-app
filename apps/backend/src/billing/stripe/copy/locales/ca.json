@@ -47,6 +47,10 @@
   "offer.allowanceWindow": "El límit de missatges d’IA es restableix cada mes natural segons l’UTC, independentment de la data de facturació.",
   "email.trialReminderSubject": "La teva prova de Nibomo Premium acaba aviat",
   "email.trialReminderBody": "La teva prova gratuïta de Nibomo Premium acaba el {date}. Després de la prova, la subscripció es renova automàticament per {price} al mes, amb els impostos aplicables inclosos. Per evitar el primer cobrament, cancel·la-la abans que acabi la prova. Gestiona o cancel·la la subscripció a la configuració de subscripció: {url}",
+  "email.paymentReceiptSubject": "Rebut de pagament de Nibomo",
+  "email.paymentReceiptBody": "Hem rebut el teu pagament de {price}. Consulta el rebut: {url}",
+  "email.refundReceiptSubject": "Rebut de reemborsament de Nibomo",
+  "email.refundReceiptBody": "S'ha emès el teu reemborsament de {price}. Consulta'n els detalls: {url}",
   "deletion.warning": "Si suprimeixes el compte de Nibomo, es cancel·len les renovacions futures de les teves subscripcions de Nibomo facturades a través de Stripe. Perdràs l’accés a aquest compte. Les subscripcions facturades a través d’Apple o Google s’han de cancel·lar per separat amb el proveïdor corresponent.",
   "deletion.cancelling": "S’estan cancel·lant les renovacions de les teves subscripcions de Stripe abans de suprimir el compte...",
   "deletion.cancellationFailed": "No hem pogut confirmar la cancel·lació de les renovacions de les teves subscripcions de Stripe. El compte no s’ha suprimit. Torna-ho a provar o contacta amb el servei d’assistència."

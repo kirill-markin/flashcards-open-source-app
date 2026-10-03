@@ -47,6 +47,10 @@
   "offer.allowanceWindow": "Vaša kvota AI poruka obnavlja se svakog kalendarskog mjeseca prema UTC-u, neovisno o datumu naplate.",
   "email.trialReminderSubject": "Vaše probno razdoblje za Nibomo Premium uskoro završava",
   "email.trialReminderBody": "Vaše besplatno probno razdoblje za Nibomo Premium završava {date}. Nakon probnog razdoblja pretplata se automatski obnavlja po cijeni od {price} mjesečno, uključujući primjenjive poreze. Da biste izbjegli prvu naplatu, otkažite prije završetka probnog razdoblja. Upravljajte pretplatom ili je otkažite u postavkama pretplate: {url}",
+  "email.paymentReceiptSubject": "Potvrda o plaćanju za Nibomo",
+  "email.paymentReceiptBody": "Primili smo vašu uplatu u iznosu od {price}. Pogledajte potvrdu: {url}",
+  "email.refundReceiptSubject": "Potvrda o povratu novca za Nibomo",
+  "email.refundReceiptBody": "Izvršen vam je povrat u iznosu od {price}. Pogledajte pojedinosti: {url}",
   "deletion.warning": "Brisanjem računa za Nibomo otkazuju se buduće obnove vaših pretplata na Nibomo koje se naplaćuju putem Stripea. Izgubit ćete pristup ovom računu. Pretplate koje se naplaćuju putem Applea ili Googlea morate otkazati zasebno putem tog pružatelja.",
   "deletion.cancelling": "Otkazivanje obnova vaših pretplata putem Stripea prije brisanja računa...",
   "deletion.cancellationFailed": "Nismo mogli potvrditi otkazivanje obnova vaših pretplata putem Stripea. Vaš račun nije izbrisan. Pokušajte ponovno ili se obratite podršci."

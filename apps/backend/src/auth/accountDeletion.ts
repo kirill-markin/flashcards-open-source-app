@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 import { deleteCognitoUser } from "./cognitoUsers";
 import { anonymizeAiUsageForDeletedPersonInExecutor } from "../aiUsage/identity";
 import { anonymizeBillingForDeletedPersonInExecutor } from "../billing/identity";
+import { cancelStripeBeforeAccountDeletionInExecutor } from "../billing/stripe/deletion";
+import { publishStripeTransitions } from "../billing/stripe/facts";
 import {
   applyUserDatabaseScopeInExecutor,
   type DatabaseExecutor,
@@ -421,25 +423,30 @@ export async function deleteAccountForAuthenticatedUser(
   assertValidConfirmationText(input.confirmationText);
   const isDemoAccount = dependencies.isConfiguredDemoEmail(input.email);
 
-  await dependencies.unsafeTransaction(async (executor) => {
+  const stripeTransitions = await dependencies.unsafeTransaction(async (executor) => {
     await lockCognitoIdentityLifecycleInExecutor(executor, input.authSubjectUserId);
     if (await isDeletedSubjectInExecutor(executor, input.authSubjectUserId)) {
-      return;
+      return [];
     }
 
     const mapping = await loadCognitoIdentityMappingInExecutor(executor, input.authSubjectUserId);
     const authoritativeUserId = mapping?.userId ?? input.authSubjectUserId;
     await applyUserDatabaseScopeInExecutor(executor, { userId: authoritativeUserId });
 
+    const personUserIds = await loadAnalyticsUserIdsForPersonInExecutor(executor, authoritativeUserId);
+    const transitions = await cancelStripeBeforeAccountDeletionInExecutor(executor, personUserIds);
+
     if (isDemoAccount) {
       await deleteDemoAccountDataInExecutor(executor, authoritativeUserId, input.authSubjectUserId);
-      return;
+      return transitions;
     }
 
     await deleteRealAccountDataInExecutor(executor, authoritativeUserId, input.authSubjectUserId);
+    return [];
   });
 
   if (isDemoAccount) {
+    if (stripeTransitions.length > 0) await publishStripeTransitions(stripeTransitions);
     return;
   }
 
