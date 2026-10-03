@@ -221,6 +221,7 @@
 "settings.subscription.noEndDate" = "Sense data de finalització";
 "settings.subscription.endUnknown" = "Desconeguda";
 "settings.subscription.planUnknown" = "El teu pla apareixerà aquí quan l'aplicació se sincronitzi amb el teu compte.";
+"settings.subscription.change" = "Canvia la subscripció";
 "settings.subscription.manage" = "Gestiona la subscripció";
 "settings.language.title" = "Idioma";
 "settings.language.systemDescription" = "iOS controla l'idioma de l'aplicació. A iOS Configuració, obriu Nibomo i feu servir l'idioma preferit. Si no es mostra l'idioma preferit, primer afegiu un altre idioma a Configuració > General > Idioma i regió.";
@@ -863,6 +864,7 @@
 "settings.accentColor.invalidHex" = "Introdueix un color com a #RRGGBB, amb sis dígits hexadecimals.";
 "settings.accentColor.premiumNote" = "Els colors d’accent personalitzats estan disponibles amb Premium. El color desat torna quan Premium està actiu.";
 
+"premium.apple.monthlyProduct" = "%@ · Mensual";
 "premium.apple.renewal" = "Es renova automàticament fins que la cancel·lis. Gestiona o cancel·la la subscripció a l’App Store.";
 "premium.apple.trial" = "Prova gratuïta: %@. Després:";
 "premium.apple.loadFailed" = "No s’ha pogut carregar l’oferta de l’App Store. Comprova la connexió i torna-ho a provar.";

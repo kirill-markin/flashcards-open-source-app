@@ -221,6 +221,7 @@
 "settings.subscription.noEndDate" = "Hakuna tarehe ya mwisho";
 "settings.subscription.endUnknown" = "Haijulikani";
 "settings.subscription.planUnknown" = "Mpango wako utaonekana hapa baada ya programu kusawazishwa na akaunti yako.";
+"settings.subscription.change" = "Badilisha usajili";
 "settings.subscription.manage" = "Dhibiti usajili";
 "settings.language.title" = "Lugha";
 "settings.language.systemDescription" = "iOS hudhibiti lugha ya programu. Katika Mipangilio ya iOS, fungua Nibomo na utumie Lugha Unayopendelea. Ikiwa Lugha Unayopendelea haionekani, ongeza lugha nyingine kwanza katika Mipangilio > Jumla > Lugha na Eneo.";
@@ -863,6 +864,7 @@
 "settings.accentColor.invalidHex" = "Weka rangi kama #RRGGBB, ukitumia tarakimu sita za mfumo wa kumi na sita.";
 "settings.accentColor.premiumNote" = "Rangi maalum za msisitizo zinapatikana kwa Premium. Rangi uliyohifadhi itarudi Premium inapokuwa hai.";
 
+"premium.apple.monthlyProduct" = "%@ · Kila mwezi";
 "premium.apple.renewal" = "Hujisasisha kiotomatiki hadi utakapoighairi. Dhibiti au ghairi katika usajili wako wa App Store.";
 "premium.apple.trial" = "Jaribio la bure: %@. Kisha:";
 "premium.apple.loadFailed" = "Imeshindwa kupakia ofa ya App Store. Angalia muunganisho wako na ujaribu tena.";

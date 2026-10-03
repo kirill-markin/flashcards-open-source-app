@@ -221,6 +221,7 @@
 "settings.subscription.noEndDate" = "Без крайна дата";
 "settings.subscription.endUnknown" = "Неизвестно";
 "settings.subscription.planUnknown" = "Планът ви ще се покаже тук, след като приложението се синхронизира с акаунта ви.";
+"settings.subscription.change" = "Промяна на абонамента";
 "settings.subscription.manage" = "Управление на абонамента";
 "settings.language.title" = "Език";
 "settings.language.systemDescription" = "iOS контролира езика на приложението. В Настройки на iOS отворете Nibomo и използвайте Предпочитан език. Ако Предпочитаният език не е показан, първо добавете друг език в Настройки > Общи > Език и регион.";
@@ -863,6 +864,7 @@
 "settings.accentColor.invalidHex" = "Въведете цвят във формат #RRGGBB с шест шестнадесетични цифри.";
 "settings.accentColor.premiumNote" = "Персонализираните цветове на акцента са достъпни с Premium. Запазеният цвят се връща, когато Premium е активен.";
 
+"premium.apple.monthlyProduct" = "%@ · Месечно";
 "premium.apple.renewal" = "Подновява се автоматично до отказване. Управлявайте или отменете в абонаментите си в App Store.";
 "premium.apple.trial" = "Безплатен пробен период: %@. След това:";
 "premium.apple.loadFailed" = "Офертата от App Store не можа да се зареди. Проверете връзката си и опитайте отново.";

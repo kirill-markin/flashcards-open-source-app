@@ -221,6 +221,7 @@
 "settings.subscription.noEndDate" = "Engin lokadagsetning";
 "settings.subscription.endUnknown" = "Óþekkt";
 "settings.subscription.planUnknown" = "Áskriftarleiðin þín birtist hér þegar forritið hefur samstillst við aðganginn þinn.";
+"settings.subscription.change" = "Breyta áskrift";
 "settings.subscription.manage" = "Stjórna áskrift";
 "settings.language.title" = "Tungumál";
 "settings.language.systemDescription" = "iOS stjórnar tungumáli forritsins. Opnaðu Nibomo í Stillingum iOS og veldu tungumál. Ef tungumálaval sést ekki skaltu fyrst bæta við öðru tungumáli í Stillingar > Almennt > Tungumál og svæði.";
@@ -863,6 +864,7 @@
 "settings.accentColor.invalidHex" = "Sláðu inn lit sem #RRGGBB með sex sextándakerfisstöfum.";
 "settings.accentColor.premiumNote" = "Sérsniðnir áherslulitir eru í boði með Premium. Vistaði liturinn þinn kemur aftur þegar Premium er virkt.";
 
+"premium.apple.monthlyProduct" = "%@ · Mánaðarlega";
 "premium.apple.renewal" = "Endurnýjast sjálfkrafa þar til sagt er upp. Stjórnaðu eða segðu upp í App Store-áskriftunum þínum.";
 "premium.apple.trial" = "Ókeypis prufutímabil: %@. Síðan:";
 "premium.apple.loadFailed" = "Ekki tókst að hlaða App Store-tilboðinu. Athugaðu tenginguna og reyndu aftur.";

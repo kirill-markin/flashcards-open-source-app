@@ -221,6 +221,7 @@
 "settings.subscription.noEndDate" = "Geen einddatum";
 "settings.subscription.endUnknown" = "Onbekend";
 "settings.subscription.planUnknown" = "Je plan verschijnt hier zodra de app met je account is gesynchroniseerd.";
+"settings.subscription.change" = "Abonnement wijzigen";
 "settings.subscription.manage" = "Abonnement beheren";
 "settings.language.title" = "Taal";
 "settings.language.systemDescription" = "iOS bepaalt de taal van de app. Open Nibomo in de iOS-instellingen en gebruik Voorkeurstaal. Als Voorkeurstaal niet wordt getoond, voeg dan eerst een andere taal toe via Instellingen > Algemeen > Taal en regio.";
@@ -863,6 +864,7 @@
 "settings.accentColor.invalidHex" = "Voer een kleur in als #RRGGBB, met zes hexadecimale cijfers.";
 "settings.accentColor.premiumNote" = "Eigen accentkleuren zijn beschikbaar met Premium. Je opgeslagen kleur keert terug wanneer Premium actief is.";
 
+"premium.apple.monthlyProduct" = "%@ · Maandelijks";
 "premium.apple.renewal" = "Wordt automatisch verlengd tot je opzegt. Beheer of annuleer via je App Store-abonnementen.";
 "premium.apple.trial" = "Gratis proefperiode: %@. Daarna:";
 "premium.apple.loadFailed" = "De App Store-aanbieding kon niet worden geladen. Controleer je verbinding en probeer opnieuw.";

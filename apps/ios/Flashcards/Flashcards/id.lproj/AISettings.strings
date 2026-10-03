@@ -221,6 +221,7 @@
 "settings.subscription.noEndDate" = "Tanpa tanggal berakhir";
 "settings.subscription.endUnknown" = "Tidak diketahui";
 "settings.subscription.planUnknown" = "Paket Anda akan muncul di sini setelah aplikasi disinkronkan dengan akun Anda.";
+"settings.subscription.change" = "Ubah langganan";
 "settings.subscription.manage" = "Kelola langganan";
 "settings.language.title" = "Bahasa";
 "settings.language.systemDescription" = "Bahasa aplikasi diatur oleh iOS. Di Pengaturan iOS, buka Nibomo dan gunakan Bahasa Pilihan. Jika tidak muncul, tambahkan bahasa lain di Pengaturan > Umum > Bahasa & Wilayah terlebih dahulu.";
@@ -863,6 +864,7 @@
 "settings.accentColor.invalidHex" = "Masukkan warna sebagai #RRGGBB dengan enam digit heksadesimal.";
 "settings.accentColor.premiumNote" = "Warna aksen khusus tersedia dengan Premium. Warna tersimpan Anda kembali saat Premium aktif.";
 
+"premium.apple.monthlyProduct" = "%@ · Bulanan";
 "premium.apple.renewal" = "Diperpanjang otomatis hingga dibatalkan. Kelola atau batalkan di langganan App Store Anda.";
 "premium.apple.trial" = "Uji coba gratis: %@. Setelah itu:";
 "premium.apple.loadFailed" = "Penawaran App Store tidak dapat dimuat. Periksa koneksi Anda dan coba lagi.";
