@@ -10,7 +10,8 @@ import { Construct } from "constructs";
 import * as path from "path";
 import { backendNodejsProjectPaths, infraAwsNodejsProjectPaths, resolveFromRepoRoot } from "../nodejs-project-paths";
 import { backendStructuredLoggingProps } from "../backend-lambda-logging";
-import { createSentrySourceMapUploadCommand } from "../sentry-source-maps";
+import { createSentrySourceMapInjectionCommand } from "../sentry-source-maps";
+import { getLambdaSentryRelease } from "../lambda-sentry-release";
 import { createRdsCaBundleDownloadCommand } from "../rds-ca-bundle";
 
 export interface GlobalMetricsProps {
@@ -46,7 +47,7 @@ const lambdaBundling: lambdaNodejs.BundlingOptions = {
     beforeInstall: () => [],
     afterBundling: (_inputDir: string, outputDir: string) => [
       createRdsCaBundleDownloadCommand(outputDir),
-      createSentrySourceMapUploadCommand(outputDir),
+      createSentrySourceMapInjectionCommand(outputDir),
     ],
   },
 };
@@ -89,7 +90,7 @@ function addOptionalSentryEnvironment(
   secret.grantRead(fn);
   fn.addEnvironment("SENTRY_DSN", secret.secretValue.unsafeUnwrap());
   fn.addEnvironment("SENTRY_ENVIRONMENT", props.sentryEnvironment);
-  fn.addEnvironment("SENTRY_RELEASE", props.sentryRelease);
+  fn.addEnvironment("SENTRY_RELEASE", getLambdaSentryRelease(fn));
   fn.addEnvironment("SENTRY_TRACES_SAMPLE_RATE", props.sentryTracesSampleRate);
 }
 

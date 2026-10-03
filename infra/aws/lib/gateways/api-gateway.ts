@@ -21,7 +21,8 @@ import {
 import { buildCookieDomains } from "../cookie-domains";
 import { parsePublicOrigin } from "../public-origin";
 import { createSafeApiGatewayAccessLogFormat } from "./api-gateway-access-log";
-import { createSentrySourceMapUploadCommand } from "../sentry-source-maps";
+import { createSentrySourceMapInjectionCommand, getDockerSentryCliPath } from "../sentry-source-maps";
+import { getLambdaSentryRelease } from "../lambda-sentry-release";
 import { createRdsCaBundleDownloadCommand } from "../rds-ca-bundle";
 
 export interface ApiGatewayProps {
@@ -361,14 +362,6 @@ const chatLiveFunctionUrlCorsExposeHeaders = [
   "x-amzn-requestid",
 ] as const;
 const dockerBundlingRepoRootPath = "/asset-repo-root";
-type DockerBundlingEnvironmentVariableName =
-  | "GITHUB_ACTIONS"
-  | "SENTRY_AUTH_TOKEN"
-  | "SENTRY_BACKEND_CLI_PATH"
-  | "SENTRY_ORG"
-  | "SENTRY_PROJECT"
-  | "SENTRY_RELEASE"
-  | "SENTRY_UPLOAD_BACKEND_SOURCEMAPS";
 
 const gatewayErrorCorsExposeHeaders = [
   ...browserCorsExposeHeaders,
@@ -511,18 +504,6 @@ export function createLegacyAuthNotFoundIntegration(): apigw.MockIntegration {
   });
 }
 
-function createDockerBundlingEnvironment(): Record<DockerBundlingEnvironmentVariableName, string> {
-  return {
-    GITHUB_ACTIONS: process.env.GITHUB_ACTIONS ?? "",
-    SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN ?? "",
-    SENTRY_BACKEND_CLI_PATH: `${dockerBundlingRepoRootPath}/apps/backend/node_modules/.bin/sentry-cli`,
-    SENTRY_ORG: process.env.SENTRY_ORG ?? "",
-    SENTRY_PROJECT: process.env.SENTRY_PROJECT ?? "",
-    SENTRY_RELEASE: process.env.SENTRY_RELEASE ?? "",
-    SENTRY_UPLOAD_BACKEND_SOURCEMAPS: process.env.SENTRY_UPLOAD_BACKEND_SOURCEMAPS ?? "",
-  };
-}
-
 function createLambdaBundling(
   input: Readonly<{
     nodeModules: ReadonlyArray<string>;
@@ -543,7 +524,9 @@ function createLambdaBundling(
               consistency: cdk.DockerVolumeConsistency.CONSISTENT,
             },
           ],
-          environment: createDockerBundlingEnvironment(),
+          environment: {
+            SENTRY_BACKEND_CLI_PATH: getDockerSentryCliPath(dockerBundlingRepoRootPath),
+          },
         }
       : {}),
     commandHooks: {
@@ -551,7 +534,7 @@ function createLambdaBundling(
       beforeInstall: () => [],
       afterBundling: (_inputDir: string, outputDir: string) => [
         createRdsCaBundleDownloadCommand(outputDir),
-        createSentrySourceMapUploadCommand(outputDir),
+        createSentrySourceMapInjectionCommand(outputDir),
       ],
     },
   };
@@ -733,7 +716,7 @@ function addBackendSentryEnvironment(
 
   addLambdaSecretEnvironment(scope, fn, resolvedConfig.dsnSecretArn, `${constructId}SentryDsnSecret`, "SENTRY_DSN");
   fn.addEnvironment("SENTRY_ENVIRONMENT", resolvedConfig.environment);
-  fn.addEnvironment("SENTRY_RELEASE", resolvedConfig.release);
+  fn.addEnvironment("SENTRY_RELEASE", getLambdaSentryRelease(fn));
   fn.addEnvironment("SENTRY_TRACES_SAMPLE_RATE", resolvedConfig.tracesSampleRate);
 }
 

@@ -8,7 +8,8 @@ import { Construct } from "constructs";
 import * as fs from "fs";
 import { backendNodejsProjectPaths, resolveFromRepoRoot } from "./nodejs-project-paths";
 import { backendStructuredLoggingProps } from "./backend-lambda-logging";
-import { createSentrySourceMapUploadCommand } from "./sentry-source-maps";
+import { createSentrySourceMapInjectionCommand } from "./sentry-source-maps";
+import { getLambdaSentryRelease } from "./lambda-sentry-release";
 import { createRdsCaBundleDownloadCommand } from "./rds-ca-bundle";
 
 export interface MigrationRunnerProps {
@@ -64,7 +65,7 @@ const lambdaBundling: lambdaNodejs.BundlingOptions = {
       `mkdir -p ${outputDir}/db/views`,
       `cp ${dbAssetPaths.migrations}/*.sql ${outputDir}/db/migrations/`,
       `cp ${dbAssetPaths.views}/*.sql ${outputDir}/db/views/`,
-      createSentrySourceMapUploadCommand(outputDir),
+      createSentrySourceMapInjectionCommand(outputDir),
     ],
   },
 };
@@ -102,7 +103,7 @@ function addOptionalSentryEnvironment(
   secret.grantRead(fn);
   fn.addEnvironment("SENTRY_DSN", secret.secretValue.unsafeUnwrap());
   fn.addEnvironment("SENTRY_ENVIRONMENT", props.sentryEnvironment);
-  fn.addEnvironment("SENTRY_RELEASE", props.sentryRelease);
+  fn.addEnvironment("SENTRY_RELEASE", getLambdaSentryRelease(fn));
   fn.addEnvironment("SENTRY_TRACES_SAMPLE_RATE", props.sentryTracesSampleRate);
 }
 
