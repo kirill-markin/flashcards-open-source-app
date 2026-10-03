@@ -62,11 +62,12 @@ struct PremiumOfferView: View {
                                 Text(entitlement.tierDisplayName)
                             }
                         }
-                        if let offer {
-                            Text(offer.product.description)
-                            if self.canPurchase, let trialText { Text(trialText).font(.headline) }
-                            Text(self.priceText).font(.title2.bold())
-                                .accessibilityIdentifier(UITestIdentifier.premiumPrice)
+                        if self.offer != nil {
+                            VStack(alignment: .leading, spacing: 4) {
+                                if self.canPurchase, let trialText { Text(trialText).font(.headline) }
+                                Text(self.priceText).font(.title2.bold())
+                                    .accessibilityIdentifier(UITestIdentifier.premiumPrice)
+                            }
                             Text(aiSettingsLocalized("premium.apple.renewal", "Automatically renews until cancelled. Manage or cancel in your App Store subscriptions."))
                                 .font(.footnote)
                                 .foregroundStyle(.secondary)
@@ -109,7 +110,7 @@ struct PremiumOfferView: View {
                     }
                 }
 
-                AppleSubscriptionControls(isRestoreDisabled: false, onRestore: {
+                AppleSubscriptionControls(summaryEndDate: nil, isRestoreDisabled: false, onRestore: {
                     guard self.presenter.request?.id == self.request.id,
                           self.subscriptions.currentPurchases.isEmpty == false else { return }
                     self.presenter.awaitAppleConfirmation(requestId: self.request.id, identity: self.request.identity)
@@ -129,6 +130,8 @@ struct PremiumOfferView: View {
                 }
             }
             .listStyle(.insetGrouped)
+            .listSectionSpacing(.compact)
+            .contentMargins(.top, 8, for: .scrollContent)
             .navigationTitle(self.isAILimit ? premiumAILimitTitle() : premiumOfferTitle())
             .navigationBarTitleDisplayMode(.inline)
             .accessibilityIdentifier(UITestIdentifier.premiumOfferSheet)

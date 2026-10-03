@@ -221,6 +221,7 @@
 "settings.subscription.noEndDate" = "Ei päättymispäivää";
 "settings.subscription.endUnknown" = "Tuntematon";
 "settings.subscription.planUnknown" = "Pakettisi näkyy tässä, kun sovellus on synkronoitu tilisi kanssa.";
+"settings.subscription.change" = "Muuta tilausta";
 "settings.subscription.manage" = "Hallitse tilausta";
 "settings.language.title" = "Kieli";
 "settings.language.systemDescription" = "iOS määrittää sovelluksen kielen. Avaa iOS-asetuksista Nibomo ja valitse ensisijainen kieli. Jos valintaa ei näy, lisää ensin toinen kieli kohdassa Asetukset > Yleiset > Kieli ja alue.";
@@ -863,6 +864,7 @@
 "settings.accentColor.invalidHex" = "Anna väri muodossa #RRGGBB kuudella heksadesimaalinumerolla.";
 "settings.accentColor.premiumNote" = "Omat korostusvärit ovat käytettävissä Premiumilla. Tallennettu värisi palautuu, kun Premium on aktiivinen.";
 
+"premium.apple.monthlyProduct" = "%@ · Kuukausittain";
 "premium.apple.renewal" = "Uusiutuu automaattisesti, kunnes peruutat. Hallitse tai peruuta App Store -tilauksissasi.";
 "premium.apple.trial" = "Ilmainen kokeilu: %@. Sen jälkeen:";
 "premium.apple.loadFailed" = "App Storen tarjousta ei voitu ladata. Tarkista yhteys ja yritä uudelleen.";

@@ -221,6 +221,7 @@
 "settings.subscription.noEndDate" = "ללא תאריך סיום";
 "settings.subscription.endUnknown" = "לא ידוע";
 "settings.subscription.planUnknown" = "התוכנית שלך תופיע כאן לאחר שהאפליקציה תסתנכרן עם החשבון שלך.";
+"settings.subscription.change" = "שינוי המינוי";
 "settings.subscription.manage" = "ניהול המינוי";
 "settings.language.title" = "שפה";
 "settings.language.systemDescription" = "iOS קובע את שפת האפליקציה. בהגדרות iOS, יש לפתוח את Nibomo ולבחור שפה מועדפת. אם שפה מועדפת אינה מופיעה, יש להוסיף תחילה שפה נוספת בהגדרות > כללי > שפה ואזור.";
@@ -863,6 +864,7 @@
 "settings.accentColor.invalidHex" = "יש להזין צבע בתבנית #RRGGBB עם שש ספרות הקסדצימליות.";
 "settings.accentColor.premiumNote" = "צבעי הדגשה מותאמים אישית זמינים עם Premium. הצבע השמור שלך חוזר כאשר Premium פעיל.";
 
+"premium.apple.monthlyProduct" = "%@ · חודשי";
 "premium.apple.renewal" = "מתחדש אוטומטית עד לביטול. אפשר לנהל או לבטל דרך המינויים ב-App Store.";
 "premium.apple.trial" = "תקופת ניסיון בחינם: %@. לאחר מכן:";
 "premium.apple.loadFailed" = "לא ניתן לטעון את הצעת App Store. יש לבדוק את החיבור ולנסות שוב.";

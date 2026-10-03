@@ -224,6 +224,7 @@
 "settings.subscription.noEndDate" = "无结束日期";
 "settings.subscription.endUnknown" = "未知";
 "settings.subscription.planUnknown" = "应用与你的账户同步后，你的方案会显示在这里。";
+"settings.subscription.change" = "更改订阅";
 "settings.subscription.manage" = "管理订阅";
 "settings.language.title" = "语言";
 "settings.language.systemDescription" = "iOS 控制 App 语言。在 iOS 设置中打开 Nibomo，并使用“首选语言”。如果没有显示“首选语言”，请先在“设置”>“通用”>“语言与地区”中添加另一种语言。";
@@ -891,6 +892,7 @@
 "settings.accentColor.invalidHex" = "请输入 #RRGGBB 格式的颜色，包含六位十六进制数字。";
 "settings.accentColor.premiumNote" = "自定义强调色适用于 Premium。Premium 生效时，将恢复您保存的颜色。";
 
+"premium.apple.monthlyProduct" = "%@ · 月度";
 "premium.apple.renewal" = "订阅会自动续期，直到取消。请在 App Store 订阅中管理或取消。";
 "premium.apple.trial" = "免费试用：%@。之后：";
 "premium.apple.loadFailed" = "无法加载 App Store 优惠。请检查网络连接后重试。";

@@ -5,6 +5,7 @@ import UIKit
 struct AppleSubscriptionControls: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(AppleSubscriptionService.self) private var subscriptions: AppleSubscriptionService
+    let summaryEndDate: Date?
     let isRestoreDisabled: Bool
     let onRestore: () -> Void
 
@@ -15,11 +16,11 @@ struct AppleSubscriptionControls: View {
         Section {
             ForEach(self.subscriptions.currentPurchases, id: \.id) { purchase in
                 LabeledContent("App Store") {
-                    Text(purchase.productID)
+                    Text(aiSettingsLocalizedFormat("premium.apple.monthlyProduct", "%@ · Monthly", premiumOfferTitle()))
                 }
-                if let expiration = purchase.expirationDate {
-                    LabeledContent(aiSettingsLocalized("settings.subscription.ends", "Ends")) {
-                        Text(expiration, format: .dateTime.year().month().day())
+                if let expiration = purchase.expirationDate, expiration != self.summaryEndDate {
+                    LabeledContent("App Store · \(aiSettingsLocalized("settings.subscription.ends", "Ends"))") {
+                        Text(expiration.formatted(date: .long, time: .omitted))
                     }
                 }
             }

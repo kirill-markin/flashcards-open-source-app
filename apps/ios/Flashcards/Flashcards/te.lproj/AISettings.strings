@@ -221,6 +221,7 @@
 "settings.subscription.noEndDate" = "ముగింపు తేదీ లేదు";
 "settings.subscription.endUnknown" = "తెలియదు";
 "settings.subscription.planUnknown" = "యాప్ మీ ఖాతాతో సింక్ అయిన తర్వాత మీ ప్లాన్ ఇక్కడ కనిపిస్తుంది.";
+"settings.subscription.change" = "సబ్‌స్క్రిప్షన్‌ను మార్చండి";
 "settings.subscription.manage" = "సబ్‌స్క్రిప్షన్‌ను నిర్వహించండి";
 "settings.language.title" = "భాష";
 "settings.language.systemDescription" = "iOS యాప్ భాషను నియంత్రిస్తుంది. iOS సెట్టింగ్‌లలో Nibomo తెరిచి ప్రాధాన్య భాషను ఉపయోగించండి. ప్రాధాన్య భాష కనిపించకపోతే ముందుగా సెట్టింగ్‌లు > సాధారణం > భాష మరియు ప్రాంతంలో మరో భాషను చేర్చండి.";
@@ -863,6 +864,7 @@
 "settings.accentColor.invalidHex" = "ఆరు హెక్సాడెసిమల్ అంకెలతో #RRGGBB రూపంలో రంగును నమోదు చేయండి.";
 "settings.accentColor.premiumNote" = "ఇష్టమైన హైలైట్ రంగులు Premiumతో అందుబాటులో ఉంటాయి. Premium సక్రియంగా ఉన్నప్పుడు మీరు సేవ్ చేసిన రంగు తిరిగి వస్తుంది.";
 
+"premium.apple.monthlyProduct" = "%@ · నెలవారీ";
 "premium.apple.renewal" = "రద్దు చేసే వరకు స్వయంచాలకంగా పునరుద్ధరించబడుతుంది. మీ App Store సభ్యత్వాల్లో నిర్వహించండి లేదా రద్దు చేయండి.";
 "premium.apple.trial" = "ఉచిత ట్రయల్: %@. ఆ తర్వాత:";
 "premium.apple.loadFailed" = "App Store ఆఫర్ లోడ్ కాలేదు. మీ కనెక్షన్‌ను తనిఖీ చేసి మళ్లీ ప్రయత్నించండి.";

@@ -221,6 +221,7 @@
 "settings.subscription.noEndDate" = "کوئی اختتامی تاریخ نہیں";
 "settings.subscription.endUnknown" = "نامعلوم";
 "settings.subscription.planUnknown" = "ایپ کے آپ کے اکاؤنٹ کے ساتھ سنک ہونے کے بعد آپ کا پلان یہاں نظر آئے گا۔";
+"settings.subscription.change" = "سبسکرپشن تبدیل کریں";
 "settings.subscription.manage" = "سبسکرپشن کا نظم کریں";
 "settings.language.title" = "زبان";
 "settings.language.systemDescription" = "iOS ایپ کی زبان طے کرتا ہے۔ iOS کی ترتیبات میں Nibomo کھولیں اور ترجیحی زبان منتخب کریں۔ اگر ترجیحی زبان نظر نہ آئے تو پہلے ترتیبات > عمومی > زبان اور علاقہ میں دوسری زبان شامل کریں۔";
@@ -863,6 +864,7 @@
 "settings.accentColor.invalidHex" = "چھ ہیکساڈیسیمل ہندسوں کے ساتھ #RRGGBB کی صورت میں رنگ درج کریں۔";
 "settings.accentColor.premiumNote" = "اپنی پسند کے نمایاں رنگ Premium کے ساتھ دستیاب ہیں۔ Premium فعال ہونے پر آپ کا محفوظ کردہ رنگ واپس آ جاتا ہے۔";
 
+"premium.apple.monthlyProduct" = "%@ · ماہانہ";
 "premium.apple.renewal" = "منسوخی تک خودکار تجدید ہوتی ہے۔ اپنی App Store سبسکرپشنز میں اس کا انتظام یا اسے منسوخ کریں۔";
 "premium.apple.trial" = "مفت آزمائش: %@۔ اس کے بعد:";
 "premium.apple.loadFailed" = "App Store کی پیشکش لوڈ نہیں ہو سکی۔ اپنا کنکشن چیک کریں اور دوبارہ کوشش کریں۔";
