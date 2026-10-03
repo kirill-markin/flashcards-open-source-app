@@ -23,6 +23,7 @@ import { createChatTranscriptionsRoutes } from "../routes/chatTranscriptions";
 import { createAgentRoutes } from "../routes/agent";
 import { createCardsRoutes } from "../routes/cards";
 import { createFeedbackRoutes } from "../routes/feedback";
+import { appleNotificationPath, createAppleBillingRoutes } from "../routes/appleBilling";
 import { createGlobalSnapshotRoutes, globalSnapshotPath } from "../routes/globalSnapshot";
 import { createMediaAssetsRoutes } from "../routes/mediaAssets";
 import { createProductAnalyticsRoutes } from "../routes/productAnalytics";
@@ -329,6 +330,8 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
     if (
       isPublicCatalogPath(context.req.path)
       || isAnonymousAnalyticsPath(context.req.path)
+      || (context.req.method === "POST"
+        && [appleNotificationPath, `/v1${appleNotificationPath}`].includes(context.req.path))
     ) {
       await next();
       return;
@@ -510,6 +513,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
   app.route("/", createCatalogInstallRoutes({ allowedOrigins }));
   app.route("/", createCardsRoutes({ allowedOrigins }));
   app.route("/", createFeedbackRoutes({ allowedOrigins }));
+  app.route("/", createAppleBillingRoutes({ allowedOrigins }));
   app.route("/", createWorkspacePackageRoutes({ allowedOrigins }));
   app.route("/", createMediaAssetsRoutes({ allowedOrigins }));
   app.route("/", createProductAnalyticsRoutes({ allowedOrigins }));
