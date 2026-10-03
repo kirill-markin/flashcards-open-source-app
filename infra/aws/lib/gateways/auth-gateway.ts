@@ -209,6 +209,17 @@ const staticDiscoveryResponseHeaders: Readonly<Record<string, string>> = {
   "X-Request-Id": "context.requestId",
 };
 
+// Request templates have no wildcard key, and a GET whose Content-Type matches
+// none would pass its empty body through and make the mock answer 500. The
+// common request types get the 200 template; NEVER turns any other into a 415.
+const staticDiscoveryRequestContentTypes: ReadonlyArray<string> = [
+  "application/json",
+  "text/plain",
+  "application/x-www-form-urlencoded",
+  "multipart/form-data",
+  "application/octet-stream",
+];
+
 /**
  * Answers GET on an OAuth discovery resource from API Gateway with a static
  * body (./auth-oauth-discovery.ts), so bursts never consume the auth Lambda's
@@ -224,9 +235,10 @@ function addStaticDiscoveryDocument(
   resource.addMethod(
     "GET",
     new apigw.MockIntegration({
-      requestTemplates: {
-        "application/json": '{"statusCode": 200}',
-      },
+      requestTemplates: Object.fromEntries(
+        staticDiscoveryRequestContentTypes.map((contentType) => [contentType, '{"statusCode": 200}']),
+      ),
+      passthroughBehavior: apigw.PassthroughBehavior.NEVER,
       integrationResponses: [
         {
           statusCode: "200",
