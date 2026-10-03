@@ -22,6 +22,8 @@ import {
 import { resolveMcpAlternateHost } from "../mcp-alternate-host";
 import { parsePublicOrigin } from "../public-origin";
 import { createRdsCaBundleDownloadCommand } from "../rds-ca-bundle";
+import { createSentrySourceMapInjectionCommand } from "../sentry-source-maps";
+import { getLambdaSentryRelease } from "../lambda-sentry-release";
 
 export interface McpGatewayProps {
   vpc: ec2.Vpc;
@@ -97,6 +99,7 @@ const lambdaBundling: lambdaNodejs.BundlingOptions = {
     beforeInstall: () => [],
     afterBundling: (_inputDir: string, outputDir: string) => [
       createRdsCaBundleDownloadCommand(outputDir),
+      createSentrySourceMapInjectionCommand(outputDir),
     ],
   },
 };
@@ -134,7 +137,7 @@ function addOptionalSentryEnvironment(
   secret.grantRead(fn);
   fn.addEnvironment("SENTRY_DSN", secret.secretValue.unsafeUnwrap());
   fn.addEnvironment("SENTRY_ENVIRONMENT", props.sentryEnvironment);
-  fn.addEnvironment("SENTRY_RELEASE", props.sentryRelease);
+  fn.addEnvironment("SENTRY_RELEASE", getLambdaSentryRelease(fn));
   fn.addEnvironment("SENTRY_TRACES_SAMPLE_RATE", props.sentryTracesSampleRate);
 }
 

@@ -6,6 +6,8 @@ import * as lambdaNodejs from "aws-cdk-lib/aws-lambda-nodejs";
 import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import { Construct } from "constructs";
 import * as path from "path";
+import { createSentrySourceMapInjectionCommand } from "./sentry-source-maps";
+import { getLambdaSentryRelease } from "./lambda-sentry-release";
 
 export interface CustomEmailSenderProps {
   resendApiKeySecretArn: string;
@@ -24,6 +26,13 @@ export interface CustomEmailSenderResult {
 const bundling: lambdaNodejs.BundlingOptions = {
   minify: true,
   sourceMap: true,
+  commandHooks: {
+    beforeBundling: () => [],
+    beforeInstall: () => [],
+    afterBundling: (_inputDir: string, outputDir: string) => [
+      createSentrySourceMapInjectionCommand(outputDir),
+    ],
+  },
 };
 
 function hasConfiguredValue(value: string | undefined): value is string {
@@ -59,7 +68,7 @@ function addOptionalSentryEnvironment(
   secret.grantRead(fn);
   fn.addEnvironment("SENTRY_DSN", secret.secretValue.unsafeUnwrap());
   fn.addEnvironment("SENTRY_ENVIRONMENT", props.sentryEnvironment);
-  fn.addEnvironment("SENTRY_RELEASE", props.sentryRelease);
+  fn.addEnvironment("SENTRY_RELEASE", getLambdaSentryRelease(fn));
   fn.addEnvironment("SENTRY_TRACES_SAMPLE_RATE", props.sentryTracesSampleRate);
 }
 

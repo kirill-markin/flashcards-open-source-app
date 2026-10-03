@@ -65,7 +65,7 @@ components_for_path() {
       echo "web" ;;
     apps/admin/*|scripts/deploy/deploy-admin.sh)
       echo "admin" ;;
-    scripts/geolite/*|scripts/deploy/migrate-aws.sh|scripts/deploy/prepare-monitoring-refactor.py|scripts/deploy/migrate-monitoring-stack.py|scripts/deploy/reconcile-monitoring-retry.py|scripts/deploy/reconcile-monitoring-preview.py|scripts/deploy/monitoring-refactor-batches.py|scripts/generate/write-ci-cdk-context.py|scripts/deploy/report-cloudformation-budget.py)
+    scripts/geolite/*|scripts/deploy/migrate-aws.sh|scripts/deploy/prepare-monitoring-refactor.py|scripts/deploy/migrate-monitoring-stack.py|scripts/deploy/reconcile-monitoring-retry.py|scripts/deploy/reconcile-monitoring-preview.py|scripts/deploy/monitoring-refactor-batches.py|scripts/generate/write-ci-cdk-context.py|scripts/deploy/report-cloudformation-budget.py|scripts/deploy/upload-lambda-source-maps.py)
       echo "platform" ;;
     scripts/generate/generate-catalog-dump.sh|scripts/generate/generate-global-metrics-snapshot.sh)
       echo "platform" ;;

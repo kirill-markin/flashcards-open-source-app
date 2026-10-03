@@ -136,7 +136,7 @@ test("backend, direct ingestion, and chat worker package sharp with ARM64 Docker
   );
   assert.match(
     apiGatewaySource,
-    /SENTRY_BACKEND_CLI_PATH: `\$\{dockerBundlingRepoRootPath\}\/apps\/backend\/node_modules\/\.bin\/sentry-cli`/,
+    /SENTRY_BACKEND_CLI_PATH: getDockerSentryCliPath\(dockerBundlingRepoRootPath\)/,
   );
   assert.equal(apiGatewaySource.match(/mediaAssetsBucket: props\.mediaAssetsBucket/g)?.length, 3);
   assert.equal(apiGatewaySource.match(/nodeModules: \["sharp"\]/g)?.length, 3);
