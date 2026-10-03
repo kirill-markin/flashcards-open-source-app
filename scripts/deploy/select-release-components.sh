@@ -159,6 +159,32 @@ platform_area_changed() {
   fi
 }
 
+# Shared cleanup imports span most backend domains. Only isolated reporting
+# and HTTP transport modules bypass staging; new/unknown backend paths stage.
+# Keep this exclusion list disjoint from migration/promotion/cleanup imports.
+staged_platform_required() {
+  local selection="$1"
+  if [[ "$(platform_area_changed "${selection}" 'db/|infra/|scripts/deploy/|scripts/generate/write-ci-cdk-context\.py$|scripts/checks/check-multipart-completion-reconciliation-schedule\.sh$')" == "true" ]]; then
+    echo "true"
+    return
+  fi
+  local paths
+  paths="$(printf '%s\n' "${selection}" | sed '1d')"
+  local path
+  while IFS= read -r path; do
+    case "${path}" in
+      apps/backend/src/admin/*|apps/backend/src/analyticsVisitor/*|apps/backend/src/feedback/*|apps/backend/src/globalMetrics/*|apps/backend/src/mcp/*)
+        continue ;;
+      apps/backend/src/entrypoints/lambda-mcp.ts|apps/backend/src/entrypoints/lambda-mcp-dispatcher.ts|apps/backend/src/routes/admin.ts|apps/backend/src/routes/analyticsVisitor.ts|apps/backend/src/routes/anonymousAnalytics.ts|apps/backend/src/routes/feedback.ts|apps/backend/src/routes/globalSnapshot.ts)
+        continue ;;
+      apps/backend/*)
+        echo "true"
+        return ;;
+    esac
+  done <<< "${paths}"
+  echo "false"
+}
+
 platform_selection="$(select_component platform "${PLATFORM_DEPLOYED_SHA}")"
 web_selection="$(select_component web "${WEB_DEPLOYED_SHA}")"
 admin_selection="$(select_component admin "${ADMIN_DEPLOYED_SHA}")"
@@ -179,10 +205,16 @@ fi
 auth_changed="false"
 backend_changed="false"
 infra_changed="false"
+staged_platform="false"
+mcp_capacity="false"
 if [[ "${deploy_platform}" == "true" ]]; then
   auth_changed="$(platform_area_changed "${platform_selection}" 'apps/auth/')"
   backend_changed="$(platform_area_changed "${platform_selection}" 'apps/backend/')"
   infra_changed="$(platform_area_changed "${platform_selection}" 'infra/')"
+  staged_platform="$(staged_platform_required "${platform_selection}")"
+  # The fixture exercises dispatcher capacity/proxy contracts, while the
+  # ordinary MCP smoke still covers every platform release's real worker.
+  mcp_capacity="$(platform_area_changed "${platform_selection}" 'infra/|apps/backend/(package[^/]*$|tsconfig[^/]*$|\.npmrc$|src/(entrypoints/lambda-mcp[^/]*$|mcp/|agent/|aiTools/|auth/|server/|shared/|observability/|database/|aws/))|scripts/deploy/|scripts/generate/write-ci-cdk-context\.py$|scripts/checks/check-mcp(-capacity)?-smoke\.(sh|py)$')"
 fi
 
 {
@@ -193,6 +225,8 @@ fi
   echo "auth_changed=${auth_changed}"
   echo "backend_changed=${backend_changed}"
   echo "infra_changed=${infra_changed}"
+  echo "staged_platform=${staged_platform}"
+  echo "mcp_capacity=${mcp_capacity}"
 } >> "${GITHUB_OUTPUT}"
 
 summarize_component() {
@@ -241,6 +275,10 @@ summarize_paths() {
   summarize_component platform "${PLATFORM_DEPLOYED_SHA}" "${platform_selection}"
   summarize_component web "${WEB_DEPLOYED_SHA}" "${web_selection}"
   summarize_component admin "${ADMIN_DEPLOYED_SHA}" "${admin_selection}"
+  echo ""
+  echo "- Staged platform deployment: \`${staged_platform}\`"
+  echo "- Isolated MCP capacity smoke: \`${mcp_capacity}\`"
+  echo "- Both decisions use the platform diff above; full/unknown states retain both gates."
   summarize_paths platform "${platform_selection}"
   summarize_paths web "${web_selection}"
   summarize_paths admin "${admin_selection}"

@@ -36,6 +36,24 @@ compare-and-set against the value the run read at selection: when a rerun of an
 older run finds a newer SHA already recorded, it deletes the parameter instead,
 and the next run deploys that component in full.
 
+Platform releases require both native ARM pre-deploy checks/synthesis and the
+independent PostgreSQL integration job before deployment. They run concurrently.
+The two ARM jobs reuse only the integrity-checked Lambda asset cache; each job
+regenerates its private CDK context and templates. Build-stage summaries report
+elapsed seconds, restored cache keys, and built/reused Lambda counts.
+
+The same cumulative platform diff selects cleanup staging and the isolated MCP
+capacity experiment. The exact conservative path classes live in
+`scripts/deploy/select-release-components.sh`. Migration, cleanup, shared backend,
+infrastructure and pipeline changes retain disable -> migrate/verify -> enable;
+isolated reporting/transport changes can deploy once with cleanup enabled.
+Both paths keep the CloudFormation migration dependency and latest-migration
+verification. Full/manual/unknown platform selections retain staging and capacity
+checks. Every platform release still checks monitoring ownership and the deployed
+MCP endpoint contract; selected capacity experiments must also pass proxy/capacity
+probes and temporary-stack cleanup. Pure web/admin uploads skip the platform
+ownership check and PostgreSQL job.
+
 Repository variables such as `vars.CDK_*` and `vars.VITE_SENTRY_*` never appear
 in a diff, so a change to one ships with no push. Set the variable first, then
 dispatch `AWS/Web Release` manually: variables bind when the run is created.
