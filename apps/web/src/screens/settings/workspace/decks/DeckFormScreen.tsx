@@ -120,6 +120,7 @@ export function DeckFormScreen(): ReactElement {
     activeWorkspace,
     cloudSettings,
     createDeckItem,
+    deleteDeckItem,
     getDeckById,
     session,
     updateDeckItem,
@@ -128,6 +129,7 @@ export function DeckFormScreen(): ReactElement {
   } = useAppData();
   const [formState, setFormState] = useState<FormState>(createInitialFormState());
   const [tagSuggestions, setTagSuggestions] = useState<ReadonlyArray<TagSuggestion>>([]);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [screenErrorMessage, setScreenErrorMessage] = useState<string>("");
@@ -136,6 +138,7 @@ export function DeckFormScreen(): ReactElement {
   const formStateRef = useRef<FormState>(formState);
   const authoritativeFormStateRef = useRef<FormState>(formState);
   const isMountedRef = useRef<boolean>(true);
+  const isDeletingRef = useRef<boolean>(false);
   const isSavingRef = useRef<boolean>(false);
   const editorIdentityRef = useRef<DeckEditorIdentity | null>(null);
   const renderedEditorIdentityRef = useRef<DeckEditorIdentity | null>(null);
@@ -415,8 +418,84 @@ export function DeckFormScreen(): ReactElement {
     return null;
   }
 
+  async function handleDelete(): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed() || isSavingRef.current || isDeletingRef.current) {
+      return;
+    }
+
+    const deleteEditorIdentity = renderedEditorIdentityRef.current;
+    if (
+      deleteEditorIdentity === null
+      || deleteEditorIdentity.mode !== "edit"
+      || deleteEditorIdentity.deckId === null
+      || deleteEditorIdentity.deckId === ALL_CARDS_DECK_SLUG
+      || areDeckEditorIdentitiesEqual(editorIdentityRef.current, deleteEditorIdentity) === false
+    ) {
+      return;
+    }
+
+    const persistedName = authoritativeFormStateRef.current.name;
+    const isDeleteEditorCurrent = function isDeleteEditorCurrent(): boolean {
+      return isMountedRef.current
+        && areDeckEditorIdentitiesEqual(renderedEditorIdentityRef.current, deleteEditorIdentity)
+        && areDeckEditorIdentitiesEqual(editorIdentityRef.current, deleteEditorIdentity);
+    };
+    if (window.confirm(t("deckDetail.deleteConfirmation", { name: persistedName })) === false) {
+      return;
+    }
+    if (isDeleteEditorCurrent() === false || indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
+    isDeletingRef.current = true;
+    setIsDeleting(true);
+    setErrorMessage("");
+    setFormErrorMessage("");
+
+    try {
+      const latestFormState = await readFormStateAfterLatestRefresh(deleteEditorIdentity);
+      indexedDbOpenRecoveryState.throwIfFailed();
+      if (latestFormState === null || isDeleteEditorCurrent() === false) {
+        return;
+      }
+
+      await deleteDeckItem(deleteEditorIdentity.deckId);
+      indexedDbOpenRecoveryState.throwIfFailed();
+      if (isDeleteEditorCurrent()) {
+        navigate(workspacePath(settingsDecksRoute));
+      }
+    } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
+      const wasCaptured = captureAppOperationError(error, {
+        feature: "settings",
+        operation: "deck_delete",
+        userId: session?.userId ?? null,
+        workspaceId: deleteEditorIdentity.workspaceId,
+        installationId: cloudSettings?.installationId ?? null,
+        entityId: deleteEditorIdentity.deckId,
+      });
+      if (isDeleteEditorCurrent()) {
+        if (wasCaptured) {
+          showCapturedTechnicalError(error);
+          setFormErrorMessage(technicalErrorMessage);
+        } else {
+          setFormErrorMessage(error instanceof Error ? error.message : String(error));
+        }
+      }
+    } finally {
+      if (indexedDbOpenRecoveryState.hasFailed() === false) {
+        isDeletingRef.current = false;
+        if (isMountedRef.current) {
+          setIsDeleting(false);
+        }
+      }
+    }
+  }
+
   async function handleSubmit(): Promise<void> {
-    if (indexedDbOpenRecoveryState.hasFailed() || isSavingRef.current) {
+    if (indexedDbOpenRecoveryState.hasFailed() || isSavingRef.current || isDeletingRef.current) {
       return;
     }
 
@@ -525,11 +604,22 @@ export function DeckFormScreen(): ReactElement {
             <p className="subtitle">{isCreateMode ? t("deckForm.subtitles.new") : t("deckForm.subtitles.edit")}</p>
           </div>
           <div className="screen-actions">
+            {isCreateMode === false && deckId !== ALL_CARDS_DECK_SLUG && isEditorInitialized ? (
+              <button
+                type="button"
+                className="ghost-btn settings-danger-btn"
+                disabled={isSaving || isDeleting}
+                onClick={() => void handleDelete()}
+                data-testid="deck-form-delete"
+              >
+                {isDeleting ? t("deckDetail.actions.deleting") : t("deckDetail.actions.delete")}
+              </button>
+            ) : null}
             <Link className="ghost-btn" to={backHref}>{t("deckForm.actions.back")}</Link>
             <button
               type="button"
               className="primary-btn"
-              disabled={isSaving}
+              disabled={isSaving || isDeleting}
               onClick={() => void handleSubmit()}
               data-testid="deck-form-save"
             >
@@ -554,6 +644,7 @@ export function DeckFormScreen(): ReactElement {
                 className="settings-input"
                 value={formState.name}
                 data-testid="deck-form-name-input"
+                disabled={isSaving || isDeleting}
                 onChange={(event: ChangeEvent<HTMLInputElement>) => updateField("name", event.target.value)}
               />
             </label>
@@ -568,7 +659,7 @@ export function DeckFormScreen(): ReactElement {
                 inputId={tagsFieldId}
                 inputName="tags"
                 onChange={(nextValue) => updateField("tags", nextValue)}
-                disabled={isSaving}
+                disabled={isSaving || isDeleting}
               />
             </div>
           </section>

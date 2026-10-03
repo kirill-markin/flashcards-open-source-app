@@ -6,6 +6,8 @@ import {
   useAppErrorDialog,
 } from "../../../../appError/AppErrorContext";
 import { ALL_CARDS_DECK_SLUG } from "../../../../deckFilters";
+import { createDeckNameComparator } from "../../../../deckNameOrdering";
+import type { Locale } from "../../../../i18n/types";
 import { useI18n } from "../../../../i18n";
 import { buildSettingsDeckDetailRoute, settingsDeckNewRoute } from "../../../../routes";
 import { useWorkspacePath, type WorkspacePathBuilder } from "../../../../useWorkspacePath";
@@ -30,6 +32,7 @@ function buildDeckDetailPath(deckId: string, workspacePath: WorkspacePathBuilder
 function makeDeckListEntries(
   decksSnapshot: DecksListSnapshot,
   workspacePath: WorkspacePathBuilder,
+  locale: Locale,
 ): ReadonlyArray<DeckListEntry> {
   return [{
     id: ALL_CARDS_DECK_SLUG,
@@ -37,7 +40,7 @@ function makeDeckListEntries(
     filterSummary: "",
     stats: decksSnapshot.allCardsStats,
     href: buildDeckDetailPath(ALL_CARDS_DECK_SLUG, workspacePath),
-  }, ...decksSnapshot.deckSummaries.map((deckSummary) => ({
+  }, ...[...decksSnapshot.deckSummaries].sort(createDeckNameComparator(locale)).map((deckSummary) => ({
     id: deckSummary.deckId,
     title: deckSummary.name,
     filterSummary: "",
@@ -64,7 +67,7 @@ const emptyDecksSnapshot: DecksListSnapshot = {
 export function DecksScreen(): ReactElement {
   const { activeWorkspace, cloudSettings, localReadVersion, refreshLocalData, session } = useAppData();
   const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
-  const { messages, t, formatNumber, selectCountLabel } = useI18n();
+  const { locale, messages, t, formatNumber, selectCountLabel } = useI18n();
   const workspacePath = useWorkspacePath();
   const [decksSnapshot, setDecksSnapshot] = useState<DecksListSnapshot>(emptyDecksSnapshot);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -144,7 +147,7 @@ export function DecksScreen(): ReactElement {
     };
   }, [activeWorkspace, indexedDbOpenRecoveryState, localReadVersion]);
 
-  const deckListEntries = makeDeckListEntries(decksSnapshot, workspacePath);
+  const deckListEntries = makeDeckListEntries(decksSnapshot, workspacePath, locale);
 
   async function handleRefreshLocalData(): Promise<void> {
     if (indexedDbOpenRecoveryState.hasFailed()) {

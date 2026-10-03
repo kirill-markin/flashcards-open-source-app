@@ -1274,7 +1274,7 @@ const swCatalog: TranslationCatalog = {
       reviewAllCards: "Rudia kadi zote",
       reviewDeck: "Rudia fungu hili",
     },
-    deleteConfirmation: "Ufute fungu hili?",
+    deleteConfirmation: "Ufute “{{name}}”? Kadi zako zitabaki. Hii inaondoa tu kichujio kilichohifadhiwa cha fungu.",
     empty: {
       allCards: "Bado hujaunda kadi zozote.",
       deckCards: "Fungu hili halina kadi zinazolingana bado.",

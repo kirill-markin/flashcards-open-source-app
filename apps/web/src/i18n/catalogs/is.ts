@@ -1274,7 +1274,7 @@ const isCatalog: TranslationCatalog = {
       reviewAllCards: "Rifja upp öll spjöld",
       reviewDeck: "Rifja upp þennan stokk",
     },
-    deleteConfirmation: "Eyða þessum stokki?",
+    deleteConfirmation: "Eyða „{{name}}“? Spjöldin þín verða áfram til staðar. Þetta fjarlægir aðeins vistuðu síu stokksins.",
     empty: {
       allCards: "Þú hefur ekki búið til nein spjöld enn.",
       deckCards: "Þessi stokkur hefur engin samsvarandi spjöld enn.",

@@ -1274,7 +1274,7 @@ const ptBrCatalog: TranslationCatalog = {
       reviewAllCards: "Revisar todos os cartões",
       reviewDeck: "Revisar este baralho",
     },
-    deleteConfirmation: "Excluir este baralho?",
+    deleteConfirmation: "Excluir “{{name}}”? Seus cartões serão mantidos. Apenas o filtro salvo do baralho será removido.",
     empty: {
       allCards: "Você ainda não criou nenhum cartão.",
       deckCards: "Este baralho ainda não tem nenhum cartão correspondente.",

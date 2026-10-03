@@ -1276,7 +1276,7 @@ const hiCatalog: TranslationCatalog = {
       reviewAllCards: "सभी कार्ड रिव्यू करें",
       reviewDeck: "इस डेक को रिव्यू करें",
     },
-    deleteConfirmation: "क्या यह डेक हटाएँ?",
+    deleteConfirmation: "“{{name}}” हटाएँ? आपके कार्ड बने रहेंगे। इससे केवल डेक का सहेजा गया फ़िल्टर हटेगा।",
     empty: {
       allCards: "आपने अभी तक कोई कार्ड नहीं बनाया है।",
       deckCards: "इस डेक में अभी तक कोई मिलते-जुलते कार्ड नहीं हैं।",

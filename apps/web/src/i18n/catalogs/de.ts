@@ -1274,7 +1274,7 @@ const deCatalog: TranslationCatalog = {
       reviewAllCards: "Alle Karten wiederholen",
       reviewDeck: "Dieses Deck wiederholen",
     },
-    deleteConfirmation: "Dieses Deck löschen?",
+    deleteConfirmation: "„{{name}}“ löschen? Deine Karten bleiben erhalten. Dabei wird nur der gespeicherte Deckfilter entfernt.",
     empty: {
       allCards: "Du hast noch keine Karten erstellt.",
       deckCards: "Dieses Deck hat noch keine passenden Karten.",
