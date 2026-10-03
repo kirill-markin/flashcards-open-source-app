@@ -8,6 +8,9 @@ import type { APIGatewayProxyEvent, APIGatewayProxyResult, Context } from "aws-l
 import { z } from "zod";
 
 const minimumRetryAfterSeconds = 1;
+const httpMethodSchema = z.enum([
+  "GET", "HEAD", "POST", "PUT", "DELETE", "CONNECT", "OPTIONS", "TRACE", "PATCH",
+]);
 const lambdaClient = new LambdaClient({
   // A retry after an ambiguous delivery failure could execute a write twice.
   maxAttempts: 1,
@@ -21,6 +24,15 @@ const proxyResponseSchema = z.object({
   multiValueHeaders: z.record(z.string(), z.array(headerValueSchema)).optional(),
   isBase64Encoded: z.boolean().optional(),
 }).passthrough();
+
+function getWorkerRequestId(response: APIGatewayProxyResult): string | null {
+  const headers = [
+    ...Object.entries(response.headers ?? {}),
+    ...Object.entries(response.multiValueHeaders ?? {}).map(([name, values]) => [name, values[0]] as const),
+  ];
+  const requestId = headers.find(([name]) => name.toLowerCase() === "x-request-id")?.[1];
+  return z.string().uuid().safeParse(requestId).data ?? null;
+}
 
 function getRetryAfterSeconds(error: TooManyRequestsException): number {
   const suggestion = error.retryAfterSeconds;
@@ -57,7 +69,9 @@ export async function handler(
   event: APIGatewayProxyEvent,
   context: Context,
 ): Promise<APIGatewayProxyResult> {
+  const startedAt = performance.now();
   const requestId = event.requestContext?.requestId ?? context.awsRequestId;
+  const method = httpMethodSchema.safeParse(event.httpMethod).data ?? "OTHER";
   let phase = "configuration";
   let invocationRequestId: string | undefined;
   let functionError: string | undefined;
@@ -84,9 +98,21 @@ export async function handler(
       throw new Error("MCP worker response payload is missing");
     }
 
-    // Preserve proxy headers (including OAuth challenges), body and base64 bytes.
-    return proxyResponseSchema.parse(JSON.parse(Buffer.from(result.Payload).toString("utf8")));
+    const response = proxyResponseSchema.parse(JSON.parse(Buffer.from(result.Payload).toString("utf8")));
+    const durationMs = Math.round(performance.now() - startedAt);
+    console.log({
+      action: "mcp_worker_completed",
+      requestId,
+      dispatcherRequestId: context.awsRequestId,
+      invocationRequestId,
+      workerRequestId: getWorkerRequestId(response),
+      method,
+      statusCode: response.statusCode,
+      durationMs,
+    });
+    return response;
   } catch (error) {
+    const durationMs = Math.round(performance.now() - startedAt);
     if (error instanceof TooManyRequestsException) {
       const retryAfterSeconds = getRetryAfterSeconds(error);
       console.warn({
@@ -94,6 +120,9 @@ export async function handler(
         requestId,
         dispatcherRequestId: context.awsRequestId,
         invocationRequestId: error.$metadata.requestId,
+        method,
+        statusCode: 429,
+        durationMs,
         reason: error.Reason,
         retryAfterSeconds,
       });
@@ -111,6 +140,9 @@ export async function handler(
       action: "mcp_dispatch_failed",
       requestId,
       dispatcherRequestId: context.awsRequestId,
+      method,
+      statusCode: 502,
+      durationMs,
       phase,
       errorName: error instanceof Error ? error.name : "NonErrorThrown",
       invocationRequestId: error instanceof LambdaServiceException
