@@ -46,7 +46,7 @@
   "offer.trialEligibility": "Ein kostenloser Testzeitraum pro Stripe-Kunde. Ein früherer Testzeitraum bei Apple oder Google hat keinen Einfluss auf die Berechtigung.",
   "offer.allowanceWindow": "Dein KI-Nachrichtenkontingent wird zu Beginn jedes Kalendermonats in UTC zurückgesetzt, unabhängig von deinem Abrechnungsdatum.",
   "email.trialReminderSubject": "Dein Nibomo Premium-Testzeitraum endet bald",
-  "email.trialReminderBody": "Dein kostenloser Nibomo Premium-Testzeitraum endet am {date}. Danach verlängert sich dein Abonnement automatisch für {price} pro Monat, einschließlich der anfallenden Steuern. Kündige vor Ende des Testzeitraums, um die erste Abbuchung zu vermeiden. Verwalte oder kündige dein Abonnement in den Abonnementeinstellungen: {url}",
+  "email.trialReminderBody": "Dein kostenloser Nibomo Premium-Testzeitraum endet am {date}. Danach verlängert sich dein Abonnement automatisch zu einem monatlichen Basispreis von {price}, einschließlich der anfallenden Steuern. Stripe zeigt den endgültigen Abbuchungsbetrag in deiner Abrechnungswährung an. Kündige vor Ende des Testzeitraums, um die erste Abbuchung zu vermeiden. Verwalte oder kündige dein Abonnement in den Abonnementeinstellungen: {url}",
   "email.paymentReceiptSubject": "Nibomo-Zahlungsbeleg",
   "email.paymentReceiptBody": "Wir haben deine Zahlung über {price} erhalten. Hier findest du deinen Beleg: {url}",
   "email.refundReceiptSubject": "Nibomo-Erstattungsbeleg",

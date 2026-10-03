@@ -22,6 +22,7 @@ import { getMcpResourceUrl, getPrimaryMcpHost } from "../mcp-alternate-host";
 import { createRdsCaBundleCopyCommand, rdsCaBundlePath } from "../rds-ca-bundle";
 import { createSentrySourceMapInjectionCommand } from "../sentry-source-maps";
 import { getLambdaSentryRelease } from "../lambda-sentry-release";
+import { buildAuthorizationServerMetadataJson, buildOpenIdConfigurationJson } from "./auth-oauth-discovery";
 
 export interface AuthGatewayProps {
   vpc: ec2.Vpc;
@@ -185,6 +186,85 @@ function addOptionalSentryEnvironment(
   fn.addEnvironment("SENTRY_TRACES_SAMPLE_RATE", props.sentryTracesSampleRate);
 }
 
+const oauthAuthorizationServerPathPart = "oauth-authorization-server";
+const openIdConfigurationPathPart = "openid-configuration";
+
+// The static discovery GETs cost nothing to serve, so MCP agent-fleet bursts
+// get far more headroom than the stage default. A per-method entry replaces the
+// stage-wide settings instead of merging, so metrics are restated.
+const staticDiscoveryMethodOptions: apigw.MethodDeploymentOptions = {
+  metricsEnabled: true,
+  throttlingRateLimit: 200,
+  throttlingBurstLimit: 400,
+};
+
+// Mirrors the headers the auth Lambda sends on these documents
+// (apps/auth/src/app.ts): OAuth-public CORS, X-Robots-Tag, and X-Request-Id.
+const staticDiscoveryResponseHeaders: Readonly<Record<string, string>> = {
+  "Content-Type": "'application/json'",
+  "Access-Control-Allow-Origin": "'*'",
+  "Access-Control-Allow-Headers": "'content-type, authorization'",
+  "Access-Control-Allow-Methods": "'GET, POST, OPTIONS'",
+  "X-Robots-Tag": "'noindex, nofollow, noarchive'",
+  "X-Request-Id": "context.requestId",
+};
+
+// Request templates have no wildcard key, and a GET whose Content-Type matches
+// none would pass its empty body through and make the mock answer 500. The
+// common request types get the 200 template; NEVER turns any other into a 415.
+const staticDiscoveryRequestContentTypes: ReadonlyArray<string> = [
+  "application/json",
+  "text/plain",
+  "application/x-www-form-urlencoded",
+  "multipart/form-data",
+  "application/octet-stream",
+];
+
+/**
+ * Answers GET on an OAuth discovery resource from API Gateway with a static
+ * body (./auth-oauth-discovery.ts), so bursts never consume the auth Lambda's
+ * reserved concurrency. Every other method, OPTIONS preflight included, stays
+ * on the Lambda.
+ */
+function addStaticDiscoveryDocument(
+  resource: apigw.Resource,
+  body: string,
+  lambdaIntegration: apigw.LambdaIntegration,
+): void {
+  const headers = Object.entries(staticDiscoveryResponseHeaders);
+  resource.addMethod(
+    "GET",
+    new apigw.MockIntegration({
+      requestTemplates: Object.fromEntries(
+        staticDiscoveryRequestContentTypes.map((contentType) => [contentType, '{"statusCode": 200}']),
+      ),
+      passthroughBehavior: apigw.PassthroughBehavior.NEVER,
+      integrationResponses: [
+        {
+          statusCode: "200",
+          responseParameters: Object.fromEntries(
+            headers.map(([name, value]) => [`method.response.header.${name}`, value]),
+          ),
+          responseTemplates: {
+            "application/json": body,
+          },
+        },
+      ],
+    }),
+    {
+      methodResponses: [
+        {
+          statusCode: "200",
+          responseParameters: Object.fromEntries(
+            headers.map(([name]) => [`method.response.header.${name}`, true]),
+          ),
+        },
+      ],
+    },
+  );
+  resource.addMethod("ANY", lambdaIntegration);
+}
+
 const lambdaBundling: lambdaNodejs.BundlingOptions = {
   minify: true,
   sourceMap: true,
@@ -203,6 +283,8 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
     props.apiBaseUrl ?? `https://api.${props.baseDomain}`,
     "apiBaseUrl",
   );
+  // Issuer for the static discovery bodies; must equal PUBLIC_AUTH_BASE_URL below.
+  const publicAuthBaseUrl = `https://auth.${props.baseDomain}`;
   const sessionEncryptionKey = new cdk.aws_secretsmanager.Secret(scope, "SessionEncryptionKey", {
     secretName: "flashcards-open-source-app/session-encryption-key",
     generateSecretString: {
@@ -303,6 +385,10 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
       stageName: "v1",
       throttlingRateLimit: 20,
       throttlingBurstLimit: 40,
+      methodOptions: {
+        [`/.well-known/${oauthAuthorizationServerPathPart}/GET`]: staticDiscoveryMethodOptions,
+        [`/.well-known/${openIdConfigurationPathPart}/GET`]: staticDiscoveryMethodOptions,
+      },
       metricsEnabled: true,
       dataTraceEnabled: false,
       tracingEnabled: false,
@@ -311,9 +397,27 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
     },
   });
 
-  const integration = new apigw.LambdaIntegration(authFn);
+  // One API-scoped invoke permission instead of two per method keeps the stack
+  // under CloudFormation's 500-resource limit.
+  const integration = new apigw.LambdaIntegration(authFn, { scopePermissionToMethod: false });
   restApi.root.addMethod("ANY", integration);
   restApi.root.addResource("{proxy+}").addMethod("ANY", integration);
+  // API Gateway does not fall back from an explicit resource to the root
+  // {proxy+}, so /.well-known keeps its own Lambda catch-all (jwks.json and
+  // every other path under it stay on the Lambda).
+  const wellKnown = restApi.root.addResource(".well-known");
+  wellKnown.addMethod("ANY", integration);
+  wellKnown.addResource("{proxy+}").addMethod("ANY", integration);
+  addStaticDiscoveryDocument(
+    wellKnown.addResource(oauthAuthorizationServerPathPart),
+    buildAuthorizationServerMetadataJson(publicAuthBaseUrl),
+    integration,
+  );
+  addStaticDiscoveryDocument(
+    wellKnown.addResource(openIdConfigurationPathPart),
+    buildOpenIdConfigurationJson(publicAuthBaseUrl),
+    integration,
+  );
   const gatewayErrorResponseHeaders = createAuthGatewayErrorResponseHeaders();
 
   new apigw.GatewayResponse(scope, "AuthApiDefault4xxGatewayResponse", {

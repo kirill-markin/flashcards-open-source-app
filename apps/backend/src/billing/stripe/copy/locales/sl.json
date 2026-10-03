@@ -46,7 +46,7 @@
   "offer.trialEligibility": "Eno brezplačno preizkusno obdobje na stranko Stripe. Prejšnje preizkusno obdobje pri Applu ali Googlu ne vpliva na upravičenost.",
   "offer.allowanceWindow": "Vaša kvota sporočil UI se obnovi vsak koledarski mesec po času UTC, neodvisno od datuma obračuna.",
   "email.trialReminderSubject": "Vaše preizkusno obdobje Nibomo Premium se kmalu konča",
-  "email.trialReminderBody": "Vaše brezplačno preizkusno obdobje Nibomo Premium se konča {date}. Po preizkusnem obdobju se naročnina samodejno obnavlja po ceni {price} na mesec, vključno z veljavnimi davki. Da se izognete prvemu plačilu, jo prekličite pred koncem preizkusnega obdobja. Upravljajte ali prekličite naročnino v nastavitvah naročnine: {url}",
+  "email.trialReminderBody": "Vaše brezplačno preizkusno obdobje Nibomo Premium se konča {date}. Po preizkusnem obdobju se naročnina samodejno obnavlja po osnovni mesečni ceni {price}, vključno z veljavnimi davki. Stripe prikaže končni znesek plačila v vaši obračunski valuti. Da se izognete prvemu plačilu, jo prekličite pred koncem preizkusnega obdobja. Upravljajte ali prekličite naročnino v nastavitvah naročnine: {url}",
   "email.paymentReceiptSubject": "Potrdilo o plačilu za Nibomo",
   "email.paymentReceiptBody": "Prejeli smo vaše plačilo v višini {price}. Oglejte si potrdilo: {url}",
   "email.refundReceiptSubject": "Potrdilo o vračilu za Nibomo",

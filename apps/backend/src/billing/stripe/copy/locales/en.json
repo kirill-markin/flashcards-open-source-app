@@ -46,7 +46,7 @@
   "offer.trialEligibility": "One free trial per Stripe customer. A previous Apple or Google trial does not affect eligibility.",
   "offer.allowanceWindow": "Your AI message allowance resets each calendar month in UTC, independently of your billing date.",
   "email.trialReminderSubject": "Your Nibomo Premium trial ends soon",
-  "email.trialReminderBody": "Your Nibomo Premium free trial ends on {date}. After the trial, your subscription renews automatically at {price} per month, including applicable taxes. To avoid the first charge, cancel before the trial ends. Manage or cancel your subscription in Subscription settings: {url}",
+  "email.trialReminderBody": "Your Nibomo Premium free trial ends on {date}. After the trial, your subscription renews automatically at a monthly base price of {price}, including applicable taxes. Stripe shows the final charge in your billing currency. To avoid the first charge, cancel before the trial ends. Manage or cancel your subscription in Subscription settings: {url}",
   "email.paymentReceiptSubject": "Nibomo payment receipt",
   "email.paymentReceiptBody": "Your payment of {price} was received. View your receipt: {url}",
   "email.refundReceiptSubject": "Nibomo refund receipt",
