@@ -337,305 +337,305 @@ features such as sync are not subscription benefits.
 ### Default - English (United States) - en-US
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `AI chat without the monthly limit` (33)
-- Description (max 80): `Chat with the AI without hitting the free monthly limit.` (56)
+- Benefit 1 (max 40): `1000 AI messages per month` (26)
+- Description (max 80): `1000 AI messages per month.` (27)
 
 ### Arabic - ar
 
 - Name (max 55): `بريميوم` (7)
-- Benefit 1 (max 40): `دردشة الذكاء الاصطناعي دون الحد الشهري` (38)
-- Description (max 80): `تحدّث مع الذكاء الاصطناعي دون الوصول إلى الحد الشهري المجاني.` (61)
+- Benefit 1 (max 40): `1000 رسالة ذكاء اصطناعي شهريًا` (30)
+- Description (max 80): `1000 رسالة ذكاء اصطناعي شهريًا.` (31)
 
 ### Chinese (Simplified) - zh-CN
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `AI 聊天，不受每月额度限制` (14)
-- Description (max 80): `与 AI 聊天，不受每月免费额度限制。` (19)
+- Benefit 1 (max 40): `每月1000条AI消息` (11)
+- Description (max 80): `每月1000条AI消息。` (12)
 
 ### French - fr-FR
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `Chat IA sans la limite mensuelle` (32)
-- Description (max 80): `Discutez avec l’IA sans atteindre la limite mensuelle gratuite.` (63)
+- Benefit 1 (max 40): `1000 messages IA par mois` (25)
+- Description (max 80): `1000 messages IA par mois.` (26)
 
 ### German - de-DE
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `KI-Chat ohne das Monatslimit` (28)
-- Description (max 80): `Chatte mit der KI, ohne an das kostenlose Monatslimit zu stoßen.` (64)
+- Benefit 1 (max 40): `1000 KI-Nachrichten pro Monat` (29)
+- Description (max 80): `1000 KI-Nachrichten pro Monat.` (30)
 
 ### Hindi - hi-IN
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `मासिक सीमा के बिना AI चैट` (25)
-- Description (max 80): `मुफ़्त मासिक सीमा तक पहुँचे बिना AI से चैट करें।` (48)
+- Benefit 1 (max 40): `हर महीने 1000 AI संदेश` (22)
+- Description (max 80): `हर महीने 1000 AI संदेश।` (23)
 
 ### Japanese - ja-JP
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `月間上限を気にせずAIチャット` (15)
-- Description (max 80): `無料プランの月間上限を気にせず、AIとチャットできます。` (28)
+- Benefit 1 (max 40): `毎月1000件のAIメッセージ` (15)
+- Description (max 80): `毎月1000件のAIメッセージ。` (16)
 
 ### Portuguese (Brazil) - pt-BR
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `Chat com IA sem o limite mensal` (31)
-- Description (max 80): `Converse com a IA sem esbarrar no limite mensal gratuito.` (57)
+- Benefit 1 (max 40): `1000 mensagens de IA por mês` (28)
+- Description (max 80): `1000 mensagens de IA por mês.` (29)
 
 ### Russian - ru-RU
 
 - Name (max 55): `Премиум` (7)
-- Benefit 1 (max 40): `ИИ-чат без месячного лимита` (27)
-- Description (max 80): `Общайтесь с ИИ, не упираясь в бесплатный месячный лимит.` (56)
+- Benefit 1 (max 40): `1000 сообщений ИИ в месяц` (25)
+- Description (max 80): `1000 сообщений ИИ в месяц.` (26)
 
 ### Spanish (Latin America) - es-419
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `Chat con IA sin el límite mensual` (33)
-- Description (max 80): `Chatea con la IA sin llegar al límite mensual gratuito.` (55)
+- Benefit 1 (max 40): `1000 mensajes de IA al mes` (26)
+- Description (max 80): `1000 mensajes de IA al mes.` (27)
 
 ### Spanish (Spain) - es-ES
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `Chat con IA sin el límite mensual` (33)
-- Description (max 80): `Chatea con la IA sin llegar al límite mensual gratuito.` (55)
+- Benefit 1 (max 40): `1000 mensajes de IA al mes` (26)
+- Description (max 80): `1000 mensajes de IA al mes.` (27)
 
 ### Spanish (United States) - es-US
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `Chat con IA sin el límite mensual` (33)
-- Description (max 80): `Chatea con la IA sin llegar al límite mensual gratuito.` (55)
+- Benefit 1 (max 40): `1000 mensajes de IA al mes` (26)
+- Description (max 80): `1000 mensajes de IA al mes.` (27)
 
 ### Bulgarian - bg
 
 - Name (max 55): `Премиум` (7)
-- Benefit 1 (max 40): `ИИ чат без месечния лимит` (25)
-- Description (max 80): `Разговаряйте с ИИ, без да стигате безплатния месечен лимит.` (59)
+- Benefit 1 (max 40): `1000 съобщения с ИИ на месец` (28)
+- Description (max 80): `1000 съобщения с ИИ на месец.` (29)
 
 ### Bengali (Bangladesh) - bn-BD
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `মাসিক সীমা ছাড়াই AI চ্যাট` (26)
-- Description (max 80): `বিনামূল্যের মাসিক সীমায় না আটকে AI-এর সঙ্গে চ্যাট করুন।` (56)
+- Benefit 1 (max 40): `প্রতি মাসে 1000 AI বার্তা` (25)
+- Description (max 80): `প্রতি মাসে 1000 AI বার্তা।` (26)
 
 ### Catalan - ca
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `Xat d’IA sense el límit mensual` (31)
-- Description (max 80): `Xateja amb la IA sense arribar al límit mensual gratuït.` (56)
+- Benefit 1 (max 40): `1000 missatges d’IA al mes` (26)
+- Description (max 80): `1000 missatges d’IA al mes.` (27)
 
 ### Czech - cs-CZ
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `Chat s AI bez měsíčního limitu` (30)
-- Description (max 80): `Chatujte s AI, aniž byste narazili na bezplatný měsíční limit.` (62)
+- Benefit 1 (max 40): `1000 zpráv s AI měsíčně` (23)
+- Description (max 80): `1000 zpráv s AI měsíčně.` (24)
 
 ### Danish - da-DK
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `AI-chat uden den månedlige grænse` (33)
-- Description (max 80): `Chat med AI uden at ramme den gratis månedlige grænse.` (54)
+- Benefit 1 (max 40): `1000 AI-beskeder om måneden` (27)
+- Description (max 80): `1000 AI-beskeder om måneden.` (28)
 
 ### Greek - el-GR
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `Συνομιλία με AI χωρίς το μηνιαίο όριο` (37)
-- Description (max 80): `Συνομιλήστε με το AI χωρίς να φτάνετε το δωρεάν μηνιαίο όριο.` (61)
+- Benefit 1 (max 40): `1000 μηνύματα AI τον μήνα` (25)
+- Description (max 80): `1000 μηνύματα AI τον μήνα.` (26)
 
 ### Estonian - et
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `AI-vestlus ilma kuulimiidita` (28)
-- Description (max 80): `Vestle AI-ga, ilma et jõuaksid tasuta kuulimiidini.` (51)
+- Benefit 1 (max 40): `1000 AI-sõnumit kuus` (20)
+- Description (max 80): `1000 AI-sõnumit kuus.` (21)
 
 ### Persian - fa
 
 - Name (max 55): `پریمیوم` (7)
-- Benefit 1 (max 40): `گفت‌وگو با هوش مصنوعی بدون سقف ماهانه` (37)
-- Description (max 80): `بدون رسیدن به سهمیه ماهانه رایگان با هوش مصنوعی گفت‌وگو کنید.` (61)
+- Benefit 1 (max 40): `ماهانه 1000 پیام هوش مصنوعی` (27)
+- Description (max 80): `ماهانه 1000 پیام هوش مصنوعی.` (28)
 
 ### Finnish - fi-FI
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `Tekoälykeskustelu ilman kuukausirajaa` (37)
-- Description (max 80): `Keskustele tekoälyn kanssa ilman, että ilmainen kuukausiraja tulee vastaan.` (75)
+- Benefit 1 (max 40): `1000 tekoälyviestiä kuukaudessa` (31)
+- Description (max 80): `1000 tekoälyviestiä kuukaudessa.` (32)
 
 ### Gujarati - gu
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `માસિક મર્યાદા વિના AI ચૅટ` (25)
-- Description (max 80): `મફત માસિક મર્યાદા સુધી પહોંચ્યા વિના AI સાથે ચૅટ કરો.` (53)
+- Benefit 1 (max 40): `દર મહિને 1000 AI સંદેશા` (23)
+- Description (max 80): `દર મહિને 1000 AI સંદેશા.` (24)
 
 ### Hebrew - iw-IL
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `צ'אט AI בלי המגבלה החודשית` (26)
-- Description (max 80): `שוחחו עם ה-AI בלי להגיע למגבלה החודשית החינמית.` (47)
+- Benefit 1 (max 40): `1000 הודעות AI בחודש` (20)
+- Description (max 80): `1000 הודעות AI בחודש.` (21)
 
 ### Croatian - hr
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `AI razgovor bez mjesečnog ograničenja` (37)
-- Description (max 80): `Razgovaraj s AI-jem bez dosezanja besplatnog mjesečnog ograničenja.` (67)
+- Benefit 1 (max 40): `1000 AI poruka mjesečno` (23)
+- Description (max 80): `1000 AI poruka mjesečno.` (24)
 
 ### Hungarian - hu-HU
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `AI-csevegés a havi korlát nélkül` (32)
-- Description (max 80): `Csevegj az AI-jal anélkül, hogy elérnéd az ingyenes havi korlátot.` (66)
+- Benefit 1 (max 40): `Havi 1000 AI-üzenet` (19)
+- Description (max 80): `Havi 1000 AI-üzenet.` (20)
 
 ### Indonesian - id
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `Obrolan AI tanpa terbentur batas bulanan` (40)
-- Description (max 80): `Ngobrol dengan AI tanpa terbentur batas bulanan gratis.` (55)
+- Benefit 1 (max 40): `1000 pesan AI per bulan` (23)
+- Description (max 80): `1000 pesan AI per bulan.` (24)
 
 ### Icelandic - is-IS
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `Spjall við gervigreind án mánaðarhámarks` (40)
-- Description (max 80): `Spjallaðu við gervigreindina án þess að ná ókeypis mánaðarhámarkinu.` (68)
+- Benefit 1 (max 40): `1000 skilaboð til gervigreindar á mánuði` (40)
+- Description (max 80): `1000 skilaboð til gervigreindar á mánuði.` (41)
 
 ### Italian - it-IT
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `Chat con IA senza il limite mensile` (35)
-- Description (max 80): `Chatta con l’IA senza raggiungere il limite mensile gratuito.` (61)
+- Benefit 1 (max 40): `1000 messaggi IA al mese` (24)
+- Description (max 80): `1000 messaggi IA al mese.` (25)
 
 ### Kannada (India) - kn-IN
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `ಮಾಸಿಕ ಮಿತಿ ಇಲ್ಲದೆ AI ಚಾಟ್` (25)
-- Description (max 80): `ಉಚಿತ ಮಾಸಿಕ ಮಿತಿಯನ್ನು ತಲುಪದೆ AI ಜೊತೆ ಚಾಟ್ ಮಾಡಿ.` (46)
+- Benefit 1 (max 40): `ತಿಂಗಳಿಗೆ 1000 AI ಸಂದೇಶಗಳು` (25)
+- Description (max 80): `ತಿಂಗಳಿಗೆ 1000 AI ಸಂದೇಶಗಳು.` (26)
 
 ### Korean - ko-KR
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `월간 한도 걱정 없는 AI 채팅` (17)
-- Description (max 80): `무료 월간 한도에 걸리지 않고 AI와 채팅하세요.` (27)
+- Benefit 1 (max 40): `매월 AI 메시지 1000개` (15)
+- Description (max 80): `매월 AI 메시지 1000개.` (16)
 
 ### Lithuanian - lt
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `DI pokalbiai be mėnesio limito` (30)
-- Description (max 80): `Kalbėkitės su DI nepasiekdami nemokamo mėnesio limito.` (54)
+- Benefit 1 (max 40): `1000 DI žinučių per mėnesį` (26)
+- Description (max 80): `1000 DI žinučių per mėnesį.` (27)
 
 ### Latvian - lv
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `MI saruna bez mēneša ierobežojuma` (33)
-- Description (max 80): `Sarunājies ar MI, nesasniedzot bezmaksas mēneša ierobežojumu.` (61)
+- Benefit 1 (max 40): `1000 MI ziņojumu mēnesī` (23)
+- Description (max 80): `1000 MI ziņojumu mēnesī.` (24)
 
 ### Malayalam (India) - ml-IN
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `പ്രതിമാസ പരിധി ഇല്ലാതെ AI ചാറ്റ്` (32)
-- Description (max 80): `സൗജന്യ പ്രതിമാസ പരിധിയിൽ എത്താതെ AIയുമായി ചാറ്റ് ചെയ്യൂ.` (56)
+- Benefit 1 (max 40): `മാസം 1000 AI സന്ദേശങ്ങൾ` (23)
+- Description (max 80): `മാസം 1000 AI സന്ദേശങ്ങൾ.` (24)
 
 ### Marathi (India) - mr-IN
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `मासिक मर्यादेशिवाय AI चॅट` (25)
-- Description (max 80): `मोफत मासिक मर्यादेपर्यंत न पोहोचता AIशी चॅट करा.` (48)
+- Benefit 1 (max 40): `दर महिन्याला 1000 AI संदेश` (26)
+- Description (max 80): `दर महिन्याला 1000 AI संदेश.` (27)
 
 ### Dutch - nl-NL
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `AI-chat zonder de maandlimiet` (29)
-- Description (max 80): `Chat met AI zonder tegen de gratis maandlimiet aan te lopen.` (60)
+- Benefit 1 (max 40): `1000 AI-berichten per maand` (27)
+- Description (max 80): `1000 AI-berichten per maand.` (28)
 
 ### Norwegian - no-NO
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `KI-chat uten månedsgrensen` (26)
-- Description (max 80): `Chat med KI uten å nå den gratis månedsgrensen.` (47)
+- Benefit 1 (max 40): `1000 KI-meldinger i måneden` (27)
+- Description (max 80): `1000 KI-meldinger i måneden.` (28)
 
 ### Punjabi - pa
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `ਮਹੀਨਾਵਾਰ ਸੀਮਾ ਤੋਂ ਬਿਨਾਂ AI ਚੈਟ` (30)
-- Description (max 80): `ਮੁਫ਼ਤ ਮਹੀਨਾਵਾਰ ਸੀਮਾ ਤੱਕ ਪਹੁੰਚੇ ਬਿਨਾਂ AI ਨਾਲ ਚੈਟ ਕਰੋ।` (52)
+- Benefit 1 (max 40): `ਹਰ ਮਹੀਨੇ 1000 AI ਸੁਨੇਹੇ` (23)
+- Description (max 80): `ਹਰ ਮਹੀਨੇ 1000 AI ਸੁਨੇਹੇ।` (24)
 
 ### Polish - pl-PL
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `Czat z AI bez miesięcznego limitu` (33)
-- Description (max 80): `Rozmawiaj z AI, nie trafiając na darmowy limit miesięczny.` (58)
+- Benefit 1 (max 40): `1000 wiadomości AI miesięcznie` (30)
+- Description (max 80): `1000 wiadomości AI miesięcznie.` (31)
 
 ### Romanian - ro
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `Chat AI fără limita lunară` (26)
-- Description (max 80): `Discută cu AI-ul fără să atingi limita lunară gratuită.` (55)
+- Benefit 1 (max 40): `1000 de mesaje AI pe lună` (25)
+- Description (max 80): `1000 de mesaje AI pe lună.` (26)
 
 ### Slovak - sk
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `AI chat bez mesačného limitu` (28)
-- Description (max 80): `Chatujte s AI bez toho, aby ste narazili na bezplatný mesačný limit.` (68)
+- Benefit 1 (max 40): `1000 správ s AI mesačne` (23)
+- Description (max 80): `1000 správ s AI mesačne.` (24)
 
 ### Slovenian - sl
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `Klepet z AI brez mesečne omejitve` (33)
-- Description (max 80): `Klepetaj z AI brez doseganja brezplačne mesečne omejitve.` (57)
+- Benefit 1 (max 40): `1000 sporočil AI na mesec` (25)
+- Description (max 80): `1000 sporočil AI na mesec.` (26)
 
 ### Swedish - sv-SE
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `AI-chatt utan månadsgränsen` (27)
-- Description (max 80): `Chatta med AI utan att nå den kostnadsfria månadsgränsen.` (57)
+- Benefit 1 (max 40): `1000 AI-meddelanden per månad` (29)
+- Description (max 80): `1000 AI-meddelanden per månad.` (30)
 
 ### Swahili - sw
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `Gumzo la AI bila kufika kikomo cha mwezi` (40)
-- Description (max 80): `Piga gumzo na AI bila kufikia kikomo cha bure cha kila mwezi.` (61)
+- Benefit 1 (max 40): `Ujumbe 1000 wa AI kwa mwezi` (27)
+- Description (max 80): `Ujumbe 1000 wa AI kwa mwezi.` (28)
 
 ### Tamil (India) - ta-IN
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `மாதாந்திர வரம்பின்றி AI அரட்டை` (30)
-- Description (max 80): `இலவச மாதாந்திர வரம்பை எட்டாமல் AI உடன் அரட்டையடியுங்கள்.` (56)
+- Benefit 1 (max 40): `மாதம் 1000 AI செய்திகள்` (23)
+- Description (max 80): `மாதம் 1000 AI செய்திகள்.` (24)
 
 ### Telugu (India) - te-IN
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `నెలవారీ పరిమితి లేకుండా AI చాట్` (31)
-- Description (max 80): `ఉచిత నెలవారీ పరిమితిని చేరకుండా AIతో చాట్ చేయండి.` (49)
+- Benefit 1 (max 40): `నెలకు 1000 AI సందేశాలు` (22)
+- Description (max 80): `నెలకు 1000 AI సందేశాలు.` (23)
 
 ### Thai - th
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `แชท AI โดยไม่ติดขีดจำกัดรายเดือน` (32)
-- Description (max 80): `แชทกับ AI ได้โดยไม่ติดขีดจำกัดรายเดือนของแพ็กเกจฟรี` (51)
+- Benefit 1 (max 40): `ข้อความ AI 1000 ข้อความต่อเดือน` (31)
+- Description (max 80): `ข้อความ AI 1000 ข้อความต่อเดือน` (31)
 
 ### Turkish - tr-TR
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `Aylık limit olmadan yapay zekâ sohbeti` (38)
-- Description (max 80): `Ücretsiz aylık limite takılmadan yapay zekâyla sohbet edin.` (59)
+- Benefit 1 (max 40): `Ayda 1000 yapay zekâ mesajı` (27)
+- Description (max 80): `Ayda 1000 yapay zekâ mesajı.` (28)
 
 ### Ukrainian - uk
 
 - Name (max 55): `Преміум` (7)
-- Benefit 1 (max 40): `Чат із ШІ без місячного ліміту` (30)
-- Description (max 80): `Спілкуйтеся з ШІ, не впираючись у безкоштовний місячний ліміт.` (62)
+- Benefit 1 (max 40): `1000 повідомлень ШІ на місяць` (29)
+- Description (max 80): `1000 повідомлень ШІ на місяць.` (30)
 
 ### Urdu - ur
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `ماہانہ حد کے بغیر AI چیٹ` (24)
-- Description (max 80): `مفت ماہانہ حد تک پہنچے بغیر AI سے چیٹ کریں۔` (43)
+- Benefit 1 (max 40): `ہر ماہ 1000 AI پیغامات` (22)
+- Description (max 80): `ہر ماہ 1000 AI پیغامات۔` (23)
 
 ### Vietnamese - vi
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `Trò chuyện AI không lo hạn mức tháng` (36)
-- Description (max 80): `Trò chuyện với AI mà không lo chạm hạn mức miễn phí hằng tháng.` (63)
+- Benefit 1 (max 40): `1000 tin nhắn AI mỗi tháng` (26)
+- Description (max 80): `1000 tin nhắn AI mỗi tháng.` (27)
 
 ### Zulu - zu
 
 - Name (max 55): `Premium` (7)
-- Benefit 1 (max 40): `Xoxa ne-AI ungafikeli umkhawulo wenyanga` (40)
-- Description (max 80): `Xoxa ne-AI ngaphandle kokufinyelela umkhawulo wamahhala wenyanga.` (65)
+- Benefit 1 (max 40): `Imiyalezo ye-AI engu-1000 ngenyanga` (35)
+- Description (max 80): `Imiyalezo ye-AI engu-1000 ngenyanga.` (36)
