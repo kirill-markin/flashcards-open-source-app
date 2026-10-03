@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import { requireStripeEmailData, stripeEmailNoticeSchema, stripeTransactionAmount, type StripeEmailNotice } from "./emailProjection";
 import { stripeCheckoutCustomText } from "./checkoutPresentation";
 import { z } from "zod";
 import { loadStripeEnvironmentSecret, parseStripeBillingSecret } from "./config";
@@ -443,6 +444,119 @@ export class StripeProvider {
       }
       return { invoice: currentInvoice, firstPaidAt, payments };
     });
+  }
+
+  async retrieveBillingEmail(customerId: string): Promise<string> {
+    const customer = await this.retrieveCustomer(customerId);
+    const email = z.email().safeParse(customer.email);
+    requireStripeEmailData(email.success);
+    return email.data;
+  }
+
+  async retrievePaymentNotice(invoiceId: string, customerId: string): Promise<StripeEmailNotice | null> {
+    const invoice = await this.retrieveInvoice(invoiceId, customerId);
+    if (invoice.status !== "paid" || invoice.amount_paid === 0) return null;
+    const subscriptionId = objectId(invoice.parent?.subscription_details?.subscription ?? null);
+    requireStripeEmailData(subscriptionId !== null && Number.isSafeInteger(invoice.amount_paid)
+      && invoice.amount_paid > 0 && invoice.status_transitions.paid_at !== null);
+    const subscription = await this.retrieveSubscription(subscriptionId, customerId);
+    requireStripeEmailData(!invoice.lines.has_more && invoice.lines.data.length > 0
+      && invoice.lines.data.every((line) => line.parent?.subscription_item_details?.subscription_item
+        === subscription.items.data[0].id));
+    const amounts = await callStripe("retrieve payment receipt amounts", async () => {
+      const amounts: Array<Readonly<{ amount: number; currency: string }>> = [];
+      let accountedAmount = 0;
+      for await (const payment of this.#client.invoicePayments.list({ invoice: invoice.id, status: "paid", limit: 100 })) {
+        this.requireEnvironment(payment);
+        requireStripeEmailData(objectId(payment.invoice) === invoice.id && payment.status === "paid"
+          && Number.isSafeInteger(payment.amount_paid) && payment.amount_paid !== null && payment.amount_paid >= 0
+          && payment.currency === invoice.currency);
+        if (payment.amount_paid === 0) continue;
+        const charges: Array<Stripe.Charge> = [];
+        const intentId = objectId(payment.payment.payment_intent ?? null);
+        const chargeId = objectId(payment.payment.charge ?? null);
+        if (payment.payment.type === "payment_intent" && intentId !== null) {
+          for await (const charge of this.#client.charges.list({ customer: customerId, payment_intent: intentId, limit: 100 })) {
+            if (charge.paid && charge.status === "succeeded") charges.push(charge);
+          }
+        } else if (payment.payment.type === "charge" && chargeId !== null) {
+          charges.push(await this.#client.charges.retrieve(chargeId));
+        }
+        requireStripeEmailData(charges.length === 1);
+        const charge = charges[0];
+        this.requireEnvironment(charge);
+        requireStripeEmailData(objectId(charge.customer) === customerId && charge.paid && charge.status === "succeeded"
+          && charge.captured && charge.amount === charge.amount_captured && charge.amount_captured === payment.amount_paid
+          && charge.currency === invoice.currency);
+        const expectedCurrency = subscription.presentment_details?.presentment_currency ?? invoice.currency;
+        requireStripeEmailData(expectedCurrency === charge.currency || charge.presentment_details !== undefined);
+        accountedAmount += payment.amount_paid;
+        amounts.push(stripeTransactionAmount(charge.amount_captured, charge.currency, charge.presentment_details));
+      }
+      requireStripeEmailData(accountedAmount === invoice.amount_paid && amounts.length > 0
+        && amounts.every((amount) => amount.currency === amounts[0].currency));
+      return amounts;
+    });
+    const notice = stripeEmailNoticeSchema.safeParse({
+      kind: "payment", entityId: invoice.id, subscriptionId,
+      amount: amounts.reduce((sum, value) => sum + value.amount, 0), currency: amounts[0].currency,
+      url: invoice.hosted_invoice_url, trialEnd: null,
+    });
+    requireStripeEmailData(notice.success);
+    return notice.data;
+  }
+
+  async retrieveRefundNotices(chargeId: string, customerId: string): Promise<ReadonlyArray<StripeEmailNotice>> {
+    const subscriptionIds = await this.retrieveChargeSubscriptionIds(chargeId, customerId);
+    requireStripeEmailData(subscriptionIds.length === 1);
+    await this.retrieveSubscription(subscriptionIds[0], customerId);
+    return callStripe("retrieve refund receipt amounts", async () => {
+      const charge = await this.#client.charges.retrieve(chargeId);
+      this.requireEnvironment(charge);
+      requireStripeEmailData(objectId(charge.customer) === customerId && charge.paid && charge.status === "succeeded");
+      const notices: Array<StripeEmailNotice> = [];
+      for await (const refund of this.#client.refunds.list({ charge: charge.id, limit: 100 })) {
+        requireStripeEmailData(objectId(refund.charge) === charge.id && refund.currency === charge.currency
+          && Number.isSafeInteger(refund.amount) && refund.amount > 0);
+        if (refund.status !== "succeeded") continue;
+        // Never reconstruct partial-refund FX from the original charge or an exchange-rate estimate.
+        requireStripeEmailData(charge.presentment_details === undefined || refund.presentment_details !== undefined);
+        const amount = stripeTransactionAmount(refund.amount, refund.currency, refund.presentment_details);
+        const notice = stripeEmailNoticeSchema.safeParse({ kind: "refund", entityId: refund.id,
+          subscriptionId: subscriptionIds[0], ...amount, url: charge.receipt_url, trialEnd: null });
+        requireStripeEmailData(notice.success && notice.data.amount > 0);
+        notices.push(notice.data);
+      }
+      return notices;
+    });
+  }
+
+  async retrieveTrialNotice(subscriptionId: string, customerId: string): Promise<StripeEmailNotice | null> {
+    const subscription = await this.retrieveSubscription(subscriptionId, customerId);
+    if (subscription.status !== "trialing" || subscription.trial_end === null
+      || subscription.trial_end * 1000 <= Date.now() || subscription.cancel_at_period_end
+      || subscription.cancel_at !== null || subscription.pause_collection !== null) return null;
+    const latestInvoiceId = objectId(subscription.latest_invoice);
+    requireStripeEmailData(latestInvoiceId !== null);
+    const latest = await this.retrieveInvoice(latestInvoiceId, customerId);
+    requireStripeEmailData(Number.isSafeInteger(latest.amount_paid) && latest.amount_paid >= 0
+      && Number.isSafeInteger(latest.amount_due) && latest.amount_due >= 0
+      && Number.isSafeInteger(latest.total));
+    if (latest.status !== "paid" || latest.amount_paid > 0 || latest.amount_due > 0 || latest.total !== 0) return null;
+    // The free trial invoice is normally paid at zero. A collected invoice must not trigger a future-charge reminder.
+    const price = subscription.items.data[0].price;
+    requireStripeEmailData(Number.isSafeInteger(subscription.trial_start) && subscription.trial_start !== null
+      && subscription.trial_start > 0 && subscription.trial_start < subscription.trial_end);
+    const confirmed = await this.retrieveSubscription(subscription.id, customerId);
+    if (confirmed.status !== "trialing" || confirmed.trial_end !== subscription.trial_end
+      || confirmed.trial_end * 1000 <= Date.now() || confirmed.cancel_at_period_end
+      || confirmed.cancel_at !== null || confirmed.pause_collection !== null
+      || objectId(confirmed.latest_invoice) !== latestInvoiceId) return null;
+    const notice = stripeEmailNoticeSchema.safeParse({ kind: "trial",
+      entityId: `${subscription.id}:${subscription.trial_start}`, subscriptionId: subscription.id,
+      amount: price.unit_amount, currency: price.currency, url: stripeSubscriptionReturnUrl, trialEnd: subscription.trial_end });
+    requireStripeEmailData(notice.success);
+    return notice.data;
   }
 
   async retrieveRefund(refundId: string, customerId: string): Promise<Stripe.Refund> {
