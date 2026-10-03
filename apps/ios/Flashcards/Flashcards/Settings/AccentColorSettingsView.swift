@@ -215,7 +215,8 @@ struct AccentColorSettingsView: View {
             guard self.pendingSelection == nil else { return }
             let requestId = self.premiumPresenter.present(
                 reason: .premiumFeature(requiredTierRank: premiumTierRank),
-                entitlement: self.store.cloudEntitlement
+                entitlement: self.store.cloudEntitlement,
+                identity: try? self.store.appleSubscriptionIdentity()
             )
             self.pendingSelection = PendingAccentColorSelection(
                 requestId: requestId,

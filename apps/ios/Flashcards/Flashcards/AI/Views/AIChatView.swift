@@ -165,7 +165,7 @@ struct AIChatView: View {
                       refusal.cloudState == self.flashcardsStore.cloudSettings?.cloudState else {
                     return
                 }
-                self.premiumPresenter.present(reason: .aiLimit, entitlement: self.flashcardsStore.cloudEntitlement)
+                self.premiumPresenter.present(reason: .aiLimit, entitlement: self.flashcardsStore.cloudEntitlement, identity: try? self.flashcardsStore.appleSubscriptionIdentity())
             }
             .onChange(of: self.navigation.aiChatPresentationRequest) { _, request in
                 self.handlePresentationRequestChange(request: request)

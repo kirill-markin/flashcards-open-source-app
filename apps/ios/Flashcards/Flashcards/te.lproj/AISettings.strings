@@ -848,8 +848,8 @@
 "settings.language.supported.vietnamese" = "వియత్నామీస్";
 "settings.language.supported.zulu" = "జులు";
 
-"premium.comingSoon.title" = "Premium త్వరలో వస్తోంది";
-"premium.comingSoon.message" = "సబ్‌స్క్రిప్షన్‌లు ఇంకా అందుబాటులో లేవు.";
+"premium.offer.title" = "Premium";
+"premium.offer.benefits" = "నెలకు 1,000 AI సందేశాలు మరియు మీకు నచ్చిన యాక్సెంట్ రంగులు. సింక్ అందరికీ ఉచితం.";
 "premium.aiLimit.title" = "AI సందేశాల పరిమితిని చేరుకున్నారు";
 
 "settings.accentColor.title" = "హైలైట్ రంగు";
@@ -863,8 +863,6 @@
 "settings.accentColor.invalidHex" = "ఆరు హెక్సాడెసిమల్ అంకెలతో #RRGGBB రూపంలో రంగును నమోదు చేయండి.";
 "settings.accentColor.premiumNote" = "ఇష్టమైన హైలైట్ రంగులు Premiumతో అందుబాటులో ఉంటాయి. Premium సక్రియంగా ఉన్నప్పుడు మీరు సేవ్ చేసిన రంగు తిరిగి వస్తుంది.";
 
-"premium.apple.sandbox" = "Premium పరీక్ష కొనుగోలు";
-"premium.apple.notice" = "పరీక్ష కొనుగోళ్లకు TestFlight అవసరం. బహిరంగ విక్రయాలు ఇంకా ప్రారంభం కాలేదు.";
 "premium.apple.renewal" = "రద్దు చేసే వరకు స్వయంచాలకంగా పునరుద్ధరించబడుతుంది. మీ App Store సభ్యత్వాల్లో నిర్వహించండి లేదా రద్దు చేయండి.";
 "premium.apple.trial" = "ఉచిత ట్రయల్: %@. ఆ తర్వాత:";
 "premium.apple.loadFailed" = "App Store ఆఫర్ లోడ్ కాలేదు. మీ కనెక్షన్‌ను తనిఖీ చేసి మళ్లీ ప్రయత్నించండి.";

@@ -876,8 +876,8 @@
 "settings.language.supported.vietnamese" = "Вьетнамский";
 "settings.language.supported.zulu" = "Зулусский";
 
-"premium.comingSoon.title" = "Premium скоро появится";
-"premium.comingSoon.message" = "Подписки пока недоступны.";
+"premium.offer.title" = "Premium";
+"premium.offer.benefits" = "1 000 сообщений ИИ в месяц и собственные акцентные цвета. Синхронизация бесплатна для всех.";
 "premium.aiLimit.title" = "Достигнут лимит сообщений ИИ";
 
 "settings.accentColor.title" = "Цвет акцента";
@@ -891,8 +891,6 @@
 "settings.accentColor.invalidHex" = "Введите цвет в формате #RRGGBB — шесть шестнадцатеричных цифр.";
 "settings.accentColor.premiumNote" = "Свои цвета акцента доступны с Premium. Сохранённый цвет вернётся, когда Premium снова будет активен.";
 
-"premium.apple.sandbox" = "Тестовая покупка Premium";
-"premium.apple.notice" = "Для тестовых покупок нужен TestFlight. Публичные продажи ещё не открыты.";
 "premium.apple.renewal" = "Продлевается автоматически до отмены. Управлять подпиской или отменить её можно в App Store.";
 "premium.apple.trial" = "Бесплатный пробный период: %@. Затем:";
 "premium.apple.loadFailed" = "Не удалось загрузить предложение App Store. Проверьте соединение и повторите попытку.";

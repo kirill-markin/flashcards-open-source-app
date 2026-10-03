@@ -848,8 +848,8 @@
 "settings.language.supported.vietnamese" = "Vietnamees";
 "settings.language.supported.zulu" = "Zoeloe";
 
-"premium.comingSoon.title" = "Premium komt binnenkort";
-"premium.comingSoon.message" = "Abonnementen zijn nog niet beschikbaar.";
+"premium.offer.title" = "Premium";
+"premium.offer.benefits" = "1.000 AI-berichten per maand en eigen accentkleuren. Synchronisatie is gratis voor iedereen.";
 "premium.aiLimit.title" = "Limiet voor AI-berichten bereikt";
 
 "settings.accentColor.title" = "Accentkleur";
@@ -863,8 +863,6 @@
 "settings.accentColor.invalidHex" = "Voer een kleur in als #RRGGBB, met zes hexadecimale cijfers.";
 "settings.accentColor.premiumNote" = "Eigen accentkleuren zijn beschikbaar met Premium. Je opgeslagen kleur keert terug wanneer Premium actief is.";
 
-"premium.apple.sandbox" = "Premium-testaankoop";
-"premium.apple.notice" = "Testaankopen vereisen TestFlight. De openbare verkoop is nog niet geopend.";
 "premium.apple.renewal" = "Wordt automatisch verlengd tot je opzegt. Beheer of annuleer via je App Store-abonnementen.";
 "premium.apple.trial" = "Gratis proefperiode: %@. Daarna:";
 "premium.apple.loadFailed" = "De App Store-aanbieding kon niet worden geladen. Controleer je verbinding en probeer opnieuw.";
