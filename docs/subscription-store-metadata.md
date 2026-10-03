@@ -33,6 +33,9 @@ each product, base plan, and offer exactly as written.
 
 ### Google Play
 
+Setup status, verified resource identities, and remaining catalog steps live in
+[Google Play subscriptions](google-play-subscriptions.md).
+
 | Setting | Value |
 | --- | --- |
 | Subscription product ID | `premium` |
