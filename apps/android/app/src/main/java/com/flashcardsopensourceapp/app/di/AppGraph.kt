@@ -59,6 +59,8 @@ import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteService
 import com.flashcardsopensourceapp.data.local.ai.store.GuestAiSessionStore
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteService
+import com.flashcardsopensourceapp.data.local.repository.billing.GooglePlayBillingRepository
+import com.flashcardsopensourceapp.app.store.GooglePlaySubscriptionConnector
 import com.flashcardsopensourceapp.data.local.cloud.sync.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.core.buildAppDatabase
@@ -462,6 +464,21 @@ class AppGraph(
         appVersion = appPackageInfo.versionName
     )
     val syncRepository: SyncRepository = localSyncRepository
+    private val googlePlaySubscriptionConnectorDelegate = lazy {
+        GooglePlaySubscriptionConnector(
+            context = applicationContext,
+            repository = GooglePlayBillingRepository(
+                preferencesStore = cloudPreferencesStore,
+                remoteService = cloudRemoteService,
+                billingGateway = cloudRemoteService,
+                operationCoordinator = cloudOperationCoordinator,
+                resetCoordinator = cloudIdentityResetCoordinator,
+                guestCoordinator = cloudGuestSessionCoordinator,
+                syncRepository = syncRepository
+            )
+        )
+    }
+    val googlePlaySubscriptionConnector: GooglePlaySubscriptionConnector by googlePlaySubscriptionConnectorDelegate
     val autoSyncEventRepository: AutoSyncEventRepository = localSyncRepository
     val autoSyncController = AutoSyncController(
         appScope = appScope,
@@ -997,6 +1014,9 @@ class AppGraph(
     }
 
     suspend fun close() {
+        if (googlePlaySubscriptionConnectorDelegate.isInitialized()) {
+            googlePlaySubscriptionConnector.closeAndJoin()
+        }
         analyticsNetworkMonitor.stopObservingConnectivityRestored()
         cloudCredentialRecoveryGateViewModelStoreOwner.viewModelStore.clear()
         accentColorViewModelStoreOwner.viewModelStore.clear()

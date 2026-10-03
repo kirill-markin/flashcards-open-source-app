@@ -23,16 +23,21 @@ internal class CloudEntitlementStore(
     private val metadataPreferences: SharedPreferences
 ) {
     private val entitlementState = MutableStateFlow(loadEntitlement())
+    private var receiptRevision: Long = 0
 
     fun observeEntitlement(): StateFlow<CloudEntitlement?> {
         return entitlementState.asStateFlow()
     }
+
+    fun currentReceiptRevision(): Long = receiptRevision
 
     fun saveEntitlement(entitlement: CloudEntitlement) {
         metadataPreferences.edit(commit = true) {
             putString(entitlementKey, encodeCloudEntitlement(entitlement = entitlement).toString())
         }
         entitlementState.value = entitlement
+        // Equal snapshots still count as a fresh server result; cache reads and clears do not.
+        receiptRevision += 1
     }
 
     fun clearEntitlement() {
