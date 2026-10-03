@@ -47,6 +47,10 @@
   "offer.allowanceWindow": "Dein KI-Nachrichtenkontingent wird zu Beginn jedes Kalendermonats in UTC zurückgesetzt, unabhängig von deinem Abrechnungsdatum.",
   "email.trialReminderSubject": "Dein Nibomo Premium-Testzeitraum endet bald",
   "email.trialReminderBody": "Dein kostenloser Nibomo Premium-Testzeitraum endet am {date}. Danach verlängert sich dein Abonnement automatisch für {price} pro Monat, einschließlich der anfallenden Steuern. Kündige vor Ende des Testzeitraums, um die erste Abbuchung zu vermeiden. Verwalte oder kündige dein Abonnement in den Abonnementeinstellungen: {url}",
+  "email.paymentReceiptSubject": "Nibomo-Zahlungsbeleg",
+  "email.paymentReceiptBody": "Wir haben deine Zahlung über {price} erhalten. Hier findest du deinen Beleg: {url}",
+  "email.refundReceiptSubject": "Nibomo-Erstattungsbeleg",
+  "email.refundReceiptBody": "Deine Erstattung über {price} wurde veranlasst. Hier findest du die Details: {url}",
   "deletion.warning": "Wenn du dein Nibomo-Konto löschst, werden künftige Verlängerungen deiner über Stripe abgerechneten Nibomo-Abonnements gekündigt. Du verlierst den Zugang zu diesem Konto. Über Apple oder Google abgerechnete Abonnements musst du separat beim jeweiligen Anbieter kündigen.",
   "deletion.cancelling": "Die Verlängerungen deiner Stripe-Abonnements werden vor dem Löschen deines Kontos gekündigt...",
   "deletion.cancellationFailed": "Wir konnten die Kündigung der Verlängerungen deiner Stripe-Abonnements nicht bestätigen. Dein Konto wurde nicht gelöscht. Versuche es erneut oder kontaktiere den Support."

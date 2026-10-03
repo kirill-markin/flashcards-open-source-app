@@ -47,6 +47,10 @@
   "offer.allowanceWindow": "Je limiet voor AI-berichten wordt aan het begin van elke kalendermaand in UTC opnieuw ingesteld, onafhankelijk van je factuurdatum.",
   "email.trialReminderSubject": "Je Nibomo Premium-proefperiode eindigt binnenkort",
   "email.trialReminderBody": "Je gratis Nibomo Premium-proefperiode eindigt op {date}. Na de proefperiode wordt je abonnement automatisch verlengd voor {price} per maand, inclusief toepasselijke belastingen. Zeg vóór het einde van de proefperiode op om de eerste afschrijving te voorkomen. Beheer je abonnement of zeg het op in de abonnementsinstellingen: {url}",
+  "email.paymentReceiptSubject": "Nibomo-betaalbewijs",
+  "email.paymentReceiptBody": "We hebben je betaling van {price} ontvangen. Bekijk je betaalbewijs: {url}",
+  "email.refundReceiptSubject": "Nibomo-terugbetalingsbewijs",
+  "email.refundReceiptBody": "Je terugbetaling van {price} is uitgevoerd. Bekijk de details: {url}",
   "deletion.warning": "Als je je Nibomo-account verwijdert, worden toekomstige verlengingen van je via Stripe gefactureerde Nibomo-abonnementen geannuleerd. Je verliest de toegang tot dit account. Abonnementen die via Apple of Google worden gefactureerd, moet je apart bij die aanbieder opzeggen.",
   "deletion.cancelling": "De verlengingen van je Stripe-abonnementen worden geannuleerd voordat je account wordt verwijderd...",
   "deletion.cancellationFailed": "We konden niet bevestigen dat de verlengingen van je Stripe-abonnementen zijn geannuleerd. Je account is niet verwijderd. Probeer het opnieuw of neem contact op met de ondersteuning."

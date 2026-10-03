@@ -47,6 +47,10 @@
   "offer.allowanceWindow": "Isabelo sakho semilayezo ye-AI sivuselelwa inyanga ngayinye yekhalenda ngokwesikhathi se-UTC, kungakhathaliseki usuku okhokhiswa ngalo.",
   "email.trialReminderSubject": "Isivivinyo sakho se-Nibomo Premium siphela maduze",
   "email.trialReminderBody": "Isivivinyo sakho samahhala se-Nibomo Premium siphela ngo-{date}. Ngemva kwesivivinyo, ukubhalisa kwakho kuzovuselelwa ngokuzenzakalelayo ngo-{price} ngenyanga, kuhlanganise nezintela ezisebenzayo. Ukuze ugweme ukukhokhiswa kokuqala, khansela ngaphambi kokuphela kwesivivinyo. Phatha noma ukhansele ukubhalisa kwakho kuzilungiselelo zokubhalisa: {url}",
+  "email.paymentReceiptSubject": "Irisidi lenkokhelo ye-Nibomo",
+  "email.paymentReceiptBody": "Siyitholile inkokhelo yakho engu-{price}. Buka irisidi lakho: {url}",
+  "email.refundReceiptSubject": "Irisidi lokubuyiselwa kwemali le-Nibomo",
+  "email.refundReceiptBody": "Imali yakho engu-{price} ibuyiselwe. Buka imininingwane: {url}",
   "deletion.warning": "Ukususa i-akhawunti yakho ye-Nibomo kukhansela ukuvuselelwa kwesikhathi esizayo kokubhalisa kwakho kwe-Nibomo okukhokhiswa nge-Stripe. Uzolahlekelwa ukufinyelela kule akhawunti. Ukubhalisa okukhokhiswa nge-Apple noma nge-Google kufanele kukhanselwe ngokwehlukana ngalowo mhlinzeki.",
   "deletion.cancelling": "Kukhanselwa ukuvuselelwa kokubhalisa kwakho kwe-Stripe ngaphambi kokususa i-akhawunti yakho...",
   "deletion.cancellationFailed": "Asikwazanga ukuqinisekisa ukukhanselwa kokuvuselelwa kokubhalisa kwakho kwe-Stripe. I-akhawunti yakho ayikasuswa. Zama futhi noma uxhumane nabasekeli."

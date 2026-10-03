@@ -47,6 +47,10 @@
   "offer.allowanceWindow": "Az MI-üzenetkereted minden naptári hónapban UTC szerint újul meg, a számlázási dátumodtól függetlenül.",
   "email.trialReminderSubject": "A Nibomo Premium-próbaidőszakod hamarosan lejár",
   "email.trialReminderBody": "Az ingyenes Nibomo Premium-próbaidőszakod vége: {date}. A próbaidőszak után az előfizetésed automatikusan megújul havi {price} díjért, amely tartalmazza az alkalmazandó adókat. Az első terhelés elkerüléséhez mondd le a próbaidőszak vége előtt. Az előfizetési beállításokban kezelheted vagy mondhatod le az előfizetésedet: {url}",
+  "email.paymentReceiptSubject": "Nibomo fizetési bizonylat",
+  "email.paymentReceiptBody": "Megkaptuk a befizetésedet, amelynek összege {price}. A bizonylatot itt tekintheted meg: {url}",
+  "email.refundReceiptSubject": "Nibomo visszatérítési bizonylat",
+  "email.refundReceiptBody": "Elindítottuk a visszatérítésedet, amelynek összege {price}. A részleteket itt tekintheted meg: {url}",
   "deletion.warning": "A Nibomo-fiókod törlése leállítja a Stripe-on keresztül számlázott Nibomo-előfizetéseid jövőbeli megújulásait. Elveszíted a hozzáférést ehhez a fiókhoz. Az Apple vagy a Google által számlázott előfizetéseket külön, az adott szolgáltatónál kell lemondanod.",
   "deletion.cancelling": "A Stripe-előfizetéseid megújulásainak leállítása a fiókod törlése előtt...",
   "deletion.cancellationFailed": "Nem sikerült megerősíteni a Stripe-előfizetéseid megújulásainak leállítását. A fiókodat nem töröltük. Próbáld újra, vagy fordulj az ügyfélszolgálathoz."

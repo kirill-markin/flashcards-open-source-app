@@ -47,6 +47,10 @@
   "offer.allowanceWindow": "Yapay zekâ mesaj kotanız, faturalandırma tarihinizden bağımsız olarak UTC’ye göre her takvim ayının başında sıfırlanır.",
   "email.trialReminderSubject": "Nibomo Premium denemeniz yakında sona eriyor",
   "email.trialReminderBody": "Ücretsiz Nibomo Premium denemeniz {date} tarihinde sona eriyor. Denemeden sonra aboneliğiniz, geçerli vergiler dahil aylık {price} karşılığında otomatik olarak yenilenir. İlk ödemenin alınmaması için deneme sona ermeden iptal edin. Aboneliğinizi Abonelik ayarlarından yönetin veya iptal edin: {url}",
+  "email.paymentReceiptSubject": "Nibomo ödeme makbuzu",
+  "email.paymentReceiptBody": "{price} tutarındaki ödemeniz alındı. Makbuzunuzu görüntüleyin: {url}",
+  "email.refundReceiptSubject": "Nibomo iade makbuzu",
+  "email.refundReceiptBody": "{price} tutarındaki iadeniz gerçekleştirildi. Ayrıntıları görüntüleyin: {url}",
   "deletion.warning": "Nibomo hesabınızı silmek, Stripe üzerinden faturalandırılan Nibomo aboneliklerinizin gelecekteki yenilemelerini iptal eder. Bu hesaba erişiminizi kaybedersiniz. Apple veya Google üzerinden faturalandırılan abonelikler, ilgili sağlayıcı üzerinden ayrıca iptal edilmelidir.",
   "deletion.cancelling": "Hesabınız silinmeden önce Stripe aboneliklerinizin yenilemeleri iptal ediliyor...",
   "deletion.cancellationFailed": "Stripe aboneliklerinizin yenilemelerinin iptal edildiğini doğrulayamadık. Hesabınız silinmedi. Yeniden deneyin veya destek ekibiyle iletişime geçin."

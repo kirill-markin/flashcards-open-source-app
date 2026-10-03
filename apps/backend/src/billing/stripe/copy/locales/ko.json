@@ -47,6 +47,10 @@
   "offer.allowanceWindow": "AI 메시지 사용 한도는 결제일과 관계없이 UTC 기준 매월 1일에 초기화됩니다.",
   "email.trialReminderSubject": "Nibomo Premium 체험이 곧 종료됩니다",
   "email.trialReminderBody": "Nibomo Premium 무료 체험이 {date}에 종료됩니다. 체험 후에는 적용되는 세금이 포함된 월 {price}로 구독이 자동 갱신됩니다. 첫 결제를 피하려면 체험이 끝나기 전에 취소하세요. 구독 설정에서 구독을 관리하거나 취소할 수 있습니다: {url}",
+  "email.paymentReceiptSubject": "Nibomo 결제 영수증",
+  "email.paymentReceiptBody": "{price} 결제가 완료되었습니다. 영수증을 확인하세요: {url}",
+  "email.refundReceiptSubject": "Nibomo 환불 영수증",
+  "email.refundReceiptBody": "{price} 환불이 처리되었습니다. 자세한 내용을 확인하세요: {url}",
   "deletion.warning": "Nibomo 계정을 삭제하면 Stripe를 통해 청구되는 Nibomo 구독의 향후 갱신이 취소됩니다. 이 계정에 대한 이용 권한을 잃게 됩니다. Apple 또는 Google을 통해 청구되는 구독은 해당 서비스에서 별도로 취소해야 합니다.",
   "deletion.cancelling": "계정을 삭제하기 전에 Stripe 구독의 갱신을 취소하는 중...",
   "deletion.cancellationFailed": "Stripe 구독의 갱신 취소를 확인하지 못했습니다. 계정은 삭제되지 않았습니다. 다시 시도하거나 지원팀에 문의하세요."

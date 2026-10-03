@@ -47,6 +47,10 @@
   "offer.allowanceWindow": "מכסת הודעות ה-AI מתאפסת בכל חודש קלנדרי לפי UTC, ללא קשר למועד החיוב.",
   "email.trialReminderSubject": "תקופת הניסיון שלכם ב-Nibomo Premium מסתיימת בקרוב",
   "email.trialReminderBody": "תקופת הניסיון בחינם שלכם ב-Nibomo Premium מסתיימת ב-{date}. לאחר תקופת הניסיון, המינוי יתחדש אוטומטית במחיר של {price} בחודש, כולל המיסים החלים. כדי להימנע מהחיוב הראשון, בטלו לפני תום תקופת הניסיון. אפשר לנהל או לבטל את המינוי בהגדרות המינוי: {url}",
+  "email.paymentReceiptSubject": "קבלה על תשלום ל-Nibomo",
+  "email.paymentReceiptBody": "התשלום שלכם בסך {price} התקבל. לצפייה בקבלה: {url}",
+  "email.refundReceiptSubject": "אישור החזר כספי מ-Nibomo",
+  "email.refundReceiptBody": "בוצע עבורכם החזר כספי בסך {price}. לצפייה בפרטים: {url}",
   "deletion.warning": "מחיקת חשבון Nibomo מבטלת חידושים עתידיים של המינויים שלכם ל-Nibomo המחויבים דרך Stripe. תאבדו את הגישה לחשבון הזה. מינויים המחויבים דרך Apple או Google יש לבטל בנפרד דרך אותו ספק.",
   "deletion.cancelling": "מבטלים את חידושי המינויים שלכם דרך Stripe לפני מחיקת החשבון...",
   "deletion.cancellationFailed": "לא הצלחנו לאשר את ביטול חידושי המינויים שלכם דרך Stripe. החשבון שלכם לא נמחק. נסו שוב או פנו לתמיכה."

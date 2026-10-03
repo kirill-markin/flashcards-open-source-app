@@ -47,6 +47,10 @@
   "offer.allowanceWindow": "Jūsu MI ziņu kvota atjaunojas katru kalendāro mēnesi pēc UTC laika neatkarīgi no maksājuma datuma.",
   "email.trialReminderSubject": "Jūsu Nibomo Premium izmēģinājums drīz beigsies",
   "email.trialReminderBody": "Jūsu Nibomo Premium bezmaksas izmēģinājums beidzas {date}. Pēc izmēģinājuma abonements automātiski atjaunojas par {price} mēnesī, ieskaitot piemērojamos nodokļus. Lai izvairītos no pirmā maksājuma, atceliet abonementu pirms izmēģinājuma beigām. Pārvaldiet vai atceliet abonementu abonementa iestatījumos: {url}",
+  "email.paymentReceiptSubject": "Nibomo maksājuma kvīts",
+  "email.paymentReceiptBody": "Esam saņēmuši jūsu maksājumu {price} apmērā. Skatiet kvīti: {url}",
+  "email.refundReceiptSubject": "Nibomo atmaksas kvīts",
+  "email.refundReceiptBody": "Jums ir veikta atmaksa {price} apmērā. Skatiet informāciju: {url}",
   "deletion.warning": "Dzēšot Nibomo kontu, tiek atcelta turpmāka jūsu Nibomo abonementu atjaunošana, ja par tiem maksājat ar Stripe starpniecību. Jūs zaudēsiet piekļuvi šim kontam. Abonementi, par kuriem maksājat ar Apple vai Google starpniecību, ir jāatceļ atsevišķi pie attiecīgā pakalpojumu sniedzēja.",
   "deletion.cancelling": "Pirms konta dzēšanas tiek atcelta jūsu Stripe abonementu atjaunošana...",
   "deletion.cancellationFailed": "Neizdevās apstiprināt jūsu Stripe abonementu atjaunošanas atcelšanu. Jūsu konts nav dzēsts. Mēģiniet vēlreiz vai sazinieties ar atbalsta dienestu."

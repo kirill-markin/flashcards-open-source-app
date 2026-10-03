@@ -47,6 +47,10 @@
   "offer.allowanceWindow": "Hạn mức tin nhắn AI được đặt lại mỗi tháng dương lịch theo UTC, độc lập với ngày thanh toán.",
   "email.trialReminderSubject": "Thời gian dùng thử Nibomo Premium của bạn sắp kết thúc",
   "email.trialReminderBody": "Thời gian dùng thử miễn phí Nibomo Premium của bạn kết thúc vào {date}. Sau thời gian dùng thử, gói đăng ký sẽ tự động gia hạn với giá {price} mỗi tháng, đã bao gồm các khoản thuế áp dụng. Để tránh khoản phí đầu tiên, hãy hủy trước khi thời gian dùng thử kết thúc. Quản lý hoặc hủy gói đăng ký trong phần cài đặt Gói đăng ký: {url}",
+  "email.paymentReceiptSubject": "Biên nhận thanh toán Nibomo",
+  "email.paymentReceiptBody": "Chúng tôi đã nhận được khoản thanh toán {price} của bạn. Xem biên nhận: {url}",
+  "email.refundReceiptSubject": "Biên nhận hoàn tiền Nibomo",
+  "email.refundReceiptBody": "Khoản hoàn tiền {price} của bạn đã được xử lý. Xem chi tiết: {url}",
   "deletion.warning": "Xóa tài khoản Nibomo sẽ hủy các lần gia hạn trong tương lai của các gói đăng ký Nibomo được thanh toán qua Stripe. Bạn sẽ mất quyền truy cập vào tài khoản này. Các gói đăng ký được thanh toán qua Apple hoặc Google phải được hủy riêng qua nhà cung cấp tương ứng.",
   "deletion.cancelling": "Đang hủy các lần gia hạn gói đăng ký Stripe trước khi xóa tài khoản...",
   "deletion.cancellationFailed": "Chúng tôi không thể xác nhận việc hủy các lần gia hạn gói đăng ký Stripe. Tài khoản của bạn chưa bị xóa. Hãy thử lại hoặc liên hệ bộ phận hỗ trợ."
