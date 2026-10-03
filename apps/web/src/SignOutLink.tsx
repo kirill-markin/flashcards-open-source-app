@@ -1,5 +1,6 @@
 import { type ReactElement, useState } from "react";
 import { flushBeforeIdentityTeardown, track } from "./analytics";
+import { invalidateStripeBilling } from "./premium/stripeIntent";
 
 type Props = Readonly<{
   className: string;
@@ -65,6 +66,7 @@ export function SignOutLink(props: Props): ReactElement {
         }
 
         setIsSigningOut(true);
+        invalidateStripeBilling();
         // Tracked here rather than on the load that comes back, because that load has no
         // credential left to send it under and discards the queue with the rest of the account's
         // local state. The drain below is what gets it off the browser before either happens.

@@ -95,6 +95,7 @@ export function DangerZoneScreen(): ReactElement {
               <p className="error-banner settings-delete-warning">
                 {t("dangerZone.dialogWarning")}
               </p>
+              <p className="subtitle" data-testid="delete-account-stripe-warning">{t("stripe.deletion.warning")}</p>
               <p className="subtitle settings-delete-phrase" aria-label="confirmation phrase">
                 {deleteAccountConfirmationText}
               </p>

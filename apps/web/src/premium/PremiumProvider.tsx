@@ -3,7 +3,9 @@ import { useAppData } from "../appData";
 import type { AiUsageStatus } from "../types";
 import type { EntitlementSnapshot } from "../types/entitlement";
 import { useEntitlementSnapshot } from "./entitlementStore";
-import { PremiumComingSoon } from "./PremiumComingSoon";
+import { PremiumOffer } from "./PremiumOffer";
+import { StripeBillingContext, useAccountStripeBilling } from "./useStripeBilling";
+import { isStripeBillingInvalidated, readStripeBillingGeneration, subscribeToStripeBillingInvalidation, type PremiumContinuation } from "./stripeIntent";
 
 export type PremiumRequest =
   | Readonly<{ reason: "offer" }>
@@ -11,10 +13,11 @@ export type PremiumRequest =
   | Readonly<{
     reason: "feature";
     requiredRank: number;
+    continuation: PremiumContinuation;
     onResult: (result: "granted" | "dismissed") => void;
   }>;
 
-type Presentation = Readonly<{ userId: string; request: PremiumRequest }>;
+type Presentation = Readonly<{ userId: string; billingGeneration: number; request: PremiumRequest }>;
 type PremiumPresenter = (request: PremiumRequest) => "granted" | "presented" | "unavailable";
 const PremiumContext = createContext<PremiumPresenter | null>(null);
 
@@ -28,6 +31,13 @@ export function usePremiumPresenter(): PremiumPresenter | null {
 
 export function PremiumProvider(props: Readonly<{ children: ReactNode }>): ReactElement {
   const userId = useAppData().session?.userId ?? null;
+  return <PremiumSession key={userId} {...props} />;
+}
+
+function PremiumSession(props: Readonly<{ children: ReactNode }>): ReactElement {
+  const userId = useAppData().session?.userId ?? null;
+  const billing = useAccountStripeBilling();
+  const billingGeneration = readStripeBillingGeneration();
   const entitlement = useEntitlementSnapshot(userId);
   const [presentation, setPresentation] = useState<Presentation | null>(null);
   const pendingRef = useRef<Presentation | null>(null);
@@ -38,13 +48,13 @@ export function PremiumProvider(props: Readonly<{ children: ReactNode }>): React
     const pending = pendingRef.current;
     pendingRef.current = null;
     setPresentation(null);
-    if (pending?.userId === currentUserIdRef.current && pending?.request.reason === "feature") {
+    if (pending?.userId === currentUserIdRef.current && pending.billingGeneration === readStripeBillingGeneration() && pending?.request.reason === "feature") {
       pending.request.onResult("dismissed");
     }
   }, []);
 
   const present = useCallback((request: PremiumRequest): "granted" | "presented" | "unavailable" => {
-    if (userId === null || userId !== currentUserIdRef.current) {
+    if (isStripeBillingInvalidated() || billingGeneration !== readStripeBillingGeneration() || userId === null || userId !== currentUserIdRef.current) {
       return "unavailable";
     }
     dismiss();
@@ -52,15 +62,20 @@ export function PremiumProvider(props: Readonly<{ children: ReactNode }>): React
       request.onResult("granted");
       return "granted";
     }
-    const next = { userId, request };
+    const next = { userId, billingGeneration, request };
     pendingRef.current = next;
     setPresentation(next);
     return "presented";
-  }, [dismiss, entitlement, userId]);
+  }, [billingGeneration, dismiss, entitlement, userId]);
+
+  useEffect(() => subscribeToStripeBillingInvalidation(() => {
+    pendingRef.current = null;
+    setPresentation(null);
+  }), []);
 
   useEffect(() => {
     const pending = pendingRef.current;
-    if (pending !== null && pending.userId !== userId) {
+    if (pending !== null && (pending.userId !== userId || isStripeBillingInvalidated() || pending.billingGeneration !== readStripeBillingGeneration())) {
       pendingRef.current = null;
       setPresentation(null);
       return;
@@ -74,11 +89,13 @@ export function PremiumProvider(props: Readonly<{ children: ReactNode }>): React
   }, [entitlement, userId]);
 
   return (
-    <PremiumContext.Provider value={present}>
-      {props.children}
-      {presentation !== null && presentation.userId === userId ? (
-        <PremiumComingSoon request={presentation.request} entitlement={entitlement} onDismiss={dismiss} />
-      ) : null}
-    </PremiumContext.Provider>
+    <StripeBillingContext.Provider value={billing}>
+      <PremiumContext.Provider value={present}>
+        {props.children}
+        {presentation !== null && presentation.userId === userId ? (
+          <PremiumOffer request={presentation.request} entitlement={entitlement} onDismiss={dismiss} />
+        ) : null}
+      </PremiumContext.Provider>
+    </StripeBillingContext.Provider>
   );
 }

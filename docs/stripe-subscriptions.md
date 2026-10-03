@@ -192,8 +192,8 @@ characters per custom message. Do not enable shared policy toggles as a shortcut
 
 The [route module](../apps/backend/src/routes/stripeBilling.ts) validates public DTOs
 and mounts these paths within Hono at both `/billing/stripe` and `/v1/billing/stripe`.
-[API Gateway](../infra/aws/lib/gateways/api-gateway.ts) declares the same inventory;
-its existing proxy also serves the internal `/v1` aliases. Public requests append
+The [API Gateway](../infra/aws/lib/gateways/api-gateway.ts) root proxy forwards them
+and the internal `/v1` aliases. Public requests append
 the paths below to the [published API base](published-api-origin.md), including
 its `/v1` prefix. Responses use `Cache-Control: no-store`.
 

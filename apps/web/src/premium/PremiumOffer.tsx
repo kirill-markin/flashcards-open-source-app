@@ -6,14 +6,16 @@ import { useI18n } from "../i18n";
 import { OwnOpenAIKeyEditor } from "../screens/settings/OwnOpenAIKeySettingsScreen";
 import type { EntitlementSnapshot } from "../types/entitlement";
 import { hasPremiumAccess, type PremiumRequest } from "./PremiumProvider";
+import { StripeOfferContent } from "./StripeOfferContent";
+import { useStripeBilling } from "./useStripeBilling";
 
-type PremiumComingSoonProps = Readonly<{
+type PremiumOfferProps = Readonly<{
   request: PremiumRequest;
   entitlement: EntitlementSnapshot | null;
   onDismiss: () => void;
 }>;
 
-export function PremiumComingSoon(props: PremiumComingSoonProps): ReactElement {
+export function PremiumOffer(props: PremiumOfferProps): ReactElement {
   const { request, entitlement, onDismiss } = props;
   const { t, formatDate, direction } = useI18n();
   const [isEditingKey, setIsEditingKey] = useState(false);
@@ -22,8 +24,10 @@ export function PremiumComingSoon(props: PremiumComingSoonProps): ReactElement {
   const closeRef = useRef<HTMLButtonElement | null>(null);
   const titleId = useId();
   const bodyId = useId();
+  const billing = useStripeBilling();
+  const isPurchasing = billing.busy && billing.status === "opening";
   const isAiLimit = request.reason === "ai-limit";
-  const showOffer = request.reason === "offer" || (entitlement !== null && !hasPremiumAccess(entitlement, 20));
+  const showOffer = request.reason !== "ai-limit" || (entitlement !== null && !hasPremiumAccess(entitlement, 20));
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -62,11 +66,11 @@ export function PremiumComingSoon(props: PremiumComingSoonProps): ReactElement {
       aria-labelledby={titleId}
       aria-describedby={bodyId}
       data-testid="premium-dialog"
-      onCancel={(event) => { event.preventDefault(); onDismiss(); }}
+      onCancel={(event) => { event.preventDefault(); if (!isPurchasing) onDismiss(); }}
     >
       <div className="premium-header">
         <h2 id={titleId} className="title">
-          {isEditingKey ? t("ownOpenAIKeySettings.title") : isAiLimit ? t("premium.limitTitle") : t("premium.title")}
+          {isEditingKey ? t("ownOpenAIKeySettings.title") : isAiLimit ? t("premium.limitTitle") : t("stripe.offer.title")}
         </h2>
         <button
           ref={closeRef}
@@ -74,6 +78,7 @@ export function PremiumComingSoon(props: PremiumComingSoonProps): ReactElement {
           className="ghost-btn premium-close"
           aria-label={t("premium.close")}
           data-testid="premium-close"
+          disabled={isPurchasing}
           onClick={onDismiss}
         >
           <span aria-hidden="true">×</span>
@@ -99,20 +104,16 @@ export function PremiumComingSoon(props: PremiumComingSoonProps): ReactElement {
           <p id={bodyId} className="subtitle">
             {request.reason === "ai-limit"
               ? formatAiLimitReachedMessageForHeldUsage({ aiUsage: request.aiUsage, t, formatDate })
-              : entitlement === null && request.reason === "feature" ? t("premium.unknown") : t("premium.unavailable")}
+              : entitlement === null && request.reason === "feature" ? t("premium.unknown") : t("stripe.offer.description")}
           </p>
-          {isAiLimit && showOffer ? (
-            <div className="content-card content-card-section">
-              <h3 className="panel-subtitle">{t("premium.title")}</h3>
-              <p className="subtitle">{t("premium.unavailable")}</p>
-            </div>
-          ) : null}
+          {showOffer ? <StripeOfferContent continuation={request.reason === "feature" ? request.continuation : null} /> : null}
+          <p className="subtitle">{t("stripe.ownKey.explanation")}</p>
+          <button type="button" className="ghost-btn" data-testid="premium-own-key" onClick={() => setIsEditingKey(true)}>
+            {t("stripe.ownKey.action")}
+          </button>
           {isAiLimit ? (
             <>
               <p className="subtitle">{t("premium.retryManually")}</p>
-              <button type="button" className="primary-btn" data-testid="premium-own-key" onClick={() => setIsEditingKey(true)}>
-                {t("ownOpenAIKeySettings.title")}
-              </button>
             </>
           ) : null}
         </>
