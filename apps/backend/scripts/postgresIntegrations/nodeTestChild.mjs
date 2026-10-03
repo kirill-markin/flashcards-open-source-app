@@ -160,6 +160,12 @@ function createTestConnectionGuardImport() {
 import PgClient from ${JSON.stringify(pgClientModuleUrl)};
 import pg from ${JSON.stringify(pgModuleUrl)};
 
+pg.Pool = class IntegrationPool extends pg.Pool {
+  constructor(options) {
+    super({ ...options, allowExitOnIdle: true });
+  }
+};
+
 const expectedDatabaseName =
   process.env.POSTGRES_INTEGRATION_EXPECTED_DATABASE_NAME;
 const expectedDatabaseOid =
