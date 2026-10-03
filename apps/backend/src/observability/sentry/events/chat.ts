@@ -197,13 +197,14 @@ export type AiUsageAllowanceResolutionDeferralDetails = Readonly<{
 
 /**
  * A chat turn admitted for a person whose platform-key weighted tokens this month are at or above the
- * heavy-spend threshold. The person travels on the scope; nothing was refused.
+ * heavy-spend threshold. The person travels on the scope; nothing was refused. The amount keys avoid
+ * "token" because both the telemetry sanitizer and Sentry's server-side scrubbing redact such keys.
  */
 export type AiUsageHeavyWeightedTokensDetails = Readonly<{
   tier: string;
   accountKind: string;
-  usedWeightedTokens: number;
-  thresholdWeightedTokens: number;
+  usedWeightedUsage: number;
+  thresholdWeightedUsage: number;
 }>;
 
 /**

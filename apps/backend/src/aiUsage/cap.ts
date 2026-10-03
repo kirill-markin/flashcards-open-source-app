@@ -290,8 +290,8 @@ export async function reportHeavyAiUsageWeightedTokens(
     details: {
       tier: allowance.tier,
       accountKind: allowance.accountKind,
-      usedWeightedTokens,
-      thresholdWeightedTokens: aiUsageHeavyWeightedTokensThreshold,
+      usedWeightedUsage: usedWeightedTokens,
+      thresholdWeightedUsage: aiUsageHeavyWeightedTokensThreshold,
     },
   });
 }
