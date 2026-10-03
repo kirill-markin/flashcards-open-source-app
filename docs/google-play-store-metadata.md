@@ -36,8 +36,9 @@ Turn notes and photos into flashcards with AI to prepare for exams and learn voc
 
 ### Release notes
 
-- Share the app using new nibomo.com links.
-- Keep access to your cards as a guest when the app moves to our new domain.
+- Subscribe to Premium and customize accent colors.
+- Use your own OpenAI API key and view AI usage.
+- Confirm deck deletion and navigate improved settings.
 
 ## Arabic - ar
 
@@ -60,8 +61,9 @@ Nibomo: بطاقات ذكاء اصطناعي
 
 ### Release notes
 
-- شارك التطبيق باستخدام روابط nibomo.com الجديدة.
-- احتفظ بإمكانية الوصول إلى بطاقاتك كضيف عند انتقال التطبيق إلى نطاقنا الجديد.
+- اشترك في Premium وخصّص ألوان التمييز.
+- استخدم مفتاح OpenAI API الخاص بك واطّلع على استخدام الذكاء الاصطناعي.
+- أكّد حذف مجموعات البطاقات وتصفّح الإعدادات المحسّنة.
 
 ## Chinese (Simplified) - zh-CN
 
@@ -84,8 +86,9 @@ Nibomo: AI 闪卡
 
 ### Release notes
 
-- 使用新的 nibomo.com 链接分享应用。
-- 应用迁移到新域名后，您仍可在访客模式下访问自己的卡片。
+- 订阅 Premium，自定义界面强调色。
+- 使用自己的 OpenAI API 密钥，查看 AI 用量。
+- 删除牌组前进行确认，轻松浏览改进后的设置。
 
 ## French - fr-FR
 
@@ -108,8 +111,9 @@ Transformez vos notes et photos en fiches avec l’IA pour préparer vos examens
 
 ### Release notes
 
-- Partagez l’app avec les nouveaux liens nibomo.com.
-- Conservez l’accès à vos fiches en tant qu’invité lorsque l’app passe à notre nouveau domaine.
+- Abonnez-vous à Premium et personnalisez les couleurs d’accentuation.
+- Utilisez votre propre clé API OpenAI et consultez votre utilisation de l’IA.
+- Confirmez la suppression des paquets et profitez de réglages plus faciles à parcourir.
 
 ## German - de-DE
 
@@ -132,8 +136,9 @@ Erstelle mit KI aus Notizen und Fotos Karteikarten für Prüfungen und zum Vokab
 
 ### Release notes
 
-- Teile die App über die neuen nibomo.com-Links.
-- Beim Wechsel der App auf unsere neue Domain behältst du als Gast Zugriff auf deine Karten.
+- Abonniere Premium und passe die Akzentfarben an.
+- Nutze deinen eigenen OpenAI-API-Schlüssel und sieh dir deine KI-Nutzung an.
+- Bestätige das Löschen von Stapeln und finde dich leichter in den Einstellungen zurecht.
 
 ## Hindi - hi-IN
 
@@ -156,8 +161,9 @@ Nibomo: AI फ्लैशकार्ड
 
 ### Release notes
 
-- नए nibomo.com लिंक से ऐप शेयर करें।
-- ऐप के हमारे नए डोमेन पर जाने के बाद भी अतिथि के रूप में अपने कार्ड इस्तेमाल कर सकेंगे।
+- Premium की सदस्यता लें और अपनी पसंद के एक्सेंट रंग चुनें।
+- अपनी OpenAI API कुंजी इस्तेमाल करें और AI का उपयोग देखें।
+- डेक हटाने से पहले पुष्टि करें और बेहतर सेटिंग्स में आसानी से नेविगेट करें।
 
 ## Japanese - ja-JP
 
@@ -180,8 +186,9 @@ Nibomo: AI暗記カード
 
 ### Release notes
 
-- 新しい nibomo.com リンクでアプリを共有できます。
-- アプリが新しいドメインに移行しても、ゲストとして使っているカードに引き続きアクセスできます。
+- Premiumに登録して、アクセントカラーをカスタマイズできます。
+- 自分のOpenAI APIキーを使い、AIの利用状況を確認できます。
+- デッキ削除前の確認に対応し、設定も使いやすくなりました。
 
 ## Portuguese (Brazil) - pt-BR
 
@@ -204,8 +211,9 @@ Transforme suas anotações e fotos em flashcards com IA para estudar para prova
 
 ### Release notes
 
-- Compartilhe o app com os novos links nibomo.com.
-- Mantenha o acesso aos seus cartões como convidado quando o app passar para o nosso novo domínio.
+- Assine o Premium e personalize as cores de destaque.
+- Use sua própria chave de API da OpenAI e confira o uso de IA.
+- Confirme a exclusão de baralhos e navegue com mais facilidade pelas configurações.
 
 ## Russian - ru-RU
 
@@ -228,8 +236,9 @@ Nibomo: ИИ-флешкарты
 
 ### Release notes
 
-- Делитесь приложением по новым ссылкам nibomo.com.
-- Сохраните гостевой доступ к своим карточкам при переходе приложения на наш новый домен.
+- Оформляйте подписку Premium и настраивайте акцентные цвета.
+- Используйте свой API-ключ OpenAI и просматривайте статистику использования ИИ.
+- Подтверждайте удаление колод и пользуйтесь более удобными настройками.
 
 ## Spanish (Latin America) - es-419
 
@@ -252,8 +261,9 @@ Convierte tus apuntes y fotos en tarjetas de estudio con IA para preparar exáme
 
 ### Release notes
 
-- Comparte la app con los nuevos enlaces de nibomo.com.
-- Conserva el acceso a tus tarjetas como invitado cuando la app pase a nuestro nuevo dominio.
+- Suscríbete a Premium y personaliza los colores de acento.
+- Usa tu propia clave de API de OpenAI y consulta tu uso de IA.
+- Confirma la eliminación de mazos y navega más fácilmente por los ajustes.
 
 ## Spanish (Spain) - es-ES
 
@@ -276,8 +286,9 @@ Convierte tus apuntes y fotos en tarjetas de estudio con IA para preparar exáme
 
 ### Release notes
 
-- Comparte la app con los nuevos enlaces de nibomo.com.
-- Conserva el acceso a tus tarjetas como invitado cuando la app pase a nuestro nuevo dominio.
+- Suscríbete a Premium y personaliza los colores de acento.
+- Usa tu propia clave de API de OpenAI y consulta tu uso de IA.
+- Confirma la eliminación de mazos y navega más fácilmente por los ajustes.
 
 ## Spanish (United States) - es-US
 
@@ -300,8 +311,9 @@ Convierte tus notas y fotos en tarjetas de estudio con IA para preparar exámene
 
 ### Release notes
 
-- Comparte la app con los nuevos enlaces de nibomo.com.
-- Conserva el acceso a tus tarjetas como invitado cuando la app pase a nuestro nuevo dominio.
+- Suscríbete a Premium y personaliza los colores de acento.
+- Usa tu propia clave de API de OpenAI y consulta tu uso de IA.
+- Confirma la eliminación de mazos y navega más fácilmente por los ajustes.
 
 ## Bulgarian - bg
 
@@ -324,8 +336,9 @@ Nibomo: Флашкарти с ИИ
 
 ### Release notes
 
-- Споделяйте приложението с новите връзки към nibomo.com.
-- Запазвате достъпа до картите си като гост при преминаването на приложението към новия ни домейн.
+- Абонирайте се за Premium и персонализирайте акцентните цветове.
+- Използвайте собствен API ключ за OpenAI и следете използването на ИИ.
+- Потвърждавайте изтриването на тестета и се ориентирайте по-лесно в настройките.
 
 ## Bengali (Bangladesh) - bn-BD
 
@@ -348,8 +361,9 @@ Nibomo: AI ফ্ল্যাশকার্ড
 
 ### Release notes
 
-- নতুন nibomo.com লিংক দিয়ে অ্যাপ শেয়ার করুন।
-- অ্যাপ আমাদের নতুন ডোমেইনে চলে গেলেও অতিথি হিসেবে আপনার কার্ডগুলো ব্যবহার করতে পারবেন।
+- Premium সাবস্ক্রিপশন নিন এবং পছন্দমতো অ্যাকসেন্ট রং বেছে নিন।
+- নিজের OpenAI API কী ব্যবহার করুন এবং AI ব্যবহারের তথ্য দেখুন।
+- ডেক মুছে ফেলার আগে নিশ্চিত করুন এবং উন্নত সেটিংসে আরও সহজে নেভিগেট করুন।
 
 ## Catalan - ca
 
@@ -372,8 +386,9 @@ Converteix els apunts i les fotos en targetes d’estudi amb IA per preparar ex�
 
 ### Release notes
 
-- Comparteix l’aplicació amb els nous enllaços de nibomo.com.
-- Conserva l’accés a les teves targetes com a convidat quan l’aplicació passi al nostre nou domini.
+- Subscriu-te a Premium i personalitza els colors d’accent.
+- Fes servir la teva pròpia clau API d’OpenAI i consulta l’ús de la IA.
+- Confirma la supressió de baralles i mou-te més fàcilment pels ajustos.
 
 ## Czech - cs-CZ
 
@@ -396,8 +411,9 @@ Proměňte poznámky a fotky v kartičky s pomocí AI a připravujte se na zkou�
 
 ### Release notes
 
-- Sdílejte aplikaci pomocí nových odkazů na nibomo.com.
-- Při přechodu aplikace na naši novou doménu si zachováte přístup ke svým kartičkám jako host.
+- Předplaťte si Premium a přizpůsobte si barvy zvýraznění.
+- Používejte vlastní API klíč OpenAI a sledujte využití AI.
+- Potvrzujte mazání balíčků a snáze se orientujte v nastavení.
 
 ## Danish - da-DK
 
@@ -420,8 +436,9 @@ Lav noter og fotos om til flashcards med AI, så du kan forberede dig til eksame
 
 ### Release notes
 
-- Del appen med de nye nibomo.com-links.
-- Behold adgangen til dine kort som gæst, når appen flytter til vores nye domæne.
+- Abonner på Premium, og tilpas accentfarverne.
+- Brug din egen OpenAI-API-nøgle, og se dit AI-forbrug.
+- Bekræft sletning af kortsæt, og find lettere rundt i indstillingerne.
 
 ## Greek - el-GR
 
@@ -444,8 +461,9 @@ Nibomo: Κάρτες με AI
 
 ### Release notes
 
-- Μοιραστείτε την εφαρμογή με τους νέους συνδέσμους nibomo.com.
-- Διατηρείτε την πρόσβαση στις κάρτες σας ως επισκέπτης όταν η εφαρμογή μεταφερθεί στο νέο μας domain.
+- Εγγραφείτε στο Premium και προσαρμόστε τα χρώματα έμφασης.
+- Χρησιμοποιήστε το δικό σας κλειδί API OpenAI και δείτε τη χρήση του AI.
+- Επιβεβαιώστε τη διαγραφή συλλογών και περιηγηθείτε πιο εύκολα στις ρυθμίσεις.
 
 ## Estonian - et
 
@@ -468,8 +486,9 @@ Muuda märkmed ja fotod AI abil õpikaartideks, et valmistuda eksamiteks ja õpp
 
 ### Release notes
 
-- Jaga rakendust uute nibomo.com-i linkidega.
-- Rakenduse üleminekul meie uuele domeenile säilib külalisena juurdepääs sinu kaartidele.
+- Telli Premium ja kohanda aktsentvärve.
+- Kasuta oma OpenAI API-võtit ja vaata AI kasutusandmeid.
+- Kinnita kaardipakkide kustutamine ja liigu mugavamalt seadetes.
 
 ## Persian - fa
 
@@ -492,8 +511,9 @@ Nibomo: فلش‌کارت هوشمند
 
 ### Release notes
 
-- برنامه را با پیوندهای جدید nibomo.com به اشتراک بگذارید.
-- هنگام انتقال برنامه به دامنهٔ جدید ما، دسترسی شما به کارت‌هایتان در حالت مهمان حفظ می‌شود.
+- مشترک Premium شوید و رنگ‌های تأکیدی را به سلیقهٔ خود تغییر دهید.
+- از کلید API شخصی OpenAI خود استفاده کنید و میزان استفاده از هوش مصنوعی را ببینید.
+- حذف دسته‌ها را تأیید کنید و راحت‌تر در تنظیمات جابه‌جا شوید.
 
 ## Finnish - fi-FI
 
@@ -516,8 +536,9 @@ Muuta muistiinpanot ja kuvat tekoälyn avulla muistikorteiksi kokeisiin valmista
 
 ### Release notes
 
-- Jaa sovellus uusilla nibomo.com-linkeillä.
-- Säilytät pääsyn kortteihisi vierailijana, kun sovellus siirtyy uudelle verkkotunnuksellemme.
+- Tilaa Premium ja mukauta korostusvärejä.
+- Käytä omaa OpenAI-API-avaintasi ja seuraa tekoälyn käyttöä.
+- Vahvista pakkojen poistaminen ja löydä etsimäsi helpommin asetuksista.
 
 ## Gujarati - gu
 
@@ -540,8 +561,9 @@ Nibomo: AI ફ્લેશકાર્ડ્સ
 
 ### Release notes
 
-- નવી nibomo.com લિંક્સથી ઍપ શેર કરો.
-- ઍપ અમારા નવા ડોમેન પર જાય ત્યારે પણ મહેમાન તરીકે તમારા કાર્ડનો ઉપયોગ કરી શકશો.
+- Premiumનું સબ્સ્ક્રિપ્શન લો અને તમારી પસંદના એક્સેન્ટ રંગો પસંદ કરો.
+- તમારી પોતાની OpenAI API કી વાપરો અને AI વપરાશ જુઓ.
+- ડેક કાઢી નાખતાં પહેલાં પુષ્ટિ કરો અને સુધારેલી સેટિંગ્સમાં વધુ સરળતાથી નેવિગેટ કરો.
 
 ## Hebrew - iw-IL
 
@@ -564,8 +586,9 @@ Nibomo: כרטיסיות עם AI
 
 ### Release notes
 
-- שתפו את האפליקציה עם הקישורים החדשים של nibomo.com.
-- הגישה שלכם לכרטיסיות כאורחים נשמרת כשהאפליקציה עוברת לדומיין החדש שלנו.
+- הירשמו ל-Premium והתאימו אישית את צבעי ההדגשה.
+- השתמשו במפתח API משלכם ל-OpenAI וצפו בנתוני השימוש ב-AI.
+- אשרו מחיקת חפיסות ונווטו בקלות רבה יותר בהגדרות.
 
 ## Croatian - hr
 
@@ -588,8 +611,9 @@ Pretvori bilješke i fotografije u kartice uz AI za pripremu ispita i učenje no
 
 ### Release notes
 
-- Podijelite aplikaciju putem novih poveznica nibomo.com.
-- Zadržite pristup svojim karticama kao gost kada aplikacija prijeđe na našu novu domenu.
+- Pretplati se na Premium i prilagodi boje naglaska.
+- Koristi vlastiti OpenAI API ključ i prati korištenje AI-ja.
+- Potvrdi brisanje špilova i lakše se snađi u postavkama.
 
 ## Hungarian - hu-HU
 
@@ -612,8 +636,9 @@ Készíts jegyzetekből és fotókból tanulókártyákat AI-val a vizsgákra é
 
 ### Release notes
 
-- Oszd meg az alkalmazást az új nibomo.com-hivatkozásokkal.
-- Vendégként is megmarad a hozzáférésed a kártyáidhoz, amikor az alkalmazás az új domainünkre költözik.
+- Fizess elő a Premiumra, és szabd személyre a kiemelőszíneket.
+- Használd a saját OpenAI API-kulcsodat, és kövesd az AI-használatodat.
+- Erősítsd meg a paklik törlését, és igazodj el könnyebben a beállításokban.
 
 ## Indonesian - id
 
@@ -636,8 +661,9 @@ Ubah catatan dan foto menjadi flashcard dengan AI untuk persiapan ujian dan bela
 
 ### Release notes
 
-- Bagikan aplikasi dengan tautan nibomo.com yang baru.
-- Akses kartu Anda sebagai tamu tetap terjaga saat aplikasi beralih ke domain baru kami.
+- Berlangganan Premium dan sesuaikan warna aksen.
+- Gunakan kunci API OpenAI milikmu sendiri dan lihat penggunaan AI.
+- Konfirmasikan penghapusan dek dan jelajahi pengaturan dengan lebih mudah.
 
 ## Icelandic - is-IS
 
@@ -660,8 +686,9 @@ Breyttu glósum og myndum í námskort með gervigreind til að undirbúa þig f
 
 ### Release notes
 
-- Deildu appinu með nýjum nibomo.com-tenglum.
-- Þú heldur aðgangi að spjöldunum þínum sem gestur þegar appið færist yfir á nýja lénið okkar.
+- Gerstu áskrifandi að Premium og sérsníddu áhersluliti.
+- Notaðu þinn eigin OpenAI API-lykil og skoðaðu notkun gervigreindar.
+- Staðfestu eyðingu kortastokka og farðu auðveldlega um endurbættar stillingar.
 
 ## Italian - it-IT
 
@@ -684,8 +711,9 @@ Trasforma appunti e foto in flashcard con l’IA per preparare gli esami e impar
 
 ### Release notes
 
-- Condividi l’app con i nuovi link di nibomo.com.
-- Mantieni l’accesso alle tue schede come ospite quando l’app passa al nostro nuovo dominio.
+- Abbonati a Premium e personalizza i colori di risalto.
+- Usa la tua chiave API OpenAI e consulta l’utilizzo dell’IA.
+- Conferma l’eliminazione dei mazzi e naviga più facilmente nelle impostazioni.
 
 ## Kannada (India) - kn-IN
 
@@ -708,8 +736,9 @@ Nibomo: AI ಫ್ಲ್ಯಾಶ್‌ಕಾರ್ಡ್
 
 ### Release notes
 
-- ಹೊಸ nibomo.com ಲಿಂಕ್‌ಗಳ ಮೂಲಕ ಆ್ಯಪ್ ಹಂಚಿಕೊಳ್ಳಿ.
-- ಆ್ಯಪ್ ನಮ್ಮ ಹೊಸ ಡೊಮೇನ್‌ಗೆ ಬದಲಾದಾಗಲೂ ಅತಿಥಿಯಾಗಿ ನಿಮ್ಮ ಕಾರ್ಡ್‌ಗಳನ್ನು ಬಳಸಬಹುದು.
+- Premium ಚಂದಾದಾರರಾಗಿ ಮತ್ತು ನಿಮ್ಮ ಇಷ್ಟದ ಅಕ್ಸೆಂಟ್ ಬಣ್ಣಗಳನ್ನು ಆಯ್ಕೆಮಾಡಿ.
+- ನಿಮ್ಮದೇ OpenAI API ಕೀ ಬಳಸಿ ಮತ್ತು AI ಬಳಕೆಯನ್ನು ವೀಕ್ಷಿಸಿ.
+- ಡೆಕ್ ಅಳಿಸುವ ಮೊದಲು ದೃಢೀಕರಿಸಿ ಮತ್ತು ಸುಧಾರಿತ ಸೆಟ್ಟಿಂಗ್‌ಗಳಲ್ಲಿ ಸುಲಭವಾಗಿ ನ್ಯಾವಿಗೇಟ್ ಮಾಡಿ.
 
 ## Korean - ko-KR
 
@@ -732,8 +761,9 @@ Nibomo: AI 암기카드
 
 ### Release notes
 
-- 새로운 nibomo.com 링크로 앱을 공유하세요.
-- 앱이 새 도메인으로 이전해도 게스트로 사용하던 카드에 계속 접근할 수 있어요.
+- Premium을 구독하고 강조 색상을 원하는 대로 설정하세요.
+- 나만의 OpenAI API 키를 사용하고 AI 사용량을 확인하세요.
+- 덱을 삭제하기 전에 확인하고, 개선된 설정을 더 편리하게 이용하세요.
 
 ## Lithuanian - lt
 
@@ -756,8 +786,9 @@ Su DI paverskite užrašus ir nuotraukas mokymosi kortelėmis, kad pasiruoštum�
 
 ### Release notes
 
-- Dalykitės programėle naudodami naujas nibomo.com nuorodas.
-- Programėlei persikėlus į naują mūsų domeną, svečio prieiga prie jūsų kortelių išliks.
+- Prenumeruokite Premium ir pasirinkite akcentų spalvas.
+- Naudokite savo OpenAI API raktą ir peržiūrėkite DI naudojimo duomenis.
+- Patvirtinkite kaladžių ištrynimą ir lengviau naršykite nustatymus.
 
 ## Latvian - lv
 
@@ -780,8 +811,9 @@ Pārvērt piezīmes un fotogrāfijas mācību kartītēs ar MI, lai gatavotos ek
 
 ### Release notes
 
-- Kopīgojiet lietotni ar jaunajām nibomo.com saitēm.
-- Lietotnei pārejot uz mūsu jauno domēnu, jums kā viesim saglabāsies piekļuve savām kartītēm.
+- Abonē Premium un pielāgo akcenta krāsas.
+- Izmanto savu OpenAI API atslēgu un skati MI lietojuma datus.
+- Apstiprini kartīšu komplektu dzēšanu un ērtāk pārvietojies iestatījumos.
 
 ## Malayalam (India) - ml-IN
 
@@ -804,8 +836,9 @@ Nibomo: AI ഫ്ലാഷ്‌കാർഡുകൾ
 
 ### Release notes
 
-- പുതിയ nibomo.com ലിങ്കുകൾ ഉപയോഗിച്ച് ആപ്പ് പങ്കിടൂ.
-- ആപ്പ് ഞങ്ങളുടെ പുതിയ ഡൊമെയ്‌നിലേക്ക് മാറുമ്പോഴും അതിഥിയായി നിങ്ങളുടെ കാർഡുകൾ ഉപയോഗിക്കാം.
+- Premium സബ്‌സ്‌ക്രൈബ് ചെയ്ത് ഇഷ്ടമുള്ള ആക്സന്റ് നിറങ്ങൾ തിരഞ്ഞെടുക്കൂ.
+- സ്വന്തം OpenAI API കീ ഉപയോഗിക്കൂ, AI ഉപയോഗം കാണൂ.
+- ഡെക്കുകൾ ഇല്ലാതാക്കുന്നതിന് മുമ്പ് സ്ഥിരീകരിക്കൂ, മെച്ചപ്പെടുത്തിയ ക്രമീകരണങ്ങൾ കൂടുതൽ എളുപ്പത്തിൽ ഉപയോഗിക്കൂ.
 
 ## Marathi (India) - mr-IN
 
@@ -828,8 +861,9 @@ Nibomo: AI फ्लॅशकार्ड्स
 
 ### Release notes
 
-- नवीन nibomo.com लिंक्स वापरून ॲप शेअर करा.
-- ॲप आमच्या नवीन डोमेनवर गेले तरी अतिथी म्हणून तुमची कार्डे वापरता येतील.
+- Premiumचे सदस्यत्व घ्या आणि तुमच्या आवडीचे अ‍ॅक्सेंट रंग निवडा.
+- तुमची स्वतःची OpenAI API की वापरा आणि AIचा वापर पाहा.
+- डेक हटवण्यापूर्वी पुष्टी करा आणि सुधारित सेटिंग्जमध्ये अधिक सहजपणे नेव्हिगेट करा.
 
 ## Dutch - nl-NL
 
@@ -852,8 +886,9 @@ Zet notities en foto’s met AI om in flashcards om je voor te bereiden op exame
 
 ### Release notes
 
-- Deel de app via de nieuwe nibomo.com-links.
-- Je behoudt als gast toegang tot je kaarten wanneer de app naar ons nieuwe domein verhuist.
+- Abonneer je op Premium en pas de accentkleuren aan.
+- Gebruik je eigen OpenAI-API-sleutel en bekijk je AI-gebruik.
+- Bevestig het verwijderen van kaartensets en vind makkelijker je weg in de instellingen.
 
 ## Norwegian - no-NO
 
@@ -876,8 +911,9 @@ Gjør notater og bilder om til læringskort med KI for å forberede deg til eksa
 
 ### Release notes
 
-- Del appen med de nye nibomo.com-lenkene.
-- Behold tilgangen til kortene dine som gjest når appen flyttes til det nye domenet vårt.
+- Abonner på Premium og tilpass aksentfargene.
+- Bruk din egen OpenAI-API-nøkkel og se KI-bruken din.
+- Bekreft sletting av kortstokker og finn lettere frem i innstillingene.
 
 ## Punjabi - pa
 
@@ -900,8 +936,9 @@ Nibomo: AI ਫਲੈਸ਼ਕਾਰਡ
 
 ### Release notes
 
-- ਨਵੇਂ nibomo.com ਲਿੰਕਾਂ ਰਾਹੀਂ ਐਪ ਸਾਂਝੀ ਕਰੋ।
-- ਐਪ ਸਾਡੇ ਨਵੇਂ ਡੋਮੇਨ ’ਤੇ ਜਾਣ ਤੋਂ ਬਾਅਦ ਵੀ ਮਹਿਮਾਨ ਵਜੋਂ ਆਪਣੇ ਕਾਰਡ ਵਰਤ ਸਕੋਗੇ।
+- Premium ਦੀ ਮੈਂਬਰਸ਼ਿਪ ਲਓ ਅਤੇ ਆਪਣੀ ਪਸੰਦ ਦੇ ਐਕਸੈਂਟ ਰੰਗ ਚੁਣੋ।
+- ਆਪਣੀ OpenAI API ਕੁੰਜੀ ਵਰਤੋ ਅਤੇ AI ਦੀ ਵਰਤੋਂ ਦੇ ਅੰਕੜੇ ਵੇਖੋ।
+- ਡੈੱਕ ਮਿਟਾਉਣ ਤੋਂ ਪਹਿਲਾਂ ਪੁਸ਼ਟੀ ਕਰੋ ਅਤੇ ਸੁਧਾਰੀਆਂ ਸੈਟਿੰਗਾਂ ਵਿੱਚ ਹੋਰ ਆਸਾਨੀ ਨਾਲ ਜਾਓ।
 
 ## Polish - pl-PL
 
@@ -924,8 +961,9 @@ Zamieniaj notatki i zdjęcia w fiszki z pomocą AI, by przygotować się do egza
 
 ### Release notes
 
-- Udostępniaj aplikację za pomocą nowych linków nibomo.com.
-- Zachowasz dostęp do swoich fiszek jako gość, gdy aplikacja przejdzie na naszą nową domenę.
+- Wykup subskrypcję Premium i dostosuj kolory akcentów.
+- Używaj własnego klucza API OpenAI i sprawdzaj wykorzystanie AI.
+- Potwierdzaj usuwanie talii i łatwiej poruszaj się po ustawieniach.
 
 ## Romanian - ro
 
@@ -948,8 +986,9 @@ Transformă notițele și fotografiile în fișe de studiu cu AI pentru pregăti
 
 ### Release notes
 
-- Distribuie aplicația prin noile linkuri nibomo.com.
-- Îți păstrezi accesul la carduri ca vizitator când aplicația trece pe noul nostru domeniu.
+- Abonează-te la Premium și personalizează culorile de accent.
+- Folosește propria cheie API OpenAI și consultă datele de utilizare a AI-ului.
+- Confirmă ștergerea seturilor și navighează mai ușor prin setări.
 
 ## Slovak - sk
 
@@ -972,8 +1011,9 @@ Premeňte poznámky a fotky na kartičky pomocou AI a pripravujte sa na skúšky
 
 ### Release notes
 
-- Zdieľajte aplikáciu pomocou nových odkazov na nibomo.com.
-- Pri prechode aplikácie na našu novú doménu si zachováte prístup k svojim kartičkám ako hosť.
+- Predplaťte si Premium a prispôsobte si farby zvýraznenia.
+- Používajte vlastný API kľúč OpenAI a sledujte využitie AI.
+- Potvrdzujte mazanie balíčkov a jednoduchšie sa orientujte v nastaveniach.
 
 ## Slovenian - sl
 
@@ -996,8 +1036,9 @@ Z AI spremeni zapiske in fotografije v učne kartice za pripravo na izpite in u�
 
 ### Release notes
 
-- Delite aplikacijo z novimi povezavami nibomo.com.
-- Ko aplikacija preide na našo novo domeno, kot gost ohranite dostop do svojih kartic.
+- Naroči se na Premium in prilagodi barve poudarkov.
+- Uporabi svoj ključ API za OpenAI in spremljaj uporabo AI.
+- Potrdi brisanje kompletov in se lažje znajdi v nastavitvah.
 
 ## Swedish - sv-SE
 
@@ -1020,8 +1061,9 @@ Gör anteckningar och foton till flashcards med AI för att förbereda dig infö
 
 ### Release notes
 
-- Dela appen med de nya nibomo.com-länkarna.
-- Behåll åtkomsten till dina kort som gäst när appen flyttar till vår nya domän.
+- Prenumerera på Premium och anpassa accentfärgerna.
+- Använd din egen OpenAI-API-nyckel och se din AI-användning.
+- Bekräfta radering av kortlekar och hitta lättare i inställningarna.
 
 ## Swahili - sw
 
@@ -1044,8 +1086,9 @@ Geuza madokezo na picha zako kuwa kadi za kujifunza kwa AI ili kujiandaa kwa mit
 
 ### Release notes
 
-- Shiriki programu kwa viungo vipya vya nibomo.com.
-- Endelea kufikia kadi zako kama mgeni programu inapohamia kwenye kikoa chetu kipya.
+- Jisajili kwa Premium na ubadilishe rangi za msisitizo.
+- Tumia ufunguo wako wa API ya OpenAI na uone matumizi ya AI.
+- Thibitisha kufuta makundi ya kadi na upitie mipangilio iliyoboreshwa kwa urahisi zaidi.
 
 ## Tamil (India) - ta-IN
 
@@ -1068,8 +1111,9 @@ Nibomo: AI கற்றல் அட்டைகள்
 
 ### Release notes
 
-- புதிய nibomo.com இணைப்புகளுடன் செயலியைப் பகிருங்கள்.
-- செயலி எங்களின் புதிய டொமைனுக்கு மாறும்போதும் விருந்தினராக உங்கள் அட்டைகளைத் தொடர்ந்து அணுகலாம்.
+- Premium சந்தாவைப் பெற்று, விருப்பமான சிறப்பம்ச நிறங்களைத் தேர்வுசெய்யுங்கள்.
+- உங்கள் சொந்த OpenAI API விசையைப் பயன்படுத்தி, AI பயன்பாட்டைப் பாருங்கள்.
+- அட்டைத் தொகுப்புகளை நீக்கும் முன் உறுதிப்படுத்துங்கள்; மேம்படுத்தப்பட்ட அமைப்புகளை எளிதாகப் பயன்படுத்துங்கள்.
 
 ## Telugu (India) - te-IN
 
@@ -1092,8 +1136,9 @@ Nibomo: AI ఫ్లాష్‌కార్డులు
 
 ### Release notes
 
-- కొత్త nibomo.com లింక్‌లతో యాప్‌ను షేర్ చేయండి.
-- యాప్ మా కొత్త డొమైన్‌కు మారినప్పటికీ అతిథిగా మీ కార్డ్‌లను ఉపయోగించవచ్చు.
+- Premiumకు సభ్యత్వం తీసుకుని, మీకు నచ్చిన యాక్సెంట్ రంగులను ఎంచుకోండి.
+- మీ సొంత OpenAI API కీని ఉపయోగించి, AI వినియోగాన్ని చూడండి.
+- డెక్‌లను తొలగించే ముందు నిర్ధారించండి, మెరుగైన సెట్టింగ్‌లను మరింత సులభంగా ఉపయోగించండి.
 
 ## Thai - th
 
@@ -1116,8 +1161,9 @@ Nibomo: แฟลชการ์ด AI
 
 ### Release notes
 
-- แชร์แอปด้วยลิงก์ nibomo.com ใหม่
-- ยังเข้าถึงบัตรคำในฐานะผู้เยี่ยมชมได้เมื่อแอปย้ายไปใช้โดเมนใหม่ของเรา
+- สมัคร Premium และปรับแต่งสีเน้นได้ตามใจ
+- ใช้คีย์ OpenAI API ของคุณเองและดูการใช้งาน AI
+- ยืนยันก่อนลบชุดการ์ด และใช้งานการตั้งค่าที่ปรับปรุงใหม่ได้สะดวกขึ้น
 
 ## Turkish - tr-TR
 
@@ -1140,8 +1186,9 @@ Sınavlara hazırlanmak ve kelime öğrenmek için notlarınızı ve fotoğrafla
 
 ### Release notes
 
-- Uygulamayı yeni nibomo.com bağlantılarıyla paylaşın.
-- Uygulama yeni alan adımıza geçtiğinde misafir olarak kartlarınıza erişiminiz korunur.
+- Premium’a abone olun ve vurgu renklerini özelleştirin.
+- Kendi OpenAI API anahtarınızı kullanın ve yapay zekâ kullanımınızı görüntüleyin.
+- Deste silme işlemini onaylayın ve ayarlarda daha kolay gezinin.
 
 ## Ukrainian - uk
 
@@ -1164,8 +1211,9 @@ Nibomo: Флешкартки з ШІ
 
 ### Release notes
 
-- Діліться застосунком за новими посиланнями nibomo.com.
-- Збережіть гостьовий доступ до своїх карток, коли застосунок перейде на наш новий домен.
+- Оформлюйте підписку Premium і налаштовуйте акцентні кольори.
+- Використовуйте власний API-ключ OpenAI та переглядайте статистику використання ШІ.
+- Підтверджуйте видалення колод і користуйтеся зручнішими налаштуваннями.
 
 ## Urdu - ur
 
@@ -1188,8 +1236,9 @@ Nibomo: AI فلیش کارڈز
 
 ### Release notes
 
-- نئے nibomo.com لنکس کے ذریعے ایپ شیئر کریں۔
-- ایپ ہمارے نئے ڈومین پر منتقل ہونے کے بعد بھی بطور مہمان اپنے کارڈز تک رسائی برقرار رکھیں۔
+- Premium کی رکنیت لیں اور اپنی پسند کے ایکسنٹ رنگ منتخب کریں۔
+- اپنی OpenAI API کلید استعمال کریں اور AI کے استعمال کی تفصیلات دیکھیں۔
+- ڈیک حذف کرنے سے پہلے تصدیق کریں اور بہتر سیٹنگز میں زیادہ آسانی سے جائیں۔
 
 ## Vietnamese - vi
 
@@ -1212,8 +1261,9 @@ Biến ghi chú và ảnh thành thẻ ghi nhớ bằng AI để ôn thi và h�
 
 ### Release notes
 
-- Chia sẻ ứng dụng bằng các liên kết nibomo.com mới.
-- Bạn vẫn có thể truy cập thẻ ở chế độ khách khi ứng dụng chuyển sang tên miền mới của chúng tôi.
+- Đăng ký Premium và tùy chỉnh màu nhấn.
+- Dùng khóa API OpenAI của riêng bạn và xem mức sử dụng AI.
+- Xác nhận trước khi xóa bộ thẻ và điều hướng dễ dàng hơn trong phần cài đặt.
 
 ## Zulu - zu
 
@@ -1236,5 +1286,6 @@ Guqula amanothi nezithombe kube amakhadi okufunda nge-AI ukuze ulungiselele iziv
 
 ### Release notes
 
-- Yabelana ngohlelo lokusebenza ngezixhumanisi ezintsha ze-nibomo.com.
-- Usengafinyelela amakhadi akho njengesivakashi lapho uhlelo lokusebenza luthuthela esizindeni sethu esisha.
+- Bhalisela i-Premium futhi wenze imibala yokugqamisa ibe ngeyakho.
+- Sebenzisa ukhiye wakho we-API ye-OpenAI futhi ubuke ukusetshenziswa kwe-AI.
+- Qinisekisa ukususa amaqoqo amakhadi futhi uzulazule kalula ezilungiselelweni ezithuthukisiwe.
