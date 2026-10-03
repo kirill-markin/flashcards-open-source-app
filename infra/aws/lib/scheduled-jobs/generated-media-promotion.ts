@@ -1,3 +1,4 @@
+import { createCachedNodejsFunction } from "../lambda-input-cache";
 import * as cdk from "aws-cdk-lib";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as iam from "aws-cdk-lib/aws-iam";
@@ -11,7 +12,7 @@ import { backendNodejsProjectPaths, resolveFromRepoRoot } from "../nodejs-projec
 import { backendStructuredLoggingProps } from "../backend-lambda-logging";
 import { createSentrySourceMapInjectionCommand } from "../sentry-source-maps";
 import { getLambdaSentryRelease } from "../lambda-sentry-release";
-import { createRdsCaBundleDownloadCommand } from "../rds-ca-bundle";
+import { createRdsCaBundleCopyCommand, rdsCaBundlePath } from "../rds-ca-bundle";
 export interface GeneratedMediaPromotionProps {
   vpc: ec2.Vpc; lambdaSg: ec2.SecurityGroup; db: rds.DatabaseInstance;
   backendDbSecret: cdk.aws_secretsmanager.Secret; mediaAssetsBucket: s3.IBucket;
@@ -30,7 +31,7 @@ export const generatedMediaPromotionScheduleName =
   "flashcards-open-source-app-generated-media-promotion";
 export function generatedMediaPromotion(
   scope: Construct, props: GeneratedMediaPromotionProps): GeneratedMediaPromotionResult {
-  const promotionFunction = new lambdaNodejs.NodejsFunction(
+  const promotionFunction = createCachedNodejsFunction(
     scope, "GeneratedMediaPromotionHandler", {
       entry: resolveFromRepoRoot(
         "apps", "backend", "src", "entrypoints", "scheduledJobs", "lambda-generated-media-promotion.ts",
@@ -41,12 +42,13 @@ export function generatedMediaPromotion(
       vpc: props.vpc, vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
       securityGroups: [props.lambdaSg],
       ...backendNodejsProjectPaths,
+      copiedAssetPaths: [rdsCaBundlePath],
       bundling: {
         minify: true, sourceMap: true,
         commandHooks: {
           beforeBundling: () => [], beforeInstall: () => [],
           afterBundling: (_inputDir: string, outputDir: string) => [
-            createRdsCaBundleDownloadCommand(outputDir),
+            createRdsCaBundleCopyCommand(outputDir, rdsCaBundlePath),
             createSentrySourceMapInjectionCommand(outputDir),
           ],
         },

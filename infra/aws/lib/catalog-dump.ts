@@ -1,3 +1,4 @@
+import { createCachedNodejsFunction } from "./lambda-input-cache";
 import * as cdk from "aws-cdk-lib";
 import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
 import * as origins from "aws-cdk-lib/aws-cloudfront-origins";
@@ -13,7 +14,7 @@ import { backendStructuredLoggingProps } from "./backend-lambda-logging";
 import { parsePublicOrigin } from "./public-origin";
 import { createSentrySourceMapInjectionCommand } from "./sentry-source-maps";
 import { getLambdaSentryRelease } from "./lambda-sentry-release";
-import { createRdsCaBundleDownloadCommand } from "./rds-ca-bundle";
+import { createRdsCaBundleCopyCommand, rdsCaBundlePath } from "./rds-ca-bundle";
 
 export interface CatalogDumpProps {
   vpc: ec2.Vpc;
@@ -74,7 +75,7 @@ const lambdaBundling: lambdaNodejs.BundlingOptions = {
     beforeBundling: () => [],
     beforeInstall: () => [],
     afterBundling: (_inputDir: string, outputDir: string) => [
-      createRdsCaBundleDownloadCommand(outputDir),
+      createRdsCaBundleCopyCommand(outputDir, rdsCaBundlePath),
       createSentrySourceMapInjectionCommand(outputDir),
     ],
   },
@@ -149,7 +150,7 @@ export function catalogDump(scope: Construct, props: CatalogDumpProps): CatalogD
     "apiBaseUrl",
   );
 
-  const dumpFunction = new lambdaNodejs.NodejsFunction(scope, "CatalogDumpHandler", {
+  const dumpFunction = createCachedNodejsFunction(scope, "CatalogDumpHandler", {
     entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "scheduledJobs", "lambda-catalog-dump.ts"),
     handler: "handler",
     runtime: lambda.Runtime.NODEJS_24_X,
@@ -167,6 +168,7 @@ export function catalogDump(scope: Construct, props: CatalogDumpProps): CatalogD
     vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
     securityGroups: [props.lambdaSg],
     ...backendNodejsProjectPaths,
+    copiedAssetPaths: [rdsCaBundlePath],
     bundling: lambdaBundling,
     environment: {
       NODE_EXTRA_CA_CERTS: "/var/task/rds-global-bundle.pem",

@@ -19,7 +19,7 @@ test("streak leaderboard snapshot is scheduled daily at 12:00 UTC", () => {
 test("streak leaderboard construct creates the daily schedule and snapshot Lambda", () => {
   const source = readLibSource("lib/scheduled-jobs/streak-leaderboard.ts");
 
-  assert.match(source, /new lambdaNodejs\.NodejsFunction\(scope, "StreakLeaderboardSnapshotHandler"/);
+  assert.match(source, /createCachedNodejsFunction\(scope, "StreakLeaderboardSnapshotHandler"/);
   assert.match(
     source,
     /entry: resolveFromRepoRoot\("apps", "backend", "src", "entrypoints", "scheduledJobs", "lambda-streak-leaderboard-snapshot\.ts"\)/,

@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# First-time AWS deployment: bootstrap CDK and deploy all infrastructure.
 
 set -euo pipefail
 
@@ -132,6 +131,9 @@ echo "=== Generate CDK context ==="
 bash "${ROOT_DIR}/scripts/generate/generate-cdk-context.sh" \
   --output "${CDK_DIR}/cdk.context.local.json" \
   --region "$REGION"
+
+echo "=== Prepare Lambda build inputs ==="
+bash "${SCRIPT_DIR}/prepare-lambda-build-inputs.sh"
 
 echo "=== CDK bootstrap ==="
 cd "$CDK_DIR"

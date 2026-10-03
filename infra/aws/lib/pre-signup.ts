@@ -1,3 +1,4 @@
+import { createCachedNodejsFunction } from "./lambda-input-cache";
 import * as cdk from "aws-cdk-lib";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as lambdaNodejs from "aws-cdk-lib/aws-lambda-nodejs";
@@ -64,7 +65,7 @@ const bundling: lambdaNodejs.BundlingOptions = {
 };
 
 export function preSignUp(scope: Construct, props: PreSignUpProps): lambdaNodejs.NodejsFunction {
-  const fn = new lambdaNodejs.NodejsFunction(scope, "PreSignUpFn", {
+  const fn = createCachedNodejsFunction(scope, "PreSignUpFn", {
     entry: path.join(__dirname, "../lambda/pre-signup/index.ts"),
     handler: "handler",
     runtime: lambda.Runtime.NODEJS_24_X,

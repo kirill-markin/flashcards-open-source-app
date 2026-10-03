@@ -1,3 +1,4 @@
+import { createCachedNodejsFunction } from "./lambda-input-cache";
 import * as cdk from "aws-cdk-lib";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as kms from "aws-cdk-lib/aws-kms";
@@ -93,7 +94,7 @@ export function customEmailSender(
     resources: ["*"],
   }));
 
-  const fn = new lambdaNodejs.NodejsFunction(scope, "CustomEmailSenderFn", {
+  const fn = createCachedNodejsFunction(scope, "CustomEmailSenderFn", {
     entry: path.join(__dirname, "../lambda/custom-email-sender/index.ts"),
     handler: "handler",
     runtime: lambda.Runtime.NODEJS_24_X,

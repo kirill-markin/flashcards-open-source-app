@@ -1,3 +1,4 @@
+import { createCachedNodejsFunction } from "../lambda-input-cache";
 import * as cdk from "aws-cdk-lib";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as rds from "aws-cdk-lib/aws-rds";
@@ -23,7 +24,7 @@ import { parsePublicOrigin } from "../public-origin";
 import { createSafeApiGatewayAccessLogFormat } from "./api-gateway-access-log";
 import { createSentrySourceMapInjectionCommand, getDockerSentryCliPath } from "../sentry-source-maps";
 import { getLambdaSentryRelease } from "../lambda-sentry-release";
-import { createRdsCaBundleDownloadCommand } from "../rds-ca-bundle";
+import { createRdsCaBundleCopyCommand, rdsCaBundlePath } from "../rds-ca-bundle";
 
 export interface ApiGatewayProps {
   vpc: ec2.Vpc;
@@ -533,7 +534,12 @@ function createLambdaBundling(
       beforeBundling: () => [],
       beforeInstall: () => [],
       afterBundling: (_inputDir: string, outputDir: string) => [
-        createRdsCaBundleDownloadCommand(outputDir),
+        createRdsCaBundleCopyCommand(
+          outputDir,
+          input.forceDockerBundling
+            ? `${dockerBundlingRepoRootPath}/.cache/lambda-build/rds-global-bundle.pem`
+            : rdsCaBundlePath,
+        ),
         createSentrySourceMapInjectionCommand(outputDir),
       ],
     },
@@ -726,7 +732,7 @@ function addBackendSentryEnvironment(
  */
 function createBackendFunction(scope: Construct, props: BackendFunctionProps): lambdaNodejs.NodejsFunction {
   const langfuseConfig = getLangfuseSecretConfig(props);
-  const fn = new lambdaNodejs.NodejsFunction(scope, props.constructId, {
+  const fn = createCachedNodejsFunction(scope, props.constructId, {
     entry: props.entry,
     handler: "handler",
     runtime: lambda.Runtime.NODEJS_24_X,
@@ -739,6 +745,7 @@ function createBackendFunction(scope: Construct, props: BackendFunctionProps): l
     vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
     securityGroups: [props.lambdaSg],
     ...backendNodejsProjectPaths,
+    copiedAssetPaths: [rdsCaBundlePath],
     bundling: props.bundling,
     environment: {
       NODE_EXTRA_CA_CERTS: "/var/task/rds-global-bundle.pem",
@@ -855,7 +862,7 @@ function createDirectImageIngestionFunction(
     throw new Error("Direct image ingestion Lambda timing margins are invalid.");
   }
 
-  const fn = new lambdaNodejs.NodejsFunction(scope, "DirectImageIngestionHandler", {
+  const fn = createCachedNodejsFunction(scope, "DirectImageIngestionHandler", {
     entry: resolveFromRepoRoot(
       "apps",
       "backend",
@@ -875,6 +882,7 @@ function createDirectImageIngestionFunction(
     vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
     securityGroups: [props.lambdaSg],
     ...backendNodejsProjectPaths,
+    copiedAssetPaths: [rdsCaBundlePath],
     bundling: createLambdaBundling({
       nodeModules: ["sharp"],
       forceDockerBundling: true,

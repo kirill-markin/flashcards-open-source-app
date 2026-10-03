@@ -1,3 +1,4 @@
+import { createCachedNodejsFunction } from "../lambda-input-cache";
 import * as cdk from "aws-cdk-lib";
 import * as apigw from "aws-cdk-lib/aws-apigateway";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
@@ -18,7 +19,7 @@ import { normalizeHost } from "../alternate-host";
 import { parsePublicOrigin } from "../public-origin";
 import { buildCookieDomains } from "../cookie-domains";
 import { getMcpResourceUrl, getPrimaryMcpHost } from "../mcp-alternate-host";
-import { createRdsCaBundleDownloadCommand } from "../rds-ca-bundle";
+import { createRdsCaBundleCopyCommand, rdsCaBundlePath } from "../rds-ca-bundle";
 import { createSentrySourceMapInjectionCommand } from "../sentry-source-maps";
 import { getLambdaSentryRelease } from "../lambda-sentry-release";
 
@@ -191,7 +192,7 @@ const lambdaBundling: lambdaNodejs.BundlingOptions = {
     beforeBundling: () => [],
     beforeInstall: () => [],
     afterBundling: (_inputDir: string, outputDir: string) => [
-      createRdsCaBundleDownloadCommand(outputDir),
+      createRdsCaBundleCopyCommand(outputDir, rdsCaBundlePath),
       createSentrySourceMapInjectionCommand(outputDir),
     ],
   },
@@ -221,7 +222,7 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
     description: "Signs Nibomo OIDC ID tokens; private key never leaves KMS",
   });
 
-  const authFn = new lambdaNodejs.NodejsFunction(scope, "AuthHandler", {
+  const authFn = createCachedNodejsFunction(scope, "AuthHandler", {
     entry: resolveFromRepoRoot("apps", "auth", "src", "lambda.ts"),
     handler: "handler",
     runtime: lambda.Runtime.NODEJS_24_X,
@@ -233,6 +234,7 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
     vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
     securityGroups: [props.lambdaSg],
     ...authNodejsProjectPaths,
+    copiedAssetPaths: [rdsCaBundlePath],
     bundling: lambdaBundling,
     environment: {
       NODE_EXTRA_CA_CERTS: "/var/task/rds-global-bundle.pem",

@@ -1,3 +1,4 @@
+import { createCachedNodejsFunction } from "../lambda-input-cache";
 import * as cdk from "aws-cdk-lib";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as iam from "aws-cdk-lib/aws-iam";
@@ -14,7 +15,7 @@ import {
 import { backendStructuredLoggingProps } from "../backend-lambda-logging";
 import { createSentrySourceMapInjectionCommand } from "../sentry-source-maps";
 import { getLambdaSentryRelease } from "../lambda-sentry-release";
-import { createRdsCaBundleDownloadCommand } from "../rds-ca-bundle";
+import { createRdsCaBundleCopyCommand, rdsCaBundlePath } from "../rds-ca-bundle";
 
 export interface MultipartCompletionReconciliationProps {
   vpc: ec2.Vpc;
@@ -70,7 +71,7 @@ export function multipartCompletionReconciliation(
   scope: Construct,
   props: MultipartCompletionReconciliationProps,
 ): MultipartCompletionReconciliationResult {
-  const reconciliationFunction = new lambdaNodejs.NodejsFunction(
+  const reconciliationFunction = createCachedNodejsFunction(
     scope,
     "MultipartCompletionReconciliationHandler",
     {
@@ -91,6 +92,7 @@ export function multipartCompletionReconciliation(
       vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
       securityGroups: [props.lambdaSg],
       ...backendNodejsProjectPaths,
+      copiedAssetPaths: [rdsCaBundlePath],
       bundling: {
         minify: true,
         sourceMap: true,
@@ -98,7 +100,7 @@ export function multipartCompletionReconciliation(
           beforeBundling: () => [],
           beforeInstall: () => [],
           afterBundling: (_inputDir: string, outputDir: string) => [
-            createRdsCaBundleDownloadCommand(outputDir),
+            createRdsCaBundleCopyCommand(outputDir, rdsCaBundlePath),
             createSentrySourceMapInjectionCommand(outputDir),
           ],
         },
