@@ -46,7 +46,7 @@
   "offer.trialEligibility": "Majaribio moja bila malipo kwa kila mteja wa Stripe. Majaribio ya awali ya Apple au Google hayaathiri ustahiki.",
   "offer.allowanceWindow": "Mgao wako wa ujumbe wa AI huanza upya kila mwezi wa kalenda kulingana na UTC, bila kutegemea tarehe yako ya bili.",
   "email.trialReminderSubject": "Majaribio yako ya Nibomo Premium yanaisha hivi karibuni",
-  "email.trialReminderBody": "Majaribio yako ya Nibomo Premium bila malipo yanaisha tarehe {date}. Baada ya majaribio, usajili wako utajisasisha kiotomatiki kwa {price} kwa mwezi, ikijumuisha kodi zinazotumika. Ili kuepuka malipo ya kwanza, ghairi kabla ya majaribio kuisha. Dhibiti au ghairi usajili wako katika mipangilio ya Usajili: {url}",
+  "email.trialReminderBody": "Majaribio yako ya Nibomo Premium bila malipo yanaisha tarehe {date}. Baada ya majaribio, usajili wako utajisasisha kiotomatiki kwa bei ya msingi ya {price} kwa mwezi, ikijumuisha kodi zinazotumika. Stripe inaonyesha kiasi cha mwisho cha malipo katika sarafu yako ya bili. Ili kuepuka malipo ya kwanza, ghairi kabla ya majaribio kuisha. Dhibiti au ghairi usajili wako katika mipangilio ya Usajili: {url}",
   "email.paymentReceiptSubject": "Risiti ya malipo ya Nibomo",
   "email.paymentReceiptBody": "Tumepokea malipo yako ya {price}. Tazama risiti yako: {url}",
   "email.refundReceiptSubject": "Risiti ya kurejeshewa pesa ya Nibomo",

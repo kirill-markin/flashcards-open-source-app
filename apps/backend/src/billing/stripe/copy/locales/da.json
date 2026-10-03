@@ -46,7 +46,7 @@
   "offer.trialEligibility": "Én gratis prøveperiode pr. Stripe-kunde. En tidligere prøveperiode hos Apple eller Google påvirker ikke din berettigelse.",
   "offer.allowanceWindow": "Din kvote for AI-beskeder nulstilles hver kalendermåned efter UTC, uafhængigt af din faktureringsdato.",
   "email.trialReminderSubject": "Din prøveperiode med Nibomo Premium slutter snart",
-  "email.trialReminderBody": "Din gratis prøveperiode med Nibomo Premium slutter den {date}. Efter prøveperioden fornys dit abonnement automatisk til {price} om måneden inklusive gældende skatter og afgifter. Opsig abonnementet, før prøveperioden slutter, for at undgå den første opkrævning. Administrer eller opsig dit abonnement i abonnementsindstillingerne: {url}",
+  "email.trialReminderBody": "Din gratis prøveperiode med Nibomo Premium slutter den {date}. Efter prøveperioden fornys dit abonnement automatisk til en månedlig basispris på {price} inklusive gældende skatter og afgifter. Stripe viser det endelige beløb, der opkræves, i din faktureringsvaluta. Opsig abonnementet, før prøveperioden slutter, for at undgå den første opkrævning. Administrer eller opsig dit abonnement i abonnementsindstillingerne: {url}",
   "email.paymentReceiptSubject": "Kvittering for betaling til Nibomo",
   "email.paymentReceiptBody": "Vi har modtaget din betaling på {price}. Se din kvittering: {url}",
   "email.refundReceiptSubject": "Kvittering for tilbagebetaling fra Nibomo",

@@ -46,7 +46,7 @@
   "offer.trialEligibility": "Jedno bezplatné skúšobné obdobie na zákazníka Stripe. Predchádzajúce skúšobné obdobie cez Apple alebo Google nemá vplyv na nárok.",
   "offer.allowanceWindow": "Váš limit správ AI sa obnovuje každý kalendárny mesiac podľa UTC, nezávisle od dátumu fakturácie.",
   "email.trialReminderSubject": "Vaše skúšobné obdobie Nibomo Premium sa čoskoro skončí",
-  "email.trialReminderBody": "Vaše bezplatné skúšobné obdobie Nibomo Premium sa končí {date}. Po skúšobnom období sa predplatné automaticky obnovuje za {price} mesačne vrátane príslušných daní. Ak sa chcete vyhnúť prvej platbe, zrušte ho pred koncom skúšobného obdobia. Spravujte alebo zrušte svoje predplatné v nastaveniach predplatného: {url}",
+  "email.trialReminderBody": "Vaše bezplatné skúšobné obdobie Nibomo Premium sa končí {date}. Po skúšobnom období sa predplatné automaticky obnovuje za základnú mesačnú cenu {price} vrátane príslušných daní. Stripe zobrazuje konečnú účtovanú sumu vo vašej fakturačnej mene. Ak sa chcete vyhnúť prvej platbe, zrušte ho pred koncom skúšobného obdobia. Spravujte alebo zrušte svoje predplatné v nastaveniach predplatného: {url}",
   "email.paymentReceiptSubject": "Potvrdenie o platbe za Nibomo",
   "email.paymentReceiptBody": "Prijali sme vašu platbu vo výške {price}. Pozrite si potvrdenie: {url}",
   "email.refundReceiptSubject": "Potvrdenie o vrátení peňazí za Nibomo",
