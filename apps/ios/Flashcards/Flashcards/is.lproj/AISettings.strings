@@ -763,6 +763,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "Þessi stokkur hefur engar reglur og inniheldur því öll spjöld.";
 "settings.workspace.decks.section.matchingCards" = "Samsvarandi spjöld";
 "settings.workspace.decks.deleteDeck" = "Eyða stokki";
+"settings.workspace.decks.deleteConfirmation.title" = "Eyða „%@“?";
+"settings.workspace.decks.deleteConfirmation.message" = "Spjöldin þín verða áfram til staðar. Aðeins vistuð sía stokksins verður fjarlægð.";
 "settings.workspace.decks.deck" = "Stokkur";
 "settings.workspace.decks.editDeck" = "Breyta stokki";
 "settings.workspace.decks.notFound" = "Stokkur fannst ekki.";

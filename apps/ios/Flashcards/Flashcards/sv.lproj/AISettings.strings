@@ -763,6 +763,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "Kortleken har inga regler och innehåller därför alla kort.";
 "settings.workspace.decks.section.matchingCards" = "Matchande kort";
 "settings.workspace.decks.deleteDeck" = "Radera kortlek";
+"settings.workspace.decks.deleteConfirmation.title" = "Radera ”%@”?";
+"settings.workspace.decks.deleteConfirmation.message" = "Dina kort finns kvar. Endast kortlekens sparade filter tas bort.";
 "settings.workspace.decks.deck" = "Kortlek";
 "settings.workspace.decks.editDeck" = "Redigera kortlek";
 "settings.workspace.decks.notFound" = "Kortleken hittades inte.";

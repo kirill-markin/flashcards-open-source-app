@@ -763,6 +763,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "Bu destenin kuralı yok, bu yüzden tüm kartları içerir.";
 "settings.workspace.decks.section.matchingCards" = "Eşleşen kartlar";
 "settings.workspace.decks.deleteDeck" = "Desteyi sil";
+"settings.workspace.decks.deleteConfirmation.title" = "“%@” silinsin mi?";
+"settings.workspace.decks.deleteConfirmation.message" = "Kartlarınız kalacaktır. Bu işlem yalnızca kaydedilmiş deste filtresini kaldırır.";
 "settings.workspace.decks.deck" = "Deste";
 "settings.workspace.decks.editDeck" = "Desteyi düzenle";
 "settings.workspace.decks.notFound" = "Deste bulunamadı.";

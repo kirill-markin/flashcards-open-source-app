@@ -763,6 +763,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "இந்தத் தொகுப்பிற்கு விதிகள் இல்லை; அதனால் அனைத்து அட்டைகளும் இதில் உள்ளன.";
 "settings.workspace.decks.section.matchingCards" = "பொருந்தும் அட்டைகள்";
 "settings.workspace.decks.deleteDeck" = "தொகுப்பை நீக்கு";
+"settings.workspace.decks.deleteConfirmation.title" = "“%@” என்பதை நீக்கவா?";
+"settings.workspace.decks.deleteConfirmation.message" = "உங்கள் அட்டைகள் இருக்கும். சேமிக்கப்பட்ட தொகுப்பு வடிகட்டி மட்டுமே அகற்றப்படும்.";
 "settings.workspace.decks.deck" = "தொகுப்பு";
 "settings.workspace.decks.editDeck" = "தொகுப்பைத் திருத்து";
 "settings.workspace.decks.notFound" = "தொகுப்பு கிடைக்கவில்லை.";

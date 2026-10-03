@@ -8,12 +8,26 @@ private let reviewFilterRowVerticalPadding: CGFloat = 11
 private let reviewFilterRowSpacing: CGFloat = 12
 
 struct ReviewFilterPopover: View {
+    @Environment(\.locale) private var locale
+
     @Binding var reviewFilter: ReviewFilter
     let decks: [Deck]
     let tagSummaries: [WorkspaceTagSummary]
     let onEditDecks: () -> Void
 
     @State private var scrollPosition: ScrollPosition = ScrollPosition(idType: String.self)
+
+    private var sortedDecks: [Deck] {
+        self.decks.sorted { left, right in
+            deckNamePrecedes(
+                leftName: left.name,
+                leftId: left.deckId,
+                rightName: right.name,
+                rightId: right.deckId,
+                locale: self.locale
+            )
+        }
+    }
 
     private var storedTagNames: [String] {
         self.tagSummaries.map(\.tag)
@@ -49,7 +63,7 @@ struct ReviewFilterPopover: View {
                 self.allCardsButton
                     .id("all-cards")
 
-                ForEach(self.decks, id: \.deckId) { deck in
+                ForEach(self.sortedDecks, id: \.deckId) { deck in
                     self.deckButton(deck: deck)
                         .id("deck:\(deck.deckId)")
                 }

@@ -763,6 +763,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "Sellel pakil pole reegleid, seega sisaldab see kõiki kaarte.";
 "settings.workspace.decks.section.matchingCards" = "Sobivad kaardid";
 "settings.workspace.decks.deleteDeck" = "Kustuta pakk";
+"settings.workspace.decks.deleteConfirmation.title" = "Kas kustutada „%@“?";
+"settings.workspace.decks.deleteConfirmation.message" = "Sinu kaardid jäävad alles. Eemaldatakse ainult paki salvestatud filter.";
 "settings.workspace.decks.deck" = "Pakk";
 "settings.workspace.decks.editDeck" = "Muuda pakki";
 "settings.workspace.decks.notFound" = "Pakki ei leitud.";

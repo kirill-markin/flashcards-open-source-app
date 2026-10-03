@@ -763,6 +763,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "Questo mazzo non ha regole, quindi include tutte le schede.";
 "settings.workspace.decks.section.matchingCards" = "Schede corrispondenti";
 "settings.workspace.decks.deleteDeck" = "Elimina mazzo";
+"settings.workspace.decks.deleteConfirmation.title" = "Eliminare “%@”?";
+"settings.workspace.decks.deleteConfirmation.message" = "Le tue schede verranno conservate. Verrà rimosso solo il filtro salvato del mazzo.";
 "settings.workspace.decks.deck" = "Mazzo";
 "settings.workspace.decks.editDeck" = "Modifica mazzo";
 "settings.workspace.decks.notFound" = "Mazzo non trovato.";

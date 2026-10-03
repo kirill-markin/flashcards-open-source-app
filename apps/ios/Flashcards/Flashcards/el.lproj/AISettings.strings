@@ -763,6 +763,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "Αυτή η δέσμη δεν έχει κανόνες, οπότε περιλαμβάνει όλες τις κάρτες.";
 "settings.workspace.decks.section.matchingCards" = "Αντίστοιχες κάρτες";
 "settings.workspace.decks.deleteDeck" = "Διαγραφή δέσμης";
+"settings.workspace.decks.deleteConfirmation.title" = "Διαγραφή του «%@»;";
+"settings.workspace.decks.deleteConfirmation.message" = "Οι κάρτες σας θα παραμείνουν. Θα αφαιρεθεί μόνο το αποθηκευμένο φίλτρο της δέσμης.";
 "settings.workspace.decks.deck" = "Δέσμη";
 "settings.workspace.decks.editDeck" = "Επεξεργασία δέσμης";
 "settings.workspace.decks.notFound" = "Η δέσμη δεν βρέθηκε.";

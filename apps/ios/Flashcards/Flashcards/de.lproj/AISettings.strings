@@ -788,6 +788,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "Dieses Deck hat keine Regeln und enthält daher alle Karten.";
 "settings.workspace.decks.section.matchingCards" = "Passende Karten";
 "settings.workspace.decks.deleteDeck" = "Deck löschen";
+"settings.workspace.decks.deleteConfirmation.title" = "„%@“ löschen?";
+"settings.workspace.decks.deleteConfirmation.message" = "Deine Karten bleiben erhalten. Dadurch wird nur der gespeicherte Deckfilter entfernt.";
 "settings.workspace.decks.deck" = "Hammer";
 "settings.workspace.decks.editDeck" = "Deck bearbeiten";
 "settings.workspace.decks.notFound" = "Das Deck wurde nicht gefunden.";

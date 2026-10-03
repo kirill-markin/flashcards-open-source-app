@@ -788,6 +788,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "Este mazo no tiene reglas, por lo que incluye todas las tarjetas.";
 "settings.workspace.decks.section.matchingCards" = "Tarjetas coincidentes";
 "settings.workspace.decks.deleteDeck" = "Eliminar mazo";
+"settings.workspace.decks.deleteConfirmation.title" = "¿Eliminar “%@”?";
+"settings.workspace.decks.deleteConfirmation.message" = "Tus tarjetas se conservarán. Esto solo elimina el filtro guardado del mazo.";
 "settings.workspace.decks.deck" = "Mazo";
 "settings.workspace.decks.editDeck" = "Editar mazo";
 "settings.workspace.decks.notFound" = "No se encontro el mazo.";

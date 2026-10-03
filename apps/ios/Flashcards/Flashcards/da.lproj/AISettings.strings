@@ -763,6 +763,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "Dette kortsæt har ingen regler og inkluderer derfor alle kort.";
 "settings.workspace.decks.section.matchingCards" = "Matchende kort";
 "settings.workspace.decks.deleteDeck" = "Slet kortsæt";
+"settings.workspace.decks.deleteConfirmation.title" = "Slet “%@”?";
+"settings.workspace.decks.deleteConfirmation.message" = "Dine kort bevares. Dette fjerner kun det gemte filter for kortsættet.";
 "settings.workspace.decks.deck" = "Kortsæt";
 "settings.workspace.decks.editDeck" = "Rediger kortsæt";
 "settings.workspace.decks.notFound" = "Kortsættet blev ikke fundet.";

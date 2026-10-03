@@ -763,6 +763,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "Le nqwaba ayinayo imithetho, ngakho ifaka wonke amakhadi.";
 "settings.workspace.decks.section.matchingCards" = "Amakhadi afanayo";
 "settings.workspace.decks.deleteDeck" = "Susa inqwaba";
+"settings.workspace.decks.deleteConfirmation.title" = "Susa i-“%@”?";
+"settings.workspace.decks.deleteConfirmation.message" = "Amakhadi akho azohlala ekhona. Lokhu kususa kuphela isihlungi senqwaba esilondoloziwe.";
 "settings.workspace.decks.deck" = "Inqwaba";
 "settings.workspace.decks.editDeck" = "Hlela inqwaba";
 "settings.workspace.decks.notFound" = "Inqwaba ayitholakalanga.";

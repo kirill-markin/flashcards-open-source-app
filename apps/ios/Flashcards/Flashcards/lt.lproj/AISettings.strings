@@ -763,6 +763,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "Ši kaladė neturi taisyklių, todėl apima visas korteles.";
 "settings.workspace.decks.section.matchingCards" = "Atitinkančios kortelės";
 "settings.workspace.decks.deleteDeck" = "Ištrinti kaladę";
+"settings.workspace.decks.deleteConfirmation.title" = "Ištrinti „%@“?";
+"settings.workspace.decks.deleteConfirmation.message" = "Jūsų kortelės liks. Bus pašalintas tik išsaugotas kaladės filtras.";
 "settings.workspace.decks.deck" = "Kaladė";
 "settings.workspace.decks.editDeck" = "Redaguoti kaladę";
 "settings.workspace.decks.notFound" = "Kaladė nerasta.";

@@ -763,6 +763,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "לחפיסה הזו אין כללים, לכן היא כוללת את כל הכרטיסיות.";
 "settings.workspace.decks.section.matchingCards" = "כרטיסיות תואמות";
 "settings.workspace.decks.deleteDeck" = "מחיקת חפיסה";
+"settings.workspace.decks.deleteConfirmation.title" = "למחוק את ״%@״?";
+"settings.workspace.decks.deleteConfirmation.message" = "הכרטיסיות שלך יישמרו. פעולה זו מסירה רק את המסנן השמור של החפיסה.";
 "settings.workspace.decks.deck" = "חפיסה";
 "settings.workspace.decks.editDeck" = "עריכת חפיסה";
 "settings.workspace.decks.notFound" = "החפיסה לא נמצאה.";

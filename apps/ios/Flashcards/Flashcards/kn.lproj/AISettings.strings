@@ -763,6 +763,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "ಈ ಡೆಕ್‌ಗೆ ನಿಯಮಗಳಿಲ್ಲ, ಆದ್ದರಿಂದ ಎಲ್ಲ ಕಾರ್ಡ್‌ಗಳನ್ನು ಒಳಗೊಂಡಿದೆ.";
 "settings.workspace.decks.section.matchingCards" = "ಹೊಂದುವ ಕಾರ್ಡ್‌ಗಳು";
 "settings.workspace.decks.deleteDeck" = "ಡೆಕ್ ಅಳಿಸಿ";
+"settings.workspace.decks.deleteConfirmation.title" = "“%@” ಅಳಿಸುವುದೇ?";
+"settings.workspace.decks.deleteConfirmation.message" = "ನಿಮ್ಮ ಕಾರ್ಡ್‌ಗಳು ಉಳಿಯುತ್ತವೆ. ಇದು ಉಳಿಸಿದ ಡೆಕ್ ಫಿಲ್ಟರ್ ಅನ್ನು ಮಾತ್ರ ತೆಗೆದುಹಾಕುತ್ತದೆ.";
 "settings.workspace.decks.deck" = "ಡೆಕ್";
 "settings.workspace.decks.editDeck" = "ಡೆಕ್ ಸಂಪಾದಿಸಿ";
 "settings.workspace.decks.notFound" = "ಡೆಕ್ ಕಂಡುಬಂದಿಲ್ಲ.";

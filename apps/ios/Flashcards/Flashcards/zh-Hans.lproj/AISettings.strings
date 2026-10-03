@@ -788,6 +788,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "这个牌组没有规则，因此包含所有卡片。";
 "settings.workspace.decks.section.matchingCards" = "配套卡";
 "settings.workspace.decks.deleteDeck" = "删除牌组";
+"settings.workspace.decks.deleteConfirmation.title" = "删除“%@”？";
+"settings.workspace.decks.deleteConfirmation.message" = "你的卡片会保留。此操作仅移除已保存的牌组筛选器。";
 "settings.workspace.decks.deck" = "牌组";
 "settings.workspace.decks.editDeck" = "编辑牌组";
 "settings.workspace.decks.notFound" = "未找到甲板。";
