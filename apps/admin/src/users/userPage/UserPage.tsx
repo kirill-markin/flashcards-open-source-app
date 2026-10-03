@@ -1,9 +1,11 @@
-import { useEffect, useState, type JSX } from "react";
+import { useEffect, useState, type JSX, type ReactNode } from "react";
 import type { AdminAppConfig } from "../../config";
 import { AdminLink } from "../../navigation/AdminLink";
 import { AdminNavigation } from "../../navigation/AdminNavigation";
 import { getUserPath, userPageTabLabels, userPageTabs, type UserPageTab } from "../../routing";
 import { ActivityTab } from "./ActivityTab";
+import { CardsTab } from "./CardsTab";
+import { ChatsTab } from "./ChatsTab";
 import { hasAnyProfileData, loadUserProfile, type UserProfile } from "./profileQuery";
 import { ProfileTab } from "./ProfileTab";
 import "./userPage.css";
@@ -15,13 +17,17 @@ type ProfileLoadState =
 
 /**
  * One person by id. The profile query also feeds the header, so it is loaded once per id whichever
- * tab is open; the Activity tab loads its own rows. The caller keys this page on the id.
+ * tab is open; every other tab loads its own rows. A tab stays mounted once opened and is only hidden
+ * while another is shown, so coming back to it keeps its rows and table state without a refetch. The
+ * caller keys this page on the id.
  */
 export function UserPage(props: Readonly<{
   config: AdminAppConfig;
   adminEmail: string;
   userId: string;
   tab: UserPageTab;
+  /** The chat open on the Chats tab, or null for its list. */
+  openChatSessionId: string | null;
   /** The Users list path with the query string it was left with. */
   usersListPath: string;
   onNavigate: (path: string) => void;
@@ -30,6 +36,17 @@ export function UserPage(props: Readonly<{
   const { config, userId, onTerminalAdminError } = props;
   const [loadState, setLoadState] = useState<ProfileLoadState>({ status: "loading" });
   const [revision, setRevision] = useState<number>(0);
+  const [openedTabs, setOpenedTabs] = useState<ReadonlyArray<UserPageTab>>([props.tab]);
+  // While another tab is shown, the hidden Chats tab keeps the chat it last showed, so Back to that
+  // chat finds it still loaded.
+  const [chatsTabSessionId, setChatsTabSessionId] = useState<string | null>(props.openChatSessionId);
+  // Both are recorded while rendering rather than in an effect, so the tab they change renders right.
+  if (!openedTabs.includes(props.tab)) {
+    setOpenedTabs([...openedTabs, props.tab]);
+  }
+  if (props.tab === "chats" && props.openChatSessionId !== chatsTabSessionId) {
+    setChatsTabSessionId(props.openChatSessionId);
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -45,6 +62,29 @@ export function UserPage(props: Readonly<{
 
   const profile = loadState.status === "ready" ? loadState.profile : null;
   const isNotFound = profile !== null && !hasAnyProfileData(profile);
+
+  function renderTab(tab: UserPageTab): ReactNode {
+    switch (tab) {
+      case "profile":
+        if (loadState.status === "loading") return <p className="report-state" aria-live="polite">Loading profile…</p>;
+        if (loadState.status === "ready") return <ProfileTab profile={loadState.profile} onNavigate={props.onNavigate} />;
+        return null;
+      case "activity":
+        return <ActivityTab config={config} userId={userId} onTerminalAdminError={onTerminalAdminError} />;
+      case "chats":
+        return (
+          <ChatsTab
+            config={config}
+            userId={userId}
+            openSessionId={chatsTabSessionId}
+            onNavigate={props.onNavigate}
+            onTerminalAdminError={onTerminalAdminError}
+          />
+        );
+      case "cards":
+        return <CardsTab config={config} userId={userId} onTerminalAdminError={onTerminalAdminError} />;
+    }
+  }
 
   return (
     <main className="shell">
@@ -82,7 +122,7 @@ export function UserPage(props: Readonly<{
           ))}
         </nav>
 
-        {/* Shown on either tab, because the header it also feeds is on both. */}
+        {/* Shown on every tab, because the header it also feeds is on every tab. */}
         {loadState.status === "error" ? (
           <div className="report-state report-state-error">
             <strong>User profile query failed.</strong><span>{loadState.message}</span>
@@ -95,13 +135,9 @@ export function UserPage(props: Readonly<{
             <strong>No user matches this id.</strong>
             <span>No settings row, sign-in identity, guest session, analytics event, workspace, device, billing, community or feedback row names {userId}.</span>
           </div>
-        ) : props.tab === "activity" ? (
-          <ActivityTab config={config} userId={userId} onTerminalAdminError={onTerminalAdminError} />
-        ) : loadState.status === "loading" ? (
-          <p className="report-state" aria-live="polite">Loading profile…</p>
-        ) : loadState.status === "ready" ? (
-          <ProfileTab profile={loadState.profile} onNavigate={props.onNavigate} />
-        ) : null}
+        ) : userPageTabs.filter((tab) => openedTabs.includes(tab)).map((tab) => (
+          <div key={tab} hidden={tab !== props.tab}>{renderTab(tab)}</div>
+        ))}
       </section>
     </main>
   );
