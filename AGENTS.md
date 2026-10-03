@@ -58,6 +58,7 @@ Nothing compiles iOS before merge by design, though `PR Checks` still runs the s
 Swift builds and tests run in Xcode Cloud, whose workflow definitions live in App Store Connect; its in-repo build inputs are documented in [docs/ios-ci-cd.md](docs/ios-ci-cd.md).
 Keep the Xcode Cloud `Test - iOS` action non-required on purpose so TestFlight can receive builds even when smoke tests fail.
 A request to execute the full release runbook authorizes its manual workflow dispatches and publication steps. Reading and monitoring Xcode Cloud runs, results, and artifacts is always allowed without asking, including outside a release. Outside a release request, dispatch Xcode Cloud workflows or trigger `Android Release` / `MCP Registry Publish` only when the user requests those actions; agents may monitor and fix automatically triggered GitHub Actions.
+For Android releases, use the existing `Android Release` workflow and GitHub Actions signing secrets described in [docs/android-ci-cd.md](docs/android-ci-cd.md). A missing local upload key does not block CI signing and is not grounds for key reset or recovery. Inspect the workflow run and its exact Firebase matrix test results under the [Android release procedure](docs/manual-production-release.md#android).
 Details, rollback rules, and live smoke references: [docs/release-gates.md](docs/release-gates.md).
 
 ## Data Sources for Analysis
