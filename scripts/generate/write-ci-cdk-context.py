@@ -115,6 +115,8 @@ def build_context_values(aws_deploy_role_arn: str) -> dict[str, str]:
         "analyticsAccessEnabled": get_trimmed_env("CDK_CONTEXT_ANALYTICS_ACCESS_ENABLED"),
         "anthropicApiKeySecretArn": get_trimmed_env("CDK_CONTEXT_ANTHROPIC_API_KEY_SECRET_ARN"),
         "appleIapSecretArn": get_trimmed_env("CDK_CONTEXT_APPLE_IAP_SECRET_ARN"),
+        "stripeBillingSecretArn": get_trimmed_env("CDK_CONTEXT_STRIPE_BILLING_SECRET_ARN"),
+        "stripeCheckoutLiveEnabled": get_raw_env("CDK_CONTEXT_STRIPE_CHECKOUT_LIVE_ENABLED"),
         "apiBaseUrl": get_trimmed_env("CDK_CONTEXT_API_BASE_URL"),
         "apiCertificateArn": get_trimmed_env("CDK_CONTEXT_API_CERTIFICATE_ARN"),
         "apexRedirectCertificateArnUsEast1": get_trimmed_env("CDK_CONTEXT_APEX_REDIRECT_CERTIFICATE_ARN_US_EAST_1"),

@@ -225,6 +225,8 @@ fi
 set_variable_if_missing CDK_DEMO_EMAIL_DOSTIP "$DEMO_EMAIL_DOSTIP"
 set_variable_if_missing CDK_DEMO_PASSWORD_SECRET_ARN "$DEMO_PASSWORD_SECRET_ARN"
 set_variable_if_missing CDK_GLOBAL_METRICS_VISIBLE "$GLOBAL_METRICS_VISIBLE"
+set_variable_if_missing CDK_STRIPE_BILLING_SECRET_ARN "${STRIPE_BILLING_SECRET_ARN:-}"
+set_variable_if_missing CDK_STRIPE_CHECKOUT_LIVE_ENABLED "${STRIPE_CHECKOUT_LIVE_ENABLED:-false}"
 # CDK_ADMIN_EMAILS stays write-once here on purpose. After bootstrap,
 # GitHub is the deploy-time source of truth for this non-secret CI input,
 # so later admin-list changes must be edited manually in GitHub or via `gh`.

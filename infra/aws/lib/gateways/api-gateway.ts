@@ -64,6 +64,8 @@ export interface ApiGatewayProps {
   // moving browsers to another domain is its own switch.
   cookieDomain: string | undefined;
   appleIapSecretArn: string | undefined;
+  stripeBillingSecretArn: string | undefined;
+  stripeCheckoutLiveEnabled: boolean;
   openAiApiKeySecretArn: string | undefined;
   langfusePublicKeySecretArn: string | undefined;
   langfuseSecretKeySecretArn: string | undefined;
@@ -1087,6 +1089,14 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     appleIapSecret.grantRead(backendFn);
     backendFn.addEnvironment("APPLE_IAP_SECRET_ARN", appleIapSecret.secretArn);
   }
+  backendFn.addEnvironment("STRIPE_CHECKOUT_LIVE_ENABLED", String(props.stripeCheckoutLiveEnabled));
+  if (hasConfiguredValue(props.stripeBillingSecretArn)) {
+    const stripeBillingSecret = cdk.aws_secretsmanager.Secret.fromSecretCompleteArn(
+      scope, "StripeBillingSecret", props.stripeBillingSecretArn,
+    );
+    stripeBillingSecret.grantRead(backendFn);
+    backendFn.addEnvironment("STRIPE_BILLING_SECRET_ARN", stripeBillingSecret.secretArn);
+  }
   const directImageIngestionFn = createDirectImageIngestionFunction(scope, {
     baseDomain: props.baseDomain,
     publicApiOrigin,
@@ -1319,6 +1329,16 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   googleBilling.addResource("account").addMethod("GET", integration);
   googleBilling.addResource("purchases").addMethod("POST", integration);
   googleBilling.addResource("notifications").addMethod("POST", integration);
+  const stripeBilling = billing.addResource("stripe");
+  stripeBilling.addResource("offer").addMethod("GET", integration);
+  stripeBilling.addResource("subscriptions").addMethod("GET", integration);
+  stripeBilling.addResource("portal").addMethod("POST", integration);
+  const stripeCheckout = stripeBilling.addResource("checkout");
+  stripeCheckout.addMethod("POST", integration);
+  stripeCheckout.addResource("return").addMethod("POST", integration);
+  const stripeWebhooks = stripeBilling.addResource("webhooks");
+  stripeWebhooks.addResource("sandbox").addMethod("POST", integration);
+  stripeWebhooks.addResource("live").addMethod("POST", integration);
 
   const legacyAuth = restApi.root.addResource("auth");
   legacyAuth.addMethod("ANY", notFoundIntegration, notFoundMethodOptions);
