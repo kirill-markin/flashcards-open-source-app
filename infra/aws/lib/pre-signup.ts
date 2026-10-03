@@ -1,10 +1,11 @@
-/** CDK construct for the Cognito PreSignUp Lambda trigger. */
 import * as cdk from "aws-cdk-lib";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as lambdaNodejs from "aws-cdk-lib/aws-lambda-nodejs";
 import * as iam from "aws-cdk-lib/aws-iam";
 import { Construct } from "constructs";
 import * as path from "path";
+import { createSentrySourceMapInjectionCommand } from "./sentry-source-maps";
+import { getLambdaSentryRelease } from "./lambda-sentry-release";
 
 export interface PreSignUpProps {
   sentryDsnSecretArn: string | undefined;
@@ -46,13 +47,20 @@ function addOptionalSentryEnvironment(
   secret.grantRead(fn);
   fn.addEnvironment("SENTRY_DSN", secret.secretValue.unsafeUnwrap());
   fn.addEnvironment("SENTRY_ENVIRONMENT", props.sentryEnvironment);
-  fn.addEnvironment("SENTRY_RELEASE", props.sentryRelease);
+  fn.addEnvironment("SENTRY_RELEASE", getLambdaSentryRelease(fn));
   fn.addEnvironment("SENTRY_TRACES_SAMPLE_RATE", props.sentryTracesSampleRate);
 }
 
 const bundling: lambdaNodejs.BundlingOptions = {
   minify: true,
   sourceMap: true,
+  commandHooks: {
+    beforeBundling: () => [],
+    beforeInstall: () => [],
+    afterBundling: (_inputDir: string, outputDir: string) => [
+      createSentrySourceMapInjectionCommand(outputDir),
+    ],
+  },
 };
 
 export function preSignUp(scope: Construct, props: PreSignUpProps): lambdaNodejs.NodejsFunction {
