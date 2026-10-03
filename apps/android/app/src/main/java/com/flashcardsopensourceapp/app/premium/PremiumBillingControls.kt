@@ -20,6 +20,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -38,6 +39,7 @@ import kotlinx.coroutines.launch
 @Composable
 internal fun PremiumStoreOffer(connector: GooglePlaySubscriptionConnector, entitlement: CloudEntitlement?) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val offerState by connector.offer.collectAsStateWithLifecycle()
     val operation by connector.operation.collectAsStateWithLifecycle()
     var hasRequestedOffer by remember(connector) { mutableStateOf(false) }
@@ -78,7 +80,7 @@ internal fun PremiumStoreOffer(connector: GooglePlaySubscriptionConnector, entit
             OfferRetryButton(connector = connector, enabled = !isBillingOperationBusy(operation))
         }
         is GooglePlaySubscriptionOfferState.Available -> {
-            val details = premiumOfferDetails(state.offer, context.resources)
+            val details = premiumOfferDetails(state.offer, resources)
             if (details == null) {
                 Text(stringResource(R.string.premium_offer_terms_unavailable))
                 OfferRetryButton(connector = connector, enabled = !isBillingOperationBusy(operation))

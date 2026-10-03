@@ -413,7 +413,7 @@ internal class AiChatSendCoordinator(
                     composerPhase = AiComposerPhase.IDLE,
                     activeAlert = AiAlertState.AiLimitReached(
                         requestId = UUID.randomUUID().toString(),
-                        code = requireNotNull(remoteError?.code),
+                        code = requireNotNull(remoteError.code),
                         title = alert.title,
                         message = message
                     ),

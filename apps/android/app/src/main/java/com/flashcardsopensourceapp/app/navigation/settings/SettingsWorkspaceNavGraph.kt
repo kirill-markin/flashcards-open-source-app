@@ -4,6 +4,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
@@ -111,8 +112,9 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
             )
         )
         val configuration = LocalConfiguration.current
-        LaunchedEffect(configuration) {
-            decksViewModel.updateLocale(locale = currentResourceLocale(resources = context.resources))
+        val resources = LocalResources.current
+        LaunchedEffect(configuration, resources) {
+            decksViewModel.updateLocale(locale = currentResourceLocale(resources = resources))
         }
         val uiState by decksViewModel.uiState.collectAsStateWithLifecycle()
 
