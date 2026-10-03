@@ -1,6 +1,6 @@
 {
   "verifiedAt": "2026-10-03",
-  "status": "catalog_prepared_runtime_not_implemented",
+  "status": "runtime_deployed_sandbox_acceptance_in_progress_live_disabled",
   "operatorApiVersion": "2026-09-30.endive",
   "sourceRefs": {
     "english": "../../apps/backend/src/billing/stripe/copy/locales/en.json",
@@ -86,7 +86,7 @@
       "iconFileId": "file_1UMQUBCVkVWAch1V4xlvzrLX",
       "iconFileLinkId": "link_1UMQUBCVkVWAch1VDSx8V1nA",
       "iconPublicUrl": "https://files.stripe.com/links/MDB8YWNjdF8xVU1RQmtDVmtWV0FjaDFWfGZsX3Rlc3RfcGt1d2VHanRad21RR2dWNjRjUUo4dEt300QSz6w2br",
-      "webhookEndpointCount": 0,
+      "webhookEndpointCount": 1,
       "taxStatus": "active",
       "registrations": [
         {
@@ -111,7 +111,15 @@
       },
       "registrationsBasis": "test_only_copies_of_existing_live_registrations",
       "adaptivePricingEnabled": true,
-      "dashboardBillingMode": "flexible"
+      "dashboardBillingMode": "flexible",
+      "webhookEndpoint": {
+        "id": "we_1UMWXfCVkVWAch1VGftu8gjJ",
+        "url": "https://api.nibomo.com/v1/billing/stripe/webhooks/sandbox",
+        "status": "enabled",
+        "apiVersion": "2026-09-30.endive",
+        "eventCount": 30,
+        "eventTypesSource": "../../apps/backend/src/billing/stripe/state.ts"
+      }
     },
     "live": {
       "accountId": "acct_1KrGW6E3K3xV54Nr",
@@ -123,7 +131,7 @@
       "iconFileId": "file_1UMQUqE3K3xV54NruG41UVFn",
       "iconFileLinkId": "link_1UMQUqE3K3xV54NroPo0a3UU",
       "iconPublicUrl": "https://files.stripe.com/links/MDB8YWNjdF8xS3JHVzZFM0szeFY1NE5yfGZsX2xpdmVfNHZaYkhveElLT1FLcldEQ1pVRFZSTXhD00fKTxU3r2",
-      "webhookEndpointCount": 0,
+      "webhookEndpointCount": 1,
       "taxStatus": "active",
       "registrations": [
         {
@@ -173,7 +181,15 @@
       "dashboardBillingMode": "classic",
       "checkoutPolicyLinksEnabled": false,
       "checkoutSupportWebsite": "https://kirill-markin.com/",
-      "checkoutLimitOneSubscription": false
+      "checkoutLimitOneSubscription": false,
+      "webhookEndpoint": {
+        "id": "we_1UMWXhE3K3xV54Nr97Z1KRLW",
+        "url": "https://api.nibomo.com/v1/billing/stripe/webhooks/live",
+        "status": "enabled",
+        "apiVersion": "2026-09-30.endive",
+        "eventCount": 30,
+        "eventTypesSource": "../../apps/backend/src/billing/stripe/state.ts"
+      }
     }
   },
   "communications": {
@@ -188,6 +204,32 @@
     "refundEntity": "refund",
     "trialEntity": "subscription_and_trial_start",
     "trialPrice": "provider_verified_monthly_base_price_with_final_billing_currency_disclosure",
-    "deliveryVerified": false
+    "deliveryVerified": true,
+    "deliveryVerification": {
+      "environment": "sandbox",
+      "verifiedAt": "2026-10-03",
+      "kinds": [
+        "trial",
+        "payment",
+        "refund"
+      ],
+      "providerStatus": "delivered",
+      "recipientInboxVerified": true,
+      "senderAuthentication": [
+        "SPF",
+        "DKIM",
+        "DMARC"
+      ],
+      "productionDeliveryVerified": false
+    }
+  },
+  "runtime": {
+    "sdkVersion": "23.0.0",
+    "webhookApiVersion": "2026-09-30.endive",
+    "liveCheckoutEnabled": false,
+    "freeAccountMessageCapEnabled": false,
+    "secretArn": "arn:aws:secretsmanager:eu-central-1:506210661494:secret:flashcards-open-source-app/stripe-billing-juxXCn",
+    "secretConsumer": "http_backend_only",
+    "acceptanceProcedure": "../stripe-subscriptions.md#observed-sandbox-acceptance"
   }
 }

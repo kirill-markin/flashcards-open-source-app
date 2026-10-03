@@ -1,9 +1,9 @@
 # Stripe subscriptions
 
 The backend implements owned Checkout, Portal, reconciliation, account deletion
-cancellation and signed webhook receivers. Live Checkout is disabled unless the
-explicit deployment flag below is exactly `true`. Product email dispatch is wired;
-real delivery, web purchase UI, legal updates and hosted-flow acceptance remain launch gates.
+cancellation, signed webhook receivers, product email dispatch and the web purchase
+UI. Live Checkout remains disabled. The [observed Sandbox acceptance](#observed-sandbox-acceptance)
+records actual hosted purchase and email evidence separately from remaining gates.
 
 [Premium offer](premium-offer.md) owns price, benefits and limits;
 [Premium entitlements](premium-entitlements.md) owns access and provider-state
@@ -22,9 +22,9 @@ identifiers; [HTTP routes](../apps/backend/src/routes/stripeBilling.ts) and
 | Price lookup key, separately in each environment | `nibomo_premium_monthly` |
 | Product metadata | `application=nibomo`, `tier=premium` |
 | Price | USD 6.99 (`unit_amount=699`), monthly recurring, quantity 1 |
-| Local currency presentation | Stripe Adaptive Pricing; both toggles and USD settlement verified, session lifecycle verification pending |
+| Local currency presentation | Stripe Adaptive Pricing; real Sandbox Checkout and successful payment presented EUR from the USD base |
 | Tax behavior | Explicit `tax_behavior=inclusive` on the price; never inherit the account default |
-| Tax calculation | Product tax code and active Tax settings read back; Checkout requests location collection and automatic calculation; hosted acceptance remains pending |
+| Tax calculation | Automatic tax completed in the real Sandbox Checkout and paid invoice; see acceptance evidence below |
 | Checkout trial | 7 days with a payment method collected for automatic renewal; catalog price has no trial |
 | Trial eligibility | Once per Stripe customer; prior Apple or Google trials do not disqualify that customer |
 | Web purchaser | Signed-in account with an email; web guests link an email before checkout |
@@ -69,10 +69,10 @@ customer records, bank details or raw authenticated responses.
 | Branding | 512 × 512 `business_icon` uploads and public product image links verified; [media evidence](media/stripe-subscriptions/README.md) |
 | API pin | Explicit `Stripe-Version: 2026-09-30.endive` returned HTTP 200 in both environments. SDK 23.0.0 and event destinations use this pin |
 | Historical live account default | `2020-08-27`, preserved; never rely on that default for the new integration |
-| Webhooks | Receiver code is implemented; register endpoints and provision real signing secrets after CI/CD deploys the receivers |
+| Webhooks | One enabled endpoint per environment, API pin and 30 event types freshly read back; public IDs are in the inventory. Actual Sandbox deliveries returned 204 |
 
-Catalog preparation does not verify checkout, payment, renewal, portal-session
-rendering or email delivery. Those require the real acceptance flows below.
+Catalog readback and Live endpoint readiness do not establish Live purchase or
+email delivery. The acceptance record below identifies the Sandbox flows observed.
 
 ## Authoritative copy and localization
 
@@ -82,8 +82,8 @@ live in [backend copy sources](../apps/backend/src/billing/stripe/copy/locales/)
 Each [web locale catalog](../apps/web/src/i18n/catalogs/) imports its own map;
 the [typed adapter](../apps/web/src/i18n/stripeCatalog.ts) exposes nested keys such
 as `stripe.offer.title`. English remains in the app shell and other languages
-retain their lazy locale chunks. Catalog availability does not enable Checkout
-or replace the existing Premium placeholder. The map also supplies product,
+retain their lazy locale chunks. The web Premium offer consumes this catalog;
+new Live Checkout remains gated. The map also supplies product,
 portal, tax, trial, allowance-window, reminder-email, receipt-email and deletion copy.
 
 | Key family | Count | Use |
@@ -243,7 +243,7 @@ Hosted return URLs are fixed under `https://app.nibomo.com/settings/subscription
 The success handler sends both owned IDs to `POST /checkout/return`. Never grant
 access from query parameters or provider completion status: read the shared
 entitlement snapshot. Refresh details after Portal/cancel returns and handle
-account changes. Web purchase and return UI remain pending.
+account changes. The web purchase and return UI is deployed.
 
 Errors use the existing envelope `{error,requestId,code}`. Invalid JSON/fields are
 400; oversized input is 413; invalid ownership/human transport/email is 403;
@@ -495,9 +495,9 @@ distinguishes those observations from application work:
 | Other billing emails | Live renewal, expiring-card, failed-card-payment and failed-bank-debit emails on | Inspect the actual messages and management destination for Nibomo before launch |
 | Recovery | Smart retries enabled, maximum 4 attempts over 3 weeks; first failure leaves overdue, exhaustion cancels; incomplete authentication cancels after 15 days; disputed payment leaves overdue | Exercise grace, recovery, terminal cancellation and explicit refund/dispute handling against the entitlement mapping |
 | Billing defaults | Live Classic and sandbox Flexible Dashboard billing modes; live upcoming-invoice event 7 days before and shared Checkout one-subscription limit off | Exercise explicit flexible mode and owned trial/session orchestration |
-| Sandbox email evidence | No sandbox delivery evidence; live email/retry observations do not establish sandbox settings | Stripe does not send trial reminder emails in a sandbox; verify the chosen Nibomo sender separately |
-| Runtime | Provider, owned sessions, lifecycle, raw-byte receivers, runtime wiring and product email dispatch are implemented | Complete actual delivery, UI and hosted acceptance |
-| Legal | Dedicated portal legal URLs set; Stripe-specific website wording still pending | Update public terms/privacy against actual billing data and behavior before accepting live purchases |
+| Sandbox email evidence | Future-trial reminder, converted payment receipt and two refund receipts reached the authorized inbox; SPF, DKIM and DMARC passed | Live delivery and unexercised retry/erasure cases remain separate checks |
+| Runtime | Backend, web purchase/return UI, receivers, reconciliation and product email dispatch are deployed | Close the remaining manual acceptance cases below |
+| Legal | Stripe/Resend terms and privacy wording deployed; English, Russian and Arabic public pages returned 200, including Arabic RTL | Recheck public links during final activation |
 
 The product code is an **inference** from server-hosted AI chat being the primary
 paid benefit, using Stripe's
@@ -507,39 +507,106 @@ classification, not a claim of Stripe's independent approval or a new tax
 registration. Inclusive pricing alone neither calculates tax nor establishes
 collection obligations.
 
-1. Cloud PR checks and triggered post-merge workflows own project validation.
-2. Deploy receivers before registering endpoints and completing runtime secrets;
-   follow the operator procedure above with live Checkout disabled.
-3. Use the Stripe namespace in the web catalogs to replace the Premium placeholder
-   in Subscription settings, AI allowance, accent-color and Tests entry points.
-   Preserve guest email linking, own-key access, cached local features and immediate
-   feedback. Resume the original action only for the same account and confirmed access.
-4. Complete sandbox/manual acceptance: eligible trial, repeat-customer ineligibility,
-   prior mobile trial eligibility, payment-method collection, inclusive tax,
-   converted-currency first payment/renewal, real hosted branding/locales, interrupted
-   or delayed return, failed payment/recovery, period-end cancellation and retained
-   access, refunds/disputes, duplicate/out-of-order webhooks, logout/account switch,
-   lifetime plus a separate subscription, and deletion with provider failure or
-   racing checkout. Verify customer and environment ownership throughout.
-5. Complete Nibomo-specific reminder and receipt delivery verification, portal appearance
-   review and website legal updates. Capture implemented screens after they exist.
-6. Activate live purchases only after these gates pass. The free-account 50-message
-   limit remains a separate coordinated rollout; preparation does not activate it.
+### Observed Sandbox acceptance
 
-The inspected [Terms](https://nibomo.com/terms/) and
-[Privacy Policy](https://nibomo.com/privacy/) identify the operator and general
-data/deletion rules but do not yet describe Stripe recurring billing, the trial,
-inclusive tax presentation, Stripe processing or Stripe renewal cancellation on
-account deletion. Their canonical sources are the neighboring website repository’s
-[`terms/index.md`](https://github.com/kirill-markin/flashcards-open-source-app-website/blob/main/src/content/en/pages/terms/index.md)
-and [`privacy/index.md`](https://github.com/kirill-markin/flashcards-open-source-app-website/blob/main/src/content/en/pages/privacy/index.md).
-Before activation, update that repository's Stripe billing terms and privacy
-wording against the implemented flow: data actually shared with Stripe (such as
-email, billing address and customer/subscription identifiers), payment processing,
-retention/anonymization, trial/renewal disclosures and cancellation on deletion.
-Coordinate the legal translations there. Separate Apple privacy work does not
-close this Stripe launch gate. These inputs do not publish legal pages or establish
-a refund or tax-registration policy from their current silence.
+Manual browser and operator API observations on **2026-10-03**, against the deployed
+web/backend and the isolated account in the inventory. No local project test,
+smoke suite, build or deployment was run. No Live transaction or merchant-wide
+setting was changed. Actual captures are in the [media index](media/stripe-subscriptions/README.md).
+
+| Check | Observed result |
+| --- | --- |
+| Authentication and environment | Ordinary configured review-account sign-in succeeded. The backend selected Sandbox; the client supplied no environment. Offer/subscriptions returned 200 and `Cache-Control: no-store` |
+| Hosted trial | The app opened actual Stripe Checkout. Nibomo icon/name, Sandbox badge, seven days free, required payment method, renewal disclosure and Nibomo legal links rendered. Provider state confirmed a 604800-second trial and attached test payment method |
+| Price and tax | USD 699-cent monthly inclusive base, quantity one; automatic tax completed. Checkout presented EUR 6.46 after the trial and EUR 0 due initially. The later successful charge carried EUR 646-cent presentment; invoice total USD 699 cents included USD 117 cents tax |
+| Shared access and return | Owned Checkout return completed; the app showed Premium, Active, trial dates and the backend-derived 1000-message allowance. Access came from shared entitlement sync |
+| Period-end cancellation | Stripe remained `trialing` with `cancel_at_period_end=true`; app detail remained `active`, with `willRenew=false` and the original access end. The screen retained Premium access |
+| Future reminder | After shortening the actual trial to two days, Stripe emitted `customer.subscription.trial_will_end`. Nibomo sent one future-dated reminder with explicitly labeled USD 6.99 monthly base price, final billing-currency disclosure and the fixed settings link |
+| Failed payment and recovery | Ending the trial with the vendor decline fixture produced `past_due` and app `in_grace`. Paying the same invoice with the original hosted test method restored Stripe/app `active` |
+| Partial and full refund | USD 100 cents / EUR 92 cents refunded first: access stayed active. Refunding the USD 599-cent / EUR 554-cent remainder revoked the fully refunded current-period contribution while the provider subscription was still active |
+| Payment/refund communications | One EUR 6.46 payment receipt and one receipt for each EUR 0.92 / EUR 5.54 refund. Resend reported delivered; all four messages including the reminder were in the authorized Gmail inbox with SPF, DKIM and DMARC passes |
+| Portal | Owned Portal opened with the Nibomo Premium headline, trial/current price, EUR billing disclosure, cancellation, payment-method, billing-details and invoice-history controls. No customer-bearing Portal screenshot is retained |
+| Repeat eligibility and cleanup | After cancelling the subscription, another real Checkout reused the same Stripe customer and returned `trialDays=0`. That open Checkout was expired. No future test renewal remains |
+| Localization | Arabic subscription copy rendered with document `lang=ar` and `dir=rtl`; browser language was restored afterwards. This is not evidence for a different persisted server locale or a hosted unsupported-language fallback |
+| Actual delivery and replay | API Gateway recorded 29 primary lifecycle and five later genuine Dashboard replay POSTs, all 204. Dashboard delivery readback confirmed `2026-09-30.endive`. Replaying the old trial, both paid event types and both refunds after cancellation left four delivered emails, shared Free access and the refunded contribution revoked; no stale reminder was sent |
+| Focused Git/log secret audit | No private Stripe/Resend credentials found in 4519 tracked files, 8260 reachable historical blobs in the inspected Stripe/web/infra paths, or 2385 recent backend/API log records. Runtime vault contained restricted API keys, not operator keys |
+| Deployed web artifact secret audit | No known private Stripe/Resend credential or credential-pattern matches in 107 distinct responses: one HTML page, 105 JavaScript files and one stylesheet. The inspected graph includes Subscription settings/Stripe subscriptions, Premium offer code and all 50 Stripe locale maps (2750 entries). Every accepted response returned 200 with its expected content type; HTML shell fallbacks are excluded from JS/CSS coverage |
+| Live gate and free cap | Deployed HTTP backend and GitHub variable both read `false` for Live Checkout. Free-account message cap remains unactivated; free guest 15 and paid/lifetime 1000 are unchanged |
+
+The secret audit compares known private values in memory and credential patterns.
+Hosted coverage is the `app.nibomo.com` HTML entry and its recursively discovered
+literal JavaScript/CSS references: Vite `assets/` dependency entries resolve from
+the app root, while relative imports resolve from their containing module. All
+50 deployed Stripe maps contain their exact 55 source keys and values. The audit
+does not execute the app or cover source maps, service workers, media, computed
+asset URLs, external hosts or native builds. Git and log coverage remains bounded
+to the named paths and observation window; this is not a claim about all historical
+repository paths, all cloud artifacts or all provider traces. Public Stripe account
+IDs are deliberately not secrets. No secret,
+customer ID, email address, raw authenticated response or session URL belongs in
+this acceptance record or its screenshots.
+
+### Remaining manual acceptance
+
+These cases are **not passed by the primary lifecycle above**. Keep them explicit
+until actual evidence is available; do not manufacture signed events or attach
+a test clock through a test-only account/database binding.
+
+1. Check delayed/retried delivery after the provider's idempotency window using
+   the documented recovery procedure. The same-day actual Dashboard replays above
+   prove duplicate and stale-event handling, not recovery after that window.
+2. Exercise a subsequent monthly renewal and healthy later period after an older
+   refund, using an actual compatible test-clock flow or the real provider billing
+   schedule. Compare charge presentment and invoice tax with the renewal receipt.
+   The first post-trial invoice above is not a subsequent monthly renewal.
+3. On dedicated owned test accounts with existing Apple/Google trial history and
+   lifetime/native access, verify Stripe trial independence and highest-rank shared
+   access while separately managing every subscription. Do not alter native review
+   accounts or release native apps for this check.
+4. Interrupt Checkout before completion, return after actual delayed delivery,
+   and switch between two authorized accounts. Old return/Portal identifiers must
+   not grant access or open another account's billing. Verify guest/agent refusal
+   and Session origin/CSRF refusal through the deployed routes.
+5. In an authorized disposable-account exercise, delete while a Nibomo Checkout is
+   open and while subscriptions exist on historical owned customers. Verify future
+   billing cancels before erasure. Introduce a controlled provider failure without
+   changing shared runtime credentials; expect the documented 503 and intact
+   account. Verify pending email private fields clear on erasure.
+6. Exercise a real Sandbox dispute/lost/won sequence and confirm only the affected
+   current payment contribution changes. Inspect retry exhaustion/terminal expiry
+   independently of refund revocation. Use the existing provider flow rather than
+   an invented application event.
+7. Set a supported persisted account locale unsupported by Stripe through its
+   ordinary profile flow, then verify the hosted English fallback and localized
+   Nibomo emails. Browser-only language selection is a separate preference.
+8. Exercise controlled email transport failure and concurrent sends. Verify
+   committed access, the original frozen retry request/key, terminal private-field
+   clearing and explicit operator recovery outside the safe retry window. Do not
+   use a new idempotency key to make an ambiguous send look successful.
+
+### CI-only Live activation
+
+Live activation remains a separate final gate, after essential real acceptance,
+legal/email/security checks and the reviewed metadata patch have merged. A GitHub
+variable readback alone does not deploy a runtime flag.
+
+1. Verify the reviewed `main` commit and all required cloud checks. Recheck
+   [Terms](https://nibomo.com/terms/) and [Privacy](https://nibomo.com/privacy/).
+   Their canonical Stripe/Resend wording is maintained in the website repository's
+   [terms source](https://github.com/kirill-markin/flashcards-open-source-app-website/blob/main/src/content/en/pages/terms/index.md)
+   and [privacy source](https://github.com/kirill-markin/flashcards-open-source-app-website/blob/main/src/content/en/pages/privacy/index.md).
+2. The authorized activation operator sets `CDK_STRIPE_CHECKOUT_LIVE_ENABLED=true`
+   and dispatches the existing `AWS/Web Release` workflow on `main`. Its manual
+   dispatch selects the deployment components. Do not run AWS deployment locally,
+   bump versions or dispatch mobile/MCP publication workflows for this activation.
+3. Watch every selected deployment and release gate to completion; read back the
+   actual HTTP backend `STRIPE_CHECKOUT_LIVE_ENABLED=true`. Verify normal-account
+   offer availability and the existing review account's server-selected Sandbox.
+   A real financial purchase needs its own user authorization.
+4. On a failed activation gate, restore the variable to `false` and deploy the
+   correction through the same CI path. Verify the runtime readback. Leave the
+   free-account 50-message cap for its separately authorized coordinated rollout.
+
 
 ## Stripe references
 
