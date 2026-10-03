@@ -46,7 +46,7 @@
   "offer.trialEligibility": "Her Stripe müşterisi için bir ücretsiz deneme sunulur. Daha önce Apple veya Google üzerinden deneme kullanmış olmak uygunluğu etkilemez.",
   "offer.allowanceWindow": "Yapay zekâ mesaj kotanız, faturalandırma tarihinizden bağımsız olarak UTC’ye göre her takvim ayının başında sıfırlanır.",
   "email.trialReminderSubject": "Nibomo Premium denemeniz yakında sona eriyor",
-  "email.trialReminderBody": "Ücretsiz Nibomo Premium denemeniz {date} tarihinde sona eriyor. Denemeden sonra aboneliğiniz, geçerli vergiler dahil aylık {price} karşılığında otomatik olarak yenilenir. İlk ödemenin alınmaması için deneme sona ermeden iptal edin. Aboneliğinizi Abonelik ayarlarından yönetin veya iptal edin: {url}",
+  "email.trialReminderBody": "Ücretsiz Nibomo Premium denemeniz {date} tarihinde sona eriyor. Denemeden sonra aboneliğiniz, geçerli vergiler dahil {price} tutarındaki aylık temel fiyat üzerinden otomatik olarak yenilenir. Stripe, nihai tahsilat tutarını faturalandırma para biriminizde gösterir. İlk ödemenin alınmaması için deneme sona ermeden iptal edin. Aboneliğinizi Abonelik ayarlarından yönetin veya iptal edin: {url}",
   "email.paymentReceiptSubject": "Nibomo ödeme makbuzu",
   "email.paymentReceiptBody": "{price} tutarındaki ödemeniz alındı. Makbuzunuzu görüntüleyin: {url}",
   "email.refundReceiptSubject": "Nibomo iade makbuzu",
