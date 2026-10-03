@@ -279,6 +279,20 @@ export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGateway
   props.backendDbSecret.grantRead(mcpFn);
   addOptionalSentryEnvironment(scope, mcpFn, props);
 
+  const dispatcherFn = new lambdaNodejs.NodejsFunction(scope, "McpDispatcher", {
+    entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "lambda-mcp-dispatcher.ts"),
+    handler: "handler",
+    runtime: lambda.Runtime.NODEJS_24_X,
+    // Outlive the worker and its synchronous SDK response, including cold starts.
+    timeout: cdk.Duration.seconds(40),
+    memorySize: 256,
+    ...backendStructuredLoggingProps,
+    ...backendNodejsProjectPaths,
+    bundling: { minify: true, sourceMap: true, bundleAwsSDK: true },
+    environment: { MCP_WORKER_FUNCTION_NAME: mcpFn.functionName },
+  });
+  mcpFn.grantInvoke(dispatcherFn);
+
   const accessLogGroup = new logs.LogGroup(scope, "McpApiAccessLogGroup", {
     retention: logs.RetentionDays.ONE_WEEK,
   });
@@ -298,7 +312,7 @@ export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGateway
     },
   });
 
-  const restIntegration = new apigw.LambdaIntegration(mcpFn);
+  const restIntegration = new apigw.LambdaIntegration(dispatcherFn);
 
   // Keep the existing REST API and root custom-domain mapping during the HTTP
   // API migration so CloudFormation does not create a duplicate mcp.<domain>
@@ -318,7 +332,7 @@ export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGateway
     createDefaultStage: false,
   });
 
-  const integration = new apigwv2Integrations.HttpLambdaIntegration("McpHttpLambdaIntegration", mcpFn, {
+  const integration = new apigwv2Integrations.HttpLambdaIntegration("McpHttpLambdaIntegration", dispatcherFn, {
     // Format 1.0 keeps the mapped custom-domain path in event.path, which the
     // Hono Lambda adapter uses to match the public /mcp and /.well-known routes.
     payloadFormatVersion: apigwv2.PayloadFormatVersion.VERSION_1_0,
