@@ -18,6 +18,7 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
+import com.flashcardsopensourceapp.app.appSnackbarTag
 import com.flashcardsopensourceapp.app.livesmoke.support.LiveSmokeContext
 import com.flashcardsopensourceapp.app.livesmoke.support.currentWorkspaceVisibleErrorMessageOrNull
 import com.flashcardsopensourceapp.app.livesmoke.support.internalUiTimeoutMillis
@@ -152,6 +153,18 @@ internal fun LiveSmokeContext.waitUntilAtLeastOneExistsOrFail(
         context = "while waiting for UI state to appear"
     ) {
         composeRule.onAllNodes(matcher).fetchSemanticsNodes().isNotEmpty()
+    }
+}
+
+internal fun LiveSmokeContext.waitForAppSnackbarToDisappear(context: String) {
+    // Drain queued snackbar collection and composition before accepting absence,
+    // including removal after its exit animation.
+    composeRule.waitForIdle()
+    waitUntilWithMitigation(
+        timeoutMillis = internalUiTimeoutMillis,
+        context = context
+    ) {
+        composeRule.onAllNodesWithTag(appSnackbarTag).fetchSemanticsNodes().isEmpty()
     }
 }
 

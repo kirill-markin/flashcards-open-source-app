@@ -16,6 +16,7 @@ import androidx.compose.ui.test.performTextReplacement
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.clickNode
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.clickText
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.tapBackIcon
+import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitForAppSnackbarToDisappear
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitForTagToExist
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitUntilWithMitigation
 import com.flashcardsopensourceapp.app.livesmoke.support.LiveSmokeContext
@@ -97,6 +98,9 @@ internal fun LiveSmokeContext.openSettingsRow(rowTag: String, rowLabel: String) 
         targetTag = rowTag,
         targetLabel = rowLabel,
         targetMatcher = rowMatcher
+    )
+    waitForAppSnackbarToDisappear(
+        context = "while waiting for the snackbar to leave before opening settings row '$rowLabel'"
     )
     clickNode(matcher = rowMatcher, label = rowLabel)
 }
