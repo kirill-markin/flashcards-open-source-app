@@ -2,6 +2,7 @@ import SwiftUI
 
 struct DeleteAccountConfirmationView: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
+    @Environment(AppleSubscriptionService.self) private var subscriptions: AppleSubscriptionService
     @Environment(\.dismiss) private var dismiss
 
     @State private var confirmationText: String = ""
@@ -22,6 +23,15 @@ struct DeleteAccountConfirmationView: View {
                     )
                         .foregroundStyle(.red)
                         .font(.headline)
+
+                    if self.subscriptions.currentPurchases.isEmpty == false {
+                        Text(aiSettingsLocalized(
+                            "premium.apple.deleteWarning",
+                            "You have an active Apple subscription. Deleting your account does not cancel it. Manage or cancel it in the App Store."
+                        ))
+                        .foregroundStyle(.orange)
+                        .accessibilityIdentifier(UITestIdentifier.accountDeletionAppleWarning)
+                    }
 
                     VStack(alignment: .leading, spacing: 8) {
                         Text(aiSettingsLocalized("common.typePhraseToContinue", "Type this phrase exactly to continue:"))
@@ -66,6 +76,8 @@ struct DeleteAccountConfirmationView: View {
 }
 
 #Preview {
+    let store = FlashcardsStore()
     DeleteAccountConfirmationView()
-        .environment(FlashcardsStore())
+        .environment(store)
+        .environment(AppleSubscriptionService(store: store, session: .shared))
 }

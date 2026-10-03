@@ -862,3 +862,15 @@
 "settings.accentColor.custom" = "Màu tùy chỉnh";
 "settings.accentColor.invalidHex" = "Nhập màu ở dạng #RRGGBB với sáu chữ số thập lục phân.";
 "settings.accentColor.premiumNote" = "Màu nhấn tùy chỉnh có sẵn với Premium. Màu đã lưu sẽ trở lại khi Premium hoạt động.";
+
+"premium.apple.sandbox" = "Mua thử nghiệm Premium";
+"premium.apple.notice" = "Giao dịch thử nghiệm yêu cầu TestFlight. Chưa mở bán công khai.";
+"premium.apple.renewal" = "Tự động gia hạn cho đến khi hủy. Quản lý hoặc hủy trong mục đăng ký App Store của bạn.";
+"premium.apple.trial" = "Dùng thử miễn phí: %@. Sau đó:";
+"premium.apple.loadFailed" = "Không thể tải ưu đãi App Store. Kiểm tra kết nối và thử lại.";
+"premium.apple.pending" = "Đang chờ Apple hoặc tài khoản xác nhận. Khôi phục giao dịch mua để thử lại.";
+"premium.apple.cancelled" = "Đã hủy giao dịch mua. Bạn chưa bị tính phí.";
+"premium.apple.failed" = "Không thể xác nhận giao dịch mua. Khôi phục giao dịch mua để thử lại mà không cần mua lần nữa.";
+"premium.apple.restore" = "Khôi phục giao dịch mua";
+"premium.apple.sceneUnavailable" = "Mở ứng dụng ở tiền cảnh để quản lý gói đăng ký.";
+"premium.apple.deleteWarning" = "Bạn có gói đăng ký Apple đang hoạt động. Xóa tài khoản không hủy gói này. Quản lý hoặc hủy trong App Store.";

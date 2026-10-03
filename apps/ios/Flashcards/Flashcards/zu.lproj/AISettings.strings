@@ -862,3 +862,15 @@
 "settings.accentColor.custom" = "Umbala owukhethayo";
 "settings.accentColor.invalidHex" = "Faka umbala njengo-#RRGGBB usebenzisa amadijithi ayisithupha e-hexadecimal.";
 "settings.accentColor.premiumNote" = "Imibala yokugqamisa oyikhethayo iyatholakala nge-Premium. Umbala wakho ogciniwe ubuya lapho i-Premium isebenza.";
+
+"premium.apple.sandbox" = "Ukuthenga kokuhlola kwe-Premium";
+"premium.apple.notice" = "Ukuthenga kokuhlola kudinga i-TestFlight. Ukuthengisela umphakathi akukavulwa.";
+"premium.apple.renewal" = "Kuvuselelwa ngokuzenzakalelayo uze ukhansele. Phatha noma ukhansele ekubhaliseni kwakho kwe-App Store.";
+"premium.apple.trial" = "Isivivinyo samahhala: %@. Ngemva kwalokho:";
+"premium.apple.loadFailed" = "Ayikwazanga ukulayisha okunikezwa yi-App Store. Hlola uxhumano lwakho bese uzama futhi.";
+"premium.apple.pending" = "Kulindwe ukuqinisekiswa yi-Apple noma kwe-akhawunti. Buyisela okuthengiwe ukuze uzame futhi.";
+"premium.apple.cancelled" = "Ukuthenga kukhanseliwe. Awukhokhiswanga.";
+"premium.apple.failed" = "Ukuthenga akukwazanga ukuqinisekiswa. Buyisela okuthengiwe ukuze uzame futhi ngaphandle kokuthenga kabusha.";
+"premium.apple.restore" = "Buyisela okuthengiwe";
+"premium.apple.sceneUnavailable" = "Vula uhlelo lokusebenza ngaphambili ukuze uphathe ukubhalisa kwakho.";
+"premium.apple.deleteWarning" = "Unokubhalisa kwe-Apple okusebenzayo. Ukususa i-akhawunti yakho akukukhanseli. Kuphathe noma ukukhansele ku-App Store.";

@@ -862,3 +862,15 @@
 "settings.accentColor.custom" = "Culoare personalizată";
 "settings.accentColor.invalidHex" = "Introdu o culoare ca #RRGGBB, cu șase cifre hexazecimale.";
 "settings.accentColor.premiumNote" = "Culorile de accent personalizate sunt disponibile cu Premium. Culoarea salvată revine când Premium este activ.";
+
+"premium.apple.sandbox" = "Achiziție de test Premium";
+"premium.apple.notice" = "Achizițiile de test necesită TestFlight. Vânzările publice nu sunt deschise.";
+"premium.apple.renewal" = "Se reînnoiește automat până la anulare. Gestionează sau anulează din abonamentele App Store.";
+"premium.apple.trial" = "Perioadă de probă gratuită: %@. Apoi:";
+"premium.apple.loadFailed" = "Oferta App Store nu a putut fi încărcată. Verifică conexiunea și încearcă din nou.";
+"premium.apple.pending" = "Se așteaptă confirmarea Apple sau a contului. Restaurează achizițiile pentru a reîncerca.";
+"premium.apple.cancelled" = "Achiziție anulată. Nu ai fost taxat.";
+"premium.apple.failed" = "Achiziția nu a putut fi confirmată. Restaurează achizițiile pentru a reîncerca fără a cumpăra din nou.";
+"premium.apple.restore" = "Restaurează achizițiile";
+"premium.apple.sceneUnavailable" = "Deschide aplicația în prim-plan pentru a gestiona abonamentul.";
+"premium.apple.deleteWarning" = "Ai un abonament Apple activ. Ștergerea contului nu îl anulează. Gestionează-l sau anulează-l în App Store.";

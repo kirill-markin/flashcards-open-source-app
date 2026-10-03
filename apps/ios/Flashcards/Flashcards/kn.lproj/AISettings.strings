@@ -862,3 +862,15 @@
 "settings.accentColor.custom" = "ಆಯ್ಕೆಯ ಬಣ್ಣ";
 "settings.accentColor.invalidHex" = "ಆರು ಹೆಕ್ಸಾಡೆಸಿಮಲ್ ಅಂಕೆಗಳೊಂದಿಗೆ #RRGGBB ರೂಪದಲ್ಲಿ ಬಣ್ಣವನ್ನು ನಮೂದಿಸಿ.";
 "settings.accentColor.premiumNote" = "ಆಯ್ಕೆಯ ಹೈಲೈಟ್ ಬಣ್ಣಗಳು Premium ಜೊತೆಗೆ ಲಭ್ಯವಿವೆ. Premium ಸಕ್ರಿಯವಾದಾಗ ಉಳಿಸಿದ ಬಣ್ಣ ಮರಳಿ ಬರುತ್ತದೆ.";
+
+"premium.apple.sandbox" = "Premium ಪರೀಕ್ಷಾ ಖರೀದಿ";
+"premium.apple.notice" = "ಪರೀಕ್ಷಾ ಖರೀದಿಗಳಿಗೆ TestFlight ಅಗತ್ಯವಿದೆ. ಸಾರ್ವಜನಿಕ ಮಾರಾಟ ಇನ್ನೂ ಆರಂಭವಾಗಿಲ್ಲ.";
+"premium.apple.renewal" = "ರದ್ದು ಮಾಡುವವರೆಗೆ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ನವೀಕರಣಗೊಳ್ಳುತ್ತದೆ. ನಿಮ್ಮ App Store ಚಂದಾದಾರಿಕೆಗಳಲ್ಲಿ ನಿರ್ವಹಿಸಿ ಅಥವಾ ರದ್ದುಮಾಡಿ.";
+"premium.apple.trial" = "ಉಚಿತ ಪ್ರಯೋಗ: %@. ನಂತರ:";
+"premium.apple.loadFailed" = "App Store ಕೊಡುಗೆಯನ್ನು ಲೋಡ್ ಮಾಡಲು ಆಗಲಿಲ್ಲ. ಸಂಪರ್ಕ ಪರಿಶೀಲಿಸಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.";
+"premium.apple.pending" = "Apple ಅಥವಾ ಖಾತೆಯ ದೃಢೀಕರಣಕ್ಕಾಗಿ ಕಾಯಲಾಗುತ್ತಿದೆ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಲು ಖರೀದಿಗಳನ್ನು ಮರುಸ್ಥಾಪಿಸಿ.";
+"premium.apple.cancelled" = "ಖರೀದಿ ರದ್ದಾಗಿದೆ. ನಿಮಗೆ ಶುಲ್ಕ ವಿಧಿಸಲಾಗಿಲ್ಲ.";
+"premium.apple.failed" = "ಖರೀದಿಯನ್ನು ದೃಢೀಕರಿಸಲು ಆಗಲಿಲ್ಲ. ಮತ್ತೆ ಖರೀದಿಸದೆ ಪ್ರಯತ್ನಿಸಲು ಖರೀದಿಗಳನ್ನು ಮರುಸ್ಥಾಪಿಸಿ.";
+"premium.apple.restore" = "ಖರೀದಿಗಳನ್ನು ಮರುಸ್ಥಾಪಿಸಿ";
+"premium.apple.sceneUnavailable" = "ಚಂದಾದಾರಿಕೆಯನ್ನು ನಿರ್ವಹಿಸಲು ಆ್ಯಪ್ ಅನ್ನು ಮುಂಭಾಗದಲ್ಲಿ ತೆರೆಯಿರಿ.";
+"premium.apple.deleteWarning" = "ನಿಮ್ಮ Apple ಚಂದಾದಾರಿಕೆ ಸಕ್ರಿಯವಾಗಿದೆ. ಖಾತೆ ಅಳಿಸಿದರೆ ಅದು ರದ್ದಾಗುವುದಿಲ್ಲ. App Storeನಲ್ಲಿ ಅದನ್ನು ನಿರ್ವಹಿಸಿ ಅಥವಾ ರದ್ದುಮಾಡಿ.";

@@ -862,3 +862,15 @@
 "settings.accentColor.custom" = "Egyéni szín";
 "settings.accentColor.invalidHex" = "Adj meg egy színt #RRGGBB formátumban, hat hexadecimális számjeggyel.";
 "settings.accentColor.premiumNote" = "Az egyéni kiemelőszínek a Premium részei. A mentett szín visszatér, amikor a Premium aktív.";
+
+"premium.apple.sandbox" = "Premium tesztvásárlás";
+"premium.apple.notice" = "A tesztvásárlásokhoz TestFlight szükséges. A nyilvános értékesítés még nem indult el.";
+"premium.apple.renewal" = "Lemondásig automatikusan megújul. Kezelje vagy mondja le az App Store-előfizetéseinél.";
+"premium.apple.trial" = "Ingyenes próbaidőszak: %@. Utána:";
+"premium.apple.loadFailed" = "Nem sikerült betölteni az App Store ajánlatát. Ellenőrizze a kapcsolatot, és próbálja újra.";
+"premium.apple.pending" = "Várakozás az Apple vagy a fiók megerősítésére. Az újrapróbálkozáshoz állítsa vissza a vásárlásokat.";
+"premium.apple.cancelled" = "Vásárlás megszakítva. Nem számítottunk fel díjat.";
+"premium.apple.failed" = "Nem sikerült megerősíteni a vásárlást. Állítsa vissza a vásárlásokat az újrapróbálkozáshoz, ne vásároljon újra.";
+"premium.apple.restore" = "Vásárlások visszaállítása";
+"premium.apple.sceneUnavailable" = "Az előfizetés kezeléséhez nyissa meg az alkalmazást az előtérben.";
+"premium.apple.deleteWarning" = "Aktív Apple-előfizetése van. A fiók törlése nem mondja le azt. Kezelje vagy mondja le az App Store-ban.";
