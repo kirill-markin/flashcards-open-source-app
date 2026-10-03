@@ -23,6 +23,23 @@ and the completed early-user lifetime gift.
 - [StoreKit service](../apps/ios/Flashcards/Flashcards/Premium/AppleSubscriptionService.swift)
   and [native transport](../apps/ios/Flashcards/Flashcards/Cloud/Sync/CloudSyncTransport+AppleBilling.swift).
 
+## Transaction intent
+
+`POST /v1/billing/apple/transactions` accepts optional `intent: "passive" | "explicit"`
+alongside `signedTransaction`. Omitted intent retains explicit attachment for existing
+clients. Unknown values, including `null`, return HTTP 400 before any billing service action.
+Both modes require the same human authentication and verified Apple transaction JWS.
+
+Purchase and Restore use explicit attachment: the last presenting account receives the
+purchase. Automatic foreground, current-entitlement, unfinished-transaction, and transaction
+update replay use passive reconciliation. It refreshes Apple's state under the existing
+original-transaction lock, preserving any attached server owner. Only an unowned purchase
+can be attributed by its verified `appAccountToken`.
+
+The existing `{"attached":true}` response acknowledges successful processing in both modes;
+it does not confirm that the caller owns the purchase. Sync supplies the caller's entitlement.
+Deploy this backend contract before shipping the separate iOS runtime/transport integration.
+
 ## Configure the catalog after merge
 
 1. Wait until the catalog patch has been reviewed, merged into `main`, and passed
@@ -210,9 +227,14 @@ separately authorized.
    `{"signedTransaction":"<private JWS>"}`. Require HTTP 200 with `{"attached":true}` before
    finishing the transaction. Sync must show premium rank 20 and Apple's actual trial state.
 2. Retry the same transaction and restore it; require success without duplicate purchases.
-   Restore from a second authenticated test account and confirm ownership follows the
-   presenting account after both sync. Link the original guest to an account and verify its
-   remaining billing state follows the normal identity lifecycle.
+   Restore from a second authenticated test account B with `intent: "explicit"` and confirm
+   ownership moves from purchasing account A to B after both sync. Foreground A and replay
+   its current, unfinished, and updated transactions with `intent: "passive"`; B must retain
+   ownership even though the verified transaction still carries A's original account token.
+   Sync both accounts: A loses subscription access and B retains it, subject to any separate
+   purchases or lifetime grants. Explicit Restore on A must move ownership back to A.
+   Link the original guest to an account and verify its remaining billing state follows the
+   normal identity lifecycle.
 3. Allow a sandbox renewal, disable auto-renew, then observe expiry. The signed notification
    must update the stored sandbox purchase and the next sync's entitlement. Cancellation
    must retain access until its paid-through date. Exercise a sandbox refund/revocation and
