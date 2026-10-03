@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -15,7 +16,9 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -23,6 +26,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.core.ui.bidiWrap
 import com.flashcardsopensourceapp.core.ui.currentResourceLocale
+import com.flashcardsopensourceapp.core.ui.deckNameComparator
 import com.flashcardsopensourceapp.data.local.model.cards.normalizeTagKey
 import com.flashcardsopensourceapp.data.local.model.review.ReviewDeckFilterOption
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
@@ -42,7 +46,17 @@ internal fun ReviewFilterSheet(
     onManageDecks: () -> Unit
 ) {
     val context = LocalContext.current
-    val locale = currentResourceLocale(resources = context.resources)
+    val configuration = LocalConfiguration.current
+    val locale = remember(configuration) { currentResourceLocale(resources = context.resources) }
+    val sortedDeckFilters = remember(availableDeckFilters, locale) {
+        availableDeckFilters.sortedWith(
+            deckNameComparator(
+                locale = locale,
+                name = ReviewDeckFilterOption::title,
+                deckId = ReviewDeckFilterOption::deckId
+            )
+        )
+    }
     val selectedTagNames = selectedReviewTagNames(
         selectedFilter = selectedFilter,
         availableDeckFilters = availableDeckFilters,
@@ -94,8 +108,7 @@ internal fun ReviewFilterSheet(
                     )
                 }
 
-                items(availableDeckFilters.size) { index ->
-                    val deck = availableDeckFilters[index]
+                items(sortedDeckFilters, key = { deck -> deck.deckId }) { deck ->
                     ReviewFilterOptionRow(
                         title = stringResource(
                             id = R.string.review_filter_title_with_count,

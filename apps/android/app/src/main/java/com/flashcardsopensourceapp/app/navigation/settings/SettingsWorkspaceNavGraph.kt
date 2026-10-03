@@ -1,6 +1,8 @@
 package com.flashcardsopensourceapp.app.navigation.settings
 
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -10,6 +12,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.flashcardsopensourceapp.app.di.AppGraph
+import com.flashcardsopensourceapp.core.ui.currentResourceLocale
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.makeReviewTagFilter
 import com.flashcardsopensourceapp.feature.settings.deck.DeckDetailRoute
@@ -107,6 +110,10 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
                 applicationContext = context.applicationContext
             )
         )
+        val configuration = LocalConfiguration.current
+        LaunchedEffect(configuration) {
+            decksViewModel.updateLocale(locale = currentResourceLocale(resources = context.resources))
+        }
         val uiState by decksViewModel.uiState.collectAsStateWithLifecycle()
 
         DecksRoute(
@@ -153,7 +160,6 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
             onOpenCard = { cardId ->
                 appGraph.appHandoffCoordinator.requestCardEditor(cardId = cardId)
             },
-            onDeleteDeck = {},
             onBack = {
                 navController.popBackStack()
             }
@@ -194,14 +200,6 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
             onOpenCard = { cardId ->
                 appGraph.appHandoffCoordinator.requestCardEditor(cardId = cardId)
             },
-            onDeleteDeck = { deletingDeckId ->
-                coroutineScope.launch {
-                    appGraph.decksRepository.deleteDeck(deckId = deletingDeckId)
-                    withContext(Dispatchers.Main.immediate) {
-                        navController.popBackStack()
-                    }
-                }
-            },
             onBack = {
                 navController.popBackStack()
             }
@@ -224,6 +222,7 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
                 decksRepository = appGraph.decksRepository,
                 workspaceRepository = appGraph.workspaceRepository,
                 editingDeckId = editingDeckId,
+                technicalErrorController = appGraph.appMessageBus,
                 applicationContext = context.applicationContext
             )
         )
@@ -259,9 +258,9 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
             onDelete = if (editingDeckId == null) {
                 null
             } else {
-                {
+                { deletingDeckId ->
                     coroutineScope.launch {
-                        val didDelete = deckEditorViewModel.delete(editingDeckId = editingDeckId)
+                        val didDelete = deckEditorViewModel.delete(editingDeckId = deletingDeckId)
                         if (didDelete) {
                             withContext(Dispatchers.Main.immediate) {
                                 navController.popBackStack(

@@ -488,7 +488,6 @@
     <string name="settings_deck_empty_rules_includes_all_cards">This deck has no rules, so it includes all cards.</string>
     <string name="settings_deck_detail_review_button">Review this deck</string>
     <string name="settings_deck_detail_edit_button">Edit deck</string>
-    <string name="settings_deck_detail_delete_button">Delete deck</string>
     <string name="settings_deck_detail_cards_title">Cards</string>
     <string name="settings_deck_detail_empty">No cards match this deck yet.</string>
     <string name="settings_deck_editor_new_title">New deck</string>
@@ -501,6 +500,9 @@
     <string name="settings_deck_editor_rule_summary_title">Rule summary</string>
     <string name="settings_deck_editor_cancel_button">Cancel</string>
     <string name="settings_deck_editor_delete_button">Delete deck</string>
+    <string name="settings_deck_editor_delete_confirmation_title">Delete “%1$s”?</string>
+    <string name="settings_deck_editor_delete_confirmation_body">Your cards will remain. This removes only the saved deck filter.</string>
+    <string name="settings_deck_editor_delete_failed">Could not delete the deck.</string>
     <string name="settings_deck_editor_name_required">Deck name is required.</string>
     <string name="settings_deck_editor_filter_required">Choose at least one tag, or use All cards in Review.</string>
     <string name="settings_deck_editor_save_failed">Could not save the deck.</string>
