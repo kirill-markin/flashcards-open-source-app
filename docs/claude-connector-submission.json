@@ -1,0 +1,117 @@
+{
+  "purpose": "Public, secret-free source for manual portal entry, not an Anthropic upload schema. Operational notes and pending gates are not listing copy.",
+  "status": "Draft pending joint owner review; not authorized for submission or legal acceptance.",
+  "canonical_metadata": {
+    "source": "../server.json",
+    "version": "Read the current version from server.json at submission time; do not maintain a second version here.",
+    "tools": "Sync the live server in the portal. The shared registry is authoritative; this file does not define a tool inventory.",
+    "operations": "connector-submission-operations.md"
+  },
+  "connection": {
+    "type": "Remote MCP over Streamable HTTP",
+    "url": "https://mcp.nibomo.com/mcp",
+    "url_mode": "One URL for all users",
+    "mcp_app_ui": false
+  },
+  "listing": {
+    "name": "Nibomo",
+    "slug": "nibomo",
+    "one_liner": "Create and review flashcards",
+    "description": "Create flashcards from notes you choose to share, organize your collection, and review due cards with spaced repetition. Find and update your existing cards, organize them with tags and saved deck filters, and study one question at a time. Reveal the answer after attempting the question, then record a review rating to schedule the next review. Nibomo saves your cards and review progress so you can continue studying in its web, iOS, and Android apps. Requires a Nibomo account and permission to connect Claude.",
+    "preferred_categories": ["Education", "Productivity"],
+    "author_name": "SAMO DANNI EOOD",
+    "author_url": "https://nibomo.com",
+    "documentation_url": "https://nibomo.com/docs/mcp-connector/",
+    "support_url": "https://nibomo.com/support/",
+    "privacy_policy_url": "https://nibomo.com/privacy/",
+    "icon_url": "https://nibomo.com/logo-512.png"
+  },
+  "listing_entry_notes": [
+    "Name limit: 100 characters; one-liner: 200; description: 2000; one to five categories. Select the preferred categories only if offered in the current portal.",
+    "Confirm nibomo before submission because the listing slug becomes permanent. Author name and URL are optional overrides; enter the approved company details if needed.",
+    "Public URLs and icon come from server.json; reconcile them before entry. This plain remote MCP connector has no MCP App UI and needs no MCP App carousel or video."
+  ],
+  "use_cases": {
+    "access": "Reads and writes",
+    "prerequisites": "A Nibomo account and OAuth consent to connect Claude. Select a workspace accessible to that account. No separate Nibomo paid-plan prerequisite is asserted for these tools.",
+    "examples": [
+      {
+        "purpose": "Read existing study material",
+        "prompt": "Show my Nibomo workspaces, then find cards tagged sql in the workspace I choose. Do not change anything."
+      },
+      {
+        "purpose": "Create and update cards and decks",
+        "prompt": "In my selected Nibomo workspace, create two question-and-answer cards about SQL WHERE and HAVING, tagged sql. Check for duplicates first. Create or reuse a saved deck filtered by that tag. Then add a short example to the WHERE card answer and read back the saved cards and deck."
+      },
+      {
+        "purpose": "Question-first spaced-repetition review",
+        "prompt": "Review one due Nibomo card with me. Show only the question first, wait for my attempt, then reveal the answer. Ask me to choose Again, Hard, Good, or Easy and record only the rating I choose."
+      }
+    ]
+  },
+  "company": {
+    "name": "SAMO DANNI EOOD",
+    "website": "https://nibomo.com",
+    "review_contact_name": "Kirill Markin",
+    "review_contact_email": "kirill@kirill-markin.com",
+    "review_contact_role": "Developer and publisher",
+    "submitter_note": "The submitting personal paid Claude account is separate from the approved company and review contact."
+  },
+  "authentication": {
+    "portal_mode": "OAuth with Dynamic Client Registration",
+    "flow": "Authorization code with PKCE S256; browser sign-in and consent; refresh tokens supported. The client registers dynamically without a pre-shared client secret.",
+    "authentication_required": "Authentication is required before tools are accessible.",
+    "source": "../apps/auth/src/routes/oauth/metadata.ts"
+  },
+  "data_handling": {
+    "personal_health_data_selection": "Other / depends on configuration",
+    "personal_health_data_explanation": "Nibomo is a general-purpose flashcard app with no health-specific integration or clinical-record API. Users choose their own card content; if they explicitly put personal health information in a card, the connector can read or store that content.",
+    "sponsored_content_selection": "No",
+    "api_ownership_selection": "We own the API",
+    "api_ownership": "First-party Nibomo API and workspace data; no third-party service proxy.",
+    "purpose_and_content": "General-purpose flashcard study. Inputs and results can include user-authored questions, answers, tags, saved deck filters, review history and account usage. Users can put arbitrary text in cards; the connector has no health-specific integration and is not designed to retrieve clinical records.",
+    "sponsored_content": "The eight MCP tools have no sponsored-content or advertising delivery capability.",
+    "conversation_collection": "The connector receives explicit tool inputs and returns the requested Nibomo data. It has no tool for fetching Claude memory, chat history, conversation summaries or user files. Content explicitly supplied for card authoring can be stored as card text.",
+    "storage_and_telemetry": "Cards, decks and review events persist in Nibomo. Authenticated MCP requests emit operational telemetry including account, workspace and connection identifiers, request/tool metadata, status, duration and response length. SQL telemetry adds a statement fingerprint, length, counts and outcome; these telemetry records omit raw SQL, tool arguments and result contents. Unexpected/server errors can be sent to Sentry with diagnostic messages and stacks, which may contain content. Do not describe this service as collecting no data or logging no personal data.",
+    "privacy_and_retention": "Use the public privacy policy for retention, sharing and deletion statements; do not infer a retention period from the connector protocol.",
+    "sources": [
+      "../apps/backend/src/aiTools/toolRegistry/specs.ts",
+      "../apps/backend/src/mcp/server.ts",
+      "../apps/backend/src/entrypoints/lambda-mcp.ts",
+      "../apps/backend/src/aiTools/agentSql.ts",
+      "agent-sql-telemetry.md"
+    ]
+  },
+  "test_and_launch": {
+    "client_testing": "All eight tools were independently exercised in MCP Inspector and a Claude custom connector using disposable cards in the owner's test workspace. This does not verify Anthropic reviewer demo access.",
+    "reviewer_demo_status": "Not yet verified. Deploy and verify the allowlist, populated synthetic workspace and reviewer login using the canonical operations procedure before supplying private access details or claiming readiness.",
+    "private_access": "The owner supplies <reviewer-email> and the synthetic workspace name privately after approval. The demo email itself grants browser access and must not appear in public repository files. No backend password, token, active demo identifier or personal test ID belongs here.",
+    "walkthrough": [
+      "Connect https://mcp.nibomo.com/mcp using OAuth with dynamic client registration. In the Nibomo browser sign-in, enter the privately supplied <reviewer-email> and continue. For a configured demo account this signs in without entering an emailed code or password. Review and approve OAuth consent, then return to the client. If that flow does not work, stop and contact the owner; do not use a personal account as a reviewer substitute.",
+      "Call list_workspaces and choose the privately identified, populated synthetic review workspace. Preserve its workspaceId in every workspace-scoped call. Call get_guide with topic sql_dialect, then sql_query with SHOW TABLES and a separate query reading a small sample of existing cards. Confirm synthetic study data is present.",
+      "Call get_guide with topic card_authoring. Choose a fresh test tag for this client and run. Check for duplicates with sql_query, then approve sql_execute to create two tagged cards: a question about SQL WHERE with the answer that it filters rows before grouping, and a question about HAVING with the answer that it filters groups after aggregation. Keep answers off the fronts. Read the saved cards back with sql_query and check them in https://app.nibomo.com using the same demo sign-in.",
+      "Use sql_execute to add a short example to one test card's answer and create or reuse a saved deck filtered by the test tag, following the discovered schema. Read back the changed card and deck with sql_query. Restrict writes to this run's disposable data.",
+      "Call get_guide with topic review_flow. Call next_review_card with the workspaceId and test tag; show only its question. Attempt it, then call reveal_answer with the returned cardId. For this manual-rating scenario choose Again, Hard, Good or Easy. Persist a fresh reviewId UUID and the learner's valid IANA reviewedTimeZone, then approve submit_review with those values, the same cardId and workspaceId, and the chosen rating. Check the returned schedule.",
+      "In Inspector, retry that Inspector review with the identical payload through the same authenticated connection. Expect REVIEW_EVENT_CONFLICT with the current schedule after an already-recorded review, and no duplicate review. Never replay a Claude review through Inspector: deduplication is scoped to the authenticated connection. A different connection can record another review even with the same reviewId.",
+      "Call get_usage_limits without arguments. Report the returned tier and actual allowances; make no subscription changes. Run the scenario independently in both clients with separate disposable cards and tags so all eight tools are exercised. If there are no eligible cards, create fresh tagged test cards before repeating the review."
+    ]
+  },
+  "compliance_facts": {
+    "status": "Factual draft for owner review, not policy acknowledgments or accepted legal terms.",
+    "directory_guidelines": "Review the live connector and current directory policy together before acknowledging; source inspection and prior client tests are not Anthropic approval.",
+    "first_party_api": "The tools operate on Nibomo resources in workspaces the authenticated account can access; the MCP host is on nibomo.com.",
+    "financial_transactions": "The eight MCP tools cannot transfer money, cryptocurrency or other financial assets. Reading account usage does not initiate checkout or change subscriptions.",
+    "ai_media_generation": "The eight MCP tools do not generate images, video or audio through AI models. The separate in-app image-generation capability is not exposed by this MCP registry.",
+    "prompt_injection": "Read and write operations have separate tools and applicable annotations. SQL descriptions name the Nibomo API and link its documentation. The review contract treats card text as study content, not tool instructions. Re-review live descriptions and returned guidance against the current policy; this is not a guarantee that arbitrary user card text is safe.",
+    "conversation_data": "See data_handling for explicit inputs, stored study content and operational diagnostics; do not attest to zero data collection.",
+    "public_documentation": "Documentation, support and privacy URLs are included in listing and sourced from server.json; verify their public accessibility and policy completeness before acknowledgment.",
+    "owner_gate": "Do not accept the seven compliance acknowledgments, share reviewer access or click Submit until the owner has jointly reviewed the completed portal draft, warnings, live facts and terms, and explicitly approves those actions.",
+    "references": [
+      "https://claude.com/docs/connectors/building/submission",
+      "https://claude.com/docs/connectors/building/review-criteria",
+      "../apps/backend/src/aiTools/toolRegistry/specs.ts",
+      "../apps/backend/src/mcp/server.ts",
+      "../apps/backend/src/agent/reviewContract.ts"
+    ]
+  }
+}
