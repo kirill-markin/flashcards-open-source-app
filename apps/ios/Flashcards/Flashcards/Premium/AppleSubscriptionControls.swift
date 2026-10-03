@@ -5,6 +5,7 @@ import UIKit
 struct AppleSubscriptionControls: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(AppleSubscriptionService.self) private var subscriptions: AppleSubscriptionService
+    let isRestoreDisabled: Bool
     let onRestore: () -> Void
 
     @State private var isBusy: Bool = false
@@ -26,6 +27,7 @@ struct AppleSubscriptionControls: View {
             Button(aiSettingsLocalized("premium.apple.restore", "Restore purchases")) {
                 self.restore()
             }
+            .disabled(self.isRestoreDisabled)
             .accessibilityIdentifier(UITestIdentifier.subscriptionSettingsRestoreButton)
 
             Button(aiSettingsLocalized("settings.subscription.manage", "Manage subscription")) {
