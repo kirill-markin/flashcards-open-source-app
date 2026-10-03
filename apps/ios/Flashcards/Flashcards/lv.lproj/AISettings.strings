@@ -221,6 +221,7 @@
 "settings.subscription.noEndDate" = "Nav beigu datuma";
 "settings.subscription.endUnknown" = "Nezināms";
 "settings.subscription.planUnknown" = "Jūsu plāns šeit parādīsies pēc tam, kad lietotne būs sinhronizēta ar jūsu kontu.";
+"settings.subscription.change" = "Mainīt abonementu";
 "settings.subscription.manage" = "Pārvaldīt abonementu";
 "settings.language.title" = "Valoda";
 "settings.language.systemDescription" = "iOS pārvalda lietotnes valodu. iOS iestatījumos atveriet Nibomo un izmantojiet vēlamās valodas iestatījumu. Ja tas netiek rādīts, vispirms pievienojiet citu valodu sadaļā Iestatījumi > Vispārīgi > Valoda un reģions.";
@@ -863,6 +864,7 @@
 "settings.accentColor.invalidHex" = "Ievadiet krāsu formātā #RRGGBB ar sešiem heksadecimāliem cipariem.";
 "settings.accentColor.premiumNote" = "Pielāgotas akcenta krāsas ir pieejamas ar Premium. Saglabātā krāsa atgriežas, kad Premium ir aktīvs.";
 
+"premium.apple.monthlyProduct" = "%@ · Katru mēnesi";
 "premium.apple.renewal" = "Automātiski atjaunojas līdz atcelšanai. Pārvaldiet vai atceliet App Store abonementos.";
 "premium.apple.trial" = "Bezmaksas izmēģinājums: %@. Pēc tam:";
 "premium.apple.loadFailed" = "Neizdevās ielādēt App Store piedāvājumu. Pārbaudiet savienojumu un mēģiniet vēlreiz.";

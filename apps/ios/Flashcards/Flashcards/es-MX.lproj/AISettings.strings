@@ -224,6 +224,7 @@
 "settings.subscription.noEndDate" = "Sin fecha de término";
 "settings.subscription.endUnknown" = "Desconocida";
 "settings.subscription.planUnknown" = "Tu plan aparecerá aquí cuando la app se sincronice con tu cuenta.";
+"settings.subscription.change" = "Cambiar suscripción";
 "settings.subscription.manage" = "Administrar suscripción";
 "settings.language.title" = "Idioma";
 "settings.language.systemDescription" = "iOS controla el idioma de la app. En Ajustes de iOS, abre Nibomo y usa Idioma preferido. Si Idioma preferido no aparece, primero agrega otro idioma en Ajustes > General > Idioma y región.";
@@ -891,6 +892,7 @@
 "settings.accentColor.invalidHex" = "Ingresa un color como #RRGGBB, con seis dígitos hexadecimales.";
 "settings.accentColor.premiumNote" = "Los colores de acento personalizados están disponibles con Premium. Tu color guardado vuelve cuando Premium está activo.";
 
+"premium.apple.monthlyProduct" = "%@ · Mensual";
 "premium.apple.renewal" = "Se renueva automáticamente hasta que la canceles. Administra o cancela la suscripción en App Store.";
 "premium.apple.trial" = "Prueba gratis: %@. Después:";
 "premium.apple.loadFailed" = "No se pudo cargar la oferta de App Store. Revisa tu conexión e inténtalo de nuevo.";

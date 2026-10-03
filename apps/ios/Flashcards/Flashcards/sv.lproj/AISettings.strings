@@ -221,6 +221,7 @@
 "settings.subscription.noEndDate" = "Inget slutdatum";
 "settings.subscription.endUnknown" = "Okänt";
 "settings.subscription.planUnknown" = "Din plan visas här när appen har synkroniserats med ditt konto.";
+"settings.subscription.change" = "Ändra prenumeration";
 "settings.subscription.manage" = "Hantera prenumeration";
 "settings.language.title" = "Språk";
 "settings.language.systemDescription" = "Appens språk styrs av iOS. Öppna Nibomo i iOS-inställningarna och välj Föredraget språk. Om Föredraget språk inte visas lägger du först till ett annat språk under Inställningar > Allmänt > Språk och region.";
@@ -863,6 +864,7 @@
 "settings.accentColor.invalidHex" = "Ange en färg som #RRGGBB med sex hexadecimala siffror.";
 "settings.accentColor.premiumNote" = "Egna accentfärger är tillgängliga med Premium. Din sparade färg återkommer när Premium är aktivt.";
 
+"premium.apple.monthlyProduct" = "%@ · Månadsvis";
 "premium.apple.renewal" = "Förnyas automatiskt tills du säger upp det. Hantera eller avsluta under dina App Store-abonnemang.";
 "premium.apple.trial" = "Gratis provperiod: %@. Därefter:";
 "premium.apple.loadFailed" = "Kunde inte läsa in App Store-erbjudandet. Kontrollera anslutningen och försök igen.";

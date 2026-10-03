@@ -221,6 +221,7 @@
 "settings.subscription.noEndDate" = "समाप्ती तारीख नाही";
 "settings.subscription.endUnknown" = "अज्ञात";
 "settings.subscription.planUnknown" = "अॅप तुमच्या खात्याशी सिंक झाल्यानंतर तुमचा प्लॅन इथे दिसेल.";
+"settings.subscription.change" = "सदस्यता बदला";
 "settings.subscription.manage" = "सदस्यता व्यवस्थापित करा";
 "settings.language.title" = "भाषा";
 "settings.language.systemDescription" = "iOS अ‍ॅपची भाषा ठरवते. iOS सेटिंग्जमध्ये Nibomo उघडा आणि पसंतीची भाषा निवडा. पसंतीची भाषा दिसत नसल्यास आधी सेटिंग्ज > सामान्य > भाषा आणि प्रदेश येथे दुसरी भाषा जोडा.";
@@ -863,6 +864,7 @@
 "settings.accentColor.invalidHex" = "सहा हेक्साडेसिमल अंकांसह #RRGGBB या स्वरूपात रंग प्रविष्ट करा.";
 "settings.accentColor.premiumNote" = "पसंतीचे ठळक रंग Premium सह उपलब्ध आहेत. Premium सक्रिय झाल्यावर तुमचा जतन केलेला रंग परत येतो.";
 
+"premium.apple.monthlyProduct" = "%@ · मासिक";
 "premium.apple.renewal" = "रद्द करेपर्यंत आपोआप नूतनीकरण होते. तुमच्या App Store सदस्यतांमध्ये व्यवस्थापित करा किंवा रद्द करा.";
 "premium.apple.trial" = "मोफत चाचणी: %@. त्यानंतर:";
 "premium.apple.loadFailed" = "App Store ऑफर लोड करता आली नाही. कनेक्शन तपासा आणि पुन्हा प्रयत्न करा.";

@@ -221,6 +221,7 @@
 "settings.subscription.noEndDate" = "ಮುಕ್ತಾಯ ದಿನಾಂಕವಿಲ್ಲ";
 "settings.subscription.endUnknown" = "ಅಜ್ಞಾತ";
 "settings.subscription.planUnknown" = "ಆ್ಯಪ್ ನಿಮ್ಮ ಖಾತೆಯೊಂದಿಗೆ ಸಿಂಕ್ ಆದ ನಂತರ ನಿಮ್ಮ ಯೋಜನೆ ಇಲ್ಲಿ ಕಾಣಿಸುತ್ತದೆ.";
+"settings.subscription.change" = "ಚಂದಾದಾರಿಕೆಯನ್ನು ಬದಲಿಸಿ";
 "settings.subscription.manage" = "ಚಂದಾದಾರಿಕೆಯನ್ನು ನಿರ್ವಹಿಸಿ";
 "settings.language.title" = "ಭಾಷೆ";
 "settings.language.systemDescription" = "ಆ್ಯಪ್ ಭಾಷೆಯನ್ನು iOS ನಿಯಂತ್ರಿಸುತ್ತದೆ. iOS ಸೆಟ್ಟಿಂಗ್‌ಗಳಲ್ಲಿ Nibomo ತೆರೆಯಿರಿ ಮತ್ತು ಆದ್ಯತೆಯ ಭಾಷೆ ಬಳಸಿ. ಆದ್ಯತೆಯ ಭಾಷೆ ಕಾಣದಿದ್ದರೆ ಮೊದಲು ಸೆಟ್ಟಿಂಗ್‌ಗಳು > ಸಾಮಾನ್ಯ > ಭಾಷೆ ಮತ್ತು ಪ್ರದೇಶದಲ್ಲಿ ಮತ್ತೊಂದು ಭಾಷೆ ಸೇರಿಸಿ.";
@@ -863,6 +864,7 @@
 "settings.accentColor.invalidHex" = "ಆರು ಹೆಕ್ಸಾಡೆಸಿಮಲ್ ಅಂಕೆಗಳೊಂದಿಗೆ #RRGGBB ರೂಪದಲ್ಲಿ ಬಣ್ಣವನ್ನು ನಮೂದಿಸಿ.";
 "settings.accentColor.premiumNote" = "ಆಯ್ಕೆಯ ಹೈಲೈಟ್ ಬಣ್ಣಗಳು Premium ಜೊತೆಗೆ ಲಭ್ಯವಿವೆ. Premium ಸಕ್ರಿಯವಾದಾಗ ಉಳಿಸಿದ ಬಣ್ಣ ಮರಳಿ ಬರುತ್ತದೆ.";
 
+"premium.apple.monthlyProduct" = "%@ · ಮಾಸಿಕ";
 "premium.apple.renewal" = "ರದ್ದು ಮಾಡುವವರೆಗೆ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ನವೀಕರಣಗೊಳ್ಳುತ್ತದೆ. ನಿಮ್ಮ App Store ಚಂದಾದಾರಿಕೆಗಳಲ್ಲಿ ನಿರ್ವಹಿಸಿ ಅಥವಾ ರದ್ದುಮಾಡಿ.";
 "premium.apple.trial" = "ಉಚಿತ ಪ್ರಯೋಗ: %@. ನಂತರ:";
 "premium.apple.loadFailed" = "App Store ಕೊಡುಗೆಯನ್ನು ಲೋಡ್ ಮಾಡಲು ಆಗಲಿಲ್ಲ. ಸಂಪರ್ಕ ಪರಿಶೀಲಿಸಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.";

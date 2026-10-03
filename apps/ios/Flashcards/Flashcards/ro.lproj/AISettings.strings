@@ -221,6 +221,7 @@
 "settings.subscription.noEndDate" = "Fără dată de expirare";
 "settings.subscription.endUnknown" = "Necunoscută";
 "settings.subscription.planUnknown" = "Planul tău va apărea aici după ce aplicația se sincronizează cu contul tău.";
+"settings.subscription.change" = "Schimbă abonamentul";
 "settings.subscription.manage" = "Gestionează abonamentul";
 "settings.language.title" = "Limbă";
 "settings.language.systemDescription" = "iOS controlează limba aplicației. În Configurări iOS, deschide Nibomo și folosește Limbă preferată. Dacă opțiunea nu apare, adaugă mai întâi o altă limbă în Configurări > General > Limbă și regiune.";
@@ -863,6 +864,7 @@
 "settings.accentColor.invalidHex" = "Introdu o culoare ca #RRGGBB, cu șase cifre hexazecimale.";
 "settings.accentColor.premiumNote" = "Culorile de accent personalizate sunt disponibile cu Premium. Culoarea salvată revine când Premium este activ.";
 
+"premium.apple.monthlyProduct" = "%@ · Lunar";
 "premium.apple.renewal" = "Se reînnoiește automat până la anulare. Gestionează sau anulează din abonamentele App Store.";
 "premium.apple.trial" = "Perioadă de probă gratuită: %@. Apoi:";
 "premium.apple.loadFailed" = "Oferta App Store nu a putut fi încărcată. Verifică conexiunea și încearcă din nou.";

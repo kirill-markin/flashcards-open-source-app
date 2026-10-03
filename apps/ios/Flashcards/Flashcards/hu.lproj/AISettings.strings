@@ -221,6 +221,7 @@
 "settings.subscription.noEndDate" = "Nincs lejárati dátum";
 "settings.subscription.endUnknown" = "Ismeretlen";
 "settings.subscription.planUnknown" = "A csomagod itt jelenik meg, miután az alkalmazás szinkronizált a fiókoddal.";
+"settings.subscription.change" = "Előfizetés módosítása";
 "settings.subscription.manage" = "Előfizetés kezelése";
 "settings.language.title" = "Nyelv";
 "settings.language.systemDescription" = "Az alkalmazás nyelvét az iOS kezeli. Az iOS Beállításokban nyisd meg a Nibomót, és válaszd az Előnyben részesített nyelvet. Ha ez nem látható, előbb adj hozzá egy másik nyelvet a Beállítások > Általános > Nyelv és régió alatt.";
@@ -863,6 +864,7 @@
 "settings.accentColor.invalidHex" = "Adj meg egy színt #RRGGBB formátumban, hat hexadecimális számjeggyel.";
 "settings.accentColor.premiumNote" = "Az egyéni kiemelőszínek a Premium részei. A mentett szín visszatér, amikor a Premium aktív.";
 
+"premium.apple.monthlyProduct" = "%@ · Havi";
 "premium.apple.renewal" = "Lemondásig automatikusan megújul. Kezelje vagy mondja le az App Store-előfizetéseinél.";
 "premium.apple.trial" = "Ingyenes próbaidőszak: %@. Utána:";
 "premium.apple.loadFailed" = "Nem sikerült betölteni az App Store ajánlatát. Ellenőrizze a kapcsolatot, és próbálja újra.";

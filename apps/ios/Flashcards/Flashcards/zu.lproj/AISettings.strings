@@ -221,6 +221,7 @@
 "settings.subscription.noEndDate" = "Alukho usuku lokuphela";
 "settings.subscription.endUnknown" = "Akwaziwa";
 "settings.subscription.planUnknown" = "Uhlelo lwakho luzovela lapha ngemva kokuthi i-app ivumelanise ne-akhawunti yakho.";
+"settings.subscription.change" = "Shintsha okubhaliselwe";
 "settings.subscription.manage" = "Phatha okubhaliselwe";
 "settings.language.title" = "Ulimi";
 "settings.language.systemDescription" = "iOS ilawula ulimi lohlelo lokusebenza. Ezilungiselelweni ze-iOS, vula i-Nibomo bese usebenzisa Ulimi olukhethwayo. Uma lungaboniswa, qala ngokwengeza olunye ulimi kokuthi Izilungiselelo > Okuvamile > Ulimi Nesifunda.";
@@ -863,6 +864,7 @@
 "settings.accentColor.invalidHex" = "Faka umbala njengo-#RRGGBB usebenzisa amadijithi ayisithupha e-hexadecimal.";
 "settings.accentColor.premiumNote" = "Imibala yokugqamisa oyikhethayo iyatholakala nge-Premium. Umbala wakho ogciniwe ubuya lapho i-Premium isebenza.";
 
+"premium.apple.monthlyProduct" = "%@ · Nyanga zonke";
 "premium.apple.renewal" = "Kuvuselelwa ngokuzenzakalelayo uze ukhansele. Phatha noma ukhansele ekubhaliseni kwakho kwe-App Store.";
 "premium.apple.trial" = "Isivivinyo samahhala: %@. Ngemva kwalokho:";
 "premium.apple.loadFailed" = "Ayikwazanga ukulayisha okunikezwa yi-App Store. Hlola uxhumano lwakho bese uzama futhi.";
