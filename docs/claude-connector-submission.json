@@ -84,7 +84,7 @@
   },
   "test_and_launch": {
     "client_testing": "All eight tools were independently exercised in MCP Inspector and a Claude custom connector using disposable cards in the owner's test workspace. This does not verify Anthropic reviewer demo access.",
-    "reviewer_demo_status": "Not yet verified. Deploy and verify the allowlist, populated synthetic workspace and reviewer login using the canonical operations procedure before supplying private access details or claiming readiness.",
+    "reviewer_demo_status": "The deployed synthetic reviewer account's email-only login, account access and six-card/two-deck workspace population were verified through auth and account APIs. First-party browser login and all six seeded cards were visually verified. The dedicated reviewer account completed browser OAuth with PKCE in official MCP Inspector, initialized MCP and accessed the same populated workspace through authenticated list_workspaces. This verifies reviewer login, OAuth and workspace access; all-eight-tool scenario evidence remains the independent disposable-data runs described in client_testing.",
     "private_access": "The owner supplies <reviewer-email> and the synthetic workspace name privately after approval. The demo email itself grants browser access and must not appear in public repository files. No backend password, token, active demo identifier or personal test ID belongs here.",
     "walkthrough": [
       "Connect https://mcp.nibomo.com/mcp using OAuth with dynamic client registration. In the Nibomo browser sign-in, enter the privately supplied <reviewer-email> and continue. For a configured demo account this signs in without entering an emailed code or password. Review and approve OAuth consent, then return to the client. If that flow does not work, stop and contact the owner; do not use a personal account as a reviewer substitute.",
@@ -105,7 +105,7 @@
     "prompt_injection": "Read and write operations have separate tools and applicable annotations. SQL descriptions name the Nibomo API and link its documentation. The review contract treats card text as study content, not tool instructions. Re-review live descriptions and returned guidance against the current policy; this is not a guarantee that arbitrary user card text is safe.",
     "conversation_data": "See data_handling for explicit inputs, stored study content and operational diagnostics; do not attest to zero data collection.",
     "public_documentation": "Documentation, support and privacy URLs are included in listing and sourced from server.json; verify their public accessibility and policy completeness before acknowledgment.",
-    "owner_gate": "Do not accept the seven compliance acknowledgments, share reviewer access or click Submit until the owner has jointly reviewed the completed portal draft, warnings, live facts and terms, and explicitly approves those actions.",
+    "owner_gate": "Obtain the owner's explicit, specific approval before sharing private reviewer access. Separately, jointly review the completed portal draft, warnings, live facts and terms with the owner and obtain explicit approval before accepting the seven compliance acknowledgments or clicking Submit.",
     "references": [
       "https://claude.com/docs/connectors/building/submission",
       "https://claude.com/docs/connectors/building/review-criteria",
