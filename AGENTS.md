@@ -135,7 +135,7 @@ Details and key files: [docs/auth-service.md](docs/auth-service.md).
 - Analytics events store facts; funnels, cohorts, and groupings are produced by queries over those facts at analysis time, so never add an event or event property that exists only to assemble one specific report.
 - Always mention the schema explicitly in migrations.
 - Apply authorized one-off data changes directly in the database. Reserve migrations for schema changes and bulk data transformations.
-- When adding, removing, or renaming backend HTTP routes, update `infra/aws/lib/gateways/api-gateway.ts` in the same change so API Gateway stays in sync.
+- The root `{proxy+}` in `infra/aws/lib/gateways/api-gateway.ts` forwards every backend path, so add a gateway resource for a backend route only when it needs distinct gateway behavior (throttle, CORS origins, integration, auth); every gateway resource, method, and Lambda permission counts toward the stack's 500-resource CloudFormation limit.
 - AWS CLI access is available in this environment. When debugging backend, AI, or SSE issues, prefer checking the exact Lambda log group first instead of inferring only from client symptoms.
 - For CloudWatch investigations, avoid complex OR filter patterns. Fetch fresh events first, then filter locally by `requestId` and chat error signals.
 - For live SSE issues, correlate the CloudWatch structured log, the `X-Request-Id` response header, and the client-visible error body.
