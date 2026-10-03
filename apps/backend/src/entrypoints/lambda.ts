@@ -228,7 +228,7 @@ export const handler = wrapBackendHandler(async (
       // Database/SDK exceptions can contain purchase tokens; the scheduler boundary is sanitized.
       throw new Error("Google scheduled reconciliation failed; inspect sanitized reconciliation diagnostics.");
     }
-    return { statusCode: 204, body: "", isBase64Encoded: false };
+    return { statusCode: 204, body: "", isBase64Encoded: false, headers: {} };
   }
   return backendApiBootstrapHandler(event, context);
 });
