@@ -19,8 +19,7 @@ test("community leaderboard snapshot is scheduled hourly", () => {
 test("community leaderboard construct creates the hourly schedule and snapshot Lambda", () => {
   const source = readLibSource("lib/scheduled-jobs/community-leaderboard.ts");
 
-  // A NodejsFunction whose entry is the leaderboard snapshot Lambda handler.
-  assert.match(source, /new lambdaNodejs\.NodejsFunction\(scope, "CommunityLeaderboardSnapshotHandler"/);
+  assert.match(source, /createCachedNodejsFunction\(scope, "CommunityLeaderboardSnapshotHandler"/);
   assert.match(
     source,
     /entry: resolveFromRepoRoot\("apps", "backend", "src", "entrypoints", "scheduledJobs", "lambda-community-leaderboard-snapshot\.ts"\)/,
@@ -32,7 +31,6 @@ test("community leaderboard construct creates the hourly schedule and snapshot L
   assert.equal(source.includes("REPORTING_DB_SECRET_ARN"), false);
   assert.equal(source.includes("s3.Bucket"), false);
 
-  // An hourly EventBridge schedule targeting the snapshot Lambda.
   assert.match(source, /new scheduler\.CfnSchedule\(scope, "CommunityLeaderboardSnapshotHourlySchedule"/);
   assert.match(source, /scheduleExpression: communityLeaderboardSnapshotScheduleExpression/);
   assert.match(source, /new iam\.Role\(scope, "CommunityLeaderboardSnapshotSchedulerRole"/);

@@ -1,3 +1,4 @@
+import { createCachedNodejsFunction } from "../lambda-input-cache";
 import * as cdk from "aws-cdk-lib";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as lambda from "aws-cdk-lib/aws-lambda";
@@ -105,7 +106,7 @@ export function publicEndpointHeartbeat(
 ): PublicEndpointHeartbeatResult {
   const targets = createPublicEndpointHeartbeatTargets(props.baseDomain, props.alternateHeartbeatHosts);
 
-  const heartbeatFunction = new lambdaNodejs.NodejsFunction(scope, "PublicEndpointHeartbeatHandler", {
+  const heartbeatFunction = createCachedNodejsFunction(scope, "PublicEndpointHeartbeatHandler", {
     entry: path.join(__dirname, "../../lambda/public-endpoint-heartbeat/index.ts"),
     handler: "handler",
     runtime: lambda.Runtime.NODEJS_24_X,

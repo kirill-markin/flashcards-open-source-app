@@ -1,3 +1,4 @@
+import { createCachedNodejsFunction } from "./lambda-input-cache";
 import * as cdk from "aws-cdk-lib";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as lambda from "aws-cdk-lib/aws-lambda";
@@ -10,7 +11,7 @@ import { backendNodejsProjectPaths, resolveFromRepoRoot } from "./nodejs-project
 import { backendStructuredLoggingProps } from "./backend-lambda-logging";
 import { createSentrySourceMapInjectionCommand } from "./sentry-source-maps";
 import { getLambdaSentryRelease } from "./lambda-sentry-release";
-import { createRdsCaBundleDownloadCommand } from "./rds-ca-bundle";
+import { createRdsCaBundleCopyCommand, rdsCaBundlePath } from "./rds-ca-bundle";
 
 export interface MigrationRunnerProps {
   vpc: ec2.Vpc;
@@ -60,7 +61,7 @@ const lambdaBundling: lambdaNodejs.BundlingOptions = {
     beforeBundling: () => [],
     beforeInstall: () => [],
     afterBundling: (_inputDir: string, outputDir: string) => [
-      createRdsCaBundleDownloadCommand(outputDir),
+      createRdsCaBundleCopyCommand(outputDir, rdsCaBundlePath),
       `mkdir -p ${outputDir}/db/migrations`,
       `mkdir -p ${outputDir}/db/views`,
       `cp ${dbAssetPaths.migrations}/*.sql ${outputDir}/db/migrations/`,
@@ -112,7 +113,7 @@ function addOptionalSentryEnvironment(
  * password configuration for the private application database.
  */
 export function migrationRunner(scope: Construct, props: MigrationRunnerProps): lambdaNodejs.NodejsFunction {
-  const migrationFn = new lambdaNodejs.NodejsFunction(scope, "DbMigrationHandler", {
+  const migrationFn = createCachedNodejsFunction(scope, "DbMigrationHandler", {
     entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "migrate-lambda.ts"),
     handler: "handler",
     runtime: lambda.Runtime.NODEJS_24_X,
@@ -123,6 +124,7 @@ export function migrationRunner(scope: Construct, props: MigrationRunnerProps): 
     vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
     securityGroups: [props.lambdaSg],
     ...backendNodejsProjectPaths,
+    copiedAssetPaths: [rdsCaBundlePath, dbAssetPaths.migrations, dbAssetPaths.views],
     bundling: lambdaBundling,
     environment: {
       NODE_EXTRA_CA_CERTS: "/var/task/rds-global-bundle.pem",

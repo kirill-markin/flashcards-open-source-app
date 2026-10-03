@@ -1,3 +1,4 @@
+import { createCachedNodejsFunction } from "../lambda-input-cache";
 import * as cdk from "aws-cdk-lib";
 import * as apigw from "aws-cdk-lib/aws-apigateway";
 import * as apigwv2 from "aws-cdk-lib/aws-apigatewayv2";
@@ -21,7 +22,7 @@ import {
 } from "../lambda-database-capacity";
 import { resolveMcpAlternateHost } from "../mcp-alternate-host";
 import { parsePublicOrigin } from "../public-origin";
-import { createRdsCaBundleDownloadCommand } from "../rds-ca-bundle";
+import { createRdsCaBundleCopyCommand, rdsCaBundlePath } from "../rds-ca-bundle";
 import { createSentrySourceMapInjectionCommand } from "../sentry-source-maps";
 import { getLambdaSentryRelease } from "../lambda-sentry-release";
 
@@ -98,7 +99,7 @@ const lambdaBundling: lambdaNodejs.BundlingOptions = {
     beforeBundling: () => [],
     beforeInstall: () => [],
     afterBundling: (_inputDir: string, outputDir: string) => [
-      createRdsCaBundleDownloadCommand(outputDir),
+      createRdsCaBundleCopyCommand(outputDir, rdsCaBundlePath),
       createSentrySourceMapInjectionCommand(outputDir),
     ],
   },
@@ -240,7 +241,7 @@ export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGateway
     "apiBaseUrl",
   );
 
-  const mcpFn = new lambdaNodejs.NodejsFunction(scope, "McpHandler", {
+  const mcpFn = createCachedNodejsFunction(scope, "McpHandler", {
     entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "lambda-mcp.ts"),
     handler: "handler",
     runtime: lambda.Runtime.NODEJS_24_X,
@@ -253,6 +254,7 @@ export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGateway
     vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
     securityGroups: [props.lambdaSg],
     ...backendNodejsProjectPaths,
+    copiedAssetPaths: [rdsCaBundlePath],
     bundling: lambdaBundling,
     environment: {
       NODE_EXTRA_CA_CERTS: "/var/task/rds-global-bundle.pem",
@@ -282,7 +284,7 @@ export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGateway
   props.backendDbSecret.grantRead(mcpFn);
   addOptionalSentryEnvironment(scope, mcpFn, props);
 
-  const dispatcherFn = new lambdaNodejs.NodejsFunction(scope, "McpDispatcher", {
+  const dispatcherFn = createCachedNodejsFunction(scope, "McpDispatcher", {
     entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "lambda-mcp-dispatcher.ts"),
     handler: "handler",
     runtime: lambda.Runtime.NODEJS_24_X,
