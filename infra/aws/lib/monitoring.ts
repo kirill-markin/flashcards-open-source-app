@@ -151,9 +151,14 @@ const geoLiteCountryDatabaseAgePeriodHours = 1;
 // system. Four days sits clear of both and leaves three days of lead time.
 const geoLiteCountryDatabasePublishedAgeThresholdHours = 4 * 24;
 
+// A Lambda throttle reaches REST clients as status 500 with integrationStatus 429; it is counted by
+// AuthLambdaThrottleAlarm instead.
 function createAuthApiAccessLog5xxFilterPattern(): logs.IFilterPattern {
-  return logs.FilterPattern.any(
-    ...authApiAccessLog5xxStatuses.map((status: string) => logs.FilterPattern.stringValue("$.status", "=", status)),
+  return logs.FilterPattern.all(
+    logs.FilterPattern.any(
+      ...authApiAccessLog5xxStatuses.map((status: string) => logs.FilterPattern.stringValue("$.status", "=", status)),
+    ),
+    logs.FilterPattern.stringValue("$.integrationStatus", "!=", "429"),
   );
 }
 
@@ -332,11 +337,12 @@ export function monitoring(scope: Construct, props: MonitoringProps): void {
     treatMissingData: cloudwatch.TreatMissingData.BREACHING,
   }), alertTopic);
 
-  // Both auth 5xx alarms need two consecutive periods. A saturated authHandlerReservedConcurrency
+  // This alarm needs two consecutive periods. A saturated authHandlerReservedConcurrency
   // reservation surfaces as an API Gateway 500 whose integrationStatus is 429, which
   // infra/aws/lib/gateways/api-gateway.ts documents as the intended bounded rejection protecting the
-  // Postgres connection budget, so a crawler burst contained in one five-minute period is that bound
-  // working rather than an incident. Auth failure that outlasts a burst still pages here, and an
+  // Postgres connection budget, so a throttle burst contained in one five-minute period and below
+  // AuthLambdaThrottleAlarm's threshold is that bound working rather than an incident; a larger burst
+  // pages through AuthLambdaThrottleAlarm. Auth failure that outlasts a burst still pages here, and an
   // auth host that stops serving pages through the public-endpoint heartbeat alarm on
   // auth.<baseDomain> within fifteen minutes.
   notifyAlertTopic(new cloudwatch.Alarm(scope, "AuthApiGateway5xxAlarm", {
@@ -468,7 +474,23 @@ export function monitoring(scope: Construct, props: MonitoringProps): void {
     evaluationPeriods: 2,
     datapointsToAlarm: 2,
     alarmDescription:
-      "Auth API access logs include a 5xx response in each of two consecutive 5-minute periods",
+      "Auth API access logs include a non-throttle 5xx response in each of two consecutive " +
+      "5-minute periods; Lambda throttles (integrationStatus 429) are counted by AuthLambdaThrottleAlarm",
+    treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+  }), alertTopic);
+
+  // Each throttle is a client-visible 500 on the auth REST API. Ten in five minutes separates a
+  // sustained capacity problem from a brief agent-fleet burst, and the OAuth discovery GETs such
+  // fleets send are answered by API Gateway without reaching this Lambda
+  // (infra/aws/lib/gateways/auth-gateway.ts).
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "AuthLambdaThrottleAlarm", {
+    metric: props.authFn.metricThrottles({
+      period: cdk.Duration.minutes(5),
+      statistic: "Sum",
+    }),
+    threshold: 10,
+    evaluationPeriods: 1,
+    alarmDescription: "Auth Lambda was throttled 10+ times in a 5-minute period",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
   }), alertTopic);
 
