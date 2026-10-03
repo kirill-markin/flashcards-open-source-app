@@ -21,6 +21,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -120,6 +121,7 @@ import kotlinx.coroutines.launch
 
 private const val startupLoadingTag: String = "app.startupLoading"
 private const val startupErrorTag: String = "app.startupError"
+internal const val appSnackbarTag: String = "app.snackbar"
 internal const val accountDeletionBlockingTechnicalDetailsTag: String =
     "accountDeletionBlocking.technicalDetails"
 
@@ -273,7 +275,12 @@ fun FlashcardsApp(
                     modifier = Modifier
                         .align(alignment = Alignment.BottomCenter)
                         .padding(horizontal = 16.dp, vertical = 24.dp)
-                )
+                ) { snackbarData ->
+                    Snackbar(
+                        snackbarData = snackbarData,
+                        modifier = Modifier.testTag(appSnackbarTag)
+                    )
+                }
                 AppTechnicalErrorDialogHost(
                     error = displayedTechnicalError,
                     onDismiss = dismissDisplayedTechnicalError
@@ -728,7 +735,12 @@ fun FlashcardsApp(
                     modifier = Modifier
                         .align(alignment = Alignment.BottomCenter)
                         .padding(horizontal = 16.dp, vertical = 24.dp)
-                )
+                ) { snackbarData ->
+                    Snackbar(
+                        snackbarData = snackbarData,
+                        modifier = Modifier.testTag(appSnackbarTag)
+                    )
+                }
                 AccountDeletionBlockingSurface(
                     accountDeletionState = accountDeletionState,
                     onShowTechnicalDetails = { technicalDetails, reportId ->
