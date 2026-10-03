@@ -100,11 +100,16 @@ test("release disables cleanup until the latest migration is confirmed", () => {
     "../../scripts/deploy/bootstrap.sh",
   ]) {
     const source = readSource(relativePath);
+    const isWorkflow = relativePath.endsWith(".yml");
     const disabled = source.indexOf(
-      "generatedMediaPromotionScheduleState=DISABLED",
+      isWorkflow
+        ? 'generatedMediaPromotionScheduleState="${schedule_state}"'
+        : "generatedMediaPromotionScheduleState=DISABLED",
     );
     const cleanupDisabled = source.indexOf(
-      "mediaBlobCleanupEnabled=false",
+      isWorkflow
+        ? 'mediaBlobCleanupEnabled="${cleanup_enabled}"'
+        : "mediaBlobCleanupEnabled=false",
     );
     const migration = source.indexOf("--require-latest-migration");
     const enabled = source.indexOf(
@@ -117,6 +122,16 @@ test("release disables cleanup until the latest migration is confirmed", () => {
       "check-multipart-completion-reconciliation-schedule.sh",
       enabled,
     );
+    if (isWorkflow) {
+      assert.match(
+        source.slice(0, disabled),
+        /STAGED_PLATFORM: \$\{\{ needs\.changes\.outputs\.staged_platform \}\}/u,
+      );
+      assert.match(
+        source.slice(0, disabled),
+        /schedule_state=ENABLED\s+cleanup_enabled=true\s+if \[\[ "\$\{STAGED_PLATFORM\}" == "true" \]\]; then\s+schedule_state=DISABLED\s+cleanup_enabled=false\s+fi/u,
+      );
+    }
     assert.ok(disabled >= 0);
     assert.ok(cleanupDisabled > disabled);
     assert.ok(cleanupDisabled < migration);

@@ -203,7 +203,7 @@ test("release deploys migration-gated runtime disabled, verifies migrations, the
     "../../.github/workflows/aws-web-release.yml",
   );
   const disabledDeploy = workflow.indexOf(
-    "multipartCompletionReconciliationScheduleState=DISABLED",
+    'multipartCompletionReconciliationScheduleState="${schedule_state}"',
   );
   const requiredMigration = workflow.indexOf("--require-latest-migration");
   const enabledDeploy = workflow.indexOf(
@@ -220,15 +220,27 @@ test("release deploys migration-gated runtime disabled, verifies migrations, the
   assert.ok(scheduleVerification > enabledDeploy);
   assert.match(
     workflow,
-    /name: CDK deploy with migration-gated runtime and reconciliation schedule disabled/,
+    /name: CDK deploy with selected cleanup state\s+if: \$\{\{ needs\.changes\.outputs\.deploy_platform == 'true' \}\}/,
+  );
+  assert.match(
+    workflow.slice(0, disabledDeploy),
+    /STAGED_PLATFORM: \$\{\{ needs\.changes\.outputs\.staged_platform \}\}/,
+  );
+  assert.match(
+    workflow.slice(0, disabledDeploy),
+    /schedule_state=ENABLED\s+cleanup_enabled=true\s+if \[\[ "\$\{STAGED_PLATFORM\}" == "true" \]\]; then\s+schedule_state=DISABLED\s+cleanup_enabled=false\s+fi/,
   );
   assert.match(
     workflow,
-    /name: Verify required database migration/,
+    /name: Verify required database migration\s+if: \$\{\{ needs\.changes\.outputs\.deploy_platform == 'true' \}\}/,
+  );
+  assert.match(
+    workflow.slice(requiredMigration, enabledDeploy),
+    /name: CDK deploy with reconciliation schedule enabled\s+if: \$\{\{ needs\.changes\.outputs\.deploy_platform == 'true' && needs\.changes\.outputs\.staged_platform == 'true' \}\}/,
   );
   assert.match(
     workflow,
-    /name: Verify cleanup-capable reconciliation schedules are enabled/,
+    /name: Verify cleanup-capable reconciliation schedules are enabled\s+if: \$\{\{ needs\.changes\.outputs\.deploy_platform == 'true' \}\}/,
   );
 
   const stackSource = readLibSource("lib/stack.ts");
