@@ -763,6 +763,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "Denne kortstokken har ingen regler, så den inkluderer alle kort.";
 "settings.workspace.decks.section.matchingCards" = "Samsvarende kort";
 "settings.workspace.decks.deleteDeck" = "Slett kortstokk";
+"settings.workspace.decks.deleteConfirmation.title" = "Slette «%@»?";
+"settings.workspace.decks.deleteConfirmation.message" = "Kortene dine beholdes. Dette fjerner bare det lagrede filteret for kortstokken.";
 "settings.workspace.decks.deck" = "Kortstokk";
 "settings.workspace.decks.editDeck" = "Rediger kortstokk";
 "settings.workspace.decks.notFound" = "Fant ikke kortstokken.";

@@ -1,10 +1,12 @@
 package com.flashcardsopensourceapp.feature.settings.deck
 
+import com.flashcardsopensourceapp.core.ui.deckNameComparator
 import com.flashcardsopensourceapp.data.local.model.cards.DeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.cards.DeckSummary
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceOverviewSummary
 import com.flashcardsopensourceapp.feature.settings.R
 import com.flashcardsopensourceapp.feature.settings.SettingsStringResolver
+import java.util.Locale
 
 internal fun filterDeckEntries(
     deckEntries: List<DeckListEntryUiState>,
@@ -24,11 +26,18 @@ internal fun filterDeckEntries(
 
 internal fun buildDeckListEntries(
     decks: List<DeckSummary>,
+    locale: Locale,
     overview: WorkspaceOverviewSummary?,
     strings: SettingsStringResolver
 ): List<DeckListEntryUiState> {
     val allCardsEntry = buildAllCardsDeckListEntry(overview = overview, strings = strings)
-    val persistedDeckEntries = decks.map { deck ->
+    val persistedDeckEntries = decks.sortedWith(
+        deckNameComparator(
+            locale = locale,
+            name = DeckSummary::name,
+            deckId = DeckSummary::deckId
+        )
+    ).map { deck ->
         DeckListEntryUiState(
             target = DeckListTargetUiState.PersistedDeck(deckId = deck.deckId),
             title = deck.name,

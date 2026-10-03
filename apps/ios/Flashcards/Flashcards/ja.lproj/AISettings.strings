@@ -788,6 +788,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "このデッキにはルールがないため、すべてのカードが含まれます。";
 "settings.workspace.decks.section.matchingCards" = "一致するカード";
 "settings.workspace.decks.deleteDeck" = "デッキを削除";
+"settings.workspace.decks.deleteConfirmation.title" = "「%@」を削除しますか？";
+"settings.workspace.decks.deleteConfirmation.message" = "カードは削除されません。保存されたデッキのフィルターのみが削除されます。";
 "settings.workspace.decks.deck" = "デッキ";
 "settings.workspace.decks.editDeck" = "デッキを編集";
 "settings.workspace.decks.notFound" = "デッキが見つかりませんでした。";

@@ -763,6 +763,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "Ovaj špil nema pravila pa uključuje sve kartice.";
 "settings.workspace.decks.section.matchingCards" = "Odgovarajuće kartice";
 "settings.workspace.decks.deleteDeck" = "Izbriši špil";
+"settings.workspace.decks.deleteConfirmation.title" = "Izbrisati „%@“?";
+"settings.workspace.decks.deleteConfirmation.message" = "Vaše će kartice ostati sačuvane. Uklanja se samo spremljeni filtar špila.";
 "settings.workspace.decks.deck" = "Špil";
 "settings.workspace.decks.editDeck" = "Uredi špil";
 "settings.workspace.decks.notFound" = "Špil nije pronađen.";

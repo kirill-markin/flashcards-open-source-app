@@ -788,6 +788,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "У этой колоды нет правил, поэтому она включает все карточки.";
 "settings.workspace.decks.section.matchingCards" = "Соответствующие карты";
 "settings.workspace.decks.deleteDeck" = "Удалить колоду";
+"settings.workspace.decks.deleteConfirmation.title" = "Удалить «%@»?";
+"settings.workspace.decks.deleteConfirmation.message" = "Ваши карточки останутся. Будет удалён только сохранённый фильтр колоды.";
 "settings.workspace.decks.deck" = "Молоток";
 "settings.workspace.decks.editDeck" = "Редактировать колоду";
 "settings.workspace.decks.notFound" = "Колода не найдена.";

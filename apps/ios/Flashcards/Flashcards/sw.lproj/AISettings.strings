@@ -763,6 +763,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "Fungu hili halina kanuni, kwa hiyo linajumuisha kadi zote.";
 "settings.workspace.decks.section.matchingCards" = "Kadi zinazolingana";
 "settings.workspace.decks.deleteDeck" = "Futa fungu";
+"settings.workspace.decks.deleteConfirmation.title" = "Ufute “%@”?";
+"settings.workspace.decks.deleteConfirmation.message" = "Kadi zako zitabaki. Hii inaondoa tu kichujio kilichohifadhiwa cha fungu.";
 "settings.workspace.decks.deck" = "Fungu";
 "settings.workspace.decks.editDeck" = "Hariri fungu";
 "settings.workspace.decks.notFound" = "Fungu halikupatikana.";

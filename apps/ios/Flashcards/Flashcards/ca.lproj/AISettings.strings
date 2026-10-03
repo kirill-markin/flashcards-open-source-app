@@ -763,6 +763,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "Aquesta baralla no té regles, de manera que inclou totes les targetes.";
 "settings.workspace.decks.section.matchingCards" = "Targetes coincidents";
 "settings.workspace.decks.deleteDeck" = "Elimina la baralla";
+"settings.workspace.decks.deleteConfirmation.title" = "Vols eliminar «%@»?";
+"settings.workspace.decks.deleteConfirmation.message" = "Les targetes es conservaran. Només se suprimirà el filtre desat de la baralla.";
 "settings.workspace.decks.deck" = "Baralla";
 "settings.workspace.decks.editDeck" = "Edita la baralla";
 "settings.workspace.decks.notFound" = "No s’ha trobat la baralla.";

@@ -763,6 +763,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "এই ডেকের কোনো নিয়ম নেই, তাই এতে সব কার্ড অন্তর্ভুক্ত।";
 "settings.workspace.decks.section.matchingCards" = "ম্যাচিং কার্ড";
 "settings.workspace.decks.deleteDeck" = "ডেক মুছুন";
+"settings.workspace.decks.deleteConfirmation.title" = "“%@” মুছবেন?";
+"settings.workspace.decks.deleteConfirmation.message" = "আপনার কার্ডগুলো থেকে যাবে। এতে শুধু সংরক্ষিত ডেক ফিল্টারটি সরানো হবে।";
 "settings.workspace.decks.deck" = "ডেক";
 "settings.workspace.decks.editDeck" = "ডেক সম্পাদনা করুন";
 "settings.workspace.decks.notFound" = "ডেক পাওয়া যায়নি।";

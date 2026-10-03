@@ -763,6 +763,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "Ця колода не має правил, тому містить усі картки.";
 "settings.workspace.decks.section.matchingCards" = "Відповідні картки";
 "settings.workspace.decks.deleteDeck" = "Видалити колоду";
+"settings.workspace.decks.deleteConfirmation.title" = "Видалити «%@»?";
+"settings.workspace.decks.deleteConfirmation.message" = "Ваші картки залишаться. Буде видалено лише збережений фільтр колоди.";
 "settings.workspace.decks.deck" = "Колода";
 "settings.workspace.decks.editDeck" = "Редагувати колоду";
 "settings.workspace.decks.notFound" = "Колоду не знайдено.";

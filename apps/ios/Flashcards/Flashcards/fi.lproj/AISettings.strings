@@ -763,6 +763,8 @@
 "settings.workspace.decks.emptyRulesIncludesAllCards" = "Tällä pakalla ei ole sääntöjä, joten se sisältää kaikki kortit.";
 "settings.workspace.decks.section.matchingCards" = "Vastaavat kortit";
 "settings.workspace.decks.deleteDeck" = "Poista pakka";
+"settings.workspace.decks.deleteConfirmation.title" = "Poistetaanko ”%@”?";
+"settings.workspace.decks.deleteConfirmation.message" = "Korttisi säilyvät. Vain pakan tallennettu suodatin poistetaan.";
 "settings.workspace.decks.deck" = "Pakka";
 "settings.workspace.decks.editDeck" = "Muokkaa pakkaa";
 "settings.workspace.decks.notFound" = "Pakkaa ei löytynyt.";
