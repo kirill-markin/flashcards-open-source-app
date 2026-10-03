@@ -199,3 +199,29 @@ export async function abandonStripeCheckoutAttemptInExecutor(
   [attempt.attemptId, attempt.environment, attempt.userId]);
   if (result.rowCount !== 1) storageConflict();
 }
+
+// Caller has locked every live profile before entering the identity/Checkout portion of the order.
+export async function lockStripePersonIdentitiesInExecutor(
+  executor: DatabaseExecutor, userIds: ReadonlyArray<string>,
+): Promise<ReadonlyArray<StripeCustomerIdentity>> {
+  const identities = await executor.query<IdentityRow>(`SELECT identity_id, environment, user_id, customer_id,
+    is_primary, created_at, account_deleted_at FROM billing.stripe_customer_identities
+    WHERE user_id = ANY($1::text[]) AND account_deleted_at IS NULL
+    ORDER BY identity_id FOR UPDATE`, [userIds]);
+  if (identities.rows.length === 0) return [];
+  await executor.query(`SELECT attempt_id FROM billing.stripe_checkout_attempts
+    WHERE identity_id = ANY($1::uuid[]) ORDER BY attempt_id FOR UPDATE`,
+  [identities.rows.map((identity) => identity.identity_id)]);
+  return identities.rows.map(toIdentity);
+}
+
+export async function listStripeCheckoutAttemptsInExecutor(
+  executor: DatabaseExecutor, identity: StripeCustomerIdentity,
+): Promise<ReadonlyArray<StripeCheckoutAttempt>> {
+  const result = await executor.query<CheckoutRow>(`SELECT ${checkoutColumns}
+    FROM billing.stripe_checkout_attempts AS attempt JOIN billing.stripe_customer_identities AS identity
+      USING (identity_id, environment)
+    WHERE attempt.identity_id = $1 AND attempt.environment = $2 AND attempt.account_deleted_at IS NULL
+    ORDER BY attempt.created_at, attempt.attempt_id`, [identity.identityId, identity.environment]);
+  return result.rows.map(toCheckout);
+}
