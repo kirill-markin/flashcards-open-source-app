@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import { stripeCheckoutCustomText } from "./checkoutPresentation";
 import { z } from "zod";
 import { loadStripeEnvironmentSecret, parseStripeBillingSecret } from "./config";
 import {
@@ -187,11 +188,13 @@ export class StripeProvider {
       automatic_tax: { enabled: true }, adaptive_pricing: { enabled: true },
       payment_method_collection: "always", customer_update: { address: "auto", name: "auto" },
       branding_settings: { display_name: "Nibomo", icon: { type: "file", file: this.#catalog.iconFileId } },
-      subscription_data: { metadata, ...(attempt.trialDays === 7 ? {
+      subscription_data: { metadata, billing_mode: { type: "flexible" }, ...(attempt.trialDays === 7 ? {
         trial_period_days: 7, trial_settings: { end_behavior: { missing_payment_method: "cancel" } },
       } : {}) },
+      custom_text: stripeCheckoutCustomText(attempt.locale),
       metadata, locale: attempt.locale, expires_at: Math.floor(attempt.expiresAt.getTime() / 1000),
-      success_url: stripeCheckoutSuccessUrl, cancel_url: stripeSubscriptionReturnUrl,
+      success_url: `${stripeCheckoutSuccessUrl}&checkout=success&checkout_attempt_id=${attempt.attemptId}`,
+      cancel_url: `${stripeSubscriptionReturnUrl}?checkout=cancelled&checkout_attempt_id=${attempt.attemptId}`,
     }, { idempotencyKey: `nibomo:checkout:${this.environment}:${attempt.attemptId}` }));
     requireMatch(session.client_reference_id === attempt.attemptId);
     return this.validateCheckout(session, attempt.customerId);
@@ -205,11 +208,14 @@ export class StripeProvider {
     return this.validateCheckout(expired, customerId);
   }
 
-  async createPortal(customerId: string, operationId: string): Promise<Stripe.BillingPortal.Session> {
+  async createPortal(
+    customerId: string, operationId: string, locale: Stripe.BillingPortal.SessionCreateParams.Locale,
+  ): Promise<Stripe.BillingPortal.Session> {
     requireMatch(z.uuid().safeParse(operationId).success);
     await this.retrieveCustomer(customerId);
     const session = await callStripe("create portal", () => this.#client.billingPortal.sessions.create({
-      customer: customerId, configuration: this.#catalog.portalConfigurationId, return_url: stripeSubscriptionReturnUrl,
+      customer: customerId, configuration: this.#catalog.portalConfigurationId, locale,
+      return_url: `${stripeSubscriptionReturnUrl}?portal=returned`,
     }, { idempotencyKey: `nibomo:portal:${this.environment}:${operationId}` }));
     requireMatch(session.customer === customerId && objectId(session.configuration) === this.#catalog.portalConfigurationId);
     return session;
@@ -241,6 +247,28 @@ export class StripeProvider {
         }
       }
       return result;
+    });
+  }
+
+  // Trial eligibility belongs to the customer, even if another product once granted its trial.
+  async retrieveFirstCustomerTrial(
+    customerId: string,
+  ): Promise<Readonly<{ subscriptionId: string; consumedAt: Date }> | null> {
+    return callStripe("retrieve customer trial history", async () => {
+      let earliest: Readonly<{ subscriptionId: string; consumedAt: Date }> | null = null;
+      for await (const subscription of this.#client.subscriptions.list({ customer: customerId, status: "all", limit: 100 })) {
+        this.requireEnvironment(subscription);
+        requireMatch(objectId(subscription.customer) === customerId);
+        const start = subscription.trial_start;
+        const end = subscription.trial_end;
+        if (start === null || end === null || end <= start || start * 1000 > Date.now()) continue;
+        requireMatch(Number.isSafeInteger(start) && Number.isSafeInteger(end) && start > 0);
+        const consumedAt = new Date(start * 1000);
+        if (earliest === null || consumedAt.getTime() < earliest.consumedAt.getTime()) {
+          earliest = { subscriptionId: subscription.id, consumedAt };
+        }
+      }
+      return earliest;
     });
   }
 
