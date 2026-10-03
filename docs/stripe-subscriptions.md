@@ -79,14 +79,14 @@ rendering or email delivery. Those require the real acceptance flows below.
 ## Authoritative copy and localization
 
 [locales/en.json](../apps/backend/src/billing/stripe/copy/locales/en.json) is the single English
-source: **51 keys**, each mapping directly to one string. All 50 canonical maps
+source: **55 keys**, each mapping directly to one string. All 50 canonical maps
 live in [backend copy sources](../apps/backend/src/billing/stripe/copy/locales/).
 Each [web locale catalog](../apps/web/src/i18n/catalogs/) imports its own map;
 the [typed adapter](../apps/web/src/i18n/stripeCatalog.ts) exposes nested keys such
 as `stripe.offer.title`. English remains in the app shell and other languages
 retain their lazy locale chunks. Catalog availability does not enable Checkout
 or replace the existing Premium placeholder. The map also supplies product,
-portal, tax, trial, allowance-window, reminder-email and deletion copy.
+portal, tax, trial, allowance-window, reminder-email, receipt-email and deletion copy.
 
 | Key family | Count | Use |
 | --- | --- | --- |
@@ -99,17 +99,19 @@ portal, tax, trial, allowance-window, reminder-email and deletion copy.
 | `common.*` | 1 | Close action |
 | `checkout.*` | 5 | Opening, confirmation, delayed and interrupted return states |
 | `subscription.*` | 12 | Refresh/manage actions, provider, dates, cancellation, payment and access status |
-| `email.*` | 2 | Future Nibomo-specific trial-reminder subject and body |
+| `email.*` | 6 | Prepared Nibomo-specific trial-reminder, payment-receipt and refund-receipt subjects and bodies |
 | `deletion.*` | 3 | Warning, cancellation progress and failure |
 
 Keep `{count}`, `{price}`, `{date}`, `{provider}` and `{url}` verbatim in translations.
 `{count}` is a locale-formatted backend allowance (currently 1000 for Premium and
 lifetime); Stripe product text is rendered with that selected offer value before
 upload, never with a literal placeholder. `{price}` is the provider-derived,
-locale-formatted amount and currency for the offer or renewal being described.
+locale-formatted amount and currency for the offer or renewal being described,
+or the actual successful payment/refund amount in receipt emails.
 `{date}` is a locale-formatted server/provider date; `{provider}` is the relevant
-store name. `{url}` is the allowlisted absolute Subscription settings URL below,
-never a customer-supplied redirect. Do not hardcode USD formatting in translated copy. The canonical maps
+store name. `{url}` is the allowlisted absolute Subscription settings URL below
+or, in receipt emails, a trusted provider receipt/invoice URL; never a customer-supplied
+redirect. Do not hardcode USD formatting in translated copy. The canonical maps
 use single braces; the web adapter converts them to the `{{token}}` convention
 used by the [web localization runtime](../apps/web/src/i18n/runtime.ts).
 
@@ -126,14 +128,14 @@ does not enable that limit. Own-key copy belongs in the AI allowance context.
 `deletion.*` supplements the app’s existing account/data-deletion confirmation and
 must ship only with the cancellation behavior below. Technical errors follow the
 web app’s actionable error presentation without exposing raw provider responses.
-`email.*` prepares a future Nibomo-specific trial reminder with actual trial end,
-renewal price and management URL. It does not send mail or enable shared Stripe
-reminders; the sending mechanism and schedule remain integration work.
+`email.*` prepares Nibomo-specific trial reminders and receipts for successful
+payments and refunds. It does not send mail or enable shared Stripe emails;
+the sending mechanism and schedule remain integration work.
 
 ### Verified locale files
 
 The inventory is the 50 tags in [supportedLocales](../apps/web/src/i18n/types.ts).
-English and all 49 translations are present: **51 keys × 50 locales = 2550
+English and all 49 translations are present: **55 keys × 50 locales = 2750
 entries**, with matching key sets and placeholder tokens. The web catalogs consume
 these maps with each locale's Premium and billing terminology.
 

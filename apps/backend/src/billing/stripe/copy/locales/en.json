@@ -47,6 +47,10 @@
   "offer.allowanceWindow": "Your AI message allowance resets each calendar month in UTC, independently of your billing date.",
   "email.trialReminderSubject": "Your Nibomo Premium trial ends soon",
   "email.trialReminderBody": "Your Nibomo Premium free trial ends on {date}. After the trial, your subscription renews automatically at {price} per month, including applicable taxes. To avoid the first charge, cancel before the trial ends. Manage or cancel your subscription in Subscription settings: {url}",
+  "email.paymentReceiptSubject": "Nibomo payment receipt",
+  "email.paymentReceiptBody": "Your payment of {price} was received. View your receipt: {url}",
+  "email.refundReceiptSubject": "Nibomo refund receipt",
+  "email.refundReceiptBody": "Your refund of {price} was issued. View details: {url}",
   "deletion.warning": "Deleting your Nibomo account cancels future renewals of your Nibomo subscriptions billed through Stripe. You will lose access to this account. Subscriptions billed through Apple or Google must be canceled separately through that provider.",
   "deletion.cancelling": "Canceling your Stripe subscription renewals before deleting your account...",
   "deletion.cancellationFailed": "We couldn't confirm cancellation of your Stripe subscription renewals. Your account has not been deleted. Try again or contact support."

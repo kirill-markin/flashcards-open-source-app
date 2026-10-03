@@ -47,6 +47,10 @@
   "offer.allowanceWindow": "Vaša kvota sporočil UI se obnovi vsak koledarski mesec po času UTC, neodvisno od datuma obračuna.",
   "email.trialReminderSubject": "Vaše preizkusno obdobje Nibomo Premium se kmalu konča",
   "email.trialReminderBody": "Vaše brezplačno preizkusno obdobje Nibomo Premium se konča {date}. Po preizkusnem obdobju se naročnina samodejno obnavlja po ceni {price} na mesec, vključno z veljavnimi davki. Da se izognete prvemu plačilu, jo prekličite pred koncem preizkusnega obdobja. Upravljajte ali prekličite naročnino v nastavitvah naročnine: {url}",
+  "email.paymentReceiptSubject": "Potrdilo o plačilu za Nibomo",
+  "email.paymentReceiptBody": "Prejeli smo vaše plačilo v višini {price}. Oglejte si potrdilo: {url}",
+  "email.refundReceiptSubject": "Potrdilo o vračilu za Nibomo",
+  "email.refundReceiptBody": "Izvedli smo vam vračilo v višini {price}. Oglejte si podrobnosti: {url}",
   "deletion.warning": "Z izbrisom računa Nibomo prekličete prihodnje obnovitve svojih naročnin Nibomo, ki se zaračunavajo prek Stripe. Izgubili boste dostop do tega računa. Naročnine, ki se zaračunavajo prek Appla ali Googla, morate preklicati ločeno pri ustreznem ponudniku.",
   "deletion.cancelling": "Preklicevanje obnovitev vaših naročnin Stripe pred izbrisom računa...",
   "deletion.cancellationFailed": "Preklica obnovitev vaših naročnin Stripe nismo mogli potrditi. Vaš račun ni bil izbrisan. Poskusite znova ali se obrnite na podporo."

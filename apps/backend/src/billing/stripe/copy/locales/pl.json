@@ -47,6 +47,10 @@
   "offer.allowanceWindow": "Limit wiadomości AI resetuje się na początku każdego miesiąca kalendarzowego według UTC, niezależnie od daty rozliczenia.",
   "email.trialReminderSubject": "Twój okres próbny Nibomo Premium wkrótce się kończy",
   "email.trialReminderBody": "Twój bezpłatny okres próbny Nibomo Premium kończy się {date}. Po nim subskrypcja będzie odnawiać się automatycznie w cenie {price} miesięcznie, z uwzględnieniem należnych podatków. Aby uniknąć pierwszej opłaty, anuluj subskrypcję przed końcem okresu próbnego. Zarządzaj subskrypcją lub anuluj ją w ustawieniach subskrypcji: {url}",
+  "email.paymentReceiptSubject": "Potwierdzenie płatności Nibomo",
+  "email.paymentReceiptBody": "Otrzymaliśmy Twoją płatność w wysokości {price}. Zobacz potwierdzenie: {url}",
+  "email.refundReceiptSubject": "Potwierdzenie zwrotu Nibomo",
+  "email.refundReceiptBody": "Zleciliśmy Twój zwrot w wysokości {price}. Zobacz szczegóły: {url}",
   "deletion.warning": "Usunięcie konta Nibomo anuluje przyszłe odnowienia Twoich subskrypcji Nibomo rozliczanych przez Stripe. Utracisz dostęp do tego konta. Subskrypcje rozliczane przez Apple lub Google trzeba anulować osobno u danego dostawcy.",
   "deletion.cancelling": "Anulowanie odnowień subskrypcji Stripe przed usunięciem konta...",
   "deletion.cancellationFailed": "Nie udało się potwierdzić anulowania odnowień Twoich subskrypcji Stripe. Twoje konto nie zostało usunięte. Spróbuj ponownie lub skontaktuj się z pomocą techniczną."

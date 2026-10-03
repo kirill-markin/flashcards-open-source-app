@@ -47,6 +47,10 @@
   "offer.allowanceWindow": "Sinu tehisaru sõnumite kvoot taastub igal kalendrikuul UTC järgi, sõltumata arvelduskuupäevast.",
   "email.trialReminderSubject": "Sinu Nibomo Premiumi prooviperiood lõpeb peagi",
   "email.trialReminderBody": "Sinu Nibomo Premiumi tasuta prooviperiood lõpeb {date}. Pärast prooviperioodi uueneb tellimus automaatselt hinnaga {price} kuus koos kohaldatavate maksudega. Esimese makse vältimiseks tühista tellimus enne prooviperioodi lõppu. Halda või tühista oma tellimus tellimuse seadetes: {url}",
+  "email.paymentReceiptSubject": "Nibomo maksekviitung",
+  "email.paymentReceiptBody": "Saime sinu makse summas {price}. Vaata kviitungit: {url}",
+  "email.refundReceiptSubject": "Nibomo tagasimakse kviitung",
+  "email.refundReceiptBody": "Sulle on tehtud tagasimakse summas {price}. Vaata üksikasju: {url}",
   "deletion.warning": "Nibomo konto kustutamine tühistab sinu Stripe'i kaudu arveldatavate Nibomo tellimuste tulevased uuendamised. Kaotad ligipääsu sellele kontole. Apple'i või Google'i kaudu arveldatavad tellimused tuleb tühistada eraldi vastava teenusepakkuja kaudu.",
   "deletion.cancelling": "Sinu Stripe'i tellimuste uuendamiste tühistamine enne konto kustutamist...",
   "deletion.cancellationFailed": "Me ei saanud kinnitada sinu Stripe'i tellimuste uuendamiste tühistamist. Sinu kontot ei ole kustutatud. Proovi uuesti või võta ühendust klienditoega."

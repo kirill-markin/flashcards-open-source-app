@@ -82,6 +82,10 @@ export function createStripeCatalog(copy: StripeCopy): StripeCatalog {
     email: {
       trialReminderSubject: formatStripeMessage(copy["email.trialReminderSubject"]),
       trialReminderBody: formatStripeMessage(copy["email.trialReminderBody"]),
+      paymentReceiptSubject: formatStripeMessage(copy["email.paymentReceiptSubject"]),
+      paymentReceiptBody: formatStripeMessage(copy["email.paymentReceiptBody"]),
+      refundReceiptSubject: formatStripeMessage(copy["email.refundReceiptSubject"]),
+      refundReceiptBody: formatStripeMessage(copy["email.refundReceiptBody"]),
     },
     deletion: {
       warning: formatStripeMessage(copy["deletion.warning"]),

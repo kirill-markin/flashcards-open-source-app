@@ -47,6 +47,10 @@
   "offer.allowanceWindow": "AIメッセージの利用枠は請求日とは関係なく、UTCの暦月の初めに毎月リセットされます。",
   "email.trialReminderSubject": "Nibomo Premiumのトライアルがまもなく終了します",
   "email.trialReminderBody": "Nibomo Premiumの無料トライアルは{date}に終了します。その後、サブスクリプションは適用される税金を含む月額{price}で自動更新されます。初回の請求を避けるには、トライアル終了前に解約してください。サブスクリプション設定で管理または解約できます：{url}",
+  "email.paymentReceiptSubject": "Nibomoのお支払い領収書",
+  "email.paymentReceiptBody": "{price}のお支払いを受領しました。領収書をご確認ください：{url}",
+  "email.refundReceiptSubject": "Nibomoの返金明細",
+  "email.refundReceiptBody": "{price}の返金処理が完了しました。詳細をご確認ください：{url}",
   "deletion.warning": "Nibomoアカウントを削除すると、Stripe経由で請求されるNibomoサブスクリプションの今後の更新が停止されます。このアカウントにはアクセスできなくなります。AppleまたはGoogle経由で請求されるサブスクリプションは、それぞれのサービスで別途解約する必要があります。",
   "deletion.cancelling": "アカウントの削除前に、Stripeサブスクリプションの更新を停止しています...",
   "deletion.cancellationFailed": "Stripeサブスクリプションの更新停止を確認できませんでした。アカウントは削除されていません。再試行するか、サポートにお問い合わせください。"

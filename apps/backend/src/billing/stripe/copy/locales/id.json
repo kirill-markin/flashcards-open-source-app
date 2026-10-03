@@ -47,6 +47,10 @@
   "offer.allowanceWindow": "Kuota pesan AI Anda direset pada awal setiap bulan kalender dalam UTC, terlepas dari tanggal penagihan.",
   "email.trialReminderSubject": "Uji coba Nibomo Premium Anda segera berakhir",
   "email.trialReminderBody": "Uji coba gratis Nibomo Premium Anda berakhir pada {date}. Setelah uji coba, langganan Anda diperpanjang otomatis dengan biaya {price} per bulan, termasuk pajak yang berlaku. Untuk menghindari tagihan pertama, batalkan sebelum masa uji coba berakhir. Kelola atau batalkan langganan melalui pengaturan Langganan: {url}",
+  "email.paymentReceiptSubject": "Bukti pembayaran Nibomo",
+  "email.paymentReceiptBody": "Pembayaran Anda sebesar {price} telah diterima. Lihat bukti pembayaran: {url}",
+  "email.refundReceiptSubject": "Bukti pengembalian dana Nibomo",
+  "email.refundReceiptBody": "Pengembalian dana Anda sebesar {price} telah diproses. Lihat detail: {url}",
   "deletion.warning": "Menghapus akun Nibomo akan membatalkan perpanjangan berikutnya dari langganan Nibomo Anda yang ditagih melalui Stripe. Anda akan kehilangan akses ke akun ini. Langganan yang ditagih melalui Apple atau Google harus dibatalkan secara terpisah melalui penyedia tersebut.",
   "deletion.cancelling": "Membatalkan perpanjangan langganan Stripe sebelum menghapus akun Anda...",
   "deletion.cancellationFailed": "Kami tidak dapat mengonfirmasi pembatalan perpanjangan langganan Stripe Anda. Akun Anda belum dihapus. Coba lagi atau hubungi dukungan."

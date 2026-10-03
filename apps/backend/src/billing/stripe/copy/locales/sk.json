@@ -47,6 +47,10 @@
   "offer.allowanceWindow": "Váš limit správ AI sa obnovuje každý kalendárny mesiac podľa UTC, nezávisle od dátumu fakturácie.",
   "email.trialReminderSubject": "Vaše skúšobné obdobie Nibomo Premium sa čoskoro skončí",
   "email.trialReminderBody": "Vaše bezplatné skúšobné obdobie Nibomo Premium sa končí {date}. Po skúšobnom období sa predplatné automaticky obnovuje za {price} mesačne vrátane príslušných daní. Ak sa chcete vyhnúť prvej platbe, zrušte ho pred koncom skúšobného obdobia. Spravujte alebo zrušte svoje predplatné v nastaveniach predplatného: {url}",
+  "email.paymentReceiptSubject": "Potvrdenie o platbe za Nibomo",
+  "email.paymentReceiptBody": "Prijali sme vašu platbu vo výške {price}. Pozrite si potvrdenie: {url}",
+  "email.refundReceiptSubject": "Potvrdenie o vrátení peňazí za Nibomo",
+  "email.refundReceiptBody": "Vrátili sme vám sumu {price}. Pozrite si podrobnosti: {url}",
   "deletion.warning": "Odstránením účtu Nibomo sa zrušia budúce obnovenia vašich predplatných Nibomo účtovaných cez Stripe. Stratíte prístup k tomuto účtu. Predplatné účtované cez Apple alebo Google musíte zrušiť samostatne cez daného poskytovateľa.",
   "deletion.cancelling": "Pred odstránením účtu sa rušia obnovenia vašich predplatných cez Stripe...",
   "deletion.cancellationFailed": "Nepodarilo sa nám potvrdiť zrušenie obnovení vašich predplatných cez Stripe. Váš účet nebol odstránený. Skúste to znova alebo kontaktujte podporu."

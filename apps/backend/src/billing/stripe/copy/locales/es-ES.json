@@ -47,6 +47,10 @@
   "offer.allowanceWindow": "Tu límite de mensajes de IA se restablece al inicio de cada mes natural en UTC, independientemente de tu fecha de facturación.",
   "email.trialReminderSubject": "Tu prueba de Nibomo Premium termina pronto",
   "email.trialReminderBody": "Tu prueba gratis de Nibomo Premium termina el {date}. Después de la prueba, tu suscripción se renueva automáticamente por {price} al mes, con los impuestos aplicables incluidos. Para evitar el primer cobro, cancela antes de que termine la prueba. Gestiona o cancela tu suscripción en los ajustes de la suscripción: {url}",
+  "email.paymentReceiptSubject": "Recibo de pago de Nibomo",
+  "email.paymentReceiptBody": "Hemos recibido tu pago de {price}. Consulta tu recibo: {url}",
+  "email.refundReceiptSubject": "Recibo de reembolso de Nibomo",
+  "email.refundReceiptBody": "Se ha emitido tu reembolso de {price}. Consulta los detalles: {url}",
   "deletion.warning": "Al eliminar tu cuenta de Nibomo, se cancelan las renovaciones futuras de tus suscripciones de Nibomo facturadas a través de Stripe. Perderás el acceso a esta cuenta. Las suscripciones facturadas a través de Apple o Google deben cancelarse por separado con ese proveedor.",
   "deletion.cancelling": "Cancelando las renovaciones de tus suscripciones de Stripe antes de eliminar tu cuenta...",
   "deletion.cancellationFailed": "No hemos podido confirmar la cancelación de las renovaciones de tus suscripciones de Stripe. Tu cuenta no se ha eliminado. Vuelve a intentarlo o contacta con el equipo de soporte."

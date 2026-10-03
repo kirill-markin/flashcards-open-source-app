@@ -47,6 +47,10 @@
   "offer.allowanceWindow": "Mgao wako wa ujumbe wa AI huanza upya kila mwezi wa kalenda kulingana na UTC, bila kutegemea tarehe yako ya bili.",
   "email.trialReminderSubject": "Majaribio yako ya Nibomo Premium yanaisha hivi karibuni",
   "email.trialReminderBody": "Majaribio yako ya Nibomo Premium bila malipo yanaisha tarehe {date}. Baada ya majaribio, usajili wako utajisasisha kiotomatiki kwa {price} kwa mwezi, ikijumuisha kodi zinazotumika. Ili kuepuka malipo ya kwanza, ghairi kabla ya majaribio kuisha. Dhibiti au ghairi usajili wako katika mipangilio ya Usajili: {url}",
+  "email.paymentReceiptSubject": "Risiti ya malipo ya Nibomo",
+  "email.paymentReceiptBody": "Tumepokea malipo yako ya {price}. Tazama risiti yako: {url}",
+  "email.refundReceiptSubject": "Risiti ya kurejeshewa pesa ya Nibomo",
+  "email.refundReceiptBody": "Umerejeshewa {price}. Tazama maelezo: {url}",
   "deletion.warning": "Kufuta akaunti yako ya Nibomo kunaghairi usasishaji wa baadaye wa usajili wako wa Nibomo unaotozwa kupitia Stripe. Utapoteza ufikiaji wa akaunti hii. Usajili unaotozwa kupitia Apple au Google lazima ughairiwe kando kupitia mtoa huduma huyo.",
   "deletion.cancelling": "Inaghairi usasishaji wa usajili wako wa Stripe kabla ya kufuta akaunti yako...",
   "deletion.cancellationFailed": "Hatukuweza kuthibitisha kughairiwa kwa usasishaji wa usajili wako wa Stripe. Akaunti yako haijafutwa. Jaribu tena au wasiliana na usaidizi."

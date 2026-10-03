@@ -47,6 +47,10 @@
   "offer.allowanceWindow": "Din kvote for AI-beskeder nulstilles hver kalendermåned efter UTC, uafhængigt af din faktureringsdato.",
   "email.trialReminderSubject": "Din prøveperiode med Nibomo Premium slutter snart",
   "email.trialReminderBody": "Din gratis prøveperiode med Nibomo Premium slutter den {date}. Efter prøveperioden fornys dit abonnement automatisk til {price} om måneden inklusive gældende skatter og afgifter. Opsig abonnementet, før prøveperioden slutter, for at undgå den første opkrævning. Administrer eller opsig dit abonnement i abonnementsindstillingerne: {url}",
+  "email.paymentReceiptSubject": "Kvittering for betaling til Nibomo",
+  "email.paymentReceiptBody": "Vi har modtaget din betaling på {price}. Se din kvittering: {url}",
+  "email.refundReceiptSubject": "Kvittering for tilbagebetaling fra Nibomo",
+  "email.refundReceiptBody": "Vi har tilbagebetalt {price} til dig. Se detaljer: {url}",
   "deletion.warning": "Hvis du sletter din Nibomo-konto, stoppes fremtidige fornyelser af dine Nibomo-abonnementer, der betales via Stripe. Du mister adgang til denne konto. Abonnementer, der betales via Apple eller Google, skal opsiges separat hos den pågældende udbyder.",
   "deletion.cancelling": "Stopper fornyelser af dine Stripe-abonnementer, før din konto slettes...",
   "deletion.cancellationFailed": "Vi kunne ikke bekræfte, at fornyelserne af dine Stripe-abonnementer er stoppet. Din konto er ikke blevet slettet. Prøv igen, eller kontakt support."

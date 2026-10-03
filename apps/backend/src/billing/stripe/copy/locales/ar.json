@@ -47,6 +47,10 @@
   "offer.allowanceWindow": "تتجدد حصتك من رسائل الذكاء الاصطناعي في بداية كل شهر تقويمي بتوقيت UTC، بصرف النظر عن تاريخ الفوترة.",
   "email.trialReminderSubject": "تنتهي تجربتك في Nibomo Premium قريبًا",
   "email.trialReminderBody": "تنتهي تجربتك المجانية في Nibomo Premium في {date}. بعد التجربة، يتجدد اشتراكك تلقائيًا بسعر {price} شهريًا، شاملًا الضرائب المطبقة. لتجنب أول دفعة، ألغِ الاشتراك قبل انتهاء التجربة. يمكنك إدارة اشتراكك أو إلغاؤه من إعدادات الاشتراك: {url}",
+  "email.paymentReceiptSubject": "إيصال دفع Nibomo",
+  "email.paymentReceiptBody": "تم استلام دفعتك بقيمة {price}. اطّلع على الإيصال: {url}",
+  "email.refundReceiptSubject": "إيصال استرداد Nibomo",
+  "email.refundReceiptBody": "تم رد مبلغ {price} إليك. اطّلع على التفاصيل: {url}",
   "deletion.warning": "يؤدي حذف حسابك في Nibomo إلى إلغاء التجديدات المستقبلية لاشتراكاتك في Nibomo التي تُحصّل رسومها عبر Stripe. ستفقد الوصول إلى هذا الحساب. يجب إلغاء الاشتراكات التي تُحصّل رسومها عبر Apple أو Google بشكل منفصل من خلال مقدم الخدمة المعني.",
   "deletion.cancelling": "جارٍ إلغاء تجديدات اشتراكاتك عبر Stripe قبل حذف حسابك...",
   "deletion.cancellationFailed": "تعذر تأكيد إلغاء تجديدات اشتراكاتك عبر Stripe. لم يُحذف حسابك. حاول مجددًا أو تواصل مع الدعم."
