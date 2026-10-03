@@ -35,6 +35,7 @@ const portalResultSchema = z.object({ url: hostedUrlSchema });
 const billingDetailsSchema = z.object({
   environment: environmentSchema,
   checkoutAvailable: z.boolean(),
+  premiumAiMonthlyMessages: z.number().int().nonnegative().nullable(),
   checkoutUnavailableReason: z.enum(["purchases_disabled", "existing_subscription", "checkout_pending"]).nullable(),
   basePrice: z.object({ currency: z.string().regex(/^[a-z]{3}$/), unitAmount: z.number().int().nonnegative(),
     interval: z.literal("month"), taxBehavior: z.literal("inclusive") }).nullable(),
@@ -50,7 +51,7 @@ const billingDetailsSchema = z.object({
 });
 
 export type StripeBillingOffer = Pick<StripeBillingDetails,
-  "environment" | "checkoutAvailable" | "checkoutUnavailableReason" | "basePrice" | "trialEligible">;
+  "environment" | "premiumAiMonthlyMessages" | "checkoutAvailable" | "checkoutUnavailableReason" | "basePrice" | "trialEligible">;
 
 async function loadStripeHumanActor(request: Request, allowedOrigins: ReadonlyArray<string>): Promise<StripeHumanActor> {
   const { requestContext } = await loadRequestContextFromRequest(request, allowedOrigins, { allowWebGuestPlatform: true });
@@ -175,6 +176,7 @@ export function createStripeBillingRoutes(options: Readonly<{ allowedOrigins: Re
     try {
       const details = parsePublicResult<StripeBillingDetails>(billingDetailsSchema, await getStripeBillingDetails(actor));
       const offer: StripeBillingOffer = {
+        premiumAiMonthlyMessages: details.premiumAiMonthlyMessages,
         environment: details.environment, checkoutAvailable: details.checkoutAvailable,
         checkoutUnavailableReason: details.checkoutUnavailableReason, basePrice: details.basePrice,
         trialEligible: details.trialEligible,

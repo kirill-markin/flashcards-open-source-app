@@ -89,7 +89,7 @@ export function TestSettingsScreen(): ReactElement {
           <div className="settings-nav-list">
             <SettingsActionCard
               title={t("premium.previewOffer")}
-              description={t("premium.unavailable")}
+              description={t("stripe.offer.description")}
               value={null}
               onClick={() => { presentPremium?.({ reason: "offer" }); }}
               testId="test-settings-premium-offer"
