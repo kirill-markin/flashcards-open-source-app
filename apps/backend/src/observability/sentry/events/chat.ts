@@ -117,6 +117,11 @@ export type ChatWorkerLifecycleDetails = Readonly<{
   outcome: string | null;
 }>;
 
+/** Names which OpenAI key the run used, because whether a terminal failure pages depends on it. */
+export type ChatWorkerTerminalStateDetails = ChatWorkerLifecycleDetails & Readonly<{
+  userSuppliedKey: boolean;
+}>;
+
 export type ChatWorkerDispatchFailureDetails = Readonly<{
   message: string;
 }>;
@@ -139,6 +144,7 @@ export type ChatTranscriptionFailureDetails = Readonly<{
   sessionId: string;
   source: "android" | "ios" | "web";
   provider: "openai";
+  userSuppliedKey: boolean;
   fileSize: number;
   fileExtension: string | null;
   mediaType: string;
@@ -322,16 +328,17 @@ export type ChatBreadcrumbEvent =
   | EventByAction<"chat_worker_abort_requested", ChatWorkerLifecycleDetails>
   | EventByAction<"chat_worker_provider_call_started", ChatWorkerLifecycleDetails>
   | EventByAction<"chat_worker_provider_call_aborted", ChatWorkerLifecycleDetails>
-  | EventByAction<"chat_worker_terminal_state_persisted", ChatWorkerLifecycleDetails>
+  | EventByAction<"chat_worker_terminal_state_persisted", ChatWorkerTerminalStateDetails>
   | EventByAction<"chat_worker_composer_suggestions_failed", ChatWorkerLifecycleDetails>
   | EventByAction<"chat_transcription_invalid_audio", ChatTranscriptionFailureDetails>
+  | EventByAction<"chat_transcription_failed", ChatTranscriptionFailureDetails>
   | EventByAction<"chat_replay_reasoning_items_dropped", ChatReplayReasoningItemsDroppedDetails>
   | EventByAction<"generated_card_image_provider_complete", GeneratedCardImageProviderDetails>;
 
 export type ChatWarningEvent =
   | (EventByAction<"chat_live_backlog_failed", ChatLiveLifecycleDetails> & Readonly<{ message: string }>)
   | (EventByAction<"chat_live_write_failed", ChatLiveLifecycleDetails> & Readonly<{ message: string }>)
-  | (EventByAction<"chat_worker_terminal_state_persisted", ChatWorkerLifecycleDetails> & Readonly<{ message: string }>)
+  | (EventByAction<"chat_worker_terminal_state_persisted", ChatWorkerTerminalStateDetails> & Readonly<{ message: string }>)
   | (EventByAction<"chat_worker_composer_suggestions_failed", ChatWorkerLifecycleDetails> & Readonly<{ message: string }>)
   | (EventByAction<"chat_transcription_failed", ChatTranscriptionFailureDetails> & Readonly<{ message: string }>)
   // A provider that answered without any usage numbers. The fact row is still appended with null
@@ -413,4 +420,4 @@ export type ChatExceptionEvent =
   | (EventByAction<"chat_live_request_error", ChatLiveRequestDetails> & Readonly<{ error: Error }>)
   | (EventByAction<"chat_live_stream_crashed", ChatLiveStreamCrashDetails> & Readonly<{ error: Error }>)
   | (EventByAction<"chat_live_poll_failed", ChatLiveLifecycleDetails> & Readonly<{ error: Error }>)
-  | (EventByAction<"chat_worker_terminal_state_persisted", ChatWorkerLifecycleDetails> & Readonly<{ error: Error }>);
+  | (EventByAction<"chat_worker_terminal_state_persisted", ChatWorkerTerminalStateDetails> & Readonly<{ error: Error }>);

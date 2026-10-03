@@ -346,6 +346,15 @@ export function isHandledProviderFailure(error: unknown): boolean {
   return category !== null && category !== "runtime_error";
 }
 
+/**
+ * A failure the OpenAI key itself answers for: the key was refused, or its account is out of quota or
+ * rate limited. On the person's own key only they can act on it, so callers keep it out of Sentry.
+ */
+export function isKeyOwnedProviderFailure(error: unknown): boolean {
+  const category = classifyChatRunFailureCategory(error);
+  return category === "provider_auth" || category === "provider_rate_limited";
+}
+
 export { createProviderTerminalEventError } from "../providerFailure";
 
 export function isUserAbortError(error: unknown): boolean {

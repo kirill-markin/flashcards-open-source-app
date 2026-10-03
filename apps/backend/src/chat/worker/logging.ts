@@ -6,6 +6,7 @@ import {
   createBackendObservationScope,
   type BackendObservationScope,
   type ChatWorkerLifecycleDetails,
+  type ChatWorkerTerminalStateDetails,
 } from "../../observability/sentry";
 import { createChatTerminalWarningFingerprint } from "../runtime/providerErrors";
 
@@ -25,10 +26,11 @@ export type ChatWorkerLifecycleAction =
   | "chat_worker_abort_requested"
   | "chat_worker_provider_call_started"
   | "chat_worker_provider_call_aborted"
-  | "chat_worker_terminal_state_persisted"
   | "chat_worker_composer_suggestions_failed";
 
 type ChatWorkerLifecyclePayload = Omit<ChatWorkerLifecycleDetails, "lambdaRequestId">;
+
+export type ChatWorkerTerminalStatePayload = Omit<ChatWorkerTerminalStateDetails, "lambdaRequestId">;
 
 function createChatWorkerScope(context: ChatWorkerLogContext): BackendObservationScope {
   return createBackendObservationScope(
@@ -46,10 +48,10 @@ function createChatWorkerScope(context: ChatWorkerLogContext): BackendObservatio
   );
 }
 
-function createChatWorkerLifecycleDetails(
+function createChatWorkerLifecycleDetails<Payload extends ChatWorkerLifecyclePayload>(
   context: ChatWorkerLogContext,
-  payload: ChatWorkerLifecyclePayload,
-): ChatWorkerLifecycleDetails {
+  payload: Payload,
+): Readonly<{ lambdaRequestId: string | null }> & Payload {
   return {
     lambdaRequestId: context.lambdaRequestId,
     ...payload,
@@ -68,16 +70,6 @@ export function logChatWorkerLifecycleEvent(
 ): void {
   const scope = createChatWorkerScope(context);
   const details = createChatWorkerLifecycleDetails(context, payload);
-  if (isError && action === "chat_worker_terminal_state_persisted") {
-    captureBackendWarningWithFingerprint({
-      action,
-      message: `${action} warning`,
-      scope,
-      details,
-    }, createChatTerminalWarningFingerprint(details));
-    return;
-  }
-
   if (isError && action === "chat_worker_composer_suggestions_failed") {
     captureBackendWarning({
       action,
@@ -95,9 +87,38 @@ export function logChatWorkerLifecycleEvent(
   });
 }
 
+/**
+ * Emits the `chat_worker_terminal_state_persisted` record: a fingerprinted Sentry warning when `isError`
+ * is set, otherwise a breadcrumb that still writes the CloudWatch record.
+ */
+export function logChatWorkerTerminalStateEvent(
+  context: ChatWorkerLogContext,
+  payload: ChatWorkerTerminalStatePayload,
+  isError: boolean,
+): void {
+  const action = "chat_worker_terminal_state_persisted";
+  const scope = createChatWorkerScope(context);
+  const details = createChatWorkerLifecycleDetails(context, payload);
+  if (isError) {
+    captureBackendWarningWithFingerprint({
+      action,
+      message: `${action} warning`,
+      scope,
+      details,
+    }, createChatTerminalWarningFingerprint(details));
+    return;
+  }
+
+  addBackendBreadcrumb({
+    action,
+    scope,
+    details,
+  });
+}
+
 export function captureChatWorkerTerminalStateException(
   context: ChatWorkerLogContext,
-  payload: ChatWorkerLifecyclePayload,
+  payload: ChatWorkerTerminalStatePayload,
   error: Error,
 ): void {
   captureBackendException({

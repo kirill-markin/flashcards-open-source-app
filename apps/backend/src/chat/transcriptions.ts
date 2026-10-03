@@ -15,6 +15,7 @@ import {
   captureBackendWarning,
   createBackendObservationScope,
   getBackendErrorLogDetails,
+  type BackendObservationScope,
   type ChatTranscriptionFailureDetails,
 } from "../observability/sentry";
 import { expectWorkspaceIdString } from "../server/requestParsing";
@@ -26,6 +27,7 @@ import {
   makeOwnOpenAIKeyProviderError,
   readOwnOpenAIKeyProviderErrorText,
 } from "./providerFailure";
+import { isKeyOwnedProviderFailure } from "./runtime/providerErrors";
 import type { UserOpenAIApiKey } from "./userOpenAIApiKey";
 
 export type ChatTranscriptionSource = "android" | "ios" | "web";
@@ -247,6 +249,22 @@ function isInvalidAudioFailure(error: unknown): boolean {
   return [400, 415, 422, 500].includes(upstreamStatus) && isInvalidAudioMessage(getUpstreamMessage(error));
 }
 
+function createChatTranscriptionScope(details: ChatTranscriptionFailureDetails): BackendObservationScope {
+  return createBackendObservationScope(
+    "backend-api",
+    details.requestId,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    details.sessionId,
+    null,
+    null,
+  );
+}
+
 /**
  * Logs transcription failures with structured provider metadata for debugging.
  */
@@ -254,19 +272,19 @@ function logChatTranscriptionFailure(details: ChatTranscriptionFailureDetails): 
   captureBackendWarning({
     action: "chat_transcription_failed",
     message: "Chat transcription failed.",
-    scope: createBackendObservationScope(
-      "backend-api",
-      details.requestId,
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
-      details.sessionId,
-      null,
-      null,
-    ),
+    scope: createChatTranscriptionScope(details),
+    details,
+  });
+}
+
+/**
+ * Logs a refused or exhausted own key without creating a Sentry warning issue: only its owner can act on
+ * it, and OpenAI's own text reaches them.
+ */
+function logChatTranscriptionKeyOwnedFailure(details: ChatTranscriptionFailureDetails): void {
+  addBackendBreadcrumb({
+    action: "chat_transcription_failed",
+    scope: createChatTranscriptionScope(details),
     details,
   });
 }
@@ -277,19 +295,7 @@ function logChatTranscriptionFailure(details: ChatTranscriptionFailureDetails): 
 function logChatTranscriptionInvalidAudio(details: ChatTranscriptionFailureDetails): void {
   addBackendBreadcrumb({
     action: "chat_transcription_invalid_audio",
-    scope: createBackendObservationScope(
-      "backend-api",
-      details.requestId,
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
-      details.sessionId,
-      null,
-      null,
-    ),
+    scope: createChatTranscriptionScope(details),
     details,
   });
 }
@@ -359,6 +365,7 @@ export async function transcribeChatAudioUploadWithDependencies(
       sessionId: requestContext.sessionId,
       source: upload.source,
       provider: "openai",
+      userSuppliedKey: userOpenAIApiKey !== null,
       fileSize: upload.file.size,
       fileExtension: normalizeFileExtension(upload.file.name),
       mediaType: upload.file.type.trim().toLowerCase(),
@@ -377,7 +384,12 @@ export async function transcribeChatAudioUploadWithDependencies(
       );
     }
 
-    logChatTranscriptionFailure(failureDetails);
+    if (failureDetails.userSuppliedKey && isKeyOwnedProviderFailure(error)) {
+      logChatTranscriptionKeyOwnedFailure(failureDetails);
+    } else {
+      logChatTranscriptionFailure(failureDetails);
+    }
+
     // OpenAI's answer to a call made with the person's own key is theirs to act on, so it is passed on.
     const ownKeyProviderErrorText = userOpenAIApiKey === null ? null : readOwnOpenAIKeyProviderErrorText(error);
     if (ownKeyProviderErrorText !== null) {
