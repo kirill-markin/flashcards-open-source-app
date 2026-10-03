@@ -175,5 +175,19 @@
       "checkoutSupportWebsite": "https://kirill-markin.com/",
       "checkoutLimitOneSubscription": false
     }
+  },
+  "communications": {
+    "implementation": "../../apps/backend/src/billing/stripe/email.ts",
+    "transport": "existing_http_backend_resend",
+    "senderName": "Nibomo",
+    "senderEnvironmentVariable": "RESEND_FROM_EMAIL",
+    "sharedStripeEmailSettingsChanged": false,
+    "localeSource": "persisted_nibomo_profile",
+    "recipientSource": "owned_stripe_customer_billing_email",
+    "paymentEntity": "invoice",
+    "refundEntity": "refund",
+    "trialEntity": "subscription_and_trial_start",
+    "trialPrice": "provider_verified_monthly_base_price_with_final_billing_currency_disclosure",
+    "deliveryVerified": false
   }
 }
