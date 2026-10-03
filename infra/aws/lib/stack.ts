@@ -595,6 +595,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       alertTopic,
       sourceStackName: this.stackName,
       directImageIngestionLogGroup: api.directImageIngestionFn.logGroup,
+      mcpDispatcherLogGroup: mcpApi.dispatcherFn.logGroup,
       backendLogGroup: api.backendFn.logGroup,
       webGuestReaperLogGroup: webGuestReaperResult.reaperFunction.logGroup,
       multipartCompletionReconciliationLogGroup:
