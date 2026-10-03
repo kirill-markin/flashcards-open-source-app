@@ -58,7 +58,7 @@ test("decideChatCostPolicy trusts two good review days", () => {
   });
 
   assert.equal(decision.mode, "normal");
-  assert.equal(decision.modelId, "gpt-6-sol");
+  assert.equal(decision.modelId, "gpt-6.1-sol");
   assert.equal(decision.reasoningEffort, "medium");
 });
 

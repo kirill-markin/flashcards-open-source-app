@@ -4,8 +4,8 @@
  */
 import { z } from "zod";
 import {
+  CHAT_COMPOSER_SUGGESTIONS_MODEL_ID,
   CHAT_COMPOSER_SUGGESTIONS_REASONING_EFFORT,
-  CHAT_MODEL_ID,
 } from "./config";
 import { getOpenAIClient } from "./openai/client";
 import { buildOpenAISafetyIdentifier } from "./openai/safetyIdentifier";
@@ -625,7 +625,7 @@ export async function generateFollowUpChatComposerSuggestionsWithDependencies(
   const normalizedUiLocale = normalizeChatComposerSuggestionsUiLocale(uiLocale);
 
   const response = await dependencies.getOpenAIClient().responses.create({
-    model: CHAT_MODEL_ID,
+    model: CHAT_COMPOSER_SUGGESTIONS_MODEL_ID,
     reasoning: {
       effort: CHAT_COMPOSER_SUGGESTIONS_REASONING_EFFORT,
     },
@@ -656,7 +656,7 @@ export async function generateFollowUpChatComposerSuggestionsWithDependencies(
     occurredAt: new Date(),
     surface: "composer_suggestion",
     provider: "openai",
-    modelId: CHAT_MODEL_ID,
+    modelId: CHAT_COMPOSER_SUGGESTIONS_MODEL_ID,
     requestId: usageAttribution.requestId,
     tierAtCall: usageAttribution.tierAtCall,
     counters: toOpenAIResponsesUsageCounters(response.usage),

@@ -1,11 +1,12 @@
 export const CHAT_VENDOR = "openai" as const;
-export const CHAT_MODEL_ID = "gpt-6-sol" as const;
+export const CHAT_MODEL_ID = "gpt-6.1-sol" as const;
 export const CHAT_MODEL_REASONING_EFFORT = "medium" as const;
 export const CHAT_MODEL_REASONING_SUMMARY = "auto" as const;
 export const CHAT_LOW_COST_MODEL_ID = "gpt-6-luna" as const;
 export const CHAT_LOW_COST_MODEL_REASONING_EFFORT = "high" as const;
+export const CHAT_COMPOSER_SUGGESTIONS_MODEL_ID = "gpt-6-luna" as const;
 export const CHAT_COMPOSER_SUGGESTIONS_REASONING_EFFORT = "none" as const;
-export const CHAT_MODEL_LABEL = "GPT-6 Sol" as const;
+export const CHAT_MODEL_LABEL = "GPT-6.1 Sol" as const;
 export const CHAT_PROVIDER_LABEL = "OpenAI" as const;
 export const CHAT_MODEL_REASONING_LABEL = "Medium" as const;
 export const CHAT_MODEL_BADGE_LABEL = `${CHAT_MODEL_LABEL} · ${CHAT_MODEL_REASONING_LABEL}` as const;
