@@ -46,7 +46,7 @@
   "offer.trialEligibility": "Satu uji coba gratis per pelanggan Stripe. Uji coba Apple atau Google sebelumnya tidak memengaruhi kelayakan.",
   "offer.allowanceWindow": "Kuota pesan AI Anda direset pada awal setiap bulan kalender dalam UTC, terlepas dari tanggal penagihan.",
   "email.trialReminderSubject": "Uji coba Nibomo Premium Anda segera berakhir",
-  "email.trialReminderBody": "Uji coba gratis Nibomo Premium Anda berakhir pada {date}. Setelah uji coba, langganan Anda diperpanjang otomatis dengan biaya {price} per bulan, termasuk pajak yang berlaku. Untuk menghindari tagihan pertama, batalkan sebelum masa uji coba berakhir. Kelola atau batalkan langganan melalui pengaturan Langganan: {url}",
+  "email.trialReminderBody": "Uji coba gratis Nibomo Premium Anda berakhir pada {date}. Setelah uji coba, langganan Anda diperpanjang otomatis dengan harga dasar bulanan sebesar {price}, termasuk pajak yang berlaku. Stripe menampilkan jumlah tagihan akhir dalam mata uang penagihan Anda. Untuk menghindari tagihan pertama, batalkan sebelum masa uji coba berakhir. Kelola atau batalkan langganan melalui pengaturan Langganan: {url}",
   "email.paymentReceiptSubject": "Bukti pembayaran Nibomo",
   "email.paymentReceiptBody": "Pembayaran Anda sebesar {price} telah diterima. Lihat bukti pembayaran: {url}",
   "email.refundReceiptSubject": "Bukti pengembalian dana Nibomo",

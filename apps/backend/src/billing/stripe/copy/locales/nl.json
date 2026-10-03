@@ -46,7 +46,7 @@
   "offer.trialEligibility": "Eén gratis proefperiode per Stripe-klant. Een eerdere proefperiode via Apple of Google heeft geen invloed op je recht op deze proefperiode.",
   "offer.allowanceWindow": "Je limiet voor AI-berichten wordt aan het begin van elke kalendermaand in UTC opnieuw ingesteld, onafhankelijk van je factuurdatum.",
   "email.trialReminderSubject": "Je Nibomo Premium-proefperiode eindigt binnenkort",
-  "email.trialReminderBody": "Je gratis Nibomo Premium-proefperiode eindigt op {date}. Na de proefperiode wordt je abonnement automatisch verlengd voor {price} per maand, inclusief toepasselijke belastingen. Zeg vóór het einde van de proefperiode op om de eerste afschrijving te voorkomen. Beheer je abonnement of zeg het op in de abonnementsinstellingen: {url}",
+  "email.trialReminderBody": "Je gratis Nibomo Premium-proefperiode eindigt op {date}. Na de proefperiode wordt je abonnement automatisch verlengd tegen een maandelijkse basisprijs van {price}, inclusief toepasselijke belastingen. Stripe toont het uiteindelijke af te schrijven bedrag in je factureringsvaluta. Zeg vóór het einde van de proefperiode op om de eerste afschrijving te voorkomen. Beheer je abonnement of zeg het op in de abonnementsinstellingen: {url}",
   "email.paymentReceiptSubject": "Nibomo-betaalbewijs",
   "email.paymentReceiptBody": "We hebben je betaling van {price} ontvangen. Bekijk je betaalbewijs: {url}",
   "email.refundReceiptSubject": "Nibomo-terugbetalingsbewijs",

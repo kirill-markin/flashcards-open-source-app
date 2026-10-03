@@ -46,7 +46,7 @@
   "offer.trialEligibility": "每位 Stripe 客户可享受一次免费试用。此前参加过 Apple 或 Google 试用不会影响资格。",
   "offer.allowanceWindow": "你的 AI 消息额度会在每个 UTC 日历月开始时重置，与账单日期无关。",
   "email.trialReminderSubject": "你的 Nibomo Premium 试用即将结束",
-  "email.trialReminderBody": "你的 Nibomo Premium 免费试用将于 {date} 结束。试用结束后，订阅将以每月 {price} 自动续订，价格已包含适用税费。若要避免首次扣款，请在试用结束前取消。你可以在订阅设置中管理或取消订阅：{url}",
+  "email.trialReminderBody": "你的 Nibomo Premium 免费试用将于 {date} 结束。试用结束后，订阅将以每月 {price} 的基础价格自动续订，价格已包含适用税费。Stripe 会以你的账单货币显示最终扣款金额。若要避免首次扣款，请在试用结束前取消。你可以在订阅设置中管理或取消订阅：{url}",
   "email.paymentReceiptSubject": "Nibomo 付款收据",
   "email.paymentReceiptBody": "已收到你的 {price} 付款。查看收据：{url}",
   "email.refundReceiptSubject": "Nibomo 退款凭证",
