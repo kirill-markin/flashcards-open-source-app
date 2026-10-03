@@ -69,6 +69,12 @@ class GooglePlayBillingRepository(
         operationCoordinator.runExclusive { explicitSession().identity }
     }
 
+    suspend fun refreshEntitlement(): CloudEntitlement? = withContext(Dispatchers.IO) {
+        operationCoordinator.runExclusive {
+            syncEntitlement(explicitSession().identity)
+        }
+    }
+
     suspend fun currentIdentity(): GoogleBillingIdentity? = withContext(Dispatchers.IO) {
         operationCoordinator.runExclusive {
             requireUsableAccount()
@@ -92,16 +98,20 @@ class GooglePlayBillingRepository(
                 purchaseToken = purchaseToken,
                 intent = intent
             )
-            val previousReceiptRevision = preferencesStore.currentEntitlementReceiptRevision()
-            syncRepository.syncNow()
-            if (currentStoredIdentity() != identity) {
-                throw GoogleBillingIdentityChangedException()
-            }
-            if (preferencesStore.currentEntitlementReceiptRevision() == previousReceiptRevision) {
-                null
-            } else {
-                preferencesStore.observeEntitlement().value
-            }
+            syncEntitlement(identity)
+        }
+    }
+
+    private suspend fun syncEntitlement(identity: GoogleBillingIdentity): CloudEntitlement? {
+        val previousReceiptRevision = preferencesStore.currentEntitlementReceiptRevision()
+        syncRepository.syncNow()
+        if (currentStoredIdentity() != identity) {
+            throw GoogleBillingIdentityChangedException()
+        }
+        return if (preferencesStore.currentEntitlementReceiptRevision() == previousReceiptRevision) {
+            null
+        } else {
+            preferencesStore.observeEntitlement().value
         }
     }
 

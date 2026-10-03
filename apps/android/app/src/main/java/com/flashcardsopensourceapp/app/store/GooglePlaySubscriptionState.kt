@@ -42,6 +42,12 @@ enum class GooglePlaySubscriptionFailure {
     ENTITLEMENT_NOT_GRANTED
 }
 
+enum class GooglePlaySubscriptionFailurePhase {
+    ENTITLEMENT,
+    PURCHASE_PREPARATION,
+    PURCHASE_RECOVERY
+}
+
 sealed interface GooglePlaySubscriptionOperationState {
     data object Idle : GooglePlaySubscriptionOperationState
     data object Loading : GooglePlaySubscriptionOperationState
@@ -50,7 +56,11 @@ sealed interface GooglePlaySubscriptionOperationState {
     data class Verifying(val identity: GoogleBillingIdentity) : GooglePlaySubscriptionOperationState
     data class Complete(val identity: GoogleBillingIdentity, val entitlement: CloudEntitlement) : GooglePlaySubscriptionOperationState
     data object NothingToRestore : GooglePlaySubscriptionOperationState
-    data class Failed(val failure: GooglePlaySubscriptionFailure, val responseCode: Int?) : GooglePlaySubscriptionOperationState
+    data class Failed(
+        val failure: GooglePlaySubscriptionFailure,
+        val responseCode: Int?,
+        val phase: GooglePlaySubscriptionFailurePhase
+    ) : GooglePlaySubscriptionOperationState
 }
 
 internal fun selectGooglePlaySubscriptionOffer(details: ProductDetails): GooglePlaySubscriptionOffer? {
