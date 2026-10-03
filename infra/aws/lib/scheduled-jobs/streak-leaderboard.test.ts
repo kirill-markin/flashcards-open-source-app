@@ -29,7 +29,7 @@ test("streak leaderboard construct creates the daily schedule and snapshot Lambd
   assert.equal(source.includes("s3.Bucket"), false);
   assert.match(source, /new scheduler\.CfnSchedule\(scope, "StreakLeaderboardSnapshotDailySchedule"/);
   assert.match(source, /scheduleExpression: streakLeaderboardSnapshotScheduleExpression/);
-  assert.match(source, /new iam\.Role\(scope, "StreakLeaderboardSnapshotSchedulerRole"/);
+  assert.match(source, /props\.schedulerRole\.addToPolicy\(/);
   assert.match(source, /actions: \["lambda:InvokeFunction"\]/);
 });
 

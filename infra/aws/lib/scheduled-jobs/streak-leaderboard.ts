@@ -22,6 +22,7 @@ export interface StreakLeaderboardProps {
   sentryEnvironment: string | undefined;
   sentryRelease: string | undefined;
   sentryTracesSampleRate: string | undefined;
+  schedulerRole: iam.Role;
 }
 
 export interface StreakLeaderboardResult {
@@ -106,10 +107,7 @@ export function streakLeaderboard(scope: Construct, props: StreakLeaderboardProp
   props.backendDbSecret.grantRead(snapshotFunction);
   addOptionalSentryEnvironment(scope, snapshotFunction, props);
 
-  const schedulerInvokeRole = new iam.Role(scope, "StreakLeaderboardSnapshotSchedulerRole", {
-    assumedBy: new iam.ServicePrincipal("scheduler.amazonaws.com"),
-  });
-  schedulerInvokeRole.addToPolicy(new iam.PolicyStatement({
+  props.schedulerRole.addToPolicy(new iam.PolicyStatement({
     actions: ["lambda:InvokeFunction"],
     resources: [snapshotFunction.functionArn],
   }));
@@ -123,7 +121,7 @@ export function streakLeaderboard(scope: Construct, props: StreakLeaderboardProp
     target: {
       arn: snapshotFunction.functionArn,
       input: "{}",
-      roleArn: schedulerInvokeRole.roleArn,
+      roleArn: props.schedulerRole.roleArn,
     },
   });
 

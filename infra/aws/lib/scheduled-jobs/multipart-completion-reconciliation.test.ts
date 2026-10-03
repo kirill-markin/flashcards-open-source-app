@@ -115,10 +115,7 @@ test("multipart completion reconciliation schedule can invoke only its Lambda", 
     /name: multipartCompletionReconciliationScheduleName/,
   );
   assert.match(source, /state: props\.scheduleState/);
-  assert.match(
-    source,
-    /new iam\.Role\([\s\S]*"MultipartCompletionReconciliationSchedulerRole"/,
-  );
+  assert.match(source, /props\.schedulerRole\.addToPolicy\(/);
   assert.match(source, /actions: \["lambda:InvokeFunction"\]/);
   assert.match(source, /resources: \[reconciliationFunction\.functionArn\]/);
 });

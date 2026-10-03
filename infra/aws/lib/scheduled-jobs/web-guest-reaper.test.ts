@@ -31,7 +31,7 @@ test("web guest reaper construct creates the daily schedule and Lambda", () => {
   assert.match(source, /props\.reportingDbSecret\.grantRead\(reaperFunction\)/);
   assert.match(source, /new scheduler\.CfnSchedule\(scope, "WebGuestReaperDailySchedule"/);
   assert.match(source, /scheduleExpression: webGuestReaperScheduleExpression/);
-  assert.match(source, /new iam\.Role\(scope, "WebGuestReaperSchedulerRole"/);
+  assert.match(source, /props\.schedulerRole\.addToPolicy\(/);
   assert.match(source, /actions: \["lambda:InvokeFunction"\]/);
 });
 

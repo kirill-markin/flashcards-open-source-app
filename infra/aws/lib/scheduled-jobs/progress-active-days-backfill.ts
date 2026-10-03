@@ -23,6 +23,7 @@ export interface ProgressActiveDaysBackfillProps {
   sentryEnvironment: string | undefined;
   sentryRelease: string | undefined;
   sentryTracesSampleRate: string | undefined;
+  schedulerRole: iam.Role;
 }
 
 export interface ProgressActiveDaysBackfillResult {
@@ -112,10 +113,7 @@ export function progressActiveDaysBackfill(
   props.reportingDbSecret.grantRead(backfillFunction);
   addOptionalSentryEnvironment(scope, backfillFunction, props);
 
-  const schedulerInvokeRole = new iam.Role(scope, "ProgressActiveDaysBackfillSchedulerRole", {
-    assumedBy: new iam.ServicePrincipal("scheduler.amazonaws.com"),
-  });
-  schedulerInvokeRole.addToPolicy(new iam.PolicyStatement({
+  props.schedulerRole.addToPolicy(new iam.PolicyStatement({
     actions: ["lambda:InvokeFunction"],
     resources: [backfillFunction.functionArn],
   }));
@@ -129,7 +127,7 @@ export function progressActiveDaysBackfill(
     target: {
       arn: backfillFunction.functionArn,
       input: "{}",
-      roleArn: schedulerInvokeRole.roleArn,
+      roleArn: props.schedulerRole.roleArn,
     },
   });
 

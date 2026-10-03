@@ -214,7 +214,7 @@ test("the alternate host reaches the MCP and auth Lambda environments only when 
   );
   assert.match(
     stackSource,
-    /publicEndpointHeartbeat\(this, \{ baseDomain, alternateHeartbeatHosts \}\);/,
+    /publicEndpointHeartbeat\(this, \{ baseDomain, alternateHeartbeatHosts, schedulerRole \}\);/,
   );
   assert.match(heartbeatSource, /id: "McpAlternate",/);
 });

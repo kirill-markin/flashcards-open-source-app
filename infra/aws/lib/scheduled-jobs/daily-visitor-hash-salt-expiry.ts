@@ -22,6 +22,7 @@ export interface DailyVisitorHashSaltExpiryProps {
   sentryEnvironment: string | undefined;
   sentryRelease: string | undefined;
   sentryTracesSampleRate: string | undefined;
+  schedulerRole: iam.Role;
 }
 
 export interface DailyVisitorHashSaltExpiryResult {
@@ -112,10 +113,7 @@ export function dailyVisitorHashSaltExpiry(scope: Construct, props: DailyVisitor
   // next midnight, so Lambda retries it.
   expiryFunction.configureAsyncInvoke({ retryAttempts: 2 });
 
-  const schedulerInvokeRole = new iam.Role(scope, "DailyVisitorHashSaltExpirySchedulerRole", {
-    assumedBy: new iam.ServicePrincipal("scheduler.amazonaws.com"),
-  });
-  schedulerInvokeRole.addToPolicy(new iam.PolicyStatement({
+  props.schedulerRole.addToPolicy(new iam.PolicyStatement({
     actions: ["lambda:InvokeFunction"],
     resources: [expiryFunction.functionArn],
   }));
@@ -129,7 +127,7 @@ export function dailyVisitorHashSaltExpiry(scope: Construct, props: DailyVisitor
     target: {
       arn: expiryFunction.functionArn,
       input: "{}",
-      roleArn: schedulerInvokeRole.roleArn,
+      roleArn: props.schedulerRole.roleArn,
       retryPolicy: { maximumRetryAttempts: 0 },
     },
   });
