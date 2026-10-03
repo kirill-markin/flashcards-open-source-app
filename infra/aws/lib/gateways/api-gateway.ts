@@ -59,6 +59,7 @@ export interface ApiGatewayProps {
   // Adds a candidate domain to COOKIE_DOMAIN. Unset means baseDomain alone, so
   // moving browsers to another domain is its own switch.
   cookieDomain: string | undefined;
+  appleIapSecretArn: string | undefined;
   openAiApiKeySecretArn: string | undefined;
   langfusePublicKeySecretArn: string | undefined;
   langfuseSecretKeySecretArn: string | undefined;
@@ -1076,6 +1077,13 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   // an unsigned random UUID, so no secret is involved and only the HTTP handler needs the domain;
   // the workers never see a browser request.
   backendFn.addEnvironment("COOKIE_DOMAIN", buildCookieDomains(props));
+  if (hasConfiguredValue(props.appleIapSecretArn)) {
+    const appleIapSecret = cdk.aws_secretsmanager.Secret.fromSecretCompleteArn(
+      scope, "AppleIapSecret", props.appleIapSecretArn,
+    );
+    appleIapSecret.grantRead(backendFn);
+    backendFn.addEnvironment("APPLE_IAP_SECRET_ARN", appleIapSecret.secretArn);
+  }
   const directImageIngestionFn = createDirectImageIngestionFunction(scope, {
     baseDomain: props.baseDomain,
     publicApiOrigin,
@@ -1298,6 +1306,12 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
       defaultCorsPreflightOptions: createPublicCatalogCorsPreflightOptions(publicCatalogAllowedOrigins),
     })
     .addMethod("GET", integration);
+
+  const billing = restApi.root.addResource("billing");
+  const appleBilling = billing.addResource("apple");
+  appleBilling.addResource("account").addMethod("GET", integration);
+  appleBilling.addResource("transactions").addMethod("POST", integration);
+  appleBilling.addResource("notifications").addMethod("POST", integration);
 
   const legacyAuth = restApi.root.addResource("auth");
   legacyAuth.addMethod("ANY", notFoundIntegration, notFoundMethodOptions);

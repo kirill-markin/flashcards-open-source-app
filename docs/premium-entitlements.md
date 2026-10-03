@@ -5,34 +5,6 @@ derived, and what each client is allowed to trust. Every later change to billing
 paywalls reads this document instead of re-deriving the rules, and every client reads the same
 rules as the backend.
 
-No store integration exists yet. No client asks a store to buy anything, and the backend validates
-no receipt and handles no provider webhook: the only store SDKs linked anywhere are `StoreKit` on
-iOS, for the review prompt and the Subscription page's product lookup and Manage subscription
-sheet, and on Android Play review plus the Play Billing Library, used only for the Subscription
-page's product lookup. The `billing` schema is already migrated
-(`db/migrations/0151_billing_schema.sql`), and `provider_events`, `purchases`, `grants` and
-`user_billing_state` are all still empty, because no writer yet creates a table's first row. Each
-does have a writer now, and none of it is ingestion: the identity lifecycle rewrites rows it finds,
-on account deletion and on guest upgrade (`apps/backend/src/billing/identity.ts`). The one insert
-among those is the `user_billing_state` merge an upgrade performs, and it can only run when a guest
-already has a row to merge, so it cannot create the table's first row. A store rail still has
-to write the first row. This document is the contract those rails must satisfy, so it is
-deliberately written ahead of the code.
-
-The entitlement half of it is built, in `apps/backend/src/billing/`: `tiers.ts` is the catalogue,
-`limits.ts` the limits keyed by tier and account kind, `resolver.ts` the pure derivation,
-`store.ts` the reads and the cached row it writes, `snapshot.ts` the cache and the shape
-clients receive, and `identity.ts` the rewrites that move a person's rows to another account or
-anonymise them. That module settles the derivation, its cache and those rewrites and nothing else:
-no store rail exists to feed it, and the billing work still missing elsewhere is named by the
-sections that own it. `entitlement_snapshots` is the table that writer keeps: `snapshot.ts` refreshes
-it through `store.ts` when the answer it just resolved differs from the stored row — on the first
-resolution for that person as much as on a later change, and it is the one billing row that may be
-created out of nothing, because it is derived. The derivation itself writes
-nothing, and nothing pushes the refresh: the only trigger is that person's next authenticated sync
-pull, so the row lags a change in their purchases or grants until that pull arrives. Anything
-reaching those rows, account deletion included, has to account for them.
-
 This document links to source rather than restating mechanism, because the source is what ships.
 
 ## Decided later, on purpose
@@ -311,12 +283,7 @@ The billing layer writes exactly these facts, as facts, and no others:
 - auto-renew disabled
 
 All five are declared in the event catalog (`apps/backend/src/productAnalytics/catalog.ts`) and have
-a server-side producer (`apps/backend/src/productAnalytics/serverFacts/billingFacts.ts`). Only the
-entitlement change has a call site: the snapshot refresh in `apps/backend/src/billing/snapshot.ts`.
-The other four are emitted by the writer that records a provider's purchase transition, which
-arrives with the first store rail, so until then an empty series on any of them is a producer nobody
-calls rather than a measurement. The refresh is triggered by that person's next authenticated sync
-pull and by nothing else, so an entitlement change is timed to the pull that discovered it.
+a server-side producer (`apps/backend/src/productAnalytics/serverFacts/billingFacts.ts`).
 
 Per the repository rule, these record what happened; conversion funnels, cohorts, and churn are
 queries over them at analysis time, never an event shaped to feed one report.
