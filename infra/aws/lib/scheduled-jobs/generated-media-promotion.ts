@@ -19,6 +19,7 @@ export interface GeneratedMediaPromotionProps {
   sentryDsnSecretArn: string; sentryEnvironment: string; sentryRelease: string; sentryTracesSampleRate: string;
   mediaBlobCleanupEnabled: boolean;
   scheduleState: GeneratedMediaPromotionScheduleState;
+  schedulerRole: iam.Role;
 }
 export interface GeneratedMediaPromotionResult {
   promotionFunction: lambdaNodejs.NodejsFunction;
@@ -90,9 +91,7 @@ export function generatedMediaPromotion(
       },
     },
   }));
-  const schedulerRole = new iam.Role(scope, "GeneratedMediaPromotionSchedulerRole",
-    { assumedBy: new iam.ServicePrincipal("scheduler.amazonaws.com") });
-  schedulerRole.addToPolicy(new iam.PolicyStatement({
+  props.schedulerRole.addToPolicy(new iam.PolicyStatement({
     actions: ["lambda:InvokeFunction"],
     resources: [promotionFunction.functionArn],
   }));
@@ -106,7 +105,7 @@ export function generatedMediaPromotion(
       scheduleExpression: generatedMediaPromotionScheduleExpression,
       scheduleExpressionTimezone: "UTC",
       state: props.scheduleState, target: {
-        arn: promotionFunction.functionArn, input: "{}", roleArn: schedulerRole.roleArn,
+        arn: promotionFunction.functionArn, input: "{}", roleArn: props.schedulerRole.roleArn,
       },
     },
   );

@@ -28,6 +28,7 @@ export interface MultipartCompletionReconciliationProps {
   sentryRelease: string;
   sentryTracesSampleRate: string;
   scheduleState: MultipartCompletionReconciliationScheduleState;
+  schedulerRole: iam.Role;
 }
 
 export interface MultipartCompletionReconciliationResult {
@@ -153,12 +154,7 @@ export function multipartCompletionReconciliation(
     ),
   );
 
-  const schedulerRole = new iam.Role(
-    scope,
-    "MultipartCompletionReconciliationSchedulerRole",
-    { assumedBy: new iam.ServicePrincipal("scheduler.amazonaws.com") },
-  );
-  schedulerRole.addToPolicy(new iam.PolicyStatement({
+  props.schedulerRole.addToPolicy(new iam.PolicyStatement({
     actions: ["lambda:InvokeFunction"],
     resources: [reconciliationFunction.functionArn],
   }));
@@ -175,7 +171,7 @@ export function multipartCompletionReconciliation(
       target: {
         arn: reconciliationFunction.functionArn,
         input: "{}",
-        roleArn: schedulerRole.roleArn,
+        roleArn: props.schedulerRole.roleArn,
       },
     },
   );

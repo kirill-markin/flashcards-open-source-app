@@ -19,6 +19,7 @@ export interface AlternateHeartbeatHosts {
 export interface PublicEndpointHeartbeatProps {
   baseDomain: string;
   alternateHeartbeatHosts: AlternateHeartbeatHosts;
+  schedulerRole: iam.Role;
 }
 
 export interface PublicEndpointHeartbeatResult {
@@ -130,10 +131,7 @@ export function publicEndpointHeartbeat(
     resources: ["*"],
   }));
 
-  const heartbeatInvokeRole = new iam.Role(scope, "PublicEndpointHeartbeatSchedulerRole", {
-    assumedBy: new iam.ServicePrincipal("scheduler.amazonaws.com"),
-  });
-  heartbeatInvokeRole.addToPolicy(new iam.PolicyStatement({
+  props.schedulerRole.addToPolicy(new iam.PolicyStatement({
     actions: ["lambda:InvokeFunction"],
     resources: [heartbeatFunction.functionArn],
   }));
@@ -147,7 +145,7 @@ export function publicEndpointHeartbeat(
     target: {
       arn: heartbeatFunction.functionArn,
       input: "{}",
-      roleArn: heartbeatInvokeRole.roleArn,
+      roleArn: props.schedulerRole.roleArn,
     },
   });
 

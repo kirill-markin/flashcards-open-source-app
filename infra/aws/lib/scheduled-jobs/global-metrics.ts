@@ -24,6 +24,7 @@ export interface GlobalMetricsProps {
   sentryEnvironment: string | undefined;
   sentryRelease: string | undefined;
   sentryTracesSampleRate: string | undefined;
+  schedulerRole: iam.Role;
 }
 
 export interface GlobalMetricsResult {
@@ -137,10 +138,7 @@ export function globalMetrics(scope: Construct, props: GlobalMetricsProps): Glob
     ],
   }));
 
-  const schedulerInvokeRole = new iam.Role(scope, "GlobalMetricsSnapshotSchedulerRole", {
-    assumedBy: new iam.ServicePrincipal("scheduler.amazonaws.com"),
-  });
-  schedulerInvokeRole.addToPolicy(new iam.PolicyStatement({
+  props.schedulerRole.addToPolicy(new iam.PolicyStatement({
     actions: ["lambda:InvokeFunction"],
     resources: [snapshotFunction.functionArn],
   }));
@@ -154,7 +152,7 @@ export function globalMetrics(scope: Construct, props: GlobalMetricsProps): Glob
     target: {
       arn: snapshotFunction.functionArn,
       input: "{}",
-      roleArn: schedulerInvokeRole.roleArn,
+      roleArn: props.schedulerRole.roleArn,
     },
   });
 
@@ -188,10 +186,7 @@ export function globalMetrics(scope: Construct, props: GlobalMetricsProps): Glob
     resources: ["*"],
   }));
 
-  const freshnessCheckerInvokeRole = new iam.Role(scope, "GlobalMetricsSnapshotFreshnessSchedulerRole", {
-    assumedBy: new iam.ServicePrincipal("scheduler.amazonaws.com"),
-  });
-  freshnessCheckerInvokeRole.addToPolicy(new iam.PolicyStatement({
+  props.schedulerRole.addToPolicy(new iam.PolicyStatement({
     actions: ["lambda:InvokeFunction"],
     resources: [snapshotFreshnessCheckerFunction.functionArn],
   }));
@@ -205,7 +200,7 @@ export function globalMetrics(scope: Construct, props: GlobalMetricsProps): Glob
     target: {
       arn: snapshotFreshnessCheckerFunction.functionArn,
       input: "{}",
-      roleArn: freshnessCheckerInvokeRole.roleArn,
+      roleArn: props.schedulerRole.roleArn,
     },
   });
 

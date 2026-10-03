@@ -33,7 +33,7 @@ test("community leaderboard construct creates the hourly schedule and snapshot L
 
   assert.match(source, /new scheduler\.CfnSchedule\(scope, "CommunityLeaderboardSnapshotHourlySchedule"/);
   assert.match(source, /scheduleExpression: communityLeaderboardSnapshotScheduleExpression/);
-  assert.match(source, /new iam\.Role\(scope, "CommunityLeaderboardSnapshotSchedulerRole"/);
+  assert.match(source, /props\.schedulerRole\.addToPolicy\(/);
   assert.match(source, /actions: \["lambda:InvokeFunction"\]/);
 });
 

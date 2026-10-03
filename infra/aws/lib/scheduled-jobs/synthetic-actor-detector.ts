@@ -23,6 +23,7 @@ export interface SyntheticActorDetectorProps {
   sentryEnvironment: string | undefined;
   sentryRelease: string | undefined;
   sentryTracesSampleRate: string | undefined;
+  schedulerRole: iam.Role;
 }
 
 export interface SyntheticActorDetectorResult {
@@ -122,10 +123,7 @@ export function syntheticActorDetector(
   // lower than the run actually was. The next day's schedule is the retry.
   detectorFunction.configureAsyncInvoke({ retryAttempts: 0 });
 
-  const schedulerInvokeRole = new iam.Role(scope, "SyntheticActorDetectorSchedulerRole", {
-    assumedBy: new iam.ServicePrincipal("scheduler.amazonaws.com"),
-  });
-  schedulerInvokeRole.addToPolicy(new iam.PolicyStatement({
+  props.schedulerRole.addToPolicy(new iam.PolicyStatement({
     actions: ["lambda:InvokeFunction"],
     resources: [detectorFunction.functionArn],
   }));
@@ -139,7 +137,7 @@ export function syntheticActorDetector(
     target: {
       arn: detectorFunction.functionArn,
       input: "{}",
-      roleArn: schedulerInvokeRole.roleArn,
+      roleArn: props.schedulerRole.roleArn,
       retryPolicy: { maximumRetryAttempts: 0 },
     },
   });

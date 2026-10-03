@@ -23,6 +23,7 @@ export interface WebGuestReaperProps {
   sentryEnvironment: string | undefined;
   sentryRelease: string | undefined;
   sentryTracesSampleRate: string | undefined;
+  schedulerRole: iam.Role;
 }
 
 export interface WebGuestReaperResult {
@@ -128,10 +129,7 @@ export function webGuestReaper(scope: Construct, props: WebGuestReaperProps): We
   // day's run picks the work up again.
   reaperFunction.configureAsyncInvoke({ retryAttempts: 0 });
 
-  const schedulerInvokeRole = new iam.Role(scope, "WebGuestReaperSchedulerRole", {
-    assumedBy: new iam.ServicePrincipal("scheduler.amazonaws.com"),
-  });
-  schedulerInvokeRole.addToPolicy(new iam.PolicyStatement({
+  props.schedulerRole.addToPolicy(new iam.PolicyStatement({
     actions: ["lambda:InvokeFunction"],
     resources: [reaperFunction.functionArn],
   }));
@@ -145,7 +143,7 @@ export function webGuestReaper(scope: Construct, props: WebGuestReaperProps): We
     target: {
       arn: reaperFunction.functionArn,
       input: "{}",
-      roleArn: schedulerInvokeRole.roleArn,
+      roleArn: props.schedulerRole.roleArn,
       // Pinned rather than left to the EventBridge Scheduler default, which retries a failing
       // target many times inside the same day. This bounds Scheduler's own delivery retries only;
       // the function's async retry attempts are pinned to 0 above because the invocation type is

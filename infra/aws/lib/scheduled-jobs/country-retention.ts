@@ -22,6 +22,7 @@ export interface CountryRetentionProps {
   sentryEnvironment: string | undefined;
   sentryRelease: string | undefined;
   sentryTracesSampleRate: string | undefined;
+  schedulerRole: iam.Role;
 }
 
 export interface CountryRetentionResult {
@@ -108,10 +109,7 @@ export function countryRetention(scope: Construct, props: CountryRetentionProps)
 
   retentionFunction.configureAsyncInvoke({ retryAttempts: 0 });
 
-  const schedulerInvokeRole = new iam.Role(scope, "CountryRetentionSchedulerRole", {
-    assumedBy: new iam.ServicePrincipal("scheduler.amazonaws.com"),
-  });
-  schedulerInvokeRole.addToPolicy(new iam.PolicyStatement({
+  props.schedulerRole.addToPolicy(new iam.PolicyStatement({
     actions: ["lambda:InvokeFunction"],
     resources: [retentionFunction.functionArn],
   }));
@@ -125,7 +123,7 @@ export function countryRetention(scope: Construct, props: CountryRetentionProps)
     target: {
       arn: retentionFunction.functionArn,
       input: "{}",
-      roleArn: schedulerInvokeRole.roleArn,
+      roleArn: props.schedulerRole.roleArn,
       retryPolicy: { maximumRetryAttempts: 0 },
     },
   });

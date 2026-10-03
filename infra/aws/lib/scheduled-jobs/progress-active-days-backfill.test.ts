@@ -30,7 +30,7 @@ test("progress active days backfill construct creates the hourly schedule and La
   assert.match(source, /props\.reportingDbSecret\.grantRead\(backfillFunction\)/);
   assert.match(source, /new scheduler\.CfnSchedule\(scope, "ProgressActiveDaysBackfillHourlySchedule"/);
   assert.match(source, /scheduleExpression: progressActiveDaysBackfillScheduleExpression/);
-  assert.match(source, /new iam\.Role\(scope, "ProgressActiveDaysBackfillSchedulerRole"/);
+  assert.match(source, /props\.schedulerRole\.addToPolicy\(/);
   assert.match(source, /actions: \["lambda:InvokeFunction"\]/);
 });
 

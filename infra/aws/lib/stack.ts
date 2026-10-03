@@ -1,4 +1,5 @@
 import * as cdk from "aws-cdk-lib";
+import * as iam from "aws-cdk-lib/aws-iam";
 import * as sns from "aws-cdk-lib/aws-sns";
 import * as snsSubscriptions from "aws-cdk-lib/aws-sns-subscriptions";
 import { Construct } from "constructs";
@@ -314,12 +315,19 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
 
     const net = networking(this);
     const dbResult = database(this, { vpc: net.vpc, dbSg: net.dbSg });
+    // One role for every EventBridge Scheduler schedule keeps the stack under its
+    // CloudFormation resource limit; each job grants it lambda:InvokeFunction on
+    // its own functions.
+    const schedulerRole = new iam.Role(this, "ScheduledJobsSchedulerRole", {
+      assumedBy: new iam.ServicePrincipal("scheduler.amazonaws.com"),
+    });
     const globalMetricsResult = globalMetrics(this, {
       vpc: net.vpc,
       lambdaSg: net.lambdaSg,
       db: dbResult.db,
       reportingDbSecret: dbResult.reportingDbSecret,
       ...sentryContext,
+      schedulerRole,
     });
     const communityLeaderboardResult = communityLeaderboard(this, {
       vpc: net.vpc,
@@ -327,6 +335,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       db: dbResult.db,
       backendDbSecret: dbResult.backendDbSecret,
       ...sentryContext,
+      schedulerRole,
     });
     const streakLeaderboardResult = streakLeaderboard(this, {
       vpc: net.vpc,
@@ -334,6 +343,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       db: dbResult.db,
       backendDbSecret: dbResult.backendDbSecret,
       ...sentryContext,
+      schedulerRole,
     });
     const progressActiveDaysBackfillResult = progressActiveDaysBackfill(this, {
       vpc: net.vpc,
@@ -342,6 +352,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       backendDbSecret: dbResult.backendDbSecret,
       reportingDbSecret: dbResult.reportingDbSecret,
       ...sentryContext,
+      schedulerRole,
     });
     const webGuestReaperResult = webGuestReaper(this, {
       vpc: net.vpc,
@@ -350,6 +361,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       backendDbSecret: dbResult.backendDbSecret,
       reportingDbSecret: dbResult.reportingDbSecret,
       ...sentryContext,
+      schedulerRole,
     });
     const countryRetentionResult = countryRetention(this, {
       vpc: net.vpc,
@@ -357,6 +369,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       db: dbResult.db,
       backendDbSecret: dbResult.backendDbSecret,
       ...sentryContext,
+      schedulerRole,
     });
     const dailyVisitorHashSaltExpiryResult = dailyVisitorHashSaltExpiry(this, {
       vpc: net.vpc,
@@ -364,6 +377,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       db: dbResult.db,
       backendDbSecret: dbResult.backendDbSecret,
       ...sentryContext,
+      schedulerRole,
     });
     const syntheticActorDetectorResult = syntheticActorDetector(this, {
       vpc: net.vpc,
@@ -372,8 +386,9 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       backendDbSecret: dbResult.backendDbSecret,
       reportingDbSecret: dbResult.reportingDbSecret,
       ...sentryContext,
+      schedulerRole,
     });
-    publicEndpointHeartbeat(this, { baseDomain, alternateHeartbeatHosts });
+    publicEndpointHeartbeat(this, { baseDomain, alternateHeartbeatHosts, schedulerRole });
     // Both distributions are resolved here, before either is constructed and
     // before the media bucket, auth and API stages that have to allow their
     // hosts as browser origins, because an additional host must be checked
@@ -417,6 +432,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       mediaBlobCleanupEnabled,
       scheduleState: generatedMediaPromotionScheduleState,
       ...sentryContext,
+      schedulerRole,
     });
     const multipartCompletionReconciliationResult =
       multipartCompletionReconciliation(this, {
@@ -427,6 +443,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
         mediaAssetsBucket: mediaAssetsResult.bucket,
         scheduleState: multipartCompletionReconciliationScheduleState,
         ...sentryContext,
+        schedulerRole,
       });
     // `app.<baseDomain>` stops serving the bundle and redirects to the additional
     // web host instead; undefined until that switch is on. See
