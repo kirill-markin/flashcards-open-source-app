@@ -39,23 +39,22 @@ export function openPathInNewTab(path: string): void {
 /**
  * The middle-click half of the new-tab gesture on chart marks that each name one page. A middle click
  * arrives as `auxclick` rather than `click`, and the press is cancelled so the autoscroll some
- * platforms start on it cannot swallow the click.
+ * platforms start on it cannot swallow the click. Bind both handlers on the concrete selection, as
+ * `.on("mousedown", preventMiddleClickAutoscroll).on("auxclick", openPathOnMiddleClick(getPath))`, so
+ * d3 resolves the event names to mouse events.
  */
-export function bindMiddleClickOpen<GElement extends d3.BaseType, Datum, PElement extends d3.BaseType, PDatum>(
-  selection: d3.Selection<GElement, Datum, PElement, PDatum>,
-  getPath: (datum: Datum) => string,
-): void {
-  selection
-    .on("mousedown", (event: MouseEvent) => {
-      if (event.button === 1) {
-        event.preventDefault();
-      }
-    })
-    .on("auxclick", (event: MouseEvent, datum: Datum) => {
-      if (event.button === 1) {
-        openPathInNewTab(getPath(datum));
-      }
-    });
+export function preventMiddleClickAutoscroll(event: MouseEvent): void {
+  if (event.button === 1) {
+    event.preventDefault();
+  }
+}
+
+export function openPathOnMiddleClick<Datum>(getPath: (datum: Datum) => string): (event: MouseEvent, datum: Datum) => void {
+  return (event: MouseEvent, datum: Datum): void => {
+    if (event.button === 1) {
+      openPathInNewTab(getPath(datum));
+    }
+  };
 }
 
 export type MatrixChartEntry = Readonly<{

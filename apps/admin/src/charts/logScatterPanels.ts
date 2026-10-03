@@ -1,8 +1,9 @@
 import * as d3 from "d3";
 import {
-  bindMiddleClickOpen,
   isNewTabClick,
   openPathInNewTab,
+  openPathOnMiddleClick,
+  preventMiddleClickAutoscroll,
   type ChartTooltipHandlers,
 } from "./chartPrimitives";
 
@@ -227,7 +228,7 @@ export function renderLogScatterPanel(params: RenderLogScatterPanelParams): void
     .attr("x1", plotLeft).attr("x2", plotRight)
     .attr("y1", yZeroDividerY).attr("y2", yZeroDividerY);
 
-  const dots = svg.append("g")
+  svg.append("g")
     .selectAll("circle")
     .data([...params.dots])
     .join("circle")
@@ -251,8 +252,9 @@ export function renderLogScatterPanel(params: RenderLogScatterPanelParams): void
       if (isNewTabClick(event)) {
         openPathInNewTab(dot.path);
       }
-    });
-  bindMiddleClickOpen(dots, (dot: LogScatterDot) => dot.path);
+    })
+    .on("mousedown", preventMiddleClickAutoscroll)
+    .on("auxclick", openPathOnMiddleClick((dot: LogScatterDot) => dot.path));
 
   // Medians last but one, so they read over the cloud they describe. Each spans the whole plot,
   // including the zero strips, because it is a value of the axis and not of the log region alone.

@@ -8,14 +8,15 @@ import {
 import type { UserColorScale } from "../dashboard/userColors";
 import { getUserPath } from "../routing";
 import {
-  bindMiddleClickOpen,
   chartMargin,
   chartWidth,
   funnelHashedSegmentMixColor,
   getPlatformColor,
   isNewTabClick,
   openPathInNewTab,
+  openPathOnMiddleClick,
   platformLabels,
+  preventMiddleClickAutoscroll,
   simpleChartHeight,
   stackedChartHeight,
   uniqueUserCohortColors,
@@ -380,8 +381,9 @@ function renderUserStackedBarChart<User extends ChartUser>(params: UserStackedBa
     }
 
     params.onUserFilterApply(entry.key);
-  });
-  bindMiddleClickOpen(bars, getUserSegmentPath);
+  })
+    .on("mousedown", preventMiddleClickAutoscroll)
+    .on("auxclick", openPathOnMiddleClick(getUserSegmentPath));
 }
 
 function renderUniqueUserCohortChart(params: UniqueUserCohortChartParams): void {
