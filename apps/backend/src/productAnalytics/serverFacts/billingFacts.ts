@@ -208,9 +208,6 @@ export type SubscriptionRevokedFact = ProviderPurchaseFact & Readonly<{
 }>;
 
 /**
- * Reports one purchase a provider pulled back, keyed on the purchase because `revoked` is terminal:
- * a provider that redelivers the revocation, and every provider does, stores nothing further.
- *
  * An expiry is not reported here. Access ending because a paid-through date passed is nobody taking
  * anything back, and it is already visible as the entitlement change it produces.
  */

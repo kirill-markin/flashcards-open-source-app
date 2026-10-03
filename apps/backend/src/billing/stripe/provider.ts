@@ -7,7 +7,7 @@ import {
 } from "./catalog";
 import {
   StripeBillingError, type StripeCheckoutAttempt, type StripeCustomerIdentity,
-  type StripeEnvironment, type StripeEnvironmentSecret,
+  type StripeEnvironment, type StripeEnvironmentSecret, type StripeInvoiceFinancialState,
 } from "./contracts";
 
 function objectId(value: string | Readonly<{ id: string }> | null): string | null {
@@ -285,6 +285,136 @@ export class StripeProvider {
       if (invoiceId !== null) await this.retrieveInvoice(invoiceId, customerId);
     }
     return charge;
+  }
+
+  // Attribution probes return only identifiers; callers must resolve our durable identity before
+  // retaining an event, and validate the Nibomo subscription before writing a purchase.
+  async retrieveChargeCustomerId(chargeId: string): Promise<string | null> {
+    const charge = await callStripe("attribute charge", () => this.#client.charges.retrieve(chargeId));
+    this.requireEnvironment(charge);
+    return objectId(charge.customer);
+  }
+
+  async retrieveChargeSubscriptionIds(chargeId: string, customerId: string): Promise<ReadonlyArray<string>> {
+    const charge = await callStripe("retrieve charge attribution", () => this.#client.charges.retrieve(chargeId));
+    this.requireEnvironment(charge);
+    requireMatch(objectId(charge.customer) === customerId);
+    const paymentIntentId = objectId(charge.payment_intent);
+    if (paymentIntentId === null) {
+      return callStripe("list direct charge subscriptions", async () => {
+        const ids = new Set<string>();
+        for await (const invoice of this.#client.invoices.list({ customer: customerId, limit: 100 })) {
+          this.requireEnvironment(invoice);
+          requireMatch(objectId(invoice.customer) === customerId);
+          const subscriptionId = objectId(invoice.parent?.subscription_details?.subscription ?? null);
+          if (subscriptionId === null) continue;
+          for await (const payment of this.#client.invoicePayments.list({ invoice: invoice.id, limit: 100 })) {
+            this.requireEnvironment(payment);
+            requireMatch(objectId(payment.invoice) === invoice.id);
+            if (objectId(payment.payment.charge ?? null) === chargeId) ids.add(subscriptionId);
+          }
+        }
+        return [...ids];
+      });
+    }
+    return callStripe("list charge subscriptions", async () => {
+      const ids = new Set<string>();
+      for await (const payment of this.#client.invoicePayments.list({
+        payment: { type: "payment_intent", payment_intent: paymentIntentId }, limit: 100,
+      })) {
+        this.requireEnvironment(payment);
+        const invoiceId = objectId(payment.invoice);
+        if (invoiceId === null) throw new StripeBillingError("STRIPE_RESPONSE_INVALID", false,
+          "Stripe invoice payment has no invoice identifier.");
+        const invoice = await this.#client.invoices.retrieve(invoiceId);
+        this.requireEnvironment(invoice);
+        requireMatch(objectId(invoice.customer) === customerId);
+        const subscriptionId = objectId(invoice.parent?.subscription_details?.subscription ?? null);
+        if (subscriptionId !== null) ids.add(subscriptionId);
+      }
+      return [...ids];
+    });
+  }
+
+  async retrieveSubscriptionFinancialState(
+    subscription: Stripe.Subscription, customerId: string,
+  ): Promise<StripeInvoiceFinancialState> {
+    this.validateSubscription(subscription, customerId);
+    return callStripe("retrieve subscription financial state", async () => {
+      const item = subscription.items.data[0];
+      let currentInvoice: Stripe.Invoice | null = null;
+      let firstPaidAt: Date | null = null;
+      for await (const invoice of this.#client.invoices.list({ subscription: subscription.id, limit: 100 })) {
+        this.requireEnvironment(invoice);
+        requireMatch(objectId(invoice.customer) === customerId
+          && objectId(invoice.parent?.subscription_details?.subscription ?? null) === subscription.id);
+        if (invoice.status === "paid" && invoice.amount_paid > 0 && invoice.status_transitions.paid_at !== null) {
+          requireMatch(Number.isSafeInteger(invoice.status_transitions.paid_at) && invoice.status_transitions.paid_at > 0);
+          const paidAt = new Date(invoice.status_transitions.paid_at * 1000);
+          if (firstPaidAt === null || paidAt < firstPaidAt) firstPaidAt = paidAt;
+        }
+        const lines: Array<Stripe.InvoiceLineItem> = [];
+        if (invoice.lines.has_more) {
+          for await (const line of this.#client.invoices.listLineItems(invoice.id, { limit: 100 })) lines.push(line);
+        } else lines.push(...invoice.lines.data);
+        if (lines.some((line) => line.parent?.subscription_item_details?.subscription_item === item.id
+          && !line.parent.subscription_item_details.proration
+          && line.period.start === item.current_period_start && line.period.end === item.current_period_end)
+          && (currentInvoice === null || invoice.created > currentInvoice.created)) {
+          currentInvoice = invoice;
+        }
+      }
+      const payments: Array<StripeInvoiceFinancialState["payments"][number]> = [];
+      if (currentInvoice !== null) {
+        requireMatch(Number.isSafeInteger(currentInvoice.amount_paid) && currentInvoice.amount_paid >= 0);
+        for await (const payment of this.#client.invoicePayments.list({
+          invoice: currentInvoice.id, status: "paid", limit: 100,
+        })) {
+          this.requireEnvironment(payment);
+          requireMatch(objectId(payment.invoice) === currentInvoice.id && payment.currency === currentInvoice.currency
+            && payment.status === "paid" && Number.isSafeInteger(payment.amount_paid) && payment.amount_paid !== null
+            && payment.amount_paid >= 0);
+          if (payment.amount_paid === 0) continue;
+          const charges: Array<Stripe.Charge> = [];
+          const paymentIntentId = objectId(payment.payment.payment_intent ?? null);
+          if (payment.payment.type === "payment_intent" && paymentIntentId !== null) {
+            // Charges read permission is sufficient; no PaymentIntents runtime permission is needed.
+            for await (const charge of this.#client.charges.list({
+              customer: customerId, payment_intent: paymentIntentId, limit: 100,
+            })) {
+              if (charge.paid && charge.status === "succeeded") charges.push(charge);
+            }
+          } else if (payment.payment.type === "charge" && payment.payment.charge !== undefined) {
+            const chargeId = objectId(payment.payment.charge);
+            if (chargeId === null) throw new StripeBillingError("STRIPE_RESPONSE_INVALID", false,
+              "Stripe invoice payment has no charge identifier.");
+            charges.push(await this.#client.charges.retrieve(chargeId));
+          } else {
+            throw new StripeBillingError("STRIPE_RESPONSE_INVALID", false,
+              "Stripe invoice uses an unsupported payment rail. Reconcile this invoice before granting access.");
+          }
+          requireMatch(charges.length === 1);
+          const charge = charges[0];
+          this.requireEnvironment(charge);
+          requireMatch(objectId(charge.customer) === customerId && charge.paid
+            && charge.currency === payment.currency && charge.amount_captured === payment.amount_paid);
+          const refunds: Array<Stripe.Refund> = [];
+          for await (const refund of this.#client.refunds.list({ charge: charge.id, limit: 100 })) {
+            requireMatch(objectId(refund.charge) === charge.id && refund.currency === charge.currency
+              && Number.isSafeInteger(refund.amount) && refund.amount >= 0);
+            refunds.push(refund);
+          }
+          const disputes: Array<Stripe.Dispute> = [];
+          for await (const dispute of this.#client.disputes.list({ charge: charge.id, limit: 100 })) {
+            this.requireEnvironment(dispute);
+            requireMatch(objectId(dispute.charge) === charge.id);
+            disputes.push(dispute);
+          }
+          payments.push({ payment, charge, refunds, disputes });
+        }
+      }
+      return { invoice: currentInvoice, firstPaidAt, payments };
+    });
   }
 
   async retrieveRefund(refundId: string, customerId: string): Promise<Stripe.Refund> {
