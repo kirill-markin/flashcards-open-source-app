@@ -1279,9 +1279,11 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
    * Those routes only return complete payloads, so streaming would add no value
    * and would widen the blast radius of the chat-specific transport change.
    *
-   * Permission scoping is intentionally API-wide instead of method-wide. The
-   * backend now has enough public resources that per-method Lambda permissions
-   * exceed the Lambda resource-policy size limit during deployment.
+   * Permission scoping is intentionally API-wide instead of method-wide, here and
+   * on the direct image integration below. Per-method Lambda permissions exceed
+   * the backend's Lambda resource-policy size limit during deployment, and each
+   * method would add two permission resources toward the stack's 500-resource
+   * CloudFormation limit.
    */
   const integration = new apigw.LambdaIntegration(backendFn, {
     scopePermissionToMethod: false,
@@ -1289,6 +1291,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   const directImageIngestionIntegration = new apigw.LambdaIntegration(
     directImageIngestionFn,
     {
+      scopePermissionToMethod: false,
       timeout: cdk.Duration.seconds(
         publicRestApiDefaultIntegrationTimeoutSeconds,
       ),
@@ -1320,32 +1323,12 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     })
     .addMethod("GET", integration);
 
-  const billing = restApi.root.addResource("billing");
-  const appleBilling = billing.addResource("apple");
-  appleBilling.addResource("account").addMethod("GET", integration);
-  appleBilling.addResource("transactions").addMethod("POST", integration);
-  appleBilling.addResource("notifications").addMethod("POST", integration);
-  const googleBilling = billing.addResource("google");
-  googleBilling.addResource("account").addMethod("GET", integration);
-  googleBilling.addResource("purchases").addMethod("POST", integration);
-  googleBilling.addResource("notifications").addMethod("POST", integration);
-  const stripeBilling = billing.addResource("stripe");
-  stripeBilling.addResource("offer").addMethod("GET", integration);
-  stripeBilling.addResource("subscriptions").addMethod("GET", integration);
-  stripeBilling.addResource("portal").addMethod("POST", integration);
-  const stripeCheckout = stripeBilling.addResource("checkout");
-  stripeCheckout.addMethod("POST", integration);
-  stripeCheckout.addResource("return").addMethod("POST", integration);
-  const stripeWebhooks = stripeBilling.addResource("webhooks");
-  stripeWebhooks.addResource("sandbox").addMethod("POST", integration);
-  stripeWebhooks.addResource("live").addMethod("POST", integration);
-
   const legacyAuth = restApi.root.addResource("auth");
   legacyAuth.addMethod("ANY", notFoundIntegration, notFoundMethodOptions);
   legacyAuth.addResource("{proxy+}").addMethod("ANY", notFoundIntegration, notFoundMethodOptions);
 
   // The root {proxy+} below already forwards this path, so this resource exists to name the method
-  // the stage throttles by path and to keep this file in sync with the backend routes. The greedy
+  // the stage throttles by path. The greedy
   // ancestor still wins for everything these entries do not name: a deeper unmatched segment under
   // a concrete leaf resource reaches the backend's own 404 rather than a gateway 403, which the
   // deployed /workspaces/{workspaceId}/media-assets/images subtree, shaped exactly like this one,
@@ -1391,8 +1374,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   catalogInstallAnalyticsEvents.addMethod("POST", integration);
 
   // POST /guest-auth/identity/link, which lets a freshly signed-in browser or install claim the
-  // analytics history of the guest identity it held. The root {proxy+} already forwards it, so this
-  // subtree exists to keep this file in sync with the backend routes, as CLAUDE.md requires. The
+  // analytics history of the guest identity it held. The root {proxy+} already forwards it. The
   // subtree fallbacks are restated the way the analytics, workspace and admin subtrees restate
   // theirs, so /guest-auth/session, /guest-auth/session/delete and the upgrade routes keep being
   // forwarded here if the root proxy ever narrows.
