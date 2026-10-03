@@ -46,7 +46,7 @@
   "offer.trialEligibility": "Vienas nemokamas bandomasis laikotarpis vienam „Stripe“ klientui. Ankstesnis „Apple“ arba „Google“ bandomasis laikotarpis neturi įtakos teisei juo pasinaudoti.",
   "offer.allowanceWindow": "Jūsų DI žinučių kvota atsinaujina kiekvieną kalendorinį mėnesį pagal UTC, nepriklausomai nuo mokėjimo datos.",
   "email.trialReminderSubject": "Jūsų „Nibomo Premium“ bandomasis laikotarpis netrukus baigsis",
-  "email.trialReminderBody": "Jūsų nemokamas „Nibomo Premium“ bandomasis laikotarpis baigiasi {date}. Po jo prenumerata automatiškai atnaujinama už {price} per mėnesį, įskaitant taikomus mokesčius. Kad išvengtumėte pirmojo mokėjimo, atšaukite prenumeratą iki bandomojo laikotarpio pabaigos. Tvarkykite arba atšaukite prenumeratą prenumeratos nustatymuose: {url}",
+  "email.trialReminderBody": "Jūsų nemokamas „Nibomo Premium“ bandomasis laikotarpis baigiasi {date}. Po jo prenumerata automatiškai atnaujinama už bazinę mėnesio kainą – {price}, įskaitant taikomus mokesčius. „Stripe“ rodo galutinę mokėtiną sumą jūsų atsiskaitymo valiuta. Kad išvengtumėte pirmojo mokėjimo, atšaukite prenumeratą iki bandomojo laikotarpio pabaigos. Tvarkykite arba atšaukite prenumeratą prenumeratos nustatymuose: {url}",
   "email.paymentReceiptSubject": "„Nibomo“ mokėjimo kvitas",
   "email.paymentReceiptBody": "Gavome jūsų {price} mokėjimą. Peržiūrėkite kvitą: {url}",
   "email.refundReceiptSubject": "„Nibomo“ pinigų grąžinimo kvitas",

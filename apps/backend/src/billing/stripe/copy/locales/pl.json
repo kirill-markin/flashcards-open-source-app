@@ -46,7 +46,7 @@
   "offer.trialEligibility": "Jeden bezpłatny okres próbny na klienta Stripe. Wcześniejszy okres próbny w Apple lub Google nie wpływa na uprawnienie do tej oferty.",
   "offer.allowanceWindow": "Limit wiadomości AI resetuje się na początku każdego miesiąca kalendarzowego według UTC, niezależnie od daty rozliczenia.",
   "email.trialReminderSubject": "Twój okres próbny Nibomo Premium wkrótce się kończy",
-  "email.trialReminderBody": "Twój bezpłatny okres próbny Nibomo Premium kończy się {date}. Po nim subskrypcja będzie odnawiać się automatycznie w cenie {price} miesięcznie, z uwzględnieniem należnych podatków. Aby uniknąć pierwszej opłaty, anuluj subskrypcję przed końcem okresu próbnego. Zarządzaj subskrypcją lub anuluj ją w ustawieniach subskrypcji: {url}",
+  "email.trialReminderBody": "Twój bezpłatny okres próbny Nibomo Premium kończy się {date}. Po nim subskrypcja będzie odnawiać się automatycznie w miesięcznej cenie bazowej {price}, z uwzględnieniem należnych podatków. Stripe pokazuje ostateczną kwotę obciążenia w Twojej walucie rozliczeniowej. Aby uniknąć pierwszej opłaty, anuluj subskrypcję przed końcem okresu próbnego. Zarządzaj subskrypcją lub anuluj ją w ustawieniach subskrypcji: {url}",
   "email.paymentReceiptSubject": "Potwierdzenie płatności Nibomo",
   "email.paymentReceiptBody": "Otrzymaliśmy Twoją płatność w wysokości {price}. Zobacz potwierdzenie: {url}",
   "email.refundReceiptSubject": "Potwierdzenie zwrotu Nibomo",
