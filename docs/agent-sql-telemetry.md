@@ -227,7 +227,7 @@ Select the `/aws/lambda/<dispatcher function name>` log group for the
 
 ```
 filter message.action in ["mcp_worker_completed", "mcp_worker_capacity_rejected", "mcp_dispatch_failed"]
-| stats count(*) as attempts,
+| stats count(*) as requests,
         avg(message.durationMs) as avgDurationMs,
         pct(message.durationMs, 50) as p50DurationMs,
         pct(message.durationMs, 95) as p95DurationMs,
@@ -236,18 +236,28 @@ filter message.action in ["mcp_worker_completed", "mcp_worker_capacity_rejected"
 ```
 
 `mcp_worker_completed` means the worker returned a valid proxy response,
-including 401, 405 and 5xx responses. `mcp_worker_capacity_rejected` means AWS
-refused admission (dispatcher HTTP 429); `mcp_dispatch_failed` means the
-dispatcher returned 502, with `phase` identifying where it failed. HTTP methods
-are restricted to standard method names or `OTHER`.
+including 401, 405 and 5xx responses. The dispatcher re-invokes a worker that
+refused admission up to 4 times, with roughly 1.5–3 s of jittered waits in total
+(`apps/backend/src/entrypoints/lambda-mcp-dispatcher.ts`), so
+`mcp_worker_capacity_rejected` means those retries were exhausted and the client
+received HTTP 429. `mcp_dispatch_failed` means the dispatcher returned 502, with
+`phase` identifying where it failed. `attempts` counts Invoke calls; above 1 on
+a completion means admission throttles were absorbed. HTTP methods are restricted
+to standard method names or `OTHER`.
+
+The MCP capacity alarm in `infra/aws/lib/monitoring.ts` counts
+`mcp_worker_capacity_rejected` records, so it fires only on 429s clients
+received. The worker Lambda's `Throttles` metric still counts every refused
+attempt, including absorbed ones.
 
 All three measure `durationMs` from dispatcher handler entry to the decoded
-response or caught failure, before logging. Completion duration includes worker
-authentication, cold starts and synchronous Invoke overhead; it is an elapsed
-occupancy estimate, not the post-authentication `mcp_request.durationMs` or an
-exact Lambda execution duration. It excludes dispatcher cold start and cannot
-measure work continuing after an Invoke timeout. Rejected attempts consume no
-worker slot; do not include their duration when estimating worker occupancy.
+response or caught failure, before logging, including admission waits.
+Completion duration includes worker authentication, cold starts and synchronous
+Invoke overhead; it is an elapsed occupancy estimate, not the post-authentication
+`mcp_request.durationMs` or an exact Lambda execution duration. It excludes dispatcher cold start and cannot
+measure work continuing after an Invoke timeout. Refused attempts and admission
+waits consume no worker slot; exclude rejected records when estimating worker
+occupancy, and expect completions with `attempts` above 1 to overstate it.
 
 For one completion, inspect `message.requestId` (API Gateway request ID),
 `message.dispatcherRequestId` (dispatcher Lambda invocation) and

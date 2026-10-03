@@ -28,6 +28,7 @@
     "@opentelemetry/sdk-trace-base": "^2.11.0",
     "@sentry/aws-serverless": "^10.75.2",
     "aws-jwt-verify": "^5.2.1",
+    "google-auth-library": "11.1.0",
     "hono": "^4.13.8",
     "maxmind": "^5.0.7",
     "openai": "^7.22.0",
