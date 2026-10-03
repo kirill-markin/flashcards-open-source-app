@@ -1,28 +1,65 @@
 // Pure SQL only: this module is also imported by the admin browser bundle.
 // Stored account ids are TEXT and may use uppercase UUID hex; resolved actor ids are canonical.
 // The automated verdict is actor-wide. Its uncorrelated array avoids repeated scans for CTE callers.
+// The arms of the one exclusion rule, each as unindented lines, so `buildExcludedActorSqlLines` and
+// the admin users list's exclusion reason compose the same definitions.
+
+/** The actor's own `org.user_settings` row, aliased `excluded_settings`, which both settings arms read. */
+export function buildExcludedSettingsRowSqlLines(actorIdSqlExpression: string): ReadonlyArray<string> {
+  return [
+    "SELECT 1",
+    "FROM org.user_settings AS excluded_settings",
+    `WHERE pg_catalog.lower(excluded_settings.user_id) = ${actorIdSqlExpression}`,
+  ];
+}
+
+export const excludedTestEmailSql = "LOWER(btrim(excluded_settings.email)) LIKE '%@example.com'";
+
+/** Any admin grant for the settings row's email, revoked or not. */
+export const excludedAdminUserSqlLines: ReadonlyArray<string> = [
+  "SELECT 1",
+  "FROM auth.admin_users AS excluded_admin_users",
+  "WHERE excluded_admin_users.email = LOWER(btrim(excluded_settings.email))",
+];
+
+export function buildExclusionListedActorSqlLines(actorIdSqlExpression: string): ReadonlyArray<string> {
+  return [
+    "SELECT 1",
+    "FROM analytics.excluded_actors AS excluded_actors",
+    `WHERE excluded_actors.actor_id = ${actorIdSqlExpression}`,
+    "  AND excluded_actors.restored_at IS NULL",
+  ];
+}
+
+export const automatedActorIdsSqlLines: ReadonlyArray<string> = [
+  "SELECT DISTINCT automated_events.actor_id::text",
+  "FROM analytics.product_events_resolved AS automated_events",
+  "WHERE automated_events.automated_client",
+  // A marked row nobody can be resolved behind names no actor to drop, and a NULL inside the array
+  // would make every comparison that does not match a listed actor unknown, so the caller would
+  // keep no row either way.
+  "  AND automated_events.actor_id IS NOT NULL",
+];
+
+function indentSqlLines(lines: ReadonlyArray<string>, indent: string): ReadonlyArray<string> {
+  return lines.map((line) => `${indent}${line}`);
+}
+
 export function buildExcludedActorSqlLines(
   actorIdSqlExpression: string,
 ): ReadonlyArray<string> {
   return [
     "  AND NOT EXISTS (",
-    "    SELECT 1",
-    "    FROM org.user_settings AS excluded_settings",
-    `    WHERE pg_catalog.lower(excluded_settings.user_id) = ${actorIdSqlExpression}`,
+    ...indentSqlLines(buildExcludedSettingsRowSqlLines(actorIdSqlExpression), "    "),
     "      AND (",
-    "        LOWER(btrim(excluded_settings.email)) LIKE '%@example.com'",
+    `        ${excludedTestEmailSql}`,
     "        OR EXISTS (",
-    "          SELECT 1",
-    "          FROM auth.admin_users AS excluded_admin_users",
-    "          WHERE excluded_admin_users.email = LOWER(btrim(excluded_settings.email))",
+    ...indentSqlLines(excludedAdminUserSqlLines, "          "),
     "        )",
     "      )",
     "  )",
     "  AND NOT EXISTS (",
-    "    SELECT 1",
-    "    FROM analytics.excluded_actors AS excluded_actors",
-    `    WHERE excluded_actors.actor_id = ${actorIdSqlExpression}`,
-    "      AND excluded_actors.restored_at IS NULL",
+    ...indentSqlLines(buildExclusionListedActorSqlLines(actorIdSqlExpression), "    "),
     "  )",
     // The NULL arm keeps an unresolvable actor exactly as the two `NOT EXISTS` above keep it, which a
     // bare comparison would not: `NOT (NULL = ANY (...))` is unknown and would drop such a row. A
@@ -30,13 +67,7 @@ export function buildExcludedActorSqlLines(
     "  AND (",
     `    ${actorIdSqlExpression} IS NULL`,
     `    OR NOT (${actorIdSqlExpression} = ANY (ARRAY(`,
-    "      SELECT DISTINCT automated_events.actor_id::text",
-    "      FROM analytics.product_events_resolved AS automated_events",
-    "      WHERE automated_events.automated_client",
-    // A marked row nobody can be resolved behind names no actor to drop, and a NULL inside the array
-    // would make every comparison that does not match a listed actor unknown, so the caller would
-    // keep no row either way.
-    "        AND automated_events.actor_id IS NOT NULL",
+    ...indentSqlLines(automatedActorIdsSqlLines, "      "),
     "    )))",
     "  )",
   ];

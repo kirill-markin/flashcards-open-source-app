@@ -1,4 +1,11 @@
-import { buildExcludedActorSqlLines } from "../../../backend/src/reviewMetricsSql";
+import {
+  automatedActorIdsSqlLines,
+  buildExcludedActorSqlLines,
+  buildExcludedSettingsRowSqlLines,
+  buildExclusionListedActorSqlLines,
+  excludedAdminUserSqlLines,
+  excludedTestEmailSql,
+} from "../../../backend/src/reviewMetricsSql";
 export { buildExcludedActorSqlLines } from "../../../backend/src/reviewMetricsSql";
 import {
   reviewEventCohorts,
@@ -24,6 +31,22 @@ import {
 // between a row's date and that actor's first day of the activity the report counts, and no two
 // reports count the same activity.
 
+/**
+ * Why `buildExcludedActorSqlLines` drops an actor: the names of its matching arms, comma-separated,
+ * or `''` for an actor every report keeps, a NULL actor included.
+ */
+export function buildExcludedActorReasonSql(actorIdSqlExpression: string): string {
+  const inline = (lines: ReadonlyArray<string>): string => lines.map((line) => line.trim()).join(" ");
+  const settingsRowSql = inline(buildExcludedSettingsRowSqlLines(actorIdSqlExpression));
+  return [
+    "concat_ws(', ',",
+    `  CASE WHEN EXISTS (${settingsRowSql} AND ${excludedTestEmailSql}) THEN 'example.com email' END,`,
+    `  CASE WHEN EXISTS (${settingsRowSql} AND EXISTS (${inline(excludedAdminUserSqlLines)})) THEN 'admin' END,`,
+    `  CASE WHEN EXISTS (${inline(buildExclusionListedActorSqlLines(actorIdSqlExpression))}) THEN 'exclusion list' END,`,
+    `  CASE WHEN ${actorIdSqlExpression} = ANY (ARRAY(${inline(automatedActorIdsSqlLines)})) THEN 'automated client' END`,
+    ")",
+  ].join("\n");
+}
 
 /**
  * Drops rows a credential-free caller wrote, on every surface that counts people.
