@@ -82,7 +82,6 @@ private fun configureSentryOptions(
     options.release = "${BuildConfig.APPLICATION_ID}@${BuildConfig.VERSION_NAME}+${BuildConfig.VERSION_CODE}"
     options.dist = BuildConfig.VERSION_CODE.toString()
     options.environment = sentryEnvironment
-    options.setSendDefaultPii(false)
     options.setMaxRequestBodySize(SentryOptions.RequestSize.NONE)
     options.setAttachScreenshot(false)
     options.setAttachViewHierarchy(false)
