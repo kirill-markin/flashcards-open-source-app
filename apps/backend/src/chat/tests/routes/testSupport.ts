@@ -109,9 +109,9 @@ export function createExpectedChatConfig(): Record<string, unknown> {
       label: "OpenAI",
     },
     model: {
-      id: "gpt-6-sol",
-      label: "GPT-6 Sol",
-      badgeLabel: "GPT-6 Sol · Medium",
+      id: "gpt-6.1-sol",
+      label: "GPT-6.1 Sol",
+      badgeLabel: "GPT-6.1 Sol · Medium",
     },
     reasoning: {
       effort: "medium",

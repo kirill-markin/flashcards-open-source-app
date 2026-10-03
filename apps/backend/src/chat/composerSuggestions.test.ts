@@ -9,7 +9,7 @@ import { buildOpenAISafetyIdentifier } from "./openai/safetyIdentifier";
 
 test("generateFollowUpChatComposerSuggestions uses the configured request metadata", async () => {
   const capturedRequests: Array<OpenAI.Responses.ResponseCreateParams> = [];
-  const appendedUsageSurfaces: Array<string> = [];
+  const appendedUsage: Array<Readonly<{ surface: string; modelId: string }>> = [];
   const dependencies: ChatComposerSuggestionsDependencies = {
     getOpenAIClient: () => ({
       responses: {
@@ -22,7 +22,7 @@ test("generateFollowUpChatComposerSuggestions uses the configured request metada
       },
     } as unknown as OpenAI),
     appendAiUsageEvent: async (event) => {
-      appendedUsageSurfaces.push(event.surface);
+      appendedUsage.push({ surface: event.surface, modelId: event.modelId });
     },
   };
 
@@ -37,7 +37,7 @@ test("generateFollowUpChatComposerSuggestions uses the configured request metada
   );
 
   assert.equal(capturedRequests.length, 1);
-  assert.equal(capturedRequests[0].model, "gpt-6-sol");
+  assert.equal(capturedRequests[0].model, "gpt-6-luna");
   assert.equal(capturedRequests[0].reasoning?.effort, "none");
   assert.equal(capturedRequests[0].safety_identifier, buildOpenAISafetyIdentifier("user-1"));
   assert.equal(Object.hasOwn(capturedRequests[0], "user"), false);
@@ -45,5 +45,5 @@ test("generateFollowUpChatComposerSuggestions uses the configured request metada
     suggestions.map((suggestion) => suggestion.text),
     ["Review this card", "Show an example"],
   );
-  assert.deepEqual(appendedUsageSurfaces, ["composer_suggestion"]);
+  assert.deepEqual(appendedUsage, [{ surface: "composer_suggestion", modelId: "gpt-6-luna" }]);
 });
