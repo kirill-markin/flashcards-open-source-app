@@ -1,6 +1,8 @@
-import { useEffect, useState, type JSX } from "react";
+import { useEffect, useMemo, useState, type JSX } from "react";
 import type { AdminAppConfig } from "../config";
+import { AdminLink } from "../navigation/AdminLink";
 import { AdminNavigation } from "../navigation/AdminNavigation";
+import { getUserPath } from "../routing";
 import { DataTable } from "../table/DataTable";
 import {
   parseDataTableState,
@@ -15,40 +17,47 @@ type LoadState =
   | Readonly<{ status: "error"; message: string }>
   | Readonly<{ status: "ready"; report: UsersReport }>;
 
+function renderUserLink(user: UserRow, text: string | null, onNavigate: (path: string) => void): JSX.Element | null {
+  return text === null ? null : (
+    <AdminLink className="data-table-link" path={getUserPath(user.userId, "profile")} onNavigate={onNavigate}>{text}</AdminLink>
+  );
+}
+
 // The column ids are the URL vocabulary of the table state, so renaming one breaks saved links.
-const userColumns: ReadonlyArray<DataTableColumn<UserRow>> = [
-  { id: "user-id", label: "User ID", kind: "text", value: (user) => user.userId, renderCell: null },
-  { id: "email", label: "Email", kind: "text", value: (user) => user.email, renderCell: null },
-  { id: "kind", label: "Kind", kind: "enum", value: (user) => user.kind, renderCell: null },
-  { id: "providers", label: "Sign-in providers", kind: "enum", value: (user) => user.signInProviders, renderCell: null },
-  { id: "merged-into", label: "Merged into", kind: "text", value: (user) => user.mergedIntoUserId, renderCell: null },
-  { id: "excluded", label: "Excluded", kind: "boolean", value: (user) => user.exclusionReason !== null, renderCell: null },
-  { id: "exclusion-reason", label: "Exclusion reason", kind: "enum", value: (user) => user.exclusionReason, renderCell: null },
-  { id: "created", label: "Created", kind: "date", value: (user) => user.createdAt, renderCell: null },
-  { id: "first-seen", label: "First seen", kind: "date", value: (user) => user.firstSeenAt, renderCell: null },
-  { id: "last-active", label: "Last active", kind: "date", value: (user) => user.lastActiveAt, renderCell: null },
-  { id: "active-days", label: "Active days", kind: "number", value: (user) => user.activeDays, renderCell: null },
-  { id: "events", label: "Events", kind: "number", value: (user) => user.eventCount, renderCell: null },
-  { id: "platforms", label: "Platforms", kind: "text", value: (user) => user.platforms, renderCell: null },
-  { id: "app-version", label: "Latest app version", kind: "enum", value: (user) => user.latestAppVersion, renderCell: null },
-  { id: "countries", label: "Countries (90 days)", kind: "text", value: (user) => user.connectionCountries, renderCell: null },
-  { id: "ui-locale", label: "Latest UI locale", kind: "enum", value: (user) => user.latestUiLocale, renderCell: null },
-  { id: "settings-locale", label: "Settings locale", kind: "enum", value: (user) => user.settingsLocale, renderCell: null },
-  { id: "reviews", label: "Reviews", kind: "number", value: (user) => user.reviewCount, renderCell: null },
-  { id: "cards", label: "Live cards", kind: "number", value: (user) => user.cardCount, renderCell: null },
-  { id: "decks", label: "Live decks", kind: "number", value: (user) => user.deckCount, renderCell: null },
-  { id: "ai-messages", label: "AI messages sent", kind: "number", value: (user) => user.aiUserMessageCount, renderCell: null },
-  { id: "ai-chars", label: "AI chat characters", kind: "number", value: (user) => user.aiCharacterCount, renderCell: null },
-  { id: "ever-purchased", label: "Ever purchased", kind: "date", value: (user) => user.everPurchasedAt, renderCell: null },
-  { id: "trial-consumed", label: "Trial consumed", kind: "date", value: (user) => user.trialConsumedAt, renderCell: null },
-  { id: "purchase-tier", label: "Latest purchase tier", kind: "enum", value: (user) => user.latestPurchaseTier, renderCell: null },
-  { id: "purchase-status", label: "Latest purchase status", kind: "enum", value: (user) => user.latestPurchaseStatus, renderCell: null },
-  { id: "grant-tiers", label: "Active grant tiers", kind: "enum", value: (user) => user.activeGrantTiers, renderCell: null },
-  { id: "feedback", label: "Feedback", kind: "number", value: (user) => user.feedbackCount, renderCell: null },
-  { id: "friends", label: "Friends", kind: "number", value: (user) => user.friendCount, renderCell: null },
-  { id: "leaderboard", label: "Leaderboard", kind: "boolean", value: (user) => user.leaderboardParticipation, renderCell: null },
-  { id: "product-analytics", label: "Product analytics", kind: "enum", value: (user) => user.productAnalytics, renderCell: null },
-];
+function buildUserColumns(onNavigate: (path: string) => void): ReadonlyArray<DataTableColumn<UserRow>> {
+  return [
+    { id: "user-id", label: "User ID", kind: "text", value: (user) => user.userId, renderCell: (user) => renderUserLink(user, user.userId, onNavigate) },
+    { id: "email", label: "Email", kind: "text", value: (user) => user.email, renderCell: (user) => renderUserLink(user, user.email, onNavigate) },
+    { id: "kind", label: "Kind", kind: "enum", value: (user) => user.kind, renderCell: null },
+    { id: "merged-into", label: "Merged into", kind: "text", value: (user) => user.mergedIntoUserId, renderCell: null },
+    { id: "excluded", label: "Excluded", kind: "boolean", value: (user) => user.exclusionReason !== null, renderCell: null },
+    { id: "exclusion-reason", label: "Exclusion reason", kind: "enum", value: (user) => user.exclusionReason, renderCell: null },
+    { id: "created", label: "Created", kind: "date", value: (user) => user.createdAt, renderCell: null },
+    { id: "first-seen", label: "First seen", kind: "date", value: (user) => user.firstSeenAt, renderCell: null },
+    { id: "last-active", label: "Last active", kind: "date", value: (user) => user.lastActiveAt, renderCell: null },
+    { id: "active-days", label: "Active days", kind: "number", value: (user) => user.activeDays, renderCell: null },
+    { id: "events", label: "Events", kind: "number", value: (user) => user.eventCount, renderCell: null },
+    { id: "platforms", label: "Platforms", kind: "text", value: (user) => user.platforms, renderCell: null },
+    { id: "app-version", label: "Latest app version", kind: "enum", value: (user) => user.latestAppVersion, renderCell: null },
+    { id: "countries", label: "Countries (90 days)", kind: "text", value: (user) => user.connectionCountries, renderCell: null },
+    { id: "ui-locale", label: "Latest UI locale", kind: "enum", value: (user) => user.latestUiLocale, renderCell: null },
+    { id: "settings-locale", label: "Settings locale", kind: "enum", value: (user) => user.settingsLocale, renderCell: null },
+    { id: "reviews", label: "Reviews", kind: "number", value: (user) => user.reviewCount, renderCell: null },
+    { id: "cards", label: "Live cards", kind: "number", value: (user) => user.cardCount, renderCell: null },
+    { id: "decks", label: "Live decks", kind: "number", value: (user) => user.deckCount, renderCell: null },
+    { id: "ai-messages", label: "AI messages sent", kind: "number", value: (user) => user.aiUserMessageCount, renderCell: null },
+    { id: "ai-chars", label: "AI chat characters", kind: "number", value: (user) => user.aiCharacterCount, renderCell: null },
+    { id: "ever-purchased", label: "Ever purchased", kind: "date", value: (user) => user.everPurchasedAt, renderCell: null },
+    { id: "trial-consumed", label: "Trial consumed", kind: "date", value: (user) => user.trialConsumedAt, renderCell: null },
+    { id: "purchase-tier", label: "Latest purchase tier", kind: "enum", value: (user) => user.latestPurchaseTier, renderCell: null },
+    { id: "purchase-status", label: "Latest purchase status", kind: "enum", value: (user) => user.latestPurchaseStatus, renderCell: null },
+    { id: "grant-tiers", label: "Active grant tiers", kind: "enum", value: (user) => user.activeGrantTiers, renderCell: null },
+    { id: "feedback", label: "Feedback", kind: "number", value: (user) => user.feedbackCount, renderCell: null },
+    { id: "friends", label: "Friends", kind: "number", value: (user) => user.friendCount, renderCell: null },
+    { id: "leaderboard", label: "Leaderboard", kind: "boolean", value: (user) => user.leaderboardParticipation, renderCell: null },
+    { id: "product-analytics", label: "Product analytics", kind: "enum", value: (user) => user.productAnalytics, renderCell: null },
+  ];
+}
 
 const tableParamPrefix = "";
 
@@ -68,6 +77,7 @@ export function UsersPage(props: Readonly<{
 }>): JSX.Element {
   const [loadState, setLoadState] = useState<LoadState>({ status: "loading" });
   const [revision, setRevision] = useState<number>(0);
+  const userColumns = useMemo(() => buildUserColumns(props.onNavigate), [props.onNavigate]);
   // Read once on entry, so Back from a later page restores the list exactly as it was left.
   const [tableState, setTableState] = useState<DataTableState>(
     () => parseDataTableState(new URLSearchParams(window.location.search), userColumns, tableParamPrefix),
