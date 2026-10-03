@@ -8,6 +8,7 @@ import { publishCommittedTransition, type AppleCommittedTransition } from "./fac
 export type AppleBillingService = Readonly<{
   getOrCreateAccountToken: (userId: string) => Promise<Readonly<{ appAccountToken: string }>>;
   attachTransaction: (userId: string, signedTransaction: string) => Promise<Readonly<{ attached: true }>>;
+  reconcileTransaction: (signedTransaction: string) => Promise<Readonly<{ attached: true }>>;
   processNotification: (signedPayload: string) => Promise<void>;
 }>;
 
@@ -55,6 +56,12 @@ export function createAppleBillingService(loadSecret: () => Promise<AppleSigning
       const apple = await provider();
       const identity = await apple.verifyTransaction(signedTransaction);
       await persistCurrentState(apple, identity, userId, null);
+      return { attached: true };
+    },
+    async reconcileTransaction(signedTransaction) {
+      const apple = await provider();
+      const identity = await apple.verifyTransaction(signedTransaction);
+      await persistCurrentState(apple, identity, null, null);
       return { attached: true };
     },
     async processNotification(signedPayload) {
