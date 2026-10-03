@@ -221,6 +221,7 @@
 "settings.subscription.noEndDate" = "അവസാന തീയതിയില്ല";
 "settings.subscription.endUnknown" = "അജ്ഞാതം";
 "settings.subscription.planUnknown" = "ആപ്പ് നിങ്ങളുടെ അക്കൗണ്ടുമായി സമന്വയിപ്പിച്ച ശേഷം നിങ്ങളുടെ പ്ലാൻ ഇവിടെ കാണാം.";
+"settings.subscription.change" = "സബ്സ്ക്രിപ്ഷൻ മാറ്റുക";
 "settings.subscription.manage" = "സബ്സ്ക്രിപ്ഷൻ നിയന്ത്രിക്കുക";
 "settings.language.title" = "ഭാഷ";
 "settings.language.systemDescription" = "ആപ്പിന്റെ ഭാഷ iOS നിയന്ത്രിക്കുന്നു. iOS ക്രമീകരണങ്ങളിൽ Nibomo തുറന്ന് ഇഷ്ട ഭാഷ തിരഞ്ഞെടുക്കുക. ഇഷ്ട ഭാഷ കാണുന്നില്ലെങ്കിൽ ആദ്യം ക്രമീകരണങ്ങൾ > പൊതുവായത് > ഭാഷയും പ്രദേശവും എന്നതിൽ മറ്റൊരു ഭാഷ ചേർക്കുക.";
@@ -863,6 +864,7 @@
 "settings.accentColor.invalidHex" = "ആറ് ഹെക്സാഡെസിമൽ അക്കങ്ങൾ ഉപയോഗിച്ച് #RRGGBB രൂപത്തിൽ നിറം നൽകുക.";
 "settings.accentColor.premiumNote" = "ഇഷ്ടമുള്ള ഹൈലൈറ്റ് നിറങ്ങൾ Premium-ൽ ലഭ്യമാണ്. Premium സജീവമാകുമ്പോൾ സംരക്ഷിച്ച നിറം തിരിച്ചുവരും.";
 
+"premium.apple.monthlyProduct" = "%@ · പ്രതിമാസം";
 "premium.apple.renewal" = "റദ്ദാക്കുന്നതുവരെ സ്വയമേവ പുതുക്കും. App Store സബ്‌സ്‌ക്രിപ്‌ഷനുകളിൽ നിയന്ത്രിക്കുകയോ റദ്ദാക്കുകയോ ചെയ്യാം.";
 "premium.apple.trial" = "സൗജന്യ പരീക്ഷണം: %@. തുടർന്ന്:";
 "premium.apple.loadFailed" = "App Store ഓഫർ ലോഡ് ചെയ്യാനായില്ല. കണക്ഷൻ പരിശോധിച്ച് വീണ്ടും ശ്രമിക്കുക.";

@@ -221,6 +221,7 @@
 "settings.subscription.noEndDate" = "Brez datuma konca";
 "settings.subscription.endUnknown" = "Neznano";
 "settings.subscription.planUnknown" = "Vaš paket bo prikazan tukaj, ko se aplikacija sinhronizira z vašim računom.";
+"settings.subscription.change" = "Spremeni naročnino";
 "settings.subscription.manage" = "Upravljanje naročnine";
 "settings.language.title" = "Jezik";
 "settings.language.systemDescription" = "Jezik aplikacije določa iOS. V Nastavitvah iOS odprite Nibomo in uporabite Prednostni jezik. Če Prednostni jezik ni prikazan, najprej dodajte drug jezik v Nastavitve > Splošno > Jezik in regija.";
@@ -863,6 +864,7 @@
 "settings.accentColor.invalidHex" = "Vnesite barvo v obliki #RRGGBB s šestimi šestnajstiškimi števkami.";
 "settings.accentColor.premiumNote" = "Barve poudarka po meri so na voljo s Premium. Shranjena barva se vrne, ko je Premium aktiven.";
 
+"premium.apple.monthlyProduct" = "%@ · Mesečno";
 "premium.apple.renewal" = "Samodejno se podaljšuje do preklica. Upravljajte ali prekličite v naročninah App Store.";
 "premium.apple.trial" = "Brezplačno preizkusno obdobje: %@. Nato:";
 "premium.apple.loadFailed" = "Ponudbe App Store ni bilo mogoče naložiti. Preverite povezavo in poskusite znova.";

@@ -221,6 +221,7 @@
 "settings.subscription.noEndDate" = "Bez data ukončení";
 "settings.subscription.endUnknown" = "Neznámé";
 "settings.subscription.planUnknown" = "Váš tarif se tu zobrazí, jakmile se aplikace synchronizuje s vaším účtem.";
+"settings.subscription.change" = "Změnit předplatné";
 "settings.subscription.manage" = "Spravovat předplatné";
 "settings.language.title" = "Jazyk";
 "settings.language.systemDescription" = "Jazyk aplikace určuje iOS. V Nastavení iOS otevřete Nibomo a použijte Preferovaný jazyk. Pokud se tato volba nezobrazuje, nejprve přidejte další jazyk v Nastavení > Obecné > Jazyk a oblast.";
@@ -863,6 +864,7 @@
 "settings.accentColor.invalidHex" = "Zadejte barvu ve formátu #RRGGBB se šesti šestnáctkovými číslicemi.";
 "settings.accentColor.premiumNote" = "Vlastní barvy zvýraznění jsou dostupné s Premium. Uložená barva se vrátí, jakmile bude Premium aktivní.";
 
+"premium.apple.monthlyProduct" = "%@ · Měsíčně";
 "premium.apple.renewal" = "Automaticky se obnovuje až do zrušení. Spravujte nebo zrušte v předplatných App Storu.";
 "premium.apple.trial" = "Zkušební období zdarma: %@. Poté:";
 "premium.apple.loadFailed" = "Nabídku App Storu se nepodařilo načíst. Zkontrolujte připojení a zkuste to znovu.";

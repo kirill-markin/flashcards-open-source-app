@@ -221,6 +221,7 @@
 "settings.subscription.noEndDate" = "Be pabaigos datos";
 "settings.subscription.endUnknown" = "Nežinoma";
 "settings.subscription.planUnknown" = "Jūsų planas bus rodomas čia, kai programa susinchronizuos su jūsų paskyra.";
+"settings.subscription.change" = "Keisti prenumeratą";
 "settings.subscription.manage" = "Tvarkyti prenumeratą";
 "settings.language.title" = "Kalba";
 "settings.language.systemDescription" = "iOS valdo programėlės kalbą. iOS nustatymuose atidarykite Nibomo ir pasirinkite pageidaujamą kalbą. Jei šio pasirinkimo nėra, pirmiausia pridėkite kitą kalbą: Nustatymai > Bendra > Kalba ir regionas.";
@@ -863,6 +864,7 @@
 "settings.accentColor.invalidHex" = "Įveskite spalvą formatu #RRGGBB su šešiais šešioliktainiais skaitmenimis.";
 "settings.accentColor.premiumNote" = "Pasirinktinės akcento spalvos pasiekiamos su Premium. Išsaugota spalva grįžta, kai Premium aktyvus.";
 
+"premium.apple.monthlyProduct" = "%@ · Kas mėnesį";
 "premium.apple.renewal" = "Automatiškai atnaujinama iki atšaukimo. Tvarkykite arba atšaukite App Store prenumeratose.";
 "premium.apple.trial" = "Nemokamas bandomasis laikotarpis: %@. Tada:";
 "premium.apple.loadFailed" = "Nepavyko įkelti App Store pasiūlymo. Patikrinkite ryšį ir bandykite dar kartą.";

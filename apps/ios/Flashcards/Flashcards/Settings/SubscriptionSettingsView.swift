@@ -80,11 +80,9 @@ struct SubscriptionSettingsView: View {
                     )
                     .foregroundStyle(.secondary)
                 }
-            }
 
-            if hasPremiumAccess(entitlement: store.cloudEntitlement) == false {
-                Section {
-                    Button(premiumOfferTitle()) {
+                if hasPremiumAccess(entitlement: store.cloudEntitlement) == false {
+                    Button(aiSettingsLocalized("settings.subscription.change", "Change subscription")) {
                         self.premiumPresenter.present(
                             reason: .premiumFeature(requiredTierRank: premiumTierRank),
                             entitlement: store.cloudEntitlement,
@@ -120,6 +118,7 @@ struct SubscriptionSettingsView: View {
             }
 
             AppleSubscriptionControls(
+                summaryEndDate: self.store.cloudEntitlement?.status == .active ? self.store.cloudEntitlement?.until : nil,
                 isRestoreDisabled: self.isPreparingAccount || (try? store.appleSubscriptionIdentity()) == nil,
                 onRestore: {}
             )

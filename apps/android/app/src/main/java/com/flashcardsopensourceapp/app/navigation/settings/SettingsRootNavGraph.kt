@@ -32,7 +32,7 @@ import com.flashcardsopensourceapp.app.navigation.SettingsDestination
 import com.flashcardsopensourceapp.app.navigation.rememberRouteBackStackEntry
 import com.flashcardsopensourceapp.app.notifications.loadNotificationDiagnosticsUiState
 import com.flashcardsopensourceapp.app.store.googlePlaySubscriptionManagementUrl
-import com.flashcardsopensourceapp.app.store.loadIsGooglePlaySubscriptionProductAvailable
+import com.flashcardsopensourceapp.app.premium.PremiumBillingActions
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
 import com.flashcardsopensourceapp.core.ui.AppTechnicalError
 import com.flashcardsopensourceapp.feature.friendinvite.FriendInvitationDialog
@@ -288,6 +288,9 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
         SubscriptionRoute(
             uiState = uiState,
             onPreviewPremium = premiumPresenter::showOfferPreview,
+            billingActions = {
+                PremiumBillingActions(connector = appGraph.googlePlaySubscriptionConnector)
+            },
             onManageSubscription = {
                 openExternalUrl(
                     context = context,
@@ -696,9 +699,6 @@ private fun settingsSubscriptionViewModel(
         viewModelStoreOwner = settingsRootBackStackEntry,
         factory = createSubscriptionViewModelFactory(
             cloudAccountRepository = appGraph.cloudAccountRepository,
-            loadIsSubscriptionProductAvailable = {
-                loadIsGooglePlaySubscriptionProductAvailable(context = applicationContext)
-            },
             applicationContext = applicationContext
         )
     )

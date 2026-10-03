@@ -311,16 +311,12 @@ fun FlashcardsApp(
                 updatedAtMillis = 0L
             )
         )
-        val premiumPresenter = remember(
-            appGraph,
-            cloudSettings.installationId,
-            cloudSettings.linkedUserId,
-            cloudSettings.cloudState
-        ) { PremiumPresenter() }
+        val premiumPresenter = remember(appGraph) { PremiumPresenter() }
         DisposableEffect(premiumPresenter) {
             onDispose { premiumPresenter.dismiss() }
         }
-        LaunchedEffect(premiumPresenter, entitlement) {
+        LaunchedEffect(premiumPresenter, cloudSettings, entitlement) {
+            premiumPresenter.updateIdentity(settings = cloudSettings)
             premiumPresenter.updateEntitlement(value = entitlement)
         }
         val accountDeletionState by appGraph.cloudAccountRepository.observeAccountDeletionState().collectAsStateWithLifecycle(

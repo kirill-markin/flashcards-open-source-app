@@ -224,6 +224,7 @@
 "settings.subscription.noEndDate" = "終了日なし";
 "settings.subscription.endUnknown" = "不明";
 "settings.subscription.planUnknown" = "アプリがアカウントと同期すると、ここにプランが表示されます。";
+"settings.subscription.change" = "サブスクリプションを変更";
 "settings.subscription.manage" = "サブスクリプションを管理";
 "settings.language.title" = "言語";
 "settings.language.systemDescription" = "iOS がアプリの言語を管理します。iOS の「設定」で Nibomo を開き、「優先する言語」を使用してください。「優先する言語」が表示されない場合は、先に「設定」>「一般」>「言語と地域」で別の言語を追加してください。";
@@ -891,6 +892,7 @@
 "settings.accentColor.invalidHex" = "6桁の16進数を使い、#RRGGBB 形式で色を入力してください。";
 "settings.accentColor.premiumNote" = "カスタムアクセントカラーは Premium で利用できます。Premium が有効になると、保存した色に戻ります。";
 
+"premium.apple.monthlyProduct" = "%@ · 月額";
 "premium.apple.renewal" = "キャンセルするまで自動更新されます。App Storeのサブスクリプションで管理・キャンセルできます。";
 "premium.apple.trial" = "無料トライアル：%@。その後：";
 "premium.apple.loadFailed" = "App Storeのオファーを読み込めませんでした。接続を確認して再試行してください。";

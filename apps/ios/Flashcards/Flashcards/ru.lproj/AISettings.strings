@@ -224,6 +224,7 @@
 "settings.subscription.noEndDate" = "Без даты окончания";
 "settings.subscription.endUnknown" = "Неизвестно";
 "settings.subscription.planUnknown" = "Ваш тариф появится здесь после синхронизации приложения с вашим аккаунтом.";
+"settings.subscription.change" = "Изменить подписку";
 "settings.subscription.manage" = "Управлять подпиской";
 "settings.language.title" = "Язык";
 "settings.language.systemDescription" = "iOS управляет языком приложения. В настройках iOS откройте Nibomo и используйте «Предпочитаемый язык». Если «Предпочитаемый язык» не отображается, сначала добавьте другой язык в «Настройки» > «Основные» > «Язык и регион».";
@@ -891,6 +892,7 @@
 "settings.accentColor.invalidHex" = "Введите цвет в формате #RRGGBB — шесть шестнадцатеричных цифр.";
 "settings.accentColor.premiumNote" = "Свои цвета акцента доступны с Premium. Сохранённый цвет вернётся, когда Premium снова будет активен.";
 
+"premium.apple.monthlyProduct" = "%@ · Ежемесячно";
 "premium.apple.renewal" = "Продлевается автоматически до отмены. Управлять подпиской или отменить её можно в App Store.";
 "premium.apple.trial" = "Бесплатный пробный период: %@. Затем:";
 "premium.apple.loadFailed" = "Не удалось загрузить предложение App Store. Проверьте соединение и повторите попытку.";

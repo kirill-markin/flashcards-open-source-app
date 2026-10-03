@@ -221,6 +221,7 @@
 "settings.subscription.noEndDate" = "Không có ngày kết thúc";
 "settings.subscription.endUnknown" = "Không xác định";
 "settings.subscription.planUnknown" = "Gói của bạn sẽ hiển thị ở đây sau khi ứng dụng đồng bộ với tài khoản của bạn.";
+"settings.subscription.change" = "Thay đổi gói đăng ký";
 "settings.subscription.manage" = "Quản lý gói đăng ký";
 "settings.language.title" = "Ngôn ngữ";
 "settings.language.systemDescription" = "iOS quản lý ngôn ngữ ứng dụng. Trong Cài đặt iOS, mở Nibomo và chọn Ngôn ngữ ưu tiên. Nếu không thấy mục này, trước tiên hãy thêm ngôn ngữ khác trong Cài đặt > Cài đặt chung > Ngôn ngữ & Vùng.";
@@ -863,6 +864,7 @@
 "settings.accentColor.invalidHex" = "Nhập màu ở dạng #RRGGBB với sáu chữ số thập lục phân.";
 "settings.accentColor.premiumNote" = "Màu nhấn tùy chỉnh có sẵn với Premium. Màu đã lưu sẽ trở lại khi Premium hoạt động.";
 
+"premium.apple.monthlyProduct" = "%@ · Hằng tháng";
 "premium.apple.renewal" = "Tự động gia hạn cho đến khi hủy. Quản lý hoặc hủy trong mục đăng ký App Store của bạn.";
 "premium.apple.trial" = "Dùng thử miễn phí: %@. Sau đó:";
 "premium.apple.loadFailed" = "Không thể tải ưu đãi App Store. Kiểm tra kết nối và thử lại.";
