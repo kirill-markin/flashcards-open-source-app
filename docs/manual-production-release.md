@@ -53,7 +53,7 @@ not publish the same version again or bump just to retry.
    the cloud workflow still assigns the published version code. Run the existing
    `LiveSmokeTest` on one local emulator at the supported Android target using
    the linked instructions. Inspect logs and lint/test reports under the local
-   gate above. Keep the bundle local; publication uses the cloud-built AAB.
+   gate above. A temporary validation-only keystore need not be the registered Play upload key; keep its bundle local and publish only the cloud-signed AAB.
 2. Dispatch `Android Release` (`.github/workflows/android-release.yml`) with
    `Git SHA to release` (`target_sha`) set to the release commit. Record its
    target SHA, run/attempt, version code, and release identifier from the summary.
