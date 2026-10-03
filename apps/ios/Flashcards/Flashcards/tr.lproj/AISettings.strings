@@ -848,8 +848,8 @@
 "settings.language.supported.vietnamese" = "Vietnamca";
 "settings.language.supported.zulu" = "Zuluca";
 
-"premium.comingSoon.title" = "Premium yakında geliyor";
-"premium.comingSoon.message" = "Abonelikler henüz kullanılamıyor.";
+"premium.offer.title" = "Premium";
+"premium.offer.benefits" = "Ayda 1.000 yapay zekâ mesajı ve özel vurgu renkleri. Senkronizasyon herkes için ücretsizdir.";
 "premium.aiLimit.title" = "Yapay zekâ mesaj sınırına ulaşıldı";
 
 "settings.accentColor.title" = "Vurgu rengi";
@@ -863,8 +863,6 @@
 "settings.accentColor.invalidHex" = "Altı onaltılık basamakla #RRGGBB biçiminde bir renk girin.";
 "settings.accentColor.premiumNote" = "Özel vurgu renkleri Premium ile kullanılabilir. Kaydedilen renginiz Premium etkin olduğunda geri gelir.";
 
-"premium.apple.sandbox" = "Premium test satın alımı";
-"premium.apple.notice" = "Test satın alımları TestFlight gerektirir. Genel satışlar henüz başlamadı.";
 "premium.apple.renewal" = "İptal edilene kadar otomatik yenilenir. App Store aboneliklerinizden yönetin veya iptal edin.";
 "premium.apple.trial" = "Ücretsiz deneme: %@. Ardından:";
 "premium.apple.loadFailed" = "App Store teklifi yüklenemedi. Bağlantınızı kontrol edip yeniden deneyin.";

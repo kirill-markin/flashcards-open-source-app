@@ -68,17 +68,10 @@ struct TestSettingsView: View {
                 .accessibilityIdentifier(UITestIdentifier.testSettingsTechnicalErrorPreviewRow)
 
                 Button {
-                    self.premiumPresenter.present(reason: .sandboxOffer, entitlement: store.cloudEntitlement)
-                } label: {
-                    Label(aiSettingsLocalized("premium.apple.sandbox", "Premium sandbox purchase"), systemImage: "cart")
-                }
-                .accessibilityIdentifier(UITestIdentifier.testSettingsSandboxPurchase)
-
-                Button {
-                    self.premiumPresenter.present(reason: .offerPreview, entitlement: store.cloudEntitlement)
+                    self.premiumPresenter.present(reason: .offerPreview, entitlement: store.cloudEntitlement, identity: try? store.appleSubscriptionIdentity())
                 } label: {
                     SettingsNavigationRow(
-                        title: premiumComingSoonTitle(),
+                        title: premiumOfferTitle(),
                         value: aiSettingsLocalized("settings.test.technicalErrorPreview.value", "Preview sheet"),
                         systemImage: "sparkles",
                         attentionCount: nil
@@ -87,7 +80,7 @@ struct TestSettingsView: View {
                 .accessibilityIdentifier(UITestIdentifier.testSettingsPremiumPreview)
 
                 Button {
-                    self.premiumPresenter.present(reason: .aiLimit, entitlement: store.cloudEntitlement)
+                    self.premiumPresenter.present(reason: .aiLimit, entitlement: store.cloudEntitlement, identity: try? store.appleSubscriptionIdentity())
                 } label: {
                     SettingsNavigationRow(
                         title: premiumAILimitTitle(),

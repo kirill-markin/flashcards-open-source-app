@@ -848,8 +848,8 @@
 "settings.language.supported.vietnamese" = "Vietnam";
 "settings.language.supported.zulu" = "Zulu";
 
-"premium.comingSoon.title" = "Premium segera hadir";
-"premium.comingSoon.message" = "Langganan belum tersedia.";
+"premium.offer.title" = "Premium";
+"premium.offer.benefits" = "1.000 pesan AI per bulan dan warna aksen khusus. Sinkronisasi gratis untuk semua orang.";
 "premium.aiLimit.title" = "Batas pesan AI tercapai";
 
 "settings.accentColor.title" = "Warna aksen";
@@ -863,8 +863,6 @@
 "settings.accentColor.invalidHex" = "Masukkan warna sebagai #RRGGBB dengan enam digit heksadesimal.";
 "settings.accentColor.premiumNote" = "Warna aksen khusus tersedia dengan Premium. Warna tersimpan Anda kembali saat Premium aktif.";
 
-"premium.apple.sandbox" = "Pembelian uji coba Premium";
-"premium.apple.notice" = "Pembelian uji coba memerlukan TestFlight. Penjualan publik belum dibuka.";
 "premium.apple.renewal" = "Diperpanjang otomatis hingga dibatalkan. Kelola atau batalkan di langganan App Store Anda.";
 "premium.apple.trial" = "Uji coba gratis: %@. Setelah itu:";
 "premium.apple.loadFailed" = "Penawaran App Store tidak dapat dimuat. Periksa koneksi Anda dan coba lagi.";

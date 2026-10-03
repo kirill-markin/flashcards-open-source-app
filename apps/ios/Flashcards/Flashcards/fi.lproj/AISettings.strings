@@ -848,8 +848,8 @@
 "settings.language.supported.vietnamese" = "Vietnam";
 "settings.language.supported.zulu" = "Zulu";
 
-"premium.comingSoon.title" = "Premium tulee pian";
-"premium.comingSoon.message" = "Tilaukset eivät ole vielä saatavilla.";
+"premium.offer.title" = "Premium";
+"premium.offer.benefits" = "1 000 tekoälyviestiä kuukaudessa ja omat korostusvärit. Synkronointi on kaikille ilmaista.";
 "premium.aiLimit.title" = "Tekoälyviestien raja saavutettu";
 
 "settings.accentColor.title" = "Korostusväri";
@@ -863,8 +863,6 @@
 "settings.accentColor.invalidHex" = "Anna väri muodossa #RRGGBB kuudella heksadesimaalinumerolla.";
 "settings.accentColor.premiumNote" = "Omat korostusvärit ovat käytettävissä Premiumilla. Tallennettu värisi palautuu, kun Premium on aktiivinen.";
 
-"premium.apple.sandbox" = "Premium-testiostos";
-"premium.apple.notice" = "Testiostokset edellyttävät TestFlightia. Julkinen myynti ei ole vielä alkanut.";
 "premium.apple.renewal" = "Uusiutuu automaattisesti, kunnes peruutat. Hallitse tai peruuta App Store -tilauksissasi.";
 "premium.apple.trial" = "Ilmainen kokeilu: %@. Sen jälkeen:";
 "premium.apple.loadFailed" = "App Storen tarjousta ei voitu ladata. Tarkista yhteys ja yritä uudelleen.";

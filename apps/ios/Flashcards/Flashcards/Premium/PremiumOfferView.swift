@@ -1,6 +1,10 @@
 import StoreKit
 import SwiftUI
 
+private enum PremiumNavigationDestination: Hashable {
+    case ownOpenAIKey
+}
+
 struct PremiumOfferView: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(PremiumPresenter.self) private var presenter: PremiumPresenter
@@ -10,54 +14,97 @@ struct PremiumOfferView: View {
     @State private var offer: AppleSubscriptionOffer?
     @State private var priceText: String = ""
     @State private var trialText: String?
-    @State private var isSandbox: Bool = false
     @State private var isLoading: Bool = true
     @State private var isPurchasing: Bool = false
     @State private var message: String?
     @State private var errorMessage: String?
     @State private var loadAttempt: Int = 0
 
+    private var isAILimit: Bool { self.request.reason == .aiLimit }
+    private var hasAccess: Bool { hasPremiumAccess(entitlement: self.store.cloudEntitlement) }
+    private var canPurchase: Bool {
+        guard let identity = self.request.identity,
+              identity == (try? self.store.appleSubscriptionIdentity()),
+              self.store.cloudEntitlement != nil else { return false }
+        return self.hasAccess == false
+    }
+    private var showsOffer: Bool {
+        self.isAILimit == false || (self.store.cloudEntitlement != nil && self.hasAccess == false)
+    }
+
     var body: some View {
         NavigationStack {
             List {
-                Section {
-                    Label("Premium", systemImage: "sparkles")
-                        .font(.largeTitle.bold())
-                    Text(aiSettingsLocalized("premium.apple.notice", "Test purchases require TestFlight. Public sales are not open."))
-                        .foregroundStyle(.secondary)
-                    if let offer {
-                        Text(offer.product.description)
-                        if let trialText { Text(trialText).font(.headline) }
-                        Text(self.priceText).font(.title2.bold())
-                            .accessibilityIdentifier(UITestIdentifier.premiumPrice)
-                        Text(aiSettingsLocalized("premium.apple.renewal", "Automatically renews until cancelled. Manage or cancel in your App Store subscriptions."))
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                        if self.isSandbox {
-                            Button {
-                                self.purchase()
-                            } label: {
-                                HStack {
-                                    Text(aiSettingsLocalized("common.continue", "Continue"))
-                                    if self.isPurchasing { ProgressView() }
-                                }
+                if self.isAILimit {
+                    Section {
+                        Text(premiumAILimitTitle()).font(.headline)
+                        Text(self.limitMessage)
+                            .accessibilityIdentifier(UITestIdentifier.premiumLimitMessage)
+                    }
+                    Section {
+                        NavigationLink(value: PremiumNavigationDestination.ownOpenAIKey) {
+                            Label(aiSettingsLocalized("settings.ownOpenAIKey.title", "Your OpenAI key"), systemImage: "key")
+                        }
+                        .accessibilityIdentifier(UITestIdentifier.premiumOwnKeyButton)
+                    }
+                }
+
+                if self.showsOffer {
+                    Section {
+                        Label(premiumOfferTitle(), systemImage: "sparkles")
+                            .font(.largeTitle.bold())
+                        Text(aiSettingsLocalized(
+                            "premium.offer.benefits",
+                            "1,000 AI messages per month and custom accent colors. Sync is free for everyone."
+                        ))
+                        if self.hasAccess, let entitlement = self.store.cloudEntitlement {
+                            LabeledContent(aiSettingsLocalized("settings.subscription.plan", "Plan")) {
+                                Text(entitlement.tierDisplayName)
                             }
-                            .disabled(self.isPurchasing)
-                            .accessibilityIdentifier(UITestIdentifier.premiumPurchaseButton)
+                        }
+                        if let offer {
+                            Text(offer.product.description)
+                            if self.canPurchase, let trialText { Text(trialText).font(.headline) }
+                            Text(self.priceText).font(.title2.bold())
+                                .accessibilityIdentifier(UITestIdentifier.premiumPrice)
+                            Text(aiSettingsLocalized("premium.apple.renewal", "Automatically renews until cancelled. Manage or cancel in your App Store subscriptions."))
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                            if self.hasAccess == false {
+                                Button {
+                                    self.purchase()
+                                } label: {
+                                    HStack {
+                                        Text(aiSettingsLocalized("common.continue", "Continue"))
+                                        if self.isPurchasing { ProgressView() }
+                                    }
+                                }
+                                .disabled(self.isPurchasing || self.isLoading || self.canPurchase == false)
+                                .accessibilityIdentifier(UITestIdentifier.premiumPurchaseButton)
+                            }
                         }
                     }
-                    if self.isLoading {
+                }
+
+                if self.isLoading {
+                    Section {
                         ProgressView(aiSettingsLocalized("common.loading", "Loading..."))
                     }
-                    if let message {
+                }
+
+                if let message {
+                    Section {
                         Text(message).accessibilityIdentifier(UITestIdentifier.premiumPurchaseMessage)
                     }
-                    if let errorMessage = self.errorMessage ?? self.subscriptions.runtimeErrorMessage {
+                }
+                if let errorMessage = self.errorMessage ?? self.subscriptions.runtimeErrorMessage {
+                    Section {
                         Text(errorMessage).foregroundStyle(.red)
                             .accessibilityIdentifier(UITestIdentifier.premiumPurchaseError)
                         Button(aiSettingsLocalized("common.retry", "Retry")) {
                             self.loadAttempt += 1
                         }
+                        .disabled(self.isPurchasing || self.isLoading)
                         .accessibilityIdentifier(UITestIdentifier.premiumRetryButton)
                     }
                 }
@@ -65,7 +112,7 @@ struct PremiumOfferView: View {
                 AppleSubscriptionControls(onRestore: {
                     guard self.presenter.request?.id == self.request.id,
                           self.subscriptions.currentPurchases.isEmpty == false else { return }
-                    self.presenter.awaitAppleConfirmation(requestId: self.request.id, identity: try? self.store.appleSubscriptionIdentity())
+                    self.presenter.awaitAppleConfirmation(requestId: self.request.id, identity: self.request.identity)
                     self.presenter.confirmAppleAccess(entitlement: self.store.cloudEntitlement, identity: try? self.store.appleSubscriptionIdentity())
                 })
                 .disabled(self.isPurchasing)
@@ -81,64 +128,100 @@ struct PremiumOfferView: View {
                     }
                 }
             }
-            .navigationTitle("Premium")
+            .listStyle(.insetGrouped)
+            .navigationTitle(self.isAILimit ? premiumAILimitTitle() : premiumOfferTitle())
             .navigationBarTitleDisplayMode(.inline)
             .accessibilityIdentifier(UITestIdentifier.premiumOfferSheet)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(aiSettingsLocalized("common.close", "Close"), systemImage: "xmark") {
-                        self.presenter.finish(outcome: .dismissed)
-                    }
-                    .accessibilityIdentifier(UITestIdentifier.premiumCloseButton)
+            .navigationDestination(for: PremiumNavigationDestination.self) { destination in
+                switch destination {
+                case .ownOpenAIKey:
+                    OwnOpenAIKeySettingsView()
+                        .toolbar { self.closeToolbar }
                 }
             }
+            .toolbar { self.closeToolbar }
         }
         .task(id: self.loadAttempt) {
             self.isLoading = true
             self.errorMessage = nil
             defer { self.isLoading = false }
             do {
-                if self.loadAttempt > 0 { try await self.subscriptions.reconcileCurrentEntitlements() }
+                guard self.presenter.request?.id == self.request.id else { return }
+                guard let identity = self.request.identity else { throw AppleSubscriptionError.accountUnavailable }
+                try self.store.requireAppleSubscriptionIdentity(identity)
+                if self.loadAttempt > 0 {
+                    try await self.subscriptions.reconcileCurrentEntitlements()
+                } else if self.store.cloudEntitlement == nil {
+                    try await self.store.refreshAppleSubscriptionEntitlement(identity: identity)
+                }
+                try self.store.requireAppleSubscriptionIdentity(identity)
+                guard self.presenter.request?.id == self.request.id else { return }
+                guard self.showsOffer else { return }
                 let offer = try await self.subscriptions.loadOffer()
-                let isSandbox = try await self.subscriptions.isSandboxTestEligible()
                 guard let subscription = offer.product.subscription else { throw AppleSubscriptionError.productUnavailable }
                 let period = try appleSubscriptionPeriodText(period: subscription.subscriptionPeriod, count: 1)
                 let price = "\(offer.displayPrice) / \(period)"
                 var trial: String? = nil
-                if offer.isEligibleForIntroOffer, let intro = offer.product.subscription?.introductoryOffer,
+                if offer.isEligibleForIntroOffer, let intro = subscription.introductoryOffer,
                    intro.paymentMode == .freeTrial {
                     trial = aiSettingsLocalizedFormat(
                         "premium.apple.trial", "Free trial: %@. Then:",
                         try appleSubscriptionPeriodText(period: intro.period, count: intro.periodCount)
                     )
                 }
-                try Task.checkCancellation()
+                try self.store.requireAppleSubscriptionIdentity(identity)
+                guard self.presenter.request?.id == self.request.id else { return }
                 self.offer = offer
                 self.priceText = price
                 self.trialText = trial
-                self.isSandbox = isSandbox
             } catch is CancellationError {
                 return
             } catch {
-                guard Task.isCancelled == false else { return }
+                guard Task.isCancelled == false, self.presenter.request?.id == self.request.id else { return }
                 self.errorMessage = aiSettingsLocalized("premium.apple.loadFailed", "Could not load the App Store offer. Check your connection and retry.") + "\n" + error.localizedDescription
             }
         }
+        .onChange(of: self.showsOffer) { _, showsOffer in
+            if showsOffer, self.isLoading == false { self.loadAttempt += 1 }
+        }
+    }
+
+    @ToolbarContentBuilder
+    private var closeToolbar: some ToolbarContent {
+        ToolbarItem(placement: .topBarTrailing) {
+            Button(aiSettingsLocalized("common.close", "Close"), systemImage: "xmark") {
+                guard self.presenter.request?.id == self.request.id else { return }
+                self.presenter.finish(outcome: .dismissed)
+            }
+            .accessibilityIdentifier(UITestIdentifier.premiumCloseButton)
+        }
+    }
+
+    private var limitMessage: String {
+        let usage = self.store.currentAIMonthlyUsage.flatMap { usage in
+            usage.monthEndsAt > Date() ? usage : nil
+        }
+        return aiChatAccountLimitReachedMessage(usage: usage)
     }
 
     private func purchase() {
-        guard self.isPurchasing == false else { return }
+        guard self.isPurchasing == false, self.isLoading == false, self.canPurchase,
+              self.presenter.request?.id == self.request.id else { return }
         self.isPurchasing = true
         self.message = nil
         self.errorMessage = nil
-        self.presenter.awaitAppleConfirmation(requestId: self.request.id, identity: try? self.store.appleSubscriptionIdentity())
+        self.presenter.awaitAppleConfirmation(requestId: self.request.id, identity: self.request.identity)
         Task { @MainActor in
             defer { self.isPurchasing = false }
             do {
-                switch try await self.subscriptions.purchaseSandboxPremium() {
+                guard let identity = self.request.identity else { throw AppleSubscriptionError.accountUnavailable }
+                try self.store.requireAppleSubscriptionIdentity(identity)
+                let result = try await self.subscriptions.purchasePremium()
+                try self.store.requireAppleSubscriptionIdentity(identity)
+                guard self.presenter.request?.id == self.request.id else { return }
+                switch result {
                 case .attached:
-                    guard self.presenter.request?.id == self.request.id else { return }
-                    self.presenter.confirmAppleAccess(entitlement: self.store.cloudEntitlement, identity: try? self.store.appleSubscriptionIdentity())
+                    self.presenter.confirmAppleAccess(entitlement: self.store.cloudEntitlement, identity: identity)
                     self.message = aiSettingsLocalized("premium.apple.pending", "Waiting for Apple or account confirmation. Restore purchases to retry.")
                 case .pending:
                     self.message = aiSettingsLocalized("premium.apple.pending", "Waiting for Apple or account confirmation. Restore purchases to retry.")

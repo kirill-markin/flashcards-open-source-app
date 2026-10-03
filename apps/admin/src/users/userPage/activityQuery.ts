@@ -1,6 +1,7 @@
 import { runAdminQuery, type AdminQueryResultSet, type AdminQueryValue } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
 import { escapeSqlStringLiteral } from "../../sql";
+import { readNullableString, readRowArray, readString } from "./queryRowValues";
 import { buildMatchesUserIdSql, buildUserSubjectSql, type UserSubjectSql } from "./userSubjectSql";
 
 const reportLabel = "User activity";
@@ -118,47 +119,30 @@ function buildActivityTotalSql(subject: UserSubjectSql): string {
   ) AS activity`;
 }
 
-function readNullableString(values: ReadonlyArray<AdminQueryValue>, index: number, fieldName: string, rowIndex: number): string | null {
-  const value = values[index];
-  if (value === undefined || (value !== null && typeof value !== "string")) {
-    throw new Error(`${reportLabel} row ${rowIndex} field "${fieldName}" must be a string or null.`);
-  }
-  return value;
-}
-
-function readString(values: ReadonlyArray<AdminQueryValue>, index: number, fieldName: string, rowIndex: number): string {
-  const value = readNullableString(values, index, fieldName, rowIndex);
-  if (value === null) {
-    throw new Error(`${reportLabel} row ${rowIndex} field "${fieldName}" must not be null.`);
-  }
-  return value;
-}
-
 function parseActivityRow(value: AdminQueryValue | undefined, rowIndex: number): ActivityRow {
-  if (!Array.isArray(value) || value.length !== 12) {
-    throw new Error(`${reportLabel} row ${rowIndex} must be an array of 12 values.`);
-  }
-  const source = readString(value, 2, "source", rowIndex);
+  const location = `${reportLabel} row ${rowIndex}`;
+  const values = readRowArray(value, 12, location);
+  const source = readString(values, 2, "source", location);
   const matchedSource = activitySources.find((candidate) => candidate === source);
   if (matchedSource === undefined) {
-    throw new Error(`${reportLabel} row ${rowIndex} field "source" has unsupported value: ${source}`);
+    throw new Error(`${location} field "source" has unsupported value: ${source}`);
   }
-  const details: AdminQueryValue | undefined = value[11];
+  const details: AdminQueryValue | undefined = values[11];
   if (details === undefined) {
-    throw new Error(`${reportLabel} row ${rowIndex} is missing "details".`);
+    throw new Error(`${location} is missing "details".`);
   }
   return {
-    key: readString(value, 0, "key", rowIndex),
-    occurredAt: readString(value, 1, "occurredAt", rowIndex),
+    key: readString(values, 0, "key", location),
+    occurredAt: readString(values, 1, "occurredAt", location),
     source: matchedSource,
-    name: readString(value, 3, "name", rowIndex),
-    platform: readNullableString(value, 4, "platform", rowIndex),
-    appVersion: readNullableString(value, 5, "appVersion", rowIndex),
-    screen: readNullableString(value, 6, "screen", rowIndex),
-    country: readNullableString(value, 7, "country", rowIndex),
-    uiLocale: readNullableString(value, 8, "uiLocale", rowIndex),
-    sessionId: readNullableString(value, 9, "sessionId", rowIndex),
-    origin: readNullableString(value, 10, "origin", rowIndex),
+    name: readString(values, 3, "name", location),
+    platform: readNullableString(values, 4, "platform", location),
+    appVersion: readNullableString(values, 5, "appVersion", location),
+    screen: readNullableString(values, 6, "screen", location),
+    country: readNullableString(values, 7, "country", location),
+    uiLocale: readNullableString(values, 8, "uiLocale", location),
+    sessionId: readNullableString(values, 9, "sessionId", location),
+    origin: readNullableString(values, 10, "origin", location),
     details: JSON.stringify(details),
   };
 }

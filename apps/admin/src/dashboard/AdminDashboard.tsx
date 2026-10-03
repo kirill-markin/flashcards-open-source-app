@@ -69,6 +69,7 @@ type AnalyticsReportSectionsProps = Readonly<{
   /** The General numbers on screen are the ones a failed reload left behind. */
   isReportStale: boolean;
   onFiltersChange: (filters: AnalyticsFilterState) => boolean;
+  onNavigate: (path: string) => void;
   /** Stable across filter changes on purpose; see `App`. */
   onChartUserFilterApply: (userId: string) => void;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
@@ -130,6 +131,7 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
         dateRangeError={props.dateRangeError}
         userColorScale={userColorScale}
         onFiltersChange={props.onFiltersChange}
+        onNavigate={props.onNavigate}
       />
 
       {/*
@@ -173,6 +175,7 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
         isReportLoading={props.isReportLoading}
         dateRangeError={props.dateRangeError}
         onFiltersChange={props.onFiltersChange}
+        onNavigate={props.onNavigate}
         onTerminalAdminError={props.onTerminalAdminError}
       /> : null}
 
@@ -286,6 +289,7 @@ export function AdminDashboard(
           dateRangeError={props.reportState.dateRangeError}
           isReportStale={props.reportState.reloadError !== ""}
           onFiltersChange={props.onFiltersChange}
+          onNavigate={props.onNavigate}
           onChartUserFilterApply={props.onChartUserFilterApply}
           onTerminalAdminError={props.onTerminalAdminError}
         />

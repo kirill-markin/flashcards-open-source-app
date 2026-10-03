@@ -3,6 +3,7 @@ import { AdminLink } from "../../navigation/AdminLink";
 import { getUserPath } from "../../routing";
 import { DataTable } from "../../table/DataTable";
 import { emptyDataTableState, type DataTableColumn, type DataTableState } from "../../table/dataTableModel";
+import { formatInstant } from "./formatInstant";
 import type {
   ProfileCell,
   ProfileField,
@@ -12,10 +13,6 @@ import type {
 } from "./profileQuery";
 
 type ProfileListRow = Readonly<{ key: string; cells: ReadonlyArray<ProfileCell> }>;
-
-function formatInstant(value: string): string {
-  return `${value.slice(0, 10)} ${value.slice(11, 19)} UTC`;
-}
 
 function renderUserLink(userId: string, onNavigate: (path: string) => void): JSX.Element {
   return <AdminLink className="data-table-link" path={getUserPath(userId, "profile")} onNavigate={onNavigate}>{userId}</AdminLink>;

@@ -848,8 +848,8 @@
 "settings.language.supported.vietnamese" = "В’єтнамська";
 "settings.language.supported.zulu" = "Зулуська";
 
-"premium.comingSoon.title" = "Premium незабаром з’явиться";
-"premium.comingSoon.message" = "Підписки поки недоступні.";
+"premium.offer.title" = "Premium";
+"premium.offer.benefits" = "1 000 повідомлень ШІ на місяць і власні акцентні кольори. Синхронізація безкоштовна для всіх.";
 "premium.aiLimit.title" = "Досягнуто ліміту повідомлень ШІ";
 
 "settings.accentColor.title" = "Колір акценту";
@@ -863,8 +863,6 @@
 "settings.accentColor.invalidHex" = "Введіть колір у форматі #RRGGBB — шість шістнадцяткових цифр.";
 "settings.accentColor.premiumNote" = "Власні кольори акценту доступні з Premium. Збережений колір повернеться, коли Premium буде активним.";
 
-"premium.apple.sandbox" = "Тестова покупка Premium";
-"premium.apple.notice" = "Для тестових покупок потрібен TestFlight. Публічні продажі ще не відкриті.";
 "premium.apple.renewal" = "Поновлюється автоматично до скасування. Керувати підпискою або скасувати її можна в App Store.";
 "premium.apple.trial" = "Безкоштовний пробний період: %@. Потім:";
 "premium.apple.loadFailed" = "Не вдалося завантажити пропозицію App Store. Перевірте з’єднання та спробуйте ще раз.";
