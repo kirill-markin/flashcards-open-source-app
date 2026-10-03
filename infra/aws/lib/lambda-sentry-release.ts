@@ -7,7 +7,7 @@ export function getLambdaSentryRelease(fn: lambda.Function): string {
     throw new Error(`Lambda ${fn.node.path} has no default CfnFunction resource`);
   }
 
-  // NodejsFunction uses OUTPUT hashing, after all bundling hooks have completed.
+  // The staged asset key includes transitive inputs and CDK bundling configuration.
   // Resolve only Code: currentVersion also hashes environment and would recurse.
   const code = cdk.Stack.of(fn).resolve(resource.code) as lambda.CfnFunction.CodeProperty;
   const assetHash = typeof code.s3Key === "string"

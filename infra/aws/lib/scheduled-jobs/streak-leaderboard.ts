@@ -1,3 +1,4 @@
+import { createCachedNodejsFunction } from "../lambda-input-cache";
 import * as cdk from "aws-cdk-lib";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as iam from "aws-cdk-lib/aws-iam";
@@ -10,7 +11,7 @@ import { backendNodejsProjectPaths, resolveFromRepoRoot } from "../nodejs-projec
 import { backendStructuredLoggingProps } from "../backend-lambda-logging";
 import { createSentrySourceMapInjectionCommand } from "../sentry-source-maps";
 import { getLambdaSentryRelease } from "../lambda-sentry-release";
-import { createRdsCaBundleDownloadCommand } from "../rds-ca-bundle";
+import { createRdsCaBundleCopyCommand, rdsCaBundlePath } from "../rds-ca-bundle";
 
 export interface StreakLeaderboardProps {
   vpc: ec2.Vpc;
@@ -37,7 +38,7 @@ const lambdaBundling: lambdaNodejs.BundlingOptions = {
     beforeBundling: () => [],
     beforeInstall: () => [],
     afterBundling: (_inputDir: string, outputDir: string) => [
-      createRdsCaBundleDownloadCommand(outputDir),
+      createRdsCaBundleCopyCommand(outputDir, rdsCaBundlePath),
       createSentrySourceMapInjectionCommand(outputDir),
     ],
   },
@@ -81,7 +82,7 @@ function addOptionalSentryEnvironment(
 }
 
 export function streakLeaderboard(scope: Construct, props: StreakLeaderboardProps): StreakLeaderboardResult {
-  const snapshotFunction = new lambdaNodejs.NodejsFunction(scope, "StreakLeaderboardSnapshotHandler", {
+  const snapshotFunction = createCachedNodejsFunction(scope, "StreakLeaderboardSnapshotHandler", {
     entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "scheduledJobs", "lambda-streak-leaderboard-snapshot.ts"),
     handler: "handler",
     runtime: lambda.Runtime.NODEJS_24_X,
@@ -92,6 +93,7 @@ export function streakLeaderboard(scope: Construct, props: StreakLeaderboardProp
     vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
     securityGroups: [props.lambdaSg],
     ...backendNodejsProjectPaths,
+    copiedAssetPaths: [rdsCaBundlePath],
     bundling: lambdaBundling,
     environment: {
       NODE_EXTRA_CA_CERTS: "/var/task/rds-global-bundle.pem",

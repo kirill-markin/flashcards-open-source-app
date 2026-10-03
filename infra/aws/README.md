@@ -73,11 +73,19 @@ That flow:
 - optionally configures Cloudflare DNS
 - populates missing deploy config in GitHub Actions variables without overwriting existing values
 
-You can still run CDK manually from `infra/aws`; the local helper scripts assemble the CDK context file before the CDK step.
+Before direct CDK synthesis, run `bash scripts/deploy/prepare-lambda-build-inputs.sh` from the repo root to fetch and validate the required RDS CA bundle. The release workflow and `bootstrap.sh` (also invoked by `first-deploy.sh`) prepare this input before CDK runs. The local helper scripts assemble the CDK context file before the CDK step.
 
 ## Lambda Sentry releases
 
-Lambda source maps receive deterministic debug IDs during every synth. Each configured Lambda uses `lambda-<CDK unique function ID>@<code asset hash>` as its Sentry release, so unchanged code retains its release across commits and deployment phases. Runtime configuration still updates through the Lambda environment independently. After both deployment phases succeed, `scripts/deploy/upload-lambda-source-maps.py` reads the final cloud assembly, matches each template’s release and S3 code key to its asset manifest, verifies matching JavaScript/map debug IDs, and uploads only that bundle pair. Sentry credentials are provided only to this upload step. Git SHA provenance remains in the workflow summary and deployed-component SSM records.
+New Lambda bundles receive deterministic source-map debug IDs before staging. Each configured Lambda uses `lambda-<CDK unique function ID>@<code asset hash>` as its Sentry release, so unchanged code retains its release across commits and deployment phases. Runtime configuration still updates through the Lambda environment independently. After both deployment phases succeed, `scripts/deploy/upload-lambda-source-maps.py` reads the final cloud assembly, matches each template’s release and S3 code key to its asset manifest, verifies matching JavaScript/map debug IDs, and uploads only that bundle pair. Sentry credentials are provided only to this upload step. Git SHA provenance remains in the workflow summary and deployed-component SSM records.
+
+## Lambda asset cache
+
+The AWS release workflow prepares the RDS CA once per job, restores verified asset directories, and saves only Lambda assets referenced by the final assembly. Cache schema v1 lives under `.cache/lambda-assets/v1`; its manifest contains asset names and integrity digests. CloudFormation templates, context and credentials stay outside the cache. Runner architectures have separate caches. Cache hits do not replace deployment or smoke gates, and Docker image construction still occurs.
+
+The implementation is in [lambda-input-cache.ts](lib/lambda-input-cache.ts) and [lambda-asset-cache.py](../../scripts/deploy/lambda-asset-cache.py). New hooks that copy runtime files must declare `copiedAssetPaths`. Nonliteral application imports, linked/local npm dependencies, extended tsconfigs, extra bundling options and host Sentry CLI overrides require explicit input support before use.
+
+For cloud verification, compare the `lambda_asset_cache` JSON records in the first and second deploy phases: identical inputs must report `reused` in phase two. On the next platform release, compare asset identities per function; a private handler edit should rebuild only its dependents, while shared source, SQL, CA, lockfile or architecture changes should change the affected identities. Confirm the final source-map uploader and ordinary deployment/smoke gates pass. A corrupt or incomplete restored asset fails synthesis; delete the affected GitHub Actions cache and rerun to rebuild it.
 
 ## Secret setup helpers
 

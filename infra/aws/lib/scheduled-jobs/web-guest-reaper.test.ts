@@ -20,7 +20,7 @@ test("web guest reaper is scheduled daily", () => {
 test("web guest reaper construct creates the daily schedule and Lambda", () => {
   const source = readLibSource("lib/scheduled-jobs/web-guest-reaper.ts");
 
-  assert.match(source, /new lambdaNodejs\.NodejsFunction\(scope, "WebGuestReaperHandler"/);
+  assert.match(source, /createCachedNodejsFunction\(scope, "WebGuestReaperHandler"/);
   assert.match(
     source,
     /entry: resolveFromRepoRoot\("apps", "backend", "src", "entrypoints", "scheduledJobs", "lambda-web-guest-reaper\.ts"\)/,

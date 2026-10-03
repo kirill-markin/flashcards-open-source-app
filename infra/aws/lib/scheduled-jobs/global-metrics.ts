@@ -1,3 +1,4 @@
+import { createCachedNodejsFunction } from "../lambda-input-cache";
 import * as cdk from "aws-cdk-lib";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as iam from "aws-cdk-lib/aws-iam";
@@ -12,7 +13,7 @@ import { backendNodejsProjectPaths, infraAwsNodejsProjectPaths, resolveFromRepoR
 import { backendStructuredLoggingProps } from "../backend-lambda-logging";
 import { createSentrySourceMapInjectionCommand } from "../sentry-source-maps";
 import { getLambdaSentryRelease } from "../lambda-sentry-release";
-import { createRdsCaBundleDownloadCommand } from "../rds-ca-bundle";
+import { createRdsCaBundleCopyCommand, rdsCaBundlePath } from "../rds-ca-bundle";
 
 export interface GlobalMetricsProps {
   vpc: ec2.Vpc;
@@ -46,7 +47,7 @@ const lambdaBundling: lambdaNodejs.BundlingOptions = {
     beforeBundling: () => [],
     beforeInstall: () => [],
     afterBundling: (_inputDir: string, outputDir: string) => [
-      createRdsCaBundleDownloadCommand(outputDir),
+      createRdsCaBundleCopyCommand(outputDir, rdsCaBundlePath),
       createSentrySourceMapInjectionCommand(outputDir),
     ],
   },
@@ -103,7 +104,7 @@ export function globalMetrics(scope: Construct, props: GlobalMetricsProps): Glob
     autoDeleteObjects: false,
   });
 
-  const snapshotFunction = new lambdaNodejs.NodejsFunction(scope, "GlobalMetricsSnapshotHandler", {
+  const snapshotFunction = createCachedNodejsFunction(scope, "GlobalMetricsSnapshotHandler", {
     entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "scheduledJobs", "lambda-global-metrics-snapshot.ts"),
     handler: "handler",
     runtime: lambda.Runtime.NODEJS_24_X,
@@ -114,6 +115,7 @@ export function globalMetrics(scope: Construct, props: GlobalMetricsProps): Glob
     vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
     securityGroups: [props.lambdaSg],
     ...backendNodejsProjectPaths,
+    copiedAssetPaths: [rdsCaBundlePath],
     bundling: lambdaBundling,
     environment: {
       NODE_EXTRA_CA_CERTS: "/var/task/rds-global-bundle.pem",
@@ -156,7 +158,7 @@ export function globalMetrics(scope: Construct, props: GlobalMetricsProps): Glob
     },
   });
 
-  const snapshotFreshnessCheckerFunction = new lambdaNodejs.NodejsFunction(
+  const snapshotFreshnessCheckerFunction = createCachedNodejsFunction(
     scope,
     "GlobalMetricsSnapshotFreshnessCheckerHandler",
     {

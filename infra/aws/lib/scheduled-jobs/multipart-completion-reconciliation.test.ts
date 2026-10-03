@@ -34,13 +34,11 @@ test("multipart completion reconciliation Lambda has bounded runtime and exact S
   const source = readLibSource(
     "lib/scheduled-jobs/multipart-completion-reconciliation.ts",
   );
-  // The JSON log format and the log levels moved into the shared props this function spreads, so
-  // that is where they are asserted; the metric filter below only resolves under that format.
   const loggingSource = readLibSource("lib/backend-lambda-logging.ts");
 
   assert.match(
     source,
-    /new lambdaNodejs\.NodejsFunction\([\s\S]*"MultipartCompletionReconciliationHandler"/,
+    /createCachedNodejsFunction\([\s\S]*"MultipartCompletionReconciliationHandler"/,
   );
   assert.match(
     source,
