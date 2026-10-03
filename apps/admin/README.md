@@ -15,7 +15,7 @@ Supported browser entrypoints:
 - `/analytics/funnels` - the funnels, stacked in a fixed order
 - `/analytics/audience` - the audience report
 - `/analytics/ai-usage` - the Study vs AI report: one scatter panel per equal-length period
-- `/users` - the Users list, one row per account or guest
+- `/users` - the Users list, one row per account or guest, with guests merged into an account hidden by a default filter that can be cleared
 - `/users/<id>/<tab>` - one person's page, where `<tab>` is `profile`, `activity`, `chats` or `cards` and `<id>` is either a raw `org.user_settings.user_id` or an analytics `actor_id`; `/users/<id>` opens Profile and is rewritten in place to its path
 - `/users/<id>/chats/<sessionId>` - one chat of that person, opened from the Chats tab
 - any other path - the not-found page, naming the path as typed
