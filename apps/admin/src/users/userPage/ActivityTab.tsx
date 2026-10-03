@@ -43,6 +43,7 @@ function renderDetails(row: ActivityRow): ReactNode {
 const activityColumns: ReadonlyArray<DataTableColumn<ActivityRow>> = [
   { id: "occurred", label: "Occurred at (UTC)", kind: "date", value: (row) => row.occurredAt, renderCell: null },
   { id: "source", label: "Source", kind: "enum", value: (row) => row.source, renderCell: null },
+  { id: "recorded-as", label: "Recorded as", kind: "enum", value: (row) => row.recordedAs, renderCell: null },
   { id: "name", label: "Event", kind: "enum", value: (row) => row.name, renderCell: null },
   { id: "platform", label: "Platform", kind: "enum", value: (row) => row.platform, renderCell: null },
   { id: "app-version", label: "App version", kind: "enum", value: (row) => row.appVersion, renderCell: null },
@@ -134,6 +135,7 @@ export function ActivityTab(props: Readonly<{
     <div className="activity-tab" data-testid="user-activity">
       <p className="dashboard-section-description">
         Every analytics event credited to this person, every trust level included, plus their purchases, grants and feedback, newest first. Reviews, cards and AI chat appear as their analytics events.
+        Recorded as is the credential behind each event - guest, account, or visitor with no user at all - and where a server-made event carries none, whether its user id was still a guest at that moment.
       </p>
       <div className="activity-paging">
         <span className="hero-badge" data-testid="user-activity-loaded-count">

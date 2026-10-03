@@ -6,6 +6,7 @@ import { getUserPath, userPageTabLabels, userPageTabs, type UserPageTab } from "
 import { ActivityTab } from "./ActivityTab";
 import { CardsTab } from "./CardsTab";
 import { ChatsTab } from "./ChatsTab";
+import { formatInstant } from "./formatInstant";
 import { hasAnyProfileData, loadUserProfile, type UserProfile } from "./profileQuery";
 import { ProfileTab } from "./ProfileTab";
 import "./userPage.css";
@@ -109,6 +110,21 @@ export function UserPage(props: Readonly<{
       <AdminNavigation activePage="users" onNavigate={props.onNavigate} />
 
       <section className="dashboard-section" data-testid="user-page-section">
+        {profile !== null && profile.header.mergedInto !== null ? (
+          <div className="report-state report-state-warning user-page-merged-banner" data-testid="user-page-merged-into">
+            <span>
+              Merged into{" "}
+              <AdminLink
+                className="data-table-link"
+                path={getUserPath(profile.header.mergedInto.userId, "profile")}
+                testId="user-page-merged-into-link"
+                onNavigate={props.onNavigate}
+              >{profile.header.mergedInto.email ?? profile.header.mergedInto.userId}</AdminLink>
+              {" "}on {formatInstant(profile.header.mergedInto.mergedAt)}.
+            </span>
+          </div>
+        ) : null}
+
         <nav className="analytics-navigation user-page-tabs" aria-label="User sections">
           {userPageTabs.map((tab) => (
             <AdminLink

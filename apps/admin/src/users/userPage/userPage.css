@@ -19,6 +19,10 @@
   margin-bottom: 8px;
 }
 
+.report-state.user-page-merged-banner {
+  margin: 0 0 16px;
+}
+
 /* Records sit side by side; a list needs the full width for its table. */
 .profile-sections {
   display: grid;

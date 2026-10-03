@@ -8,6 +8,7 @@ import {
   parseDataTableState,
   toDataTableSearchParams,
   type DataTableColumn,
+  type DataTableFilter,
   type DataTableState,
 } from "../table/dataTableModel";
 import { loadUsersReport, type UserRow, type UsersReport } from "./usersQuery";
@@ -17,19 +18,22 @@ type LoadState =
   | Readonly<{ status: "error"; message: string }>
   | Readonly<{ status: "ready"; report: UsersReport }>;
 
-function renderUserLink(user: UserRow, text: string | null, onNavigate: (path: string) => void): JSX.Element | null {
-  return text === null ? null : (
-    <AdminLink className="data-table-link" path={getUserPath(user.userId, "profile")} onNavigate={onNavigate}>{text}</AdminLink>
+function renderUserLink(userId: string | null, text: string | null, onNavigate: (path: string) => void): JSX.Element | null {
+  return userId === null || text === null ? null : (
+    <AdminLink className="data-table-link" path={getUserPath(userId, "profile")} onNavigate={onNavigate}>{text}</AdminLink>
   );
 }
+
+const mergedGuestColumnId = "merged-guest";
 
 // The column ids are the URL vocabulary of the table state, so renaming one breaks saved links.
 function buildUserColumns(onNavigate: (path: string) => void): ReadonlyArray<DataTableColumn<UserRow>> {
   return [
-    { id: "user-id", label: "User ID", kind: "text", value: (user) => user.userId, renderCell: (user) => renderUserLink(user, user.userId, onNavigate) },
-    { id: "email", label: "Email", kind: "text", value: (user) => user.email, renderCell: (user) => renderUserLink(user, user.email, onNavigate) },
+    { id: "user-id", label: "User ID", kind: "text", value: (user) => user.userId, renderCell: (user) => renderUserLink(user.userId, user.userId, onNavigate) },
+    { id: "email", label: "Email", kind: "text", value: (user) => user.email, renderCell: (user) => renderUserLink(user.userId, user.email, onNavigate) },
     { id: "kind", label: "Kind", kind: "enum", value: (user) => user.kind, renderCell: null },
-    { id: "merged-into", label: "Merged into", kind: "text", value: (user) => user.mergedIntoUserId, renderCell: null },
+    { id: mergedGuestColumnId, label: "Merged guest", kind: "boolean", value: (user) => user.mergedIntoUserId !== null, renderCell: null },
+    { id: "merged-into", label: "Merged into", kind: "text", value: (user) => user.mergedIntoUserId, renderCell: (user) => renderUserLink(user.mergedIntoUserId, user.mergedIntoUserId, onNavigate) },
     { id: "excluded", label: "Excluded", kind: "boolean", value: (user) => user.exclusionReason !== null, renderCell: null },
     { id: "exclusion-reason", label: "Exclusion reason", kind: "enum", value: (user) => user.exclusionReason, renderCell: null },
     { id: "created", label: "Created", kind: "date", value: (user) => user.createdAt, renderCell: null },
@@ -61,9 +65,30 @@ function buildUserColumns(onNavigate: (path: string) => void): ReadonlyArray<Dat
 
 const tableParamPrefix = "";
 
+// Merged guests are hidden by default through an ordinary `Merged guest = no` filter. A URL without
+// its parameter carries that default, so the default state stays the bare path, and a cleared filter
+// is written as `any`, a value the table's codec ignores, so it survives a reload or a shared link.
+const mergedGuestFilterParam = `${tableParamPrefix}f.${mergedGuestColumnId}`;
+const mergedGuestFilterClearedValue = "any";
+const hiddenMergedGuestsFilter: DataTableFilter = { kind: "boolean", value: false };
+
+function parseUsersListState(searchParams: URLSearchParams, columns: ReadonlyArray<DataTableColumn<UserRow>>): DataTableState {
+  const state = parseDataTableState(searchParams, columns, tableParamPrefix);
+  return searchParams.has(mergedGuestFilterParam)
+    ? state
+    : { ...state, filters: { ...state.filters, [mergedGuestColumnId]: hiddenMergedGuestsFilter } };
+}
+
 /** The table state as the list's query string, `?` included, or `""` for the default state. */
 function buildUsersListSearch(state: DataTableState, columns: ReadonlyArray<DataTableColumn<UserRow>>): string {
-  const search = toDataTableSearchParams(state, columns, tableParamPrefix).toString();
+  const searchParams = toDataTableSearchParams(state, columns, tableParamPrefix);
+  const mergedGuestFilter = state.filters[mergedGuestColumnId];
+  if (mergedGuestFilter === undefined) {
+    searchParams.set(mergedGuestFilterParam, mergedGuestFilterClearedValue);
+  } else if (mergedGuestFilter.kind === "boolean" && !mergedGuestFilter.value) {
+    searchParams.delete(mergedGuestFilterParam);
+  }
+  const search = searchParams.toString();
   return search === "" ? "" : `?${search}`;
 }
 
@@ -88,7 +113,7 @@ export function UsersPage(props: Readonly<{
   const userColumns = useMemo(() => buildUserColumns(props.onNavigate), [props.onNavigate]);
   // Read once on entry, so Back from a later page restores the list exactly as it was left.
   const [tableState, setTableState] = useState<DataTableState>(
-    () => parseDataTableState(new URLSearchParams(window.location.search), userColumns, tableParamPrefix),
+    () => parseUsersListState(new URLSearchParams(window.location.search), userColumns),
   );
 
   const { onListPathChange } = props;
@@ -138,7 +163,7 @@ export function UsersPage(props: Readonly<{
 
       <section className="dashboard-section" data-testid="users-section">
         <header className="dashboard-section-header">
-          <p className="dashboard-section-description">Every live account and guest, one row per settings row; a deleted account is not listed. People the analytics exclusion rule drops from every report are listed too, dimmed, with the reason. Activity comes from analytics events credited to the row's own id, so a guest merged into an account shows its activity on that account's row instead. Countries come from connection samples, which are kept for 90 days.</p>
+          <p className="dashboard-section-description">Every live account and guest, one row per settings row; a deleted account is not listed, and a guest merged into an account is hidden until the Merged guest filter is cleared. People the analytics exclusion rule drops from every report are listed too, dimmed, with the reason. Activity comes from analytics events credited to the row's own id, so a guest merged into an account shows its activity on that account's row instead. Countries come from connection samples, which are kept for 90 days.</p>
         </header>
         {loadState.status === "loading" ? <p className="report-state" aria-live="polite">Loading users…</p> : null}
         {loadState.status === "error" ? <div className="report-state report-state-error">

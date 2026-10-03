@@ -2,7 +2,7 @@ import { runAdminQuery, type AdminQueryObject, type AdminQueryValue } from "../.
 import type { AdminAppConfig } from "../../config";
 import { buildExcludedActorReasonSql } from "../../filters/filterSql";
 import { utcInstantSql, type UserKind } from "../usersQuery";
-import { readNullableString, readRowArray } from "./queryRowValues";
+import { readNullableString, readRowArray, readString } from "./queryRowValues";
 import { buildMatchesUserIdSql, buildUserSubjectSql, type UserSubjectSql } from "./userSubjectSql";
 
 const reportLabel = "User profile";
@@ -37,13 +37,19 @@ export type ProfileSectionData =
   | Readonly<{ kind: "record"; section: ProfileRecordSection; cells: ReadonlyArray<ProfileCell> | null }>
   | Readonly<{ kind: "list"; section: ProfileListSection; rows: ReadonlyArray<ReadonlyArray<ProfileCell>> }>;
 
+/**
+ * The account a guest's analytics history resolves onto, by the same first link the resolved view
+ * takes. `mergedAt` is that link's `linked_at`, because a guest linked for analytics only has no
+ * upgrade history row to take a time from.
+ */
+export type UserMergedInto = Readonly<{ userId: string; email: string | null; mergedAt: string }>;
+
 export type UserProfileHeader = Readonly<{
   email: string | null;
   /** NULL for an id with no settings row, sign-in identity or guest session: a deleted or anonymized actor. */
   kind: UserKind | null;
   identityCreatedAt: string | null;
-  /** The account a guest's analytics history resolves onto, by the same first link the resolved view takes. */
-  mergedIntoUserId: string | null;
+  mergedInto: UserMergedInto | null;
   /** Comma-separated arms of the analytics exclusion rule; null for a person every report counts. */
   exclusionReason: string | null;
 }>;
@@ -384,7 +390,12 @@ function buildUserProfileSql(subject: UserSubjectSql, sections: ReadonlyArray<Pr
     CASE WHEN EXISTS (${identitySql}) THEN 'account'
       WHEN EXISTS (${settingsRowSql}) OR EXISTS (${guestSessionSql}) THEN 'guest' END,
     (SELECT ${utcInstantSql("min(identities.created_at)")} FROM auth.user_identities AS identities WHERE ${matches("identities.user_id")}),
-    (SELECT links.user_id::text FROM analytics.identity_links AS links
+    (SELECT json_build_array(
+        links.user_id::text,
+        (SELECT settings.email FROM org.user_settings AS settings WHERE pg_catalog.lower(settings.user_id) = links.user_id::text),
+        ${utcInstantSql("links.linked_at")}
+      )
+      FROM analytics.identity_links AS links
       WHERE links.source = 'server_derived' AND links.anonymous_id = ${subject.uuidSql}
       ORDER BY links.linked_at, links.link_id LIMIT 1),
     NULLIF(${buildExcludedActorReasonSql(subject.lowerIdSql)}, '')
@@ -445,6 +456,19 @@ function parseSection(value: AdminQueryValue | undefined, section: ProfileSectio
   }
 }
 
+function parseMergedInto(value: AdminQueryValue | undefined, location: string): UserMergedInto | null {
+  if (value === null) {
+    return null;
+  }
+  const fieldLocation = `${location} field "mergedInto"`;
+  const values = readRowArray(value, 3, fieldLocation);
+  return {
+    userId: readString(values, 0, "userId", fieldLocation),
+    email: readNullableString(values, 1, "email", fieldLocation),
+    mergedAt: readString(values, 2, "mergedAt", fieldLocation),
+  };
+}
+
 function parseHeader(value: AdminQueryValue | undefined): UserProfileHeader {
   const location = `${reportLabel} header`;
   const values = readRowArray(value, 5, location);
@@ -456,7 +480,7 @@ function parseHeader(value: AdminQueryValue | undefined): UserProfileHeader {
     email: readNullableString(values, 0, "email", location),
     kind,
     identityCreatedAt: readNullableString(values, 2, "identityCreatedAt", location),
-    mergedIntoUserId: readNullableString(values, 3, "mergedIntoUserId", location),
+    mergedInto: parseMergedInto(values[3], location),
     exclusionReason: readNullableString(values, 4, "exclusionReason", location),
   };
 }

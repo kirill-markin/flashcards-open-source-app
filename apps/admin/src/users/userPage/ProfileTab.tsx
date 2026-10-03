@@ -161,7 +161,7 @@ export function ProfileTab(props: Readonly<{ profile: UserProfile; onNavigate: (
           </div>
           <div className="profile-record-row">
             <dt>Analytics merged into</dt>
-            <dd>{header.mergedIntoUserId === null ? <span className="profile-empty-value">—</span> : renderUserLink(header.mergedIntoUserId, props.onNavigate)}</dd>
+            <dd>{header.mergedInto === null ? <span className="profile-empty-value">—</span> : renderUserLink(header.mergedInto.userId, props.onNavigate)}</dd>
           </div>
           <div className="profile-record-row">
             <dt>Excluded from reports</dt>
