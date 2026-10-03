@@ -1,12 +1,23 @@
-import type { ReactElement } from "react";
+import { useEffect, useRef, type ReactElement } from "react";
 import { useAppData } from "../../appData";
 import { useI18n } from "../../i18n";
 import { useEntitlementSnapshot } from "../../premium/entitlementStore";
 import { usePremiumPresenter } from "../../premium/PremiumProvider";
+import { StripeOfferContent } from "../../premium/StripeOfferContent";
+import { StripeSubscriptions } from "../../premium/StripeSubscriptions";
+import { useStripeBilling } from "../../premium/useStripeBilling";
 import { SettingsGroup, SettingsShell } from "./SettingsShared";
 
 export function SubscriptionSettingsScreen(): ReactElement {
-  const userId = useAppData().session?.userId ?? null;
+  const { session, isSessionVerified } = useAppData();
+  const userId = session?.userId ?? null;
+  const billing = useStripeBilling();
+  const loadedRef = useRef(false);
+  useEffect(() => {
+    if (loadedRef.current || billing.busy || !isSessionVerified || session?.profile.email === null) return;
+    loadedRef.current = true;
+    if (billing.details === null && billing.error === null) void billing.refresh();
+  }, [billing.busy, billing.details, billing.error, billing.refresh, isSessionVerified, session?.profile.email]);
   const entitlement = useEntitlementSnapshot(userId);
   const presentPremium = usePremiumPresenter();
   const { t, formatDate, formatNumber } = useI18n();
@@ -38,6 +49,12 @@ export function SubscriptionSettingsScreen(): ReactElement {
             </>
           )}
         </article>
+        <StripeSubscriptions entitlement={entitlement} />
+        <StripeOfferContent continuation={null} />
+        <div className="content-card content-card-section">
+          <p className="subtitle">{t("stripe.ownKey.explanation")}</p>
+          <a className="ghost-btn" href="/settings/own-openai-key" data-testid="subscription-own-key">{t("stripe.ownKey.action")}</a>
+        </div>
         <button type="button" className="ghost-btn" data-testid="subscription-offer" onClick={() => { presentPremium?.({ reason: "offer" }); }}>
           {t("premium.offer")}
         </button>

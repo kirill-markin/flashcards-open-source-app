@@ -24,7 +24,7 @@
   display: flex;
   align-items: flex-start;
   gap: 16px;
-  padding-right: 40px;
+  padding-inline-end: 40px;
   position: relative;
 }
 
@@ -35,7 +35,7 @@
 .premium-close {
   position: absolute;
   top: 0;
-  right: 0;
+  inset-inline-end: 0;
   min-width: 36px;
   min-height: 36px;
   font-size: 24px;
@@ -60,4 +60,34 @@
   .premium-dialog {
     padding: 16px;
   }
+}
+
+.premium-offer,
+.premium-subscriptions {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.premium-offer ul {
+  margin: 0;
+  padding-inline-start: 24px;
+}
+
+.premium-price {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.premium-legal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+}
+
+.premium-dialog a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
 }

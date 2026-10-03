@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { unsafeTransaction } from "../../database/unsafe";
 import type { PurchaseStatus } from "../resolver";
+import { resolveEntitlementLimits } from "../limits";
 import { stripeHostedLocale } from "./checkoutPresentation";
 import { lockStripeHumanAccountInExecutor, observeStripeAccountInExecutor,
   stripeSubscriptionCanBill, type StripeHumanActor } from "./checkout";
@@ -23,6 +24,7 @@ export type StripeSubscriptionDetails = Readonly<{
 export type StripeBillingDetails = Readonly<{
   environment: StripeEnvironment;
   checkoutAvailable: boolean;
+  premiumAiMonthlyMessages: number | null;
   checkoutUnavailableReason: "purchases_disabled" | "existing_subscription" | "checkout_pending" | null;
   basePrice: Readonly<{ currency: string; unitAmount: number; interval: "month"; taxBehavior: "inclusive" }> | null;
   trialEligible: boolean | null;
@@ -68,6 +70,7 @@ export async function getStripeBillingDetails(actor: StripeHumanActor): Promise<
       }),
     }));
     const result: StripeBillingDetails = {
+      premiumAiMonthlyMessages: resolveEntitlementLimits("premium", "account").aiMonthlyMessages,
       environment: context.environment, checkoutAvailable: context.checkoutEnabled && !hasSubscription && pending.length === 0,
       checkoutUnavailableReason: !context.checkoutEnabled ? "purchases_disabled"
         : hasSubscription ? "existing_subscription" : pending.length > 0 ? "checkout_pending" : null,

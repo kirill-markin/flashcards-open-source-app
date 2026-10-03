@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactElement } from "react";
+import { combineAbortSignals } from "../../abortSignals";
 import { isAuthRedirectError, updateAccountPreferences } from "../../api";
 import { hasPendingAccentColorWrite, queueAccentColorWrite, subscribeToAccountPreferenceWrites } from "../../appData/session/accentColorWrite";
 import { useAppData } from "../../appData";
@@ -8,6 +9,7 @@ import { captureAppOperationError } from "../../observability/appOperationObserv
 import { accentPresets, useAccountAccentColor } from "../../premium/accentColor";
 import { usePremiumPresenter } from "../../premium/PremiumProvider";
 import { readEntitlementIdentityGeneration } from "../../premium/entitlementStore";
+import { isStripeBillingInvalidated, readStripeBillingGeneration, subscribeToStripeBillingInvalidation } from "../../premium/stripeIntent";
 import { defaultAccentColor } from "../../types/account";
 import { SettingsGroup, SettingsShell } from "./SettingsShared";
 
@@ -108,14 +110,46 @@ function AccentColorEditor(): ReactElement {
       persistColor(color);
       return;
     }
+    const initiatingSession = sessionRef.current;
+    if (initiatingSession === null) return;
+    const { userId, csrfToken } = initiatingSession;
     const generation = readEntitlementIdentityGeneration();
+    const billingGeneration = readStripeBillingGeneration();
+    const isCurrentContinuation = (): boolean => !isStripeBillingInvalidated()
+      && generation === readEntitlementIdentityGeneration()
+      && billingGeneration === readStripeBillingGeneration()
+      && sessionRef.current?.userId === userId && sessionRef.current.csrfToken === csrfToken;
     presentPremium?.({
       reason: "feature",
       requiredRank: 20,
+      continuation: { accentColor: color, requiredRank: 20 },
       onResult: (result): void => {
-        if (result === "granted" && mountedRef.current && generation === readEntitlementIdentityGeneration()) {
-          persistColor(color);
-        }
+        const currentSession = sessionRef.current;
+        if (result !== "granted" || !mountedRef.current || currentSession === null
+          || !isCurrentContinuation() || !isSessionVerified || indexedDbOpenRecoveryState.hasFailed()) return;
+        setCustomColor(color);
+        setErrorMessage("");
+        queueAccentColorWrite(userId, color, currentSession.preferences.accentColor, {
+          apply: (accentColor): void => { if (isCurrentContinuation()) setAccountPreferences(userId, { accentColor }); },
+          save: async (accentColor, signal): Promise<string> => {
+            if (!isCurrentContinuation()) throw new DOMException("Billing identity changed", "AbortError");
+            indexedDbOpenRecoveryState.throwIfFailed();
+            const controller = new AbortController();
+            const unsubscribe = subscribeToStripeBillingInvalidation(() => controller.abort());
+            const combined = combineAbortSignals([signal, controller.signal]);
+            try {
+              const response = await updateAccountPreferences({ accentColor }, { userId, signal: combined.signal });
+              combined.signal.throwIfAborted();
+              if (!isCurrentContinuation()) throw new DOMException("Billing identity changed", "AbortError");
+              indexedDbOpenRecoveryState.throwIfFailed();
+              return response.preferences.accentColor;
+            } finally {
+              combined.dispose();
+              unsubscribe();
+            }
+          },
+          onError: (error): void => { if (isCurrentContinuation()) showPreferenceError(error, "account_preferences_update"); },
+        });
       },
     });
   }

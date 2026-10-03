@@ -57,7 +57,9 @@ export function AccountDeletionRecoveryGate(props: AccountDeletionRecoveryGatePr
     : sessionTechnicalError === null
       ? sessionErrorMessage
       : visibleTechnicalErrorMessage;
-  const visibleAccountDeletionErrorMessage = accountDeletionErrorMessage === ""
+  const stripeCancellationFailed = accountDeletionTechnicalError instanceof ApiError
+    && accountDeletionTechnicalError.code === "ACCOUNT_DELETE_STRIPE_CANCELLATION_FAILED";
+  const visibleAccountDeletionErrorMessage = stripeCancellationFailed ? t("stripe.deletion.cancellationFailed") : accountDeletionErrorMessage === ""
     ? ""
     : accountDeletionTechnicalError === null
       ? accountDeletionErrorMessage
@@ -90,7 +92,8 @@ export function AccountDeletionRecoveryGate(props: AccountDeletionRecoveryGatePr
     }
 
     setAccountDeletionErrorMessage(normalizedError.message);
-    setAccountDeletionTechnicalError(wasCaptured ? normalizedError : null);
+    setAccountDeletionTechnicalError(wasCaptured || (normalizedError instanceof ApiError
+      && normalizedError.code === "ACCOUNT_DELETE_STRIPE_CANCELLATION_FAILED") ? normalizedError : null);
     if (wasCaptured) {
       showCapturedTechnicalError(normalizedError);
     }
@@ -267,12 +270,12 @@ export function AccountDeletionRecoveryGate(props: AccountDeletionRecoveryGatePr
       <main className="page-state">
         <section className="panel panel-center state-panel">
           <h1 className="title">{t("app.deleteAccountTitle")}</h1>
-          <p className="subtitle">
+          <p className="subtitle" role="status" data-testid="delete-account-progress">
             {isSessionVerified
-              ? t("app.deleteAccountInProgress")
+              ? t(isAccountDeletionSubmitting && !isAccountDeletionServerConfirmed() ? "stripe.deletion.cancelling" : "app.deleteAccountInProgress")
               : t("app.deleteAccountRestoring")}
           </p>
-          {visiblePendingAccountDeletionErrorMessage !== "" ? <p className="error-banner">{visiblePendingAccountDeletionErrorMessage}</p> : null}
+          {visiblePendingAccountDeletionErrorMessage !== "" ? <p className="error-banner" role="alert" data-testid="delete-account-error">{visiblePendingAccountDeletionErrorMessage}</p> : null}
           <button
             className="primary-btn"
             type="button"
