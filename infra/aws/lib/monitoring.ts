@@ -539,6 +539,19 @@ export function monitoring(scope: Construct, props: MonitoringProps): void {
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
   }), alertTopic);
 
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "McpWorkerThrottleAlarm", {
+    metric: props.mcpFn.metricThrottles({
+      period: cdk.Duration.minutes(5),
+      statistic: "Sum",
+    }),
+    threshold: 3,
+    comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+    evaluationPeriods: 2,
+    datapointsToAlarm: 2,
+    alarmDescription: "MCP worker rejected 3+ invocations in each of two consecutive 5-minute periods",
+    treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+  }), alertTopic);
+
   notifyAlertTopic(new cloudwatch.Alarm(scope, "CustomEmailSenderLambdaErrorAlarm", {
     metric: props.customEmailSenderFn.metricErrors({
       period: cdk.Duration.minutes(15),
