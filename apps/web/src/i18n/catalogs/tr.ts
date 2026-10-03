@@ -1,6 +1,9 @@
+import stripeCopy from "../../../../backend/src/billing/stripe/copy/locales/tr.json";
+import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const trCatalog: TranslationCatalog = {
+  stripe: createStripeCatalog(stripeCopy),
   accentColorSettings: {
     title: "Vurgu rengi",
     subtitle: "Uygulamanın vurgu rengini seçin.",

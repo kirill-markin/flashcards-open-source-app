@@ -1,6 +1,9 @@
+import stripeCopy from "../../../../backend/src/billing/stripe/copy/locales/uk.json";
+import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const ukCatalog: TranslationCatalog = {
+  stripe: createStripeCatalog(stripeCopy),
   accentColorSettings: {
     title: "Акцентний колір",
     subtitle: "Виберіть акцентний колір застосунку.",

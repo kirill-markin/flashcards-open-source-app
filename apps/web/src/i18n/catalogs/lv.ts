@@ -1,6 +1,9 @@
+import stripeCopy from "../../../../backend/src/billing/stripe/copy/locales/lv.json";
+import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const lvCatalog: TranslationCatalog = {
+  stripe: createStripeCatalog(stripeCopy),
   accentColorSettings: {
     title: "Akcenta krāsa",
     subtitle: "Izvēlieties lietotnes akcenta krāsu.",

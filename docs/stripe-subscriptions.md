@@ -2,7 +2,7 @@
 
 Nibomo Premium's sandbox and live catalogs, dedicated portal configurations and
 branding uploads were read back on **2026-10-03**. All 50 repository locale maps
-are present. The canonical non-secret identifiers and observed settings are in
+feed the web locale catalogs. The canonical non-secret identifiers and observed settings are in
 [configuration.json](stripe-subscriptions/configuration.json); this is preparation
 data, not application configuration. Web purchasing and lifecycle handling remain
 future implementation work. No customer, Checkout Session, subscription, portal
@@ -18,7 +18,7 @@ catalog material. This preparation changes none of those runtime contracts.
 | Setting | Selected value |
 | --- | --- |
 | Business | SAMO DANNI EOOD; isolated sandbox `Nibomo Subscriptions` |
-| Product name and customer-facing description | `product.name` and `product.description` in the [English map](stripe-subscriptions/locales/en.json) |
+| Product name and customer-facing description | `product.name` and `product.description` in the [English map](../apps/backend/src/billing/stripe/copy/locales/en.json) |
 | Marketing features | `product.aiFeature` and `product.accentFeature` in the English map |
 | Internal price nickname | `Nibomo Premium Monthly` |
 | Price lookup key, separately in each environment | `nibomo_premium_monthly` |
@@ -78,12 +78,15 @@ rendering or email delivery. Those require the real acceptance flows below.
 
 ## Authoritative copy and localization
 
-[locales/en.json](stripe-subscriptions/locales/en.json) is the single English
-source: **51 keys**, each mapping directly to one string. These are authoring
-keys only. No application imports these files, and future runtime key names are
-not prescribed. The map covers every product, portal, offer, return and management
-entry from the preparation draft, plus tax, trial, allowance-window, reminder-email and deletion
-copy. This document intentionally links the strings instead of duplicating them.
+[locales/en.json](../apps/backend/src/billing/stripe/copy/locales/en.json) is the single English
+source: **51 keys**, each mapping directly to one string. All 50 canonical maps
+live in [backend copy sources](../apps/backend/src/billing/stripe/copy/locales/).
+Each [web locale catalog](../apps/web/src/i18n/catalogs/) imports its own map;
+the [typed adapter](../apps/web/src/i18n/stripeCatalog.ts) exposes nested keys such
+as `stripe.offer.title`. English remains in the app shell and other languages
+retain their lazy locale chunks. Catalog availability does not enable Checkout
+or replace the existing Premium placeholder. The map also supplies product,
+portal, tax, trial, allowance-window, reminder-email and deletion copy.
 
 | Key family | Count | Use |
 | --- | --- | --- |
@@ -106,9 +109,9 @@ upload, never with a literal placeholder. `{price}` is the provider-derived,
 locale-formatted amount and currency for the offer or renewal being described.
 `{date}` is a locale-formatted server/provider date; `{provider}` is the relevant
 store name. `{url}` is the allowlisted absolute Subscription settings URL below,
-never a customer-supplied redirect. Do not hardcode USD formatting in translated copy. The authoring map
-uses single braces from the draft; during implementation explicitly adapt it to
-the web catalog’s `{{token}}` convention in the [web localization guide](web-localization.md).
+never a customer-supplied redirect. Do not hardcode USD formatting in translated copy. The canonical maps
+use single braces; the web adapter converts them to the `{{token}}` convention
+used by the [web localization runtime](../apps/web/src/i18n/runtime.ts).
 
 Use trial copy only for eligible customers; show the payment-method requirement,
 post-trial monthly amount, automatic renewal, cancellation path and inclusive tax
@@ -131,21 +134,21 @@ reminders; the sending mechanism and schedule remain integration work.
 
 The inventory is the 50 tags in [supportedLocales](../apps/web/src/i18n/types.ts).
 English and all 49 translations are present: **51 keys × 50 locales = 2550
-entries**, with matching key sets and placeholder tokens. These files remain
-outside runtime catalogs and use each locale's Premium and billing terminology.
+entries**, with matching key sets and placeholder tokens. The web catalogs consume
+these maps with each locale's Premium and billing terminology.
 
 | Locale files | Locale files | Locale files | Locale files | Locale files |
 | --- | --- | --- | --- | --- |
-| [en](stripe-subscriptions/locales/en.json) | [ar](stripe-subscriptions/locales/ar.json) | [zh-Hans](stripe-subscriptions/locales/zh-Hans.json) | [de](stripe-subscriptions/locales/de.json) | [hi](stripe-subscriptions/locales/hi.json) |
-| [ja](stripe-subscriptions/locales/ja.json) | [ru](stripe-subscriptions/locales/ru.json) | [es-MX](stripe-subscriptions/locales/es-MX.json) | [es-ES](stripe-subscriptions/locales/es-ES.json) | [fr](stripe-subscriptions/locales/fr.json) |
-| [pt-BR](stripe-subscriptions/locales/pt-BR.json) | [it](stripe-subscriptions/locales/it.json) | [ko](stripe-subscriptions/locales/ko.json) | [id](stripe-subscriptions/locales/id.json) | [tr](stripe-subscriptions/locales/tr.json) |
-| [nl](stripe-subscriptions/locales/nl.json) | [pl](stripe-subscriptions/locales/pl.json) | [vi](stripe-subscriptions/locales/vi.json) | [th](stripe-subscriptions/locales/th.json) | [uk](stripe-subscriptions/locales/uk.json) |
-| [he](stripe-subscriptions/locales/he.json) | [sv](stripe-subscriptions/locales/sv.json) | [da](stripe-subscriptions/locales/da.json) | [nb](stripe-subscriptions/locales/nb.json) | [fi](stripe-subscriptions/locales/fi.json) |
-| [cs](stripe-subscriptions/locales/cs.json) | [el](stripe-subscriptions/locales/el.json) | [ro](stripe-subscriptions/locales/ro.json) | [hu](stripe-subscriptions/locales/hu.json) | [fa](stripe-subscriptions/locales/fa.json) |
-| [ca](stripe-subscriptions/locales/ca.json) | [bn](stripe-subscriptions/locales/bn.json) | [gu](stripe-subscriptions/locales/gu.json) | [kn](stripe-subscriptions/locales/kn.json) | [ml](stripe-subscriptions/locales/ml.json) |
-| [mr](stripe-subscriptions/locales/mr.json) | [pa](stripe-subscriptions/locales/pa.json) | [ta](stripe-subscriptions/locales/ta.json) | [te](stripe-subscriptions/locales/te.json) | [ur](stripe-subscriptions/locales/ur.json) |
-| [sw](stripe-subscriptions/locales/sw.json) | [bg](stripe-subscriptions/locales/bg.json) | [et](stripe-subscriptions/locales/et.json) | [hr](stripe-subscriptions/locales/hr.json) | [is](stripe-subscriptions/locales/is.json) |
-| [lt](stripe-subscriptions/locales/lt.json) | [lv](stripe-subscriptions/locales/lv.json) | [sk](stripe-subscriptions/locales/sk.json) | [sl](stripe-subscriptions/locales/sl.json) | [zu](stripe-subscriptions/locales/zu.json) |
+| [en](../apps/backend/src/billing/stripe/copy/locales/en.json) | [ar](../apps/backend/src/billing/stripe/copy/locales/ar.json) | [zh-Hans](../apps/backend/src/billing/stripe/copy/locales/zh-Hans.json) | [de](../apps/backend/src/billing/stripe/copy/locales/de.json) | [hi](../apps/backend/src/billing/stripe/copy/locales/hi.json) |
+| [ja](../apps/backend/src/billing/stripe/copy/locales/ja.json) | [ru](../apps/backend/src/billing/stripe/copy/locales/ru.json) | [es-MX](../apps/backend/src/billing/stripe/copy/locales/es-MX.json) | [es-ES](../apps/backend/src/billing/stripe/copy/locales/es-ES.json) | [fr](../apps/backend/src/billing/stripe/copy/locales/fr.json) |
+| [pt-BR](../apps/backend/src/billing/stripe/copy/locales/pt-BR.json) | [it](../apps/backend/src/billing/stripe/copy/locales/it.json) | [ko](../apps/backend/src/billing/stripe/copy/locales/ko.json) | [id](../apps/backend/src/billing/stripe/copy/locales/id.json) | [tr](../apps/backend/src/billing/stripe/copy/locales/tr.json) |
+| [nl](../apps/backend/src/billing/stripe/copy/locales/nl.json) | [pl](../apps/backend/src/billing/stripe/copy/locales/pl.json) | [vi](../apps/backend/src/billing/stripe/copy/locales/vi.json) | [th](../apps/backend/src/billing/stripe/copy/locales/th.json) | [uk](../apps/backend/src/billing/stripe/copy/locales/uk.json) |
+| [he](../apps/backend/src/billing/stripe/copy/locales/he.json) | [sv](../apps/backend/src/billing/stripe/copy/locales/sv.json) | [da](../apps/backend/src/billing/stripe/copy/locales/da.json) | [nb](../apps/backend/src/billing/stripe/copy/locales/nb.json) | [fi](../apps/backend/src/billing/stripe/copy/locales/fi.json) |
+| [cs](../apps/backend/src/billing/stripe/copy/locales/cs.json) | [el](../apps/backend/src/billing/stripe/copy/locales/el.json) | [ro](../apps/backend/src/billing/stripe/copy/locales/ro.json) | [hu](../apps/backend/src/billing/stripe/copy/locales/hu.json) | [fa](../apps/backend/src/billing/stripe/copy/locales/fa.json) |
+| [ca](../apps/backend/src/billing/stripe/copy/locales/ca.json) | [bn](../apps/backend/src/billing/stripe/copy/locales/bn.json) | [gu](../apps/backend/src/billing/stripe/copy/locales/gu.json) | [kn](../apps/backend/src/billing/stripe/copy/locales/kn.json) | [ml](../apps/backend/src/billing/stripe/copy/locales/ml.json) |
+| [mr](../apps/backend/src/billing/stripe/copy/locales/mr.json) | [pa](../apps/backend/src/billing/stripe/copy/locales/pa.json) | [ta](../apps/backend/src/billing/stripe/copy/locales/ta.json) | [te](../apps/backend/src/billing/stripe/copy/locales/te.json) | [ur](../apps/backend/src/billing/stripe/copy/locales/ur.json) |
+| [sw](../apps/backend/src/billing/stripe/copy/locales/sw.json) | [bg](../apps/backend/src/billing/stripe/copy/locales/bg.json) | [et](../apps/backend/src/billing/stripe/copy/locales/et.json) | [hr](../apps/backend/src/billing/stripe/copy/locales/hr.json) | [is](../apps/backend/src/billing/stripe/copy/locales/is.json) |
+| [lt](../apps/backend/src/billing/stripe/copy/locales/lt.json) | [lv](../apps/backend/src/billing/stripe/copy/locales/lv.json) | [sk](../apps/backend/src/billing/stripe/copy/locales/sk.json) | [sl](../apps/backend/src/billing/stripe/copy/locales/sl.json) | [zu](../apps/backend/src/billing/stripe/copy/locales/zu.json) |
 
 These are Nibomo-owned translations. Stripe's product name, description, marketing
 features and this portal configuration's headline are single English strings;
@@ -322,7 +325,7 @@ collection obligations.
 2. Implement stable customer mapping, trial eligibility and lifecycle persistence
    over the shared entitlements; deploy receivers before registering endpoints.
    Preserve environment separation and retain enough state for deletion/retries.
-3. Import the 50 reviewed maps into web catalogs and replace the Premium placeholder
+3. Use the Stripe namespace in the web catalogs to replace the Premium placeholder
    in Subscription settings, AI allowance, accent-color and Tests entry points.
    Preserve guest email linking, own-key access, cached local features and immediate
    feedback. Resume the original action only for the same account and confirmed access.

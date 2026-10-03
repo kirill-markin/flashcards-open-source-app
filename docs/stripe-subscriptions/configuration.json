@@ -3,8 +3,8 @@
   "status": "catalog_prepared_runtime_not_implemented",
   "operatorApiVersion": "2026-09-30.endive",
   "sourceRefs": {
-    "english": "locales/en.json",
-    "locales": "locales/",
+    "english": "../../apps/backend/src/billing/stripe/copy/locales/en.json",
+    "locales": "../../apps/backend/src/billing/stripe/copy/locales/",
     "icon": "../../apps/web/public/icon-preview.png",
     "media": "../media/stripe-subscriptions/README.md"
   },

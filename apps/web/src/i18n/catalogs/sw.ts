@@ -1,6 +1,9 @@
+import stripeCopy from "../../../../backend/src/billing/stripe/copy/locales/sw.json";
+import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const swCatalog: TranslationCatalog = {
+  stripe: createStripeCatalog(stripeCopy),
   accentColorSettings: {
     title: "Rangi ya msisitizo",
     subtitle: "Chagua rangi ya msisitizo ya programu.",
