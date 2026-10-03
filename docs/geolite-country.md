@@ -2,14 +2,16 @@
 
 This product includes GeoLite data created by MaxMind, available from <https://www.maxmind.com>.
 
-Implementation: [reader](../apps/backend/src/geolocation/country.ts), [freshness validation](../apps/backend/src/geolocation/database.ts), [private bucket](../infra/aws/lib/geolite-country.ts), [download script](../scripts/geolite/refresh-country.sh), [daily workflow](../.github/workflows/geolite-country-refresh.yml), [country ingestion and retention](analytics-audience.md).
+Implementation: [reader](../apps/backend/src/geolocation/country.ts), [freshness validation](../apps/backend/src/geolocation/database.ts), [private bucket](../infra/aws/lib/geolite-country.ts), [download script](../scripts/geolite/refresh-country.sh), [release gate](../scripts/geolite/ensure-country.sh), [daily workflow](../.github/workflows/geolite-country-refresh.yml), [country ingestion and retention](analytics-audience.md).
 
-## Initial rollout
+## Release and daily refresh
 
-1. Merge this additive prerequisite to `main` after `Repository static checks` passes. Fork PR checks require no MaxMind credentials or database.
-2. Let `AWS/Web Release` deploy the bucket, Lambda configuration and IAM roles through CDK. After migration verification and verified restoration of the reconciliation schedules, it seeds the private object using the existing `MAXMIND_ACCOUNT_ID` and `MAXMIND_LICENSE_KEY` repository secrets. No operator needs to download or upload a database.
-3. Confirm `Refresh private GeoLite Country database` succeeded in the release log. Only then deploy the separate country-ingestion integration. The existing backend API Lambda receives the read permission and environment; other functions do not.
-4. Confirm the next scheduled `GeoLite Country Refresh` succeeds. It runs daily at 05:17 UTC, using its own concurrency group and the restricted refresh role. Its ARN is derived from the existing deployment-role ARN; there is no new GitHub secret to configure.
+1. Merge to `main` after `Repository static checks` passes. Fork PR checks require no MaxMind credentials or database.
+2. Let `AWS/Web Release` deploy through CDK. After migration verification and verified restoration of the reconciliation schedules, `Ensure fresh private GeoLite Country database` reads the exact private object using the main deployment role and validates the actual MMDB through the runtime validator. Reuse requires publication less than 24 hours ago, valid timestamps, a nonempty body of at most 32 MiB matching its declared size, and the canonical Country type, IPv6 support and build age under 30 days.
+3. Confirm the gate succeeded and inspect its structured `fresh` result with actual publication and build dates. A validated object published at least 24 hours ago, or an explicit S3 `NoSuchKey`, selects the existing MaxMind refresh using `MAXMIND_ACCOUNT_ID` and `MAXMIND_LICENSE_KEY`, followed by another published-object check. Reuse never uploads the existing database or resets its lifecycle age. Transport, authentication, invalid timestamps, corrupt data and expired builds fail the release.
+4. Confirm the next scheduled `GeoLite Country Refresh` succeeds. It always downloads and validates upstream data daily at 05:17 UTC, using its own concurrency group and restricted refresh role. Its ARN is derived from the existing deployment-role ARN; there is no new GitHub secret to configure.
+
+The deployment role has `GetObject` for the single Country object, without bucket listing. S3 therefore returns `AccessDenied` for an absent object as well as permission failures ([S3 permissions](https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetObject.html)). The release does not interpret that response as missing: inspect IAM, and use the daily refresh workflow on `main` to seed or restore the object before rerunning the release. The daily refresh role needs no read access.
 
 ## Failed refresh or expired data
 
