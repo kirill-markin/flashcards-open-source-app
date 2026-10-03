@@ -43,13 +43,13 @@ async function discoverGoogleLineage(
         throw new GoogleBillingError("GOOGLE_LINEAGE_ENVIRONMENT_MISMATCH", false, null,
           "Google predecessor belongs to a different purchase environment.");
       }
-      const providerLink = verified === null ? null : googlePredecessorToken(verified);
+      const providerLink: string | null = verified === null ? null : googlePredecessorToken(verified);
       if (providerLink !== null && stored?.linked_from_purchase_id != null
         && providerLink !== stored.linked_from_purchase_id) {
         throw new GoogleBillingError("GOOGLE_LINEAGE_INVALID", false, null,
           "Google purchase predecessor conflicts with its stored lineage. Contact support.");
       }
-      const predecessorToken = providerLink ?? stored?.linked_from_purchase_id ?? null;
+      const predecessorToken: string | null = providerLink ?? stored?.linked_from_purchase_id ?? null;
       links.push({ purchaseToken: token, predecessorToken, state: verified });
       token = predecessorToken;
     }
