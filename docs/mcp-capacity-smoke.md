@@ -27,8 +27,9 @@ existing [release rules](release-gates.md).
 The fixture uses the existing GitHub OIDC → CDK deployment → CloudFormation
 execution role chain. CloudFormation reuses only the deployed dispatcher's S3
 artifact and execution properties, with a new target environment and narrow
-fixture roles. It owns both Lambdas, their log groups and a public HTTP API using
-payload format 1.0. Unsupported dispatcher or bootstrap configurations fail
-explicitly. The target starts at reserved concurrency zero; only its fixture
+fixture roles. It owns both Lambdas, their log groups, the dispatcher's token
+lease table and a public HTTP API using payload format 1.0. Probes carry no
+bearer token, so they bypass the per-token limit and test worker admission only.
+Unsupported dispatcher or bootstrap configurations fail explicitly. The target starts at reserved concurrency zero; only its fixture
 reservation changes to one for the response checks. Production worker
 reservation (16), database pool (3), credentials and data remain untouched.

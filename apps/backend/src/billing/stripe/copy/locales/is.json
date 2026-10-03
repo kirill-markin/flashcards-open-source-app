@@ -46,7 +46,7 @@
   "offer.trialEligibility": "Ein ókeypis prufa á hvern Stripe-viðskiptavin. Fyrri prufa hjá Apple eða Google hefur ekki áhrif á réttinn til prufu.",
   "offer.allowanceWindow": "Gervigreindarskilaboðakvótinn þinn endurnýjast í hverjum almanaksmánuði samkvæmt UTC, óháð innheimtudegi.",
   "email.trialReminderSubject": "Nibomo Premium-prufutímabilinu þínu lýkur bráðum",
-  "email.trialReminderBody": "Ókeypis Nibomo Premium-prufutímabilinu þínu lýkur {date}. Að prufu lokinni endurnýjast áskriftin sjálfkrafa fyrir {price} á mánuði, með viðeigandi sköttum inniföldum. Segðu upp áður en prufutímabilinu lýkur til að forðast fyrstu greiðsluna. Hafðu umsjón með áskriftinni eða segðu henni upp í áskriftarstillingum: {url}",
+  "email.trialReminderBody": "Ókeypis Nibomo Premium-prufutímabilinu þínu lýkur {date}. Að prufu lokinni endurnýjast áskriftin sjálfkrafa á mánaðarlegu grunnverði sem nemur {price}, með viðeigandi sköttum inniföldum. Stripe sýnir endanlega upphæð sem verður innheimt í greiðslugjaldmiðlinum þínum. Segðu upp áður en prufutímabilinu lýkur til að forðast fyrstu greiðsluna. Hafðu umsjón með áskriftinni eða segðu henni upp í áskriftarstillingum: {url}",
   "email.paymentReceiptSubject": "Greiðslukvittun frá Nibomo",
   "email.paymentReceiptBody": "Við höfum móttekið greiðsluna þína að upphæð {price}. Skoðaðu kvittunina: {url}",
   "email.refundReceiptSubject": "Kvittun fyrir endurgreiðslu frá Nibomo",
