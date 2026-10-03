@@ -36,9 +36,12 @@ struct AccentColorSettingsView: View {
     @State private var hexText: String = AccountAccentColor.defaultColor.hex
     @State private var guidanceMessage: String = ""
     @State private var pendingSelection: PendingAccentColorSelection? = nil
+    @State private var isPreparingAccount: Bool = true
+    @State private var accountPreparationError: String?
+    @State private var accountPreparationAttempt: Int = 0
 
     private var isUnavailable: Bool {
-        self.store.canPersistAccountPreferences == false
+        self.isPreparingAccount || self.store.canPersistAccountPreferences == false
     }
 
     var body: some View {
@@ -114,12 +117,37 @@ struct AccentColorSettingsView: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            if self.isPreparingAccount {
+                Section {
+                    ProgressView(aiSettingsLocalized("common.loading", "Loading..."))
+                }
+            }
+            if let accountPreparationError {
+                Section {
+                    Text(accountPreparationError).foregroundStyle(.red)
+                    Button(aiSettingsLocalized("common.retry", "Retry")) {
+                        self.accountPreparationAttempt += 1
+                    }
+                    .disabled(self.isPreparingAccount)
+                }
+            }
         }
         .listStyle(.insetGrouped)
         .navigationTitle(accentColorSettingsTitle())
         .accessibilityIdentifier(UITestIdentifier.accentColorSettingsScreen)
-        .task {
+        .task(id: self.accountPreparationAttempt) {
             self.resetDraft()
+            self.isPreparingAccount = true
+            self.accountPreparationError = nil
+            do {
+                _ = try await self.store.prepareAppleSubscriptionIdentity()
+                self.isPreparingAccount = false
+            } catch {
+                self.isPreparingAccount = false
+                guard Task.isCancelled == false, isRequestCancellationError(error: error) == false else { return }
+                self.accountPreparationError = aiSettingsLocalized("premium.apple.loadFailed", "Could not load the App Store offer. Check your connection and retry.") + "\n" + error.localizedDescription
+                return
+            }
             do {
                 try await self.store.refreshCloudAccountContextIfActive()
             } catch {

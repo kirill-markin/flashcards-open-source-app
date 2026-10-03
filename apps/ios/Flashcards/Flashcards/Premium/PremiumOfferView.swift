@@ -109,7 +109,7 @@ struct PremiumOfferView: View {
                     }
                 }
 
-                AppleSubscriptionControls(onRestore: {
+                AppleSubscriptionControls(isRestoreDisabled: false, onRestore: {
                     guard self.presenter.request?.id == self.request.id,
                           self.subscriptions.currentPurchases.isEmpty == false else { return }
                     self.presenter.awaitAppleConfirmation(requestId: self.request.id, identity: self.request.identity)
