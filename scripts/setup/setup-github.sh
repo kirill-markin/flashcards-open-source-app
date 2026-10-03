@@ -222,7 +222,7 @@ if [[ -n "$VITE_SENTRY_DSN" ]]; then
 else
   set_variable_if_missing SENTRY_WEB_PROJECT "$SENTRY_WEB_PROJECT"
 fi
-set_variable_if_missing CDK_DEMO_EMAIL_DOSTIP "$DEMO_EMAIL_DOSTIP"
+set_secret_if_missing CDK_DEMO_EMAIL_DOSTIP "$DEMO_EMAIL_DOSTIP"
 set_variable_if_missing CDK_DEMO_PASSWORD_SECRET_ARN "$DEMO_PASSWORD_SECRET_ARN"
 set_variable_if_missing CDK_GLOBAL_METRICS_VISIBLE "$GLOBAL_METRICS_VISIBLE"
 set_variable_if_missing CDK_STRIPE_BILLING_SECRET_ARN "${STRIPE_BILLING_SECRET_ARN:-}"
