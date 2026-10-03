@@ -20,12 +20,12 @@ enum PremiumPresentationReason: Equatable {
     case aiLimit
     case premiumFeature(requiredTierRank: Int)
     case offerPreview
-    case sandboxOffer
 }
 
 struct PremiumPresentationRequest: Identifiable, Equatable {
     let id: UUID
     let reason: PremiumPresentationReason
+    let identity: AppleSubscriptionIdentity?
 }
 
 enum PremiumPresentationOutcome: Equatable {
@@ -49,18 +49,19 @@ final class PremiumPresenter {
     private(set) var result: PremiumPresentationResult? = nil
 
     @discardableResult
-    func present(reason: PremiumPresentationReason, entitlement: CloudEntitlement?) -> UUID {
+    func present(reason: PremiumPresentationReason, entitlement: CloudEntitlement?, identity: AppleSubscriptionIdentity?) -> UUID {
         self.finish(outcome: .dismissed)
-        let request = PremiumPresentationRequest(id: UUID(), reason: reason)
+        let request = PremiumPresentationRequest(id: UUID(), reason: reason, identity: identity)
         self.hadPremiumAccessAtPresentation = hasPremiumAccess(entitlement: entitlement)
         self.result = nil
         self.request = request
-        self.reconcileAccess(entitlement: entitlement)
+        self.reconcileAccess(entitlement: entitlement, identity: identity)
         return request.id
     }
 
-    func reconcileAccess(entitlement: CloudEntitlement?) {
-        guard let request = self.request, let entitlement else { return }
+    func reconcileAccess(entitlement: CloudEntitlement?, identity: AppleSubscriptionIdentity?) {
+        guard let request = self.request, let entitlement,
+              let identity, request.identity == identity else { return }
         switch request.reason {
         case .premiumFeature(let requiredTierRank):
             if entitlement.tierRank >= requiredTierRank {
@@ -71,26 +72,36 @@ final class PremiumPresenter {
             if self.hadPremiumAccessAtPresentation == false, hasPremiumAccess(entitlement: entitlement) {
                 self.finish(outcome: .accessGranted)
             }
-        case .offerPreview, .sandboxOffer:
+        case .offerPreview:
             break
         }
     }
 
     func awaitAppleConfirmation(requestId: UUID, identity: AppleSubscriptionIdentity?) {
-        guard self.request?.id == requestId, let identity else { return }
+        guard self.request?.id == requestId, let identity, self.request?.identity == identity else { return }
         self.awaitingAppleRequestId = requestId
         self.awaitingAppleIdentity = identity
     }
 
     func cancelAppleConfirmation(requestId: UUID) {
-        if self.awaitingAppleRequestId == requestId { self.awaitingAppleRequestId = nil }
+        if self.awaitingAppleRequestId == requestId {
+            self.awaitingAppleRequestId = nil
+            self.awaitingAppleIdentity = nil
+        }
     }
 
     func confirmAppleAccess(entitlement: CloudEntitlement?, identity: AppleSubscriptionIdentity?) {
         guard let request = self.request, self.awaitingAppleRequestId == request.id,
-              let identity, self.awaitingAppleIdentity == identity,
+              let identity, request.identity == identity, self.awaitingAppleIdentity == identity,
               hasPremiumAccess(entitlement: entitlement) else { return }
-        self.finish(outcome: .accessGranted)
+        switch request.reason {
+        case .premiumFeature, .aiLimit:
+            self.reconcileAccess(entitlement: entitlement, identity: identity)
+        case .offerPreview:
+            if self.hadPremiumAccessAtPresentation == false {
+                self.finish(outcome: .accessGranted)
+            }
+        }
     }
 
     func finish(outcome: PremiumPresentationOutcome) {

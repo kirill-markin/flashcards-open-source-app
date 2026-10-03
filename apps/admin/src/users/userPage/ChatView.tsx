@@ -3,15 +3,12 @@ import type { AdminAppConfig } from "../../config";
 import { AdminLink } from "../../navigation/AdminLink";
 import { getUserPath } from "../../routing";
 import { chatToolTextLimit, loadChatTranscript, type CappedText, type ChatItem, type ChatPart, type ChatTranscript } from "./chatsQuery";
+import { formatInstant } from "./formatInstant";
 
 type LoadState =
   | Readonly<{ status: "loading" }>
   | Readonly<{ status: "error"; message: string }>
   | Readonly<{ status: "ready"; transcript: ChatTranscript | null }>;
-
-function formatInstant(value: string): string {
-  return `${value.slice(0, 10)} ${value.slice(11, 19)} UTC`;
-}
 
 function ToolText(props: Readonly<{ label: string; value: CappedText | null }>): JSX.Element {
   if (props.value === null) {

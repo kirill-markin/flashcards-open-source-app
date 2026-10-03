@@ -848,8 +848,8 @@
 "settings.language.supported.vietnamese" = "Víetnamska";
 "settings.language.supported.zulu" = "Súlú";
 
-"premium.comingSoon.title" = "Premium er væntanlegt";
-"premium.comingSoon.message" = "Áskriftir eru ekki enn í boði.";
+"premium.offer.title" = "Premium";
+"premium.offer.benefits" = "1.000 gervigreindarskilaboð á mánuði og sérsniðnir áherslulitir. Samstilling er ókeypis fyrir alla.";
 "premium.aiLimit.title" = "Hámarki AI-skilaboða náð";
 
 "settings.accentColor.title" = "Áherslulitur";
@@ -863,8 +863,6 @@
 "settings.accentColor.invalidHex" = "Sláðu inn lit sem #RRGGBB með sex sextándakerfisstöfum.";
 "settings.accentColor.premiumNote" = "Sérsniðnir áherslulitir eru í boði með Premium. Vistaði liturinn þinn kemur aftur þegar Premium er virkt.";
 
-"premium.apple.sandbox" = "Premium-prufukaup";
-"premium.apple.notice" = "Prufukaup krefjast TestFlight. Almenn sala er ekki hafin.";
 "premium.apple.renewal" = "Endurnýjast sjálfkrafa þar til sagt er upp. Stjórnaðu eða segðu upp í App Store-áskriftunum þínum.";
 "premium.apple.trial" = "Ókeypis prufutímabil: %@. Síðan:";
 "premium.apple.loadFailed" = "Ekki tókst að hlaða App Store-tilboðinu. Athugaðu tenginguna og reyndu aftur.";

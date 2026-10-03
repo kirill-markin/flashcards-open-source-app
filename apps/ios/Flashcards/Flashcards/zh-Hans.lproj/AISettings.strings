@@ -876,8 +876,8 @@
 "settings.language.supported.vietnamese" = "越南语";
 "settings.language.supported.zulu" = "祖鲁语";
 
-"premium.comingSoon.title" = "Premium 即将推出";
-"premium.comingSoon.message" = "订阅暂未开放。";
+"premium.offer.title" = "Premium";
+"premium.offer.benefits" = "每月 1,000 条 AI 消息和自定义强调色。所有人均可免费同步。";
 "premium.aiLimit.title" = "已达到 AI 消息上限";
 
 "settings.accentColor.title" = "强调色";
@@ -891,8 +891,6 @@
 "settings.accentColor.invalidHex" = "请输入 #RRGGBB 格式的颜色，包含六位十六进制数字。";
 "settings.accentColor.premiumNote" = "自定义强调色适用于 Premium。Premium 生效时，将恢复您保存的颜色。";
 
-"premium.apple.sandbox" = "Premium 测试购买";
-"premium.apple.notice" = "测试购买需要使用 TestFlight。尚未开放公开销售。";
 "premium.apple.renewal" = "订阅会自动续期，直到取消。请在 App Store 订阅中管理或取消。";
 "premium.apple.trial" = "免费试用：%@。之后：";
 "premium.apple.loadFailed" = "无法加载 App Store 优惠。请检查网络连接后重试。";

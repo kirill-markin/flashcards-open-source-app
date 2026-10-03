@@ -876,8 +876,8 @@
 "settings.language.supported.vietnamese" = "Vietnamesisch";
 "settings.language.supported.zulu" = "Zulu";
 
-"premium.comingSoon.title" = "Premium kommt bald";
-"premium.comingSoon.message" = "Abonnements sind noch nicht verfügbar.";
+"premium.offer.title" = "Premium";
+"premium.offer.benefits" = "1.000 KI-Nachrichten pro Monat und eigene Akzentfarben. Die Synchronisierung ist für alle kostenlos.";
 "premium.aiLimit.title" = "Limit für KI-Nachrichten erreicht";
 
 "settings.accentColor.title" = "Akzentfarbe";
@@ -891,8 +891,6 @@
 "settings.accentColor.invalidHex" = "Gib eine Farbe als #RRGGBB mit sechs Hexadezimalziffern ein.";
 "settings.accentColor.premiumNote" = "Eigene Akzentfarben sind mit Premium verfügbar. Deine gespeicherte Farbe wird wieder verwendet, sobald Premium aktiv ist.";
 
-"premium.apple.sandbox" = "Premium-Testkauf";
-"premium.apple.notice" = "Testkäufe erfordern TestFlight. Der öffentliche Verkauf ist noch nicht geöffnet.";
 "premium.apple.renewal" = "Verlängert sich automatisch bis zur Kündigung. Verwalten oder kündigen Sie Ihr Abo im App Store.";
 "premium.apple.trial" = "Kostenlose Testphase: %@. Danach:";
 "premium.apple.loadFailed" = "Das App-Store-Angebot konnte nicht geladen werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.";

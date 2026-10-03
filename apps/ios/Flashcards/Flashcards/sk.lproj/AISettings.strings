@@ -848,8 +848,8 @@
 "settings.language.supported.vietnamese" = "Vietnamčina";
 "settings.language.supported.zulu" = "Zuluština";
 
-"premium.comingSoon.title" = "Premium už čoskoro";
-"premium.comingSoon.message" = "Predplatné zatiaľ nie je k dispozícii.";
+"premium.offer.title" = "Premium";
+"premium.offer.benefits" = "1 000 správ AI mesačne a vlastné farby zvýraznenia. Synchronizácia je pre všetkých bezplatná.";
 "premium.aiLimit.title" = "Bol dosiahnutý limit správ AI";
 
 "settings.accentColor.title" = "Farba zvýraznenia";
@@ -863,8 +863,6 @@
 "settings.accentColor.invalidHex" = "Zadajte farbu vo formáte #RRGGBB so šiestimi šestnástkovými číslicami.";
 "settings.accentColor.premiumNote" = "Vlastné farby zvýraznenia sú dostupné s Premium. Uložená farba sa vráti, keď bude Premium aktívne.";
 
-"premium.apple.sandbox" = "Testovací nákup Premium";
-"premium.apple.notice" = "Testovacie nákupy vyžadujú TestFlight. Verejný predaj ešte nie je otvorený.";
 "premium.apple.renewal" = "Automaticky sa obnovuje až do zrušenia. Spravujte alebo zrušte v predplatných App Storu.";
 "premium.apple.trial" = "Skúšobné obdobie zadarmo: %@. Potom:";
 "premium.apple.loadFailed" = "Ponuku App Storu sa nepodarilo načítať. Skontrolujte pripojenie a skúste to znova.";

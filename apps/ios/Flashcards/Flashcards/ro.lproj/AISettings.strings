@@ -848,8 +848,8 @@
 "settings.language.supported.vietnamese" = "Vietnameză";
 "settings.language.supported.zulu" = "Zulu";
 
-"premium.comingSoon.title" = "Premium va fi disponibil în curând";
-"premium.comingSoon.message" = "Abonamentele nu sunt încă disponibile.";
+"premium.offer.title" = "Premium";
+"premium.offer.benefits" = "1.000 de mesaje AI pe lună și culori de accent personalizate. Sincronizarea este gratuită pentru toată lumea.";
 "premium.aiLimit.title" = "Ai atins limita de mesaje AI";
 
 "settings.accentColor.title" = "Culoare de accent";
@@ -863,8 +863,6 @@
 "settings.accentColor.invalidHex" = "Introdu o culoare ca #RRGGBB, cu șase cifre hexazecimale.";
 "settings.accentColor.premiumNote" = "Culorile de accent personalizate sunt disponibile cu Premium. Culoarea salvată revine când Premium este activ.";
 
-"premium.apple.sandbox" = "Achiziție de test Premium";
-"premium.apple.notice" = "Achizițiile de test necesită TestFlight. Vânzările publice nu sunt deschise.";
 "premium.apple.renewal" = "Se reînnoiește automat până la anulare. Gestionează sau anulează din abonamentele App Store.";
 "premium.apple.trial" = "Perioadă de probă gratuită: %@. Apoi:";
 "premium.apple.loadFailed" = "Oferta App Store nu a putut fi încărcată. Verifică conexiunea și încearcă din nou.";

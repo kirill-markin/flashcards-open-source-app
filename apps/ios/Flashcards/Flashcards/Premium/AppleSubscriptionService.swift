@@ -9,9 +9,9 @@ enum AppleSubscriptionError: LocalizedError {
     case accountUnavailable
     case identityChanged
     case productUnavailable
-    case sandboxRequired
     case attachmentNotConfirmed
     case entitlementNotConfirmed
+    case premiumAlreadyAvailable
     case unexpectedPurchaseResult
 
     var errorDescription: String? {
@@ -22,12 +22,12 @@ enum AppleSubscriptionError: LocalizedError {
             return "The account changed during the Apple subscription operation. Retry from the current account."
         case .productUnavailable:
             return "The App Store did not return the premium_monthly subscription."
-        case .sandboxRequired:
-            return "Test purchases require a verified App Store sandbox installation."
         case .attachmentNotConfirmed:
             return "The server did not confirm processing of the Apple transaction."
         case .entitlementNotConfirmed:
-            return "The server did not return account access after the Apple transaction. Restore purchases to retry."
+            return "The server did not return account access. Check your connection and retry."
+        case .premiumAlreadyAvailable:
+            return "Your account already has Premium access. No purchase is needed."
         case .unexpectedPurchaseResult:
             return "The App Store returned an unsupported purchase result."
         }
@@ -123,23 +123,18 @@ final class AppleSubscriptionService {
         )
     }
 
-    func isSandboxTestEligible() async throws -> Bool {
-        switch try await AppTransaction.shared {
-        case .verified(let transaction):
-            return transaction.environment == .sandbox
-        case .unverified(_, let error):
-            throw error
-        }
-    }
-
-    func purchaseSandboxPremium() async throws -> AppleSubscriptionPurchaseResult {
+    func purchasePremium() async throws -> AppleSubscriptionPurchaseResult {
         let identity = try self.store.appleSubscriptionIdentity()
-        guard try await self.isSandboxTestEligible() else {
-            throw AppleSubscriptionError.sandboxRequired
-        }
         let offer = try await self.loadOffer()
         let token = try await self.store.appleSubscriptionAccountToken(identity: identity, transport: self.transport)
+        try await self.store.refreshAppleSubscriptionEntitlement(identity: identity)
         try self.store.requireAppleSubscriptionIdentity(identity)
+        guard let entitlement = self.store.cloudEntitlement else {
+            throw AppleSubscriptionError.entitlementNotConfirmed
+        }
+        guard hasPremiumAccess(entitlement: entitlement) == false else {
+            throw AppleSubscriptionError.premiumAlreadyAvailable
+        }
         let result = try await offer.product.purchase(options: [.appAccountToken(token)])
         try self.store.requireAppleSubscriptionIdentity(identity)
         switch result {

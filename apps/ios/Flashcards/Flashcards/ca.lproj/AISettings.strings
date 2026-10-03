@@ -848,8 +848,8 @@
 "settings.language.supported.vietnamese" = "Vietnamita";
 "settings.language.supported.zulu" = "Zulu";
 
-"premium.comingSoon.title" = "Premium arribarà aviat";
-"premium.comingSoon.message" = "Les subscripcions encara no estan disponibles.";
+"premium.offer.title" = "Premium";
+"premium.offer.benefits" = "1.000 missatges d’IA al mes i colors d’accent personalitzats. La sincronització és gratuïta per a tothom.";
 "premium.aiLimit.title" = "Has arribat al límit de missatges d’IA";
 
 "settings.accentColor.title" = "Color d’accent";
@@ -863,8 +863,6 @@
 "settings.accentColor.invalidHex" = "Introdueix un color com a #RRGGBB, amb sis dígits hexadecimals.";
 "settings.accentColor.premiumNote" = "Els colors d’accent personalitzats estan disponibles amb Premium. El color desat torna quan Premium està actiu.";
 
-"premium.apple.sandbox" = "Compra de prova de Premium";
-"premium.apple.notice" = "Les compres de prova requereixen TestFlight. La venda al públic encara no està oberta.";
 "premium.apple.renewal" = "Es renova automàticament fins que la cancel·lis. Gestiona o cancel·la la subscripció a l’App Store.";
 "premium.apple.trial" = "Prova gratuïta: %@. Després:";
 "premium.apple.loadFailed" = "No s’ha pogut carregar l’oferta de l’App Store. Comprova la connexió i torna-ho a provar.";

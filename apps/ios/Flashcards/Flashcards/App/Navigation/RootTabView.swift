@@ -345,7 +345,7 @@ struct RootTabView: View {
             self.premiumPresenter.confirmAppleAccess(entitlement: self.store.cloudEntitlement, identity: self.subscriptionIdentity)
         }
         .onChange(of: store.cloudEntitlement) { _, entitlement in
-            self.premiumPresenter.reconcileAccess(entitlement: entitlement)
+            self.premiumPresenter.reconcileAccess(entitlement: entitlement, identity: self.subscriptionIdentity)
         }
     }
 
@@ -505,13 +505,7 @@ struct RootTabView: View {
             presentationContext: .standard(originSurface: .review)
         )
         .sheet(item: self.premiumPresentation) { request in
-            Group {
-                if request.reason == .sandboxOffer {
-                    PremiumOfferView(request: request)
-                } else {
-                    PremiumComingSoon(request: request)
-                }
-            }
+            PremiumOfferView(request: request)
             .environment(store)
             .environment(self.premiumPresenter)
         }
