@@ -226,7 +226,7 @@ Select the `/aws/lambda/<dispatcher function name>` log group for the
 `McpDispatcher` Lambda in the deployed stack, then run this Logs Insights query:
 
 ```
-filter message.action in ["mcp_worker_completed", "mcp_worker_capacity_rejected", "mcp_dispatch_failed"]
+filter message.action in ["mcp_worker_completed", "mcp_worker_capacity_rejected", "mcp_client_capacity_rejected", "mcp_dispatch_failed"]
 | stats count(*) as requests,
         avg(message.durationMs) as avgDurationMs,
         pct(message.durationMs, 50) as p50DurationMs,
@@ -240,17 +240,21 @@ including 401, 405 and 5xx responses. The dispatcher re-invokes a worker that
 refused admission up to 4 times, with roughly 1.5–3 s of jittered waits in total
 (`apps/backend/src/entrypoints/lambda-mcp-dispatcher.ts`), so
 `mcp_worker_capacity_rejected` means those retries were exhausted and the client
-received HTTP 429. `mcp_dispatch_failed` means the dispatcher returned 502, with
+received HTTP 429. `mcp_client_capacity_rejected` is a 429 returned before any
+Invoke (`attempts` 0) because that bearer token already holds its share of
+in-flight requests; it says one client is busy, not that the shared worker pool
+is full. `mcp_dispatch_failed` means the dispatcher returned 502, with
 `phase` identifying where it failed. `attempts` counts Invoke calls; above 1 on
 a completion means admission throttles were absorbed. HTTP methods are restricted
 to standard method names or `OTHER`.
 
 The MCP capacity alarm in `infra/aws/lib/monitoring.ts` counts
 `mcp_worker_capacity_rejected` records, so it fires only on 429s clients
-received. The worker Lambda's `Throttles` metric still counts every refused
-attempt, including absorbed ones.
+received for shared worker capacity, never on per-token rejections. The worker
+Lambda's `Throttles` metric still counts every refused attempt, including
+absorbed ones.
 
-All three measure `durationMs` from dispatcher handler entry to the decoded
+All four measure `durationMs` from dispatcher handler entry to the decoded
 response or caught failure, before logging, including admission waits.
 Completion duration includes worker authentication, cold starts and synchronous
 Invoke overhead; it is an elapsed occupancy estimate, not the post-authentication

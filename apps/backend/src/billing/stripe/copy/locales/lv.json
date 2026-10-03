@@ -46,7 +46,7 @@
   "offer.trialEligibility": "Viens bezmaksas izmēģinājums katram Stripe klientam. Iepriekšējs Apple vai Google izmēģinājums neietekmē tiesības to izmantot.",
   "offer.allowanceWindow": "Jūsu MI ziņu kvota atjaunojas katru kalendāro mēnesi pēc UTC laika neatkarīgi no maksājuma datuma.",
   "email.trialReminderSubject": "Jūsu Nibomo Premium izmēģinājums drīz beigsies",
-  "email.trialReminderBody": "Jūsu Nibomo Premium bezmaksas izmēģinājums beidzas {date}. Pēc izmēģinājuma abonements automātiski atjaunojas par {price} mēnesī, ieskaitot piemērojamos nodokļus. Lai izvairītos no pirmā maksājuma, atceliet abonementu pirms izmēģinājuma beigām. Pārvaldiet vai atceliet abonementu abonementa iestatījumos: {url}",
+  "email.trialReminderBody": "Jūsu Nibomo Premium bezmaksas izmēģinājums beidzas {date}. Pēc izmēģinājuma abonements automātiski atjaunojas par mēneša bāzes cenu {price}, ieskaitot piemērojamos nodokļus. Stripe rāda galīgo iekasējamo summu jūsu norēķinu valūtā. Lai izvairītos no pirmā maksājuma, atceliet abonementu pirms izmēģinājuma beigām. Pārvaldiet vai atceliet abonementu abonementa iestatījumos: {url}",
   "email.paymentReceiptSubject": "Nibomo maksājuma kvīts",
   "email.paymentReceiptBody": "Esam saņēmuši jūsu maksājumu {price} apmērā. Skatiet kvīti: {url}",
   "email.refundReceiptSubject": "Nibomo atmaksas kvīts",

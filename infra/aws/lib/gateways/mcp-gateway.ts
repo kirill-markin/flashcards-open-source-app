@@ -3,6 +3,7 @@ import * as cdk from "aws-cdk-lib";
 import * as apigw from "aws-cdk-lib/aws-apigateway";
 import * as apigwv2 from "aws-cdk-lib/aws-apigatewayv2";
 import * as apigwv2Integrations from "aws-cdk-lib/aws-apigatewayv2-integrations";
+import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as rds from "aws-cdk-lib/aws-rds";
 import * as lambda from "aws-cdk-lib/aws-lambda";
@@ -285,6 +286,14 @@ export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGateway
   props.backendDbSecret.grantRead(mcpFn);
   addOptionalSentryEnvironment(scope, mcpFn, props);
 
+  // Ephemeral per-token in-flight leases; every item expires within a minute.
+  const tokenLeaseTable = new dynamodb.Table(scope, "McpTokenLeaseTable", {
+    partitionKey: { name: "pk", type: dynamodb.AttributeType.STRING },
+    billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+    timeToLiveAttribute: "expiresAt",
+    removalPolicy: cdk.RemovalPolicy.DESTROY,
+  });
+
   const dispatcherFn = createCachedNodejsFunction(scope, "McpDispatcher", {
     entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "lambda-mcp-dispatcher.ts"),
     handler: "handler",
@@ -295,9 +304,13 @@ export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGateway
     ...backendStructuredLoggingProps,
     ...backendNodejsProjectPaths,
     bundling: { minify: true, sourceMap: true, bundleAwsSDK: true },
-    environment: { MCP_WORKER_FUNCTION_NAME: mcpFn.functionName },
+    environment: {
+      MCP_WORKER_FUNCTION_NAME: mcpFn.functionName,
+      MCP_TOKEN_LEASE_TABLE_NAME: tokenLeaseTable.tableName,
+    },
   });
   mcpFn.grantInvoke(dispatcherFn);
+  tokenLeaseTable.grant(dispatcherFn, "dynamodb:PutItem", "dynamodb:DeleteItem");
 
   const accessLogGroup = new logs.LogGroup(scope, "McpApiAccessLogGroup", {
     retention: logs.RetentionDays.ONE_WEEK,
@@ -308,8 +321,10 @@ export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGateway
     description: "Public MCP API exposing OAuth Protected Resource Metadata and the MCP transport",
     deployOptions: {
       stageName: "v1",
-      throttlingRateLimit: 20,
-      throttlingBurstLimit: 40,
+      // Per-token fairness lives in the dispatcher; this only bounds total
+      // dispatcher concurrency in the shared account's unreserved pool.
+      throttlingRateLimit: 100,
+      throttlingBurstLimit: 200,
       metricsEnabled: true,
       dataTraceEnabled: false,
       tracingEnabled: false,
@@ -384,9 +399,10 @@ export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGateway
     httpApi,
     stageName: "v1",
     autoDeploy: true,
+    // Same bound as the REST stage above.
     throttle: {
-      rateLimit: 20,
-      burstLimit: 40,
+      rateLimit: 100,
+      burstLimit: 200,
     },
     detailedMetricsEnabled: true,
     accessLogSettings: {

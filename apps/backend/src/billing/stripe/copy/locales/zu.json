@@ -46,7 +46,7 @@
   "offer.trialEligibility": "Ikhasimende ngalinye le-Stripe lithola isivivinyo samahhala esisodwa. Isivivinyo sangaphambilini se-Apple noma se-Google asikuthinti ukufaneleka.",
   "offer.allowanceWindow": "Isabelo sakho semilayezo ye-AI sivuselelwa inyanga ngayinye yekhalenda ngokwesikhathi se-UTC, kungakhathaliseki usuku okhokhiswa ngalo.",
   "email.trialReminderSubject": "Isivivinyo sakho se-Nibomo Premium siphela maduze",
-  "email.trialReminderBody": "Isivivinyo sakho samahhala se-Nibomo Premium siphela ngo-{date}. Ngemva kwesivivinyo, ukubhalisa kwakho kuzovuselelwa ngokuzenzakalelayo ngo-{price} ngenyanga, kuhlanganise nezintela ezisebenzayo. Ukuze ugweme ukukhokhiswa kokuqala, khansela ngaphambi kokuphela kwesivivinyo. Phatha noma ukhansele ukubhalisa kwakho kuzilungiselelo zokubhalisa: {url}",
+  "email.trialReminderBody": "Isivivinyo sakho samahhala se-Nibomo Premium siphela ngo-{date}. Ngemva kwesivivinyo, ukubhalisa kwakho kuzovuselelwa ngokuzenzakalelayo ngenani eliyisisekelo lenyanga elingu-{price}, kuhlanganise nezintela ezisebenzayo. I-Stripe ibonisa inani lokugcina elizokhokhiswa ngohlobo lwemali okhokhiswa ngalo. Ukuze ugweme ukukhokhiswa kokuqala, khansela ngaphambi kokuphela kwesivivinyo. Phatha noma ukhansele ukubhalisa kwakho kuzilungiselelo zokubhalisa: {url}",
   "email.paymentReceiptSubject": "Irisidi lenkokhelo ye-Nibomo",
   "email.paymentReceiptBody": "Siyitholile inkokhelo yakho engu-{price}. Buka irisidi lakho: {url}",
   "email.refundReceiptSubject": "Irisidi lokubuyiselwa kwemali le-Nibomo",

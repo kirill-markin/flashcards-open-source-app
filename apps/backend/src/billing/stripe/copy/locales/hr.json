@@ -46,7 +46,7 @@
   "offer.trialEligibility": "Jedno besplatno probno razdoblje po korisniku Stripea. Prethodno probno razdoblje putem Applea ili Googlea ne utječe na pravo na ovu ponudu.",
   "offer.allowanceWindow": "Vaša kvota AI poruka obnavlja se svakog kalendarskog mjeseca prema UTC-u, neovisno o datumu naplate.",
   "email.trialReminderSubject": "Vaše probno razdoblje za Nibomo Premium uskoro završava",
-  "email.trialReminderBody": "Vaše besplatno probno razdoblje za Nibomo Premium završava {date}. Nakon probnog razdoblja pretplata se automatski obnavlja po cijeni od {price} mjesečno, uključujući primjenjive poreze. Da biste izbjegli prvu naplatu, otkažite prije završetka probnog razdoblja. Upravljajte pretplatom ili je otkažite u postavkama pretplate: {url}",
+  "email.trialReminderBody": "Vaše besplatno probno razdoblje za Nibomo Premium završava {date}. Nakon probnog razdoblja pretplata se automatski obnavlja po mjesečnoj osnovnoj cijeni od {price}, uključujući primjenjive poreze. Stripe prikazuje konačni iznos naplate u vašoj valuti za naplatu. Da biste izbjegli prvu naplatu, otkažite prije završetka probnog razdoblja. Upravljajte pretplatom ili je otkažite u postavkama pretplate: {url}",
   "email.paymentReceiptSubject": "Potvrda o plaćanju za Nibomo",
   "email.paymentReceiptBody": "Primili smo vašu uplatu u iznosu od {price}. Pogledajte potvrdu: {url}",
   "email.refundReceiptSubject": "Potvrda o povratu novca za Nibomo",

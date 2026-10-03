@@ -46,7 +46,7 @@
   "offer.trialEligibility": "Un essai gratuit par client Stripe. Un essai précédent chez Apple ou Google n’affecte pas votre éligibilité.",
   "offer.allowanceWindow": "Votre quota de messages IA est réinitialisé au début de chaque mois civil en UTC, indépendamment de votre date de facturation.",
   "email.trialReminderSubject": "Votre essai Nibomo Premium se termine bientôt",
-  "email.trialReminderBody": "Votre essai gratuit Nibomo Premium se termine le {date}. Après l’essai, votre abonnement se renouvelle automatiquement à {price} par mois, taxes applicables incluses. Pour éviter le premier prélèvement, résiliez avant la fin de l’essai. Gérez ou résiliez votre abonnement dans les paramètres de l’abonnement : {url}",
+  "email.trialReminderBody": "Votre essai gratuit Nibomo Premium se termine le {date}. Après l’essai, votre abonnement se renouvelle automatiquement à un tarif de base mensuel de {price}, taxes applicables incluses. Stripe affiche le montant final prélevé dans votre devise de facturation. Pour éviter le premier prélèvement, résiliez avant la fin de l’essai. Gérez ou résiliez votre abonnement dans les paramètres de l’abonnement : {url}",
   "email.paymentReceiptSubject": "Reçu de paiement Nibomo",
   "email.paymentReceiptBody": "Nous avons reçu votre paiement de {price}. Consultez votre reçu : {url}",
   "email.refundReceiptSubject": "Reçu de remboursement Nibomo",

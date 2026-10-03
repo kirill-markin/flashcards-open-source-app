@@ -46,7 +46,7 @@
   "offer.trialEligibility": "Üks tasuta prooviperiood Stripe'i kliendi kohta. Varasem Apple'i või Google'i prooviperiood ei mõjuta õigust seda kasutada.",
   "offer.allowanceWindow": "Sinu tehisaru sõnumite kvoot taastub igal kalendrikuul UTC järgi, sõltumata arvelduskuupäevast.",
   "email.trialReminderSubject": "Sinu Nibomo Premiumi prooviperiood lõpeb peagi",
-  "email.trialReminderBody": "Sinu Nibomo Premiumi tasuta prooviperiood lõpeb {date}. Pärast prooviperioodi uueneb tellimus automaatselt hinnaga {price} kuus koos kohaldatavate maksudega. Esimese makse vältimiseks tühista tellimus enne prooviperioodi lõppu. Halda või tühista oma tellimus tellimuse seadetes: {url}",
+  "email.trialReminderBody": "Sinu Nibomo Premiumi tasuta prooviperiood lõpeb {date}. Pärast prooviperioodi uueneb tellimus automaatselt igakuise baashinnaga {price} koos kohaldatavate maksudega. Stripe näitab lõplikku maksesummat sinu arveldusvaluutas. Esimese makse vältimiseks tühista tellimus enne prooviperioodi lõppu. Halda või tühista oma tellimus tellimuse seadetes: {url}",
   "email.paymentReceiptSubject": "Nibomo maksekviitung",
   "email.paymentReceiptBody": "Saime sinu makse summas {price}. Vaata kviitungit: {url}",
   "email.refundReceiptSubject": "Nibomo tagasimakse kviitung",
