@@ -146,7 +146,7 @@ export function parseStripeDetails(value: unknown, endpoint: string, path: strin
 export function parseStripeCheckout(value: unknown, endpoint: string, path: string): StripeCheckout {
   const object = parseObject(value, endpoint, path);
   const outcome = parseRequiredField(object, "outcome", endpoint, path,
-    (v, e, p) => parseEnum(v, e, p, ["checkout", "complete", "existing_subscription"]));
+    (v, e, p) => parseEnum<StripeCheckout["outcome"]>(v, e, p, ["checkout", "complete", "existing_subscription"]));
   if (outcome === "existing_subscription") return { outcome, identityId: parseRequiredField(object, "identityId", endpoint, path, parseStripeUuid) };
   const identity = {
     attemptId: parseRequiredField(object, "attemptId", endpoint, path, parseStripeUuid),
