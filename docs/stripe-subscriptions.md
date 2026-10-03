@@ -1,35 +1,36 @@
 # Stripe subscriptions
 
-Repository-owned preparation inputs for Nibomo Premium on the web. The English
-copy, branding references and target configuration below are ready for review;
-this document does not establish that Stripe resources, settings, translations or
-application behavior have been deployed. External resource and settings readback
-belongs to preparation item 05. Translation items 02–04 supply the other locales.
+Nibomo Premium's sandbox and live catalogs, dedicated portal configurations and
+branding uploads were read back on **2026-10-03**. All 50 repository locale maps
+are present. The canonical non-secret identifiers and observed settings are in
+[configuration.json](stripe-subscriptions/configuration.json); this is preparation
+data, not application configuration. Web purchasing and lifecycle handling remain
+future implementation work. No customer, Checkout Session, subscription, portal
+session, Payment Link or webhook endpoint was created by this preparation.
 
 [Premium offer](premium-offer.md) owns the shared price, benefits and limits;
 [Premium entitlements](premium-entitlements.md) owns access and provider-state
 rules. [Subscription store metadata](subscription-store-metadata.md) owns mobile
 catalog material. This preparation changes none of those runtime contracts.
 
-## Target configuration
+## Offer and catalog
 
 | Setting | Selected value |
 | --- | --- |
-| Business | SAMO DANNI EOOD; verify the target account before operations |
+| Business | SAMO DANNI EOOD; isolated sandbox `Nibomo Subscriptions` |
 | Product name and customer-facing description | `product.name` and `product.description` in the [English map](stripe-subscriptions/locales/en.json) |
 | Marketing features | `product.aiFeature` and `product.accentFeature` in the English map |
 | Internal price nickname | `Nibomo Premium Monthly` |
 | Price lookup key, separately in each environment | `nibomo_premium_monthly` |
 | Product metadata | `application=nibomo`, `tier=premium` |
-| Price metadata | `application=nibomo`, `tier=premium`, `period=monthly` |
 | Price | USD 6.99 (`unit_amount=699`), monthly recurring, quantity 1 |
-| Local currency presentation | Stripe Adaptive Pricing; verify the account and subscription Checkout flow support it before launch |
+| Local currency presentation | Stripe Adaptive Pricing; both toggles and USD settlement verified, session lifecycle verification pending |
 | Tax behavior | Explicit `tax_behavior=inclusive` on the price; never inherit the account default |
-| Tax calculation | Verify product-specific tax classification, registrations, customer-location collection and Stripe Tax configuration in item 05; inclusive pricing does not itself calculate or register tax |
-| Trial | 7 days with a payment method collected for automatic renewal |
+| Tax calculation | Product tax code and active Tax settings read back; customer-location collection and automatic calculation remain session implementation work (see settings audit) |
+| Trial (future session setting) | 7 days with a payment method collected for automatic renewal; catalog price has no trial |
 | Trial eligibility | Once per Stripe customer; prior Apple or Google trials do not disqualify that customer |
 | Web purchaser | Signed-in account with an email; web guests link an email before checkout |
-| Proposed product statement descriptor | `NIBOMO PREMIUM`; verify resulting statement presentation before use |
+| Product statement descriptor | `NIBOMO PREMIUM` read back; verify actual payment statement presentation before launch |
 | Dedicated portal configuration name | `Nibomo Premium` |
 | Portal headline | `portal.headline` in the English map |
 | Ordinary subscription cancellation | End of the current trial or paid period; paid access continues until that period ends |
@@ -54,25 +55,26 @@ activate the free-account 50-message limit or make web purchases available.
 
 ## Resource inventory
 
-Replace pending cells only with verified operational readback, separately for
-sandbox and live. Record non-secret identifiers and the observed settings in item
-05; do not turn a planned value into a claim that it exists. API-version selection
-must be recorded with the actual integration and webhook endpoint configuration.
+[configuration.json](stripe-subscriptions/configuration.json) is the single ID
+inventory for both environments: account, product, default monthly price,
+dedicated portal configuration, uploaded icon, public file link and API pin.
+Its common catalog/portal fields were verified in both environments; environment
+fields distinguish live settings from sandbox copies. It contains no credentials,
+customer records, bank details or raw authenticated responses.
 
-| Resource | Sandbox | Live |
-| --- | --- | --- |
-| Stripe account ID | Pending item 05 readback | Pending item 05 readback |
-| Premium product ID | Pending item 05 readback | Pending item 05 readback |
-| Monthly price ID | Pending item 05 readback | Pending item 05 readback |
-| Dedicated portal configuration ID | Pending item 05 readback | Pending item 05 readback |
-| Branding file ID | Pending item 05 readback | Pending item 05 readback |
-| Integration API version | Pending integration verification | Pending integration verification |
-| Webhook endpoint ID and API version | After receiver deployment | After receiver deployment |
+| Resource | Verified state |
+| --- | --- |
+| Product and default price | Active in each environment; English source rendered with `count=1000`; monthly USD 699 cents, inclusive tax |
+| Dedicated portal | Active in each environment; period-end cancellation with no proration, payment-method updates, invoice history and name/email/address/tax-ID edits enabled |
+| Portal restrictions | Subscription plan/quantity changes, pause, cancellation survey and public login page disabled |
+| Portal defaults | First sandbox configuration is naturally the default; live Nibomo configuration is not the shared default. Always pass its explicit ID |
+| Branding | 512 × 512 `business_icon` uploads and public product image links verified; [media evidence](media/stripe-subscriptions/README.md) |
+| API pin | Explicit `Stripe-Version: 2026-09-30.endive` returned HTTP 200 in both environments. Use it for future integration and event destinations after implementation |
+| Historical live account default | `2020-08-27`, preserved; never rely on that default for the new integration |
+| Webhooks | Zero endpoints in both environments; endpoint IDs and signing secrets do not exist for this integration |
 
-Customers, Checkout Sessions, subscriptions and portal sessions are created for
-real user actions during integration/testing and launch, not as shared catalog
-resources during preparation. Keep credentials and authenticated raw responses
-outside Git. Never record customer identifiers or transaction data here.
+Catalog preparation does not verify checkout, payment, renewal, portal-session
+rendering or email delivery. Those require the real acceptance flows below.
 
 ## Authoritative copy and localization
 
@@ -125,13 +127,12 @@ web app’s actionable error presentation without exposing raw provider response
 renewal price and management URL. It does not send mail or enable shared Stripe
 reminders; the sending mechanism and schedule remain integration work.
 
-### Expected locale files
+### Verified locale files
 
 The inventory is the 50 tags in [supportedLocales](../apps/web/src/i18n/types.ts).
-English is authored here. All other 49 files are **pending translation items
-02–04**; the links reserve their paths and do not claim that files already exist.
-Each translation must contain exactly the same 51 keys and placeholder tokens,
-using the locale’s existing Premium, AI, subscription and cancellation terminology.
+English and all 49 translations are present: **51 keys × 50 locales = 2550
+entries**, with matching key sets and placeholder tokens. These files remain
+outside runtime catalogs and use each locale's Premium and billing terminology.
 
 | Locale files | Locale files | Locale files | Locale files | Locale files |
 | --- | --- | --- | --- | --- |
@@ -146,34 +147,46 @@ using the locale’s existing Premium, AI, subscription and cancellation termino
 | [sw](stripe-subscriptions/locales/sw.json) | [bg](stripe-subscriptions/locales/bg.json) | [et](stripe-subscriptions/locales/et.json) | [hr](stripe-subscriptions/locales/hr.json) | [is](stripe-subscriptions/locales/is.json) |
 | [lt](stripe-subscriptions/locales/lt.json) | [lv](stripe-subscriptions/locales/lv.json) | [sk](stripe-subscriptions/locales/sk.json) | [sl](stripe-subscriptions/locales/sl.json) | [zu](stripe-subscriptions/locales/zu.json) |
 
-These are repository translations, not a claim that Stripe-hosted UI supports all
-50 tags or that arbitrary product descriptions translate automatically. Stripe
-owns its hosted UI translations. Verify supported Checkout/portal locale values,
-locale mapping and each custom-text field’s localization mechanism during
-integration; one portal configuration has one custom headline. Preserve full
-50-locale coverage in the Nibomo UI regardless of Stripe’s hosted inventory.
+These are Nibomo-owned translations. Stripe's product name, description, marketing
+features and this portal configuration's headline are single English strings;
+they do not automatically select one of these 50 maps. Future Nibomo UI and
+supported per-session custom text must select and render their own locale copy.
+
+The verified [Checkout locale enum](https://docs.stripe.com/api/checkout/sessions/create#checkout_session_create-locale)
+requires `es-MX → es-419`, `es-ES → es` and `zh-Hans → zh`. Other exact supported
+app tags pass through. Unsupported app tags (`ar`, `hi`, `uk`, `he`, `fa`, `ca`,
+`bn`, `gu`, `kn`, `ml`, `mr`, `pa`, `ta`, `te`, `ur`, `sw`, `is`, `zu`) must use
+English hosted Checkout while Nibomo keeps their full translations. Make that
+mapping explicit; browser `auto` is not a guarantee of the app's selected language.
+
+Validate the [portal session locale](https://docs.stripe.com/api/customer_portal/sessions/create)
+separately; its automatic choice uses the customer's `preferred_locales` or browser
+locale. Do not assume the portal accepts every Checkout locale. English custom
+product/headline text remains English even when Stripe's controls are localized.
 
 ## Branding
 
-Use the [Stripe media inventory](media/stripe-subscriptions/README.md). It points
-to the existing vector source and 512 × 512 PNG without copying either asset.
-Render product name and features from the English map for an English Stripe
-resource. Additional exports are unnecessary unless Stripe rejects the existing
-PNG or a distinct upload format is required; record a derived export’s source
-and uploaded file ID before use.
+The [Stripe media inventory](media/stripe-subscriptions/README.md) links the
+existing vector and PNG sources, upload integrity evidence and the live product
+screenshot. The uploaded icon is pixel-identical to the source; Stripe's PNG
+optimization changes the byte hash. No additional artwork is needed.
 
-Shared Stripe account branding can affect other products. Prefer a supported
-Checkout Session branding override for Nibomo; audit the portal’s actual branding
-scope before changing anything. A dedicated portal configuration alone does not
-isolate account branding. Do not overwrite shared branding for this preparation.
+The live account's existing branding is preserved. The verified
+[Checkout create API](https://docs.stripe.com/api/checkout/sessions/create)
+supports per-session `branding_settings.display_name`, `icon.type=file` and
+`icon.file` using the environment's `business_icon` ID. Apply these when sessions
+are implemented and inspect real hosted rendering; the upload alone does not
+brand a Checkout Session. The display-name override affects the top of Checkout,
+not the business name in receipts and terms.
 
-Shared Checkout support/policy settings also affect other products. Keep Nibomo’s
-legal links in the app offer and use the dedicated portal configuration’s legal
-URLs. For Checkout, review the supported Markdown-link fields under
-[`custom_text`](https://docs.stripe.com/api/checkout/sessions/create?query=custom_text)
-for product-specific policy links during integration. Do not silently change the
-shared business profile or account-wide policy toggles. These links are not a
-substitute for the pending legal-page updates.
+A dedicated portal configuration isolates feature settings, headline and legal
+URLs, **not account branding**. The portal uses shared account branding. Review
+that appearance before activation without overwriting unrelated products' assets.
+Shared Checkout policy links are disabled and its support website points to
+`https://kirill-markin.com/`. Keep Nibomo legal/support links in the app and its
+portal configuration; use supported Checkout `custom_text` for session-specific
+copy and policy links after verifying rendering. The reference allows up to 1200
+characters per custom message. Do not enable shared policy toggles as a shortcut.
 
 ## Return routes and future integration
 
@@ -186,32 +199,75 @@ A return URL alone never proves payment or grants access: authenticate the curre
 account and resolve the subscription on the backend. Do not accept arbitrary
 client-supplied return URLs, and handle logout/account changes before refreshing.
 
-Use hosted Checkout in subscription mode. Stripe documents
-`subscription_data.trial_period_days` for eligible trials and payment-method
-collection by default in [Checkout trials](https://docs.stripe.com/payments/checkout/free-trials?payment-ui=stripe-hosted).
-For this offer, select 7 days and require collection; do not use the no-payment-
-method trial option. Confirm any explicit `payment_method_collection`,
-`adaptive_pricing`, `branding_settings` and automatic-tax parameters against the
-[Checkout create reference](https://docs.stripe.com/api/checkout/sessions/create)
-for the pinned API version before implementing them. No API version is established
-by this document, including any default attached to a historical Stripe account.
+### Future Checkout inputs
+
+Use the explicit API pin in the inventory, `mode=subscription`, hosted Checkout
+(`ui_mode=hosted_page` in the verified Endive reference), the environment's price
+and quantity 1. The [create reference](https://docs.stripe.com/api/checkout/sessions/create)
+confirms these inputs; none has been exercised in a Nibomo session yet:
+
+| Input | Required integration behavior |
+| --- | --- |
+| `customer` | Reuse the server-owned customer for this Nibomo account/environment; verify account ownership |
+| `subscription_data.trial_period_days=7` | Only for eligible customers; omit after that Stripe customer's trial is consumed |
+| `payment_method_collection=always` | Collect a payment method even when the trial makes the amount due zero |
+| `adaptive_pricing.enabled=true` | Enable eligible session currency localization explicitly |
+| `automatic_tax.enabled=true` | Calculate tax using customer location and the configured registrations; persist required address updates for a reused customer |
+| `branding_settings`, `locale`, `custom_text` | Apply the Nibomo icon, supported hosted locale and rendered localized disclosures described above |
+| `success_url`, `cancel_url` | Use the allowlisted Subscription settings destination; define return-state handling in the implementation |
 
 [Adaptive Pricing](https://docs.stripe.com/payments/currencies/localize-prices/adaptive-pricing?payment-ui=stripe-hosted)
-requires compatible account/settlement currency and Checkout configuration.
-Item 05 must verify USD settlement eligibility and the selected setting in each
-environment; integration must verify the trial, first payment and later renewal
-in the customer’s presented currency. Do not silently substitute manual regional
-prices if this fails: record the specific unmet requirement.
+requires compatible settlement currency and eligible session/payment methods.
+Live USD settlement and enabled Dashboard toggles in both environments were
+verified. Sandbox USD settlement was added while preserving EUR as default.
+Use the explicit session parameter and verify the trial, first payment and later
+renewals in the customer's presented currency. International subscription support
+is limited to cards, Link, Apple Pay and Google Pay in the inspected reference.
+Do not replace the chosen approach with manual regional prices if verification
+fails; report the exact requirement.
 
-The backend offer, checkout, subscription-detail, portal and webhook routes remain
-proposed. Choose exact paths with the implementation and update API Gateway in the
-same change. The webhook receiver URL, event list, pinned event API version and
-runtime secret names remain pending; no endpoint is registered or activated by
-this preparation. Plan lifecycle coverage for checkout completion, subscription
-creation/update/end, invoices paid/failed, refunds and disputes, then select the
-exact [subscription webhook events](https://docs.stripe.com/billing/subscriptions/webhooks)
-that the implemented handler can process. Verify signatures, idempotent delivery,
-account ownership, reconciliation and cross-environment separation before launch.
+### Proposed backend routes and secrets
+
+The existing web route is described above. The following backend routes are
+**proposals**, absent from the current route/Gateway inventory:
+
+| Proposed route | Purpose |
+| --- | --- |
+| `GET /billing/stripe/offer` | Authenticated offer, actual currency/price and customer trial eligibility |
+| `POST /billing/stripe/checkout` | Create a hosted session for the authenticated account |
+| `GET /billing/stripe/subscriptions` | Reconcile and return that account's Stripe purchases |
+| `POST /billing/stripe/portal` | Create an authenticated portal session with the explicit configuration ID |
+| `POST /billing/stripe/webhooks/sandbox` | Sandbox signed event receiver |
+| `POST /billing/stripe/webhooks/live` | Live signed event receiver |
+
+Proposed receiver URLs are `https://api.nibomo.com/billing/stripe/webhooks/sandbox`
+and `https://api.nibomo.com/billing/stripe/webhooks/live`. Implement the routes and
+[API Gateway](../infra/aws/lib/gateways/api-gateway.ts) together. Deploy signature
+verification, persistence, ownership checks, idempotency and reconciliation through
+CI/CD **before** registering either endpoint with the pinned event API version.
+
+Candidate event subscriptions for implemented handlers are
+`checkout.session.completed`, `checkout.session.async_payment_succeeded`,
+`checkout.session.async_payment_failed`, `checkout.session.expired`,
+`customer.subscription.created`, `customer.subscription.updated`,
+`customer.subscription.deleted`, `customer.subscription.trial_will_end`,
+`invoice.paid`, `invoice.payment_failed`, `invoice.payment_action_required`,
+`charge.refunded`, `refund.updated`, `refund.failed`, `charge.dispute.created`,
+`charge.dispute.updated` and `charge.dispute.closed`. Finalize this list against
+[Stripe lifecycle events](https://docs.stripe.com/billing/subscriptions/webhooks)
+and the implemented handlers; events alone do not settle refund/dispute entitlement
+policy. Fetch authoritative state and follow the shared entitlement contract.
+
+Private operator access is established using `STRIPE_ADMIN_API_KEY` plus
+`STRIPE_ACCOUNT_ID`, and `STRIPE_SANDBOX_ADMIN_API_KEY` plus
+`STRIPE_SANDBOX_ACCOUNT_ID`, in the main checkout's ignored `.env`. These are
+operator credentials, not provisioned application secrets. Proposed runtime
+secret names are `STRIPE_LIVE_SECRET_KEY`, `STRIPE_SANDBOX_SECRET_KEY`,
+`STRIPE_LIVE_WEBHOOK_SIGNING_SECRET` and `STRIPE_SANDBOX_WEBHOOK_SIGNING_SECRET`.
+Provision runtime API access privately during implementation; provision signing
+secrets only when registering endpoints after receiver deployment. Keep values
+out of Git, client bundles and logs. A server-created hosted Checkout URL can be
+redirected to without a frontend publishable key.
 
 ### Account deletion
 
@@ -234,63 +290,53 @@ from a mobile warning or treat an account deletion as an automatic refund policy
 The billing-history anonymization requirements remain in
 [Premium entitlements](premium-entitlements.md#guest-upgrade-reaping-and-deletion).
 
-## Preparation and launch procedure
+## Verified settings and remaining launch gates
 
-1. Review this configuration and all 51 English strings. Translate every expected
-   locale in items 02–04 and review placeholders, billing meaning and terminology.
-   Keep authoring files outside the application catalogs until implementation.
-2. In item 05, verify the existing Stripe account, isolated sandbox and private
-   operator access. Use the main checkout’s ignored `.env`: `STRIPE_ADMIN_API_KEY`
-   with `STRIPE_ACCOUNT_ID` for the target live account, and
-   `STRIPE_SANDBOX_ADMIN_API_KEY` with `STRIPE_SANDBOX_ACCOUNT_ID` for the isolated
-   sandbox. Resolve the main checkout when operating from a worktree. Agent-tagged
-   keys can carry Stripe approval restrictions; do not place keys in this document.
-3. Create/read back the product, inclusive monthly price and dedicated portal
-   configuration in sandbox and live from these reviewed inputs. Record their IDs
-   and settings in the inventory. Enable period-end cancellation, billing details,
-   payment-method updates and invoices, with plan and quantity changes disabled.
-   Do not create customer subscriptions or public Payment Links during preparation.
-4. Record the item 05 settings audit below, distinguishing selected values from
-   observed account-wide settings. Do not accept agreements, invent registrations,
-   or overwrite another product’s settings to complete it.
-5. Merge reviewed preparation inputs and verified readback before implementation.
-   Cloud PR static checks and triggered post-merge workflows own project validation.
-6. Implement the provider, stable customer mapping, trial eligibility, lifecycle
-   persistence and reconciliation over the shared entitlement system. Add API
-   routes and secret access with API Gateway changes; select and pin the verified
-   API version. Deploy through CI/CD before registering webhook endpoints.
-7. Register sandbox/live endpoints only after signature verification and event
-   processing exist. Store signing secrets privately and record non-secret IDs and
-   API versions. Check signed delivery and duplicate processing in real sandbox
-   flows, then implement offer, return, status, management and deletion behavior.
-8. Move reviewed locale copy into the web catalogs and replace the shared Premium
-   placeholder in Subscription settings, AI allowance, accent-color and Tests
-   entry points. Preserve guest email linking, own-key access, cached local
-   features and immediate feedback. Confirm a return resumes the original action
-   only for the same account and backend-confirmed access.
-9. Before live purchases, complete real sandbox/manual acceptance: eligible trial;
-   repeat-customer ineligibility; prior mobile trial eligibility; payment-method
-   collection; inclusive tax and converted-currency first payment/renewal;
-   interrupted and delayed checkout; failed payment/recovery; period-end
-   cancellation; duplicate and out-of-order webhooks; logout/account switch;
-   lifetime plus a separate subscription; and account deletion with provider
-   failure or a racing checkout. Capture the implemented screens after they exist.
-10. Coordinate legal-page updates and live purchase activation with payment
-    readiness. Activate the shared free-account limit only in its separate
-    coordinated rollout. Monitor provider events and deployment; resource
-    preparation alone is not authorization to enable the paywall or that limit.
+The [configuration inventory](stripe-subscriptions/configuration.json) records the
+sanitized 2026-10-03 catalog/API readback and Dashboard settings audit. This table
+distinguishes those observations from application work:
 
-### Item 05 settings audit still required
+| Area | Observed preparation state | Required before activation |
+| --- | --- | --- |
+| Tax | Tax active in both environments; explicit inclusive prices and product code `txcd_10105001`. Sandbox defaults use Stripe/inclusive/the same code | Enable and exercise session automatic tax and customer-location collection |
+| Registrations | Existing live BG standard and Union OSS registrations read back; their configuration and head office copied into the isolated sandbox only. Live global Tax settings preserved | Verify applicable collection in real sandbox flows; these test copies create no new real-world registration |
+| Receipts | Shared live successful-payment and refund emails off; default language English, sender `stripe.com` | Choose and implement Nibomo receipt/payment/refund communication without silently changing other products' messages; portal invoice history alone is not email delivery |
+| Trial reminders | Shared live trial reminder off; subscription-management email link and trial-over descriptor off; legacy trial link points to Kirill's LinkedIn profile | Implement the prepared product-specific `email.*` reminder with actual price/end date/management URL and verify delivery; no sender or schedule is deployed |
+| Other billing emails | Live renewal, expiring-card, failed-card-payment and failed-bank-debit emails on | Inspect the actual messages and management destination for Nibomo before launch |
+| Recovery | Smart retries enabled, maximum 4 attempts over 3 weeks; first failure leaves overdue, exhaustion cancels; incomplete authentication cancels after 15 days; disputed payment leaves overdue | Exercise grace, recovery, terminal cancellation and explicit refund/dispute handling against the entitlement mapping |
+| Billing defaults | Live Classic and sandbox Flexible Dashboard billing modes; live upcoming-invoice event 7 days before and shared Checkout one-subscription limit off | Set intentional integration behavior; do not assume a shared toggle enforces Nibomo trial eligibility or purchase ownership |
+| Sandbox email evidence | No sandbox delivery evidence; live email/retry observations do not establish sandbox settings | Stripe does not send trial reminder emails in a sandbox; verify the chosen Nibomo sender separately |
+| Runtime | Session branding, per-session Adaptive Pricing and product-specific reminder copy are supported/prepared inputs only | Implement and deploy the provider, sessions, webhooks, messages and UI |
+| Legal | Dedicated portal legal URLs set; Stripe-specific website wording still pending | Update public terms/privacy against actual billing data and behavior before accepting live purchases |
 
-| Area | Evidence to record before closing preparation |
-| --- | --- |
-| Branding | Uploaded file IDs, supported Nibomo session overrides, shared portal branding scope; leave unrelated branding intact |
-| Adaptive Pricing | Observed sandbox/live enablement and USD settlement compatibility; subscription lifecycle verification remains integration work |
-| Tax | Explicit inclusive price readback, product-specific tax code, actual tax head-office and registrations, enabled calculation settings; no claim of registrations elsewhere |
-| Receipts and emails | Current receipt/payment email settings and their account-wide scope; record any Nibomo-specific option without changing other products’ messages |
-| Trial reminders | Selected/observed reminder settings and scope; Stripe does not send trial-reminder emails in a sandbox, so do not claim sandbox email delivery |
-| Failed payments | Observed retry schedule, dunning emails and terminal state, consistent with the shared Stripe entitlement mapping |
-| Legal pages | Billing terms, Stripe data handling and deletion wording reviewed against the actual public pages; website edits tracked separately |
+The product code is an **inference** from server-hosted AI chat being the primary
+paid benefit, using Stripe's
+[tax category](https://docs.stripe.com/tax/tax-codes) label “Artificial Intelligence
+as a Service (AIaaS) - Cloud Based - Personal Use”. It is the observed product
+classification, not a claim of Stripe's independent approval or a new tax
+registration. Inclusive pricing alone neither calculates tax nor establishes
+collection obligations.
+
+1. Merge reviewed preparation inputs and this verified inventory before application
+   work; cloud PR checks and triggered post-merge workflows own project validation.
+2. Implement stable customer mapping, trial eligibility and lifecycle persistence
+   over the shared entitlements; deploy receivers before registering endpoints.
+   Preserve environment separation and retain enough state for deletion/retries.
+3. Import the 50 reviewed maps into web catalogs and replace the Premium placeholder
+   in Subscription settings, AI allowance, accent-color and Tests entry points.
+   Preserve guest email linking, own-key access, cached local features and immediate
+   feedback. Resume the original action only for the same account and confirmed access.
+4. Complete sandbox/manual acceptance: eligible trial, repeat-customer ineligibility,
+   prior mobile trial eligibility, payment-method collection, inclusive tax,
+   converted-currency first payment/renewal, real hosted branding/locales, interrupted
+   or delayed return, failed payment/recovery, period-end cancellation and retained
+   access, refunds/disputes, duplicate/out-of-order webhooks, logout/account switch,
+   lifetime plus a separate subscription, and deletion with provider failure or
+   racing checkout. Verify customer and environment ownership throughout.
+5. Complete Nibomo-specific reminder and receipt decisions/delivery, portal appearance
+   review and website legal updates. Capture implemented screens after they exist.
+6. Activate live purchases only after these gates pass. The free-account 50-message
+   limit remains a separate coordinated rollout; preparation does not activate it.
 
 The inspected [Terms](https://nibomo.com/terms/) and
 [Privacy Policy](https://nibomo.com/privacy/) identify the operator and general
@@ -299,9 +345,13 @@ inclusive tax presentation, Stripe processing or Stripe renewal cancellation on
 account deletion. Their canonical sources are the neighboring website repository’s
 [`terms/index.md`](https://github.com/kirill-markin/flashcards-open-source-app-website/blob/main/src/content/en/pages/terms/index.md)
 and [`privacy/index.md`](https://github.com/kirill-markin/flashcards-open-source-app-website/blob/main/src/content/en/pages/privacy/index.md).
-Record this gap for that repository’s launch work; these authoring inputs do not
-publish or replace the legal pages. Do not invent a refund or tax-registration
-policy from their current silence.
+Before activation, update that repository's Stripe billing terms and privacy
+wording against the implemented flow: data actually shared with Stripe (such as
+email, billing address and customer/subscription identifiers), payment processing,
+retention/anonymization, trial/renewal disclosures and cancellation on deletion.
+Coordinate the legal translations there. Separate Apple privacy work does not
+close this Stripe launch gate. These inputs do not publish legal pages or establish
+a refund or tax-registration policy from their current silence.
 
 ## Stripe references
 
