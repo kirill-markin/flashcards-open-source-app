@@ -1,0 +1,179 @@
+{
+  "verifiedAt": "2026-10-03",
+  "status": "catalog_prepared_runtime_not_implemented",
+  "operatorApiVersion": "2026-09-30.endive",
+  "sourceRefs": {
+    "english": "locales/en.json",
+    "locales": "locales/",
+    "icon": "../../apps/web/public/icon-preview.png",
+    "media": "../media/stripe-subscriptions/README.md"
+  },
+  "copy": {
+    "productNameKey": "product.name",
+    "productDescriptionKey": "product.description",
+    "marketingFeatureKeys": [
+      "product.aiFeature",
+      "product.accentFeature"
+    ],
+    "portalHeadlineKey": "portal.headline",
+    "renderingValues": {
+      "count": 1000
+    },
+    "localeCount": 50,
+    "keysPerLocale": 51
+  },
+  "catalog": {
+    "active": true,
+    "metadata": {
+      "application": "nibomo",
+      "tier": "premium"
+    },
+    "statementDescriptor": "NIBOMO PREMIUM",
+    "taxCode": "txcd_10105001",
+    "price": {
+      "currency": "usd",
+      "unitAmount": 699,
+      "interval": "month",
+      "intervalCount": 1,
+      "usageType": "licensed",
+      "taxBehavior": "inclusive",
+      "lookupKey": "nibomo_premium_monthly",
+      "nickname": "Nibomo Premium Monthly",
+      "catalogTrialPeriodDays": null
+    }
+  },
+  "portal": {
+    "active": true,
+    "name": "Nibomo Premium",
+    "returnUrl": "https://app.nibomo.com/settings/subscription",
+    "privacyUrl": "https://nibomo.com/privacy/",
+    "termsUrl": "https://nibomo.com/terms/",
+    "customerUpdates": [
+      "name",
+      "email",
+      "address",
+      "tax_id"
+    ],
+    "invoiceHistory": true,
+    "paymentMethodUpdate": true,
+    "subscriptionCancel": {
+      "mode": "at_period_end",
+      "prorationBehavior": "none",
+      "cancellationReasonEnabled": false
+    },
+    "subscriptionUpdateEnabled": false,
+    "subscriptionPauseEnabled": false,
+    "loginPageEnabled": false
+  },
+  "icon": {
+    "purpose": "business_icon",
+    "dimensions": [
+      512,
+      512
+    ],
+    "sourceSha256": "8755550b1f888d6d8394cb6674899f01a707334891d9aa2b3a49d30ba2efdf19",
+    "stripePngSha256": "1eae1af980c899abe236312e9f6603219787fe915d419dde60733c30cf0df7d5",
+    "decodedPixelsMatchSource": true
+  },
+  "environments": {
+    "sandbox": {
+      "accountId": "acct_1UMQBkCVkVWAch1V",
+      "livemode": false,
+      "productId": "prod_VNApGSuXOif51N",
+      "defaultPriceId": "price_1UMQUDCVkVWAch1VJzr1hELW",
+      "portalConfigurationId": "bpc_1UMQUECVkVWAch1VcQK8QOoM",
+      "portalIsDefault": true,
+      "iconFileId": "file_1UMQUBCVkVWAch1V4xlvzrLX",
+      "iconFileLinkId": "link_1UMQUBCVkVWAch1VDSx8V1nA",
+      "iconPublicUrl": "https://files.stripe.com/links/MDB8YWNjdF8xVU1RQmtDVmtWV0FjaDFWfGZsX3Rlc3RfcGt1d2VHanRad21RR2dWNjRjUUo4dEt300QSz6w2br",
+      "webhookEndpointCount": 0,
+      "taxStatus": "active",
+      "registrations": [
+        {
+          "country": "BG",
+          "type": "standard"
+        },
+        {
+          "country": "BG",
+          "type": "oss_union"
+        }
+      ],
+      "verifiedSettlementCurrencies": [
+        "eur",
+        "usd"
+      ],
+      "name": "Nibomo Subscriptions",
+      "defaultCurrency": "eur",
+      "taxDefaults": {
+        "provider": "stripe",
+        "tax_behavior": "inclusive",
+        "tax_code": "txcd_10105001"
+      },
+      "registrationsBasis": "test_only_copies_of_existing_live_registrations",
+      "adaptivePricingEnabled": true,
+      "dashboardBillingMode": "flexible"
+    },
+    "live": {
+      "accountId": "acct_1KrGW6E3K3xV54Nr",
+      "livemode": true,
+      "productId": "prod_VNAqU0IRKOL0TD",
+      "defaultPriceId": "price_1UMQUtE3K3xV54NrvU8rT8ef",
+      "portalConfigurationId": "bpc_1UMQUtE3K3xV54NruoEezugO",
+      "portalIsDefault": false,
+      "iconFileId": "file_1UMQUqE3K3xV54NruG41UVFn",
+      "iconFileLinkId": "link_1UMQUqE3K3xV54NroPo0a3UU",
+      "iconPublicUrl": "https://files.stripe.com/links/MDB8YWNjdF8xS3JHVzZFM0szeFY1NE5yfGZsX2xpdmVfNHZaYkhveElLT1FLcldEQ1pVRFZSTXhD00fKTxU3r2",
+      "webhookEndpointCount": 0,
+      "taxStatus": "active",
+      "registrations": [
+        {
+          "country": "BG",
+          "type": "standard"
+        },
+        {
+          "country": "BG",
+          "type": "oss_union"
+        }
+      ],
+      "verifiedSettlementCurrencies": [
+        "usd"
+      ],
+      "accountDefaultApiVersion": "2020-08-27",
+      "accountBrandingPreserved": true,
+      "globalTaxSettingsPreserved": true,
+      "adaptivePricingEnabled": true,
+      "emails": {
+        "trial_reminder": false,
+        "renewal": true,
+        "expiring_card": true,
+        "failed_card_payment": true,
+        "failed_bank_debit_payment": true,
+        "subscription_management_link": false,
+        "legacy_trial_link": "https://www.linkedin.com/in/kirill-markin/",
+        "trial_over_descriptor": false
+      },
+      "receipts": {
+        "successful_payments_email": false,
+        "refund_email": false,
+        "default_language": "English",
+        "sender_domain": "stripe.com"
+      },
+      "retry": {
+        "enabled": true,
+        "strategy": "smart",
+        "maximum_attempts": 4,
+        "maximum_period": "3 weeks",
+        "first_failure": "leave_overdue",
+        "exhausted": "cancel_subscription",
+        "authentication_incomplete_timeout_days": 15,
+        "authentication_incomplete_outcome": "cancel_subscription",
+        "disputed_payment": "leave_overdue"
+      },
+      "upcomingInvoiceEventDays": 7,
+      "dashboardBillingMode": "classic",
+      "checkoutPolicyLinksEnabled": false,
+      "checkoutSupportWebsite": "https://kirill-markin.com/",
+      "checkoutLimitOneSubscription": false
+    }
+  }
+}
