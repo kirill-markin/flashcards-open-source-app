@@ -33,8 +33,10 @@ each product, base plan, and offer exactly as written.
 
 ### Google Play
 
-Setup status, verified resource identities, and remaining catalog steps live in
-[Google Play subscriptions](google-play-subscriptions.md).
+Verified implementation/deployment status and pending store gates live in
+[Google Play readiness](google-play-subscriptions.md#readiness); resource identities,
+catalog setup and the [manual acceptance matrix](google-play-subscriptions.md#runtime-and-real-device-acceptance-gates)
+are maintained there. The configuration below is not evidence of an active catalog.
 
 | Setting | Value |
 | --- | --- |
