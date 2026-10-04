@@ -1,4 +1,6 @@
-import type { ProductAnalyticsAutorenewDisabledReason } from "../../productAnalytics/catalog";
+import type {
+  ProductAnalyticsAutorenewDisabledReason, ProductAnalyticsCancellationSurveyReason,
+} from "../../productAnalytics/catalog";
 import type { PurchasePrice } from "../../productAnalytics/serverFacts/billingFacts";
 import type { PurchaseStatus } from "../resolver";
 
@@ -28,6 +30,8 @@ export type GooglePurchaseState = Readonly<{
   willRenew: boolean;
   // Read only once renewal is off; `unknown` when Play reports no cancellation context.
   autorenewDisabledReason: ProductAnalyticsAutorenewDisabledReason;
+  // Play's cancel-survey answer; null when the person skipped it or Play reports no cancellation.
+  cancellationSurveyReason: ProductAnalyticsCancellationSurveyReason | null;
   // Evidence of current production paid access, not an exact charge time or amount.
   paid: boolean;
   completed: boolean;
