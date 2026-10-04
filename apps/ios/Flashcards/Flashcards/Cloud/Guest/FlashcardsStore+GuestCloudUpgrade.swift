@@ -681,6 +681,7 @@ extension FlashcardsStore {
                 trigger: trigger
             )
         }
+        self.triggerAppLanguageSaveIfNeeded()
     }
 
     private func performCompletedGuestCloudLink(

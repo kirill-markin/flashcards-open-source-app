@@ -63,6 +63,8 @@ final class FlashcardsStore {
     var accountPreferences: AccountPreferences
     var pendingAccentColor: PendingAccountAccentColor? = nil
     @ObservationIgnored var isAccentColorSaveScheduled: Bool = false
+    /// Users whose app language this process already tried to save; a failure waits for the next launch.
+    @ObservationIgnored var attemptedAppLanguageSaveUserIds: Set<String> = []
     /// The product-analytics switch as the client actually holds it, which is the stored answer except
     /// in a UI-test launch, where it is forced off. Read at init so it is right offline and before the
     /// launch's first `/me`; see `ProductAnalyticsPreference`.

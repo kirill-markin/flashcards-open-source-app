@@ -774,6 +774,7 @@ extension FlashcardsStore {
 
             try await self.performCloudLink(linkedSession: linkedSession, trigger: trigger)
         }
+        self.triggerAppLanguageSaveIfNeeded()
     }
 
     private func performCloudLink(linkedSession: CloudLinkedSession, trigger: CloudSyncTrigger) async throws {
