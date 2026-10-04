@@ -28,6 +28,7 @@ export type AdminRoute =
   | Readonly<{ kind: "user"; userId: string; tab: UserPageTab }>
   /** One chat opened from the Chats tab, a path of its own so Back returns to the list. */
   | Readonly<{ kind: "userChat"; userId: string; sessionId: string }>
+  | Readonly<{ kind: "event"; eventId: string }>
   | Readonly<{ kind: "notFound"; pathname: string }>;
 
 export const rootPath = "/";
@@ -35,6 +36,8 @@ export const rootPath = "/";
 export const analyticsIndexPath = "/analytics";
 
 export const usersPath = "/users";
+
+export const eventsPath = "/events";
 
 export function getAnalyticsAreaPath(area: AnalyticsArea): string {
   return `${analyticsIndexPath}/${area}`;
@@ -47,6 +50,11 @@ export function getUserPath(userId: string, tab: UserPageTab): string {
 
 export function getUserChatPath(userId: string, sessionId: string): string {
   return `${getUserPath(userId, "chats")}/${encodeURIComponent(sessionId)}`;
+}
+
+/** `eventId` is an `analytics.product_events_resolved.event_id`, encoded as one segment. */
+export function getEventPath(eventId: string): string {
+  return `${eventsPath}/${encodeURIComponent(eventId)}`;
 }
 
 /**
@@ -67,6 +75,8 @@ export function getAdminRoutePath(route: AdminRoute): string {
       return getUserPath(route.userId, route.tab);
     case "userChat":
       return getUserChatPath(route.userId, route.sessionId);
+    case "event":
+      return getEventPath(route.eventId);
     case "notFound":
       return route.pathname;
   }
@@ -105,6 +115,23 @@ function parseUserRoute(normalizedPathname: string): AdminRoute | null {
   }
 }
 
+const eventPathPattern = /^\/events\/([^/]+)$/u;
+
+function parseEventRoute(normalizedPathname: string): AdminRoute | null {
+  const match = eventPathPattern.exec(normalizedPathname);
+  if (match === null) {
+    return null;
+  }
+  try {
+    return { kind: "event", eventId: decodeURIComponent(match[1]) };
+  } catch (error) {
+    if (error instanceof URIError) {
+      return null;
+    }
+    throw error;
+  }
+}
+
 export function parseAdminRoute(pathname: string): AdminRoute {
   const normalizedPathname = stripTrailingSlashes(pathname);
 
@@ -123,6 +150,11 @@ export function parseAdminRoute(pathname: string): AdminRoute {
   const userRoute = parseUserRoute(normalizedPathname);
   if (userRoute !== null) {
     return userRoute;
+  }
+
+  const eventRoute = parseEventRoute(normalizedPathname);
+  if (eventRoute !== null) {
+    return eventRoute;
   }
 
   const area = analyticsAreas.find(
