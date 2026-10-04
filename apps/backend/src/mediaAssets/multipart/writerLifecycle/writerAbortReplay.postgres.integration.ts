@@ -1058,11 +1058,13 @@ test(
           await completing.query("COMMIT");
           assert.equal(await pendingAbort, "live_applied");
           await aborting.query("COMMIT");
-        } finally {
+        } catch (error) {
           await Promise.allSettled([
             completing.query("ROLLBACK"),
             aborting.query("ROLLBACK"),
           ]);
+          throw error;
+        } finally {
           completing.release();
           aborting.release();
         }

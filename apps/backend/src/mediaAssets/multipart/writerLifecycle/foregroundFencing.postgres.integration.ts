@@ -463,7 +463,7 @@ async function releaseClients(
   clients: ReadonlyArray<pg.PoolClient>,
   testError: Error | null,
 ): Promise<void> {
-  const rollbackResults = await Promise.allSettled(
+  const rollbackResults = testError === null ? [] : await Promise.allSettled(
     clients.map((client) => client.query("ROLLBACK")),
   );
   for (const client of clients) client.release();
@@ -620,8 +620,10 @@ test("migration 0101 admits abort only after foreground completion is fenced", a
         "access_denied",
       );
       await deniedClient.query("COMMIT");
-    } finally {
+    } catch (error) {
       await deniedClient.query("ROLLBACK");
+      throw error;
+    } finally {
       deniedClient.release();
     }
 
