@@ -94,6 +94,8 @@ export default defineConfig(({ command }) => {
               name: sentrySourceMapUploadConfig.releaseName,
             },
             sourcemaps: {
+              // Rolldown's virtual runtime contains only generated interop helpers and has no source map.
+              ignore: "**/rolldown-runtime-*.js",
               filesToDeleteAfterUpload: "dist/**/*.map",
             },
           })
