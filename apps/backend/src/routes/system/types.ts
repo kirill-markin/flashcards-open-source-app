@@ -82,6 +82,7 @@ export type AccountPreferencesUpdate = Readonly<{
   analyticsConsentOrigin: AnalyticsPreferenceWriteOrigin;
   productAnalyticsEnabled: boolean | null;
   productAnalyticsEnabledOrigin: AnalyticsPreferenceWriteOrigin;
+  locale: string | null;
 }>;
 
 export type UpdateAccountPreferencesFn = (

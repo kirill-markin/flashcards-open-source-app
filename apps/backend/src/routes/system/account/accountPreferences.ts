@@ -90,7 +90,8 @@ export async function updateAccountPreferences(
       "WHEN $6::BOOLEAN AND $5::BOOLEAN AND product_analytics_enabled IS FALSE",
       "THEN product_analytics_enabled",
       "ELSE $5::BOOLEAN END,",
-      "accent_color = COALESCE($7::TEXT, accent_color)",
+      "accent_color = COALESCE($7::TEXT, accent_color),",
+      "locale = COALESCE($8::TEXT, locale)",
       "WHERE user_id = $1",
       "RETURNING review_reaction_animations_enabled, analytics_consent, product_analytics_enabled, accent_color",
     ].join(" "),
@@ -102,6 +103,7 @@ export async function updateAccountPreferences(
       update.productAnalyticsEnabled,
       update.productAnalyticsEnabledOrigin === "reconciliation",
       update.accentColor,
+      update.locale,
     ],
   );
 
@@ -211,6 +213,7 @@ export function registerAccountPreferencesRoutes(
     if (
       preferencesUpdate.reviewReactionAnimationsEnabled === null
       && preferencesUpdate.accentColor === null
+      && preferencesUpdate.locale === null
     ) {
       return context.json({
         preferences: {
@@ -230,6 +233,7 @@ export function registerAccountPreferencesRoutes(
       analyticsConsentOrigin: preferencesUpdate.analyticsConsentOrigin,
       productAnalyticsEnabled: null,
       productAnalyticsEnabledOrigin: preferencesUpdate.productAnalyticsEnabledOrigin,
+      locale: preferencesUpdate.locale,
     });
 
     return context.json({
