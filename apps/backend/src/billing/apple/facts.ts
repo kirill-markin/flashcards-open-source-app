@@ -46,8 +46,17 @@ export async function publishCommittedTransition(transition: AppleCommittedTrans
       if (state.isTrial && (previous === null || !previous.is_trial || previous.user_id === null || previous.account_deleted_at !== null)) {
         await recordTrialStartedAnalytics(fact);
       }
+      const purchaseFact = { ...fact, kind: "subscription" as const, period: "monthly" as const,
+        productId: state.productId, price: state.price };
       if (state.paid && (previous === null || previous.is_trial || previous.user_id === null || previous.account_deleted_at !== null)) {
-        await recordPurchaseCompletedAnalytics({ ...fact, kind: "subscription", period: "monthly" });
+        await recordPurchaseCompletedAnalytics({ ...purchaseFact, resubscribeTransactionId: null });
+      } else if (state.paid && state.status === "active" && state.transactionReason === "PURCHASE"
+        && state.transactionId !== state.originalTransactionId
+        && previous !== null && previous.user_id === userId && (previous.status === "expired" || previous.status === "revoked")) {
+        // A customer's own purchase after a lapse; a renewal, billing-retry recovery included, never is.
+        // The first transaction reactivated by a refund reversal keeps the original id, so it never is either.
+        // A renewal processed before this transaction hides it, which is accepted.
+        await recordPurchaseCompletedAnalytics({ ...purchaseFact, resubscribeTransactionId: state.transactionId });
       }
       if (state.status === "revoked" && previous?.status !== "revoked") {
         await recordSubscriptionRevokedAnalytics({ ...fact, occurredAt: state.revokedAt ?? state.signedAt, reason: "unknown" });

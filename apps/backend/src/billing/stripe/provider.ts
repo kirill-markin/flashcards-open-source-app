@@ -373,6 +373,7 @@ export class StripeProvider {
       const item = subscription.items.data[0];
       let currentInvoice: Stripe.Invoice | null = null;
       let firstPaidAt: Date | null = null;
+      let firstPaidInvoiceId: string | null = null;
       for await (const invoice of this.#client.invoices.list({ subscription: subscription.id, limit: 100 })) {
         this.requireEnvironment(invoice);
         requireMatch(objectId(invoice.customer) === customerId
@@ -380,7 +381,10 @@ export class StripeProvider {
         if (invoice.status === "paid" && invoice.amount_paid > 0 && invoice.status_transitions.paid_at !== null) {
           requireMatch(Number.isSafeInteger(invoice.status_transitions.paid_at) && invoice.status_transitions.paid_at > 0);
           const paidAt = new Date(invoice.status_transitions.paid_at * 1000);
-          if (firstPaidAt === null || paidAt < firstPaidAt) firstPaidAt = paidAt;
+          if (firstPaidAt === null || paidAt < firstPaidAt) {
+            firstPaidAt = paidAt;
+            firstPaidInvoiceId = invoice.id;
+          }
         }
         const lines: Array<Stripe.InvoiceLineItem> = [];
         if (invoice.lines.has_more) {
@@ -442,7 +446,7 @@ export class StripeProvider {
           payments.push({ payment, charge, refunds, disputes });
         }
       }
-      return { invoice: currentInvoice, firstPaidAt, payments };
+      return { invoice: currentInvoice, firstPaidAt, firstPaidInvoiceId, payments };
     });
   }
 

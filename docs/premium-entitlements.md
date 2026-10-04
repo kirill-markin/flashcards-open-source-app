@@ -286,7 +286,7 @@ The billing layer writes exactly these facts, as facts, and no others:
 
 - an entitlement change
 - a trial start
-- a first paid purchase
+- a first paid purchase, including a resubscribe after a lapse
 - a revoke
 - auto-renew disabled
 

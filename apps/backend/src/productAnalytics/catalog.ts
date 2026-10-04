@@ -177,6 +177,10 @@ const productAnalyticsPurchaseKinds = ["subscription", "one_time"] as const;
 // it appears.
 const productAnalyticsSubscriptionPeriods = ["monthly", "annual"] as const;
 
+// A store product id (`premium_monthly`, `premium`, `prod_...`) and an ISO 4217 currency code.
+const productAnalyticsStoreProductIdPattern = /^[A-Za-z0-9._-]{1,128}$/u;
+const productAnalyticsCurrencyPattern = /^[A-Z]{3}$/u;
+
 // Why a provider pulled a purchase. `unknown` is the honest answer for a provider that reports a
 // revoke and no cause - a Google RTDN `SUBSCRIPTION_REVOKED` carries none - and never a value a
 // producer reaches for instead of reading what the provider sent.
@@ -1209,8 +1213,12 @@ export const productAnalyticsEventCatalog = {
     },
   },
   // One purchase that completed and was paid for, which is the conversion fact. A renewal of it is
-  // not reported: the person decided once, and the provider charging again on schedule is revenue
-  // rather than a product event, and revenue reconciliation lives in the provider reports.
+  // not reported: the provider charging again on schedule is revenue rather than a product event,
+  // and revenue reconciliation lives in the provider reports. A resubscribe after a lapse is a new
+  // decision and reported again.
+  //
+  // The price is the local-currency amount the provider reports, in millionths of the major unit;
+  // its two properties are written together or not at all.
   purchase_completed: {
     serverOnly: true,
     requiresScreen: false,
@@ -1219,6 +1227,9 @@ export const productAnalyticsEventCatalog = {
       provider: { kind: "enum", values: productAnalyticsBillingProviders },
       kind: { kind: "enum", values: productAnalyticsPurchaseKinds },
       period: { kind: "enum", values: productAnalyticsSubscriptionPeriods, optional: true },
+      product_id: { kind: "string", pattern: productAnalyticsStoreProductIdPattern },
+      price_amount_micros: { kind: "nonNegativeInteger", optional: true },
+      price_currency: { kind: "string", pattern: productAnalyticsCurrencyPattern, optional: true },
     },
   },
   // A provider pulling a purchase it had granted: a refund, a chargeback or a family-sharing removal.
