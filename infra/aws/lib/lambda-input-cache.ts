@@ -149,6 +149,9 @@ export function createCachedNodejsFunction(
     ...inputs.flatMap(configurationFiles),
     ...(copiedAssetPaths ?? []).flatMap(filesUnder),
     depsLockFilePath,
+    ...(bundling.forceDockerBundling
+      ? [resolveFromRepoRoot("infra", "aws", "docker", "lambda-nodejs", "Dockerfile")]
+      : []),
     ...["package.json", "package-lock.json", "tsconfig.json"].map((name) => resolveFromRepoRoot("infra", "aws", name)),
     // The injector is shared even by auth/infra Lambdas; its executable is
     // platform-specific and its package lock is independent of their locks.
@@ -192,6 +195,14 @@ export function createCachedNodejsFunction(
     bundling: {
       ...bundling,
       externalModules,
+      ...(bundling.forceDockerBundling
+        ? {
+            dockerImage: cdk.DockerImage.fromBuild(resolveFromRepoRoot("infra", "aws", "docker", "lambda-nodejs"), {
+              buildArgs: { IMAGE: props.runtime.bundlingImage.image, ESBUILD_VERSION: esbuild.version },
+              platform: (props.architecture ?? lambda.Architecture.X86_64).dockerPlatform,
+            }),
+          }
+        : {}),
       esbuildVersion: esbuild.version,
       assetHash: identity.digest("hex"),
     },

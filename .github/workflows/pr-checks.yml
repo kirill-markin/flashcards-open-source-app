@@ -237,7 +237,7 @@ jobs:
       # Read-only: pull requests reuse the release's Lambda assets and never save their own.
       - name: Restore Lambda asset cache
         if: ${{ needs.changes.outputs.infra_changed == 'true' }}
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6.1.0
         with:
           path: .cache/lambda-assets/v1
           key: lambda-assets-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.sha }}-pr

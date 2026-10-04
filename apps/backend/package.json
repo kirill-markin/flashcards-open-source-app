@@ -55,5 +55,9 @@
   },
   "engines": {
     "node": "24.x"
+  },
+  "allowScripts": {
+    "@sentry/cli@3.8.0": true,
+    "esbuild@0.28.2": true
   }
 }

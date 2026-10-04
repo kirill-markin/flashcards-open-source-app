@@ -7,7 +7,7 @@ export function createSentrySourceMapInjectionCommand(outputDir: string): string
     `backend_sentry_cli_path="\${SENTRY_BACKEND_CLI_PATH:-${defaultBackendSentryCliPath}}";`,
     `if [ ! -x "$backend_sentry_cli_path" ]; then echo "Sentry CLI not found or not executable at $backend_sentry_cli_path. Run npm ci --prefix apps/backend before CDK synth." >&2; exit 1; fi;`,
     // Injection hashes the emitted JS and map, without credentials or release metadata.
-    `"$backend_sentry_cli_path" sourcemaps inject "${outputDir}" || exit "$?";`,
+    `"$backend_sentry_cli_path" sourcemaps inject "${outputDir}/index.js" "${outputDir}/index.js.map" || exit "$?";`,
   ].join(" ");
 }
 

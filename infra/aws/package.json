@@ -31,5 +31,8 @@
   },
   "engines": {
     "node": "24.x"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
   }
 }

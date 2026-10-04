@@ -102,7 +102,8 @@ follow-up does not hold closeout open after the applicable boundary is reached.
 On resume, use the documented source comparison and
 [artifact reuse rules](release/evidence.md#reuse-existing-artifacts), including
 the rule for historical gaps on already-published matching mobile artifacts.
-New publication/submission actions retain every required gate and warning fix.
+New publication/submission actions retain every required gate and apply the
+[release warning policy](release/README.md#release-warning-policy).
 
 When a change lands on `main`, monitor `AWS/Web Release` for backend/web outcome when AWS-impacting files changed, including the post-deploy smoke jobs of the selected components, and monitor `Android CI` when Android-impacting files changed. Reading and monitoring Xcode Cloud runs, results, and artifacts is always allowed; dispatching Xcode Cloud workflows requires a full-release request or an explicit request for those actions, as defined in the release runbook.
 For Android, a green automatic `Android CI` run means the post-merge `data:local` emulator backstop passed for that SHA. It does not repeat the build, unit tests, or lint already enforced by the required PR gate, and it does not mean Firebase Test Lab was submitted, a Google Play draft was uploaded, or a release is already live. Run the manual `Android Release` workflow when the Android SHA is ready for release. A green manual `Android Release` run means the full GitHub-hosted Android gate passed, Firebase Test Lab submission succeeded, and CI uploaded a production-track Play draft; Firebase Test Lab is submitted asynchronously, so review its matrix result before publishing from Play Console. A non-green `Android Release` run means one of the required release stages failed or was skipped by a failed dependency. Translation review and final publication still happen later in Play Console.
