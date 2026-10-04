@@ -66,14 +66,14 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  * kept: `server_derived` and `backfill_derived` are the server's own observations, and
  * `authenticated_client` and `guest_client` are claims made on an authenticated request.
  *
- * APPLIED EVERYWHERE IT CAN DECIDE A PERSON, AND THIS IS THE WHOLE LIST. Twenty-two entries below
- * derive an actor-level fact from `analytics.product_events_resolved`, twenty-one in this package
+ * APPLIED EVERYWHERE IT CAN DECIDE A PERSON, AND THIS IS THE WHOLE LIST. Twenty-three entries below
+ * derive an actor-level fact from `analytics.product_events_resolved`, twenty-two in this package
  * and one outside it. Each is APPLIED or UNREACHABLE, and the two are not interchangeable: adding this
  * predicate to an UNREACHABLE entry is a no-op, and reading one as an omission produces a
  * remediation that converts the entries it happens to have been told about and stops. A shared
  * fragment is one entry, listed where it is written, with its readers named.
  *
- * APPLIED (13).
+ * APPLIED (14).
  *   - `reports/dailyActiveUsers/query.ts`, the `app_opens` CTE and the first-active-date cohort it
  *     feeds.
  *   - `reports/audience/query.ts`, the `history` CTE and the cohort it feeds.
@@ -102,6 +102,9 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  *     `site_app_entry_clicked` at `trust_level = 'anonymous_client'` only, on purpose: those are the
  *     site's own facts, the cohort is keyed on the visitor identity they carry, and they never count
  *     as the trusted evidence this rule is about.
+ *   - `reports/paywallFunnel/query.ts`, `funnel_rows`, which every step reads. The cohort and the
+ *     purchase start are the client-reportable `paywall_shown` and `purchase_started`, so a
+ *     credential-free claim would otherwise enter a person or advance one.
  *   - `buildMinimumEventCountFilterSql` below, the `app_opened:N` style threshold every report's
  *     filter bar composes.
  *   - `buildConnectionCountrySamplesSql` below, whose `origin = 'client'` is exactly what an
