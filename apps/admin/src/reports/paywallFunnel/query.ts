@@ -128,7 +128,9 @@ export function buildPaywallFunnelSql(
     "), cohort AS MATERIALIZED (",
     "  SELECT candidate.actor_id, candidate.shown_at, candidate.platform, candidate.entry_point",
     "  FROM first_paywalls AS candidate",
-    `  WHERE ${buildEventPlatformsFilterSql("candidate.platform", filters.eventPlatforms)}`,
+    // A first paywall with no platform is `unattributed`, as on the deck funnel, so the default
+    // selection keeps it and the platform `Group by` places it in `Unresolved`.
+    `  WHERE ${buildEventPlatformsFilterSql("COALESCE(candidate.platform, 'unattributed')", filters.eventPlatforms)}`,
     ...buildExcludedActorSqlLines("candidate.actor_id::text"),
     // There are no cookieless people here - the daily visitor hash exists only on marketing-site
     // rows - so `all` counts exactly who the default counts and only `signed-in` adds a line.
