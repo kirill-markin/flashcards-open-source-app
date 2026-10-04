@@ -14,6 +14,11 @@ Pushes to `main` use independent release and check streams:
 - Android production draft upload is manual-only through `.github/workflows/android-release.yml`; that workflow also requires Firebase Test Lab submission before the Play draft upload starts
 - for an iOS release, a human or authorized AI explicitly starts and monitors both Xcode Cloud workflows for the selected SHA under the [iOS release procedure](release/ios.md#ios)
 
+Automatic web/backend deployments continue between coordinated releases while
+source versions stay unchanged. Use deployed component SHAs and CI run/artifact
+identities to identify code; shared semver records the coordinated release. See
+[release versioning](release/versioning.md#release-preparation) for version selection.
+
 ## Component selection
 
 `scripts/deploy/select-release-components.sh` owns the path-to-component
@@ -88,7 +93,7 @@ previously unpublished `server.json.version`.
 Release order and authorization belong to the [full release runbook](release/README.md).
 Platform gates and console actions are in [Platform Release Procedures](release/README.md#required-reading).
 Store submission or approval is not the full-release completion gate: verify
-public availability and apply the [completion and next-development contract](release/README.md#release-inventory-and-completion).
+public availability and apply the [release completion contract](release/README.md#release-inventory-and-completion).
 On resume, reuse matching artifacts only with the documented source comparison
 and retained gate evidence; newly dispatched artifacts retain all release gates.
 

@@ -80,12 +80,14 @@ tracked on `main`. Update these listings; do not create duplicate submissions.
    directory version field. Follow Anthropic's
    [server update instructions](https://claude.com/docs/connectors/building/after-publishing#mcp-server-changes)
    and [listing edit procedure](https://claude.com/docs/connectors/building/managing-your-listing#edit-your-listing).
-3. **Plugin source:** align the [plugin version surfaces](versioning.md#anthropic-plugin-version-sources)
-   to the current release, even when only the product version changed. Follow
+3. **Plugin source:** verify the [plugin version surfaces](versioning.md#anthropic-plugin-version-sources)
+   were aligned to the selected target during [release preparation](versioning.md#release-preparation),
+   even when only the product version changed. Follow
    that repository's [packaging and verification instructions](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md)
    and require its **Plugin packages** cloud CI for the exact source commit.
-   Merge through its normal PR/CI gates and record that commit and artifact/run
-   link. Package validation alone does not verify OAuth or study flows.
+   Record the merged preparation commit and artifact/run link; apply the
+   [publication safeguards](versioning.md#release-closeout-and-development) before
+   any further merge to tracked `main`. Package validation alone does not verify OAuth or study flows.
 4. **Plugin update:** after the aligned manifest version and plugin changes
    reach `kirill-markin/nibomo-plugins` `main`, the connected GitHub push webhook
    notifies Anthropic and triggers validation/security scans automatically.

@@ -121,9 +121,9 @@ The CLI reads `server.json` from the current directory and submits it.
 
 Publish the current shared `server.json.version` from `main` during the platform
 release stage of [the full release runbook](release/README.md), before
-the GitHub Release and next development version bump. For a separate metadata
-refresh of an already published version, agree on a new shared version before
-publishing; registry versions cannot be overwritten. The remote URL only
+release closeout. For a separate metadata refresh of an already published
+version, complete [release preparation](release/versioning.md#release-preparation)
+with a user-selected new shared version before publishing; registry versions cannot be overwritten. The remote URL only
 changes if the hosted MCP domain changes.
 
 ## Manual workflow

@@ -134,7 +134,7 @@ Use that document when you need to regenerate localized App Store screenshots or
 ## CI/CD
 
 iOS CI/CD is documented in [`docs/ios-ci-cd.md`](../../docs/ios-ci-cd.md).
-Release notes and release authorization are documented in [Release All Platforms and Start the Next Development Version](../../docs/release/README.md).
+Release notes and release authorization are documented in [Release All Platforms](../../docs/release/README.md).
 Follow the [iOS release procedure](../../docs/release/ios.md#ios) for parallel Xcode Cloud build/test runs and App Review submission.
 
 ## Respect Existing Code
