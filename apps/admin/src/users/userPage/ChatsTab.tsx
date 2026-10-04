@@ -111,6 +111,7 @@ export function ChatsTab(props: Readonly<{
         rowClassName={getChatRowClassName}
         state={tableState}
         onStateChange={setTableState}
+        server={null}
       />
     </div>
   );

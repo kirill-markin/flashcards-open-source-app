@@ -161,6 +161,7 @@ export function ActivityTab(props: Readonly<{
         rowClassName={getActivityRowClassName}
         state={tableState}
         onStateChange={setTableState}
+        server={null}
       />
     </div>
   );

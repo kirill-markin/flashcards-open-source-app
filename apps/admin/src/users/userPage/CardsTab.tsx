@@ -173,6 +173,7 @@ export function CardsTab(props: Readonly<{
         rowClassName={getCardRowClassName}
         state={tableState}
         onStateChange={setTableState}
+        server={null}
       />
     </div>
   );
