@@ -160,11 +160,18 @@ internal fun LiveSmokeContext.waitForAppSnackbarToDisappear(context: String) {
     // Drain queued snackbar collection and composition before accepting absence,
     // including removal after its exit animation.
     composeRule.waitForIdle()
-    waitUntilWithMitigation(
-        timeoutMillis = internalUiTimeoutMillis,
-        context = context
-    ) {
-        composeRule.onAllNodesWithTag(appSnackbarTag).fetchSemanticsNodes().isEmpty()
+    runWithInlineRawScreenStateOnFailure(action = "wait_for_app_snackbar_to_disappear") {
+        dismissExternalSystemDialogIfPresent()
+        failIfVisibleAppError(context = "before $context")
+        try {
+            composeRule.waitUntil(timeoutMillis = internalUiTimeoutMillis) {
+                composeRule.onAllNodesWithTag(appSnackbarTag).fetchSemanticsNodes().isEmpty()
+            }
+        } catch (error: Throwable) {
+            dismissExternalSystemDialogIfPresent()
+            failIfVisibleAppError(context = context)
+            throw error
+        }
     }
 }
 
