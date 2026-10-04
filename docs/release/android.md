@@ -37,7 +37,8 @@ Otherwise create a new artifact through every gate below.
    the release workflow for the corrected SHA; do not publish the failed draft.
 5. Require the complete GitHub workflow to succeed as well, including the
    signed Android App Bundle (AAB) upload to the production-track draft.
-   Inspect build/lint logs and resolve errors and warnings even if the run is green.
+   Inspect build/lint logs and apply the
+   [release warning policy](README.md#release-warning-policy) even if the run is green.
 6. Open Google Play Console and select that draft by its
    `main-draft-<releaseIdentifier>` name and version code. Confirm it belongs
    to the same SHA/run as the passing Firebase matrix. Firebase exercises the

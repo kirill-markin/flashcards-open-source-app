@@ -37,7 +37,8 @@ An accepted update/publication request or verified unchanged publication complet
 our established-channel action after required gates pass. Record external review,
 crawl, stale caches and propagation separately; they do not hold overall closeout
 open. An immediate failure, rejected request, failed required scan/test, or
-unresolved release warning must be fixed before that action counts complete.
+release warning that blocks under the [release warning policy](README.md#release-warning-policy)
+must be fixed before that action counts complete.
 Preserve exact package/source/request identities and factual pending versus live
 status under the [canonical contract](README.md#release-inventory-and-completion).
 The registry retains its specific direct-verification gate below.

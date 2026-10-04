@@ -73,14 +73,39 @@ initial publication is excluded from routine release until a separately scoped
 initial launch establishes that channel; preserve its submission identity through
 the [companion procedure](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md).
 
-Before a new publication/submission, fix release errors, failed required tests,
-and lint/compiler/toolchain warnings. A known failure blocks that action.
+Before a new publication/submission, apply the [release warning policy](#release-warning-policy).
 Already-published matching mobile artifacts count complete under the
 [reuse rules](evidence.md#reuse-existing-artifacts); historical gaps do not reopen
 them. Reuse valid evidence on unchanged inputs and do not extend completed
 publication with optional tests. These boundaries, together with mandatory tags,
 Releases, assets, and development safeguards, control
 [release closeout](versioning.md#release-closeout-and-development).
+
+## Release Warning Policy
+
+Before a new publication/submission, fix release errors, failed required tests,
+applicable security vulnerabilities, and release warnings, including actionable
+first-party, build, compiler, lint, and toolchain warnings. A known failure blocks
+that action. All existing test and publication gates remain mandatory.
+
+The sole standing warning exception is an unavoidable transitive upstream npm
+deprecation notice in an official payment SDK, including an official
+authentication SDK used for payment integration. First upgrade the SDK to the
+latest supported stable vendor release and verify the affected flows. The
+exception applies only if the notice remains and no vendor-supported fix exists.
+Retain and record qualifying notices automatically without requesting a release
+waiver. Reassess them on each later release and adopt supported fixes when
+available. Do not replace or patch SDK internals, fork the SDK, or force
+incompatible dependency overrides merely to remove notices; that broader work
+requires separate authorization.
+
+In the [release ledger](evidence.md#release-ledger), record the exact SDK and
+deprecated package versions, dependency chain, notice and its reason, evidence
+that the SDK is the current supported stable release and that no vendor-supported
+remediation exists, affected-flow verification, and a security assessment with
+its evidence. Deprecation does not establish the presence or absence of a
+vulnerability; applicable security vulnerabilities still block release. This
+exception does not cover other vendors/packages or compiler warnings.
 
 ## Release Sequence
 
