@@ -146,6 +146,7 @@ function ProfileListTable(props: Readonly<{
       rowClassName={getListRowClassName}
       state={tableState}
       onStateChange={setTableState}
+      server={null}
     />
   );
 }

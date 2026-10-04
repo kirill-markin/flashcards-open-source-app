@@ -1,5 +1,6 @@
 import { useMemo, type ChangeEvent, type JSX, type ReactNode } from "react";
 import {
+  clampDataTablePage,
   filterAndSortDataTableRows,
   getDataTablePage,
   getDataTablePageCount,
@@ -7,6 +8,7 @@ import {
   withDataTableFilter,
   type DataTableColumn,
   type DataTableFilter,
+  type DataTableServerPage,
   type DataTableState,
 } from "./dataTableModel";
 import "./dataTable.css";
@@ -41,6 +43,17 @@ function getEnumOptions<Row>(column: DataTableColumn<Row>, rows: ReadonlyArray<R
   const readValue = column.value;
   const values = new Set(rows.map((row) => readValue(row) ?? ""));
   return [...values].sort();
+}
+
+function getServerEnumOptions<Row>(column: DataTableColumn<Row>, server: DataTableServerPage): ReadonlyArray<string> {
+  if (column.kind !== "enum") {
+    return [];
+  }
+  const options = server.enumOptionsByColumnId.get(column.id);
+  if (options === undefined) {
+    throw new Error(`Server-mode data table has no enum options for column "${column.id}".`);
+  }
+  return options;
 }
 
 function parseNumberInput(value: string): number | null {
@@ -159,8 +172,9 @@ function ColumnFilter<Row>(props: Readonly<{
 }
 
 /**
- * Client-side table over rows already loaded: header click sorts, the second header row filters per
- * column, and the state is controlled so the caller can keep it in its URL.
+ * Header click sorts, the second header row filters per column, and the state is controlled so the
+ * caller can keep it in its URL. With `server` null the table sorts, filters and pages every loaded
+ * row itself; otherwise the caller applies `state` in a query and passes one page.
  */
 export function DataTable<Row>(props: Readonly<{
   testId: string;
@@ -171,19 +185,26 @@ export function DataTable<Row>(props: Readonly<{
   rowClassName: (row: Row) => string;
   state: DataTableState;
   onStateChange: (state: DataTableState) => void;
+  server: DataTableServerPage | null;
 }>): JSX.Element {
-  const { columns, rows, state, onStateChange, testId } = props;
+  const { columns, rows, state, onStateChange, testId, server } = props;
   // Keyed on the filters and the sort alone, so turning a page does not filter and sort again.
   const visibleRows = useMemo(
-    () => filterAndSortDataTableRows(rows, columns, state.filters, state.sort),
-    [columns, rows, state.filters, state.sort],
+    () => server === null ? filterAndSortDataTableRows(rows, columns, state.filters, state.sort) : rows,
+    [columns, rows, server, state.filters, state.sort],
   );
   const enumOptionsByColumnId = useMemo(
-    () => new Map(columns.map((column) => [column.id, getEnumOptions(column, rows)] as const)),
-    [columns, rows],
+    () => new Map(columns.map((column) => [
+      column.id,
+      server === null ? getEnumOptions(column, rows) : getServerEnumOptions(column, server),
+    ] as const)),
+    [columns, rows, server],
   );
-  const pageCount = getDataTablePageCount(visibleRows.length);
-  const page = getDataTablePage(visibleRows, state.page);
+  const pageCount = getDataTablePageCount(server === null ? visibleRows.length : server.totalCount);
+  const page = server === null
+    ? getDataTablePage(visibleRows, state.page)
+    : { page: clampDataTablePage(state.page, server.totalCount), rows };
+  const isLoading = server !== null && server.isLoading;
   const hasFilters = Object.keys(state.filters).length > 0;
 
   function renderCell(column: DataTableColumn<Row>, row: Row): ReactNode {
@@ -191,11 +212,17 @@ export function DataTable<Row>(props: Readonly<{
   }
 
   return (
-    <div className="data-table" data-testid={testId}>
+    <div className="data-table" data-testid={testId} aria-busy={server === null ? undefined : isLoading}>
       <div className="data-table-toolbar">
         <span className="data-table-count" data-testid={`${testId}-row-count`}>
-          {visibleRows.length.toLocaleString("en-US")} of {rows.length.toLocaleString("en-US")} rows
+          {server === null
+            ? `${visibleRows.length.toLocaleString("en-US")} of ${rows.length.toLocaleString("en-US")} rows`
+            : `${server.totalCount.toLocaleString("en-US")} rows`}
         </span>
+        {server === null ? null : (
+          <span className={`data-table-loading${isLoading ? " active" : ""}`} aria-live="polite"
+            data-testid={`${testId}-loading`}>{isLoading ? "Updating" : ""}</span>
+        )}
         <button
           className="filter-button filter-button-compact"
           type="button"
@@ -256,7 +283,7 @@ export function DataTable<Row>(props: Readonly<{
             ))}
           </tbody>
         </table>
-        {page.rows.length === 0 ? <p className="data-table-empty" data-testid={`${testId}-empty`}>No rows match these filters.</p> : null}
+        {page.rows.length === 0 && !isLoading ? <p className="data-table-empty" data-testid={`${testId}-empty`}>No rows match these filters.</p> : null}
       </div>
     </div>
   );

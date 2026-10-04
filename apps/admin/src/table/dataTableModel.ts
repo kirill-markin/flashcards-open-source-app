@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 
 // The pure half of `DataTable`: column definitions, the controlled state, and the sort, filter, page
-// and URL operations over it. Everything runs client-side over rows already loaded.
+// and URL operations over it. The sort, filter and page operations run client-side over rows already
+// loaded; `dataTableSql.ts` applies the same state in SQL for the server mode.
 
 export type DataTableColumnKind = "text" | "number" | "date" | "enum" | "boolean";
 
@@ -40,6 +41,18 @@ export type DataTableState = Readonly<{
 }>;
 
 export const emptyDataTableState: DataTableState = { sort: null, filters: {}, page: 0 };
+
+/**
+ * Server mode: a query already sorted, filtered and paged `rows` to the page at `state.page`, which
+ * the caller clamps to the last page of `totalCount`.
+ */
+export type DataTableServerPage = Readonly<{
+  /** The rows matching the filters across every page. */
+  totalCount: number;
+  /** Every enum column's full option list, since one page cannot show every value; NULL is `""`. */
+  enumOptionsByColumnId: ReadonlyMap<string, ReadonlyArray<string>>;
+  isLoading: boolean;
+}>;
 
 export const dataTablePageSize = 100;
 
@@ -132,11 +145,15 @@ export function getDataTablePageCount(rowCount: number): number {
   return Math.max(1, Math.ceil(rowCount / dataTablePageSize));
 }
 
+export function clampDataTablePage(page: number, rowCount: number): number {
+  return Math.min(Math.max(0, page), getDataTablePageCount(rowCount) - 1);
+}
+
 export function getDataTablePage<Row>(rows: ReadonlyArray<Row>, page: number): Readonly<{
   page: number;
   rows: ReadonlyArray<Row>;
 }> {
-  const clampedPage = Math.min(Math.max(0, page), getDataTablePageCount(rows.length) - 1);
+  const clampedPage = clampDataTablePage(page, rows.length);
   return {
     page: clampedPage,
     rows: rows.slice(clampedPage * dataTablePageSize, (clampedPage + 1) * dataTablePageSize),
