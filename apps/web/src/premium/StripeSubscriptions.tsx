@@ -1,4 +1,5 @@
 import type { ReactElement } from "react";
+import { track } from "../analytics";
 import { useAppData } from "../appData";
 import { useI18n } from "../i18n";
 import type { EntitlementSnapshot } from "../types/entitlement";
@@ -48,8 +49,10 @@ export function StripeSubscriptions(props: Readonly<{ entitlement: EntitlementSn
       ) : null}
     </div> : null}
     <nav className="premium-legal" aria-label={t("stripe.subscription.manage")} data-testid="subscription-mobile-management">
-      <a href="https://apps.apple.com/account/subscriptions" target="_blank" rel="noreferrer">App Store</a>
-      <a href="https://play.google.com/store/account/subscriptions" target="_blank" rel="noreferrer">Google Play</a>
+      <a href="https://apps.apple.com/account/subscriptions" target="_blank" rel="noreferrer"
+        onClick={() => track({ name: "subscription_management_opened", destination: "app_store" })}>App Store</a>
+      <a href="https://play.google.com/store/account/subscriptions" target="_blank" rel="noreferrer"
+        onClick={() => track({ name: "subscription_management_opened", destination: "google_play" })}>Google Play</a>
     </nav>
   </section>;
 }

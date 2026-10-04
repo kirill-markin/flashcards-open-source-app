@@ -26,7 +26,7 @@ export function SubscriptionSettingsScreen(): ReactElement {
   const showOffer = entitlement !== null && !hasPremiumAccess(entitlement, 20);
   useEffect(() => {
     if (searchParams.get("premium") !== "offer" || entitlement === null || !isSessionVerified || presentPremium === null) return;
-    presentPremium({ reason: "offer" });
+    presentPremium({ reason: "offer", entryPoint: "guest_return" });
     const nextSearchParams = new URLSearchParams(searchParams);
     nextSearchParams.delete("premium");
     setSearchParams(nextSearchParams, { replace: true });
@@ -68,7 +68,7 @@ export function SubscriptionSettingsScreen(): ReactElement {
           <a className="ghost-btn" href="/settings/own-openai-key" data-testid="subscription-own-key">{t("stripe.ownKey.action")}</a>
         </div>
         {showOffer ? (
-          <button type="button" className="ghost-btn" data-testid="subscription-offer" onClick={() => { presentPremium?.({ reason: "offer" }); }}>
+          <button type="button" className="ghost-btn" data-testid="subscription-offer" onClick={() => { presentPremium?.({ reason: "offer", entryPoint: "subscription_settings" }); }}>
             {t("premium.offer")}
           </button>
         ) : null}
