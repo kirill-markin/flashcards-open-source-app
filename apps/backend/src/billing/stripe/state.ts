@@ -128,14 +128,15 @@ export function normalizeStripePurchase(
   const revokedReason = isTrial ? null : disputed ? "chargeback"
     : invoice !== null && invoice.amount_paid > 0 && refunded >= invoice.amount_paid ? "refund" : null;
   if (revokedReason !== null) status = "revoked";
+  const firstPaidInvoiceIsCurrent = invoice !== null && invoice.id === financial.firstPaidInvoiceId;
   return {
     subscriptionId: subscription.id, customerId, environment, status, providerStatus: subscription.status,
     isTrial, willRenew: (subscription.status === "trialing" || subscription.status === "active"
       || subscription.status === "past_due") && !subscription.cancel_at_period_end && subscription.cancel_at === null,
     until, trialStartedAt, firstPaidAt: financial.firstPaidAt,
     productId: typeof item.price.product === "string" ? item.price.product : item.price.product.id,
-    firstPaidPrice: invoice !== null && invoice.id === financial.firstPaidInvoiceId
-      ? stripeChargedPrice(financial.payments) : null,
+    firstPaidInvoiceIsCurrent,
+    firstPaidPrice: firstPaidInvoiceIsCurrent ? stripeChargedPrice(financial.payments) : null,
     canceledAt: subscription.canceled_at === null ? null : stripeTimestamp(subscription.canceled_at),
     revokedReason, verifiedAt,
   };
