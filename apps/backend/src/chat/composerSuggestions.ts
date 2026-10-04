@@ -2,6 +2,7 @@
  * Session rows expose only the active suggestion set, while history is stored
  * separately as append-only generations.
  */
+import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import {
   CHAT_COMPOSER_SUGGESTIONS_MODEL_ID,
@@ -491,21 +492,6 @@ function parseJsonObject(text: string): Record<string, unknown> | null {
   }
 }
 
-function extractJsonObject(text: string): Record<string, unknown> | null {
-  const directObject = parseJsonObject(text);
-  if (directObject !== null) {
-    return directObject;
-  }
-
-  const startIndex = text.indexOf("{");
-  const endIndex = text.lastIndexOf("}");
-  if (startIndex < 0 || endIndex <= startIndex) {
-    return null;
-  }
-
-  return parseJsonObject(text.slice(startIndex, endIndex + 1));
-}
-
 function buildFollowUpSuggestionPrompt(
   userMessage: string,
   assistantReply: string,
@@ -646,6 +632,9 @@ export async function generateFollowUpChatComposerSuggestionsWithDependencies(
         text: buildFollowUpSuggestionPrompt(userMessage, assistantReply, normalizedUiLocale),
       }],
     }],
+    text: {
+      format: zodTextFormat(followUpSuggestionsWireSchema, "composer_suggestions"),
+    },
   });
 
   // Appended before the response is parsed, because an unparseable answer was paid for exactly like a
@@ -667,7 +656,7 @@ export async function generateFollowUpChatComposerSuggestionsWithDependencies(
   });
 
   const responseText = response.output_text.trim();
-  const parsedObject = extractJsonObject(responseText);
+  const parsedObject = parseJsonObject(responseText);
   if (parsedObject === null) {
     throw new Error("Composer suggestions response is not valid JSON");
   }
