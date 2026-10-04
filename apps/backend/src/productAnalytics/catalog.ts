@@ -170,6 +170,7 @@ const productAnalyticsEntitlementStatuses = ["none", "active", "in_grace"] as co
 const productAnalyticsEntitlementSources = ["none", "purchase", "grant"] as const;
 
 const productAnalyticsBillingProviders = ["apple", "google", "stripe"] as const;
+const productAnalyticsBillingEnvironments = ["sandbox", "production"] as const;
 const productAnalyticsPurchaseKinds = ["subscription", "one_time"] as const;
 
 // The billing period sold, which no column stores: a store rail reads it off the product identifier
@@ -187,10 +188,16 @@ const productAnalyticsSubscriptionRevokedReasons = [
   "unknown",
 ] as const;
 
+// The account kind an AI allowance is resolved for, mirroring `AccountKind` in
+// apps/backend/src/billing/limits.ts the same way the tiers above mirror theirs.
+const productAnalyticsAccountKinds = ["account", "guest"] as const;
+
 export type ProductAnalyticsEntitlementTier = (typeof productAnalyticsEntitlementTiers)[number];
+export type ProductAnalyticsAccountKind = (typeof productAnalyticsAccountKinds)[number];
 export type ProductAnalyticsEntitlementStatus = (typeof productAnalyticsEntitlementStatuses)[number];
 export type ProductAnalyticsEntitlementSource = (typeof productAnalyticsEntitlementSources)[number];
 export type ProductAnalyticsBillingProvider = (typeof productAnalyticsBillingProviders)[number];
+export type ProductAnalyticsBillingEnvironment = (typeof productAnalyticsBillingEnvironments)[number];
 export type ProductAnalyticsPurchaseKind = (typeof productAnalyticsPurchaseKinds)[number];
 export type ProductAnalyticsSubscriptionPeriod = (typeof productAnalyticsSubscriptionPeriods)[number];
 export type ProductAnalyticsSubscriptionRevokedReason =
@@ -1175,6 +1182,12 @@ export const productAnalyticsEventCatalog = {
   // four it is required: each of them is a provider's own transition, and a producer that cannot name
   // the provider has not read the purchase it is reporting.
   //
+  // `environment` exists on `entitlement_changed` alone and is present exactly when `provider` is: a
+  // sandbox purchase grants real access, so its entitlement change is recorded, while the other four
+  // are never written for a sandbox purchase at all. Both describe the purchase that grants after the
+  // change, so the default `sandbox` exclusion applies only to those rows. A change away from a
+  // purchase carries neither, and this event alone cannot recover its origin.
+  //
   // `entitlement_changed` is the one entry whose timing is not the fact's own. The refresh that
   // discovers the change is triggered by that person's next authenticated sync pull and by nothing
   // else, so `occurred_at` is when we learned the answer moved and not when the provider or the
@@ -1195,6 +1208,7 @@ export const productAnalyticsEventCatalog = {
       to_status: { kind: "enum", values: productAnalyticsEntitlementStatuses },
       source: { kind: "enum", values: productAnalyticsEntitlementSources },
       provider: { kind: "enum", values: productAnalyticsBillingProviders, optional: true },
+      environment: { kind: "enum", values: productAnalyticsBillingEnvironments, optional: true },
     },
   },
   // A provider-granted free trial beginning. A trial is an `active` purchase and not a status of its
@@ -1328,6 +1342,22 @@ export const productAnalyticsEventCatalog = {
           "runtime_error",
         ],
       },
+    },
+  },
+  // One chat send the monthly AI allowance refused (apps/backend/src/aiUsage/cap.ts). It is recorded
+  // where the refusal is raised rather than by the client that shows it, so every client reports it,
+  // released ones included. Only a chat send on the platform key is ever refused, so no other surface
+  // and no own-key send reports this.
+  //
+  // `limit` is the monthly message allowance that refused the send; the used count is not reported,
+  // because at refusal it is at or above `limit` by definition.
+  ai_limit_reached: {
+    serverOnly: true,
+    requiresScreen: false,
+    properties: {
+      tier: { kind: "enum", values: productAnalyticsEntitlementTiers },
+      account_kind: { kind: "enum", values: productAnalyticsAccountKinds },
+      limit: { kind: "nonNegativeInteger" },
     },
   },
   // Voice input, which `permission_prompt_answered` could not stand in for: a granted microphone

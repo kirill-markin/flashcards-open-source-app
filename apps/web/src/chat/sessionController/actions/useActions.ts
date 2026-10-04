@@ -658,7 +658,7 @@ export function useChatSessionActions(
           type: "error_shown",
           message: uiMessages.formatAiLimitReached(readHeldAiUsage()),
         });
-        presentPremium?.({ reason: "ai-limit", aiUsage: readHeldAiUsage() });
+        presentPremium?.({ reason: "ai-limit", entryPoint: "ai_limit", aiUsage: readHeldAiUsage() });
         // Brings the remaining-messages notice down to zero; the refusal above does not wait for it.
         refreshAiUsageInBackground();
         return createRejectedSendResult(resultSessionId);

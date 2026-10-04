@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactElement, type ReactNode } from "react";
+import { track, type AnalyticsPaywallEntryPoint } from "../analytics";
 import { useAppData } from "../appData";
 import type { AiUsageStatus } from "../types";
 import type { EntitlementSnapshot } from "../types/entitlement";
@@ -7,11 +8,13 @@ import { PremiumOffer } from "./PremiumOffer";
 import { StripeBillingContext, useAccountStripeBilling } from "./useStripeBilling";
 import { isStripeBillingInvalidated, readStripeBillingGeneration, subscribeToStripeBillingInvalidation, type PremiumContinuation } from "./stripeIntent";
 
+/** `entryPoint` is null only for a test-settings preview, which reports no `paywall_shown`. */
 export type PremiumRequest =
-  | Readonly<{ reason: "offer" }>
-  | Readonly<{ reason: "ai-limit"; aiUsage: AiUsageStatus | null }>
+  | Readonly<{ reason: "offer"; entryPoint: AnalyticsPaywallEntryPoint | null }>
+  | Readonly<{ reason: "ai-limit"; entryPoint: AnalyticsPaywallEntryPoint | null; aiUsage: AiUsageStatus | null }>
   | Readonly<{
     reason: "feature";
+    entryPoint: AnalyticsPaywallEntryPoint;
     requiredRank: number;
     continuation: PremiumContinuation;
     onResult: (result: "granted" | "dismissed") => void;
@@ -68,6 +71,7 @@ function PremiumSession(props: Readonly<{ children: ReactNode }>): ReactElement 
     const next = { userId, billingGeneration, request };
     pendingRef.current = next;
     setPresentation(next);
+    if (request.entryPoint !== null) track({ name: "paywall_shown", entryPoint: request.entryPoint });
     return "presented";
   }, [billingGeneration, dismiss, entitlement, userId]);
 

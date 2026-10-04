@@ -1,4 +1,5 @@
 import type {
+  ProductAnalyticsBillingEnvironment,
   ProductAnalyticsBillingProvider,
   ProductAnalyticsEntitlementSource,
   ProductAnalyticsEntitlementStatus,
@@ -57,6 +58,8 @@ export type EntitlementChangedFact = Readonly<{
   source: ProductAnalyticsEntitlementSource;
   // The provider behind the purchase that now grants, absent when a grant or nothing does.
   provider: ProductAnalyticsBillingProvider | null;
+  // That purchase's store environment, absent exactly when `provider` is.
+  environment: ProductAnalyticsBillingEnvironment | null;
   // The clock the resolution that discovered the change used, which is also the clock its snapshot
   // row was stored under.
   discoveredAt: Date;
@@ -90,6 +93,7 @@ export async function recordEntitlementChangedAnalytics(
   fact: EntitlementChangedFact,
 ): Promise<void> {
   const provider = fact.provider;
+  const environment = fact.environment;
   await emitServerDerivedProductAnalyticsEvent({
     eventId: deriveServerDerivedProductAnalyticsEventId(
       "entitlement_changed",
@@ -112,6 +116,7 @@ export async function recordEntitlementChangedAnalytics(
       to_status: fact.toStatus,
       source: fact.source,
       ...(provider === null ? {} : { provider }),
+      ...(environment === null ? {} : { environment }),
     },
     details: null,
   });
@@ -119,12 +124,6 @@ export async function recordEntitlementChangedAnalytics(
 
 // What every provider-driven fact below carries, because each is read off the same two rows: the
 // purchase the provider is talking about, and the notification that said so.
-//
-// The four producers under this type have no call site yet. The writer that records a purchase
-// transition is the first store rail, and none exists: no client asks a store to buy anything and the
-// backend handles no provider notification (docs/premium-entitlements.md). Until that rail lands only
-// `entitlement_changed` can fire, driven by an operator grant, and an empty series on any of the four
-// is a producer nobody calls rather than a measurement.
 type ProviderPurchaseFact = Readonly<{
   userId: string;
   // billing.purchases.purchase_id, our own key for the provider-side purchase. Every fact here is
