@@ -187,7 +187,12 @@ const productAnalyticsSubscriptionRevokedReasons = [
   "unknown",
 ] as const;
 
+// The account kind an AI allowance is resolved for, mirroring `AccountKind` in
+// apps/backend/src/billing/limits.ts the same way the tiers above mirror theirs.
+const productAnalyticsAccountKinds = ["account", "guest"] as const;
+
 export type ProductAnalyticsEntitlementTier = (typeof productAnalyticsEntitlementTiers)[number];
+export type ProductAnalyticsAccountKind = (typeof productAnalyticsAccountKinds)[number];
 export type ProductAnalyticsEntitlementStatus = (typeof productAnalyticsEntitlementStatuses)[number];
 export type ProductAnalyticsEntitlementSource = (typeof productAnalyticsEntitlementSources)[number];
 export type ProductAnalyticsBillingProvider = (typeof productAnalyticsBillingProviders)[number];
@@ -1328,6 +1333,22 @@ export const productAnalyticsEventCatalog = {
           "runtime_error",
         ],
       },
+    },
+  },
+  // One chat send the monthly AI allowance refused (apps/backend/src/aiUsage/cap.ts). It is recorded
+  // where the refusal is raised rather than by the client that shows it, so every client reports it,
+  // released ones included. Only a chat send on the platform key is ever refused, so no other surface
+  // and no own-key send reports this.
+  //
+  // `limit` is the monthly message allowance that refused the send; the used count is not reported,
+  // because at refusal it is at or above `limit` by definition.
+  ai_limit_reached: {
+    serverOnly: true,
+    requiresScreen: false,
+    properties: {
+      tier: { kind: "enum", values: productAnalyticsEntitlementTiers },
+      account_kind: { kind: "enum", values: productAnalyticsAccountKinds },
+      limit: { kind: "nonNegativeInteger" },
     },
   },
   // Voice input, which `permission_prompt_answered` could not stand in for: a granted microphone
