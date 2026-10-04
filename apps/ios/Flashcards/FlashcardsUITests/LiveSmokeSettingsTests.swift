@@ -268,15 +268,37 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
     // routes the tap into a side-swipe hint instead of executing the default action.
 
     @MainActor
-    // TODO: Flatten the Workspace flow.
-    // Settings currently opens Workspace, which then requires another tap on
-    // an inner Workspace row before the chooser appears. Replace that nested flow
-    // with a direct workspace chooser surface, then restore this smoke test and
-    // make it verify linked-workspace creation and persistence again.
     func testLiveSmokeLoginAndLinkedWorkspaceFlow() throws {
-        throw XCTSkip(
-            "TODO: Restore after flattening the nested Workspace flow and reworking the linked-workspace smoke path."
-        )
+        let context = self.makeRunContext()
+        let reviewEmail = try self.configuredReviewEmail()
+
+        try self.runSignedInLinkedWorkspaceScenario(context: context, reviewEmail: reviewEmail) {
+            try self.step("verify linked account status and workspace state") {
+                try self.assertTextExists(context.workspaceName, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+                try self.openAccountStatus()
+                try self.assertLinkedEmailVisible(reviewEmail: reviewEmail, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+                try self.assertElementExists(
+                    identifier: LiveSmokeIdentifier.accountStatusSyncNowButton,
+                    timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+                )
+                try self.tapFirstNavigationBackButton()
+                try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            }
+
+            try self.step("relaunch the app and keep the linked workspace and session") {
+                self.app.terminate()
+                try self.launchApplication(launchScenario: nil, selectedTab: .settings)
+                try self.assertTextExists(context.workspaceName, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+                try self.openAccountStatus()
+                try self.assertLinkedEmailVisible(reviewEmail: reviewEmail, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+                try self.assertElementExists(
+                    identifier: LiveSmokeIdentifier.accountStatusSyncNowButton,
+                    timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+                )
+                try self.tapFirstNavigationBackButton()
+                try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            }
+        }
     }
 
     @MainActor
