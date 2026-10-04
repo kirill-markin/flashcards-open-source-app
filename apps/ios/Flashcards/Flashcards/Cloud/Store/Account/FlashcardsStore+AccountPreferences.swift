@@ -110,6 +110,7 @@ extension FlashcardsStore {
             refreshGeneration: refreshGeneration,
             refreshIdentityKey: refreshIdentity.storageKey
         )
+        self.triggerAppLanguageSaveIfNeeded()
         // After the read, never before it. The read is what decides whether anything is owed: an
         // identity with no answer of its own is handed the one this device holds just above, and an
         // identity with its own answer is left alone, because this device keeps its own either way.
@@ -963,7 +964,7 @@ extension FlashcardsStore {
      * does not hold across it. This one does, because it runs on the very session the PATCH goes out
      * under.
      */
-    private func updateCloudAccountPreferences(
+    func updateCloudAccountPreferences(
         patch: AccountPreferencesPatchRequest,
         validateResolvedSession: (CloudLinkedSession) throws -> Void
     ) async throws -> (preferences: AccountPreferences, session: CloudLinkedSession) {
@@ -1232,7 +1233,7 @@ extension FlashcardsStore {
         self.savePersistedAccountPreferencesCache(cache)
     }
 
-    private func captureAccountPreferencesSilentFailure(
+    func captureAccountPreferencesSilentFailure(
         error: Error,
         action: String,
         stage: String

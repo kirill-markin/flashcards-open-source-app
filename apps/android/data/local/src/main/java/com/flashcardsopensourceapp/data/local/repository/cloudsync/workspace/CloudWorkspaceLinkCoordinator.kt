@@ -7,6 +7,7 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway
 import com.flashcardsopensourceapp.data.local.cloud.sync.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceEntity
+import com.flashcardsopensourceapp.data.local.model.cards.CardDraft
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryReason
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryRequiredException
@@ -19,6 +20,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSele
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspacePostAuthRoute
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.ai.StoredGuestAiSession
+import com.flashcardsopensourceapp.data.local.repository.CardsRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncBlockedException
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.CloudIdentityResetCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.requireActiveCloudCredentialRecoveryState
@@ -26,6 +28,9 @@ import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.requi
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.requireGuestLocalRecoveryAllowsCreateNewCompletion
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.requirePostAuthRouteAllowsCloudLinkCompletion
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.requireWorkspaceSelectionMatchesCredentialRecoveryBeforeSideEffects
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.GuestUpgradeDemoCardCapture
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.captureGuestUpgradeDemoCards
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.deleteGuestDemoCardsAfterMergeUpgrade
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.loadActiveGuestSessionOrNull
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.resumePendingGuestUpgradeRecoveryIfNeeded
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.AuthenticatedCloudSession
@@ -49,6 +54,9 @@ internal class CloudWorkspaceLinkCoordinator(
     private val sessionProvider: CloudSessionProvider,
     private val transitionCoordinator: CloudLinkedWorkspaceTransitionCoordinator,
     private val appVersion: String,
+    private val cardsRepository: CardsRepository,
+    private val demoCardDraftProvider: () -> CardDraft,
+    private val onGuestUpgradeDemoCardCleanupFailed: (workspaceId: String, error: Exception) -> Unit,
     /**
      * Fired once a sign-in has stored its credentials — a plain one, or the linked-credential
      * recovery — so the analytics guest identity link can run against a fully signed-in install. It
@@ -176,13 +184,21 @@ internal class CloudWorkspaceLinkCoordinator(
                 linkContext = linkContext,
                 selection = selection
             )
-            preferencesStore.runWithLocalOutboxWritesBlocked(
+            var guestDemoCardCapture: GuestUpgradeDemoCardCapture? = null
+            val linkedWorkspace: CloudWorkspaceSummary = preferencesStore.runWithLocalOutboxWritesBlocked(
                 reason = "Guest upgrade is finishing. Wait for account linking to complete before changing cards."
             ) {
                 drainGuestWorkspaceBeforeUpgradeComplete(
                     configuration = configuration,
                     guestSession = guestSession
                 )
+                // Captured before completion discards the guest rows. A resumed upgrade has no
+                // capture, so its demo card stays an ordinary card.
+                if (guestUpgradeMode == CloudGuestUpgradeMode.MERGE_REQUIRED) {
+                    guestDemoCardCapture = captureGuestUpgradeDemoCardsReportingFailure(
+                        guestWorkspaceId = guestSession.workspaceId
+                    )
+                }
                 val pendingGuestUpgradeState: PendingGuestUpgradeState = PendingGuestUpgradeState(
                     configuration = configuration,
                     credentials = authenticatedSession.credentials,
@@ -197,6 +213,13 @@ internal class CloudWorkspaceLinkCoordinator(
                     "Pending guest upgrade recovery did not find the saved upgrade state."
                 }
             }
+            guestDemoCardCapture?.let { capture ->
+                deleteGuestDemoCardsReportingFailure(
+                    linkedWorkspaceId = linkedWorkspace.workspaceId,
+                    capture = capture
+                )
+            }
+            linkedWorkspace
         }
     }
 
@@ -264,6 +287,45 @@ internal class CloudWorkspaceLinkCoordinator(
             guestSessionStore = guestSessionStore,
             appVersion = appVersion
         )
+    }
+
+    private suspend fun captureGuestUpgradeDemoCardsReportingFailure(
+        guestWorkspaceId: String
+    ): GuestUpgradeDemoCardCapture? {
+        return try {
+            captureGuestUpgradeDemoCards(
+                database = database,
+                guestWorkspaceId = guestWorkspaceId,
+                demoCardDraft = demoCardDraftProvider()
+            )
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            onGuestUpgradeDemoCardCleanupFailed(guestWorkspaceId, error)
+            null
+        }
+    }
+
+    /**
+     * Runs once the hydrated linked workspace accepts outbox writes again, so the deletion is an
+     * ordinary tombstone that syncs like any other.
+     */
+    private suspend fun deleteGuestDemoCardsReportingFailure(
+        linkedWorkspaceId: String,
+        capture: GuestUpgradeDemoCardCapture
+    ) {
+        try {
+            deleteGuestDemoCardsAfterMergeUpgrade(
+                database = database,
+                cardsRepository = cardsRepository,
+                linkedWorkspaceId = linkedWorkspaceId,
+                capture = capture
+            )
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            onGuestUpgradeDemoCardCleanupFailed(linkedWorkspaceId, error)
+        }
     }
 
     /**

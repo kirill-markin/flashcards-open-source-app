@@ -7,6 +7,7 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway
 import com.flashcardsopensourceapp.data.local.cloud.sync.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.model.ai.StoredGuestAiSession
+import com.flashcardsopensourceapp.data.local.model.cards.CardDraft
 import com.flashcardsopensourceapp.data.local.model.cloud.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.cloud.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
@@ -50,6 +51,7 @@ import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.ProductAnalyticsPreferencePushPendingException
 import com.flashcardsopensourceapp.data.local.repository.ProductAnalyticsPreferencePushRefusedException
 import com.flashcardsopensourceapp.data.local.repository.ProductAnalyticsPreferencePushUndeliverableException
+import com.flashcardsopensourceapp.data.local.repository.cards.LocalCardsRepository
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.loadActiveGuestSessionOrNull
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.loadProductAnalyticsGuestSessionOrNull
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.progress.CloudProgressRemoteReader
@@ -70,6 +72,13 @@ class LocalCloudAccountRepository(
     private val resetCoordinator: CloudIdentityResetCoordinator,
     private val guestSessionStore: GuestAiSessionStore,
     private val appVersion: String,
+    /** The onboarding demo card in the current app language; `:app` owns its text. */
+    private val demoCardDraftProvider: () -> CardDraft,
+    /**
+     * Fired when capturing or deleting the guest's demo card in a merge guest upgrade fails. The
+     * upgrade still succeeds, and the repository owns no observability of its own.
+     */
+    private val onGuestUpgradeDemoCardCleanupFailed: (workspaceId: String, error: Exception) -> Unit,
     /**
      * Fired once a plain sign-in has stored its credentials. The app graph turns it into one
      * `CloudGuestSessionCoordinator.linkAnalyticsGuestIdentityToSignedInAccount` attempt off the
@@ -119,6 +128,13 @@ class LocalCloudAccountRepository(
         sessionProvider = sessionProvider,
         transitionCoordinator = transitionCoordinator,
         appVersion = appVersion,
+        cardsRepository = LocalCardsRepository(
+            database = database,
+            preferencesStore = preferencesStore,
+            syncLocalStore = syncLocalStore
+        ),
+        demoCardDraftProvider = demoCardDraftProvider,
+        onGuestUpgradeDemoCardCleanupFailed = onGuestUpgradeDemoCardCleanupFailed,
         onAnalyticsGuestIdentityLinkRequested = onAnalyticsGuestIdentityLinkRequested
     )
     private val workspaceOperationsCoordinator: CloudWorkspaceOperationsCoordinator =
