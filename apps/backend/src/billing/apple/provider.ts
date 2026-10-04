@@ -120,7 +120,8 @@ export class AppleProvider {
     if (!transaction.success) {
       throw new AppleBillingError("APPLE_TRANSACTION_INVALID", false, "Apple transaction must be a complete premium_monthly subscription.");
     }
-    return { ...decoded, ...transaction.data };
+    // A spread optional field widens back to the SDK's string, so the narrowed reason is set explicitly.
+    return { ...decoded, ...transaction.data, transactionReason: transaction.data.transactionReason };
   }
 
   private async renewal(signed: string, identity: ApplePurchaseIdentity): Promise<JWSRenewalInfoDecodedPayload> {
