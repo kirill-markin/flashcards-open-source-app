@@ -10,7 +10,7 @@ export const defaultWorkspaceName: string = "Personal";
  * at `sessionLoadState === "ready"` whenever a warm-start snapshot exists, so the shell renders and
  * `LegacyFlatPathRedirect` rewrites a flat path into `/w/<active workspace>/…` well before
  * `initialize()` resolves, and activation would be handed back the answer it is supposed to decide.
- * `vite.config.ts` runs the web tests under `jsdom`, so `window` answers on every import path.
+ * `vite.config.mts` runs the web tests under `jsdom`, so `window` answers on every import path.
  *
  * Lowercased by `splitWorkspaceRoutePath`, while `buildWorkspaceRoute` and the server both keep the
  * case they were given, so every comparison against a stored id goes through `findEntryWorkspace`.

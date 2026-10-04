@@ -278,7 +278,7 @@ jobs:
       - name: Restore Lambda asset cache
         id: lambda_cache
         if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6.1.0
         with:
           path: .cache/lambda-assets/v1
           key: lambda-assets-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}-prechecks
@@ -362,7 +362,7 @@ jobs:
 
       - name: Save current Lambda assets
         if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6.1.0
         with:
           path: .cache/lambda-assets/v1
           key: lambda-assets-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}-prechecks
@@ -450,7 +450,7 @@ jobs:
       - name: Restore Lambda asset cache
         id: lambda_cache
         if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6.1.0
         with:
           path: .cache/lambda-assets/v1
           key: lambda-assets-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}-prechecks
@@ -584,7 +584,7 @@ jobs:
 
       - name: Save current Lambda assets
         if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6.1.0
         with:
           path: .cache/lambda-assets/v1
           key: lambda-assets-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}-deployed

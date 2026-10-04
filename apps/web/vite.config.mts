@@ -1,7 +1,7 @@
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import { sentryVitePlugin } from "@sentry/vite-plugin";
-import webPackageInfo from "./package.json";
+import webPackageInfo from "./package.json" with { type: "json" };
 
 type SentrySourceMapUploadConfig = Readonly<{
   authToken: string;
@@ -110,7 +110,8 @@ export default defineConfig(({ command }) => {
       strictPort: true,
     },
     build: {
-      chunkSizeWarningLimit: 2800,
+      // The HEIC decoder is fetched only for HEIC uploads; its WASM payload is about 3 MB.
+      chunkSizeWarningLimit: 3000,
       sourcemap: shouldUploadSentrySourceMaps,
     },
     test: {
