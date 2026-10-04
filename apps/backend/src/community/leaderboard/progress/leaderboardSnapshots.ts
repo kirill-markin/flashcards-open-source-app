@@ -17,7 +17,7 @@ import {
  * The cross-user read, exclusion rules, tie-neutral ordering, and atomic entry
  * replacement live in the SECURITY DEFINER function
  * community.refresh_leaderboard_snapshot (see db/migrations/0059_leaderboard_snapshots.sql
- * through db/migrations/0071_progress_leaderboard_all_time_participants.sql); this module
+ * through db/migrations/0169_leaderboard_exclude_plus_test_emails.sql); this module
  * owns the injectable clock, the window set, metric-version validation, and
  * sequencing the per-window refreshes inside one repeatable-read transaction.
  */

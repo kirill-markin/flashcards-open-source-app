@@ -215,8 +215,8 @@ export function AiUsageCohortsSection(props: Readonly<{
           One scatter panel per equal-length period, one dot per person. Horizontal: reviews per week.
           Vertical: characters of chat text per week — what the person typed plus what the model wrote
           back, with attachments, file uploads, tool calls and reasoning summaries excluded. Admins,
-          example.com test accounts and the actors on the analytics exclusion list are left out, the
-          same rule every section applies.
+          example.com and +test email accounts and the actors on the analytics exclusion list are
+          left out, the same rule every section applies.
         </p>
       </header>
 
