@@ -47,7 +47,8 @@ export async function publishStripeTransitions(transitions: ReadonlyArray<Stripe
         await recordTrialStartedAnalytics({ ...fact, occurredAt: state.trialStartedAt });
       }
       if (state.firstPaidAt !== null) {
-        if (state.firstPaidPrice === null) {
+        // A later current invoice never carries the first price, and the writer normally stored this fact already.
+        if (state.firstPaidInvoiceIsCurrent && state.firstPaidPrice === null) {
           console.warn(JSON.stringify({ event: "stripe_purchase_completed_price_unavailable",
             purchaseId: purchase.purchase_id }));
         }
