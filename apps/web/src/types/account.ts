@@ -1,3 +1,5 @@
+import type { Locale } from "../i18n/types";
+
 /** A recorded analytics consent decision. No decision at all is null, never a third choice value. */
 export type AnalyticsConsentChoice = "granted" | "declined";
 
@@ -33,6 +35,8 @@ export type AccountPreferencesUpdate = Readonly<{
   reviewReactionAnimationsEnabled?: boolean;
   analyticsConsent?: AnalyticsConsentChoice;
   productAnalyticsEnabled?: boolean;
+  /** The interface language on screen, the same tag analytics events carry as `uiLocale`. */
+  locale?: Locale;
   /**
    * Who asked for the value beside it, one field per decision because one body can carry a person's
    * press on one and a reconciled answer on the other. Omitted is `user_action` on the route, which

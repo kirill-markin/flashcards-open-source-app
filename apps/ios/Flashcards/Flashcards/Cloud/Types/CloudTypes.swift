@@ -129,6 +129,8 @@ struct AccountPreferencesPatchRequest: Encodable, Hashable, Sendable {
     /// than left to the route's default, so the one difference between a person's press and a retry
     /// of it is visible at the site that decides which of the two this is.
     var productAnalyticsEnabledOrigin: AnalyticsPreferenceWriteOrigin?
+    /// The interface language tag the app displays, the same value analytics sends as `uiLocale`.
+    var locale: String?
 }
 
 /// Client-safe community profile from GET/PATCH /me/community/profile.
