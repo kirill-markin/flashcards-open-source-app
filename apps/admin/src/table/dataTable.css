@@ -17,6 +17,25 @@
   font-weight: 800;
 }
 
+.data-table-loading {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.data-table-loading.active {
+  padding: 3px 9px;
+  border: 1px solid rgba(214, 90, 56, 0.42);
+  border-radius: 999px;
+  background: rgba(196, 75, 45, 0.16);
+  color: var(--text);
+}
+
+/* Only the rows dim while a page reloads; the filter row stays live so typing keeps its focus. */
+.data-table[aria-busy="true"] .data-table-grid tbody {
+  opacity: 0.55;
+}
+
 .data-table-pager {
   display: inline-flex;
   align-items: center;

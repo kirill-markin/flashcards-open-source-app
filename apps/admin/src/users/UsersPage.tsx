@@ -178,6 +178,7 @@ export function UsersPage(props: Readonly<{
           rowClassName={getUserRowClassName}
           state={tableState}
           onStateChange={handleTableStateChange}
+          server={null}
         /> : null}
       </section>
     </main>
