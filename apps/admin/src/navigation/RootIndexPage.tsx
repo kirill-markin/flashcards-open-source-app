@@ -3,6 +3,7 @@ import {
   analyticsAreaLabels,
   analyticsAreas,
   analyticsIndexPath,
+  eventsPath,
   getAnalyticsAreaPath,
   usersPath,
 } from "../routing";
@@ -14,7 +15,7 @@ export function RootIndexPage(props: Readonly<{ onNavigate: (path: string) => vo
       <section className="state-panel">
         <p className="eyebrow">Admin</p>
         <h1>Admin</h1>
-        <p className="state-copy">Product analytics and users for the admin team.</p>
+        <p className="state-copy">Product analytics, users and events for the admin team.</p>
         <nav className="state-links" aria-label="Admin pages">
           <AdminLink className="state-link" path={analyticsIndexPath} onNavigate={props.onNavigate}>Analytics</AdminLink>
           {analyticsAreas.map((area) => (
@@ -28,6 +29,7 @@ export function RootIndexPage(props: Readonly<{ onNavigate: (path: string) => vo
             </AdminLink>
           ))}
           <AdminLink className="state-link" path={usersPath} testId="admin-root-users-link" onNavigate={props.onNavigate}>Users</AdminLink>
+          <AdminLink className="state-link" path={eventsPath} testId="admin-root-events-link" onNavigate={props.onNavigate}>Events</AdminLink>
         </nav>
       </section>
     </main>

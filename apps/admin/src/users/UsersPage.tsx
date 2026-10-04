@@ -18,7 +18,7 @@ type LoadState =
   | Readonly<{ status: "error"; message: string }>
   | Readonly<{ status: "ready"; report: UsersReport }>;
 
-function renderUserLink(userId: string | null, text: string | null, onNavigate: (path: string) => void): JSX.Element | null {
+export function renderUserLink(userId: string | null, text: string | null, onNavigate: (path: string) => void): JSX.Element | null {
   return userId === null || text === null ? null : (
     <AdminLink className="data-table-link" path={getUserPath(userId, "profile")} onNavigate={onNavigate}>{text}</AdminLink>
   );

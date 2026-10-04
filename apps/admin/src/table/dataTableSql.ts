@@ -17,12 +17,13 @@ export type DataTableSqlClauses = Readonly<{
   limitOffsetSql: string;
 }>;
 
+/** Parenthesized, so an operator inside the caller's expression cannot bind to the clause around it. */
 function requireColumnSql(columnSqlById: Readonly<Record<string, string>>, columnId: string): string {
   const sqlExpression = columnSqlById[columnId];
   if (sqlExpression === undefined) {
     throw new Error(`Data table column "${columnId}" has no SQL expression.`);
   }
-  return sqlExpression;
+  return `(${sqlExpression})`;
 }
 
 function escapeLikePattern(value: string): string {
@@ -85,6 +86,8 @@ export function buildDataTableSqlClauses<Row>(
   defaultOrderBySql: string,
   tiebreakOrderBySql: string,
 ): DataTableSqlClauses {
+  // Every column up front, so a missing expression fails the first query rather than the first click.
+  columns.forEach((column) => requireColumnSql(columnSqlById, column.id));
   if (!Number.isSafeInteger(state.page) || state.page < 0) {
     throw new Error(`Data table page must be a non-negative integer, got ${state.page}.`);
   }

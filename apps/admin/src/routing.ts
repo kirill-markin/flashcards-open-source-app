@@ -28,6 +28,7 @@ export type AdminRoute =
   | Readonly<{ kind: "user"; userId: string; tab: UserPageTab }>
   /** One chat opened from the Chats tab, a path of its own so Back returns to the list. */
   | Readonly<{ kind: "userChat"; userId: string; sessionId: string }>
+  | Readonly<{ kind: "events" }>
   | Readonly<{ kind: "event"; eventId: string }>
   | Readonly<{ kind: "notFound"; pathname: string }>;
 
@@ -75,6 +76,8 @@ export function getAdminRoutePath(route: AdminRoute): string {
       return getUserPath(route.userId, route.tab);
     case "userChat":
       return getUserChatPath(route.userId, route.sessionId);
+    case "events":
+      return eventsPath;
     case "event":
       return getEventPath(route.eventId);
     case "notFound":
@@ -150,6 +153,10 @@ export function parseAdminRoute(pathname: string): AdminRoute {
   const userRoute = parseUserRoute(normalizedPathname);
   if (userRoute !== null) {
     return userRoute;
+  }
+
+  if (normalizedPathname === eventsPath) {
+    return { kind: "events" };
   }
 
   const eventRoute = parseEventRoute(normalizedPathname);

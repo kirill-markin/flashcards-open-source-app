@@ -1,5 +1,6 @@
 import { useEffect, useState, type JSX, type ReactNode } from "react";
 import type { AdminAppConfig } from "../../config";
+import { AdminLink } from "../../navigation/AdminLink";
 import { AdminNavigation } from "../../navigation/AdminNavigation";
 import { formatInstant } from "../../users/userPage/formatInstant";
 import { ProfileRecordSection, renderUserLink, type ProfileRecordRow } from "../../users/userPage/ProfileTab";
@@ -111,6 +112,8 @@ export function EventPage(props: Readonly<{
   config: AdminAppConfig;
   adminEmail: string;
   eventId: string;
+  /** The Events list path with the query string it was left with. */
+  eventsListPath: string;
   onNavigate: (path: string) => void;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
 }>): JSX.Element {
@@ -156,6 +159,7 @@ export function EventPage(props: Readonly<{
   return (
     <main className="shell">
       <section className="hero">
+        <AdminLink className="user-page-back" path={props.eventsListPath} testId="event-page-back" onNavigate={props.onNavigate}>← Events</AdminLink>
         <div>
           <p className="eyebrow">Admin · Event</p>
           <h1 data-testid="event-page-title">{loaded === null ? "Event" : loaded.event.eventName}</h1>
@@ -171,7 +175,7 @@ export function EventPage(props: Readonly<{
         </div>
       </section>
 
-      <AdminNavigation activePage={null} onNavigate={props.onNavigate} />
+      <AdminNavigation activePage="events" onNavigate={props.onNavigate} />
 
       <section className="dashboard-section" data-testid="event-page-section">
         {renderContent()}
