@@ -139,10 +139,12 @@ enum AnalyticsEvent: Sendable, Equatable {
     /// have no entry point and report nothing.
     case paywallShown(entryPoint: AnalyticsPaywallEntryPoint)
     /// The store purchase sheet being launched, after the account and offer checks passed.
-    case purchaseStarted
+    case purchaseStarted(offerType: AnalyticsPurchaseOfferType)
     /// What StoreKit reported back for that sheet. `completed` is the client's view only; the
     /// server-derived `trial_started` and `purchase_completed` remain the truth about a sale.
     case purchaseFinished(outcome: AnalyticsPurchaseOutcome)
+    /// What the App Store returned for the restore. `restored` means it returned a premium
+    /// transaction, whether or not the server then accepted it.
     case purchaseRestoreFinished(outcome: AnalyticsPurchaseRestoreOutcome)
     case subscriptionManagementOpened(destination: AnalyticsSubscriptionManagementDestination)
     case analyticsEventsDropped(reason: AnalyticsDroppedReason, count: Int)
@@ -382,6 +384,12 @@ enum AnalyticsPaywallEntryPoint: String, Sendable, Equatable {
     case accentColor = "accent_color"
 }
 
+/// Whether the offer being bought starts with an App Store free trial for this person.
+enum AnalyticsPurchaseOfferType: String, Sendable, Equatable {
+    case freeTrial = "free_trial"
+    case standard
+}
+
 enum AnalyticsPurchaseOutcome: String, Sendable, Equatable {
     case completed
     case cancelled
@@ -581,8 +589,8 @@ extension AnalyticsEvent {
             return ["package_slug": .string(packageSlug)]
         case .paywallShown(let entryPoint):
             return ["entry_point": .string(entryPoint.rawValue)]
-        case .purchaseStarted:
-            return [:]
+        case .purchaseStarted(let offerType):
+            return ["offer_type": .string(offerType.rawValue)]
         case .purchaseFinished(let outcome):
             return ["outcome": .string(outcome.rawValue)]
         case .purchaseRestoreFinished(let outcome):

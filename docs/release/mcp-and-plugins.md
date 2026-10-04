@@ -53,14 +53,28 @@ a directory button based only on a submission or approval.
 
 ## MCP
 
-First inspect the public registry for the target `server.json.version` and
-compare its manifest with the intended release. Reuse a matching publication
-and its workflow evidence. Only if that version is absent, run
-`MCP Registry Publish` (`.github/workflows/mcp-registry-publish.yml`) on
-`main` while `server.json.version` still names the current release. Check that
-the run used the intended manifest/version and completed successfully; the
-workflow validates, publishes, and verifies the registry entry. No console
-publication step follows. See [publisher details](../mcp-registry-publishing.md)
+The companion repository owns [`server.json`](https://github.com/kirill-markin/nibomo-plugins/blob/main/server.json)
+and the registry workflows. During [release preparation](versioning.md#release-preparation),
+align its manifest and plugin versions with the selected core release version.
+Require successful [MCP Registry Validate](https://github.com/kirill-markin/nibomo-plugins/actions/workflows/mcp-registry-validate.yml)
+for changed release inputs and **Plugin packages** cloud CI for the intended
+companion source.
+
+First inspect the public registry for the target companion `server.json.version`
+and compare its manifest with the intended release. Reuse a matching publication
+and its workflow evidence. Only if that version is absent, dispatch
+[MCP Registry Publish](https://github.com/kirill-markin/nibomo-plugins/actions/workflows/mcp-registry-publish.yml)
+on companion `main` while its manifest still names the current release:
+
+```sh
+gh workflow run mcp-registry-publish.yml \
+  --repo kirill-markin/nibomo-plugins \
+  --ref main
+```
+
+Check that the run used the intended manifest/version and completed successfully;
+the workflow validates, publishes, and verifies the registry entry. No console
+publication step follows. See [publisher details](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/mcp-registry-publishing.md)
 only for troubleshooting or credential setup.
 
 Completion: the intended version and manifest are verified at the public

@@ -85,10 +85,14 @@ never the query string; nothing redacts that log afterwards, so anything added
 to it must be safe to publish as written.
 
 The MCP endpoint smoke in `AWS/Web Release` verifies the deployed MCP HTTP
-contract. MCP Registry validation is a separate automatic check for
-`server.json` changes, and registry publication is a separate manual workflow.
-Trigger `MCP Registry Publish` only when the release should publish a new,
-previously unpublished `server.json.version`.
+contract. The companion repository owns [`server.json`](https://github.com/kirill-markin/nibomo-plugins/blob/main/server.json),
+the automatic [MCP Registry Validate](https://github.com/kirill-markin/nibomo-plugins/actions/workflows/mcp-registry-validate.yml)
+check, and manual [MCP Registry Publish](https://github.com/kirill-markin/nibomo-plugins/actions/workflows/mcp-registry-publish.yml)
+workflow. Align manifest/plugin and core versions during
+[release preparation](release/versioning.md#release-preparation), then follow
+[the MCP gate and explicit companion dispatch command](release/mcp-and-plugins.md#mcp)
+to publish an absent version from companion `main`. Registry versions are
+immutable; reuse a matching publication and its evidence.
 
 Release order and authorization belong to the [full release runbook](release/README.md).
 Platform gates and console actions are in [Platform Release Procedures](release/README.md#required-reading).
