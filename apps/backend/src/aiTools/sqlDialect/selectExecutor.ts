@@ -39,7 +39,7 @@ function escapeRegExp(value: string): string {
 
 function createLikePatternRegExp(value: string, caseInsensitive: boolean): RegExp {
   const escaped = escapeRegExp(value).replace(/%/g, ".*").replace(/_/g, ".");
-  return new RegExp(`^${escaped}$`, caseInsensitive ? "i" : "");
+  return new RegExp(`^${escaped}$`, caseInsensitive ? "is" : "s");
 }
 
 export function likePatternToRegExp(value: string): RegExp {
