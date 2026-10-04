@@ -9,8 +9,8 @@ Google Play locales in [Subscription store metadata](subscription-store-metadata
 
 Verified snapshot as of 2026-10-04; federation readback at 06:47:38 UTC.
 Android billing and the backend are implemented; production acceptance remains
-incomplete. An internal draft bundle is accepted but paused/unpublished; no
-catalog activation, genuine Play purchase or public rollout is recorded.
+incomplete. The passing CI bundle is available to internal testers and the catalog
+is active; genuine Play purchase acceptance and public production rollout remain pending.
 Record later outcomes with their evidence and timestamp before updating a gate.
 
 | State | Readback |
@@ -19,12 +19,17 @@ Record later outcomes with their evidence and timestamp before updating a gate.
 | Backend deployed | [AWS run 37130395075](https://github.com/kirill-markin/flashcards-open-source-app/actions/runs/37130395075) succeeded in all 10 jobs, including migrations, deployment and smoke gates. Its platform/web/admin SSM deployment markers read `01d6cc2e7c98693bde8ac9bcdb8ed43ab0050bde`. The live Google reconciliation rule in `eu-central-1` is `ENABLED` with `rate(15 minutes)`. |
 | Federation and negative probe verified | Provider `aws-backend` in `nibomo-aws-billing` is ACTIVE with the normalized subject below; the exact AWS account/BackendHandler condition and attribute-based service-account grant are unchanged, with the same policy etag. The October 3 probe failed at STS HTTP 400 before Publisher; an opaque account ID alone proves no Google authentication. The October 4 probe recorded STS HTTP 200, then an actual Publisher `subscriptionsv2.get` HTTP 400 for a deliberately invalid token, demonstrating impersonation sufficient to call Publisher. Genuine purchase, Restore and acknowledgment acceptance remain pending. This external configuration repair has no Lambda release/commit boundary; the documentation commit is not a runtime fix. |
 | Android candidate verified | Candidate `9073c12f7ad75723b3993c79b6e41a096b27fbae` ([PR 2243](https://github.com/kirill-markin/flashcards-open-source-app/pull/2243)) passed [PR Checks 37182381237](https://github.com/kirill-markin/flashcards-open-source-app/actions/runs/37182381237) and [Android CI 37182780393](https://github.com/kirill-markin/flashcards-open-source-app/actions/runs/37182780393). Local CI parity passed in 4m 7s; optimized signed `validationRelease` passed in 3m 53s. Full LiveSmoke passed at 06:46:42 UTC: 7 passed, 0 failed, 0 skipped, 6m 21s. Its validation AAB version code 1 is not publishable. |
-| Release result pending | [Android Release 37183902617](https://github.com/kirill-markin/flashcards-open-source-app/actions/runs/37183902617) targets candidate `9073c12f7ad75723b3993c79b6e41a096b27fbae` and is running; no result is recorded. Earlier [Android Release 37179896352](https://github.com/kirill-markin/flashcards-open-source-app/actions/runs/37179896352), target `88182392`, failed Play API bundle upload on unsupported translation `hr` before track update. Its actual Firebase matrix `37ks6mo0mkgtq` on Pixel 11/API 37 had 80 passed and 2 failed out of 82; successful submission did not mean a passing matrix. |
-| Catalog pending; internal draft accepted | The exact CI-signed AAB from run 37179896352, version code `23866012`, was manually accepted as Console internal draft `test-vc23866012-r37179896352a1-s88182392`, paused/unpublished. Subscriptions remains locked with a new-bundle prompt. `premium` / `monthly` / `free-trial-7d`, prices and 51 locale texts remain repository inputs. |
+| Release passed; production draft only | [Android Release 37183902617](https://github.com/kirill-markin/flashcards-open-source-app/actions/runs/37183902617) passed all GitHub jobs for `9073c12f7ad75723b3993c79b6e41a096b27fbae`. The Play API accepted version `1.29.0`, code `23870952`, as production draft `main-draft-vc23870952-r37183902617a1-s9073c12f`; it is not submitted or publicly published. The earlier Croatian translation upload failure did not recur. |
+| Firebase result verified | Actual matrix `matrix-kwf46fn1wqq0a` on Pixel 11 (`cubs`)/API 37 finished `SUCCESS`: 82 passed, 0 failed, 82 total, including both formerly failing workspace cases. [Firebase results](https://console.firebase.google.com/project/flashcards-open-source-app/testlab/histories/bh.f2d5f1386dbab916/matrices/5632459922240459317) correlate with the release run/SHA; test duration was 836 seconds, processing 32 seconds. Submission success alone is not a passing matrix. |
+| Internal release published | `test-vc23870952-r37183902617a1-s9073c12f` contains only code `23870952` and 51 release notes; the paused track was resumed and its latest release reads Available to internal testers. Catalog setup is unlocked. Failed candidate `23866012` was superseded, not published. |
+| Publishable artifact verified | The CI-signed AAB is 21,098,266 bytes, SHA-256 `b84c079be1125d889d4d5954688a433ba3a92166fd857df35564eea8887e53c1`. The original registered upload certificate is preserved without reset. The local validation bundle is not publishable. |
+| Catalog active | `premium` has all 51 locales from [store metadata](subscription-store-metadata.md#google-play-texts): Name, Benefit 1 (1000 AI messages per month), and Description; all 153 field values matched after browser reload. Base plan `monthly` and offer `free-trial-7d` were reopened and verified ACTIVE. Device product details, offer token and pricing phases remain unverified. |
+| Monthly settings verified | Monthly auto-renewal covers 175 countries/regions, with new countries/regions included. USD 6.99 base generated US USD 6.99, Bulgaria/Germany EUR 7.49, UK GBP 6.49 and India INR 790.00 through Play conversion, rounding and taxes. Grace is 7 days; automatically calculated account hold is 53 days (60 combined). Base-plan/offer changes charge at next billing date; resubscribe is allowed. No annual/lifetime sales. |
+| Trial settings verified | `free-trial-7d` covers all 175 base-plan regions: one seven-day free-trial phase, then the base plan. New customer acquisition uses Google's “Never had this subscription” (`premium`) eligibility; no developer-determined eligibility or additional discount phases. |
 | Notifications verified for test delivery | Authenticated Push and the resource-only Token Creator grant are saved. Play's official test reached BackendHandler at 2026-10-03 17:18:40.819 UTC and was processed/acknowledged. Unsigned requests return HTTP 401 `GOOGLE_PUSH_UNAUTHORIZED`. Real purchase lifecycle delivery remains pending. |
-| Console translations reviewed | App Strings retains 1511 strings across 49 languages, with automatic translation ON. On October 4, 47 Premium rows were reviewed and three timing/quota errors corrected in Croatian, Tamil and Kannada. This is not verification of translations delivered by the native app. |
-| Privacy published; store declarations pending | Privacy and account-deletion pages are published. Data Safety changes are saved, unsubmitted. See [Privacy and reviewer access](#privacy-and-reviewer-access) for privacy deployment evidence. |
-| Store acceptance pending | The Play emulator is ready; owner Google account login is pending. License testing is configured, but no Play-installed billing candidate or completed purchase matrix is recorded. Complete the gates below before requesting public sales. |
+| Console translations reviewed | App Strings covers 49 languages, with automatic translation ON. On October 4, 47 Premium rows were reviewed and three timing/quota errors corrected in Croatian, Tamil and Kannada. This is not verification of translations delivered by the native app. |
+| Privacy published; Data Safety in review | Privacy and account-deletion pages are published. Publishing overview lists only App content / Data Safety as IN REVIEW; no new production version is in review. See [Privacy and reviewer access](#privacy-and-reviewer-access) for privacy deployment evidence. |
+| Store acceptance pending | The Play emulator is running with an empty Google login form; owner login and the device/tester account match remain pending. No Play-installed billing candidate or completed purchase matrix is recorded. Complete the gates below before requesting public sales. |
 
 ## Implemented contract and source
 
@@ -172,36 +177,22 @@ bounded batches and durable attempt/stop metadata. Inspect
 delivery or access diverges. A green deployment or an empty reconciliation run
 does not prove purchase recovery; record actual affected-purchase readbacks.
 
-## Finish merchant and catalog setup
+## Finish merchant verification and read back the catalog
 
 1. In Play Console payment settings, open the linked EUR payout method. Once
    Google's small deposit appears in Revolut, enter its exact amount in the
    verification prompt and read back the verified status. Follow
    [Verify bank account](https://support.google.com/googleplay/android-developer/answer/7161378?hl=en);
    retain financial evidence privately.
-2. Record the pending candidate release result and finish the test-track gate
-   in the readiness table; the accepted paused draft alone has not unlocked catalog setup.
-   Follow [Android CI/CD](android-ci-cd.md) and the
-   [release authorization runbook](release-current-version.md). A green PR or
-   Android CI run is not an upload. Google's
-   [billing setup](https://developer.android.com/google/play/billing/getting-ready)
-   calls for a billing-enabled build published to a track, including internal
-   testing. After the authorized upload, reopen Subscriptions; if the draft
-   alone does not unlock it, complete the authorized test-track step before
-   proceeding. Do not infer readiness from the library being present in source.
-3. In **Monetize with Play > Products > Subscriptions**, create `premium`.
-   Apply every field for all 51 [Google Play locales](subscription-store-metadata.md#google-play-texts).
-   Create `monthly` as a one-month auto-renewing base plan. Set the USD 6.99
-   base price, review Play's regional conversions and intended availability,
-   then save and activate the base plan. Review grace, hold, and resubscribe
-   settings and record the actual selections for lifecycle testing.
-4. Add `free-trial-7d` to `monthly`, with a seven-day free phase and
-   Google-managed new-customer acquisition eligibility. Read back the exact
-   “never had this subscription” or “never had any subscription” selection;
-   do not use developer-determined eligibility. Save and activate the offer.
+2. Reopen the internal track and confirm the published release and version code
+   in the readiness table. For later releases, follow [Android CI/CD](android-ci-cd.md)
+   and the [release authorization runbook](release-current-version.md); keep the
+   failed `23866012` candidate superseded and public production in draft.
+3. In **Monetize with Play > Products > Subscriptions**, reopen `premium`,
+   `monthly` and `free-trial-7d`; compare their settings with the snapshot above.
+   Maintain all 51 [Google Play locale texts](subscription-store-metadata.md#google-play-texts).
    Google's [catalog procedure](https://support.google.com/googleplay/android-developer/answer/140504?hl=en)
-   owns the Console steps.
-5. Reopen the product, base plan, and offer. Verify all IDs, 51 locale entries,
+   owns the Console steps. After any change, reload and verify IDs, locale entries,
    monthly period, price/currency/regions, active states, trial duration, and
    eligibility. Then query product details from the actual Play-installed test
    build and verify its returned base plan, eligible offer, pricing phases,
@@ -210,18 +201,18 @@ does not prove purchase recovery; record actual affected-purchase readbacks.
 
 ## Privacy and reviewer access
 
-The saved Data Safety draft marks Purchase history collected, not shared,
+The Data Safety declaration in review marks Purchase history collected, not shared,
 non-ephemeral and optional, for App functionality, Analytics, and Fraud
 prevention/security/compliance. Purchases are linked to the app identity to
 verify access, restore ownership and retain billing/support records. Google
 handles card details; User payment info remains unchecked.
 
-The draft also marks existing IP-derived country as Approximate location:
+The declaration also marks existing IP-derived country as Approximate location:
 collected, not shared, non-ephemeral, optional, for Analytics. Precise location
 remains unchecked. Reconcile the whole form with
 [audience analytics](analytics-audience.md), [billing deletion rules](premium-entitlements.md#guest-upgrade-reaping-and-deletion),
 and Google's [Data Safety guidance](https://support.google.com/googleplay/android-developer/answer/10787469?hl=en)
-before submission. Saved draft does not mean reviewed or publicly published.
+when maintaining the declaration. IN REVIEW does not mean approved or publicly published.
 The [Privacy Policy](https://nibomo.com/privacy/) includes the Google billing
 disclosures. [Website PR 508](https://github.com/kirill-markin/flashcards-open-source-app-website/pull/508)
 merged as `566f4dcb201448fa4e733cb317d3f93a04103b74` at 15:21:11 UTC on
@@ -246,9 +237,9 @@ instructions. Account deletion does not cancel the Play subscription.
 
 ## Runtime and real-device acceptance gates
 
-The license tester list is saved with the owner account only and
-`RESPOND_NORMALLY`. License testing does not itself grant access to a test
-track. On a real Android device, use that account, enroll in the chosen track,
+The saved license tester configuration uses `RESPOND_NORMALLY`; verify its
+account matches the eventual device Google account. License testing does not
+itself grant track access. On the Play device, enroll that account in the internal track,
 and install its billing-enabled build from Play. Confirm the purchase sheet
 offers test payment instruments. Use Google's
 [billing testing guide and Play Billing Lab](https://developer.android.com/google/play/billing/test)
