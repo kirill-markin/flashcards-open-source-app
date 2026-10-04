@@ -8,10 +8,12 @@ Apply [Reuse Existing Artifacts](evidence.md#reuse-existing-artifacts) and the
 [Local Mobile Release Gate](evidence.md#local-mobile-release-gate) to this flow.
 
 Read the current version/build and review state through the App Store Connect
-API first. Reuse a matching approved/live build with its gate evidence: for
-`PENDING_DEVELOPER_RELEASE` continue at step 8; for an already distributed build,
-continue at step 9. Preserve an existing review submission and monitor it instead
-of uploading or resubmitting the same artifact. New artifacts follow all steps.
+API first. For a matching approved build in `PENDING_DEVELOPER_RELEASE`,
+continue at step 8. An already-published matching build counts complete under
+the shared reuse rules; record its identity and observed availability in step 9
+without reconstructing historical logs. Preserve an existing review submission
+and verify its identity and release setting at step 7 instead of uploading or
+resubmitting the same artifact. New artifacts follow all pre-submission gates.
 
 1. Prepare production build values using [iOS Local Setup](../ios-local-setup.md).
    From the repository root, compile an unsigned device Release archive:
@@ -78,30 +80,34 @@ of uploading or resubmitting the same artifact. New artifacts follow all steps.
    draft, with matching green test evidence. Verify the build number/version,
    saved localized notes, and required fields; choose **Add for Review** to
    place the version in a **Ready for Review** draft submission.
-7. Verify the exact version/build in that submission, then choose **Submit for
-   Review**. Confirm **Waiting for Review** and record the submission identity
-   with its version/build. A **Ready for Review** draft or an attached build
-   alone does not complete submission.
-8. Monitor review while independent release work continues. When the approved
-   version is `PENDING_DEVELOPER_RELEASE`, manually publish that same build
-   using the supported App Store Connect API action or **Release This Version**
-   in the browser and confirm. For an automatic release, verify that publication
-   actually started. Follow Apple's
-   [release procedure](https://developer.apple.com/help/app-store-connect/manage-your-apps-availability/select-an-app-store-version-release-option/);
+7. Select automatic release after approval unless manual release is explicitly
+   intended, and verify the saved release setting. Verify the exact version/build
+   in the submission, then choose **Submit for Review**. Confirm **Waiting for
+   Review**, **In Review**, or an approved state and record the submission
+   identity, version/build, and saved release mode. A rejected submission needs
+   correction and does not satisfy this boundary. A **Ready for Review** draft or an
+   attached build alone does not complete submission. Successful submission
+   with automatic release enabled completes our iOS work; review is follow-up.
+8. In manual mode, complete any final release action already available. For
+   `PENDING_DEVELOPER_RELEASE`, publish that same build using the supported
+   App Store Connect API action or **Release This Version** and confirm the
+   action succeeded. If approval is still pending, record the later manual
+   release action as follow-up; it does not hold overall closeout open. Follow
+   Apple's [release procedure](https://developer.apple.com/help/app-store-connect/manage-your-apps-availability/select-an-app-store-version-release-option/);
    do not create a replacement submission merely to release an approved build.
-9. Verify `READY_FOR_DISTRIBUTION` (legacy `READY_FOR_SALE`) and the matching
-   version on the public storefront in the intended regions. Record the app URL,
-   public version and verification time alongside the build identity. Apple
+9. Record the current App Store Connect and public storefront states in the
+   intended regions, with the app URL, observed version/time and build identity.
+   `READY_FOR_DISTRIBUTION` (legacy `READY_FOR_SALE`) and Apple's
    [availability statuses](https://developer.apple.com/help/app-store-connect/reference/app-information/app-and-submission-statuses)
-   distinguish readiness from regional availability. Public lookup/storefront
-   propagation can lag the API: record propagation pending and check again,
-   rather than declaring the release live from the API status alone.
+   distinguish readiness from regional availability. If review or storefront
+   propagation remains pending, record it as external follow-up; do not wait
+   for propagation or declare the release live from the API status alone.
 
-Completion: retained or new local/cloud gate evidence is valid, both cloud
-workflows passed without unresolved warnings, and the matching build/version is
-publicly available. Submission, approval, and propagation pending remain open
-under the [canonical completion contract](README.md#release-inventory-and-completion),
-including its rule for any exception before release closeout.
+Completion follows the [canonical boundary](README.md#release-inventory-and-completion):
+all required gates pass before submission, the exact submission and saved
+release setting are verified, and any currently available manual publication
+action is completed. Already-published matching builds use the shared historical
+evidence rule. Public availability is a separate observed state.
 
 Build configuration: [iOS CI/CD](../ios-ci-cd.md). API diagnostics and result
 bundles: [Xcode Cloud data access](../xcode-cloud-data-access.md).
