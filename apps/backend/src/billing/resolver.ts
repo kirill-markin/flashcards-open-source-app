@@ -16,6 +16,10 @@ import {
  */
 export type PurchaseStatus = "active" | "in_grace" | "expired" | "revoked";
 
+/** Constrained in the schema like the status above (db/migrations/0151_billing_schema.sql). */
+export type PurchaseProvider = "apple" | "google" | "stripe";
+export type PurchaseEnvironment = "production" | "sandbox";
+
 /**
  * The status of a resolved entitlement, which is not a copy of a purchase status: only a purchase or
  * grant that currently grants access can become the effective entitlement, so `expired` and
@@ -41,6 +45,8 @@ export type EntitlementSource = "none" | "purchase" | "grant";
  */
 export type EntitlementPurchaseInput = Readonly<{
   purchaseId: string;
+  provider: PurchaseProvider;
+  environment: PurchaseEnvironment;
   tier: EntitlementTier;
   status: PurchaseStatus;
   isTrial: boolean;
@@ -56,6 +62,15 @@ export type EntitlementGrantInput = Readonly<{
   revokedAt: Date | null;
 }>;
 
+/**
+ * Who sold the purchase that won and in which store environment, for reporting only: nothing about
+ * granting reads it.
+ */
+export type WinningPurchase = Readonly<{
+  provider: PurchaseProvider;
+  environment: PurchaseEnvironment;
+}>;
+
 export type ResolvedEntitlement = Readonly<{
   tier: EntitlementTier;
   status: EntitlementStatus;
@@ -63,6 +78,8 @@ export type ResolvedEntitlement = Readonly<{
   isTrial: boolean;
   willRenew: boolean;
   source: EntitlementSource;
+  // Null whenever `source` is not `purchase`.
+  winningPurchase: WinningPurchase | null;
   limits: EntitlementLimits;
 }>;
 
@@ -74,6 +91,7 @@ type GrantingCandidate = Readonly<{
   isTrial: boolean;
   willRenew: boolean;
   source: "purchase" | "grant";
+  winningPurchase: WinningPurchase | null;
 }>;
 
 /**
@@ -106,6 +124,7 @@ function toPurchaseCandidate(
       isTrial: purchase.isTrial,
       willRenew: purchase.willRenew,
       source: "purchase",
+      winningPurchase: { provider: purchase.provider, environment: purchase.environment },
     };
   }
 
@@ -121,6 +140,7 @@ function toPurchaseCandidate(
     isTrial: purchase.isTrial,
     willRenew: purchase.willRenew,
     source: "purchase",
+    winningPurchase: { provider: purchase.provider, environment: purchase.environment },
   };
 }
 
@@ -149,6 +169,7 @@ function toGrantCandidate(
     isTrial: false,
     willRenew: false,
     source: "grant",
+    winningPurchase: null,
   };
 }
 
@@ -223,9 +244,9 @@ function isBetterCandidate(candidate: GrantingCandidate, best: GrantingCandidate
  * the snapshot is a cache"). Every field of the result is resolved together, so no caller can publish
  * a half-resolved entitlement.
  *
- * `environment` is deliberately not consulted: a purchase marked `sandbox` grants entitlement in
- * production (docs/premium-offer.md, "Sandbox purchases grant entitlement"), and reports separate
- * test purchases from revenue by `environment` instead.
+ * `environment` is deliberately not consulted for granting: a purchase marked `sandbox` grants
+ * entitlement in production (docs/premium-offer.md, "Sandbox purchases grant entitlement"), and
+ * reports separate test purchases from revenue by `environment` instead.
  */
 export function resolveEntitlement(
   purchases: ReadonlyArray<EntitlementPurchaseInput>,
@@ -257,6 +278,7 @@ export function resolveEntitlement(
       isTrial: false,
       willRenew: false,
       source: "none",
+      winningPurchase: null,
       limits: resolveEntitlementLimits(freeEntitlementTier, accountKind),
     };
   }
@@ -268,6 +290,7 @@ export function resolveEntitlement(
     isTrial: winner.isTrial,
     willRenew: winner.willRenew,
     source: winner.source,
+    winningPurchase: winner.winningPurchase,
     limits: resolveEntitlementLimits(winner.tier, accountKind),
   };
 }
