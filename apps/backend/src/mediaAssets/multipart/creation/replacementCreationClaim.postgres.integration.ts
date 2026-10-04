@@ -302,7 +302,7 @@ async function releaseClients(
   clients: ReadonlyArray<pg.PoolClient>,
   raceError: Error | null,
 ): Promise<void> {
-  const rollbackResults = await Promise.allSettled(
+  const rollbackResults = raceError === null ? [] : await Promise.allSettled(
     clients.map((client) => client.query("ROLLBACK")),
   );
   for (const client of clients) client.release();

@@ -231,8 +231,10 @@ test("atomic multipart writer start and no-writer closure are exact, replayable,
       );
       await blocker.query("COMMIT");
       assert.equal((await startPromise).status, "aborting");
-    } finally {
+    } catch (error) {
       await blocker.query("ROLLBACK");
+      throw error;
+    } finally {
       blocker.release();
     }
 
@@ -249,8 +251,10 @@ test("atomic multipart writer start and no-writer closure are exact, replayable,
       await deletion.query("DELETE FROM org.workspaces WHERE workspace_id=$1", [fixture.workspaceId]);
       await deletion.query("COMMIT");
       assert.equal((await startPromise).status, "access_denied");
-    } finally {
+    } catch (error) {
       await deletion.query("ROLLBACK");
+      throw error;
+    } finally {
       deletion.release();
     }
   });

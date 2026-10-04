@@ -194,8 +194,10 @@ async function raceBegins(
     await Promise.all(pids.map(async (pid) => waitForLock(fixture, pid)));
     await holder.query("COMMIT");
     return await Promise.all(pending);
-  } finally {
+  } catch (error) {
     await Promise.allSettled([holder.query("ROLLBACK"), ...workers.map((worker) => worker.query("ROLLBACK"))]);
+    throw error;
+  } finally {
     holder.release(); workers.forEach((worker) => worker.release());
   }
 }
@@ -211,8 +213,11 @@ async function raceAfterAsset<Result extends pg.QueryResultRow>(
     const pendingWinner = winner.query("SELECT pg_advisory_xact_lock(hashtextextended($1||':'||$2::text,0))", [fixture.userId, fixture.workspaceId]).then(async () => { await insertAsset(winner, winnerPayload, winnerPayload.lastOperationId, winnerPayload.clientUpdatedAt, deletedAt); await winner.query("COMMIT"); }); await waitForLock(fixture, winnerPid);
     await loser.query("BEGIN"); await loser.query("SELECT set_config('app.user_id',$1,true),set_config('app.workspace_id',$2,true)", [fixture.userId, fixture.workspaceId]); await loser.query("SET LOCAL statement_timeout='4s'; SET LOCAL lock_timeout='4s'"); const loserPid = (await loser.query<{ pid: number }>("SELECT pg_backend_pid() AS pid")).rows[0].pid;
     const pendingLoser = loser.query<Result>(sql, values); await waitForLock(fixture, loserPid); await holder.query("COMMIT"); await pendingWinner; const result = (await pendingLoser).rows[0]; await loser.query("COMMIT"); return result;
+  } catch (error) {
+    await Promise.allSettled([holder.query("ROLLBACK"), winner.query("ROLLBACK"), loser.query("ROLLBACK")]);
+    throw error;
   } finally {
-    await Promise.allSettled([holder.query("ROLLBACK"), winner.query("ROLLBACK"), loser.query("ROLLBACK")]); holder.release(); winner.release(); loser.release();
+    holder.release(); winner.release(); loser.release();
   }
 }
 async function takeoverAfterLockedExpiry(
@@ -230,8 +235,10 @@ async function takeoverAfterLockedExpiry(
     const pendingStale = stale.query<StatusRow>(staleSql[0], staleValues); await waitForLock(fixture, stalePid);
     await holder.query("UPDATE content.media_blob_writer_attempts SET lease_expires_at=clock_timestamp()-interval '1 second' WHERE attempt_token=$1", [expiredAttempt]); await holder.query("COMMIT");
     const takeover = (await pending).rows[0]; await worker.query("COMMIT"); const staleStatuses = [(await pendingStale).rows[0].status, (await stale.query<StatusRow>(staleSql[1], staleValues)).rows[0].status]; await stale.query("COMMIT"); return { takeover, stale: staleStatuses };
-  } finally {
+  } catch (error) {
     await Promise.allSettled([holder.query("ROLLBACK"), worker.query("ROLLBACK"), stale.query("ROLLBACK")]);
+    throw error;
+  } finally {
     holder.release(); worker.release(); stale.release();
   }
 }
@@ -267,7 +274,10 @@ test("writer attempts fence direct and multipart work with durable replay and ca
     const otherReplica = randomUUID(); await fixture.ownerPool.query(`WITH workspace AS (INSERT INTO org.workspaces(workspace_id,name,fsrs_client_updated_at,fsrs_last_modified_by_replica_id,fsrs_last_operation_id) VALUES($1,'Attempt token race',$2,$3,$4) RETURNING workspace_id),membership AS (INSERT INTO org.workspace_memberships(workspace_id,user_id,role) SELECT workspace_id,$5,'owner' FROM workspace) INSERT INTO sync.workspace_replicas(replica_id,workspace_id,user_id,actor_kind,actor_key,platform,app_version) VALUES($3,$1,$5,'ai_chat',$6,'system','postgres-integration')`, [fixture.outOfScopeWorkspaceId, fixture.createdAt, otherReplica, randomUUID(), fixture.userId, `postgres-integration-${otherReplica}`]);
     const globalToken = randomUUID(); const globalOwnerPayload = direct(fixture, {}); const globalPeerPayload = direct(fixture, { workspaceId: fixture.outOfScopeWorkspaceId, replicaId: otherReplica }); const globalOwner = await fixture.runtimePool.connect(); const globalPeer = await fixture.runtimePool.connect();
     try { for (const [client, workspaceId] of [[globalOwner, fixture.workspaceId], [globalPeer, fixture.outOfScopeWorkspaceId]] as const) { await client.query("BEGIN"); await client.query("SELECT set_config('app.user_id',$1,true),set_config('app.workspace_id',$2,true)", [fixture.userId, workspaceId]); await client.query("SET LOCAL statement_timeout='4s'; SET LOCAL lock_timeout='4s'"); } await globalOwner.query("SELECT pg_advisory_xact_lock(hashtextextended('attempt:'||$1::text,3))", [globalToken]); const ownerPid = (await globalOwner.query<{ pid: number }>("SELECT pg_backend_pid() AS pid")).rows[0].pid; const peerPid = (await globalPeer.query<{ pid: number }>("SELECT pg_backend_pid() AS pid")).rows[0].pid; const pendingPeer = globalPeer.query<BeginRow>(directBeginSql, [globalToken, 60_000, ...directValues(globalPeerPayload)]); await waitForLock(fixture, peerPid); assert.equal((await fixture.ownerPool.query<{ waiting: boolean }>("SELECT EXISTS(SELECT 1 FROM pg_locks AS waiting INNER JOIN pg_locks AS granted USING(locktype,database,classid,objid,objsubid) WHERE waiting.pid=$1 AND granted.pid=$2 AND waiting.locktype='advisory' AND NOT waiting.granted AND granted.granted) AS waiting", [peerPid, ownerPid])).rows[0].waiting, true); const acquired = (await globalOwner.query<BeginRow>(directBeginSql, [globalToken, 60_000, ...directValues(globalOwnerPayload)])).rows[0]; await globalOwner.query("COMMIT"); const beforeDenial = (await fixture.ownerPool.query("SELECT state,lease_expires_at FROM content.media_blob_writer_attempts WHERE attempt_token=$1", [globalToken])).rows[0]; const denied = (await pendingPeer).rows[0]; await globalPeer.query("COMMIT"); assert.deepEqual([acquired.attempt_status, denied.attempt_status, denied.reservation_token], ["acquired", "access_denied", null]); assert.deepEqual((await fixture.ownerPool.query("SELECT state,lease_expires_at FROM content.media_blob_writer_attempts WHERE attempt_token=$1", [globalToken])).rows[0], beforeDenial);
-    } finally { await Promise.allSettled([globalOwner.query("ROLLBACK"), globalPeer.query("ROLLBACK")]); globalOwner.release(); globalPeer.release(); }
+    } catch (error) {
+      await Promise.allSettled([globalOwner.query("ROLLBACK"), globalPeer.query("ROLLBACK")]);
+      throw error;
+    } finally { globalOwner.release(); globalPeer.release(); }
     const guardedDirectPayload = direct(fixture, {}); const guardedDirectAttempt = randomUUID(); const guardedDirect = await beginDirect(fixture, guardedDirectAttempt, guardedDirectPayload, 60_000); assert.equal(guardedDirect.attempt_status, "acquired");
     const guardedDirectBefore = (await fixture.ownerPool.query("SELECT state,lease_expires_at FROM content.media_blob_writer_attempts WHERE attempt_token=$1", [guardedDirectAttempt])).rows[0]; const wrongDirectPeer = await beginDirect(fixture, randomUUID(), { ...guardedDirectPayload, sourceUrl: "https://wrong.invalid/" }, 60_000);
     assert.deepEqual([wrongDirectPeer.attempt_status, wrongDirectPeer.lease_expires_at, (await fixture.ownerPool.query("SELECT state,lease_expires_at FROM content.media_blob_writer_attempts WHERE attempt_token=$1", [guardedDirectAttempt])).rows[0]], ["stale_attempt", null, guardedDirectBefore]);
@@ -428,7 +438,10 @@ test("writer attempts fence direct and multipart work with durable replay and ca
       assert.equal((await completing.query<StatusRow>(`SELECT content.fence_media_upload_session_completion_attempt_apply_with_owner($1,$2,${multipartRow},$23) AS status`, [abortAttempt, abortBegin.reservation_token!, ...multipartValues(canonicalAbort), cleanupDelayMs])).rows[0].status, "ready"); await insertAsset(completing, canonicalAbort, canonicalAbort.lastOperationId, canonicalAbort.clientUpdatedAt, null);
       const abortPid = (await aborting.query<{ pid: number }>("SELECT pg_backend_pid() AS pid")).rows[0].pid; const pendingAbort = aborting.query("UPDATE content.media_upload_sessions SET state='aborting',completed_at=NULL,aborted_at=NULL WHERE media_upload_session_id=$1", [abortPayload.sessionId]).then(async () => (await aborting.query<StatusRow>(`SELECT content.close_media_upload_session_blob_writer_attempts($1,$2,${multipartRow},$23) AS status`, [abortAttempt, abortBegin.reservation_token!, ...multipartValues(canonicalAbort), cleanupDelayMs])).rows[0].status); await waitForLock(fixture, abortPid);
       assert.equal((await completing.query<StatusRow>(`SELECT content.finish_media_upload_session_completion_attempt_apply_with_owner($1,$2,${multipartRow},$23) AS status`, [abortAttempt, abortBegin.reservation_token!, ...multipartValues(canonicalAbort), cleanupDelayMs])).rows[0].status, "live_applied"); await completing.query("COMMIT"); assert.equal(await pendingAbort, "live_applied"); await aborting.query("ROLLBACK");
-    } finally { await Promise.allSettled([completing.query("ROLLBACK"), aborting.query("ROLLBACK")]); completing.release(); aborting.release(); }
+    } catch (error) {
+      await Promise.allSettled([completing.query("ROLLBACK"), aborting.query("ROLLBACK")]);
+      throw error;
+    } finally { completing.release(); aborting.release(); }
     const expiredClosePayload = multipart(fixture, {}); await insertSession(fixture.ownerPool, expiredClosePayload, "active"); const expiredCloseAttempt = randomUUID(); const expiredCloseBegin = await beginMultipart(fixture, expiredCloseAttempt, expiredClosePayload, 60_000); const canonicalExpiredClose = { ...expiredClosePayload, normalizationVersion: expiredCloseBegin.normalization_version! };
     await fixture.ownerPool.query("UPDATE content.media_blob_writer_attempts SET lease_expires_at=clock_timestamp()-interval '1 second' WHERE attempt_token=$1", [expiredCloseAttempt]); await fixture.ownerPool.query("UPDATE content.media_upload_sessions SET state='aborting' WHERE media_upload_session_id=$1", [expiredClosePayload.sessionId]); assert.equal(await multipartStatus(fixture, "close_media_upload_session_blob_writer_attempts", expiredCloseAttempt, expiredCloseBegin.reservation_token!, canonicalExpiredClose), "aborted");
     const revokedPayload = multipart(fixture, {});
@@ -465,7 +478,10 @@ test("writer attempts fence direct and multipart work with durable replay and ca
       await deleter.query("BEGIN"); await deleter.query("SET LOCAL statement_timeout='4s'; SET LOCAL lock_timeout='4s'"); const deletePid = (await deleter.query<{ pid: number }>("SELECT pg_backend_pid() AS pid")).rows[0].pid;
       const pendingDelete = deleter.query("DELETE FROM org.workspaces WHERE workspace_id=$1", [fixture.workspaceId]); await waitForLock(fixture, deletePid);
       await worker.query("COMMIT"); await pendingDelete; await deleter.query("COMMIT");
-    } finally { await Promise.allSettled([worker.query("ROLLBACK"), deleter.query("ROLLBACK")]); worker.release(); deleter.release();
+    } catch (error) {
+      await Promise.allSettled([worker.query("ROLLBACK"), deleter.query("ROLLBACK")]);
+      throw error;
+    } finally { worker.release(); deleter.release();
     }
     const deletion = (await fixture.ownerPool.query( `SELECT count(*) FILTER (WHERE state='leased')::int AS live, count(*) FILTER (WHERE outcome='aborted')::int AS aborted, bool_and(lifecycles.cleanup_eligible_at IS NOT NULL) AS cleanup FROM content.media_blob_writer_attempts AS attempts INNER JOIN content.media_blob_lifecycles AS lifecycles ON lifecycles.sha256=attempts.sha256 WHERE attempts.workspace_id=$1`, [fixture.workspaceId],
     )).rows[0];
@@ -501,7 +517,10 @@ test("direct apply serializes with workspace deletion and replays after deletion
       const pendingDelete = deleter.query("DELETE FROM org.workspaces WHERE workspace_id=$1", [fixture.workspaceId]); await waitForLock(fixture, pid);
       assert.equal((await worker.query<StatusRow>(`SELECT content.finish_direct_media_blob_writer_attempt_apply_with_owner($1,$2,${directRow},$16) AS status`, [attempt, begun.reservation_token, ...directValues(canonical), cleanupDelayMs])).rows[0].status, "live_applied");
       await worker.query("COMMIT"); await pendingDelete; await deleter.query("COMMIT");
-    } finally { await Promise.allSettled([worker.query("ROLLBACK"), deleter.query("ROLLBACK")]); worker.release(); deleter.release(); }
+    } catch (error) {
+      await Promise.allSettled([worker.query("ROLLBACK"), deleter.query("ROLLBACK")]);
+      throw error;
+    } finally { worker.release(); deleter.release(); }
     const replay = await beginDirect(fixture, attempt, payload, 60_000); assert.deepEqual([replay.attempt_status, replay.reservation_token, replay.lease_expires_at], ["live_applied", null, null]);
     assert.equal((await beginDirect(fixture, attempt, { ...payload, sourceUrl: "https://wrong.invalid/" }, 60_000)).attempt_status, "stale_attempt");
     } finally { await removeOwnedMedia(fixture, { blob_ids: [], sha256s: [] }); }
