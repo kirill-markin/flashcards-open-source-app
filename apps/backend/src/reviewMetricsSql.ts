@@ -14,7 +14,8 @@ export function buildExcludedSettingsRowSqlLines(actorIdSqlExpression: string): 
   ];
 }
 
-export const excludedTestEmailSql = "LOWER(btrim(excluded_settings.email)) LIKE '%@example.com'";
+export const excludedTestEmailSql =
+  "(LOWER(btrim(excluded_settings.email)) LIKE '%@example.com' OR LOWER(btrim(excluded_settings.email)) LIKE '%+test%')";
 
 /** Any admin grant for the settings row's email, revoked or not. */
 export const excludedAdminUserSqlLines: ReadonlyArray<string> = [

@@ -66,8 +66,8 @@ const clientInstallationActivityWhereSqlFragments = [
   "  AND workspace_replicas.platform IN ('web', 'android', 'ios')",
 ] as const;
 
-// SQL fragments that exclude users whose known email ends with `@example.com` and users
-// who have ever been an admin.
+// SQL fragments that exclude users whose known email ends with `@example.com` or contains
+// `+test` (case-insensitive), and users who have ever been an admin.
 // `joinFragments` and `whereFragments` MUST be spread together into the same query:
 // the WHERE fragments reference `user_settings.email`, which is only in scope after
 // the JOIN fragment brings `org.user_settings` in.
@@ -86,7 +86,10 @@ const accountEmailExclusionSqlFragments = {
   whereFragments: [
     "  AND (",
     "    user_settings.email IS NULL",
-    "    OR LOWER(btrim(user_settings.email)) NOT LIKE '%@example.com'",
+    "    OR (",
+    "      LOWER(btrim(user_settings.email)) NOT LIKE '%@example.com'",
+    "      AND LOWER(btrim(user_settings.email)) NOT LIKE '%+test%'",
+    "    )",
     "  )",
     "  AND NOT EXISTS (",
     "    SELECT 1",
