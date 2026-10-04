@@ -15,8 +15,9 @@ const val localWorkspaceName: String = "Personal"
 
 /**
  * Result of the local workspace shell bootstrap. [didCreateWorkspace] is true
- * only for the call that actually inserted the workspace row, which is the
- * new-user moment callers use for one-time local onboarding work.
+ * only for the call that actually inserted the workspace row; app start seeds
+ * the onboarding demo card on it. Cloud-identity resets ignore it and seed
+ * through `CloudIdentityResetCoordinator`'s own callback instead.
  */
 data class LocalWorkspaceShell(
     val workspaceId: String,

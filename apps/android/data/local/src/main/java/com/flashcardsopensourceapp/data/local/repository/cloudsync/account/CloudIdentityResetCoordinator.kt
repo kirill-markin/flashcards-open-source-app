@@ -20,6 +20,12 @@ class CloudIdentityResetCoordinator(
     private val aiChatHistoryStore: AiChatHistoryStore,
     private val guestAiSessionStore: GuestAiSessionStore,
     private val ownOpenAiKeyStore: OwnOpenAiKeyStore,
+    /**
+     * Runs last in [resetLocalStateForCloudIdentityChange] and
+     * [eraseLocalDataForCredentialRecovery], with the id of the workspace they recreated, once
+     * cloud state allows local card writes again. `:app` seeds the onboarding demo card here.
+     */
+    private val onLocalWorkspaceRecreated: suspend (workspaceId: String) -> Unit,
     private val onCloudIdentityReset: suspend () -> Unit = {}
 ) {
     private val resetMutex = Mutex()
@@ -58,6 +64,7 @@ class CloudIdentityResetCoordinator(
                     activeWorkspaceId = activeWorkspaceId
                 )
                 cloudPreferencesStore.clearAccountDeletionState()
+                onLocalWorkspaceRecreated(activeWorkspaceId)
             }
         }
     }
@@ -96,6 +103,7 @@ class CloudIdentityResetCoordinator(
                 ownOpenAiKeyStore.clear()
                 onCloudIdentityReset()
                 cloudPreferencesStore.clearCloudCredentialRecoveryState()
+                onLocalWorkspaceRecreated(activeWorkspaceId)
             }
         }
     }

@@ -21,6 +21,7 @@ import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ReviewLogEntity
 import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceEntity
 import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceSchedulerSettingsEntity
+import com.flashcardsopensourceapp.data.local.model.cards.CardDraft
 import com.flashcardsopensourceapp.data.local.model.cards.defaultCardType
 import com.flashcardsopensourceapp.data.local.model.cards.encodeDefaultCardMetadataJson
 import com.flashcardsopensourceapp.data.local.model.cloud.formatIsoTimestamp
@@ -86,7 +87,8 @@ internal class CloudIdentityTestEnvironment private constructor(
                 aiChatPreferencesStore = aiChatPreferencesStore,
                 aiChatHistoryStore = aiChatHistoryStore,
                 guestAiSessionStore = guestAiSessionStore,
-                ownOpenAiKeyStore = createOwnOpenAiKeyStore(context = context)
+                ownOpenAiKeyStore = createOwnOpenAiKeyStore(context = context),
+                onLocalWorkspaceRecreated = {}
             )
             return CloudIdentityTestEnvironment(
                 context = context,
@@ -121,6 +123,8 @@ internal class CloudIdentityTestEnvironment private constructor(
             resetCoordinator = resetCoordinator,
             guestSessionStore = guestAiSessionStore,
             appVersion = appVersion,
+            demoCardDraftProvider = ::testDemoCardDraft,
+            onGuestUpgradeDemoCardCleanupFailed = ::throwGuestUpgradeDemoCardCleanupFailure,
             onAnalyticsGuestIdentityLinkRequested = onAnalyticsGuestIdentityLinkRequested
         )
     }
@@ -140,7 +144,8 @@ internal class CloudIdentityTestEnvironment private constructor(
             aiChatPreferencesStore = restartedAiChatPreferencesStore,
             aiChatHistoryStore = restartedAiChatHistoryStore,
             guestAiSessionStore = restartedGuestAiSessionStore,
-            ownOpenAiKeyStore = createOwnOpenAiKeyStore(context = context)
+            ownOpenAiKeyStore = createOwnOpenAiKeyStore(context = context),
+            onLocalWorkspaceRecreated = {}
         )
         val restartedSyncLocalStore = SyncLocalStore(
             database = database,
@@ -160,7 +165,9 @@ internal class CloudIdentityTestEnvironment private constructor(
             operationCoordinator = restartedOperationCoordinator,
             resetCoordinator = restartedResetCoordinator,
             guestSessionStore = restartedGuestAiSessionStore,
-            appVersion = appVersion
+            appVersion = appVersion,
+            demoCardDraftProvider = ::testDemoCardDraft,
+            onGuestUpgradeDemoCardCleanupFailed = ::throwGuestUpgradeDemoCardCleanupFailure
         )
         return RestartedCloudAccountRuntime(
             repository = repository,
@@ -185,7 +192,8 @@ internal class CloudIdentityTestEnvironment private constructor(
             aiChatPreferencesStore = restartedAiChatPreferencesStore,
             aiChatHistoryStore = restartedAiChatHistoryStore,
             guestAiSessionStore = restartedGuestAiSessionStore,
-            ownOpenAiKeyStore = createOwnOpenAiKeyStore(context = context)
+            ownOpenAiKeyStore = createOwnOpenAiKeyStore(context = context),
+            onLocalWorkspaceRecreated = {}
         )
         val restartedSyncLocalStore = SyncLocalStore(
             database = database,
@@ -362,6 +370,18 @@ internal class CloudIdentityTestEnvironment private constructor(
             timeProvider = SystemTimeProvider
         )
     }
+}
+
+private fun testDemoCardDraft(): CardDraft {
+    return CardDraft(
+        frontText = "Test demo card front",
+        backText = "Test demo card back",
+        tags = listOf("demo")
+    )
+}
+
+private fun throwGuestUpgradeDemoCardCleanupFailure(workspaceId: String, error: Exception) {
+    throw IllegalStateException("Guest upgrade demo card cleanup failed for workspace '$workspaceId'.", error)
 }
 
 private fun createOwnOpenAiKeyStore(context: Context): OwnOpenAiKeyStore {

@@ -49,6 +49,7 @@ import com.flashcardsopensourceapp.app.notifications.review.ReviewReminderAttent
 import com.flashcardsopensourceapp.app.notifications.review.ReviewNotificationsManager
 import com.flashcardsopensourceapp.app.notifications.strict.AndroidStrictRemindersScheduler
 import com.flashcardsopensourceapp.app.notifications.strict.StrictRemindersManager
+import com.flashcardsopensourceapp.app.onboarding.buildDemoCardDraft
 import com.flashcardsopensourceapp.app.onboarding.seedDemoCardForNewWorkspace
 import com.flashcardsopensourceapp.data.local.bootstrap.ensureLocalWorkspaceShell
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatLiveRemoteService
@@ -361,6 +362,12 @@ class AppGraph(
         aiChatHistoryStore = aiChatHistoryStore,
         guestAiSessionStore = guestAiSessionStore,
         ownOpenAiKeyStore = ownOpenAiKeyStore,
+        onLocalWorkspaceRecreated = { workspaceId ->
+            seedDemoCardReportingFailure(
+                workspaceId = workspaceId,
+                phase = "demo_card_seed_reset"
+            )
+        },
         onCloudIdentityReset = {
             strictRemindersManager.clearForCloudIdentityReset()
             // Queued events belong to the person who is leaving, and the server attributes a batch
@@ -441,6 +448,16 @@ class AppGraph(
         resetCoordinator = cloudIdentityResetCoordinator,
         guestSessionStore = guestAiSessionStore,
         appVersion = appPackageInfo.versionName,
+        demoCardDraftProvider = {
+            buildDemoCardDraft(context = applicationContext)
+        },
+        onGuestUpgradeDemoCardCleanupFailed = { workspaceId, error ->
+            reportDemoCardFailure(
+                workspaceId = workspaceId,
+                phase = "demo_card_guest_merge_cleanup",
+                error = error
+            )
+        },
         onAnalyticsGuestIdentityLinkRequested = ::requestAnalyticsGuestIdentityLink,
         onProductAnalyticsPreferencePushRefused = ::reportProductAnalyticsPreferencePushRefused
     )
@@ -893,35 +910,52 @@ class AppGraph(
         )
         cloudPreferencesStore.hydrateCloudSettingsFromDatabase()
         if (localWorkspaceShell.didCreateWorkspace) {
-            // The demo card is onboarding decoration, so a seed failure is reported and
-            // swallowed instead of failing startup, exactly like the web client does.
-            try {
-                seedDemoCardForNewWorkspace(
-                    context = applicationContext,
-                    database = database,
-                    cardsRepository = cardsRepository,
-                    workspaceId = localWorkspaceShell.workspaceId
-                )
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Exception) {
-                observability.captureException(
-                    event = AndroidExceptionIssueEvent.AppStartupException(
-                        throwable = error,
-                        startupPhase = "demo_card_seed",
-                        appVersion = appPackageInfo.versionName,
-                        clientVersion = appPackageInfo.versionName,
-                        versionCode = appPackageInfo.longVersionCode.toInt()
-                    )
-                )
-                Log.w(
-                    appGraphLogTag,
-                    "event=demo_card_seed_failed " +
-                        "workspace_id=${localWorkspaceShell.workspaceId} " +
-                        renderSanitizedThrowableLogFields(error = error)
-                )
-            }
+            seedDemoCardReportingFailure(
+                workspaceId = localWorkspaceShell.workspaceId,
+                phase = "demo_card_seed"
+            )
         }
+    }
+
+    /**
+     * The demo card is onboarding decoration, so a seed failure is reported and swallowed
+     * instead of failing startup or a cloud-identity reset, exactly like the web client does.
+     */
+    private suspend fun seedDemoCardReportingFailure(workspaceId: String, phase: String) {
+        try {
+            seedDemoCardForNewWorkspace(
+                context = applicationContext,
+                database = database,
+                cardsRepository = cardsRepository,
+                workspaceId = workspaceId
+            )
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            reportDemoCardFailure(
+                workspaceId = workspaceId,
+                phase = phase,
+                error = error
+            )
+        }
+    }
+
+    private fun reportDemoCardFailure(workspaceId: String, phase: String, error: Exception) {
+        observability.captureException(
+            event = AndroidExceptionIssueEvent.AppStartupException(
+                throwable = error,
+                startupPhase = phase,
+                appVersion = appPackageInfo.versionName,
+                clientVersion = appPackageInfo.versionName,
+                versionCode = appPackageInfo.longVersionCode.toInt()
+            )
+        )
+        Log.w(
+            appGraphLogTag,
+            "event=${phase}_failed " +
+                "workspace_id=$workspaceId " +
+                renderSanitizedThrowableLogFields(error = error)
+        )
     }
 
     suspend fun ensureGuestCloudSession(workspaceId: String): AppGuestCloudSession {
