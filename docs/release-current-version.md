@@ -1,12 +1,16 @@
 # Release All Platforms and Start the Next Development Version
 
 A human or an AI with API/CLI and browser access can execute this runbook.
-A request to run the full release authorizes the platform workflow dispatches,
-monitoring, store metadata edits, Android publication, iOS App Review submission,
-Anthropic connector listing updates and plugin publication requests, GitHub tag
-and Release, and the final version bump. This includes committing, pushing, and
-merging release fixes and version alignment in this repository and
-`kirill-markin/nibomo-plugins` through their normal PR/CI gates.
+A request to run the full release authorizes the documented platform workflow dispatches
+and existing distribution update/publication actions: store metadata, Android
+rollout, iOS App Review and final Apple publication, MCP Registry, existing
+connector/plugin/directory updates, companion tags and CI-produced packages,
+necessary website distribution-link updates, and the next-version transition.
+This includes committing, pushing, and merging release fixes and version
+alignment in this repository, `kirill-markin/nibomo-plugins`, and necessary link
+changes in `kirill-markin/flashcards-open-source-app-website` through each
+repository's normal PR/CI gates. New directory creation and optional marketplace
+expansion require their own scope; they are not required by every release.
 Do not ask for separate approval at every step. A request only to explain or
 edit this guide, draft notes, or bump versions does not authorize a full release.
 
@@ -17,48 +21,113 @@ resolve. Pause the affected action until resolved; continue independent work.
 Do not guess store declarations or bypass failed gates. Skip a platform only
 when the user explicitly asks to skip it.
 
+## Release Inventory and Completion
+
+For each channel, inspect the existing publication first. Verify/reuse unchanged
+publication when its inputs still match; update the existing listing or artifact
+when source, version, tools, auth, or metadata requires it. Never blindly
+republish, recreate a listing, or silently omit a channel.
+
+| Channel | Existing destination and release obligation |
+| --- | --- |
+| Web, backend, machine API/MCP runtime | Verify deployed components, public web access, machine discovery, and applicable smokes under [Web and Backend](manual-production-release.md#web-and-backend). |
+| iOS | Verify the matching version on the public App Store; [iOS procedure](manual-production-release.md#ios). |
+| Android | Verify the matching production version and rollout on Google Play; [Android procedure](manual-production-release.md#android). |
+| Official MCP Registry | Verify `com.nibomo/flashcards` at the target manifest version; [MCP procedure](manual-production-release.md#mcp). |
+| Claude connector and plugin | Verify the [connector](https://claude.ai/directory/nibomo) and the plugin's separate public/installable version; [Anthropic gate](#anthropic-connector-and-plugin). |
+| Smithery | Verify/update the [existing server](https://smithery.ai/servers/kirill-fofi/nibomo), endpoint, health, auth, and discovered tools. |
+| Glama | Verify/update the [existing connector](https://glama.ai/mcp/connectors/com.nibomo/flashcards), endpoint, health, auth, and discovered tools. |
+| Gemini CLI | Verify the [gallery entry](https://geminicli.com/extensions/?name=kirill-markinnibomo-plugins) and released install/update source and version. |
+| Executor | Verify/update the [existing public app](https://v2.executor.sh/apps/nibomo/nibomo) from reviewed `executor/` source; record uploaded/deployed/published identities separately from Git and installed copies. |
+| OpenAI | Reconcile the existing submission's current package, review/publication state, and any required update. Preserve its identity; a disabled website button is not a public listing. |
+| Antigravity | Optional marketplace work; packaged assets do not prove listing approval. Include publication only when explicitly scoped. |
+
+Provider-specific update, installation, and workflow verification belong in
+[`nibomo-plugins` publishing](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md)
+and [Executor publishing](https://github.com/kirill-markin/nibomo-plugins/blob/main/executor/README.md).
+The inventory's current MCP listings must resolve to
+`https://mcp.nibomo.com/mcp`. Record health, authentication, and discovered
+tool inventory against the
+[shared contract](connector-directory-submission.md), including any stale provider
+cache or unresolved diagnostic. Run the companion's real OAuth/create/study/edit
+verification when affected inputs change or valid evidence is missing. Package
+CI alone proves neither OAuth nor those user workflows.
+
+At each release, inspect the website's current `origin/main`
+[`Footer.tsx`](https://github.com/kirill-markin/flashcards-open-source-app-website/blob/main/src/components/Footer.tsx)
+and [`connectorDirectories.ts`](https://github.com/kirill-markin/flashcards-open-source-app-website/blob/main/src/lib/connectorDirectories.ts).
+Reconcile every distribution link with this inventory. Whenever a website link
+is added, update this inventory and its procedure in the same change. During
+an authorized release, change the website only when verified public status or
+URLs require it, using that repository's instructions and checks. Never enable
+a directory button based only on a submission or approval.
+
+Keep a separate release ledger in the operator's chat or release record, not a
+historical status table in these permanent docs. One row per channel must hold:
+target version; source/artifact identity; CI, smoke, skip and warning evidence;
+publication request and status; verified public URL/version/time (and applicable
+storefront/rollout scope); remaining action. Keep secrets and reviewer credentials
+out. Use distinct states: **submitted**, **review pending**, **approved**,
+**propagation pending**, **live**, **unchanged verified**, **blocked**, and
+**explicitly excluded**. Record an exclusion's user authorization and scope.
+Track optional/not-yet-public channels separately: reconciling an existing
+OpenAI submission does not automatically make new marketplace availability a
+mandatory release gate. Record whether its publication is in the agreed scope.
+
+Submission, approval, and a portal's **Published** label alone do not prove
+public availability. External review may run alongside independent work, but
+remains open work. Full publication is complete only when every in-scope channel
+is publicly verified as live or unchanged, or the user explicitly accepts a
+scoped exception. Report such an exception and its remaining work; never call
+that channel live. This same gate controls the next-development transition.
+
+## Resume and Artifact Reuse
+
+Before dispatching or submitting, inspect current source commits and versions,
+store builds/statuses, registry versions, public listings, and successful CI.
+Reuse a matching built, submitted, approved, or live artifact with its gate
+evidence and continue at its next unfinished step. Do not rebuild or resubmit
+an approved/live binary merely because this runbook was restarted.
+
+If the final root commit differs from the artifact's SHA after unrelated or
+docs-only merges, explicitly compare all relevant client/build inputs, including
+shared dependencies, lockfiles, build configuration and workflows. Record both
+SHAs, the compared scope/diff, original artifact/run provenance, and why each
+affected gate's evidence still applies. A matching version string is insufficient.
+Source-affecting changes invalidate the affected artifacts/evidence; rerun their
+gates. Missing evidence is a gap to resolve or explicitly accept with the user,
+not a silent waiver. Use the [platform reuse rules](manual-production-release.md#reuse-existing-artifacts)
+for mobile test, skip, and warning evidence.
+
 ## Release Sequence
 
-1. Identify the current shared version, the previous released tag, and the
-   release commit on `main`. Verify the checked-in version surfaces, including
-   the companion plugin, agree and required CI is green. Record the plugin's
-   separate source commit. Keep this version throughout release fixes; do not
-   bump it before publishing or submitting it for required review.
-2. Generate the user-visible release notes below and put them in the chat as
-   reusable release content. Continue the release using those texts yourself.
-3. Complete the mandatory local Android and iOS preflights in
-   [Platform Release Procedures](manual-production-release.md#local-mobile-release-gate)
-   before dispatching the corresponding platform's cloud workflows. Fix local
-   errors and warnings and repeat the affected preflight first. Then start
-   Android Release, MCP Registry Publish, and both iOS Xcode Cloud workflows
-   using that procedure.
-   Start the [Anthropic updates](#anthropic-connector-and-plugin) below as well.
-   Builds, tests, and store processing take time: run the independent platform
-   flows in parallel, preparing store metadata while their jobs run.
-4. Complete each platform's gate in that procedure and the Anthropic gate below.
-   Track version, source SHA, workflow/run links, Firebase matrix, Android
-   version code/draft, iOS build,
-   and store status in the chat so a resumed run can continue without duplicate
-   publication. For failures, inspect evidence, fix the cause, merge through
-   normal CI, and rerun the affected release flow. Update the target SHA and
-   notes if needed; verify unaffected artifacts remain valid for that target.
-   If a fix affects an already published artifact, ask the user how to handle
-   that platform before proceeding.
-5. Once the platform completion gates pass (or the user explicitly skips a
-   platform), publish the current version's GitHub tag and Release as below.
-   iOS submission to App Review is the gate; waiting for Apple's approval is
-   outside this run. Anthropic review and public propagation are also
-   asynchronous; report them separately from availability and continue once
-   the Anthropic gate below is met.
-6. Bump the shared minor version for the next development cycle:
-   `X.Y.Z` → `X.(Y+1).0`, unless the user explicitly specifies another version.
-   Update the version surfaces below, merge through normal PR/CI gates, and
-   monitor the automatic release/check workflows. Development then continues
-   under this new version. Do not dispatch mobile or MCP Registry releases or
-   request Anthropic plugin publication for the development bump.
-7. Report each platform's actual publication/submission state and links, the
-   GitHub Release, and the merged next development version. Do not mark an
-   unfinished or blocked step complete.
+1. Identify the current shared version, previous released tag, and release
+   commit on `main`; verify version alignment and required CI. Record the
+   companion's separate source commit and reconcile the inventory/ledger above.
+   Keep the release version throughout fixes and publication.
+2. Prepare the release notes below as reusable texts in the chat.
+3. Reuse matching artifacts first. For new mobile artifacts, complete the
+   mandatory [local preflights](manual-production-release.md#local-mobile-release-gate)
+   before the corresponding cloud dispatch, preserving all local/cloud gates.
+   Start the necessary Android, iOS, MCP Registry, and companion publication
+   flows in parallel; prepare metadata while builds and review run.
+4. Complete [platform procedures](manual-production-release.md) and the existing
+   directory updates above, including final Apple/Play publication and public
+   verification. On failure, inspect evidence, fix and merge through normal CI,
+   then repeat affected gates. Update the target SHA/notes and revalidate reuse
+   of unaffected artifacts. If a fix affects an already published artifact,
+   ask the user how to handle that platform before proceeding.
+5. Preserve the release commits and publish/verify the app and companion
+   [tags, Releases, and package assets](#github-tag-and-release). This may happen
+   while external review continues or when a distribution channel needs those
+   assets; a GitHub Release does not complete a pending channel.
+6. After the public completion gate above (or an explicit scoped exception),
+   satisfy all [next-development safeguards](#next-development-version), then
+   bump `X.Y.Z` → `X.(Y+1).0` unless the user specifies another version. Merge
+   aligned version surfaces through normal PR/CI and monitor automatic checks.
+   Do not dispatch mobile/MCP releases or publish development plugin packages.
+7. Report the ledger's actual channel states, public links, app/companion
+   Releases, merged next-version commits, and every remaining accepted action.
 
 ## Anthropic Connector and Plugin
 
@@ -100,10 +169,11 @@ tracked on `main`. Update these listings; do not create duplicate submissions.
    Check the applied policy in **Overview → Auto-publish** together with
    **Settings → Publish new versions automatically**. Passing updates publish
    automatically only when Anthropic's applied policy allows it, the toggle is
-   on, and no reviewer hold applies. The current policy requires an Anthropic
-   reviewer for every version, even with the toggle on: after scans pass,
-   select **Publish** / **Publish update** as offered and verify the review
-   request. The toggle alone does not waive that policy.
+   on, and no reviewer hold applies. Inspect the actual policy and version status
+   on every run: a matching version may already have published automatically.
+   Otherwise select **Publish** / **Publish update** as offered and verify
+   whether it went live or created a reviewer request; do not assume every
+   version requires reviewer approval.
    Reuse an already submitted or published matching version on resume.
 5. **Publication evidence:** record plugin version, source commit, CI and scan
    results, publication policy, request/status, and public listing link when
@@ -113,12 +183,9 @@ tracked on `main`. Update these listings; do not create duplicate submissions.
    prove public visibility. Report reviewer delay or public propagation
    separately; the directory serves the last published version meanwhile.
 
-Completion: the connector runtime is verified, necessary listing edits are
-submitted, and the matching plugin version passed CI/scans and is published or
-has a verified publication request awaiting Anthropic. Pending Anthropic review
-or public propagation does not hold the other platforms, GitHub Release, or next
-development cycle. Failed scans or a missing publication request remain open
-work; do not label them review pending or complete.
+Completion: the runtime, required connector listing edits, and matching plugin's
+public/installable version are verified. Apply the inventory's completion rule
+to reviewer or propagation delays; a request alone leaves this channel open.
 
 ## Release Notes
 
@@ -146,10 +213,16 @@ where the user-visible effect is unclear.
 
 ## GitHub Tag and Release
 
-After the platform gates pass, create or verify the current version's tag at the
-final release commit, whose checked-in versions still report that version.
-Prefer an annotated tag and follow the existing tag naming convention. Publish
-a GitHub Release with the English release notes from the chat.
+Once the source/artifact gates pass, create or verify immutable current-version
+tags in both app and companion repositories at their recorded release commits,
+whose manifests still report that version. Prefer annotated tags and existing
+naming conventions. Record any artifact-SHA comparison under the reuse rules.
+Publish GitHub Releases with the English notes and preserve the companion's
+exact successful **Plugin packages** CI assets under its
+[publishing procedure](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md).
+Record asset identity/checksums and provenance; an expiring Actions artifact
+alone is not durable release preservation. Do this before either repository's
+next-development bump. Public channels can still be pending at this stage.
 
 Before retrying, check whether the tag and Release already exist. Reuse a
 matching result; do not move a published tag or overwrite conflicting release
@@ -160,22 +233,31 @@ than tagging the new development version.
 ## Next Development Version
 
 Update backend, web, Android, and iOS to the same next minor version in one
-change after publishing the current release. Align the companion plugin in its
-separate repository in the same cycle. Keep product and plugin versions equal;
-make any concrete release exception explicit.
+change only after the public completion gate or the user's explicit scoped
+exception. Align the companion plugin in its separate repository in the same
+cycle. Keep product and plugin versions equal; record any concrete exception.
 
 A version bump is not complete until the version surfaces below, including the
 plugin repository, are aligned with their documented runtime version sources.
 
-Before merging a development bump to the plugin's tracked `main`, turn automatic
-publication off so webhook or scheduled scans cannot publish the unreleased
-version. Keep the released version's commit and pending publication request
-recorded and intact; do not change the tracked ref to bypass review.
-Development source/scan alignment does not require publication or reviewer
-approval. If portal state prevents preserving the release request, pause only
-the affected plugin action and report it while continuing independent release work.
+Before either bump, verify both release tags and preserved package assets.
+Before merging to the plugin's tracked `main`, turn Anthropic automatic
+publication off and verify the saved setting. Preserve any explicitly accepted
+pending release request and its source commit; changing the tracked ref can
+cancel a pending request, so do not use it to bypass review. If preservation is
+blocked, stop the affected transition and report it.
 
-Do not change `/v1` API paths or API Gateway stage names as part of an app release bump. Those values describe the public API contract version, not the app release version.
+Also establish and verify the companion's stable Gemini install/update source
+under its [publishing procedure](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md)
+and [Gemini release guidance](https://geminicli.com/docs/extensions/releasing/).
+Check both fresh installation and the supported update path resolve the released
+version, including the source reached from the gallery. An unpinned Git install
+follows HEAD; merely creating a tag does not protect users following `main`.
+Do not merge the next-version manifest until the stable route is verified and
+existing users' update behavior is accounted for. Keep the accepted pending
+request and remaining follow-up in the ledger through the transition.
+
+Do not change `/v1` API paths, API Gateway stage names, or MCP `SERVER_VERSION = "v1"` as part of an app release bump. These identify the API contract, not app semver.
 
 ## Source Of Truth By Platform
 
@@ -216,9 +298,9 @@ For every shared-version update, align these files in the separate
 
 Keep the packaging script's derived archive versions and Antigravity metadata
 derived from the manifests; do not add another version literal. This source
-alignment does not authorize publication to other plugin directories. During a
-full release, satisfy the Anthropic completion gate above before advancing to
-the next development version; a standalone version bump only aligns source.
+alignment alone does not authorize publication. A full release includes the
+existing channels in the inventory and requires the completion and transition
+gates above; a standalone version bump only aligns source.
 
 ### Web
 

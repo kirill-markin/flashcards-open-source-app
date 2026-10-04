@@ -7,6 +7,29 @@ and the next-version bump. Here, "manual" means explicitly dispatched rather
 than automatically triggered by a push; either a human or an authorized AI can
 operate the workflows and consoles.
 
+## Reuse Existing Artifacts
+
+Inspect the current store/registry state before starting the numbered flows.
+Follow the canonical [source comparison and ledger rules](release-current-version.md#resume-and-artifact-reuse)
+when reusing an artifact, including when later docs-only or unrelated commits
+changed the root SHA. For a matching artifact, continue at the next unfinished
+step; an approved or live binary does not need another build or submission.
+
+Reuse retains the original gates: recover local preflight logs, cloud runs,
+artifact identity, and actual smoke/test results. For Android, correlate the
+signed AAB, version code, GitHub run and exact completed Firebase matrix. For
+iOS, recover both archive and test workflows and the uploaded build identity.
+Record passed/failed/skipped cases, skip reasons, coverage limits, and inspected
+warnings. A green summary alone is insufficient; missing evidence or unexpected
+skips remain gaps to investigate, never implicit passes. If evidence cannot be
+recovered, report the gap and obtain an explicit scoped exception before
+counting that gate complete. Do not manufacture retrospective preflight results.
+
+Newly dispatched artifacts must still pass every local and cloud gate below.
+A source-affecting fix invalidates affected evidence and requires the corrected
+artifact's gates. Read APIs/CLIs first; use the browser for unsupported actions
+or diagnosed access blockers, including final store publication.
+
 ## Local Mobile Release Gate
 
 Before dispatching either mobile platform's cloud release, complete its local
@@ -31,18 +54,27 @@ retrying the cloud flow.
 
 ## MCP
 
-Run `MCP Registry Publish` (`.github/workflows/mcp-registry-publish.yml`) on
+First inspect the public registry for the target `server.json.version` and
+compare its manifest with the intended release. Reuse a matching publication
+and its workflow evidence. Only if that version is absent, run
+`MCP Registry Publish` (`.github/workflows/mcp-registry-publish.yml`) on
 `main` while `server.json.version` still names the current release. Check that
 the run used the intended manifest/version and completed successfully; the
 workflow validates, publishes, and verifies the registry entry. No console
 publication step follows. See [publisher details](mcp-registry-publishing.md)
 only for troubleshooting or credential setup.
 
-Completion: the workflow verified the intended published version. On resume,
-reuse an already verified publication; registry versions are immutable, so do
-not publish the same version again or bump just to retry.
+Completion: the intended version and manifest are verified at the public
+registry endpoint and linked to successful workflow evidence. Registry versions
+are immutable: do not republish a version or bump just to retry. A conflicting
+published manifest blocks this channel and needs an explicit resolution.
 
 ## Android
+
+For a matching draft or submitted artifact, resume at the remaining
+checks/publication steps without creating a duplicate. For an
+approved or live release, verify retained gate evidence and continue at step 8;
+otherwise create a new artifact through every gate below.
 
 1. Complete the [local parity commands](android-ci-cd.md#local-parity-commands):
    run `bash scripts/android/run-android-ci.sh` from the repository root for
@@ -78,15 +110,34 @@ not publish the same version again or bump just to retry.
    exact bundle. Keep its identity pinned; do not select a newer unrelated
    upload. If Play requires review first, submit and verify the resulting
    review status; complete any publication action already available.
+8. Follow the exact version code through Play review and publication. With
+   managed publishing enabled, approval leaves changes ready to publish:
+   complete **Publish changes** for the intended release. Otherwise verify the
+   automatic publication after approval. See Google's
+   [review and managed publishing controls](https://support.google.com/googleplay/android-developer/answer/9859654?hl=en).
+   Confirm the production rollout and intended countries/audience; record any
+   staged percentage or hold rather than describing it as full rollout.
+9. Verify the target version on the public Play listing and availability to
+   the intended production audience (use an eligible installation/update when
+   listing metadata alone cannot establish the version). Record the public URL,
+   version, rollout scope and verification time. If approved but unavailable,
+   keep the channel open as propagation pending or blocked according to evidence.
 
-Completion: Firebase and GitHub are green and the matching production release
-has been published or submitted for required Play review. A draft alone does
-not complete this gate; report review pending separately from live rollout.
+Completion: retained or new Firebase/GitHub and local gate evidence is valid,
+and the matching production version is publicly verified at the intended
+rollout scope. Submission or review approval alone leaves this channel open
+under the [canonical completion contract](release-current-version.md#release-inventory-and-completion).
 
 Configuration, Firebase access, artifact correlation, and Play translation
 checks: [Android CI/CD](android-ci-cd.md).
 
 ## iOS
+
+Read the current version/build and review state through the App Store Connect
+API first. Reuse a matching approved/live build with its gate evidence: for
+`PENDING_DEVELOPER_RELEASE` continue at step 8; for an already distributed build,
+continue at step 9. Preserve an existing review submission and monitor it instead
+of uploading or resubmitting the same artifact. New artifacts follow all steps.
 
 1. Prepare production build values using [iOS Local Setup](ios-local-setup.md).
    From the repository root, compile an unsigned device Release archive:
@@ -157,10 +208,26 @@ checks: [Android CI/CD](android-ci-cd.md).
    Review**. Confirm **Waiting for Review** and record the submission identity
    with its version/build. A **Ready for Review** draft or an attached build
    alone does not complete submission.
+8. Monitor review while independent release work continues. When the approved
+   version is `PENDING_DEVELOPER_RELEASE`, manually publish that same build
+   using the supported App Store Connect API action or **Release This Version**
+   in the browser and confirm. For an automatic release, verify that publication
+   actually started. Follow Apple's
+   [release procedure](https://developer.apple.com/help/app-store-connect/manage-your-apps-availability/select-an-app-store-version-release-option/);
+   do not create a replacement submission merely to release an approved build.
+9. Verify `READY_FOR_DISTRIBUTION` (legacy `READY_FOR_SALE`) and the matching
+   version on the public storefront in the intended regions. Record the app URL,
+   public version and verification time alongside the build identity. Apple
+   [availability statuses](https://developer.apple.com/help/app-store-connect/reference/app-information/app-and-submission-statuses)
+   distinguish readiness from regional availability. Public lookup/storefront
+   propagation can lag the API: record propagation pending and check again,
+   rather than declaring the release live from the API status alone.
 
-Completion: both workflows passed without unresolved warnings and the matching
-build/version was submitted for App Review. Do not wait for Apple's review
-verdict before continuing to the GitHub Release and next-version bump.
+Completion: retained or new local/cloud gate evidence is valid, both cloud
+workflows passed without unresolved warnings, and the matching build/version is
+publicly available. Submission, approval, and propagation pending remain open
+under the [canonical completion contract](release-current-version.md#release-inventory-and-completion),
+including its rule for any exception before the next-development bump.
 
 Build configuration: [iOS CI/CD](ios-ci-cd.md). API diagnostics and result
 bundles: [Xcode Cloud data access](xcode-cloud-data-access.md).
@@ -172,5 +239,13 @@ limited to the components that changed since their last release.
 Verify the release commit's applicable deployment and smoke jobs succeeded. Fix failures before declaring this platform complete;
 AWS deploys and their artifacts stay in CI/CD.
 
-Completion: the applicable automatic release/checks are green. See
-[Release Gates](release-gates.md) for monitoring and migration/rollback rules.
+Verify public web access and the machine discovery entrypoint
+`https://api.flashcards-open-source-app.com/v1/`, with deployed MCP evidence for
+`https://mcp.nibomo.com/mcp`. Record component SHAs and the relevant successful
+deployment/smoke runs; use the canonical source comparison rules for unchanged
+components. The web smoke serves CI-built assets against production APIs, so it
+does not by itself prove hosted web availability.
+
+Completion: applicable automatic release/checks are green and the intended
+public web/backend/machine runtime is verified. See [Release Gates](release-gates.md)
+for component selection, smoke limits, and migration/rollback rules.
