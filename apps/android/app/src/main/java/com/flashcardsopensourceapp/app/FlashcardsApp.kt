@@ -760,6 +760,7 @@ fun FlashcardsApp(
                     presenter = premiumPresenter,
                     appGraph = appGraph,
                     cloudSettings = cloudSettings,
+                    analyticsSurface = analyticsSurfaceForRoute(route = currentRoute),
                     onOpenSignIn = {
                         navController.navigate(
                             route = SettingsAccountSignInEmailDestination.createRoute(origin = AnalyticsSurface.AI)

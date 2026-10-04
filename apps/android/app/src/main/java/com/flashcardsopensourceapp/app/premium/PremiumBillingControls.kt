@@ -31,13 +31,18 @@ import com.flashcardsopensourceapp.app.store.GooglePlaySubscriptionFailure
 import com.flashcardsopensourceapp.app.store.GooglePlaySubscriptionFailurePhase
 import com.flashcardsopensourceapp.app.store.GooglePlaySubscriptionOfferState
 import com.flashcardsopensourceapp.app.store.GooglePlaySubscriptionOperationState
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudEntitlement
 import com.flashcardsopensourceapp.feature.settings.openExternalUrl
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 @Composable
-internal fun PremiumStoreOffer(connector: GooglePlaySubscriptionConnector, entitlement: CloudEntitlement?) {
+internal fun PremiumStoreOffer(
+    connector: GooglePlaySubscriptionConnector,
+    entitlement: CloudEntitlement?,
+    analyticsSurface: AnalyticsSurface?
+) {
     val context = LocalContext.current
     val resources = LocalResources.current
     val offerState by connector.offer.collectAsStateWithLifecycle()
@@ -92,7 +97,7 @@ internal fun PremiumStoreOffer(connector: GooglePlaySubscriptionConnector, entit
                     Text(stringResource(R.string.premium_activity_unavailable), color = MaterialTheme.colorScheme.error)
                 }
                 Button(
-                    onClick = { activity?.let { connector.purchase(it, state.offer) } },
+                    onClick = { activity?.let { connector.purchase(it, state.offer, analyticsSurface) } },
                     enabled = activity != null && entitlement != null && !hasPremiumAccess(entitlement) &&
                         !isBillingOperationBusy(operation) && !requiresPurchaseVerification(operation),
                     modifier = Modifier.fillMaxWidth().testTag("premium_purchase")
@@ -102,7 +107,7 @@ internal fun PremiumStoreOffer(connector: GooglePlaySubscriptionConnector, entit
             }
         }
     }
-    PremiumBillingActions(connector = connector)
+    PremiumBillingActions(connector = connector, analyticsSurface = analyticsSurface)
     val termsUrl = stringResource(com.flashcardsopensourceapp.feature.settings.R.string.flashcards_terms_of_service_url)
     val privacyUrl = stringResource(com.flashcardsopensourceapp.feature.settings.R.string.flashcards_privacy_policy_url)
     TextButton(
@@ -125,7 +130,7 @@ private fun OfferRetryButton(connector: GooglePlaySubscriptionConnector, enabled
 }
 
 @Composable
-internal fun PremiumBillingActions(connector: GooglePlaySubscriptionConnector) {
+internal fun PremiumBillingActions(connector: GooglePlaySubscriptionConnector, analyticsSurface: AnalyticsSurface?) {
     val activity = findBillingActivity(LocalContext.current)
     val operation by connector.operation.collectAsStateWithLifecycle()
     val offer by connector.offer.collectAsStateWithLifecycle()
@@ -174,7 +179,8 @@ internal fun PremiumBillingActions(connector: GooglePlaySubscriptionConnector) {
                                 state.phase == GooglePlaySubscriptionFailurePhase.ENTITLEMENT -> connector.refreshEntitlement()
                                 state.phase == GooglePlaySubscriptionFailurePhase.PURCHASE_PREPARATION -> connector.purchase(
                                     activity = requireNotNull(activity),
-                                    displayedOffer = requireNotNull(availableOffer)
+                                    displayedOffer = requireNotNull(availableOffer),
+                                    analyticsSurface = analyticsSurface
                                 )
                                 else -> when (state.failure) {
                                     GooglePlaySubscriptionFailure.STORE_UNAVAILABLE,
@@ -204,7 +210,7 @@ internal fun PremiumBillingActions(connector: GooglePlaySubscriptionConnector) {
             else -> Unit
         }
         TextButton(
-            onClick = { runAction { connector.restore() } },
+            onClick = { runAction { connector.restore(analyticsSurface = analyticsSurface) } },
             enabled = !busy,
             modifier = Modifier.fillMaxWidth().testTag("premium_restore")
         ) { Text(stringResource(R.string.premium_restore)) }
