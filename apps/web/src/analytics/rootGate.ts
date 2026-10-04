@@ -42,7 +42,7 @@ export type AnalyticsRootGate =
  * started undecided there would never report at all.
  *
  * Read while this module evaluates, before React mounts anything, so nothing the app itself
- * navigates to afterwards can reach it. `vite.config.ts` runs the web tests under `jsdom`, so
+ * navigates to afterwards can reach it. `vite.config.mts` runs the web tests under `jsdom`, so
  * `window` answers on every import path.
  *
  * Latched once, which makes it right only while no public route reaches an authenticated address by
