@@ -4,6 +4,7 @@ import android.content.res.Resources
 import com.android.billingclient.api.ProductDetails
 import com.flashcardsopensourceapp.app.R
 import com.flashcardsopensourceapp.app.store.GooglePlaySubscriptionOffer
+import com.flashcardsopensourceapp.app.store.googlePlaySubscriptionOfferHasFreeTrial
 import java.time.Period
 import java.time.format.DateTimeParseException
 
@@ -50,8 +51,7 @@ internal fun premiumOfferDetails(offer: GooglePlaySubscriptionOffer, resources: 
         descriptions.add(description)
     }
     val firstPhase = phases.first()
-    val hasFreeTrial = firstPhase.priceAmountMicros == 0L &&
-        firstPhase.recurrenceMode == ProductDetails.RecurrenceMode.FINITE_RECURRING
+    val hasFreeTrial = googlePlaySubscriptionOfferHasFreeTrial(offer)
     val purchaseLabel = if (hasFreeTrial) {
         resources.getString(
             R.string.premium_start_trial,

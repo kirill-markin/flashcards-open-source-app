@@ -91,3 +91,10 @@ internal fun selectGooglePlaySubscriptionOffer(details: ProductDetails): GoogleP
         }
     )
 }
+
+/** A free trial is a zero-price first phase that Play bills for a finite number of cycles. */
+internal fun googlePlaySubscriptionOfferHasFreeTrial(offer: GooglePlaySubscriptionOffer): Boolean {
+    val firstPhase = offer.pricingPhases.first()
+    return firstPhase.priceAmountMicros == 0L &&
+        firstPhase.recurrenceMode == ProductDetails.RecurrenceMode.FINITE_RECURRING
+}

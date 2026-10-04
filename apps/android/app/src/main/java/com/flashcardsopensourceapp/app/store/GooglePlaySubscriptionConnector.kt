@@ -17,6 +17,7 @@ import com.android.billingclient.api.queryProductDetails
 import com.android.billingclient.api.queryPurchasesAsync
 import com.flashcardsopensourceapp.core.observability.analytics.Analytics
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPurchaseOfferType
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPurchaseOutcome
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPurchaseRestoreOutcome
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
@@ -190,7 +191,10 @@ class GooglePlaySubscriptionConnector(
                 failurePhase = GooglePlaySubscriptionFailurePhase.PURCHASE_RECOVERY
                 launchedAccount = account
                 operationState.value = GooglePlaySubscriptionOperationState.Purchasing(account.identity)
-                analytics.track(event = AnalyticsEvent.PurchaseStarted(screen = analyticsSurface))
+                analytics.track(event = AnalyticsEvent.PurchaseStarted(
+                    offerType = purchaseOfferType(displayedOffer),
+                    screen = analyticsSurface
+                ))
                 val result = billingClient.launchBillingFlow(
                     activity,
                     BillingFlowParams.newBuilder()
@@ -229,22 +233,28 @@ class GooglePlaySubscriptionConnector(
     fun restore(analyticsSurface: AnalyticsSurface?): Job = runOperation {
         launchedAccount = null
         operationState.value = GooglePlaySubscriptionOperationState.Loading
-        try {
-            val identity = repository.prepareRestore()
-            val purchases = queryPurchases()
-            if (purchases.isEmpty()) {
-                operationState.value = GooglePlaySubscriptionOperationState.NothingToRestore
-            }
-            for (purchase in purchases) {
-                processPurchase(purchase, identity, GooglePurchaseIntent.EXPLICIT)
-            }
+        // Only Play's answer is reported: a session failure before the query and the server's
+        // verification after it are not what the store returned.
+        val identity = repository.prepareRestore()
+        val purchases = try {
+            queryPurchases()
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
             trackRestoreFinished(outcome = AnalyticsPurchaseRestoreOutcome.FAILED, analyticsSurface = analyticsSurface)
             throw error
         }
-        trackRestoreFinished(outcome = restoreOutcome(operationState.value), analyticsSurface = analyticsSurface)
+        trackRestoreFinished(
+            outcome = if (purchases.isEmpty()) AnalyticsPurchaseRestoreOutcome.NOTHING_TO_RESTORE
+                else AnalyticsPurchaseRestoreOutcome.RESTORED,
+            analyticsSurface = analyticsSurface
+        )
+        if (purchases.isEmpty()) {
+            operationState.value = GooglePlaySubscriptionOperationState.NothingToRestore
+        }
+        for (purchase in purchases) {
+            processPurchase(purchase, identity, GooglePurchaseIntent.EXPLICIT)
+        }
     }
 
     fun resume(): Job = runOperation { recoverPurchases() }
@@ -473,13 +483,9 @@ private fun purchaseOutcome(responseCode: Int, purchases: List<Purchase>): Analy
     }
 }
 
-/** Read after every found purchase was processed; anything short of granted access is a failure. */
-private fun restoreOutcome(state: GooglePlaySubscriptionOperationState): AnalyticsPurchaseRestoreOutcome {
-    return when (state) {
-        is GooglePlaySubscriptionOperationState.Complete -> AnalyticsPurchaseRestoreOutcome.RESTORED
-        GooglePlaySubscriptionOperationState.NothingToRestore -> AnalyticsPurchaseRestoreOutcome.NOTHING_TO_RESTORE
-        else -> AnalyticsPurchaseRestoreOutcome.FAILED
-    }
+private fun purchaseOfferType(offer: GooglePlaySubscriptionOffer): AnalyticsPurchaseOfferType {
+    return if (googlePlaySubscriptionOfferHasFreeTrial(offer)) AnalyticsPurchaseOfferType.FREE_TRIAL
+        else AnalyticsPurchaseOfferType.STANDARD
 }
 
 private fun requireBillingSuccess(result: BillingResult) {
