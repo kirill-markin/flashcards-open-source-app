@@ -25,18 +25,27 @@ import type { AiUsageCounters } from "./record";
 export const aiLimitReachedCode: string = "AI_LIMIT_REACHED";
 
 /**
- * The error code a refused chat turn carries for a guest, with the same status and body. Guests keep it
- * because released iOS and Android builds recognise only this code for the create-account prompt; the
- * guest branch can go once no supported mobile release depends on it.
+ * The error code a refused chat turn carries for a guest, with the same status. Guests keep it because
+ * released iOS and Android builds recognise only this code for the create-account prompt; the guest
+ * branch can go once no supported mobile release depends on it.
  */
 export const guestAiLimitReachedCode: string = "GUEST_AI_LIMIT_REACHED";
 
 /**
- * Carried under both codes, verbatim from the original guest quota. A client that only knows the guest
- * code falls back to showing this string, so changing it would change what already-released clients say.
+ * Carried under the guest code, verbatim from the original guest quota. A client that only knows the
+ * guest code falls back to showing this string, so changing it would change what already-released
+ * clients say.
+ */
+const guestAiLimitReachedMessage =
+  "Your free monthly AI limit is used up on this device. Create an account to keep going.";
+
+/**
+ * Carried under the signed-in code. Current clients show their own localized copy for that code, so this
+ * text reaches only mobile builds older than that copy, which offer neither an own-key setting nor a
+ * Premium purchase: it must not point at either, nor ask a signed-in person to create an account.
  */
 const aiLimitReachedMessage =
-  "Your free monthly AI limit is used up on this device. Create an account to keep going.";
+  "You've used this month's free AI messages. Update the app to upgrade to Premium and keep going.";
 
 /**
  * How raw counters become the one number the heavy-spend warning and the usage report read. Output
@@ -242,11 +251,11 @@ export async function assertAiUsageAllowanceNotReached(
 
   const messages = await loadAiUsageMessagesForMonth(userId, getAiUsageMonthWindow(now));
   if (messages.platformKeyMessages >= monthlyMessages) {
-    throw new HttpError(
-      429,
-      aiLimitReachedMessage,
-      allowance.accountKind === "guest" ? guestAiLimitReachedCode : aiLimitReachedCode,
-    );
+    if (allowance.accountKind === "guest") {
+      throw new HttpError(429, guestAiLimitReachedMessage, guestAiLimitReachedCode);
+    }
+
+    throw new HttpError(429, aiLimitReachedMessage, aiLimitReachedCode);
   }
 }
 
@@ -363,7 +372,7 @@ function reportAiUsageAllowanceResolutionFailure(
 
 /**
  * Reports a resolution whose failure a surface captured instead of answering, for a caller the fallback
- * tier caps - today only a guest - who therefore has no allowance to fall back to.
+ * tier caps, who therefore has no allowance to fall back to.
  *
  * It is called where the failure is captured rather than where it is consumed, because one consumer
  * discards it by design: the chat route holds the failure until `prepareChatRun` has told it whether this
@@ -418,11 +427,11 @@ export async function resolveAiUsageTierForFacts(
  * else's, while the refusal is a read of already-appended facts and belongs wherever the decision does
  * (`prepareChatRun` in apps/backend/src/chat/runs/lifecycleService.ts).
  *
- * When the fallback tier leaves this account kind uncapped - a free signed-in account today - a failed
- * read is a warning and the call proceeds uncapped on that tier: failing it would protect nothing,
- * because the fallback could never refuse it. A caller the fallback tier caps - a guest - has a refusal
- * that depends on the billing tables being readable, and there a failed read still propagates rather
- * than silently admitting the call.
+ * When the fallback tier leaves this account kind uncapped, a failed read is a warning and the call
+ * proceeds uncapped on that tier: failing it would protect nothing, because the fallback could never
+ * refuse it. A caller the fallback tier caps - every account kind, since the free tier caps both - has a
+ * refusal that depends on the billing tables being readable, and there a failed read still propagates
+ * rather than silently admitting the call.
  */
 export async function resolveAiUsageAllowanceForEnforcement(
   userId: string,

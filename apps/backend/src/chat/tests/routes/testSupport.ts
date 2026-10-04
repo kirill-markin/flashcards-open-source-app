@@ -13,13 +13,13 @@ export const LEGACY_WORKSPACE_ID = "workspace-legacy";
 
 // Starting a turn resolves the caller's monthly AI allowance, which reads the billing tables, and then
 // compares it against the month's usage facts inside the run transaction. These route tests stub both
-// halves, with the uncapped allowance a free signed-in caller resolves and the refusal it can never
-// reach, and the heavy-spend report that reads the same facts.
+// halves, with the allowance a free signed-in caller resolves and a refusal that admits every turn,
+// and the heavy-spend report that reads the same facts.
 export const aiUsageAllowanceTestOptions = {
   resolveAiUsageAllowanceForEnforcementFn: async (): Promise<AiUsageAllowance> => ({
     tier: "free",
     accountKind: "account",
-    monthlyMessages: null,
+    monthlyMessages: 50,
   }),
   assertAiUsageAllowanceNotReachedFn: async (): Promise<void> => undefined,
   reportHeavyAiUsageWeightedTokensFn: async (): Promise<void> => undefined,

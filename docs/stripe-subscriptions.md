@@ -49,7 +49,7 @@ Premium and lifetime access carry 1000 platform-key AI chat messages per calenda
 month in UTC. Sync and the ability to supply an own OpenAI key remain free; that
 key does not unlock Premium features, and OpenAI usage is billed separately.
 There is no annual or lifetime product for sale. Preparing this catalog does not
-activate the free-account 50-message limit or make web purchases available.
+make web purchases available.
 
 ## Resource inventory
 
@@ -121,8 +121,7 @@ for subsequent renewal views. Never promise a converted amount that Stripe has
 not supplied. `offer.allowanceWindow` distinguishes the UTC calendar-month
 allowance from the subscription billing period.
 
-`limit.freeExplanation` is prepared for the future coordinated limit rollout; it
-does not enable that limit. Own-key copy belongs in the AI allowance context.
+Own-key copy belongs in the AI allowance context.
 `deletion.*` supplements the app’s existing account/data-deletion confirmation and
 must ship only with the cancellation behavior below. Technical errors follow the
 web app’s actionable error presentation without exposing raw provider responses.
@@ -604,8 +603,7 @@ variable readback alone does not deploy a runtime flag.
    offer availability and the existing review account's server-selected Sandbox.
    A real financial purchase needs its own user authorization.
 4. On a failed activation gate, restore the variable to `false` and deploy the
-   correction through the same CI path. Verify the runtime readback. Leave the
-   free-account 50-message cap for its separately authorized coordinated rollout.
+   correction through the same CI path. Verify the runtime readback.
 
 
 ## Stripe references

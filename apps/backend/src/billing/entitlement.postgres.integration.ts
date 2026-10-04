@@ -167,7 +167,7 @@ test("a person without purchases or grants resolves to the free tier and is cach
         until: null,
         isTrial: false,
         willRenew: false,
-        limits: { aiMonthlyMessages: null, aiMonthlyWeightedTokens: null },
+        limits: { aiMonthlyMessages: 50, aiMonthlyWeightedTokens: null },
       });
 
       const cachedAfterFirst = await fixture.ownerPool.query<EntitlementSnapshotStateRow>(
@@ -292,7 +292,7 @@ test("the sync pull response publishes the highest-ranked entitlement that curre
         until: null,
         isTrial: false,
         willRenew: false,
-        limits: { aiMonthlyMessages: null, aiMonthlyWeightedTokens: null },
+        limits: { aiMonthlyMessages: 50, aiMonthlyWeightedTokens: null },
       });
       const cachedAfterExpiry = await fixture.ownerPool.query<EntitlementSnapshotStateRow>(
         entitlementSnapshotStateQuery,

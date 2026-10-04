@@ -934,14 +934,14 @@ function buildChatAgentToolContext(
         ),
         context.clientPlatform,
       ),
-      // This is the one surface a guest reaches, and a guest is the only account kind capped today,
+      // This is the one surface a guest reaches, and a guest and an account carry different caps,
       // so the kind has to be right rather than assumed. It comes from the claim the request that
       // started this run authenticated with, which is the single reading the route enforced the
       // turn's allowance with and the worker attributed its usage facts by. Probing the Cognito
       // identity mapping instead would answer differently in a documented state: after a bound
       // guest upgrade the guest session stays live while its user_id is the account's own, so a call
       // still arriving on the guest credential is enforced against the guest cell and refused, while
-      // the probe would say "account" and this tool would report that no cap exists at all.
+      // the probe would say "account" and this tool would report the account's cap instead.
       loadAiUsageStatus: async (userId, now) => dependencies.loadAiUsageStatus(
         userId,
         resolveAccountKindForSignedInAuth(context.initiatingAuthIsSignedIn),

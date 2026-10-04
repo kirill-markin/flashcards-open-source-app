@@ -35,9 +35,9 @@ Record later outcomes with their evidence and timestamp before updating a gate.
 
 The offer is Premium: 1000 platform-key AI messages per UTC calendar month,
 USD 6.99/month base price, and a Google-controlled seven-day trial. Prices and
-eligible phases displayed on Android come from Play. This work does not activate
-the free-account 50-message limit or sell annual/lifetime products; existing
-lifetime gifts and highest-rank entitlement resolution remain intact.
+eligible phases displayed on Android come from Play. This work does not sell
+annual/lifetime products; existing lifetime gifts and highest-rank entitlement
+resolution remain intact.
 
 | Boundary | Source and contract |
 | --- | --- |
@@ -274,5 +274,4 @@ snapshot.
 
 Finish [release gates](release-gates.md) and the
 [platform publication procedure](release/android.md) only within the
-authorized rollout. Passing this matrix does not itself authorize public sales
-or activation of the global free-account 50-message limit.
+authorized rollout. Passing this matrix does not itself authorize public sales.

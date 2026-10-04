@@ -12,7 +12,6 @@ This document links to source rather than restating mechanism, because the sourc
 These are open by explicit decision, not by oversight. Do not invent them, and do not read a
 placeholder anywhere in the codebase as a decision:
 
-- Paywall UI, placement, and trigger copy on every client.
 - Per-person limit overrides (see [Limits resolve on the backend](#limits-resolve-on-the-backend)).
 
 Prices, the plan name, limit numbers, and whether sandbox purchases grant entitlement are decided in
