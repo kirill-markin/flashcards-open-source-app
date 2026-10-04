@@ -201,6 +201,7 @@ extension LiveSmokeTestCase {
     @MainActor
     func deleteEphemeralWorkspace(workspaceName: String) throws {
         try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.scrollSettingsToCurrentWorkspaceRow()
         try self.assertTextExists(workspaceName, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
         self.logSmokeBreadcrumb(
             event: "cleanup_start",
@@ -256,6 +257,31 @@ extension LiveSmokeTestCase {
             result: "success",
             note: "cleanup finished"
         )
+    }
+
+    @MainActor
+    func scrollSettingsToCurrentWorkspaceRow() throws {
+        try self.runWithInlineRawScreenStateOnFailure(action: "scroll_settings_to_current_workspace") {
+            let workspaceRow = self.app.buttons[LiveSmokeIdentifier.settingsCurrentWorkspaceRow].firstMatch
+            let settingsList = self.app.collectionViews[LiveSmokeIdentifier.settingsScreen].firstMatch
+            let deadline = Date().addingTimeInterval(LiveSmokeConfiguration.longUiTimeoutSeconds)
+
+            while Date() < deadline {
+                if workspaceRow.exists && workspaceRow.isHittable {
+                    return
+                }
+
+                settingsList.swipeDown()
+                RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
+            }
+
+            throw LiveSmokeFailure.missingElement(
+                identifier: LiveSmokeIdentifier.settingsCurrentWorkspaceRow,
+                timeoutSeconds: LiveSmokeConfiguration.longUiTimeoutSeconds,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
     }
 
     @MainActor
