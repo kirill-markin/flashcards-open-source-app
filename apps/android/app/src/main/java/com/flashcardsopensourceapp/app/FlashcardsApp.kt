@@ -531,6 +531,7 @@ fun FlashcardsApp(
                         isAppResumed = true
                         if (currentCanRefreshCloudAccountContext) {
                             appGraph.refreshAccountContextInBackground(source = "app_foreground")
+                            appGraph.saveAppLocaleInBackground(source = "app_foreground")
                         }
                         appGraph.progressContextRefreshController.refreshIfInvalidated(
                             visibleScreen = currentVisibleAppScreenState

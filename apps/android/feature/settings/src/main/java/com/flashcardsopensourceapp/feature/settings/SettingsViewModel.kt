@@ -140,7 +140,8 @@ class SettingsViewModel(
                     update = AccountPreferencesUpdate(
                         accentColor = null,
                         reviewReactionAnimationsEnabled = isEnabled,
-                        productAnalyticsEnabled = null
+                        productAnalyticsEnabled = null,
+                        locale = null
                     )
                 )
             } catch (error: CancellationException) {

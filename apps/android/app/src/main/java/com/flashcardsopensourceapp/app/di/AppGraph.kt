@@ -185,6 +185,7 @@ class AppGraph(
     private val startupStateMutable = MutableStateFlow<AppStartupState>(AppStartupState.Loading)
     private var startupJob: Job? = null
     private var cloudIdentityObserverJob: Job? = null
+    private var appLocaleSaveObserverJob: Job? = null
     private var analyticsGuestIdentityLinkJob: Job? = null
     private var productAnalyticsPreferenceJob: Job? = null
     private var reviewHistoryAppliedObserverJob: Job? = null
@@ -634,6 +635,53 @@ class AppGraph(
         }
     }
 
+    /**
+     * Saves the app language for every cloud user this install becomes, because a sign-in or a
+     * guest-to-account merge leaves the new user with no saved language of its own.
+     */
+    private fun startAppLocaleSaveObserver() {
+        appLocaleSaveObserverJob?.cancel()
+        appLocaleSaveObserverJob = appScope.launch {
+            cloudPreferencesStore.observeCloudSettings()
+                .map { cloudSettings ->
+                    if (
+                        cloudSettings.cloudState == CloudAccountState.GUEST ||
+                        cloudSettings.cloudState == CloudAccountState.LINKED
+                    ) {
+                        cloudSettings.linkedUserId
+                    } else {
+                        null
+                    }
+                }
+                .distinctUntilChanged()
+                .collect { userId ->
+                    if (userId != null) {
+                        saveAppLocale(source = "cloud_identity_changed")
+                    }
+                }
+        }
+    }
+
+    fun saveAppLocaleInBackground(source: String) {
+        appScope.launch {
+            saveAppLocale(source = source)
+        }
+    }
+
+    private suspend fun saveAppLocale(source: String) {
+        val locale: String = currentAppUiLocaleTag(context = applicationContext) ?: return
+        try {
+            cloudAccountRepository.saveAppLocaleIfChanged(locale = locale)
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            Log.w(
+                appGraphLogTag,
+                "event=app_locale_save_failed source=$source ${renderSanitizedThrowableLogFields(error = error)}"
+            )
+        }
+    }
+
     private fun startProductAnalyticsPreferenceObserver() {
         productAnalyticsPreferenceJob = appScope.launch {
             cloudPreferencesStore.observeAccountPreferences()
@@ -774,6 +822,9 @@ class AppGraph(
                         isGooglePlayLifecycleBound = true
                     }
                 }
+                // Last, like every other background account call: its request must not hold the
+                // splash, and reconciliation above may still replace the identity it would save for.
+                startAppLocaleSaveObserver()
                 startupStateMutable.value = AppStartupState.Ready
             } catch (error: CancellationException) {
                 throw error
@@ -1036,6 +1087,7 @@ class AppGraph(
         cloudCredentialRecoveryGateViewModelStoreOwner.viewModelStore.clear()
         accentColorViewModelStoreOwner.viewModelStore.clear()
         cloudIdentityObserverJob?.cancelAndJoin()
+        appLocaleSaveObserverJob?.cancelAndJoin()
         analyticsGuestIdentityLinkJob?.cancelAndJoin()
         productAnalyticsPreferenceJob?.cancelAndJoin()
         reviewHistoryAppliedObserverJob?.cancelAndJoin()

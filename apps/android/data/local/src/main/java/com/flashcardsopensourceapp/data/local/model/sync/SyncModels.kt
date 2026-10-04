@@ -84,7 +84,15 @@ data class AccountPreferencesUpdate(
      * Who asked for [productAnalyticsEnabled]. Null leaves the route's `user_action` default, which
      * is what the controls a person presses want, so only a carried-over answer names it.
      */
-    val productAnalyticsEnabledOrigin: AnalyticsPreferenceWriteOrigin? = null
+    val productAnalyticsEnabledOrigin: AnalyticsPreferenceWriteOrigin? = null,
+    /** The interface language the app displays, as the BCP 47 tag analytics sends as `uiLocale`. */
+    val locale: String?
+)
+
+/** The app language this install last saved to `PATCH /v1/me/preferences`, and the user it was saved for. */
+data class SavedAppLocale(
+    val userId: String,
+    val locale: String
 )
 
 fun defaultAccountPreferences(): AccountPreferences {
