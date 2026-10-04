@@ -255,6 +255,12 @@ enum class AnalyticsPaywallEntryPoint(val wireValue: String) {
     ACCENT_COLOR(wireValue = "accent_color")
 }
 
+/** Whether the offer being bought starts with a Google Play free-trial phase. */
+enum class AnalyticsPurchaseOfferType(val wireValue: String) {
+    FREE_TRIAL(wireValue = "free_trial"),
+    STANDARD(wireValue = "standard")
+}
+
 enum class AnalyticsPurchaseOutcome(val wireValue: String) {
     COMPLETED(wireValue = "completed"),
     CANCELLED(wireValue = "cancelled"),
@@ -596,10 +602,13 @@ sealed interface AnalyticsEvent {
 
     /** The Google Play purchase sheet was launched. */
     data class PurchaseStarted(
+        val offerType: AnalyticsPurchaseOfferType,
         override val screen: AnalyticsSurface?
     ) : AnalyticsEvent {
         override val eventName: String = "purchase_started"
-        override val properties: Map<String, AnalyticsPropertyValue> = emptyMap()
+        override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
+            "offer_type" to AnalyticsPropertyValue.Text(value = offerType.wireValue)
+        )
     }
 
     /** What Google Play reported for the sheet [PurchaseStarted] launched, at most once per launch. */
@@ -613,6 +622,7 @@ sealed interface AnalyticsEvent {
         )
     }
 
+    /** What Google Play returned to a restore query, whether or not the server then grants access. */
     data class PurchaseRestoreFinished(
         val outcome: AnalyticsPurchaseRestoreOutcome,
         override val screen: AnalyticsSurface?
