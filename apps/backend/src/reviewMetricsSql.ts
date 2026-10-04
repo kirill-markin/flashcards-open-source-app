@@ -1,17 +1,11 @@
 // Pure SQL only: this module is also imported by the admin browser bundle.
 // Stored account ids are TEXT and may use uppercase UUID hex; resolved actor ids are canonical.
 // The automated verdict is actor-wide.
-// The arms of the one exclusion rule, each as unindented lines, for `buildExcludedActorSqlLines` and
-// the admin users list's exclusion reason; the reason restates the settings and exclusion-list arms
-// per actor, so change both forms together.
+// The arms of the one exclusion rule, each as unindented lines yielding an id set, which both
+// `buildExcludedActorSqlLines` and the admin users list's exclusion reason read.
 
-/** The actor's own `org.user_settings` row, aliased `excluded_settings`, which both settings arms read. */
-export function buildExcludedSettingsRowSqlLines(actorIdSqlExpression: string): ReadonlyArray<string> {
-  return [
-    "SELECT 1",
-    "FROM org.user_settings AS excluded_settings",
-    `WHERE pg_catalog.lower(excluded_settings.user_id) = ${actorIdSqlExpression}`,
-  ];
+function indentSqlLines(lines: ReadonlyArray<string>, indent: string): ReadonlyArray<string> {
+  return lines.map((line) => `${indent}${line}`);
 }
 
 export const excludedTestEmailSql =
@@ -24,14 +18,25 @@ export const excludedAdminUserSqlLines: ReadonlyArray<string> = [
   "WHERE excluded_admin_users.email = LOWER(btrim(excluded_settings.email))",
 ];
 
-export function buildExclusionListedActorSqlLines(actorIdSqlExpression: string): ReadonlyArray<string> {
-  return [
-    "SELECT 1",
-    "FROM analytics.excluded_actors AS excluded_actors",
-    `WHERE excluded_actors.actor_id = ${actorIdSqlExpression}`,
-    "  AND excluded_actors.restored_at IS NULL",
-  ];
-}
+export const excludedTestEmailActorIdsSqlLines: ReadonlyArray<string> = [
+  "SELECT pg_catalog.lower(excluded_settings.user_id)",
+  "FROM org.user_settings AS excluded_settings",
+  `WHERE ${excludedTestEmailSql}`,
+];
+
+export const excludedAdminActorIdsSqlLines: ReadonlyArray<string> = [
+  "SELECT pg_catalog.lower(excluded_settings.user_id)",
+  "FROM org.user_settings AS excluded_settings",
+  "WHERE EXISTS (",
+  ...indentSqlLines(excludedAdminUserSqlLines, "  "),
+  ")",
+];
+
+export const excludedListedActorIdsSqlLines: ReadonlyArray<string> = [
+  "SELECT excluded_actors.actor_id",
+  "FROM analytics.excluded_actors AS excluded_actors",
+  "WHERE excluded_actors.restored_at IS NULL",
+];
 
 export const automatedActorIdsSqlLines: ReadonlyArray<string> = [
   "SELECT DISTINCT automated_events.actor_id::text",
@@ -43,32 +48,23 @@ export const automatedActorIdsSqlLines: ReadonlyArray<string> = [
   "  AND automated_events.actor_id IS NOT NULL",
 ];
 
-function indentSqlLines(lines: ReadonlyArray<string>, indent: string): ReadonlyArray<string> {
-  return lines.map((line) => `${indent}${line}`);
-}
-
 export function buildExcludedActorSqlLines(
   actorIdSqlExpression: string,
 ): ReadonlyArray<string> {
-  // One uncorrelated `NOT IN` set, which Postgres builds once as a hashed SubPlan instead of
-  // rescanning per outer row, whatever the planner estimates for that row count. Every arm must
-  // yield only non-NULL ids: one NULL in the set makes `NOT IN` unknown for every unlisted actor and
-  // drops every row. The NULL arm keeps an unresolvable actor, which a bare `NOT IN` would drop; a
-  // caller whose relation can hold one is rejecting it for its own reasons, never through this rule.
+  // One uncorrelated `NOT IN` set, so Postgres computes it once and never rescans it per outer row;
+  // it probes the set by hash or scans the cached result, choosing by cost. Every arm must yield
+  // only non-NULL ids: one NULL in the set makes `NOT IN` unknown for every unlisted actor and drops
+  // every row. The NULL arm keeps an unresolvable actor, which a bare `NOT IN` would drop; a caller
+  // whose relation can hold one is rejecting it for its own reasons, never through this rule.
   return [
     "  AND (",
     `    ${actorIdSqlExpression} IS NULL`,
     `    OR ${actorIdSqlExpression} NOT IN (`,
-    "      SELECT pg_catalog.lower(excluded_settings.user_id)",
-    "      FROM org.user_settings AS excluded_settings",
-    `      WHERE ${excludedTestEmailSql}`,
-    "        OR EXISTS (",
-    ...indentSqlLines(excludedAdminUserSqlLines, "          "),
-    "        )",
+    ...indentSqlLines(excludedTestEmailActorIdsSqlLines, "      "),
     "      UNION ALL",
-    "      SELECT excluded_actors.actor_id",
-    "      FROM analytics.excluded_actors AS excluded_actors",
-    "      WHERE excluded_actors.restored_at IS NULL",
+    ...indentSqlLines(excludedAdminActorIdsSqlLines, "      "),
+    "      UNION ALL",
+    ...indentSqlLines(excludedListedActorIdsSqlLines, "      "),
     "      UNION ALL",
     ...indentSqlLines(automatedActorIdsSqlLines, "      "),
     "    )",
