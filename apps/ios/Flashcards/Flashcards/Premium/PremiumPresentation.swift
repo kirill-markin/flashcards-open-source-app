@@ -25,6 +25,8 @@ enum PremiumPresentationReason: Equatable {
 struct PremiumPresentationRequest: Identifiable, Equatable {
     let id: UUID
     let reason: PremiumPresentationReason
+    /// `nil` only for the test-settings previews, which report nothing.
+    let analyticsEntryPoint: AnalyticsPaywallEntryPoint?
     let identity: AppleSubscriptionIdentity?
 }
 
@@ -46,12 +48,23 @@ final class PremiumPresenter {
     private var hadPremiumAccessAtPresentation: Bool = false
     private var awaitingAppleRequestId: UUID?
     private var awaitingAppleIdentity: AppleSubscriptionIdentity?
+    @ObservationIgnored private var shownRequestId: UUID?
     private(set) var result: PremiumPresentationResult? = nil
 
     @discardableResult
-    func present(reason: PremiumPresentationReason, entitlement: CloudEntitlement?, identity: AppleSubscriptionIdentity?) -> UUID {
+    func present(
+        reason: PremiumPresentationReason,
+        analyticsEntryPoint: AnalyticsPaywallEntryPoint?,
+        entitlement: CloudEntitlement?,
+        identity: AppleSubscriptionIdentity?
+    ) -> UUID {
         self.finish(outcome: .dismissed)
-        let request = PremiumPresentationRequest(id: UUID(), reason: reason, identity: identity)
+        let request = PremiumPresentationRequest(
+            id: UUID(),
+            reason: reason,
+            analyticsEntryPoint: analyticsEntryPoint,
+            identity: identity
+        )
         self.hadPremiumAccessAtPresentation = hasPremiumAccess(entitlement: entitlement)
         self.result = nil
         self.request = request
@@ -75,6 +88,15 @@ final class PremiumPresenter {
         case .offerPreview:
             break
         }
+    }
+
+    /// Reports `paywall_shown` the first time the request's sheet appears. A sheet hidden behind
+    /// another modal and shown again is still the same presentation.
+    func recordShown(requestId: UUID, screen: AnalyticsSurface) {
+        guard let request = self.request, request.id == requestId, self.shownRequestId != requestId else { return }
+        self.shownRequestId = requestId
+        guard let entryPoint = request.analyticsEntryPoint else { return }
+        Analytics.track(.paywallShown(entryPoint: entryPoint), screen: screen)
     }
 
     func awaitAppleConfirmation(requestId: UUID, identity: AppleSubscriptionIdentity?) {

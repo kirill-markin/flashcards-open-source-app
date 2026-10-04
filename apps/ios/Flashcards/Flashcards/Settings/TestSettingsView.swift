@@ -68,7 +68,7 @@ struct TestSettingsView: View {
                 .accessibilityIdentifier(UITestIdentifier.testSettingsTechnicalErrorPreviewRow)
 
                 Button {
-                    self.premiumPresenter.present(reason: .offerPreview, entitlement: store.cloudEntitlement, identity: try? store.appleSubscriptionIdentity())
+                    self.premiumPresenter.present(reason: .offerPreview, analyticsEntryPoint: nil, entitlement: store.cloudEntitlement, identity: try? store.appleSubscriptionIdentity())
                 } label: {
                     SettingsNavigationRow(
                         title: premiumOfferTitle(),
@@ -80,7 +80,7 @@ struct TestSettingsView: View {
                 .accessibilityIdentifier(UITestIdentifier.testSettingsPremiumPreview)
 
                 Button {
-                    self.premiumPresenter.present(reason: .aiLimit, entitlement: store.cloudEntitlement, identity: try? store.appleSubscriptionIdentity())
+                    self.premiumPresenter.present(reason: .aiLimit, analyticsEntryPoint: nil, entitlement: store.cloudEntitlement, identity: try? store.appleSubscriptionIdentity())
                 } label: {
                     SettingsNavigationRow(
                         title: premiumAILimitTitle(),
