@@ -277,9 +277,10 @@ export async function resolveEntitlementSnapshotForUser(
   const cached = inputs.cached;
   if (cached === null || !matchesResolvedEntitlement(cached, resolved)) {
     // The entitlement looks changed for this person, which is the only branch that writes, and the one
-    // place the entitlement change fact is reported from. The other four facts the billing layer
-    // writes - a trial start, a paid purchase, a revoke and auto-renew disabled - belong to the writer
-    // that records a provider's purchase transition (../productAnalytics/serverFacts/billingFacts.ts).
+    // place the entitlement change fact is reported from. The other five facts the billing layer
+    // writes - a trial start, a paid purchase, a revoke, and auto-renew disabled and re-enabled -
+    // belong to the writer that records a provider's purchase transition
+    // (../productAnalytics/serverFacts/billingFacts.ts).
     //
     // "Looks changed" is all the comparison above can say, and it is only used to decide whether to
     // open the transaction: being wrong costs one transaction that stores nothing. Everything that is

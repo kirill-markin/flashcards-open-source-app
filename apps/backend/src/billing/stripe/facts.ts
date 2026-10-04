@@ -1,7 +1,7 @@
 import { unsafeTransaction } from "../../database/unsafe";
 import {
   recordTrialStartedAnalytics, recordPurchaseCompletedAnalytics,
-  recordSubscriptionRevokedAnalytics, recordAutorenewDisabledAnalytics,
+  recordSubscriptionRevokedAnalytics, recordAutorenewDisabledAnalytics, recordAutorenewEnabledAnalytics,
 } from "../../productAnalytics/serverFacts/billingFacts";
 import { resolveEntitlementSnapshotForUser } from "../snapshot";
 import type { StripePurchaseState } from "./contracts";
@@ -10,6 +10,8 @@ import {
 } from "./store";
 
 export type StripeCommittedTransition = Readonly<{
+  // The stored row read under the purchase lock before this write, null for a new row.
+  previous: StoredStripePurchase | null;
   purchase: StoredStripePurchase;
   state: StripePurchaseState;
   receivedAt: Date;
@@ -23,7 +25,7 @@ export async function publishStripeTransitions(transitions: ReadonlyArray<Stripe
       (left.purchase.user_id ?? "").localeCompare(right.purchase.user_id ?? "")
       || left.state.customerId.localeCompare(right.state.customerId));
     for (const transition of ordered) {
-      const { state, purchase, receivedAt } = transition;
+      const { state, purchase, previous, receivedAt } = transition;
       const userId = purchase.user_id;
       if (userId === null) continue;
       const locked = await lockStripeIdentityForLifecycleInExecutor(executor, state.environment, state.customerId);
@@ -60,6 +62,14 @@ export async function publishStripeTransitions(transitions: ReadonlyArray<Stripe
         && (state.trialStartedAt !== null || state.firstPaidAt !== null)) {
         await recordAutorenewDisabledAnalytics({ ...fact, occurredAt: state.canceledAt,
           providerEventId: `stripe:${state.environment}:${state.subscriptionId}:cancel:${state.canceledAt.toISOString()}` });
+      }
+      // A redelivery reads `will_renew` already true under the lock and emits nothing. Previous access
+      // is required: `incomplete`, `unpaid` and `paused` also store `will_renew = false`.
+      if (previous?.will_renew === false && state.willRenew && state.revokedReason === null
+        && (previous.status === "active" || previous.status === "in_grace")
+        && (state.trialStartedAt !== null || state.firstPaidAt !== null)) {
+        await recordAutorenewEnabledAnalytics({ ...fact, occurredAt: state.verifiedAt,
+          providerEventId: `stripe:${state.environment}:${state.subscriptionId}:uncancel:${state.verifiedAt.toISOString()}` });
       }
     }
   });

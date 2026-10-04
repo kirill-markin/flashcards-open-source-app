@@ -1,7 +1,7 @@
 import { z } from "zod";
 import {
   recordTrialStartedAnalytics, recordPurchaseCompletedAnalytics,
-  recordSubscriptionRevokedAnalytics, recordAutorenewDisabledAnalytics,
+  recordSubscriptionRevokedAnalytics, recordAutorenewDisabledAnalytics, recordAutorenewEnabledAnalytics,
 } from "../../productAnalytics/serverFacts/billingFacts";
 import { unsafeTransaction } from "../../database/unsafe";
 import { getDatabaseErrorFields } from "../../database/transient";
@@ -53,6 +53,10 @@ export async function publishGoogleTransition(transition: GoogleCommittedTransit
       }
       if (previous?.will_renew === true && !purchase.will_renew && state.completed && current.status !== "revoked") {
         await recordAutorenewDisabledAnalytics({ ...fact, providerEventId: transition.eventId });
+      }
+      if (previous?.will_renew === false && purchase.will_renew && state.completed && current.status !== "revoked"
+        && (previous.status === "active" || previous.status === "in_grace")) {
+        await recordAutorenewEnabledAnalytics({ ...fact, providerEventId: transition.eventId });
       }
     }
   });
