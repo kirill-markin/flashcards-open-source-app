@@ -24,8 +24,8 @@ remaining settings and translations in the portal.
 1. Review both JSON files against the current product. Keep subtitles within
    30 characters and descriptions within 4,000. The translation editor exposes
    only subtitle and description; preserve the two Spanish locale mappings.
-2. Set the portal version from `version` in [server.json](../server.json).
-   Resolve the relative file and JSON Pointer references in the metadata file
+2. Set the portal version from `version` in [companion server.json](https://github.com/kirill-markin/nibomo-plugins/blob/main/server.json).
+   Resolve the source URLs and JSON Pointer references in the metadata file
    for the website, support, privacy, terms, MCP URL, and icons. Do not copy a
    version number or those shared URLs into a second source.
 3. Upload `chatgpt-app-submission.json` through the draft's import control.

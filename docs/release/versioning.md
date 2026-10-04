@@ -109,17 +109,25 @@ Update these package manifests together:
 
 For each of those packages, also update the matching top-level package version fields in the adjacent `package-lock.json`.
 
-Also update the MCP registry manifest at the repo root:
-
-- `server.json`
-
-`server.json` carries the published MCP registry manifest `version`, and it must move with the shared release version so the registry entry matches releases. There is no adjacent `package-lock.json` to update for it.
-
-Publish the selected `server.json.version` during the platform release stage, before release closeout. The registry accepts each manifest version only once.
-
 If backend comments or compatibility notes explicitly describe the currently
 released first-party client version, update those references in the same
 change so the documented minimum-compatible client behavior stays accurate.
+
+### MCP Registry manifest
+
+The companion repository owns [`server.json`](https://github.com/kirill-markin/nibomo-plugins/blob/main/server.json)
+and its `version`. Align it with the selected shared product and plugin version
+during [release preparation](#release-preparation); there is no adjacent lockfile.
+Core CI checks core version surfaces, and companion **Plugin packages** CI checks
+manifest/plugin alignment using companion files. Release preparation verifies
+alignment across both repositories without a network-dependent core PR check.
+
+Require [MCP Registry Validate](https://github.com/kirill-markin/nibomo-plugins/actions/workflows/mcp-registry-validate.yml)
+for changed release inputs. Publish an absent version from companion `main`
+through [MCP Registry Publish](https://github.com/kirill-markin/nibomo-plugins/actions/workflows/mcp-registry-publish.yml)
+during the platform release stage, before closeout, following the
+[explicit repository dispatch command](mcp-and-plugins.md#mcp).
+Registry versions are immutable; reuse a matching publication and its evidence.
 
 ### Anthropic plugin version sources
 
