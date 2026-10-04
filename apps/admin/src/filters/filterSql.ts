@@ -40,7 +40,7 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
   const settingsRowSql = inline(buildExcludedSettingsRowSqlLines(actorIdSqlExpression));
   return [
     "concat_ws(', ',",
-    `  CASE WHEN EXISTS (${settingsRowSql} AND ${excludedTestEmailSql}) THEN 'example.com email' END,`,
+    `  CASE WHEN EXISTS (${settingsRowSql} AND ${excludedTestEmailSql}) THEN 'test email' END,`,
     `  CASE WHEN EXISTS (${settingsRowSql} AND EXISTS (${inline(excludedAdminUserSqlLines)})) THEN 'admin' END,`,
     `  CASE WHEN EXISTS (${inline(buildExclusionListedActorSqlLines(actorIdSqlExpression))}) THEN 'exclusion list' END,`,
     `  CASE WHEN ${actorIdSqlExpression} = ANY (ARRAY(${inline(automatedActorIdsSqlLines)})) THEN 'automated client' END`,
