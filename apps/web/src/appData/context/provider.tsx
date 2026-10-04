@@ -29,6 +29,7 @@ import { useProgressInvalidationRefresh } from "../progress/invalidation/progres
 import { isTestSeedBridgeEnabled, type AppDataTestSeedBridge } from "../sync/local/testSeedBridge";
 import { useSyncEngine } from "../sync/engine/useSyncEngine";
 import { mergeRefreshedSessionPreferences, readAccountPreferencesWriteVersion } from "../session/accentColorWrite";
+import { useAppLanguageSave } from "../session/useAppLanguageSave";
 import { useWorkspaceSession } from "../session/useWorkspaceSession";
 import type { SessionVerificationState } from "../session/workspaceSessionTypes";
 import { loadWarmStartSnapshot, storeWarmStartSnapshot } from "../session/activation/warmStart";
@@ -87,7 +88,7 @@ function resolveTechnicalErrorAction(
 
 export function AppDataProvider(props: Props): ReactElement {
   const { children } = props;
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   useProgressInvalidationRefresh();
   const [warmStartSnapshot] = useState(loadWarmStartSnapshot);
@@ -230,6 +231,15 @@ export function AppDataProvider(props: Props): ReactElement {
   });
 
   const activeWorkspaceId = activeWorkspace?.workspaceId ?? null;
+  useAppLanguageSave({
+    locale,
+    session,
+    sessionLoadState,
+    sessionVerificationState,
+    setSession,
+    workspaceId: activeWorkspaceId,
+    installationId: cloudSettings?.installationId ?? null,
+  });
   const selectedReviewFilterState = workspaceReviewFilterState.selection.reviewFilter;
 
   useEffect(() => {
