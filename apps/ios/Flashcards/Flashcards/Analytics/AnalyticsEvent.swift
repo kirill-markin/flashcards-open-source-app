@@ -135,6 +135,16 @@ enum AnalyticsEvent: Sendable, Equatable {
     /// direct `track` measures poll cadence instead of failure incidence.
     case syncFailed(reason: AnalyticsSyncFailureReason)
     case catalogDeckInstallStarted(packageSlug: String)
+    /// The premium offer sheet reaching the screen, once per presentation. The test-settings previews
+    /// have no entry point and report nothing.
+    case paywallShown(entryPoint: AnalyticsPaywallEntryPoint)
+    /// The store purchase sheet being launched, after the account and offer checks passed.
+    case purchaseStarted
+    /// What StoreKit reported back for that sheet. `completed` is the client's view only; the
+    /// server-derived `trial_started` and `purchase_completed` remain the truth about a sale.
+    case purchaseFinished(outcome: AnalyticsPurchaseOutcome)
+    case purchaseRestoreFinished(outcome: AnalyticsPurchaseRestoreOutcome)
+    case subscriptionManagementOpened(destination: AnalyticsSubscriptionManagementDestination)
     case analyticsEventsDropped(reason: AnalyticsDroppedReason, count: Int)
 }
 
@@ -364,6 +374,33 @@ enum AnalyticsSyncFailureReason: String, Sendable, Equatable {
     case storageFull = "storage_full"
 }
 
+/// Deliberately narrower than the catalog: `guest_return` names the web app reopening the offer
+/// after a guest signed in, a flow this app does not have.
+enum AnalyticsPaywallEntryPoint: String, Sendable, Equatable {
+    case subscriptionSettings = "subscription_settings"
+    case aiLimit = "ai_limit"
+    case accentColor = "accent_color"
+}
+
+enum AnalyticsPurchaseOutcome: String, Sendable, Equatable {
+    case completed
+    case cancelled
+    case failed
+    case pending
+}
+
+enum AnalyticsPurchaseRestoreOutcome: String, Sendable, Equatable {
+    case restored
+    case nothingToRestore = "nothing_to_restore"
+    case failed
+}
+
+/// Deliberately only the App Store: `stripe_portal` and `google_play` are the web and Android
+/// destinations.
+enum AnalyticsSubscriptionManagementDestination: String, Sendable, Equatable {
+    case appStore = "app_store"
+}
+
 /**
  * The catalog name of the loss-reporting event, needed by the delivery path: a refused
  * `analytics_events_dropped` must never be counted into a replacement, or the replacement is refused
@@ -444,6 +481,16 @@ extension AnalyticsEvent {
             return "sync_failed"
         case .catalogDeckInstallStarted:
             return "catalog_deck_install_started"
+        case .paywallShown:
+            return "paywall_shown"
+        case .purchaseStarted:
+            return "purchase_started"
+        case .purchaseFinished:
+            return "purchase_finished"
+        case .purchaseRestoreFinished:
+            return "purchase_restore_finished"
+        case .subscriptionManagementOpened:
+            return "subscription_management_opened"
         case .analyticsEventsDropped:
             return analyticsEventsDroppedEventName
         }
@@ -532,6 +579,16 @@ extension AnalyticsEvent {
             return ["reason": .string(reason.rawValue)]
         case .catalogDeckInstallStarted(let packageSlug):
             return ["package_slug": .string(packageSlug)]
+        case .paywallShown(let entryPoint):
+            return ["entry_point": .string(entryPoint.rawValue)]
+        case .purchaseStarted:
+            return [:]
+        case .purchaseFinished(let outcome):
+            return ["outcome": .string(outcome.rawValue)]
+        case .purchaseRestoreFinished(let outcome):
+            return ["outcome": .string(outcome.rawValue)]
+        case .subscriptionManagementOpened(let destination):
+            return ["destination": .string(destination.rawValue)]
         case .analyticsEventsDropped(let reason, let count):
             return [
                 "reason": .string(reason.rawValue),
