@@ -14,6 +14,7 @@ import {
 import type { APIGatewayProxyEvent, APIGatewayProxyResult, Context } from "aws-lambda";
 import { createHash } from "node:crypto";
 import { z } from "zod";
+import { normalizeMcpTelemetryValue } from "../mcp/requestTelemetry";
 
 const minimumRetryAfterSeconds = 1;
 // Per-token fairness, not security: the worker still verifies every token.
@@ -21,6 +22,7 @@ const clientLeaseSlotCount = 4;
 // Outlives the 40 s dispatcher timeout, so a crashed invocation frees its slot.
 const clientLeaseTtlSeconds = 60;
 const clientCapacityRetryAfterSeconds = 1;
+const loggedTokenHashPrefixLength = 12;
 const bearerTokenPattern = /^Bearer\s+(\S+)$/i;
 const dynamoDbClient = new DynamoDBClient({
   requestHandler: { connectionTimeout: 1_000, requestTimeout: 2_000 },
@@ -58,14 +60,19 @@ function getWorkerRequestId(response: APIGatewayProxyResult): string | null {
 
 type ClientLease = Readonly<{ tableName: string; pk: string; leaseId: string }>;
 
-function getBearerToken(event: APIGatewayProxyEvent): string | null {
-  const authorizationValues = [
+/** `headerName` must be lower case: header names match case-insensitively. */
+function getHeaderValues(event: APIGatewayProxyEvent, headerName: string): ReadonlyArray<string> {
+  return [
     ...Object.entries(event.headers ?? {}).map(([name, value]) => [name, value] as const),
     ...Object.entries(event.multiValueHeaders ?? {})
       .flatMap(([name, values]) => (values ?? []).map((value) => [name, value] as const)),
-  ].filter(([name]) => name.toLowerCase() === "authorization").map(([, value]) => value);
-  for (const value of authorizationValues) {
-    const token = value === undefined ? undefined : bearerTokenPattern.exec(value.trim())?.[1];
+  ].filter(([name]) => name.toLowerCase() === headerName)
+    .flatMap(([, value]) => value === undefined ? [] : [value]);
+}
+
+function getBearerToken(event: APIGatewayProxyEvent): string | null {
+  for (const value of getHeaderValues(event, "authorization")) {
+    const token = bearerTokenPattern.exec(value.trim())?.[1];
     if (token !== undefined) {
       return token;
     }
@@ -85,10 +92,9 @@ function getShuffledLeaseSlots(): ReadonlyArray<number> {
 /** Returns null when every slot for this token is held by an unexpired lease. */
 async function acquireClientLease(
   tableName: string,
-  token: string,
+  tokenHash: string,
   leaseId: string,
 ): Promise<ClientLease | null> {
-  const tokenHash = createHash("sha256").update(token).digest("hex");
   for (const slot of getShuffledLeaseSlots()) {
     const pk = `${tokenHash}#${slot}`;
     const nowSeconds = Math.floor(Date.now() / 1_000);
@@ -191,7 +197,8 @@ export async function handler(
     const token = getBearerToken(event);
     if (token !== null) {
       phase = "client_lease";
-      clientLease = await acquireClientLease(leaseTableName, token, context.awsRequestId);
+      const tokenHash = createHash("sha256").update(token).digest("hex");
+      clientLease = await acquireClientLease(leaseTableName, tokenHash, context.awsRequestId);
       if (clientLease === null) {
         console.warn({
           action: "mcp_client_capacity_rejected",
@@ -202,6 +209,8 @@ export async function handler(
           durationMs: Math.round(performance.now() - startedAt),
           attempts,
           retryAfterSeconds: clientCapacityRetryAfterSeconds,
+          tokenHashPrefix: tokenHash.slice(0, loggedTokenHashPrefixLength),
+          userAgent: normalizeMcpTelemetryValue(getHeaderValues(event, "user-agent")[0] ?? null),
         });
         return createFailureResponse(
           429,

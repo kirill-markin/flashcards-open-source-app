@@ -243,7 +243,10 @@ refused admission up to 4 times, with roughly 1.5–3 s of jittered waits in tot
 received HTTP 429. `mcp_client_capacity_rejected` is a 429 returned before any
 Invoke (`attempts` 0) because that bearer token already holds its share of
 in-flight requests; it says one client is busy, not that the shared worker pool
-is full. `mcp_dispatch_failed` means the dispatcher returned 502, with
+is full. It also carries `tokenHashPrefix`, the first 12 hex characters of the
+token's SHA-256, and `userAgent`, normalized like the
+[MCP caller label](#the-mcp-caller-label).
+`mcp_dispatch_failed` means the dispatcher returned 502, with
 `phase` identifying where it failed. `attempts` counts Invoke calls; above 1 on
 a completion means admission throttles were absorbed. HTTP methods are restricted
 to standard method names or `OTHER`.
@@ -269,7 +272,17 @@ For one completion, inspect `message.requestId` (API Gateway request ID),
 `message.workerRequestId` to the worker's `message.requestId` in `mcp_request`
 or `agent_sql`; it is the worker's UUID `X-Request-Id` response header, or
 `null` when absent or not a UUID. The dispatcher records no authenticated
-identity, protocol method, tool name or request/response content.
+identity, protocol method, tool name or request/response content, and never the
+token itself: `tokenHashPrefix` identifies an unverified bearer token, not a
+user.
+
+To tell one busy client from many, group per-token rejections:
+
+```
+filter message.action = "mcp_client_capacity_rejected"
+| stats count(*) as rejections by message.tokenHashPrefix, message.userAgent
+| sort rejections desc
+```
 
 ## Request mix on the MCP surface
 
