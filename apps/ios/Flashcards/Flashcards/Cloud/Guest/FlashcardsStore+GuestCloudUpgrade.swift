@@ -86,6 +86,11 @@ extension FlashcardsStore {
                     state: inFlightState,
                     detectedAt: trigger.now
                 )
+                // Only this fresh path knows the mode and still has the guest rows, so a resumed
+                // upgrade keeps the guest's demo card as an ordinary card.
+                let demoCardCleanup: GuestUpgradeDemoCardCleanup? = guestUpgradeMode == .mergeRequired
+                    ? self.captureGuestUpgradeDemoCardCleanupReportingFailure(guestWorkspaceId: guestSession.workspaceId)
+                    : nil
                 do {
                     defer {
                         self.applyCloudAccountPreferences(
@@ -100,6 +105,9 @@ extension FlashcardsStore {
                     )
                 }
                 self.unblockGuestUpgradeLocalOutboxMutationsIfPossible()
+                if let demoCardCleanup {
+                    self.deleteGuestUpgradeDemoCardsReportingFailure(cleanup: demoCardCleanup)
+                }
                 return completionState.workspace
             } catch {
                 self.unblockGuestUpgradeLocalOutboxMutationsIfPossible()

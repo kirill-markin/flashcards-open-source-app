@@ -64,7 +64,7 @@ private struct FlashcardsUITestLaunchCoordinator {
         }
 
         do {
-            try store.resetLocalStateForCloudIdentityChange()
+            try store.resetLocalStateForUITestLaunch()
         } catch {
             preservedLaunchState.restore(userDefaults: store.userDefaults)
             throw error

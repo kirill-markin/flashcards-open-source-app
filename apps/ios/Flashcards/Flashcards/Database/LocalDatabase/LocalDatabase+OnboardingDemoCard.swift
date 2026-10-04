@@ -6,7 +6,8 @@ private let onboardingDemoCardProductName: String = "**Nibomo**"
 
 extension LocalDatabase {
     /**
-     Seeds the onboarding demo card without ever failing the caller.
+     Seeds the onboarding demo card on first launch without ever failing the
+     caller.
 
      The card is an onboarding decoration, so a seeding failure must never take
      down whatever the caller is doing — on first launch that is the decision of
@@ -18,24 +19,29 @@ extension LocalDatabase {
         do {
             try self.seedOnboardingDemoCardIfNeeded()
         } catch {
-            FlashcardsObservability.captureSilentFailure(
+            self.captureOnboardingDemoCardSeedFailure(
                 error: error,
-                scope: IOSObservationScope(
-                    feature: .localData,
-                    userId: nil,
-                    workspaceId: self.core.createdDefaultWorkspaceId,
-                    requestId: nil,
-                    clientRequestId: nil,
-                    sessionId: nil,
-                    runId: nil,
-                    cloudState: nil,
-                    configurationMode: nil
-                ),
-                action: "demo_card_seed",
-                stage: "startup",
-                statusCode: nil,
-                backendCode: nil,
-                requestId: nil
+                workspaceId: self.core.createdDefaultWorkspaceId,
+                stage: "startup"
+            )
+        }
+    }
+
+    /**
+     Seeds the onboarding demo card into the workspace a cloud-identity reset
+     has just recreated, so the empty workspace the next person sees starts
+     with it. A failure must never fail the reset, so it is reported like the
+     first-launch one.
+     */
+    func seedOnboardingDemoCardAfterCloudIdentityResetReportingFailure() {
+        do {
+            let workspaceId = try self.workspaceSettingsStore.loadWorkspace().workspaceId
+            try self.seedOnboardingDemoCardIntoEmptyWorkspace(workspaceId: workspaceId)
+        } catch {
+            self.captureOnboardingDemoCardSeedFailure(
+                error: error,
+                workspaceId: nil,
+                stage: "cloud_identity_reset"
             )
         }
     }
@@ -44,20 +50,25 @@ extension LocalDatabase {
      Creates the onboarding demo card at the moment this device first creates
      its local default workspace row, offline and before any network call.
 
-     The card is written through the normal card mutation path, so it is an
-     ordinary `demo`-tagged card everywhere afterwards: review, cards list,
-     filters, tags, sync and export treat it like any other card, and deleting
-     it is permanent.
-
-     Seeding is skipped unless the bootstrapper just created the workspace, and
-     skipped again when that workspace already holds any card, so an existing
-     install updated to this build never gains a card.
+     Seeding is skipped unless the bootstrapper just created the workspace, so
+     an existing install updated to this build never gains a card.
      */
     func seedOnboardingDemoCardIfNeeded() throws {
         guard let workspaceId = self.core.createdDefaultWorkspaceId else {
             return
         }
 
+        try self.seedOnboardingDemoCardIntoEmptyWorkspace(workspaceId: workspaceId)
+    }
+
+    /**
+     The card is written through the normal card mutation path, so it is an
+     ordinary `demo`-tagged card everywhere afterwards: review, cards list,
+     filters, tags, sync and export treat it like any other card.
+
+     Skipped when the workspace holds any card row, tombstones included.
+     */
+    func seedOnboardingDemoCardIntoEmptyWorkspace(workspaceId: String) throws {
         let existingCardCount = try self.core.scalarInt(
             sql: "SELECT COUNT(*) FROM cards WHERE workspace_id = ?",
             values: [.text(workspaceId)]
@@ -77,6 +88,41 @@ extension LocalDatabase {
             ]
         )
     }
+
+    private func captureOnboardingDemoCardSeedFailure(error: Error, workspaceId: String?, stage: String) {
+        FlashcardsObservability.captureSilentFailure(
+            error: error,
+            scope: IOSObservationScope(
+                feature: .localData,
+                userId: nil,
+                workspaceId: workspaceId,
+                requestId: nil,
+                clientRequestId: nil,
+                sessionId: nil,
+                runId: nil,
+                cloudState: nil,
+                configurationMode: nil
+            ),
+            action: "demo_card_seed",
+            stage: stage,
+            statusCode: nil,
+            backendCode: nil,
+            requestId: nil
+        )
+    }
+}
+
+/**
+ Whether `card` is an active onboarding demo card nobody has edited: tagged
+ exactly `demo`, with the seed text of the current app language after the
+ trimming the card store applies on save. A card seeded under another language
+ does not match.
+ */
+func isUntouchedOnboardingDemoCard(card: Card) -> Bool {
+    card.deletedAt == nil
+        && card.tags == [onboardingDemoCardTag]
+        && card.frontText == onboardingDemoCardFrontText().trimmingCharacters(in: .whitespacesAndNewlines)
+        && card.backText == onboardingDemoCardBackText().trimmingCharacters(in: .whitespacesAndNewlines)
 }
 
 private func onboardingDemoCardFrontText() -> String {

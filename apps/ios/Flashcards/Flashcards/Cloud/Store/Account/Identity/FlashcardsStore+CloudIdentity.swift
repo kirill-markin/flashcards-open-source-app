@@ -12,8 +12,24 @@ extension FlashcardsStore {
      brand new server-side guest session with a new guest user/workspace, so we
      never try to merge a future guest account into another linked account as if
      it were the same pre-reset guest identity.
+
+     The recreated workspace starts with the onboarding demo card, seeded
+     before the reload so the next screen already shows it.
      */
     func resetLocalStateForCloudIdentityChange() throws {
+        let database = try self.clearLocalStateForCloudIdentityChange()
+        database.seedOnboardingDemoCardAfterCloudIdentityResetReportingFailure()
+        try self.reloadAfterCloudIdentityReset()
+    }
+
+    /// The same reset without the onboarding demo card: every UI-test launch scenario builds its own
+    /// starting content on top of an empty workspace.
+    func resetLocalStateForUITestLaunch() throws {
+        _ = try self.clearLocalStateForCloudIdentityChange()
+        try self.reloadAfterCloudIdentityReset()
+    }
+
+    private func clearLocalStateForCloudIdentityChange() throws -> LocalDatabase {
         // The identity boundary logout and account deletion share. It rotates anonymous_id and
         // discards whatever analytics events are still queued: they belong to the person leaving,
         // and this function never suspends before the credentials are cleared below, so anything
@@ -91,6 +107,10 @@ extension FlashcardsStore {
         self.syncStatus = .idle
         self.globalErrorMessage = ""
         self.clearPendingGuestUpgradeStateAndUnblockMutations()
+        return database
+    }
+
+    private func reloadAfterCloudIdentityReset() throws {
         try self.reload()
         self.clearCloudCredentialRecoveryState()
         self.clearCustomGuestWorkspacePause()

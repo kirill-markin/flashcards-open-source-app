@@ -14,7 +14,7 @@ struct LocalDatabaseBootstrapper {
      Returns the workspace id when this run inserted the very first local
      workspace row, and `nil` when a workspace row was already present. That
      signal is the only "this device is brand new" moment the local database
-     ever observes, so new-user seeding hangs off it.
+     ever observes, so the first-launch onboarding seed hangs off it.
      */
     func ensureDefaultState() throws -> String? {
         if try self.defaultStateNeedsInitialization() == false {
