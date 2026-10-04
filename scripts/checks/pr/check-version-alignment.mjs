@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(SCRIPT_DIR, "..", "..", "..");
-const DOCUMENTATION_PATH = "docs/release-current-version.md";
+const DOCUMENTATION_PATH = "docs/release/versioning.md";
 
 const SEMANTIC_VERSION_PATTERN = /^\d+\.\d+\.\d+$/;
 

@@ -347,7 +347,7 @@ this checklist is not evidence that those gaps have been closed.
    [app metadata and upload procedure](app-store-connect-metadata.md); subscription
    review notes do not replace those public listing fields.
 7. During authorized preparation, create or select the editable new iOS version for the
-   intended build using the [release runbook](release-current-version.md). Keep the
+   intended build using the [release runbook](release/README.md). Keep the
    version/build, manual acceptance results, screenshot ID, notes and catalog readbacks,
    and agreement/banking/tax readiness in the pending submission checklist. Apple's
    [first-subscription procedure](https://developer.apple.com/help/app-store-connect/manage-submissions-to-app-review/submit-an-in-app-purchase/)
