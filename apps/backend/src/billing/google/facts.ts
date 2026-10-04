@@ -61,7 +61,8 @@ export async function publishGoogleTransition(transition: GoogleCommittedTransit
       }
       if (previous?.will_renew === true && !purchase.will_renew && state.completed && current.status !== "revoked") {
         await recordAutorenewDisabledAnalytics({ ...fact, providerEventId: transition.eventId,
-          reason: state.autorenewDisabledReason, periodType: state.isTrial ? "trial" : "paid" });
+          reason: state.autorenewDisabledReason, periodType: state.isTrial ? "trial" : "paid",
+          surveyReason: state.cancellationSurveyReason });
       }
       if (previous?.will_renew === false && purchase.will_renew && state.completed && current.status !== "revoked"
         && (previous.status === "active" || previous.status === "in_grace")) {

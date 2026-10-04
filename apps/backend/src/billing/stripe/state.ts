@@ -20,6 +20,12 @@ export const stripeLifecycleEventTypes = [
   "charge.dispute.funds_withdrawn", "charge.dispute.funds_reinstated",
 ] as const satisfies ReadonlyArray<Stripe.Event.Type>;
 
+// The portal survey's answers, named as the catalog names them. `cancellation_details.comment` is free
+// text and deliberately not read; a value Stripe adds later stays unrecorded.
+const cancellationFeedbackSchema = z.enum([
+  "customer_service", "low_quality", "missing_features", "other",
+  "switched_service", "too_complex", "too_expensive", "unused",
+]);
 const objectIdSchema = z.union([z.string().min(1), z.object({ id: z.string().min(1) })])
   .transform((value) => typeof value === "string" ? value : value.id);
 const referenceSchema = z.object({
@@ -130,6 +136,7 @@ export function normalizeStripePurchase(
   if (revokedReason !== null) status = "revoked";
   const firstPaidInvoiceIsCurrent = invoice !== null && invoice.id === financial.firstPaidInvoiceId;
   const cancellationReason = subscription.cancellation_details?.reason ?? null;
+  const feedback = cancellationFeedbackSchema.safeParse(subscription.cancellation_details?.feedback);
   return {
     subscriptionId: subscription.id, customerId, environment, status, providerStatus: subscription.status,
     isTrial, willRenew: (subscription.status === "trialing" || subscription.status === "active"
@@ -141,6 +148,7 @@ export function normalizeStripePurchase(
     canceledAt: subscription.canceled_at === null ? null : stripeTimestamp(subscription.canceled_at),
     autorenewDisabledReason: cancellationReason === "cancellation_requested" ? "voluntary"
       : cancellationReason === "payment_failed" ? "billing_error" : "unknown",
+    cancellationSurveyReason: feedback.success ? feedback.data : null,
     revokedReason, verifiedAt,
   };
 }

@@ -63,8 +63,8 @@ customer records, bank details or raw authenticated responses.
 | Resource | Verified state |
 | --- | --- |
 | Product and default price | Active in each environment; English source rendered with `count=1000`; monthly USD 699 cents, inclusive tax |
-| Dedicated portal | Active in each environment; period-end cancellation with no proration, payment-method updates, invoice history and name/email/address/tax-ID edits enabled |
-| Portal restrictions | Subscription plan/quantity changes, pause, cancellation survey and public login page disabled |
+| Dedicated portal | Active in each environment; period-end cancellation with no proration and a cancellation survey offering all eight Stripe reasons, payment-method updates, invoice history and name/email/address/tax-ID edits enabled |
+| Portal restrictions | Subscription plan/quantity changes, pause and public login page disabled |
 | Portal defaults | First sandbox configuration is naturally the default; live Nibomo configuration is not the shared default. Always pass its explicit ID |
 | Branding | 512 × 512 `business_icon` uploads and public product image links verified; [media evidence](media/stripe-subscriptions/README.md) |
 | API pin | Explicit `Stripe-Version: 2026-09-30.endive` returned HTTP 200 in both environments. SDK 23.0.0 and event destinations use this pin |

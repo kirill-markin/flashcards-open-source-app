@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { ProductAnalyticsCancellationSurveyReason } from "../../productAnalytics/catalog";
 import { loadGoogleAuthClient } from "./config";
 import {
   GoogleBillingError, googleBasePlanId, googlePackageName, googleProductId, googleTrialOfferId,
@@ -31,7 +32,10 @@ const subscriptionSchema = z.object({
   acknowledgementState: z.enum(["ACKNOWLEDGEMENT_STATE_PENDING", "ACKNOWLEDGEMENT_STATE_ACKNOWLEDGED"]),
   startTime: timestampSchema.optional(),
   canceledStateContext: z.object({
-    userInitiatedCancellation: z.object({}).optional(),
+    // `cancelSurveyResult.reasonUserInput` is free text and deliberately not read.
+    userInitiatedCancellation: z.object({
+      cancelSurveyResult: z.object({ reason: z.string().optional() }).optional(),
+    }).optional(),
     systemInitiatedCancellation: z.object({}).optional(),
   }).optional(),
   testPurchase: z.object({}).optional(),
@@ -51,6 +55,17 @@ const subscriptionSchema = z.object({
   })).length(1),
 });
 type GoogleSubscription = z.infer<typeof subscriptionSchema>;
+// CANCEL_SURVEY_REASON_UNSPECIFIED and any value Play adds later stay unrecorded rather than failing
+// the verification the answer rides on.
+const cancelSurveyReasons: ReadonlyMap<string, ProductAnalyticsCancellationSurveyReason> = new Map<
+  string, ProductAnalyticsCancellationSurveyReason
+>([
+  ["CANCEL_SURVEY_REASON_NOT_ENOUGH_USAGE", "unused"],
+  ["CANCEL_SURVEY_REASON_TECHNICAL_ISSUES", "technical_issues"],
+  ["CANCEL_SURVEY_REASON_COST_RELATED", "too_expensive"],
+  ["CANCEL_SURVEY_REASON_FOUND_BETTER_APP", "switched_service"],
+  ["CANCEL_SURVEY_REASON_OTHERS", "other"],
+]);
 const providerFailureSchema = z.object({
   response: z.object({ status: z.number().int().min(100).max(599) }).optional(),
 });
@@ -118,6 +133,7 @@ function purchaseState(purchaseToken: string, subscription: GoogleSubscription, 
   const positivePrice = price !== undefined && (BigInt(price.units ?? "0") > 0n || (price.nanos ?? 0) > 0);
   const outOfApp = subscription.outOfAppPurchaseContext;
   const canceled = subscription.canceledStateContext;
+  const surveyReason = canceled?.userInitiatedCancellation?.cancelSurveyResult?.reason;
   return {
     purchaseToken, productId: googleProductId, basePlanId: googleBasePlanId, offerId: item.offerDetails.offerId ?? null,
     price: price === undefined ? null : {
@@ -129,6 +145,7 @@ function purchaseState(purchaseToken: string, subscription: GoogleSubscription, 
     willRenew: item.autoRenewingPlan.autoRenewEnabled && providerStatus !== "SUBSCRIPTION_STATE_CANCELED",
     autorenewDisabledReason: canceled?.userInitiatedCancellation !== undefined ? "voluntary"
       : canceled?.systemInitiatedCancellation !== undefined ? "billing_error" : "unknown",
+    cancellationSurveyReason: surveyReason === undefined ? null : cancelSurveyReasons.get(surveyReason) ?? null,
     // A failed first post-trial charge can enter grace with the trial's last successful order.
     paid: environment === "production" && active && currentPhase === "base_price"
       && positivePrice && item.latestSuccessfulOrderId !== undefined,

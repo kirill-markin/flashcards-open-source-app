@@ -195,6 +195,20 @@ const productAnalyticsSubscriptionRevokedReasons = [
 // Why renewal turned off: the customer's choice, a payment the provider gave up on, or unreported.
 const productAnalyticsAutorenewDisabledReasons = ["voluntary", "billing_error", "unknown"] as const;
 
+// The answer a person picked in the provider's own cancellation survey, as a fixed code: the free
+// text either survey also collects is never recorded.
+const productAnalyticsCancellationSurveyReasons = [
+  "unused",
+  "too_expensive",
+  "switched_service",
+  "technical_issues",
+  "missing_features",
+  "too_complex",
+  "low_quality",
+  "customer_service",
+  "other",
+] as const;
+
 // Whether the period a billing fact happened in was a provider free trial or a paid period.
 const productAnalyticsBillingPeriodTypes = ["trial", "paid"] as const;
 
@@ -214,6 +228,8 @@ export type ProductAnalyticsSubscriptionRevokedReason =
   (typeof productAnalyticsSubscriptionRevokedReasons)[number];
 export type ProductAnalyticsAutorenewDisabledReason =
   (typeof productAnalyticsAutorenewDisabledReasons)[number];
+export type ProductAnalyticsCancellationSurveyReason =
+  (typeof productAnalyticsCancellationSurveyReasons)[number];
 export type ProductAnalyticsBillingPeriodType = (typeof productAnalyticsBillingPeriodTypes)[number];
 
 // Platform-independent surfaces so funnels compare across clients. Each client maps its own
@@ -1282,6 +1298,8 @@ export const productAnalyticsEventCatalog = {
       reason: { kind: "enum", values: productAnalyticsAutorenewDisabledReasons },
       // The period the person was in when renewal turned off.
       period_type: { kind: "enum", values: productAnalyticsBillingPeriodTypes },
+      // Present only when the provider reported a survey answer with the cancellation.
+      survey_reason: { kind: "enum", values: productAnalyticsCancellationSurveyReasons, optional: true },
     },
   },
   // The mirror of `autorenew_disabled`: auto-renewal turned back on before access ended, so a
