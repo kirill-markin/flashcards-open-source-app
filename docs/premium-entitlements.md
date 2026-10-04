@@ -287,13 +287,15 @@ The billing layer writes exactly these facts, as facts, and no others:
 - an entitlement change
 - a trial start
 - a first paid purchase, including a resubscribe after a lapse
+- a scheduled paid renewal, one per paid period after the first
 - a revoke
 - auto-renew disabled
 - auto-renew re-enabled
 - a renewal charge failing, when the provider first enters its payment-failure state; recovery has
-  no fact of its own (after a `trial` failure it is the purchase's first `purchase_completed`)
+  no fact of its own (after a `trial` failure it is the purchase's first `purchase_completed`, after
+  a paid one the recovered charge's `subscription_renewed`)
 
-All seven are declared in the event catalog (`apps/backend/src/productAnalytics/catalog.ts`) and have
+All eight are declared in the event catalog (`apps/backend/src/productAnalytics/catalog.ts`) and have
 a server-side producer (`apps/backend/src/productAnalytics/serverFacts/billingFacts.ts`).
 
 Per the repository rule, these record what happened; conversion funnels, cohorts, and churn are
@@ -303,8 +305,9 @@ These facts must be exempt from the user-facing product-analytics off switch, wh
 batches for an opted-out person (`apps/backend/src/routes/productAnalytics.ts`). The exemption is
 deliberate and matches the existing server-derived facts: these records establish what we sold and
 when we granted or withdrew access, which we need for accounting and support regardless of an
-analytics preference. They are not a way to route product analytics around the switch, and no
-other billing event may be added to this list to do that.
+analytics preference. A renewal is on the list for the same reason: it is revenue, and accounting
+and support need every paid period. They are not a way to route product analytics around the
+switch, and no other billing event may be added to this list to do that.
 
 The paywall and purchase-flow events the clients report are ordinary client analytics declared in
 the [event catalog](../apps/backend/src/productAnalytics/catalog.ts): they are subject to the off
