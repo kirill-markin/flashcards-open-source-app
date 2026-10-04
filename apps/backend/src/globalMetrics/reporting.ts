@@ -162,7 +162,7 @@ const excludedActorWhereSqlFragments = [
 // marked rows alone: the outer side here is a real join of `content.review_events` and
 // `sync.workspace_replicas` with column statistics behind it, unlike the statistics-free CTE
 // scans behind the admin package's funnel cohorts, which is why that package writes the same
-// arm as an InitPlan on every one of its call sites instead. `db/migrations/0146_product_events_automated_client_index.sql`
+// arm inside one uncorrelated, hashed `NOT IN` set on every one of its call sites instead. `db/migrations/0146_product_events_automated_client_index.sql`
 // is what keeps the inner side off a whole-table scan.
 const automatedClientActorWhereSqlFragments = [
   "  AND NOT EXISTS (",

@@ -1,8 +1,9 @@
 // Pure SQL only: this module is also imported by the admin browser bundle.
 // Stored account ids are TEXT and may use uppercase UUID hex; resolved actor ids are canonical.
-// The automated verdict is actor-wide. Its uncorrelated array avoids repeated scans for CTE callers.
-// The arms of the one exclusion rule, each as unindented lines, so `buildExcludedActorSqlLines` and
-// the admin users list's exclusion reason compose the same definitions.
+// The automated verdict is actor-wide.
+// The arms of the one exclusion rule, each as unindented lines, for `buildExcludedActorSqlLines` and
+// the admin users list's exclusion reason; the reason restates the settings and exclusion-list arms
+// per actor, so change both forms together.
 
 /** The actor's own `org.user_settings` row, aliased `excluded_settings`, which both settings arms read. */
 export function buildExcludedSettingsRowSqlLines(actorIdSqlExpression: string): ReadonlyArray<string> {
@@ -35,7 +36,7 @@ export const automatedActorIdsSqlLines: ReadonlyArray<string> = [
   "SELECT DISTINCT automated_events.actor_id::text",
   "FROM analytics.product_events_resolved AS automated_events",
   "WHERE automated_events.automated_client",
-  // A marked row nobody can be resolved behind names no actor to drop, and a NULL inside the array
+  // A marked row nobody can be resolved behind names no actor to drop, and a NULL inside the set
   // would make every comparison that does not match a listed actor unknown, so the caller would
   // keep no row either way.
   "  AND automated_events.actor_id IS NOT NULL",
@@ -48,27 +49,28 @@ function indentSqlLines(lines: ReadonlyArray<string>, indent: string): ReadonlyA
 export function buildExcludedActorSqlLines(
   actorIdSqlExpression: string,
 ): ReadonlyArray<string> {
+  // One uncorrelated `NOT IN` set, which Postgres builds once as a hashed SubPlan instead of
+  // rescanning per outer row, whatever the planner estimates for that row count. Every arm must
+  // yield only non-NULL ids: one NULL in the set makes `NOT IN` unknown for every unlisted actor and
+  // drops every row. The NULL arm keeps an unresolvable actor, which a bare `NOT IN` would drop; a
+  // caller whose relation can hold one is rejecting it for its own reasons, never through this rule.
   return [
-    "  AND NOT EXISTS (",
-    ...indentSqlLines(buildExcludedSettingsRowSqlLines(actorIdSqlExpression), "    "),
-    "      AND (",
-    `        ${excludedTestEmailSql}`,
+    "  AND (",
+    `    ${actorIdSqlExpression} IS NULL`,
+    `    OR ${actorIdSqlExpression} NOT IN (`,
+    "      SELECT pg_catalog.lower(excluded_settings.user_id)",
+    "      FROM org.user_settings AS excluded_settings",
+    `      WHERE ${excludedTestEmailSql}`,
     "        OR EXISTS (",
     ...indentSqlLines(excludedAdminUserSqlLines, "          "),
     "        )",
-    "      )",
-    "  )",
-    "  AND NOT EXISTS (",
-    ...indentSqlLines(buildExclusionListedActorSqlLines(actorIdSqlExpression), "    "),
-    "  )",
-    // The NULL arm keeps an unresolvable actor exactly as the two `NOT EXISTS` above keep it, which a
-    // bare comparison would not: `NOT (NULL = ANY (...))` is unknown and would drop such a row. A
-    // caller whose relation can hold one is rejecting it for its own reasons, never through this rule.
-    "  AND (",
-    `    ${actorIdSqlExpression} IS NULL`,
-    `    OR NOT (${actorIdSqlExpression} = ANY (ARRAY(`,
+    "      UNION ALL",
+    "      SELECT excluded_actors.actor_id",
+    "      FROM analytics.excluded_actors AS excluded_actors",
+    "      WHERE excluded_actors.restored_at IS NULL",
+    "      UNION ALL",
     ...indentSqlLines(automatedActorIdsSqlLines, "      "),
-    "    )))",
+    "    )",
     "  )",
   ];
 }
