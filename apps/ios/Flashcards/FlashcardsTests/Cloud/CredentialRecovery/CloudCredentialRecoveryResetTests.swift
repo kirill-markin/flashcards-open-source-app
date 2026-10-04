@@ -117,8 +117,13 @@ final class CloudCredentialRecoveryResetTests: CloudCredentialRecoveryTestCase {
         XCTAssertFalse(try self.loadWorkspaceIds(database: database).contains(workspace.workspaceId))
         XCTAssertEqual([workspaceAfterErase.workspaceId], try self.loadWorkspaceIds(database: database))
         XCTAssertTrue(try database.loadActiveCards(workspaceId: workspace.workspaceId).isEmpty)
-        XCTAssertTrue(try database.loadActiveCards(workspaceId: workspaceAfterErase.workspaceId).isEmpty)
-        XCTAssertEqual(0, try self.loadOutboxCount(database: database))
+        XCTAssertEqual(
+            [true],
+            try database.loadActiveCards(workspaceId: workspaceAfterErase.workspaceId).map { card in
+                isUntouchedOnboardingDemoCard(card: card)
+            }
+        )
+        XCTAssertEqual(1, try self.loadOutboxCount(database: database))
         XCTAssertEqual(.idle, store.syncStatus)
         XCTAssertEqual(.disconnected, cloudSettingsAfterErase.cloudState)
         XCTAssertNil(cloudSettingsAfterErase.linkedUserId)
@@ -318,8 +323,13 @@ final class CloudCredentialRecoveryResetTests: CloudCredentialRecoveryTestCase {
         XCTAssertNil(store.cloudCredentialRecoveryState)
         XCTAssertNil(userDefaults.data(forKey: cloudCredentialRecoveryStateUserDefaultsKey))
         XCTAssertNil(try credentialStore.loadCredentials())
-        XCTAssertEqual(0, try self.loadOutboxCount(database: database))
-        XCTAssertTrue(try database.loadActiveCards(workspaceId: workspaceAfterLogout.workspaceId).isEmpty)
+        XCTAssertEqual(1, try self.loadOutboxCount(database: database))
+        XCTAssertEqual(
+            [true],
+            try database.loadActiveCards(workspaceId: workspaceAfterLogout.workspaceId).map { card in
+                isUntouchedOnboardingDemoCard(card: card)
+            }
+        )
         XCTAssertEqual(.disconnected, cloudSettingsAfterLogout.cloudState)
         XCTAssertNil(cloudSettingsAfterLogout.linkedUserId)
         XCTAssertNil(cloudSettingsAfterLogout.linkedWorkspaceId)
