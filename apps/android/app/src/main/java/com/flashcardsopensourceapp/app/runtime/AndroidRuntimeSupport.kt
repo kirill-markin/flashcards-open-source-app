@@ -1,16 +1,9 @@
 package com.flashcardsopensourceapp.app.runtime
 
-import android.os.Build
-import com.flashcardsopensourceapp.app.BuildConfig
-
 private const val jobSchedulerClassName: String = "android.app.job.JobScheduler"
 private const val jobSchedulerForNamespaceMethodName: String = "forNamespace"
 
 internal fun isAndroidRuntimeSupported(): Boolean {
-    if (Build.VERSION.SDK_INT < BuildConfig.ANDROID_MIN_SDK) {
-        return false
-    }
-
     return hasJobSchedulerNamespaceSupport()
 }
 
