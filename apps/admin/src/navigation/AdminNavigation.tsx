@@ -11,9 +11,9 @@ const analyticsAreaTestIds: Readonly<Record<AnalyticsArea, string | undefined>> 
   "ai-usage": "analytics-ai-usage-tab",
 };
 
-/** The tab row shared by every analytics area and the Users page. */
+/** The tab row shared by every analytics area and the Users page; `null` on a page no tab owns. */
 export function AdminNavigation(props: Readonly<{
-  activePage: AdminNavigationPage;
+  activePage: AdminNavigationPage | null;
   onNavigate: (path: string) => void;
 }>): JSX.Element {
   return (

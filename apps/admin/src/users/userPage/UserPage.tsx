@@ -71,7 +71,7 @@ export function UserPage(props: Readonly<{
         if (loadState.status === "ready") return <ProfileTab profile={loadState.profile} onNavigate={props.onNavigate} />;
         return null;
       case "activity":
-        return <ActivityTab config={config} userId={userId} onTerminalAdminError={onTerminalAdminError} />;
+        return <ActivityTab config={config} userId={userId} onNavigate={props.onNavigate} onTerminalAdminError={onTerminalAdminError} />;
       case "chats":
         return (
           <ChatsTab

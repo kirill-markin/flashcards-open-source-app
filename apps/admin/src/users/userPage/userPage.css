@@ -109,24 +109,6 @@
   font-size: 13px;
 }
 
-.activity-details summary {
-  cursor: pointer;
-  list-style: none;
-}
-
-.activity-details-text {
-  font-size: 12px;
-}
-
-/* The expanded payload wraps inside the cell instead of widening the whole table. */
-.activity-details-full {
-  max-width: 560px;
-  margin: 6px 0 0;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  font-size: 12px;
-}
-
 /* Card text keeps its line breaks and wraps inside the cell instead of widening the whole table. */
 .card-text-cell {
   display: grid;

@@ -1,7 +1,10 @@
-import { useEffect, useState, type JSX, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type JSX } from "react";
 import type { AdminAppConfig } from "../../config";
+import { AdminLink } from "../../navigation/AdminLink";
+import { getEventPath } from "../../routing";
 import { DataTable } from "../../table/DataTable";
 import { emptyDataTableState, type DataTableColumn, type DataTableState } from "../../table/dataTableModel";
+import { JsonPreviewCell } from "../../table/JsonPreviewCell";
 import {
   activityPageSize,
   loadActivityFirstPage,
@@ -26,34 +29,31 @@ type LoadState =
     olderPage: OlderPageState;
   }>;
 
-const detailsPreviewLength = 80;
-
-function renderDetails(row: ActivityRow): ReactNode {
-  if (row.details.length <= detailsPreviewLength) {
-    return <code className="activity-details-text">{row.details}</code>;
-  }
-  return (
-    <details className="activity-details">
-      <summary><code className="activity-details-text">{`${row.details.slice(0, detailsPreviewLength)}…`}</code></summary>
-      <pre className="activity-details-full">{row.details}</pre>
-    </details>
-  );
+/** An analytics row's name links to that event's page; purchases, grants and feedback have none. */
+function buildActivityColumns(onNavigate: (path: string) => void): ReadonlyArray<DataTableColumn<ActivityRow>> {
+  return [
+    { id: "occurred", label: "Occurred at (UTC)", kind: "date", value: (row) => row.occurredAt, renderCell: null },
+    { id: "source", label: "Source", kind: "enum", value: (row) => row.source, renderCell: null },
+    { id: "recorded-as", label: "Recorded as", kind: "enum", value: (row) => row.recordedAs, renderCell: null },
+    {
+      id: "name",
+      label: "Event",
+      kind: "enum",
+      value: (row) => row.name,
+      renderCell: (row) => row.eventId === null ? row.name : (
+        <AdminLink className="data-table-link" path={getEventPath(row.eventId)} onNavigate={onNavigate}>{row.name}</AdminLink>
+      ),
+    },
+    { id: "platform", label: "Platform", kind: "enum", value: (row) => row.platform, renderCell: null },
+    { id: "app-version", label: "App version", kind: "enum", value: (row) => row.appVersion, renderCell: null },
+    { id: "screen", label: "Screen", kind: "enum", value: (row) => row.screen, renderCell: null },
+    { id: "country", label: "Country", kind: "enum", value: (row) => row.country, renderCell: null },
+    { id: "ui-locale", label: "UI locale", kind: "enum", value: (row) => row.uiLocale, renderCell: null },
+    { id: "session", label: "Session ID", kind: "text", value: (row) => row.sessionId, renderCell: null },
+    { id: "origin", label: "Origin / trust level", kind: "enum", value: (row) => row.origin, renderCell: null },
+    { id: "details", label: "Details", kind: "text", value: (row) => row.details, renderCell: (row) => <JsonPreviewCell json={row.details} /> },
+  ];
 }
-
-const activityColumns: ReadonlyArray<DataTableColumn<ActivityRow>> = [
-  { id: "occurred", label: "Occurred at (UTC)", kind: "date", value: (row) => row.occurredAt, renderCell: null },
-  { id: "source", label: "Source", kind: "enum", value: (row) => row.source, renderCell: null },
-  { id: "recorded-as", label: "Recorded as", kind: "enum", value: (row) => row.recordedAs, renderCell: null },
-  { id: "name", label: "Event", kind: "enum", value: (row) => row.name, renderCell: null },
-  { id: "platform", label: "Platform", kind: "enum", value: (row) => row.platform, renderCell: null },
-  { id: "app-version", label: "App version", kind: "enum", value: (row) => row.appVersion, renderCell: null },
-  { id: "screen", label: "Screen", kind: "enum", value: (row) => row.screen, renderCell: null },
-  { id: "country", label: "Country", kind: "enum", value: (row) => row.country, renderCell: null },
-  { id: "ui-locale", label: "UI locale", kind: "enum", value: (row) => row.uiLocale, renderCell: null },
-  { id: "session", label: "Session ID", kind: "text", value: (row) => row.sessionId, renderCell: null },
-  { id: "origin", label: "Origin / trust level", kind: "enum", value: (row) => row.origin, renderCell: null },
-  { id: "details", label: "Details", kind: "text", value: (row) => row.details, renderCell: renderDetails },
-];
 
 function getActivityRowKey(row: ActivityRow): string {
   return row.key;
@@ -70,12 +70,14 @@ function getErrorMessage(error: unknown): string {
 export function ActivityTab(props: Readonly<{
   config: AdminAppConfig;
   userId: string;
+  onNavigate: (path: string) => void;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
 }>): JSX.Element {
-  const { config, userId, onTerminalAdminError } = props;
+  const { config, userId, onNavigate, onTerminalAdminError } = props;
   const [loadState, setLoadState] = useState<LoadState>({ status: "loading" });
   const [revision, setRevision] = useState<number>(0);
   const [tableState, setTableState] = useState<DataTableState>(emptyDataTableState);
+  const activityColumns = useMemo(() => buildActivityColumns(onNavigate), [onNavigate]);
 
   useEffect(() => {
     let cancelled = false;

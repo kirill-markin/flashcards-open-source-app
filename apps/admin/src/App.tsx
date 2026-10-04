@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type JSX } from "react";
 import { AdminApiError, fetchAdminSession, type AdminSession } from "./adminApi";
 import { getAdminAppConfig, type AdminAppConfig } from "./config";
 import { AdminDashboard, type AdminReportState } from "./dashboard/AdminDashboard";
+import { EventPage } from "./events/eventPage/EventPage";
 import type { AnalyticsDateRange, AnalyticsFilterState } from "./filters/analyticsFilters";
 import {
   normalizeAnalyticsFilterState,
@@ -650,6 +651,19 @@ export default function App(): JSX.Element {
         tab={route.kind === "user" ? route.tab : "chats"}
         openChatSessionId={route.kind === "userChat" ? route.sessionId : null}
         usersListPath={usersListPath}
+        onNavigate={navigateToPath}
+        onTerminalAdminError={handleTerminalAdminError}
+      />
+    );
+  }
+
+  if (route.kind === "event") {
+    return (
+      <EventPage
+        key={route.eventId}
+        config={appState.config}
+        adminEmail={appState.session.email}
+        eventId={route.eventId}
         onNavigate={navigateToPath}
         onTerminalAdminError={handleTerminalAdminError}
       />

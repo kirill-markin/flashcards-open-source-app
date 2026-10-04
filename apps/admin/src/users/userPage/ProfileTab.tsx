@@ -14,13 +14,43 @@ import type {
 
 type ProfileListRow = Readonly<{ key: string; cells: ReadonlyArray<ProfileCell> }>;
 
-function renderUserLink(userId: string, onNavigate: (path: string) => void): JSX.Element {
+export function renderUserLink(userId: string, onNavigate: (path: string) => void): JSX.Element {
   return <AdminLink className="data-table-link" path={getUserPath(userId, "profile")} onNavigate={onNavigate}>{userId}</AdminLink>;
+}
+
+/** `value` null renders the empty-value dash. */
+export type ProfileRecordRow = Readonly<{ id: string; label: string; value: ReactNode }>;
+
+/** The label and value rows of a record section; the event page renders its fields with it too. */
+export function ProfileRecord(props: Readonly<{ rows: ReadonlyArray<ProfileRecordRow> }>): JSX.Element {
+  return (
+    <dl className="profile-record">
+      {props.rows.map((row) => (
+        <div key={row.id} className="profile-record-row">
+          <dt>{row.label}</dt>
+          <dd>{row.value === null ? <span className="profile-empty-value">—</span> : row.value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+export function ProfileRecordSection(props: Readonly<{
+  title: string;
+  testId: string;
+  rows: ReadonlyArray<ProfileRecordRow>;
+}>): JSX.Element {
+  return (
+    <section className="profile-section profile-section-record" data-testid={props.testId}>
+      <h2>{props.title}</h2>
+      <ProfileRecord rows={props.rows} />
+    </section>
+  );
 }
 
 function renderRecordValue(field: ProfileField, cell: ProfileCell, onNavigate: (path: string) => void): ReactNode {
   if (cell === null) {
-    return <span className="profile-empty-value">—</span>;
+    return null;
   }
   if (typeof cell === "boolean") {
     return cell ? "yes" : "no";
@@ -128,14 +158,13 @@ function ProfileSectionView(props: Readonly<{ data: ProfileSectionData; onNaviga
       <h2>{section.title}</h2>
       {data.kind === "record" ? (
         data.cells === null ? <p className="profile-section-empty">{data.section.emptyText}</p> : (
-          <dl className="profile-record">
-            {data.section.fields.map((field, index) => (
-              <div key={field.id} className="profile-record-row">
-                <dt>{field.label}</dt>
-                <dd>{renderRecordValue(field, data.cells === null ? null : data.cells[index] ?? null, onNavigate)}</dd>
-              </div>
-            ))}
-          </dl>
+          <ProfileRecord
+            rows={data.section.fields.map((field, index) => ({
+              id: field.id,
+              label: field.label,
+              value: renderRecordValue(field, data.cells === null ? null : data.cells[index] ?? null, onNavigate),
+            }))}
+          />
         )
       ) : data.rows.length === 0 ? <p className="profile-section-empty">None.</p> : (
         <ProfileListTable section={data.section} rows={data.rows} onNavigate={onNavigate} />
@@ -148,27 +177,32 @@ export function ProfileTab(props: Readonly<{ profile: UserProfile; onNavigate: (
   const { header } = props.profile;
   return (
     <div className="profile-sections" data-testid="user-profile">
-      <section className="profile-section profile-section-record" data-testid="user-profile-identity">
-        <h2>Identity and exclusion</h2>
-        <dl className="profile-record">
-          <div className="profile-record-row">
-            <dt>Kind</dt>
-            <dd>{header.kind ?? <span className="profile-empty-value">unknown: no settings row, sign-in identity or guest session</span>}</dd>
-          </div>
-          <div className="profile-record-row">
-            <dt>Sign-in identity created</dt>
-            <dd>{header.identityCreatedAt === null ? <span className="profile-empty-value">no sign-in identity</span> : formatInstant(header.identityCreatedAt)}</dd>
-          </div>
-          <div className="profile-record-row">
-            <dt>Analytics merged into</dt>
-            <dd>{header.mergedInto === null ? <span className="profile-empty-value">—</span> : renderUserLink(header.mergedInto.userId, props.onNavigate)}</dd>
-          </div>
-          <div className="profile-record-row">
-            <dt>Excluded from reports</dt>
-            <dd>{header.exclusionReason === null ? "no" : `yes: ${header.exclusionReason}`}</dd>
-          </div>
-        </dl>
-      </section>
+      <ProfileRecordSection
+        title="Identity and exclusion"
+        testId="user-profile-identity"
+        rows={[
+          {
+            id: "kind",
+            label: "Kind",
+            value: header.kind ?? <span className="profile-empty-value">unknown: no settings row, sign-in identity or guest session</span>,
+          },
+          {
+            id: "identity-created",
+            label: "Sign-in identity created",
+            value: header.identityCreatedAt === null ? <span className="profile-empty-value">no sign-in identity</span> : formatInstant(header.identityCreatedAt),
+          },
+          {
+            id: "merged-into",
+            label: "Analytics merged into",
+            value: header.mergedInto === null ? null : renderUserLink(header.mergedInto.userId, props.onNavigate),
+          },
+          {
+            id: "excluded",
+            label: "Excluded from reports",
+            value: header.exclusionReason === null ? "no" : `yes: ${header.exclusionReason}`,
+          },
+        ]}
+      />
       {props.profile.sections.map((data) => (
         <ProfileSectionView key={data.section.id} data={data} onNavigate={props.onNavigate} />
       ))}

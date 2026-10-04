@@ -22,6 +22,8 @@ export type ActivityRow = Readonly<{
   /** ISO-8601 UTC instant at microsecond precision, so it doubles as the exact keyset cursor. */
   occurredAt: string;
   source: ActivitySource;
+  /** The analytics event's `event_id`, read off the key; null for every other source. */
+  eventId: string | null;
   name: string;
   platform: string | null;
   appVersion: string | null;
@@ -34,6 +36,8 @@ export type ActivityRow = Readonly<{
   details: string;
   recordedAs: ActivityRecordedAs;
 }>;
+
+const analyticsKeyPrefix = "analytics:";
 
 export type ActivityCursor = Readonly<{ occurredAt: string; key: string }>;
 
@@ -53,7 +57,7 @@ export type ActivityCursor = Readonly<{ occurredAt: string; key: string }>;
  */
 function buildActivityUnionSql(subject: UserSubjectSql): string {
   const matches = (textColumnSql: string): string => buildMatchesUserIdSql(textColumnSql, subject);
-  return `SELECT events.occurred_at, 'analytics:' || events.event_id::text AS row_key, 'analytics' AS source,
+  return `SELECT events.occurred_at, ${escapeSqlStringLiteral(analyticsKeyPrefix)} || events.event_id::text AS row_key, 'analytics' AS source,
     events.event_name AS name, events.platform, events.app_version, events.screen, events.country,
     events.ui_locale, events.session_id::text AS session_id,
     events.origin || ' / ' || events.trust_level AS origin, events.event_properties AS details,
@@ -169,10 +173,12 @@ function parseActivityRow(value: AdminQueryValue | undefined, rowIndex: number):
   if (details === undefined) {
     throw new Error(`${location} is missing "details".`);
   }
+  const key = readString(values, 0, "key", location);
   return {
-    key: readString(values, 0, "key", location),
+    key,
     occurredAt: readString(values, 1, "occurredAt", location),
     source: matchedSource,
+    eventId: matchedSource === "analytics" ? key.slice(analyticsKeyPrefix.length) : null,
     name: readString(values, 3, "name", location),
     platform: readNullableString(values, 4, "platform", location),
     appVersion: readNullableString(values, 5, "appVersion", location),
