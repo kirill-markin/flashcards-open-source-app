@@ -201,3 +201,21 @@
 .data-table-link:hover {
   text-decoration: underline;
 }
+
+.json-preview summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.json-preview-text {
+  font-size: 12px;
+}
+
+/* The expanded payload wraps inside the cell instead of widening the whole table. */
+.json-preview-full {
+  max-width: 560px;
+  margin: 6px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}

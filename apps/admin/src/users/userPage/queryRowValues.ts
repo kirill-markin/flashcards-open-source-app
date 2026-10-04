@@ -41,3 +41,11 @@ export function readNumber(values: ReadonlyArray<AdminQueryValue>, index: number
   }
   return value;
 }
+
+export function readNullableBoolean(values: ReadonlyArray<AdminQueryValue>, index: number, fieldName: string, location: string): boolean | null {
+  const value = values[index];
+  if (value === undefined || (value !== null && typeof value !== "boolean")) {
+    throw new Error(`${location} field "${fieldName}" must be a boolean or null.`);
+  }
+  return value;
+}

@@ -59,7 +59,17 @@
     "subscriptionCancel": {
       "mode": "at_period_end",
       "prorationBehavior": "none",
-      "cancellationReasonEnabled": false
+      "cancellationReasonEnabled": true,
+      "cancellationReasonOptions": [
+        "customer_service",
+        "low_quality",
+        "missing_features",
+        "other",
+        "switched_service",
+        "too_complex",
+        "too_expensive",
+        "unused"
+      ]
     },
     "subscriptionUpdateEnabled": false,
     "subscriptionPauseEnabled": false,
