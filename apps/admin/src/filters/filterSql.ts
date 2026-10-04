@@ -1,10 +1,9 @@
 import {
   automatedActorIdsSqlLines,
   buildExcludedActorSqlLines,
-  buildExcludedSettingsRowSqlLines,
-  buildExclusionListedActorSqlLines,
-  excludedAdminUserSqlLines,
-  excludedTestEmailSql,
+  excludedAdminActorIdsSqlLines,
+  excludedListedActorIdsSqlLines,
+  excludedTestEmailActorIdsSqlLines,
 } from "../../../backend/src/reviewMetricsSql";
 export { buildExcludedActorSqlLines } from "../../../backend/src/reviewMetricsSql";
 import {
@@ -37,13 +36,12 @@ import {
  */
 export function buildExcludedActorReasonSql(actorIdSqlExpression: string): string {
   const inline = (lines: ReadonlyArray<string>): string => lines.map((line) => line.trim()).join(" ");
-  const settingsRowSql = inline(buildExcludedSettingsRowSqlLines(actorIdSqlExpression));
   return [
     "concat_ws(', ',",
-    `  CASE WHEN EXISTS (${settingsRowSql} AND ${excludedTestEmailSql}) THEN 'test email' END,`,
-    `  CASE WHEN EXISTS (${settingsRowSql} AND EXISTS (${inline(excludedAdminUserSqlLines)})) THEN 'admin' END,`,
-    `  CASE WHEN EXISTS (${inline(buildExclusionListedActorSqlLines(actorIdSqlExpression))}) THEN 'exclusion list' END,`,
-    `  CASE WHEN ${actorIdSqlExpression} = ANY (ARRAY(${inline(automatedActorIdsSqlLines)})) THEN 'automated client' END`,
+    `  CASE WHEN ${actorIdSqlExpression} IN (${inline(excludedTestEmailActorIdsSqlLines)}) THEN 'test email' END,`,
+    `  CASE WHEN ${actorIdSqlExpression} IN (${inline(excludedAdminActorIdsSqlLines)}) THEN 'admin' END,`,
+    `  CASE WHEN ${actorIdSqlExpression} IN (${inline(excludedListedActorIdsSqlLines)}) THEN 'exclusion list' END,`,
+    `  CASE WHEN ${actorIdSqlExpression} IN (${inline(automatedActorIdsSqlLines)}) THEN 'automated client' END`,
     ")",
   ].join("\n");
 }
