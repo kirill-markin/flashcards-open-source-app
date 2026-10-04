@@ -421,7 +421,11 @@ from inbox delivery, which still needs the checks below.
 The existing HTTP backend `RESEND_API_KEY` and `RESEND_FROM_EMAIL` supply the
 private transport and sender, with display name Nibomo. The recipient is the
 currently owned Stripe customer's billing email; the language is the persisted
-Nibomo profile locale. No client-provided contact, locale or redirect is accepted.
+Nibomo profile locale, the interface language clients save through
+`PATCH /v1/me/preferences`, which the
+[server resolves](../apps/backend/src/billing/stripe/copy/catalog.ts) to a
+supported copy locale. No Stripe request accepts a client-provided contact,
+locale or redirect.
 Payment/refund links are validated HTTPS Stripe hosted URLs; reminders link to
 [Subscription settings](https://app.nibomo.com/settings/subscription).
 

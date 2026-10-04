@@ -3,7 +3,7 @@ import type Stripe from "stripe";
 import type { DatabaseExecutor } from "../../database";
 import { unsafeTransaction } from "../../database/unsafe";
 import { StripeBillingError, type StripeEnvironment } from "./contracts";
-import { stripeEmailCopy } from "./copy/catalog";
+import { resolveStripeCopyLocale, stripeEmailCopy } from "./copy/catalog";
 import { requireStripeEmailData, stripeEmailNoticeSchema, type StripeEmailNotice } from "./emailProjection";
 import type { StripeProvider } from "./provider";
 import type { StripeEventReference } from "./state";
@@ -99,7 +99,7 @@ async function lockRecipient(
   const profile = await executor.query<{ locale: string }>(
     "SELECT locale FROM org.user_settings WHERE user_id = $1", [locked.identity.userId]);
   requireStripeEmailData(profile.rows[0] !== undefined);
-  return { identityId: locked.identity.identityId, locale: profile.rows[0].locale };
+  return { identityId: locked.identity.identityId, locale: resolveStripeCopyLocale(profile.rows[0].locale) };
 }
 
 async function sendRequest(request: EmailRequest, idempotencyKey: string): Promise<string> {

@@ -6,6 +6,7 @@ import { unsafeTransaction } from "../../database/unsafe";
 import { StripeBillingError, type StripeCheckoutAttempt, type StripeCustomerIdentity,
   type StripeEnvironment } from "./contracts";
 import { stripeHostedLocale } from "./checkoutPresentation";
+import { resolveStripeCopyLocale } from "./copy/catalog";
 import { publishStripeTransitions, type StripeCommittedTransition } from "./facts";
 import { abandonStripeCheckoutAttemptInExecutor, getOrCreateStripeCustomer,
   hasStripeTrialConsumptionInExecutor, listStripeCheckoutAttemptsInExecutor, loadStripeCheckoutAttemptInExecutor,
@@ -47,7 +48,7 @@ export async function lockStripeHumanAccountInExecutor(
     "SELECT email, locale FROM org.user_settings WHERE user_id = $1", [actor.userId]);
   const profile = result.rows[0];
   const environment = isConfiguredDemoEmail(profile.email) ? "sandbox" : "production";
-  return { environment, locale: profile.locale,
+  return { environment, locale: resolveStripeCopyLocale(profile.locale),
     checkoutEnabled: environment === "sandbox" || process.env.STRIPE_CHECKOUT_LIVE_ENABLED === "true",
     identities: await lockStripePersonIdentitiesInExecutor(executor, [actor.userId]) };
 }

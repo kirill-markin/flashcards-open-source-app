@@ -179,7 +179,9 @@ Important tables and responsibilities:
 - `org.user_settings`: human profile metadata, selected workspace, and account preferences,
   including the two separate analytics decisions read on `GET /v1/me` and written on
   `PATCH /v1/me/preferences` — the cookie-banner consent and the product-analytics off switch
-  ([analytics visitor identity](analytics-visitor-identity.md))
+  ([analytics visitor identity](analytics-visitor-identity.md)) — and `locale`, the interface
+  language clients save through the same `PATCH`, which the server resolves to a supported
+  locale where it needs one
 - `org.workspaces`: workspace metadata and persisted FSRS scheduler settings
 - `org.workspace_memberships`: workspace access control
 - `content.cards`: card state, including persisted FSRS fields

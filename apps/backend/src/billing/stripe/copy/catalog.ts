@@ -64,6 +64,30 @@ const copies: Readonly<Record<string, StripeCopy>> = {
   "uk": copyuk, "ur": copyur, "vi": copyvi, "zh-Hans": copyzh_Hans, "zu": copyzu,
 };
 
+// CLDR's es-419 children: Latin America and the United States.
+const latinAmericanSpanishRegions = new Set(["419", "AR", "BO", "BR", "BZ", "CL", "CO", "CR", "CU", "DO",
+  "EC", "GT", "HN", "MX", "NI", "PA", "PE", "PR", "PY", "SV", "US", "UY", "VE"]);
+const languageCopyLocales: Readonly<Record<string, string>> = {
+  zh: "zh-Hans", pt: "pt-BR", no: "nb", nn: "nb", iw: "he", in: "id",
+};
+
+/** Maps any stored profile tag (an app interface language) to the Stripe copy locale serving it. */
+export function resolveStripeCopyLocale(profileLocale: string): string {
+  if (Object.hasOwn(copies, profileLocale)) return profileLocale;
+  let tag: Intl.Locale;
+  try {
+    tag = new Intl.Locale(profileLocale);
+  } catch (error) {
+    if (!(error instanceof RangeError)) throw error;
+    throw new Error(`Stored profile locale is not a BCP 47 language tag: ${JSON.stringify(profileLocale)}`);
+  }
+  if (tag.language === "es") {
+    return tag.region !== undefined && latinAmericanSpanishRegions.has(tag.region) ? "es-MX" : "es-ES";
+  }
+  if (Object.hasOwn(languageCopyLocales, tag.language)) return languageCopyLocales[tag.language];
+  return Object.hasOwn(copies, tag.language) ? tag.language : "en";
+}
+
 export function stripeEmailCopy(locale: string): StripeCopy {
   const copy = copies[locale];
   if (copy === undefined) throw new StripeBillingError("STRIPE_EMAIL_DATA_INVALID", false,

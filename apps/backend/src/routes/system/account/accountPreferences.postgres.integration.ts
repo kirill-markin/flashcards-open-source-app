@@ -190,6 +190,7 @@ test("a reconciliation grant cannot overwrite a stored declined and a stored nul
       analyticsConsentOrigin: "reconciliation",
       productAnalyticsEnabled: null,
       productAnalyticsEnabledOrigin: "user_action",
+      locale: null,
     });
     assert.equal(afterReconciliation.analyticsConsent, "declined");
 
@@ -201,6 +202,7 @@ test("a reconciliation grant cannot overwrite a stored declined and a stored nul
       analyticsConsentOrigin: "user_action",
       productAnalyticsEnabled: null,
       productAnalyticsEnabledOrigin: "user_action",
+      locale: null,
     });
     assert.equal(afterUserAction.analyticsConsent, "granted");
 
@@ -214,6 +216,7 @@ test("a reconciliation grant cannot overwrite a stored declined and a stored nul
       analyticsConsentOrigin: "reconciliation",
       productAnalyticsEnabled: null,
       productAnalyticsEnabledOrigin: "user_action",
+      locale: null,
     });
     assert.equal(afterUnanswered.analyticsConsent, "granted");
 
@@ -263,6 +266,7 @@ test("a reconciliation cannot switch product analytics back on and a stored null
       analyticsConsentOrigin: "user_action",
       productAnalyticsEnabled: true,
       productAnalyticsEnabledOrigin: "reconciliation",
+      locale: null,
     });
     assert.equal(afterReconciliation.productAnalyticsEnabled, false);
 
@@ -274,6 +278,7 @@ test("a reconciliation cannot switch product analytics back on and a stored null
       analyticsConsentOrigin: "user_action",
       productAnalyticsEnabled: true,
       productAnalyticsEnabledOrigin: "user_action",
+      locale: null,
     });
     assert.equal(afterUserAction.productAnalyticsEnabled, true);
 
@@ -288,6 +293,7 @@ test("a reconciliation cannot switch product analytics back on and a stored null
       analyticsConsentOrigin: "user_action",
       productAnalyticsEnabled: true,
       productAnalyticsEnabledOrigin: "reconciliation",
+      locale: null,
     });
     assert.equal(afterUnanswered.productAnalyticsEnabled, true);
 
@@ -335,6 +341,7 @@ test("a reconciliation still switches product analytics off, and one PATCH carri
       analyticsConsentOrigin: "user_action",
       productAnalyticsEnabled: false,
       productAnalyticsEnabledOrigin: "reconciliation",
+      locale: null,
     });
     assert.equal(afterReconciledOptOut.productAnalyticsEnabled, false);
 
@@ -348,6 +355,7 @@ test("a reconciliation still switches product analytics off, and one PATCH carri
       analyticsConsentOrigin: "reconciliation",
       productAnalyticsEnabled: true,
       productAnalyticsEnabledOrigin: "user_action",
+      locale: null,
     });
     assert.equal(afterMixedOrigins.analyticsConsent, "declined");
     assert.equal(afterMixedOrigins.productAnalyticsEnabled, true);

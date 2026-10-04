@@ -230,6 +230,7 @@ test("PATCH /me/preferences from a guest stores the consent on the guest session
     analyticsConsentOrigin: "user_action",
     productAnalyticsEnabled: null,
     productAnalyticsEnabledOrigin: "user_action",
+    locale: null,
   }]);
 });
 

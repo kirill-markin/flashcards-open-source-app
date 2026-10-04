@@ -3,6 +3,7 @@ import {
   createBackendObservationScope,
   type BackendObservationScope,
 } from "../../observability/sentry";
+import { productAnalyticsUiLocaleSchema } from "../../productAnalytics/validation";
 import { expectBoolean } from "../../server/requestParsing";
 import { HttpError } from "../../shared/errors";
 import type { AuthTransport } from "../../auth";
@@ -97,6 +98,7 @@ const accountPreferenceFieldNames: ReadonlyArray<string> = [
   "reviewReactionAnimationsEnabled",
   "analyticsConsent",
   "productAnalyticsEnabled",
+  "locale",
 ];
 
 /**
@@ -140,6 +142,16 @@ function expectAccentColor(value: unknown): string {
   return value.toUpperCase();
 }
 
+/** The interface language a client displays, in the same shape as the analytics `uiLocale`. */
+function expectLocale(value: unknown): string {
+  const parsed = productAnalyticsUiLocaleSchema.safeParse(value);
+  if (!parsed.success) {
+    throw new HttpError(400, "locale must be a BCP 47 language tag of at most 64 characters");
+  }
+
+  return parsed.data;
+}
+
 export function parseAccountPreferencesInput(body: Record<string, unknown>): AccountPreferencesUpdate {
   const unexpectedKey = Object.keys(body).find(
     (key) => !accountPreferencesRequestFieldNames.includes(key),
@@ -177,6 +189,7 @@ export function parseAccountPreferencesInput(body: Record<string, unknown>): Acc
         "productAnalyticsEnabledOrigin",
       )
       : "user_action",
+    locale: "locale" in body ? expectLocale(body.locale) : null,
   };
 
   if (
@@ -184,6 +197,7 @@ export function parseAccountPreferencesInput(body: Record<string, unknown>): Acc
     && update.reviewReactionAnimationsEnabled === null
     && update.analyticsConsent === null
     && update.productAnalyticsEnabled === null
+    && update.locale === null
   ) {
     throw new HttpError(
       400,
