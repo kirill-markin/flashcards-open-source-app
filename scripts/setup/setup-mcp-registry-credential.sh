@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# Provision the MCP Registry DNS namespace credential and GitHub Actions secret.
 
 set -euo pipefail
 
@@ -28,7 +27,9 @@ if [[ -z "$DOMAIN" ]]; then
 fi
 
 if [[ -z "$REPO" ]]; then
-  REPO="${GITHUB_REPO:-}"
+  echo "ERROR: --repo <owner/name> is required; select the intended MCP Registry publisher repository explicitly." >&2
+  usage
+  exit 1
 fi
 
 require_command() {
@@ -46,11 +47,7 @@ require_command openssl
 require_command python3
 require_command base64
 
-if [[ -z "$REPO" ]]; then
-  REPO="$(gh repo view --json nameWithOwner --jq .nameWithOwner)"
-fi
-
-if [[ -z "$DOMAIN" || -z "$REPO" ]]; then
+if [[ -z "$DOMAIN" ]]; then
   usage
   exit 1
 fi
