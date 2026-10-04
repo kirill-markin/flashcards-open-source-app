@@ -71,8 +71,8 @@ resubmitting the same artifact. New artifacts follow all pre-submission gates.
    from unexpected skips; investigate unexpected skips rather than counting
    them as passed. Fix code/build/test issues, merge and deploy
    through normal CI, then repeat both workflows for the corrected release SHA.
-   Do not submit with unresolved errors or warnings; ask for help when they
-   cannot be resolved autonomously.
+   Apply the [release warning policy](README.md#release-warning-policy) before
+   submission; ask for help when blocking issues cannot be resolved autonomously.
 6. Wait for the successful archive to finish processing in App Store Connect.
    Verify its [uploaded binary localizations](../ios-localization.md#bundlebuild-validation)
    before submission.
