@@ -101,7 +101,7 @@ Completion: retained or new local/cloud gate evidence is valid, both cloud
 workflows passed without unresolved warnings, and the matching build/version is
 publicly available. Submission, approval, and propagation pending remain open
 under the [canonical completion contract](README.md#release-inventory-and-completion),
-including its rule for any exception before the next-development bump.
+including its rule for any exception before release closeout.
 
 Build configuration: [iOS CI/CD](../ios-ci-cd.md). API diagnostics and result
 bundles: [Xcode Cloud data access](../xcode-cloud-data-access.md).

@@ -6,6 +6,9 @@ following this procedure.
 
 `AWS/Web Release` deploys from `main` automatically when relevant files change,
 limited to the components that changed since their last release.
+These continuous deployments can advance while sources retain the last coordinated
+release version. Track each exact deployment/build SHA separately from that
+version; equal version strings do not prove equal deployed code or artifact reuse.
 Verify the release commit's applicable deployment and smoke jobs succeeded. Fix failures before declaring this platform complete;
 AWS deploys and their artifacts stay in CI/CD.
 

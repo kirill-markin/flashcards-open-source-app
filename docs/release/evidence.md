@@ -19,6 +19,8 @@ mandatory release gate. Record whether its publication is in the agreed scope.
 
 ## Resume and Artifact Reuse
 
+Resume a prepared or partly published release at its recorded target version;
+do not bump again. For a new release, first complete [release preparation](versioning.md#release-preparation).
 Before dispatching or submitting, inspect current source commits and versions,
 store builds/statuses, registry versions, public listings, and successful CI.
 Reuse a matching built, submitted, approved, or live artifact with its gate
