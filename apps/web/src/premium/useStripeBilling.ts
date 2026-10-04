@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { combineAbortSignals } from "../abortSignals";
-import { track, type AnalyticsPurchaseOutcome } from "../analytics";
+import { isAwaitingAnalyticsConsentDecision, track, type AnalyticsPurchaseOutcome } from "../analytics";
 import { ApiError, isAuthRedirectError, updateAccountPreferences } from "../api";
 import {
   createStripeCheckout, createStripePortal, loadStripeOffer, loadStripeSubscriptions,
@@ -55,7 +55,7 @@ export function useAccountStripeBilling(): StripeBilling {
   navigateRef.current = navigate;
   const syncRef = useRef(runSync);
   syncRef.current = runSync;
-  // The checkout return already reported, so a refresh while its parameters stay in the URL is silent.
+  // In-page fast path; the stored intent carries the same mark across reloads.
   const reportedReturnRef = useRef<string | null>(null);
 
   const isCurrent = useCallback((identity: BillingIdentity): boolean => activeRef.current && !isStripeBillingInvalidated() && canLoadRef.current
@@ -103,9 +103,15 @@ export function useAccountStripeBilling(): StripeBilling {
     const cancelled = onSubscription && query.get("checkout") === "cancelled";
     const returned = onSubscription && (query.get("checkout") === "success" || cancelled);
     const returnKey = `${query.get("checkout")}:${query.get("checkout_attempt_id")}`;
+    // Only the browser holding this attempt's intent reports its return, once: a reload finds the intent
+    // marked, and a reopened link after completion or cancellation finds it consumed.
     const reportReturn = (outcome: AnalyticsPurchaseOutcome): void => {
       if (!returned || reportedReturnRef.current === returnKey) return;
       reportedReturnRef.current = returnKey;
+      if (intent === null || intent.attemptId !== query.get("checkout_attempt_id") || intent.reportedReturn === returnKey) return;
+      // The mark is analytics state: while the consent question is open nothing may be written to the device,
+      // so a reload then may report again rather than lose the still-unsent event for good.
+      if (!isAwaitingAnalyticsConsentDecision() && isCurrentStripeIntent(intent)) storeStripeIntent({ ...intent, reportedReturn: returnKey });
       track({ name: "purchase_finished", outcome });
     };
     let complete = false;
@@ -186,7 +192,7 @@ export function useAccountStripeBilling(): StripeBilling {
 
   const purchase = useCallback((continuation: PremiumContinuation | null): Promise<void> => runOperation("opening", async (identity) => {
     const previous = readStripeIntent(identity.userId);
-    const pending: StripeIntent = { userId: identity.userId, attemptId: previous?.attemptId ?? null, sessionId: previous?.sessionId ?? null, continuation: continuation ?? previous?.continuation ?? null };
+    const pending: StripeIntent = { userId: identity.userId, attemptId: previous?.attemptId ?? null, sessionId: previous?.sessionId ?? null, continuation: continuation ?? previous?.continuation ?? null, reportedReturn: previous?.reportedReturn ?? null };
     storeStripeIntent(pending);
     let result: StripeCheckout;
     try {
@@ -203,7 +209,7 @@ export function useAccountStripeBilling(): StripeBilling {
     }
     if (!isCurrentStripeIntent(pending)) return;
     const pendingContinuation = continuation ?? (previous?.attemptId === result.attemptId ? previous.continuation : null);
-    storeStripeIntent({ userId: identity.userId, attemptId: result.attemptId, sessionId: result.sessionId, continuation: pendingContinuation });
+    storeStripeIntent({ userId: identity.userId, attemptId: result.attemptId, sessionId: result.sessionId, continuation: pendingContinuation, reportedReturn: null });
     if (result.outcome === "checkout") {
       track({ name: "purchase_started" });
       window.location.assign(result.url);
