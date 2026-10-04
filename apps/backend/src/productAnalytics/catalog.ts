@@ -1195,24 +1195,24 @@ export const productAnalyticsEventCatalog = {
     requiresScreen: false,
     properties: {},
   },
-  // The billing transitions that change what a person may do, and nothing else the billing layer
-  // observes: a renewal, a payment retry after the first failure and a provider redelivery are
+  // The billing transitions that change what a person may do or what they paid, and nothing else the
+  // billing layer observes: a payment retry after the first failure and a provider redelivery are
   // deliberately not facts here (docs/premium-entitlements.md, "Analytics facts written by the
-  // billing layer"). Conversion, churn and cohorts are queries over these seven at analysis time, so
-  // no entry below is shaped to feed one report.
+  // billing layer"). Conversion, churn, revenue and cohorts are queries over these eight at analysis
+  // time, so no entry below is shaped to feed one report.
   //
-  // All seven are server-only because each is a change in what we sold or granted. They are also
+  // All eight are server-only because each is a change in what we sold or granted. They are also
   // exempt from the user-facing product-analytics off switch, for the reason stated beside the code
   // that writes them (apps/backend/src/productAnalytics/serverFacts/billingFacts.ts) rather than only
   // in the document.
   //
   // `provider` is optional on `entitlement_changed` alone, because an entitlement can rest on an
   // operator grant, which has no provider at all, and an absent value is what says so. On the other
-  // six it is required: each of them is a provider's own transition, and a producer that cannot name
+  // seven it is required: each of them is a provider's own transition, and a producer that cannot name
   // the provider has not read the purchase it is reporting.
   //
   // `environment` exists on `entitlement_changed` alone and is present exactly when `provider` is: a
-  // sandbox purchase grants real access, so its entitlement change is recorded, while the other six
+  // sandbox purchase grants real access, so its entitlement change is recorded, while the other seven
   // are never written for a sandbox purchase at all. Both describe the purchase that grants after the
   // change, so the default `sandbox` exclusion applies only to those rows. A change away from a
   // purchase carries neither, and this event alone cannot recover its origin.
@@ -1227,7 +1227,7 @@ export const productAnalyticsEventCatalog = {
   //
   // It reports a tier or status move and nothing else. The cached row it is derived from also changes
   // when only the paid-through date moves, which is a renewal rather than a change in access, so the
-  // producer's call site emits nothing for it.
+  // producer's call site emits nothing for it; the renewal is `subscription_renewed`.
   entitlement_changed: {
     serverOnly: true,
     requiresScreen: false,
@@ -1253,13 +1253,27 @@ export const productAnalyticsEventCatalog = {
     },
   },
   // One purchase that completed and was paid for, which is the conversion fact. A renewal of it is
-  // not reported: the provider charging again on schedule is revenue rather than a product event,
-  // and revenue reconciliation lives in the provider reports. A resubscribe after a lapse is a new
-  // decision and reported again.
+  // `subscription_renewed` instead. A resubscribe after a lapse is a new decision and reported again.
   //
   // The price is the local-currency amount the provider reports, in millionths of the major unit;
   // its two properties are written together or not at all.
   purchase_completed: {
+    serverOnly: true,
+    requiresScreen: false,
+    properties: {
+      tier: { kind: "enum", values: productAnalyticsEntitlementTiers },
+      provider: { kind: "enum", values: productAnalyticsBillingProviders },
+      kind: { kind: "enum", values: productAnalyticsPurchaseKinds },
+      period: { kind: "enum", values: productAnalyticsSubscriptionPeriods, optional: true },
+      product_id: { kind: "string", pattern: productAnalyticsStoreProductIdPattern },
+      price_amount_micros: { kind: "nonNegativeInteger", optional: true },
+      price_currency: { kind: "string", pattern: productAnalyticsCurrencyPattern, optional: true },
+    },
+  },
+  // The provider charging a held subscription again on schedule: one row per paid period after the
+  // first, so revenue over a person's lifetime is `purchase_completed` plus these. The first charge
+  // after a trial is the purchase's `purchase_completed`, never this. Price as on `purchase_completed`.
+  subscription_renewed: {
     serverOnly: true,
     requiresScreen: false,
     properties: {
@@ -1314,9 +1328,8 @@ export const productAnalyticsEventCatalog = {
   },
   // A renewal charge failing, when the provider first enters its payment-failure state, so
   // involuntary churn is visible when it starts and not only as the entitlement change it may cause.
-  // Recovery has no fact of its own: from a `paid` failure it is `entitlement_changed` back to
-  // `active` with no `purchase_completed` beside it; from a `trial` failure it is the purchase's
-  // first `purchase_completed` itself.
+  // Recovery has no fact of its own: from a `paid` failure it is the `subscription_renewed` of the
+  // recovered charge; from a `trial` failure it is the purchase's first `purchase_completed` itself.
   billing_issue_started: {
     serverOnly: true,
     requiresScreen: false,

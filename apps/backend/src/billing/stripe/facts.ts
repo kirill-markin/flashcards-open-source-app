@@ -2,7 +2,7 @@ import { unsafeTransaction } from "../../database/unsafe";
 import {
   recordTrialStartedAnalytics, recordPurchaseCompletedAnalytics,
   recordSubscriptionRevokedAnalytics, recordAutorenewDisabledAnalytics, recordAutorenewEnabledAnalytics,
-  recordBillingIssueStartedAnalytics,
+  recordBillingIssueStartedAnalytics, recordSubscriptionRenewedAnalytics,
 } from "../../productAnalytics/serverFacts/billingFacts";
 import { resolveEntitlementSnapshotForUser } from "../snapshot";
 import type { StripePurchaseState } from "./contracts";
@@ -60,6 +60,12 @@ export async function publishStripeTransitions(transitions: ReadonlyArray<Stripe
         await recordPurchaseCompletedAnalytics({ ...fact, occurredAt: state.firstPaidAt,
           kind: "subscription", period: "monthly", productId: state.productId, price: state.firstPaidPrice,
           resubscribeTransactionId: null });
+      }
+      // Read off the current invoice on every reconcile; its id collapses the repeats.
+      if (state.renewal !== null) {
+        await recordSubscriptionRenewedAnalytics({ ...fact, occurredAt: state.renewal.paidAt,
+          kind: "subscription", period: "monthly", productId: state.productId, price: state.renewal.price,
+          renewalTransactionId: state.renewal.invoiceId });
       }
       if (state.revokedReason !== null) {
         await recordSubscriptionRevokedAnalytics({ ...fact, occurredAt: state.verifiedAt, reason: state.revokedReason });

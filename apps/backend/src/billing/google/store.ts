@@ -20,6 +20,7 @@ export type StoredGooglePurchase = Readonly<{
   until: Date | null;
   provider_status_raw: string | null;
   google_latest_order_id: string | null;
+  google_last_paid_order_id: string | null;
   google_acknowledgement_state: GoogleAcknowledgementState | null;
   google_verified_at: Date | null;
 }>;
@@ -37,7 +38,8 @@ export type LockedGooglePurchase = Readonly<{
 }>;
 const purchaseColumns = `purchase_id, provider_purchase_id, user_id, status, is_trial, will_renew,
   linked_from_purchase_id, invalidated_at, account_deleted_at, environment, until,
-  provider_status_raw, google_latest_order_id, google_acknowledgement_state, google_verified_at`;
+  provider_status_raw, google_latest_order_id, google_last_paid_order_id, google_acknowledgement_state,
+  google_verified_at`;
 
 export async function lockGoogleAccount(executor: DatabaseExecutor, userId: string): Promise<GoogleAccount | null> {
   await applyUserDatabaseScopeInExecutor(executor, { userId });
@@ -188,8 +190,9 @@ export async function persistGooglePurchase(
     INSERT INTO billing.purchases
       (provider, provider_purchase_id, environment, kind, tier, user_id, status, is_trial,
        will_renew, until, grace_until, provider_status_raw, linked_from_purchase_id,
-       google_verified_at, google_last_attempt_at, google_acknowledgement_state, google_latest_order_id)
-    VALUES ('google', $1, $2, 'subscription', 'premium', $3, $4, $5, $6, $7, $8, $9, $10, $12, $12, $13, $14)
+       google_verified_at, google_last_attempt_at, google_acknowledgement_state, google_latest_order_id,
+       google_last_paid_order_id)
+    VALUES ('google', $1, $2, 'subscription', 'premium', $3, $4, $5, $6, $7, $8, $9, $10, $12, $12, $13, $14, $15)
     ON CONFLICT (provider, provider_purchase_id, environment) DO UPDATE SET
       previous_user_id = CASE WHEN billing.purchases.user_id IS DISTINCT FROM EXCLUDED.user_id
         THEN billing.purchases.user_id ELSE billing.purchases.previous_user_id END,
@@ -205,12 +208,14 @@ export async function persistGooglePurchase(
       google_last_attempt_at = EXCLUDED.google_last_attempt_at,
       google_acknowledgement_state = EXCLUDED.google_acknowledgement_state,
       google_latest_order_id = EXCLUDED.google_latest_order_id,
+      google_last_paid_order_id = COALESCE(EXCLUDED.google_last_paid_order_id, billing.purchases.google_last_paid_order_id),
       google_reconcile_stopped_at = NULL,
       updated_at = now()
     RETURNING ${purchaseColumns}`,
   [state.purchaseToken, state.environment, locked.ownerUserId, state.status, state.isTrial, state.willRenew,
     state.until, state.graceUntil, state.providerStatus, lineage[0].predecessorToken, presentingUserId,
-    state.verifiedAt, state.acknowledgementState, state.latestSuccessfulOrderId]);
+    state.verifiedAt, state.acknowledgementState, state.latestSuccessfulOrderId,
+    state.paid ? state.latestSuccessfulOrderId : null]);
   const purchase = result.rows[0];
   if (state.completed && purchase.invalidated_at === null && purchase.status !== "revoked"
     && purchase.account_deleted_at === null && locked.accounts.some((account) => account.userId === purchase.user_id)) {
