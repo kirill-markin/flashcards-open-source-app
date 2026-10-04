@@ -245,6 +245,38 @@ enum class AnalyticsCardCreateEntryPoint(val wireValue: String) {
 }
 
 /**
+ * Where the paywall was opened from. The catalog's `guest_return` is left out: it is the web app
+ * reopening the paywall from its `?premium=offer` link after a guest signed in, and this app has no
+ * such path.
+ */
+enum class AnalyticsPaywallEntryPoint(val wireValue: String) {
+    SUBSCRIPTION_SETTINGS(wireValue = "subscription_settings"),
+    AI_LIMIT(wireValue = "ai_limit"),
+    ACCENT_COLOR(wireValue = "accent_color")
+}
+
+enum class AnalyticsPurchaseOutcome(val wireValue: String) {
+    COMPLETED(wireValue = "completed"),
+    CANCELLED(wireValue = "cancelled"),
+    FAILED(wireValue = "failed"),
+    PENDING(wireValue = "pending")
+}
+
+enum class AnalyticsPurchaseRestoreOutcome(val wireValue: String) {
+    RESTORED(wireValue = "restored"),
+    NOTHING_TO_RESTORE(wireValue = "nothing_to_restore"),
+    FAILED(wireValue = "failed")
+}
+
+/**
+ * Narrowed to Google Play: this app sells only through Play and links to no other provider's
+ * subscription management, so the catalog's `stripe_portal` and `app_store` have no path here.
+ */
+enum class AnalyticsSubscriptionManagementDestination(val wireValue: String) {
+    GOOGLE_PLAY(wireValue = "google_play")
+}
+
+/**
  * Why one dictation attempt ended without a transcript.
  *
  * [PERMISSION_DENIED] is the microphone refusal, both the answer to the OS dialog and a refusal the
@@ -543,6 +575,61 @@ sealed interface AnalyticsEvent {
         override val eventName: String = "card_create_started"
         override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
             "entry_point" to AnalyticsPropertyValue.Text(value = entryPoint.wireValue)
+        )
+    }
+
+    /**
+     * The paywall events below are what the person did as this client saw it, never evidence that
+     * anything was sold or granted; the server-derived billing facts are that. `screen` is the
+     * surface beneath the paywall, passed by every caller with no default, because the same sheet
+     * opens over several destinations.
+     */
+    data class PaywallShown(
+        val entryPoint: AnalyticsPaywallEntryPoint,
+        override val screen: AnalyticsSurface?
+    ) : AnalyticsEvent {
+        override val eventName: String = "paywall_shown"
+        override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
+            "entry_point" to AnalyticsPropertyValue.Text(value = entryPoint.wireValue)
+        )
+    }
+
+    /** The Google Play purchase sheet was launched. */
+    data class PurchaseStarted(
+        override val screen: AnalyticsSurface?
+    ) : AnalyticsEvent {
+        override val eventName: String = "purchase_started"
+        override val properties: Map<String, AnalyticsPropertyValue> = emptyMap()
+    }
+
+    /** What Google Play reported for the sheet [PurchaseStarted] launched, at most once per launch. */
+    data class PurchaseFinished(
+        val outcome: AnalyticsPurchaseOutcome,
+        override val screen: AnalyticsSurface?
+    ) : AnalyticsEvent {
+        override val eventName: String = "purchase_finished"
+        override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
+            "outcome" to AnalyticsPropertyValue.Text(value = outcome.wireValue)
+        )
+    }
+
+    data class PurchaseRestoreFinished(
+        val outcome: AnalyticsPurchaseRestoreOutcome,
+        override val screen: AnalyticsSurface?
+    ) : AnalyticsEvent {
+        override val eventName: String = "purchase_restore_finished"
+        override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
+            "outcome" to AnalyticsPropertyValue.Text(value = outcome.wireValue)
+        )
+    }
+
+    data class SubscriptionManagementOpened(
+        val destination: AnalyticsSubscriptionManagementDestination,
+        override val screen: AnalyticsSurface?
+    ) : AnalyticsEvent {
+        override val eventName: String = "subscription_management_opened"
+        override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
+            "destination" to AnalyticsPropertyValue.Text(value = destination.wireValue)
         )
     }
 

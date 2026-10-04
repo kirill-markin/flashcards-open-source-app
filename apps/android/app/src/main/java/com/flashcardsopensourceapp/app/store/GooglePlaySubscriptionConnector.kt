@@ -15,6 +15,11 @@ import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
 import com.android.billingclient.api.queryProductDetails
 import com.android.billingclient.api.queryPurchasesAsync
+import com.flashcardsopensourceapp.core.observability.analytics.Analytics
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPurchaseOutcome
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPurchaseRestoreOutcome
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
 import com.flashcardsopensourceapp.data.local.repository.billing.GoogleBillingAccount
 import com.flashcardsopensourceapp.data.local.repository.billing.GoogleBillingIdentity
 import com.flashcardsopensourceapp.data.local.repository.billing.GoogleBillingIdentityChangedException
@@ -40,9 +45,13 @@ import kotlinx.coroutines.withContext
 
 private class GooglePlayBillingException(val responseCode: Int) : IllegalStateException("Google Play billing request failed.")
 
+/** An opened purchase sheet whose `purchase_finished` has not been reported yet. */
+private data class GooglePlayPurchaseReport(val analyticsSurface: AnalyticsSurface?)
+
 class GooglePlaySubscriptionConnector(
     context: Context,
-    private val repository: GooglePlayBillingRepository
+    private val repository: GooglePlayBillingRepository,
+    private val analytics: Analytics
 ) : DefaultLifecycleObserver {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val mutex = Mutex()
@@ -52,12 +61,15 @@ class GooglePlaySubscriptionConnector(
     val offer: StateFlow<GooglePlaySubscriptionOfferState> = offerState.asStateFlow()
     val operation: StateFlow<GooglePlaySubscriptionOperationState> = operationState.asStateFlow()
     private var launchedAccount: GoogleBillingAccount? = null
+    // Lives only in memory: a sheet whose result arrives after process death reports no outcome.
+    private var pendingPurchaseReport: GooglePlayPurchaseReport? = null
     private var failurePhase = GooglePlaySubscriptionFailurePhase.PURCHASE_RECOVERY
     private var connectedOnce = false
     private var closed = false
     private val billingClient = BillingClient.newBuilder(context.applicationContext)
         .setListener { result, purchases ->
             runOperation {
+                reportPurchaseFinished(outcome = purchaseOutcome(result.responseCode, purchases.orEmpty()))
                 when (result.responseCode) {
                     BillingResponseCode.OK -> processPurchaseUpdates(purchases.orEmpty())
                     BillingResponseCode.USER_CANCELED -> clearLaunch()
@@ -147,7 +159,11 @@ class GooglePlaySubscriptionConnector(
         operationState.value = GooglePlaySubscriptionOperationState.Idle
     }
 
-    fun purchase(activity: Activity, displayedOffer: GooglePlaySubscriptionOffer): Job = runOperation {
+    fun purchase(
+        activity: Activity,
+        displayedOffer: GooglePlaySubscriptionOffer,
+        analyticsSurface: AnalyticsSurface?
+    ): Job = runOperation {
         if (launchedAccount != null) return@runOperation
         val available = offerState.value as? GooglePlaySubscriptionOfferState.Available
         if (available?.offer !== displayedOffer) {
@@ -174,6 +190,7 @@ class GooglePlaySubscriptionConnector(
                 failurePhase = GooglePlaySubscriptionFailurePhase.PURCHASE_RECOVERY
                 launchedAccount = account
                 operationState.value = GooglePlaySubscriptionOperationState.Purchasing(account.identity)
+                analytics.track(event = AnalyticsEvent.PurchaseStarted(screen = analyticsSurface))
                 val result = billingClient.launchBillingFlow(
                     activity,
                     BillingFlowParams.newBuilder()
@@ -183,6 +200,16 @@ class GooglePlaySubscriptionConnector(
                             .setOfferToken(displayedOffer.offerToken).build()))
                         .build()
                 )
+                if (result.responseCode == BillingResponseCode.OK) {
+                    // The sheet opened. Its outcome reaches the purchases listener, whose operation
+                    // waits for this one's lock, so the report is in place before it runs.
+                    pendingPurchaseReport = GooglePlayPurchaseReport(analyticsSurface = analyticsSurface)
+                } else {
+                    analytics.track(event = AnalyticsEvent.PurchaseFinished(
+                        outcome = purchaseOutcome(result.responseCode, emptyList()),
+                        screen = analyticsSurface
+                    ))
+                }
                 when (result.responseCode) {
                     BillingResponseCode.OK -> Unit
                     BillingResponseCode.USER_CANCELED -> clearLaunch()
@@ -199,17 +226,25 @@ class GooglePlaySubscriptionConnector(
         }
     }
 
-    fun restore(): Job = runOperation {
+    fun restore(analyticsSurface: AnalyticsSurface?): Job = runOperation {
         launchedAccount = null
         operationState.value = GooglePlaySubscriptionOperationState.Loading
-        val identity = repository.prepareRestore()
-        val purchases = queryPurchases()
-        if (purchases.isEmpty()) {
-            operationState.value = GooglePlaySubscriptionOperationState.NothingToRestore
+        try {
+            val identity = repository.prepareRestore()
+            val purchases = queryPurchases()
+            if (purchases.isEmpty()) {
+                operationState.value = GooglePlaySubscriptionOperationState.NothingToRestore
+            }
+            for (purchase in purchases) {
+                processPurchase(purchase, identity, GooglePurchaseIntent.EXPLICIT)
+            }
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            trackRestoreFinished(outcome = AnalyticsPurchaseRestoreOutcome.FAILED, analyticsSurface = analyticsSurface)
+            throw error
         }
-        for (purchase in purchases) {
-            processPurchase(purchase, identity, GooglePurchaseIntent.EXPLICIT)
-        }
+        trackRestoreFinished(outcome = restoreOutcome(operationState.value), analyticsSurface = analyticsSurface)
     }
 
     fun resume(): Job = runOperation { recoverPurchases() }
@@ -351,6 +386,16 @@ class GooglePlaySubscriptionConnector(
         }
     }
 
+    private fun reportPurchaseFinished(outcome: AnalyticsPurchaseOutcome) {
+        val report = pendingPurchaseReport ?: return
+        pendingPurchaseReport = null
+        analytics.track(event = AnalyticsEvent.PurchaseFinished(outcome = outcome, screen = report.analyticsSurface))
+    }
+
+    private fun trackRestoreFinished(outcome: AnalyticsPurchaseRestoreOutcome, analyticsSurface: AnalyticsSurface?) {
+        analytics.track(event = AnalyticsEvent.PurchaseRestoreFinished(outcome = outcome, screen = analyticsSurface))
+    }
+
     private suspend fun clearLaunch() {
         launchedAccount = null
         val pending = loadPending()
@@ -413,6 +458,28 @@ class GooglePlaySubscriptionConnector(
 
     private suspend fun loadPending(): GooglePlayPendingState = withContext(Dispatchers.IO) { pendingStore.load() }
     private suspend fun savePending(state: GooglePlayPendingState) = withContext(Dispatchers.IO) { pendingStore.save(state) }
+}
+
+private fun purchaseOutcome(responseCode: Int, purchases: List<Purchase>): AnalyticsPurchaseOutcome {
+    val premiumStates = purchases
+        .filter { purchase -> purchase.products.contains(googlePlayPremiumProductId) }
+        .map { purchase -> purchase.purchaseState }
+    return when {
+        responseCode == BillingResponseCode.USER_CANCELED -> AnalyticsPurchaseOutcome.CANCELLED
+        responseCode != BillingResponseCode.OK -> AnalyticsPurchaseOutcome.FAILED
+        premiumStates.contains(Purchase.PurchaseState.PURCHASED) -> AnalyticsPurchaseOutcome.COMPLETED
+        premiumStates.contains(Purchase.PurchaseState.PENDING) -> AnalyticsPurchaseOutcome.PENDING
+        else -> AnalyticsPurchaseOutcome.FAILED
+    }
+}
+
+/** Read after every found purchase was processed; anything short of granted access is a failure. */
+private fun restoreOutcome(state: GooglePlaySubscriptionOperationState): AnalyticsPurchaseRestoreOutcome {
+    return when (state) {
+        is GooglePlaySubscriptionOperationState.Complete -> AnalyticsPurchaseRestoreOutcome.RESTORED
+        GooglePlaySubscriptionOperationState.NothingToRestore -> AnalyticsPurchaseRestoreOutcome.NOTHING_TO_RESTORE
+        else -> AnalyticsPurchaseRestoreOutcome.FAILED
+    }
 }
 
 private fun requireBillingSuccess(result: BillingResult) {

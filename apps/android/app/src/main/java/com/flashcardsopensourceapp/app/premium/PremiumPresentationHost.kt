@@ -40,6 +40,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.flashcardsopensourceapp.app.R
 import com.flashcardsopensourceapp.app.di.AppGraph
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
 import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
@@ -64,6 +66,7 @@ internal fun PremiumPresentationHost(
     presenter: PremiumPresenter,
     appGraph: AppGraph,
     cloudSettings: CloudSettings,
+    analyticsSurface: AnalyticsSurface?,
     onOpenSignIn: () -> Unit
 ) {
     val reason = presenter.reason ?: return
@@ -74,6 +77,14 @@ internal fun PremiumPresentationHost(
     val isAiLimit = reason is PremiumReason.AiLimit || reason == PremiumReason.AiLimitPreview
     val billingOperation by appGraph.googlePlaySubscriptionConnector.operation.collectAsStateWithLifecycle()
     val locale = LocalConfiguration.current.locales[0]
+
+    // Keyed on the reason alone, so a presentation reports once and names the surface it opened over.
+    LaunchedEffect(reason) {
+        val entryPoint = reason.paywallEntryPoint ?: return@LaunchedEffect
+        appGraph.analytics.track(
+            event = AnalyticsEvent.PaywallShown(entryPoint = entryPoint, screen = analyticsSurface)
+        )
+    }
 
     LaunchedEffect(reason, billingOperation) {
         if (!isAiLimit && presenter.entitlement == null && !hasRequestedEntitlement &&
@@ -171,7 +182,8 @@ internal fun PremiumPresentationHost(
                     if (!hasAccess && (!isAiLimit || presenter.entitlement != null)) {
                         PremiumStoreOffer(
                             connector = appGraph.googlePlaySubscriptionConnector,
-                            entitlement = presenter.entitlement
+                            entitlement = presenter.entitlement,
+                            analyticsSurface = analyticsSurface
                         )
                     } else if (!isAiLimit) {
                         Text(
@@ -179,7 +191,10 @@ internal fun PremiumPresentationHost(
                             style = MaterialTheme.typography.headlineSmall
                         )
                         Text(stringResource(R.string.premium_already_active))
-                        PremiumBillingActions(connector = appGraph.googlePlaySubscriptionConnector)
+                        PremiumBillingActions(
+                            connector = appGraph.googlePlaySubscriptionConnector,
+                            analyticsSurface = analyticsSurface
+                        )
                     }
                     if (isAiLimit) {
                         Text(stringResource(R.string.premium_own_key_help))
