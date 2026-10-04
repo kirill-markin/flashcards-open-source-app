@@ -56,7 +56,7 @@ extension LiveSmokeTestCase {
             }
             do {
                 try self.step("delete the isolated workspace") {
-                    try self.deleteEphemeralWorkspace()
+                    try self.deleteEphemeralWorkspace(workspaceName: context.workspaceName)
                 }
             } catch {
                 if primaryFailure == nil {
@@ -156,6 +156,10 @@ extension LiveSmokeTestCase {
             identifier: LiveSmokeIdentifier.currentWorkspaceCreateButton,
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
+        try self.assertElementDoesNotExist(
+            identifier: LiveSmokeIdentifier.currentWorkspacePickerScreen,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        )
         try self.assertScreenVisible(screen: .currentWorkspace, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
         try self.tapFirstNavigationBackButton()
         try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
@@ -195,7 +199,9 @@ extension LiveSmokeTestCase {
     }
 
     @MainActor
-    func deleteEphemeralWorkspace() throws {
+    func deleteEphemeralWorkspace(workspaceName: String) throws {
+        try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.assertTextExists(workspaceName, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
         self.logSmokeBreadcrumb(
             event: "cleanup_start",
             action: "delete_workspace",
@@ -236,6 +242,11 @@ extension LiveSmokeTestCase {
             identifier: LiveSmokeIdentifier.deleteWorkspaceConfirmationButton,
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
+        try self.assertElementDoesNotExist(
+            identifier: LiveSmokeIdentifier.deleteWorkspaceConfirmationButton,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        )
+        try self.assertScreenVisible(screen: .deleteCurrentWorkspace, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
         self.logSmokeBreadcrumb(
             event: "cleanup_end",
             action: "delete_workspace",
