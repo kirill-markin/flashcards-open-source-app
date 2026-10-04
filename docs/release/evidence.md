@@ -64,8 +64,9 @@ publication for optional tests. This does not waive fixes before the next
 release, or turn an identity mismatch into a matching artifact.
 
 Newly dispatched artifacts must still pass every local and cloud gate in their platform procedures.
-Before a new publication/submission, fix errors, failed required tests, and
-lint/compiler/toolchain warnings. Reuse valid results when relevant inputs have
+Before a new publication/submission, apply the
+[release warning policy](README.md#release-warning-policy), including its required
+evidence for qualifying notices. Reuse valid results when relevant inputs have
 not changed; repeat only affected gates after a fix.
 A source-affecting fix invalidates affected evidence and requires the corrected
 artifact's gates. Read APIs/CLIs first; use the browser for unsupported actions
@@ -80,8 +81,9 @@ This local release gate is mandatory even when PR checks are already green.
 
 Keep full build logs and test reports; when piping output through `tee`, enable
 `set -o pipefail` so logging cannot hide a failed command. Inspect compiler,
-linker, Gradle, and lint warnings even after a successful exit. Fix errors,
-warnings, and smoke failures, merge fixes through normal CI, and repeat the
+linker, Gradle, and lint warnings even after a successful exit. Apply the
+[release warning policy](README.md#release-warning-policy), fix blocking issues
+and smoke failures, merge fixes through normal CI, and repeat the
 affected local preflight on the corrected release SHA before cloud dispatch.
 Record the SHA, commands, toolchain versions, and results in the chat. Missing
 local SDKs or build inputs block that platform's dispatch until resolved; do
