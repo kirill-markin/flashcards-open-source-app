@@ -39,6 +39,10 @@ struct AppleSubscriptionOffer {
     let isEligibleForIntroOffer: Bool
 
     var displayPrice: String { self.product.displayPrice }
+
+    var includesFreeTrial: Bool {
+        self.isEligibleForIntroOffer && self.product.subscription?.introductoryOffer?.paymentMode == .freeTrial
+    }
 }
 
 enum AppleSubscriptionPurchaseResult {
@@ -62,6 +66,11 @@ private enum ApplePremiumStorePurchase {
             return .cancelled
         }
     }
+}
+
+private struct ApplePremiumRestoredPurchase {
+    let verification: VerificationResult<StoreKit.Transaction>
+    let transaction: StoreKit.Transaction
 }
 
 @MainActor
@@ -152,7 +161,10 @@ final class AppleSubscriptionService {
         guard hasPremiumAccess(entitlement: entitlement) == false else {
             throw AppleSubscriptionError.premiumAlreadyAvailable
         }
-        self.trackForCurrentIdentity(.purchaseStarted, identity: identity)
+        self.trackForCurrentIdentity(
+            .purchaseStarted(offerType: offer.includesFreeTrial ? .freeTrial : .standard),
+            identity: identity
+        )
         let purchase: ApplePremiumStorePurchase
         do {
             purchase = try await self.storePurchase(product: offer.product, token: token)
@@ -193,35 +205,43 @@ final class AppleSubscriptionService {
 
     func restorePurchases() async throws {
         let identity = try self.store.appleSubscriptionIdentity()
-        let hasRestoredPurchase: Bool
+        let restoredPurchases: [ApplePremiumRestoredPurchase]
         do {
-            hasRestoredPurchase = try await self.restorePremiumPurchases(identity: identity)
+            restoredPurchases = try await self.storeRestoredPremiumPurchases(identity: identity)
         } catch {
             self.trackForCurrentIdentity(.purchaseRestoreFinished(outcome: .failed), identity: identity)
             throw error
         }
         self.trackForCurrentIdentity(
-            .purchaseRestoreFinished(outcome: hasRestoredPurchase ? .restored : .nothingToRestore),
+            .purchaseRestoreFinished(outcome: restoredPurchases.isEmpty ? .nothingToRestore : .restored),
             identity: identity
         )
-    }
-
-    /// Returns whether the App Store held a premium entitlement to restore.
-    private func restorePremiumPurchases(identity: AppleSubscriptionIdentity) async throws -> Bool {
-        try await AppStore.sync()
-        try self.store.requireAppleSubscriptionIdentity(identity)
-        var hasRestoredPurchase = false
-        for await verification in StoreKit.Transaction.currentEntitlements {
-            try self.store.requireAppleSubscriptionIdentity(identity)
-            guard let transaction = try self.verifiedPremiumTransaction(verification) else { continue }
-            hasRestoredPurchase = true
+        for purchase in restoredPurchases {
             // An explicit restore is the deliberate last-presenter-wins transfer path.
-            try await self.attach(verification: verification, transaction: transaction, identity: identity, intent: .explicit)
+            try await self.attach(
+                verification: purchase.verification,
+                transaction: purchase.transaction,
+                identity: identity,
+                intent: .explicit
+            )
         }
         try await self.store.refreshAppleSubscriptionEntitlement(identity: identity)
         try await self.refreshPurchaseDetails(identity: identity)
         self.runtimeErrorMessage = nil
-        return hasRestoredPurchase
+    }
+
+    private func storeRestoredPremiumPurchases(
+        identity: AppleSubscriptionIdentity
+    ) async throws -> [ApplePremiumRestoredPurchase] {
+        try await AppStore.sync()
+        try self.store.requireAppleSubscriptionIdentity(identity)
+        var purchases: [ApplePremiumRestoredPurchase] = []
+        for await verification in StoreKit.Transaction.currentEntitlements {
+            try self.store.requireAppleSubscriptionIdentity(identity)
+            guard let transaction = try self.verifiedPremiumTransaction(verification) else { continue }
+            purchases.append(ApplePremiumRestoredPurchase(verification: verification, transaction: transaction))
+        }
+        return purchases
     }
 
     /// An account that changed while the store sheet was open may already have rotated the analytics
