@@ -55,12 +55,32 @@ republish, recreate a listing, or silently omit a channel.
 See the [canonical channel inventory](mcp-and-plugins.md#release-inventory) and
 maintain the [release ledger](evidence.md#release-ledger).
 
-Submission, approval, and a portal's **Published** label alone do not prove
-public availability. External review may run alongside independent work, but
-remains open work. Full publication is complete only when every in-scope channel
-is publicly verified as live or unchanged, or the user explicitly accepts a
-scoped exception. Report such an exception and its remaining work; never call
-that channel live. This same gate controls [release closeout](versioning.md#release-closeout-and-development).
+Operational completion means our required publication or submission actions are
+finished at the boundary below. Track observed public availability separately:
+submission, approval, and a portal's **Published** label alone do not prove it.
+
+| Channel | Operator completion boundary |
+| --- | --- |
+| iOS | Exact version/build successfully submitted for review with automatic release after approval enabled and its saved setting verified. In manual mode, complete any available final release action and record a later action still awaiting approval as follow-up. |
+| Android | Exact production version is publicly available at the selected rollout scope, after the required GitHub/Firebase and local gates. |
+| Web/backend and MCP Registry | Intended deployment/runtime or registry version is verified under its procedure. |
+| Established connector/plugin/directory channels | Required CI/scans and focused checks passed, and the exact update/publication request was accepted, or the unchanged publication was verified. |
+
+External iOS/provider review and directory crawl/propagation are follow-up; they
+do not hold overall closeout open after these boundaries. Record pending states
+factually and any later operator action, without calling them live. OpenAI's
+initial publication is excluded from routine release until a separately scoped
+initial launch establishes that channel; preserve its submission identity through
+the [companion procedure](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md).
+
+Before a new publication/submission, fix release errors, failed required tests,
+and lint/compiler/toolchain warnings. A known failure blocks that action.
+Already-published matching mobile artifacts count complete under the
+[reuse rules](evidence.md#reuse-existing-artifacts); historical gaps do not reopen
+them. Reuse valid evidence on unchanged inputs and do not extend completed
+publication with optional tests. These boundaries, together with mandatory tags,
+Releases, assets, and development safeguards, control
+[release closeout](versioning.md#release-closeout-and-development).
 
 ## Release Sequence
 
@@ -81,17 +101,19 @@ that channel live. This same gate controls [release closeout](versioning.md#rele
    Start the necessary Android, iOS, MCP Registry, and companion publication
    flows in parallel; prepare metadata while builds and review run.
 4. Complete [platform procedures](#required-reading) and the existing
-   [directory updates](mcp-and-plugins.md#release-inventory), including final Apple/Play publication and public
-   verification. On failure, inspect evidence, fix and merge through normal CI,
+   [directory updates](mcp-and-plugins.md#release-inventory) through their operator
+   completion boundaries above. Record external review/propagation as follow-up.
+   On failure before publication, inspect evidence, fix and merge through normal CI,
    then repeat affected gates. Update the target SHA/notes and revalidate reuse
    of unaffected artifacts. If a fix affects an already published artifact,
    ask the user how to handle that platform before proceeding.
 5. Preserve the release commits and publish/verify the app and companion
    [tags, Releases, and package assets](versioning.md#github-tag-and-release). This may happen
    while external review continues or when a distribution channel needs those
-   assets; a GitHub Release does not complete a pending channel.
-6. After the public completion gate above (or an explicit scoped exception),
+   assets; a GitHub Release alone does not satisfy a channel's boundary.
+6. After the operator completion boundaries above,
    complete [release closeout and development safeguards](versioning.md#release-closeout-and-development).
    Retain the selected version in both repositories; do not pre-bump development.
 7. Report the ledger's actual channel states, public links, app/companion
-   Releases and source SHAs, retained version, and every remaining accepted action.
+   Releases and source SHAs, retained version, and external follow-up or later
+   operator actions separately from completed release work.

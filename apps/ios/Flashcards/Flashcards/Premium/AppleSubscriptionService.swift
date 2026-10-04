@@ -47,6 +47,23 @@ enum AppleSubscriptionPurchaseResult {
     case cancelled
 }
 
+private enum ApplePremiumStorePurchase {
+    case verified(verification: VerificationResult<StoreKit.Transaction>, transaction: StoreKit.Transaction)
+    case pending
+    case cancelled
+
+    var analyticsOutcome: AnalyticsPurchaseOutcome {
+        switch self {
+        case .verified:
+            return .completed
+        case .pending:
+            return .pending
+        case .cancelled:
+            return .cancelled
+        }
+    }
+}
+
 @MainActor
 @Observable
 final class AppleSubscriptionService {
@@ -135,8 +152,29 @@ final class AppleSubscriptionService {
         guard hasPremiumAccess(entitlement: entitlement) == false else {
             throw AppleSubscriptionError.premiumAlreadyAvailable
         }
-        let result = try await offer.product.purchase(options: [.appAccountToken(token)])
+        self.trackForCurrentIdentity(.purchaseStarted, identity: identity)
+        let purchase: ApplePremiumStorePurchase
+        do {
+            purchase = try await self.storePurchase(product: offer.product, token: token)
+        } catch {
+            self.trackForCurrentIdentity(.purchaseFinished(outcome: .failed), identity: identity)
+            throw error
+        }
+        self.trackForCurrentIdentity(.purchaseFinished(outcome: purchase.analyticsOutcome), identity: identity)
         try self.store.requireAppleSubscriptionIdentity(identity)
+        switch purchase {
+        case .pending:
+            return .pending
+        case .cancelled:
+            return .cancelled
+        case .verified(let verification, let transaction):
+            try await self.attach(verification: verification, transaction: transaction, identity: identity, intent: .explicit)
+            return .attached
+        }
+    }
+
+    private func storePurchase(product: Product, token: UUID) async throws -> ApplePremiumStorePurchase {
+        let result = try await product.purchase(options: [.appAccountToken(token)])
         switch result {
         case .pending:
             return .pending
@@ -147,8 +185,7 @@ final class AppleSubscriptionService {
                   transaction.appAccountToken == token else {
                 throw AppleSubscriptionError.unexpectedPurchaseResult
             }
-            try await self.attach(verification: verification, transaction: transaction, identity: identity, intent: .explicit)
-            return .attached
+            return .verified(verification: verification, transaction: transaction)
         @unknown default:
             throw AppleSubscriptionError.unexpectedPurchaseResult
         }
@@ -156,17 +193,42 @@ final class AppleSubscriptionService {
 
     func restorePurchases() async throws {
         let identity = try self.store.appleSubscriptionIdentity()
+        let hasRestoredPurchase: Bool
+        do {
+            hasRestoredPurchase = try await self.restorePremiumPurchases(identity: identity)
+        } catch {
+            self.trackForCurrentIdentity(.purchaseRestoreFinished(outcome: .failed), identity: identity)
+            throw error
+        }
+        self.trackForCurrentIdentity(
+            .purchaseRestoreFinished(outcome: hasRestoredPurchase ? .restored : .nothingToRestore),
+            identity: identity
+        )
+    }
+
+    /// Returns whether the App Store held a premium entitlement to restore.
+    private func restorePremiumPurchases(identity: AppleSubscriptionIdentity) async throws -> Bool {
         try await AppStore.sync()
         try self.store.requireAppleSubscriptionIdentity(identity)
+        var hasRestoredPurchase = false
         for await verification in StoreKit.Transaction.currentEntitlements {
             try self.store.requireAppleSubscriptionIdentity(identity)
             guard let transaction = try self.verifiedPremiumTransaction(verification) else { continue }
+            hasRestoredPurchase = true
             // An explicit restore is the deliberate last-presenter-wins transfer path.
             try await self.attach(verification: verification, transaction: transaction, identity: identity, intent: .explicit)
         }
         try await self.store.refreshAppleSubscriptionEntitlement(identity: identity)
         try await self.refreshPurchaseDetails(identity: identity)
         self.runtimeErrorMessage = nil
+        return hasRestoredPurchase
+    }
+
+    /// An account that changed while the store sheet was open may already have rotated the analytics
+    /// identity, so its outcome is dropped rather than risk filing it under the account that replaced it.
+    private func trackForCurrentIdentity(_ event: AnalyticsEvent, identity: AppleSubscriptionIdentity) {
+        guard (try? self.store.appleSubscriptionIdentity()) == identity else { return }
+        Analytics.track(event, screen: analyticsSurface(tab: self.store.currentVisibleTab))
     }
 
     func reconcileCurrentEntitlements() async throws {
@@ -199,6 +261,10 @@ final class AppleSubscriptionService {
     }
 
     func manageSubscriptions(in scene: UIWindowScene) async throws {
+        Analytics.track(
+            .subscriptionManagementOpened(destination: .appStore),
+            screen: analyticsSurface(tab: self.store.currentVisibleTab)
+        )
         try await AppStore.showManageSubscriptions(in: scene)
     }
 

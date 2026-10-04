@@ -40,8 +40,9 @@ Do not change `/v1` API paths, API Gateway stage names, or MCP `SERVER_VERSION =
 
 ## GitHub Tag and Release
 
-Once the source/artifact gates pass, create or verify immutable current-version
-tags in both app and companion repositories at their recorded release commits,
+Tags and GitHub Releases are mandatory controlled release actions. Once the
+applicable source/artifact gates pass, create or verify immutable current-version
+tags in both app and companion repositories at their exact recorded release commits,
 whose manifests still report that version. Prefer annotated tags and existing
 naming conventions. Record any artifact-SHA comparison under the reuse rules.
 Publish GitHub Releases with the English notes and preserve the companion's
@@ -49,7 +50,10 @@ exact successful **Plugin packages** CI assets under its
 [publishing procedure](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md).
 Record asset identity/checksums and provenance; an expiring Actions artifact
 alone is not durable release preservation. Complete this before release closeout.
-Public channels can still be pending at this stage.
+Do not wait for external review or propagation, or reconstruct historical mobile
+logs for already-published matching artifacts, before this checkpoint. Apply the
+[reuse rules](evidence.md#reuse-existing-artifacts); artifact/source identity and
+immutable package provenance remain required. Public channels can still be pending.
 
 Before retrying, check whether the tag, Release, and package assets already exist.
 Reuse matching results; never move published tags or overwrite published packages.
@@ -61,16 +65,17 @@ a matching version string alone is insufficient to identify released source.
 
 ## Release Closeout and Development
 
-Close the release only after the [public completion gate](README.md#release-inventory-and-completion)
-or the user's explicit scoped exception. Verify both release tags, GitHub Releases,
-and preserved package assets. Keep the selected version across app and companion
+Close the release after the [operator completion boundaries](README.md#release-inventory-and-completion).
+Verify both release tags, GitHub Releases, and preserved package assets; record
+external review/propagation and any later manual publication action as follow-up
+without calling pending channels live. Keep the selected version across app and companion
 sources after completion and throughout subsequent development; do not pre-bump
 the next minor or create development release packages.
 
 Before any development or preparation commit reaches the plugin's tracked
 `main`, even with unchanged manifest versions, turn Anthropic automatic
 publication off and verify the saved setting and applied policy. Preserve any
-explicitly accepted pending release request and its source commit; changing the
+accepted pending release request and its source commit; changing the
 tracked ref can cancel a pending request, so do not use it to bypass review.
 If preservation is blocked, stop the affected merge and report it.
 

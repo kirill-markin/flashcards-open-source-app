@@ -21,6 +21,8 @@ export type {
   AnalyticsEvent,
   AnalyticsMediaSource,
   AnalyticsMediaUploadFailureReason,
+  AnalyticsPaywallEntryPoint,
+  AnalyticsPurchaseOutcome,
   AnalyticsSurface,
   AnalyticsSyncFailureReason,
 } from "./events";

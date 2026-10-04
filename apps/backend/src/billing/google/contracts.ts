@@ -1,3 +1,4 @@
+import type { PurchasePrice } from "../../productAnalytics/serverFacts/billingFacts";
 import type { PurchaseStatus } from "../resolver";
 
 export const googlePackageName = "com.flashcardsopensourceapp.app";
@@ -16,6 +17,8 @@ export type GooglePurchaseState = Readonly<{
   productId: typeof googleProductId;
   basePlanId: typeof googleBasePlanId;
   offerId: typeof googleTrialOfferId | null;
+  // The base plan's regional recurring price, not the amount of any one order.
+  price: PurchasePrice | null;
   status: PurchaseStatus;
   providerStatus: string;
   environment: GoogleEnvironment;

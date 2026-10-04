@@ -1,3 +1,4 @@
+import type { PurchasePrice } from "../../productAnalytics/serverFacts/billingFacts";
 import type { PurchaseStatus } from "../resolver";
 
 export const appleAppId = 6760538964;
@@ -12,6 +13,11 @@ export type ApplePurchaseIdentity = Readonly<{
 }>;
 export type ApplePurchaseState = ApplePurchaseIdentity & Readonly<{
   transactionId: string;
+  productId: typeof appleProductId;
+  // The transaction's configured price; null when Apple reports no price or currency.
+  price: PurchasePrice | null;
+  // null when Apple reports no reason, which never counts as a customer's purchase.
+  transactionReason: "PURCHASE" | "RENEWAL" | null;
   status: PurchaseStatus;
   providerStatus: string;
   isTrial: boolean;

@@ -195,10 +195,8 @@ async function reportEntitlementChange(
     fromStatus: previous.status,
     toStatus: resolved.status,
     source: resolved.source,
-    // The resolver names which kind of row won and never which provider sold it, so no provider is
-    // readable here: a grant-backed entitlement has none at all, and for a purchase-backed one the
-    // value arrives with the store rail that gives the resolver a provider to carry.
-    provider: null,
+    provider: resolved.winningPurchase === null ? null : resolved.winningPurchase.provider,
+    environment: resolved.winningPurchase === null ? null : resolved.winningPurchase.environment,
     discoveredAt,
   });
 }
@@ -281,8 +279,7 @@ export async function resolveEntitlementSnapshotForUser(
     // The entitlement looks changed for this person, which is the only branch that writes, and the one
     // place the entitlement change fact is reported from. The other four facts the billing layer
     // writes - a trial start, a paid purchase, a revoke and auto-renew disabled - belong to the writer
-    // that records a provider's purchase transition, which does not exist yet
-    // (../productAnalytics/serverFacts/billingFacts.ts).
+    // that records a provider's purchase transition (../productAnalytics/serverFacts/billingFacts.ts).
     //
     // "Looks changed" is all the comparison above can say, and it is only used to decide whether to
     // open the transaction: being wrong costs one transaction that stores nothing. Everything that is
