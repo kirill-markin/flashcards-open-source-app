@@ -30,6 +30,10 @@ const subscriptionSchema = z.object({
   ]),
   acknowledgementState: z.enum(["ACKNOWLEDGEMENT_STATE_PENDING", "ACKNOWLEDGEMENT_STATE_ACKNOWLEDGED"]),
   startTime: timestampSchema.optional(),
+  canceledStateContext: z.object({
+    userInitiatedCancellation: z.object({}).optional(),
+    systemInitiatedCancellation: z.object({}).optional(),
+  }).optional(),
   testPurchase: z.object({}).optional(),
   linkedPurchaseToken: tokenSchema.optional(),
   externalAccountIdentifiers: accountIdentifiersSchema.optional(),
@@ -113,6 +117,7 @@ function purchaseState(purchaseToken: string, subscription: GoogleSubscription, 
   const price = item.autoRenewingPlan.recurringPrice;
   const positivePrice = price !== undefined && (BigInt(price.units ?? "0") > 0n || (price.nanos ?? 0) > 0);
   const outOfApp = subscription.outOfAppPurchaseContext;
+  const canceled = subscription.canceledStateContext;
   return {
     purchaseToken, productId: googleProductId, basePlanId: googleBasePlanId, offerId: item.offerDetails.offerId ?? null,
     price: price === undefined ? null : {
@@ -122,6 +127,8 @@ function purchaseState(purchaseToken: string, subscription: GoogleSubscription, 
     status: inGrace ? "in_grace" : active ? "active" : "expired", providerStatus, environment, currentPhase,
     isTrial: currentPhase === "free_trial",
     willRenew: item.autoRenewingPlan.autoRenewEnabled && providerStatus !== "SUBSCRIPTION_STATE_CANCELED",
+    autorenewDisabledReason: canceled?.userInitiatedCancellation !== undefined ? "voluntary"
+      : canceled?.systemInitiatedCancellation !== undefined ? "billing_error" : "unknown",
     // A failed first post-trial charge can enter grace with the trial's last successful order.
     paid: environment === "production" && active && currentPhase === "base_price"
       && positivePrice && item.latestSuccessfulOrderId !== undefined,

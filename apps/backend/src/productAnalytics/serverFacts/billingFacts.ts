@@ -1,5 +1,7 @@
 import type {
+  ProductAnalyticsAutorenewDisabledReason,
   ProductAnalyticsBillingEnvironment,
+  ProductAnalyticsBillingPeriodType,
   ProductAnalyticsBillingProvider,
   ProductAnalyticsEntitlementSource,
   ProductAnalyticsEntitlementStatus,
@@ -69,9 +71,10 @@ export type EntitlementChangedFact = Readonly<{
  * Reports one person's effective entitlement moving to a different tier or status.
  *
  * Both timestamps are the discovery clock, and they are equal because there is no second one to
- * record: the refresh runs on that person's next authenticated sync pull, the change itself happened
- * at a provider or at an operator's hand at an instant nothing at the call site can read, and the
- * purchase row's own dates describe the access period rather than when the answer moved. A reader of
+ * record: the refresh runs on that person's next authenticated sync pull, right after a billing rail
+ * commits a purchase transition and on the AI cap check; the change itself happened at a provider or
+ * at an operator's hand at an instant nothing at the call site can read; and the purchase row's own
+ * dates describe the access period rather than when the answer moved. A reader of
  * this series therefore measures when we knew, which for a person who stops opening the app is
  * arbitrarily later than when it changed.
  *
@@ -254,12 +257,17 @@ export async function recordSubscriptionRevokedAnalytics(
   });
 }
 
-export type AutorenewDisabledFact = ProviderPurchaseFact & Readonly<{
+type ProviderRenewalSignalFact = ProviderPurchaseFact & Readonly<{
   // billing.provider_events.event_id, the provider's own delivery id for the notification this was
   // read from. It is part of the key because renewal can be turned off, back on and off again on one
   // purchase, so the purchase alone would count only the first of those as a churn signal while the
   // provider's id still collapses a redelivery of each.
   providerEventId: string;
+}>;
+
+export type AutorenewDisabledFact = ProviderRenewalSignalFact & Readonly<{
+  reason: ProductAnalyticsAutorenewDisabledReason;
+  periodType: ProductAnalyticsBillingPeriodType;
 }>;
 
 /**
@@ -290,12 +298,14 @@ export async function recordAutorenewDisabledAnalytics(
     properties: {
       tier: fact.tier,
       provider: fact.provider,
+      reason: fact.reason,
+      period_type: fact.periodType,
     },
     details: null,
   });
 }
 
-export type AutorenewEnabledFact = AutorenewDisabledFact;
+export type AutorenewEnabledFact = ProviderRenewalSignalFact;
 
 /**
  * Reports auto-renewal turned back on, before access ended, on a subscription whose renewal had been

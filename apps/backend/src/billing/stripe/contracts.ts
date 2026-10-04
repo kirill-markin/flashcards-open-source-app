@@ -1,4 +1,5 @@
 import type Stripe from "stripe";
+import type { ProductAnalyticsAutorenewDisabledReason } from "../../productAnalytics/catalog";
 import type { PurchasePrice } from "../../productAnalytics/serverFacts/billingFacts";
 import type { PurchaseStatus } from "../resolver";
 
@@ -76,6 +77,8 @@ export type StripePurchaseState = Readonly<{
   // What the first paid invoice charged, known only while that invoice is the current one.
   firstPaidPrice: PurchasePrice | null;
   canceledAt: Date | null;
+  // Read only once renewal is off; `unknown` unless Stripe reports a customer request or a failed payment.
+  autorenewDisabledReason: ProductAnalyticsAutorenewDisabledReason;
   revokedReason: "refund" | "chargeback" | null;
   verifiedAt: Date;
 }>;
