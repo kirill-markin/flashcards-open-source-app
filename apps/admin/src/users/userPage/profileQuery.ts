@@ -1,6 +1,6 @@
 import { runAdminQuery, type AdminQueryObject, type AdminQueryValue } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
-import { buildExcludedActorReasonSql } from "../../filters/filterSql";
+import { buildExcludedActorReasonSql, buildTrustedActorRowsFilterSql } from "../../filters/filterSql";
 import { utcInstantSql, type UserKind } from "../usersQuery";
 import { readNullableString, readRowArray, readString } from "./queryRowValues";
 import { buildMatchesUserIdSql, buildUserSubjectSql, type UserSubjectSql } from "./userSubjectSql";
@@ -101,7 +101,7 @@ function buildProfileSections(subject: UserSubjectSql): ReadonlyArray<ProfileSec
         text("user-id", "User ID", "settings.user_id"),
         text("email", "Email", "settings.email"),
         date("created", "Created", "settings.created_at"),
-        text("locale", "Locale", "settings.locale"),
+        text("locale", "Saved app language", "settings.locale"),
         text("workspace", "Current workspace", "settings.workspace_id::text"),
         text("time-zone", "Progress time zone", "settings.progress_time_zone"),
         text("analytics-consent", "Analytics consent", "settings.analytics_consent"),
@@ -321,6 +321,7 @@ function buildProfileSections(subject: UserSubjectSql): ReadonlyArray<ProfileSec
         numberField("active-days", "Active days (UTC)", "event_totals.active_days"),
         date("first-seen", "First seen", "event_totals.first_seen_at"),
         date("last-seen", "Last seen", "event_totals.last_seen_at"),
+        text("ui-locale", "Latest UI locale", "event_totals.ui_locale"),
         numberField("reviews", "Reviews", `(SELECT count(*) FROM content.review_events AS reviews WHERE ${matches("reviews.reviewed_by_user_id")})::int`),
         numberField("ai-messages", "AI messages sent", "chat_totals.user_messages"),
         numberField("ai-chars", "AI chat characters", "chat_totals.characters"),
@@ -336,7 +337,8 @@ function buildProfileSections(subject: UserSubjectSql): ReadonlyArray<ProfileSec
         SELECT count(*)::int AS event_count,
           count(DISTINCT (events.occurred_at AT TIME ZONE 'UTC')::date)::int AS active_days,
           min(events.occurred_at) AS first_seen_at,
-          max(events.occurred_at) AS last_seen_at
+          max(events.occurred_at) AS last_seen_at,
+          (array_agg(events.ui_locale ORDER BY events.occurred_at DESC) FILTER (WHERE events.ui_locale IS NOT NULL AND ${buildTrustedActorRowsFilterSql("events.trust_level")}))[1] AS ui_locale
         FROM analytics.product_events_resolved AS events
         WHERE events.actor_id = ${subject.uuidSql}
       ) AS event_totals
