@@ -401,15 +401,22 @@ export function buildReviewEventsByDateSql(filters: AnalyticsFilterState): strin
 
   return [
     `WITH ${buildReviewAnswersCteSql(to, filters.users)},`,
-    `daily_review_activity AS (${buildDailyReviewActorPlatformSql(selectionSql)})`,
+    `daily_review_activity AS (${buildDailyReviewActorPlatformSql(selectionSql)}),`,
+    // Email is a display label: grouping by the folded id gives at most one row per actor, so the
+    // join below cannot multiply review facts. Materialized so `org.user_settings` is read once, not
+    // once per output row.
+    "actor_email AS MATERIALIZED (",
+    "  SELECT pg_catalog.lower(settings.user_id) AS actor_id, MIN(NULLIF(btrim(settings.email), '')) AS email",
+    "  FROM org.user_settings AS settings",
+    "  GROUP BY pg_catalog.lower(settings.user_id)",
+    ")",
     "SELECT to_char(activity.review_date, 'YYYY-MM-DD') AS review_date,",
     "  activity.actor_id AS user_id,",
-    // Email is a display label, never a join that can multiply review facts.
-    "  COALESCE((SELECT MIN(NULLIF(btrim(settings.email), '')) FROM org.user_settings AS settings",
-    "    WHERE pg_catalog.lower(settings.user_id) = activity.actor_id), '(no email)') AS email,",
+    "  COALESCE(actor_email.email, '(no email)') AS email,",
     "  activity.platform, activity.review_event_count,",
     "  to_char(activity.first_review_date, 'YYYY-MM-DD') AS user_first_review_date",
     "FROM daily_review_activity AS activity",
+    "LEFT JOIN actor_email ON actor_email.actor_id = activity.actor_id",
     "ORDER BY activity.review_date ASC, review_event_count DESC, activity.actor_id ASC, activity.platform ASC",
   ].join("\n");
 }
