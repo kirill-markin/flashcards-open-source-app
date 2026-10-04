@@ -143,7 +143,7 @@ Notes that are easy to get wrong:
 - Upload App Store metadata and both screenshot families using the procedure in
   [App Store metadata](app-store-connect-metadata.md). That command updates an
   editable draft; App Review submission remains a separate
-  [iOS release step](manual-production-release.md#ios).
+  [iOS release step](release/ios.md#ios).
 
 ## Screenshot and website freshness
 

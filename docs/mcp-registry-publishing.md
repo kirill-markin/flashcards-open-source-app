@@ -5,7 +5,7 @@ lives in the repo root at [`server.json`](../server.json); this doc only covers
 the publish flow.
 
 The registry entry publishes under `com.nibomo/flashcards`. For a product
-release, follow the [MCP release procedure](manual-production-release.md#mcp).
+release, follow the [MCP release procedure](release/mcp-and-plugins.md#mcp).
 This document covers publisher setup and troubleshooting.
 
 ## What is published
@@ -98,7 +98,7 @@ gh workflow run mcp-registry-publish.yml \
   --ref main
 ```
 
-Follow [the MCP release gate](manual-production-release.md#mcp). The workflow
+Follow [the MCP release gate](release/mcp-and-plugins.md#mcp). The workflow
 performs validation, duplicate-version checks, authentication, publication, and
 verification. Do not run local validation or credential bootstrap for every
 release; use the setup sections only when investigating a configuration failure.
@@ -120,7 +120,7 @@ The CLI reads `server.json` from the current directory and submits it.
 ## Refreshing the entry
 
 Publish the current shared `server.json.version` from `main` during the platform
-release stage of [the full release runbook](release-current-version.md), before
+release stage of [the full release runbook](release/README.md), before
 the GitHub Release and next development version bump. For a separate metadata
 refresh of an already published version, agree on a new shared version before
 publishing; registry versions cannot be overwritten. The remote URL only

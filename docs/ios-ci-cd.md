@@ -6,7 +6,7 @@ We do not aim for exhaustive iOS test coverage in this pipeline. The most truste
 ## Native release gate
 
 Run the separate Xcode Cloud test and archive workflows in parallel for the
-release SHA. Follow the [iOS release procedure](manual-production-release.md#ios)
+release SHA. Follow the [iOS release procedure](release/ios.md#ios)
 for their completion gates, warning handling, and App Review submission.
 
 The live smoke coverage is split into independent grouped flows across Review, Cards, AI, and Settings. Only one grouped smoke signs into the linked review account, creates an isolated linked workspace, verifies relaunch persistence, and deletes that workspace before exit. The remaining grouped smokes stay guest/local and do not perform login.
@@ -119,7 +119,7 @@ device log inside the run's result bundle, or from the sysdiagnose the farm retu
 ## Release operation
 
 A human or authorized AI operates Xcode Cloud under the
-[full release runbook](release-current-version.md).
+[full release runbook](release/README.md).
 
 ### Sentry environments
 

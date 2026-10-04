@@ -29,7 +29,7 @@ Marketing attribution links and campaign naming rules live in [docs/marketing-li
 
 We support the web app, the iOS app, the Android app, and the terminal-first AI-agent API flow. When making changes, we try to keep all supported clients aligned where relevant.
 The platform READMEs are part of the working agreement for client work: [apps/web/README.md](apps/web/README.md) for web changes, [apps/ios/README.md](apps/ios/README.md) for iOS changes, and [apps/android/README.md](apps/android/README.md) for Android changes.
-Before releasing or bumping versions, read [Release All Platforms and Start the Next Development Version](docs/release-current-version.md); it owns the release sequence, authorization, and aligned version surfaces.
+Before releasing or bumping versions, read [Release All Platforms and Start the Next Development Version](docs/release/README.md); it owns the release sequence, authorization, and aligned version surfaces.
 The Web, iOS, and Android clients are multilingual, so always account for localization and follow the existing translation patterns in the surrounding code and dedicated client documentation.
 Adding a new language spans more surfaces than any single client guide covers, so read [docs/add-language.md](docs/add-language.md) before starting one.
 The demo onboarding card seeded for new users is a cross-client contract, so before changing it on any client, read [docs/demo-card.md](docs/demo-card.md).
@@ -59,7 +59,7 @@ Nothing compiles iOS before merge by design, though `PR Checks` still runs the s
 Swift builds and tests run in Xcode Cloud, whose workflow definitions live in App Store Connect; its in-repo build inputs are documented in [docs/ios-ci-cd.md](docs/ios-ci-cd.md).
 Keep the Xcode Cloud `Test - iOS` action non-required on purpose so TestFlight can receive builds even when smoke tests fail.
 A request to execute the full release runbook authorizes its manual workflow dispatches and publication steps. Reading and monitoring Xcode Cloud runs, results, and artifacts is always allowed without asking, including outside a release. Outside a release request, dispatch Xcode Cloud workflows or trigger `Android Release` / `MCP Registry Publish` only when the user requests those actions; agents may monitor and fix automatically triggered GitHub Actions.
-For Android releases, use the existing `Android Release` workflow and GitHub Actions signing secrets described in [docs/android-ci-cd.md](docs/android-ci-cd.md). A missing local upload key does not block CI signing and is not grounds for key reset or recovery. Inspect the workflow run and its exact Firebase matrix test results under the [Android release procedure](docs/manual-production-release.md#android).
+For Android releases, use the existing `Android Release` workflow and GitHub Actions signing secrets described in [docs/android-ci-cd.md](docs/android-ci-cd.md). A missing local upload key does not block CI signing and is not grounds for key reset or recovery. Inspect the workflow run and its exact Firebase matrix test results under the [Android release procedure](docs/release/android.md#android).
 Details, rollback rules, and live smoke references: [docs/release-gates.md](docs/release-gates.md).
 
 ## Data Sources for Analysis

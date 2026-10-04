@@ -12,7 +12,7 @@ Pushes to `main` use independent release and check streams:
 - migration-bearing AWS failures are explicit fix-forward cases; the next push must still be allowed to run
 - when Android-impacting files changed, `.github/workflows/android-ci.yml` runs the post-merge `data:local` emulator backstop without repeating the PR build, unit tests, or lint and without uploading to Google Play or submitting Firebase Test Lab
 - Android production draft upload is manual-only through `.github/workflows/android-release.yml`; that workflow also requires Firebase Test Lab submission before the Play draft upload starts
-- for an iOS release, a human or authorized AI explicitly starts and monitors both Xcode Cloud workflows for the selected SHA under the [iOS release procedure](manual-production-release.md#ios)
+- for an iOS release, a human or authorized AI explicitly starts and monitors both Xcode Cloud workflows for the selected SHA under the [iOS release procedure](release/ios.md#ios)
 
 ## Component selection
 
@@ -85,10 +85,10 @@ contract. MCP Registry validation is a separate automatic check for
 Trigger `MCP Registry Publish` only when the release should publish a new,
 previously unpublished `server.json.version`.
 
-Release order and authorization belong to the [full release runbook](release-current-version.md).
-Platform gates and console actions are in [Platform Release Procedures](manual-production-release.md).
+Release order and authorization belong to the [full release runbook](release/README.md).
+Platform gates and console actions are in [Platform Release Procedures](release/README.md#required-reading).
 Store submission or approval is not the full-release completion gate: verify
-public availability and apply the [completion and next-development contract](release-current-version.md#release-inventory-and-completion).
+public availability and apply the [completion and next-development contract](release/README.md#release-inventory-and-completion).
 On resume, reuse matching artifacts only with the documented source comparison
 and retained gate evidence; newly dispatched artifacts retain all release gates.
 

@@ -54,7 +54,7 @@ first locale and preserve the section/field names.
    opaque-PNG, dimension, display-slot, and filename requirements; composites
    are not upload inputs. Review all localized fields below. Refresh every What's
    New field for the actual target and released baseline using the canonical
-   [release-note policy](release-current-version.md#release-notes); the command
+   [release-note policy](release/release-notes.md#release-notes); the command
    uploads these checked-in fields, including any stale notes left there.
 2. Use Node 24 and the main checkout's `.env` credentials described in
    [Xcode Cloud data access](xcode-cloud-data-access.md#required-local-secrets).
@@ -96,7 +96,7 @@ first locale and preserve the section/field names.
    separate actions; the command does not perform them automatically.
 5. Require the final `app_store_upload_verified` event and inspect the saved
    localizations and both screenshot families in App Store Connect. Continue
-   through [the iOS release procedure](manual-production-release.md#ios) for
+   through [the iOS release procedure](release/ios.md#ios) for
    the matching build and App Review. After release, verify the public binary's
    Languages list as described in [iOS localization](ios-localization.md#manual-runtime-validation).
 

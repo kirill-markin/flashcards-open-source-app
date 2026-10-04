@@ -186,7 +186,7 @@ does not prove purchase recovery; record actual affected-purchase readbacks.
    retain financial evidence privately.
 2. Reopen the internal track and confirm the published release and version code
    in the readiness table. For later releases, follow [Android CI/CD](android-ci-cd.md)
-   and the [release authorization runbook](release-current-version.md); keep the
+   and the [release authorization runbook](release/README.md); keep the
    failed `23866012` candidate superseded and public production in draft.
 3. In **Monetize with Play > Products > Subscriptions**, reopen `premium`,
    `monthly` and `free-trial-7d`; compare their settings with the snapshot above.
@@ -273,6 +273,6 @@ snapshot.
 | Review the Play-delivered localized UI, subscription management, privacy text, saved declarations and reviewer route. | Store text, trial/renewal disclosures and implemented data handling agree; published privacy and submitted declaration readbacks are recorded separately from drafts. |
 
 Finish [release gates](release-gates.md) and the
-[platform publication procedure](manual-production-release.md) only within the
+[platform publication procedure](release/android.md) only within the
 authorized rollout. Passing this matrix does not itself authorize public sales
 or activation of the global free-account 50-message limit.
