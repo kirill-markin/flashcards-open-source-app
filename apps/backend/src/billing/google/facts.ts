@@ -2,7 +2,7 @@ import { z } from "zod";
 import {
   recordTrialStartedAnalytics, recordPurchaseCompletedAnalytics,
   recordSubscriptionRevokedAnalytics, recordAutorenewDisabledAnalytics, recordAutorenewEnabledAnalytics,
-  recordBillingIssueStartedAnalytics,
+  recordBillingIssueStartedAnalytics, recordSubscriptionRenewedAnalytics,
 } from "../../productAnalytics/serverFacts/billingFacts";
 import { unsafeTransaction } from "../../database/unsafe";
 import { getDatabaseErrorFields } from "../../database/transient";
@@ -55,6 +55,14 @@ export async function publishGoogleTransition(transition: GoogleCommittedTransit
           await recordPurchaseCompletedAnalytics({ ...fact, kind: "subscription", period: "monthly",
             productId: state.productId, price: state.price, resubscribeTransactionId: null });
         }
+      }
+      // A paid order other than the last one already observed paid is a later paid period. The first
+      // paid charge, including one recovered after a failed post-trial charge, has no paid order before it.
+      if (state.paid && current.status !== "revoked" && previous !== null
+        && previous.google_last_paid_order_id !== null && state.latestSuccessfulOrderId !== null
+        && state.latestSuccessfulOrderId !== previous.google_last_paid_order_id) {
+        await recordSubscriptionRenewedAnalytics({ ...fact, kind: "subscription", period: "monthly",
+          productId: state.productId, price: state.price, renewalTransactionId: state.latestSuccessfulOrderId });
       }
       if (purchase.status === "revoked") {
         await recordSubscriptionRevokedAnalytics({ ...fact, reason: transition.revokedReason });

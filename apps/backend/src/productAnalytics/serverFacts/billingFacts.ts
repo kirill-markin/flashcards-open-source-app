@@ -15,7 +15,7 @@ import {
   emitServerDerivedProductAnalyticsEvent,
 } from "./serverEvents";
 
-// The seven facts the billing layer writes, and no others
+// The eight facts the billing layer writes, and no others
 // (docs/premium-entitlements.md, "Analytics facts written by the billing layer"). Each reports what
 // happened to one person's access; conversion, churn and cohorts are queries over them at analysis
 // time, so nothing here is shaped to feed a report.
@@ -192,7 +192,7 @@ export type PurchaseCompletedFact = ProviderPurchaseFact & Readonly<{
 
 /**
  * Reports one purchase decision the person paid for, keyed on the purchase so a renewal of it is
- * never a second row: the provider charging again on schedule belongs to the revenue reports. A
+ * never a second row here: the provider charging again on schedule is `subscription_renewed`. A
  * resubscribe after the purchase lapsed is a new decision on the same purchase, so its transaction
  * joins the key and each one is a row of its own.
  */
@@ -209,6 +209,51 @@ export async function recordPurchaseCompletedAnalytics(
         : [fact.purchaseId, fact.resubscribeTransactionId],
     ),
     eventName: "purchase_completed",
+    occurredAt: fact.occurredAt,
+    serverReceivedAt: fact.receivedAt,
+    userId: fact.userId,
+    subjectUserId: fact.userId,
+    guestSessionId: null,
+    workspaceId: null,
+    platform: null,
+    properties: {
+      tier: fact.tier,
+      provider: fact.provider,
+      kind: fact.kind,
+      ...(period === null ? {} : { period }),
+      product_id: fact.productId,
+      ...(price === null ? {} : { price_amount_micros: price.amountMicros, price_currency: price.currency }),
+    },
+    details: null,
+  });
+}
+
+export type SubscriptionRenewedFact = ProviderPurchaseFact & Readonly<{
+  kind: ProductAnalyticsPurchaseKind;
+  period: ProductAnalyticsSubscriptionPeriod | null;
+  productId: string;
+  price: PurchasePrice | null;
+  // The provider's own id for this renewal's charge: an Apple transaction, a Play order or a Stripe
+  // invoice.
+  renewalTransactionId: string;
+}>;
+
+/**
+ * Reports the provider charging a held subscription again on schedule, one row per paid period after
+ * the first. The first paid period, including the first charge after a trial, is `purchase_completed`
+ * only. The renewal's own charge joins the key, so a redelivery collapses and every period is a row.
+ */
+export async function recordSubscriptionRenewedAnalytics(
+  fact: SubscriptionRenewedFact,
+): Promise<void> {
+  const period = fact.period;
+  const price = fact.price;
+  await emitServerDerivedProductAnalyticsEvent({
+    eventId: deriveServerDerivedProductAnalyticsEventId(
+      "subscription_renewed",
+      [fact.purchaseId, fact.renewalTransactionId],
+    ),
+    eventName: "subscription_renewed",
     occurredAt: fact.occurredAt,
     serverReceivedAt: fact.receivedAt,
     userId: fact.userId,

@@ -76,6 +76,8 @@ export type StripePurchaseState = Readonly<{
   firstPaidInvoiceIsCurrent: boolean;
   // What the first paid invoice charged, known only while that invoice is the current one.
   firstPaidPrice: PurchasePrice | null;
+  // The current invoice when it is a paid scheduled renewal after the first paid one, otherwise null.
+  renewal: Readonly<{ invoiceId: string; paidAt: Date; price: PurchasePrice | null }> | null;
   canceledAt: Date | null;
   // Read only once renewal is off; `unknown` unless Stripe reports a customer request or a failed payment.
   autorenewDisabledReason: ProductAnalyticsAutorenewDisabledReason;

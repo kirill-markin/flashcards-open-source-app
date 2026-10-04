@@ -2,7 +2,7 @@ import { z } from "zod";
 import {
   recordTrialStartedAnalytics, recordPurchaseCompletedAnalytics,
   recordSubscriptionRevokedAnalytics, recordAutorenewDisabledAnalytics, recordAutorenewEnabledAnalytics,
-  recordBillingIssueStartedAnalytics,
+  recordBillingIssueStartedAnalytics, recordSubscriptionRenewedAnalytics,
 } from "../../productAnalytics/serverFacts/billingFacts";
 import { unsafeTransaction } from "../../database/unsafe";
 import { getDatabaseErrorFields } from "../../database/transient";
@@ -63,6 +63,12 @@ export async function publishCommittedTransition(transition: AppleCommittedTrans
         // The first transaction reactivated by a refund reversal keeps the original id, so it never is either.
         // A renewal processed before this transaction hides it, which is accepted.
         await recordPurchaseCompletedAnalytics({ ...purchaseFact, resubscribeTransactionId: state.transactionId });
+      } else if (state.paid && state.status === "active" && state.transactionReason === "RENEWAL"
+        && previous !== null && !previous.is_trial && previous.user_id === userId && previous.account_deleted_at === null
+        && previous.until !== null && state.until.getTime() > previous.until.getTime()) {
+        // Every later observation of the first paid transaction after a trial also reads a non-trial
+        // previous row; only a paid-through date that moved past the stored one is a new period.
+        await recordSubscriptionRenewedAnalytics({ ...purchaseFact, renewalTransactionId: state.transactionId });
       }
       if (state.revokedReason !== null && previous?.status !== "revoked") {
         await recordSubscriptionRevokedAnalytics({ ...fact, occurredAt: state.revokedAt ?? state.signedAt, reason: state.revokedReason });

@@ -10,6 +10,7 @@ export type StoredApplePurchase = Readonly<{
   status: PurchaseStatus;
   is_trial: boolean;
   will_renew: boolean;
+  until: Date | null;
   provider_status_raw: string | null;
   account_deleted_at: Date | null;
 }>;
@@ -40,7 +41,7 @@ export async function accountToken(executor: DatabaseExecutor, userId: string): 
 
 async function readPurchase(executor: DatabaseExecutor, identity: ApplePurchaseIdentity): Promise<StoredApplePurchase | null> {
   const result = await executor.query<StoredApplePurchase>(`
-    SELECT purchase_id, user_id, status, is_trial, will_renew, provider_status_raw, account_deleted_at
+    SELECT purchase_id, user_id, status, is_trial, will_renew, until, provider_status_raw, account_deleted_at
     FROM billing.purchases WHERE provider = 'apple' AND provider_purchase_id = $1 AND environment = $2`,
   [identity.originalTransactionId, identity.environment]);
   return result.rows[0] ?? null;
@@ -123,7 +124,7 @@ export async function persistPurchase(
       provider_status_raw = EXCLUDED.provider_status_raw,
       account_deleted_at = CASE WHEN $10::text IS NOT NULL THEN NULL ELSE billing.purchases.account_deleted_at END,
       updated_at = now()
-    RETURNING purchase_id, user_id, status, is_trial, will_renew, provider_status_raw, account_deleted_at`,
+    RETURNING purchase_id, user_id, status, is_trial, will_renew, until, provider_status_raw, account_deleted_at`,
   [state.originalTransactionId, state.environment, userId, state.status, state.isTrial, state.willRenew,
     state.until, state.graceUntil, state.providerStatus, presentingUserId]);
   if (userId !== null && accounts.some((account) => account.userId === userId)) {
