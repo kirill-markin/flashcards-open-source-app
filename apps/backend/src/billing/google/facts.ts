@@ -43,7 +43,10 @@ export async function publishGoogleTransition(transition: GoogleCommittedTransit
         // Producers deduplicate by purchase id. Retrying after a failed post-commit emission can
         // safely emit again; paid time is first observation, never original subscription signup.
         if (state.isTrial) await recordTrialStartedAnalytics({ ...fact, occurredAt: state.startedAt ?? state.verifiedAt });
-        if (state.paid) await recordPurchaseCompletedAnalytics({ ...fact, kind: "subscription", period: "monthly" });
+        if (state.paid) {
+          await recordPurchaseCompletedAnalytics({ ...fact, kind: "subscription", period: "monthly",
+            productId: state.productId, price: state.price, resubscribeTransactionId: null });
+        }
       }
       if (purchase.status === "revoked") {
         await recordSubscriptionRevokedAnalytics({ ...fact, reason: "unknown" });

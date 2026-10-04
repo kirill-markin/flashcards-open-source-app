@@ -45,8 +45,13 @@ export async function publishStripeTransitions(transitions: ReadonlyArray<Stripe
         await recordTrialStartedAnalytics({ ...fact, occurredAt: state.trialStartedAt });
       }
       if (state.firstPaidAt !== null) {
+        if (state.firstPaidPrice === null) {
+          console.warn(JSON.stringify({ event: "stripe_purchase_completed_price_unavailable",
+            purchaseId: purchase.purchase_id }));
+        }
         await recordPurchaseCompletedAnalytics({ ...fact, occurredAt: state.firstPaidAt,
-          kind: "subscription", period: "monthly" });
+          kind: "subscription", period: "monthly", productId: state.productId, price: state.firstPaidPrice,
+          resubscribeTransactionId: null });
       }
       if (state.revokedReason !== null) {
         await recordSubscriptionRevokedAnalytics({ ...fact, occurredAt: state.verifiedAt, reason: state.revokedReason });

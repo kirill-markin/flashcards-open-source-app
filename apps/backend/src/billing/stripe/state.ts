@@ -1,9 +1,11 @@
 import type Stripe from "stripe";
 import { z } from "zod";
+import type { PurchasePrice } from "../../productAnalytics/serverFacts/billingFacts";
 import type { PurchaseStatus } from "../resolver";
 import {
   StripeBillingError, type StripeEnvironment, type StripeInvoiceFinancialState, type StripePurchaseState,
 } from "./contracts";
+import { stripePresentmentSchema } from "./emailProjection";
 
 export const stripeLifecycleEventTypes = [
   "checkout.session.completed", "checkout.session.expired",
@@ -71,6 +73,31 @@ function subscriptionStatus(status: Stripe.Subscription.Status): PurchaseStatus 
   }
 }
 
+// https://docs.stripe.com/currencies. UGX is listed as zero-decimal there, but its API amounts are
+// two-decimal for backwards compatibility, like ISK.
+const stripeZeroDecimalCurrencies: ReadonlySet<string> = new Set([
+  "bif", "clp", "djf", "gnf", "jpy", "kmf", "krw", "mga", "pyg", "rwf", "vnd", "vuv", "xaf", "xof", "xpf",
+]);
+const stripeThreeDecimalCurrencies: ReadonlySet<string> = new Set(["bhd", "jod", "kwd", "omr", "tnd"]);
+
+function stripeMinorUnitsToMicros(amount: number, currency: string): number {
+  if (stripeZeroDecimalCurrencies.has(currency)) return amount * 1_000_000;
+  if (stripeThreeDecimalCurrencies.has(currency)) return amount * 1_000;
+  return amount * 10_000;
+}
+
+// The amount the customer was charged in their own currency, summed over the invoice's charges.
+function stripeChargedPrice(payments: StripeInvoiceFinancialState["payments"]): PurchasePrice | null {
+  const amounts = z.array(stripePresentmentSchema).min(1).safeParse(payments.map(({ charge }) =>
+    charge.presentment_details ?? { presentment_amount: charge.amount_captured, presentment_currency: charge.currency }));
+  if (!amounts.success) return null;
+  const currency = amounts.data[0].presentment_currency;
+  if (amounts.data.some((amount) => amount.presentment_currency !== currency)) return null;
+  const amountMicros = stripeMinorUnitsToMicros(
+    amounts.data.reduce((sum, amount) => sum + amount.presentment_amount, 0), currency);
+  return Number.isSafeInteger(amountMicros) ? { amountMicros, currency: currency.toUpperCase() } : null;
+}
+
 export function normalizeStripePurchase(
   subscription: Stripe.Subscription, customerId: string, environment: StripeEnvironment,
   financial: StripeInvoiceFinancialState, verifiedAt: Date,
@@ -106,6 +133,9 @@ export function normalizeStripePurchase(
     isTrial, willRenew: (subscription.status === "trialing" || subscription.status === "active"
       || subscription.status === "past_due") && !subscription.cancel_at_period_end && subscription.cancel_at === null,
     until, trialStartedAt, firstPaidAt: financial.firstPaidAt,
+    productId: typeof item.price.product === "string" ? item.price.product : item.price.product.id,
+    firstPaidPrice: invoice !== null && invoice.id === financial.firstPaidInvoiceId
+      ? stripeChargedPrice(financial.payments) : null,
     canceledAt: subscription.canceled_at === null ? null : stripeTimestamp(subscription.canceled_at),
     revokedReason, verifiedAt,
   };

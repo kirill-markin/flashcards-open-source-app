@@ -167,23 +167,43 @@ export async function recordTrialStartedAnalytics(fact: TrialStartedFact): Promi
   });
 }
 
+// The local-currency amount the provider reports, in millionths of the currency's major unit.
+export type PurchasePrice = Readonly<{
+  amountMicros: number;
+  // ISO 4217, uppercase.
+  currency: string;
+}>;
+
 export type PurchaseCompletedFact = ProviderPurchaseFact & Readonly<{
   kind: ProductAnalyticsPurchaseKind;
   // Absent on a `one_time` purchase, which has no period at all.
   period: ProductAnalyticsSubscriptionPeriod | null;
+  // The store's own id for what was bought.
+  productId: string;
+  // Absent when the provider did not report the amount at this call site.
+  price: PurchasePrice | null;
+  // The provider transaction of a resubscribe after a lapse, null on the purchase's first payment.
+  resubscribeTransactionId: string | null;
 }>;
 
 /**
- * Reports one purchase the person paid for, keyed on the purchase so a renewal of it is never a
- * second row: the decision happened once, and the provider charging again on schedule belongs to the
- * revenue reports.
+ * Reports one purchase decision the person paid for, keyed on the purchase so a renewal of it is
+ * never a second row: the provider charging again on schedule belongs to the revenue reports. A
+ * resubscribe after the purchase lapsed is a new decision on the same purchase, so its transaction
+ * joins the key and each one is a row of its own.
  */
 export async function recordPurchaseCompletedAnalytics(
   fact: PurchaseCompletedFact,
 ): Promise<void> {
   const period = fact.period;
+  const price = fact.price;
   await emitServerDerivedProductAnalyticsEvent({
-    eventId: deriveServerDerivedProductAnalyticsEventId("purchase_completed", [fact.purchaseId]),
+    eventId: deriveServerDerivedProductAnalyticsEventId(
+      "purchase_completed",
+      fact.resubscribeTransactionId === null
+        ? [fact.purchaseId]
+        : [fact.purchaseId, fact.resubscribeTransactionId],
+    ),
     eventName: "purchase_completed",
     occurredAt: fact.occurredAt,
     serverReceivedAt: fact.receivedAt,
@@ -197,6 +217,8 @@ export async function recordPurchaseCompletedAnalytics(
       provider: fact.provider,
       kind: fact.kind,
       ...(period === null ? {} : { period }),
+      product_id: fact.productId,
+      ...(price === null ? {} : { price_amount_micros: price.amountMicros, price_currency: price.currency }),
     },
     details: null,
   });
