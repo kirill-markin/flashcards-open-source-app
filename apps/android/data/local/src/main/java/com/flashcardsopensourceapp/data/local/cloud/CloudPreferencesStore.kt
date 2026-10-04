@@ -27,6 +27,7 @@ import com.flashcardsopensourceapp.data.local.model.ai.StoredGuestAiSession
 import com.flashcardsopensourceapp.data.local.model.cloud.makeCustomCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.cloud.makeOfficialCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
+import com.flashcardsopensourceapp.data.local.model.sync.SavedAppLocale
 import com.flashcardsopensourceapp.data.local.model.sync.defaultAccentColor
 import com.flashcardsopensourceapp.data.local.model.sync.defaultAccountPreferences
 import kotlinx.coroutines.CompletableDeferred
@@ -63,6 +64,8 @@ private const val refreshTokenKey: String = "refresh-token"
 private const val idTokenKey: String = "id-token"
 private const val idTokenExpiresAtMillisKey: String = "id-token-expires-at-millis"
 private const val pendingGuestUpgradeKey: String = "pending-guest-upgrade"
+private const val savedAppLocaleUserIdKey: String = "saved-app-locale-user-id"
+private const val savedAppLocaleKey: String = "saved-app-locale"
 private const val pendingGuestUpgradeLocalOutboxBlockReason: String =
     "Guest upgrade recovery is pending. Wait for account linking recovery to finish before changing cards."
 
@@ -240,6 +243,20 @@ class CloudPreferencesStore(
 
     fun clearAccountPreferences() {
         accountPreferencesStore.clearAccountPreferences()
+    }
+
+    /** Keyed by user rather than cleared at identity boundaries, so a new user id is always saved again. */
+    fun loadSavedAppLocale(): SavedAppLocale? {
+        val userId = metadataPreferences.getString(savedAppLocaleUserIdKey, null) ?: return null
+        val locale = metadataPreferences.getString(savedAppLocaleKey, null) ?: return null
+        return SavedAppLocale(userId = userId, locale = locale)
+    }
+
+    fun saveSavedAppLocale(savedAppLocale: SavedAppLocale) {
+        metadataPreferences.edit(commit = true) {
+            putString(savedAppLocaleUserIdKey, savedAppLocale.userId)
+            putString(savedAppLocaleKey, savedAppLocale.locale)
+        }
     }
 
     internal fun loadPendingGuestUpgrade(): PendingGuestUpgradeState? {

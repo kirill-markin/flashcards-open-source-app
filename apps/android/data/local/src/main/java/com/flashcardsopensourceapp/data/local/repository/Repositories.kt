@@ -244,6 +244,14 @@ interface CloudAccountRepository {
     suspend fun updateAccountPreferences(update: AccountPreferencesUpdate): AccountPreferences
 
     /**
+     * Saves [locale], the interface language the app displays, unless this install already saved
+     * it for the current cloud user. Does nothing without a linked or guest user, during a credential
+     * recovery, or while an account deletion is pending. Uses the account refresh's session, so it
+     * throws the same way when startup reconciliation has not yet repaired a user with no credentials.
+     */
+    suspend fun saveAppLocaleIfChanged(locale: String)
+
+    /**
      * Available with no cloud account at all, unlike every other preference: an install that never
      * signed in still reports product analytics, so the off switch has to reach it. The answer is
      * stored locally first and stays stored even when the server write fails, because the person

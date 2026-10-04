@@ -265,6 +265,10 @@ internal class FakeCloudAccountRepository : CloudAccountRepository {
         return accountPreferences.value
     }
 
+    override suspend fun saveAppLocaleIfChanged(locale: String) {
+        throw UnsupportedOperationException()
+    }
+
     override suspend fun updateProductAnalyticsEnabled(enabled: Boolean) {
         accountPreferences.value = accountPreferences.value.copy(productAnalyticsEnabled = enabled)
     }

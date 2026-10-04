@@ -106,6 +106,9 @@ internal class CloudAccountWorkspaceRemoteApi(
         update.productAnalyticsEnabledOrigin?.let { origin ->
             body.put("productAnalyticsEnabledOrigin", origin.wireValue)
         }
+        update.locale?.let { locale ->
+            body.put("locale", locale)
+        }
         val response = httpClient.patchJson(
             baseUrl = apiBaseUrl,
             path = "/me/preferences",

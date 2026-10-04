@@ -39,6 +39,7 @@ import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
 import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferencesUpdate
 import com.flashcardsopensourceapp.data.local.model.sync.AnalyticsPreferenceWriteOrigin
 import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
+import com.flashcardsopensourceapp.data.local.model.sync.SavedAppLocale
 import com.flashcardsopensourceapp.data.local.model.sync.applyAccountPreferencesUpdate
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportDownloadResponse
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportPreview
@@ -267,6 +268,47 @@ class LocalCloudAccountRepository(
                 throw error
             }
         }
+    }
+
+    override suspend fun saveAppLocaleIfChanged(locale: String) {
+        // Only the identity and session reads need the coordinator. The request goes out after it is
+        // released, so sync and other exclusive work that follows a sign-in does not wait behind it.
+        val pendingSave: PendingAppLocaleSave = operationCoordinator.runExclusive {
+            resolvePendingAppLocaleSaveLocked(locale = locale)
+        } ?: return
+        remoteService.updateAccountPreferences(
+            apiBaseUrl = pendingSave.session.apiBaseUrl,
+            authorizationHeader = pendingSave.session.authorizationHeader,
+            update = AccountPreferencesUpdate(
+                accentColor = null,
+                reviewReactionAnimationsEnabled = null,
+                productAnalyticsEnabled = null,
+                productAnalyticsEnabledOrigin = null,
+                locale = locale
+            )
+        )
+        // A user who signed out or switched meanwhile has not had the language saved for them.
+        if (currentAppLocaleUserIdOrNull() == pendingSave.savedAppLocale.userId) {
+            preferencesStore.saveSavedAppLocale(savedAppLocale = pendingSave.savedAppLocale)
+        }
+    }
+
+    private suspend fun resolvePendingAppLocaleSaveLocked(locale: String): PendingAppLocaleSave? {
+        // Like sync: an account being deleted is not written to.
+        if (preferencesStore.currentAccountDeletionState() != AccountDeletionState.Hidden) {
+            return null
+        }
+        val userId: String = currentAppLocaleUserIdOrNull() ?: return null
+        val savedAppLocale = SavedAppLocale(userId = userId, locale = locale)
+        if (preferencesStore.loadSavedAppLocale() == savedAppLocale) {
+            return null
+        }
+        val session: AccountContextSession = resolveAccountContextSessionLocked() ?: return null
+        return PendingAppLocaleSave(session = session, savedAppLocale = savedAppLocale)
+    }
+
+    private fun currentAppLocaleUserIdOrNull(): String? {
+        return preferencesStore.currentCloudSettings().linkedUserId?.trim()?.ifEmpty { null }
     }
 
     override suspend fun updateProductAnalyticsEnabled(enabled: Boolean) {
@@ -721,7 +763,8 @@ class LocalCloudAccountRepository(
                     accentColor = null,
                     reviewReactionAnimationsEnabled = null,
                     productAnalyticsEnabled = enabled,
-                    productAnalyticsEnabledOrigin = origin
+                    productAnalyticsEnabledOrigin = origin,
+                    locale = null
                 )
             )
         } catch (error: CloudRemoteException) {
@@ -938,4 +981,9 @@ class LocalCloudAccountRepository(
 private data class AccountContextSession(
     val apiBaseUrl: String,
     val authorizationHeader: String
+)
+
+private data class PendingAppLocaleSave(
+    val session: AccountContextSession,
+    val savedAppLocale: SavedAppLocale
 )
