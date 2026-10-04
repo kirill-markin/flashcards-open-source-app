@@ -15,7 +15,7 @@ import {
   emitServerDerivedProductAnalyticsEvent,
 } from "./serverEvents";
 
-// The six facts the billing layer writes, and no others
+// The seven facts the billing layer writes, and no others
 // (docs/premium-entitlements.md, "Analytics facts written by the billing layer"). Each reports what
 // happened to one person's access; conversion, churn and cohorts are queries over them at analysis
 // time, so nothing here is shaped to feed a report.
@@ -75,8 +75,9 @@ export type EntitlementChangedFact = Readonly<{
  * commits a purchase transition and on the AI cap check; the change itself happened at a provider or
  * at an operator's hand at an instant nothing at the call site can read; and the purchase row's own
  * dates describe the access period rather than when the answer moved. A reader of
- * this series therefore measures when we knew, which for a person who stops opening the app is
- * arbitrarily later than when it changed.
+ * this series therefore measures when we knew; for a change only a pull discovers, such as an expiry
+ * the provider never notifies about or an operator's grant, that is arbitrarily later than when it
+ * changed for a person who stops opening the app.
  *
  * The event id is derived from the person and that same clock, which separates the resolutions that
  * actually stored a row rather than collapsing them: the upsert applies only while its clock is newer
@@ -259,9 +260,9 @@ export async function recordSubscriptionRevokedAnalytics(
 
 type ProviderRenewalSignalFact = ProviderPurchaseFact & Readonly<{
   // billing.provider_events.event_id, the provider's own delivery id for the notification this was
-  // read from. It is part of the key because renewal can be turned off, back on and off again on one
-  // purchase, so the purchase alone would count only the first of those as a churn signal while the
-  // provider's id still collapses a redelivery of each.
+  // read from. It is part of the key because a signal can recur on one purchase - renewal turned off,
+  // back on and off again, or a charge failing, recovering and failing again - so the purchase alone
+  // would count only the first of those while the provider's id still collapses a redelivery of each.
   providerEventId: string;
 }>;
 
@@ -274,10 +275,11 @@ export type AutorenewDisabledFact = ProviderRenewalSignalFact & Readonly<{
  * Reports auto-renewal turned off on a subscription the person still holds.
  *
  * Nothing about their access changes at that moment, which is why this is a fact of its own and why
- * it is the earliest churn signal we have. It is emitted only by the writer that records the
- * provider's cancellation signal, never from the snapshot refresh: the cached row's `will_renew`
- * eventually flips there too, and reporting both would count one cancellation twice, a pull later
- * than the provider said it.
+ * it is the earliest churn signal we have. With reason `billing_error` the provider gave up on a
+ * failed charge instead, and access has typically already ended. It is emitted only by the writer
+ * that records the provider's cancellation signal, never from the snapshot refresh: the cached row's
+ * `will_renew` eventually flips there too, and reporting both would count one cancellation twice, a
+ * pull later than the provider said it.
  */
 export async function recordAutorenewDisabledAnalytics(
   fact: AutorenewDisabledFact,
@@ -332,6 +334,41 @@ export async function recordAutorenewEnabledAnalytics(
     properties: {
       tier: fact.tier,
       provider: fact.provider,
+    },
+    details: null,
+  });
+}
+
+export type BillingIssueStartedFact = ProviderRenewalSignalFact & Readonly<{
+  periodType: ProductAnalyticsBillingPeriodType;
+}>;
+
+/**
+ * Reports a renewal charge failing, when the provider first enters its payment-failure state from a
+ * state that was not one. A retry within the same failure is not a new row; a later failure after a
+ * recovery is, which is why the per-occurrence id joins the key. Like the renewal signals above, only
+ * the writer that records the provider's transition emits it.
+ */
+export async function recordBillingIssueStartedAnalytics(
+  fact: BillingIssueStartedFact,
+): Promise<void> {
+  await emitServerDerivedProductAnalyticsEvent({
+    eventId: deriveServerDerivedProductAnalyticsEventId(
+      "billing_issue_started",
+      [fact.purchaseId, fact.providerEventId],
+    ),
+    eventName: "billing_issue_started",
+    occurredAt: fact.occurredAt,
+    serverReceivedAt: fact.receivedAt,
+    userId: fact.userId,
+    subjectUserId: fact.userId,
+    guestSessionId: null,
+    workspaceId: null,
+    platform: null,
+    properties: {
+      tier: fact.tier,
+      provider: fact.provider,
+      period_type: fact.periodType,
     },
     details: null,
   });

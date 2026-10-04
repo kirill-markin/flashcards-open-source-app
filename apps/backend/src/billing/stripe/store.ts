@@ -16,6 +16,7 @@ export type StoredStripePurchase = Readonly<{
   user_id: string | null;
   status: PurchaseStatus;
   will_renew: boolean;
+  provider_status_raw: string | null;
   invalidated_at: Date | null;
   account_deleted_at: Date | null;
 }>;
@@ -26,7 +27,7 @@ export type StoredStripeEvent = Readonly<{
   received_at: Date;
   processed_at: Date | null;
 }>;
-const purchaseColumns = "purchase_id, user_id, status, will_renew, invalidated_at, account_deleted_at";
+const purchaseColumns = "purchase_id, user_id, status, will_renew, provider_status_raw, invalidated_at, account_deleted_at";
 
 function storageConflict(): never {
   throw new StripeBillingError("STRIPE_STORAGE_CONFLICT", true,

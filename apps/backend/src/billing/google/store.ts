@@ -260,7 +260,7 @@ export async function readGoogleNotification(
 
 export async function recordGoogleNotification(
   executor: DatabaseExecutor, notification: GoogleNotification, purchase: StoredGooglePurchase | null,
-  previousWillRenew: boolean | null,
+  previous: StoredGooglePurchase | null,
 ): Promise<void> {
   // Keep only attributed accounting metadata. Raw push bodies, JWTs and personal provider
   // payloads are never persisted, including on undecodable, unowned and erased purchases.
@@ -269,7 +269,10 @@ export async function recordGoogleNotification(
     VALUES ('google', $1, $2, $3, '', $4, $5, $6, $7::jsonb) ON CONFLICT (provider, event_id) DO NOTHING`,
   [notification.eventId, notification.eventType, notification.occurredAt, purchase?.user_id ?? null,
     notification.purchaseToken, purchase?.environment ?? null,
-    purchase?.user_id != null && purchase.account_deleted_at === null ? JSON.stringify({ previousWillRenew }) : null]);
+    purchase?.user_id != null && purchase.account_deleted_at === null ? JSON.stringify({
+      previousWillRenew: previous?.will_renew ?? null, previousProviderStatus: previous?.provider_status_raw ?? null,
+      previousIsTrial: previous?.is_trial ?? null,
+    }) : null]);
   await executor.query(`SELECT event_id FROM billing.provider_events
     WHERE provider = 'google' AND event_id = $1 FOR UPDATE`, [notification.eventId]);
   await readGoogleNotification(executor, notification);
@@ -279,13 +282,27 @@ export async function recordGoogleNotification(
   [notification.eventId, purchase?.user_id ?? null, purchase?.environment ?? null]);
 }
 
-export async function readGoogleNotificationPreviousRenewal(
+// What the first attempt's stored row said, so a redelivery after a post-commit failure compares
+// against it instead of against that attempt's own write. `isTrial` is null when no row was recorded.
+export type GoogleNotificationPrevious = Readonly<{
+  willRenew: boolean | null;
+  providerStatus: string | null;
+  isTrial: boolean | null;
+}>;
+
+export async function readGoogleNotificationPrevious(
   executor: DatabaseExecutor, eventId: string,
-): Promise<boolean | null> {
-  const result = await executor.query<{ previous_will_renew: boolean | null }>(`
-    SELECT (payload->>'previousWillRenew')::boolean AS previous_will_renew
+): Promise<GoogleNotificationPrevious> {
+  const result = await executor.query<{
+    previous_will_renew: boolean | null; previous_provider_status: string | null; previous_is_trial: boolean | null;
+  }>(`
+    SELECT (payload->>'previousWillRenew')::boolean AS previous_will_renew,
+      payload->>'previousProviderStatus' AS previous_provider_status,
+      (payload->>'previousIsTrial')::boolean AS previous_is_trial
     FROM billing.provider_events WHERE provider = 'google' AND event_id = $1`, [eventId]);
-  return result.rows[0]?.previous_will_renew ?? null;
+  const row = result.rows[0];
+  return { willRenew: row?.previous_will_renew ?? null, providerStatus: row?.previous_provider_status ?? null,
+    isTrial: row?.previous_is_trial ?? null };
 }
 
 export async function finishGoogleNotification(executor: DatabaseExecutor, eventId: string): Promise<void> {

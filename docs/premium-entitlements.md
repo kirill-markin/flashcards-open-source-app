@@ -290,8 +290,10 @@ The billing layer writes exactly these facts, as facts, and no others:
 - a revoke
 - auto-renew disabled
 - auto-renew re-enabled
+- a renewal charge failing, when the provider first enters its payment-failure state; recovery has
+  no fact of its own (after a `trial` failure it is the purchase's first `purchase_completed`)
 
-All six are declared in the event catalog (`apps/backend/src/productAnalytics/catalog.ts`) and have
+All seven are declared in the event catalog (`apps/backend/src/productAnalytics/catalog.ts`) and have
 a server-side producer (`apps/backend/src/productAnalytics/serverFacts/billingFacts.ts`).
 
 Per the repository rule, these record what happened; conversion funnels, cohorts, and churn are

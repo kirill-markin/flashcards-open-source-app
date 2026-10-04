@@ -71,10 +71,10 @@ an `ai_chat` or `agent_connection` replica, whose `installation_id` is NULL and 
 carries no marker by design. A marked installation is not an installation that produces zero events;
 read residue as these producers rather than as a defect in the marker.
 
-The six billing facts in
+The seven billing facts in
 [billingFacts.ts](../apps/backend/src/productAnalytics/serverFacts/billingFacts.ts) -
 `entitlement_changed`, `trial_started`, `purchase_completed`, `subscription_revoked`,
-`autorenew_disabled` and `autorenew_enabled` - escape the marker by a decision rather than by omission, and that decision is
+`autorenew_disabled`, `autorenew_enabled` and `billing_issue_started` - escape the marker by a decision rather than by omission, and that decision is
 recorded in the module's own header. A billing transition is not an action of any installation: it
 happens at a provider or at an operator's hand, and the only thing a device does is be the next one
 to sync, which is what makes the change visible. These producers therefore read no replica and no

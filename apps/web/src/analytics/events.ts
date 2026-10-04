@@ -5,14 +5,15 @@
  * carries the catalog's whole surface list, so a well-typed event's `screen` is a value the server
  * accepts as well.
  *
- * Twenty-seven events are server-derived and deliberately absent, because a client batch that carries
+ * Twenty-eight events are server-derived and deliberately absent, because a client batch that carries
  * one is rejected `server_only_event`: `guest_upgrade_completed`, `review_answered`, `card_created`,
  * `card_updated`, `card_deleted`, `deck_created`, `deck_updated`, `deck_deleted`, `account_deleted`,
  * `workspace_deleted`, `study_progress_reset`, `workspace_package_imported`,
  * `workspace_package_exported`, `agent_connection_created`, `feedback_submitted`,
  * `friend_invitation_created`, `friendship_created`, `entitlement_changed`, `trial_started`,
  * `purchase_completed`, `subscription_revoked`, `autorenew_disabled`, `autorenew_enabled`,
- * `ai_message_sent`, `ai_run_failed`, `ai_limit_reached` and `catalog_deck_installed`.
+ * `billing_issue_started`, `ai_message_sent`, `ai_run_failed`, `ai_limit_reached` and
+ * `catalog_deck_installed`.
  * `onboarding_step_completed`, `review_session_started` and `review_session_ended` remain outside
  * the active catalog. The server keeps exact backend-only tombstones for old queued copies and
  * rejects them `retired_event_name`.
