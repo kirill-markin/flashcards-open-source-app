@@ -57,6 +57,8 @@ export type StripeIntent = Readonly<{
   attemptId: string | null;
   sessionId: string | null;
   continuation: PremiumContinuation | null;
+  // The `checkout:attemptId` return already reported as `purchase_finished` for this attempt.
+  reportedReturn: string | null;
 }>;
 
 export function clearStripeIntent(): void {
@@ -93,6 +95,9 @@ export function readStripeIntent(userId: string): StripeIntent | null {
       userId, continuation,
       attemptId: value.attemptId === null ? null : parseStripeUuid(value.attemptId, "localStorage", "stripeIntent.attemptId"),
       sessionId: value.sessionId === null ? null : parseStripeSessionId(value.sessionId, "localStorage", "stripeIntent.sessionId"),
+      // Absent on an intent stored by an earlier build before its checkout returned.
+      reportedReturn: value.reportedReturn === undefined || value.reportedReturn === null
+        ? null : parseString(value.reportedReturn, "localStorage", "stripeIntent.reportedReturn"),
     };
   } catch (error) {
     clearStripeIntent();
