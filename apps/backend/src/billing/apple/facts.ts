@@ -58,11 +58,12 @@ export async function publishCommittedTransition(transition: AppleCommittedTrans
         // A renewal processed before this transaction hides it, which is accepted.
         await recordPurchaseCompletedAnalytics({ ...purchaseFact, resubscribeTransactionId: state.transactionId });
       }
-      if (state.status === "revoked" && previous?.status !== "revoked") {
-        await recordSubscriptionRevokedAnalytics({ ...fact, occurredAt: state.revokedAt ?? state.signedAt, reason: "unknown" });
+      if (state.revokedReason !== null && previous?.status !== "revoked") {
+        await recordSubscriptionRevokedAnalytics({ ...fact, occurredAt: state.revokedAt ?? state.signedAt, reason: state.revokedReason });
       }
       if (previous?.will_renew === true && !state.willRenew) {
-        await recordAutorenewDisabledAnalytics({ ...fact, occurredAt: state.signedAt, providerEventId: transition.eventId });
+        await recordAutorenewDisabledAnalytics({ ...fact, occurredAt: state.signedAt, providerEventId: transition.eventId,
+          reason: state.autorenewDisabledReason, periodType: state.isTrial ? "trial" : "paid" });
       }
       // Access must hold on both sides: a row that lapsed and came back is a resubscribe instead.
       if (previous?.will_renew === false && state.willRenew

@@ -1,3 +1,6 @@
+import type {
+  ProductAnalyticsAutorenewDisabledReason, ProductAnalyticsSubscriptionRevokedReason,
+} from "../../productAnalytics/catalog";
 import type { PurchasePrice } from "../../productAnalytics/serverFacts/billingFacts";
 import type { PurchaseStatus } from "../resolver";
 
@@ -22,6 +25,10 @@ export type ApplePurchaseState = ApplePurchaseIdentity & Readonly<{
   providerStatus: string;
   isTrial: boolean;
   willRenew: boolean;
+  // Read only once renewal is off, which Apple defines as the customer turning it off.
+  autorenewDisabledReason: ProductAnalyticsAutorenewDisabledReason;
+  // null unless Apple reports the subscription revoked.
+  revokedReason: ProductAnalyticsSubscriptionRevokedReason | null;
   until: Date;
   graceUntil: Date | null;
   purchasedAt: Date;

@@ -62,7 +62,8 @@ export async function publishStripeTransitions(transitions: ReadonlyArray<Stripe
       if (!state.willRenew && state.canceledAt !== null
         && (state.trialStartedAt !== null || state.firstPaidAt !== null)) {
         await recordAutorenewDisabledAnalytics({ ...fact, occurredAt: state.canceledAt,
-          providerEventId: `stripe:${state.environment}:${state.subscriptionId}:cancel:${state.canceledAt.toISOString()}` });
+          providerEventId: `stripe:${state.environment}:${state.subscriptionId}:cancel:${state.canceledAt.toISOString()}`,
+          reason: state.autorenewDisabledReason, periodType: state.isTrial ? "trial" : "paid" });
       }
       // A redelivery reads `will_renew` already true under the lock and emits nothing. Previous access
       // is required: `incomplete`, `unpaid` and `paused` also store `will_renew = false`.

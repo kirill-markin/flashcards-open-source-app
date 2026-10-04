@@ -1,3 +1,4 @@
+import type { ProductAnalyticsAutorenewDisabledReason } from "../../productAnalytics/catalog";
 import type { PurchasePrice } from "../../productAnalytics/serverFacts/billingFacts";
 import type { PurchaseStatus } from "../resolver";
 
@@ -25,6 +26,8 @@ export type GooglePurchaseState = Readonly<{
   currentPhase: GoogleOfferPhase;
   isTrial: boolean;
   willRenew: boolean;
+  // Read only once renewal is off; `unknown` when Play reports no cancellation context.
+  autorenewDisabledReason: ProductAnalyticsAutorenewDisabledReason;
   // Evidence of current production paid access, not an exact charge time or amount.
   paid: boolean;
   completed: boolean;

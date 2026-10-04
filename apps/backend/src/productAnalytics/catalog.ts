@@ -149,8 +149,8 @@ const productAnalyticsNotificationKinds = ["review_reminder", "strict_reminder"]
 // catalogue in apps/backend/src/billing/tiers.ts, the resolved status and source in
 // apps/backend/src/billing/resolver.ts, the provider and the purchase kind as
 // db/migrations/0151_billing_schema.sql constrains them (purchases_provider_valid and
-// purchases_kind_valid), and the period and the revoke reason from the provider's own notification,
-// because no column stores either.
+// purchases_kind_valid), and the period, the period type and the revoke and cancel reasons from the
+// provider's own response, because no column stores any of them.
 //
 // They are enums rather than bounded token patterns because each is a closed set that only a decision
 // changes. That makes a value the billing modules gain without being declared here unstorable: the
@@ -192,6 +192,12 @@ const productAnalyticsSubscriptionRevokedReasons = [
   "unknown",
 ] as const;
 
+// Why renewal turned off: the customer's choice, a payment the provider gave up on, or unreported.
+const productAnalyticsAutorenewDisabledReasons = ["voluntary", "billing_error", "unknown"] as const;
+
+// Whether the period a billing fact happened in was a provider free trial or a paid period.
+const productAnalyticsBillingPeriodTypes = ["trial", "paid"] as const;
+
 // The account kind an AI allowance is resolved for, mirroring `AccountKind` in
 // apps/backend/src/billing/limits.ts the same way the tiers above mirror theirs.
 const productAnalyticsAccountKinds = ["account", "guest"] as const;
@@ -206,6 +212,9 @@ export type ProductAnalyticsPurchaseKind = (typeof productAnalyticsPurchaseKinds
 export type ProductAnalyticsSubscriptionPeriod = (typeof productAnalyticsSubscriptionPeriods)[number];
 export type ProductAnalyticsSubscriptionRevokedReason =
   (typeof productAnalyticsSubscriptionRevokedReasons)[number];
+export type ProductAnalyticsAutorenewDisabledReason =
+  (typeof productAnalyticsAutorenewDisabledReasons)[number];
+export type ProductAnalyticsBillingPeriodType = (typeof productAnalyticsBillingPeriodTypes)[number];
 
 // Platform-independent surfaces so funnels compare across clients. Each client maps its own
 // native screens onto these and never sends a native screen name.
@@ -1268,6 +1277,9 @@ export const productAnalyticsEventCatalog = {
     properties: {
       tier: { kind: "enum", values: productAnalyticsEntitlementTiers },
       provider: { kind: "enum", values: productAnalyticsBillingProviders },
+      reason: { kind: "enum", values: productAnalyticsAutorenewDisabledReasons },
+      // The period the person was in when renewal turned off.
+      period_type: { kind: "enum", values: productAnalyticsBillingPeriodTypes },
     },
   },
   // The mirror of `autorenew_disabled`: auto-renewal turned back on before access ended, so a

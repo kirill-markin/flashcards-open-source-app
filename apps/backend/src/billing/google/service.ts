@@ -11,6 +11,7 @@ import {
 } from "./store";
 import { publishGoogleTransition, type GoogleCommittedTransition } from "./facts";
 import type { GoogleNotification } from "./notifications";
+import type { ProductAnalyticsSubscriptionRevokedReason } from "../../productAnalytics/catalog";
 
 export type GoogleBillingService = Readonly<{
   getOrCreateAccountId: (userId: string) => Promise<Readonly<{ obfuscatedAccountId: string }>>;
@@ -94,7 +95,8 @@ async function commitGoogleCurrentState(
       if (previous !== null && previousRenewal !== null) previous = { ...previous, will_renew: previousRenewal };
     }
     return { previous, purchase, state: attributedState, receivedAt,
-      eventId: notification?.eventId ?? randomUUID(), affectedUserIds: locked.accounts.map((account) => account.userId) };
+      eventId: notification?.eventId ?? randomUUID(), revokedReason: terminal ? notificationRevokedReason(notification) : "unknown",
+      affectedUserIds: locked.accounts.map((account) => account.userId) };
   });
   if (transition === null) return null;
   console.info(JSON.stringify({ event: "google_purchase_persisted", purchaseId: transition.purchase.purchase_id,
@@ -143,7 +145,7 @@ export async function revokeKnownGoogleNotification(
     // Only terminal denial is reconstructed from the correlated token; no provider access,
     // trial, payment, or renewal state is inferred from notification delivery.
     return storedTerminalTransition(locked.purchase, purchase, notification.occurredAt, notification.eventId,
-      locked.accounts.map((account) => account.userId));
+      notificationRevokedReason(notification), locked.accounts.map((account) => account.userId));
   });
 }
 
@@ -161,24 +163,30 @@ export async function settleUnavailableGoogleToken(
     const purchase = await expireUnavailableGooglePurchase(executor, previous);
     if (notification !== null) await recordGoogleNotification(executor, notification, purchase, previous.will_renew);
     return storedTerminalTransition(previous, purchase, failedAt, notification?.eventId ?? randomUUID(),
-      locked.accounts.map((account) => account.userId));
+      "unknown", locked.accounts.map((account) => account.userId));
   });
+}
+
+// A voided order is a refund: Play's voided notification names no chargeback, and an RTDN revoke no cause.
+function notificationRevokedReason(notification: GoogleNotification | null): ProductAnalyticsSubscriptionRevokedReason {
+  return notification?.kind === "voided" ? "refund" : "unknown";
 }
 
 function storedTerminalTransition(
   previous: StoredGooglePurchase, purchase: StoredGooglePurchase, occurredAt: Date, eventId: string,
-  affectedUserIds: ReadonlyArray<string>,
+  revokedReason: ProductAnalyticsSubscriptionRevokedReason, affectedUserIds: ReadonlyArray<string>,
 ): GoogleCommittedTransition {
   const state: GooglePurchaseState = {
     purchaseToken: purchase.provider_purchase_id, productId: googleProductId, basePlanId: googleBasePlanId,
     offerId: null, price: null, status: purchase.status, providerStatus: purchase.provider_status_raw ?? "SUBSCRIPTION_STATE_EXPIRED",
-    environment: purchase.environment, currentPhase: "unknown", isTrial: false, willRenew: false, paid: false,
+    environment: purchase.environment, currentPhase: "unknown", isTrial: false, willRenew: false,
+    autorenewDisabledReason: "unknown", paid: false,
     completed: true, until: purchase.until, graceUntil: null, startedAt: null, verifiedAt: occurredAt,
     latestSuccessfulOrderId: purchase.google_latest_order_id, linkedPurchaseToken: purchase.linked_from_purchase_id,
     acknowledgementState: purchase.google_acknowledgement_state ?? "pending",
     obfuscatedExternalAccountId: null, outOfAppPurchaseContext: null,
   };
-  return { previous, purchase, state, eventId, receivedAt: new Date(), affectedUserIds };
+  return { previous, purchase, state, eventId, revokedReason, receivedAt: new Date(), affectedUserIds };
 }
 
 export async function acknowledgeGoogleTransition(

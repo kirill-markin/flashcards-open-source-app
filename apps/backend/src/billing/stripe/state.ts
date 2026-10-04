@@ -129,6 +129,7 @@ export function normalizeStripePurchase(
     : invoice !== null && invoice.amount_paid > 0 && refunded >= invoice.amount_paid ? "refund" : null;
   if (revokedReason !== null) status = "revoked";
   const firstPaidInvoiceIsCurrent = invoice !== null && invoice.id === financial.firstPaidInvoiceId;
+  const cancellationReason = subscription.cancellation_details?.reason ?? null;
   return {
     subscriptionId: subscription.id, customerId, environment, status, providerStatus: subscription.status,
     isTrial, willRenew: (subscription.status === "trialing" || subscription.status === "active"
@@ -138,6 +139,8 @@ export function normalizeStripePurchase(
     firstPaidInvoiceIsCurrent,
     firstPaidPrice: firstPaidInvoiceIsCurrent ? stripeChargedPrice(financial.payments) : null,
     canceledAt: subscription.canceled_at === null ? null : stripeTimestamp(subscription.canceled_at),
+    autorenewDisabledReason: cancellationReason === "cancellation_requested" ? "voluntary"
+      : cancellationReason === "payment_failed" ? "billing_error" : "unknown",
     revokedReason, verifiedAt,
   };
 }

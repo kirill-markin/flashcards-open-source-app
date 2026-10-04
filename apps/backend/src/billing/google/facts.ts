@@ -7,6 +7,7 @@ import { unsafeTransaction } from "../../database/unsafe";
 import { getDatabaseErrorFields } from "../../database/transient";
 import { resolveEntitlementSnapshotForUser } from "../snapshot";
 import { lockGoogleAccount, readGooglePurchase, type StoredGooglePurchase } from "./store";
+import type { ProductAnalyticsSubscriptionRevokedReason } from "../../productAnalytics/catalog";
 import type { GooglePurchaseState } from "./contracts";
 
 export type GoogleCommittedTransition = Readonly<{
@@ -14,6 +15,8 @@ export type GoogleCommittedTransition = Readonly<{
   purchase: StoredGooglePurchase;
   state: GooglePurchaseState;
   eventId: string;
+  // What this transition's notification says revoked the purchase; read only when it is revoked.
+  revokedReason: ProductAnalyticsSubscriptionRevokedReason;
   receivedAt: Date;
   affectedUserIds: ReadonlyArray<string>;
 }>;
@@ -49,10 +52,11 @@ export async function publishGoogleTransition(transition: GoogleCommittedTransit
         }
       }
       if (purchase.status === "revoked") {
-        await recordSubscriptionRevokedAnalytics({ ...fact, reason: "unknown" });
+        await recordSubscriptionRevokedAnalytics({ ...fact, reason: transition.revokedReason });
       }
       if (previous?.will_renew === true && !purchase.will_renew && state.completed && current.status !== "revoked") {
-        await recordAutorenewDisabledAnalytics({ ...fact, providerEventId: transition.eventId });
+        await recordAutorenewDisabledAnalytics({ ...fact, providerEventId: transition.eventId,
+          reason: state.autorenewDisabledReason, periodType: state.isTrial ? "trial" : "paid" });
       }
       if (previous?.will_renew === false && purchase.will_renew && state.completed && current.status !== "revoked"
         && (previous.status === "active" || previous.status === "in_grace")) {

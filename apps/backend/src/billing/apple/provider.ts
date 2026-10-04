@@ -1,7 +1,7 @@
 import { setTimeout } from "node:timers/promises";
 import {
   APIError, APIException, AppStoreServerAPIClient, Environment, SignedDataVerifier,
-  VerificationException, VerificationStatus, Type, OfferDiscountType,
+  VerificationException, VerificationStatus, Type, OfferDiscountType, ExpirationIntent, InAppOwnershipType,
   type JWSTransactionDecodedPayload, type JWSRenewalInfoDecodedPayload,
 } from "@apple/app-store-server-library";
 import { z } from "zod";
@@ -29,12 +29,13 @@ const transactionSchema = z.object({
   signedDate: z.number().int().nonnegative(), appAccountToken: z.uuid().optional(),
   price: z.number().int().nonnegative().optional(), currency: z.string().regex(/^[A-Z]{3}$/).optional(),
   transactionReason: z.enum(["PURCHASE", "RENEWAL"]).optional(),
+  revocationReason: z.number().int().optional(), inAppOwnershipType: z.string().optional(),
 });
 type AppleTransaction = JWSTransactionDecodedPayload & z.infer<typeof transactionSchema>;
 const renewalSchema = z.object({
   originalTransactionId: z.string().min(1), productId: z.literal(appleProductId),
   environment: environmentSchema, autoRenewStatus: z.union([z.literal(0), z.literal(1)]),
-  signedDate: z.number().int().nonnegative(),
+  signedDate: z.number().int().nonnegative(), expirationIntent: z.number().int().optional(),
 });
 
 export function parseAppleSigningSecret(json: string): AppleSigningSecret {
@@ -192,6 +193,9 @@ export class AppleProvider {
       transactionReason: transaction.transactionReason ?? null,
       status: statuses[status.data], providerStatus: String(status.data), isTrial,
       willRenew: renewal.autoRenewStatus === 1,
+      autorenewDisabledReason: renewal.expirationIntent === ExpirationIntent.BILLING_ERROR ? "billing_error" : "voluntary",
+      revokedReason: status.data !== 5 ? null : transaction.revocationReason !== undefined ? "refund"
+        : transaction.inAppOwnershipType === InAppOwnershipType.FAMILY_SHARED ? "family_removal" : "unknown",
       until: new Date(requireValue(transaction.expiresDate, "expiresDate")),
       graceUntil: status.data === 4 ? new Date(requireValue(renewal.gracePeriodExpiresDate, "gracePeriodExpiresDate")) : null,
       purchasedAt: new Date(requireValue(transaction.purchaseDate, "purchaseDate")),
