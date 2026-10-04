@@ -329,9 +329,9 @@ const analyticsFilterFieldExplanations: Readonly<Record<AnalyticsFilterField, st
   //   while only iOS is picked;
   // - catalog deck installs are counted here exactly as the Catalog deck installs section counts
   //   them, so the delisted test deck is left out here too. It is the only exclusion the threshold
-  //   restates: every actor the one exclusion rule drops - an example.com account, anyone who has
-  //   ever held an admin grant, an actor on the exclusion list, an actor with an automated collector
-  //   row - is already gone from every set of users a threshold is applied to, by
+  //   restates: every actor the one exclusion rule drops - an example.com or +test account, anyone
+  //   who has ever held an admin grant, an actor on the exclusion list, an actor with an automated
+  //   collector row - is already gone from every set of users a threshold is applied to, by
   //   `buildExcludedActorSqlLines` in `apps/admin/src/filters/filterSql.ts`.
   minimumEventCounts:
     "Keeps only users who produced at least the given number of each listed event inside the selected date range, and a user has to clear every listed threshold at once. It judges the person rather than the rows on screen and ignores the platform filter, so one app open on iOS and two on the web still clear a threshold of three app opens while only iOS is picked. App open counts mix live events with reconstructed history, so no range is free of people whose launches are under-counted.",

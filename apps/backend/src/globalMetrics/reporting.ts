@@ -17,16 +17,18 @@ import {
 // filters shared by those three queries, and canonical for those three queries only.
 // Both rules are restated elsewhere, and every restatement below is live:
 //   * `community.refresh_leaderboard_snapshot`, whose current definition is
-//     `db/migrations/0071_progress_leaderboard_all_time_participants.sql:52-53` for the
-//     actor_kind/platform pair and `:54-57` for the `%@example.com` exclusion
-//   * `community.read_current_user_latest_leaderboard_review`, whose only definition is
-//     `db/migrations/0061_leaderboard_real_client_activity.sql:120-121` and `:79-82`,
-//     carrying both rules again
+//     `db/migrations/0169_leaderboard_exclude_plus_test_emails.sql:64-65` for the
+//     actor_kind/platform pair and `:66-72` and `:107-113` for the `%@example.com` and
+//     `%+test%` exclusion
+//   * `community.read_current_user_latest_leaderboard_review`, whose current definition is
+//     the same migration's `:146-147` and `:148-154`, carrying both rules again
+//   * `community.list_streak_leaderboard_snapshot_participants`, whose current definition is
+//     the same migration's `:192-198`, which carries the email half alone
 //   * `apps/backend/src/chat/costPolicy.ts:65`, which carries the `actor_kind` half alone
-// The two leaderboard copies live inside shipped migrations, which are immutable, so
+// The leaderboard copies live inside shipped migrations, which are immutable, so
 // changing either rule for the leaderboard means writing a NEW migration that redefines
-// the function - not editing 0071 or 0061. A fourth supported platform or a second test
-// email domain that stops at this file and the admin builders leaves leaderboard
+// the functions - not editing 0169. A fourth supported platform or another test
+// email pattern that stops at this file and the admin builders leaves leaderboard
 // eligibility on the old rule, silently. The admin exclusion added to the email fragment
 // below is deliberately not part of those leaderboard copies: an admin stays eligible for
 // the leaderboard and is only kept out of the published counters.
@@ -39,7 +41,7 @@ import {
 // and their numbers are not expected to agree.
 //
 // It does still carry the same exclusion rule as the admin dashboard: an `@example.com`
-// address, an admin, an actor listed in `analytics.excluded_actors`, or an actor any of
+// or `+test` address, an admin, an actor listed in `analytics.excluded_actors`, or an actor any of
 // whose rows the credential-free collector marked automated. That dashboard lives in a
 // separate package and cannot import these fragments, so it writes the rule once of its
 // own in `buildExcludedActorSqlLines` (`apps/admin/src/filters/filterSql.ts`) and every
