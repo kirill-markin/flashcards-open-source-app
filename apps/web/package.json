@@ -44,5 +44,8 @@
   },
   "engines": {
     "node": "24.x"
+  },
+  "allowScripts": {
+    "@sentry/cli@2.58.6": true
   }
 }

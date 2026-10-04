@@ -47,4 +47,4 @@ const monitoringStack = new FlashcardsOpenSourceAppMonitoringStack(app, "Flashca
   env: { account: core.account, region: core.region },
   monitoringInputs: core.monitoringInputs,
 });
-monitoringStack.addDependency(core);
+monitoringStack.addStackDependency(core);
