@@ -37,7 +37,7 @@ All limits are per person per month, in the [UTC monthly window](premium-entitle
 
 | Who | Messages per month |
 | --- | --- |
-| Free account | 50, switched on together with the paywall |
+| Free account | 50 |
 | Free guest | 15 |
 | Premium or lifetime, account or guest | 1000, as an anti-abuse refusal |
 

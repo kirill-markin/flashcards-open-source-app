@@ -27,7 +27,7 @@ const freeEntitlement: EntitlementWire = {
   until: null,
   isTrial: false,
   willRenew: false,
-  limits: { aiMonthlyMessages: null, aiMonthlyWeightedTokens: null },
+  limits: { aiMonthlyMessages: 50, aiMonthlyWeightedTokens: null },
 };
 
 function createEntitlementResolver(

@@ -262,12 +262,12 @@ test("the monthly allowance counts this UTC month's chat messages and refuses th
   });
 });
 
-test("an uncapped allowance is never refused, and a call the provider reported nothing for is still stored", async () => {
+test("a card image never counts against the allowance, and a call the provider reported nothing for is still stored", async () => {
   await withPostgresIntegrationFixture(async (fixture) => {
     try {
       const now = new Date("2026-09-15T12:00:00.000Z");
       const allowance = await resolveAiUsageAllowance(fixture.userId, "account", now);
-      assert.equal(allowance.monthlyMessages, null);
+      assert.equal(allowance.monthlyMessages, 50);
 
       await appendAiUsageEvent({
         userId: fixture.userId,
@@ -310,7 +310,7 @@ test("an uncapped allowance is never refused, and a call the provider reported n
         user_supplied_key: true,
       });
 
-      // A card image is never a message, so it cannot refuse an uncapped caller.
+      // A card image is never a message, so it leaves the free account's allowance untouched.
       await assertAiUsageAllowanceNotReached(allowance, fixture.userId, now);
     } finally {
       await deleteStoredRows(fixture);

@@ -27,6 +27,8 @@ export type EntitlementLimits = Readonly<{
 /** Only the free guest cell: a guest holding a paid tier gets that tier's allowance. */
 const freeGuestAiMonthlyMessages = 15;
 
+const freeAccountAiMonthlyMessages = 50;
+
 /**
  * Every paid tier shares one allowance, so two paid cells cannot drift apart while meaning the same
  * thing.
@@ -38,12 +40,8 @@ type AiMonthlyMessagesTable = Readonly<Record<
   Readonly<Record<AccountKind, number | null>>
 >>;
 
-/**
- * A free signed-in account is uncapped until the paywall launches, which gives that cell a number of its
- * own. Every cell is metered either way.
- */
 const aiMonthlyMessagesByTierAndAccountKind: AiMonthlyMessagesTable = {
-  free: { account: null, guest: freeGuestAiMonthlyMessages },
+  free: { account: freeAccountAiMonthlyMessages, guest: freeGuestAiMonthlyMessages },
   premium: { account: paidAiMonthlyMessages, guest: paidAiMonthlyMessages },
   lifetime: { account: paidAiMonthlyMessages, guest: paidAiMonthlyMessages },
 };

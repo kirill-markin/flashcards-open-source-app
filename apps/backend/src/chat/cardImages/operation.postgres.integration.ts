@@ -106,8 +106,8 @@ async function createClaimedImageRun(fixture: PostgresIntegrationFixture): Promi
     fixture.userId, fixture.workspaceId, undefined,
     [{ type: "text", text: "Generate an image for this card." }],
     randomUUID(), "Europe/Madrid", null, true, null,
-    // A signed-in caller resolves an uncapped allowance, and this test is about the image attempt
-    // budget rather than metering, so the check the route passes in is a no-op here.
+    // This test is about the image attempt budget rather than metering, so the allowance check the
+    // route passes in is a no-op here.
     async () => undefined,
   );
   const claimed = await claimChatRun(fixture.userId, fixture.workspaceId, prepared.runId);

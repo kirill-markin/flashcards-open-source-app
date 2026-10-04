@@ -2,8 +2,7 @@
 
 Catalog and review-material preparation do not submit a subscription or release an app.
 The ordinary iOS purchase offer follows the [paid-access contract](premium-entitlements.md).
-Build dispatch, App Review submission, publication, and global free-account limit activation
-remain separate authorization gates.
+Build dispatch, App Review submission, and publication remain separate authorization gates.
 
 [Subscription store metadata](subscription-store-metadata.md) owns product identity and all
 42 Apple subscription/group localizations. The store inventory is separate from the full
@@ -283,9 +282,8 @@ pending. This procedure does not authorize Xcode Cloud dispatch or app/product s
    test identities and transaction IDs private. Reports exclude sandbox from production
    revenue. Record build, device, language, outcome, and sanitized failure evidence.
 
-Do not activate global free-account limits to manufacture a quota test. If the selected
-account cannot reach an allowance refusal under the authorized configuration, record that
-check as pending. This procedure neither changes the catalog nor grants new lifetime gifts.
+If the selected account cannot reach an allowance refusal under the authorized
+configuration, record that check as pending. This procedure neither changes the catalog nor grants new lifetime gifts.
 
 ## Prepare App Review materials
 

@@ -201,8 +201,8 @@ export function createPostChatHandler(dependencies: ChatRouteDependencies): Hand
 
     // Resolved before the run transaction opens, because resolving reads the billing tables and can
     // refresh the derived entitlement snapshot in a transaction of its own, which must not run inside the
-    // one that persists the turn. Its outcome is captured rather than acted on: a guest, whom the
-    // fallback tier caps, has no allowance to compare when that read fails, and answering that failure
+    // one that persists the turn. Its outcome is captured rather than acted on: a caller the
+    // fallback tier caps has no allowance to compare when that read fails, and answering that failure
     // here would break a replay of a turn already persisted - the case a database incident makes likely,
     // because the first POST died of the same thing. Both the refusal and the deferred failure are raised
     // inside the closure below, which `prepareChatRun` reaches only past its deduplication check.
@@ -237,7 +237,7 @@ export function createPostChatHandler(dependencies: ChatRouteDependencies): Hand
         // and the allowance resolved above decides; the model calls the run goes on to make append their
         // facts without asking again, because a run admitted here is not abandoned halfway through.
         // `prepareChatRun` runs this on the branch that inserts a run and not on a deduplicated replay,
-        // which is a retry of a turn already accepted rather than a next turn. A new guest turn therefore
+        // which is a retry of a turn already accepted rather than a next turn. A new turn therefore
         // fails closed when the allowance could not be resolved at all, and a replay never depends on
         // billing being readable. Nothing here writes, so the transaction it runs in stays free of any
         // write but its own. A turn sent with the person's own OpenAI key is never refused: its usage
