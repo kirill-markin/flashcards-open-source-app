@@ -35,7 +35,7 @@ export function ProfileRecord(props: Readonly<{ rows: ReadonlyArray<ProfileRecor
   );
 }
 
-export function ProfileRecordSection(props: Readonly<{
+export function ProfileRecordCard(props: Readonly<{
   title: string;
   testId: string;
   rows: ReadonlyArray<ProfileRecordRow>;
@@ -178,7 +178,7 @@ export function ProfileTab(props: Readonly<{ profile: UserProfile; onNavigate: (
   const { header } = props.profile;
   return (
     <div className="profile-sections" data-testid="user-profile">
-      <ProfileRecordSection
+      <ProfileRecordCard
         title="Identity and exclusion"
         testId="user-profile-identity"
         rows={[
