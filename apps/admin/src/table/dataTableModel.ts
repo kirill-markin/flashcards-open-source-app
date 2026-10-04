@@ -49,14 +49,17 @@ export const emptyDataTableState: DataTableState = { sort: null, filters: {}, pa
 export type DataTableServerPage = Readonly<{
   /** The rows matching the filters across every page. */
   totalCount: number;
-  /** Every enum column's full option list, since one page cannot show every value; NULL is `""`. */
+  /**
+   * One entry per enum column, since one page cannot show every value; NULL is `""`. A non-empty list
+   * is the full set of values across every page; an empty one means options are loading or failed.
+   */
   enumOptionsByColumnId: ReadonlyMap<string, ReadonlyArray<string>>;
   isLoading: boolean;
 }>;
 
 export const dataTablePageSize = 100;
 
-const calendarDatePattern = /^\d{4}-\d{2}-\d{2}$/u;
+const calendarDatePattern = /^(\d{4})-(\d{2})-(\d{2})$/u;
 
 const textCollator = new Intl.Collator("en-US");
 
@@ -192,6 +195,17 @@ function parseRangeBound(value: string): string | null {
   return value === "" ? null : value;
 }
 
+/** A `YYYY-MM-DD` that names a real day, so `2024-02-31` is refused rather than failing a SQL cast. */
+function isCalendarDate(value: string): boolean {
+  const match = calendarDatePattern.exec(value);
+  if (match === null) {
+    return false;
+  }
+  const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+}
+
 function parseFilter<Row>(column: DataTableColumn<Row>, values: ReadonlyArray<string>): DataTableFilter | null {
   const value = values[0];
   if (value === undefined) {
@@ -213,11 +227,13 @@ function parseFilter<Row>(column: DataTableColumn<Row>, values: ReadonlyArray<st
         const parsed = parseRangeBound(bound);
         return parsed === null ? null : Number(parsed);
       });
-      return Number.isNaN(min) || Number.isNaN(max) ? null : { kind: "number", min: min ?? null, max: max ?? null };
+      return [min, max].some((bound) => bound !== null && !Number.isFinite(bound))
+        ? null
+        : { kind: "number", min: min ?? null, max: max ?? null };
     }
     case "date": {
       const bounds = value.split("..");
-      if (bounds.length !== 2 || bounds.some((bound) => bound !== "" && !calendarDatePattern.test(bound))) {
+      if (bounds.length !== 2 || bounds.some((bound) => bound !== "" && !isCalendarDate(bound))) {
         return null;
       }
       return { kind: "date", from: parseRangeBound(bounds[0] ?? ""), to: parseRangeBound(bounds[1] ?? "") };
