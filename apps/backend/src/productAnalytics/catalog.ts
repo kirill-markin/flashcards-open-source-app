@@ -1173,31 +1173,32 @@ export const productAnalyticsEventCatalog = {
   // The billing transitions that change what a person may do, and nothing else the billing layer
   // observes: a renewal, a payment retry and a provider redelivery are deliberately not facts here
   // (docs/premium-entitlements.md, "Analytics facts written by the billing layer"). Conversion, churn
-  // and cohorts are queries over these five at analysis time, so no entry below is shaped to feed
+  // and cohorts are queries over these six at analysis time, so no entry below is shaped to feed
   // one report.
   //
-  // All five are server-only because each is a change in what we sold or granted. They are also
+  // All six are server-only because each is a change in what we sold or granted. They are also
   // exempt from the user-facing product-analytics off switch, for the reason stated beside the code
   // that writes them (apps/backend/src/productAnalytics/serverFacts/billingFacts.ts) rather than only
   // in the document.
   //
   // `provider` is optional on `entitlement_changed` alone, because an entitlement can rest on an
   // operator grant, which has no provider at all, and an absent value is what says so. On the other
-  // four it is required: each of them is a provider's own transition, and a producer that cannot name
+  // five it is required: each of them is a provider's own transition, and a producer that cannot name
   // the provider has not read the purchase it is reporting.
   //
   // `environment` exists on `entitlement_changed` alone and is present exactly when `provider` is: a
-  // sandbox purchase grants real access, so its entitlement change is recorded, while the other four
+  // sandbox purchase grants real access, so its entitlement change is recorded, while the other five
   // are never written for a sandbox purchase at all. Both describe the purchase that grants after the
   // change, so the default `sandbox` exclusion applies only to those rows. A change away from a
   // purchase carries neither, and this event alone cannot recover its origin.
   //
   // `entitlement_changed` is the one entry whose timing is not the fact's own. The refresh that
-  // discovers the change is triggered by that person's next authenticated sync pull and by nothing
-  // else, so `occurred_at` is when we learned the answer moved and not when the provider or the
-  // operator moved it; the lag is one pull, and for a person who stops opening the app it is
-  // unbounded. Nothing earlier is readable at that call site, and taking the purchase's own timestamp
-  // would claim we knew sooner than we did.
+  // discovers the change runs on that person's next authenticated sync pull and right after the
+  // billing layer stores a provider's purchase transition, so `occurred_at` is when we learned the
+  // answer moved and not when the provider or the operator moved it; when only a pull discovers it,
+  // the lag is one pull, and for a person who stops opening the app it is unbounded. Nothing earlier
+  // is readable at that call site, and taking the purchase's own timestamp would claim we knew sooner
+  // than we did.
   //
   // It reports a tier or status move and nothing else. The cached row it is derived from also changes
   // when only the paid-through date moves, which is a renewal rather than a change in access, so the
@@ -1262,6 +1263,16 @@ export const productAnalyticsEventCatalog = {
   // tier nor the status changes at that moment - access runs to the end of the period already paid
   // for - so no other fact here can see it, which makes it the earliest churn signal available.
   autorenew_disabled: {
+    serverOnly: true,
+    requiresScreen: false,
+    properties: {
+      tier: { kind: "enum", values: productAnalyticsEntitlementTiers },
+      provider: { kind: "enum", values: productAnalyticsBillingProviders },
+    },
+  },
+  // The mirror of `autorenew_disabled`: auto-renewal turned back on before access ended, so a
+  // cancellation followed by this is a changed mind rather than churn.
+  autorenew_enabled: {
     serverOnly: true,
     requiresScreen: false,
     properties: {

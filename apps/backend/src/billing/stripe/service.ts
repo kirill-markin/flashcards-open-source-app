@@ -16,7 +16,7 @@ import {
 import {
   failStripeEventInExecutor, finishStripeEventInExecutor, lockStripeEventInExecutor,
   lockStripeIdentityForLifecycleInExecutor, lockStripePurchasesInExecutor,
-  persistStripePurchaseInExecutor, retainStripeEventInExecutor,
+  persistStripePurchaseInExecutor, readStripePurchaseInExecutor, retainStripeEventInExecutor,
 } from "./store";
 import { publishStripeTransitions, type StripeCommittedTransition } from "./facts";
 
@@ -116,8 +116,9 @@ export async function reconcileStripeSubscriptionsInExecutor(
         "Stripe subscription changed while reading its financial state. Retry authoritative reconciliation.");
     }
     const state = normalizeStripePurchase(subscription, customerId, provider.environment, financial, new Date());
+    const previous = await readStripePurchaseInExecutor(executor, provider.environment, subscriptionId);
     const purchase = await persistStripePurchaseInExecutor(executor, identity, state);
-    transitions.push({ purchase, state, receivedAt });
+    transitions.push({ previous, purchase, state, receivedAt });
   }
   return transitions;
 }

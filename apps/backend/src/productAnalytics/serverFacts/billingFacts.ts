@@ -13,7 +13,7 @@ import {
   emitServerDerivedProductAnalyticsEvent,
 } from "./serverEvents";
 
-// The five facts the billing layer writes, and no others
+// The six facts the billing layer writes, and no others
 // (docs/premium-entitlements.md, "Analytics facts written by the billing layer"). Each reports what
 // happened to one person's access; conversion, churn and cohorts are queries over them at analysis
 // time, so nothing here is shaped to feed a report.
@@ -280,6 +280,38 @@ export async function recordAutorenewDisabledAnalytics(
       [fact.purchaseId, fact.providerEventId],
     ),
     eventName: "autorenew_disabled",
+    occurredAt: fact.occurredAt,
+    serverReceivedAt: fact.receivedAt,
+    userId: fact.userId,
+    subjectUserId: fact.userId,
+    guestSessionId: null,
+    workspaceId: null,
+    platform: null,
+    properties: {
+      tier: fact.tier,
+      provider: fact.provider,
+    },
+    details: null,
+  });
+}
+
+export type AutorenewEnabledFact = AutorenewDisabledFact;
+
+/**
+ * Reports auto-renewal turned back on, before access ended, on a subscription whose renewal had been
+ * turned off, so that earlier `autorenew_disabled` reads as a changed mind rather than as churn. It
+ * follows the same rules as that fact: only the writer that records the provider's signal emits it,
+ * and the provider's id joins the key because renewal can flip back and forth on one purchase.
+ */
+export async function recordAutorenewEnabledAnalytics(
+  fact: AutorenewEnabledFact,
+): Promise<void> {
+  await emitServerDerivedProductAnalyticsEvent({
+    eventId: deriveServerDerivedProductAnalyticsEventId(
+      "autorenew_enabled",
+      [fact.purchaseId, fact.providerEventId],
+    ),
+    eventName: "autorenew_enabled",
     occurredAt: fact.occurredAt,
     serverReceivedAt: fact.receivedAt,
     userId: fact.userId,

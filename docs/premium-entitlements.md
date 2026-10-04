@@ -289,8 +289,9 @@ The billing layer writes exactly these facts, as facts, and no others:
 - a first paid purchase, including a resubscribe after a lapse
 - a revoke
 - auto-renew disabled
+- auto-renew re-enabled
 
-All five are declared in the event catalog (`apps/backend/src/productAnalytics/catalog.ts`) and have
+All six are declared in the event catalog (`apps/backend/src/productAnalytics/catalog.ts`) and have
 a server-side producer (`apps/backend/src/productAnalytics/serverFacts/billingFacts.ts`).
 
 Per the repository rule, these record what happened; conversion funnels, cohorts, and churn are

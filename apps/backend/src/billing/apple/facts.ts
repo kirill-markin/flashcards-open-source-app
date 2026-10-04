@@ -1,7 +1,7 @@
 import { z } from "zod";
 import {
   recordTrialStartedAnalytics, recordPurchaseCompletedAnalytics,
-  recordSubscriptionRevokedAnalytics, recordAutorenewDisabledAnalytics,
+  recordSubscriptionRevokedAnalytics, recordAutorenewDisabledAnalytics, recordAutorenewEnabledAnalytics,
 } from "../../productAnalytics/serverFacts/billingFacts";
 import { unsafeTransaction } from "../../database/unsafe";
 import { getDatabaseErrorFields } from "../../database/transient";
@@ -63,6 +63,12 @@ export async function publishCommittedTransition(transition: AppleCommittedTrans
       }
       if (previous?.will_renew === true && !state.willRenew) {
         await recordAutorenewDisabledAnalytics({ ...fact, occurredAt: state.signedAt, providerEventId: transition.eventId });
+      }
+      // Access must hold on both sides: a row that lapsed and came back is a resubscribe instead.
+      if (previous?.will_renew === false && state.willRenew
+        && (previous.status === "active" || previous.status === "in_grace")
+        && (state.status === "active" || state.status === "in_grace")) {
+        await recordAutorenewEnabledAnalytics({ ...fact, occurredAt: state.signedAt, providerEventId: transition.eventId });
       }
     }
   });
