@@ -17,18 +17,21 @@
   font-weight: 800;
 }
 
+/* Always laid out and only shown while loading, so the toolbar never shifts as a reload starts or ends;
+   the table's `aria-busy` is what assistive technology reads. */
 .data-table-loading {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.data-table-loading.active {
   padding: 3px 9px;
   border: 1px solid rgba(214, 90, 56, 0.42);
   border-radius: 999px;
   background: rgba(196, 75, 45, 0.16);
   color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  visibility: hidden;
+}
+
+.data-table-loading.active {
+  visibility: visible;
 }
 
 /* Only the rows dim while a page reloads; the filter row stays live so typing keeps its focus. */

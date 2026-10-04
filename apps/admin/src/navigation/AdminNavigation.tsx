@@ -1,8 +1,8 @@
 import type { JSX } from "react";
-import { analyticsAreaLabels, analyticsAreas, getAnalyticsAreaPath, usersPath, type AnalyticsArea } from "../routing";
+import { analyticsAreaLabels, analyticsAreas, eventsPath, getAnalyticsAreaPath, usersPath, type AnalyticsArea } from "../routing";
 import { AdminLink } from "./AdminLink";
 
-export type AdminNavigationPage = AnalyticsArea | "users";
+export type AdminNavigationPage = AnalyticsArea | "users" | "events";
 
 const analyticsAreaTestIds: Readonly<Record<AnalyticsArea, string | undefined>> = {
   general: undefined,
@@ -11,9 +11,9 @@ const analyticsAreaTestIds: Readonly<Record<AnalyticsArea, string | undefined>> 
   "ai-usage": "analytics-ai-usage-tab",
 };
 
-/** The tab row shared by every analytics area and the Users page; `null` on a page no tab owns. */
+/** The tab row shared by every analytics area and the Users and Events pages. */
 export function AdminNavigation(props: Readonly<{
-  activePage: AdminNavigationPage | null;
+  activePage: AdminNavigationPage;
   onNavigate: (path: string) => void;
 }>): JSX.Element {
   return (
@@ -35,6 +35,13 @@ export function AdminNavigation(props: Readonly<{
         ariaCurrent={props.activePage === "users" ? "page" : undefined}
         onNavigate={props.onNavigate}
       >Users</AdminLink>
+      <AdminLink
+        testId="admin-events-tab"
+        className={props.activePage === "events" ? "active" : ""}
+        path={eventsPath}
+        ariaCurrent={props.activePage === "events" ? "page" : undefined}
+        onNavigate={props.onNavigate}
+      >Events</AdminLink>
     </nav>
   );
 }

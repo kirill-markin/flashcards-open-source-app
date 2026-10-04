@@ -3,6 +3,7 @@ import { AdminApiError, fetchAdminSession, type AdminSession } from "./adminApi"
 import { getAdminAppConfig, type AdminAppConfig } from "./config";
 import { AdminDashboard, type AdminReportState } from "./dashboard/AdminDashboard";
 import { EventPage } from "./events/eventPage/EventPage";
+import { EventsPage } from "./events/EventsPage";
 import type { AnalyticsDateRange, AnalyticsFilterState } from "./filters/analyticsFilters";
 import {
   normalizeAnalyticsFilterState,
@@ -35,7 +36,7 @@ import {
   loadReviewEventsByDateReport,
   type ReviewEventsByDateRange,
 } from "./reports/reviewEventsByDate/query";
-import { getAdminRoutePath, parseAdminRoute, usersPath, type AdminRoute } from "./routing";
+import { eventsPath, getAdminRoutePath, parseAdminRoute, usersPath, type AdminRoute } from "./routing";
 import { UserPage } from "./users/userPage/UserPage";
 import { UsersPage } from "./users/UsersPage";
 
@@ -236,9 +237,10 @@ export default function App(): JSX.Element {
   const [appState, setAppState] = useState<AppState>({ status: "loading" });
   const [reportState, setReportState] = useState<AdminReportState>({ status: "loading" });
   const [route, setRoute] = useState<AdminRoute>(() => parseAdminRoute(window.location.pathname));
-  // The Users list reports its path, query string included, on entry and on every table change, so
-  // the user page's back link returns to the list exactly as it was last left.
+  // The Users and Events lists report their paths, query string included, on entry and on every table
+  // change, so the user and event pages' back links return to the list exactly as it was last left.
   const [usersListPath, setUsersListPath] = useState<string>(usersPath);
+  const [eventsListPath, setEventsListPath] = useState<string>(eventsPath);
   const [reportLoadRevision, setReportLoadRevision] = useState<number>(0);
   // The whole filter selection lives here, above every area, so leaving General for Funnels and
   // coming back keeps it. It is null until the available range is known, because the default
@@ -657,6 +659,18 @@ export default function App(): JSX.Element {
     );
   }
 
+  if (route.kind === "events") {
+    return (
+      <EventsPage
+        config={appState.config}
+        adminEmail={appState.session.email}
+        onNavigate={navigateToPath}
+        onListPathChange={setEventsListPath}
+        onTerminalAdminError={handleTerminalAdminError}
+      />
+    );
+  }
+
   if (route.kind === "event") {
     return (
       <EventPage
@@ -664,6 +678,7 @@ export default function App(): JSX.Element {
         config={appState.config}
         adminEmail={appState.session.email}
         eventId={route.eventId}
+        eventsListPath={eventsListPath}
         onNavigate={navigateToPath}
         onTerminalAdminError={handleTerminalAdminError}
       />

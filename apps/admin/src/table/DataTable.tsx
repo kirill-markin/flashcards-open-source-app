@@ -57,7 +57,7 @@ function getServerEnumOptions<Row>(column: DataTableColumn<Row>, server: DataTab
 }
 
 function parseNumberInput(value: string): number | null {
-  return value === "" || Number.isNaN(Number(value)) ? null : Number(value);
+  return value === "" || !Number.isFinite(Number(value)) ? null : Number(value);
 }
 
 function parseDateInput(value: string): string | null {
@@ -220,8 +220,7 @@ export function DataTable<Row>(props: Readonly<{
             : `${server.totalCount.toLocaleString("en-US")} rows`}
         </span>
         {server === null ? null : (
-          <span className={`data-table-loading${isLoading ? " active" : ""}`} aria-live="polite"
-            data-testid={`${testId}-loading`}>{isLoading ? "Updating" : ""}</span>
+          <span className={`data-table-loading${isLoading ? " active" : ""}`} data-testid={`${testId}-loading`}>Updating</span>
         )}
         <button
           className="filter-button filter-button-compact"
