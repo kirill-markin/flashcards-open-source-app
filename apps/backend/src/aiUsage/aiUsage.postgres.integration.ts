@@ -276,7 +276,8 @@ test("a card image never counts against the allowance, and a call the provider r
         surface: "card_image",
         provider: "openai",
         modelId: "gpt-image-2",
-        requestId: null,
+        // A message is a distinct request_id, so only a non-null one could ever be miscounted as one.
+        requestId: "ai-usage-integration-card-image",
         tierAtCall: allowance.tier,
         counters: null,
         imageCount: 1,
@@ -295,7 +296,7 @@ test("a card image never counts against the allowance, and a call the provider r
         surface: "card_image",
         provider: "openai",
         model_id: "gpt-image-2",
-        request_id: null,
+        request_id: "ai-usage-integration-card-image",
         tier_at_call: "free",
         workspace_id: fixture.workspaceId,
         input_tokens: null,
@@ -310,8 +311,11 @@ test("a card image never counts against the allowance, and a call the provider r
         user_supplied_key: true,
       });
 
-      // A card image is never a message, so it leaves the free account's allowance untouched.
-      await assertAiUsageAllowanceNotReached(allowance, fixture.userId, now);
+      // A card image is never a message on either key; only the surface filter keeps this own-key row out.
+      assert.deepEqual(await loadAiUsageMessagesForMonth(fixture.userId, getAiUsageMonthWindow(now)), {
+        platformKeyMessages: 0,
+        ownKeyMessages: 0,
+      });
     } finally {
       await deleteStoredRows(fixture);
     }
