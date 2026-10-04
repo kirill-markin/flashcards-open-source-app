@@ -661,7 +661,7 @@ jobs:
     needs:
       - changes
       - aws_deploy
-    if: ${{ needs.changes.outputs.deploy_web == 'true' || needs.changes.outputs.deploy_platform == 'true' }}
+    if: ${{ !cancelled() && needs.changes.result == 'success' && needs.aws_deploy.result == 'success' && (needs.changes.outputs.deploy_web == 'true' || needs.changes.outputs.deploy_platform == 'true') }}
     runs-on: ubuntu-24.04
     container:
       image: mcr.microsoft.com/playwright:v1.63.0-noble
