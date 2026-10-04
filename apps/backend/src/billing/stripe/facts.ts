@@ -2,6 +2,7 @@ import { unsafeTransaction } from "../../database/unsafe";
 import {
   recordTrialStartedAnalytics, recordPurchaseCompletedAnalytics,
   recordSubscriptionRevokedAnalytics, recordAutorenewDisabledAnalytics, recordAutorenewEnabledAnalytics,
+  recordBillingIssueStartedAnalytics,
 } from "../../productAnalytics/serverFacts/billingFacts";
 import { resolveEntitlementSnapshotForUser } from "../snapshot";
 import type { StripePurchaseState } from "./contracts";
@@ -16,6 +17,10 @@ export type StripeCommittedTransition = Readonly<{
   state: StripePurchaseState;
   receivedAt: Date;
 }>;
+
+function inBillingIssue(providerStatus: string | null): boolean {
+  return providerStatus === "past_due" || providerStatus === "unpaid";
+}
 
 // The caller must commit all purchase writes before calling this function.
 export async function publishStripeTransitions(transitions: ReadonlyArray<StripeCommittedTransition>): Promise<void> {
@@ -72,6 +77,13 @@ export async function publishStripeTransitions(transitions: ReadonlyArray<Stripe
         && (state.trialStartedAt !== null || state.firstPaidAt !== null)) {
         await recordAutorenewEnabledAnalytics({ ...fact, occurredAt: state.verifiedAt,
           providerEventId: `stripe:${state.environment}:${state.subscriptionId}:uncancel:${state.verifiedAt.toISOString()}` });
+      }
+      // Stripe advances the period before charging, so its end names the failing period: retries within
+      // it collide and a later failure is a new row. No paid invoice yet means the trial failed to convert.
+      if (previous !== null && !inBillingIssue(previous.provider_status_raw) && inBillingIssue(state.providerStatus)) {
+        await recordBillingIssueStartedAnalytics({ ...fact, occurredAt: state.verifiedAt,
+          providerEventId: `stripe:${state.environment}:${state.subscriptionId}:billing_issue:${state.until.toISOString()}`,
+          periodType: state.trialStartedAt !== null && state.firstPaidAt === null ? "trial" : "paid" });
       }
     }
   });

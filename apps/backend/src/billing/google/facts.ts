@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   recordTrialStartedAnalytics, recordPurchaseCompletedAnalytics,
   recordSubscriptionRevokedAnalytics, recordAutorenewDisabledAnalytics, recordAutorenewEnabledAnalytics,
+  recordBillingIssueStartedAnalytics,
 } from "../../productAnalytics/serverFacts/billingFacts";
 import { unsafeTransaction } from "../../database/unsafe";
 import { getDatabaseErrorFields } from "../../database/transient";
@@ -20,6 +21,10 @@ export type GoogleCommittedTransition = Readonly<{
   receivedAt: Date;
   affectedUserIds: ReadonlyArray<string>;
 }>;
+
+function inBillingIssue(providerStatus: string | null): boolean {
+  return providerStatus === "SUBSCRIPTION_STATE_IN_GRACE_PERIOD" || providerStatus === "SUBSCRIPTION_STATE_ON_HOLD";
+}
 
 export async function publishGoogleTransition(transition: GoogleCommittedTransition): Promise<void> {
   // Profile locks keep a concurrent erasure from finishing before these post-commit facts.
@@ -61,6 +66,13 @@ export async function publishGoogleTransition(transition: GoogleCommittedTransit
       if (previous?.will_renew === false && purchase.will_renew && state.completed && current.status !== "revoked"
         && (previous.status === "active" || previous.status === "in_grace")) {
         await recordAutorenewEnabledAnalytics({ ...fact, providerEventId: transition.eventId });
+      }
+      // Play may already report the base-price phase while the first post-trial charge is failing,
+      // so the period that failed to renew is the one the stored row last described.
+      if (previous !== null && !inBillingIssue(previous.provider_status_raw) && inBillingIssue(state.providerStatus)
+        && current.status !== "revoked") {
+        await recordBillingIssueStartedAnalytics({ ...fact, providerEventId: transition.eventId,
+          periodType: previous.is_trial ? "trial" : "paid" });
       }
     }
   });

@@ -7,7 +7,7 @@ import {
   persistGooglePurchase, readGooglePurchase, type GooglePurchaseLink,
   readGoogleNotification, recordGoogleNotification, readGooglePurchaseByToken,
   lockKnownGooglePurchase, revokeGooglePurchase,
-  readGoogleNotificationPreviousRenewal, expireUnavailableGooglePurchase, type StoredGooglePurchase,
+  readGoogleNotificationPrevious, expireUnavailableGooglePurchase, type StoredGooglePurchase,
 } from "./store";
 import { publishGoogleTransition, type GoogleCommittedTransition } from "./facts";
 import type { GoogleNotification } from "./notifications";
@@ -90,9 +90,12 @@ async function commitGoogleCurrentState(
     const purchase = await persistGooglePurchase(executor, attributedState, lineage, locked, presentingUserId);
     let previous = locked.previous;
     if (notification !== null) {
-      await recordGoogleNotification(executor, notification, purchase, previous?.will_renew ?? null);
-      const previousRenewal = await readGoogleNotificationPreviousRenewal(executor, notification.eventId);
-      if (previous !== null && previousRenewal !== null) previous = { ...previous, will_renew: previousRenewal };
+      await recordGoogleNotification(executor, notification, purchase, previous);
+      const recorded = await readGoogleNotificationPrevious(executor, notification.eventId);
+      if (previous !== null && recorded.willRenew !== null) previous = { ...previous, will_renew: recorded.willRenew };
+      if (previous !== null && recorded.isTrial !== null) {
+        previous = { ...previous, is_trial: recorded.isTrial, provider_status_raw: recorded.providerStatus };
+      }
     }
     return { previous, purchase, state: attributedState, receivedAt,
       eventId: notification?.eventId ?? randomUUID(), revokedReason: terminal ? notificationRevokedReason(notification) : "unknown",
@@ -141,7 +144,7 @@ export async function revokeKnownGoogleNotification(
     if (await readGoogleNotification(executor, notification)) return null;
     if (notification.kind === "voided" && notification.revokedOrderId !== locked.purchase.google_latest_order_id) return null;
     const purchase = await revokeGooglePurchase(executor, locked.purchase);
-    await recordGoogleNotification(executor, notification, purchase, locked.purchase.will_renew);
+    await recordGoogleNotification(executor, notification, purchase, locked.purchase);
     // Only terminal denial is reconstructed from the correlated token; no provider access,
     // trial, payment, or renewal state is inferred from notification delivery.
     return storedTerminalTransition(locked.purchase, purchase, notification.occurredAt, notification.eventId,
@@ -161,7 +164,7 @@ export async function settleUnavailableGoogleToken(
     const lookupExpired = previous.until !== null && previous.until.getTime() < failedAt.getTime() - 60 * 86_400_000;
     if (httpStatus !== 410 && !(httpStatus === 404 && lookupExpired)) return null;
     const purchase = await expireUnavailableGooglePurchase(executor, previous);
-    if (notification !== null) await recordGoogleNotification(executor, notification, purchase, previous.will_renew);
+    if (notification !== null) await recordGoogleNotification(executor, notification, purchase, previous);
     return storedTerminalTransition(previous, purchase, failedAt, notification?.eventId ?? randomUUID(),
       "unknown", locked.accounts.map((account) => account.userId));
   });

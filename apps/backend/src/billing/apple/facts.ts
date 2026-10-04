@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   recordTrialStartedAnalytics, recordPurchaseCompletedAnalytics,
   recordSubscriptionRevokedAnalytics, recordAutorenewDisabledAnalytics, recordAutorenewEnabledAnalytics,
+  recordBillingIssueStartedAnalytics,
 } from "../../productAnalytics/serverFacts/billingFacts";
 import { unsafeTransaction } from "../../database/unsafe";
 import { getDatabaseErrorFields } from "../../database/transient";
@@ -17,6 +18,11 @@ export type AppleCommittedTransition = Readonly<{
   receivedAt: Date;
   affectedUserIds: ReadonlyArray<string>;
 }>;
+
+// Billing retry (3) and billing grace period (4).
+function inBillingIssue(providerStatus: string | null): boolean {
+  return providerStatus === "3" || providerStatus === "4";
+}
 
 export async function publishCommittedTransition(transition: AppleCommittedTransition): Promise<void> {
   // Hold live profiles during post-commit facts so the deletion sweep cannot precede them.
@@ -70,6 +76,11 @@ export async function publishCommittedTransition(transition: AppleCommittedTrans
         && (previous.status === "active" || previous.status === "in_grace")
         && (state.status === "active" || state.status === "in_grace")) {
         await recordAutorenewEnabledAnalytics({ ...fact, occurredAt: state.signedAt, providerEventId: transition.eventId });
+      }
+      // The latest transaction stays the one whose renewal failed until a charge succeeds.
+      if (previous !== null && !inBillingIssue(previous.provider_status_raw) && inBillingIssue(state.providerStatus)) {
+        await recordBillingIssueStartedAnalytics({ ...fact, occurredAt: state.signedAt, providerEventId: transition.eventId,
+          periodType: state.isTrial ? "trial" : "paid" });
       }
     }
   });

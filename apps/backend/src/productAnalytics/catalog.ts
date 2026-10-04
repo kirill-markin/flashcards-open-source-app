@@ -149,8 +149,8 @@ const productAnalyticsNotificationKinds = ["review_reminder", "strict_reminder"]
 // catalogue in apps/backend/src/billing/tiers.ts, the resolved status and source in
 // apps/backend/src/billing/resolver.ts, the provider and the purchase kind as
 // db/migrations/0151_billing_schema.sql constrains them (purchases_provider_valid and
-// purchases_kind_valid), and the period, the period type and the revoke and cancel reasons from the
-// provider's own response, because no column stores any of them.
+// purchases_kind_valid), and the period and the revoke and cancel reasons from the provider's own
+// response, because no column stores any of them.
 //
 // They are enums rather than bounded token patterns because each is a closed set that only a decision
 // changes. That makes a value the billing modules gain without being declared here unstorable: the
@@ -1180,23 +1180,23 @@ export const productAnalyticsEventCatalog = {
     properties: {},
   },
   // The billing transitions that change what a person may do, and nothing else the billing layer
-  // observes: a renewal, a payment retry and a provider redelivery are deliberately not facts here
-  // (docs/premium-entitlements.md, "Analytics facts written by the billing layer"). Conversion, churn
-  // and cohorts are queries over these six at analysis time, so no entry below is shaped to feed
-  // one report.
+  // observes: a renewal, a payment retry after the first failure and a provider redelivery are
+  // deliberately not facts here (docs/premium-entitlements.md, "Analytics facts written by the
+  // billing layer"). Conversion, churn and cohorts are queries over these seven at analysis time, so
+  // no entry below is shaped to feed one report.
   //
-  // All six are server-only because each is a change in what we sold or granted. They are also
+  // All seven are server-only because each is a change in what we sold or granted. They are also
   // exempt from the user-facing product-analytics off switch, for the reason stated beside the code
   // that writes them (apps/backend/src/productAnalytics/serverFacts/billingFacts.ts) rather than only
   // in the document.
   //
   // `provider` is optional on `entitlement_changed` alone, because an entitlement can rest on an
   // operator grant, which has no provider at all, and an absent value is what says so. On the other
-  // five it is required: each of them is a provider's own transition, and a producer that cannot name
+  // six it is required: each of them is a provider's own transition, and a producer that cannot name
   // the provider has not read the purchase it is reporting.
   //
   // `environment` exists on `entitlement_changed` alone and is present exactly when `provider` is: a
-  // sandbox purchase grants real access, so its entitlement change is recorded, while the other five
+  // sandbox purchase grants real access, so its entitlement change is recorded, while the other six
   // are never written for a sandbox purchase at all. Both describe the purchase that grants after the
   // change, so the default `sandbox` exclusion applies only to those rows. A change away from a
   // purchase carries neither, and this event alone cannot recover its origin.
@@ -1270,7 +1270,9 @@ export const productAnalyticsEventCatalog = {
   },
   // Auto-renewal turned off on a subscription the person still holds. It exists because neither the
   // tier nor the status changes at that moment - access runs to the end of the period already paid
-  // for - so no other fact here can see it, which makes it the earliest churn signal available.
+  // for - so no other fact here can see it, which makes it the earliest churn signal available. With
+  // `reason: billing_error` the provider gave up on a failed charge instead, and access has typically
+  // already ended.
   autorenew_disabled: {
     serverOnly: true,
     requiresScreen: false,
@@ -1290,6 +1292,21 @@ export const productAnalyticsEventCatalog = {
     properties: {
       tier: { kind: "enum", values: productAnalyticsEntitlementTiers },
       provider: { kind: "enum", values: productAnalyticsBillingProviders },
+    },
+  },
+  // A renewal charge failing, when the provider first enters its payment-failure state, so
+  // involuntary churn is visible when it starts and not only as the entitlement change it may cause.
+  // Recovery has no fact of its own: from a `paid` failure it is `entitlement_changed` back to
+  // `active` with no `purchase_completed` beside it; from a `trial` failure it is the purchase's
+  // first `purchase_completed` itself.
+  billing_issue_started: {
+    serverOnly: true,
+    requiresScreen: false,
+    properties: {
+      tier: { kind: "enum", values: productAnalyticsEntitlementTiers },
+      provider: { kind: "enum", values: productAnalyticsBillingProviders },
+      // The period whose renewal charge failed: a failed first charge after a trial is `trial`.
+      period_type: { kind: "enum", values: productAnalyticsBillingPeriodTypes },
     },
   },
   // What a person did on the paywall and in the purchase flows, as each client saw it. These are
