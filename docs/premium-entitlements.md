@@ -303,6 +303,10 @@ when we granted or withdrew access, which we need for accounting and support reg
 analytics preference. They are not a way to route product analytics around the switch, and no
 other billing event may be added to this list to do that.
 
+The paywall and purchase-flow events the clients report are ordinary client analytics declared in
+the [event catalog](../apps/backend/src/productAnalytics/catalog.ts): they are subject to the off
+switch and are not billing facts.
+
 ## Trials
 
 Apple and Google decide trial eligibility, and we cannot override it. A person who consumed an
@@ -332,5 +336,9 @@ real-looking transactions with real-looking renewals, and test purchases in the 
 are indistinguishable from revenue once the column is missing.
 
 Reports filter to production by default. A query that wants sandbox rows asks for them
-explicitly. The entitlement resolver does not filter on `environment`: sandbox purchases grant
-entitlement in production (see [docs/premium-offer.md](premium-offer.md#sandbox-purchases-grant-entitlement)).
+explicitly. On `entitlement_changed`, `environment` (like `provider`) describes the purchase that
+grants after the change, so the default `sandbox` exclusion applies only to those rows. A change
+away from a purchase carries neither, and this event alone cannot recover its origin. The
+entitlement resolver does not filter on
+`environment`: sandbox purchases grant entitlement in production (see
+[docs/premium-offer.md](premium-offer.md#sandbox-purchases-grant-entitlement)).

@@ -6,16 +6,18 @@ required reading. These common gates apply to the linked platform procedures.
 ## Release Ledger
 
 Keep a separate release ledger in the operator's chat or release record, not a
-historical status table in these permanent docs. One row per channel must hold:
-target version; source/artifact identity; CI, smoke, skip and warning evidence;
-publication request and status; verified public URL/version/time (and applicable
-storefront/rollout scope); remaining action. Keep secrets and reviewer credentials
-out. Use distinct states: **submitted**, **review pending**, **approved**,
-**propagation pending**, **live**, **unchanged verified**, **blocked**, and
-**explicitly excluded**. Record an exclusion's user authorization and scope.
-Track optional/not-yet-public channels separately: reconciling an existing
-OpenAI submission does not automatically make new marketplace availability a
-mandatory release gate. Record whether its publication is in the agreed scope.
+historical status table in these permanent docs. Use one small row per channel:
+
+| Channel / target | Source and artifact | Gate evidence | Operator completion | Observed public state | Follow-up |
+| --- | --- | --- | --- | --- | --- |
+| Name / version | SHA, build/package identity, run | CI, smoke, skip/warning evidence or historical gaps | Complete/pending/blocked/excluded; accepted request or publication identity/time | Submitted/review pending/approved/propagation pending/live/unchanged verified; URL, version, time, storefront/rollout scope | External review or later operator action; future fixes |
+
+Keep secrets and reviewer credentials out. Mark operator completion only at the
+[canonical boundary](README.md#release-inventory-and-completion); it does not
+change the observed public state. Record exclusions and their scope. OpenAI
+initial publication is excluded by the routine-release policy until a separately
+scoped initial launch; preserve its existing submission identity through the
+[companion procedure](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md).
 
 ## Resume and Artifact Reuse
 
@@ -32,10 +34,10 @@ docs-only merges, explicitly compare all relevant client/build inputs, including
 shared dependencies, lockfiles, build configuration and workflows. Record both
 SHAs, the compared scope/diff, original artifact/run provenance, and why each
 affected gate's evidence still applies. A matching version string is insufficient.
-Source-affecting changes invalidate the affected artifacts/evidence; rerun their
-gates. Missing evidence is a gap to resolve or explicitly accept with the user,
-not a silent waiver. Use the [platform reuse rules](#reuse-existing-artifacts)
-for mobile test, skip, and warning evidence.
+Source-affecting changes invalidate reuse for the new target and require its
+affected gates. Before a new publication/submission, resolve missing required
+evidence; never mark an unexecuted test passed. Apply the
+[platform reuse rules](#reuse-existing-artifacts) to already-published artifacts.
 
 ## Reuse Existing Artifacts
 
@@ -45,17 +47,26 @@ when reusing an artifact, including when later docs-only or unrelated commits
 changed the root SHA. For a matching artifact, continue at the next unfinished
 step; an approved or live binary does not need another build or submission.
 
-Reuse retains the original gates: recover local preflight logs, cloud runs,
-artifact identity, and actual smoke/test results. For Android, correlate the
-signed AAB, version code, GitHub run and exact completed Firebase matrix. For
-iOS, recover both archive and test workflows and the uploaded build identity.
-Record passed/failed/skipped cases, skip reasons, coverage limits, and inspected
-warnings. A green summary alone is insufficient; missing evidence or unexpected
-skips remain gaps to investigate, never implicit passes. If evidence cannot be
-recovered, report the gap and obtain an explicit scoped exception before
-counting that gate complete. Do not manufacture retrospective preflight results.
+For an artifact awaiting a new publication/submission, retain the original
+gates: recover local preflight logs, cloud runs, artifact identity, and actual
+smoke/test results. For Android, correlate the signed AAB, version code, GitHub
+run and exact completed Firebase matrix. For iOS, recover both archive and test
+workflows and the uploaded build identity. Record passed/failed/skipped cases,
+skip reasons, coverage limits, and inspected warnings. Investigate unexpected
+skips; a green summary or unexecuted test is not a pass.
+
+An already-published matching mobile artifact counts complete once its
+source/build identity and publication at the intended scope are established.
+Missing historical logs, additional unexecuted tests, or known warnings on that
+published binary become future work, not a request for a waiver, rebuild, or
+retrospective preflight. Record the evidence honestly; do not reopen completed
+publication for optional tests. This does not waive fixes before the next
+release, or turn an identity mismatch into a matching artifact.
 
 Newly dispatched artifacts must still pass every local and cloud gate in their platform procedures.
+Before a new publication/submission, fix errors, failed required tests, and
+lint/compiler/toolchain warnings. Reuse valid results when relevant inputs have
+not changed; repeat only affected gates after a fix.
 A source-affecting fix invalidates affected evidence and requires the corrected
 artifact's gates. Read APIs/CLIs first; use the browser for unsupported actions
 or diagnosed access blockers, including final store publication.

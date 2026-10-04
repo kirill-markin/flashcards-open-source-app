@@ -13,6 +13,8 @@ import {
 } from "../../observability/sentry";
 import { readProductAnalyticsClientPlatform } from "../../productAnalytics/catalog";
 import {
+  aiLimitReachedCode,
+  guestAiLimitReachedCode,
   reportDeferredAiUsageAllowanceResolutionFailure,
   type AiUsageAllowance,
 } from "../../aiUsage";
@@ -23,6 +25,7 @@ import {
   parseJsonBody,
   parseJsonBodyWithByteLimit,
 } from "../../server/requestParsing";
+import { HttpError } from "../../shared/errors";
 import {
   chatMaximumStartRunRequestBytes,
   chatRequestTooLargeCode,
@@ -259,6 +262,33 @@ export function createPostChatHandler(dependencies: ChatRouteDependencies): Hand
         },
       ));
     } catch (error) {
+      // Recorded here, outside the run transaction, and before the refusal reaches the client unchanged.
+      // The cap raises either code only on a resolved allowance that has a limit, which is what narrows
+      // the outcome below; the emission never throws.
+      const allowance = aiUsageAllowanceOutcome.allowance;
+      if (
+        error instanceof HttpError
+        && (error.code === aiLimitReachedCode || error.code === guestAiLimitReachedCode)
+        && allowance !== undefined
+        && allowance.monthlyMessages !== null
+      ) {
+        await dependencies.recordAiLimitReachedAnalyticsFn(
+          requestContext.userId,
+          workspaceId,
+          body.sessionId ?? null,
+          body.clientRequestId,
+          {
+            subjectUserId: requestContext.subjectUserId,
+            guestSessionId: requestContext.guestSessionId,
+          },
+          {
+            tier: allowance.tier,
+            accountKind: allowance.accountKind,
+            limit: allowance.monthlyMessages,
+          },
+        );
+      }
+
       return mapStoreError(error);
     }
 
