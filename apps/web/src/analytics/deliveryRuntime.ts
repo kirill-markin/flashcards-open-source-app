@@ -78,6 +78,9 @@ const retryBaseDelayMs = 1000;
 const retryMaxDelayMs = 60 * 60 * 1000;
 const sustainedFailureWindowMs = 60 * 60 * 1000;
 const periodicFlushIntervalMs = 60 * 1000;
+/** A browser under automation control, Playwright included; decided once per page load (docs/analytics-audience.md). */
+const isAutomationRun = navigator.webdriver === true;
+
 /**
  * How long a pressed control waits for the queue to drain before it destroys the credential behind
  * it. On expiry the sign-out or the deletion goes ahead and whatever did not leave is lost.
@@ -533,6 +536,7 @@ export function createAnalyticsDeliveryRuntime(
       anonymousId: readAnalyticsAnonymousId(),
       sessionId,
       context: buildAnalyticsWireContext(),
+      isAutomation: isAutomationRun,
       events: wireEvents,
     };
   }
