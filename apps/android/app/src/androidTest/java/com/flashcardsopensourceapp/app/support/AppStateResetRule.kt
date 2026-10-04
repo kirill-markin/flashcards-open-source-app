@@ -2,10 +2,12 @@ package com.flashcardsopensourceapp.app.support
 
 import android.content.Context
 import androidx.core.app.NotificationManagerCompat
+import androidx.room.withTransaction
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
 import com.flashcardsopensourceapp.app.FlashcardsApplication
+import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.currentBlockingSystemDialogSummaryOrNull
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.dismissBlockingSystemDialogIfPresent
 import com.flashcardsopensourceapp.app.prompts.guestreview.guestSignInAfterReviewPromptPreferencesName
@@ -51,6 +53,7 @@ internal fun resetAndroidTestAppState() {
             clearAnalyticsQueueDatabase(context = context)
             application.recreateAppGraphAndAwaitStartup()
             application.appGraph.cloudAccountRepository.logout()
+            removeDemoCardSeededByLogout(appGraph = application.appGraph)
             application.closeAppGraph()
             application.recreateAppGraphAndAwaitStartup()
         }
@@ -77,6 +80,25 @@ private fun waitForAndroidTestUiIdle(phase: String) {
             "Timed out after $uiIdleTimeoutMillis ms waiting for instrumentation to become idle $phase. " +
                 "blockingSystemDialog=$blockingSystemDialogSummary"
         )
+    }
+}
+
+/**
+ * Logout seeds the onboarding demo card into the recreated workspace, while the suites start from
+ * an empty one, so the card, its tags, and its outbox row are removed before the suite starts.
+ */
+private suspend fun removeDemoCardSeededByLogout(appGraph: AppGraph) {
+    val database = appGraph.database
+    val workspaceId: String = requireNotNull(database.workspaceDao().loadAnyWorkspace()?.workspaceId) {
+        "Expected the local workspace recreated by logout."
+    }
+    database.withTransaction {
+        database.outboxDao().deleteOutboxEntriesForWorkspace(workspaceId = workspaceId)
+        database.cardDao().loadCards(workspaceId = workspaceId).forEach { card ->
+            database.tagDao().deleteCardTags(cardId = card.cardId)
+        }
+        database.cardDao().deleteAllCards()
+        database.tagDao().deleteUnusedTags(workspaceId = workspaceId)
     }
 }
 
