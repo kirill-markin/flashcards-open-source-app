@@ -5,23 +5,26 @@ implementations must all match this document.
 
 ## What it is
 
-One flashcard, tagged `demo`, seeded once for genuinely new users only, as onboarding.
+One flashcard, tagged `demo`, seeded as onboarding into an empty workspace: for new users, and on
+mobile also for whoever uses the device next after a logout or other local reset.
 
 After it is seeded it is an ordinary card: editable, deletable, synced, and counted by FSRS
-scheduling, progress, and streaks like any other card. There is no special-case behavior for it
-anywhere in the product, and no client may add any.
+scheduling, progress, and streaks like any other card. The one special case is the mobile
+guest-upgrade cleanup in [Guest upgrade](#guest-upgrade); there is no other special-case behavior
+for it anywhere in the product, and no client may add any.
 
 ## Who gets it
 
-Only new users. The seed is client-side on every client.
+New users, plus the empty workspace a mobile reset leaves behind. The seed is client-side on every
+client.
 
 The backend never seeds it, and the terminal / AI-agent API, MCP, and other machine entrypoints
 never get it.
 
-Per-client new-user rule:
+Per-client rule:
 
-- iOS and Android: at the moment the local workspace row is first created on a fresh install. The
-  local bootstrap entrypoints are
+- iOS and Android: when the local workspace row is first created on a fresh install, and again
+  whenever a cloud-identity reset or erase recreates it. The local bootstrap entrypoints are
   `apps/ios/Flashcards/Flashcards/Database/LocalDatabase/Initialization/LocalDatabaseBootstrapper.swift`
   and
   `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/bootstrap/LocalWorkspaceBootstrap.kt`,
@@ -30,67 +33,52 @@ Per-client new-user rule:
   (`apps/web/src/appData/sync/remote/bootstrapHotState.ts`), under four conditions that are checked
   together — see [Web: the four seed conditions](#web-the-four-seed-conditions).
 
-### Mobile: never seed on a cloud-identity reset
+### Mobile: seed at first creation and after every cloud-identity reset
 
-The mobile bootstrap is an idempotent `ensure…` entrypoint that does not run only on a fresh
-install. Logout, a detected linked-account change, account deletion, and the credential-recovery
-erase all wipe the local database and then re-create an empty workspace row through the same
-bootstrap:
+Both mobile seeds write through the ordinary card-create path, skip a workspace that holds any card
+row (tombstones included), and report a failure instead of failing startup or the reset.
 
-- Android: `resetLocalStateForCloudIdentityChange` and `eraseLocalDataForCredentialRecovery` in
-  `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/repository/cloudsync/account/CloudIdentityResetCoordinator.kt`
-  call `database.clearAllTables()` and then `ensureLocalWorkspaceShell(...)`.
+First creation. The bootstrap is an idempotent `ensure…` entrypoint that also runs when a workspace
+row already exists, so it reports whether this run created the row, and only the app-start call site
+acts on that signal:
+
+- Android: `ensureLocalWorkspaceShell` returns `LocalWorkspaceShell.didCreateWorkspace`, and
+  `AppGraph.ensureLocalWorkspaceShell`
+  (`apps/android/app/src/main/java/com/flashcardsopensourceapp/app/di/AppGraph.kt`) seeds under it.
+- iOS: `DatabaseCore.init(databaseURL:)`
+  (`apps/ios/Flashcards/Flashcards/Database/Core/DatabaseCore.swift`) stores the result of
+  `LocalDatabaseBootstrapper.ensureDefaultState()` in `createdDefaultWorkspaceId`, and
+  `FlashcardsStore.init()` calls `seedOnboardingDemoCardReportingFailure()`
+  (`apps/ios/Flashcards/Flashcards/Database/LocalDatabase/LocalDatabase+OnboardingDemoCard.swift`),
+  which seeds only when that property is set.
+
+Reset and erase. Logout, account deletion, a detected linked-account change, the credential-recovery
+erase, and every other caller of the shared reset wipe the local database and recreate an empty
+workspace; the reset then seeds into it, so the card is on screen right after logout, before any
+sign-in:
+
+- Android: `CloudIdentityResetCoordinator`
+  (`apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/repository/cloudsync/account/CloudIdentityResetCoordinator.kt`)
+  invokes its `onLocalWorkspaceRecreated` callback last in `resetLocalStateForCloudIdentityChange`
+  and `eraseLocalDataForCredentialRecovery`, and `AppGraph` wires that callback to the seed.
 - iOS: `resetLocalStateForCloudIdentityChange` in
   `apps/ios/Flashcards/Flashcards/Cloud/Store/Account/Identity/FlashcardsStore+CloudIdentity.swift`
-  calls `database.resetForAccountDeletion()`, which resets the schema and then runs
-  `LocalDatabaseBootstrapper.ensureDefaultState()`.
+  calls `seedOnboardingDemoCardAfterCloudIdentityResetReportingFailure()` after the database reset
+  and before the reload. `DatabaseCore.resetForAccountDeletion()` itself does not seed and clears
+  `createdDefaultWorkspaceId`, so that property keeps meaning first creation only.
 
-Clients must never seed on those paths: it would hand the demo card back to a returning user who
-already deleted it. The "workspace already has any card" guard below does not help here, because
-the tables were just cleared.
+Test harnesses that need an empty workspace opt out: iOS UI-test launches reset through
+`resetLocalStateForUITestLaunch()`, which skips the seed, and the Android instrumentation
+`AppStateResetRule` removes the card its logout seeded.
 
-The binding rule is therefore an outcome, not a mechanism: a client seeds only at the genuinely
-first creation of its local workspace row, and never from a reset or erase path, however many times
-that row is re-created afterwards.
-
-How each client reaches that outcome is up to it, and neither client persists extra state for it:
-the bootstrap reports whether it just created the workspace row, and only the app-start call site
-acts on that signal. The reset paths call the same bootstrap and ignore it.
-
-Both bootstraps report that signal:
-
-- Android: `ensureLocalWorkspaceShell` returns a `LocalWorkspaceShell` value type carrying
-  `workspaceId` and `didCreateWorkspace`, and the two branches differ:
-  `didCreateWorkspace` is `true` only on the branch that inserted the workspace row and `false` on
-  the branch that found one. The only reader is `AppGraph.ensureLocalWorkspaceShell`
-  (`apps/android/app/src/main/java/com/flashcardsopensourceapp/app/di/AppGraph.kt`), which calls
-  `seedDemoCardForNewWorkspace` under that flag. `CloudIdentityResetCoordinator` reads only
-  `workspaceId` from the same result and never looks at the flag, so its resets cannot seed.
-- iOS: `LocalDatabaseBootstrapper.ensureDefaultState()` returns `String?` — the workspace id when
-  that run inserted the very first workspace row, and `nil` when a workspace row was already there.
-  It runs inside `DatabaseCore.init(databaseURL:)`
-  (`apps/ios/Flashcards/Flashcards/Database/Core/DatabaseCore.swift`), which stores the result in
-  the `createdDefaultWorkspaceId` property. That property is how the signal leaves the initializer
-  and reaches the app-start call site: `FlashcardsStore.init()` calls
-  `seedOnboardingDemoCardReportingFailure()` immediately after `LocalDatabase()` succeeds, and
-  `seedOnboardingDemoCardIfNeeded()` in
-  `apps/ios/Flashcards/Flashcards/Database/LocalDatabase/LocalDatabase+OnboardingDemoCard.swift`
-  returns early unless `createdDefaultWorkspaceId` is set.
-
-On iOS the suppression is an explicit property assignment rather than anything the bootstrapper
-reports back. `DatabaseCore.resetForAccountDeletion()` re-runs the bootstrapper and discards its
-result (`_ = try LocalDatabaseBootstrapper(core: self).ensureDefaultState()`), so the creation that
-run reports never reaches `createdDefaultWorkspaceId`; a separate line then assigns that property
-`nil`. What the assignment clears is therefore whatever `init(databaseURL:)` left in it, which is
-already `nil` on any device whose local workspace row existed at launch, and holds an id only in a
-session that created that row itself and then resets in the same app run — a fresh install that
-signs in and then logs out, hits a linked-account change, deletes the account, or erases
-credentials. `DatabaseCore` outlives the reset, so without that line it would keep reporting a
-creation for a workspace the reset has just wiped and recreated, and that no-longer-new device would
-read as brand-new, which, as above, the card-count guard could not catch. The single reader today,
-`FlashcardsStore.init()`, runs before any reset can happen, so the line is what keeps the property's
-stated meaning true for the object's whole lifetime; the binding rule is that no reset path may
-leave the signal armed.
+The reset-seeded card exists only on the device until the next cloud link, and its fate depends on
+the workspace selected at sign-in, not on whether the account is new. Linking into a non-empty remote
+workspace takes `replace_local_shell` and discards it (see the next sections); a deleted demo card
+keeps that workspace non-empty through its tombstone. Linking into an empty remote workspace keeps
+it, and that includes an existing account when the user picks "Create new workspace" or an existing
+empty workspace at sign-in, so a returning user can get the card back that way; this is accepted. If
+the device became a guest first, sign-in is a guest upgrade instead, covered in
+[Guest upgrade](#guest-upgrade).
 
 ### Web: the four seed conditions
 
@@ -115,8 +103,8 @@ value is decided by the caller and passed in, and it never re-reads workspace st
 it is the condition that was easiest to miss. An empty workspace is not by itself a new account: an
 existing user who deliberately creates a second workspace is handed an empty one too, on a backend
 workspace that is empty as well. Without the user-scoped condition every such workspace would be
-seeded, which would contradict the "only new users" rule above and diverge from mobile, where the
-seed can only ever fire at the first creation of the device's local workspace row.
+seeded, which would contradict the new-user rule above and diverge from mobile, where the seed only
+ever fires into a local workspace row the device has just created.
 
 ## Why nothing may seed into a new user's remote workspace on the server
 
@@ -158,15 +146,16 @@ dedupe could not work.
 
 Instead:
 
-- each client seeds at most once, at its own new-user moment;
+- each client seeds only at its own seed moment: web once, for a new user; mobile into a local
+  workspace it has just created, at first launch or by a reset;
 - each client additionally skips seeding when the workspace already has any card.
 
 The invariant those guards buy is about survival, not about seed-time exclusion. Both seeds can fire
-for the same account, and no guard prevents that: the mobile seed happens offline at first launch,
-before any account exists on that device, so no account-scoped guard on mobile can observe a web
-seed, and the web guard is evaluated against a remote workspace the mobile device has not linked to
-yet. What the design guarantees is that at most one copy survives, because on each of the two
-first-link paths only one side's content ends up in the linked workspace:
+for the same account, and no guard prevents that: the mobile seed happens offline, at first launch or
+right after a reset, before that device is linked to any account, so no account-scoped guard on
+mobile can observe a web seed, and the web guard is evaluated against a remote workspace the mobile
+device has not linked to yet. What the design guarantees is that at most one copy survives, because
+on each of the two first-link paths only one side's content ends up in the linked workspace:
 
 - remote empty — Android takes `fork_local_data` and iOS takes `preserve_local_data`, keeping the
   local content. The remote workspace holds no card at all on this path, so there is no web-seeded
@@ -178,23 +167,57 @@ first-link paths only one side's content ends up in the linked workspace:
 Both link paths end with exactly one local workspace and at most one demo card, in either arrival
 order.
 
-Guest upgrade is where that outcome does not hold, and it follows from the same reasoning rather
-than contradicting it. Guest upgrade merges the already-synced guest workspace into the destination
-workspace instead of choosing a side (see
-[docs/sync-identity-model.md](sync-identity-model.md)), so neither copy is discarded and a mobile
-guest that already seeded its card and then upgrades into a web-seeded account keeps both. No guard
-could have prevented it: each client evaluated its own guard correctly at its own new-user moment,
-before the two workspaces ever met.
+### Guest upgrade
 
-That same path is also how the card can land in an account that already existed: the guest device
-seeded it before it knew about any account. Both outcomes — the extra copy and the arrival into an
-existing account — are accepted, and both leave ordinary cards behind. There is no cleanup-by-tag
-and no unlinking logic anywhere.
+Guest upgrade merges the already-synced guest workspace into the destination workspace instead of
+choosing a side (see [docs/sync-identity-model.md](sync-identity-model.md)), so neither path above
+applies, and the guest device seeded its card before it knew about any account. Mobile resolves this
+in the client by upgrade mode:
+
+- `bound` (new account): the card stays; the guest user is the account, so no other copy of the
+  card can exist.
+- `merge_required` (existing account): after the merge, the client deletes the guest's untouched demo
+  card when the selected destination workspace holds any card, tombstones included, whose id is not
+  one of the guest's card ids. Guest upgrade keeps card ids, so such a card belongs to the account
+  that existed before. A destination with no card of its own keeps the card, including a workspace
+  created by "Create new workspace" or an existing empty one, even though the account is not new;
+  this is accepted. Untouched means active, tagged exactly
+  `demo`, with front and back equal to the current app language's seed text; review history does not
+  count as touching it. The deletion is the ordinary card delete, so it syncs as an ordinary
+  tombstone, and a failure is reported and leaves an ordinary card. This also removes the second
+  copy when the selected destination is the web-seeded workspace.
+
+The cleanup lives in
+`apps/ios/Flashcards/Flashcards/Cloud/Guest/FlashcardsStore+GuestUpgradeDemoCardCleanup.swift`
+(matcher `isUntouchedOnboardingDemoCard` in `LocalDatabase+OnboardingDemoCard.swift`), wired in
+`completeGuestCloudLink`, and in
+`apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/repository/cloudsync/guest/GuestUpgradeDemoCardCleanup.kt`,
+wired in `CloudWorkspaceLinkCoordinator.completeGuestUpgrade`. Both capture the guest cards from the
+local database before the local switch to the linked workspace discards the guest rows (Android
+before the server completion call, iOS after it), and hold that capture only in memory on the fresh
+upgrade path.
+
+Accepted limits:
+
+- any upgrade finished through the pending-upgrade resume path skips the cleanup, so the card stays.
+  That covers a relaunch or process death, and also an in-process retry, sign-in, or sync that
+  resumes after the fresh path failed and left the pending-upgrade record behind, on both platforms;
+- an app-language change between seed and upgrade means the text no longer matches, so the card
+  stays;
+- a card written to the guest workspace server-side between the pre-upgrade drain and the server
+  completion call is
+  not among the captured guest ids and counts as an account card, so the card can be deleted from an
+  account that had none of its own.
+
+This is the only cleanup; there is no other tag-based cleanup and no unlinking logic anywhere.
 
 ## Deletion
 
-Deleting the card is an ordinary card deletion producing an ordinary tombstone. It must never be
-re-seeded.
+Deleting the card, by the user or by the guest-upgrade cleanup, is an ordinary card deletion
+producing an ordinary tombstone. It must never be re-seeded into the workspace it was deleted from:
+the tombstone keeps every seed guard closed, and a card a later mobile reset seeds is discarded or
+cleaned up on the way back into that workspace, within the guest-upgrade limits above. Linking into a
+different, empty workspace of the same account keeps it, as described above.
 
 ## Canonical English source text
 
@@ -320,9 +343,10 @@ The claim "about a minute" is true because:
   `apps/ios/Flashcards/Flashcards/Review/Scheduling/SchedulerSettingsSupport.swift`, and
   `makeDefaultWorkspaceSchedulerSettings` in
   `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/scheduling/WorkspaceSchedulerSettingsSupport.kt`.
-  On mobile the card is seeded offline before any account or sync exists, so the interval the new
-  user actually observes comes from the client default, not from the backend one. The web seed
-  happens after the hot bootstrap, so it uses the scheduler settings the backend returned;
+  On mobile the card is seeded offline into a fresh or just-reset local workspace before it is
+  linked to any account, so the interval the user actually observes comes from the client default,
+  not from the backend one. The web seed happens after the hot bootstrap, so it uses the scheduler
+  settings the backend returned;
 - cards that become due after `Again` rise ahead of a large old-overdue tail on the next queue
   refresh (see [docs/fsrs-scheduling-logic.md](fsrs-scheduling-logic.md));
 - fuzz applies only to long-term intervals, so it does not perturb the first learning step.
