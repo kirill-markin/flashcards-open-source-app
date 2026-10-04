@@ -51,7 +51,7 @@ export type DataTableServerPage = Readonly<{
   totalCount: number;
   /**
    * One entry per enum column, since one page cannot show every value; NULL is `""`. A non-empty list
-   * is the full set of values across every page; an empty one means options are loading or failed.
+   * is the full set of values across every page; an empty one means none are known yet or none exist.
    */
   enumOptionsByColumnId: ReadonlyMap<string, ReadonlyArray<string>>;
   isLoading: boolean;

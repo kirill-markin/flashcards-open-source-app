@@ -3,7 +3,7 @@ import type { AdminAppConfig } from "../../config";
 import { AdminLink } from "../../navigation/AdminLink";
 import { AdminNavigation } from "../../navigation/AdminNavigation";
 import { formatInstant } from "../../users/userPage/formatInstant";
-import { ProfileRecordSection, renderUserLink, type ProfileRecordRow } from "../../users/userPage/ProfileTab";
+import { ProfileRecordCard, renderUserLink, type ProfileRecordRow } from "../../users/userPage/ProfileTab";
 import { loadAnalyticsEvent, type AnalyticsEvent, type LoadedAnalyticsEvent } from "./eventQuery";
 import "../../table/dataTable.css";
 import "../../users/userPage/userPage.css";
@@ -35,7 +35,7 @@ function EventSections(props: Readonly<{ event: AnalyticsEvent; onNavigate: (pat
   const userLink = (userId: string | null): ReactNode => userId === null ? null : renderUserLink(userId, onNavigate);
   return (
     <div className="profile-sections" data-testid="event-page-fields">
-      <ProfileRecordSection
+      <ProfileRecordCard
         title="Event"
         testId="event-page-event"
         rows={[
@@ -50,7 +50,7 @@ function EventSections(props: Readonly<{ event: AnalyticsEvent; onNavigate: (pat
           row("request-id", "Request ID", event.requestId),
         ]}
       />
-      <ProfileRecordSection
+      <ProfileRecordCard
         title="Time"
         testId="event-page-time"
         rows={[
@@ -61,7 +61,7 @@ function EventSections(props: Readonly<{ event: AnalyticsEvent; onNavigate: (pat
           row("ingested", "Ingested", formatInstant(event.ingestedAt)),
         ]}
       />
-      <ProfileRecordSection
+      <ProfileRecordCard
         title="Identity"
         testId="event-page-identity"
         rows={[
@@ -78,7 +78,7 @@ function EventSections(props: Readonly<{ event: AnalyticsEvent; onNavigate: (pat
           row("daily-visitor-hash", "Daily visitor hash", event.dailyVisitorHash),
         ]}
       />
-      <ProfileRecordSection
+      <ProfileRecordCard
         title="Device and context"
         testId="event-page-context"
         rows={[
@@ -94,7 +94,7 @@ function EventSections(props: Readonly<{ event: AnalyticsEvent; onNavigate: (pat
           row("screen", "Screen", event.screen),
         ]}
       />
-      <ProfileRecordSection
+      <ProfileRecordCard
         title="Properties"
         testId="event-page-properties"
         rows={[
