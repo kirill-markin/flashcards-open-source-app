@@ -16,13 +16,13 @@ following this procedure.
 | Smithery | Verify/update the [existing server](https://smithery.ai/servers/kirill-fofi/nibomo), endpoint, health, auth, and discovered tools. |
 | Glama | Verify/update the [existing connector](https://glama.ai/mcp/connectors/com.nibomo/flashcards), endpoint, health, auth, and discovered tools. |
 | Gemini CLI | Verify the [gallery entry](https://geminicli.com/extensions/?name=kirill-markinnibomo-plugins) and released install/update source and version. |
-| Executor | Verify/update the [existing public app](https://v2.executor.sh/apps/nibomo/nibomo) from reviewed `executor/` source; record uploaded/deployed/published identities separately from Git and installed copies. |
+| Executor | Verify/update the [existing public app](https://v2.executor.sh/apps/nibomo/nibomo) through the companion's **Executor Publish** workflow; follow the [Executor procedure](#executor). |
 | OpenAI | Initial publication is excluded from routine release until a separately scoped initial launch establishes this channel. Preserve the existing submission identity and procedure in the companion repository; a disabled website button is not a public listing. |
 | Antigravity | Optional marketplace work; packaged assets do not prove listing approval. Include publication only when explicitly scoped. |
 
 Provider-specific update, installation, and workflow verification belong in
 [`nibomo-plugins` publishing](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md)
-and [Executor publishing](https://github.com/kirill-markin/nibomo-plugins/blob/main/executor/README.md).
+and [Executor publishing and access setup](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md#executor).
 For established channels, perform concise immediate checks: verify the intended
 endpoint, package/source identity, required CI/scans, and acceptance of any
 required update/submission. Current MCP listings must resolve to
@@ -67,6 +67,30 @@ Completion: the intended version and manifest are verified at the public
 registry endpoint and linked to successful workflow evidence. Registry versions
 are immutable: do not republish a version or bump just to retry. A conflicting
 published manifest blocks this channel and needs an explicit resolution.
+
+## Executor
+
+Follow the companion's [canonical procedure and credential setup](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md#executor).
+
+1. Complete the companion's required exact-source **Plugin packages** cloud CI,
+   including **Executor typecheck**, and applicable focused workflow checks.
+   Publishing its prepared stable GitHub Release triggers **Executor Publish**
+   (`.github/workflows/executor-publish.yml`, `release.published`). The workflow
+   uploads the selected release's exact Git source using the publisher from
+   reviewed `main`; development pushes never publish same-version source.
+2. Inspect the workflow result. To retry an existing stable release after
+   resolving a failure, dispatch **Executor Publish** from `main` with
+   `release_tag=vX.Y.Z`, selecting the intended immutable release tag. Follow
+   the companion procedure for the command and failure diagnosis; retrying an
+   older release intentionally republishes its source.
+3. Retain the Actions summary in the [release ledger](evidence.md#release-ledger):
+   release/tag and publisher SHAs, exact-source cloud run, Executor source
+   commit, deployment ID/commit, accepted publication, and immediate anonymous
+   listing/source observation. Keep these identities and outcomes separate.
+   After required checks pass, accepted publication or a verified **no update
+   needed** result completes operator work. External propagation remains
+   follow-up. Existing installed copies do not update automatically; record
+   unexecuted installed-copy/runtime checks explicitly.
 
 ## Anthropic Connector and Plugin
 
