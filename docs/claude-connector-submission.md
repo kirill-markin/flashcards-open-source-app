@@ -13,7 +13,7 @@ listings for Verified review. A company uses the same submission route.
    the English listing, use cases, approved company/contact, authentication,
    data-handling facts and public reviewer walkthrough. It is a secret-free
    source for **manual portal entry**, not an Anthropic upload schema.
-   [server.json](../server.json) owns the current version, remote endpoint and
+   [companion server.json](https://github.com/kirill-markin/nibomo-plugins/blob/main/server.json) owns the current version, remote endpoint and
    public URLs; reconcile those before entry instead of adding another version.
 2. Confirm the deployed tools after any metadata change and wait for the
    automatically triggered AWS release and MCP live smoke to succeed. Both
