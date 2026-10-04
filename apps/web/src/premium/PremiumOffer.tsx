@@ -27,7 +27,7 @@ export function PremiumOffer(props: PremiumOfferProps): ReactElement {
   const billing = useStripeBilling();
   const isPurchasing = billing.busy && billing.status === "opening";
   const isAiLimit = request.reason === "ai-limit";
-  const showOffer = request.reason !== "ai-limit" || (entitlement !== null && !hasPremiumAccess(entitlement, 20));
+  const showOffer = entitlement !== null && !hasPremiumAccess(entitlement, 20);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -104,7 +104,7 @@ export function PremiumOffer(props: PremiumOfferProps): ReactElement {
           <p id={bodyId} className="subtitle">
             {request.reason === "ai-limit"
               ? formatAiLimitReachedMessageForHeldUsage({ aiUsage: request.aiUsage, t, formatDate })
-              : entitlement === null && request.reason === "feature" ? t("premium.unknown") : t("stripe.offer.description")}
+              : entitlement === null ? t("premium.unknown") : t("stripe.offer.description")}
           </p>
           {showOffer ? <StripeOfferContent continuation={request.reason === "feature" ? request.continuation : null} /> : null}
           <p className="subtitle">{t("stripe.ownKey.explanation")}</p>
