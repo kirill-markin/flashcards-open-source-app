@@ -170,15 +170,14 @@ export function useAccountStripeBilling(): StripeBilling {
         });
       }
       setStatus("confirmed");
-      reportReturn(cancelled ? "cancelled" : "completed");
     } else if ((cancelled || expired) && returnError === null) {
       if (intent !== null && intent.attemptId === attemptId && intent.sessionId === sessionId) consumeStripeIntent(intent);
       setStatus("interrupted");
-      reportReturn("cancelled");
     } else {
       setStatus(attemptId !== null || next.pendingCheckouts.length > 0 ? "delayed" : "idle");
-      reportReturn(cancelled ? "cancelled" : "pending");
     }
+    // What Stripe said about the session, whether or not access has arrived yet.
+    reportReturn(cancelled || expired ? "cancelled" : complete ? "completed" : "pending");
     // Keep incomplete success identifiers available for explicit retry, including receipt links.
     if (returnError !== null) throw returnError;
     if (onSubscription && ((complete && hasAccess) || cancelled || expired || query.get("portal") === "returned")) {
@@ -211,7 +210,7 @@ export function useAccountStripeBilling(): StripeBilling {
     const pendingContinuation = continuation ?? (previous?.attemptId === result.attemptId ? previous.continuation : null);
     storeStripeIntent({ userId: identity.userId, attemptId: result.attemptId, sessionId: result.sessionId, continuation: pendingContinuation, reportedReturn: null });
     if (result.outcome === "checkout") {
-      track({ name: "purchase_started" });
+      track({ name: "purchase_started", offerType: result.trialDays > 0 ? "free_trial" : "standard" });
       window.location.assign(result.url);
     } else {
       const query = new URLSearchParams(window.location.search);

@@ -1297,11 +1297,15 @@ export const productAnalyticsEventCatalog = {
       },
     },
   },
-  // The person confirmed buying and the store sheet or Stripe Checkout was launched.
+  // The person confirmed buying and the store sheet or Stripe Checkout was launched. `offer_type` is
+  // whether the offer being bought starts with a provider free trial; optional because released
+  // clients send none.
   purchase_started: {
     serverOnly: false,
     requiresScreen: false,
-    properties: {},
+    properties: {
+      offer_type: { kind: "enum", values: ["free_trial", "standard"], optional: true },
+    },
   },
   // What the store or checkout reported back to the client. `completed` is the client's view only;
   // `trial_started` and `purchase_completed` above remain the truth about a sale.

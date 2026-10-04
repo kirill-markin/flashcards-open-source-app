@@ -170,6 +170,8 @@ export type AnalyticsPaywallEntryPoint =
   | "accent_color"
   | "guest_return";
 
+export type AnalyticsPurchaseOfferType = "free_trial" | "standard";
+
 export type AnalyticsPurchaseOutcome = "completed" | "cancelled" | "failed" | "pending";
 
 export type AnalyticsSubscriptionManagementDestination = "stripe_portal" | "app_store" | "google_play";
@@ -331,6 +333,7 @@ export type AnalyticsEvent =
   }>
   | Readonly<{
     name: "purchase_started";
+    offerType: AnalyticsPurchaseOfferType;
   }>
   | Readonly<{
     name: "purchase_finished";
@@ -406,6 +409,7 @@ export type AnalyticsWireBatch = Readonly<{
   anonymousId: string | null;
   sessionId: string | null;
   context: AnalyticsWireContext;
+  isAutomation: boolean;
   events: ReadonlyArray<AnalyticsWireEvent>;
 }>;
 
@@ -451,7 +455,7 @@ export function buildAnalyticsEventProperties(event: AnalyticsEvent): AnalyticsE
     case "paywall_shown":
       return { entry_point: event.entryPoint };
     case "purchase_started":
-      return null;
+      return { offer_type: event.offerType };
     case "purchase_finished":
       return { outcome: event.outcome };
     case "subscription_management_opened":
