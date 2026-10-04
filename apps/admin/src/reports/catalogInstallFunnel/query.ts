@@ -995,6 +995,18 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     `    AND review.occurred_at <= visit.visited_at + INTERVAL '${catalogInstallConversionWindowDays} days'`,
     "  WHERE visit.installed_at IS NOT NULL",
     "  GROUP BY visit.actor_id, visit.package_version_id",
+    "), actor_country AS MATERIALIZED (",
+    "  SELECT cohort_country.actor_id, cohort_country.country",
+    "  FROM (",
+    buildActorConnectionCountrySql(filters.dateRange),
+    "  ) AS cohort_country",
+    `  WHERE ${buildActorMembershipSql("visit_actors", "cohort_country.actor_id")}`,
+    "), actor_language AS MATERIALIZED (",
+    "  SELECT cohort_language.actor_id, cohort_language.ui_locale",
+    "  FROM (",
+    buildActorAppUiLanguageSql(filters.dateRange),
+    "  ) AS cohort_language",
+    `  WHERE ${buildActorMembershipSql("visit_actors", "cohort_language.actor_id")}`,
     ")",
     // Every eligible page view is a row; one that never reached the click carries null steps.
     "SELECT",
@@ -1065,25 +1077,18 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     // in the cohort - on a statement group whose 30 s timeout fails the visits, both no-visit
     // diagnostics and the cookieless counts together.
     //
-    // The predicate sits inside each subquery rather than in this query's own WHERE for two
-    // reasons: a qual on the nullable side of a `LEFT JOIN` cannot be pushed into it at all, and a
-    // row here must survive with a NULL country or locale. `buildActorMembershipSql` yields
+    // EACH SOURCE IS A `MATERIALIZED` CTE, computed once and joined here by a CTE scan. The planner
+    // has no statistics for the JSONB predicates that build `eligible_visits` and can estimate it at
+    // one row; joined as an inline subquery, each source then lands on the inner side of a nested
+    // loop and reruns its whole scan once per visit, which alone takes this statement past the 30 s
+    // timeout.
+    //
+    // The predicate sits inside each CTE rather than in this query's own WHERE because a row here
+    // must survive with a NULL country or locale. `buildActorMembershipSql` yields
     // `actor_id = ANY (ARRAY(...))`, an uncorrelated subselect the planner evaluates once as an
     // InitPlan and leaves in the qual as a plain parameter rather than re-running it per row.
-    "LEFT JOIN (",
-    "  SELECT cohort_country.actor_id, cohort_country.country",
-    "  FROM (",
-    buildActorConnectionCountrySql(filters.dateRange),
-    "  ) AS cohort_country",
-    `  WHERE ${buildActorMembershipSql("visit_actors", "cohort_country.actor_id")}`,
-    ") AS actor_country ON actor_country.actor_id = visit.actor_id",
-    "LEFT JOIN (",
-    "  SELECT cohort_language.actor_id, cohort_language.ui_locale",
-    "  FROM (",
-    buildActorAppUiLanguageSql(filters.dateRange),
-    "  ) AS cohort_language",
-    `  WHERE ${buildActorMembershipSql("visit_actors", "cohort_language.actor_id")}`,
-    ") AS actor_language ON actor_language.actor_id = visit.actor_id",
+    "LEFT JOIN actor_country ON actor_country.actor_id = visit.actor_id",
+    "LEFT JOIN actor_language ON actor_language.actor_id = visit.actor_id",
     "ORDER BY visit.anchor_at, visit.actor_id, visit.package_version_id",
   ].join("\n");
 
