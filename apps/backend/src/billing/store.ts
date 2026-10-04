@@ -4,6 +4,8 @@ import { isEntitlementTier, type EntitlementTier } from "./tiers";
 import type {
   EntitlementGrantInput,
   EntitlementPurchaseInput,
+  PurchaseEnvironment,
+  PurchaseProvider,
   PurchaseStatus,
   ResolvedEntitlement,
 } from "./resolver";
@@ -20,6 +22,8 @@ import type {
  */
 type PurchaseJson = Readonly<{
   purchase_id: string;
+  provider: string;
+  environment: string;
   tier: string;
   status: string;
   is_trial: boolean;
@@ -89,6 +93,22 @@ function requirePurchaseStatus(value: string, purchaseId: string): PurchaseStatu
   throw new Error(`Billing purchase ${purchaseId} has an unknown status: ${value}`);
 }
 
+function requirePurchaseProvider(value: string, purchaseId: string): PurchaseProvider {
+  if (value === "apple" || value === "google" || value === "stripe") {
+    return value;
+  }
+
+  throw new Error(`Billing purchase ${purchaseId} has an unknown provider: ${value}`);
+}
+
+function requirePurchaseEnvironment(value: string, purchaseId: string): PurchaseEnvironment {
+  if (value === "production" || value === "sandbox") {
+    return value;
+  }
+
+  throw new Error(`Billing purchase ${purchaseId} has an unknown environment: ${value}`);
+}
+
 /**
  * A timestamp that arrived inside a JSON aggregate. Postgres renders a timestamptz there as ISO 8601
  * with its UTC offset, which is why reading it back needs nothing but a Date.
@@ -125,6 +145,8 @@ const entitlementResolutionInputsQuery = [
   "SELECT COALESCE((",
   "SELECT json_agg(json_build_object(",
   "'purchase_id', purchases.purchase_id::text,",
+  "'provider', purchases.provider,",
+  "'environment', purchases.environment,",
   "'tier', purchases.tier,",
   "'status', purchases.status,",
   "'is_trial', purchases.is_trial,",
@@ -173,6 +195,8 @@ function toEntitlementResolutionInputs(
   return {
     purchases: row.purchases.map((purchase) => ({
       purchaseId: purchase.purchase_id,
+      provider: requirePurchaseProvider(purchase.provider, purchase.purchase_id),
+      environment: requirePurchaseEnvironment(purchase.environment, purchase.purchase_id),
       tier: requireEntitlementTier(purchase.tier, `purchase ${purchase.purchase_id}`),
       status: requirePurchaseStatus(purchase.status, purchase.purchase_id),
       isTrial: purchase.is_trial,

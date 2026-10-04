@@ -115,6 +115,10 @@ function purchaseState(purchaseToken: string, subscription: GoogleSubscription, 
   const outOfApp = subscription.outOfAppPurchaseContext;
   return {
     purchaseToken, productId: googleProductId, basePlanId: googleBasePlanId, offerId: item.offerDetails.offerId ?? null,
+    price: price === undefined ? null : {
+      amountMicros: Number(price.units ?? "0") * 1_000_000 + Math.round((price.nanos ?? 0) / 1000),
+      currency: price.currencyCode,
+    },
     status: inGrace ? "in_grace" : active ? "active" : "expired", providerStatus, environment, currentPhase,
     isTrial: currentPhase === "free_trial",
     willRenew: item.autoRenewingPlan.autoRenewEnabled && providerStatus !== "SUBSCRIPTION_STATE_CANCELED",

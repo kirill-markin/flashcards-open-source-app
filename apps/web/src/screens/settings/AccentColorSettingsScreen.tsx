@@ -121,6 +121,7 @@ function AccentColorEditor(): ReactElement {
       && sessionRef.current?.userId === userId && sessionRef.current.csrfToken === csrfToken;
     presentPremium?.({
       reason: "feature",
+      entryPoint: "accent_color",
       requiredRank: 20,
       continuation: { accentColor: color, requiredRank: 20 },
       onResult: (result): void => {
@@ -159,7 +160,7 @@ function AccentColorEditor(): ReactElement {
       {!canCustomize ? (
         <SettingsGroup>
           <p className="subtitle" data-testid="accent-premium-note">{t("accentColorSettings.premiumNote")}</p>
-          <button className="primary-btn" type="button" data-testid="accent-premium-open" onClick={() => presentPremium?.({ reason: "offer" })}>
+          <button className="primary-btn" type="button" data-testid="accent-premium-open" onClick={() => presentPremium?.({ reason: "offer", entryPoint: "accent_color" })}>
             {t("premium.offer")}
           </button>
         </SettingsGroup>

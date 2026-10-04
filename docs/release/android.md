@@ -8,9 +8,11 @@ Apply [Reuse Existing Artifacts](evidence.md#reuse-existing-artifacts) and the
 [Local Mobile Release Gate](evidence.md#local-mobile-release-gate) to this flow.
 
 For a matching draft or submitted artifact, resume at the remaining
-checks/publication steps without creating a duplicate. For an
-approved or live release, verify retained gate evidence and continue at step 8;
-otherwise create a new artifact through every gate below.
+checks/publication steps without creating a duplicate. For an approved release,
+verify retained gate evidence and continue at step 8. An already-published
+matching release counts complete under the shared historical evidence rule;
+record its identity and rollout scope at step 9 without reconstructing old logs.
+Otherwise create a new artifact through every gate below.
 
 1. Complete the [local parity commands](../android-ci-cd.md#local-parity-commands):
    run `bash scripts/android/run-android-ci.sh` from the repository root for
@@ -53,15 +55,19 @@ otherwise create a new artifact through every gate below.
    [review and managed publishing controls](https://support.google.com/googleplay/android-developer/answer/9859654?hl=en).
    Confirm the production rollout and intended countries/audience; record any
    staged percentage or hold rather than describing it as full rollout.
-9. Verify the target version on the public Play listing and availability to
-   the intended production audience (use an eligible installation/update when
-   listing metadata alone cannot establish the version). Record the public URL,
-   version, rollout scope and verification time. If approved but unavailable,
-   keep the channel open as propagation pending or blocked according to evidence.
+9. Verify the exact target version code is public to the intended production
+   audience at the selected rollout scope using Play release and public
+   availability evidence. Record the public URL, version/code, rollout scope
+   and verification time. Do not add an installation, extra test, or wider
+   propagation wait when available evidence already establishes this publication.
+   Use an eligible installation/update only if needed to resolve uncertain
+   availability. If approved but unavailable at the selected scope, keep the
+   channel open as propagation pending or blocked according to evidence.
 
-Completion: retained or new Firebase/GitHub and local gate evidence is valid,
-and the matching production version is publicly verified at the intended
-rollout scope. Submission or review approval alone leaves this channel open
+Completion: required Firebase/GitHub and local gates pass before new publication,
+and the exact production version is public at the intended rollout scope.
+Already-published matching releases use the shared historical evidence rule.
+Submission or review approval alone leaves this channel open
 under the [canonical completion contract](README.md#release-inventory-and-completion).
 
 Configuration, Firebase access, artifact correlation, and Play translation

@@ -27,7 +27,10 @@ const transactionSchema = z.object({
   type: z.literal(Type.AUTO_RENEWABLE_SUBSCRIPTION), environment: environmentSchema,
   purchaseDate: z.number().int().nonnegative(), expiresDate: z.number().int().nonnegative(),
   signedDate: z.number().int().nonnegative(), appAccountToken: z.uuid().optional(),
+  price: z.number().int().nonnegative().optional(), currency: z.string().regex(/^[A-Z]{3}$/).optional(),
+  transactionReason: z.enum(["PURCHASE", "RENEWAL"]).optional(),
 });
+type AppleTransaction = JWSTransactionDecodedPayload & z.infer<typeof transactionSchema>;
 const renewalSchema = z.object({
   originalTransactionId: z.string().min(1), productId: z.literal(appleProductId),
   environment: environmentSchema, autoRenewStatus: z.union([z.literal(0), z.literal(1)]),
@@ -111,12 +114,14 @@ export class AppleProvider {
     this.verifiers = { production: createVerifier(Environment.PRODUCTION), sandbox: createVerifier(Environment.SANDBOX) };
   }
 
-  private async transaction(signed: string, environment: AppleEnvironment): Promise<JWSTransactionDecodedPayload> {
+  private async transaction(signed: string, environment: AppleEnvironment): Promise<AppleTransaction> {
     const decoded = await callApple("verify transaction", () => this.verifiers[environment].verifyAndDecodeTransaction(signed));
-    if (!transactionSchema.safeParse(decoded).success) {
+    const transaction = transactionSchema.safeParse(decoded);
+    if (!transaction.success) {
       throw new AppleBillingError("APPLE_TRANSACTION_INVALID", false, "Apple transaction must be a complete premium_monthly subscription.");
     }
-    return decoded;
+    // A spread optional field widens back to the SDK's string, so the narrowed reason is set explicitly.
+    return { ...decoded, ...transaction.data, transactionReason: transaction.data.transactionReason };
   }
 
   private async renewal(signed: string, identity: ApplePurchaseIdentity): Promise<JWSRenewalInfoDecodedPayload> {
@@ -180,7 +185,11 @@ export class AppleProvider {
     if (!status.success) throw new AppleBillingError("APPLE_STATUS_INVALID", false, "Apple returned an unsupported subscription status.");
     const isTrial = transaction.offerDiscountType === OfferDiscountType.FREE_TRIAL;
     return {
-      ...identity, transactionId: requireValue(transaction.transactionId, "transactionId"),
+      ...identity, transactionId: requireValue(transaction.transactionId, "transactionId"), productId: transaction.productId,
+      // Apple reports milliunits of the currency.
+      price: transaction.price === undefined || transaction.currency === undefined ? null
+        : { amountMicros: transaction.price * 1000, currency: transaction.currency },
+      transactionReason: transaction.transactionReason ?? null,
       status: statuses[status.data], providerStatus: String(status.data), isTrial,
       willRenew: renewal.autoRenewStatus === 1,
       until: new Date(requireValue(transaction.expiresDate, "expiresDate")),

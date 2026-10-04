@@ -1,12 +1,13 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { combineAbortSignals } from "../abortSignals";
+import { track, type AnalyticsPurchaseOutcome } from "../analytics";
 import { ApiError, isAuthRedirectError, updateAccountPreferences } from "../api";
 import {
   createStripeCheckout, createStripePortal, loadStripeOffer, loadStripeSubscriptions,
   reconcileStripeCheckoutReturn, type StripeRequestIdentity,
 } from "../api/endpoints/stripeBilling";
-import { parseStripeSessionId, parseStripeUuid, type StripeDetails, type StripeOffer } from "../apiContracts/stripeBilling";
+import { parseStripeSessionId, parseStripeUuid, type StripeCheckout, type StripeDetails, type StripeOffer } from "../apiContracts/stripeBilling";
 import { useAppData } from "../appData";
 import { queueAccentColorWrite } from "../appData/session/accentColorWrite";
 import { readEntitlementIdentityGeneration, readEntitlementSnapshot, subscribeToEntitlement } from "./entitlementStore";
@@ -54,6 +55,8 @@ export function useAccountStripeBilling(): StripeBilling {
   navigateRef.current = navigate;
   const syncRef = useRef(runSync);
   syncRef.current = runSync;
+  // The checkout return already reported, so a refresh while its parameters stay in the URL is silent.
+  const reportedReturnRef = useRef<string | null>(null);
 
   const isCurrent = useCallback((identity: BillingIdentity): boolean => activeRef.current && !isStripeBillingInvalidated() && canLoadRef.current
     && identity.userId === userId && !identity.signal.aborted
@@ -98,6 +101,13 @@ export function useAccountStripeBilling(): StripeBilling {
     let attemptId = intent?.attemptId ?? null;
     let sessionId = intent?.sessionId ?? null;
     const cancelled = onSubscription && query.get("checkout") === "cancelled";
+    const returned = onSubscription && (query.get("checkout") === "success" || cancelled);
+    const returnKey = `${query.get("checkout")}:${query.get("checkout_attempt_id")}`;
+    const reportReturn = (outcome: AnalyticsPurchaseOutcome): void => {
+      if (!returned || reportedReturnRef.current === returnKey) return;
+      reportedReturnRef.current = returnKey;
+      track({ name: "purchase_finished", outcome });
+    };
     let complete = false;
     let expired = false;
     let returnError: unknown = null;
@@ -154,11 +164,14 @@ export function useAccountStripeBilling(): StripeBilling {
         });
       }
       setStatus("confirmed");
+      reportReturn(cancelled ? "cancelled" : "completed");
     } else if ((cancelled || expired) && returnError === null) {
       if (intent !== null && intent.attemptId === attemptId && intent.sessionId === sessionId) consumeStripeIntent(intent);
       setStatus("interrupted");
+      reportReturn("cancelled");
     } else {
       setStatus(attemptId !== null || next.pendingCheckouts.length > 0 ? "delayed" : "idle");
+      reportReturn(cancelled ? "cancelled" : "pending");
     }
     // Keep incomplete success identifiers available for explicit retry, including receipt links.
     if (returnError !== null) throw returnError;
@@ -175,7 +188,13 @@ export function useAccountStripeBilling(): StripeBilling {
     const previous = readStripeIntent(identity.userId);
     const pending: StripeIntent = { userId: identity.userId, attemptId: previous?.attemptId ?? null, sessionId: previous?.sessionId ?? null, continuation: continuation ?? previous?.continuation ?? null };
     storeStripeIntent(pending);
-    const result = await createStripeCheckout(identity);
+    let result: StripeCheckout;
+    try {
+      result = await createStripeCheckout(identity);
+    } catch (caught) {
+      if (isCurrent(identity) && !isAuthRedirectError(caught)) track({ name: "purchase_finished", outcome: "failed" });
+      throw caught;
+    }
     if (!isCurrent(identity)) return;
     if (result.outcome === "existing_subscription") {
       if (consumeStripeIntent(pending) === null) return;
@@ -186,6 +205,7 @@ export function useAccountStripeBilling(): StripeBilling {
     const pendingContinuation = continuation ?? (previous?.attemptId === result.attemptId ? previous.continuation : null);
     storeStripeIntent({ userId: identity.userId, attemptId: result.attemptId, sessionId: result.sessionId, continuation: pendingContinuation });
     if (result.outcome === "checkout") {
+      track({ name: "purchase_started" });
       window.location.assign(result.url);
     } else {
       const query = new URLSearchParams(window.location.search);
@@ -198,6 +218,7 @@ export function useAccountStripeBilling(): StripeBilling {
   const manage = useCallback((identityId: string): Promise<void> => runOperation("loading", async (identity) => {
     const result = await createStripePortal(identity, identityId);
     if (!isCurrent(identity)) return;
+    track({ name: "subscription_management_opened", destination: "stripe_portal" });
     window.location.assign(result.url);
   }), [isCurrent, runOperation]);
 

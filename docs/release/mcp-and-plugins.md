@@ -9,27 +9,38 @@ following this procedure.
 | Channel | Existing destination and release obligation |
 | --- | --- |
 | Web, backend, machine API/MCP runtime | Verify deployed components, public web access, machine discovery, and applicable smokes under [Web and Backend](web-backend.md#web-and-backend). |
-| iOS | Verify the matching version on the public App Store; [iOS procedure](ios.md#ios). |
+| iOS | Verify the exact submission and saved release mode, or matching existing publication; [iOS procedure](ios.md#ios). |
 | Android | Verify the matching production version and rollout on Google Play; [Android procedure](android.md#android). |
 | Official MCP Registry | Verify `com.nibomo/flashcards` at the target manifest version; [MCP procedure](mcp-and-plugins.md#mcp). |
-| Claude connector and plugin | Verify the [connector](https://claude.ai/directory/nibomo) and the plugin's separate public/installable version; [Anthropic gate](mcp-and-plugins.md#anthropic-connector-and-plugin). |
+| Claude connector and plugin | Verify runtime and accepted updates to the [connector](https://claude.ai/directory/nibomo) and separate plugin; record each public state under the [Anthropic gate](mcp-and-plugins.md#anthropic-connector-and-plugin). |
 | Smithery | Verify/update the [existing server](https://smithery.ai/servers/kirill-fofi/nibomo), endpoint, health, auth, and discovered tools. |
 | Glama | Verify/update the [existing connector](https://glama.ai/mcp/connectors/com.nibomo/flashcards), endpoint, health, auth, and discovered tools. |
 | Gemini CLI | Verify the [gallery entry](https://geminicli.com/extensions/?name=kirill-markinnibomo-plugins) and released install/update source and version. |
 | Executor | Verify/update the [existing public app](https://v2.executor.sh/apps/nibomo/nibomo) from reviewed `executor/` source; record uploaded/deployed/published identities separately from Git and installed copies. |
-| OpenAI | Reconcile the existing submission's current package, review/publication state, and any required update. Preserve its identity; a disabled website button is not a public listing. |
+| OpenAI | Initial publication is excluded from routine release until a separately scoped initial launch establishes this channel. Preserve the existing submission identity and procedure in the companion repository; a disabled website button is not a public listing. |
 | Antigravity | Optional marketplace work; packaged assets do not prove listing approval. Include publication only when explicitly scoped. |
 
 Provider-specific update, installation, and workflow verification belong in
 [`nibomo-plugins` publishing](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md)
 and [Executor publishing](https://github.com/kirill-markin/nibomo-plugins/blob/main/executor/README.md).
-The inventory's current MCP listings must resolve to
-`https://mcp.nibomo.com/mcp`. Record health, authentication, and discovered
-tool inventory against the
-[shared contract](../connector-directory-submission.md), including any stale provider
-cache or unresolved diagnostic. Run the companion's real OAuth/create/study/edit
-verification when affected inputs change or valid evidence is missing. Package
-CI alone proves neither OAuth nor those user workflows.
+For established channels, perform concise immediate checks: verify the intended
+endpoint, package/source identity, required CI/scans, and acceptance of any
+required update/submission. Current MCP listings must resolve to
+`https://mcp.nibomo.com/mcp`; compare health, authentication, and discovered
+tools with the [shared contract](../connector-directory-submission.md).
+Reuse shared runtime smoke evidence and valid unchanged client evidence.
+Run focused real OAuth/create/study/edit checks for affected clients when inputs
+change or required evidence is missing; do not require an exhaustive every-client
+matrix on unchanged inputs. Package CI alone proves neither OAuth nor user flows.
+
+An accepted update/publication request or verified unchanged publication completes
+our established-channel action after required gates pass. Record external review,
+crawl, stale caches and propagation separately; they do not hold overall closeout
+open. An immediate failure, rejected request, failed required scan/test, or
+unresolved release warning must be fixed before that action counts complete.
+Preserve exact package/source/request identities and factual pending versus live
+status under the [canonical contract](README.md#release-inventory-and-completion).
+The registry retains its specific direct-verification gate below.
 
 At each release, inspect the website's current `origin/main`
 [`Footer.tsx`](https://github.com/kirill-markin/flashcards-open-source-app-website/blob/main/src/components/Footer.tsx)
@@ -107,12 +118,16 @@ tracked on `main`. Update these listings; do not create duplicate submissions.
    Reuse an already submitted or published matching version on resume.
 5. **Publication evidence:** record plugin version, source commit, CI and scan
    results, publication policy, request/status, and public listing link when
-   verified. Check the plugin's own public listing and installable version;
-   the connector URL does not establish plugin availability. A scan, Publish
-   request, private ZIP upload, or portal **Published** status alone does not
+   verified. Make an immediate check of the plugin's own public listing and
+   installable version; the connector URL does not establish plugin availability.
+   A scan, Publish request, private ZIP upload, or portal **Published** status alone does not
    prove public visibility. Report reviewer delay or public propagation
    separately; the directory serves the last published version meanwhile.
 
-Completion: the runtime, required connector listing edits, and matching plugin's
-public/installable version are verified. Apply the [common completion rule](README.md#release-inventory-and-completion)
-to reviewer or propagation delays; a request alone leaves this channel open.
+Completion: the runtime and focused affected-client checks passed, required
+CI/scans passed, and required connector/plugin publication requests for the
+exact source/version were accepted (or matching unchanged publications verified).
+A scan or private package upload alone is insufficient; complete the available
+**Publish** action. Record a resulting reviewer request or propagation delay
+as external follow-up under the [common completion rule](README.md#release-inventory-and-completion);
+do not wait for public/install propagation or label pending updates live.

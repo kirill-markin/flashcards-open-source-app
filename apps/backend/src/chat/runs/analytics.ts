@@ -1,4 +1,8 @@
-import type { productAnalyticsEventCatalog } from "../../productAnalytics/catalog";
+import type {
+  ProductAnalyticsAccountKind,
+  ProductAnalyticsEntitlementTier,
+  productAnalyticsEventCatalog,
+} from "../../productAnalytics/catalog";
 import {
   deriveServerDerivedProductAnalyticsEventId,
   emitServerDerivedProductAnalyticsEvent,
@@ -76,6 +80,54 @@ export async function recordAiRunFailedAnalytics(
     // is the one the client claimed in the request that started the run.
     platform: null,
     properties: { reason },
+    details: null,
+  });
+}
+
+/**
+ * The allowance that refused a chat send, as the refusal resolved it.
+ */
+export type AiLimitReachedRefusal = Readonly<{
+  tier: ProductAnalyticsEntitlementTier;
+  accountKind: ProductAnalyticsAccountKind;
+  limit: number;
+}>;
+
+/**
+ * Reports one chat send the monthly AI allowance refused.
+ *
+ * A refused send stores no run, so the id is derived from the request instead: a client retrying the
+ * same send repeats its clientRequestId and derives the same id again, which the writer's
+ * `ON CONFLICT (event_id) DO NOTHING` keeps as one row, while a new send carries a new one.
+ */
+export async function recordAiLimitReachedAnalytics(
+  userId: string,
+  workspaceId: string,
+  sessionId: string | null,
+  clientRequestId: string,
+  actor: ChatRunActor,
+  refusal: AiLimitReachedRefusal,
+): Promise<void> {
+  const observedAt = new Date();
+  await emitServerDerivedProductAnalyticsEvent({
+    eventId: deriveServerDerivedProductAnalyticsEventId(
+      "ai_limit_reached",
+      [workspaceId, sessionId ?? "", clientRequestId],
+    ),
+    eventName: "ai_limit_reached",
+    occurredAt: observedAt,
+    serverReceivedAt: observedAt,
+    userId,
+    subjectUserId: actor.subjectUserId,
+    guestSessionId: actor.guestSessionId,
+    workspaceId,
+    // Null for the reason spelled out on `recordAiMessageSentAnalytics`.
+    platform: null,
+    properties: {
+      tier: refusal.tier,
+      account_kind: refusal.accountKind,
+      limit: refusal.limit,
+    },
     details: null,
   });
 }

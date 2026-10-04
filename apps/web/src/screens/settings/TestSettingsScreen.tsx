@@ -91,14 +91,14 @@ export function TestSettingsScreen(): ReactElement {
               title={t("premium.previewOffer")}
               description={t("stripe.offer.description")}
               value={null}
-              onClick={() => { presentPremium?.({ reason: "offer" }); }}
+              onClick={() => { presentPremium?.({ reason: "offer", entryPoint: null }); }}
               testId="test-settings-premium-offer"
             />
             <SettingsActionCard
               title={t("premium.previewAi")}
               description={t("premium.retryManually")}
               value={null}
-              onClick={() => { presentPremium?.({ reason: "ai-limit", aiUsage: null }); }}
+              onClick={() => { presentPremium?.({ reason: "ai-limit", entryPoint: null, aiUsage: null }); }}
               testId="test-settings-premium-ai-limit"
             />
             <SettingsNavigationCard

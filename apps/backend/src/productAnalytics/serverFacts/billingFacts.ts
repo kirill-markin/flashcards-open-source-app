@@ -1,4 +1,5 @@
 import type {
+  ProductAnalyticsBillingEnvironment,
   ProductAnalyticsBillingProvider,
   ProductAnalyticsEntitlementSource,
   ProductAnalyticsEntitlementStatus,
@@ -57,6 +58,8 @@ export type EntitlementChangedFact = Readonly<{
   source: ProductAnalyticsEntitlementSource;
   // The provider behind the purchase that now grants, absent when a grant or nothing does.
   provider: ProductAnalyticsBillingProvider | null;
+  // That purchase's store environment, absent exactly when `provider` is.
+  environment: ProductAnalyticsBillingEnvironment | null;
   // The clock the resolution that discovered the change used, which is also the clock its snapshot
   // row was stored under.
   discoveredAt: Date;
@@ -90,6 +93,7 @@ export async function recordEntitlementChangedAnalytics(
   fact: EntitlementChangedFact,
 ): Promise<void> {
   const provider = fact.provider;
+  const environment = fact.environment;
   await emitServerDerivedProductAnalyticsEvent({
     eventId: deriveServerDerivedProductAnalyticsEventId(
       "entitlement_changed",
@@ -112,6 +116,7 @@ export async function recordEntitlementChangedAnalytics(
       to_status: fact.toStatus,
       source: fact.source,
       ...(provider === null ? {} : { provider }),
+      ...(environment === null ? {} : { environment }),
     },
     details: null,
   });
@@ -119,12 +124,6 @@ export async function recordEntitlementChangedAnalytics(
 
 // What every provider-driven fact below carries, because each is read off the same two rows: the
 // purchase the provider is talking about, and the notification that said so.
-//
-// The four producers under this type have no call site yet. The writer that records a purchase
-// transition is the first store rail, and none exists: no client asks a store to buy anything and the
-// backend handles no provider notification (docs/premium-entitlements.md). Until that rail lands only
-// `entitlement_changed` can fire, driven by an operator grant, and an empty series on any of the four
-// is a producer nobody calls rather than a measurement.
 type ProviderPurchaseFact = Readonly<{
   userId: string;
   // billing.purchases.purchase_id, our own key for the provider-side purchase. Every fact here is
@@ -168,23 +167,43 @@ export async function recordTrialStartedAnalytics(fact: TrialStartedFact): Promi
   });
 }
 
+// The local-currency amount the provider reports, in millionths of the currency's major unit.
+export type PurchasePrice = Readonly<{
+  amountMicros: number;
+  // ISO 4217, uppercase.
+  currency: string;
+}>;
+
 export type PurchaseCompletedFact = ProviderPurchaseFact & Readonly<{
   kind: ProductAnalyticsPurchaseKind;
   // Absent on a `one_time` purchase, which has no period at all.
   period: ProductAnalyticsSubscriptionPeriod | null;
+  // The store's own id for what was bought.
+  productId: string;
+  // Absent when the provider did not report the amount at this call site.
+  price: PurchasePrice | null;
+  // The provider transaction of a resubscribe after a lapse, null on the purchase's first payment.
+  resubscribeTransactionId: string | null;
 }>;
 
 /**
- * Reports one purchase the person paid for, keyed on the purchase so a renewal of it is never a
- * second row: the decision happened once, and the provider charging again on schedule belongs to the
- * revenue reports.
+ * Reports one purchase decision the person paid for, keyed on the purchase so a renewal of it is
+ * never a second row: the provider charging again on schedule belongs to the revenue reports. A
+ * resubscribe after the purchase lapsed is a new decision on the same purchase, so its transaction
+ * joins the key and each one is a row of its own.
  */
 export async function recordPurchaseCompletedAnalytics(
   fact: PurchaseCompletedFact,
 ): Promise<void> {
   const period = fact.period;
+  const price = fact.price;
   await emitServerDerivedProductAnalyticsEvent({
-    eventId: deriveServerDerivedProductAnalyticsEventId("purchase_completed", [fact.purchaseId]),
+    eventId: deriveServerDerivedProductAnalyticsEventId(
+      "purchase_completed",
+      fact.resubscribeTransactionId === null
+        ? [fact.purchaseId]
+        : [fact.purchaseId, fact.resubscribeTransactionId],
+    ),
     eventName: "purchase_completed",
     occurredAt: fact.occurredAt,
     serverReceivedAt: fact.receivedAt,
@@ -198,6 +217,8 @@ export async function recordPurchaseCompletedAnalytics(
       provider: fact.provider,
       kind: fact.kind,
       ...(period === null ? {} : { period }),
+      product_id: fact.productId,
+      ...(price === null ? {} : { price_amount_micros: price.amountMicros, price_currency: price.currency }),
     },
     details: null,
   });

@@ -508,6 +508,12 @@ struct RootTabView: View {
             PremiumOfferView(request: request)
             .environment(store)
             .environment(self.premiumPresenter)
+            .onAppear {
+                self.premiumPresenter.recordShown(
+                    requestId: request.id,
+                    screen: analyticsSurface(tab: store.currentVisibleTab)
+                )
+            }
         }
         .sheet(item: self.feedbackPresentation) { presentation in
             FeedbackSheet(presentation: presentation)

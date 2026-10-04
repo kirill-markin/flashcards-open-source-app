@@ -1,4 +1,5 @@
 import type Stripe from "stripe";
+import type { PurchasePrice } from "../../productAnalytics/serverFacts/billingFacts";
 import type { PurchaseStatus } from "../resolver";
 
 export type StripeEnvironment = "production" | "sandbox";
@@ -50,6 +51,7 @@ export type StripeCheckoutAttempt = Readonly<{
 export type StripeInvoiceFinancialState = Readonly<{
   invoice: Stripe.Invoice | null;
   firstPaidAt: Date | null;
+  firstPaidInvoiceId: string | null;
   payments: ReadonlyArray<Readonly<{
     payment: Stripe.InvoicePayment;
     charge: Stripe.Charge;
@@ -69,6 +71,9 @@ export type StripePurchaseState = Readonly<{
   until: Date;
   trialStartedAt: Date | null;
   firstPaidAt: Date | null;
+  productId: string;
+  // What the first paid invoice charged, known only while that invoice is the current one.
+  firstPaidPrice: PurchasePrice | null;
   canceledAt: Date | null;
   revokedReason: "refund" | "chargeback" | null;
   verifiedAt: Date;

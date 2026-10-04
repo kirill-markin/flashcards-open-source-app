@@ -85,6 +85,7 @@ struct SubscriptionSettingsView: View {
                     Button(aiSettingsLocalized("settings.subscription.change", "Change subscription")) {
                         self.premiumPresenter.present(
                             reason: .premiumFeature(requiredTierRank: premiumTierRank),
+                            analyticsEntryPoint: .subscriptionSettings,
                             entitlement: store.cloudEntitlement,
                             identity: try? store.appleSubscriptionIdentity()
                         )
