@@ -2,7 +2,7 @@
   "purpose": "Public, secret-free source for manual portal entry, not an Anthropic upload schema. Operational notes and pending gates are not listing copy.",
   "status": "Draft pending joint owner review; not authorized for submission or legal acceptance.",
   "canonical_metadata": {
-    "source": "../server.json",
+    "source": "https://raw.githubusercontent.com/kirill-markin/nibomo-plugins/main/server.json",
     "version": "Read the current version from server.json at submission time; do not maintain a second version here.",
     "tools": "Sync the live server in the portal. The shared registry is authoritative; this file does not define a tool inventory.",
     "operations": "connector-submission-operations.md"

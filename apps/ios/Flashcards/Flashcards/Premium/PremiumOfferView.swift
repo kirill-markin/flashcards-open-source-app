@@ -165,8 +165,7 @@ struct PremiumOfferView: View {
                 let period = try appleSubscriptionPeriodText(period: subscription.subscriptionPeriod, count: 1)
                 let price = "\(offer.displayPrice) / \(period)"
                 var trial: String? = nil
-                if offer.isEligibleForIntroOffer, let intro = subscription.introductoryOffer,
-                   intro.paymentMode == .freeTrial {
+                if offer.includesFreeTrial, let intro = subscription.introductoryOffer {
                     trial = aiSettingsLocalizedFormat(
                         "premium.apple.trial", "Free trial: %@. Then:",
                         try appleSubscriptionPeriodText(period: intro.period, count: intro.periodCount)

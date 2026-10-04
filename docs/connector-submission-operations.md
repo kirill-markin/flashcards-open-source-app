@@ -15,10 +15,10 @@ access details only through the directory's private submission portal.
 
 Do not submit to any directory until all checks pass.
 
-- `server.json` validates against the current official MCP Registry schema; use
-  the validation command in
-  [mcp-registry-publishing.md](mcp-registry-publishing.md#validate-the-manifest)
-  and record the schema URL used.
+- The [companion manifest](https://github.com/kirill-markin/nibomo-plugins/blob/main/server.json)
+  passes the official MCP Registry schema check; use
+  [companion cloud validation](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/mcp-registry-publishing.md#validate-the-manifest)
+  and record the run and schema URL used.
 - The official registry lookup returns the published entry:
 
   ```bash
@@ -29,7 +29,7 @@ Do not submit to any directory until all checks pass.
   `404 Server not found` response means the entry is not published yet, the
   server name is wrong, or the publish failed. Use the credential setup and
   publish flow in
-  [mcp-registry-publishing.md](mcp-registry-publishing.md#one-time-credential-setup)
+  [the companion publisher procedure](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/mcp-registry-publishing.md#one-time-credential-setup)
   before submitting to downstream directories.
 - Unauthenticated access to the MCP endpoint returns a standards-compatible
   OAuth challenge:

@@ -116,3 +116,6 @@ that installation permanently.
   or the `FLASHCARDS_AUTOMATION_RUN` environment signal, with an explicit negative value of that
   variable overriding both, decided once per launch and sent on every sync request and analytics
   batch; the harness side is in [`ios-ci-cd.md`](ios-ci-cd.md#automation-marker).
+- [Web declaration](../apps/web/src/analytics/deliveryRuntime.ts): `navigator.webdriver`, decided
+  once per page load and sent on every authenticated analytics batch; web sync requests and
+  credential-free collector events carry no declaration.
