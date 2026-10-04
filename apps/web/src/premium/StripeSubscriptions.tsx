@@ -2,6 +2,7 @@ import type { ReactElement } from "react";
 import { useAppData } from "../appData";
 import { useI18n } from "../i18n";
 import type { EntitlementSnapshot } from "../types/entitlement";
+import { hasPremiumAccess } from "./PremiumProvider";
 import { useStripeBilling } from "./useStripeBilling";
 
 export function StripeSubscriptions(props: Readonly<{ entitlement: EntitlementSnapshot | null }>): ReactElement {
@@ -41,8 +42,10 @@ export function StripeSubscriptions(props: Readonly<{ entitlement: EntitlementSn
     </article>)}
     {details !== null && details.pendingCheckouts.length > 0 ? <div className="content-card content-card-section" data-testid="stripe-pending-checkout">
       <p className="subtitle">{t("stripe.checkout.delayed")}</p>
-      <button type="button" className="ghost-btn" disabled={billing.busy || !isSessionVerified} data-testid="stripe-resume-checkout"
-        onClick={() => void billing.purchase(null)}>{t("common.continue")}</button>
+      {props.entitlement !== null && !hasPremiumAccess(props.entitlement, 20) ? (
+        <button type="button" className="ghost-btn" disabled={billing.busy || !isSessionVerified} data-testid="stripe-resume-checkout"
+          onClick={() => void billing.purchase(null)}>{t("common.continue")}</button>
+      ) : null}
     </div> : null}
     <nav className="premium-legal" aria-label={t("stripe.subscription.manage")} data-testid="subscription-mobile-management">
       <a href="https://apps.apple.com/account/subscriptions" target="_blank" rel="noreferrer">App Store</a>

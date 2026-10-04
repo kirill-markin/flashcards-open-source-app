@@ -57,6 +57,9 @@ function PremiumSession(props: Readonly<{ children: ReactNode }>): ReactElement 
     if (isStripeBillingInvalidated() || billingGeneration !== readStripeBillingGeneration() || userId === null || userId !== currentUserIdRef.current) {
       return "unavailable";
     }
+    if (request.reason === "offer" && hasPremiumAccess(entitlement, 20)) {
+      return "unavailable";
+    }
     dismiss();
     if (request.reason === "feature" && hasPremiumAccess(entitlement, request.requiredRank)) {
       request.onResult("granted");
@@ -80,6 +83,11 @@ function PremiumSession(props: Readonly<{ children: ReactNode }>): ReactElement 
       setPresentation(null);
       return;
     }
+    if (pending?.request.reason === "offer" && hasPremiumAccess(entitlement, 20)) {
+      pendingRef.current = null;
+      setPresentation(null);
+      return;
+    }
     if (pending?.request.reason === "feature" && hasPremiumAccess(entitlement, pending.request.requiredRank)) {
       // Consume before invoking the continuation, including when effects replay in StrictMode.
       pendingRef.current = null;
@@ -92,7 +100,8 @@ function PremiumSession(props: Readonly<{ children: ReactNode }>): ReactElement 
     <StripeBillingContext.Provider value={billing}>
       <PremiumContext.Provider value={present}>
         {props.children}
-        {presentation !== null && presentation.userId === userId ? (
+        {presentation !== null && presentation.userId === userId
+          && (presentation.request.reason !== "offer" || !hasPremiumAccess(entitlement, 20)) ? (
           <PremiumOffer request={presentation.request} entitlement={entitlement} onDismiss={dismiss} />
         ) : null}
       </PremiumContext.Provider>

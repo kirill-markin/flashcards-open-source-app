@@ -1,9 +1,10 @@
 import { useEffect, useRef, type ReactElement } from "react";
+import { useSearchParams } from "react-router";
 import { useAppData } from "../../appData";
 import { useI18n } from "../../i18n";
 import { useEntitlementSnapshot } from "../../premium/entitlementStore";
-import { usePremiumPresenter } from "../../premium/PremiumProvider";
-import { StripeOfferContent } from "../../premium/StripeOfferContent";
+import { hasPremiumAccess, usePremiumPresenter } from "../../premium/PremiumProvider";
+import { StripeBillingFeedback } from "../../premium/StripeBillingFeedback";
 import { StripeSubscriptions } from "../../premium/StripeSubscriptions";
 import { useStripeBilling } from "../../premium/useStripeBilling";
 import { SettingsGroup, SettingsShell } from "./SettingsShared";
@@ -21,6 +22,15 @@ export function SubscriptionSettingsScreen(): ReactElement {
   const entitlement = useEntitlementSnapshot(userId);
   const presentPremium = usePremiumPresenter();
   const { t, formatDate, formatNumber } = useI18n();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const showOffer = entitlement !== null && !hasPremiumAccess(entitlement, 20);
+  useEffect(() => {
+    if (searchParams.get("premium") !== "offer" || entitlement === null || !isSessionVerified || presentPremium === null) return;
+    presentPremium({ reason: "offer" });
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.delete("premium");
+    setSearchParams(nextSearchParams, { replace: true });
+  }, [entitlement, isSessionVerified, presentPremium, searchParams, setSearchParams]);
 
   return (
     <SettingsShell title={t("premium.subscription")} subtitle={t("premium.subscriptionDescription")} activeTab="account">
@@ -50,14 +60,18 @@ export function SubscriptionSettingsScreen(): ReactElement {
           )}
         </article>
         <StripeSubscriptions entitlement={entitlement} />
-        <StripeOfferContent continuation={null} />
+        <StripeBillingFeedback />
+        <button type="button" className="ghost-btn" data-testid="subscription-refresh" disabled={billing.busy || !isSessionVerified}
+          onClick={() => void billing.refresh()}>{t("stripe.subscription.refresh")}</button>
         <div className="content-card content-card-section">
           <p className="subtitle">{t("stripe.ownKey.explanation")}</p>
           <a className="ghost-btn" href="/settings/own-openai-key" data-testid="subscription-own-key">{t("stripe.ownKey.action")}</a>
         </div>
-        <button type="button" className="ghost-btn" data-testid="subscription-offer" onClick={() => { presentPremium?.({ reason: "offer" }); }}>
-          {t("premium.offer")}
-        </button>
+        {showOffer ? (
+          <button type="button" className="ghost-btn" data-testid="subscription-offer" onClick={() => { presentPremium?.({ reason: "offer" }); }}>
+            {t("premium.offer")}
+          </button>
+        ) : null}
       </SettingsGroup>
     </SettingsShell>
   );
