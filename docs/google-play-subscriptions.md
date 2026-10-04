@@ -7,23 +7,24 @@ Google Play locales in [Subscription store metadata](subscription-store-metadata
 
 ## Readiness
 
-Verified snapshot as of 2026-10-03 15:29 UTC. Android billing and the backend are
-implemented; production acceptance is incomplete. No billing release,
-internal-track bundle, catalog activation, real purchase, or public rollout is
-recorded. Record later manual outcomes with their evidence and timestamp before
-updating a pending gate.
+Verified snapshot as of 2026-10-04; federation readback at 06:47:38 UTC.
+Android billing and the backend are implemented; production acceptance remains
+incomplete. An internal draft bundle is accepted but paused/unpublished; no
+catalog activation, genuine Play purchase or public rollout is recorded.
+Record later outcomes with their evidence and timestamp before updating a gate.
 
 | State | Readback |
 | --- | --- |
-| Console setup saved | SAMO DANNI EOOD merchant setup and 15% service-fee enrollment; app-scoped billing permissions, topic, pull subscription, RTDN setting, license testing, and restricted AWS federation. Bank deposit verification remains an owner step. |
-| Backend deployed | [AWS run 37130395075](https://github.com/kirill-markin/flashcards-open-source-app/actions/runs/37130395075) succeeded in all 10 jobs, including migrations, deployment and smoke gates. Platform/web/admin SSM deployment markers all read `01d6cc2e7c98693bde8ac9bcdb8ed43ab0050bde`. The live Google reconciliation rule in `eu-central-1` is `ENABLED` with `rate(15 minutes)`. |
-| Runtime authentication verified | A live Lambda guest probe returned a stable opaque Google account ID; an invalid purchase token reached `subscriptionsv2.get` and returned Google's HTTP 400 through the approved AWS federation. The temporary guest was deleted. This proves the negative authorization path, not a legitimate purchase. |
-| Android implementation merged | Native offer, Settings, Restore and lifecycle recovery are merged. [Android CI 37131601475](https://github.com/kirill-markin/flashcards-open-source-app/actions/runs/37131601475) passed on candidate `2cc70b34ff4bebfa46e2336e855c1aae078649fe`. Local CI parity passed (500 tasks, 3m 9s), with the selected compiler warnings absent. Full LiveSmoke on that candidate failed in 9m 41s: 7 tests, 5 passed, 2 failed, 0 skipped. Both failures again timed out before workspace creation at Current Workspace navigation. An isolated diagnostic is in progress; no cause or repair is verified. |
-| Signed release pending | Optimized signed/R8 verification awaits upload signing and Sentry upload inputs; specific remaining lint/upstream notices await owner disposition. No release workflow or Play upload has completed. |
-| Catalog pending | Console has no subscriptions and requests a new billing-enabled APK/bundle. `premium` / `monthly` / `free-trial-7d`, prices and 51 locale texts remain repository inputs. |
-| Notifications partly verified | Play's test message reached the pull subscription and was acknowledged. The deployed endpoint rejects unsigned requests with HTTP 401 `GOOGLE_PUSH_UNAUTHORIZED`. Authenticated push forms and the resource-only Token Creator grant are staged, unsaved and awaiting approval; the subscription remains Pull. Backend receipt of a Google push is unverified. |
-| Privacy published; store declarations pending | Google billing privacy text is merged and deployed; production rendered readback returned HTTP 200 at 15:27:51 UTC with the Google disclosures and cancellation link. Data Safety draft changes are saved, not submitted for review. See [Privacy and reviewer access](#privacy-and-reviewer-access) for deployment evidence. |
-| Store acceptance pending | No Play-installed billing candidate, version code, track, device result or completed purchase matrix is recorded. Complete the gates below before requesting public sales. |
+| Console setup saved | SAMO DANNI EOOD merchant setup and 15% service-fee enrollment, app-scoped billing permissions, license testing and restricted AWS federation are saved. Company EUR bank verification remains pending. |
+| Backend deployed | [AWS run 37130395075](https://github.com/kirill-markin/flashcards-open-source-app/actions/runs/37130395075) succeeded in all 10 jobs, including migrations, deployment and smoke gates. Its platform/web/admin SSM deployment markers read `01d6cc2e7c98693bde8ac9bcdb8ed43ab0050bde`. The live Google reconciliation rule in `eu-central-1` is `ENABLED` with `rate(15 minutes)`. |
+| Federation and negative probe verified | Provider `aws-backend` in `nibomo-aws-billing` is ACTIVE with the normalized subject below; the exact AWS account/BackendHandler condition and attribute-based service-account grant are unchanged, with the same policy etag. The October 3 probe failed at STS HTTP 400 before Publisher; an opaque account ID alone proves no Google authentication. The October 4 probe recorded STS HTTP 200, then an actual Publisher `subscriptionsv2.get` HTTP 400 for a deliberately invalid token, demonstrating impersonation sufficient to call Publisher. Genuine purchase, Restore and acknowledgment acceptance remain pending. This external configuration repair has no Lambda release/commit boundary; the documentation commit is not a runtime fix. |
+| Android candidate verified | Candidate `9073c12f7ad75723b3993c79b6e41a096b27fbae` ([PR 2243](https://github.com/kirill-markin/flashcards-open-source-app/pull/2243)) passed [PR Checks 37182381237](https://github.com/kirill-markin/flashcards-open-source-app/actions/runs/37182381237) and [Android CI 37182780393](https://github.com/kirill-markin/flashcards-open-source-app/actions/runs/37182780393). Local CI parity passed in 4m 7s; optimized signed `validationRelease` passed in 3m 53s. Full LiveSmoke passed at 06:46:42 UTC: 7 passed, 0 failed, 0 skipped, 6m 21s. Its validation AAB version code 1 is not publishable. |
+| Release result pending | [Android Release 37183902617](https://github.com/kirill-markin/flashcards-open-source-app/actions/runs/37183902617) targets candidate `9073c12f7ad75723b3993c79b6e41a096b27fbae` and is running; no result is recorded. Earlier [Android Release 37179896352](https://github.com/kirill-markin/flashcards-open-source-app/actions/runs/37179896352), target `88182392`, failed Play API bundle upload on unsupported translation `hr` before track update. Its actual Firebase matrix `37ks6mo0mkgtq` on Pixel 11/API 37 had 80 passed and 2 failed out of 82; successful submission did not mean a passing matrix. |
+| Catalog pending; internal draft accepted | The exact CI-signed AAB from run 37179896352, version code `23866012`, was manually accepted as Console internal draft `test-vc23866012-r37179896352a1-s88182392`, paused/unpublished. Subscriptions remains locked with a new-bundle prompt. `premium` / `monthly` / `free-trial-7d`, prices and 51 locale texts remain repository inputs. |
+| Notifications verified for test delivery | Authenticated Push and the resource-only Token Creator grant are saved. Play's official test reached BackendHandler at 2026-10-03 17:18:40.819 UTC and was processed/acknowledged. Unsigned requests return HTTP 401 `GOOGLE_PUSH_UNAUTHORIZED`. Real purchase lifecycle delivery remains pending. |
+| Console translations reviewed | App Strings retains 1511 strings across 49 languages, with automatic translation ON. On October 4, 47 Premium rows were reviewed and three timing/quota errors corrected in Croatian, Tamil and Kannada. This is not verification of translations delivered by the native app. |
+| Privacy published; store declarations pending | Privacy and account-deletion pages are published. Data Safety changes are saved, unsubmitted. See [Privacy and reviewer access](#privacy-and-reviewer-access) for privacy deployment evidence. |
+| Store acceptance pending | The Play emulator is ready; owner Google account login is pending. License testing is configured, but no Play-installed billing candidate or completed purchase matrix is recorded. Complete the gates below before requesting public sales. |
 
 ## Implemented contract and source
 
@@ -57,7 +58,7 @@ repository files and public evidence.
 | Billing service account | `google-play-billing@flashcards-open-source-app.iam.gserviceaccount.com` |
 | Push service account / subject | `nibomo-play-notifications@flashcards-open-source-app.iam.gserviceaccount.com` / `117934371221231125176` |
 | RTDN topic | `projects/flashcards-open-source-app/topics/nibomo-play-subscriptions` |
-| Pull subscription | `projects/flashcards-open-source-app/subscriptions/nibomo-play-subscriptions-sub` |
+| Push subscription | `projects/flashcards-open-source-app/subscriptions/nibomo-play-subscriptions-sub` |
 | AWS federation provider | `projects/360001205059/locations/global/workloadIdentityPools/nibomo-aws-billing/providers/aws-backend` |
 | AWS account | `506210661494` |
 | Allowed backend role name | `FlashcardsOpenSourceApp-BackendHandlerServiceRoleE5-gAiVg357pADF` |
@@ -80,7 +81,7 @@ Never expires, and restricted to Nibomo. The selected app permissions are:
 
 No administrator, release, store-presence, or account-wide permissions were
 granted. Reopen the invitation and verify its scope when diagnosing access. The
-live negative-path probe above exercised API authorization. Google's
+October 4 negative-path probe above reached Publisher through impersonation. Google's
 [Developer API setup](https://developers.google.com/android-publisher/getting_started)
 documents the billing permissions. Do not add catalog or release permissions to
 this runtime identity to perform an operator's setup task.
@@ -92,16 +93,26 @@ condition:
 assertion.account == '506210661494' && assertion.arn.startsWith('arn:aws:sts::506210661494:assumed-role/FlashcardsOpenSourceApp-BackendHandlerServiceRoleE5-gAiVg357pADF/')
 ```
 
-`google.subject` maps to `assertion.arn`; `attribute.aws_role` normalizes role
-sessions to the session-free ARN. The service account's saved Workload Identity
-User (`roles/iam.workloadIdentityUser`) grant selects only this attribute value:
+Both `google.subject` and `attribute.aws_role` use this exact saved CEL expression:
+
+```text
+assertion.arn.contains('assumed-role') ? assertion.arn.extract('{account_arn}assumed-role/') + 'assumed-role/' + assertion.arn.extract('assumed-role/{role_name}/') : assertion.arn
+```
+
+Google's [federation troubleshooting](https://cloud.google.com/iam/docs/troubleshooting-workload-identity-federation)
+documents the 127-byte subject limit. The normalized role is 103 ASCII bytes;
+the observed full Lambda session ARN was 163. The October 3 evidence establishes
+STS HTTP 400, not Google's exact error description. The service account's saved
+Workload Identity User (`roles/iam.workloadIdentityUser`) grant selects only this attribute value:
 
 ```text
 arn:aws:sts::506210661494:assumed-role/FlashcardsOpenSourceApp-BackendHandlerServiceRoleE5-gAiVg357pADF
 ```
 
-Read back the provider condition, mapping, and connected service account
-together. If CloudFormation replaces the role name, update both restrictions
+Read back provider ACTIVE status, the exact condition, both mappings and the
+connected service account's attribute-based grant together; compare its policy
+etag when confirming a mapping-only repair. If CloudFormation replaces the role
+name, update both restrictions
 before enabling billing; do not broaden them to the whole AWS account or pool.
 The existing GitHub federation and Android CI identity remain separate; see
 [Android CI/CD](android-ci-cd.md).
@@ -128,21 +139,21 @@ The topic grants `roles/pubsub.publisher` only on that topic to Google's
 Console **Monetization setup**, RTDN is enabled with the full topic above and
 subscriptions plus voided purchases selected. Pause remains enabled.
 
-The subscription is currently Pull, with a saved 60-second acknowledgment
-deadline, 7-day retention, Never expire, immediate retry, and no dead-letter topic.
-The dedicated push identity exists without keys. Finish the two staged changes
-only after the pending action approval, following Google's
+The subscription uses authenticated Push to the existing endpoint/audience,
+with a 60-second acknowledgment deadline, 7-day retention, Never expire,
+immediate retry and no dead-letter topic. The dedicated push identity has no
+keys. Read back the saved configuration using Google's
 [authenticated push procedure](https://cloud.google.com/pubsub/docs/authenticate-push-subscriptions):
 
-1. On the **push service account resource only**, grant
-   `roles/iam.serviceAccountTokenCreator` to
+1. On the **push service account resource only**, verify the saved
+   `roles/iam.serviceAccountTokenCreator` grant to
    `service-360001205059@gcp-sa-pubsub.iam.gserviceaccount.com`. Read back the
    exact principal, role and resource. Do not accept the subscription editor's
    project-wide grant shortcut.
-2. Change the named subscription to Push, with the endpoint and audience in the
+2. Verify the named subscription is Push, with the endpoint and audience in the
    identities table, authentication enabled and the dedicated push service
-   account selected. Leave payload unwrapping disabled. Preserve the other
-   saved delivery settings, save, reopen and verify the readback.
+   account selected. Payload unwrapping must remain disabled; preserve the
+   other saved delivery settings.
 3. Use **Send test notification** in Play. Correlate its message ID with
    `google_test_notification_received` in the exact deployed BackendHandler
    CloudWatch log group and successful delivery. Do not pull/ack it manually
@@ -168,8 +179,8 @@ does not prove purchase recovery; record actual affected-purchase readbacks.
    verification prompt and read back the verified status. Follow
    [Verify bank account](https://support.google.com/googleplay/android-developer/answer/7161378?hl=en);
    retain financial evidence privately.
-2. Finish the signed native preflight and owner decisions in the readiness table
-   before the authorized billing-enabled bundle upload.
+2. Record the pending candidate release result and finish the test-track gate
+   in the readiness table; the accepted paused draft alone has not unlocked catalog setup.
    Follow [Android CI/CD](android-ci-cd.md) and the
    [release authorization runbook](release-current-version.md). A green PR or
    Android CI run is not an upload. Google's
