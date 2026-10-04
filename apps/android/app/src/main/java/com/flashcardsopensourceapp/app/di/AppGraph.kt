@@ -477,7 +477,8 @@ class AppGraph(
                 resetCoordinator = cloudIdentityResetCoordinator,
                 guestCoordinator = cloudGuestSessionCoordinator,
                 syncRepository = syncRepository
-            )
+            ),
+            analytics = analytics
         )
     }
     private var isGooglePlayLifecycleBound = false

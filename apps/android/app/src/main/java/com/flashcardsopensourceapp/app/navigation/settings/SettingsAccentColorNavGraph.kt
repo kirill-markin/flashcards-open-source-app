@@ -12,6 +12,7 @@ import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.premium.PremiumPresenter
 import com.flashcardsopensourceapp.app.premium.PremiumResult
 import com.flashcardsopensourceapp.app.premium.hasPremiumAccess
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPaywallEntryPoint
 import com.flashcardsopensourceapp.data.local.model.sync.defaultAccentColor
 import com.flashcardsopensourceapp.feature.settings.accent.AccentColorRoute
 import com.flashcardsopensourceapp.feature.settings.accent.AccentColorViewModel
@@ -41,7 +42,9 @@ internal fun NavGraphBuilder.registerAccentColorDestination(
                         premiumPresenter.dismiss()
                         accentColorViewModel.selectColor(color = color, identityKey = identityKey)
                     } else {
-                        premiumPresenter.requestFeature { result ->
+                        premiumPresenter.requestFeature(
+                            paywallEntryPoint = AnalyticsPaywallEntryPoint.ACCENT_COLOR
+                        ) { result ->
                             if (result == PremiumResult.ACCESS_GRANTED) {
                                 accentColorViewModel.selectColor(color = color, identityKey = identityKey)
                             }
@@ -50,7 +53,9 @@ internal fun NavGraphBuilder.registerAccentColorDestination(
                 },
                 onRequestCustom = { openDialog ->
                     val identityKey = uiState.identityKey
-                    premiumPresenter.requestFeature { result ->
+                    premiumPresenter.requestFeature(
+                        paywallEntryPoint = AnalyticsPaywallEntryPoint.ACCENT_COLOR
+                    ) { result ->
                         if (result == PremiumResult.ACCESS_GRANTED &&
                             accentColorViewModel.uiState.value.identityKey == identityKey
                         ) {

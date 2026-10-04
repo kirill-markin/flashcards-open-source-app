@@ -33,6 +33,9 @@ import com.flashcardsopensourceapp.app.navigation.rememberRouteBackStackEntry
 import com.flashcardsopensourceapp.app.notifications.loadNotificationDiagnosticsUiState
 import com.flashcardsopensourceapp.app.store.googlePlaySubscriptionManagementUrl
 import com.flashcardsopensourceapp.app.premium.PremiumBillingActions
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPaywallEntryPoint
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSubscriptionManagementDestination
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
 import com.flashcardsopensourceapp.core.ui.AppTechnicalError
 import com.flashcardsopensourceapp.feature.friendinvite.FriendInvitationDialog
@@ -287,14 +290,27 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
 
         SubscriptionRoute(
             uiState = uiState,
-            onPreviewPremium = premiumPresenter::showOfferPreview,
+            onPreviewPremium = {
+                premiumPresenter.showOfferPreview(
+                    paywallEntryPoint = AnalyticsPaywallEntryPoint.SUBSCRIPTION_SETTINGS
+                )
+            },
             billingActions = {
-                PremiumBillingActions(connector = appGraph.googlePlaySubscriptionConnector)
+                PremiumBillingActions(
+                    connector = appGraph.googlePlaySubscriptionConnector,
+                    analyticsSurface = AnalyticsSurface.SETTINGS
+                )
             },
             onManageSubscription = {
                 openExternalUrl(
                     context = context,
                     url = googlePlaySubscriptionManagementUrl(packageName = context.packageName)
+                )
+                appGraph.analytics.track(
+                    event = AnalyticsEvent.SubscriptionManagementOpened(
+                        destination = AnalyticsSubscriptionManagementDestination.GOOGLE_PLAY,
+                        screen = AnalyticsSurface.SETTINGS
+                    )
                 )
             },
             onBack = {
@@ -552,7 +568,8 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
         val technicalErrorDetails = stringResource(id = R.string.technical_error_dialog_preview_details)
 
         TestSettingsRoute(
-            onPreviewPremium = premiumPresenter::showOfferPreview,
+            // A test preview is not a paywall showing, so it carries no entry point and reports nothing.
+            onPreviewPremium = { premiumPresenter.showOfferPreview(paywallEntryPoint = null) },
             onPreviewAiLimit = premiumPresenter::showAiLimitPreview,
             onOpenAnimations = {
                 navController.navigate(route = SettingsTestAnimationsDestination.route)
