@@ -164,7 +164,7 @@ Contract for the `blog-to-web-app` funnel:
 Contract for the `paywall-to-purchase` funnel:
 
 - one row is one person whose first trusted `paywall_shown` in the selected UTC days, from the funnel's start date on, is on a selected platform; the later steps are a `purchase_started` at or after it, then a `trial_started` or `purchase_completed` at or after that first start, each within the deck funnel's seven-day window of the paywall. The last step reads the billing layer's server facts rather than the client's `purchase_finished`, so it is the sale itself and counts whichever of the person's devices it was made on. [`query.ts`](../apps/admin/src/reports/paywallFunnel/query.ts) owns the definitions
-- the date range, the client platform (read off the first paywall, because the billing facts carry none), the connection country and the app interface language all apply in SQL, the last two as on General; the one exclusion rule applies
+- the date range, the client platform (read off the first paywall, because the billing facts carry none, and `unattributed` for a first paywall with no platform), the connection country and the app interface language all apply in SQL, the last two as on General; the one exclusion rule applies
 - `Group by` offers `platform` and `entry-point`, both read off that same first paywall, so each person has one key and the groups sum back to the funnel; a first paywall carrying no value is `Unresolved`
 
 Attribution contract for the `catalog-installation` funnel, shown as "Deck page to install":
