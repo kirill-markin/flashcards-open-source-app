@@ -72,6 +72,7 @@ export type StripePurchaseState = Readonly<{
   trialStartedAt: Date | null;
   firstPaidAt: Date | null;
   productId: string;
+  firstPaidInvoiceIsCurrent: boolean;
   // What the first paid invoice charged, known only while that invoice is the current one.
   firstPaidPrice: PurchasePrice | null;
   canceledAt: Date | null;
