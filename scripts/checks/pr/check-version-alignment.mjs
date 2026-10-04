@@ -16,8 +16,6 @@ const NODE_PACKAGE_DIRECTORIES = [
   "apps/web",
 ];
 
-const MCP_MANIFEST_FILE = "server.json";
-
 const ANDROID_GRADLE_FILE = "apps/android/app/build.gradle.kts";
 const ANDROID_VERSION_NAME_PATTERN = /^[^\S\r\n]*versionName[^\S\r\n]*=[^\S\r\n]*"([^"]*)"/m;
 
@@ -133,11 +131,6 @@ function collectNodePackageSurfaces(packageDirectory) {
 
 const surfaces = [
   ...NODE_PACKAGE_DIRECTORIES.flatMap(collectNodePackageSurfaces),
-  {
-    file: MCP_MANIFEST_FILE,
-    field: "version",
-    value: parseJsonObject(MCP_MANIFEST_FILE).version,
-  },
   {
     file: ANDROID_GRADLE_FILE,
     field: "versionName",

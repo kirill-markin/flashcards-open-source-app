@@ -206,7 +206,7 @@ server name is wrong or the registry publish failed.
 
 | Order | Target | Required URL | Auth / review notes | What to paste |
 | --- | --- | --- | --- | --- |
-| Done | Official MCP Registry | https://registry.modelcontextprotocol.io/ | Published under `com.nibomo/flashcards` through the manual `MCP Registry Publish` workflow. For later changes, bump `server.json` `version`, publish, and verify; no reviewer credentials. | `server.json` metadata: name, title, description/tagline, version, website, icons, repository, and MCP server URL. |
+| Done | Official MCP Registry | https://registry.modelcontextprotocol.io/ | Published under `com.nibomo/flashcards`; subsequent publication uses the companion [MCP Registry Publish](https://github.com/kirill-markin/nibomo-plugins/actions/workflows/mcp-registry-publish.yml) workflow. For later changes, follow [release preparation](release/versioning.md#release-preparation), publish, and verify; no reviewer credentials. | [Companion `server.json`](https://github.com/kirill-markin/nibomo-plugins/blob/main/server.json) metadata: name, title, description/tagline, version, website, icons, repository, and MCP server URL. |
 | 1 | GitHub MCP Registry | https://github.com/mcp | High-priority manual nomination / visibility request; GitHub may curate separately from the official registry. | Reuse the official registry name, source URL, hosted MCP URL, docs, icons, and concise value proposition. |
 | 2 | punkpeye/awesome-mcp-servers | https://github.com/punkpeye/awesome-mcp-servers | Submit a pull request following the repository's contribution format. | Add the repository link and a one-sentence description under the relevant education/productivity category. |
 | 3 | Smithery | https://smithery.ai/new | Directory account / GitHub ownership as requested; no shared credentials unless review requires them. | Listing name, tagline, categories, icon, docs, privacy, support, terms, source URL, and MCP server URL from the metadata above. |
@@ -259,5 +259,5 @@ requirements against each directory's own documentation at submission time.
 ## Registry manifest
 
 The official MCP Registry entry for the remote server is published from the
-root [`server.json`](../server.json). See
-[mcp-registry-publishing.md](mcp-registry-publishing.md) for the publish flow.
+companion [`server.json`](https://github.com/kirill-markin/nibomo-plugins/blob/main/server.json). See
+[the canonical publisher procedure](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/mcp-registry-publishing.md) for the publish flow.
