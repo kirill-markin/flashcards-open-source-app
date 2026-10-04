@@ -135,6 +135,12 @@ export function normalizeStripePurchase(
     : invoice !== null && invoice.amount_paid > 0 && refunded >= invoice.amount_paid ? "refund" : null;
   if (revokedReason !== null) status = "revoked";
   const firstPaidInvoiceIsCurrent = invoice !== null && invoice.id === financial.firstPaidInvoiceId;
+  const renewal = invoice !== null && invoice.status === "paid" && invoice.billing_reason === "subscription_cycle"
+    && invoice.amount_paid > 0 && invoice.id !== financial.firstPaidInvoiceId
+    && invoice.status_transitions.paid_at !== null
+    ? { invoiceId: invoice.id, paidAt: stripeTimestamp(invoice.status_transitions.paid_at),
+      price: stripeChargedPrice(financial.payments) }
+    : null;
   const cancellationReason = subscription.cancellation_details?.reason ?? null;
   const feedback = cancellationFeedbackSchema.safeParse(subscription.cancellation_details?.feedback);
   return {
@@ -145,6 +151,7 @@ export function normalizeStripePurchase(
     productId: typeof item.price.product === "string" ? item.price.product : item.price.product.id,
     firstPaidInvoiceIsCurrent,
     firstPaidPrice: firstPaidInvoiceIsCurrent ? stripeChargedPrice(financial.payments) : null,
+    renewal,
     canceledAt: subscription.canceled_at === null ? null : stripeTimestamp(subscription.canceled_at),
     autorenewDisabledReason: cancellationReason === "cancellation_requested" ? "voluntary"
       : cancellationReason === "payment_failed" ? "billing_error" : "unknown",
