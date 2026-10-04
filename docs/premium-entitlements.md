@@ -303,6 +303,10 @@ when we granted or withdrew access, which we need for accounting and support reg
 analytics preference. They are not a way to route product analytics around the switch, and no
 other billing event may be added to this list to do that.
 
+The paywall and purchase-flow events the clients report are ordinary client analytics declared in
+the [event catalog](../apps/backend/src/productAnalytics/catalog.ts): they are subject to the off
+switch and are not billing facts.
+
 ## Trials
 
 Apple and Google decide trial eligibility, and we cannot override it. A person who consumed an

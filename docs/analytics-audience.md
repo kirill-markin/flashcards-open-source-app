@@ -63,8 +63,8 @@ declaration and an explicit `false` are the same negative case, and only `true` 
 client that says nothing, or that always sends `false`, behaves exactly as before.
 
 Deliberately not covered, and still emitted for a marked installation: `ai_message_sent`,
-`ai_run_failed`, `catalog_deck_installed`, `guest_upgrade_completed`, `friend_invitation_created`,
-`friendship_created`, and the account, workspace, package, agent-connection and feedback decisions
+`ai_run_failed`, `ai_limit_reached`, `catalog_deck_installed`, `guest_upgrade_completed`,
+`friend_invitation_created`, `friendship_created`, and the account, workspace, package, agent-connection and feedback decisions
 in [decisionFacts.ts](../apps/backend/src/productAnalytics/serverFacts/decisionFacts.ts), none of
 which is attributed to a replica, and any review answered through
 an `ai_chat` or `agent_connection` replica, whose `installation_id` is NULL and which therefore

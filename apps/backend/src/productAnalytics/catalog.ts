@@ -188,7 +188,12 @@ const productAnalyticsSubscriptionRevokedReasons = [
   "unknown",
 ] as const;
 
+// The account kind an AI allowance is resolved for, mirroring `AccountKind` in
+// apps/backend/src/billing/limits.ts the same way the tiers above mirror theirs.
+const productAnalyticsAccountKinds = ["account", "guest"] as const;
+
 export type ProductAnalyticsEntitlementTier = (typeof productAnalyticsEntitlementTiers)[number];
+export type ProductAnalyticsAccountKind = (typeof productAnalyticsAccountKinds)[number];
 export type ProductAnalyticsEntitlementStatus = (typeof productAnalyticsEntitlementStatuses)[number];
 export type ProductAnalyticsEntitlementSource = (typeof productAnalyticsEntitlementSources)[number];
 export type ProductAnalyticsBillingProvider = (typeof productAnalyticsBillingProviders)[number];
@@ -1253,6 +1258,54 @@ export const productAnalyticsEventCatalog = {
       provider: { kind: "enum", values: productAnalyticsBillingProviders },
     },
   },
+  // What a person did on the paywall and in the purchase flows, as each client saw it. These are
+  // ordinary client events and not billing facts: they obey the off switch, and none of them is
+  // evidence that anything was sold or granted. The surface beneath the paywall is stamped
+  // ambiently, as on `card_create_started`.
+  //
+  // The paywall reaching the screen. `guest_return` is the web app reopening it from
+  // `?premium=offer` after a guest signed in to buy.
+  paywall_shown: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      entry_point: {
+        kind: "enum",
+        values: ["subscription_settings", "ai_limit", "accent_color", "guest_return"],
+      },
+    },
+  },
+  // The person confirmed buying and the store sheet or Stripe Checkout was launched.
+  purchase_started: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {},
+  },
+  // What the store or checkout reported back to the client. `completed` is the client's view only;
+  // `trial_started` and `purchase_completed` above remain the truth about a sale.
+  purchase_finished: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      outcome: { kind: "enum", values: ["completed", "cancelled", "failed", "pending"] },
+    },
+  },
+  // A store restore finishing, which only the iOS and Android apps offer.
+  purchase_restore_finished: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      outcome: { kind: "enum", values: ["restored", "nothing_to_restore", "failed"] },
+    },
+  },
+  // The person was sent to the provider's own subscription management.
+  subscription_management_opened: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      destination: { kind: "enum", values: ["stripe_portal", "app_store", "google_play"] },
+    },
+  },
   ai_message_sent: {
     serverOnly: true,
     requiresScreen: false,
@@ -1289,6 +1342,22 @@ export const productAnalyticsEventCatalog = {
           "runtime_error",
         ],
       },
+    },
+  },
+  // One chat send the monthly AI allowance refused (apps/backend/src/aiUsage/cap.ts). It is recorded
+  // where the refusal is raised rather than by the client that shows it, so every client reports it,
+  // released ones included. Only a chat send on the platform key is ever refused, so no other surface
+  // and no own-key send reports this.
+  //
+  // `limit` is the monthly message allowance that refused the send; the used count is not reported,
+  // because at refusal it is at or above `limit` by definition.
+  ai_limit_reached: {
+    serverOnly: true,
+    requiresScreen: false,
+    properties: {
+      tier: { kind: "enum", values: productAnalyticsEntitlementTiers },
+      account_kind: { kind: "enum", values: productAnalyticsAccountKinds },
+      limit: { kind: "nonNegativeInteger" },
     },
   },
   // Voice input, which `permission_prompt_answered` could not stand in for: a granted microphone
