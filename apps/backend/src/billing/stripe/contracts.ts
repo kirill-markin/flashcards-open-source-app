@@ -1,5 +1,7 @@
 import type Stripe from "stripe";
-import type { ProductAnalyticsAutorenewDisabledReason } from "../../productAnalytics/catalog";
+import type {
+  ProductAnalyticsAutorenewDisabledReason, ProductAnalyticsCancellationSurveyReason,
+} from "../../productAnalytics/catalog";
 import type { PurchasePrice } from "../../productAnalytics/serverFacts/billingFacts";
 import type { PurchaseStatus } from "../resolver";
 
@@ -79,6 +81,8 @@ export type StripePurchaseState = Readonly<{
   canceledAt: Date | null;
   // Read only once renewal is off; `unknown` unless Stripe reports a customer request or a failed payment.
   autorenewDisabledReason: ProductAnalyticsAutorenewDisabledReason;
+  // The Customer Portal survey answer; null when none was given.
+  cancellationSurveyReason: ProductAnalyticsCancellationSurveyReason | null;
   revokedReason: "refund" | "chargeback" | null;
   verifiedAt: Date;
 }>;

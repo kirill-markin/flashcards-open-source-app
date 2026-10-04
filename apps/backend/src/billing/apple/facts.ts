@@ -69,7 +69,7 @@ export async function publishCommittedTransition(transition: AppleCommittedTrans
       }
       if (previous?.will_renew === true && !state.willRenew) {
         await recordAutorenewDisabledAnalytics({ ...fact, occurredAt: state.signedAt, providerEventId: transition.eventId,
-          reason: state.autorenewDisabledReason, periodType: state.isTrial ? "trial" : "paid" });
+          reason: state.autorenewDisabledReason, periodType: state.isTrial ? "trial" : "paid", surveyReason: null });
       }
       // Access must hold on both sides: a row that lapsed and came back is a resubscribe instead.
       if (previous?.will_renew === false && state.willRenew

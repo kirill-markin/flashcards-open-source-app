@@ -183,7 +183,7 @@ function storedTerminalTransition(
     purchaseToken: purchase.provider_purchase_id, productId: googleProductId, basePlanId: googleBasePlanId,
     offerId: null, price: null, status: purchase.status, providerStatus: purchase.provider_status_raw ?? "SUBSCRIPTION_STATE_EXPIRED",
     environment: purchase.environment, currentPhase: "unknown", isTrial: false, willRenew: false,
-    autorenewDisabledReason: "unknown", paid: false,
+    autorenewDisabledReason: "unknown", cancellationSurveyReason: null, paid: false,
     completed: true, until: purchase.until, graceUntil: null, startedAt: null, verifiedAt: occurredAt,
     latestSuccessfulOrderId: purchase.google_latest_order_id, linkedPurchaseToken: purchase.linked_from_purchase_id,
     acknowledgementState: purchase.google_acknowledgement_state ?? "pending",

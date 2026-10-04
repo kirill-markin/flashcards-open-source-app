@@ -3,6 +3,7 @@ import type {
   ProductAnalyticsBillingEnvironment,
   ProductAnalyticsBillingPeriodType,
   ProductAnalyticsBillingProvider,
+  ProductAnalyticsCancellationSurveyReason,
   ProductAnalyticsEntitlementSource,
   ProductAnalyticsEntitlementStatus,
   ProductAnalyticsEntitlementTier,
@@ -269,6 +270,7 @@ type ProviderRenewalSignalFact = ProviderPurchaseFact & Readonly<{
 export type AutorenewDisabledFact = ProviderRenewalSignalFact & Readonly<{
   reason: ProductAnalyticsAutorenewDisabledReason;
   periodType: ProductAnalyticsBillingPeriodType;
+  surveyReason: ProductAnalyticsCancellationSurveyReason | null;
 }>;
 
 /**
@@ -284,6 +286,7 @@ export type AutorenewDisabledFact = ProviderRenewalSignalFact & Readonly<{
 export async function recordAutorenewDisabledAnalytics(
   fact: AutorenewDisabledFact,
 ): Promise<void> {
+  const surveyReason = fact.surveyReason;
   await emitServerDerivedProductAnalyticsEvent({
     eventId: deriveServerDerivedProductAnalyticsEventId(
       "autorenew_disabled",
@@ -302,6 +305,7 @@ export async function recordAutorenewDisabledAnalytics(
       provider: fact.provider,
       reason: fact.reason,
       period_type: fact.periodType,
+      ...(surveyReason === null ? {} : { survey_reason: surveyReason }),
     },
     details: null,
   });
