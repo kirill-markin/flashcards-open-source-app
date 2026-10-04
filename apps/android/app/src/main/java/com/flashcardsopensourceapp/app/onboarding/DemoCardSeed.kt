@@ -51,8 +51,9 @@ fun buildDemoCardDraft(context: Context): CardDraft {
  * Seeds the onboarding demo card offline through the normal card creation
  * path, so the card entity, its tags, and its outbox row are written exactly
  * like a user-authored card. Call this only right after the local workspace
- * shell was newly created; the card-count guard keeps a workspace that already
- * holds cards untouched.
+ * shell was created, at first launch or by a cloud-identity reset; the
+ * card-count guard, tombstones included, keeps a workspace that already holds
+ * cards untouched.
  */
 suspend fun seedDemoCardForNewWorkspace(
     context: Context,
