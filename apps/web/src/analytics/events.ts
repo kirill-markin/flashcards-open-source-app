@@ -22,7 +22,7 @@
  * observes. That is a product difference from iOS and Android, not a gap.
  *
  * `notification_scheduled` and `notification_opened` are omitted for the same reason: the web client
- * has no reminders.
+ * has no reminders, and `purchase_restore_finished` because it has no store purchase to restore.
  *
  * `signin_failed` is declared but never tracked from here. The web sign-in surface is the auth
  * service's own login page on a different origin, reached by a full page navigation, so this app
@@ -162,6 +162,16 @@ export type AnalyticsSyncFailureReason =
 export type AnalyticsDropReason = "queue_overflow" | "ttl_expired" | "rejected";
 
 export type AnalyticsStore = "app_store" | "google_play";
+
+export type AnalyticsPaywallEntryPoint =
+  | "subscription_settings"
+  | "ai_limit"
+  | "accent_color"
+  | "guest_return";
+
+export type AnalyticsPurchaseOutcome = "completed" | "cancelled" | "failed" | "pending";
+
+export type AnalyticsSubscriptionManagementDestination = "stripe_portal" | "app_store" | "google_play";
 
 /** Equals the campaign bucket the store link carries (docs/marketing-links.md). */
 export type AnalyticsStorePlacement =
@@ -315,6 +325,21 @@ export type AnalyticsEvent =
     placement: AnalyticsStorePlacement;
   }>
   | Readonly<{
+    name: "paywall_shown";
+    entryPoint: AnalyticsPaywallEntryPoint;
+  }>
+  | Readonly<{
+    name: "purchase_started";
+  }>
+  | Readonly<{
+    name: "purchase_finished";
+    outcome: AnalyticsPurchaseOutcome;
+  }>
+  | Readonly<{
+    name: "subscription_management_opened";
+    destination: AnalyticsSubscriptionManagementDestination;
+  }>
+  | Readonly<{
     name: "analytics_events_dropped";
     reason: AnalyticsDropReason;
     count: number;
@@ -422,6 +447,14 @@ export function buildAnalyticsEventProperties(event: AnalyticsEvent): AnalyticsE
       return { store: event.store, placement: event.placement };
     case "store_qr_shown":
       return { store: event.store, placement: event.placement };
+    case "paywall_shown":
+      return { entry_point: event.entryPoint };
+    case "purchase_started":
+      return null;
+    case "purchase_finished":
+      return { outcome: event.outcome };
+    case "subscription_management_opened":
+      return { destination: event.destination };
     case "analytics_events_dropped":
       return { reason: event.reason, count: event.count };
     case "consent_granted":
