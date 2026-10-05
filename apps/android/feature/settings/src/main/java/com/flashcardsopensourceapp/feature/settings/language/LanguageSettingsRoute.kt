@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.feature.settings.language
 
+import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -41,25 +42,27 @@ fun LanguageSettingsRoute(
                 .fillMaxSize()
                 .testTag(tag = languageSettingsScreenTag)
         ) {
-            item {
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.padding(20.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.settings_language_title),
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Text(
-                            text = stringResource(R.string.settings_language_body),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Button(
-                            onClick = onOpenAndroidLanguageSettings,
-                            modifier = Modifier.fillMaxWidth()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                item {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.padding(20.dp)
                         ) {
-                            Text(stringResource(R.string.settings_language_open_android_settings))
+                            Text(
+                                text = stringResource(R.string.settings_language_title),
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Text(
+                                text = stringResource(R.string.settings_language_body),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Button(
+                                onClick = onOpenAndroidLanguageSettings,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(stringResource(R.string.settings_language_open_android_settings))
+                            }
                         }
                     }
                 }

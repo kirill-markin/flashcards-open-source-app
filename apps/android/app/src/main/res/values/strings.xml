@@ -8,8 +8,6 @@
     <string name="startup_error_title">Startup failed</string>
     <string name="startup_error_message">Nibomo could not finish starting. Retry startup, or open technical details if support asks for them.</string>
     <string name="startup_error_retry">Retry startup</string>
-    <string name="unsupported_android_runtime_title">Android version unsupported</string>
-    <string name="unsupported_android_runtime_message">Nibomo requires Android 11 or newer. Update Android on this device or install the app on a supported device.</string>
     <string name="technical_error_dialog_default_title">Something went wrong</string>
     <string name="technical_error_dialog_default_message">The app hit a technical error. You can keep using Nibomo, and support may ask for the details below.</string>
     <string name="technical_error_dialog_show_details">Show technical details</string>

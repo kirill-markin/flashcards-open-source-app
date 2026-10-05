@@ -3,7 +3,6 @@ package com.flashcardsopensourceapp.app.observability
 import android.app.Application
 import com.flashcardsopensourceapp.app.BuildConfig
 import com.flashcardsopensourceapp.app.automation.isFirebaseTestLabDevice
-import com.flashcardsopensourceapp.app.runtime.isAndroidRuntimeSupported
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.data.local.network.TracePropagationTarget
 import io.sentry.BaggageHeader
@@ -47,11 +46,7 @@ data class AndroidObservabilityStartup(
 
 fun startAndroidObservability(application: Application): AndroidObservabilityStartup {
     val sentryDsn = BuildConfig.ANDROID_SENTRY_DSN.trim()
-    // Run Sentry only on the supported Android runtime. Some out-of-contract environments report
-    // a high SDK level while missing framework methods that AndroidX expects, and those reports
-    // only pollute crash-free metrics. Skipping SentryAndroid.init also stops native (NDK) and ANR
-    // capture, which a beforeSend filter cannot reach.
-    val isSentryEnabled = sentryDsn.isNotBlank() && isAndroidRuntimeSupported()
+    val isSentryEnabled = sentryDsn.isNotBlank()
     if (isSentryEnabled) {
         val resolvedSentryEnvironment = sentryEnvironment(application = application)
         SentryAndroid.init(application) { options ->
