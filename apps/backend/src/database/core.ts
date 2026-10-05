@@ -41,7 +41,11 @@ const defaultMainPoolMaxConnections = 3;
 // timeout. The errors this raises carry no code and no SQLSTATE, so every checkout goes through
 // toDatabasePoolBoundaryError to reach the caller as a retryable 503 instead of a generic 500.
 const mainPoolConnectionTimeoutMs = 5_000;
+// The pg default of 0 leaves the OS idle time before the first keepalive probe, two hours on Linux,
+// far past any Lambda timeout.
+const mainPoolKeepAliveInitialDelayMs = 10_000;
 const databaseDeadlineStorage = new AsyncLocalStorage<number>();
+const databasePerCallCapStorage = new AsyncLocalStorage<number>();
 
 function resolveMainPoolMaxConnections(): number {
   const configuredValue = process.env[databasePoolMaxConnectionsEnvName];
@@ -85,6 +89,10 @@ function createDatabasePool(connectionString: string): pg.Pool {
     ssl,
     max: resolveMainPoolMaxConnections(),
     connectionTimeoutMillis: mainPoolConnectionTimeoutMs,
+    // Lets the OS probe pooled connections, so a peer that vanished without closing the socket is
+    // eventually detected instead of waited on forever.
+    keepAlive: true,
+    keepAliveInitialDelayMillis: mainPoolKeepAliveInitialDelayMs,
   });
   databasePool.on("error", (error: Error): void => {
     logDatabasePoolError("main", error);
@@ -139,6 +147,26 @@ function resolveEffectiveDatabaseDeadline(deadlineAtMs: number): number {
     : Math.min(deadlineAtMs, inheritedDeadlineAtMs);
 }
 
+function resolveAmbientDatabaseCallDeadline(): number | undefined {
+  const deadlineAtMs = databaseDeadlineStorage.getStore();
+  const perCallCapMs = databasePerCallCapStorage.getStore();
+  if (perCallCapMs === undefined) {
+    return deadlineAtMs;
+  }
+
+  const cappedDeadlineAtMs = Date.now() + perCallCapMs;
+  return deadlineAtMs === undefined
+    ? cappedDeadlineAtMs
+    : Math.min(deadlineAtMs, cappedDeadlineAtMs);
+}
+
+function resolveDatabaseCallDeadline(deadlineAtMs: number): number {
+  const ambientDeadlineAtMs = resolveAmbientDatabaseCallDeadline();
+  return ambientDeadlineAtMs === undefined
+    ? deadlineAtMs
+    : Math.min(deadlineAtMs, ambientDeadlineAtMs);
+}
+
 export function runDatabaseOperationsWithDeadline<Result>(
   deadlineAtMs: number,
   callback: () => Promise<Result>,
@@ -158,10 +186,12 @@ export function runDatabaseOperationsWithDeadline<Result>(
  * would not shorten such work but cancel it before its first statement, and what it would have
  * produced is lost rather than retried.
  *
- * Only for post-commit best-effort work whose failure changes nothing the caller sees, and only for
- * work that carries a bound of its own; ../productAnalytics/serverFacts/postCommitBudget.ts is that
- * bound for the analytics producers. Given to work a caller is still awaiting, it lets that work
- * outlive the request budget that keeps the response inside the API Gateway integration timeout.
+ * Only for work that carries a bound of its own: post-commit best-effort work whose failure changes
+ * nothing the caller sees, which ../productAnalytics/serverFacts/postCommitBudget.ts bounds for the
+ * analytics producers, and the chat worker's terminal persistence, which records how a run ended
+ * after the run's own deadline stopped it and is bounded by the Lambda's remaining time
+ * (../chat/runtime/executor.ts). Given to work a caller is still awaiting, it lets that work outlive
+ * the request budget that keeps the response inside the API Gateway integration timeout.
  *
  * Kept out of ./index.ts and reached only through ./unsafe.ts, like the other primitives here that
  * step around a request-level guard, so the import path names the hazard rather than this docstring
@@ -173,6 +203,26 @@ export function unsafeRunDatabaseOperationsWithIndependentDeadline<Result>(
 ): Promise<Result> {
   validateDatabaseDeadline(deadlineAtMs);
   return databaseDeadlineStorage.run(deadlineAtMs, callback);
+}
+
+/**
+ * Caps every database call started inside the callback, one query or one whole transaction, at
+ * `capMs` from the moment that call starts. A deadline published around the call still applies, so
+ * each call ends at the nearer of the two; a nested cap narrows to the smaller one. Replacing the
+ * deadline with unsafeRunDatabaseOperationsWithIndependentDeadline keeps the cap.
+ */
+export function runDatabaseOperationsWithPerCallCap<Result>(
+  capMs: number,
+  callback: () => Promise<Result>,
+): Promise<Result> {
+  if (!Number.isSafeInteger(capMs) || capMs < 1) {
+    throw new RangeError(`Database per-call cap must be a positive safe integer of milliseconds. capMs=${capMs}`);
+  }
+  const inheritedCapMs = databasePerCallCapStorage.getStore();
+  return databasePerCallCapStorage.run(
+    inheritedCapMs === undefined ? capMs : Math.min(capMs, inheritedCapMs),
+    callback,
+  );
 }
 
 async function executeQuery<Row extends pg.QueryResultRow>(
@@ -279,7 +329,7 @@ export async function unsafeQuery<Row extends pg.QueryResultRow>(
   text: string,
   params: ReadonlyArray<SqlValue>,
 ): Promise<pg.QueryResult<Row>> {
-  const deadlineAtMs = databaseDeadlineStorage.getStore();
+  const deadlineAtMs = resolveAmbientDatabaseCallDeadline();
   if (deadlineAtMs !== undefined) {
     return unsafeQueryWithDeadline(deadlineAtMs, text, params);
   }
@@ -291,7 +341,7 @@ export async function unsafeQueryWithDeadline<Row extends pg.QueryResultRow>(
   text: string,
   params: ReadonlyArray<SqlValue>,
 ): Promise<pg.QueryResult<Row>> {
-  const effectiveDeadlineAtMs = resolveEffectiveDatabaseDeadline(deadlineAtMs);
+  const effectiveDeadlineAtMs = resolveDatabaseCallDeadline(deadlineAtMs);
   validateDatabaseDeadline(effectiveDeadlineAtMs);
   return queryWithPostgresDeadline<Row>(
     await getPoolUntilDeadline(effectiveDeadlineAtMs),
@@ -308,7 +358,7 @@ export async function unsafeQueryWithDeadline<Row extends pg.QueryResultRow>(
 export async function unsafeTransaction<Result>(
   callback: (executor: DatabaseExecutor) => Promise<Result>,
 ): Promise<Result> {
-  const deadlineAtMs = databaseDeadlineStorage.getStore();
+  const deadlineAtMs = resolveAmbientDatabaseCallDeadline();
   if (deadlineAtMs !== undefined) {
     return unsafeTransactionWithDeadline(deadlineAtMs, callback);
   }
@@ -319,7 +369,7 @@ export async function unsafeTransactionWithDeadline<Result>(
   deadlineAtMs: number,
   callback: (executor: DatabaseExecutor) => Promise<Result>,
 ): Promise<Result> {
-  const effectiveDeadlineAtMs = resolveEffectiveDatabaseDeadline(deadlineAtMs);
+  const effectiveDeadlineAtMs = resolveDatabaseCallDeadline(deadlineAtMs);
   validateDatabaseDeadline(effectiveDeadlineAtMs);
   return transactionWithPostgresDeadline(
     await getPoolUntilDeadline(effectiveDeadlineAtMs),
@@ -331,7 +381,7 @@ export async function unsafeTransactionWithDeadline<Result>(
 export async function unsafeRepeatableReadTransaction<Result>(
   callback: (executor: DatabaseExecutor) => Promise<Result>,
 ): Promise<Result> {
-  const deadlineAtMs = databaseDeadlineStorage.getStore();
+  const deadlineAtMs = resolveAmbientDatabaseCallDeadline();
   if (deadlineAtMs !== undefined) {
     return repeatableReadTransactionWithPostgresDeadline(
       await getPoolUntilDeadline(deadlineAtMs),
@@ -348,7 +398,7 @@ export async function unsafeRepeatableReadTransaction<Result>(
 export async function unsafeRepeatableReadReadOnlyTransaction<Result>(
   callback: (executor: DatabaseExecutor) => Promise<Result>,
 ): Promise<Result> {
-  const deadlineAtMs = databaseDeadlineStorage.getStore();
+  const deadlineAtMs = resolveAmbientDatabaseCallDeadline();
   if (deadlineAtMs !== undefined) {
     return repeatableReadReadOnlyTransactionWithPostgresDeadline(
       await getPoolUntilDeadline(deadlineAtMs),

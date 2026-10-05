@@ -278,7 +278,7 @@ test("runPersistedChatSessionWithDeps interrupts gracefully on the soft deadline
       const runtimePromise = runPersistedChatSessionWithDeps(
         {
           ...createParams(),
-          getRemainingTimeInMillis: (): number => CHAT_WORKER_PRE_TIMEOUT_BUFFER_MS + 1,
+          getRemainingTimeInMillis: (): number => CHAT_WORKER_PRE_TIMEOUT_BUFFER_MS + 60_000,
         },
         createDependencies({
           startOpenAILoop: async (
@@ -304,7 +304,7 @@ test("runPersistedChatSessionWithDeps interrupts gracefully on the soft deadline
               input: "{\"query\":\"bio\"}",
             });
 
-            params.onExecutionPhaseChanged?.("tool");
+            params.onExecutionPhaseChanged?.("tool", "search_cards");
             loopReady.resolve(undefined);
             await allowToolCompletion.promise;
             await onEvent({
@@ -319,7 +319,7 @@ test("runPersistedChatSessionWithDeps interrupts gracefully on the soft deadline
               output: "{\"ok\":true}",
               providerStatus: "completed",
             });
-            params.onExecutionPhaseChanged?.("idle");
+            params.onExecutionPhaseChanged?.("idle", null);
 
             return {
               openaiItems: interruptedOpenAIItems,

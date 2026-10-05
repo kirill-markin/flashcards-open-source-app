@@ -111,6 +111,9 @@ export type ChatWorkerLifecycleDetails = Readonly<{
   streamSawIncompleteEvent?: boolean | null;
   streamSawFailedEvent?: boolean | null;
   streamedTextLength?: number | null;
+  // What the run was doing when an abort was requested, so a stall names the hung step.
+  executionPhase?: string | null;
+  toolName?: string | null;
   heartbeatAt: string | null;
   startedAt: string | null;
   finishedAt: string | null;

@@ -13,6 +13,7 @@ import {
   createObservedUserOpenAIClient,
   getObservedOpenAIClient,
 } from "../client";
+import { isDatabaseDeadlineExpiry } from "../../runtime/databaseDeadlineErrors";
 import { isContextLengthExceededError } from "../../runtime/providerErrors";
 import { runOneToolCall as runObservedToolCall } from "../tools/toolExecutor";
 import {
@@ -47,6 +48,7 @@ import {
   executeToolCalls,
   pruneUnpairedToolReplayItems,
   runOneModelCallWithPhase,
+  type ExecuteToolCallsResult,
   type OpenAIResponsesRequest,
   type RunOneToolCall,
 } from "./modelCall";
@@ -112,7 +114,7 @@ export type StartOpenAILoopParams = Readonly<{
   turnInput: ReadonlyArray<ContentPart>;
   rootObservation: LangfuseObservation | null;
   signal?: AbortSignal;
-  onExecutionPhaseChanged?: (phase: "idle" | "model" | "tool") => void;
+  onExecutionPhaseChanged?: (phase: "idle" | "model" | "tool", toolName: string | null) => void;
   shouldStopBeforeNextStep?: () => boolean;
 }>;
 
@@ -179,15 +181,20 @@ function setExecutionPhase(
   params: StartOpenAILoopParams,
   phase: "idle" | "model" | "tool",
 ): void {
-  params.onExecutionPhaseChanged?.(phase);
+  params.onExecutionPhaseChanged?.(phase, null);
 }
 
 function shouldStopBeforeNextStep(params: StartOpenAILoopParams): boolean {
   return params.shouldStopBeforeNextStep?.() === true;
 }
 
-function shouldStopForOpenAIAbort(params: StartOpenAILoopParams, error: unknown): boolean {
-  return shouldStopBeforeNextStep(params) && isOpenAIAbortError(error);
+/**
+ * Once the run is stopping, the soft deadline's abort of the model call, or the database deadline
+ * that ends with it, ends the current step rather than the run, so earlier steps stay replayable.
+ */
+function shouldStopForInterruptedStep(params: StartOpenAILoopParams, error: unknown): boolean {
+  return shouldStopBeforeNextStep(params)
+    && (isOpenAIAbortError(error) || isDatabaseDeadlineExpiry(error));
 }
 
 function createStoppedBeforeNextStepCompletion(
@@ -291,7 +298,7 @@ async function runToolLimitSummaryTurn(
     );
     summaryCall = call.modelCall;
   } catch (error) {
-    if (shouldStopForOpenAIAbort(params, error)) {
+    if (shouldStopForInterruptedStep(params, error)) {
       return createStoppedBeforeNextStepCompletion(continuationItems);
     }
 
@@ -351,7 +358,7 @@ async function runLoopWithDeps(
       baseInput = call.baseInput;
       modelCall = call.modelCall;
     } catch (error) {
-      if (shouldStopForOpenAIAbort(params, error)) {
+      if (shouldStopForInterruptedStep(params, error)) {
         return createStoppedBeforeNextStepCompletion(continuationItems);
       }
 
@@ -381,28 +388,37 @@ async function runLoopWithDeps(
       return createStoppedBeforeNextStepCompletion(continuationItems);
     }
 
-    const toolCalls = await executeToolCalls({
-      functionCalls: modelCall.functionCalls,
-      toolStates: modelCall.toolStates,
-      generatedImageOperationCount,
-      requestId: params.requestId,
-      runId: params.runId,
-      sessionId: params.sessionId,
-      generatedImageEligible: params.generatedImageEligible,
-      claimToken: params.claimToken,
-      userId: params.userId,
-      workspaceId: params.workspaceId,
-      signal: params.signal,
-      generatedImageOperationDeadlineMs: params.generatedImageOperationDeadlineMs,
-      clientPlatform: params.clientPlatform,
-      initiatingAuthIsSignedIn: params.initiatingAuthIsSignedIn,
-      userOpenAIApiKey: params.userOpenAIApiKey,
-      rootObservation: params.rootObservation,
-      onExecutionPhaseChanged: params.onExecutionPhaseChanged,
-      shouldStopBeforeNextStep: params.shouldStopBeforeNextStep,
-      onEvent,
-      runOneToolCall: dependencies.runOneToolCall,
-    });
+    let toolCalls: ExecuteToolCallsResult;
+    try {
+      toolCalls = await executeToolCalls({
+        functionCalls: modelCall.functionCalls,
+        toolStates: modelCall.toolStates,
+        generatedImageOperationCount,
+        requestId: params.requestId,
+        runId: params.runId,
+        sessionId: params.sessionId,
+        generatedImageEligible: params.generatedImageEligible,
+        claimToken: params.claimToken,
+        userId: params.userId,
+        workspaceId: params.workspaceId,
+        signal: params.signal,
+        generatedImageOperationDeadlineMs: params.generatedImageOperationDeadlineMs,
+        clientPlatform: params.clientPlatform,
+        initiatingAuthIsSignedIn: params.initiatingAuthIsSignedIn,
+        userOpenAIApiKey: params.userOpenAIApiKey,
+        rootObservation: params.rootObservation,
+        onExecutionPhaseChanged: params.onExecutionPhaseChanged,
+        shouldStopBeforeNextStep: params.shouldStopBeforeNextStep,
+        onEvent,
+        runOneToolCall: dependencies.runOneToolCall,
+      });
+    } catch (error) {
+      if (shouldStopForInterruptedStep(params, error)) {
+        return createStoppedBeforeNextStepCompletion(continuationItems);
+      }
+
+      throw error;
+    }
     continuationItems.push(...toolCalls.replayItems);
     generatedImageOperationCount = toolCalls.generatedImageOperationCount;
     if (toolCalls.terminationReason !== null) {

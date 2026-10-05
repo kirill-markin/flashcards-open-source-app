@@ -16,6 +16,7 @@ import {
 } from "./providerErrors";
 import type {
   ChatWorkerAbortReason,
+  ChatWorkerExecutionPhase,
   ChatWorkerRunStatus,
   ChatWorkerSessionState,
   StartPersistedChatRunParams,
@@ -43,6 +44,8 @@ export function logAbortRequested(
   cancellationRequested: boolean,
   ownershipLost: boolean,
   signalAborted: boolean,
+  executionPhase: ChatWorkerExecutionPhase,
+  toolName: string | null,
 ): void {
   logChatWorkerLifecycleEvent("chat_worker_abort_requested", context, {
     abortReason: reason,
@@ -52,6 +55,8 @@ export function logAbortRequested(
     runStatus: null,
     sessionState: null,
     ...createSafeProviderErrorDetails(null),
+    executionPhase,
+    toolName,
     heartbeatAt: toIsoStringOrNull(heartbeatAt),
     startedAt: null,
     finishedAt: null,

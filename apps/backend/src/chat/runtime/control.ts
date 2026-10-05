@@ -22,6 +22,9 @@ import type {
 export const CHAT_WORKER_PRE_TIMEOUT_BUFFER_MS = 180_000;
 export const CHAT_WORKER_INACTIVE_RECONCILIATION_MAXIMUM_MS = 10_000;
 export const CHAT_WORKER_TERMINAL_PERSISTENCE_RESERVE_MS = 10_000;
+// The end of the Lambda that terminal persistence's database deadline leaves for the work after it:
+// the finish log, error capture, and the Langfuse flush.
+export const CHAT_WORKER_POST_TERMINAL_PERSISTENCE_RESERVE_MS = 5_000;
 export const DEADLINE_REACHED_MESSAGE = "This response took too long, so I stopped the run before the server timeout. Please try again or split the request into smaller steps.";
 
 type InitialHeartbeatResult =
@@ -33,9 +36,11 @@ export type ChatRuntimeControl = Readonly<{
   abortController: AbortController;
   startHeartbeat: () => void;
   touchInitialHeartbeat: () => Promise<InitialHeartbeatResult>;
-  scheduleSoftDeadlineTimer: () => void;
+  /** Returns the soft deadline as an epoch-millisecond instant, already past when it stopped the run at once. */
+  scheduleSoftDeadlineTimer: () => number;
+  requestSoftDeadlineStop: () => void;
   clearTimers: () => void;
-  setExecutionPhase: (phase: ChatWorkerExecutionPhase) => void;
+  setExecutionPhase: (phase: ChatWorkerExecutionPhase, toolName: string | null) => void;
   shouldStopBeforeNextStep: () => boolean;
   shouldIgnoreStreamEvent: (event: ChatStreamEvent) => boolean;
   getAbortReason: () => ChatWorkerAbortReason | null;
@@ -53,6 +58,7 @@ export function createChatRuntimeControl(
   let ownershipLost = false;
   let abortReason: ChatWorkerAbortReason | null = null;
   let executionPhase: ChatWorkerExecutionPhase = "idle";
+  let executionToolName: string | null = null;
   let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   let softDeadlineTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -78,6 +84,8 @@ export function createChatRuntimeControl(
       cancellationRequested,
       ownershipLostState,
       abortController.signal.aborted,
+      executionPhase,
+      executionToolName,
     );
   };
 
@@ -180,18 +188,21 @@ export function createChatRuntimeControl(
 
       return { outcome: "active" };
     },
-    scheduleSoftDeadlineTimer: (): void => {
+    scheduleSoftDeadlineTimer: (): number => {
       const remainingTimeMs = params.getRemainingTimeInMillis();
       const softDeadlineDelayMs = remainingTimeMs - CHAT_WORKER_PRE_TIMEOUT_BUFFER_MS;
+      const softDeadlineAtMs = Date.now() + softDeadlineDelayMs;
       if (softDeadlineDelayMs <= 0) {
         requestSoftDeadlineStop();
-        return;
+        return softDeadlineAtMs;
       }
 
       softDeadlineTimer = setTimeout(() => {
         requestSoftDeadlineStop();
       }, softDeadlineDelayMs);
+      return softDeadlineAtMs;
     },
+    requestSoftDeadlineStop,
     clearTimers: (): void => {
       if (heartbeatTimer !== null) {
         clearInterval(heartbeatTimer);
@@ -200,8 +211,9 @@ export function createChatRuntimeControl(
         clearTimeout(softDeadlineTimer);
       }
     },
-    setExecutionPhase: (phase: ChatWorkerExecutionPhase): void => {
+    setExecutionPhase: (phase: ChatWorkerExecutionPhase, toolName: string | null): void => {
       executionPhase = phase;
+      executionToolName = phase === "tool" ? toolName : null;
     },
     shouldStopBeforeNextStep: (): boolean => abortReason === "deadline_reached",
     shouldIgnoreStreamEvent: (event: ChatStreamEvent): boolean =>
