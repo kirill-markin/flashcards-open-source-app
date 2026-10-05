@@ -84,28 +84,49 @@ Releases, assets, and development safeguards, control
 ## Release Warning Policy
 
 Before a new publication/submission, fix release errors, failed required tests,
-applicable security vulnerabilities, and release warnings, including actionable
-first-party, build, compiler, lint, and toolchain warnings. A known failure blocks
-that action. All existing test and publication gates remain mandatory.
+applicable security vulnerabilities, and actionable first-party, configuration,
+build, compiler, lint, and toolchain warnings. A known failure blocks that action.
+All existing build, test, security, and publication gates remain mandatory.
+Only the bounded warning exceptions below may remain.
 
-The sole standing warning exception is an unavoidable transitive upstream npm
-deprecation notice in an official payment SDK, including an official
+Vendor-owned, non-actionable deprecation, tool, or runtime notices may remain
+when supported stable compatible vendor versions have been assessed, no
+behavior-preserving vendor-supported fix is available, and the required gates
+pass. Classify simulator/platform runtime and optional cache/optimization
+diagnostics from inspected evidence, not substring matching or severity labels;
+these are distinct from compiler, lint, or test failures. Retain raw diagnostics
+and investigate app/test failures regardless of apparent vendor ownership.
+Fix supported actionable notices; do not suppress logs or downgrade toolchains
+to obtain a clean report.
+
+The standing payment exception covers unavoidable transitive upstream npm
+deprecation notices in an official payment SDK, including an official
 authentication SDK used for payment integration. First upgrade the SDK to the
 latest supported stable vendor release and verify the affected flows. The
 exception applies only if the notice remains and no vendor-supported fix exists.
-Retain and record qualifying notices automatically without requesting a release
-waiver. Reassess them on each later release and adopt supported fixes when
-available. Do not replace or patch SDK internals, fork the SDK, or force
-incompatible dependency overrides merely to remove notices; that broader work
-requires separate authorization.
+Record the exact SDK and deprecated package versions, dependency chain, evidence
+of the current supported stable SDK and absence of vendor-supported remediation,
+affected-flow verification, and a security assessment with its evidence.
+Deprecation does not establish the presence or absence of a vulnerability;
+applicable security vulnerabilities still block release.
 
-In the [release ledger](evidence.md#release-ledger), record the exact SDK and
-deprecated package versions, dependency chain, notice and its reason, evidence
-that the SDK is the current supported stable release and that no vendor-supported
-remediation exists, affected-flow verification, and a security assessment with
-its evidence. Deprecation does not establish the presence or absence of a
-vulnerability; applicable security vulnerabilities still block release. This
-exception does not cover other vendors/packages or compiler warnings.
+Compiler warnings require an explicitly named compatibility exception; vendor
+ownership alone never qualifies. The Sentry
+`enableReportNonFullyBlockingAppHangs = false` setter deprecation is an approved
+example when retaining it preserves fully-blocking-only hang reporting and no
+supported replacement preserves that behavior. Recheck the supported replacement
+and affected flow every release. This does not exempt other compiler or lint
+warnings, and a Sentry URL configuration mismatch is an actionable configuration
+defect, not an unavoidable vendor notice.
+
+For each exception, record in the [release ledger](evidence.md#release-ledger)
+the exact notice, versions, owner and dependency/toolchain chain, upstream
+remediation assessment, affected-flow and gate evidence, security assessment,
+and reason it qualifies. Reassess each release and adopt supported fixes when
+available. Reuse documented qualifying decisions under this standing policy
+without repeated user approval. Changes to product/security behavior, broader
+dependency replacement, SDK forks or internal patches, and incompatible
+dependency overrides require separate scope and authorization.
 
 ## Release Sequence
 

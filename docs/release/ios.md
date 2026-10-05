@@ -56,28 +56,47 @@ resubmitting the same artifact. New artifacts follow all pre-submission gates.
    the browser for unsupported operations or diagnosed API access blockers;
    ask the user to complete Apple login/MFA if needed, then resume.
 3. Identify the two configured workflows for release build/archive and tests.
-   Start both for the same release SHA and monitor them in parallel. Record
-   their run links and source commit; do not infer test success from the build.
+   Complete the [cloud configuration preflight](../ios-ci-cd.md#cloud-configuration-preflight)
+   before dispatch. Initially start both for the same release SHA and monitor
+   them in parallel. Record their run links and source commits; do not infer
+   test success from the build. Retries may retain an unchanged successful
+   archive only under step 5 and the shared reuse rules.
 4. While they run, create or verify the App Store version draft for the current
    version. Fill and save What's New for every locale using the texts already
    in the chat. For localized listing text and iPhone/iPad screenshot uploads,
    follow [App Store metadata](../app-store-connect-metadata.md); its editable-draft
    requirements apply. Verify each saved field and required metadata; request
    help for missing declarations or unexpected store requirements.
-5. Wait for both workflows to finish green. Inspect the actual passed, failed,
-   and skipped test results, plus errors and warnings even if the overall run
-   is green. Record skipped cases, their reasons, and the resulting coverage
+5. Require successful archive and test workflows, with complete test evidence.
+   Inspect the actual passed, failed, and skipped test results, plus errors and
+   warnings even if the overall run is green. Record skipped cases, their reasons, and the resulting coverage
    limits. Distinguish deliberate [manual marketing exclusions](../../apps/ios/docs/marketing-screenshots.md#prerequisites)
    from unexpected skips; investigate unexpected skips rather than counting
    them as passed. Fix code/build/test issues, merge and deploy
-   through normal CI, then repeat both workflows for the corrected release SHA.
+   through normal CI, then repeat affected local and cloud gates for the
+   corrected release SHA. After test-only or docs-only fixes, retain the
+   original successful signed archive only when the
+   [shared source comparison](evidence.md#resume-and-artifact-reuse) proves its
+   production/archive inputs unchanged: app source, resources and localizations,
+   dependencies and lockfiles, project/settings/scheme, CI hooks, remote
+   workflow values, toolchain, signing, and distribution configuration. A
+   test-only filename or unchanged version is insufficient. Record the original
+   archive SHA/run/action and uploaded build identity, corrected test SHA/run,
+   comparison scope/diff, and why each retained gate still applies. Test fixes
+   require a corrected complete cloud test execution; failed or unexecuted tests
+   cannot be reused. Any production/archive-affecting change, or inability to
+   establish equivalence, requires a new archive and the appropriate tests and
+   local gates. Restore any temporary workflow filters after the accepted runs
+   finish, with saved readback as required by the configuration preflight.
    Apply the [release warning policy](README.md#release-warning-policy) before
    submission; ask for help when blocking issues cannot be resolved autonomously.
 6. Wait for the successful archive to finish processing in App Store Connect.
+   Establish its exact [run/archive/uploaded-build correlation](../xcode-cloud-data-access.md#correlate-an-archive-with-the-uploaded-build).
    Verify its [uploaded binary localizations](../ios-localization.md#bundlebuild-validation)
    before submission.
-   Attach the latest successful release build from that SHA to the version
-   draft, with matching green test evidence. Verify the build number/version,
+   Attach that verified build to the version draft, with successful test
+   evidence from the same SHA or the proven unchanged-archive reuse in step 5.
+   Verify the uploaded build ID, build number/version,
    saved localized notes, and required fields; choose **Add for Review** to
    place the version in a **Ready for Review** draft submission.
 7. Select automatic release after approval unless manual release is explicitly
