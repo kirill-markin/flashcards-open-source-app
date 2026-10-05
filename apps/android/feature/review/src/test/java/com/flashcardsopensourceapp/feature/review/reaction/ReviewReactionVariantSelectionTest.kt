@@ -141,27 +141,6 @@ class ReviewReactionVariantSelectionTest {
     }
 
     @Test
-    fun pendingCompositionDoesNotUseCrownFallback() {
-        assertNull(
-            reviewReactionFallbackVariantForReadiness(
-                readiness = ReviewReactionLottieReadiness.Pending
-            )
-        )
-    }
-
-    @Test
-    fun failedCompositionUsesCrownFallback() {
-        assertEquals(
-            ReviewReactionVariant.FALLBACK_CROWN_BOUNCE,
-            reviewReactionFallbackVariantForReadiness(
-                readiness = ReviewReactionLottieReadiness.Failed(
-                    error = IllegalStateException("Missing test composition.")
-                )
-            )
-        )
-    }
-
-    @Test
     fun readySelectionSkipsEventWhenRatingHasNoReadyVariants() {
         assertNull(
             makeReviewReactionEventForReadyVariants(

@@ -30,6 +30,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.flashcardsopensourceapp.core.observability.AndroidReviewReactionStage
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetDownloadUrl
 import com.flashcardsopensourceapp.data.local.model.media.ReviewMediaAssetFile
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
@@ -123,7 +124,10 @@ fun ReviewRoute(
         val event: ReviewReactionEvent = makeRandomReadyReviewReactionEvent(
             rating = rating,
             configurationStore = reviewReactionLottieConfigurationStore
-        ) ?: return
+        ) ?: run {
+            reviewReactionLottieConfigurationStore.record(stage = AndroidReviewReactionStage.UNAVAILABLE_SKIPPED, variant = null)
+            return
+        }
 
         activeReviewReactionEvents = appendReviewReactionEvent(
             events = activeReviewReactionEvents,

@@ -30,6 +30,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.flashcardsopensourceapp.core.observability.AndroidReviewReactionSource
+import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.ui.components.SectionTitle
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import com.flashcardsopensourceapp.feature.review.R
@@ -53,6 +55,7 @@ private data class TestAnimationEntryUiState(
 private enum class TestAnimationAvailability {
     PLAYABLE,
     LOADING,
+    UNAVAILABLE,
     PAUSED_BY_BATTERY_SAVER
 }
 
@@ -60,6 +63,7 @@ private enum class TestAnimationAvailability {
 @Composable
 fun TestAnimationsRoute(
     isPowerSaveMode: Boolean,
+    observability: AppObservability,
     onBack: () -> Unit
 ) {
     var activeReviewReactionEvents by remember {
@@ -67,7 +71,10 @@ fun TestAnimationsRoute(
     }
     val reviewReactionMotionMode: ReviewReactionMotionMode = reviewReactionMotionModeFromAnimatorSettings()
     val reviewReactionLottieConfigurationStore = rememberReviewReactionLottieConfigurationStore(
-        loadLottieCompositions = isPowerSaveMode.not()
+        loadLottieCompositions = isPowerSaveMode.not(),
+        isPowerSaveMode = isPowerSaveMode,
+        source = AndroidReviewReactionSource.TEST_ANIMATIONS,
+        observability = observability
     )
 
     fun playAnimation(entry: ReviewReactionVariantDistributionEntry) {
@@ -228,15 +235,12 @@ private fun testAnimationAvailability(
     val configuration: ReviewReactionLottieConfiguration = reviewReactionLottieConfiguration(
         variant = entry.variant,
         configurationStore = configurationStore
-    ) ?: error(
-        "Test animation Lottie configuration is missing. " +
-            "variant=${entry.variant.debugIdentifier}"
-    )
+    ) ?: return TestAnimationAvailability.UNAVAILABLE
 
     return when (configuration.readiness) {
         is ReviewReactionLottieReadiness.Ready -> TestAnimationAvailability.PLAYABLE
         ReviewReactionLottieReadiness.Pending -> TestAnimationAvailability.LOADING
-        is ReviewReactionLottieReadiness.Failed -> TestAnimationAvailability.PLAYABLE
+        is ReviewReactionLottieReadiness.Failed -> TestAnimationAvailability.UNAVAILABLE
     }
 }
 
@@ -266,6 +270,7 @@ private fun testAnimationSupportingText(
     return when (availability) {
         TestAnimationAvailability.PLAYABLE -> probabilityText
         TestAnimationAvailability.LOADING -> stringResource(R.string.review_test_animations_loading)
+        TestAnimationAvailability.UNAVAILABLE -> stringResource(R.string.review_test_animations_unavailable)
         TestAnimationAvailability.PAUSED_BY_BATTERY_SAVER ->
             stringResource(R.string.review_test_animations_battery_saver_paused)
     }
@@ -285,6 +290,7 @@ private fun testAnimationContentDescription(
         )
 
         TestAnimationAvailability.LOADING,
+        TestAnimationAvailability.UNAVAILABLE,
         TestAnimationAvailability.PAUSED_BY_BATTERY_SAVER -> stringResource(
             R.string.review_test_animations_status_content_description,
             entry.variant.debugIdentifier,
