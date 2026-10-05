@@ -2,7 +2,7 @@ import SwiftUI
 
 extension ReviewView {
     func prewarmReviewReactionLottieAssets() {
-        guard self.areReviewReactionAnimationsEnabled else {
+        guard self.isReviewReactionScreenVisible, self.areReviewReactionAnimationsEnabled, self.scenePhase == .active else {
             return
         }
         guard self.reviewReactionLottiePrewarmTask == nil else {
@@ -18,6 +18,11 @@ extension ReviewView {
         self.reviewReactionLottiePrewarmTask = startReviewReactionLottieAssetPrewarm(
             pendingVariants: pendingVariants,
             onLoadResult: { loadResult in
+                guard self.reviewReactionLottiePrewarmId == prewarmId else { return }
+                if case .failed(let failure) = loadResult,
+                   self.reviewReactionLottieAssetStore.failedAssets[failure.variant] == nil {
+                    FlashcardsObservability.captureReviewReactionFailure(failure: failure, source: .review)
+                }
                 self.reviewReactionLottieAssetStore = self.reviewReactionLottieAssetStore.recordingLoadResult(
                     loadResult: loadResult
                 )
@@ -44,18 +49,22 @@ extension ReviewView {
     }
 
     func emitReviewReaction(rating: ReviewRating) {
+        guard self.isReviewReactionScreenVisible, self.areReviewReactionAnimationsEnabled, self.scenePhase == .active else { return }
         let reactionRating = makeReviewReactionRating(rating: rating)
-        let availableVariants: Set<ReviewReactionVariant> = self.reviewReactionLottieAssetStore.availableVariants
-        let totalWeight: Int = reviewReactionAvailableVariantTotalWeight(
+        let readyVariants: Set<ReviewReactionVariant> = self.reviewReactionLottieAssetStore.readyVariants
+        let totalWeight: Int = reviewReactionReadyVariantTotalWeight(
             rating: reactionRating,
-            availableVariants: availableVariants
+            readyVariants: readyVariants
         )
         guard totalWeight > 0 else {
+            FlashcardsObservability.recordReviewReaction(
+                action: .skip, variant: nil, source: .review, reason: "no_ready_asset"
+            )
             return
         }
-        guard let variant: ReviewReactionVariant = selectAvailableReviewReactionVariant(
+        guard let variant: ReviewReactionVariant = selectReadyReviewReactionVariant(
             rating: reactionRating,
-            availableVariants: availableVariants,
+            readyVariants: readyVariants,
             roll: Int.random(in: 0..<totalWeight)
         ) else {
             return
@@ -66,25 +75,27 @@ extension ReviewView {
             rating: reactionRating,
             variant: variant
         )
-        self.activeReviewReactionEvents = appendReviewReactionEvent(
-            events: self.activeReviewReactionEvents,
-            event: event,
-            maximumActiveEvents: reviewReactionMaximumActiveEvents
-        )
+        self.dismissActiveReviewReactions(reason: "replacement")
+        self.activeReviewReactionEvents = [event]
     }
 
-    func dismissActiveReviewReactions() {
-        if self.activeReviewReactionEvents.isEmpty {
-            return
+    func dismissActiveReviewReactions(reason: String) {
+        for event in self.activeReviewReactionEvents {
+            FlashcardsObservability.recordReviewReaction(
+                action: .cancel, variant: event.variant, source: .review, reason: reason
+            )
         }
-
         self.activeReviewReactionEvents = []
     }
 
-    func removeFinishedReviewReactionEvent(eventId: UUID) {
-        self.activeReviewReactionEvents = self.activeReviewReactionEvents.filter { activeEvent in
-            activeEvent.id != eventId
-        }
+    func removeFinishedReviewReactionEvent(
+        eventId: UUID, action: ReviewReactionLifecycleAction, reason: String
+    ) {
+        guard let event = self.activeReviewReactionEvents.first(where: { $0.id == eventId }) else { return }
+        FlashcardsObservability.recordReviewReaction(
+            action: action, variant: event.variant, source: .review, reason: reason
+        )
+        self.activeReviewReactionEvents.removeAll { $0.id == eventId }
     }
 
     func submitReview(cardId: String, rating: ReviewRating) {

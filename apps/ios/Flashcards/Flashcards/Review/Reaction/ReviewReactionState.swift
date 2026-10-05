@@ -1,6 +1,6 @@
 import Foundation
 
-let reviewReactionMaximumActiveEvents: Int = 3
+let reviewReactionMaximumActiveEvents: Int = 1
 
 enum ReviewReactionMotionMode: Hashable, Sendable {
     case standard
@@ -238,8 +238,7 @@ func reviewReactionReadyVariantTotalWeight(
 
     var totalWeight: Int = 0
     for entry in entries {
-        precondition(entry.weight > 0, "Invalid review reaction weight for \(entry.id): \(entry.weight).")
-        totalWeight += entry.weight
+        totalWeight += max(entry.weight, 0)
     }
 
     return totalWeight
@@ -326,17 +325,17 @@ func selectReadyReviewReactionVariant(
         rating: rating,
         readyVariants: readyVariants
     )
-    precondition((0..<totalWeight).contains(roll), "Ready review reaction roll must be in 0..<\(totalWeight), received \(roll).")
+    guard (0..<totalWeight).contains(roll) else { return nil }
 
     var cumulativeWeight: Int = 0
     for entry in entries {
-        cumulativeWeight += entry.weight
+        cumulativeWeight += max(entry.weight, 0)
         if roll < cumulativeWeight {
             return entry.variant
         }
     }
 
-    preconditionFailure("Ready review reaction distribution is missing rating \(rating.debugIdentifier) roll \(roll).")
+    return nil
 }
 
 func selectAvailableReviewReactionVariant(
