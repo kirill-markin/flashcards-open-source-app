@@ -162,6 +162,10 @@ extension SentryObservabilityAdapter {
         SentrySDK.capture(error: sanitizedError) { scope in
             self.applyScope(scope, payload: payload.observation)
             scope.setLevel(.error)
+            // Sanitized LocalStoreError events carry no in-app frames, so Sentry would group them by case alone.
+            if payload.error is LocalStoreError {
+                scope.setFingerprint(["{{ default }}", safeDiagnosticIdentifier(payload.observation.action)])
+            }
         }
     }
 
