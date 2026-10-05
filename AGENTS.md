@@ -34,6 +34,11 @@ The Web, iOS, and Android clients are multilingual, so always account for locali
 Adding a new language spans more surfaces than any single client guide covers, so read [docs/add-language.md](docs/add-language.md) before starting one.
 The demo onboarding card seeded for new users is a cross-client contract, so before changing it on any client, read [docs/demo-card.md](docs/demo-card.md).
 
+## Mobile OS Compatibility
+
+- Prioritize the latest mobile OS: native UX, performance, current dependencies, and clean architecture.
+- Support older OS versions through narrow availability/API adapters; share domain logic, state, storage, sync, and navigation across OS versions within each mobile app. Do not duplicate screens or downgrade the architecture for older devices.
+
 ## Testing Philosophy
 
 We do not try to cover the whole product with tests, and we do not optimize for blanket test coverage metrics.
@@ -42,6 +47,7 @@ Do not add new unit tests for this repository as part of implementation or as pa
 Targeted integration or module-boundary tests are allowed when they validate a real interaction between modules, storage layers, or contracts.
 The most trusted tests are the native/browser smoke flows that run the real app on a simulator, emulator, managed device, or deployed environment because they are the closest checks to production behavior.
 Keep tests minimal and focused on primary user flows, critical contracts, or important cross-module behavior.
+Run the full existing mobile smoke selection on the latest OS; run only a small essential compatibility smoke on older supported OS versions.
 When proposing a test plan, treat "real testing" as one of these two options only: either implement a real integration/end-to-end/smoke flow that exercises the app or API for real, or provide explicit manual test instructions for the user to run. Do not treat unit tests as the default validation plan.
 
 For iOS local testing details, see [docs/ios-local-setup.md](docs/ios-local-setup.md).
@@ -56,10 +62,10 @@ Android jobs inside `.github/workflows/pr-checks.yml` are an accepted exception:
 Infra-changing pull requests synthesize the CDK app and fail at 470 resources per stack, 30 below CloudFormation's hard limit.
 Auto-merge is enabled but never updates a `BEHIND` branch, so it cannot rescue a pull request on its own: update the branch once server-side, then queue `gh pr merge --auto` so the merge lands unattended once the gate passes instead of racing `main` with repeated updates, and still watch the post-merge deploy to completion.
 Nothing compiles iOS before merge by design, though `PR Checks` still runs the static iOS checks.
-Swift builds and tests run in Xcode Cloud, whose workflow definitions live in App Store Connect; its in-repo build inputs are documented in [docs/ios-ci-cd.md](docs/ios-ci-cd.md).
+Run Apple builds and tests only in Xcode Cloud or local Xcode; never use Firebase for Apple tests. Xcode Cloud workflow definitions live in App Store Connect; its in-repo build inputs are documented in [docs/ios-ci-cd.md](docs/ios-ci-cd.md).
 Keep the Xcode Cloud `Test - iOS` action non-required on purpose so TestFlight can receive builds even when smoke tests fail.
 A request to execute the full release runbook authorizes its manual workflow dispatches and publication steps. Reading and monitoring Xcode Cloud runs, results, and artifacts is always allowed without asking, including outside a release. Outside a release request, dispatch Xcode Cloud workflows or trigger `Android Release` / `MCP Registry Publish` only when the user requests those actions; agents may monitor and fix automatically triggered GitHub Actions.
-For Android releases, use the existing `Android Release` workflow and GitHub Actions signing secrets described in [docs/android-ci-cd.md](docs/android-ci-cd.md). A missing local upload key does not block CI signing and is not grounds for key reset or recovery. Inspect the workflow run and its exact Firebase matrix test results under the [Android release procedure](docs/release/android.md#android).
+For Android releases, run device tests in Firebase Test Lab and use the existing `Android Release` workflow and GitHub Actions signing secrets described in [docs/android-ci-cd.md](docs/android-ci-cd.md). A missing local upload key does not block CI signing and is not grounds for key reset or recovery. Inspect the workflow run and its exact Firebase matrix test results under the [Android release procedure](docs/release/android.md#android).
 Details, rollback rules, and live smoke references: [docs/release-gates.md](docs/release-gates.md).
 
 ## Data Sources for Analysis
@@ -143,6 +149,6 @@ Details and key files: [docs/auth-service.md](docs/auth-service.md).
 - For live SSE issues, correlate the CloudWatch structured log, the `X-Request-Id` response header, and the client-visible error body.
 - Prioritize clear, actionable errors.
 
-Backend changes must remain backward-compatible with already released client versions by default. Do not break backend-facing contracts or behavior that shipped clients rely on unless the user explicitly asks for a breaking change. For the web, iOS, and Android clients, backward compatibility is not a goal; prefer keeping the latest codepath clean and current.
+Backend changes must remain backward-compatible with already released client versions by default. Do not break backend-facing contracts or behavior that shipped clients rely on unless the user explicitly asks for a breaking change. For the web, iOS, and Android clients, preserving obsolete client implementations is not a goal; keep the latest codepath clean and current while supporting the mobile OS versions declared in the platform READMEs.
 
 Card reappearance and FSRS scheduling logic are documented in `docs/fsrs-scheduling-logic.md`.

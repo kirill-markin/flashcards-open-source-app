@@ -213,7 +213,7 @@ struct AIChatView: View {
             .accessibilityIdentifier(UITestIdentifier.aiScreen)
             .navigationTitle(aiSettingsLocalized("ai.title", "AI"))
             .navigationBarTitleDisplayMode(.inline)
-            .safeAreaBar(edge: .bottom, spacing: 0) {
+            .nativeBottomBar(alignment: .center) {
                 self.bottomBarContent
             }
             .toolbar {
@@ -335,7 +335,7 @@ struct AIChatView: View {
                     Button(aiSettingsLocalized("common.ok", "OK")) {
                         self.acceptExternalAIConsent()
                     }
-                    .buttonStyle(.glassProminent)
+                    .nativeProminentActionButtonStyle()
                     .accessibilityIdentifier(UITestIdentifier.aiConsentAcceptButton)
 
                     VStack(alignment: .leading, spacing: 10) {
@@ -407,12 +407,12 @@ struct AIChatView: View {
                     Button(aiSettingsLocalized("ai.failed.openAccountStatus", "Open account status")) {
                         self.navigation.openSettings(destination: .accountStatus)
                     }
-                    .buttonStyle(.glassProminent)
+                    .nativeProminentActionButtonStyle()
                 } else {
                     Button(aiSettingsLocalized("common.retry", "Retry")) {
                         self.chatStore.retryLinkedBootstrap()
                     }
-                    .buttonStyle(.glassProminent)
+                    .nativeProminentActionButtonStyle()
                 }
                 if let technicalDetails = presentation?.technicalDetails, technicalDetails.isEmpty == false {
                     DisclosureGroup(aiSettingsLocalized("settings.account.cloudSignIn.technicalDetails", "Technical details")) {

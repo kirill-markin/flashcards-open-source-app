@@ -26,6 +26,23 @@ The shared scheme for cloud builds is:
 
 The shared cloud scheme runs the UI smoke bundle only. FSRS parity tests remain in `apps/ios/Flashcards/FlashcardsTests/Review` for focused local/native verification and are not part of the Xcode Cloud release gate.
 
+## Supported OS destinations
+
+The app supports iOS/iPadOS 18.0 onward with the current SDK and packages.
+Keep the latest Cloud destination and its full existing smoke selection.
+During release preflight, inspect the actual workflow destination catalog;
+an installed local runtime does not establish Cloud availability. Add at most
+one iOS 18 destination only if the workflow offers it and can run the three
+[compatibility smokes](ios-local-setup.md#ios-18-compatibility-smoke) there while
+preserving the latest selection. Otherwise run that selection with local Xcode
+on an installable iOS 18 runtime or a physical device actually running iOS 18.
+Do not downgrade the SDK, replace Cloud actions or add an older device/locale matrix.
+
+Keep **Test - iOS** non-required and preserve archive, signing and TestFlight
+settings. Static PR checks establish neither native compilation nor iOS 18
+runtime behavior. The first public release expanding support to 18 requires
+recorded native smoke evidence and the [binary compatibility checks](release/ios.md#ios).
+
 ## Xcode Cloud inputs
 
 Xcode Cloud receives the same service configuration values that local builds use through `apps/ios/Flashcards/ci_scripts/ci_post_clone.sh`.

@@ -163,7 +163,7 @@ struct ReviewView: View {
             await self.reloadReviewMetadata()
             self.reconcileEditingCardFormState()
         }
-        .safeAreaBar(edge: .bottom, spacing: 0) {
+        .nativeBottomBar(alignment: .center) {
             reviewBottomAccessory
         }
         .simultaneousGesture(
@@ -745,7 +745,7 @@ struct ReviewView: View {
                 .frame(maxWidth: .infinity)
                 .frame(minHeight: showAnswerButtonMinHeight)
         }
-        .buttonStyle(.glassProminent)
+        .nativeProminentActionButtonStyle()
         .accessibilityIdentifier(UITestIdentifier.reviewShowAnswerButton)
     }
 
@@ -788,7 +788,7 @@ struct ReviewView: View {
             }
             .frame(maxWidth: .infinity, minHeight: reviewAnswerButtonMinHeight, alignment: .center)
         }
-        .buttonStyle(.glassProminent)
+        .nativeProminentActionButtonStyle()
         .disabled(store.isReviewPending(cardId: cardId))
         .accessibilityIdentifier(reviewAnswerButtonIdentifier(rating: option.rating))
     }
@@ -826,7 +826,7 @@ struct ReviewView: View {
                         .font(.body)
                         .imageScale(.medium)
                 }
-                .buttonStyle(.glass)
+                .nativeActionButtonStyle()
 
                 Text(String(localized: "or", table: reviewCardsStringsTableName))
                     .font(.footnote)
@@ -840,7 +840,7 @@ struct ReviewView: View {
                         .font(.body)
                         .imageScale(.medium)
                 }
-                .buttonStyle(.glassProminent)
+                .nativeProminentActionButtonStyle()
 
                 if shouldShowSwitchToAllCardsAction {
                     Text(String(localized: "or", table: reviewCardsStringsTableName))
@@ -852,7 +852,7 @@ struct ReviewView: View {
                     } label: {
                         Text(String(localized: "Switch to all cards deck", table: reviewCardsStringsTableName))
                     }
-                    .buttonStyle(.glass)
+                    .nativeActionButtonStyle()
                 }
             }
         }

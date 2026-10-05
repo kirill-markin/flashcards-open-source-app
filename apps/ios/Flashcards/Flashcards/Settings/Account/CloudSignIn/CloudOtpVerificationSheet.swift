@@ -135,12 +135,12 @@ struct CloudOtpVerificationSheet: View {
                     .disabled(self.isRequestInFlight || self.currentChallenge == nil)
                 }
             }
-            .safeAreaBar(edge: .bottom, alignment: .trailing, spacing: 0) {
+            .nativeBottomBar(alignment: .trailing) {
                 if self.isCodeFieldFocused {
                     Button(aiSettingsLocalized("common.done", "Done")) {
                         self.isCodeFieldFocused = false
                     }
-                    .buttonStyle(.glass)
+                    .nativeActionButtonStyle()
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
                 }

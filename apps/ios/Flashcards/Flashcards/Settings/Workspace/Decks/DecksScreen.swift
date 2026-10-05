@@ -88,7 +88,7 @@ struct DecksScreen: View {
             placement: .automatic,
             prompt: aiSettingsLocalized("settings.workspace.decks.searchPrompt", "Search decks")
         )
-        .searchToolbarBehavior(preferredNativeSearchToolbarBehavior(horizontalSizeClass: self.horizontalSizeClass))
+        .nativeSearchToolbar(horizontalSizeClass: self.horizontalSizeClass)
         .task(id: store.localReadVersion) {
             await self.reloadDecksSnapshot()
         }
