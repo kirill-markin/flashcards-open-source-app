@@ -113,6 +113,19 @@ extension LiveSmokeTestCase {
     func startNewAiChatAndAssertConversationReset() throws {
         let assistantErrorMessagesBeforeReset = self.visibleAssistantErrorMessageCount()
 
+        try self.replaceAiComposerText("Hi", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.assertElementExists(
+            identifier: LiveSmokeIdentifier.aiComposerDismissKeyboardButton,
+            timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+        )
+        guard self.softwareKeyboardIsVisible() else {
+            throw LiveSmokeFailure.unexpectedAiConversationState(
+                message: "Expected the software keyboard to remain visible for the focused AI draft before New.",
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+
         try self.tapButton(
             identifier: LiveSmokeIdentifier.aiNewChatButton,
             timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
@@ -123,6 +136,21 @@ extension LiveSmokeTestCase {
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
         try self.assertAiConversationResetEmptyChatStateVisible(
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        )
+        let composerValue = self.elementValue(element: self.aiComposerTextFieldElement())
+        if composerValue.isEmpty == false && composerValue != aiComposerPlaceholderText {
+            throw LiveSmokeFailure.unexpectedElementValue(
+                identifier: LiveSmokeIdentifier.aiComposerTextField,
+                expectedValue: "",
+                actualValue: composerValue,
+                timeoutSeconds: LiveSmokeConfiguration.longUiTimeoutSeconds,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+        try self.assertElementDisabled(
+            identifier: LiveSmokeIdentifier.aiComposerSendButton,
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
 
