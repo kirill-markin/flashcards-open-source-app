@@ -11,7 +11,7 @@ Pushes to `main` use independent release and check streams:
 - rollback is automatic only when the failed AWS release did not include new DB migrations
 - migration-bearing AWS failures are explicit fix-forward cases; the next push must still be allowed to run
 - when Android-impacting files changed, `.github/workflows/android-ci.yml` runs the post-merge `data:local` emulator backstop without repeating the PR build, unit tests, or lint and without uploading to Google Play or submitting Device Run
-- Android production draft upload is manual-only through `.github/workflows/android-release.yml`; that workflow requires both Device Run submissions before the Play draft upload starts
+- Android production draft upload is manual-only through `.github/workflows/android-release.yml`; that workflow requires terminal success from all four sequential Device Run sessions before the signed Play draft upload starts
 - for an iOS release, a human or authorized AI explicitly starts and monitors both Xcode Cloud workflows for the selected SHA under the [iOS release procedure](release/ios.md#ios)
 
 Automatic web/backend deployments continue between coordinated releases while
@@ -106,8 +106,8 @@ New publication/submission actions retain every required gate and apply the
 [release warning policy](release/README.md#release-warning-policy).
 
 When a change lands on `main`, monitor `AWS/Web Release` for backend/web outcome when AWS-impacting files changed, including the post-deploy smoke jobs of the selected components, and monitor `Android CI` when Android-impacting files changed. Reading and monitoring Xcode Cloud runs, results, and artifacts is always allowed; dispatching Xcode Cloud workflows requires a full-release request or an explicit request for those actions, as defined in the release runbook.
-For Android, a green automatic `Android CI` run means the post-merge `data:local` emulator backstop passed for that SHA. It does not repeat the build, unit tests, or lint already enforced by the required PR gate, and does not submit Device Run or upload a Play draft. A green manual `Android Release` means the GitHub-hosted gate passed, both Device Run submissions were accepted, and CI uploaded a production-track Play draft. Require both sessions, all four destinations and their named test results to pass before publication under [the Android release procedure](release/android.md). Translation review, Play-delivered build verification and final publication remain in Play Console; a non-green workflow blocks publication.
-For Android release identity, session CLI/GCS inspection and accepted-versus-passed evidence, follow [Android CI/CD](android-ci-cd.md#device-run-results-and-release-correlation).
+For Android, a green automatic `Android CI` run means the post-merge `data:local` emulator backstop passed for that SHA. It does not repeat the build, unit tests, or lint already enforced by the required PR gate, and does not submit Device Run or upload a Play draft. A green manual `Android Release` means the GitHub-hosted gate and all four Device Run sessions, jobs and executions passed, and CI uploaded a production-track Play draft. Inspect all four sessions, configured destinations and named test results before publication under [the Android release procedure](release/android.md). Translation review, Play-delivered build verification and final publication remain in Play Console; a non-green workflow blocks publication.
+For Android release identity, session CLI/GCS inspection and named-case evidence, follow [Android CI/CD](android-ci-cd.md#device-run-results-and-release-correlation).
 For Xcode Cloud inspection, use `docs/xcode-cloud-data-access.md`. It documents the local `.env` secrets, App Store Connect API flow, example commands, returned data formats, artifact types, and how to extract timing/debugging insights from cloud test runs.
 
 Cross-client live smoke references:

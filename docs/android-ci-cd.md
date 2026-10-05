@@ -96,11 +96,11 @@ Top-level release workflow Device Run job: `.github/workflows/android-release.ym
 
 - Starts on every manual `Android Release` run after `android_ci` succeeds
 - Uses Google Cloud CLI `587.0.0` with the `beta` component and location `global`; validates all four configured catalog IDs, authenticates once through WIF, and downloads `android-debug-apks` once
-- Submits the full app instrumentation package on API 37, excluding `ManualOnlyAndroidTest`, plus a separate compatibility session with the four existing methods on API 30, 31, and 33; see [device configuration](#choose-the-device-run-devices)
+- Runs four sessions sequentially through the bounded synchronous helper: the full app instrumentation package on API 37, excluding `ManualOnlyAndroidTest`, then one four-method smoke session each on API 30, 31, and 33; see [device configuration](#choose-the-device-run-devices). Sessions share a linked test account, so concurrent workspace mutations are unsafe
 - Uses Orchestrator `auto`, `clearPackageData=true,isAutomation=true`, portrait and `en-US`; inspect `event=automation_environment_resolved` in logcat for `isAutomation=true`, `isEmulator=false`, `hasArgumentSignal=true`, `isFirebaseTestLabDevice=false`. Device Run has no Firebase device marker, so the instrumentation argument must reach the app
-- Labels both sessions with `release_id`, `target_sha`, `github_run_id`, `github_run_attempt`, and `suite=latest` or `suite=compat`
-- Saves submission logs, full session JSON and the catalog in `android-device-run-submissions`; job outputs must report `submission_state=submitted` and `compat_submission_state=submitted` before `publish_android` starts
-- Submissions are asynchronous. Follow [the Android release procedure](release/android.md) and require terminal passing session, job, execution and named test results before publication
+- Labels all four sessions with the same release ID, target SHA and GitHub run/attempt; see [the workflow](../.github/workflows/android-release.yml) for exact labels, outputs and artifact details
+- Saves session logs, full session JSON and the catalog; every required session, job and execution must reach terminal success before the next session or `publish_android` starts
+- Follow [the Android release procedure](release/android.md) and inspect the full reports and named test results before publication
 
 Top-level release workflow Play job: `.github/workflows/android-release.yml` job `publish_android`
 
@@ -131,21 +131,21 @@ The manual Android release flow is:
 1. `android-release.yml` starts only through manual `workflow_dispatch`; optional `target_sha` pins a specific release commit, otherwise the selected workflow ref SHA is used
 2. The workflow resolves one shared `ANDROID_VERSION_CODE` and one shared Android release identifier for the run
 3. The reusable Android CI gate runs for the target SHA
-4. Latest full-suite and API 30/31/33 smoke sessions are submitted for the same debug/test APKs produced by the CI gate
-5. After both Device Run submissions succeed, the signed Android App Bundle is built and uploaded as a workflow artifact
+4. Four Device Run sessions execute sequentially for the same CI debug/test APKs: API 37 full suite, then API 30, 31 and 33 smoke, one destination per session
+5. After all four sessions, jobs and executions reach terminal success, the signed Android App Bundle is built and uploaded as a workflow artifact
 6. The R8 optimization coverage gate reads `BUNDLE-METADATA/com.android.tools/r8.json` from that bundle and fails the run when shrinking, optimization, or obfuscation coverage is below Google's 25% minimum
 7. Only then is the bundle uploaded as a Google Play production-track draft
-8. Require both sessions and all configured destinations to pass under [the Android release procedure](release/android.md), then review the Play Console draft before publishing manually
+8. Inspect all four sessions and their named cases under [the Android release procedure](release/android.md), then review the Play Console draft before publishing manually
 
 After pushing to `main`, watch `Android CI` separately when Android-impacting files changed.
 
 For Android, a green automatic `Android CI` run means the post-merge `data:local` emulator backstop passed for that SHA. The required PR aggregate already enforced the applicable build, unit tests, lint, and pull-request emulator gate. A green automatic run does not mean Device Run was submitted, a Google Play draft was uploaded, or a release is ready to publish.
 
-A green manual `Android Release` run means the GitHub-hosted Android gate passed, both Device Run submissions succeeded, and CI uploaded a Play draft. It still does not mean either Device Run session finished or passed, and it does not mean the release is already live. Inspect Device Run results through the CLI/GCS procedure below. Translation review, Play-delivered build verification, and final publication still happen later in Play Console. A non-green `Android Release` run means one of the required release stages failed or was skipped by a failed dependency.
+A green manual `Android Release` run means the GitHub-hosted Android gate and all four Device Run sessions, jobs and executions passed, and CI uploaded a Play draft. Inspect named cases through the CLI/GCS procedure below. Translation review, Play-delivered build verification, and final publication still happen later in Play Console. A non-green `Android Release` run means one of the required release stages failed or was skipped by a failed dependency.
 
 ## Device Run results and release correlation
 
-Use the `Android release preflight`, `Device Run submission`, and `Android Play draft upload` summaries for the target SHA, version code, release identifier `vc<versionCode>-r<runId>a<attempt>-s<shortSha>`, Play draft name `main-draft-<releaseIdentifier>`, both session IDs, device IDs, selected targets and GCS links. Retain `android-device-run-submissions` and verify each session's job labels against the same GitHub run/attempt and SHA. The release ID correlates the draft and both sessions; the session ID is Google's lookup identity.
+Use the release summaries and [workflow-defined artifacts and outputs](../.github/workflows/android-release.yml) for the target SHA, version code, release identifier `vc<versionCode>-r<runId>a<attempt>-s<shortSha>`, Play draft name `main-draft-<releaseIdentifier>`, all four session IDs, device IDs, selected targets and GCS links. Retain the full session artifacts and verify each session's job labels against the same GitHub run/attempt and SHA. The release ID correlates the draft and all four sessions; the session ID is Google's lookup identity.
 
 Device Run is part of Android Device Development Platform (DDP) Preview. Its Google Cloud console does not provide a Firebase-style test-results UI. The summary's session links open the GCS results folders; inspect session status with the CLI and named cases/logcat in GCS.
 
@@ -159,7 +159,7 @@ gcloud beta device-run sessions describe "${session_id}" --full --format=json \
   --project "flashcards-open-source-app" --location global > session.json
 ```
 
-The CLI ID is the basename of `.name` (`session-…`), not `.sessionReport.id`, which is a different UUID. A successful `wait` exit alone does not prove tests passed. In the full report require `.sessionReport.status.statusType == "DONE"` and `.sessionReport.result.resultType == "PASSED"`, every job and execution `DONE`/`PASSED`, and the exact configured destinations. Require one latest job and three compatibility jobs with nonempty execution reports. Check named case evidence as well under [the publication gate](release/android.md).
+The CLI ID is the basename of `.name` (`session-…`), not `.sessionReport.id`, which is a different UUID. A successful `wait` exit alone does not prove tests passed. In each full report require `.sessionReport.status.statusType == "DONE"` and `.sessionReport.result.resultType == "PASSED"`, every job and execution `DONE`/`PASSED`, and exactly one job on that session's configured destination with nonempty execution reports. Inspect all four reports and named cases under [the publication gate](release/android.md).
 
 Read `.sessionConfig.outputDirectoryConfig.gcsOutputDirectory.path` and append the session ID. The service manages `automation/sessions`; custom results directories are unsupported:
 
@@ -221,7 +221,7 @@ Catalog availability can change. For each ID, require `.name` basename to match,
 
 Set `ANDROID_DEVICE_RUN_COMPAT_DEVICES` to `["redfin-30","oriole-31","oriole-33"]` in the local root `.env` or environment with the latest ID and bucket name, then use `bash scripts/android/setup-github-android.sh` when configuration sync is authorized. The script requires all three Device Run variables; no results-directory variable exists.
 
-The latest session uses repeated targets `package com.flashcardsopensourceapp.app` and `notAnnotation com.flashcardsopensourceapp.app.ManualOnlyAndroidTest`. The compatibility session selects exactly these existing methods on each older destination (each passed as a separate `--test-targets "class <method>"`):
+The latest session uses repeated targets `package com.flashcardsopensourceapp.app` and `notAnnotation com.flashcardsopensourceapp.app.ManualOnlyAndroidTest`. Each of the three separate compatibility sessions selects exactly these existing methods on its older destination (each passed as a separate `--test-targets "class <method>"`):
 
 - `com.flashcardsopensourceapp.app.livesmoke.LiveSmokeTest#manualCardCanBeCreatedInDefaultWorkspace`
 - `com.flashcardsopensourceapp.app.livesmoke.LiveSmokeTest#repositorySeededCardCanBeReviewedInDefaultWorkspace`
@@ -273,11 +273,11 @@ Use Device Run project roles and dedicated bucket access described in [Google Cl
 
 ### 3. Configure trigger substitutions
 
-Set `_ANDROID_DEVICE_RUN_DEVICE` and `_ANDROID_DEVICE_RUN_RESULTS_BUCKET`. This optional entrypoint uses the synchronous helper for the latest full selection only; it does not supply the release's compatibility session or Play publication gates.
+Set `_ANDROID_DEVICE_RUN_DEVICE` and `_ANDROID_DEVICE_RUN_RESULTS_BUCKET`. This optional entrypoint uses the synchronous helper for the latest full selection only; it does not supply the release's three compatibility sessions or Play publication gates.
 
 ## Local Testing Rules
 
-For Android, follow [apps/android/README.md](../apps/android/README.md) for platform targets and testing focus. Keep full-suite local runs on API 37. The release adds the small API 30/31/33 Device Run smoke session and the first-release API 30 manual walkthrough in [the release procedure](release/android.md); broad older-device matrices remain out of scope.
+For Android, follow [apps/android/README.md](../apps/android/README.md) for platform targets and testing focus. Keep full-suite local runs on API 37. The release adds three small API 30/31/33 Device Run smoke sessions and the first-release API 30 manual walkthrough in [the release procedure](release/android.md); broad older-device matrices remain out of scope.
 Before running Android tests, also check which Android emulators are available locally. If a local emulator is available, start it in the background without a visible emulator window by default and preserve the usual test artifacts, logs, screenshots, and reports. Open a visible Android emulator only when the user explicitly asks for it at that time.
 For local instrumentation runs, prefer one clean emulator only:
 
@@ -347,4 +347,4 @@ bash scripts/android/run-android-device-run.sh \
   --session-output "/absolute/release-record/device-run-session.json"
 ```
 
-The helper requires `gcloud`, `jq`, explicit APKs, at least one repeated `--device` catalog ID, bucket name, timeout and session-output path. Synchronous mode also requires GNU `timeout` and `--max-session-duration`; keep it above the instrumentation timeout for startup and reporting overhead. `--async` submits and saves the initial full report without waiting. Optional `--labels` is comma-separated key/value pairs. Repeat `--device` and `--test-targets` for compatibility destinations and exact methods; use the release workflow's labels when correlating release artifacts. Inspect terminal reports and named cases under [results inspection](#device-run-results-and-release-correlation), even after synchronous success.
+The helper requires `gcloud`, `jq`, explicit APKs, at least one `--device` catalog ID, bucket name, timeout and session-output path. Synchronous mode also requires GNU `timeout` and `--max-session-duration`; keep it above the instrumentation timeout for startup and reporting overhead. `--async` submits and saves the initial full report without waiting. Optional `--labels` is comma-separated key/value pairs. For the release, use one `--device` per synchronous invocation, a separate session-output path per session, and repeat `--test-targets` for the four compatibility methods; follow the [workflow](../.github/workflows/android-release.yml) for sequence and labels. Inspect terminal reports and named cases under [results inspection](#device-run-results-and-release-correlation), even after synchronous success.
