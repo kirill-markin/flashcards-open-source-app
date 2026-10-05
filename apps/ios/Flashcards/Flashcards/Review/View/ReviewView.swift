@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 private let reviewCardsStringsTableName: String = "ReviewCards"
 private let reviewBottomBarHorizontalPadding: CGFloat = 20
@@ -23,7 +24,7 @@ private struct ReviewFilterPresentationContext: Equatable {
 }
 
 struct ReviewView: View {
-    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.scenePhase) var scenePhase
     @Environment(\.isLowPowerModeEnabled) var isLowPowerModeEnabled: Bool
     @Environment(FlashcardsStore.self) var store: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
@@ -31,8 +32,8 @@ struct ReviewView: View {
     @StateObject private var reviewSpeechController = ReviewSpeechController()
     @State var isAnswerVisible: Bool = false
     @State var preparedRevealState: PreparedReviewRevealState? = nil
-    // Keep the next review card warm so the next front can appear immediately after rating.
     @State var preparedNextRevealState: PreparedReviewRevealState? = nil
+    @State var isReviewReactionScreenVisible: Bool = false
     @State var reviewReactionLottiePrewarmTask: Task<Void, Never>?
     @State var reviewReactionLottiePrewarmId: UUID?
     @State var reviewReactionLottieAssetStore: ReviewReactionLottieAssetStore = makePendingReviewReactionLottieAssetStore()
@@ -130,12 +131,14 @@ struct ReviewView: View {
             ReviewReactionLayer(
                 events: self.activeReviewReactionEvents,
                 lottieAssetStore: self.reviewReactionLottieAssetStore,
-                onEventFinished: self.removeFinishedReviewReactionEvent(eventId:)
+                source: .review,
+                onEventFinished: self.removeFinishedReviewReactionEvent(eventId:action:reason:)
             )
         }
         .accessibilityIdentifier(UITestIdentifier.reviewScreen)
         .navigationTitle(String(localized: "Review", table: reviewCardsStringsTableName))
         .onAppear {
+            self.isReviewReactionScreenVisible = true
             if self.areReviewReactionAnimationsEnabled {
                 self.prewarmReviewReactionLottieAssets()
             }
@@ -145,16 +148,30 @@ struct ReviewView: View {
                 self.prewarmReviewReactionLottieAssets()
             } else {
                 self.cancelReviewReactionLottiePrewarm()
-                self.dismissActiveReviewReactions()
+                self.dismissActiveReviewReactions(reason: "disabled")
             }
+        }
+        .onChange(of: self.scenePhase) { _, phase in
+            if phase == .active {
+                self.prewarmReviewReactionLottieAssets()
+            } else {
+                self.cancelReviewReactionLottiePrewarm()
+                self.dismissActiveReviewReactions(reason: "scene_inactive")
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didReceiveMemoryWarningNotification)) { _ in
+            self.cancelReviewReactionLottiePrewarm()
+            self.dismissActiveReviewReactions(reason: "memory_warning")
         }
         .onChange(of: currentCard?.cardId) { _, _ in
             isAnswerVisible = false
             self.reviewSpeechController.stopSpeech()
         }
         .onDisappear {
+            self.isReviewReactionScreenVisible = false
             self.reviewSpeechController.stopSpeech()
             self.cancelReviewReactionLottiePrewarm()
+            self.dismissActiveReviewReactions(reason: "screen_disappeared")
         }
         .task(id: preparedRevealStatesTaskId) {
             await self.refreshPreparedRevealStates(reviewQueue: store.effectiveReviewQueue)
@@ -169,7 +186,7 @@ struct ReviewView: View {
         .simultaneousGesture(
             DragGesture(minimumDistance: 0)
                 .onChanged { _ in
-                    self.dismissActiveReviewReactions()
+                    self.dismissActiveReviewReactions(reason: "interaction")
                 }
         )
         .toolbar {
