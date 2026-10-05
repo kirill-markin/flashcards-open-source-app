@@ -51,14 +51,22 @@ resubmitting the same artifact. New artifacts follow all pre-submission gates.
    dispatch; a skipped or unselected test does not satisfy this gate. The archive
    validates device Release compilation without uploading anything; signing
    and distribution remain mandatory Xcode Cloud checks.
+   For every new release, select an eligible iOS 18 destination under
+   [Supported OS destinations](../ios-ci-cd.md#supported-os-destinations).
+   When Cloud cannot run the independent minimum selection on 18.x, run the
+   canonical [three-test local command](../ios-local-setup.md#ios-18-compatibility-smoke)
+   before cloud dispatch, in place of the guest-only command above. Its passed
+   guest-navigation test also satisfies this local preflight. If neither local
+   18.x simulator nor physical device is available, block dispatch until resolved.
 2. Access the app and Xcode Cloud through the App Store Connect API using
    [local credentials](../xcode-cloud-data-access.md#required-local-secrets). Use
    the browser for unsupported operations or diagnosed API access blockers;
    ask the user to complete Apple login/MFA if needed, then resume.
 3. Identify the two configured workflows for release build/archive and tests.
    Complete the [cloud configuration preflight](../ios-ci-cd.md#cloud-configuration-preflight)
-   before dispatch. Initially start both for the same release SHA and monitor
-   them in parallel. Record their run links and source commits; do not infer
+   and the applicable local iOS 18 gate in step 1 before dispatch. Initially
+   start both for the same release SHA and monitor them in parallel. Record
+   their run links and source commits; do not infer
    test success from the build. Retries may retain an unchanged successful
    archive only under step 5 and the shared reuse rules.
 4. While they run, create or verify the App Store version draft for the current
@@ -68,13 +76,17 @@ resubmitting the same artifact. New artifacts follow all pre-submission gates.
    requirements apply. Verify each saved field and required metadata; request
    help for missing declarations or unexpected store requirements.
 5. Require successful archive and test workflows, with complete test evidence.
-   Keep the full existing latest-OS smoke selection. Before the first public
-   release expanding compatibility to iOS/iPadOS 18, also require the three
-   [iOS 18 compatibility smokes and manual checklist](../ios-local-setup.md#ios-18-compatibility-smoke)
+   Keep the full existing latest-OS smoke selection. Every new iOS release
+   also requires all three existing
+   [iOS 18 compatibility smokes](../ios-local-setup.md#ios-18-compatibility-smoke)
    on an actual 18.x destination. Use one Cloud destination only when its saved
-   catalog and independent test selection permit it; otherwise use local Xcode
-   or an actual OS-18 device. Record the SHA, destination/OS, Xcode/SDK and result
-   evidence. If no 18 destination is available, defer expanded public release;
+   catalog and independent test selection preserve the full latest-OS suite;
+   otherwise require the local evidence from step 1. Record the exact source
+   SHA, destination/OS, Xcode/SDK, selected methods and native result evidence
+   in the [release ledger](evidence.md#release-ledger). All three must execute
+   and pass; skipped or unselected tests do not satisfy this gate. Complete the
+   linked manual checklist only for the first expanded release or changes
+   affecting OS-specific behavior. If no 18 destination is available, defer release;
    a lower deployment setting or static PR success does not satisfy this gate.
    Inspect the actual passed, failed, and skipped test results, plus errors and
    warnings even if the overall run is green. Record skipped cases, their reasons, and the resulting coverage
