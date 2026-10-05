@@ -25,6 +25,7 @@ import com.flashcardsopensourceapp.data.local.model.cards.CardDraft
 import com.flashcardsopensourceapp.data.local.model.cards.defaultCardType
 import com.flashcardsopensourceapp.data.local.model.cards.encodeDefaultCardMetadataJson
 import com.flashcardsopensourceapp.data.local.model.cloud.formatIsoTimestamp
+import com.flashcardsopensourceapp.data.local.model.media.ReviewMediaAssetFile
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.scheduling.encodeSchedulerStepListJson
@@ -41,6 +42,12 @@ import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
 import com.flashcardsopensourceapp.data.local.review.SharedPreferencesReviewPreferencesStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+
+private suspend fun unsupportedTestReviewMediaAssetFile(mediaAssetId: String): ReviewMediaAssetFile {
+    throw UnsupportedOperationException(
+        "Cloud identity test fixture does not support managed media file downloads. mediaAssetId=$mediaAssetId"
+    )
+}
 
 internal class CloudIdentityTestEnvironment private constructor(
     val context: Context,
@@ -123,6 +130,7 @@ internal class CloudIdentityTestEnvironment private constructor(
             resetCoordinator = resetCoordinator,
             guestSessionStore = guestAiSessionStore,
             appVersion = appVersion,
+            loadReviewMediaAssetFile = ::unsupportedTestReviewMediaAssetFile,
             demoCardDraftProvider = ::testDemoCardDraft,
             onGuestUpgradeDemoCardCleanupFailed = ::throwGuestUpgradeDemoCardCleanupFailure,
             onAnalyticsGuestIdentityLinkRequested = onAnalyticsGuestIdentityLinkRequested
@@ -166,6 +174,7 @@ internal class CloudIdentityTestEnvironment private constructor(
             resetCoordinator = restartedResetCoordinator,
             guestSessionStore = restartedGuestAiSessionStore,
             appVersion = appVersion,
+            loadReviewMediaAssetFile = ::unsupportedTestReviewMediaAssetFile,
             demoCardDraftProvider = ::testDemoCardDraft,
             onGuestUpgradeDemoCardCleanupFailed = ::throwGuestUpgradeDemoCardCleanupFailure
         )
@@ -213,6 +222,7 @@ internal class CloudIdentityTestEnvironment private constructor(
             operationCoordinator = restartedOperationCoordinator,
             resetCoordinator = restartedResetCoordinator,
             guestSessionStore = restartedGuestAiSessionStore,
+            loadReviewMediaAssetFile = ::unsupportedTestReviewMediaAssetFile,
             creationCoordinator = GuestCloudSessionCreationCoordinator(
                 guestSessionStore = restartedGuestAiSessionStore,
                 guestSessionCreator = aiChatRemoteService
@@ -236,6 +246,7 @@ internal class CloudIdentityTestEnvironment private constructor(
             resetCoordinator = resetCoordinator,
             guestSessionStore = guestAiSessionStore,
             cloudGuestSessionCoordinator = createCloudGuestSessionCoordinator(remoteGateway = remoteGateway),
+            loadReviewMediaAssetFile = ::unsupportedTestReviewMediaAssetFile,
             appVersion = appVersion
         )
     }
@@ -259,6 +270,7 @@ internal class CloudIdentityTestEnvironment private constructor(
             operationCoordinator = operationCoordinator,
             resetCoordinator = resetCoordinator,
             guestSessionStore = guestAiSessionStore,
+            loadReviewMediaAssetFile = ::unsupportedTestReviewMediaAssetFile,
             creationCoordinator = GuestCloudSessionCreationCoordinator(
                 guestSessionStore = guestAiSessionStore,
                 guestSessionCreator = guestSessionCreator

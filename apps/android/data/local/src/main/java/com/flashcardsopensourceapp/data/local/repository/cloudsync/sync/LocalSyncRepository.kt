@@ -12,6 +12,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryRequiredException
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
+import com.flashcardsopensourceapp.data.local.model.media.ReviewMediaAssetFile
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatusSnapshot
@@ -48,6 +49,7 @@ class LocalSyncRepository(
     private val resetCoordinator: CloudIdentityResetCoordinator,
     private val guestSessionStore: GuestAiSessionStore,
     private val cloudGuestSessionCoordinator: CloudGuestSessionCoordinator,
+    private val loadReviewMediaAssetFile: suspend (String) -> ReviewMediaAssetFile,
     private val appVersion: String
 ) : SyncRepository, AutoSyncEventRepository {
     private val transitionCoordinator: CloudLinkedWorkspaceTransitionCoordinator =
@@ -57,6 +59,7 @@ class LocalSyncRepository(
             remoteService = remoteService,
             syncLocalStore = syncLocalStore,
             operationCoordinator = operationCoordinator,
+            loadReviewMediaAssetFile = loadReviewMediaAssetFile,
             appVersion = appVersion
         )
     private val syncStatusState = MutableStateFlow(

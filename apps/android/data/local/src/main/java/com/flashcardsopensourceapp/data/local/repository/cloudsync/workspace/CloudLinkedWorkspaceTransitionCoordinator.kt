@@ -9,6 +9,8 @@ import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
+import com.flashcardsopensourceapp.data.local.model.media.ReviewMediaAssetFile
+import com.flashcardsopensourceapp.data.local.model.media.managedMediaAssetIdsReferencedByCardText
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.repository.SyncBlockedException
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.AuthenticatedCloudSession
@@ -28,6 +30,7 @@ internal class CloudLinkedWorkspaceTransitionCoordinator(
     private val remoteService: CloudRemoteGateway,
     private val syncLocalStore: SyncLocalStore,
     private val operationCoordinator: CloudOperationCoordinator,
+    private val loadReviewMediaAssetFile: suspend (String) -> ReviewMediaAssetFile,
     private val appVersion: String
 ) {
     suspend fun applyLinkedWorkspace(
@@ -223,7 +226,23 @@ internal class CloudLinkedWorkspaceTransitionCoordinator(
         accountSnapshot: CloudAccountSnapshot,
         selectedWorkspace: CloudWorkspaceSummary,
         remoteWorkspaceIsEmpty: Boolean
+    ): Unit = preferencesStore.runWithLocalOutboxWritesBlocked(
+        reason = "Workspace linking is finishing. Wait for account linking to complete before changing cards."
     ) {
+        val sourceWorkspace: WorkspaceEntity? = loadCurrentWorkspaceOrNull(
+            database = database,
+            preferencesStore = preferencesStore
+        )
+        if (remoteWorkspaceIsEmpty && sourceWorkspace != null &&
+            sourceWorkspace.workspaceId != selectedWorkspace.workspaceId
+        ) {
+            preserveReferencedWorkspaceMediaAssets(
+                database = database,
+                sourceWorkspaceId = sourceWorkspace.workspaceId,
+                destinationWorkspaceId = selectedWorkspace.workspaceId,
+                loadReviewMediaAssetFile = loadReviewMediaAssetFile
+            )
+        }
         val localLinkedWorkspace: WorkspaceEntity = syncLocalStore.migrateLocalShellToLinkedWorkspace(
             workspace = selectedWorkspace,
             remoteWorkspaceIsEmpty = remoteWorkspaceIsEmpty
@@ -317,4 +336,34 @@ private fun buildTransitionInvariantMessage(
         "activeWorkspaceId='${cloudSettings.activeWorkspaceId}' " +
         "linkedWorkspaceId='${cloudSettings.linkedWorkspaceId}' " +
         "localWorkspaceIds=$localWorkspaceIds"
+}
+
+internal suspend fun preserveReferencedWorkspaceMediaAssets(
+    database: AppDatabase,
+    sourceWorkspaceId: String,
+    destinationWorkspaceId: String,
+    loadReviewMediaAssetFile: suspend (String) -> ReviewMediaAssetFile
+) {
+    val mediaAssetIds: List<String> = database.cardDao().loadCards(workspaceId = sourceWorkspaceId)
+        .filter { card -> card.deletedAtMillis == null }
+        .flatMapTo(destination = mutableSetOf()) { card ->
+            managedMediaAssetIdsReferencedByCardText(
+                frontText = card.frontText,
+                backText = card.backText
+            )
+        }
+        .sorted()
+    for (mediaAssetId in mediaAssetIds) {
+        try {
+            loadReviewMediaAssetFile(mediaAssetId)
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            throw IllegalStateException(
+                "Cannot fork workspace '$sourceWorkspaceId' into '$destinationWorkspaceId': " +
+                    "cannot preserve managed media asset '$mediaAssetId'. ${error.message}",
+                error
+            )
+        }
+    }
 }

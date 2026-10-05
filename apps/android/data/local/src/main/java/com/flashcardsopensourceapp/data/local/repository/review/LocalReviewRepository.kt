@@ -289,16 +289,36 @@ class LocalReviewRepository(
         val reviewMediaAsset: ReviewMediaAssetLookup = loadActiveReviewMediaAsset(mediaAssetId = mediaAssetId)
         val mediaAsset: MediaAssetEntity = reviewMediaAsset.mediaAsset
         val sha256: String = normalizeMediaSha256(rawSha256 = mediaAsset.sha256)
-        val localFile: File = mediaDownloadLock(sha256 = sha256).withLock {
+        val downloadLock: Mutex = mediaDownloadLock(sha256 = sha256)
+        val cachedFile: File? = downloadLock.withLock {
             loadUsableCachedReviewMediaFile(
                 mediaAsset = mediaAsset,
                 sha256 = sha256,
                 nowMillis = System.currentTimeMillis()
-            ) ?: downloadReviewMediaFile(
-                mediaAsset = mediaAsset,
-                workspaceId = reviewMediaAsset.workspaceId,
-                sha256 = sha256
             )
+        }
+        val localFile: File = cachedFile ?: run {
+            // Cloud operations may materialize media while holding the cloud lock.
+            // Never request source credentials while holding the SHA lock.
+            val downloadUrl: MediaAssetDownloadUrl = validateReviewMediaAssetDownloadUrl(
+                downloadUrl = mediaAssetDownloadUrlLoader.loadMediaAssetDownloadUrl(
+                    workspaceId = reviewMediaAsset.workspaceId,
+                    mediaAssetId = mediaAsset.mediaAssetId
+                ),
+                mediaAsset = mediaAsset,
+                workspaceId = reviewMediaAsset.workspaceId
+            )
+            downloadLock.withLock {
+                loadUsableCachedReviewMediaFile(
+                    mediaAsset = mediaAsset,
+                    sha256 = sha256,
+                    nowMillis = System.currentTimeMillis()
+                ) ?: downloadReviewMediaFile(
+                    mediaAsset = mediaAsset,
+                    sha256 = sha256,
+                    downloadUrl = downloadUrl
+                )
+            }
         }
 
         return ReviewMediaAssetFile(
@@ -382,17 +402,9 @@ class LocalReviewRepository(
 
     private suspend fun downloadReviewMediaFile(
         mediaAsset: MediaAssetEntity,
-        workspaceId: String,
-        sha256: String
+        sha256: String,
+        downloadUrl: MediaAssetDownloadUrl
     ): File {
-        val downloadUrl: MediaAssetDownloadUrl = validateReviewMediaAssetDownloadUrl(
-            downloadUrl = mediaAssetDownloadUrlLoader.loadMediaAssetDownloadUrl(
-                workspaceId = workspaceId,
-                mediaAssetId = mediaAsset.mediaAssetId
-            ),
-            mediaAsset = mediaAsset,
-            workspaceId = workspaceId
-        )
         val localRelativePath: String = buildMediaBlobCacheRelativePath(sha256 = sha256)
         val targetFile: File = resolveMediaBlobCacheFile(localRelativePath = localRelativePath)
         val parentDirectory: File = requireNotNull(targetFile.parentFile) {

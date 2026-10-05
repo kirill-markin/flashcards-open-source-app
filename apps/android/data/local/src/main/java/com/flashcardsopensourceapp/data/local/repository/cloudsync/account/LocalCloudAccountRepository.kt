@@ -20,6 +20,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSendCodeResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
+import com.flashcardsopensourceapp.data.local.model.media.ReviewMediaAssetFile
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeletePreview
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeleteResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkContext
@@ -71,6 +72,7 @@ class LocalCloudAccountRepository(
     private val operationCoordinator: CloudOperationCoordinator,
     private val resetCoordinator: CloudIdentityResetCoordinator,
     private val guestSessionStore: GuestAiSessionStore,
+    private val loadReviewMediaAssetFile: suspend (String) -> ReviewMediaAssetFile,
     private val appVersion: String,
     /** The onboarding demo card in the current app language; `:app` owns its text. */
     private val demoCardDraftProvider: () -> CardDraft,
@@ -105,6 +107,7 @@ class LocalCloudAccountRepository(
             remoteService = remoteService,
             syncLocalStore = syncLocalStore,
             operationCoordinator = operationCoordinator,
+            loadReviewMediaAssetFile = loadReviewMediaAssetFile,
             appVersion = appVersion
         )
     private val signInCoordinator: CloudSignInCoordinator = CloudSignInCoordinator(
