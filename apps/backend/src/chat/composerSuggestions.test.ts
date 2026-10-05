@@ -15,9 +15,23 @@ test("generateFollowUpChatComposerSuggestions uses the configured request metada
       responses: {
         create: async (request: OpenAI.Responses.ResponseCreateParams): Promise<OpenAI.Responses.Response> => {
           capturedRequests.push(request);
+          const suggestionsJson = "{\"suggestions\":[\"Review this card\",\"Show an example\"]}";
           return {
-            output_text: "{\"suggestions\":[\"Review this card\",\"Show an example\"]}",
-          } as OpenAI.Responses.Response;
+            status: "completed",
+            incomplete_details: null,
+            output: [{
+              id: "message-1",
+              type: "message",
+              role: "assistant",
+              status: "completed",
+              content: [{
+                type: "output_text",
+                text: suggestionsJson,
+                annotations: [],
+              }],
+            }],
+            output_text: suggestionsJson,
+          } as unknown as OpenAI.Responses.Response;
         },
       },
     } as unknown as OpenAI),
