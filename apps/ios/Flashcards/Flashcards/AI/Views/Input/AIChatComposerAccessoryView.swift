@@ -220,7 +220,7 @@ extension AIChatView {
                             )) {
                                 self.dismissComposerFocus()
                             }
-                            .buttonStyle(.glass)
+                            .nativeActionButtonStyle()
                             .accessibilityIdentifier(UITestIdentifier.aiComposerDismissKeyboardButton)
                         }
 
@@ -236,7 +236,7 @@ extension AIChatView {
                             } label: {
                                 aiChatComposerAccessoryIcon(systemName: "paperclip")
                             }
-                            .buttonStyle(.glass)
+                            .nativeActionButtonStyle()
                             .tint(.accentColor)
                             .disabled(self.chatStore.canAttachToDraft == false)
                             .accessibilityLabel(aiSettingsLocalized("ai.composer.addAttachment", "Add attachment"))
@@ -257,7 +257,7 @@ extension AIChatView {
                                     systemName: self.chatStore.dictationState == .recording ? "stop.fill" : "mic"
                                 )
                             }
-                            .buttonStyle(.glass)
+                            .nativeActionButtonStyle()
                             .tint(self.chatStore.dictationState == .recording ? .red : .accentColor)
                             .disabled(self.chatStore.canUseDictation == false)
                             .accessibilityLabel(

@@ -74,7 +74,7 @@ struct DeleteWorkspaceConfirmationView: View {
                             await self.deleteWorkspace()
                         }
                     }
-                    .buttonStyle(.glassProminent)
+                    .nativeProminentActionButtonStyle()
                     .tint(.red)
                     .disabled(self.isDeleteEnabled == false)
                     .accessibilityIdentifier(UITestIdentifier.deleteWorkspaceConfirmationButton)

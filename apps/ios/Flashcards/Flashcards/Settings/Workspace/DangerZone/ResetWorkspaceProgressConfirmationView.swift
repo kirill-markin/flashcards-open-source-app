@@ -119,7 +119,7 @@ struct ResetWorkspaceProgressConfirmationView: View {
         ) {
             self.requestPreview()
         }
-        .buttonStyle(.glassProminent)
+        .nativeProminentActionButtonStyle()
         .tint(.red)
         .disabled(self.isConfirmationMatched == false || self.isOperationInProgress)
         .accessibilityIdentifier(UITestIdentifier.resetWorkspaceProgressContinueButton)
@@ -173,7 +173,7 @@ struct ResetWorkspaceProgressConfirmationView: View {
         ) {
             self.requestReset(preview: preview)
         }
-        .buttonStyle(.glassProminent)
+        .nativeProminentActionButtonStyle()
         .tint(.red)
         .disabled(self.isResetting)
         .accessibilityIdentifier(UITestIdentifier.resetWorkspaceProgressButton)

@@ -105,7 +105,7 @@ struct TagsScreen: View {
             placement: .automatic,
             prompt: aiSettingsLocalized("settings.workspace.tags.searchPrompt", "Search tags")
         )
-        .searchToolbarBehavior(preferredNativeSearchToolbarBehavior(horizontalSizeClass: self.horizontalSizeClass))
+        .nativeSearchToolbar(horizontalSizeClass: self.horizontalSizeClass)
         .task(id: store.localReadVersion) {
             await self.reloadTagsSummary()
         }
