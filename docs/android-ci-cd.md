@@ -7,27 +7,25 @@ This repository uses one reusable Android validation workflow plus three entry w
 - `.github/workflows/pr-checks.yml` contains the required aggregate pull-request gate and conditionally calls the Android validation jobs
 - `.github/workflows/android-ci.yml` is the automatic `push main` Android validation workflow
 - `.github/workflows/android-release.yml` is the manual Android release workflow
-- Firebase Test Lab runs only from the manual release workflow on Google-managed devices
+- GitHub submits Device Run only from the manual release workflow on Google-managed devices
 - automatic Android CI and manual Android release are fully independent from the AWS/Web release workflow
 - the manual Android release workflow uploads a production-track draft release to Google Play; final publication still happens later in Play Console
 - `cloudbuild.android.yaml` is the Google-native entrypoint for Cloud Build triggers in the Google Cloud console
 
 This setup keeps repository-native checks in GitHub while still allowing Google-managed device testing and avoiding long-lived Google service account keys.
 We treat the managed-device app instrumentation suite as the closest CI signal to production behavior, while GitHub-hosted jobs keep the fast unit/build/lint checks and the smaller `data:local` instrumentation gate.
-For release runs, the workflow resolves one shared `ANDROID_VERSION_CODE` and one manager-readable Android release identifier once, then reuses them across Android build artifacts, the Play draft release name, and Firebase Test Lab result correlation for that same SHA. The current release identifier format is `vc<versionCode>-r<runId>a<attempt>-s<shortSha>`.
+For release runs, the workflow resolves one shared `ANDROID_VERSION_CODE` and one manager-readable Android release identifier once, then reuses them across Android build artifacts, the Play draft release name, and Device Run result correlation for that same SHA. The current release identifier format is `vc<versionCode>-r<runId>a<attempt>-s<shortSha>`.
 
 ## Required GitHub repository variables
 
-The manual Android release workflow Firebase Test Lab job depends on these repository variables:
+The manual Android release workflow Device Run job depends on these repository variables:
 
 - `GCP_PROJECT_ID`
 - `GCP_WORKLOAD_IDENTITY_PROVIDER`
 - `GCP_SERVICE_ACCOUNT_EMAIL`
-- `ANDROID_FTL_DEVICE_MODEL`
-- `ANDROID_FTL_DEVICE_VERSION` (must be `37`)
-- `ANDROID_FTL_COMPAT_DEVICES` (see [device configuration](#choose-the-firebase-test-lab-devices))
-- `ANDROID_FTL_RESULTS_BUCKET`
-- `ANDROID_FTL_RESULTS_DIR`
+- `ANDROID_DEVICE_RUN_DEVICE` (catalog ID for API 37)
+- `ANDROID_DEVICE_RUN_COMPAT_DEVICES` (three catalog IDs ordered by API 30, 31, 33; see [device configuration](#choose-the-device-run-devices))
+- `ANDROID_DEVICE_RUN_RESULTS_BUCKET` (bucket name without `gs://` or a path)
 
 The Android Google Play release workflow depends on these repository variables:
 
@@ -39,10 +37,6 @@ The Android Google Play release workflow depends on these repository variables:
 - `ANDROID_SENTRY_TRACES_SAMPLE_RATE` (optional, defaults to `0` for release builds)
 - `SENTRY_ORG`
 - `SENTRY_ANDROID_PROJECT`
-
-This optional local `.env` variable documents the operator service account used for Firebase Test Lab diagnostics:
-
-- `GCP_FTL_READER_SERVICE_ACCOUNT`
 
 And these repository secrets:
 
@@ -71,7 +65,7 @@ Pull-request GitHub Actions workflow: `.github/workflows/pr-checks.yml`
 - The narrow filter exists because `:data:local` depends only on `:core:observability`, so `:app`, `:core:ui`, and `:feature:*` changes cannot change that suite result
 - Aggregates every conditional and unconditional PR job into `Repository static checks`; branch protection requires that context with strict up-to-date checks before merge
 - Does not upload a Google Play draft
-- Does not submit Firebase Test Lab
+- Does not submit Device Run
 
 Automatic GitHub Actions workflow: `.github/workflows/android-ci.yml`
 
@@ -79,7 +73,7 @@ Automatic GitHub Actions workflow: `.github/workflows/android-ci.yml`
 - Calls `.github/workflows/android-ci-reusable.yml` with `run_build: false`, so only the `data:local` emulator instrumentation job runs
 - Is the post-merge emulator backstop and does not repeat the build, unit tests, or lint already enforced before merge
 - Does not upload a Google Play draft
-- Does not submit Firebase Test Lab
+- Does not submit Device Run
 
 GitHub Actions reusable workflow: `.github/workflows/android-ci-reusable.yml`
 
@@ -98,15 +92,15 @@ GitHub Actions reusable workflow: `.github/workflows/android-ci-reusable.yml`
 - Reuses the caller-provided `ANDROID_VERSION_CODE` across Android CI/build artifacts
 - Uses the Sentry release name `com.flashcardsopensourceapp.app@<versionName>+<versionCode>` for Android release artifact correlation; the workflow summary also prints the manager-readable Play release identifier, but runtime Sentry event tags/contexts are controlled by app runtime code
 
-Top-level release workflow Firebase job: `.github/workflows/android-release.yml` job `firebase_test_lab_submission`
+Top-level release workflow Device Run job: `.github/workflows/android-release.yml` job `device_run_submission` (display name `Device Run app instrumentation`)
 
 - Starts on every manual `Android Release` run after `android_ci` succeeds
-- Validates both Firebase device configurations against the current catalog, authenticates to Google Cloud once, downloads the debug APK artifacts once, and submits the existing full app instrumentation package `com.flashcardsopensourceapp.app` on API 37 with its manual-only exclusions
-- Submits one additional asynchronous matrix using explicit model/version pairs for API 30, 31, and 33 and only the four existing smoke methods listed under [device configuration](#choose-the-firebase-test-lab-devices)
-- Declares the run to the backend as automation with the `isAutomation=true` instrumentation environment variable, so nothing it syncs becomes product analytics
-- Nothing before a real Test Lab run proves that the orchestrator forwards that variable into each `am instrument -e`, so confirm it on the first run from the device logcat line `event=automation_environment_resolved`: `hasArgumentSignal=true` means the chain works, while `hasArgumentSignal=false isFirebaseTestLabDevice=true` means the run was marked only by the device-setting fallback and the argument was dropped
-- Reuses the shared release identifier `vc<versionCode>-r<runId>a<attempt>-s<shortSha>` in Firebase result naming and traces the latest and compatibility results separately under `${ANDROID_FTL_RESULTS_DIR}/<releaseIdentifier>/latest` and `${ANDROID_FTL_RESULTS_DIR}/<releaseIdentifier>/compat`
-- Requires both Firebase Test Lab submissions before the Play draft upload starts; both are asynchronous. Follow [the Android release procedure](release/android.md) and require successful terminal results for latest and every configured older destination before publication
+- Uses Google Cloud CLI `587.0.0` with the `beta` component and location `global`; validates all four configured catalog IDs, authenticates once through WIF, and downloads `android-debug-apks` once
+- Submits the full app instrumentation package on API 37, excluding `ManualOnlyAndroidTest`, plus a separate compatibility session with the four existing methods on API 30, 31, and 33; see [device configuration](#choose-the-device-run-devices)
+- Uses Orchestrator `auto`, `clearPackageData=true,isAutomation=true`, portrait and `en-US`; inspect `event=automation_environment_resolved` in logcat for `isAutomation=true`, `isEmulator=false`, `hasArgumentSignal=true`, `isFirebaseTestLabDevice=false`. Device Run has no Firebase device marker, so the instrumentation argument must reach the app
+- Labels both sessions with `release_id`, `target_sha`, `github_run_id`, `github_run_attempt`, and `suite=latest` or `suite=compat`
+- Saves submission logs, full session JSON and the catalog in `android-device-run-submissions`; job outputs must report `submission_state=submitted` and `compat_submission_state=submitted` before `publish_android` starts
+- Submissions are asynchronous. Follow [the Android release procedure](release/android.md) and require terminal passing session, job, execution and named test results before publication
 
 Top-level release workflow Play job: `.github/workflows/android-release.yml` job `publish_android`
 
@@ -123,79 +117,58 @@ The pull-request Android flow is:
 3. Android data-layer, `:core:observability`, and shared Gradle configuration changes also run `data:local` emulator instrumentation in parallel
 4. The always-present `Repository static checks` aggregate succeeds only when every in-scope PR job succeeds and every out-of-scope conditional job is skipped
 5. Branch protection requires that aggregate against the latest `main`, so an outdated or failing pull request cannot merge
-6. The workflow stops there: no Firebase Test Lab submission and no Google Play draft upload
+6. The workflow stops there: no Device Run submission and no Google Play draft upload
 
 The automatic Android CI flow is:
 
 1. `android-ci.yml` starts on `push main` for Android-impacting changes
 2. `data:local` Android instrumentation runs on a GitHub-hosted Android 17 emulator
 3. The already-required build, unit tests, and lint do not repeat
-4. The workflow stops there: no Firebase Test Lab submission and no Google Play draft upload
+4. The workflow stops there: no Device Run submission and no Google Play draft upload
 
 The manual Android release flow is:
 
 1. `android-release.yml` starts only through manual `workflow_dispatch`; optional `target_sha` pins a specific release commit, otherwise the selected workflow ref SHA is used
 2. The workflow resolves one shared `ANDROID_VERSION_CODE` and one shared Android release identifier for the run
 3. The reusable Android CI gate runs for the target SHA
-4. Latest full-suite and API 30/31/33 smoke matrices are submitted for the same debug/test APKs produced by the CI gate
-5. After both Firebase submissions succeed, the signed Android App Bundle is built and uploaded as a workflow artifact
+4. Latest full-suite and API 30/31/33 smoke sessions are submitted for the same debug/test APKs produced by the CI gate
+5. After both Device Run submissions succeed, the signed Android App Bundle is built and uploaded as a workflow artifact
 6. The R8 optimization coverage gate reads `BUNDLE-METADATA/com.android.tools/r8.json` from that bundle and fails the run when shrinking, optimization, or obfuscation coverage is below Google's 25% minimum
 7. Only then is the bundle uploaded as a Google Play production-track draft
-8. Require both matrices and all configured destinations to pass under [the Android release procedure](release/android.md), then review the Play Console draft before publishing manually
+8. Require both sessions and all configured destinations to pass under [the Android release procedure](release/android.md), then review the Play Console draft before publishing manually
 
 After pushing to `main`, watch `Android CI` separately when Android-impacting files changed.
 
-For Android, a green automatic `Android CI` run means the post-merge `data:local` emulator backstop passed for that SHA. The required PR aggregate already enforced the applicable build, unit tests, lint, and pull-request emulator gate. A green automatic run does not mean Firebase Test Lab was submitted, a Google Play draft was uploaded, or a release is ready to publish.
+For Android, a green automatic `Android CI` run means the post-merge `data:local` emulator backstop passed for that SHA. The required PR aggregate already enforced the applicable build, unit tests, lint, and pull-request emulator gate. A green automatic run does not mean Device Run was submitted, a Google Play draft was uploaded, or a release is ready to publish.
 
-A green manual `Android Release` run means the GitHub-hosted Android gate passed, both Firebase Test Lab submissions succeeded, and CI uploaded a Play draft. It still does not mean either Firebase Test Lab matrix finished or passed, and it does not mean the release is already live. Translation review, Firebase matrix review, Play-delivered build verification, and final publication still happen later in Play Console. A non-green `Android Release` run means one of the required release stages failed or was skipped by a failed dependency.
+A green manual `Android Release` run means the GitHub-hosted Android gate passed, both Device Run submissions succeeded, and CI uploaded a Play draft. It still does not mean either Device Run session finished or passed, and it does not mean the release is already live. Inspect Device Run results through the CLI/GCS procedure below. Translation review, Play-delivered build verification, and final publication still happen later in Play Console. A non-green `Android Release` run means one of the required release stages failed or was skipped by a failed dependency.
 
-To match a Play draft or Firebase submission to the exact SHA and GitHub run:
+## Device Run results and release correlation
 
-- use the `Android release preflight` summary to get the target SHA, shared `ANDROID_VERSION_CODE`, and shared release identifier `vc<versionCode>-r<runId>a<attempt>-s<shortSha>`
-- use the `Android Play draft upload` summary to get the Play draft release name `main-draft-<releaseIdentifier>` and version code
-- use the `Run details` link in the release summary to open the exact GitHub Actions run
-- use the Firebase summaries to get both Google-assigned matrix IDs, links, device descriptors and selected targets; latest results are under `${ANDROID_FTL_RESULTS_DIR}/<releaseIdentifier>/latest` and older smoke results under `${ANDROID_FTL_RESULTS_DIR}/<releaseIdentifier>/compat` in the configured bucket
-- correlate everything by the shared release identifier, GitHub run id and attempt, and target SHA; the Firebase matrix ID is useful for lookup after submission but it is not the manager-readable release identifier
+Use the `Android release preflight`, `Device Run submission`, and `Android Play draft upload` summaries for the target SHA, version code, release identifier `vc<versionCode>-r<runId>a<attempt>-s<shortSha>`, Play draft name `main-draft-<releaseIdentifier>`, both session IDs, device IDs, selected targets and GCS links. Retain `android-device-run-submissions` and verify each session's job labels against the same GitHub run/attempt and SHA. The release ID correlates the draft and both sessions; the session ID is Google's lookup identity.
 
-## Local Firebase Test Lab diagnostics
+Device Run is part of Android Device Development Platform (DDP) Preview. Its Google Cloud console does not provide a Firebase-style test-results UI. The summary's session links open the GCS results folders; inspect session status with the CLI and named cases/logcat in GCS.
 
-Use `GCP_FTL_READER_SERVICE_ACCOUNT` for local read-only Firebase Test Lab inspection. Do not create or store Google service account JSON keys for this project; key creation is blocked by organization policy, and local access should use `gcloud` service account impersonation.
-
-The current reader service account is:
-
-```text
-codex-ftl-reader@flashcards-open-source-app.iam.gserviceaccount.com
-```
-
-It needs these permissions:
-
-- `roles/viewer`, `roles/cloudtestservice.testViewer`, and `roles/firebase.viewer` on the Google Cloud project
-- `roles/storage.objectViewer` on the dedicated Firebase Test Lab results bucket
-- `roles/iam.serviceAccountTokenCreator` for the local operator account that impersonates it
-
-After `gcloud auth login`, verify diagnostics access with:
+Use an already-authorized local Google identity, or existing service-account impersonation where available. Do not create JSON keys, a new reader principal, or grant general project access for diagnostics. Append `--impersonate-service-account` only for an account the operator is already allowed to impersonate. For each session, using CLI `587.0.0` with `beta`:
 
 ```bash
-source .env
-
-gcloud auth print-access-token \
-  --impersonate-service-account "${GCP_FTL_READER_SERVICE_ACCOUNT}" >/dev/null
-
-gcloud --impersonate-service-account "${GCP_FTL_READER_SERVICE_ACCOUNT}" \
-  storage ls "${ANDROID_FTL_RESULTS_BUCKET}/${ANDROID_FTL_RESULTS_DIR}/"
+session_id="session-ID-FROM-RELEASE-SUMMARY"
+gcloud beta device-run sessions wait "${session_id}" \
+  --project "flashcards-open-source-app" --location global
+gcloud beta device-run sessions describe "${session_id}" --full --format=json \
+  --project "flashcards-open-source-app" --location global > session.json
 ```
 
-Fetch a specific matrix summary with the Testing API:
+The CLI ID is the basename of `.name` (`session-…`), not `.sessionReport.id`, which is a different UUID. A successful `wait` exit alone does not prove tests passed. In the full report require `.sessionReport.status.statusType == "DONE"` and `.sessionReport.result.resultType == "PASSED"`, every job and execution `DONE`/`PASSED`, and the exact configured destinations. Require one latest job and three compatibility jobs with nonempty execution reports. Check named case evidence as well under [the publication gate](release/android.md).
+
+Read `.sessionConfig.outputDirectoryConfig.gcsOutputDirectory.path` and append the session ID. The service manages `automation/sessions`; custom results directories are unsupported:
 
 ```bash
-source .env
-
-access_token="$(gcloud auth print-access-token --impersonate-service-account "${GCP_FTL_READER_SERVICE_ACCOUNT}")"
-
-curl --silent --show-error --fail \
-  --header "Authorization: Bearer ${access_token}" \
-  "https://testing.googleapis.com/v1/projects/${GCP_PROJECT_ID}/testMatrices/<matrix-id>"
+results_base="$(jq -r '.sessionConfig.outputDirectoryConfig.gcsOutputDirectory.path' session.json)"
+gcloud storage ls --recursive "${results_base}/${session_id}/"
 ```
+
+List before selecting artifacts. Actual result layouts include `job-000/junit.xml`, `job-000/execution-000/junit.xml` and `job-000/execution-000/logcat.txt` (and corresponding other job/execution folders); do not assume a `merged_junit.xml` exists. Retain full reports and the named JUnit cases/counts for every execution, reconcile any duplicate job/execution reports, and investigate zero-test or unexpected skipped selections. Preserve source, APK, session, device and GitHub run identities with the evidence.
 
 ## Android translation model
 
@@ -217,178 +190,43 @@ Cross-client live smoke references:
 Cloud Build config: `cloudbuild.android.yaml`
 
 - Builds a dedicated Android CI container from `apps/android/ci/Dockerfile`
-- Reuses the same fast CI shell script as GitHub Actions and the same Firebase Test Lab package-level targeting
+- Reuses the same fast CI shell script as GitHub Actions and the same Device Run package-level targeting
 - Can be attached to a Cloud Build trigger connected to the GitHub repository
 
-## Recommended architecture
+## Google Cloud access and device preflight
 
-This is the current recommended shape for this repository:
+Use the existing project `flashcards-open-source-app`, WIF provider, `github-android-ci@flashcards-open-source-app.iam.gserviceaccount.com`, and dedicated results bucket `flashcards-open-source-app-test-lab-results`. GitHub authentication uses Workload Identity Federation, with no service-account JSON key. Keep the separate Play upload service account and its app-scoped Play Console permissions.
 
-- Use GitHub Actions as the default CI orchestrator because the repo already uses GitHub Actions for other services
-- Use Workload Identity Federation for GitHub to Google Cloud authentication
-- Do not store Google service account JSON keys in GitHub secrets
-- Use Firebase Test Lab for instrumentation tests instead of self-hosted emulators
-- Use a separate Google Cloud service account for Google Play uploads, scoped in Play Console to this app only
-- Use Google Play production-track draft uploads so translation review and final release approval stay in Play Console
-- Use a dedicated Cloud Storage bucket for Test Lab results so you do not need broad `roles/editor`
+The verified Device Run setup has these APIs enabled: `devicerun.googleapis.com`, `devicestreaming.googleapis.com`, and `testing.googleapis.com`. The existing Android CI service account has project roles `roles/devicerun.admin` and `roles/serviceusage.serviceUsageConsumer`, with its existing bucket-scoped `roles/storage.admin`. Retain the existing WIF `roles/iam.workloadIdentityUser` binding. Do not add project Viewer/Editor/Owner or reader grants. Play uploads use the existing `androidpublisher.googleapis.com` API and separate `GCP_PLAY_SERVICE_ACCOUNT_EMAIL`.
 
-Google's current documentation supports this direction:
+### Choose the Device Run devices
 
-- Android CI guidance explicitly lists Firebase Test Lab as a reliable device farm option for instrumented tests: [Android CI automation](https://developer.android.com/training/testing/continuous-integration/automation)
-- Firebase Test Lab IAM guidance says `gcloud firebase test android run` defaults to requiring `roles/editor`, and recommends using your own results bucket plus narrower roles instead: [Firebase Test Lab IAM permissions](https://firebase.google.com/docs/test-lab/android/iam-permissions-reference)
-- The Google GitHub auth action warns that Workload Identity Federation is preferred over long-lived service account JSON keys: [google-github-actions/auth](https://github.com/google-github-actions/auth)
-
-## One-time Google Cloud setup
-
-You need a Google Cloud project with Firebase enabled for Test Lab.
-
-### 1. Create or choose the project
-
-- Pick the Google Cloud project that should own Android CI
-- Add Firebase to that project if it is not already a Firebase project
-
-### 2. Create a dedicated Test Lab results bucket
-
-Example:
+Read the current catalog before a release and preserve it with the release record:
 
 ```bash
-gcloud storage buckets create "gs://flashcards-open-source-app-test-lab-results" \
-  --project "YOUR_GCP_PROJECT_ID" \
-  --location "europe-west1" \
-  --uniform-bucket-level-access
+gcloud beta device-run devices list --project "flashcards-open-source-app" \
+  --location global --format=json > device-run-catalog.json
 ```
 
-### 3. Create a GitHub Actions service account
+Configure exact catalog IDs, not model/version descriptors. `ANDROID_DEVICE_RUN_DEVICE` selects one API 37 destination; `ANDROID_DEVICE_RUN_COMPAT_DEVICES` is a JSON array of three distinct IDs ordered by API 30, 31 and 33. The configured selections are:
 
-Example:
+| Variable / position | Catalog ID | Device | API | Catalog availability at verification |
+| --- | --- | --- | --- | --- |
+| `ANDROID_DEVICE_RUN_DEVICE` | `cubs-37` | Pixel 11 | 37 | High |
+| Compatibility `[0]` | `redfin-30` | Pixel 5 | 30 | High |
+| Compatibility `[1]` | `oriole-31` | Pixel 6 | 31 | High |
+| Compatibility `[2]` | `oriole-33` | Pixel 6 | 33 | Medium |
 
-```bash
-gcloud iam service-accounts create "github-android-ci" \
-  --project "YOUR_GCP_PROJECT_ID" \
-  --display-name "GitHub Android CI"
-```
+Catalog availability can change. For each ID, require `.name` basename to match, `.osVersion` to be its intended API string, `.platform == "ANDROID"`, `.lifecycle.state == "ACTIVE"`, no `accessDeniedReasons`, and an automation entry in `supportedProducts`. Check availability before submission; fail explicitly on an unavailable or inaccessible destination. Record the four actual IDs/APIs and selected targets. No API is silently omitted and no device/version cross-product is generated. API 32 remains supported without a separate release destination.
 
-Grant the minimum project roles recommended by Firebase Test Lab when you use your own results bucket:
+Set `ANDROID_DEVICE_RUN_COMPAT_DEVICES` to `["redfin-30","oriole-31","oriole-33"]` in the local root `.env` or environment with the latest ID and bucket name, then use `bash scripts/android/setup-github-android.sh` when configuration sync is authorized. The script requires all three Device Run variables; no results-directory variable exists.
 
-```bash
-gcloud projects add-iam-policy-binding "YOUR_GCP_PROJECT_ID" \
-  --member "serviceAccount:github-android-ci@YOUR_GCP_PROJECT_ID.iam.gserviceaccount.com" \
-  --role "roles/cloudtestservice.testAdmin"
-
-gcloud projects add-iam-policy-binding "YOUR_GCP_PROJECT_ID" \
-  --member "serviceAccount:github-android-ci@YOUR_GCP_PROJECT_ID.iam.gserviceaccount.com" \
-  --role "roles/firebase.analyticsViewer"
-```
-
-Grant bucket access scoped to the dedicated results bucket:
-
-```bash
-gcloud storage buckets add-iam-policy-binding "gs://flashcards-open-source-app-test-lab-results" \
-  --member "serviceAccount:github-android-ci@YOUR_GCP_PROJECT_ID.iam.gserviceaccount.com" \
-  --role "roles/storage.admin"
-```
-
-### 4. Create Workload Identity Federation for GitHub Actions
-
-Create the pool:
-
-```bash
-gcloud iam workload-identity-pools create "github" \
-  --project "YOUR_GCP_PROJECT_ID" \
-  --location "global" \
-  --display-name "GitHub Actions"
-```
-
-Create the provider:
-
-```bash
-gcloud iam workload-identity-pools providers create-oidc "flashcards-open-source-app" \
-  --project "YOUR_GCP_PROJECT_ID" \
-  --location "global" \
-  --workload-identity-pool "github" \
-  --display-name "flashcards-open-source-app GitHub" \
-  --issuer-uri "https://token.actions.githubusercontent.com" \
-  --attribute-mapping "google.subject=assertion.sub,attribute.actor=assertion.actor,attribute.repository=assertion.repository,attribute.repository_owner=assertion.repository_owner" \
-  --attribute-condition "assertion.repository == 'kirill-markin/flashcards-open-source-app'"
-```
-
-Allow the repository to impersonate the service account:
-
-```bash
-gcloud iam service-accounts add-iam-policy-binding \
-  "github-android-ci@YOUR_GCP_PROJECT_ID.iam.gserviceaccount.com" \
-  --project "YOUR_GCP_PROJECT_ID" \
-  --role "roles/iam.workloadIdentityUser" \
-  --member "principalSet://iam.googleapis.com/projects/YOUR_PROJECT_NUMBER/locations/global/workloadIdentityPools/github/attribute.repository/kirill-markin/flashcards-open-source-app"
-```
-
-The GitHub variable `GCP_WORKLOAD_IDENTITY_PROVIDER` must use this format:
-
-```text
-projects/YOUR_PROJECT_NUMBER/locations/global/workloadIdentityPools/github/providers/flashcards-open-source-app
-```
-
-### 5. Create a dedicated Google Play release service account
-
-Create a second service account for Google Play uploads:
-
-```bash
-gcloud iam service-accounts create "github-android-play" \
-  --project "YOUR_GCP_PROJECT_ID" \
-  --display-name "GitHub Android Play Release"
-```
-
-You do not need broad Google Cloud project roles for the Play upload itself. The release workflow authenticates as this service account through Workload Identity Federation, and the actual app release permissions are granted in Play Console.
-
-Allow the repository to impersonate the service account:
-
-```bash
-gcloud iam service-accounts add-iam-policy-binding \
-  "github-android-play@YOUR_GCP_PROJECT_ID.iam.gserviceaccount.com" \
-  --project "YOUR_GCP_PROJECT_ID" \
-  --role "roles/iam.workloadIdentityUser" \
-  --member "principalSet://iam.googleapis.com/projects/YOUR_PROJECT_NUMBER/locations/global/workloadIdentityPools/github/attribute.repository/kirill-markin/flashcards-open-source-app"
-```
-
-### 6. Enable the Google Play Developer API
-
-Enable the Android Publisher API in the same Google Cloud project:
-
-```bash
-gcloud services enable androidpublisher.googleapis.com \
-  --project "YOUR_GCP_PROJECT_ID"
-```
-
-### Choose the Firebase Test Lab devices
-
-Keep `ANDROID_FTL_DEVICE_MODEL` and `ANDROID_FTL_DEVICE_VERSION=37` for the existing full app suite. Set `ANDROID_FTL_COMPAT_DEVICES` to a JSON array with exactly one model/version pair for each of API 30, 31 and 33. Versions are strings; locale `en` and orientation `portrait` are fixed by the workflow. The same catalog model may serve multiple OS versions when all those pairs are available.
-
-Before the first expanded release, read the current catalog and verify every selected pair:
-
-```bash
-gcloud firebase test android models list --project "YOUR_GCP_PROJECT_ID" --format=json
-```
-
-Use only IDs returned by that catalog. This template contains placeholders, not runnable device IDs:
-
-```json
-[
-  {"model": "CATALOG_MODEL_FOR_API_30", "version": "30"},
-  {"model": "CATALOG_MODEL_FOR_API_31", "version": "31"},
-  {"model": "CATALOG_MODEL_FOR_API_33", "version": "33"}
-]
-```
-
-Export that JSON as `ANDROID_FTL_COMPAT_DEVICES` or save it in the local root `.env`, then run `bash scripts/android/setup-github-android.sh`. The script syncs it only when supplied, preserving any existing GitHub value when absent. The release workflow fails explicitly for missing/malformed configuration, unavailable pairs, or a latest version other than 37. No API is silently omitted and no model/version cross-product is generated. API 32 is supported without a separate release destination.
-
-The compatibility matrix selects exactly these existing methods on each older destination:
+The latest session uses repeated targets `package com.flashcardsopensourceapp.app` and `notAnnotation com.flashcardsopensourceapp.app.ManualOnlyAndroidTest`. The compatibility session selects exactly these existing methods on each older destination (each passed as a separate `--test-targets "class <method>"`):
 
 - `com.flashcardsopensourceapp.app.livesmoke.LiveSmokeTest#manualCardCanBeCreatedInDefaultWorkspace`
 - `com.flashcardsopensourceapp.app.livesmoke.LiveSmokeTest#repositorySeededCardCanBeReviewedInDefaultWorkspace`
 - `com.flashcardsopensourceapp.app.livesmoke.LiveSmokeTest#linkedWorkspaceAccountStatusAndWorkspaceStateAreVisible`
 - `com.flashcardsopensourceapp.app.notifications.NotificationTapSmokeTest#reviewReminderNotificationTapOpensReviewFromSystemShade`
-
-The helper accepts repeated explicit descriptors such as `--device "model=<catalog-id>,version=30,locale=en,orientation=portrait"`; use one descriptor per intended pair. Existing `--device-model`/`--device-version` callers still work for one destination; do not combine these forms. The helper uses the same APKs, instrumentation environment and auth path for both matrices. Google documents [repeated device descriptors and method filters](https://docs.cloud.google.com/sdk/gcloud/reference/firebase/test/android/run).
 
 ## GitHub repository variables
 
@@ -417,7 +255,7 @@ After CI uploads a draft release:
 
 1. Open Play Console and review the new production-track draft release.
 2. Review or generate Android App strings translations there with the Play Console workflow and Gemini.
-3. Complete the required Firebase result gates in [the Android release procedure](release/android.md), then publish manually from Play Console when translation review is complete.
+3. Complete the required Device Run result gates in [the Android release procedure](release/android.md), then publish manually from Play Console when translation review is complete.
 
 ## Cloud Build trigger setup
 
@@ -429,26 +267,17 @@ Cloud Build is optional here, but useful if you want a Google-native trigger in 
 - Connect the GitHub repository
 - Create a trigger that uses `cloudbuild.android.yaml`
 
-### 2. Use a dedicated Cloud Build service account
+### 2. Use a configured Cloud Build service account
 
-For Cloud Build triggers, use a dedicated service account instead of the legacy default account and grant it the same permissions as the GitHub Actions service account:
-
-- `roles/cloudtestservice.testAdmin`
-- `roles/firebase.analyticsViewer`
-- `roles/storage.admin` on the dedicated results bucket
+Use Device Run project roles and dedicated bucket access described in [Google Cloud access](#google-cloud-access-and-device-preflight), plus the existing Cloud Build build/logging permissions. Do not grant broad project roles.
 
 ### 3. Configure trigger substitutions
 
-Set these substitutions on the trigger:
-
-- `_ANDROID_FTL_DEVICE_MODEL`
-- `_ANDROID_FTL_DEVICE_VERSION`
-- `_ANDROID_FTL_RESULTS_BUCKET`
-- `_ANDROID_FTL_RESULTS_DIR`
+Set `_ANDROID_DEVICE_RUN_DEVICE` and `_ANDROID_DEVICE_RUN_RESULTS_BUCKET`. This optional entrypoint uses the synchronous helper for the latest full selection only; it does not supply the release's compatibility session or Play publication gates.
 
 ## Local Testing Rules
 
-For Android, follow [apps/android/README.md](../apps/android/README.md) for platform targets and testing focus. Keep full-suite local runs on API 37. The release adds the small API 30/31/33 Firebase smoke matrix and the first-release API 30 manual walkthrough in [the release procedure](release/android.md); broad older-device matrices remain out of scope.
+For Android, follow [apps/android/README.md](../apps/android/README.md) for platform targets and testing focus. Keep full-suite local runs on API 37. The release adds the small API 30/31/33 Device Run smoke session and the first-release API 30 manual walkthrough in [the release procedure](release/android.md); broad older-device matrices remain out of scope.
 Before running Android tests, also check which Android emulators are available locally. If a local emulator is available, start it in the background without a visible emulator window by default and preserve the usual test artifacts, logs, screenshots, and reports. Open a visible Android emulator only when the user explicitly asks for it at that time.
 For local instrumentation runs, prefer one clean emulator only:
 
@@ -502,20 +331,20 @@ adb devices
 cd apps/android && ./gradlew clean :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.flashcardsopensourceapp.app.notifications.NotificationTapSmokeTest
 ```
 
-Run the full app instrumentation package in Firebase Test Lab directly after authenticating with `gcloud`:
+Run the latest full app instrumentation selection in Device Run after authenticating with an authorized Google identity and validating the catalog:
 
 ```bash
-bash scripts/android/run-android-firebase-test-lab.sh \
-  --project-id "YOUR_GCP_PROJECT_ID" \
-  --device-model "YOUR_DEVICE_MODEL" \
-  --device-version "37" \
+bash scripts/android/run-android-device-run.sh \
+  --project-id "flashcards-open-source-app" \
+  --device "cubs-37" \
   --app-path "apps/android/app/build/outputs/apk/debug/app-debug.apk" \
   --test-path "apps/android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk" \
   --timeout "30m" \
-  --max-matrix-duration "35m" \
-  --test-targets "package com.flashcardsopensourceapp.app notAnnotation com.flashcardsopensourceapp.app.ManualOnlyAndroidTest" \
-  --results-bucket "gs://flashcards-open-source-app-test-lab-results" \
-  --results-dir "manual/local"
+  --max-session-duration "35m" \
+  --test-targets "package com.flashcardsopensourceapp.app" \
+  --test-targets "notAnnotation com.flashcardsopensourceapp.app.ManualOnlyAndroidTest" \
+  --results-bucket "flashcards-open-source-app-test-lab-results" \
+  --session-output "/absolute/release-record/device-run-session.json"
 ```
 
-Keep `--max-matrix-duration` slightly above `--timeout` so Test Lab still has room to finish device startup and final matrix reporting cleanly. This matters more when Orchestrator is enabled because it adds per-test process startup overhead.
+The helper requires `gcloud`, `jq`, explicit APKs, at least one repeated `--device` catalog ID, bucket name, timeout and session-output path. Synchronous mode also requires GNU `timeout` and `--max-session-duration`; keep it above the instrumentation timeout for startup and reporting overhead. `--async` submits and saves the initial full report without waiting. Optional `--labels` is comma-separated key/value pairs. Repeat `--device` and `--test-targets` for compatibility destinations and exact methods; use the release workflow's labels when correlating release artifacts. Inspect terminal reports and named cases under [results inspection](#device-run-results-and-release-correlation), even after synchronous success.

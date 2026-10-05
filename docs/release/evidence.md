@@ -57,7 +57,8 @@ step; an approved or live binary does not need another build or submission.
 For an artifact awaiting a new publication/submission, retain the original
 gates: recover local preflight logs, cloud runs, artifact identity, and actual
 smoke/test results. For Android, correlate the signed AAB, version code, GitHub
-run and exact completed Firebase matrix. For iOS, recover both archive and test
+run/attempt and both exact completed Device Run sessions, job labels and named
+case results. For iOS, recover both archive and test
 workflows and the uploaded build identity. Record passed/failed/skipped cases,
 skip reasons, coverage limits, and inspected warnings. Investigate unexpected
 skips; a green summary or unexecuted test is not a pass.

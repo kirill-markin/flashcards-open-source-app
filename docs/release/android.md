@@ -27,33 +27,36 @@ Otherwise create a new artifact through every gate below.
 2. Dispatch `Android Release` (`.github/workflows/android-release.yml`) with
    `Git SHA to release` (`target_sha`) set to the release commit. Record its
    target SHA, run/attempt, version code, and release identifier from the summary.
-3. Require both Firebase submissions: the existing full package on API 37 and
-   the four-method smoke matrix on explicit API 30, 31 and 33 destinations.
-   Before the first expanded release, verify all configured pairs in the
-   current catalog under [device configuration](../android-ci-cd.md#choose-the-firebase-test-lab-devices).
-   Use both matrix IDs/links, destination descriptors, selected targets and
-   distinct `latest`/`compat` results paths in the summary to follow the exact
-   runs through the Firebase API/CLI or console. Submission is asynchronous:
-   a green GitHub workflow does not mean Firebase tests passed.
-4. Wait for both matrices to reach terminal `FINISHED` with `outcomeSummary=SUCCESS`.
-   Inspect the execution/results records for the exact configured model/version
-   pairs: API 37 must pass the existing full selection; each API 30, 31 and 33
-   destination must execute and pass all four selected methods. A successful
-   aggregate with a missing/skipped destination or skipped/zero-test selection
-   is insufficient. Retain per-destination and test evidence with both matrix
-   identities for this SHA/run. Failed, cancelled, inconclusive, invalid,
-   infrastructure-error or otherwise non-passing results block publication.
-   Fix the cause, merge, and repeat the workflow for the corrected SHA;
-   do not publish the failed draft.
+3. Require both Device Run submissions from `device_run_submission`: the full
+   package on API 37 and the four-method smoke session on API 30, 31 and 33.
+   Verify all four current catalog IDs/APIs under
+   [device preflight](../android-ci-cd.md#choose-the-device-run-devices).
+   Record both session IDs, selected targets, job labels and GCS results paths
+   from the summary and retain `android-device-run-submissions`.
+   Submission is asynchronous: a green GitHub workflow proves acceptance,
+   not passing tests. Use the [CLI/GCS inspection procedure](../android-ci-cd.md#device-run-results-and-release-correlation).
+4. Wait for both full reports to show `.sessionReport.status.statusType=DONE`
+   and `.sessionReport.result.resultType=PASSED`, with every job and execution
+   `DONE`/`PASSED`. A successful CLI `wait` exit is insufficient. Require one
+   latest job on API 37 and three compatibility jobs on the exact configured
+   API 30, 31 and 33 destinations. Inspect every execution's named JUnit cases:
+   API 37 must execute and pass the full automated selection; each older
+   destination must execute and pass all four selected methods. Reconcile
+   counts, failures, errors and skips; zero tests, missing destinations or
+   unexpected skipped cases block publication. Retain full reports, per-case
+   results and logcat with both session identities for this SHA/run/attempt.
+   Failed, cancelled, infrastructure-error or otherwise non-passing results
+   block publication. Fix the cause, merge, and repeat the workflow for the
+   corrected SHA; do not publish the failed draft.
 5. Require the complete GitHub workflow to succeed as well, including the
    signed Android App Bundle (AAB) upload to the production-track draft.
    Inspect build/lint logs and apply the
    [release warning policy](README.md#release-warning-policy) even if the run is green.
 6. Open Google Play Console and select that draft by its
    `main-draft-<releaseIdentifier>` name and version code. Confirm it belongs
-   to the same SHA/run as both passing Firebase matrices. Confirm the uploaded
+   to the same SHA/run as both passing Device Run sessions. Confirm the uploaded
    AAB manifest advertises minimum API 30 and target API 37; source declarations
-   alone do not prove the distributed minimum. Firebase exercises the
+   alone do not prove the distributed minimum. Device Run exercises the
    debug APKs from that SHA; the production artifact is the signed AAB from
    the same release run.
    Before publishing the first API-30-compatible release, complete the
@@ -79,14 +82,14 @@ Otherwise create a new artifact through every gate below.
    availability. If approved but unavailable at the selected scope, keep the
    channel open as propagation pending or blocked according to evidence.
 
-Completion: both Firebase matrices, all four configured destinations, GitHub
+Completion: both Device Run sessions, all four configured destinations, GitHub
 and local gates pass before new publication, and the exact production version
 is public at the intended rollout scope.
 Already-published matching releases use the shared historical evidence rule.
 Submission or review approval alone leaves this channel open
 under the [canonical completion contract](README.md#release-inventory-and-completion).
 
-Configuration, Firebase access, artifact correlation, and Play translation
+Configuration, Device Run access, artifact correlation, and Play translation
 checks: [Android CI/CD](../android-ci-cd.md).
 
 ## First-release API 30 walkthrough
