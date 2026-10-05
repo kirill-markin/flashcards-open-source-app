@@ -2,6 +2,7 @@
  * Session rows expose only the active suggestion set, while history is stored
  * separately as append-only generations.
  */
+import type OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import {
@@ -16,6 +17,11 @@ import {
   toOpenAIResponsesUsageCounters,
   type AiUsageCallAttribution,
 } from "../aiUsage";
+import {
+  addBackendBreadcrumb,
+  createBackendObservationScope,
+  type ChatComposerSuggestionsResponseDetails,
+} from "../observability/sentry";
 
 export type ChatComposerSuggestionSource = "initial" | "assistant_follow_up";
 export type ChatComposerSuggestionInvalidationReason =
@@ -492,6 +498,51 @@ function parseJsonObject(text: string): Record<string, unknown> | null {
   }
 }
 
+function listResponseMessageParts(
+  response: OpenAI.Responses.Response,
+): ReadonlyArray<OpenAI.Responses.ResponseOutputMessage["content"][number]> {
+  return response.output.flatMap((item) => (item.type === "message" ? item.content : []));
+}
+
+/**
+ * Parses each `output_text` part on its own, because the model can split its answer into several
+ * parts and `response.output_text` joins them into one string that is no longer valid JSON.
+ */
+function findFollowUpSuggestionTexts(
+  response: OpenAI.Responses.Response,
+): ReadonlyArray<string> | null {
+  for (const part of listResponseMessageParts(response)) {
+    if (part.type !== "output_text") {
+      continue;
+    }
+
+    const parsedObject = parseJsonObject(part.text.trim());
+    if (parsedObject === null) {
+      continue;
+    }
+
+    const parsedSuggestions = followUpSuggestionsWireSchema.safeParse(parsedObject);
+    if (parsedSuggestions.success) {
+      return parsedSuggestions.data.suggestions;
+    }
+  }
+
+  return null;
+}
+
+function describeComposerSuggestionsResponse(
+  response: OpenAI.Responses.Response,
+): ChatComposerSuggestionsResponseDetails {
+  const parts = listResponseMessageParts(response);
+  return {
+    responseStatus: response.status ?? null,
+    incompleteReason: response.incomplete_details?.reason ?? null,
+    messageItemCount: response.output.filter((item) => item.type === "message").length,
+    partTypes: parts.map((part) => part.type),
+    textPartLengths: parts.flatMap((part) => (part.type === "output_text" ? [part.text.length] : [])),
+  };
+}
+
 function buildFollowUpSuggestionPrompt(
   userMessage: string,
   assistantReply: string,
@@ -638,7 +689,7 @@ export async function generateFollowUpChatComposerSuggestionsWithDependencies(
   });
 
   // Appended before the response is parsed, because an unparseable answer was paid for exactly like a
-  // usable one, and the throws below would otherwise drop the fact.
+  // usable one, and the early return and throw below would otherwise drop the fact.
   await dependencies.appendAiUsageEvent({
     userId,
     workspaceId: usageAttribution.workspaceId,
@@ -655,21 +706,49 @@ export async function generateFollowUpChatComposerSuggestionsWithDependencies(
     userSuppliedKey: false,
   });
 
-  const responseText = response.output_text.trim();
-  const parsedObject = parseJsonObject(responseText);
-  if (parsedObject === null) {
-    throw new Error("Composer suggestions response is not valid JSON");
+  const suggestionTexts = findFollowUpSuggestionTexts(response);
+  if (suggestionTexts !== null) {
+    return createComposerSuggestions(
+      suggestionTexts,
+      "assistant_follow_up",
+      assistantItemId,
+      assistantItemId,
+    );
   }
 
-  const parsedSuggestions = followUpSuggestionsWireSchema.safeParse(parsedObject);
-  if (!parsedSuggestions.success) {
-    throw new Error("Composer suggestions response has an invalid shape");
+  const responseDetails = describeComposerSuggestionsResponse(response);
+  const scope = createBackendObservationScope(
+    "chat-worker",
+    null,
+    null,
+    null,
+    userId,
+    usageAttribution.workspaceId,
+    usageAttribution.requestId,
+    null,
+    null,
+    null,
+    null,
+  );
+  // A refusal or a cut-short answer is the model's outcome rather than a defect, so it is logged
+  // without reaching Sentry and the turn simply gets no suggestions.
+  if (responseDetails.partTypes.includes("refusal") || response.status !== "completed") {
+    addBackendBreadcrumb({
+      action: "chat_composer_suggestions_declined",
+      scope,
+      details: responseDetails,
+    });
+    return emptyChatComposerSuggestions();
   }
 
-  return createComposerSuggestions(
-    parsedSuggestions.data.suggestions,
-    "assistant_follow_up",
-    assistantItemId,
-    assistantItemId,
+  // The worker's failure warning carries no error message text, so the same diagnostics are written as
+  // their own structured record first, correlated to that warning by `chatRequestId`.
+  addBackendBreadcrumb({
+    action: "chat_composer_suggestions_unparseable",
+    scope,
+    details: responseDetails,
+  });
+  throw new Error(
+    `Composer suggestions response has no output_text part with the expected JSON shape: ${JSON.stringify(responseDetails)}`,
   );
 }

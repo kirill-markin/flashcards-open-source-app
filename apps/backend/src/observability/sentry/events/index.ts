@@ -81,6 +81,7 @@ export type {
   AiUsageHeavyWeightedTokensDetails,
   AiUsageMeteringDetails,
   AiUsageWeightedTokensReadFailureDetails,
+  ChatComposerSuggestionsResponseDetails,
   ChatLiveAttachDetails,
   ChatLiveBootstrapFailureDetails,
   ChatLiveLifecycleDetails,

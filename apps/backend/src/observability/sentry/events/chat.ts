@@ -161,6 +161,19 @@ export type ChatReplayReasoningItemsDroppedDetails = Readonly<{
 }>;
 
 /**
+ * The shape of a follow-up composer suggestions response that yielded no suggestions, without any of
+ * its text. Field names avoid the sanitizer's content keys (`message`, `output`, `content`), which
+ * would replace these values with `<redacted-content>`.
+ */
+export type ChatComposerSuggestionsResponseDetails = Readonly<{
+  responseStatus: string | null;
+  incompleteReason: string | null;
+  messageItemCount: number;
+  partTypes: ReadonlyArray<string>;
+  textPartLengths: ReadonlyArray<number>;
+}>;
+
+/**
  * One metered AI provider call, named by what it would be priced against. The person and the request
  * travel on the scope rather than here, so a query can group these by surface and model without
  * reading anyone's ids.
@@ -333,6 +346,8 @@ export type ChatBreadcrumbEvent =
   | EventByAction<"chat_transcription_invalid_audio", ChatTranscriptionFailureDetails>
   | EventByAction<"chat_transcription_failed", ChatTranscriptionFailureDetails>
   | EventByAction<"chat_replay_reasoning_items_dropped", ChatReplayReasoningItemsDroppedDetails>
+  | EventByAction<"chat_composer_suggestions_declined", ChatComposerSuggestionsResponseDetails>
+  | EventByAction<"chat_composer_suggestions_unparseable", ChatComposerSuggestionsResponseDetails>
   | EventByAction<"generated_card_image_provider_complete", GeneratedCardImageProviderDetails>;
 
 export type ChatWarningEvent =
