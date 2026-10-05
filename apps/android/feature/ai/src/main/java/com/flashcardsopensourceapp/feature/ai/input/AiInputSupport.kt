@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.media.MediaRecorder
 import android.net.Uri
+import android.os.Build
 import android.provider.OpenableColumns
 import android.webkit.MimeTypeMap
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
@@ -81,7 +82,7 @@ class AndroidAiChatDictationRecorder(
             context.cacheDir,
             "ai-chat-dictation-${UUID.randomUUID()}.$dictationOutputExtension"
         )
-        val recorder = MediaRecorder(context)
+        val recorder = createAiDictationMediaRecorder(context = context)
 
         try {
             recorder.setAudioSource(MediaRecorder.AudioSource.MIC)
@@ -153,6 +154,15 @@ class AndroidAiChatDictationRecorder(
         mediaRecorder = null
         outputFile?.delete()
         outputFile = null
+    }
+}
+
+@Suppress("DEPRECATION")
+private fun createAiDictationMediaRecorder(context: Context): MediaRecorder {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        MediaRecorder(context)
+    } else {
+        MediaRecorder()
     }
 }
 

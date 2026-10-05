@@ -1,20 +1,8 @@
 package com.flashcardsopensourceapp.app.runtime
 
-private const val jobSchedulerClassName: String = "android.app.job.JobScheduler"
-private const val jobSchedulerForNamespaceMethodName: String = "forNamespace"
+import android.os.Build
+import com.flashcardsopensourceapp.app.BuildConfig
 
 internal fun isAndroidRuntimeSupported(): Boolean {
-    return hasJobSchedulerNamespaceSupport()
-}
-
-private fun hasJobSchedulerNamespaceSupport(): Boolean {
-    return try {
-        val jobSchedulerClass: Class<*> = Class.forName(jobSchedulerClassName)
-        jobSchedulerClass.getMethod(jobSchedulerForNamespaceMethodName, String::class.java)
-        true
-    } catch (error: ClassNotFoundException) {
-        false
-    } catch (error: NoSuchMethodException) {
-        false
-    }
+    return Build.VERSION.SDK_INT >= BuildConfig.ANDROID_MIN_SDK
 }

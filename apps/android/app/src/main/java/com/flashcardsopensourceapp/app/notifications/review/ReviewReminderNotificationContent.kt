@@ -18,9 +18,6 @@ import com.flashcardsopensourceapp.app.notifications.reviewNotificationChannelId
 import com.flashcardsopensourceapp.core.ui.bidiWrap
 import com.flashcardsopensourceapp.core.ui.currentResourceLocale
 
-/**
- * Prefix used to identify review reminder notifications for cleanup.
- */
 const val reviewReminderNotificationTagPrefix: String = "review-notification::"
 
 data class ReviewReminderNotificationContent(
@@ -30,8 +27,6 @@ data class ReviewReminderNotificationContent(
 )
 
 /**
- * Builds the payload used for one review reminder notification.
- *
  * The request id is also used as the notification tag so the app can later
  * clear only review reminders and leave other notification types untouched.
  */
@@ -75,9 +70,6 @@ fun buildReviewReminderNotificationContent(
     )
 }
 
-/**
- * Posts a review reminder notification for the supplied request id.
- */
 fun showReviewReminderNotification(
     context: Context,
     frontText: String,
@@ -85,7 +77,7 @@ fun showReviewReminderNotification(
     showAppIconBadge: Boolean
 ): Int {
     if (hasNotificationPermission(context = context).not()) {
-        throw SecurityException("POST_NOTIFICATIONS is not granted for package '${context.packageName}'.")
+        throw SecurityException("Notifications are disabled for package '${context.packageName}'. Enable them in Android notification settings.")
     }
 
     val notificationContent = buildReviewReminderNotificationContent(

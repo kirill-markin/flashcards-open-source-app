@@ -401,7 +401,7 @@
     <string name="settings_access_microphone_guidance_blocked">Microphone access is blocked for this app. Open Android app settings to allow it again.</string>
     <string name="settings_access_microphone_guidance_system_picker">Microphone uses a direct Android permission flow.</string>
     <string name="settings_access_microphone_guidance_unavailable">This device does not report microphone hardware.</string>
-    <string name="settings_access_photos_guidance">Android 14+ uses the system photo picker here, so broad storage access is not required.</string>
+    <string name="settings_access_photos_guidance">The system media picker is used here, so broad storage access is not required.</string>
     <string name="settings_access_files_guidance">Android uses the system document picker here, so broad storage access is not required.</string>
 
     <string name="settings_notifications_title">Notifications</string>

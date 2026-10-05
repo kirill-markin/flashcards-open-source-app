@@ -24,7 +24,8 @@ The manual Android release workflow Firebase Test Lab job depends on these repos
 - `GCP_WORKLOAD_IDENTITY_PROVIDER`
 - `GCP_SERVICE_ACCOUNT_EMAIL`
 - `ANDROID_FTL_DEVICE_MODEL`
-- `ANDROID_FTL_DEVICE_VERSION`
+- `ANDROID_FTL_DEVICE_VERSION` (must be `37`)
+- `ANDROID_FTL_COMPAT_DEVICES` (see [device configuration](#choose-the-firebase-test-lab-devices))
 - `ANDROID_FTL_RESULTS_BUCKET`
 - `ANDROID_FTL_RESULTS_DIR`
 
@@ -100,11 +101,12 @@ GitHub Actions reusable workflow: `.github/workflows/android-ci-reusable.yml`
 Top-level release workflow Firebase job: `.github/workflows/android-release.yml` job `firebase_test_lab_submission`
 
 - Starts on every manual `Android Release` run after `android_ci` succeeds
-- Validates Firebase Test Lab configuration, authenticates to Google Cloud, downloads the debug APK artifacts, and submits the full app instrumentation package `com.flashcardsopensourceapp.app`, excluding `com.flashcardsopensourceapp.app.ManualOnlyAndroidTest`
+- Validates both Firebase device configurations against the current catalog, authenticates to Google Cloud once, downloads the debug APK artifacts once, and submits the existing full app instrumentation package `com.flashcardsopensourceapp.app` on API 37 with its manual-only exclusions
+- Submits one additional asynchronous matrix using explicit model/version pairs for API 30, 31, and 33 and only the four existing smoke methods listed under [device configuration](#choose-the-firebase-test-lab-devices)
 - Declares the run to the backend as automation with the `isAutomation=true` instrumentation environment variable, so nothing it syncs becomes product analytics
 - Nothing before a real Test Lab run proves that the orchestrator forwards that variable into each `am instrument -e`, so confirm it on the first run from the device logcat line `event=automation_environment_resolved`: `hasArgumentSignal=true` means the chain works, while `hasArgumentSignal=false isFirebaseTestLabDevice=true` means the run was marked only by the device-setting fallback and the argument was dropped
-- Reuses the shared release identifier `vc<versionCode>-r<runId>a<attempt>-s<shortSha>` in Firebase result naming and traces results under `${ANDROID_FTL_RESULTS_DIR}/<releaseIdentifier>`
-- Requires Firebase Test Lab submission before the Play draft upload starts; the submission is asynchronous, so review the Firebase matrix result before publishing from Play Console
+- Reuses the shared release identifier `vc<versionCode>-r<runId>a<attempt>-s<shortSha>` in Firebase result naming and traces the latest and compatibility results separately under `${ANDROID_FTL_RESULTS_DIR}/<releaseIdentifier>/latest` and `${ANDROID_FTL_RESULTS_DIR}/<releaseIdentifier>/compat`
+- Requires both Firebase Test Lab submissions before the Play draft upload starts; both are asynchronous. Follow [the Android release procedure](release/android.md) and require successful terminal results for latest and every configured older destination before publication
 
 Top-level release workflow Play job: `.github/workflows/android-release.yml` job `publish_android`
 
@@ -135,24 +137,24 @@ The manual Android release flow is:
 1. `android-release.yml` starts only through manual `workflow_dispatch`; optional `target_sha` pins a specific release commit, otherwise the selected workflow ref SHA is used
 2. The workflow resolves one shared `ANDROID_VERSION_CODE` and one shared Android release identifier for the run
 3. The reusable Android CI gate runs for the target SHA
-4. Firebase Test Lab app instrumentation is submitted for the debug APKs produced by the CI gate
-5. After Firebase submission succeeds, the signed Android App Bundle is built and uploaded as a workflow artifact
+4. Latest full-suite and API 30/31/33 smoke matrices are submitted for the same debug/test APKs produced by the CI gate
+5. After both Firebase submissions succeed, the signed Android App Bundle is built and uploaded as a workflow artifact
 6. The R8 optimization coverage gate reads `BUNDLE-METADATA/com.android.tools/r8.json` from that bundle and fails the run when shrinking, optimization, or obfuscation coverage is below Google's 25% minimum
 7. Only then is the bundle uploaded as a Google Play production-track draft
-8. Review the Firebase matrix result and Play Console draft before publishing manually
+8. Require both matrices and all configured destinations to pass under [the Android release procedure](release/android.md), then review the Play Console draft before publishing manually
 
 After pushing to `main`, watch `Android CI` separately when Android-impacting files changed.
 
 For Android, a green automatic `Android CI` run means the post-merge `data:local` emulator backstop passed for that SHA. The required PR aggregate already enforced the applicable build, unit tests, lint, and pull-request emulator gate. A green automatic run does not mean Firebase Test Lab was submitted, a Google Play draft was uploaded, or a release is ready to publish.
 
-A green manual `Android Release` run means the GitHub-hosted Android gate passed, Firebase Test Lab submission succeeded, and CI uploaded a Play draft. It still does not mean Firebase Test Lab finished or passed, and it does not mean the release is already live. Translation review, Firebase matrix review, Play-delivered build verification, and final publication still happen later in Play Console. A non-green `Android Release` run means one of the required release stages failed or was skipped by a failed dependency.
+A green manual `Android Release` run means the GitHub-hosted Android gate passed, both Firebase Test Lab submissions succeeded, and CI uploaded a Play draft. It still does not mean either Firebase Test Lab matrix finished or passed, and it does not mean the release is already live. Translation review, Firebase matrix review, Play-delivered build verification, and final publication still happen later in Play Console. A non-green `Android Release` run means one of the required release stages failed or was skipped by a failed dependency.
 
 To match a Play draft or Firebase submission to the exact SHA and GitHub run:
 
 - use the `Android release preflight` summary to get the target SHA, shared `ANDROID_VERSION_CODE`, and shared release identifier `vc<versionCode>-r<runId>a<attempt>-s<shortSha>`
 - use the `Android Play draft upload` summary to get the Play draft release name `main-draft-<releaseIdentifier>` and version code
 - use the `Run details` link in the release summary to open the exact GitHub Actions run
-- use the Firebase summaries to get the Google-assigned matrix ID and the Firebase results path `${ANDROID_FTL_RESULTS_DIR}/<releaseIdentifier>` in the configured results bucket
+- use the Firebase summaries to get both Google-assigned matrix IDs, links, device descriptors and selected targets; latest results are under `${ANDROID_FTL_RESULTS_DIR}/<releaseIdentifier>/latest` and older smoke results under `${ANDROID_FTL_RESULTS_DIR}/<releaseIdentifier>/compat` in the configured bucket
 - correlate everything by the shared release identifier, GitHub run id and attempt, and target SHA; the Firebase matrix ID is useful for lookup after submission but it is not the manager-readable release identifier
 
 ## Local Firebase Test Lab diagnostics
@@ -357,20 +359,36 @@ gcloud services enable androidpublisher.googleapis.com \
   --project "YOUR_GCP_PROJECT_ID"
 ```
 
-### 7. Choose the Firebase Test Lab device
+### Choose the Firebase Test Lab devices
 
-This repository intentionally tests Android 17 / API 37 only.
+Keep `ANDROID_FTL_DEVICE_MODEL` and `ANDROID_FTL_DEVICE_VERSION=37` for the existing full app suite. Set `ANDROID_FTL_COMPAT_DEVICES` to a JSON array with exactly one model/version pair for each of API 30, 31 and 33. Versions are strings; locale `en` and orientation `portrait` are fixed by the workflow. The same catalog model may serve multiple OS versions when all those pairs are available.
 
-Before setting the GitHub variables, list supported Test Lab devices for your project and choose a device that supports API 37:
+Before the first expanded release, read the current catalog and verify every selected pair:
 
 ```bash
-gcloud firebase test android models list --project "YOUR_GCP_PROJECT_ID"
+gcloud firebase test android models list --project "YOUR_GCP_PROJECT_ID" --format=json
 ```
 
-Then set:
+Use only IDs returned by that catalog. This template contains placeholders, not runnable device IDs:
 
-- `ANDROID_FTL_DEVICE_MODEL`
-- `ANDROID_FTL_DEVICE_VERSION`
+```json
+[
+  {"model": "CATALOG_MODEL_FOR_API_30", "version": "30"},
+  {"model": "CATALOG_MODEL_FOR_API_31", "version": "31"},
+  {"model": "CATALOG_MODEL_FOR_API_33", "version": "33"}
+]
+```
+
+Export that JSON as `ANDROID_FTL_COMPAT_DEVICES` or save it in the local root `.env`, then run `bash scripts/android/setup-github-android.sh`. The script syncs it only when supplied, preserving any existing GitHub value when absent. The release workflow fails explicitly for missing/malformed configuration, unavailable pairs, or a latest version other than 37. No API is silently omitted and no model/version cross-product is generated. API 32 is supported without a separate release destination.
+
+The compatibility matrix selects exactly these existing methods on each older destination:
+
+- `com.flashcardsopensourceapp.app.livesmoke.LiveSmokeTest#manualCardCanBeCreatedInDefaultWorkspace`
+- `com.flashcardsopensourceapp.app.livesmoke.LiveSmokeTest#repositorySeededCardCanBeReviewedInDefaultWorkspace`
+- `com.flashcardsopensourceapp.app.livesmoke.LiveSmokeTest#linkedWorkspaceAccountStatusAndWorkspaceStateAreVisible`
+- `com.flashcardsopensourceapp.app.notifications.NotificationTapSmokeTest#reviewReminderNotificationTapOpensReviewFromSystemShade`
+
+The helper accepts repeated explicit descriptors such as `--device "model=<catalog-id>,version=30,locale=en,orientation=portrait"`; use one descriptor per intended pair. Existing `--device-model`/`--device-version` callers still work for one destination; do not combine these forms. The helper uses the same APKs, instrumentation environment and auth path for both matrices. Google documents [repeated device descriptors and method filters](https://docs.cloud.google.com/sdk/gcloud/reference/firebase/test/android/run).
 
 ## GitHub repository variables
 
@@ -399,7 +417,7 @@ After CI uploads a draft release:
 
 1. Open Play Console and review the new production-track draft release.
 2. Review or generate Android App strings translations there with the Play Console workflow and Gemini.
-3. Publish the release manually from Play Console when translation review is complete.
+3. Complete the required Firebase result gates in [the Android release procedure](release/android.md), then publish manually from Play Console when translation review is complete.
 
 ## Cloud Build trigger setup
 
@@ -430,7 +448,7 @@ Set these substitutions on the trigger:
 
 ## Local Testing Rules
 
-For Android, follow [apps/android/README.md](../apps/android/README.md) for platform targets and testing focus. Tests should be run only against the final supported Android target, not against older API levels.
+For Android, follow [apps/android/README.md](../apps/android/README.md) for platform targets and testing focus. Keep full-suite local runs on API 37. The release adds the small API 30/31/33 Firebase smoke matrix and the first-release API 30 manual walkthrough in [the release procedure](release/android.md); broad older-device matrices remain out of scope.
 Before running Android tests, also check which Android emulators are available locally. If a local emulator is available, start it in the background without a visible emulator window by default and preserve the usual test artifacts, logs, screenshots, and reports. Open a visible Android emulator only when the user explicitly asks for it at that time.
 For local instrumentation runs, prefer one clean emulator only:
 
@@ -490,7 +508,7 @@ Run the full app instrumentation package in Firebase Test Lab directly after aut
 bash scripts/android/run-android-firebase-test-lab.sh \
   --project-id "YOUR_GCP_PROJECT_ID" \
   --device-model "YOUR_DEVICE_MODEL" \
-  --device-version "36" \
+  --device-version "37" \
   --app-path "apps/android/app/build/outputs/apk/debug/app-debug.apk" \
   --test-path "apps/android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk" \
   --timeout "30m" \

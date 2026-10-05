@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.core.observability.analytics
 
 import android.app.LocaleManager
 import android.content.Context
+import android.content.res.Resources
 import android.os.Build
 import com.flashcardsopensourceapp.core.observability.AndroidAnalyticsObservationName
 import com.flashcardsopensourceapp.core.observability.AndroidWarningIssueEvent
@@ -931,7 +932,11 @@ fun currentAnalyticsDeviceContext(context: Context): AnalyticsDeviceContext {
         osVersion = Build.VERSION.RELEASE,
         deviceModel = "${Build.MANUFACTURER} ${Build.MODEL}",
         // The process default can include the per-app language override.
-        deviceLocale = context.getSystemService(LocaleManager::class.java)?.systemLocales?.get(0)?.toLanguageTag(),
+        deviceLocale = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.getSystemService(LocaleManager::class.java)?.systemLocales?.get(0)?.toLanguageTag()
+        } else {
+            Resources.getSystem().configuration.locales[0]?.toLanguageTag()
+        },
         timezone = ZoneId.systemDefault().id
     )
 }

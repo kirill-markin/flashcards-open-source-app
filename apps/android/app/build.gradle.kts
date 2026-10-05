@@ -170,7 +170,7 @@ if (isReleaseTaskRequested) {
 
 // Single source for defaultConfig.minSdk, also surfaced to runtime via BuildConfig so
 // observability can skip telemetry from below-minSdk (out-of-contract) devices.
-val androidMinSdk: Int = 34
+val androidMinSdk: Int = 30
 
 fun toBuildConfigString(value: String): String {
     return "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""

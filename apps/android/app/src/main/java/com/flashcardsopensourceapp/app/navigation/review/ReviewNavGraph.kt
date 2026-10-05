@@ -1,6 +1,9 @@
 package com.flashcardsopensourceapp.app.navigation.review
 
 import android.Manifest
+import android.content.Intent
+import android.os.Build
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -230,7 +233,14 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                 onContinueNotificationPermissionPrompt = {
                     reviewViewModel.continueNotificationPermissionPrompt()
                     if (activity != null) {
-                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        } else {
+                            context.startActivity(
+                                Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                                    .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                            )
+                        }
                     }
                 },
                 onOpenLeaderboard = {

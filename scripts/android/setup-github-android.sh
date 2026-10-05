@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# Configure GitHub Actions variables for Android CI and Firebase Test Lab.
 
 set -euo pipefail
 
@@ -82,6 +81,10 @@ gh variable set ANDROID_SENTRY_DSN --body "${ANDROID_SENTRY_DSN_VALUE}" --repo "
 set_or_delete_variable ANDROID_SENTRY_TRACES_SAMPLE_RATE "${ANDROID_SENTRY_TRACES_SAMPLE_RATE_VALUE}"
 gh variable set SENTRY_ORG --body "${SENTRY_ORG_VALUE}" --repo "${REPO}"
 gh variable set SENTRY_ANDROID_PROJECT --body "${SENTRY_ANDROID_PROJECT_VALUE}" --repo "${REPO}"
+
+if [[ -n "${ANDROID_FTL_COMPAT_DEVICES:-}" ]]; then
+  gh variable set ANDROID_FTL_COMPAT_DEVICES --body "${ANDROID_FTL_COMPAT_DEVICES}" --repo "${REPO}"
+fi
 
 if [[ -n "${ANDROID_FTL_RESULTS_BUCKET:-}" ]]; then
   gh variable set ANDROID_FTL_RESULTS_BUCKET --body "${ANDROID_FTL_RESULTS_BUCKET}" --repo "${REPO}"
