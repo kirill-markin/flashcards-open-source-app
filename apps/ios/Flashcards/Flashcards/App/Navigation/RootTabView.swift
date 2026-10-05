@@ -398,9 +398,17 @@ struct RootTabView: View {
         }
     }
 
+    @ViewBuilder
+    private var tabRootPresentation: some View {
+        if #available(iOS 26.0, *) {
+            self.tabRootBase.tabBarMinimizeBehavior(.never)
+        } else {
+            self.tabRootBase
+        }
+    }
+
     private var tabRootTasks: some View {
-        self.tabRootBase
-        .tabBarMinimizeBehavior(.never)
+        self.tabRootPresentation
         .task {
             let previousTab = store.currentVisibleTab
             prepareVisibleTabForPresentationWithBreadcrumb(
