@@ -382,7 +382,7 @@ extension AIChatView {
                 Button(buttonTitle) {
                     self.navigation.openSettings(destination: .accountStatus)
                 }
-                .buttonStyle(.glassProminent)
+                .nativeProminentActionButtonStyle()
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)

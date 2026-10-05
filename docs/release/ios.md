@@ -68,6 +68,14 @@ resubmitting the same artifact. New artifacts follow all pre-submission gates.
    requirements apply. Verify each saved field and required metadata; request
    help for missing declarations or unexpected store requirements.
 5. Require successful archive and test workflows, with complete test evidence.
+   Keep the full existing latest-OS smoke selection. Before the first public
+   release expanding compatibility to iOS/iPadOS 18, also require the three
+   [iOS 18 compatibility smokes and manual checklist](../ios-local-setup.md#ios-18-compatibility-smoke)
+   on an actual 18.x destination. Use one Cloud destination only when its saved
+   catalog and independent test selection permit it; otherwise use local Xcode
+   or an actual OS-18 device. Record the SHA, destination/OS, Xcode/SDK and result
+   evidence. If no 18 destination is available, defer expanded public release;
+   a lower deployment setting or static PR success does not satisfy this gate.
    Inspect the actual passed, failed, and skipped test results, plus errors and
    warnings even if the overall run is green. Record skipped cases, their reasons, and the resulting coverage
    limits. Distinguish deliberate [manual marketing exclusions](../../apps/ios/docs/marketing-screenshots.md#prerequisites)
@@ -93,7 +101,14 @@ resubmitting the same artifact. New artifacts follow all pre-submission gates.
 6. Wait for the successful archive to finish processing in App Store Connect.
    Establish its exact [run/archive/uploaded-build correlation](../xcode-cloud-data-access.md#correlate-an-archive-with-the-uploaded-build).
    Verify its [uploaded binary localizations](../ios-localization.md#bundlebuild-validation)
-   before submission.
+   before submission. For the exact correlated archive, read the app bundle's
+   generated `Info.plist` `MinimumOSVersion` and the executable's
+   `LC_BUILD_VERSION` `minos` using `xcrun vtool -show-build`; both must report
+   18.0. Check bundled dependencies do not require a higher minimum. Read
+   `GET /v1/builds/{buildId}?include=buildBundles` and require that exact uploaded
+   build's `minOsVersion` and app bundle's `minimumOsVersion` to report 18.0
+   (Apple's [build metadata fields](https://developer.apple.com/documentation/appstoreconnectapi/get-v1-builds)).
+   Do not infer binary compatibility from source settings or another build.
    Attach that verified build to the version draft, with successful test
    evidence from the same SHA or the proven unchanged-archive reuse in step 5.
    Verify the uploaded build ID, build number/version,
@@ -116,6 +131,11 @@ resubmitting the same artifact. New artifacts follow all pre-submission gates.
    do not create a replacement submission merely to release an approved build.
 9. Record the current App Store Connect and public storefront states in the
    intended regions, with the app URL, observed version/time and build identity.
+   For the expanded release, read `GET /v1/appStoreVersions/{versionId}/build`
+   to verify the public version references the checked build ID, and observe
+   that the regional listing declares iOS/iPadOS 18.0 compatibility. Record
+   mismatches or propagation delay; do not claim public 18 support from upload
+   or approval alone.
    `READY_FOR_DISTRIBUTION` (legacy `READY_FOR_SALE`) and Apple's
    [availability statuses](https://developer.apple.com/help/app-store-connect/reference/app-information/app-and-submission-statuses)
    distinguish readiness from regional availability. If review or storefront

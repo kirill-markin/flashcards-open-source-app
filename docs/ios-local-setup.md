@@ -84,11 +84,13 @@ Xcode Cloud builds now fail in `ci_post_clone.sh` before `xcodebuild` starts if 
 
 The iOS release procedure is documented in [iOS Release Procedure](release/ios.md#ios).
 
-If Xcode Cloud should pin the live smoke flow to the standard review account explicitly, also set:
+For Xcode Cloud workflows that select linked-workspace login smokes, also set:
 
 - `FLASHCARDS_LIVE_REVIEW_EMAIL=apple-review@example.com`
 
-`FLASHCARDS_LIVE_REVIEW_EMAIL` remains optional.
+`FLASHCARDS_LIVE_REVIEW_EMAIL` is required in the UI-test runner for login
+smokes. Guest-only runs do not need it. For local CLI injection, see the
+[iOS 18 compatibility smoke](#ios-18-compatibility-smoke) below.
 
 ## Local App Store archive
 
@@ -172,8 +174,8 @@ distribution.
 
 The iOS Xcode project is file-synchronized, so new Swift files can be added without manual `project.pbxproj` edits.
 iOS full test runs can take a bit more than 2 minutes locally, and that is normal.
-Run on one specific iPhone simulator runtime that is already downloaded locally.
-Prefer an already booted local iPhone simulator on the final supported iOS runtime. Reuse that exact device instead of booting a different one when possible.
+Run the full existing smoke selection on one latest iPhone simulator runtime that is already downloaded locally. Use one additional iOS 18 destination only for the compatibility selection below.
+Prefer an already booted local iPhone simulator on the selected iOS runtime. Reuse that exact device instead of booting a different one when possible.
 Prefer the background CLI flow over opening heavy Xcode UI: `xcrun simctl bootstatus`, then `xcodebuild test`.
 Do not open a visible iOS Simulator window for test runs unless the user explicitly asks for a visible simulator at that time.
 Pass `-derivedDataPath "tmp/ios-derived-data"` for local CLI builds and tests so repeated runs reuse repo-local build artifacts instead of creating new global DerivedData directories.
@@ -189,3 +191,72 @@ xcrun simctl bootstatus <device-uuid> -b
 xcodebuild -project "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj" -scheme "Flashcards Open Source App" -derivedDataPath "tmp/ios-derived-data" -destination 'platform=iOS Simulator,id=<device-uuid>' test
 xcodebuild -project "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj" -scheme "Flashcards Open Source App" -derivedDataPath "tmp/ios-derived-data" -destination 'platform=iOS Simulator,id=<device-uuid>' -only-testing:'Flashcards Open Source App UI Tests/LiveSmokeSettingsTests/testLiveSmokeLocalNavigationFlow' test
 ```
+
+## iOS 18 compatibility smoke
+
+Use the current Xcode/SDK and pinned packages with deployment target 18.0.
+Inspect `xcrun simctl list runtimes` and `xcrun simctl list devices available`;
+select one device whose runtime is actually iOS 18.x. If absent, install an
+18.x runtime only if the selected Xcode supports it, or use a physical iPhone
+or iPad actually running 18.x. Do not count an iOS 26 runtime or `My Mac` as
+18 evidence. If neither is available, record the exact runtime/toolchain
+restriction and defer the first expanded public release. Tell the user before
+downloading a runtime; source implementation does not require provisioning it.
+
+After the configuration setup above, run from the repository root. The login
+smoke requires the configured review-account email in the UI-test runner.
+Replace the example email below if your review account differs. The
+`TEST_RUNNER_` prefix makes `xcodebuild` pass `FLASHCARDS_LIVE_REVIEW_EMAIL`
+to the runner with the prefix removed; setting it only for the app process
+does not satisfy `configuredReviewEmail()`. Running `ci_post_clone.sh`
+separately generates build configuration but cannot export its loaded `.env`
+values into this command's environment.
+
+```bash
+xcrun simctl bootstatus <ios-18-device-uuid> -b
+TEST_RUNNER_FLASHCARDS_LIVE_REVIEW_EMAIL=apple-review@example.com \
+xcodebuild \
+  -project "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj" \
+  -scheme "Flashcards Open Source App" \
+  -derivedDataPath "tmp/ios-derived-data" \
+  -destination 'platform=iOS Simulator,id=<ios-18-device-uuid>' \
+  -resultBundlePath "tmp/ios-18-smoke-<unique-run>.xcresult" \
+  -only-testing:'Flashcards Open Source App UI Tests/LiveSmokeSettingsTests/testLiveSmokeGuestNavigationFlow' \
+  -only-testing:'Flashcards Open Source App UI Tests/LiveSmokeReviewTests/testLiveSmokeManualCardReviewFlow' \
+  -only-testing:'Flashcards Open Source App UI Tests/LiveSmokeSettingsTests/testLiveSmokeLoginAndLinkedWorkspaceFlow' \
+  test
+```
+
+For hardware, omit `simctl` and use `-destination 'platform=iOS,id=<device-uuid>'`.
+Use a trusted device with Developer Mode enabled and a development team that
+can provision both the app and UI-test runner. Keep the same `TEST_RUNNER_`
+email injection and add `-allowProvisioningUpdates`, `CODE_SIGNING_ALLOWED=YES`
+and `DEVELOPMENT_TEAM=<team-id>` to the `xcodebuild` command before `test`.
+The command-line signing override is required because the UI-test target sets
+`CODE_SIGNING_ALLOWED=NO` in both Debug and Release; setting only a development
+team does not enable runner signing. Keep the software keyboard available.
+Do not create a duplicate suite
+or relax stable accessibility identifiers to accommodate older presentation.
+Inspect the `.xcresult` and require all three tests to execute and pass; skipped
+or unselected tests provide no evidence. Record source SHA, Xcode/SDK, device
+and OS version, selected tests, result bundle/run link and manual results in the
+release ledger. Keep the latest full existing Cloud smoke gate independently.
+
+On that same iOS 18 destination, complete this short manual checklist using an
+isolated workspace and disposable cards:
+
+1. Open AI, type with the software keyboard, send/stop a response, dismiss and
+   reopen the keyboard. Verify the composer, transcript and Done button remain
+   visible, tappable and clear of the keyboard/tab bar, including multiline input.
+2. Create a card, reveal its answer and rate it. Scroll long front/back text;
+   verify the bottom actions remain reachable and do not cover the last content.
+3. Open a destructive workspace confirmation: check disabled/enabled states,
+   red role styling, cancel, progress and completion on disposable data. Inspect
+   account deletion confirmation and cancel without deleting the review account.
+4. Open tag/deck and attachment pickers, search Cards/Tags/Decks, return to the
+   same flow, and edit scheduler fields with the keyboard and Done button.
+5. Configure reminders through the native permissions flow; verify a scheduled
+   reminder opens the intended review surface on a device supporting delivery.
+6. After online bootstrap, go offline, create a card, relaunch and review it.
+   Reconnect, sync the linked workspace, and confirm the card/review persist
+   after another relaunch and appear in another supported client.
