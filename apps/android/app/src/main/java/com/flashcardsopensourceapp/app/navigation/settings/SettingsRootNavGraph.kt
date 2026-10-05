@@ -599,6 +599,7 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
     composable(route = SettingsTestAnimationsDestination.route) {
         TestAnimationsRoute(
             isPowerSaveMode = isPowerSaveModeState.value,
+            observability = appGraph.observability,
             onBack = {
                 navController.popBackStack()
             }

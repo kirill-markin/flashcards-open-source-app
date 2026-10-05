@@ -109,6 +109,7 @@ import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 import com.flashcardsopensourceapp.core.ui.components.AppTechnicalErrorDialog
 import com.flashcardsopensourceapp.core.ui.renderTechnicalErrorDetails
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
+import com.flashcardsopensourceapp.core.observability.AndroidReviewReactionSource
 import com.flashcardsopensourceapp.feature.review.reaction.rememberReviewReactionLottieConfigurationStore
 import com.flashcardsopensourceapp.feature.settings.SettingsAttentionBadge
 import com.flashcardsopensourceapp.feature.settings.SettingsAttentionSummary
@@ -210,7 +211,10 @@ fun FlashcardsApp(
         val effectiveReviewReactionAnimationsEnabled: Boolean =
             accountPreferences?.reviewReactionAnimationsEnabled == true && isPowerSaveMode.not()
         val reviewReactionLottieConfigurationStore = rememberReviewReactionLottieConfigurationStore(
-            loadLottieCompositions = effectiveReviewReactionAnimationsEnabled
+            loadLottieCompositions = effectiveReviewReactionAnimationsEnabled,
+            isPowerSaveMode = isPowerSaveMode,
+            source = AndroidReviewReactionSource.REVIEW,
+            observability = appGraph.observability
         )
         LaunchedEffect(appGraph.appMessageBus, snackbarHostState) {
             appGraph.appMessageBus.messages.collect { message ->

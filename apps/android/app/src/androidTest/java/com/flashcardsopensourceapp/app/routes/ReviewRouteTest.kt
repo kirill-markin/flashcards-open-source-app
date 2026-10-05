@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.app.routes
 
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -27,6 +28,8 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.test.espresso.Espresso.pressBack
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.app.FirebaseAppInstrumentationTimeoutTest
+import com.flashcardsopensourceapp.app.observability.NoopAppObservability
+import com.flashcardsopensourceapp.core.observability.AndroidReviewReactionSource
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardWindowKey
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
@@ -89,7 +92,12 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.setContent {
             FlashcardsTheme {
                 val reviewReactionLottieConfigurationStore =
-                    rememberReviewReactionLottieConfigurationStore(loadLottieCompositions = true)
+                    rememberReviewReactionLottieConfigurationStore(
+                        loadLottieCompositions = true,
+                        isPowerSaveMode = false,
+                        source = AndroidReviewReactionSource.REVIEW,
+                        observability = remember { NoopAppObservability() }
+                    )
                 ReviewRoute(
                     uiState = ReviewUiState(
                         isLoading = false,
@@ -442,7 +450,12 @@ private fun ReviewRouteTestContent(
 ) {
     FlashcardsTheme {
         val reviewReactionLottieConfigurationStore =
-            rememberReviewReactionLottieConfigurationStore(loadLottieCompositions = true)
+            rememberReviewReactionLottieConfigurationStore(
+                loadLottieCompositions = true,
+                isPowerSaveMode = false,
+                source = AndroidReviewReactionSource.REVIEW,
+                observability = remember { NoopAppObservability() }
+            )
         ReviewRoute(
             uiState = uiState,
             workspaceId = workspaceId,

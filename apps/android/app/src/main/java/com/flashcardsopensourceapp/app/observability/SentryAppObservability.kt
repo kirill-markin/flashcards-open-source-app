@@ -6,6 +6,7 @@ import com.flashcardsopensourceapp.core.observability.AndroidExceptionIssueEvent
 import com.flashcardsopensourceapp.core.observability.AndroidNotificationSchedulingDiagnostic
 import com.flashcardsopensourceapp.core.observability.AndroidObservationEvent
 import com.flashcardsopensourceapp.core.observability.AndroidObservationTags
+import com.flashcardsopensourceapp.core.observability.AndroidReviewReactionDiagnostic
 import com.flashcardsopensourceapp.core.observability.AndroidWarningIssueEvent
 import com.flashcardsopensourceapp.core.observability.AndroidWorkInfoStateCounts
 import com.flashcardsopensourceapp.core.observability.AppObservability
@@ -101,6 +102,9 @@ class SentryAppObservability : AppObservability {
                 scope.setFingerprint(fingerprint)
             }
             scope.setContexts("android_observability", exceptionContext(event = event))
+            if (event is AndroidExceptionIssueEvent.ReviewReactionFailure) {
+                scope.setContexts("review_reaction", reviewReactionContext(diagnostic = event.diagnostic))
+            }
         }
     }
 
@@ -139,6 +143,9 @@ private fun addBreadcrumbData(
     addOptionalBreadcrumbData(breadcrumb = breadcrumb, name = "versionCode", value = event.tags.versionCode?.toString())
 
     when (event) {
+        is AndroidBreadcrumbEvent.ReviewReactionLifecycle -> {
+            breadcrumb.setData("review_reaction", reviewReactionContext(diagnostic = event.diagnostic))
+        }
         is AndroidBreadcrumbEvent.CloudIdentitySet -> {
             breadcrumb.setData(
                 "cloudIdentity",
@@ -508,6 +515,7 @@ private fun warningContext(event: AndroidWarningIssueEvent): SentryAndroidObserv
 
 private fun exceptionContext(event: AndroidExceptionIssueEvent): SentryAndroidObservationContext {
     return when (event) {
+        is AndroidExceptionIssueEvent.ReviewReactionFailure,
         is AndroidExceptionIssueEvent.AppScopeUncaughtException -> SentryAndroidObservationContext(
             feature = event.feature.tagValue,
             action = event.action.tagValue,
@@ -929,6 +937,11 @@ internal fun warningIssueFingerprint(event: AndroidWarningIssueEvent): List<Stri
 
 internal fun exceptionIssueFingerprint(event: AndroidExceptionIssueEvent): List<String>? {
     return when (event) {
+        is AndroidExceptionIssueEvent.ReviewReactionFailure -> listOf(
+            "{{ default }}", "android", event.action.tagValue,
+            event.diagnostic.stage.name,
+            sanitizeSentryTagValue(fieldName = "asset", value = event.diagnostic.asset) ?: "no_asset"
+        )
         is AndroidExceptionIssueEvent.FeedbackPromptException -> listOf(
             "android",
             event.feature.tagValue,
@@ -1107,3 +1120,13 @@ private data class SentryWorkInfoStateCounts(
     val failed: Int,
     val succeeded: Int
 )
+
+private fun reviewReactionContext(
+    diagnostic: AndroidReviewReactionDiagnostic
+): AndroidReviewReactionDiagnostic {
+    return diagnostic.copy(
+        variant = sanitizeSentryContextValue(fieldName = "variant", value = diagnostic.variant),
+        asset = sanitizeSentryContextValue(fieldName = "asset", value = diagnostic.asset),
+        readiness = sanitizeSentryContextValue(fieldName = "readiness", value = diagnostic.readiness) ?: "unknown"
+    )
+}

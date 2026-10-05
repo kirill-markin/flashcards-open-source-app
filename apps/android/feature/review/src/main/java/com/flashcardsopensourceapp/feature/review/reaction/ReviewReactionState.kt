@@ -5,7 +5,7 @@ import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import java.util.UUID
 import kotlin.random.Random
 
-internal const val reviewReactionMaximumActiveEvents: Int = 3
+internal const val reviewReactionMaximumActiveEvents: Int = 1
 
 private const val reviewReactionReducedMotionDurationMillis: Int = 340
 

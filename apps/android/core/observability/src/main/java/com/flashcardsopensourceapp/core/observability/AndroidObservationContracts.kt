@@ -11,12 +11,15 @@ enum class AndroidObservationFeature(
     PROGRESS(tagValue = "progress"),
     FEEDBACK(tagValue = "feedback"),
     NOTIFICATIONS(tagValue = "notifications"),
-    ANALYTICS(tagValue = "analytics")
+    ANALYTICS(tagValue = "analytics"),
+    REVIEW(tagValue = "review")
 }
 
 enum class AndroidObservationAction(
     val tagValue: String
 ) {
+    REVIEW_REACTION_FAILURE(tagValue = "review_reaction_failure"),
+    REVIEW_REACTION_LIFECYCLE(tagValue = "review_reaction_lifecycle"),
     APP_SCOPE_UNCAUGHT_EXCEPTION(tagValue = "app_scope_uncaught_exception"),
     APP_STARTUP_EXCEPTION(tagValue = "app_startup_exception"),
     APP_TECHNICAL_ERROR_DIALOG_EXCEPTION(tagValue = "app_technical_error_dialog_exception"),
@@ -173,6 +176,44 @@ data class AndroidNotificationSchedulingDiagnostic(
     val enqueueRejected: Boolean?
 )
 
+enum class AndroidReviewReactionSource {
+    REVIEW,
+    TEST_ANIMATIONS
+}
+
+enum class AndroidReviewReactionStage {
+    LOAD_FAILED,
+    CONFIGURATION_MISSING,
+    PRESENTATION_FAILED,
+    STARTED,
+    COMPLETED,
+    CANCELLED,
+    LIFECYCLE_STOPPED,
+    PENDING_SKIPPED,
+    UNAVAILABLE_SKIPPED,
+    DISABLED
+}
+
+data class AndroidReviewReactionDiagnostic(
+    val source: AndroidReviewReactionSource,
+    val stage: AndroidReviewReactionStage,
+    val variant: String?,
+    val asset: String?,
+    val readiness: String,
+    val readyCount: Int,
+    val pendingCount: Int,
+    val failedCount: Int,
+    val isPowerSaveMode: Boolean,
+    val areAnimatorsEnabled: Boolean
+)
+
+private fun reviewReactionObservationTags(stage: AndroidReviewReactionStage): AndroidObservationTags {
+    return AndroidObservationTags(
+        userId = null, workspaceId = null, requestId = null, statusCode = null,
+        code = stage.name, appVersion = null, clientVersion = null, versionCode = null
+    )
+}
+
 sealed interface AndroidObservationEvent {
     val feature: AndroidObservationFeature
     val action: AndroidObservationAction
@@ -180,6 +221,14 @@ sealed interface AndroidObservationEvent {
 }
 
 sealed interface AndroidBreadcrumbEvent : AndroidObservationEvent {
+    data class ReviewReactionLifecycle(
+        val diagnostic: AndroidReviewReactionDiagnostic
+    ) : AndroidBreadcrumbEvent {
+        override val feature: AndroidObservationFeature = AndroidObservationFeature.REVIEW
+        override val action: AndroidObservationAction = AndroidObservationAction.REVIEW_REACTION_LIFECYCLE
+        override val tags: AndroidObservationTags = reviewReactionObservationTags(stage = diagnostic.stage)
+    }
+
     data class CloudIdentitySet(
         val identity: CloudObservationIdentity
     ) : AndroidBreadcrumbEvent {
@@ -616,6 +665,15 @@ sealed interface AndroidWarningIssueEvent : AndroidObservationEvent {
 
 sealed interface AndroidExceptionIssueEvent : AndroidObservationEvent {
     val throwable: Throwable
+
+    data class ReviewReactionFailure(
+        override val throwable: Throwable,
+        val diagnostic: AndroidReviewReactionDiagnostic
+    ) : AndroidExceptionIssueEvent {
+        override val feature: AndroidObservationFeature = AndroidObservationFeature.REVIEW
+        override val action: AndroidObservationAction = AndroidObservationAction.REVIEW_REACTION_FAILURE
+        override val tags: AndroidObservationTags = reviewReactionObservationTags(stage = diagnostic.stage)
+    }
 
     data class AppScopeUncaughtException(
         override val throwable: Throwable,
