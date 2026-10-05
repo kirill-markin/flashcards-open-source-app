@@ -91,6 +91,13 @@ cleanup_on_exit() {
       --project "${PROJECT_ID}" --location global --quiet; then
       echo "ERROR: Cancellation failed for ${SESSION_ID}; inspect it with gcloud beta device-run sessions describe --full." >&2
     fi
+    if timeout --kill-after=10s 60s gcloud beta device-run sessions describe "${SESSION_ID}" --full --format=json \
+      --project "${PROJECT_ID}" --location global > "${SESSION_OUTPUT}.tmp" 2> "${SESSION_OUTPUT}.stderr"; then
+      mv "${SESSION_OUTPUT}.tmp" "${SESSION_OUTPUT}"
+    else
+      cat "${SESSION_OUTPUT}.stderr" >&2
+      echo "ERROR: Could not refresh the cancelled session report for ${SESSION_ID}; retaining the previous report and submission log." >&2
+    fi
   fi
   exit "${exit_code}"
 }
@@ -141,7 +148,8 @@ describe_session() {
   # Creation is asynchronous; retry only the temporary absence of this exact session.
   for attempt in 1 2 3 4 5 6; do
     if gcloud beta device-run sessions describe "${SESSION_ID}" --full --format=json \
-      --project "${PROJECT_ID}" --location global > "${SESSION_OUTPUT}" 2> "${error_path}"; then
+      --project "${PROJECT_ID}" --location global > "${SESSION_OUTPUT}.tmp" 2> "${error_path}"; then
+      mv "${SESSION_OUTPUT}.tmp" "${SESSION_OUTPUT}"
       return 0
     fi
     cat "${error_path}" >&2
@@ -194,8 +202,10 @@ if [[ "${wait_exit_code}" -ne 0 ]]; then
   echo "ERROR: Device Run wait failed or exceeded ${MAX_SESSION_DURATION}. Session=${SESSION_ID} Exit=${wait_exit_code}." >&2
   exit "${wait_exit_code}"
 fi
-SESSION_ACTIVE="false"
 describe_session
+if jq -e '.sessionReport.status.statusType == "DONE"' "${SESSION_OUTPUT}" >/dev/null; then
+  SESSION_ACTIVE="false"
+fi
 # Vendor wait returns rows for failed tests too; only the full report proves success.
 if ! jq -e --argjson count "${#DEVICES[@]}" '
   .sessionReport |
