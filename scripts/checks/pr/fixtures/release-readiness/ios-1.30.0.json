@@ -1,0 +1,335 @@
+{
+  "provenance": "Normalized per-destination ciTestResults from the retained 1.30.0 release record; all 18 selected UI cases preserved. No local/archive evidence is included.",
+  "captures": [
+    {
+      "number": "606",
+      "sourceSha": "b61760e5434308fbb6f58721050190db32467055",
+      "runId": "8642988b-031d-432d-be36-e0ea20dc9fbe",
+      "actionId": "b448e500-9e29-417b-a266-ccb9a33ef3ea",
+      "overallRunStatus": "SUCCEEDED",
+      "actionStatus": "SUCCEEDED",
+      "sourceRef": "release-1.30.0/ios/cloud/606/b448e500-9e29-417b-a266-ccb9a33ef3ea-tests.json",
+      "rawSha256": "05329eea7485780f378ba55207cf821c93f3170dc6a60c7207ebe9e0261a1f81",
+      "inventoryRef": "release-1.30.0/ios/cloud/606/scheme-and-source-inventory",
+      "inventory": [
+        {
+          "id": "LiveSmokeAiTests/testLiveSmokeGuestAiCardCreationFlow()@iPhone 17/iOS 27.0",
+          "disposition": "required"
+        },
+        {
+          "id": "LiveSmokeAiTests/testLiveSmokeGuestAiChatResetFlow()@iPhone 17/iOS 27.0",
+          "disposition": "required"
+        },
+        {
+          "id": "LiveSmokeCardsTests/testLiveSmokeCardsEditorAiHandoffFlow()@iPhone 17/iOS 27.0",
+          "disposition": "required"
+        },
+        {
+          "id": "LiveSmokeCardsTests/testLiveSmokeManualCardCreationFlow()@iPhone 17/iOS 27.0",
+          "disposition": "required"
+        },
+        {
+          "id": "LiveSmokeCardsTests/testLiveSmokeUnsavedCardDraftSurvivesInteractiveDismissal()@iPhone 17/iOS 27.0",
+          "disposition": "required"
+        },
+        {
+          "id": "LiveSmokeOwnOpenAIKeyTests/testOwnKeyPersistsAcrossRelaunchAndCanBeDisabledAndRemoved()@iPhone 17/iOS 27.0",
+          "disposition": "required"
+        },
+        {
+          "id": "LiveSmokeRTLTests/testLiveSmokeArabicRTLTopLevelNavigation()@iPhone 17/iOS 27.0",
+          "disposition": "required"
+        },
+        {
+          "id": "LiveSmokeReviewTests/testLiveSmokeGuestAiCardReviewFlow()@iPhone 17/iOS 27.0",
+          "disposition": "required"
+        },
+        {
+          "id": "LiveSmokeReviewTests/testLiveSmokeManualCardReviewFlow()@iPhone 17/iOS 27.0",
+          "disposition": "required"
+        },
+        {
+          "id": "LiveSmokeReviewTests/testLiveSmokeReviewFilterMenuSupportsEmptyTagAndAllCardsStates()@iPhone 17/iOS 27.0",
+          "disposition": "required"
+        },
+        {
+          "id": "LiveSmokeReviewTests/testLiveSmokeReviewReminderTabBadgeClearsAfterReview()@iPhone 17/iOS 27.0",
+          "disposition": "required"
+        },
+        {
+          "id": "LiveSmokeSettingsTests/testLiveSmokeGuestNavigationFlow()@iPhone 17/iOS 27.0",
+          "disposition": "required"
+        },
+        {
+          "id": "LiveSmokeSettingsTests/testLiveSmokeLoginAndLinkedWorkspaceFlow()@iPhone 17/iOS 27.0",
+          "disposition": "required"
+        },
+        {
+          "id": "LiveSmokeSettingsTests/testLiveSmokeNotificationTapColdStartOpensReviewOnce()@iPhone 17/iOS 27.0",
+          "disposition": "required"
+        },
+        {
+          "id": "LiveSmokeSettingsTests/testLiveSmokeResetWorkspaceProgressFlow()@iPhone 17/iOS 27.0",
+          "disposition": "required"
+        },
+        {
+          "id": "LiveSmokeSettingsTests/testLiveSmokeUnsupportedNotificationTapDoesNotNavigate()@iPhone 17/iOS 27.0",
+          "disposition": "required"
+        },
+        {
+          "id": "MarketingScreenshotsTests/testCleanupMarketingGuestSession()@iPhone 17/iOS 27.0",
+          "disposition": "manual-exclusion",
+          "reason": "Test skipped - Manual iOS marketing screenshot tests run only from explicit wrapper scripts.",
+          "evidenceRef": "apps/ios/docs/marketing-screenshots.md"
+        },
+        {
+          "id": "MarketingScreenshotsTests/testGenerateMarketingScreenshots()@iPhone 17/iOS 27.0",
+          "disposition": "manual-exclusion",
+          "reason": "Test skipped - Manual iOS marketing screenshot tests run only from explicit wrapper scripts.",
+          "evidenceRef": "apps/ios/docs/marketing-screenshots.md"
+        }
+      ],
+      "cases": [
+        {
+          "id": "LiveSmokeAiTests/testLiveSmokeGuestAiCardCreationFlow()@iPhone 17/iOS 27.0",
+          "status": "passed"
+        },
+        {
+          "id": "LiveSmokeAiTests/testLiveSmokeGuestAiChatResetFlow()@iPhone 17/iOS 27.0",
+          "status": "passed"
+        },
+        {
+          "id": "LiveSmokeCardsTests/testLiveSmokeCardsEditorAiHandoffFlow()@iPhone 17/iOS 27.0",
+          "status": "passed"
+        },
+        {
+          "id": "LiveSmokeCardsTests/testLiveSmokeManualCardCreationFlow()@iPhone 17/iOS 27.0",
+          "status": "passed"
+        },
+        {
+          "id": "LiveSmokeCardsTests/testLiveSmokeUnsavedCardDraftSurvivesInteractiveDismissal()@iPhone 17/iOS 27.0",
+          "status": "passed"
+        },
+        {
+          "id": "LiveSmokeOwnOpenAIKeyTests/testOwnKeyPersistsAcrossRelaunchAndCanBeDisabledAndRemoved()@iPhone 17/iOS 27.0",
+          "status": "passed"
+        },
+        {
+          "id": "LiveSmokeRTLTests/testLiveSmokeArabicRTLTopLevelNavigation()@iPhone 17/iOS 27.0",
+          "status": "passed"
+        },
+        {
+          "id": "LiveSmokeReviewTests/testLiveSmokeGuestAiCardReviewFlow()@iPhone 17/iOS 27.0",
+          "status": "passed"
+        },
+        {
+          "id": "LiveSmokeReviewTests/testLiveSmokeManualCardReviewFlow()@iPhone 17/iOS 27.0",
+          "status": "passed"
+        },
+        {
+          "id": "LiveSmokeReviewTests/testLiveSmokeReviewFilterMenuSupportsEmptyTagAndAllCardsStates()@iPhone 17/iOS 27.0",
+          "status": "passed"
+        },
+        {
+          "id": "LiveSmokeReviewTests/testLiveSmokeReviewReminderTabBadgeClearsAfterReview()@iPhone 17/iOS 27.0",
+          "status": "passed"
+        },
+        {
+          "id": "LiveSmokeSettingsTests/testLiveSmokeGuestNavigationFlow()@iPhone 17/iOS 27.0",
+          "status": "passed"
+        },
+        {
+          "id": "LiveSmokeSettingsTests/testLiveSmokeLoginAndLinkedWorkspaceFlow()@iPhone 17/iOS 27.0",
+          "status": "passed"
+        },
+        {
+          "id": "LiveSmokeSettingsTests/testLiveSmokeNotificationTapColdStartOpensReviewOnce()@iPhone 17/iOS 27.0",
+          "status": "passed"
+        },
+        {
+          "id": "LiveSmokeSettingsTests/testLiveSmokeResetWorkspaceProgressFlow()@iPhone 17/iOS 27.0",
+          "status": "passed"
+        },
+        {
+          "id": "LiveSmokeSettingsTests/testLiveSmokeUnsupportedNotificationTapDoesNotNavigate()@iPhone 17/iOS 27.0",
+          "status": "passed"
+        },
+        {
+          "id": "MarketingScreenshotsTests/testCleanupMarketingGuestSession()@iPhone 17/iOS 27.0",
+          "status": "skipped",
+          "reason": "Test skipped - Manual iOS marketing screenshot tests run only from explicit wrapper scripts."
+        },
+        {
+          "id": "MarketingScreenshotsTests/testGenerateMarketingScreenshots()@iPhone 17/iOS 27.0",
+          "status": "skipped",
+          "reason": "Test skipped - Manual iOS marketing screenshot tests run only from explicit wrapper scripts."
+        }
+      ]
+    },
+    {
+      "number": "603",
+      "sourceSha": "f8e786dc9db7e895a3188b2cd506c131bb52dff1",
+      "runId": "5bc2fd6d-d422-4121-911b-7685d716f2e6",
+      "actionId": "e2e08db2-ca1d-4c06-aaf3-b46ded514b85",
+      "overallRunStatus": "SUCCEEDED",
+      "actionStatus": "FAILED",
+      "sourceRef": "release-1.30.0/ios/cloud/603/e2e08db2-ca1d-4c06-aaf3-b46ded514b85-tests.json",
+      "rawSha256": "7d5ca38e46a03a2ce88a9b0a25f13add254ea8d225d23638d9fe2ba4a225bdc0",
+      "inventoryRef": "release-1.30.0/ios/cloud/603/scheme-and-source-inventory",
+      "inventory": [
+        {
+          "id": "LiveSmokeAiTests/testLiveSmokeGuestAiCardCreationFlow()@iPhone 17/iOS 27.0",
+          "disposition": "required"
+        },
+        {
+          "id": "LiveSmokeAiTests/testLiveSmokeGuestAiChatResetFlow()@iPhone 17/iOS 27.0",
+          "disposition": "required"
+        },
+        {
+          "id": "LiveSmokeCardsTests/testLiveSmokeCardsEditorAiHandoffFlow()@iPhone 17/iOS 27.0",
+          "disposition": "required"
+        },
+        {
+          "id": "LiveSmokeCardsTests/testLiveSmokeManualCardCreationFlow()@iPhone 17/iOS 27.0",
+          "disposition": "required"
+        },
+        {
+          "id": "LiveSmokeCardsTests/testLiveSmokeUnsavedCardDraftSurvivesInteractiveDismissal()@iPhone 17/iOS 27.0",
+          "disposition": "required"
+        },
+        {
+          "id": "LiveSmokeOwnOpenAIKeyTests/testOwnKeyPersistsAcrossRelaunchAndCanBeDisabledAndRemoved()@iPhone 17/iOS 27.0",
+          "disposition": "required"
+        },
+        {
+          "id": "LiveSmokeRTLTests/testLiveSmokeArabicRTLTopLevelNavigation()@iPhone 17/iOS 27.0",
+          "disposition": "required"
+        },
+        {
+          "id": "LiveSmokeReviewTests/testLiveSmokeGuestAiCardReviewFlow()@iPhone 17/iOS 27.0",
+          "disposition": "required"
+        },
+        {
+          "id": "LiveSmokeReviewTests/testLiveSmokeManualCardReviewFlow()@iPhone 17/iOS 27.0",
+          "disposition": "required"
+        },
+        {
+          "id": "LiveSmokeReviewTests/testLiveSmokeReviewFilterMenuSupportsEmptyTagAndAllCardsStates()@iPhone 17/iOS 27.0",
+          "disposition": "required"
+        },
+        {
+          "id": "LiveSmokeReviewTests/testLiveSmokeReviewReminderTabBadgeClearsAfterReview()@iPhone 17/iOS 27.0",
+          "disposition": "required"
+        },
+        {
+          "id": "LiveSmokeSettingsTests/testLiveSmokeGuestNavigationFlow()@iPhone 17/iOS 27.0",
+          "disposition": "required"
+        },
+        {
+          "id": "LiveSmokeSettingsTests/testLiveSmokeLoginAndLinkedWorkspaceFlow()@iPhone 17/iOS 27.0",
+          "disposition": "required"
+        },
+        {
+          "id": "LiveSmokeSettingsTests/testLiveSmokeNotificationTapColdStartOpensReviewOnce()@iPhone 17/iOS 27.0",
+          "disposition": "required"
+        },
+        {
+          "id": "LiveSmokeSettingsTests/testLiveSmokeResetWorkspaceProgressFlow()@iPhone 17/iOS 27.0",
+          "disposition": "required"
+        },
+        {
+          "id": "LiveSmokeSettingsTests/testLiveSmokeUnsupportedNotificationTapDoesNotNavigate()@iPhone 17/iOS 27.0",
+          "disposition": "required"
+        },
+        {
+          "id": "MarketingScreenshotsTests/testCleanupMarketingGuestSession()@iPhone 17/iOS 27.0",
+          "disposition": "manual-exclusion",
+          "reason": "Test skipped - Manual iOS marketing screenshot tests run only from explicit wrapper scripts.",
+          "evidenceRef": "apps/ios/docs/marketing-screenshots.md"
+        },
+        {
+          "id": "MarketingScreenshotsTests/testGenerateMarketingScreenshots()@iPhone 17/iOS 27.0",
+          "disposition": "manual-exclusion",
+          "reason": "Test skipped - Manual iOS marketing screenshot tests run only from explicit wrapper scripts.",
+          "evidenceRef": "apps/ios/docs/marketing-screenshots.md"
+        }
+      ],
+      "cases": [
+        {
+          "id": "LiveSmokeAiTests/testLiveSmokeGuestAiCardCreationFlow()@iPhone 17/iOS 27.0",
+          "status": "passed"
+        },
+        {
+          "id": "LiveSmokeAiTests/testLiveSmokeGuestAiChatResetFlow()@iPhone 17/iOS 27.0",
+          "status": "passed"
+        },
+        {
+          "id": "LiveSmokeCardsTests/testLiveSmokeCardsEditorAiHandoffFlow()@iPhone 17/iOS 27.0",
+          "status": "passed"
+        },
+        {
+          "id": "LiveSmokeCardsTests/testLiveSmokeManualCardCreationFlow()@iPhone 17/iOS 27.0",
+          "status": "passed"
+        },
+        {
+          "id": "LiveSmokeCardsTests/testLiveSmokeUnsavedCardDraftSurvivesInteractiveDismissal()@iPhone 17/iOS 27.0",
+          "status": "passed"
+        },
+        {
+          "id": "LiveSmokeOwnOpenAIKeyTests/testOwnKeyPersistsAcrossRelaunchAndCanBeDisabledAndRemoved()@iPhone 17/iOS 27.0",
+          "status": "passed"
+        },
+        {
+          "id": "LiveSmokeRTLTests/testLiveSmokeArabicRTLTopLevelNavigation()@iPhone 17/iOS 27.0",
+          "status": "passed"
+        },
+        {
+          "id": "LiveSmokeReviewTests/testLiveSmokeGuestAiCardReviewFlow()@iPhone 17/iOS 27.0",
+          "status": "passed"
+        },
+        {
+          "id": "LiveSmokeReviewTests/testLiveSmokeManualCardReviewFlow()@iPhone 17/iOS 27.0",
+          "status": "passed"
+        },
+        {
+          "id": "LiveSmokeReviewTests/testLiveSmokeReviewFilterMenuSupportsEmptyTagAndAllCardsStates()@iPhone 17/iOS 27.0",
+          "status": "passed"
+        },
+        {
+          "id": "LiveSmokeReviewTests/testLiveSmokeReviewReminderTabBadgeClearsAfterReview()@iPhone 17/iOS 27.0",
+          "status": "passed"
+        },
+        {
+          "id": "LiveSmokeSettingsTests/testLiveSmokeGuestNavigationFlow()@iPhone 17/iOS 27.0",
+          "status": "passed"
+        },
+        {
+          "id": "LiveSmokeSettingsTests/testLiveSmokeLoginAndLinkedWorkspaceFlow()@iPhone 17/iOS 27.0",
+          "status": "passed"
+        },
+        {
+          "id": "LiveSmokeSettingsTests/testLiveSmokeNotificationTapColdStartOpensReviewOnce()@iPhone 17/iOS 27.0",
+          "status": "passed"
+        },
+        {
+          "id": "LiveSmokeSettingsTests/testLiveSmokeResetWorkspaceProgressFlow()@iPhone 17/iOS 27.0",
+          "status": "failed"
+        },
+        {
+          "id": "LiveSmokeSettingsTests/testLiveSmokeUnsupportedNotificationTapDoesNotNavigate()@iPhone 17/iOS 27.0",
+          "status": "passed"
+        },
+        {
+          "id": "MarketingScreenshotsTests/testCleanupMarketingGuestSession()@iPhone 17/iOS 27.0",
+          "status": "skipped",
+          "reason": "Test skipped - Manual iOS marketing screenshot tests run only from explicit wrapper scripts."
+        },
+        {
+          "id": "MarketingScreenshotsTests/testGenerateMarketingScreenshots()@iPhone 17/iOS 27.0",
+          "status": "skipped",
+          "reason": "Test skipped - Manual iOS marketing screenshot tests run only from explicit wrapper scripts."
+        }
+      ]
+    }
+  ]
+}
