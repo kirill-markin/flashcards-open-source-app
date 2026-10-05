@@ -48,6 +48,46 @@ export class DatabaseDeadlineExceededError extends Error {
   }
 }
 
+// Bounds the cause walk below, which follows errors this process wrapped rather than any input, so
+// the real chains are one or two links long. The bound only keeps a cyclic `cause` from hanging a
+// request thread.
+const databaseDeadlineExpiryCauseMaxDepth = 8;
+
+/**
+ * Recognizes one error as a database deadline expiry. One deadline becomes three bounds in this
+ * module: a client-side timer, a Postgres `statement_timeout`, and a `lock_timeout` derived from
+ * the same deadline. So the same expiry arrives as a `DatabaseDeadlineExceededError`, as SQLSTATE
+ * 57014, or as SQLSTATE 55P03, depending on which of them fired first.
+ */
+export function matchesDatabaseDeadlineExpiry(error: unknown): boolean {
+  if (error instanceof DatabaseDeadlineExceededError) {
+    return true;
+  }
+
+  const { sqlState } = getDatabaseErrorFields(error);
+  return sqlState === "57014" || sqlState === "55P03";
+}
+
+/**
+ * Recognizes a database deadline expiry anywhere in an error's `cause` chain, because callers wrap
+ * the expiry with their own context and keep it as the `cause`; reading only the outermost error
+ * would miss every wrapped expiry.
+ */
+export function isDatabaseDeadlineExpiry(error: unknown): boolean {
+  let current: unknown = error;
+  for (let depth = 0; depth < databaseDeadlineExpiryCauseMaxDepth; depth += 1) {
+    if (matchesDatabaseDeadlineExpiry(current)) {
+      return true;
+    }
+    if (!(current instanceof Error)) {
+      return false;
+    }
+    current = current.cause;
+  }
+
+  return false;
+}
+
 export class DatabaseTransactionRolledBackError extends Error implements DatabaseBoundaryErrorFields {
   readonly code = "DATABASE_TRANSACTION_ROLLED_BACK";
   readonly sqlState: string | null;
