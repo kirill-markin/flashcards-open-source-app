@@ -300,6 +300,7 @@ struct AIChatView: View {
         if self.accessState == .ready {
             ToolbarItem(placement: .topBarTrailing) {
                 Button(aiSettingsLocalized("ai.newChat", "New")) {
+                    self.dismissComposerFocus()
                     self.chatStore.clearHistory()
                 }
                 .accessibilityIdentifier(UITestIdentifier.aiNewChatButton)
@@ -747,8 +748,8 @@ struct AIChatView: View {
         guard self.ensureExternalAIConsent() else {
             return
         }
-        self.chatStore.sendMessage()
         self.dismissComposerFocus()
+        self.chatStore.sendMessage()
     }
 
     func dismissComposerFocus() {
