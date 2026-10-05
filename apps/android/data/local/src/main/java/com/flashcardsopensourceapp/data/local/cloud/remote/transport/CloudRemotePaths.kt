@@ -156,10 +156,10 @@ internal fun buildWorkspacePackageExportCloudPath(workspaceId: String): String {
 }
 
 private fun encodeCloudQueryValue(value: String): String {
-    return URLEncoder.encode(value, StandardCharsets.UTF_8)
+    return URLEncoder.encode(value, StandardCharsets.UTF_8.name())
 }
 
 private fun encodeCloudPathSegment(value: String): String {
-    return URLEncoder.encode(value, StandardCharsets.UTF_8)
+    return URLEncoder.encode(value, StandardCharsets.UTF_8.name())
         .replace(oldValue = "+", newValue = "%20")
 }
