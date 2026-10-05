@@ -1,9 +1,10 @@
 package com.flashcardsopensourceapp.feature.review.reaction
 
-import android.util.Log
+import android.animation.ValueAnimator
 import androidx.annotation.RawRes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.key
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -13,25 +14,88 @@ import com.airbnb.lottie.LottieComposition
 import com.airbnb.lottie.compose.LottieCompositionResult
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.rememberLottieComposition
+import com.flashcardsopensourceapp.core.observability.AndroidBreadcrumbEvent
+import com.flashcardsopensourceapp.core.observability.AndroidExceptionIssueEvent
+import com.flashcardsopensourceapp.core.observability.AndroidReviewReactionDiagnostic
+import com.flashcardsopensourceapp.core.observability.AndroidReviewReactionSource
+import com.flashcardsopensourceapp.core.observability.AndroidReviewReactionStage
+import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import com.flashcardsopensourceapp.feature.review.R
-
-private const val reviewReactionLogTag: String = "ReviewReaction"
-
-internal val reviewReactionLottieFallbackVariant: ReviewReactionVariant =
-    ReviewReactionVariant.FALLBACK_CROWN_BOUNCE
+import kotlinx.coroutines.CancellationException
 
 class ReviewReactionLottieConfigurationStore internal constructor(
-    internal val configurations: Map<ReviewReactionVariant, ReviewReactionLottieConfiguration>
+    internal val configurations: Map<ReviewReactionVariant, ReviewReactionLottieConfiguration>,
+    private val observability: AppObservability,
+    private val source: AndroidReviewReactionSource
 ) {
-    internal fun updateReadiness(
-        variant: ReviewReactionVariant,
-        readiness: ReviewReactionLottieReadiness
-    ) {
-        val configuration: ReviewReactionLottieConfiguration = configurations[variant]
-            ?: error("Review reaction Lottie configuration is missing. variant=${variant.debugIdentifier}")
+    internal var isPowerSaveMode: Boolean = false
+    private val reportedFailures: MutableSet<ReviewReactionVariant> = mutableSetOf()
+    private val recordedStages: MutableSet<AndroidReviewReactionStage> = mutableSetOf()
 
-        configuration.readiness = readiness
+    internal fun updateReadiness(variant: ReviewReactionVariant, readiness: ReviewReactionLottieReadiness) {
+        val configuration = configurations[variant]
+        if (configuration == null) {
+            fail(
+                variant = variant,
+                stage = AndroidReviewReactionStage.CONFIGURATION_MISSING,
+                error = IllegalStateException("Review reaction configuration is missing: ${variant.debugIdentifier}")
+            )
+            return
+        }
+        // A presentation failure stays disabled even while the composition loader recomposes.
+        if (configuration.readiness !is ReviewReactionLottieReadiness.Failed) {
+            configuration.readiness = readiness
+        }
+    }
+
+    internal fun fail(variant: ReviewReactionVariant, stage: AndroidReviewReactionStage, error: Throwable) {
+        if (error is Error) throw error
+        if (error is CancellationException) {
+            record(stage = AndroidReviewReactionStage.CANCELLED, variant = variant)
+            return
+        }
+        val diagnostic = diagnostic(stage = stage, variant = variant)
+        configurations[variant]?.readiness = ReviewReactionLottieReadiness.Failed(error = error)
+        if (reportedFailures.add(variant)) {
+            observability.captureException(
+                event = AndroidExceptionIssueEvent.ReviewReactionFailure(throwable = error, diagnostic = diagnostic)
+            )
+        }
+    }
+
+    internal fun record(stage: AndroidReviewReactionStage, variant: ReviewReactionVariant?) {
+        // Keep ordinary lifecycle evidence bounded independently of review and frame counts.
+        if (recordedStages.add(stage)) {
+            observability.addBreadcrumb(
+                event = AndroidBreadcrumbEvent.ReviewReactionLifecycle(diagnostic = diagnostic(stage, variant))
+            )
+        }
+    }
+
+    private fun diagnostic(
+        stage: AndroidReviewReactionStage,
+        variant: ReviewReactionVariant?
+    ): AndroidReviewReactionDiagnostic {
+        val readiness = variant?.let { configurations[it]?.readiness }
+        val states = configurations.values.map { it.readiness }
+        return AndroidReviewReactionDiagnostic(
+            source = source,
+            stage = stage,
+            variant = variant?.debugIdentifier,
+            asset = reviewReactionLottieAssetConfigurations.firstOrNull { it.variant == variant }?.assetName,
+            readiness = when (readiness) {
+                is ReviewReactionLottieReadiness.Ready -> "ready"
+                is ReviewReactionLottieReadiness.Failed -> "failed"
+                ReviewReactionLottieReadiness.Pending -> "pending"
+                null -> "missing"
+            },
+            readyCount = states.count { it is ReviewReactionLottieReadiness.Ready },
+            pendingCount = states.count { it is ReviewReactionLottieReadiness.Pending },
+            failedCount = states.count { it is ReviewReactionLottieReadiness.Failed },
+            isPowerSaveMode = isPowerSaveMode,
+            areAnimatorsEnabled = ValueAnimator.areAnimatorsEnabled()
+        )
     }
 }
 
@@ -295,21 +359,32 @@ private val reviewReactionLottieAssetConfigurations: List<ReviewReactionLottieAs
 
 @Composable
 fun rememberReviewReactionLottieConfigurationStore(
-    loadLottieCompositions: Boolean
+    loadLottieCompositions: Boolean,
+    isPowerSaveMode: Boolean,
+    source: AndroidReviewReactionSource,
+    observability: AppObservability
 ): ReviewReactionLottieConfigurationStore {
     val configurationStore: ReviewReactionLottieConfigurationStore =
-        remember { createReviewReactionLottieConfigurationStore() }
+        remember(observability, source) {
+            createReviewReactionLottieConfigurationStore(observability = observability, source = source)
+        }
+    SideEffect { configurationStore.isPowerSaveMode = isPowerSaveMode }
+    LaunchedEffect(loadLottieCompositions) {
+        if (loadLottieCompositions.not()) {
+            configurationStore.record(stage = AndroidReviewReactionStage.DISABLED, variant = null)
+        }
+    }
 
     if (loadLottieCompositions) {
         reviewReactionLottieAssetConfigurations.forEach { assetConfiguration: ReviewReactionLottieAssetConfiguration ->
-            val readiness: ReviewReactionLottieReadiness = rememberReviewReactionLottieReadiness(
-                assetConfiguration = assetConfiguration
-            )
-            SideEffect {
-                configurationStore.updateReadiness(
-                    variant = assetConfiguration.variant,
-                    readiness = readiness
+            key(assetConfiguration.variant) {
+                val readiness = rememberReviewReactionLottieReadiness(
+                    assetConfiguration = assetConfiguration,
+                    configurationStore = configurationStore
                 )
+                SideEffect {
+                    configurationStore.updateReadiness(variant = assetConfiguration.variant, readiness = readiness)
+                }
             }
         }
     }
@@ -317,7 +392,10 @@ fun rememberReviewReactionLottieConfigurationStore(
     return configurationStore
 }
 
-private fun createReviewReactionLottieConfigurationStore(): ReviewReactionLottieConfigurationStore {
+private fun createReviewReactionLottieConfigurationStore(
+    observability: AppObservability,
+    source: AndroidReviewReactionSource
+): ReviewReactionLottieConfigurationStore {
     val configurations: Map<ReviewReactionVariant, ReviewReactionLottieConfiguration> =
         reviewReactionLottieAssetConfigurations.associate { assetConfiguration: ReviewReactionLottieAssetConfiguration ->
             assetConfiguration.variant to ReviewReactionLottieConfiguration(
@@ -326,12 +404,13 @@ private fun createReviewReactionLottieConfigurationStore(): ReviewReactionLottie
             )
         }
 
-    return ReviewReactionLottieConfigurationStore(configurations = configurations)
+    return ReviewReactionLottieConfigurationStore(configurations = configurations, observability = observability, source = source)
 }
 
 @Composable
 private fun rememberReviewReactionLottieReadiness(
-    assetConfiguration: ReviewReactionLottieAssetConfiguration
+    assetConfiguration: ReviewReactionLottieAssetConfiguration,
+    configurationStore: ReviewReactionLottieConfigurationStore
 ): ReviewReactionLottieReadiness {
     val compositionResult: LottieCompositionResult = rememberLottieComposition(
         spec = LottieCompositionSpec.RawRes(assetConfiguration.rawResourceId)
@@ -344,27 +423,18 @@ private fun rememberReviewReactionLottieReadiness(
     val compositionFailure: Throwable? = compositionResult.error
     if (compositionFailure != null) {
         LaunchedEffect(assetConfiguration.assetName, compositionFailure) {
-            logReviewReactionLottieWarning(
-                assetConfiguration = assetConfiguration,
+            configurationStore.fail(
+                variant = assetConfiguration.variant,
+                stage = AndroidReviewReactionStage.LOAD_FAILED,
                 error = compositionFailure
             )
         }
+        if (compositionFailure is Error) throw compositionFailure
+        if (compositionFailure is CancellationException) return ReviewReactionLottieReadiness.Pending
         return ReviewReactionLottieReadiness.Failed(error = compositionFailure)
     }
 
     return ReviewReactionLottieReadiness.Pending
-}
-
-private fun logReviewReactionLottieWarning(
-    assetConfiguration: ReviewReactionLottieAssetConfiguration,
-    error: Throwable
-) {
-    Log.w(
-        reviewReactionLogTag,
-        "Review reaction Lottie asset failed to load. " +
-            "assetName=${assetConfiguration.assetName} rawResourceId=${assetConfiguration.rawResourceId}",
-        error
-    )
 }
 
 internal fun reviewReactionLottieConfiguration(
@@ -391,12 +461,3 @@ internal fun reviewReactionReadyVariants(
         .toSet()
 }
 
-internal fun reviewReactionFallbackVariantForReadiness(
-    readiness: ReviewReactionLottieReadiness
-): ReviewReactionVariant? {
-    return when (readiness) {
-        is ReviewReactionLottieReadiness.Ready,
-        ReviewReactionLottieReadiness.Pending -> null
-        is ReviewReactionLottieReadiness.Failed -> reviewReactionLottieFallbackVariant
-    }
-}

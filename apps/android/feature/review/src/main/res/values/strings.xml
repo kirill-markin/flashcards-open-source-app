@@ -104,4 +104,5 @@
         <item quantity="one">%d tag</item>
         <item quantity="other">%d tags</item>
     </plurals>
+    <string name="review_test_animations_unavailable">Animation unavailable</string>
 </resources>
