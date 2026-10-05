@@ -130,7 +130,10 @@ jobs:
       - android_ci
     if: ${{ needs.android_ci.result == 'success' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
+    timeout-minutes: 165
+    concurrency:
+      group: android-release-device-run-shared-account
+      cancel-in-progress: false
     permissions:
       contents: read
       id-token: write
@@ -141,9 +144,7 @@ jobs:
       device_descriptor: ${{ steps.collect.outputs.device_descriptor }}
       session_link: ${{ steps.collect.outputs.session_link }}
       compat_submission_state: ${{ steps.collect.outputs.compat_submission_state }}
-      compat_session_id: ${{ steps.collect.outputs.compat_session_id }}
-      compat_session_link: ${{ steps.collect.outputs.compat_session_link }}
-      compat_results_path: ${{ steps.collect.outputs.compat_results_path }}
+      compat_sessions: ${{ steps.collect.outputs.compat_sessions }}
       compat_device_descriptors: ${{ steps.collect.outputs.compat_device_descriptors }}
       compat_test_targets: ${{ steps.collect.outputs.compat_test_targets }}
 
@@ -191,6 +192,12 @@ jobs:
             configuration_invalid="true"
           else
             compat_device_descriptors="$(jq -r 'join("; ")' <<< "${ANDROID_DEVICE_RUN_COMPAT_DEVICES}")"
+            jq -c '
+              to_entries | map({
+                device: .value, api: (["30", "31", "33"][.key]),
+                session_id: "", results_path: "", session_link: "", outcome: "not_executed"
+              })
+            ' <<< "${ANDROID_DEVICE_RUN_COMPAT_DEVICES}" > "${RUNNER_TEMP}/device-run-compat-sessions.json"
           fi
 
           if [[ "${#missing_values[@]}" -gt 0 || "${configuration_invalid}" == "true" ]]; then
@@ -288,7 +295,7 @@ jobs:
           printf 'APP_APK_PATH=%s\n' "${app_apk_path}" >> "${GITHUB_ENV}"
           printf 'TEST_APK_PATH=%s\n' "${test_apk_path}" >> "${GITHUB_ENV}"
 
-      - name: Submit app instrumentation tests to Device Run
+      - name: Run latest app instrumentation to terminal success
         id: submit
         if: ${{ steps.validate-config.outputs.submission_state == 'ready' && steps.auth.outcome == 'success' && steps.setup-gcloud.outcome == 'success' && steps.device-catalog.outcome == 'success' && steps.download-debug-apks.outcome == 'success' && steps.resolve-debug-apks.outcome == 'success' }}
         env:
@@ -322,7 +329,7 @@ jobs:
             --results-bucket "${ANDROID_DEVICE_RUN_RESULTS_BUCKET}" \
             --labels "release_id=${RELEASE_ID},target_sha=${TARGET_SHA},github_run_id=${GITHUB_RUN_ID},github_run_attempt=${GITHUB_RUN_ATTEMPT},suite=latest" \
             --session-output "${session_output}" \
-            --async > "${command_output_file}" 2>&1
+            --max-session-duration "35m" > "${command_output_file}" 2>&1
           command_exit_code=$?
           set -e
           cat "${command_output_file}"
@@ -338,10 +345,10 @@ jobs:
             session_id="$(jq -r '.name | split("/") | last' "${session_output}")"
             results_path="$(jq -r '.sessionConfig.outputDirectoryConfig.gcsOutputDirectory.path' "${session_output}")/${session_id}/"
             session_link="https://console.cloud.google.com/storage/browser/${results_path#gs://}?project=${GCP_PROJECT_ID}"
-            submission_state="submitted"
+            submission_state="passed"
           else
-            submission_state="submission_failed"
-            echo "Device Run submission failed. Exit=${command_exit_code} Release=${RELEASE_ID}. Inspect ${command_output_file} for the session identity if creation began." >&2
+            submission_state="failed"
+            echo "Device Run latest session failed. Exit=${command_exit_code} Release=${RELEASE_ID} Session=${session_id:-not_created}. Inspect ${command_output_file} and ${session_output}." >&2
           fi
           {
             echo "submission_state=${submission_state}"
@@ -350,24 +357,19 @@ jobs:
             echo "results_path=${results_path}"
             echo "test_targets=${test_targets[*]}"
           } >> "${GITHUB_OUTPUT}"
+          exit "${command_exit_code}"
 
-      - name: Submit Android 11/12/13 compatibility smoke to Device Run
+      - name: Run API 30/31/33 compatibility smoke sequentially
         id: submit-compat
-        if: ${{ steps.validate-config.outputs.submission_state == 'ready' && steps.auth.outcome == 'success' && steps.setup-gcloud.outcome == 'success' && steps.device-catalog.outcome == 'success' && steps.download-debug-apks.outcome == 'success' && steps.resolve-debug-apks.outcome == 'success' }}
+        if: ${{ success() && steps.submit.outputs.submission_state == 'passed' }}
         env:
           GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
-          ANDROID_DEVICE_RUN_COMPAT_DEVICES: ${{ vars.ANDROID_DEVICE_RUN_COMPAT_DEVICES }}
           ANDROID_DEVICE_RUN_RESULTS_BUCKET: ${{ vars.ANDROID_DEVICE_RUN_RESULTS_BUCKET }}
           RELEASE_ID: ${{ needs.preflight.outputs.android_release_id }}
           TARGET_SHA: ${{ needs.preflight.outputs.target_sha }}
         run: |
           set -euo pipefail
-          command_output_file="${RUNNER_TEMP}/device-run-compat-submit.log"
-          session_output="${RUNNER_TEMP}/device-run-compat-session.json"
-          device_args=()
-          while IFS= read -r device; do
-            device_args+=(--device "${device}")
-          done < <(jq -r '.[]' <<< "${ANDROID_DEVICE_RUN_COMPAT_DEVICES}")
+          sessions_file="${RUNNER_TEMP}/device-run-compat-sessions.json"
           test_targets=(
             "class com.flashcardsopensourceapp.app.livesmoke.LiveSmokeTest#manualCardCanBeCreatedInDefaultWorkspace"
             "class com.flashcardsopensourceapp.app.livesmoke.LiveSmokeTest#repositorySeededCardCanBeReviewedInDefaultWorkspace"
@@ -378,62 +380,65 @@ jobs:
           for test_target in "${test_targets[@]}"; do
             test_target_args+=(--test-targets "${test_target}")
           done
+          echo "test_targets=${test_targets[*]}" >> "${GITHUB_OUTPUT}"
 
-          set +e
-          bash scripts/android/run-android-device-run.sh \
-            --project-id "${GCP_PROJECT_ID}" \
-            "${device_args[@]}" \
-            --app-path "${APP_APK_PATH}" \
-            --test-path "${TEST_APK_PATH}" \
-            --timeout "30m" \
-            "${test_target_args[@]}" \
-            --results-bucket "${ANDROID_DEVICE_RUN_RESULTS_BUCKET}" \
-            --labels "release_id=${RELEASE_ID},target_sha=${TARGET_SHA},github_run_id=${GITHUB_RUN_ID},github_run_attempt=${GITHUB_RUN_ATTEMPT},suite=compat" \
-            --session-output "${session_output}" \
-            --async > "${command_output_file}" 2>&1
-          command_exit_code=$?
-          set -e
-          cat "${command_output_file}"
+          while IFS=$'\t' read -r device api; do
+            command_output_file="${RUNNER_TEMP}/device-run-compat-api${api}-submit.log"
+            session_output="${RUNNER_TEMP}/device-run-compat-api${api}-session.json"
+            jq -c --arg device "${device}" '
+              map(if .device == $device then .outcome = "running" else . end)
+            ' "${sessions_file}" > "${sessions_file}.tmp"
+            mv "${sessions_file}.tmp" "${sessions_file}"
 
-          session_id="$(sed -nE 's/.*Creating session \[(session-[a-f0-9-]+)\] in location \[global\].*/\1/p' "${command_output_file}")"
-          results_path=""
-          session_link=""
-          if [[ -n "${session_id}" ]]; then
-            results_path="gs://${ANDROID_DEVICE_RUN_RESULTS_BUCKET}/automation/sessions/${session_id}/"
-            session_link="https://console.cloud.google.com/storage/browser/${results_path#gs://}?project=${GCP_PROJECT_ID}"
-          fi
-          if [[ "${command_exit_code}" -eq 0 ]]; then
-            session_id="$(jq -r '.name | split("/") | last' "${session_output}")"
-            results_path="$(jq -r '.sessionConfig.outputDirectoryConfig.gcsOutputDirectory.path' "${session_output}")/${session_id}/"
-            session_link="https://console.cloud.google.com/storage/browser/${results_path#gs://}?project=${GCP_PROJECT_ID}"
-            submission_state="submitted"
-          else
-            submission_state="submission_failed"
-            echo "Device Run submission failed. Exit=${command_exit_code} Release=${RELEASE_ID}. Inspect ${command_output_file} for the session identity if creation began." >&2
-          fi
-          {
-            echo "submission_state=${submission_state}"
-            echo "session_id=${session_id}"
-            echo "session_link=${session_link}"
-            echo "results_path=${results_path}"
-            echo "test_targets=${test_targets[*]}"
-          } >> "${GITHUB_OUTPUT}"
+            set +e
+            bash scripts/android/run-android-device-run.sh \
+              --project-id "${GCP_PROJECT_ID}" \
+              --device "${device}" \
+              --app-path "${APP_APK_PATH}" \
+              --test-path "${TEST_APK_PATH}" \
+              --timeout "30m" \
+              --max-session-duration "35m" \
+              "${test_target_args[@]}" \
+              --results-bucket "${ANDROID_DEVICE_RUN_RESULTS_BUCKET}" \
+              --labels "release_id=${RELEASE_ID},target_sha=${TARGET_SHA},github_run_id=${GITHUB_RUN_ID},github_run_attempt=${GITHUB_RUN_ATTEMPT},suite=compat" \
+              --session-output "${session_output}" > "${command_output_file}" 2>&1
+            command_exit_code=$?
+            set -e
+            cat "${command_output_file}"
 
-      - name: Preserve Device Run submission records
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: android-device-run-submissions
-          if-no-files-found: ignore
-          path: |
-            ${{ runner.temp }}/device-run-*-submit.log
-            ${{ runner.temp }}/device-run-*-session.json*
-            ${{ runner.temp }}/device-run-catalog.json
+            session_id="$(sed -nE 's/.*Creating session \[(session-[a-f0-9-]+)\] in location \[global\].*/\1/p' "${command_output_file}")"
+            results_path=""
+            session_link=""
+            if [[ -n "${session_id}" ]]; then
+              results_path="gs://${ANDROID_DEVICE_RUN_RESULTS_BUCKET}/automation/sessions/${session_id}/"
+              session_link="https://console.cloud.google.com/storage/browser/${results_path#gs://}?project=${GCP_PROJECT_ID}"
+            fi
+            outcome="failed"
+            if [[ "${command_exit_code}" -eq 0 ]]; then
+              session_id="$(jq -r '.name | split("/") | last' "${session_output}")"
+              results_path="$(jq -r '.sessionConfig.outputDirectoryConfig.gcsOutputDirectory.path' "${session_output}")/${session_id}/"
+              session_link="https://console.cloud.google.com/storage/browser/${results_path#gs://}?project=${GCP_PROJECT_ID}"
+              outcome="passed"
+            fi
+            jq -c --arg device "${device}" --arg session_id "${session_id}" \
+              --arg results_path "${results_path}" --arg session_link "${session_link}" --arg outcome "${outcome}" '
+              map(if .device == $device then
+                . + {session_id: $session_id, results_path: $results_path, session_link: $session_link, outcome: $outcome}
+              else . end)
+            ' "${sessions_file}" > "${sessions_file}.tmp"
+            mv "${sessions_file}.tmp" "${sessions_file}"
+            if [[ "${command_exit_code}" -ne 0 ]]; then
+              echo "Device Run compatibility failed. Device=${device} API=${api} Session=${session_id:-not_created} Exit=${command_exit_code}. Later destinations remain not_executed." >&2
+              exit "${command_exit_code}"
+            fi
+          done < <(jq -r '.[] | [.device, .api] | @tsv' "${sessions_file}")
 
       - name: Collect Device Run outcome
         if: always()
         id: collect
         env:
+          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+          ANDROID_DEVICE_RUN_RESULTS_BUCKET: ${{ vars.ANDROID_DEVICE_RUN_RESULTS_BUCKET }}
           VALIDATION_STATE: ${{ steps.validate-config.outputs.submission_state }}
           AUTH_STEP_OUTCOME: ${{ steps.auth.outcome }}
           GCLOUD_STEP_OUTCOME: ${{ steps.setup-gcloud.outcome }}
@@ -443,11 +448,7 @@ jobs:
           SUBMIT_STATE: ${{ steps.submit.outputs.submission_state }}
           SUBMIT_SESSION_ID: ${{ steps.submit.outputs.session_id }}
           SUBMIT_SESSION_LINK: ${{ steps.submit.outputs.session_link }}
-          COMPAT_SUBMIT_STATE: ${{ steps.submit-compat.outputs.submission_state }}
           COMPAT_TEST_TARGETS: ${{ steps.submit-compat.outputs.test_targets }}
-          COMPAT_SESSION_ID: ${{ steps.submit-compat.outputs.session_id }}
-          COMPAT_SESSION_LINK: ${{ steps.submit-compat.outputs.session_link }}
-          COMPAT_RESULTS_PATH: ${{ steps.submit-compat.outputs.results_path }}
           COMPAT_DEVICE_DESCRIPTORS: ${{ steps.validate-config.outputs.compat_device_descriptors }}
           RESULTS_PATH: ${{ steps.submit.outputs.results_path }}
           DEVICE_DESCRIPTOR: ${{ steps.validate-config.outputs.device_descriptor }}
@@ -456,6 +457,15 @@ jobs:
 
           submission_state="${VALIDATION_STATE}"
           session_id="${SUBMIT_SESSION_ID}"
+          results_path="${RESULTS_PATH}"
+          session_link="${SUBMIT_SESSION_LINK}"
+          if [[ -z "${session_id}" && -f "${RUNNER_TEMP}/device-run-latest-submit.log" ]]; then
+            session_id="$(sed -nE 's/.*Creating session \[(session-[a-f0-9-]+)\] in location \[global\].*/\1/p' "${RUNNER_TEMP}/device-run-latest-submit.log")"
+            if [[ -n "${session_id}" ]]; then
+              results_path="gs://${ANDROID_DEVICE_RUN_RESULTS_BUCKET}/automation/sessions/${session_id}/"
+              session_link="https://console.cloud.google.com/storage/browser/${results_path#gs://}?project=${GCP_PROJECT_ID}"
+            fi
+          fi
 
           if [[ "${VALIDATION_STATE}" == "ready" ]]; then
             if [[ "${AUTH_STEP_OUTCOME}" != "success" ]]; then
@@ -475,29 +485,66 @@ jobs:
             fi
           fi
 
-          if [[ "${submission_state}" == "submitted" && -z "${session_id}" ]]; then
-            submission_state="submission_failed"
+          if [[ "${submission_state}" == "passed" && -z "${session_id}" ]]; then
+            submission_state="failed"
           fi
-          compat_submission_state="${COMPAT_SUBMIT_STATE:-${submission_state}}"
-          if [[ "${compat_submission_state}" == "submitted" && -z "${COMPAT_SESSION_ID}" ]]; then
-            compat_submission_state="submission_failed"
+          compat_sessions="[]"
+          compat_submission_state="not_executed"
+          if [[ -f "${RUNNER_TEMP}/device-run-compat-sessions.json" ]]; then
+            sessions_file="${RUNNER_TEMP}/device-run-compat-sessions.json"
+            while IFS=$'\t' read -r device api; do
+              log_path="${RUNNER_TEMP}/device-run-compat-api${api}-submit.log"
+              interrupted_session_id=""
+              if [[ -f "${log_path}" ]]; then
+                interrupted_session_id="$(sed -nE 's/.*Creating session \[(session-[a-f0-9-]+)\] in location \[global\].*/\1/p' "${log_path}")"
+              fi
+              interrupted_results=""
+              interrupted_link=""
+              if [[ -n "${interrupted_session_id}" ]]; then
+                interrupted_results="gs://${ANDROID_DEVICE_RUN_RESULTS_BUCKET}/automation/sessions/${interrupted_session_id}/"
+                interrupted_link="https://console.cloud.google.com/storage/browser/${interrupted_results#gs://}?project=${GCP_PROJECT_ID}"
+              fi
+              jq -c --arg device "${device}" --arg session_id "${interrupted_session_id}" \
+                --arg results_path "${interrupted_results}" --arg session_link "${interrupted_link}" '
+                map(if .device == $device then
+                  . + {session_id: $session_id, results_path: $results_path, session_link: $session_link, outcome: "interrupted"}
+                else . end)
+              ' "${sessions_file}" > "${sessions_file}.tmp"
+              mv "${sessions_file}.tmp" "${sessions_file}"
+            done < <(jq -r '.[] | select(.outcome == "running") | [.device, .api] | @tsv' "${sessions_file}")
+            compat_sessions="$(cat "${sessions_file}")"
+            if jq -e 'length == 3 and all(.[]; .outcome == "passed" and (.session_id | length > 0))' <<< "${compat_sessions}" >/dev/null; then
+              compat_submission_state="passed"
+            elif jq -e 'any(.[]; .outcome != "not_executed")' <<< "${compat_sessions}" >/dev/null; then
+              compat_submission_state="failed"
+            fi
           fi
 
           {
             echo "submission_state=${submission_state}"
             echo "session_id=${session_id}"
-            echo "session_link=${SUBMIT_SESSION_LINK}"
+            echo "session_link=${session_link}"
             echo "compat_submission_state=${compat_submission_state}"
             echo "compat_test_targets=${COMPAT_TEST_TARGETS}"
-            echo "compat_session_id=${COMPAT_SESSION_ID}"
-            echo "compat_session_link=${COMPAT_SESSION_LINK}"
-            echo "compat_results_path=${COMPAT_RESULTS_PATH}"
+            echo "compat_sessions=${compat_sessions}"
             echo "compat_device_descriptors=${COMPAT_DEVICE_DESCRIPTORS}"
-            echo "results_path=${RESULTS_PATH}"
+            echo "results_path=${results_path}"
             echo "device_descriptor=${DEVICE_DESCRIPTOR}"
           } >> "${GITHUB_OUTPUT}"
 
-      - name: Summarize Device Run submission
+      - name: Preserve Device Run submission records
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-device-run-submissions
+          if-no-files-found: ignore
+          path: |
+            ${{ runner.temp }}/device-run-*-submit.log
+            ${{ runner.temp }}/device-run-*-session.json*
+            ${{ runner.temp }}/device-run-catalog.json
+            ${{ runner.temp }}/device-run-compat-sessions.json*
+
+      - name: Summarize Device Run terminal results
         if: always()
         env:
           SUBMISSION_STATE: ${{ steps.collect.outputs.submission_state }}
@@ -505,18 +552,16 @@ jobs:
           SESSION_LINK: ${{ steps.collect.outputs.session_link }}
           COMPAT_SUBMISSION_STATE: ${{ steps.collect.outputs.compat_submission_state }}
           COMPAT_TEST_TARGETS: ${{ steps.collect.outputs.compat_test_targets }}
-          COMPAT_SESSION_ID: ${{ steps.collect.outputs.compat_session_id }}
-          COMPAT_SESSION_LINK: ${{ steps.collect.outputs.compat_session_link }}
-          COMPAT_RESULTS_PATH: ${{ steps.collect.outputs.compat_results_path }}
+          COMPAT_SESSIONS: ${{ steps.collect.outputs.compat_sessions }}
           COMPAT_DEVICE_DESCRIPTORS: ${{ steps.collect.outputs.compat_device_descriptors }}
           RESULTS_PATH: ${{ steps.collect.outputs.results_path }}
           DEVICE_DESCRIPTOR: ${{ steps.collect.outputs.device_descriptor }}
           RELEASE_ID: ${{ needs.preflight.outputs.android_release_id }}
         run: |
           {
-            echo "## Device Run submission"
+            echo "## Device Run terminal results"
             echo ""
-            echo "- Submission state: \`${SUBMISSION_STATE}\`"
+            echo "- Latest outcome: \`${SUBMISSION_STATE}\`"
             echo "- Release ID: \`${RELEASE_ID}\`"
             echo "- Target SHA: \`${{ needs.preflight.outputs.target_sha }}\`"
             echo "- Session ID: \`${SESSION_ID:-n/a}\`"
@@ -524,15 +569,18 @@ jobs:
             echo "- Device: \`${DEVICE_DESCRIPTOR:-n/a}\`"
             echo "- Latest session lookup: ${SESSION_LINK:-n/a}"
             echo "- Latest targets: \`package com.flashcardsopensourceapp.app\` with notAnnotation com.flashcardsopensourceapp.app.ManualOnlyAndroidTest"
-            echo "- Compatibility submission: \`${COMPAT_SUBMISSION_STATE:-n/a}\`"
-            echo "- Compatibility session: [${COMPAT_SESSION_ID:-n/a}](${COMPAT_SESSION_LINK})"
-            echo "- Compatibility results path: \`${COMPAT_RESULTS_PATH:-n/a}\`"
+            echo "- Compatibility outcome: \`${COMPAT_SUBMISSION_STATE:-n/a}\`"
+            echo ""
+            echo "| API | Device | Outcome | Session / results | Results path |"
+            echo "| --- | --- | --- | --- | --- |"
+            jq -r '.[] | "| \(.api) | \(.device) | \(.outcome) | [\(.session_id)](\(.session_link)) | \(.results_path) |"' <<< "${COMPAT_SESSIONS}"
+            echo ""
             echo "- Compatibility devices: \`${COMPAT_DEVICE_DESCRIPTORS:-n/a}\`"
             echo "- Compatibility targets: \`${COMPAT_TEST_TARGETS:-n/a}\`"
-            echo "- Publication requires terminal PASSED results for latest and all three compatibility destinations, with all selected tests executed; submission alone is insufficient."
+            echo "- Play draft upload requires four terminal PASSED sessions. Before manual publication, inspect all selected named tests for failures, errors, unexpected skips or zero tests."
           } >> "${GITHUB_STEP_SUMMARY}"
 
-      - name: Require Device Run submission
+      - name: Require all four terminal Device Run successes
         if: always()
         env:
           SUBMISSION_STATE: ${{ steps.collect.outputs.submission_state }}
@@ -540,8 +588,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [[ "${SUBMISSION_STATE}" != "submitted" || "${COMPAT_SUBMISSION_STATE}" != "submitted" ]]; then
-            echo "Both Device Run submissions are required for Android Release. Latest: ${SUBMISSION_STATE:-unknown}. Compatibility: ${COMPAT_SUBMISSION_STATE:-unknown}." >&2
+          if [[ "${SUBMISSION_STATE}" != "passed" || "${COMPAT_SUBMISSION_STATE}" != "passed" ]]; then
+            echo "All four Device Run sessions must reach terminal success before the Play draft upload. Latest: ${SUBMISSION_STATE:-unknown}. Compatibility: ${COMPAT_SUBMISSION_STATE:-unknown}." >&2
             exit 1
           fi
 
@@ -789,8 +837,8 @@ jobs:
             echo "- GitHub run: \`${{ github.run_id }}\` attempt \`${{ github.run_attempt }}\`"
             echo "- GitHub run URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
             echo "- Upload state: \`draft\`"
-            echo "- Device Run: \`both required submissions in this Android Release run\`"
-            echo "- Next step: require both Device Run sessions and every configured destination to pass, review Play App strings translations in Play Console, then publish manually."
+            echo "- Device Run: \`four terminal passing sessions in this Android Release run\`"
+            echo "- Next step: inspect every session's named test results, review Play App strings translations in Play Console, then publish manually."
           } >> "${GITHUB_STEP_SUMMARY}"
 
   release_summary:
@@ -805,6 +853,8 @@ jobs:
 
     steps:
       - name: Summarize Android release outcome
+        env:
+          COMPAT_SESSIONS: ${{ needs.device_run_submission.outputs.compat_sessions }}
         run: |
           {
             echo "## Android release summary"
@@ -814,22 +864,25 @@ jobs:
             echo "- Release ID: \`${{ needs.preflight.outputs.android_release_id || 'n/a' }}\`"
             echo "- Play release name: \`${{ needs.preflight.outputs.android_play_release_name || 'n/a' }}\`"
             echo "- Android CI result: \`${{ needs.android_ci.result }}\`"
-            echo "- Device Run submission result: \`${{ needs.device_run_submission.result }}\`"
+            echo "- Device Run terminal gate result: \`${{ needs.device_run_submission.result }}\`"
             echo "- Device Run requested: \`true\`"
             echo "- Play draft upload requested: \`true\`"
             echo "- Android Play draft upload result: \`${{ needs.publish_android.result }}\`"
-            echo "- Device Run submission: \`${{ needs.device_run_submission.outputs.submission_state || 'n/a' }}\`"
+            echo "- Latest Device Run outcome: \`${{ needs.device_run_submission.outputs.submission_state || 'n/a' }}\`"
             echo "- Device Run session ID: \`${{ needs.device_run_submission.outputs.session_id || 'n/a' }}\`"
             echo "- Device Run results path: \`${{ needs.device_run_submission.outputs.results_path || 'n/a' }}\`"
             echo "- Device Run device: \`${{ needs.device_run_submission.outputs.device_descriptor || 'n/a' }}\`"
             echo "- Latest session lookup: ${{ needs.device_run_submission.outputs.session_link || 'n/a' }}"
             echo "- Latest targets: \`package com.flashcardsopensourceapp.app\` with notAnnotation com.flashcardsopensourceapp.app.ManualOnlyAndroidTest"
-            echo "- Compatibility submission: \`${{ needs.device_run_submission.outputs.compat_submission_state || 'n/a' }}\`"
-            echo "- Compatibility session: [${{ needs.device_run_submission.outputs.compat_session_id || 'n/a' }}](${{ needs.device_run_submission.outputs.compat_session_link }})"
-            echo "- Compatibility results path: \`${{ needs.device_run_submission.outputs.compat_results_path || 'n/a' }}\`"
+            echo "- Compatibility outcome: \`${{ needs.device_run_submission.outputs.compat_submission_state || 'n/a' }}\`"
+            echo ""
+            echo "| API | Device | Outcome | Session / results | Results path |"
+            echo "| --- | --- | --- | --- | --- |"
+            jq -r '.[] | "| \(.api) | \(.device) | \(.outcome) | [\(.session_id)](\(.session_link)) | \(.results_path) |"' <<< "${COMPAT_SESSIONS:-[]}"
+            echo ""
             echo "- Compatibility devices: \`${{ needs.device_run_submission.outputs.compat_device_descriptors || 'n/a' }}\`"
             echo "- Compatibility targets: \`${{ needs.device_run_submission.outputs.compat_test_targets || 'n/a' }}\`"
-            echo "- Publication requires terminal PASSED results for latest and all three compatibility destinations, with all selected tests executed; submission alone is insufficient."
+            echo "- Play draft upload requires four terminal PASSED sessions. Before manual publication, inspect all selected named tests for failures, errors, unexpected skips or zero tests."
             echo "- Play publish mode: \`CI uploads a production-track draft only; Play Console publication remains manual\`"
             echo "- Run details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           } >> "${GITHUB_STEP_SUMMARY}"
