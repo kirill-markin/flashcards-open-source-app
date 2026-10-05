@@ -3,7 +3,7 @@
 Before a new mobile submission/publication, use this read-only, offline command
 alongside the [platform procedures](README.md#required-reading). It compares
 recorded identities and named results; it does not collect evidence or contact
-Apple, Firebase, Google Play, GitHub, or a device.
+Apple, Device Run, Google Play, GitHub, or a device.
 
 ```bash
 node scripts/release/check-mobile-readiness.mjs /absolute/release-record/mobile-manifest.json \
@@ -31,7 +31,7 @@ without reconstructing evidence merely to turn this report green.
 1. Record the target source SHA, marketing version, distribution build/version
    code, and uploaded build ID or signed AAB checksum. Pin the original archive
    source separately from a corrected test source. Collect each local preflight,
-   cloud run/action/attempt, archive/upload, and matrix identity from its actual
+   cloud run/action/attempt, archive/upload, and Device Run session identity from its actual
    source. Use the [iOS](ios.md) and [Android](android.md) procedures and the
    [Xcode Cloud evidence guide](../xcode-cloud-data-access.md). Do not dispatch
    or publish just to fill in this file.
@@ -43,7 +43,7 @@ without reconstructing evidence merely to turn this report green.
    the local iOS smoke this is the procedure's explicit guest-navigation
    selection; for cloud iOS this is the entire selected UI suite. Android
    `local-ci` includes its selected automated test cases; local smoke and
-   Firebase each include their entire configured selection, not only critical
+   Device Run each include their entire configured selection, not only critical
    cases. Account for inherited/parameterized tests and filters. A source grep
    alone is insufficient when configuration changes discovery.
 3. Review that inventory and set `inventoryComplete: true` only when complete.
@@ -57,8 +57,8 @@ without reconstructing evidence merely to turn this report green.
    every destination/configuration distinct in `id`. For Apple, use actual
    `ciTestResults` per-destination statuses and/or named native `.xcresult`
    results; map `SUCCESS` to `passed`, `FAILURE` to `failed`, `SKIPPED` to
-   `skipped`. For Firebase use that exact matrix's case exports, including all
-   shards and device executions; use native reports for local tests. Map
+   `skipped`. For Device Run use both exact sessions' full reports and GCS JUnit case
+   exports, including every configured device and execution; use native reports for local tests. Map
    unfinished cases to `pending`; do not map unknown/inconclusive/cancelled
    states to passed. Preserve exact skip reasons. Reconcile case exports with
    native counts and all pages. A green workflow summary cannot override a
@@ -142,14 +142,19 @@ the target. `cloud-archive` on iOS or `cloud-release` on Android must match the
 target distribution `build` and `artifactId`. Local artifacts and iOS test builds
 have their own build/artifact/run identities; they need not equal the archive.
 
-For Android, `firebase-tests` and `cloud-release` must share source SHA, version,
-release version code (`build`), and GitHub run/attempt (`runId`). The Firebase
+For Android, the checker retains the stable gate ID `firebase-tests`; it records
+both Device Run sessions under the [Android procedure](android.md). It and `cloud-release` must share source SHA, version, release
+version code (`build`), and GitHub run/attempt (`runId`). The test gate's
 `artifactId` identifies the tested debug APK; `cloud-release.artifactId` identifies
-the signed production AAB. Put the exact Firebase matrix/execution identity in
+the signed production AAB. Put both exact session IDs, job/execution identities,
+labels, full reports and GCS named-case evidence in the record referenced by
 `evidenceRef`, and retain proof that its debug APK and test APK came from that
-GitHub run. The build field is the assigned release version code used for
-correlation; retain actual APK metadata separately. A matrix from a different
-run cannot be approved with source equivalence.
+GitHub run. Include the latest full inventory and all four smoke methods on
+API 30, 31 and 33 in this one gate, keeping device/session identities distinct
+in case IDs. The build field is the assigned release version code used for
+correlation; retain actual APK metadata separately. Sessions from a different
+run cannot be approved with source equivalence. Submission acceptance is not a
+passing gate; normalize terminal reports and actual executed, non-skipped cases.
 
 Each result has `gateId`, the same five-field `identity`, `status`,
 `evidenceRef`, `warningReview`, `warningReviewRef`, `warnings`, and `cases`:

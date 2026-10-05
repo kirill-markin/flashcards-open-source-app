@@ -194,7 +194,7 @@ Keep the full suite focused on the latest Android target.
 - Do not add isolated unit tests by default
 - Prefer native integration, parity, and instrumentation tests when they validate a real module boundary or user flow
 - Run the full Android suite against Android 17 / API 37
-- Release smoke also runs four existing methods on one configured destination each for API 30, 31, and 33; see [Android CI/CD](../../docs/android-ci-cd.md#choose-the-firebase-test-lab-devices)
+- Release smoke also runs four existing methods on one configured destination each for API 30, 31, and 33; see [Android CI/CD](../../docs/android-ci-cd.md#choose-the-device-run-devices)
 - Keep compatibility changes narrow and native; do not add separate engines or screens for older Android versions
 - Prefer background local emulator runs without a visible emulator window by default
 - When starting a local headless emulator manually, prefer `-gpu auto` and avoid the deprecated `-gpu swiftshader_indirect` override
@@ -210,7 +210,7 @@ The Android app uses native Android and Compose testing:
 
 - targeted integration coverage runs through native instrumentation and Compose UI testing in `apps/android/app/src/androidTest` and `apps/android/data/local/src/androidTest`
 - shared FSRS scheduler parity stays in `apps/android/data/local/src/test/java/com/flashcardsopensourceapp/data/local/model/FsrsSchedulerParityTest.kt` and uses `tests/fsrs-full-vectors.json`
-- manual Firebase Test Lab app UI instrumentation runs through the full `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app` instrumentation tree as part of the manual `Android Release` workflow, with `livesmoke/LiveSmokeTest.kt` and `notifications/NotificationTapSmokeTest.kt` kept as the highest-confidence stateful flows there
+- manual Device Run app UI instrumentation runs through the full `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app` instrumentation tree as part of the manual `Android Release` workflow, with `livesmoke/LiveSmokeTest.kt` and `notifications/NotificationTapSmokeTest.kt` kept as the highest-confidence stateful flows there
 - the live smoke flow relies on stable Compose test tags from the production UI modules, not on a separate mock shell
 
 The Android live smoke scenario matches the other clients on purpose:
@@ -222,19 +222,19 @@ The Android live smoke scenario matches the other clients on purpose:
 
 Android CI/CD is documented in [`docs/android-ci-cd.md`](../../docs/android-ci-cd.md).
 
-That document also lists the required GitHub repository variables for Google Cloud authentication and Firebase Test Lab, plus the helper sync command `bash scripts/android/setup-github-android.sh`.
+That document also lists the required GitHub repository variables for Google Cloud authentication and Device Run, plus the helper sync command `bash scripts/android/setup-github-android.sh`.
 
 The repository policy for Android CI/CD is:
 
 - GitHub Actions is the primary CI entrypoint
-- Firebase Test Lab is the cloud device test runner
+- Device Run is the cloud device test runner
 - `cloudbuild.android.yaml` is the Google-native Cloud Build entrypoint
 - Google auth from GitHub must use Workload Identity Federation, not a JSON key
-- `PR Checks` is the required aggregate gate; it runs Android unit tests, debug builds, and lint for Android-impacting pull requests and adds the GitHub-hosted `data:local` instrumentation only when the Android data layer or shared Android Gradle configuration changes. Automatic Android CI on `main` runs only the `data:local` emulator backstop. Neither uploads to Google Play or submits Firebase Test Lab
-- the manual `Android Release` workflow runs the same GitHub-hosted Android gate, submits latest and compatibility Firebase Test Lab matrices, then uploads a Google Play production-track draft
+- `PR Checks` is the required aggregate gate; it runs Android unit tests, debug builds, and lint for Android-impacting pull requests and adds the GitHub-hosted `data:local` instrumentation only when the Android data layer or shared Android Gradle configuration changes. Automatic Android CI on `main` runs only the `data:local` emulator backstop. Neither uploads to Google Play or submits Device Run
+- the manual `Android Release` workflow runs the same GitHub-hosted Android gate, submits latest and compatibility Device Run sessions, then uploads a Google Play production-track draft
 - one shared `ANDROID_VERSION_CODE` is resolved once per release run and reused across Android release artifacts and the Play draft bundle
-- one shared manager-readable release identifier, currently `vc<versionCode>-r<runId>a<attempt>-s<shortSha>`, is reused in the Play release name and Firebase Test Lab result naming so the same release stays traceable across GitHub, Play, and Firebase
-- Firebase Test Lab app instrumentation is manual-only from the top-level `firebase_test_lab_submission` job in `Android Release`; both submissions are required before the Play draft upload starts; successful terminal results on all four destinations are required before publication
+- one shared manager-readable release identifier, currently `vc<versionCode>-r<runId>a<attempt>-s<shortSha>`, is reused in the Play release name and Device Run job labels so the same release stays traceable across GitHub, Play, and Device Run
+- Device Run app instrumentation is manual-only from the top-level `device_run_submission` job in `Android Release`; both submissions are required before the Play draft upload starts; successful terminal results on all four destinations are required before publication
 - after pushing to `main`, watch `Android CI` when Android-impacting files changed; it runs independently from the AWS/Web release workflow
 - after the workflow uploads the AAB, review Play App strings translations in Play Console, confirm the Play language set still matches the app's explicit supported-language list, verify the Play-delivered build, and publish the release there manually
 
