@@ -176,6 +176,7 @@ private fun ReviewReactionLottieFrame(
         LottieAnimation(
             composition = composition,
             progress = { progress },
+            enableMergePaths = true,
             // Keep progress/configuration failures synchronous with this Canvas boundary.
             asyncUpdates = AsyncUpdates.DISABLED,
             safeMode = false,
