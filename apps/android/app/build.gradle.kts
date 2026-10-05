@@ -168,8 +168,6 @@ if (isReleaseTaskRequested) {
     }
 }
 
-// Single source for defaultConfig.minSdk, also surfaced to runtime via BuildConfig so
-// observability can skip telemetry from below-minSdk (out-of-contract) devices.
 val androidMinSdk: Int = 30
 
 fun toBuildConfigString(value: String): String {
@@ -207,7 +205,6 @@ android {
         // product analytics. Firebase Test Lab passes the same argument from
         // scripts/android/run-android-firebase-test-lab.sh, which Gradle never reaches.
         testInstrumentationRunnerArguments["isAutomation"] = "true"
-        buildConfigField("int", "ANDROID_MIN_SDK", androidMinSdk.toString())
         buildConfigField("String", "BASE_RESOURCE_LOCALE", toBuildConfigString(baseAndroidLocale))
         buildConfigField("String", "ANDROID_SENTRY_DSN", toBuildConfigString(androidSentryDsn))
         buildConfigField(

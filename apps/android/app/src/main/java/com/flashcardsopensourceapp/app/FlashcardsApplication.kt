@@ -14,7 +14,6 @@ import com.flashcardsopensourceapp.app.notifications.AppNotificationTapRequest
 import com.flashcardsopensourceapp.app.notifications.analyticsNotificationKind
 import com.flashcardsopensourceapp.app.observability.AndroidObservabilityStartup
 import com.flashcardsopensourceapp.app.observability.startAndroidObservability
-import com.flashcardsopensourceapp.app.runtime.isAndroidRuntimeSupported
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsLaunchType
 import com.flashcardsopensourceapp.data.local.notifications.appNotificationWorkLimit
@@ -35,7 +34,6 @@ class FlashcardsApplication : Application(), Configuration.Provider {
     private val appGraphStateMutable = MutableStateFlow<AppGraph?>(value = null)
     private val appNotificationTapStateMutable = MutableStateFlow<AppNotificationTapHandoffRequest?>(value = null)
     private lateinit var observabilityStartup: AndroidObservabilityStartup
-    private var runtimeSupported: Boolean = true
 
     val appGraph: AppGraph
         get() = requireNotNull(appGraphOrNull) { "App graph is unavailable." }
@@ -51,9 +49,6 @@ class FlashcardsApplication : Application(), Configuration.Provider {
     val appNotificationTapState: StateFlow<AppNotificationTapHandoffRequest?>
         get() = appNotificationTapStateMutable.asStateFlow()
 
-    val isRuntimeSupported: Boolean
-        get() = runtimeSupported
-
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()
             .setMaxSchedulerLimit(appNotificationWorkLimit)
@@ -63,11 +58,6 @@ class FlashcardsApplication : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
-        if (isAndroidRuntimeSupported().not()) {
-            runtimeSupported = false
-            return
-        }
-
         observabilityStartup = startAndroidObservability(application = this)
         publishAppGraph(appGraph = createAppGraph())
         observeProcessLifecycleForAnalytics()
@@ -135,10 +125,6 @@ class FlashcardsApplication : Application(), Configuration.Provider {
     }
 
     fun shouldKeepSplashScreenVisible(): Boolean {
-        if (runtimeSupported.not()) {
-            return false
-        }
-
         val currentAppGraph = appGraphOrNull ?: return true
         return currentAppGraph.startupState.value is AppStartupState.Loading
     }
@@ -179,10 +165,6 @@ class FlashcardsApplication : Application(), Configuration.Provider {
     }
 
     private fun createAppGraph(): AppGraph {
-        require(runtimeSupported) {
-            "Android runtime is unsupported."
-        }
-
         return AppGraph(
             context = this,
             observability = observabilityStartup.observability,

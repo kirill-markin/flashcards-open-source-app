@@ -12,16 +12,19 @@
         android:name="android.hardware.microphone"
         android:required="false" />
 
+    <!-- localeConfig is Android 13+ metadata; older supported versions ignore it. -->
     <application
         android:name=".FlashcardsApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:localeConfig="@xml/locales_config"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.FlashcardsOpenSourceApp">
+        android:theme="@style/Theme.FlashcardsOpenSourceApp"
+        tools:targetApi="33">
         <meta-data
             android:name="io.sentry.auto-init"
             android:value="false" />

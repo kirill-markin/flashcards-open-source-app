@@ -67,14 +67,6 @@ open class ReviewNotificationWorker(
                 workspaceId = workspaceId,
                 permissionAllowed = permissionAllowed
             )
-            if (application.isRuntimeSupported.not()) {
-                Log.e(
-                    reviewNotificationWorkerLogTag,
-                    "event=review_notification_worker_runtime_unsupported " +
-                        "request_id=$requestId workspace_id=$workspaceId"
-                )
-                return Result.failure()
-            }
             Log.w(
                 reviewNotificationWorkerLogTag,
                 "event=review_notification_worker_app_graph_unavailable_retry " +

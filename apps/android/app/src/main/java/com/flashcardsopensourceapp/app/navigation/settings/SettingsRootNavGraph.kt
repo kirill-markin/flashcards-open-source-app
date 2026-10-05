@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.app.navigation.settings
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.SystemClock
 import android.provider.Settings
 import androidx.compose.runtime.Composable
@@ -701,6 +702,10 @@ private fun languageLabel(languageTag: String, displayLocale: Locale): String {
 }
 
 private fun openAndroidAppLanguageSettings(context: Context) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+        throw IllegalStateException("App language settings require Android 13 or newer.")
+    }
+
     val intent = Intent(Settings.ACTION_APP_LOCALE_SETTINGS).apply {
         data = Uri.fromParts("package", context.packageName, null)
     }

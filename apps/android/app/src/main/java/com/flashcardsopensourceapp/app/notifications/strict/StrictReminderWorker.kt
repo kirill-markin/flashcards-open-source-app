@@ -96,14 +96,6 @@ open class StrictReminderWorker(
                 workspaceId = scheduledWorkspaceId,
                 permissionAllowed = permissionAllowed
             )
-            if (application.isRuntimeSupported.not()) {
-                Log.e(
-                    strictReminderWorkerLogTag,
-                    "event=strict_reminder_worker_runtime_unsupported " +
-                        "request_id=$requestId workspace_id=${scheduledWorkspaceId ?: "legacy"}"
-                )
-                return Result.failure()
-            }
             Log.w(
                 strictReminderWorkerLogTag,
                 "event=strict_reminder_worker_app_graph_unavailable_retry " +

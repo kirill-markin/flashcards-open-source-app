@@ -822,13 +822,6 @@ internal fun FlashcardsAppLoadingScreen() {
     }
 }
 
-@Composable
-internal fun FlashcardsUnsupportedRuntimeScreen() {
-    FlashcardsTheme {
-        UnsupportedRuntimeScreen()
-    }
-}
-
 private fun shouldHideNavigationSuite(
     destination: TopLevelDestination,
     navigationSuiteType: NavigationSuiteType,
@@ -965,34 +958,6 @@ private fun StartupErrorScreen(
                     Button(onClick = onRetry) {
                         Text(text = stringResource(id = R.string.startup_error_retry))
                     }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun UnsupportedRuntimeScreen() {
-    Surface(modifier = Modifier.fillMaxSize()) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        text = stringResource(id = R.string.unsupported_android_runtime_title),
-                        style = MaterialTheme.typography.titleLarge
-                    )
-                    Text(
-                        text = stringResource(id = R.string.unsupported_android_runtime_message),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
                 }
             }
         }

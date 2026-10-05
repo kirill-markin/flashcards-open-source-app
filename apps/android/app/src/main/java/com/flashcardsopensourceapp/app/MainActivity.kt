@@ -25,16 +25,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        if (application.isRuntimeSupported) {
-            handleIntent(intent = intent, application = application)
-        }
+        handleIntent(intent = intent, application = application)
 
         setContent {
-            if (application.isRuntimeSupported.not()) {
-                FlashcardsUnsupportedRuntimeScreen()
-                return@setContent
-            }
-
             // The app graph can be replaced while the activity is stopped, so this state
             // must stay current even outside STARTED to avoid reusing a closed graph.
             val currentAppGraph by application.appGraphState.collectAsState()
@@ -80,10 +73,8 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    // Overridden rather than observed from the composition: the marks have to be unconditional, and
-    // `setContent` returns early on the unsupported-runtime and missing-graph branches. `onStop`
-    // always precedes a system-initiated `onDestroy`, which is what makes the flag a usable
-    // discriminator for a `ViewModel` being cleared.
+    // The marks have to be unconditional. `onStop` always precedes a system-initiated `onDestroy`,
+    // which makes the flag a usable discriminator for a `ViewModel` being cleared.
     override fun onStart() {
         super.onStart()
         markHostActivityStarted()
@@ -98,10 +89,6 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         val application = application as FlashcardsApplication
-        if (application.isRuntimeSupported.not()) {
-            return
-        }
-
         handleIntent(intent = intent, application = application)
     }
 

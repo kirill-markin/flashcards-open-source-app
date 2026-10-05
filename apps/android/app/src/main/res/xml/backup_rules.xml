@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <exclude
+        domain="sharedpref"
+        path="flashcards-analytics-identity.xml" />
+    <exclude
+        domain="database"
+        path="flashcards-analytics-queue.db" />
+    <exclude
+        domain="database"
+        path="flashcards-analytics-queue.db-wal" />
+    <exclude
+        domain="database"
+        path="flashcards-analytics-queue.db-shm" />
+    <exclude
+        domain="sharedpref"
+        path="flashcards-ai-own-openai-key.xml" />
+    <exclude
+        domain="sharedpref"
+        path="flashcards-ai-own-openai-key-switch.xml" />
+</full-backup-content>
