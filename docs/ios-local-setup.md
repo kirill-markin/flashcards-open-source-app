@@ -194,14 +194,21 @@ xcodebuild -project "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj" -
 
 ## iOS 18 compatibility smoke
 
+Every new iOS release requires these three existing native smokes on one actual
+18.x destination, independently of the full latest-OS Xcode Cloud suite. Use
+Cloud only when the [selected toolchain's catalog and independent selection](ios-ci-cd.md#supported-os-destinations)
+permit it; otherwise this local run is mandatory before cloud release dispatch.
+Retain valid evidence only under the [existing source comparison and reuse rules](release/evidence.md#resume-and-artifact-reuse).
+
 Use the current Xcode/SDK and pinned packages with deployment target 18.0.
 Inspect `xcrun simctl list runtimes` and `xcrun simctl list devices available`;
 select one device whose runtime is actually iOS 18.x. If absent, install an
 18.x runtime only if the selected Xcode supports it, or use a physical iPhone
-or iPad actually running 18.x. Do not count an iOS 26 runtime or `My Mac` as
-18 evidence. If neither is available, record the exact runtime/toolchain
-restriction and defer the first expanded public release. Tell the user before
-downloading a runtime; source implementation does not require provisioning it.
+or iPad actually running 18.x. Do not count a newer runtime or `My Mac` as
+18 evidence. When local execution is required and neither is available, record
+the exact runtime/toolchain restriction and block the new release until resolved.
+Tell the user before downloading a runtime; source implementation does not
+require provisioning it.
 
 After the configuration setup above, run from the repository root. The login
 smoke requires the configured review-account email in the UI-test runner.
@@ -224,26 +231,35 @@ xcodebuild \
   -only-testing:'Flashcards Open Source App UI Tests/LiveSmokeSettingsTests/testLiveSmokeGuestNavigationFlow' \
   -only-testing:'Flashcards Open Source App UI Tests/LiveSmokeReviewTests/testLiveSmokeManualCardReviewFlow' \
   -only-testing:'Flashcards Open Source App UI Tests/LiveSmokeSettingsTests/testLiveSmokeLoginAndLinkedWorkspaceFlow' \
+  CODE_SIGNING_ALLOWED=YES \
+  CODE_SIGN_IDENTITY=- \
   test
 ```
+
+The simulator signing overrides enable ad-hoc signing for the app and UI-test
+runner, including their keychain access.
 
 For hardware, omit `simctl` and use `-destination 'platform=iOS,id=<device-uuid>'`.
 Use a trusted device with Developer Mode enabled and a development team that
 can provision both the app and UI-test runner. Keep the same `TEST_RUNNER_`
 email injection and add `-allowProvisioningUpdates`, `CODE_SIGNING_ALLOWED=YES`
 and `DEVELOPMENT_TEAM=<team-id>` to the `xcodebuild` command before `test`.
+Replace the simulator-only `CODE_SIGN_IDENTITY=-` with a real installed
+Apple Development signing identity for that team.
 The command-line signing override is required because the UI-test target sets
 `CODE_SIGNING_ALLOWED=NO` in both Debug and Release; setting only a development
 team does not enable runner signing. Keep the software keyboard available.
 Do not create a duplicate suite
 or relax stable accessibility identifiers to accommodate older presentation.
 Inspect the `.xcresult` and require all three tests to execute and pass; skipped
-or unselected tests provide no evidence. Record source SHA, Xcode/SDK, device
-and OS version, selected tests, result bundle/run link and manual results in the
-release ledger. Keep the latest full existing Cloud smoke gate independently.
+or unselected tests provide no evidence. Record the exact source SHA, Xcode/SDK,
+device and OS version, selected tests, named results, full logs and result
+bundle/run link in the existing [release ledger](release/evidence.md#release-ledger),
+with manual results when required. Keep the latest full existing Cloud smoke gate independently.
 
-On that same iOS 18 destination, complete this short manual checklist using an
-isolated workspace and disposable cards:
+For the first public release expanding support to iOS/iPadOS 18, or changes
+affecting OS-specific behavior, also complete this short manual checklist on
+that same 18.x destination using an isolated workspace and disposable cards:
 
 1. Open AI, type with the software keyboard, send/stop a response, dismiss and
    reopen the keyboard. Verify the composer, transcript and Done button remain
