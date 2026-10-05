@@ -1,10 +1,12 @@
 package com.flashcardsopensourceapp.app
 
 import android.app.Application
+import android.os.Build
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.work.Configuration
+import androidx.work.ExperimentalConfigurationApi
 import com.flashcardsopensourceapp.app.analytics.consumeAnalyticsForegroundEntry
 import com.flashcardsopensourceapp.app.analytics.markAnalyticsProcessBackgrounded
 import com.flashcardsopensourceapp.app.di.AppGraph
@@ -49,9 +51,15 @@ class FlashcardsApplication : Application(), Configuration.Provider {
     val appNotificationTapState: StateFlow<AppNotificationTapHandoffRequest?>
         get() = appNotificationTapStateMutable.asStateFlow()
 
+    @get:OptIn(ExperimentalConfigurationApi::class)
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()
             .setMaxSchedulerLimit(appNotificationWorkLimit)
+            .apply {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.CINNAMON_BUN) {
+                    setMarkingJobsAsImportantWhileForeground(false)
+                }
+            }
             .build()
 
     private var appGraphHolder: AppGraph? = null
