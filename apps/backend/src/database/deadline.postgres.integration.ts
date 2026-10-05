@@ -8,6 +8,7 @@ import {
   queryWithPostgresDeadline,
   transactionWithPostgresDeadline,
 } from "./deadline";
+import { runDatabaseOperationsWithPerCallCap, unsafeQuery } from "./core";
 import { DatabaseCommitOutcomeUnknownError } from "./transient";
 
 type CountRow = Readonly<{ count: number }>;
@@ -182,4 +183,25 @@ test("PostgreSQL deadline boundary bounds checkout, statements, locks, rollback,
     await commitPool.query(`DROP FUNCTION IF EXISTS public.${commitFailureFunction}()`);
     await commitPool.end();
   }
+});
+
+test("A per-call cap bounds every main-pool call on its own", async () => {
+  // Opens the main pool's connection outside the cap, so no capped call pays for connection setup.
+  await unsafeQuery("SELECT 1", []);
+
+  await runDatabaseOperationsWithPerCallCap(15_000, async () => {
+    // Together these outlast the cap, and each still succeeds because the cap restarts with every call.
+    await unsafeQuery("SELECT pg_sleep(6)", []);
+    await unsafeQuery("SELECT pg_sleep(6)", []);
+    await unsafeQuery("SELECT pg_sleep(6)", []);
+
+    // Postgres usually cancels first, through the statement_timeout the cap arms, and the client-side
+    // timer is the backstop; either one is the cap expiring.
+    const startedAtMs = Date.now();
+    await assert.rejects(
+      unsafeQuery("SELECT pg_sleep(60)", []),
+      (error: unknown) => error instanceof DatabaseDeadlineExceededError || hasCode(error, "57014"),
+    );
+    assert.ok(Date.now() - startedAtMs < 45_000);
+  });
 });

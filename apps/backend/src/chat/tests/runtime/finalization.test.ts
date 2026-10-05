@@ -15,6 +15,7 @@ import type {
   StartOpenAILoopParams,
 } from "../../openai/loop";
 import {
+  CHAT_WORKER_PRE_TIMEOUT_BUFFER_MS,
   createDependencies,
   createParams,
   findLog,
@@ -86,7 +87,7 @@ test("runPersistedChatSessionWithDeps maps stale failed, cancelled, and interrup
       persistAssistantCancelled: staleTerminalPersistence,
     })),
     runPersistedChatSessionWithDeps(
-      { ...createParams(), getRemainingTimeInMillis: (): number => 0 },
+      { ...createParams(), getRemainingTimeInMillis: (): number => CHAT_WORKER_PRE_TIMEOUT_BUFFER_MS },
       createDependencies({ persistAssistantTerminalError: staleTerminalPersistence }),
     ),
   ]);
@@ -162,7 +163,7 @@ test("runPersistedChatSessionWithDeps preserves every terminal persistence infra
   });
   await assertInfrastructureErrorPropagates(
     "interruption",
-    { ...createParams(), getRemainingTimeInMillis: (): number => 0 },
+    { ...createParams(), getRemainingTimeInMillis: (): number => CHAT_WORKER_PRE_TIMEOUT_BUFFER_MS },
     {},
   );
 });

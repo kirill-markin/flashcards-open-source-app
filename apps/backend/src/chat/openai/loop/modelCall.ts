@@ -61,7 +61,7 @@ type BuildOpenAIResponsesRequestParams = Readonly<{
 type RunOneModelCallParams = Readonly<{
   client: OpenAI;
   signal: AbortSignal | undefined;
-  onExecutionPhaseChanged: ((phase: "idle" | "model" | "tool") => void) | undefined;
+  onExecutionPhaseChanged: ((phase: "idle" | "model" | "tool", toolName: string | null) => void) | undefined;
   onEvent: OpenAILoopEventSink;
   request: OpenAIResponsesRequest;
   callIndex: number;
@@ -103,7 +103,7 @@ type ExecuteToolCallsParams = Readonly<{
   initiatingAuthIsSignedIn: boolean;
   userOpenAIApiKey: UserOpenAIApiKey | null;
   rootObservation: LangfuseObservation | null;
-  onExecutionPhaseChanged: ((phase: "idle" | "model" | "tool") => void) | undefined;
+  onExecutionPhaseChanged: ((phase: "idle" | "model" | "tool", toolName: string | null) => void) | undefined;
   shouldStopBeforeNextStep: (() => boolean) | undefined;
   onEvent: OpenAILoopEventSink;
   runOneToolCall: RunOneToolCall;
@@ -224,7 +224,7 @@ export function buildOpenAIResponsesRequest(
 export async function runOneModelCallWithPhase(
   params: RunOneModelCallParams,
 ): Promise<ModelCallResult> {
-  params.onExecutionPhaseChanged?.("model");
+  params.onExecutionPhaseChanged?.("model", null);
   try {
     const stream: ResponseStreamWithOptionalFinalResponse = await params.client.responses.create(
       { ...params.request, stream: true },
@@ -238,7 +238,7 @@ export async function runOneModelCallWithPhase(
       userSuppliedKey: params.userSuppliedKey,
     });
   } finally {
-    params.onExecutionPhaseChanged?.("idle");
+    params.onExecutionPhaseChanged?.("idle", null);
   }
 }
 
@@ -278,7 +278,7 @@ export async function executeToolCalls(
       };
     }
 
-    params.onExecutionPhaseChanged?.("tool");
+    params.onExecutionPhaseChanged?.("tool", functionCall.name);
     try {
       const output = await params.runOneToolCall({
         item: functionCall,
@@ -326,7 +326,7 @@ export async function executeToolCalls(
         params.userOpenAIApiKey !== null,
       ));
     } finally {
-      params.onExecutionPhaseChanged?.("idle");
+      params.onExecutionPhaseChanged?.("idle", null);
     }
 
     if (shouldStopBeforeNextStep(params.shouldStopBeforeNextStep)) {

@@ -3,6 +3,7 @@ import {
   applyUserDatabaseScopeInExecutor,
   applyWorkspaceDatabaseScopeInExecutor,
   runDatabaseOperationsWithDeadline,
+  runDatabaseOperationsWithPerCallCap,
   unsafeRepeatableReadReadOnlyTransaction,
   unsafeTransaction,
   unsafeTransactionWithDeadline,
@@ -15,6 +16,7 @@ export {
   applyUserDatabaseScopeInExecutor,
   applyWorkspaceDatabaseScopeInExecutor,
   runDatabaseOperationsWithDeadline,
+  runDatabaseOperationsWithPerCallCap,
 };
 export type {
   DatabaseExecutor,

@@ -452,7 +452,7 @@ test("runPersistedChatSessionWithDeps keeps ownership loss authoritative when th
       const runtimePromise = runPersistedChatSessionWithDeps(
         {
           ...createParams(),
-          getRemainingTimeInMillis: (): number => CHAT_WORKER_PRE_TIMEOUT_BUFFER_MS + 1,
+          getRemainingTimeInMillis: (): number => CHAT_WORKER_PRE_TIMEOUT_BUFFER_MS + 60_000,
         },
         createDependencies({
           touchChatRunHeartbeat: async () => {
@@ -524,7 +524,7 @@ test("runPersistedChatSessionWithDeps keeps user cancellation authoritative when
       const runtimePromise = runPersistedChatSessionWithDeps(
         {
           ...createParams(),
-          getRemainingTimeInMillis: (): number => CHAT_WORKER_PRE_TIMEOUT_BUFFER_MS + 1,
+          getRemainingTimeInMillis: (): number => CHAT_WORKER_PRE_TIMEOUT_BUFFER_MS + 60_000,
         },
         createDependencies({
           touchChatRunHeartbeat: async () => {

@@ -7,6 +7,7 @@ import { runPersistedChatSession, type ChatWorkerRunResult } from "../runtime";
 import { logChatWorkerLifecycleEvent } from "./logging";
 import { resolveAiUsageTierForFacts } from "../../aiUsage";
 import { resolveAccountKindForSignedInAuth } from "../../billing/snapshot";
+import { runDatabaseOperationsWithPerCallCap } from "../../database";
 import type { BackendTraceCarrier } from "../../observability/sentry";
 import {
   wrapWorkerPayloadUserOpenAIApiKey,
@@ -34,6 +35,10 @@ export function isGeneratedImageEligibleForWorker(
   return userOpenAIApiKey !== null || (event.initiatingAuthIsSignedIn === true && initiatingAuthIsSignedIn);
 }
 
+// Every database call of one worker invocation, the claim and the run's heartbeats included, fails
+// after this long instead of waiting on a dead connection until the Lambda is killed.
+const CHAT_WORKER_DATABASE_CALL_CAP_MS = 30_000;
+
 type ChatWorkerExecutionContext = Readonly<{
   lambdaRequestId: string | null;
   getRemainingTimeInMillis: () => number;
@@ -43,6 +48,16 @@ type ChatWorkerExecutionContext = Readonly<{
  * Claims and executes one persisted chat run if it is still pending.
  */
 export async function handleChatWorkerEvent(
+  event: ChatWorkerEvent,
+  executionContext: ChatWorkerExecutionContext,
+): Promise<void> {
+  return runDatabaseOperationsWithPerCallCap(
+    CHAT_WORKER_DATABASE_CALL_CAP_MS,
+    async () => claimAndRunChatWorkerEvent(event, executionContext),
+  );
+}
+
+async function claimAndRunChatWorkerEvent(
   event: ChatWorkerEvent,
   executionContext: ChatWorkerExecutionContext,
 ): Promise<void> {

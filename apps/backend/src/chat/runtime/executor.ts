@@ -1,4 +1,10 @@
 import {
+  runDatabaseOperationsWithDeadline,
+} from "../../database";
+import {
+  unsafeRunDatabaseOperationsWithIndependentDeadline,
+} from "../../database/unsafe";
+import {
   isChatStorageEntityNotFoundError,
 } from "../errors";
 import type {
@@ -8,6 +14,7 @@ import type {
   StoredOpenAIReplayItem,
 } from "../openai/replayItems";
 import type {
+  ChatStreamEvent,
   ContentPart,
 } from "../types";
 import {
@@ -25,11 +32,15 @@ import {
 } from "./assistantContent";
 import {
   CHAT_WORKER_INACTIVE_RECONCILIATION_MAXIMUM_MS,
+  CHAT_WORKER_POST_TERMINAL_PERSISTENCE_RESERVE_MS,
   CHAT_WORKER_PRE_TIMEOUT_BUFFER_MS,
   CHAT_WORKER_TERMINAL_PERSISTENCE_RESERVE_MS,
   createChatRuntimeControl,
   DEADLINE_REACHED_MESSAGE,
 } from "./control";
+import {
+  isDatabaseDeadlineExpiry,
+} from "./databaseDeadlineErrors";
 import {
   DEFAULT_CHAT_RUNTIME_DEPENDENCIES,
   type ChatRuntimeDependencies,
@@ -55,6 +66,11 @@ import {
   type ChatWorkerRunResult,
   type StartPersistedChatRunParams,
 } from "./types";
+
+// Postgres cancels a statement a database deadline armed slightly before that deadline (the rollback
+// reserve in ../../database/deadline.ts), so from this close to the turn's database deadline the run
+// counts as past the soft deadline, and an expiry belongs to the turn rather than to the per-call cap.
+const TURN_DATABASE_DEADLINE_EXPIRY_LEAD_MS = 1_000;
 
 type RuntimeFinalizationResult = Readonly<{
   assistantContent: ReadonlyArray<ContentPart>;
@@ -91,6 +107,26 @@ function calculateInactiveRunReconciliationDeadlineAtMs(
   );
 }
 
+function calculateTerminalPersistenceDeadlineAtMs(
+  remainingRuntimeMs: number,
+): number {
+  return Date.now() + remainingRuntimeMs - CHAT_WORKER_POST_TERMINAL_PERSISTENCE_RESERVE_MS;
+}
+
+function hasReachedTurnDatabaseDeadlineLead(
+  turnDatabaseDeadlineAtMs: number,
+): boolean {
+  return Date.now() >= turnDatabaseDeadlineAtMs - TURN_DATABASE_DEADLINE_EXPIRY_LEAD_MS;
+}
+
+function isTurnDatabaseDeadlineExpiry(
+  error: unknown,
+  turnDatabaseDeadlineAtMs: number,
+): boolean {
+  return hasReachedTurnDatabaseDeadlineLead(turnDatabaseDeadlineAtMs)
+    && isDatabaseDeadlineExpiry(error);
+}
+
 /**
  * Runs one persisted chat session using a single awaited provider-control flow.
  * User cancellation is terminal and persists exactly once.
@@ -108,6 +144,17 @@ export async function runPersistedChatSessionWithDeps(
   const seenInvalidationVersions = new Map<string, number>();
   const startedAt = new Date();
   const control = createChatRuntimeControl(params, dependencies, logContext);
+  let turnDatabaseDeadlineAtMs: number | null = null;
+
+  // Terminal persistence, run reconciliation, and the stream events still persisted past the soft
+  // deadline record how the run ended, often because the turn's database deadline stopped it, so
+  // they replace that deadline with one bounded by the Lambda.
+  const runOutsideTurnDatabaseDeadline = async <Result>(
+    operation: () => Promise<Result>,
+  ): Promise<Result> => unsafeRunDatabaseOperationsWithIndependentDeadline(
+    calculateTerminalPersistenceDeadlineAtMs(params.getRemainingTimeInMillis()),
+    operation,
+  );
 
   const createFinalizationBaseParams = (): Readonly<{
     params: StartPersistedChatRunParams;
@@ -147,7 +194,7 @@ export async function runPersistedChatSessionWithDeps(
     persist: () => Promise<RuntimeFinalizationResult>,
   ): Promise<ChatWorkerRunResult> => {
     try {
-      return applyFinalizationResult(await persist());
+      return applyFinalizationResult(await runOutsideTurnDatabaseDeadline(persist));
     } catch (error) {
       if (isChatStorageEntityNotFoundError(error)) {
         return {
@@ -192,7 +239,7 @@ export async function runPersistedChatSessionWithDeps(
 
   const reconcileInactiveRun = async (): Promise<
     Awaited<ReturnType<ChatRuntimeDependencies["reconcileInactiveChatRun"]>>
-  > => dependencies.reconcileInactiveChatRun(
+  > => runOutsideTurnDatabaseDeadline(async () => dependencies.reconcileInactiveChatRun(
     params.userId,
     params.workspaceId,
     {
@@ -203,7 +250,7 @@ export async function runPersistedChatSessionWithDeps(
         params.getRemainingTimeInMillis(),
       ),
     },
-  );
+  ));
 
   const persistCompleted = async (
     assistantOpenAIItems: ReadonlyArray<StoredOpenAIReplayItem>,
@@ -213,6 +260,53 @@ export async function runPersistedChatSessionWithDeps(
       assistantOpenAIItems,
     }),
   );
+
+  const persistStreamEvent = async (event: ChatStreamEvent): Promise<void> => {
+    if (event.type === "delta") {
+      assistantContent = applyAssistantDelta(assistantContent, event);
+      await updateAssistantInProgress(
+        dependencies,
+        params.userId,
+        params.workspaceId,
+        params.assistantItemId,
+        assistantContent,
+      );
+    } else if (event.type === "tool_call") {
+      assistantContent = upsertAssistantToolCallContent(assistantContent, event);
+      await persistToolCallProgress(
+        dependencies,
+        params.userId,
+        params.workspaceId,
+        params.assistantItemId,
+        assistantContent,
+        event,
+        seenInvalidationVersions,
+      );
+    } else if (event.type === "reasoning_summary") {
+      assistantContent = upsertAssistantReasoningSummaryContent(assistantContent, event);
+      await updateAssistantInProgress(
+        dependencies,
+        params.userId,
+        params.workspaceId,
+        params.assistantItemId,
+        assistantContent,
+      );
+    } else if (event.type === "error") {
+      runtimeResult = await persistFailed(createProviderTerminalEventError());
+    }
+  };
+
+  // A database call cut at the turn's database deadline can fail just before the soft deadline timer
+  // runs, so the loop's stop check counts that lead as the soft deadline already reached.
+  const shouldStopBeforeNextStep = (): boolean => {
+    if (
+      turnDatabaseDeadlineAtMs !== null
+      && hasReachedTurnDatabaseDeadlineLead(turnDatabaseDeadlineAtMs)
+    ) {
+      control.requestSoftDeadlineStop();
+    }
+    return control.shouldStopBeforeNextStep();
+  };
 
   const persistInterruptedIfDeadlineReached = async (): Promise<ChatWorkerRunResult | null> => {
     return control.getAbortReason() === "deadline_reached"
@@ -237,7 +331,7 @@ export async function runPersistedChatSessionWithDeps(
       return persistCancelled("initial_cancel_state").catch(rethrowTerminalPersistenceError);
     }
 
-    control.scheduleSoftDeadlineTimer();
+    turnDatabaseDeadlineAtMs = control.scheduleSoftDeadlineTimer();
     const afterInitialHeartbeatDeadlineResult = await persistInterruptedIfDeadlineReached();
     if (afterInitialHeartbeatDeadlineResult !== null) {
       return afterInitialHeartbeatDeadlineResult;
@@ -251,7 +345,9 @@ export async function runPersistedChatSessionWithDeps(
     const generatedImageOperationDeadlineMs = Date.now()
       + Math.max(0, params.getRemainingTimeInMillis() - CHAT_WORKER_PRE_TIMEOUT_BUFFER_MS);
 
-    await dependencies.startChatTurnObservation(
+    // The turn's database work ends with the soft deadline, so a call hanging past it fails instead
+    // of holding the run until the Lambda is killed. The heartbeat, started above, stays outside.
+    await runDatabaseOperationsWithDeadline(turnDatabaseDeadlineAtMs, async () => dependencies.startChatTurnObservation(
       {
         requestId: params.requestId,
         userId: params.userId,
@@ -296,44 +392,17 @@ export async function runPersistedChatSessionWithDeps(
             rootObservation,
             signal: control.abortController.signal,
             onExecutionPhaseChanged: control.setExecutionPhase,
-            shouldStopBeforeNextStep: control.shouldStopBeforeNextStep,
+            shouldStopBeforeNextStep,
           }, async (event): Promise<void> => {
             if (control.shouldIgnoreStreamEvent(event)) {
               return;
             }
 
-            if (event.type === "delta") {
-              assistantContent = applyAssistantDelta(assistantContent, event);
-              await updateAssistantInProgress(
-                dependencies,
-                params.userId,
-                params.workspaceId,
-                params.assistantItemId,
-                assistantContent,
-              );
-            } else if (event.type === "tool_call") {
-              assistantContent = upsertAssistantToolCallContent(assistantContent, event);
-              await persistToolCallProgress(
-                dependencies,
-                params.userId,
-                params.workspaceId,
-                params.assistantItemId,
-                assistantContent,
-                event,
-                seenInvalidationVersions,
-              );
-            } else if (event.type === "reasoning_summary") {
-              assistantContent = upsertAssistantReasoningSummaryContent(assistantContent, event);
-              await updateAssistantInProgress(
-                dependencies,
-                params.userId,
-                params.workspaceId,
-                params.assistantItemId,
-                assistantContent,
-              );
-            } else if (event.type === "error") {
-              runtimeResult = await persistFailed(createProviderTerminalEventError());
+            if (control.getAbortReason() === "deadline_reached") {
+              await runOutsideTurnDatabaseDeadline(async () => persistStreamEvent(event));
+              return;
             }
+            await persistStreamEvent(event);
           }),
         );
 
@@ -375,7 +444,7 @@ export async function runPersistedChatSessionWithDeps(
           return;
         }
       },
-    );
+    ));
     if (runtimeResult !== null) {
       return runtimeResult;
     }
@@ -484,6 +553,20 @@ export async function runPersistedChatSessionWithDeps(
         runStatus: null,
         sessionState: null,
       };
+    }
+
+    if (
+      turnDatabaseDeadlineAtMs !== null
+      && isTurnDatabaseDeadlineExpiry(error, turnDatabaseDeadlineAtMs)
+    ) {
+      // The database deadline can expire just before the soft deadline timer runs.
+      control.requestSoftDeadlineStop();
+      if (control.getAbortReason() === "deadline_reached") {
+        return persistInterrupted(
+          DEADLINE_REACHED_MESSAGE,
+          undefined,
+        ).catch(rethrowTerminalPersistenceError);
+      }
     }
 
     return persistFailed(error).catch(rethrowTerminalPersistenceError);
