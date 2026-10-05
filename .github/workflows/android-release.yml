@@ -106,7 +106,7 @@ jobs:
             echo "- Release ID: \`${{ steps.release-metadata.outputs.android_release_id }}\`"
             echo "- Play release name: \`${{ steps.release-metadata.outputs.android_play_release_name }}\`"
             echo "- Upload draft to Play: \`true\`"
-            echo "- Run Firebase Test Lab: \`true\`"
+            echo "- Run Device Run: \`true\`"
             echo "- Play publish mode: \`draft production release uploaded by CI; final publish happens later in Play Console\`"
           } >> "${GITHUB_STEP_SUMMARY}"
 
@@ -123,8 +123,8 @@ jobs:
       android_version_code: ${{ needs.preflight.outputs.android_version_code }}
     secrets: inherit
 
-  firebase_test_lab_submission:
-    name: Firebase Test Lab app instrumentation
+  device_run_submission:
+    name: Device Run app instrumentation
     needs:
       - preflight
       - android_ci
@@ -136,83 +136,61 @@ jobs:
       id-token: write
     outputs:
       submission_state: ${{ steps.collect.outputs.submission_state }}
-      matrix_id: ${{ steps.collect.outputs.matrix_id }}
+      session_id: ${{ steps.collect.outputs.session_id }}
       results_path: ${{ steps.collect.outputs.results_path }}
       device_descriptor: ${{ steps.collect.outputs.device_descriptor }}
-      matrix_link: ${{ steps.collect.outputs.matrix_link }}
+      session_link: ${{ steps.collect.outputs.session_link }}
       compat_submission_state: ${{ steps.collect.outputs.compat_submission_state }}
-      compat_matrix_id: ${{ steps.collect.outputs.compat_matrix_id }}
-      compat_matrix_link: ${{ steps.collect.outputs.compat_matrix_link }}
+      compat_session_id: ${{ steps.collect.outputs.compat_session_id }}
+      compat_session_link: ${{ steps.collect.outputs.compat_session_link }}
       compat_results_path: ${{ steps.collect.outputs.compat_results_path }}
       compat_device_descriptors: ${{ steps.collect.outputs.compat_device_descriptors }}
       compat_test_targets: ${{ steps.collect.outputs.compat_test_targets }}
 
     steps:
-      - name: Validate Firebase Test Lab configuration
+      - name: Validate Device Run configuration
         id: validate-config
         env:
           GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
           GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           GCP_SERVICE_ACCOUNT_EMAIL: ${{ vars.GCP_SERVICE_ACCOUNT_EMAIL }}
-          ANDROID_FTL_DEVICE_MODEL: ${{ vars.ANDROID_FTL_DEVICE_MODEL }}
-          ANDROID_FTL_DEVICE_VERSION: ${{ vars.ANDROID_FTL_DEVICE_VERSION }}
-          ANDROID_FTL_COMPAT_DEVICES: ${{ vars.ANDROID_FTL_COMPAT_DEVICES }}
-          ANDROID_FTL_RESULTS_BUCKET: ${{ vars.ANDROID_FTL_RESULTS_BUCKET }}
-          ANDROID_FTL_RESULTS_DIR: ${{ vars.ANDROID_FTL_RESULTS_DIR }}
-          INPUT_RELEASE_ID: ${{ needs.preflight.outputs.android_release_id }}
+          ANDROID_DEVICE_RUN_DEVICE: ${{ vars.ANDROID_DEVICE_RUN_DEVICE }}
+          ANDROID_DEVICE_RUN_COMPAT_DEVICES: ${{ vars.ANDROID_DEVICE_RUN_COMPAT_DEVICES }}
+          ANDROID_DEVICE_RUN_RESULTS_BUCKET: ${{ vars.ANDROID_DEVICE_RUN_RESULTS_BUCKET }}
         run: |
           set -euo pipefail
-
           missing_values=()
-
           for variable_name in \
             GCP_PROJECT_ID \
             GCP_WORKLOAD_IDENTITY_PROVIDER \
             GCP_SERVICE_ACCOUNT_EMAIL \
-            ANDROID_FTL_DEVICE_MODEL \
-            ANDROID_FTL_DEVICE_VERSION \
-            ANDROID_FTL_COMPAT_DEVICES \
-            ANDROID_FTL_RESULTS_BUCKET \
-            ANDROID_FTL_RESULTS_DIR; do
+            ANDROID_DEVICE_RUN_DEVICE \
+            ANDROID_DEVICE_RUN_COMPAT_DEVICES \
+            ANDROID_DEVICE_RUN_RESULTS_BUCKET; do
             if [[ -z "${!variable_name}" ]]; then
               missing_values+=("${variable_name}")
             fi
           done
 
-          results_dir=""
-          results_path=""
-          device_descriptor=""
-          compat_device_descriptors=""
           configuration_invalid="false"
-
-          if [[ -n "${ANDROID_FTL_RESULTS_DIR}" ]]; then
-            results_dir="${ANDROID_FTL_RESULTS_DIR%/}/${INPUT_RELEASE_ID}/latest"
-          fi
-
-          if [[ -n "${ANDROID_FTL_RESULTS_BUCKET}" ]] && [[ -n "${results_dir}" ]]; then
-            results_path="${ANDROID_FTL_RESULTS_BUCKET%/}/${results_dir}"
-          fi
-
-          if [[ -n "${ANDROID_FTL_DEVICE_MODEL}" ]] && [[ -n "${ANDROID_FTL_DEVICE_VERSION}" ]]; then
-            device_descriptor="model=${ANDROID_FTL_DEVICE_MODEL},version=${ANDROID_FTL_DEVICE_VERSION},locale=en,orientation=portrait"
-          fi
-
-          if [[ "${ANDROID_FTL_DEVICE_VERSION}" != "37" ]]; then
-            echo "ANDROID_FTL_DEVICE_VERSION must be 37 for the full latest-device suite." >&2
+          if [[ ! "${ANDROID_DEVICE_RUN_DEVICE}" =~ ^[A-Za-z0-9_-]+$ ]]; then
+            echo "ANDROID_DEVICE_RUN_DEVICE must be a Device Run catalog ID for API 37." >&2
             configuration_invalid="true"
           fi
-
+          if [[ ! "${ANDROID_DEVICE_RUN_RESULTS_BUCKET}" =~ ^[a-z0-9][a-z0-9._-]+$ ]]; then
+            echo "ANDROID_DEVICE_RUN_RESULTS_BUCKET must be a bucket name without gs:// or a path." >&2
+            configuration_invalid="true"
+          fi
+          compat_device_descriptors=""
           if ! jq -e '
             type == "array" and length == 3 and
-            all(.[]; type == "object" and
-              (.model | type == "string" and test("^[A-Za-z0-9_-]+$")) and
-              (.version | type == "string")) and
-            ([.[].version] | sort == ["30", "31", "33"])
-          ' <<< "${ANDROID_FTL_COMPAT_DEVICES}" >/dev/null; then
-            echo "Set ANDROID_FTL_COMPAT_DEVICES to a JSON array of exactly three {model, version} pairs, with string versions 30, 31, 33 and catalog-verified model IDs. Locale en and portrait are fixed. See docs/android-ci-cd.md#choose-the-firebase-test-lab-devices." >&2
+            all(.[]; type == "string" and test("^[A-Za-z0-9_-]+$")) and
+            (unique | length == 3)
+          ' <<< "${ANDROID_DEVICE_RUN_COMPAT_DEVICES}" >/dev/null; then
+            echo "ANDROID_DEVICE_RUN_COMPAT_DEVICES must be three distinct catalog IDs, ordered by API 30, 31, 33." >&2
             configuration_invalid="true"
           else
-            compat_device_descriptors="$(jq -r 'map("model=\(.model),version=\(.version),locale=en,orientation=portrait") | join("; ")' <<< "${ANDROID_FTL_COMPAT_DEVICES}")"
+            compat_device_descriptors="$(jq -r 'join("; ")' <<< "${ANDROID_DEVICE_RUN_COMPAT_DEVICES}")"
           fi
 
           if [[ "${#missing_values[@]}" -gt 0 || "${configuration_invalid}" == "true" ]]; then
@@ -222,13 +200,8 @@ jobs:
           else
             echo "submission_state=ready" >> "${GITHUB_OUTPUT}"
           fi
-
           {
-            echo "results_dir=${results_dir}"
-            echo "results_path=${results_path}"
-            echo "device_descriptor=${device_descriptor}"
-            echo "compat_results_dir=${ANDROID_FTL_RESULTS_DIR%/}/${INPUT_RELEASE_ID}/compat"
-            echo "compat_results_path=${ANDROID_FTL_RESULTS_BUCKET%/}/${ANDROID_FTL_RESULTS_DIR%/}/${INPUT_RELEASE_ID}/compat"
+            echo "device_descriptor=${ANDROID_DEVICE_RUN_DEVICE}"
             echo "compat_device_descriptors=${compat_device_descriptors}"
           } >> "${GITHUB_OUTPUT}"
 
@@ -252,29 +225,36 @@ jobs:
         continue-on-error: true
         with:
           project_id: ${{ vars.GCP_PROJECT_ID }}
+          version: '587.0.0'
+          install_components: beta
 
-      - name: Require configured Firebase device pairs in the current catalog
+      - name: Require configured Device Run destinations in the current catalog
         id: device-catalog
         if: ${{ steps.validate-config.outputs.submission_state == 'ready' && steps.auth.outcome == 'success' && steps.setup-gcloud.outcome == 'success' }}
         continue-on-error: true
         env:
           GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
-          ANDROID_FTL_DEVICE_MODEL: ${{ vars.ANDROID_FTL_DEVICE_MODEL }}
-          ANDROID_FTL_DEVICE_VERSION: ${{ vars.ANDROID_FTL_DEVICE_VERSION }}
-          ANDROID_FTL_COMPAT_DEVICES: ${{ vars.ANDROID_FTL_COMPAT_DEVICES }}
+          ANDROID_DEVICE_RUN_DEVICE: ${{ vars.ANDROID_DEVICE_RUN_DEVICE }}
+          ANDROID_DEVICE_RUN_COMPAT_DEVICES: ${{ vars.ANDROID_DEVICE_RUN_COMPAT_DEVICES }}
         run: |
           set -euo pipefail
-          catalog_path="${RUNNER_TEMP}/firebase-device-catalog.json"
-          gcloud firebase test android models list --project "${GCP_PROJECT_ID}" --format=json > "${catalog_path}"
-          pairs="$(jq -c --arg model "${ANDROID_FTL_DEVICE_MODEL}" --arg version "${ANDROID_FTL_DEVICE_VERSION}" '. + [{model: $model, version: $version}]' <<< "${ANDROID_FTL_COMPAT_DEVICES}")"
-          while IFS=$'\t' read -r model version; do
-            if ! jq -e --arg model "${model}" --arg version "${version}" '
-              any(.[]; .id == $model and any(.supportedVersionIds[]; . == $version))
+          catalog_path="${RUNNER_TEMP}/device-run-catalog.json"
+          gcloud beta device-run devices list --project "${GCP_PROJECT_ID}" --location global --format=json > "${catalog_path}"
+          destinations="$(jq -c --arg latest "${ANDROID_DEVICE_RUN_DEVICE}" '
+            [{device: $latest, api: "37"}, {device: .[0], api: "30"}, {device: .[1], api: "31"}, {device: .[2], api: "33"}]
+          ' <<< "${ANDROID_DEVICE_RUN_COMPAT_DEVICES}")"
+          while IFS=$'\t' read -r device api; do
+            if ! jq -e --arg device "${device}" --arg api "${api}" '
+              any(.[];
+                (.name | split("/") | last) == $device and .osVersion == $api and
+                .platform == "ANDROID" and .lifecycle.state == "ACTIVE" and
+                ((.accessDeniedReasons // []) | length == 0) and
+                any(.supportedProducts[]; .automation != null))
             ' "${catalog_path}" >/dev/null; then
-              echo "Firebase device model=${model},version=${version} is unavailable in the current catalog. Update ANDROID_FTL_DEVICE_MODEL/VERSION or ANDROID_FTL_COMPAT_DEVICES using gcloud firebase test android models list; every API 30/31/33/37 destination is required." >&2
+              echo "Device Run destination ${device} must be an active, accessible Android automation device on API ${api}. Inspect gcloud beta device-run devices list --location global; all API 30/31/33/37 destinations are required." >&2
               exit 1
             fi
-          done < <(jq -r '.[] | [.model, .version] | @tsv' <<< "${pairs}")
+          done < <(jq -r '.[] | [.device, .api] | @tsv' <<< "${destinations}")
 
       - name: Download debug APKs
         id: download-debug-apks
@@ -308,74 +288,86 @@ jobs:
           printf 'APP_APK_PATH=%s\n' "${app_apk_path}" >> "${GITHUB_ENV}"
           printf 'TEST_APK_PATH=%s\n' "${test_apk_path}" >> "${GITHUB_ENV}"
 
-      - name: Submit app instrumentation tests to Firebase Test Lab
+      - name: Submit app instrumentation tests to Device Run
         id: submit
         if: ${{ steps.validate-config.outputs.submission_state == 'ready' && steps.auth.outcome == 'success' && steps.setup-gcloud.outcome == 'success' && steps.device-catalog.outcome == 'success' && steps.download-debug-apks.outcome == 'success' && steps.resolve-debug-apks.outcome == 'success' }}
         env:
           GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
-          ANDROID_FTL_DEVICE_MODEL: ${{ vars.ANDROID_FTL_DEVICE_MODEL }}
-          ANDROID_FTL_DEVICE_VERSION: ${{ vars.ANDROID_FTL_DEVICE_VERSION }}
-          ANDROID_FTL_RESULTS_BUCKET: ${{ vars.ANDROID_FTL_RESULTS_BUCKET }}
-          RESULTS_DIR: ${{ steps.validate-config.outputs.results_dir }}
+          ANDROID_DEVICE_RUN_DEVICE: ${{ vars.ANDROID_DEVICE_RUN_DEVICE }}
+          ANDROID_DEVICE_RUN_RESULTS_BUCKET: ${{ vars.ANDROID_DEVICE_RUN_RESULTS_BUCKET }}
           RELEASE_ID: ${{ needs.preflight.outputs.android_release_id }}
+          TARGET_SHA: ${{ needs.preflight.outputs.target_sha }}
         run: |
           set -euo pipefail
-
-          command_output_file="${RUNNER_TEMP}/firebase-test-lab-submit.log"
+          command_output_file="${RUNNER_TEMP}/device-run-latest-submit.log"
+          session_output="${RUNNER_TEMP}/device-run-latest-session.json"
+          device_args=(--device "${ANDROID_DEVICE_RUN_DEVICE}")
+          test_targets=(
+            "package com.flashcardsopensourceapp.app"
+            "notAnnotation com.flashcardsopensourceapp.app.ManualOnlyAndroidTest"
+          )
+          test_target_args=()
+          for test_target in "${test_targets[@]}"; do
+            test_target_args+=(--test-targets "${test_target}")
+          done
 
           set +e
-          bash scripts/android/run-android-firebase-test-lab.sh \
+          bash scripts/android/run-android-device-run.sh \
             --project-id "${GCP_PROJECT_ID}" \
-            --device-model "${ANDROID_FTL_DEVICE_MODEL}" \
-            --device-version "${ANDROID_FTL_DEVICE_VERSION}" \
+            "${device_args[@]}" \
             --app-path "${APP_APK_PATH}" \
             --test-path "${TEST_APK_PATH}" \
             --timeout "30m" \
-            --test-targets "package com.flashcardsopensourceapp.app" \
-            --results-bucket "${ANDROID_FTL_RESULTS_BUCKET}" \
-            --results-dir "${RESULTS_DIR}" \
-            --async \
-            > "${command_output_file}" 2>&1
+            "${test_target_args[@]}" \
+            --results-bucket "${ANDROID_DEVICE_RUN_RESULTS_BUCKET}" \
+            --labels "release_id=${RELEASE_ID},target_sha=${TARGET_SHA},github_run_id=${GITHUB_RUN_ID},github_run_attempt=${GITHUB_RUN_ATTEMPT},suite=latest" \
+            --session-output "${session_output}" \
+            --async > "${command_output_file}" 2>&1
           command_exit_code=$?
           set -e
-
           cat "${command_output_file}"
 
-          matrix_id="$(grep -o 'matrix-[[:alnum:]]\+' "${command_output_file}" | head -n 1 || true)"
-          matrix_link="$(grep -oE 'https://console.firebase.google.com/[[:alnum:]_/?=&%+.-]+' "${command_output_file}" | head -n 1 || true)"
-
-          if [[ "${command_exit_code}" -eq 0 ]] && [[ -n "${matrix_id}" ]] && [[ -n "${matrix_link}" ]]; then
+          session_id="$(sed -nE 's/.*Creating session \[(session-[a-f0-9-]+)\] in location \[global\].*/\1/p' "${command_output_file}")"
+          results_path=""
+          session_link=""
+          if [[ -n "${session_id}" ]]; then
+            results_path="gs://${ANDROID_DEVICE_RUN_RESULTS_BUCKET}/automation/sessions/${session_id}/"
+            session_link="https://console.cloud.google.com/storage/browser/${results_path#gs://}?project=${GCP_PROJECT_ID}"
+          fi
+          if [[ "${command_exit_code}" -eq 0 ]]; then
+            session_id="$(jq -r '.name | split("/") | last' "${session_output}")"
+            results_path="$(jq -r '.sessionConfig.outputDirectoryConfig.gcsOutputDirectory.path' "${session_output}")/${session_id}/"
+            session_link="https://console.cloud.google.com/storage/browser/${results_path#gs://}?project=${GCP_PROJECT_ID}"
             submission_state="submitted"
           else
             submission_state="submission_failed"
-            echo "Firebase Test Lab submission failed or did not return a matrix ID and console link. Exit code: ${command_exit_code}. Release ID: ${RELEASE_ID}." >&2
+            echo "Device Run submission failed. Exit=${command_exit_code} Release=${RELEASE_ID}. Inspect ${command_output_file} for the session identity if creation began." >&2
           fi
-
           {
             echo "submission_state=${submission_state}"
-            echo "matrix_id=${matrix_id}"
-            echo "matrix_link=${matrix_link}"
+            echo "session_id=${session_id}"
+            echo "session_link=${session_link}"
+            echo "results_path=${results_path}"
+            echo "test_targets=${test_targets[*]}"
           } >> "${GITHUB_OUTPUT}"
 
-      - name: Submit Android 11/12/13 compatibility smoke to Firebase Test Lab
+      - name: Submit Android 11/12/13 compatibility smoke to Device Run
         id: submit-compat
         if: ${{ steps.validate-config.outputs.submission_state == 'ready' && steps.auth.outcome == 'success' && steps.setup-gcloud.outcome == 'success' && steps.device-catalog.outcome == 'success' && steps.download-debug-apks.outcome == 'success' && steps.resolve-debug-apks.outcome == 'success' }}
         env:
           GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
-          ANDROID_FTL_COMPAT_DEVICES: ${{ vars.ANDROID_FTL_COMPAT_DEVICES }}
-          ANDROID_FTL_RESULTS_BUCKET: ${{ vars.ANDROID_FTL_RESULTS_BUCKET }}
-          RESULTS_DIR: ${{ steps.validate-config.outputs.compat_results_dir }}
+          ANDROID_DEVICE_RUN_COMPAT_DEVICES: ${{ vars.ANDROID_DEVICE_RUN_COMPAT_DEVICES }}
+          ANDROID_DEVICE_RUN_RESULTS_BUCKET: ${{ vars.ANDROID_DEVICE_RUN_RESULTS_BUCKET }}
           RELEASE_ID: ${{ needs.preflight.outputs.android_release_id }}
+          TARGET_SHA: ${{ needs.preflight.outputs.target_sha }}
         run: |
           set -euo pipefail
-
-          command_output_file="${RUNNER_TEMP}/firebase-test-lab-compat-submit.log"
-
+          command_output_file="${RUNNER_TEMP}/device-run-compat-submit.log"
+          session_output="${RUNNER_TEMP}/device-run-compat-session.json"
           device_args=()
           while IFS= read -r device; do
             device_args+=(--device "${device}")
-          done < <(jq -r '.[] | "model=\(.model),version=\(.version),locale=en,orientation=portrait"' <<< "${ANDROID_FTL_COMPAT_DEVICES}")
-
+          done < <(jq -r '.[]' <<< "${ANDROID_DEVICE_RUN_COMPAT_DEVICES}")
           test_targets=(
             "class com.flashcardsopensourceapp.app.livesmoke.LiveSmokeTest#manualCardCanBeCreatedInDefaultWorkspace"
             "class com.flashcardsopensourceapp.app.livesmoke.LiveSmokeTest#repositorySeededCardCanBeReviewedInDefaultWorkspace"
@@ -388,40 +380,57 @@ jobs:
           done
 
           set +e
-          bash scripts/android/run-android-firebase-test-lab.sh \
+          bash scripts/android/run-android-device-run.sh \
             --project-id "${GCP_PROJECT_ID}" \
             "${device_args[@]}" \
             --app-path "${APP_APK_PATH}" \
             --test-path "${TEST_APK_PATH}" \
             --timeout "30m" \
             "${test_target_args[@]}" \
-            --results-bucket "${ANDROID_FTL_RESULTS_BUCKET}" \
-            --results-dir "${RESULTS_DIR}" \
-            --async \
-            > "${command_output_file}" 2>&1
+            --results-bucket "${ANDROID_DEVICE_RUN_RESULTS_BUCKET}" \
+            --labels "release_id=${RELEASE_ID},target_sha=${TARGET_SHA},github_run_id=${GITHUB_RUN_ID},github_run_attempt=${GITHUB_RUN_ATTEMPT},suite=compat" \
+            --session-output "${session_output}" \
+            --async > "${command_output_file}" 2>&1
           command_exit_code=$?
           set -e
-
           cat "${command_output_file}"
 
-          matrix_id="$(grep -o 'matrix-[[:alnum:]]\+' "${command_output_file}" | head -n 1 || true)"
-          matrix_link="$(grep -oE 'https://console.firebase.google.com/[[:alnum:]_/?=&%+.-]+' "${command_output_file}" | head -n 1 || true)"
-
-          if [[ "${command_exit_code}" -eq 0 ]] && [[ -n "${matrix_id}" ]] && [[ -n "${matrix_link}" ]]; then
+          session_id="$(sed -nE 's/.*Creating session \[(session-[a-f0-9-]+)\] in location \[global\].*/\1/p' "${command_output_file}")"
+          results_path=""
+          session_link=""
+          if [[ -n "${session_id}" ]]; then
+            results_path="gs://${ANDROID_DEVICE_RUN_RESULTS_BUCKET}/automation/sessions/${session_id}/"
+            session_link="https://console.cloud.google.com/storage/browser/${results_path#gs://}?project=${GCP_PROJECT_ID}"
+          fi
+          if [[ "${command_exit_code}" -eq 0 ]]; then
+            session_id="$(jq -r '.name | split("/") | last' "${session_output}")"
+            results_path="$(jq -r '.sessionConfig.outputDirectoryConfig.gcsOutputDirectory.path' "${session_output}")/${session_id}/"
+            session_link="https://console.cloud.google.com/storage/browser/${results_path#gs://}?project=${GCP_PROJECT_ID}"
             submission_state="submitted"
           else
             submission_state="submission_failed"
-            echo "Firebase Test Lab submission failed or did not return a matrix ID and console link. Exit code: ${command_exit_code}. Release ID: ${RELEASE_ID}." >&2
+            echo "Device Run submission failed. Exit=${command_exit_code} Release=${RELEASE_ID}. Inspect ${command_output_file} for the session identity if creation began." >&2
           fi
-
           {
             echo "submission_state=${submission_state}"
-            echo "matrix_id=${matrix_id}"
-            echo "matrix_link=${matrix_link}"
+            echo "session_id=${session_id}"
+            echo "session_link=${session_link}"
+            echo "results_path=${results_path}"
             echo "test_targets=${test_targets[*]}"
           } >> "${GITHUB_OUTPUT}"
 
-      - name: Collect Firebase Test Lab outcome
+      - name: Preserve Device Run submission records
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-device-run-submissions
+          if-no-files-found: ignore
+          path: |
+            ${{ runner.temp }}/device-run-*-submit.log
+            ${{ runner.temp }}/device-run-*-session.json*
+            ${{ runner.temp }}/device-run-catalog.json
+
+      - name: Collect Device Run outcome
         if: always()
         id: collect
         env:
@@ -432,21 +441,21 @@ jobs:
           DOWNLOAD_STEP_OUTCOME: ${{ steps.download-debug-apks.outcome }}
           RESOLVE_STEP_OUTCOME: ${{ steps.resolve-debug-apks.outcome }}
           SUBMIT_STATE: ${{ steps.submit.outputs.submission_state }}
-          SUBMIT_MATRIX_ID: ${{ steps.submit.outputs.matrix_id }}
-          SUBMIT_MATRIX_LINK: ${{ steps.submit.outputs.matrix_link }}
+          SUBMIT_SESSION_ID: ${{ steps.submit.outputs.session_id }}
+          SUBMIT_SESSION_LINK: ${{ steps.submit.outputs.session_link }}
           COMPAT_SUBMIT_STATE: ${{ steps.submit-compat.outputs.submission_state }}
           COMPAT_TEST_TARGETS: ${{ steps.submit-compat.outputs.test_targets }}
-          COMPAT_MATRIX_ID: ${{ steps.submit-compat.outputs.matrix_id }}
-          COMPAT_MATRIX_LINK: ${{ steps.submit-compat.outputs.matrix_link }}
-          COMPAT_RESULTS_PATH: ${{ steps.validate-config.outputs.compat_results_path }}
+          COMPAT_SESSION_ID: ${{ steps.submit-compat.outputs.session_id }}
+          COMPAT_SESSION_LINK: ${{ steps.submit-compat.outputs.session_link }}
+          COMPAT_RESULTS_PATH: ${{ steps.submit-compat.outputs.results_path }}
           COMPAT_DEVICE_DESCRIPTORS: ${{ steps.validate-config.outputs.compat_device_descriptors }}
-          RESULTS_PATH: ${{ steps.validate-config.outputs.results_path }}
+          RESULTS_PATH: ${{ steps.submit.outputs.results_path }}
           DEVICE_DESCRIPTOR: ${{ steps.validate-config.outputs.device_descriptor }}
         run: |
           set -euo pipefail
 
           submission_state="${VALIDATION_STATE}"
-          matrix_id="${SUBMIT_MATRIX_ID}"
+          session_id="${SUBMIT_SESSION_ID}"
 
           if [[ "${VALIDATION_STATE}" == "ready" ]]; then
             if [[ "${AUTH_STEP_OUTCOME}" != "success" ]]; then
@@ -466,35 +475,38 @@ jobs:
             fi
           fi
 
+          if [[ "${submission_state}" == "submitted" && -z "${session_id}" ]]; then
+            submission_state="submission_failed"
+          fi
           compat_submission_state="${COMPAT_SUBMIT_STATE:-${submission_state}}"
-          if [[ "${compat_submission_state}" == "submitted" && -z "${COMPAT_MATRIX_ID}" ]]; then
+          if [[ "${compat_submission_state}" == "submitted" && -z "${COMPAT_SESSION_ID}" ]]; then
             compat_submission_state="submission_failed"
           fi
 
           {
             echo "submission_state=${submission_state}"
-            echo "matrix_id=${matrix_id}"
-            echo "matrix_link=${SUBMIT_MATRIX_LINK}"
+            echo "session_id=${session_id}"
+            echo "session_link=${SUBMIT_SESSION_LINK}"
             echo "compat_submission_state=${compat_submission_state}"
             echo "compat_test_targets=${COMPAT_TEST_TARGETS}"
-            echo "compat_matrix_id=${COMPAT_MATRIX_ID}"
-            echo "compat_matrix_link=${COMPAT_MATRIX_LINK}"
+            echo "compat_session_id=${COMPAT_SESSION_ID}"
+            echo "compat_session_link=${COMPAT_SESSION_LINK}"
             echo "compat_results_path=${COMPAT_RESULTS_PATH}"
             echo "compat_device_descriptors=${COMPAT_DEVICE_DESCRIPTORS}"
             echo "results_path=${RESULTS_PATH}"
             echo "device_descriptor=${DEVICE_DESCRIPTOR}"
           } >> "${GITHUB_OUTPUT}"
 
-      - name: Summarize Firebase Test Lab submission
+      - name: Summarize Device Run submission
         if: always()
         env:
           SUBMISSION_STATE: ${{ steps.collect.outputs.submission_state }}
-          MATRIX_ID: ${{ steps.collect.outputs.matrix_id }}
-          MATRIX_LINK: ${{ steps.collect.outputs.matrix_link }}
+          SESSION_ID: ${{ steps.collect.outputs.session_id }}
+          SESSION_LINK: ${{ steps.collect.outputs.session_link }}
           COMPAT_SUBMISSION_STATE: ${{ steps.collect.outputs.compat_submission_state }}
           COMPAT_TEST_TARGETS: ${{ steps.collect.outputs.compat_test_targets }}
-          COMPAT_MATRIX_ID: ${{ steps.collect.outputs.compat_matrix_id }}
-          COMPAT_MATRIX_LINK: ${{ steps.collect.outputs.compat_matrix_link }}
+          COMPAT_SESSION_ID: ${{ steps.collect.outputs.compat_session_id }}
+          COMPAT_SESSION_LINK: ${{ steps.collect.outputs.compat_session_link }}
           COMPAT_RESULTS_PATH: ${{ steps.collect.outputs.compat_results_path }}
           COMPAT_DEVICE_DESCRIPTORS: ${{ steps.collect.outputs.compat_device_descriptors }}
           RESULTS_PATH: ${{ steps.collect.outputs.results_path }}
@@ -502,25 +514,25 @@ jobs:
           RELEASE_ID: ${{ needs.preflight.outputs.android_release_id }}
         run: |
           {
-            echo "## Firebase Test Lab submission"
+            echo "## Device Run submission"
             echo ""
             echo "- Submission state: \`${SUBMISSION_STATE}\`"
             echo "- Release ID: \`${RELEASE_ID}\`"
             echo "- Target SHA: \`${{ needs.preflight.outputs.target_sha }}\`"
-            echo "- Matrix ID: \`${MATRIX_ID:-n/a}\`"
+            echo "- Session ID: \`${SESSION_ID:-n/a}\`"
             echo "- Results path: \`${RESULTS_PATH:-n/a}\`"
             echo "- Device: \`${DEVICE_DESCRIPTOR:-n/a}\`"
-            echo "- Latest matrix lookup: ${MATRIX_LINK:-n/a}"
-            echo "- Latest targets: \`package com.flashcardsopensourceapp.app\` (existing manual-only exclusions)"
+            echo "- Latest session lookup: ${SESSION_LINK:-n/a}"
+            echo "- Latest targets: \`package com.flashcardsopensourceapp.app\` with notAnnotation com.flashcardsopensourceapp.app.ManualOnlyAndroidTest"
             echo "- Compatibility submission: \`${COMPAT_SUBMISSION_STATE:-n/a}\`"
-            echo "- Compatibility matrix: [${COMPAT_MATRIX_ID:-n/a}](${COMPAT_MATRIX_LINK})"
+            echo "- Compatibility session: [${COMPAT_SESSION_ID:-n/a}](${COMPAT_SESSION_LINK})"
             echo "- Compatibility results path: \`${COMPAT_RESULTS_PATH:-n/a}\`"
             echo "- Compatibility devices: \`${COMPAT_DEVICE_DESCRIPTORS:-n/a}\`"
             echo "- Compatibility targets: \`${COMPAT_TEST_TARGETS:-n/a}\`"
-            echo "- Publication requires terminal success for latest and all three compatibility destinations, with all selected tests executed; submission alone is insufficient."
+            echo "- Publication requires terminal PASSED results for latest and all three compatibility destinations, with all selected tests executed; submission alone is insufficient."
           } >> "${GITHUB_STEP_SUMMARY}"
 
-      - name: Require Firebase Test Lab submission
+      - name: Require Device Run submission
         if: always()
         env:
           SUBMISSION_STATE: ${{ steps.collect.outputs.submission_state }}
@@ -529,7 +541,7 @@ jobs:
           set -euo pipefail
 
           if [[ "${SUBMISSION_STATE}" != "submitted" || "${COMPAT_SUBMISSION_STATE}" != "submitted" ]]; then
-            echo "Both Firebase Test Lab submissions are required for Android Release. Latest: ${SUBMISSION_STATE:-unknown}. Compatibility: ${COMPAT_SUBMISSION_STATE:-unknown}." >&2
+            echo "Both Device Run submissions are required for Android Release. Latest: ${SUBMISSION_STATE:-unknown}. Compatibility: ${COMPAT_SUBMISSION_STATE:-unknown}." >&2
             exit 1
           fi
 
@@ -538,8 +550,8 @@ jobs:
     needs:
       - preflight
       - android_ci
-      - firebase_test_lab_submission
-    if: ${{ needs.android_ci.result == 'success' && needs.firebase_test_lab_submission.result == 'success' }}
+      - device_run_submission
+    if: ${{ needs.android_ci.result == 'success' && needs.device_run_submission.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     concurrency:
@@ -703,8 +715,6 @@ jobs:
           bundle_path="apps/android/app/build/outputs/bundle/release/app-release.aab"
           r8_metadata_path="${RUNNER_TEMP}/android-release-r8.json"
 
-          # AGP embeds the R8 run summary in the bundle it just built, so the numbers below describe
-          # exactly the artifact that is about to be uploaded to Google Play.
           if ! unzip -p "${bundle_path}" "BUNDLE-METADATA/com.android.tools/r8.json" > "${r8_metadata_path}"; then
             echo "BUNDLE-METADATA/com.android.tools/r8.json is missing from ${bundle_path}. R8 optimization coverage cannot be verified." >&2
             exit 1
@@ -779,8 +789,8 @@ jobs:
             echo "- GitHub run: \`${{ github.run_id }}\` attempt \`${{ github.run_attempt }}\`"
             echo "- GitHub run URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
             echo "- Upload state: \`draft\`"
-            echo "- Firebase Test Lab: \`both required submissions in this Android Release run\`"
-            echo "- Next step: require both Firebase matrices and every configured destination to pass, review Play App strings translations in Play Console, then publish manually."
+            echo "- Device Run: \`both required submissions in this Android Release run\`"
+            echo "- Next step: require both Device Run sessions and every configured destination to pass, review Play App strings translations in Play Console, then publish manually."
           } >> "${GITHUB_STEP_SUMMARY}"
 
   release_summary:
@@ -789,7 +799,7 @@ jobs:
     needs:
       - preflight
       - android_ci
-      - firebase_test_lab_submission
+      - device_run_submission
       - publish_android
     runs-on: ubuntu-24.04
 
@@ -804,22 +814,22 @@ jobs:
             echo "- Release ID: \`${{ needs.preflight.outputs.android_release_id || 'n/a' }}\`"
             echo "- Play release name: \`${{ needs.preflight.outputs.android_play_release_name || 'n/a' }}\`"
             echo "- Android CI result: \`${{ needs.android_ci.result }}\`"
-            echo "- Firebase Test Lab submission result: \`${{ needs.firebase_test_lab_submission.result }}\`"
-            echo "- Firebase Test Lab requested: \`true\`"
+            echo "- Device Run submission result: \`${{ needs.device_run_submission.result }}\`"
+            echo "- Device Run requested: \`true\`"
             echo "- Play draft upload requested: \`true\`"
             echo "- Android Play draft upload result: \`${{ needs.publish_android.result }}\`"
-            echo "- Firebase Test Lab submission: \`${{ needs.firebase_test_lab_submission.outputs.submission_state || 'n/a' }}\`"
-            echo "- Firebase Test Lab matrix ID: \`${{ needs.firebase_test_lab_submission.outputs.matrix_id || 'n/a' }}\`"
-            echo "- Firebase Test Lab results path: \`${{ needs.firebase_test_lab_submission.outputs.results_path || 'n/a' }}\`"
-            echo "- Firebase Test Lab device: \`${{ needs.firebase_test_lab_submission.outputs.device_descriptor || 'n/a' }}\`"
-            echo "- Latest matrix lookup: ${{ needs.firebase_test_lab_submission.outputs.matrix_link || 'n/a' }}"
-            echo "- Latest targets: \`package com.flashcardsopensourceapp.app\` (existing manual-only exclusions)"
-            echo "- Compatibility submission: \`${{ needs.firebase_test_lab_submission.outputs.compat_submission_state || 'n/a' }}\`"
-            echo "- Compatibility matrix: [${{ needs.firebase_test_lab_submission.outputs.compat_matrix_id || 'n/a' }}](${{ needs.firebase_test_lab_submission.outputs.compat_matrix_link }})"
-            echo "- Compatibility results path: \`${{ needs.firebase_test_lab_submission.outputs.compat_results_path || 'n/a' }}\`"
-            echo "- Compatibility devices: \`${{ needs.firebase_test_lab_submission.outputs.compat_device_descriptors || 'n/a' }}\`"
-            echo "- Compatibility targets: \`${{ needs.firebase_test_lab_submission.outputs.compat_test_targets || 'n/a' }}\`"
-            echo "- Publication requires terminal success for latest and all three compatibility destinations, with all selected tests executed; submission alone is insufficient."
+            echo "- Device Run submission: \`${{ needs.device_run_submission.outputs.submission_state || 'n/a' }}\`"
+            echo "- Device Run session ID: \`${{ needs.device_run_submission.outputs.session_id || 'n/a' }}\`"
+            echo "- Device Run results path: \`${{ needs.device_run_submission.outputs.results_path || 'n/a' }}\`"
+            echo "- Device Run device: \`${{ needs.device_run_submission.outputs.device_descriptor || 'n/a' }}\`"
+            echo "- Latest session lookup: ${{ needs.device_run_submission.outputs.session_link || 'n/a' }}"
+            echo "- Latest targets: \`package com.flashcardsopensourceapp.app\` with notAnnotation com.flashcardsopensourceapp.app.ManualOnlyAndroidTest"
+            echo "- Compatibility submission: \`${{ needs.device_run_submission.outputs.compat_submission_state || 'n/a' }}\`"
+            echo "- Compatibility session: [${{ needs.device_run_submission.outputs.compat_session_id || 'n/a' }}](${{ needs.device_run_submission.outputs.compat_session_link }})"
+            echo "- Compatibility results path: \`${{ needs.device_run_submission.outputs.compat_results_path || 'n/a' }}\`"
+            echo "- Compatibility devices: \`${{ needs.device_run_submission.outputs.compat_device_descriptors || 'n/a' }}\`"
+            echo "- Compatibility targets: \`${{ needs.device_run_submission.outputs.compat_test_targets || 'n/a' }}\`"
+            echo "- Publication requires terminal PASSED results for latest and all three compatibility destinations, with all selected tests executed; submission alone is insufficient."
             echo "- Play publish mode: \`CI uploads a production-track draft only; Play Console publication remains manual\`"
             echo "- Run details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           } >> "${GITHUB_STEP_SUMMARY}"

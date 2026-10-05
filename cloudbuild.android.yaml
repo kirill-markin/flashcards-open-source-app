@@ -2,49 +2,37 @@ options:
   logging: CLOUD_LOGGING_ONLY
 
 substitutions:
-  _ANDROID_FTL_DEVICE_MODEL: ''
-  _ANDROID_FTL_DEVICE_VERSION: ''
-  _ANDROID_FTL_RESULTS_BUCKET: ''
-  _ANDROID_FTL_RESULTS_DIR: ''
+  _ANDROID_DEVICE_RUN_DEVICE: ''
+  _ANDROID_DEVICE_RUN_RESULTS_BUCKET: ''
 
 timeout: 3600s
 
 steps:
-  - id: Validate Firebase Test Lab configuration
+  - id: Validate Device Run configuration
     name: gcr.io/cloud-builders/gcloud
     entrypoint: bash
     args:
       - -ceu
       - |
         project_id="${PROJECT_ID}"
-        device_model="${_ANDROID_FTL_DEVICE_MODEL}"
-        device_version="${_ANDROID_FTL_DEVICE_VERSION}"
-        results_bucket="${_ANDROID_FTL_RESULTS_BUCKET}"
-        results_dir="${_ANDROID_FTL_RESULTS_DIR}"
+        device="${_ANDROID_DEVICE_RUN_DEVICE}"
+        results_bucket="${_ANDROID_DEVICE_RUN_RESULTS_BUCKET}"
         missing_values=()
 
-        if [[ -z "${project_id}" ]]; then
+        if [[ -z "$${project_id}" ]]; then
           missing_values+=("PROJECT_ID")
         fi
 
-        if [[ -z "${device_model}" ]]; then
-          missing_values+=("_ANDROID_FTL_DEVICE_MODEL")
+        if [[ -z "$${device}" ]]; then
+          missing_values+=("_ANDROID_DEVICE_RUN_DEVICE")
         fi
 
-        if [[ -z "${device_version}" ]]; then
-          missing_values+=("_ANDROID_FTL_DEVICE_VERSION")
+        if [[ -z "$${results_bucket}" ]]; then
+          missing_values+=("_ANDROID_DEVICE_RUN_RESULTS_BUCKET")
         fi
 
-        if [[ -z "${results_bucket}" ]]; then
-          missing_values+=("_ANDROID_FTL_RESULTS_BUCKET")
-        fi
-
-        if [[ -z "${results_dir}" ]]; then
-          missing_values+=("_ANDROID_FTL_RESULTS_DIR")
-        fi
-
-        if [[ "${#missing_values[@]}" -gt 0 ]]; then
-          printf 'Missing required Cloud Build substitutions for Firebase Test Lab: %s\n' "${missing_values[*]}" >&2
+        if [[ "$${#missing_values[@]}" -gt 0 ]]; then
+          printf 'Missing required Cloud Build substitutions for Device Run: %s\n' "$${missing_values[*]}" >&2
           exit 1
         fi
 
@@ -65,23 +53,24 @@ steps:
       - -ceu
       - /workspace/scripts/android/run-android-ci.sh
 
-  - id: Run Firebase Test Lab instrumentation tests
+  - id: Run Device Run instrumentation tests
     name: flashcards-android-ci:latest
     entrypoint: bash
     args:
       - -ceu
       - |
-        test_lab_args=(
+        device_run_args=(
           --project-id "${PROJECT_ID}"
-          --device-model "${_ANDROID_FTL_DEVICE_MODEL}"
-          --device-version "${_ANDROID_FTL_DEVICE_VERSION}"
+          --device "${_ANDROID_DEVICE_RUN_DEVICE}"
           --app-path "/workspace/apps/android/app/build/outputs/apk/debug/app-debug.apk"
           --test-path "/workspace/apps/android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk"
           --timeout "30m"
-          --max-matrix-duration "35m"
-          --test-targets "package com.flashcardsopensourceapp.app notAnnotation com.flashcardsopensourceapp.app.ManualOnlyAndroidTest"
-          --results-bucket "${_ANDROID_FTL_RESULTS_BUCKET}"
-          --results-dir "${_ANDROID_FTL_RESULTS_DIR}"
+          --max-session-duration "35m"
+          --test-targets "package com.flashcardsopensourceapp.app"
+          --test-targets "notAnnotation com.flashcardsopensourceapp.app.ManualOnlyAndroidTest"
+          --results-bucket "${_ANDROID_DEVICE_RUN_RESULTS_BUCKET}"
+          --labels "cloud_build_id=${BUILD_ID},target_sha=${COMMIT_SHA},suite=latest"
+          --session-output "/workspace/device-run-session.json"
         )
 
-        /workspace/scripts/android/run-android-firebase-test-lab.sh "${test_lab_args[@]}"
+        /workspace/scripts/android/run-android-device-run.sh "$${device_run_args[@]}"
