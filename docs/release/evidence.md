@@ -19,6 +19,13 @@ initial publication is excluded by the routine-release policy until a separately
 scoped initial launch; preserve its existing submission identity through the
 [companion procedure](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md).
 
+Before a new mobile submission/publication, follow the [recorded mobile readiness procedure](readiness.md)
+and retain its manifest and JSON report alongside the ledger in the operator's
+release record, outside tracked release history. Preserve the referenced native
+evidence durably. Its offline result covers recorded build/test gates only;
+manual diagnostics, store checks and completion remain governed by the platform
+procedures and canonical boundaries above.
+
 ## Resume and Artifact Reuse
 
 Resume a prepared or partly published release at its recorded target version;
