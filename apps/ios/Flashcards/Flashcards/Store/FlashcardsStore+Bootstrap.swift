@@ -10,7 +10,7 @@ private struct LoadedLocalReadModels {
 private struct BootstrapReadExpectation: Sendable {
     let databaseIdentity: ObjectIdentifier
     let databaseURL: URL
-    let localReadVersion: Int
+    let loadStartSequence: Int
     let reviewSubmissionMutationRevision: Int
 }
 
@@ -179,6 +179,9 @@ extension FlashcardsStore {
         snapshot: AppBootstrapSnapshot,
         localReadModels: LoadedLocalReadModels
     ) {
+        // A synchronous reload reads and publishes in one main-actor turn, so it is the latest-started load.
+        self.bootstrapLoadStartSequence += 1
+        self.publishedBootstrapLoadSequence = self.bootstrapLoadStartSequence
         self.reviewRuntime.invalidateReviewSource()
         self.workspace = snapshot.workspace
         self.userSettings = snapshot.userSettings
@@ -263,35 +266,37 @@ extension FlashcardsStore {
         try await self.refreshBootstrapSnapshotContentWithoutReset(now: now)
     }
 
+    /**
+     Latest-started load wins. A load that finishes after a later-started load already published
+     returns an all-false outcome without publishing: the published content was read after this
+     caller's writes, and its caller owns the publish side effects. A load that overlapped a review
+     submission reloads.
+     */
     private func refreshBootstrapSnapshotContentWithoutReset(now: Date) async throws -> BootstrapSnapshotRefreshOutcome {
-        var staleResultCount = 0
-
         while true {
-            let expectation = try self.currentBootstrapReadExpectation()
+            let expectation = try self.beginBootstrapRead()
             let loadedSnapshot = try await defaultBootstrapSnapshotLoader(
                 databaseURL: expectation.databaseURL,
                 now: now
             )
+            if self.publishedBootstrapLoadSequence > expectation.loadStartSequence {
+                return BootstrapSnapshotRefreshOutcome(
+                    didChange: false,
+                    workspaceChanged: false,
+                    cardsChanged: false,
+                    homeSnapshotChanged: false
+                )
+            }
+
             let actualDatabase = self.database
             let actualDatabaseIdentity = actualDatabase.map { ObjectIdentifier($0) }
             let actualDatabaseURL = actualDatabase?.databaseURL
-            let actualLocalReadVersion = self.localReadVersion
-            let isCurrentDatabaseState = actualDatabaseIdentity == expectation.databaseIdentity
-                && actualDatabaseURL == expectation.databaseURL
-                && actualLocalReadVersion == expectation.localReadVersion
-
-            guard isCurrentDatabaseState else {
-                if staleResultCount == 0 {
-                    staleResultCount += 1
-                    continue
-                }
-                throw self.staleBootstrapSnapshotError(
+            guard actualDatabaseIdentity == expectation.databaseIdentity
+                && actualDatabaseURL == expectation.databaseURL else {
+                throw self.bootstrapDatabaseChangedError(
                     expectation: expectation,
                     actualDatabaseIdentity: actualDatabaseIdentity,
-                    actualDatabaseURL: actualDatabaseURL,
-                    actualLocalReadVersion: actualLocalReadVersion,
-                    actualReviewSubmissionMutationState: self.reviewSubmissionOutboxMutationGate
-                        .currentReviewSubmissionMutationState()
+                    actualDatabaseURL: actualDatabaseURL
                 )
             }
 
@@ -306,19 +311,12 @@ extension FlashcardsStore {
                 }
             switch publication {
             case .published(let outcome):
+                self.publishedBootstrapLoadSequence = expectation.loadStartSequence
                 return outcome
-            case .stale(let actualReviewSubmissionMutationState):
-                if staleResultCount == 0 {
-                    staleResultCount += 1
-                    continue
-                }
-                throw self.staleBootstrapSnapshotError(
-                    expectation: expectation,
-                    actualDatabaseIdentity: actualDatabaseIdentity,
-                    actualDatabaseURL: actualDatabaseURL,
-                    actualLocalReadVersion: actualLocalReadVersion,
-                    actualReviewSubmissionMutationState: actualReviewSubmissionMutationState
-                )
+            case .stale:
+                // The detached loader never observes cancellation, so stop reloading here.
+                try Task.checkCancellation()
+                continue
             }
         }
     }
@@ -413,29 +411,28 @@ extension FlashcardsStore {
         )
     }
 
-    private func currentBootstrapReadExpectation() throws -> BootstrapReadExpectation {
+    private func beginBootstrapRead() throws -> BootstrapReadExpectation {
         let database = try requireLocalDatabase(database: self.database)
+        self.bootstrapLoadStartSequence += 1
         return BootstrapReadExpectation(
             databaseIdentity: ObjectIdentifier(database),
             databaseURL: database.databaseURL,
-            localReadVersion: self.localReadVersion,
+            loadStartSequence: self.bootstrapLoadStartSequence,
             reviewSubmissionMutationRevision: self.reviewSubmissionOutboxMutationGate
                 .currentReviewSubmissionMutationState()
                 .revision
         )
     }
 
-    private func staleBootstrapSnapshotError(
+    private func bootstrapDatabaseChangedError(
         expectation: BootstrapReadExpectation,
         actualDatabaseIdentity: ObjectIdentifier?,
-        actualDatabaseURL: URL?,
-        actualLocalReadVersion: Int,
-        actualReviewSubmissionMutationState: ReviewSubmissionMutationState
+        actualDatabaseURL: URL?
     ) -> LocalStoreError {
         let actualDatabaseIdentityDescription = actualDatabaseIdentity.map { String(describing: $0) } ?? "none"
         let actualDatabaseURLDescription = actualDatabaseURL?.path ?? "none"
         return LocalStoreError.database(
-            "Bootstrap snapshot load produced a stale result twice. Expected database identity \(expectation.databaseIdentity) at \(expectation.databaseURL.path) with local read version \(expectation.localReadVersion) and review submission mutation revision \(expectation.reviewSubmissionMutationRevision), but found identity \(actualDatabaseIdentityDescription) at \(actualDatabaseURLDescription) with local read version \(actualLocalReadVersion), review submission mutation revision \(actualReviewSubmissionMutationState.revision), and \(actualReviewSubmissionMutationState.activeSubmissionCount) active review submissions."
+            "Bootstrap snapshot load finished after the local database changed. Expected database identity \(expectation.databaseIdentity) at \(expectation.databaseURL.path), but found identity \(actualDatabaseIdentityDescription) at \(actualDatabaseURLDescription)."
         )
     }
 

@@ -743,7 +743,6 @@ extension FlashcardsStore {
             self.settleReviewSourceRefreshFailure(error: error)
             return
         }
-        // Bump after the refresh: the loader treats a mid-load bump as a stale result.
         self.localReadVersion += 1
         // A load started during the refresh already reads the post-submission database.
         let activeReviewLoadRequestId = self.reviewRuntime.state.activeReviewLoadRequestId
@@ -776,7 +775,10 @@ extension FlashcardsStore {
         }
 
         do {
-            _ = try await self.refreshBootstrapSnapshotWithoutReset(now: now)
+            let bootstrapRefreshOutcome = try await self.refreshBootstrapSnapshotWithoutReset(now: now)
+            if bootstrapRefreshOutcome.didChange {
+                self.localReadVersion += 1
+            }
             let rollbackValidationContext = self.makeReviewSubmissionRollbackValidationContext(now: now)
             guard self.reviewSubmissionRequestMatchesCurrentContext(
                 request: request,

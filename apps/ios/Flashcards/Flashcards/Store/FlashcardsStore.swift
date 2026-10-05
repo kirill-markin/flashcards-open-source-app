@@ -141,6 +141,10 @@ final class FlashcardsStore {
     @ObservationIgnored var cloudServiceConfigurationValidator: any CloudServiceConfigurationValidating
     @ObservationIgnored var reviewRuntime: ReviewQueueRuntime
     @ObservationIgnored var reviewSubmissionOutboxMutationGate: ReviewSubmissionOutboxMutationGate
+    /// Incremented when a bootstrap content load starts.
+    @ObservationIgnored var bootstrapLoadStartSequence: Int
+    /// Start sequence of the bootstrap load whose content is published; an older load never publishes over it.
+    @ObservationIgnored var publishedBootstrapLoadSequence: Int
     @ObservationIgnored var cloudRuntime: CloudSessionRuntime
     var accountPreferencesIdentityKey: String? {
         didSet {
@@ -547,6 +551,8 @@ final class FlashcardsStore {
             reviewQueueReplenishmentThreshold: reviewQueueReplenishmentThreshold
         )
         self.reviewSubmissionOutboxMutationGate = reviewSubmissionOutboxMutationGate
+        self.bootstrapLoadStartSequence = 0
+        self.publishedBootstrapLoadSequence = 0
         self.cloudRuntime = CloudSessionRuntime(
             cloudAuthService: dependencies.cloudAuthService,
             cloudSyncService: dependencies.cloudSyncService,
