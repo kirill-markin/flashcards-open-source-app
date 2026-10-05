@@ -93,7 +93,7 @@ private fun ReviewReactionCanvas(
 ) {
     val configuration = reviewReactionLottieConfiguration(variant = event.variant, configurationStore = configurationStore)
     val readiness = configuration?.readiness
-    if (readiness !is ReviewReactionLottieReadiness.Ready || configuration == null) {
+    if (readiness !is ReviewReactionLottieReadiness.Ready) {
         LaunchedEffect(event.id, readiness) {
             when (readiness) {
                 null -> configurationStore.fail(
