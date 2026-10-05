@@ -27,34 +27,35 @@ Otherwise create a new artifact through every gate below.
 2. Dispatch `Android Release` (`.github/workflows/android-release.yml`) with
    `Git SHA to release` (`target_sha`) set to the release commit. Record its
    target SHA, run/attempt, version code, and release identifier from the summary.
-3. Require both Device Run submissions from `device_run_submission`: the full
-   package on API 37 and the four-method smoke session on API 30, 31 and 33.
+3. Require four sequential Device Run sessions from `device_run_submission`: the full
+   package on API 37, then one four-method smoke session each on API 30, 31 and 33.
+   The shared linked test account requires sequential workspace mutations.
    Verify all four current catalog IDs/APIs under
    [device preflight](../android-ci-cd.md#choose-the-device-run-devices).
-   Record both session IDs, selected targets, job labels and GCS results paths
-   from the summary and retain `android-device-run-submissions`.
-   Submission is asynchronous: a green GitHub workflow proves acceptance,
-   not passing tests. Use the [CLI/GCS inspection procedure](../android-ci-cd.md#device-run-results-and-release-correlation).
-4. Wait for both full reports to show `.sessionReport.status.statusType=DONE`
+   Record all four session IDs, selected targets, job labels and GCS results paths
+   and retain the [workflow-defined artifacts](../../.github/workflows/android-release.yml).
+   The workflow waits for terminal success before building/uploading the signed draft.
+   Inspect the [CLI/GCS evidence](../android-ci-cd.md#device-run-results-and-release-correlation).
+4. Require all four full reports to show `.sessionReport.status.statusType=DONE`
    and `.sessionReport.result.resultType=PASSED`, with every job and execution
    `DONE`/`PASSED`. A successful CLI `wait` exit is insufficient. Require one
-   latest job on API 37 and three compatibility jobs on the exact configured
-   API 30, 31 and 33 destinations. Inspect every execution's named JUnit cases:
+   job per session on the exact configured API 37, 30, 31 and 33 destinations.
+   Inspect every execution's named JUnit cases:
    API 37 must execute and pass the full automated selection; each older
    destination must execute and pass all four selected methods. Reconcile
    counts, failures, errors and skips; zero tests, missing destinations or
    unexpected skipped cases block publication. Retain full reports, per-case
-   results and logcat with both session identities for this SHA/run/attempt.
+   results and logcat with all four session identities for this SHA/run/attempt.
    Failed, cancelled, infrastructure-error or otherwise non-passing results
-   block publication. Fix the cause, merge, and repeat the workflow for the
-   corrected SHA; do not publish the failed draft.
+   block draft upload and publication. Fix the cause, merge, and repeat the workflow for the
+   corrected SHA; preserve the failed attempt's evidence.
 5. Require the complete GitHub workflow to succeed as well, including the
    signed Android App Bundle (AAB) upload to the production-track draft.
    Inspect build/lint logs and apply the
    [release warning policy](README.md#release-warning-policy) even if the run is green.
 6. Open Google Play Console and select that draft by its
    `main-draft-<releaseIdentifier>` name and version code. Confirm it belongs
-   to the same SHA/run as both passing Device Run sessions. Confirm the uploaded
+   to the same SHA/run/attempt as all four passing Device Run sessions. Confirm the uploaded
    AAB manifest advertises minimum API 30 and target API 37; source declarations
    alone do not prove the distributed minimum. Device Run exercises the
    debug APKs from that SHA; the production artifact is the signed AAB from
@@ -82,7 +83,7 @@ Otherwise create a new artifact through every gate below.
    availability. If approved but unavailable at the selected scope, keep the
    channel open as propagation pending or blocked according to evidence.
 
-Completion: both Device Run sessions, all four configured destinations, GitHub
+Completion: all four Device Run sessions, all four configured destinations, GitHub
 and local gates pass before new publication, and the exact production version
 is public at the intended rollout scope.
 Already-published matching releases use the shared historical evidence rule.
