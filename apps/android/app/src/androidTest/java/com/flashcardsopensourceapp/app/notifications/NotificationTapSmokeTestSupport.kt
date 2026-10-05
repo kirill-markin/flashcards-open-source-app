@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.Notification
 import android.app.NotificationManager
 import android.content.Context
+import android.os.Build
 import android.os.ParcelFileDescriptor
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.core.app.NotificationManagerCompat
@@ -36,6 +37,12 @@ private const val notificationPermissionUserFixedFlag: String = "user-fixed"
 private const val notificationPermissionUserSetFlag: String = "user-set"
 
 internal fun LiveSmokeContext.grantNotificationPermissionOrThrow(context: Context) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+        if (hasNotificationPermission(context = context).not()) {
+            throw AssertionError("Enable app notifications in system settings before notification smoke on API ${Build.VERSION.SDK_INT}.")
+        }
+        return
+    }
     val packageName = context.packageName
     runInstrumentationShellCommand(
         command = "pm grant $packageName ${Manifest.permission.POST_NOTIFICATIONS}"

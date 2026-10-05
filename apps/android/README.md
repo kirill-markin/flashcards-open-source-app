@@ -15,13 +15,13 @@ We do not want an Android app that imitates iPhone UI. We want a modern Android 
 - Language: Kotlin
 - UI stack: Jetpack Compose
 - Design system: Material 3
-- Minimum supported Android version: Android 14, `minSdk = 34`
+- Minimum supported Android version: Android 11, `minSdk = 30`
 - Compile target: Android 17, `compileSdk = 37`
 - Runtime target: Android 17, `targetSdk = 37`
-- Testing focus: Android 17 / API 37 only
+- Testing focus: Android 17 / API 37 full suite, with minimal release smoke on API 30, 31, and 33
 - Primary local storage: Room on top of SQLite
 
-The development focus is Android 14, 15, 16, and 17. We do not spend effort validating or polishing older Android versions.
+Android 17 / API 37 is the primary design and validation target. One implementation supports API 30 onward, including API 32; older releases use native AndroidX compatibility behavior and small release smoke coverage. The uploaded AAB manifest is authoritative for the distributed minimum.
 
 ## Dependency Version Pin
 
@@ -182,20 +182,20 @@ The current local Android app uses:
 
 - `compileSdk = 37`
 - `targetSdk = 37`
-- `minSdk = 34`
+- `minSdk = 30`
 - Room on top of SQLite for local storage
 - Material 3 + Compose + Navigation Compose + `NavigationSuiteScaffold`
 
 ## Testing Rule
 
-Test only on the final supported Android target.
+Keep the full suite focused on the latest Android target.
 
 - Do not try to cover the Android app exhaustively with tests
 - Do not add isolated unit tests by default
 - Prefer native integration, parity, and instrumentation tests when they validate a real module boundary or user flow
-- Run Android tests only against Android 17 / API 37
-- Do not spend time on test matrices for older API levels
-- Do not add compatibility code for older Android versions unless explicitly requested
+- Run the full Android suite against Android 17 / API 37
+- Release smoke also runs four existing methods on one configured destination each for API 30, 31, and 33; see [Android CI/CD](../../docs/android-ci-cd.md#choose-the-firebase-test-lab-devices)
+- Keep compatibility changes narrow and native; do not add separate engines or screens for older Android versions
 - Prefer background local emulator runs without a visible emulator window by default
 - When starting a local headless emulator manually, prefer `-gpu auto` and avoid the deprecated `-gpu swiftshader_indirect` override
 - Preserve the usual test artifacts, logs, screenshots, and reports when running Android tests in the background
@@ -231,10 +231,10 @@ The repository policy for Android CI/CD is:
 - `cloudbuild.android.yaml` is the Google-native Cloud Build entrypoint
 - Google auth from GitHub must use Workload Identity Federation, not a JSON key
 - `PR Checks` is the required aggregate gate; it runs Android unit tests, debug builds, and lint for Android-impacting pull requests and adds the GitHub-hosted `data:local` instrumentation only when the Android data layer or shared Android Gradle configuration changes. Automatic Android CI on `main` runs only the `data:local` emulator backstop. Neither uploads to Google Play or submits Firebase Test Lab
-- the manual `Android Release` workflow runs the same GitHub-hosted Android gate, submits Firebase Test Lab app instrumentation, then uploads a Google Play production-track draft
+- the manual `Android Release` workflow runs the same GitHub-hosted Android gate, submits latest and compatibility Firebase Test Lab matrices, then uploads a Google Play production-track draft
 - one shared `ANDROID_VERSION_CODE` is resolved once per release run and reused across Android release artifacts and the Play draft bundle
 - one shared manager-readable release identifier, currently `vc<versionCode>-r<runId>a<attempt>-s<shortSha>`, is reused in the Play release name and Firebase Test Lab result naming so the same release stays traceable across GitHub, Play, and Firebase
-- Firebase Test Lab app instrumentation is manual-only from the top-level `firebase_test_lab_submission` job in `Android Release`; submission is required before the Play draft upload starts
+- Firebase Test Lab app instrumentation is manual-only from the top-level `firebase_test_lab_submission` job in `Android Release`; both submissions are required before the Play draft upload starts; successful terminal results on all four destinations are required before publication
 - after pushing to `main`, watch `Android CI` when Android-impacting files changed; it runs independently from the AWS/Web release workflow
 - after the workflow uploads the AAB, review Play App strings translations in Play Console, confirm the Play language set still matches the app's explicit supported-language list, verify the Play-delivered build, and publish the release there manually
 

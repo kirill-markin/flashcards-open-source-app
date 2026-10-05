@@ -2,23 +2,34 @@ package com.flashcardsopensourceapp.feature.ai
 
 import android.app.LocaleConfig
 import android.content.Context
+import android.os.Build
 import android.os.LocaleList
+import androidx.core.os.LocaleListCompat
+import com.flashcardsopensourceapp.core.ui.loadAppSupportedLocalesFromXml
 import java.util.Locale
 
 internal fun currentAiUiLocaleTag(context: Context): String {
-    val localeConfig: LocaleConfig = LocaleConfig(context)
-    check(localeConfig.status == LocaleConfig.STATUS_SUCCESS) {
-        "Android LocaleConfig must load successfully for AI UI locale resolution, " +
-            "but returned status ${localeConfig.status}."
-    }
-    val supportedLocales: LocaleList = checkNotNull(localeConfig.supportedLocales) {
-        "Android LocaleConfig returned no supported locales for AI UI locale resolution."
-    }
+    val supportedLocales: LocaleList = loadAiUiSupportedLocales(context = context)
     return resolveAiUiLocaleTag(
         preferredLocales = context.resources.configuration.locales,
         supportedLocales = supportedLocales,
         baseLocale = Locale.ENGLISH
     )
+}
+
+private fun loadAiUiSupportedLocales(context: Context): LocaleList {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+        return loadAppSupportedLocalesFromXml(context = context)
+    }
+
+    val localeConfig: LocaleConfig = LocaleConfig(context)
+    check(localeConfig.status == LocaleConfig.STATUS_SUCCESS) {
+        "Android LocaleConfig must load successfully for AI UI locale resolution, " +
+            "but returned status ${localeConfig.status}."
+    }
+    return checkNotNull(localeConfig.supportedLocales) {
+        "Android LocaleConfig returned no supported locales for AI UI locale resolution."
+    }
 }
 
 internal fun resolveAiUiLocaleTag(
@@ -43,7 +54,7 @@ internal fun resolveAiUiLocaleTag(
 
         for (supportedIndex: Int in 0 until supportedLocales.size()) {
             val supportedLocale: Locale = supportedLocales[supportedIndex]
-            if (LocaleList.matchesLanguageAndScript(supportedLocale, preferredLocale)) {
+            if (LocaleListCompat.matchesLanguageAndScript(supportedLocale, preferredLocale)) {
                 return supportedLocale.toLanguageTag()
             }
         }

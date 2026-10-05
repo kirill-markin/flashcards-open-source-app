@@ -4,10 +4,12 @@ import android.app.LocaleConfig
 import android.content.Context
 import android.content.res.Configuration
 import android.content.res.Resources
+import android.os.Build
 import android.os.LocaleList
 import android.util.TypedValue
 import com.flashcardsopensourceapp.app.BuildConfig
 import com.flashcardsopensourceapp.app.R
+import com.flashcardsopensourceapp.core.ui.loadAppSupportedLocalesFromXml
 import java.util.Locale
 
 private val navigationStringIds: List<Int> = listOf(
@@ -31,8 +33,11 @@ fun currentAppUiLocaleTag(context: Context): String? {
     if (selectedStrings == navigationStringIdentitiesForLocale(context, configuration, baseLocale)) {
         return baseLocale.toLanguageTag()
     }
-    val supportedLocales: LocaleList = LocaleConfig.fromContextIgnoringOverride(context).supportedLocales
-        ?: return null
+    val supportedLocales: LocaleList = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        LocaleConfig.fromContextIgnoringOverride(context).supportedLocales ?: return null
+    } else {
+        loadAppSupportedLocalesFromXml(context = context)
+    }
     val installedLocaleTags: Set<String> = context.resources.assets.locales
         .map { tag -> Locale.forLanguageTag(tag).toLanguageTag() }
         .toSet()

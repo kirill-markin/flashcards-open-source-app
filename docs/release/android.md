@@ -27,23 +27,37 @@ Otherwise create a new artifact through every gate below.
 2. Dispatch `Android Release` (`.github/workflows/android-release.yml`) with
    `Git SHA to release` (`target_sha`) set to the release commit. Record its
    target SHA, run/attempt, version code, and release identifier from the summary.
-3. Wait for Firebase Test Lab submission. Use the summary's matrix ID and
-   results path to follow that exact test run through the Firebase API/CLI or
-   web console. Submission is asynchronous: a green GitHub workflow does not
-   mean Firebase tests passed.
-4. Wait until the Firebase matrix finishes with all required tests passing.
-   A failed, cancelled, inconclusive, or otherwise non-passing result blocks
-   Android publication. Inspect the failures, fix the cause, merge, and repeat
-   the release workflow for the corrected SHA; do not publish the failed draft.
+3. Require both Firebase submissions: the existing full package on API 37 and
+   the four-method smoke matrix on explicit API 30, 31 and 33 destinations.
+   Before the first expanded release, verify all configured pairs in the
+   current catalog under [device configuration](../android-ci-cd.md#choose-the-firebase-test-lab-devices).
+   Use both matrix IDs/links, destination descriptors, selected targets and
+   distinct `latest`/`compat` results paths in the summary to follow the exact
+   runs through the Firebase API/CLI or console. Submission is asynchronous:
+   a green GitHub workflow does not mean Firebase tests passed.
+4. Wait for both matrices to reach terminal `FINISHED` with `outcomeSummary=SUCCESS`.
+   Inspect the execution/results records for the exact configured model/version
+   pairs: API 37 must pass the existing full selection; each API 30, 31 and 33
+   destination must execute and pass all four selected methods. A successful
+   aggregate with a missing/skipped destination or skipped/zero-test selection
+   is insufficient. Retain per-destination and test evidence with both matrix
+   identities for this SHA/run. Failed, cancelled, inconclusive, invalid,
+   infrastructure-error or otherwise non-passing results block publication.
+   Fix the cause, merge, and repeat the workflow for the corrected SHA;
+   do not publish the failed draft.
 5. Require the complete GitHub workflow to succeed as well, including the
    signed Android App Bundle (AAB) upload to the production-track draft.
    Inspect build/lint logs and apply the
    [release warning policy](README.md#release-warning-policy) even if the run is green.
 6. Open Google Play Console and select that draft by its
    `main-draft-<releaseIdentifier>` name and version code. Confirm it belongs
-   to the same SHA/run as the passing Firebase matrix. Firebase exercises the
+   to the same SHA/run as both passing Firebase matrices. Confirm the uploaded
+   AAB manifest advertises minimum API 30 and target API 37; source declarations
+   alone do not prove the distributed minimum. Firebase exercises the
    debug APKs from that SHA; the production artifact is the signed AAB from
    the same release run.
+   Before publishing the first API-30-compatible release, complete the
+   [API 30 walkthrough](#first-release-api-30-walkthrough) and retain its evidence.
 7. Fill the localized release notes from the chat, review the draft and required
    translations, and complete the production publication controls for that
    exact bundle. Keep its identity pinned; do not select a newer unrelated
@@ -65,11 +79,38 @@ Otherwise create a new artifact through every gate below.
    availability. If approved but unavailable at the selected scope, keep the
    channel open as propagation pending or blocked according to evidence.
 
-Completion: required Firebase/GitHub and local gates pass before new publication,
-and the exact production version is public at the intended rollout scope.
+Completion: both Firebase matrices, all four configured destinations, GitHub
+and local gates pass before new publication, and the exact production version
+is public at the intended rollout scope.
 Already-published matching releases use the shared historical evidence rule.
 Submission or review approval alone leaves this channel open
 under the [canonical completion contract](README.md#release-inventory-and-completion).
 
 Configuration, Firebase access, artifact correlation, and Play translation
 checks: [Android CI/CD](../android-ci-cd.md).
+
+## First-release API 30 walkthrough
+
+Use an Android 11 / API 30 device with the release candidate for the same SHA,
+record the build identity and device, and retain screenshots/logs for failures.
+Keep the usual latest-device preflight and checks as well.
+
+1. Open the intended linked test workspace, go offline, create a card with a
+   question on the front and answer on the back, reveal/rate it and verify it
+   in Cards.
+2. Close and relaunch the app while still offline. Confirm the card and review
+   state remain intact and the local workspace still opens.
+3. Reconnect in the same test workspace. Wait for sync and
+   verify the new card and review state on another client in that workspace.
+4. Attach an image using the existing system media picker, return to the editor,
+   save, and verify the attachment opens. Confirm there is no broad storage
+   permission requirement.
+5. Open reminder settings and verify native notification enablement is shown
+   without a POST_NOTIFICATIONS runtime request. Disable/re-enable app
+   notifications in Android notification settings, return to the app and
+   verify the displayed status refreshes. Enable a study reminder, background
+   the app, and verify a delivered reminder opens Review. Keep the configured
+   reminder time and background delivery evidence; WorkManager delivery follows
+   Android battery/background scheduling.
+
+Failure blocks the first compatible release until fixed and rechecked.

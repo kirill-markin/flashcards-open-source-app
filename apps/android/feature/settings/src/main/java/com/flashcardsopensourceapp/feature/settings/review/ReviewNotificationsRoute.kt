@@ -2,7 +2,10 @@ package com.flashcardsopensourceapp.feature.settings.review
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
+import android.provider.Settings
 import android.text.format.DateFormat
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -39,6 +42,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -87,6 +91,7 @@ fun ReviewNotificationsRoute(
         permissionRefreshVersion
         when {
             hasNotificationPermission(context = context) -> ReviewNotificationPermissionUiStatus.ALLOWED
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU -> ReviewNotificationPermissionUiStatus.BLOCKED
             uiState.hasRequestedSystemPermission -> ReviewNotificationPermissionUiStatus.BLOCKED
             else -> ReviewNotificationPermissionUiStatus.NOT_REQUESTED
         }
@@ -159,7 +164,16 @@ fun ReviewNotificationsRoute(
                                 onClick = {
                                     when (permissionStatus) {
                                         ReviewNotificationPermissionUiStatus.ALLOWED,
-                                        ReviewNotificationPermissionUiStatus.BLOCKED -> openApplicationSettings(context = context)
+                                        ReviewNotificationPermissionUiStatus.BLOCKED -> {
+                                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                                openApplicationSettings(context = context)
+                                            } else {
+                                                context.startActivity(
+                                                    Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                                                        .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                                                )
+                                            }
+                                        }
                                         ReviewNotificationPermissionUiStatus.NOT_REQUESTED -> {
                                             onMarkSystemPermissionRequested()
                                             permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
@@ -502,6 +516,9 @@ private fun formatIdleMinutes(
 }
 
 private fun hasNotificationPermission(context: Context): Boolean {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+        return NotificationManagerCompat.from(context).areNotificationsEnabled()
+    }
     return ContextCompat.checkSelfPermission(
         context,
         Manifest.permission.POST_NOTIFICATIONS

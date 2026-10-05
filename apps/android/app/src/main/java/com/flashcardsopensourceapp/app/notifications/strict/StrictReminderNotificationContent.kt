@@ -61,7 +61,7 @@ fun showStrictReminderNotification(
     requestId: String
 ): Int {
     if (hasNotificationPermission(context = context).not()) {
-        throw SecurityException("POST_NOTIFICATIONS is not granted for package '${context.packageName}'.")
+        throw SecurityException("Notifications are disabled for package '${context.packageName}'. Enable them in Android notification settings.")
     }
 
     val notificationContent = buildStrictReminderNotificationContent(

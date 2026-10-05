@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Run Android instrumentation tests in Firebase Test Lab.
 
 set -euo pipefail
 
 PROJECT_ID=""
 DEVICE_MODEL=""
 DEVICE_VERSION=""
+DEVICES=()
 APP_PATH=""
 TEST_PATH=""
 RESULTS_BUCKET=""
@@ -24,6 +24,7 @@ ACCESS_TOKEN=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --project-id) PROJECT_ID="$2"; shift 2 ;;
+    --device) DEVICES+=("$2"); shift 2 ;;
     --device-model) DEVICE_MODEL="$2"; shift 2 ;;
     --device-version) DEVICE_VERSION="$2"; shift 2 ;;
     --app-path) APP_PATH="$2"; shift 2 ;;
@@ -43,15 +44,23 @@ if [[ -z "${PROJECT_ID}" ]]; then
   exit 1
 fi
 
-if [[ -z "${DEVICE_MODEL}" ]]; then
-  echo "ERROR: --device-model is required." >&2
+if [[ "${#DEVICES[@]}" -eq 0 ]]; then
+  if [[ -z "${DEVICE_MODEL}" || -z "${DEVICE_VERSION}" ]]; then
+    echo "ERROR: Provide --device-model and --device-version, or one or more explicit --device descriptors." >&2
+    exit 1
+  fi
+  DEVICES+=("model=${DEVICE_MODEL},version=${DEVICE_VERSION},locale=en,orientation=portrait")
+elif [[ -n "${DEVICE_MODEL}" || -n "${DEVICE_VERSION}" ]]; then
+  echo "ERROR: --device cannot be combined with --device-model or --device-version." >&2
   exit 1
 fi
 
-if [[ -z "${DEVICE_VERSION}" ]]; then
-  echo "ERROR: --device-version is required." >&2
-  exit 1
-fi
+for device in "${DEVICES[@]}"; do
+  if [[ -z "${device}" ]]; then
+    echo "ERROR: --device must contain an explicit Firebase device descriptor." >&2
+    exit 1
+  fi
+done
 
 if [[ -z "${APP_PATH}" ]]; then
   echo "ERROR: --app-path is required." >&2
@@ -292,8 +301,6 @@ gcloud_args=(
   "${APP_PATH}"
   --test
   "${TEST_PATH}"
-  --device
-  "model=${DEVICE_MODEL},version=${DEVICE_VERSION},locale=en,orientation=portrait"
   --timeout
   "${TEST_TIMEOUT}"
   --use-orchestrator
@@ -303,6 +310,10 @@ gcloud_args=(
   "clearPackageData=true,isAutomation=true"
   --no-performance-metrics
 )
+
+for device in "${DEVICES[@]}"; do
+  gcloud_args+=(--device "${device}")
+done
 
 gcloud_args+=(
   --results-bucket
