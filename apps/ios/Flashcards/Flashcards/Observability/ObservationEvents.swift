@@ -27,6 +27,7 @@ enum IOSObservationFeature: String, Sendable {
     case progress = "progress"
     case storeReview = "store_review"
     case subscription = "subscription"
+    case reviewReactions = "review_reactions"
 }
 
 struct IOSObservationScope: Sendable, Hashable {
@@ -42,6 +43,7 @@ struct IOSObservationScope: Sendable, Hashable {
 }
 
 enum IOSBreadcrumbEvent: Sendable {
+    case reviewReaction(ReviewReactionObservation)
     case appLifecycle(AppLifecycleObservation)
     case foregroundOperation(ForegroundOperationObservation)
     case cloudFlow(CloudFlowObservation)
@@ -52,6 +54,7 @@ enum IOSBreadcrumbEvent: Sendable {
 }
 
 enum IOSWarningEvent: Sendable {
+    case reviewReactionFailed(ReviewReactionFailureWarning)
     case aiChatLifecycle(AIChatLifecycleObservation)
     case aiLiveUnknownEvent(AILiveUnknownEventWarning)
     case aiLiveLifecycle(AILiveLifecycleObservation)
@@ -711,4 +714,32 @@ struct SilentFailureDetails: Sendable, Hashable {
     let requestId: String?
     let messageSummary: String?
     let transportDiagnostics: IOSNetworkTransportDiagnostics?
+}
+
+
+enum ReviewReactionSource: String, Sendable {
+    case review
+    case testAnimations = "test_animations"
+}
+
+enum ReviewReactionLifecycleAction: String, Sendable {
+    case start
+    case finish
+    case skip
+    case cancel
+}
+
+struct ReviewReactionObservation: Sendable {
+    let action: ReviewReactionLifecycleAction
+    let variant: ReviewReactionVariant?
+    let assetName: String?
+    let source: ReviewReactionSource
+    let reason: String
+    let isLowPowerModeEnabled: Bool
+    let isReduceMotionEnabled: Bool
+}
+
+struct ReviewReactionFailureWarning: Sendable {
+    let observation: ReviewReactionObservation
+    let messageSummary: String
 }

@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 enum FlashcardsObservability {
     static func configure(bundle: Bundle, processInfo: ProcessInfo) {
@@ -20,6 +21,49 @@ enum FlashcardsObservability {
 
     static func captureException(_ event: IOSExceptionEvent) {
         SentryObservabilityAdapter.captureException(event)
+    }
+
+    @MainActor
+    static func recordReviewReaction(
+        action: ReviewReactionLifecycleAction,
+        variant: ReviewReactionVariant?,
+        source: ReviewReactionSource,
+        reason: String
+    ) {
+        self.addBreadcrumb(.reviewReaction(self.reviewReactionObservation(
+            action: action, variant: variant, source: source, reason: reason
+        )))
+    }
+
+    @MainActor
+    static func captureReviewReactionFailure(
+        failure: ReviewReactionLottieAssetFailure,
+        source: ReviewReactionSource
+    ) {
+        self.captureWarning(.reviewReactionFailed(ReviewReactionFailureWarning(
+            observation: self.reviewReactionObservation(
+                action: .skip, variant: failure.variant, source: source, reason: failure.failureReason
+            ),
+            messageSummary: String(failure.message.prefix(512))
+        )))
+    }
+
+    @MainActor
+    private static func reviewReactionObservation(
+        action: ReviewReactionLifecycleAction,
+        variant: ReviewReactionVariant?,
+        source: ReviewReactionSource,
+        reason: String
+    ) -> ReviewReactionObservation {
+        ReviewReactionObservation(
+            action: action,
+            variant: variant,
+            assetName: variant.flatMap { reviewReactionLottieAssetConfiguration(variant: $0)?.assetName },
+            source: source,
+            reason: reason,
+            isLowPowerModeEnabled: ProcessInfo.processInfo.isLowPowerModeEnabled,
+            isReduceMotionEnabled: UIAccessibility.isReduceMotionEnabled
+        )
     }
 
     static func captureSilentFailure(

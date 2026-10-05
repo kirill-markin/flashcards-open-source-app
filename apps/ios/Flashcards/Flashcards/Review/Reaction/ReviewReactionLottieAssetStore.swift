@@ -353,7 +353,7 @@ func makePendingReviewReactionLottieAssetStore() -> ReviewReactionLottieAssetSto
     ReviewReactionLottieAssetStore(
         readyAnimations: [:],
         failedAssets: [:],
-        pendingVariants: Set(reviewReactionLottieAssetConfigurations.map(\.variant))
+        pendingVariants: Set(allReviewReactionVariantDistributionEntries.map(\.variant))
     )
 }
 
@@ -374,6 +374,14 @@ func loadReviewReactionLottieAsset(
 
     do {
         let animation: LottieAnimation = try LottieAnimation.from(data: dataAsset.data)
+        guard animation.duration.isFinite, animation.duration > 0,
+              assetConfiguration.frameScale.isFinite, assetConfiguration.frameScale > 0 else {
+            return .failed(failure: makeReviewReactionConfigurationFailure(
+                variant: assetConfiguration.variant,
+                reason: "invalid_playback_configuration",
+                message: "Bundled animation requires a positive finite duration and frame scale. duration=\(animation.duration) frameScale=\(assetConfiguration.frameScale)."
+            ))
+        }
         return .ready(variant: assetConfiguration.variant, animation: animation)
     } catch {
         let failure: ReviewReactionLottieAssetFailure = ReviewReactionLottieAssetFailure(
@@ -389,11 +397,6 @@ func loadReviewReactionLottieAsset(
 }
 
 func reviewReactionLottiePrewarmAssetConfigurations() -> [ReviewReactionLottieAssetConfiguration] {
-    let configurationsByVariant: [ReviewReactionVariant: ReviewReactionLottieAssetConfiguration] = Dictionary(
-        uniqueKeysWithValues: reviewReactionLottieAssetConfigurations.map { assetConfiguration in
-            (assetConfiguration.variant, assetConfiguration)
-        }
-    )
     let ratingEntries: [[ReviewReactionVariantDistributionEntry]] = ReviewReactionRating.allCases.map { rating in
         reviewReactionVariantDistributionEntries(rating: rating)
     }
@@ -403,8 +406,8 @@ func reviewReactionLottiePrewarmAssetConfigurations() -> [ReviewReactionLottieAs
     for index in 0..<maximumVariantCount {
         for entries in ratingEntries where index < entries.count {
             let variant: ReviewReactionVariant = entries[index].variant
-            guard let assetConfiguration: ReviewReactionLottieAssetConfiguration = configurationsByVariant[variant] else {
-                preconditionFailure("Review Lottie asset configuration is missing variant \(variant.debugIdentifier).")
+            guard let assetConfiguration: ReviewReactionLottieAssetConfiguration = reviewReactionLottieAssetConfiguration(variant: variant) else {
+                continue
             }
             orderedConfigurations.append(assetConfiguration)
         }
@@ -424,6 +427,15 @@ func startReviewReactionLottieAssetPrewarm(
         }
 
     return Task.detached(priority: .utility) {
+        let configuredVariants: Set<ReviewReactionVariant> = Set(pendingAssetConfigurations.map(\.variant))
+        for variant in pendingVariants.subtracting(configuredVariants) {
+            guard Task.isCancelled == false else { break }
+            await onLoadResult(.failed(failure: makeReviewReactionConfigurationFailure(
+                variant: variant,
+                reason: "missing_asset_configuration",
+                message: "Add a bundled Lottie asset configuration for this review reaction variant."
+            )))
+        }
         for assetConfiguration in pendingAssetConfigurations {
             guard Task.isCancelled == false else {
                 break
@@ -465,7 +477,7 @@ func reviewReactionLottieAssetStatus(
     variant: ReviewReactionVariant,
     readiness: ReviewReactionLottieAssetReadiness
 ) -> ReviewReactionLottieAssetStatus {
-    guard isReviewReactionLottieVariant(variant: variant) else {
+    guard variant != .fallbackCrownBounce else {
         return .notLottie
     }
     if readiness.readyVariants.contains(variant) {
@@ -478,7 +490,7 @@ func reviewReactionLottieAssetStatus(
         return .pending
     }
 
-    preconditionFailure("Review Lottie readiness is missing state for \(variant.debugIdentifier).")
+    return .failed
 }
 
 func shouldUseReviewReactionCrownFallback(
@@ -491,5 +503,21 @@ func shouldUseReviewReactionCrownFallback(
 private func logReviewReactionLottieAssetFailure(failure: ReviewReactionLottieAssetFailure) {
     reviewReactionLottieAssetLogger.error(
         "Review Lottie asset failed. variant=\(failure.variant.debugIdentifier, privacy: .public) assetName=\(failure.assetName, privacy: .public) assetDescription=\(failure.assetDescription, privacy: .public) failureReason=\(failure.failureReason, privacy: .public) message=\(failure.message, privacy: .public)"
+    )
+}
+
+
+func makeReviewReactionConfigurationFailure(
+    variant: ReviewReactionVariant,
+    reason: String,
+    message: String
+) -> ReviewReactionLottieAssetFailure {
+    let configuration: ReviewReactionLottieAssetConfiguration? = reviewReactionLottieAssetConfiguration(variant: variant)
+    return ReviewReactionLottieAssetFailure(
+        variant: variant,
+        assetName: configuration?.assetName ?? variant.debugIdentifier,
+        assetDescription: configuration?.assetDescription ?? variant.debugIdentifier,
+        failureReason: reason,
+        message: message
     )
 }

@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct TestSettingsView: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
@@ -110,8 +111,10 @@ struct TestSettingsView: View {
 }
 
 struct TestAnimationsView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(\.isLowPowerModeEnabled) private var isLowPowerModeEnabled: Bool
 
+    @State private var isReviewReactionScreenVisible: Bool = false
     @State private var reviewReactionLottiePrewarmTask: Task<Void, Never>?
     @State private var reviewReactionLottiePrewarmId: UUID?
     @State private var reviewReactionLottieAssetStore: ReviewReactionLottieAssetStore = makePendingReviewReactionLottieAssetStore()
@@ -145,7 +148,7 @@ struct TestAnimationsView: View {
                                         .foregroundStyle(.secondary)
                                 }
                             }
-                            .disabled(self.isLowPowerModeEnabled || assetStatus == .pending)
+                            .disabled(self.isLowPowerModeEnabled || assetStatus != .ready)
                             .accessibilityLabel(
                                 testAnimationAccessibilityLabel(
                                     entry: entry,
@@ -163,28 +166,44 @@ struct TestAnimationsView: View {
             ReviewReactionLayer(
                 events: self.activeReviewReactionEvents,
                 lottieAssetStore: self.reviewReactionLottieAssetStore,
-                onEventFinished: self.removeFinishedReviewReactionEvent(eventId:)
+                source: .testAnimations,
+                onEventFinished: self.removeFinishedReviewReactionEvent(eventId:action:reason:)
             )
         }
         .navigationTitle(aiSettingsLocalized("settings.test.animations.title", "Animations"))
         .onAppear {
+            self.isReviewReactionScreenVisible = true
             self.prewarmReviewReactionLottieAssets()
         }
         .onChange(of: self.isLowPowerModeEnabled) { _, isEnabled in
             if isEnabled {
                 self.cancelReviewReactionLottiePrewarm()
-                self.activeReviewReactionEvents = []
+                self.dismissActiveReviewReactions(reason: "low_power_mode")
             } else {
                 self.prewarmReviewReactionLottieAssets()
             }
         }
-        .onDisappear {
+        .onChange(of: self.scenePhase) { _, phase in
+            if phase == .active {
+                self.prewarmReviewReactionLottieAssets()
+            } else {
+                self.cancelReviewReactionLottiePrewarm()
+                self.dismissActiveReviewReactions(reason: "scene_inactive")
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didReceiveMemoryWarningNotification)) { _ in
             self.cancelReviewReactionLottiePrewarm()
+            self.dismissActiveReviewReactions(reason: "memory_warning")
+        }
+        .onDisappear {
+            self.isReviewReactionScreenVisible = false
+            self.cancelReviewReactionLottiePrewarm()
+            self.dismissActiveReviewReactions(reason: "screen_disappeared")
         }
     }
 
     private func prewarmReviewReactionLottieAssets() {
-        guard self.isLowPowerModeEnabled == false else {
+        guard self.isReviewReactionScreenVisible, self.isLowPowerModeEnabled == false, self.scenePhase == .active else {
             return
         }
         guard self.reviewReactionLottiePrewarmTask == nil else {
@@ -200,6 +219,11 @@ struct TestAnimationsView: View {
         self.reviewReactionLottiePrewarmTask = startReviewReactionLottieAssetPrewarm(
             pendingVariants: pendingVariants,
             onLoadResult: { loadResult in
+                guard self.reviewReactionLottiePrewarmId == prewarmId else { return }
+                if case .failed(let failure) = loadResult,
+                   self.reviewReactionLottieAssetStore.failedAssets[failure.variant] == nil {
+                    FlashcardsObservability.captureReviewReactionFailure(failure: failure, source: .testAnimations)
+                }
                 self.reviewReactionLottieAssetStore = self.reviewReactionLottieAssetStore.recordingLoadResult(
                     loadResult: loadResult
                 )
@@ -226,10 +250,13 @@ struct TestAnimationsView: View {
     }
 
     private func playAnimation(entry: ReviewReactionVariantDistributionEntry) {
-        guard self.isLowPowerModeEnabled == false else {
+        guard self.isReviewReactionScreenVisible, self.isLowPowerModeEnabled == false, self.scenePhase == .active else {
             return
         }
-        guard self.assetStatus(entry: entry) != .pending else {
+        guard self.assetStatus(entry: entry) == .ready else {
+            FlashcardsObservability.recordReviewReaction(
+                action: .skip, variant: entry.variant, source: .testAnimations, reason: "asset_not_ready"
+            )
             return
         }
 
@@ -238,17 +265,27 @@ struct TestAnimationsView: View {
             rating: entry.rating,
             variant: entry.variant
         )
-        self.activeReviewReactionEvents = appendReviewReactionEvent(
-            events: self.activeReviewReactionEvents,
-            event: event,
-            maximumActiveEvents: reviewReactionMaximumActiveEvents
-        )
+        self.dismissActiveReviewReactions(reason: "replacement")
+        self.activeReviewReactionEvents = [event]
     }
 
-    private func removeFinishedReviewReactionEvent(eventId: UUID) {
-        self.activeReviewReactionEvents = self.activeReviewReactionEvents.filter { activeEvent in
-            activeEvent.id != eventId
+    private func dismissActiveReviewReactions(reason: String) {
+        for event in self.activeReviewReactionEvents {
+            FlashcardsObservability.recordReviewReaction(
+                action: .cancel, variant: event.variant, source: .testAnimations, reason: reason
+            )
         }
+        self.activeReviewReactionEvents = []
+    }
+
+    private func removeFinishedReviewReactionEvent(
+        eventId: UUID, action: ReviewReactionLifecycleAction, reason: String
+    ) {
+        guard let event = self.activeReviewReactionEvents.first(where: { $0.id == eventId }) else { return }
+        FlashcardsObservability.recordReviewReaction(
+            action: action, variant: event.variant, source: .testAnimations, reason: reason
+        )
+        self.activeReviewReactionEvents.removeAll { $0.id == eventId }
     }
 
     private func assetStatus(entry: ReviewReactionVariantDistributionEntry) -> ReviewReactionLottieAssetStatus {
@@ -296,7 +333,9 @@ private func testAnimationDetailText(
     switch assetStatus {
     case .pending:
         return aiSettingsLocalized("common.loading", "Loading...")
-    case .ready, .failed, .notLottie:
+    case .failed, .notLottie:
+        return aiSettingsLocalized("common.unavailable", "Unavailable")
+    case .ready:
         return testAnimationProbabilityText(entry: entry)
     }
 }

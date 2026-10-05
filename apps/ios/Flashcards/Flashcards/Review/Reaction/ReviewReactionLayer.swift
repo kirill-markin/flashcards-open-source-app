@@ -2,81 +2,38 @@ import Foundation
 import Lottie
 import SwiftUI
 
-private let reviewReactionAnimationMinimumIntervalSeconds: Double = 1.0 / 60.0
-private let reviewReactionLottieReducedMotionProgress: AnimationProgressTime = 0.55
-
-private struct ReviewReactionLottieConfiguration {
-    let animation: LottieAnimation
-    let frameScale: CGFloat
-    let reducedMotionProgress: AnimationProgressTime
-}
-
-private func reviewReactionFallbackEvent(event: ReviewReactionEvent) -> ReviewReactionEvent {
-    ReviewReactionEvent(
-        id: event.id,
-        rating: event.rating,
-        variant: reviewReactionLottieFallbackVariant
-    )
-}
-
-private func reviewReactionLottieConfiguration(
-    variant: ReviewReactionVariant,
-    assetStore: ReviewReactionLottieAssetStore
-) -> ReviewReactionLottieConfiguration? {
-    guard let assetConfiguration = reviewReactionLottieAssetConfiguration(variant: variant) else {
-        return nil
-    }
-    guard let animation = assetStore.readyAnimations[variant] else {
-        return nil
-    }
-
-    return ReviewReactionLottieConfiguration(
-        animation: animation,
-        frameScale: assetConfiguration.frameScale,
-        reducedMotionProgress: reviewReactionLottieReducedMotionProgress
-    )
-}
-
-@MainActor
-private func finishReviewReactionEventAfterDelay(
-    event: ReviewReactionEvent,
-    motionMode: ReviewReactionMotionMode,
-    onEventFinished: (UUID) -> Void
-) async {
-    do {
-        try await Task.sleep(
-            nanoseconds: reviewReactionCleanupDelayNanoseconds(
-                variant: event.variant,
-                motionMode: motionMode
-            )
-        )
-    } catch is CancellationError {
-        return
-    } catch {
-        preconditionFailure("Unexpected review reaction visual cleanup sleep error: \(error).")
-    }
-
-    onEventFinished(event.id)
-}
-
 struct ReviewReactionLayer: View {
     @Environment(\.accessibilityReduceMotion) private var isReduceMotionEnabled
 
     let events: [ReviewReactionEvent]
     let lottieAssetStore: ReviewReactionLottieAssetStore
-    let onEventFinished: (UUID) -> Void
+    let source: ReviewReactionSource
+    let onEventFinished: (UUID, ReviewReactionLifecycleAction, String) -> Void
+
+    @State private var reportedConfigurationFailures: Set<ReviewReactionVariant> = []
 
     var body: some View {
         GeometryReader { proxy in
             ZStack {
-                ForEach(self.events) { event in
-                    ReviewReactionEventView(
-                        event: event,
-                        lottieAssetStore: self.lottieAssetStore,
-                        isReduceMotionEnabled: self.isReduceMotionEnabled,
-                        onEventFinished: self.onEventFinished
-                    )
-                    .id(event.id)
+                ForEach(self.events.suffix(1)) { event in
+                    if let configuration = reviewReactionLottieAssetConfiguration(variant: event.variant),
+                       let animation = self.lottieAssetStore.readyAnimations[event.variant],
+                       animation.duration.isFinite, animation.duration > 0,
+                       configuration.frameScale.isFinite, configuration.frameScale > 0 {
+                        ReviewReactionLottieView(
+                            event: event,
+                            animation: animation,
+                            frameScale: configuration.frameScale,
+                            isReduceMotionEnabled: self.isReduceMotionEnabled,
+                            source: self.source,
+                            onEventFinished: self.onEventFinished
+                        )
+                        .id(event.id)
+                    } else {
+                        Color.clear.task(id: event.id) {
+                            self.skipUnusableEvent(event: event)
+                        }
+                    }
                 }
             }
             .frame(width: proxy.size.width, height: proxy.size.height)
@@ -84,189 +41,99 @@ struct ReviewReactionLayer: View {
         .allowsHitTesting(false)
         .accessibilityHidden(true)
         .onDisappear {
-            self.finishActiveEvents()
-        }
-    }
-
-    private func finishActiveEvents() {
-        for event in self.events {
-            self.onEventFinished(event.id)
-        }
-    }
-}
-
-private struct ReviewReactionEventView: View {
-    let event: ReviewReactionEvent
-    let lottieAssetStore: ReviewReactionLottieAssetStore
-    let isReduceMotionEnabled: Bool
-    let onEventFinished: (UUID) -> Void
-
-    var body: some View {
-        switch reviewReactionLottieAssetStatus(
-            variant: self.event.variant,
-            readiness: self.lottieAssetStore.readiness
-        ) {
-        case .ready:
-            ReviewReactionLottieView(
-                event: self.event,
-                isReduceMotionEnabled: self.isReduceMotionEnabled,
-                configuration: self.requiredLottieConfiguration,
-                onEventFinished: self.onEventFinished
-            )
-        case .failed:
-            ReviewReactionCanvas(
-                event: reviewReactionFallbackEvent(event: self.event),
-                isReduceMotionEnabled: self.isReduceMotionEnabled,
-                onEventFinished: self.onEventFinished
-            )
-        case .pending:
-            ReviewReactionPendingEventView(
-                event: self.event,
-                onEventFinished: self.onEventFinished
-            )
-        case .notLottie:
-            ReviewReactionCanvas(
-                event: self.event,
-                isReduceMotionEnabled: self.isReduceMotionEnabled,
-                onEventFinished: self.onEventFinished
-            )
-        }
-    }
-
-    private var requiredLottieConfiguration: ReviewReactionLottieConfiguration {
-        guard let configuration: ReviewReactionLottieConfiguration = reviewReactionLottieConfiguration(
-            variant: self.event.variant,
-            assetStore: self.lottieAssetStore
-        ) else {
-            preconditionFailure("Ready Review Lottie asset is missing decoded animation for \(self.event.variant.debugIdentifier).")
-        }
-
-        return configuration
-    }
-}
-
-private struct ReviewReactionPendingEventView: View {
-    let event: ReviewReactionEvent
-    let onEventFinished: (UUID) -> Void
-
-    var body: some View {
-        Color.clear
-            .task(id: self.event.id) {
-                await MainActor.run {
-                    self.onEventFinished(self.event.id)
-                }
+            for event in self.events {
+                self.onEventFinished(event.id, .cancel, "presentation_disappeared")
             }
+        }
+    }
+
+    private func skipUnusableEvent(event: ReviewReactionEvent) {
+        let status: ReviewReactionLottieAssetStatus = reviewReactionLottieAssetStatus(
+            variant: event.variant, readiness: self.lottieAssetStore.readiness
+        )
+        let reason: String
+        if status == .pending {
+            reason = "asset_pending"
+        } else if let failure = self.lottieAssetStore.failedAssets[event.variant] {
+            reason = failure.failureReason
+        } else {
+            reason = "missing_or_invalid_presentation_configuration"
+            if self.reportedConfigurationFailures.insert(event.variant).inserted {
+                FlashcardsObservability.captureReviewReactionFailure(
+                    failure: makeReviewReactionConfigurationFailure(
+                        variant: event.variant, reason: reason,
+                        message: "Review reaction requires a decoded bundled animation, positive finite duration and frame scale. Check the asset configuration and readiness."
+                    ),
+                    source: self.source
+                )
+            }
+        }
+        self.onEventFinished(event.id, .skip, reason)
     }
 }
 
 private struct ReviewReactionLottieView: View {
     let event: ReviewReactionEvent
+    let animation: LottieAnimation
+    let frameScale: CGFloat
     let isReduceMotionEnabled: Bool
-    let configuration: ReviewReactionLottieConfiguration
-    let onEventFinished: (UUID) -> Void
+    let source: ReviewReactionSource
+    let onEventFinished: (UUID, ReviewReactionLifecycleAction, String) -> Void
 
-    @State private var startedAt: Date = Date()
+    @State private var opacity: Double = 0
+    @State private var hasFinished: Bool = false
 
     var body: some View {
         GeometryReader { proxy in
-            TimelineView(.animation(minimumInterval: reviewReactionAnimationMinimumIntervalSeconds)) { timelineContext in
-                let progress: CGFloat = self.progress(date: timelineContext.date)
-                let sideLength: CGFloat = max(
-                    min(proxy.size.width, proxy.size.height) * self.configuration.frameScale,
-                    1
-                )
-
-                LottieView(animation: self.configuration.animation)
-                    .resizable()
-                    .playbackMode(self.playbackMode(progress: progress))
-                    .frame(width: sideLength, height: sideLength)
-                    .position(
-                        x: proxy.size.width * reviewReactionCenterX,
-                        y: proxy.size.height * reviewReactionCenterY
+            let sideLength: CGFloat = max(min(proxy.size.width, proxy.size.height) * self.frameScale, 1)
+            LottieView(animation: self.animation)
+                .resizable()
+                .animationSpeed(self.animation.duration / self.event.variant.animationDurationSeconds)
+                .playbackMode(self.isReduceMotionEnabled
+                    ? .paused(at: .progress(0.55))
+                    : .playing(.fromProgress(0, toProgress: 1, loopMode: .playOnce)))
+                .animationDidFinish { completed in
+                    self.finish(
+                        action: completed ? .finish : .cancel,
+                        reason: completed ? "playback_completed" : "playback_interrupted"
                     )
-                    .opacity(ReviewReactionRenderer.reviewReactionOpacity(progress: progress))
-            }
+                }
+                .frame(width: sideLength, height: sideLength)
+                .position(x: proxy.size.width * reviewReactionCenterX, y: proxy.size.height * reviewReactionCenterY)
+                .opacity(self.opacity)
         }
-        .task(id: self.event.id) {
-            await finishReviewReactionEventAfterDelay(
-                event: self.event,
-                motionMode: self.motionMode,
-                onEventFinished: self.onEventFinished
+        .onAppear {
+            FlashcardsObservability.recordReviewReaction(
+                action: .start, variant: self.event.variant, source: self.source,
+                reason: self.isReduceMotionEnabled ? "reduced_motion" : "native_playback"
+            )
+        }
+        .task(id: self.isReduceMotionEnabled) {
+            let duration: Double = self.isReduceMotionEnabled
+                ? ReviewReactionRenderer.reducedMotionDurationSeconds
+                : self.event.variant.animationDurationSeconds
+            withAnimation(.linear(duration: duration * 0.10)) {
+                self.opacity = 1
+            }
+            do {
+                try await Task.sleep(for: .seconds(duration * 0.78))
+                withAnimation(.linear(duration: duration * 0.22)) {
+                    self.opacity = 0
+                }
+                try await Task.sleep(for: .seconds(duration * 0.22 + 0.08))
+            } catch {
+                return
+            }
+            self.finish(
+                action: self.isReduceMotionEnabled ? .finish : .cancel,
+                reason: self.isReduceMotionEnabled ? "static_expired" : "cleanup_timeout"
             )
         }
     }
 
-    private var motionMode: ReviewReactionMotionMode {
-        self.isReduceMotionEnabled ? .reduced : .standard
-    }
-
-    private func playbackMode(progress: CGFloat) -> LottiePlaybackMode {
-        switch self.motionMode {
-        case .standard:
-            return .paused(at: .progress(AnimationProgressTime(progress)))
-        case .reduced:
-            return .paused(at: .progress(self.configuration.reducedMotionProgress))
-        }
-    }
-
-    private func progress(date: Date) -> CGFloat {
-        let durationSeconds: Double
-        switch self.motionMode {
-        case .standard:
-            durationSeconds = self.event.variant.animationDurationSeconds
-        case .reduced:
-            durationSeconds = ReviewReactionRenderer.reducedMotionDurationSeconds
-        }
-
-        let elapsedSeconds = date.timeIntervalSince(self.startedAt)
-        return ReviewReactionRenderer.reviewReactionClampedProgress(progress: CGFloat(elapsedSeconds / durationSeconds))
-    }
-}
-
-private struct ReviewReactionCanvas: View {
-    let event: ReviewReactionEvent
-    let isReduceMotionEnabled: Bool
-    let onEventFinished: (UUID) -> Void
-
-    @State private var startedAt: Date = Date()
-
-    var body: some View {
-        TimelineView(.animation(minimumInterval: reviewReactionAnimationMinimumIntervalSeconds)) { timelineContext in
-            let progress = self.progress(date: timelineContext.date)
-
-            Canvas(rendersAsynchronously: true) { context, size in
-                ReviewReactionRenderer.draw(
-                    context: context,
-                    size: size,
-                    event: self.event,
-                    progress: progress,
-                    motionMode: self.motionMode
-                )
-            }
-        }
-        .task(id: self.event.id) {
-            await finishReviewReactionEventAfterDelay(
-                event: self.event,
-                motionMode: self.motionMode,
-                onEventFinished: self.onEventFinished
-            )
-        }
-    }
-
-    private var motionMode: ReviewReactionMotionMode {
-        self.isReduceMotionEnabled ? .reduced : .standard
-    }
-
-    private func progress(date: Date) -> CGFloat {
-        let durationSeconds: Double
-        switch self.motionMode {
-        case .standard:
-            durationSeconds = self.event.variant.animationDurationSeconds
-        case .reduced:
-            durationSeconds = ReviewReactionRenderer.reducedMotionDurationSeconds
-        }
-
-        let elapsedSeconds = date.timeIntervalSince(self.startedAt)
-        return ReviewReactionRenderer.reviewReactionClampedProgress(progress: CGFloat(elapsedSeconds / durationSeconds))
+    private func finish(action: ReviewReactionLifecycleAction, reason: String) {
+        guard self.hasFinished == false else { return }
+        self.hasFinished = true
+        self.onEventFinished(self.event.id, action, reason)
     }
 }

@@ -36,6 +36,16 @@ extension SentryObservabilityAdapter {
 
     static func addBreadcrumb(_ event: IOSBreadcrumbEvent) {
         switch event {
+        case .reviewReaction(let observation):
+            let context: [String: Any] = self.reviewReactionContext(observation)
+            self.writeLocalRecord(
+                kind: "breadcrumb", feature: .reviewReactions,
+                action: observation.action.rawValue, fields: stringifyContext(context)
+            )
+            self.addSentryBreadcrumb(
+                category: "ios.review_reactions", level: .info,
+                message: observation.action.rawValue, data: context
+            )
         case .appLifecycle(let observation):
             self.writeLocalRecord(
                 kind: "breadcrumb",
@@ -140,6 +150,13 @@ extension SentryObservabilityAdapter {
         SentrySDK.capture(message: payload.message) { scope in
             self.applyScope(scope, payload: payload)
             scope.setLevel(.warning)
+            if case .reviewReactionFailed(let warning) = event {
+                scope.setFingerprint([
+                    "ios.review_reaction_failure",
+                    warning.observation.variant?.debugIdentifier ?? "unknown",
+                    warning.observation.reason
+                ])
+            }
         }
     }
 
@@ -228,6 +245,21 @@ extension SentryObservabilityAdapter {
 
     private static func warningPayload(_ event: IOSWarningEvent) -> ObservationPayload {
         switch event {
+        case .reviewReactionFailed(let warning):
+            var context: [String: Any] = self.reviewReactionContext(warning.observation)
+            context["message_summary"] = warning.messageSummary
+            return ObservationPayload(
+                message: "iOS review reaction asset or configuration failed",
+                action: "review_reaction_failed",
+                scope: IOSObservationScope(
+                    feature: .reviewReactions, userId: nil, workspaceId: nil,
+                    requestId: nil, clientRequestId: nil, sessionId: nil, runId: nil,
+                    cloudState: nil, configurationMode: nil
+                ),
+                statusCode: nil, backendCode: nil,
+                context: self.dataWithProcessDiagnostics(context),
+                localFields: stringifyContext(context)
+            )
         case .aiChatLifecycle(let observation):
             return ObservationPayload(
                 message: "iOS AI chat warning: \(observation.action.rawValue)",
@@ -744,6 +776,17 @@ extension SentryObservabilityAdapter {
         context["notification_readback_attempt_count"] = observation.notificationReadbackAttemptCount.map { readbackAttemptCount in String(readbackAttemptCount) } ?? ""
         context["error_summary"] = observation.errorSummary ?? ""
         return context
+    }
+
+    private static func reviewReactionContext(_ observation: ReviewReactionObservation) -> [String: Any] {
+        [
+            "variant": observation.variant?.debugIdentifier ?? "",
+            "asset_name": observation.assetName ?? "",
+            "source": observation.source.rawValue,
+            "reason": observation.reason,
+            "low_power_mode": observation.isLowPowerModeEnabled,
+            "reduce_motion": observation.isReduceMotionEnabled
+        ]
     }
 
     private static func foregroundOperationFields(_ observation: ForegroundOperationObservation) -> [String: String] {
