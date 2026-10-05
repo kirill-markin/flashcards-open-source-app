@@ -9,7 +9,7 @@ on:
       - '!apps/android/docs/**'
       - 'cloudbuild.android.yaml'
       - 'scripts/android/run-android-ci.sh'
-      - 'scripts/android/run-android-firebase-test-lab.sh'
+      - 'scripts/android/run-android-device-run.sh'
       - 'scripts/android/run-android-release.sh'
       - 'scripts/android/setup-github-android.sh'
       - '.github/workflows/android-ci.yml'
