@@ -9,6 +9,7 @@ Use this guide when you need to inspect cloud-native iOS test runs directly inst
 Use this workflow when you need one of these:
 
 - the latest Xcode Cloud run number, status, commit, or timestamps
+- the exact uploaded App Store Connect build produced by an archive run
 - the test action inside a run and its per-test durations
 - the artifact list for a test action
 - the raw `xcodebuild` log from cloud
@@ -63,6 +64,7 @@ Useful relationships:
 - `GET /v1/ciProducts/{ciProductId}/buildRuns`
 - `GET /v1/ciBuildRuns/{runId}`
 - `GET /v1/ciBuildRuns/{runId}/actions`
+- `GET /v1/ciBuildRuns/{runId}/builds`
 - `GET /v1/ciBuildActions/{actionId}`
 - `GET /v1/ciBuildActions/{actionId}/testResults`
 - `GET /v1/ciBuildActions/{actionId}/artifacts`
@@ -89,6 +91,39 @@ Practical meaning:
 - `.xcresult` is the deepest source for screenshots, attachments, summaries, and richer XCTest result structure
 
 Download URLs in `ciArtifacts.attributes.downloadUrl` are temporary pre-signed Apple URLs. Use them directly, but do not store them in docs, code, or git.
+
+## Correlate an archive with the uploaded build
+
+Before attaching a build for review or reusing an archive, establish this chain
+from exact resource IDs. A latest-build label, matching version string, or
+TestFlight post-action artifact alone is insufficient: a post-action artifact
+can refer to a different, older build.
+
+1. Read `GET /v1/ciBuildRuns/{runId}` for the selected archive run. Record its ID,
+   run number, workflow identity, `sourceCommit.commitSha`, status and times.
+   Confirm that source against the intended release SHA or documented
+   [reuse comparison](release/evidence.md#resume-and-artifact-reuse).
+2. List `GET /v1/ciBuildRuns/{runId}/actions`, select its `ARCHIVE` action, and
+   read `GET /v1/ciBuildActions/{actionId}/artifacts`. Inspect that action's
+   archive/build logs and available archive artifacts for the built app's
+   bundle ID, marketing version and build number, and successful signing,
+   archive hooks and upload. Record the action/artifact IDs; do not select a
+   TestFlight post-action artifact as the archive identity.
+3. Follow [the run's builds relationship](https://developer.apple.com/documentation/appstoreconnectapi/get-v1-cibuildruns-_id_-builds):
+   `GET /v1/ciBuildRuns/{runId}/builds`. Inspect each candidate uploaded build by
+   ID through `GET /v1/builds/{buildId}` and its app and `preReleaseVersion`
+   relationships. Match the app/bundle ID, marketing version, build number
+   (`builds.attributes.version`), upload time and processing state to the
+   archive evidence. The cloud run number and uploaded build number are
+   separate identities; do not assume they are equal. Follow pagination when
+   needed. If the relationship is empty during processing, wait and re-read;
+   an unresolved mismatch blocks attaching or reusing that build.
+4. Record the uploaded build ID, marketing version and build number alongside
+   the archive SHA/run/action. Keep test SHA/run/action and actual results as
+   separate evidence. When test-only fixes permit the original archive to be
+   retained, record the scope/diff and equivalence under the
+   [iOS release procedure](release/ios.md#ios); the newer test run does not
+   change the original archive's provenance.
 
 ## Repository-specific insight source
 

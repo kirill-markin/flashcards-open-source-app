@@ -5,9 +5,10 @@ We do not aim for exhaustive iOS test coverage in this pipeline. The most truste
 
 ## Native release gate
 
-Run the separate Xcode Cloud test and archive workflows in parallel for the
-release SHA. Follow the [iOS release procedure](release/ios.md#ios)
-for their completion gates, warning handling, and App Review submission.
+Initially run the separate Xcode Cloud test and archive workflows in parallel
+for the release SHA after the configuration preflight below. Follow the
+[iOS release procedure](release/ios.md#ios) for their completion gates, bounded
+archive reuse after fixes, warning handling, and App Review submission.
 
 The live smoke coverage is split into independent grouped flows across Review, Cards, AI, and Settings. Only one grouped smoke signs into the linked review account, creates an isolated linked workspace, verifies relaunch persistence, and deletes that workspace before exit. The remaining grouped smokes stay guest/local and do not perform login.
 
@@ -66,6 +67,42 @@ Recommended value for this repository:
 This keeps the login smoke path pinned to the intended review account instead of relying on the default value embedded in the UI test code.
 
 `FLASHCARDS_LIVE_REVIEW_EMAIL` remains optional.
+
+## Cloud configuration preflight
+
+Before each authorized dispatch, inspect the saved remote configuration of
+both release workflows. Use the App Store Connect API first, starting with
+`GET /v1/ciWorkflows/{workflowId}` and its relationships; use the Xcode Cloud UI
+for settings the API does not expose, including environment values. Follow
+[API access diagnosis](xcode-cloud-data-access.md#required-local-secrets) before
+switching to the browser for an access failure.
+
+1. Verify the intended SCM repository, branch/tag ref and resolved release SHA.
+   Check that the workflow is enabled and its manual start conditions allow
+   that ref; a push branch filter does not establish manual-start eligibility.
+2. Check the selected Xcode/macOS toolchain, supported test destinations,
+   project container and shared scheme against the repository's
+   [iOS baseline](../apps/ios/README.md#platform-baseline). Verify the required
+   **Build - iOS** archive action and deliberately non-required **Test - iOS**
+   action. The non-required setting allows TestFlight delivery; successful
+   complete test evidence is still mandatory before App Review submission.
+3. Verify the production Release configuration, signing/distribution settings,
+   and presence of the [required environment values](#xcode-cloud-inputs) for
+   each workflow. Inspect non-secret service values for the intended production
+   environment. Check any explicit `SENTRY_URL` against the endpoint that issued
+   `SENTRY_AUTH_TOKEN`; do not print token contents, DSNs or other secrets, or
+   replace masked secrets with empty values while editing unrelated settings.
+4. Record workflow IDs, inspected settings and secret-presence results in the
+   release ledger. If temporary manual branch/tag-filter edits are necessary
+   within the authorized release, record the exact original and temporary
+   filters, change only those filters, and read back the saved configuration
+   before dispatch. Preserve all other fields and secrets. Do not make tests
+   required or enable automatic push builds as a shortcut.
+5. Record the accepted run IDs and verify their source SHAs. After all accepted
+   runs using the temporary filters finish, restore the original filters and
+   verify saved readback; record restoration in the ledger. If dispatch fails
+   with no accepted run, restore immediately. If other operators changed the
+   filters meanwhile, reconcile the change instead of overwriting it blindly.
 
 ## Automation marker
 
