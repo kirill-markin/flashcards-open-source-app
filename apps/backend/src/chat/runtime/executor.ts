@@ -1,4 +1,5 @@
 import {
+  isDatabaseDeadlineExpiry,
   runDatabaseOperationsWithDeadline,
 } from "../../database";
 import {
@@ -38,9 +39,6 @@ import {
   createChatRuntimeControl,
   DEADLINE_REACHED_MESSAGE,
 } from "./control";
-import {
-  isDatabaseDeadlineExpiry,
-} from "./databaseDeadlineErrors";
 import {
   DEFAULT_CHAT_RUNTIME_DEPENDENCIES,
   type ChatRuntimeDependencies,

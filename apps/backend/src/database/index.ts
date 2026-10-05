@@ -31,6 +31,8 @@ export type { SessionAdvisoryLockInput } from "./sessionAdvisoryLock";
 export {
   DatabaseDeadlineExceededError,
   DatabaseTransactionRolledBackError,
+  isDatabaseDeadlineExpiry,
+  matchesDatabaseDeadlineExpiry,
 } from "./deadline";
 export type { DatabaseDeadlinePhase } from "./deadline";
 

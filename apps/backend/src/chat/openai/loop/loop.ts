@@ -13,7 +13,7 @@ import {
   createObservedUserOpenAIClient,
   getObservedOpenAIClient,
 } from "../client";
-import { isDatabaseDeadlineExpiry } from "../../runtime/databaseDeadlineErrors";
+import { isDatabaseDeadlineExpiry } from "../../../database";
 import { isContextLengthExceededError } from "../../runtime/providerErrors";
 import { runOneToolCall as runObservedToolCall } from "../tools/toolExecutor";
 import {
