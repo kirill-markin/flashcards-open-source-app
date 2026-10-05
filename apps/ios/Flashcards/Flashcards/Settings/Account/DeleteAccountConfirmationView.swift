@@ -54,7 +54,7 @@ struct DeleteAccountConfirmationView: View {
                         store.beginAccountDeletion()
                         dismiss()
                     }
-                    .buttonStyle(.glassProminent)
+                    .nativeProminentActionButtonStyle()
                     .tint(.red)
                     .disabled(self.isDeleteEnabled == false)
                 }

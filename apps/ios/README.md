@@ -15,12 +15,12 @@ On iOS, the UI and interaction design should stay maximally native to iOS.
 ## Platform Baseline
 
 - Language and UI stack: Swift + SwiftUI
-- Current deployment target: iOS 26.0
+- Current deployment target: iOS/iPadOS 18.0; build with the current Xcode/SDK and pinned packages
 - Default visual direction: dark appearance with the existing orange accent color
 - Primary local storage: SQLite on device
 - Product scope should stay aligned with the supported top-level flows: Review, Progress, AI, Cards, Settings
 
-We intentionally optimize for the latest supported iOS release instead of spending time on older system behavior.
+We optimize for the latest supported iOS release. Small native availability adapters preserve the same flows on iOS 18: glass buttons and bottom bars on 26+, bordered buttons and safe-area insets on 18. Keep state, navigation, domain logic and storage shared.
 
 ## Design Rule
 
@@ -68,15 +68,14 @@ Do not mix destination-based `NavigationLink { ... }` pushes with value-based or
 
 ## Testing Rule
 
-Only test the app against the final supported iOS target.
+Keep the full existing smoke selection on the latest supported iOS runtime. For iOS 18, use only the [minimum compatibility smoke and manual checklist](../../docs/ios-local-setup.md#ios-18-compatibility-smoke). Apple testing stays in Xcode Cloud or local Xcode.
 
 - Do not try to cover the iOS app exhaustively with tests
 - Do not add isolated unit tests by default
 - Prefer native integration, parity, or UI tests when they validate a real module boundary or user flow
-- Do not spend time validating older iOS versions
-- Do not add compatibility code for older iOS versions unless explicitly requested
-- Use one locally available iPhone simulator runtime only
-- Prefer an already booted local iPhone simulator on the final supported runtime
+- Use narrow native availability handling for iOS 18; do not duplicate screens or business logic
+- Use one latest runtime and one iOS 18 destination for the selected compatibility flows
+- Prefer an already booted local iPhone simulator on the selected runtime
 - Prefer background CLI runs with `simctl` and `xcodebuild` instead of opening heavy Xcode UI flows
 - Do not open a visible Simulator window for test runs unless the user explicitly asks for a visible simulator at that time
 - Prefer `xcodebuild ... test` so each run validates the current sources and build settings on the selected simulator

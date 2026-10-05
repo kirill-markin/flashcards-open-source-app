@@ -180,7 +180,7 @@ struct CardsScreen: View {
             placement: .automatic,
             prompt: String(localized: "Search cards", table: reviewCardsStringsTableName)
         )
-        .searchToolbarBehavior(preferredNativeSearchToolbarBehavior(horizontalSizeClass: self.horizontalSizeClass))
+        .nativeSearchToolbar(horizontalSizeClass: self.horizontalSizeClass)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
