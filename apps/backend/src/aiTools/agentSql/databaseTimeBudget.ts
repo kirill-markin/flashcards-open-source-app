@@ -1,8 +1,8 @@
 import {
-  DatabaseDeadlineExceededError,
+  isDatabaseDeadlineExpiry,
+  matchesDatabaseDeadlineExpiry,
   runDatabaseOperationsWithDeadline,
 } from "../../database";
-import { getDatabaseErrorFields } from "../../database/transient";
 import { HttpError } from "../../shared/errors";
 
 /**
@@ -63,48 +63,6 @@ import { HttpError } from "../../shared/errors";
  */
 const AGENT_SQL_DATABASE_TIME_BUDGET_MS = 15_000;
 
-// Bounds the cause walk below, which follows errors this process wrapped rather than any input, so
-// the real chains are one or two links long. The bound only keeps a cyclic `cause` from hanging a
-// request thread.
-const AGENT_SQL_ERROR_CAUSE_MAX_DEPTH = 8;
-
-function matchesDatabaseTimeBudgetExpiry(error: unknown): boolean {
-  if (error instanceof DatabaseDeadlineExceededError) {
-    return true;
-  }
-
-  const { sqlState } = getDatabaseErrorFields(error);
-  return sqlState === "57014" || sqlState === "55P03";
-}
-
-/**
- * Recognizes every way that budget expires. One deadline becomes three bounds
- * in `apps/backend/src/database/deadline.ts`: a client-side timer, a Postgres
- * `statement_timeout`, and a `lock_timeout` derived from the same deadline. So
- * the same expiry arrives as a `DatabaseDeadlineExceededError`, as SQLSTATE
- * 57014, or as SQLSTATE 55P03, depending on which of them fired first.
- *
- * The cause chain is walked because a batch reaches this through
- * `wrapBatchExecutionError`, which reports which statement failed and keeps the
- * failure it wraps as the `cause`. Reading only the outermost error would
- * classify every batch expiry as an unexpected server error, on the very shape
- * that spends the most time.
- */
-function isAgentSqlDatabaseTimeBudgetExpiry(error: unknown): boolean {
-  let current: unknown = error;
-  for (let depth = 0; depth < AGENT_SQL_ERROR_CAUSE_MAX_DEPTH; depth += 1) {
-    if (matchesDatabaseTimeBudgetExpiry(current)) {
-      return true;
-    }
-    if (!(current instanceof Error)) {
-      return false;
-    }
-    current = current.cause;
-  }
-
-  return false;
-}
-
 /**
  * Keeps whatever context wrapped the expiry in front of the remedy. For a batch
  * that context is `wrapBatchExecutionError`'s `SQL batch statement N failed`,
@@ -118,7 +76,7 @@ function isAgentSqlDatabaseTimeBudgetExpiry(error: unknown): boolean {
  */
 function buildDatabaseTimeBudgetExpiryMessage(error: unknown): string {
   const remedy = `The statement exceeded the ${AGENT_SQL_DATABASE_TIME_BUDGET_MS} ms database time budget and was cancelled, so it changed nothing. Narrow the work and retry: add or lower LIMIT, add WHERE filters to touch fewer rows, or split a batch into fewer statements.`;
-  if (matchesDatabaseTimeBudgetExpiry(error)) {
+  if (matchesDatabaseDeadlineExpiry(error)) {
     return remedy;
   }
 
@@ -144,7 +102,10 @@ export async function executeWithinAgentSqlDatabaseTimeBudget<Result>(
       execute,
     );
   } catch (error) {
-    if (!isAgentSqlDatabaseTimeBudgetExpiry(error)) {
+    // A batch reaches this through `wrapBatchExecutionError`, which keeps the expiry as the
+    // `cause`; reading only the outermost error would report every batch expiry, the shape that
+    // spends the most time, as an unexpected server error.
+    if (!isDatabaseDeadlineExpiry(error)) {
       throw error;
     }
 
