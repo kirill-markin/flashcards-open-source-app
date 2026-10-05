@@ -57,7 +57,7 @@ without reconstructing evidence merely to turn this report green.
    every destination/configuration distinct in `id`. For Apple, use actual
    `ciTestResults` per-destination statuses and/or named native `.xcresult`
    results; map `SUCCESS` to `passed`, `FAILURE` to `failed`, `SKIPPED` to
-   `skipped`. For Device Run use both exact sessions' full reports and GCS JUnit case
+   `skipped`. For Device Run use all four exact sessions' full reports and GCS JUnit case
    exports, including every configured device and execution; use native reports for local tests. Map
    unfinished cases to `pending`; do not map unknown/inconclusive/cancelled
    states to passed. Preserve exact skip reasons. Reconcile case exports with
@@ -143,10 +143,10 @@ target distribution `build` and `artifactId`. Local artifacts and iOS test build
 have their own build/artifact/run identities; they need not equal the archive.
 
 For Android, the checker retains the stable gate ID `firebase-tests`; it records
-both Device Run sessions under the [Android procedure](android.md). It and `cloud-release` must share source SHA, version, release
+all four Device Run sessions under the [Android procedure](android.md). It and `cloud-release` must share source SHA, version, release
 version code (`build`), and GitHub run/attempt (`runId`). The test gate's
 `artifactId` identifies the tested debug APK; `cloud-release.artifactId` identifies
-the signed production AAB. Put both exact session IDs, job/execution identities,
+the signed production AAB. Put all four exact session IDs, job/execution identities,
 labels, full reports and GCS named-case evidence in the record referenced by
 `evidenceRef`, and retain proof that its debug APK and test APK came from that
 GitHub run. Include the latest full inventory and all four smoke methods on
