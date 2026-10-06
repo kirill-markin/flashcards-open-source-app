@@ -409,6 +409,22 @@ class AppGraph(
             pendingSignOutReport.release()
         }
     )
+    val reviewRepository: ReviewRepository = LocalReviewRepository(
+        database = database,
+        preferencesStore = cloudPreferencesStore,
+        syncLocalStore = syncLocalStore,
+        localProgressCacheStore = localProgressCacheStore,
+        timeProvider = SystemTimeProvider,
+        mediaAssetFileCacheRootDirectory = context.filesDir,
+        mediaAssetDownloadUrlLoader = CloudReviewMediaAssetDownloadUrlLoader(
+            preferencesStore = cloudPreferencesStore,
+            remoteService = cloudRemoteService,
+            operationCoordinator = cloudOperationCoordinator,
+            guestSessionStore = guestAiSessionStore,
+            resetCoordinator = cloudIdentityResetCoordinator
+        ),
+        mediaAssetDownloader = OkHttpReviewMediaAssetDownloader(okHttpClient = okHttpClient)
+    )
     private val cloudGuestSessionCoordinator = CloudGuestSessionCoordinator(
         database = database,
         preferencesStore = cloudPreferencesStore,
@@ -418,6 +434,7 @@ class AppGraph(
         resetCoordinator = cloudIdentityResetCoordinator,
         guestSessionStore = guestAiSessionStore,
         creationCoordinator = guestCloudSessionCreationCoordinator,
+        loadReviewMediaAssetFile = reviewRepository::loadReviewMediaAssetFile,
         appVersion = appPackageInfo.versionName
     )
     val mediaUploadTransferRepository = LocalMediaUploadTransferRepository(
@@ -448,6 +465,7 @@ class AppGraph(
         operationCoordinator = cloudOperationCoordinator,
         resetCoordinator = cloudIdentityResetCoordinator,
         guestSessionStore = guestAiSessionStore,
+        loadReviewMediaAssetFile = reviewRepository::loadReviewMediaAssetFile,
         appVersion = appPackageInfo.versionName,
         demoCardDraftProvider = {
             buildDemoCardDraft(context = applicationContext)
@@ -481,6 +499,7 @@ class AppGraph(
         resetCoordinator = cloudIdentityResetCoordinator,
         guestSessionStore = guestAiSessionStore,
         cloudGuestSessionCoordinator = cloudGuestSessionCoordinator,
+        loadReviewMediaAssetFile = reviewRepository::loadReviewMediaAssetFile,
         appVersion = appPackageInfo.versionName
     )
     val syncRepository: SyncRepository = localSyncRepository
@@ -527,22 +546,6 @@ class AppGraph(
         preferencesStore = cloudPreferencesStore,
         syncRepository = syncRepository,
         syncLocalStore = syncLocalStore
-    )
-    val reviewRepository: ReviewRepository = LocalReviewRepository(
-        database = database,
-        preferencesStore = cloudPreferencesStore,
-        syncLocalStore = syncLocalStore,
-        localProgressCacheStore = localProgressCacheStore,
-        timeProvider = SystemTimeProvider,
-        mediaAssetFileCacheRootDirectory = context.filesDir,
-        mediaAssetDownloadUrlLoader = CloudReviewMediaAssetDownloadUrlLoader(
-            preferencesStore = cloudPreferencesStore,
-            remoteService = cloudRemoteService,
-            operationCoordinator = cloudOperationCoordinator,
-            guestSessionStore = guestAiSessionStore,
-            resetCoordinator = cloudIdentityResetCoordinator
-        ),
-        mediaAssetDownloader = OkHttpReviewMediaAssetDownloader(okHttpClient = okHttpClient)
     )
     val feedbackRepository: FeedbackRepository = LocalFeedbackRepository(
         database = database,

@@ -15,6 +15,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecover
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryRequiredException
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
+import com.flashcardsopensourceapp.data.local.model.media.ReviewMediaAssetFile
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurationMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
@@ -24,6 +25,7 @@ import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.Cloud
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudOperationCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.androidClientPlatform
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.loadCurrentWorkspaceOrNull
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.preserveReferencedWorkspaceMediaAssets
 import java.io.IOException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
@@ -57,6 +59,7 @@ class CloudGuestSessionCoordinator(
     private val resetCoordinator: CloudIdentityResetCoordinator,
     private val guestSessionStore: GuestAiSessionStore,
     private val creationCoordinator: GuestCloudSessionCreationCoordinator,
+    private val loadReviewMediaAssetFile: suspend (String) -> ReviewMediaAssetFile,
     private val appVersion: String
 ) {
     private val analyticsGuestIdentityLinkCoordinator = AnalyticsGuestIdentityLinkCoordinator(
@@ -491,23 +494,41 @@ class CloudGuestSessionCoordinator(
             currentWorkspaceCreatedAtMillis = currentWorkspace?.createdAtMillis,
             session = session
         )
-        val resultingWorkspace = syncLocalStore.migrateLocalShellToLinkedWorkspace(
-            workspace = workspaceSummary,
-            remoteWorkspaceIsEmpty = bootstrapProbe.remoteIsEmpty
-        )
-        require(resultingWorkspace.workspaceId == session.workspaceId) {
-            "Guest workspace restore produced an unexpected local workspace. " +
-                "Expected='${session.workspaceId}' Actual='${resultingWorkspace.workspaceId}'."
+        return preferencesStore.runWithLocalOutboxWritesBlocked(
+            reason = "Guest workspace linking is finishing. Wait for cloud linking to complete before changing cards."
+        ) {
+            val sourceWorkspace: WorkspaceEntity? = loadCurrentWorkspaceOrNull(
+                database = database,
+                preferencesStore = preferencesStore
+            )
+            if (bootstrapProbe.remoteIsEmpty && sourceWorkspace != null &&
+                sourceWorkspace.workspaceId != session.workspaceId
+            ) {
+                preserveReferencedWorkspaceMediaAssets(
+                    database = database,
+                    sourceWorkspaceId = sourceWorkspace.workspaceId,
+                    destinationWorkspaceId = session.workspaceId,
+                    loadReviewMediaAssetFile = loadReviewMediaAssetFile
+                )
+            }
+            val resultingWorkspace = syncLocalStore.migrateLocalShellToLinkedWorkspace(
+                workspace = workspaceSummary,
+                remoteWorkspaceIsEmpty = bootstrapProbe.remoteIsEmpty
+            )
+            require(resultingWorkspace.workspaceId == session.workspaceId) {
+                "Guest workspace restore produced an unexpected local workspace. " +
+                    "Expected='${session.workspaceId}' Actual='${resultingWorkspace.workspaceId}'."
+            }
+            if (currentWorkspace?.workspaceId != null && currentWorkspace.workspaceId != session.workspaceId) {
+                guestSessionStore.clearSession(localWorkspaceId = currentWorkspace.workspaceId)
+            }
+            guestSessionStore.saveSession(
+                localWorkspaceId = cloudOwnedSession.workspaceId,
+                session = cloudOwnedSession
+            )
+            markGuestCloudState(session = cloudOwnedSession)
+            bootstrapProbe.remoteIsEmpty.not()
         }
-        if (currentWorkspace?.workspaceId != null && currentWorkspace.workspaceId != session.workspaceId) {
-            guestSessionStore.clearSession(localWorkspaceId = currentWorkspace.workspaceId)
-        }
-        guestSessionStore.saveSession(
-            localWorkspaceId = cloudOwnedSession.workspaceId,
-            session = cloudOwnedSession
-        )
-        markGuestCloudState(session = cloudOwnedSession)
-        return bootstrapProbe.remoteIsEmpty.not()
     }
 
     private fun isCloudAuthorizationError(error: Exception): Boolean {
