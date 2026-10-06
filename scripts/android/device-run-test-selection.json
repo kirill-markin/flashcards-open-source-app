@@ -1,0 +1,12 @@
+{
+  "latest": [
+    "package com.flashcardsopensourceapp.app",
+    "notAnnotation com.flashcardsopensourceapp.app.ManualOnlyAndroidTest"
+  ],
+  "compat": [
+    "class com.flashcardsopensourceapp.app.livesmoke.LiveSmokeTest#manualCardCanBeCreatedInDefaultWorkspace",
+    "class com.flashcardsopensourceapp.app.livesmoke.LiveSmokeTest#repositorySeededCardCanBeReviewedInDefaultWorkspace",
+    "class com.flashcardsopensourceapp.app.livesmoke.LiveSmokeTest#linkedWorkspaceAccountStatusAndWorkspaceStateAreVisible",
+    "class com.flashcardsopensourceapp.app.notifications.NotificationTapSmokeTest#reviewReminderNotificationTapOpensReviewFromSystemShade"
+  ]
+}

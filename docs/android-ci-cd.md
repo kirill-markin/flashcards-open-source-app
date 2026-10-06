@@ -99,7 +99,7 @@ Top-level release workflow Device Run job: `.github/workflows/android-release.ym
 - Runs four sessions sequentially through the bounded synchronous helper: the full app instrumentation package on API 37, excluding `ManualOnlyAndroidTest`, then one four-method smoke session each on API 30, 31, and 33; see [device configuration](#choose-the-device-run-devices). Sessions share a linked test account, so concurrent workspace mutations are unsafe
 - Uses Orchestrator `auto`, `clearPackageData=true,isAutomation=true`, portrait and `en-US`; inspect `event=automation_environment_resolved` in logcat for `isAutomation=true`, `isEmulator=false`, `hasArgumentSignal=true`, `isFirebaseTestLabDevice=false`. Device Run has no Firebase device marker, so the instrumentation argument must reach the app
 - Labels all four sessions with the same release ID, target SHA and GitHub run/attempt; see [the workflow](../.github/workflows/android-release.yml) for exact labels, outputs and artifact details
-- Saves session logs, full session JSON and the catalog; every required session, job and execution must reach terminal success before the next session or `publish_android` starts
+- Retains raw reports and native evidence privately and uploads a safe named-result summary; see [result retrieval](#device-run-results-and-release-correlation). Every required session, job and execution must reach terminal success before the next session; complete reconciled native evidence also gates `publish_android`
 - Follow [the Android release procedure](release/android.md) and inspect the full reports and named test results before publication
 
 Top-level release workflow Play job: `.github/workflows/android-release.yml` job `publish_android`
@@ -145,30 +145,33 @@ A green manual `Android Release` run means the GitHub-hosted Android gate and al
 
 ## Device Run results and release correlation
 
-Use the release summaries and [workflow-defined artifacts and outputs](../.github/workflows/android-release.yml) for the target SHA, version code, release identifier `vc<versionCode>-r<runId>a<attempt>-s<shortSha>`, Play draft name `main-draft-<releaseIdentifier>`, all four session IDs, device IDs, selected targets and GCS links. Retain the full session artifacts and verify each session's job labels against the same GitHub run/attempt and SHA. The release ID correlates the draft and all four sessions; the session ID is Google's lookup identity.
+Download the `android-device-run-submissions` GitHub artifact for the exact release run/attempt. It contains only public-safe `summary.json`: SHA, release ID, four configured selections/devices/session IDs, independent expected inventory, per-execution named statuses/counts, artifact SHA-256 hashes and private object references. Require all four `.sessions[].passed == true` and `.private_archive_uploaded == true`. Missing/zero/duplicate selected cases, failed/error/unexpected-skipped results, differing job-level XML or submitted APK hashes fail the workflow before signed bundle build and Play draft upload.
 
-Device Run is part of Android Device Development Platform (DDP) Preview. Its Google Cloud console does not provide a Firebase-style test-results UI. The summary's session links open the GCS results folders; inspect session status with the CLI and named cases/logcat in GCS.
+The collector derives API 37 inventory from the checked-out JUnit4 declarations, excluding `ManualOnlyAndroidTest`; it does not learn inventory from passing results. The current suite uses nonparameterized `AndroidJUnit4` methods and an untested timeout base class. Unsupported runners, inherited tests, nested test classes or declaration forms fail explicitly and require inventory support before releasing. Compatibility requires the four methods in [the configured selection](../scripts/android/device-run-test-selection.json), which also drives workflow submission. Manual exclusions are recorded separately and never count as executed passes. Execution XML is counted once; duplicate job-level XML must reconcile exactly.
 
-Use an already-authorized local Google identity, or existing service-account impersonation where available. Do not create JSON keys, a new reader principal, or grant general project access for diagnostics. Append `--impersonate-service-account` only for an account the operator is already allowed to impersonate. For each session, using CLI `587.0.0` with `beta`:
+Full terminal reports, submission records, catalog, every execution's JUnit/logcat/instrument logs are retained in a private `raw.tar.gz` in the existing results bucket. The collector follows the report's native `outputFiles[].gcsOutputFile.path`, verifies downloaded input APK hashes against this run's CI artifacts, retains their private source references, and keeps raw diagnostics out of public GitHub artifacts/logs. Failed sessions are collected where evidence is available; later unexecuted destinations remain failed evidence gates. See Google's [native result layout](https://docs.cloud.google.com/developer-device-platform/device-run/find-logs) and [full-report schema](https://docs.cloud.google.com/developer-device-platform/reference/device-run/rest/v1alpha/projects.locations.sessions).
 
-```bash
-session_id="session-ID-FROM-RELEASE-SUMMARY"
-gcloud beta device-run sessions wait "${session_id}" \
-  --project "flashcards-open-source-app" --location global
-gcloud beta device-run sessions describe "${session_id}" --full --format=json \
-  --project "flashcards-open-source-app" --location global > session.json
-```
-
-The CLI ID is the basename of `.name` (`session-…`), not `.sessionReport.id`, which is a different UUID. A successful `wait` exit alone does not prove tests passed. In each full report require `.sessionReport.status.statusType == "DONE"` and `.sessionReport.result.resultType == "PASSED"`, every job and execution `DONE`/`PASSED`, and exactly one job on that session's configured destination with nonempty execution reports. Inspect all four reports and named cases under [the publication gate](release/android.md).
-
-Read `.sessionConfig.outputDirectoryConfig.gcsOutputDirectory.path` and append the session ID. The service manages `automation/sessions`; custom results directories are unsupported:
+For private warning/diagnostic review, use an already-authorized Google identity with CLI `587.0.0` and `beta`, or existing authorized service-account impersonation. Do not create keys, principals or grants. Retrieve the archive programmatically from `.private_archive` in the safe summary:
 
 ```bash
-results_base="$(jq -r '.sessionConfig.outputDirectoryConfig.gcsOutputDirectory.path' session.json)"
-gcloud storage ls --recursive "${results_base}/${session_id}/"
+archive="$(jq -r '.private_archive' summary.json)"
+gcloud storage cp "${archive}" raw.tar.gz
+expected_hash="$(jq -r '.private_archive_sha256' summary.json)"
+printf '%s  raw.tar.gz\n' "${expected_hash}" | shasum -a 256 --check
+mkdir private-evidence
+tar -xzf raw.tar.gz -C private-evidence
 ```
 
-List before selecting artifacts. Actual result layouts include `job-000/junit.xml`, `job-000/execution-000/junit.xml` and `job-000/execution-000/logcat.txt` (and corresponding other job/execution folders); do not assume a `merged_junit.xml` exists. Retain full reports and the named JUnit cases/counts for every execution, reconcile any duplicate job/execution reports, and investigate zero-test or unexpected skipped selections. Preserve source, APK, session, device and GitHub run identities with the evidence.
+Keep the extracted files private. Each `.sessions[].report.member` identifies its full report inside the archive; match its hash, run/attempt/SHA labels and device against the safe summary. Native GCS object references and hashes are recorded under `.sessions[].artifacts` and `.sessions[].executions[].artifacts`. To fetch one referenced file directly, use `gcloud storage cp "gs://REFERENCE-FROM-SUMMARY" /private/path`. Do not publish raw XML output, logcat, full reports or signed URLs.
+
+The CLI session ID is the basename of `.name` (`session-…`), distinct from `.sessionReport.id`. For a fresh provider lookup:
+
+```bash
+gcloud beta device-run sessions describe "session-ID-FROM-SUMMARY" --full --format=json \
+  --project "flashcards-open-source-app" --location global > /private/path/session.json
+```
+
+Named result automation verifies native execution and correlation only. Raw warnings, automation-environment log signals, product diagnostics, security, Play-delivered translations and store readiness remain operator-reviewed under [the publication gate](release/android.md).
 
 ## Android translation model
 
