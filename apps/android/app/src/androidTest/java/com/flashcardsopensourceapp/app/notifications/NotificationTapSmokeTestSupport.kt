@@ -44,8 +44,9 @@ internal fun LiveSmokeContext.grantNotificationPermissionOrThrow(context: Contex
         return
     }
     val packageName = context.packageName
-    runInstrumentationShellCommand(
-        command = "pm grant $packageName ${Manifest.permission.POST_NOTIFICATIONS}"
+    InstrumentationRegistry.getInstrumentation().uiAutomation.grantRuntimePermission(
+        packageName,
+        Manifest.permission.POST_NOTIFICATIONS
     )
     runInstrumentationShellCommand(
         command = "pm set-permission-flags $packageName ${Manifest.permission.POST_NOTIFICATIONS} $notificationPermissionUserSetFlag"
