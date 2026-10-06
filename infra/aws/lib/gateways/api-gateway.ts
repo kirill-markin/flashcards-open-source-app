@@ -90,6 +90,7 @@ export interface ApiGatewayProps {
 
 export interface ApiGatewayResult {
   restApi: apigw.RestApi;
+  accessLogGroup: logs.LogGroup;
   backendFn: lambdaNodejs.NodejsFunction;
   directImageIngestionFn: lambdaNodejs.NodejsFunction;
   chatWorkerFn: lambdaNodejs.NodejsFunction;
@@ -1463,6 +1464,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
 
   return {
     restApi,
+    accessLogGroup,
     backendFn,
     directImageIngestionFn,
     chatWorkerFn,

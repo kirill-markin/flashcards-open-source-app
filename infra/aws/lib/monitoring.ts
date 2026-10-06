@@ -56,6 +56,7 @@ export interface MonitoringProps {
   authFn: lambda.IFunction;
   mcpFn: lambda.IFunction;
   mcpDispatcherLogGroup: logs.ILogGroup;
+  apiAccessLogGroup: logs.ILogGroup;
   authApiAccessLogGroup: logs.ILogGroup;
   customEmailSenderFn: lambda.IFunction;
   chatWorkerFn: lambda.IFunction;
@@ -91,9 +92,11 @@ export interface MonitoringProps {
   alternateHeartbeatHosts: AlternateHeartbeatHosts;
 }
 
+const apiAccessLog5xxStatuses: ReadonlyArray<string> = ["500", "501", "502", "503", "504"];
+const apiAccessLog5xxMetricNamespace: string = "FlashcardsOpenSourceApp/Api";
+const apiAccessLog5xxMetricName: string = "ApiAccessLog5xx";
 const authApiAccessLog5xxMetricNamespace: string = "FlashcardsOpenSourceApp/Auth";
 const authApiAccessLog5xxMetricName: string = "AuthApiAccessLog5xx";
-const authApiAccessLog5xxStatuses: ReadonlyArray<string> = ["500", "501", "502", "503", "504"];
 const directImageIngestionHandled5xxMetricNamespace: string =
   "FlashcardsOpenSourceApp/DirectImageIngestion";
 const directImageIngestionHandled5xxMetricName: string =
@@ -152,11 +155,11 @@ const geoLiteCountryDatabaseAgePeriodHours = 1;
 const geoLiteCountryDatabasePublishedAgeThresholdHours = 4 * 24;
 
 // A Lambda throttle reaches REST clients as status 500 with integrationStatus 429; it is counted by
-// AuthLambdaThrottleAlarm instead.
-function createAuthApiAccessLog5xxFilterPattern(): logs.IFilterPattern {
+// the integrated function's Lambda throttle alarm instead.
+function createNonThrottleApiAccessLog5xxFilterPattern(): logs.IFilterPattern {
   return logs.FilterPattern.all(
     logs.FilterPattern.any(
-      ...authApiAccessLog5xxStatuses.map((status: string) => logs.FilterPattern.stringValue("$.status", "=", status)),
+      ...apiAccessLog5xxStatuses.map((status: string) => logs.FilterPattern.stringValue("$.status", "=", status)),
     ),
     logs.FilterPattern.stringValue("$.integrationStatus", "!=", "429"),
   );
@@ -301,17 +304,31 @@ export function monitoring(scope: Construct, props: MonitoringProps): void {
     treatMissingData: cloudwatch.TreatMissingData.BREACHING,
   }), alertTopic);
 
+  const apiAccessLog5xxMetricFilter = new logs.MetricFilter(scope, "ApiAccessLog5xxMetricFilter", {
+    logGroup: props.apiAccessLogGroup,
+    filterPattern: createNonThrottleApiAccessLog5xxFilterPattern(),
+    metricNamespace: apiAccessLog5xxMetricNamespace,
+    metricName: apiAccessLog5xxMetricName,
+    metricValue: "1",
+    defaultValue: 0,
+  });
+
+  // A saturated backendHandlerReservedConcurrency or directImageIngestionHandlerReservedConcurrency
+  // reservation surfaces as an API Gateway 500 whose integrationStatus is 429, the intended bounded
+  // rejection protecting the Postgres connection budget (infra/aws/lib/lambda-database-capacity.ts),
+  // so this alarm reads the access log to leave those out; a sustained throttle problem pages through
+  // BackendLambdaThrottleAlarm or DirectImageIngestionLambdaThrottleAlarm.
   notifyAlertTopic(new cloudwatch.Alarm(scope, "ApiGateway5xxAlarm", {
-    metric: new cloudwatch.Metric({
-      namespace: "AWS/ApiGateway",
-      metricName: "5XXError",
-      dimensionsMap: { ApiName: props.restApi.restApiName },
+    metric: apiAccessLog5xxMetricFilter.metric({
       period: cdk.Duration.minutes(5),
       statistic: "Sum",
     }),
     threshold: 5,
     evaluationPeriods: 1,
-    alarmDescription: "API Gateway returned 5+ server errors in 5 minutes",
+    alarmDescription:
+      "API access logs include 5+ non-throttle 5xx responses in 5 minutes; Lambda throttles " +
+      "(integrationStatus 429) are counted by BackendLambdaThrottleAlarm and " +
+      "DirectImageIngestionLambdaThrottleAlarm",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
   }), alertTopic);
 
@@ -458,7 +475,7 @@ export function monitoring(scope: Construct, props: MonitoringProps): void {
 
   const authApiAccessLog5xxMetricFilter = new logs.MetricFilter(scope, "AuthApiAccessLog5xxMetricFilter", {
     logGroup: props.authApiAccessLogGroup,
-    filterPattern: createAuthApiAccessLog5xxFilterPattern(),
+    filterPattern: createNonThrottleApiAccessLog5xxFilterPattern(),
     metricNamespace: authApiAccessLog5xxMetricNamespace,
     metricName: authApiAccessLog5xxMetricName,
     metricValue: "1",
@@ -505,6 +522,19 @@ export function monitoring(scope: Construct, props: MonitoringProps): void {
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
   }), alertTopic);
 
+  // Each throttle is a client-visible 500 on the public REST API that ApiGateway5xxAlarm leaves out.
+  // Ten in five minutes separates a sustained capacity problem from a brief burst.
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "BackendLambdaThrottleAlarm", {
+    metric: props.backendFn.metricThrottles({
+      period: cdk.Duration.minutes(5),
+      statistic: "Sum",
+    }),
+    threshold: 10,
+    evaluationPeriods: 1,
+    alarmDescription: "Backend Lambda was throttled 10+ times in a 5-minute period",
+    treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+  }), alertTopic);
+
   notifyAlertTopic(new cloudwatch.Alarm(scope, "DirectImageIngestionLambdaErrorAlarm", {
     metric: props.directImageIngestionFn.metricErrors({
       period: cdk.Duration.minutes(15),
@@ -513,6 +543,18 @@ export function monitoring(scope: Construct, props: MonitoringProps): void {
     threshold: 1,
     evaluationPeriods: 1,
     alarmDescription: "Direct image ingestion Lambda had errors",
+    treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+  }), alertTopic);
+
+  // Same contract as BackendLambdaThrottleAlarm for the other Lambda behind the public REST API.
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "DirectImageIngestionLambdaThrottleAlarm", {
+    metric: props.directImageIngestionFn.metricThrottles({
+      period: cdk.Duration.minutes(5),
+      statistic: "Sum",
+    }),
+    threshold: 10,
+    evaluationPeriods: 1,
+    alarmDescription: "Direct image ingestion Lambda was throttled 10+ times in a 5-minute period",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
   }), alertTopic);
 
