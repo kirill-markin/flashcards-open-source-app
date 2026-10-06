@@ -309,10 +309,7 @@ jobs:
           command_output_file="${RUNNER_TEMP}/device-run-latest-submit.log"
           session_output="${RUNNER_TEMP}/device-run-latest-session.json"
           device_args=(--device "${ANDROID_DEVICE_RUN_DEVICE}")
-          test_targets=(
-            "package com.flashcardsopensourceapp.app"
-            "notAnnotation com.flashcardsopensourceapp.app.ManualOnlyAndroidTest"
-          )
+          mapfile -t test_targets < <(jq -r '.latest[]' scripts/android/device-run-test-selection.json)
           test_target_args=()
           for test_target in "${test_targets[@]}"; do
             test_target_args+=(--test-targets "${test_target}")
@@ -332,7 +329,7 @@ jobs:
             --max-session-duration "35m" > "${command_output_file}" 2>&1
           command_exit_code=$?
           set -e
-          cat "${command_output_file}"
+          echo "Device Run submission completed with exit ${command_exit_code}; raw diagnostics are retained privately."
 
           session_id="$(sed -nE 's/.*Creating session \[(session-[a-f0-9-]+)\] in location \[global\].*/\1/p' "${command_output_file}")"
           results_path=""
@@ -370,12 +367,7 @@ jobs:
         run: |
           set -euo pipefail
           sessions_file="${RUNNER_TEMP}/device-run-compat-sessions.json"
-          test_targets=(
-            "class com.flashcardsopensourceapp.app.livesmoke.LiveSmokeTest#manualCardCanBeCreatedInDefaultWorkspace"
-            "class com.flashcardsopensourceapp.app.livesmoke.LiveSmokeTest#repositorySeededCardCanBeReviewedInDefaultWorkspace"
-            "class com.flashcardsopensourceapp.app.livesmoke.LiveSmokeTest#linkedWorkspaceAccountStatusAndWorkspaceStateAreVisible"
-            "class com.flashcardsopensourceapp.app.notifications.NotificationTapSmokeTest#reviewReminderNotificationTapOpensReviewFromSystemShade"
-          )
+          mapfile -t test_targets < <(jq -r '.compat[]' scripts/android/device-run-test-selection.json)
           test_target_args=()
           for test_target in "${test_targets[@]}"; do
             test_target_args+=(--test-targets "${test_target}")
@@ -404,7 +396,7 @@ jobs:
               --session-output "${session_output}" > "${command_output_file}" 2>&1
             command_exit_code=$?
             set -e
-            cat "${command_output_file}"
+            echo "Device Run submission completed with exit ${command_exit_code}; raw diagnostics are retained privately."
 
             session_id="$(sed -nE 's/.*Creating session \[(session-[a-f0-9-]+)\] in location \[global\].*/\1/p' "${command_output_file}")"
             results_path=""
@@ -532,17 +524,25 @@ jobs:
             echo "device_descriptor=${DEVICE_DESCRIPTOR}"
           } >> "${GITHUB_OUTPUT}"
 
-      - name: Preserve Device Run submission records
+      - name: Collect private native evidence and gate named results
+        id: native-evidence
+        if: ${{ always() && steps.resolve-debug-apks.outcome == 'success' }}
+        env:
+          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+          ANDROID_DEVICE_RUN_RESULTS_BUCKET: ${{ vars.ANDROID_DEVICE_RUN_RESULTS_BUCKET }}
+          ANDROID_DEVICE_RUN_DEVICE: ${{ vars.ANDROID_DEVICE_RUN_DEVICE }}
+          ANDROID_DEVICE_RUN_COMPAT_DEVICES: ${{ vars.ANDROID_DEVICE_RUN_COMPAT_DEVICES }}
+          TARGET_SHA: ${{ needs.preflight.outputs.target_sha }}
+          RELEASE_ID: ${{ needs.preflight.outputs.android_release_id }}
+        run: python3 scripts/android/collect-device-run-evidence.py
+
+      - name: Preserve public-safe Device Run named results
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: android-device-run-submissions
           if-no-files-found: ignore
-          path: |
-            ${{ runner.temp }}/device-run-*-submit.log
-            ${{ runner.temp }}/device-run-*-session.json*
-            ${{ runner.temp }}/device-run-catalog.json
-            ${{ runner.temp }}/device-run-compat-sessions.json*
+          path: ${{ runner.temp }}/device-run-public/summary.json
 
       - name: Summarize Device Run terminal results
         if: always()
@@ -577,7 +577,7 @@ jobs:
             echo ""
             echo "- Compatibility devices: \`${COMPAT_DEVICE_DESCRIPTORS:-n/a}\`"
             echo "- Compatibility targets: \`${COMPAT_TEST_TARGETS:-n/a}\`"
-            echo "- Play draft upload requires four terminal PASSED sessions. Before manual publication, inspect all selected named tests for failures, errors, unexpected skips or zero tests."
+            echo "- Play draft upload requires four terminal PASSED sessions and complete reconciled native named results. Inspect the safe summary artifact; raw warning and diagnostic review remains operator-owned."
           } >> "${GITHUB_STEP_SUMMARY}"
 
       - name: Require all four terminal Device Run successes
@@ -882,7 +882,7 @@ jobs:
             echo ""
             echo "- Compatibility devices: \`${{ needs.device_run_submission.outputs.compat_device_descriptors || 'n/a' }}\`"
             echo "- Compatibility targets: \`${{ needs.device_run_submission.outputs.compat_test_targets || 'n/a' }}\`"
-            echo "- Play draft upload requires four terminal PASSED sessions. Before manual publication, inspect all selected named tests for failures, errors, unexpected skips or zero tests."
+            echo "- Play draft upload requires four terminal PASSED sessions and complete reconciled native named results. Inspect the safe summary artifact; raw warning and diagnostic review remains operator-owned."
             echo "- Play publish mode: \`CI uploads a production-track draft only; Play Console publication remains manual\`"
             echo "- Run details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           } >> "${GITHUB_STEP_SUMMARY}"
