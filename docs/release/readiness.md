@@ -22,17 +22,19 @@ establish release authorization, truthful/comprehensive exports, source-diff
 correctness, security, artifact authenticity, operator completion, or public
 availability. Inspect native diagnostics, signing, store processing, uploaded
 binary localizations, metadata, release settings, submission and publication
-under the existing procedures. All local, cloud, native, and store gates remain
-mandatory. Already-published artifacts follow the [historical reuse rule](evidence.md#reuse-existing-artifacts),
+under the existing procedures. All gates required by the platform's recorded
+contract, native checks and store procedure remain mandatory. New Android
+records use schema 2's cloud-first gates; iOS retains its local and cloud gates.
+Already-published artifacts follow the [historical reuse rule](evidence.md#reuse-existing-artifacts),
 without reconstructing evidence merely to turn this report green.
 
 ## Collect and correlate evidence
 
 1. Record the target source SHA, marketing version, distribution build/version
    code, and uploaded build ID or signed AAB checksum. Pin the original archive
-   source separately from a corrected test source. Collect each local preflight,
-   cloud run/action/attempt, archive/upload, and Device Run session identity from its actual
-   source. Use the [iOS](ios.md) and [Android](android.md) procedures and the
+   source separately from a corrected test source. Collect each required local
+   preflight, cloud run/action/attempt, archive/upload, and Device Run session
+   identity from its actual source. Use the [iOS](ios.md) and [Android](android.md) procedures and the
    [Xcode Cloud evidence guide](../xcode-cloud-data-access.md). Do not dispatch
    or publish just to fill in this file.
 2. Establish the complete configured test inventory independently of passing
@@ -40,11 +42,12 @@ without reconstructing evidence merely to turn this report green.
    Gradle/instrumentation selection, source test declarations, selected devices,
    configurations and any exclusions in the release record. Include all selected
    cases and destinations, including failing and manually excluded cases. For
-   the local iOS smoke this is the procedure's explicit guest-navigation
-   selection; for cloud iOS this is the entire selected UI suite. Android
-   `local-ci` includes its selected automated test cases; local smoke and
-   Device Run each include their entire configured selection, not only critical
-   cases. Account for inherited/parameterized tests and filters. A source grep
+   local iOS smoke, include the guest-navigation selection or all three
+   compatibility smokes when that local selection satisfies the actual 18.x
+   requirement; cloud iOS includes the entire selected UI suite. Android
+   Device Run includes its entire configured selection. Retained schema-1
+   Android records also include their selected local CI and smoke cases.
+   Account for inherited/parameterized tests and filters. A source grep
    alone is insufficient when configuration changes discovery.
 3. Review that inventory and set `inventoryComplete: true` only when complete.
    The checker requires a nonempty required inventory on every test gate,
@@ -77,11 +80,17 @@ without reconstructing evidence merely to turn this report green.
 
 The runtime-validated contract and checks live in
 [`mobile-readiness.ts`](../../scripts/release/mobile-readiness.ts). Supply one
-JSON object per platform:
+JSON object per platform. Use schema 1 for iOS and schema 2 for new Android
+records. Schema 1 remains supported with its original gates for retained
+historical records; do not relabel retained evidence to change its contract.
+Schema 2 is Android-only and changes only the mandatory gate set. Field shapes,
+native inventory, identity correlation, diagnostics and warning checks remain
+the same. Keep supplementary Android local diagnostic results in the ledger,
+outside schema 2's mandatory gate arrays.
 
 | Field | Required value |
 | --- | --- |
-| `schemaVersion` | Integer `1` |
+| `schemaVersion` | Integer `1` (iOS or retained historical Android) or `2` (new Android) |
 | `platform` | `ios` or `android` |
 | `target` | `{sourceSha, version, build, artifactId}` for the intended release |
 | `gates` | Exactly the platform's mandatory gate definitions below |
@@ -98,10 +107,11 @@ dumps, screenshots, or full logs in the input. Free text fields contain only
 the requested notice/reason, never log dumps. Keep the native evidence private
 and retain a reference to it. The checker does not fetch or resolve references.
 
-| Platform | Mandatory gate IDs | Gate inventories that must contain required cases |
+| Platform / schema | Mandatory gate IDs | Gate inventories that must contain required cases |
 | --- | --- | --- |
-| iOS | `local-archive`, `local-smoke`, `cloud-archive`, `cloud-tests` | `local-smoke`, `cloud-tests` |
-| Android | `local-ci`, `local-release`, `local-smoke`, `cloud-release`, `firebase-tests` | `local-ci`, `local-smoke`, `firebase-tests` |
+| iOS / 1 | `local-archive`, `local-smoke`, `cloud-archive`, `cloud-tests` | `local-smoke`, `cloud-tests` |
+| Android / 2 | `cloud-release`, `firebase-tests` | `firebase-tests` |
+| Historical Android / 1 | `local-ci`, `local-release`, `local-smoke`, `cloud-release`, `firebase-tests` | `local-ci`, `local-smoke`, `firebase-tests` |
 
 Build-only gate inventories are empty. Each gate object has:
 
@@ -247,8 +257,8 @@ Keep input and output outside tracked release history in the operator release
 record, with the ledger pointing to both. Reports contain expected/recorded
 identities, named pass/fail/skip/pending results, missing counts, warning and
 exclusion evidence references, bounded equivalences, limits, and the input
-SHA-256. Keep them with the referenced durable native evidence; a temporary
-signed URL is not a durable reference. Reason/notice text and unrelated extra
+SHA-256 and the manifest's `schemaVersion`. Keep them with the referenced durable
+native evidence; a temporary signed URL is not a durable reference. Reason/notice text and unrelated extra
 input fields are not echoed. A report is only current for that exact manifest;
 rerun when evidence, source, artifact, selected attempt, or adjudication changes.
 
@@ -281,10 +291,17 @@ on copies in the private release record:
 4. Change only a recorded run, SHA, version, build, or artifact. Expect `1` and
    a precise identity-field mismatch. Change a gate source and inventory source
    together away from target: expect `1` without valid bounded equivalence.
-5. Mark inspection pending or a warning blocking/unreviewed: expect `1`.
+5. For new Android evidence, use schema 2 with exactly `cloud-release` and
+   `firebase-tests`; expect no missing local-gate errors. Keep all four exact
+   Device Run sessions and full named inventories. On a copy, change only the
+   schema to 1: expect `2` for missing gate definitions. A retained complete
+   schema-1 Android record still requires all five original gate definitions
+   and results; removing a local result returns `1`. Schema 2 with `platform`
+   set to `ios` returns `2`.
+6. Mark inspection pending or a warning blocking/unreviewed: expect `1`.
    Remove a warning's policy/owner/version/reason/evidence: expect `2`. Remove
    a gate definition or empty a test inventory: expect `2`; remove a gate
    result: expect `1`.
-6. After any passing report, still follow the platform's manual/native/store
+7. After any passing report, still follow the platform's manual/native/store
    verification and authorized submission/publication sequence. Never use a
    report to claim a submitted artifact is publicly live.

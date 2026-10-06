@@ -20,9 +20,9 @@ type Equivalence = {
   reviewedBy: string; reason: string; evidenceRef: string;
 };
 export type Manifest = {
-  schemaVersion: 1; platform: Platform; target: { sourceSha: string; version: string; build: string; artifactId: string };
+  target: { sourceSha: string; version: string; build: string; artifactId: string };
   gates: Gate[]; results: Result[]; equivalences: Equivalence[];
-};
+} & ({ schemaVersion: 1; platform: Platform } | { schemaVersion: 2; platform: "android" });
 type GateReport = {
   id: string; ready: boolean; expectedIdentity: Identity; recordedIdentity: Identity | null;
   evidenceRef: string | null; inventoryRef: string; errors: string[];
@@ -32,10 +32,11 @@ type GateReport = {
   warnings: { id: string; decision: string; owner: string; version: string; policyRef: string; evidenceRef: string }[];
 };
 
-const GATES: Record<Platform, readonly string[]> = {
+const SCHEMA_1_GATES: Record<Platform, readonly string[]> = {
   ios: ["local-archive", "local-smoke", "cloud-archive", "cloud-tests"],
   android: ["local-ci", "local-release", "local-smoke", "cloud-release", "firebase-tests"],
 };
+const ANDROID_CLOUD_GATES: readonly string[] = ["cloud-release", "firebase-tests"];
 const TEST_GATES = new Set(["local-ci", "local-smoke", "cloud-tests", "firebase-tests"]);
 const STATUSES = ["passed", "failed", "skipped", "pending"] as const;
 
@@ -140,28 +141,31 @@ function equivalence(value: unknown, path: string): Equivalence {
 
 export function parseManifest(value: unknown): Manifest {
   const item = object(value, "manifest");
-  if (item.schemaVersion !== 1) invalid("manifest.schemaVersion", "expected 1");
+  const schemaVersion = item.schemaVersion;
+  if (schemaVersion !== 1 && schemaVersion !== 2) invalid("manifest.schemaVersion", "expected 1 or 2");
   const platform = choice(item.platform, ["ios", "android"], "manifest.platform");
+  if (schemaVersion === 2 && platform !== "android") invalid("manifest.platform", "schema 2 requires android; iOS uses schema 1");
+  const requiredGates = schemaVersion === 1 ? SCHEMA_1_GATES[platform] : ANDROID_CLOUD_GATES;
   const target = object(item.target, "manifest.target");
   const gates = array(item.gates, "manifest.gates").map((entry, index) => gate(entry, `manifest.gates[${index}]`));
   const results = array(item.results, "manifest.results").map((entry, index) => result(entry, `manifest.results[${index}]`));
   const equivalences = array(item.equivalences, "manifest.equivalences").map((entry, index) => equivalence(entry, `manifest.equivalences[${index}]`));
   unique(gates.map((entry) => entry.id), "manifest.gates");
   unique(results.map((entry) => entry.gateId), "manifest.results");
-  if (gates.length !== GATES[platform].length || gates.some((entry) => !GATES[platform].includes(entry.id))) invalid("manifest.gates", `must declare exactly ${GATES[platform].join(", ")}`);
-  if (results.some((entry) => !GATES[platform].includes(entry.gateId))) invalid("manifest.results", "unknown gate");
+  if (gates.length !== requiredGates.length || gates.some((entry) => !requiredGates.includes(entry.id))) invalid("manifest.gates", `must declare exactly ${requiredGates.join(", ")}`);
+  if (results.some((entry) => !requiredGates.includes(entry.gateId))) invalid("manifest.results", "unknown gate");
   for (const [index, entry] of gates.entries()) {
     if (TEST_GATES.has(entry.id) && !entry.cases.some((test) => test.disposition === "required")) invalid(`manifest.gates[${index}].cases`, "test gate needs a nonempty required inventory");
     if (!TEST_GATES.has(entry.id) && entry.cases.length !== 0) invalid(`manifest.gates[${index}].cases`, "build gate inventory must be empty");
   }
   for (const [index, entry] of equivalences.entries()) {
-    if (entry.gateIds.some((id) => !GATES[platform].includes(id))) invalid(`manifest.equivalences[${index}].gateIds`, "unknown gate");
+    if (entry.gateIds.some((id) => !requiredGates.includes(id))) invalid(`manifest.equivalences[${index}].gateIds`, "unknown gate");
   }
-  return {
-    schemaVersion: 1, platform,
+  const contents = {
     target: { sourceSha: sha(target.sourceSha, "manifest.target.sourceSha"), version: token(target.version, "manifest.target.version"), build: token(target.build, "manifest.target.build"), artifactId: token(target.artifactId, "manifest.target.artifactId") },
     gates, results, equivalences,
   };
+  return schemaVersion === 1 ? { ...contents, schemaVersion, platform } : { ...contents, schemaVersion, platform: "android" };
 }
 
 function checkGate(gate: Gate, manifest: Manifest): GateReport {
@@ -226,7 +230,7 @@ export function checkReadiness(manifest: Manifest): {
     }
   }
   return {
-    schemaVersion: 1, scope: "recorded-mobile-build-and-test-gates", platform: manifest.platform, target: manifest.target,
+    schemaVersion: manifest.schemaVersion, scope: "recorded-mobile-build-and-test-gates", platform: manifest.platform, target: manifest.target,
     ready: errors.length === 0 && gates.every((gate) => gate.ready), errors, gates,
     equivalences: manifest.equivalences.map(({ reason, ...entry }) => entry),
     limits: [
