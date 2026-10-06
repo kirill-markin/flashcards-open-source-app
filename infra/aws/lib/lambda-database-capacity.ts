@@ -3,7 +3,7 @@
 // retained Lambda environments also draw from the database.
 //
 // The db.t4g.small instance has 181 connections, with 3 reserved for superusers: 178 usable.
-// Main-pool allocation: (8 + 6 + 16 + 16 + 3 + 2) x 3 = 153, leaving 25 for additional draw.
+// Main-pool allocation: (12 + 6 + 16 + 16 + 3 + 2) x 3 = 165, leaving 13 for additional draw.
 // Every budgeted function receives DB_POOL_MAX_CONNECTIONS from here; the backend and auth pool
 // constructors enforce it in apps/backend/src/database/core.ts and apps/auth/src/db.ts.
 //
@@ -20,7 +20,7 @@
 //   GlobalMetricsSnapshotHandler uses reporting; its freshness checker reads S3, not Postgres.
 //   DbMigrationHandler uses a separate owner connection.
 //
-// The remaining 25 connections do not cover simultaneous saturation of these additional pools.
+// The remaining 13 connections do not cover simultaneous saturation of these additional pools.
 // Reservation increases require observed database headroom and post-deploy monitoring; they do
 // not guarantee a whole-fleet worst case or eliminate throttling when demand exceeds a reservation.
 const databasePoolMaxConnectionsPerContainer = 3;
@@ -30,7 +30,7 @@ const minimumDatabasePoolMaxConnectionsPerContainer = 3;
 const usableDatabaseConnections = 178;
 export const databasePoolMaxConnectionsEnvName = "DB_POOL_MAX_CONNECTIONS";
 export const databasePoolMaxConnectionsEnvValue = String(databasePoolMaxConnectionsPerContainer);
-export const backendHandlerReservedConcurrency = 8;
+export const backendHandlerReservedConcurrency = 12;
 export const authHandlerReservedConcurrency = 6;
 export const mcpHandlerReservedConcurrency = 16;
 // SSE holds a container for the whole stream, so concurrency depends on session duration.
