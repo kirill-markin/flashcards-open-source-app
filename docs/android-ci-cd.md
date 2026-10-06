@@ -214,12 +214,12 @@ Configure exact catalog IDs, not model/version descriptors. `ANDROID_DEVICE_RUN_
 | --- | --- | --- | --- | --- |
 | `ANDROID_DEVICE_RUN_DEVICE` | `cubs-37` | Pixel 11 | 37 | High |
 | Compatibility `[0]` | `redfin-30` | Pixel 5 | 30 | High |
-| Compatibility `[1]` | `oriole-31` | Pixel 6 | 31 | High |
+| Compatibility `[1]` | `a21-31` | Galaxy A21 | 31 | Low |
 | Compatibility `[2]` | `oriole-33` | Pixel 6 | 33 | Medium |
 
 Catalog availability can change. For each ID, require `.name` basename to match, `.osVersion` to be its intended API string, `.platform == "ANDROID"`, `.lifecycle.state == "ACTIVE"`, no `accessDeniedReasons`, and an automation entry in `supportedProducts`. Check availability before submission; fail explicitly on an unavailable or inaccessible destination. Record the four actual IDs/APIs and selected targets. No API is silently omitted and no device/version cross-product is generated. API 32 remains supported without a separate release destination.
 
-Set `ANDROID_DEVICE_RUN_COMPAT_DEVICES` to `["redfin-30","oriole-31","oriole-33"]` in the local root `.env` or environment with the latest ID and bucket name, then use `bash scripts/android/setup-github-android.sh` when configuration sync is authorized. The script requires all three Device Run variables; no results-directory variable exists.
+Set `ANDROID_DEVICE_RUN_COMPAT_DEVICES` to `["redfin-30","a21-31","oriole-33"]` in the local root `.env` or environment with the latest ID and bucket name, then use `bash scripts/android/setup-github-android.sh` when configuration sync is authorized. The script requires all three Device Run variables; no results-directory variable exists.
 
 The latest session uses repeated targets `package com.flashcardsopensourceapp.app` and `notAnnotation com.flashcardsopensourceapp.app.ManualOnlyAndroidTest`. Each of the three separate compatibility sessions selects exactly these existing methods on its older destination (each passed as a separate `--test-targets "class <method>"`):
 
