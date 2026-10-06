@@ -5,7 +5,7 @@ required reading, and the mandatory [shared evidence rules](evidence.md) before
 following this procedure.
 
 Apply [Reuse Existing Artifacts](evidence.md#reuse-existing-artifacts) and the
-[Local Mobile Release Gate](evidence.md#local-mobile-release-gate) to this flow.
+[Android Cloud Release Gate](evidence.md#android-cloud-release-gate) to this flow.
 
 For a matching draft or submitted artifact, resume at the remaining
 checks/publication steps without creating a duplicate. For an approved release,
@@ -14,16 +14,14 @@ matching release counts complete under the shared historical evidence rule;
 record its identity and rollout scope at step 9 without reconstructing old logs.
 Otherwise create a new artifact through every gate below.
 
-1. Complete the [local parity commands](../android-ci-cd.md#local-parity-commands):
-   run `bash scripts/android/run-android-ci.sh` from the repository root for
-   the existing checks, debug/test APK builds, and lint; then run
-   `scripts/android/run-android-release.sh` with the documented signing and
-   Sentry inputs to build the optimized Release AAB. A debug build alone does
-   not validate release compilation and R8. Use a local validation version code;
-   the cloud workflow still assigns the published version code. Run the existing
-   `LiveSmokeTest` on one local emulator at the supported Android target using
-   the linked instructions. Inspect logs and lint/test reports under the [shared local
-   gate](evidence.md#local-mobile-release-gate). A temporary validation-only keystore need not be the registered Play upload key; keep its bundle local and publish only the cloud-signed AAB.
+1. Pin the intended release SHA and confirm its required
+   `Repository static checks` passed. Use a checkout with no uncommitted source
+   changes and apply the [cloud-first gate](evidence.md#android-cloud-release-gate).
+   Use the linked local parity commands only for diagnosis or uncovered
+   OS-specific behavior; routine dispatch does not require duplicate local CI,
+   Release builds or emulator smokes. Check whether the
+   [API 30 walkthrough](#first-release-api-30-walkthrough) is applicable and
+   retain or plan its evidence before publication.
 2. Dispatch `Android Release` (`.github/workflows/android-release.yml`) with
    `Git SHA to release` (`target_sha`) set to the release commit. Record its
    target SHA, run/attempt, version code, and release identifier from the summary.
@@ -60,8 +58,10 @@ Otherwise create a new artifact through every gate below.
    alone do not prove the distributed minimum. Device Run exercises the
    debug APKs from that SHA; the production artifact is the signed AAB from
    the same release run.
-   Before publishing the first API-30-compatible release, complete the
-   [API 30 walkthrough](#first-release-api-30-walkthrough) and retain its evidence.
+   Before publishing the first API-30-compatible release or a change affecting
+   its OS-specific behavior, complete the applicable
+   [API 30 walkthrough](#first-release-api-30-walkthrough) checks and retain their evidence.
+   Reuse completed first-release evidence when that behavior is unchanged.
 7. Fill the localized release notes from the chat, review the draft and required
    translations, and complete the production publication controls for that
    exact bundle. Keep its identity pinned; do not select a newer unrelated
@@ -84,8 +84,8 @@ Otherwise create a new artifact through every gate below.
    channel open as propagation pending or blocked according to evidence.
 
 Completion: all four Device Run sessions, all four configured destinations, GitHub
-and local gates pass before new publication, and the exact production version
-is public at the intended rollout scope.
+and applicable OS-specific checks pass before new publication, and the exact
+production version is public at the intended rollout scope.
 Already-published matching releases use the shared historical evidence rule.
 Submission or review approval alone leaves this channel open
 under the [canonical completion contract](README.md#release-inventory-and-completion).
@@ -95,9 +95,17 @@ checks: [Android CI/CD](../android-ci-cd.md).
 
 ## First-release API 30 walkthrough
 
-Use an Android 11 / API 30 device with the release candidate for the same SHA,
-record the build identity and device, and retain screenshots/logs for failures.
-Keep the usual latest-device preflight and checks as well.
+Complete this walkthrough for the first API-30-compatible release. For later
+releases, repeat only steps affected by OS-specific behavior changes; unchanged
+behavior does not require recurring manual scrolling, reset or offline checks.
+Reuse the completed first-release evidence, recording its source/build/device,
+results and why the current changes leave the exercised behavior applicable.
+Use the shared source-comparison rules when the artifact source differs.
+
+When applicable, use an Android 11 / API 30 device with the release candidate
+for the same SHA, record the build identity and device, and retain
+screenshots/logs for failures. Keep the full latest Device Run selection and
+all three older-OS smoke sessions as well.
 
 1. Open the intended linked test workspace, go offline, create a card with a
    question on the front and answer on the back, reveal/rate it and verify it
@@ -117,4 +125,4 @@ Keep the usual latest-device preflight and checks as well.
    reminder time and background delivery evidence; WorkManager delivery follows
    Android battery/background scheduling.
 
-Failure blocks the first compatible release until fixed and rechecked.
+Failure blocks the applicable release until fixed and rechecked.
