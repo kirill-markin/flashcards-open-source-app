@@ -8,9 +8,9 @@ required reading. These common gates apply to the linked platform procedures.
 Keep a separate release ledger in the operator's chat or release record, not a
 historical status table in these permanent docs. Use one small row per channel:
 
-| Channel / target | Source and artifact | Gate evidence | Operator completion | Observed public state | Follow-up |
-| --- | --- | --- | --- | --- | --- |
-| Name / version | SHA, build/package identity, run | CI, smoke, skip/warning evidence or historical gaps | Complete/pending/blocked/excluded; accepted request or publication identity/time | Submitted/review pending/approved/propagation pending/live/unchanged verified; URL, version, time, storefront/rollout scope | External review or later operator action; future fixes |
+| Channel / target | Source and artifact | Gate evidence | Required operator actions | Provider/store state and publishing mode | Observed public availability | Remaining action |
+| --- | --- | --- | --- | --- | --- | --- |
+| Name / version | SHA, build/package identity, run | CI, smoke, skip/warning evidence or historical gaps | Complete/pending/blocked/excluded at the canonical boundary; accepted request/publication identity and time | Submitted/review pending/approved/rejected; saved automatic/manual/managed mode, or not applicable | Pending/live/unchanged verified; URL, observed version/time and storefront/rollout scope | External dependency or exact human/operator action, owner and condition; future fixes |
 
 Keep secrets and reviewer credentials out. Mark operator completion only at the
 [canonical boundary](README.md#release-inventory-and-completion); it does not
@@ -18,6 +18,12 @@ change the observed public state. Record exclusions and their scope. OpenAI
 initial publication is excluded by the routine-release policy until a separately
 scoped initial launch; preserve its existing submission identity through the
 [companion procedure](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md).
+
+Use these same rows for handoff. While external review is pending, preserve the
+submission identity and next action instead of extending the run with polling
+or rebuilding/resubmitting an unchanged artifact. Record any later manual publication action.
+Android remains open until public at its selected rollout scope; iOS automatic
+submission can be operator-complete while review/public availability remains pending.
 
 Before a new mobile submission/publication, follow the [recorded mobile readiness procedure](readiness.md)
 and retain its manifest and JSON report alongside the ledger in the operator's

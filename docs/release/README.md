@@ -45,6 +45,56 @@ mandatory when following a linked procedure directly.
 Here, "manual" means explicitly dispatched rather than automatically triggered
 by a push; either a human or an authorized AI can operate workflows and consoles.
 
+## Release Sequence
+
+Use this routine checklist; the linked procedures own the detailed gates.
+
+1. **Resume or choose a version.** Inspect the [ledger](evidence.md#release-ledger),
+   current publications and [inventory](mcp-and-plugins.md#release-inventory).
+   [Reuse matching artifacts](evidence.md#reuse-existing-artifacts); for a new
+   release, obtain the [version choice](versioning.md#release-preparation).
+2. **Preflight remaining work.** Check the essentials below before expensive
+   local work, downloads or dispatches; reused artifacts resume at their next unfinished step.
+3. **Merge preparation.** Align app/companion versions through normal PR/cloud
+   CI, [verify them](versioning.md#verify-the-release-version), pin both SHAs and
+   prepare reusable [release notes](release-notes.md) in the chat. Keep that version through fixes.
+4. **Run platform flows in parallel.** Follow the [platform procedures](#required-reading):
+   complete required iOS local gates before Xcode Cloud dispatch, use Android's
+   [cloud-first gate](evidence.md#android-cloud-release-gate), and prepare metadata while builds run.
+5. **Verify results and artifacts.** Inspect native results, warnings, source/build
+   correlation, uploaded binaries and saved metadata under those procedures;
+   retain [readiness evidence](evidence.md#release-ledger) before new mobile submission/publication.
+6. **Complete distribution actions.** Submit/publish the exact verified artifacts
+   and existing channel updates to their [completion boundaries](#release-inventory-and-completion).
+7. **Preserve and close out.** Verify app/companion [tags, Releases and package assets](versioning.md#github-tag-and-release),
+   then apply [closeout and development safeguards](versioning.md#release-closeout-and-development).
+   Tags/assets may be needed earlier by a channel or preserved while external review continues; retain the selected version.
+8. **Hand off actual states.** Report [channel status and remaining actions](evidence.md#release-ledger),
+   public links, both Releases/source SHAs and retained version. Separate completed work from external review and public availability.
+
+On failure, inspect evidence, fix and merge through normal CI, then repeat only
+affected gates and revalidate artifact reuse. Update the target SHA and notes.
+If a fix affects an already published artifact, ask the user how to handle that platform.
+
+### Early preflight
+
+- Before required local Xcode work or runtime downloads, check available disk
+  against the actual archive/result/runtime needs; there is no universal free-space threshold.
+  Inspect installed [iOS runtimes/devices](../ios-local-setup.md#local-testing-rules)
+  and the actual [Cloud catalog](../ios-ci-cd.md#supported-os-destinations).
+- Verify authenticated access for the remaining provider/store actions and the
+  [saved Xcode Cloud configuration](../ios-ci-cd.md#cloud-configuration-preflight).
+  Check all four configured [Device Run destinations](../android-ci-cd.md#choose-the-device-run-devices)
+  before new Android dispatch. Resolve access blockers only where needed; preserve reusable artifacts.
+
+Machine/provider setup, legal acceptance and runtime provisioning are setup work;
+repeat them only when missing or newly required. Older-OS manual walkthroughs
+apply to first support expansion or affected OS-specific changes, as defined in
+[iOS](ios.md) and [Android](android.md#first-release-api-30-walkthrough).
+For every new iOS release, the [three automated iOS 18 smokes](../ios-local-setup.md#ios-18-compatibility-smoke)
+still run locally when Cloud cannot provide that independent selection.
+Keep the full latest-OS suite and Android's four sequential Device Run sessions.
+
 ## Release Inventory and Completion
 
 For each channel, inspect the existing publication first. Verify/reuse unchanged
@@ -127,40 +177,3 @@ available. Reuse documented qualifying decisions under this standing policy
 without repeated user approval. Changes to product/security behavior, broader
 dependency replacement, SDK forks or internal patches, and incompatible
 dependency overrides require separate scope and authorization.
-
-## Release Sequence
-
-1. Identify the last coordinated release version/tag, current app and companion
-   source versions, and any prepared or partly published release in the
-   [ledger](evidence.md#release-ledger). Reconcile the [inventory](mcp-and-plugins.md#release-inventory).
-   For a new release, obtain the user's patch/minor/major choice or exact target
-   under [release preparation](versioning.md#release-preparation). Resume a recorded
-   target without another bump.
-2. Align all app and companion version sources through normal PR/cloud CI,
-   [verify the release version](versioning.md#verify-the-release-version), and
-   record each resulting source SHA before release builds, registry publication,
-   provider packages, or release metadata. Prepare the [release notes](release-notes.md)
-   as reusable texts in the chat. Keep this version throughout fixes and publication.
-3. Reuse matching artifacts first. For new iOS artifacts, complete the
-   mandatory [local preflight](evidence.md#local-mobile-release-gate)
-   before cloud dispatch. New Android artifacts follow the
-   [cloud-first gates](evidence.md#android-cloud-release-gate).
-   Start the necessary Android, iOS, MCP Registry, and companion publication
-   flows in parallel; prepare metadata while builds and review run.
-4. Complete [platform procedures](#required-reading) and the existing
-   [directory updates](mcp-and-plugins.md#release-inventory) through their operator
-   completion boundaries above. Record external review/propagation as follow-up.
-   On failure before publication, inspect evidence, fix and merge through normal CI,
-   then repeat affected gates. Update the target SHA/notes and revalidate reuse
-   of unaffected artifacts. If a fix affects an already published artifact,
-   ask the user how to handle that platform before proceeding.
-5. Preserve the release commits and publish/verify the app and companion
-   [tags, Releases, and package assets](versioning.md#github-tag-and-release). This may happen
-   while external review continues or when a distribution channel needs those
-   assets; a GitHub Release alone does not satisfy a channel's boundary.
-6. After the operator completion boundaries above,
-   complete [release closeout and development safeguards](versioning.md#release-closeout-and-development).
-   Retain the selected version in both repositories; do not pre-bump development.
-7. Report the ledger's actual channel states, public links, app/companion
-   Releases and source SHAs, retained version, and external follow-up or later
-   operator actions separately from completed release work.
