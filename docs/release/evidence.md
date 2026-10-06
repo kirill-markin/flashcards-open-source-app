@@ -55,8 +55,11 @@ changed the root SHA. For a matching artifact, continue at the next unfinished
 step; an approved or live binary does not need another build or submission.
 
 For an artifact awaiting a new publication/submission, retain the original
-gates: recover local preflight logs, cloud runs, artifact identity, and actual
-smoke/test results. For Android, correlate the signed AAB, version code, GitHub
+gates and their recorded contract: recover required local preflight logs,
+cloud runs, artifact identity, and actual smoke/test results. New Android
+artifacts use the cloud-first gates below; retained schema-1 readiness records
+keep their original local and cloud requirements. For Android, correlate the
+signed AAB, version code, GitHub
 run/attempt and all four exact completed Device Run sessions, job labels and named
 case results. For iOS, recover both archive and test
 workflows and the uploaded build identity. Record passed/failed/skipped cases,
@@ -71,7 +74,7 @@ retrospective preflight. Record the evidence honestly; do not reopen completed
 publication for optional tests. This does not waive fixes before the next
 release, or turn an identity mismatch into a matching artifact.
 
-Newly dispatched artifacts must still pass every local and cloud gate in their platform procedures.
+Newly dispatched artifacts must still pass every required gate in their platform procedures.
 Before a new publication/submission, apply the
 [release warning policy](README.md#release-warning-policy), including its required
 evidence for qualifying notices. Reuse valid results when relevant inputs have
@@ -82,8 +85,8 @@ or diagnosed access blockers, including final store publication.
 
 ## Local Mobile Release Gate
 
-Before dispatching either mobile platform's cloud release, complete its local
-preflight in the [iOS](ios.md) or [Android](android.md) procedure on the intended release SHA with no uncommitted source changes.
+Before dispatching an iOS cloud release, complete its local preflight in the
+[iOS](ios.md) procedure on the intended release SHA with no uncommitted source changes.
 Use the platform's supported SDK/toolchain and production build configuration.
 This local release gate is mandatory even when PR checks are already green.
 
@@ -102,3 +105,27 @@ environments, managed-device tests, and store processing can fail independently;
 still run and inspect them, including their errors and warnings. After cloud
 failures require source fixes, repeat the affected local preflight before
 retrying the cloud flow.
+
+## Android Cloud Release Gate
+
+For new Android artifacts, follow the [Android procedure](android.md) on the
+intended release SHA with no uncommitted source changes. Require the complete
+`Android Release` workflow, cloud checks and optimized signed Release AAB,
+and all four sequential Device Run sessions with their complete named results.
+Retain full logs and reports, inspect diagnostics under the
+[release warning policy](README.md#release-warning-policy), and preserve
+source/run/attempt/artifact correlation. A green summary does not replace
+native results or signed-binary verification.
+
+The [local parity commands](../android-ci-cd.md#local-parity-commands) remain
+available for diagnosis and OS-specific behavior that cloud selection does not
+cover. Local CI, Release builds and emulator smokes are not recurring
+pre-dispatch prerequisites; missing local Android SDKs or upload keys do not
+block cloud dispatch. Record any diagnostic execution and its outcome in the
+ledger. A known failure still blocks publication until resolved.
+
+After a source-affecting fix, merge through normal CI and repeat affected cloud
+gates for the corrected SHA under the reuse rules above. Repeat applicable
+OS-specific checks when their exercised behavior changes; reuse the completed
+first API 30 walkthrough when those inputs remain applicable. Store checks and
+publication completion remain mandatory under the platform procedure.

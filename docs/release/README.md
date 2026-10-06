@@ -38,7 +38,7 @@ mandatory when following a linked procedure directly.
 | Platform/topic | Procedure |
 | --- | --- |
 | iOS | [Local preflight, Xcode Cloud, App Review, and publication](ios.md) |
-| Android | [Local preflight, Device Run, and Play publication](android.md) |
+| Android | [Cloud validation, Device Run, and Play publication](android.md) |
 | Web and backend | [Deployment and public runtime verification](web-backend.md) |
 | MCP and plugins | [Canonical channel inventory, directories, website links, and publication](mcp-and-plugins.md) |
 
@@ -62,7 +62,7 @@ submission, approval, and a portal's **Published** label alone do not prove it.
 | Channel | Operator completion boundary |
 | --- | --- |
 | iOS | Exact version/build successfully submitted for review with automatic release after approval enabled and its saved setting verified. In manual mode, complete any available final release action and record a later action still awaiting approval as follow-up. |
-| Android | Exact production version is publicly available at the selected rollout scope, after the required GitHub/Device Run and local gates. |
+| Android | Exact production version is publicly available at the selected rollout scope, after the required GitHub/Device Run gates and applicable OS-specific checks. |
 | Web/backend and MCP Registry | Intended deployment/runtime or registry version is verified under its procedure. |
 | Established connector/plugin/directory channels | Required CI/scans and focused checks passed, and the exact update/publication request was accepted, or the unchanged publication was verified. |
 
@@ -141,9 +141,10 @@ dependency overrides require separate scope and authorization.
    record each resulting source SHA before release builds, registry publication,
    provider packages, or release metadata. Prepare the [release notes](release-notes.md)
    as reusable texts in the chat. Keep this version throughout fixes and publication.
-3. Reuse matching artifacts first. For new mobile artifacts, complete the
-   mandatory [local preflights](evidence.md#local-mobile-release-gate)
-   before the corresponding cloud dispatch, preserving all local/cloud gates.
+3. Reuse matching artifacts first. For new iOS artifacts, complete the
+   mandatory [local preflight](evidence.md#local-mobile-release-gate)
+   before cloud dispatch. New Android artifacts follow the
+   [cloud-first gates](evidence.md#android-cloud-release-gate).
    Start the necessary Android, iOS, MCP Registry, and companion publication
    flows in parallel; prepare metadata while builds and review run.
 4. Complete [platform procedures](#required-reading) and the existing
