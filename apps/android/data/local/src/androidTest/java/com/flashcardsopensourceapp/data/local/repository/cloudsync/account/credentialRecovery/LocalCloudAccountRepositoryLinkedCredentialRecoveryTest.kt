@@ -39,7 +39,7 @@ class LocalCloudAccountRepositoryLinkedCredentialRecoveryTest {
     }
 
     @Test
-    fun prepareVerifiedSignInPrefersRecoveredWorkspaceDuringLinkedCredentialRecovery() = runBlocking {
+    fun verifiedSignInPrefersRecoveredWorkspaceDuringRecovery() = runBlocking {
         val localWorkspaceId = environment.requireLocalWorkspaceId()
         val installationId = environment.cloudPreferencesStore.currentCloudSettings().installationId
         val remoteGateway = FakeCloudRemoteGateway.forAccountSnapshot(
@@ -401,7 +401,7 @@ class LocalCloudAccountRepositoryLinkedCredentialRecoveryTest {
     }
 
     @Test
-    fun linkedCredentialRecoveryRejectsFormerLinkedWorkspaceWhenActiveWorkspaceDiffers() = runBlocking {
+    fun recoveryRejectsFormerWorkspaceWhenActiveWorkspaceDiffers() = runBlocking {
         val localWorkspaceId = environment.requireLocalWorkspaceId()
         val installationId = environment.cloudPreferencesStore.currentCloudSettings().installationId
         val cardId = environment.seedWorkspaceData(workspaceId = localWorkspaceId)
@@ -465,7 +465,7 @@ class LocalCloudAccountRepositoryLinkedCredentialRecoveryTest {
     }
 
     @Test
-    fun linkedCredentialRecoveryRejectsCreateNewWhenRecoveredWorkspaceIsUnavailable() = runBlocking {
+    fun recoveryRejectsCreateNewWhenRecoveredWorkspaceUnavailable() = runBlocking {
         val localWorkspaceId = environment.requireLocalWorkspaceId()
         val installationId = environment.cloudPreferencesStore.currentCloudSettings().installationId
         val cardId = environment.seedWorkspaceData(workspaceId = localWorkspaceId)
@@ -571,7 +571,7 @@ class LocalCloudAccountRepositoryLinkedCredentialRecoveryTest {
     }
 
     @Test
-    fun completeCloudLinkKeepsLinkedCredentialRecoveryWhenSignedInAccountDiffers() = runBlocking {
+    fun cloudLinkKeepsRecoveryWhenSignedInAccountDiffers() = runBlocking {
         val localWorkspaceId = environment.requireLocalWorkspaceId()
         val installationId = environment.cloudPreferencesStore.currentCloudSettings().installationId
         val cardId = environment.seedWorkspaceData(workspaceId = localWorkspaceId)

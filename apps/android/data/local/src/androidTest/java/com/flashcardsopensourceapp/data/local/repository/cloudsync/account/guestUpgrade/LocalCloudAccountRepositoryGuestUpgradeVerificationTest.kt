@@ -169,7 +169,7 @@ class LocalCloudAccountRepositoryGuestUpgradeVerificationTest {
      * `/guest-auth/identity/link` to claim afterwards.
      */
     @Test
-    fun verifyCodeSkipsGuestUpgradeForAnalyticsOnlyGuestAndSignInRequestsIdentityLink() = runBlocking {
+    fun verifySkipsUpgradeForAnalyticsGuestAndSignInRequestsIdentityLink() = runBlocking {
         val localWorkspaceId: String = environment.requireLocalWorkspaceId()
         val remoteWorkspace: CloudWorkspaceSummary = createCloudWorkspaceSummary(
             workspaceId = "workspace-remote",
@@ -240,7 +240,7 @@ class LocalCloudAccountRepositoryGuestUpgradeVerificationTest {
     }
 
     @Test
-    fun verifyCodeSkipsGuestUpgradeWhenStoredSessionTargetsAnotherServerConfiguration() = runBlocking {
+    fun verifySkipsGuestUpgradeWhenSessionTargetsAnotherServer() = runBlocking {
         val localWorkspaceId = environment.requireLocalWorkspaceId()
         val remoteGateway = FakeCloudRemoteGateway.forGuestUpgrade(
             guestUpgradeMode = CloudGuestUpgradeMode.BOUND,

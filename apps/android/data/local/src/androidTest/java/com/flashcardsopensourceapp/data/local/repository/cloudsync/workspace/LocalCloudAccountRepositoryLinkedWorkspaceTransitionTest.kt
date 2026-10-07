@@ -39,7 +39,7 @@ class LocalCloudAccountRepositoryLinkedWorkspaceTransitionTest {
     }
 
     @Test
-    fun switchLinkedWorkspaceToCreateNewReplacesCurrentLocalWorkspaceWhenRemoteWorkspaceIsEmpty() = runBlocking {
+    fun switchToCreateNewReplacesLocalWorkspaceWhenRemoteIsEmpty() = runBlocking {
         val initialLocalWorkspaceId = environment.requireLocalWorkspaceId()
         val createdWorkspace = createCloudWorkspaceSummary(
             workspaceId = "workspace-new",
@@ -64,7 +64,7 @@ class LocalCloudAccountRepositoryLinkedWorkspaceTransitionTest {
     }
 
     @Test
-    fun renameCurrentWorkspaceTargetsCreatedLinkedWorkspaceAfterCreateNewTransition() = runBlocking {
+    fun renameTargetsCreatedLinkedWorkspaceAfterCreateNewTransition() = runBlocking {
         val initialLocalWorkspaceId = environment.requireLocalWorkspaceId()
         val createdWorkspace = createCloudWorkspaceSummary(
             workspaceId = "workspace-new",
@@ -89,7 +89,7 @@ class LocalCloudAccountRepositoryLinkedWorkspaceTransitionTest {
     }
 
     @Test
-    fun completeCloudLinkToExistingWorkspaceReplacesLocalShellAndKeepsRenameTargetAligned() = runBlocking {
+    fun cloudLinkReplacesLocalShellAndKeepsRenameTargetAligned() = runBlocking {
         val linkedWorkspace = createCloudWorkspaceSummary(
             workspaceId = "workspace-linked",
             name = "Linked Workspace",
@@ -127,7 +127,7 @@ class LocalCloudAccountRepositoryLinkedWorkspaceTransitionTest {
     }
 
     @Test
-    fun completeLinkedWorkspaceTransitionPreservesBlockedSyncStateWhenInitialSyncBlocks() = runBlocking {
+    fun transitionKeepsBlockedStateWhenInitialSyncBlocks() = runBlocking {
         val initialLocalWorkspaceId = environment.requireLocalWorkspaceId()
         val installationId = environment.cloudPreferencesStore.currentCloudSettings().installationId
         val remoteGateway = FakeCloudRemoteGateway.forBootstrapPushScenario(

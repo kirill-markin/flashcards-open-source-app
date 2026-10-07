@@ -181,7 +181,7 @@ class LocalSyncRepositoryReviewHistoryImportRecoveryTest {
     }
 
     @Test
-    fun syncResumesReviewHistoryImportAfterBootstrapPushCrashWhenRemoteIsNoLongerEmpty() = runBlocking {
+    fun syncResumesHistoryImportAfterBootstrapPushCrashWithNonemptyRemote() = runBlocking {
         val workspaceId = environment.requireLocalWorkspaceId()
         environment.seedWorkspaceData(workspaceId = workspaceId)
         val baseGateway = FakeCloudRemoteGateway.forBootstrapPushScenario(
