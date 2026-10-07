@@ -15,6 +15,7 @@ following this procedure.
 | Claude connector and plugin | Verify runtime and accepted updates to the [connector](https://claude.ai/directory/nibomo) and separate plugin; record each public state under the [Anthropic gate](mcp-and-plugins.md#anthropic-connector-and-plugin). |
 | Smithery | Verify/update the [existing server](https://smithery.ai/servers/kirill-fofi/nibomo), endpoint, health, auth, and discovered tools. |
 | Glama | Verify/update the [existing connector](https://glama.ai/mcp/connectors/com.nibomo/flashcards), endpoint, health, auth, and discovered tools. |
+| Cursor Directory | Verify/update the [existing Nibomo plugin](https://cursor.directory/plugins/nibomo), source, MCP configuration, and shared skills under the [Cursor Directory procedure](#cursor-directory). |
 | Gemini CLI | Verify the [gallery entry](https://geminicli.com/extensions/?name=kirill-markinnibomo-plugins) and released install/update source and version. |
 | Executor | Verify/update the [existing public app](https://v2.executor.sh/apps/nibomo/nibomo) through the companion's **Executor Publish** workflow; follow the [Executor procedure](#executor). |
 | OpenAI | Initial publication is excluded from routine release until a separately scoped initial launch establishes this channel. Preserve the existing submission identity and procedure in the companion repository; a disabled website button is not a public listing. |
@@ -82,6 +83,26 @@ Completion: the intended version and manifest are verified at the public
 registry endpoint and linked to successful workflow evidence. Registry versions
 are immutable: do not republish a version or bump just to retry. A conflicting
 published manifest blocks this channel and needs an explicit resolution.
+
+## Cursor Directory
+
+Use the existing [Nibomo plugin listing](https://cursor.directory/plugins/nibomo).
+
+1. Compare its public source link with
+   [`kirill-markin/nibomo-plugins`](https://github.com/kirill-markin/nibomo-plugins)
+   and the intended companion source. Verify the displayed MCP configuration
+   uses `https://mcp.nibomo.com/mcp`, the Nibomo account/OAuth instructions,
+   and the three shared create, study, and improve skills.
+2. Update the existing listing when its source, configuration, skills, or
+   metadata changes. Reuse valid unchanged shared runtime and client evidence
+   under the [inventory verification policy](#release-inventory); run only
+   affected checks before requesting an update.
+3. Record the listing URL, observed source/configuration/skills, applicable
+   gate evidence, and any accepted update request in the
+   [release ledger](evidence.md#release-ledger). Verified unchanged content or
+   an accepted required update completes the operator action under the
+   [common completion rule](README.md#release-inventory-and-completion).
+   Record external review or propagation separately from observed public state.
 
 ## Executor
 
