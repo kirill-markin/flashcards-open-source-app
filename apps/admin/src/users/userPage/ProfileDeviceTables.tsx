@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type JSX } from "react";
+import { useEffect, useRef, useState, type JSX } from "react";
 import type { AdminAppConfig } from "../../config";
 import { DataTable } from "../../table/DataTable";
 import {
@@ -142,9 +142,10 @@ function ProfileDeviceTable<Row>(props: Readonly<{
   config: AdminAppConfig;
   userId: string;
   list: ProfileDeviceList<Row>;
+  isActive: boolean;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
 }>): JSX.Element {
-  const { config, userId, list, onTerminalAdminError } = props;
+  const { config, userId, list, isActive, onTerminalAdminError } = props;
   const label = list.query.label;
   const [loadState, setLoadState] = useState<LoadState<Row>>({ status: "loading" });
   const [revision, setRevision] = useState<number>(0);
@@ -157,10 +158,11 @@ function ProfileDeviceTable<Row>(props: Readonly<{
   // Only a table that already shows a page waits for the debounce; the first load has nothing to coalesce.
   const hasLoadedPageRef = useRef<boolean>(false);
 
-  const replaceTableState = useCallback((nextState: DataTableState): void => {
-    setTableState(nextState);
-    writeTableStateToUrl(nextState, list);
-  }, [list]);
+  // The URL belongs to the tab on screen: a hidden table only keeps its state, and writes it back each
+  // time the Profile tab is shown again.
+  useEffect(() => {
+    if (isActive) writeTableStateToUrl(tableState, list);
+  }, [isActive, list, tableState]);
 
   // Blind to the table state, so neither a table change nor the clamp re-request asks for them again.
   useEffect(() => {
@@ -201,7 +203,7 @@ function ProfileDeviceTable<Row>(props: Readonly<{
         // last page the table shows instead.
         const clampedPage = clampDataTablePage(requestedState.page, result.totalCount);
         if (clampedPage !== requestedState.page) {
-          replaceTableState({ ...requestedState, page: clampedPage });
+          setTableState({ ...requestedState, page: clampedPage });
           return;
         }
         hasLoadedPageRef.current = true;
@@ -229,7 +231,7 @@ function ProfileDeviceTable<Row>(props: Readonly<{
       isSuperseded = true;
       window.clearTimeout(reloadTimeoutId);
     };
-  }, [config, label, list, onTerminalAdminError, replaceTableState, revision, tableState, userId]);
+  }, [config, label, list, onTerminalAdminError, revision, tableState, userId]);
 
   const testId = `user-profile-${list.id}`;
   return (
@@ -255,7 +257,7 @@ function ProfileDeviceTable<Row>(props: Readonly<{
         rowKey={list.rowKey}
         rowClassName={getRowClassName}
         state={tableState}
-        onStateChange={replaceTableState}
+        onStateChange={setTableState}
         server={{
           totalCount: loadState.result.totalCount,
           enumOptionsByColumnId: enumOptionsState.status === "ready" ? enumOptionsState.options : emptyEnumOptions(list.query.enumColumnIds),
@@ -270,13 +272,15 @@ function ProfileDeviceTable<Row>(props: Readonly<{
 export function ProfileDeviceTables(props: Readonly<{
   config: AdminAppConfig;
   userId: string;
+  /** Whether the Profile tab is the one shown; it stays mounted while hidden. */
+  isActive: boolean;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
 }>): JSX.Element {
   return (
     <>
-      <ProfileDeviceTable config={props.config} userId={props.userId} list={installationsList} onTerminalAdminError={props.onTerminalAdminError} />
-      <ProfileDeviceTable config={props.config} userId={props.userId} list={installationProfilesList} onTerminalAdminError={props.onTerminalAdminError} />
-      <ProfileDeviceTable config={props.config} userId={props.userId} list={replicasList} onTerminalAdminError={props.onTerminalAdminError} />
+      <ProfileDeviceTable config={props.config} userId={props.userId} list={installationsList} isActive={props.isActive} onTerminalAdminError={props.onTerminalAdminError} />
+      <ProfileDeviceTable config={props.config} userId={props.userId} list={installationProfilesList} isActive={props.isActive} onTerminalAdminError={props.onTerminalAdminError} />
+      <ProfileDeviceTable config={props.config} userId={props.userId} list={replicasList} isActive={props.isActive} onTerminalAdminError={props.onTerminalAdminError} />
     </>
   );
 }
