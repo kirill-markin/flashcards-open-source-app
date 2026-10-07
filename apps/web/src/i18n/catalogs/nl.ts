@@ -927,12 +927,14 @@ const nlCatalog: TranslationCatalog = {
     subtitle: "Bepaal welke reactieanimaties na het beoordelen van kaarten verschijnen.",
     toggleTitle: "Animaties tonen na het beoordelen van een kaart",
     toggleDescription: "Dit geldt alleen voor de reactieanimaties bij herhalingen.",
+    premiumNote: "Herhalingsanimaties aanpassen is inbegrepen bij Premium. Je opgeslagen keuze keert terug zodra Premium actief is.",
   },
   aiChatSuggestionsSettings: {
     title: "AI-chatsuggesties",
     subtitle: "Bepaal of er voorgestelde prompts in het invoerveld van de AI-chat verschijnen.",
     toggleTitle: "Suggesties tonen in het invoerveld van de AI-chat",
     toggleDescription: "Voorgestelde prompts verschijnen boven het invoerveld wanneer de chat klaar is en niets doet.",
+    premiumNote: "AI-chatsuggesties aanpassen is inbegrepen bij Premium. Je opgeslagen keuze keert terug zodra Premium actief is.",
   },
   ownOpenAIKeySettings: {
     title: "Je OpenAI-sleutel",

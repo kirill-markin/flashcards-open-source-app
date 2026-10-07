@@ -927,12 +927,14 @@ const koCatalog: TranslationCatalog = {
     subtitle: "카드를 평가한 뒤 나오는 리액션 애니메이션을 설정합니다.",
     toggleTitle: "카드 평가 후 애니메이션 표시",
     toggleDescription: "복습 리액션 애니메이션에만 적용됩니다.",
+    premiumNote: "복습 애니메이션 사용자 지정은 Premium에 포함됩니다. Premium이 활성화되면 저장한 선택이 다시 적용됩니다.",
   },
   aiChatSuggestionsSettings: {
     title: "AI 채팅 추천",
     subtitle: "AI 채팅 입력창의 추천 프롬프트 칩을 설정합니다.",
     toggleTitle: "AI 채팅 입력창에 추천 표시",
     toggleDescription: "채팅이 대기 상태일 때 입력창 위에 추천 프롬프트가 나타납니다.",
+    premiumNote: "AI 채팅 추천 사용자 지정은 Premium에 포함됩니다. Premium이 활성화되면 저장한 선택이 다시 적용됩니다.",
   },
   ownOpenAIKeySettings: {
     title: "내 OpenAI 키",

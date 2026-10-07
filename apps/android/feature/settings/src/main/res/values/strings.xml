@@ -76,6 +76,7 @@
     <string name="settings_section_share">Share</string>
     <string name="settings_section_feedback">Feedback</string>
     <string name="settings_section_account">Account</string>
+    <string name="settings_section_style">Style</string>
     <string name="settings_section_general">General</string>
     <string name="settings_section_support">Support</string>
     <string name="settings_section_advanced">Advanced</string>
@@ -150,6 +151,8 @@
     <string name="settings_language_body">This opens Android\'s language setting for Nibomo. To change every app on this device, use Android Settings > System > Languages.</string>
     <string name="settings_language_supported_languages_title">Supported languages</string>
     <string name="settings_language_open_android_settings">Open app language settings</string>
+    <string name="settings_language_device_body">On this Android version, Nibomo uses your device language. Changing it applies to every app on this device.</string>
+    <string name="settings_language_open_device_settings">Open language settings</string>
     <string name="settings_decks_summary">Manage decks in this workspace</string>
     <string name="settings_tags_summary">Browse tags used by workspace cards</string>
     <string name="settings_scheduling_title">Scheduling / FSRS</string>

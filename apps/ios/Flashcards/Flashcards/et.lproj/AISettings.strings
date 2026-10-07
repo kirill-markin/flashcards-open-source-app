@@ -850,7 +850,7 @@
 "settings.language.supported.zulu" = "Suulu";
 
 "premium.offer.title" = "Premium";
-"premium.offer.benefits" = "1000 tehisintellekti sõnumit kuus ja kohandatud aktsentvärvid. Sünkroonimine on kõigile tasuta.";
+"premium.offer.benefits" = "1000 tehisintellekti sõnumit kuus ja kohandatud stiilid. Sünkroonimine on kõigile tasuta.";
 "premium.aiLimit.title" = "AI-sõnumite limiit on täis";
 
 "settings.accentColor.title" = "Rõhuvärv";
@@ -863,6 +863,8 @@
 "settings.accentColor.custom" = "Kohandatud värv";
 "settings.accentColor.invalidHex" = "Sisesta värv kujul #RRGGBB kuue kuueteistkümnendsüsteemi numbriga.";
 "settings.accentColor.premiumNote" = "Kohandatud rõhuvärvid on saadaval Premiumiga. Salvestatud värv taastub, kui Premium on aktiivne.";
+"settings.reviewAnimations.premiumNote" = "Kordamise animatsioonide väljalülitamine on saadaval Premiumiga. Salvestatud seade taastub, kui Premium on aktiivne.";
+"settings.aiChatSuggestions.premiumNote" = "Tehisintellekti vestluse soovituste väljalülitamine on saadaval Premiumiga. Salvestatud seade taastub, kui Premium on aktiivne.";
 
 "premium.apple.monthlyProduct" = "%@ · Igakuine";
 "premium.apple.renewal" = "Uueneb automaatselt kuni tühistamiseni. Halda või tühista App Store’i tellimustes.";

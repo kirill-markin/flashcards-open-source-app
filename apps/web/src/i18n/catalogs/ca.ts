@@ -927,12 +927,14 @@ const caCatalog: TranslationCatalog = {
     subtitle: "Controla les animacions de reacció que es mostren després de valorar les targetes.",
     toggleTitle: "Mostra animacions després de valorar una targeta",
     toggleDescription: "Només afecta les animacions de reacció del repàs.",
+    premiumNote: "Personalitzar les animacions de repàs s’inclou amb Premium. La teva elecció desada torna quan Premium està actiu.",
   },
   aiChatSuggestionsSettings: {
     title: "Suggeriments del xat d'IA",
     subtitle: "Controla els suggeriments de peticions al camp de missatge del xat d'IA.",
     toggleTitle: "Mostra suggeriments al camp de missatge del xat d'IA",
     toggleDescription: "Els suggeriments de peticions apareixen damunt del camp de missatge quan el xat està inactiu i a punt.",
+    premiumNote: "Personalitzar els suggeriments del xat d’IA s’inclou amb Premium. La teva elecció desada torna quan Premium està actiu.",
   },
   ownOpenAIKeySettings: {
     title: "La teva clau d'OpenAI",

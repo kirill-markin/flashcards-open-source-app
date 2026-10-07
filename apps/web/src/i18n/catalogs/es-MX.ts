@@ -927,12 +927,14 @@ const esMxCatalog: TranslationCatalog = {
     subtitle: "Controla las animaciones de reacción después de calificar tarjetas.",
     toggleTitle: "Mostrar animaciones después de calificar una tarjeta",
     toggleDescription: "Solo afecta a las animaciones de reacción del repaso.",
+    premiumNote: "Personalizar las animaciones de repaso está incluido en Premium. Tu elección guardada vuelve cuando Premium está activo.",
   },
   aiChatSuggestionsSettings: {
     title: "Sugerencias del chat de IA",
     subtitle: "Controla las sugerencias que aparecen en el compositor del chat de IA.",
     toggleTitle: "Mostrar sugerencias en el compositor del chat de IA",
     toggleDescription: "Las sugerencias aparecen encima del compositor cuando el chat está inactivo y listo.",
+    premiumNote: "Personalizar las sugerencias del chat de IA está incluido en Premium. Tu elección guardada vuelve cuando Premium está activo.",
   },
   ownOpenAIKeySettings: {
     title: "Tu clave de OpenAI",

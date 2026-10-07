@@ -927,12 +927,14 @@ export const jaCatalog = {
     subtitle: "カード評価後のリアクションアニメーションを設定します。",
     toggleTitle: "カード評価後にアニメーションを表示",
     toggleDescription: "復習時のリアクションアニメーションだけに適用されます。",
+    premiumNote: "復習アニメーションのカスタマイズはPremiumに含まれます。保存した設定はPremiumが有効になると再び適用されます。",
   },
   aiChatSuggestionsSettings: {
     title: "AIチャットの提案",
     subtitle: "AIチャット入力欄に表示する提案プロンプトを管理します。",
     toggleTitle: "AIチャット入力欄に提案を表示",
     toggleDescription: "チャットが待機中で準備できているとき、入力欄の上に提案プロンプトが表示されます。",
+    premiumNote: "AIチャットの提案のカスタマイズはPremiumに含まれます。保存した設定はPremiumが有効になると再び適用されます。",
   },
   ownOpenAIKeySettings: {
     title: "自分の OpenAI キー",

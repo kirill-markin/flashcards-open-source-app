@@ -850,7 +850,7 @@
 "settings.language.supported.zulu" = "IsiZulu";
 
 "premium.offer.title" = "Premium";
-"premium.offer.benefits" = "Imiyalezo ye-AI engu-1,000 ngenyanga nemibala yokugqamisa oyikhethayo. Ukuvumelanisa kumahhala kubo bonke.";
+"premium.offer.benefits" = "Imiyalezo ye-AI engu-1,000 ngenyanga nezitayela ozikhethayo. Ukuvumelanisa kumahhala kubo bonke.";
 "premium.aiLimit.title" = "Usufinyelele emkhawulweni wemiyalezo ye-AI";
 
 "settings.accentColor.title" = "Umbala wokugqamisa";
@@ -863,6 +863,8 @@
 "settings.accentColor.custom" = "Umbala owukhethayo";
 "settings.accentColor.invalidHex" = "Faka umbala njengo-#RRGGBB usebenzisa amadijithi ayisithupha e-hexadecimal.";
 "settings.accentColor.premiumNote" = "Imibala yokugqamisa oyikhethayo iyatholakala nge-Premium. Umbala wakho ogciniwe ubuya lapho i-Premium isebenza.";
+"settings.reviewAnimations.premiumNote" = "Ukuvala ukugqwayiza kokubukeza kuyatholakala nge-Premium. Isilungiselelo sakho esigciniwe sibuya lapho i-Premium isebenza.";
+"settings.aiChatSuggestions.premiumNote" = "Ukuvala iziphakamiso zengxoxo ye-AI kuyatholakala nge-Premium. Isilungiselelo sakho esigciniwe sibuya lapho i-Premium isebenza.";
 
 "premium.apple.monthlyProduct" = "%@ · Nyanga zonke";
 "premium.apple.renewal" = "Kuvuselelwa ngokuzenzakalelayo uze ukhansele. Phatha noma ukhansele ekubhaliseni kwakho kwe-App Store.";

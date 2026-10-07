@@ -1,7 +1,7 @@
 import { useEffect, type ReactElement } from "react";
-import { useAppData } from "../../appData";
 import { useAppErrorDialog } from "../../appError/AppErrorContext";
 import { FeedbackDialog } from "../../feedback/FeedbackDialog";
+import { useEffectiveReviewReactionAnimationsEnabled } from "../../premium/styleSettings";
 import { ReviewEditorModal } from "./components/card/ReviewEditorModal";
 import { ReviewPane } from "./components/ReviewPane";
 import { ReviewQueuePanel } from "./components/ReviewQueuePanel";
@@ -15,9 +15,8 @@ import { useReviewScreenController } from "./useReviewScreenController";
 export { normalizeReviewMarkdownForWeb } from "./components/card/ReviewCardSide";
 
 export function ReviewScreen(): ReactElement {
-  const { session } = useAppData();
   const { indexedDbOpenRecoveryState } = useAppErrorDialog();
-  const reviewReactionAnimationsEnabled = session?.preferences.reviewReactionAnimationsEnabled !== false;
+  const reviewReactionAnimationsEnabled = useEffectiveReviewReactionAnimationsEnabled();
   const {
     dismissReviewReactions,
     editorModalProps,

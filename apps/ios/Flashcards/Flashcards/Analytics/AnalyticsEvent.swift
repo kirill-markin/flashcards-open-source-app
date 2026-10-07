@@ -383,6 +383,8 @@ enum AnalyticsPaywallEntryPoint: String, Sendable, Equatable {
     case subscriptionSettings = "subscription_settings"
     case aiLimit = "ai_limit"
     case accentColor = "accent_color"
+    case reviewAnimations = "review_animations"
+    case aiChatSuggestions = "ai_chat_suggestions"
 }
 
 /// Whether the offer being bought starts with an App Store free trial for this person.

@@ -704,7 +704,14 @@ extension FlashcardsStore {
         self.applyStoredProductAnalyticsPreference()
     }
 
+    var effectiveReviewReactionAnimationsEnabled: Bool {
+        self.canCustomizeStyle ? self.accountPreferences.reviewReactionAnimationsEnabled : true
+    }
+
     func updateReviewReactionAnimationsEnabled(isEnabled: Bool) async throws {
+        guard isEnabled || self.canCustomizeStyle else {
+            throw LocalStoreError.validation("Turning off review animations requires Premium")
+        }
         let identityKey = self.accountPreferencesIdentityKey
         let identityGeneration = self.accentColorIdentityGeneration
         let outcome = AccountPreferencesUpdateOutcome()
@@ -712,6 +719,10 @@ extension FlashcardsStore {
             guard self.accountPreferencesIdentityKey == identityKey,
                   self.accentColorIdentityGeneration == identityGeneration else {
                 outcome.failure = LocalStoreError.validation("The account changed before review animations could be saved")
+                return
+            }
+            guard isEnabled || self.canCustomizeStyle else {
+                outcome.failure = LocalStoreError.validation("Turning off review animations requires Premium")
                 return
             }
             let previousPreferences = self.accountPreferences
@@ -764,7 +775,7 @@ extension FlashcardsStore {
         guard self.canPersistAccountPreferences, let identityKey = self.accountPreferencesIdentityKey else {
             throw LocalStoreError.uninitialized("Cloud account is unavailable")
         }
-        guard color == .defaultColor || self.canUseCustomAccentColor else {
+        guard color == .defaultColor || self.canCustomizeStyle else {
             throw LocalStoreError.validation("A custom accent color requires Premium")
         }
         if self.pendingAccentColor?.color == color {
@@ -814,7 +825,7 @@ extension FlashcardsStore {
         await self.serializedAccountPreferencesUpdate {
             do {
                 guard self.pendingAccentColor?.id == selection.id else { return }
-                guard selection.color == .defaultColor || self.canUseCustomAccentColor else {
+                guard selection.color == .defaultColor || self.canCustomizeStyle else {
                     throw LocalStoreError.validation("A custom accent color requires Premium")
                 }
                 let updateGeneration = self.accountPreferencesRefreshGeneration

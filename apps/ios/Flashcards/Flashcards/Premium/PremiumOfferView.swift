@@ -55,7 +55,7 @@ struct PremiumOfferView: View {
                             .font(.largeTitle.bold())
                         Text(aiSettingsLocalized(
                             "premium.offer.benefits",
-                            "1,000 AI messages per month and custom accent colors. Sync is free for everyone."
+                            "1,000 AI messages per month and custom styles. Sync is free for everyone."
                         ))
                         if self.hasAccess, let entitlement = self.store.cloudEntitlement {
                             LabeledContent(aiSettingsLocalized("settings.subscription.plan", "Plan")) {

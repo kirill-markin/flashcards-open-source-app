@@ -519,6 +519,9 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
             onOpenAndroidLanguageSettings = {
                 openAndroidAppLanguageSettings(context = context)
             },
+            onOpenAndroidDeviceLanguageSettings = {
+                openAndroidDeviceLanguageSettings(context = context)
+            },
             onBack = {
                 navController.popBackStack()
             }
@@ -710,6 +713,11 @@ private fun openAndroidAppLanguageSettings(context: Context) {
         data = Uri.fromParts("package", context.packageName, null)
     }
     context.startActivity(intent)
+}
+
+/** Android 11-12 have no per-app language setting, so the app follows the device language. */
+private fun openAndroidDeviceLanguageSettings(context: Context) {
+    context.startActivity(Intent(Settings.ACTION_LOCALE_SETTINGS))
 }
 
 @Composable

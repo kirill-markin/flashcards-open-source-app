@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactElement } from "react";
+import { useEffect, useRef, useState, type ReactElement } from "react";
 import { isAuthRedirectError, updateAccountPreferences } from "../../api";
 import { beginAccountPreferenceWrite, finishAccountPreferenceWrite, isCurrentAccountPreferenceWrite } from "../../appData/session/accentColorWrite";
 import { useAppData } from "../../appData";
@@ -8,6 +8,8 @@ import {
 } from "../../appError/AppErrorContext";
 import { useI18n } from "../../i18n";
 import { captureAppOperationError } from "../../observability/appOperationObservation";
+import { usePremiumPresenter } from "../../premium/PremiumProvider";
+import { createPremiumContinuationGuard, useCanCustomizeStyle, useEffectiveReviewReactionAnimationsEnabled } from "../../premium/styleSettings";
 import { SettingsGroup, SettingsShell } from "./SettingsShared";
 
 export function ReviewAnimationsSettingsScreen(): ReactElement {
@@ -23,9 +25,19 @@ export function ReviewAnimationsSettingsScreen(): ReactElement {
   const { t } = useI18n();
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const reviewReactionAnimationsEnabled = session?.preferences.reviewReactionAnimationsEnabled !== false;
+  const presentPremium = usePremiumPresenter();
+  const canCustomize = useCanCustomizeStyle();
+  const reviewReactionAnimationsEnabled = useEffectiveReviewReactionAnimationsEnabled();
+  const mountedRef = useRef(false);
+  const sessionRef = useRef(session);
+  sessionRef.current = session;
   const isToggleDisabled = isSubmitting || isSessionVerified === false || session === null;
   const technicalErrorMessage = t("appError.technicalError.message");
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return (): void => { mountedRef.current = false; };
+  }, []);
 
   useEffect(() => {
     if (session === null || isSessionVerified === false) {
@@ -113,7 +125,8 @@ export function ReviewAnimationsSettingsScreen(): ReactElement {
       return;
     }
 
-    if (session === null) {
+    const currentSession = sessionRef.current;
+    if (currentSession === null) {
       setErrorMessage(t("app.sessionUnavailable"));
       return;
     }
@@ -123,8 +136,8 @@ export function ReviewAnimationsSettingsScreen(): ReactElement {
       return;
     }
 
-    const targetUserId = session.userId;
-    const previousEnabled = session.preferences.reviewReactionAnimationsEnabled;
+    const targetUserId = currentSession.userId;
+    const previousEnabled = currentSession.preferences.reviewReactionAnimationsEnabled;
     const write = beginAccountPreferenceWrite(targetUserId, "reviewReactionAnimationsEnabled");
 
     setIsSubmitting(true);
@@ -167,12 +180,40 @@ export function ReviewAnimationsSettingsScreen(): ReactElement {
     }
   }
 
+  function chooseEnabled(nextEnabled: boolean): void {
+    if (canCustomize) {
+      void persistReviewAnimationsPreference(nextEnabled);
+      return;
+    }
+    const initiatingSession = sessionRef.current;
+    if (initiatingSession === null) return;
+    const isCurrentContinuation = createPremiumContinuationGuard(initiatingSession, () => sessionRef.current);
+    presentPremium?.({
+      reason: "feature",
+      entryPoint: "review_animations",
+      requiredRank: 20,
+      continuation: null,
+      onResult: (result): void => {
+        if (result !== "granted" || !mountedRef.current || !isCurrentContinuation()) return;
+        void persistReviewAnimationsPreference(nextEnabled);
+      },
+    });
+  }
+
   return (
     <SettingsShell
       title={t("reviewAnimationsSettings.title")}
       subtitle={t("reviewAnimationsSettings.subtitle")}
       activeTab="general"
     >
+      {!canCustomize ? (
+        <SettingsGroup>
+          <p className="subtitle" data-testid="review-animations-premium-note">{t("reviewAnimationsSettings.premiumNote")}</p>
+          <button className="primary-btn" type="button" data-testid="review-animations-premium-open" onClick={() => presentPremium?.({ reason: "offer", entryPoint: "review_animations" })}>
+            {t("premium.offer")}
+          </button>
+        </SettingsGroup>
+      ) : null}
       <SettingsGroup>
         <article className="content-card settings-toggle-card" data-testid="review-animations-settings-card">
           <div className="settings-nav-card-copy">
@@ -188,7 +229,7 @@ export function ReviewAnimationsSettingsScreen(): ReactElement {
             disabled={isToggleDisabled}
             data-state={reviewReactionAnimationsEnabled ? "on" : "off"}
             data-testid="review-animations-toggle"
-            onClick={() => void persistReviewAnimationsPreference(!reviewReactionAnimationsEnabled)}
+            onClick={() => chooseEnabled(!reviewReactionAnimationsEnabled)}
           >
             <span className="settings-toggle-track" aria-hidden="true">
               <span className="settings-toggle-thumb" />
