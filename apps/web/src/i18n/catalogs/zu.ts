@@ -491,6 +491,7 @@ const zuCatalog: TranslationCatalog = {
       share: "Yabelana",
       feedback: "Impendulo",
       account: "I-akhawunti",
+      style: "Isitayela",
       general: "Okujwayelekile",
       support: "Usizo",
       advanced: "Okuthuthukisiwe",

@@ -491,6 +491,7 @@ const thCatalog: TranslationCatalog = {
       share: "แชร์",
       feedback: "ความคิดเห็น",
       account: "บัญชี",
+      style: "สไตล์",
       general: "ทั่วไป",
       support: "การสนับสนุน",
       advanced: "ขั้นสูง",

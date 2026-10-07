@@ -491,6 +491,7 @@ const elCatalog: TranslationCatalog = {
       share: "Κοινοποίηση",
       feedback: "Σχόλια",
       account: "Λογαριασμός",
+      style: "Στυλ",
       general: "Γενικά",
       support: "Υποστήριξη",
       advanced: "Για προχωρημένους",

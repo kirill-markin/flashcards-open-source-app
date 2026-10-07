@@ -491,6 +491,7 @@ const urCatalog: TranslationCatalog = {
       share: "شیئر کریں",
       feedback: "رائے",
       account: "اکاؤنٹ",
+      style: "انداز",
       general: "عمومی",
       support: "معاونت",
       advanced: "اعلیٰ ترتیبات",

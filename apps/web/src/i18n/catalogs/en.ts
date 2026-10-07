@@ -490,6 +490,7 @@ const enCatalog = {
       share: "Share",
       feedback: "Feedback",
       account: "Account",
+      style: "Style",
       general: "General",
       support: "Support",
       advanced: "Advanced",

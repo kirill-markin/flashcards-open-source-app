@@ -491,6 +491,7 @@ const svCatalog: TranslationCatalog = {
       share: "Dela",
       feedback: "Feedback",
       account: "Konto",
+      style: "Stil",
       general: "Allmänt",
       support: "Support",
       advanced: "Avancerat",

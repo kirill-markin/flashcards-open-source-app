@@ -491,6 +491,7 @@ const viCatalog: TranslationCatalog = {
       share: "Chia sẻ",
       feedback: "Góp ý",
       account: "Tài khoản",
+      style: "Phong cách",
       general: "Chung",
       support: "Hỗ trợ",
       advanced: "Nâng cao",

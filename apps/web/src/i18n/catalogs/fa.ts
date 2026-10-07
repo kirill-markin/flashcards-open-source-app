@@ -491,6 +491,7 @@ const faCatalog: TranslationCatalog = {
       share: "اشتراک‌گذاری",
       feedback: "بازخورد",
       account: "حساب",
+      style: "سبک",
       general: "عمومی",
       support: "پشتیبانی",
       advanced: "پیشرفته",

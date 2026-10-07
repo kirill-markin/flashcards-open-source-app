@@ -491,6 +491,7 @@ const isCatalog: TranslationCatalog = {
       share: "Deila",
       feedback: "Endurgjöf",
       account: "Aðgangur",
+      style: "Stíll",
       general: "Almennt",
       support: "Aðstoð",
       advanced: "Ítarlegt",

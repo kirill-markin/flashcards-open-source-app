@@ -491,6 +491,7 @@ const ptBrCatalog: TranslationCatalog = {
       share: "Compartilhar",
       feedback: "Feedback",
       account: "Conta",
+      style: "Estilo",
       general: "Geral",
       support: "Suporte",
       advanced: "Avançado",
