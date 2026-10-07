@@ -79,6 +79,17 @@ final class AppNavigationModel {
     var cardsPresentationRequest: CardsPresentationRequest?
     var aiChatPresentationRequest: AIChatPresentationRequest?
     var progressPresentationRequest: ProgressPresentationRequest?
+    var isAICompanionPresented: Bool = false
+    var isAICompanionLeading: Bool = false
+    var isAICompanionLeadingAvailable: Bool = false
+
+    var isAICompanionVisible: Bool {
+        self.isAICompanionPresented && (self.selectedTab == .review || self.selectedTab == .cards)
+    }
+
+    var isAIChatVisible: Bool {
+        self.selectedTab == .ai || self.isAICompanionVisible
+    }
 
     init() {
         self.selectedTab = .review
@@ -146,14 +157,18 @@ final class AppNavigationModel {
     }
 
     func openAICardCreation() {
-        self.selectTab(.ai)
+        if self.isAICompanionVisible == false {
+            self.selectTab(.ai)
+        }
         self.aiChatPresentationRequest = .createCard
     }
 
     func openAICardHandoff(card: AIChatCardReference) {
         // Publish the reset request before tab entry can enqueue a scroll against the old transcript.
         self.aiChatPresentationRequest = .attachCard(card)
-        self.selectTab(.ai)
+        if self.isAICompanionVisible == false {
+            self.selectTab(.ai)
+        }
     }
 
     func openProgress(target: ProgressPresentationTarget) {

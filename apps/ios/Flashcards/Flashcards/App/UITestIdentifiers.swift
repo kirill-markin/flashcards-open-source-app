@@ -1,6 +1,8 @@
 import Foundation
 
 enum UITestIdentifier {
+    static let aiCompanionToggle: String = "ai.companion.toggle"
+    static let aiCompanionMove: String = "ai.companion.move"
     static let uiTestLaunchPreparationStatus: String = "uiTest.launchPreparationStatus"
     static let cloudWorkspaceChooserScreen: String = "cloudSignIn.workspaceChooserScreen"
     static let cloudSignInScreen: String = "cloudSignIn.screen"

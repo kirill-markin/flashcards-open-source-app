@@ -228,12 +228,14 @@ struct CardEditorScreen: View {
         }
         .accessibilityIdentifier(UITestIdentifier.cardEditorScreen)
         .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
+            ToolbarItem(placement: .cancellationAction) {
                 Button(String(localized: "Cancel", table: reviewCardsStringsTableName), action: onCancel)
+                    .keyboardShortcut(.cancelAction)
             }
 
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItem(placement: .confirmationAction) {
                 Button(String(localized: "Save", table: reviewCardsStringsTableName), action: onSave)
+                    .keyboardShortcut("s", modifiers: .command)
                     .accessibilityIdentifier(UITestIdentifier.cardEditorSaveButton)
             }
         }
@@ -573,6 +575,8 @@ private struct CardEditorManagedImagePreview: View {
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(.secondary)
                     .background(.regularMaterial, in: Circle())
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .padding(6)
