@@ -56,9 +56,9 @@ Copy only the text inside this block into the subscription's App Review notes
 owns upload and readback. These notes describe the offer, not completed testing.
 
 ```text
-Premium (premium_monthly) is a monthly auto-renewable subscription. It includes 1000 in-app AI chat messages per calendar month (UTC), using our platform's AI service, and accent color customization. Sync remains free for everyone and is not a subscription benefit.
+Premium (premium_monthly) is a monthly auto-renewable subscription. It includes 1000 in-app AI chat messages per calendar month (UTC), using our platform's AI service, and custom styles: accent color, review animations, and AI chat suggestions. Sync remains free for everyone and is not a subscription benefit.
 
-To open the purchase offer, launch the app as a guest or sign in, then open Settings > Subscription and select the Premium offer. It is also available from Settings > General > Accent Color when a free user selects a premium color. The same purchase offer appears when a free user reaches the in-app AI chat allowance. No Nibomo account sign-in is required to purchase as a guest.
+To open the purchase offer, launch the app as a guest or sign in, then open Settings > Subscription and select the Premium offer. It is also available from Settings > Style when a free user changes a style setting, for example by selecting a premium color in Settings > Style > Accent color. The same purchase offer appears when a free user reaches the in-app AI chat allowance. No Nibomo account sign-in is required to purchase as a guest.
 
 The offer displays the App Store's localized monthly price for the current storefront. The base U.S. price is USD 6.99; regional prices come from Apple. A seven-day free trial is offered only when Apple reports that the customer's store account is eligible. After the eligible trial, the subscription renews monthly at the displayed price unless canceled. Customers who are ineligible see the monthly offer without a trial promise. The offer includes renewal terms, Privacy Policy, and Apple's Standard EULA.
 
@@ -66,7 +66,7 @@ Restore purchases is available from the offer and Settings > Subscription, inclu
 
 Some early users already have a lifetime Premium gift. These gifts are not sold as an in-app product. Gift holders retain Premium access without purchasing this subscription. A guest's gift follows the guest when an email is linked; a gift cannot be restored through Apple if the guest identity is lost.
 
-Users may supply their own OpenAI API key as an alternative for AI use. This bypasses the platform-key chat allowance for those requests, but grants no Premium entitlement or accent color customization. The AI allowance sheet exposes this alternative; ordinary subscription and accent color offers do not present it as an alternative purchase path.
+Users may supply their own OpenAI API key as an alternative for AI use. This bypasses the platform-key chat allowance for those requests, but grants no Premium entitlement or custom styles. The AI allowance sheet exposes this alternative; ordinary subscription and custom style offers do not present it as an alternative purchase path.
 ```
 
 ## Texts
