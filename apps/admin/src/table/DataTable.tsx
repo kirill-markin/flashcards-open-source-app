@@ -59,7 +59,7 @@ function getEnumOptions<Row>(column: DataTableColumn<Row>, rows: ReadonlyArray<R
 }
 
 function getServerEnumOptions<Row>(column: DataTableColumn<Row>, server: DataTableServerPage): ReadonlyArray<string> {
-  if (column.kind !== "enum") {
+  if (column.kind !== "enum" && column.kind !== "enum-list") {
     return [];
   }
   const options = server.enumOptionsByColumnId.get(column.id);
