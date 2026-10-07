@@ -507,6 +507,7 @@ const slCatalog: TranslationCatalog = {
       share: "Deljenje",
       feedback: "Povratne informacije",
       account: "Račun",
+      style: "Slog",
       general: "Splošno",
       support: "Podpora",
       advanced: "Napredno",

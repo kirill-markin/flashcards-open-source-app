@@ -491,6 +491,7 @@ const hiCatalog: TranslationCatalog = {
       share: "शेयर करें",
       feedback: "फ़ीडबैक",
       account: "खाता",
+      style: "शैली",
       general: "सामान्य",
       support: "सहायता",
       advanced: "उन्नत",

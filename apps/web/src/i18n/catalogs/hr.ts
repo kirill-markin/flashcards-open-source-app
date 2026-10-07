@@ -499,6 +499,7 @@ const hrCatalog: TranslationCatalog = {
       share: "Dijeljenje",
       feedback: "Povratne informacije",
       account: "Račun",
+      style: "Stil",
       general: "Općenito",
       support: "Podrška",
       advanced: "Napredno",

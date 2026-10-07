@@ -491,6 +491,7 @@ const caCatalog: TranslationCatalog = {
       share: "Comparteix",
       feedback: "Comentaris",
       account: "Compte",
+      style: "Estil",
       general: "General",
       support: "Assistència",
       advanced: "Avançat",

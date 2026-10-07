@@ -491,6 +491,7 @@ const mlCatalog: TranslationCatalog = {
       share: "പങ്കിടുക",
       feedback: "അഭിപ്രായം",
       account: "അക്കൗണ്ട്",
+      style: "ശൈലി",
       general: "പൊതുവായത്",
       support: "പിന്തുണ",
       advanced: "വിപുലമായത്",

@@ -499,6 +499,7 @@ const ltCatalog: TranslationCatalog = {
       share: "Bendrinti",
       feedback: "Atsiliepimai",
       account: "Paskyra",
+      style: "Stilius",
       general: "Bendrieji",
       support: "Pagalba",
       advanced: "Išplėstiniai",

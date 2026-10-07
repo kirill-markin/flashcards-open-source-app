@@ -499,6 +499,7 @@ const csCatalog: TranslationCatalog = {
       share: "Sdílet",
       feedback: "Zpětná vazba",
       account: "Účet",
+      style: "Styl",
       general: "Obecné",
       support: "Podpora",
       advanced: "Pokročilé",

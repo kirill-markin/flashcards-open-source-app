@@ -499,6 +499,7 @@ const plCatalog: TranslationCatalog = {
       share: "Udostępnianie",
       feedback: "Opinie",
       account: "Konto",
+      style: "Styl",
       general: "Ogólne",
       support: "Pomoc",
       advanced: "Zaawansowane",

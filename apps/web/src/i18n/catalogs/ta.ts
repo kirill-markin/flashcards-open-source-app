@@ -491,6 +491,7 @@ const taCatalog: TranslationCatalog = {
       share: "பகிர்",
       feedback: "கருத்து",
       account: "கணக்கு",
+      style: "பாணி",
       general: "பொது",
       support: "ஆதரவு",
       advanced: "மேம்பட்டவை",
