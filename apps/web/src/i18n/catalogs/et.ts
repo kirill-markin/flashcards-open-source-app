@@ -927,12 +927,14 @@ const etCatalog: TranslationCatalog = {
     subtitle: "Halda reaktsioonianimatsioone, mida näidatakse pärast kaartide hindamist.",
     toggleTitle: "Näita animatsioone pärast kaardi hindamist",
     toggleDescription: "See mõjutab ainult kordamise reaktsioonianimatsioone.",
+    premiumNote: "Kordamise animatsioonide kohandamine kuulub Premiumi juurde. Sinu salvestatud valik taastub, kui Premium on aktiivne.",
   },
   aiChatSuggestionsSettings: {
     title: "Tehisintellekti vestluse soovitused",
     subtitle: "Halda soovitatud päringunuppe tehisintellekti vestluse sisestusväljas.",
     toggleTitle: "Näita soovitusi tehisintellekti vestluse sisestusväljas",
     toggleDescription: "Soovitatud päringud kuvatakse sisestusvälja kohal, kui vestlus on jõude ja valmis.",
+    premiumNote: "Tehisintellekti vestluse soovituste kohandamine kuulub Premiumi juurde. Sinu salvestatud valik taastub, kui Premium on aktiivne.",
   },
   ownOpenAIKeySettings: {
     title: "Sinu OpenAI võti",

@@ -927,12 +927,14 @@ export const zhHansCatalog = {
     subtitle: "控制给卡片评分后的反应动画。",
     toggleTitle: "评分后显示动画",
     toggleDescription: "只影响复习评分后的反应动画。",
+    premiumNote: "自定义复习动画包含在Premium中。Premium激活后，将恢复你保存的选择。",
   },
   aiChatSuggestionsSettings: {
     title: "AI 聊天建议",
     subtitle: "控制 AI 聊天输入框中的建议提示。",
     toggleTitle: "在 AI 聊天输入框中显示建议",
     toggleDescription: "当聊天处于空闲且就绪状态时，建议提示会显示在输入框上方。",
+    premiumNote: "自定义 AI 聊天建议包含在Premium中。Premium激活后，将恢复你保存的选择。",
   },
   ownOpenAIKeySettings: {
     title: "你的 OpenAI 密钥",

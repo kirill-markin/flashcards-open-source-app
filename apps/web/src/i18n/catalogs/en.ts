@@ -926,12 +926,14 @@ const enCatalog = {
     subtitle: "Control the reaction animations shown after rating cards.",
     toggleTitle: "Show animations after rating a card",
     toggleDescription: "Only the review reaction animations are affected.",
+    premiumNote: "Customizing review animations is included with Premium. Your saved choice returns when Premium is active.",
   },
   aiChatSuggestionsSettings: {
     title: "AI Chat Suggestions",
     subtitle: "Control suggested prompt chips in the AI chat composer.",
     toggleTitle: "Show suggestions in the AI chat composer",
     toggleDescription: "Suggested prompts appear above the composer when chat is idle and ready.",
+    premiumNote: "Customizing AI chat suggestions is included with Premium. Your saved choice returns when Premium is active.",
   },
   ownOpenAIKeySettings: {
     title: "Your OpenAI key",

@@ -936,12 +936,14 @@ const skCatalog: TranslationCatalog = {
     subtitle: "Ovládajte animácie reakcie zobrazované po ohodnotení kariet.",
     toggleTitle: "Zobrazovať animácie po ohodnotení karty",
     toggleDescription: "Týka sa to iba animácií reakcie pri opakovaní.",
+    premiumNote: "Úprava animácií pri opakovaní je súčasťou Premium. Vaša uložená voľba sa vráti, keď bude Premium aktívne.",
   },
   aiChatSuggestionsSettings: {
     title: "Návrhy v AI chate",
     subtitle: "Ovládajte navrhované výzvy v poli na písanie AI chatu.",
     toggleTitle: "Zobrazovať návrhy v poli na písanie AI chatu",
     toggleDescription: "Navrhované výzvy sa zobrazia nad poľom na písanie, keď je chat nečinný a pripravený.",
+    premiumNote: "Úprava návrhov v AI chate je súčasťou Premium. Vaša uložená voľba sa vráti, keď bude Premium aktívne.",
   },
   ownOpenAIKeySettings: {
     title: "Váš kľúč OpenAI",

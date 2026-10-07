@@ -7,6 +7,7 @@ import {
   useAppErrorDialog,
 } from "../../appError/AppErrorContext";
 import { useAccountAccentColor } from "../../premium/accentColor";
+import { useEffectiveReviewReactionAnimationsEnabled } from "../../premium/styleSettings";
 import { getAppConfig } from "../../config";
 import {
   autoLocalePreference,
@@ -110,6 +111,7 @@ export function SettingsScreen(): ReactElement {
   const { indexedDbOpenRecoveryState } = useAppErrorDialog();
   const { localePreference, t } = useI18n();
   const { aiChatComposerSuggestionsEnabled } = useAIChatPreferences();
+  const reviewReactionAnimationsEnabled = useEffectiveReviewReactionAnimationsEnabled();
   const { isEnabled: isOwnOpenAIKeyEnabled } = useOwnOpenAIKeySetting();
   const { isTestModeEnabled } = useTestMode();
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState<boolean>(false);
@@ -296,7 +298,7 @@ export function SettingsScreen(): ReactElement {
           <SettingsNavigationCard
             title={t("reviewAnimationsSettings.title")}
             description={t("reviewAnimationsSettings.subtitle")}
-            value={session?.preferences.reviewReactionAnimationsEnabled === false ? t("common.off") : t("common.on")}
+            value={reviewReactionAnimationsEnabled ? t("common.on") : t("common.off")}
             to={workspacePath(settingsReviewAnimationsRoute)}
             testId="settings-row-review-animations"
           />

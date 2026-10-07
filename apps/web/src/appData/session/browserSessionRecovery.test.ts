@@ -13,7 +13,7 @@ import {
   storeAccountDeletionCsrfToken,
 } from "../../accountDeletion/accountDeletionAttempt";
 import { SYNC_RESTORE_HISTORY_STORAGE_KEY } from "../sync/restore/syncRestoreHistory";
-import { AI_CHAT_COMPOSER_SUGGESTIONS_STORAGE_KEY } from "../../chat/preferences/AIChatPreferencesContext";
+import { AI_CHAT_COMPOSER_SUGGESTIONS_STORAGE_KEY } from "../../chat/preferences/aiChatPreferencesStorage";
 import { INSTALLATION_ID_STORAGE_KEY } from "../../clientIdentity";
 import { LOCALE_PREFERENCE_STORAGE_KEY } from "../../i18n/runtime";
 import { clearWebSyncCache } from "../../localDb/cache";
