@@ -134,8 +134,12 @@ The manual Android release flow is:
 4. Four Device Run sessions execute sequentially for the same CI debug/test APKs: API 37 full suite, then API 30, 31 and 33 smoke, one destination per session
 5. After all four sessions, jobs and executions reach terminal success, the signed Android App Bundle is built and uploaded as a workflow artifact
 6. The R8 optimization coverage gate reads `BUNDLE-METADATA/com.android.tools/r8.json` from that bundle and fails the run when shrinking, optimization, or obfuscation coverage is below Google's 25% minimum
-7. Only then is the bundle uploaded as a Google Play production-track draft
+7. Only then is the bundle uploaded as a Google Play production-track draft with `changesNotSentForReview: true`; review submission remains a manual Play Console action
 8. Inspect all four sessions and their named cases under [the Android release procedure](release/android.md), then review the Play Console draft before publishing manually
+
+The upload commits an app-wide Play edit. Follow the [release procedure](release/android.md)
+to inspect pending changes and active reviews before dispatch and after upload;
+draft track status alone does not protect other pending changes from review submission.
 
 After pushing to `main`, watch `Android CI` separately when Android-impacting files changed.
 
