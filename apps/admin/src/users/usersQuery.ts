@@ -7,13 +7,14 @@ import {
   buildTrustedActorRowsFilterSql,
 } from "../filters/filterSql";
 import { formatCalendarDate } from "../reports/reportValues";
+import { userSettingsFields, type UserSettingsField, type UserSettingsFieldId } from "./userSettingsFields";
 
 const reportLabel = "Users";
 
 export type UserKind = "account" | "guest";
 
-/** `product_analytics_enabled` as stored: NULL is no answer, which collection reads as on. */
-export type UserProductAnalytics = "on" | "off" | "unanswered";
+/** A boolean setting reads `on`, `off` or `unanswered` for NULL, so it is filtered as an enum. */
+export type UserSettingsValues = Readonly<Record<UserSettingsFieldId, string | null>>;
 
 export type UserRow = Readonly<{
   userId: string;
@@ -21,6 +22,8 @@ export type UserRow = Readonly<{
   kind: UserKind;
   mergedIntoUserId: string | null;
   createdAt: string;
+  /** The earliest `auth.user_identities` row; null for a guest. */
+  identityCreatedAt: string | null;
   firstSeenAt: string | null;
   lastActiveAt: string | null;
   activeDays: number;
@@ -30,7 +33,6 @@ export type UserRow = Readonly<{
   /** Every country a retained connection sample places the person in; samples are kept 90 days. */
   connectionCountries: ReadonlyArray<string>;
   latestUiLocale: string | null;
-  settingsLocale: string | null;
   reviewCount: number;
   cardCount: number;
   deckCount: number;
@@ -44,12 +46,12 @@ export type UserRow = Readonly<{
   feedbackCount: number;
   friendCount: number;
   leaderboardParticipation: boolean | null;
-  productAnalytics: UserProductAnalytics;
   /** The arms of the analytics exclusion rule the person matches; empty for a person every report counts. */
   exclusionReason: ReadonlyArray<string>;
+  settings: UserSettingsValues;
 }>;
 
-type UserField = keyof UserRow;
+type UserField = Exclude<keyof UserRow, "settings">;
 
 export function utcInstantSql(sqlExpression: string): string {
   return `to_char(${sqlExpression} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`;
@@ -57,13 +59,14 @@ export function utcInstantSql(sqlExpression: string): string {
 
 const actorIdSql = "pg_catalog.lower(settings.user_id)";
 
-// Positional order of every row's JSON array; see `buildUsersSql`.
+// Positional order of every row's JSON array, followed by `userSettingsFields`; see `buildUsersSql`.
 const userFieldSql: Readonly<Record<UserField, string>> = {
   userId: "settings.user_id",
   email: "settings.email",
   kind: "CASE WHEN identities.user_id IS NULL THEN 'guest' ELSE 'account' END",
   mergedIntoUserId: "merged_guests.account_user_id",
   createdAt: utcInstantSql("settings.created_at"),
+  identityCreatedAt: utcInstantSql("identities.created_at"),
   firstSeenAt: utcInstantSql("activity.first_seen_at"),
   lastActiveAt: utcInstantSql("activity.last_active_at"),
   activeDays: "COALESCE(activity.active_days, 0)",
@@ -72,7 +75,6 @@ const userFieldSql: Readonly<Record<UserField, string>> = {
   latestAppVersion: "activity.app_version",
   connectionCountries: "COALESCE(countries.countries, '[]'::json)",
   latestUiLocale: "activity.ui_locale",
-  settingsLocale: "settings.locale",
   reviewCount: "COALESCE(reviews.review_count, 0)",
   cardCount: "COALESCE(workspace_content.card_count, 0)",
   deckCount: "COALESCE(workspace_content.deck_count, 0)",
@@ -86,11 +88,15 @@ const userFieldSql: Readonly<Record<UserField, string>> = {
   feedbackCount: "COALESCE(feedback.feedback_count, 0)",
   friendCount: "COALESCE(friends.friend_count, 0)",
   leaderboardParticipation: "profiles.leaderboard_participation",
-  productAnalytics: "CASE settings.product_analytics_enabled WHEN TRUE THEN 'on' WHEN FALSE THEN 'off' ELSE 'unanswered' END",
   exclusionReason: `COALESCE(to_json(string_to_array(NULLIF(${buildExcludedActorReasonSql(actorIdSql)}, ''), ', ')), '[]'::json)`,
 };
 
 const userFields = Object.keys(userFieldSql) as ReadonlyArray<UserField>;
+
+const rowSql: ReadonlyArray<string> = [
+  ...userFields.map((field) => userFieldSql[field]),
+  ...userSettingsFields.map((field) => field.kind === "date" ? utcInstantSql(field.sql) : field.sql),
+];
 
 /**
  * One row per `org.user_settings` row, so a deleted account, whose settings row is gone, is absent.
@@ -104,7 +110,7 @@ const userFields = Object.keys(userFieldSql) as ReadonlyArray<UserField>;
  * are the live rows of every workspace the person is a member of, so a shared workspace counts for
  * each member.
  *
- * Each row is one JSON array in `userFieldSql` order rather than named columns: repeating thirty key
+ * Each row is one JSON array in `rowSql` order rather than named columns: repeating the key
  * names on every one of ~8k rows more than doubles the response, which has to stay well under the
  * Lambda response limit.
  */
@@ -117,8 +123,9 @@ export function buildUsersSql(countrySampleRange: AnalyticsDateRange): string {
     WHERE identity_links.source = 'server_derived'
     ORDER BY identity_links.anonymous_id, identity_links.linked_at, identity_links.link_id
   ), identities AS (
-    SELECT DISTINCT user_id
+    SELECT user_id, min(created_at) AS created_at
     FROM auth.user_identities
+    GROUP BY user_id
   ), activity AS (
     SELECT events.actor_id::text AS actor_id,
       min(events.occurred_at) AS first_seen_at,
@@ -194,7 +201,7 @@ ${buildConnectionCountrySamplesSql(countrySampleRange, null)}
     GROUP BY user_id
   )
   SELECT json_build_array(
-    ${userFields.map((field) => userFieldSql[field]).join(",\n    ")}
+    ${rowSql.join(",\n    ")}
   ) AS u
   FROM org.user_settings AS settings
   LEFT JOIN identities ON identities.user_id = settings.user_id
@@ -219,6 +226,7 @@ type UserFieldReader = Readonly<{
   stringArray: (field: UserField) => ReadonlyArray<string>;
   count: (field: UserField) => number;
   nullableBoolean: (field: UserField) => boolean | null;
+  setting: (field: UserSettingsField, settingIndex: number) => string | null;
 }>;
 
 function createUserFieldReader(values: ReadonlyArray<AdminQueryValue>, rowIndex: number): UserFieldReader {
@@ -274,6 +282,23 @@ function createUserFieldReader(values: ReadonlyArray<AdminQueryValue>, rowIndex:
       }
       return value;
     },
+    setting: (field, settingIndex) => {
+      const value = values[userFields.length + settingIndex];
+      if (value === undefined) {
+        throw new Error(`${reportLabel} row ${rowIndex} is missing setting "${field.id}".`);
+      }
+      switch (field.kind) {
+        case "text":
+        case "enum":
+        case "date":
+          if (value === null || typeof value === "string") return value;
+          throw new Error(`${reportLabel} row ${rowIndex} setting "${field.id}" must be a string or null.`);
+        case "boolean":
+          if (value === null) return "unanswered";
+          if (typeof value === "boolean") return value ? "on" : "off";
+          throw new Error(`${reportLabel} row ${rowIndex} setting "${field.id}" must be a boolean or null.`);
+      }
+    },
   };
 }
 
@@ -286,8 +311,8 @@ function parseOneOf<Value extends string>(value: string, allowed: ReadonlyArray<
 }
 
 function parseUserRow(value: AdminQueryValue | undefined, rowIndex: number): UserRow {
-  if (!Array.isArray(value) || value.length !== userFields.length) {
-    throw new Error(`${reportLabel} row ${rowIndex} must be an array of ${userFields.length} values.`);
+  if (!Array.isArray(value) || value.length !== rowSql.length) {
+    throw new Error(`${reportLabel} row ${rowIndex} must be an array of ${rowSql.length} values.`);
   }
   const reader = createUserFieldReader(value, rowIndex);
   return {
@@ -296,6 +321,7 @@ function parseUserRow(value: AdminQueryValue | undefined, rowIndex: number): Use
     kind: parseOneOf(reader.string("kind"), ["account", "guest"], "kind"),
     mergedIntoUserId: reader.nullableString("mergedIntoUserId"),
     createdAt: reader.string("createdAt"),
+    identityCreatedAt: reader.nullableString("identityCreatedAt"),
     firstSeenAt: reader.nullableString("firstSeenAt"),
     lastActiveAt: reader.nullableString("lastActiveAt"),
     activeDays: reader.count("activeDays"),
@@ -304,7 +330,6 @@ function parseUserRow(value: AdminQueryValue | undefined, rowIndex: number): Use
     latestAppVersion: reader.nullableString("latestAppVersion"),
     connectionCountries: reader.stringArray("connectionCountries"),
     latestUiLocale: reader.nullableString("latestUiLocale"),
-    settingsLocale: reader.nullableString("settingsLocale"),
     reviewCount: reader.count("reviewCount"),
     cardCount: reader.count("cardCount"),
     deckCount: reader.count("deckCount"),
@@ -318,8 +343,11 @@ function parseUserRow(value: AdminQueryValue | undefined, rowIndex: number): Use
     feedbackCount: reader.count("feedbackCount"),
     friendCount: reader.count("friendCount"),
     leaderboardParticipation: reader.nullableBoolean("leaderboardParticipation"),
-    productAnalytics: parseOneOf(reader.string("productAnalytics"), ["on", "off", "unanswered"], "productAnalytics"),
     exclusionReason: reader.stringArray("exclusionReason"),
+    // `Object.fromEntries` widens the keys to `string`.
+    settings: Object.fromEntries(
+      userSettingsFields.map((field, settingIndex) => [field.id, reader.setting(field, settingIndex)]),
+    ) as UserSettingsValues,
   };
 }
 
