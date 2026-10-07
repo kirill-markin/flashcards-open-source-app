@@ -936,12 +936,14 @@ const plCatalog: TranslationCatalog = {
     subtitle: "Zarządzaj animacjami reakcji pokazywanymi po ocenie karty.",
     toggleTitle: "Pokazuj animacje po ocenie karty",
     toggleDescription: "Dotyczy tylko animacji reakcji w powtórkach.",
+    premiumNote: "Dostosowywanie animacji powtórek jest dostępne w Premium. Twój zapisany wybór wróci, gdy Premium będzie aktywne.",
   },
   aiChatSuggestionsSettings: {
     title: "Podpowiedzi w czacie AI",
     subtitle: "Zarządzaj sugerowanymi podpowiedziami w polu czatu AI.",
     toggleTitle: "Pokazuj podpowiedzi w polu czatu AI",
     toggleDescription: "Sugerowane podpowiedzi pojawiają się nad polem tekstowym, gdy czat jest bezczynny i gotowy.",
+    premiumNote: "Dostosowywanie podpowiedzi w czacie AI jest dostępne w Premium. Twój zapisany wybór wróci, gdy Premium będzie aktywne.",
   },
   ownOpenAIKeySettings: {
     title: "Twój klucz OpenAI",

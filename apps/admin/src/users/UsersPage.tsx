@@ -12,6 +12,7 @@ import {
   type DataTableState,
 } from "../table/dataTableModel";
 import { loadUsersReport, type UserRow, type UsersReport } from "./usersQuery";
+import { userSettingsFields, type UserSettingsField } from "./userSettingsFields";
 
 type LoadState =
   | Readonly<{ status: "loading" }>
@@ -26,6 +27,19 @@ export function renderUserLink(userId: string | null, text: string | null, onNav
 
 const mergedGuestColumnId = "merged-guest";
 
+function buildUserSettingsColumn(field: UserSettingsField): DataTableColumn<UserRow> {
+  const base = { id: field.id, label: field.label, value: (user: UserRow) => user.settings[field.id], renderCell: null };
+  switch (field.kind) {
+    case "text":
+      return { ...base, kind: "text" };
+    case "date":
+      return { ...base, kind: "date" };
+    case "enum":
+    case "boolean":
+      return { ...base, kind: "enum" };
+  }
+}
+
 // The column ids are the URL vocabulary of the table state, so renaming one breaks saved links.
 function buildUserColumns(onNavigate: (path: string) => void): ReadonlyArray<DataTableColumn<UserRow>> {
   return [
@@ -37,6 +51,7 @@ function buildUserColumns(onNavigate: (path: string) => void): ReadonlyArray<Dat
     { id: "excluded", label: "Excluded", kind: "boolean", value: (user) => user.exclusionReason.length > 0, renderCell: null },
     { id: "exclusion-reason", label: "Exclusion reason", kind: "enum-list", value: (user) => user.exclusionReason, renderCell: null },
     { id: "created", label: "Created", kind: "date", value: (user) => user.createdAt, renderCell: null },
+    { id: "identity-created", label: "Sign-in identity created", kind: "date", value: (user) => user.identityCreatedAt, renderCell: null },
     { id: "first-seen", label: "First seen", kind: "date", value: (user) => user.firstSeenAt, renderCell: null },
     { id: "last-active", label: "Last active", kind: "date", value: (user) => user.lastActiveAt, renderCell: null },
     { id: "active-days", label: "Active days", kind: "number", value: (user) => user.activeDays, renderCell: null },
@@ -45,7 +60,6 @@ function buildUserColumns(onNavigate: (path: string) => void): ReadonlyArray<Dat
     { id: "app-version", label: "Latest app version", kind: "enum", value: (user) => user.latestAppVersion, renderCell: null },
     { id: "countries", label: "Countries (90 days)", kind: "enum-list", value: (user) => user.connectionCountries, renderCell: null },
     { id: "ui-locale", label: "Latest UI locale", kind: "enum", value: (user) => user.latestUiLocale, renderCell: null },
-    { id: "settings-locale", label: "Saved app language", kind: "enum", value: (user) => user.settingsLocale, renderCell: null },
     { id: "reviews", label: "Reviews", kind: "number", value: (user) => user.reviewCount, renderCell: null },
     { id: "cards", label: "Live cards", kind: "number", value: (user) => user.cardCount, renderCell: null },
     { id: "decks", label: "Live decks", kind: "number", value: (user) => user.deckCount, renderCell: null },
@@ -59,7 +73,7 @@ function buildUserColumns(onNavigate: (path: string) => void): ReadonlyArray<Dat
     { id: "feedback", label: "Feedback", kind: "number", value: (user) => user.feedbackCount, renderCell: null },
     { id: "friends", label: "Friends", kind: "number", value: (user) => user.friendCount, renderCell: null },
     { id: "leaderboard", label: "Leaderboard", kind: "boolean", value: (user) => user.leaderboardParticipation, renderCell: null },
-    { id: "product-analytics", label: "Product analytics", kind: "enum", value: (user) => user.productAnalytics, renderCell: null },
+    ...userSettingsFields.map(buildUserSettingsColumn),
   ];
 }
 

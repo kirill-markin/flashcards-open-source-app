@@ -927,12 +927,14 @@ const isCatalog: TranslationCatalog = {
     subtitle: "Stjórnaðu viðbragðshreyfimyndunum sem birtast eftir að spjöld eru metin.",
     toggleTitle: "Sýna hreyfimyndir eftir að spjald er metið",
     toggleDescription: "Þetta hefur aðeins áhrif á viðbragðshreyfimyndir í upprifjun.",
+    premiumNote: "Sérstillingar á hreyfimyndum í upprifjun fylgja Premium. Vistaða valið þitt tekur aftur gildi þegar Premium er virkt.",
   },
   aiChatSuggestionsSettings: {
     title: "Tillögur í gervigreindarspjalli",
     subtitle: "Stjórnaðu tillöguhnöppum í ritreit gervigreindarspjallsins.",
     toggleTitle: "Sýna tillögur í ritreit gervigreindarspjallsins",
     toggleDescription: "Tillögur birtast fyrir ofan ritreitinn þegar spjallið er aðgerðalaust og tilbúið.",
+    premiumNote: "Sérstillingar á tillögum í gervigreindarspjalli fylgja Premium. Vistaða valið þitt tekur aftur gildi þegar Premium er virkt.",
   },
   ownOpenAIKeySettings: {
     title: "OpenAI-lykillinn þinn",

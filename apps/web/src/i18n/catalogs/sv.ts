@@ -927,12 +927,14 @@ const svCatalog: TranslationCatalog = {
     subtitle: "Styr reaktionsanimationerna som visas efter att du betygsatt kort.",
     toggleTitle: "Visa animationer när ett kort har betygsatts",
     toggleDescription: "Bara reaktionsanimationerna påverkas.",
+    premiumNote: "Att anpassa repetitionsanimationer ingår i Premium. Ditt sparade val kommer tillbaka när Premium är aktivt.",
   },
   aiChatSuggestionsSettings: {
     title: "Förslag i AI-chatten",
     subtitle: "Styr de föreslagna prompterna i AI-chattens skrivfält.",
     toggleTitle: "Visa förslag i AI-chattens skrivfält",
     toggleDescription: "Föreslagna prompter visas ovanför skrivfältet när chatten är ledig och redo.",
+    premiumNote: "Att anpassa förslag i AI-chatten ingår i Premium. Ditt sparade val kommer tillbaka när Premium är aktivt.",
   },
   ownOpenAIKeySettings: {
     title: "Din OpenAI-nyckel",

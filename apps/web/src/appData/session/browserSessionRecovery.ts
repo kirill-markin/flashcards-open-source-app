@@ -1,7 +1,7 @@
 import { clearEntitlementState } from "../../premium/entitlementStore";
 import { isAccountDeletionAttemptStorageKey } from "../../accountDeletion/accountDeletionAttempt";
 import { analyticsEnabledStorageKey, productAnalyticsCollectionStorageKey } from "../../analytics/identity";
-import { AI_CHAT_COMPOSER_SUGGESTIONS_STORAGE_KEY } from "../../chat/preferences/AIChatPreferencesContext";
+import { AI_CHAT_COMPOSER_SUGGESTIONS_STORAGE_KEY } from "../../chat/preferences/aiChatPreferencesStorage";
 import { INSTALLATION_ID_STORAGE_KEY } from "../../clientIdentity";
 import { LOCALE_PREFERENCE_STORAGE_KEY } from "../../i18n/runtime";
 import { clearWebSyncCacheForLocalBrowserDataCleanup } from "../../localDb/cache";

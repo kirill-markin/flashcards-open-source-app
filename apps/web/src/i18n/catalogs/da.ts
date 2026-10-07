@@ -927,12 +927,14 @@ const daCatalog: TranslationCatalog = {
     subtitle: "Styr de reaktionsanimationer, der vises, når du har vurderet et kort.",
     toggleTitle: "Vis animationer efter vurdering af et kort",
     toggleDescription: "Det gælder kun reaktionsanimationerne under repetition.",
+    premiumNote: "Tilpasning af repetitionsanimationer er inkluderet i Premium. Dit gemte valg vender tilbage, når Premium er aktivt.",
   },
   aiChatSuggestionsSettings: {
     title: "Forslag i AI-chatten",
     subtitle: "Styr de foreslåede prompter i AI-chattens skrivefelt.",
     toggleTitle: "Vis forslag i AI-chattens skrivefelt",
     toggleDescription: "Foreslåede prompter vises over skrivefeltet, når chatten er klar og inaktiv.",
+    premiumNote: "Tilpasning af forslag i AI-chatten er inkluderet i Premium. Dit gemte valg vender tilbage, når Premium er aktivt.",
   },
   ownOpenAIKeySettings: {
     title: "Din OpenAI-nøgle",

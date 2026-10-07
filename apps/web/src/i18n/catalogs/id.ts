@@ -927,12 +927,14 @@ const idCatalog: TranslationCatalog = {
     subtitle: "Atur animasi reaksi yang muncul setelah menilai kartu.",
     toggleTitle: "Tampilkan animasi setelah menilai kartu",
     toggleDescription: "Hanya animasi reaksi tinjauan yang terpengaruh.",
+    premiumNote: "Menyesuaikan animasi tinjauan disertakan dalam Premium. Pilihan tersimpan Anda kembali berlaku saat Premium aktif.",
   },
   aiChatSuggestionsSettings: {
     title: "Saran Obrolan AI",
     subtitle: "Atur chip saran perintah di kolom tulis obrolan AI.",
     toggleTitle: "Tampilkan saran di kolom tulis obrolan AI",
     toggleDescription: "Saran perintah muncul di atas kolom tulis saat obrolan sedang diam dan siap.",
+    premiumNote: "Menyesuaikan saran obrolan AI disertakan dalam Premium. Pilihan tersimpan Anda kembali berlaku saat Premium aktif.",
   },
   ownOpenAIKeySettings: {
     title: "Kunci OpenAI Anda",

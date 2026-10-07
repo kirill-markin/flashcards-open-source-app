@@ -28,6 +28,7 @@ const val languageSettingsSupportedLanguagesSectionTag: String = "language_setti
 fun LanguageSettingsRoute(
     supportedLanguageLabels: List<String>,
     onOpenAndroidLanguageSettings: () -> Unit,
+    onOpenAndroidDeviceLanguageSettings: () -> Unit,
     onBack: () -> Unit
 ) {
     SettingsScreenScaffold(
@@ -62,6 +63,30 @@ fun LanguageSettingsRoute(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(stringResource(R.string.settings_language_open_android_settings))
+                            }
+                        }
+                    }
+                }
+            } else {
+                item {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.padding(20.dp)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.settings_language_title),
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Text(
+                                text = stringResource(R.string.settings_language_device_body),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Button(
+                                onClick = onOpenAndroidDeviceLanguageSettings,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(stringResource(R.string.settings_language_open_device_settings))
                             }
                         }
                     }

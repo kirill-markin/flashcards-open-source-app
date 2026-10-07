@@ -927,12 +927,14 @@ const ptBrCatalog: TranslationCatalog = {
     subtitle: "Controle as animações de reação mostradas depois de avaliar os cartões.",
     toggleTitle: "Mostrar animações depois de avaliar um cartão",
     toggleDescription: "Apenas as animações de reação da revisão são afetadas.",
+    premiumNote: "Personalizar as animações da revisão está incluído no Premium. Sua escolha salva volta quando o Premium estiver ativo.",
   },
   aiChatSuggestionsSettings: {
     title: "Sugestões do chat com IA",
     subtitle: "Controle os chips de sugestão de prompt no compositor do chat com IA.",
     toggleTitle: "Mostrar sugestões no compositor do chat com IA",
     toggleDescription: "As sugestões de prompt aparecem acima do compositor quando o chat está ocioso e pronto.",
+    premiumNote: "Personalizar as sugestões do chat com IA está incluído no Premium. Sua escolha salva volta quando o Premium estiver ativo.",
   },
   ownOpenAIKeySettings: {
     title: "Sua chave da OpenAI",

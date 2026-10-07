@@ -927,12 +927,14 @@ const heCatalog: TranslationCatalog = {
     subtitle: "שלוט באנימציות התגובה שמוצגות אחרי דירוג כרטיסים.",
     toggleTitle: "הצג אנימציות אחרי דירוג כרטיס",
     toggleDescription: "ההגדרה משפיעה רק על אנימציות התגובה לחזרה.",
+    premiumNote: "התאמה אישית של אנימציות החזרה כלולה ב-Premium. הבחירה השמורה שלך חוזרת כש-Premium פעיל.",
   },
   aiChatSuggestionsSettings: {
     title: "הצעות בצ'אט AI",
     subtitle: "שלוט בהצעות הפרומפט בתיבת הכתיבה של צ'אט AI.",
     toggleTitle: "הצג הצעות בתיבת הכתיבה של צ'אט AI",
     toggleDescription: "הצעות פרומפט מופיעות מעל תיבת הכתיבה כשהצ'אט פנוי ומוכן.",
+    premiumNote: "התאמה אישית של ההצעות בצ'אט AI כלולה ב-Premium. הבחירה השמורה שלך חוזרת כש-Premium פעיל.",
   },
   ownOpenAIKeySettings: {
     title: "מפתח ה-OpenAI שלך",

@@ -927,12 +927,14 @@ const frCatalog: TranslationCatalog = {
     subtitle: "Contrôlez les animations de réaction affichées après l'évaluation des cartes.",
     toggleTitle: "Afficher les animations après l'évaluation d'une carte",
     toggleDescription: "Seules les animations de réaction aux révisions sont concernées.",
+    premiumNote: "La personnalisation des animations de révision est incluse avec Premium. Votre choix enregistré revient lorsque Premium est actif.",
   },
   aiChatSuggestionsSettings: {
     title: "Suggestions du chat IA",
     subtitle: "Contrôlez les suggestions de messages dans la zone de saisie du chat IA.",
     toggleTitle: "Afficher les suggestions dans la zone de saisie du chat IA",
     toggleDescription: "Les suggestions apparaissent au-dessus de la zone de saisie lorsque le chat est inactif et prêt.",
+    premiumNote: "La personnalisation des suggestions du chat IA est incluse avec Premium. Votre choix enregistré revient lorsque Premium est actif.",
   },
   ownOpenAIKeySettings: {
     title: "Votre clé OpenAI",
