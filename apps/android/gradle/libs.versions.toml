@@ -29,7 +29,7 @@ testOrchestrator = "1.6.1"
 securityCrypto = "1.1.0"
 json = "20260814"
 okhttp = "5.5.0"
-sentry = "8.59.0"
+sentry = "8.60.0"
 sentryAndroidGradlePlugin = "6.23.0"
 
 [libraries]
