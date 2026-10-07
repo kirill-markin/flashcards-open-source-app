@@ -28,6 +28,7 @@ enum class AndroidObservationAction(
     EXPECTED_HTTP_FAILURE(tagValue = "expected_http_failure"),
     HTTP_TRANSIENT_RETRY(tagValue = "http_transient_retry"),
     HTTP_5XX_WARNING(tagValue = "http_5xx_warning"),
+    HTTP_5XX_UNATTRIBUTED(tagValue = "http_5xx_unattributed"),
     HTTP_UNEXPECTED_CLIENT_ERROR(tagValue = "http_unexpected_client_error"),
     AI_STREAM_CRASH(tagValue = "ai_stream_crash"),
     AI_RUNTIME_BREADCRUMB(tagValue = "ai_runtime_breadcrumb"),
@@ -309,6 +310,30 @@ sealed interface AndroidBreadcrumbEvent : AndroidObservationEvent {
             userId = null,
             workspaceId = null,
             requestId = requestId,
+            statusCode = statusCode,
+            code = code,
+            appVersion = appVersion,
+            clientVersion = clientVersion,
+            versionCode = versionCode
+        )
+    }
+
+    data class HttpServerErrorUnattributed(
+        override val feature: AndroidObservationFeature,
+        val endpointName: String,
+        val method: String,
+        val statusCode: Int,
+        val code: String?,
+        val stage: String?,
+        val appVersion: String?,
+        val clientVersion: String?,
+        val versionCode: Int?
+    ) : AndroidBreadcrumbEvent {
+        override val action: AndroidObservationAction = AndroidObservationAction.HTTP_5XX_UNATTRIBUTED
+        override val tags: AndroidObservationTags = AndroidObservationTags(
+            userId = null,
+            workspaceId = null,
+            requestId = null,
             statusCode = statusCode,
             code = code,
             appVersion = appVersion,
