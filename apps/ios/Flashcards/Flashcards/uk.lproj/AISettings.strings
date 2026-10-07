@@ -850,7 +850,7 @@
 "settings.language.supported.zulu" = "Зулуська";
 
 "premium.offer.title" = "Premium";
-"premium.offer.benefits" = "1 000 повідомлень ШІ на місяць і власні акцентні кольори. Синхронізація безкоштовна для всіх.";
+"premium.offer.benefits" = "1 000 повідомлень ШІ на місяць і власні стилі. Синхронізація безкоштовна для всіх.";
 "premium.aiLimit.title" = "Досягнуто ліміту повідомлень ШІ";
 
 "settings.accentColor.title" = "Колір акценту";
@@ -863,6 +863,8 @@
 "settings.accentColor.custom" = "Власний колір";
 "settings.accentColor.invalidHex" = "Введіть колір у форматі #RRGGBB — шість шістнадцяткових цифр.";
 "settings.accentColor.premiumNote" = "Власні кольори акценту доступні з Premium. Збережений колір повернеться, коли Premium буде активним.";
+"settings.reviewAnimations.premiumNote" = "Вимкнення анімацій повторення доступне з Premium. Збережене налаштування повернеться, коли Premium буде активним.";
+"settings.aiChatSuggestions.premiumNote" = "Вимкнення пропозицій чату ШІ доступне з Premium. Збережене налаштування повернеться, коли Premium буде активним.";
 
 "premium.apple.monthlyProduct" = "%@ · Щомісяця";
 "premium.apple.renewal" = "Поновлюється автоматично до скасування. Керувати підпискою або скасувати її можна в App Store.";

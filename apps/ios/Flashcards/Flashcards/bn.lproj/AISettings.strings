@@ -850,7 +850,7 @@
 "settings.language.supported.zulu" = "জুলু";
 
 "premium.offer.title" = "Premium";
-"premium.offer.benefits" = "প্রতি মাসে ১,০০০টি AI বার্তা এবং নিজের পছন্দের অ্যাকসেন্ট রং। সিঙ্ক সবার জন্য বিনামূল্যে।";
+"premium.offer.benefits" = "প্রতি মাসে ১,০০০টি AI বার্তা এবং নিজের পছন্দের স্টাইল। সিঙ্ক সবার জন্য বিনামূল্যে।";
 "premium.aiLimit.title" = "AI বার্তার সীমায় পৌঁছেছেন";
 
 "settings.accentColor.title" = "অ্যাকসেন্ট রং";
@@ -863,6 +863,8 @@
 "settings.accentColor.custom" = "পছন্দের রং";
 "settings.accentColor.invalidHex" = "ছয়টি হেক্সাডেসিমেল অঙ্ক দিয়ে #RRGGBB আকারে একটি রং লিখুন।";
 "settings.accentColor.premiumNote" = "পছন্দের অ্যাকসেন্ট রং Premium-এ পাওয়া যায়। Premium সক্রিয় হলে আপনার সংরক্ষিত রং ফিরে আসে।";
+"settings.reviewAnimations.premiumNote" = "পুনরালোচনার অ্যানিমেশন বন্ধ করা Premium-এ পাওয়া যায়। Premium সক্রিয় হলে আপনার সংরক্ষিত সেটিং ফিরে আসে।";
+"settings.aiChatSuggestions.premiumNote" = "এআই চ্যাট পরামর্শ বন্ধ করা Premium-এ পাওয়া যায়। Premium সক্রিয় হলে আপনার সংরক্ষিত সেটিং ফিরে আসে।";
 
 "premium.apple.monthlyProduct" = "%@ · মাসিক";
 "premium.apple.renewal" = "বাতিল না করা পর্যন্ত স্বয়ংক্রিয়ভাবে নবায়ন হয়। আপনার App Store সাবস্ক্রিপশন থেকে পরিচালনা বা বাতিল করুন।";

@@ -850,7 +850,7 @@
 "settings.language.supported.zulu" = "Zulu";
 
 "premium.offer.title" = "Premium";
-"premium.offer.benefits" = "1 000 tekoälyviestiä kuukaudessa ja omat korostusvärit. Synkronointi on kaikille ilmaista.";
+"premium.offer.benefits" = "1 000 tekoälyviestiä kuukaudessa ja omat tyylit. Synkronointi on kaikille ilmaista.";
 "premium.aiLimit.title" = "Tekoälyviestien raja saavutettu";
 
 "settings.accentColor.title" = "Korostusväri";
@@ -863,6 +863,8 @@
 "settings.accentColor.custom" = "Oma väri";
 "settings.accentColor.invalidHex" = "Anna väri muodossa #RRGGBB kuudella heksadesimaalinumerolla.";
 "settings.accentColor.premiumNote" = "Omat korostusvärit ovat käytettävissä Premiumilla. Tallennettu värisi palautuu, kun Premium on aktiivinen.";
+"settings.reviewAnimations.premiumNote" = "Kertausanimaatioiden poistaminen käytöstä on käytettävissä Premiumilla. Tallennettu asetuksesi palautuu, kun Premium on aktiivinen.";
+"settings.aiChatSuggestions.premiumNote" = "Tekoälykeskustelun ehdotusten poistaminen käytöstä on käytettävissä Premiumilla. Tallennettu asetuksesi palautuu, kun Premium on aktiivinen.";
 
 "premium.apple.monthlyProduct" = "%@ · Kuukausittain";
 "premium.apple.renewal" = "Uusiutuu automaattisesti, kunnes peruutat. Hallitse tai peruuta App Store -tilauksissasi.";

@@ -1,13 +1,32 @@
 import SwiftUI
 
+private struct PendingReviewAnimationsSelection {
+    let requestId: UUID
+    let identityKey: String?
+    let isEnabled: Bool
+}
+
 struct ReviewAnimationsSettingsView: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
+    @Environment(PremiumPresenter.self) private var premiumPresenter: PremiumPresenter
 
     @State private var pendingIsEnabled: Bool? = nil
+    @State private var pendingSelection: PendingReviewAnimationsSelection? = nil
     @State private var guidanceMessage: String = ""
 
     var body: some View {
         List {
+            if self.store.canCustomizeStyle == false {
+                Section {
+                    Text(aiSettingsLocalized(
+                        "settings.reviewAnimations.premiumNote",
+                        "Turning off review animations is available with Premium. Your saved setting returns when Premium is active."
+                    ))
+                    .foregroundStyle(.secondary)
+                    .accessibilityIdentifier(UITestIdentifier.reviewAnimationsPremiumNote)
+                }
+            }
+
             Section {
                 if self.guidanceMessage.isEmpty == false {
                     Text(self.guidanceMessage)
@@ -21,10 +40,10 @@ struct ReviewAnimationsSettingsView: View {
                     ),
                     isOn: Binding(
                         get: {
-                            self.pendingIsEnabled ?? store.accountPreferences.reviewReactionAnimationsEnabled
+                            self.pendingIsEnabled ?? store.effectiveReviewReactionAnimationsEnabled
                         },
                         set: { isEnabled in
-                            self.updateReviewAnimationsEnabled(isEnabled: isEnabled)
+                            self.selectReviewAnimationsEnabled(isEnabled: isEnabled)
                         }
                     )
                 )
@@ -45,6 +64,43 @@ struct ReviewAnimationsSettingsView: View {
         .task {
             await self.refreshCloudAccountContext()
         }
+        .onChange(of: self.store.accountPreferencesIdentityKey) { _, _ in
+            self.pendingSelection = nil
+        }
+        .onChange(of: self.premiumPresenter.result) { _, result in
+            guard let pending = self.pendingSelection, let result,
+                  result.requestId == pending.requestId else {
+                return
+            }
+            self.pendingSelection = nil
+            if result.outcome == .accessGranted,
+               pending.identityKey == self.store.accountPreferencesIdentityKey,
+               self.store.canCustomizeStyle {
+                self.selectReviewAnimationsEnabled(isEnabled: pending.isEnabled)
+            }
+        }
+        .onDisappear {
+            self.pendingSelection = nil
+        }
+    }
+
+    private func selectReviewAnimationsEnabled(isEnabled: Bool) {
+        if isEnabled == false && self.store.canCustomizeStyle == false {
+            guard self.pendingSelection == nil else { return }
+            let requestId = self.premiumPresenter.present(
+                reason: .premiumFeature(requiredTierRank: premiumTierRank),
+                analyticsEntryPoint: .reviewAnimations,
+                entitlement: self.store.cloudEntitlement,
+                identity: try? self.store.appleSubscriptionIdentity()
+            )
+            self.pendingSelection = PendingReviewAnimationsSelection(
+                requestId: requestId,
+                identityKey: self.store.accountPreferencesIdentityKey,
+                isEnabled: isEnabled
+            )
+            return
+        }
+        self.updateReviewAnimationsEnabled(isEnabled: isEnabled)
     }
 
     private func updateReviewAnimationsEnabled(isEnabled: Bool) {
@@ -97,5 +153,6 @@ struct ReviewAnimationsSettingsView: View {
     NavigationStack {
         ReviewAnimationsSettingsView()
             .environment(FlashcardsStore())
+            .environment(PremiumPresenter())
     }
 }

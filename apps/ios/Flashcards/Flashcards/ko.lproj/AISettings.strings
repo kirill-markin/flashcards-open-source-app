@@ -850,7 +850,7 @@
 "settings.language.supported.zulu" = "줄루어";
 
 "premium.offer.title" = "Premium";
-"premium.offer.benefits" = "매월 AI 메시지 1,000개와 사용자 지정 강조 색상을 이용하세요. 동기화는 누구나 무료로 사용할 수 있습니다.";
+"premium.offer.benefits" = "매월 AI 메시지 1,000개와 사용자 지정 스타일을 이용하세요. 동기화는 누구나 무료로 사용할 수 있습니다.";
 "premium.aiLimit.title" = "AI 메시지 한도에 도달했습니다";
 
 "settings.accentColor.title" = "강조 색상";
@@ -863,6 +863,8 @@
 "settings.accentColor.custom" = "사용자 지정 색상";
 "settings.accentColor.invalidHex" = "6자리 16진수를 사용하여 #RRGGBB 형식으로 색상을 입력하세요.";
 "settings.accentColor.premiumNote" = "사용자 지정 강조 색상은 Premium에서 사용할 수 있습니다. Premium이 활성화되면 저장된 색상으로 돌아갑니다.";
+"settings.reviewAnimations.premiumNote" = "복습 애니메이션 끄기는 Premium에서 사용할 수 있습니다. Premium이 활성화되면 저장된 설정으로 돌아갑니다.";
+"settings.aiChatSuggestions.premiumNote" = "AI 채팅 제안 끄기는 Premium에서 사용할 수 있습니다. Premium이 활성화되면 저장된 설정으로 돌아갑니다.";
 
 "premium.apple.monthlyProduct" = "%@ · 월간";
 "premium.apple.renewal" = "취소할 때까지 자동 갱신됩니다. App Store 구독에서 관리하거나 취소하세요.";
