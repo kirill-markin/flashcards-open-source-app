@@ -491,6 +491,7 @@ const knCatalog: TranslationCatalog = {
       share: "ಹಂಚಿಕೊಳ್ಳಿ",
       feedback: "ಅಭಿಪ್ರಾಯ",
       account: "ಖಾತೆ",
+      style: "ಶೈಲಿ",
       general: "ಸಾಮಾನ್ಯ",
       support: "ಬೆಂಬಲ",
       advanced: "ಸುಧಾರಿತ",

@@ -491,6 +491,7 @@ const deCatalog: TranslationCatalog = {
       share: "Teilen",
       feedback: "Feedback",
       account: "Konto",
+      style: "Stil",
       general: "Allgemein",
       support: "Support",
       advanced: "Erweitert",

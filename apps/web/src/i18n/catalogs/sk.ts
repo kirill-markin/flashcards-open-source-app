@@ -499,6 +499,7 @@ const skCatalog: TranslationCatalog = {
       share: "Zdieľať",
       feedback: "Spätná väzba",
       account: "Účet",
+      style: "Štýl",
       general: "Všeobecné",
       support: "Podpora",
       advanced: "Rozšírené",

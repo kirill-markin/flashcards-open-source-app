@@ -121,7 +121,7 @@ async function assertSettingsRootTree(session: LiveSmokeSession): Promise<void> 
   const { page, diagnostics } = session;
   await openSettingsRoot(session, "open Settings for IA verification");
 
-  for (const groupLabel of ["Feedback", "Account", "General", "Support", "Advanced"]) {
+  for (const groupLabel of ["Feedback", "Account", "Style", "General", "Support", "Advanced"]) {
     await trackedExpectVisible(
       diagnostics,
       `confirm Settings group ${groupLabel} is visible`,

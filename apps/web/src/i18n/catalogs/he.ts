@@ -491,6 +491,7 @@ const heCatalog: TranslationCatalog = {
       share: "שיתוף",
       feedback: "משוב",
       account: "חשבון",
+      style: "סגנון",
       general: "כללי",
       support: "תמיכה",
       advanced: "מתקדם",

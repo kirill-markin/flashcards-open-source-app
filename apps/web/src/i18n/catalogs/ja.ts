@@ -491,6 +491,7 @@ export const jaCatalog = {
       share: "共有",
       feedback: "フィードバック",
       account: "アカウント",
+      style: "スタイル",
       general: "一般",
       support: "サポート",
       advanced: "詳細",

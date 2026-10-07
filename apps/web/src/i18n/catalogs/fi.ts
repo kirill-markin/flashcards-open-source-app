@@ -491,6 +491,7 @@ const fiCatalog: TranslationCatalog = {
       share: "Jakaminen",
       feedback: "Palaute",
       account: "Tili",
+      style: "Tyyli",
       general: "Yleiset",
       support: "Tuki",
       advanced: "Lisäasetukset",

@@ -491,6 +491,7 @@ const arCatalog: TranslationCatalog = {
       share: "مشاركة",
       feedback: "الملاحظات",
       account: "الحساب",
+      style: "النمط",
       general: "عام",
       support: "الدعم",
       advanced: "متقدم",
