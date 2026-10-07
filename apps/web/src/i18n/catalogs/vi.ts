@@ -927,12 +927,14 @@ const viCatalog: TranslationCatalog = {
     subtitle: "Kiểm soát hoạt ảnh phản hồi hiển thị sau khi chấm thẻ.",
     toggleTitle: "Hiện hoạt ảnh sau khi chấm thẻ",
     toggleDescription: "Chỉ các hoạt ảnh phản hồi khi ôn tập bị ảnh hưởng.",
+    premiumNote: "Tùy chỉnh hoạt ảnh khi ôn tập được bao gồm trong Premium. Lựa chọn bạn đã lưu sẽ được áp dụng lại khi Premium đang hoạt động.",
   },
   aiChatSuggestionsSettings: {
     title: "Gợi ý trong trò chuyện AI",
     subtitle: "Kiểm soát các gợi ý câu lệnh trong ô soạn tin của trò chuyện AI.",
     toggleTitle: "Hiện gợi ý trong ô soạn tin trò chuyện AI",
     toggleDescription: "Câu lệnh gợi ý xuất hiện phía trên ô soạn tin khi trò chuyện đang rảnh và sẵn sàng.",
+    premiumNote: "Tùy chỉnh gợi ý trong trò chuyện AI được bao gồm trong Premium. Lựa chọn bạn đã lưu sẽ được áp dụng lại khi Premium đang hoạt động.",
   },
   ownOpenAIKeySettings: {
     title: "Khóa OpenAI của bạn",

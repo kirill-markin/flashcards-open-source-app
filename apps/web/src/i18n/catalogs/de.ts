@@ -927,12 +927,14 @@ const deCatalog: TranslationCatalog = {
     subtitle: "Steuere Reaktionsanimationen nach Kartenbewertungen.",
     toggleTitle: "Animationen nach der Bewertung einer Karte anzeigen",
     toggleDescription: "Betrifft nur die Reaktionsanimationen beim Wiederholen.",
+    premiumNote: "Das Anpassen der Wiederholungsanimationen ist in Premium enthalten. Deine gespeicherte Auswahl gilt wieder, sobald Premium aktiv ist.",
   },
   aiChatSuggestionsSettings: {
     title: "KI-Chat-Vorschläge",
     subtitle: "Steuere vorgeschlagene Prompts im KI-Chat-Eingabefeld.",
     toggleTitle: "Vorschläge im KI-Chat-Eingabefeld anzeigen",
     toggleDescription: "Vorgeschlagene Prompts erscheinen über dem Eingabefeld, wenn der Chat bereit und inaktiv ist.",
+    premiumNote: "Das Anpassen der KI-Chat-Vorschläge ist in Premium enthalten. Deine gespeicherte Auswahl gilt wieder, sobald Premium aktiv ist.",
   },
   ownOpenAIKeySettings: {
     title: "Dein OpenAI-Schlüssel",

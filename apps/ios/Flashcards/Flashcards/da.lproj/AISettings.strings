@@ -850,7 +850,7 @@
 "settings.language.supported.zulu" = "Zulu";
 
 "premium.offer.title" = "Premium";
-"premium.offer.benefits" = "1.000 AI-beskeder om måneden og brugerdefinerede accentfarver. Synkronisering er gratis for alle.";
+"premium.offer.benefits" = "1.000 AI-beskeder om måneden og brugerdefinerede stilarter. Synkronisering er gratis for alle.";
 "premium.aiLimit.title" = "Grænsen for AI-beskeder er nået";
 
 "settings.accentColor.title" = "Accentfarve";
@@ -863,6 +863,8 @@
 "settings.accentColor.custom" = "Brugerdefineret farve";
 "settings.accentColor.invalidHex" = "Indtast en farve som #RRGGBB med seks hexadecimale cifre.";
 "settings.accentColor.premiumNote" = "Brugerdefinerede accentfarver er tilgængelige med Premium. Din gemte farve vender tilbage, når Premium er aktivt.";
+"settings.reviewAnimations.premiumNote" = "Det kræver Premium at slå repetitionsanimationer fra. Din gemte indstilling vender tilbage, når Premium er aktivt.";
+"settings.aiChatSuggestions.premiumNote" = "Det kræver Premium at slå AI-chatforslag fra. Din gemte indstilling vender tilbage, når Premium er aktivt.";
 
 "premium.apple.monthlyProduct" = "%@ · Månedligt";
 "premium.apple.renewal" = "Fornyes automatisk indtil opsigelse. Administrer eller opsig under dine App Store-abonnementer.";

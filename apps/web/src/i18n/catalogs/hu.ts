@@ -927,12 +927,14 @@ const huCatalog: TranslationCatalog = {
     subtitle: "Szabályozd a kártyák értékelése után megjelenő reakcióanimációkat.",
     toggleTitle: "Animációk megjelenítése a kártya értékelése után",
     toggleDescription: "Ez csak az ismétlési reakcióanimációkra vonatkozik.",
+    premiumNote: "Az ismétlési animációk testreszabása a Premium része. A mentett választásod visszatér, amikor a Premium aktív.",
   },
   aiChatSuggestionsSettings: {
     title: "AI-csevegés javaslatai",
     subtitle: "Szabályozd a javasolt utasításokat az AI-csevegés szerkesztőjében.",
     toggleTitle: "Javaslatok megjelenítése az AI-csevegés szerkesztőjében",
     toggleDescription: "A javasolt utasítások a szerkesztő fölött jelennek meg, amikor a csevegés tétlen és készen áll.",
+    premiumNote: "Az AI-csevegés javaslatainak testreszabása a Premium része. A mentett választásod visszatér, amikor a Premium aktív.",
   },
   ownOpenAIKeySettings: {
     title: "Saját OpenAI-kulcsod",

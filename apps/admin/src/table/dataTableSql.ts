@@ -4,6 +4,7 @@ import {
   isDataTableFilterActive,
   type DataTableColumn,
   type DataTableFilter,
+  type DataTableSort,
   type DataTableState,
 } from "./dataTableModel";
 
@@ -43,6 +44,12 @@ function buildEnumConditionSql(sqlExpression: string, values: ReadonlyArray<stri
   return values.includes("") ? `${inSql} OR ${sqlExpression} IS NULL` : inSql;
 }
 
+/** A list matches when it holds any selected value, and an empty list matches a selected `""`. */
+function buildEnumListConditionSql(sqlExpression: string, values: ReadonlyArray<string>): string {
+  const overlapSql = `${sqlExpression} && ARRAY[${values.map(escapeSqlStringLiteral).join(", ")}]::text[]`;
+  return values.includes("") ? `${overlapSql} OR cardinality(${sqlExpression}) = 0` : overlapSql;
+}
+
 function buildFilterConditionSql<Row>(column: DataTableColumn<Row>, filter: DataTableFilter, sqlExpression: string): string {
   if (column.kind === "text" && filter.kind === "text") {
     const pattern = `%${escapeLikePattern(filter.contains.trim())}%`;
@@ -68,15 +75,36 @@ function buildFilterConditionSql<Row>(column: DataTableColumn<Row>, filter: Data
   if (column.kind === "enum" && filter.kind === "enum") {
     return buildEnumConditionSql(sqlExpression, filter.values);
   }
+  if (column.kind === "enum-list" && filter.kind === "enum") {
+    return buildEnumListConditionSql(sqlExpression, filter.values);
+  }
   if (column.kind === "boolean" && filter.kind === "boolean") {
     return `${sqlExpression} IS ${filter.value ? "TRUE" : "FALSE"}`;
   }
   throw new Error(`Data table filter kind "${filter.kind}" does not match column "${column.id}" of kind "${column.kind}".`);
 }
 
+/** A list sorts by its values joined, and an empty one as NULL, as `getSortValue` reads it. */
+function buildSortSql<Row>(
+  sort: NonNullable<DataTableSort>,
+  columns: ReadonlyArray<DataTableColumn<Row>>,
+  columnSqlById: Readonly<Record<string, string>>,
+): string {
+  const column = columns.find((candidate) => candidate.id === sort.columnId);
+  if (column === undefined) {
+    throw new Error(`Data table sort names unknown column "${sort.columnId}".`);
+  }
+  const sqlExpression = requireColumnSql(columnSqlById, column.id);
+  const keySql = column.kind === "enum-list"
+    ? `CASE WHEN cardinality(${sqlExpression}) = 0 THEN NULL ELSE array_to_string(${sqlExpression}, ', ') END`
+    : sqlExpression;
+  return `${keySql} ${sort.direction === "asc" ? "ASC" : "DESC"} NULLS LAST`;
+}
+
 /**
  * `columnSqlById` maps a column id to the SQL expression its filter and sort read; a date column's
- * expression must be a `timestamptz`. `defaultOrderBySql` orders an unsorted table, and
+ * expression must be a `timestamptz`, and an enum list's a `text[]` that is empty rather than NULL
+ * for no values. `defaultOrderBySql` orders an unsorted table, and
  * `tiebreakOrderBySql` is a unique key with its direction, appended to every order so pages are stable.
  */
 export function buildDataTableSqlClauses<Row>(
@@ -88,9 +116,6 @@ export function buildDataTableSqlClauses<Row>(
 ): DataTableSqlClauses {
   // Every column up front, so a missing expression fails the first query rather than the first click.
   columns.forEach((column) => {
-    if (column.kind === "enum-list") {
-      throw new Error(`Data table column "${column.id}" is an enum list, which server mode does not support.`);
-    }
     requireColumnSql(columnSqlById, column.id);
   });
   if (!Number.isSafeInteger(state.page) || state.page < 0) {
@@ -104,7 +129,7 @@ export function buildDataTableSqlClauses<Row>(
   });
   const sortSql = state.sort === null
     ? defaultOrderBySql
-    : `${requireColumnSql(columnSqlById, state.sort.columnId)} ${state.sort.direction === "asc" ? "ASC" : "DESC"} NULLS LAST`;
+    : buildSortSql(state.sort, columns, columnSqlById);
   return {
     whereConditionSql: conditions.length === 0 ? "TRUE" : conditions.join(" AND "),
     orderBySql: `ORDER BY ${sortSql}, ${tiebreakOrderBySql}`,

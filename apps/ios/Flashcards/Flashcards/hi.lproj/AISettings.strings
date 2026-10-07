@@ -878,7 +878,7 @@
 "settings.language.supported.zulu" = "ज़ुलु";
 
 "premium.offer.title" = "Premium";
-"premium.offer.benefits" = "हर महीने 1,000 AI संदेश और अपनी पसंद के एक्सेंट रंग। सिंक सभी के लिए मुफ़्त है।";
+"premium.offer.benefits" = "हर महीने 1,000 AI संदेश और अपनी पसंद की शैलियाँ। सिंक सभी के लिए मुफ़्त है।";
 "premium.aiLimit.title" = "AI संदेशों की सीमा पूरी हो गई है";
 
 "settings.accentColor.title" = "एक्सेंट रंग";
@@ -891,6 +891,8 @@
 "settings.accentColor.custom" = "पसंदीदा रंग";
 "settings.accentColor.invalidHex" = "छह हेक्साडेसिमल अंकों के साथ #RRGGBB के रूप में रंग दर्ज करें।";
 "settings.accentColor.premiumNote" = "पसंदीदा एक्सेंट रंग Premium के साथ उपलब्ध हैं। Premium सक्रिय होने पर आपका सहेजा गया रंग वापस आ जाता है।";
+"settings.reviewAnimations.premiumNote" = "समीक्षा एनिमेशन बंद करना Premium के साथ उपलब्ध है। Premium सक्रिय होने पर आपकी सहेजी गई सेटिंग वापस आ जाती है।";
+"settings.aiChatSuggestions.premiumNote" = "AI चैट सुझाव बंद करना Premium के साथ उपलब्ध है। Premium सक्रिय होने पर आपकी सहेजी गई सेटिंग वापस आ जाती है।";
 
 "premium.apple.monthlyProduct" = "%@ · मासिक";
 "premium.apple.renewal" = "रद्द करने तक अपने आप नवीनीकृत होता है। अपनी App Store सदस्यताओं में इसे प्रबंधित या रद्द करें।";

@@ -850,7 +850,7 @@
 "settings.language.supported.zulu" = "Zulu";
 
 "premium.offer.title" = "Premium";
-"premium.offer.benefits" = "1.000 de mesaje AI pe lună și culori de accent personalizate. Sincronizarea este gratuită pentru toată lumea.";
+"premium.offer.benefits" = "1.000 de mesaje AI pe lună și stiluri personalizate. Sincronizarea este gratuită pentru toată lumea.";
 "premium.aiLimit.title" = "Ai atins limita de mesaje AI";
 
 "settings.accentColor.title" = "Culoare de accent";
@@ -863,6 +863,8 @@
 "settings.accentColor.custom" = "Culoare personalizată";
 "settings.accentColor.invalidHex" = "Introdu o culoare ca #RRGGBB, cu șase cifre hexazecimale.";
 "settings.accentColor.premiumNote" = "Culorile de accent personalizate sunt disponibile cu Premium. Culoarea salvată revine când Premium este activ.";
+"settings.reviewAnimations.premiumNote" = "Dezactivarea animațiilor de recapitulare este disponibilă cu Premium. Setarea salvată revine când Premium este activ.";
+"settings.aiChatSuggestions.premiumNote" = "Dezactivarea sugestiilor pentru chatul AI este disponibilă cu Premium. Setarea salvată revine când Premium este activ.";
 
 "premium.apple.monthlyProduct" = "%@ · Lunar";
 "premium.apple.renewal" = "Se reînnoiește automat până la anulare. Gestionează sau anulează din abonamentele App Store.";

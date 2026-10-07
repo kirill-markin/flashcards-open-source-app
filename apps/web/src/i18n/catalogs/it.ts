@@ -927,12 +927,14 @@ const itCatalog: TranslationCatalog = {
     subtitle: "Gestisci le animazioni di reazione mostrate dopo la valutazione delle carte.",
     toggleTitle: "Mostra le animazioni dopo la valutazione di una carta",
     toggleDescription: "Sono interessate solo le animazioni di reazione al ripasso.",
+    premiumNote: "La personalizzazione delle animazioni dei ripassi è inclusa in Premium. La tua scelta salvata viene ripristinata quando Premium è attivo.",
   },
   aiChatSuggestionsSettings: {
     title: "Suggerimenti della chat AI",
     subtitle: "Gestisci i suggerimenti di prompt nel campo di scrittura della chat AI.",
     toggleTitle: "Mostra i suggerimenti nel campo di scrittura della chat AI",
     toggleDescription: "I prompt suggeriti compaiono sopra il campo di scrittura quando la chat è inattiva e pronta.",
+    premiumNote: "La personalizzazione dei suggerimenti della chat AI è inclusa in Premium. La tua scelta salvata viene ripristinata quando Premium è attivo.",
   },
   ownOpenAIKeySettings: {
     title: "La tua chiave OpenAI",

@@ -945,12 +945,14 @@ const slCatalog: TranslationCatalog = {
     subtitle: "Upravljajte animacije odziva, prikazane po ocenjevanju kartic.",
     toggleTitle: "Prikaži animacije po ocenjevanju kartice",
     toggleDescription: "Nastavitev vpliva le na animacije odziva pri ponavljanju.",
+    premiumNote: "Prilagajanje animacij pri ponavljanju je vključeno v Premium. Vaša shranjena izbira se vrne, ko je Premium aktiven.",
   },
   aiChatSuggestionsSettings: {
     title: "Predlogi v klepetu z UI",
     subtitle: "Upravljajte gumbe s predlaganimi pozivi v urejevalniku klepeta z UI.",
     toggleTitle: "Prikaži predloge v urejevalniku klepeta z UI",
     toggleDescription: "Predlagani pozivi se prikažejo nad urejevalnikom, ko je klepet nedejaven in pripravljen.",
+    premiumNote: "Prilagajanje predlogov v klepetu z UI je vključeno v Premium. Vaša shranjena izbira se vrne, ko je Premium aktiven.",
   },
   ownOpenAIKeySettings: {
     title: "Vaš ključ OpenAI",

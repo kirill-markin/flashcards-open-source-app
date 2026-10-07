@@ -936,12 +936,14 @@ const roCatalog: TranslationCatalog = {
     subtitle: "Controlează animațiile de reacție afișate după evaluarea fișelor.",
     toggleTitle: "Arată animații după evaluarea unei fișe",
     toggleDescription: "Sunt afectate doar animațiile de reacție din recapitulare.",
+    premiumNote: "Personalizarea animațiilor de recapitulare este inclusă în Premium. Alegerea ta salvată revine când Premium este activ.",
   },
   aiChatSuggestionsSettings: {
     title: "Sugestii pentru chatul AI",
     subtitle: "Controlează sugestiile de instrucțiuni din câmpul de mesaj al chatului AI.",
     toggleTitle: "Arată sugestii în câmpul de mesaj al chatului AI",
     toggleDescription: "Instrucțiunile sugerate apar deasupra câmpului de mesaj când chatul este inactiv și pregătit.",
+    premiumNote: "Personalizarea sugestiilor pentru chatul AI este inclusă în Premium. Alegerea ta salvată revine când Premium este activ.",
   },
   ownOpenAIKeySettings: {
     title: "Cheia ta OpenAI",

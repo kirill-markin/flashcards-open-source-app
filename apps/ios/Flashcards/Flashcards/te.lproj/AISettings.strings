@@ -850,7 +850,7 @@
 "settings.language.supported.zulu" = "జులు";
 
 "premium.offer.title" = "Premium";
-"premium.offer.benefits" = "నెలకు 1,000 AI సందేశాలు మరియు మీకు నచ్చిన యాక్సెంట్ రంగులు. సింక్ అందరికీ ఉచితం.";
+"premium.offer.benefits" = "నెలకు 1,000 AI సందేశాలు మరియు మీకు నచ్చిన శైలులు. సింక్ అందరికీ ఉచితం.";
 "premium.aiLimit.title" = "AI సందేశాల పరిమితిని చేరుకున్నారు";
 
 "settings.accentColor.title" = "హైలైట్ రంగు";
@@ -863,6 +863,8 @@
 "settings.accentColor.custom" = "ఇష్టమైన రంగు";
 "settings.accentColor.invalidHex" = "ఆరు హెక్సాడెసిమల్ అంకెలతో #RRGGBB రూపంలో రంగును నమోదు చేయండి.";
 "settings.accentColor.premiumNote" = "ఇష్టమైన హైలైట్ రంగులు Premiumతో అందుబాటులో ఉంటాయి. Premium సక్రియంగా ఉన్నప్పుడు మీరు సేవ్ చేసిన రంగు తిరిగి వస్తుంది.";
+"settings.reviewAnimations.premiumNote" = "పునశ్చరణ యానిమేషన్‌లను ఆఫ్ చేయడం Premiumతో అందుబాటులో ఉంటుంది. Premium సక్రియంగా ఉన్నప్పుడు మీరు సేవ్ చేసిన సెట్టింగ్ తిరిగి వస్తుంది.";
+"settings.aiChatSuggestions.premiumNote" = "AI చాట్ సూచనలను ఆఫ్ చేయడం Premiumతో అందుబాటులో ఉంటుంది. Premium సక్రియంగా ఉన్నప్పుడు మీరు సేవ్ చేసిన సెట్టింగ్ తిరిగి వస్తుంది.";
 
 "premium.apple.monthlyProduct" = "%@ · నెలవారీ";
 "premium.apple.renewal" = "రద్దు చేసే వరకు స్వయంచాలకంగా పునరుద్ధరించబడుతుంది. మీ App Store సభ్యత్వాల్లో నిర్వహించండి లేదా రద్దు చేయండి.";

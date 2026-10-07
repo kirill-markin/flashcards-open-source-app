@@ -16,7 +16,8 @@ export type PremiumRequest =
     reason: "feature";
     entryPoint: AnalyticsPaywallEntryPoint;
     requiredRank: number;
-    continuation: PremiumContinuation;
+    /** Null when the pending change does not survive a Stripe Checkout redirect. */
+    continuation: PremiumContinuation | null;
     onResult: (result: "granted" | "dismissed") => void;
   }>;
 

@@ -936,12 +936,14 @@ const ltCatalog: TranslationCatalog = {
     subtitle: "Valdykite reakcijų animacijas, rodomas įvertinus korteles.",
     toggleTitle: "Rodyti animacijas įvertinus kortelę",
     toggleDescription: "Keičiamos tik kartojimo reakcijų animacijos.",
+    premiumNote: "Kartojimo animacijų tinkinimas įtrauktas į Premium. Jūsų išsaugotas pasirinkimas grįžta, kai Premium aktyvus.",
   },
   aiChatSuggestionsSettings: {
     title: "DI pokalbio pasiūlymai",
     subtitle: "Valdykite siūlomų užklausų mygtukus DI pokalbio rašymo lauke.",
     toggleTitle: "Rodyti pasiūlymus DI pokalbio rašymo lauke",
     toggleDescription: "Siūlomos užklausos rodomos virš rašymo lauko, kai pokalbis neaktyvus ir paruoštas.",
+    premiumNote: "DI pokalbio pasiūlymų tinkinimas įtrauktas į Premium. Jūsų išsaugotas pasirinkimas grįžta, kai Premium aktyvus.",
   },
   ownOpenAIKeySettings: {
     title: "Jūsų OpenAI raktas",

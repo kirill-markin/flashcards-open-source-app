@@ -850,7 +850,7 @@
 "settings.language.supported.zulu" = "Zulu";
 
 "premium.offer.title" = "Premium";
-"premium.offer.benefits" = "1000 MI ziņojumu mēnesī un pielāgotas akcenta krāsas. Sinhronizācija visiem ir bez maksas.";
+"premium.offer.benefits" = "1000 MI ziņojumu mēnesī un pielāgoti stili. Sinhronizācija visiem ir bez maksas.";
 "premium.aiLimit.title" = "Sasniegts MI ziņojumu limits";
 
 "settings.accentColor.title" = "Akcenta krāsa";
@@ -863,6 +863,8 @@
 "settings.accentColor.custom" = "Pielāgota krāsa";
 "settings.accentColor.invalidHex" = "Ievadiet krāsu formātā #RRGGBB ar sešiem heksadecimāliem cipariem.";
 "settings.accentColor.premiumNote" = "Pielāgotas akcenta krāsas ir pieejamas ar Premium. Saglabātā krāsa atgriežas, kad Premium ir aktīvs.";
+"settings.reviewAnimations.premiumNote" = "Atkārtošanas animāciju izslēgšana ir pieejama ar Premium. Saglabātais iestatījums atgriežas, kad Premium ir aktīvs.";
+"settings.aiChatSuggestions.premiumNote" = "MI sarunas ieteikumu izslēgšana ir pieejama ar Premium. Saglabātais iestatījums atgriežas, kad Premium ir aktīvs.";
 
 "premium.apple.monthlyProduct" = "%@ · Katru mēnesi";
 "premium.apple.renewal" = "Automātiski atjaunojas līdz atcelšanai. Pārvaldiet vai atceliet App Store abonementos.";

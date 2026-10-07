@@ -850,7 +850,7 @@
 "settings.language.supported.zulu" = "ಜುಲು";
 
 "premium.offer.title" = "Premium";
-"premium.offer.benefits" = "ಪ್ರತಿ ತಿಂಗಳು 1,000 AI ಸಂದೇಶಗಳು ಮತ್ತು ನಿಮ್ಮ ಆಯ್ಕೆಯ ಅಕ್ಸೆಂಟ್ ಬಣ್ಣಗಳು. ಸಿಂಕ್ ಎಲ್ಲರಿಗೂ ಉಚಿತ.";
+"premium.offer.benefits" = "ಪ್ರತಿ ತಿಂಗಳು 1,000 AI ಸಂದೇಶಗಳು ಮತ್ತು ನಿಮ್ಮ ಆಯ್ಕೆಯ ಶೈಲಿಗಳು. ಸಿಂಕ್ ಎಲ್ಲರಿಗೂ ಉಚಿತ.";
 "premium.aiLimit.title" = "AI ಸಂದೇಶಗಳ ಮಿತಿಯನ್ನು ತಲುಪಲಾಗಿದೆ";
 
 "settings.accentColor.title" = "ಹೈಲೈಟ್ ಬಣ್ಣ";
@@ -863,6 +863,8 @@
 "settings.accentColor.custom" = "ಆಯ್ಕೆಯ ಬಣ್ಣ";
 "settings.accentColor.invalidHex" = "ಆರು ಹೆಕ್ಸಾಡೆಸಿಮಲ್ ಅಂಕೆಗಳೊಂದಿಗೆ #RRGGBB ರೂಪದಲ್ಲಿ ಬಣ್ಣವನ್ನು ನಮೂದಿಸಿ.";
 "settings.accentColor.premiumNote" = "ಆಯ್ಕೆಯ ಹೈಲೈಟ್ ಬಣ್ಣಗಳು Premium ಜೊತೆಗೆ ಲಭ್ಯವಿವೆ. Premium ಸಕ್ರಿಯವಾದಾಗ ಉಳಿಸಿದ ಬಣ್ಣ ಮರಳಿ ಬರುತ್ತದೆ.";
+"settings.reviewAnimations.premiumNote" = "ಪುನರಾವರ್ತನೆ ಅನಿಮೇಶನ್‌ಗಳನ್ನು ಆಫ್ ಮಾಡುವುದು Premium ಜೊತೆಗೆ ಲಭ್ಯವಿದೆ. Premium ಸಕ್ರಿಯವಾದಾಗ ಉಳಿಸಿದ ಸೆಟ್ಟಿಂಗ್ ಮರಳಿ ಬರುತ್ತದೆ.";
+"settings.aiChatSuggestions.premiumNote" = "AI ಚಾಟ್ ಸಲಹೆಗಳನ್ನು ಆಫ್ ಮಾಡುವುದು Premium ಜೊತೆಗೆ ಲಭ್ಯವಿದೆ. Premium ಸಕ್ರಿಯವಾದಾಗ ಉಳಿಸಿದ ಸೆಟ್ಟಿಂಗ್ ಮರಳಿ ಬರುತ್ತದೆ.";
 
 "premium.apple.monthlyProduct" = "%@ · ಮಾಸಿಕ";
 "premium.apple.renewal" = "ರದ್ದು ಮಾಡುವವರೆಗೆ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ನವೀಕರಣಗೊಳ್ಳುತ್ತದೆ. ನಿಮ್ಮ App Store ಚಂದಾದಾರಿಕೆಗಳಲ್ಲಿ ನಿರ್ವಹಿಸಿ ಅಥವಾ ರದ್ದುಮಾಡಿ.";

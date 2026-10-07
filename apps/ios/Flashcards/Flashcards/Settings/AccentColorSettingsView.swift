@@ -46,7 +46,7 @@ struct AccentColorSettingsView: View {
 
     var body: some View {
         List {
-            if self.store.canUseCustomAccentColor == false {
+            if self.store.canCustomizeStyle == false {
                 Section {
                     Text(aiSettingsLocalized(
                         "settings.accentColor.premiumNote",
@@ -173,7 +173,7 @@ struct AccentColorSettingsView: View {
             self.pendingSelection = nil
             if result.outcome == .accessGranted,
                pending.identityKey == self.store.accountPreferencesIdentityKey,
-               self.store.canUseCustomAccentColor {
+               self.store.canCustomizeStyle {
                 self.selectColor(pending.color)
             }
         }
@@ -238,7 +238,7 @@ struct AccentColorSettingsView: View {
     private func selectColor(_ color: AccountAccentColor) {
         guard self.isUnavailable == false else { return }
         self.guidanceMessage = ""
-        if color != .defaultColor && self.store.canUseCustomAccentColor == false {
+        if color != .defaultColor && self.store.canCustomizeStyle == false {
             self.resetDraft()
             guard self.pendingSelection == nil else { return }
             let requestId = self.premiumPresenter.present(

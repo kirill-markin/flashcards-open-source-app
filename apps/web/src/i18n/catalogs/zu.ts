@@ -927,12 +927,14 @@ const zuCatalog: TranslationCatalog = {
     subtitle: "Lawula opopayi bokusabela ababoniswa ngemva kokukala amakhadi.",
     toggleTitle: "Bonisa opopayi ngemva kokukala ikhadi",
     toggleDescription: "Kuthinteka kuphela opopayi bokusabela kokubukeza.",
+    premiumNote: "Ukwenza ngokwakho opopayi bokubukeza kufakiwe ku-Premium. Ukukhetha kwakho okulondoloziwe kubuya lapho i-Premium isebenza.",
   },
   aiChatSuggestionsSettings: {
     title: "Iziphakamiso zengxoxo ye-AI",
     subtitle: "Lawula ama-chip eziphakamiso zemiyalo esibhalini sengxoxo ye-AI.",
     toggleTitle: "Bonisa iziphakamiso esibhalini sengxoxo ye-AI",
     toggleDescription: "Imiyalo ephakanyisiwe ivela ngaphezu kwesibhali uma ingxoxo ingenzi lutho futhi ilungile.",
+    premiumNote: "Ukwenza ngokwakho iziphakamiso zengxoxo ye-AI kufakiwe ku-Premium. Ukukhetha kwakho okulondoloziwe kubuya lapho i-Premium isebenza.",
   },
   ownOpenAIKeySettings: {
     title: "Ukhiye wakho we-OpenAI",

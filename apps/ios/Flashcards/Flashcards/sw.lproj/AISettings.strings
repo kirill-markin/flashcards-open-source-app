@@ -850,7 +850,7 @@
 "settings.language.supported.zulu" = "Kizulu";
 
 "premium.offer.title" = "Premium";
-"premium.offer.benefits" = "Ujumbe 1,000 wa AI kwa mwezi na rangi maalum za msisitizo. Usawazishaji ni bure kwa kila mtu.";
+"premium.offer.benefits" = "Ujumbe 1,000 wa AI kwa mwezi na mitindo maalum. Usawazishaji ni bure kwa kila mtu.";
 "premium.aiLimit.title" = "Umefikia kikomo cha ujumbe wa AI";
 
 "settings.accentColor.title" = "Rangi ya msisitizo";
@@ -863,6 +863,8 @@
 "settings.accentColor.custom" = "Rangi maalum";
 "settings.accentColor.invalidHex" = "Weka rangi kama #RRGGBB, ukitumia tarakimu sita za mfumo wa kumi na sita.";
 "settings.accentColor.premiumNote" = "Rangi maalum za msisitizo zinapatikana kwa Premium. Rangi uliyohifadhi itarudi Premium inapokuwa hai.";
+"settings.reviewAnimations.premiumNote" = "Kuzima uhuishaji wa marudio kunapatikana kwa Premium. Mpangilio uliouhifadhi utarudi Premium inapokuwa hai.";
+"settings.aiChatSuggestions.premiumNote" = "Kuzima mapendekezo ya gumzo la AI kunapatikana kwa Premium. Mpangilio uliouhifadhi utarudi Premium inapokuwa hai.";
 
 "premium.apple.monthlyProduct" = "%@ · Kila mwezi";
 "premium.apple.renewal" = "Hujisasisha kiotomatiki hadi utakapoighairi. Dhibiti au ghairi katika usajili wako wa App Store.";

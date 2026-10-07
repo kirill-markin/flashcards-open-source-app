@@ -850,7 +850,7 @@
 "settings.language.supported.zulu" = "Zuluština";
 
 "premium.offer.title" = "Premium";
-"premium.offer.benefits" = "1 000 zpráv AI měsíčně a vlastní barvy zvýraznění. Synchronizace je zdarma pro všechny.";
+"premium.offer.benefits" = "1 000 zpráv AI měsíčně a vlastní styly. Synchronizace je zdarma pro všechny.";
 "premium.aiLimit.title" = "Byl dosažen limit zpráv AI";
 
 "settings.accentColor.title" = "Barva zvýraznění";
@@ -863,6 +863,8 @@
 "settings.accentColor.custom" = "Vlastní barva";
 "settings.accentColor.invalidHex" = "Zadejte barvu ve formátu #RRGGBB se šesti šestnáctkovými číslicemi.";
 "settings.accentColor.premiumNote" = "Vlastní barvy zvýraznění jsou dostupné s Premium. Uložená barva se vrátí, jakmile bude Premium aktivní.";
+"settings.reviewAnimations.premiumNote" = "Vypnutí animací při opakování je dostupné s Premium. Uložené nastavení se vrátí, jakmile bude Premium aktivní.";
+"settings.aiChatSuggestions.premiumNote" = "Vypnutí návrhů pro chat s AI je dostupné s Premium. Uložené nastavení se vrátí, jakmile bude Premium aktivní.";
 
 "premium.apple.monthlyProduct" = "%@ · Měsíčně";
 "premium.apple.renewal" = "Automaticky se obnovuje až do zrušení. Spravujte nebo zrušte v předplatných App Storu.";

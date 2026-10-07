@@ -37,7 +37,7 @@ struct SettingsView: View {
     }
 
     private var aiChatSuggestionsValue: String {
-        store.aiChatComposerSuggestionsEnabled
+        store.effectiveAIChatComposerSuggestionsEnabled
             ? aiSettingsLocalized("common.on", "On")
             : aiSettingsLocalized("common.off", "Off")
     }
@@ -139,7 +139,7 @@ struct SettingsView: View {
                 NavigationLink(value: SettingsNavigationDestination.reviewAnimations) {
                     SettingsNavigationRow(
                         title: aiSettingsLocalized("settings.row.reviewAnimations", "Review Animations"),
-                        value: store.accountPreferences.reviewReactionAnimationsEnabled
+                        value: store.effectiveReviewReactionAnimationsEnabled
                             ? aiSettingsLocalized("common.on", "On")
                             : aiSettingsLocalized("common.off", "Off"),
                         systemImage: "sparkles",
