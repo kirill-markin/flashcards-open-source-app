@@ -1,18 +1,21 @@
 import { useMemo, useState, type JSX, type ReactNode } from "react";
+import type { AdminAppConfig } from "../../config";
 import { AdminLink } from "../../navigation/AdminLink";
 import { getUserPath } from "../../routing";
 import { DataTable } from "../../table/DataTable";
 import { emptyDataTableState, type DataTableColumn, type DataTableState } from "../../table/dataTableModel";
 import { formatInstant } from "./formatInstant";
+import { ProfileDeviceTables } from "./ProfileDeviceTables";
 import type {
   ProfileCell,
+  ProfileCells,
   ProfileField,
   ProfileListSection,
   ProfileSectionData,
   UserProfile,
 } from "./profileQuery";
 
-type ProfileListRow = Readonly<{ key: string; cells: ReadonlyArray<ProfileCell> }>;
+type ProfileListRow = Readonly<{ key: string; cells: ProfileCells }>;
 
 export function renderUserLink(userId: string, onNavigate: (path: string) => void): JSX.Element {
   return <AdminLink className="data-table-link" path={getUserPath(userId, "profile")} onNavigate={onNavigate}>{userId}</AdminLink>;
@@ -69,48 +72,44 @@ function renderRecordValue(field: ProfileField, cell: ProfileCell, onNavigate: (
 }
 
 /** The parser has already checked every cell against its field kind; this only narrows the type. */
-function readCell<Value extends ProfileCell>(row: ProfileListRow, index: number, isValue: (cell: ProfileCell) => cell is Value): Value | null {
-  const cell = row.cells[index] ?? null;
+function readCell<Value extends ProfileCell>(row: ProfileListRow, fieldId: string, isValue: (cell: ProfileCell) => cell is Value): Value | null {
+  const cell = row.cells[fieldId] ?? null;
   if (cell === null) {
     return null;
   }
   if (isValue(cell)) {
     return cell;
   }
-  throw new Error(`Profile list cell ${index} of row ${row.key} has an unexpected type.`);
+  throw new Error(`Profile list cell "${fieldId}" of row ${row.key} has an unexpected type.`);
 }
 
 const isString = (cell: ProfileCell): cell is string => typeof cell === "string";
 const isNumber = (cell: ProfileCell): cell is number => typeof cell === "number";
 const isBoolean = (cell: ProfileCell): cell is boolean => typeof cell === "boolean";
 
-function buildListColumn(
-  field: ProfileField,
-  index: number,
-  onNavigate: (path: string) => void,
-): DataTableColumn<ProfileListRow> {
+function buildListColumn(field: ProfileField, onNavigate: (path: string) => void): DataTableColumn<ProfileListRow> {
   const base = { id: field.id, label: field.label };
   switch (field.kind) {
     case "text":
-      return { ...base, kind: "text", value: (row) => readCell(row, index, isString), renderCell: null };
+      return { ...base, kind: "text", value: (row) => readCell(row, field.id, isString), renderCell: null };
     case "enum":
-      return { ...base, kind: "enum", value: (row) => readCell(row, index, isString), renderCell: null };
+      return { ...base, kind: "enum", value: (row) => readCell(row, field.id, isString), renderCell: null };
     case "date":
-      return { ...base, kind: "date", value: (row) => readCell(row, index, isString), renderCell: null };
+      return { ...base, kind: "date", value: (row) => readCell(row, field.id, isString), renderCell: null };
     case "user":
       return {
         ...base,
         kind: "text",
-        value: (row) => readCell(row, index, isString),
+        value: (row) => readCell(row, field.id, isString),
         renderCell: (row) => {
-          const userId = readCell(row, index, isString);
+          const userId = readCell(row, field.id, isString);
           return userId === null ? null : renderUserLink(userId, onNavigate);
         },
       };
     case "number":
-      return { ...base, kind: "number", value: (row) => readCell(row, index, isNumber), renderCell: null };
+      return { ...base, kind: "number", value: (row) => readCell(row, field.id, isNumber), renderCell: null };
     case "boolean":
-      return { ...base, kind: "boolean", value: (row) => readCell(row, index, isBoolean), renderCell: null };
+      return { ...base, kind: "boolean", value: (row) => readCell(row, field.id, isBoolean), renderCell: null };
   }
 }
 
@@ -124,13 +123,13 @@ function getListRowClassName(): string {
 
 function ProfileListTable(props: Readonly<{
   section: ProfileListSection;
-  rows: ReadonlyArray<ReadonlyArray<ProfileCell>>;
+  rows: ReadonlyArray<ProfileCells>;
   onNavigate: (path: string) => void;
 }>): JSX.Element {
   const { section, rows, onNavigate } = props;
   const [tableState, setTableState] = useState<DataTableState>(emptyDataTableState);
   const columns = useMemo(
-    () => section.fields.map((field, index) => buildListColumn(field, index, onNavigate)),
+    () => section.fields.map((field) => buildListColumn(field, onNavigate)),
     [section, onNavigate],
   );
   const tableRows = useMemo(
@@ -160,10 +159,10 @@ function ProfileSectionView(props: Readonly<{ data: ProfileSectionData; onNaviga
       {data.kind === "record" ? (
         data.cells === null ? <p className="profile-section-empty">{data.section.emptyText}</p> : (
           <ProfileRecord
-            rows={data.section.fields.map((field, index) => ({
+            rows={data.section.fields.map((field) => ({
               id: field.id,
               label: field.label,
-              value: renderRecordValue(field, data.cells === null ? null : data.cells[index] ?? null, onNavigate),
+              value: renderRecordValue(field, data.cells === null ? null : data.cells[field.id] ?? null, onNavigate),
             }))}
           />
         )
@@ -174,7 +173,13 @@ function ProfileSectionView(props: Readonly<{ data: ProfileSectionData; onNaviga
   );
 }
 
-export function ProfileTab(props: Readonly<{ profile: UserProfile; onNavigate: (path: string) => void }>): JSX.Element {
+export function ProfileTab(props: Readonly<{
+  config: AdminAppConfig;
+  userId: string;
+  profile: UserProfile;
+  onNavigate: (path: string) => void;
+  onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
+}>): JSX.Element {
   const { header } = props.profile;
   return (
     <div className="profile-sections" data-testid="user-profile">
@@ -207,6 +212,7 @@ export function ProfileTab(props: Readonly<{ profile: UserProfile; onNavigate: (
       {props.profile.sections.map((data) => (
         <ProfileSectionView key={data.section.id} data={data} onNavigate={props.onNavigate} />
       ))}
+      <ProfileDeviceTables config={props.config} userId={props.userId} onTerminalAdminError={props.onTerminalAdminError} />
     </div>
   );
 }
