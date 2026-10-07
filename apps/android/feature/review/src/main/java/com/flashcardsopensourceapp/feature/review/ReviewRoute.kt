@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.flashcardsopensourceapp.core.observability.AndroidReviewReactionStage
+import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetDownloadUrl
 import com.flashcardsopensourceapp.data.local.model.media.ReviewMediaAssetFile
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
@@ -51,6 +52,7 @@ fun ReviewRoute(
     workspaceId: String?,
     reviewReactionLottieConfigurationStore: ReviewReactionLottieConfigurationStore,
     reviewReactionAnimationsEnabled: Boolean,
+    observability: AppObservability,
     onSelectFilter: (String, ReviewFilter, ReviewFilter) -> Unit,
     onOpenPreview: () -> Unit,
     onOpenCurrentCard: (String) -> Unit,
@@ -102,10 +104,11 @@ fun ReviewRoute(
     val reviewSpeechFallbackLanguageTag =
         (configuration.locales[0] ?: Locale.getDefault()).toLanguageTag()
     val currentScreenVisibleAction = rememberUpdatedState(newValue = onScreenVisible)
-    val reviewSpeechController = remember(context) {
+    val reviewSpeechController = remember(context, observability) {
         ReviewSpeechController(
             context = context,
-            unavailableMessage = context.getString(R.string.review_speech_unavailable)
+            unavailableMessage = context.getString(R.string.review_speech_unavailable),
+            observability = observability
         )
     }
     fun dismissReviewReactions(): Unit {

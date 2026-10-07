@@ -20,6 +20,7 @@ enum class AndroidObservationAction(
 ) {
     REVIEW_REACTION_FAILURE(tagValue = "review_reaction_failure"),
     REVIEW_REACTION_LIFECYCLE(tagValue = "review_reaction_lifecycle"),
+    REVIEW_SPEECH_FAILURE(tagValue = "review_speech_failure"),
     APP_SCOPE_UNCAUGHT_EXCEPTION(tagValue = "app_scope_uncaught_exception"),
     APP_STARTUP_EXCEPTION(tagValue = "app_startup_exception"),
     APP_TECHNICAL_ERROR_DIALOG_EXCEPTION(tagValue = "app_technical_error_dialog_exception"),
@@ -207,6 +208,15 @@ data class AndroidReviewReactionDiagnostic(
     val isPowerSaveMode: Boolean,
     val areAnimatorsEnabled: Boolean
 )
+
+enum class AndroidReviewSpeechFailureStage(
+    val tagValue: String
+) {
+    SET_LANGUAGE(tagValue = "set_language"),
+    SET_VOICE(tagValue = "set_voice"),
+    SPEAK(tagValue = "speak"),
+    UTTERANCE_ERROR(tagValue = "utterance_error")
+}
 
 private fun reviewReactionObservationTags(stage: AndroidReviewReactionStage): AndroidObservationTags {
     return AndroidObservationTags(
@@ -663,6 +673,32 @@ sealed interface AndroidWarningIssueEvent : AndroidObservationEvent {
             appVersion = appVersion,
             clientVersion = clientVersion,
             versionCode = versionCode
+        )
+    }
+
+    /**
+     * A review card side the text-to-speech engine could not speak. Never carries the spoken card text.
+     * `errorCode` is the engine's `TextToSpeech` error or `setVoice` result, null when the engine gave none.
+     */
+    data class ReviewSpeechFailure(
+        val stage: AndroidReviewSpeechFailureStage,
+        val errorCode: Int?,
+        val languageStatus: Int?,
+        val enginePackage: String?,
+        val languageTag: String,
+        val voiceName: String?
+    ) : AndroidWarningIssueEvent {
+        override val feature: AndroidObservationFeature = AndroidObservationFeature.REVIEW
+        override val action: AndroidObservationAction = AndroidObservationAction.REVIEW_SPEECH_FAILURE
+        override val tags: AndroidObservationTags = AndroidObservationTags(
+            userId = null,
+            workspaceId = null,
+            requestId = null,
+            statusCode = null,
+            code = stage.tagValue,
+            appVersion = null,
+            clientVersion = null,
+            versionCode = null
         )
     }
 

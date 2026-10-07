@@ -160,6 +160,7 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                 workspaceId = workspaceId,
                 reviewReactionLottieConfigurationStore = reviewReactionLottieConfigurationStore,
                 reviewReactionAnimationsEnabled = reviewReactionAnimationsEnabledState.value,
+                observability = appGraph.observability,
                 onSelectFilter = reviewViewModel::selectFilterForWorkspaceIfUnchanged,
                 onOpenPreview = {
                     reviewViewModel.refreshPreview()
