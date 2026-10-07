@@ -37,7 +37,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.feature.cards.R
@@ -238,9 +237,8 @@ fun CardEditorRoute(
                     supportingText = if (uiState.availableTagSuggestions.isEmpty()) {
                         stringResource(id = R.string.cards_tags_summary_no_workspace_tags)
                     } else {
-                        pluralStringResource(
-                            id = R.plurals.cards_tags_summary_workspace_tags_available,
-                            count = uiState.availableTagSuggestions.size,
+                        stringResource(
+                            id = R.string.cards_tags_summary_workspace_tags_available_label,
                             uiState.availableTagSuggestions.size
                         )
                     },

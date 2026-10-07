@@ -65,9 +65,8 @@ class ReviewTextProvider(
                 resources.getString(R.string.review_interval_less_than_one_minute)
             }
 
-            is ReviewIntervalDescription.Minutes -> resources.getQuantityString(
-                R.plurals.review_interval_minutes,
-                intervalDescription.count,
+            is ReviewIntervalDescription.Minutes -> resources.getString(
+                R.string.review_interval_minutes_label,
                 intervalDescription.count
             )
 

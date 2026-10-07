@@ -63,10 +63,7 @@
     <string name="cards_back_supporting_text">Answer shown after revealing the card</string>
     <string name="cards_metadata_section">Metadata</string>
     <string name="cards_tags_summary_no_workspace_tags">No workspace tags yet. You can still add custom tags.</string>
-    <plurals name="cards_tags_summary_workspace_tags_available">
-        <item quantity="one">%d workspace tag available</item>
-        <item quantity="other">%d workspace tags available</item>
-    </plurals>
+    <string name="cards_tags_summary_workspace_tags_available_label">Workspace tags available: %1$d</string>
     <string name="cards_save">Save</string>
     <string name="cards_delete_card">Delete card</string>
     <string name="cards_add_tag_label">Add a tag</string>
