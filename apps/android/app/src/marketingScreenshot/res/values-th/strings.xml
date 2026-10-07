@@ -74,9 +74,7 @@
     <string name="review_progress_badge_reviewed_today">ทบทวนแล้ววันนี้</string>
     <string name="progress_review_schedule_bucket_new">ใหม่</string>
     <string name="progress_today">วันนี้</string>
-    <plurals name="review_interval_minutes">
-        <item quantity="other">ใน %d นาที</item>
-    </plurals>
+    <string name="review_interval_minutes_label">ใน %1$d นาที</string>
     <plurals name="review_interval_hours">
         <item quantity="other">ใน %d ชั่วโมง</item>
     </plurals>

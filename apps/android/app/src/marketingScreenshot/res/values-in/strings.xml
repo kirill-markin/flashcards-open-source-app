@@ -71,9 +71,7 @@
     <string name="progress_review_schedule_bucket_days_31_to_90">31–90 hari</string>
     <string name="progress_review_schedule_bucket_days_91_to_360">91–360 hari</string>
     <string name="progress_review_schedule_bucket_years_1_to_2">1–2 tahun</string>
-    <plurals name="review_interval_minutes">
-        <item quantity="other">dalam %d menit</item>
-    </plurals>
+    <string name="review_interval_minutes_label">dalam %1$d menit</string>
     <plurals name="review_interval_hours">
         <item quantity="other">dalam %d jam</item>
     </plurals>

@@ -47,14 +47,7 @@
     <string name="review_medium">متوسط</string>
     <string name="review_interval_now">الآن</string>
     <string name="review_interval_less_than_one_minute">خلال أقل من دقيقة</string>
-    <plurals name="review_interval_minutes">
-        <item quantity="zero">خلال أقل من دقيقة</item>
-        <item quantity="one">خلال دقيقة واحدة</item>
-        <item quantity="two">خلال دقيقتين</item>
-        <item quantity="few">خلال %d دقائق</item>
-        <item quantity="many">خلال %d دقيقة</item>
-        <item quantity="other">خلال %d دقيقة</item>
-    </plurals>
+    <string name="review_interval_minutes_label">بعد %1$d د</string>
     <plurals name="review_interval_hours">
         <item quantity="zero">خلال أقل من ساعة</item>
         <item quantity="one">خلال ساعة واحدة</item>

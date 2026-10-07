@@ -67,10 +67,7 @@
     <string name="progress_review_schedule_bucket_days_31_to_90">31–90 ημέρες</string>
     <string name="progress_review_schedule_bucket_days_91_to_360">91–360 ημέρες</string>
     <string name="progress_review_schedule_bucket_years_1_to_2">1–2 έτη</string>
-    <plurals name="review_interval_minutes">
-        <item quantity="one">σε %d λεπτό</item>
-        <item quantity="other">σε %d λεπτά</item>
-    </plurals>
+    <string name="review_interval_minutes_label">σε %1$d λεπ.</string>
     <plurals name="review_interval_hours">
         <item quantity="one">σε %d ώρα</item>
         <item quantity="other">σε %d ώρες</item>

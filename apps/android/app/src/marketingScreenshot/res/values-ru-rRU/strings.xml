@@ -47,12 +47,7 @@
     <string name="review_medium">Средний</string>
     <string name="review_interval_now">сейчас</string>
     <string name="review_interval_less_than_one_minute">меньше чем через минуту</string>
-    <plurals name="review_interval_minutes">
-        <item quantity="one">через %d минуту</item>
-        <item quantity="few">через %d минуты</item>
-        <item quantity="many">через %d минут</item>
-        <item quantity="other">через %d минуты</item>
-    </plurals>
+    <string name="review_interval_minutes_label">через %1$d мин</string>
     <plurals name="review_interval_hours">
         <item quantity="one">через %d час</item>
         <item quantity="few">через %d часа</item>

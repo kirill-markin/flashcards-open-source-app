@@ -47,10 +47,7 @@
     <string name="review_medium">Medio</string>
     <string name="review_interval_now">ahora</string>
     <string name="review_interval_less_than_one_minute">en menos de un minuto</string>
-    <plurals name="review_interval_minutes">
-        <item quantity="one">en %d minuto</item>
-        <item quantity="other">en %d minutos</item>
-    </plurals>
+    <string name="review_interval_minutes_label">en %1$d min</string>
     <plurals name="review_interval_hours">
         <item quantity="one">en %d hora</item>
         <item quantity="other">en %d horas</item>
