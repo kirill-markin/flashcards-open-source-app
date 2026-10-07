@@ -146,14 +146,16 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  *
  * OUTSIDE THIS PACKAGE (1), and it cannot take the rule from here.
  *   - `apps/backend/src/productAnalytics/syntheticActorDetector.ts` groups the whole event store by
- *     actor and restates this rule, because the backend cannot import this package. Its candidate
- *     population is gated on `review_answered`, so the collector can never produce a candidate, but
- *     its `app_opened_events = 0` safety signal counts that actor's whole history, so without the
- *     restatement a collector row resolving onto a candidate would suppress a detection. It is the
- *     one entry the rule reaches in the weaker direction: a collector row can only suppress a
- *     detection there, never cause one, and the restatement is what removes that suppression, so
- *     the restatement itself can cause a detection that would not have fired and can never
- *     suppress one.
+ *     actor and restates this rule in both of its rules, because the backend cannot import this
+ *     package. The collector can never produce a candidate: the replica rule's population is gated
+ *     on `review_answered`, and the install-burst rule's on an Android device fingerprint, which
+ *     `apps/backend/src/productAnalytics/anonymousEvent.ts` never writes. But the replica rule's
+ *     `app_opened_events = 0` safety signal counts that actor's whole history, so without the
+ *     restatement a collector row resolving onto a candidate would suppress a detection. Through
+ *     the replica rule it is the one entry the rule reaches in the weaker direction: a collector
+ *     row can only suppress a detection there, never cause one, and the restatement is what
+ *     removes that suppression, so the restatement itself can cause a detection that would not
+ *     have fired and can never suppress one.
  *
  * NOT AN ENTRY EITHER, AND THE ONE THAT MOST LOOKS LIKE ONE. The catalog install funnel's cohort
  * keys a row on the identity an `anonymous_client` deck page view (`site_page_viewed`) carries, reads

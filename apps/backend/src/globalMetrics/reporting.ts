@@ -129,11 +129,13 @@ const accountEmailExclusionSqlFragments = {
 // `anonymous_id` equal to some `workspace_replicas.user_id` would fold onto it and be matched
 // below, excluding an unrelated real account instead of changing nothing. Nothing in the schema
 // enforces that disjointness, so the only reachable defense is on the writer that lists an actor.
-// The one code writer carries it twice: `excludeSyntheticActors` in
-// `apps/backend/src/productAnalytics/syntheticActorDetector.ts` gates its candidates on the
-// server-only `review_answered`, which no collector row can produce, and drops
-// `trust_level = 'anonymous_client'` besides, so no `anonymous_id` reaches the list. A row written
-// into `analytics.excluded_actors` by hand has neither gate.
+// The one code writer carries it twice in each of its rules: `excludeSyntheticActors` in
+// `apps/backend/src/productAnalytics/syntheticActorDetector.ts` drops
+// `trust_level = 'anonymous_client'` in both, and gates the replica rule's candidates on the
+// server-only `review_answered` and the install-burst rule's on an Android device fingerprint,
+// neither of which a collector row carries (`anonymousEvent.ts` writes `platform` 'web' and the
+// device columns NULL), so no `anonymous_id` reaches the list. A row written into
+// `analytics.excluded_actors` by hand has neither gate.
 const excludedActorWhereSqlFragments = [
   "  AND NOT EXISTS (",
   "    SELECT 1",
