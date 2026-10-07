@@ -26,11 +26,20 @@ backfill or account-global language inference is performed.
   [failure/staleness alarms](../infra/aws/lib/monitoring.ts)
 - [Synthetic actor detection](../apps/backend/src/productAnalytics/syntheticActorDetector.ts) and
   its [daily schedule](../infra/aws/lib/scheduled-jobs/synthetic-actor-detector.ts): records
-  reviewing actors that no human produced, and short-lived Android guest installs arriving in
-  same-device bursts, into
+  reviewing actors with no client-installation replica and no trusted app open into
   [`analytics.excluded_actors`](../db/migrations/0140_analytics_excluded_actors.sql), one row per
   matched analytics actor id, with a per-actor log record and a Sentry warning on an unusually
   large run.
+- [Shared report classification](../apps/backend/src/reviewMetricsSql.ts): probable Android test
+  bursts are filtered dynamically in admin reports/options and public v3. At least four unsigned-in
+  actors share one non-null device model/OS/app fingerprint within a rolling 24-hour window, with
+  each actor's whole trusted history shorter than 24 hours. No maturity delay or report-date bound
+  applies. Later sign-in under any resolved/raw/subject ID or a return at least 24 hours later
+  restores reporting automatically; a recorded human restore under any of those IDs overrides the
+  match. Exact automatic burst rows from the detector remain audit records and do not force an
+  exclusion. Manual rows and the other detector reason retain their existing effect. Events/Users
+  remain inspectable; the Users exclusion reason exposes the current classification. Public v2
+  retains its persisted-review identity and exclusion policy ([global metrics](global-metrics.md)).
 - [Feedback connection-country snapshot](../db/migrations/0138_feedback_connection_country.sql):
   saved only with the initial submission; existing locale/timezone snapshots remain intact.
 - [Gateway access log fields](../infra/aws/lib/gateways/api-gateway-access-log.ts):

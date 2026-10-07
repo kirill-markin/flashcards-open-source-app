@@ -693,41 +693,23 @@ export type EntitlementChangedAnalyticsSkippedDetails = Readonly<{
  * rather than a claim. For `no_replica_no_app_opened`: `reviewAnsweredEvents` is what puts the actor
  * in the population the rule was validated on, `appOpenedEvents` is the count over the actor's whole
  * resolved history, and `clientInstallationReplicas` is the count over every id that actor's events
- * name. For `android_install_burst`: the device fingerprint and `burstSize`, defined on
- * `AndroidInstallBurstCandidate` in `apps/backend/src/productAnalytics/syntheticActorDetector.ts`.
+ * name.
  *
  * `actorId` is the analytics actor id, which is both the id inserted and the id the admin surfaces
  * match on. The person's other ids are read for the signals only and are never excluded.
  */
-export type SyntheticActorExcludedDetails =
-  | Readonly<{
-    rule: "no_replica_no_app_opened";
-    actorId: string;
-    analyticsEvents: number;
-    reviewAnsweredEvents: number;
-    appOpenedEvents: number;
-    clientInstallationReplicas: number;
-    workspaceReplicas: number;
-    firstEventAtUtc: string;
-    lastEventAtUtc: string;
-  }>
-  | Readonly<{
-    rule: "android_install_burst";
-    actorId: string;
-    analyticsEvents: number;
-    deviceModel: string;
-    osVersion: string;
-    appVersion: string;
-    burstSize: number;
-    firstEventAtUtc: string;
-    lastEventAtUtc: string;
-  }>;
+export type SyntheticActorExcludedDetails = Readonly<{
+  rule: "no_replica_no_app_opened";
+  actorId: string;
+  analyticsEvents: number;
+  reviewAnsweredEvents: number;
+  appOpenedEvents: number;
+  clientInstallationReplicas: number;
+  workspaceReplicas: number;
+  firstEventAtUtc: string;
+  lastEventAtUtc: string;
+}>;
 
-/**
- * The one record per detector run. `candidateActors` is what both rules matched, `inserted` is what
- * the insert created, and `alreadyRecorded` is the candidates the insert's `ON CONFLICT DO NOTHING`
- * skipped because the table already held them.
- */
 export type SyntheticActorDetectorCompletedDetails = Readonly<{
   candidateActors: number;
   inserted: number;

@@ -81,6 +81,7 @@ export const boundaryDefinitions = Object.freeze([
       "src/routes/system/account/accountPreferences.postgres.integration.ts",
       "src/cards/managedMedia/managedImageSnapshotMerge.postgres.integration.ts",
       "src/productAnalytics/serverFacts/authoringUpdates.postgres.integration.ts",
+      "src/productAnalytics/androidBurstReporting.postgres.integration.ts",
     ]),
   }),
   Object.freeze({

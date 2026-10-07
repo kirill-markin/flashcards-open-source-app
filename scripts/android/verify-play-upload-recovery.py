@@ -8,6 +8,8 @@ import subprocess
 import zipfile
 from pathlib import Path
 
+from play_release_notes import read_notes
+
 type Json = bool | int | float | str | list[Json] | dict[str, Json] | None
 
 
@@ -128,10 +130,33 @@ def main() -> None:
     source_build = github(f'repos/{repository}/contents/apps/android/app/build.gradle.kts?ref={source}')
     version_matches = re.findall(r'versionName\s*=\s*"([^"]+)"', base64.b64decode(str(source_build['content'])).decode())
     require(len(version_matches) == 1, 'Original source version name is missing or ambiguous')
-    record = {'artifactSourceSha': source, 'originalWorkflowSha': workflow_sha, 'resolvedPreflightSourceSha': source, 'preflightLogSha256': hashlib.sha256(preflight_log.encode()).hexdigest(), 'versionName': version_matches[0], 'originalRun': run, 'originalJobs': jobs, 'bundleArtifact': bundle_metadata, 'nativeArtifact': native_metadata, 'originalReleaseId': release_id, 'aabSha256': expected_hash, 'nativeSummarySha256': summary_hash}
+    original_workflow = github(f'repos/{repository}/contents/.github/workflows/android-release.yml?ref={workflow_sha}')
+    supports_notes = 'localized_release_notes:' in base64.b64decode(str(original_workflow['content'])).decode()
+    notes_hashes = re.findall(r'(?m)^\S+\s+PLAY_NOTES_SHA256=([a-f0-9]{64})\s*$', clean_preflight_log)
+    preflight_steps = {step.get('name'): step.get('conclusion') for step in (object_value(item) for item in array_value(preflight.get('steps')))}
+    notes_metadata: dict[str, Json] | None = None
+    notes_digest = ''
+    notes_path = ''
+    if supports_notes:
+        require(len(notes_hashes) == 1, 'Original release-notes manifest SHA-256 is missing or ambiguous in original preflight logs')
+        for step_name in ('Prepare localized Play release notes', 'Retain original Play release notes'):
+            require(preflight_steps.get(step_name) == 'success', f'Original release-notes evidence step did not pass: {step_name}')
+        artifacts_page = github(f'repos/{repository}/actions/runs/{run_id}/artifacts?per_page=100')
+        artifacts = [object_value(item) for item in array_value(artifacts_page.get('artifacts'))]
+        require(artifacts_page.get('total_count') == len(artifacts), 'Original notes artifact export is incomplete')
+        notes_name = f'android-release-notes-r{run_id}a{attempt}'
+        matching_notes = [artifact for artifact in artifacts if artifact.get('name') == notes_name]
+        require(len(matching_notes) == 1, 'Exact original run/attempt release-notes artifact is missing or ambiguous')
+        notes_path = str(output / 'release-notes.json')
+        notes_metadata = artifact_file(str(matching_notes[0]['id']), notes_name, 'release-notes.json', run_id, workflow_sha, started, finished, Path(notes_path))
+        notes_digest = notes_hashes[0]
+        read_notes(Path(notes_path), notes_digest, source, code, version_matches[0], run_id, attempt)
+    else:
+        require(not notes_hashes and 'Prepare localized Play release notes' not in preflight_steps, 'Legacy original workflow has unexpected release-notes evidence')
+    record = {'artifactSourceSha': source, 'originalWorkflowSha': workflow_sha, 'resolvedPreflightSourceSha': source, 'preflightLogSha256': hashlib.sha256(preflight_log.encode()).hexdigest(), 'versionName': version_matches[0], 'originalRun': run, 'originalJobs': jobs, 'bundleArtifact': bundle_metadata, 'nativeArtifact': native_metadata, 'originalReleaseId': release_id, 'aabSha256': expected_hash, 'nativeSummarySha256': summary_hash, 'notesArtifact': notes_metadata, 'releaseNotesSha256': notes_digest or None}
     (output / 'original-release-provenance.json').write_text(json.dumps(record, indent=2) + '\n')
     with Path(os.environ['GITHUB_ENV']).open('a') as environment:
-        environment.write(f'ANDROID_PLAY_RELEASE_NAME=main-draft-{release_id}\nAAB_PATH={output / "app-release.aab"}\n')
+        environment.write(f'ANDROID_VERSION_NAME={version_matches[0]}\nPLAY_NOTES_PATH={notes_path}\nPLAY_NOTES_SHA256={notes_digest}\nANDROID_PLAY_RELEASE_NAME=main-draft-{release_id}\nAAB_PATH={output / "app-release.aab"}\n')
 
 
 if __name__ == '__main__':

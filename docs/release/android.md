@@ -34,7 +34,8 @@ Otherwise create a new artifact through every gate below.
    whose changes enter review automatically. The API guard protects active reviews;
    it does not isolate other pending changes or replace managed publishing.
    Dispatch `Android Release` (`.github/workflows/android-release.yml`) with
-   `Git SHA to release` (`target_sha`) set to the release commit. Record its
+   `Git SHA to release` (`target_sha`) set to the release commit and optionally
+   supply the [localized notes JSON](release-notes.md#android-draft-upload-input). Record its
    target SHA, run/attempt, version code, and release identifier from the summary.
 3. Require four sequential Device Run sessions from `device_run_submission`: the full
    package on API 37, then one four-method smoke session each on API 30, 31 and 33.
@@ -79,7 +80,8 @@ Otherwise create a new artifact through every gate below.
    its OS-specific behavior, complete the applicable
    [API 30 walkthrough](#first-release-api-30-walkthrough) checks and retain their evidence.
    Reuse completed first-release evidence when that behavior is unchanged.
-7. Fill the localized release notes from the chat, review the draft and required
+7. Compare the uploaded localized notes with the retained input, or fill them
+   from the chat when the dispatch input was empty. Review the draft and required
    translations, and complete the production publication controls for that
    exact bundle. Keep its identity pinned; do not select a newer unrelated
    upload. Only after all release gates pass, inspect the complete app-wide
@@ -125,7 +127,9 @@ Source changes require the bounded comparisons and affected gates in
 1. Retain the original full native reports, named inventory, diagnostics,
    signed AAB, signing verification and resolved failure. Record the original
    source SHA, run/attempt, version/code, bundle and native-summary artifact IDs,
-   and independently verified AAB and summary SHA-256 values.
+   and independently verified AAB and summary SHA-256 values. For workflows with
+   localized-notes support, also retain the separate original run/attempt notes
+   artifact and its preflight SHA-256, including an explicitly empty input.
 2. Immediately before dispatch, verify managed publishing ON, no active review
    and an empty ready-to-submit queue. Resolve unrelated pending changes first.
    Play's **Save for later** is a temporary exclusion: saved changes can return
@@ -134,7 +138,12 @@ Source changes require the bounded comparisons and affected gates in
 3. Supply the pinned identities and hashes to the recovery workflow and confirm
    the preflight only after all retained gates are reviewed. It downloads exact
    artifact IDs, verifies GitHub ZIP digests, original successful gates and all
-   four named selections. It builds nothing and preserves the original code/name.
+   four named selections. It discovers the original attempt notes artifact by
+   exact name/ID and creation time, verifies its ZIP digest, logged manifest hash
+   and source/version/run/attempt binding, and supplies identical notes to the
+   publisher. Missing or mismatched notes evidence blocks recovery. No new notes
+   can be supplied; legacy workflows without notes support remain recoverable.
+   It builds nothing and preserves the original code/name.
    Play must return the same bundle code and SHA-256, whether already present
    or uploaded from those original bytes. A mismatch or failed API call stops
    recovery; never remint a code, choose a newer artifact or retry blindly.

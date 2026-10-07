@@ -4,6 +4,7 @@ import {
   excludedAdminActorIdsSqlLines,
   excludedListedActorIdsSqlLines,
   excludedTestEmailActorIdsSqlLines,
+  probableAndroidBurstActorIdsSqlLines,
 } from "../../../backend/src/reviewMetricsSql";
 export { buildExcludedActorSqlLines } from "../../../backend/src/reviewMetricsSql";
 import {
@@ -41,7 +42,8 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
     `  CASE WHEN ${actorIdSqlExpression} IN (${inline(excludedTestEmailActorIdsSqlLines)}) THEN 'test email' END,`,
     `  CASE WHEN ${actorIdSqlExpression} IN (${inline(excludedAdminActorIdsSqlLines)}) THEN 'admin' END,`,
     `  CASE WHEN ${actorIdSqlExpression} IN (${inline(excludedListedActorIdsSqlLines)}) THEN 'exclusion list' END,`,
-    `  CASE WHEN ${actorIdSqlExpression} IN (${inline(automatedActorIdsSqlLines)}) THEN 'automated client' END`,
+    `  CASE WHEN ${actorIdSqlExpression} IN (${inline(automatedActorIdsSqlLines)}) THEN 'automated client' END,`,
+    `  CASE WHEN ${actorIdSqlExpression} IN (${inline(probableAndroidBurstActorIdsSqlLines)}) THEN 'probable Android test burst' END`,
     ")",
   ].join("\n");
 }
@@ -146,10 +148,9 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  *
  * OUTSIDE THIS PACKAGE (1), and it cannot take the rule from here.
  *   - `apps/backend/src/productAnalytics/syntheticActorDetector.ts` groups the whole event store by
- *     actor and restates this rule in both of its rules, because the backend cannot import this
+ *     actor and restates this rule, because the backend cannot import this
  *     package. The collector can never produce a candidate: the replica rule's population is gated
- *     on `review_answered`, and the install-burst rule's on an Android device fingerprint, which
- *     `apps/backend/src/productAnalytics/anonymousEvent.ts` never writes. But the replica rule's
+ *     on `review_answered`. But the replica rule's
  *     `app_opened_events = 0` safety signal counts that actor's whole history, so without the
  *     restatement a collector row resolving onto a candidate would suppress a detection. Through
  *     the replica rule it is the one entry the rule reaches in the weaker direction: a collector
