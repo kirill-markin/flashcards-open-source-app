@@ -12,6 +12,13 @@
         android:name="android.hardware.microphone"
         android:required="false" />
 
+    <!-- Android 11+ package visibility: lets TextToSpeech find and bind the installed speech engine. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+    </queries>
+
     <!-- localeConfig is Android 13+ metadata; older supported versions ignore it. -->
     <application
         android:name=".FlashcardsApplication"
