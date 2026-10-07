@@ -38,7 +38,6 @@ async function assertSeededCardVisibleInCards(session: LiveSmokeSession): Promis
   await trackedClick(diagnostics, "open cards navigation for verification", page.locator(primaryNavigationLinkSelector("/cards")).first());
   const searchInput = page.getByTestId("cards-search-input");
   await trackedFill(diagnostics, "clear cards search input", searchInput, "");
-  await trackedFill(diagnostics, `fill cards search input with ${scenario.seededFrontText}`, searchInput, scenario.seededFrontText);
   const seededCardRow = page.locator(`[data-testid="cards-row"][data-card-front-text=${JSON.stringify(scenario.seededFrontText)}]`).first();
   await waitForCardVisibleUnlessSyncing(
     page,
@@ -47,13 +46,71 @@ async function assertSeededCardVisibleInCards(session: LiveSmokeSession): Promis
     seededCardRow,
     localUiTimeoutMs,
   );
-  await trackedClick(
-    diagnostics,
-    "open the seeded card by clicking its row link",
-    seededCardRow.getByTestId("cards-row-link"),
-  );
+  await assertMultipleCardNavigation(session);
+  await trackedFill(diagnostics, `fill cards search input with ${scenario.seededFrontText}`, searchInput, scenario.seededFrontText);
+  await diagnostics.runAction("open the seeded card using its native keyboard link", async () => {
+    const rowLink = seededCardRow.getByTestId("cards-row-link");
+    await rowLink.focus();
+    await expect(rowLink).toBeFocused();
+    await rowLink.press("Enter");
+  });
   await diagnostics.runAction("confirm the row opens the matching card form", async () => {
     await expect(page.getByTestId("card-form-front-text")).toHaveValue(scenario.seededFrontText);
+  });
+}
+
+async function assertMultipleCardNavigation(session: LiveSmokeSession): Promise<void> {
+  const { page, diagnostics, scenario } = session;
+  const navigationFrontText = `${scenario.seededFrontText} navigation`;
+  const navigationBackText = "Temporary navigation answer\nSecond answer line\nThird answer line";
+  const navigationCardRow = page.locator(`[data-testid="cards-row"][data-card-front-text=${JSON.stringify(navigationFrontText)}]`);
+  const cardsNavigation = page.locator(primaryNavigationLinkSelector("/cards")).first();
+  const frontField = page.getByTestId("card-form-front-text");
+  const backField = page.getByTestId("card-form-back-text");
+
+  await trackedClick(diagnostics, "open New card to create a second navigation row", page.getByTestId("cards-new-card"));
+  await trackedFill(diagnostics, "fill the second navigation card front", frontField, navigationFrontText);
+  await trackedFill(diagnostics, "fill a multiline second navigation card back", backField, navigationBackText);
+  await trackedClick(diagnostics, "save the second navigation card", page.getByTestId("card-form-save"));
+  await diagnostics.runAction("confirm two distinct cards are visible with the new card first", async () => {
+    await expect(page.getByTestId("cards-row")).toHaveCount(2);
+    await expect(page.getByTestId("cards-row").first()).toHaveAttribute("data-card-front-text", navigationFrontText);
+  });
+
+  await trackedClick(diagnostics, "open New card while multiple rows are visible", page.getByTestId("cards-new-card"));
+  await diagnostics.runAction("confirm New card opens an empty form", async () => {
+    await expect(frontField).toHaveValue("");
+    await expect(backField).toHaveValue("");
+    await expect(page.getByTestId("card-form-delete")).toHaveCount(0);
+  });
+  await trackedClick(diagnostics, "return to multiple cards for list controls", cardsNavigation);
+  const filterTrigger = page.getByTestId("cards-filter-trigger");
+  await trackedClick(diagnostics, "open Filter while multiple rows are visible", filterTrigger);
+  await trackedExpectAttribute(diagnostics, "confirm Filter opens without navigating", filterTrigger, "aria-expanded", "true", localUiTimeoutMs);
+  await diagnostics.runAction("dismiss Filter with Escape", async () => {
+    await page.keyboard.press("Escape");
+    await expect(filterTrigger).toHaveAttribute("aria-expanded", "false");
+  });
+
+  await diagnostics.runAction("open the first card from non-link row whitespace", async () => {
+    const repsCell = navigationCardRow.getByTestId("cards-row-reps-cell");
+    await expect(repsCell).toBeVisible();
+    const cellBounds = await repsCell.boundingBox();
+    if (cellBounds === null) {
+      throw new Error("Navigation card repetitions cell has no bounding box");
+    }
+    await repsCell.click({ position: { x: 4, y: cellBounds.height - 4 } });
+    await expect(frontField).toHaveValue(navigationFrontText);
+    await expect(backField).toHaveValue(navigationBackText);
+  });
+  const deleteConfirmation = page.waitForEvent("dialog");
+  await Promise.all([
+    trackedClick(diagnostics, "delete the temporary navigation card before reviewing", page.getByTestId("card-form-delete")),
+    deleteConfirmation.then((dialog) => dialog.accept()),
+  ]);
+  await diagnostics.runAction("confirm only the seeded review card remains", async () => {
+    await expect(page.getByTestId("cards-row")).toHaveCount(1);
+    await expect(navigationCardRow).toHaveCount(0);
   });
 }
 

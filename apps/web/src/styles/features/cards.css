@@ -214,29 +214,25 @@
 }
 
 .cards-row {
-  position: relative;
+  cursor: pointer;
+}
+
+.cards-table .cards-row:not(.cards-loading-row) .txn-cell {
+  padding: 0;
 }
 
 .cards-row-link {
+  display: block;
+  padding: 14px 12px;
+  padding-inline-end: 14px;
   color: inherit;
   text-decoration: none;
 }
 
-/* Extend the native link over every cell while retaining table semantics. */
-.cards-row-link::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: var(--radius-md);
-}
-
 .cards-row-link:focus-visible {
-  outline: none;
-}
-
-.cards-row-link:focus-visible::after {
   outline: 2px solid var(--text);
   outline-offset: -2px;
+  border-radius: var(--radius-md);
 }
 
 .cards-row:has(.cards-row-link:focus-visible) td {
