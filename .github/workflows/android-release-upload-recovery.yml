@@ -96,4 +96,5 @@ jobs:
           path: |
             ${{ runner.temp }}/android-upload-recovery/original-release-provenance.json
             ${{ runner.temp }}/android-upload-recovery/summary.json
+            ${{ runner.temp }}/android-upload-recovery/release-notes.json
             ${{ runner.temp }}/android-upload-recovery/play-publisher-provenance.json
