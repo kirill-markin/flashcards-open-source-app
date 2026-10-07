@@ -35,7 +35,7 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - uses: gradle/actions/setup-gradle@v6.3.0
+      - uses: gradle/actions/setup-gradle@v6.4.0
 
       - name: Install Android SDK packages
         env:
@@ -92,7 +92,7 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - uses: gradle/actions/setup-gradle@v6.3.0
+      - uses: gradle/actions/setup-gradle@v6.4.0
 
       - name: Install Android SDK Command-line Tools
         env:

@@ -95,7 +95,7 @@ GitHub Actions reusable workflow: `.github/workflows/android-ci-reusable.yml`
 Top-level release workflow Device Run job: `.github/workflows/android-release.yml` job `device_run_submission` (display name `Device Run app instrumentation`)
 
 - Starts on every manual `Android Release` run after `android_ci` succeeds
-- Uses Google Cloud CLI `587.0.0` with the `beta` component and location `global`; validates all four configured catalog IDs, authenticates once through WIF, and downloads `android-debug-apks` once
+- Uses Google Cloud CLI `588.0.0` with the `beta` component and location `global`; validates all four configured catalog IDs, authenticates once through WIF, and downloads `android-debug-apks` once
 - Runs four sessions sequentially through the bounded synchronous helper: the full app instrumentation package on API 37, excluding `ManualOnlyAndroidTest`, then one four-method smoke session each on API 30, 31, and 33; see [device configuration](#choose-the-device-run-devices). Sessions share a linked test account, so concurrent workspace mutations are unsafe
 - Uses Orchestrator `auto`, `clearPackageData=true,isAutomation=true`, portrait and `en-US`; inspect `event=automation_environment_resolved` in logcat for `isAutomation=true`, `isEmulator=false`, `hasArgumentSignal=true`, `isFirebaseTestLabDevice=false`. Device Run has no Firebase device marker, so the instrumentation argument must reach the app
 - Labels all four sessions with the same release ID, target SHA and GitHub run/attempt; see [the workflow](../.github/workflows/android-release.yml) for exact labels, outputs and artifact details
@@ -151,7 +151,7 @@ The collector derives API 37 inventory from the checked-out JUnit4 declarations,
 
 Full terminal reports, submission records, catalog, every execution's JUnit/logcat/instrument logs are retained in a private `raw.tar.gz` in the existing results bucket. The collector follows the report's native `outputFiles[].gcsOutputFile.path`, verifies downloaded input APK hashes against this run's CI artifacts, retains their private source references, and keeps raw diagnostics out of public GitHub artifacts/logs. Failed sessions are collected where evidence is available; later unexecuted destinations remain failed evidence gates. See Google's [native result layout](https://docs.cloud.google.com/developer-device-platform/device-run/find-logs) and [full-report schema](https://docs.cloud.google.com/developer-device-platform/reference/device-run/rest/v1alpha/projects.locations.sessions).
 
-For private warning/diagnostic review, use an already-authorized Google identity with CLI `587.0.0` and `beta`, or existing authorized service-account impersonation. Do not create keys, principals or grants. Retrieve the archive programmatically from `.private_archive` in the safe summary:
+For private warning/diagnostic review, use an already-authorized Google identity with CLI `588.0.0` and `beta`, or existing authorized service-account impersonation. Do not create keys, principals or grants. Retrieve the archive programmatically from `.private_archive` in the safe summary:
 
 ```bash
 archive="$(jq -r '.private_archive' summary.json)"
