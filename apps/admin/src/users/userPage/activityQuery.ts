@@ -1,12 +1,20 @@
-import { runAdminQuery, type AdminQueryResultSet, type AdminQueryValue } from "../../adminApi";
+import { runAdminQuery, type AdminQueryRow } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
 import { escapeSqlStringLiteral } from "../../sql";
-import { readNullableString, readRowArray, readString } from "./queryRowValues";
+import { buildDataTableSqlClauses, type DataTableSqlClauses } from "../../table/dataTableSql";
+import type { DataTableColumn, DataTableState } from "../../table/dataTableModel";
+import {
+  buildDistinctOptionsSql,
+  buildNamedColumnsSql,
+  emptyEnumOptions,
+  parseEnumOptionsResponse,
+  parsePageTotal,
+} from "../../table/dataTableServerQuery";
+import { utcInstantSql } from "../usersQuery";
+import { readRowNullableString, readRowString } from "./queryRowValues";
 import { buildMatchesUserIdSql, buildUserSubjectSql, type UserSubjectSql } from "./userSubjectSql";
 
 const reportLabel = "User activity";
-
-export const activityPageSize = 2000;
 
 export const activitySources = ["analytics", "purchase", "grant", "feedback"] as const;
 
@@ -17,9 +25,9 @@ export const activityRecordedAs = ["guest", "account", "visitor"] as const;
 export type ActivityRecordedAs = (typeof activityRecordedAs)[number];
 
 export type ActivityRow = Readonly<{
-  /** `<source>:<row id>`, unique across sources and the tiebreak of the keyset order. */
+  /** `<source>:<row id>`, unique across sources and the tiebreak of every order. */
   key: string;
-  /** ISO-8601 UTC instant at microsecond precision, so it doubles as the exact keyset cursor. */
+  /** ISO-8601 UTC instant. */
   occurredAt: string;
   source: ActivitySource;
   /** The analytics event's `event_id`, read off the key; null for every other source. */
@@ -32,14 +40,14 @@ export type ActivityRow = Readonly<{
   uiLocale: string | null;
   sessionId: string | null;
   origin: string | null;
-  /** Compact JSON of the event properties, or of the source row's own fields. */
+  /** JSON text of the event properties, or of the source row's own fields. */
   details: string;
   recordedAs: ActivityRecordedAs;
 }>;
 
-const analyticsKeyPrefix = "analytics:";
+type ActivityField = Exclude<keyof ActivityRow, "eventId">;
 
-export type ActivityCursor = Readonly<{ occurredAt: string; key: string }>;
+const analyticsKeyPrefix = "analytics:";
 
 /**
  * Every fact credited to the person, one row each, labelled by source. The analytics events come from
@@ -126,113 +134,153 @@ function buildActivityUnionSql(subject: UserSubjectSql): string {
 }
 
 /**
- * The newest `activityPageSize` rows older than `cursor`, newest first by (occurred at, key); a NULL
- * cursor is the newest page. Each row is one JSON array in `ActivityRow` field order, as the Users
- * list does, so the heaviest actor's page stays well under the Lambda response limit.
+ * The SQL every column's filter and sort read, keyed by the column ids `ActivityTab` declares. Each one
+ * reads only `activity`, a row of `buildActivityUnionSql`.
  */
-function buildActivityPageSql(subject: UserSubjectSql, cursor: ActivityCursor | null): string {
-  const cursorSql = cursor === null
-    ? ""
-    : `WHERE (activity.occurred_at, activity.row_key) < (${escapeSqlStringLiteral(cursor.occurredAt)}::timestamptz, ${escapeSqlStringLiteral(cursor.key)})`;
-  return `SELECT json_build_array(
-    activity.row_key,
-    to_char(activity.occurred_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
-    activity.source, activity.name, activity.platform, activity.app_version, activity.screen,
-    activity.country, activity.ui_locale, activity.session_id, activity.origin, activity.details,
-    activity.recorded_as
-  ) AS a
+const activityColumnSqlById: Readonly<Record<string, string>> = {
+  occurred: "activity.occurred_at",
+  source: "activity.source",
+  "recorded-as": "activity.recorded_as",
+  name: "activity.name",
+  platform: "activity.platform",
+  "app-version": "activity.app_version",
+  screen: "activity.screen",
+  country: "activity.country",
+  "ui-locale": "activity.ui_locale",
+  session: "activity.session_id",
+  origin: "activity.origin",
+  details: "activity.details::text",
+};
+
+/** Each `ActivityRow` field but the derived `eventId`, selected under its own name by `buildActivityPageSql`. */
+const activityFieldSql: Readonly<Record<ActivityField, string>> = {
+  key: "activity.row_key",
+  occurredAt: utcInstantSql("activity.occurred_at"),
+  source: "activity.source",
+  name: "activity.name",
+  platform: "activity.platform",
+  appVersion: "activity.app_version",
+  screen: "activity.screen",
+  country: "activity.country",
+  uiLocale: "activity.ui_locale",
+  sessionId: "activity.session_id",
+  origin: "activity.origin",
+  details: "activity.details::text",
+  recordedAs: "activity.recorded_as",
+};
+
+const defaultOrderBySql = "activity.occurred_at DESC";
+
+const tiebreakOrderBySql = "activity.row_key DESC";
+
+function buildActivityPageSql(subject: UserSubjectSql, clauses: DataTableSqlClauses): string {
+  return `SELECT ${buildNamedColumnsSql(activityFieldSql).join(",\n    ")}
   FROM (
   ${buildActivityUnionSql(subject)}
   ) AS activity
-  ${cursorSql}
-  ORDER BY activity.occurred_at DESC, activity.row_key DESC
-  LIMIT ${activityPageSize}`;
+  WHERE ${clauses.whereConditionSql}
+  ${clauses.orderBySql}
+  ${clauses.limitOffsetSql}`;
 }
 
-function buildActivityTotalSql(subject: UserSubjectSql): string {
-  return `SELECT json_build_array(count(*)::int) AS t
+function buildActivityTotalSql(subject: UserSubjectSql, clauses: DataTableSqlClauses): string {
+  return `SELECT count(*)::int AS total_count
+  FROM (
+  ${buildActivityUnionSql(subject)}
+  ) AS activity
+  WHERE ${clauses.whereConditionSql}`;
+}
+
+function parseActivityRow(row: AdminQueryRow, rowIndex: number): ActivityRow {
+  const location = `${reportLabel} row ${rowIndex}`;
+  const string = (field: ActivityField): string => readRowString(row, field, location);
+  const nullableString = (field: ActivityField): string | null => readRowNullableString(row, field, location);
+  const source = string("source");
+  const matchedSource = activitySources.find((candidate) => candidate === source);
+  if (matchedSource === undefined) {
+    throw new Error(`${location} field "source" has unsupported value: ${source}`);
+  }
+  const recordedAs = string("recordedAs");
+  const matchedRecordedAs = activityRecordedAs.find((candidate) => candidate === recordedAs);
+  if (matchedRecordedAs === undefined) {
+    throw new Error(`${location} field "recordedAs" has unsupported value: ${recordedAs}`);
+  }
+  const key = string("key");
+  return {
+    key,
+    occurredAt: string("occurredAt"),
+    source: matchedSource,
+    eventId: matchedSource === "analytics" ? key.slice(analyticsKeyPrefix.length) : null,
+    name: string("name"),
+    platform: nullableString("platform"),
+    appVersion: nullableString("appVersion"),
+    screen: nullableString("screen"),
+    country: nullableString("country"),
+    uiLocale: nullableString("uiLocale"),
+    sessionId: nullableString("sessionId"),
+    origin: nullableString("origin"),
+    details: string("details"),
+    recordedAs: matchedRecordedAs,
+  };
+}
+
+export type ActivityPageResult = Readonly<{
+  /** The rows matching the filters across every page. */
+  totalCount: number;
+  rows: ReadonlyArray<ActivityRow>;
+}>;
+
+/** The page at `state.page` and the matching total, in one request of two statements. */
+export async function loadActivityPage(
+  config: AdminAppConfig,
+  userId: string,
+  state: DataTableState,
+  columns: ReadonlyArray<DataTableColumn<ActivityRow>>,
+): Promise<ActivityPageResult> {
+  const subject = buildUserSubjectSql(userId);
+  const clauses = buildDataTableSqlClauses(state, columns, activityColumnSqlById, defaultOrderBySql, tiebreakOrderBySql);
+  const response = await runAdminQuery(
+    config,
+    `${buildActivityPageSql(subject, clauses)};\n${buildActivityTotalSql(subject, clauses)}`,
+  );
+  const pageResult = response.resultSets[0];
+  if (response.resultSets.length !== 2 || pageResult === undefined) {
+    throw new Error(`${reportLabel} query must return exactly two result sets.`);
+  }
+  return {
+    totalCount: parsePageTotal(response.resultSets[1]?.rows[0]?.total_count, reportLabel),
+    rows: pageResult.rows.map((row, rowIndex) => parseActivityRow(row, rowIndex)),
+  };
+}
+
+/** Every enum column `ActivityTab` declares. */
+const activityEnumColumnIds = [
+  "source", "recorded-as", "name", "platform", "app-version", "screen", "country", "ui-locale", "origin",
+] as const;
+
+/** Every value each enum column holds across the person's whole activity, NULL as `""`, in one scan. */
+function buildActivityEnumOptionsSql(subject: UserSubjectSql): string {
+  const optionsSql = activityEnumColumnIds.map((columnId) => {
+    const sqlExpression = activityColumnSqlById[columnId];
+    if (sqlExpression === undefined) {
+      throw new Error(`${reportLabel} enum column "${columnId}" has no SQL expression.`);
+    }
+    return `'${columnId}', ${buildDistinctOptionsSql(`COALESCE(${sqlExpression}, '')`)}`;
+  });
+  return `SELECT json_build_object(
+    ${optionsSql.join(",\n    ")}
+  ) AS o
   FROM (
   ${buildActivityUnionSql(subject)}
   ) AS activity`;
 }
 
-function parseActivityRow(value: AdminQueryValue | undefined, rowIndex: number): ActivityRow {
-  const location = `${reportLabel} row ${rowIndex}`;
-  const values = readRowArray(value, 13, location);
-  const source = readString(values, 2, "source", location);
-  const matchedSource = activitySources.find((candidate) => candidate === source);
-  if (matchedSource === undefined) {
-    throw new Error(`${location} field "source" has unsupported value: ${source}`);
-  }
-  const recordedAs = readString(values, 12, "recordedAs", location);
-  const matchedRecordedAs = activityRecordedAs.find((candidate) => candidate === recordedAs);
-  if (matchedRecordedAs === undefined) {
-    throw new Error(`${location} field "recordedAs" has unsupported value: ${recordedAs}`);
-  }
-  const details: AdminQueryValue | undefined = values[11];
-  if (details === undefined) {
-    throw new Error(`${location} is missing "details".`);
-  }
-  const key = readString(values, 0, "key", location);
-  return {
-    key,
-    occurredAt: readString(values, 1, "occurredAt", location),
-    source: matchedSource,
-    eventId: matchedSource === "analytics" ? key.slice(analyticsKeyPrefix.length) : null,
-    name: readString(values, 3, "name", location),
-    platform: readNullableString(values, 4, "platform", location),
-    appVersion: readNullableString(values, 5, "appVersion", location),
-    screen: readNullableString(values, 6, "screen", location),
-    country: readNullableString(values, 7, "country", location),
-    uiLocale: readNullableString(values, 8, "uiLocale", location),
-    sessionId: readNullableString(values, 9, "sessionId", location),
-    origin: readNullableString(values, 10, "origin", location),
-    details: JSON.stringify(details),
-    recordedAs: matchedRecordedAs,
-  };
-}
+export type ActivityEnumOptions = ReadonlyMap<string, ReadonlyArray<string>>;
 
-function parseActivityPage(result: AdminQueryResultSet | undefined): ReadonlyArray<ActivityRow> {
-  if (result === undefined) {
-    throw new Error(`${reportLabel} page result set is missing.`);
-  }
-  return result.rows.map((row, rowIndex) => parseActivityRow(row.a, rowIndex));
-}
+/** Every enum column with no options, which the table shows until `loadActivityEnumOptions` answers. */
+export const emptyActivityEnumOptions: ActivityEnumOptions = emptyEnumOptions(activityEnumColumnIds);
 
-export type ActivityFirstPage = Readonly<{
-  totalCount: number;
-  rows: ReadonlyArray<ActivityRow>;
-}>;
-
-/** The newest page and the total across every source, in one request of two statements. */
-export async function loadActivityFirstPage(config: AdminAppConfig, userId: string): Promise<ActivityFirstPage> {
-  const subject = buildUserSubjectSql(userId);
-  const response = await runAdminQuery(
-    config,
-    `${buildActivityPageSql(subject, null)};\n${buildActivityTotalSql(subject)}`,
-  );
-  if (response.resultSets.length !== 2) {
-    throw new Error(`${reportLabel} query must return exactly two result sets.`);
-  }
-  const totalValue = response.resultSets[1]?.rows[0]?.t;
-  const totalCount = Array.isArray(totalValue) ? totalValue[0] : undefined;
-  if (typeof totalCount !== "number" || !Number.isSafeInteger(totalCount) || totalCount < 0) {
-    throw new Error(`${reportLabel} total must be a non-negative integer.`);
-  }
-  return {
-    totalCount,
-    rows: parseActivityPage(response.resultSets[0]),
-  };
-}
-
-export async function loadActivityOlderPage(
-  config: AdminAppConfig,
-  userId: string,
-  cursor: ActivityCursor,
-): Promise<ReadonlyArray<ActivityRow>> {
-  const response = await runAdminQuery(config, buildActivityPageSql(buildUserSubjectSql(userId), cursor));
-  if (response.resultSets.length !== 1) {
-    throw new Error(`${reportLabel} query must return exactly one result set.`);
-  }
-  return parseActivityPage(response.resultSets[0]);
+export async function loadActivityEnumOptions(config: AdminAppConfig, userId: string): Promise<ActivityEnumOptions> {
+  const response = await runAdminQuery(config, buildActivityEnumOptionsSql(buildUserSubjectSql(userId)));
+  return parseEnumOptionsResponse(response, activityEnumColumnIds, reportLabel);
 }
