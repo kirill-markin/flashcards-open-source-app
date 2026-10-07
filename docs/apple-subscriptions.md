@@ -217,11 +217,12 @@ Static CI does not compile Swift or prove StoreKit acceptance. Record unrun chec
 pending. This procedure does not authorize Xcode Cloud dispatch or app/product submission.
 
 1. As a free user, open Settings → Subscription and its Premium offer, then independently
-   Settings → General → Accent Color and select a premium color. Both must open the same
-   ordinary purchase sheet with Apple's localized price and billing period, a trial only
-   when Apple reports eligibility, automatic renewal terms, Privacy Policy, Apple's
-   Standard EULA, and a top-right Close control. Check an eligible and an ineligible
-   sandbox account. Purchase must not depend on Settings → Tests or a sandbox-only entry.
+   Settings → Style and change each style setting, for example a premium color in Accent
+   color. All must open the same ordinary purchase sheet with Apple's localized price and
+   billing period, a trial only when Apple reports eligibility, automatic renewal terms,
+   Privacy Policy, Apple's Standard EULA, and a top-right Close control. Check an eligible
+   and an ineligible sandbox account. Purchase must not depend on Settings → Tests or a
+   sandbox-only entry.
 2. As a fresh iOS guest without a lifetime gift, fetch the account token and complete
    the premium_monthly trial with that `appAccountToken`. Submit the verified StoreKit
    transaction JWS to `POST /v1/billing/apple/transactions` as
@@ -232,10 +233,10 @@ pending. This procedure does not authorize Xcode Cloud dispatch or app/product s
    or cancelling Apple's purchase dialog must preserve the originating screen.
 3. Trigger the free-user AI quota sheet; it must expose the same ordinary purchase flow.
    The own-OpenAI-key alternative belongs only to the AI quota sheet, and using a key
-   must not unlock accent colors. A paid or lifetime quota refusal must not offer
+   must not unlock custom styles. A paid or lifetime quota refusal must not offer
    an upgrade to the same allowance. Preserve the AI draft and transcript after close,
    cancellation, or a newly confirmed entitlement; no close or access callback may
-   automatically send another billable turn. A pending accent selection may continue
+   automatically send another billable turn. A pending style change may continue
    once only after its request receives confirmed access for the same account.
 4. In the ordinary offer and Settings → Subscription, use **Restore purchases** and
    **Manage subscription**. Check immediate progress, retryable failures, and return to

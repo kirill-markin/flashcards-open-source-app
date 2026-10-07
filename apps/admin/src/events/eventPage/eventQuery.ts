@@ -1,14 +1,14 @@
-import { runAdminQuery, type AdminQueryValue } from "../../adminApi";
+import { runAdminQuery, type AdminQueryRow } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
 import { buildExcludedActorReasonSql } from "../../filters/filterSql";
 import { escapeSqlStringLiteral } from "../../sql";
+import { buildNamedColumnsSql } from "../../table/dataTableServerQuery";
 import { utcInstantSql } from "../../users/usersQuery";
 import {
-  readNullableBoolean,
-  readNullableString,
-  readNumber,
-  readRowArray,
-  readString,
+  readRowNullableBoolean,
+  readRowNullableString,
+  readRowNumber,
+  readRowString,
 } from "../../users/userPage/queryRowValues";
 import { isUuid } from "../../users/userPage/userSubjectSql";
 
@@ -60,7 +60,7 @@ export type AnalyticsEvent = Readonly<{
 
 type EventField = keyof AnalyticsEvent;
 
-// Positional order of the row's JSON array; see `buildEventSql`.
+/** Each `AnalyticsEvent` field, selected under its own name by `buildEventSql`. */
 const eventFieldSql: Readonly<Record<EventField, string>> = {
   eventId: "events.event_id::text",
   eventName: "events.event_name",
@@ -102,36 +102,31 @@ const eventFieldSql: Readonly<Record<EventField, string>> = {
   details: "jsonb_pretty(stored_events.details)",
 };
 
-const eventFields = Object.keys(eventFieldSql) as ReadonlyArray<EventField>;
-
 /**
  * The view row, with `details` read off the stored row because the view does not carry it. Every
  * trust level is shown, and an excluded actor is named with its reason rather than dropped.
  */
 function buildEventSql(eventId: string): string {
-  return `SELECT json_build_array(
-    ${eventFields.map((field) => eventFieldSql[field]).join(",\n    ")}
-  ) AS e
+  return `SELECT ${buildNamedColumnsSql(eventFieldSql).join(",\n    ")}
   FROM analytics.product_events_resolved AS events
   JOIN analytics.product_events AS stored_events ON stored_events.event_id = events.event_id
   WHERE events.event_id = ${escapeSqlStringLiteral(eventId)}::uuid`;
 }
 
-function parseEvent(value: AdminQueryValue | undefined): AnalyticsEvent {
+function parseEvent(row: AdminQueryRow): AnalyticsEvent {
   const location = `${reportLabel} row`;
-  const values = readRowArray(value, eventFields.length, location);
-  const string = (field: EventField): string => readString(values, eventFields.indexOf(field), field, location);
-  const nullableString = (field: EventField): string | null => readNullableString(values, eventFields.indexOf(field), field, location);
+  const string = (field: EventField): string => readRowString(row, field, location);
+  const nullableString = (field: EventField): string | null => readRowNullableString(row, field, location);
   return {
     eventId: string("eventId"),
     eventName: string("eventName"),
-    schemaVersion: readNumber(values, eventFields.indexOf("schemaVersion"), "schemaVersion", location),
+    schemaVersion: readRowNumber(row, "schemaVersion", location),
     origin: string("origin"),
     backfillId: nullableString("backfillId"),
     requestId: nullableString("requestId"),
     trustLevel: string("trustLevel"),
     authTransport: nullableString("authTransport"),
-    automatedClient: readNullableBoolean(values, eventFields.indexOf("automatedClient"), "automatedClient", location),
+    automatedClient: readRowNullableBoolean(row, "automatedClient", location),
     occurredAt: string("occurredAt"),
     clientOccurredAt: nullableString("clientOccurredAt"),
     clientSentAt: nullableString("clientSentAt"),
@@ -183,5 +178,5 @@ export async function loadAnalyticsEvent(config: AdminAppConfig, eventId: string
   if (row === undefined) {
     return null;
   }
-  return { generatedAtUtc: response.executedAtUtc, event: parseEvent(row.e) };
+  return { generatedAtUtc: response.executedAtUtc, event: parseEvent(row) };
 }
