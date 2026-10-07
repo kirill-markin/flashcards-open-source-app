@@ -22,6 +22,7 @@ import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsLaunchT
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsMediaUploadFailureReason
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSyncFailureReason
+import com.flashcardsopensourceapp.core.observability.shouldCaptureAndroidThrowable
 import com.flashcardsopensourceapp.data.local.ai.store.GuestAiSessionStore
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
@@ -278,9 +279,13 @@ internal class AppAnalyticsCredentialProvider(
 /**
  * Offline and transient transport failures stay unreported, the same way every other background
  * capture path in this repository treats them: on a first launch without connectivity the mint is
- * expected to fail, and the events simply stay queued for the next process.
+ * expected to fail, and the events simply stay queued for the next process. Failures the transport
+ * layer already observed stay silent too, so one failed request never files a second issue.
  */
 private fun isSilentAnalyticsGuestMintFailure(error: Throwable): Boolean {
+    if (shouldCaptureAndroidThrowable(throwable = error).not()) {
+        return true
+    }
     var currentError: Throwable? = error
     var depth = 0
     while (currentError != null && depth < maxAnalyticsFailureCauseDepth) {
