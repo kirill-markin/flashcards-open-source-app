@@ -206,6 +206,19 @@ private fun addBreadcrumbData(
                 )
             )
         }
+        is AndroidBreadcrumbEvent.HttpServerErrorUnattributed -> {
+            breadcrumb.setData(
+                "http",
+                SentryHttpContext(
+                    endpointName = sanitizeSentryContextValue(fieldName = "endpointName", value = event.endpointName),
+                    method = sanitizeSentryContextValue(fieldName = "method", value = event.method),
+                    requestId = null,
+                    statusCode = event.statusCode,
+                    code = sanitizeSentryContextValue(fieldName = "code", value = event.code),
+                    stage = sanitizeSentryContextValue(fieldName = "stage", value = event.stage)
+                )
+            )
+        }
         is AndroidBreadcrumbEvent.AiRuntimeBreadcrumb -> {
             breadcrumb.setData(
                 "ai",

@@ -112,7 +112,8 @@ internal fun captureCloudHttpFailureObservation(
     requestId: String?,
     statusCode: Int,
     code: String?,
-    syncConflict: CloudSyncConflictDetails?
+    syncConflict: CloudSyncConflictDetails?,
+    responseHasStackRequestId: Boolean
 ): Boolean {
     val feature = cloudObservationFeature(request = request)
     val endpointName = cloudObservationEndpointName(path = path)
@@ -139,6 +140,24 @@ internal fun captureCloudHttpFailureObservation(
     }
 
     if (statusCode >= 500) {
+        // API Gateway and Lambda URLs stamp a request id even on their own errors, so a 5xx without one came from a proxy outside our stack.
+        if (responseHasStackRequestId.not()) {
+            observability.addBreadcrumb(
+                event = AndroidBreadcrumbEvent.HttpServerErrorUnattributed(
+                    feature = feature,
+                    endpointName = endpointName,
+                    method = method,
+                    statusCode = statusCode,
+                    code = code,
+                    stage = null,
+                    appVersion = observationVersions.appVersion,
+                    clientVersion = observationVersions.clientVersion,
+                    versionCode = observationVersions.versionCode
+                )
+            )
+            return true
+        }
+
         observability.captureWarning(
             event = AndroidWarningIssueEvent.HttpServerError(
                 feature = feature,
