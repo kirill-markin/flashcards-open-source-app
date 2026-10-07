@@ -74,6 +74,7 @@ export function UserPage(props: Readonly<{
               config={config}
               userId={userId}
               profile={loadState.profile}
+              isActive={props.tab === "profile"}
               onNavigate={props.onNavigate}
               onTerminalAdminError={onTerminalAdminError}
             />
