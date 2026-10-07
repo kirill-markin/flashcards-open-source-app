@@ -121,7 +121,10 @@ and all four sequential Device Run sessions with their complete named results.
 Retain full logs and reports, inspect diagnostics under the
 [release warning policy](README.md#release-warning-policy), and preserve
 source/run/attempt/artifact correlation. A green summary does not replace
-native results or signed-binary verification.
+native results or signed-binary verification. A publisher-only failure can use
+[exact-bundle recovery](android.md#exact-bundle-upload-recovery): keep the original
+passing build/native gates and failed workflow conclusion, plus the separate
+successful publisher workflow bound to the same signed AAB hash and code.
 
 The [local parity commands](../android-ci-cd.md#local-parity-commands) remain
 available for diagnosis and OS-specific behavior that cloud selection does not

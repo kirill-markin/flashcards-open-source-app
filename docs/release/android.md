@@ -25,11 +25,14 @@ Otherwise create a new artifact through every gate below.
 2. Before dispatch, inspect Play Console's Publishing overview for all pending
    changes and active reviews. The upload commits an app-wide edit;
    `status: draft` alone does not prevent other pending changes from entering review.
-   The workflow explicitly sets `changesNotSentForReview: true` to hold changes
-   for manual submission. Google's [edit commit API](https://developers.google.com/android-publisher/api-ref/rest/v3/edits/commit)
-   can still affect an existing review under its default behavior. If an unrelated
-   review is active, stop and resolve the upload scope with the release owner;
-   do not cancel or replace that review just to continue the workflow.
+   Require managed publishing ON, no active review and an empty ready-to-submit
+   queue before upload; resolve unrelated pending changes with the release owner.
+   The publisher uses `ERROR_IF_IN_REVIEW` in Google's
+   [edit commit API](https://developers.google.com/android-publisher/api-ref/rest/v3/edits/commit)
+   and fails if a review starts during the run. It omits `changesNotSentForReview`,
+   which Google supports conditionally after rejection and can reject for apps
+   whose changes enter review automatically. The API guard protects active reviews;
+   it does not isolate other pending changes or replace managed publishing.
    Dispatch `Android Release` (`.github/workflows/android-release.yml`) with
    `Git SHA to release` (`target_sha`) set to the release commit. Record its
    target SHA, run/attempt, version code, and release identifier from the summary.
@@ -57,6 +60,8 @@ Otherwise create a new artifact through every gate below.
    corrected SHA; preserve the failed attempt's evidence.
 5. Require the complete GitHub workflow to succeed as well, including the
    signed Android App Bundle (AAB) upload to the production-track draft.
+   For a publisher-only failure after all build/native gates pass, use the
+   [exact-bundle upload recovery](#exact-bundle-upload-recovery) below.
    Inspect build/lint logs and apply the
    [release warning policy](README.md#release-warning-policy) even if the run is green.
 6. Open Google Play Console and select that draft by its
@@ -66,9 +71,10 @@ Otherwise create a new artifact through every gate below.
    alone do not prove the distributed minimum. Device Run exercises the
    debug APKs from that SHA; the production artifact is the signed AAB from
    the same release run.
-   Check Publishing overview again: the intended changes must remain not yet
-   sent for review, and other pending changes or reviews must not have been
-   unexpectedly submitted, cancelled or replaced by the upload.
+   Check Publishing overview again: verify the exact intended draft and managed
+   publishing hold, and that unrelated changes or reviews were not unexpectedly
+   submitted, cancelled or replaced. App policy may send changes for review
+   automatically; record the actual state rather than assuming a manual-review hold.
    Before publishing the first API-30-compatible release or a change affecting
    its OS-specific behavior, complete the applicable
    [API 30 walkthrough](#first-release-api-30-walkthrough) checks and retain their evidence.
@@ -77,8 +83,9 @@ Otherwise create a new artifact through every gate below.
    translations, and complete the production publication controls for that
    exact bundle. Keep its identity pinned; do not select a newer unrelated
    upload. Only after all release gates pass, inspect the complete app-wide
-   change set and manually submit the intended changes for review. Verify the
-   resulting review status; complete any publication action already available.
+   change set and submit the intended changes when a manual submission is
+   required. Verify the actual review status; complete any publication action
+   already available.
 8. Follow the exact version code through Play review and publication. With
    managed publishing enabled, approval leaves changes ready to publish:
    complete **Publish changes** for the intended release. Otherwise verify the
@@ -104,6 +111,43 @@ under the [canonical completion contract](README.md#release-inventory-and-comple
 
 Configuration, Device Run access, artifact correlation, and Play translation
 checks: [Android CI/CD](../android-ci-cd.md).
+
+## Exact-bundle upload recovery
+
+Use `Android Release Upload Recovery`
+([workflow](../../.github/workflows/android-release-upload-recovery.yml)) only
+when the original release's CI, four Device Run sessions, signed build and R8
+checks passed and only its Play publisher failed. Diagnose and review the
+publisher fix, merge it through green PR checks, and retain the failed run.
+Source changes require the bounded comparisons and affected gates in
+[artifact reuse](evidence.md#resume-and-artifact-reuse).
+
+1. Retain the original full native reports, named inventory, diagnostics,
+   signed AAB, signing verification and resolved failure. Record the original
+   source SHA, run/attempt, version/code, bundle and native-summary artifact IDs,
+   and independently verified AAB and summary SHA-256 values.
+2. Immediately before dispatch, verify managed publishing ON, no active review
+   and an empty ready-to-submit queue. Resolve unrelated pending changes first.
+   Play's **Save for later** is a temporary exclusion: saved changes can return
+   after another review starts. Inspect them again after upload and before
+   publication; see Google's [publishing controls](https://support.google.com/googleplay/android-developer/answer/9859654?hl=en).
+3. Supply the pinned identities and hashes to the recovery workflow and confirm
+   the preflight only after all retained gates are reviewed. It downloads exact
+   artifact IDs, verifies GitHub ZIP digests, original successful gates and all
+   four named selections. It builds nothing and preserves the original code/name.
+   Play must return the same bundle code and SHA-256, whether already present
+   or uploaded from those original bytes. A mismatch or failed API call stops
+   recovery; never remint a code, choose a newer artifact or retry blindly.
+4. Require the recovery workflow to succeed and its publisher provenance to
+   show a committed single production draft for the pinned code. Retain both
+   workflow identities: original failed release/build/native attempt and separate
+   successful upload recovery. Keep the original release identity on the
+   [readiness gates](readiness.md), with compound evidence references covering
+   the original passing gates and recovered publisher. Do not change the
+   original workflow conclusion or relabel its native sessions.
+5. Resume step 6 above with the exact recovered bundle. Recheck app-wide Play
+   state, delivered translations, processing and publication controls; upload
+   recovery alone does not establish readiness or public availability.
 
 ## First-release API 30 walkthrough
 
