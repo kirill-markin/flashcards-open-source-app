@@ -20,6 +20,9 @@ import type { ProductAnalyticsClientReportablePlatform } from "../../../productA
 import type { UserOpenAIApiKey } from "../../userOpenAIApiKey";
 import { createGeneratedImageOperationKey } from "../../generatedImageOperationIdentity";
 import { GENERATED_IMAGE_TOOL_NAME } from "../tools/generatedImageToolContract";
+import { isTransientProviderOverloadError } from "../../runtime/providerErrors";
+import { writeCloudWatchRecord } from "../../../observability/cloudWatch";
+import type { BackendObservationScope } from "../../../observability/sentry";
 import {
   collectResponseStream,
   type ModelCallResult,
@@ -30,6 +33,8 @@ import {
 
 export const CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS = 30;
 const TOOL_LIMIT_FALLBACK_ITEM_ID = "tool-limit-summary";
+const PROVIDER_OVERLOAD_RETRY_BASE_DELAY_MS = 1_000;
+const PROVIDER_OVERLOAD_RETRY_JITTER_MS = 1_000;
 
 export type OpenAIResponsesRequest = Readonly<{
   model: ChatRuntimeModelId;
@@ -66,6 +71,7 @@ type RunOneModelCallParams = Readonly<{
   request: OpenAIResponsesRequest;
   callIndex: number;
   userSuppliedKey: boolean;
+  observationScope: BackendObservationScope;
 }>;
 
 export type RunOneToolCall = (params: Readonly<{
@@ -221,22 +227,93 @@ export function buildOpenAIResponsesRequest(
   };
 }
 
+async function runOneModelCallAttempt(
+  params: RunOneModelCallParams,
+  onEvent: OpenAILoopEventSink,
+): Promise<ModelCallResult> {
+  const stream: ResponseStreamWithOptionalFinalResponse = await params.client.responses.create(
+    { ...params.request, stream: true },
+    { signal: params.signal },
+  );
+  return collectResponseStream({
+    stream,
+    signal: params.signal,
+    onEvent,
+    callIndex: params.callIndex,
+    userSuppliedKey: params.userSuppliedKey,
+  });
+}
+
+/** Rejects with the SDK's own abort error, so an abort during the wait reads like an aborted request. */
+function waitForProviderOverloadRetry(
+  delayMs: number,
+  signal: AbortSignal | undefined,
+): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      signal?.removeEventListener("abort", handleAbort);
+      resolve();
+    }, delayMs);
+    const handleAbort = (): void => {
+      clearTimeout(timeout);
+      reject(new OpenAI.APIUserAbortError());
+    };
+
+    signal?.addEventListener("abort", handleAbort, { once: true });
+  });
+}
+
+function logProviderCallRetried(
+  params: RunOneModelCallParams,
+  error: InstanceType<typeof OpenAI.APIError>,
+  retryDelayMs: number,
+): void {
+  writeCloudWatchRecord({
+    action: "chat_worker_provider_call_retried",
+    message: "OpenAI chat model call will retry after an in-stream overload.",
+    scope: params.observationScope,
+    details: {
+      callIndex: params.callIndex,
+      userSuppliedKey: params.userSuppliedKey,
+      providerErrorCode: error.code ?? null,
+      providerErrorType: error.type ?? null,
+      providerRequestId: error.requestID ?? null,
+      retryDelayMs,
+    },
+  }, "warning");
+}
+
+/**
+ * Retries once, after a jittered backoff, an attempt OpenAI overloaded mid-stream before it emitted
+ * anything; a second failure, or one after emitted output, rethrows to the terminal failure path.
+ */
 export async function runOneModelCallWithPhase(
   params: RunOneModelCallParams,
 ): Promise<ModelCallResult> {
   params.onExecutionPhaseChanged?.("model", null);
   try {
-    const stream: ResponseStreamWithOptionalFinalResponse = await params.client.responses.create(
-      { ...params.request, stream: true },
-      { signal: params.signal },
-    );
-    return await collectResponseStream({
-      stream,
-      signal: params.signal,
-      onEvent: params.onEvent,
-      callIndex: params.callIndex,
-      userSuppliedKey: params.userSuppliedKey,
-    });
+    let firstAttemptEmittedEvent = false;
+    const onFirstAttemptEvent: OpenAILoopEventSink = (event) => {
+      firstAttemptEmittedEvent = true;
+      return params.onEvent(event);
+    };
+    try {
+      return await runOneModelCallAttempt(params, onFirstAttemptEvent);
+    } catch (error) {
+      if (
+        firstAttemptEmittedEvent
+        || params.signal?.aborted === true
+        || !isTransientProviderOverloadError(error)
+      ) {
+        throw error;
+      }
+
+      const retryDelayMs = PROVIDER_OVERLOAD_RETRY_BASE_DELAY_MS
+        + Math.floor(Math.random() * PROVIDER_OVERLOAD_RETRY_JITTER_MS);
+      logProviderCallRetried(params, error, retryDelayMs);
+      await waitForProviderOverloadRetry(retryDelayMs, params.signal);
+      return await runOneModelCallAttempt(params, params.onEvent);
+    }
   } finally {
     params.onExecutionPhaseChanged?.("idle", null);
   }
