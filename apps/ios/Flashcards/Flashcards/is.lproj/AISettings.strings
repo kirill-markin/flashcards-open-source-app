@@ -850,7 +850,7 @@
 "settings.language.supported.zulu" = "Súlú";
 
 "premium.offer.title" = "Premium";
-"premium.offer.benefits" = "1.000 gervigreindarskilaboð á mánuði og sérsniðnir áherslulitir. Samstilling er ókeypis fyrir alla.";
+"premium.offer.benefits" = "1.000 gervigreindarskilaboð á mánuði og sérsniðnir stílar. Samstilling er ókeypis fyrir alla.";
 "premium.aiLimit.title" = "Hámarki AI-skilaboða náð";
 
 "settings.accentColor.title" = "Áherslulitur";
@@ -863,6 +863,8 @@
 "settings.accentColor.custom" = "Sérsniðinn litur";
 "settings.accentColor.invalidHex" = "Sláðu inn lit sem #RRGGBB með sex sextándakerfisstöfum.";
 "settings.accentColor.premiumNote" = "Sérsniðnir áherslulitir eru í boði með Premium. Vistaði liturinn þinn kemur aftur þegar Premium er virkt.";
+"settings.reviewAnimations.premiumNote" = "Að slökkva á hreyfimyndum við upprifjun er í boði með Premium. Vistaða stillingin þín kemur aftur þegar Premium er virkt.";
+"settings.aiChatSuggestions.premiumNote" = "Að slökkva á tillögum í gervigreindarspjalli er í boði með Premium. Vistaða stillingin þín kemur aftur þegar Premium er virkt.";
 
 "premium.apple.monthlyProduct" = "%@ · Mánaðarlega";
 "premium.apple.renewal" = "Endurnýjast sjálfkrafa þar til sagt er upp. Stjórnaðu eða segðu upp í App Store-áskriftunum þínum.";

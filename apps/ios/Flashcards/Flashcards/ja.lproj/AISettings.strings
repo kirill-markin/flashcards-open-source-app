@@ -878,7 +878,7 @@
 "settings.language.supported.zulu" = "ズールー語";
 
 "premium.offer.title" = "Premium";
-"premium.offer.benefits" = "毎月1,000件のAIメッセージとカスタムアクセントカラー。同期はすべての方が無料で利用できます。";
+"premium.offer.benefits" = "毎月1,000件のAIメッセージとカスタムスタイル。同期はすべての方が無料で利用できます。";
 "premium.aiLimit.title" = "AIメッセージの上限に達しました";
 
 "settings.accentColor.title" = "アクセントカラー";
@@ -891,6 +891,8 @@
 "settings.accentColor.custom" = "カスタムカラー";
 "settings.accentColor.invalidHex" = "6桁の16進数を使い、#RRGGBB 形式で色を入力してください。";
 "settings.accentColor.premiumNote" = "カスタムアクセントカラーは Premium で利用できます。Premium が有効になると、保存した色に戻ります。";
+"settings.reviewAnimations.premiumNote" = "復習アニメーションをオフにするには Premium が必要です。Premium が有効になると、保存した設定に戻ります。";
+"settings.aiChatSuggestions.premiumNote" = "AIチャットの候補をオフにするには Premium が必要です。Premium が有効になると、保存した設定に戻ります。";
 
 "premium.apple.monthlyProduct" = "%@ · 月額";
 "premium.apple.renewal" = "キャンセルするまで自動更新されます。App Storeのサブスクリプションで管理・キャンセルできます。";

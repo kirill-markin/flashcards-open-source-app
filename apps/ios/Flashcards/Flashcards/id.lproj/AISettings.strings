@@ -850,7 +850,7 @@
 "settings.language.supported.zulu" = "Zulu";
 
 "premium.offer.title" = "Premium";
-"premium.offer.benefits" = "1.000 pesan AI per bulan dan warna aksen khusus. Sinkronisasi gratis untuk semua orang.";
+"premium.offer.benefits" = "1.000 pesan AI per bulan dan gaya khusus. Sinkronisasi gratis untuk semua orang.";
 "premium.aiLimit.title" = "Batas pesan AI tercapai";
 
 "settings.accentColor.title" = "Warna aksen";
@@ -863,6 +863,8 @@
 "settings.accentColor.custom" = "Warna khusus";
 "settings.accentColor.invalidHex" = "Masukkan warna sebagai #RRGGBB dengan enam digit heksadesimal.";
 "settings.accentColor.premiumNote" = "Warna aksen khusus tersedia dengan Premium. Warna tersimpan Anda kembali saat Premium aktif.";
+"settings.reviewAnimations.premiumNote" = "Mematikan animasi pengulangan tersedia dengan Premium. Pengaturan tersimpan Anda kembali saat Premium aktif.";
+"settings.aiChatSuggestions.premiumNote" = "Mematikan saran obrolan AI tersedia dengan Premium. Pengaturan tersimpan Anda kembali saat Premium aktif.";
 
 "premium.apple.monthlyProduct" = "%@ · Bulanan";
 "premium.apple.renewal" = "Diperpanjang otomatis hingga dibatalkan. Kelola atau batalkan di langganan App Store Anda.";
