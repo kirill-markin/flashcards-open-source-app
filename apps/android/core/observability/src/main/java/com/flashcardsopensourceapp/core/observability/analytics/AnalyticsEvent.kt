@@ -253,7 +253,9 @@ enum class AnalyticsCardCreateEntryPoint(val wireValue: String) {
 enum class AnalyticsPaywallEntryPoint(val wireValue: String) {
     SUBSCRIPTION_SETTINGS(wireValue = "subscription_settings"),
     AI_LIMIT(wireValue = "ai_limit"),
-    ACCENT_COLOR(wireValue = "accent_color")
+    ACCENT_COLOR(wireValue = "accent_color"),
+    REVIEW_ANIMATIONS(wireValue = "review_animations"),
+    AI_CHAT_SUGGESTIONS(wireValue = "ai_chat_suggestions")
 }
 
 /** Whether the offer being bought starts with a Google Play free-trial phase. */

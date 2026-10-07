@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Card
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,6 +22,7 @@ import com.flashcardsopensourceapp.feature.settings.settingsScreenContentPadding
 @Composable
 fun AiChatSuggestionsRoute(
     aiChatComposerSuggestionsEnabled: Boolean,
+    isPremiumRequired: Boolean,
     onUpdateAiChatComposerSuggestionsEnabled: (Boolean) -> Unit,
     onBack: () -> Unit
 ) {
@@ -34,6 +36,14 @@ fun AiChatSuggestionsRoute(
             verticalArrangement = Arrangement.spacedBy(settingsScreenCardSpacing),
             modifier = Modifier.fillMaxSize()
         ) {
+            if (isPremiumRequired) {
+                item {
+                    Text(
+                        text = stringResource(R.string.settings_ai_chat_suggestions_premium_note),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     ListItem(

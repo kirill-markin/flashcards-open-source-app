@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.SystemClock
 import android.provider.Settings
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
@@ -28,6 +29,7 @@ import com.flashcardsopensourceapp.app.analytics.trackFriendInvitationDialogDism
 import com.flashcardsopensourceapp.app.analytics.trackFriendInvitationDialogShown
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.premium.PremiumPresenter
+import com.flashcardsopensourceapp.app.premium.PremiumResult
 import com.flashcardsopensourceapp.app.navigation.AppPackageInfo
 import com.flashcardsopensourceapp.app.navigation.SettingsDestination
 import com.flashcardsopensourceapp.app.navigation.rememberRouteBackStackEntry
@@ -39,6 +41,7 @@ import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPaywall
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSubscriptionManagementDestination
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
 import com.flashcardsopensourceapp.core.ui.AppTechnicalError
+import com.flashcardsopensourceapp.data.local.model.cloud.canUseLocalPremiumFeatures
 import com.flashcardsopensourceapp.feature.friendinvite.FriendInvitationDialog
 import com.flashcardsopensourceapp.feature.friendinvite.FriendInvitationShareEffect
 import com.flashcardsopensourceapp.feature.friendinvite.FriendInvitationViewModel
@@ -345,10 +348,23 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
             settingsViewModel.refreshAccountContextAsync()
         }
 
+        DisposableEffect(premiumPresenter) {
+            onDispose { premiumPresenter.dismiss() }
+        }
+
         ReviewAnimationsRoute(
             reviewReactionAnimationsEnabled = uiState.reviewReactionAnimationsEnabled,
             canManageAccountPreferences = uiState.canManageAccountPreferences,
-            onUpdateReviewReactionAnimationsEnabled = settingsViewModel::updateReviewReactionAnimationsEnabled,
+            isPremiumRequired = canUseLocalPremiumFeatures(entitlement = premiumPresenter.entitlement).not(),
+            onUpdateReviewReactionAnimationsEnabled = { isEnabled ->
+                premiumPresenter.requestFeature(
+                    paywallEntryPoint = AnalyticsPaywallEntryPoint.REVIEW_ANIMATIONS
+                ) { result ->
+                    if (result == PremiumResult.ACCESS_GRANTED) {
+                        settingsViewModel.updateReviewReactionAnimationsEnabled(isEnabled = isEnabled)
+                    }
+                }
+            },
             onBack = {
                 navController.popBackStack()
             }
@@ -376,9 +392,22 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
         )
         val uiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
 
+        DisposableEffect(premiumPresenter) {
+            onDispose { premiumPresenter.dismiss() }
+        }
+
         AiChatSuggestionsRoute(
             aiChatComposerSuggestionsEnabled = uiState.aiChatComposerSuggestionsEnabled,
-            onUpdateAiChatComposerSuggestionsEnabled = settingsViewModel::updateAiChatComposerSuggestionsEnabled,
+            isPremiumRequired = canUseLocalPremiumFeatures(entitlement = premiumPresenter.entitlement).not(),
+            onUpdateAiChatComposerSuggestionsEnabled = { isEnabled ->
+                premiumPresenter.requestFeature(
+                    paywallEntryPoint = AnalyticsPaywallEntryPoint.AI_CHAT_SUGGESTIONS
+                ) { result ->
+                    if (result == PremiumResult.ACCESS_GRANTED) {
+                        settingsViewModel.updateAiChatComposerSuggestionsEnabled(isEnabled = isEnabled)
+                    }
+                }
+            },
             onBack = {
                 navController.popBackStack()
             }

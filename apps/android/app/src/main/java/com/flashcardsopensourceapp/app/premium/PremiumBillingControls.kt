@@ -33,6 +33,7 @@ import com.flashcardsopensourceapp.app.store.GooglePlaySubscriptionOfferState
 import com.flashcardsopensourceapp.app.store.GooglePlaySubscriptionOperationState
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudEntitlement
+import com.flashcardsopensourceapp.data.local.model.cloud.hasPremiumAccess
 import com.flashcardsopensourceapp.feature.settings.openExternalUrl
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch

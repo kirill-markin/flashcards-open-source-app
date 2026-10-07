@@ -16,9 +16,11 @@ data class SettingsUiState(
     val accountStatusTitle: String,
     val accountStatusAttentionCount: Int,
     val friendInviteAvailability: SettingsFriendInviteAvailability,
+    /** Effective value: on while the plan is known free; the saved choice applies again with Premium. */
     val reviewReactionAnimationsEnabled: Boolean,
     /** The resolved answer the switch shows: an unanswered account reads as on. */
     val productAnalyticsEnabled: Boolean,
+    /** Effective value, gated like [reviewReactionAnimationsEnabled]. */
     val aiChatComposerSuggestionsEnabled: Boolean,
     val ownOpenAiKeyEnabled: Boolean,
     val canManageAccountPreferences: Boolean,

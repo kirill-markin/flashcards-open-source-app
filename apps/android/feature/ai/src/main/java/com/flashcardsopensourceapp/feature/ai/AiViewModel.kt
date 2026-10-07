@@ -12,6 +12,7 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.ai.AiUsageStatus
 import com.flashcardsopensourceapp.data.local.model.ai.hasActiveOwnOpenAiKey
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.cloud.canUseLocalPremiumFeatures
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.cloud.makeOfficialCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
@@ -85,12 +86,16 @@ class AiViewModel(
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
         initialValue = aiChatRepository.hasConsent()
     )
-    private val composerSuggestionsEnabledState = aiChatRepository.observeComposerSuggestionsEnabled()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
-            initialValue = aiChatRepository.areComposerSuggestionsEnabled()
-        )
+    private val composerSuggestionsEnabledState = combine(
+        aiChatRepository.observeComposerSuggestionsEnabled(),
+        cloudAccountRepository.observeEntitlement()
+    ) { isEnabled, entitlement ->
+        canUseLocalPremiumFeatures(entitlement = entitlement).not() || isEnabled
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
+        initialValue = aiChatRepository.areComposerSuggestionsEnabled()
+    )
     private val chatRuntime = AiChatRuntime(
         scope = viewModelScope,
         aiChatRepository = aiChatRepository,
@@ -179,7 +184,7 @@ class AiViewModel(
     }
 
     fun applyComposerSuggestion(suggestion: AiChatComposerSuggestion) {
-        if (aiChatRepository.areComposerSuggestionsEnabled().not()) {
+        if (composerSuggestionsEnabledState.value.not()) {
             return
         }
         if (uiState.value.composerSuggestions.contains(suggestion).not()) {
