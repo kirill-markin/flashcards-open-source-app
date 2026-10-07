@@ -7,6 +7,13 @@ struct CloudSyncOperationState {
 }
 
 @MainActor
+struct CloudCredentialRefreshState {
+    let id: String
+    let refreshToken: String
+    let task: Task<CloudIdentityToken, Error>
+}
+
+@MainActor
 struct CloudSessionRuntimeState {
     var activeCloudSession: CloudLinkedSession?
     var activeCloudSyncTask: CloudSyncOperationState?
@@ -16,6 +23,7 @@ struct CloudSessionRuntimeState {
     var activeAIChatSessionPreparation: AIChatSessionPreparationState?
     var activeGuestCloudSessionPreparation: GuestCloudSessionPreparationState?
     var activeGuestCloudSessionCreation: GuestCloudSessionCreationState?
+    var activeCloudCredentialRefresh: CloudCredentialRefreshState?
 }
 
 @MainActor
@@ -41,7 +49,8 @@ final class CloudSessionRuntime {
             activeWorkspaceCompletionTask: nil,
             activeAIChatSessionPreparation: nil,
             activeGuestCloudSessionPreparation: nil,
-            activeGuestCloudSessionCreation: nil
+            activeGuestCloudSessionCreation: nil,
+            activeCloudCredentialRefresh: nil
         )
     }
 
@@ -131,7 +140,7 @@ final class CloudSessionRuntime {
             return storedCredentials
         }
 
-        let refreshedToken = try await self.cloudAuthService.refreshIdToken(
+        let refreshedToken = try await self.refreshIdTokenJoiningActiveRefresh(
             refreshToken: storedCredentials.refreshToken,
             authBaseUrl: configuration.authBaseUrl
         )
@@ -159,6 +168,44 @@ final class CloudSessionRuntime {
         }
 
         return updatedCredentials
+    }
+
+    /// Returning to the foreground with an expired token wakes many cloud callers at once, so they
+    /// share one refresh request for the same refresh token instead of each sending their own.
+    private func refreshIdTokenJoiningActiveRefresh(
+        refreshToken: String,
+        authBaseUrl: String
+    ) async throws -> CloudIdentityToken {
+        if let activeRefresh = self.state.activeCloudCredentialRefresh,
+           activeRefresh.refreshToken == refreshToken {
+            return try await activeRefresh.task.value
+        }
+
+        let cloudAuthService = self.cloudAuthService
+        let refresh = CloudCredentialRefreshState(
+            id: UUID().uuidString.lowercased(),
+            refreshToken: refreshToken,
+            task: Task { @MainActor in
+                try await cloudAuthService.refreshIdToken(
+                    refreshToken: refreshToken,
+                    authBaseUrl: authBaseUrl
+                )
+            }
+        )
+        self.state.activeCloudCredentialRefresh = refresh
+
+        do {
+            let refreshedToken = try await refresh.task.value
+            if self.state.activeCloudCredentialRefresh?.id == refresh.id {
+                self.state.activeCloudCredentialRefresh = nil
+            }
+            return refreshedToken
+        } catch {
+            if self.state.activeCloudCredentialRefresh?.id == refresh.id {
+                self.state.activeCloudCredentialRefresh = nil
+            }
+            throw error
+        }
     }
 
     func prepareAuthenticatedCloudSessionForAI(
@@ -835,6 +882,8 @@ final class CloudSessionRuntime {
         self.state.activeGuestCloudSessionPreparation = nil
         self.state.activeGuestCloudSessionCreation?.task.cancel()
         self.state.activeGuestCloudSessionCreation = nil
+        self.state.activeCloudCredentialRefresh?.task.cancel()
+        self.state.activeCloudCredentialRefresh = nil
     }
 
     /**
@@ -875,6 +924,8 @@ final class CloudSessionRuntime {
         self.state.activeGuestCloudSessionPreparation = nil
         self.state.activeGuestCloudSessionCreation?.task.cancel()
         self.state.activeGuestCloudSessionCreation = nil
+        self.state.activeCloudCredentialRefresh?.task.cancel()
+        self.state.activeCloudCredentialRefresh = nil
         self.state.activeCloudSession = nil
         self.cloudAuthService.resetChallengeSession()
         FlashcardsObservability.setIdentity(nil)
