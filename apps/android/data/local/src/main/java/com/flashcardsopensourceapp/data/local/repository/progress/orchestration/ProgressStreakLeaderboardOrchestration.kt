@@ -4,7 +4,6 @@ import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressStreakLeaderboardSnapshot
-import com.flashcardsopensourceapp.data.local.network.isLikelyTransientNetworkIoException
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.shared.TimeProvider
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.findProgressStreakLeaderboardServerBase
@@ -16,12 +15,13 @@ import com.flashcardsopensourceapp.data.local.repository.progress.inputs.createP
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.ProgressObservationVersions
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.ProgressRefreshCoordinator
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.ProgressRemoteRefreshSyncMode
+import com.flashcardsopensourceapp.data.local.repository.progress.runtime.isExpectedTransientProgressRefreshError
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.logProgressRefreshWarning
+import com.flashcardsopensourceapp.data.local.repository.progress.runtime.transportClassifiedCloudHttpFailureSuppressionReason
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.ProgressStreakLeaderboardStoreInputs
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.ProgressStreakLeaderboardStoreState
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.createProgressStreakLeaderboardScopeKey
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.createProgressStreakLeaderboardStoreState
-import java.io.IOException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -175,10 +175,11 @@ internal class ProgressStreakLeaderboardOrchestration(
             return true
         }
 
-        // A leaderboard refresh that dies on an unreachable network means the device is offline,
-        // not that the product failed: the request already exhausted its transient retry ladder
-        // and the cached snapshot stays on screen.
-        return error is IOException && isLikelyTransientNetworkIoException(error = error)
+        // Offline or retryable failures already exhausted the transient retry ladder, and
+        // transport-captured or expected HTTP failures are already observed; the cached snapshot
+        // stays on screen either way.
+        return isExpectedTransientProgressRefreshError(error = error) ||
+            transportClassifiedCloudHttpFailureSuppressionReason(error = error) != null
     }
 
     private fun publishLatestSnapshot() {
