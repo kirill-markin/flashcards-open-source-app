@@ -7,10 +7,9 @@ import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPaywall
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudEntitlement
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
-import com.flashcardsopensourceapp.data.local.model.cloud.CloudEntitlementStatus
+import com.flashcardsopensourceapp.data.local.model.cloud.canUseLocalPremiumFeatures
+import com.flashcardsopensourceapp.data.local.model.cloud.hasPremiumAccess
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiAlertState
-
-private const val premiumTierRank: Int = 20
 
 internal sealed interface PremiumReason {
     /** Null only on the test-settings previews, which report no `paywall_shown`. */
@@ -71,7 +70,7 @@ internal class PremiumPresenter {
     fun requestFeature(paywallEntryPoint: AnalyticsPaywallEntryPoint, onResult: (PremiumResult) -> Unit) {
         dismiss()
         // Local features fail open while access is unknown; AI always waits for the server.
-        if (entitlement == null || hasPremiumAccess(entitlement = entitlement)) {
+        if (canUseLocalPremiumFeatures(entitlement = entitlement)) {
             onResult(PremiumResult.ACCESS_GRANTED)
             return
         }
@@ -106,9 +105,4 @@ internal class PremiumPresenter {
         reason = null
         continuation?.invoke(result)
     }
-}
-
-internal fun hasPremiumAccess(entitlement: CloudEntitlement?): Boolean {
-    return entitlement != null && entitlement.tierRank >= premiumTierRank &&
-        entitlement.status != CloudEntitlementStatus.NONE
 }

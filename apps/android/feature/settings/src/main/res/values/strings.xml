@@ -102,10 +102,12 @@
     <string name="settings_review_animations_toggle_title">Show animations after rating a card</string>
     <string name="settings_review_animations_toggle_body">Review reaction animations appear briefly after Again, Hard, Good, and Easy. They are automatically paused while Battery Saver is on.</string>
     <string name="settings_review_animations_update_failed">Could not update review animations.</string>
+    <string name="settings_review_animations_premium_note">Changing review animations is included with Premium. Your saved choice is kept while animations stay on with the free plan.</string>
     <string name="settings_ai_chat_suggestions_title">AI Chat Suggestions</string>
     <string name="settings_ai_chat_suggestions_toggle_title">Show composer suggestions</string>
     <string name="settings_ai_chat_suggestions_toggle_body">Suggested prompts appear above the AI chat composer when the conversation is ready.</string>
     <string name="settings_ai_chat_suggestions_update_failed">Could not update AI chat suggestions.</string>
+    <string name="settings_ai_chat_suggestions_premium_note">Changing AI chat suggestions is included with Premium. Your saved choice is kept while suggestions stay on with the free plan.</string>
     <string name="settings_own_openai_key_title">Your OpenAI key</string>
     <string name="settings_own_openai_key_toggle_title">Use my own OpenAI key</string>
     <string name="settings_own_openai_key_toggle_body">With your own key, AI chat, dictation and card images run on your OpenAI account, with no monthly limit on any plan. Suggested replies are off while your key is on. We never store your key on our servers: it stays on this device and is sent only with your AI requests, so enter it separately on iOS, Android and the web.</string>
