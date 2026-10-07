@@ -162,7 +162,7 @@ class LocalMediaUploadTransferRepositoryCompletionRetryTest {
     }
 
     @Test
-    fun repositoryPersistsReplaySuccessWhenCancellationArrivesBeforeLocalDisposition() = runBlocking {
+    fun persistsReplaySuccessWhenCancelledBeforeLocalDisposition() = runBlocking {
         val context = createRepositoryContext(
             completionOutcomes = listOf(
                 CompletionOutcome.Retryable(

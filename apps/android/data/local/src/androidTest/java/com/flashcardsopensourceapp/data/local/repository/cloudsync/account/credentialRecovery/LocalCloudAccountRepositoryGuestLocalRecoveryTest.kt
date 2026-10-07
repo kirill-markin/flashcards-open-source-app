@@ -104,7 +104,7 @@ class LocalCloudAccountRepositoryGuestLocalRecoveryTest {
     }
 
     @Test
-    fun completeCloudLinkRejectsExistingWorkspaceForGuestLocalRecoveryBeforeSideEffects() = runBlocking {
+    fun cloudLinkRejectsExistingWorkspaceBeforeGuestRecoverySideEffects() = runBlocking {
         val localWorkspaceId = environment.requireLocalWorkspaceId()
         val installationId = environment.cloudPreferencesStore.currentCloudSettings().installationId
         val cardId = environment.seedWorkspaceData(workspaceId = localWorkspaceId)

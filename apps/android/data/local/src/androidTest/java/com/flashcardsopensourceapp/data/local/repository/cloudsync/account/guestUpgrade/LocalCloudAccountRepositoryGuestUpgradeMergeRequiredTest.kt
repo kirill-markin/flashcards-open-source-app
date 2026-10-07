@@ -51,7 +51,7 @@ class LocalCloudAccountRepositoryGuestUpgradeMergeRequiredTest {
     }
 
     @Test
-    fun completeGuestUpgradeMergeRequiredDrainsGuestOutboxBeforeBackendComplete() = runBlocking {
+    fun mergeRequiredDrainsGuestOutboxBeforeBackendComplete() = runBlocking {
         val localWorkspaceId = environment.requireLocalWorkspaceId()
         val seededCardId = environment.seedWorkspaceData(workspaceId = localWorkspaceId)
         val survivingCardId = "card-surviving"
@@ -317,7 +317,7 @@ class LocalCloudAccountRepositoryGuestUpgradeMergeRequiredTest {
     }
 
     @Test
-    fun completeGuestUpgradeMergeRequiredDoesNotCallBackendWhenGuestOutboxRemains() = runBlocking {
+    fun mergeRequiredSkipsBackendWhenGuestOutboxRemains() = runBlocking {
         val localWorkspaceId = environment.requireLocalWorkspaceId()
         val installationId = environment.cloudPreferencesStore.currentCloudSettings().installationId
         val schedulerSettings = requireNotNull(
@@ -411,7 +411,7 @@ class LocalCloudAccountRepositoryGuestUpgradeMergeRequiredTest {
     }
 
     @Test
-    fun completeGuestUpgradeMergeRequiredDrainsEqualTimestampOutboxInStableOrder() = runBlocking {
+    fun mergeRequiredDrainsEqualTimestampOutboxInStableOrder() = runBlocking {
         val localWorkspaceId = environment.requireLocalWorkspaceId()
         val installationId = environment.cloudPreferencesStore.currentCloudSettings().installationId
         val schedulerSettings = requireNotNull(

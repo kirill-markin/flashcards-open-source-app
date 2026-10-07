@@ -35,7 +35,7 @@ class LocalCloudAccountRepositoryRecoverySyncFailureTest {
     }
 
     @Test
-    fun completeCloudLinkLinkedCredentialRecoveryKeepsRecoveryStateUntilInitialSyncSucceeds() = runBlocking {
+    fun cloudLinkKeepsCredentialRecoveryUntilInitialSyncSucceeds() = runBlocking {
         val localWorkspaceId = environment.requireLocalWorkspaceId()
         val installationId = environment.cloudPreferencesStore.currentCloudSettings().installationId
         val cardId = environment.seedWorkspaceData(workspaceId = localWorkspaceId)
@@ -111,7 +111,7 @@ class LocalCloudAccountRepositoryRecoverySyncFailureTest {
     }
 
     @Test
-    fun completeCloudLinkGuestLocalRecoveryRetryUsesCreatedWorkspaceAfterInitialSyncFailure() = runBlocking {
+    fun guestLocalRecoveryRetryUsesCreatedWorkspaceAfterInitialSyncFailure() = runBlocking {
         val localWorkspaceId = environment.requireLocalWorkspaceId()
         val installationId = environment.cloudPreferencesStore.currentCloudSettings().installationId
         val cardId = environment.seedWorkspaceData(workspaceId = localWorkspaceId)
