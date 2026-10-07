@@ -25,10 +25,10 @@ export type UserRow = Readonly<{
   lastActiveAt: string | null;
   activeDays: number;
   eventCount: number;
-  platforms: string | null;
+  platforms: ReadonlyArray<string>;
   latestAppVersion: string | null;
   /** Every country a retained connection sample places the person in; samples are kept 90 days. */
-  connectionCountries: string | null;
+  connectionCountries: ReadonlyArray<string>;
   latestUiLocale: string | null;
   settingsLocale: string | null;
   reviewCount: number;
@@ -40,13 +40,13 @@ export type UserRow = Readonly<{
   trialConsumedAt: string | null;
   latestPurchaseTier: string | null;
   latestPurchaseStatus: string | null;
-  activeGrantTiers: string | null;
+  activeGrantTiers: ReadonlyArray<string>;
   feedbackCount: number;
   friendCount: number;
   leaderboardParticipation: boolean | null;
   productAnalytics: UserProductAnalytics;
-  /** Comma-separated arms of the analytics exclusion rule; null for a person every report counts. */
-  exclusionReason: string | null;
+  /** The arms of the analytics exclusion rule the person matches; empty for a person every report counts. */
+  exclusionReason: ReadonlyArray<string>;
 }>;
 
 type UserField = keyof UserRow;
@@ -68,9 +68,9 @@ const userFieldSql: Readonly<Record<UserField, string>> = {
   lastActiveAt: utcInstantSql("activity.last_active_at"),
   activeDays: "COALESCE(activity.active_days, 0)",
   eventCount: "COALESCE(activity.event_count, 0)",
-  platforms: "activity.platforms",
+  platforms: "COALESCE(activity.platforms, '[]'::json)",
   latestAppVersion: "activity.app_version",
-  connectionCountries: "countries.countries",
+  connectionCountries: "COALESCE(countries.countries, '[]'::json)",
   latestUiLocale: "activity.ui_locale",
   settingsLocale: "settings.locale",
   reviewCount: "COALESCE(reviews.review_count, 0)",
@@ -82,12 +82,12 @@ const userFieldSql: Readonly<Record<UserField, string>> = {
   trialConsumedAt: utcInstantSql("billing_state.trial_consumed_at"),
   latestPurchaseTier: "latest_purchases.tier",
   latestPurchaseStatus: "latest_purchases.status",
-  activeGrantTiers: "active_grants.tiers",
+  activeGrantTiers: "COALESCE(active_grants.tiers, '[]'::json)",
   feedbackCount: "COALESCE(feedback.feedback_count, 0)",
   friendCount: "COALESCE(friends.friend_count, 0)",
   leaderboardParticipation: "profiles.leaderboard_participation",
   productAnalytics: "CASE settings.product_analytics_enabled WHEN TRUE THEN 'on' WHEN FALSE THEN 'off' ELSE 'unanswered' END",
-  exclusionReason: `NULLIF(${buildExcludedActorReasonSql(actorIdSql)}, '')`,
+  exclusionReason: `COALESCE(to_json(string_to_array(NULLIF(${buildExcludedActorReasonSql(actorIdSql)}, ''), ', ')), '[]'::json)`,
 };
 
 const userFields = Object.keys(userFieldSql) as ReadonlyArray<UserField>;
@@ -125,7 +125,7 @@ export function buildUsersSql(countrySampleRange: AnalyticsDateRange): string {
       max(events.occurred_at) AS last_active_at,
       count(DISTINCT (events.occurred_at AT TIME ZONE 'UTC')::date)::int AS active_days,
       count(*)::int AS event_count,
-      string_agg(DISTINCT COALESCE(events.platform, 'unattributed'), ', ' ORDER BY COALESCE(events.platform, 'unattributed')) AS platforms,
+      json_agg(DISTINCT COALESCE(events.platform, 'unattributed') ORDER BY COALESCE(events.platform, 'unattributed')) AS platforms,
       (array_agg(events.app_version ORDER BY events.occurred_at DESC) FILTER (WHERE events.app_version IS NOT NULL))[1] AS app_version,
       (array_agg(events.ui_locale ORDER BY events.occurred_at DESC) FILTER (WHERE events.ui_locale IS NOT NULL))[1] AS ui_locale
     FROM analytics.product_events_resolved AS events
@@ -134,7 +134,7 @@ export function buildUsersSql(countrySampleRange: AnalyticsDateRange): string {
     GROUP BY events.actor_id
   ), countries AS (
     SELECT country_samples.actor_id::text AS actor_id,
-      string_agg(DISTINCT country_samples.country, ', ' ORDER BY country_samples.country) AS countries
+      json_agg(DISTINCT country_samples.country ORDER BY country_samples.country) AS countries
     FROM (
 ${buildConnectionCountrySamplesSql(countrySampleRange, null)}
     ) AS country_samples
@@ -175,7 +175,7 @@ ${buildConnectionCountrySamplesSql(countrySampleRange, null)}
     FROM billing.purchases
     ORDER BY user_id, created_at DESC, purchase_id
   ), active_grants AS (
-    SELECT user_id, string_agg(DISTINCT tier, ', ' ORDER BY tier) AS tiers
+    SELECT user_id, json_agg(DISTINCT tier ORDER BY tier) AS tiers
     FROM billing.grants
     WHERE revoked_at IS NULL AND (expires_at IS NULL OR expires_at > now())
     GROUP BY user_id
@@ -216,6 +216,7 @@ ${buildConnectionCountrySamplesSql(countrySampleRange, null)}
 type UserFieldReader = Readonly<{
   string: (field: UserField) => string;
   nullableString: (field: UserField) => string | null;
+  stringArray: (field: UserField) => ReadonlyArray<string>;
   count: (field: UserField) => number;
   nullableBoolean: (field: UserField) => boolean | null;
 }>;
@@ -246,6 +247,19 @@ function createUserFieldReader(values: ReadonlyArray<AdminQueryValue>, rowIndex:
       return value;
     },
     nullableString,
+    stringArray: (field) => {
+      const value = read(field);
+      if (!Array.isArray(value)) {
+        throw new Error(`${reportLabel} row ${rowIndex} field "${field}" must be an array of strings.`);
+      }
+      const elements: ReadonlyArray<AdminQueryValue> = value;
+      return elements.map((element, elementIndex) => {
+        if (typeof element !== "string") {
+          throw new Error(`${reportLabel} row ${rowIndex} field "${field}" element ${elementIndex} must be a string.`);
+        }
+        return element;
+      });
+    },
     count: (field) => {
       const value = read(field);
       if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) {
@@ -286,9 +300,9 @@ function parseUserRow(value: AdminQueryValue | undefined, rowIndex: number): Use
     lastActiveAt: reader.nullableString("lastActiveAt"),
     activeDays: reader.count("activeDays"),
     eventCount: reader.count("eventCount"),
-    platforms: reader.nullableString("platforms"),
+    platforms: reader.stringArray("platforms"),
     latestAppVersion: reader.nullableString("latestAppVersion"),
-    connectionCountries: reader.nullableString("connectionCountries"),
+    connectionCountries: reader.stringArray("connectionCountries"),
     latestUiLocale: reader.nullableString("latestUiLocale"),
     settingsLocale: reader.nullableString("settingsLocale"),
     reviewCount: reader.count("reviewCount"),
@@ -300,12 +314,12 @@ function parseUserRow(value: AdminQueryValue | undefined, rowIndex: number): Use
     trialConsumedAt: reader.nullableString("trialConsumedAt"),
     latestPurchaseTier: reader.nullableString("latestPurchaseTier"),
     latestPurchaseStatus: reader.nullableString("latestPurchaseStatus"),
-    activeGrantTiers: reader.nullableString("activeGrantTiers"),
+    activeGrantTiers: reader.stringArray("activeGrantTiers"),
     feedbackCount: reader.count("feedbackCount"),
     friendCount: reader.count("friendCount"),
     leaderboardParticipation: reader.nullableBoolean("leaderboardParticipation"),
     productAnalytics: parseOneOf(reader.string("productAnalytics"), ["on", "off", "unanswered"], "productAnalytics"),
-    exclusionReason: reader.nullableString("exclusionReason"),
+    exclusionReason: reader.stringArray("exclusionReason"),
   };
 }
 

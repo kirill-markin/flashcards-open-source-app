@@ -32,11 +32,24 @@ function formatDefaultCell<Row>(column: DataTableColumn<Row>, row: Row): string 
     case "text":
     case "enum":
       return column.value(row) ?? "";
+    case "enum-list":
+      return column.value(row).join(", ");
   }
 }
 
-/** The values present in the rows, offered as the column's multi-select; NULL is offered as `""`. */
+/**
+ * The values present in the rows, offered as the column's multi-select; a list offers each of its
+ * values, and NULL or an empty list is offered as `""`.
+ */
 function getEnumOptions<Row>(column: DataTableColumn<Row>, rows: ReadonlyArray<Row>): ReadonlyArray<string> {
+  if (column.kind === "enum-list") {
+    const readValues = column.value;
+    const values = new Set(rows.flatMap((row) => {
+      const rowValues = readValues(row);
+      return rowValues.length === 0 ? [""] : rowValues;
+    }));
+    return [...values].sort();
+  }
   if (column.kind !== "enum") {
     return [];
   }
@@ -143,6 +156,7 @@ function ColumnFilter<Row>(props: Readonly<{
       );
     }
     case "enum":
+    case "enum-list":
       return (
         <EnumFilter
           testId={props.testId}
