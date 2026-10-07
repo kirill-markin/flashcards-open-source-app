@@ -16,6 +16,7 @@ import com.flashcardsopensourceapp.data.local.ai.wire.decodeAiChatStartRunRespon
 import com.flashcardsopensourceapp.data.local.ai.wire.decodeAiChatStopRunResponse
 import com.flashcardsopensourceapp.data.local.ai.wire.decodeAiChatTranscription
 import com.flashcardsopensourceapp.data.local.ai.wire.decodeAiUsageStatus
+import com.flashcardsopensourceapp.data.local.cloud.remote.transport.readCloudResponseRequestId
 import com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException
 import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudStringOrNull
 import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudObjectOrNull
@@ -922,7 +923,8 @@ internal fun readAiChatRemoteErrorResponse(
         requestId = resolvedRequestId,
         statusCode = statusCode,
         code = parsedError?.code,
-        stage = parsedError?.stage
+        stage = parsedError?.stage,
+        responseHasStackRequestId = requestId != null || readCloudResponseRequestId(response = response) != null
     )
 
     return AiChatRemoteException(
@@ -956,7 +958,8 @@ private fun captureAiChatHttpFailureObservation(
     requestId: String?,
     statusCode: Int,
     code: String?,
-    stage: String?
+    stage: String?,
+    responseHasStackRequestId: Boolean
 ): Boolean {
     if (observability === NoopAiChatHttpObservability) {
         return false
@@ -985,6 +988,24 @@ private fun captureAiChatHttpFailureObservation(
     }
 
     if (statusCode >= 500) {
+        // API Gateway and Lambda URLs stamp a request id even on their own errors, so a 5xx without one came from a proxy outside our stack.
+        if (responseHasStackRequestId.not()) {
+            observability.addBreadcrumb(
+                event = AndroidBreadcrumbEvent.HttpServerErrorUnattributed(
+                    feature = AndroidObservationFeature.AI,
+                    endpointName = endpointName,
+                    method = method,
+                    statusCode = statusCode,
+                    code = code,
+                    stage = stage,
+                    appVersion = observationVersions.appVersion,
+                    clientVersion = observationVersions.clientVersion,
+                    versionCode = observationVersions.versionCode
+                )
+            )
+            return true
+        }
+
         observability.captureWarning(
             event = AndroidWarningIssueEvent.HttpServerError(
                 feature = AndroidObservationFeature.AI,

@@ -327,7 +327,8 @@ internal class CloudJsonHttpClient(
                                 requestId = parsedError?.requestId,
                                 statusCode = statusCode,
                                 code = parsedError?.code,
-                                syncConflict = parsedError?.syncConflict
+                                syncConflict = parsedError?.syncConflict,
+                                responseHasStackRequestId = requestId != null
                             )
                             throw CloudRemoteException(
                                 message = formatCloudRemoteErrorMessage(
@@ -501,7 +502,8 @@ internal class CloudJsonHttpClient(
                                 requestId = parsedError?.requestId,
                                 statusCode = statusCode,
                                 code = parsedError?.code,
-                                syncConflict = parsedError?.syncConflict
+                                syncConflict = parsedError?.syncConflict,
+                                responseHasStackRequestId = requestId != null
                             )
                             throw CloudRemoteException(
                                 message = formatCloudRemoteErrorMessage(
