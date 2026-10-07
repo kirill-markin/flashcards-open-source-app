@@ -143,6 +143,7 @@
 "settings.row.reviewInAppStore" = "Scrie o recenzie în App Store";
 "settings.row.sharePrivateFeedback" = "Trimite feedback privat";
 "settings.section.account" = "Cont";
+"settings.section.style" = "Stil";
 "settings.section.general" = "General";
 "settings.section.support" = "Asistență";
 "settings.section.advanced" = "Avansat";
@@ -153,7 +154,6 @@
 "settings.row.aiChatSuggestions" = "Sugestii pentru chatul AI";
 "settings.row.leaderboardParticipation" = "Participarea la clasament";
 "settings.row.language" = "Limbă";
-"settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "3 permisiuni";
 "settings.row.decks" = "Pachete";
 "settings.row.workspaceScoped.value" = "Spațiu de lucru";
@@ -224,7 +224,7 @@
 "settings.subscription.change" = "Schimbă abonamentul";
 "settings.subscription.manage" = "Gestionează abonamentul";
 "settings.language.title" = "Limbă";
-"settings.language.systemDescription" = "iOS controlează limba aplicației. În Configurări iOS, deschide Nibomo și folosește Limbă preferată. Dacă opțiunea nu apare, adaugă mai întâi o altă limbă în Configurări > General > Limbă și regiune.";
+"settings.language.systemDescription" = "iOS controlează limba aplicației. În Configurări iOS, deschide Nibomo și alege Limbă. Dacă Limbă nu apare, adaugă mai întâi o a doua limbă în Configurări > General > Limbă și regiune. iOS afișează această opțiune doar când dispozitivul are mai multe limbi preferate.";
 "settings.language.action.openAppSettings" = "Deschide configurările Nibomo";
 "settings.language.section.supportedLanguages" = "Limbi acceptate";
 "settings.language.supported.english" = "Engleză";

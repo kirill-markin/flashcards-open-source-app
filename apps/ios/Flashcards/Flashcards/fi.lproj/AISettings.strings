@@ -143,6 +143,7 @@
 "settings.row.reviewInAppStore" = "Arvioi App Storessa";
 "settings.row.sharePrivateFeedback" = "Lähetä yksityistä palautetta";
 "settings.section.account" = "Tili";
+"settings.section.style" = "Tyyli";
 "settings.section.general" = "Yleiset";
 "settings.section.support" = "Tuki";
 "settings.section.advanced" = "Lisäasetukset";
@@ -153,7 +154,6 @@
 "settings.row.aiChatSuggestions" = "Tekoälykeskustelun ehdotukset";
 "settings.row.leaderboardParticipation" = "Tulostaulukkoon osallistuminen";
 "settings.row.language" = "Kieli";
-"settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "3 lupaa";
 "settings.row.decks" = "Pakat";
 "settings.row.workspaceScoped.value" = "Työtila";
@@ -224,7 +224,7 @@
 "settings.subscription.change" = "Muuta tilausta";
 "settings.subscription.manage" = "Hallitse tilausta";
 "settings.language.title" = "Kieli";
-"settings.language.systemDescription" = "iOS määrittää sovelluksen kielen. Avaa iOS-asetuksista Nibomo ja valitse ensisijainen kieli. Jos valintaa ei näy, lisää ensin toinen kieli kohdassa Asetukset > Yleiset > Kieli ja alue.";
+"settings.language.systemDescription" = "iOS määrittää sovelluksen kielen. Avaa iOS-asetuksista Nibomo ja valitse Kieli. Jos Kieli-valintaa ei näy, lisää ensin toinen kieli kohdassa Asetukset > Yleiset > Kieli ja alue. iOS näyttää tämän valinnan vain, kun laitteella on useampi kuin yksi ensisijainen kieli.";
 "settings.language.action.openAppSettings" = "Avaa Nibomon asetukset";
 "settings.language.section.supportedLanguages" = "Tuetut kielet";
 "settings.language.supported.english" = "Englanti";

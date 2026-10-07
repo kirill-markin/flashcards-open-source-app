@@ -143,6 +143,7 @@
 "settings.row.reviewInAppStore" = "Recensera i App Store";
 "settings.row.sharePrivateFeedback" = "Dela privat feedback";
 "settings.section.account" = "Konto";
+"settings.section.style" = "Stil";
 "settings.section.general" = "Allmänt";
 "settings.section.support" = "Support";
 "settings.section.advanced" = "Avancerat";
@@ -153,7 +154,6 @@
 "settings.row.aiChatSuggestions" = "Förslag i AI-chatten";
 "settings.row.leaderboardParticipation" = "Deltagande i topplistan";
 "settings.row.language" = "Språk";
-"settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "3 behörigheter";
 "settings.row.decks" = "Kortlekar";
 "settings.row.workspaceScoped.value" = "Arbetsyta";
@@ -224,7 +224,7 @@
 "settings.subscription.change" = "Ändra prenumeration";
 "settings.subscription.manage" = "Hantera prenumeration";
 "settings.language.title" = "Språk";
-"settings.language.systemDescription" = "Appens språk styrs av iOS. Öppna Nibomo i iOS-inställningarna och välj Föredraget språk. Om Föredraget språk inte visas lägger du först till ett annat språk under Inställningar > Allmänt > Språk och region.";
+"settings.language.systemDescription" = "Appens språk styrs av iOS. Öppna Nibomo i iOS-inställningarna och välj Språk. Om Språk inte visas lägger du först till ett andra språk under Inställningar > Allmänt > Språk och region. iOS visar bara det här alternativet när enheten har mer än ett föredraget språk.";
 "settings.language.action.openAppSettings" = "Öppna Nibomo-inställningar";
 "settings.language.section.supportedLanguages" = "Språk som stöds";
 "settings.language.supported.english" = "Engelska";

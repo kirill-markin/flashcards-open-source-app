@@ -143,6 +143,7 @@
 "settings.row.reviewInAppStore" = "App Store-இல் மதிப்புரை எழுது";
 "settings.row.sharePrivateFeedback" = "தனிப்பட்ட கருத்தைப் பகிர்";
 "settings.section.account" = "கணக்கு";
+"settings.section.style" = "பாணி";
 "settings.section.general" = "பொது";
 "settings.section.support" = "ஆதரவு";
 "settings.section.advanced" = "மேம்பட்டவை";
@@ -153,7 +154,6 @@
 "settings.row.aiChatSuggestions" = "AI அரட்டைப் பரிந்துரைகள்";
 "settings.row.leaderboardParticipation" = "தரவரிசைப் பங்கேற்பு";
 "settings.row.language" = "மொழி";
-"settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "3 அனுமதிகள்";
 "settings.row.decks" = "தொகுப்புகள்";
 "settings.row.workspaceScoped.value" = "பணியிடம்";
@@ -224,7 +224,7 @@
 "settings.subscription.change" = "சந்தாவை மாற்று";
 "settings.subscription.manage" = "சந்தாவை நிர்வகி";
 "settings.language.title" = "மொழி";
-"settings.language.systemDescription" = "செயலியின் மொழியை iOS கட்டுப்படுத்துகிறது. iOS அமைப்புகளில் Nibomo-வைத் திறந்து விருப்ப மொழியைப் பயன்படுத்தவும். விருப்ப மொழி தெரியாவிட்டால் முதலில் அமைப்புகள் > பொது > மொழி மற்றும் வட்டாரத்தில் மற்றொரு மொழியைச் சேர்க்கவும்.";
+"settings.language.systemDescription" = "செயலியின் மொழியை iOS கட்டுப்படுத்துகிறது. iOS அமைப்புகளில் Nibomo-வைத் திறந்து மொழியைத் தேர்ந்தெடுக்கவும். மொழி தெரியாவிட்டால் முதலில் அமைப்புகள் > பொது > மொழி மற்றும் வட்டாரத்தில் இரண்டாவது மொழியைச் சேர்க்கவும். சாதனத்தில் ஒன்றுக்கு மேற்பட்ட விருப்ப மொழிகள் இருக்கும்போது மட்டுமே iOS இந்த விருப்பத்தைக் காட்டும்.";
 "settings.language.action.openAppSettings" = "Nibomo அமைப்புகளைத் திற";
 "settings.language.section.supportedLanguages" = "ஆதரிக்கப்படும் மொழிகள்";
 "settings.language.supported.english" = "ஆங்கிலம்";

@@ -143,6 +143,7 @@
 "settings.row.reviewInAppStore" = "Оцінити в App Store";
 "settings.row.sharePrivateFeedback" = "Надіслати приватний відгук";
 "settings.section.account" = "Обліковий запис";
+"settings.section.style" = "Стиль";
 "settings.section.general" = "Загальні";
 "settings.section.support" = "Підтримка";
 "settings.section.advanced" = "Додатково";
@@ -153,7 +154,6 @@
 "settings.row.aiChatSuggestions" = "Пропозиції чату ШІ";
 "settings.row.leaderboardParticipation" = "Участь у таблиці лідерів";
 "settings.row.language" = "Мова";
-"settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "3 дозволи";
 "settings.row.decks" = "Колоди";
 "settings.row.workspaceScoped.value" = "Робочий простір";
@@ -224,7 +224,7 @@
 "settings.subscription.change" = "Змінити підписку";
 "settings.subscription.manage" = "Керувати підпискою";
 "settings.language.title" = "Мова";
-"settings.language.systemDescription" = "iOS керує мовою застосунку. У Параметрах iOS відкрийте Nibomo та виберіть бажану мову. Якщо цей пункт не показано, спершу додайте іншу мову в Параметри > Загальні > Мова і регіон.";
+"settings.language.systemDescription" = "iOS керує мовою застосунку. У Параметрах iOS відкрийте Nibomo та виберіть «Мова». Якщо пункту «Мова» немає, спершу додайте другу мову в Параметри > Загальні > Мова і регіон. iOS показує цей пункт, лише коли на пристрої вибрано більше однієї бажаної мови.";
 "settings.language.action.openAppSettings" = "Відкрити параметри Nibomo";
 "settings.language.section.supportedLanguages" = "Підтримувані мови";
 "settings.language.supported.english" = "Англійська";

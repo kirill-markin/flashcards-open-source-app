@@ -143,6 +143,7 @@
 "settings.row.reviewInAppStore" = "App Store-ൽ വിലയിരുത്തുക";
 "settings.row.sharePrivateFeedback" = "സ്വകാര്യ അഭിപ്രായം പങ്കിടുക";
 "settings.section.account" = "അക്കൗണ്ട്";
+"settings.section.style" = "ശൈലി";
 "settings.section.general" = "പൊതുവായത്";
 "settings.section.support" = "പിന്തുണ";
 "settings.section.advanced" = "വിപുലമായത്";
@@ -153,7 +154,6 @@
 "settings.row.aiChatSuggestions" = "AI ചാറ്റ് നിർദ്ദേശങ്ങൾ";
 "settings.row.leaderboardParticipation" = "ലീഡർബോർഡ് പങ്കാളിത്തം";
 "settings.row.language" = "ഭാഷ";
-"settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "3 അനുമതികൾ";
 "settings.row.decks" = "ഡെക്കുകൾ";
 "settings.row.workspaceScoped.value" = "വർക്ക്‌സ്‌പേസ്";
@@ -224,7 +224,7 @@
 "settings.subscription.change" = "സബ്സ്ക്രിപ്ഷൻ മാറ്റുക";
 "settings.subscription.manage" = "സബ്സ്ക്രിപ്ഷൻ നിയന്ത്രിക്കുക";
 "settings.language.title" = "ഭാഷ";
-"settings.language.systemDescription" = "ആപ്പിന്റെ ഭാഷ iOS നിയന്ത്രിക്കുന്നു. iOS ക്രമീകരണങ്ങളിൽ Nibomo തുറന്ന് ഇഷ്ട ഭാഷ തിരഞ്ഞെടുക്കുക. ഇഷ്ട ഭാഷ കാണുന്നില്ലെങ്കിൽ ആദ്യം ക്രമീകരണങ്ങൾ > പൊതുവായത് > ഭാഷയും പ്രദേശവും എന്നതിൽ മറ്റൊരു ഭാഷ ചേർക്കുക.";
+"settings.language.systemDescription" = "ആപ്പിന്റെ ഭാഷ iOS നിയന്ത്രിക്കുന്നു. iOS ക്രമീകരണങ്ങളിൽ Nibomo തുറന്ന് ഭാഷ തിരഞ്ഞെടുക്കുക. ഭാഷ കാണുന്നില്ലെങ്കിൽ ആദ്യം ക്രമീകരണങ്ങൾ > പൊതുവായത് > ഭാഷയും പ്രദേശവും എന്നതിൽ രണ്ടാമതൊരു ഭാഷ ചേർക്കുക. ഉപകരണത്തിൽ ഒന്നിലധികം ഇഷ്ട ഭാഷകളുള്ളപ്പോൾ മാത്രമേ iOS ഈ ഓപ്ഷൻ കാണിക്കൂ.";
 "settings.language.action.openAppSettings" = "Nibomo ക്രമീകരണങ്ങൾ തുറക്കുക";
 "settings.language.section.supportedLanguages" = "പിന്തുണയ്ക്കുന്ന ഭാഷകൾ";
 "settings.language.supported.english" = "ഇംഗ്ലീഷ്";
