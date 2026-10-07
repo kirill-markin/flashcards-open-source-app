@@ -491,6 +491,7 @@ const nlCatalog: TranslationCatalog = {
       share: "Delen",
       feedback: "Feedback",
       account: "Account",
+      style: "Stijl",
       general: "Algemeen",
       support: "Support",
       advanced: "Geavanceerd",

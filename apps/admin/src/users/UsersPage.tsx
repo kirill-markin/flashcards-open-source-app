@@ -12,6 +12,7 @@ import {
   type DataTableState,
 } from "../table/dataTableModel";
 import { loadUsersReport, type UserRow, type UsersReport } from "./usersQuery";
+import { userSettingsFields, type UserSettingsField } from "./userSettingsFields";
 
 type LoadState =
   | Readonly<{ status: "loading" }>
@@ -26,6 +27,19 @@ export function renderUserLink(userId: string | null, text: string | null, onNav
 
 const mergedGuestColumnId = "merged-guest";
 
+function buildUserSettingsColumn(field: UserSettingsField): DataTableColumn<UserRow> {
+  const base = { id: field.id, label: field.label, value: (user: UserRow) => user.settings[field.id], renderCell: null };
+  switch (field.kind) {
+    case "text":
+      return { ...base, kind: "text" };
+    case "date":
+      return { ...base, kind: "date" };
+    case "enum":
+    case "boolean":
+      return { ...base, kind: "enum" };
+  }
+}
+
 // The column ids are the URL vocabulary of the table state, so renaming one breaks saved links.
 function buildUserColumns(onNavigate: (path: string) => void): ReadonlyArray<DataTableColumn<UserRow>> {
   return [
@@ -34,18 +48,18 @@ function buildUserColumns(onNavigate: (path: string) => void): ReadonlyArray<Dat
     { id: "kind", label: "Kind", kind: "enum", value: (user) => user.kind, renderCell: null },
     { id: mergedGuestColumnId, label: "Merged guest", kind: "boolean", value: (user) => user.mergedIntoUserId !== null, renderCell: null },
     { id: "merged-into", label: "Merged into", kind: "text", value: (user) => user.mergedIntoUserId, renderCell: (user) => renderUserLink(user.mergedIntoUserId, user.mergedIntoUserId, onNavigate) },
-    { id: "excluded", label: "Excluded", kind: "boolean", value: (user) => user.exclusionReason !== null, renderCell: null },
-    { id: "exclusion-reason", label: "Exclusion reason", kind: "enum", value: (user) => user.exclusionReason, renderCell: null },
+    { id: "excluded", label: "Excluded", kind: "boolean", value: (user) => user.exclusionReason.length > 0, renderCell: null },
+    { id: "exclusion-reason", label: "Exclusion reason", kind: "enum-list", value: (user) => user.exclusionReason, renderCell: null },
     { id: "created", label: "Created", kind: "date", value: (user) => user.createdAt, renderCell: null },
+    { id: "identity-created", label: "Sign-in identity created", kind: "date", value: (user) => user.identityCreatedAt, renderCell: null },
     { id: "first-seen", label: "First seen", kind: "date", value: (user) => user.firstSeenAt, renderCell: null },
     { id: "last-active", label: "Last active", kind: "date", value: (user) => user.lastActiveAt, renderCell: null },
     { id: "active-days", label: "Active days", kind: "number", value: (user) => user.activeDays, renderCell: null },
     { id: "events", label: "Events", kind: "number", value: (user) => user.eventCount, renderCell: null },
-    { id: "platforms", label: "Platforms", kind: "text", value: (user) => user.platforms, renderCell: null },
+    { id: "platforms", label: "Platforms", kind: "enum-list", value: (user) => user.platforms, renderCell: null },
     { id: "app-version", label: "Latest app version", kind: "enum", value: (user) => user.latestAppVersion, renderCell: null },
-    { id: "countries", label: "Countries (90 days)", kind: "text", value: (user) => user.connectionCountries, renderCell: null },
+    { id: "countries", label: "Countries (90 days)", kind: "enum-list", value: (user) => user.connectionCountries, renderCell: null },
     { id: "ui-locale", label: "Latest UI locale", kind: "enum", value: (user) => user.latestUiLocale, renderCell: null },
-    { id: "settings-locale", label: "Saved app language", kind: "enum", value: (user) => user.settingsLocale, renderCell: null },
     { id: "reviews", label: "Reviews", kind: "number", value: (user) => user.reviewCount, renderCell: null },
     { id: "cards", label: "Live cards", kind: "number", value: (user) => user.cardCount, renderCell: null },
     { id: "decks", label: "Live decks", kind: "number", value: (user) => user.deckCount, renderCell: null },
@@ -55,11 +69,11 @@ function buildUserColumns(onNavigate: (path: string) => void): ReadonlyArray<Dat
     { id: "trial-consumed", label: "Trial consumed", kind: "date", value: (user) => user.trialConsumedAt, renderCell: null },
     { id: "purchase-tier", label: "Latest purchase tier", kind: "enum", value: (user) => user.latestPurchaseTier, renderCell: null },
     { id: "purchase-status", label: "Latest purchase status", kind: "enum", value: (user) => user.latestPurchaseStatus, renderCell: null },
-    { id: "grant-tiers", label: "Active grant tiers", kind: "enum", value: (user) => user.activeGrantTiers, renderCell: null },
+    { id: "grant-tiers", label: "Active grant tiers", kind: "enum-list", value: (user) => user.activeGrantTiers, renderCell: null },
     { id: "feedback", label: "Feedback", kind: "number", value: (user) => user.feedbackCount, renderCell: null },
     { id: "friends", label: "Friends", kind: "number", value: (user) => user.friendCount, renderCell: null },
     { id: "leaderboard", label: "Leaderboard", kind: "boolean", value: (user) => user.leaderboardParticipation, renderCell: null },
-    { id: "product-analytics", label: "Product analytics", kind: "enum", value: (user) => user.productAnalytics, renderCell: null },
+    ...userSettingsFields.map(buildUserSettingsColumn),
   ];
 }
 
@@ -97,7 +111,7 @@ function getUserRowKey(user: UserRow): string {
 }
 
 function getUserRowClassName(user: UserRow): string {
-  return user.exclusionReason === null ? "" : "data-table-row-muted";
+  return user.exclusionReason.length > 0 ? "data-table-row-muted" : "";
 }
 
 export function UsersPage(props: Readonly<{

@@ -143,6 +143,7 @@
 "settings.row.reviewInAppStore" = "Beoordelen in de App Store";
 "settings.row.sharePrivateFeedback" = "Privéfeedback delen";
 "settings.section.account" = "Account";
+"settings.section.style" = "Stijl";
 "settings.section.general" = "Algemeen";
 "settings.section.support" = "Ondersteuning";
 "settings.section.advanced" = "Geavanceerd";
@@ -153,7 +154,6 @@
 "settings.row.aiChatSuggestions" = "AI-chatsuggesties";
 "settings.row.leaderboardParticipation" = "Deelname aan het klassement";
 "settings.row.language" = "Taal";
-"settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "3 machtigingen";
 "settings.row.decks" = "Kaartensets";
 "settings.row.workspaceScoped.value" = "Werkruimte";
@@ -224,7 +224,7 @@
 "settings.subscription.change" = "Abonnement wijzigen";
 "settings.subscription.manage" = "Abonnement beheren";
 "settings.language.title" = "Taal";
-"settings.language.systemDescription" = "iOS bepaalt de taal van de app. Open Nibomo in de iOS-instellingen en gebruik Voorkeurstaal. Als Voorkeurstaal niet wordt getoond, voeg dan eerst een andere taal toe via Instellingen > Algemeen > Taal en regio.";
+"settings.language.systemDescription" = "iOS bepaalt de taal van de app. Open Nibomo in de iOS-instellingen en kies Taal. Als Taal niet wordt getoond, voeg dan eerst een tweede taal toe via Instellingen > Algemeen > Taal en regio. iOS toont deze optie alleen als het apparaat meer dan één voorkeurstaal heeft.";
 "settings.language.action.openAppSettings" = "Nibomo-instellingen openen";
 "settings.language.section.supportedLanguages" = "Ondersteunde talen";
 "settings.language.supported.english" = "Engels";

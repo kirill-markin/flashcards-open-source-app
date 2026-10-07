@@ -491,6 +491,7 @@ const daCatalog: TranslationCatalog = {
       share: "Del",
       feedback: "Feedback",
       account: "Konto",
+      style: "Stil",
       general: "Generelt",
       support: "Support",
       advanced: "Avanceret",

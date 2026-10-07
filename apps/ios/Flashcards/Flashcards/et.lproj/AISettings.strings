@@ -143,6 +143,7 @@
 "settings.row.reviewInAppStore" = "Hinda App Store’is";
 "settings.row.sharePrivateFeedback" = "Jaga privaatset tagasisidet";
 "settings.section.account" = "Konto";
+"settings.section.style" = "Stiil";
 "settings.section.general" = "Üldine";
 "settings.section.support" = "Kasutajatugi";
 "settings.section.advanced" = "Täpsemad seaded";
@@ -153,7 +154,6 @@
 "settings.row.aiChatSuggestions" = "Tehisintellekti vestluse soovitused";
 "settings.row.leaderboardParticipation" = "Edetabelis osalemine";
 "settings.row.language" = "Keel";
-"settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "3 luba";
 "settings.row.decks" = "Pakid";
 "settings.row.workspaceScoped.value" = "Tööruum";
@@ -224,7 +224,7 @@
 "settings.subscription.change" = "Muuda tellimust";
 "settings.subscription.manage" = "Halda tellimust";
 "settings.language.title" = "Keel";
-"settings.language.systemDescription" = "iOS määrab rakenduse keele. Ava iOS-i seadetes Nibomo ja vali eelistatud keel. Kui eelistatud keele valikut ei kuvata, lisa esmalt teine keel asukohas Seaded > Üldine > Keel ja piirkond.";
+"settings.language.systemDescription" = "iOS määrab rakenduse keele. Ava iOS-i seadetes Nibomo ja vali Keel. Kui valikut Keel ei kuvata, lisa esmalt teine keel asukohas Seaded > Üldine > Keel ja piirkond. iOS kuvab selle valiku ainult siis, kui seadmel on rohkem kui üks eelistatud keel.";
 "settings.language.action.openAppSettings" = "Ava Nibomo seaded";
 "settings.language.section.supportedLanguages" = "Toetatud keeled";
 "settings.language.supported.english" = "Inglise";

@@ -143,6 +143,7 @@
 "settings.row.reviewInAppStore" = "เขียนรีวิวใน App Store";
 "settings.row.sharePrivateFeedback" = "ส่งความคิดเห็นส่วนตัว";
 "settings.section.account" = "บัญชี";
+"settings.section.style" = "สไตล์";
 "settings.section.general" = "ทั่วไป";
 "settings.section.support" = "ฝ่ายสนับสนุน";
 "settings.section.advanced" = "ขั้นสูง";
@@ -153,7 +154,6 @@
 "settings.row.aiChatSuggestions" = "คำแนะนำแชต AI";
 "settings.row.leaderboardParticipation" = "การเข้าร่วมตารางอันดับ";
 "settings.row.language" = "ภาษา";
-"settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "3 สิทธิ์";
 "settings.row.decks" = "สำรับ";
 "settings.row.workspaceScoped.value" = "พื้นที่ทำงาน";
@@ -224,7 +224,7 @@
 "settings.subscription.change" = "เปลี่ยนการสมัครสมาชิก";
 "settings.subscription.manage" = "จัดการการสมัครสมาชิก";
 "settings.language.title" = "ภาษา";
-"settings.language.systemDescription" = "iOS เป็นผู้กำหนดภาษาของแอป ในการตั้งค่า iOS ให้เปิด Nibomo แล้วเลือกภาษาที่ต้องการ หากไม่แสดงตัวเลือกนี้ ให้เพิ่มภาษาในการตั้งค่า > ทั่วไป > ภาษาและภูมิภาคก่อน";
+"settings.language.systemDescription" = "iOS เป็นผู้กำหนดภาษาของแอป ในการตั้งค่า iOS ให้เปิด Nibomo แล้วเลือกภาษา หากไม่แสดงตัวเลือกภาษา ให้เพิ่มภาษาที่สองในการตั้งค่า > ทั่วไป > ภาษาและภูมิภาคก่อน iOS จะแสดงตัวเลือกนี้เฉพาะเมื่ออุปกรณ์มีภาษาที่ต้องการมากกว่าหนึ่งภาษา";
 "settings.language.action.openAppSettings" = "เปิดการตั้งค่า Nibomo";
 "settings.language.section.supportedLanguages" = "ภาษาที่รองรับ";
 "settings.language.supported.english" = "อังกฤษ";

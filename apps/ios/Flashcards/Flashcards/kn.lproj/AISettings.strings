@@ -143,6 +143,7 @@
 "settings.row.reviewInAppStore" = "App Storeನಲ್ಲಿ ವಿಮರ್ಶೆ ಬರೆಯಿರಿ";
 "settings.row.sharePrivateFeedback" = "ಖಾಸಗಿ ಅಭಿಪ್ರಾಯ ಹಂಚಿಕೊಳ್ಳಿ";
 "settings.section.account" = "ಖಾತೆ";
+"settings.section.style" = "ಶೈಲಿ";
 "settings.section.general" = "ಸಾಮಾನ್ಯ";
 "settings.section.support" = "ಬೆಂಬಲ";
 "settings.section.advanced" = "ಸುಧಾರಿತ";
@@ -153,7 +154,6 @@
 "settings.row.aiChatSuggestions" = "AI ಚಾಟ್ ಸಲಹೆಗಳು";
 "settings.row.leaderboardParticipation" = "ಶ್ರೇಯಾಂಕಪಟ್ಟಿಯಲ್ಲಿ ಭಾಗವಹಿಸುವಿಕೆ";
 "settings.row.language" = "ಭಾಷೆ";
-"settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "3 ಅನುಮತಿಗಳು";
 "settings.row.decks" = "ಡೆಕ್‌ಗಳು";
 "settings.row.workspaceScoped.value" = "ಕಾರ್ಯಸ್ಥಳ";
@@ -224,7 +224,7 @@
 "settings.subscription.change" = "ಚಂದಾದಾರಿಕೆಯನ್ನು ಬದಲಿಸಿ";
 "settings.subscription.manage" = "ಚಂದಾದಾರಿಕೆಯನ್ನು ನಿರ್ವಹಿಸಿ";
 "settings.language.title" = "ಭಾಷೆ";
-"settings.language.systemDescription" = "ಆ್ಯಪ್ ಭಾಷೆಯನ್ನು iOS ನಿಯಂತ್ರಿಸುತ್ತದೆ. iOS ಸೆಟ್ಟಿಂಗ್‌ಗಳಲ್ಲಿ Nibomo ತೆರೆಯಿರಿ ಮತ್ತು ಆದ್ಯತೆಯ ಭಾಷೆ ಬಳಸಿ. ಆದ್ಯತೆಯ ಭಾಷೆ ಕಾಣದಿದ್ದರೆ ಮೊದಲು ಸೆಟ್ಟಿಂಗ್‌ಗಳು > ಸಾಮಾನ್ಯ > ಭಾಷೆ ಮತ್ತು ಪ್ರದೇಶದಲ್ಲಿ ಮತ್ತೊಂದು ಭಾಷೆ ಸೇರಿಸಿ.";
+"settings.language.systemDescription" = "ಆ್ಯಪ್ ಭಾಷೆಯನ್ನು iOS ನಿಯಂತ್ರಿಸುತ್ತದೆ. iOS ಸೆಟ್ಟಿಂಗ್‌ಗಳಲ್ಲಿ Nibomo ತೆರೆಯಿರಿ ಮತ್ತು ಭಾಷೆ ಆಯ್ಕೆಮಾಡಿ. ಭಾಷೆ ಕಾಣದಿದ್ದರೆ ಮೊದಲು ಸೆಟ್ಟಿಂಗ್‌ಗಳು > ಸಾಮಾನ್ಯ > ಭಾಷೆ ಮತ್ತು ಪ್ರದೇಶದಲ್ಲಿ ಎರಡನೇ ಭಾಷೆ ಸೇರಿಸಿ. ಸಾಧನದಲ್ಲಿ ಒಂದಕ್ಕಿಂತ ಹೆಚ್ಚು ಆದ್ಯತೆಯ ಭಾಷೆಗಳಿದ್ದಾಗ ಮಾತ್ರ iOS ಈ ಆಯ್ಕೆಯನ್ನು ತೋರಿಸುತ್ತದೆ.";
 "settings.language.action.openAppSettings" = "Nibomo ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ತೆರೆಯಿರಿ";
 "settings.language.section.supportedLanguages" = "ಬೆಂಬಲಿತ ಭಾಷೆಗಳು";
 "settings.language.supported.english" = "ಇಂಗ್ಲಿಷ್";

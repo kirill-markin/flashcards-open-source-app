@@ -499,6 +499,7 @@ const ukCatalog: TranslationCatalog = {
       share: "Поділитися",
       feedback: "Відгук",
       account: "Акаунт",
+      style: "Стиль",
       general: "Загальні",
       support: "Підтримка",
       advanced: "Розширені",

@@ -491,6 +491,7 @@ const trCatalog: TranslationCatalog = {
       share: "Paylaş",
       feedback: "Geri bildirim",
       account: "Hesap",
+      style: "Stil",
       general: "Genel",
       support: "Destek",
       advanced: "Gelişmiş",

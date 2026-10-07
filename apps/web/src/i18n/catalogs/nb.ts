@@ -491,6 +491,7 @@ const nbCatalog: TranslationCatalog = {
       share: "Del",
       feedback: "Tilbakemelding",
       account: "Konto",
+      style: "Stil",
       general: "Generelt",
       support: "Støtte",
       advanced: "Avansert",

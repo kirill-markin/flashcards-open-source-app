@@ -1353,7 +1353,14 @@ export const productAnalyticsEventCatalog = {
     properties: {
       entry_point: {
         kind: "enum",
-        values: ["subscription_settings", "ai_limit", "accent_color", "guest_return"],
+        values: [
+          "subscription_settings",
+          "ai_limit",
+          "accent_color",
+          "review_animations",
+          "ai_chat_suggestions",
+          "guest_return",
+        ],
       },
     },
   },

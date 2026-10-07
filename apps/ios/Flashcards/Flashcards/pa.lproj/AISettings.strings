@@ -143,6 +143,7 @@
 "settings.row.reviewInAppStore" = "App Store ਵਿੱਚ ਸਮੀਖਿਆ ਲਿਖੋ";
 "settings.row.sharePrivateFeedback" = "ਨਿੱਜੀ ਰਾਏ ਸਾਂਝੀ ਕਰੋ";
 "settings.section.account" = "ਖਾਤਾ";
+"settings.section.style" = "ਸ਼ੈਲੀ";
 "settings.section.general" = "ਆਮ";
 "settings.section.support" = "ਸਹਾਇਤਾ";
 "settings.section.advanced" = "ਉੱਨਤ";
@@ -153,7 +154,6 @@
 "settings.row.aiChatSuggestions" = "AI ਚੈਟ ਸੁਝਾਅ";
 "settings.row.leaderboardParticipation" = "ਦਰਜਾਬੰਦੀ ਵਿੱਚ ਭਾਗੀਦਾਰੀ";
 "settings.row.language" = "ਭਾਸ਼ਾ";
-"settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "3 ਇਜਾਜ਼ਤਾਂ";
 "settings.row.decks" = "ਡੈੱਕ";
 "settings.row.workspaceScoped.value" = "ਵਰਕਸਪੇਸ";
@@ -224,7 +224,7 @@
 "settings.subscription.change" = "ਸਬਸਕ੍ਰਿਪਸ਼ਨ ਬਦਲੋ";
 "settings.subscription.manage" = "ਸਬਸਕ੍ਰਿਪਸ਼ਨ ਦਾ ਪ੍ਰਬੰਧ ਕਰੋ";
 "settings.language.title" = "ਭਾਸ਼ਾ";
-"settings.language.systemDescription" = "iOS ਐਪ ਦੀ ਭਾਸ਼ਾ ਨਿਯੰਤਰਿਤ ਕਰਦਾ ਹੈ। iOS ਸੈਟਿੰਗਾਂ ਵਿੱਚ Nibomo ਖੋਲ੍ਹੋ ਅਤੇ ਤਰਜੀਹੀ ਭਾਸ਼ਾ ਵਰਤੋ। ਜੇ ਤਰਜੀਹੀ ਭਾਸ਼ਾ ਨਹੀਂ ਦਿਸਦੀ ਤਾਂ ਪਹਿਲਾਂ ਸੈਟਿੰਗਾਂ > ਆਮ > ਭਾਸ਼ਾ ਅਤੇ ਖੇਤਰ ਵਿੱਚ ਹੋਰ ਭਾਸ਼ਾ ਸ਼ਾਮਲ ਕਰੋ।";
+"settings.language.systemDescription" = "iOS ਐਪ ਦੀ ਭਾਸ਼ਾ ਨਿਯੰਤਰਿਤ ਕਰਦਾ ਹੈ। iOS ਸੈਟਿੰਗਾਂ ਵਿੱਚ Nibomo ਖੋਲ੍ਹੋ ਅਤੇ ਭਾਸ਼ਾ ਚੁਣੋ। ਜੇ ਭਾਸ਼ਾ ਨਹੀਂ ਦਿਸਦੀ ਤਾਂ ਪਹਿਲਾਂ ਸੈਟਿੰਗਾਂ > ਆਮ > ਭਾਸ਼ਾ ਅਤੇ ਖੇਤਰ ਵਿੱਚ ਦੂਜੀ ਭਾਸ਼ਾ ਸ਼ਾਮਲ ਕਰੋ। iOS ਇਹ ਵਿਕਲਪ ਸਿਰਫ਼ ਉਦੋਂ ਦਿਖਾਉਂਦਾ ਹੈ ਜਦੋਂ ਡਿਵਾਈਸ ਵਿੱਚ ਇੱਕ ਤੋਂ ਵੱਧ ਤਰਜੀਹੀ ਭਾਸ਼ਾਵਾਂ ਹੋਣ।";
 "settings.language.action.openAppSettings" = "Nibomo ਦੀਆਂ ਸੈਟਿੰਗਾਂ ਖੋਲ੍ਹੋ";
 "settings.language.section.supportedLanguages" = "ਸਮਰਥਿਤ ਭਾਸ਼ਾਵਾਂ";
 "settings.language.supported.english" = "ਅੰਗਰੇਜ਼ੀ";

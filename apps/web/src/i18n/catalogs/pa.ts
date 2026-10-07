@@ -491,6 +491,7 @@ const paCatalog: TranslationCatalog = {
       share: "ਸਾਂਝਾ ਕਰੋ",
       feedback: "ਰਾਏ",
       account: "ਖਾਤਾ",
+      style: "ਸ਼ੈਲੀ",
       general: "ਆਮ",
       support: "ਸਹਾਇਤਾ",
       advanced: "ਉੱਨਤ",

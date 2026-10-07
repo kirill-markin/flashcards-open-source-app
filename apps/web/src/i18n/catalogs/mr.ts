@@ -491,6 +491,7 @@ const mrCatalog: TranslationCatalog = {
       share: "शेअर करा",
       feedback: "अभिप्राय",
       account: "खाते",
+      style: "शैली",
       general: "सामान्य",
       support: "सहाय्य",
       advanced: "प्रगत",

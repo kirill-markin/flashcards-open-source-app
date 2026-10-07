@@ -146,6 +146,7 @@
 "settings.row.reviewInAppStore" = "Noter dans l’App Store";
 "settings.row.sharePrivateFeedback" = "Envoyer un commentaire privé";
 "settings.section.account" = "Compte";
+"settings.section.style" = "Style";
 "settings.section.general" = "Général";
 "settings.section.support" = "Assistance";
 "settings.section.advanced" = "Avancé";
@@ -156,7 +157,6 @@
 "settings.row.aiChatSuggestions" = "Suggestions du chat IA";
 "settings.row.leaderboardParticipation" = "Participation au classement";
 "settings.row.language" = "Langue";
-"settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "3 autorisations";
 "settings.row.decks" = "Paquets";
 "settings.row.workspaceScoped.value" = "Espace de travail";
@@ -227,7 +227,7 @@
 "settings.subscription.change" = "Modifier l’abonnement";
 "settings.subscription.manage" = "Gérer l'abonnement";
 "settings.language.title" = "Langue";
-"settings.language.systemDescription" = "iOS contrôle la langue de l’app. Dans les Réglages iOS, ouvrez Nibomo et utilisez Langue préférée. Si Langue préférée n’apparaît pas, ajoutez d’abord une autre langue dans Réglages > Général > Langue et région.";
+"settings.language.systemDescription" = "iOS contrôle la langue de l’app. Dans les Réglages iOS, ouvrez Nibomo et choisissez Langue. Si Langue n’apparaît pas, ajoutez d’abord une deuxième langue dans Réglages > Général > Langue et région. iOS n’affiche cette option que si l’appareil a plus d’une langue préférée.";
 "settings.language.action.openAppSettings" = "Ouvrir les réglages Nibomo";
 "settings.language.section.supportedLanguages" = "Langues prises en charge";
 "settings.language.supported.english" = "Anglais";

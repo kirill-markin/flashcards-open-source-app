@@ -143,6 +143,7 @@
 "settings.row.reviewInAppStore" = "Novērtēt App Store";
 "settings.row.sharePrivateFeedback" = "Nosūtīt privātu atsauksmi";
 "settings.section.account" = "Konts";
+"settings.section.style" = "Stils";
 "settings.section.general" = "Vispārīgi";
 "settings.section.support" = "Atbalsts";
 "settings.section.advanced" = "Papildu";
@@ -153,7 +154,6 @@
 "settings.row.aiChatSuggestions" = "MI sarunas ieteikumi";
 "settings.row.leaderboardParticipation" = "Dalība līderu sarakstā";
 "settings.row.language" = "Valoda";
-"settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "3 atļaujas";
 "settings.row.decks" = "Kavas";
 "settings.row.workspaceScoped.value" = "Darbvieta";
@@ -224,7 +224,7 @@
 "settings.subscription.change" = "Mainīt abonementu";
 "settings.subscription.manage" = "Pārvaldīt abonementu";
 "settings.language.title" = "Valoda";
-"settings.language.systemDescription" = "iOS pārvalda lietotnes valodu. iOS iestatījumos atveriet Nibomo un izmantojiet vēlamās valodas iestatījumu. Ja tas netiek rādīts, vispirms pievienojiet citu valodu sadaļā Iestatījumi > Vispārīgi > Valoda un reģions.";
+"settings.language.systemDescription" = "iOS pārvalda lietotnes valodu. iOS iestatījumos atveriet Nibomo un izvēlieties Valoda. Ja Valoda netiek rādīta, vispirms pievienojiet otru valodu sadaļā Iestatījumi > Vispārīgi > Valoda un reģions. iOS rāda šo iespēju tikai tad, ja ierīcē ir vairāk nekā viena vēlamā valoda.";
 "settings.language.action.openAppSettings" = "Atvērt Nibomo iestatījumus";
 "settings.language.section.supportedLanguages" = "Atbalstītās valodas";
 "settings.language.supported.english" = "Angļu";

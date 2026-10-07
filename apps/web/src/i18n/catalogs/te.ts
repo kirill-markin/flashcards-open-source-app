@@ -491,6 +491,7 @@ const teCatalog: TranslationCatalog = {
       share: "పంచుకో",
       feedback: "అభిప్రాయం",
       account: "ఖాతా",
+      style: "శైలి",
       general: "సాధారణం",
       support: "సహాయం",
       advanced: "అధునాతనం",

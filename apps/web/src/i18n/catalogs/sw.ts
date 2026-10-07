@@ -491,6 +491,7 @@ const swCatalog: TranslationCatalog = {
       share: "Shiriki",
       feedback: "Maoni",
       account: "Akaunti",
+      style: "Mtindo",
       general: "Jumla",
       support: "Usaidizi",
       advanced: "Mahiri",

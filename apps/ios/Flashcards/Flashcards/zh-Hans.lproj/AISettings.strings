@@ -146,6 +146,7 @@
 "settings.row.reviewInAppStore" = "在 App Store 中评价";
 "settings.row.sharePrivateFeedback" = "私下分享反馈";
 "settings.section.account" = "账户";
+"settings.section.style" = "样式";
 "settings.section.general" = "通用";
 "settings.section.support" = "支持";
 "settings.section.advanced" = "高级";
@@ -156,7 +157,6 @@
 "settings.row.aiChatSuggestions" = "AI 聊天建议";
 "settings.row.leaderboardParticipation" = "排行榜参与";
 "settings.row.language" = "语言";
-"settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "3 个权限";
 "settings.row.decks" = "牌组";
 "settings.row.workspaceScoped.value" = "工作空间";
@@ -227,7 +227,7 @@
 "settings.subscription.change" = "更改订阅";
 "settings.subscription.manage" = "管理订阅";
 "settings.language.title" = "语言";
-"settings.language.systemDescription" = "iOS 控制 App 语言。在 iOS 设置中打开 Nibomo，并使用“首选语言”。如果没有显示“首选语言”，请先在“设置”>“通用”>“语言与地区”中添加另一种语言。";
+"settings.language.systemDescription" = "iOS 控制 App 语言。在 iOS 设置中打开 Nibomo，然后选择“语言”。如果没有显示“语言”，请先在“设置”>“通用”>“语言与地区”中添加第二种语言。只有当设备有多种首选语言时，iOS 才会显示此选项。";
 "settings.language.action.openAppSettings" = "打开 Nibomo 设置";
 "settings.language.section.supportedLanguages" = "支持的语言";
 "settings.language.supported.english" = "英语";

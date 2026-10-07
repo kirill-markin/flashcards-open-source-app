@@ -261,13 +261,6 @@ export function SettingsScreen(): ReactElement {
       <SettingsGroup title={t("settingsHome.groups.account")}>
         <div className="settings-nav-list">
           <SettingsNavigationCard
-            title={t("premium.subscription")}
-            description={t("premium.subscriptionDescription")}
-            value={null}
-            to={workspacePath(settingsSubscriptionRoute)}
-            testId="settings-row-subscription"
-          />
-          <SettingsNavigationCard
             title={t("accountSettings.accountStatus.title")}
             description={t("accountSettings.accountStatus.description")}
             value={accountStatus}
@@ -281,10 +274,17 @@ export function SettingsScreen(): ReactElement {
             to={workspacePath(settingsCurrentWorkspaceRoute)}
             testId="settings-row-current-workspace"
           />
+          <SettingsNavigationCard
+            title={t("premium.subscription")}
+            description={t("premium.subscriptionDescription")}
+            value={null}
+            to={workspacePath(settingsSubscriptionRoute)}
+            testId="settings-row-subscription"
+          />
         </div>
       </SettingsGroup>
 
-      <SettingsGroup title={t("settingsHome.groups.general")}>
+      <SettingsGroup title={t("settingsHome.groups.style")}>
         <div className="settings-nav-list">
           <SettingsNavigationCard
             title={t("accentColorSettings.title")}
@@ -292,13 +292,6 @@ export function SettingsScreen(): ReactElement {
             value={effectiveColor}
             to={workspacePath(settingsAccentColorRoute)}
             testId="settings-row-accent-color"
-          />
-          <SettingsNavigationCard
-            title={t("notificationsSettings.title")}
-            description={t("notificationsSettings.subtitle")}
-            value={t("notificationsSettings.value")}
-            to={workspacePath(settingsNotificationsRoute)}
-            testId="settings-row-review-reminders"
           />
           <SettingsNavigationCard
             title={t("reviewAnimationsSettings.title")}
@@ -314,12 +307,17 @@ export function SettingsScreen(): ReactElement {
             to={workspacePath(settingsAIChatSuggestionsRoute)}
             testId="settings-row-ai-chat-suggestions"
           />
+        </div>
+      </SettingsGroup>
+
+      <SettingsGroup title={t("settingsHome.groups.general")}>
+        <div className="settings-nav-list">
           <SettingsNavigationCard
-            title={t("ownOpenAIKeySettings.title")}
-            description={t("ownOpenAIKeySettings.subtitle")}
-            value={isOwnOpenAIKeyEnabled ? t("common.on") : t("common.off")}
-            to={workspacePath(settingsOwnOpenAIKeyRoute)}
-            testId="settings-row-own-openai-key"
+            title={t("notificationsSettings.title")}
+            description={t("notificationsSettings.subtitle")}
+            value={t("notificationsSettings.value")}
+            to={workspacePath(settingsNotificationsRoute)}
+            testId="settings-row-review-reminders"
           />
           <SettingsNavigationCard
             title={t("leaderboardParticipationSettings.title")}
@@ -327,13 +325,6 @@ export function SettingsScreen(): ReactElement {
             value={null}
             to={workspacePath(settingsLeaderboardParticipationRoute)}
             testId="settings-row-leaderboard-participation"
-          />
-          <SettingsNavigationCard
-            title={t("analyticsSettings.title")}
-            description={t("analyticsSettings.subtitle")}
-            value={null}
-            to={workspacePath(settingsAnalyticsRoute)}
-            testId="settings-row-analytics"
           />
           <SettingsNavigationCard
             title={t("settingsHome.language.title")}
@@ -416,6 +407,13 @@ export function SettingsScreen(): ReactElement {
       <SettingsGroup title={t("settingsHome.groups.advanced")}>
         <div className="settings-nav-list">
           <SettingsNavigationCard
+            title={t("ownOpenAIKeySettings.title")}
+            description={t("ownOpenAIKeySettings.subtitle")}
+            value={isOwnOpenAIKeyEnabled ? t("common.on") : t("common.off")}
+            to={workspacePath(settingsOwnOpenAIKeyRoute)}
+            testId="settings-row-own-openai-key"
+          />
+          <SettingsNavigationCard
             title={t("workspaceScheduler.title")}
             description={t("workspaceScheduler.subtitle")}
             value={schedulerValue}
@@ -442,6 +440,13 @@ export function SettingsScreen(): ReactElement {
             value={null}
             to={workspacePath(settingsDeviceRoute)}
             testId="settings-row-device-diagnostics"
+          />
+          <SettingsNavigationCard
+            title={t("analyticsSettings.title")}
+            description={t("analyticsSettings.subtitle")}
+            value={null}
+            to={workspacePath(settingsAnalyticsRoute)}
+            testId="settings-row-analytics"
           />
           <SettingsNavigationCard
             title={t("settingsWorkspace.resetProgress.title")}

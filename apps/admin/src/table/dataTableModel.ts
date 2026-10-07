@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 // and URL operations over it. The sort, filter and page operations run client-side over rows already
 // loaded; `dataTableSql.ts` applies the same state in SQL for the server mode.
 
-export type DataTableColumnKind = "text" | "number" | "date" | "enum" | "boolean";
+export type DataTableColumnKind = "text" | "number" | "date" | "enum" | "enum-list" | "boolean";
 
 type DataTableColumnBase<Row> = Readonly<{
   id: string;
@@ -19,6 +19,8 @@ export type DataTableColumn<Row> =
   /** An ISO-8601 UTC instant (`...Z`), so instants sort as strings and their first ten characters are the UTC date. */
   | DataTableColumnBase<Row> & Readonly<{ kind: "date"; value: (row: Row) => string | null }>
   | DataTableColumnBase<Row> & Readonly<{ kind: "enum"; value: (row: Row) => string | null }>
+  /** Several values per row, each one offered to the enum filter; an empty list is the NULL of the other kinds. */
+  | DataTableColumnBase<Row> & Readonly<{ kind: "enum-list"; value: (row: Row) => ReadonlyArray<string> }>
   | DataTableColumnBase<Row> & Readonly<{ kind: "boolean"; value: (row: Row) => boolean | null }>;
 
 export type DataTableFilter =
@@ -26,7 +28,10 @@ export type DataTableFilter =
   | Readonly<{ kind: "number"; min: number | null; max: number | null }>
   /** Inclusive `YYYY-MM-DD` UTC dates. */
   | Readonly<{ kind: "date"; from: string | null; to: string | null }>
-  /** A NULL value is offered and matched as `""`. */
+  /**
+   * A NULL value, or an empty list, is offered and matched as `""`; a list matches when it holds any
+   * selected value.
+   */
   | Readonly<{ kind: "enum"; values: ReadonlyArray<string> }>
   | Readonly<{ kind: "boolean"; value: boolean }>;
 
@@ -99,20 +104,33 @@ function matchesFilter<Row>(column: DataTableColumn<Row>, filter: DataTableFilte
   if (column.kind === "enum" && filter.kind === "enum") {
     return filter.values.includes(column.value(row) ?? "");
   }
+  if (column.kind === "enum-list" && filter.kind === "enum") {
+    const values = column.value(row);
+    return values.length === 0 ? filter.values.includes("") : values.some((value) => filter.values.includes(value));
+  }
   if (column.kind === "boolean" && filter.kind === "boolean") {
     return column.value(row) === filter.value;
   }
   throw new Error(`Data table filter kind "${filter.kind}" does not match column "${column.id}" of kind "${column.kind}".`);
 }
 
-function compareValues<Row>(column: DataTableColumn<Row>, left: Row, right: Row): number {
-  const leftValue = column.value(left);
-  const rightValue = column.value(right);
+type SortValue = string | number | boolean | null;
+
+/** A list sorts by its values joined, and an empty one as NULL. */
+function getSortValue<Row>(column: DataTableColumn<Row>, row: Row): SortValue {
+  if (column.kind === "enum-list") {
+    const values = column.value(row);
+    return values.length === 0 ? null : values.join(", ");
+  }
+  return column.value(row);
+}
+
+function compareValues(kind: DataTableColumnKind, leftValue: SortValue, rightValue: SortValue): number {
   if (leftValue === null || rightValue === null) {
     return leftValue === rightValue ? 0 : leftValue === null ? 1 : -1;
   }
   if (typeof leftValue === "string" && typeof rightValue === "string") {
-    return column.kind === "date"
+    return kind === "date"
       ? (leftValue < rightValue ? -1 : leftValue > rightValue ? 1 : 0)
       : textCollator.compare(leftValue, rightValue);
   }
@@ -138,8 +156,10 @@ export function filterAndSortDataTableRows<Row>(
 
   const direction = sort.direction === "asc" ? 1 : -1;
   return [...filteredRows].sort((left, right) => {
-    const comparison = compareValues(sortColumn, left, right);
-    const isNullComparison = sortColumn.value(left) === null || sortColumn.value(right) === null;
+    const leftValue = getSortValue(sortColumn, left);
+    const rightValue = getSortValue(sortColumn, right);
+    const comparison = compareValues(sortColumn.kind, leftValue, rightValue);
+    const isNullComparison = leftValue === null || rightValue === null;
     return isNullComparison ? comparison : comparison * direction;
   });
 }
@@ -188,8 +208,9 @@ export function withDataTableFilter(
 // URL codec. Every parameter carries the caller's prefix, so a page can host more than one table or
 // keep its own parameters beside one: `sort` is `<column>` or `-<column>`, `page` is one-based, and a
 // filter is `f.<column>` - text as typed, number and date as `<min>..<max>` with either side empty,
-// enum as one repeated parameter per value, boolean as `yes` or `no`. Anything malformed or naming
-// an unknown column is ignored, so a hand-edited link opens on the unfiltered default instead.
+// enum and enum list as one repeated parameter per value, boolean as `yes` or `no`. Anything
+// malformed or naming an unknown column is ignored, so a hand-edited link opens on the unfiltered
+// default instead.
 
 function parseRangeBound(value: string): string | null {
   return value === "" ? null : value;
@@ -215,6 +236,7 @@ function parseFilter<Row>(column: DataTableColumn<Row>, values: ReadonlyArray<st
     case "text":
       return { kind: "text", contains: value };
     case "enum":
+    case "enum-list":
       return { kind: "enum", values: [...new Set(values)] };
     case "boolean":
       return value === "yes" || value === "no" ? { kind: "boolean", value: value === "yes" } : null;

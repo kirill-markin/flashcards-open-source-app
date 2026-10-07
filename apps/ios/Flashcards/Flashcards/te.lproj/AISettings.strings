@@ -143,6 +143,7 @@
 "settings.row.reviewInAppStore" = "App Storeలో సమీక్ష రాయండి";
 "settings.row.sharePrivateFeedback" = "వ్యక్తిగత అభిప్రాయం పంచుకోండి";
 "settings.section.account" = "ఖాతా";
+"settings.section.style" = "శైలి";
 "settings.section.general" = "సాధారణం";
 "settings.section.support" = "సహాయం";
 "settings.section.advanced" = "అధునాతనం";
@@ -153,7 +154,6 @@
 "settings.row.aiChatSuggestions" = "AI చాట్ సూచనలు";
 "settings.row.leaderboardParticipation" = "లీడర్‌బోర్డ్ భాగస్వామ్యం";
 "settings.row.language" = "భాష";
-"settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "3 అనుమతులు";
 "settings.row.decks" = "డెక్‌లు";
 "settings.row.workspaceScoped.value" = "వర్క్‌స్పేస్";
@@ -224,7 +224,7 @@
 "settings.subscription.change" = "సబ్‌స్క్రిప్షన్‌ను మార్చండి";
 "settings.subscription.manage" = "సబ్‌స్క్రిప్షన్‌ను నిర్వహించండి";
 "settings.language.title" = "భాష";
-"settings.language.systemDescription" = "iOS యాప్ భాషను నియంత్రిస్తుంది. iOS సెట్టింగ్‌లలో Nibomo తెరిచి ప్రాధాన్య భాషను ఉపయోగించండి. ప్రాధాన్య భాష కనిపించకపోతే ముందుగా సెట్టింగ్‌లు > సాధారణం > భాష మరియు ప్రాంతంలో మరో భాషను చేర్చండి.";
+"settings.language.systemDescription" = "iOS యాప్ భాషను నియంత్రిస్తుంది. iOS సెట్టింగ్‌లలో Nibomo తెరిచి భాషను ఎంచుకోండి. భాష కనిపించకపోతే ముందుగా సెట్టింగ్‌లు > సాధారణం > భాష మరియు ప్రాంతంలో రెండవ భాషను చేర్చండి. పరికరంలో ఒకటి కంటే ఎక్కువ ప్రాధాన్య భాషలు ఉన్నప్పుడు మాత్రమే iOS ఈ ఎంపికను చూపిస్తుంది.";
 "settings.language.action.openAppSettings" = "Nibomo సెట్టింగ్‌లను తెరువు";
 "settings.language.section.supportedLanguages" = "మద్దతు ఉన్న భాషలు";
 "settings.language.supported.english" = "ఇంగ్లీష్";

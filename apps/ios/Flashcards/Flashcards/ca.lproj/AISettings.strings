@@ -143,6 +143,7 @@
 "settings.row.reviewInAppStore" = "Escriu una ressenya a l’App Store";
 "settings.row.sharePrivateFeedback" = "Comparteix comentaris privats";
 "settings.section.account" = "Compte";
+"settings.section.style" = "Estil";
 "settings.section.general" = "General";
 "settings.section.support" = "Assistència";
 "settings.section.advanced" = "Avançat";
@@ -153,7 +154,6 @@
 "settings.row.aiChatSuggestions" = "Suggeriments de xat d'IA";
 "settings.row.leaderboardParticipation" = "Participació a la classificació";
 "settings.row.language" = "Idioma";
-"settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "3 permisos";
 "settings.row.decks" = "Baralles";
 "settings.row.workspaceScoped.value" = "Espai de treball";
@@ -224,7 +224,7 @@
 "settings.subscription.change" = "Canvia la subscripció";
 "settings.subscription.manage" = "Gestiona la subscripció";
 "settings.language.title" = "Idioma";
-"settings.language.systemDescription" = "iOS controla l'idioma de l'aplicació. A iOS Configuració, obriu Nibomo i feu servir l'idioma preferit. Si no es mostra l'idioma preferit, primer afegiu un altre idioma a Configuració > General > Idioma i regió.";
+"settings.language.systemDescription" = "iOS controla l'idioma de l'aplicació. A la Configuració d'iOS, obriu Nibomo i trieu Idioma. Si no es mostra Idioma, primer afegiu un segon idioma a Configuració > General > Idioma i regió. iOS només mostra aquesta opció quan el dispositiu té més d'un idioma preferit.";
 "settings.language.action.openAppSettings" = "Obre la configuració de Nibomo";
 "settings.language.section.supportedLanguages" = "Idiomes admesos";
 "settings.language.supported.english" = "Anglès";
