@@ -19,7 +19,8 @@ What is still open is listed in
 
 ## Premium sells AI
 
-Server-enforced limits are the paid AI axis. Accent color is the local premium cosmetic specified below.
+Server-enforced limits are the paid AI axis. Custom styles are the local premium cosmetic specified
+below.
 
 ## The AI limit counts messages
 
@@ -88,21 +89,28 @@ Apple and Google purchases use the shared native Premium offers on iOS and Andro
 shows an explicit unavailable state until Google Play returns an eligible catalog offer. The web
 uses the shared Stripe offer; new live purchases remain gated by backend configuration.
 
-## Accent color
+## Style settings
 
-General settings opens an Accent color subscreen. Premium and lifetime (effective rank at least 20)
-can choose Default `#C44B2D`, Blue `#4D8DFF`, Purple `#A78BFA`, Pink `#F472B6`, Teal `#2DD4BF`,
-Gold `#EAB308`, or an arbitrary opaque RGB color with explicit HEX entry. The exact chosen RGB is
-used without contrast correction; alpha is unsupported. Default remains available to everyone.
-Free users see a premium note and the shared Premium offer on every client.
+The Style section of Settings holds the custom styles: Accent color, Review Animations, and AI Chat
+Suggestions. Premium and lifetime (effective rank at least 20) can change them. Free users see each
+setting's default and a premium note, and a change opens the shared Premium offer on every client.
 
-The selection is account-wide, stored independently of entitlement, and distinct from the displayed
-color. A confirmed downgrade displays Default while retaining the selection; resubscription restores
-it. Unknown or offline entitlement follows the [cached local-feature policy](premium-entitlements.md#offline-behaviour).
-Client setting and theme boundaries gate usage; the backend adds no billing gate for storing it.
+Each selection is stored independently of entitlement and distinct from what is displayed. A
+confirmed downgrade displays the default while retaining the selection; resubscription restores it.
+Unknown or offline entitlement follows the [cached local-feature policy](premium-entitlements.md#offline-behaviour).
+Client setting and display boundaries gate usage; the backend adds no billing gate for storing a
+selection. Accent color and Review Animations are account-wide; AI Chat Suggestions are stored per
+device.
+
+### Accent color
+
+Accent color offers Default `#C44B2D`, Blue `#4D8DFF`, Purple `#A78BFA`, Pink `#F472B6`, Teal
+`#2DD4BF`, Gold `#EAB308`, or an arbitrary opaque RGB color with explicit HEX entry. The exact chosen
+RGB is used without contrast correction; alpha is unsupported. Default remains available to everyone.
+Card themes are outside this feature.
 
 The wire contract lives in [account preference parsing](../apps/backend/src/routes/system/support.ts)
 and [persistence](../apps/backend/src/routes/system/account/accountPreferences.ts): `accentColor` is
 canonical uppercase `#RRGGBB`, and an omitted PATCH field preserves the stored selection. Guest
 binding retains its row; [guest merge](../apps/backend/src/guestAuth/store/identity.ts) carries the
-guest color only when the destination still has Default. Card themes are outside this feature.
+guest color only when the destination still has Default.

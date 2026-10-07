@@ -9,6 +9,9 @@ import android.speech.tts.Voice
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.flashcardsopensourceapp.core.observability.AndroidReviewSpeechFailureStage
+import com.flashcardsopensourceapp.core.observability.AndroidWarningIssueEvent
+import com.flashcardsopensourceapp.core.observability.AppObservability
 import java.util.Locale
 import java.util.UUID
 
@@ -30,6 +33,31 @@ private data class PendingReviewSpeechRequest(
     val fallbackLanguageTag: String,
     val onError: (String) -> Unit
 )
+
+private data class ActiveReviewSpeechUtterance(
+    val utteranceId: String,
+    val languageTag: String,
+    val languageStatus: Int,
+    val voiceName: String?,
+    val onError: (String) -> Unit
+)
+
+private sealed interface ReviewSpeechLanguageResult {
+    val languageStatus: Int
+    val voiceName: String?
+
+    data class Applied(
+        override val languageStatus: Int,
+        override val voiceName: String?
+    ) : ReviewSpeechLanguageResult
+
+    data class Failed(
+        val stage: AndroidReviewSpeechFailureStage,
+        val errorCode: Int?,
+        override val languageStatus: Int,
+        override val voiceName: String?
+    ) : ReviewSpeechLanguageResult
+}
 
 private data class ReviewSpeechLanguageHeuristic(
     val languageTag: String,
@@ -65,7 +93,8 @@ private val reviewSpeechLatinLanguageHeuristics = listOf(
 
 class ReviewSpeechController(
     context: Context,
-    private val unavailableMessage: String
+    private val unavailableMessage: String,
+    private val observability: AppObservability
 ) {
     private val applicationContext = context.applicationContext
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -73,7 +102,7 @@ class ReviewSpeechController(
     private var textToSpeech: TextToSpeech? = null
     private var initState: ReviewSpeechInitState = ReviewSpeechInitState.NOT_INITIALIZED
     private var pendingRequest: PendingReviewSpeechRequest? = null
-    private var activeUtteranceId: String? = null
+    private var activeUtterance: ActiveReviewSpeechUtterance? = null
     private var isReleased: Boolean = false
 
     var activeSide: ReviewSpeechSide? by mutableStateOf(value = null)
@@ -123,7 +152,7 @@ class ReviewSpeechController(
 
     fun stop() {
         pendingRequest = null
-        activeUtteranceId = null
+        activeUtterance = null
         activeSide = null
         textToSpeech?.stop()
     }
@@ -156,11 +185,11 @@ class ReviewSpeechController(
 
                 @Deprecated("Required for legacy TextToSpeech callback compatibility.")
                 override fun onError(utteranceId: String) {
-                    clearActiveUtterance(utteranceId = utteranceId)
+                    failActiveUtterance(utteranceId = utteranceId, errorCode = null)
                 }
 
                 override fun onError(utteranceId: String, errorCode: Int) {
-                    clearActiveUtterance(utteranceId = utteranceId)
+                    failActiveUtterance(utteranceId = utteranceId, errorCode = errorCode)
                 }
 
                 override fun onStop(utteranceId: String, interrupted: Boolean) {
@@ -172,11 +201,51 @@ class ReviewSpeechController(
 
     private fun clearActiveUtterance(utteranceId: String) {
         mainHandler.post {
-            if (activeUtteranceId == utteranceId) {
-                activeUtteranceId = null
+            if (activeUtterance?.utteranceId == utteranceId) {
+                activeUtterance = null
                 activeSide = null
             }
         }
+    }
+
+    // The engine accepts speak() and reports failures such as a not-installed voice only here.
+    private fun failActiveUtterance(utteranceId: String, errorCode: Int?) {
+        mainHandler.post {
+            val utterance = activeUtterance
+            if (utterance == null || utterance.utteranceId != utteranceId) {
+                return@post
+            }
+
+            activeUtterance = null
+            activeSide = null
+            captureFailure(
+                stage = AndroidReviewSpeechFailureStage.UTTERANCE_ERROR,
+                errorCode = errorCode,
+                languageStatus = utterance.languageStatus,
+                languageTag = utterance.languageTag,
+                voiceName = utterance.voiceName
+            )
+            utterance.onError(unavailableMessage)
+        }
+    }
+
+    private fun captureFailure(
+        stage: AndroidReviewSpeechFailureStage,
+        errorCode: Int?,
+        languageStatus: Int?,
+        languageTag: String,
+        voiceName: String?
+    ) {
+        observability.captureWarning(
+            event = AndroidWarningIssueEvent.ReviewSpeechFailure(
+                stage = stage,
+                errorCode = errorCode,
+                languageStatus = languageStatus,
+                enginePackage = textToSpeech?.defaultEngine,
+                languageTag = languageTag,
+                voiceName = voiceName
+            )
+        )
     }
 
     private fun handleInitialization(status: Int) {
@@ -215,21 +284,29 @@ class ReviewSpeechController(
             text = request.speakableText,
             fallbackLanguageTag = request.fallbackLanguageTag
         ))
-        val languageStatus = controller.setLanguage(locale)
-        val selectedVoice = selectVoice(
-            voices = controller.voices?.toList().orEmpty(),
-            locale = locale
-        )
+        val languageTag = locale.toLanguageTag()
+        val languageResult = applyReviewSpeechLanguage(controller = controller, locale = locale)
 
-        if (selectedVoice != null) {
-            controller.voice = selectedVoice
-        } else if (languageStatus == TextToSpeech.LANG_NOT_SUPPORTED || languageStatus == TextToSpeech.LANG_MISSING_DATA) {
+        if (languageResult is ReviewSpeechLanguageResult.Failed) {
+            captureFailure(
+                stage = languageResult.stage,
+                errorCode = languageResult.errorCode,
+                languageStatus = languageResult.languageStatus,
+                languageTag = languageTag,
+                voiceName = languageResult.voiceName
+            )
             request.onError(unavailableMessage)
             return
         }
 
         val utteranceId = UUID.randomUUID().toString().lowercase(Locale.US)
-        activeUtteranceId = utteranceId
+        activeUtterance = ActiveReviewSpeechUtterance(
+            utteranceId = utteranceId,
+            languageTag = languageTag,
+            languageStatus = languageResult.languageStatus,
+            voiceName = languageResult.voiceName,
+            onError = request.onError
+        )
         activeSide = request.side
 
         val speakResult = controller.speak(
@@ -240,46 +317,76 @@ class ReviewSpeechController(
         )
 
         if (speakResult == TextToSpeech.ERROR) {
-            activeUtteranceId = null
+            activeUtterance = null
             activeSide = null
+            captureFailure(
+                stage = AndroidReviewSpeechFailureStage.SPEAK,
+                errorCode = speakResult,
+                languageStatus = languageResult.languageStatus,
+                languageTag = languageTag,
+                voiceName = languageResult.voiceName
+            )
             request.onError(unavailableMessage)
         }
     }
+}
 
-    private fun selectVoice(
-        voices: List<Voice>,
-        locale: Locale
-    ): Voice? {
-        val languageTag = locale.toLanguageTag().lowercase(Locale.US)
-        val primaryLanguage = locale.language.lowercase(Locale.US)
-
-        val exactLocalVoice = voices.firstOrNull { voice ->
-            voice.locale.toLanguageTag().lowercase(Locale.US) == languageTag
-                && voice.isNetworkConnectionRequired.not()
-        }
-        if (exactLocalVoice != null) {
-            return exactLocalVoice
-        }
-
-        val prefixLocalVoice = voices.firstOrNull { voice ->
-            voice.locale.language.lowercase(Locale.US) == primaryLanguage
-                && voice.isNetworkConnectionRequired.not()
-        }
-        if (prefixLocalVoice != null) {
-            return prefixLocalVoice
-        }
-
-        val exactVoice = voices.firstOrNull { voice ->
-            voice.locale.toLanguageTag().lowercase(Locale.US) == languageTag
-        }
-        if (exactVoice != null) {
-            return exactVoice
-        }
-
-        return voices.firstOrNull { voice ->
-            voice.locale.language.lowercase(Locale.US) == primaryLanguage
-        }
+/**
+ * Uses the engine's own default voice whenever setLanguage reports the language available. Otherwise
+ * setLanguage leaves the previous voice in place, so only an installed voice of the same language may
+ * replace it.
+ */
+private fun applyReviewSpeechLanguage(
+    controller: TextToSpeech,
+    locale: Locale
+): ReviewSpeechLanguageResult {
+    val languageStatus = controller.setLanguage(locale)
+    if (languageStatus >= TextToSpeech.LANG_AVAILABLE) {
+        return ReviewSpeechLanguageResult.Applied(languageStatus = languageStatus, voiceName = null)
     }
+
+    val fallbackVoice = selectInstalledReviewSpeechVoice(
+        voices = controller.voices?.toList().orEmpty(),
+        locale = locale
+    ) ?: return ReviewSpeechLanguageResult.Failed(
+        stage = AndroidReviewSpeechFailureStage.SET_LANGUAGE,
+        errorCode = null,
+        languageStatus = languageStatus,
+        voiceName = null
+    )
+
+    val voiceStatus = controller.setVoice(fallbackVoice)
+    if (voiceStatus != TextToSpeech.SUCCESS) {
+        return ReviewSpeechLanguageResult.Failed(
+            stage = AndroidReviewSpeechFailureStage.SET_VOICE,
+            errorCode = voiceStatus,
+            languageStatus = languageStatus,
+            voiceName = fallbackVoice.name
+        )
+    }
+
+    return ReviewSpeechLanguageResult.Applied(languageStatus = languageStatus, voiceName = fallbackVoice.name)
+}
+
+// Engines list voices whose data is not downloaded yet; speaking with one fails only asynchronously.
+private fun selectInstalledReviewSpeechVoice(
+    voices: List<Voice>,
+    locale: Locale
+): Voice? {
+    val languageTag = locale.toLanguageTag().lowercase(Locale.US)
+    val primaryLanguage = locale.language.lowercase(Locale.US)
+
+    return voices
+        .filter { voice ->
+            voice.locale.language.lowercase(Locale.US) == primaryLanguage
+                && voice.features.orEmpty().contains(TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED).not()
+        }
+        .minWithOrNull(
+            compareBy<Voice>(
+                { voice -> voice.locale.toLanguageTag().lowercase(Locale.US) != languageTag },
+                { voice -> voice.isNetworkConnectionRequired }
+            )
+        )
 }
 
 private fun localeFromLanguageTag(languageTag: String): Locale {
