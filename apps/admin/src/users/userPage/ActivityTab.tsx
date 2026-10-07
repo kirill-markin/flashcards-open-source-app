@@ -1,35 +1,48 @@
-import { useEffect, useMemo, useState, type JSX } from "react";
+import { useEffect, useMemo, useRef, useState, type JSX } from "react";
 import type { AdminAppConfig } from "../../config";
 import { AdminLink } from "../../navigation/AdminLink";
 import { getEventPath } from "../../routing";
 import { DataTable } from "../../table/DataTable";
-import { emptyDataTableState, type DataTableColumn, type DataTableState } from "../../table/dataTableModel";
+import {
+  clampDataTablePage,
+  emptyDataTableState,
+  type DataTableColumn,
+  type DataTableState,
+} from "../../table/dataTableModel";
 import { JsonPreviewCell } from "../../table/JsonPreviewCell";
 import {
-  activityPageSize,
-  loadActivityFirstPage,
-  loadActivityOlderPage,
+  emptyActivityEnumOptions,
+  loadActivityEnumOptions,
+  loadActivityPage,
+  type ActivityEnumOptions,
+  type ActivityPageResult,
   type ActivityRow,
 } from "./activityQuery";
-
-type OlderPageState =
-  | Readonly<{ status: "idle" }>
-  | Readonly<{ status: "loading" }>
-  | Readonly<{ status: "error"; message: string }>;
 
 type LoadState =
   | Readonly<{ status: "loading" }>
   | Readonly<{ status: "error"; message: string }>
   | Readonly<{
     status: "ready";
-    totalCount: number;
-    rows: ReadonlyArray<ActivityRow>;
-    /** False once a page came back short, so nothing older is left to ask for. */
-    hasOlderRows: boolean;
-    olderPage: OlderPageState;
+    result: ActivityPageResult;
+    isLoading: boolean;
+    /** A reload that failed while the previous page stays on screen; cleared only by a later success. */
+    reloadError: string | null;
   }>;
 
-/** An analytics row's name links to that event's page; purchases, grants and feedback have none. */
+type EnumOptionsState =
+  | Readonly<{ status: "loading" }>
+  | Readonly<{ status: "error"; message: string }>
+  | Readonly<{ status: "ready"; options: ActivityEnumOptions }>;
+
+// Every state change is a query, so a burst of keystrokes in a filter would be a burst of queries. The
+// newest state waits this long before it is sent, and the ones it superseded never reach the network.
+const tableReloadDebounceMs = 300;
+
+/**
+ * An analytics row's name links to that event's page; purchases, grants and feedback have none. Each
+ * column's SQL is `activityColumnSqlById`.
+ */
 function buildActivityColumns(onNavigate: (path: string) => void): ReadonlyArray<DataTableColumn<ActivityRow>> {
   return [
     { id: "occurred", label: "Occurred at (UTC)", kind: "date", value: (row) => row.occurredAt, renderCell: null },
@@ -67,6 +80,11 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Unexpected user activity query error.";
 }
 
+/**
+ * The person's activity, sorted, filtered and paged in SQL over their whole history; an unsorted table
+ * is newest first. The enum option lists are fetched once on entry, apart from the pages, so the rows
+ * never wait for them and their failure only empties the enum filters.
+ */
 export function ActivityTab(props: Readonly<{
   config: AdminAppConfig;
   userId: string;
@@ -78,93 +96,107 @@ export function ActivityTab(props: Readonly<{
   const [revision, setRevision] = useState<number>(0);
   const [tableState, setTableState] = useState<DataTableState>(emptyDataTableState);
   const activityColumns = useMemo(() => buildActivityColumns(onNavigate), [onNavigate]);
+  const [enumOptionsState, setEnumOptionsState] = useState<EnumOptionsState>({ status: "loading" });
+  const [enumOptionsRevision, setEnumOptionsRevision] = useState<number>(0);
+  // Only a table that already shows a page waits for the debounce; the first load has nothing to coalesce.
+  const hasLoadedPageRef = useRef<boolean>(false);
+
+  // Blind to the table state, so neither a table change nor the clamp re-request asks for them again.
+  useEffect(() => {
+    let isSuperseded = false;
+    setEnumOptionsState({ status: "loading" });
+
+    async function loadEnumOptions(): Promise<void> {
+      try {
+        const options = await loadActivityEnumOptions(config, userId);
+        if (isSuperseded) return;
+        setEnumOptionsState({ status: "ready", options });
+      } catch (error: unknown) {
+        if (isSuperseded || onTerminalAdminError(error, config)) return;
+        setEnumOptionsState({ status: "error", message: getErrorMessage(error) });
+      }
+    }
+
+    void loadEnumOptions();
+    return () => {
+      isSuperseded = true;
+    };
+  }, [config, enumOptionsRevision, onTerminalAdminError, userId]);
 
   useEffect(() => {
-    let cancelled = false;
-    setLoadState({ status: "loading" });
-    void loadActivityFirstPage(config, userId).then((page) => {
-      if (cancelled) return;
-      setLoadState({
-        status: "ready",
-        totalCount: page.totalCount,
-        rows: page.rows,
-        hasOlderRows: page.rows.length === activityPageSize,
-        olderPage: { status: "idle" },
-      });
-    }).catch((error: unknown) => {
-      if (cancelled || onTerminalAdminError(error, config)) return;
-      setLoadState({ status: "error", message: getErrorMessage(error) });
+    const requestedState = tableState;
+    let isSuperseded = false;
+    // The previous page stays on screen, dimmed, until the new one arrives.
+    setLoadState((current) => {
+      if (current.status === "ready") return { ...current, isLoading: true };
+      return current.status === "error" ? { status: "loading" } : current;
     });
-    return () => { cancelled = true; };
-  }, [config, userId, onTerminalAdminError, revision]);
 
-  // The button is disabled while a page is in flight, so the cursor is always the last row on screen.
-  function loadOlderRows(): void {
-    if (loadState.status !== "ready") return;
-    const lastRow = loadState.rows[loadState.rows.length - 1];
-    if (lastRow === undefined) return;
-    setLoadState({ ...loadState, olderPage: { status: "loading" } });
-    void loadActivityOlderPage(config, userId, { occurredAt: lastRow.occurredAt, key: lastRow.key }).then((olderRows) => {
-      setLoadState((current) => current.status !== "ready" ? current : {
-        ...current,
-        rows: [...current.rows, ...olderRows],
-        hasOlderRows: olderRows.length === activityPageSize,
-        olderPage: { status: "idle" },
-      });
-    }).catch((error: unknown) => {
-      if (onTerminalAdminError(error, config)) return;
-      setLoadState((current) => current.status !== "ready" ? current : {
-        ...current,
-        olderPage: { status: "error", message: getErrorMessage(error) },
-      });
-    });
-  }
+    async function loadPage(): Promise<void> {
+      try {
+        const result = await loadActivityPage(config, userId, requestedState, activityColumns);
+        if (isSuperseded) return;
+        // A page past the end, from a shrunken total, is asked for again as the last page the table shows instead.
+        const clampedPage = clampDataTablePage(requestedState.page, result.totalCount);
+        if (clampedPage !== requestedState.page) {
+          setTableState({ ...requestedState, page: clampedPage });
+          return;
+        }
+        hasLoadedPageRef.current = true;
+        setLoadState({ status: "ready", result, isLoading: false, reloadError: null });
+      } catch (error: unknown) {
+        if (isSuperseded || onTerminalAdminError(error, config)) return;
+        const message = getErrorMessage(error);
+        setLoadState((current) => current.status === "ready"
+          ? { ...current, isLoading: false, reloadError: message }
+          : { status: "error", message });
+      }
+    }
 
-  if (loadState.status === "loading") {
-    return <p className="report-state" aria-live="polite">Loading activity…</p>;
-  }
-
-  if (loadState.status === "error") {
-    return (
-      <div className="report-state report-state-error">
-        <strong>User activity query failed.</strong><span>{loadState.message}</span>
-        <button className="filter-button" type="button" onClick={() => setRevision((value) => value + 1)}>Retry</button>
-      </div>
+    const reloadTimeoutId = window.setTimeout(
+      () => { void loadPage(); },
+      hasLoadedPageRef.current ? tableReloadDebounceMs : 0,
     );
-  }
+    return () => {
+      isSuperseded = true;
+      window.clearTimeout(reloadTimeoutId);
+    };
+  }, [activityColumns, config, onTerminalAdminError, revision, tableState, userId]);
 
   return (
     <div className="activity-tab" data-testid="user-activity">
       <p className="dashboard-section-description">
         Every analytics event credited to this person, every trust level included, plus their purchases, grants and feedback, newest first. Reviews, cards and AI chat appear as their analytics events.
         Recorded as is the credential behind each event - guest, account, or visitor with no user at all - and where a server-made event carries none, whether its user id was still a guest at that moment.
+        Sorting, filters and pages apply to the whole history.
       </p>
-      <div className="activity-paging">
-        <span className="hero-badge" data-testid="user-activity-loaded-count">
-          Loaded {loadState.rows.length.toLocaleString("en-US")} of {loadState.totalCount.toLocaleString("en-US")} total
-        </span>
-        <span className="activity-paging-note">Sorting and filtering apply to the loaded rows only.</span>
-        <button
-          className="filter-button filter-button-compact"
-          type="button"
-          data-testid="user-activity-load-older"
-          disabled={!loadState.hasOlderRows || loadState.olderPage.status === "loading"}
-          onClick={loadOlderRows}
-        >{loadState.olderPage.status === "loading" ? "Loading older…" : `Load older ${activityPageSize.toLocaleString("en-US")}`}</button>
-        {loadState.olderPage.status === "error"
-          ? <span className="activity-paging-error" role="alert">Loading older rows failed: {loadState.olderPage.message}</span>
-          : null}
-      </div>
-      <DataTable
+      {loadState.status === "loading" ? <p className="report-state" aria-live="polite">Loading activity…</p> : null}
+      {loadState.status === "error" ? <div className="report-state report-state-error">
+        <strong>User activity query failed.</strong><span>{loadState.message}</span>
+        <button className="filter-button" type="button" onClick={() => setRevision((value) => value + 1)}>Retry</button>
+      </div> : null}
+      {loadState.status === "ready" && loadState.reloadError !== null ? <div className="report-state report-state-error" role="alert" data-testid="user-activity-reload-error">
+        <strong>User activity query failed; the rows below are from the previous query.</strong><span>{loadState.reloadError}</span>
+        <button className="filter-button" type="button" onClick={() => setRevision((value) => value + 1)}>Retry</button>
+      </div> : null}
+      {enumOptionsState.status === "error" ? <div className="report-state report-state-error" role="alert" data-testid="user-activity-enum-options-error">
+        <strong>Filter options query failed; the enum column filters list no values until it succeeds.</strong><span>{enumOptionsState.message}</span>
+        <button className="filter-button" type="button" onClick={() => setEnumOptionsRevision((value) => value + 1)}>Retry</button>
+      </div> : null}
+      {loadState.status === "ready" ? <DataTable
         testId="user-activity-table"
         columns={activityColumns}
-        rows={loadState.rows}
+        rows={loadState.result.rows}
         rowKey={getActivityRowKey}
         rowClassName={getActivityRowClassName}
         state={tableState}
         onStateChange={setTableState}
-        server={null}
-      />
+        server={{
+          totalCount: loadState.result.totalCount,
+          enumOptionsByColumnId: enumOptionsState.status === "ready" ? enumOptionsState.options : emptyActivityEnumOptions,
+          isLoading: loadState.isLoading,
+        }}
+      /> : null}
     </div>
   );
 }
