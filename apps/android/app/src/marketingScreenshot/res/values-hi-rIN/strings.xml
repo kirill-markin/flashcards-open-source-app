@@ -47,10 +47,7 @@
     <string name="review_medium">मध्यम</string>
     <string name="review_interval_now">अभी</string>
     <string name="review_interval_less_than_one_minute">एक मिनट से भी कम में</string>
-    <plurals name="review_interval_minutes">
-        <item quantity="one">%d मिनट में</item>
-        <item quantity="other">%d मिनट में</item>
-    </plurals>
+    <string name="review_interval_minutes_label">%1$d मिनट में</string>
     <plurals name="review_interval_hours">
         <item quantity="one">%d घंटे में</item>
         <item quantity="other">%d घंटे में</item>

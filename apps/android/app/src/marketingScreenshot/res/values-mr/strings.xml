@@ -71,10 +71,7 @@
     <string name="progress_review_schedule_bucket_days_31_to_90">31–90 दिवस</string>
     <string name="progress_review_schedule_bucket_days_91_to_360">91–360 दिवस</string>
     <string name="progress_review_schedule_bucket_years_1_to_2">1–2 वर्षे</string>
-    <plurals name="review_interval_minutes">
-        <item quantity="one">%d मिनिटात</item>
-        <item quantity="other">%d मिनिटांत</item>
-    </plurals>
+    <string name="review_interval_minutes_label">%1$d मि. नंतर</string>
     <plurals name="review_interval_hours">
         <item quantity="one">%d तासात</item>
         <item quantity="other">%d तासांत</item>

@@ -71,9 +71,7 @@
     <string name="progress_review_schedule_bucket_days_31_to_90">31–90일</string>
     <string name="progress_review_schedule_bucket_days_91_to_360">91–360일</string>
     <string name="progress_review_schedule_bucket_years_1_to_2">1–2년</string>
-    <plurals name="review_interval_minutes">
-        <item quantity="other">%d분 후</item>
-    </plurals>
+    <string name="review_interval_minutes_label">%1$d분 후</string>
     <plurals name="review_interval_hours">
         <item quantity="other">%d시간 후</item>
     </plurals>

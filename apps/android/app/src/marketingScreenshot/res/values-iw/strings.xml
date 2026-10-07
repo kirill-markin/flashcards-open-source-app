@@ -67,11 +67,7 @@
     <string name="progress_review_schedule_bucket_days_31_to_90">31–90 ימים</string>
     <string name="progress_review_schedule_bucket_days_91_to_360">91–360 ימים</string>
     <string name="progress_review_schedule_bucket_years_1_to_2">1–2 שנים</string>
-    <plurals name="review_interval_minutes">
-        <item quantity="one">בעוד %d דקה</item>
-        <item quantity="two">בעוד %d דקות</item>
-        <item quantity="other">בעוד %d דקות</item>
-    </plurals>
+    <string name="review_interval_minutes_label">בעוד %1$d דק׳</string>
     <plurals name="review_interval_hours">
         <item quantity="one">בעוד %d שעה</item>
         <item quantity="two">בעוד %d שעות</item>

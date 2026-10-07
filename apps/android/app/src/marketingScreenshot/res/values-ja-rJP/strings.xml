@@ -47,9 +47,7 @@
     <string name="review_medium">中</string>
     <string name="review_interval_now">今</string>
     <string name="review_interval_less_than_one_minute">1分未満で</string>
-    <plurals name="review_interval_minutes">
-        <item quantity="other">%d分後</item>
-    </plurals>
+    <string name="review_interval_minutes_label">%1$d分後</string>
     <plurals name="review_interval_hours">
         <item quantity="other">%d時間後</item>
     </plurals>

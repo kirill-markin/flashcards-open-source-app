@@ -74,12 +74,7 @@
     <string name="review_progress_badge_reviewed_today">Dnes zopakované</string>
     <string name="progress_review_schedule_bucket_new">Nová</string>
     <string name="progress_today">Dnes</string>
-    <plurals name="review_interval_minutes">
-        <item quantity="one">o %d minútu</item>
-        <item quantity="few">o %d minúty</item>
-        <item quantity="many">o %d minúty</item>
-        <item quantity="other">o %d minút</item>
-    </plurals>
+    <string name="review_interval_minutes_label">o %1$d min</string>
     <plurals name="review_interval_hours">
         <item quantity="one">o %d hodinu</item>
         <item quantity="few">o %d hodiny</item>

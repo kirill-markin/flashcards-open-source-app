@@ -47,9 +47,7 @@
     <string name="review_medium">中等</string>
     <string name="review_interval_now">现在</string>
     <string name="review_interval_less_than_one_minute">不到 1 分钟后</string>
-    <plurals name="review_interval_minutes">
-        <item quantity="other">%d 分钟后</item>
-    </plurals>
+    <string name="review_interval_minutes_label">%1$d 分钟后</string>
     <plurals name="review_interval_hours">
         <item quantity="other">%d 小时后</item>
     </plurals>

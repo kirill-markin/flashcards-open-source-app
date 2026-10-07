@@ -71,12 +71,7 @@
     <string name="progress_review_schedule_bucket_days_31_to_90">31–90 dni</string>
     <string name="progress_review_schedule_bucket_days_91_to_360">91–360 dni</string>
     <string name="progress_review_schedule_bucket_years_1_to_2">1–2 lata</string>
-    <plurals name="review_interval_minutes">
-        <item quantity="one">za %d minutę</item>
-        <item quantity="few">za %d minuty</item>
-        <item quantity="many">za %d minut</item>
-        <item quantity="other">za %d minuty</item>
-    </plurals>
+    <string name="review_interval_minutes_label">za %1$d min</string>
     <plurals name="review_interval_hours">
         <item quantity="one">za %d godzinę</item>
         <item quantity="few">za %d godziny</item>
