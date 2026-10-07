@@ -106,11 +106,13 @@ that installation permanently.
   action. Neither action is matched by the ingest metric filters in
   [`product-analytics-monitoring.ts`](../infra/aws/lib/product-analytics-monitoring.ts).
 - [Android declaration](../apps/android/app/src/main/java/com/flashcardsopensourceapp/app/automation/AutomationEnvironment.kt):
-  emulator detection, an `isAutomation` instrumentation argument, or the `firebase.test.lab` device
-  setting; decided and logged once per process as `event=automation_environment_resolved` with each
-  signal as its own field, then sent on every sync body and analytics batch.
-  Firebase Test Lab runs on real hardware, where the emulator check sees nothing, and is covered
-  twice: the argument arrives from
+  emulator detection, an `isAutomation` instrumentation argument, the `firebase.test.lab` device
+  setting, or `ActivityManager.isRunningInUserTestHarness()`; decided and logged once per process as
+  `event=automation_environment_resolved` with each signal as its own field, then sent on every
+  sync body and analytics batch.
+  Test Harness Mode identifies device-farm harnesses but does not identify ordinary instrumentation
+  on a standard physical device, where the argument remains necessary.
+  Firebase Test Lab runs on real hardware, where the emulator check sees nothing. Its argument arrives from
   [the submission script](../scripts/android/run-android-firebase-test-lab.sh), and the device
   setting marks the run on its own if that argument is ever dropped on the way.
 - [iOS declaration](../apps/ios/Flashcards/Flashcards/App/AutomationRun.swift): simulator detection
