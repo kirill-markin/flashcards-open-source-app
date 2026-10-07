@@ -821,6 +821,7 @@ jobs:
           releaseFiles: apps/android/app/build/outputs/bundle/release/app-release.aab
           tracks: production
           status: draft
+          changesNotSentForReview: true
           releaseName: ${{ env.ANDROID_PLAY_RELEASE_NAME }}
 
       - name: Summarize Play draft upload

@@ -22,7 +22,15 @@ Otherwise create a new artifact through every gate below.
    Release builds or emulator smokes. Check whether the
    [API 30 walkthrough](#first-release-api-30-walkthrough) is applicable and
    retain or plan its evidence before publication.
-2. Dispatch `Android Release` (`.github/workflows/android-release.yml`) with
+2. Before dispatch, inspect Play Console's Publishing overview for all pending
+   changes and active reviews. The upload commits an app-wide edit;
+   `status: draft` alone does not prevent other pending changes from entering review.
+   The workflow explicitly sets `changesNotSentForReview: true` to hold changes
+   for manual submission. Google's [edit commit API](https://developers.google.com/android-publisher/api-ref/rest/v3/edits/commit)
+   can still affect an existing review under its default behavior. If an unrelated
+   review is active, stop and resolve the upload scope with the release owner;
+   do not cancel or replace that review just to continue the workflow.
+   Dispatch `Android Release` (`.github/workflows/android-release.yml`) with
    `Git SHA to release` (`target_sha`) set to the release commit. Record its
    target SHA, run/attempt, version code, and release identifier from the summary.
 3. Require four sequential Device Run sessions from `device_run_submission`: the full
@@ -58,6 +66,9 @@ Otherwise create a new artifact through every gate below.
    alone do not prove the distributed minimum. Device Run exercises the
    debug APKs from that SHA; the production artifact is the signed AAB from
    the same release run.
+   Check Publishing overview again: the intended changes must remain not yet
+   sent for review, and other pending changes or reviews must not have been
+   unexpectedly submitted, cancelled or replaced by the upload.
    Before publishing the first API-30-compatible release or a change affecting
    its OS-specific behavior, complete the applicable
    [API 30 walkthrough](#first-release-api-30-walkthrough) checks and retain their evidence.
@@ -65,8 +76,9 @@ Otherwise create a new artifact through every gate below.
 7. Fill the localized release notes from the chat, review the draft and required
    translations, and complete the production publication controls for that
    exact bundle. Keep its identity pinned; do not select a newer unrelated
-   upload. If Play requires review first, submit and verify the resulting
-   review status; complete any publication action already available.
+   upload. Only after all release gates pass, inspect the complete app-wide
+   change set and manually submit the intended changes for review. Verify the
+   resulting review status; complete any publication action already available.
 8. Follow the exact version code through Play review and publication. With
    managed publishing enabled, approval leaves changes ready to publish:
    complete **Publish changes** for the intended release. Otherwise verify the
