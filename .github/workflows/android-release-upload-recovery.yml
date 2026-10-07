@@ -68,11 +68,11 @@ jobs:
       ANDROID_PLAY_PACKAGE_NAME: ${{ vars.ANDROID_PLAY_PACKAGE_NAME }}
       ANDROID_DEVICE_RUN_DEVICE: ${{ vars.ANDROID_DEVICE_RUN_DEVICE }}
       ANDROID_DEVICE_RUN_COMPAT_DEVICES: ${{ vars.ANDROID_DEVICE_RUN_COMPAT_DEVICES }}
-      RECOVERY_EVIDENCE_DIR: ${{ runner.temp }}/android-upload-recovery
-      PLAY_PROVENANCE_PATH: ${{ runner.temp }}/android-upload-recovery/play-publisher-provenance.json
     steps:
       - uses: actions/checkout@v7
       - name: Verify and download pinned original release evidence
+        env:
+          RECOVERY_EVIDENCE_DIR: ${{ runner.temp }}/android-upload-recovery
         run: python3 scripts/android/verify-play-upload-recovery.py
       - uses: google-github-actions/auth@v3
         id: auth
@@ -85,6 +85,7 @@ jobs:
       - name: Commit exact original bundle as guarded production draft
         env:
           PLAY_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+          PLAY_PROVENANCE_PATH: ${{ runner.temp }}/android-upload-recovery/play-publisher-provenance.json
         run: python3 scripts/android/publish-play-draft.py
       - name: Retain recovery correlation
         if: always()

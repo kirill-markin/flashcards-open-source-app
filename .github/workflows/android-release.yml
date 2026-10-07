@@ -831,7 +831,8 @@ jobs:
           PLAY_PROVENANCE_PATH: ${{ runner.temp }}/play-publisher-provenance.json
         run: |
           export AAB_PATH="apps/android/app/build/outputs/bundle/release/app-release.aab"
-          export AAB_SHA256="$(sha256sum "${AAB_PATH}" | cut -d ' ' -f 1)"
+          AAB_SHA256="$(sha256sum "${AAB_PATH}" | cut -d ' ' -f 1)"
+          export AAB_SHA256
           python3 .release-tools/scripts/android/publish-play-draft.py
 
       - name: Retain Play publisher correlation

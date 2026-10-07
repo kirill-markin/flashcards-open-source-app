@@ -42,7 +42,7 @@ def artifact_file(artifact_id: str, expected_name: str, member_name: str, run_id
     require(isinstance(created, str) and started <= created <= finished, 'Artifact was not created during the selected original attempt')
     archive = output.with_suffix('.zip')
     with archive.open('wb') as target:
-        subprocess.run(['gh', 'api', f'repos/{repository}/actions/artifacts/{artifact_id}/zip'], stdout=target, check=True)
+        subprocess.run(['gh', 'api', f'repos/{repository}/actions/artifacts/{artifact_id}/zip', '--allow-escape-sequences'], stdout=target, check=True)
     digest = 'sha256:' + hashlib.sha256(archive.read_bytes()).hexdigest()
     require(metadata.get('digest') == digest, 'Downloaded original artifact ZIP differs from GitHub digest')
     with zipfile.ZipFile(archive) as bundle:
@@ -91,7 +91,7 @@ def main() -> None:
     finished = max(str(job['completed_at']) for job in jobs)
     require(isinstance(started, str), 'Original attempt start time is missing')
     preflight = next(job for job in jobs if job.get('name') == 'Resolve Android release target')
-    preflight_log = subprocess.check_output(['gh', 'api', f'repos/{repository}/actions/jobs/{preflight["id"]}/logs']).decode()
+    preflight_log = subprocess.check_output(['gh', 'api', f'repos/{repository}/actions/jobs/{preflight["id"]}/logs', '--allow-escape-sequences']).decode()
     clean_preflight_log = re.sub(r'\x1b\[[0-9;]*m', '', preflight_log)
     resolved_targets = re.findall(r'(?m)^\S+\s+TARGET_SHA:\s*([a-f0-9]{40})\s*$', clean_preflight_log)
     workflow_targets = re.findall(r'(?m)^\S+\s+WORKFLOW_TARGET_SHA:\s*([a-f0-9]{40})\s*$', clean_preflight_log)
