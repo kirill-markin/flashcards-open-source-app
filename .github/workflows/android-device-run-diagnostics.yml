@@ -1,0 +1,63 @@
+name: Android Device Run Diagnostics
+
+on:
+  workflow_dispatch:
+    inputs:
+      session_id:
+        description: Optional exact Device Run session ID (session-…); empty reads catalog only
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  diagnostics:
+    name: Read Device Run catalog and optional session
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      GCP_SERVICE_ACCOUNT_EMAIL: ${{ vars.GCP_SERVICE_ACCOUNT_EMAIL }}
+      ANDROID_DEVICE_RUN_DEVICE: ${{ vars.ANDROID_DEVICE_RUN_DEVICE }}
+      ANDROID_DEVICE_RUN_COMPAT_DEVICES: ${{ vars.ANDROID_DEVICE_RUN_COMPAT_DEVICES }}
+      ANDROID_DEVICE_RUN_RESULTS_BUCKET: ${{ vars.ANDROID_DEVICE_RUN_RESULTS_BUCKET }}
+      DEVICE_RUN_SESSION_ID: ${{ inputs.session_id }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Require existing Device Run configuration
+        run: |
+          set -euo pipefail
+          for variable_name in GCP_PROJECT_ID GCP_WORKLOAD_IDENTITY_PROVIDER GCP_SERVICE_ACCOUNT_EMAIL \
+            ANDROID_DEVICE_RUN_DEVICE ANDROID_DEVICE_RUN_COMPAT_DEVICES ANDROID_DEVICE_RUN_RESULTS_BUCKET; do
+            if [[ -z "${!variable_name}" ]]; then
+              printf 'Missing repository variable: %s. Configure the existing Android CI identity and results bucket.\n' "${variable_name}" >&2
+              exit 1
+            fi
+          done
+
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT_EMAIL }}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+
+      - uses: google-github-actions/setup-gcloud@v3
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          version: '588.0.0'
+          install_components: beta
+
+      - name: Read and privately archive provider diagnostics
+        run: python3 scripts/android/read-device-run-diagnostics.py
+
+      - name: Retain public-safe diagnostics summary
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-device-run-diagnostics
+          if-no-files-found: ignore
+          path: ${{ runner.temp }}/device-run-diagnostics-public/summary.json
