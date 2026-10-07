@@ -1,10 +1,17 @@
-import { runAdminQuery, type AdminQueryObject, type AdminQueryValue } from "../adminApi";
+import { runAdminQuery, type AdminQueryRow } from "../adminApi";
 import type { AdminAppConfig } from "../config";
 import { buildExcludedActorReasonSql } from "../filters/filterSql";
 import { buildDataTableSqlClauses, type DataTableSqlClauses } from "../table/dataTableSql";
 import type { DataTableColumn, DataTableState } from "../table/dataTableModel";
+import {
+  buildDistinctOptionsSql,
+  buildNamedColumnsSql,
+  emptyEnumOptions,
+  parseEnumOptionsResponse,
+  parsePageTotal,
+} from "../table/dataTableServerQuery";
 import { utcInstantSql } from "../users/usersQuery";
-import { readNullableString, readRowArray, readString } from "../users/userPage/queryRowValues";
+import { readRowNullableString, readRowString } from "../users/userPage/queryRowValues";
 
 const reportLabel = "Events";
 
@@ -64,7 +71,7 @@ const eventColumnSqlById: Readonly<Record<string, string>> = {
   properties: "events.event_properties::text",
 };
 
-// Positional order of every row's JSON array; see `buildEventsPageSql`.
+/** Each `EventRow` field, selected under its own name by `buildEventsPageSql`. */
 const eventFieldSql: Readonly<Record<EventField, string>> = {
   eventId: "events.event_id::text",
   occurredAt: utcInstantSql("events.occurred_at"),
@@ -85,8 +92,6 @@ const eventFieldSql: Readonly<Record<EventField, string>> = {
   exclusionReason: `NULLIF(${exclusionReasonSql}, '')`,
   eventProperties: "events.event_properties::text",
 };
-
-const eventFields = Object.keys(eventFieldSql) as ReadonlyArray<EventField>;
 
 /** The view columns the paged statement hands to the outer one, which aliases them as `events` again. */
 const pagedViewColumnsSql = [
@@ -116,9 +121,7 @@ const tiebreakOrderBySql = "events.event_id DESC";
  * or the sort names them; the outer one computes both for the page rows alone and restores the order.
  */
 function buildEventsPageSql(clauses: DataTableSqlClauses): string {
-  return `SELECT json_build_array(
-    ${eventFields.map((field) => eventFieldSql[field]).join(",\n    ")}
-  ) AS e
+  return `SELECT ${buildNamedColumnsSql(eventFieldSql).join(",\n    ")}
   FROM (
     SELECT ${pagedViewColumnsSql}
     FROM analytics.product_events_resolved AS events
@@ -132,17 +135,16 @@ function buildEventsPageSql(clauses: DataTableSqlClauses): string {
 }
 
 function buildEventsTotalSql(clauses: DataTableSqlClauses): string {
-  return `SELECT json_build_array(count(*)::int) AS t
+  return `SELECT count(*)::int AS total_count
   FROM analytics.product_events_resolved AS events
   ${actorSettingsJoinSql}
   WHERE ${clauses.whereConditionSql}`;
 }
 
-function parseEventRow(value: AdminQueryValue | undefined, rowIndex: number): EventRow {
+function parseEventRow(row: AdminQueryRow, rowIndex: number): EventRow {
   const location = `${reportLabel} row ${rowIndex}`;
-  const values = readRowArray(value, eventFields.length, location);
-  const string = (field: EventField): string => readString(values, eventFields.indexOf(field), field, location);
-  const nullableString = (field: EventField): string | null => readNullableString(values, eventFields.indexOf(field), field, location);
+  const string = (field: EventField): string => readRowString(row, field, location);
+  const nullableString = (field: EventField): string | null => readRowNullableString(row, field, location);
   return {
     eventId: string("eventId"),
     occurredAt: string("occurredAt"),
@@ -184,15 +186,10 @@ export async function loadEventsPage(
   if (response.resultSets.length !== 2 || pageResult === undefined) {
     throw new Error(`${reportLabel} query must return exactly two result sets.`);
   }
-  const totalValue = response.resultSets[1]?.rows[0]?.t;
-  const totalCount = Array.isArray(totalValue) ? totalValue[0] : undefined;
-  if (typeof totalCount !== "number" || !Number.isSafeInteger(totalCount) || totalCount < 0) {
-    throw new Error(`${reportLabel} total must be a non-negative integer.`);
-  }
   return {
     generatedAtUtc: response.executedAtUtc,
-    totalCount,
-    rows: pageResult.rows.map((row, rowIndex) => parseEventRow(row.e, rowIndex)),
+    totalCount: parsePageTotal(response.resultSets[1]?.rows[0]?.total_count, reportLabel),
+    rows: pageResult.rows.map((row, rowIndex) => parseEventRow(row, rowIndex)),
   };
 }
 
@@ -204,10 +201,6 @@ const exclusionReasonColumnId = "exclusion-reason";
 
 /** Every enum column `EventsPage` declares. */
 const eventEnumColumnIds: ReadonlyArray<string> = [...plainEnumColumnIds, exclusionReasonColumnId];
-
-function buildDistinctOptionsSql(valueSql: string): string {
-  return `COALESCE(json_agg(DISTINCT ${valueSql} ORDER BY ${valueSql}), '[]'::json)`;
-}
 
 /**
  * Every value each enum column holds across the whole view, NULL as `""`: the row columns in one scan,
@@ -241,30 +234,9 @@ function buildEventsEnumOptionsSql(): string {
 export type EventsEnumOptions = ReadonlyMap<string, ReadonlyArray<string>>;
 
 /** Every enum column with no options, which the table shows until `loadEventsEnumOptions` answers. */
-export const emptyEventsEnumOptions: EventsEnumOptions = new Map(eventEnumColumnIds.map((columnId) => [columnId, []] as const));
-
-function isObjectValue(value: AdminQueryValue | undefined): value is AdminQueryObject {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function parseOptionList(value: AdminQueryValue | undefined, columnId: string): ReadonlyArray<string> {
-  if (!Array.isArray(value)) {
-    throw new Error(`${reportLabel} options for column "${columnId}" must be an array.`);
-  }
-  const options: ReadonlyArray<AdminQueryValue> = value;
-  return options.map((option, index) => {
-    if (typeof option !== "string") {
-      throw new Error(`${reportLabel} option ${index} of column "${columnId}" must be a string.`);
-    }
-    return option;
-  });
-}
+export const emptyEventsEnumOptions: EventsEnumOptions = emptyEnumOptions(eventEnumColumnIds);
 
 export async function loadEventsEnumOptions(config: AdminAppConfig): Promise<EventsEnumOptions> {
   const response = await runAdminQuery(config, buildEventsEnumOptionsSql());
-  const optionsValue = response.resultSets[0]?.rows[0]?.o;
-  if (response.resultSets.length !== 1 || !isObjectValue(optionsValue)) {
-    throw new Error(`${reportLabel} options query must return exactly one result set with one object row.`);
-  }
-  return new Map(eventEnumColumnIds.map((columnId) => [columnId, parseOptionList(optionsValue[columnId], columnId)] as const));
+  return parseEnumOptionsResponse(response, eventEnumColumnIds, reportLabel);
 }
