@@ -1,23 +1,46 @@
-import { useEffect, useMemo, useState, type JSX } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from "react";
 import type { AdminAppConfig } from "../config";
 import { AdminLink } from "../navigation/AdminLink";
 import { AdminNavigation } from "../navigation/AdminNavigation";
 import { getUserPath, usersPath } from "../routing";
 import { DataTable } from "../table/DataTable";
 import {
+  clampDataTablePage,
   parseDataTableState,
   toDataTableSearchParams,
   type DataTableColumn,
   type DataTableFilter,
   type DataTableState,
 } from "../table/dataTableModel";
-import { loadUsersReport, type UserRow, type UsersReport } from "./usersQuery";
+import {
+  emptyUsersEnumOptions,
+  loadUsersEnumOptions,
+  loadUsersPage,
+  type UserRow,
+  type UsersEnumOptions,
+  type UsersPageResult,
+} from "./usersQuery";
 import { userSettingsFields, type UserSettingsField } from "./userSettingsFields";
 
 type LoadState =
   | Readonly<{ status: "loading" }>
   | Readonly<{ status: "error"; message: string }>
-  | Readonly<{ status: "ready"; report: UsersReport }>;
+  | Readonly<{
+    status: "ready";
+    result: UsersPageResult;
+    isLoading: boolean;
+    /** A reload that failed while the previous page stays on screen; cleared only by a later success. */
+    reloadError: string | null;
+  }>;
+
+type EnumOptionsState =
+  | Readonly<{ status: "loading" }>
+  | Readonly<{ status: "error"; message: string }>
+  | Readonly<{ status: "ready"; options: UsersEnumOptions }>;
+
+// Every state change is a query, so a burst of keystrokes in a filter would be a burst of queries. The
+// newest state waits this long before it is sent, and the ones it superseded never reach the network.
+const tableReloadDebounceMs = 300;
 
 export function renderUserLink(userId: string | null, text: string | null, onNavigate: (path: string) => void): JSX.Element | null {
   return userId === null || text === null ? null : (
@@ -40,7 +63,8 @@ function buildUserSettingsColumn(field: UserSettingsField): DataTableColumn<User
   }
 }
 
-// The column ids are the URL vocabulary of the table state, so renaming one breaks saved links.
+// The column ids are the URL vocabulary of the table state, so renaming one breaks saved links; each
+// one's SQL is `columnSqlById` in `usersQuery.ts`.
 function buildUserColumns(onNavigate: (path: string) => void): ReadonlyArray<DataTableColumn<UserRow>> {
   return [
     { id: "user-id", label: "User ID", kind: "text", value: (user) => user.userId, renderCell: (user) => renderUserLink(user.userId, user.userId, onNavigate) },
@@ -114,6 +138,15 @@ function getUserRowClassName(user: UserRow): string {
   return user.exclusionReason.length > 0 ? "data-table-row-muted" : "";
 }
 
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Unexpected Users query error.";
+}
+
+/**
+ * Every user, sorted, filtered and paged in SQL; an unsorted table is newest first. The enum option
+ * lists are fetched once on entry, apart from the pages, so the rows never wait for them and their
+ * failure only empties the enum filters.
+ */
 export function UsersPage(props: Readonly<{
   config: AdminAppConfig;
   adminEmail: string;
@@ -122,6 +155,7 @@ export function UsersPage(props: Readonly<{
   onListPathChange: (path: string) => void;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
 }>): JSX.Element {
+  const { config, onListPathChange, onTerminalAdminError } = props;
   const [loadState, setLoadState] = useState<LoadState>({ status: "loading" });
   const [revision, setRevision] = useState<number>(0);
   const userColumns = useMemo(() => buildUserColumns(props.onNavigate), [props.onNavigate]);
@@ -129,35 +163,89 @@ export function UsersPage(props: Readonly<{
   const [tableState, setTableState] = useState<DataTableState>(
     () => parseUsersListState(new URLSearchParams(window.location.search), userColumns),
   );
+  const [enumOptionsState, setEnumOptionsState] = useState<EnumOptionsState>({ status: "loading" });
+  const [enumOptionsRevision, setEnumOptionsRevision] = useState<number>(0);
+  // Only a table that already shows a page waits for the debounce; the first load has nothing to coalesce.
+  const hasLoadedPageRef = useRef<boolean>(false);
 
-  const { onListPathChange } = props;
   const listPath = `${usersPath}${buildUsersListSearch(tableState, userColumns)}`;
   useEffect(() => {
     onListPathChange(listPath);
   }, [listPath, onListPathChange]);
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoadState({ status: "loading" });
-    void loadUsersReport(props.config).then((report) => {
-      if (!cancelled) setLoadState({ status: "ready", report });
-    }).catch((error: unknown) => {
-      if (cancelled || props.onTerminalAdminError(error, props.config)) return;
-      setLoadState({ status: "error", message: error instanceof Error ? error.message : "Unexpected Users query error." });
-    });
-    return () => { cancelled = true; };
-  }, [props.config, props.onTerminalAdminError, revision]);
-
   // Replaces rather than pushes, as the analytics filters do, so Back leaves the page instead of
   // stepping through every sort and filter click.
-  function handleTableStateChange(nextState: DataTableState): void {
+  const replaceTableState = useCallback((nextState: DataTableState): void => {
     setTableState(nextState);
     window.history.replaceState(
       null,
       "",
       `${window.location.pathname}${buildUsersListSearch(nextState, userColumns)}${window.location.hash}`,
     );
-  }
+  }, [userColumns]);
+
+  // Blind to the table state, so neither a table change nor the clamp re-request asks for them again.
+  useEffect(() => {
+    let isSuperseded = false;
+    setEnumOptionsState({ status: "loading" });
+
+    async function loadEnumOptions(): Promise<void> {
+      try {
+        const options = await loadUsersEnumOptions(config);
+        if (isSuperseded) return;
+        setEnumOptionsState({ status: "ready", options });
+      } catch (error: unknown) {
+        if (isSuperseded || onTerminalAdminError(error, config)) return;
+        setEnumOptionsState({ status: "error", message: getErrorMessage(error) });
+      }
+    }
+
+    void loadEnumOptions();
+    return () => {
+      isSuperseded = true;
+    };
+  }, [config, enumOptionsRevision, onTerminalAdminError]);
+
+  useEffect(() => {
+    const requestedState = tableState;
+    let isSuperseded = false;
+    // The previous page stays on screen, dimmed, until the new one arrives.
+    setLoadState((current) => {
+      if (current.status === "ready") return { ...current, isLoading: true };
+      return current.status === "error" ? { status: "loading" } : current;
+    });
+
+    async function loadPage(): Promise<void> {
+      try {
+        const result = await loadUsersPage(config, requestedState, userColumns);
+        if (isSuperseded) return;
+        // A page past the end, from a shrunken total or a hand-edited link, is asked for again as the
+        // last page the table shows instead.
+        const clampedPage = clampDataTablePage(requestedState.page, result.totalCount);
+        if (clampedPage !== requestedState.page) {
+          replaceTableState({ ...requestedState, page: clampedPage });
+          return;
+        }
+        hasLoadedPageRef.current = true;
+        setLoadState({ status: "ready", result, isLoading: false, reloadError: null });
+      } catch (error: unknown) {
+        if (isSuperseded || onTerminalAdminError(error, config)) return;
+        const message = getErrorMessage(error);
+        setLoadState((current) => current.status === "ready"
+          ? { ...current, isLoading: false, reloadError: message }
+          : { status: "error", message });
+      }
+    }
+
+    const reloadTimeoutId = window.setTimeout(
+      () => { void loadPage(); },
+      hasLoadedPageRef.current ? tableReloadDebounceMs : 0,
+    );
+    return () => {
+      isSuperseded = true;
+      window.clearTimeout(reloadTimeoutId);
+    };
+  }, [config, onTerminalAdminError, replaceTableState, revision, tableState, userColumns]);
 
   return (
     <main className="shell">
@@ -169,7 +257,7 @@ export function UsersPage(props: Readonly<{
         <div className="hero-meta">
           <span className="hero-badge">Signed in as {props.adminEmail}</span>
           <span className="hero-badge">All dates and times in UTC</span>
-          {loadState.status === "ready" ? <span className="hero-badge">Generated {loadState.report.generatedAtUtc}</span> : null}
+          {loadState.status === "ready" ? <span className="hero-badge">Generated {loadState.result.generatedAtUtc}</span> : null}
         </div>
       </section>
 
@@ -177,22 +265,34 @@ export function UsersPage(props: Readonly<{
 
       <section className="dashboard-section" data-testid="users-section">
         <header className="dashboard-section-header">
-          <p className="dashboard-section-description">Every live account and guest, one row per settings row; a deleted account is not listed, and a guest merged into an account is hidden until the Merged guest filter is cleared. People the analytics exclusion rule drops from every report are listed too, dimmed, with the reason. Activity comes from analytics events credited to the row's own id, so a guest merged into an account shows its activity on that account's row instead. Countries come from connection samples, which are kept for 90 days.</p>
+          <p className="dashboard-section-description">Every live account and guest, one row per settings row, newest first; a deleted account is not listed, and a guest merged into an account is hidden until the Merged guest filter is cleared. People the analytics exclusion rule drops from every report are listed too, dimmed, with the reason. Activity comes from analytics events credited to the row's own id, so a guest merged into an account shows its activity on that account's row instead. Countries come from connection samples, which are kept for 90 days. Sorting, filters and pages apply to every user.</p>
         </header>
         {loadState.status === "loading" ? <p className="report-state" aria-live="polite">Loading users…</p> : null}
         {loadState.status === "error" ? <div className="report-state report-state-error">
           <strong>Users query failed.</strong><span>{loadState.message}</span>
           <button className="filter-button" type="button" onClick={() => setRevision((value) => value + 1)}>Retry</button>
         </div> : null}
+        {loadState.status === "ready" && loadState.reloadError !== null ? <div className="report-state report-state-error" role="alert" data-testid="users-reload-error">
+          <strong>Users query failed; the rows below are from the previous query.</strong><span>{loadState.reloadError}</span>
+          <button className="filter-button" type="button" onClick={() => setRevision((value) => value + 1)}>Retry</button>
+        </div> : null}
+        {enumOptionsState.status === "error" ? <div className="report-state report-state-error" role="alert" data-testid="users-enum-options-error">
+          <strong>Filter options query failed; the enum column filters list no values until it succeeds.</strong><span>{enumOptionsState.message}</span>
+          <button className="filter-button" type="button" onClick={() => setEnumOptionsRevision((value) => value + 1)}>Retry</button>
+        </div> : null}
         {loadState.status === "ready" ? <DataTable
           testId="users-table"
           columns={userColumns}
-          rows={loadState.report.users}
+          rows={loadState.result.rows}
           rowKey={getUserRowKey}
           rowClassName={getUserRowClassName}
           state={tableState}
-          onStateChange={handleTableStateChange}
-          server={null}
+          onStateChange={replaceTableState}
+          server={{
+            totalCount: loadState.result.totalCount,
+            enumOptionsByColumnId: enumOptionsState.status === "ready" ? enumOptionsState.options : emptyUsersEnumOptions,
+            isLoading: loadState.isLoading,
+          }}
         /> : null}
       </section>
     </main>
