@@ -47,6 +47,14 @@ function asNullableBoolean(value: AdminQueryValue | undefined, fieldName: string
   return value;
 }
 
+function asBoolean(value: AdminQueryValue | undefined, fieldName: string, location: string): boolean {
+  const booleanValue = asNullableBoolean(value, fieldName, location);
+  if (booleanValue === null) {
+    throw new Error(`${location} field "${fieldName}" must not be null.`);
+  }
+  return booleanValue;
+}
+
 export function readNullableString(values: ReadonlyArray<AdminQueryValue>, index: number, fieldName: string, location: string): string | null {
   return asNullableString(values[index], fieldName, location);
 }
@@ -81,4 +89,8 @@ export function readRowNullableNumber(row: AdminQueryRow, fieldName: string, loc
 
 export function readRowNullableBoolean(row: AdminQueryRow, fieldName: string, location: string): boolean | null {
   return asNullableBoolean(row[fieldName], fieldName, location);
+}
+
+export function readRowBoolean(row: AdminQueryRow, fieldName: string, location: string): boolean {
+  return asBoolean(row[fieldName], fieldName, location);
 }

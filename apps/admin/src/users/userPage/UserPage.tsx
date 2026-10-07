@@ -68,7 +68,17 @@ export function UserPage(props: Readonly<{
     switch (tab) {
       case "profile":
         if (loadState.status === "loading") return <p className="report-state" aria-live="polite">Loading profile…</p>;
-        if (loadState.status === "ready") return <ProfileTab profile={loadState.profile} onNavigate={props.onNavigate} />;
+        if (loadState.status === "ready") {
+          return (
+            <ProfileTab
+              config={config}
+              userId={userId}
+              profile={loadState.profile}
+              onNavigate={props.onNavigate}
+              onTerminalAdminError={onTerminalAdminError}
+            />
+          );
+        }
         return null;
       case "activity":
         return <ActivityTab config={config} userId={userId} onNavigate={props.onNavigate} onTerminalAdminError={onTerminalAdminError} />;

@@ -1,10 +1,12 @@
-import { runAdminQuery, type AdminQueryObject, type AdminQueryValue } from "../../adminApi";
+import { runAdminQuery, type AdminQueryValue } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
 import { buildExcludedActorReasonSql, buildTrustedActorRowsFilterSql } from "../../filters/filterSql";
+import { buildNamedColumnsSql, isObjectValue } from "../../table/dataTableServerQuery";
 import { buildCurrentAccessColumnsSql, buildCurrentAccessSql } from "../accessTierSql";
 import { userSettingsFields, type UserSettingsField } from "../userSettingsFields";
 import { utcInstantSql, type UserKind } from "../usersQuery";
-import { readNullableString, readRowArray, readString } from "./queryRowValues";
+import { buildHasDeviceRowsSql } from "./profileDevicesQuery";
+import { readRowBoolean, readRowNullableString, readRowString } from "./queryRowValues";
 import { buildMatchesUserIdSql, buildUserSubjectSql, type UserSubjectSql } from "./userSubjectSql";
 
 const reportLabel = "User profile";
@@ -16,6 +18,9 @@ export type ProfileFieldKind = "text" | "enum" | "date" | "number" | "boolean" |
 export type ProfileField = Readonly<{ id: string; label: string; kind: ProfileFieldKind; sql: string }>;
 
 export type ProfileCell = string | number | boolean | null;
+
+/** One row of a section, keyed by field id. */
+export type ProfileCells = Readonly<Record<string, ProfileCell>>;
 
 type ProfileSectionBase = Readonly<{
   id: string;
@@ -36,8 +41,8 @@ export type ProfileListSection = ProfileSectionBase & Readonly<{ kind: "list"; o
 export type ProfileSection = ProfileRecordSection | ProfileListSection;
 
 export type ProfileSectionData =
-  | Readonly<{ kind: "record"; section: ProfileRecordSection; cells: ReadonlyArray<ProfileCell> | null }>
-  | Readonly<{ kind: "list"; section: ProfileListSection; rows: ReadonlyArray<ReadonlyArray<ProfileCell>> }>;
+  | Readonly<{ kind: "record"; section: ProfileRecordSection; cells: ProfileCells | null }>
+  | Readonly<{ kind: "list"; section: ProfileListSection; rows: ReadonlyArray<ProfileCells> }>;
 
 /**
  * The account a guest's analytics history resolves onto, by the same first link the resolved view
@@ -54,6 +59,8 @@ export type UserProfileHeader = Readonly<{
   mergedInto: UserMergedInto | null;
   /** Comma-separated arms of the analytics exclusion rule; null for a person every report counts. */
   exclusionReason: string | null;
+  /** Whether any device list has a row for the id; those lists load apart from the profile. */
+  hasDeviceRows: boolean;
 }>;
 
 export type UserProfile = Readonly<{
@@ -162,56 +169,6 @@ function buildProfileSections(subject: UserSubjectSql): ReadonlyArray<ProfileSec
       LEFT JOIN org.user_settings AS settings ON settings.user_id = memberships.user_id
       WHERE ${matches("memberships.user_id")}`,
       orderSql: "memberships.created_at DESC, workspaces.workspace_id",
-    },
-    {
-      kind: "list",
-      id: "installations",
-      title: "Devices: sync installations",
-      fields: [
-        text("installation-id", "Installation ID", "installations.installation_id::text"),
-        enumField("platform", "Platform", "installations.platform"),
-        enumField("app-version", "App version", "installations.app_version"),
-        flag("automation", "Automation", "installations.is_automation"),
-        date("created", "Created", "installations.created_at"),
-        date("last-seen", "Last seen", "installations.last_seen_at"),
-      ],
-      fromSql: `FROM sync.installations AS installations WHERE ${matches("installations.user_id")}`,
-      orderSql: "installations.last_seen_at DESC NULLS LAST, installations.installation_id",
-    },
-    {
-      kind: "list",
-      id: "installation-profiles",
-      title: "Devices: analytics installation profiles",
-      fields: [
-        text("anonymous-id", "Anonymous ID", "profiles.anonymous_id::text"),
-        enumField("platform", "Platform", "profiles.platform"),
-        enumField("app-version", "App version", "profiles.app_version"),
-        enumField("os-version", "OS version", "profiles.os_version"),
-        enumField("device-locale", "Device locale", "profiles.device_locale"),
-        enumField("timezone", "Time zone", "profiles.timezone"),
-        enumField("first-country", "First country", "profiles.first_country"),
-        date("first-seen", "First seen", "profiles.first_seen"),
-        date("last-seen", "Last seen", "profiles.last_seen"),
-      ],
-      fromSql: `FROM analytics.installation_profiles AS profiles WHERE profiles.user_id = ${subject.uuidSql}`,
-      orderSql: "profiles.last_seen DESC NULLS LAST, profiles.anonymous_id, profiles.platform",
-    },
-    {
-      kind: "list",
-      id: "replicas",
-      title: "Devices: workspace replicas",
-      fields: [
-        text("replica-id", "Replica ID", "replicas.replica_id::text"),
-        text("workspace-id", "Workspace ID", "replicas.workspace_id::text"),
-        enumField("actor-kind", "Actor kind", "replicas.actor_kind"),
-        text("installation-id", "Installation ID", "replicas.installation_id::text"),
-        enumField("platform", "Platform", "replicas.platform"),
-        enumField("app-version", "App version", "replicas.app_version"),
-        date("created", "Created", "replicas.created_at"),
-        date("last-seen", "Last seen", "replicas.last_seen_at"),
-      ],
-      fromSql: `FROM sync.workspace_replicas AS replicas WHERE ${matches("replicas.user_id")}`,
-      orderSql: "replicas.last_seen_at DESC NULLS LAST, replicas.replica_id",
     },
     {
       kind: "list",
@@ -391,47 +348,50 @@ function buildProfileSections(subject: UserSubjectSql): ReadonlyArray<ProfileSec
   ];
 }
 
-function buildFieldsArraySql(fields: ReadonlyArray<ProfileField>): string {
-  return `json_build_array(${fields.map((field) => field.kind === "date" ? utcInstantSql(field.sql) : field.sql).join(", ")})`;
+/** Each field under its own id, a `date` one as an ISO-8601 UTC instant. */
+function buildFieldColumnsSql(fields: ReadonlyArray<ProfileField>): string {
+  return buildNamedColumnsSql(Object.fromEntries(fields.map((field) => [
+    field.id,
+    field.kind === "date" ? utcInstantSql(field.sql) : field.sql,
+  ]))).join(", ");
 }
 
+/** A record's row as one JSON object or NULL, a list's rows as an array of objects in `orderSql` order. */
 function buildSectionSql(section: ProfileSection): string {
   switch (section.kind) {
     case "record":
-      return `(SELECT ${buildFieldsArraySql(section.fields)} ${section.fromSql})`;
+      return `(SELECT to_json(record_row) FROM (SELECT ${buildFieldColumnsSql(section.fields)} ${section.fromSql}) AS record_row)`;
     case "list":
-      return `(SELECT COALESCE(json_agg(${buildFieldsArraySql(section.fields)} ORDER BY ${section.orderSql}), '[]'::json) ${section.fromSql})`;
+      return `(SELECT COALESCE(json_agg(to_json(list_rows) ORDER BY list_rows.position), '[]'::json)
+      FROM (SELECT ${buildFieldColumnsSql(section.fields)}, row_number() OVER (ORDER BY ${section.orderSql}) AS position ${section.fromSql}) AS list_rows)`;
   }
 }
 
-/**
- * The whole profile as one row: the header array, then one entry per section in
- * `buildProfileSections` order - a record's single array or NULL, a list's array of arrays. Arrays
- * rather than named keys keep the payload small on the few people with thousands of device rows.
- */
+/** The whole profile as one row: the header object, and each section keyed by its id. */
 function buildUserProfileSql(subject: UserSubjectSql, sections: ReadonlyArray<ProfileSection>): string {
   const matches = (textColumnSql: string): string => buildMatchesUserIdSql(textColumnSql, subject);
   const settingsRowSql = `SELECT 1 FROM org.user_settings AS settings WHERE ${matches("settings.user_id")}`;
   const identitySql = `SELECT 1 FROM auth.user_identities AS identities WHERE ${matches("identities.user_id")}`;
   const guestSessionSql = `SELECT 1 FROM auth.guest_sessions AS guest_sessions WHERE ${matches("guest_sessions.user_id")}`;
   return `SELECT json_build_object(
-  'header', json_build_array(
-    (SELECT settings.email FROM org.user_settings AS settings WHERE ${matches("settings.user_id")}),
-    CASE WHEN EXISTS (${identitySql}) THEN 'account'
+  'header', json_build_object(
+    'email', (SELECT settings.email FROM org.user_settings AS settings WHERE ${matches("settings.user_id")}),
+    'kind', CASE WHEN EXISTS (${identitySql}) THEN 'account'
       WHEN EXISTS (${settingsRowSql}) OR EXISTS (${guestSessionSql}) THEN 'guest' END,
-    (SELECT ${utcInstantSql("min(identities.created_at)")} FROM auth.user_identities AS identities WHERE ${matches("identities.user_id")}),
-    (SELECT json_build_array(
-        links.user_id::text,
-        (SELECT settings.email FROM org.user_settings AS settings WHERE pg_catalog.lower(settings.user_id) = links.user_id::text),
-        ${utcInstantSql("links.linked_at")}
+    'identityCreatedAt', (SELECT ${utcInstantSql("min(identities.created_at)")} FROM auth.user_identities AS identities WHERE ${matches("identities.user_id")}),
+    'mergedInto', (SELECT json_build_object(
+        'userId', links.user_id::text,
+        'email', (SELECT settings.email FROM org.user_settings AS settings WHERE pg_catalog.lower(settings.user_id) = links.user_id::text),
+        'mergedAt', ${utcInstantSql("links.linked_at")}
       )
       FROM analytics.identity_links AS links
       WHERE links.source = 'server_derived' AND links.anonymous_id = ${subject.uuidSql}
       ORDER BY links.linked_at, links.link_id LIMIT 1),
-    NULLIF(${buildExcludedActorReasonSql(subject.lowerIdSql)}, '')
+    'exclusionReason', NULLIF(${buildExcludedActorReasonSql(subject.lowerIdSql)}, ''),
+    'hasDeviceRows', ${buildHasDeviceRowsSql(subject)}
   ),
-  'sections', json_build_array(
-    ${sections.map(buildSectionSql).join(",\n    ")}
+  'sections', json_build_object(
+    ${sections.map((section) => `'${section.id}', ${buildSectionSql(section)}`).join(",\n    ")}
   )
 ) AS profile`;
 }
@@ -460,11 +420,11 @@ function parseCell(value: AdminQueryValue | undefined, field: ProfileField, loca
   throw new Error(`${reportLabel} ${location} field "${field.id}" must be a ${field.kind} value or null.`);
 }
 
-function parseCells(value: AdminQueryValue, section: ProfileSection, location: string): ReadonlyArray<ProfileCell> {
-  if (!Array.isArray(value) || value.length !== section.fields.length) {
-    throw new Error(`${reportLabel} ${location} must be an array of ${section.fields.length} values.`);
+function parseCells(value: AdminQueryValue, section: ProfileSection, location: string): ProfileCells {
+  if (!isObjectValue(value)) {
+    throw new Error(`${reportLabel} ${location} must be an object.`);
   }
-  return section.fields.map((field, index) => parseCell(value[index], field, location));
+  return Object.fromEntries(section.fields.map((field) => [field.id, parseCell(value[field.id], field, location)]));
 }
 
 function parseSection(value: AdminQueryValue | undefined, section: ProfileSection): ProfileSectionData {
@@ -491,32 +451,33 @@ function parseMergedInto(value: AdminQueryValue | undefined, location: string): 
     return null;
   }
   const fieldLocation = `${location} field "mergedInto"`;
-  const values = readRowArray(value, 3, fieldLocation);
+  if (!isObjectValue(value)) {
+    throw new Error(`${fieldLocation} must be an object or null.`);
+  }
   return {
-    userId: readString(values, 0, "userId", fieldLocation),
-    email: readNullableString(values, 1, "email", fieldLocation),
-    mergedAt: readString(values, 2, "mergedAt", fieldLocation),
+    userId: readRowString(value, "userId", fieldLocation),
+    email: readRowNullableString(value, "email", fieldLocation),
+    mergedAt: readRowString(value, "mergedAt", fieldLocation),
   };
 }
 
 function parseHeader(value: AdminQueryValue | undefined): UserProfileHeader {
   const location = `${reportLabel} header`;
-  const values = readRowArray(value, 5, location);
-  const kind = readNullableString(values, 1, "kind", location);
+  if (!isObjectValue(value)) {
+    throw new Error(`${location} must be an object.`);
+  }
+  const kind = readRowNullableString(value, "kind", location);
   if (kind !== null && kind !== "account" && kind !== "guest") {
     throw new Error(`${location} field "kind" has unsupported value: ${kind}`);
   }
   return {
-    email: readNullableString(values, 0, "email", location),
+    email: readRowNullableString(value, "email", location),
     kind,
-    identityCreatedAt: readNullableString(values, 2, "identityCreatedAt", location),
-    mergedInto: parseMergedInto(values[3], location),
-    exclusionReason: readNullableString(values, 4, "exclusionReason", location),
+    identityCreatedAt: readRowNullableString(value, "identityCreatedAt", location),
+    mergedInto: parseMergedInto(value.mergedInto, location),
+    exclusionReason: readRowNullableString(value, "exclusionReason", location),
+    hasDeviceRows: readRowBoolean(value, "hasDeviceRows", location),
   };
-}
-
-function isObjectValue(value: AdminQueryValue | undefined): value is AdminQueryObject {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 export async function loadUserProfile(config: AdminAppConfig, userId: string): Promise<UserProfile> {
@@ -533,13 +494,13 @@ export async function loadUserProfile(config: AdminAppConfig, userId: string): P
     throw new Error(`${reportLabel} row must carry a "profile" object.`);
   }
   const sectionValues = profile.sections;
-  if (!Array.isArray(sectionValues) || sectionValues.length !== sections.length) {
-    throw new Error(`${reportLabel} must carry ${sections.length} sections.`);
+  if (!isObjectValue(sectionValues)) {
+    throw new Error(`${reportLabel} row must carry a "sections" object.`);
   }
   return {
     generatedAtUtc: response.executedAtUtc,
     header: parseHeader(profile.header),
-    sections: sections.map((section, index) => parseSection(sectionValues[index], section)),
+    sections: sections.map((section) => parseSection(sectionValues[section.id], section)),
   };
 }
 
@@ -547,12 +508,15 @@ function isEmptyAggregateCell(cell: ProfileCell): boolean {
   return cell === null || cell === 0;
 }
 
-/** Every source the page reads is a section, so an id none of them names matched nothing. */
+/** Every source the page reads is a section or a device list, so an id none of them names matched nothing. */
 export function hasAnyProfileData(profile: UserProfile): boolean {
-  return profile.header.kind !== null || profile.sections.some((data) => {
+  return profile.header.kind !== null || profile.header.hasDeviceRows || profile.sections.some((data) => {
     switch (data.kind) {
-      case "record":
-        return data.cells !== null && (data.section.emptyText !== null || !data.cells.every(isEmptyAggregateCell));
+      case "record": {
+        const cells = data.cells;
+        return cells !== null
+          && (data.section.emptyText !== null || !data.section.fields.every((field) => isEmptyAggregateCell(cells[field.id] ?? null)));
+      }
       case "list":
         return data.rows.length > 0;
     }
