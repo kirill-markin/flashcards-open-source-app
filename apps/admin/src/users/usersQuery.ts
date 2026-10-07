@@ -9,6 +9,14 @@ import {
 import { formatCalendarDate } from "../reports/reportValues";
 import { buildDataTableSqlClauses, type DataTableSqlClauses } from "../table/dataTableSql";
 import type { DataTableColumn, DataTableState } from "../table/dataTableModel";
+import {
+  buildDistinctOptionsSql,
+  buildNamedColumnsSql,
+  emptyEnumOptions,
+  isObjectValue,
+  parseEnumOptionsResponse,
+  parsePageTotal,
+} from "../table/dataTableServerQuery";
 import { userSettingsFields, type UserSettingsField, type UserSettingsFieldId } from "./userSettingsFields";
 
 const reportLabel = "Users";
@@ -157,7 +165,7 @@ const userColumnSql = {
   "device-time-zones": "COALESCE(installation_profiles.timezones, ARRAY[]::text[])",
   "first-countries": "COALESCE(installation_profiles.first_countries, ARRAY[]::text[])",
   "workspace-replicas": "COALESCE(replicas.replica_count, 0)",
-  reviews:"COALESCE(reviews.review_count, 0)",
+  reviews: "COALESCE(reviews.review_count, 0)",
   cards: "COALESCE(workspace_content.card_count, 0)",
   decks: "COALESCE(workspace_content.deck_count, 0)",
   workspaces: "COALESCE(workspace_content.workspace_count, 0)",
@@ -215,7 +223,6 @@ const columnSqlById: Readonly<Record<string, string>> = {
   ...Object.fromEntries(userSettingsFields.map((field) => [field.id, buildUserSettingSql(field)])),
 };
 
-// Positional order of every row's JSON array, followed by `userSettingsFields`; see `buildUsersPageSql`.
 const userFieldSql: Readonly<Record<UserField, string>> = {
   userId: userColumnSql["user-id"],
   email: userColumnSql.email,
@@ -233,18 +240,18 @@ const userFieldSql: Readonly<Record<UserField, string>> = {
   everyTrustLastSeenAt: utcInstantSql(userColumnSql["last-seen-every-trust"]),
   everyTrustActiveDays: userColumnSql["active-days-every-trust"],
   everyTrustEventCount: userColumnSql["events-every-trust"],
-  platforms: `to_json(${userColumnSql.platforms})`,
+  platforms: userColumnSql.platforms,
   latestAppVersion: userColumnSql["app-version"],
-  connectionCountries: `to_json(${userColumnSql.countries})`,
+  connectionCountries: userColumnSql.countries,
   latestUiLocale: userColumnSql["ui-locale"],
   installationCount: userColumnSql.installations,
   hasAutomationInstallation: userColumnSql["automation-installation"],
   installationsLastSeenAt: utcInstantSql(userColumnSql["installations-last-seen"]),
   analyticsInstallationCount: userColumnSql["analytics-installations"],
-  osVersions: `to_json(${userColumnSql["os-versions"]})`,
-  deviceLocales: `to_json(${userColumnSql["device-locales"]})`,
-  deviceTimeZones: `to_json(${userColumnSql["device-time-zones"]})`,
-  firstCountries: `to_json(${userColumnSql["first-countries"]})`,
+  osVersions: userColumnSql["os-versions"],
+  deviceLocales: userColumnSql["device-locales"],
+  deviceTimeZones: userColumnSql["device-time-zones"],
+  firstCountries: userColumnSql["first-countries"],
   workspaceReplicaCount: userColumnSql["workspace-replicas"],
   reviewCount: userColumnSql.reviews,
   cardCount: userColumnSql.cards,
@@ -282,7 +289,7 @@ const userFieldSql: Readonly<Record<UserField, string>> = {
   latestPurchaseUntil: utcInstantSql(userColumnSql["purchase-until"]),
   latestPurchaseGraceUntil: utcInstantSql(userColumnSql["purchase-grace-until"]),
   grantCount: userColumnSql.grants,
-  activeGrantTiers: `to_json(${userColumnSql["grant-tiers"]})`,
+  activeGrantTiers: userColumnSql["grant-tiers"],
   feedbackCount: userColumnSql.feedback,
   friendCount: userColumnSql.friends,
   hasPublicProfile: userColumnSql["public-profile"],
@@ -290,15 +297,17 @@ const userFieldSql: Readonly<Record<UserField, string>> = {
   friendInvitationsAcceptedByOthers: userColumnSql["invitations-accepted-by-others"],
   friendInvitationsAccepted: userColumnSql["invitations-accepted"],
   leaderboardParticipation: userColumnSql.leaderboard,
-  exclusionReason: `to_json(${userColumnSql["exclusion-reason"]})`,
+  exclusionReason: userColumnSql["exclusion-reason"],
   exclusionListEntryCount: userColumnSql["exclusion-list-entries"],
 };
 
-const userFields = Object.keys(userFieldSql) as ReadonlyArray<UserField>;
-
-const rowSql: ReadonlyArray<string> = [
-  ...userFields.map((field) => userFieldSql[field]),
-  ...userSettingsFields.map((field) => field.kind === "date" ? utcInstantSql(buildUserSettingSql(field)) : buildUserSettingSql(field)),
+/** Every `UserRow` field under its own name, then every setting under its column id. */
+const userRowColumnsSql: ReadonlyArray<string> = [
+  ...buildNamedColumnsSql(userFieldSql),
+  ...buildNamedColumnsSql(Object.fromEntries(userSettingsFields.map((field) => [
+    field.id,
+    field.kind === "date" ? utcInstantSql(buildUserSettingSql(field)) : buildUserSettingSql(field),
+  ]))),
 ];
 
 /**
@@ -509,31 +518,26 @@ const tiebreakOrderBySql = "settings.user_id";
 
 /**
  * The page at the clauses' offset and the total matching their filters, in one statement, so the
- * aggregates run once: `matched_users` is every matching row in table order, read by both.
- *
- * Each row is one JSON array in `rowSql` order rather than named columns, which keeps a page compact.
+ * aggregates run once: `matched_users` is every matching row in table order, read by both. Each page
+ * row is one JSON object keyed by the `userRowColumnsSql` names, plus its `position`.
  */
 function buildUsersPageSql(countrySampleRange: AnalyticsDateRange, clauses: DataTableSqlClauses): string {
   return `WITH ${buildUsersCtesSql(countrySampleRange)}, matched_users AS MATERIALIZED (
-    SELECT json_build_array(
-      ${rowSql.join(",\n      ")}
-    ) AS u,
+    SELECT ${userRowColumnsSql.join(",\n      ")},
       row_number() OVER (${clauses.orderBySql}) AS position
     ${usersFromSql}
     WHERE ${clauses.whereConditionSql}
   )
-  SELECT json_build_array(
-    (SELECT count(*)::int FROM matched_users),
+  SELECT (SELECT count(*)::int FROM matched_users) AS total_count,
     (
-      SELECT COALESCE(json_agg(page_users.u ORDER BY page_users.position), '[]'::json)
+      SELECT COALESCE(json_agg(to_json(page_users) ORDER BY page_users.position), '[]'::json)
       FROM (
-        SELECT matched_users.u, matched_users.position
+        SELECT *
         FROM matched_users
         ORDER BY matched_users.position
         ${clauses.limitOffsetSql}
       ) AS page_users
-    )
-  ) AS p`;
+    ) AS page_rows`;
 }
 
 type UserFieldReader = Readonly<{
@@ -544,12 +548,12 @@ type UserFieldReader = Readonly<{
   nullableNumber: (field: UserField) => number | null;
   boolean: (field: UserField) => boolean;
   nullableBoolean: (field: UserField) => boolean | null;
-  setting: (field: UserSettingsField, settingIndex: number) => string | null;
+  setting: (field: UserSettingsField) => string | null;
 }>;
 
-function createUserFieldReader(values: ReadonlyArray<AdminQueryValue>, rowIndex: number): UserFieldReader {
+function createUserFieldReader(row: AdminQueryObject, rowIndex: number): UserFieldReader {
   function read(field: UserField): AdminQueryValue {
-    const value = values[userFields.indexOf(field)];
+    const value: AdminQueryValue | undefined = row[field];
     if (value === undefined) {
       throw new Error(`${reportLabel} row ${rowIndex} is missing "${field}".`);
     }
@@ -616,8 +620,8 @@ function createUserFieldReader(values: ReadonlyArray<AdminQueryValue>, rowIndex:
       return value;
     },
     nullableBoolean,
-    setting: (field, settingIndex) => {
-      const value = values[userFields.length + settingIndex];
+    setting: (field) => {
+      const value: AdminQueryValue | undefined = row[field.id];
       if (value === undefined || (value !== null && typeof value !== "string")) {
         throw new Error(`${reportLabel} row ${rowIndex} setting "${field.id}" must be a string or null.`);
       }
@@ -635,8 +639,8 @@ function parseOneOf<Value extends string>(value: string, allowed: ReadonlyArray<
 }
 
 function parseUserRow(value: AdminQueryValue | undefined, rowIndex: number): UserRow {
-  if (!Array.isArray(value) || value.length !== rowSql.length) {
-    throw new Error(`${reportLabel} row ${rowIndex} must be an array of ${rowSql.length} values.`);
+  if (!isObjectValue(value)) {
+    throw new Error(`${reportLabel} row ${rowIndex} must be an object.`);
   }
   const reader = createUserFieldReader(value, rowIndex);
   return {
@@ -717,7 +721,7 @@ function parseUserRow(value: AdminQueryValue | undefined, rowIndex: number): Use
     exclusionListEntryCount: reader.count("exclusionListEntryCount"),
     // `Object.fromEntries` widens the keys to `string`.
     settings: Object.fromEntries(
-      userSettingsFields.map((field, settingIndex) => [field.id, reader.setting(field, settingIndex)]),
+      userSettingsFields.map((field) => [field.id, reader.setting(field)]),
     ) as UserSettingsValues,
   };
 }
@@ -746,15 +750,12 @@ export async function loadUsersPage(
 ): Promise<UsersPageResult> {
   const clauses = buildDataTableSqlClauses(state, columns, columnSqlById, defaultOrderBySql, tiebreakOrderBySql);
   const response = await runAdminQuery(config, buildUsersPageSql(buildCountrySampleRange(new Date()), clauses));
-  const pageValue = response.resultSets[0]?.rows[0]?.p;
-  if (response.resultSets.length !== 1 || !Array.isArray(pageValue) || pageValue.length !== 2) {
-    throw new Error(`${reportLabel} query must return exactly one result set with one [total, rows] row.`);
+  const pageRow = response.resultSets[0]?.rows[0];
+  if (response.resultSets.length !== 1 || pageRow === undefined) {
+    throw new Error(`${reportLabel} query must return exactly one result set with one row.`);
   }
-  const pageValues: ReadonlyArray<AdminQueryValue> = pageValue;
-  const [totalCount, rows] = pageValues;
-  if (typeof totalCount !== "number" || !Number.isSafeInteger(totalCount) || totalCount < 0) {
-    throw new Error(`${reportLabel} total must be a non-negative integer.`);
-  }
+  const totalCount = parsePageTotal(pageRow.total_count, reportLabel);
+  const rows: AdminQueryValue | undefined = pageRow.page_rows;
   if (!Array.isArray(rows)) {
     throw new Error(`${reportLabel} page rows must be an array.`);
   }
@@ -807,10 +808,6 @@ function requireColumnSql(columnId: string): string {
   return sqlExpression;
 }
 
-function buildDistinctOptionsSql(valueSql: string): string {
-  return `COALESCE(json_agg(DISTINCT ${valueSql} ORDER BY ${valueSql}), '[]'::json)`;
-}
-
 /** Every value each enum column holds across every user, NULL or an empty list as `""`. */
 function buildUsersEnumOptionsSql(countrySampleRange: AnalyticsDateRange): string {
   const optionColumnSql = (columnId: string): string => `option_users."${columnId}"`;
@@ -826,7 +823,9 @@ function buildUsersEnumOptionsSql(countrySampleRange: AnalyticsDateRange): strin
     ) AS list_values(value)
   )`);
   return `WITH ${buildUsersCtesSql(countrySampleRange)}, option_users AS MATERIALIZED (
-    SELECT ${userEnumColumnIds.map((columnId) => `${requireColumnSql(columnId)} AS "${columnId}"`).join(",\n      ")}
+    SELECT ${buildNamedColumnsSql(
+      Object.fromEntries(userEnumColumnIds.map((columnId) => [columnId, requireColumnSql(columnId)])),
+    ).join(",\n      ")}
     ${usersFromSql}
   )
   SELECT json_build_object(
@@ -837,30 +836,9 @@ function buildUsersEnumOptionsSql(countrySampleRange: AnalyticsDateRange): strin
 export type UsersEnumOptions = ReadonlyMap<string, ReadonlyArray<string>>;
 
 /** Every enum column with no options, which the table shows until `loadUsersEnumOptions` answers. */
-export const emptyUsersEnumOptions: UsersEnumOptions = new Map(userEnumColumnIds.map((columnId) => [columnId, []] as const));
-
-function isObjectValue(value: AdminQueryValue | undefined): value is AdminQueryObject {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function parseOptionList(value: AdminQueryValue | undefined, columnId: string): ReadonlyArray<string> {
-  if (!Array.isArray(value)) {
-    throw new Error(`${reportLabel} options for column "${columnId}" must be an array.`);
-  }
-  const options: ReadonlyArray<AdminQueryValue> = value;
-  return options.map((option, index) => {
-    if (typeof option !== "string") {
-      throw new Error(`${reportLabel} option ${index} of column "${columnId}" must be a string.`);
-    }
-    return option;
-  });
-}
+export const emptyUsersEnumOptions: UsersEnumOptions = emptyEnumOptions(userEnumColumnIds);
 
 export async function loadUsersEnumOptions(config: AdminAppConfig): Promise<UsersEnumOptions> {
   const response = await runAdminQuery(config, buildUsersEnumOptionsSql(buildCountrySampleRange(new Date())));
-  const optionsValue = response.resultSets[0]?.rows[0]?.o;
-  if (response.resultSets.length !== 1 || !isObjectValue(optionsValue)) {
-    throw new Error(`${reportLabel} options query must return exactly one result set with one object row.`);
-  }
-  return new Map(userEnumColumnIds.map((columnId) => [columnId, parseOptionList(optionsValue[columnId], columnId)] as const));
+  return parseEnumOptionsResponse(response, userEnumColumnIds, reportLabel);
 }
