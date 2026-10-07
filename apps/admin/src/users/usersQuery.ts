@@ -44,6 +44,17 @@ export type UserRow = Readonly<{
   /** Every country a retained connection sample places the person in; samples are kept 90 days. */
   connectionCountries: ReadonlyArray<string>;
   latestUiLocale: string | null;
+  /** `sync.installations` rows the person currently owns. */
+  installationCount: number;
+  hasAutomationInstallation: boolean;
+  installationsLastSeenAt: string | null;
+  /** `analytics.installation_profiles` rows whose latest observed owner is the person. */
+  analyticsInstallationCount: number;
+  osVersions: ReadonlyArray<string>;
+  deviceLocales: ReadonlyArray<string>;
+  deviceTimeZones: ReadonlyArray<string>;
+  firstCountries: ReadonlyArray<string>;
+  workspaceReplicaCount: number;
   reviewCount: number;
   cardCount: number;
   deckCount: number;
@@ -137,7 +148,16 @@ const userColumnSql = {
   "app-version": "activity.app_version",
   countries: "COALESCE(countries.countries, ARRAY[]::text[])",
   "ui-locale": "activity.ui_locale",
-  reviews: "COALESCE(reviews.review_count, 0)",
+  installations: "COALESCE(installations.installation_count, 0)",
+  "automation-installation": "COALESCE(installations.has_automation, FALSE)",
+  "installations-last-seen": "installations.last_seen_at",
+  "analytics-installations": "COALESCE(installation_profiles.profile_count, 0)",
+  "os-versions": "COALESCE(installation_profiles.os_versions, ARRAY[]::text[])",
+  "device-locales": "COALESCE(installation_profiles.device_locales, ARRAY[]::text[])",
+  "device-time-zones": "COALESCE(installation_profiles.timezones, ARRAY[]::text[])",
+  "first-countries": "COALESCE(installation_profiles.first_countries, ARRAY[]::text[])",
+  "workspace-replicas": "COALESCE(replicas.replica_count, 0)",
+  reviews:"COALESCE(reviews.review_count, 0)",
   cards: "COALESCE(workspace_content.card_count, 0)",
   decks: "COALESCE(workspace_content.deck_count, 0)",
   workspaces: "COALESCE(workspace_content.workspace_count, 0)",
@@ -217,6 +237,15 @@ const userFieldSql: Readonly<Record<UserField, string>> = {
   latestAppVersion: userColumnSql["app-version"],
   connectionCountries: `to_json(${userColumnSql.countries})`,
   latestUiLocale: userColumnSql["ui-locale"],
+  installationCount: userColumnSql.installations,
+  hasAutomationInstallation: userColumnSql["automation-installation"],
+  installationsLastSeenAt: utcInstantSql(userColumnSql["installations-last-seen"]),
+  analyticsInstallationCount: userColumnSql["analytics-installations"],
+  osVersions: `to_json(${userColumnSql["os-versions"]})`,
+  deviceLocales: `to_json(${userColumnSql["device-locales"]})`,
+  deviceTimeZones: `to_json(${userColumnSql["device-time-zones"]})`,
+  firstCountries: `to_json(${userColumnSql["first-countries"]})`,
+  workspaceReplicaCount: userColumnSql["workspace-replicas"],
   reviewCount: userColumnSql.reviews,
   cardCount: userColumnSql.cards,
   deckCount: userColumnSql.decks,
@@ -282,7 +311,8 @@ const rowSql: ReadonlyArray<string> = [
  * the countries come from the retained connection samples the country filter reads, because the
  * trusted events themselves carry no country. A guest later merged into an account resolves onto
  * that account, so its own analytics columns stay empty and `mergedIntoUserId` names the account
- * that carries them. Every other column reads the stored rows keyed on the raw id. Cards and decks
+ * that carries them. The analytics installation profiles match the folded id on their UUID owner, and
+ * every other column reads the stored rows keyed on the raw id. Cards and decks
  * are the live rows of every workspace the person is a member of, so a shared workspace counts for
  * each member.
  */
@@ -323,6 +353,26 @@ ${buildConnectionCountrySamplesSql(countrySampleRange, null)}
     ) AS country_samples
     WHERE country_samples.country IS NOT NULL
     GROUP BY country_samples.actor_id
+  ), installations AS (
+    SELECT user_id,
+      count(*)::int AS installation_count,
+      bool_or(is_automation) AS has_automation,
+      max(last_seen_at) AS last_seen_at
+    FROM sync.installations
+    GROUP BY user_id
+  ), installation_profiles AS (
+    SELECT user_id::text AS user_id,
+      count(*)::int AS profile_count,
+      array_agg(DISTINCT os_version ORDER BY os_version) FILTER (WHERE os_version IS NOT NULL) AS os_versions,
+      array_agg(DISTINCT device_locale ORDER BY device_locale) FILTER (WHERE device_locale IS NOT NULL) AS device_locales,
+      array_agg(DISTINCT timezone ORDER BY timezone) FILTER (WHERE timezone IS NOT NULL) AS timezones,
+      array_agg(DISTINCT first_country ORDER BY first_country) FILTER (WHERE first_country IS NOT NULL) AS first_countries
+    FROM analytics.installation_profiles
+    GROUP BY user_id
+  ), replicas AS (
+    SELECT user_id, count(*)::int AS replica_count
+    FROM sync.workspace_replicas
+    GROUP BY user_id
   ), reviews AS (
     SELECT reviewed_by_user_id AS user_id, count(*)::int AS review_count
     FROM content.review_events
@@ -431,6 +481,9 @@ const usersFromSql = `FROM org.user_settings AS settings
   LEFT JOIN guest_session_counts ON guest_session_counts.user_id = settings.user_id
   LEFT JOIN activity ON activity.actor_id = ${actorIdSql}
   LEFT JOIN countries ON countries.actor_id = ${actorIdSql}
+  LEFT JOIN installations ON installations.user_id = settings.user_id
+  LEFT JOIN installation_profiles ON installation_profiles.user_id = ${actorIdSql}
+  LEFT JOIN replicas ON replicas.user_id = settings.user_id
   LEFT JOIN reviews ON reviews.user_id = settings.user_id
   LEFT JOIN workspace_content ON workspace_content.user_id = settings.user_id
   LEFT JOIN org.workspaces AS current_workspace ON current_workspace.workspace_id = settings.workspace_id
@@ -607,6 +660,15 @@ function parseUserRow(value: AdminQueryValue | undefined, rowIndex: number): Use
     latestAppVersion: reader.nullableString("latestAppVersion"),
     connectionCountries: reader.stringArray("connectionCountries"),
     latestUiLocale: reader.nullableString("latestUiLocale"),
+    installationCount: reader.count("installationCount"),
+    hasAutomationInstallation: reader.boolean("hasAutomationInstallation"),
+    installationsLastSeenAt: reader.nullableString("installationsLastSeenAt"),
+    analyticsInstallationCount: reader.count("analyticsInstallationCount"),
+    osVersions: reader.stringArray("osVersions"),
+    deviceLocales: reader.stringArray("deviceLocales"),
+    deviceTimeZones: reader.stringArray("deviceTimeZones"),
+    firstCountries: reader.stringArray("firstCountries"),
+    workspaceReplicaCount: reader.count("workspaceReplicaCount"),
     reviewCount: reader.count("reviewCount"),
     cardCount: reader.count("cardCount"),
     deckCount: reader.count("deckCount"),
@@ -723,7 +785,16 @@ const plainEnumColumnIds: ReadonlyArray<string> = [
   ...userSettingsFields.filter((field) => field.kind === "enum" || field.kind === "boolean").map((field) => field.id),
 ];
 
-const enumListColumnIds: ReadonlyArray<UserColumnId> = ["exclusion-reason", "platforms", "countries", "grant-tiers"];
+const enumListColumnIds: ReadonlyArray<UserColumnId> = [
+  "exclusion-reason",
+  "platforms",
+  "countries",
+  "os-versions",
+  "device-locales",
+  "device-time-zones",
+  "first-countries",
+  "grant-tiers",
+];
 
 /** Every enum and enum-list column `UsersPage` declares. */
 const userEnumColumnIds: ReadonlyArray<string> = [...plainEnumColumnIds, ...enumListColumnIds];
