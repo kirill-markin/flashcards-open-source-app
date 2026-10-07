@@ -106,9 +106,10 @@ function buildSettingsProfileField(field: UserSettingsField): ProfileField {
 }
 
 /**
- * Every source the page reads about the person, in render order. Text keys match on the folded id
- * and uuid keys on the id as a UUID, so an id with no settings row - a guest merged away, a deleted or
- * anonymized actor - still shows whatever else names it.
+ * Every source the page reads about the person, in render order, except the device lists, which load
+ * separately and render after these. Text keys match on the folded id and uuid keys on the id as a
+ * UUID, so an id with no settings row - a guest merged away, a deleted or anonymized actor - still
+ * shows whatever else names it.
  */
 function buildProfileSections(subject: UserSubjectSql): ReadonlyArray<ProfileSection> {
   const matches = (textColumnSql: string): string => buildMatchesUserIdSql(textColumnSql, subject);
