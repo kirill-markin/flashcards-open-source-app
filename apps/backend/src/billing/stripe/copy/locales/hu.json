@@ -7,7 +7,7 @@
   "offer.title": "Premium",
   "offer.description": "Több üzenet az MI-csevegésben és egyéni stílusok.",
   "offer.aiBenefit": "Havi {count} üzenet az MI-csevegésben",
-  "offer.accentBenefit": "A kiemelőszínt, az ismétlési animációkat és az AI-csevegés javaslatait a Beállítások > Stílus részben szabhatod testre.",
+  "offer.accentBenefit": "A kiemelőszínt, az ismétlési animációkat és az MI-csevegés javaslatait a Beállítások > Stílus részben szabhatod testre.",
   "offer.price": "Havi {price}",
   "offer.trial": "7 nap ingyen. Utána havi {price}.",
   "offer.startTrial": "Ingyenes próbaidőszak indítása",

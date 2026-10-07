@@ -523,6 +523,24 @@ private fun warningContext(event: AndroidWarningIssueEvent): SentryAndroidObserv
             feedback = null,
             technicalError = null
         )
+        is AndroidWarningIssueEvent.ReviewSpeechFailure -> SentryAndroidObservationContext(
+            feature = event.feature.tagValue,
+            action = event.action.tagValue,
+            http = null,
+            ai = null,
+            progress = null,
+            notifications = null,
+            feedback = null,
+            technicalError = null,
+            reviewSpeech = SentryReviewSpeechContext(
+                stage = event.stage.tagValue,
+                errorCode = event.errorCode,
+                languageStatus = event.languageStatus,
+                enginePackage = sanitizeSentryContextValue(fieldName = "enginePackage", value = event.enginePackage),
+                languageTag = sanitizeSentryContextValue(fieldName = "languageTag", value = event.languageTag),
+                voiceName = sanitizeSentryContextValue(fieldName = "voiceName", value = event.voiceName)
+            )
+        )
     }
 }
 
@@ -997,6 +1015,7 @@ private fun warningIssueGroupKey(event: AndroidWarningIssueEvent): String? {
         is AndroidWarningIssueEvent.AiRuntimeWarning -> event.name.tagValue
         is AndroidWarningIssueEvent.NotificationSchedulingWarning -> event.diagnostic.notificationKind
         is AndroidWarningIssueEvent.AnalyticsPipelineWarning -> event.name.tagValue
+        is AndroidWarningIssueEvent.ReviewSpeechFailure -> event.enginePackage
     }
     return sanitizeSentryTagValue(fieldName = "warningGroup", value = rawGroupKey)
 }
@@ -1034,7 +1053,17 @@ private data class SentryAndroidObservationContext(
     val notifications: SentryNotificationSchedulingContext?,
     val feedback: SentryFeedbackContext?,
     val technicalError: SentryTechnicalErrorContext?,
-    val analytics: SentryAnalyticsContext? = null
+    val analytics: SentryAnalyticsContext? = null,
+    val reviewSpeech: SentryReviewSpeechContext? = null
+)
+
+private data class SentryReviewSpeechContext(
+    val stage: String,
+    val errorCode: Int?,
+    val languageStatus: Int?,
+    val enginePackage: String?,
+    val languageTag: String?,
+    val voiceName: String?
 )
 
 private data class SentryAnalyticsContext(
