@@ -7,7 +7,7 @@
   "offer.title": "Premium",
   "offer.description": "ข้อความแชต AI ที่มากขึ้นและสไตล์ที่กำหนดเอง",
   "offer.aiBenefit": "ข้อความแชต AI {count} ข้อความต่อเดือน",
-  "offer.accentBenefit": "ปรับสีเน้น แอนิเมชันหลังทบทวน และคำแนะนำในแชท AI ได้ที่ การตั้งค่า > สไตล์",
+  "offer.accentBenefit": "ปรับสีเน้น แอนิเมชันหลังทบทวน และคำแนะนำในแชต AI ได้ที่ การตั้งค่า > สไตล์",
   "offer.price": "{price} ต่อเดือน",
   "offer.trial": "ฟรี 7 วัน จากนั้น {price} ต่อเดือน",
   "offer.startTrial": "เริ่มทดลองใช้ฟรี",

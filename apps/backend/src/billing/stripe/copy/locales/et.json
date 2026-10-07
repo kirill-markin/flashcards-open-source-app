@@ -7,7 +7,7 @@
   "offer.title": "Premium",
   "offer.description": "Rohkem tehisaru vestlussõnumeid ja kohandatud stiilid.",
   "offer.aiBenefit": "{count} tehisaru vestlussõnumit kuus",
-  "offer.accentBenefit": "Kohanda rõhuvärvi, kordamise animatsioone ja tehisintellekti vestluse soovitusi jaotises Seaded > Stiil.",
+  "offer.accentBenefit": "Kohanda rõhuvärvi, kordamise animatsioone ja tehisaru vestluse soovitusi jaotises Seaded > Stiil.",
   "offer.price": "{price} kuus",
   "offer.trial": "7 päeva tasuta. Seejärel {price} kuus.",
   "offer.startTrial": "Alusta tasuta prooviperioodi",
