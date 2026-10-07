@@ -1,5 +1,6 @@
 import {
   runAdminQuery,
+  type AdminQueryResponse,
   type AdminQueryResultSet,
   type ReviewEventsByDateUser,
 } from "../adminApi";
@@ -25,6 +26,9 @@ import { escapeSqlStringLiteral } from "../sql";
 import type { AnalyticsDateRange } from "./analyticsFilters";
 
 const optionsReportLabel = "Analytics filter options";
+// Each statement recomputes the live actor exclusions. Bound serial work per gateway request
+// without adding concurrent reporting connections or weakening those exclusions.
+const optionStatementsPerRequest = 3;
 
 /**
  * The filter options of one date range, deliberately independent of the current selection.
@@ -53,7 +57,6 @@ export type AnalyticsFilterOptions = Readonly<{
   funnelCatalogClickBrowserLanguages: ReadonlyArray<string>;
 }>;
 
-/** One installable deck version, named the way the shared `Catalog deck version` field names it: its slug and its version id. */
 export type CatalogDeckOption = Readonly<{
   packageVersionId: string;
   packageSlug: string;
@@ -88,7 +91,6 @@ function buildAnalyticsFilterOptionUsersSql(dateRange: AnalyticsDateRange): stri
     "  FROM org.user_settings AS user_settings",
     "  GROUP BY pg_catalog.lower(user_settings.user_id)",
     "),",
-    // One pass over the five event names.
     "option_events AS (",
     "  SELECT",
     "    resolved.actor_id::text AS actor_id,",
@@ -208,17 +210,6 @@ function buildAnalyticsFilterOptionAppUiLanguagesSql(dateRange: AnalyticsDateRan
     // A non-NULL actor is the only other gate here, and a credential-free row carries one, so
     // without this a locale only a signed-out visitor ever sent would be offered as a filter value
     // by the very reports that refuse to count that visitor. See `buildTrustedActorRowsFilterSql`.
-    //
-    // THIS ONE MOVES A NUMBER TODAY, unlike every other place the rule was added. There is no event
-    // name and no actor-membership gate above it, and the credential-free catalog-install collector
-    // has been storing rows with a non-NULL actor since
-    // `db/migrations/0134_catalog_install_journey_analytics.sql`, through the `anonymous_id`
-    // fallback in `db/migrations/0115_product_analytics_resolved_view.sql`, and rows with a supported
-    // `ui_locale` since `db/migrations/0137_audience_context.sql`, which is what adds the column at
-    // all. Rows written between the two carry `ui_locale` NULL and the gate above already skipped
-    // them, so every locale this moves originates at 0137. A locale only such a visitor ever sent
-    // therefore stops being offered here the moment this ships. That is the intended reading: this
-    // list offers filter values for reports that do not count that visitor.
     `  AND ${buildTrustedActorRowsFilterSql("resolved.trust_level")}`,
     "  AND resolved.occurred_at >= (",
     `    (${escapeSqlStringLiteral(dateRange.from)}::date)::timestamp AT TIME ZONE 'UTC'`,
@@ -354,7 +345,6 @@ function buildCatalogAttributionEnumOptions<Value extends string>(
   });
 }
 
-/** Most review events first, then by the label the popup prints, as the review report sorts its own users. */
 function buildUserOptions(resultSet: AdminQueryResultSet): ReadonlyArray<ReviewEventsByDateUser> {
   return resultSet.rows
     .map((row) => ({
@@ -371,7 +361,6 @@ function buildUserOptions(resultSet: AdminQueryResultSet): ReadonlyArray<ReviewE
     });
 }
 
-/** One result set per option list, in the order `loadAnalyticsFilterOptions` sends them. */
 function requireResultSet(
   resultSets: ReadonlyArray<AdminQueryResultSet>,
   index: number,
@@ -383,6 +372,19 @@ function requireResultSet(
   }
 
   return resultSet;
+}
+
+async function loadAnalyticsFilterOptionBatch(
+  config: AdminAppConfig,
+  optionListSql: ReadonlyArray<string>,
+  startIndex: number,
+): Promise<AdminQueryResponse> {
+  const response = await runAdminQuery(config, optionListSql.join(";\n"));
+  if (response.resultSets.length !== optionListSql.length) {
+    throw new Error(`${optionsReportLabel} batch starting at option ${startIndex + 1} must return exactly ${optionListSql.length} result sets. Got ${response.resultSets.length}.`);
+  }
+
+  return response;
 }
 
 export async function loadAnalyticsFilterOptions(
@@ -407,12 +409,21 @@ export async function loadAnalyticsFilterOptions(
     // absence of a reported browser language on both sides rather than a bucket name on one.
     buildAnalyticsFilterOptionCatalogClickSql("NULLIF(clicked.device_locale, '')"),
   ];
-  const response = await runAdminQuery(config, optionListSql.join(";\n"));
-  if (response.resultSets.length !== optionListSql.length) {
-    throw new Error(`${optionsReportLabel} must return exactly ${optionListSql.length} result sets. Got ${response.resultSets.length}.`);
+  const response = await loadAnalyticsFilterOptionBatch(
+    config,
+    optionListSql.slice(0, optionStatementsPerRequest),
+    0,
+  );
+  const resultSets: Array<AdminQueryResultSet> = [...response.resultSets];
+  // Batches have separate read-only snapshots; publish the options only when every batch succeeds.
+  for (let startIndex = optionStatementsPerRequest; startIndex < optionListSql.length; startIndex += optionStatementsPerRequest) {
+    const batch = await loadAnalyticsFilterOptionBatch(
+      config,
+      optionListSql.slice(startIndex, startIndex + optionStatementsPerRequest),
+      startIndex,
+    );
+    resultSets.push(...batch.resultSets);
   }
-
-  const resultSets = response.resultSets;
 
   return {
     generatedAtUtc: response.executedAtUtc,
