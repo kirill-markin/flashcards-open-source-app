@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
-import { Link } from "react-router";
+import { useCallback, useEffect, useRef, useState, type MouseEvent, type ReactElement } from "react";
+import { Link, useNavigate } from "react-router";
 import { track } from "../../../analytics";
 import { useAppData } from "../../../appData";
 import { normalizeTagKey } from "../../../appData/domain";
@@ -212,6 +212,7 @@ export function CardsScreen(): ReactElement {
   } = useAppData();
   const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const { t, formatDateTime, formatNumber } = useI18n();
+  const navigate = useNavigate();
   const workspacePath = useWorkspacePath();
   const [searchText, setSearchText] = useState<string>("");
   const [debouncedSearchText, setDebouncedSearchText] = useState<string>("");
@@ -644,6 +645,22 @@ export function CardsScreen(): ReactElement {
     return () => observer.disconnect();
   }, [cardsQueryState.nextCursor, loadNextPage]);
 
+  function handleCardRowClick(event: MouseEvent<HTMLTableRowElement>, cardId: string): void {
+    if (
+      event.defaultPrevented
+      || event.button !== 0
+      || event.metaKey
+      || event.ctrlKey
+      || event.shiftKey
+      || event.altKey
+      || (event.target instanceof Element && event.target.closest("a") !== null)
+    ) {
+      return;
+    }
+
+    navigate(workspacePath(`${cardsRoute}/${cardId}`));
+  }
+
   function handleSortChange(sortKey: CardQuerySortKey): void {
     setSorts((currentSorts) => buildNextCardsTableSorts(currentSorts, sortKey));
     scrollContainerRef.current?.scrollTo({
@@ -761,6 +778,7 @@ export function CardsScreen(): ReactElement {
               aria-expanded={isFilterPopoverOpen}
               aria-haspopup="dialog"
               onClick={handleFilterToggle}
+              data-testid="cards-filter-trigger"
             >
               <span>{filterButtonLabel}</span>
             </button>
@@ -868,6 +886,7 @@ export function CardsScreen(): ReactElement {
                   data-testid="cards-row"
                   data-card-id={card.cardId}
                   data-card-front-text={card.frontText}
+                  onClick={(event) => handleCardRowClick(event, card.cardId)}
                 >
                   <td className="txn-cell cards-col-front cards-cell-multiline">
                     <Link className="cards-row-link" to={workspacePath(`${cardsRoute}/${card.cardId}`)} data-testid="cards-row-link">
@@ -875,23 +894,39 @@ export function CardsScreen(): ReactElement {
                     </Link>
                   </td>
                   <td className="txn-cell cards-col-back cards-cell-multiline">
-                    <span className="cards-cell-multiline-display">{card.backText === "" ? t("common.noBackText") : card.backText}</span>
+                    <Link className="cards-row-link" to={workspacePath(`${cardsRoute}/${card.cardId}`)} tabIndex={-1}>
+                      <span className="cards-cell-multiline-display">{card.backText === "" ? t("common.noBackText") : card.backText}</span>
+                    </Link>
                   </td>
                   <td className="txn-cell cards-col-tags cards-tag-cell">
-                    {card.tags.length === 0 ? <span className="tag-value-empty">{t("common.noTags")}</span> : (
-                      <span className="tag-value-list">
-                        {card.tags.map((tag) => (
-                          <span key={tag} className="tag-chip tag-chip-readonly">
-                            <span className="tag-chip-label">{tag}</span>
-                          </span>
-                        ))}
-                      </span>
-                    )}
+                    <Link className="cards-row-link" to={workspacePath(`${cardsRoute}/${card.cardId}`)} tabIndex={-1}>
+                      {card.tags.length === 0 ? <span className="tag-value-empty">{t("common.noTags")}</span> : (
+                        <span className="tag-value-list">
+                          {card.tags.map((tag) => (
+                            <span key={tag} className="tag-chip tag-chip-readonly">
+                              <span className="tag-chip-label">{tag}</span>
+                            </span>
+                          ))}
+                        </span>
+                      )}
+                    </Link>
                   </td>
-                  <td className="txn-cell txn-cell-mono cards-col-due">{formatNullableDateTime(card.dueAt, formatDateTime, t)}</td>
-                  <td className="txn-cell txn-cell-mono cards-col-reps">{card.reps}</td>
-                  <td className="txn-cell txn-cell-mono cards-col-lapses">{card.lapses}</td>
-                  <td className="txn-cell txn-cell-mono cards-col-updated">{formatNullableDateTime(card.updatedAt, formatDateTime, t)}</td>
+                  <td className="txn-cell txn-cell-mono cards-col-due">
+                    <Link className="cards-row-link" to={workspacePath(`${cardsRoute}/${card.cardId}`)} tabIndex={-1}>
+                      {formatNullableDateTime(card.dueAt, formatDateTime, t)}
+                    </Link>
+                  </td>
+                  <td className="txn-cell txn-cell-mono cards-col-reps" data-testid="cards-row-reps-cell">
+                    <Link className="cards-row-link" to={workspacePath(`${cardsRoute}/${card.cardId}`)} tabIndex={-1}>{card.reps}</Link>
+                  </td>
+                  <td className="txn-cell txn-cell-mono cards-col-lapses">
+                    <Link className="cards-row-link" to={workspacePath(`${cardsRoute}/${card.cardId}`)} tabIndex={-1}>{card.lapses}</Link>
+                  </td>
+                  <td className="txn-cell txn-cell-mono cards-col-updated">
+                    <Link className="cards-row-link" to={workspacePath(`${cardsRoute}/${card.cardId}`)} tabIndex={-1}>
+                      {formatNullableDateTime(card.updatedAt, formatDateTime, t)}
+                    </Link>
+                  </td>
                 </tr>
               ))}
               {isInitialCardsLoad ? null : cardsQueryState.items.length === 0 ? (
