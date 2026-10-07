@@ -44,7 +44,8 @@ jobs:
           "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" \
             "platform-tools" \
             "platforms;android-37.0" \
-            "build-tools;37.0.0"
+            "build-tools;37.0.0" \
+            "ndk;28.2.13676358"
 
       - name: Run Android unit tests, build debug artifacts, and lint
         env:
