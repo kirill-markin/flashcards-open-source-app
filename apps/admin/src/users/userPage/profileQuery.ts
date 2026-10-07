@@ -1,6 +1,7 @@
 import { runAdminQuery, type AdminQueryObject, type AdminQueryValue } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
 import { buildExcludedActorReasonSql, buildTrustedActorRowsFilterSql } from "../../filters/filterSql";
+import { buildCurrentAccessColumnsSql, buildCurrentAccessSql } from "../accessTierSql";
 import { userSettingsFields, type UserSettingsField } from "../userSettingsFields";
 import { utcInstantSql, type UserKind } from "../usersQuery";
 import { readNullableString, readRowArray, readString } from "./queryRowValues";
@@ -104,6 +105,7 @@ function buildSettingsProfileField(field: UserSettingsField): ProfileField {
  */
 function buildProfileSections(subject: UserSubjectSql): ReadonlyArray<ProfileSection> {
   const matches = (textColumnSql: string): string => buildMatchesUserIdSql(textColumnSql, subject);
+  const currentAccessSql = buildCurrentAccessColumnsSql("current_access");
   return [
     {
       kind: "record",
@@ -256,6 +258,25 @@ function buildProfileSections(subject: UserSubjectSql): ReadonlyArray<ProfileSec
         date("updated", "Updated", "billing_state.updated_at"),
       ],
       fromSql: `FROM billing.user_billing_state AS billing_state WHERE ${matches("billing_state.user_id")}`,
+    },
+    {
+      kind: "record",
+      id: "current-access",
+      title: "Current access",
+      // Over the settings row, like the Users list, so an id nothing else names still reads as not found.
+      emptyText: "No settings row exists for this id.",
+      fields: [
+        enumField("tier", "Tier", currentAccessSql.tier),
+        enumField("status", "Status", currentAccessSql.status),
+        flag("trial", "Is trial", currentAccessSql.isTrial),
+        flag("sandbox", "From sandbox", currentAccessSql.fromSandbox),
+        date("until", "Until", currentAccessSql.until),
+      ],
+      fromSql: `FROM org.user_settings AS settings
+      LEFT JOIN LATERAL (
+        SELECT * FROM (${buildCurrentAccessSql()}) AS every_access WHERE every_access.user_id = settings.user_id
+      ) AS current_access ON TRUE
+      WHERE ${matches("settings.user_id")}`,
     },
     {
       kind: "list",

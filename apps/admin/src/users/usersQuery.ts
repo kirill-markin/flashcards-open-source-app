@@ -17,6 +17,7 @@ import {
   parseEnumOptionsResponse,
   parsePageTotal,
 } from "../table/dataTableServerQuery";
+import { buildCurrentAccessColumnsSql, buildCurrentAccessSql } from "./accessTierSql";
 import { userSettingsFields, type UserSettingsField, type UserSettingsFieldId } from "./userSettingsFields";
 
 const reportLabel = "Users";
@@ -86,6 +87,11 @@ export type UserRow = Readonly<{
   aiCacheReadTokens: number;
   aiCacheWriteTokens: number;
   aiReasoningTokens: number;
+  /** The access the backend resolves now, from `accessTierSql.ts`; each is null when it cannot resolve one. */
+  accessTier: string | null;
+  accessStatus: string | null;
+  accessIsTrial: boolean | null;
+  accessFromSandbox: boolean | null;
   everPurchasedAt: string | null;
   trialConsumedAt: string | null;
   trialProvider: string | null;
@@ -126,6 +132,8 @@ export function utcInstantSql(sqlExpression: string): string {
 const actorIdSql = "pg_catalog.lower(settings.user_id)";
 
 const exclusionReasonSql = buildExcludedActorReasonSql(actorIdSql);
+
+const currentAccessSql = buildCurrentAccessColumnsSql("current_access");
 
 /**
  * The SQL each Users-list column's filter and sort read, keyed by the column ids `UsersPage` declares, over
@@ -187,6 +195,10 @@ const userColumnSql = {
   "ai-cache-read-tokens": "COALESCE(ai_usage.cache_read_tokens, 0)",
   "ai-cache-write-tokens": "COALESCE(ai_usage.cache_write_tokens, 0)",
   "ai-reasoning-tokens": "COALESCE(ai_usage.reasoning_tokens, 0)",
+  "access-tier": currentAccessSql.tier,
+  "access-status": currentAccessSql.status,
+  "access-trial": currentAccessSql.isTrial,
+  "access-sandbox": currentAccessSql.fromSandbox,
   "ever-purchased": "billing_state.ever_purchased_at",
   "trial-consumed": "billing_state.trial_consumed_at",
   "trial-provider": "billing_state.trial_provider",
@@ -275,6 +287,10 @@ const userFieldSql: Readonly<Record<UserField, string>> = {
   aiCacheReadTokens: userColumnSql["ai-cache-read-tokens"],
   aiCacheWriteTokens: userColumnSql["ai-cache-write-tokens"],
   aiReasoningTokens: userColumnSql["ai-reasoning-tokens"],
+  accessTier: userColumnSql["access-tier"],
+  accessStatus: userColumnSql["access-status"],
+  accessIsTrial: userColumnSql["access-trial"],
+  accessFromSandbox: userColumnSql["access-sandbox"],
   everPurchasedAt: utcInstantSql(userColumnSql["ever-purchased"]),
   trialConsumedAt: utcInstantSql(userColumnSql["trial-consumed"]),
   trialProvider: userColumnSql["trial-provider"],
@@ -427,6 +443,8 @@ ${buildConnectionCountrySamplesSql(countrySampleRange, null)}
       COALESCE(sum(usage_events.reasoning_tokens), 0)::bigint AS reasoning_tokens
     FROM ai.usage_events AS usage_events
     GROUP BY usage_events.user_id
+  ), current_access AS (
+    ${buildCurrentAccessSql()}
   ), latest_purchases AS (
     SELECT DISTINCT ON (user_id) user_id, tier, status, provider, kind, environment, is_trial, will_renew, until, grace_until
     FROM billing.purchases
@@ -501,6 +519,7 @@ const usersFromSql = `FROM org.user_settings AS settings
   LEFT JOIN workspace_members AS current_workspace_members ON current_workspace_members.workspace_id = current_workspace.workspace_id
   LEFT JOIN chat ON chat.user_id = settings.user_id
   LEFT JOIN ai_usage ON ai_usage.user_id = settings.user_id
+  LEFT JOIN current_access ON current_access.user_id = settings.user_id
   LEFT JOIN billing.user_billing_state AS billing_state ON billing_state.user_id = settings.user_id
   LEFT JOIN latest_purchases ON latest_purchases.user_id = settings.user_id
   LEFT JOIN purchase_counts ON purchase_counts.user_id = settings.user_id
@@ -695,6 +714,10 @@ function parseUserRow(value: AdminQueryValue | undefined, rowIndex: number): Use
     aiCacheReadTokens: reader.count("aiCacheReadTokens"),
     aiCacheWriteTokens: reader.count("aiCacheWriteTokens"),
     aiReasoningTokens: reader.count("aiReasoningTokens"),
+    accessTier: reader.nullableString("accessTier"),
+    accessStatus: reader.nullableString("accessStatus"),
+    accessIsTrial: reader.nullableBoolean("accessIsTrial"),
+    accessFromSandbox: reader.nullableBoolean("accessFromSandbox"),
     everPurchasedAt: reader.nullableString("everPurchasedAt"),
     trialConsumedAt: reader.nullableString("trialConsumedAt"),
     trialProvider: reader.nullableString("trialProvider"),
@@ -776,6 +799,8 @@ const plainEnumColumnIds: ReadonlyArray<string> = [
     "ui-locale",
     "workspace-role",
     "workspace-fsrs-algorithm",
+    "access-tier",
+    "access-status",
     "trial-provider",
     "purchase-tier",
     "purchase-status",
