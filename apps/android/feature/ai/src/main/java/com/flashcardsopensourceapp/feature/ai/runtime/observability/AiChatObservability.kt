@@ -6,6 +6,7 @@ import com.flashcardsopensourceapp.core.observability.AndroidExceptionIssueEvent
 import com.flashcardsopensourceapp.core.observability.AndroidWarningIssueEvent
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.CloudObservationIdentity
+import com.flashcardsopensourceapp.core.observability.shouldCaptureAndroidThrowable
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRequestTooLargeException
 import com.flashcardsopensourceapp.data.local.ai.remote.isExpectedAiChatRemoteUserError
@@ -263,10 +264,10 @@ internal fun aiChatRemoteErrorDetails(error: AiChatRemoteException?): AiChatRemo
 }
 
 internal fun aiChatFailureIssueDisposition(error: Exception): AiChatFailureIssueDisposition {
+    if (shouldCaptureAndroidThrowable(throwable = error).not()) {
+        return AiChatFailureIssueDisposition.NONE
+    }
     if (error is AiChatRemoteException) {
-        if (error.androidObservationAlreadyCaptured) {
-            return AiChatFailureIssueDisposition.NONE
-        }
         return if (isExpectedAiChatRemoteUserError(error = error)) {
             AiChatFailureIssueDisposition.NONE
         } else {
