@@ -80,10 +80,7 @@
     <string name="review_repetition_content_description">Repetitions: %1$s</string>
     <string name="review_interval_now">now</string>
     <string name="review_interval_less_than_one_minute">in less than a minute</string>
-    <plurals name="review_interval_minutes">
-        <item quantity="one">in %d minute</item>
-        <item quantity="other">in %d minutes</item>
-    </plurals>
+    <string name="review_interval_minutes_label">in %1$d min</string>
     <plurals name="review_interval_hours">
         <item quantity="one">in %d hour</item>
         <item quantity="other">in %d hours</item>
