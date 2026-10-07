@@ -227,8 +227,9 @@ notice linking to [Play subscription management](https://play.google.com/store/a
 
 For Play reviewer access instructions, describe the actual build: launch as a
 guest or sign in, open **Settings > Subscription**, then the Premium offer.
-No email is mandatory. Free users can also select a premium color in **Settings >
-General > Accent Color**; an actual AI allowance refusal opens the same offer.
+No email is mandatory. Free users can also change a style setting in **Settings >
+Style**, for example a premium color in Accent color; an actual AI allowance refusal
+opens the same offer.
 Restore is available on the offer and Subscription screen; Manage subscription
 opens Play. Explain eligible trial versus ordinary monthly pricing, the
 unavailable state when Play returns no offer, and the existing Terms/Privacy
