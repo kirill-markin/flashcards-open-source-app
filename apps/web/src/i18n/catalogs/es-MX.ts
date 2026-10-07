@@ -491,6 +491,7 @@ const esMxCatalog: TranslationCatalog = {
       share: "Compartir",
       feedback: "Comentarios",
       account: "Cuenta",
+      style: "Estilo",
       general: "General",
       support: "Soporte",
       advanced: "Avanzado",

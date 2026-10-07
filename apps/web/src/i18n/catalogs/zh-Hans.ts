@@ -491,6 +491,7 @@ export const zhHansCatalog = {
       share: "分享",
       feedback: "反馈",
       account: "账户",
+      style: "样式",
       general: "通用",
       support: "支持",
       advanced: "高级",

@@ -491,6 +491,7 @@ const etCatalog: TranslationCatalog = {
       share: "Jaga",
       feedback: "Tagasiside",
       account: "Konto",
+      style: "Stiil",
       general: "Üldine",
       support: "Tugi",
       advanced: "Täpsemad",

@@ -491,6 +491,7 @@ const koCatalog: TranslationCatalog = {
       share: "공유",
       feedback: "피드백",
       account: "계정",
+      style: "스타일",
       general: "일반",
       support: "지원",
       advanced: "고급",

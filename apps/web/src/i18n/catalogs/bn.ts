@@ -491,6 +491,7 @@ const bnCatalog: TranslationCatalog = {
       share: "শেয়ার",
       feedback: "মতামত",
       account: "অ্যাকাউন্ট",
+      style: "স্টাইল",
       general: "সাধারণ",
       support: "সহায়তা",
       advanced: "উন্নত",

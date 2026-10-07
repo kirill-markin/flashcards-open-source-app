@@ -491,6 +491,7 @@ const lvCatalog: TranslationCatalog = {
       share: "Kopīgot",
       feedback: "Atsauksmes",
       account: "Konts",
+      style: "Stils",
       general: "Vispārīgi",
       support: "Atbalsts",
       advanced: "Papildu",

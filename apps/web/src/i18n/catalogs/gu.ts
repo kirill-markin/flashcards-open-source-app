@@ -491,6 +491,7 @@ const guCatalog: TranslationCatalog = {
       share: "શેર કરો",
       feedback: "પ્રતિસાદ",
       account: "ખાતું",
+      style: "શૈલી",
       general: "સામાન્ય",
       support: "સપોર્ટ",
       advanced: "અદ્યતન",

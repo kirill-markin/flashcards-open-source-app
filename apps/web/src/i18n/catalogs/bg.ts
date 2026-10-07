@@ -491,6 +491,7 @@ const bgCatalog: TranslationCatalog = {
       share: "Споделяне",
       feedback: "Обратна връзка",
       account: "Акаунт",
+      style: "Стил",
       general: "Общи",
       support: "Поддръжка",
       advanced: "Разширени",

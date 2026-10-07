@@ -338,12 +338,14 @@ describe("SettingsScreen navigation", () => {
     await renderSettingsScreen();
 
     expect(textContent()).toContain("Account");
+    expect(textContent()).toContain("Style");
     expect(textContent()).toContain("Share");
     expect(textContent()).toContain("Feedback");
     expect(textContent()).toContain("General");
     expect(textContent()).toContain("Support");
     expect(textContent()).toContain("Advanced");
     expectGroupLabelNotClickable("Account");
+    expectGroupLabelNotClickable("Style");
     expectGroupLabelNotClickable("Share");
     expectGroupLabelNotClickable("Feedback");
     expectGroupLabelNotClickable("General");
@@ -353,9 +355,11 @@ describe("SettingsScreen navigation", () => {
     [
       "settings-row-account-status",
       "settings-row-current-workspace",
-      "settings-row-review-reminders",
+      "settings-row-subscription",
+      "settings-row-accent-color",
       "settings-row-review-animations",
       "settings-row-ai-chat-suggestions",
+      "settings-row-review-reminders",
       "settings-row-leaderboard-participation",
       "settings-row-language",
       "settings-row-access",
@@ -367,10 +371,12 @@ describe("SettingsScreen navigation", () => {
       "settings-row-support",
       "settings-row-legal",
       "settings-row-open-source",
+      "settings-row-own-openai-key",
       "settings-row-scheduling",
       "settings-row-agent-connections",
       "settings-row-server",
       "settings-row-device-diagnostics",
+      "settings-row-analytics",
       "settings-row-reset-study-progress",
       "settings-row-delete-current-workspace",
       "settings-row-delete-account",
@@ -386,12 +392,20 @@ describe("SettingsScreen navigation", () => {
     expect(rowIndex("settings-invite-open")).toBeLessThan(rowIndex("settings-share-app-open"));
     expect(rowIndex("settings-share-app-open")).toBeLessThan(rowIndex("settings-row-account-status"));
     expect(rowIndex("settings-row-private-feedback")).toBeLessThan(rowIndex("settings-row-account-status"));
-    expect(rowIndex("settings-row-review-reminders")).toBeLessThan(rowIndex("settings-row-review-animations"));
+    expect(rowIndex("settings-row-account-status")).toBeLessThan(rowIndex("settings-row-current-workspace"));
+    expect(rowIndex("settings-row-current-workspace")).toBeLessThan(rowIndex("settings-row-subscription"));
+    expect(rowIndex("settings-row-subscription")).toBeLessThan(rowIndex("settings-row-accent-color"));
+    expect(rowIndex("settings-row-accent-color")).toBeLessThan(rowIndex("settings-row-review-animations"));
     expect(rowIndex("settings-row-review-animations")).toBeLessThan(rowIndex("settings-row-ai-chat-suggestions"));
-    expect(rowIndex("settings-row-ai-chat-suggestions")).toBeLessThan(rowIndex("settings-row-leaderboard-participation"));
+    expect(rowIndex("settings-row-ai-chat-suggestions")).toBeLessThan(rowIndex("settings-row-review-reminders"));
+    expect(rowIndex("settings-row-review-reminders")).toBeLessThan(rowIndex("settings-row-leaderboard-participation"));
     expect(rowIndex("settings-row-leaderboard-participation")).toBeLessThan(rowIndex("settings-row-language"));
     expect(rowIndex("settings-row-import")).toBeLessThan(rowIndex("settings-row-export"));
     expect(rowIndex("settings-row-support")).toBeLessThan(rowIndex("settings-row-legal"));
+    expect(rowIndex("settings-row-open-source")).toBeLessThan(rowIndex("settings-row-own-openai-key"));
+    expect(rowIndex("settings-row-own-openai-key")).toBeLessThan(rowIndex("settings-row-scheduling"));
+    expect(rowIndex("settings-row-device-diagnostics")).toBeLessThan(rowIndex("settings-row-analytics"));
+    expect(rowIndex("settings-row-analytics")).toBeLessThan(rowIndex("settings-row-reset-study-progress"));
     expect(getContainer().querySelector("[data-testid='settings-row-test']")).toBeNull();
   });
 

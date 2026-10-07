@@ -491,6 +491,7 @@ const idCatalog: TranslationCatalog = {
       share: "Berbagi",
       feedback: "Masukan",
       account: "Akun",
+      style: "Gaya",
       general: "Umum",
       support: "Dukungan",
       advanced: "Lanjutan",

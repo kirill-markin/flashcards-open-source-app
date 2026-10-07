@@ -499,6 +499,7 @@ const roCatalog: TranslationCatalog = {
       share: "Partajare",
       feedback: "Feedback",
       account: "Cont",
+      style: "Stil",
       general: "General",
       support: "Asistență",
       advanced: "Avansat",

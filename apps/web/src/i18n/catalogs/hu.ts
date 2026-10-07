@@ -491,6 +491,7 @@ const huCatalog: TranslationCatalog = {
       share: "Megosztás",
       feedback: "Visszajelzés",
       account: "Fiók",
+      style: "Stílus",
       general: "Általános",
       support: "Támogatás",
       advanced: "Speciális",

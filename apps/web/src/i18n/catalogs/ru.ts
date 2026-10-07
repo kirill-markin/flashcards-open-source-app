@@ -499,6 +499,7 @@ export const ruCatalog = {
       share: "Поделиться",
       feedback: "Обратная связь",
       account: "Аккаунт",
+      style: "Стиль",
       general: "Общие",
       support: "Поддержка",
       advanced: "Расширенные",
