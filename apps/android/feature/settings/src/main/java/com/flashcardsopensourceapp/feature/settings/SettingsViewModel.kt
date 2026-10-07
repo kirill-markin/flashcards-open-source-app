@@ -11,6 +11,8 @@ import com.flashcardsopensourceapp.core.ui.TransientMessageController
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreenRepository
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.cloud.canUseLocalPremiumFeatures
+import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
 import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferencesUpdate
 import com.flashcardsopensourceapp.data.local.model.sync.isProductAnalyticsEnabled
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
@@ -53,7 +55,15 @@ class SettingsViewModel(
     val uiState: StateFlow<SettingsUiState> = combine(
         workspaceRepository.observeAppMetadata(),
         cloudAccountRepository.observeCloudSettings(),
-        cloudAccountRepository.observeAccountPreferences(),
+        combine(
+            cloudAccountRepository.observeAccountPreferences(),
+            cloudAccountRepository.observeEntitlement()
+        ) { accountPreferences, entitlement ->
+            SettingsAccountPreferences(
+                preferences = accountPreferences,
+                canCustomizeStyle = canUseLocalPremiumFeatures(entitlement = entitlement)
+            )
+        },
         combine(
             aiChatRepository.observeComposerSuggestionsEnabled(),
             aiChatRepository.observeOwnOpenAiKeySettings()
@@ -88,9 +98,11 @@ class SettingsViewModel(
             },
             accountStatusAttentionCount = attentionSummary.accountStatusRowCount,
             friendInviteAvailability = friendInviteAvailability(cloudState = cloudSettings.cloudState),
-            reviewReactionAnimationsEnabled = accountPreferences.reviewReactionAnimationsEnabled,
-            productAnalyticsEnabled = isProductAnalyticsEnabled(preferences = accountPreferences),
-            aiChatComposerSuggestionsEnabled = aiPreferences.composerSuggestionsEnabled,
+            reviewReactionAnimationsEnabled = accountPreferences.canCustomizeStyle.not() ||
+                accountPreferences.preferences.reviewReactionAnimationsEnabled,
+            productAnalyticsEnabled = isProductAnalyticsEnabled(preferences = accountPreferences.preferences),
+            aiChatComposerSuggestionsEnabled = accountPreferences.canCustomizeStyle.not() ||
+                aiPreferences.composerSuggestionsEnabled,
             ownOpenAiKeyEnabled = aiPreferences.ownOpenAiKeyEnabled,
             canManageAccountPreferences = canManageAccountPreferences(cloudState = cloudSettings.cloudState),
             isTestModeEnabled = isTestModeEnabled
@@ -274,6 +286,11 @@ class SettingsViewModel(
         messageController.showMessage(message = workspaceUpdatedOnAnotherDeviceMessage(strings = strings))
     }
 }
+
+private data class SettingsAccountPreferences(
+    val preferences: AccountPreferences,
+    val canCustomizeStyle: Boolean
+)
 
 private data class SettingsAiPreferences(
     val composerSuggestionsEnabled: Boolean,

@@ -64,7 +64,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.flashcardsopensourceapp.app.analytics.analyticsSurfaceForRoute
 import com.flashcardsopensourceapp.app.analytics.analyticsSyncFailureReason
-import com.flashcardsopensourceapp.app.premium.hasPremiumAccess
 import com.flashcardsopensourceapp.app.premium.PremiumPresenter
 import com.flashcardsopensourceapp.app.premium.PremiumPresentationHost
 import com.flashcardsopensourceapp.app.di.AppGraph
@@ -94,6 +93,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryState
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackTrigger
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
+import com.flashcardsopensourceapp.data.local.model.cloud.canUseLocalPremiumFeatures
 import com.flashcardsopensourceapp.data.local.model.sync.defaultAccentColor
 import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
 import com.flashcardsopensourceapp.feature.settings.accent.AccentColorViewModel
@@ -152,7 +152,8 @@ fun FlashcardsApp(
         val accentColorState by accentColorViewModel.uiState.collectAsStateWithLifecycle()
         val entitlement by appGraph.cloudAccountRepository.observeEntitlement()
             .collectAsStateWithLifecycle(initialValue = null)
-        val effectiveAccentColor = if (entitlement == null || hasPremiumAccess(entitlement)) {
+        val canCustomizeStyle: Boolean = canUseLocalPremiumFeatures(entitlement = entitlement)
+        val effectiveAccentColor = if (canCustomizeStyle) {
             accentColorState.selectedColor
         } else {
             defaultAccentColor
@@ -209,7 +210,8 @@ fun FlashcardsApp(
         val snackbarHostState = remember { SnackbarHostState() }
         val isPowerSaveMode: Boolean = rememberIsPowerSaveMode()
         val effectiveReviewReactionAnimationsEnabled: Boolean =
-            accountPreferences?.reviewReactionAnimationsEnabled == true && isPowerSaveMode.not()
+            (canCustomizeStyle.not() || accountPreferences?.reviewReactionAnimationsEnabled == true) &&
+                isPowerSaveMode.not()
         val reviewReactionLottieConfigurationStore = rememberReviewReactionLottieConfigurationStore(
             loadLottieCompositions = effectiveReviewReactionAnimationsEnabled,
             isPowerSaveMode = isPowerSaveMode,

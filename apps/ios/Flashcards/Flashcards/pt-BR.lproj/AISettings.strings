@@ -878,7 +878,7 @@
 "settings.language.supported.zulu" = "Zulu";
 
 "premium.offer.title" = "Premium";
-"premium.offer.benefits" = "1.000 mensagens de IA por mês e cores de destaque personalizadas. A sincronização é gratuita para todos.";
+"premium.offer.benefits" = "1.000 mensagens de IA por mês e estilos personalizados. A sincronização é gratuita para todos.";
 "premium.aiLimit.title" = "Limite de mensagens de IA atingido";
 
 "settings.accentColor.title" = "Cor de destaque";
@@ -891,6 +891,8 @@
 "settings.accentColor.custom" = "Cor personalizada";
 "settings.accentColor.invalidHex" = "Insira uma cor como #RRGGBB, com seis dígitos hexadecimais.";
 "settings.accentColor.premiumNote" = "As cores de destaque personalizadas estão disponíveis com Premium. Sua cor salva volta quando o Premium está ativo.";
+"settings.reviewAnimations.premiumNote" = "Desativar as animações de revisão está disponível com Premium. Sua configuração salva volta quando o Premium está ativo.";
+"settings.aiChatSuggestions.premiumNote" = "Desativar as sugestões do chat com IA está disponível com Premium. Sua configuração salva volta quando o Premium está ativo.";
 
 "premium.apple.monthlyProduct" = "%@ · Mensal";
 "premium.apple.renewal" = "Renova automaticamente até o cancelamento. Gerencie ou cancele nas suas assinaturas da App Store.";

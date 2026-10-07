@@ -64,13 +64,14 @@ struct PendingAccountAccentColor {
 
 @MainActor
 extension FlashcardsStore {
+    // Gates every Style setting; a confirmed free plan gets the defaults while saved values wait for Premium.
     // An omitted snapshot is unknown; cached local cosmetics never expire by the device clock.
-    var canUseCustomAccentColor: Bool {
+    var canCustomizeStyle: Bool {
         self.cloudEntitlement.map { $0.tierRank >= premiumTierRank } ?? true
     }
 
     var effectiveAccountAccentColor: AccountAccentColor {
-        guard self.canUseCustomAccentColor else { return .defaultColor }
+        guard self.canCustomizeStyle else { return .defaultColor }
         if let pending = self.pendingAccentColor, pending.identityKey == self.accountPreferencesIdentityKey {
             return pending.color
         }

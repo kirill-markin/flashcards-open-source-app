@@ -850,7 +850,7 @@
 "settings.language.supported.zulu" = "Ζουλού";
 
 "premium.offer.title" = "Premium";
-"premium.offer.benefits" = "1.000 μηνύματα AI τον μήνα και προσαρμοσμένα χρώματα έμφασης. Ο συγχρονισμός είναι δωρεάν για όλους.";
+"premium.offer.benefits" = "1.000 μηνύματα AI τον μήνα και προσαρμοσμένα στυλ. Ο συγχρονισμός είναι δωρεάν για όλους.";
 "premium.aiLimit.title" = "Συμπληρώθηκε το όριο μηνυμάτων AI";
 
 "settings.accentColor.title" = "Χρώμα έμφασης";
@@ -863,6 +863,8 @@
 "settings.accentColor.custom" = "Προσαρμοσμένο χρώμα";
 "settings.accentColor.invalidHex" = "Εισαγάγετε ένα χρώμα ως #RRGGBB, με έξι δεκαεξαδικά ψηφία.";
 "settings.accentColor.premiumNote" = "Τα προσαρμοσμένα χρώματα έμφασης διατίθενται με το Premium. Το αποθηκευμένο χρώμα σας επιστρέφει όταν το Premium είναι ενεργό.";
+"settings.reviewAnimations.premiumNote" = "Η απενεργοποίηση των κινούμενων σχεδίων επανάληψης διατίθεται με το Premium. Η αποθηκευμένη ρύθμισή σας επιστρέφει όταν το Premium είναι ενεργό.";
+"settings.aiChatSuggestions.premiumNote" = "Η απενεργοποίηση των προτάσεων συνομιλίας με ΤΝ διατίθεται με το Premium. Η αποθηκευμένη ρύθμισή σας επιστρέφει όταν το Premium είναι ενεργό.";
 
 "premium.apple.monthlyProduct" = "%@ · Μηνιαία";
 "premium.apple.renewal" = "Ανανεώνεται αυτόματα μέχρι να ακυρωθεί. Διαχειριστείτε ή ακυρώστε στις συνδρομές σας στο App Store.";

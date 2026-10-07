@@ -850,7 +850,7 @@
 "settings.language.supported.zulu" = "زولو";
 
 "premium.offer.title" = "Premium";
-"premium.offer.benefits" = "۱٬۰۰۰ پیام هوش مصنوعی در ماه و رنگ‌های تأکیدی دلخواه. همگام‌سازی برای همه رایگان است.";
+"premium.offer.benefits" = "۱٬۰۰۰ پیام هوش مصنوعی در ماه و سبک‌های دلخواه. همگام‌سازی برای همه رایگان است.";
 "premium.aiLimit.title" = "به سقف پیام‌های هوش مصنوعی رسیده‌اید";
 
 "settings.accentColor.title" = "رنگ تأکیدی";
@@ -863,6 +863,8 @@
 "settings.accentColor.custom" = "رنگ سفارشی";
 "settings.accentColor.invalidHex" = "رنگ را به صورت #RRGGBB با شش رقم هگزادسیمال وارد کنید.";
 "settings.accentColor.premiumNote" = "رنگ‌های تأکیدی سفارشی با Premium در دسترس هستند. وقتی Premium فعال باشد، رنگ ذخیره‌شده شما برمی‌گردد.";
+"settings.reviewAnimations.premiumNote" = "خاموش کردن پویانمایی‌های مرور با Premium در دسترس است. وقتی Premium فعال باشد، تنظیم ذخیره‌شده شما برمی‌گردد.";
+"settings.aiChatSuggestions.premiumNote" = "خاموش کردن پیشنهادهای گفت‌وگوی هوش مصنوعی با Premium در دسترس است. وقتی Premium فعال باشد، تنظیم ذخیره‌شده شما برمی‌گردد.";
 
 "premium.apple.monthlyProduct" = "%@ · ماهانه";
 "premium.apple.renewal" = "تا زمان لغو، خودکار تمدید می‌شود. در بخش اشتراک‌های App Store آن را مدیریت یا لغو کنید.";

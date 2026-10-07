@@ -850,7 +850,7 @@
 "settings.language.supported.zulu" = "Zulujščina";
 
 "premium.offer.title" = "Premium";
-"premium.offer.benefits" = "1.000 sporočil UI na mesec in barve poudarkov po meri. Sinhronizacija je brezplačna za vse.";
+"premium.offer.benefits" = "1.000 sporočil UI na mesec in slogi po meri. Sinhronizacija je brezplačna za vse.";
 "premium.aiLimit.title" = "Dosežena je omejitev sporočil UI";
 
 "settings.accentColor.title" = "Barva poudarka";
@@ -863,6 +863,8 @@
 "settings.accentColor.custom" = "Barva po meri";
 "settings.accentColor.invalidHex" = "Vnesite barvo v obliki #RRGGBB s šestimi šestnajstiškimi števkami.";
 "settings.accentColor.premiumNote" = "Barve poudarka po meri so na voljo s Premium. Shranjena barva se vrne, ko je Premium aktiven.";
+"settings.reviewAnimations.premiumNote" = "Izklop animacij pri ponavljanju je na voljo s Premium. Shranjena nastavitev se vrne, ko je Premium aktiven.";
+"settings.aiChatSuggestions.premiumNote" = "Izklop predlogov klepeta z UI je na voljo s Premium. Shranjena nastavitev se vrne, ko je Premium aktiven.";
 
 "premium.apple.monthlyProduct" = "%@ · Mesečno";
 "premium.apple.renewal" = "Samodejno se podaljšuje do preklica. Upravljajte ali prekličite v naročninah App Store.";

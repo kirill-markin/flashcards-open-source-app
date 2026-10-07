@@ -878,7 +878,7 @@
 "settings.language.supported.zulu" = "Zulu";
 
 "premium.offer.title" = "Premium";
-"premium.offer.benefits" = "1.000 KI-Nachrichten pro Monat und eigene Akzentfarben. Die Synchronisierung ist für alle kostenlos.";
+"premium.offer.benefits" = "1.000 KI-Nachrichten pro Monat und eigene Stile. Die Synchronisierung ist für alle kostenlos.";
 "premium.aiLimit.title" = "Limit für KI-Nachrichten erreicht";
 
 "settings.accentColor.title" = "Akzentfarbe";
@@ -891,6 +891,8 @@
 "settings.accentColor.custom" = "Eigene Farbe";
 "settings.accentColor.invalidHex" = "Gib eine Farbe als #RRGGBB mit sechs Hexadezimalziffern ein.";
 "settings.accentColor.premiumNote" = "Eigene Akzentfarben sind mit Premium verfügbar. Deine gespeicherte Farbe wird wieder verwendet, sobald Premium aktiv ist.";
+"settings.reviewAnimations.premiumNote" = "Das Ausschalten der Wiederholungsanimationen ist mit Premium verfügbar. Deine gespeicherte Einstellung wird wieder verwendet, sobald Premium aktiv ist.";
+"settings.aiChatSuggestions.premiumNote" = "Das Ausschalten der KI-Chat-Vorschläge ist mit Premium verfügbar. Deine gespeicherte Einstellung wird wieder verwendet, sobald Premium aktiv ist.";
 
 "premium.apple.monthlyProduct" = "%@ · Monatlich";
 "premium.apple.renewal" = "Verlängert sich automatisch bis zur Kündigung. Verwalten oder kündigen Sie Ihr Abo im App Store.";

@@ -45,6 +45,7 @@ import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
 import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
+import com.flashcardsopensourceapp.data.local.model.cloud.hasPremiumAccess
 import com.flashcardsopensourceapp.feature.settings.ai.OwnOpenAiKeyRoute
 import com.flashcardsopensourceapp.feature.settings.ai.OwnOpenAiKeyViewModel
 import com.flashcardsopensourceapp.feature.settings.ai.createOwnOpenAiKeyViewModelFactory

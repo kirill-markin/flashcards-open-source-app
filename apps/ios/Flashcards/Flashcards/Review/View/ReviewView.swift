@@ -83,7 +83,7 @@ struct ReviewView: View {
     }
 
     var areReviewReactionAnimationsEnabled: Bool {
-        store.accountPreferences.reviewReactionAnimationsEnabled && self.isLowPowerModeEnabled == false
+        store.effectiveReviewReactionAnimationsEnabled && self.isLowPowerModeEnabled == false
     }
 
     private var currentCard: Card? {

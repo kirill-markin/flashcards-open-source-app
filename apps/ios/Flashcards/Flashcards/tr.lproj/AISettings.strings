@@ -850,7 +850,7 @@
 "settings.language.supported.zulu" = "Zuluca";
 
 "premium.offer.title" = "Premium";
-"premium.offer.benefits" = "Ayda 1.000 yapay zekâ mesajı ve özel vurgu renkleri. Senkronizasyon herkes için ücretsizdir.";
+"premium.offer.benefits" = "Ayda 1.000 yapay zekâ mesajı ve özel stiller. Senkronizasyon herkes için ücretsizdir.";
 "premium.aiLimit.title" = "Yapay zekâ mesaj sınırına ulaşıldı";
 
 "settings.accentColor.title" = "Vurgu rengi";
@@ -863,6 +863,8 @@
 "settings.accentColor.custom" = "Özel renk";
 "settings.accentColor.invalidHex" = "Altı onaltılık basamakla #RRGGBB biçiminde bir renk girin.";
 "settings.accentColor.premiumNote" = "Özel vurgu renkleri Premium ile kullanılabilir. Kaydedilen renginiz Premium etkin olduğunda geri gelir.";
+"settings.reviewAnimations.premiumNote" = "Tekrar animasyonlarını kapatmak Premium ile kullanılabilir. Kaydedilen ayarınız Premium etkin olduğunda geri gelir.";
+"settings.aiChatSuggestions.premiumNote" = "AI sohbet önerilerini kapatmak Premium ile kullanılabilir. Kaydedilen ayarınız Premium etkin olduğunda geri gelir.";
 
 "premium.apple.monthlyProduct" = "%@ · Aylık";
 "premium.apple.renewal" = "İptal edilene kadar otomatik yenilenir. App Store aboneliklerinizden yönetin veya iptal edin.";

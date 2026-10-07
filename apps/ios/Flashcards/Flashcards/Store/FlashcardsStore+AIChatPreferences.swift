@@ -15,10 +15,16 @@ private func persistAIChatComposerSuggestionsEnabled(userDefaults: UserDefaults,
 }
 
 extension FlashcardsStore {
-    func updateAIChatComposerSuggestionsEnabled(isEnabled: Bool) -> Void {
+    var effectiveAIChatComposerSuggestionsEnabled: Bool {
+        self.canCustomizeStyle ? self.aiChatComposerSuggestionsEnabled : true
+    }
+
+    func updateAIChatComposerSuggestionsEnabled(isEnabled: Bool) throws -> Void {
+        guard isEnabled || self.canCustomizeStyle else {
+            throw LocalStoreError.validation("Turning off AI chat suggestions requires Premium")
+        }
         self.aiChatComposerSuggestionsEnabled = isEnabled
         persistAIChatComposerSuggestionsEnabled(userDefaults: self.userDefaults, isEnabled: isEnabled)
-        self.cachedAIChatStore?.areComposerSuggestionsEnabled = isEnabled
     }
 }
 

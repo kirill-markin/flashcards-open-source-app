@@ -18,3 +18,15 @@ data class CloudEntitlement(
     val isTrial: Boolean,
     val willRenew: Boolean
 )
+
+private const val premiumTierRank: Int = 20
+
+fun hasPremiumAccess(entitlement: CloudEntitlement?): Boolean {
+    return entitlement != null && entitlement.tierRank >= premiumTierRank &&
+        entitlement.status != CloudEntitlementStatus.NONE
+}
+
+/** Local premium features fail open while access is unknown: docs/premium-entitlements.md, "Offline behaviour". */
+fun canUseLocalPremiumFeatures(entitlement: CloudEntitlement?): Boolean {
+    return entitlement == null || hasPremiumAccess(entitlement = entitlement)
+}

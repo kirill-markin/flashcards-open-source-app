@@ -47,7 +47,7 @@
     <string name="review_notification_channel_name">Review reminders</string>
     <string name="review_notification_channel_description">Study reminders with cards from your review queue.</string>
     <string name="premium_title">Premium</string>
-    <string name="premium_benefits">1,000 AI messages per UTC calendar month, plus custom accent colors.</string>
+    <string name="premium_benefits">1,000 AI messages per UTC calendar month, plus custom styles.</string>
     <string name="premium_already_active">Your plan already includes Premium benefits.</string>
     <string name="premium_offer_loading">Loading the offer from Google Play…</string>
     <string name="premium_offer_unavailable">Premium is not available from Google Play for this account right now. You can try again or restore an existing purchase.</string>
