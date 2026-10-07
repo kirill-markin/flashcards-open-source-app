@@ -8,8 +8,8 @@ import { useI18n } from "../../i18n";
 import { captureAppOperationError } from "../../observability/appOperationObservation";
 import { accentPresets, useAccountAccentColor } from "../../premium/accentColor";
 import { usePremiumPresenter } from "../../premium/PremiumProvider";
-import { readEntitlementIdentityGeneration } from "../../premium/entitlementStore";
-import { isStripeBillingInvalidated, readStripeBillingGeneration, subscribeToStripeBillingInvalidation } from "../../premium/stripeIntent";
+import { subscribeToStripeBillingInvalidation } from "../../premium/stripeIntent";
+import { createPremiumContinuationGuard } from "../../premium/styleSettings";
 import { defaultAccentColor } from "../../types/account";
 import { SettingsGroup, SettingsShell } from "./SettingsShared";
 
@@ -112,13 +112,8 @@ function AccentColorEditor(): ReactElement {
     }
     const initiatingSession = sessionRef.current;
     if (initiatingSession === null) return;
-    const { userId, csrfToken } = initiatingSession;
-    const generation = readEntitlementIdentityGeneration();
-    const billingGeneration = readStripeBillingGeneration();
-    const isCurrentContinuation = (): boolean => !isStripeBillingInvalidated()
-      && generation === readEntitlementIdentityGeneration()
-      && billingGeneration === readStripeBillingGeneration()
-      && sessionRef.current?.userId === userId && sessionRef.current.csrfToken === csrfToken;
+    const userId = initiatingSession.userId;
+    const isCurrentContinuation = createPremiumContinuationGuard(initiatingSession, () => sessionRef.current);
     presentPremium?.({
       reason: "feature",
       entryPoint: "accent_color",

@@ -927,12 +927,14 @@ const swCatalog: TranslationCatalog = {
     subtitle: "Dhibiti uhuishaji wa mwitikio unaoonyeshwa baada ya kukadiria kadi.",
     toggleTitle: "Onyesha uhuishaji baada ya kukadiria kadi",
     toggleDescription: "Uhuishaji wa mwitikio wa marudio pekee ndio unaoathirika.",
+    premiumNote: "Kubinafsisha uhuishaji wa marudio kumejumuishwa katika Premium. Chaguo lako lililohifadhiwa hurudi Premium ikiwa hai.",
   },
   aiChatSuggestionsSettings: {
     title: "Mapendekezo ya Gumzo la AI",
     subtitle: "Dhibiti vipande vya maagizo yanayopendekezwa katika sehemu ya kuandika ya gumzo la AI.",
     toggleTitle: "Onyesha mapendekezo katika sehemu ya kuandika ya gumzo la AI",
     toggleDescription: "Maagizo yanayopendekezwa huonekana juu ya sehemu ya kuandika gumzo likiwa tulivu na tayari.",
+    premiumNote: "Kubinafsisha mapendekezo ya gumzo la AI kumejumuishwa katika Premium. Chaguo lako lililohifadhiwa hurudi Premium ikiwa hai.",
   },
   ownOpenAIKeySettings: {
     title: "Ufunguo wako wa OpenAI",

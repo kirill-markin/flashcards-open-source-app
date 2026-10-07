@@ -927,12 +927,14 @@ const lvCatalog: TranslationCatalog = {
     subtitle: "Pārvaldiet reakciju animācijas, kas tiek rādītas pēc kartīšu novērtēšanas.",
     toggleTitle: "Rādīt animācijas pēc kartītes novērtēšanas",
     toggleDescription: "Tiek ietekmētas tikai atkārtošanas reakciju animācijas.",
+    premiumNote: "Atkārtošanas animāciju pielāgošana ir iekļauta Premium. Jūsu saglabātā izvēle atgriežas, kad Premium ir aktīvs.",
   },
   aiChatSuggestionsSettings: {
     title: "MI sarunas ieteikumi",
     subtitle: "Pārvaldiet ieteikto uzvedņu pogas MI sarunas rakstīšanas laukā.",
     toggleTitle: "Rādīt ieteikumus MI sarunas rakstīšanas laukā",
     toggleDescription: "Ieteiktās uzvednes parādās virs rakstīšanas lauka, kad saruna ir dīkstāvē un gatava.",
+    premiumNote: "MI sarunas ieteikumu pielāgošana ir iekļauta Premium. Jūsu saglabātā izvēle atgriežas, kad Premium ir aktīvs.",
   },
   ownOpenAIKeySettings: {
     title: "Jūsu OpenAI atslēga",

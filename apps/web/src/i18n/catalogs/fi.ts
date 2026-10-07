@@ -927,12 +927,14 @@ const fiCatalog: TranslationCatalog = {
     subtitle: "Hallitse korttien arvioinnin jälkeen näytettäviä reaktioanimaatioita.",
     toggleTitle: "Näytä animaatiot kortin arvioinnin jälkeen",
     toggleDescription: "Tämä vaikuttaa vain kertausreaktioiden animaatioihin.",
+    premiumNote: "Kertausanimaatioiden mukauttaminen sisältyy Premiumiin. Tallentamasi valinta palaa käyttöön, kun Premium on voimassa.",
   },
   aiChatSuggestionsSettings: {
     title: "Tekoälykeskustelun ehdotukset",
     subtitle: "Hallitse tekoälykeskustelun kirjoituskentän ehdotuksia.",
     toggleTitle: "Näytä ehdotukset tekoälykeskustelun kirjoituskentässä",
     toggleDescription: "Ehdotukset näkyvät kirjoituskentän yläpuolella, kun keskustelu on valmiina eikä mitään ole kesken.",
+    premiumNote: "Tekoälykeskustelun ehdotusten mukauttaminen sisältyy Premiumiin. Tallentamasi valinta palaa käyttöön, kun Premium on voimassa.",
   },
   ownOpenAIKeySettings: {
     title: "Oma OpenAI-avaimesi",

@@ -936,12 +936,14 @@ const csCatalog: TranslationCatalog = {
     subtitle: "Nastavte reakční animace zobrazené po ohodnocení kartiček.",
     toggleTitle: "Zobrazit animace po ohodnocení kartičky",
     toggleDescription: "Týká se pouze reakčních animací při opakování.",
+    premiumNote: "Úprava animací při opakování je součástí Premium. Vaše uložená volba se vrátí, jakmile bude Premium aktivní.",
   },
   aiChatSuggestionsSettings: {
     title: "Návrhy pro chat s AI",
     subtitle: "Nastavte navrhované pokyny v poli pro psaní zpráv v chatu s AI.",
     toggleTitle: "Zobrazovat návrhy v poli pro psaní zpráv v chatu s AI",
     toggleDescription: "Navrhované pokyny se objeví nad polem pro psaní, když je chat nečinný a připravený.",
+    premiumNote: "Úprava návrhů pro chat s AI je součástí Premium. Vaše uložená volba se vrátí, jakmile bude Premium aktivní.",
   },
   ownOpenAIKeySettings: {
     title: "Váš klíč OpenAI",

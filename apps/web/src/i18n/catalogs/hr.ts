@@ -936,12 +936,14 @@ const hrCatalog: TranslationCatalog = {
     subtitle: "Upravljajte animacijama reakcije koje se prikazuju nakon ocjenjivanja kartica.",
     toggleTitle: "Prikaži animacije nakon ocjenjivanja kartice",
     toggleDescription: "Utječe samo na animacije reakcije na ponavljanje.",
+    premiumNote: "Prilagodba animacija ponavljanja uključena je u Premium. Vaš spremljeni odabir vraća se kada je Premium aktivan.",
   },
   aiChatSuggestionsSettings: {
     title: "Prijedlozi u AI razgovoru",
     subtitle: "Upravljajte predloženim upitima u polju za pisanje AI razgovora.",
     toggleTitle: "Prikaži prijedloge u polju za pisanje AI razgovora",
     toggleDescription: "Predloženi upiti pojavljuju se iznad polja za pisanje kad je razgovor neaktivan i spreman.",
+    premiumNote: "Prilagodba prijedloga u AI razgovoru uključena je u Premium. Vaš spremljeni odabir vraća se kada je Premium aktivan.",
   },
   ownOpenAIKeySettings: {
     title: "Vaš OpenAI ključ",

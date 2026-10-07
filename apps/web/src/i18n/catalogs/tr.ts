@@ -927,12 +927,14 @@ const trCatalog: TranslationCatalog = {
     subtitle: "Kartları değerlendirdikten sonra gösterilen tepki animasyonlarını yönetin.",
     toggleTitle: "Bir kartı değerlendirdikten sonra animasyon göster",
     toggleDescription: "Yalnızca tekrar tepki animasyonları etkilenir.",
+    premiumNote: "Tekrar animasyonlarını özelleştirmek Premium’a dahildir. Kaydettiğiniz seçim Premium etkin olduğunda geri gelir.",
   },
   aiChatSuggestionsSettings: {
     title: "AI Sohbet Önerileri",
     subtitle: "AI sohbetinin yazma alanındaki öneri baloncuklarını yönetin.",
     toggleTitle: "AI sohbetinin yazma alanında öneri göster",
     toggleDescription: "Sohbet boştayken ve hazırken önerilen istemler yazma alanının üstünde görünür.",
+    premiumNote: "AI sohbet önerilerini özelleştirmek Premium’a dahildir. Kaydettiğiniz seçim Premium etkin olduğunda geri gelir.",
   },
   ownOpenAIKeySettings: {
     title: "OpenAI anahtarınız",

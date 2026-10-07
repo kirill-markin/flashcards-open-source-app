@@ -927,12 +927,14 @@ const thCatalog: TranslationCatalog = {
     subtitle: "ควบคุมแอนิเมชันรีแอ็กชันที่แสดงหลังให้คะแนนการ์ด",
     toggleTitle: "แสดงแอนิเมชันหลังให้คะแนนการ์ด",
     toggleDescription: "มีผลกับแอนิเมชันรีแอ็กชันหลังทบทวนเท่านั้น",
+    premiumNote: "การปรับแต่งแอนิเมชันหลังทบทวนรวมอยู่ใน Premium ตัวเลือกที่คุณบันทึกไว้จะกลับมาเมื่อ Premium ใช้งานอยู่",
   },
   aiChatSuggestionsSettings: {
     title: "คำแนะนำในแชท AI",
     subtitle: "ควบคุมชิปคำแนะนำในช่องพิมพ์ของแชท AI",
     toggleTitle: "แสดงคำแนะนำในช่องพิมพ์ของแชท AI",
     toggleDescription: "คำแนะนำจะปรากฏเหนือช่องพิมพ์เมื่อแชทว่างและพร้อมใช้งาน",
+    premiumNote: "การปรับแต่งคำแนะนำในแชท AI รวมอยู่ใน Premium ตัวเลือกที่คุณบันทึกไว้จะกลับมาเมื่อ Premium ใช้งานอยู่",
   },
   ownOpenAIKeySettings: {
     title: "คีย์ OpenAI ของคุณ",
