@@ -18,7 +18,7 @@ RUN curl --fail --silent --show-error https://packages.cloud.google.com/apt/doc/
   && echo "deb [signed-by=/usr/share/keyrings/google-cloud-cli.gpg] https://packages.cloud.google.com/apt cloud-sdk main" \
     > /etc/apt/sources.list.d/google-cloud-sdk.list \
   && apt-get update \
-  && apt-get install --yes --no-install-recommends google-cloud-cli=587.0.0-0 google-cloud-cli-beta=587.0.0-0 \
+  && apt-get install --yes --no-install-recommends google-cloud-cli=588.0.0-0 \
   && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p "${ANDROID_SDK_ROOT}/cmdline-tools" \
