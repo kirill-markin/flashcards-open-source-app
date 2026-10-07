@@ -1,12 +1,13 @@
 # Android CI/CD
 
-This repository uses one reusable Android validation workflow plus three entry workflows: automatic pull-request checks, automatic `push main`, and manual release:
+This repository uses one reusable Android validation workflow with automatic pull-request checks, automatic `push main`, manual release, and a publisher-only recovery entrypoint:
 
 - GitHub Actions is the primary Android CI/CD entrypoint on `main`
 - `.github/workflows/android-ci-reusable.yml` contains the actual Android CI implementation
 - `.github/workflows/pr-checks.yml` contains the required aggregate pull-request gate and conditionally calls the Android validation jobs
 - `.github/workflows/android-ci.yml` is the automatic `push main` Android validation workflow
 - `.github/workflows/android-release.yml` is the manual Android release workflow
+- `.github/workflows/android-release-upload-recovery.yml` recovers only a failed publisher for a pinned, already-tested signed bundle
 - GitHub submits Device Run only from the manual release workflow on Google-managed devices
 - automatic Android CI and manual Android release are fully independent from the AWS/Web release workflow
 - the manual Android release workflow uploads a production-track draft release to Google Play; final publication still happens later in Play Console
@@ -134,12 +135,16 @@ The manual Android release flow is:
 4. Four Device Run sessions execute sequentially for the same CI debug/test APKs: API 37 full suite, then API 30, 31 and 33 smoke, one destination per session
 5. After all four sessions, jobs and executions reach terminal success, the signed Android App Bundle is built and uploaded as a workflow artifact
 6. The R8 optimization coverage gate reads `BUNDLE-METADATA/com.android.tools/r8.json` from that bundle and fails the run when shrinking, optimization, or obfuscation coverage is below Google's 25% minimum
-7. Only then is the bundle uploaded as a Google Play production-track draft with `changesNotSentForReview: true`; review submission remains a manual Play Console action
+7. Only then is the bundle uploaded as a Google Play production-track draft through the guarded [publisher](../scripts/android/publish-play-draft.py); review submission follows the app's actual Play policy
 8. Inspect all four sessions and their named cases under [the Android release procedure](release/android.md), then review the Play Console draft before publishing manually
 
 The upload commits an app-wide Play edit. Follow the [release procedure](release/android.md)
 to inspect pending changes and active reviews before dispatch and after upload;
 draft track status alone does not protect other pending changes from review submission.
+The publisher commits with `ERROR_IF_IN_REVIEW` and omits the conditional
+`changesNotSentForReview` parameter. Workflow tooling is checked out separately
+from the pinned product source. For a failed publisher with passing retained
+build/native gates, follow [exact-bundle recovery](release/android.md#exact-bundle-upload-recovery).
 
 After pushing to `main`, watch `Android CI` separately when Android-impacting files changed.
 

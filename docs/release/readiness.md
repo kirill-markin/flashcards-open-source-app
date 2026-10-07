@@ -163,7 +163,14 @@ GitHub run. Include the latest full inventory and all four smoke methods on
 API 30, 31 and 33 in this one gate, keeping device/session identities distinct
 in case IDs. The build field is the assigned release version code used for
 correlation; retain actual APK metadata separately. Sessions from a different
-run cannot be approved with source equivalence. Submission acceptance is not a
+run cannot be approved with source equivalence. For
+[exact-bundle upload recovery](android.md#exact-bundle-upload-recovery), keep the
+original signed-build/native run identity on both gates. The `cloud-release`
+evidence reference must include the original passing build/R8 evidence and
+separate successful exact-hash publisher recovery, preserving the original
+failed workflow conclusion. Only the recovered compound artifact gate can be
+marked passed; the failed original publisher remains recorded separately.
+Submission acceptance is not a
 passing gate; normalize terminal reports and actual executed, non-skipped cases.
 
 Each result has `gateId`, the same five-field `identity`, `status`,

@@ -1,0 +1,99 @@
+name: Android Release Upload Recovery
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: Original failed Android Release run ID
+        type: string
+        required: true
+      source_run_attempt:
+        description: Original release attempt number
+        type: string
+        required: true
+      source_sha:
+        description: Full original signed artifact source SHA
+        type: string
+        required: true
+      bundle_artifact_id:
+        description: Exact original android-release-bundle artifact ID
+        type: string
+        required: true
+      native_artifact_id:
+        description: Exact original android-device-run-submissions artifact ID
+        type: string
+        required: true
+      aab_sha256:
+        description: Independently verified original signed AAB SHA-256
+        type: string
+        required: true
+      native_summary_sha256:
+        description: Independently verified original native summary SHA-256
+        type: string
+        required: true
+      version_code:
+        description: Original version code - never regenerated
+        type: string
+        required: true
+      play_preflight_confirmed:
+        description: Managed publishing ON, no active review, empty ready-to-submit queue, all retained release gates reviewed
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+  actions: read
+  id-token: write
+
+jobs:
+  recover_upload:
+    name: Recover exact signed Android Play draft upload
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    concurrency:
+      group: android-release-publish-main
+      cancel-in-progress: false
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+      SOURCE_RUN_ATTEMPT: ${{ inputs.source_run_attempt }}
+      ARTIFACT_SOURCE_SHA: ${{ inputs.source_sha }}
+      BUNDLE_ARTIFACT_ID: ${{ inputs.bundle_artifact_id }}
+      NATIVE_ARTIFACT_ID: ${{ inputs.native_artifact_id }}
+      AAB_SHA256: ${{ inputs.aab_sha256 }}
+      NATIVE_SUMMARY_SHA256: ${{ inputs.native_summary_sha256 }}
+      ANDROID_VERSION_CODE: ${{ inputs.version_code }}
+      PLAY_PREFLIGHT_CONFIRMED: ${{ inputs.play_preflight_confirmed }}
+      ANDROID_PLAY_PACKAGE_NAME: ${{ vars.ANDROID_PLAY_PACKAGE_NAME }}
+      ANDROID_DEVICE_RUN_DEVICE: ${{ vars.ANDROID_DEVICE_RUN_DEVICE }}
+      ANDROID_DEVICE_RUN_COMPAT_DEVICES: ${{ vars.ANDROID_DEVICE_RUN_COMPAT_DEVICES }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Verify and download pinned original release evidence
+        env:
+          RECOVERY_EVIDENCE_DIR: ${{ runner.temp }}/android-upload-recovery
+        run: python3 scripts/android/verify-play-upload-recovery.py
+      - uses: google-github-actions/auth@v3
+        id: auth
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_PLAY_SERVICE_ACCOUNT_EMAIL }}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/androidpublisher
+      - name: Commit exact original bundle as guarded production draft
+        env:
+          PLAY_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+          PLAY_PROVENANCE_PATH: ${{ runner.temp }}/android-upload-recovery/play-publisher-provenance.json
+        run: python3 scripts/android/publish-play-draft.py
+      - name: Retain recovery correlation
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-upload-recovery-provenance
+          if-no-files-found: error
+          path: |
+            ${{ runner.temp }}/android-upload-recovery/original-release-provenance.json
+            ${{ runner.temp }}/android-upload-recovery/summary.json
+            ${{ runner.temp }}/android-upload-recovery/play-publisher-provenance.json

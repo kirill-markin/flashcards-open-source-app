@@ -680,7 +680,8 @@ jobs:
       - uses: google-github-actions/auth@v3
         id: auth
         with:
-          create_credentials_file: true
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/androidpublisher
           workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ vars.GCP_PLAY_SERVICE_ACCOUNT_EMAIL }}
           project_id: ${{ vars.GCP_PROJECT_ID }}
@@ -814,16 +815,33 @@ jobs:
             exit 1
           fi
 
-      - name: Upload bundle to Google Play production track as draft release
-        uses: r0adkll/upload-google-play@v1.1.5
+      - name: Check out publisher tooling from the workflow source
+        uses: actions/checkout@v7
         with:
-          serviceAccountJson: ${{ steps.auth.outputs.credentials_file_path }}
-          packageName: ${{ vars.ANDROID_PLAY_PACKAGE_NAME }}
-          releaseFiles: apps/android/app/build/outputs/bundle/release/app-release.aab
-          tracks: production
-          status: draft
-          changesNotSentForReview: true
-          releaseName: ${{ env.ANDROID_PLAY_RELEASE_NAME }}
+          ref: ${{ github.sha }}
+          path: .release-tools
+          sparse-checkout: scripts/android/publish-play-draft.py
+          sparse-checkout-cone-mode: false
+
+      - name: Upload bundle to Google Play production track as draft release
+        env:
+          PLAY_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+          ANDROID_PLAY_PACKAGE_NAME: ${{ vars.ANDROID_PLAY_PACKAGE_NAME }}
+          ARTIFACT_SOURCE_SHA: ${{ needs.preflight.outputs.target_sha }}
+          PLAY_PROVENANCE_PATH: ${{ runner.temp }}/play-publisher-provenance.json
+        run: |
+          export AAB_PATH="apps/android/app/build/outputs/bundle/release/app-release.aab"
+          AAB_SHA256="$(sha256sum "${AAB_PATH}" | cut -d ' ' -f 1)"
+          export AAB_SHA256
+          python3 .release-tools/scripts/android/publish-play-draft.py
+
+      - name: Retain Play publisher correlation
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-play-publisher-provenance
+          if-no-files-found: ignore
+          path: ${{ runner.temp }}/play-publisher-provenance.json
 
       - name: Summarize Play draft upload
         run: |
