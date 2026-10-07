@@ -146,6 +146,7 @@
 "settings.row.reviewInAppStore" = "App Store पर समीक्षा करें";
 "settings.row.sharePrivateFeedback" = "निजी प्रतिक्रिया साझा करें";
 "settings.section.account" = "खाता";
+"settings.section.style" = "शैली";
 "settings.section.general" = "सामान्य";
 "settings.section.support" = "सहायता";
 "settings.section.advanced" = "उन्नत";
@@ -156,7 +157,6 @@
 "settings.row.aiChatSuggestions" = "AI चैट सुझाव";
 "settings.row.leaderboardParticipation" = "लीडरबोर्ड भागीदारी";
 "settings.row.language" = "भाषा";
-"settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "3 अनुमतियां";
 "settings.row.decks" = "डेक";
 "settings.row.workspaceScoped.value" = "कार्यस्थान";
@@ -227,7 +227,7 @@
 "settings.subscription.change" = "सदस्यता बदलें";
 "settings.subscription.manage" = "सदस्यता प्रबंधित करें";
 "settings.language.title" = "भाषा";
-"settings.language.systemDescription" = "iOS ऐप की भाषा नियंत्रित करता है। iOS सेटिंग्स में Nibomo खोलें और पसंदीदा भाषा इस्तेमाल करें। अगर पसंदीदा भाषा दिखाई नहीं देती, तो पहले सेटिंग्स > सामान्य > भाषा और क्षेत्र में कोई दूसरी भाषा जोड़ें।";
+"settings.language.systemDescription" = "iOS ऐप की भाषा नियंत्रित करता है। iOS सेटिंग्स में Nibomo खोलें और भाषा चुनें। अगर भाषा दिखाई नहीं देती, तो पहले सेटिंग्स > सामान्य > भाषा और क्षेत्र में दूसरी भाषा जोड़ें। iOS यह विकल्प तभी दिखाता है जब डिवाइस में एक से ज़्यादा पसंदीदा भाषाएँ हों।";
 "settings.language.action.openAppSettings" = "Nibomo सेटिंग्स खोलें";
 "settings.language.section.supportedLanguages" = "समर्थित भाषाएं";
 "settings.language.supported.english" = "अंग्रेज़ी";

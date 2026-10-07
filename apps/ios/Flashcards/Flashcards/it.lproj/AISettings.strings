@@ -143,6 +143,7 @@
 "settings.row.reviewInAppStore" = "Recensisci su App Store";
 "settings.row.sharePrivateFeedback" = "Invia un feedback privato";
 "settings.section.account" = "Account";
+"settings.section.style" = "Stile";
 "settings.section.general" = "Generali";
 "settings.section.support" = "Assistenza";
 "settings.section.advanced" = "Avanzate";
@@ -153,7 +154,6 @@
 "settings.row.aiChatSuggestions" = "Suggerimenti della chat IA";
 "settings.row.leaderboardParticipation" = "Partecipazione alla classifica";
 "settings.row.language" = "Lingua";
-"settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "3 autorizzazioni";
 "settings.row.decks" = "Mazzi";
 "settings.row.workspaceScoped.value" = "Spazio di lavoro";
@@ -224,7 +224,7 @@
 "settings.subscription.change" = "Modifica abbonamento";
 "settings.subscription.manage" = "Gestisci abbonamento";
 "settings.language.title" = "Lingua";
-"settings.language.systemDescription" = "iOS gestisce la lingua dell’app. Nelle Impostazioni di iOS, apri Nibomo e usa Lingua preferita. Se Lingua preferita non compare, aggiungi prima un’altra lingua in Impostazioni > Generali > Lingua e zona.";
+"settings.language.systemDescription" = "iOS gestisce la lingua dell’app. Nelle Impostazioni di iOS, apri Nibomo e scegli Lingua. Se Lingua non compare, aggiungi prima una seconda lingua in Impostazioni > Generali > Lingua e zona. iOS mostra questa opzione solo quando il dispositivo ha più di una lingua preferita.";
 "settings.language.action.openAppSettings" = "Apri impostazioni di Nibomo";
 "settings.language.section.supportedLanguages" = "Lingue supportate";
 "settings.language.supported.english" = "Inglese";

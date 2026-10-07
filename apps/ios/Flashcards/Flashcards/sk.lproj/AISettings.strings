@@ -143,6 +143,7 @@
 "settings.row.reviewInAppStore" = "Ohodnotiť v App Store";
 "settings.row.sharePrivateFeedback" = "Poslať súkromnú spätnú väzbu";
 "settings.section.account" = "Účet";
+"settings.section.style" = "Štýl";
 "settings.section.general" = "Všeobecné";
 "settings.section.support" = "Podpora";
 "settings.section.advanced" = "Rozšírené";
@@ -153,7 +154,6 @@
 "settings.row.aiChatSuggestions" = "Návrhy AI chatu";
 "settings.row.leaderboardParticipation" = "Účasť v rebríčku";
 "settings.row.language" = "Jazyk";
-"settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "3 povolenia";
 "settings.row.decks" = "Balíčky";
 "settings.row.workspaceScoped.value" = "Pracovný priestor";
@@ -224,7 +224,7 @@
 "settings.subscription.change" = "Zmeniť predplatné";
 "settings.subscription.manage" = "Spravovať predplatné";
 "settings.language.title" = "Jazyk";
-"settings.language.systemDescription" = "Jazyk aplikácie riadi iOS. V Nastaveniach iOS otvorte Nibomo a použite Preferovaný jazyk. Ak sa Preferovaný jazyk nezobrazuje, najprv pridajte ďalší jazyk v Nastavenia > Všeobecné > Jazyk a región.";
+"settings.language.systemDescription" = "Jazyk aplikácie riadi iOS. V Nastaveniach iOS otvorte Nibomo a vyberte Jazyk. Ak sa Jazyk nezobrazuje, najprv pridajte druhý jazyk v Nastavenia > Všeobecné > Jazyk a región. iOS zobrazuje túto voľbu, len keď má zariadenie viac ako jeden preferovaný jazyk.";
 "settings.language.action.openAppSettings" = "Otvoriť nastavenia Nibomo";
 "settings.language.section.supportedLanguages" = "Podporované jazyky";
 "settings.language.supported.english" = "Angličtina";

@@ -143,6 +143,7 @@
 "settings.row.reviewInAppStore" = "Beri ulasan di App Store";
 "settings.row.sharePrivateFeedback" = "Kirim masukan pribadi";
 "settings.section.account" = "Akun";
+"settings.section.style" = "Gaya";
 "settings.section.general" = "Umum";
 "settings.section.support" = "Dukungan";
 "settings.section.advanced" = "Lanjutan";
@@ -153,7 +154,6 @@
 "settings.row.aiChatSuggestions" = "Saran Obrolan AI";
 "settings.row.leaderboardParticipation" = "Partisipasi papan peringkat";
 "settings.row.language" = "Bahasa";
-"settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "3 izin";
 "settings.row.decks" = "Dek";
 "settings.row.workspaceScoped.value" = "Ruang Kerja";
@@ -224,7 +224,7 @@
 "settings.subscription.change" = "Ubah langganan";
 "settings.subscription.manage" = "Kelola langganan";
 "settings.language.title" = "Bahasa";
-"settings.language.systemDescription" = "Bahasa aplikasi diatur oleh iOS. Di Pengaturan iOS, buka Nibomo dan gunakan Bahasa Pilihan. Jika tidak muncul, tambahkan bahasa lain di Pengaturan > Umum > Bahasa & Wilayah terlebih dahulu.";
+"settings.language.systemDescription" = "Bahasa aplikasi diatur oleh iOS. Di Pengaturan iOS, buka Nibomo dan pilih Bahasa. Jika Bahasa tidak muncul, tambahkan bahasa kedua terlebih dahulu di Pengaturan > Umum > Bahasa & Wilayah. iOS hanya menampilkan opsi ini jika perangkat memiliki lebih dari satu bahasa pilihan.";
 "settings.language.action.openAppSettings" = "Buka pengaturan Nibomo";
 "settings.language.section.supportedLanguages" = "Bahasa yang Didukung";
 "settings.language.supported.english" = "Inggris";

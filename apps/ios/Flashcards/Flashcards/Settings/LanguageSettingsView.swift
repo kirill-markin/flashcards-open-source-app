@@ -210,6 +210,17 @@ private func supportedLanguageSettingsItems() -> [SupportedLanguageSettingsItem]
     ]
 }
 
+/// The language iOS resolved for this app, titled as in the Supported Languages list.
+func currentAppLanguageSettingsTitle() -> String? {
+    guard let localeIdentifier = currentAppUILocaleIdentifier() else {
+        return nil
+    }
+
+    return supportedLanguageSettingsItems().first { item in
+        item.id == localeIdentifier
+    }?.title
+}
+
 struct LanguageSettingsView: View {
     var body: some View {
         List {
@@ -217,7 +228,7 @@ struct LanguageSettingsView: View {
                 Text(
                     aiSettingsLocalized(
                         "settings.language.systemDescription",
-                        "iOS controls the app language. In iOS Settings, open Nibomo and use Preferred Language. If Preferred Language is not shown, add another language in Settings > General > Language & Region first."
+                        "iOS controls the app language. In iOS Settings, open Nibomo and choose Language. If Language is not shown, first add a second language in Settings > General > Language & Region. iOS shows this option only when the device has more than one preferred language."
                     )
                 )
                     .foregroundStyle(.secondary)

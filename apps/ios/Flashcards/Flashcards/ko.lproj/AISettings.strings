@@ -143,6 +143,7 @@
 "settings.row.reviewInAppStore" = "App Store에서 리뷰 작성";
 "settings.row.sharePrivateFeedback" = "비공개 피드백 보내기";
 "settings.section.account" = "계정";
+"settings.section.style" = "스타일";
 "settings.section.general" = "일반";
 "settings.section.support" = "지원";
 "settings.section.advanced" = "고급";
@@ -153,7 +154,6 @@
 "settings.row.aiChatSuggestions" = "AI 채팅 제안";
 "settings.row.leaderboardParticipation" = "순위표 참여";
 "settings.row.language" = "언어";
-"settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "권한 3개";
 "settings.row.decks" = "덱";
 "settings.row.workspaceScoped.value" = "작업 공간";
@@ -224,7 +224,7 @@
 "settings.subscription.change" = "구독 변경";
 "settings.subscription.manage" = "구독 관리";
 "settings.language.title" = "언어";
-"settings.language.systemDescription" = "iOS에서 앱 언어를 관리합니다. iOS 설정에서 Nibomo를 열고 선호하는 언어를 선택하세요. 선호하는 언어가 표시되지 않으면 먼저 설정 > 일반 > 언어 및 지역에서 다른 언어를 추가하세요.";
+"settings.language.systemDescription" = "iOS에서 앱 언어를 관리합니다. iOS 설정에서 Nibomo를 열고 언어를 선택하세요. 언어가 표시되지 않으면 먼저 설정 > 일반 > 언어 및 지역에서 두 번째 언어를 추가하세요. iOS는 기기에 선호하는 언어가 두 개 이상 있을 때만 이 옵션을 표시합니다.";
 "settings.language.action.openAppSettings" = "Nibomo 설정 열기";
 "settings.language.section.supportedLanguages" = "지원 언어";
 "settings.language.supported.english" = "영어";

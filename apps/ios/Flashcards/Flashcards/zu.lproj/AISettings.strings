@@ -143,6 +143,7 @@
 "settings.row.reviewInAppStore" = "Bhala isibuyekezo ku-App Store";
 "settings.row.sharePrivateFeedback" = "Thumela impendulo eyimfihlo";
 "settings.section.account" = "I-akhawunti";
+"settings.section.style" = "Isitayela";
 "settings.section.general" = "Okuvamile";
 "settings.section.support" = "Usizo";
 "settings.section.advanced" = "Okuthuthukile";
@@ -153,7 +154,6 @@
 "settings.row.aiChatSuggestions" = "Iziphakamiso zengxoxo ye-AI";
 "settings.row.leaderboardParticipation" = "Ukubamba iqhaza ebhodini labahamba phambili";
 "settings.row.language" = "Ulimi";
-"settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "Izimvume ezingu-3";
 "settings.row.decks" = "Izinqwaba";
 "settings.row.workspaceScoped.value" = "Indawo yokusebenza";
@@ -224,7 +224,7 @@
 "settings.subscription.change" = "Shintsha okubhaliselwe";
 "settings.subscription.manage" = "Phatha okubhaliselwe";
 "settings.language.title" = "Ulimi";
-"settings.language.systemDescription" = "iOS ilawula ulimi lohlelo lokusebenza. Ezilungiselelweni ze-iOS, vula i-Nibomo bese usebenzisa Ulimi olukhethwayo. Uma lungaboniswa, qala ngokwengeza olunye ulimi kokuthi Izilungiselelo > Okuvamile > Ulimi Nesifunda.";
+"settings.language.systemDescription" = "iOS ilawula ulimi lohlelo lokusebenza. Ezilungiselelweni ze-iOS, vula i-Nibomo bese ukhetha Ulimi. Uma Ulimi lungaboniswa, qala ngokwengeza ulimi lwesibili kokuthi Izilungiselelo > Okuvamile > Ulimi Nesifunda. I-iOS ibonisa le nketho kuphela uma idivayisi inolimi olukhethwayo olungaphezu kolulodwa.";
 "settings.language.action.openAppSettings" = "Vula izilungiselelo ze-Nibomo";
 "settings.language.section.supportedLanguages" = "Izilimi ezisekelwayo";
 "settings.language.supported.english" = "IsiNgisi";

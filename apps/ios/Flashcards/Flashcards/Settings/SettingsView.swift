@@ -87,16 +87,6 @@ struct SettingsView: View {
             }
 
             Section(aiSettingsLocalized("settings.section.account", "Account")) {
-                NavigationLink(value: SettingsNavigationDestination.subscription) {
-                    SettingsNavigationRow(
-                        title: aiSettingsLocalized("settings.subscription.title", "Subscription"),
-                        value: store.cloudEntitlement?.tierDisplayName,
-                        systemImage: "creditcard",
-                        attentionCount: nil
-                    )
-                }
-                .accessibilityIdentifier(UITestIdentifier.settingsSubscriptionRow)
-
                 NavigationLink(value: SettingsNavigationDestination.accountStatus) {
                     SettingsNavigationRow(
                         title: aiSettingsLocalized("settings.row.accountStatus", "Account Status"),
@@ -116,9 +106,19 @@ struct SettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsCurrentWorkspaceRow)
+
+                NavigationLink(value: SettingsNavigationDestination.subscription) {
+                    SettingsNavigationRow(
+                        title: aiSettingsLocalized("settings.subscription.title", "Subscription"),
+                        value: store.cloudEntitlement?.tierDisplayName,
+                        systemImage: "creditcard",
+                        attentionCount: nil
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.settingsSubscriptionRow)
             }
 
-            Section(aiSettingsLocalized("settings.section.general", "General")) {
+            Section(aiSettingsLocalized("settings.section.style", "Style")) {
                 NavigationLink(value: SettingsNavigationDestination.accentColor) {
                     HStack {
                         Label {
@@ -135,16 +135,6 @@ struct SettingsView: View {
                     }
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsAccentColorRow)
-
-                NavigationLink(value: SettingsNavigationDestination.notifications) {
-                    SettingsNavigationRow(
-                        title: aiSettingsLocalized("settings.row.notifications", "Notifications"),
-                        value: nil,
-                        systemImage: "bell.badge",
-                        attentionCount: nil
-                    )
-                }
-                .accessibilityIdentifier(UITestIdentifier.settingsReviewRemindersRow)
 
                 NavigationLink(value: SettingsNavigationDestination.reviewAnimations) {
                     SettingsNavigationRow(
@@ -167,18 +157,18 @@ struct SettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsAIChatSuggestionsRow)
+            }
 
-                NavigationLink(value: SettingsNavigationDestination.ownOpenAIKey) {
+            Section(aiSettingsLocalized("settings.section.general", "General")) {
+                NavigationLink(value: SettingsNavigationDestination.notifications) {
                     SettingsNavigationRow(
-                        title: aiSettingsLocalized("settings.ownOpenAIKey.title", "Your OpenAI key"),
-                        value: store.isOwnOpenAIKeyEnabled
-                            ? aiSettingsLocalized("common.on", "On")
-                            : aiSettingsLocalized("common.off", "Off"),
-                        systemImage: "key",
+                        title: aiSettingsLocalized("settings.row.notifications", "Notifications"),
+                        value: nil,
+                        systemImage: "bell.badge",
                         attentionCount: nil
                     )
                 }
-                .accessibilityIdentifier(UITestIdentifier.settingsOwnOpenAIKeyRow)
+                .accessibilityIdentifier(UITestIdentifier.settingsReviewRemindersRow)
 
                 NavigationLink(value: SettingsNavigationDestination.leaderboardParticipation) {
                     SettingsNavigationRow(
@@ -190,22 +180,10 @@ struct SettingsView: View {
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsLeaderboardParticipationRow)
 
-                NavigationLink(value: SettingsNavigationDestination.productAnalytics) {
-                    SettingsNavigationRow(
-                        title: aiSettingsLocalized("settings.productAnalytics.title", "Product Analytics"),
-                        value: store.isProductAnalyticsEnabled
-                            ? aiSettingsLocalized("common.on", "On")
-                            : aiSettingsLocalized("common.off", "Off"),
-                        systemImage: "chart.bar",
-                        attentionCount: nil
-                    )
-                }
-                .accessibilityIdentifier(UITestIdentifier.settingsProductAnalyticsRow)
-
                 NavigationLink(value: SettingsNavigationDestination.language) {
                     SettingsNavigationRow(
                         title: aiSettingsLocalized("settings.row.language", "Language"),
-                        value: aiSettingsLocalized("settings.row.language.value", "iOS"),
+                        value: currentAppLanguageSettingsTitle(),
                         systemImage: "globe",
                         attentionCount: nil
                     )
@@ -306,6 +284,18 @@ struct SettingsView: View {
             }
 
             Section(aiSettingsLocalized("settings.section.advanced", "Advanced")) {
+                NavigationLink(value: SettingsNavigationDestination.ownOpenAIKey) {
+                    SettingsNavigationRow(
+                        title: aiSettingsLocalized("settings.ownOpenAIKey.title", "Your OpenAI key"),
+                        value: store.isOwnOpenAIKeyEnabled
+                            ? aiSettingsLocalized("common.on", "On")
+                            : aiSettingsLocalized("common.off", "Off"),
+                        systemImage: "key",
+                        attentionCount: nil
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.settingsOwnOpenAIKeyRow)
+
                 NavigationLink(value: SettingsNavigationDestination.workspaceScheduler) {
                     SettingsNavigationRow(
                         title: aiSettingsLocalized("settings.row.scheduling", "Scheduling / FSRS"),
@@ -345,6 +335,18 @@ struct SettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsDeviceDiagnosticsRow)
+
+                NavigationLink(value: SettingsNavigationDestination.productAnalytics) {
+                    SettingsNavigationRow(
+                        title: aiSettingsLocalized("settings.productAnalytics.title", "Product Analytics"),
+                        value: store.isProductAnalyticsEnabled
+                            ? aiSettingsLocalized("common.on", "On")
+                            : aiSettingsLocalized("common.off", "Off"),
+                        systemImage: "chart.bar",
+                        attentionCount: nil
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.settingsProductAnalyticsRow)
 
                 NavigationLink(value: SettingsNavigationDestination.resetStudyProgress) {
                     SettingsNavigationRow(
