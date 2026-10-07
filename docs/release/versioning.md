@@ -23,18 +23,20 @@ Update all [app and companion sources](#source-of-truth-by-platform) to that
 target through each repository's normal PR/cloud-CI gates. Keep product and
 plugin versions equal; record any concrete user-approved exception. A bump is
 complete only when all sources and runtime wiring align. Apply the
-[development publication safeguards](#release-closeout-and-development) before
-merging preparation changes to tracked plugin `main`; source alignment alone
-does not authorize provider publication.
+[publication settings and source safeguards](#release-closeout-and-development)
+before merging preparation changes to tracked plugin `main`. Authorized merges
+may publish passing Anthropic updates under the preserved automatic-publication
+policy; verify the resulting exact version and source.
 
 [Verify the release version](#verify-the-release-version) and pin the resulting
 app and companion source SHAs before signed builds, registry publication,
 provider packages, and release metadata. Retain successful **Plugin packages**
 CI artifacts for the exact aligned companion SHA; packaging CI may run as part
 of preparation, but publishing its assets belongs to the authorized release.
-A version-only request stops after source alignment and CI; it does not authorize
-release dispatches or distribution actions. Full releases still require every
-local/cloud and publication gate.
+A version-only request stops after source alignment and CI; its authorized
+tracked-`main` merge may trigger Anthropic automatic publication under the
+preserved policy. It does not authorize additional release dispatches or manual
+distribution actions. Full releases still require every local/cloud and publication gate.
 
 Do not change `/v1` API paths, API Gateway stage names, or MCP `SERVER_VERSION = "v1"` as part of an app release bump. These identify the API contract, not app semver.
 
@@ -72,12 +74,17 @@ without calling pending channels live. Keep the selected version across app and 
 sources after completion and throughout subsequent development; do not pre-bump
 the next minor or create development release packages.
 
-Before any development or preparation commit reaches the plugin's tracked
-`main`, even with unchanged manifest versions, turn Anthropic automatic
-publication off and verify the saved setting and applied policy. Preserve any
-accepted pending release request and its source commit; changing the
-tracked ref can cancel a pending request, so do not use it to bypass review.
-If preservation is blocked, stop the affected merge and report it.
+Keep Anthropic **Publish new versions automatically** and the connected GitHub
+push webhook enabled during development and release preparation. Verify the
+saved settings and applied **Overview → Auto-publish** reviewer policy before
+merging to tracked `main`. Passing tracked-`main` pushes may publish automatically
+under that policy, including with unchanged manifest versions; this publication
+behavior is explicitly authorized. Record each release's exact published or
+pending version and source commit, and complete any available manual **Publish**
+action during an authorized release when provider policy holds the update.
+Preserve accepted pending requests and their source commits; changing the tracked
+ref can cancel a pending request, so do not use it to bypass review. If
+preservation is blocked, stop the affected merge and report it.
 
 Also establish and verify the companion's stable Gemini install/update source
 under its [publishing procedure](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md)
@@ -140,10 +147,13 @@ For every shared-version update, align these files in the separate
 - Versioned archive names in `README.md` and `docs/publishing.md`, when present.
 
 Keep the packaging script's derived archive versions and Antigravity metadata
-derived from the manifests; do not add another version literal. This source
-alignment alone does not authorize publication. A full release includes the
-existing channels in the [inventory](mcp-and-plugins.md#release-inventory) and requires the
-[completion](README.md#release-inventory-and-completion) and development safeguards above; a standalone version bump only aligns source.
+derived from the manifests; do not add another version literal. An authorized
+tracked-`main` merge may trigger Anthropic automatic publication under the
+[publication settings and source safeguards](#release-closeout-and-development).
+A full release includes the existing channels in the
+[inventory](mcp-and-plugins.md#release-inventory) and requires the
+[completion](README.md#release-inventory-and-completion) rules; a standalone
+version bump ends after source alignment and CI with any automatic publication recorded.
 
 ### Web
 

@@ -136,8 +136,10 @@ tracked on `main`. Update these listings; do not create duplicate submissions.
    that repository's [packaging and verification instructions](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md)
    and require its **Plugin packages** cloud CI for the exact source commit.
    Record the merged preparation commit and artifact/run link; apply the
-   [publication safeguards](versioning.md#release-closeout-and-development) before
-   any further merge to tracked `main`. Package validation alone does not verify OAuth or study flows.
+   [publication settings and source safeguards](versioning.md#release-closeout-and-development)
+   before any further merge to tracked `main`. Keep Anthropic automatic
+   publication and the GitHub push webhook enabled; passing pushes may publish
+   under the applied reviewer policy. Package validation alone does not verify OAuth or study flows.
 4. **Plugin update:** after the aligned manifest version and plugin changes
    reach `kirill-markin/nibomo-plugins` `main`, the connected GitHub push webhook
    notifies Anthropic and triggers validation/security scans automatically.
@@ -146,8 +148,9 @@ tracked on `main`. Update these listings; do not create duplicate submissions.
    is only needed if delivery/detection failed or to retry after fixes.
    Follow [Update a published plugin](https://claude.com/docs/plugins/submit#update-a-published-plugin)
    and [Publish a passing version](https://claude.com/docs/plugins/submit#publish-a-passing-version).
-   Check the applied policy in **Overview → Auto-publish** together with
-   **Settings → Publish new versions automatically**. Passing updates publish
+   Verify the GitHub push webhook remains enabled and the saved
+   **Settings → Publish new versions automatically** setting remains on. Check
+   the applied reviewer policy in **Overview → Auto-publish**. Passing updates publish
    automatically only when Anthropic's applied policy allows it, the toggle is
    on, and no reviewer hold applies. Inspect the actual policy and version status
    on every run: a matching version may already have published automatically.
