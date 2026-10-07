@@ -51,7 +51,7 @@ class LocalCloudAccountRepositoryPendingGuestUpgradeRecoveryTest {
     }
 
     @Test
-    fun pendingGuestUpgradeCompletionResumesAfterRestartWhenLinkedHydrationFails() = runBlocking {
+    fun pendingUpgradeResumesAfterRestartWhenLinkedHydrationFails() = runBlocking {
         val localWorkspaceId = environment.requireLocalWorkspaceId()
         val selectedWorkspace = createCloudWorkspaceSummary(
             workspaceId = "workspace-linked",
@@ -164,7 +164,7 @@ class LocalCloudAccountRepositoryPendingGuestUpgradeRecoveryTest {
     }
 
     @Test
-    fun pendingGuestUpgradeCompletionReplaysAfterBackendCompleteResponseIsLost() = runBlocking {
+    fun pendingUpgradeReplaysAfterBackendCompleteResponseLoss() = runBlocking {
         val guestWorkspaceId = environment.requireLocalWorkspaceId()
         val selectedWorkspace = createCloudWorkspaceSummary(
             workspaceId = "workspace-linked",

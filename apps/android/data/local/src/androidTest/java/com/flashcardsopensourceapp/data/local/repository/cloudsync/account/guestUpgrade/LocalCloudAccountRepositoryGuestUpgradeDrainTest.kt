@@ -201,7 +201,7 @@ class LocalCloudAccountRepositoryGuestUpgradeDrainTest {
     }
 
     @Test
-    fun completeGuestUpgradeWaitsForInFlightOutboxMutationTransactionToCommitBeforeDrain() = runBlocking {
+    fun guestUpgradeWaitsForInFlightOutboxTransactionBeforeDrain() = runBlocking {
         val guestWorkspaceId = environment.requireLocalWorkspaceId()
         val selectedWorkspace = createCloudWorkspaceSummary(
             workspaceId = "workspace-linked",
@@ -304,7 +304,7 @@ class LocalCloudAccountRepositoryGuestUpgradeDrainTest {
     }
 
     @Test
-    fun completeGuestUpgradeDoesNotForkGuestIdentityWhenGuestDrainRequiresWorkspaceFork() = runBlocking {
+    fun guestUpgradeKeepsGuestIdentityWhenDrainRequiresWorkspaceFork() = runBlocking {
         val guestWorkspaceId = environment.requireLocalWorkspaceId()
         val installationId = environment.cloudPreferencesStore.currentCloudSettings().installationId
         val seededCardId = environment.seedWorkspaceData(workspaceId = guestWorkspaceId)

@@ -487,7 +487,7 @@ class CloudGuestSessionCoordinatorTest {
     }
 
     @Test
-    fun startupReconciliationResumesPendingGuestUpgradeAfterLocalShellReplacementBeforeCloudSettingsUpdate() = runBlocking {
+    fun startupResumesGuestUpgradeAfterShellReplacementBeforeCloudSettingsUpdate() = runBlocking {
         val guestWorkspaceId = environment.requireLocalWorkspaceId()
         val linkedWorkspace = createCloudWorkspaceSummary(
             workspaceId = "workspace-linked",

@@ -31,7 +31,7 @@ class LocalCloudAccountRepositorySignInPreparationTest {
     }
 
     @Test
-    fun prepareVerifiedSignInPrefersSelectedRemoteWorkspaceAndKeepsLocalActiveWorkspace() = runBlocking {
+    fun verifiedSignInPrefersRemoteWorkspaceAndKeepsLocalActiveWorkspace() = runBlocking {
         val localWorkspaceId = environment.requireLocalWorkspaceId()
         val remoteGateway = FakeCloudRemoteGateway.forAccountSnapshot(
             accountSnapshot = createCloudAccountSnapshot(
