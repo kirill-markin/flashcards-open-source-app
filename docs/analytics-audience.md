@@ -26,7 +26,8 @@ backfill or account-global language inference is performed.
   [failure/staleness alarms](../infra/aws/lib/monitoring.ts)
 - [Synthetic actor detection](../apps/backend/src/productAnalytics/syntheticActorDetector.ts) and
   its [daily schedule](../infra/aws/lib/scheduled-jobs/synthetic-actor-detector.ts): records
-  reviewing actors that no human produced into
+  reviewing actors that no human produced, and short-lived Android guest installs arriving in
+  same-device bursts, into
   [`analytics.excluded_actors`](../db/migrations/0140_analytics_excluded_actors.sql), one row per
   matched analytics actor id, with a per-actor log record and a Sentry warning on an unusually
   large run.
