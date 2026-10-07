@@ -125,6 +125,16 @@ export type ChatWorkerTerminalStateDetails = ChatWorkerLifecycleDetails & Readon
   userSuppliedKey: boolean;
 }>;
 
+/** A model call OpenAI overloaded mid-stream before any output reached the client, about to be retried. */
+export type ChatWorkerProviderCallRetriedDetails = Readonly<{
+  callIndex: number;
+  userSuppliedKey: boolean;
+  providerErrorCode: string | null;
+  providerErrorType: string | null;
+  providerRequestId: string | null;
+  retryDelayMs: number;
+}>;
+
 export type ChatWorkerDispatchFailureDetails = Readonly<{
   message: string;
 }>;
@@ -358,6 +368,9 @@ export type ChatWarningEvent =
   | (EventByAction<"chat_live_write_failed", ChatLiveLifecycleDetails> & Readonly<{ message: string }>)
   | (EventByAction<"chat_worker_terminal_state_persisted", ChatWorkerTerminalStateDetails> & Readonly<{ message: string }>)
   | (EventByAction<"chat_worker_composer_suggestions_failed", ChatWorkerLifecycleDetails> & Readonly<{ message: string }>)
+  | (EventByAction<"chat_worker_provider_call_retried", ChatWorkerProviderCallRetriedDetails> & Readonly<{
+    message: string;
+  }>)
   | (EventByAction<"chat_transcription_failed", ChatTranscriptionFailureDetails> & Readonly<{ message: string }>)
   // A provider that answered without any usage numbers. The fact row is still appended with null
   // counters, so this warning is what makes an unpriceable call countable instead of invisible.

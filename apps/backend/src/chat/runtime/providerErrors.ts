@@ -362,6 +362,18 @@ export function isUserAbortError(error: unknown): boolean {
     || (error instanceof Error && error.name === "AbortError");
 }
 
+/**
+ * OpenAI reported overload inside a stream it had already answered with HTTP 200. The SDK turns that
+ * in-stream `error` event into an `APIError` without a status, which its own HTTP retry never sees.
+ */
+export function isTransientProviderOverloadError(
+  error: unknown,
+): error is InstanceType<typeof OpenAI.APIError> {
+  return error instanceof OpenAI.APIError
+    && error.status === undefined
+    && (error.code === "server_is_overloaded" || error.type === "service_unavailable_error");
+}
+
 export function isContextLengthExceededError(error: unknown): boolean {
   return readErrorRecordStringField(error, "code") === "context_length_exceeded";
 }

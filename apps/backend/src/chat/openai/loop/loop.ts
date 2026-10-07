@@ -38,7 +38,11 @@ import {
 } from "../../../aiUsage";
 import type { EntitlementTier } from "../../../billing/tiers";
 import type { UserOpenAIApiKey } from "../../userOpenAIApiKey";
-import { addBackendBreadcrumb, createBackendObservationScope } from "../../../observability/sentry";
+import {
+  addBackendBreadcrumb,
+  createBackendObservationScope,
+  type BackendObservationScope,
+} from "../../../observability/sentry";
 import {
   buildOpenAIResponsesRequest,
   buildPromptCacheKey,
@@ -177,6 +181,22 @@ async function recordModelCallUsage(
   });
 }
 
+function createChatLoopObservationScope(params: StartOpenAILoopParams): BackendObservationScope {
+  return createBackendObservationScope(
+    "chat-worker",
+    null,
+    null,
+    null,
+    params.userId,
+    params.workspaceId,
+    params.requestId,
+    params.runId,
+    params.sessionId,
+    null,
+    params.clientPlatform,
+  );
+}
+
 function setExecutionPhase(
   params: StartOpenAILoopParams,
   phase: "idle" | "model" | "tool",
@@ -238,6 +258,7 @@ async function runModelCallWithOverflowRetry(
       request: buildRequest(baseInput),
       callIndex,
       userSuppliedKey: params.userOpenAIApiKey !== null,
+      observationScope: createChatLoopObservationScope(params),
     });
     await recordModelCallUsage(params, dependencies, modelCall);
     return { baseInput, modelCall };
@@ -261,6 +282,7 @@ async function runModelCallWithOverflowRetry(
       request: buildRequest(reducedBaseInput),
       callIndex,
       userSuppliedKey: params.userOpenAIApiKey !== null,
+      observationScope: createChatLoopObservationScope(params),
     });
     await recordModelCallUsage(params, dependencies, retriedModelCall);
     return { baseInput: reducedBaseInput, modelCall: retriedModelCall };
@@ -461,19 +483,7 @@ export async function startOpenAILoopWithDeps(
   if (history.droppedReasoningItems > 0) {
     addBackendBreadcrumb({
       action: "chat_replay_reasoning_items_dropped",
-      scope: createBackendObservationScope(
-        "chat-worker",
-        null,
-        null,
-        null,
-        params.userId,
-        params.workspaceId,
-        params.requestId,
-        params.runId,
-        params.sessionId,
-        null,
-        params.clientPlatform,
-      ),
+      scope: createChatLoopObservationScope(params),
       details: { droppedReasoningItems: history.droppedReasoningItems, userSuppliedKey },
     });
   }
