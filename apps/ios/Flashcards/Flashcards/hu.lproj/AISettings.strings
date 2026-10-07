@@ -143,6 +143,7 @@
 "settings.row.reviewInAppStore" = "Értékelés az App Store-ban";
 "settings.row.sharePrivateFeedback" = "Privát visszajelzés küldése";
 "settings.section.account" = "Fiók";
+"settings.section.style" = "Stílus";
 "settings.section.general" = "Általános";
 "settings.section.support" = "Támogatás";
 "settings.section.advanced" = "Speciális";
@@ -153,7 +154,6 @@
 "settings.row.aiChatSuggestions" = "AI-csevegési javaslatok";
 "settings.row.leaderboardParticipation" = "Ranglista-részvétel";
 "settings.row.language" = "Nyelv";
-"settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "3 engedély";
 "settings.row.decks" = "Paklik";
 "settings.row.workspaceScoped.value" = "Munkaterület";
@@ -224,7 +224,7 @@
 "settings.subscription.change" = "Előfizetés módosítása";
 "settings.subscription.manage" = "Előfizetés kezelése";
 "settings.language.title" = "Nyelv";
-"settings.language.systemDescription" = "Az alkalmazás nyelvét az iOS kezeli. Az iOS Beállításokban nyisd meg a Nibomót, és válaszd az Előnyben részesített nyelvet. Ha ez nem látható, előbb adj hozzá egy másik nyelvet a Beállítások > Általános > Nyelv és régió alatt.";
+"settings.language.systemDescription" = "Az alkalmazás nyelvét az iOS kezeli. Az iOS Beállításokban nyisd meg a Nibomót, és válaszd a Nyelv lehetőséget. Ha a Nyelv nem látható, előbb adj hozzá egy második nyelvet a Beállítások > Általános > Nyelv és régió alatt. Az iOS csak akkor mutatja ezt a lehetőséget, ha az eszközön egynél több előnyben részesített nyelv van.";
 "settings.language.action.openAppSettings" = "Nibomo beállításainak megnyitása";
 "settings.language.section.supportedLanguages" = "Támogatott nyelvek";
 "settings.language.supported.english" = "Angol";

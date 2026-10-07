@@ -146,6 +146,7 @@
 "settings.row.reviewInAppStore" = "Оставить отзыв в App Store";
 "settings.row.sharePrivateFeedback" = "Отправить личный отзыв";
 "settings.section.account" = "Аккаунт";
+"settings.section.style" = "Стиль";
 "settings.section.general" = "Общие";
 "settings.section.support" = "Поддержка";
 "settings.section.advanced" = "Дополнительно";
@@ -156,7 +157,6 @@
 "settings.row.aiChatSuggestions" = "Подсказки AI-чата";
 "settings.row.leaderboardParticipation" = "Участие в таблице лидеров";
 "settings.row.language" = "Язык";
-"settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "3 разрешения";
 "settings.row.decks" = "Колоды";
 "settings.row.workspaceScoped.value" = "Рабочая область";
@@ -227,7 +227,7 @@
 "settings.subscription.change" = "Изменить подписку";
 "settings.subscription.manage" = "Управлять подпиской";
 "settings.language.title" = "Язык";
-"settings.language.systemDescription" = "iOS управляет языком приложения. В настройках iOS откройте Nibomo и используйте «Предпочитаемый язык». Если «Предпочитаемый язык» не отображается, сначала добавьте другой язык в «Настройки» > «Основные» > «Язык и регион».";
+"settings.language.systemDescription" = "iOS управляет языком приложения. В настройках iOS откройте Nibomo и выберите «Язык». Если пункта «Язык» нет, сначала добавьте второй язык в «Настройки» > «Основные» > «Язык и регион». iOS показывает этот пункт, только если на устройстве выбрано больше одного предпочитаемого языка.";
 "settings.language.action.openAppSettings" = "Открыть настройки Nibomo";
 "settings.language.section.supportedLanguages" = "Поддерживаемые языки";
 "settings.language.supported.english" = "Английский";

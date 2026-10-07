@@ -143,6 +143,7 @@
 "settings.row.reviewInAppStore" = "Αξιολόγηση στο App Store";
 "settings.row.sharePrivateFeedback" = "Αποστολή ιδιωτικών σχολίων";
 "settings.section.account" = "Λογαριασμός";
+"settings.section.style" = "Στυλ";
 "settings.section.general" = "Γενικά";
 "settings.section.support" = "Υποστήριξη";
 "settings.section.advanced" = "Για προχωρημένους";
@@ -153,7 +154,6 @@
 "settings.row.aiChatSuggestions" = "Προτάσεις συνομιλίας με ΤΝ";
 "settings.row.leaderboardParticipation" = "Συμμετοχή στην κατάταξη";
 "settings.row.language" = "Γλώσσα";
-"settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "3 άδειες";
 "settings.row.decks" = "Δέσμες";
 "settings.row.workspaceScoped.value" = "Χώρος εργασίας";
@@ -224,7 +224,7 @@
 "settings.subscription.change" = "Αλλαγή συνδρομής";
 "settings.subscription.manage" = "Διαχείριση συνδρομής";
 "settings.language.title" = "Γλώσσα";
-"settings.language.systemDescription" = "Το iOS ελέγχει τη γλώσσα της εφαρμογής. Στις Ρυθμίσεις iOS, ανοίξτε το Nibomo και χρησιμοποιήστε την Προτιμώμενη γλώσσα. Αν δεν εμφανίζεται, προσθέστε πρώτα άλλη γλώσσα στις Ρυθμίσεις > Γενικά > Γλώσσα και περιοχή.";
+"settings.language.systemDescription" = "Το iOS ελέγχει τη γλώσσα της εφαρμογής. Στις Ρυθμίσεις iOS, ανοίξτε το Nibomo και επιλέξτε Γλώσσα. Αν δεν εμφανίζεται η επιλογή Γλώσσα, προσθέστε πρώτα μια δεύτερη γλώσσα στις Ρυθμίσεις > Γενικά > Γλώσσα και περιοχή. Το iOS εμφανίζει αυτή την επιλογή μόνο όταν η συσκευή έχει περισσότερες από μία προτιμώμενες γλώσσες.";
 "settings.language.action.openAppSettings" = "Άνοιγμα ρυθμίσεων Nibomo";
 "settings.language.section.supportedLanguages" = "Υποστηριζόμενες γλώσσες";
 "settings.language.supported.english" = "Αγγλικά";

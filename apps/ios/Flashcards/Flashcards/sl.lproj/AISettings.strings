@@ -143,6 +143,7 @@
 "settings.row.reviewInAppStore" = "Oceni v App Store";
 "settings.row.sharePrivateFeedback" = "Pošlji zasebne povratne informacije";
 "settings.section.account" = "Račun";
+"settings.section.style" = "Slog";
 "settings.section.general" = "Splošno";
 "settings.section.support" = "Podpora";
 "settings.section.advanced" = "Napredno";
@@ -153,7 +154,6 @@
 "settings.row.aiChatSuggestions" = "Predlogi klepeta z UI";
 "settings.row.leaderboardParticipation" = "Sodelovanje na lestvici";
 "settings.row.language" = "Jezik";
-"settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "3 dovoljenja";
 "settings.row.decks" = "Kompleti";
 "settings.row.workspaceScoped.value" = "Delovni prostor";
@@ -224,7 +224,7 @@
 "settings.subscription.change" = "Spremeni naročnino";
 "settings.subscription.manage" = "Upravljanje naročnine";
 "settings.language.title" = "Jezik";
-"settings.language.systemDescription" = "Jezik aplikacije določa iOS. V Nastavitvah iOS odprite Nibomo in uporabite Prednostni jezik. Če Prednostni jezik ni prikazan, najprej dodajte drug jezik v Nastavitve > Splošno > Jezik in regija.";
+"settings.language.systemDescription" = "Jezik aplikacije določa iOS. V Nastavitvah iOS odprite Nibomo in izberite Jezik. Če Jezik ni prikazan, najprej dodajte drug jezik v Nastavitve > Splošno > Jezik in regija. iOS to možnost prikaže le, ko ima naprava več kot en prednostni jezik.";
 "settings.language.action.openAppSettings" = "Odpri nastavitve Nibomo";
 "settings.language.section.supportedLanguages" = "Podprti jeziki";
 "settings.language.supported.english" = "Angleščina";

@@ -143,6 +143,7 @@
 "settings.row.reviewInAppStore" = "Įvertinti App Store";
 "settings.row.sharePrivateFeedback" = "Siųsti privatų atsiliepimą";
 "settings.section.account" = "Paskyra";
+"settings.section.style" = "Stilius";
 "settings.section.general" = "Bendra";
 "settings.section.support" = "Pagalba";
 "settings.section.advanced" = "Išplėstiniai";
@@ -153,7 +154,6 @@
 "settings.row.aiChatSuggestions" = "DI pokalbio pasiūlymai";
 "settings.row.leaderboardParticipation" = "Dalyvavimas lyderių lentelėje";
 "settings.row.language" = "Kalba";
-"settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "3 leidimai";
 "settings.row.decks" = "Kaladės";
 "settings.row.workspaceScoped.value" = "Darbo sritis";
@@ -224,7 +224,7 @@
 "settings.subscription.change" = "Keisti prenumeratą";
 "settings.subscription.manage" = "Tvarkyti prenumeratą";
 "settings.language.title" = "Kalba";
-"settings.language.systemDescription" = "iOS valdo programėlės kalbą. iOS nustatymuose atidarykite Nibomo ir pasirinkite pageidaujamą kalbą. Jei šio pasirinkimo nėra, pirmiausia pridėkite kitą kalbą: Nustatymai > Bendra > Kalba ir regionas.";
+"settings.language.systemDescription" = "iOS valdo programėlės kalbą. iOS nustatymuose atidarykite Nibomo ir pasirinkite Kalba. Jei parinkties Kalba nėra, pirmiausia pridėkite antrą kalbą: Nustatymai > Bendra > Kalba ir regionas. iOS rodo šią parinktį tik tada, kai įrenginyje nustatyta daugiau nei viena pageidaujama kalba.";
 "settings.language.action.openAppSettings" = "Atidaryti Nibomo nustatymus";
 "settings.language.section.supportedLanguages" = "Palaikomos kalbos";
 "settings.language.supported.english" = "Anglų";
