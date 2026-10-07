@@ -67,6 +67,8 @@ struct ProgressScreen: View {
                         ProgressUnavailableCard()
                     }
                 }
+                .frame(maxWidth: flashcardsReadableContentMaxWidth)
+                .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 20)
             }

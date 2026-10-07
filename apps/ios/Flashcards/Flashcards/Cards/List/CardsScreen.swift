@@ -216,6 +216,13 @@ struct CardsScreen: View {
                 .tint(Color.primary)
                 .accessibilityIdentifier(UITestIdentifier.cardsAddButton)
             }
+
+            if self.horizontalSizeClass == .regular || self.navigation.isAICompanionVisible {
+                if #available(iOS 26.0, *) {
+                    ToolbarSpacer(.fixed, placement: .topBarTrailing)
+                }
+                AICompanionToolbarItem()
+            }
         }
         .sheet(
             item: self.$editorPresentation,
@@ -663,16 +670,35 @@ struct CardRow: View {
                 .font(.headline)
                 .foregroundStyle(.primary)
 
-            HStack(spacing: 12) {
-                Label(card.tags.isEmpty ? localizedNoTagsLabel() : formatTags(tags: card.tags), systemImage: "tag")
-                Label(localizedCardDueValue(dueAt: card.dueAt), systemImage: "clock")
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 12) {
+                    self.tagsLabel
+                    self.dueLabel
+                }
+                .fixedSize(horizontal: true, vertical: false)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    self.tagsLabel
+                    self.dueLabel
+                }
             }
+            .labelStyle(.titleAndIcon)
+            .fixedSize(horizontal: false, vertical: true)
             .font(.caption)
             .foregroundStyle(.secondary)
         }
+        .fixedSize(horizontal: false, vertical: true)
         .padding(.vertical, 4)
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
+    }
+
+    private var tagsLabel: some View {
+        Label(card.tags.isEmpty ? localizedNoTagsLabel() : formatTags(tags: card.tags), systemImage: "tag")
+    }
+
+    private var dueLabel: some View {
+        Label(localizedCardDueValue(dueAt: card.dueAt), systemImage: "clock")
     }
 }
 

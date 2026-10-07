@@ -1,6 +1,7 @@
 import Foundation
 import StoreKit
 import SwiftUI
+import UIKit
 
 private let rootTabUITestLaunchScenarioEnvironmentKey: String = "FLASHCARDS_UI_TEST_LAUNCH_SCENARIO"
 
@@ -20,6 +21,8 @@ private struct GuestSignInAfterReviewPromptRecheckTaskID: Hashable {
 
 struct RootTabView: View {
     @Environment(\.requestReview) private var requestReview
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.scenePhase) private var scenePhase
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
@@ -27,6 +30,8 @@ struct RootTabView: View {
     @Environment(AppleSubscriptionService.self) private var appleSubscriptions: AppleSubscriptionService
     @State private var premiumPresenter: PremiumPresenter = PremiumPresenter()
     @State private var isGuestSignInCloudSignInPresented: Bool = false
+    @State private var isKeyboardDocked: Bool = false
+    @State private var aiCompanionAvailableWidth: CGFloat = 0
 
     private var isGuestSignInAfterReviewPromptBlockedByModal: Bool {
         self.isGuestSignInCloudSignInPresented
@@ -390,25 +395,157 @@ struct RootTabView: View {
         )
 
         return TabView(selection: selectedTabBinding) {
-            self.reviewTab
-            self.progressTab
-            self.aiTab
-            self.cardsTab
-            self.settingsTab(settingsPath: $navigation.settingsPath)
+            Tab(value: AppTab.review) {
+                self.reviewTab
+                    .modifier(TabSidebarVisibilityReader(tab: .review))
+            } label: {
+                self.tabLabel(.review, identifier: UITestIdentifier.rootTabReviewItem)
+            }
+            .badge(self.reviewReminderAttentionBadgeCount)
+
+            Tab(value: AppTab.progress) {
+                self.progressTab
+                    .modifier(TabSidebarVisibilityReader(tab: .progress))
+            } label: {
+                self.tabLabel(.progress, identifier: UITestIdentifier.rootTabProgressItem)
+            }
+
+            Tab(value: AppTab.ai) {
+                self.aiTab
+                    .modifier(TabSidebarVisibilityReader(tab: .ai))
+            } label: {
+                self.tabLabel(.ai, identifier: UITestIdentifier.rootTabAIItem)
+            }
+
+            Tab(value: AppTab.cards) {
+                self.cardsTab
+                    .modifier(TabSidebarVisibilityReader(tab: .cards))
+            } label: {
+                self.tabLabel(.cards, identifier: UITestIdentifier.rootTabCardsItem)
+            }
+
+            Tab(value: AppTab.settings) {
+                self.settingsTab(settingsPath: $navigation.settingsPath)
+                    .modifier(TabSidebarVisibilityReader(tab: .settings))
+            } label: {
+                self.tabLabel(.settings, identifier: UITestIdentifier.rootTabSettingsItem)
+            }
+            .badge(self.settingsAttentionSummary.settingsTabCount)
         }
     }
 
     @ViewBuilder
     private var tabRootPresentation: some View {
         if #available(iOS 26.0, *) {
-            self.tabRootBase.tabBarMinimizeBehavior(.never)
+            self.tabRootBase
+                .tabViewStyle(.sidebarAdaptable)
+                .tabBarMinimizeBehavior(.never)
         } else {
             self.tabRootBase
+                .tabViewStyle(.sidebarAdaptable)
         }
     }
 
+    private func tabLabel(_ tab: AppTab, identifier: String) -> some View {
+        Label(tab.localizedTitle, systemImage: tab.systemImage)
+            .accessibilityIdentifier(identifier)
+    }
+
+    private func returnAICompanionToTrailing() {
+        guard self.navigation.isAICompanionLeading else { return }
+        withAnimation(self.reduceMotion ? nil : .smooth(duration: 0.35)) {
+            self.navigation.isAICompanionLeading = false
+        }
+    }
+
+    private func aiCompanionPane(isLeading: Bool, hostTab: AppTab? = nil) -> some View {
+        AIChatView(chatStore: store.aiChatStore, isCompanion: true, isCompanionLeading: isLeading, companionHostTab: hostTab)
+            .ignoresSafeArea(self.isKeyboardDocked ? [] : .keyboard, edges: .bottom)
+            .background(Color(uiColor: .systemBackground))
+            .presentationBackground(Color(uiColor: .systemBackground))
+    }
+
+    private var usesSideBySideAICompanion: Bool {
+        self.horizontalSizeClass == .regular
+    }
+
+    private var aiCompanionColumnWidth: CGFloat {
+        min(400, max(320, self.aiCompanionAvailableWidth / 3))
+    }
+
     private var tabRootTasks: some View {
-        self.tabRootPresentation
+        HStack(spacing: 0) {
+            // Reserve the same native content bounds on either side.
+            // Both slots and TabView retain their identities when the pane moves.
+            Color.clear
+                .frame(width: self.usesSideBySideAICompanion && self.navigation.isAICompanionVisible && self.navigation.isAICompanionLeading
+                    ? self.aiCompanionColumnWidth : 0)
+                .accessibilityHidden(true)
+            self.tabRootPresentation
+            Color.clear
+                .frame(width: self.usesSideBySideAICompanion && self.navigation.isAICompanionVisible && self.navigation.isAICompanionLeading == false
+                    ? self.aiCompanionColumnWidth : 0)
+                .accessibilityHidden(true)
+        }
+        .overlay(alignment: .leading) {
+            if self.usesSideBySideAICompanion && self.navigation.isAICompanionVisible && self.navigation.isAICompanionLeading {
+                self.aiCompanionPane(isLeading: true)
+                    .frame(width: self.aiCompanionColumnWidth)
+                    .overlay(alignment: .trailing) {
+                        HStack(spacing: 0) { Divider() }.frame(width: 1)
+                    }
+                    .transition(.move(edge: .leading).combined(with: .opacity))
+            }
+        }
+        .overlay(alignment: .trailing) {
+            if self.usesSideBySideAICompanion && self.navigation.isAICompanionVisible && self.navigation.isAICompanionLeading == false {
+                self.aiCompanionPane(isLeading: false)
+                    .frame(width: self.aiCompanionColumnWidth)
+                    .overlay(alignment: .leading) {
+                        HStack(spacing: 0) { Divider() }.frame(width: 1)
+                    }
+                    .transition(.move(edge: .trailing).combined(with: .opacity))
+            }
+        }
+        .animation(self.reduceMotion ? nil : .smooth(duration: 0.35), value: self.navigation.isAICompanionLeading)
+        .animation(self.reduceMotion ? nil : .smooth(duration: 0.35), value: self.navigation.isAICompanionVisible)
+        .onChange(of: self.navigation.isAICompanionLeadingAvailable) { _, isAvailable in
+            if isAvailable == false {
+                self.returnAICompanionToTrailing()
+            }
+        }
+        .onChange(of: self.horizontalSizeClass) { _, sizeClass in
+            if sizeClass != .regular {
+                self.returnAICompanionToTrailing()
+            }
+        }
+        .onGeometryChange(for: CGFloat.self) { geometry in
+            geometry.size.width
+        } action: { width in
+            self.aiCompanionAvailableWidth = width
+        }
+        // A floating keyboard is an overlay, not a bottom inset. Keep SwiftUI's
+        // normal avoidance only when the native guide reports a docked keyboard.
+        .ignoresSafeArea(self.isKeyboardDocked ? [] : .keyboard, edges: .bottom)
+        .environment(\.isKeyboardDocked, self.isKeyboardDocked)
+        .background {
+            DockedKeyboardObserver(isDocked: self.$isKeyboardDocked)
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
+        .onChange(of: self.navigation.isAIChatVisible) { _, isVisible in
+            // Both AI presentations share one chat session and composer draft.
+            self.store.aiChatStore.updateSurface(activity: AIChatSurfaceActivity(
+                isSceneActive: self.scenePhase == .active,
+                isAITabSelected: isVisible,
+                hasExternalProviderConsent: self.store.aiChatStore.hasExternalProviderConsent,
+                workspaceId: self.store.workspace?.workspaceId,
+                cloudState: self.store.cloudSettings?.cloudState,
+                linkedUserId: self.store.cloudSettings?.linkedUserId,
+                activeWorkspaceId: self.store.cloudSettings?.activeWorkspaceId
+            ))
+        }
         .task {
             let previousTab = store.currentVisibleTab
             prepareVisibleTabForPresentationWithBreadcrumb(
@@ -574,20 +711,41 @@ struct RootTabView: View {
                 .overlay(alignment: .topLeading) {
                     self.reviewReminderAttentionBadgeMarker
                 }
+                .inspector(isPresented: self.aiCompanionInspectorPresentation(for: .review)) {
+                    self.trailingAICompanion(for: .review)
+                }
         }
-        .tabItem {
-            Label(
-                String(
-                    localized: "root_tab.review.title",
-                    table: "Foundation",
-                    comment: "Review tab title"
-                ),
-                systemImage: "rectangle.on.rectangle"
-            )
-            .accessibilityIdentifier(UITestIdentifier.rootTabReviewItem)
+    }
+
+    private func aiCompanionInspectorPresentation(for hostTab: AppTab) -> Binding<Bool> {
+        Binding(
+            get: {
+                self.navigation.selectedTab == hostTab
+                    && self.navigation.isAICompanionVisible
+                    && self.navigation.isAICompanionLeading == false
+                    && self.usesSideBySideAICompanion == false
+            },
+            set: { isPresented in
+                // Hidden tabs and a pane changing sides or hosts cannot dismiss its new owner.
+                guard self.navigation.selectedTab == hostTab,
+                      self.navigation.isAICompanionLeading == false,
+                      self.usesSideBySideAICompanion == false else { return }
+                withAnimation(self.reduceMotion ? nil : .smooth(duration: 0.35)) {
+                    self.navigation.isAICompanionPresented = isPresented
+                }
+            }
+        )
+    }
+
+    @ViewBuilder
+    private func trailingAICompanion(for hostTab: AppTab) -> some View {
+        if self.navigation.selectedTab == hostTab,
+           self.navigation.isAICompanionVisible,
+           self.navigation.isAICompanionLeading == false,
+           self.usesSideBySideAICompanion == false {
+            self.aiCompanionPane(isLeading: false, hostTab: hostTab)
+                .inspectorColumnWidth(min: 320, ideal: 400, max: 520)
         }
-        .badge(self.reviewReminderAttentionBadgeCount)
-        .tag(AppTab.review)
     }
 
     @ViewBuilder
@@ -606,58 +764,24 @@ struct RootTabView: View {
         NavigationStack {
             ProgressScreen()
         }
-        .tabItem {
-            Label(
-                String(
-                    localized: "root_tab.progress.title",
-                    defaultValue: "Progress",
-                    table: "Foundation",
-                    comment: "Progress tab title"
-                ),
-                systemImage: "chart.bar.xaxis"
-            )
-            .accessibilityIdentifier(UITestIdentifier.rootTabProgressItem)
-        }
-        .tag(AppTab.progress)
     }
 
     private var aiTab: some View {
         NavigationStack {
-            AIChatView(chatStore: store.aiChatStore)
-                .id(self.navigation.aiTabVisitID)
+            if self.navigation.selectedTab == .ai {
+                AIChatView(chatStore: store.aiChatStore)
+            }
         }
-        .tabItem {
-            Label(
-                String(
-                    localized: "root_tab.ai.title",
-                    defaultValue: "AI",
-                    table: "Foundation",
-                    comment: "AI tab title"
-                ),
-                systemImage: "sparkles.rectangle.stack"
-            )
-            .accessibilityIdentifier(UITestIdentifier.rootTabAIItem)
-        }
-        .tag(AppTab.ai)
+        .id(self.navigation.aiTabVisitID)
     }
 
     private var cardsTab: some View {
         NavigationStack {
             CardsScreen()
+                .inspector(isPresented: self.aiCompanionInspectorPresentation(for: .cards)) {
+                    self.trailingAICompanion(for: .cards)
+                }
         }
-        .tabItem {
-            Label(
-                String(
-                    localized: "root_tab.cards.title",
-                    defaultValue: "Cards",
-                    table: "Foundation",
-                    comment: "Cards tab title"
-                ),
-                systemImage: "rectangle.stack"
-            )
-            .accessibilityIdentifier(UITestIdentifier.rootTabCardsItem)
-        }
-        .tag(AppTab.cards)
     }
 
     private func settingsTab(settingsPath: Binding<[SettingsNavigationDestination]>) -> some View {
@@ -667,19 +791,6 @@ struct RootTabView: View {
                     self.settingsDestinationView(destination: destination)
                 }
         }
-        .tabItem {
-            Label(
-                String(
-                    localized: "root_tab.settings.title",
-                    table: "Foundation",
-                    comment: "Settings tab title"
-                ),
-                systemImage: "gearshape"
-            )
-            .accessibilityIdentifier(UITestIdentifier.rootTabSettingsItem)
-        }
-        .badge(self.settingsAttentionSummary.settingsTabCount)
-        .tag(AppTab.settings)
     }
 
     @ViewBuilder

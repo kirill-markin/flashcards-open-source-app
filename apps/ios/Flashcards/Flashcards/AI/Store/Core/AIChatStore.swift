@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import SwiftUI
 
 fileprivate struct AIChatStatePersistKey: Hashable, Sendable {
     let workspaceId: String?
@@ -75,6 +76,9 @@ final class AIChatStore {
     var surfaceState: AIChatSurfaceState
     var runLifecycle: AIChatRunLifecycle
     var activeRunSession: AIChatActiveRunSession?
+    // Keep the current draft selection when its tab or companion changes hosts.
+    // Selection is transient UI state and is not persisted with the draft.
+    var composerSelection: TextSelection?
 
     var inputText: String {
         get { self.composerState.inputText }
@@ -530,6 +534,9 @@ final class AIChatStore {
         inputText: String,
         pendingAttachments: [AIChatAttachment]
     ) {
+        if self.inputText != inputText {
+            self.composerSelection = nil
+        }
         var updatedState = self.composerState
         updatedState.inputText = inputText
         updatedState.pendingAttachments = pendingAttachments

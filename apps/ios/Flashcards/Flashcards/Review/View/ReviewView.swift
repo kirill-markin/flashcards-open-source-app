@@ -6,9 +6,8 @@ private let reviewBottomBarHorizontalPadding: CGFloat = 20
 private let reviewBottomBarTopPadding: CGFloat = 8
 private let reviewBottomBarBottomPadding: CGFloat = 8
 private let reviewBottomBarButtonSpacing: CGFloat = 10
-private let reviewFilterMenuTitleMaxWidth: CGFloat = 180
 private let reviewToolbarBadgeSpacing: CGFloat = 4
-private let reviewAnswerButtonMinHeight: CGFloat = 40
+private let reviewAnswerButtonMinHeight: CGFloat = 44
 private let showAnswerButtonMinHeight: CGFloat = 56
 let emptyBackTextPlaceholder: String = String(localized: "No back text", table: reviewCardsStringsTableName)
 private let reviewQueuePreviewPageSize: Int = 50
@@ -24,6 +23,10 @@ private struct ReviewFilterPresentationContext: Equatable {
 }
 
 struct ReviewView: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.isKeyboardDocked) private var isKeyboardDocked
     @Environment(\.scenePhase) var scenePhase
     @Environment(\.isLowPowerModeEnabled) var isLowPowerModeEnabled: Bool
     @Environment(FlashcardsStore.self) var store: FlashcardsStore
@@ -135,8 +138,11 @@ struct ReviewView: View {
                 onEventFinished: self.removeFinishedReviewReactionEvent(eventId:action:reason:)
             )
         }
+        .animation(self.reduceMotion ? nil : .smooth(duration: 0.35), value: self.navigation.isAICompanionVisible)
+        .animation(self.reduceMotion ? nil : .smooth(duration: 0.35), value: self.navigation.isAICompanionLeading)
         .accessibilityIdentifier(UITestIdentifier.reviewScreen)
         .navigationTitle(String(localized: "Review", table: reviewCardsStringsTableName))
+        .navigationBarTitleDisplayMode(self.dynamicTypeSize.isAccessibilitySize ? .inline : .automatic)
         .onAppear {
             self.isReviewReactionScreenVisible = true
             if self.areReviewReactionAnimationsEnabled {
@@ -183,6 +189,7 @@ struct ReviewView: View {
         .nativeBottomBar(alignment: .center) {
             reviewBottomAccessory
         }
+        .ignoresSafeArea(self.isKeyboardDocked ? [] : .keyboard, edges: .bottom)
         .simultaneousGesture(
             DragGesture(minimumDistance: 0)
                 .onChanged { _ in
@@ -199,6 +206,13 @@ struct ReviewView: View {
                 // makes iOS collapse the trailing Review actions into overflow too aggressively.
                 reviewLeaderboardButton
                 reviewProgressBadgeButton
+            }
+
+            if self.horizontalSizeClass == .regular || self.navigation.isAICompanionVisible {
+                if #available(iOS 26.0, *) {
+                    ToolbarSpacer(.fixed, placement: .topBarTrailing)
+                }
+                AICompanionToolbarItem()
             }
         }
         // TODO: This preview is unreachable from Review while the queue toolbar shortcut is withheld.
@@ -357,11 +371,12 @@ struct ReviewView: View {
                 Text(self.selectedReviewFilterTitle)
                     .lineLimit(1)
                     .truncationMode(.tail)
-                    .frame(maxWidth: reviewFilterMenuTitleMaxWidth, alignment: .leading)
+                    .frame(maxWidth: 180, alignment: .leading)
                 Image(systemName: "chevron.down")
                     .font(.caption.weight(.semibold))
             }
             .foregroundStyle(Color.primary)
+            .fixedSize(horizontal: true, vertical: false)
         }
         .tint(Color.primary)
         .accessibilityIdentifier(UITestIdentifier.reviewFilterMenu)
@@ -372,7 +387,6 @@ struct ReviewView: View {
                 tagSummaries: self.reviewTagSummaries,
                 onEditDecks: self.dismissReviewFilterPopoverAndOpenDecks
             )
-            .presentationCompactAdaptation(.popover)
         }
         .onChange(of: self.isReviewFilterPopoverPresented) { _, isPresented in
             if isPresented == false {
@@ -519,6 +533,11 @@ struct ReviewView: View {
                 Text(reviewActionErrorMessage)
                     .foregroundStyle(.red)
             }
+
+            if isAnswerVisible, self.dynamicTypeSize.isAccessibilitySize,
+               let options = preparedRevealState.reviewAnswerGridOptions {
+                reviewAnswerButtonsGrid(cardId: card.cardId, options: options)
+            }
         }
     }
 
@@ -537,7 +556,8 @@ struct ReviewView: View {
         Group {
             if self.shouldShowReviewLoader {
                 EmptyView()
-            } else if let currentCard, let preparedRevealState = self.cachedPreparedCurrentRevealState {
+            } else if !(isAnswerVisible && self.dynamicTypeSize.isAccessibilitySize),
+                      let currentCard, let preparedRevealState = self.cachedPreparedCurrentRevealState {
                 reviewBottomBarContainer {
                     reviewBottomBar(card: currentCard, preparedRevealState: preparedRevealState)
                 }
@@ -766,16 +786,36 @@ struct ReviewView: View {
         .accessibilityIdentifier(UITestIdentifier.reviewShowAnswerButton)
     }
 
+    @ViewBuilder
     private func reviewAnswerButtonsGrid(cardId: String, options: ReviewAnswerGridOptions) -> some View {
-        HStack(alignment: .top, spacing: reviewBottomBarButtonSpacing) {
+        if self.dynamicTypeSize.isAccessibilitySize {
             VStack(spacing: reviewBottomBarButtonSpacing) {
                 reviewAnswerButton(cardId: cardId, option: options.again)
-                reviewAnswerButton(cardId: cardId, option: options.good)
-            }
-
-            VStack(spacing: reviewBottomBarButtonSpacing) {
                 reviewAnswerButton(cardId: cardId, option: options.hard)
+                reviewAnswerButton(cardId: cardId, option: options.good)
                 reviewAnswerButton(cardId: cardId, option: options.easy)
+            }
+        } else {
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: reviewBottomBarButtonSpacing) {
+                    reviewAnswerButton(cardId: cardId, option: options.again)
+                    reviewAnswerButton(cardId: cardId, option: options.hard)
+                    reviewAnswerButton(cardId: cardId, option: options.good)
+                    reviewAnswerButton(cardId: cardId, option: options.easy)
+                }
+                .frame(minWidth: 600)
+
+                HStack(alignment: .top, spacing: reviewBottomBarButtonSpacing) {
+                    VStack(spacing: reviewBottomBarButtonSpacing) {
+                        reviewAnswerButton(cardId: cardId, option: options.again)
+                        reviewAnswerButton(cardId: cardId, option: options.good)
+                    }
+
+                    VStack(spacing: reviewBottomBarButtonSpacing) {
+                        reviewAnswerButton(cardId: cardId, option: options.hard)
+                        reviewAnswerButton(cardId: cardId, option: options.easy)
+                    }
+                }
             }
         }
     }
@@ -794,7 +834,7 @@ struct ReviewView: View {
 
                     Text(localizedReviewRatingTitle(rating: option.rating))
                         .fontWeight(.semibold)
-                        .lineLimit(1)
+                        .multilineTextAlignment(.center)
                 }
 
                 Text(option.intervalDescription)

@@ -1,6 +1,9 @@
 import Foundation
 
 enum LiveSmokeIdentifier {
+    static let aiCompanionToggle: String = "ai.companion.toggle"
+    static let aiCompanionMove: String = "ai.companion.move"
+    static let aiCompanionClose: String = "ai.companion.close"
     static let uiTestLaunchPreparationStatus: String = "uiTest.launchPreparationStatus"
     static let cloudWorkspaceChooserScreen: String = "cloudSignIn.workspaceChooserScreen"
     static let cloudSignInScreen: String = "cloudSignIn.screen"
@@ -36,6 +39,8 @@ enum LiveSmokeIdentifier {
     static let settingsReviewInAppStoreRow: String = "settings.reviewInAppStoreRow"
     static let settingsPrivateFeedbackRow: String = "settings.privateFeedbackRow"
     static let settingsAccountStatusRow: String = "settings.accountStatusRow"
+    static let settingsSubscriptionRow: String = "settings.subscriptionRow"
+    static let settingsAccentColorRow: String = "settings.accentColorRow"
     static let settingsCurrentWorkspaceRow: String = "settings.currentWorkspaceRow"
     static let settingsReviewRemindersRow: String = "settings.reviewRemindersRow"
     static let settingsReviewAnimationsRow: String = "settings.reviewAnimationsRow"
@@ -59,6 +64,8 @@ enum LiveSmokeIdentifier {
     static let settingsDeleteAccountRow: String = "settings.deleteAccountRow"
     static let settingsTestRow: String = "settings.testRow"
     static let reviewAnimationsSettingsScreen: String = "reviewAnimationsSettings.screen"
+    static let subscriptionSettingsScreen: String = "subscriptionSettings.screen"
+    static let accentColorSettingsScreen: String = "accentColorSettings.screen"
     static let aiChatSuggestionsSettingsScreen: String = "aiChatSuggestionsSettings.screen"
     static let aiChatSuggestionsSettingsToggle: String = "aiChatSuggestionsSettings.toggle"
     static let leaderboardParticipationSettingsScreen: String = "leaderboardParticipationSettings.screen"

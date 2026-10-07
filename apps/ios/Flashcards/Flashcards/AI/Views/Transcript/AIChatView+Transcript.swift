@@ -7,7 +7,12 @@ enum AIChatTranscriptScrollTarget: Hashable {
 extension AIChatView {
     var chatScrollSurface: some View {
         ScrollViewReader { proxy in
-            self.chatScrollContent
+            ReadableContentLayout(
+                maxWidth: flashcardsReadableContentMaxWidth,
+                horizontalPadding: 0
+            ) {
+                self.chatScrollContent
+            }
                 .defaultScrollAnchor(.bottom, for: .initialOffset)
                 .defaultScrollAnchor(.bottom, for: .alignment)
                 .contentMargins(.horizontal, aiChatMessageListHorizontalPadding, for: .scrollContent)
@@ -67,8 +72,8 @@ extension AIChatView {
                     self.hasActiveUserScrollGesture = false
                     self.scrollToBottom(proxy: proxy, isAnimated: false)
                 }
-                .onChange(of: self.navigation.selectedTab) { _, nextTab in
-                    guard nextTab == .ai else {
+                .onChange(of: self.isPresentationActive) { _, isVisible in
+                    guard isVisible else {
                         return
                     }
 
