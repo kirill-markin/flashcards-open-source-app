@@ -143,6 +143,7 @@
 "settings.row.reviewInAppStore" = "Toa maoni kwenye App Store";
 "settings.row.sharePrivateFeedback" = "Shiriki maoni ya faragha";
 "settings.section.account" = "Akaunti";
+"settings.section.style" = "Mtindo";
 "settings.section.general" = "Jumla";
 "settings.section.support" = "Usaidizi";
 "settings.section.advanced" = "Mahiri";
@@ -153,7 +154,6 @@
 "settings.row.aiChatSuggestions" = "Mapendekezo ya Gumzo la AI";
 "settings.row.leaderboardParticipation" = "Ushiriki kwenye ubao wa viwango";
 "settings.row.language" = "Lugha";
-"settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "Ruhusa 3";
 "settings.row.decks" = "Mafungu";
 "settings.row.workspaceScoped.value" = "Nafasi ya Kazi";
@@ -224,7 +224,7 @@
 "settings.subscription.change" = "Badilisha usajili";
 "settings.subscription.manage" = "Dhibiti usajili";
 "settings.language.title" = "Lugha";
-"settings.language.systemDescription" = "iOS hudhibiti lugha ya programu. Katika Mipangilio ya iOS, fungua Nibomo na utumie Lugha Unayopendelea. Ikiwa Lugha Unayopendelea haionekani, ongeza lugha nyingine kwanza katika Mipangilio > Jumla > Lugha na Eneo.";
+"settings.language.systemDescription" = "iOS hudhibiti lugha ya programu. Katika Mipangilio ya iOS, fungua Nibomo na uchague Lugha. Ikiwa Lugha haionekani, kwanza ongeza lugha ya pili katika Mipangilio > Jumla > Lugha na Eneo. iOS huonyesha chaguo hili tu wakati kifaa kina zaidi ya lugha moja inayopendelewa.";
 "settings.language.action.openAppSettings" = "Fungua mipangilio ya Nibomo";
 "settings.language.section.supportedLanguages" = "Lugha Zinazotumika";
 "settings.language.supported.english" = "Kiingereza";

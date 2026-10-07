@@ -143,6 +143,7 @@
 "settings.row.reviewInAppStore" = "Napiši recenziju u App Storeu";
 "settings.row.sharePrivateFeedback" = "Podijeli privatnu povratnu informaciju";
 "settings.section.account" = "Račun";
+"settings.section.style" = "Stil";
 "settings.section.general" = "Općenito";
 "settings.section.support" = "Podrška";
 "settings.section.advanced" = "Napredno";
@@ -153,7 +154,6 @@
 "settings.row.aiChatSuggestions" = "Prijedlozi AI razgovora";
 "settings.row.leaderboardParticipation" = "Sudjelovanje na ljestvici";
 "settings.row.language" = "Jezik";
-"settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "3 dopuštenja";
 "settings.row.decks" = "Špilovi";
 "settings.row.workspaceScoped.value" = "Radni prostor";
@@ -224,7 +224,7 @@
 "settings.subscription.change" = "Promijeni pretplatu";
 "settings.subscription.manage" = "Upravljaj pretplatom";
 "settings.language.title" = "Jezik";
-"settings.language.systemDescription" = "iOS upravlja jezikom aplikacije. U Postavkama iOS-a otvorite Nibomo i odaberite Željeni jezik. Ako se ta opcija ne prikazuje, najprije dodajte drugi jezik u Postavke > Općenito > Jezik i regija.";
+"settings.language.systemDescription" = "iOS upravlja jezikom aplikacije. U Postavkama iOS-a otvorite Nibomo i odaberite Jezik. Ako se Jezik ne prikazuje, najprije dodajte drugi jezik u Postavke > Općenito > Jezik i regija. iOS prikazuje ovu opciju samo kada uređaj ima više od jednog željenog jezika.";
 "settings.language.action.openAppSettings" = "Otvori postavke aplikacije Nibomo";
 "settings.language.section.supportedLanguages" = "Podržani jezici";
 "settings.language.supported.english" = "Engleski";

@@ -146,6 +146,7 @@
 "settings.row.reviewInAppStore" = "App Storeでレビューする";
 "settings.row.sharePrivateFeedback" = "非公開のフィードバックを共有";
 "settings.section.account" = "アカウント";
+"settings.section.style" = "スタイル";
 "settings.section.general" = "一般";
 "settings.section.support" = "サポート";
 "settings.section.advanced" = "詳細";
@@ -156,7 +157,6 @@
 "settings.row.aiChatSuggestions" = "AIチャットの候補";
 "settings.row.leaderboardParticipation" = "リーダーボード参加";
 "settings.row.language" = "言語";
-"settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "3件の権限";
 "settings.row.decks" = "デッキ";
 "settings.row.workspaceScoped.value" = "ワークスペース";
@@ -227,7 +227,7 @@
 "settings.subscription.change" = "サブスクリプションを変更";
 "settings.subscription.manage" = "サブスクリプションを管理";
 "settings.language.title" = "言語";
-"settings.language.systemDescription" = "iOS がアプリの言語を管理します。iOS の「設定」で Nibomo を開き、「優先する言語」を使用してください。「優先する言語」が表示されない場合は、先に「設定」>「一般」>「言語と地域」で別の言語を追加してください。";
+"settings.language.systemDescription" = "iOS がアプリの言語を管理します。iOS の「設定」で Nibomo を開き、「言語」を選択してください。「言語」が表示されない場合は、先に「設定」>「一般」>「言語と地域」で2つ目の言語を追加してください。iOS は、デバイスに優先する言語が2つ以上ある場合にのみこの項目を表示します。";
 "settings.language.action.openAppSettings" = "Nibomo の設定を開く";
 "settings.language.section.supportedLanguages" = "対応言語";
 "settings.language.supported.english" = "英語";

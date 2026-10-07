@@ -143,6 +143,7 @@
 "settings.row.reviewInAppStore" = "Gefa umsögn í App Store";
 "settings.row.sharePrivateFeedback" = "Senda ábendingu í einrúmi";
 "settings.section.account" = "Aðgangur";
+"settings.section.style" = "Stíll";
 "settings.section.general" = "Almennt";
 "settings.section.support" = "Aðstoð";
 "settings.section.advanced" = "Ítarlegt";
@@ -153,7 +154,6 @@
 "settings.row.aiChatSuggestions" = "Tillögur í gervigreindarspjalli";
 "settings.row.leaderboardParticipation" = "Þátttaka í stigatöflu";
 "settings.row.language" = "Tungumál";
-"settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "3 heimildir";
 "settings.row.decks" = "Stokkar";
 "settings.row.workspaceScoped.value" = "Vinnusvæði";
@@ -224,7 +224,7 @@
 "settings.subscription.change" = "Breyta áskrift";
 "settings.subscription.manage" = "Stjórna áskrift";
 "settings.language.title" = "Tungumál";
-"settings.language.systemDescription" = "iOS stjórnar tungumáli forritsins. Opnaðu Nibomo í Stillingum iOS og veldu tungumál. Ef tungumálaval sést ekki skaltu fyrst bæta við öðru tungumáli í Stillingar > Almennt > Tungumál og svæði.";
+"settings.language.systemDescription" = "iOS stjórnar tungumáli forritsins. Opnaðu Nibomo í Stillingum iOS og veldu Tungumál. Ef Tungumál sést ekki skaltu fyrst bæta við öðru tungumáli í Stillingar > Almennt > Tungumál og svæði. iOS sýnir þennan valkost aðeins þegar tækið er með fleiri en eitt valið tungumál.";
 "settings.language.action.openAppSettings" = "Opna stillingar Nibomo";
 "settings.language.section.supportedLanguages" = "Studd tungumál";
 "settings.language.supported.english" = "Enska";

@@ -193,16 +193,6 @@ fun SettingsRoute(
 
             item {
                 SettingsRootRow(
-                    title = stringResource(R.string.settings_subscription_title),
-                    summary = subscriptionUiState.planName,
-                    attentionCount = null,
-                    testTag = settingsSubscriptionRowTag,
-                    onClick = onOpenSubscription
-                )
-            }
-
-            item {
-                SettingsRootRow(
                     title = stringResource(R.string.settings_account_status_title),
                     summary = uiState.accountStatusTitle,
                     attentionCount = uiState.accountStatusAttentionCount,
@@ -222,19 +212,19 @@ fun SettingsRoute(
             }
 
             item {
-                SettingsRootSectionTitle(
-                    title = stringResource(R.string.settings_section_general),
-                    testTag = settingsGeneralSectionTag
+                SettingsRootRow(
+                    title = stringResource(R.string.settings_subscription_title),
+                    summary = subscriptionUiState.planName,
+                    attentionCount = null,
+                    testTag = settingsSubscriptionRowTag,
+                    onClick = onOpenSubscription
                 )
             }
 
             item {
-                SettingsRootRow(
-                    title = stringResource(R.string.settings_review_reminders_title),
-                    summary = stringResource(R.string.settings_review_reminders_summary),
-                    attentionCount = null,
-                    testTag = settingsReviewRemindersRowTag,
-                    onClick = onOpenReviewReminders
+                SettingsRootSectionTitle(
+                    title = stringResource(R.string.settings_section_style),
+                    testTag = settingsStyleSectionTag
                 )
             }
 
@@ -279,16 +269,19 @@ fun SettingsRoute(
             }
 
             item {
+                SettingsRootSectionTitle(
+                    title = stringResource(R.string.settings_section_general),
+                    testTag = settingsGeneralSectionTag
+                )
+            }
+
+            item {
                 SettingsRootRow(
-                    title = stringResource(R.string.settings_own_openai_key_title),
-                    summary = if (uiState.ownOpenAiKeyEnabled) {
-                        stringResource(R.string.settings_common_on)
-                    } else {
-                        stringResource(R.string.settings_common_off)
-                    },
+                    title = stringResource(R.string.settings_review_reminders_title),
+                    summary = stringResource(R.string.settings_review_reminders_summary),
                     attentionCount = null,
-                    testTag = settingsOwnOpenAiKeyRowTag,
-                    onClick = onOpenOwnOpenAiKey
+                    testTag = settingsReviewRemindersRowTag,
+                    onClick = onOpenReviewReminders
                 )
             }
 
@@ -299,20 +292,6 @@ fun SettingsRoute(
                     attentionCount = null,
                     testTag = settingsLeaderboardParticipationRowTag,
                     onClick = onOpenLeaderboardParticipation
-                )
-            }
-
-            item {
-                SettingsRootRow(
-                    title = stringResource(R.string.settings_product_analytics_title),
-                    summary = if (uiState.productAnalyticsEnabled) {
-                        stringResource(R.string.settings_common_on)
-                    } else {
-                        stringResource(R.string.settings_common_off)
-                    },
-                    attentionCount = null,
-                    testTag = settingsProductAnalyticsRowTag,
-                    onClick = onOpenProductAnalytics
                 )
             }
 
@@ -432,6 +411,20 @@ fun SettingsRoute(
 
             item {
                 SettingsRootRow(
+                    title = stringResource(R.string.settings_own_openai_key_title),
+                    summary = if (uiState.ownOpenAiKeyEnabled) {
+                        stringResource(R.string.settings_common_on)
+                    } else {
+                        stringResource(R.string.settings_common_off)
+                    },
+                    attentionCount = null,
+                    testTag = settingsOwnOpenAiKeyRowTag,
+                    onClick = onOpenOwnOpenAiKey
+                )
+            }
+
+            item {
+                SettingsRootRow(
                     title = stringResource(R.string.settings_scheduling_title),
                     summary = stringResource(R.string.settings_scheduling_summary),
                     attentionCount = null,
@@ -467,6 +460,20 @@ fun SettingsRoute(
                     attentionCount = null,
                     testTag = settingsDeviceDiagnosticsRowTag,
                     onClick = onOpenDeviceDiagnostics
+                )
+            }
+
+            item {
+                SettingsRootRow(
+                    title = stringResource(R.string.settings_product_analytics_title),
+                    summary = if (uiState.productAnalyticsEnabled) {
+                        stringResource(R.string.settings_common_on)
+                    } else {
+                        stringResource(R.string.settings_common_off)
+                    },
+                    attentionCount = null,
+                    testTag = settingsProductAnalyticsRowTag,
+                    onClick = onOpenProductAnalytics
                 )
             }
 

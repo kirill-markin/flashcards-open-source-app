@@ -1,6 +1,7 @@
 import { runAdminQuery, type AdminQueryObject, type AdminQueryValue } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
 import { buildExcludedActorReasonSql, buildTrustedActorRowsFilterSql } from "../../filters/filterSql";
+import { userSettingsFields, type UserSettingsField } from "../userSettingsFields";
 import { utcInstantSql, type UserKind } from "../usersQuery";
 import { readNullableString, readRowArray, readString } from "./queryRowValues";
 import { buildMatchesUserIdSql, buildUserSubjectSql, type UserSubjectSql } from "./userSubjectSql";
@@ -84,6 +85,18 @@ function user(id: string, label: string, sql: string): ProfileField {
   return { id, label, kind: "user", sql };
 }
 
+function buildSettingsProfileField(field: UserSettingsField): ProfileField {
+  switch (field.kind) {
+    case "boolean":
+      return flag(field.id, field.label, field.sql);
+    case "date":
+      return date(field.id, field.label, field.sql);
+    case "text":
+    case "enum":
+      return text(field.id, field.label, field.sql);
+  }
+}
+
 /**
  * Every source the page reads about the person, in render order. Text keys match on the folded id
  * and uuid keys on the id as a UUID, so an id with no settings row - a guest merged away, a deleted or
@@ -101,13 +114,7 @@ function buildProfileSections(subject: UserSubjectSql): ReadonlyArray<ProfileSec
         text("user-id", "User ID", "settings.user_id"),
         text("email", "Email", "settings.email"),
         date("created", "Created", "settings.created_at"),
-        text("locale", "Saved app language", "settings.locale"),
-        text("workspace", "Current workspace", "settings.workspace_id::text"),
-        text("time-zone", "Progress time zone", "settings.progress_time_zone"),
-        text("analytics-consent", "Analytics consent", "settings.analytics_consent"),
-        flag("product-analytics", "Product analytics", "settings.product_analytics_enabled"),
-        flag("reaction-animations", "Review reaction animations", "settings.review_reaction_animations_enabled"),
-        text("accent-color", "Accent color", "settings.accent_color"),
+        ...userSettingsFields.map(buildSettingsProfileField),
       ],
       fromSql: `FROM org.user_settings AS settings WHERE ${matches("settings.user_id")}`,
     },

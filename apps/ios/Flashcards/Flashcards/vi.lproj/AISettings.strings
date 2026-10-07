@@ -143,6 +143,7 @@
 "settings.row.reviewInAppStore" = "Đánh giá trên App Store";
 "settings.row.sharePrivateFeedback" = "Gửi phản hồi riêng tư";
 "settings.section.account" = "Tài khoản";
+"settings.section.style" = "Phong cách";
 "settings.section.general" = "Chung";
 "settings.section.support" = "Hỗ trợ";
 "settings.section.advanced" = "Nâng cao";
@@ -153,7 +154,6 @@
 "settings.row.aiChatSuggestions" = "Gợi ý trò chuyện AI";
 "settings.row.leaderboardParticipation" = "Tham gia bảng xếp hạng";
 "settings.row.language" = "Ngôn ngữ";
-"settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "3 quyền";
 "settings.row.decks" = "Bộ thẻ";
 "settings.row.workspaceScoped.value" = "Không gian làm việc";
@@ -224,7 +224,7 @@
 "settings.subscription.change" = "Thay đổi gói đăng ký";
 "settings.subscription.manage" = "Quản lý gói đăng ký";
 "settings.language.title" = "Ngôn ngữ";
-"settings.language.systemDescription" = "iOS quản lý ngôn ngữ ứng dụng. Trong Cài đặt iOS, mở Nibomo và chọn Ngôn ngữ ưu tiên. Nếu không thấy mục này, trước tiên hãy thêm ngôn ngữ khác trong Cài đặt > Cài đặt chung > Ngôn ngữ & Vùng.";
+"settings.language.systemDescription" = "iOS quản lý ngôn ngữ ứng dụng. Trong Cài đặt iOS, mở Nibomo và chọn Ngôn ngữ. Nếu không thấy Ngôn ngữ, trước tiên hãy thêm ngôn ngữ thứ hai trong Cài đặt > Cài đặt chung > Ngôn ngữ & Vùng. iOS chỉ hiển thị tùy chọn này khi thiết bị có nhiều hơn một ngôn ngữ ưu tiên.";
 "settings.language.action.openAppSettings" = "Mở cài đặt Nibomo";
 "settings.language.section.supportedLanguages" = "Ngôn ngữ được hỗ trợ";
 "settings.language.supported.english" = "Tiếng Anh";

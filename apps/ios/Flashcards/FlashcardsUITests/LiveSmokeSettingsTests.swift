@@ -51,12 +51,14 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
         try self.assertScreenVisible(screen: .currentWorkspace, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.returnToSettingsRoot()
 
-        try self.assertTextExistsScrollingIntoView("General", timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
-        try self.openSettingsRootRow(identifier: LiveSmokeIdentifier.settingsReviewRemindersRow)
-        try self.assertTextExistsScrollingIntoView("Permission", timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
-        try self.returnToSettingsRoot()
-
-        try self.assertReviewAnimationsRowOrder()
+        try self.assertTextExistsScrollingIntoView("Style", timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.assertSettingsRowOrder(
+            identifiers: [
+                LiveSmokeIdentifier.settingsReviewAnimationsRow,
+                LiveSmokeIdentifier.settingsAIChatSuggestionsRow
+            ],
+            message: "Style settings rows should appear as Review Animations, then AI Chat Suggestions."
+        )
         try self.openSettingsRootRow(identifier: LiveSmokeIdentifier.settingsReviewAnimationsRow)
         try self.assertScreenVisible(screen: .reviewAnimationsSettings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.returnToSettingsRoot()
@@ -65,6 +67,19 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
         try self.assertScreenVisible(screen: .aiChatSuggestionsSettings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.returnToSettingsRoot()
 
+        try self.assertTextExistsScrollingIntoView("General", timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.openSettingsRootRow(identifier: LiveSmokeIdentifier.settingsReviewRemindersRow)
+        try self.assertTextExistsScrollingIntoView("Permission", timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.returnToSettingsRoot()
+
+        try self.assertSettingsRowOrder(
+            identifiers: [
+                LiveSmokeIdentifier.settingsReviewRemindersRow,
+                LiveSmokeIdentifier.settingsLeaderboardParticipationRow,
+                LiveSmokeIdentifier.settingsLanguageRow
+            ],
+            message: "General settings rows should appear as Notifications, Leaderboard participation, then Language."
+        )
         try self.openSettingsRootRow(identifier: LiveSmokeIdentifier.settingsLeaderboardParticipationRow)
         try self.assertScreenVisible(screen: .leaderboardParticipationSettings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.returnToSettingsRoot()
@@ -137,42 +152,23 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
     }
 
     @MainActor
-    private func assertReviewAnimationsRowOrder() throws {
-        try self.assertElementExistsScrollingIntoView(
-            identifier: LiveSmokeIdentifier.settingsReviewRemindersRow,
-            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
-        )
-        try self.assertElementExistsScrollingIntoView(
-            identifier: LiveSmokeIdentifier.settingsReviewAnimationsRow,
-            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
-        )
-        try self.assertElementExistsScrollingIntoView(
-            identifier: LiveSmokeIdentifier.settingsAIChatSuggestionsRow,
-            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
-        )
-        try self.assertElementExistsScrollingIntoView(
-            identifier: LiveSmokeIdentifier.settingsLeaderboardParticipationRow,
-            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
-        )
-        try self.assertElementExistsScrollingIntoView(
-            identifier: LiveSmokeIdentifier.settingsLanguageRow,
-            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
-        )
+    private func assertSettingsRowOrder(identifiers: [String], message: String) throws {
+        for identifier in identifiers {
+            try self.assertElementExistsScrollingIntoView(
+                identifier: identifier,
+                timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+            )
+        }
 
-        let remindersFrame = self.app.buttons[LiveSmokeIdentifier.settingsReviewRemindersRow].firstMatch.frame
-        let animationsFrame = self.app.buttons[LiveSmokeIdentifier.settingsReviewAnimationsRow].firstMatch.frame
-        let aiChatSuggestionsFrame = self.app.buttons[LiveSmokeIdentifier.settingsAIChatSuggestionsRow].firstMatch.frame
-        let leaderboardFrame = self.app.buttons[LiveSmokeIdentifier.settingsLeaderboardParticipationRow].firstMatch.frame
-        let languageFrame = self.app.buttons[LiveSmokeIdentifier.settingsLanguageRow].firstMatch.frame
-        if remindersFrame.minY < animationsFrame.minY
-            && animationsFrame.minY < aiChatSuggestionsFrame.minY
-            && aiChatSuggestionsFrame.minY < leaderboardFrame.minY
-            && leaderboardFrame.minY < languageFrame.minY {
+        let rowMinYs = identifiers.map { identifier in
+            self.app.buttons[identifier].firstMatch.frame.minY
+        }
+        if zip(rowMinYs, rowMinYs.dropFirst()).allSatisfy({ upper, lower in upper < lower }) {
             return
         }
 
         throw LiveSmokeFailure.unexpectedAccountState(
-            message: "General settings rows should appear as Notifications, Review Animations, AI Chat Suggestions, Leaderboard participation, then Language.",
+            message: message,
             screen: self.currentScreenSummary(),
             step: self.currentStepTitle
         )
