@@ -1,8 +1,5 @@
 // Pure SQL only: this module is also imported by the admin browser bundle.
 // Stored account ids are TEXT and may use uppercase UUID hex; resolved actor ids are canonical.
-// The automated verdict is actor-wide.
-// The arms of the one exclusion rule, each as unindented lines yielding an id set, which both
-// `buildExcludedActorSqlLines` and the admin users list's exclusion reason read.
 
 function indentSqlLines(lines: ReadonlyArray<string>, indent: string): ReadonlyArray<string> {
   return lines.map((line) => `${indent}${line}`);
@@ -32,10 +29,98 @@ export const excludedAdminActorIdsSqlLines: ReadonlyArray<string> = [
   ")",
 ];
 
+// Only the detector's exact historical burst rows are audit records rather than active exclusions.
+export const legacyAndroidBurstExclusionSql =
+  "excluded_actors.source = 'automatic' AND excluded_actors.excluded_by = 'job:synthetic-actor-detector' AND excluded_actors.reason = 'android install burst: 4+ short-lived guest installs of one device fingerprint within 24h'";
+
+// Whole trusted history decides the classification independently of report selections. NULL device
+// fields on server facts do not add fingerprints. Restored people contribute to the burst size,
+// but a restore under any of their resolved/raw/subject IDs overrides the match.
+export const probableAndroidBurstActorIdsSql = `
+WITH actor_history AS MATERIALIZED (
+  SELECT
+    pg_catalog.lower(pg_catalog.btrim(resolved.actor_id::text)) AS actor_id,
+    min(resolved.device_model) FILTER (WHERE resolved.platform = 'android') AS device_model,
+    min(resolved.os_version) FILTER (WHERE resolved.platform = 'android') AS os_version,
+    min(resolved.app_version) FILTER (WHERE resolved.platform = 'android') AS app_version,
+    min(resolved.occurred_at) AS first_event_at,
+    array_agg(DISTINCT pg_catalog.lower(pg_catalog.btrim(resolved.user_id::text)))
+      FILTER (WHERE resolved.user_id IS NOT NULL) AS event_user_ids,
+    array_agg(DISTINCT pg_catalog.lower(pg_catalog.btrim(resolved.subject_user_id::text)))
+      FILTER (WHERE resolved.subject_user_id IS NOT NULL) AS event_subject_user_ids
+  FROM analytics.product_events_resolved AS resolved
+  WHERE resolved.actor_id IS NOT NULL
+    AND resolved.trust_level <> 'anonymous_client'
+  GROUP BY 1
+  HAVING count(DISTINCT resolved.device_model) FILTER (WHERE resolved.platform = 'android') = 1
+    AND count(DISTINCT resolved.os_version) FILTER (WHERE resolved.platform = 'android') = 1
+    AND count(DISTINCT resolved.app_version) FILTER (WHERE resolved.platform = 'android') = 1
+    AND max(resolved.occurred_at) - min(resolved.occurred_at) < interval '24 hours'
+),
+person_ids AS MATERIALIZED (
+  SELECT DISTINCT actor_history.actor_id, person_key.person_id
+  FROM actor_history
+  CROSS JOIN LATERAL unnest(
+    ARRAY[actor_history.actor_id]
+      || COALESCE(actor_history.event_user_ids, ARRAY[]::text[])
+      || COALESCE(actor_history.event_subject_user_ids, ARRAY[]::text[])
+  ) AS person_key(person_id)
+),
+qualifying AS (
+  SELECT actor_history.*
+  FROM actor_history
+  WHERE NOT EXISTS (
+    SELECT 1
+    FROM person_ids AS signed_in_person
+    JOIN auth.user_identities AS signed_in_identities
+      ON pg_catalog.lower(signed_in_identities.user_id) = signed_in_person.person_id
+    WHERE signed_in_person.actor_id = actor_history.actor_id
+      AND signed_in_identities.provider_type = 'cognito'
+  )
+),
+burst_windows AS (
+  SELECT anchor.device_model, anchor.os_version, anchor.app_version,
+    anchor.first_event_at AS window_start
+  FROM qualifying AS anchor
+  JOIN qualifying AS member
+    ON member.device_model = anchor.device_model
+    AND member.os_version = anchor.os_version
+    AND member.app_version = anchor.app_version
+    AND member.first_event_at >= anchor.first_event_at
+    AND member.first_event_at < anchor.first_event_at + interval '24 hours'
+  GROUP BY anchor.actor_id, anchor.device_model, anchor.os_version, anchor.app_version, anchor.first_event_at
+  HAVING count(*) >= 4
+),
+burst_members AS (
+  SELECT DISTINCT member.actor_id
+  FROM qualifying AS member
+  JOIN burst_windows
+    ON burst_windows.device_model = member.device_model
+    AND burst_windows.os_version = member.os_version
+    AND burst_windows.app_version = member.app_version
+    AND member.first_event_at >= burst_windows.window_start
+    AND member.first_event_at < burst_windows.window_start + interval '24 hours'
+)
+SELECT burst_members.actor_id
+FROM burst_members
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM analytics.excluded_actors AS restored
+  JOIN person_ids AS restored_person
+    ON restored_person.person_id = restored.actor_id
+  WHERE restored_person.actor_id = burst_members.actor_id
+    AND restored.restored_at IS NOT NULL
+)
+`.trim();
+
+export const probableAndroidBurstActorIdsSqlLines: ReadonlyArray<string> =
+  probableAndroidBurstActorIdsSql.split("\n");
+
 export const excludedListedActorIdsSqlLines: ReadonlyArray<string> = [
   "SELECT excluded_actors.actor_id",
   "FROM analytics.excluded_actors AS excluded_actors",
   "WHERE excluded_actors.restored_at IS NULL",
+  `  AND NOT (${legacyAndroidBurstExclusionSql})`,
 ];
 
 export const automatedActorIdsSqlLines: ReadonlyArray<string> = [
@@ -67,6 +152,11 @@ export function buildExcludedActorSqlLines(
     ...indentSqlLines(excludedListedActorIdsSqlLines, "      "),
     "      UNION ALL",
     ...indentSqlLines(automatedActorIdsSqlLines, "      "),
+    "      UNION ALL",
+    "      SELECT probable_android_bursts.actor_id",
+    "      FROM (",
+    ...indentSqlLines(probableAndroidBurstActorIdsSqlLines, "        "),
+    "      ) AS probable_android_bursts",
     "    )",
     "  )",
   ];
