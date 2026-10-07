@@ -83,6 +83,10 @@ export function readRowNumber(row: AdminQueryRow, fieldName: string, location: s
   return asNumber(row[fieldName], fieldName, location);
 }
 
+export function readRowNullableNumber(row: AdminQueryRow, fieldName: string, location: string): number | null {
+  return asNullableNumber(row[fieldName], fieldName, location);
+}
+
 export function readRowNullableBoolean(row: AdminQueryRow, fieldName: string, location: string): boolean | null {
   return asNullableBoolean(row[fieldName], fieldName, location);
 }

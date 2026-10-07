@@ -1,8 +1,26 @@
-import { runAdminQuery, type AdminQueryResultSet, type AdminQueryValue } from "../../adminApi";
+import { runAdminQuery, type AdminQueryResultSet, type AdminQueryRow, type AdminQueryValue } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
 import { escapeSqlStringLiteral } from "../../sql";
+import type { DataTableColumn, DataTableState } from "../../table/dataTableModel";
+import {
+  buildDistinctOptionsSql,
+  buildNamedColumnsSql,
+  emptyEnumOptions,
+  parseEnumOptionsResponse,
+  parsePageTotal,
+} from "../../table/dataTableServerQuery";
+import { buildDataTableSqlClauses, type DataTableSqlClauses } from "../../table/dataTableSql";
 import { utcInstantSql } from "../usersQuery";
-import { readNullableNumber, readNullableString, readNumber, readRowArray, readString } from "./queryRowValues";
+import {
+  readNullableNumber,
+  readNullableString,
+  readNumber,
+  readRowArray,
+  readRowNullableString,
+  readRowNumber,
+  readRowString,
+  readString,
+} from "./queryRowValues";
 import { buildMatchesUserIdSql, buildUserSubjectSql, isUuid } from "./userSubjectSql";
 
 const listLabel = "User chats";
@@ -56,25 +74,58 @@ export type ChatTranscript = Readonly<{
   items: ReadonlyArray<ChatItem>;
 }>;
 
-function buildChatSessionsSql(userId: string): string {
-  const subject = buildUserSubjectSql(userId);
-  return `SELECT json_build_array(
-    sessions.session_id::text,
-    ${utcInstantSql("sessions.created_at")},
-    ${utcInstantSql("sessions.updated_at")},
-    sessions.status,
-    workspaces.name,
-    items.message_count,
-    items.user_message_count,
-    items.character_count,
-    ${utcInstantSql("items.last_message_at")},
-    runs.run_count,
-    runs.failed_run_count,
-    runs.models,
-    runs.client_platforms
-  ) AS s
-  FROM ai.chat_sessions AS sessions
-  LEFT JOIN org.workspaces AS workspaces ON workspaces.workspace_id = sessions.workspace_id
+type ChatSessionField = keyof ChatSessionRow;
+
+/**
+ * The SQL every column's filter and sort read, keyed by the column ids `ChatsTab` declares, over the
+ * joins of `chatSessionsFromSql`. A date is the raw `timestamptz`.
+ */
+const chatColumnSqlById: Readonly<Record<string, string>> = {
+  session: "sessions.session_id::text",
+  created: "sessions.created_at",
+  updated: "sessions.updated_at",
+  status: "sessions.status",
+  workspace: "workspaces.name",
+  messages: "items.message_count",
+  "user-messages": "items.user_message_count",
+  characters: "items.character_count",
+  "last-message": "items.last_message_at",
+  runs: "runs.run_count",
+  "failed-runs": "runs.failed_run_count",
+  models: "runs.models",
+  platforms: "runs.client_platforms",
+};
+
+/** Each `ChatSessionRow` field, selected under its own name by `buildChatSessionsPageSql`. */
+const chatSessionFieldSql: Readonly<Record<ChatSessionField, string>> = {
+  sessionId: "sessions.session_id::text",
+  createdAt: utcInstantSql("sessions.created_at"),
+  updatedAt: utcInstantSql("sessions.updated_at"),
+  status: "sessions.status",
+  workspaceName: "workspaces.name",
+  messageCount: "items.message_count",
+  userMessageCount: "items.user_message_count",
+  characterCount: "items.character_count",
+  lastMessageAt: utcInstantSql("items.last_message_at"),
+  runCount: "runs.run_count",
+  failedRunCount: "runs.failed_run_count",
+  models: "runs.models",
+  clientPlatforms: "runs.client_platforms",
+};
+
+const defaultOrderBySql = "sessions.updated_at DESC";
+
+const tiebreakOrderBySql = "sessions.session_id DESC";
+
+const chatSessionsWorkspaceJoinSql = "LEFT JOIN org.workspaces AS workspaces ON workspaces.workspace_id = sessions.workspace_id";
+
+function buildOwnedChatSessionSql(userId: string): string {
+  return buildMatchesUserIdSql("sessions.user_id", buildUserSubjectSql(userId));
+}
+
+/** Every session with the workspace and the message and run counts its columns read. */
+const chatSessionsFromSql = `FROM ai.chat_sessions AS sessions
+  ${chatSessionsWorkspaceJoinSql}
   CROSS JOIN LATERAL (
     SELECT count(*)::int AS message_count,
       count(*) FILTER (WHERE chat_items.role = 'user')::int AS user_message_count,
@@ -90,39 +141,100 @@ function buildChatSessionsSql(userId: string): string {
       string_agg(DISTINCT chat_runs.client_platform, ', ') AS client_platforms
     FROM ai.chat_runs AS chat_runs
     WHERE chat_runs.session_id = sessions.session_id
-  ) AS runs
-  WHERE ${buildMatchesUserIdSql("sessions.user_id", subject)}
-  ORDER BY sessions.updated_at DESC, sessions.session_id DESC`;
+  ) AS runs`;
+
+function buildChatSessionsPageSql(userId: string, clauses: DataTableSqlClauses): string {
+  return `SELECT ${buildNamedColumnsSql(chatSessionFieldSql).join(",\n    ")}
+  ${chatSessionsFromSql}
+  WHERE ${buildOwnedChatSessionSql(userId)} AND ${clauses.whereConditionSql}
+  ${clauses.orderBySql}
+  ${clauses.limitOffsetSql}`;
 }
 
-function parseChatSessionRow(value: AdminQueryValue | undefined, rowIndex: number): ChatSessionRow {
+function buildChatSessionsTotalSql(userId: string, clauses: DataTableSqlClauses): string {
+  return `SELECT count(*)::int AS total_count
+  ${chatSessionsFromSql}
+  WHERE ${buildOwnedChatSessionSql(userId)} AND ${clauses.whereConditionSql}`;
+}
+
+function parseChatSessionRow(row: AdminQueryRow, rowIndex: number): ChatSessionRow {
   const location = `${listLabel} row ${rowIndex}`;
-  const values = readRowArray(value, 13, location);
+  const string = (field: ChatSessionField): string => readRowString(row, field, location);
+  const nullableString = (field: ChatSessionField): string | null => readRowNullableString(row, field, location);
+  const number = (field: ChatSessionField): number => readRowNumber(row, field, location);
   return {
-    sessionId: readString(values, 0, "sessionId", location),
-    createdAt: readString(values, 1, "createdAt", location),
-    updatedAt: readString(values, 2, "updatedAt", location),
-    status: readString(values, 3, "status", location),
-    workspaceName: readNullableString(values, 4, "workspaceName", location),
-    messageCount: readNumber(values, 5, "messageCount", location),
-    userMessageCount: readNumber(values, 6, "userMessageCount", location),
-    characterCount: readNumber(values, 7, "characterCount", location),
-    lastMessageAt: readNullableString(values, 8, "lastMessageAt", location),
-    runCount: readNumber(values, 9, "runCount", location),
-    failedRunCount: readNumber(values, 10, "failedRunCount", location),
-    models: readNullableString(values, 11, "models", location),
-    clientPlatforms: readNullableString(values, 12, "clientPlatforms", location),
+    sessionId: string("sessionId"),
+    createdAt: string("createdAt"),
+    updatedAt: string("updatedAt"),
+    status: string("status"),
+    workspaceName: nullableString("workspaceName"),
+    messageCount: number("messageCount"),
+    userMessageCount: number("userMessageCount"),
+    characterCount: number("characterCount"),
+    lastMessageAt: nullableString("lastMessageAt"),
+    runCount: number("runCount"),
+    failedRunCount: number("failedRunCount"),
+    models: nullableString("models"),
+    clientPlatforms: nullableString("clientPlatforms"),
   };
 }
 
-/** Every chat session the person owns, most recently updated first, with its message and run counts. */
-export async function loadChatSessions(config: AdminAppConfig, userId: string): Promise<ReadonlyArray<ChatSessionRow>> {
-  const response = await runAdminQuery(config, buildChatSessionsSql(userId));
-  const result = response.resultSets[0];
-  if (response.resultSets.length !== 1 || result === undefined) {
-    throw new Error(`${listLabel} query must return exactly one result set.`);
+export type ChatSessionsPageResult = Readonly<{
+  /** The person's sessions matching the filters across every page. */
+  totalCount: number;
+  rows: ReadonlyArray<ChatSessionRow>;
+}>;
+
+/** The page at `state.page` of the person's sessions and the matching total, in one request of two statements. */
+export async function loadChatSessionsPage(
+  config: AdminAppConfig,
+  userId: string,
+  state: DataTableState,
+  columns: ReadonlyArray<DataTableColumn<ChatSessionRow>>,
+): Promise<ChatSessionsPageResult> {
+  const clauses = buildDataTableSqlClauses(state, columns, chatColumnSqlById, defaultOrderBySql, tiebreakOrderBySql);
+  const response = await runAdminQuery(
+    config,
+    `${buildChatSessionsPageSql(userId, clauses)};\n${buildChatSessionsTotalSql(userId, clauses)}`,
+  );
+  const pageResult = response.resultSets[0];
+  if (response.resultSets.length !== 2 || pageResult === undefined) {
+    throw new Error(`${listLabel} query must return exactly two result sets.`);
   }
-  return result.rows.map((row, rowIndex) => parseChatSessionRow(row.s, rowIndex));
+  return {
+    totalCount: parsePageTotal(response.resultSets[1]?.rows[0]?.total_count, listLabel),
+    rows: pageResult.rows.map((row, rowIndex) => parseChatSessionRow(row, rowIndex)),
+  };
+}
+
+/** Every enum column `ChatsTab` declares. */
+const chatEnumColumnIds: ReadonlyArray<string> = ["status", "workspace"];
+
+/** Every value each enum column holds across the person's sessions, NULL as `""`. */
+function buildChatSessionsEnumOptionsSql(userId: string): string {
+  const optionsSql = chatEnumColumnIds.map((columnId) => {
+    const sqlExpression = chatColumnSqlById[columnId];
+    if (sqlExpression === undefined) {
+      throw new Error(`${listLabel} enum column "${columnId}" has no SQL expression.`);
+    }
+    return `'${columnId}', ${buildDistinctOptionsSql(`COALESCE(${sqlExpression}, '')`)}`;
+  });
+  return `SELECT json_build_object(
+    ${optionsSql.join(",\n    ")}
+  ) AS o
+  FROM ai.chat_sessions AS sessions
+  ${chatSessionsWorkspaceJoinSql}
+  WHERE ${buildOwnedChatSessionSql(userId)}`;
+}
+
+export type ChatSessionsEnumOptions = ReadonlyMap<string, ReadonlyArray<string>>;
+
+/** Every enum column with no options, which the table shows until `loadChatSessionsEnumOptions` answers. */
+export const emptyChatSessionsEnumOptions: ChatSessionsEnumOptions = emptyEnumOptions(chatEnumColumnIds);
+
+export async function loadChatSessionsEnumOptions(config: AdminAppConfig, userId: string): Promise<ChatSessionsEnumOptions> {
+  const response = await runAdminQuery(config, buildChatSessionsEnumOptionsSql(userId));
+  return parseEnumOptionsResponse(response, chatEnumColumnIds, listLabel);
 }
 
 /**

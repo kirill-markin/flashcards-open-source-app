@@ -1,17 +1,45 @@
-import { useEffect, useMemo, useState, type JSX } from "react";
+import { useEffect, useMemo, useRef, useState, type JSX } from "react";
 import type { AdminAppConfig } from "../../config";
 import { AdminLink } from "../../navigation/AdminLink";
 import { getUserChatPath } from "../../routing";
 import { DataTable } from "../../table/DataTable";
-import { emptyDataTableState, type DataTableColumn, type DataTableState } from "../../table/dataTableModel";
+import {
+  clampDataTablePage,
+  emptyDataTableState,
+  type DataTableColumn,
+  type DataTableState,
+} from "../../table/dataTableModel";
 import { ChatView } from "./ChatView";
-import { loadChatSessions, type ChatSessionRow } from "./chatsQuery";
+import {
+  emptyChatSessionsEnumOptions,
+  loadChatSessionsEnumOptions,
+  loadChatSessionsPage,
+  type ChatSessionRow,
+  type ChatSessionsEnumOptions,
+  type ChatSessionsPageResult,
+} from "./chatsQuery";
 
 type LoadState =
   | Readonly<{ status: "loading" }>
   | Readonly<{ status: "error"; message: string }>
-  | Readonly<{ status: "ready"; sessions: ReadonlyArray<ChatSessionRow> }>;
+  | Readonly<{
+    status: "ready";
+    result: ChatSessionsPageResult;
+    isLoading: boolean;
+    /** A reload that failed while the previous page stays on screen; cleared only by a later success. */
+    reloadError: string | null;
+  }>;
 
+type EnumOptionsState =
+  | Readonly<{ status: "loading" }>
+  | Readonly<{ status: "error"; message: string }>
+  | Readonly<{ status: "ready"; options: ChatSessionsEnumOptions }>;
+
+// Every state change is a query, so a burst of keystrokes in a filter would be a burst of queries. The
+// newest state waits this long before it is sent, and the ones it superseded never reach the network.
+const tableReloadDebounceMs = 300;
+
+// Each column's SQL is `chatColumnSqlById` in `chatsQuery.ts`.
 function buildChatColumns(userId: string, onNavigate: (path: string) => void): ReadonlyArray<DataTableColumn<ChatSessionRow>> {
   return [
     {
@@ -46,7 +74,15 @@ function getChatRowClassName(): string {
   return "";
 }
 
-/** The person's chats, or the one open chat; the list and its table state outlive opening a chat. */
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Unexpected user chats query error.";
+}
+
+/**
+ * The person's chats, sorted, filtered and paged in SQL, or the one open chat; the list and its table
+ * state outlive opening a chat. The enum option lists are fetched once, apart from the pages, so the
+ * rows never wait for them and their failure only empties the enum filters.
+ */
 export function ChatsTab(props: Readonly<{
   config: AdminAppConfig;
   userId: string;
@@ -58,19 +94,74 @@ export function ChatsTab(props: Readonly<{
   const [loadState, setLoadState] = useState<LoadState>({ status: "loading" });
   const [revision, setRevision] = useState<number>(0);
   const [tableState, setTableState] = useState<DataTableState>(emptyDataTableState);
+  const [enumOptionsState, setEnumOptionsState] = useState<EnumOptionsState>({ status: "loading" });
+  const [enumOptionsRevision, setEnumOptionsRevision] = useState<number>(0);
+  // Only a table that already shows a page waits for the debounce; the first load has nothing to coalesce.
+  const hasLoadedPageRef = useRef<boolean>(false);
   const columns = useMemo(() => buildChatColumns(userId, onNavigate), [userId, onNavigate]);
 
+  // Blind to the table state, so neither a table change nor the clamp re-request asks for them again.
   useEffect(() => {
-    let cancelled = false;
-    setLoadState({ status: "loading" });
-    void loadChatSessions(config, userId).then((sessions) => {
-      if (!cancelled) setLoadState({ status: "ready", sessions });
-    }).catch((error: unknown) => {
-      if (cancelled || onTerminalAdminError(error, config)) return;
-      setLoadState({ status: "error", message: error instanceof Error ? error.message : "Unexpected user chats query error." });
+    let isSuperseded = false;
+    setEnumOptionsState({ status: "loading" });
+
+    async function loadEnumOptions(): Promise<void> {
+      try {
+        const options = await loadChatSessionsEnumOptions(config, userId);
+        if (isSuperseded) return;
+        setEnumOptionsState({ status: "ready", options });
+      } catch (error: unknown) {
+        if (isSuperseded || onTerminalAdminError(error, config)) return;
+        setEnumOptionsState({ status: "error", message: getErrorMessage(error) });
+      }
+    }
+
+    void loadEnumOptions();
+    return () => {
+      isSuperseded = true;
+    };
+  }, [config, enumOptionsRevision, onTerminalAdminError, userId]);
+
+  useEffect(() => {
+    const requestedState = tableState;
+    let isSuperseded = false;
+    // The previous page stays on screen, dimmed, until the new one arrives.
+    setLoadState((current) => {
+      if (current.status === "ready") return { ...current, isLoading: true };
+      return current.status === "error" ? { status: "loading" } : current;
     });
-    return () => { cancelled = true; };
-  }, [config, userId, onTerminalAdminError, revision]);
+
+    async function loadPage(): Promise<void> {
+      try {
+        const result = await loadChatSessionsPage(config, userId, requestedState, columns);
+        if (isSuperseded) return;
+        // A page past the end, from a shrunken total, is asked for again as the last page the table
+        // shows instead.
+        const clampedPage = clampDataTablePage(requestedState.page, result.totalCount);
+        if (clampedPage !== requestedState.page) {
+          setTableState({ ...requestedState, page: clampedPage });
+          return;
+        }
+        hasLoadedPageRef.current = true;
+        setLoadState({ status: "ready", result, isLoading: false, reloadError: null });
+      } catch (error: unknown) {
+        if (isSuperseded || onTerminalAdminError(error, config)) return;
+        const message = getErrorMessage(error);
+        setLoadState((current) => current.status === "ready"
+          ? { ...current, isLoading: false, reloadError: message }
+          : { status: "error", message });
+      }
+    }
+
+    const reloadTimeoutId = window.setTimeout(
+      () => { void loadPage(); },
+      hasLoadedPageRef.current ? tableReloadDebounceMs : 0,
+    );
+    return () => {
+      isSuperseded = true;
+      window.clearTimeout(reloadTimeoutId);
+    };
+  }, [columns, config, onTerminalAdminError, revision, tableState, userId]);
 
   if (props.openSessionId !== null) {
     return (
@@ -85,34 +176,38 @@ export function ChatsTab(props: Readonly<{
     );
   }
 
-  if (loadState.status === "loading") {
-    return <p className="report-state" aria-live="polite">Loading chats…</p>;
-  }
-
-  if (loadState.status === "error") {
-    return (
-      <div className="report-state report-state-error">
-        <strong>User chats query failed.</strong><span>{loadState.message}</span>
-        <button className="filter-button" type="button" onClick={() => setRevision((value) => value + 1)}>Retry</button>
-      </div>
-    );
-  }
-
   return (
     <div className="user-tab" data-testid="user-chats">
       <p className="dashboard-section-description">
-        Every AI chat this person owns, most recently updated first. Characters count the text of every message, the person's and the model's. Open a chat to read it. A guest's chats are deleted with the guest when it merges into an account, so none carry over.
+        Every AI chat this person owns, most recently updated first. Characters count the text of every message, the person's and the model's. Open a chat to read it. A guest's chats are deleted with the guest when it merges into an account, so none carry over. Sorting, filters and pages apply to every chat of this person.
       </p>
-      <DataTable
+      {loadState.status === "loading" ? <p className="report-state" aria-live="polite">Loading chats…</p> : null}
+      {loadState.status === "error" ? <div className="report-state report-state-error">
+        <strong>User chats query failed.</strong><span>{loadState.message}</span>
+        <button className="filter-button" type="button" onClick={() => setRevision((value) => value + 1)}>Retry</button>
+      </div> : null}
+      {loadState.status === "ready" && loadState.reloadError !== null ? <div className="report-state report-state-error" role="alert" data-testid="user-chats-reload-error">
+        <strong>User chats query failed; the rows below are from the previous query.</strong><span>{loadState.reloadError}</span>
+        <button className="filter-button" type="button" onClick={() => setRevision((value) => value + 1)}>Retry</button>
+      </div> : null}
+      {enumOptionsState.status === "error" ? <div className="report-state report-state-error" role="alert" data-testid="user-chats-enum-options-error">
+        <strong>Filter options query failed; the enum column filters list no values until it succeeds.</strong><span>{enumOptionsState.message}</span>
+        <button className="filter-button" type="button" onClick={() => setEnumOptionsRevision((value) => value + 1)}>Retry</button>
+      </div> : null}
+      {loadState.status === "ready" ? <DataTable
         testId="user-chats-table"
         columns={columns}
-        rows={loadState.sessions}
+        rows={loadState.result.rows}
         rowKey={getChatRowKey}
         rowClassName={getChatRowClassName}
         state={tableState}
         onStateChange={setTableState}
-        server={null}
-      />
+        server={{
+          totalCount: loadState.result.totalCount,
+          enumOptionsByColumnId: enumOptionsState.status === "ready" ? enumOptionsState.options : emptyChatSessionsEnumOptions,
+          isLoading: loadState.isLoading,
+        }}
+      /> : null}
     </div>
   );
 }

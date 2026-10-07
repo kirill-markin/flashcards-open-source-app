@@ -92,23 +92,6 @@
   margin-top: 24px;
 }
 
-.activity-paging {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px 14px;
-}
-
-.activity-paging-note {
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.activity-paging-error {
-  color: #ffb6a6;
-  font-size: 13px;
-}
-
 /* Card text keeps its line breaks and wraps inside the cell instead of widening the whole table. */
 .card-text-cell {
   display: grid;
