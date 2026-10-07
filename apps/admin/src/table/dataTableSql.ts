@@ -87,7 +87,12 @@ export function buildDataTableSqlClauses<Row>(
   tiebreakOrderBySql: string,
 ): DataTableSqlClauses {
   // Every column up front, so a missing expression fails the first query rather than the first click.
-  columns.forEach((column) => requireColumnSql(columnSqlById, column.id));
+  columns.forEach((column) => {
+    if (column.kind === "enum-list") {
+      throw new Error(`Data table column "${column.id}" is an enum list, which server mode does not support.`);
+    }
+    requireColumnSql(columnSqlById, column.id);
+  });
   if (!Number.isSafeInteger(state.page) || state.page < 0) {
     throw new Error(`Data table page must be a non-negative integer, got ${state.page}.`);
   }
