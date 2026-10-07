@@ -212,6 +212,7 @@ data class AndroidReviewReactionDiagnostic(
 enum class AndroidReviewSpeechFailureStage(
     val tagValue: String
 ) {
+    INIT(tagValue = "init"),
     SET_LANGUAGE(tagValue = "set_language"),
     SET_VOICE(tagValue = "set_voice"),
     SPEAK(tagValue = "speak"),
