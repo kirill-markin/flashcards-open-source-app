@@ -130,7 +130,7 @@ The automatic Android CI flow is:
 The manual Android release flow is:
 
 1. `android-release.yml` starts only through manual `workflow_dispatch`; optional `target_sha` pins a specific release commit, otherwise the selected workflow ref SHA is used
-2. The workflow resolves one shared `ANDROID_VERSION_CODE` and one shared Android release identifier for the run
+2. The workflow resolves one shared `ANDROID_VERSION_CODE` and one shared Android release identifier for the run, validates optional [localized notes JSON](release/release-notes.md#android-draft-upload-input), and retains its exact input/source/version/run/attempt manifest before costly gates
 3. The reusable Android CI gate runs for the target SHA
 4. Four Device Run sessions execute sequentially for the same CI debug/test APKs: API 37 full suite, then API 30, 31 and 33 smoke, one destination per session
 5. After all four sessions, jobs and executions reach terminal success, the signed Android App Bundle is built and uploaded as a workflow artifact
@@ -145,6 +145,9 @@ The publisher commits with `ERROR_IF_IN_REVIEW` and omits the conditional
 `changesNotSentForReview` parameter. Workflow tooling is checked out separately
 from the pinned product source. For a failed publisher with passing retained
 build/native gates, follow [exact-bundle recovery](release/android.md#exact-bundle-upload-recovery).
+The separate notes artifact leaves signed-bundle and native-summary inventories
+unchanged; recovery restores the exact original notes with digest and attempt
+checks, while supporting legacy releases without notes evidence.
 
 After pushing to `main`, watch `Android CI` separately when Android-impacting files changed.
 
