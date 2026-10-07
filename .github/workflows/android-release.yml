@@ -7,6 +7,10 @@ on:
         description: Git SHA to release. Leave empty to release the selected workflow ref.
         required: false
         type: string
+      localized_release_notes:
+        description: Optional JSON list of {language,text} records using exact Google Play locale codes
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -17,6 +21,7 @@ jobs:
     name: Resolve Android release target
     runs-on: ubuntu-24.04
     outputs:
+      play_notes_sha256: ${{ steps.release-notes.outputs.sha256 }}
       target_sha: ${{ steps.resolve.outputs.target_sha }}
       android_version_code: ${{ steps.release-metadata.outputs.android_version_code }}
       android_version_name: ${{ steps.release-metadata.outputs.android_version_name }}
@@ -94,6 +99,31 @@ jobs:
             echo "android_release_id=${release_id}"
             echo "android_play_release_name=${play_release_name}"
           } >> "${GITHUB_OUTPUT}"
+
+      - name: Check out release-notes tooling from the workflow source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          path: .release-tools
+          sparse-checkout: scripts/android/play_release_notes.py
+          sparse-checkout-cone-mode: false
+
+      - name: Prepare localized Play release notes
+        id: release-notes
+        env:
+          LOCALIZED_RELEASE_NOTES: ${{ inputs.localized_release_notes }}
+          ARTIFACT_SOURCE_SHA: ${{ steps.resolve.outputs.target_sha }}
+          ANDROID_VERSION_CODE: ${{ steps.release-metadata.outputs.android_version_code }}
+          ANDROID_VERSION_NAME: ${{ steps.release-metadata.outputs.android_version_name }}
+          PLAY_NOTES_PATH: ${{ runner.temp }}/release-notes.json
+        run: python3 .release-tools/scripts/android/play_release_notes.py
+
+      - name: Retain original Play release notes
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-release-notes-r${{ github.run_id }}a${{ github.run_attempt }}
+          if-no-files-found: error
+          path: ${{ runner.temp }}/release-notes.json
 
       - name: Summarize preflight
         run: |
@@ -820,8 +850,16 @@ jobs:
         with:
           ref: ${{ github.sha }}
           path: .release-tools
-          sparse-checkout: scripts/android/publish-play-draft.py
+          sparse-checkout: |
+            scripts/android/publish-play-draft.py
+            scripts/android/play_release_notes.py
           sparse-checkout-cone-mode: false
+
+      - name: Download original Play release notes
+        uses: actions/download-artifact@v8
+        with:
+          name: android-release-notes-r${{ github.run_id }}a${{ github.run_attempt }}
+          path: ${{ runner.temp }}/play-release-notes
 
       - name: Upload bundle to Google Play production track as draft release
         env:
@@ -829,6 +867,10 @@ jobs:
           ANDROID_PLAY_PACKAGE_NAME: ${{ vars.ANDROID_PLAY_PACKAGE_NAME }}
           ARTIFACT_SOURCE_SHA: ${{ needs.preflight.outputs.target_sha }}
           PLAY_PROVENANCE_PATH: ${{ runner.temp }}/play-publisher-provenance.json
+          PLAY_NOTES_PATH: ${{ runner.temp }}/play-release-notes/release-notes.json
+          PLAY_NOTES_SHA256: ${{ needs.preflight.outputs.play_notes_sha256 }}
+          SOURCE_RUN_ID: ${{ github.run_id }}
+          SOURCE_RUN_ATTEMPT: ${{ github.run_attempt }}
         run: |
           export AAB_PATH="apps/android/app/build/outputs/bundle/release/app-release.aab"
           AAB_SHA256="$(sha256sum "${AAB_PATH}" | cut -d ' ' -f 1)"

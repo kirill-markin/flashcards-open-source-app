@@ -7,6 +7,8 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+from play_release_notes import parse_notes, read_notes
+
 type Json = bool | int | float | str | list[Json] | dict[str, Json] | None
 
 
@@ -40,6 +42,16 @@ def main() -> None:
         raise ValueError('Signed bundle does not match the pinned SHA-256')
     if not re.fullmatch(r'main-draft-vc' + code + r'-r[0-9]+a[0-9]+-s' + source[:8], name):
         raise ValueError('Play release name does not match the original version code and release identity')
+    notes_path = os.environ.get('PLAY_NOTES_PATH', '')
+    notes_digest = os.environ.get('PLAY_NOTES_SHA256', '')
+    if bool(notes_path) != bool(notes_digest):
+        raise ValueError('Release-notes manifest and original SHA-256 must be provided together')
+    notes = read_notes(
+        Path(notes_path), notes_digest, source, code, os.environ['ANDROID_VERSION_NAME'],
+        os.environ['SOURCE_RUN_ID'], os.environ['SOURCE_RUN_ATTEMPT'],
+    ) if notes_path else []
+    if notes_path and name != f'main-draft-vc{code}-r{os.environ["SOURCE_RUN_ID"]}a{os.environ["SOURCE_RUN_ATTEMPT"]}-s{source[:8]}':
+        raise ValueError('Play release name differs from the release-notes original run/attempt')
     base = f'https://androidpublisher.googleapis.com/androidpublisher/v3/applications/{package}/edits'
     edit = request('POST', base, b'{}', 'application/json')
     edit_id = edit.get('id')
@@ -51,7 +63,7 @@ def main() -> None:
         'aabSha256': expected_hash, 'releaseName': name, 'editId': edit_id,
         'publisherRunId': os.environ['GITHUB_RUN_ID'], 'publisherRunAttempt': os.environ['GITHUB_RUN_ATTEMPT'],
         'workflowSha': os.environ['GITHUB_SHA'], 'changesInReviewBehavior': 'ERROR_IF_IN_REVIEW',
-        'commitStatus': 'not-attempted',
+        'commitStatus': 'not-attempted', 'releaseNotesSha256': notes_digest or None,
     }
     record_path = Path(os.environ['PLAY_PROVENANCE_PATH'])
     record_path.write_text(json.dumps(record, indent=2) + '\n')
@@ -70,11 +82,18 @@ def main() -> None:
         record['bundleOperation'] = 'upload-original-signed-bytes'
     if str(bundle.get('versionCode')) != code or bundle.get('sha256') != expected_hash:
         raise ValueError(f'Play bundle identity differs: expected code={code} sha256={expected_hash}, received={bundle}')
-    track: dict[str, Json] = {'track': 'production', 'releases': [{'name': name, 'versionCodes': [code], 'status': 'draft'}]}
+    release: dict[str, Json] = {'name': name, 'versionCodes': [code], 'status': 'draft'}
+    if notes:
+        release['releaseNotes'] = notes
+    track: dict[str, Json] = {'track': 'production', 'releases': [release]}
     updated = request('PUT', f'{edit_base}/tracks/production', json.dumps(track).encode(), 'application/json')
     releases = updated.get('releases')
-    if updated.get('track') != 'production' or not isinstance(releases, list) or len(releases) != 1 or any(object_value(releases[0]).get(key) != value for key, value in object_value(track['releases'][0]).items()):
+    if updated.get('track') != 'production' or not isinstance(releases, list) or len(releases) != 1 or any(object_value(releases[0]).get(key) != release[key] for key in ('name', 'versionCodes', 'status')):
         raise ValueError(f'Play draft track readback differs from the single intended release: {updated}')
+    if notes:
+        returned_notes = parse_notes(json.dumps(object_value(releases[0]).get('releaseNotes')))
+        if {str(object_value(note)['language']): object_value(note)['text'] for note in returned_notes} != {str(object_value(note)['language']): object_value(note)['text'] for note in notes}:
+            raise ValueError(f'Play draft release notes differ from the original validated input: {updated}')
     record['track'] = updated
     request('POST', f'{edit_base}:validate', b'', 'application/json')
     record_path.write_text(json.dumps(record, indent=2) + '\n')
