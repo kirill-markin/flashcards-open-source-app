@@ -850,7 +850,7 @@
 "settings.language.supported.zulu" = "Tiếng Zulu";
 
 "premium.offer.title" = "Premium";
-"premium.offer.benefits" = "1.000 tin nhắn AI mỗi tháng và màu nhấn tùy chỉnh. Đồng bộ miễn phí cho mọi người.";
+"premium.offer.benefits" = "1.000 tin nhắn AI mỗi tháng và phong cách tùy chỉnh. Đồng bộ miễn phí cho mọi người.";
 "premium.aiLimit.title" = "Đã đạt giới hạn tin nhắn AI";
 
 "settings.accentColor.title" = "Màu nhấn";
@@ -863,6 +863,8 @@
 "settings.accentColor.custom" = "Màu tùy chỉnh";
 "settings.accentColor.invalidHex" = "Nhập màu ở dạng #RRGGBB với sáu chữ số thập lục phân.";
 "settings.accentColor.premiumNote" = "Màu nhấn tùy chỉnh có sẵn với Premium. Màu đã lưu sẽ trở lại khi Premium hoạt động.";
+"settings.reviewAnimations.premiumNote" = "Tắt hiệu ứng ôn tập có sẵn với Premium. Cài đặt đã lưu sẽ trở lại khi Premium hoạt động.";
+"settings.aiChatSuggestions.premiumNote" = "Tắt gợi ý trò chuyện AI có sẵn với Premium. Cài đặt đã lưu sẽ trở lại khi Premium hoạt động.";
 
 "premium.apple.monthlyProduct" = "%@ · Hằng tháng";
 "premium.apple.renewal" = "Tự động gia hạn cho đến khi hủy. Quản lý hoặc hủy trong mục đăng ký App Store của bạn.";

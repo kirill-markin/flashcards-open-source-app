@@ -850,7 +850,7 @@
 "settings.language.supported.zulu" = "Zoeloe";
 
 "premium.offer.title" = "Premium";
-"premium.offer.benefits" = "1.000 AI-berichten per maand en eigen accentkleuren. Synchronisatie is gratis voor iedereen.";
+"premium.offer.benefits" = "1.000 AI-berichten per maand en eigen stijlen. Synchronisatie is gratis voor iedereen.";
 "premium.aiLimit.title" = "Limiet voor AI-berichten bereikt";
 
 "settings.accentColor.title" = "Accentkleur";
@@ -863,6 +863,8 @@
 "settings.accentColor.custom" = "Eigen kleur";
 "settings.accentColor.invalidHex" = "Voer een kleur in als #RRGGBB, met zes hexadecimale cijfers.";
 "settings.accentColor.premiumNote" = "Eigen accentkleuren zijn beschikbaar met Premium. Je opgeslagen kleur keert terug wanneer Premium actief is.";
+"settings.reviewAnimations.premiumNote" = "Herhaalanimaties uitzetten is beschikbaar met Premium. Je opgeslagen instelling keert terug wanneer Premium actief is.";
+"settings.aiChatSuggestions.premiumNote" = "AI-chatsuggesties uitzetten is beschikbaar met Premium. Je opgeslagen instelling keert terug wanneer Premium actief is.";
 
 "premium.apple.monthlyProduct" = "%@ · Maandelijks";
 "premium.apple.renewal" = "Wordt automatisch verlengd tot je opzegt. Beheer of annuleer via je App Store-abonnementen.";

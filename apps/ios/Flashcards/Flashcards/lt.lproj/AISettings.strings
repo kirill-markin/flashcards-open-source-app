@@ -850,7 +850,7 @@
 "settings.language.supported.zulu" = "Zulų";
 
 "premium.offer.title" = "Premium";
-"premium.offer.benefits" = "1 000 DI žinučių per mėnesį ir pasirinktinės akcento spalvos. Sinchronizavimas visiems nemokamas.";
+"premium.offer.benefits" = "1 000 DI žinučių per mėnesį ir pasirinktiniai stiliai. Sinchronizavimas visiems nemokamas.";
 "premium.aiLimit.title" = "Pasiektas DI žinučių limitas";
 
 "settings.accentColor.title" = "Akcento spalva";
@@ -863,6 +863,8 @@
 "settings.accentColor.custom" = "Pasirinktinė spalva";
 "settings.accentColor.invalidHex" = "Įveskite spalvą formatu #RRGGBB su šešiais šešioliktainiais skaitmenimis.";
 "settings.accentColor.premiumNote" = "Pasirinktinės akcento spalvos pasiekiamos su Premium. Išsaugota spalva grįžta, kai Premium aktyvus.";
+"settings.reviewAnimations.premiumNote" = "Kartojimo animacijų išjungimas pasiekiamas su Premium. Išsaugotas nustatymas grįžta, kai Premium aktyvus.";
+"settings.aiChatSuggestions.premiumNote" = "DI pokalbio pasiūlymų išjungimas pasiekiamas su Premium. Išsaugotas nustatymas grįžta, kai Premium aktyvus.";
 
 "premium.apple.monthlyProduct" = "%@ · Kas mėnesį";
 "premium.apple.renewal" = "Automatiškai atnaujinama iki atšaukimo. Tvarkykite arba atšaukite App Store prenumeratose.";
