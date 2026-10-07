@@ -16,15 +16,19 @@ export const syntheticActorDetectorLabel = "job:synthetic-actor-detector";
 /**
  * At or above this many insertions, a single run reports itself to Sentry.
  *
- * The rule matches roughly two organic actors a quarter, and the scripted run that prompted this
- * job produced seventy-six in one morning. Ten is far beyond anything the organic rate can reach in
- * a day, and small enough that a scripted run an eighth the size of that one still raises. The
- * first run after deployment inserts the whole standing backlog and therefore raises as well, which
- * is the run a human most wants to look at.
+ * The replica rule matches roughly two organic actors a quarter, and the scripted run that prompted
+ * this job produced seventy-six in one morning. Ten is far beyond anything the organic rate can
+ * reach in a day, and small enough that a scripted run an eighth the size of that one still raises.
+ * The install-burst rule adds the four to eight Google Play review installs each Android upload
+ * produces, which stay under it, while a device-farm reinstall loop (twenty-eight in one day has been
+ * seen) raises. The first run after deployment of either rule inserts its whole standing backlog and
+ * therefore raises as well, which is the run a human most wants to look at.
  */
 export const syntheticActorLargeRunThreshold = 10;
 
 const syntheticActorReason = "no client_installation replica and no app_opened event";
+const androidInstallBurstReason =
+  "android install burst: 4+ short-lived guest installs of one device fingerprint within 24h";
 
 /**
  * One synthetic actor, with the signals measured for it. `reviewAnsweredEvents`, `appOpenedEvents`
@@ -39,6 +43,21 @@ export type SyntheticActorCandidate = Readonly<{
   appOpenedEvents: number;
   clientInstallationReplicas: number;
   workspaceReplicas: number;
+  firstEventAtUtc: string;
+  lastEventAtUtc: string;
+}>;
+
+/**
+ * One short-lived Android guest install in a burst. `burstSize` is the most qualifying installs of
+ * its fingerprint that any one 24-hour window containing this install holds.
+ */
+export type AndroidInstallBurstCandidate = Readonly<{
+  actorId: string;
+  analyticsEvents: number;
+  deviceModel: string;
+  osVersion: string;
+  appVersion: string;
+  burstSize: number;
   firstEventAtUtc: string;
   lastEventAtUtc: string;
 }>;
@@ -61,10 +80,21 @@ type SyntheticActorCandidateRow = Readonly<{
   last_event_at: Date;
 }>;
 
+type AndroidInstallBurstCandidateRow = Readonly<{
+  actor_id: string;
+  analytics_events: number;
+  device_model: string;
+  os_version: string;
+  app_version: string;
+  burst_size: number;
+  first_event_at: Date;
+  last_event_at: Date;
+}>;
+
 type InsertedExcludedActorRow = Readonly<{ actor_id: string }>;
 
 /**
- * The rule, as one statement.
+ * The replica rule, as one statement.
  *
  * A reviewing actor is synthetic when both signals hold: no `client_installation` workspace replica
  * was ever registered for any id that actor's events name, and no `app_opened` event this statement
@@ -227,6 +257,143 @@ WHERE person_replicas.client_installation_replicas = 0
 ORDER BY person_replicas.actor_id
 `;
 
+/**
+ * The second rule: a short-lived Android guest install that arrived in a burst of four or more
+ * installs of one device fingerprint within 24 hours. Google Play's pre-launch review installs each
+ * upload on four to eight identical lab devices, and a device farm reinstalls the app in a loop;
+ * neither is a person, and both pass the replica rule because the real app registers a replica and
+ * emits `app_opened`.
+ *
+ * The population is actors with an Android row, under the same `trust_level` restatement the
+ * replica rule documents. The fingerprint is `(device_model, os_version, app_version)` over those
+ * Android rows, and an actor whose rows show more than one value for any of the three is not a
+ * candidate. `count(DISTINCT ...)` ignores NULLs on purpose: server-derived rows carry the platform
+ * but never the device columns. Locale and timezone are not part of it, because the review lab
+ * varies them.
+ *
+ * Only short-lived installs qualify: first-to-last event under 24 hours over the actor's whole
+ * trusted history on every platform, so a person who came back later, on Android or anywhere else,
+ * is long-lived and stays counted even when they share a burst's fingerprint, which a popular phone
+ * on a fresh release does. The first event must also be at least three days old, because a recent
+ * install has had no chance to come back yet. Both conditions are judged once, at insertion: a
+ * member who later returns or signs in stays excluded until a human restores the row.
+ *
+ * A qualifying actor must never have signed in. The `auth.user_identities` check RESTATES RATHER
+ * THAN CALLS `buildSignedInActorSql` in `apps/admin/src/reports/funnels/funnelAudienceSql.ts`,
+ * which owns the rule and states why it is the only evidence of a registration, because the backend
+ * cannot import the admin package. It is applied to every id in `person_ids`, for the reason the
+ * replica rule gives for its replica signal.
+ *
+ * A burst is any window `[anchor.first_event_at, anchor.first_event_at + 24h)` anchored at a
+ * qualifying actor that holds at least four qualifying actors of the anchor's fingerprint; every
+ * qualifying actor inside such a window is a candidate. The count is taken before the restore and
+ * duplicate gates, which narrow only what is inserted, so a burst whose members mature across two
+ * daily runs still reaches four. Those two gates mean what they mean on the replica rule.
+ */
+const androidInstallBurstCandidateSql = `
+WITH actor_history AS (
+  SELECT
+    pg_catalog.lower(pg_catalog.btrim(resolved.actor_id::text)) AS actor_id,
+    count(*) AS analytics_events,
+    min(resolved.device_model) FILTER (WHERE resolved.platform = 'android') AS device_model,
+    min(resolved.os_version) FILTER (WHERE resolved.platform = 'android') AS os_version,
+    min(resolved.app_version) FILTER (WHERE resolved.platform = 'android') AS app_version,
+    min(resolved.occurred_at) AS first_event_at,
+    max(resolved.occurred_at) AS last_event_at,
+    array_agg(DISTINCT pg_catalog.lower(pg_catalog.btrim(resolved.user_id::text)))
+      FILTER (WHERE resolved.user_id IS NOT NULL) AS event_user_ids,
+    array_agg(DISTINCT pg_catalog.lower(pg_catalog.btrim(resolved.subject_user_id::text)))
+      FILTER (WHERE resolved.subject_user_id IS NOT NULL) AS event_subject_user_ids
+  FROM analytics.product_events_resolved AS resolved
+  WHERE resolved.actor_id IS NOT NULL
+    AND resolved.trust_level <> 'anonymous_client'
+  GROUP BY 1
+  HAVING count(DISTINCT resolved.device_model) FILTER (WHERE resolved.platform = 'android') = 1
+    AND count(DISTINCT resolved.os_version) FILTER (WHERE resolved.platform = 'android') = 1
+    AND count(DISTINCT resolved.app_version) FILTER (WHERE resolved.platform = 'android') = 1
+    AND max(resolved.occurred_at) - min(resolved.occurred_at) < interval '24 hours'
+    AND min(resolved.occurred_at) <= now() - interval '3 days'
+),
+person_ids AS (
+  SELECT DISTINCT
+    actor_history.actor_id,
+    person_key.person_id
+  FROM actor_history
+  CROSS JOIN LATERAL unnest(
+    ARRAY[actor_history.actor_id]
+      || COALESCE(actor_history.event_user_ids, ARRAY[]::text[])
+      || COALESCE(actor_history.event_subject_user_ids, ARRAY[]::text[])
+  ) AS person_key(person_id)
+),
+qualifying AS (
+  SELECT actor_history.*
+  FROM actor_history
+  WHERE NOT EXISTS (
+    SELECT 1
+    FROM person_ids AS signed_in_person
+    JOIN auth.user_identities AS signed_in_identities
+      ON pg_catalog.lower(signed_in_identities.user_id) = signed_in_person.person_id
+    WHERE signed_in_person.actor_id = actor_history.actor_id
+      AND signed_in_identities.provider_type = 'cognito'
+  )
+),
+burst_windows AS (
+  SELECT
+    anchor.device_model,
+    anchor.os_version,
+    anchor.app_version,
+    anchor.first_event_at AS window_start,
+    count(*) AS burst_size
+  FROM qualifying AS anchor
+  JOIN qualifying AS member
+    ON member.device_model = anchor.device_model
+    AND member.os_version = anchor.os_version
+    AND member.app_version = anchor.app_version
+    AND member.first_event_at >= anchor.first_event_at
+    AND member.first_event_at < anchor.first_event_at + interval '24 hours'
+  GROUP BY anchor.actor_id, anchor.device_model, anchor.os_version, anchor.app_version, anchor.first_event_at
+  HAVING count(*) >= 4
+),
+burst_members AS (
+  SELECT
+    member.actor_id,
+    max(burst_windows.burst_size) AS burst_size
+  FROM qualifying AS member
+  JOIN burst_windows
+    ON burst_windows.device_model = member.device_model
+    AND burst_windows.os_version = member.os_version
+    AND burst_windows.app_version = member.app_version
+    AND member.first_event_at >= burst_windows.window_start
+    AND member.first_event_at < burst_windows.window_start + interval '24 hours'
+  GROUP BY 1
+)
+SELECT
+  qualifying.actor_id,
+  CAST(qualifying.analytics_events AS INTEGER) AS analytics_events,
+  qualifying.device_model,
+  qualifying.os_version,
+  qualifying.app_version,
+  CAST(burst_members.burst_size AS INTEGER) AS burst_size,
+  qualifying.first_event_at,
+  qualifying.last_event_at
+FROM burst_members
+JOIN qualifying ON qualifying.actor_id = burst_members.actor_id
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM analytics.excluded_actors AS restored
+    JOIN person_ids AS restored_person
+      ON restored_person.person_id = restored.actor_id
+    WHERE restored_person.actor_id = qualifying.actor_id
+      AND restored.restored_at IS NOT NULL
+  )
+  AND NOT EXISTS (
+    SELECT 1
+    FROM analytics.excluded_actors AS recorded
+    WHERE recorded.actor_id = qualifying.actor_id
+  )
+ORDER BY qualifying.actor_id
+`;
+
 function toCandidate(row: SyntheticActorCandidateRow): SyntheticActorCandidate {
   return {
     actorId: row.actor_id,
@@ -240,10 +407,36 @@ function toCandidate(row: SyntheticActorCandidateRow): SyntheticActorCandidate {
   };
 }
 
+function toAndroidInstallBurstCandidate(
+  row: AndroidInstallBurstCandidateRow,
+): AndroidInstallBurstCandidate {
+  return {
+    actorId: row.actor_id,
+    analyticsEvents: row.analytics_events,
+    deviceModel: row.device_model,
+    osVersion: row.os_version,
+    appVersion: row.app_version,
+    burstSize: row.burst_size,
+    firstEventAtUtc: row.first_event_at.toISOString(),
+    lastEventAtUtc: row.last_event_at.toISOString(),
+  };
+}
+
 async function loadSyntheticActorCandidates(): Promise<ReadonlyArray<SyntheticActorCandidate>> {
   return withReportingReadOnlyTransaction(async (client) => {
     const result = await client.query<SyntheticActorCandidateRow>(syntheticActorCandidateSql);
     return result.rows.map(toCandidate);
+  });
+}
+
+async function loadAndroidInstallBurstCandidates(): Promise<
+  ReadonlyArray<AndroidInstallBurstCandidate>
+> {
+  return withReportingReadOnlyTransaction(async (client) => {
+    const result = await client.query<AndroidInstallBurstCandidateRow>(
+      androidInstallBurstCandidateSql,
+    );
+    return result.rows.map(toAndroidInstallBurstCandidate);
   });
 }
 
@@ -269,16 +462,16 @@ async function loadSyntheticActorCandidates(): Promise<ReadonlyArray<SyntheticAc
  * `excluded_by`, `excluded_at` and `reason`.
  */
 async function insertSyntheticActorExclusions(
-  candidates: ReadonlyArray<SyntheticActorCandidate>,
+  actorIds: ReadonlyArray<string>,
+  reason: string,
 ): Promise<ReadonlySet<string>> {
-  const actorIds = candidates.map((candidate) => candidate.actorId);
   const result = await unsafeQuery<InsertedExcludedActorRow>(
     `INSERT INTO analytics.excluded_actors (actor_id, excluded_by, reason, source)
      SELECT candidate.actor_id, $2::text, $3::text, 'automatic'
      FROM unnest($1::text[]) AS candidate(actor_id)
      ON CONFLICT (actor_id) DO NOTHING
      RETURNING actor_id`,
-    [actorIds, syntheticActorDetectorLabel, syntheticActorReason],
+    [actorIds, syntheticActorDetectorLabel, reason],
   );
 
   return new Set(result.rows.map((row) => row.actor_id));
@@ -287,24 +480,52 @@ async function insertSyntheticActorExclusions(
 export async function excludeSyntheticActors(
   scope: BackendObservationScope,
 ): Promise<SyntheticActorDetectorResult> {
-  const candidates = await loadSyntheticActorCandidates();
-  const insertedActorIds = await insertSyntheticActorExclusions(candidates);
-  for (const candidate of candidates) {
-    if (!insertedActorIds.has(candidate.actorId)) {
+  // The rules run one after the other, each loaded in its own snapshot only after the previous
+  // rule's rows and records are written: a failing burst scan cannot take the replica rule's
+  // exclusions with it, and the burst rule's duplicate gate sees the replica rule's rows, so no
+  // actor is counted twice.
+  const noReplicaCandidates = await loadSyntheticActorCandidates();
+  const insertedNoReplicaActorIds = await insertSyntheticActorExclusions(
+    noReplicaCandidates.map((candidate) => candidate.actorId),
+    syntheticActorReason,
+  );
+  for (const candidate of noReplicaCandidates) {
+    if (!insertedNoReplicaActorIds.has(candidate.actorId)) {
       continue;
     }
     addBackendBreadcrumb({
       action: "synthetic_actor_excluded",
       scope,
-      details: candidate,
+      details: { rule: "no_replica_no_app_opened", ...candidate },
     });
   }
 
+  const burstCandidates = await loadAndroidInstallBurstCandidates();
+  const insertedBurstActorIds = await insertSyntheticActorExclusions(
+    burstCandidates.map((candidate) => candidate.actorId),
+    androidInstallBurstReason,
+  );
+  for (const candidate of burstCandidates) {
+    if (!insertedBurstActorIds.has(candidate.actorId)) {
+      continue;
+    }
+    addBackendBreadcrumb({
+      action: "synthetic_actor_excluded",
+      scope,
+      details: { rule: "android_install_burst", ...candidate },
+    });
+  }
+
+  // Reached only when both rules ran. A failure in either throws past this point and surfaces as
+  // `synthetic_actor_detector_failed`, with no completed record and no large-run check on partial
+  // counts; rows and per-actor records already written stand.
+  const candidateActors = noReplicaCandidates.length + burstCandidates.length;
+  const inserted = insertedNoReplicaActorIds.size + insertedBurstActorIds.size;
   const result: SyntheticActorDetectorResult = {
-    candidateActors: candidates.length,
-    inserted: insertedActorIds.size,
-    alreadyRecorded: candidates.length - insertedActorIds.size,
-    largeRun: insertedActorIds.size >= syntheticActorLargeRunThreshold,
+    candidateActors,
+    inserted,
+    alreadyRecorded: candidateActors - inserted,
+    largeRun: inserted >= syntheticActorLargeRunThreshold,
   };
 
   addBackendBreadcrumb({
