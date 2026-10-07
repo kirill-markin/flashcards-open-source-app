@@ -1,0 +1,75 @@
+name: Android Play Status
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_code:
+        description: Exact positive Android version code to inspect
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  play_status:
+    name: Read production Play release lifecycle
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Validate Play status inputs and configuration
+        env:
+          ANDROID_VERSION_CODE: ${{ inputs.version_code }}
+          ANDROID_PLAY_PACKAGE_NAME: ${{ vars.ANDROID_PLAY_PACKAGE_NAME }}
+          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+          GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          GCP_PLAY_SERVICE_ACCOUNT_EMAIL: ${{ vars.GCP_PLAY_SERVICE_ACCOUNT_EMAIL }}
+        run: |
+          set -euo pipefail
+          for variable_name in GCP_PROJECT_ID GCP_WORKLOAD_IDENTITY_PROVIDER GCP_PLAY_SERVICE_ACCOUNT_EMAIL; do
+            if [[ -z "${!variable_name}" ]]; then
+              printf 'Missing required GitHub Actions variable: %s\n' "${variable_name}" >&2
+              exit 1
+            fi
+          done
+          if [[ "${ANDROID_PLAY_PACKAGE_NAME}" != "com.flashcardsopensourceapp.app" || ! "${ANDROID_VERSION_CODE}" =~ ^[1-9][0-9]*$ || "${#ANDROID_VERSION_CODE}" -gt 10 ]]; then
+            echo "Play status requires the repository package and a positive version code at most 2100000000." >&2
+            exit 1
+          fi
+          if [[ "${ANDROID_VERSION_CODE}" -gt 2100000000 ]]; then
+            echo "Version code exceeds the Google Play limit of 2100000000." >&2
+            exit 1
+          fi
+
+      - uses: google-github-actions/auth@v3
+        id: auth
+        with:
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/androidpublisher
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_PLAY_SERVICE_ACCOUNT_EMAIL }}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+
+      - name: Read exact production release status
+        env:
+          PLAY_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+          ANDROID_VERSION_CODE: ${{ inputs.version_code }}
+          ANDROID_PLAY_PACKAGE_NAME: ${{ vars.ANDROID_PLAY_PACKAGE_NAME }}
+          PLAY_STATUS_PATH: ${{ runner.temp }}/android-play-status.json
+        run: python3 scripts/android/read-play-release-status.py
+
+      - name: Retain safe Play status result
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-play-status
+          if-no-files-found: ignore
+          retention-days: 14
+          path: ${{ runner.temp }}/android-play-status.json
