@@ -177,6 +177,7 @@ export function ProfileTab(props: Readonly<{
   config: AdminAppConfig;
   userId: string;
   profile: UserProfile;
+  isActive: boolean;
   onNavigate: (path: string) => void;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
 }>): JSX.Element {
@@ -212,7 +213,7 @@ export function ProfileTab(props: Readonly<{
       {props.profile.sections.map((data) => (
         <ProfileSectionView key={data.section.id} data={data} onNavigate={props.onNavigate} />
       ))}
-      <ProfileDeviceTables config={props.config} userId={props.userId} onTerminalAdminError={props.onTerminalAdminError} />
+      <ProfileDeviceTables config={props.config} userId={props.userId} isActive={props.isActive} onTerminalAdminError={props.onTerminalAdminError} />
     </div>
   );
 }
