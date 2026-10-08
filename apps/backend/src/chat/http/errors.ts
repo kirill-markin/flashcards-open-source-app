@@ -4,6 +4,7 @@ import {
   isChatSessionRequestedSessionIdConflictError,
 } from "../errors";
 import {
+  ChatSessionArchiveActiveRunError,
   ChatSessionConflictError,
   ChatSessionNotFoundError,
 } from "../store";
@@ -32,6 +33,14 @@ export function mapStoreError(error: unknown): never {
       409,
       "This chat is read-only. Open your current chat or start a new one.",
       chatSessionNotCurrentCode,
+    );
+  }
+
+  if (error instanceof ChatSessionArchiveActiveRunError) {
+    throw new HttpError(
+      409,
+      "Stop the active response before archiving this chat",
+      "CHAT_SESSION_ARCHIVE_ACTIVE_RUN",
     );
   }
 

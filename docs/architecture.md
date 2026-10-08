@@ -257,6 +257,10 @@ All current first-party clients use the backend-owned chat surface:
   - `DELETE /v1/chat`
   - `POST /v1/chat/stop`
   - `POST /v1/chat/transcriptions`
+  - `GET /v1/chat/sessions`
+  - `POST /v1/chat/sessions/{sessionId}/rename`
+  - `POST /v1/chat/sessions/{sessionId}/archive`
+- The `/v1/chat/sessions` routes are the shared chat history contract for web now and iOS/Android later; see [`apps/backend/src/chat/http/handlers.ts`](../apps/backend/src/chat/http/handlers.ts) and [`apps/backend/src/chat/store/historyService.ts`](../apps/backend/src/chat/store/historyService.ts).
 - The backend-owned chat stores canonical sessions, transcript items, and detached run state in Postgres under the `ai` schema.
 - V2 is intentionally server-owned: the backend owns session ids, run state, transcript history, run execution, cancellation, and recovery behavior.
 - `POST /v1/chat` creates a persisted run and asynchronously dispatches the detached worker.
