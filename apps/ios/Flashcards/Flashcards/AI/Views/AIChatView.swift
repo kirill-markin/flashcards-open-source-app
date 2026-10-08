@@ -299,6 +299,17 @@ struct AIChatView: View {
     var toolbarContent: some ToolbarContent {
         if self.accessState == .ready {
             ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    self.dismissComposerFocus()
+                    self.navigation.aiPath.append(AIChatHistoryListRoute())
+                } label: {
+                    Image(systemName: "list.bullet")
+                }
+                .accessibilityLabel(aiSettingsLocalized("ai.history.button", "History"))
+                .accessibilityIdentifier(UITestIdentifier.aiHistoryButton)
+                .disabled(self.chatStore.isChatInteractive == false || self.chatStore.dictationState != .idle)
+            }
+            ToolbarItem(placement: .topBarTrailing) {
                 Button(aiSettingsLocalized("ai.newChat", "New")) {
                     self.dismissComposerFocus()
                     self.chatStore.clearHistory()
