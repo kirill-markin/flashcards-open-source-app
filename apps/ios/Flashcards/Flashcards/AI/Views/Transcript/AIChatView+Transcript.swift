@@ -133,7 +133,7 @@ extension AIChatView {
                     let tailMessageId: String? = self.chatStore.messages.last?.id
 
                     ForEach(self.chatStore.messages) { message in
-                        self.messageRow(
+                        AIChatMessageRow(
                             message: message,
                             repairStatus: self.repairStatus(for: message),
                             showsTypingIndicator: aiChatShouldShowTypingIndicator(
@@ -141,7 +141,13 @@ extension AIChatView {
                                 isLastMessage: message.id == tailMessageId,
                                 isStreaming: self.chatStore.isStreaming,
                                 optimisticAssistantMessageId: self.chatStore.optimisticOutgoingTurnState?.assistantMessageId
-                            )
+                            ),
+                            onExpandContent: {
+                                self.detachAutoFollowForExpandedContent()
+                            },
+                            onOpenAccountStatus: {
+                                self.navigation.openSettings(destination: .accountStatus)
+                            }
                         )
                         .id(message.id)
                         .listRowInsets(EdgeInsets())

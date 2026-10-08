@@ -175,6 +175,23 @@ protocol AIChatSessionServicing: Sendable {
         sessionId: String,
         runId: String?
     ) async throws -> AIChatStopRunResponse
+
+    func listChatSessions(
+        session: CloudLinkedSession,
+        cursor: String?,
+        searchText: String?
+    ) async throws -> AIChatSessionHistoryPage
+
+    func renameChatSession(
+        session: CloudLinkedSession,
+        sessionId: String,
+        title: String
+    ) async throws -> AIChatSessionHistorySummary
+
+    func archiveChatSession(
+        session: CloudLinkedSession,
+        sessionId: String
+    ) async throws -> AIChatArchivedSession
 }
 
 protocol AIChatContextLoading: Sendable {
