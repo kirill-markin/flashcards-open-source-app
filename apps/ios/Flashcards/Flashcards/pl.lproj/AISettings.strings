@@ -65,6 +65,7 @@
 "ai.availability.dictation.official" = "Dyktowanie AI jest tymczasowo niedostępne na oficjalnym serwerze. Spróbuj ponownie później.";
 "ai.availability.dictation.custom" = "Dyktowanie AI jest niedostępne na tym serwerze. Skontaktuj się z administratorem serwera.";
 "ai.run.error.activeRunInProgress" = "Odpowiedź jest już generowana. Przed wysłaniem kolejnej wiadomości poczekaj na jej zakończenie lub ją zatrzymaj.";
+"ai.chatNotCurrent.notice" = "Ten czat został zastąpiony nowszym. Twoja wiadomość nadal jest w polu tekstowym — wyślij ją ponownie.";
 "ai.dictation.error.microphoneUnavailable" = "Mikrofon jest niedostępny na tym urządzeniu.";
 "ai.dictation.error.microphoneDenied" = "Nie przyznano dostępu do mikrofonu.";
 "ai.dictation.error.microphoneBlocked" = "Dostęp do mikrofonu jest wyłączony dla Nibomo. Włącz go w Ustawieniach > Prywatność i ochrona > Mikrofon.";
