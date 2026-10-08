@@ -182,6 +182,7 @@ struct CardsScreen: View {
         )
         .nativeSearchToolbar(horizontalSizeClass: self.horizontalSizeClass)
         .toolbar {
+            AICompanionToolbarItem()
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     self.beginFiltering()
@@ -215,13 +216,6 @@ struct CardsScreen: View {
                 }
                 .tint(Color.primary)
                 .accessibilityIdentifier(UITestIdentifier.cardsAddButton)
-            }
-
-            if self.horizontalSizeClass == .regular || self.navigation.isAICompanionVisible {
-                if #available(iOS 26.0, *) {
-                    ToolbarSpacer(.fixed, placement: .topBarTrailing)
-                }
-                AICompanionToolbarItem()
             }
         }
         .sheet(

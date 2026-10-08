@@ -89,6 +89,9 @@ struct ProgressScreen: View {
                 await self.handleProgressPresentationRequest(proxy: proxy)
             }
         }
+        .toolbar {
+            AICompanionToolbarItem()
+        }
         .cloudSignInSheet(
             isPresented: self.$isCloudSignInPresented,
             presentationContext: .standard(originSurface: .progress)

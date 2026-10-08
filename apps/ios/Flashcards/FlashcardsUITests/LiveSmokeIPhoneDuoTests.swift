@@ -32,15 +32,30 @@ final class LiveSmokeIPhoneDuoTests: LiveSmokeTestCase {
                 try self.assertVisibleCompanionConsentContent()
                 try self.assertCompanionNavigationReachable()
                 try self.selectDuoDestination(.review)
-                try self.assertScreenVisible(screen: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-                try self.assertTextExists("Smoke guest manual review answer", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-                guard !self.app.buttons[LiveSmokeIdentifier.reviewShowAnswerButton].exists else {
-                    throw LiveSmokeFailure.unexpectedReviewState(message: "Returning to Review must keep the companion open and the same card revealed.", screen: self.currentScreenSummary(), step: self.currentStepTitle)
-                }
-                self.add(self.makeTextAttachment(name: "Duo companion after Cards and Review hierarchy", text: self.app.debugDescription))
+                try self.assertRevealedReviewWithCompanion()
+                try self.selectDuoDestination(.progress)
+                try self.assertScreenVisible(screen: .progress, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
                 try self.assertVisibleCompanionConsentContent()
                 try self.assertCompanionNavigationReachable()
-                self.attachPhoneScreenshot(name: "Duo companion preserved across Cards and Review")
+                try self.tapButton(identifier: "ai.companion.toggle", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                try self.assertCompanionConsentContentHidden()
+                try self.tapButton(identifier: "ai.companion.toggle", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                try self.assertVisibleCompanionConsentContent()
+                try self.assertCompanionNavigationReachable()
+                self.attachPhoneScreenshot(name: "Duo Progress companion with native navigation at the outer edge")
+                try self.selectDuoDestination(.review)
+                try self.assertRevealedReviewWithCompanion()
+                try self.selectDuoDestination(.ai)
+                try self.assertAiEntrySurfaceVisible()
+                XCTAssertFalse(self.app.buttons["ai.companion.toggle"].exists)
+                try self.selectDuoDestination(.settings)
+                try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                try self.assertCompanionConsentContentHidden(expectsOpener: false)
+                XCTAssertFalse(self.app.buttons["ai.companion.toggle"].exists)
+                try self.selectDuoDestination(.review)
+                try self.assertRevealedReviewWithCompanion()
+                self.add(self.makeTextAttachment(name: "Duo companion after all host returns hierarchy", text: self.app.debugDescription))
+                self.attachPhoneScreenshot(name: "Duo companion preserved across Cards, Progress, AI and Settings")
                 try self.tapButton(identifier: "ai.companion.toggle", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
                 try self.assertCompanionConsentContentHidden()
                 try self.tapButton(identifier: LiveSmokeIdentifier.reviewRateGoodButton, timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds)
@@ -52,6 +67,17 @@ final class LiveSmokeIPhoneDuoTests: LiveSmokeTestCase {
             self.add(self.makeTextAttachment(name: "Duo companion failure hierarchy", text: self.app.debugDescription))
             throw error
         }
+    }
+
+    @MainActor
+    private func assertRevealedReviewWithCompanion() throws {
+        try self.assertScreenVisible(screen: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.assertTextExists("Smoke guest manual review answer", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        guard !self.app.buttons[LiveSmokeIdentifier.reviewShowAnswerButton].exists else {
+            throw LiveSmokeFailure.unexpectedReviewState(message: "Returning to Review must keep the same card revealed.", screen: self.currentScreenSummary(), step: self.currentStepTitle)
+        }
+        try self.assertVisibleCompanionConsentContent()
+        try self.assertCompanionNavigationReachable()
     }
 
     @MainActor
@@ -119,7 +145,7 @@ final class LiveSmokeIPhoneDuoTests: LiveSmokeTestCase {
     // Measure the actual visible native window, excluding auxiliary windows.
     @MainActor
     private var nativeHostWindow: XCUIElement? {
-        let identifiers = [LiveSmokeIdentifier.cardEditorScreen, LiveSmokeIdentifier.reviewScreen, LiveSmokeIdentifier.cardsScreen]
+        let identifiers = [LiveSmokeIdentifier.cardEditorScreen, LiveSmokeIdentifier.reviewScreen, LiveSmokeIdentifier.cardsScreen, LiveSmokeIdentifier.progressScreen, LiveSmokeIdentifier.aiScreen, LiveSmokeIdentifier.settingsScreen]
         for identifier in identifiers {
             let windows = self.app.windows.containing(.any, identifier: identifier).allElementsBoundByIndex
             if let window = windows.first(where: { $0.exists && $0.isHittable && $0.frame.width > 0 && $0.frame.height > 0 }) {
@@ -146,11 +172,11 @@ final class LiveSmokeIPhoneDuoTests: LiveSmokeTestCase {
     }
 
     @MainActor
-    private func assertCompanionConsentContentHidden() throws {
+    private func assertCompanionConsentContentHidden(expectsOpener: Bool = true) throws {
         let deadline = Date().addingTimeInterval(LiveSmokeConfiguration.shortUiTimeoutSeconds)
         while Date() < deadline {
             let toggle = self.app.buttons["ai.companion.toggle"].firstMatch
-            if self.visibleCompanionPane == nil && toggle.exists && toggle.isHittable { return }
+            if self.visibleCompanionPane == nil && (expectsOpener ? toggle.exists && toggle.isHittable : toggle.exists == false) { return }
             RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.25))
         }
         throw LiveSmokeFailure.unexpectedReviewState(message: "The single main toggle must hide the companion consent content.", screen: self.currentScreenSummary(), step: self.currentStepTitle)
@@ -159,27 +185,66 @@ final class LiveSmokeIPhoneDuoTests: LiveSmokeTestCase {
     @MainActor
     private func assertCompanionNavigationReachable() throws {
         let destinations: [LiveSmokeSelectedTab] = [.review, .progress, .ai, .cards, .settings]
-        let identifiers: [String] = ["ai.companion.toggle"] + destinations.map { $0.tabBarItemLookup(localization: self.currentLaunchLocalization).identifier }
+        let destinationIdentifiers = destinations.map { $0.tabBarItemLookup(localization: self.currentLaunchLocalization).identifier }
+        let identifiers = ["ai.companion.toggle"] + destinationIdentifiers
         let deadline = Date().addingTimeInterval(LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        var missingIdentifiers: [String] = identifiers
+        var missingIdentifiers = identifiers
+        var geometryViolations: [String] = []
         var toggleCount = 0
         while Date() < deadline {
             missingIdentifiers = []
+            geometryViolations = []
+            let scene = self.nativeHostWindow?.frame
+            let pane = self.visibleCompanionPane
+            let contentFrame = pane.flatMap { self.visibleCompanionContentFrame(in: $0) }
+            if scene == nil || contentFrame == nil {
+                geometryViolations.append("Missing visible native window or companion content.")
+            }
             for identifier in identifiers {
                 let buttons = self.app.buttons.matching(identifier: identifier).allElementsBoundByIndex
                 if identifier == "ai.companion.toggle" { toggleCount = buttons.count }
-                if !buttons.contains(where: { $0.exists && $0.isHittable }) {
+                guard let button = buttons.first(where: { $0.exists && $0.isHittable }) else {
                     missingIdentifiers.append(identifier)
+                    continue
+                }
+                if identifier != "ai.companion.toggle", let scene, let contentFrame {
+                    let frame = button.frame
+                    // Duo's hardware-aligned navigation stays on the physical right,
+                    // outside chat, including when the content language is right-to-left.
+                    if !scene.insetBy(dx: -1, dy: -1).contains(frame)
+                        || frame.minX < contentFrame.maxX - 1
+                        || frame.midX <= scene.midX {
+                        geometryViolations.append("\(identifier) frame=\(self.preciseFrame(frame)) must be within window=\(self.preciseFrame(scene)) and to the right of visible chat content=\(self.preciseFrame(contentFrame)).")
+                    }
                 }
             }
-            if missingIdentifiers.isEmpty && toggleCount == 1 { return }
+            if missingIdentifiers.isEmpty && geometryViolations.isEmpty && toggleCount == 1 { return }
             RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.25))
         }
         throw LiveSmokeFailure.unexpectedReviewState(
-            message: "The open companion must leave its single main toggle and all native destinations reachable; missing=\(missingIdentifiers), toggleCount=\(toggleCount).",
+            message: "The open companion must leave its single main toggle reachable and all native destinations in the outer right region; missing=\(missingIdentifiers), toggleCount=\(toggleCount), geometry=\(geometryViolations).",
             screen: self.currentScreenSummary(),
             step: self.currentStepTitle
         )
+    }
+
+    @MainActor
+    private func visibleCompanionContentFrame(in pane: XCUIElement) -> CGRect? {
+        // The native inspector's scroll view extends beneath system bars; its
+        // readable text and controls respect the safe area inside those bounds.
+        let contentTypes: [XCUIElement.ElementType] = [.staticText, .button, .link, .textField, .secureTextField, .textView]
+        let viewport = pane.frame
+        var contentFrame = CGRect.null
+        for type in contentTypes {
+            for element in pane.descendants(matching: type).allElementsBoundByIndex where element.exists {
+                let frame = element.frame
+                // Include obscured semantics too, so content behind the rail fails.
+                if frame.width > 0 && frame.height > 0 && frame.intersects(viewport) {
+                    contentFrame = contentFrame.union(frame)
+                }
+            }
+        }
+        return contentFrame.isNull ? nil : contentFrame
     }
 
     @MainActor

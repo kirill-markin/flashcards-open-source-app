@@ -3,39 +3,24 @@ import XCTest
 
 final class LiveSmokeIPadTests: LiveSmokeTestCase {
     @MainActor
-    func testIPadChatMoveDirectionMatchesArabicLayout() throws {
+    func testIPadChatUsesLeadingSideInArabicLayout() throws {
         try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .pad, "This smoke verifies Arabic iPad chat placement.")
         defer { XCUIDevice.shared.orientation = .portrait }
-        try self.launchApplication(
-            launchScenario: .guestManualReviewCard,
-            selectedTab: .review,
-            launchLocalization: .arabic
-        )
+        try self.launchApplication(launchScenario: .guestManualReviewCard, selectedTab: .review, launchLocalization: .arabic)
         try self.rotate(to: .landscapeLeft)
         if self.visibleIPadCompanionPane != nil {
             try self.tapButton(identifier: LiveSmokeIdentifier.aiCompanionToggle, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         }
-        try self.tapButton(identifier: LiveSmokeIdentifier.aiCompanionToggle, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        let opener = self.app.buttons[LiveSmokeIdentifier.aiCompanionToggle]
+        let filter = self.app.buttons[LiveSmokeIdentifier.reviewFilterMenu]
+        XCTAssertTrue(opener.isHittable)
+        XCTAssertGreaterThanOrEqual(opener.frame.minX, filter.frame.maxX, "The leading opener mirrors to the right in Arabic.")
+        opener.tap()
         try self.assertVisibleIPadCompanion()
-        let move = self.app.buttons[LiveSmokeIdentifier.aiCompanionMove]
-        if move.exists == false {
-            let sidebarToggle = self.app.buttons.matching(NSPredicate(
-                format: "identifier IN %@", ["ToggleSideBar", "ToggleSidebar"]
-            )).firstMatch
-            XCTAssertTrue(sidebarToggle.exists && sidebarToggle.isHittable)
-            sidebarToggle.tap()
-        }
-        XCTAssertTrue(move.waitForExistence(timeout: 10))
-        XCTAssertEqual(move.label, "نقل الدردشة إلى اليمين")
-        move.tap()
-        let chatIsOnRight = NSPredicate { _, _ in
-            let chat = self.app.descendants(matching: .any).matching(identifier: LiveSmokeIdentifier.aiScreen).firstMatch
-            let reviewAction = self.app.buttons[LiveSmokeIdentifier.reviewShowAnswerButton]
-            return chat.exists && chat.frame.minX >= reviewAction.frame.maxX
-        }
-        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: chatIsOnRight, object: nil)], timeout: 10), .completed)
-        XCTAssertEqual(move.label, "نقل الدردشة إلى اليسار")
-        self.attachIPadScreenshot(name: "iPad Arabic chat move matches physical direction")
+        let pane = try XCTUnwrap(self.visibleIPadCompanionPane)
+        XCTAssertGreaterThanOrEqual(pane.frame.minX, self.app.buttons[LiveSmokeIdentifier.reviewShowAnswerButton].frame.maxX)
+        XCTAssertFalse(self.app.buttons["ai.companion.move"].exists)
+        self.attachIPadScreenshot(name: "iPad Arabic leading pane and pane-owned bubbles")
     }
 
     @MainActor
@@ -204,72 +189,141 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
     }
 
     @MainActor
-    func testIPadAICompanionMovesLeftAndReturnsWhenSidebarOpens() throws {
-        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .pad, "This smoke exercises iPad chat placement.")
+    func testIPadLeadingChatPersistsAcrossSidebarAndSections() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .pad, "This smoke exercises the iPad leading chat.")
         defer { XCUIDevice.shared.orientation = .portrait }
         try self.launchApplication(launchScenario: .guestManualReviewCard, selectedTab: .review)
         try self.rotate(to: .landscapeLeft)
-        let restoredCompanion = self.app.descendants(matching: .any).matching(identifier: LiveSmokeIdentifier.aiScreen).firstMatch
-        if restoredCompanion.exists {
+        if self.visibleIPadCompanionPane != nil {
+            try self.tapButton(identifier: LiveSmokeIdentifier.aiCompanionToggle, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        }
+        let opener = self.app.buttons[LiveSmokeIdentifier.aiCompanionToggle]
+        XCTAssertTrue(opener.isHittable)
+        XCTAssertLessThanOrEqual(opener.frame.maxX, self.app.buttons[LiveSmokeIdentifier.reviewFilterMenu].frame.minX, "Closed chat opens from the leading main toolbar.")
+        try self.tapButton(identifier: LiveSmokeIdentifier.reviewShowAnswerButton, timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds)
+        try self.waitForReviewAnswerReveal()
+        opener.tap()
+        try self.assertVisibleIPadCompanion()
+        if self.app.buttons[LiveSmokeIdentifier.aiConsentAcceptButton].exists {
+            try self.tapButton(identifier: LiveSmokeIdentifier.aiConsentAcceptButton, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.waitForAiComposerAfterConsent()
+        }
+        try self.replaceTextSafely("draft", inElementWithIdentifier: LiveSmokeIdentifier.aiComposerTextField, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.assertLeadingChatDraftAndAnswer()
+        self.attachIPadScreenshot(name: "iPad leading AI and pane-owned hide button")
+        let sidebarToggle = self.app.buttons.matching(NSPredicate(format: "identifier IN %@", ["ToggleSideBar", "ToggleSidebar"])).firstMatch
+        XCTAssertTrue(sidebarToggle.exists && sidebarToggle.isHittable)
+        sidebarToggle.tap()
+        let sidebar = self.app.cells.matching(NSPredicate(format: "label == %@", "Review")).firstMatch
+        XCTAssertTrue(sidebar.exists && sidebar.isHittable)
+        let sidebarContainer = try XCTUnwrap(self.app.collectionViews.allElementsBoundByIndex.first { collection in
+            collection.cells.matching(NSPredicate(format: "label == %@", "Review")).firstMatch.exists
+        })
+        let chatPane = self.app.descendants(matching: .any).matching(identifier: LiveSmokeIdentifier.aiScreen).firstMatch
+        XCTAssertTrue(chatPane.exists, "The existing chat must remain beside navigation.")
+        let overlap = sidebarContainer.frame.intersection(chatPane.frame)
+        XCTAssertTrue(overlap.isNull || overlap.width <= 1 || overlap.height <= 1, "The native sidebar and chat must not overlap.")
+        XCTAssertLessThan(sidebarContainer.frame.minX, self.app.windows.firstMatch.frame.minX + 80)
+        XCTAssertEqual(self.elementValue(element: self.app.textFields[LiveSmokeIdentifier.aiComposerTextField]), "draft")
+        try self.assertTextExists("Smoke guest manual review answer", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        self.attachIPadScreenshot(name: "iPad native sidebar and chat in separate columns")
+        sidebarToggle.tap()
+        try self.assertLeadingChatDraftAndAnswer()
+
+        try self.selectIPadDestination(selectedTab: .cards, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.assertVisibleIPadCompanion()
+        XCTAssertEqual(self.elementValue(element: self.app.textFields[LiveSmokeIdentifier.aiComposerTextField]), "draft")
+        try self.selectIPadDestination(selectedTab: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.tapButton(identifier: "review.leaderboardShortcut", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.assertScreenVisible(screen: .progress, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.assertVisibleIPadCompanion()
+        XCTAssertEqual(self.elementValue(element: self.app.textFields[LiveSmokeIdentifier.aiComposerTextField]), "draft")
+        self.attachIPadScreenshot(name: "iPad Progress leaderboard route with retained chat")
+        // Guest fixtures expose the leaderboard route, without live account/profile requests.
+        try self.tapButton(identifier: LiveSmokeIdentifier.aiCompanionToggle, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        XCTAssertTrue(self.app.buttons[LiveSmokeIdentifier.aiCompanionToggle].isHittable, "Progress must expose its leading opener when closed.")
+        try self.tapButton(identifier: LiveSmokeIdentifier.aiCompanionToggle, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.assertVisibleIPadCompanion()
+
+        try self.selectIPadDestination(selectedTab: .ai, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.assertAiEntrySurfaceVisible()
+        XCTAssertTrue(self.app.buttons[LiveSmokeSelectedTab.ai.itemIdentifier].firstMatch.isSelected, "The native AI tab must actually be selected.")
+        let fullAI = self.app.descendants(matching: .any).matching(identifier: LiveSmokeIdentifier.aiScreen).firstMatch
+        let scene = self.app.windows.firstMatch.frame
+        XCTAssertEqual(self.app.navigationBars["AI"].frame.width, scene.width, accuracy: 1, "Full AI's native host must reclaim the complete scene.")
+        XCTAssertEqual(fullAI.frame.midX, scene.midX, accuracy: 1, "The bounded AI reading column must be centered, not retain a side slot.")
+        XCTAssertGreaterThan(fullAI.frame.width, 400)
+        self.attachIPadScreenshot(name: "iPad full AI selected without companion")
+        XCTAssertEqual(self.elementValue(element: self.app.textFields[LiveSmokeIdentifier.aiComposerTextField]), "draft", "Full AI uses the same conversation draft.")
+        XCTAssertFalse(self.app.buttons[LiveSmokeIdentifier.aiCompanionToggle].exists, "Full AI must not have a duplicate companion action.")
+        try self.selectIPadDestination(selectedTab: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        XCTAssertNil(self.visibleIPadCompanionPane)
+        XCTAssertFalse(self.app.buttons[LiveSmokeIdentifier.aiCompanionToggle].exists)
+        try self.selectIPadDestination(selectedTab: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.assertLeadingChatDraftAndAnswer()
+        self.attachIPadScreenshot(name: "iPad Review restored after Cards Progress AI and Settings")
+        try self.tapButton(identifier: LiveSmokeIdentifier.aiCompanionToggle, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.assertTextExists("Smoke guest manual review answer", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        XCTAssertTrue(self.app.buttons[LiveSmokeIdentifier.aiCompanionToggle].isHittable)
+    }
+
+    @MainActor
+    private func assertLeadingChatDraftAndAnswer() throws {
+        try self.assertVisibleIPadCompanion()
+        let pane = try XCTUnwrap(self.visibleIPadCompanionPane)
+        let composer = self.app.textFields[LiveSmokeIdentifier.aiComposerTextField]
+        XCTAssertEqual(self.elementValue(element: composer), "draft")
+        try self.assertTextExists("Smoke guest manual review answer", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        XCTAssertFalse(self.app.buttons[LiveSmokeIdentifier.reviewShowAnswerButton].exists)
+        let answer = self.app.staticTexts["Smoke guest manual review answer"].firstMatch
+        XCTAssertGreaterThanOrEqual(answer.frame.minX, pane.frame.maxX, "Chat must remain on the leading side and reserve actual answer space.")
+        for identifier in ["review.rating.0", "review.rating.1", LiveSmokeIdentifier.reviewRateGoodButton, "review.rating.3"] {
+            try self.assertPrimaryElementClearOfCompanion(self.app.buttons[identifier])
+        }
+    }
+
+    @MainActor
+    func testIPadSidebarChatAndReviewSurvivePortraitRotation() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .pad, "This smoke verifies three-column iPad study.")
+        defer { XCUIDevice.shared.orientation = .portrait }
+        try self.launchApplication(launchScenario: .guestManualReviewCard, selectedTab: .review)
+        try self.rotate(to: .landscapeLeft)
+        if self.visibleIPadCompanionPane != nil {
             try self.tapButton(identifier: LiveSmokeIdentifier.aiCompanionToggle, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         }
         try self.tapButton(identifier: LiveSmokeIdentifier.reviewShowAnswerButton, timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds)
         try self.waitForReviewAnswerReveal()
         try self.tapButton(identifier: LiveSmokeIdentifier.aiCompanionToggle, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        try self.assertAiEntrySurfaceVisible()
+        try self.assertVisibleIPadCompanion()
         if self.app.buttons[LiveSmokeIdentifier.aiConsentAcceptButton].exists {
             try self.tapButton(identifier: LiveSmokeIdentifier.aiConsentAcceptButton, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             try self.waitForAiComposerAfterConsent()
         }
-        let sidebarToggle = self.app.buttons.matching(NSPredicate(
-            format: "identifier IN %@", ["ToggleSideBar", "ToggleSidebar"]
-        )).firstMatch
-        let move = self.app.buttons[LiveSmokeIdentifier.aiCompanionMove]
-        if move.exists == false {
-            XCTAssertTrue(sidebarToggle.exists && sidebarToggle.isHittable)
-            sidebarToggle.tap()
+        try self.replaceTextSafely("mini draft", inElementWithIdentifier: LiveSmokeIdentifier.aiComposerTextField, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        let done = self.app.buttons["ai.composerDismissKeyboardButton"]
+        if done.exists && done.isHittable { done.tap() }
+        let sidebar = self.app.cells.matching(NSPredicate(format: "label == %@", "Review")).firstMatch
+        if !sidebar.exists || !sidebar.isHittable {
+            self.app.buttons["ToggleSideBar"].firstMatch.tap()
         }
-        XCTAssertTrue(move.waitForExistence(timeout: 10))
-        let composer = self.app.textFields[LiveSmokeIdentifier.aiComposerTextField]
-        try self.replaceTextSafely(
-            "draft",
-            inElementWithIdentifier: LiveSmokeIdentifier.aiComposerTextField,
-            timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
-        )
-        XCTAssertEqual(self.elementValue(element: composer), "draft", "The complete typed draft must exist before moving chat.")
-        self.attachIPadScreenshot(name: "iPad complete draft before moving chat")
-        move.tap()
-        let onLeft = NSPredicate { _, _ in
-            let currentComposer = self.app.textFields[LiveSmokeIdentifier.aiComposerTextField]
-            return currentComposer.exists && currentComposer.frame.maxX < self.app.buttons[LiveSmokeIdentifier.reviewRateGoodButton].frame.minX
+        for (orientation, name) in [(UIDeviceOrientation.landscapeLeft, "landscape"), (.portrait, "portrait")] {
+            try self.rotate(to: orientation)
+            self.attachIPadScreenshot(name: "iPad sidebar chat Review \(name)")
+            // Native navigation collapses the sidebar on the mini in portrait.
+            if sidebar.exists && sidebar.isHittable {
+                XCTAssertLessThan(sidebar.frame.maxX, self.app.textFields[LiveSmokeIdentifier.aiComposerTextField].frame.minX)
+            } else {
+                let navigationToggle = self.app.buttons.matching(NSPredicate(format: "identifier IN %@", ["ToggleSideBar", "ToggleSidebar"])).firstMatch
+                XCTAssertTrue(navigationToggle.exists && navigationToggle.isHittable, "Collapsed native navigation remains reachable.")
+            }
+            XCTAssertEqual(self.elementValue(element: self.app.textFields[LiveSmokeIdentifier.aiComposerTextField]), "mini draft")
+            XCTAssertTrue(self.app.staticTexts["Smoke guest manual review answer"].firstMatch.exists)
+            XCTAssertFalse(self.app.buttons[LiveSmokeIdentifier.reviewShowAnswerButton].exists)
+            for identifier in ["review.rating.0", "review.rating.1", LiveSmokeIdentifier.reviewRateGoodButton, "review.rating.3"] {
+                let rating = self.app.buttons[identifier]
+                XCTAssertTrue(rating.exists && rating.isHittable, "\(name): every rating remains usable beside chat and navigation.")
+            }
         }
-        XCTAssertTrue(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: onLeft, object: nil)], timeout: 10) == .completed)
-        XCTAssertEqual(self.elementValue(element: composer), "draft")
-        try self.assertTextExists("Smoke guest manual review answer", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        let answer = self.app.staticTexts["Smoke guest manual review answer"].firstMatch
-        XCTAssertGreaterThanOrEqual(answer.frame.minX, composer.frame.maxX, "Left chat must reserve actual card space, not cover its text.")
-        for identifier in ["review.rating.0", "review.rating.1", LiveSmokeIdentifier.reviewRateGoodButton, "review.rating.3"] {
-            XCTAssertGreaterThanOrEqual(self.app.buttons[identifier].frame.minX, composer.frame.maxX, "Every rating must be outside the left chat column.")
-            XCTAssertTrue(self.app.buttons[identifier].isHittable)
-        }
-        self.attachIPadScreenshot(name: "iPad AI on left retains draft and revealed review")
-        sidebarToggle.tap()
-        let onRight = NSPredicate { _, _ in
-            let currentComposer = self.app.textFields[LiveSmokeIdentifier.aiComposerTextField]
-            return currentComposer.exists && currentComposer.frame.minX > self.app.buttons[LiveSmokeIdentifier.reviewRateGoodButton].frame.maxX
-        }
-        XCTAssertTrue(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: onRight, object: nil)], timeout: 10) == .completed, "Opening navigation must send chat back right.")
-        XCTAssertEqual(self.elementValue(element: composer), "draft")
-        try self.assertTextExists("Smoke guest manual review answer", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        self.attachIPadScreenshot(name: "iPad sidebar restores AI right with draft intact")
-        sidebarToggle.tap()
-        try self.assertVisibleIPadCompanion()
-        XCTAssertEqual(self.elementValue(element: composer), "draft")
-        try self.assertPrimaryElementClearOfCompanion(answer)
-        for identifier in ["review.rating.0", "review.rating.1", LiveSmokeIdentifier.reviewRateGoodButton, "review.rating.3"] {
-            try self.assertPrimaryElementClearOfCompanion(self.app.buttons[identifier])
-        }
-        self.attachIPadScreenshot(name: "iPad sidebar dismissed restores revealed review controls")
     }
 
     @MainActor
@@ -652,7 +706,13 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
         let deadline = Date().addingTimeInterval(LiveSmokeConfiguration.shortUiTimeoutSeconds)
         while Date() < deadline {
             if self.visibleIPadCompanionPane != nil {
-                try self.assertPrimaryElementClearOfCompanion(self.app.buttons[LiveSmokeIdentifier.aiCompanionToggle])
+                let pane = try XCTUnwrap(self.visibleIPadCompanionPane)
+                let toggle = self.app.buttons[LiveSmokeIdentifier.aiCompanionToggle]
+                XCTAssertEqual(self.app.buttons.matching(identifier: LiveSmokeIdentifier.aiCompanionToggle).count, 1)
+                XCTAssertTrue(toggle.isHittable)
+                XCTAssertGreaterThanOrEqual(toggle.frame.minX, pane.frame.minX - 1, "The hide action belongs to the chat column.")
+                XCTAssertLessThanOrEqual(toggle.frame.maxX, pane.frame.maxX + 1, "The main toolbar must not duplicate the hide action.")
+                XCTAssertFalse(self.app.buttons["ai.companion.move"].exists)
                 return
             }
             RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.25))
@@ -716,10 +776,11 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
                 selectedTab.itemIdentifier,
                 selectedTab.localizedTitle(localization: self.currentLaunchLocalization)
             )
-            let candidates = self.app.cells.matching(matchingDestination).allElementsBoundByIndex
-                + self.app.staticTexts.matching(matchingDestination).allElementsBoundByIndex
-                + self.app.descendants(matching: .any).matching(identifier: selectedTab.itemIdentifier).allElementsBoundByIndex
+            // Exact tab identifiers take precedence over the companion's "AI" header.
+            let candidates = self.app.descendants(matching: .any).matching(identifier: selectedTab.itemIdentifier).allElementsBoundByIndex
+                + self.app.cells.matching(matchingDestination).allElementsBoundByIndex
                 + self.app.buttons.matching(matchingDestination).allElementsBoundByIndex
+                + self.app.staticTexts.matching(matchingDestination).allElementsBoundByIndex
             if let destination = candidates.first(where: { $0.exists && $0.isHittable }) {
                 try self.tapButton(button: destination, identifier: selectedTab.itemIdentifier, timeout: timeout)
                 try self.assertScreenVisible(screen: selectedTab.screen, timeout: timeout)

@@ -80,11 +80,9 @@ final class AppNavigationModel {
     var aiChatPresentationRequest: AIChatPresentationRequest?
     var progressPresentationRequest: ProgressPresentationRequest?
     var isAICompanionPresented: Bool = false
-    var isAICompanionLeading: Bool = false
-    var isAICompanionLeadingAvailable: Bool = false
 
     var isAICompanionVisible: Bool {
-        self.isAICompanionPresented && (self.selectedTab == .review || self.selectedTab == .cards)
+        self.isAICompanionPresented && (self.selectedTab != .ai && self.selectedTab != .settings)
     }
 
     var isAIChatVisible: Bool {
