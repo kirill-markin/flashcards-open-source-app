@@ -130,6 +130,7 @@ const SELECT_LATEST_SESSION_SQL = `
     ON active_generation.generation_id = chat_sessions.active_composer_suggestion_generation_id
   WHERE chat_sessions.user_id = $1
     AND chat_sessions.workspace_id = $2
+    AND chat_sessions.archived_at IS NULL
   ORDER BY chat_sessions.created_at DESC, chat_sessions.session_id DESC
   LIMIT 1
 `;

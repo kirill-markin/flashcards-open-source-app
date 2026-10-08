@@ -4,7 +4,11 @@ import {
   type DatabaseExecutor,
   type WorkspaceDatabaseScope,
 } from "../../database";
-import { ChatRunRowNotFoundError } from "../errors";
+import {
+  addBackendBreadcrumb,
+  createBackendObservationScope,
+} from "../../observability/sentry";
+import { ChatRunRowNotFoundError, ChatSessionNotCurrentError } from "../errors";
 import type { StoredOpenAIReplayItem } from "../openai/replayItems";
 import type { ChatSessionRow } from "../store/repository";
 import type { ChatSessionRunState } from "../store";
@@ -26,6 +30,7 @@ import {
   ChatSessionConflictError,
   clearActiveChatComposerSuggestionGenerationWithExecutor,
   createFollowUpChatComposerSuggestionGenerationWithExecutor,
+  getLatestChatSessionIdWithExecutor,
   insertChatItemWithExecutor,
   listChatMessagesWithExecutor,
   resolveLatestOrCreateChatSessionWithExecutor,
@@ -68,6 +73,41 @@ import type {
   ClaimedChatRun,
   PreparedChatRun,
 } from "./types";
+
+/**
+ * Only the current (latest) chat session accepts new turns; older sessions are read-only.
+ * Removing the single call in `prepareChatRun` allows continuing old chats.
+ */
+async function assertChatSessionAcceptsNewTurnsWithExecutor(
+  executor: DatabaseExecutor,
+  scope: WorkspaceDatabaseScope,
+  sessionId: string,
+  requestId: string,
+): Promise<void> {
+  const currentSessionId = await getLatestChatSessionIdWithExecutor(executor, scope);
+  if (currentSessionId === sessionId) {
+    return;
+  }
+
+  addBackendBreadcrumb({
+    action: "chat_session_not_current_refused",
+    scope: createBackendObservationScope(
+      "backend-api",
+      null,
+      null,
+      null,
+      scope.userId,
+      scope.workspaceId,
+      requestId,
+      null,
+      sessionId,
+      null,
+      null,
+    ),
+    details: { currentSessionId },
+  });
+  throw new ChatSessionNotCurrentError();
+}
 
 /**
  * Persists the user turn, creates the assistant placeholder, and enqueues a new run for the target session.
@@ -128,6 +168,7 @@ export async function prepareChatRun(
       };
     }
 
+    await assertChatSessionAcceptsNewTurnsWithExecutor(executor, scope, session.session_id, requestId);
     await assertAiUsageAllowance();
 
     if (lockedSession.status === "running") {

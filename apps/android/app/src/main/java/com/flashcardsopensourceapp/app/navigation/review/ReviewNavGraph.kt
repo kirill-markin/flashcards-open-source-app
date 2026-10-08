@@ -96,7 +96,7 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                 navController = navController,
                 currentBackStackEntry = backStackEntry,
                 route = ReviewRootGraph.route
-            )
+            ) ?: return@composable
             val reviewViewModel = viewModel<com.flashcardsopensourceapp.feature.review.ReviewViewModel>(
                 viewModelStoreOwner = reviewBackStackEntry,
                 factory = createReviewViewModelFactory(
@@ -272,7 +272,7 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                 navController = navController,
                 currentBackStackEntry = backStackEntry,
                 route = ReviewRootGraph.route
-            )
+            ) ?: return@composable
             val reviewViewModel = viewModel<com.flashcardsopensourceapp.feature.review.ReviewViewModel>(
                 viewModelStoreOwner = reviewBackStackEntry,
                 factory = createReviewViewModelFactory(

@@ -43,3 +43,10 @@ export function isChatSessionRequestedSessionIdConflictError(
     && error.name === "ChatSessionRequestedSessionIdConflictError"
     && typeof (error as Partial<ChatSessionRequestedSessionIdConflictError>).sessionId === "string";
 }
+
+export class ChatSessionNotCurrentError extends Error {
+  public constructor() {
+    super("Chat session is not the current chat session and accepts no new turns");
+    this.name = "ChatSessionNotCurrentError";
+  }
+}

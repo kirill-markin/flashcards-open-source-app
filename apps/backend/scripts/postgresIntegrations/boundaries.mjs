@@ -70,6 +70,27 @@ export const createdRolesByMigration = new Map([
   ["0044_reporting_readonly_role.sql", Object.freeze(["reporting_readonly"])],
 ]);
 export const boundaryDefinitions = Object.freeze([
+  // 0172 adds ai.chat_sessions.archived_at, which both latest-session queries (chat/store/repository.ts
+  // and sessionService.ts) filter on, so a test below it that resolves the latest session fails with
+  // `column "archived_at" does not exist`. Only two pinned tests import either file, and both reach
+  // prepareChatRun past the duplicate-request check, so both moved here: chat/cardImages/operation from
+  // 0162, and chat/runs/generatedImageAttemptBudget from 0136, whose entry held nothing else.
+  Object.freeze({
+    migrationFileName: "0172_ai_chat_session_history.sql",
+    expectedMigrationCount: 174,
+    testFiles: Object.freeze([
+      "src/chat/cardImages/operation.postgres.integration.ts",
+      "src/chat/runs/generatedImageAttemptBudget.postgres.integration.ts",
+      "src/chat/store/historyService.postgres.integration.ts",
+    ]),
+  }),
+  Object.freeze({
+    migrationFileName: "0171_probable_android_burst_actors.sql",
+    expectedMigrationCount: 173,
+    testFiles: Object.freeze([
+      "src/productAnalytics/androidBurstReporting.postgres.integration.ts",
+    ]),
+  }),
   Object.freeze({
     migrationFileName: "0167_stripe_email_deliveries.sql",
     expectedMigrationCount: 169,
@@ -81,7 +102,6 @@ export const boundaryDefinitions = Object.freeze([
       "src/routes/system/account/accountPreferences.postgres.integration.ts",
       "src/cards/managedMedia/managedImageSnapshotMerge.postgres.integration.ts",
       "src/productAnalytics/serverFacts/authoringUpdates.postgres.integration.ts",
-      "src/productAnalytics/androidBurstReporting.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
@@ -89,7 +109,6 @@ export const boundaryDefinitions = Object.freeze([
     expectedMigrationCount: 164,
     testFiles: Object.freeze([
       "src/chat/cardImages/generationBudget.postgres.integration.ts",
-      "src/chat/cardImages/operation.postgres.integration.ts",
       "src/chat/cardImages/promotion/jobsLeasing.postgres.integration.ts",
       "src/chat/cardImages/promotion/jobsRevocation.postgres.integration.ts",
       "src/chat/cardImages/promotion/jobsSettlement.postgres.integration.ts",
@@ -131,13 +150,6 @@ export const boundaryDefinitions = Object.freeze([
     testFiles: Object.freeze([
       "src/catalog/distribution/install/install.postgres.integration.ts",
       "src/productAnalytics/writer.postgres.integration.ts",
-    ]),
-  }),
-  Object.freeze({
-    migrationFileName: "0136_ai_chat_run_client_platform.sql",
-    expectedMigrationCount: 138,
-    testFiles: Object.freeze([
-      "src/chat/runs/generatedImageAttemptBudget.postgres.integration.ts",
     ]),
   }),
   Object.freeze({

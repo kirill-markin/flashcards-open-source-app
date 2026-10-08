@@ -94,6 +94,33 @@ export type PaginatedChatMessages = Readonly<{
   newestCursor: string | null;
 }>;
 
+export type ChatSessionHistorySummary = Readonly<{
+  sessionId: string;
+  /** The user's title, else the first user message's text; null when neither exists. */
+  title: string | null;
+  hasCustomTitle: boolean;
+  preview: string | null;
+  messageCount: number;
+  createdAt: number;
+  lastActivityAt: number;
+}>;
+
+export type ChatSessionHistoryCursor = Readonly<{
+  /** Microsecond-precision UTC timestamp, so the keyset never skips or repeats a session. */
+  lastActivityAt: string;
+  sessionId: string;
+}>;
+
+export type ChatSessionHistoryPage = Readonly<{
+  sessions: ReadonlyArray<ChatSessionHistorySummary>;
+  nextCursor: ChatSessionHistoryCursor | null;
+}>;
+
+export type ArchivedChatSession = Readonly<{
+  sessionId: string;
+  archivedAt: number;
+}>;
+
 export type UserStoppedChatRunUpdatePlan = Readonly<{
   assistantItem: PersistedChatMessageItem | null;
   assistantContent: ReadonlyArray<ContentPart> | null;
@@ -112,5 +139,12 @@ export class ChatSessionConflictError extends Error {
   public constructor(sessionId: string) {
     super(`Chat session already has an active run: ${sessionId}`);
     this.name = "ChatSessionConflictError";
+  }
+}
+
+export class ChatSessionArchiveActiveRunError extends Error {
+  public constructor(sessionId: string) {
+    super(`Chat session cannot be archived while it has an active run: ${sessionId}`);
+    this.name = "ChatSessionArchiveActiveRunError";
   }
 }

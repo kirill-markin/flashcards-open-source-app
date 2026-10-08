@@ -13,7 +13,10 @@ export {
 } from "./dependencies";
 export {
   createGetChatHandler,
+  createGetChatSessionsHandler,
   createPostChatHandler,
   createPostChatNewHandler,
+  createPostChatSessionArchiveHandler,
+  createPostChatSessionRenameHandler,
   createPostChatStopHandler,
 } from "./handlers";

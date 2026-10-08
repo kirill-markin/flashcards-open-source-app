@@ -210,6 +210,7 @@ The role gets `SELECT` on these tables only:
 - `analytics.installation_profiles`
 - `analytics.installation_country_observations`
 - `analytics.excluded_actors`
+- `analytics.probable_android_burst_actors`, the hourly-refreshed probable Android test-burst classification
 - selected key columns on `catalog.package_versions`
 - selected key and slug columns on `catalog.packages`, the deck label an admin report prints instead of a raw package version id
 - `billing.purchases`
