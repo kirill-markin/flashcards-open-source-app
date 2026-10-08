@@ -99,17 +99,16 @@ struct AIChatView: View {
     @Environment(AppNavigationModel.self) var navigation: AppNavigationModel
     @Environment(\.scenePhase) var scenePhase
     @Environment(\.accessibilityReduceMotion) var reduceMotion
-    @Environment(\.layoutDirection) var layoutDirection
     @Environment(\.isKeyboardDocked) private var isKeyboardDocked
     let chatStore: AIChatStore
     let isCompanion: Bool
-    let isCompanionLeading: Bool
+    let isCompanionPresentationActive: Bool
     let companionHostTab: AppTab?
 
     var isPresentationActive: Bool {
         self.isCompanion
             ? self.navigation.isAICompanionVisible
-                && self.navigation.isAICompanionLeading == self.isCompanionLeading
+                && self.isCompanionPresentationActive
                 && (self.companionHostTab == nil || self.navigation.selectedTab == self.companionHostTab)
             : self.navigation.selectedTab == .ai
     }
@@ -124,10 +123,10 @@ struct AIChatView: View {
     @FocusState var isComposerFocused: Bool
 
     @MainActor
-    init(chatStore: AIChatStore, isCompanion: Bool = false, isCompanionLeading: Bool = false, companionHostTab: AppTab? = nil) {
+    init(chatStore: AIChatStore, isCompanion: Bool = false, isCompanionPresentationActive: Bool = true, companionHostTab: AppTab? = nil) {
         self.chatStore = chatStore
         self.isCompanion = isCompanion
-        self.isCompanionLeading = isCompanionLeading
+        self.isCompanionPresentationActive = isCompanionPresentationActive
         self.companionHostTab = companionHostTab
         self.isCameraPresented = false
         self.isFileImporterPresented = false
@@ -275,10 +274,10 @@ struct AIChatView: View {
     var isAlertPresentedBinding: Binding<Bool> {
         Binding(
             get: {
-                self.chatStore.activeAlert != nil
+                self.isPresentationActive && self.chatStore.activeAlert != nil
             },
             set: { isPresented in
-                if isPresented == false {
+                if self.isPresentationActive && isPresented == false {
                     self.chatStore.dismissAlert()
                 }
             }

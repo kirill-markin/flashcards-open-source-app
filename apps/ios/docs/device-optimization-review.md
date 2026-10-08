@@ -11,39 +11,36 @@ Upstream Subscription, Accent color, Premium, Review Animations, AI Chat Suggest
 ## Requested behavior
 
 - Short Cards rows use their content height; Review's deck selector uses its named native control.
-- One `bubble.left.and.bubble.right` toolbar button toggles AI chat. It is separated from ranking/streak controls; the pane has no second Close button.
-- On iPad, AI may move to the leading side while native navigation is collapsed. Opening navigation returns it to the trailing side. Physical directions mirror in right-to-left languages. Both placements preserve chat state and Review's revealed answer.
-- Companion actions stay inside their pane, preserving the host title and toolbar. Left/right pane appearance must match.
+- One `bubble.left.and.bubble.right` action toggles AI chat. On iPad it opens chat from the leading host toolbar, and hides chat from the pane header while open; no duplicate Close or Move control.
+- TabView and NavigationStack keep their outer native bounds. Regular iPad chat stays leading beside the native sidebar when navigation opens. Physical directions mirror in right-to-left languages. Shared chat state and Review's revealed answer survive section changes.
+- Review, Cards and Progress share the companion, including the leaderboard section route. AI and Settings suppress it while remembering the presentation choice. Compact windows retain native inspector adaptation, and leaderboard profile details retain native modal sheets.
 - Floating keyboard must leave Review actions and the chat composer at the bottom; docked keyboard avoidance remains active. Resize transitions respect Reduce Motion.
 - Duo and ordinary iPhone retain native navigation adaptation and the latest supported-OS adapters.
 
-## Verification status
+## Verification checkpoint
 
-The final 1.32.0 preview built, passed strict signing/profile checks, installed and launched normally on the physical iPad. A native capture shows the existing named deck/card, existing green accent, left chat and separate bubbles control. No fixture or reset arguments were used.
-
-| Check | Result and qualification |
+| Surface | Current evidence |
 | --- | --- |
-| iPad Pro, iPadOS 27.0 | Seven focused checks passed: compact rows/handoff, chat relocation/sidebar dismissal, rotation/draft retention, Arabic placement, largest text, floating keyboard and current Settings destinations |
-| Final native toolbar/pane changes | Mini compact/handoff/reveal passed (57.345s), mini floating keyboard passed (23.761s), Pro full relocation/draft/reveal sequence passed (46.643s); actual images show separate chat glass, vertical divider and matching panels |
-| Keyboard scope | Final mini starts in restored floating mode; bottom anchoring and hide-chat passed. Earlier docked → floating geometry assertions passed before the old overflow button failed. A complete final docked → floating → redocked sequence remains a hardware check |
-| Subscription and Accent color | Navigation/layout passed. Subscription capture shows Loading; product retrieval and billing were not tested |
-| Duo, iOS 27.1 | Final companion check passed (45.169s): visible content, Cards → Review continuity, all five destinations, reveal/hide/rate. Chat target measured 52 × 52 points. Largest-text draft/keyboard/answer/ratings check also passed before final toolbar-only changes |
-| Ordinary iPhone, iOS 27.0 | 12 selected local smokes passed, 3 expected Duo-only skips, 0 failures. Later changes affect the regular-window companion toolbar/divider, covered separately above |
-| Repository checks | All six passed. Minimum-target API availability is checked by the builds, separately from these checks |
-| Physical preview | Version 1.32.0, minimum 18.0, separate preview bundle; build, signature, profile coverage, installation, normal launch and native visual capture passed |
+| Source | Upstream HEAD/main rechecked: `f2e9a625c6aa3635ad705485718d7864daac797b`; version 1.32.0, minimum 18.0, 50 languages |
+| iPad Pro 27.0 | Five checks passed: compact Cards, Arabic placement, floating keyboard, current Settings, and full section continuity (107.532s). Original captures reviewed |
+| Native sidebar | Three separate columns on roomy windows; native navigation collapses in mini portrait. No-overlap and state continuity passed on Pro and mini |
+| iPad mini 27.0 | Both final-source checks passed: landscape/portrait draft+revealed-answer+ratings retention (60.090s), and largest-text editor/navigation/answer/ratings (76.589s). Native sidebar collapses in portrait; actual images reviewed |
+| Duo 27.1 | Final stable-column strict return-sequence passed (99.273s); Review/Progress active-display originals reviewed, native rail remains at outer right. Failed inspector candidates removed |
+| Ordinary iPhone 27.0 | Twelve unique local flows validated: two affected cases, nine remaining passes, and unchanged saved-key retry (59.356s). Initial remaining batch was 9 pass/1 missed toggle tap; failure retained, no app or assertion fix. Live AI/login excluded |
+| Repository | All six passed on final source |
+| Physical preview | Final source built/signed/profile verified, installed and launched normally on physical iPad. Device metadata confirms 1.32.0; native capture shows existing deck/card and green accent. No fixture/reset arguments |
+| Personal click-through | Latest native UI attempt encountered the Mac lock screen; independent click-through remains pending |
 
-Review branch: `codex/ipad-latest`. Tested/installed source fingerprint: `17e0e02045c54a540507ca8f55611e6077b6ffcaf7ee9a2130957864cd2016b2`. Final source fingerprint: `ad240387aa93d3ad945585ebdb38bf84bf0e63841639afd2191b49eb18a6f62f`; its only differences are two comment corrections. The seven-check Pro/12-check phone runs used the preceding candidate; the final executable differences are limited to native companion toolbar grouping and pane dividers, with affected checks rerun above.
+Branch: `codex/ipad-latest`. Final source: `dc37d102bb2b7ec27e01ea1c9a15e233d11c8e6002e82e4c95831e7c9f75dcba`. Pro/mini tested source: `1d2f27481abc181de892fef3bbf636d04ff1c804d55fb0f5b934e95a7a6048e2`; Duo/phone compiled source: `cd8eac9c82d69b0d0fb77e645f897056cc83c5cd893471c789f1365eeef4fde7`. Final app differences are blank-line cleanup only; harness differences are the corrected native portrait-collapse assertion and a variable rename. Exact source manifests, runs, signing proof and final local commit identity are in ignored `tmp/ipad-final-handoff-manifest.json` and `tmp/ipad-final-refinement-source.json`. Independent mini captures are in `tmp/ipad-review/supervisor-mini-2026-10-08/`.
 
-Exact run paths, source manifests and local commit identity are retained in `tmp/ipad-final-handoff-manifest.json`; reviewed captures are in `tmp/ipad-review/1.32-verified/`. Both locations are ignored. Personal native UI click-through, final native Duo Closed/Open/Partial transitions and real window resizing remain unverified because Mac capture repeatedly failed with ScreenCaptureKit −3811; a later attempt explicitly reported the Mac locked. Cursor/dictation relocation and quota-dialog interactions, linked-account/AI-send release gates, Pencil, hardware input and VoiceOver need separate checks.
+Earlier verified 1.32 results and qualified superseded runs are retained in ignored `tmp/ipad-review/1.32-refinement-history.md` and `tmp/ipad-review/previous-1.32-handoff.json`; they do not validate the current refinement. The rejected first layout moved native navigation; the current hierarchy keeps TabView and NavigationStack at their outer bounds. Regular hosts use one stable content layout; compact hosts retain the native inspector. Failed cached-inspector lifecycle candidates were removed. No custom rail, measured scene offset, or side choice remains.
 
-Only iOS 27.0 and 27.1 simulator runtimes are installed. Building with minimum deployment target 18.0 checks API availability, but is not evidence of runtime behavior on iOS 18. No runtime download or public release is requested.
+Only simulator runtimes 27.0 and 27.1 are installed. Minimum-18 compilation does not verify iOS 18 runtime behavior. Native Duo fold/display transitions and actual window resizing are unverified on this refinement. Subscription product retrieval/purchases, linked-account/AI-send release gates, Pencil, hardware input, VoiceOver, cursor/dictation and quota-dialog interactions need separate checks. No public release or PR is part of this preview.
 
-No purchase, production-account reset, public release, or PR is part of this checkpoint.
-
-## Morning test drive
+## Test drive
 
 1. Unlock the iPad and open **Nibomo iPad Preview**. Confirm version 1.32.0 and open Settings → Subscription and Style → Accent color.
-2. In Review, reveal an answer, toggle chat twice, move chat left, then open navigation. Check answer/draft retention, one visible bubbles toggle, and matching pane material.
+2. In Review, reveal an answer and open chat from the leading toolbar. Type a draft, open navigation and visit Cards → Progress → AI → Settings → Review. Check separate native sidebar/chat/study columns, retained answer/draft, and one bubbles action in the chat header while open.
 3. Compare docked and floating keyboard modes. Floating mode should leave both bottom controls anchored.
 4. Open Cards with chat, edit a card, rotate, and try a narrower window. Check compact rows and preserved drafts.
 5. On Duo/ordinary iPhone, switch all tabs and check Review actions and card-to-AI handoff at enlarged text sizes.

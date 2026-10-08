@@ -15,19 +15,8 @@ extension AIChatView {
 
     private var companionHeaderContent: some View {
         HStack(spacing: 12) {
-            if self.navigation.isAICompanionLeadingAvailable {
-                Button {
-                    withAnimation(self.reduceMotion ? nil : .smooth(duration: 0.35)) {
-                        self.navigation.isAICompanionLeading.toggle()
-                    }
-                } label: {
-                    Label(
-                        String(localized: self.companionMoveTargetsLeft
-                            ? "ai_companion.move_left" : "ai_companion.move_right", table: "Foundation"),
-                        systemImage: self.companionMoveTargetsLeft ? "arrow.left" : "arrow.right"
-                    )
-                }
-                .accessibilityIdentifier(UITestIdentifier.aiCompanionMove)
+            if UIDevice.current.userInterfaceIdiom == .pad {
+                AICompanionToolbarButton()
             }
 
             Text(aiSettingsLocalized("ai.title", "AI"))
@@ -53,9 +42,5 @@ extension AIChatView {
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
         .disabled(self.isPresentationActive == false)
-    }
-
-    private var companionMoveTargetsLeft: Bool {
-        self.navigation.isAICompanionLeading == (self.layoutDirection == .rightToLeft)
     }
 }

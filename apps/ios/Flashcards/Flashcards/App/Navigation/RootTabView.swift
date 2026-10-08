@@ -31,7 +31,6 @@ struct RootTabView: View {
     @State private var premiumPresenter: PremiumPresenter = PremiumPresenter()
     @State private var isGuestSignInCloudSignInPresented: Bool = false
     @State private var isKeyboardDocked: Bool = false
-    @State private var aiCompanionAvailableWidth: CGFloat = 0
 
     private var isGuestSignInAfterReviewPromptBlockedByModal: Bool {
         self.isGuestSignInCloudSignInPresented
@@ -397,7 +396,6 @@ struct RootTabView: View {
         return TabView(selection: selectedTabBinding) {
             Tab(value: AppTab.review) {
                 self.reviewTab
-                    .modifier(TabSidebarVisibilityReader(tab: .review))
             } label: {
                 self.tabLabel(.review, identifier: UITestIdentifier.rootTabReviewItem)
             }
@@ -405,28 +403,24 @@ struct RootTabView: View {
 
             Tab(value: AppTab.progress) {
                 self.progressTab
-                    .modifier(TabSidebarVisibilityReader(tab: .progress))
             } label: {
                 self.tabLabel(.progress, identifier: UITestIdentifier.rootTabProgressItem)
             }
 
             Tab(value: AppTab.ai) {
                 self.aiTab
-                    .modifier(TabSidebarVisibilityReader(tab: .ai))
             } label: {
                 self.tabLabel(.ai, identifier: UITestIdentifier.rootTabAIItem)
             }
 
             Tab(value: AppTab.cards) {
                 self.cardsTab
-                    .modifier(TabSidebarVisibilityReader(tab: .cards))
             } label: {
                 self.tabLabel(.cards, identifier: UITestIdentifier.rootTabCardsItem)
             }
 
             Tab(value: AppTab.settings) {
                 self.settingsTab(settingsPath: $navigation.settingsPath)
-                    .modifier(TabSidebarVisibilityReader(tab: .settings))
             } label: {
                 self.tabLabel(.settings, identifier: UITestIdentifier.rootTabSettingsItem)
             }
@@ -451,15 +445,8 @@ struct RootTabView: View {
             .accessibilityIdentifier(identifier)
     }
 
-    private func returnAICompanionToTrailing() {
-        guard self.navigation.isAICompanionLeading else { return }
-        withAnimation(self.reduceMotion ? nil : .smooth(duration: 0.35)) {
-            self.navigation.isAICompanionLeading = false
-        }
-    }
-
-    private func aiCompanionPane(isLeading: Bool, hostTab: AppTab? = nil) -> some View {
-        AIChatView(chatStore: store.aiChatStore, isCompanion: true, isCompanionLeading: isLeading, companionHostTab: hostTab)
+    private func aiCompanionPane(hostTab: AppTab, isInspector: Bool = false) -> some View {
+        AIChatView(chatStore: store.aiChatStore, isCompanion: true, isCompanionPresentationActive: isInspector != self.usesSideBySideAICompanion, companionHostTab: hostTab)
             .ignoresSafeArea(self.isKeyboardDocked ? [] : .keyboard, edges: .bottom)
             .background(Color(uiColor: .systemBackground))
             .presentationBackground(Color(uiColor: .systemBackground))
@@ -469,61 +456,40 @@ struct RootTabView: View {
         self.horizontalSizeClass == .regular
     }
 
-    private var aiCompanionColumnWidth: CGFloat {
-        min(400, max(320, self.aiCompanionAvailableWidth / 3))
+    // Native bars keep their outer bounds. Regular-width content reserves chat space.
+    @ViewBuilder
+    private func aiCompanionHost<Content: View>(for hostTab: AppTab, @ViewBuilder content: () -> Content) -> some View {
+        let hostContent = content()
+        let isVisible = self.usesSideBySideAICompanion && self.navigation.isAICompanionVisible
+            && self.navigation.selectedTab == hostTab
+        let isLeading = UIDevice.current.userInterfaceIdiom == .pad
+        GeometryReader { geometry in
+            let width = min(400, max(320, geometry.size.width / 3))
+            HStack(spacing: 0) {
+                Color.clear
+                    .frame(width: isVisible && isLeading ? width : 0)
+                    .accessibilityHidden(true)
+                hostContent
+                Color.clear
+                    .frame(width: isVisible && !isLeading ? width : 0)
+                    .accessibilityHidden(true)
+            }
+            .overlay(alignment: isLeading ? .leading : .trailing) {
+                if isVisible {
+                    self.aiCompanionPane(hostTab: hostTab)
+                        .frame(width: width)
+                        .overlay(alignment: isLeading ? .trailing : .leading) {
+                            HStack(spacing: 0) { Divider() }.frame(width: 1)
+                        }
+                        .transition(.move(edge: isLeading ? .leading : .trailing).combined(with: .opacity))
+                }
+            }
+            .animation(self.reduceMotion ? nil : .smooth(duration: 0.35), value: isVisible)
+        }
     }
 
     private var tabRootTasks: some View {
-        HStack(spacing: 0) {
-            // Reserve the same native content bounds on either side.
-            // Both slots and TabView retain their identities when the pane moves.
-            Color.clear
-                .frame(width: self.usesSideBySideAICompanion && self.navigation.isAICompanionVisible && self.navigation.isAICompanionLeading
-                    ? self.aiCompanionColumnWidth : 0)
-                .accessibilityHidden(true)
-            self.tabRootPresentation
-            Color.clear
-                .frame(width: self.usesSideBySideAICompanion && self.navigation.isAICompanionVisible && self.navigation.isAICompanionLeading == false
-                    ? self.aiCompanionColumnWidth : 0)
-                .accessibilityHidden(true)
-        }
-        .overlay(alignment: .leading) {
-            if self.usesSideBySideAICompanion && self.navigation.isAICompanionVisible && self.navigation.isAICompanionLeading {
-                self.aiCompanionPane(isLeading: true)
-                    .frame(width: self.aiCompanionColumnWidth)
-                    .overlay(alignment: .trailing) {
-                        HStack(spacing: 0) { Divider() }.frame(width: 1)
-                    }
-                    .transition(.move(edge: .leading).combined(with: .opacity))
-            }
-        }
-        .overlay(alignment: .trailing) {
-            if self.usesSideBySideAICompanion && self.navigation.isAICompanionVisible && self.navigation.isAICompanionLeading == false {
-                self.aiCompanionPane(isLeading: false)
-                    .frame(width: self.aiCompanionColumnWidth)
-                    .overlay(alignment: .leading) {
-                        HStack(spacing: 0) { Divider() }.frame(width: 1)
-                    }
-                    .transition(.move(edge: .trailing).combined(with: .opacity))
-            }
-        }
-        .animation(self.reduceMotion ? nil : .smooth(duration: 0.35), value: self.navigation.isAICompanionLeading)
-        .animation(self.reduceMotion ? nil : .smooth(duration: 0.35), value: self.navigation.isAICompanionVisible)
-        .onChange(of: self.navigation.isAICompanionLeadingAvailable) { _, isAvailable in
-            if isAvailable == false {
-                self.returnAICompanionToTrailing()
-            }
-        }
-        .onChange(of: self.horizontalSizeClass) { _, sizeClass in
-            if sizeClass != .regular {
-                self.returnAICompanionToTrailing()
-            }
-        }
-        .onGeometryChange(for: CGFloat.self) { geometry in
-            geometry.size.width
-        } action: { width in
-            self.aiCompanionAvailableWidth = width
-        }
+        self.tabRootPresentation
         // A floating keyboard is an overlay, not a bottom inset. Keep SwiftUI's
         // normal avoidance only when the native guide reports a docked keyboard.
         .ignoresSafeArea(self.isKeyboardDocked ? [] : .keyboard, edges: .bottom)
@@ -707,28 +673,28 @@ struct RootTabView: View {
 
     private var reviewTab: some View {
         NavigationStack {
-            ReviewView()
-                .overlay(alignment: .topLeading) {
-                    self.reviewReminderAttentionBadgeMarker
-                }
-                .inspector(isPresented: self.aiCompanionInspectorPresentation(for: .review)) {
-                    self.trailingAICompanion(for: .review)
-                }
+            self.aiCompanionHost(for: .review) {
+                ReviewView()
+                    .overlay(alignment: .topLeading) {
+                        self.reviewReminderAttentionBadgeMarker
+                    }
+            }
+            .inspector(isPresented: self.aiCompanionInspectorPresentation(for: .review)) {
+                self.aiCompanionInspectorContent(for: .review)
+            }
         }
     }
 
     private func aiCompanionInspectorPresentation(for hostTab: AppTab) -> Binding<Bool> {
-        Binding(
-            get: {
-                self.navigation.selectedTab == hostTab
-                    && self.navigation.isAICompanionVisible
-                    && self.navigation.isAICompanionLeading == false
-                    && self.usesSideBySideAICompanion == false
-            },
+        // Read intent during view construction so cached inspectors observe host changes.
+        let shouldPresent = self.navigation.selectedTab == hostTab
+            && self.navigation.isAICompanionVisible
+            && self.usesSideBySideAICompanion == false
+        return Binding(
+            get: { shouldPresent },
             set: { isPresented in
-                // Hidden tabs and a pane changing sides or hosts cannot dismiss its new owner.
+                // Hidden tabs and outgoing compact presentations cannot dismiss the active pane.
                 guard self.navigation.selectedTab == hostTab,
-                      self.navigation.isAICompanionLeading == false,
                       self.usesSideBySideAICompanion == false else { return }
                 withAnimation(self.reduceMotion ? nil : .smooth(duration: 0.35)) {
                     self.navigation.isAICompanionPresented = isPresented
@@ -737,15 +703,11 @@ struct RootTabView: View {
         )
     }
 
-    @ViewBuilder
-    private func trailingAICompanion(for hostTab: AppTab) -> some View {
-        if self.navigation.selectedTab == hostTab,
-           self.navigation.isAICompanionVisible,
-           self.navigation.isAICompanionLeading == false,
-           self.usesSideBySideAICompanion == false {
-            self.aiCompanionPane(isLeading: false, hostTab: hostTab)
-                .inspectorColumnWidth(min: 320, ideal: 400, max: 520)
-        }
+    private func aiCompanionInspectorContent(for hostTab: AppTab) -> some View {
+        // Cached native inspectors keep their content; the binding and active-host
+        // guard control visibility and ownership rather than returning an empty pane.
+        self.aiCompanionPane(hostTab: hostTab, isInspector: true)
+            .inspectorColumnWidth(min: 320, ideal: 400, max: 520)
     }
 
     @ViewBuilder
@@ -762,7 +724,12 @@ struct RootTabView: View {
 
     private var progressTab: some View {
         NavigationStack {
-            ProgressScreen()
+            self.aiCompanionHost(for: .progress) {
+                ProgressScreen()
+            }
+            .inspector(isPresented: self.aiCompanionInspectorPresentation(for: .progress)) {
+                self.aiCompanionInspectorContent(for: .progress)
+            }
         }
     }
 
@@ -777,10 +744,12 @@ struct RootTabView: View {
 
     private var cardsTab: some View {
         NavigationStack {
-            CardsScreen()
-                .inspector(isPresented: self.aiCompanionInspectorPresentation(for: .cards)) {
-                    self.trailingAICompanion(for: .cards)
-                }
+            self.aiCompanionHost(for: .cards) {
+                CardsScreen()
+            }
+            .inspector(isPresented: self.aiCompanionInspectorPresentation(for: .cards)) {
+                self.aiCompanionInspectorContent(for: .cards)
+            }
         }
     }
 

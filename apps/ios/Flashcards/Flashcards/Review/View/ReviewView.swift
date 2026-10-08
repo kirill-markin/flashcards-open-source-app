@@ -139,7 +139,6 @@ struct ReviewView: View {
             )
         }
         .animation(self.reduceMotion ? nil : .smooth(duration: 0.35), value: self.navigation.isAICompanionVisible)
-        .animation(self.reduceMotion ? nil : .smooth(duration: 0.35), value: self.navigation.isAICompanionLeading)
         .accessibilityIdentifier(UITestIdentifier.reviewScreen)
         .navigationTitle(String(localized: "Review", table: reviewCardsStringsTableName))
         .navigationBarTitleDisplayMode(self.dynamicTypeSize.isAccessibilitySize ? .inline : .automatic)
@@ -197,6 +196,7 @@ struct ReviewView: View {
                 }
         )
         .toolbar {
+            AICompanionToolbarItem()
             ToolbarItem(placement: .topBarLeading) {
                 reviewFilterMenu
             }
@@ -206,13 +206,6 @@ struct ReviewView: View {
                 // makes iOS collapse the trailing Review actions into overflow too aggressively.
                 reviewLeaderboardButton
                 reviewProgressBadgeButton
-            }
-
-            if self.horizontalSizeClass == .regular || self.navigation.isAICompanionVisible {
-                if #available(iOS 26.0, *) {
-                    ToolbarSpacer(.fixed, placement: .topBarTrailing)
-                }
-                AICompanionToolbarItem()
             }
         }
         // TODO: This preview is unreachable from Review while the queue toolbar shortcut is withheld.

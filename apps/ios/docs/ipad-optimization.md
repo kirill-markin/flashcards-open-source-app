@@ -10,19 +10,19 @@ The app supports iOS/iPadOS 18.0 and later. The latest OS uses native glass cont
 - Card editors keep native scrolling and keyboard avoidance, with Command-S to save and Escape to cancel. Creating another card does not replace an active draft.
 - Container space and size classes drive layout. Rotation alone does not establish correct window resizing. Multiwindow study ownership remains an existing product limitation.
 
-## AI beside Cards and Review
+## AI beside study and Progress
 
-One `bubble.left.and.bubble.right` toolbar button shows and hides chat, separated from ranking/streak controls on iOS 26+. On iOS 27, native pinned trailing placement keeps the chat button visible when other toolbar actions overflow. There is no second pane Close button. Companion Move and New actions stay inside their pane, preserving the host navigation title.
+One `bubble.left.and.bubble.right` action shows or hides the companion. On iPad, the closed-chat opener belongs to the leading main toolbar; while open, the same hide action belongs to the chat header. The host never duplicates it. There is no side choice or Move control.
 
-Regular-width windows show chat in a reserved column beside the stable native TabView, so the host toolbar and study content stay outside it. A Move arrow can place chat on the leading side when navigation is collapsed. Physical directions mirror in right-to-left languages. Both sides share the same column width, header, and system background. Compact windows retain a native inspector inside the host NavigationStack. Moving chat to the leading side is available only on iPad. The reserved column is necessary because the native inspector outside that stack covered card content and rating controls in screenshot review. Opening navigation, or entering compact width, returns chat to the trailing side.
+Native TabView and each NavigationStack retain their outer bounds. Regular iPad stack content reserves a leading chat column beside the native sidebar, preserving normal safe areas. There is no measured scene offset or custom bar geometry; physical direction mirrors in right-to-left languages. Review, Cards and Progress share the companion, including Progress's leaderboard section route. AI and Settings suppress the companion while remembering its presentation choice; full AI uses the same chat store. Leaderboard profile details retain their existing native modal sheet. Compact windows use the native inspector presentation inside the owning NavigationStack, with the iPad hide action still inside chat. Regular Duo uses the same stable content column on the trailing side, with a host-owned pinned action; compact hosts retain native inspector adaptation. Compact inspector content remains mounted; visibility follows shared intent and host eligibility.
 
-Conversation, draft, and attachments remain in the shared AI store; the stable host preserves its revealed answer. Only the active pane and owning tab handle deferred requests and dictation completion. Layout transitions respect Reduce Motion.
+Conversation, draft, and attachments remain in the shared AI store; the stable host preserves its revealed answer. Only the active pane and owning tab handle deferred requests, dictation completion and shared alerts. The host supplies presentation mode; inspector-local size class does not determine ownership. Layout transitions respect Reduce Motion.
 
 A noninteractive scene-sized UIKit view reads `UIKeyboardLayoutGuide`, with `followsUndockedKeyboard` and `usesBottomSafeArea` disabled. Root, Review, and AI retain normal SwiftUI avoidance for a docked keyboard and ignore keyboard safe-area changes when it floats. No manual keyboard-height subtraction is used.
 
 ## Verification
 
-`LiveSmokeIPadTests` uses disposable local fixtures and XCTest screenshots. The focused checks cover current Subscription/Accent color settings, compact card rows, card-to-AI handoff, single chat toggle, answer/draft retention while moving chat, and an actual native floating keyboard. These checks do not send prompts or purchase subscriptions.
+`LiveSmokeIPadTests` uses disposable local fixtures and XCTest screenshots. The focused checks cover current Subscription/Accent color settings, compact card rows, card-to-AI handoff, single chat toggle, answer/draft retention across native navigation and sections, and an actual native floating keyboard. These checks do not send prompts or purchase subscriptions.
 
 Run targeted methods through the normal [local setup](../../../docs/ios-local-setup.md) command, with the selected iPad destination and `-only-testing:'Flashcards Open Source App UI Tests/LiveSmokeIPadTests/<method>'`. Simulator Keychain fixtures require `CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=-`. Use the latest pinned packages and deployment target 18.0. If Finder metadata prevents bundle signing in a synced folder, use an unsynced temporary DerivedData path.
 
