@@ -274,8 +274,14 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
                 try self.waitForAiComposerValue(localeFixture.reviewAiDraftMessage, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
                 try self.tapTabBarItem(selectedTab: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
                 try self.waitForAiComposerValue(localeFixture.reviewAiDraftMessage, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-                let answer = try XCTUnwrap(localeFixture.reviewCard.backText.split(separator: "\n").first.map(String.init))
-                try self.assertTextExists(answer, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                let answerParagraphs = localeFixture.reviewCard.backText.components(separatedBy: "\n\n")
+                let answerPredicate = NSCompoundPredicate(andPredicateWithSubpredicates: answerParagraphs.map {
+                    NSPredicate(format: "label CONTAINS %@", $0)
+                })
+                XCTAssertTrue(self.app.staticTexts.matching(answerPredicate).firstMatch.waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds))
+                for identifier in ["review.rating.0", "review.rating.1", LiveSmokeIdentifier.reviewRateGoodButton, "review.rating.3"] {
+                    XCTAssertTrue(self.app.buttons[identifier].isHittable)
+                }
                 let toggle = self.app.buttons[LiveSmokeIdentifier.aiCompanionToggle]
                 let bar = try XCTUnwrap(self.app.navigationBars.allElementsBoundByIndex.first { $0.buttons[LiveSmokeIdentifier.aiCompanionToggle].exists })
                 XCTAssertLessThanOrEqual(bar.frame.maxY - toggle.frame.maxY, toggle.frame.height)
