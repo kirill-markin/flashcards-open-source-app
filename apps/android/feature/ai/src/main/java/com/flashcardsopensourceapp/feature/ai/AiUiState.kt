@@ -48,6 +48,10 @@ data class AiUiState(
     val dictationState: AiChatDictationState,
     val canSend: Boolean,
     val canStartNewChat: Boolean,
+    val canOpenChatHistory: Boolean,
+    /** The live chat's session, which the history marks as current; null until one is provisioned. */
+    val chatSessionId: String?,
+    val workspaceId: String?,
     val repairStatus: AiChatRepairAttemptStatus?,
     /** AI messages left this month, set only once few enough remain to warn about. */
     val remainingAiMessagesNotice: Int?,
