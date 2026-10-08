@@ -4,9 +4,11 @@ import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRequestTooLargeException
 import com.flashcardsopensourceapp.data.local.ai.remote.isAiChatAttachmentUnsupportedTypeRemoteError
 import com.flashcardsopensourceapp.data.local.ai.remote.isAiChatRequestTooLargeRemoteError
+import com.flashcardsopensourceapp.data.local.ai.remote.isAiChatSessionNotCurrentRemoteError
 import com.flashcardsopensourceapp.data.local.ai.remote.isAiLimitReachedRemoteError
 import com.flashcardsopensourceapp.data.local.ai.remote.requireAiChatStartRunRequestSize
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatBootstrapResponse
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState
@@ -21,6 +23,7 @@ import com.flashcardsopensourceapp.data.local.model.ai.isSendableAiChatAttachmen
 import com.flashcardsopensourceapp.data.local.model.ai.requireAiChatAttachmentSize
 import com.flashcardsopensourceapp.data.local.repository.AiChatPreparedRemoteSession
 import com.flashcardsopensourceapp.feature.ai.runtime.AiChatRuntimeContext
+import com.flashcardsopensourceapp.feature.ai.runtime.aiChatBootstrapPageLimit
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiChatRuntimeState
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiComposerPhase
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiConversationBootstrapState
@@ -58,7 +61,8 @@ import java.util.UUID
 internal class AiChatSendCoordinator(
     private val context: AiChatRuntimeContext,
     private val liveStreamCoordinator: AiChatLiveStreamCoordinator,
-    private val sessionCoordinator: AiChatSessionCoordinator
+    private val sessionCoordinator: AiChatSessionCoordinator,
+    private val applyActiveBootstrap: suspend (AiChatBootstrapResponse, String) -> Unit
 ) {
     fun sendMessage() {
         val currentState = context.runtimeStateMutable.value
@@ -371,7 +375,7 @@ internal class AiChatSendCoordinator(
         context.persistCurrentState()
     }
 
-    private fun handleSendFailure(
+    private suspend fun handleSendFailure(
         error: Exception,
         targetSessionId: String,
         didAcceptRun: Boolean,
@@ -384,6 +388,16 @@ internal class AiChatSendCoordinator(
             return
         }
         val remoteError = error as? AiChatRemoteException
+        if (didAcceptRun.not() && remoteError?.let(::isAiChatSessionNotCurrentRemoteError) == true) {
+            switchToCurrentChatAfterNotCurrentRefusal(
+                staleSessionId = targetSessionId,
+                didAppendOptimisticMessages = didAppendOptimisticMessages,
+                rollbackPersistedState = rollbackPersistedState,
+                draftMessage = draftMessage,
+                pendingAttachments = pendingAttachments
+            )
+            return
+        }
         if (didAcceptRun.not()) {
             restorePreAcceptFailureState(
                 didAppendOptimisticMessages = didAppendOptimisticMessages,
@@ -514,6 +528,91 @@ internal class AiChatSendCoordinator(
                     textProvider = context.textProvider
                 ),
                 errorMessage = ""
+            )
+        }
+    }
+
+    /**
+     * Another device replaced this chat, so the backend refused the turn before starting a run. The
+     * refused message goes back into the composer of the current chat; it is never resent on its own.
+     */
+    private suspend fun switchToCurrentChatAfterNotCurrentRefusal(
+        staleSessionId: String,
+        didAppendOptimisticMessages: Boolean,
+        rollbackPersistedState: AiChatPersistedState,
+        draftMessage: String,
+        pendingAttachments: List<AiChatAttachment>
+    ) {
+        // The composer stays busy so neither a resend nor a warm-up bootstrap races the switch.
+        context.runtimeStateMutable.update { state ->
+            state.copy(
+                persistedState = if (didAppendOptimisticMessages) {
+                    rollbackPersistedState
+                } else {
+                    state.persistedState
+                },
+                draftMessage = draftMessage,
+                pendingAttachments = pendingAttachments,
+                activeRun = null,
+                isLiveAttached = false,
+                composerPhase = AiComposerPhase.PREPARING_SEND,
+                repairStatus = null,
+                activeAlert = null,
+                errorMessage = ""
+            )
+        }
+        val workspaceId = context.runtimeStateMutable.value.workspaceId
+        try {
+            val currentChat = context.aiChatRepository.loadCurrentBootstrap(
+                workspaceId = workspaceId,
+                limit = aiChatBootstrapPageLimit
+            )
+            if (
+                context.runtimeStateMutable.value.workspaceId != workspaceId
+                || sessionCoordinator.canApplySessionScopedResult(targetSessionId = staleSessionId).not()
+            ) {
+                return
+            }
+            // The refused message becomes the current chat's draft, so applying the bootstrap shows it.
+            context.aiChatRepository.clearDraftState(
+                workspaceId = workspaceId,
+                sessionId = staleSessionId
+            )
+            context.aiChatRepository.saveDraftState(
+                workspaceId = workspaceId,
+                sessionId = currentChat.sessionId,
+                state = AiChatDraftState(
+                    draftMessage = draftMessage,
+                    pendingAttachments = pendingAttachments
+                )
+            )
+            applyActiveBootstrap(currentChat, currentChat.sessionId)
+            context.runtimeStateMutable.update { state ->
+                state.copy(
+                    activeAlert = context.textProvider.generalError(
+                        message = context.textProvider.chatNotCurrentNotice
+                    ),
+                    errorMessage = ""
+                )
+            }
+            liveStreamCoordinator.attachBootstrapLiveIfNeeded(
+                workspaceId = requireNotNull(workspaceId) {
+                    "AI chat switched to the current chat without a workspace."
+                },
+                response = currentChat,
+                resumeDiagnostics = null
+            )
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            handleSendFailure(
+                error = error,
+                targetSessionId = staleSessionId,
+                didAcceptRun = false,
+                didAppendOptimisticMessages = false,
+                rollbackPersistedState = rollbackPersistedState,
+                draftMessage = draftMessage,
+                pendingAttachments = pendingAttachments
             )
         }
     }

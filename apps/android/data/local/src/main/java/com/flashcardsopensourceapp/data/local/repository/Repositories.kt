@@ -374,6 +374,8 @@ interface AiChatRepository {
         limit: Int,
         resumeDiagnostics: AiChatResumeDiagnostics?
     ): AiChatBootstrapResponse
+    /** Loads the current chat: the latest non-archived one, the only chat that accepts new turns. */
+    suspend fun loadCurrentBootstrap(workspaceId: String?, limit: Int): AiChatBootstrapResponse
     suspend fun createNewSession(
         workspaceId: String?,
         sessionId: String,
