@@ -1,5 +1,8 @@
 import {
+  parseChatSessionArchiveResponse,
+  parseChatSessionRenameResponse,
   parseChatSessionSnapshotResponse,
+  parseChatSessionsListResponse,
   parseChatTranscriptionResponse,
   parseNewChatSessionResponse,
   parseStartChatRunResponse,
@@ -12,7 +15,10 @@ import {
 import { webAppVersion } from "../../clientIdentity";
 import type { Locale } from "../../i18n/types";
 import type {
+  ChatSessionArchiveResponse,
+  ChatSessionHistorySummary,
   ChatSessionSnapshot,
+  ChatSessionsListResponse,
   ChatTranscriptionResponse,
   ChatTranscriptionSource,
   NewChatSessionRequestBody,
@@ -32,6 +38,8 @@ import {
 type ChatResumeRequestDiagnostics = Readonly<{
   resumeAttemptId: number;
 }>;
+
+const CHAT_SESSIONS_PAGE_LIMIT = 20;
 
 function buildOwnOpenAIKeyHeaders(): Record<string, string> {
   const ownOpenAIKey = readActiveOwnOpenAIKey();
@@ -72,6 +80,59 @@ export async function getChatSnapshotWithResumeDiagnostics(
     },
     signal,
   }, allowAuthRecoveryWithTransientNetworkRetry), "GET /chat", parseChatSessionSnapshotResponse);
+}
+
+export async function listChatSessions(
+  workspaceId: string,
+  cursor: string | null,
+  searchText: string | null,
+  signal: AbortSignal,
+): Promise<ChatSessionsListResponse> {
+  const searchParams = new URLSearchParams({
+    workspaceId,
+    limit: String(CHAT_SESSIONS_PAGE_LIMIT),
+  });
+  if (cursor !== null) {
+    searchParams.set("cursor", cursor);
+  }
+  if (searchText !== null) {
+    searchParams.set("q", searchText);
+  }
+
+  return parseContractResponse(await requestJson(`/chat/sessions?${searchParams.toString()}`, {
+    method: "GET",
+    signal,
+  }, allowAuthRecoveryWithTransientNetworkRetry), "GET /chat/sessions", parseChatSessionsListResponse);
+}
+
+function buildChatSessionActionPath(sessionId: string, workspaceId: string, action: "rename" | "archive"): string {
+  const searchParams = new URLSearchParams({
+    workspaceId,
+  });
+  return `/chat/sessions/${encodeURIComponent(sessionId)}/${action}?${searchParams.toString()}`;
+}
+
+export async function renameChatSession(
+  sessionId: string,
+  workspaceId: string,
+  title: string,
+): Promise<ChatSessionHistorySummary> {
+  return parseContractResponse(await requestJson(buildChatSessionActionPath(sessionId, workspaceId, "rename"), {
+    method: "POST",
+    body: JSON.stringify({ title }),
+  }, allowAuthRecoveryWithTransientNetworkRetry), "POST /chat/sessions/:sessionId/rename", parseChatSessionRenameResponse);
+}
+
+/**
+ * Not retried: a repeated archive of the same chat answers 404.
+ */
+export async function archiveChatSession(
+  sessionId: string,
+  workspaceId: string,
+): Promise<ChatSessionArchiveResponse> {
+  return parseContractResponse(await requestJson(buildChatSessionActionPath(sessionId, workspaceId, "archive"), {
+    method: "POST",
+  }, allowAuthRecovery), "POST /chat/sessions/:sessionId/archive", parseChatSessionArchiveResponse);
 }
 
 export async function startChatRun(body: StartChatRunRequestBody): Promise<StartChatRunResponse> {
