@@ -96,9 +96,11 @@ export function ChatPanel(props: Props): ReactElement {
   const messagesContentRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const isHistoryPanelVisible = isHistoryOpen && activeWorkspaceId !== null;
 
   const { handleMessagesScroll } = useChatAutoScroll({
-    isHydrated: isHistoryLoaded,
+    // The History panel unmounts the messages scroller; closing it must rebind and re-restore the new one.
+    isHydrated: isHistoryLoaded && isHistoryPanelVisible === false,
     isStreaming: isAssistantRunActive,
     messages,
     messagesRef,
@@ -402,7 +404,7 @@ export function ChatPanel(props: Props): ReactElement {
         </div>
       </div>
 
-      {isHistoryOpen && activeWorkspaceId !== null ? (
+      {isHistoryPanelVisible ? (
         <ChatHistoryPanel
           key={activeWorkspaceId}
           workspaceId={activeWorkspaceId}
