@@ -55,7 +55,13 @@ Historical phone/Duo results, interrupted batches, previous missing postfold fil
 
 ## Reviewed-card AI toolbar regression
 
-On the iPad Pro 13-inch (M5), iPadOS 27.0 (24A430), the actual answer-side AI action reproduced the physical report: navigation bar 106 pt tall with 62 pt below its 44 pt action. Review previously switched title modes with companion visibility. Keeping its native title inline for every iPad state reduces the bar to 54 pt with the normal 10 pt bottom inset, through keyboard dismissal and two card handoffs. `/private/tmp/nibomo-ipad-toolbar-fixed.xcresult`: three passes, zero failures/skips (45.613 s handoff, 312.559 s sidebar/sections, 46.880 s accessibility header). Unsent card attachments only; no live AI message. `/private/tmp/nibomo-ipad-toolbar-final-static.log`: all six required checks pass after the final capture-flow change. Ordinary-phone title mode is unchanged. Final landscape captures now also tap the actual reviewed-card AI button.
+On the iPad Pro 13-inch (M5), iPadOS 27.0 (24A434), the actual answer-side AI action reproduced the physical report: navigation bar 106 pt tall with 62 pt below its 44 pt action. Review previously switched title modes with companion visibility. Keeping its native title inline for every iPad state reduces the bar to 54 pt with the normal 10 pt bottom inset, through keyboard dismissal and two card handoffs. `/private/tmp/nibomo-ipad-toolbar-fixed.xcresult`: three passes, zero failures/skips (45.613 s handoff, 312.559 s sidebar/sections, 46.880 s accessibility header). Unsent card attachments only; no live AI message. `/private/tmp/nibomo-ipad-toolbar-final-static.log`: all six required checks pass after the final capture-flow change. Ordinary-phone title mode is unchanged. Final landscape captures now also tap the actual reviewed-card AI button.
+
+## Upstream history integration
+
+The native history stack stays stable when entering the AI tab; chat-view identity still resets its own focus. Post-integration actual reviewed-card AI actions pass twice on the M5 (`/private/tmp/nibomo-history-toolbar-final-local.xcresult`, 46.919 s). The largest-text header also passes (`/private/tmp/nibomo-history-integrated-ipad.xcresult`, 50.532 s). All six checks pass in `/private/tmp/nibomo-history-final-static.log`.
+
+The first sidebar recheck exceeded its 360 s allowance during Simulator per-character animation waits; its result is not a pass. The retry keeps the same retention assertions with a one-character unsent draft. Two History checks with the local-only fixture returned to live AI while server history restored the cloud workspace (61.342 s and 60.026 s); neither is a pass. The round trip now uses the existing cloud-backed marketing fixture with remote guest cleanup, preserving account/workspace guards. Those failed bundles and the interrupted superseded case remain in `/private/tmp/nibomo-history-*`.
 
 ## Remaining manual and release checks
 
