@@ -135,4 +135,27 @@
     <string name="ai_server_dictation_custom_unavailable">AI dictation is unavailable on this server. Contact the server operator.</string>
     <string name="ai_message_with_request_id">%1$s Request ID: %2$s</string>
     <string name="ai_entry_prefill_create_card">Help me create a card.</string>
+    <string name="ai_history_content_description">History</string>
+    <string name="ai_history_title">Chat history</string>
+    <string name="ai_history_back_content_description">Back</string>
+    <string name="ai_history_search_placeholder">Search chats</string>
+    <string name="ai_history_loading">Loading chats...</string>
+    <string name="ai_history_empty">No chats yet. Your chats will appear here.</string>
+    <string name="ai_history_no_search_results">No chats match your search.</string>
+    <string name="ai_history_load_error">Couldn\'t load chat history.</string>
+    <string name="ai_history_current">Current</string>
+    <string name="ai_history_untitled_chat">Untitled chat</string>
+    <string name="ai_history_more_actions_content_description">More options</string>
+    <string name="ai_history_rename">Rename</string>
+    <string name="ai_history_rename_field_label">Title</string>
+    <string name="ai_history_save">Save</string>
+    <string name="ai_history_rename_error">Couldn\'t rename this chat. Try again.</string>
+    <string name="ai_history_archive">Archive</string>
+    <string name="ai_history_archive_confirm">Archive?</string>
+    <string name="ai_history_archive_error">Couldn\'t archive this chat. Try again.</string>
+    <string name="ai_history_archive_active_run_error">Stop the current response before archiving this chat.</string>
+    <string name="ai_history_unavailable">This chat is no longer available.</string>
+    <string name="ai_history_read_only_notice">Read-only: old chats can\'t be continued.</string>
+    <string name="ai_history_reader_loading">Loading chat...</string>
+    <string name="ai_history_reader_load_error">Couldn\'t load this chat.</string>
 </resources>

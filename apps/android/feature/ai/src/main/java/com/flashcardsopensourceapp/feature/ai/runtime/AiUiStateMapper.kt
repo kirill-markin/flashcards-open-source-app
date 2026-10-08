@@ -144,6 +144,11 @@ internal fun mapToAiUiState(
             && (hasDraftText || hasSendableAttachments),
         canStartNewChat = canEditConversation
             && (hasMessages || hasDraftText || runtimeState.pendingAttachments.isNotEmpty()),
+        canOpenChatHistory = hasConsent
+            && runtimeState.workspaceId != null
+            && canEditConversation,
+        chatSessionId = runtimeState.persistedState.chatSessionId.trim().ifEmpty { null },
+        workspaceId = runtimeState.workspaceId,
         repairStatus = runtimeState.repairStatus,
         // The monthly limit does not apply to requests on the person's own key.
         remainingAiMessagesNotice = aiUsage?.remainingMessages?.takeIf { remainingMessages ->
@@ -183,6 +188,9 @@ internal fun makeInitialAiUiState(hasConsent: Boolean, textProvider: AiTextProvi
         dictationState = AiChatDictationState.IDLE,
         canSend = false,
         canStartNewChat = false,
+        canOpenChatHistory = false,
+        chatSessionId = null,
+        workspaceId = null,
         repairStatus = null,
         remainingAiMessagesNotice = null,
         activeAlert = null,

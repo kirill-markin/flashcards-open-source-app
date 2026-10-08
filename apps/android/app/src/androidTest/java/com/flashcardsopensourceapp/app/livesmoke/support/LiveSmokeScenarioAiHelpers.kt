@@ -33,11 +33,17 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatToolCallStatus
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.feature.ai.aiAssistantMessageBubbleTag
 import com.flashcardsopensourceapp.feature.ai.aiAssistantTextPartTag
+import com.flashcardsopensourceapp.feature.ai.aiChatHistoryBackButtonTag
+import com.flashcardsopensourceapp.feature.ai.aiChatHistoryListTag
+import com.flashcardsopensourceapp.feature.ai.aiChatHistoryReaderBackButtonTag
+import com.flashcardsopensourceapp.feature.ai.aiChatHistoryReaderTag
+import com.flashcardsopensourceapp.feature.ai.aiChatHistoryRowTag
 import com.flashcardsopensourceapp.feature.ai.aiComposerMessageFieldTag
 import com.flashcardsopensourceapp.feature.ai.aiComposerSendButtonTag
 import com.flashcardsopensourceapp.feature.ai.aiConversationLoadingTag
 import com.flashcardsopensourceapp.feature.ai.aiConversationSurfaceTag
 import com.flashcardsopensourceapp.feature.ai.aiEmptyStateTag
+import com.flashcardsopensourceapp.feature.ai.aiHistoryButtonTag
 import com.flashcardsopensourceapp.feature.ai.aiNewChatButtonTag
 import com.flashcardsopensourceapp.feature.ai.aiUserMessageBubbleTag
 import com.flashcardsopensourceapp.feature.ai.R as AiFeatureR
@@ -186,6 +192,68 @@ internal fun LiveSmokeContext.startNewChatAndAssertConversationReset() {
                 "ActualDraft='${aiComposerDraftTextOrNull()}' " +
                 "PersistedState=${currentAiPersistedStateSummary()} " +
                 "SendState=${aiComposerSendButtonStateOrNull(expectedLabel = sendLabel)} " +
+                "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
+            error
+        )
+    }
+    openPreviousChatFromHistoryAndReturn(previousSessionId = previousPersistedState.chatSessionId)
+}
+
+/** Reads the chat New chat replaced through History, read-only, without any extra AI run. */
+private fun LiveSmokeContext.openPreviousChatFromHistoryAndReturn(previousSessionId: String) {
+    val previousRowTag = aiChatHistoryRowTag(sessionId = previousSessionId)
+    try {
+        waitForEnabledTag(
+            tag = aiHistoryButtonTag,
+            label = "History",
+            context = "after resetting the AI conversation"
+        )
+        clickTag(tag = aiHistoryButtonTag, label = "History")
+        waitForTagToExist(
+            tag = previousRowTag,
+            timeoutMillis = externalUiTimeoutMillis,
+            context = "while waiting for the previous chat in History"
+        )
+        clickTag(tag = previousRowTag, label = "Previous chat in History")
+        waitForTagToExist(
+            tag = aiChatHistoryReaderTag,
+            timeoutMillis = internalUiTimeoutMillis,
+            context = "while waiting for the read-only chat reader"
+        )
+        waitForTagToExist(
+            tag = aiUserMessageBubbleTag,
+            timeoutMillis = externalUiTimeoutMillis,
+            context = "while waiting for the previous chat's user message in the reader"
+        )
+        waitForTagToDisappear(
+            tag = aiComposerMessageFieldTag,
+            timeoutMillis = internalUiTimeoutMillis,
+            context = "while asserting the read-only chat reader has no composer"
+        )
+        clickTag(tag = aiChatHistoryReaderBackButtonTag, label = "Back from the chat reader")
+        waitForTagToExist(
+            tag = aiChatHistoryListTag,
+            timeoutMillis = internalUiTimeoutMillis,
+            context = "while waiting for History after leaving the chat reader"
+        )
+        clickTag(tag = aiChatHistoryBackButtonTag, label = "Back from History")
+        waitForTagToExist(
+            tag = aiEmptyStateTag,
+            timeoutMillis = internalUiTimeoutMillis,
+            context = "while waiting for the live AI chat after leaving History"
+        )
+    } catch (error: Throwable) {
+        throw AssertionError(
+            "History did not open the previous chat read-only and return to the live chat. " +
+                "PreviousSessionId=$previousSessionId " +
+                "HistoryButtons=${countNodesWithTagInAnySemanticsTree(tag = aiHistoryButtonTag)} " +
+                "HistoryLists=${countNodesWithTagInAnySemanticsTree(tag = aiChatHistoryListTag)} " +
+                "PreviousRows=${countNodesWithTagInAnySemanticsTree(tag = previousRowTag)} " +
+                "Readers=${countNodesWithTagInAnySemanticsTree(tag = aiChatHistoryReaderTag)} " +
+                "UserMessages=${countNodesWithTagInAnySemanticsTree(tag = aiUserMessageBubbleTag)} " +
+                "ComposerFields=${countNodesWithTagInAnySemanticsTree(tag = aiComposerMessageFieldTag)} " +
+                "EmptyStates=${countNodesWithTagInAnySemanticsTree(tag = aiEmptyStateTag)} " +
+                "PersistedState=${currentAiPersistedStateSummary()} " +
                 "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
             error
         )

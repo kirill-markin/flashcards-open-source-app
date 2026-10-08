@@ -40,6 +40,17 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
             self.attachIPadScreenshot(name: "Reviewed card actual AI handoff \(attempt)")
             XCTAssertLessThanOrEqual(bar.frame.maxY - toggle.frame.maxY, toggle.frame.height, "Opening AI from a reviewed card must not leave an empty large-title band below the native toolbar.")
             if attempt == 1 {
+                try self.typeTextSafely("history navigation draft", intoElementWithIdentifier: LiveSmokeIdentifier.aiComposerTextField, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                try self.tapButton(identifier: LiveSmokeIdentifier.aiHistoryButton, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                try self.assertTextExists("Chat history", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                XCTAssertFalse(self.visibleIPadCompanionPane != nil, "History must use the AI tab's native stack.")
+                try self.tapFirstNavigationBackButton()
+                try self.assertElementExists(identifier: LiveSmokeIdentifier.aiComposerTextField, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                XCTAssertEqual(self.app.textFields[LiveSmokeIdentifier.aiComposerTextField].firstMatch.value as? String, "history navigation draft")
+                try self.tapTabBarItem(selectedTab: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                try self.assertVisibleIPadCompanion()
+                try self.assertTextExists("Smoke guest manual review answer", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                XCTAssertEqual(self.app.textFields[LiveSmokeIdentifier.aiComposerTextField].firstMatch.value as? String, "history navigation draft")
                 try self.tapButton(identifier: LiveSmokeIdentifier.aiCompanionToggle, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
                 try self.tapButton(identifier: LiveSmokeIdentifier.aiCompanionToggle, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             }

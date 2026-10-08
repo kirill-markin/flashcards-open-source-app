@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import SwiftUI
 
 func makeSettingsNavigationPath(destination: SettingsNavigationDestination) -> [SettingsNavigationDestination] {
     switch destination {
@@ -76,6 +77,8 @@ final class AppNavigationModel {
     private(set) var selectedTab: AppTab
     private(set) var aiTabVisitID: UUID
     var settingsPath: [SettingsNavigationDestination]
+    /// Chat history screens pushed over the live AI chat.
+    var aiPath: NavigationPath
     var cardsPresentationRequest: CardsPresentationRequest?
     var aiChatPresentationRequest: AIChatPresentationRequest?
     var progressPresentationRequest: ProgressPresentationRequest?
@@ -95,6 +98,7 @@ final class AppNavigationModel {
         self.selectedTab = .review
         self.aiTabVisitID = UUID()
         self.settingsPath = []
+        self.aiPath = NavigationPath()
         self.cardsPresentationRequest = nil
         self.aiChatPresentationRequest = nil
         self.progressPresentationRequest = nil
@@ -110,6 +114,7 @@ final class AppNavigationModel {
         self.selectedTab = selectedTab
         self.aiTabVisitID = UUID()
         self.settingsPath = settingsPath
+        self.aiPath = NavigationPath()
         self.cardsPresentationRequest = cardsPresentationRequest
         self.aiChatPresentationRequest = aiChatPresentationRequest
         self.progressPresentationRequest = progressPresentationRequest
@@ -174,6 +179,7 @@ final class AppNavigationModel {
         if self.isAICompanionVisible == false {
             self.selectTab(.ai)
         }
+        self.popAIToLiveChat()
         self.aiChatPresentationRequest = .createCard
     }
 
@@ -183,6 +189,14 @@ final class AppNavigationModel {
         if self.isAICompanionVisible == false {
             self.selectTab(.ai)
         }
+        self.popAIToLiveChat()
+    }
+
+    func popAIToLiveChat() {
+        guard self.aiPath.isEmpty == false else {
+            return
+        }
+        self.aiPath = NavigationPath()
     }
 
     func openProgress(target: ProgressPresentationTarget) {

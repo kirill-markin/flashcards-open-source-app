@@ -122,6 +122,33 @@ func isAIChatSessionNotCurrentError(error: Error) -> Bool {
     return diagnostics.statusCode == 409 && errorDetails.code == aiChatSessionNotCurrentCode
 }
 
+private let aiChatSessionArchiveActiveRunCode = "CHAT_SESSION_ARCHIVE_ACTIVE_RUN"
+
+/// The session endpoints answer 404 for an unknown, archived, or foreign chat.
+func isAIChatSessionUnavailableError(error: Error) -> Bool {
+    guard let serviceError = error as? AIChatServiceError else {
+        return false
+    }
+
+    guard case .invalidResponse(_, _, let diagnostics) = serviceError else {
+        return false
+    }
+
+    return diagnostics.statusCode == 404
+}
+
+func isAIChatSessionArchiveActiveRunError(error: Error) -> Bool {
+    guard let serviceError = error as? AIChatServiceError else {
+        return false
+    }
+
+    guard case .invalidResponse(let errorDetails, _, _) = serviceError else {
+        return false
+    }
+
+    return errorDetails.code == aiChatSessionArchiveActiveRunCode
+}
+
 func encodeAIChatStartRunRequestBody(
     request: AIChatStartRunRequestBody,
     encoder: JSONEncoder,
@@ -519,6 +546,130 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
         }
     }
 
+    func listChatSessions(
+        session: CloudLinkedSession,
+        cursor: String?,
+        searchText: String?
+    ) async throws -> AIChatSessionHistoryPage {
+        let clientRequestId = UUID().uuidString.lowercased()
+        let path = makeChatPath(
+            basePath: "/chat/sessions",
+            queryItems: [
+                URLQueryItem(name: "workspaceId", value: session.workspaceId),
+                URLQueryItem(name: "limit", value: String(aiChatSessionHistoryPageLimit)),
+                URLQueryItem(name: "cursor", value: cursor),
+                URLQueryItem(name: "q", value: searchText)
+            ]
+        )
+        let request = try self.makeRequest(
+            session: session,
+            path: path,
+            method: "GET",
+            clientRequestId: clientRequestId,
+            additionalHeaders: [:]
+        )
+        let data = try await self.execute(
+            session: session,
+            request: request,
+            clientRequestId: clientRequestId
+        )
+
+        return try self.decodeSessionHistoryPayload(
+            AIChatSessionHistoryPage.self,
+            data: data,
+            clientRequestId: clientRequestId,
+            invalidPayloadMessage: "AI chat history payload is invalid."
+        )
+    }
+
+    func renameChatSession(
+        session: CloudLinkedSession,
+        sessionId: String,
+        title: String
+    ) async throws -> AIChatSessionHistorySummary {
+        let clientRequestId = UUID().uuidString.lowercased()
+        let urlRequest = try self.makeJsonRequest(
+            session: session,
+            path: makeChatPath(
+                basePath: "/chat/sessions/\(sessionId)/rename",
+                queryItems: [URLQueryItem(name: "workspaceId", value: session.workspaceId)]
+            ),
+            method: "POST",
+            body: AIChatSessionRenameRequestBody(title: title),
+            clientRequestId: clientRequestId
+        )
+        let data = try await self.execute(
+            session: session,
+            request: urlRequest,
+            clientRequestId: clientRequestId
+        )
+
+        return try self.decodeSessionHistoryPayload(
+            AIChatSessionHistorySummary.self,
+            data: data,
+            clientRequestId: clientRequestId,
+            invalidPayloadMessage: "AI chat rename response is invalid."
+        )
+    }
+
+    /// Not retried: a repeated archive of the same chat answers 404.
+    func archiveChatSession(
+        session: CloudLinkedSession,
+        sessionId: String
+    ) async throws -> AIChatArchivedSession {
+        let clientRequestId = UUID().uuidString.lowercased()
+        let urlRequest = try self.makeRequest(
+            session: session,
+            path: makeChatPath(
+                basePath: "/chat/sessions/\(sessionId)/archive",
+                queryItems: [URLQueryItem(name: "workspaceId", value: session.workspaceId)]
+            ),
+            method: "POST",
+            clientRequestId: clientRequestId,
+            additionalHeaders: [:]
+        )
+        let data = try await self.execute(
+            session: session,
+            request: urlRequest,
+            clientRequestId: clientRequestId
+        )
+
+        return try self.decodeSessionHistoryPayload(
+            AIChatArchivedSession.self,
+            data: data,
+            clientRequestId: clientRequestId,
+            invalidPayloadMessage: "AI chat archive response is invalid."
+        )
+    }
+
+    private func decodeSessionHistoryPayload<Payload: Decodable>(
+        _ payloadType: Payload.Type,
+        data: Data,
+        clientRequestId: String,
+        invalidPayloadMessage: String
+    ) throws -> Payload {
+        do {
+            return try self.decoder.decode(payloadType, from: data)
+        } catch {
+            let diagnostics = AIChatFailureDiagnostics(
+                clientRequestId: clientRequestId,
+                backendRequestId: nil,
+                stage: .decodingEventJSON,
+                errorKind: .invalidStreamContract,
+                statusCode: nil,
+                eventType: nil,
+                toolName: nil,
+                toolCallId: nil,
+                lineNumber: nil,
+                rawSnippet: aiChatTruncatedSnippet(String(decoding: data, as: UTF8.self)),
+                decoderSummary: aiChatDecoderSummary(error: error),
+                continuationAttempt: nil,
+                continuationToolCallIds: []
+            )
+            throw AIChatServiceError.invalidPayload(invalidPayloadMessage, diagnostics)
+        }
+    }
+
     private func execute(
         session: CloudLinkedSession,
         request: URLRequest,
@@ -774,7 +925,10 @@ private func makeChatPath(basePath: String, queryItems: [URLQueryItem]) -> Strin
         return basePath
     }
 
-    return "\(basePath)?\(percentEncodedQuery)"
+    // URLComponents leaves `+` unencoded, but the backend decodes it as a space,
+    // so a search for "C++" would reach it as "C  ".
+    let backendSafeQuery = percentEncodedQuery.replacingOccurrences(of: "+", with: "%2B")
+    return "\(basePath)?\(backendSafeQuery)"
 }
 
 private func formatAIChatUserError(summary: String, diagnostics: AIChatFailureDiagnostics) -> String {
