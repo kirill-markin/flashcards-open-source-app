@@ -85,6 +85,7 @@
 "ai.availability.dictation.official" = "Resmî sunucuda AI diktesi geçici olarak kullanılamıyor. Daha sonra tekrar deneyin.";
 "ai.availability.dictation.custom" = "Bu sunucuda AI diktesi kullanılamıyor. Sunucu yöneticisine başvurun.";
 "ai.run.error.activeRunInProgress" = "Bir yanıt hazırlanıyor. Yeni bir mesaj göndermeden önce bitmesini bekleyin veya durdurun.";
+"ai.chatNotCurrent.notice" = "Bu sohbet daha yeni bir sohbetle değiştirildi. Mesajınız hâlâ metin kutusunda — tekrar gönderin.";
 "ai.dictation.error.microphoneUnavailable" = "Bu aygıtta mikrofon kullanılamıyor.";
 "ai.dictation.error.microphoneDenied" = "Mikrofon erişimine izin verilmedi.";
 "ai.dictation.error.microphoneBlocked" = "Nibomo için mikrofon erişimi kapalı. Ayarlar > Gizlilik ve Güvenlik > Mikrofon’dan açın.";

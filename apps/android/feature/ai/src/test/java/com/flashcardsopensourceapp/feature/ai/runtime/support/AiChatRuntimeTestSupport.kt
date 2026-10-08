@@ -572,6 +572,11 @@ internal class FakeAiChatRepository : AiChatRepository {
         )
     }
 
+    override suspend fun loadCurrentBootstrap(workspaceId: String?, limit: Int): AiChatBootstrapResponse {
+        remoteCallEvents += "loadCurrentBootstrap"
+        return bootstrapResponses.removeFirst()
+    }
+
     override suspend fun createNewSession(
         workspaceId: String?,
         sessionId: String,

@@ -85,6 +85,7 @@
 "ai.availability.dictation.official" = "Dikte AI sementara tidak tersedia di server resmi. Coba lagi nanti.";
 "ai.availability.dictation.custom" = "Dikte AI tidak tersedia di server ini. Hubungi pengelola server.";
 "ai.run.error.activeRunInProgress" = "Respons sedang berlangsung. Tunggu hingga selesai atau hentikan sebelum mengirim pesan lain.";
+"ai.chatNotCurrent.notice" = "Obrolan ini telah diganti dengan yang lebih baru. Pesan Anda masih ada di kotak teks — kirim lagi.";
 "ai.dictation.error.microphoneUnavailable" = "Mikrofon tidak tersedia di perangkat ini.";
 "ai.dictation.error.microphoneDenied" = "Akses mikrofon tidak diberikan.";
 "ai.dictation.error.microphoneBlocked" = "Akses mikrofon untuk Nibomo dinonaktifkan. Aktifkan di Pengaturan > Privasi & Keamanan > Mikrofon.";

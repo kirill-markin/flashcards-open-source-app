@@ -54,6 +54,7 @@ import com.flashcardsopensourceapp.data.local.network.awaitOkHttpResponse
 import com.flashcardsopensourceapp.data.local.model.ai.aiChatAttachmentUnsupportedTypeCode
 import com.flashcardsopensourceapp.data.local.model.ai.aiChatMaximumStartRunRequestBytes
 import com.flashcardsopensourceapp.data.local.model.ai.aiChatRequestTooLargeCode
+import com.flashcardsopensourceapp.data.local.model.ai.aiChatSessionNotCurrentCode
 import com.flashcardsopensourceapp.data.local.model.ai.aiLimitReachedCode
 import com.flashcardsopensourceapp.data.local.model.ai.guestAiLimitReachedCode
 import com.flashcardsopensourceapp.data.local.model.ai.openAiApiKeyInvalidCode
@@ -110,6 +111,7 @@ private val expectedAiChatHttpFailureCodes: Set<String> = setOf(
     "CHAT_ATTACHMENT_UNSUPPORTED_TYPE",
     "CHAT_REQUEST_TOO_LARGE",
     "CHAT_SESSION_ID_CONFLICT",
+    "CHAT_SESSION_NOT_CURRENT",
     "CHAT_TRANSCRIPTION_FILE_EMPTY",
     "CHAT_TRANSCRIPTION_FILE_REQUIRED",
     "CHAT_TRANSCRIPTION_FILE_UNSUPPORTED",
@@ -228,6 +230,11 @@ fun isOwnOpenAiKeyRemoteError(error: AiChatRemoteException): Boolean {
 fun isAiChatAttachmentUnsupportedTypeRemoteError(error: AiChatRemoteException): Boolean {
     return error.statusCode == 400
         && error.code?.trim()?.uppercase() == aiChatAttachmentUnsupportedTypeCode
+}
+
+fun isAiChatSessionNotCurrentRemoteError(error: AiChatRemoteException): Boolean {
+    return error.statusCode == 409
+        && error.code?.trim()?.uppercase() == aiChatSessionNotCurrentCode
 }
 
 fun isExpectedAiChatRemoteUserError(error: AiChatRemoteException): Boolean {
@@ -443,10 +450,11 @@ class AiChatRemoteService private constructor(
         return@withContext decodeAiChatSessionSnapshot(responseBody)
     }
 
+    /** A null [sessionId] loads the current chat: the latest non-archived one in the workspace. */
     suspend fun loadBootstrap(
         apiBaseUrl: String,
         authorizationHeader: String,
-        sessionId: String,
+        sessionId: String?,
         limit: Int,
         workspaceId: String?,
         resumeDiagnostics: AiChatResumeDiagnostics?
@@ -839,14 +847,14 @@ class AiChatRemoteService private constructor(
     }
 
     private fun buildBootstrapPath(
-        sessionId: String,
+        sessionId: String?,
         limit: Int,
         workspaceId: String?
     ): String {
-        val queryParameters = mutableListOf(
-            "limit=$limit",
-            "sessionId=${encodeQueryValue(value = sessionId)}"
-        )
+        val queryParameters = mutableListOf("limit=$limit")
+        sessionId?.let { resolvedSessionId ->
+            queryParameters.add("sessionId=${encodeQueryValue(value = resolvedSessionId)}")
+        }
         workspaceId?.takeIf { value -> value.isNotBlank() }?.let { resolvedWorkspaceId ->
             queryParameters.add("workspaceId=${encodeQueryValue(value = resolvedWorkspaceId)}")
         }

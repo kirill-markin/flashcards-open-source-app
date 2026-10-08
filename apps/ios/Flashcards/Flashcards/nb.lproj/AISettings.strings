@@ -85,6 +85,7 @@
 "ai.availability.dictation.official" = "AI-diktering er midlertidig utilgjengelig på den offisielle serveren. Prøv igjen senere.";
 "ai.availability.dictation.custom" = "AI-diktering er utilgjengelig på denne serveren. Kontakt serveroperatøren.";
 "ai.run.error.activeRunInProgress" = "Et svar er allerede underveis. Vent til det er ferdig, eller stopp det før du sender en ny melding.";
+"ai.chatNotCurrent.notice" = "Denne chatten er erstattet av en nyere. Meldingen din står fortsatt i tekstfeltet – send den på nytt.";
 "ai.dictation.error.microphoneUnavailable" = "Mikrofon er ikke tilgjengelig på denne enheten.";
 "ai.dictation.error.microphoneDenied" = "Mikrofontilgang ble ikke gitt.";
 "ai.dictation.error.microphoneBlocked" = "Mikrofontilgang er slått av for Nibomo. Aktiver den i Innstillinger > Personvern og sikkerhet > Mikrofon.";

@@ -85,6 +85,7 @@
 "ai.availability.dictation.official" = "Tehisintellekti dikteerimine pole ametlikus serveris ajutiselt saadaval. Proovi hiljem uuesti.";
 "ai.availability.dictation.custom" = "Tehisintellekti dikteerimine pole selles serveris saadaval. Võta ühendust serveri haldajaga.";
 "ai.run.error.activeRunInProgress" = "Vastus on juba koostamisel. Enne uue sõnumi saatmist oota selle valmimist või peata see.";
+"ai.chatNotCurrent.notice" = "See vestlus asendati uuemaga. Sinu sõnum on endiselt tekstiväljas – saada see uuesti.";
 "ai.dictation.error.microphoneUnavailable" = "Mikrofon pole selles seadmes saadaval.";
 "ai.dictation.error.microphoneDenied" = "Mikrofoni juurdepääsu ei antud.";
 "ai.dictation.error.microphoneBlocked" = "Nibomo mikrofoni juurdepääs on välja lülitatud. Luba see asukohas Seaded > Privaatsus ja turvalisus > Mikrofon.";

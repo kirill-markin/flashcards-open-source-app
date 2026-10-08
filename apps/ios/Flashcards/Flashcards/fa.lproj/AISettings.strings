@@ -85,6 +85,7 @@
 "ai.availability.dictation.official" = "دیکتهٔ هوش مصنوعی موقتاً در سرور رسمی در دسترس نیست. بعداً دوباره امتحان کنید.";
 "ai.availability.dictation.custom" = "دیکتهٔ هوش مصنوعی در این سرور در دسترس نیست. با مدیر سرور تماس بگیرید.";
 "ai.run.error.activeRunInProgress" = "یک پاسخ در حال تولید است. پیش از ارسال پیام دیگر، منتظر پایان آن بمانید یا آن را متوقف کنید.";
+"ai.chatNotCurrent.notice" = "این گفتگو با گفتگوی جدیدتری جایگزین شد. پیام شما هنوز در کادر متن است — دوباره آن را ارسال کنید.";
 "ai.dictation.error.microphoneUnavailable" = "میکروفون در این دستگاه در دسترس نیست.";
 "ai.dictation.error.microphoneDenied" = "دسترسی به میکروفون داده نشد.";
 "ai.dictation.error.microphoneBlocked" = "دسترسی Nibomo به میکروفون غیرفعال است. آن را در تنظیمات > حریم خصوصی و امنیت > میکروفون فعال کنید.";
