@@ -75,6 +75,9 @@ export function ChatHistoryList(props: {
   // Hidden via display:none, Firefox drops the scroller's offset, so the list restores its own.
   const listRef = useRef<HTMLDivElement>(null);
   const savedScrollTopRef = useRef(0);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  // The row whose reader is open; hiding the list drops focus, so Back returns it there.
+  const openedSessionIdRef = useRef<string | null>(null);
 
   // Only a new first-page request sets "loading"; its result set must not inherit the old offset.
   useLayoutEffect(() => {
@@ -84,13 +87,27 @@ export function ChatHistoryList(props: {
   }, [listState.status]);
 
   useLayoutEffect(() => {
-    if (hidden === false && listRef.current !== null) {
-      listRef.current.scrollTop = savedScrollTopRef.current;
+    if (hidden || listRef.current === null) {
+      return;
     }
+    listRef.current.scrollTop = savedScrollTopRef.current;
+    const openedSessionId = openedSessionIdRef.current;
+    if (openedSessionId === null) {
+      return;
+    }
+    openedSessionIdRef.current = null;
+    const openButton = listRef.current.querySelector<HTMLButtonElement>(
+      `[data-chat-session-id="${CSS.escape(openedSessionId)}"] .chat-history-item-main`,
+    );
+    (openButton ?? searchInputRef.current)?.focus();
   }, [hidden]);
 
-  function renderSessions(sessions: ReadonlyArray<ChatSessionHistorySummary>): React.JSX.Element {
-    if (sessions.length === 0) {
+  function renderSessions(
+    sessions: ReadonlyArray<ChatSessionHistorySummary>,
+    nextCursor: string | null,
+  ): React.JSX.Element {
+    // Archiving every loaded row empties the list while older pages remain behind Load more.
+    if (sessions.length === 0 && nextCursor === null) {
       return (
         <p className="chat-history-empty" data-testid="chat-history-empty">
           {isSearchActive
@@ -154,7 +171,10 @@ export function ChatHistoryList(props: {
                   <button
                     type="button"
                     className="chat-history-item-main"
-                    onClick={() => onOpen(summary)}
+                    onClick={() => {
+                      openedSessionIdRef.current = summary.sessionId;
+                      onOpen(summary);
+                    }}
                     disabled={rowAction === "archiving"}
                     data-testid="chat-history-open"
                   >
@@ -242,7 +262,7 @@ export function ChatHistoryList(props: {
             </div>
           );
         })}
-        {listState.status === "loaded" && listState.nextCursor !== null ? (
+        {nextCursor !== null ? (
           <div className="chat-history-load-more">
             {loadMoreState === "failed" ? (
               <p className="chat-history-item-error" role="alert">{t("chatPanel.history.loadError")}</p>
@@ -286,6 +306,7 @@ export function ChatHistoryList(props: {
       </div>
       <div className="chat-history-search">
         <input
+          ref={searchInputRef}
           type="search"
           value={searchQuery}
           maxLength={MAX_SEARCH_LENGTH}
@@ -318,7 +339,7 @@ export function ChatHistoryList(props: {
             testId="chat-history-load-error"
           />
         ) : null}
-        {listState.status === "loaded" ? renderSessions(listState.sessions) : null}
+        {listState.status === "loaded" ? renderSessions(listState.sessions, listState.nextCursor) : null}
       </div>
     </div>
   );
