@@ -13,6 +13,7 @@ export type BackendService =
   | "country-retention"
   | "daily-visitor-hash-salt-expiry"
   | "synthetic-actor-detector"
+  | "probable-android-burst-refresh"
   | "generated-media-promotion"
   | "multipart-completion-reconciliation"
   | "migration";
