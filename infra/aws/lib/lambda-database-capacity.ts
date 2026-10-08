@@ -12,8 +12,8 @@
 //   (max 4) per environment that opens them. MCP sql_execute and submit_review reach the analytics
 //   writer after the main transaction commits; releasing that client does not close its connection.
 // - WebGuestReaperHandler, CommunityLeaderboardSnapshotHandler, StreakLeaderboardSnapshotHandler,
-//   ProgressActiveDaysBackfillHandler, MultipartCompletionReconciliationHandler and
-//   GeneratedMediaPromotionHandler use the main pool without reserved concurrency. Schedules are
+//   ProgressActiveDaysBackfillHandler, ProbableAndroidBurstRefreshHandler,
+//   MultipartCompletionReconciliationHandler and GeneratedMediaPromotionHandler use the main pool without reserved concurrency. Schedules are
 //   not serialization: the two media jobs run every minute with two-minute timeouts, and retries
 //   or additional invocations can overlap. The reaper and active-days backfill also use reporting.
 // - CatalogDumpHandler has reservation 1 but its main pool is outside this sum.

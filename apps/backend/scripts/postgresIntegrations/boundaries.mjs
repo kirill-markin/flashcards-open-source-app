@@ -71,6 +71,13 @@ export const createdRolesByMigration = new Map([
 ]);
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
+    migrationFileName: "0171_probable_android_burst_actors.sql",
+    expectedMigrationCount: 173,
+    testFiles: Object.freeze([
+      "src/productAnalytics/androidBurstReporting.postgres.integration.ts",
+    ]),
+  }),
+  Object.freeze({
     migrationFileName: "0167_stripe_email_deliveries.sql",
     expectedMigrationCount: 169,
     testFiles: Object.freeze([
@@ -81,7 +88,6 @@ export const boundaryDefinitions = Object.freeze([
       "src/routes/system/account/accountPreferences.postgres.integration.ts",
       "src/cards/managedMedia/managedImageSnapshotMerge.postgres.integration.ts",
       "src/productAnalytics/serverFacts/authoringUpdates.postgres.integration.ts",
-      "src/productAnalytics/androidBurstReporting.postgres.integration.ts",
     ]),
   }),
   Object.freeze({

@@ -1,6 +1,5 @@
 import {
   runAdminQuery,
-  type AdminQueryResponse,
   type AdminQueryResultSet,
   type ReviewEventsByDateUser,
 } from "../adminApi";
@@ -26,9 +25,6 @@ import { escapeSqlStringLiteral } from "../sql";
 import type { AnalyticsDateRange } from "./analyticsFilters";
 
 const optionsReportLabel = "Analytics filter options";
-// Each statement recomputes the live actor exclusions. Bound serial work per gateway request
-// without adding concurrent reporting connections or weakening those exclusions.
-const optionStatementsPerRequest = 3;
 
 /**
  * The filter options of one date range, deliberately independent of the current selection.
@@ -374,19 +370,6 @@ function requireResultSet(
   return resultSet;
 }
 
-async function loadAnalyticsFilterOptionBatch(
-  config: AdminAppConfig,
-  optionListSql: ReadonlyArray<string>,
-  startIndex: number,
-): Promise<AdminQueryResponse> {
-  const response = await runAdminQuery(config, optionListSql.join(";\n"));
-  if (response.resultSets.length !== optionListSql.length) {
-    throw new Error(`${optionsReportLabel} batch starting at option ${startIndex + 1} must return exactly ${optionListSql.length} result sets. Got ${response.resultSets.length}.`);
-  }
-
-  return response;
-}
-
 export async function loadAnalyticsFilterOptions(
   config: AdminAppConfig,
   dateRange: AnalyticsDateRange,
@@ -409,21 +392,11 @@ export async function loadAnalyticsFilterOptions(
     // absence of a reported browser language on both sides rather than a bucket name on one.
     buildAnalyticsFilterOptionCatalogClickSql("NULLIF(clicked.device_locale, '')"),
   ];
-  const response = await loadAnalyticsFilterOptionBatch(
-    config,
-    optionListSql.slice(0, optionStatementsPerRequest),
-    0,
-  );
-  const resultSets: Array<AdminQueryResultSet> = [...response.resultSets];
-  // Batches have separate read-only snapshots; publish the options only when every batch succeeds.
-  for (let startIndex = optionStatementsPerRequest; startIndex < optionListSql.length; startIndex += optionStatementsPerRequest) {
-    const batch = await loadAnalyticsFilterOptionBatch(
-      config,
-      optionListSql.slice(startIndex, startIndex + optionStatementsPerRequest),
-      startIndex,
-    );
-    resultSets.push(...batch.resultSets);
+  const response = await runAdminQuery(config, optionListSql.join(";\n"));
+  if (response.resultSets.length !== optionListSql.length) {
+    throw new Error(`${optionsReportLabel} must return exactly ${optionListSql.length} result sets. Got ${response.resultSets.length}.`);
   }
+  const resultSets = response.resultSets;
 
   return {
     generatedAtUtc: response.executedAtUtc,
