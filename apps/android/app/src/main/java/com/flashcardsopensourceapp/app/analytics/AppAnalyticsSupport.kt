@@ -351,7 +351,8 @@ internal fun analyticsSurfaceForRoute(route: String?): AnalyticsSurface? {
         normalizedRoute == ReviewDestination.route ||
             normalizedRoute.startsWith(prefix = "${ReviewDestination.route}/") -> AnalyticsSurface.REVIEW
         normalizedRoute == CardsDestination.route -> AnalyticsSurface.CARDS
-        normalizedRoute == AiDestination.route -> AnalyticsSurface.AI
+        normalizedRoute == AiDestination.route ||
+            normalizedRoute.startsWith(prefix = "${AiDestination.route}/") -> AnalyticsSurface.AI
         normalizedRoute == ProgressDestination.route -> AnalyticsSurface.PROGRESS
         else -> null
     }
