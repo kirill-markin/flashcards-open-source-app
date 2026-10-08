@@ -8,7 +8,7 @@ type ReviewCardTagsProps = Readonly<{
 
 export function ReviewCardTags(props: ReviewCardTagsProps): ReactElement {
   const { tags } = props;
-  const { openReview } = useAppData();
+  const { selectReviewFilter } = useAppData();
   const { t } = useI18n();
 
   if (tags.length === 0) {
@@ -23,8 +23,18 @@ export function ReviewCardTags(props: ReviewCardTagsProps): ReactElement {
           key={tag}
           type="button"
           aria-label={`${t("deckDetail.actions.openReview")}: ${tag}`}
-          onClick={() => openReview({ kind: "tags", tags: [tag] })}
-          onKeyDown={(event) => event.stopPropagation()}
+          // A pointer click (detail > 0) releases focus so Space and 1-4 reach the review shortcuts again.
+          onClick={(event) => {
+            if (event.detail > 0) {
+              event.currentTarget.blur();
+            }
+            selectReviewFilter({ kind: "tags", tags: [tag] });
+          }}
+          onKeyDown={(event) => {
+            if (event.key === " " || event.key === "Enter") {
+              event.stopPropagation();
+            }
+          }}
         >
           {tag}
         </button>
