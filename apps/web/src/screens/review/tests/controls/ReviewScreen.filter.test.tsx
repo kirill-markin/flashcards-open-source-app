@@ -61,6 +61,33 @@ function getReviewFilterMenu(): HTMLDivElement {
 }
 
 describe("ReviewScreen filter controls", () => {
+  it("opens the selected tag review from a card chip", async () => {
+    const state = getState();
+    const card = createCard({
+      cardId: "card-with-tags",
+      frontText: "Question",
+      backText: "Answer",
+      tags: ["history", "germany"],
+    });
+    state.cards = [card];
+    state.reviewQueue = [card];
+    state.reviewTimeline = [card];
+
+    await renderReviewScreen();
+
+    const tagButton = getContainer().querySelector(".review-pane-head-meta [aria-label='Open review: germany']");
+    if (!(tagButton instanceof HTMLButtonElement)) {
+      throw new Error("Review tag button was not found");
+    }
+
+    await keydownElementAsync(tagButton, " ");
+    expect(getContainer().querySelector("[data-testid='review-reveal-answer']")).not.toBeNull();
+
+    await clickElementAsync(tagButton);
+
+    expect(state.appData.openReview).toHaveBeenCalledWith({ kind: "tags", tags: ["germany"] });
+  });
+
   it("renders compact review header controls with scope before streak", async () => {
     const state = getState();
     const card = createCard({

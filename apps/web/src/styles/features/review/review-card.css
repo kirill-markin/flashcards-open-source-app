@@ -61,6 +61,21 @@
   overflow-wrap: anywhere;
 }
 
+.review-tag-button {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.review-tag-button:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.review-tag-button:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+
 .review-metadata-chip .review-progress-badge-icon {
   width: 15px;
   height: 15px;

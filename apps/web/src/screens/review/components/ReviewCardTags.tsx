@@ -1,4 +1,5 @@
 import type { ReactElement } from "react";
+import { useAppData } from "../../../appData";
 import { useI18n } from "../../../i18n";
 
 type ReviewCardTagsProps = Readonly<{
@@ -7,6 +8,7 @@ type ReviewCardTagsProps = Readonly<{
 
 export function ReviewCardTags(props: ReviewCardTagsProps): ReactElement {
   const { tags } = props;
+  const { openReview } = useAppData();
   const { t } = useI18n();
 
   if (tags.length === 0) {
@@ -16,7 +18,16 @@ export function ReviewCardTags(props: ReviewCardTagsProps): ReactElement {
   return (
     <>
       {tags.map((tag) => (
-        <span className="badge review-metadata-chip" key={tag}>{tag}</span>
+        <button
+          className="badge review-metadata-chip review-tag-button"
+          key={tag}
+          type="button"
+          aria-label={`${t("deckDetail.actions.openReview")}: ${tag}`}
+          onClick={() => openReview({ kind: "tags", tags: [tag] })}
+          onKeyDown={(event) => event.stopPropagation()}
+        >
+          {tag}
+        </button>
       ))}
     </>
   );
