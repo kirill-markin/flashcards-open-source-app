@@ -56,6 +56,54 @@ private func aiChatHistoryAppendingNewSessions(
     return sessions + nextSessions.filter { session in knownSessionIds.contains(session.sessionId) == false }
 }
 
+/// Reports an unexpected history failure; cancellations, offline transport failures, 404s, and an archive blocked by a running response are expected.
+@MainActor
+func captureAIChatHistoryFailure(
+    error: Error,
+    flashcardsStore: FlashcardsStore,
+    action: String,
+    sessionId: String?
+) {
+    if isRequestCancellationError(error: error)
+        || isSilentlyIgnorableNetworkTransportFailure(error: error)
+        || isAIChatSessionUnavailableError(error: error)
+        || isAIChatSessionArchiveActiveRunError(error: error) {
+        return
+    }
+
+    let diagnostics = (error as? any AIChatFailureDiagnosticProviding)?.diagnostics
+    let backendCode: String?
+    if case .invalidResponse(let errorDetails, _, _)? = error as? AIChatServiceError {
+        backendCode = errorDetails.code
+    } else {
+        backendCode = nil
+    }
+    FlashcardsObservability.captureSilentFailure(
+        error: error,
+        scope: IOSObservationScope(
+            feature: .aiChat,
+            userId: nil,
+            workspaceId: flashcardsStore.workspace?.workspaceId,
+            requestId: diagnostics?.backendRequestId,
+            clientRequestId: diagnostics?.clientRequestId,
+            sessionId: sessionId,
+            runId: nil,
+            cloudState: flashcardsStore.cloudSettings?.cloudState,
+            configurationMode: nil
+        ),
+        action: action,
+        stage: diagnostics?.stage.rawValue,
+        statusCode: diagnostics?.statusCode,
+        backendCode: backendCode,
+        requestId: diagnostics?.backendRequestId
+    )
+}
+
+/// Keeps the request id and stage from the error under the localized row message, so the user can quote them.
+private func aiChatHistoryRowErrorMessage(localizedMessage: String, error: Error) -> String {
+    "\(localizedMessage)\n\(errorMessage(error: error))"
+}
+
 /// Server-side chat history for the AI tab's workspace; nothing here is persisted on the device.
 @MainActor
 @Observable
@@ -145,6 +193,12 @@ final class AIChatHistoryListModel {
                 guard generation == self.listGeneration, isRequestCancellationError(error: error) == false else {
                     return
                 }
+                captureAIChatHistoryFailure(
+                    error: error,
+                    flashcardsStore: self.chatStore.flashcardsStore,
+                    action: "chat_history_list",
+                    sessionId: nil
+                )
                 self.loadMorePhase = .failed(message: errorMessage(error: error))
             }
         }
@@ -183,9 +237,18 @@ final class AIChatHistoryListModel {
                 self.removeUnavailableSession(sessionId: sessionId)
             } else {
                 self.replaceSession(summary: summary)
-                self.rowErrors[sessionId] = aiSettingsLocalized(
-                    "ai.history.renameError",
-                    "Couldn't rename this chat. Try again."
+                captureAIChatHistoryFailure(
+                    error: error,
+                    flashcardsStore: self.chatStore.flashcardsStore,
+                    action: "chat_history_rename",
+                    sessionId: sessionId
+                )
+                self.rowErrors[sessionId] = aiChatHistoryRowErrorMessage(
+                    localizedMessage: aiSettingsLocalized(
+                        "ai.history.renameError",
+                        "Couldn't rename this chat. Try again."
+                    ),
+                    error: error
                 )
             }
         }
@@ -203,12 +266,24 @@ final class AIChatHistoryListModel {
         } catch {
             if isAIChatSessionUnavailableError(error: error) == false {
                 self.rowActions[sessionId] = nil
+                captureAIChatHistoryFailure(
+                    error: error,
+                    flashcardsStore: self.chatStore.flashcardsStore,
+                    action: "chat_history_archive",
+                    sessionId: sessionId
+                )
                 self.rowErrors[sessionId] = isAIChatSessionArchiveActiveRunError(error: error)
                     ? aiSettingsLocalized(
                         "ai.history.archiveActiveRunError",
                         "Stop the current response before archiving this chat."
                     )
-                    : aiSettingsLocalized("ai.history.archiveError", "Couldn't archive this chat. Try again.")
+                    : aiChatHistoryRowErrorMessage(
+                        localizedMessage: aiSettingsLocalized(
+                            "ai.history.archiveError",
+                            "Couldn't archive this chat. Try again."
+                        ),
+                        error: error
+                    )
                 return false
             }
         }
@@ -253,6 +328,12 @@ final class AIChatHistoryListModel {
                 guard generation == self.listGeneration, isRequestCancellationError(error: error) == false else {
                     return
                 }
+                captureAIChatHistoryFailure(
+                    error: error,
+                    flashcardsStore: self.chatStore.flashcardsStore,
+                    action: "chat_history_list",
+                    sessionId: nil
+                )
                 self.phase = .failed(message: errorMessage(error: error))
             }
         }
