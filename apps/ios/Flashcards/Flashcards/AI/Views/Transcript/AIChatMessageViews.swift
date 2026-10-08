@@ -119,7 +119,22 @@ private struct AIChatExpandableDisclosureGroup<Label: View, Content: View>: View
     }
 }
 
-extension AIChatView {
+/// Renders one transcript message; the live chat and the read-only history reader share it.
+struct AIChatMessageRow: View {
+    let message: AIChatMessage
+    let repairStatus: AIChatRepairAttemptStatus?
+    let showsTypingIndicator: Bool
+    let onExpandContent: () -> Void
+    let onOpenAccountStatus: () -> Void
+
+    var body: some View {
+        self.messageRow(
+            message: self.message,
+            repairStatus: self.repairStatus,
+            showsTypingIndicator: self.showsTypingIndicator
+        )
+    }
+
     @ViewBuilder
     func messageRow(
         message: AIChatMessage,
@@ -233,7 +248,7 @@ extension AIChatView {
         case .card(let card):
             AIChatExpandableDisclosureGroup(
                 onExpand: {
-                    self.detachAutoFollowForExpandedContent()
+                    self.onExpandContent()
                 }
             ) {
                 VStack(alignment: .leading, spacing: 8) {
@@ -274,7 +289,7 @@ extension AIChatView {
             VStack(alignment: .leading, spacing: 0) {
                 AIChatExpandableDisclosureGroup(
                     onExpand: {
-                        self.detachAutoFollowForExpandedContent()
+                        self.onExpandContent()
                     }
                 ) {
                     VStack(alignment: .leading, spacing: 12) {
@@ -337,7 +352,7 @@ extension AIChatView {
         case .reasoningSummary(let reasoningSummary):
             AIChatExpandableDisclosureGroup(
                 onExpand: {
-                    self.detachAutoFollowForExpandedContent()
+                    self.onExpandContent()
                 }
             ) {
                 AIChatLongTextView(
@@ -380,7 +395,7 @@ extension AIChatView {
             VStack(alignment: .leading, spacing: 12) {
                 Text(message)
                 Button(buttonTitle) {
-                    self.navigation.openSettings(destination: .accountStatus)
+                    self.onOpenAccountStatus()
                 }
                 .nativeProminentActionButtonStyle()
             }

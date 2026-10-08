@@ -175,6 +175,76 @@ extension LiveSmokeTestCase {
         }
     }
 
+    /// Runs after New, so the chat created before the reset is the newest history row and the empty
+    /// current chat is not listed.
+    @MainActor
+    func openPreviousAiChatFromHistoryAndAssertReadOnly() throws {
+        try self.tapButton(
+            identifier: LiveSmokeIdentifier.aiHistoryButton,
+            timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+        )
+        try self.assertElementExists(
+            identifier: LiveSmokeIdentifier.aiHistoryList,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        )
+        try self.tapButton(
+            identifier: LiveSmokeIdentifier.aiHistorySessionRow,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        )
+        try self.assertElementExists(
+            identifier: LiveSmokeIdentifier.aiHistoryReader,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        )
+        try self.assertAiHistoryReaderUserMessageVisible(
+            text: aiResetPromptText,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        )
+        try self.assertElementDoesNotExist(
+            identifier: LiveSmokeIdentifier.aiComposerTextField,
+            timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+        )
+
+        try self.tapFirstNavigationBackButton()
+        try self.assertElementExists(
+            identifier: LiveSmokeIdentifier.aiHistoryList,
+            timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+        )
+        try self.tapFirstNavigationBackButton()
+        try self.assertElementExists(
+            identifier: LiveSmokeIdentifier.aiComposerTextField,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        )
+    }
+
+    @MainActor
+    func assertAiHistoryReaderUserMessageVisible(text: String, timeout: TimeInterval) throws {
+        try self.runWithInlineRawScreenStateOnFailure(action: "assert_ai_history_reader_user_message") {
+            let element = self.app.descendants(matching: .any)
+                .matching(
+                    NSPredicate(
+                        format: "identifier == %@ AND label CONTAINS %@",
+                        LiveSmokeIdentifier.aiMessageRow,
+                        text
+                    )
+                )
+                .firstMatch
+            if self.waitForOptionalElement(
+                element,
+                identifier: LiveSmokeIdentifier.aiMessageRow,
+                timeout: timeout
+            ) {
+                return
+            }
+
+            throw LiveSmokeFailure.unexpectedAiConversationState(
+                message: "Expected the chat history reader to show the user message '\(text)' within "
+                    + "\(formatDuration(seconds: timeout)).",
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+    }
+
     // Both waits after 'New chat' can fail for very different reasons, and the composer wait fails
     // first whenever bootstrap failed, because the composer accessory is not rendered in that phase.
     // Route both through the same diagnosis so either failure reports the observed state.
