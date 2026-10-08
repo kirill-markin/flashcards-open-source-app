@@ -14,6 +14,7 @@ import {
 } from "../../server/requestContext";
 import { createChatLiveStreamEnvelope } from "../live/auth";
 import {
+  archiveChatSession,
   getRecoveredChatSessionSnapshot,
   getRecoveredPaginatedSession,
   interruptPreparedChatRun,
@@ -26,6 +27,8 @@ import {
   createFreshChatSession,
   getChatSessionId,
   listChatMessagesLatest,
+  listChatSessionHistory,
+  renameChatSession,
   rolloverToFreshChatSession,
 } from "../store";
 import { invokeChatWorkerOrPersistFailure } from "../worker/invoke";
@@ -48,6 +51,9 @@ export type ChatRoutesOptions = Readonly<{
   createChatLiveStreamEnvelopeFn?: typeof createChatLiveStreamEnvelope;
   resolveLiveCursorFn?: typeof resolveLiveCursor;
   listChatMessagesLatestFn?: typeof listChatMessagesLatest;
+  listChatSessionHistoryFn?: typeof listChatSessionHistory;
+  renameChatSessionFn?: typeof renameChatSession;
+  archiveChatSessionFn?: typeof archiveChatSession;
   resolveAccessibleChatWorkspaceIdFn?: typeof resolveAccessibleChatWorkspaceId;
   resolveAiUsageAllowanceForEnforcementFn?: typeof resolveAiUsageAllowanceForEnforcement;
   assertAiUsageAllowanceNotReachedFn?: typeof assertAiUsageAllowanceNotReached;
@@ -71,6 +77,9 @@ export type ChatRouteDependencies = Readonly<{
   createChatLiveStreamEnvelopeFn: typeof createChatLiveStreamEnvelope;
   resolveLiveCursorFn: typeof resolveLiveCursor;
   listChatMessagesLatestFn: typeof listChatMessagesLatest;
+  listChatSessionHistoryFn: typeof listChatSessionHistory;
+  renameChatSessionFn: typeof renameChatSession;
+  archiveChatSessionFn: typeof archiveChatSession;
   resolveAccessibleChatWorkspaceIdFn: typeof resolveAccessibleChatWorkspaceId;
   // Two halves rather than one call: the allowance is resolved before the run transaction opens, and only
   // the refusal runs inside it. See `prepareChatRun`.
@@ -144,6 +153,9 @@ export function createChatRouteDependencies(options: ChatRoutesOptions): ChatRou
     createChatLiveStreamEnvelopeFn: options.createChatLiveStreamEnvelopeFn ?? createChatLiveStreamEnvelope,
     resolveLiveCursorFn: options.resolveLiveCursorFn ?? resolveLiveCursor,
     listChatMessagesLatestFn: options.listChatMessagesLatestFn ?? listChatMessagesLatest,
+    listChatSessionHistoryFn: options.listChatSessionHistoryFn ?? listChatSessionHistory,
+    renameChatSessionFn: options.renameChatSessionFn ?? renameChatSession,
+    archiveChatSessionFn: options.archiveChatSessionFn ?? archiveChatSession,
     resolveAccessibleChatWorkspaceIdFn,
     resolveAiUsageAllowanceForEnforcementFn: options.resolveAiUsageAllowanceForEnforcementFn
       ?? resolveAiUsageAllowanceForEnforcement,
