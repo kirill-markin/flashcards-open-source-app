@@ -53,7 +53,7 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
             val authGraphBackStackEntry = settingsAccountAuthBackStackEntry(
                 navController = navController,
                 currentBackStackEntry = backStackEntry
-            )
+            ) ?: return@composable
             val signInViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.cloud.CloudSignInViewModel>(
                 viewModelStoreOwner = authGraphBackStackEntry,
                 factory = createCloudSignInViewModelFactory(
@@ -113,7 +113,7 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
             val authGraphBackStackEntry = settingsAccountAuthBackStackEntry(
                 navController = navController,
                 currentBackStackEntry = backStackEntry
-            )
+            ) ?: return@composable
             val signInViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.cloud.CloudSignInViewModel>(
                 viewModelStoreOwner = authGraphBackStackEntry,
                 factory = createCloudSignInViewModelFactory(
@@ -164,7 +164,7 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
             val authGraphBackStackEntry = settingsAccountAuthBackStackEntry(
                 navController = navController,
                 currentBackStackEntry = backStackEntry
-            )
+            ) ?: return@composable
             val signInViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.cloud.CloudSignInViewModel>(
                 viewModelStoreOwner = authGraphBackStackEntry,
                 factory = createCloudSignInViewModelFactory(
@@ -269,7 +269,7 @@ private fun signInOriginSurface(authGraphBackStackEntry: NavBackStackEntry): Ana
 private fun settingsAccountAuthBackStackEntry(
     navController: NavHostController,
     currentBackStackEntry: NavBackStackEntry
-): NavBackStackEntry {
+): NavBackStackEntry? {
     return rememberRouteBackStackEntry(
         navController = navController,
         currentBackStackEntry = currentBackStackEntry,
