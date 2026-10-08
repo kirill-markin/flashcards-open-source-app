@@ -65,6 +65,7 @@
 "ai.availability.dictation.official" = "સત્તાવાર સર્વર પર AI દ્વારા બોલીને લખવાનું અસ્થાયી રૂપે ઉપલબ્ધ નથી. પછી ફરી પ્રયાસ કરો.";
 "ai.availability.dictation.custom" = "આ સર્વર પર AI દ્વારા બોલીને લખવાનું ઉપલબ્ધ નથી. સર્વરના સંચાલકનો સંપર્ક કરો.";
 "ai.run.error.activeRunInProgress" = "જવાબ પહેલેથી તૈયાર થઈ રહ્યો છે. બીજો સંદેશ મોકલતાં પહેલાં તે પૂરો થાય ત્યાં સુધી રાહ જુઓ અથવા તેને રોકો.";
+"ai.chatNotCurrent.notice" = "આ ચેટને નવી ચેટથી બદલવામાં આવી છે. તમારો સંદેશ હજી પણ લખવાના બોક્સમાં છે — તેને ફરી મોકલો.";
 "ai.dictation.error.microphoneUnavailable" = "આ ઉપકરણ પર માઇક્રોફોન ઉપલબ્ધ નથી.";
 "ai.dictation.error.microphoneDenied" = "માઇક્રોફોનની ઍક્સેસની મંજૂરી મળી નહીં.";
 "ai.dictation.error.microphoneBlocked" = "Nibomo માટે માઇક્રોફોનની ઍક્સેસ બંધ છે. સેટિંગ્સ > ગોપનીયતા અને સુરક્ષા > માઇક્રોફોનમાં ચાલુ કરો.";

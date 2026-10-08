@@ -65,6 +65,7 @@
 "ai.availability.dictation.official" = "La dictée IA est temporairement indisponible sur le serveur officiel. Réessayez plus tard.";
 "ai.availability.dictation.custom" = "La dictée IA est indisponible sur ce serveur. Contactez l’opérateur du serveur.";
 "ai.run.error.activeRunInProgress" = "Une réponse est déjà en cours. Attendez qu’elle se termine ou arrêtez-la avant d’envoyer un autre message.";
+"ai.chatNotCurrent.notice" = "Cette discussion a été remplacée par une plus récente. Votre message est toujours dans la zone de saisie — envoyez-le à nouveau.";
 "ai.dictation.error.microphoneUnavailable" = "Le microphone n’est pas disponible sur cet appareil.";
 "ai.dictation.error.microphoneDenied" = "L’accès au microphone n’a pas été autorisé.";
 "ai.dictation.error.microphoneBlocked" = "L’accès au microphone est désactivé pour Nibomo. Activez-le dans Réglages > Confidentialité et sécurité > Microphone.";
