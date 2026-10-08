@@ -13,6 +13,10 @@ let aiChatGuestQuotaButtonTitle: String = "Create account or Log in"
 let aiChatMaximumAttachmentBytes: Int = 3 * 1024 * 1024
 let aiChatMaximumStartRunRequestBytes: Int = 5 * 1024 * 1024
 let aiChatLocalSessionStalenessThreshold: TimeInterval = 6 * 60 * 60
+let aiChatSessionHistoryPageLimit: Int = 20
+/// Server limits for the history search `q` and for a chat title, both counted in code points after trimming.
+let aiChatSessionHistorySearchMaximumLength: Int = 200
+let aiChatSessionTitleMaximumLength: Int = 200
 let aiChatSupportedFileExtensions: Set<String> = [
     "pdf",
     "txt",

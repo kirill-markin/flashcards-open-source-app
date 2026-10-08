@@ -392,7 +392,7 @@ struct RootTabView: View {
         return TabView(selection: selectedTabBinding) {
             self.reviewTab
             self.progressTab
-            self.aiTab
+            self.aiTab(aiPath: $navigation.aiPath)
             self.cardsTab
             self.settingsTab(settingsPath: $navigation.settingsPath)
         }
@@ -621,10 +621,13 @@ struct RootTabView: View {
         .tag(AppTab.progress)
     }
 
-    private var aiTab: some View {
-        NavigationStack {
+    private func aiTab(aiPath: Binding<NavigationPath>) -> some View {
+        NavigationStack(path: aiPath) {
             AIChatView(chatStore: store.aiChatStore)
                 .id(self.navigation.aiTabVisitID)
+                .navigationDestination(for: AIChatHistoryListRoute.self) { _ in
+                    AIChatHistoryView(chatStore: store.aiChatStore)
+                }
         }
         .tabItem {
             Label(
