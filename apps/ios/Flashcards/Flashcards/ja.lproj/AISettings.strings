@@ -65,6 +65,7 @@
 "ai.availability.dictation.official" = "公式サーバーでは AI ディクテーションが一時的に利用できなくなります。後でもう一度試してください。";
 "ai.availability.dictation.custom" = "このサーバーでは AI ディクテーションは利用できません。サーバー オペレーターにお問い合わせください。";
 "ai.run.error.activeRunInProgress" = "すでに対応中です。完了するまで待つか、別のメッセージを送信する前に停止してください。";
+"ai.chatNotCurrent.notice" = "このチャットは新しいチャットに置き換えられました。メッセージは入力欄に残っています。もう一度送信してください。";
 "ai.dictation.error.microphoneUnavailable" = "このデバイスではマイクを使用できません。";
 "ai.dictation.error.microphoneDenied" = "マイクへのアクセスが許可されませんでした。";
 "ai.dictation.error.microphoneBlocked" = "Nibomo ではマイク アクセスが無効になっています。 [設定] > [プライバシーとセキュリティ] > [マイク] で有効にします。";

@@ -22,7 +22,7 @@ private struct GuestSignInAfterReviewPromptRecheckTaskID: Hashable {
 struct RootTabView: View {
     @Environment(\.requestReview) private var requestReview
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.layoutDirection) private var layoutDirection
     @Environment(\.scenePhase) private var scenePhase
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
@@ -445,31 +445,53 @@ struct RootTabView: View {
             .accessibilityIdentifier(identifier)
     }
 
-    private func aiCompanionPane(hostTab: AppTab, isInspector: Bool = false) -> some View {
-        AIChatView(chatStore: store.aiChatStore, isCompanion: true, isCompanionPresentationActive: isInspector != self.usesSideBySideAICompanion, companionHostTab: hostTab)
-            .ignoresSafeArea(self.isKeyboardDocked ? [] : .keyboard, edges: .bottom)
+    private func aiCompanionPane(hostTab: AppTab) -> some View {
+        AIChatView(chatStore: store.aiChatStore, isCompanion: true, companionHostTab: hostTab)
+            .ignoresSafeArea(UIDevice.current.userInterfaceIdiom == .pad || self.isKeyboardDocked || self.navigation.canPresentAICompanion == false ? [] : .keyboard, edges: .bottom)
             .background(Color(uiColor: .systemBackground))
             .presentationBackground(Color(uiColor: .systemBackground))
     }
 
-    private var usesSideBySideAICompanion: Bool {
-        self.horizontalSizeClass == .regular
-    }
-
-    // Native bars keep their outer bounds. Regular-width content reserves chat space.
+    // Paired Cards and Progress share one native bar in both tab placements.
+    // Their screen-owned drafts and presentations survive sidebar transitions.
     @ViewBuilder
     private func aiCompanionHost<Content: View>(for hostTab: AppTab, @ViewBuilder content: () -> Content) -> some View {
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            NavigationStack {
+                self.aiCompanionColumns(for: hostTab, content: content)
+                    .toolbarBackground(.bar, for: .navigationBar)
+                    .toolbarBackground(self.navigation.isAICompanionVisible && self.navigation.selectedTab == hostTab ? .visible : .automatic, for: .navigationBar)
+            }
+        } else {
+            NavigationStack {
+                self.aiCompanionColumns(for: hostTab, content: content)
+            }
+        }
+    }
+
+    // Native edge bars keep their outer bounds. Regular-width content reserves chat space.
+    @ViewBuilder
+    private func aiCompanionColumns<Content: View>(for hostTab: AppTab, @ViewBuilder content: () -> Content) -> some View {
         let hostContent = content()
-        let isVisible = self.usesSideBySideAICompanion && self.navigation.isAICompanionVisible
+        let isVisible = self.navigation.isAICompanionVisible
             && self.navigation.selectedTab == hostTab
-        let isLeading = UIDevice.current.userInterfaceIdiom == .pad
+        let isPad = UIDevice.current.userInterfaceIdiom == .pad
+        // Duo chat stays on the physical left; iPad retains logical leading.
+        let isLeading = isPad || self.layoutDirection == .leftToRight
         GeometryReader { geometry in
-            let width = min(400, max(320, geometry.size.width / 3))
+            let leftInset = self.layoutDirection == .leftToRight ? geometry.safeAreaInsets.leading : geometry.safeAreaInsets.trailing
+            let rightInset = self.layoutDirection == .leftToRight ? geometry.safeAreaInsets.trailing : geometry.safeAreaInsets.leading
+            // The content excludes native edge bars. Include their asymmetric
+            // insets when locating the full window's midpoint on inner landscape.
+            let width = isPad
+                ? geometry.size.width / 2
+                : max(0, min(geometry.size.width, (geometry.size.width + rightInset - leftInset) / 2))
             HStack(spacing: 0) {
                 Color.clear
                     .frame(width: isVisible && isLeading ? width : 0)
                     .accessibilityHidden(true)
                 hostContent
+                    .frame(width: isPad ? geometry.size.width - (isVisible ? width : 0) : nil)
                 Color.clear
                     .frame(width: isVisible && !isLeading ? width : 0)
                     .accessibilityHidden(true)
@@ -479,21 +501,31 @@ struct RootTabView: View {
                     self.aiCompanionPane(hostTab: hostTab)
                         .frame(width: width)
                         .overlay(alignment: isLeading ? .trailing : .leading) {
-                            HStack(spacing: 0) { Divider() }.frame(width: 1)
+                            if isPad == false {
+                                HStack(spacing: 0) { Divider() }.frame(width: 1)
+                            }
                         }
                         .transition(.move(edge: isLeading ? .leading : .trailing).combined(with: .opacity))
                 }
             }
             .animation(self.reduceMotion ? nil : .smooth(duration: 0.35), value: isVisible)
         }
+        // The paired columns share one keyboard boundary and one layout proposal.
+        .ignoresSafeArea(isPad && self.isKeyboardDocked == false ? .keyboard : [], edges: .all)
     }
 
     private var tabRootTasks: some View {
         self.tabRootPresentation
-        // A floating keyboard is an overlay, not a bottom inset. Keep SwiftUI's
-        // normal avoidance only when the native guide reports a docked keyboard.
-        .ignoresSafeArea(self.isKeyboardDocked ? [] : .keyboard, edges: .bottom)
+        .ignoresSafeArea(UIDevice.current.userInterfaceIdiom == .pad || self.isKeyboardDocked || self.navigation.canPresentAICompanion == false ? [] : .keyboard, edges: .bottom)
         .environment(\.isKeyboardDocked, self.isKeyboardDocked)
+        .background {
+            AICompanionAvailabilityObserver { isAvailable in
+                self.navigation.updateAICompanionAvailability(isAvailable)
+            }
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+        }
         .background {
             DockedKeyboardObserver(isDocked: self.$isKeyboardDocked)
                 .ignoresSafeArea()
@@ -672,42 +704,12 @@ struct RootTabView: View {
     }
 
     private var reviewTab: some View {
-        NavigationStack {
-            self.aiCompanionHost(for: .review) {
-                ReviewView()
-                    .overlay(alignment: .topLeading) {
-                        self.reviewReminderAttentionBadgeMarker
-                    }
-            }
-            .inspector(isPresented: self.aiCompanionInspectorPresentation(for: .review)) {
-                self.aiCompanionInspectorContent(for: .review)
-            }
-        }
-    }
-
-    private func aiCompanionInspectorPresentation(for hostTab: AppTab) -> Binding<Bool> {
-        // Read intent during view construction so cached inspectors observe host changes.
-        let shouldPresent = self.navigation.selectedTab == hostTab
-            && self.navigation.isAICompanionVisible
-            && self.usesSideBySideAICompanion == false
-        return Binding(
-            get: { shouldPresent },
-            set: { isPresented in
-                // Hidden tabs and outgoing compact presentations cannot dismiss the active pane.
-                guard self.navigation.selectedTab == hostTab,
-                      self.usesSideBySideAICompanion == false else { return }
-                withAnimation(self.reduceMotion ? nil : .smooth(duration: 0.35)) {
-                    self.navigation.isAICompanionPresented = isPresented
+        self.aiCompanionHost(for: .review) {
+            ReviewView()
+                .overlay(alignment: .topLeading) {
+                    self.reviewReminderAttentionBadgeMarker
                 }
-            }
-        )
-    }
-
-    private func aiCompanionInspectorContent(for hostTab: AppTab) -> some View {
-        // Cached native inspectors keep their content; the binding and active-host
-        // guard control visibility and ownership rather than returning an empty pane.
-        self.aiCompanionPane(hostTab: hostTab, isInspector: true)
-            .inspectorColumnWidth(min: 320, ideal: 400, max: 520)
+        }
     }
 
     @ViewBuilder
@@ -723,33 +725,32 @@ struct RootTabView: View {
     }
 
     private var progressTab: some View {
-        NavigationStack {
-            self.aiCompanionHost(for: .progress) {
-                ProgressScreen()
-            }
-            .inspector(isPresented: self.aiCompanionInspectorPresentation(for: .progress)) {
-                self.aiCompanionInspectorContent(for: .progress)
-            }
+        self.aiCompanionHost(for: .progress) {
+            ProgressScreen()
         }
     }
 
     private var aiTab: some View {
         NavigationStack {
             if self.navigation.selectedTab == .ai {
-                AIChatView(chatStore: store.aiChatStore)
+                if UIDevice.current.userInterfaceIdiom == .pad {
+                    // Match the paired columns: the fixed viewport owns keyboard avoidance
+                    // inside the native navigation stack, below its toolbar.
+                    GeometryReader { _ in
+                        AIChatView(chatStore: store.aiChatStore)
+                    }
+                    .ignoresSafeArea(self.isKeyboardDocked ? [] : .keyboard, edges: .all)
+                } else {
+                    AIChatView(chatStore: store.aiChatStore)
+                }
             }
         }
         .id(self.navigation.aiTabVisitID)
     }
 
     private var cardsTab: some View {
-        NavigationStack {
-            self.aiCompanionHost(for: .cards) {
-                CardsScreen()
-            }
-            .inspector(isPresented: self.aiCompanionInspectorPresentation(for: .cards)) {
-                self.aiCompanionInspectorContent(for: .cards)
-            }
+        self.aiCompanionHost(for: .cards) {
+            CardsScreen()
         }
     }
 

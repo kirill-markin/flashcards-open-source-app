@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct AIChatDictationStatusLane: View {
     let statusText: String
@@ -41,7 +42,7 @@ extension AIChatView {
 
         return ReadableContentLayout(
             maxWidth: flashcardsReadableContentMaxWidth,
-            horizontalPadding: 16
+            horizontalPadding: self.chatContentHorizontalPadding
         ) {
             VStack(alignment: .leading, spacing: 12) {
                 if self.chatStore.pendingAttachments.isEmpty == false {
@@ -162,6 +163,9 @@ extension AIChatView {
                     .disabled(self.composerTextFieldDisabled)
                     .autocorrectionDisabled(true)
                     .focused(self.$isComposerFocused)
+                    .onKeyPress(keys: [.return], phases: .down) { press in
+                        self.handleComposerReturnKey(press)
+                    }
                     .lineLimit(1...aiChatComposerMaximumLineCount)
                     .padding(.leading, 12)
                     .padding(.top, self.chatStore.dictationState == .idle ? 12 : aiChatComposerDictationTextFieldTopPadding)
@@ -220,7 +224,9 @@ extension AIChatView {
                 }
 
                 HStack {
-                    Spacer()
+                    if UIDevice.current.userInterfaceIdiom != .pad {
+                        Spacer()
+                    }
 
                     HStack(spacing: 8) {
                         if self.isComposerFocused {
@@ -279,10 +285,15 @@ extension AIChatView {
                             )
                         }
                     }
+
+                    if UIDevice.current.userInterfaceIdiom == .pad {
+                        // Leave the trailing edge clear for the system's compact input assistant.
+                        Spacer()
+                    }
                 }
             }
             .padding(.top, aiChatComposerTopPadding)
-            .padding(.bottom, 16)
+            .padding(.bottom, UIDevice.current.userInterfaceIdiom == .pad ? 8 : 16)
         }
     }
 
@@ -322,6 +333,47 @@ extension AIChatView {
         case .transcribing:
             return aiSettingsLocalized("ai.composer.dictation.transcribing", "Transcribing...")
         }
+    }
+
+    private func handleComposerReturnKey(_ press: KeyPress) -> KeyPress.Result {
+        // Hardware Return matches the desktop web composer; Shift–Return edits the selected text.
+        guard UIDevice.current.userInterfaceIdiom == .pad,
+              self.isComposerFocused, self.isPresentationActive, self.scenePhase == .active,
+              self.isCameraPresented == false, self.isFileImporterPresented == false,
+              self.isPhotoPickerPresented == false, self.chatStore.activeAlert == nil,
+              self.flashcardsStore.feedbackPresentation == nil,
+              self.flashcardsStore.presentedTechnicalError == nil,
+              self.flashcardsStore.activeCloudSignInSheetCount == 0,
+              self.flashcardsStore.isGuestSignInAfterReviewPromptPresented == false,
+              self.flashcardsStore.isReviewNotificationPrePromptPresented == false,
+              self.flashcardsStore.isReviewHardReminderPresented == false,
+              self.flashcardsStore.reviewSubmissionFailure == nil,
+              self.flashcardsStore.accountDeletionState == .hidden,
+              self.flashcardsStore.accountDeletionSuccessMessage == nil,
+              self.premiumPresenter.request == nil else {
+            return .ignored
+        }
+        if press.modifiers == .shift {
+            guard self.chatStore.canEditDraftText else { return .ignored }
+            var text = self.chatStore.inputText
+            let selected = aiChatDictationInsertionSelection(text: text, selection: self.composerSelection)
+            guard self.composerSelection == nil || selected != nil else { return .ignored }
+            let start = selected?.startUtf16Offset ?? text.utf16.count
+            let end = selected?.endUtf16Offset ?? start
+            let range = String.Index(utf16Offset: start, in: text)..<String.Index(utf16Offset: end, in: text)
+            text.replaceSubrange(range, with: "\n")
+            self.chatStore.inputText = text
+            self.composerSelection = aiChatTextSelection(
+                text: text,
+                selection: AIChatDictationInsertionSelection(startUtf16Offset: start + 1, endUtf16Offset: start + 1)
+            )
+            return .handled
+        }
+        guard press.modifiers.isEmpty else { return .ignored }
+        if self.primaryComposerButtonDisabled == false {
+            self.handlePrimaryComposerAction(preservesComposerFocus: true)
+        }
+        return .handled
     }
 
     var primaryComposerButtonDisabled: Bool {

@@ -2,23 +2,21 @@ import SwiftUI
 
 struct AICompanionToolbarItem: ToolbarContent {
     @Environment(AppNavigationModel.self) private var navigation
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     var body: some ToolbarContent {
         // On iPad the open pane owns its hide action; other devices keep their host toggle.
-        if (UIDevice.current.userInterfaceIdiom == .pad && self.navigation.isAICompanionVisible == false)
-            || (UIDevice.current.userInterfaceIdiom != .pad
-                && (self.horizontalSizeClass == .regular || self.navigation.isAICompanionVisible)) {
+        if self.navigation.canPresentAICompanion
+            && (UIDevice.current.userInterfaceIdiom != .pad || self.navigation.isAICompanionVisible == false) {
             if #available(iOS 26.0, *) {
                 if UIDevice.current.userInterfaceIdiom != .pad {
                     ToolbarSpacer(.fixed, placement: .topBarTrailing)
                 }
                 ToolbarItem(placement: AICompanionToolbarButton.placement) {
-                    AICompanionToolbarButton()
+                    AICompanionToolbarButton(labelMinimumSize: UIDevice.current.userInterfaceIdiom == .pad ? 30 : nil)
                         .labelStyle(.iconOnly)
                         .buttonStyle(.glass)
                         .buttonBorderShape(.circle)
-                        .controlSize(.large)
+                        .controlSize(UIDevice.current.userInterfaceIdiom == .pad ? .regular : .large)
                 }
                 .sharedBackgroundVisibility(.hidden)
             } else {
@@ -31,6 +29,8 @@ struct AICompanionToolbarItem: ToolbarContent {
 }
 
 struct AICompanionToolbarButton: View {
+    var labelMinimumSize: CGFloat? = nil
+
     @Environment(AppNavigationModel.self) private var navigation
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -44,10 +44,20 @@ struct AICompanionToolbarButton: View {
         return .primaryAction
     }
 
+    @ViewBuilder
     var body: some View {
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            self.button
+                .tint(self.navigation.isAICompanionVisible ? Color.accentColor : Color.primary)
+        } else {
+            self.button
+        }
+    }
+
+    private var button: some View {
         Button {
             withAnimation(self.reduceMotion ? nil : .smooth(duration: 0.35)) {
-                self.navigation.isAICompanionPresented.toggle()
+                self.navigation.toggleAICompanion()
             }
         } label: {
             Label(
@@ -55,6 +65,7 @@ struct AICompanionToolbarButton: View {
                        ? "ai_companion.hide" : "ai_companion.show", table: "Foundation"),
                 systemImage: "bubble.left.and.bubble.right"
             )
+            .frame(minWidth: self.labelMinimumSize, minHeight: self.labelMinimumSize)
         }
         .accessibilityIdentifier(UITestIdentifier.aiCompanionToggle)
     }

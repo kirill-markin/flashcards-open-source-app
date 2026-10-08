@@ -144,6 +144,7 @@ extension ReviewView {
     }
 
     func finishCardEditorSession() {
+        self.cardFormState.navigationPath = NavigationPath()
         self.cardFormState.editorSessionId = UUID()
         self.cardFormState.mediaAssetIdsReadyForUpload = []
     }

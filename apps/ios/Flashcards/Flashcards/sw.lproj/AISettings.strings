@@ -65,6 +65,7 @@
 "ai.availability.dictation.official" = "Uandishi wa sauti wa AI haupatikani kwa muda kwenye seva rasmi. Jaribu tena baadaye.";
 "ai.availability.dictation.custom" = "Uandishi wa sauti wa AI haupatikani kwenye seva hii. Wasiliana na msimamizi wa seva.";
 "ai.run.error.activeRunInProgress" = "Jibu tayari linaendelea. Subiri limalizike au lisimamishe kabla ya kutuma ujumbe mwingine.";
+"ai.chatNotCurrent.notice" = "Gumzo hili limebadilishwa na jipya zaidi. Ujumbe wako bado uko kwenye kisanduku cha maandishi — utume tena.";
 "ai.dictation.error.microphoneUnavailable" = "Maikrofoni haipatikani kwenye kifaa hiki.";
 "ai.dictation.error.microphoneDenied" = "Ufikiaji wa maikrofoni haukuruhusiwa.";
 "ai.dictation.error.microphoneBlocked" = "Ufikiaji wa maikrofoni umezimwa kwa Nibomo. Uwashe kwenye Mipangilio > Faragha na Usalama > Maikrofoni.";

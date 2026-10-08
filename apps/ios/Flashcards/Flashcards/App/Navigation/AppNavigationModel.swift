@@ -80,9 +80,11 @@ final class AppNavigationModel {
     var aiChatPresentationRequest: AIChatPresentationRequest?
     var progressPresentationRequest: ProgressPresentationRequest?
     var isAICompanionPresented: Bool = false
+    private(set) var canPresentAICompanion: Bool = false
 
     var isAICompanionVisible: Bool {
-        self.isAICompanionPresented && (self.selectedTab != .ai && self.selectedTab != .settings)
+        self.canPresentAICompanion && self.isAICompanionPresented
+            && (self.selectedTab != .ai && self.selectedTab != .settings)
     }
 
     var isAIChatVisible: Bool {
@@ -152,6 +154,20 @@ final class AppNavigationModel {
     func openCardCreation() {
         self.selectTab(.cards)
         self.cardsPresentationRequest = .createCard
+    }
+
+    func updateAICompanionAvailability(_ isAvailable: Bool) {
+        // Retain the pane preference and shared draft when a window gets smaller.
+        // A layout change should not switch the person's selected tab.
+        self.canPresentAICompanion = isAvailable
+    }
+
+    func toggleAICompanion() {
+        guard self.canPresentAICompanion else {
+            self.selectTab(.ai)
+            return
+        }
+        self.isAICompanionPresented.toggle()
     }
 
     func openAICardCreation() {

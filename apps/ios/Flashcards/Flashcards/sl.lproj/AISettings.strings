@@ -65,6 +65,7 @@
 "ai.availability.dictation.official" = "Narekovanje z UI na uradnem strežniku začasno ni na voljo. Poskusite znova pozneje.";
 "ai.availability.dictation.custom" = "Narekovanje z UI na tem strežniku ni na voljo. Obrnite se na upravljavca strežnika.";
 "ai.run.error.activeRunInProgress" = "Odgovor je že v pripravi. Pred pošiljanjem naslednjega sporočila počakajte, da se konča, ali ga ustavite.";
+"ai.chatNotCurrent.notice" = "Ta klepet je bil nadomeščen z novejšim. Vaše sporočilo je še vedno v polju za vnos — pošljite ga znova.";
 "ai.dictation.error.microphoneUnavailable" = "Mikrofon v tej napravi ni na voljo.";
 "ai.dictation.error.microphoneDenied" = "Dostop do mikrofona ni bil dovoljen.";
 "ai.dictation.error.microphoneBlocked" = "Dostop do mikrofona je za Nibomo izklopljen. Dovolite ga v Nastavitve > Zasebnost in varnost > Mikrofon.";

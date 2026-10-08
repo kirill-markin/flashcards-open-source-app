@@ -17,10 +17,20 @@ private struct ProgressPresentationTaskID: Hashable {
 struct ProgressScreen: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
+    @Environment(\.tabBarPlacement) private var tabBarPlacement
     @State private var selectedLeaderboardWindowKey: LeaderboardWindowKey?
     @State private var selectedLeaderboardProfile: ProgressLeaderboardSelectedProfile?
     @State private var isCloudSignInPresented: Bool = false
     @State private var isFriendInvitePresented: Bool = false
+
+    private var usesTopTabNavigation: Bool {
+        UIDevice.current.userInterfaceIdiom == .pad && self.tabBarPlacement == .topBar
+    }
+
+    private var usesPairedCompanionToolbar: Bool {
+        UIDevice.current.userInterfaceIdiom == .pad
+            && self.navigation.isAICompanionVisible && self.navigation.selectedTab == .progress
+    }
 
     private var isLeaderboardSectionAvailable: Bool {
         self.store.progressSnapshot != nil && self.store.progressLeaderboardSnapshot != nil
@@ -44,6 +54,19 @@ struct ProgressScreen: View {
     }
 
     var body: some View {
+        self.bodyContent
+        .cloudSignInSheet(
+            isPresented: self.$isCloudSignInPresented,
+            presentationContext: .standard(originSurface: .progress)
+        )
+        .friendInviteSheet(isPresented: self.$isFriendInvitePresented, store: self.store)
+        .sheet(item: self.$selectedLeaderboardProfile) { selectedProfile in
+            ProgressLeaderboardProfileSheet(selectedProfile: selectedProfile)
+                .environment(self.store)
+        }
+    }
+
+    private var bodyContent: some View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 20) {
@@ -75,13 +98,14 @@ struct ProgressScreen: View {
             .background(Color(uiColor: .systemGroupedBackground))
             .accessibilityIdentifier(UITestIdentifier.progressScreen)
             .navigationTitle(
-                String(
+                (self.usesTopTabNavigation || self.usesPairedCompanionToolbar) ? "" : String(
                     localized: "progress.screen.title",
                     defaultValue: "Progress",
                     table: "Foundation",
                     comment: "Progress screen title"
                 )
             )
+            .navigationBarTitleDisplayMode(UIDevice.current.userInterfaceIdiom == .pad ? .inline : .automatic)
             .refreshable {
                 await self.store.refreshProgressManually()
             }
@@ -92,15 +116,7 @@ struct ProgressScreen: View {
         .toolbar {
             AICompanionToolbarItem()
         }
-        .cloudSignInSheet(
-            isPresented: self.$isCloudSignInPresented,
-            presentationContext: .standard(originSurface: .progress)
-        )
-        .friendInviteSheet(isPresented: self.$isFriendInvitePresented, store: self.store)
-        .sheet(item: self.$selectedLeaderboardProfile) { selectedProfile in
-            ProgressLeaderboardProfileSheet(selectedProfile: selectedProfile)
-                .environment(self.store)
-        }
+
     }
 
     private func openCloudSignInFlow() {

@@ -1,12 +1,27 @@
 import UIKit
 import XCTest
 
+private let duoTransitionFront = "A Duo draft keeps its question, cursor, and answer while opening or closing the device.\nContinue studying."
+private let duoTransitionBack = "Keep this longer answer unchanged across the outer, open, and partly folded displays. Read every line above the study controls.\nReturn to the same question, open its filter, and continue without losing the saved answer."
+
 final class LiveSmokeIPhoneDuoTests: LiveSmokeTestCase {
     @MainActor
     func testDuoCompanionKeepsNativeTabsReachable() throws {
         let model = ProcessInfo.processInfo.environment["SIMULATOR_MODEL_IDENTIFIER"]
         try XCTSkipUnless(model == "iPhone19,4", "This smoke requires the real iPhone Duo simulator type.")
+        XCUIDevice.shared.orientation = .landscapeLeft
+        defer { XCUIDevice.shared.orientation = .portrait }
         try self.launchApplication(launchScenario: .guestManualReviewCard, selectedTab: .review)
+        // Keep the consent fixture stable across full AI tab preference refreshes.
+        // The NO launch override is process-local.
+        self.app.terminate()
+        self.app.launchArguments += ["-ai-chat-external-provider-consent", "NO"]
+        self.app.launch()
+        try self.waitForApplicationToReachForeground(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.waitForUITestLaunchPreparation(
+            launchScenario: .guestManualReviewCard,
+            timeout: LiveSmokeConfiguration.launchPreparationTimeoutSeconds
+        )
         let scene = try self.nativeHostWindowFrame()
         try XCTSkipUnless(
             min(scene.width, scene.height) >= 600,
@@ -54,7 +69,6 @@ final class LiveSmokeIPhoneDuoTests: LiveSmokeTestCase {
                 XCTAssertFalse(self.app.buttons["ai.companion.toggle"].exists)
                 try self.selectDuoDestination(.review)
                 try self.assertRevealedReviewWithCompanion()
-                self.add(self.makeTextAttachment(name: "Duo companion after all host returns hierarchy", text: self.app.debugDescription))
                 self.attachPhoneScreenshot(name: "Duo companion preserved across Cards, Progress, AI and Settings")
                 try self.tapButton(identifier: "ai.companion.toggle", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
                 try self.assertCompanionConsentContentHidden()
@@ -65,6 +79,127 @@ final class LiveSmokeIPhoneDuoTests: LiveSmokeTestCase {
             self.attachPhoneScreenshot(name: "Duo companion failure")
             self.attachCompanionGeometryDiagnostics()
             self.add(self.makeTextAttachment(name: "Duo companion failure hierarchy", text: self.app.debugDescription))
+            throw error
+        }
+    }
+
+    @MainActor
+    func testDuoReadyCompanionKeepsUnsentDraftAcrossHosts() throws {
+        try XCTSkipUnless(
+            ProcessInfo.processInfo.environment["SIMULATOR_MODEL_IDENTIFIER"] == "iPhone19,4",
+            "This smoke requires the real iPhone Duo simulator type."
+        )
+        XCUIDevice.shared.orientation = .landscapeLeft
+        defer { XCUIDevice.shared.orientation = .portrait }
+        try self.launchApplication(launchScenario: .guestManualReviewCard, selectedTab: .review)
+        self.app.terminate()
+        // Process-local consent on the disposable fixture; no consent tap or AI request.
+        self.app.launchArguments += ["-ai-chat-external-provider-consent", "YES"]
+        self.app.launch()
+        try self.waitForApplicationToReachForeground(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.waitForUITestLaunchPreparation(
+            launchScenario: .guestManualReviewCard,
+            timeout: LiveSmokeConfiguration.launchPreparationTimeoutSeconds
+        )
+        let initialScene = try self.nativeHostWindowFrame()
+        try XCTSkipUnless(
+            initialScene.width > initialScene.height && min(initialScene.width, initialScene.height) >= 600,
+            "Start this smoke on the actual Open landscape inner display."
+        )
+        let draft = "Keep this Duo chat draft unsent.\nReturn to the same revealed card."
+        do {
+            try self.step("retain an unsent companion draft with actual docked software key input") {
+                if self.visibleCompanionPane != nil {
+                    try self.tapButton(identifier: "ai.companion.toggle", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                }
+                try self.tapButton(identifier: LiveSmokeIdentifier.reviewShowAnswerButton, timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds)
+                try self.waitForReviewAnswerReveal()
+                try self.tapButton(identifier: "ai.companion.toggle", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                let composer = try self.waitForAiComposerUsable(timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+                try self.clearAndTypeAiComposerTextWithoutExactValueAssertion(draft, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                guard XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                    composer.value as? String == draft
+                }, object: nil)], timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds) == .completed else {
+                    throw LiveSmokeFailure.unexpectedAiConversationState(message: "The companion must hold the exact multiline unsent draft.", screen: self.currentScreenSummary(), step: self.currentStepTitle)
+                }
+                let keyboard = self.app.keyboards.firstMatch
+                let letter = keyboard.keys.matching(NSPredicate(format: "label IN %@", ["q", "Q"])).firstMatch
+                let delete = keyboard.keys.matching(NSPredicate(format: "label IN %@", ["delete", "Delete", "backspace", "Backspace"])).firstMatch
+                let visibleKeys = NSPredicate { _, _ in
+                    guard let scene = self.nativeHostWindow?.frame else { return false }
+                    return keyboard.exists && keyboard.frame.width >= scene.width * 0.65
+                        && keyboard.frame.height > 100 && abs(keyboard.frame.maxY - scene.maxY) <= 1
+                        && [letter, delete].allSatisfy { key in
+                            key.exists && key.isHittable && key.frame.width > 0 && key.frame.height > 0
+                                && scene.insetBy(dx: -1, dy: -1).contains(key.frame)
+                        }
+                }
+                guard XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: visibleKeys, object: nil)], timeout: 10) == .completed else {
+                    throw LiveSmokeFailure.unexpectedAiConversationState(message: "Require a docked software keyboard and actual reachable Q/Delete keys inside the active native window.", screen: self.currentScreenSummary(), step: self.currentStepTitle)
+                }
+                let scene = try self.nativeHostWindowFrame()
+                XCTAssertTrue(self.elementHasKeyboardFocus(element: composer))
+                XCTAssertTrue(scene.contains(composer.frame))
+                XCTAssertLessThanOrEqual(composer.frame.maxY, keyboard.frame.minY + 1)
+                try self.assertCompanionNavigationReachable()
+                for identifier in [LiveSmokeIdentifier.aiNewChatButton, "ai.companion.toggle"] {
+                    let button = self.app.buttons[identifier].firstMatch
+                    XCTAssertTrue(button.exists && button.isHittable && scene.contains(button.frame), "The companion control must remain reachable: \(identifier).")
+                }
+                letter.tap()
+                let inserted = NSPredicate { _, _ in
+                    let value = composer.value as? String
+                    return value == draft + "q" || value == draft + "Q"
+                }
+                guard XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: inserted, object: nil)], timeout: 5) == .completed else {
+                    throw LiveSmokeFailure.unexpectedAiConversationState(message: "Tapping the actual software Q key must append one character to the unsent draft.", screen: self.currentScreenSummary(), step: self.currentStepTitle)
+                }
+                self.attachPhoneScreenshot(name: "Duo ready companion actual software Q input")
+                delete.tap()
+                guard XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                    composer.value as? String == draft
+                }, object: nil)], timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds) == .completed else {
+                    throw LiveSmokeFailure.unexpectedAiConversationState(message: "Actual software Delete must restore the exact unsent draft.", screen: self.currentScreenSummary(), step: self.currentStepTitle)
+                }
+                self.add(self.makeTextAttachment(name: "Duo ready companion software key restoration", text: "window=\(scene), keyboard=\(keyboard.frame), Q=\(letter.frame), Delete=\(delete.frame), draft=\(String(reflecting: composer.value as? String))"))
+                self.attachPhoneScreenshot(name: "Duo ready companion exact draft restored with docked keyboard")
+                try self.tapButton(identifier: LiveSmokeIdentifier.aiComposerDismissKeyboardButton, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                let hidden = NSPredicate { _, _ in !keyboard.exists }
+                XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: hidden, object: nil)], timeout: 10), .completed, "Native Done must dismiss the software keyboard before switching hosts.")
+            }
+            try self.step("keep the same chat draft through Cards Progress and Review") {
+                let destinations: [LiveSmokeSelectedTab] = [.cards, .progress, .review]
+                for destination in destinations {
+                    try self.selectDuoDestination(destination)
+                    let selectedDestination = NSPredicate { _, _ in
+                        self.app.descendants(matching: .any).matching(identifier: destination.itemIdentifier)
+                            .allElementsBoundByIndex.contains { $0.exists && $0.isHittable && $0.isSelected }
+                    }
+                    guard XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: selectedDestination, object: nil)], timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds) == .completed else {
+                        throw LiveSmokeFailure.unexpectedAiConversationState(message: "The actual native destination must become selected: \(destination).", screen: self.currentScreenSummary(), step: self.currentStepTitle)
+                    }
+                    try self.assertScreenVisible(screen: destination.screen, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                    let composer = try self.waitForAiComposerUsable(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                    XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                        composer.value as? String == draft
+                    }, object: nil)], timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds), .completed, "The exact raw multiline draft must survive the destination change.")
+                    let visibleComposers = self.app.textFields.matching(identifier: LiveSmokeIdentifier.aiComposerTextField).allElementsBoundByIndex.filter { $0.exists && $0.isHittable }
+                    XCTAssertEqual(visibleComposers.count, 1, "Only the current host may expose the companion composer.")
+                    XCTAssertEqual(self.app.descendants(matching: .any).matching(identifier: LiveSmokeIdentifier.aiMessageRow).count, 0, "This local smoke must leave the draft unsent.")
+                    try self.assertCompanionNavigationReachable()
+                    self.attachPhoneScreenshot(name: "Duo ready companion draft on \(destination)")
+                }
+                try self.assertScreenVisible(screen: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                try self.assertTextExists("Smoke guest manual review answer", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                XCTAssertFalse(self.app.buttons[LiveSmokeIdentifier.reviewShowAnswerButton].exists)
+                for identifier in ["review.rating.0", "review.rating.1", LiveSmokeIdentifier.reviewRateGoodButton, "review.rating.3"] {
+                    XCTAssertTrue(self.app.buttons[identifier].isHittable, "Returning to Review must retain reachable ratings: \(identifier).")
+                }
+            }
+        } catch {
+            self.attachPhoneScreenshot(name: "Duo ready companion failure")
+            self.attachCompanionGeometryDiagnostics()
+            self.add(self.makeTextAttachment(name: "Duo ready companion failure hierarchy", text: self.app.debugDescription))
             throw error
         }
     }
@@ -148,7 +283,14 @@ final class LiveSmokeIPhoneDuoTests: LiveSmokeTestCase {
         let identifiers = [LiveSmokeIdentifier.cardEditorScreen, LiveSmokeIdentifier.reviewScreen, LiveSmokeIdentifier.cardsScreen, LiveSmokeIdentifier.progressScreen, LiveSmokeIdentifier.aiScreen, LiveSmokeIdentifier.settingsScreen]
         for identifier in identifiers {
             let windows = self.app.windows.containing(.any, identifier: identifier).allElementsBoundByIndex
-            if let window = windows.first(where: { $0.exists && $0.isHittable && $0.frame.width > 0 && $0.frame.height > 0 }) {
+            if let window = windows.first(where: { window in
+                guard window.exists else { return false }
+                let frame = window.frame
+                guard frame.minX.isFinite && frame.minY.isFinite,
+                      frame.width.isFinite && frame.height.isFinite,
+                      frame.width > 0 && frame.height > 0 else { return false }
+                return window.isHittable
+            }) {
                 return window
             }
         }
@@ -200,6 +342,17 @@ final class LiveSmokeIPhoneDuoTests: LiveSmokeTestCase {
             if scene == nil || contentFrame == nil {
                 geometryViolations.append("Missing visible native window or companion content.")
             }
+            if let scene, let pane {
+                if scene.width <= scene.height
+                    || abs(pane.frame.minX - scene.minX) > 1
+                    || abs(pane.frame.maxX - scene.midX) > 1 {
+                    geometryViolations.append("Left companion=\(self.preciseFrame(pane.frame)) must end at the unfolded landscape window midpoint=\(scene.midX).")
+                }
+                let answer = self.app.staticTexts["Smoke guest manual review answer"].firstMatch
+                if answer.exists && (answer.frame.minX < scene.midX - 1 || !answer.isHittable) {
+                    geometryViolations.append("Revealed answer=\(self.preciseFrame(answer.frame)) must remain readable on the right of the split.")
+                }
+            }
             for identifier in identifiers {
                 let buttons = self.app.buttons.matching(identifier: identifier).allElementsBoundByIndex
                 if identifier == "ai.companion.toggle" { toggleCount = buttons.count }
@@ -230,7 +383,7 @@ final class LiveSmokeIPhoneDuoTests: LiveSmokeTestCase {
 
     @MainActor
     private func visibleCompanionContentFrame(in pane: XCUIElement) -> CGRect? {
-        // The native inspector's scroll view extends beneath system bars; its
+        // The companion scroll view extends beneath system bars; its
         // readable text and controls respect the safe area inside those bounds.
         let contentTypes: [XCUIElement.ElementType] = [.staticText, .button, .link, .textField, .secureTextField, .textView]
         let viewport = pane.frame
@@ -256,12 +409,20 @@ final class LiveSmokeIPhoneDuoTests: LiveSmokeTestCase {
             "Native Duo transitions require explicit operator opt-in and Device Hub fold controls."
         )
         XCUIDevice.shared.orientation = .portrait
-        try self.launchApplication(launchScenario: .guestManualReviewCard, selectedTab: .review)
+        defer { XCUIDevice.shared.orientation = .portrait }
+        try self.launchApplication(launchScenario: .guestManualReviewCard, selectedTab: .cards)
+        try self.openFirstCardForEditing()
+        try self.setDuoTransitionAnswer()
+        try self.tapButtonScrollingIntoView(identifier: LiveSmokeIdentifier.cardEditorFrontRow, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.replaceTextSafely(duoTransitionFront, inElementWithIdentifier: LiveSmokeIdentifier.cardEditorFrontTextEditor, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.tapEditorBack()
+        try self.tapButton(identifier: LiveSmokeIdentifier.cardEditorSaveButton, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.selectDuoDestination(.review)
 
         try self.step("preserve a revealed card through native partial folding and landscape rotation") {
             try self.tapButton(identifier: LiveSmokeIdentifier.reviewShowAnswerButton, timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds)
             try self.waitForReviewAnswerReveal()
-            try self.assertTextExists("Smoke guest manual review answer", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.assertTextExists(duoTransitionBack, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             try self.waitForNativeDuoDisplayTransition(checkpoint: "review-partially-open-display")
             for landscape in [false, true] {
                 if landscape {
@@ -275,12 +436,12 @@ final class LiveSmokeIPhoneDuoTests: LiveSmokeTestCase {
                     XCTAssertGreaterThan(frame.width, frame.height, "The partially folded Duo review must rotate to landscape.")
                 }
                 try self.assertScreenVisible(screen: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-                try self.assertTextExists("Smoke guest manual review answer", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                try self.assertTextExists(duoTransitionBack, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
                 XCTAssertFalse(self.app.buttons[LiveSmokeIdentifier.reviewShowAnswerButton].exists, "The same card must remain revealed after the native pose change.")
                 for identifier in ["review.rating.0", "review.rating.1", LiveSmokeIdentifier.reviewRateGoodButton, "review.rating.3"] {
                     XCTAssertTrue(self.app.buttons[identifier].isHittable, "Every rating must remain reachable in the partial pose: \(identifier).")
                 }
-                try self.scrollAnswerAboveReviewAccessory()
+                try self.scrollAnswerAboveReviewAccessory(answerText: duoTransitionBack)
                 self.attachPhoneScreenshot(name: landscape ? "Duo partially folded landscape revealed review" : "Duo partially folded portrait revealed review")
             }
             try self.tapButton(identifier: LiveSmokeIdentifier.reviewRateGoodButton, timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds)
@@ -300,10 +461,11 @@ final class LiveSmokeIPhoneDuoTests: LiveSmokeTestCase {
         )
         XCUIDevice.shared.orientation = .portrait
         try self.launchApplication(launchScenario: .guestManualReviewCard, selectedTab: .cards)
-        let draft = "A Duo draft keeps its question, cursor, and answer while opening or closing the device.\nContinue studying."
+        let draft = duoTransitionFront
 
         try self.step("retain an unsaved keyboard draft during a native Duo display transition") {
             try self.openFirstCardForEditing()
+            try self.setDuoTransitionAnswer()
             try self.tapButtonScrollingIntoView(identifier: LiveSmokeIdentifier.cardEditorFrontRow, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             try self.replaceTextSafely(draft, inElementWithIdentifier: LiveSmokeIdentifier.cardEditorFrontTextEditor, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
             let editor = self.app.descendants(matching: .any).matching(identifier: LiveSmokeIdentifier.cardEditorFrontTextEditor).firstMatch
@@ -330,17 +492,26 @@ final class LiveSmokeIPhoneDuoTests: LiveSmokeTestCase {
             self.attachPhoneScreenshot(name: "Duo revealed answer before native display transition")
             try self.waitForNativeDuoDisplayTransition(checkpoint: "review-close-display")
             try self.assertScreenVisible(screen: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-            try self.assertTextExists("Smoke guest manual review answer", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.assertTextExists(duoTransitionBack, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             XCTAssertFalse(self.app.buttons[LiveSmokeIdentifier.reviewShowAnswerButton].exists, "The same revealed card must stay revealed across displays.")
             for identifier in ["review.rating.0", "review.rating.1", LiveSmokeIdentifier.reviewRateGoodButton, "review.rating.3"] {
                 XCTAssertTrue(self.app.buttons[identifier].isHittable, "Every rating must remain reachable after the Duo display transition: \(identifier).")
             }
-            try self.scrollAnswerAboveReviewAccessory()
+            try self.scrollAnswerAboveReviewAccessory(answerText: duoTransitionBack)
             self.attachPhoneScreenshot(name: "Duo readable answer after native display transition")
             try self.roundtripUnchangedReviewFilter()
             try self.tapButton(identifier: LiveSmokeIdentifier.reviewRateGoodButton, timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds)
             try self.assertTextExists("Nothing Due", timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds)
         }
+    }
+
+    @MainActor
+    private func setDuoTransitionAnswer() throws {
+        try self.tapButtonScrollingIntoView(identifier: LiveSmokeIdentifier.cardEditorBackRow, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.replaceTextSafely(duoTransitionBack, inElementWithIdentifier: LiveSmokeIdentifier.cardEditorBackTextEditor, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        let editor = self.app.descendants(matching: .any).matching(identifier: LiveSmokeIdentifier.cardEditorBackTextEditor).firstMatch
+        XCTAssertEqual(editor.value as? String, duoTransitionBack, "Both native transition tests must use the identical exact long answer.")
+        try self.tapEditorBack()
     }
 
     @MainActor
@@ -404,7 +575,6 @@ final class LiveSmokeIPhoneDuoTests: LiveSmokeTestCase {
             let keyboard = self.app.keyboards.firstMatch
             let back = self.editorBackButton
             self.attachPhoneScreenshot(name: "Phone largest text multiline editor and keyboard")
-            self.add(self.makeTextAttachment(name: "Phone largest text editor hierarchy", text: self.app.debugDescription))
             XCTAssertTrue(keyboard.exists, "The software keyboard must be present for the compact editing check.")
             XCTAssertLessThanOrEqual(editor.frame.maxY, keyboard.frame.minY + 1, "The largest-text editor must remain unobscured above the docked keyboard.")
             XCTAssertTrue(back.isHittable, "The editor must remain escapable while the keyboard is present.")
@@ -518,9 +688,9 @@ final class LiveSmokeIPhoneDuoTests: LiveSmokeTestCase {
     }
 
     @MainActor
-    private func scrollAnswerAboveReviewAccessory(hasFixedAccessory: Bool = true) throws {
+    private func scrollAnswerAboveReviewAccessory(hasFixedAccessory: Bool = true, answerText: String = "Smoke guest manual review answer") throws {
         let answer = self.app.descendants(matching: .any)
-            .matching(NSPredicate(format: "label == %@", "Smoke guest manual review answer"))
+            .matching(NSPredicate(format: "label == %@", answerText))
             .firstMatch
         if !hasFixedAccessory {
             try self.scrollElementFullyIntoReviewViewport(answer, identifier: "revealed review answer")

@@ -2,7 +2,7 @@
   "sourceLanguage" : "en",
   "strings" : {
     "ai_companion.show" : {
-      "comment" : "Optional AI companion pane beside Cards and Review",
+      "comment" : "Optional AI companion pane beside study content",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -307,7 +307,7 @@
       }
     },
     "ai_companion.hide" : {
-      "comment" : "Optional AI companion pane beside Cards and Review",
+      "comment" : "Optional AI companion pane beside study content",
       "localizations" : {
         "ar" : {
           "stringUnit" : {

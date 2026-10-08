@@ -9,6 +9,8 @@ private let cardEditorTextAreaCornerRadius: CGFloat = reviewContentSurfaceCorner
 private let cardEditorManagedImagePreviewCornerRadius: CGFloat = cardEditorTextAreaCornerRadius / 2
 
 struct CardFormState {
+    // Retain the active field alongside its draft when native sheet bounds change.
+    var navigationPath = NavigationPath()
     var editorSessionId: UUID
     let readOnlyMetadata: CardEditorReadOnlyMetadata?
     var frontText: String
@@ -69,7 +71,7 @@ func cardFormStateByReconcilingMediaLifecycle(
     return nextFormState
 }
 
-private enum CardTextField: String {
+private enum CardTextField: String, Hashable {
     case front
     case back
 
@@ -99,6 +101,11 @@ private enum CardTextField: String {
             return .back
         }
     }
+}
+
+private enum CardEditorDestination: Hashable {
+    case text(CardTextField)
+    case tags
 }
 
 struct CardEditorScreen: View {
@@ -134,15 +141,7 @@ struct CardEditorScreen: View {
                 }
 
                 Section {
-                    NavigationLink {
-                        CardTextEditorScreen(
-                            field: .front,
-                            text: $formState.frontText,
-                            textSelection: $formState.frontTextSelection,
-                            editorSessionId: $formState.editorSessionId,
-                            mediaAssetIdsReadyForUpload: $formState.mediaAssetIdsReadyForUpload
-                        )
-                    } label: {
+                    NavigationLink(value: CardEditorDestination.text(.front)) {
                         CardTextPreviewRow(
                             field: .front,
                             text: formState.frontText
@@ -150,15 +149,7 @@ struct CardEditorScreen: View {
                     }
                     .accessibilityIdentifier(UITestIdentifier.cardEditorFrontRow)
 
-                    NavigationLink {
-                        CardTextEditorScreen(
-                            field: .back,
-                            text: $formState.backText,
-                            textSelection: $formState.backTextSelection,
-                            editorSessionId: $formState.editorSessionId,
-                            mediaAssetIdsReadyForUpload: $formState.mediaAssetIdsReadyForUpload
-                        )
-                    } label: {
+                    NavigationLink(value: CardEditorDestination.text(.back)) {
                         CardTextPreviewRow(
                             field: .back,
                             text: formState.backText
@@ -170,15 +161,7 @@ struct CardEditorScreen: View {
                 }
 
                 Section {
-                    NavigationLink {
-                        TagPickerView(
-                            selectedTags: formState.tags,
-                            suggestions: availableTagSuggestions,
-                            onSave: { nextTags in
-                                formState.tags = nextTags
-                            }
-                        )
-                    } label: {
+                    NavigationLink(value: CardEditorDestination.tags) {
                         TagsFieldRow(summary: localizedTagSelectionSummary(tags: formState.tags))
                     }
 
@@ -217,6 +200,26 @@ struct CardEditorScreen: View {
                         Text(String(localized: "Actions", table: reviewCardsStringsTableName))
                     }
                 }
+            }
+        }
+        .navigationDestination(for: CardEditorDestination.self) { destination in
+            switch destination {
+            case .text(let field):
+                CardTextEditorScreen(
+                    field: field,
+                    text: field == .front ? $formState.frontText : $formState.backText,
+                    textSelection: field == .front ? $formState.frontTextSelection : $formState.backTextSelection,
+                    editorSessionId: $formState.editorSessionId,
+                    mediaAssetIdsReadyForUpload: $formState.mediaAssetIdsReadyForUpload
+                )
+            case .tags:
+                TagPickerView(
+                    selectedTags: formState.tags,
+                    suggestions: availableTagSuggestions,
+                    onSave: { nextTags in
+                        formState.tags = nextTags
+                    }
+                )
             }
         }
         .navigationTitle(title)

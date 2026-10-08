@@ -1,46 +1,56 @@
 # Native device optimization review
 
-## Source checkpoint
+## Acceptance list
 
-The integration is based on Kirill Markin's `origin/main` commit `f2e9a625c6aa3635ad705485718d7864daac797b`, containing release `v1.32.0` (`bd6cab5534ec478236d98105b713c471b0d4aa93`). The app version remains **1.32.0**, with deployment target **iOS/iPadOS 18.0** and all 50 upstream languages.
+- [x] Current iPad sidebar Cards/Progress actions, one toolbar row, aligned visible controls, draft/answer retention and floating/docked input: seven focused native passes.
+- [x] Positive iPad Review 1–4 keys: native pass for all four ratings. Guarded Space/editor/filter coverage also passed. Composer Return/Shift–Return has an automation timeout, recorded below.
+- [x] Corrected signed 1.32.0 preview installed and launched normally. Alex personally checked all on his iPad, reported that it looked good, and disconnected it. No further physical session is needed for this continuation.
+- [x] Current ordinary-phone 14 local cases: actual Front/Back/Tags, exact saved Back, portrait/full-AI handoff and all nine queued local regressions; zero failures/skips.
+- [x] Current Duo Open native navigation across Review/Cards/Progress/AI/Settings.
+- [ ] Duo exact unsent draft with actual native keys: Open and genuine Closed outer checks fail keyboard reachability; cause remains unresolved.
+- [ ] Real Duo Closed/Open/Closed with identical long-card fixtures and actual filter interaction; genuine outer and Partial poses.
+- [ ] Scoped cleanup, integrated diff review, pinned upstream integration and affected required checks; combined PR with maintainer edits and verified normal checks.
 
-The earlier preview used version **1.24.0**. Its original checkout and complete working-change backup are preserved separately; historical screenshots do not validate the migrated app.
+Preserve minimum iOS 18, all 50 languages, Subscription/Accent, ordinary-phone portrait/full AI, physical-left eligible Duo chat, iPad RTL and shared state. No native Mac support claim. No live AI prompts, purchases, cloud dispatch, merge, release or store upload are authorized.
 
-Upstream Subscription, Accent color, Premium, Review Animations, AI Chat Suggestions, language resources, authentication, and billing remain part of the latest source. The preview uses its own bundle ID, `com.flashcards-open-source-app.app.ipadpreview`, and a gitignored local config generated from the latest public example. The App Store app is a separate installation.
+## Candidate and behavior
 
-## Requested behavior
+Checkout: `flashcards-open-source-app-ipad-latest`, branch `codex/ipad-latest`. Initial HEAD: `afaf03d3d03b628f77cb0ab5e12a614cef2d48ad`; original base: `f2e9a625c6aa3635ad705485718d7864daac797b`. All 52 iOS paths imported from pinned upstream `914b96ff946635ae3109ba88ed57967c1020434b` matched exactly before integration.
 
-- Short Cards rows use their content height; Review's deck selector uses its named native control.
-- One `bubble.left.and.bubble.right` action toggles AI chat. On iPad it opens chat from the leading host toolbar, and hides chat from the pane header while open; no duplicate Close or Move control.
-- TabView and NavigationStack keep their outer native bounds. Regular iPad chat stays leading beside the native sidebar when navigation opens. Physical directions mirror in right-to-left languages. Shared chat state and Review's revealed answer survive section changes.
-- Review, Cards and Progress share the companion, including the leaderboard section route. AI and Settings suppress it while remembering the presentation choice. Compact windows retain native inspector adaptation, and leaderboard profile details retain native modal sheets.
-- Floating keyboard must leave Review actions and the chat composer at the bottom; docked keyboard avoidance remains active. Resize transitions respect Reduce Motion.
-- Duo and ordinary iPhone retain native navigation adaptation and the latest supported-OS adapters.
+Initial tested application source SHA256: `a3c75f68472d98da2a33d64c2a22cbb827937e7f3b431ce3a2adece64a8bd99f`. The original source/tests inventory `1deb7cb0…` exactly matched before continuation testing. The current native Closed→Open test preserved draft text but returned to the card form, losing the active editor destination. A targeted fix retains its NavigationPath with CardFormState for both Cards and Review editors, clearing it at session completion. That four-file application change has source SHA256 `25ec67f18955f9ded4e92bcd1f53ddd059e01d4347e204bff08b7ce2b11c8b70`; affected validation is in progress. Earlier runtime passes and physical acceptance apply to `a3c75f68…`. Fingerprints use sorted path + ASCII space + file hash + LF; the original inventory is preserved in ignored `tmp/ipad-review/final-2026-10-08/sidebar-shared-final-frozen-source.json`.
 
-## Verification checkpoint
+Native tabs adapt to a sidebar. Review, Cards and Progress share the AI companion in an owning window with regular width, landscape proportions and at least 900 × 600 points. Ordinary phones, Duo’s outer display and smaller windows use full-screen AI. Window changes preserve selection, revealed study state and shared conversation/drafts. iPad mirrors content in RTL; eligible Duo chat stays on the physical left.
 
-| Surface | Current evidence |
+Paired iPad sections retain a single native toolbar row. Cards keeps Filter/Add/Search and Progress navigation beside the sidebar. Native editor destinations preserve Front/Back/Tags bindings and unsaved drafts. Enlarged-text ratings scroll with the answer; docked input uses native avoidance and floating iPad input leaves bottom controls in place. Review keyboard commands are guarded against text entry and modal presentations.
+
+The isolated preview bundle `com.flashcards-open-source-app.app.ipadpreview` retains the existing physical app data. The corrected signed build passed signature verification with normal Keychain access, installed as 1.32.0 and launched with no fixture/reset arguments. A private original-resolution Device Hub capture (2388 × 1668) shows normal landscape Review/sidebar and existing study content. Alex’s subsequent iPad acceptance is personal evidence; it does not turn an incomplete automated per-key check into a native test pass. The physical iPad is now disconnected.
+
+## Verification
+
+| Check | Current result and scope |
 | --- | --- |
-| Source | Upstream HEAD/main rechecked: `f2e9a625c6aa3635ad705485718d7864daac797b`; version 1.32.0, minimum 18.0, 50 languages |
-| iPad Pro 27.0 | Five checks passed: compact Cards, Arabic placement, floating keyboard, current Settings, and full section continuity (107.532s). Original captures reviewed |
-| Native sidebar | Three separate columns on roomy windows; native navigation collapses in mini portrait. No-overlap and state continuity passed on Pro and mini |
-| iPad mini 27.0 | Both final-source checks passed: landscape/portrait draft+revealed-answer+ratings retention (60.090s), and largest-text editor/navigation/answer/ratings (76.589s). Native sidebar collapses in portrait; actual images reviewed |
-| Duo 27.1 | Final stable-column strict return-sequence passed (99.273s); Review/Progress active-display originals reviewed, native rail remains at outer right. Failed inspector candidates removed |
-| Ordinary iPhone 27.0 | Twelve unique local flows validated: two affected cases, nine remaining passes, and unchanged saved-key retry (59.356s). Initial remaining batch was 9 pass/1 missed toggle tap; failure retained, no app or assertion fix. Live AI/login excluded |
-| Repository | All six passed on final source |
-| Physical preview | Final source built/signed/profile verified, installed and launched normally on physical iPad. Device metadata confirms 1.32.0; native capture shows existing deck/card and green accent. No fixture/reset arguments |
-| Personal click-through | Latest native UI attempt encountered the Mac lock screen; independent click-through remains pending |
+| iPad sidebar/top-tab continuity | PASS 323.685 s, 1 passed/0 failed/0 skipped; `/private/tmp/nibomo-sidebar-shared-final-native.xcresult`. Actual Cards Filter/Cancel, Add/Front/Cancel, Search/Clear, Progress return, sidebar and companion toggles retain the exact draft, revealed answer and ratings. Visible toolbar geometry was reviewed from full-screen pixels. |
+| Six affected iPad cases | PASS 6/6, zero failed/skipped; `/private/tmp/nibomo-a3-final-affected-native.xcresult`. Compact Cards, paired floating/docked input, Subscription/Accent, New Chat, guarded Review Space and standalone floating input. |
+| Positive iPad rating keys | PASS 59.586 s, 1 passed/0 failed/0 skipped; `/private/tmp/nibomo-continuation-rating-keys.xcresult`, iPad mini on iPadOS 27.0. Actual 1–4 keys each advance a revealed card. |
+| Composer hardware keys | Incomplete: the existing 180-second test timed out during repeated animation-idle waits; `/private/tmp/nibomo-a3-composer-hardware-native.xcresult`. No unchanged retry or automated Return/Shift–Return pass is claimed. |
+| Ordinary iPhone local selection | PASS 14/14, zero failed/skipped; `/private/tmp/nibomo-continuation-phone14.xcresult`, iPhone 18 Pro on iOS 27.0, Xcode 27.0 (27A266a). Cards 4 + portrait/full-AI 1 + queued local 9. Includes exact saved multiline Back, largest-text editing/readability/ratings, own-key persistence, Arabic navigation, Review filters/reminders, guest settings and notification routing. Built source/tests `1deb7cb0…`; subsequent Duo-only fixture edits preserve these selected flows. |
+| Duo Open navigation | PASS 105.971 s, 1 passed/0 failed/0 skipped; `/private/tmp/nibomo-continuation-duo-open.xcresult`. Native Open control, eligible 951 × 669-point window, physical-left chat and reachable native destinations retain the revealed card. |
+| Duo focused composer | FAIL, 1 failed/0 skipped in the Open bundle: the exact draft is entered, but Q/Delete native keys lie below the owning window (keyboard y=713, window bottom=669). `/private/tmp/nibomo-continuation-duo-outer.xcresult` also fails 1/1 with no skip: genuine Closed 466 × 678-point geometry reaches full AI, then its keyboard lies at y=722 below the window. No native-key pass is claimed; app versus simulator cause is unresolved. Apple Settings exposed no usable input for comparison. |
+| Duo native transitions | Current source compiles with Xcode 27.1 (27A9275), iOS 27.1 (24A94232), dedicated model `iPhone19,4`. Initial long-fixture Closed→Open failed (276.408 s) after the genuine 466 × 678 → 951 × 669 handoff because the active Front editor disappeared; `/private/tmp/nibomo-continuation-duo-fold.xcresult`. Draft text remained on the card form. The targeted path fix and Partial checks remain in progress. Boot initially reported Data Migration Failed; native Device Hub pose controls became usable without reset. |
+| Static checks | Six pre-merge checks passed on the original candidate. Required checks will be repeated after pinned upstream integration. |
+| Full latest-OS mobile smoke | Not run. The 14 local cases exclude five live AI/account contracts and do not replace the complete repository smoke selection. No live prompts or cloud tests were dispatched. |
+| Minimum iOS 18 | Deployment target remains 18.0; only 27.x runtimes are installed. Minimum-target compilation does not establish iOS 18 runtime behavior. |
 
-Branch: `codex/ipad-latest`. Final source: `dc37d102bb2b7ec27e01ea1c9a15e233d11c8e6002e82e4c95831e7c9f75dcba`. Pro/mini tested source: `1d2f27481abc181de892fef3bbf636d04ff1c804d55fb0f5b934e95a7a6048e2`; Duo/phone compiled source: `cd8eac9c82d69b0d0fb77e645f897056cc83c5cd893471c789f1365eeef4fde7`. Final app differences are blank-line cleanup only; harness differences are the corrected native portrait-collapse assertion and a variable rename. Exact source manifests, runs, signing proof and final local commit identity are in ignored `tmp/ipad-final-handoff-manifest.json` and `tmp/ipad-final-refinement-source.json`. Independent mini captures are in `tmp/ipad-review/supervisor-mini-2026-10-08/`.
+Historical phone/Duo results, interrupted batches, previous missing postfold filter, offscreen keyboard, skipped outer precondition and capture errors remain in ignored `tmp/duo-review/`. They are not current passes. Private physical captures, build products, result bundles and diagnostic sources remain outside the PR; normal install/launch records and the physical screenshot are in ignored `tmp/ipad-review/final-2026-10-08/continuation-*` files.
 
-Earlier verified 1.32 results and qualified superseded runs are retained in ignored `tmp/ipad-review/1.32-refinement-history.md` and `tmp/ipad-review/previous-1.32-handoff.json`; they do not validate the current refinement. The rejected first layout moved native navigation; the current hierarchy keeps TabView and NavigationStack at their outer bounds. Regular hosts use one stable content layout; compact hosts retain the native inspector. Failed cached-inspector lifecycle candidates were removed. No custom rail, measured scene offset, or side choice remains.
+## Remaining manual and release checks
 
-Only simulator runtimes 27.0 and 27.1 are installed. Minimum-18 compilation does not verify iOS 18 runtime behavior. Native Duo fold/display transitions and actual window resizing are unverified on this refinement. Subscription product retrieval/purchases, linked-account/AI-send release gates, Pencil, hardware input, VoiceOver, cursor/dictation and quota-dialog interactions need separate checks. No public release or PR is part of this preview.
+Native hardware composer automation remains incomplete. Alex accepted the physical iPad preview; exact hardware send/stop behavior remains separate from the safe unsent-draft checks. Full Keyboard Access, VoiceOver, Pencil/Scribble, dictation, external displays and complete accessibility coverage are not established by the targeted checks. Mini’s docked keyboard leaves a short Review viewport; reachable controls do not prove spacious study content.
 
-## Test drive
+The complete latest-OS live/account smoke selection and actual iOS 18 compatibility smoke remain release requirements. No unavailable, interrupted or skipped check is counted as a pass. The prior physical authentication cancellation was not bypassed.
 
-1. Unlock the iPad and open **Nibomo iPad Preview**. Confirm version 1.32.0 and open Settings → Subscription and Style → Accent color.
-2. In Review, reveal an answer and open chat from the leading toolbar. Type a draft, open navigation and visit Cards → Progress → AI → Settings → Review. Check separate native sidebar/chat/study columns, retained answer/draft, and one bubbles action in the chat header while open.
-3. Compare docked and floating keyboard modes. Floating mode should leave both bottom controls anchored.
-4. Open Cards with chat, edit a card, rotate, and try a narrower window. Check compact rows and preserved drafts.
-5. On Duo/ordinary iPhone, switch all tabs and check Review actions and card-to-AI handoff at enlarged text sizes.
+## PR and publication
+
+Alex authorized one combined PR against upstream `main`, with **Allow edits by maintainers** enabled. No PR is open yet. This session owns implementation, compiler/simulator, integration and PR work; old chats are parked and their supervision automation is disabled. No merge, release, store upload or Xcode Cloud dispatch is authorized.
+
+**New landscape iPad App Store screenshots must be captured, reviewed and uploaded before publication.** Use the existing localized five-shot workflow and canonical iPad target in [marketing screenshots](marketing-screenshots.md), validating landscape dimensions. Marketing montages, private device captures and simulator QA captures do not replace these assets.
