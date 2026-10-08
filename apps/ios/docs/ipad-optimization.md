@@ -32,7 +32,7 @@ A noninteractive scene-sized UIKit view reads `UIKeyboardLayoutGuide`, with `fol
 
 Run targeted methods through the normal [local setup](../../../docs/ios-local-setup.md) command, with the selected iPad destination and `-only-testing:'Flashcards Open Source App UI Tests/LiveSmokeIPadTests/<method>'`. Simulator Keychain fixtures require `CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=-`. Use the latest pinned packages and deployment target 18.0. If Finder metadata prevents bundle signing in a synced folder, use an unsynced temporary DerivedData path.
 
-The current 1.32 candidate passed seven focused iPad cases plus all four positive rating keys; Alex accepted the corrected signed physical preview. Exact results, the composer automation timeout and remaining coverage are recorded in [the device review](device-optimization-review.md).
+The accepted 1.32 baseline passed seven focused iPad cases plus all four positive rating keys; Alex accepted the corrected signed physical preview. A subsequent editor-path fix retains the active field during display changes and passes five affected phone checks plus the iPad Review-editor check. Exact results, the composer automation timeout and remaining coverage are recorded in [the device review](device-optimization-review.md).
 
 A physical preview uses a separate local bundle identifier and development signing. Launch normally without fixture/reset arguments to preserve existing preview data. Keep signing overrides local; the production app is separate. Verify Pencil/Scribble, hardware keyboard/trackpad, VoiceOver, external displays, and actual window resizing on suitable hardware.
 
