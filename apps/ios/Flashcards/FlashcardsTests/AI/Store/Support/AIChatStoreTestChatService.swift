@@ -129,5 +129,36 @@ extension AIChatStoreTestSupport {
                 stillRunning: false
             )
         }
+
+        func listChatSessions(
+            session: CloudLinkedSession,
+            cursor: String?,
+            searchText: String?
+        ) async throws -> AIChatSessionHistoryPage {
+            _ = session
+            _ = cursor
+            _ = searchText
+            throw LocalStoreError.validation("Unexpected AI chat history list request in tests.")
+        }
+
+        func renameChatSession(
+            session: CloudLinkedSession,
+            sessionId: String,
+            title: String
+        ) async throws -> AIChatSessionHistorySummary {
+            _ = session
+            _ = sessionId
+            _ = title
+            throw LocalStoreError.validation("Unexpected AI chat rename request in tests.")
+        }
+
+        func archiveChatSession(
+            session: CloudLinkedSession,
+            sessionId: String
+        ) async throws -> AIChatArchivedSession {
+            _ = session
+            _ = sessionId
+            throw LocalStoreError.validation("Unexpected AI chat archive request in tests.")
+        }
     }
 }

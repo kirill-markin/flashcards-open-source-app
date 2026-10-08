@@ -22,6 +22,8 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatMessage
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatResumeDiagnostics
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatRunTerminalOutcome
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatSessionHistoryPage
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatSessionHistorySummary
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatSessionProvisioningResult
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatStartRunResponse
@@ -689,6 +691,26 @@ internal class FakeAiChatRepository : AiChatRepository {
             stopped = true,
             stillRunning = false
         )
+    }
+
+    override suspend fun listChatSessions(
+        workspaceId: String,
+        cursor: String?,
+        searchText: String?
+    ): AiChatSessionHistoryPage {
+        throw UnsupportedOperationException("Chat history is not used by the AI chat runtime tests.")
+    }
+
+    override suspend fun renameChatSession(
+        workspaceId: String,
+        sessionId: String,
+        title: String
+    ): AiChatSessionHistorySummary {
+        throw UnsupportedOperationException("Chat history is not used by the AI chat runtime tests.")
+    }
+
+    override suspend fun archiveChatSession(workspaceId: String, sessionId: String) {
+        throw UnsupportedOperationException("Chat history is not used by the AI chat runtime tests.")
     }
 
     fun setPersistedState(

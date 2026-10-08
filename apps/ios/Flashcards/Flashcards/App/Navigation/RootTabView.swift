@@ -408,7 +408,7 @@ struct RootTabView: View {
             }
 
             Tab(value: AppTab.ai) {
-                self.aiTab
+                self.aiTab(aiPath: $navigation.aiPath)
             } label: {
                 self.tabLabel(.ai, identifier: UITestIdentifier.rootTabAIItem)
             }
@@ -730,19 +730,24 @@ struct RootTabView: View {
         }
     }
 
-    private var aiTab: some View {
-        NavigationStack {
-            if self.navigation.selectedTab == .ai {
-                if UIDevice.current.userInterfaceIdiom == .pad {
-                    // Match the paired columns: the fixed viewport owns keyboard avoidance
-                    // inside the native navigation stack, below its toolbar.
-                    GeometryReader { _ in
+    private func aiTab(aiPath: Binding<NavigationPath>) -> some View {
+        NavigationStack(path: aiPath) {
+            Group {
+                if self.navigation.selectedTab == .ai {
+                    if UIDevice.current.userInterfaceIdiom == .pad {
+                        // Match the paired columns: the fixed viewport owns keyboard avoidance
+                        // inside the native navigation stack, below its toolbar.
+                        GeometryReader { _ in
+                            AIChatView(chatStore: store.aiChatStore)
+                        }
+                        .ignoresSafeArea(self.isKeyboardDocked ? [] : .keyboard, edges: .all)
+                    } else {
                         AIChatView(chatStore: store.aiChatStore)
                     }
-                    .ignoresSafeArea(self.isKeyboardDocked ? [] : .keyboard, edges: .all)
-                } else {
-                    AIChatView(chatStore: store.aiChatStore)
                 }
+            }
+            .navigationDestination(for: AIChatHistoryListRoute.self) { _ in
+                AIChatHistoryView(chatStore: store.aiChatStore)
             }
         }
         .id(self.navigation.aiTabVisitID)

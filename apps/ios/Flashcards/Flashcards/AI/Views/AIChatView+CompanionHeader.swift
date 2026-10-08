@@ -26,6 +26,9 @@ extension AIChatView {
             }
 
             if self.accessState == .ready {
+                ToolbarItem(placement: self.companionNewChatToolbarPlacement) {
+                    self.historyToolbarButton
+                }
                 if #available(iOS 26.0, *) {
                     ToolbarItem(placement: self.companionNewChatToolbarPlacement) {
                         self.newCompanionChatButton
@@ -68,6 +71,7 @@ extension AIChatView {
                 .frame(maxWidth: .infinity)
 
             if self.accessState == .ready {
+                self.historyToolbarButton
                 self.newCompanionChatButton
             }
         }

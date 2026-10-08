@@ -366,6 +366,9 @@ struct AIChatView: View {
     var toolbarContent: some ToolbarContent {
         if self.accessState == .ready {
             ToolbarItem(placement: .topBarTrailing) {
+                self.historyToolbarButton
+            }
+            ToolbarItem(placement: .topBarTrailing) {
                 if UIDevice.current.userInterfaceIdiom == .pad {
                     self.newChatToolbarButton.tint(Color.primary)
                 } else {
@@ -374,6 +377,22 @@ struct AIChatView: View {
                 }
             }
         }
+    }
+
+    var historyToolbarButton: some View {
+        Button {
+            self.dismissComposerFocus()
+            // History uses the AI tab's native stack; the shared draft and study tab survive.
+            if self.isCompanion {
+                self.navigation.selectTab(.ai)
+            }
+            self.navigation.aiPath.append(AIChatHistoryListRoute())
+        } label: {
+            Image(systemName: "list.bullet")
+        }
+        .accessibilityLabel(aiSettingsLocalized("ai.history.button", "History"))
+        .accessibilityIdentifier(UITestIdentifier.aiHistoryButton)
+        .disabled(self.chatStore.isChatInteractive == false || self.chatStore.dictationState != .idle)
     }
 
     private var newChatToolbarButton: some View {

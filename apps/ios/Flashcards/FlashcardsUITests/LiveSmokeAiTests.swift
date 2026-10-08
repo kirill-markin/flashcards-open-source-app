@@ -21,5 +21,9 @@ final class LiveSmokeAiTests: LiveSmokeTestCase {
         try self.step("start a new chat and confirm the conversation resets cleanly") {
             try self.startNewAiChatAndAssertConversationReset()
         }
+
+        try self.step("open the previous chat read-only from chat history") {
+            try self.openPreviousAiChatFromHistoryAndAssertReadOnly()
+        }
     }
 }

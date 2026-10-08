@@ -19,11 +19,11 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import androidx.navigation.navigation
 import com.flashcardsopensourceapp.app.di.AppGraph
-import com.flashcardsopensourceapp.app.navigation.AiDestination
 import com.flashcardsopensourceapp.app.navigation.ProgressDestination
 import com.flashcardsopensourceapp.app.navigation.ProgressNavigationTarget
 import com.flashcardsopensourceapp.app.navigation.ReviewDestination
 import com.flashcardsopensourceapp.app.navigation.SettingsNavigationTarget
+import com.flashcardsopensourceapp.app.navigation.navigateToAiChat
 import com.flashcardsopensourceapp.app.navigation.navigateToTopLevelDestination
 import com.flashcardsopensourceapp.app.navigation.rememberRouteBackStackEntry
 import com.flashcardsopensourceapp.app.notifications.hasNotificationPermission
@@ -185,10 +185,7 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                         backText = backText,
                         tags = tags
                     )
-                    navigateToTopLevelDestination(
-                        navController = navController,
-                        destination = AiDestination
-                    )
+                    navigateToAiChat(navController = navController)
                 },
                 onOpenDeckManagement = {
                     appGraph.appHandoffCoordinator.requestSettingsNavigation(
@@ -212,10 +209,7 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                         )
                     )
                     appGraph.appHandoffCoordinator.requestAiEntryPrefill(prefill = com.flashcardsopensourceapp.feature.ai.AiEntryPrefill.CREATE_CARD)
-                    navigateToTopLevelDestination(
-                        navController = navController,
-                        destination = AiDestination
-                    )
+                    navigateToAiChat(navController = navController)
                 },
                 onSwitchToAllCards = {
                     reviewViewModel.selectFilter(reviewFilter = ReviewFilter.AllCards)

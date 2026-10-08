@@ -15,7 +15,8 @@
 - [x] Current iPad Review editor: guarded study keys, Back/Cancel and revealed-answer retention pass.
 - [x] Fixed the 2026-10-09 physical iPad toolbar report: keep Review inline on iPad before and after AI opens. Actual reviewed-card AI handoff reproduced a 62 pt empty band; after the fix both repeated handoffs have the normal 10 pt gap. Native sidebar/section retention and largest accessibility text also pass (3 tests, zero failures/skips).
 - [x] Alex prioritizes shipping: physical Duo review and the documented Duo simulator gaps do not gate this combined PR. Preserve the failures as follow-ups; no physical Duo session is required.
-- [ ] Capture and review the final landscape iPad Store set, then open the combined PR with maintainer edits and verify normal checks.
+- [x] Open combined draft [PR #2412](https://github.com/kirill-markin/flashcards-open-source-app/pull/2412) with maintainer edits enabled.
+- [ ] Capture and review the final landscape iPad Store set and verify normal PR checks.
 
 Preserve minimum iOS 18, all 50 languages, Subscription/Accent, ordinary-phone portrait/full AI, physical-left eligible Duo chat, iPad RTL and shared state. No native Mac support claim. No live AI prompts, purchases, cloud dispatch, PR merge, release or store upload are authorized.
 
@@ -64,6 +65,8 @@ The complete latest-OS live/account smoke selection and actual iOS 18 compatibil
 
 ## PR and publication
 
-Alex authorized one combined PR against upstream `main`, with **Allow edits by maintainers** enabled. Alex explicitly removed physical Duo review as a shipping prerequisite on 2026-10-08. The documented Duo input/transition failures remain nonblocking follow-ups, not passes. No PR is open yet; landscape screenshot preparation is in progress. The candidate is committed on `codex/ipad-latest`; exact blocker evidence and the PR draft are preserved locally outside the tracked tree. The screenshot batch paused cleanly after Czech guest cleanup for the reported toolbar regression. Earlier captures are superseded; all final assets are being regenerated from the fixed application. This session owns implementation, compiler/simulator, integration and PR work; old chats are parked and their supervision automation is disabled. No PR merge, release, store upload or Xcode Cloud dispatch is authorized.
+Alex authorized one combined PR against upstream `main`, with **Allow edits by maintainers** enabled. [PR #2412](https://github.com/kirill-markin/flashcards-open-source-app/pull/2412) is open as draft with that option checked. Physical Duo review and the documented Duo simulator gaps are nonblocking follow-ups, as explicitly requested on 2026-10-08.
+
+The PR exposed conflicts with the upstream AI chat history addition. Integration is pinned to `8ad37887e71cb946a6697a9ad657ef0ab61ce6bd`. History uses the AI tab's native navigation stack from either presentation; shared drafts survive the round trip and card actions pop to the live chat. The batch stopped after Portuguese (Brazil) guest cleanup before integration. Earlier captures are superseded; final assets will use the integrated application. This session owns implementation, simulator, integration and PR work; old chats are parked and their supervision automation is disabled. No PR merge, release, store upload or Xcode Cloud dispatch is authorized.
 
 **New landscape iPad App Store screenshots must be captured, reviewed and uploaded before publication.** Use the existing localized five-shot workflow and canonical iPad target in [marketing screenshots](marketing-screenshots.md), validating landscape dimensions. Marketing montages, private device captures and simulator QA captures do not replace these assets.
