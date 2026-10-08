@@ -85,6 +85,7 @@
 "ai.availability.dictation.official" = "官方服务器暂时无法使用AI听写功能。请稍后重试。";
 "ai.availability.dictation.custom" = "AI 听写在此服务器上不可用。联系服务器运营商。";
 "ai.run.error.activeRunInProgress" = "已经有回应正在进行中。等待它完成或停止它，然后再发送另一条消息。";
+"ai.chatNotCurrent.notice" = "此聊天已被更新的聊天取代。你的消息仍在输入框中，请重新发送。";
 "ai.dictation.error.microphoneUnavailable" = "麦克风在此设备上不可用。";
 "ai.dictation.error.microphoneDenied" = "未授予麦克风访问权限。";
 "ai.dictation.error.microphoneBlocked" = "Nibomo 禁用麦克风访问。在“设置”>“隐私和安全”>“麦克风”中激活它。";

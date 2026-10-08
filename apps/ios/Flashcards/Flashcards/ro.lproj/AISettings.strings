@@ -85,6 +85,7 @@
 "ai.availability.dictation.official" = "Dictarea AI este temporar indisponibilă pe serverul oficial. Încearcă din nou mai târziu.";
 "ai.availability.dictation.custom" = "Dictarea AI nu este disponibilă pe acest server. Contactează administratorul serverului.";
 "ai.run.error.activeRunInProgress" = "Un răspuns este deja în curs. Așteaptă să se termine sau oprește-l înainte de a trimite alt mesaj.";
+"ai.chatNotCurrent.notice" = "Acest chat a fost înlocuit cu unul mai nou. Mesajul tău este încă în caseta de text — trimite-l din nou.";
 "ai.dictation.error.microphoneUnavailable" = "Microfonul nu este disponibil pe acest dispozitiv.";
 "ai.dictation.error.microphoneDenied" = "Accesul la microfon nu a fost acordat.";
 "ai.dictation.error.microphoneBlocked" = "Accesul la microfon este dezactivat pentru Nibomo. Activează-l în Configurări > Intimitate și securitate > Microfon.";

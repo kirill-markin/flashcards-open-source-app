@@ -140,6 +140,19 @@
   background: var(--surface-hover);
 }
 
+.chat-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  padding: 0;
+}
+
+.chat-icon-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
 .chat-messages {
   flex: 1;
   min-height: 0;

@@ -85,6 +85,7 @@
 "ai.availability.dictation.official" = "El dictado con IA no esta disponible temporalmente en el servidor oficial. Intentalo de nuevo mas tarde.";
 "ai.availability.dictation.custom" = "El dictado con IA no esta disponible en este servidor. Contacta con el operador del servidor.";
 "ai.run.error.activeRunInProgress" = "Ya hay una respuesta en curso. Espera a que termine o detenla antes de enviar otro mensaje.";
+"ai.chatNotCurrent.notice" = "Este chat se ha sustituido por uno más reciente. Tu mensaje sigue en el cuadro de texto: vuelve a enviarlo.";
 "ai.dictation.error.microphoneUnavailable" = "El microfono no esta disponible en este dispositivo.";
 "ai.dictation.error.microphoneDenied" = "No se concedio acceso al microfono.";
 "ai.dictation.error.microphoneBlocked" = "El acceso al microfono esta desactivado para Nibomo. Activalo en Ajustes > Privacidad y seguridad > Microfono.";
