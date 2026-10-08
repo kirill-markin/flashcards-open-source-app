@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactElement } from "react";
+import { useEffect, useRef, useState, type ReactElement } from "react";
 import { useAppData } from "../../appData";
 import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
@@ -29,6 +29,7 @@ import {
   hasChatDraftContent,
 } from "../composer/chatComposerState";
 import { renderStoredMessageContent } from "../history/chatMessageContent";
+import { ChatHistoryPanel } from "../history/ChatHistoryPanel";
 import { useChatAutoScroll } from "../history/useChatAutoScroll";
 import { useAIChatPreferences } from "../preferences/AIChatPreferencesContext";
 import { useChatSession } from "../sessionController";
@@ -94,9 +95,12 @@ export function ChatPanel(props: Props): ReactElement {
   const messagesRef = useRef<HTMLDivElement>(null);
   const messagesContentRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const isHistoryPanelVisible = isHistoryOpen && activeWorkspaceId !== null;
 
   const { handleMessagesScroll } = useChatAutoScroll({
-    isHydrated: isHistoryLoaded,
+    // The History panel unmounts the messages scroller; closing it must rebind and re-restore the new one.
+    isHydrated: isHistoryLoaded && isHistoryPanelVisible === false,
     isStreaming: isAssistantRunActive,
     messages,
     messagesRef,
@@ -206,6 +210,8 @@ export function ChatPanel(props: Props): ReactElement {
     isStopping,
     sendPhase,
   });
+  // The History panel hides the draft, so a drop there must not attach to it unseen.
+  const canDropDraftFiles = canAttachDraftFiles && isHistoryPanelVisible === false;
   const {
     handleDragEnter,
     handleDragLeave,
@@ -218,7 +224,7 @@ export function ChatPanel(props: Props): ReactElement {
   } = useChatAttachments({
     attachmentLimitMessage,
     attachmentUnsupportedMessage,
-    canAttachDraftFiles,
+    canAttachDraftFiles: canDropDraftFiles,
     currentSessionId,
     draftInputText,
     indexedDbOpenRecoveryState,
@@ -304,6 +310,17 @@ export function ChatPanel(props: Props): ReactElement {
     }
   }
 
+  function handleMessageTechnicalError(error: unknown): boolean {
+    if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+      return true;
+    }
+    return showChatTechnicalError(error, "chat_tool_call_copy");
+  }
+
+  function canStartMessageAction(): boolean {
+    return indexedDbOpenRecoveryState.hasFailed() === false;
+  }
+
   async function handleStopMessage(): Promise<void> {
     if (indexedDbOpenRecoveryState.hasFailed()) {
       return;
@@ -332,7 +349,7 @@ export function ChatPanel(props: Props): ReactElement {
       onDragOver={handleDragOver}
       onDrop={(event) => void handleDrop(event)}
     >
-      {isDragOver && canAttachDraftFiles ? <div className="chat-drop-overlay">{t("chatPanel.dropFiles")}</div> : null}
+      {isDragOver && canDropDraftFiles ? <div className="chat-drop-overlay">{t("chatPanel.dropFiles")}</div> : null}
       {mode === "sidebar" ? (
         <div
           className={`chat-resize-handle${isDragging ? " dragging" : ""}`}
@@ -352,8 +369,36 @@ export function ChatPanel(props: Props): ReactElement {
         <div className="chat-header-actions">
           <button
             type="button"
+            className="chat-close-btn chat-icon-btn"
+            aria-label={t("chatPanel.actions.history")}
+            title={t("chatPanel.actions.history")}
+            onClick={() => setIsHistoryOpen(true)}
+            disabled={isChatActionLocked || activeWorkspaceId === null || isDictationVisible}
+            data-testid="chat-history-button"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            >
+              <path d="M9 6h11" />
+              <path d="M9 12h11" />
+              <path d="M9 18h11" />
+              <path d="M4 6h.01" />
+              <path d="M4 12h.01" />
+              <path d="M4 18h.01" />
+            </svg>
+          </button>
+          <button
+            type="button"
             className="chat-close-btn"
-            onClick={() => void handleStartNewConversation()}
+            onClick={() => {
+              setIsHistoryOpen(false);
+              void handleStartNewConversation();
+            }}
             disabled={isStopping || isChatActionLocked}
             data-testid="chat-new-button"
           >
@@ -377,6 +422,22 @@ export function ChatPanel(props: Props): ReactElement {
         </div>
       </div>
 
+      {isHistoryPanelVisible ? (
+        <ChatHistoryPanel
+          key={activeWorkspaceId}
+          workspaceId={activeWorkspaceId}
+          currentSessionId={currentSessionId}
+          isCurrentChatArchiveDisabled={isAssistantRunActive || isStopping || isSendButtonBusy || isChatActionLocked}
+          onCurrentChatArchived={() => {
+            setIsHistoryOpen(false);
+            void handleStartNewConversation();
+          }}
+          onMessageTechnicalError={handleMessageTechnicalError}
+          canStartMessageAction={canStartMessageAction}
+          onClose={() => setIsHistoryOpen(false)}
+        />
+      ) : (
+        <>
       <div className="chat-messages" ref={messagesRef} onScroll={handleMessagesScroll} data-testid="chat-messages">
         <div className="chat-messages-content" ref={messagesContentRef}>
           {isInitialHistoryLoading ? (
@@ -408,13 +469,8 @@ export function ChatPanel(props: Props): ReactElement {
                 {renderStoredMessageContent(
                   message,
                   t,
-                  (error) => {
-                    if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
-                      return true;
-                    }
-                    return showChatTechnicalError(error, "chat_tool_call_copy");
-                  },
-                  () => indexedDbOpenRecoveryState.hasFailed() === false,
+                  handleMessageTechnicalError,
+                  canStartMessageAction,
                 )}
                 {isLastAssistant ? (
                   <span className="chat-streaming-indicator">
@@ -620,6 +676,8 @@ export function ChatPanel(props: Props): ReactElement {
           </div>
         </div>
       </div>
+        </>
+      )}
 
       {errorDialogMessage !== null ? (
         <div

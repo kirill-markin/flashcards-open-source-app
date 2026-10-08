@@ -6,7 +6,12 @@ import {
   type ChatComposerSuggestion,
 } from "../composerSuggestions";
 import { getChatConfig } from "../config";
-import type { ChatStopResponse } from "../contract";
+import type {
+  ChatSessionArchiveResponse,
+  ChatSessionRenameResponse,
+  ChatSessionsListResponse,
+  ChatStopResponse,
+} from "../contract";
 import {
   getBackendTraceCarrier,
   startBackendSpan,
@@ -30,10 +35,14 @@ import {
   chatMaximumStartRunRequestBytes,
   chatRequestTooLargeCode,
   chatRequestTooLargeMessage,
+  encodeChatSessionsCursor,
   parseChatPageQuery,
   parseChatRequestBody,
+  parseChatSessionIdPathParam,
+  parseChatSessionsListQuery,
   parseNewChatRequestBody,
   parseOptionalSessionIdQuery,
+  parseRenameChatSessionRequestBody,
   parseStopChatRequestBody,
 } from "./contract";
 import {
@@ -500,5 +509,82 @@ export function createPostChatStopHandler(dependencies: ChatRouteDependencies): 
       stopped: stopState.stopped,
       stillRunning: stopState.stillRunning,
     } satisfies ChatStopResponse);
+  };
+}
+
+export function createGetChatSessionsHandler(dependencies: ChatRouteDependencies): Handler<AppEnv> {
+  return async (context) => {
+    const requestContext = await loadSupportedRequestContext(
+      context.req.raw,
+      dependencies,
+    );
+    const explicitWorkspaceId = parseOptionalWorkspaceIdParam(context.req.query("workspaceId") ?? undefined);
+    const workspaceId = await dependencies.resolveAccessibleChatWorkspaceIdFn(requestContext, explicitWorkspaceId);
+    const listQuery = parseChatSessionsListQuery(
+      context.req.query("limit") ?? undefined,
+      context.req.query("cursor") ?? undefined,
+      context.req.query("q") ?? undefined,
+    );
+
+    const page = await dependencies.listChatSessionHistoryFn(
+      requestContext.userId,
+      workspaceId,
+      listQuery.limit,
+      listQuery.cursor,
+      listQuery.searchText,
+    );
+
+    return context.json({
+      sessions: page.sessions,
+      nextCursor: page.nextCursor === null ? null : encodeChatSessionsCursor(page.nextCursor),
+    } satisfies ChatSessionsListResponse);
+  };
+}
+
+export function createPostChatSessionRenameHandler(dependencies: ChatRouteDependencies): Handler<AppEnv> {
+  return async (context) => {
+    const requestContext = await loadSupportedRequestContext(
+      context.req.raw,
+      dependencies,
+    );
+    const sessionId = parseChatSessionIdPathParam(context.req.param("sessionId"));
+    const body = parseRenameChatSessionRequestBody(await parseJsonBody(context.req.raw));
+    const explicitWorkspaceId = parseOptionalWorkspaceIdParam(context.req.query("workspaceId") ?? undefined);
+    const workspaceId = await dependencies.resolveAccessibleChatWorkspaceIdFn(requestContext, explicitWorkspaceId);
+
+    try {
+      const summary = await dependencies.renameChatSessionFn(
+        requestContext.userId,
+        workspaceId,
+        sessionId,
+        body.title,
+      );
+      return context.json(summary satisfies ChatSessionRenameResponse);
+    } catch (error) {
+      return mapStoreError(error);
+    }
+  };
+}
+
+export function createPostChatSessionArchiveHandler(dependencies: ChatRouteDependencies): Handler<AppEnv> {
+  return async (context) => {
+    const requestContext = await loadSupportedRequestContext(
+      context.req.raw,
+      dependencies,
+    );
+    const sessionId = parseChatSessionIdPathParam(context.req.param("sessionId"));
+    const explicitWorkspaceId = parseOptionalWorkspaceIdParam(context.req.query("workspaceId") ?? undefined);
+    const workspaceId = await dependencies.resolveAccessibleChatWorkspaceIdFn(requestContext, explicitWorkspaceId);
+
+    try {
+      const archivedSession = await dependencies.archiveChatSessionFn(
+        requestContext.userId,
+        workspaceId,
+        sessionId,
+      );
+      return context.json(archivedSession satisfies ChatSessionArchiveResponse);
+    } catch (error) {
+      return mapStoreError(error);
+    }
   };
 }

@@ -3,6 +3,7 @@ import {
   normalizeChatComposerSuggestionsUiLocale,
 } from "../composerSuggestions";
 import { HttpError } from "../../shared/errors";
+import type { ChatSessionHistoryCursor } from "../store";
 import {
   validateChatFileAttachmentContent,
   validateChatImageAttachmentContent,
@@ -110,7 +111,25 @@ export type ChatPageQuery = Readonly<{
   beforeCursor: number | undefined;
 }>;
 
+export type ChatSessionsListQuery = Readonly<{
+  limit: number;
+  cursor: ChatSessionHistoryCursor | null;
+  searchText: string | null;
+}>;
+
+export type RenameChatSessionRequestBody = Readonly<{
+  title: string;
+}>;
+
 const MAX_CHAT_PAGE_LIMIT = 50;
+const DEFAULT_CHAT_SESSIONS_PAGE_LIMIT = 20;
+const MAX_CHAT_SESSIONS_SEARCH_LENGTH = 200;
+const MAX_CHAT_SESSION_TITLE_LENGTH = 200;
+const CHAT_SESSIONS_CURSOR_TIMESTAMP_PATTERN = /^[1-9]\d{3}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const chatSessionsCursorInvalidCode = "CHAT_SESSIONS_CURSOR_INVALID";
+const chatSessionsSearchTooLongCode = "CHAT_SESSIONS_SEARCH_TOO_LONG";
+const chatSessionTitleInvalidCode = "CHAT_SESSION_TITLE_INVALID";
 
 const UNSUPPORTED_CHAT_REQUEST_FIELDS = [
   // First-party AI clients newer than 1.5.0 no longer send these legacy
@@ -363,4 +382,122 @@ export function parseChatPageQuery(
     limit,
     beforeCursor,
   };
+}
+
+export function encodeChatSessionsCursor(cursor: ChatSessionHistoryCursor): string {
+  return Buffer.from(JSON.stringify(cursor), "utf8").toString("base64url");
+}
+
+function createInvalidChatSessionsCursorError(reason: string): HttpError {
+  return new HttpError(400, `cursor is invalid: ${reason}`, chatSessionsCursorInvalidCode);
+}
+
+/**
+ * Rejects a timestamp Postgres would refuse, such as February 30, so a tampered cursor is a 400.
+ */
+function isValidChatSessionsCursorTimestamp(value: string): boolean {
+  if (!CHAT_SESSIONS_CURSOR_TIMESTAMP_PATTERN.test(value)) {
+    return false;
+  }
+
+  const millisecondTimestamp = `${value.slice(0, 23)}Z`;
+  const parsedMilliseconds = Date.parse(millisecondTimestamp);
+  return !Number.isNaN(parsedMilliseconds)
+    && new Date(parsedMilliseconds).toISOString() === millisecondTimestamp;
+}
+
+function parseChatSessionsCursor(value: string): ChatSessionHistoryCursor {
+  let decodedValue: unknown;
+  try {
+    decodedValue = JSON.parse(Buffer.from(value, "base64url").toString("utf8"));
+  } catch {
+    throw createInvalidChatSessionsCursorError("not base64url-encoded JSON");
+  }
+
+  if (typeof decodedValue !== "object" || decodedValue === null || Array.isArray(decodedValue)) {
+    throw createInvalidChatSessionsCursorError("payload must be an object");
+  }
+
+  const { lastActivityAt, sessionId } = decodedValue as Record<string, unknown>;
+  if (typeof lastActivityAt !== "string" || !isValidChatSessionsCursorTimestamp(lastActivityAt)) {
+    throw createInvalidChatSessionsCursorError("lastActivityAt must be a microsecond UTC timestamp");
+  }
+
+  if (typeof sessionId !== "string" || !UUID_PATTERN.test(sessionId)) {
+    throw createInvalidChatSessionsCursorError("sessionId must be a UUID");
+  }
+
+  return {
+    lastActivityAt,
+    sessionId: sessionId.toLowerCase(),
+  };
+}
+
+function parseChatSessionsSearchText(value: string | undefined): string | null {
+  if (value === undefined) {
+    return null;
+  }
+
+  const searchText = value.trim();
+  if (searchText === "") {
+    return null;
+  }
+
+  if (Array.from(searchText).length > MAX_CHAT_SESSIONS_SEARCH_LENGTH) {
+    throw new HttpError(
+      400,
+      `q must be at most ${MAX_CHAT_SESSIONS_SEARCH_LENGTH} characters`,
+      chatSessionsSearchTooLongCode,
+    );
+  }
+
+  return searchText;
+}
+
+/**
+ * Parses `GET /chat/sessions` paging and search; `limit` is clamped like the message page limit.
+ */
+export function parseChatSessionsListQuery(
+  limitParam: string | undefined,
+  cursorParam: string | undefined,
+  searchParam: string | undefined,
+): ChatSessionsListQuery {
+  const limit = limitParam === undefined
+    ? DEFAULT_CHAT_SESSIONS_PAGE_LIMIT
+    : Math.min(
+      Math.max(Number.parseInt(limitParam, 10) || DEFAULT_CHAT_SESSIONS_PAGE_LIMIT, 1),
+      MAX_CHAT_PAGE_LIMIT,
+    );
+
+  return {
+    limit,
+    cursor: cursorParam === undefined ? null : parseChatSessionsCursor(cursorParam),
+    searchText: parseChatSessionsSearchText(searchParam),
+  };
+}
+
+export function parseChatSessionIdPathParam(value: string | undefined): string {
+  return expectUuidString(value, "sessionId");
+}
+
+/**
+ * Titles are trimmed and limited by code point, matching the VARCHAR(200) column.
+ */
+export function parseRenameChatSessionRequestBody(value: unknown): RenameChatSessionRequestBody {
+  const body = expectRecord(value);
+  if (typeof body.title !== "string") {
+    throw new HttpError(400, "title must be a string", chatSessionTitleInvalidCode);
+  }
+
+  const title = body.title.trim();
+  const titleLength = Array.from(title).length;
+  if (titleLength === 0 || titleLength > MAX_CHAT_SESSION_TITLE_LENGTH) {
+    throw new HttpError(
+      400,
+      `title must be between 1 and ${MAX_CHAT_SESSION_TITLE_LENGTH} characters`,
+      chatSessionTitleInvalidCode,
+    );
+  }
+
+  return { title };
 }

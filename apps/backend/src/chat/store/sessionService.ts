@@ -234,6 +234,7 @@ export const getLatestChatSessionId = async (
     FROM ai.chat_sessions
     WHERE user_id = $1
       AND workspace_id = $2
+      AND archived_at IS NULL
     ORDER BY created_at DESC, session_id DESC
     LIMIT 1
   `, [userId, workspaceId]).then((result) => {
