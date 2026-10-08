@@ -29,7 +29,6 @@ import {
   hasChatDraftContent,
 } from "../composer/chatComposerState";
 import { renderStoredMessageContent } from "../history/chatMessageContent";
-import { archiveChatSession } from "../history/chatArchive";
 import { ChatHistoryPanel } from "../history/ChatHistoryPanel";
 import { useChatAutoScroll } from "../history/useChatAutoScroll";
 import { useAIChatPreferences } from "../preferences/AIChatPreferencesContext";
@@ -293,14 +292,6 @@ export function ChatPanel(props: Props): ReactElement {
 
     try {
       indexedDbOpenRecoveryState.throwIfFailed();
-      // Archive the outgoing chat so it stays available as read-only history.
-      if (messages.length > 0) {
-        archiveChatSession(
-          activeWorkspaceId,
-          messages,
-          t("chatPanel.history.untitledChat"),
-        );
-      }
       suppressNextSessionDraftCarryover(currentSessionId);
       startNewConversationComposerReset(currentSessionId);
       discardDictation();
@@ -313,6 +304,17 @@ export function ChatPanel(props: Props): ReactElement {
       }
       throw error;
     }
+  }
+
+  function handleMessageTechnicalError(error: unknown): boolean {
+    if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+      return true;
+    }
+    return showChatTechnicalError(error, "chat_tool_call_copy");
+  }
+
+  function canStartMessageAction(): boolean {
+    return indexedDbOpenRecoveryState.hasFailed() === false;
   }
 
   async function handleStopMessage(): Promise<void> {
@@ -365,7 +367,7 @@ export function ChatPanel(props: Props): ReactElement {
             type="button"
             className="chat-close-btn"
             onClick={() => setIsHistoryOpen(true)}
-            disabled={isChatActionLocked}
+            disabled={isChatActionLocked || activeWorkspaceId === null}
             data-testid="chat-history-button"
           >
             {t("chatPanel.actions.history")}
@@ -373,7 +375,10 @@ export function ChatPanel(props: Props): ReactElement {
           <button
             type="button"
             className="chat-close-btn"
-            onClick={() => void handleStartNewConversation()}
+            onClick={() => {
+              setIsHistoryOpen(false);
+              void handleStartNewConversation();
+            }}
             disabled={isStopping || isChatActionLocked}
             data-testid="chat-new-button"
           >
@@ -397,9 +402,18 @@ export function ChatPanel(props: Props): ReactElement {
         </div>
       </div>
 
-      {isHistoryOpen ? (
+      {isHistoryOpen && activeWorkspaceId !== null ? (
         <ChatHistoryPanel
+          key={activeWorkspaceId}
           workspaceId={activeWorkspaceId}
+          currentSessionId={currentSessionId}
+          isCurrentChatArchiveDisabled={isAssistantRunActive || isStopping || isSendButtonBusy || isChatActionLocked}
+          onCurrentChatArchived={() => {
+            setIsHistoryOpen(false);
+            void handleStartNewConversation();
+          }}
+          onMessageTechnicalError={handleMessageTechnicalError}
+          canStartMessageAction={canStartMessageAction}
           onClose={() => setIsHistoryOpen(false)}
         />
       ) : (
@@ -435,13 +449,8 @@ export function ChatPanel(props: Props): ReactElement {
                 {renderStoredMessageContent(
                   message,
                   t,
-                  (error) => {
-                    if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
-                      return true;
-                    }
-                    return showChatTechnicalError(error, "chat_tool_call_copy");
-                  },
-                  () => indexedDbOpenRecoveryState.hasFailed() === false,
+                  handleMessageTechnicalError,
+                  canStartMessageAction,
                 )}
                 {isLastAssistant ? (
                   <span className="chat-streaming-indicator">

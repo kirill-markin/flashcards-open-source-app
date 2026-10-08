@@ -1,319 +1,274 @@
-import { useEffect, useMemo, useState } from "react";
-import { useI18n } from "../../i18n";
-import { renderStoredMessageContent } from "./chatMessageContent";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  deleteArchivedChat,
-  getArchivedChat,
-  listArchivedChats,
-  renameArchivedChat,
-  type ArchivedChat,
-  type ArchivedChatSummary,
-} from "./chatArchive";
+  ApiError,
+  archiveChatSession,
+  listChatSessions,
+  renameChatSession,
+} from "../../api";
+import { useAppData } from "../../appData";
+import { useI18n } from "../../i18n";
+import { captureAppOperationError } from "../../observability/appOperationObservation";
+import type { ChatSessionHistorySummary } from "../../types";
+import {
+  ChatHistoryList,
+  type ListState,
+  type LoadMoreState,
+  type RowAction,
+} from "./ChatHistoryList";
+import { ChatHistoryReader } from "./ChatHistoryReader";
+import { isChatUnavailableError, type ReportHistoryError } from "./chatHistoryShared";
+
+const SEARCH_DEBOUNCE_MS = 300;
+const archiveActiveRunErrorCode = "CHAT_SESSION_ARCHIVE_ACTIVE_RUN";
 
 type HistoryView =
   | Readonly<{ kind: "list" }>
-  | Readonly<{ kind: "reading"; chatId: string }>;
+  | Readonly<{ kind: "reading"; summary: ChatSessionHistorySummary }>;
 
 export type ChatHistoryPanelProps = Readonly<{
-  workspaceId: string | null;
+  workspaceId: string;
+  currentSessionId: string | null;
+  isCurrentChatArchiveDisabled: boolean;
+  onCurrentChatArchived: () => void;
+  onMessageTechnicalError: (error: unknown) => boolean;
+  canStartMessageAction: () => boolean;
   onClose: () => void;
 }>;
 
-function formatChatDate(timestamp: number, formatDate: (value: number) => string): string {
-  try {
-    return formatDate(timestamp);
-  } catch {
-    return new Date(timestamp).toLocaleDateString();
-  }
+function isArchiveActiveRunError(error: unknown): boolean {
+  return error instanceof ApiError && error.code === archiveActiveRunErrorCode;
 }
 
-function ChatHistoryList(props: {
-  workspaceId: string | null;
-  summaries: ArchivedChatSummary[];
-  searchQuery: string;
-  onSearchQueryChange: (value: string) => void;
-  renamingId: string | null;
-  onStartRename: (chatId: string) => void;
-  onCancelRename: () => void;
-  onConfirmRename: (chatId: string, title: string) => void;
-  onDelete: (chatId: string) => void;
-  onOpen: (chatId: string) => void;
-  onClose: () => void;
-  refresh: () => void;
-}): React.JSX.Element {
-  const {
-    workspaceId,
-    summaries,
-    searchQuery,
-    onSearchQueryChange,
-    renamingId,
-    onStartRename,
-    onCancelRename,
-    onConfirmRename,
-    onDelete,
-    onOpen,
-    onClose,
-    refresh,
-  } = props;
-  const { t, formatDate, formatCount, messages: translationMessages } = useI18n();
-  const [renameDraft, setRenameDraft] = useState("");
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-
-  const filtered = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    if (query === "") {
-      return summaries;
-    }
-    return summaries.filter(
-      (summary) =>
-        summary.title.toLowerCase().includes(query) ||
-        summary.preview.toLowerCase().includes(query),
-    );
-  }, [summaries, searchQuery]);
-
-  function handleDeleteConfirmed(chatId: string): void {
-    deleteArchivedChat(workspaceId, chatId);
-    setDeleteConfirmId(null);
-    refresh();
-  }
-
-  return (
-    <div className="chat-history-panel" data-testid="chat-history-panel">
-      <div className="chat-header">
-        <div>
-          <span className="chat-header-title">{t("chatPanel.history.title")}</span>
-          <p className="chat-subtitle">{t("chatPanel.history.readOnlyNotice")}</p>
-        </div>
-        <div className="chat-header-actions">
-          <button
-            type="button"
-            className="chat-close-btn"
-            onClick={onClose}
-            aria-label={t("chatPanel.history.close")}
-            data-testid="chat-history-close"
-          >
-            {t("chatPanel.history.close")}
-          </button>
-        </div>
-      </div>
-      <div className="chat-history-search">
-        <input
-          type="search"
-          value={searchQuery}
-          onChange={(event) => onSearchQueryChange(event.target.value)}
-          placeholder={t("chatPanel.history.searchPlaceholder")}
-          aria-label={t("chatPanel.history.searchPlaceholder")}
-          data-testid="chat-history-search"
-        />
-      </div>
-      <div className="chat-history-list" data-testid="chat-history-list">
-        {filtered.length === 0 ? (
-          <p className="chat-history-empty" data-testid="chat-history-empty">
-            {searchQuery.trim() === ""
-              ? t("chatPanel.history.empty")
-              : t("chatPanel.history.noSearchResults")}
-          </p>
-        ) : (
-          filtered.map((summary) => (
-            <div key={summary.id} className="chat-history-item" data-testid="chat-history-item">
-              {renamingId === summary.id ? (
-                <form
-                  className="chat-history-rename-form"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    onConfirmRename(summary.id, renameDraft);
-                  }}
-                >
-                  <input
-                    // eslint-disable-next-line jsx-a11y/no-autofocus
-                    autoFocus
-                    value={renameDraft}
-                    onChange={(event) => setRenameDraft(event.target.value)}
-                    aria-label={t("chatPanel.history.rename")}
-                    data-testid="chat-history-rename-input"
-                  />
-                  <button type="submit" data-testid="chat-history-rename-save">
-                    {t("chatPanel.history.save")}
-                  </button>
-                  <button type="button" onClick={onCancelRename} data-testid="chat-history-rename-cancel">
-                    {t("chatPanel.history.cancel")}
-                  </button>
-                </form>
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    className="chat-history-item-main"
-                    onClick={() => onOpen(summary.id)}
-                    data-testid="chat-history-open"
-                  >
-                    <span className="chat-history-item-title">{summary.title}</span>
-                    <span className="chat-history-item-meta">
-                      {formatChatDate(summary.updatedAt, formatDate)}
-                      {" · "}
-                      {formatCount(
-                        summary.messageCount,
-                        translationMessages.chatPanel.history.messageCountLabels.message,
-                      )}
-                    </span>
-                    {summary.preview !== "" ? (
-                      <span className="chat-history-item-preview">{summary.preview}</span>
-                    ) : null}
-                  </button>
-                  <div className="chat-history-item-actions">
-                    <button
-                      type="button"
-                      className="chat-history-item-action"
-                      onClick={() => {
-                        setRenameDraft(summary.title);
-                        onStartRename(summary.id);
-                      }}
-                      aria-label={t("chatPanel.history.rename")}
-                      data-testid="chat-history-rename"
-                    >
-                      {t("chatPanel.history.rename")}
-                    </button>
-                    {deleteConfirmId === summary.id ? (
-                      <>
-                        <button
-                          type="button"
-                          className="chat-history-item-action chat-history-item-action-danger"
-                          onClick={() => handleDeleteConfirmed(summary.id)}
-                          data-testid="chat-history-delete-confirm"
-                        >
-                          {t("chatPanel.history.deleteConfirm")}
-                        </button>
-                        <button
-                          type="button"
-                          className="chat-history-item-action"
-                          onClick={() => setDeleteConfirmId(null)}
-                          data-testid="chat-history-delete-cancel"
-                        >
-                          {t("chatPanel.history.cancel")}
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        type="button"
-                        className="chat-history-item-action chat-history-item-action-danger"
-                        onClick={() => setDeleteConfirmId(summary.id)}
-                        aria-label={t("chatPanel.history.delete")}
-                        data-testid="chat-history-delete"
-                      >
-                        {t("chatPanel.history.delete")}
-                      </button>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
-          ))
-        )}
-      </div>
-    </div>
-  );
+function appendNewSessions(
+  sessions: ReadonlyArray<ChatSessionHistorySummary>,
+  nextSessions: ReadonlyArray<ChatSessionHistorySummary>,
+): ReadonlyArray<ChatSessionHistorySummary> {
+  const knownSessionIds = new Set(sessions.map((session) => session.sessionId));
+  return [...sessions, ...nextSessions.filter((session) => knownSessionIds.has(session.sessionId) === false)];
 }
 
-function ChatHistoryReader(props: {
-  chat: ArchivedChat;
-  onBack: () => void;
-}): React.JSX.Element {
-  const { chat, onBack } = props;
-  const { t, formatDate } = useI18n();
+function withEntry<Value>(
+  record: Readonly<Record<string, Value>>,
+  key: string,
+  value: Value,
+): Readonly<Record<string, Value>> {
+  return { ...record, [key]: value };
+}
 
-  return (
-    <div className="chat-history-panel" data-testid="chat-history-reader">
-      <div className="chat-header">
-        <div>
-          <span className="chat-header-title">{chat.summary.title}</span>
-          <p className="chat-subtitle">
-            {formatChatDate(chat.summary.updatedAt, formatDate)}
-            {" · "}
-            {t("chatPanel.history.readOnlyNotice")}
-          </p>
-        </div>
-        <div className="chat-header-actions">
-          <button
-            type="button"
-            className="chat-close-btn"
-            onClick={onBack}
-            data-testid="chat-history-back"
-          >
-            {t("chatPanel.history.back")}
-          </button>
-        </div>
-      </div>
-      <div className="chat-messages" data-testid="chat-history-messages">
-        <div className="chat-messages-content">
-          {chat.messages.map((message, index) => (
-            <div
-              key={`${message.timestamp}-${index}`}
-              className={`chat-msg chat-msg-${message.role}`}
-            >
-              {renderStoredMessageContent(
-                message,
-                t,
-                () => false,
-                () => false,
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+function withoutEntry<Value>(
+  record: Readonly<Record<string, Value>>,
+  key: string,
+): Readonly<Record<string, Value>> {
+  return Object.fromEntries(Object.entries(record).filter(([entryKey]) => entryKey !== key));
 }
 
 export function ChatHistoryPanel(props: ChatHistoryPanelProps): React.JSX.Element {
-  const { workspaceId, onClose } = props;
+  const {
+    workspaceId,
+    currentSessionId,
+    isCurrentChatArchiveDisabled,
+    onCurrentChatArchived,
+    onMessageTechnicalError,
+    canStartMessageAction,
+    onClose,
+  } = props;
+  const appData = useAppData();
+  const { t } = useI18n();
+  const userId = appData.session?.userId ?? null;
+  const installationId = appData.cloudSettings?.installationId ?? null;
   const [view, setView] = useState<HistoryView>({ kind: "list" });
   const [searchQuery, setSearchQuery] = useState("");
-  const [renamingId, setRenamingId] = useState<string | null>(null);
-  const [refreshToken, setRefreshToken] = useState(0);
+  const [searchText, setSearchText] = useState<string | null>(null);
+  const [listState, setListState] = useState<ListState>({ status: "loading" });
+  const [loadMoreState, setLoadMoreState] = useState<LoadMoreState>("idle");
+  const [listReloadVersion, setListReloadVersion] = useState(0);
+  const [rowActions, setRowActions] = useState<Readonly<Record<string, RowAction>>>({});
+  const [rowErrors, setRowErrors] = useState<Readonly<Record<string, string>>>({});
+  const [listNotice, setListNotice] = useState<string | null>(null);
+  // The signal of the first-page request that produced the visible list; aborted when it is replaced.
+  const listSignalRef = useRef<AbortSignal | null>(null);
 
-  const summaries = useMemo(
-    () => listArchivedChats(workspaceId),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [workspaceId, refreshToken],
-  );
-
-  const readingChat =
-    view.kind === "reading" ? getArchivedChat(workspaceId, view.chatId) : null;
+  const reportHistoryError = useCallback<ReportHistoryError>((error, operation, sessionId) => {
+    captureAppOperationError(error, {
+      feature: "chat",
+      operation,
+      userId,
+      workspaceId,
+      installationId,
+      entityId: sessionId,
+    });
+  }, [installationId, userId, workspaceId]);
 
   useEffect(() => {
-    if (view.kind === "reading" && readingChat === null) {
-      setView({ kind: "list" });
-      setRefreshToken((token) => token + 1);
-    }
-  }, [view, readingChat]);
+    const trimmedQuery = searchQuery.trim();
+    const timeoutId = window.setTimeout(() => {
+      setSearchText(trimmedQuery === "" ? null : trimmedQuery);
+    }, SEARCH_DEBOUNCE_MS);
+    return () => window.clearTimeout(timeoutId);
+  }, [searchQuery]);
 
-  function refresh(): void {
-    setRefreshToken((token) => token + 1);
-  }
-
-  if (view.kind === "reading" && readingChat !== null) {
-    return <ChatHistoryReader chat={readingChat} onBack={() => setView({ kind: "list" })} />;
-  }
-
-  return (
-    <ChatHistoryList
-      workspaceId={workspaceId}
-      summaries={summaries}
-      searchQuery={searchQuery}
-      onSearchQueryChange={setSearchQuery}
-      renamingId={renamingId}
-      onStartRename={setRenamingId}
-      onCancelRename={() => setRenamingId(null)}
-      onConfirmRename={(chatId, title) => {
-        if (renameArchivedChat(workspaceId, chatId, title)) {
-          setRenamingId(null);
-          refresh();
+  useEffect(() => {
+    const abortController = new AbortController();
+    listSignalRef.current = abortController.signal;
+    setListState({ status: "loading" });
+    setLoadMoreState("idle");
+    setListNotice(null);
+    void (async (): Promise<void> => {
+      try {
+        const page = await listChatSessions(workspaceId, null, searchText, abortController.signal);
+        if (abortController.signal.aborted) {
+          return;
         }
-      }}
-      onDelete={() => refresh()}
-      onOpen={(chatId) => setView({ kind: "reading", chatId })}
-      onClose={onClose}
-      refresh={refresh}
-    />
+        setListState({ status: "loaded", sessions: page.sessions, nextCursor: page.nextCursor });
+      } catch (error) {
+        if (abortController.signal.aborted) {
+          return;
+        }
+        reportHistoryError(error, "chat_history_list", null);
+        setListState({ status: "failed" });
+      }
+    })();
+    return () => abortController.abort();
+  }, [listReloadVersion, reportHistoryError, searchText, workspaceId]);
+
+  function updateLoadedSessions(
+    update: (sessions: ReadonlyArray<ChatSessionHistorySummary>) => ReadonlyArray<ChatSessionHistorySummary>,
+  ): void {
+    setListState((current) => current.status === "loaded"
+      ? { ...current, sessions: update(current.sessions) }
+      : current);
+  }
+
+  function replaceSession(summary: ChatSessionHistorySummary): void {
+    updateLoadedSessions((sessions) => sessions.map((session) =>
+      session.sessionId === summary.sessionId ? summary : session));
+  }
+
+  function removeSession(sessionId: string): void {
+    updateLoadedSessions((sessions) => sessions.filter((session) => session.sessionId !== sessionId));
+  }
+
+  async function handleLoadMore(): Promise<void> {
+    if (listState.status !== "loaded" || listState.nextCursor === null) {
+      return;
+    }
+    const signal = listSignalRef.current;
+    if (signal === null) {
+      throw new Error("Chat history load more started before the first page request.");
+    }
+
+    setLoadMoreState("loading");
+    try {
+      const page = await listChatSessions(workspaceId, listState.nextCursor, searchText, signal);
+      if (signal.aborted) {
+        return;
+      }
+      setListState((current) => current.status === "loaded"
+        ? {
+          status: "loaded",
+          sessions: appendNewSessions(current.sessions, page.sessions),
+          nextCursor: page.nextCursor,
+        }
+        : current);
+      setLoadMoreState("idle");
+    } catch (error) {
+      if (signal.aborted) {
+        return;
+      }
+      reportHistoryError(error, "chat_history_list", null);
+      setLoadMoreState("failed");
+    }
+  }
+
+  async function handleRename(summary: ChatSessionHistorySummary, title: string): Promise<void> {
+    const trimmedTitle = title.trim();
+    setRowErrors((current) => withoutEntry(current, summary.sessionId));
+    setRowActions((current) => withEntry(current, summary.sessionId, "renaming"));
+    replaceSession({ ...summary, title: trimmedTitle, hasCustomTitle: true });
+    try {
+      replaceSession(await renameChatSession(summary.sessionId, workspaceId, trimmedTitle));
+    } catch (error) {
+      if (isChatUnavailableError(error)) {
+        removeSession(summary.sessionId);
+        setListNotice(t("chatPanel.history.unavailable"));
+      } else {
+        replaceSession(summary);
+        reportHistoryError(error, "chat_history_rename", summary.sessionId);
+        setRowErrors((current) => withEntry(current, summary.sessionId, t("chatPanel.history.renameError")));
+      }
+    } finally {
+      setRowActions((current) => withoutEntry(current, summary.sessionId));
+    }
+  }
+
+  async function handleArchive(summary: ChatSessionHistorySummary): Promise<void> {
+    const isCurrent = summary.sessionId === currentSessionId;
+    setRowErrors((current) => withoutEntry(current, summary.sessionId));
+    setRowActions((current) => withEntry(current, summary.sessionId, "archiving"));
+    try {
+      await archiveChatSession(summary.sessionId, workspaceId);
+    } catch (error) {
+      // A 404 means the chat is already archived, which is the outcome this action wants.
+      if (isChatUnavailableError(error) === false) {
+        setRowActions((current) => withoutEntry(current, summary.sessionId));
+        const isActiveRun = isArchiveActiveRunError(error);
+        if (isActiveRun === false) {
+          reportHistoryError(error, "chat_history_archive", summary.sessionId);
+        }
+        setRowErrors((current) => withEntry(
+          current,
+          summary.sessionId,
+          isActiveRun ? t("chatPanel.history.archiveActiveRunError") : t("chatPanel.history.archiveError"),
+        ));
+        return;
+      }
+    }
+
+    setRowActions((current) => withoutEntry(current, summary.sessionId));
+    removeSession(summary.sessionId);
+    if (isCurrent) {
+      onCurrentChatArchived();
+    }
+  }
+
+  // The list stays mounted while reading so Back returns to the same scroll position and row state.
+  return (
+    <>
+      <ChatHistoryList
+        hidden={view.kind === "reading"}
+        listState={listState}
+        loadMoreState={loadMoreState}
+        currentSessionId={currentSessionId}
+        isCurrentChatArchiveDisabled={isCurrentChatArchiveDisabled}
+        searchQuery={searchQuery}
+        isSearchActive={searchText !== null}
+        onSearchQueryChange={setSearchQuery}
+        rowActions={rowActions}
+        rowErrors={rowErrors}
+        listNotice={listNotice}
+        onRename={(summary, title) => void handleRename(summary, title)}
+        onArchive={(summary) => void handleArchive(summary)}
+        onOpen={(summary) => {
+          if (summary.sessionId === currentSessionId) {
+            onClose();
+            return;
+          }
+          setView({ kind: "reading", summary });
+        }}
+        onRetry={() => setListReloadVersion((version) => version + 1)}
+        onLoadMore={() => void handleLoadMore()}
+        onClose={onClose}
+      />
+      {view.kind === "reading" ? (
+        <ChatHistoryReader
+          workspaceId={workspaceId}
+          summary={view.summary}
+          reportHistoryError={reportHistoryError}
+          onMessageTechnicalError={onMessageTechnicalError}
+          canStartMessageAction={canStartMessageAction}
+          onBack={() => setView({ kind: "list" })}
+        />
+      ) : null}
+    </>
   );
 }

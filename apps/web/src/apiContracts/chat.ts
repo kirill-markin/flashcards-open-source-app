@@ -2,8 +2,11 @@ import type {
   ChatComposerSuggestion,
   ChatConfig,
   ChatLiveStream,
+  ChatSessionArchiveResponse,
   ChatSessionHistoryMessage,
+  ChatSessionHistorySummary,
   ChatSessionSnapshot,
+  ChatSessionsListResponse,
   ChatTranscriptionResponse,
   ContentPart,
   NewChatSessionResponse,
@@ -18,6 +21,7 @@ import {
   parseBoolean,
   parseEnum,
   parseLiteral,
+  parseNonNegativeInteger,
   parseNullableNumber,
   parseNullableString,
   parseNumber,
@@ -306,6 +310,51 @@ export function parseStopChatRunResponse(value: unknown, endpoint: string): Stop
     sessionId: parseRequiredField(objectValue, "sessionId", endpoint, "", parseString),
     stopped: parseRequiredField(objectValue, "stopped", endpoint, "", parseBoolean),
     stillRunning: parseRequiredField(objectValue, "stillRunning", endpoint, "", parseBoolean),
+  };
+}
+
+function parseChatSessionHistorySummary(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ChatSessionHistorySummary {
+  const objectValue = parseObject(value, endpoint, path);
+  return {
+    sessionId: parseRequiredField(objectValue, "sessionId", endpoint, path, parseString),
+    title: parseRequiredField(objectValue, "title", endpoint, path, parseNullableString),
+    hasCustomTitle: parseRequiredField(objectValue, "hasCustomTitle", endpoint, path, parseBoolean),
+    preview: parseRequiredField(objectValue, "preview", endpoint, path, parseNullableString),
+    messageCount: parseRequiredField(objectValue, "messageCount", endpoint, path, parseNonNegativeInteger),
+    createdAt: parseRequiredField(objectValue, "createdAt", endpoint, path, parseNumber),
+    lastActivityAt: parseRequiredField(objectValue, "lastActivityAt", endpoint, path, parseNumber),
+  };
+}
+
+function parseChatSessionHistorySummaryArray(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ReadonlyArray<ChatSessionHistorySummary> {
+  return parseArray(value, endpoint, path, parseChatSessionHistorySummary);
+}
+
+export function parseChatSessionsListResponse(value: unknown, endpoint: string): ChatSessionsListResponse {
+  const objectValue = parseObject(value, endpoint, "");
+  return {
+    sessions: parseRequiredField(objectValue, "sessions", endpoint, "", parseChatSessionHistorySummaryArray),
+    nextCursor: parseRequiredField(objectValue, "nextCursor", endpoint, "", parseNullableString),
+  };
+}
+
+export function parseChatSessionRenameResponse(value: unknown, endpoint: string): ChatSessionHistorySummary {
+  return parseChatSessionHistorySummary(value, endpoint, "");
+}
+
+export function parseChatSessionArchiveResponse(value: unknown, endpoint: string): ChatSessionArchiveResponse {
+  const objectValue = parseObject(value, endpoint, "");
+  return {
+    sessionId: parseRequiredField(objectValue, "sessionId", endpoint, "", parseString),
+    archivedAt: parseRequiredField(objectValue, "archivedAt", endpoint, "", parseNumber),
   };
 }
 
