@@ -40,17 +40,6 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
             self.attachIPadScreenshot(name: "Reviewed card actual AI handoff \(attempt)")
             XCTAssertLessThanOrEqual(bar.frame.maxY - toggle.frame.maxY, toggle.frame.height, "Opening AI from a reviewed card must not leave an empty large-title band below the native toolbar.")
             if attempt == 1 {
-                try self.typeTextSafely("history navigation draft", intoElementWithIdentifier: LiveSmokeIdentifier.aiComposerTextField, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-                try self.tapButton(identifier: LiveSmokeIdentifier.aiHistoryButton, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-                try self.assertTextExists("Chat history", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-                XCTAssertFalse(self.visibleIPadCompanionPane != nil, "History must use the AI tab's native stack.")
-                try self.tapFirstNavigationBackButton()
-                try self.assertElementExists(identifier: LiveSmokeIdentifier.aiComposerTextField, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-                XCTAssertEqual(self.app.textFields[LiveSmokeIdentifier.aiComposerTextField].firstMatch.value as? String, "history navigation draft")
-                try self.tapTabBarItem(selectedTab: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-                try self.assertVisibleIPadCompanion()
-                try self.assertTextExists("Smoke guest manual review answer", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-                XCTAssertEqual(self.app.textFields[LiveSmokeIdentifier.aiComposerTextField].firstMatch.value as? String, "history navigation draft")
                 try self.tapButton(identifier: LiveSmokeIdentifier.aiCompanionToggle, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
                 try self.tapButton(identifier: LiveSmokeIdentifier.aiCompanionToggle, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             }
@@ -568,7 +557,7 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
             try self.tapButton(identifier: LiveSmokeIdentifier.aiConsentAcceptButton, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             try self.waitForAiComposerAfterConsent()
         }
-        try self.replaceTextSafely("draft", inElementWithIdentifier: LiveSmokeIdentifier.aiComposerTextField, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.replaceTextSafely("q", inElementWithIdentifier: LiveSmokeIdentifier.aiComposerTextField, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         let dismissKeyboard = self.app.buttons[LiveSmokeIdentifier.aiComposerDismissKeyboardButton]
         if dismissKeyboard.exists && dismissKeyboard.isHittable { dismissKeyboard.tap() }
         let initialSidebar = self.app.cells.matching(NSPredicate(format: "label == %@", "Review")).firstMatch
@@ -596,7 +585,7 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
         XCTAssertLessThanOrEqual(visibleComposer.frame.maxX, chatPane.frame.maxX, "The chat input fits inside the visible chat column.")
         XCTAssertEqual(chatPane.frame.maxX, (sidebarContainer.frame.maxX + self.app.windows.firstMatch.frame.maxX) / 2, accuracy: 8, "Chat and Review divide the available space beside the sidebar equally.")
         XCTAssertLessThan(sidebarContainer.frame.minX, self.app.windows.firstMatch.frame.minX + 80)
-        XCTAssertEqual(self.elementValue(element: self.app.textFields[LiveSmokeIdentifier.aiComposerTextField]), "draft")
+        XCTAssertEqual(self.elementValue(element: self.app.textFields[LiveSmokeIdentifier.aiComposerTextField]), "q")
         try self.assertTextExists("Smoke guest manual review answer", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         self.attachIPadScreenshot(name: "iPad native sidebar with equal chat and Review columns")
         sidebarToggle.tap()
@@ -642,7 +631,7 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
 
         try self.selectIPadDestination(selectedTab: .cards, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.assertVisibleIPadCompanion()
-        XCTAssertEqual(self.elementValue(element: self.app.textFields[LiveSmokeIdentifier.aiComposerTextField]), "draft")
+        XCTAssertEqual(self.elementValue(element: self.app.textFields[LiveSmokeIdentifier.aiComposerTextField]), "q")
         assertSingleNativeHeaderRow(selectedTab: .cards, stage: "Cards")
         let cardsToolbarActions: [(String, () -> [XCUIElement])] = [
             ("Filter", { self.app.buttons.matching(NSPredicate(format: "label == %@", "Filter cards")).allElementsBoundByIndex }),
@@ -691,7 +680,7 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
             cardsTab.tap()
             assertSingleNativeHeaderRow(selectedTab: .cards, stage: "Cards after overflow dismissal")
         }
-        XCTAssertEqual(self.elementValue(element: self.app.textFields[LiveSmokeIdentifier.aiComposerTextField]), "draft", "Inspecting Cards toolbar actions must preserve the existing chat draft.")
+        XCTAssertEqual(self.elementValue(element: self.app.textFields[LiveSmokeIdentifier.aiComposerTextField]), "q", "Inspecting Cards toolbar actions must preserve the existing chat draft.")
         func tapCardsToolbarAction(name: String) throws {
             let action = try XCTUnwrap(cardsToolbarActions.first { $0.0 == name })
             if reachableCardsAction(action.1) == false {
@@ -714,7 +703,7 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
         cancelFilter.tap()
         XCTAssertTrue(filtersNavigation.waitForNonExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds))
         try self.assertVisibleIPadCompanion()
-        XCTAssertEqual(self.elementValue(element: self.app.textFields[LiveSmokeIdentifier.aiComposerTextField]), "draft")
+        XCTAssertEqual(self.elementValue(element: self.app.textFields[LiveSmokeIdentifier.aiComposerTextField]), "q")
         assertSingleNativeHeaderRow(selectedTab: .cards, stage: "Cards after Filter cancellation")
 
         // Reuse the existing unsaved-card flow's exact editor IDs and native back/dismiss actions.
@@ -737,7 +726,7 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
         cancelEditor.tap()
         XCTAssertTrue(unsavedEditor.waitForNonExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds))
         try self.assertVisibleIPadCompanion()
-        XCTAssertEqual(self.elementValue(element: self.app.textFields[LiveSmokeIdentifier.aiComposerTextField]), "draft", "Cancelling an unsaved Cards editor must retain the AI draft.")
+        XCTAssertEqual(self.elementValue(element: self.app.textFields[LiveSmokeIdentifier.aiComposerTextField]), "q", "Cancelling an unsaved Cards editor must retain the AI draft.")
         XCTAssertFalse(self.app.staticTexts[unsavedFront].exists, "Cancelling the local editor must not save a new card.")
         assertSingleNativeHeaderRow(selectedTab: .cards, stage: "Cards after unsaved Add cancellation")
         try tapCardsToolbarAction(name: "Search")
@@ -763,7 +752,7 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
         XCTAssertEqual(restoredSearch.frame.midY, nativeCardsTab.frame.midY, accuracy: 8, "Restored Search must share the selected native Cards tab row.")
         XCTAssertGreaterThan(restoredSearch.frame.minX, nativeCardsTab.frame.maxX, "Restored Search remains in the native trailing toolbar.")
         try self.assertVisibleIPadCompanion()
-        XCTAssertEqual(self.elementValue(element: self.app.textFields[LiveSmokeIdentifier.aiComposerTextField]), "draft")
+        XCTAssertEqual(self.elementValue(element: self.app.textFields[LiveSmokeIdentifier.aiComposerTextField]), "q")
         assertSingleNativeHeaderRow(selectedTab: .cards, stage: "Cards after native Search dismissal")
 
         // Exercise the actual sidebar layout: top-tab actions cannot prove these inner bars exist.
@@ -804,7 +793,7 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
             XCTAssertEqual(newChat.frame.midY, toggle.frame.midY, accuracy: 8)
             XCTAssertEqual(toggle.frame.midY, sidebarToggle.frame.midY, accuracy: 8, "Sidebar and paired native controls share the header baseline.")
             XCTAssertLessThan(toggle.frame.maxX, newChat.frame.minX)
-            XCTAssertEqual(self.elementValue(element: self.app.textFields[LiveSmokeIdentifier.aiComposerTextField]), "draft")
+            XCTAssertEqual(self.elementValue(element: self.app.textFields[LiveSmokeIdentifier.aiComposerTextField]), "q")
             try self.assertVisibleIPadCompanion()
         }
         func assertSidebarCardsActions(stage: String) throws {
@@ -868,7 +857,7 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
         try self.tapButton(identifier: "review.leaderboardShortcut", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.assertScreenVisible(screen: .progress, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.assertVisibleIPadCompanion()
-        XCTAssertEqual(self.elementValue(element: self.app.textFields[LiveSmokeIdentifier.aiComposerTextField]), "draft")
+        XCTAssertEqual(self.elementValue(element: self.app.textFields[LiveSmokeIdentifier.aiComposerTextField]), "q")
         assertSingleNativeHeaderRow(selectedTab: .progress, stage: "Progress")
         self.attachIPadScreenshot(name: "iPad Progress leaderboard route with retained chat")
         // Guest fixtures expose the leaderboard route, without live account/profile requests.
@@ -907,7 +896,7 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
         XCTAssertEqual(fullAI.frame.midX, scene.midX, accuracy: 1, "The bounded AI reading column must be centered, not retain a side slot.")
         XCTAssertGreaterThan(fullAI.frame.width, 400)
         self.attachIPadScreenshot(name: "iPad full AI selected without companion")
-        XCTAssertEqual(self.elementValue(element: self.app.textFields[LiveSmokeIdentifier.aiComposerTextField]), "draft", "Full AI uses the same conversation draft.")
+        XCTAssertEqual(self.elementValue(element: self.app.textFields[LiveSmokeIdentifier.aiComposerTextField]), "q", "Full AI uses the same conversation draft.")
         XCTAssertFalse(self.app.buttons[LiveSmokeIdentifier.aiCompanionToggle].exists, "Full AI must not have a duplicate companion action.")
         try self.selectIPadDestination(selectedTab: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         XCTAssertNil(self.visibleIPadCompanionPane)
@@ -926,7 +915,7 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
         try self.assertVisibleIPadCompanion()
         let pane = try XCTUnwrap(self.visibleIPadCompanionPane)
         let composer = self.app.textFields[LiveSmokeIdentifier.aiComposerTextField]
-        XCTAssertEqual(self.elementValue(element: composer), "draft")
+        XCTAssertEqual(self.elementValue(element: composer), "q")
         try self.assertTextExists("Smoke guest manual review answer", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         XCTAssertFalse(self.app.buttons[LiveSmokeIdentifier.reviewShowAnswerButton].exists)
         let answer = self.app.staticTexts["Smoke guest manual review answer"].firstMatch

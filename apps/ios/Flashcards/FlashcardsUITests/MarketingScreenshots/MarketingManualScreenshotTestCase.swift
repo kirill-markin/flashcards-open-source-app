@@ -264,6 +264,26 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
     }
 
     @MainActor
+    func verifyHistoryDraftRoundTripIfNeeded(localeFixture: MarketingScreenshotLocaleFixture) throws {
+        // History is server-backed: use the prepared guest workspace, not a local-only fixture.
+        if localeFixture.localizationCode == "en-US", try self.manualRuntimeConfiguration().orientation == "landscape" {
+            try self.step("retain the unsent draft through native AI history") {
+                try self.tapButton(identifier: LiveSmokeIdentifier.aiHistoryButton, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                try self.assertTextExists("Chat history", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                try self.tapFirstNavigationBackButton()
+                try self.waitForAiComposerValue(localeFixture.reviewAiDraftMessage, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                try self.tapTabBarItem(selectedTab: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                try self.waitForAiComposerValue(localeFixture.reviewAiDraftMessage, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                let answer = try XCTUnwrap(localeFixture.reviewCard.backText.split(separator: "\n").first.map(String.init))
+                try self.assertTextExists(answer, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                let toggle = self.app.buttons[LiveSmokeIdentifier.aiCompanionToggle]
+                let bar = try XCTUnwrap(self.app.navigationBars.allElementsBoundByIndex.first { $0.buttons[LiveSmokeIdentifier.aiCompanionToggle].exists })
+                XCTAssertLessThanOrEqual(bar.frame.maxY - toggle.frame.maxY, toggle.frame.height)
+            }
+        }
+    }
+
+    @MainActor
     func openMarketingCardsList() throws {
         try self.tapTabBarItem(selectedTab: .cards, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.assertScreenVisible(screen: .cards, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)

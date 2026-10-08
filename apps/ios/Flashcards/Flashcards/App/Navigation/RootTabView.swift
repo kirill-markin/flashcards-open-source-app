@@ -739,10 +739,12 @@ struct RootTabView: View {
                         // inside the native navigation stack, below its toolbar.
                         GeometryReader { _ in
                             AIChatView(chatStore: store.aiChatStore)
+                                .id(self.navigation.aiTabVisitID)
                         }
                         .ignoresSafeArea(self.isKeyboardDocked ? [] : .keyboard, edges: .all)
                     } else {
                         AIChatView(chatStore: store.aiChatStore)
+                            .id(self.navigation.aiTabVisitID)
                     }
                 }
             }
@@ -750,7 +752,6 @@ struct RootTabView: View {
                 AIChatHistoryView(chatStore: store.aiChatStore)
             }
         }
-        .id(self.navigation.aiTabVisitID)
     }
 
     private var cardsTab: some View {
