@@ -8,9 +8,12 @@ import com.flashcardsopensourceapp.core.observability.AndroidWarningIssueEvent
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.CloudObservationIdentity
 import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
+import com.flashcardsopensourceapp.data.local.ai.wire.decodeAiChatArchivedSession
 import com.flashcardsopensourceapp.data.local.ai.wire.decodeAiChatBootstrapResponse
 import com.flashcardsopensourceapp.data.local.ai.wire.decodeAiChatGuestSession
 import com.flashcardsopensourceapp.data.local.ai.wire.decodeAiChatNewSession
+import com.flashcardsopensourceapp.data.local.ai.wire.decodeAiChatRenamedSession
+import com.flashcardsopensourceapp.data.local.ai.wire.decodeAiChatSessionHistoryPage
 import com.flashcardsopensourceapp.data.local.ai.wire.decodeAiChatSessionSnapshot
 import com.flashcardsopensourceapp.data.local.ai.wire.decodeAiChatStartRunResponse
 import com.flashcardsopensourceapp.data.local.ai.wire.decodeAiChatStopRunResponse
@@ -28,6 +31,9 @@ import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudObject
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudString
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatRepairAttemptStatus
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatNewSessionRequest
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatArchivedSession
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatSessionHistoryPage
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatSessionHistorySummary
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatTranscriptionResult
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
@@ -54,6 +60,7 @@ import com.flashcardsopensourceapp.data.local.network.awaitOkHttpResponse
 import com.flashcardsopensourceapp.data.local.model.ai.aiChatAttachmentUnsupportedTypeCode
 import com.flashcardsopensourceapp.data.local.model.ai.aiChatMaximumStartRunRequestBytes
 import com.flashcardsopensourceapp.data.local.model.ai.aiChatRequestTooLargeCode
+import com.flashcardsopensourceapp.data.local.model.ai.aiChatSessionArchiveActiveRunCode
 import com.flashcardsopensourceapp.data.local.model.ai.aiChatSessionNotCurrentCode
 import com.flashcardsopensourceapp.data.local.model.ai.aiLimitReachedCode
 import com.flashcardsopensourceapp.data.local.model.ai.guestAiLimitReachedCode
@@ -110,6 +117,7 @@ private val expectedAiChatHttpFailureCodes: Set<String> = setOf(
     "CHAT_TRANSCRIPTION_PROVIDER_AUTH_FAILED",
     "CHAT_ATTACHMENT_UNSUPPORTED_TYPE",
     "CHAT_REQUEST_TOO_LARGE",
+    "CHAT_SESSION_ARCHIVE_ACTIVE_RUN",
     "CHAT_SESSION_ID_CONFLICT",
     "CHAT_SESSION_NOT_CURRENT",
     "CHAT_TRANSCRIPTION_FILE_EMPTY",
@@ -235,6 +243,16 @@ fun isAiChatAttachmentUnsupportedTypeRemoteError(error: AiChatRemoteException): 
 fun isAiChatSessionNotCurrentRemoteError(error: AiChatRemoteException): Boolean {
     return error.statusCode == 409
         && error.code?.trim()?.uppercase() == aiChatSessionNotCurrentCode
+}
+
+/** The chat was archived, deleted, or never belonged to this workspace. */
+fun isAiChatSessionUnavailableRemoteError(error: AiChatRemoteException): Boolean {
+    return error.statusCode == 404
+}
+
+fun isAiChatSessionArchiveActiveRunRemoteError(error: AiChatRemoteException): Boolean {
+    return error.statusCode == 409
+        && error.code?.trim()?.uppercase() == aiChatSessionArchiveActiveRunCode
 }
 
 fun isExpectedAiChatRemoteUserError(error: AiChatRemoteException): Boolean {
@@ -565,6 +583,82 @@ class AiChatRemoteService private constructor(
         return@withContext decodeAiChatStopRunResponse(responseBody)
     }
 
+    suspend fun listSessions(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        cursor: String?,
+        searchText: String?,
+        limit: Int
+    ): AiChatSessionHistoryPage = withContext(dispatchers.io) {
+        val responseBody = readResponseBody(
+            request = buildRequest(
+                apiBaseUrl = apiBaseUrl,
+                path = buildSessionsPath(
+                    workspaceId = workspaceId,
+                    cursor = cursor,
+                    searchText = searchText,
+                    limit = limit
+                ),
+                method = "GET",
+                authorizationHeader = authorizationHeader,
+                requestBody = null,
+                extraHeaders = emptyMap()
+            )
+        )
+        return@withContext decodeAiChatSessionHistoryPage(payload = responseBody)
+    }
+
+    suspend fun renameSession(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        sessionId: String,
+        title: String
+    ): AiChatSessionHistorySummary = withContext(dispatchers.io) {
+        val responseBody = readResponseBody(
+            request = buildRequest(
+                apiBaseUrl = apiBaseUrl,
+                path = buildSessionActionPath(
+                    workspaceId = workspaceId,
+                    sessionId = sessionId,
+                    action = "rename"
+                ),
+                method = "POST",
+                authorizationHeader = authorizationHeader,
+                requestBody = JSONObject()
+                    .put("title", title)
+                    .toString()
+                    .toRequestBody(aiJsonMediaType),
+                extraHeaders = emptyMap()
+            )
+        )
+        return@withContext decodeAiChatRenamedSession(payload = responseBody)
+    }
+
+    suspend fun archiveSession(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        sessionId: String
+    ): AiChatArchivedSession = withContext(dispatchers.io) {
+        val responseBody = readResponseBody(
+            request = buildRequest(
+                apiBaseUrl = apiBaseUrl,
+                path = buildSessionActionPath(
+                    workspaceId = workspaceId,
+                    sessionId = sessionId,
+                    action = "archive"
+                ),
+                method = "POST",
+                authorizationHeader = authorizationHeader,
+                requestBody = ByteArray(size = 0).toRequestBody(aiJsonMediaType),
+                extraHeaders = emptyMap()
+            )
+        )
+        return@withContext decodeAiChatArchivedSession(payload = responseBody)
+    }
+
     suspend fun transcribeAudio(
         apiBaseUrl: String,
         authorizationHeader: String,
@@ -876,6 +970,34 @@ class AiChatRemoteService private constructor(
             queryParameters.add("workspaceId=${encodeQueryValue(value = resolvedWorkspaceId)}")
         }
         return buildChatPath(queryParameters = queryParameters)
+    }
+
+    private fun buildSessionsPath(
+        workspaceId: String,
+        cursor: String?,
+        searchText: String?,
+        limit: Int
+    ): String {
+        val queryParameters = mutableListOf(
+            "workspaceId=${encodeQueryValue(value = workspaceId)}",
+            "limit=$limit"
+        )
+        cursor?.let { resolvedCursor ->
+            queryParameters.add("cursor=${encodeQueryValue(value = resolvedCursor)}")
+        }
+        searchText?.let { resolvedSearchText ->
+            queryParameters.add("q=${encodeQueryValue(value = resolvedSearchText)}")
+        }
+        return "/chat/sessions?${queryParameters.joinToString(separator = "&")}"
+    }
+
+    private fun buildSessionActionPath(
+        workspaceId: String,
+        sessionId: String,
+        action: String
+    ): String {
+        return "/chat/sessions/${encodeQueryValue(value = sessionId)}/$action" +
+            "?workspaceId=${encodeQueryValue(value = workspaceId)}"
     }
 
     private fun buildChatPath(queryParameters: List<String>): String {

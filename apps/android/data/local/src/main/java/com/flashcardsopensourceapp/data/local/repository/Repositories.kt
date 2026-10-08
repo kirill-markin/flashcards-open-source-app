@@ -7,6 +7,8 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatLiveStreamEnvelope
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDraftState
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatResumeDiagnostics
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatSessionHistoryPage
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatSessionHistorySummary
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatSessionProvisioningResult
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatStopRunResponse
@@ -409,4 +411,15 @@ interface AiChatRepository {
         resumeDiagnostics: AiChatResumeDiagnostics?
     ): Flow<AiChatLiveEvent>
     suspend fun stopRun(workspaceId: String?, sessionId: String, runId: String?): AiChatStopRunResponse
+    suspend fun listChatSessions(
+        workspaceId: String,
+        cursor: String?,
+        searchText: String?
+    ): AiChatSessionHistoryPage
+    suspend fun renameChatSession(
+        workspaceId: String,
+        sessionId: String,
+        title: String
+    ): AiChatSessionHistorySummary
+    suspend fun archiveChatSession(workspaceId: String, sessionId: String)
 }

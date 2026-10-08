@@ -91,6 +91,18 @@ internal fun navigateToSettingsNavigationTarget(
     }
 }
 
+/**
+ * Handoffs are consumed only by the live chat, so the pop runs after the restore that can bring
+ * back History or a chat reader above it.
+ */
+internal fun navigateToAiChat(navController: NavHostController) {
+    navigateToTopLevelDestination(
+        navController = navController,
+        destination = AiDestination
+    )
+    navController.popBackStack(route = AiDestination.route, inclusive = false)
+}
+
 fun navigateToTopLevelDestination(
     navController: NavHostController,
     destination: TopLevelDestination

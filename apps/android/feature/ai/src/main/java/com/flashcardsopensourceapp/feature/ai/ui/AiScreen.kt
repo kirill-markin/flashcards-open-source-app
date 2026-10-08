@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
 import androidx.compose.material.icons.outlined.AddComment
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -63,6 +64,7 @@ import com.flashcardsopensourceapp.feature.ai.AiBootstrapErrorPresentation
 import com.flashcardsopensourceapp.feature.ai.AiUiState
 import com.flashcardsopensourceapp.feature.ai.R
 import com.flashcardsopensourceapp.feature.ai.aiConversationLoadingTag
+import com.flashcardsopensourceapp.feature.ai.aiHistoryButtonTag
 import com.flashcardsopensourceapp.feature.ai.aiNewChatButtonTag
 import com.flashcardsopensourceapp.feature.ai.input.AiCapabilityPresentationResult
 import com.flashcardsopensourceapp.feature.ai.input.AiComposer
@@ -98,6 +100,7 @@ internal fun AiRouteContent(
     onSendMessage: () -> Unit,
     onCancelStreaming: () -> Unit,
     onNewChat: () -> Unit,
+    onOpenHistory: () -> Unit,
     onOpenAccountStatus: () -> Unit,
     onDismissErrorMessage: () -> Unit,
     onDismissAlert: () -> Unit,
@@ -401,6 +404,16 @@ internal fun AiRouteContent(
                     Text(stringResource(id = R.string.ai_title))
                 },
                 actions = {
+                    IconButton(
+                        onClick = onOpenHistory,
+                        enabled = uiState.canOpenChatHistory,
+                        modifier = Modifier.testTag(tag = aiHistoryButtonTag)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Outlined.FormatListBulleted,
+                            contentDescription = stringResource(id = R.string.ai_history_content_description)
+                        )
+                    }
                     IconButton(
                         onClick = onNewChat,
                         enabled = uiState.canStartNewChat,
