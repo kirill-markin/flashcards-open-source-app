@@ -256,6 +256,9 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
             try self.revealOpportunityCostReviewAnswer()
             try self.tapButton(identifier: LiveSmokeIdentifier.aiCompanionToggle,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            // Exercise the same reviewed-card handoff as the real iPad toolbar regression.
+            try self.tapButton(identifier: LiveSmokeIdentifier.reviewAiButton,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             try self.assertScreenVisible(screen: .ai, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
         }
     }
