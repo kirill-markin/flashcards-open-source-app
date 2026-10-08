@@ -197,7 +197,9 @@ struct ReviewView: View {
         .animation(self.reduceMotion ? nil : .smooth(duration: 0.35), value: self.navigation.isAICompanionVisible)
         .navigationTitle(self.showsFilterInReviewColumn ? "" : String(localized: "Review", table: reviewCardsStringsTableName))
         .toolbar(self.showsFilterInReviewColumn && self.tabBarPlacement == .sidebar ? .hidden : .automatic, for: .navigationBar)
-        .navigationBarTitleDisplayMode(self.usesPairedReviewSpacing || self.dynamicTypeSize.isAccessibilitySize ? .inline : .automatic)
+        // Keep iPad's shared tab/toolbar row stable when a card handoff focuses AI.
+        // Switching from a large title can retain its empty band after keyboard dismissal.
+        .navigationBarTitleDisplayMode(UIDevice.current.userInterfaceIdiom == .pad || self.dynamicTypeSize.isAccessibilitySize ? .inline : .automatic)
         .onAppear {
             self.isReviewReactionScreenVisible = true
             if self.canUseReviewKeyboardShortcuts && self.navigation.isAIChatVisible == false {

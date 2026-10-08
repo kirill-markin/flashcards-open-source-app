@@ -4,7 +4,7 @@
 
 - [x] Accepted iPad baseline sidebar Cards/Progress actions, one toolbar row, aligned visible controls, draft/answer retention and floating/docked input: seven focused native passes.
 - [x] Positive iPad Review 1–4 keys: native pass for all four ratings. Guarded Space/editor/filter coverage also passed. Composer Return/Shift–Return has an automation timeout, recorded below.
-- [x] Corrected signed 1.32.0 preview installed and launched normally. Alex personally checked all on his iPad, reported that it looked good, and disconnected it. No further physical session is needed for this continuation.
+- [x] Corrected signed 1.32.0 preview installed and launched normally. Alex personally checked all on his iPad, reported that it looked good, and disconnected it. He subsequently reported the reviewed-card AI toolbar bug on 2026-10-09; the original acceptance remains historical evidence, with that regression tracked below.
 - [x] Ordinary-phone baseline 14 local cases: actual Front/Back/Tags, exact saved Back, portrait/full-AI handoff and all nine queued local regressions; zero failures/skips.
 - [x] Duo Open baseline native navigation across Review/Cards/Progress/AI/Settings.
 - [ ] Nonblocking Duo follow-up — exact unsent draft with actual native keys: Open key reachability remains unresolved; the latest genuine Closed check stops on transcript-container hit testing.
@@ -13,6 +13,7 @@
 - [x] Scoped candidate committed; pinned upstream integrated cleanly at `f6e9499c3`, with unchanged iOS tree; integrated diff reviewed and six required static checks passed.
 - [x] Current editor-path fix: all four ordinary-phone card editing contracts and largest-text editing pass, five tests with zero failures/skips.
 - [x] Current iPad Review editor: guarded study keys, Back/Cancel and revealed-answer retention pass.
+- [x] Fixed the 2026-10-09 physical iPad toolbar report: keep Review inline on iPad before and after AI opens. Actual reviewed-card AI handoff reproduced a 62 pt empty band; after the fix both repeated handoffs have the normal 10 pt gap. Native sidebar/section retention and largest accessibility text also pass (3 tests, zero failures/skips).
 - [x] Alex prioritizes shipping: physical Duo review and the documented Duo simulator gaps do not gate this combined PR. Preserve the failures as follow-ups; no physical Duo session is required.
 - [ ] Capture and review the final landscape iPad Store set, then open the combined PR with maintainer edits and verify normal checks.
 
@@ -51,6 +52,10 @@ The isolated preview bundle `com.flashcards-open-source-app.app.ipadpreview` ret
 
 Historical phone/Duo results, interrupted batches, previous missing postfold filter, offscreen keyboard, skipped outer precondition and capture errors remain in ignored `tmp/duo-review/`. They are not current passes. Private physical captures, build products, result bundles and diagnostic sources remain outside the PR; normal install/launch records and the physical screenshot are in ignored `tmp/ipad-review/final-2026-10-08/continuation-*` files.
 
+## Reviewed-card AI toolbar regression
+
+On the iPad Pro 13-inch (M5), iPadOS 27.0 (24A430), the actual answer-side AI action reproduced the physical report: navigation bar 106 pt tall with 62 pt below its 44 pt action. Review previously switched title modes with companion visibility. Keeping its native title inline for every iPad state reduces the bar to 54 pt with the normal 10 pt bottom inset, through keyboard dismissal and two card handoffs. `/private/tmp/nibomo-ipad-toolbar-fixed.xcresult`: three passes, zero failures/skips (45.613 s handoff, 312.559 s sidebar/sections, 46.880 s accessibility header). Unsent card attachments only; no live AI message. `/private/tmp/nibomo-ipad-toolbar-final-static.log`: all six required checks pass after the final capture-flow change. Ordinary-phone title mode is unchanged. Final landscape captures now also tap the actual reviewed-card AI button.
+
 ## Remaining manual and release checks
 
 Native hardware composer automation remains incomplete. Alex accepted the physical iPad preview; exact hardware send/stop behavior remains separate from the safe unsent-draft checks. Full Keyboard Access, VoiceOver, Pencil/Scribble, dictation, external displays and complete accessibility coverage are not established by the targeted checks. Mini’s docked keyboard leaves a short Review viewport; reachable controls do not prove spacious study content.
@@ -59,6 +64,6 @@ The complete latest-OS live/account smoke selection and actual iOS 18 compatibil
 
 ## PR and publication
 
-Alex authorized one combined PR against upstream `main`, with **Allow edits by maintainers** enabled. Alex explicitly removed physical Duo review as a shipping prerequisite on 2026-10-08. The documented Duo input/transition failures remain nonblocking follow-ups, not passes. No PR is open yet; landscape screenshot preparation is in progress. The candidate is committed on `codex/ipad-latest`; exact blocker evidence and the PR draft are preserved locally outside the tracked tree. Compiler/simulator ownership is released, with no active native run. This session owns implementation, compiler/simulator, integration and PR work; old chats are parked and their supervision automation is disabled. No PR merge, release, store upload or Xcode Cloud dispatch is authorized.
+Alex authorized one combined PR against upstream `main`, with **Allow edits by maintainers** enabled. Alex explicitly removed physical Duo review as a shipping prerequisite on 2026-10-08. The documented Duo input/transition failures remain nonblocking follow-ups, not passes. No PR is open yet; landscape screenshot preparation is in progress. The candidate is committed on `codex/ipad-latest`; exact blocker evidence and the PR draft are preserved locally outside the tracked tree. The screenshot batch paused cleanly after Czech guest cleanup for the reported toolbar regression. Earlier captures are superseded; all final assets are being regenerated from the fixed application. This session owns implementation, compiler/simulator, integration and PR work; old chats are parked and their supervision automation is disabled. No PR merge, release, store upload or Xcode Cloud dispatch is authorized.
 
 **New landscape iPad App Store screenshots must be captured, reviewed and uploaded before publication.** Use the existing localized five-shot workflow and canonical iPad target in [marketing screenshots](marketing-screenshots.md), validating landscape dimensions. Marketing montages, private device captures and simulator QA captures do not replace these assets.

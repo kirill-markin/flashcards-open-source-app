@@ -3,6 +3,50 @@ import XCTest
 
 final class LiveSmokeIPadTests: LiveSmokeTestCase {
     @MainActor
+    func testIPadReviewedCardAIHandoffKeepsToolbarCompact() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .pad, "This regression exercises the iPad reviewed-card AI action.")
+        defer { XCUIDevice.shared.orientation = .portrait }
+        try self.launchApplication(launchScenario: .guestManualReviewCard, selectedTab: .review)
+        try self.rotate(to: .landscapeLeft)
+        if self.visibleIPadCompanionPane != nil {
+            try self.tapButton(identifier: LiveSmokeIdentifier.aiCompanionToggle, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        }
+        let sidebar = self.app.cells.matching(NSPredicate(format: "label == %@", "Review")).firstMatch
+        if sidebar.exists && sidebar.isHittable {
+            self.app.buttons.matching(NSPredicate(format: "identifier IN %@", ["ToggleSideBar", "ToggleSidebar"])).firstMatch.tap()
+        }
+        try self.tapButton(identifier: LiveSmokeIdentifier.aiCompanionToggle, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.assertVisibleIPadCompanion()
+        try self.tapButton(identifier: LiveSmokeIdentifier.reviewShowAnswerButton, timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds)
+        try self.waitForReviewAnswerReveal()
+        self.attachIPadScreenshot(name: "Reviewed card before actual AI handoff")
+        for attempt in 1...2 {
+            try self.tapButton(identifier: LiveSmokeIdentifier.reviewAiButton, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.assertVisibleIPadCompanion()
+            if self.app.buttons[LiveSmokeIdentifier.aiConsentAcceptButton].exists {
+                try self.tapButton(identifier: LiveSmokeIdentifier.aiConsentAcceptButton, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                try self.waitForAiComposerAfterConsent()
+            }
+            let dismissKeyboard = self.app.buttons[LiveSmokeIdentifier.aiComposerDismissKeyboardButton]
+            if dismissKeyboard.exists && dismissKeyboard.isHittable { dismissKeyboard.tap() }
+            try self.assertTextExists("Smoke guest manual review answer", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.assertReviewFilterPlacementBesideChat()
+            let toggle = self.app.buttons[LiveSmokeIdentifier.aiCompanionToggle]
+            let bar = try XCTUnwrap(self.app.navigationBars.allElementsBoundByIndex.first { $0.buttons[LiveSmokeIdentifier.aiCompanionToggle].exists })
+            let bounds = XCTAttachment(string: "attempt=\(attempt), bar=\(bar.frame), toggle=\(toggle.frame), AI=\(String(describing: self.visibleIPadCompanionPane?.frame))")
+            bounds.name = "Reviewed-card AI toolbar bounds"
+            bounds.lifetime = .keepAlways
+            self.add(bounds)
+            self.attachIPadScreenshot(name: "Reviewed card actual AI handoff \(attempt)")
+            XCTAssertLessThanOrEqual(bar.frame.maxY - toggle.frame.maxY, toggle.frame.height, "Opening AI from a reviewed card must not leave an empty large-title band below the native toolbar.")
+            if attempt == 1 {
+                try self.tapButton(identifier: LiveSmokeIdentifier.aiCompanionToggle, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                try self.tapButton(identifier: LiveSmokeIdentifier.aiCompanionToggle, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            }
+        }
+    }
+
+    @MainActor
     func testIPadReviewHardwareKeysMatchWebAndRespectFilterAndEditor() throws {
         try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .pad, "This smoke verifies iPad hardware keys.")
         defer { XCUIDevice.shared.orientation = .portrait }
