@@ -148,6 +148,11 @@ export function ChatHistoryPanel(props: ChatHistoryPanelProps): React.JSX.Elemen
     updateLoadedSessions((sessions) => sessions.filter((session) => session.sessionId !== sessionId));
   }
 
+  function removeUnavailableSession(sessionId: string): void {
+    removeSession(sessionId);
+    setListNotice(t("chatPanel.history.unavailable"));
+  }
+
   async function handleLoadMore(): Promise<void> {
     if (listState.status !== "loaded" || listState.nextCursor === null) {
       return;
@@ -189,8 +194,7 @@ export function ChatHistoryPanel(props: ChatHistoryPanelProps): React.JSX.Elemen
       replaceSession(await renameChatSession(summary.sessionId, workspaceId, trimmedTitle));
     } catch (error) {
       if (isChatUnavailableError(error)) {
-        removeSession(summary.sessionId);
-        setListNotice(t("chatPanel.history.unavailable"));
+        removeUnavailableSession(summary.sessionId);
       } else {
         replaceSession(summary);
         reportHistoryError(error, "chat_history_rename", summary.sessionId);
@@ -266,6 +270,7 @@ export function ChatHistoryPanel(props: ChatHistoryPanelProps): React.JSX.Elemen
           reportHistoryError={reportHistoryError}
           onMessageTechnicalError={onMessageTechnicalError}
           canStartMessageAction={canStartMessageAction}
+          onUnavailable={removeUnavailableSession}
           onBack={() => setView({ kind: "list" })}
         />
       ) : null}
