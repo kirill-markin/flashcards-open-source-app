@@ -120,6 +120,26 @@ export type StopChatRunResponse = Readonly<{
   stillRunning: boolean;
 }>;
 
+export type ChatSessionHistorySummary = Readonly<{
+  sessionId: string;
+  title: string | null;
+  hasCustomTitle: boolean;
+  preview: string | null;
+  messageCount: number;
+  createdAt: number;
+  lastActivityAt: number;
+}>;
+
+export type ChatSessionsListResponse = Readonly<{
+  sessions: ReadonlyArray<ChatSessionHistorySummary>;
+  nextCursor: string | null;
+}>;
+
+export type ChatSessionArchiveResponse = Readonly<{
+  sessionId: string;
+  archivedAt: number;
+}>;
+
 export type StopChatRunRequestBody = Readonly<{
   sessionId: string;
   // Optional on the wire until the minimum supported backend and first-party AI

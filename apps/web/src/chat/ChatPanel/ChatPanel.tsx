@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactElement } from "react";
+import { useEffect, useRef, useState, type ReactElement } from "react";
 import { useAppData } from "../../appData";
 import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
@@ -29,6 +29,7 @@ import {
   hasChatDraftContent,
 } from "../composer/chatComposerState";
 import { renderStoredMessageContent } from "../history/chatMessageContent";
+import { ChatHistoryPanel } from "../history/ChatHistoryPanel";
 import { useChatAutoScroll } from "../history/useChatAutoScroll";
 import { useAIChatPreferences } from "../preferences/AIChatPreferencesContext";
 import { useChatSession } from "../sessionController";
@@ -94,9 +95,12 @@ export function ChatPanel(props: Props): ReactElement {
   const messagesRef = useRef<HTMLDivElement>(null);
   const messagesContentRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const isHistoryPanelVisible = isHistoryOpen && activeWorkspaceId !== null;
 
   const { handleMessagesScroll } = useChatAutoScroll({
-    isHydrated: isHistoryLoaded,
+    // The History panel unmounts the messages scroller; closing it must rebind and re-restore the new one.
+    isHydrated: isHistoryLoaded && isHistoryPanelVisible === false,
     isStreaming: isAssistantRunActive,
     messages,
     messagesRef,
@@ -304,6 +308,17 @@ export function ChatPanel(props: Props): ReactElement {
     }
   }
 
+  function handleMessageTechnicalError(error: unknown): boolean {
+    if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+      return true;
+    }
+    return showChatTechnicalError(error, "chat_tool_call_copy");
+  }
+
+  function canStartMessageAction(): boolean {
+    return indexedDbOpenRecoveryState.hasFailed() === false;
+  }
+
   async function handleStopMessage(): Promise<void> {
     if (indexedDbOpenRecoveryState.hasFailed()) {
       return;
@@ -353,7 +368,19 @@ export function ChatPanel(props: Props): ReactElement {
           <button
             type="button"
             className="chat-close-btn"
-            onClick={() => void handleStartNewConversation()}
+            onClick={() => setIsHistoryOpen(true)}
+            disabled={isChatActionLocked || activeWorkspaceId === null}
+            data-testid="chat-history-button"
+          >
+            {t("chatPanel.actions.history")}
+          </button>
+          <button
+            type="button"
+            className="chat-close-btn"
+            onClick={() => {
+              setIsHistoryOpen(false);
+              void handleStartNewConversation();
+            }}
             disabled={isStopping || isChatActionLocked}
             data-testid="chat-new-button"
           >
@@ -377,6 +404,22 @@ export function ChatPanel(props: Props): ReactElement {
         </div>
       </div>
 
+      {isHistoryPanelVisible ? (
+        <ChatHistoryPanel
+          key={activeWorkspaceId}
+          workspaceId={activeWorkspaceId}
+          currentSessionId={currentSessionId}
+          isCurrentChatArchiveDisabled={isAssistantRunActive || isStopping || isSendButtonBusy || isChatActionLocked}
+          onCurrentChatArchived={() => {
+            setIsHistoryOpen(false);
+            void handleStartNewConversation();
+          }}
+          onMessageTechnicalError={handleMessageTechnicalError}
+          canStartMessageAction={canStartMessageAction}
+          onClose={() => setIsHistoryOpen(false)}
+        />
+      ) : (
+        <>
       <div className="chat-messages" ref={messagesRef} onScroll={handleMessagesScroll} data-testid="chat-messages">
         <div className="chat-messages-content" ref={messagesContentRef}>
           {isInitialHistoryLoading ? (
@@ -408,13 +451,8 @@ export function ChatPanel(props: Props): ReactElement {
                 {renderStoredMessageContent(
                   message,
                   t,
-                  (error) => {
-                    if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
-                      return true;
-                    }
-                    return showChatTechnicalError(error, "chat_tool_call_copy");
-                  },
-                  () => indexedDbOpenRecoveryState.hasFailed() === false,
+                  handleMessageTechnicalError,
+                  canStartMessageAction,
                 )}
                 {isLastAssistant ? (
                   <span className="chat-streaming-indicator">
@@ -620,6 +658,8 @@ export function ChatPanel(props: Props): ReactElement {
           </div>
         </div>
       </div>
+        </>
+      )}
 
       {errorDialogMessage !== null ? (
         <div

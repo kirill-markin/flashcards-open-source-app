@@ -21,6 +21,10 @@ const savedScrollStatesByKey = new Map<string, ChatScrollState>();
 type StreamPosition = NonNullable<ToolCallContentPart["streamPosition"]>;
 
 export type UseChatAutoScrollParams = Readonly<{
+  /**
+   * Must be false whenever the messages scroller is unmounted; every false-to-true
+   * transition rebinds to the current scroller nodes and restores the saved position.
+   */
   isHydrated: boolean;
   isStreaming: boolean;
   messages: ReadonlyArray<StoredMessage>;
@@ -381,6 +385,7 @@ export function useChatAutoScroll(params: UseChatAutoScrollParams): UseChatAutoS
 
   useEffect(() => {
     if (!isHydrated) {
+      hasRestoredScrollKeyRef.current = false;
       return;
     }
 

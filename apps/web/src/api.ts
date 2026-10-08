@@ -47,9 +47,12 @@ export {
   queryCards,
 } from "./api/endpoints/cards";
 export {
+  archiveChatSession,
   createNewChatSession,
   getChatSnapshot,
   getChatSnapshotWithResumeDiagnostics,
+  listChatSessions,
+  renameChatSession,
   startChatRun,
   stopChatRun,
   transcribeChatAudio,
