@@ -263,7 +263,8 @@ class AiChatLiveRemoteService private constructor(
                         response = response,
                         responseBody = responseBody,
                         observability = observability,
-                        observationVersions = observationVersions
+                        observationVersions = observationVersions,
+                        expectedStatusCodes = emptySet()
                     )
                     if (
                         remoteError.statusCode == aiChatLiveAttachThrottleStatusCode
