@@ -260,6 +260,17 @@ extension AIChatStore {
             self.schedulePersistCurrentState()
         }
 
+        if didAcceptRun == false && isAIChatSessionNotCurrentError(error: error) {
+            self.switchToCurrentChatAfterSessionNotCurrent(
+                staleSessionId: self.chatSessionId,
+                draft: AIChatComposerDraft(
+                    inputText: draftText,
+                    pendingAttachments: draftAttachments
+                )
+            )
+            return
+        }
+
         if isAiLimitReached {
             self.quotaRefusal = AIChatQuotaRefusal(
                 id: UUID(),

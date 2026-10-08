@@ -85,6 +85,7 @@
 "ai.availability.dictation.official" = "MI diktēšana oficiālajā serverī īslaicīgi nav pieejama. Mēģiniet vēlāk.";
 "ai.availability.dictation.custom" = "MI diktēšana šajā serverī nav pieejama. Sazinieties ar servera operatoru.";
 "ai.run.error.activeRunInProgress" = "Atbilde jau tiek veidota. Pirms citas ziņas sūtīšanas pagaidiet, līdz tā ir pabeigta, vai apturiet to.";
+"ai.chatNotCurrent.notice" = "Šī tērzēšana tika aizstāta ar jaunāku. Jūsu ziņa joprojām ir teksta laukā — nosūtiet to vēlreiz.";
 "ai.dictation.error.microphoneUnavailable" = "Šajā ierīcē mikrofons nav pieejams.";
 "ai.dictation.error.microphoneDenied" = "Piekļuve mikrofonam netika piešķirta.";
 "ai.dictation.error.microphoneBlocked" = "Nibomo piekļuve mikrofonam ir izslēgta. Ieslēdziet to sadaļā Iestatījumi > Privātums un drošība > Mikrofons.";

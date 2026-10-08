@@ -79,6 +79,7 @@
     <string name="ai_no_speech_recorded">No speech was recorded.</string>
     <string name="ai_card_handoff_requires_new_chat">Start a new chat before handing off a card to AI.</string>
     <string name="ai_response_in_progress">A response is already in progress. Wait for it to finish or stop it before sending another message.</string>
+    <string name="ai_chat_not_current_notice">This chat was replaced by a newer one. Your message is still in the box — send it again.</string>
     <string name="ai_chat_failed">AI chat failed.</string>
     <string name="ai_live_stream_ended_before_completion">AI live stream ended before message completion.</string>
     <string name="ai_consent_required_message">Review AI data use and accept it on this device before using AI features.</string>

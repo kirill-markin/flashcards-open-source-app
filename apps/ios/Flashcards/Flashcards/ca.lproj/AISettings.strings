@@ -85,6 +85,7 @@
 "ai.availability.dictation.official" = "El dictat d'IA no està disponible temporalment al servidor oficial. Torna-ho a provar més tard.";
 "ai.availability.dictation.custom" = "El dictat d'IA no està disponible en aquest servidor. Contacteu amb l'operador del servidor.";
 "ai.run.error.activeRunInProgress" = "La resposta ja està en curs. Espereu que acabi o atureu-lo abans d'enviar un altre missatge.";
+"ai.chatNotCurrent.notice" = "Aquest xat s’ha substituït per un de més recent. El teu missatge encara és al quadre de text: torna’l a enviar.";
 "ai.dictation.error.microphoneUnavailable" = "El micròfon no està disponible en aquest dispositiu.";
 "ai.dictation.error.microphoneDenied" = "No s'ha concedit l'accés al micròfon.";
 "ai.dictation.error.microphoneBlocked" = "L'accés al micròfon està desactivat per a Nibomo. Activeu-lo a Configuració > Privadesa i seguretat > Micròfon.";

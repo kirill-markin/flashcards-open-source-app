@@ -85,6 +85,7 @@
 "ai.availability.dictation.official" = "공식 서버에서 AI 받아쓰기를 일시적으로 사용할 수 없습니다. 나중에 다시 시도하세요.";
 "ai.availability.dictation.custom" = "이 서버에서는 AI 받아쓰기를 사용할 수 없습니다. 서버 운영자에게 문의하세요.";
 "ai.run.error.activeRunInProgress" = "이미 응답이 진행 중입니다. 완료될 때까지 기다리거나 중지한 후 새 메시지를 보내세요.";
+"ai.chatNotCurrent.notice" = "이 채팅은 더 최근 채팅으로 대체되었습니다. 메시지는 입력창에 그대로 있으니 다시 보내세요.";
 "ai.dictation.error.microphoneUnavailable" = "이 기기에서는 마이크를 사용할 수 없습니다.";
 "ai.dictation.error.microphoneDenied" = "마이크 접근이 허용되지 않았습니다.";
 "ai.dictation.error.microphoneBlocked" = "Nibomo의 마이크 접근이 꺼져 있습니다. 설정 > 개인정보 보호 및 보안 > 마이크에서 켜세요.";
