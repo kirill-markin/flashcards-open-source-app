@@ -25,15 +25,20 @@ private struct ReviewFilterPresentationContext: Equatable {
 struct ReviewView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.tabBarPlacement) private var tabBarPlacement
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.isKeyboardDocked) private var isKeyboardDocked
     @Environment(\.scenePhase) var scenePhase
     @Environment(\.isLowPowerModeEnabled) var isLowPowerModeEnabled: Bool
     @Environment(FlashcardsStore.self) var store: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
+    @Environment(PremiumPresenter.self) private var premiumPresenter: PremiumPresenter
+    @FocusState private var isReviewKeyboardFocused: Bool
 
     @StateObject private var reviewSpeechController = ReviewSpeechController()
     @State var isAnswerVisible: Bool = false
+    @State private var lastPresentedReviewCardId: String? = nil
+    @State private var lastPresentedReviewWorkspaceId: String? = nil
     @State var preparedRevealState: PreparedReviewRevealState? = nil
     @State var preparedNextRevealState: PreparedReviewRevealState? = nil
     @State var isReviewReactionScreenVisible: Bool = false
@@ -119,6 +124,22 @@ struct ReviewView: View {
         return store.isReviewQueueChunkLoading
     }
 
+    private var usesPairedReviewSpacing: Bool {
+        UIDevice.current.userInterfaceIdiom == .pad
+            && self.horizontalSizeClass == .regular
+            && self.navigation.isAICompanionVisible
+    }
+
+    private var usesCompactCompanionToolbar: Bool {
+        self.usesPairedReviewSpacing
+            && self.navigation.selectedTab == .review
+            && self.tabBarPlacement == .topBar
+    }
+
+    private var showsFilterInReviewColumn: Bool {
+        self.usesPairedReviewSpacing && self.usesCompactCompanionToolbar == false
+    }
+
     var body: some View {
         ZStack {
             Group {
@@ -138,14 +159,57 @@ struct ReviewView: View {
                 onEventFinished: self.removeFinishedReviewReactionEvent(eventId:action:reason:)
             )
         }
-        .animation(self.reduceMotion ? nil : .smooth(duration: 0.35), value: self.navigation.isAICompanionVisible)
         .accessibilityIdentifier(UITestIdentifier.reviewScreen)
-        .navigationTitle(String(localized: "Review", table: reviewCardsStringsTableName))
-        .navigationBarTitleDisplayMode(self.dynamicTypeSize.isAccessibilitySize ? .inline : .automatic)
+        .nativeTopBar(alignment: .leading) {
+            if self.showsFilterInReviewColumn {
+                reviewCompanionHeader
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 10)
+                    .background(.bar)
+            }
+        }
+        .onChange(of: [self.showsFilterInReviewColumn, self.usesCompactCompanionToolbar]) { _, _ in
+            // Relocating the anchor dismisses its popover like an ordinary outside tap.
+            if self.isReviewFilterPopoverPresented {
+                self.finalizeReviewFilterDraft()
+                self.isReviewFilterPopoverPresented = false
+            }
+        }
+        .onChange(of: self.isReviewFilterPopoverPresented) { _, isPresented in
+            if isPresented == false {
+                self.finalizeReviewFilterDraft()
+            }
+        }
+        .onChange(of: store.workspace?.workspaceId) { _, _ in
+            self.dismissReviewFilterPopoverIfContextDiverged()
+        }
+        .onChange(of: store.selectedReviewFilter) { _, _ in
+            self.isAnswerVisible = false
+            self.reviewSpeechController.stopSpeech()
+            self.dismissReviewFilterPopoverIfContextDiverged()
+        }
+        .onChange(of: store.reviewPresentationResetRevision) { _, _ in
+            self.isAnswerVisible = false
+            self.reviewSpeechController.stopSpeech()
+            self.lastPresentedReviewCardId = self.currentCard?.cardId
+            self.lastPresentedReviewWorkspaceId = self.store.workspace?.workspaceId
+        }
+        .animation(self.reduceMotion ? nil : .smooth(duration: 0.35), value: self.navigation.isAICompanionVisible)
+        .navigationTitle(self.showsFilterInReviewColumn ? "" : String(localized: "Review", table: reviewCardsStringsTableName))
+        .toolbar(self.showsFilterInReviewColumn && self.tabBarPlacement == .sidebar ? .hidden : .automatic, for: .navigationBar)
+        .navigationBarTitleDisplayMode(self.usesPairedReviewSpacing || self.dynamicTypeSize.isAccessibilitySize ? .inline : .automatic)
         .onAppear {
             self.isReviewReactionScreenVisible = true
+            if self.canUseReviewKeyboardShortcuts && self.navigation.isAIChatVisible == false {
+                self.isReviewKeyboardFocused = true
+            }
             if self.areReviewReactionAnimationsEnabled {
                 self.prewarmReviewReactionLottieAssets()
+            }
+        }
+        .onChange(of: self.shouldShowReviewLoader) { _, isLoading in
+            if isLoading == false && self.canUseReviewKeyboardShortcuts && self.navigation.isAIChatVisible == false {
+                self.isReviewKeyboardFocused = true
             }
         }
         .onChange(of: self.areReviewReactionAnimationsEnabled) { _, isEnabled in
@@ -168,11 +232,12 @@ struct ReviewView: View {
             self.cancelReviewReactionLottiePrewarm()
             self.dismissActiveReviewReactions(reason: "memory_warning")
         }
-        .onChange(of: currentCard?.cardId) { _, _ in
-            isAnswerVisible = false
+        .onChange(of: currentCard?.cardId, initial: true) { _, _ in
             self.reviewSpeechController.stopSpeech()
+            self.reconcileReviewPresentation()
         }
         .onDisappear {
+            self.isReviewKeyboardFocused = false
             self.isReviewReactionScreenVisible = false
             self.reviewSpeechController.stopSpeech()
             self.cancelReviewReactionLottiePrewarm()
@@ -185,10 +250,14 @@ struct ReviewView: View {
             await self.reloadReviewMetadata()
             self.reconcileEditingCardFormState()
         }
-        .nativeBottomBar(alignment: .center) {
+        .nativeBottomBar(
+            alignment: .center,
+            usesColumnLayout: UIDevice.current.userInterfaceIdiom == .pad && self.navigation.isAICompanionVisible,
+            showsBackground: UIDevice.current.userInterfaceIdiom != .pad
+        ) {
             reviewBottomAccessory
         }
-        .ignoresSafeArea(self.isKeyboardDocked ? [] : .keyboard, edges: .bottom)
+        .ignoresSafeArea(UIDevice.current.userInterfaceIdiom == .pad || self.navigation.canPresentAICompanion == false || self.isKeyboardDocked ? [] : .keyboard, edges: .bottom)
         .simultaneousGesture(
             DragGesture(minimumDistance: 0)
                 .onChanged { _ in
@@ -197,15 +266,26 @@ struct ReviewView: View {
         )
         .toolbar {
             AICompanionToolbarItem()
-            ToolbarItem(placement: .topBarLeading) {
-                reviewFilterMenu
-            }
-
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                // TODO: Revisit the queue shortcut placement. Keeping a third glass toolbar action
-                // makes iOS collapse the trailing Review actions into overflow too aggressively.
-                reviewLeaderboardButton
-                reviewProgressBadgeButton
+            if self.usesCompactCompanionToolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    reviewFilterMenu
+                }
+                if #available(iOS 26.0, *) {
+                    ToolbarSpacer(.fixed, placement: .topBarTrailing)
+                }
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    reviewLeaderboardButton
+                    reviewProgressBadgeButton
+                }
+            } else if self.showsFilterInReviewColumn == false {
+                ToolbarItem(placement: .topBarLeading) {
+                    reviewFilterMenu
+                }
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    // Keeping a third glass action collapses these shortcuts into overflow.
+                    reviewLeaderboardButton
+                    reviewProgressBadgeButton
+                }
             }
         }
         // TODO: This preview is unreachable from Review while the queue toolbar shortcut is withheld.
@@ -239,7 +319,7 @@ struct ReviewView: View {
                 Analytics.trackScreenViewedOnDismiss(of: .cardEditor, restoring: .review)
             }
         ) {
-            NavigationStack {
+            NavigationStack(path: self.$cardFormState.navigationPath) {
                 CardEditorScreen(
                     title: String(localized: "Edit card", table: reviewCardsStringsTableName),
                     errorMessage: screenErrorMessage,
@@ -350,6 +430,73 @@ struct ReviewView: View {
         }
     }
 
+    private func reconcileReviewPresentation() {
+        guard let cardId = self.currentCard?.cardId else {
+            // Preserve the unfinished presentation when a reload temporarily removes its card.
+            return
+        }
+        if let previousCardId = self.lastPresentedReviewCardId, previousCardId != cardId {
+            let isMigratedPresentation: Bool
+            if let sourceWorkspaceId = self.lastPresentedReviewWorkspaceId,
+               let destinationWorkspaceId = self.store.workspace?.workspaceId,
+               sourceWorkspaceId != destinationWorkspaceId {
+                isMigratedPresentation = forkedCardIdForWorkspace(
+                    sourceWorkspaceId: sourceWorkspaceId,
+                    destinationWorkspaceId: destinationWorkspaceId,
+                    sourceCardId: previousCardId
+                ) == cardId
+            } else {
+                isMigratedPresentation = false
+            }
+            if !isMigratedPresentation {
+                self.isAnswerVisible = false
+            }
+        }
+        self.lastPresentedReviewCardId = cardId
+        self.lastPresentedReviewWorkspaceId = self.store.workspace?.workspaceId
+    }
+
+    private var reviewCompanionHeader: some View {
+        // Preserve the same controls/popover anchor when enlarged text needs more space.
+        let layout = self.dynamicTypeSize > .large
+            ? AnyLayout(VStackLayout(spacing: 12))
+            : AnyLayout(HStackLayout(spacing: 12))
+        return layout {
+            reviewFilterMenu
+                .nativeActionButtonStyle()
+                .controlSize(.regular)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Text(String(localized: "Review", table: reviewCardsStringsTableName))
+                .font(.headline)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+                .frame(maxWidth: .infinity)
+                .accessibilityAddTraits(.isHeader)
+                .accessibilityIdentifier(UITestIdentifier.reviewCompanionTitle)
+
+            reviewCompanionBadges
+                .frame(maxWidth: .infinity, alignment: .trailing)
+        }
+    }
+
+    @ViewBuilder
+    private var reviewCompanionBadges: some View {
+        let badges = HStack(spacing: 8) {
+            reviewLeaderboardButton
+            reviewProgressBadgeButton
+        }
+        .buttonStyle(.plain)
+        .font(.title3)
+        .padding(.horizontal, 8)
+
+        if #available(iOS 26.0, *) {
+            badges.glassEffect(.regular, in: .capsule)
+        } else {
+            badges.background(.regularMaterial, in: Capsule())
+        }
+    }
+
     private var reviewFilterMenu: some View {
         Button {
             let committedFilter = store.selectedReviewFilter
@@ -360,19 +507,29 @@ struct ReviewView: View {
             )
             self.isReviewFilterPopoverPresented = true
         } label: {
-            HStack(spacing: 4) {
-                Text(self.selectedReviewFilterTitle)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .frame(maxWidth: 180, alignment: .leading)
-                Image(systemName: "chevron.down")
-                    .font(.caption.weight(.semibold))
+            if self.usesCompactCompanionToolbar {
+                Image(systemName: "line.3.horizontal.decrease")
+                    .foregroundStyle(Color.primary)
+            } else {
+                HStack(spacing: 4) {
+                    Text(self.selectedReviewFilterTitle)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .frame(maxWidth: self.showsFilterInReviewColumn ? nil : 180, alignment: .leading)
+                    Image(systemName: "chevron.down")
+                        .font(.caption.weight(.semibold))
+                }
+                .foregroundStyle(Color.primary)
+                .frame(minHeight: self.showsFilterInReviewColumn ? 30 : nil)
+                .fixedSize(horizontal: self.showsFilterInReviewColumn == false, vertical: false)
             }
-            .foregroundStyle(Color.primary)
-            .fixedSize(horizontal: true, vertical: false)
         }
         .tint(Color.primary)
         .accessibilityIdentifier(UITestIdentifier.reviewFilterMenu)
+        .accessibilityLabel(self.usesCompactCompanionToolbar
+            ? String(localized: "Filters", table: reviewCardsStringsTableName)
+            : self.selectedReviewFilterTitle)
+        .accessibilityValue(self.usesCompactCompanionToolbar ? self.selectedReviewFilterTitle : "")
         .popover(isPresented: self.$isReviewFilterPopoverPresented) {
             ReviewFilterPopover(
                 reviewFilter: self.$reviewFilterDraft,
@@ -380,17 +537,6 @@ struct ReviewView: View {
                 tagSummaries: self.reviewTagSummaries,
                 onEditDecks: self.dismissReviewFilterPopoverAndOpenDecks
             )
-        }
-        .onChange(of: self.isReviewFilterPopoverPresented) { _, isPresented in
-            if isPresented == false {
-                self.finalizeReviewFilterDraft()
-            }
-        }
-        .onChange(of: store.workspace?.workspaceId) { _, _ in
-            self.dismissReviewFilterPopoverIfContextDiverged()
-        }
-        .onChange(of: store.selectedReviewFilter) { _, _ in
-            self.dismissReviewFilterPopoverIfContextDiverged()
         }
     }
 
@@ -451,6 +597,15 @@ struct ReviewView: View {
                         .padding(.vertical, 20)
                 }
             }
+            .modifier(ReviewHardwareKeyboardModifier(
+                isFocused: self.$isReviewKeyboardFocused,
+                onKeyPress: self.handleReviewKeyPress,
+                onTap: {
+                    if self.canUseReviewKeyboardShortcuts {
+                        self.isReviewKeyboardFocused = true
+                    }
+                }
+            ))
             .onChange(of: isAnswerVisible) { wasVisible, isVisible in
                 guard wasVisible == false, isVisible else {
                     return
@@ -627,6 +782,8 @@ struct ReviewView: View {
                     .lineLimit(1)
             }
             .fixedSize(horizontal: true, vertical: false)
+            .frame(minWidth: self.showsFilterInReviewColumn ? 44 : nil, minHeight: self.showsFilterInReviewColumn ? 44 : nil)
+            .contentShape(Rectangle())
         }
         .disabled(badgeState.isInteractive == false)
         .accessibilityIdentifier(UITestIdentifier.reviewProgressBadge)
@@ -648,20 +805,24 @@ struct ReviewView: View {
         return Button {
             self.openProgressWithPresentationBreadcrumb(target: .leaderboard)
         } label: {
-            if let rank = badgeState.rank {
-                HStack(spacing: reviewToolbarBadgeSpacing) {
+            Group {
+                if let rank = badgeState.rank {
+                    HStack(spacing: reviewToolbarBadgeSpacing) {
+                        Image(systemName: "trophy.fill")
+                            .foregroundStyle(Color.yellow)
+                        Text(rank.formatted())
+                            .foregroundStyle(Color.primary)
+                            .monospacedDigit()
+                            .lineLimit(1)
+                    }
+                    .fixedSize(horizontal: true, vertical: false)
+                } else {
                     Image(systemName: "trophy.fill")
                         .foregroundStyle(Color.yellow)
-                    Text(rank.formatted())
-                        .foregroundStyle(Color.primary)
-                        .monospacedDigit()
-                        .lineLimit(1)
                 }
-                .fixedSize(horizontal: true, vertical: false)
-            } else {
-                Image(systemName: "trophy.fill")
-                    .foregroundStyle(Color.yellow)
             }
+            .frame(minWidth: self.showsFilterInReviewColumn ? 44 : nil, minHeight: self.showsFilterInReviewColumn ? 44 : nil)
+            .contentShape(Rectangle())
         }
         .disabled(badgeState.isInteractive == false)
         .accessibilityIdentifier(UITestIdentifier.reviewLeaderboardShortcut)
@@ -746,14 +907,56 @@ struct ReviewView: View {
         ) {
             content()
                 .padding(.top, reviewBottomBarTopPadding)
-                .padding(.bottom, reviewBottomBarBottomPadding)
+                .padding(.bottom, self.usesPairedReviewSpacing ? 4 : reviewBottomBarBottomPadding)
         }
+    }
+
+    private var canUseReviewKeyboardShortcuts: Bool {
+        UIDevice.current.userInterfaceIdiom == .pad
+            && self.navigation.selectedTab == .review
+            && self.scenePhase == .active
+            && self.isEditorPresented == false
+            && self.isQueuePreviewPresented == false
+            && self.isReviewFilterPopoverPresented == false
+            && self.shouldShowReviewLoader == false
+            && self.currentCard != nil
+            && self.store.pendingReviewCardIds.isEmpty
+            && self.store.reviewSubmissionFailure == nil
+            && self.store.isReviewHardReminderPresented == false
+            && self.store.isReviewNotificationPrePromptPresented == false
+            && self.store.isGuestSignInAfterReviewPromptPresented == false
+            && self.store.activeCloudSignInSheetCount == 0
+            && self.store.feedbackPresentation == nil
+            && self.store.presentedTechnicalError == nil
+            && self.store.accountDeletionState == .hidden
+            && self.store.accountDeletionSuccessMessage == nil
+            && self.premiumPresenter.request == nil
+    }
+
+    private func handleReviewKeyPress(_ press: KeyPress) -> KeyPress.Result {
+        // Only the study surface owns these unmodified keys; focused editors/chat keep typing.
+        guard self.canUseReviewKeyboardShortcuts, press.modifiers.isEmpty else {
+            return .ignored
+        }
+        self.dismissActiveReviewReactions(reason: "interaction")
+        if press.key == .space {
+            guard self.isAnswerVisible == false else { return .ignored }
+            self.revealReviewAnswer()
+            return .handled
+        }
+        guard self.isAnswerVisible, let card = self.currentCard,
+              self.cachedPreparedCurrentRevealState?.reviewAnswerGridOptions != nil,
+              let number = Int(press.characters), let rating = ReviewRating(rawValue: number - 1) else {
+            return .ignored
+        }
+        self.rateReviewCard(cardId: card.cardId, rating: rating)
+        return .handled
     }
 
     /**
      * The flip, and the only place the answer side is shown.
      *
-     * `review_card_revealed` is emitted from the tap itself rather than from a state observer,
+     * `review_card_revealed` is emitted from the explicit reveal action rather than from a state observer,
      * because an observer fires for view updates the person did not cause. The guard is
      * `isAnswerVisible`, which is per *presentation* and not per card: `.onChange(of:
      * currentCard?.cardId)` clears it whenever the presented card changes, and answering a card puts
@@ -762,14 +965,23 @@ struct ReviewView: View {
      * reported" guard would go silent on exactly that card. Within one presentation the guard also
      * absorbs a double tap landing before SwiftUI swaps the bottom bar for the rating buttons.
      */
+    private func revealReviewAnswer() {
+        guard self.isAnswerVisible == false else { return }
+        self.isAnswerVisible = true
+        Analytics.track(.reviewCardRevealed)
+    }
+
+    private func rateReviewCard(cardId: String, rating: ReviewRating) {
+        guard self.store.isReviewPending(cardId: cardId) == false else { return }
+        if self.areReviewReactionAnimationsEnabled {
+            self.emitReviewReaction(rating: rating)
+        }
+        self.submitReview(cardId: cardId, rating: rating)
+    }
+
     private var showAnswerButton: some View {
         Button {
-            guard isAnswerVisible == false else {
-                return
-            }
-
-            isAnswerVisible = true
-            Analytics.track(.reviewCardRevealed)
+            self.revealReviewAnswer()
         } label: {
             Label(String(localized: "Show answer", table: reviewCardsStringsTableName), systemImage: "eye")
                 .frame(maxWidth: .infinity)
@@ -815,10 +1027,7 @@ struct ReviewView: View {
 
     private func reviewAnswerButton(cardId: String, option: ReviewAnswerOption) -> some View {
         Button {
-            if self.areReviewReactionAnimationsEnabled {
-                self.emitReviewReaction(rating: option.rating)
-            }
-            self.submitReview(cardId: cardId, rating: option.rating)
+            self.rateReviewCard(cardId: cardId, rating: option.rating)
         } label: {
             VStack(alignment: .center, spacing: 4) {
                 HStack(spacing: 8) {
@@ -954,5 +1163,27 @@ private func reviewRepetitionBadge(reps: Int) -> some View {
         ReviewView()
             .environment(FlashcardsStore())
             .environment(AppNavigationModel())
+            .environment(PremiumPresenter())
+    }
+}
+
+/// Add hardware study focus only to iPad; phones retain their native focus behavior.
+private struct ReviewHardwareKeyboardModifier: ViewModifier {
+    var isFocused: FocusState<Bool>.Binding
+    var onKeyPress: (KeyPress) -> KeyPress.Result
+    var onTap: () -> Void
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            content
+                .focusable()
+                .focusEffectDisabled()
+                .focused(self.isFocused)
+                .onKeyPress(keys: [.space, "1", "2", "3", "4"], phases: .down, action: self.onKeyPress)
+                .simultaneousGesture(TapGesture().onEnded(self.onTap))
+        } else {
+            content
+        }
     }
 }

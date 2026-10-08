@@ -23,6 +23,7 @@ enum UITestIdentifier {
     static let rootTabSettingsItem: String = "rootTab.settings.item"
     static let reviewScreen: String = "review.screen"
     static let reviewFilterMenu: String = "review.filter.menu"
+    static let reviewCompanionTitle = "review.companionTitle"
     static let reviewFilterScrollSurface: String = "review.filter.scrollSurface"
     static let reviewFilterAllCardsAction: String = "review.filter.allCards"
     static let reviewFilterDeckActionPrefix: String = "review.filter.deck."

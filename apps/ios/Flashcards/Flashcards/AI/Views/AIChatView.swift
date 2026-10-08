@@ -95,20 +95,18 @@ private func appTabDiagnosticValue(_ tab: AppTab) -> String {
 
 struct AIChatView: View {
     @Environment(FlashcardsStore.self) var flashcardsStore: FlashcardsStore
-    @Environment(PremiumPresenter.self) private var premiumPresenter: PremiumPresenter
+    @Environment(PremiumPresenter.self) var premiumPresenter: PremiumPresenter
     @Environment(AppNavigationModel.self) var navigation: AppNavigationModel
     @Environment(\.scenePhase) var scenePhase
-    @Environment(\.accessibilityReduceMotion) var reduceMotion
+    @Environment(\.tabBarPlacement) var tabBarPlacement
     @Environment(\.isKeyboardDocked) private var isKeyboardDocked
     let chatStore: AIChatStore
     let isCompanion: Bool
-    let isCompanionPresentationActive: Bool
     let companionHostTab: AppTab?
 
     var isPresentationActive: Bool {
         self.isCompanion
             ? self.navigation.isAICompanionVisible
-                && self.isCompanionPresentationActive
                 && (self.companionHostTab == nil || self.navigation.selectedTab == self.companionHostTab)
             : self.navigation.selectedTab == .ai
     }
@@ -123,10 +121,9 @@ struct AIChatView: View {
     @FocusState var isComposerFocused: Bool
 
     @MainActor
-    init(chatStore: AIChatStore, isCompanion: Bool = false, isCompanionPresentationActive: Bool = true, companionHostTab: AppTab? = nil) {
+    init(chatStore: AIChatStore, isCompanion: Bool = false, companionHostTab: AppTab? = nil) {
         self.chatStore = chatStore
         self.isCompanion = isCompanion
-        self.isCompanionPresentationActive = isCompanionPresentationActive
         self.companionHostTab = companionHostTab
         self.isCameraPresented = false
         self.isFileImporterPresented = false
@@ -217,10 +214,26 @@ struct AIChatView: View {
     @ViewBuilder
     var bodyBaseModifiers: some View {
         if self.isCompanion {
-            self.bodyCommonModifiers
-                .nativeTopBar(alignment: .center) {
-                    self.companionHeader
-                }
+            if UIDevice.current.userInterfaceIdiom == .pad {
+                self.companionBody
+                    .safeAreaInset(edge: .top, spacing: 0) {
+                        if self.usesCompactCompanionToolbar == false {
+                            self.companionHeader
+                                .frame(maxWidth: .infinity)
+                                .background(.bar)
+                        }
+                    }
+                    .toolbar {
+                        if self.usesCompactCompanionToolbar {
+                            self.companionToolbarContent
+                        }
+                    }
+            } else {
+                self.companionBody
+                    .nativeTopBar(alignment: .center) {
+                        self.companionHeader
+                    }
+            }
         } else {
             self.bodyCommonModifiers
                 .navigationTitle(aiSettingsLocalized("ai.title", "AI"))
@@ -231,14 +244,33 @@ struct AIChatView: View {
         }
     }
 
+    var companionBody: some View {
+        self.bodyCommonModifiers
+            .overlay(alignment: .trailing) {
+                if UIDevice.current.userInterfaceIdiom == .pad {
+                    HStack(spacing: 0) { Divider() }
+                        .frame(width: 1)
+                        .ignoresSafeArea(.container, edges: .bottom)
+                }
+            }
+    }
+
     var bodyCommonModifiers: some View {
         self.bodyContent
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .accessibilityIdentifier(UITestIdentifier.aiScreen)
-            .nativeBottomBar(alignment: .center) {
+            .nativeBottomBar(alignment: .center, usesColumnLayout: UIDevice.current.userInterfaceIdiom == .pad) {
                 self.bottomBarContent
             }
-            .ignoresSafeArea(self.isKeyboardDocked ? [] : .keyboard, edges: .bottom)
+            .ignoresSafeArea(UIDevice.current.userInterfaceIdiom == .pad || self.isKeyboardDocked || self.navigation.canPresentAICompanion == false ? [] : .keyboard, edges: .bottom)
+    }
+
+    var usesStudySpacing: Bool {
+        self.isCompanion && UIDevice.current.userInterfaceIdiom == .pad
+    }
+
+    var chatContentHorizontalPadding: CGFloat {
+        self.usesStudySpacing ? 20 : aiChatMessageListHorizontalPadding
     }
 
     var bodyContent: some View {
@@ -334,23 +366,29 @@ struct AIChatView: View {
     var toolbarContent: some ToolbarContent {
         if self.accessState == .ready {
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    self.dismissComposerFocus()
-                    self.chatStore.clearHistory()
-                } label: {
-                    Label(aiSettingsLocalized("ai.newChat", "New"), systemImage: "square.and.pencil")
+                if UIDevice.current.userInterfaceIdiom == .pad {
+                    self.newChatToolbarButton.tint(Color.primary)
+                } else {
+                    self.newChatToolbarButton
+                        .labelStyle(.titleOnly)
                 }
-                .accessibilityIdentifier(UITestIdentifier.aiNewChatButton)
-                .disabled(self.isNewChatDisabled || self.chatStore.isChatInteractive == false)
             }
         }
+    }
+
+    private var newChatToolbarButton: some View {
+        Button(action: self.startNewChat) {
+            Label(aiSettingsLocalized("ai.newChat", "New"), systemImage: "square.and.pencil")
+        }
+        .accessibilityIdentifier(UITestIdentifier.aiNewChatButton)
+        .disabled(self.isNewChatDisabled || self.chatStore.isChatInteractive == false)
     }
 
     var consentGate: some View {
         ScrollView {
             ReadableContentLayout(
                 maxWidth: flashcardsReadableFormMaxWidth,
-                horizontalPadding: 24
+                horizontalPadding: self.usesStudySpacing ? 20 : 24
             ) {
                 VStack(alignment: .leading, spacing: 16) {
                     Image(systemName: "lock.shield")
@@ -429,7 +467,7 @@ struct AIChatView: View {
             )
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.horizontal, aiChatMessageListHorizontalPadding)
+        .padding(.horizontal, self.chatContentHorizontalPadding)
     }
 
     var failedChatState: some View {
@@ -471,7 +509,7 @@ struct AIChatView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.horizontal, aiChatMessageListHorizontalPadding)
+        .padding(.horizontal, self.chatContentHorizontalPadding)
     }
 
     var emptyChatState: some View {
@@ -487,7 +525,7 @@ struct AIChatView: View {
             .foregroundStyle(.secondary)
             .multilineTextAlignment(.center)
         }
-        .padding(.horizontal, aiChatMessageListHorizontalPadding)
+        .padding(.horizontal, self.chatContentHorizontalPadding)
     }
 
     func acceptExternalAIConsent() {
@@ -773,7 +811,7 @@ struct AIChatView: View {
         return self.chatStore.repairStatus
     }
 
-    func handlePrimaryComposerAction() {
+    func handlePrimaryComposerAction(preservesComposerFocus: Bool = false) {
         guard self.chatStore.isChatInteractive else {
             return
         }
@@ -785,7 +823,9 @@ struct AIChatView: View {
         guard self.ensureExternalAIConsent() else {
             return
         }
-        self.dismissComposerFocus()
+        if preservesComposerFocus == false {
+            self.dismissComposerFocus()
+        }
         self.chatStore.sendMessage()
     }
 
@@ -798,6 +838,17 @@ struct AIChatView: View {
             from: nil,
             for: nil
         )
+    }
+
+    func startNewChat() {
+        guard self.isPresentationActive,
+              self.accessState == .ready,
+              self.isNewChatDisabled == false,
+              self.chatStore.isChatInteractive else {
+            return
+        }
+        self.dismissComposerFocus()
+        self.chatStore.clearHistory()
     }
 
     func handleViewAppear() {

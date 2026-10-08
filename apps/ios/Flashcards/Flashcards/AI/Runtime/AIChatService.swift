@@ -100,6 +100,28 @@ func isAIChatAttachmentUnsupportedTypeError(error: Error) -> Bool {
     return errorDetails.code == aiChatAttachmentUnsupportedTypeCode
 }
 
+private let aiChatSessionNotCurrentCode = "CHAT_SESSION_NOT_CURRENT"
+
+func aiChatSessionNotCurrentNotice() -> String {
+    aiSettingsLocalized(
+        "ai.chatNotCurrent.notice",
+        "This chat was replaced by a newer one. Your message is still in the box — send it again."
+    )
+}
+
+/// The backend refuses a turn into a chat that is no longer the latest one before any run starts, so nothing was saved.
+func isAIChatSessionNotCurrentError(error: Error) -> Bool {
+    guard let serviceError = error as? AIChatServiceError else {
+        return false
+    }
+
+    guard case .invalidResponse(let errorDetails, _, let diagnostics) = serviceError else {
+        return false
+    }
+
+    return diagnostics.statusCode == 409 && errorDetails.code == aiChatSessionNotCurrentCode
+}
+
 func encodeAIChatStartRunRequestBody(
     request: AIChatStartRunRequestBody,
     encoder: JSONEncoder,

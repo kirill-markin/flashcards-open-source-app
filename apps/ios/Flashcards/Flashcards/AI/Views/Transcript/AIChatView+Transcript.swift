@@ -15,9 +15,8 @@ extension AIChatView {
             }
                 .defaultScrollAnchor(.bottom, for: .initialOffset)
                 .defaultScrollAnchor(.bottom, for: .alignment)
-                .contentMargins(.horizontal, aiChatMessageListHorizontalPadding, for: .scrollContent)
                 // The zero-height structural row's gap preserves the existing bottom spacing.
-                .contentMargins(.top, 12, for: .scrollContent)
+                .contentMargins(.top, self.usesStudySpacing ? 20 : 12, for: .scrollContent)
                 .contentMargins(.bottom, 0, for: .scrollContent)
                 .contentMargins(.horizontal, 0, for: .scrollIndicators)
                 .onScrollPhaseChange { _, nextPhase, context in
@@ -149,7 +148,12 @@ extension AIChatView {
                             )
                         )
                         .id(message.id)
-                        .listRowInsets(EdgeInsets())
+                        .listRowInsets(EdgeInsets(
+                            top: 0,
+                            leading: self.chatContentHorizontalPadding,
+                            bottom: 0,
+                            trailing: self.chatContentHorizontalPadding
+                        ))
                         .listRowSeparator(.hidden)
                         .listRowBackground(Color.clear)
                     }
