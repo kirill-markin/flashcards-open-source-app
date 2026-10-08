@@ -1358,6 +1358,7 @@ const taCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "இணைப்பைச் சேர்",
+      history: "History",
       newChat: "புதியது",
       removeAttachment: "இணைப்பை அகற்று",
       send: "அனுப்பு",
@@ -1408,6 +1409,27 @@ const taCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "அரட்டை உரையாக்கம் எதிர்பாராத அமர்வு ID ஐத் திருப்பியது.",
       unexpectedSessionId: "புதிய அரட்டை எதிர்பாராத அமர்வு ID ஐத் திருப்பியது.",
       upstreamHtmlResponse: "மேல்நிலை HTML பதிலால் கோரிக்கை தடுக்கப்பட்டது.",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "AI அரட்டையை ஏற்றுகிறது...",
     pendingAttachmentCardPrefix: "அட்டை",

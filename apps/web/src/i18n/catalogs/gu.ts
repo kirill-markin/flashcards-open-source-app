@@ -1358,6 +1358,7 @@ const guCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "જોડાણ ઉમેરો",
+      history: "History",
       newChat: "નવું",
       removeAttachment: "જોડાણ દૂર કરો",
       send: "મોકલો",
@@ -1408,6 +1409,27 @@ const guCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "ચૅટના લખાણ-રૂપાંતરે અણધારી સત્ર ID પાછી આપી.",
       unexpectedSessionId: "નવી ચૅટે અણધારી સત્ર ID પાછી આપી.",
       upstreamHtmlResponse: "વિનંતી અપસ્ટ્રીમ HTML જવાબથી અવરોધાઈ.",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "AI ચૅટ લોડ થઈ રહી છે...",
     pendingAttachmentCardPrefix: "કાર્ડ",

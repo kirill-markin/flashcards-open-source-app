@@ -1371,6 +1371,7 @@ const ltCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "Pridėti priedą",
+      history: "History",
       newChat: "Naujas",
       removeAttachment: "Pašalinti priedą",
       send: "Siųsti",
@@ -1422,6 +1423,27 @@ const ltCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "Pokalbio transkripcija grąžino netikėtą sesijos ID.",
       unexpectedSessionId: "Naujas pokalbis grąžino netikėtą sesijos ID.",
       upstreamHtmlResponse: "Užklausą užblokavo aukštesniojo lygio HTML atsakymas.",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "Įkeliamas DI pokalbis...",
     pendingAttachmentCardPrefix: "Kortelė",

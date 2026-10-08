@@ -1358,6 +1358,7 @@ const viCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "Thêm tệp đính kèm",
+      history: "History",
       newChat: "Mới",
       removeAttachment: "Xóa tệp đính kèm",
       send: "Gửi",
@@ -1408,6 +1409,27 @@ const viCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "Chuyển giọng nói thành văn bản trả về ID phiên không mong đợi.",
       unexpectedSessionId: "Cuộc trò chuyện mới trả về ID phiên không mong đợi.",
       upstreamHtmlResponse: "Yêu cầu bị chặn bởi một phản hồi HTML từ phía máy chủ trung gian.",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "Đang tải trò chuyện AI...",
     pendingAttachmentCardPrefix: "Thẻ",

@@ -1358,6 +1358,7 @@ const caCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "Afegeix un fitxer adjunt",
+      history: "History",
       newChat: "Nou",
       removeAttachment: "Elimina el fitxer adjunt",
       send: "Envia",
@@ -1408,6 +1409,27 @@ const caCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "La transcripció del xat ha retornat un ID de sessió inesperat.",
       unexpectedSessionId: "El xat nou ha retornat un ID de sessió inesperat.",
       upstreamHtmlResponse: "La petició s'ha bloquejat per una resposta HTML del servidor previ.",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "S'està carregant el xat d'IA...",
     pendingAttachmentCardPrefix: "Targeta",

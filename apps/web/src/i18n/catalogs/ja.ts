@@ -1358,6 +1358,7 @@ export const jaCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "添付を追加",
+      history: "History",
       newChat: "新規",
       removeAttachment: "添付を削除",
       send: "送信",
@@ -1408,6 +1409,27 @@ export const jaCatalog = {
       transcriptionUnexpectedSessionId: "チャット文字起こしが予期しないセッション ID を返しました。",
       unexpectedSessionId: "新しいチャットが予期しないセッション ID を返しました。",
       upstreamHtmlResponse: "上流の HTML レスポンスによってリクエストがブロックされました。",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "AI チャットを読み込んでいます...",
     pendingAttachmentCardPrefix: "カード",

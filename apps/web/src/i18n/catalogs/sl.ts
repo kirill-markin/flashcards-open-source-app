@@ -1384,6 +1384,7 @@ const slCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "Dodaj prilogo",
+      history: "History",
       newChat: "Nov",
       removeAttachment: "Odstrani prilogo",
       send: "Pošlji",
@@ -1436,6 +1437,27 @@ const slCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "Prepis klepeta je vrnil nepričakovan ID seje.",
       unexpectedSessionId: "Nov klepet je vrnil nepričakovan ID seje.",
       upstreamHtmlResponse: "Zahtevo je blokiral odgovor HTML iz vmesnega strežnika.",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "Nalaganje klepeta z UI ...",
     pendingAttachmentCardPrefix: "Kartica",

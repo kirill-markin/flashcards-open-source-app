@@ -1371,6 +1371,7 @@ const skCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "Pridať prílohu",
+      history: "History",
       newChat: "Nový",
       removeAttachment: "Odstrániť prílohu",
       send: "Odoslať",
@@ -1422,6 +1423,27 @@ const skCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "Prepis chatu vrátil neočakávané ID relácie.",
       unexpectedSessionId: "Nový chat vrátil neočakávané ID relácie.",
       upstreamHtmlResponse: "Požiadavku zablokovala odpoveď HTML z nadradeného servera.",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "Načítava sa AI chat...",
     pendingAttachmentCardPrefix: "Karta",

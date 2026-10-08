@@ -1358,6 +1358,7 @@ const knCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "ಲಗತ್ತು ಸೇರಿಸಿ",
+      history: "History",
       newChat: "ಹೊಸದು",
       removeAttachment: "ಲಗತ್ತು ತೆಗೆದುಹಾಕಿ",
       send: "ಕಳುಹಿಸಿ",
@@ -1408,6 +1409,27 @@ const knCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "ಚಾಟ್ ಲಿಪ್ಯಂತರ ಅನಿರೀಕ್ಷಿತ ಸೆಷನ್ ID ನೀಡಿದೆ.",
       unexpectedSessionId: "ಹೊಸ ಚಾಟ್ ಅನಿರೀಕ್ಷಿತ ಸೆಷನ್ ID ನೀಡಿದೆ.",
       upstreamHtmlResponse: "ಅಪ್‌ಸ್ಟ್ರೀಮ್ HTML ಪ್ರತಿಕ್ರಿಯೆಯಿಂದ ವಿನಂತಿ ನಿರ್ಬಂಧಿಸಲಾಗಿದೆ.",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "AI ಚಾಟ್ ಲೋಡ್ ಆಗುತ್ತಿದೆ...",
     pendingAttachmentCardPrefix: "ಕಾರ್ಡ್",

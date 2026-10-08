@@ -1358,6 +1358,7 @@ const nlCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "Bijlage toevoegen",
+      history: "History",
       newChat: "Nieuw",
       removeAttachment: "Bijlage verwijderen",
       send: "Versturen",
@@ -1408,6 +1409,27 @@ const nlCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "De chattranscriptie gaf een onverwacht sessie-ID terug.",
       unexpectedSessionId: "De nieuwe chat gaf een onverwacht sessie-ID terug.",
       upstreamHtmlResponse: "Het verzoek is geblokkeerd door een HTML-antwoord van een tussenliggende server.",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "AI-chat laden...",
     pendingAttachmentCardPrefix: "Kaart",

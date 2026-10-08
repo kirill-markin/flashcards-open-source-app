@@ -1358,6 +1358,7 @@ const elCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "Προσθήκη συνημμένου",
+      history: "History",
       newChat: "Νέα",
       removeAttachment: "Αφαίρεση συνημμένου",
       send: "Αποστολή",
@@ -1408,6 +1409,27 @@ const elCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "Η απομαγνητοφώνηση επέστρεψε μη αναμενόμενο αναγνωριστικό συνεδρίας.",
       unexpectedSessionId: "Η νέα συνομιλία επέστρεψε μη αναμενόμενο αναγνωριστικό συνεδρίας.",
       upstreamHtmlResponse: "Το αίτημα αποκλείστηκε από μια απάντηση HTML ενδιάμεσου διακομιστή.",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "Φόρτωση συνομιλίας ΤΝ...",
     pendingAttachmentCardPrefix: "Κάρτα",

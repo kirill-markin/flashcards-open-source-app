@@ -1371,6 +1371,7 @@ const hrCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "Dodaj privitak",
+      history: "History",
       newChat: "Novi",
       removeAttachment: "Ukloni privitak",
       send: "Pošalji",
@@ -1422,6 +1423,27 @@ const hrCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "Pretvaranje govora u tekst vratilo je neočekivani ID sesije.",
       unexpectedSessionId: "Novi razgovor vratio je neočekivani ID sesije.",
       upstreamHtmlResponse: "Zahtjev je blokirao HTML odgovor uzvodnog poslužitelja.",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "Učitavanje AI razgovora...",
     pendingAttachmentCardPrefix: "Kartica",

@@ -1371,6 +1371,7 @@ const ukCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "Додати вкладення",
+      history: "History",
       newChat: "Новий",
       removeAttachment: "Прибрати вкладення",
       send: "Надіслати",
@@ -1422,6 +1423,27 @@ const ukCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "Розшифрування чату повернуло неочікуваний ID сесії.",
       unexpectedSessionId: "Новий чат повернув неочікуваний ID сесії.",
       upstreamHtmlResponse: "Запит заблокувала HTML-відповідь проміжного сервера.",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "Завантаження AI-чату...",
     pendingAttachmentCardPrefix: "Картка",

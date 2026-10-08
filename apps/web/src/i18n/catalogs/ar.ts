@@ -1358,6 +1358,7 @@ const arCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "إضافة مرفق",
+      history: "History",
       newChat: "جديد",
       removeAttachment: "إزالة المرفق",
       send: "إرسال",
@@ -1408,6 +1409,27 @@ const arCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "أعادت عملية نسخ الدردشة معرّف جلسة غير متوقع.",
       unexpectedSessionId: "أعادت الدردشة الجديدة معرّف جلسة غير متوقع.",
       upstreamHtmlResponse: "تم حظر الطلب بواسطة استجابة HTML من خدمة وسيطة.",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "جارٍ تحميل دردشة الذكاء الاصطناعي...",
     pendingAttachmentCardPrefix: "بطاقة",

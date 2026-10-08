@@ -1358,6 +1358,7 @@ const lvCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "Pievienot pielikumu",
+      history: "History",
       newChat: "Jauna",
       removeAttachment: "Noņemt pielikumu",
       send: "Sūtīt",
@@ -1408,6 +1409,27 @@ const lvCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "Sarunas transkripcija atgrieza negaidītu sesijas ID.",
       unexpectedSessionId: "Jaunā saruna atgrieza negaidītu sesijas ID.",
       upstreamHtmlResponse: "Pieprasījumu bloķēja augšupējā servera HTML atbilde.",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "Ielādē MI sarunu...",
     pendingAttachmentCardPrefix: "Kartīte",

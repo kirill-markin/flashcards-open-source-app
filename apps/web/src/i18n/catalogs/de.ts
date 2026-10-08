@@ -1358,6 +1358,7 @@ const deCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "Anhang hinzufügen",
+      history: "History",
       newChat: "Neu",
       removeAttachment: "Anhang entfernen",
       send: "Senden",
@@ -1408,6 +1409,27 @@ const deCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "Die Chat-Transkription hat eine unerwartete Sitzungs-ID zurückgegeben.",
       unexpectedSessionId: "Neuer Chat hat eine unerwartete Sitzungs-ID zurückgegeben.",
       upstreamHtmlResponse: "Die Anfrage wurde durch eine vorgelagerte HTML-Antwort blockiert.",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "AI-Chat wird geladen...",
     pendingAttachmentCardPrefix: "Karte",

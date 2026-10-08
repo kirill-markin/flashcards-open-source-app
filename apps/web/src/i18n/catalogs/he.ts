@@ -1358,6 +1358,7 @@ const heCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "הוספת קובץ מצורף",
+      history: "History",
       newChat: "חדש",
       removeAttachment: "הסרת הקובץ המצורף",
       send: "שליחה",
@@ -1408,6 +1409,27 @@ const heCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "התמלול בצ'אט החזיר מזהה הפעלה לא צפוי.",
       unexpectedSessionId: "הצ'אט החדש החזיר מזהה הפעלה לא צפוי.",
       upstreamHtmlResponse: "הבקשה נחסמה על ידי תשובת HTML במעלה הזרם.",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "טוען צ'אט AI...",
     pendingAttachmentCardPrefix: "כרטיס",

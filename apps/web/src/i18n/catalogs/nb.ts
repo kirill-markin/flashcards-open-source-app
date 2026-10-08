@@ -1358,6 +1358,7 @@ const nbCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "Legg til vedlegg",
+      history: "History",
       newChat: "Ny",
       removeAttachment: "Fjern vedlegg",
       send: "Send",
@@ -1408,6 +1409,27 @@ const nbCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "Chattranskripsjonen returnerte en uventet økt-ID.",
       unexpectedSessionId: "Ny chat returnerte en uventet økt-ID.",
       upstreamHtmlResponse: "Forespørselen ble blokkert av et HTML-svar lenger opp i kjeden.",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "Laster inn AI-chatten...",
     pendingAttachmentCardPrefix: "Kort",

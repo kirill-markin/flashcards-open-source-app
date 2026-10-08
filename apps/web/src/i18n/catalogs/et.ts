@@ -1358,6 +1358,7 @@ const etCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "Lisa manus",
+      history: "History",
       newChat: "Uus",
       removeAttachment: "Eemalda manus",
       send: "Saada",
@@ -1408,6 +1409,27 @@ const etCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "Vestluse transkribeerimine tagastas ootamatu seansi ID.",
       unexpectedSessionId: "Uus vestlus tagastas ootamatu seansi ID.",
       upstreamHtmlResponse: "Päringu blokeeris vahendava serveri HTML-vastus.",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "Tehisintellekti vestluse laadimine...",
     pendingAttachmentCardPrefix: "Kaart",

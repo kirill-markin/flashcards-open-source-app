@@ -1358,6 +1358,7 @@ const mrCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "फाइल जोडा",
+      history: "History",
       newChat: "नवीन",
       removeAttachment: "जोडलेली फाइल काढा",
       send: "पाठवा",
@@ -1408,6 +1409,27 @@ const mrCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "चॅट लिप्यंतरणाने अनपेक्षित सत्र ID दिला.",
       unexpectedSessionId: "नवीन चॅटने अनपेक्षित सत्र ID दिला.",
       upstreamHtmlResponse: "अपस्ट्रीम HTML प्रतिसादामुळे विनंती अडवली गेली.",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "AI चॅट लोड करत आहे...",
     pendingAttachmentCardPrefix: "कार्ड",

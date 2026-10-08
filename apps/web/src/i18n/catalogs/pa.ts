@@ -1358,6 +1358,7 @@ const paCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "ਅਟੈਚਮੈਂਟ ਸ਼ਾਮਲ ਕਰੋ",
+      history: "History",
       newChat: "ਨਵੀਂ",
       removeAttachment: "ਅਟੈਚਮੈਂਟ ਹਟਾਓ",
       send: "ਭੇਜੋ",
@@ -1408,6 +1409,27 @@ const paCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "ਚੈਟ ਲਿਪੀਅੰਤਰਨ ਨੇ ਅਣਕਿਆਸੀ ਸੈਸ਼ਨ ID ਦਿੱਤੀ.",
       unexpectedSessionId: "ਨਵੀਂ ਚੈਟ ਨੇ ਅਣਕਿਆਸੀ ਸੈਸ਼ਨ ID ਦਿੱਤੀ.",
       upstreamHtmlResponse: "ਬੇਨਤੀ ਅੱਪਸਟ੍ਰੀਮ HTML ਜਵਾਬ ਨੇ ਰੋਕ ਦਿੱਤੀ.",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "AI ਚੈਟ ਲੋਡ ਹੋ ਰਹੀ ਹੈ...",
     pendingAttachmentCardPrefix: "ਕਾਰਡ",

@@ -1358,6 +1358,7 @@ const ptBrCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "Adicionar anexo",
+      history: "History",
       newChat: "Novo",
       removeAttachment: "Remover anexo",
       send: "Enviar",
@@ -1408,6 +1409,27 @@ const ptBrCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "A transcrição do chat retornou um ID de sessão inesperado.",
       unexpectedSessionId: "O novo chat retornou um ID de sessão inesperado.",
       upstreamHtmlResponse: "A requisição foi bloqueada por uma resposta HTML upstream.",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "Carregando chat com IA...",
     pendingAttachmentCardPrefix: "Cartão",

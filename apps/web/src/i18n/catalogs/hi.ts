@@ -1360,6 +1360,7 @@ const hiCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "अटैचमेंट जोड़ें",
+      history: "History",
       newChat: "नया",
       removeAttachment: "अटैचमेंट हटाएँ",
       send: "भेजें",
@@ -1410,6 +1411,27 @@ const hiCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "चैट ट्रांसक्रिप्शन ने अनपेक्षित सेशन ID लौटाई।",
       unexpectedSessionId: "नई चैट ने अनपेक्षित सेशन ID लौटाई।",
       upstreamHtmlResponse: "अनुरोध को upstream HTML प्रतिक्रिया ने ब्लॉक कर दिया।",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "AI चैट लोड हो रही है...",
     pendingAttachmentCardPrefix: "कार्ड",

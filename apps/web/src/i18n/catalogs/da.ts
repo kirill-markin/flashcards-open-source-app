@@ -1358,6 +1358,7 @@ const daCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "Tilføj vedhæftning",
+      history: "History",
       newChat: "Ny",
       removeAttachment: "Fjern vedhæftning",
       send: "Send",
@@ -1408,6 +1409,27 @@ const daCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "Transskriptionen i chatten returnerede et uventet sessions-ID.",
       unexpectedSessionId: "Ny chat returnerede et uventet sessions-ID.",
       upstreamHtmlResponse: "Anmodningen blev blokeret af et HTML-svar længere oppe i kæden.",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "Indlæser AI-chat...",
     pendingAttachmentCardPrefix: "Kort",

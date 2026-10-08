@@ -1358,6 +1358,7 @@ const teCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "జోడింపును చేర్చు",
+      history: "History",
       newChat: "కొత్తది",
       removeAttachment: "జోడింపును తీసివేయి",
       send: "పంపు",
@@ -1408,6 +1409,27 @@ const teCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "చాట్ లిప్యంతరీకరణ ఊహించని సెషన్ IDని ఇచ్చింది.",
       unexpectedSessionId: "కొత్త చాట్ ఊహించని సెషన్ IDని ఇచ్చింది.",
       upstreamHtmlResponse: "అప్‌స్ట్రీమ్ HTML ప్రతిస్పందన వల్ల అభ్యర్థన అడ్డగించబడింది.",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "AI చాట్ లోడ్ అవుతోంది...",
     pendingAttachmentCardPrefix: "కార్డు",

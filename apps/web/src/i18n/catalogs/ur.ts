@@ -1358,6 +1358,7 @@ const urCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "منسلکہ شامل کریں",
+      history: "History",
       newChat: "نئی",
       removeAttachment: "منسلکہ ہٹائیں",
       send: "بھیجیں",
@@ -1408,6 +1409,27 @@ const urCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "چیٹ کی نقل نے غیر متوقع سیشن ID لوٹایا۔",
       unexpectedSessionId: "نئی چیٹ نے غیر متوقع سیشن ID لوٹایا۔",
       upstreamHtmlResponse: "درخواست کو اوپری HTML جواب نے روک دیا۔",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "AI چیٹ لوڈ ہو رہی ہے...",
     pendingAttachmentCardPrefix: "کارڈ",

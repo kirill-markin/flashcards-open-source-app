@@ -1358,6 +1358,7 @@ const faCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "افزودن پیوست",
+      history: "History",
       newChat: "جدید",
       removeAttachment: "حذف پیوست",
       send: "ارسال",
@@ -1408,6 +1409,27 @@ const faCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "تبدیل گفتار به متنِ گفت‌وگو شناسهٔ نشست غیرمنتظره‌ای برگرداند.",
       unexpectedSessionId: "گفت‌وگوی جدید شناسهٔ نشست غیرمنتظره‌ای برگرداند.",
       upstreamHtmlResponse: "درخواست با یک پاسخ HTML بالادستی مسدود شد.",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "در حال بارگیری گفت‌وگوی هوش مصنوعی...",
     pendingAttachmentCardPrefix: "کارت",

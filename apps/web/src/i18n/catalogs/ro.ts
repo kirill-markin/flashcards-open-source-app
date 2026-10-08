@@ -1371,6 +1371,7 @@ const roCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "Adaugă un atașament",
+      history: "History",
       newChat: "Nou",
       removeAttachment: "Elimină atașamentul",
       send: "Trimite",
@@ -1422,6 +1423,27 @@ const roCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "Transcrierea din chat a returnat un ID de sesiune neașteptat.",
       unexpectedSessionId: "Chatul nou a returnat un ID de sesiune neașteptat.",
       upstreamHtmlResponse: "Cererea a fost blocată de un răspuns HTML din amonte.",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "Se încarcă chatul AI...",
     pendingAttachmentCardPrefix: "Fișă",

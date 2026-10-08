@@ -1358,6 +1358,7 @@ const idCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "Tambah lampiran",
+      history: "History",
       newChat: "Baru",
       removeAttachment: "Hapus lampiran",
       send: "Kirim",
@@ -1408,6 +1409,27 @@ const idCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "Transkripsi obrolan mengembalikan ID sesi yang tidak terduga.",
       unexpectedSessionId: "Obrolan baru mengembalikan ID sesi yang tidak terduga.",
       upstreamHtmlResponse: "Permintaan diblokir oleh respons HTML dari hulu.",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "Memuat obrolan AI...",
     pendingAttachmentCardPrefix: "Kartu",

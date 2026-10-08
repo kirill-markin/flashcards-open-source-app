@@ -1371,6 +1371,7 @@ export const ruCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "Добавить вложение",
+      history: "History",
       newChat: "Новый",
       removeAttachment: "Удалить вложение",
       send: "Отправить",
@@ -1422,6 +1423,27 @@ export const ruCatalog = {
       transcriptionUnexpectedSessionId: "Расшифровка чата вернула неожиданный ID сессии.",
       unexpectedSessionId: "Новый чат вернул неожиданный ID сессии.",
       upstreamHtmlResponse: "Запрос был заблокирован входящим HTML-ответом.",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "Загрузка AI-чата...",
     pendingAttachmentCardPrefix: "Карточка",

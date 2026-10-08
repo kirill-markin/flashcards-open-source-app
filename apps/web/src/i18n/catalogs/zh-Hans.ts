@@ -1358,6 +1358,7 @@ export const zhHansCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "添加附件",
+      history: "History",
       newChat: "新建",
       removeAttachment: "移除附件",
       send: "发送",
@@ -1408,6 +1409,27 @@ export const zhHansCatalog = {
       transcriptionUnexpectedSessionId: "聊天转写返回了意外的会话 ID。",
       unexpectedSessionId: "新建聊天返回了意外的会话 ID。",
       upstreamHtmlResponse: "请求被上游 HTML 响应阻止。",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "正在加载 AI 聊天...",
     pendingAttachmentCardPrefix: "卡片",

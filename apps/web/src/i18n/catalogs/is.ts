@@ -1358,6 +1358,7 @@ const isCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "Bæta við viðhengi",
+      history: "History",
       newChat: "Nýtt",
       removeAttachment: "Fjarlægja viðhengi",
       send: "Senda",
@@ -1408,6 +1409,27 @@ const isCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "Umritun spjalls skilaði óvæntu lotuauðkenni.",
       unexpectedSessionId: "Nýtt spjall skilaði óvæntu lotuauðkenni.",
       upstreamHtmlResponse: "Lokað var á beiðnina með HTML-svari frá milliþjóni.",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "Hleð gervigreindarspjalli...",
     pendingAttachmentCardPrefix: "Spjald",

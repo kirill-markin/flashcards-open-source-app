@@ -1358,6 +1358,7 @@ const zuCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "Engeza okunamathiselwe",
+      history: "History",
       newChat: "Entsha",
       removeAttachment: "Susa okunamathiselwe",
       send: "Thumela",
@@ -1408,6 +1409,27 @@ const zuCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "Ukubhalwa kwengxoxo kubuyise i-ID yeseshini engalindelekile.",
       unexpectedSessionId: "Ingxoxo entsha ibuyise i-ID yeseshini engalindelekile.",
       upstreamHtmlResponse: "Isicelo sivinjwe impendulo ye-HTML evela kuseva engaphambili.",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "Kulayishwa ingxoxo ye-AI...",
     pendingAttachmentCardPrefix: "Ikhadi",

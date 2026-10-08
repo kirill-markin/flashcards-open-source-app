@@ -1358,6 +1358,7 @@ const bgCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "Добавяне на прикачен файл",
+      history: "History",
       newChat: "Нов",
       removeAttachment: "Премахване на прикачения файл",
       send: "Изпращане",
@@ -1408,6 +1409,27 @@ const bgCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "Транскрипцията в чата върна неочакван ID на сесия.",
       unexpectedSessionId: "Новият чат върна неочакван ID на сесия.",
       upstreamHtmlResponse: "Заявката беше блокирана от HTML отговор от горен сървър.",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "Зареждане на ИИ чата...",
     pendingAttachmentCardPrefix: "Карта",

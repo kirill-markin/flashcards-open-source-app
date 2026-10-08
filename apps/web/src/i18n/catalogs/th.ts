@@ -1358,6 +1358,7 @@ const thCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "เพิ่มไฟล์แนบ",
+      history: "History",
       newChat: "ใหม่",
       removeAttachment: "นำไฟล์แนบออก",
       send: "ส่ง",
@@ -1408,6 +1409,27 @@ const thCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "การถอดเสียงในแชทส่งรหัสเซสชันที่ไม่คาดคิดกลับมา",
       unexpectedSessionId: "แชทใหม่ส่งรหัสเซสชันที่ไม่คาดคิดกลับมา",
       upstreamHtmlResponse: "คำขอถูกบล็อกด้วยการตอบกลับแบบ HTML จากต้นทาง",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "กำลังโหลดแชท AI...",
     pendingAttachmentCardPrefix: "การ์ด",

@@ -1358,6 +1358,7 @@ const fiCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "Lisää liite",
+      history: "History",
       newChat: "Uusi",
       removeAttachment: "Poista liite",
       send: "Lähetä",
@@ -1408,6 +1409,27 @@ const fiCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "Keskustelun puheentunnistus palautti odottamattoman istuntotunnuksen.",
       unexpectedSessionId: "Uusi keskustelu palautti odottamattoman istuntotunnuksen.",
       upstreamHtmlResponse: "Ylävirran HTML-vastaus esti pyynnön.",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "Ladataan tekoälykeskustelua...",
     pendingAttachmentCardPrefix: "Kortti",

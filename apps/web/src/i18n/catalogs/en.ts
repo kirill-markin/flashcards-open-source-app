@@ -1357,6 +1357,7 @@ const enCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "Add attachment",
+      history: "History",
       newChat: "New",
       removeAttachment: "Remove attachment",
       send: "Send",
@@ -1407,6 +1408,27 @@ const enCatalog = {
       transcriptionUnexpectedSessionId: "Chat transcription returned an unexpected session ID.",
       unexpectedSessionId: "New chat returned an unexpected session ID.",
       upstreamHtmlResponse: "The request was blocked by an upstream HTML response.",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "Loading AI chat...",
     pendingAttachmentCardPrefix: "Card",

@@ -1358,6 +1358,7 @@ const frCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "Ajouter une pièce jointe",
+      history: "History",
       newChat: "Nouveau",
       removeAttachment: "Retirer la pièce jointe",
       send: "Envoyer",
@@ -1408,6 +1409,27 @@ const frCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "La transcription du chat a renvoyé un ID de session inattendu.",
       unexpectedSessionId: "Le nouveau chat a renvoyé un ID de session inattendu.",
       upstreamHtmlResponse: "La requête a été bloquée par une réponse HTML en amont.",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "Chargement du chat IA...",
     pendingAttachmentCardPrefix: "Carte",

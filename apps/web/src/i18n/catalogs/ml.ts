@@ -1358,6 +1358,7 @@ const mlCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "അറ്റാച്ച്മെന്റ് ചേർക്കുക",
+      history: "History",
       newChat: "പുതിയത്",
       removeAttachment: "അറ്റാച്ച്മെന്റ് നീക്കുക",
       send: "അയയ്ക്കുക",
@@ -1408,6 +1409,27 @@ const mlCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "ചാറ്റ് ലിപ്യന്തരണം അപ്രതീക്ഷിത സെഷൻ ID നൽകി.",
       unexpectedSessionId: "പുതിയ ചാറ്റ് അപ്രതീക്ഷിത സെഷൻ ID നൽകി.",
       upstreamHtmlResponse: "അപ്‌സ്ട്രീം HTML പ്രതികരണം അഭ്യർത്ഥന തടഞ്ഞു.",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "AI ചാറ്റ് ലോഡ് ചെയ്യുന്നു...",
     pendingAttachmentCardPrefix: "കാർഡ്",

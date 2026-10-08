@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactElement } from "react";
+import { useEffect, useRef, useState, type ReactElement } from "react";
 import { useAppData } from "../../appData";
 import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
@@ -29,6 +29,8 @@ import {
   hasChatDraftContent,
 } from "../composer/chatComposerState";
 import { renderStoredMessageContent } from "../history/chatMessageContent";
+import { archiveChatSession } from "../history/chatArchive";
+import { ChatHistoryPanel } from "../history/ChatHistoryPanel";
 import { useChatAutoScroll } from "../history/useChatAutoScroll";
 import { useAIChatPreferences } from "../preferences/AIChatPreferencesContext";
 import { useChatSession } from "../sessionController";
@@ -94,6 +96,7 @@ export function ChatPanel(props: Props): ReactElement {
   const messagesRef = useRef<HTMLDivElement>(null);
   const messagesContentRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   const { handleMessagesScroll } = useChatAutoScroll({
     isHydrated: isHistoryLoaded,
@@ -290,6 +293,14 @@ export function ChatPanel(props: Props): ReactElement {
 
     try {
       indexedDbOpenRecoveryState.throwIfFailed();
+      // Archive the outgoing chat so it stays available as read-only history.
+      if (messages.length > 0) {
+        archiveChatSession(
+          activeWorkspaceId,
+          messages,
+          t("chatPanel.history.untitledChat"),
+        );
+      }
       suppressNextSessionDraftCarryover(currentSessionId);
       startNewConversationComposerReset(currentSessionId);
       discardDictation();
@@ -353,6 +364,15 @@ export function ChatPanel(props: Props): ReactElement {
           <button
             type="button"
             className="chat-close-btn"
+            onClick={() => setIsHistoryOpen(true)}
+            disabled={isChatActionLocked}
+            data-testid="chat-history-button"
+          >
+            {t("chatPanel.actions.history")}
+          </button>
+          <button
+            type="button"
+            className="chat-close-btn"
             onClick={() => void handleStartNewConversation()}
             disabled={isStopping || isChatActionLocked}
             data-testid="chat-new-button"
@@ -377,6 +397,13 @@ export function ChatPanel(props: Props): ReactElement {
         </div>
       </div>
 
+      {isHistoryOpen ? (
+        <ChatHistoryPanel
+          workspaceId={activeWorkspaceId}
+          onClose={() => setIsHistoryOpen(false)}
+        />
+      ) : (
+        <>
       <div className="chat-messages" ref={messagesRef} onScroll={handleMessagesScroll} data-testid="chat-messages">
         <div className="chat-messages-content" ref={messagesContentRef}>
           {isInitialHistoryLoading ? (
@@ -620,6 +647,8 @@ export function ChatPanel(props: Props): ReactElement {
           </div>
         </div>
       </div>
+        </>
+      )}
 
       {errorDialogMessage !== null ? (
         <div

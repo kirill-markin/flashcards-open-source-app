@@ -1358,6 +1358,7 @@ const swCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "Ongeza kiambatisho",
+      history: "History",
       newChat: "Mpya",
       removeAttachment: "Ondoa kiambatisho",
       send: "Tuma",
@@ -1408,6 +1409,27 @@ const swCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "Unukuzi wa gumzo umerudisha kitambulisho cha kipindi kisichotarajiwa.",
       unexpectedSessionId: "Gumzo jipya limerudisha kitambulisho cha kipindi kisichotarajiwa.",
       upstreamHtmlResponse: "Ombi limezuiwa na jibu la HTML la seva ya juu.",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "Inapakia gumzo la AI...",
     pendingAttachmentCardPrefix: "Kadi",

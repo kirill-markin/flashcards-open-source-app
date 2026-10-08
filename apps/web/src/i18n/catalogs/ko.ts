@@ -1358,6 +1358,7 @@ const koCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "첨부 추가",
+      history: "History",
       newChat: "새로 만들기",
       removeAttachment: "첨부 제거",
       send: "보내기",
@@ -1408,6 +1409,27 @@ const koCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "채팅 받아쓰기가 예상과 다른 세션 ID를 반환했습니다.",
       unexpectedSessionId: "새 채팅이 예상과 다른 세션 ID를 반환했습니다.",
       upstreamHtmlResponse: "상위 서버의 HTML 응답 때문에 요청이 차단되었습니다.",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "AI 채팅을 불러오는 중...",
     pendingAttachmentCardPrefix: "카드",

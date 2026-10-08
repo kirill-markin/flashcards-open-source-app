@@ -1358,6 +1358,7 @@ const svCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "Lägg till bilaga",
+      history: "History",
       newChat: "Ny",
       removeAttachment: "Ta bort bilagan",
       send: "Skicka",
@@ -1408,6 +1409,27 @@ const svCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "Chattranskriberingen returnerade ett oväntat sessions-ID.",
       unexpectedSessionId: "Den nya chatten returnerade ett oväntat sessions-ID.",
       upstreamHtmlResponse: "Förfrågan blockerades av ett HTML-svar uppströms.",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "Läser in AI-chatten...",
     pendingAttachmentCardPrefix: "Kort",

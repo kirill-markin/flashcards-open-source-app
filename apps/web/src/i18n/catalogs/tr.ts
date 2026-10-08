@@ -1358,6 +1358,7 @@ const trCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "Ek ekle",
+      history: "History",
       newChat: "Yeni",
       removeAttachment: "Eki kaldır",
       send: "Gönder",
@@ -1408,6 +1409,27 @@ const trCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "Sohbet yazıya dökme beklenmeyen bir oturum kimliği döndürdü.",
       unexpectedSessionId: "Yeni sohbet beklenmeyen bir oturum kimliği döndürdü.",
       upstreamHtmlResponse: "İstek, üst kaynaktan gelen bir HTML yanıtı tarafından engellendi.",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "AI sohbeti yükleniyor...",
     pendingAttachmentCardPrefix: "Kart",

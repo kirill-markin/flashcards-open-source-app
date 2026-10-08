@@ -1358,6 +1358,7 @@ const huCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "Melléklet hozzáadása",
+      history: "History",
       newChat: "Új",
       removeAttachment: "Melléklet eltávolítása",
       send: "Küldés",
@@ -1408,6 +1409,27 @@ const huCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "A csevegés átirata váratlan munkamenet-azonosítót adott vissza.",
       unexpectedSessionId: "Az új csevegés váratlan munkamenet-azonosítót adott vissza.",
       upstreamHtmlResponse: "A kérést egy feljebbi HTML-válasz blokkolta.",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "AI-csevegés betöltése...",
     pendingAttachmentCardPrefix: "Kártya",

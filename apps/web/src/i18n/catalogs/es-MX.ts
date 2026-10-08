@@ -1358,6 +1358,7 @@ const esMxCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "Agregar adjunto",
+      history: "History",
       newChat: "Nuevo",
       removeAttachment: "Quitar adjunto",
       send: "Enviar",
@@ -1408,6 +1409,27 @@ const esMxCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "La transcripción del chat devolvió un ID de sesión inesperado.",
       unexpectedSessionId: "El nuevo chat devolvió un ID de sesión inesperado.",
       upstreamHtmlResponse: "La solicitud fue bloqueada por una respuesta HTML de un servicio intermedio.",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "Cargando el chat con IA...",
     pendingAttachmentCardPrefix: "Tarjeta",

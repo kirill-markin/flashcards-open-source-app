@@ -1358,6 +1358,7 @@ const bnCatalog: TranslationCatalog = {
   chatPanel: {
     actions: {
       addAttachment: "সংযুক্তি যোগ করুন",
+      history: "History",
       newChat: "নতুন",
       removeAttachment: "সংযুক্তি সরান",
       send: "পাঠান",
@@ -1408,6 +1409,27 @@ const bnCatalog: TranslationCatalog = {
       transcriptionUnexpectedSessionId: "চ্যাট প্রতিলিপি একটি অপ্রত্যাশিত সেশন আইডি ফিরিয়েছে।",
       unexpectedSessionId: "নতুন চ্যাট একটি অপ্রত্যাশিত সেশন আইডি ফিরিয়েছে।",
       upstreamHtmlResponse: "একটি আপস্ট্রিম HTML প্রতিক্রিয়া অনুরোধটি আটকে দিয়েছে।",
+    },
+    history: {
+      back: "Back",
+      cancel: "Cancel",
+      close: "Close",
+      delete: "Delete",
+      deleteConfirm: "Delete?",
+      empty: "No saved chats yet. Start a new chat and it will appear here.",
+      messageCountLabels: {
+        message: {
+          one: "message",
+          other: "messages",
+        },
+      },
+      noSearchResults: "No chats match your search.",
+      readOnlyNotice: "Read-only: old chats can't be continued.",
+      rename: "Rename",
+      save: "Save",
+      searchPlaceholder: "Search chats",
+      title: "Chat history",
+      untitledChat: "Untitled chat",
     },
     loadingTitle: "এআই চ্যাট লোড হচ্ছে...",
     pendingAttachmentCardPrefix: "কার্ড",
