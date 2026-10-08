@@ -133,6 +133,12 @@ struct AIChatHistoryReaderView: View {
                 self.onUnavailable(self.summary.sessionId)
                 return
             }
+            captureAIChatHistoryFailure(
+                error: error,
+                flashcardsStore: self.chatStore.flashcardsStore,
+                action: "chat_history_read",
+                sessionId: self.summary.sessionId
+            )
             self.phase = .failed(message: errorMessage(error: error))
         }
     }
