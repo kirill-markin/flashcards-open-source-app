@@ -925,7 +925,10 @@ private func makeChatPath(basePath: String, queryItems: [URLQueryItem]) -> Strin
         return basePath
     }
 
-    return "\(basePath)?\(percentEncodedQuery)"
+    // URLComponents leaves `+` unencoded, but the backend decodes it as a space,
+    // so a search for "C++" would reach it as "C  ".
+    let backendSafeQuery = percentEncodedQuery.replacingOccurrences(of: "+", with: "%2B")
+    return "\(basePath)?\(backendSafeQuery)"
 }
 
 private func formatAIChatUserError(summary: String, diagnostics: AIChatFailureDiagnostics) -> String {
