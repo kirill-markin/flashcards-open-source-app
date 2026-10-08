@@ -65,6 +65,7 @@
 "ai.availability.dictation.official" = "AI-dicteren is tijdelijk niet beschikbaar op de officiële server. Probeer het later opnieuw.";
 "ai.availability.dictation.custom" = "AI-dicteren is niet beschikbaar op deze server. Neem contact op met de serverbeheerder.";
 "ai.run.error.activeRunInProgress" = "Er wordt al een antwoord gemaakt. Wacht tot het klaar is of stop het voordat je een nieuw bericht verstuurt.";
+"ai.chatNotCurrent.notice" = "Deze chat is vervangen door een nieuwere. Je bericht staat nog in het invoerveld — verstuur het opnieuw.";
 "ai.dictation.error.microphoneUnavailable" = "Microfoon is niet beschikbaar op dit apparaat.";
 "ai.dictation.error.microphoneDenied" = "Er is geen microfoontoegang verleend.";
 "ai.dictation.error.microphoneBlocked" = "Microfoontoegang is uitgeschakeld voor Nibomo. Schakel deze in via Instellingen > Privacy en beveiliging > Microfoon.";

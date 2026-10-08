@@ -65,6 +65,7 @@
 "ai.availability.dictation.official" = "הכתבת AI אינה זמינה זמנית בשרת הרשמי. יש לנסות שוב מאוחר יותר.";
 "ai.availability.dictation.custom" = "הכתבת AI אינה זמינה בשרת הזה. יש לפנות למפעיל השרת.";
 "ai.run.error.activeRunInProgress" = "כבר מתבצעת יצירת תשובה. יש להמתין לסיומה או לעצור אותה לפני שליחת הודעה נוספת.";
+"ai.chatNotCurrent.notice" = "הצ׳אט הזה הוחלף בצ׳אט חדש יותר. ההודעה עדיין בתיבת הטקסט — יש לשלוח אותה שוב.";
 "ai.dictation.error.microphoneUnavailable" = "המיקרופון אינו זמין במכשיר הזה.";
 "ai.dictation.error.microphoneDenied" = "לא ניתנה הרשאת גישה למיקרופון.";
 "ai.dictation.error.microphoneBlocked" = "הגישה למיקרופון כבויה עבור Nibomo. יש להפעיל אותה בהגדרות > פרטיות ואבטחה > מיקרופון.";
