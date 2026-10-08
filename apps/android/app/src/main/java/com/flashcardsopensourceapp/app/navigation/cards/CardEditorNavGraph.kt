@@ -21,8 +21,7 @@ import androidx.navigation.navArgument
 import com.flashcardsopensourceapp.app.analytics.analyticsMediaUploadFailureReason
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.enqueueMediaUploadWorker
-import com.flashcardsopensourceapp.app.navigation.AiDestination
-import com.flashcardsopensourceapp.app.navigation.navigateToTopLevelDestination
+import com.flashcardsopensourceapp.app.navigation.navigateToAiChat
 import com.flashcardsopensourceapp.app.navigation.rememberRouteBackStackEntry
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsMediaSource
@@ -120,10 +119,7 @@ internal fun NavGraphBuilder.registerCardEditorNavGraph(
                                 backText = savedCardDraft.backText,
                                 tags = savedCardDraft.tags
                             )
-                            navigateToTopLevelDestination(
-                                navController = navController,
-                                destination = AiDestination
-                            )
+                            navigateToAiChat(navController = navController)
                         }
                     }
                 },

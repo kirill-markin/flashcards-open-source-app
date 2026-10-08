@@ -17,6 +17,11 @@ const val aiLimitReachedCode: String = "AI_LIMIT_REACHED"
 const val guestAiLimitReachedCode: String = "GUEST_AI_LIMIT_REACHED"
 const val openAiApiKeyInvalidCode: String = "OPENAI_API_KEY_INVALID"
 const val ownOpenAiKeyProviderErrorCode: String = "OWN_OPENAI_KEY_PROVIDER_ERROR"
+const val aiChatSessionArchiveActiveRunCode: String = "CHAT_SESSION_ARCHIVE_ACTIVE_RUN"
+const val aiChatSessionsPageLimit: Int = 20
+// Server limits for the history search text and a chat title, both counted after trimming.
+const val aiChatSessionsSearchMaximumLength: Int = 200
+const val aiChatSessionTitleMaximumLength: Int = 200
 
 /**
  * The person's own OpenAI key on this device. Turning it off keeps [apiKey], so turning it on again
@@ -447,6 +452,29 @@ data class AiChatOlderMessagesResponse(
     val messages: List<AiChatMessage>,
     val hasOlder: Boolean,
     val oldestCursor: String?
+)
+
+/** One row of `GET /chat/sessions`: a non-archived chat with at least one message. */
+data class AiChatSessionHistorySummary(
+    val sessionId: String,
+    /** The custom title, else the first user message's text; null when neither exists. */
+    val title: String?,
+    val hasCustomTitle: Boolean,
+    val preview: String?,
+    val messageCount: Int,
+    val createdAtMillis: Long,
+    val lastActivityAtMillis: Long
+)
+
+data class AiChatSessionHistoryPage(
+    val sessions: List<AiChatSessionHistorySummary>,
+    /** Opaque server cursor for the next page; null on the last page. */
+    val nextCursor: String?
+)
+
+data class AiChatArchivedSession(
+    val sessionId: String,
+    val archivedAtMillis: Long
 )
 
 enum class AiChatRunTerminalOutcome {
