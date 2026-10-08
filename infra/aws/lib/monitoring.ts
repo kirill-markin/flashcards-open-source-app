@@ -31,6 +31,7 @@ import { countryRetentionScheduleHours } from "./scheduled-jobs/country-retentio
 import { dailyVisitorHashSaltExpiryScheduleHours } from "./scheduled-jobs/daily-visitor-hash-salt-expiry";
 import { geoLiteCountryObjectExpirationDays } from "./geolite-country";
 import { syntheticActorDetectorScheduleHours } from "./scheduled-jobs/synthetic-actor-detector";
+import { probableAndroidBurstRefreshScheduleHours } from "./scheduled-jobs/probable-android-burst-refresh";
 import { addProductAnalyticsMonitoring } from "./product-analytics-monitoring";
 
 const restApiNoTrafficEvaluationPeriods = 4;
@@ -70,6 +71,7 @@ export interface MonitoringProps {
   countryRetentionFn: lambda.IFunction;
   dailyVisitorHashSaltExpiryFn: lambda.IFunction;
   syntheticActorDetectorFn: lambda.IFunction;
+  probableAndroidBurstRefreshFn: lambda.IFunction;
   generatedMediaPromotionFn: lambda.IFunction;
   multipartCompletionReconciliationFn: lambda.IFunction;
   multipartCompletionReconciliationLogGroup: logs.ILogGroup;
@@ -932,6 +934,27 @@ export function monitoring(scope: Construct, props: MonitoringProps): void {
     evaluationPeriods: 2,
     datapointsToAlarm: 2,
     alarmDescription: "Synthetic actor detector has not run for two consecutive days",
+    treatMissingData: cloudwatch.TreatMissingData.BREACHING,
+  }), alertTopic);
+
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "ProbableAndroidBurstRefreshLambdaErrorAlarm", {
+    metric: props.probableAndroidBurstRefreshFn.metricErrors({ period: cdk.Duration.minutes(15), statistic: "Sum" }),
+    threshold: 1,
+    evaluationPeriods: 1,
+    alarmDescription: "Probable Android burst refresh failed; analytics reports read a stale burst classification",
+    treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+  }), alertTopic);
+
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "ProbableAndroidBurstRefreshStaleAlarm", {
+    metric: props.probableAndroidBurstRefreshFn.metricInvocations({
+      period: cdk.Duration.hours(probableAndroidBurstRefreshScheduleHours),
+      statistic: "Sum",
+    }),
+    threshold: 1,
+    comparisonOperator: cloudwatch.ComparisonOperator.LESS_THAN_THRESHOLD,
+    evaluationPeriods: 2,
+    datapointsToAlarm: 2,
+    alarmDescription: "Probable Android burst refresh has not run for two consecutive hours",
     treatMissingData: cloudwatch.TreatMissingData.BREACHING,
   }), alertTopic);
 

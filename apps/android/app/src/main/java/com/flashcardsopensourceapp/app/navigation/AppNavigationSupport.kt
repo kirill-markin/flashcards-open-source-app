@@ -51,13 +51,22 @@ internal fun String.isWithinRoutePrefix(routePrefix: String): Boolean {
     return boundary == '/' || boundary == '?' || boundary == '#'
 }
 
+/**
+ * Null once the [route] entry has left the back stack: NavHost can still compose an entry during
+ * its exit transition after a pop removed its whole graph, when `getBackStackEntry` throws
+ * `IllegalArgumentException`. Callers render nothing for such an entry.
+ */
 @Composable
 internal fun rememberRouteBackStackEntry(
     navController: NavHostController,
     currentBackStackEntry: NavBackStackEntry,
     route: String
-): NavBackStackEntry = remember(currentBackStackEntry) {
-    navController.getBackStackEntry(route)
+): NavBackStackEntry? = remember(currentBackStackEntry) {
+    try {
+        navController.getBackStackEntry(route)
+    } catch (_: IllegalArgumentException) {
+        null
+    }
 }
 
 internal fun navigateToCardEditor(

@@ -844,6 +844,7 @@ export type OperationsExceptionEvent =
   | (EventByAction<"country_retention_failed", Readonly<{ message: string }>> & Readonly<{ error: Error }>)
   | (EventByAction<"daily_visitor_hash_salt_expiry_failed", Readonly<{ message: string }>> & Readonly<{ error: Error }>)
   | (EventByAction<"synthetic_actor_detector_failed", Readonly<{ message: string }>> & Readonly<{ error: Error }>)
+  | (EventByAction<"probable_android_burst_refresh_failed", Readonly<{ message: string }>> & Readonly<{ error: Error }>)
   | (EventByAction<"global_metrics_snapshot_failed", GlobalMetricsSnapshotFailureDetails> & Readonly<{ error: Error }>)
   | (EventByAction<"catalog_dump_failed", CatalogDumpFailureDetails> & Readonly<{ error: Error }>)
   | (EventByAction<"catalog_dump_refresh_failed", CatalogDumpRefreshFailureDetails> & Readonly<{ error: Error }>)

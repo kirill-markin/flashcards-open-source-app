@@ -276,6 +276,18 @@ class LocalAiChatRepository(
         )
     }
 
+    override suspend fun loadCurrentBootstrap(workspaceId: String?, limit: Int): AiChatBootstrapResponse {
+        val preparedSession = prepareSessionForAi(workspaceId = workspaceId)
+        return aiChatRemoteService.loadBootstrap(
+            apiBaseUrl = preparedSession.apiBaseUrl,
+            authorizationHeader = preparedSession.authorizationHeader,
+            sessionId = null,
+            limit = limit,
+            workspaceId = preparedSession.workspaceId,
+            resumeDiagnostics = null
+        )
+    }
+
     override suspend fun createNewSession(
         workspaceId: String?,
         sessionId: String,

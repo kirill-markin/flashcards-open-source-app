@@ -5,7 +5,7 @@ import pg from "pg";
 import {
   buildExcludedActorSqlLines,
   buildReviewAnswersCteSql,
-  probableAndroidBurstActorIdsSql,
+  probableAndroidBurstActorIdsSqlLines,
 } from "../reviewMetricsSql";
 
 type ActorFixture = Readonly<{
@@ -131,9 +131,10 @@ test("historical Android bursts re-enter reports on later evidence and respect p
       [[actorAt(2).actorId, actorAt(3).rawUserId, actorAt(4).subjectId, actorAt(11).actorId]],
     );
 
+    await client.query("REFRESH MATERIALIZED VIEW analytics.probable_android_burst_actors");
     await client.query("SET LOCAL ROLE reporting_readonly");
     await client.query("SET LOCAL statement_timeout = '30s'");
-    const candidates = await client.query<ActorRow>(probableAndroidBurstActorIdsSql);
+    const candidates = await client.query<ActorRow>(probableAndroidBurstActorIdsSqlLines.join("\n"));
     assert.deepEqual(
       candidates.rows.filter((row) => actorIds.includes(row.actor_id)).map((row) => row.actor_id).sort(),
       [0, 1, 5, 6, 7].map((index) => actorAt(index).actorId).sort(),
@@ -152,6 +153,10 @@ test("historical Android bursts re-enter reports on later evidence and respect p
        VALUES ('cognito', $1, $2)`,
       [randomUUID(), actorAt(1).rawUserId.toUpperCase()],
     );
+    // The scheduled job's role and statement.
+    await client.query("SET LOCAL ROLE backend_app");
+    await client.query("REFRESH MATERIALIZED VIEW CONCURRENTLY analytics.probable_android_burst_actors");
+    await client.query("RESET ROLE");
     await client.query("SET LOCAL ROLE reporting_readonly");
     const expectedKept = [0, 1, 2, 3, 4, 8, 11].map((index) => actorAt(index).actorId).sort();
     assert.deepEqual(await readKeptActors(client, actorIds), expectedKept);

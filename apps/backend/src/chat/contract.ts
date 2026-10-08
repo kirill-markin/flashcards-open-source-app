@@ -1,6 +1,12 @@
 import { getChatConfig, type ChatConfig } from "./config";
 import type { ChatLiveStreamEnvelope } from "./live/auth";
-import type { PaginatedChatMessages, PersistedChatMessageItem, ChatSessionSnapshot } from "./store";
+import type {
+  ArchivedChatSession,
+  ChatSessionHistorySummary,
+  PaginatedChatMessages,
+  PersistedChatMessageItem,
+  ChatSessionSnapshot,
+} from "./store";
 import type { ChatComposerSuggestion } from "./composerSuggestions";
 import type { ContentPart } from "./types";
 
@@ -53,6 +59,15 @@ export type ChatStopResponse = Readonly<{
   stopped: boolean;
   stillRunning: boolean;
 }>;
+
+export type ChatSessionsListResponse = Readonly<{
+  sessions: ReadonlyArray<ChatSessionHistorySummary>;
+  nextCursor: string | null;
+}>;
+
+export type ChatSessionRenameResponse = ChatSessionHistorySummary;
+
+export type ChatSessionArchiveResponse = ArchivedChatSession;
 
 type ChatLiveEventMetadata = Readonly<{
   sessionId: string;

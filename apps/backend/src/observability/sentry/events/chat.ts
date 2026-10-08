@@ -167,6 +167,11 @@ export type ChatTranscriptionFailureDetails = Readonly<{
   errorMessage: string;
 }>;
 
+/** A new turn refused because its session is not the current one; the scope carries the refused session id. */
+export type ChatSessionNotCurrentDetails = Readonly<{
+  currentSessionId: string | null;
+}>;
+
 /** Earlier turns' reasoning items one run left out of its replay, because the other OpenAI key produced them. */
 export type ChatReplayReasoningItemsDroppedDetails = Readonly<{
   droppedReasoningItems: number;
@@ -358,6 +363,7 @@ export type ChatBreadcrumbEvent =
   | EventByAction<"chat_worker_composer_suggestions_failed", ChatWorkerLifecycleDetails>
   | EventByAction<"chat_transcription_invalid_audio", ChatTranscriptionFailureDetails>
   | EventByAction<"chat_transcription_failed", ChatTranscriptionFailureDetails>
+  | EventByAction<"chat_session_not_current_refused", ChatSessionNotCurrentDetails>
   | EventByAction<"chat_replay_reasoning_items_dropped", ChatReplayReasoningItemsDroppedDetails>
   | EventByAction<"chat_composer_suggestions_declined", ChatComposerSuggestionsResponseDetails>
   | EventByAction<"chat_composer_suggestions_unparseable", ChatComposerSuggestionsResponseDetails>
