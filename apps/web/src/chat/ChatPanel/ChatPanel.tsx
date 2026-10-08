@@ -369,12 +369,28 @@ export function ChatPanel(props: Props): ReactElement {
         <div className="chat-header-actions">
           <button
             type="button"
-            className="chat-close-btn"
+            className="chat-close-btn chat-icon-btn"
+            aria-label={t("chatPanel.actions.history")}
+            title={t("chatPanel.actions.history")}
             onClick={() => setIsHistoryOpen(true)}
             disabled={isChatActionLocked || activeWorkspaceId === null || isDictationVisible}
             data-testid="chat-history-button"
           >
-            {t("chatPanel.actions.history")}
+            <svg
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            >
+              <path d="M9 6h11" />
+              <path d="M9 12h11" />
+              <path d="M9 18h11" />
+              <path d="M4 6h.01" />
+              <path d="M4 12h.01" />
+              <path d="M4 18h.01" />
+            </svg>
           </button>
           <button
             type="button"
