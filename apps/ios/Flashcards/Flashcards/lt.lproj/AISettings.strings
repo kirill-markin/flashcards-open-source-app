@@ -65,6 +65,7 @@
 "ai.availability.dictation.official" = "DI diktavimas oficialiame serveryje laikinai nepasiekiamas. Bandykite vėliau.";
 "ai.availability.dictation.custom" = "DI diktavimas šiame serveryje nepasiekiamas. Kreipkitės į serverio administratorių.";
 "ai.run.error.activeRunInProgress" = "Atsakymas jau kuriamas. Prieš siųsdami kitą žinutę, palaukite, kol jis bus baigtas, arba sustabdykite jį.";
+"ai.chatNotCurrent.notice" = "Šis pokalbis buvo pakeistas naujesniu. Jūsų žinutė vis dar teksto laukelyje — išsiųskite ją dar kartą.";
 "ai.dictation.error.microphoneUnavailable" = "Šiame įrenginyje mikrofonas nepasiekiamas.";
 "ai.dictation.error.microphoneDenied" = "Prieiga prie mikrofono nesuteikta.";
 "ai.dictation.error.microphoneBlocked" = "Nibomo prieiga prie mikrofono išjungta. Įjunkite ją: Nustatymai > Privatumas ir sauga > Mikrofonas.";

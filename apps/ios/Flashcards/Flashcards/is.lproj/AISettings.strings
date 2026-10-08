@@ -65,6 +65,7 @@
 "ai.availability.dictation.official" = "Innlestur með gervigreind er tímabundið óaðgengilegur á opinbera þjóninum. Reyndu aftur síðar.";
 "ai.availability.dictation.custom" = "Innlestur með gervigreind er ekki tiltækur á þessum þjóni. Hafðu samband við rekstraraðila hans.";
 "ai.run.error.activeRunInProgress" = "Svar er þegar í vinnslu. Bíddu þar til því lýkur eða stöðvaðu það áður en þú sendir önnur skilaboð.";
+"ai.chatNotCurrent.notice" = "Þessu spjalli var skipt út fyrir nýrra spjall. Skilaboðin þín eru enn í textareitnum — sendu þau aftur.";
 "ai.dictation.error.microphoneUnavailable" = "Hljóðnemi er ekki tiltækur á þessu tæki.";
 "ai.dictation.error.microphoneDenied" = "Aðgangur að hljóðnema var ekki veittur.";
 "ai.dictation.error.microphoneBlocked" = "Slökkt er á hljóðnemaaðgangi fyrir Nibomo. Virkjaðu hann í Stillingar > Persónuvernd og öryggi > Hljóðnemi.";

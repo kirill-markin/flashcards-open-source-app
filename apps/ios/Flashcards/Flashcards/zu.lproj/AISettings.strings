@@ -65,6 +65,7 @@
 "ai.availability.dictation.official" = "Ukubhala ngokukhuluma kwe-AI akutholakali okwesikhashana esiphakelini esisemthethweni. Zama futhi kamuva.";
 "ai.availability.dictation.custom" = "Ukubhala ngokukhuluma kwe-AI akutholakali kulesi siphakeli. Xhumana nomphathi wesiphakeli.";
 "ai.run.error.activeRunInProgress" = "Impendulo isiyaqhubeka. Linda ize iqede noma uyimise ngaphambi kokuthumela omunye umyalezo.";
+"ai.chatNotCurrent.notice" = "Le ngxoxo ithathelwe indawo ngengxoxo entsha. Umlayezo wakho usesebhokisini lombhalo — wuthumele futhi.";
 "ai.dictation.error.microphoneUnavailable" = "Imakrofoni ayitholakali kule divayisi.";
 "ai.dictation.error.microphoneDenied" = "Imvume yemakrofoni ayinikezwanga.";
 "ai.dictation.error.microphoneBlocked" = "Imvume yemakrofoni ye-Nibomo ivaliwe. Yivule kokuthi Izilungiselelo > Ubumfihlo Nokuphepha > Imakrofoni.";
