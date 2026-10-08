@@ -130,6 +130,90 @@ extension AIChatStore {
         }
     }
 
+    /// Loads the user's current chat without the refused session id and moves the unsent draft into it.
+    /// A failed switch keeps the refused chat and its draft, so the next send retries the switch.
+    func switchToCurrentChatAfterSessionNotCurrent(
+        staleSessionId: String,
+        draft: AIChatComposerDraft
+    ) {
+        let requestSequence = self.beginBootstrapRequestSequence()
+        let accessContext = self.surfaceState.activeAccessContext ?? self.currentAccessContext()
+        self.bootstrapPhase = .loading
+        self.activeBootstrapTask = Task {
+            defer {
+                if self.isCurrentBootstrapRequest(sequence: requestSequence) {
+                    self.activeBootstrapTask = nil
+                }
+            }
+
+            do {
+                let session = try await self.flashcardsStore.cloudSessionForAI()
+                let response = try await self.chatService.loadBootstrap(
+                    session: session,
+                    sessionId: nil,
+                    limit: aiChatBootstrapPageLimit,
+                    resumeAttemptDiagnostics: nil
+                )
+                guard self.isCurrentLinkedBootstrapRequest(
+                    sequence: requestSequence,
+                    accessContext: accessContext
+                ) else {
+                    return
+                }
+                try validateAIChatBootstrapSessionContract(
+                    response: response,
+                    requestedSessionId: response.sessionId
+                )
+
+                let workspaceId = self.historyWorkspaceId()
+                self.persistDraftStateImmediately(
+                    workspaceId: workspaceId,
+                    sessionId: staleSessionId.isEmpty ? nil : staleSessionId,
+                    draft: AIChatComposerDraft(inputText: "", pendingAttachments: [])
+                )
+                self.chatSessionId = response.sessionId
+                self.conversationScopeId = response.conversationScopeId
+                self.applyBootstrap(response)
+                self.applyComposerDraft(
+                    inputText: draft.inputText,
+                    pendingAttachments: draft.pendingAttachments
+                )
+                self.persistDraftRestoreSuppressionSynchronously(
+                    workspaceId: workspaceId,
+                    sessionId: response.sessionId,
+                    isSuppressed: false
+                )
+                self.persistDraftStateImmediately(
+                    workspaceId: workspaceId,
+                    sessionId: response.sessionId,
+                    draft: draft
+                )
+                self.persistStateSynchronously(state: self.currentPersistedState())
+                self.bootstrapPhase = .ready
+                self.lastBootstrapFailureWasRetryable = false
+                self.attachBootstrapLiveIfNeeded(
+                    response: response,
+                    session: session,
+                    resumeAttemptDiagnostics: nil
+                )
+                self.showAlert(.generalError(title: aiChatSessionNotCurrentNotice(), message: ""))
+            } catch is CancellationError {
+            } catch {
+                if isAIChatRequestCancellationError(error: error) {
+                    return
+                }
+                guard self.isCurrentLinkedBootstrapRequest(
+                    sequence: requestSequence,
+                    accessContext: accessContext
+                ) else {
+                    return
+                }
+                self.bootstrapPhase = .ready
+                self.showGeneralError(error: error)
+            }
+        }
+    }
+
     private func shouldPreservePendingLocalSessionDraftOnBootstrapFailure() -> Bool {
         self.chatSessionId.isEmpty == false
             && self.conversationScopeId == self.chatSessionId

@@ -65,6 +65,7 @@
 "ai.availability.dictation.official" = "Tekoälysanelu ei ole tilapäisesti käytettävissä virallisella palvelimella. Yritä myöhemmin uudelleen.";
 "ai.availability.dictation.custom" = "Tekoälysanelu ei ole käytettävissä tällä palvelimella. Ota yhteyttä palvelimen ylläpitäjään.";
 "ai.run.error.activeRunInProgress" = "Vastausta muodostetaan jo. Odota sen valmistumista tai pysäytä se ennen uuden viestin lähettämistä.";
+"ai.chatNotCurrent.notice" = "Tämä keskustelu korvattiin uudemmalla. Viestisi on yhä tekstikentässä – lähetä se uudelleen.";
 "ai.dictation.error.microphoneUnavailable" = "Mikrofoni ei ole käytettävissä tällä laitteella.";
 "ai.dictation.error.microphoneDenied" = "Mikrofonin käyttöoikeutta ei myönnetty.";
 "ai.dictation.error.microphoneBlocked" = "Nibomon mikrofonin käyttöoikeus on poistettu. Ota se käyttöön kohdassa Asetukset > Tietosuoja ja suojaus > Mikrofoni.";

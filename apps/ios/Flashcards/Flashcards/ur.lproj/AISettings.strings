@@ -65,6 +65,7 @@
 "ai.availability.dictation.official" = "سرکاری سرور پر AI سے بول کر لکھنا عارضی طور پر دستیاب نہیں ہے۔ بعد میں دوبارہ کوشش کریں۔";
 "ai.availability.dictation.custom" = "اس سرور پر AI سے بول کر لکھنا دستیاب نہیں ہے۔ سرور چلانے والے سے رابطہ کریں۔";
 "ai.run.error.activeRunInProgress" = "جواب پہلے ہی جاری ہے۔ نیا پیغام بھیجنے سے پہلے اس کے ختم ہونے کا انتظار کریں یا اسے روک دیں۔";
+"ai.chatNotCurrent.notice" = "اس چیٹ کی جگہ ایک نئی چیٹ نے لے لی ہے۔ آپ کا پیغام ابھی بھی لکھنے کے خانے میں ہے — اسے دوبارہ بھیجیں۔";
 "ai.dictation.error.microphoneUnavailable" = "اس آلے پر مائیکروفون دستیاب نہیں ہے۔";
 "ai.dictation.error.microphoneDenied" = "مائیکروفون کی رسائی نہیں دی گئی۔";
 "ai.dictation.error.microphoneBlocked" = "Nibomo کے لیے مائیکروفون کی رسائی بند ہے۔ ترتیبات > رازداری اور سیکیورٹی > مائیکروفون میں اسے فعال کریں۔";
