@@ -65,6 +65,7 @@
 "ai.availability.dictation.official" = "Az AI-diktálás átmenetileg nem érhető el a hivatalos szerveren. Próbáld újra később.";
 "ai.availability.dictation.custom" = "Az AI-diktálás nem érhető el ezen a szerveren. Fordulj a szerver üzemeltetőjéhez.";
 "ai.run.error.activeRunInProgress" = "Egy válasz már folyamatban van. Várd meg a végét, vagy állítsd le, mielőtt új üzenetet küldesz.";
+"ai.chatNotCurrent.notice" = "Ezt a csevegést egy újabb váltotta fel. Az üzeneted még a szövegmezőben van – küldd el újra.";
 "ai.dictation.error.microphoneUnavailable" = "A mikrofon ezen az eszközön nem érhető el.";
 "ai.dictation.error.microphoneDenied" = "A mikrofonhozzáférés nincs engedélyezve.";
 "ai.dictation.error.microphoneBlocked" = "A Nibomo mikrofonhozzáférése ki van kapcsolva. Engedélyezd a Beállítások > Adatvédelem és biztonság > Mikrofon alatt.";
