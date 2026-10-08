@@ -31,3 +31,7 @@ Run `LiveSmokeIPhoneDuoTests/testDuoCompanionKeepsNativeTabsReachable` on the ac
 Operator-driven tests require `TEST_RUNNER_FLASHCARDS_RUN_MANUAL_DUO_TRANSITIONS=1` before `xcodebuild`. Select `testDuoDraftAndRevealedAnswerSurviveNativeDisplayTransitions` and `testDuoPartialFoldAndLandscapeKeepRevealedReviewReachable`, start Closed with the software keyboard available, and operate Device Hub at each printed checkpoint. Unsupported models skip; synthetic resizing or rotation does not establish a display handoff.
 
 Capture the app scene and every public `XCUIScreen`, then select the image with actual pixels. App/main screenshots may bind the inactive Duo display and appear black. Screen-array indices are not simulator display IDs. Anchor Review gestures to its own ScrollView, rather than SpringBoard coordinates that can target the inactive display. Use the native window containing the active host for scene geometry; `XCUIApplication.frame` can retain portrait bounds while its native window is landscape.
+
+## Shipping qualification
+
+Alex prioritizes shipping and waived waiting for physical Duo review on 2026-10-08. The combined iPad/Duo PR can proceed with the documented simulator input and transition gaps as nonblocking follow-ups. Preserve the exact failed/skipped test evidence in [device review](device-optimization-review.md); this decision does not establish a physical-device or native-key pass.

@@ -7,13 +7,14 @@
 - [x] Corrected signed 1.32.0 preview installed and launched normally. Alex personally checked all on his iPad, reported that it looked good, and disconnected it. No further physical session is needed for this continuation.
 - [x] Ordinary-phone baseline 14 local cases: actual Front/Back/Tags, exact saved Back, portrait/full-AI handoff and all nine queued local regressions; zero failures/skips.
 - [x] Duo Open baseline native navigation across Review/Cards/Progress/AI/Settings.
-- [ ] Duo exact unsent draft with actual native keys: Open key reachability remains unresolved; the latest genuine Closed check stops on transcript-container hit testing.
+- [ ] Nonblocking Duo follow-up — exact unsent draft with actual native keys: Open key reachability remains unresolved; the latest genuine Closed check stops on transcript-container hit testing.
 - [x] Genuine Duo Partial pose with identical long-card fixtures: revealed answer, readability, four ratings and completed Good rating pass.
-- [ ] Closed/Open/Closed keyboard and actual postfold filter: active editor retention is fixed; keyboard disappears after Open and prevents the later close/filter section.
+- [ ] Nonblocking Duo follow-up — Closed/Open/Closed keyboard and actual postfold filter: active editor retention is fixed; keyboard disappears after Open and prevents the later close/filter section.
 - [x] Scoped candidate committed; pinned upstream integrated cleanly at `f6e9499c3`, with unchanged iOS tree; integrated diff reviewed and six required static checks passed.
 - [x] Current editor-path fix: all four ordinary-phone card editing contracts and largest-text editing pass, five tests with zero failures/skips.
 - [x] Current iPad Review editor: guarded study keys, Back/Cancel and revealed-answer retention pass.
-- [ ] Remaining Duo blockers; combined PR with maintainer edits and normal checks once acceptance is met.
+- [x] Alex prioritizes shipping: physical Duo review and the documented Duo simulator gaps do not gate this combined PR. Preserve the failures as follow-ups; no physical Duo session is required.
+- [ ] Capture and review the final landscape iPad Store set, then open the combined PR with maintainer edits and verify normal checks.
 
 Preserve minimum iOS 18, all 50 languages, Subscription/Accent, ordinary-phone portrait/full AI, physical-left eligible Duo chat, iPad RTL and shared state. No native Mac support claim. No live AI prompts, purchases, cloud dispatch, PR merge, release or store upload are authorized.
 
@@ -58,6 +59,6 @@ The complete latest-OS live/account smoke selection and actual iOS 18 compatibil
 
 ## PR and publication
 
-Alex authorized one combined PR against upstream `main`, with **Allow edits by maintainers** enabled. No PR is open yet: Duo input and transition acceptance still has concrete failures. The candidate is committed on `codex/ipad-latest`; exact blocker evidence and the PR draft are preserved locally outside the tracked tree. Compiler/simulator ownership is released, with no active native run. This session owns implementation, compiler/simulator, integration and PR work; old chats are parked and their supervision automation is disabled. No PR merge, release, store upload or Xcode Cloud dispatch is authorized.
+Alex authorized one combined PR against upstream `main`, with **Allow edits by maintainers** enabled. Alex explicitly removed physical Duo review as a shipping prerequisite on 2026-10-08. The documented Duo input/transition failures remain nonblocking follow-ups, not passes. No PR is open yet; landscape screenshot preparation is in progress. The candidate is committed on `codex/ipad-latest`; exact blocker evidence and the PR draft are preserved locally outside the tracked tree. Compiler/simulator ownership is released, with no active native run. This session owns implementation, compiler/simulator, integration and PR work; old chats are parked and their supervision automation is disabled. No PR merge, release, store upload or Xcode Cloud dispatch is authorized.
 
 **New landscape iPad App Store screenshots must be captured, reviewed and uploaded before publication.** Use the existing localized five-shot workflow and canonical iPad target in [marketing screenshots](marketing-screenshots.md), validating landscape dimensions. Marketing montages, private device captures and simulator QA captures do not replace these assets.
