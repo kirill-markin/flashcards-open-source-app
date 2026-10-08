@@ -85,7 +85,7 @@ describe("ReviewScreen filter controls", () => {
 
     await clickElementAsync(tagButton);
 
-    expect(state.appData.openReview).toHaveBeenCalledWith({ kind: "tags", tags: ["germany"] });
+    expect(state.appData.selectReviewFilter).toHaveBeenCalledWith({ kind: "tags", tags: ["germany"] });
   });
 
   it("renders compact review header controls with scope before streak", async () => {
