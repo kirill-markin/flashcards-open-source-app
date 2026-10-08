@@ -15,6 +15,8 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatLiveEvent
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatLiveStreamEnvelope
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatNewSessionRequest
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatResumeDiagnostics
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatSessionHistoryPage
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatSessionHistorySummary
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatSessionProvisioningResult
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatStopRunRequest
@@ -24,6 +26,7 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatStartRunResponse
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatTranscriptionResult
 import com.flashcardsopensourceapp.data.local.model.ai.AiUsageStatus
 import com.flashcardsopensourceapp.data.local.model.ai.OwnOpenAiKeySettings
+import com.flashcardsopensourceapp.data.local.model.ai.aiChatSessionsPageLimit
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
@@ -447,6 +450,50 @@ class LocalAiChatRepository(
                 runId = runId
             )
         )
+    }
+
+    override suspend fun listChatSessions(
+        workspaceId: String,
+        cursor: String?,
+        searchText: String?
+    ): AiChatSessionHistoryPage {
+        val session = authorizedSession(workspaceId = workspaceId)
+        return aiChatRemoteService.listSessions(
+            apiBaseUrl = session.apiBaseUrl,
+            authorizationHeader = session.authorizationHeader,
+            workspaceId = workspaceId,
+            cursor = cursor,
+            searchText = searchText,
+            limit = aiChatSessionsPageLimit
+        )
+    }
+
+    override suspend fun renameChatSession(
+        workspaceId: String,
+        sessionId: String,
+        title: String
+    ): AiChatSessionHistorySummary {
+        val session = authorizedSession(workspaceId = workspaceId)
+        return aiChatRemoteService.renameSession(
+            apiBaseUrl = session.apiBaseUrl,
+            authorizationHeader = session.authorizationHeader,
+            workspaceId = workspaceId,
+            sessionId = sessionId,
+            title = title
+        )
+    }
+
+    override suspend fun archiveChatSession(workspaceId: String, sessionId: String) {
+        val session = authorizedSession(workspaceId = workspaceId)
+        val archivedSession = aiChatRemoteService.archiveSession(
+            apiBaseUrl = session.apiBaseUrl,
+            authorizationHeader = session.authorizationHeader,
+            workspaceId = workspaceId,
+            sessionId = sessionId
+        )
+        require(archivedSession.sessionId == sessionId) {
+            "AI chat archive returned mismatched sessionId. requestedSessionId=$sessionId responseSessionId=${archivedSession.sessionId}"
+        }
     }
 
     private suspend fun authorizedSession(workspaceId: String?): AuthorizedAiChatSession {
