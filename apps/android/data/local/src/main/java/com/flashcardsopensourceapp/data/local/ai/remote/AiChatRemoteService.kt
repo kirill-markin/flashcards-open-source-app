@@ -101,6 +101,8 @@ private val officialAiApiHosts: Set<String> = setOf(
 )
 private const val officialAiApiPathPrefix: String = "/v1"
 private val aiJsonMediaType = "application/json".toMediaType()
+/** History reads a 404 on a session as the chat having been archived elsewhere, a normal outcome rather than a failure. */
+private val aiChatHistorySessionUnavailableStatusCodes: Set<Int> = setOf(404)
 private val expectedAiChatHttpFailureCodes: Set<String> = setOf(
     "AI_LIMIT_REACHED",
     "AI_WORKSPACE_REQUIRED",
@@ -257,7 +259,11 @@ fun isAiChatSessionArchiveActiveRunRemoteError(error: AiChatRemoteException): Bo
 
 fun isExpectedAiChatRemoteUserError(error: AiChatRemoteException): Boolean {
     return error.statusCode?.let { statusCode ->
-        isExpectedAiChatHttpFailure(statusCode = statusCode, code = error.code)
+        isExpectedAiChatHttpFailure(
+            statusCode = statusCode,
+            code = error.code,
+            expectedStatusCodes = emptySet()
+        )
     } ?: isExpectedAiChatHttpFailureCode(code = error.code)
 }
 
@@ -415,7 +421,8 @@ class AiChatRemoteService private constructor(
                     .toString()
                     .toRequestBody(aiJsonMediaType),
                 extraHeaders = emptyMap()
-            )
+            ),
+            expectedStatusCodes = emptySet()
         )
         return@withContext decodeAiChatGuestSession(
             payload = responseBody,
@@ -441,7 +448,8 @@ class AiChatRemoteService private constructor(
                 requestBody = requestJson.toRequestBody(aiJsonMediaType),
                 extraHeaders = mapOf("X-Client-Platform" to aiChatClientPlatform) +
                     ownOpenAiKeyHeaders(ownOpenAiKey = ownOpenAiKey)
-            )
+            ),
+            expectedStatusCodes = emptySet()
         )
         return@withContext decodeAiChatStartRunResponse(responseBody)
     }
@@ -463,7 +471,8 @@ class AiChatRemoteService private constructor(
                 authorizationHeader = authorizationHeader,
                 requestBody = null,
                 extraHeaders = emptyMap()
-            )
+            ),
+            expectedStatusCodes = aiChatHistorySessionUnavailableStatusCodes
         )
         return@withContext decodeAiChatSessionSnapshot(responseBody)
     }
@@ -489,7 +498,8 @@ class AiChatRemoteService private constructor(
                 authorizationHeader = authorizationHeader,
                 requestBody = null,
                 extraHeaders = resumeDiagnosticsHeaders(resumeDiagnostics = resumeDiagnostics)
-            )
+            ),
+            expectedStatusCodes = emptySet()
         )
         return@withContext decodeAiChatBootstrapResponse(responseBody)
     }
@@ -515,7 +525,8 @@ class AiChatRemoteService private constructor(
                 authorizationHeader = authorizationHeader,
                 requestBody = null,
                 extraHeaders = emptyMap()
-            )
+            ),
+            expectedStatusCodes = emptySet()
         )
         val bootstrap = decodeAiChatBootstrapResponse(responseBody)
         return@withContext AiChatOlderMessagesResponse(
@@ -560,7 +571,8 @@ class AiChatRemoteService private constructor(
                 authorizationHeader = authorizationHeader,
                 requestBody = encodeNewSessionRequest(request = request).toString().toRequestBody(aiJsonMediaType),
                 extraHeaders = emptyMap()
-            )
+            ),
+            expectedStatusCodes = emptySet()
         )
         return@withContext decodeAiChatNewSession(responseBody)
     }
@@ -578,7 +590,8 @@ class AiChatRemoteService private constructor(
                 authorizationHeader = authorizationHeader,
                 requestBody = encodeStopRunRequest(request = request).toString().toRequestBody(aiJsonMediaType),
                 extraHeaders = emptyMap()
-            )
+            ),
+            expectedStatusCodes = emptySet()
         )
         return@withContext decodeAiChatStopRunResponse(responseBody)
     }
@@ -604,7 +617,8 @@ class AiChatRemoteService private constructor(
                 authorizationHeader = authorizationHeader,
                 requestBody = null,
                 extraHeaders = emptyMap()
-            )
+            ),
+            expectedStatusCodes = emptySet()
         )
         return@withContext decodeAiChatSessionHistoryPage(payload = responseBody)
     }
@@ -631,7 +645,8 @@ class AiChatRemoteService private constructor(
                     .toString()
                     .toRequestBody(aiJsonMediaType),
                 extraHeaders = emptyMap()
-            )
+            ),
+            expectedStatusCodes = aiChatHistorySessionUnavailableStatusCodes
         )
         return@withContext decodeAiChatRenamedSession(payload = responseBody)
     }
@@ -654,7 +669,8 @@ class AiChatRemoteService private constructor(
                 authorizationHeader = authorizationHeader,
                 requestBody = ByteArray(size = 0).toRequestBody(aiJsonMediaType),
                 extraHeaders = emptyMap()
-            )
+            ),
+            expectedStatusCodes = aiChatHistorySessionUnavailableStatusCodes
         )
         return@withContext decodeAiChatArchivedSession(payload = responseBody)
     }
@@ -686,7 +702,8 @@ class AiChatRemoteService private constructor(
                 authorizationHeader = authorizationHeader,
                 requestBody = requestBody,
                 extraHeaders = ownOpenAiKeyHeaders(ownOpenAiKey = ownOpenAiKey)
-            )
+            ),
+            expectedStatusCodes = emptySet()
         )
         return@withContext decodeAiChatTranscription(responseBody)
     }
@@ -703,7 +720,8 @@ class AiChatRemoteService private constructor(
                 authorizationHeader = authorizationHeader,
                 requestBody = null,
                 extraHeaders = emptyMap()
-            )
+            ),
+            expectedStatusCodes = emptySet()
         )
         return@withContext decodeAiUsageStatus(payload = responseBody)
     }
@@ -767,8 +785,9 @@ class AiChatRemoteService private constructor(
         )
     }
 
+    /** [expectedStatusCodes] are normal outcomes for this request, recorded as breadcrumbs instead of Sentry warnings. */
     @OptIn(InternalCoroutinesApi::class)
-    private suspend fun readResponseBody(request: Request): String {
+    private suspend fun readResponseBody(request: Request, expectedStatusCodes: Set<Int>): String {
         val call = httpClient.newCall(request)
         val coroutineJob = currentCoroutineContext().job
         val cancellationRequested = AtomicBoolean(false)
@@ -790,7 +809,8 @@ class AiChatRemoteService private constructor(
                         response = response,
                         responseBody = responseBody,
                         observability = observability,
-                        observationVersions = observationVersions
+                        observationVersions = observationVersions,
+                        expectedStatusCodes = expectedStatusCodes
                     )
                 }
                 return responseBody.orEmpty()
@@ -1017,7 +1037,8 @@ internal fun readAiChatRemoteErrorResponse(
     response: Response,
     responseBody: String?,
     observability: AppObservability,
-    observationVersions: AiChatHttpObservationVersions
+    observationVersions: AiChatHttpObservationVersions,
+    expectedStatusCodes: Set<Int>
 ): AiChatRemoteException {
     val requestId = readAiChatRequestIdHeader(response = response)
     val parsedError = parseBackendErrorPayload(rawBody = responseBody)
@@ -1054,7 +1075,8 @@ internal fun readAiChatRemoteErrorResponse(
         statusCode = statusCode,
         code = parsedError?.code,
         stage = parsedError?.stage,
-        responseHasStackRequestId = requestId != null || readCloudResponseRequestId(response = response) != null
+        responseHasStackRequestId = requestId != null || readCloudResponseRequestId(response = response) != null,
+        expectedStatusCodes = expectedStatusCodes
     )
 
     return AiChatRemoteException(
@@ -1076,7 +1098,8 @@ internal fun readAiChatRemoteErrorResponse(response: Response, responseBody: Str
         observationVersions = createAiChatHttpObservationVersions(
             appVersion = null,
             versionCode = null
-        )
+        ),
+        expectedStatusCodes = emptySet()
     )
 }
 
@@ -1089,7 +1112,8 @@ private fun captureAiChatHttpFailureObservation(
     statusCode: Int,
     code: String?,
     stage: String?,
-    responseHasStackRequestId: Boolean
+    responseHasStackRequestId: Boolean,
+    expectedStatusCodes: Set<Int>
 ): Boolean {
     if (observability === NoopAiChatHttpObservability) {
         return false
@@ -1098,7 +1122,8 @@ private fun captureAiChatHttpFailureObservation(
     if (
         isExpectedAiChatHttpFailure(
             statusCode = statusCode,
-            code = code
+            code = code,
+            expectedStatusCodes = expectedStatusCodes
         )
     ) {
         observability.addBreadcrumb(
@@ -1176,9 +1201,13 @@ private fun captureAiChatHttpFailureObservation(
 
 private fun isExpectedAiChatHttpFailure(
     statusCode: Int,
-    code: String?
+    code: String?,
+    expectedStatusCodes: Set<Int>
 ): Boolean {
     if (isExpectedAiChatHttpFailureCode(code = code)) {
+        return true
+    }
+    if (expectedStatusCodes.contains(element = statusCode)) {
         return true
     }
     if (statusCode == 401 || statusCode == 403 || statusCode == 413 || statusCode == 429) {
