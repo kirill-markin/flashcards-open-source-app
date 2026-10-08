@@ -94,7 +94,7 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
         val settingsRootBackStackEntry = settingsRootBackStackEntry(
             navController = navController,
             currentBackStackEntry = backStackEntry
-        )
+        ) ?: return@composable
         val settingsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.SettingsViewModel>(
             viewModelStoreOwner = settingsRootBackStackEntry,
             factory = createSettingsViewModelFactory(
@@ -283,12 +283,13 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
 
     composable(route = SettingsSubscriptionDestination.route) { backStackEntry ->
         val context = LocalContext.current
+        val settingsRootBackStackEntry = settingsRootBackStackEntry(
+            navController = navController,
+            currentBackStackEntry = backStackEntry
+        ) ?: return@composable
         val subscriptionViewModel = settingsSubscriptionViewModel(
             appGraph = appGraph,
-            settingsRootBackStackEntry = settingsRootBackStackEntry(
-                navController = navController,
-                currentBackStackEntry = backStackEntry
-            )
+            settingsRootBackStackEntry = settingsRootBackStackEntry
         )
         val uiState by subscriptionViewModel.uiState.collectAsStateWithLifecycle()
 
@@ -328,7 +329,7 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
         val settingsRootBackStackEntry = settingsRootBackStackEntry(
             navController = navController,
             currentBackStackEntry = backStackEntry
-        )
+        ) ?: return@composable
         val settingsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.SettingsViewModel>(
             viewModelStoreOwner = settingsRootBackStackEntry,
             factory = createSettingsViewModelFactory(
@@ -376,7 +377,7 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
         val settingsRootBackStackEntry = settingsRootBackStackEntry(
             navController = navController,
             currentBackStackEntry = backStackEntry
-        )
+        ) ?: return@composable
         val settingsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.SettingsViewModel>(
             viewModelStoreOwner = settingsRootBackStackEntry,
             factory = createSettingsViewModelFactory(
@@ -440,7 +441,7 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
         val settingsRootBackStackEntry = settingsRootBackStackEntry(
             navController = navController,
             currentBackStackEntry = backStackEntry
-        )
+        ) ?: return@composable
         val settingsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.SettingsViewModel>(
             viewModelStoreOwner = settingsRootBackStackEntry,
             factory = createSettingsViewModelFactory(
@@ -768,7 +769,7 @@ private fun settingsSubscriptionViewModel(
 internal fun settingsRootBackStackEntry(
     navController: NavHostController,
     currentBackStackEntry: NavBackStackEntry
-): NavBackStackEntry {
+): NavBackStackEntry? {
     return rememberRouteBackStackEntry(
         navController = navController,
         currentBackStackEntry = currentBackStackEntry,

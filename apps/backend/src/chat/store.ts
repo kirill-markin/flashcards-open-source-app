@@ -3,7 +3,11 @@
  * Internal implementation is split across focused modules under `./store/`.
  */
 export type {
+  ArchivedChatSession,
   ChatItemState,
+  ChatSessionHistoryCursor,
+  ChatSessionHistoryPage,
+  ChatSessionHistorySummary,
   ChatSessionRunState,
   ChatSessionSnapshot,
   PaginatedChatMessages,
@@ -11,6 +15,7 @@ export type {
 } from "./store/types";
 
 export {
+  ChatSessionArchiveActiveRunError,
   ChatSessionConflictError,
   ChatSessionNotFoundError,
   FAILED_TOOL_CALL_OUTPUT,
@@ -54,6 +59,13 @@ export {
   updateChatSessionRunStateForActiveRunWithExecutor,
   updateChatSessionRunStateWithExecutor,
 } from "./store/sessionService";
+
+export {
+  archiveLockedChatSessionWithExecutor,
+  listChatSessionHistory,
+  lockHistoryChatSessionWithExecutor,
+  renameChatSession,
+} from "./store/historyService";
 
 export {
   getChatSessionSnapshot,

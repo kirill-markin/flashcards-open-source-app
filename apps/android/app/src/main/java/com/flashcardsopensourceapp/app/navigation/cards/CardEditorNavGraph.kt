@@ -71,7 +71,7 @@ internal fun NavGraphBuilder.registerCardEditorNavGraph(
                 navController = navController,
                 currentBackStackEntry = backStackEntry,
                 route = CardEditorGraph.createRoute(cardId = editingArgument)
-            )
+            ) ?: return@composable
             val editorViewModel = viewModel<CardEditorViewModel>(
                 viewModelStoreOwner = editorBackStackEntry,
                 factory = createCardEditorViewModelFactory(
@@ -183,7 +183,7 @@ internal fun NavGraphBuilder.registerCardEditorNavGraph(
                 navController = navController,
                 currentBackStackEntry = backStackEntry,
                 route = CardEditorGraph.createRoute(cardId = editingArgument)
-            )
+            ) ?: return@composable
             val editorViewModel = viewModel<CardEditorViewModel>(
                 viewModelStoreOwner = editorBackStackEntry,
                 factory = createCardEditorViewModelFactory(
@@ -333,7 +333,7 @@ internal fun NavGraphBuilder.registerCardEditorNavGraph(
                 navController = navController,
                 currentBackStackEntry = backStackEntry,
                 route = CardEditorGraph.createRoute(cardId = editingArgument)
-            )
+            ) ?: return@composable
             val editorViewModel = viewModel<CardEditorViewModel>(
                 viewModelStoreOwner = editorBackStackEntry,
                 factory = createCardEditorViewModelFactory(
