@@ -142,7 +142,13 @@ internal class AiChatRuntime(
         sendCoordinator = AiChatSendCoordinator(
             context = context,
             liveStreamCoordinator = liveStreamCoordinator,
-            sessionCoordinator = sessionCoordinator
+            sessionCoordinator = sessionCoordinator,
+            applyActiveBootstrap = { response, expectedSessionId ->
+                bootstrapCoordinator.applyActiveBootstrap(
+                    response = response,
+                    expectedSessionId = expectedSessionId
+                )
+            }
         )
         dictationCoordinator = AiChatDictationCoordinator(
             context = context,

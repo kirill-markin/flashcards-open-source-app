@@ -85,6 +85,7 @@
 "ai.availability.dictation.official" = "AI diktovanie je na oficiálnom serveri dočasne nedostupné. Skúste to znova neskôr.";
 "ai.availability.dictation.custom" = "AI diktovanie nie je na tomto serveri dostupné. Kontaktujte prevádzkovateľa servera.";
 "ai.run.error.activeRunInProgress" = "Odpoveď sa už pripravuje. Pred odoslaním ďalšej správy počkajte na jej dokončenie alebo ju zastavte.";
+"ai.chatNotCurrent.notice" = "Tento chat bol nahradený novším. Vaša správa je stále v textovom poli – odošlite ju znova.";
 "ai.dictation.error.microphoneUnavailable" = "Mikrofón nie je na tomto zariadení dostupný.";
 "ai.dictation.error.microphoneDenied" = "Prístup k mikrofónu nebol povolený.";
 "ai.dictation.error.microphoneBlocked" = "Prístup k mikrofónu je pre Nibomo vypnutý. Povoľte ho v Nastavenia > Súkromie a bezpečnosť > Mikrofón.";

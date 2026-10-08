@@ -85,6 +85,7 @@
 "ai.availability.dictation.official" = "Đọc chính tả AI tạm thời không khả dụng trên máy chủ chính thức. Hãy thử lại sau.";
 "ai.availability.dictation.custom" = "Đọc chính tả AI không khả dụng trên máy chủ này. Liên hệ người vận hành máy chủ.";
 "ai.run.error.activeRunInProgress" = "Đang có phản hồi được tạo. Chờ hoàn tất hoặc dừng lại trước khi gửi tin nhắn khác.";
+"ai.chatNotCurrent.notice" = "Cuộc trò chuyện này đã được thay bằng một cuộc trò chuyện mới hơn. Tin nhắn của bạn vẫn còn trong ô nhập — hãy gửi lại.";
 "ai.dictation.error.microphoneUnavailable" = "Micrô không khả dụng trên thiết bị này.";
 "ai.dictation.error.microphoneDenied" = "Chưa được cấp quyền truy cập micrô.";
 "ai.dictation.error.microphoneBlocked" = "Quyền truy cập micrô của Nibomo đang tắt. Bật trong Cài đặt > Quyền riêng tư & Bảo mật > Micrô.";

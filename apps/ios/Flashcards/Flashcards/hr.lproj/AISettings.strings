@@ -85,6 +85,7 @@
 "ai.availability.dictation.official" = "AI diktiranje privremeno nije dostupno na službenom poslužitelju. Pokušajte ponovno kasnije.";
 "ai.availability.dictation.custom" = "AI diktiranje nije dostupno na ovom poslužitelju. Obratite se administratoru poslužitelja.";
 "ai.run.error.activeRunInProgress" = "Odgovor je već u tijeku. Pričekajte da završi ili ga zaustavite prije slanja nove poruke.";
+"ai.chatNotCurrent.notice" = "Ovaj je razgovor zamijenjen novijim. Vaša je poruka još u polju za unos — pošaljite je ponovno.";
 "ai.dictation.error.microphoneUnavailable" = "Mikrofon nije dostupan na ovom uređaju.";
 "ai.dictation.error.microphoneDenied" = "Pristup mikrofonu nije dopušten.";
 "ai.dictation.error.microphoneBlocked" = "Pristup mikrofonu isključen je za Nibomo. Uključite ga u Postavke > Privatnost i sigurnost > Mikrofon.";

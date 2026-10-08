@@ -85,6 +85,7 @@
 "ai.availability.dictation.official" = "การป้อนตามคำบอกด้วย AI บนเซิร์ฟเวอร์ทางการไม่พร้อมใช้งานชั่วคราว ลองอีกครั้งภายหลัง";
 "ai.availability.dictation.custom" = "การป้อนตามคำบอกด้วย AI ไม่พร้อมใช้งานบนเซิร์ฟเวอร์นี้ โปรดติดต่อผู้ดูแลเซิร์ฟเวอร์";
 "ai.run.error.activeRunInProgress" = "กำลังสร้างคำตอบอยู่ รอให้เสร็จหรือหยุดก่อนส่งข้อความใหม่";
+"ai.chatNotCurrent.notice" = "แชทนี้ถูกแทนที่ด้วยแชทที่ใหม่กว่าแล้ว ข้อความของคุณยังอยู่ในช่องพิมพ์ — ส่งอีกครั้งได้เลย";
 "ai.dictation.error.microphoneUnavailable" = "อุปกรณ์นี้ไม่มีไมโครโฟนให้ใช้งาน";
 "ai.dictation.error.microphoneDenied" = "ไม่ได้รับสิทธิ์ใช้ไมโครโฟน";
 "ai.dictation.error.microphoneBlocked" = "Nibomo ไม่มีสิทธิ์ใช้ไมโครโฟน เปิดสิทธิ์ในการตั้งค่า > ความเป็นส่วนตัวและความปลอดภัย > ไมโครโฟน";

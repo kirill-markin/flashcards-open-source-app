@@ -85,6 +85,7 @@
 "ai.availability.dictation.official" = "إملاء الذكاء الاصطناعي غير متاح مؤقتًا على الخادم الرسمي. يرجى المحاولة مرة أخرى لاحقاً.";
 "ai.availability.dictation.custom" = "إملاء الذكاء الاصطناعي غير متوفر على هذا الخادم. اتصل بمشغل الخادم.";
 "ai.run.error.activeRunInProgress" = "هناك بالفعل استجابة قيد التقدم. انتظر حتى تنتهي أو قم بإيقافها قبل إرسال رسالة أخرى.";
+"ai.chatNotCurrent.notice" = "تم استبدال هذه الدردشة بدردشة أحدث. رسالتك لا تزال في مربع الكتابة — أرسلها مرة أخرى.";
 "ai.dictation.error.microphoneUnavailable" = "الميكروفون غير متوفر على هذا الجهاز.";
 "ai.dictation.error.microphoneDenied" = "لم يتم منح الوصول إلى الميكروفون.";
 "ai.dictation.error.microphoneBlocked" = "تم تعطيل الوصول إلى الميكروفون لتطبيق Nibomo. قم بتنشيطه في الإعدادات > الخصوصية والأمان > الميكروفون.";

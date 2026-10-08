@@ -8,6 +8,8 @@ const val aiChatMaximumAttachmentBytes: Int = 3 * 1024 * 1024
 const val aiChatMaximumStartRunRequestBytes: Int = 5 * 1024 * 1024
 const val aiChatAttachmentUnsupportedTypeCode: String = "CHAT_ATTACHMENT_UNSUPPORTED_TYPE"
 const val aiChatRequestTooLargeCode: String = "CHAT_REQUEST_TOO_LARGE"
+// The code the backend raises when a turn targets a chat that is no longer the latest one.
+const val aiChatSessionNotCurrentCode: String = "CHAT_SESSION_NOT_CURRENT"
 // The code the backend raises when a signed-in account reaches its AI allowance.
 const val aiLimitReachedCode: String = "AI_LIMIT_REACHED"
 
