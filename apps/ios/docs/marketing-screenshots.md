@@ -166,12 +166,12 @@ The scripts do not boot or switch simulators for you. They only resolve a booted
 
 Use these canonical targets for committed App Store assets:
 
-| Family | Simulator | Portrait pixels | Upload display slot |
+| Family | Simulator | Capture pixels | Upload display slot |
 | --- | --- | --- | --- |
 | iPhone | `iPhone 14 Plus` | `1284 × 2778` | `APP_IPHONE_65` |
-| iPad | `iPad Pro 13-inch (M5)` | `2064 × 2752` | `APP_IPAD_PRO_3GEN_129` |
+| iPad | `iPad Pro 13-inch (M5)` | `2064 × 2752` portrait or `2752 × 2064` landscape | `APP_IPAD_PRO_3GEN_129` |
 
-The uploader also accepts `2048 × 2732` iPad PNGs. Keep every image opaque: no
+The uploader also accepts `2048 × 2732` portrait and `2732 × 2048` landscape iPad PNGs, matching [Apple's screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications). Keep every image opaque: no
 alpha channel or PNG `tRNS` chunk, even if it looks opaque on screen. Inspect
 exported files before upload; use the
 [upload procedure](../../../docs/app-store-connect-metadata.md) for preflight and
@@ -257,6 +257,25 @@ Run the unified scenario for a specific locale:
 
 ```bash
 bash scripts/ios/capture-ios-marketing-screenshots.sh --locale es-ES
+```
+
+Capture the optimized landscape iPad layout with `--orientation landscape`.
+The default remains portrait, and landscape is refused on iPhone. Each capture
+asserts the requested orientation before publishing; do not rotate exported
+portrait pixels. For a local filesystem that adds signing resource forks, set
+`FLASHCARDS_IOS_DERIVED_DATA_PATH` to an unsynced DerivedData path while retaining
+the pinned packages.
+
+For a sequential bulk capture from frozen sources, first run one locale with
+the default `test` action to build and validate the current app and test runner.
+Subsequent runs can use `FLASHCARDS_IOS_MARKETING_TEST_WITHOUT_BUILDING=1` with
+the same simulator and DerivedData. They still run every capture and cleanup
+test; the shared runtime configuration selects each locale. Remove the flag
+and rebuild after any application or test-source change. Record the tested
+source fingerprint with the generated inventory.
+
+```bash
+bash scripts/ios/capture-ios-marketing-screenshots.sh --locale en-US --orientation landscape
 ```
 
 Or use the environment variable instead:
