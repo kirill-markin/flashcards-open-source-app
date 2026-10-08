@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { getChatSnapshot } from "../../api";
 import { useI18n } from "../../i18n";
 import type { ChatSessionHistoryMessage, ChatSessionHistorySummary } from "../../types";
@@ -21,12 +21,28 @@ export function ChatHistoryReader(props: {
   reportHistoryError: ReportHistoryError;
   onMessageTechnicalError: (error: unknown) => boolean;
   canStartMessageAction: () => boolean;
+  onUnavailable: (sessionId: string) => void;
   onBack: () => void;
 }): React.JSX.Element {
-  const { workspaceId, summary, reportHistoryError, onMessageTechnicalError, canStartMessageAction, onBack } = props;
+  const {
+    workspaceId,
+    summary,
+    reportHistoryError,
+    onMessageTechnicalError,
+    canStartMessageAction,
+    onUnavailable,
+    onBack,
+  } = props;
   const { t, formatDate } = useI18n();
   const [readerState, setReaderState] = useState<ReaderState>({ status: "loading" });
   const [reloadVersion, setReloadVersion] = useState(0);
+  const backButtonRef = useRef<HTMLButtonElement>(null);
+  const reportUnavailable = useEffectEvent((sessionId: string): void => onUnavailable(sessionId));
+
+  // Opening a row hides the list and drops focus to the page.
+  useEffect(() => {
+    backButtonRef.current?.focus();
+  }, []);
 
   useEffect(() => {
     const abortController = new AbortController();
@@ -43,7 +59,9 @@ export function ChatHistoryReader(props: {
           return;
         }
         const isUnavailable = isChatUnavailableError(error);
-        if (isUnavailable === false) {
+        if (isUnavailable) {
+          reportUnavailable(summary.sessionId);
+        } else {
           reportHistoryError(error, "chat_history_read", summary.sessionId);
         }
         setReaderState({ status: "failed", isUnavailable });
@@ -65,6 +83,7 @@ export function ChatHistoryReader(props: {
         </div>
         <div className="chat-header-actions">
           <button
+            ref={backButtonRef}
             type="button"
             className="chat-close-btn"
             onClick={onBack}

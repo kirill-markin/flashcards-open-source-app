@@ -210,6 +210,8 @@ export function ChatPanel(props: Props): ReactElement {
     isStopping,
     sendPhase,
   });
+  // The History panel hides the draft, so a drop there must not attach to it unseen.
+  const canDropDraftFiles = canAttachDraftFiles && isHistoryPanelVisible === false;
   const {
     handleDragEnter,
     handleDragLeave,
@@ -222,7 +224,7 @@ export function ChatPanel(props: Props): ReactElement {
   } = useChatAttachments({
     attachmentLimitMessage,
     attachmentUnsupportedMessage,
-    canAttachDraftFiles,
+    canAttachDraftFiles: canDropDraftFiles,
     currentSessionId,
     draftInputText,
     indexedDbOpenRecoveryState,
@@ -347,7 +349,7 @@ export function ChatPanel(props: Props): ReactElement {
       onDragOver={handleDragOver}
       onDrop={(event) => void handleDrop(event)}
     >
-      {isDragOver && canAttachDraftFiles ? <div className="chat-drop-overlay">{t("chatPanel.dropFiles")}</div> : null}
+      {isDragOver && canDropDraftFiles ? <div className="chat-drop-overlay">{t("chatPanel.dropFiles")}</div> : null}
       {mode === "sidebar" ? (
         <div
           className={`chat-resize-handle${isDragging ? " dragging" : ""}`}
@@ -369,7 +371,7 @@ export function ChatPanel(props: Props): ReactElement {
             type="button"
             className="chat-close-btn"
             onClick={() => setIsHistoryOpen(true)}
-            disabled={isChatActionLocked || activeWorkspaceId === null}
+            disabled={isChatActionLocked || activeWorkspaceId === null || isDictationVisible}
             data-testid="chat-history-button"
           >
             {t("chatPanel.actions.history")}
