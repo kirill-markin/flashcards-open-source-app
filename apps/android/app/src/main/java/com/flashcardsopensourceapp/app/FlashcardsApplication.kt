@@ -68,12 +68,12 @@ class FlashcardsApplication : Application(), Configuration.Provider {
         super.onCreate()
         observabilityStartup = startAndroidObservability(application = this)
         publishAppGraph(appGraph = createAppGraph())
-        observeProcessLifecycleForAnalytics()
+        observeProcessLifecycle()
     }
 
     /**
-     * Registers the `app_opened` and background-flush hook once per process, next to the
-     * process-scoped flags in `analytics/AppAnalyticsSupport.kt` that it maintains.
+     * Registers the `app_opened`, background-flush and launcher-icon hooks once per process, next
+     * to the process-scoped flags in `analytics/AppAnalyticsSupport.kt` that it maintains.
      *
      * It deliberately does not live in the composition. `FlashcardsApp` returns early while startup
      * is loading, when startup failed and while the credential-recovery gate is up, so an observer
@@ -87,7 +87,7 @@ class FlashcardsApplication : Application(), Configuration.Provider {
      * permission dialog, a photo picker or any other activity, every one of which looks like a warm
      * launch on the activity lifecycle.
      */
-    private fun observeProcessLifecycleForAnalytics() {
+    private fun observeProcessLifecycle() {
         ProcessLifecycleOwner.get().lifecycle.addObserver(
             LifecycleEventObserver { _, event ->
                 when (event) {
@@ -106,6 +106,7 @@ class FlashcardsApplication : Application(), Configuration.Provider {
                         markAnalyticsProcessBackgrounded()
                         val appGraph = appGraphOrNull ?: return@LifecycleEventObserver
                         appGraph.analytics.flush()
+                        appGraph.syncLauncherAppIconInBackground()
                     }
 
                     else -> Unit
