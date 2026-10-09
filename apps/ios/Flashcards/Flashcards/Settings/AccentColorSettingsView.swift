@@ -238,7 +238,9 @@ struct AccentColorSettingsView: View {
     private func selectColor(_ color: AccountAccentColor) {
         guard self.isUnavailable == false else { return }
         self.guidanceMessage = ""
-        if color != .defaultColor && self.store.canCustomizeStyle == false {
+        if self.store.canCustomizeStyle == false {
+            // Writing Default here would overwrite the retained premium selection that resubscription restores.
+            guard color != .defaultColor else { return }
             self.resetDraft()
             guard self.pendingSelection == nil else { return }
             let requestId = self.premiumPresenter.present(
