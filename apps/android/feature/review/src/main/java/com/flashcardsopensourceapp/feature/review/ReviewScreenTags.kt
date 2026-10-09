@@ -23,3 +23,5 @@ const val reviewManageDecksButtonTag: String = "review_manage_decks_button"
 fun reviewFilterDeckOptionTag(deckId: String): String = "review_filter_deck_option::$deckId"
 
 fun reviewFilterTagOptionTag(tag: String): String = "review_filter_tag_option::$tag"
+
+fun reviewCardTagChipTag(tag: String): String = "review_card_tag_chip::$tag"
