@@ -134,13 +134,16 @@ private fun isScreenOffOrLocked(context: Context): Boolean {
     return !powerManager.isInteractive || keyguardManager.isKeyguardLocked
 }
 
-/** The platform may report another app's top activity as an empty component name, which still counts as foreign. */
+/**
+ * A task without task info or without running activities reports no top activity and is ignored.
+ * The platform may report another app's top activity as an empty component name, which still counts as foreign.
+ */
 private fun hasOtherAppActivityOnTopOfAppTask(context: Context): Boolean {
     val activityManager: ActivityManager = checkNotNull(context.getSystemService(ActivityManager::class.java)) {
         "ActivityManager system service is unavailable."
     }
     return activityManager.appTasks.any { appTask ->
-        val topActivity: ComponentName? = appTask.taskInfo.topActivity
+        val topActivity: ComponentName? = appTask.taskInfo?.topActivity
         topActivity != null && topActivity.packageName != context.packageName
     }
 }
