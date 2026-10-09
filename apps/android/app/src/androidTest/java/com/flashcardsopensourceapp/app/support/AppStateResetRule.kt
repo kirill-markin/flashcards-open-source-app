@@ -13,6 +13,7 @@ import com.flashcardsopensourceapp.app.livesmoke.diagnostics.dismissBlockingSyst
 import com.flashcardsopensourceapp.app.prompts.guestreview.guestSignInAfterReviewPromptPreferencesName
 import com.flashcardsopensourceapp.core.observability.analytics.analyticsIdentityPreferencesName
 import com.flashcardsopensourceapp.core.observability.analytics.analyticsQueueDatabaseName
+import com.flashcardsopensourceapp.data.local.appicon.appIconPreferencesName
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import java.util.concurrent.CountDownLatch
@@ -27,6 +28,7 @@ private val testOnlyPreferenceNames: List<String> = listOf(
     "flashcards-ai-chat-preferences",
     "flashcards-ai-chat-history",
     "flashcards-ai-chat-guest-session",
+    appIconPreferencesName,
     analyticsIdentityPreferencesName
 )
 

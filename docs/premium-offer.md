@@ -91,16 +91,18 @@ uses the shared Stripe offer; new live purchases remain gated by backend configu
 
 ## Style settings
 
-The Style section of Settings holds the custom styles: Accent color, Review Animations, and AI Chat
-Suggestions. Premium and lifetime (effective rank at least 20) can change them. Free users see each
+The Style section of Settings holds the custom styles: Accent color, Review Animations, AI Chat
+Suggestions, and, on Android, App icon. Premium and lifetime (effective rank at least 20) can change them. Free users see each
 setting's default and a premium note, and a change opens the shared Premium offer on every client.
 
 Each selection is stored independently of entitlement and distinct from what is displayed. A
 confirmed downgrade displays the default while retaining the selection; resubscription restores it.
 Unknown or offline entitlement follows the [cached local-feature policy](premium-entitlements.md#offline-behaviour).
 Client setting and display boundaries gate usage; the backend adds no billing gate for storing a
-selection. Accent color and Review Animations are account-wide; AI Chat Suggestions are stored per
-device.
+selection. Accent color and Review Animations are account-wide; AI Chat Suggestions and App icon are
+stored per device. Android switches the App icon by enabling one launcher `activity-alias` in the
+[manifest](../apps/android/app/src/main/AndroidManifest.xml) and disabling the other, only once the
+person has left the app.
 
 ### Accent color
 
