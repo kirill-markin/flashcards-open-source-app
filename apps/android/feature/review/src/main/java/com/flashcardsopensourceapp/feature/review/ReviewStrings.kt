@@ -2,6 +2,8 @@ package com.flashcardsopensourceapp.feature.review
 
 import android.content.Context
 import android.content.res.Resources
+import android.icu.text.ListFormatter
+import android.os.Build
 import com.flashcardsopensourceapp.data.local.model.review.ReviewDeckFilterOption
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.ReviewIntervalDescription
@@ -129,4 +131,25 @@ class ReviewTextProvider(
 
 fun reviewTextProvider(context: Context): ReviewTextProvider {
     return ReviewTextProvider(resources = context.resources)
+}
+
+/**
+ * Names the current filter in the tag-filter dialog. A tags filter is named by its tags as an "or" list,
+ * because it matches cards with any of them; its header title is only a count.
+ */
+internal fun reviewTagFilterDialogCurrentFilterLabel(
+    selectedFilter: ReviewFilter,
+    selectedFilterTitle: String,
+    locale: Locale
+): String {
+    if (selectedFilter !is ReviewFilter.Tags || selectedFilter.tags.isEmpty()) {
+        return selectedFilterTitle
+    }
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        return ListFormatter.getInstance(locale, ListFormatter.Type.OR, ListFormatter.Width.WIDE)
+            .format(selectedFilter.tags)
+    }
+
+    return selectedFilter.tags.joinToString(separator = ", ")
 }
