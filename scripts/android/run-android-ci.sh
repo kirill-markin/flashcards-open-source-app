@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# Run fast Android CI checks, then build the debug artifacts consumed by later jobs.
-
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -14,7 +12,7 @@ fi
 
 cd "${ANDROID_DIR}"
 
-./gradlew --no-daemon \
+./gradlew --no-daemon --warning-mode all \
   test \
   :app:assembleDebug \
   :app:assembleDebugAndroidTest \
