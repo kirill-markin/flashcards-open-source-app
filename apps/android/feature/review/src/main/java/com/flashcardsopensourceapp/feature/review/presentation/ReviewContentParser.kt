@@ -7,6 +7,7 @@ import org.intellij.markdown.MarkdownElementTypes
 import org.intellij.markdown.ast.ASTNode
 import org.intellij.markdown.flavours.gfm.GFMElementTypes
 import org.intellij.markdown.flavours.gfm.GFMFlavourDescriptor
+import org.intellij.markdown.parser.CancellationToken
 import org.intellij.markdown.parser.MarkdownParser
 
 /*
@@ -208,7 +209,12 @@ private fun hasInlineMarkdownFormatting(text: String): Boolean {
         return false
     }
 
-    val tree: ASTNode = MarkdownParser(GFMFlavourDescriptor()).buildMarkdownTreeFromString(text)
+    val markdownText: CharSequence = text
+    val tree: ASTNode = MarkdownParser(
+        flavour = GFMFlavourDescriptor(),
+        assertionsEnabled = true,
+        cancellationToken = CancellationToken.NonCancellable
+    ).buildMarkdownTreeFromString(markdownText)
     return hasInlineMarkdownFormattingNode(node = tree)
 }
 
