@@ -1124,6 +1124,12 @@ const caCatalog: TranslationCatalog = {
     dismiss: "Entesos",
     title: "Recordatori ràpid",
   },
+  reviewTagFilterDialog: {
+    alreadySelectedBody: "Ja estàs repassant les targetes amb l’etiqueta «{{tag}}».",
+    changeBody: "Ara repasses «{{currentFilter}}». Vols repassar només les targetes amb l’etiqueta «{{tag}}»?",
+    confirm: "Canvia el filtre",
+    title: "Filtre de repàs",
+  },
   demoCard: {
     front: "Quina és la millor aplicació per estudiar?",
     back1: "{{appName}} — l'app que estàs mirant ara mateix. Aquí tot és una targeta d'estudi: una pregunta a l'anvers i la resposta al revers.",

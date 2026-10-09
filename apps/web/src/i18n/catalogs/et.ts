@@ -1124,6 +1124,12 @@ const etCatalog: TranslationCatalog = {
     dismiss: "Selge",
     title: "Kiire meeldetuletus",
   },
+  reviewTagFilterDialog: {
+    alreadySelectedBody: "Kordad juba kaarte sildiga „{{tag}}“.",
+    changeBody: "Praegu kordad: „{{currentFilter}}“. Kas korrata selle asemel ainult kaarte sildiga „{{tag}}“?",
+    confirm: "Muuda filtrit",
+    title: "Kordamisfilter",
+  },
   demoCard: {
     front: "Milline on parim rakendus õppimiseks?",
     back1: "{{appName}} — rakendus, mida praegu vaatad. Kõik siin on õpikaart: esiküljel küsimus, tagaküljel vastus.",

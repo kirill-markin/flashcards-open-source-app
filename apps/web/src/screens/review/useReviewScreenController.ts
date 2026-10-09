@@ -6,7 +6,7 @@ import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
   useAppErrorDialog,
 } from "../../appError/AppErrorContext";
-import { ALL_CARDS_REVIEW_FILTER, currentReviewCard } from "../../appData/domain";
+import { ALL_CARDS_REVIEW_FILTER, currentReviewCard, isReviewFilterEqual } from "../../appData/domain";
 import type { FeedbackDialogProps } from "../../feedback/FeedbackDialog";
 import { useI18n } from "../../i18n";
 import { normalizeCaughtError } from "../../observability/webObservability";
@@ -37,6 +37,7 @@ import type { MobileAppPromotionDialogProps } from "./mobileAppPromo/MobileAppPr
 import { usePostReviewPrompts } from "./usePostReviewPrompts";
 import { useReviewRatingReactions, type UseReviewRatingReactionsResult } from "./reactions/useReviewRatingReactions";
 import { makeReviewSpeakableText, useReviewSpeech } from "./speech/reviewSpeech";
+import type { ReviewTagFilterDialogProps, ReviewTagFilterRequest } from "./tagFilter/ReviewTagFilterDialog";
 
 export type UseReviewScreenControllerResult = Readonly<{
   dismissReviewReactions: UseReviewRatingReactionsResult["dismissReactions"];
@@ -49,6 +50,7 @@ export type UseReviewScreenControllerResult = Readonly<{
   queuePanelProps: ReviewQueuePanelProps;
   reviewReactionFallbackHandler: UseReviewRatingReactionsResult["handleReactionEventFallback"];
   reviewReactionEvents: UseReviewRatingReactionsResult["events"];
+  tagFilterDialogProps: ReviewTagFilterDialogProps;
 }>;
 
 export type UseReviewScreenControllerParams = Readonly<{
@@ -87,6 +89,8 @@ export function useReviewScreenController(
   const [lastSubmittedReview, setLastSubmittedReview] = useState<LastSubmittedReview | null>(null);
   const [isHardReminderVisible, setIsHardReminderVisible] = useState<boolean>(false);
   const [isReviewQueuePanelOpen, setIsReviewQueuePanelOpen] = useState<boolean>(false);
+  const [tagFilterRequest, setTagFilterRequest] = useState<ReviewTagFilterRequest | null>(null);
+  const isTagFilterDialogOpen = tagFilterRequest !== null;
   const [hardReminderLastShownAt, setHardReminderLastShownAt] = useState<number | null>(() => loadReviewHardReminderLastShownAt());
   const recentReviewRatingsRef = useRef<Array<ReviewRating>>([]);
   const revealedCardIdRef = useRef<string | null>(null);
@@ -214,6 +218,7 @@ export function useReviewScreenController(
     isEditorPresented,
     isHardReminderVisible,
     isReviewFilterMenuOpen,
+    isTagFilterDialogOpen,
     linkedUserId: cloudSettings?.linkedUserId ?? null,
     locale,
     onFeedbackSubmitted: showReviewFeedbackMessage,
@@ -432,6 +437,28 @@ export function useReviewScreenController(
     selectReviewFilter(ALL_CARDS_REVIEW_FILTER);
   }
 
+  function handleRequestTagFilter(tag: string): void {
+    // A tag filter's header title is only a count ("1 tag"), so the dialog names its tags instead.
+    // Disjunction ("a, b, or c") matches the any-tag meaning and keeps explicit separators in every locale.
+    const currentFilterTitle = resolvedReviewFilter.kind === "tags" && resolvedReviewFilter.tags.length > 0
+      ? new Intl.ListFormat(locale, { type: "disjunction" }).format(resolvedReviewFilter.tags)
+      : visibleSelectedReviewFilterTitle;
+    setTagFilterRequest({
+      currentFilterTitle,
+      isRequestedTagFilterSelected: isReviewFilterEqual(selectedReviewFilter, { kind: "tags", tags: [tag] }),
+      tag,
+    });
+  }
+
+  function handleConfirmTagFilter(tag: string): void {
+    setTagFilterRequest(null);
+    selectReviewFilter({ kind: "tags", tags: [tag] });
+  }
+
+  function handleDismissTagFilter(): void {
+    setTagFilterRequest(null);
+  }
+
   useEffect(() => {
     // Clearing the reveal ref here is what makes it mean "this presentation": a new presentation
     // always changes this dep, so the guard and the card on screen move together.
@@ -452,6 +479,7 @@ export function useReviewScreenController(
   useEffect(() => {
     recentReviewRatingsRef.current = [];
     setIsHardReminderVisible(false);
+    setTagFilterRequest(null);
   }, [activeWorkspace?.workspaceId]);
 
   useEffect(() => {
@@ -471,6 +499,7 @@ export function useReviewScreenController(
     isMobileAppPromotionDialogOpen,
     isReviewFilterMenuOpen,
     isSubmitting,
+    isTagFilterDialogOpen,
     onShortcutInputStart: dismissReviewReactions,
     selectedCard,
     setIsAnswerVisible: (value) => {
@@ -608,6 +637,7 @@ export function useReviewScreenController(
       loadingReviewCurrentCard,
       onAiHandoff: handleReviewPaneAiHandoff,
       onEditCard: handleOpenEditor,
+      onRequestTagFilter: handleRequestTagFilter,
       onRevealAnswer: handleRevealAnswer,
       onReview: handleReview,
       onShortcutButtonPointerEnter: handleShortcutButtonPointerEnter,
@@ -629,6 +659,7 @@ export function useReviewScreenController(
       loadingReviewCurrentCard,
       nowTimestamp,
       onClose: handleReviewQueuePanelClose,
+      onRequestTagFilter: handleRequestTagFilter,
       queueCards,
       reviewLoadingSnapshot,
       selectedCardId: selectedCard?.cardId ?? null,
@@ -636,5 +667,10 @@ export function useReviewScreenController(
     },
     reviewReactionFallbackHandler: handleReviewReactionEventFallback,
     reviewReactionEvents,
+    tagFilterDialogProps: {
+      onConfirm: handleConfirmTagFilter,
+      onDismiss: handleDismissTagFilter,
+      request: tagFilterRequest,
+    },
   };
 }

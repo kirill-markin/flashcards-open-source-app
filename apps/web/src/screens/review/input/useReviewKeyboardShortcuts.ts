@@ -13,6 +13,7 @@ type UseReviewKeyboardShortcutsParams = Readonly<{
   isMobileAppPromotionDialogOpen: boolean;
   isReviewFilterMenuOpen: boolean;
   isSubmitting: boolean;
+  isTagFilterDialogOpen: boolean;
   onShortcutInputStart: () => void;
   selectedCard: Card | null;
   setIsAnswerVisible: (value: boolean) => void;
@@ -46,6 +47,7 @@ export function useReviewKeyboardShortcuts(params: UseReviewKeyboardShortcutsPar
     isMobileAppPromotionDialogOpen,
     isReviewFilterMenuOpen,
     isSubmitting,
+    isTagFilterDialogOpen,
     onShortcutInputStart,
     selectedCard,
     setIsAnswerVisible,
@@ -56,7 +58,8 @@ export function useReviewKeyboardShortcuts(params: UseReviewKeyboardShortcutsPar
     || isFeedbackDialogOpen
     || isHardReminderVisible
     || isMobileAppPromotionDialogOpen
-    || isReviewFilterMenuOpen;
+    || isReviewFilterMenuOpen
+    || isTagFilterDialogOpen;
 
   const handleDocumentKeyDown = useEffectEvent((event: KeyboardEvent) => {
     if (

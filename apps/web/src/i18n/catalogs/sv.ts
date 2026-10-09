@@ -1124,6 +1124,12 @@ const svCatalog: TranslationCatalog = {
     dismiss: "Uppfattat",
     title: "Snabb påminnelse",
   },
+  reviewTagFilterDialog: {
+    alreadySelectedBody: "Du repeterar redan kort med taggen ”{{tag}}”.",
+    changeBody: "Du repeterar ”{{currentFilter}}”. Vill du i stället bara repetera kort med taggen ”{{tag}}”?",
+    confirm: "Byt filter",
+    title: "Repetitionsfilter",
+  },
   demoCard: {
     front: "Vilken är den bästa appen för att plugga?",
     back1: "{{appName}} — appen du tittar på just nu. Allt här är ett kort: en fråga på framsidan, svaret på baksidan.",

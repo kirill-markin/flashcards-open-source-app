@@ -13,6 +13,7 @@ export type ReviewQueuePanelProps = Readonly<{
   loadingReviewCurrentCard: ReviewLoadingSnapshot["currentCard"];
   nowTimestamp: number;
   onClose: () => void;
+  onRequestTagFilter: (tag: string) => void;
   queueCards: ReadonlyArray<Card>;
   reviewLoadingSnapshot: ReviewLoadingSnapshot | null;
   selectedCardId: string | null;
@@ -35,6 +36,7 @@ export function ReviewQueuePanel(props: ReviewQueuePanelProps): ReactElement {
     loadingReviewCurrentCard,
     nowTimestamp,
     onClose,
+    onRequestTagFilter,
     queueCards,
     reviewLoadingSnapshot,
     selectedCardId,
@@ -82,7 +84,7 @@ export function ReviewQueuePanel(props: ReviewQueuePanelProps): ReactElement {
                   data-card-id={card.cardId}
                 >
                   <span className="review-queue-card-title">{card.frontText}</span>
-                  <span className="review-queue-card-tags"><ReviewCardTags tags={card.tags} /></span>
+                  <span className="review-queue-card-tags"><ReviewCardTags onRequestTagFilter={onRequestTagFilter} tags={card.tags} /></span>
                   <span className="review-queue-card-meta">
                     <span>{formatNullableDateTime(card.dueAt, formatDateTime, t)}</span>
                     {isDue ? null : <span>{t("reviewScreen.queue.upcoming")}</span>}
@@ -119,7 +121,7 @@ export function ReviewQueuePanel(props: ReviewQueuePanelProps): ReactElement {
                 data-card-id={card.cardId}
               >
                 <span className="review-queue-card-title">{card.frontText}</span>
-                <span className="review-queue-card-tags"><ReviewCardTags tags={card.tags} /></span>
+                <span className="review-queue-card-tags"><ReviewCardTags onRequestTagFilter={onRequestTagFilter} tags={card.tags} /></span>
                 <span className="review-queue-card-meta">
                   <span>{formatNullableDateTime(card.dueAt, formatDateTime, t)}</span>
                   {isDue ? null : <span>{t("reviewScreen.queue.upcoming")}</span>}

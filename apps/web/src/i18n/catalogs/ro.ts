@@ -1134,6 +1134,12 @@ const roCatalog: TranslationCatalog = {
     dismiss: "Am înțeles",
     title: "Un memento rapid",
   },
+  reviewTagFilterDialog: {
+    alreadySelectedBody: "Deja recapitulezi cardurile cu eticheta „{{tag}}”.",
+    changeBody: "Acum recapitulezi: „{{currentFilter}}”. Vrei să recapitulezi doar cardurile cu eticheta „{{tag}}”?",
+    confirm: "Schimbă filtrul",
+    title: "Filtru de recapitulare",
+  },
   demoCard: {
     front: "Care este cea mai bună aplicație pentru studiu?",
     back1: "{{appName}} — aplicația la care te uiți chiar acum. Totul aici este o fișă: o întrebare pe față și răspunsul pe verso.",
