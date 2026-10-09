@@ -1124,6 +1124,12 @@ const nbCatalog: TranslationCatalog = {
     dismiss: "Skjønner",
     title: "Kjapp påminnelse",
   },
+  reviewTagFilterDialog: {
+    alreadySelectedBody: "Du repeterer allerede kort med taggen «{{tag}}».",
+    changeBody: "Du repeterer «{{currentFilter}}». Vil du heller repetere bare kort med taggen «{{tag}}»?",
+    confirm: "Bytt filter",
+    title: "Repetisjonsfilter",
+  },
   demoCard: {
     front: "Hva er den beste appen for å lære?",
     back1: "{{appName}} — appen du ser på akkurat nå. Alt her er et kort: et spørsmål på forsiden, svaret på baksiden.",

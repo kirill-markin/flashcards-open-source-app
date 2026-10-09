@@ -1,6 +1,7 @@
 import Foundation
 
 enum UITestIdentifier {
+    static let aiCompanionToggle: String = "ai.companion.toggle"
     static let uiTestLaunchPreparationStatus: String = "uiTest.launchPreparationStatus"
     static let cloudWorkspaceChooserScreen: String = "cloudSignIn.workspaceChooserScreen"
     static let cloudSignInScreen: String = "cloudSignIn.screen"
@@ -22,6 +23,9 @@ enum UITestIdentifier {
     static let rootTabSettingsItem: String = "rootTab.settings.item"
     static let reviewScreen: String = "review.screen"
     static let reviewFilterMenu: String = "review.filter.menu"
+    static let reviewCardTagChipPrefix: String = "review.cardTagChip."
+    static let reviewTagFilterCancelButton: String = "review.tagFilter.cancelButton"
+    static let reviewCompanionTitle = "review.companionTitle"
     static let reviewFilterScrollSurface: String = "review.filter.scrollSurface"
     static let reviewFilterAllCardsAction: String = "review.filter.allCards"
     static let reviewFilterDeckActionPrefix: String = "review.filter.deck."

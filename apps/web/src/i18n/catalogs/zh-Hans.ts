@@ -1124,6 +1124,12 @@ export const zhHansCatalog = {
     dismiss: "知道了",
     title: "快速提醒",
   },
+  reviewTagFilterDialog: {
+    alreadySelectedBody: "你已经在复习带有“{{tag}}”标签的卡片。",
+    changeBody: "你正在复习“{{currentFilter}}”。改为只复习带有“{{tag}}”标签的卡片？",
+    confirm: "更改筛选",
+    title: "复习筛选器",
+  },
   demoCard: {
     front: "最适合学习的应用是哪一个？",
     back1: "{{appName}}——就是您现在正在看的这个应用。这里的一切都是卡片：正面是问题，背面是答案。",

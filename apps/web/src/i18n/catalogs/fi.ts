@@ -1124,6 +1124,12 @@ const fiCatalog: TranslationCatalog = {
     dismiss: "Selvä",
     title: "Pieni muistutus",
   },
+  reviewTagFilterDialog: {
+    alreadySelectedBody: "Kertaat jo kortteja, joilla on tunniste ”{{tag}}”.",
+    changeBody: "Kertaat nyt: ”{{currentFilter}}”. Kerrataanko sen sijaan vain kortit, joilla on tunniste ”{{tag}}”?",
+    confirm: "Vaihda suodatin",
+    title: "Kertaussuodatin",
+  },
   demoCard: {
     front: "Mikä on paras sovellus opiskeluun?",
     back1: "{{appName}} — sovellus, jota katsot juuri nyt. Kaikki täällä on muistikortteja: kysymys etupuolella ja vastaus kääntöpuolella.",

@@ -18,7 +18,8 @@
   overflow: auto;
 }
 
-.review-hard-reminder-overlay {
+.review-hard-reminder-overlay,
+.review-tag-filter-overlay {
   position: fixed;
   inset: 0;
   padding: 24px;
@@ -29,7 +30,8 @@
   backdrop-filter: blur(14px);
 }
 
-.review-hard-reminder-modal {
+.review-hard-reminder-modal,
+.review-tag-filter-modal {
   width: min(620px, 100%);
   max-height: calc(100vh - 48px);
   border: 0;
@@ -40,13 +42,25 @@
   gap: 20px;
 }
 
-.review-hard-reminder-body {
+.review-hard-reminder-body,
+.review-tag-filter-body {
   max-width: 52ch;
 }
 
 .review-hard-reminder-actions {
   display: flex;
   justify-content: flex-end;
+}
+
+.review-tag-filter-body {
+  overflow-wrap: anywhere;
+}
+
+.review-tag-filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px;
 }
 
 .mobile-app-promo-overlay {

@@ -31,15 +31,20 @@ internal fun NavGraphBuilder.registerAccentColorDestination(
         DisposableEffect(premiumPresenter, uiState.identityKey) {
             onDispose { premiumPresenter.dismiss() }
         }
+        val canCustomizeStyle = canUseLocalPremiumFeatures(entitlement = premiumPresenter.entitlement)
         key(premiumPresenter, uiState.identityKey) {
             AccentColorRoute(
                 uiState = uiState,
-                isPremiumRequired = canUseLocalPremiumFeatures(entitlement = premiumPresenter.entitlement).not(),
+                effectiveColor = if (canCustomizeStyle) uiState.selectedColor else defaultAccentColor,
+                isPremiumRequired = canCustomizeStyle.not(),
                 onSelectColor = { color ->
                     val identityKey = uiState.identityKey
                     if (color == defaultAccentColor) {
                         premiumPresenter.dismiss()
-                        accentColorViewModel.selectColor(color = color, identityKey = identityKey)
+                        // Writing Default here would overwrite the retained premium selection that resubscription restores.
+                        if (canCustomizeStyle) {
+                            accentColorViewModel.selectColor(color = color, identityKey = identityKey)
+                        }
                     } else {
                         premiumPresenter.requestFeature(
                             paywallEntryPoint = AnalyticsPaywallEntryPoint.ACCENT_COLOR

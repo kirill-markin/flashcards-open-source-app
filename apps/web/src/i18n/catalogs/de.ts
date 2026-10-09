@@ -1124,6 +1124,12 @@ const deCatalog: TranslationCatalog = {
     dismiss: "Verstanden",
     title: "Kurze Erinnerung",
   },
+  reviewTagFilterDialog: {
+    alreadySelectedBody: "Du wiederholst bereits Karten mit dem Tag „{{tag}}“.",
+    changeBody: "Du wiederholst gerade „{{currentFilter}}“. Stattdessen nur Karten mit dem Tag „{{tag}}“ wiederholen?",
+    confirm: "Filter ändern",
+    title: "Wiederholungsfilter",
+  },
   demoCard: {
     front: "Welche Anwendung eignet sich am besten zum Lernen?",
     back1: "{{appName}} — die App, die du gerade vor dir hast. Alles hier ist eine Lernkarte: vorne eine Frage, hinten die Antwort.",

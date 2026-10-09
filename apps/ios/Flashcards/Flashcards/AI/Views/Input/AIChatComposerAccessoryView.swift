@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct AIChatDictationStatusLane: View {
     let statusText: String
@@ -41,7 +42,7 @@ extension AIChatView {
 
         return ReadableContentLayout(
             maxWidth: flashcardsReadableContentMaxWidth,
-            horizontalPadding: 16
+            horizontalPadding: self.chatContentHorizontalPadding
         ) {
             VStack(alignment: .leading, spacing: 12) {
                 if self.chatStore.pendingAttachments.isEmpty == false {
@@ -87,10 +88,14 @@ extension AIChatView {
                                     } label: {
                                         Image(systemName: "xmark.circle.fill")
                                             .foregroundStyle(.secondary)
+                                            .frame(minWidth: 44, minHeight: 44)
+                                            .contentShape(Rectangle())
                                     }
                                     .buttonStyle(.plain)
                                     .fixedSize()
                                     .disabled(self.chatStore.canModifyDraftAttachments == false)
+                                    .accessibilityLabel(aiSettingsLocalized("common.delete", "Delete"))
+                                    .accessibilityValue(self.composerAttachmentAccessibilityValue(attachment))
                                 }
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 8)
@@ -152,7 +157,7 @@ extension AIChatView {
                             "Ask about cards, review history, or propose a change..."
                         ),
                         text: $chatStore.inputText,
-                        selection: self.$composerSelection,
+                        selection: self.composerSelectionBinding,
                         axis: .vertical
                     )
                     .disabled(self.composerTextFieldDisabled)
@@ -172,30 +177,38 @@ extension AIChatView {
                     Button {
                         self.handlePrimaryComposerAction()
                     } label: {
-                        if self.chatStore.bootstrapPhase == .loading
-                            || self.chatStore.composerPhase == .preparingSend {
-                            ProgressView()
-                                .controlSize(.small)
-                                .frame(
-                                    width: aiChatComposerSendButtonVisualSize,
-                                    height: aiChatComposerSendButtonVisualSize
-                                )
-                        } else {
-                            Image(systemName: self.chatStore.canStopResponse ? "stop.circle.fill" : "arrow.up.circle.fill")
-                                .font(.system(size: 28))
-                                .frame(
-                                    width: aiChatComposerSendButtonVisualSize,
-                                    height: aiChatComposerSendButtonVisualSize
-                                )
-                                .foregroundStyle(self.chatStore.canStopResponse ? AnyShapeStyle(Color.red) : AnyShapeStyle(.tint))
+                        Group {
+                            if self.chatStore.bootstrapPhase == .loading
+                                || self.chatStore.composerPhase == .preparingSend {
+                                ProgressView()
+                                    .controlSize(.small)
+                                    .frame(
+                                        width: aiChatComposerSendButtonVisualSize,
+                                        height: aiChatComposerSendButtonVisualSize
+                                    )
+                            } else {
+                                Image(systemName: self.chatStore.canStopResponse ? "stop.circle.fill" : "arrow.up.circle.fill")
+                                    .font(.system(size: 28))
+                                    .frame(
+                                        width: aiChatComposerSendButtonVisualSize,
+                                        height: aiChatComposerSendButtonVisualSize
+                                    )
+                                    .foregroundStyle(self.chatStore.canStopResponse ? AnyShapeStyle(Color.red) : AnyShapeStyle(.tint))
+                            }
                         }
+                        .padding(.trailing, aiChatComposerSendButtonInset)
+                        .padding(.bottom, aiChatComposerSendButtonInset)
+                        .frame(
+                            width: aiChatComposerSendButtonHitSize,
+                            height: aiChatComposerSendButtonHitSize,
+                            alignment: .bottomTrailing
+                        )
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .disabled(self.primaryComposerButtonDisabled)
                     .accessibilityLabel(self.primaryComposerButtonAccessibilityLabel)
                     .accessibilityIdentifier(UITestIdentifier.aiComposerSendButton)
-                    .padding(.trailing, aiChatComposerSendButtonInset)
-                    .padding(.bottom, aiChatComposerSendButtonInset)
                 }
                 .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .overlay(alignment: .topLeading) {
@@ -208,7 +221,9 @@ extension AIChatView {
                 }
 
                 HStack {
-                    Spacer()
+                    if UIDevice.current.userInterfaceIdiom != .pad {
+                        Spacer()
+                    }
 
                     HStack(spacing: 8) {
                         if self.isComposerFocused {
@@ -267,10 +282,15 @@ extension AIChatView {
                             )
                         }
                     }
+
+                    if UIDevice.current.userInterfaceIdiom == .pad {
+                        // Leave the trailing edge clear for the system's compact input assistant.
+                        Spacer()
+                    }
                 }
             }
             .padding(.top, aiChatComposerTopPadding)
-            .padding(.bottom, 16)
+            .padding(.bottom, UIDevice.current.userInterfaceIdiom == .pad ? 8 : 16)
         }
     }
 
@@ -282,6 +302,21 @@ extension AIChatView {
         }
 
         return aiChatRemainingMessagesNotice(usage: usage)
+    }
+
+    private func composerAttachmentAccessibilityValue(_ attachment: AIChatAttachment) -> String {
+        switch attachment.payload {
+        case .binary(let fileName, _, _):
+            return fileName
+        case .card(let card):
+            return aiChatCardAttachmentLabel(card: card)
+        case .unknown(let unknownAttachment):
+            return aiSettingsLocalizedFormat(
+                "ai.composer.attachment.unsupported",
+                "Unsupported attachment (%@)",
+                unknownAttachment.originalType
+            )
+        }
     }
 
     var dictationStatusText: String {
