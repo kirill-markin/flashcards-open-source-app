@@ -145,20 +145,6 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
     @MainActor
     private func openSettingsRootRow(identifier: String) throws {
         try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        let row = self.app.buttons[identifier].firstMatch
-        if row.exists == false
-            || (row.isHittable == false && row.frame.midY < self.app.windows.firstMatch.frame.midY) {
-            // Earlier assertions can leave the target above the viewport. The shared scrolling
-            // helper searches down the list, so restore its starting point before using it.
-            let list = self.app.collectionViews[LiveSmokeIdentifier.settingsScreen].firstMatch
-            let firstRow = self.app.descendants(matching: .any)
-                .matching(identifier: LiveSmokeIdentifier.settingsReviewInAppStoreRow).firstMatch
-            let deadline = Date().addingTimeInterval(LiveSmokeConfiguration.longUiTimeoutSeconds)
-            while Date() < deadline && list.exists && (firstRow.exists == false || firstRow.isHittable == false) {
-                list.swipeDown()
-                RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
-            }
-        }
         try self.tapButtonScrollingIntoView(
             identifier: identifier,
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds

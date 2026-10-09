@@ -10,6 +10,7 @@ import { ReviewHardReminderDialog } from "./hardReminder/ReviewHardReminderDialo
 import { MobileAppPromotionDialog } from "./mobileAppPromo/MobileAppPromotionDialog";
 import { ReviewRatingReactionLayer } from "./reactions/ReviewRatingReactionLayer";
 import { startReviewReactionLottiePrewarm } from "./reactions/lottie/reviewReactionLottie";
+import { ReviewTagFilterDialog } from "./tagFilter/ReviewTagFilterDialog";
 import { useReviewScreenController } from "./useReviewScreenController";
 
 export { normalizeReviewMarkdownForWeb } from "./components/card/ReviewCardSide";
@@ -28,6 +29,7 @@ export function ReviewScreen(): ReactElement {
     queuePanelProps,
     reviewReactionFallbackHandler,
     reviewReactionEvents,
+    tagFilterDialogProps,
   } = useReviewScreenController({
     reviewReactionAnimationsEnabled,
   });
@@ -65,6 +67,7 @@ export function ReviewScreen(): ReactElement {
       <FeedbackDialog {...feedbackDialogProps} />
       <ReviewHardReminderDialog {...hardReminderDialogProps} />
       <MobileAppPromotionDialog {...mobileAppPromotionDialogProps} />
+      <ReviewTagFilterDialog {...tagFilterDialogProps} />
     </main>
   );
 }

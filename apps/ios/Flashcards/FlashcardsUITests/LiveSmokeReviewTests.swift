@@ -124,8 +124,8 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
             )
         }
 
-        try self.step("dismiss the empty native review filter presentation") {
-            try self.dismissNativeReviewFilter()
+        try self.step("dismiss the empty review filter menu with an outside tap") {
+            try self.dismissReviewFilterPopoverWithOutsideTap()
             try self.assertElementDoesNotExist(
                 identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
@@ -171,7 +171,7 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
         }
 
         try self.step("verify the tagged card returns after dismissing the menu") {
-            try self.dismissNativeReviewFilter()
+            try self.dismissReviewFilterPopoverWithOutsideTap()
             try self.assertElementDoesNotExist(
                 identifier: tagToggleIdentifier,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
@@ -205,7 +205,7 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
         }
 
         try self.step("verify the all cards review returns after dismissing the menu") {
-            try self.dismissNativeReviewFilter()
+            try self.dismissReviewFilterPopoverWithOutsideTap()
             try self.assertElementDoesNotExist(
                 identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
@@ -293,25 +293,16 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
     }
 
     @MainActor
-    private func dismissNativeReviewFilter() throws {
+    private func dismissReviewFilterPopoverWithOutsideTap() throws {
         let dismissRegion = self.app.otherElements[LiveSmokeIdentifier.popoverDismissRegion].firstMatch
-        let done = self.app.buttons["Done"].firstMatch
-        let deadline = Date().addingTimeInterval(LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        while Date() < deadline {
-            if dismissRegion.exists && dismissRegion.isHittable {
-                dismissRegion.tap()
-                return
-            }
-            if done.exists && done.isHittable {
-                done.tap()
-                return
-            }
-            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
+        guard dismissRegion.waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds) else {
+            throw LiveSmokeFailure.unexpectedReviewState(
+                message: "The review filter popover dismiss region was not present, so the popover could not be dismissed.",
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
         }
-        throw LiveSmokeFailure.unexpectedReviewState(
-            message: "The native review filter exposed neither a hittable outside dismiss region nor a Done button.",
-            screen: self.currentScreenSummary(),
-            step: self.currentStepTitle
-        )
+
+        dismissRegion.tap()
     }
 }

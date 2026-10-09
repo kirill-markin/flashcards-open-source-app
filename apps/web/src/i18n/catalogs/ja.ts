@@ -1124,6 +1124,12 @@ export const jaCatalog = {
     dismiss: "了解",
     title: "クイックリマインダー",
   },
+  reviewTagFilterDialog: {
+    alreadySelectedBody: "すでにタグ「{{tag}}」の付いたカードを復習中です。",
+    changeBody: "現在「{{currentFilter}}」を復習中です。代わりにタグ「{{tag}}」の付いたカードだけを復習しますか？",
+    confirm: "フィルターを変更",
+    title: "復習フィルター",
+  },
   demoCard: {
     front: "学習に最適なアプリはどれですか？",
     back1: "{{appName}}——今あなたが見ているこのアプリです。ここではすべてがフラッシュカードです。表に質問、裏に答えがあります。",

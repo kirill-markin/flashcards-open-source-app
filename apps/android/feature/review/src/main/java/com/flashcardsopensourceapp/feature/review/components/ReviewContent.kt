@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.feature.review
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,24 +17,30 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Label
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 import androidx.compose.material.icons.outlined.Autorenew
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,6 +50,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -57,7 +66,8 @@ import java.text.NumberFormat
 private val reviewShowAnswerContentBottomPadding = 120.dp
 private val reviewAnswerGridContentBottomPadding = 184.dp
 private val reviewEmptyStateMaxWidth = 420.dp
-private val reviewMetadataLineMinHeight = 28.dp
+// Every card, tagged or not, gets the standard Material chip height so the card never shifts between them.
+private val reviewMetadataLineMinHeight = AssistChipDefaults.Height
 private val reviewEditButtonSize = 26.dp
 private val reviewEditIconSize = 14.dp
 private val reviewSpeechButtonSize = 32.dp
@@ -95,6 +105,7 @@ internal fun ReviewContent(
     onConsumeRelocationTarget: (String?, Boolean) -> ReviewRelocationTarget?,
     onToggleFrontSpeech: () -> Unit,
     onToggleBackSpeech: () -> Unit,
+    onRequestTagFilter: (String) -> Unit,
     modifier: Modifier,
     contentPadding: PaddingValues
 ) {
@@ -170,6 +181,7 @@ internal fun ReviewContent(
                         onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl,
                         onToggleFrontSpeech = onToggleFrontSpeech,
                         onToggleBackSpeech = onToggleBackSpeech,
+                        onRequestTagFilter = onRequestTagFilter,
                         frontBringIntoViewRequester = frontBringIntoViewRequester,
                         backBringIntoViewRequester = backBringIntoViewRequester
                     )
@@ -267,6 +279,7 @@ private fun ReviewCardContent(
     onLoadManagedMediaDownloadUrl: suspend (String) -> MediaAssetDownloadUrl,
     onToggleFrontSpeech: () -> Unit,
     onToggleBackSpeech: () -> Unit,
+    onRequestTagFilter: (String) -> Unit,
     frontBringIntoViewRequester: BringIntoViewRequester,
     backBringIntoViewRequester: BringIntoViewRequester
 ) {
@@ -289,11 +302,15 @@ private fun ReviewCardContent(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.weight(1f)
             ) {
-                ReviewMetadataItem(
-                    icon = Icons.AutoMirrored.Outlined.Label,
-                    label = currentCard.tagsLabel,
-                    modifier = Modifier.weight(weight = 1f, fill = false)
-                )
+                // A new card starts its tag row scrolled back to the first tag.
+                key(currentCard.card.cardId) {
+                    ReviewCardTags(
+                        tags = currentCard.card.tags,
+                        noTagsLabel = currentCard.tagsLabel,
+                        onRequestTagFilter = onRequestTagFilter,
+                        modifier = Modifier.weight(weight = 1f, fill = false)
+                    )
+                }
                 ReviewRepetitionPill(
                     reps = currentCard.card.reps,
                     formattedReps = NumberFormat.getIntegerInstance(locale).format(currentCard.card.reps)
@@ -507,6 +524,68 @@ private fun ReviewCardSideSection(
                             maxLines = 1
                         )
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReviewCardTags(
+    tags: List<String>,
+    noTagsLabel: String,
+    onRequestTagFilter: (String) -> Unit,
+    modifier: Modifier
+) {
+    if (tags.isEmpty()) {
+        ReviewMetadataItem(
+            icon = Icons.AutoMirrored.Outlined.Label,
+            label = noTagsLabel,
+            modifier = modifier
+        )
+        return
+    }
+
+    val changeFilterClickLabel = stringResource(id = R.string.review_tag_chip_click_label)
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = modifier
+    ) {
+        Icon(
+            imageVector = Icons.AutoMirrored.Outlined.Label,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(reviewMetadataIconSize)
+        )
+        // Without this the 48dp minimum would grow the line past the 32dp chip; hit testing still expands taps to 48dp.
+        CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.horizontalScroll(state = rememberScrollState())
+            ) {
+                tags.forEach { tag ->
+                    AssistChip(
+                        onClick = {
+                            onRequestTagFilter(tag)
+                        },
+                        label = {
+                            Text(
+                                text = tag,
+                                maxLines = 1
+                            )
+                        },
+                        modifier = Modifier
+                            .semantics {
+                                onClick(label = changeFilterClickLabel) {
+                                    onRequestTagFilter(tag)
+                                    true
+                                }
+                            }
+                            .testTag(reviewCardTagChipTag(tag = tag))
+                    )
                 }
             }
         }

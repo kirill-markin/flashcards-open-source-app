@@ -1134,6 +1134,12 @@ const skCatalog: TranslationCatalog = {
     dismiss: "Rozumiem",
     title: "Rýchla pripomienka",
   },
+  reviewTagFilterDialog: {
+    alreadySelectedBody: "Už opakujete karty so značkou „{{tag}}“.",
+    changeBody: "Práve opakujete: „{{currentFilter}}“. Chcete namiesto toho opakovať iba karty so značkou „{{tag}}“?",
+    confirm: "Zmeniť filter",
+    title: "Filter opakovania",
+  },
   demoCard: {
     front: "Ktorá aplikácia je najlepšia na učenie?",
     back1: "{{appName}} — aplikácia, na ktorú sa práve pozeráte. Všetko je tu kartou: otázka na prednej strane, odpoveď na zadnej.",

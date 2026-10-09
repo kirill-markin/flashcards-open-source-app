@@ -1124,6 +1124,12 @@ const heCatalog: TranslationCatalog = {
     dismiss: "הבנתי",
     title: "תזכורת קצרה",
   },
+  reviewTagFilterDialog: {
+    alreadySelectedBody: "כבר מתבצעת חזרה על כרטיסיות עם התגית ״{{tag}}״.",
+    changeBody: "כרגע מתבצעת חזרה על ״{{currentFilter}}״. לעבור לחזרה רק על כרטיסיות עם התגית ״{{tag}}״?",
+    confirm: "שינוי מסנן",
+    title: "מסנן חזרה",
+  },
   demoCard: {
     front: "מהי האפליקציה הטובה ביותר ללימוד?",
     back1: "{{appName}} — האפליקציה שאתה מסתכל עליה בדיוק עכשיו. הכול כאן הוא כרטיס: שאלה בצד הקדמי, והתשובה בצד האחורי.",

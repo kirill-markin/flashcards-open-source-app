@@ -1124,6 +1124,12 @@ const esMxCatalog: TranslationCatalog = {
     dismiss: "Entendido",
     title: "Recordatorio rápido",
   },
+  reviewTagFilterDialog: {
+    alreadySelectedBody: "Ya estás repasando las tarjetas con la etiqueta «{{tag}}».",
+    changeBody: "Estás repasando «{{currentFilter}}». ¿Quieres repasar solo las tarjetas con la etiqueta «{{tag}}»?",
+    confirm: "Cambiar filtro",
+    title: "Filtro de repaso",
+  },
   demoCard: {
     front: "¿Cuál es la mejor aplicación para estudiar?",
     back1: "{{appName}} — la aplicación que estás viendo en este momento. Aquí todo son tarjetas: una pregunta al frente y la respuesta atrás.",

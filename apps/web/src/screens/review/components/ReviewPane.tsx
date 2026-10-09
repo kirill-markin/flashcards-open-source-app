@@ -43,6 +43,7 @@ export type ReviewPaneProps = Readonly<{
   loadingReviewCurrentCard: ReviewLoadingSnapshot["currentCard"];
   onAiHandoff: (card: Card) => Promise<boolean>;
   onEditCard: (card: Card) => void;
+  onRequestTagFilter: (tag: string) => void;
   onRevealAnswer: () => void;
   onReview: (card: Card, rating: ReviewRating) => Promise<void>;
   onShortcutButtonPointerEnter: ReviewShortcutPointerEnterHandler;
@@ -62,6 +63,7 @@ export type ReviewPaneProps = Readonly<{
 type ReviewLoadingPaneProps = Readonly<{
   localReadVersion: number;
   loadingReviewCurrentCard: ReviewLoadingSnapshot["currentCard"];
+  onRequestTagFilter: (tag: string) => void;
   reviewLoadingSnapshot: ReviewLoadingSnapshot | null;
   workspaceId: string | null;
 }>;
@@ -79,6 +81,7 @@ type ReviewActiveCardPaneProps = Readonly<{
   localReadVersion: number;
   onAiHandoff: (card: Card) => Promise<boolean>;
   onEditCard: (card: Card) => void;
+  onRequestTagFilter: (tag: string) => void;
   onRevealAnswer: () => void;
   onReview: (card: Card, rating: ReviewRating) => Promise<void>;
   onShortcutButtonPointerEnter: ReviewShortcutPointerEnterHandler;
@@ -123,6 +126,7 @@ function ReviewLoadingPane(props: ReviewLoadingPaneProps): ReactElement {
   const {
     localReadVersion,
     loadingReviewCurrentCard,
+    onRequestTagFilter,
     reviewLoadingSnapshot,
     workspaceId,
   } = props;
@@ -137,7 +141,7 @@ function ReviewLoadingPane(props: ReviewLoadingPaneProps): ReactElement {
       <div className="review-pane-head">
         <div className="review-pane-head-meta">
           {loadingReviewCurrentCard !== null ? (
-            <ReviewCardTags tags={loadingReviewCurrentCard.tags} />
+            <ReviewCardTags onRequestTagFilter={onRequestTagFilter} tags={loadingReviewCurrentCard.tags} />
           ) : (
             <>
               <span className="badge review-loading-badge">{t("reviewScreen.loading.queue")}</span>
@@ -291,6 +295,7 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
     localReadVersion,
     onAiHandoff,
     onEditCard,
+    onRequestTagFilter,
     onRevealAnswer,
     onReview,
     onShortcutButtonPointerEnter,
@@ -334,7 +339,7 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
     <>
       <div className="review-pane-head">
         <div className="review-pane-head-meta">
-          <ReviewCardTags tags={selectedCard.tags} />
+          <ReviewCardTags onRequestTagFilter={onRequestTagFilter} tags={selectedCard.tags} />
           <span className="badge review-metadata-chip">
             <ReviewRepetitionBadgeIcon />
             <span aria-hidden="true">{repetitionValue}</span>
@@ -460,6 +465,7 @@ export function ReviewPane(props: ReviewPaneProps): ReactElement {
     loadingReviewCurrentCard,
     onAiHandoff,
     onEditCard,
+    onRequestTagFilter,
     onRevealAnswer,
     onReview,
     onShortcutButtonPointerEnter,
@@ -493,6 +499,7 @@ export function ReviewPane(props: ReviewPaneProps): ReactElement {
         <ReviewLoadingPane
           localReadVersion={localReadVersion}
           loadingReviewCurrentCard={loadingReviewCurrentCard}
+          onRequestTagFilter={onRequestTagFilter}
           reviewLoadingSnapshot={reviewLoadingSnapshot}
           workspaceId={workspaceId}
         />
@@ -512,6 +519,7 @@ export function ReviewPane(props: ReviewPaneProps): ReactElement {
           localReadVersion={localReadVersion}
           onAiHandoff={onAiHandoff}
           onEditCard={onEditCard}
+          onRequestTagFilter={onRequestTagFilter}
           onRevealAnswer={onRevealAnswer}
           onReview={onReview}
           onShortcutButtonPointerEnter={onShortcutButtonPointerEnter}

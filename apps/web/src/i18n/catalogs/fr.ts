@@ -1124,6 +1124,12 @@ const frCatalog: TranslationCatalog = {
     dismiss: "Compris",
     title: "Petit rappel",
   },
+  reviewTagFilterDialog: {
+    alreadySelectedBody: "Vous révisez déjà les cartes avec l’étiquette « {{tag}} ».",
+    changeBody: "Vous révisez « {{currentFilter}} ». Réviser plutôt uniquement les cartes avec l’étiquette « {{tag}} » ?",
+    confirm: "Changer de filtre",
+    title: "Filtre de révision",
+  },
   demoCard: {
     front: "Quelle est la meilleure application pour apprendre ?",
     back1: "{{appName}} — l'application que vous avez sous les yeux en ce moment. Ici, tout est une carte : une question au recto, la réponse au verso.",

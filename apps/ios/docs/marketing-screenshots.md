@@ -259,8 +259,10 @@ Run the unified scenario for a specific locale:
 bash scripts/ios/capture-ios-marketing-screenshots.sh --locale es-ES
 ```
 
-Capture the optimized landscape iPad layout with `--orientation landscape`.
-The default remains portrait, and landscape is refused on iPhone. Each capture
+The default orientation is landscape on iPad and portrait on iPhone. Override it
+with `--orientation portrait|landscape` or
+`FLASHCARDS_MARKETING_SCREENSHOT_ORIENTATION`; the CLI option wins. Landscape
+is refused on iPhone. Each capture
 asserts the requested orientation before publishing; do not rotate exported
 portrait pixels. For a local filesystem that adds signing resource forks, set
 `FLASHCARDS_IOS_DERIVED_DATA_PATH` to an unsynced DerivedData path while retaining
@@ -271,8 +273,7 @@ the default `test` action to build and validate the current app and test runner.
 Subsequent runs can use `FLASHCARDS_IOS_MARKETING_TEST_WITHOUT_BUILDING=1` with
 the same simulator and DerivedData. They still run every capture and cleanup
 test; the shared runtime configuration selects each locale. Remove the flag
-and rebuild after any application or test-source change. Record the tested
-source fingerprint with the generated inventory.
+and rebuild after any application or test-source change.
 
 ```bash
 bash scripts/ios/capture-ios-marketing-screenshots.sh --locale en-US --orientation landscape
