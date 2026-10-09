@@ -87,6 +87,7 @@ struct CardsScreen: View {
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
     @Environment(\.dismissSearch) private var dismissSearch
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.tabBarPlacement) private var tabBarPlacement
 
     @State private var editorPresentation: CardEditorPresentation? = nil
     @State private var isFilterSheetPresented: Bool = false
@@ -115,7 +116,90 @@ struct CardsScreen: View {
         cardFilterActiveDimensionCount(filter: committedFilter)
     }
 
+    private var usesTopTabNavigation: Bool {
+        UIDevice.current.userInterfaceIdiom == .pad && self.tabBarPlacement == .topBar
+    }
+
+    private var usesPairedCompanionToolbar: Bool {
+        UIDevice.current.userInterfaceIdiom == .pad
+            && self.navigation.isAICompanionVisible && self.navigation.selectedTab == .cards
+    }
+
+    private var cardsColumnTitle: some View {
+        Text(String(localized: "Cards", table: reviewCardsStringsTableName))
+            .font(.headline)
+            .accessibilityAddTraits(.isHeader)
+    }
+
     var body: some View {
+        self.bodyContent
+        .sheet(
+            item: self.$editorPresentation,
+            onDismiss: {
+                // From the presentation, never from the content, for the reason
+                // `Analytics.trackScreenViewedOnDismiss` gives. The editor only ever presents over
+                // the Cards tab, so the restore is already safe here; it is written conditionally
+                // anyway because it costs nothing and keeps the one rule for restoring a surface
+                // identical at every site.
+                Analytics.trackScreenViewedOnDismiss(of: .cardEditor, restoring: .cards)
+            }
+        ) { presentation in
+            NavigationStack(path: self.$cardFormState.navigationPath) {
+                CardEditorScreen(
+                    title: presentation.title,
+                    errorMessage: self.screenErrorMessage,
+                    availableTagSuggestions: self.availableTagSuggestions,
+                    formState: self.$cardFormState,
+                    onEditWithAI: presentation.editingCardId.map { editingCardId in
+                        {
+                            self.openEditingCardWithAI(editingCardId: editingCardId)
+                        }
+                    },
+                    onCancel: {
+                        self.finishCardEditorSession()
+                        self.editorPresentation = nil
+                    },
+                    onSave: {
+                        self.saveCard()
+                    },
+                    onDelete: {
+                        self.deleteEditingCard()
+                    }
+                )
+            }
+            .technicalErrorSheet(store: self.store)
+            .accessibilityIdentifier(UITestIdentifier.cardEditorScreen)
+            .interactiveDismissDisabled()
+            .onAppear {
+                Analytics.trackScreenViewed(.cardEditor)
+            }
+        }
+        .sheet(isPresented: $isFilterSheetPresented) {
+            NavigationStack {
+                CardFiltersSheetView(
+                    suggestions: availableTagSuggestions,
+                    draftFilter: self.$draftFilter,
+                    onCancel: {
+                        self.isFilterSheetPresented = false
+                    },
+                    onApply: {
+                        self.applyFilters()
+                    }
+                )
+            }
+        }
+        .onAppear {
+            self.handleCardsPresentationRequest(request: navigation.cardsPresentationRequest)
+        }
+        .onChange(of: navigation.cardsPresentationRequest) { _, request in
+            self.handleCardsPresentationRequest(request: request)
+        }
+        .task(id: self.queryReloadKey) {
+            await self.reloadCardsSnapshot()
+        }
+    }
+
+    private var bodyContent: some View {
         List {
             if screenErrorMessage.isEmpty == false {
                 Section {
@@ -174,14 +258,28 @@ struct CardsScreen: View {
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.cardsScreen)
-        .navigationTitle(String(localized: "Cards", table: reviewCardsStringsTableName))
+        .navigationTitle(UIDevice.current.userInterfaceIdiom == .pad ? "" : String(localized: "Cards", table: reviewCardsStringsTableName))
+        .navigationBarTitleDisplayMode(UIDevice.current.userInterfaceIdiom == .pad ? .inline : .automatic)
         .searchable(
             text: self.$searchText,
             placement: .automatic,
             prompt: String(localized: "Search cards", table: reviewCardsStringsTableName)
         )
-        .nativeSearchToolbar(horizontalSizeClass: self.horizontalSizeClass)
+        .nativeSearchToolbar(horizontalSizeClass: self.usesTopTabNavigation ? .compact : self.horizontalSizeClass)
         .toolbar {
+            AICompanionToolbarItem()
+            if UIDevice.current.userInterfaceIdiom == .pad && self.usesTopTabNavigation == false && self.usesPairedCompanionToolbar == false {
+                if #available(iOS 26.0, *) {
+                    ToolbarItem(placement: .topBarLeading) {
+                        self.cardsColumnTitle
+                    }
+                    .sharedBackgroundVisibility(.hidden)
+                } else {
+                    ToolbarItem(placement: .topBarLeading) {
+                        self.cardsColumnTitle
+                    }
+                }
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     self.beginFiltering()
@@ -190,7 +288,9 @@ struct CardsScreen: View {
                           ? "line.3.horizontal.decrease.circle"
                           : "line.3.horizontal.decrease.circle.fill")
                         .foregroundStyle(Color.primary)
+                        .frame(minWidth: UIDevice.current.userInterfaceIdiom == .pad ? 30 : nil, minHeight: UIDevice.current.userInterfaceIdiom == .pad ? 30 : nil)
                 }
+                .frame(minWidth: UIDevice.current.userInterfaceIdiom == .pad ? 44 : nil, minHeight: UIDevice.current.userInterfaceIdiom == .pad ? 44 : nil)
                 .accessibilityLabel(
                     activeFilterDimensionCount == 0
                         ? String(localized: "Filter cards", table: reviewCardsStringsTableName)
@@ -212,75 +312,14 @@ struct CardsScreen: View {
                 } label: {
                     Label(String(localized: "Add card", table: reviewCardsStringsTableName), systemImage: "plus")
                         .foregroundStyle(Color.primary)
+                        .frame(minWidth: UIDevice.current.userInterfaceIdiom == .pad ? 30 : nil, minHeight: UIDevice.current.userInterfaceIdiom == .pad ? 30 : nil)
                 }
+                .frame(minWidth: UIDevice.current.userInterfaceIdiom == .pad ? 44 : nil, minHeight: UIDevice.current.userInterfaceIdiom == .pad ? 44 : nil)
                 .tint(Color.primary)
                 .accessibilityIdentifier(UITestIdentifier.cardsAddButton)
             }
         }
-        .sheet(
-            item: self.$editorPresentation,
-            onDismiss: {
-                // From the presentation, never from the content, for the reason
-                // `Analytics.trackScreenViewedOnDismiss` gives. The editor only ever presents over
-                // the Cards tab, so the restore is already safe here; it is written conditionally
-                // anyway because it costs nothing and keeps the one rule for restoring a surface
-                // identical at every site.
-                Analytics.trackScreenViewedOnDismiss(of: .cardEditor, restoring: .cards)
-            }
-        ) { presentation in
-            NavigationStack {
-                CardEditorScreen(
-                    title: presentation.title,
-                    errorMessage: self.screenErrorMessage,
-                    availableTagSuggestions: self.availableTagSuggestions,
-                    formState: self.$cardFormState,
-                    onEditWithAI: presentation.editingCardId.map { editingCardId in
-                        {
-                            self.openEditingCardWithAI(editingCardId: editingCardId)
-                        }
-                    },
-                    onCancel: {
-                        self.finishCardEditorSession()
-                        self.editorPresentation = nil
-                    },
-                    onSave: {
-                        self.saveCard()
-                    },
-                    onDelete: {
-                        self.deleteEditingCard()
-                    }
-                )
-            }
-            .technicalErrorSheet(store: self.store)
-            .accessibilityIdentifier(UITestIdentifier.cardEditorScreen)
-            .interactiveDismissDisabled()
-            .onAppear {
-                Analytics.trackScreenViewed(.cardEditor)
-            }
-        }
-        .sheet(isPresented: $isFilterSheetPresented) {
-            NavigationStack {
-                CardFiltersSheetView(
-                    suggestions: availableTagSuggestions,
-                    draftFilter: self.$draftFilter,
-                    onCancel: {
-                        self.isFilterSheetPresented = false
-                    },
-                    onApply: {
-                        self.applyFilters()
-                    }
-                )
-            }
-        }
-        .onAppear {
-            self.handleCardsPresentationRequest(request: navigation.cardsPresentationRequest)
-        }
-        .onChange(of: navigation.cardsPresentationRequest) { _, request in
-            self.handleCardsPresentationRequest(request: request)
-        }
-        .task(id: self.queryReloadKey) {
-            await self.reloadCardsSnapshot()
-        }
+
     }
 
     private var queryReloadKey: String {
@@ -528,6 +567,7 @@ struct CardsScreen: View {
     }
 
     private func finishCardEditorSession() {
+        self.cardFormState.navigationPath = NavigationPath()
         self.cardFormState.editorSessionId = UUID()
         self.cardFormState.mediaAssetIdsReadyForUpload = []
     }
@@ -663,16 +703,35 @@ struct CardRow: View {
                 .font(.headline)
                 .foregroundStyle(.primary)
 
-            HStack(spacing: 12) {
-                Label(card.tags.isEmpty ? localizedNoTagsLabel() : formatTags(tags: card.tags), systemImage: "tag")
-                Label(localizedCardDueValue(dueAt: card.dueAt), systemImage: "clock")
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 12) {
+                    self.tagsLabel
+                    self.dueLabel
+                }
+                .fixedSize(horizontal: true, vertical: false)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    self.tagsLabel
+                    self.dueLabel
+                }
             }
+            .labelStyle(.titleAndIcon)
+            .fixedSize(horizontal: false, vertical: true)
             .font(.caption)
             .foregroundStyle(.secondary)
         }
+        .fixedSize(horizontal: false, vertical: true)
         .padding(.vertical, 4)
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
+    }
+
+    private var tagsLabel: some View {
+        Label(card.tags.isEmpty ? localizedNoTagsLabel() : formatTags(tags: card.tags), systemImage: "tag")
+    }
+
+    private var dueLabel: some View {
+        Label(localizedCardDueValue(dueAt: card.dueAt), systemImage: "clock")
     }
 }
 

@@ -1124,6 +1124,12 @@ const huCatalog: TranslationCatalog = {
     dismiss: "Értem",
     title: "Rövid emlékeztető",
   },
+  reviewTagFilterDialog: {
+    alreadySelectedBody: "Már azokat a kártyákat ismétled, amelyek címkéje „{{tag}}”.",
+    changeBody: "Jelenleg ezt ismétled: „{{currentFilter}}”. Inkább csak azokat a kártyákat ismételnéd, amelyek címkéje „{{tag}}”?",
+    confirm: "Szűrő módosítása",
+    title: "Ismétlési szűrő",
+  },
   demoCard: {
     front: "Melyik a legjobb alkalmazás tanuláshoz?",
     back1: "{{appName}} — az alkalmazás, amit éppen nézel. Itt minden egy tanulókártya: elöl a kérdés, hátul a válasz.",

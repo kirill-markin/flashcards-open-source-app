@@ -82,6 +82,17 @@ final class AppNavigationModel {
     var cardsPresentationRequest: CardsPresentationRequest?
     var aiChatPresentationRequest: AIChatPresentationRequest?
     var progressPresentationRequest: ProgressPresentationRequest?
+    var isAICompanionPresented: Bool = false
+    private(set) var canPresentAICompanion: Bool = false
+
+    var isAICompanionVisible: Bool {
+        self.canPresentAICompanion && self.isAICompanionPresented
+            && (self.selectedTab != .ai && self.selectedTab != .settings)
+    }
+
+    var isAIChatVisible: Bool {
+        self.selectedTab == .ai || self.isAICompanionVisible
+    }
 
     init() {
         self.selectedTab = .review
@@ -150,8 +161,24 @@ final class AppNavigationModel {
         self.cardsPresentationRequest = .createCard
     }
 
+    func updateAICompanionAvailability(_ isAvailable: Bool) {
+        // Retain the pane preference and shared draft when a window gets smaller.
+        // A layout change should not switch the person's selected tab.
+        self.canPresentAICompanion = isAvailable
+    }
+
+    func toggleAICompanion() {
+        guard self.canPresentAICompanion else {
+            self.selectTab(.ai)
+            return
+        }
+        self.isAICompanionPresented.toggle()
+    }
+
     func openAICardCreation() {
-        self.selectTab(.ai)
+        if self.isAICompanionVisible == false {
+            self.selectTab(.ai)
+        }
         self.popAIToLiveChat()
         self.aiChatPresentationRequest = .createCard
     }
@@ -159,7 +186,9 @@ final class AppNavigationModel {
     func openAICardHandoff(card: AIChatCardReference) {
         // Publish the reset request before tab entry can enqueue a scroll against the old transcript.
         self.aiChatPresentationRequest = .attachCard(card)
-        self.selectTab(.ai)
+        if self.isAICompanionVisible == false {
+            self.selectTab(.ai)
+        }
         self.popAIToLiveChat()
     }
 
@@ -167,7 +196,6 @@ final class AppNavigationModel {
         guard self.aiPath.isEmpty == false else {
             return
         }
-
         self.aiPath = NavigationPath()
     }
 

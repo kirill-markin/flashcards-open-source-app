@@ -1124,6 +1124,12 @@ const viCatalog: TranslationCatalog = {
     dismiss: "Đã hiểu",
     title: "Nhắc nhanh",
   },
+  reviewTagFilterDialog: {
+    alreadySelectedBody: "Bạn đang ôn tập các thẻ có nhãn “{{tag}}” rồi.",
+    changeBody: "Bạn đang ôn tập “{{currentFilter}}”. Chuyển sang chỉ ôn tập các thẻ có nhãn “{{tag}}”?",
+    confirm: "Đổi bộ lọc",
+    title: "Bộ lọc ôn tập",
+  },
   demoCard: {
     front: "Ứng dụng nào là tốt nhất để học?",
     back1: "{{appName}} — chính ứng dụng bạn đang xem. Mọi thứ ở đây đều là thẻ ghi nhớ: mặt trước là câu hỏi, mặt sau là câu trả lời.",

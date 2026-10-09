@@ -1,6 +1,7 @@
 import Foundation
 
 enum LiveSmokeIdentifier {
+    static let aiCompanionToggle: String = "ai.companion.toggle"
     static let uiTestLaunchPreparationStatus: String = "uiTest.launchPreparationStatus"
     static let cloudWorkspaceChooserScreen: String = "cloudSignIn.workspaceChooserScreen"
     static let cloudSignInScreen: String = "cloudSignIn.screen"
@@ -19,6 +20,8 @@ enum LiveSmokeIdentifier {
     static let rootTabSettingsItem: String = "rootTab.settings.item"
     static let reviewScreen: String = "review.screen"
     static let reviewFilterMenu: String = "review.filter.menu"
+    static let reviewCardTagChipPrefix: String = "review.cardTagChip."
+    static let reviewTagFilterCancelButton: String = "review.tagFilter.cancelButton"
     static let reviewFilterScrollSurface: String = "review.filter.scrollSurface"
     static let reviewFilterAllCardsToggle: String = "review.filter.allCards"
     static let reviewFilterTagTogglePrefix: String = "review.filter.tag."

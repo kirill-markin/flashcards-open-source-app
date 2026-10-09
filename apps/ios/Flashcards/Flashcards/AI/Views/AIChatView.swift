@@ -95,31 +95,42 @@ private func appTabDiagnosticValue(_ tab: AppTab) -> String {
 
 struct AIChatView: View {
     @Environment(FlashcardsStore.self) var flashcardsStore: FlashcardsStore
-    @Environment(PremiumPresenter.self) private var premiumPresenter: PremiumPresenter
+    @Environment(PremiumPresenter.self) var premiumPresenter: PremiumPresenter
     @Environment(AppNavigationModel.self) var navigation: AppNavigationModel
     @Environment(\.scenePhase) var scenePhase
+    @Environment(\.tabBarPlacement) var tabBarPlacement
+    @Environment(\.isKeyboardDocked) private var isKeyboardDocked
     let chatStore: AIChatStore
+    let isCompanion: Bool
+    let companionHostTab: AppTab?
+
+    var isPresentationActive: Bool {
+        self.isCompanion
+            ? self.navigation.isAICompanionVisible
+                && (self.companionHostTab == nil || self.navigation.selectedTab == self.companionHostTab)
+            : self.navigation.selectedTab == .ai
+    }
     @State var isCameraPresented: Bool
     @State var isFileImporterPresented: Bool
     @State var isPhotoPickerPresented: Bool
     @State var selectedPhotoItem: PhotosPickerItem?
     @State var isAutoFollowEnabled: Bool
     @State var hasActiveUserScrollGesture: Bool
-    @State var composerSelection: TextSelection?
     @State var composerAttachmentViewportWidth: CGFloat?
     @State var deferredPresentationRequest: AIChatPresentationRequest?
     @FocusState var isComposerFocused: Bool
 
     @MainActor
-    init(chatStore: AIChatStore) {
+    init(chatStore: AIChatStore, isCompanion: Bool = false, companionHostTab: AppTab? = nil) {
         self.chatStore = chatStore
+        self.isCompanion = isCompanion
+        self.companionHostTab = companionHostTab
         self.isCameraPresented = false
         self.isFileImporterPresented = false
         self.isPhotoPickerPresented = false
         self.selectedPhotoItem = nil
         self.isAutoFollowEnabled = true
         self.hasActiveUserScrollGesture = false
-        self.composerSelection = nil
         self.composerAttachmentViewportWidth = nil
         self.deferredPresentationRequest = nil
     }
@@ -157,15 +168,7 @@ struct AIChatView: View {
         self.bodyBaseModifiers
             .onAppear(perform: self.handleViewAppear)
             .onChange(of: self.chatStore.quotaRefusal, initial: true) { _, refusal in
-                guard let refusal else {
-                    return
-                }
-                self.chatStore.quotaRefusal = nil
-                guard refusal.userId == self.flashcardsStore.cloudSettings?.linkedUserId,
-                      refusal.cloudState == self.flashcardsStore.cloudSettings?.cloudState else {
-                    return
-                }
-                self.premiumPresenter.present(reason: .aiLimit, analyticsEntryPoint: .aiLimit, entitlement: self.flashcardsStore.cloudEntitlement, identity: try? self.flashcardsStore.appleSubscriptionIdentity())
+                self.handleQuotaRefusal(refusal)
             }
             .onChange(of: self.navigation.aiChatPresentationRequest) { _, request in
                 self.handlePresentationRequestChange(request: request)
@@ -194,8 +197,8 @@ struct AIChatView: View {
             .onChange(of: self.flashcardsStore.cloudSettings?.activeWorkspaceId) { _, _ in
                 self.handleSurfaceInputsChange()
             }
-            .onChange(of: self.navigation.selectedTab) { _, nextTab in
-                self.handleSelectedTabChange(nextTab: nextTab)
+            .onChange(of: self.isPresentationActive) { _, isVisible in
+                self.handleChatVisibilityChange(isVisible: isVisible)
             }
             .onChange(of: self.chatStore.dictationState) { _, nextState in
                 self.handleDictationStateViewChange(nextState: nextState)
@@ -208,17 +211,66 @@ struct AIChatView: View {
             }
     }
 
+    @ViewBuilder
     var bodyBaseModifiers: some View {
+        if self.isCompanion {
+            if UIDevice.current.userInterfaceIdiom == .pad {
+                self.companionBody
+                    .safeAreaInset(edge: .top, spacing: 0) {
+                        if self.usesCompactCompanionToolbar == false {
+                            self.companionHeader
+                                .frame(maxWidth: .infinity)
+                                .background(.bar)
+                        }
+                    }
+                    .toolbar {
+                        if self.usesCompactCompanionToolbar {
+                            self.companionToolbarContent
+                        }
+                    }
+            } else {
+                self.companionBody
+                    .nativeTopBar(alignment: .center) {
+                        self.companionHeader
+                    }
+            }
+        } else {
+            self.bodyCommonModifiers
+                .navigationTitle(aiSettingsLocalized("ai.title", "AI"))
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    self.toolbarContent
+                }
+        }
+    }
+
+    var companionBody: some View {
+        self.bodyCommonModifiers
+            .overlay(alignment: .trailing) {
+                if UIDevice.current.userInterfaceIdiom == .pad {
+                    HStack(spacing: 0) { Divider() }
+                        .frame(width: 1)
+                        .ignoresSafeArea(.container, edges: .bottom)
+                }
+            }
+    }
+
+    var bodyCommonModifiers: some View {
         self.bodyContent
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .accessibilityIdentifier(UITestIdentifier.aiScreen)
-            .navigationTitle(aiSettingsLocalized("ai.title", "AI"))
-            .navigationBarTitleDisplayMode(.inline)
-            .nativeBottomBar(alignment: .center) {
+            .nativeBottomBar(alignment: .center, usesColumnLayout: UIDevice.current.userInterfaceIdiom == .pad) {
                 self.bottomBarContent
             }
-            .toolbar {
-                self.toolbarContent
-            }
+            .ignoresSafeArea(UIDevice.current.userInterfaceIdiom == .pad || self.isKeyboardDocked || self.navigation.canPresentAICompanion == false ? [] : .keyboard, edges: .bottom)
+    }
+
+    var usesStudySpacing: Bool {
+        self.isCompanion && UIDevice.current.userInterfaceIdiom == .pad
+    }
+
+    var chatContentHorizontalPadding: CGFloat {
+        self.usesStudySpacing ? 20 : aiChatMessageListHorizontalPadding
     }
 
     var bodyContent: some View {
@@ -236,13 +288,28 @@ struct AIChatView: View {
         self.chatStore.canStartNewChat == false
     }
 
+    var composerSelection: TextSelection? {
+        get { self.chatStore.composerSelection }
+        nonmutating set { self.chatStore.composerSelection = newValue }
+    }
+
+    var composerSelectionBinding: Binding<TextSelection?> {
+        Binding(
+            get: { self.chatStore.composerSelection },
+            set: { selection in
+                guard self.isPresentationActive else { return }
+                self.chatStore.composerSelection = selection
+            }
+        )
+    }
+
     var isAlertPresentedBinding: Binding<Bool> {
         Binding(
             get: {
-                self.chatStore.activeAlert != nil
+                self.isPresentationActive && self.chatStore.activeAlert != nil
             },
             set: { isPresented in
-                if isPresented == false {
+                if self.isPresentationActive && isPresented == false {
                     self.chatStore.dismissAlert()
                 }
             }
@@ -299,32 +366,48 @@ struct AIChatView: View {
     var toolbarContent: some ToolbarContent {
         if self.accessState == .ready {
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    self.dismissComposerFocus()
-                    self.navigation.aiPath.append(AIChatHistoryListRoute())
-                } label: {
-                    Image(systemName: "list.bullet")
-                }
-                .accessibilityLabel(aiSettingsLocalized("ai.history.button", "History"))
-                .accessibilityIdentifier(UITestIdentifier.aiHistoryButton)
-                .disabled(self.chatStore.isChatInteractive == false || self.chatStore.dictationState != .idle)
+                self.historyToolbarButton
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Button(aiSettingsLocalized("ai.newChat", "New")) {
-                    self.dismissComposerFocus()
-                    self.chatStore.clearHistory()
+                if UIDevice.current.userInterfaceIdiom == .pad {
+                    self.newChatToolbarButton.tint(Color.primary)
+                } else {
+                    self.newChatToolbarButton
+                        .labelStyle(.titleOnly)
                 }
-                .accessibilityIdentifier(UITestIdentifier.aiNewChatButton)
-                .disabled(self.isNewChatDisabled || self.chatStore.isChatInteractive == false)
             }
         }
+    }
+
+    var historyToolbarButton: some View {
+        Button {
+            self.dismissComposerFocus()
+            // History uses the AI tab's native stack; the shared draft and study tab survive.
+            if self.isCompanion {
+                self.navigation.selectTab(.ai)
+            }
+            self.navigation.aiPath.append(AIChatHistoryListRoute())
+        } label: {
+            Image(systemName: "list.bullet")
+        }
+        .accessibilityLabel(aiSettingsLocalized("ai.history.button", "History"))
+        .accessibilityIdentifier(UITestIdentifier.aiHistoryButton)
+        .disabled(self.chatStore.isChatInteractive == false || self.chatStore.dictationState != .idle)
+    }
+
+    private var newChatToolbarButton: some View {
+        Button(action: self.startNewChat) {
+            Label(aiSettingsLocalized("ai.newChat", "New"), systemImage: "square.and.pencil")
+        }
+        .accessibilityIdentifier(UITestIdentifier.aiNewChatButton)
+        .disabled(self.isNewChatDisabled || self.chatStore.isChatInteractive == false)
     }
 
     var consentGate: some View {
         ScrollView {
             ReadableContentLayout(
                 maxWidth: flashcardsReadableFormMaxWidth,
-                horizontalPadding: 24
+                horizontalPadding: self.usesStudySpacing ? 20 : 24
             ) {
                 VStack(alignment: .leading, spacing: 16) {
                     Image(systemName: "lock.shield")
@@ -403,7 +486,7 @@ struct AIChatView: View {
             )
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.horizontal, aiChatMessageListHorizontalPadding)
+        .padding(.horizontal, self.chatContentHorizontalPadding)
     }
 
     var failedChatState: some View {
@@ -445,7 +528,7 @@ struct AIChatView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.horizontal, aiChatMessageListHorizontalPadding)
+        .padding(.horizontal, self.chatContentHorizontalPadding)
     }
 
     var emptyChatState: some View {
@@ -461,7 +544,7 @@ struct AIChatView: View {
             .foregroundStyle(.secondary)
             .multilineTextAlignment(.center)
         }
-        .padding(.horizontal, aiChatMessageListHorizontalPadding)
+        .padding(.horizontal, self.chatContentHorizontalPadding)
     }
 
     func acceptExternalAIConsent() {
@@ -493,7 +576,7 @@ struct AIChatView: View {
     func currentSurfaceActivity() -> AIChatSurfaceActivity {
         AIChatSurfaceActivity(
             isSceneActive: self.scenePhase == .active,
-            isAITabSelected: self.navigation.selectedTab == .ai,
+            isAITabSelected: self.navigation.isAIChatVisible,
             hasExternalProviderConsent: self.chatStore.hasExternalProviderConsent,
             workspaceId: self.flashcardsStore.workspace?.workspaceId,
             cloudState: self.flashcardsStore.cloudSettings?.cloudState,
@@ -516,7 +599,7 @@ struct AIChatView: View {
         request: AIChatPresentationRequest?,
         source: AIChatPresentationLifecycleSource
     ) {
-        guard let request else {
+        guard self.isPresentationActive, let request else {
             return
         }
 
@@ -542,7 +625,7 @@ struct AIChatView: View {
             request: resolvedRequest,
             source: source
         )
-        guard self.navigation.selectedTab == .ai else {
+        guard self.isPresentationActive else {
             self.logAIChatPresentationLifecycle(
                 event: .waitingForAITab,
                 source: source,
@@ -774,9 +857,22 @@ struct AIChatView: View {
         )
     }
 
+    func startNewChat() {
+        guard self.isPresentationActive,
+              self.accessState == .ready,
+              self.isNewChatDisabled == false,
+              self.chatStore.isChatInteractive else {
+            return
+        }
+        self.dismissComposerFocus()
+        self.chatStore.clearHistory()
+    }
+
     func handleViewAppear() {
+        self.handleQuotaRefusal(self.chatStore.quotaRefusal)
         self.syncChatSurface(refreshConsent: true)
         self.refreshAIUsage()
+        self.handleCompletedDictationTranscriptChange(nextTranscript: self.chatStore.completedDictationTranscript)
         self.captureAIChatPresentationRequest(
             request: self.navigation.aiChatPresentationRequest,
             source: .viewAppear
@@ -795,7 +891,7 @@ struct AIChatView: View {
         guard self.deferredPresentationRequest != nil else {
             return
         }
-        guard self.navigation.selectedTab == .ai else {
+        guard self.isPresentationActive else {
             self.handleAIChatPresentationRequest(
                 request: self.deferredPresentationRequest,
                 source: .navigationRequestChange
@@ -876,17 +972,28 @@ struct AIChatView: View {
         )
     }
 
-    func handleSelectedTabChange(nextTab: AppTab) {
-        guard nextTab == .ai else {
+    func handleChatVisibilityChange(isVisible: Bool) {
+        guard isVisible else {
             self.syncChatSurface(refreshConsent: false)
             return
         }
 
+        self.handleQuotaRefusal(self.chatStore.quotaRefusal)
         self.syncChatSurface(refreshConsent: true)
         self.handleAIChatPresentationRequest(
             request: self.deferredPresentationRequest,
             source: .selectedAITab
         )
+    }
+
+    private func handleQuotaRefusal(_ refusal: AIChatQuotaRefusal?) {
+        guard self.isPresentationActive,
+              let refusal,
+              self.chatStore.quotaRefusal?.id == refusal.id else { return }
+        self.chatStore.quotaRefusal = nil
+        guard refusal.userId == self.flashcardsStore.cloudSettings?.linkedUserId,
+              refusal.cloudState == self.flashcardsStore.cloudSettings?.cloudState else { return }
+        self.premiumPresenter.present(reason: .aiLimit, analyticsEntryPoint: .aiLimit, entitlement: self.flashcardsStore.cloudEntitlement, identity: try? self.flashcardsStore.appleSubscriptionIdentity())
     }
 
     func handleDictationStateViewChange(nextState: AIChatDictationState) {
@@ -960,6 +1067,7 @@ let aiChatComposerMaximumLineCount: Int = 5
 let aiChatComposerTopPadding: CGFloat = 8
 let aiChatComposerSendButtonInset: CGFloat = 8
 let aiChatComposerSendButtonVisualSize: CGFloat = 28
+let aiChatComposerSendButtonHitSize: CGFloat = 44
 let aiChatComposerSendButtonReservedTrailingPadding: CGFloat = 44
 let aiChatComposerStatusLaneHeight: CGFloat = 24
 let aiChatComposerStatusLaneSpacing: CGFloat = 8

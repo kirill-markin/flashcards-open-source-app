@@ -11,6 +11,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -32,10 +34,14 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.flashcardsopensourceapp.core.observability.AndroidReviewReactionStage
 import com.flashcardsopensourceapp.core.observability.AppObservability
+import com.flashcardsopensourceapp.core.ui.bidiWrap
+import com.flashcardsopensourceapp.core.ui.currentResourceLocale
+import com.flashcardsopensourceapp.data.local.model.cards.normalizeTagKey
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetDownloadUrl
 import com.flashcardsopensourceapp.data.local.model.media.ReviewMediaAssetFile
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
+import com.flashcardsopensourceapp.data.local.model.review.makeReviewTagFilter
 import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionEvent
 import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionLottieConfigurationStore
 import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionOverlay
@@ -93,6 +99,9 @@ fun ReviewRoute(
         )
     }
     var speechErrorMessage by remember { mutableStateOf(value = "") }
+    var tagFilterRequest by remember {
+        mutableStateOf<ReviewTagFilterRequest?>(value = null)
+    }
     var activeReviewReactionEvents by remember {
         mutableStateOf<List<ReviewReactionEvent>>(value = emptyList())
     }
@@ -203,6 +212,18 @@ fun ReviewRoute(
                 workspaceId = workspaceId,
                 selection = uiState.requestedFilter
             )
+        }
+    }
+
+    // A reload would make "Change filter" a no-op, so the dialog closes instead of lingering.
+    LaunchedEffect(workspaceId, uiState.requestedFilter, uiState.isLoading) {
+        val request: ReviewTagFilterRequest = tagFilterRequest ?: return@LaunchedEffect
+        if (
+            uiState.isLoading
+            || request.workspaceId != workspaceId
+            || request.openingFilter != uiState.requestedFilter
+        ) {
+            tagFilterRequest = null
         }
     }
 
@@ -321,6 +342,24 @@ fun ReviewRoute(
                         )
                     }
                 },
+                onRequestTagFilter = { tag ->
+                    if (workspaceId != null && uiState.isLoading.not()) {
+                        tagFilterRequest = ReviewTagFilterRequest(
+                            workspaceId = workspaceId,
+                            openingFilter = uiState.requestedFilter,
+                            tag = tag,
+                            currentFilterLabel = reviewTagFilterDialogCurrentFilterLabel(
+                                selectedFilter = uiState.selectedFilter,
+                                selectedFilterTitle = uiState.selectedFilterTitle,
+                                locale = currentResourceLocale(resources = context.resources)
+                            ),
+                            isTagAlreadySelected = isSingleTagReviewFilter(
+                                filter = uiState.selectedFilter,
+                                tag = tag
+                            )
+                        )
+                    }
+                },
                 modifier = Modifier.padding(
                     top = innerPadding.calculateTopPadding(),
                     bottom = innerPadding.calculateBottomPadding() + reviewContentBottomPadding(
@@ -397,6 +436,23 @@ fun ReviewRoute(
         )
     }
 
+    tagFilterRequest?.let { request ->
+        ReviewTagFilterDialog(
+            request = request,
+            onConfirm = {
+                tagFilterRequest = null
+                onSelectFilter(
+                    request.workspaceId,
+                    request.openingFilter,
+                    makeReviewTagFilter(tagNames = listOf(request.tag))
+                )
+            },
+            onDismiss = {
+                tagFilterRequest = null
+            }
+        )
+    }
+
     if (uiState.isHardAnswerReminderVisible) {
         HardAnswerReminderDialog(
             onDismissRequest = onDismissHardAnswerReminder
@@ -426,4 +482,70 @@ fun ReviewRoute(
             }
         )
     }
+}
+
+/** Captured when a tag chip is tapped, so the dialog variant and wording stay fixed while it is open. */
+private data class ReviewTagFilterRequest(
+    val workspaceId: String,
+    val openingFilter: ReviewFilter,
+    val tag: String,
+    val currentFilterLabel: String,
+    val isTagAlreadySelected: Boolean
+)
+
+private fun isSingleTagReviewFilter(filter: ReviewFilter, tag: String): Boolean {
+    return filter is ReviewFilter.Tags
+        && filter.tags.size == 1
+        && normalizeTagKey(tag = filter.tags.single()) == normalizeTagKey(tag = tag)
+}
+
+@Composable
+private fun ReviewTagFilterDialog(
+    request: ReviewTagFilterRequest,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    val locale = currentResourceLocale(resources = context.resources)
+    val wrappedTag = bidiWrap(text = request.tag, locale = locale)
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(stringResource(id = R.string.review_tag_filter_dialog_title))
+        },
+        text = {
+            Text(
+                if (request.isTagAlreadySelected) {
+                    stringResource(id = R.string.review_tag_filter_dialog_already_selected_body, wrappedTag)
+                } else {
+                    stringResource(
+                        id = R.string.review_tag_filter_dialog_change_body,
+                        bidiWrap(text = request.currentFilterLabel, locale = locale),
+                        wrappedTag
+                    )
+                }
+            )
+        },
+        confirmButton = {
+            if (request.isTagAlreadySelected) {
+                TextButton(onClick = onDismiss) {
+                    Text(stringResource(id = R.string.review_ok))
+                }
+            } else {
+                TextButton(onClick = onConfirm) {
+                    Text(stringResource(id = R.string.review_tag_filter_dialog_confirm))
+                }
+            }
+        },
+        dismissButton = if (request.isTagAlreadySelected) {
+            null
+        } else {
+            {
+                TextButton(onClick = onDismiss) {
+                    Text(stringResource(id = R.string.review_cancel))
+                }
+            }
+        }
+    )
 }

@@ -226,7 +226,8 @@ struct ProgressReviewsSection: View {
                         Button(action: self.showPreviousPage) {
                             Image(systemName: "chevron.backward")
                                 .font(.body.weight(.semibold))
-                                .frame(minWidth: 28, minHeight: 28)
+                                .frame(minWidth: 44, minHeight: 44)
+                                .contentShape(Rectangle())
                         }
                         .disabled(self.selectedPageIndex == 0)
                         .accessibilityLabel(
@@ -241,7 +242,8 @@ struct ProgressReviewsSection: View {
                         Button(action: self.showNextPage) {
                             Image(systemName: "chevron.forward")
                                 .font(.body.weight(.semibold))
-                                .frame(minWidth: 28, minHeight: 28)
+                                .frame(minWidth: 44, minHeight: 44)
+                                .contentShape(Rectangle())
                         }
                         .disabled(self.selectedPageIndex >= self.chartPages.count - 1)
                         .accessibilityLabel(

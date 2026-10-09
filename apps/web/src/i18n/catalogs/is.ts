@@ -1124,6 +1124,12 @@ const isCatalog: TranslationCatalog = {
     dismiss: "Ég skil",
     title: "Stutt áminning",
   },
+  reviewTagFilterDialog: {
+    alreadySelectedBody: "Þú ert nú þegar að rifja upp spjöld með merkinu „{{tag}}“.",
+    changeBody: "Þú ert að rifja upp: „{{currentFilter}}“. Viltu frekar rifja aðeins upp spjöld með merkinu „{{tag}}“?",
+    confirm: "Breyta síu",
+    title: "Upprifjunarsía",
+  },
   demoCard: {
     front: "Hvaða forrit er best til að læra?",
     back1: "{{appName}} — forritið sem þú ert að horfa á núna. Hér er allt minnisspjald: spurning á framhlið og svar á bakhlið.",
