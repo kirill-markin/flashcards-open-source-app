@@ -124,6 +124,12 @@ The grouped smoke suite still maps to the same top-level live-smoke contract as 
 - Android equivalent: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/livesmoke/LiveSmokeTest.kt`
 - Web equivalent: `apps/web/e2e/live-smoke.spec.ts`
 
+## App Icon
+
+The Apple app icon is the layered `Flashcards/Flashcards/AppIcon.icon` resource.
+Build and edit it with Xcode 27 or newer. See [App icon](docs/app-icon.md) for
+native appearance settings, previews, and verification.
+
 ## Marketing Screenshots
 
 The iOS App Store screenshot generator and the derived iOS marketing-material builder are documented in [`docs/marketing-screenshots.md`](docs/marketing-screenshots.md).

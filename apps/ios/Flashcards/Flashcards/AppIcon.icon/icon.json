@@ -1,0 +1,106 @@
+{
+  "features": [
+    "refractivity",
+    "specular-location"
+  ],
+  "fill": "automatic",
+  "groups": [
+    {
+      "name": "02-Front orange card",
+      "layers": [
+        {
+          "name": "02-Front-card",
+          "image-name": "02-Front-card.svg",
+          "glass": true,
+          "fill-specializations": [
+            {
+              "value": {
+                "solid": "srgb:0.768627,0.294118,0.176471,1.000000"
+              }
+            },
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "srgb:0.768627,0.294118,0.176471,1.000000"
+              }
+            },
+            {
+              "appearance": "tinted",
+              "value": {
+                "solid": "extended-gray:1.000000,1.000000"
+              }
+            }
+          ]
+        }
+      ],
+      "lighting": "individual",
+      "specular": true,
+      "specular-highlight-placement": "automatic",
+      "blur-material": 0.65,
+      "translucency": {
+        "enabled": true,
+        "value": 0.16
+      },
+      "refractivity": {
+        "enabled": true,
+        "strength": 0.12,
+        "depth": 0.2
+      },
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.35
+      }
+    },
+    {
+      "name": "01-Rear adaptive card",
+      "layers": [
+        {
+          "name": "01-Rear-card",
+          "image-name": "01-Rear-card.svg",
+          "glass": true,
+          "fill-specializations": [
+            {
+              "value": {
+                "solid": "srgb:0.137255,0.137255,0.137255,1.000000"
+              }
+            },
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "srgb:0.972549,0.952941,0.925490,1.000000"
+              }
+            },
+            {
+              "appearance": "tinted",
+              "value": {
+                "solid": "extended-gray:0.550000,1.000000"
+              }
+            }
+          ]
+        }
+      ],
+      "lighting": "individual",
+      "specular": true,
+      "specular-highlight-placement": "automatic",
+      "blur-material": 0.65,
+      "translucency": {
+        "enabled": true,
+        "value": 0.16
+      },
+      "refractivity": {
+        "enabled": true,
+        "strength": 0.12,
+        "depth": 0.2
+      },
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.35
+      }
+    }
+  ],
+  "supported-platforms": {
+    "squares": [
+      "iOS"
+    ]
+  }
+}
