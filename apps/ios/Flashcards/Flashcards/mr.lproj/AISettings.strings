@@ -886,6 +886,11 @@
 "settings.accentColor.premiumNote" = "पसंतीचे ठळक रंग Premium सह उपलब्ध आहेत. Premium सक्रिय झाल्यावर तुमचा जतन केलेला रंग परत येतो.";
 "settings.reviewAnimations.premiumNote" = "उजळणीतील अ‍ॅनिमेशन बंद करणे Premium सह उपलब्ध आहे. Premium सक्रिय झाल्यावर तुमची जतन केलेली सेटिंग परत येते.";
 "settings.aiChatSuggestions.premiumNote" = "AI चॅट सूचना बंद करणे Premium सह उपलब्ध आहे. Premium सक्रिय झाल्यावर तुमची जतन केलेली सेटिंग परत येते.";
+"settings.appIcon.title" = "अ‍ॅप चिन्ह";
+"settings.appIcon.default" = "डीफॉल्ट";
+"settings.appIcon.light" = "लाइट";
+"settings.appIcon.premiumNote" = "अ‍ॅप चिन्ह बदलणे Premium सह उपलब्ध आहे. Premium सक्रिय झाल्यावर तुमचे जतन केलेले चिन्ह परत येते.";
+"settings.appIcon.systemAlertNote" = "प्रत्येक चिन्ह बदलाची पुष्टी iOS एका सूचनेद्वारे करते.";
 
 "premium.apple.monthlyProduct" = "%@ · मासिक";
 "premium.apple.renewal" = "रद्द करेपर्यंत आपोआप नूतनीकरण होते. तुमच्या App Store सदस्यतांमध्ये व्यवस्थापित करा किंवा रद्द करा.";

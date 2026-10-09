@@ -886,6 +886,11 @@
 "settings.accentColor.premiumNote" = "Τα προσαρμοσμένα χρώματα έμφασης διατίθενται με το Premium. Το αποθηκευμένο χρώμα σας επιστρέφει όταν το Premium είναι ενεργό.";
 "settings.reviewAnimations.premiumNote" = "Η απενεργοποίηση των κινούμενων σχεδίων επανάληψης διατίθεται με το Premium. Η αποθηκευμένη ρύθμισή σας επιστρέφει όταν το Premium είναι ενεργό.";
 "settings.aiChatSuggestions.premiumNote" = "Η απενεργοποίηση των προτάσεων συνομιλίας με ΤΝ διατίθεται με το Premium. Η αποθηκευμένη ρύθμισή σας επιστρέφει όταν το Premium είναι ενεργό.";
+"settings.appIcon.title" = "Εικονίδιο εφαρμογής";
+"settings.appIcon.default" = "Προεπιλογή";
+"settings.appIcon.light" = "Ανοιχτόχρωμο";
+"settings.appIcon.premiumNote" = "Η αλλαγή του εικονιδίου εφαρμογής διατίθεται με το Premium. Το αποθηκευμένο εικονίδιό σας επιστρέφει όταν το Premium είναι ενεργό.";
+"settings.appIcon.systemAlertNote" = "Το iOS επιβεβαιώνει κάθε αλλαγή εικονιδίου με μια ειδοποίηση.";
 
 "premium.apple.monthlyProduct" = "%@ · Μηνιαία";
 "premium.apple.renewal" = "Ανανεώνεται αυτόματα μέχρι να ακυρωθεί. Διαχειριστείτε ή ακυρώστε στις συνδρομές σας στο App Store.";

@@ -886,6 +886,11 @@
 "settings.accentColor.premiumNote" = "Brugerdefinerede accentfarver er tilgængelige med Premium. Din gemte farve vender tilbage, når Premium er aktivt.";
 "settings.reviewAnimations.premiumNote" = "Det kræver Premium at slå repetitionsanimationer fra. Din gemte indstilling vender tilbage, når Premium er aktivt.";
 "settings.aiChatSuggestions.premiumNote" = "Det kræver Premium at slå AI-chatforslag fra. Din gemte indstilling vender tilbage, når Premium er aktivt.";
+"settings.appIcon.title" = "Appikon";
+"settings.appIcon.default" = "Standard";
+"settings.appIcon.light" = "Lys";
+"settings.appIcon.premiumNote" = "Det kræver Premium at skifte appikon. Dit gemte ikon vender tilbage, når Premium er aktivt.";
+"settings.appIcon.systemAlertNote" = "iOS bekræfter hvert ikonskift med en besked.";
 
 "premium.apple.monthlyProduct" = "%@ · Månedligt";
 "premium.apple.renewal" = "Fornyes automatisk indtil opsigelse. Administrer eller opsig under dine App Store-abonnementer.";

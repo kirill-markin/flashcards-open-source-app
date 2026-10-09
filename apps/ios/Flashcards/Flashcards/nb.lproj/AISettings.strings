@@ -886,6 +886,11 @@
 "settings.accentColor.premiumNote" = "Egendefinerte aksentfarger er tilgjengelige med Premium. Den lagrede fargen kommer tilbake når Premium er aktivt.";
 "settings.reviewAnimations.premiumNote" = "Å slå av repetisjonsanimasjoner er tilgjengelig med Premium. Den lagrede innstillingen kommer tilbake når Premium er aktivt.";
 "settings.aiChatSuggestions.premiumNote" = "Å slå av forslag i AI-chatten er tilgjengelig med Premium. Den lagrede innstillingen kommer tilbake når Premium er aktivt.";
+"settings.appIcon.title" = "Appikon";
+"settings.appIcon.default" = "Standard";
+"settings.appIcon.light" = "Lys";
+"settings.appIcon.premiumNote" = "Å bytte appikon er tilgjengelig med Premium. Det lagrede ikonet kommer tilbake når Premium er aktivt.";
+"settings.appIcon.systemAlertNote" = "iOS bekrefter hvert ikonbytte med et varsel.";
 
 "premium.apple.monthlyProduct" = "%@ · Månedlig";
 "premium.apple.renewal" = "Fornyes automatisk til du sier opp. Administrer eller si opp under App Store-abonnementene dine.";

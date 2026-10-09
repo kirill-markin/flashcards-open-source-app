@@ -886,6 +886,11 @@
 "settings.accentColor.premiumNote" = "Eigen accentkleuren zijn beschikbaar met Premium. Je opgeslagen kleur keert terug wanneer Premium actief is.";
 "settings.reviewAnimations.premiumNote" = "Herhaalanimaties uitzetten is beschikbaar met Premium. Je opgeslagen instelling keert terug wanneer Premium actief is.";
 "settings.aiChatSuggestions.premiumNote" = "AI-chatsuggesties uitzetten is beschikbaar met Premium. Je opgeslagen instelling keert terug wanneer Premium actief is.";
+"settings.appIcon.title" = "Appicoon";
+"settings.appIcon.default" = "Standaard";
+"settings.appIcon.light" = "Licht";
+"settings.appIcon.premiumNote" = "Het appicoon wijzigen is beschikbaar met Premium. Je opgeslagen icoon keert terug wanneer Premium actief is.";
+"settings.appIcon.systemAlertNote" = "iOS bevestigt elke icoonwijziging met een melding.";
 
 "premium.apple.monthlyProduct" = "%@ · Maandelijks";
 "premium.apple.renewal" = "Wordt automatisch verlengd tot je opzegt. Beheer of annuleer via je App Store-abonnementen.";

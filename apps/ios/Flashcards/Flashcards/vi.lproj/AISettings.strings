@@ -886,6 +886,11 @@
 "settings.accentColor.premiumNote" = "Màu nhấn tùy chỉnh có sẵn với Premium. Màu đã lưu sẽ trở lại khi Premium hoạt động.";
 "settings.reviewAnimations.premiumNote" = "Tắt hiệu ứng ôn tập có sẵn với Premium. Cài đặt đã lưu sẽ trở lại khi Premium hoạt động.";
 "settings.aiChatSuggestions.premiumNote" = "Tắt gợi ý trò chuyện AI có sẵn với Premium. Cài đặt đã lưu sẽ trở lại khi Premium hoạt động.";
+"settings.appIcon.title" = "Biểu tượng ứng dụng";
+"settings.appIcon.default" = "Mặc định";
+"settings.appIcon.light" = "Sáng";
+"settings.appIcon.premiumNote" = "Đổi biểu tượng ứng dụng có sẵn với Premium. Biểu tượng đã lưu sẽ trở lại khi Premium hoạt động.";
+"settings.appIcon.systemAlertNote" = "iOS xác nhận mỗi lần đổi biểu tượng bằng một thông báo.";
 
 "premium.apple.monthlyProduct" = "%@ · Hằng tháng";
 "premium.apple.renewal" = "Tự động gia hạn cho đến khi hủy. Quản lý hoặc hủy trong mục đăng ký App Store của bạn.";

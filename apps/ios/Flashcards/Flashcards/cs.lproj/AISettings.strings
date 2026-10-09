@@ -886,6 +886,11 @@
 "settings.accentColor.premiumNote" = "Vlastní barvy zvýraznění jsou dostupné s Premium. Uložená barva se vrátí, jakmile bude Premium aktivní.";
 "settings.reviewAnimations.premiumNote" = "Vypnutí animací při opakování je dostupné s Premium. Uložené nastavení se vrátí, jakmile bude Premium aktivní.";
 "settings.aiChatSuggestions.premiumNote" = "Vypnutí návrhů pro chat s AI je dostupné s Premium. Uložené nastavení se vrátí, jakmile bude Premium aktivní.";
+"settings.appIcon.title" = "Ikona aplikace";
+"settings.appIcon.default" = "Výchozí";
+"settings.appIcon.light" = "Světlá";
+"settings.appIcon.premiumNote" = "Změna ikony aplikace je dostupná s Premium. Uložená ikona se vrátí, jakmile bude Premium aktivní.";
+"settings.appIcon.systemAlertNote" = "iOS každou změnu ikony potvrdí upozorněním.";
 
 "premium.apple.monthlyProduct" = "%@ · Měsíčně";
 "premium.apple.renewal" = "Automaticky se obnovuje až do zrušení. Spravujte nebo zrušte v předplatných App Storu.";

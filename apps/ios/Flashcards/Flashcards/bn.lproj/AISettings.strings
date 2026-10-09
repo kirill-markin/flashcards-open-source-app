@@ -886,6 +886,11 @@
 "settings.accentColor.premiumNote" = "পছন্দের অ্যাকসেন্ট রং Premium-এ পাওয়া যায়। Premium সক্রিয় হলে আপনার সংরক্ষিত রং ফিরে আসে।";
 "settings.reviewAnimations.premiumNote" = "পুনরালোচনার অ্যানিমেশন বন্ধ করা Premium-এ পাওয়া যায়। Premium সক্রিয় হলে আপনার সংরক্ষিত সেটিং ফিরে আসে।";
 "settings.aiChatSuggestions.premiumNote" = "এআই চ্যাট পরামর্শ বন্ধ করা Premium-এ পাওয়া যায়। Premium সক্রিয় হলে আপনার সংরক্ষিত সেটিং ফিরে আসে।";
+"settings.appIcon.title" = "অ্যাপ আইকন";
+"settings.appIcon.default" = "ডিফল্ট";
+"settings.appIcon.light" = "লাইট";
+"settings.appIcon.premiumNote" = "অ্যাপ আইকন বদলানো Premium-এ পাওয়া যায়। Premium সক্রিয় হলে আপনার সংরক্ষিত আইকন ফিরে আসে।";
+"settings.appIcon.systemAlertNote" = "প্রতিবার আইকন বদলালে iOS একটি সতর্কবার্তা দেখিয়ে তা নিশ্চিত করে।";
 
 "premium.apple.monthlyProduct" = "%@ · মাসিক";
 "premium.apple.renewal" = "বাতিল না করা পর্যন্ত স্বয়ংক্রিয়ভাবে নবায়ন হয়। আপনার App Store সাবস্ক্রিপশন থেকে পরিচালনা বা বাতিল করুন।";

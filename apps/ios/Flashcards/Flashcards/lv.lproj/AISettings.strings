@@ -886,6 +886,11 @@
 "settings.accentColor.premiumNote" = "Pielāgotas akcenta krāsas ir pieejamas ar Premium. Saglabātā krāsa atgriežas, kad Premium ir aktīvs.";
 "settings.reviewAnimations.premiumNote" = "Atkārtošanas animāciju izslēgšana ir pieejama ar Premium. Saglabātais iestatījums atgriežas, kad Premium ir aktīvs.";
 "settings.aiChatSuggestions.premiumNote" = "MI sarunas ieteikumu izslēgšana ir pieejama ar Premium. Saglabātais iestatījums atgriežas, kad Premium ir aktīvs.";
+"settings.appIcon.title" = "Lietotnes ikona";
+"settings.appIcon.default" = "Noklusējuma";
+"settings.appIcon.light" = "Gaiša";
+"settings.appIcon.premiumNote" = "Lietotnes ikonas maiņa ir pieejama ar Premium. Saglabātā ikona atgriežas, kad Premium ir aktīvs.";
+"settings.appIcon.systemAlertNote" = "iOS katru ikonas maiņu apstiprina ar brīdinājumu.";
 
 "premium.apple.monthlyProduct" = "%@ · Katru mēnesi";
 "premium.apple.renewal" = "Automātiski atjaunojas līdz atcelšanai. Pārvaldiet vai atceliet App Store abonementos.";
