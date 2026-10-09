@@ -886,6 +886,11 @@
 "settings.accentColor.premiumNote" = "விருப்ப சிறப்பம்ச நிறங்கள் Premium உடன் கிடைக்கும். Premium செயலில் இருக்கும்போது சேமித்த நிறம் திரும்ப வரும்.";
 "settings.reviewAnimations.premiumNote" = "மீள்பயிற்சி அசைவூட்டங்களை அணைப்பது Premium உடன் கிடைக்கும். Premium செயலில் இருக்கும்போது சேமித்த அமைப்பு திரும்ப வரும்.";
 "settings.aiChatSuggestions.premiumNote" = "AI அரட்டைப் பரிந்துரைகளை அணைப்பது Premium உடன் கிடைக்கும். Premium செயலில் இருக்கும்போது சேமித்த அமைப்பு திரும்ப வரும்.";
+"settings.appIcon.title" = "செயலி ஐகான்";
+"settings.appIcon.default" = "இயல்புநிலை";
+"settings.appIcon.light" = "லைட்";
+"settings.appIcon.premiumNote" = "செயலி ஐகானை மாற்றுவது Premium உடன் கிடைக்கும். Premium செயலில் இருக்கும்போது சேமித்த ஐகான் திரும்ப வரும்.";
+"settings.appIcon.systemAlertNote" = "ஒவ்வொரு ஐகான் மாற்றத்தையும் iOS ஓர் எச்சரிக்கை மூலம் உறுதிப்படுத்தும்.";
 
 "premium.apple.monthlyProduct" = "%@ · மாதாந்திரம்";
 "premium.apple.renewal" = "ரத்துசெய்யும் வரை தானாகப் புதுப்பிக்கப்படும். App Store சந்தாக்களில் நிர்வகிக்கலாம் அல்லது ரத்துசெய்யலாம்.";

@@ -8,8 +8,9 @@ annotations.
 - `../Flashcards/Flashcards/AppIcon.icon` is the default dark icon. It stays
   dark in both the Default and Dark Home Screen appearances.
 - `../Flashcards/Flashcards/AppIcon-Light.icon` is the light alternate. It
-  stays light in both appearances and is not yet registered as an alternate
-  app icon.
+  stays light in both appearances, is registered in
+  `ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES`, and is selected from
+  Settings → Style → App Icon.
 
 Colors and glass values live in each document's `icon.json`; both share the
 same Clear and Tinted specializations. The canvas uses root
@@ -49,7 +50,9 @@ appearances, and `AppIcon-Light.icon` for the light alternate. The previews
 above are `Default` and `Dark` of `AppIcon.icon` and `Default` of
 `AppIcon-Light.icon` at 256 px. Use `--design-generation 26` to review the
 previous rendering; Apple documents that refraction has no visible effect
-before OS 27.
+before OS 27. The Settings previews in
+`Assets.xcassets/AppIconPreview*.imageset` are copies of `default.png` and
+`light.png`; refresh them whenever an icon changes.
 
 References: [Apple's Icon Composer workflow](https://developer.apple.com/documentation/xcode/creating-your-app-icon-using-icon-composer),
 [App icon HIG](https://developer.apple.com/design/human-interface-guidelines/app-icons),

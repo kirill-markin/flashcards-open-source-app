@@ -886,6 +886,11 @@
 "settings.accentColor.premiumNote" = "Pasirinktinės akcento spalvos pasiekiamos su Premium. Išsaugota spalva grįžta, kai Premium aktyvus.";
 "settings.reviewAnimations.premiumNote" = "Kartojimo animacijų išjungimas pasiekiamas su Premium. Išsaugotas nustatymas grįžta, kai Premium aktyvus.";
 "settings.aiChatSuggestions.premiumNote" = "DI pokalbio pasiūlymų išjungimas pasiekiamas su Premium. Išsaugotas nustatymas grįžta, kai Premium aktyvus.";
+"settings.appIcon.title" = "Programėlės piktograma";
+"settings.appIcon.default" = "Numatytoji";
+"settings.appIcon.light" = "Šviesi";
+"settings.appIcon.premiumNote" = "Programėlės piktogramos keitimas pasiekiamas su Premium. Išsaugota piktograma grįžta, kai Premium aktyvus.";
+"settings.appIcon.systemAlertNote" = "iOS kiekvieną piktogramos pakeitimą patvirtina pranešimu.";
 
 "premium.apple.monthlyProduct" = "%@ · Kas mėnesį";
 "premium.apple.renewal" = "Automatiškai atnaujinama iki atšaukimo. Tvarkykite arba atšaukite App Store prenumeratose.";

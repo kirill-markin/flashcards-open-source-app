@@ -92,8 +92,9 @@ uses the shared Stripe offer; new live purchases remain gated by backend configu
 ## Style settings
 
 The Style section of Settings holds the custom styles: Accent color, Review Animations, AI Chat
-Suggestions, and, on Android, App icon. Premium and lifetime (effective rank at least 20) can change them. Free users see each
-setting's default and a premium note, and a change opens the shared Premium offer on every client.
+Suggestions, and, on iOS and Android, App icon. Premium and lifetime (effective rank at least 20)
+can change them. Free users see each setting's default and a premium note, and a change opens the
+shared Premium offer on every client.
 
 Each selection is stored independently of entitlement and distinct from what is displayed. A
 confirmed downgrade displays the default while retaining the selection; resubscription restores it.
@@ -101,9 +102,11 @@ While a person cannot customize, choosing the default writes nothing, so the ret
 Unknown or offline entitlement follows the [cached local-feature policy](premium-entitlements.md#offline-behaviour).
 Client setting and display boundaries gate usage; the backend adds no billing gate for storing a
 selection. Accent color and Review Animations are account-wide; AI Chat Suggestions and App icon are
-stored per device. Android switches the App icon by enabling one launcher `activity-alias` in the
-[manifest](../apps/android/app/src/main/AndroidManifest.xml) and disabling the other, only once the
-person has left the app.
+stored per device. On iOS the Home Screen icon follows the displayed App icon while the app is
+active, so a confirmed downgrade or a resubscription switches it by the next app open, behind the
+system's confirmation alert. Android switches the App icon by enabling one launcher `activity-alias`
+in the [manifest](../apps/android/app/src/main/AndroidManifest.xml) and disabling the other, only
+once the person has left the app.
 
 ### Accent color
 

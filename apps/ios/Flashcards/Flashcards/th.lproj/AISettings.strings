@@ -886,6 +886,11 @@
 "settings.accentColor.premiumNote" = "สีเน้นที่กำหนดเองใช้ได้กับ Premium สีที่บันทึกไว้จะกลับมาเมื่อ Premium ใช้งานอยู่";
 "settings.reviewAnimations.premiumNote" = "การปิดภาพเคลื่อนไหวการทบทวนใช้ได้กับ Premium การตั้งค่าที่บันทึกไว้จะกลับมาเมื่อ Premium ใช้งานอยู่";
 "settings.aiChatSuggestions.premiumNote" = "การปิดคำแนะนำแชต AI ใช้ได้กับ Premium การตั้งค่าที่บันทึกไว้จะกลับมาเมื่อ Premium ใช้งานอยู่";
+"settings.appIcon.title" = "ไอคอนแอป";
+"settings.appIcon.default" = "ค่าเริ่มต้น";
+"settings.appIcon.light" = "สว่าง";
+"settings.appIcon.premiumNote" = "การเปลี่ยนไอคอนแอปใช้ได้กับ Premium ไอคอนที่บันทึกไว้จะกลับมาเมื่อ Premium ใช้งานอยู่";
+"settings.appIcon.systemAlertNote" = "iOS จะแสดงการแจ้งเตือนเพื่อยืนยันทุกครั้งที่เปลี่ยนไอคอน";
 
 "premium.apple.monthlyProduct" = "%@ · รายเดือน";
 "premium.apple.renewal" = "ต่ออายุอัตโนมัติจนกว่าจะยกเลิก จัดการหรือยกเลิกได้ในการสมัครสมาชิก App Store ของคุณ";

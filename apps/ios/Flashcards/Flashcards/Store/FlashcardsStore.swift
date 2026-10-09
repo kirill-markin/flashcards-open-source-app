@@ -108,6 +108,9 @@ final class FlashcardsStore {
     var queuedTransientBanners: [TransientBanner]
     var isTestModeEnabled: Bool
     var aiChatComposerSuggestionsEnabled: Bool
+    /// The stored Home Screen icon choice for this device; see `FlashcardsStore+AppIcon`.
+    var appIconSelection: AppIconOption
+    @ObservationIgnored var isAppIconChangeInFlight: Bool
     /// The "Use my own OpenAI key" switch; the key itself is read from the Keychain only when needed.
     var isOwnOpenAIKeyEnabled: Bool
     /// Whether AI requests carry the person's own key now: the switch is on and the stored key is not empty.
@@ -504,6 +507,8 @@ final class FlashcardsStore {
         self.queuedTransientBanners = []
         self.isTestModeEnabled = userDefaults.bool(forKey: testModeEnabledUserDefaultsKey)
         self.aiChatComposerSuggestionsEnabled = loadAIChatComposerSuggestionsEnabled(userDefaults: userDefaults)
+        self.appIconSelection = loadAppIconSelection(userDefaults: userDefaults)
+        self.isAppIconChangeInFlight = false
         self.isOwnOpenAIKeyEnabled = loadOwnOpenAIKeyEnabled(userDefaults: userDefaults)
         // Read from the Keychain once every property is set, at the end of this initializer.
         self.isOwnOpenAIKeyActive = false
