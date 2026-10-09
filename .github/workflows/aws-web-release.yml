@@ -174,7 +174,7 @@ jobs:
     timeout-minutes: 45
     services:
       postgres:
-        image: postgres:18
+        image: public.ecr.aws/docker/library/postgres:18
         env:
           POSTGRES_DB: postgres
           POSTGRES_PASSWORD: postgres-integration-${{ github.run_id }}-${{ github.run_attempt }}
