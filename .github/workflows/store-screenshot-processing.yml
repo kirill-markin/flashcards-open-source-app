@@ -1,0 +1,71 @@
+name: Process Store Screenshots
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Existing screenshot platform to process
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - ios
+          - android
+      family:
+        description: iOS device family (leave all for Android)
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - iphone
+          - ipad
+      locales:
+        description: Comma-separated locale IDs; empty processes all configured sets
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  process:
+    name: Format existing native captures
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: scripts/store-screenshots/package-lock.json
+      - name: Install processor dependencies
+        run: npm ci --prefix scripts/store-screenshots
+      - name: Install pinned rendering browser
+        working-directory: scripts/store-screenshots
+        run: npx playwright install chromium
+      - name: Type check processor
+        run: npm run check --prefix scripts/store-screenshots
+      - name: Process saved screenshots without capture or upload
+        env:
+          PROCESS_PLATFORM: ${{ inputs.platform }}
+          PROCESS_FAMILY: ${{ inputs.family }}
+          PROCESS_LOCALES: ${{ inputs.locales }}
+        run: |
+          set -euo pipefail
+          args=(--platform "${PROCESS_PLATFORM}" --family "${PROCESS_FAMILY}")
+          if [[ -n "${PROCESS_LOCALES}" ]]; then
+            args+=(--locales "${PROCESS_LOCALES}")
+          fi
+          npm run render --prefix scripts/store-screenshots -- "${args[@]}"
+      - name: Save processed cards and review galleries
+        uses: actions/upload-artifact@v7
+        with:
+          name: nibomo-store-cards-${{ github.run_id }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            apps/ios/docs/media/app-store-cards/
+            apps/android/docs/media/play-store-cards/

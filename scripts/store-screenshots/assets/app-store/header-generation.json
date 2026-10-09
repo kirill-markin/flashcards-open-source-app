@@ -1,0 +1,55 @@
+{
+  "date": "2026-10-09",
+  "purpose": "Erase marketing text from the header only; apply all English typography in the shared en.html template.",
+  "mode": "Built-in image_gen",
+  "preserve": "The approved original images remain underneath the header overlay. The gradient overlay fades to transparent at y=510; the full phone and all lower pixels come from the unchanged original reference.",
+  "typography": {
+    "family": "Arial",
+    "heading": {
+      "size": 108.85549132947976,
+      "weight": 700,
+      "top": 155.86127167630056,
+      "lineHeight": 131.121387283237
+    },
+    "caption": {
+      "size": 59.375722543352595,
+      "weight": 400,
+      "top": 348.8323699421965,
+      "lineHeight": 69.27167630057804
+    },
+    "centerX": 642,
+    "alignment": "Center the number pill and heading together as one group. Center the caption separately on the same canvas axis."
+  },
+  "cards": [
+    {
+      "number": 1,
+      "heading": "Nibomo App",
+      "caption": "Create flashcards with AI",
+      "prompt": "Use case: localized image inpainting, preparation of an editable typography layout. Edit target: the supplied App Store card 01. Remove ALL marketing typography in the header area above the phone: the black number pill, number, headline and subtitle. Fill their former pixels seamlessly with the underlying orange-yellow-red gradient, matching the exact color and gradient distribution around each removed element. Leave the header entirely empty. Do not add any text. Preserve the existing gradient colors and placement precisely. Preserve every other element, especially the complete phone frame and original app screenshot. Do not redraw, move, scale, crop, recolor or change anything inside the phone. Keep the same portrait proportions and opaque background. Output only the clean card image."
+    },
+    {
+      "number": 2,
+      "heading": "Start Learning",
+      "caption": "Recall the answer yourself",
+      "prompt": "Use case: localized image inpainting, preparation of an editable typography layout. Edit target: the supplied App Store card 02. Remove ALL marketing typography in the header area above the phone: the black number pill, number, headline and subtitle. Fill their former pixels seamlessly with the underlying orange-yellow-red gradient, matching the exact color and gradient distribution around each removed element. Leave the header entirely empty. Do not add any text. Preserve the existing gradient colors and placement precisely. Preserve every other element, especially the complete phone frame and original app screenshot. Do not redraw, move, scale, crop, recolor or change anything inside the phone. Keep the same portrait proportions and opaque background. Output only the clean card image."
+    },
+    {
+      "number": 3,
+      "heading": "Smart Reviews",
+      "caption": "Review at the right time",
+      "prompt": "Use case: localized image inpainting, preparation of an editable typography layout. Edit target: the supplied App Store card 03. Remove ALL marketing typography in the header area above the phone: the black number pill, number, headline and subtitle. Fill their former pixels seamlessly with the underlying orange-yellow-red gradient, matching the exact color and gradient distribution around each removed element. Leave the header entirely empty. Do not add any text. Preserve the existing gradient colors and placement precisely. Preserve every other element, especially the complete phone frame and original app screenshot. Do not redraw, move, scale, crop, recolor or change anything inside the phone. Keep the same portrait proportions and opaque background. Output only the clean card image."
+    },
+    {
+      "number": 4,
+      "heading": "Your Progress",
+      "caption": "Track your study days",
+      "prompt": "Use case: localized image inpainting, preparation of an editable typography layout. Edit target: the supplied App Store card 04. Remove ALL marketing typography in the header area above the phone: the black number pill, number, headline and subtitle. Fill their former pixels seamlessly with the underlying orange-yellow-red gradient, matching the exact color and gradient distribution around each removed element. Leave the header entirely empty. Do not add any text. Preserve the existing gradient colors and placement precisely. Preserve every other element, especially the complete phone frame and original app screenshot. Do not redraw, move, scale, crop, recolor or change anything inside the phone. Keep the same portrait proportions and opaque background. Output only the clean card image."
+    },
+    {
+      "number": 5,
+      "heading": "Your Cards",
+      "caption": "All your cards in one place",
+      "prompt": "Use case: localized image inpainting, preparation of an editable typography layout. Edit target: the supplied App Store card 05. Remove ALL marketing typography in the header area above the phone: the black number pill, number, headline and subtitle. Fill their former pixels seamlessly with the underlying orange-yellow-red gradient, matching the exact color and gradient distribution around each removed element. Leave the header entirely empty. Do not add any text. Preserve the existing gradient colors and placement precisely. Preserve every other element, especially the complete phone frame and original app screenshot. Do not redraw, move, scale, crop, recolor or change anything inside the phone. Keep the same portrait proportions and opaque background. Output only the clean card image."
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "tool": "image_gen.imagegen",
+  "mode": "edit",
+  "transparentBackground": false,
+  "referenceRoot": "../app-store/reference",
+  "images": [
+    {
+      "number": "01",
+      "asset": "background/01.png",
+      "reference": "../app-store/reference/01.png"
+    },
+    {
+      "number": "02",
+      "asset": "background/02.png",
+      "reference": "../app-store/reference/02.png"
+    },
+    {
+      "number": "03",
+      "asset": "background/03.png",
+      "reference": "../app-store/reference/03.png"
+    },
+    {
+      "number": "04",
+      "asset": "background/04.png",
+      "reference": "../app-store/reference/04.png"
+    },
+    {
+      "number": "05",
+      "asset": "background/05.png",
+      "reference": "../app-store/reference/05.png"
+    }
+  ],
+  "prompts": [
+    {
+      "number": "01",
+      "prompt": "Use case: precise-object-edit. Asset type: reusable gradient background plate for Nibomo Google Play screenshot card 01. Edit the supplied approved reference. Remove ALL foreground content: phone, device frame, entire app screen, number badge, title, caption and all text. Fill removed areas with a smooth continuation of the SAME existing orange-yellow-red gradient. Preserve this card's specific colors, brightness, soft transitions and gradient placement. Output a completely blank full-bleed portrait 9:16 background; use the reference as the exact color/composition guide, with its gradient mapped proportionally to the new canvas. No text, no glyphs, no device, no shadows, no outlines, no dark pixels, no rounded corners, no watermark, no new texture. This is background-only preparation; the real Android screenshot and shared editable typography will be composited separately."
+    },
+    {
+      "number": "02",
+      "prompt": "Use case: precise-object-edit. Asset type: reusable gradient background plate for Nibomo Google Play screenshot card 02. Edit the supplied approved reference. Remove ALL foreground content: phone, device frame, entire app screen, number badge, title, caption and all text. Fill removed areas with a smooth continuation of the SAME existing orange-yellow-red gradient. Preserve this card's specific colors, brightness, soft transitions and gradient placement. Output a completely blank full-bleed portrait 9:16 background; use the reference as the exact color/composition guide, with its gradient mapped proportionally to the new canvas. No text, no glyphs, no device, no shadows, no outlines, no dark pixels, no rounded corners, no watermark, no new texture. This is background-only preparation; the real Android screenshot and shared editable typography will be composited separately."
+    },
+    {
+      "number": "03",
+      "prompt": "Use case: precise-object-edit. Asset type: reusable gradient background plate for Nibomo Google Play screenshot card 03. Edit the supplied approved reference. Remove ALL foreground content: phone, device frame, entire app screen, number badge, title, caption and all text. Fill removed areas with a smooth continuation of the SAME existing orange-yellow-red gradient. Preserve this card's specific colors, brightness, soft transitions and gradient placement. Output a completely blank full-bleed portrait 9:16 background; use the reference as the exact color/composition guide, with its gradient mapped proportionally to the new canvas. No text, no glyphs, no device, no shadows, no outlines, no dark pixels, no rounded corners, no watermark, no new texture. This is background-only preparation; the real Android screenshot and shared editable typography will be composited separately."
+    },
+    {
+      "number": "04",
+      "prompt": "Use case: precise-object-edit. Asset type: reusable gradient background plate for Nibomo Google Play screenshot card 04. Edit the supplied approved reference. Remove ALL foreground content: phone, device frame, entire app screen, number badge, title, caption and all text. Fill removed areas with a smooth continuation of the SAME existing orange-yellow-red gradient. Preserve this card's specific colors, brightness, soft transitions and gradient placement. Output a completely blank full-bleed portrait 9:16 background; use the reference as the exact color/composition guide, with its gradient mapped proportionally to the new canvas. No text, no glyphs, no device, no shadows, no outlines, no dark pixels, no rounded corners, no watermark, no new texture. This is background-only preparation; the real Android screenshot and shared editable typography will be composited separately."
+    },
+    {
+      "number": "05",
+      "prompt": "Use case: precise-object-edit. Asset type: reusable gradient background plate for Nibomo Google Play screenshot card 05. Edit the supplied approved reference. Remove ALL foreground content: phone, device frame, entire app screen, number badge, title, caption and all text. Fill removed areas with a smooth continuation of the SAME existing orange-yellow-red gradient. Preserve this card's specific colors, brightness, soft transitions and gradient placement. Output a completely blank full-bleed portrait 9:16 background; use the reference as the exact color/composition guide, with its gradient mapped proportionally to the new canvas. No text, no glyphs, no device, no shadows, no outlines, no dark pixels, no rounded corners, no watermark, no new texture. This is background-only preparation; the real Android screenshot and shared editable typography will be composited separately."
+    }
+  ]
+}

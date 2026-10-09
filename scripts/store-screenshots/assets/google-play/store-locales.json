@@ -1,0 +1,359 @@
+[
+  {
+    "name": "English (United States)",
+    "storeLocale": "en-US",
+    "capturePrefix": "en",
+    "copyTag": "en-US",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Arabic",
+    "storeLocale": "ar",
+    "capturePrefix": "ar",
+    "copyTag": "ar",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Chinese (Simplified)",
+    "storeLocale": "zh-CN",
+    "capturePrefix": "zh-CN",
+    "copyTag": "zh-Hans",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "French",
+    "storeLocale": "fr-FR",
+    "capturePrefix": "fr-FR",
+    "copyTag": "fr",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "German",
+    "storeLocale": "de-DE",
+    "capturePrefix": "de-DE",
+    "copyTag": "de",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Hindi",
+    "storeLocale": "hi-IN",
+    "capturePrefix": "hi-IN",
+    "copyTag": "hi",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Japanese",
+    "storeLocale": "ja-JP",
+    "capturePrefix": "ja-JP",
+    "copyTag": "ja",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Portuguese (Brazil)",
+    "storeLocale": "pt-BR",
+    "capturePrefix": "pt-BR",
+    "copyTag": "pt-BR",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Russian",
+    "storeLocale": "ru-RU",
+    "capturePrefix": "ru-RU",
+    "copyTag": "ru",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Spanish (Latin America)",
+    "storeLocale": "es-419",
+    "capturePrefix": "es-419",
+    "copyTag": "es-MX",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Spanish (Spain)",
+    "storeLocale": "es-ES",
+    "capturePrefix": "es-ES",
+    "copyTag": "es-ES",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Spanish (United States)",
+    "storeLocale": "es-US",
+    "capturePrefix": "es-US",
+    "copyTag": "es-MX",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Bulgarian",
+    "storeLocale": "bg",
+    "capturePrefix": "bg",
+    "copyTag": "bg",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Bengali (Bangladesh)",
+    "storeLocale": "bn-BD",
+    "capturePrefix": "bn-BD",
+    "copyTag": "bn",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Catalan",
+    "storeLocale": "ca",
+    "capturePrefix": "ca",
+    "copyTag": "ca",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Czech",
+    "storeLocale": "cs-CZ",
+    "capturePrefix": "cs-CZ",
+    "copyTag": "cs",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Danish",
+    "storeLocale": "da-DK",
+    "capturePrefix": "da-DK",
+    "copyTag": "da",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Greek",
+    "storeLocale": "el-GR",
+    "capturePrefix": "el-GR",
+    "copyTag": "el",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Estonian",
+    "storeLocale": "et",
+    "capturePrefix": "et",
+    "copyTag": "et",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Persian",
+    "storeLocale": "fa",
+    "capturePrefix": "fa",
+    "copyTag": "fa",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Finnish",
+    "storeLocale": "fi-FI",
+    "capturePrefix": "fi-FI",
+    "copyTag": "fi",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Gujarati",
+    "storeLocale": "gu",
+    "capturePrefix": "gu",
+    "copyTag": "gu",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Hebrew",
+    "storeLocale": "iw-IL",
+    "capturePrefix": "iw-IL",
+    "copyTag": "he",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Croatian",
+    "storeLocale": "hr",
+    "capturePrefix": "hr",
+    "copyTag": "hr",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Hungarian",
+    "storeLocale": "hu-HU",
+    "capturePrefix": "hu-HU",
+    "copyTag": "hu",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Indonesian",
+    "storeLocale": "id",
+    "capturePrefix": "id",
+    "copyTag": "id",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Icelandic",
+    "storeLocale": "is-IS",
+    "capturePrefix": "is-IS",
+    "copyTag": "is",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Italian",
+    "storeLocale": "it-IT",
+    "capturePrefix": "it-IT",
+    "copyTag": "it",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Kannada (India)",
+    "storeLocale": "kn-IN",
+    "capturePrefix": "kn-IN",
+    "copyTag": "kn",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Korean",
+    "storeLocale": "ko-KR",
+    "capturePrefix": "ko-KR",
+    "copyTag": "ko",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Lithuanian",
+    "storeLocale": "lt",
+    "capturePrefix": "lt",
+    "copyTag": "lt",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Latvian",
+    "storeLocale": "lv",
+    "capturePrefix": "lv",
+    "copyTag": "lv",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Malayalam (India)",
+    "storeLocale": "ml-IN",
+    "capturePrefix": "ml-IN",
+    "copyTag": "ml",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Marathi (India)",
+    "storeLocale": "mr-IN",
+    "capturePrefix": "mr-IN",
+    "copyTag": "mr",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Dutch",
+    "storeLocale": "nl-NL",
+    "capturePrefix": "nl-NL",
+    "copyTag": "nl",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Norwegian",
+    "storeLocale": "no-NO",
+    "capturePrefix": "no-NO",
+    "copyTag": "nb",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Punjabi",
+    "storeLocale": "pa",
+    "capturePrefix": "pa",
+    "copyTag": "pa",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Polish",
+    "storeLocale": "pl-PL",
+    "capturePrefix": "pl-PL",
+    "copyTag": "pl",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Romanian",
+    "storeLocale": "ro",
+    "capturePrefix": "ro",
+    "copyTag": "ro",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Slovak",
+    "storeLocale": "sk",
+    "capturePrefix": "sk",
+    "copyTag": "sk",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Slovenian",
+    "storeLocale": "sl",
+    "capturePrefix": "sl",
+    "copyTag": "sl",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Swedish",
+    "storeLocale": "sv-SE",
+    "capturePrefix": "sv-SE",
+    "copyTag": "sv",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Swahili",
+    "storeLocale": "sw",
+    "capturePrefix": "sw",
+    "copyTag": "sw",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Tamil (India)",
+    "storeLocale": "ta-IN",
+    "capturePrefix": "ta-IN",
+    "copyTag": "ta",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Telugu (India)",
+    "storeLocale": "te-IN",
+    "capturePrefix": "te-IN",
+    "copyTag": "te",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Thai",
+    "storeLocale": "th",
+    "capturePrefix": "th",
+    "copyTag": "th",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Turkish",
+    "storeLocale": "tr-TR",
+    "capturePrefix": "tr-TR",
+    "copyTag": "tr",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Ukrainian",
+    "storeLocale": "uk",
+    "capturePrefix": "uk",
+    "copyTag": "uk",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Urdu",
+    "storeLocale": "ur",
+    "capturePrefix": "ur",
+    "copyTag": "ur",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Vietnamese",
+    "storeLocale": "vi",
+    "capturePrefix": "vi",
+    "copyTag": "vi",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Zulu",
+    "storeLocale": "zu",
+    "capturePrefix": "zu",
+    "copyTag": "zu",
+    "consoleAvailability": "unverified"
+  }
+]

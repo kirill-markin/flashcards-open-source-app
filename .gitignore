@@ -28,6 +28,10 @@ pnpm-debug.log*
 apps/web/playwright-report/
 apps/web/test-results/
 
+# Derived store cards; generated independently from committed native captures
+apps/ios/docs/media/app-store-cards/
+apps/android/docs/media/play-store-cards/
+
 # Python cache files
 __pycache__/
 *.py[cod]
