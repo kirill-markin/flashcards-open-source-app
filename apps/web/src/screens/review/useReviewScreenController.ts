@@ -445,7 +445,8 @@ export function useReviewScreenController(
       : visibleSelectedReviewFilterTitle;
     setTagFilterRequest({
       currentFilterTitle,
-      isRequestedTagFilterSelected: isReviewFilterEqual(selectedReviewFilter, { kind: "tags", tags: [tag] }),
+      // Resolved, not selected: a multi-tag selection narrowed to [tag] by deleted tags is already this filter.
+      isRequestedTagFilterSelected: isReviewFilterEqual(resolvedReviewFilter, { kind: "tags", tags: [tag] }),
       tag,
     });
   }
