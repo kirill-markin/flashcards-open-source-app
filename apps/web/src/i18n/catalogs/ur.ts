@@ -1124,6 +1124,12 @@ const urCatalog: TranslationCatalog = {
     dismiss: "سمجھ گیا",
     title: "مختصر یاددہانی",
   },
+  reviewTagFilterDialog: {
+    alreadySelectedBody: "آپ پہلے ہی “{{tag}}” ٹیگ والے کارڈز کی دہرائی کر رہے ہیں۔",
+    changeBody: "آپ ابھی “{{currentFilter}}” کی دہرائی کر رہے ہیں۔ کیا اس کے بجائے صرف “{{tag}}” ٹیگ والے کارڈز کی دہرائی کرنی ہے؟",
+    confirm: "فلٹر تبدیل کریں",
+    title: "دہرائی کا فلٹر",
+  },
   demoCard: {
     front: "پڑھائی کے لیے بہترین ایپ کون سی ہے؟",
     back1: "{{appName}} — وہ ایپ جسے آپ ابھی دیکھ رہے ہیں۔ یہاں ہر چیز ایک فلیش کارڈ ہے: سامنے سوال، اور پیچھے جواب۔",

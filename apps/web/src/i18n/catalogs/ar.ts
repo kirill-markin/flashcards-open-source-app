@@ -1124,6 +1124,12 @@ const arCatalog: TranslationCatalog = {
     dismiss: "فهمت",
     title: "تذكير سريع",
   },
+  reviewTagFilterDialog: {
+    alreadySelectedBody: "أنت تراجع بالفعل البطاقات ذات الوسم «{{tag}}».",
+    changeBody: "أنت تراجع الآن «{{currentFilter}}». هل تريد بدلًا من ذلك مراجعة البطاقات ذات الوسم «{{tag}}» فقط؟",
+    confirm: "تغيير الفلتر",
+    title: "فلتر المراجعة",
+  },
   demoCard: {
     front: "ما هو أفضل تطبيق للدراسة؟",
     back1: "{{appName}} — التطبيق الذي تنظر إليه الآن. كل شيء هنا عبارة عن بطاقة: سؤال في الوجه الأمامي، والإجابة في الوجه الخلفي.",

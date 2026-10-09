@@ -1144,6 +1144,12 @@ const slCatalog: TranslationCatalog = {
     dismiss: "Razumem",
     title: "Kratek opomnik",
   },
+  reviewTagFilterDialog: {
+    alreadySelectedBody: "Že ponavljate kartice z oznako »{{tag}}«.",
+    changeBody: "Trenutno ponavljate: »{{currentFilter}}«. Želite namesto tega ponavljati samo kartice z oznako »{{tag}}«?",
+    confirm: "Spremeni filter",
+    title: "Filter ponavljanja",
+  },
   demoCard: {
     front: "Katera aplikacija je najboljša za učenje?",
     back1: "{{appName}} — aplikacija, ki jo pravkar gledate. Vse tukaj je učna kartica: vprašanje na sprednji strani in odgovor na zadnji.",

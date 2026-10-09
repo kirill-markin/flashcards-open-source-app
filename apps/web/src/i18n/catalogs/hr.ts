@@ -1134,6 +1134,12 @@ const hrCatalog: TranslationCatalog = {
     dismiss: "Razumijem",
     title: "Kratak podsjetnik",
   },
+  reviewTagFilterDialog: {
+    alreadySelectedBody: "Već ponavljate kartice s oznakom „{{tag}}”.",
+    changeBody: "Trenutačno ponavljate: „{{currentFilter}}”. Želite li umjesto toga ponavljati samo kartice s oznakom „{{tag}}”?",
+    confirm: "Promijeni filtar",
+    title: "Filtar ponavljanja",
+  },
   demoCard: {
     front: "Koja je najbolja aplikacija za učenje?",
     back1: "{{appName}} — aplikacija koju upravo gledate. Ovdje je sve kartica za učenje: pitanje na prednjoj strani, odgovor na poleđini.",

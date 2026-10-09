@@ -1,14 +1,13 @@
 import type { ReactElement } from "react";
-import { useAppData } from "../../../appData";
 import { useI18n } from "../../../i18n";
 
 type ReviewCardTagsProps = Readonly<{
+  onRequestTagFilter: (tag: string) => void;
   tags: ReadonlyArray<string>;
 }>;
 
 export function ReviewCardTags(props: ReviewCardTagsProps): ReactElement {
-  const { tags } = props;
-  const { selectReviewFilter } = useAppData();
+  const { onRequestTagFilter, tags } = props;
   const { t } = useI18n();
 
   if (tags.length === 0) {
@@ -28,7 +27,7 @@ export function ReviewCardTags(props: ReviewCardTagsProps): ReactElement {
             if (event.detail > 0) {
               event.currentTarget.blur();
             }
-            selectReviewFilter({ kind: "tags", tags: [tag] });
+            onRequestTagFilter(tag);
           }}
           onKeyDown={(event) => {
             if (event.key === " " || event.key === "Enter") {

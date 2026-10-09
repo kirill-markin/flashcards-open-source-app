@@ -1124,6 +1124,12 @@ const idCatalog: TranslationCatalog = {
     dismiss: "Paham",
     title: "Pengingat singkat",
   },
+  reviewTagFilterDialog: {
+    alreadySelectedBody: "Anda sudah meninjau kartu dengan tag “{{tag}}”.",
+    changeBody: "Anda sedang meninjau “{{currentFilter}}”. Tinjau hanya kartu dengan tag “{{tag}}” sebagai gantinya?",
+    confirm: "Ubah filter",
+    title: "Filter tinjauan",
+  },
   demoCard: {
     front: "Aplikasi apa yang terbaik untuk belajar?",
     back1: "{{appName}} — aplikasi yang sedang Anda buka saat ini. Semua di sini adalah kartu flash: pertanyaan di sisi depan, jawaban di sisi belakang.",
