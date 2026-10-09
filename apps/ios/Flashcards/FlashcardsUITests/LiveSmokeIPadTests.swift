@@ -142,9 +142,7 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
         self.app.typeKey(XCUIKeyboardKey.space, modifierFlags: [])
         self.app.typeKey("4", modifierFlags: [])
         XCTAssertEqual(rawComposerValue(), "1 4", "The multiline probe must start with the exact independently typed draft.")
-        XCUIElement.perform(withKeyModifiers: .shift) {
-            self.app.typeKey(XCUIKeyboardKey.return, modifierFlags: [])
-        }
+        self.app.typeKey(XCUIKeyboardKey.return, modifierFlags: .shift)
         self.app.typeKey("2", modifierFlags: [])
         XCTAssertEqual(composer.value as? String, "1 4\n2")
         try self.assertTextExists("Smoke guest manual review answer", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
