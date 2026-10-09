@@ -23,8 +23,8 @@ function AccentColorEditor(): ReactElement {
   const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const { t } = useI18n();
   const presentPremium = usePremiumPresenter();
-  const { selectedColor, effectiveColor, canCustomize } = useAccountAccentColor();
-  const [customColor, setCustomColor] = useState(selectedColor);
+  const { effectiveColor, canCustomize } = useAccountAccentColor();
+  const [customColor, setCustomColor] = useState(effectiveColor);
   const [errorMessage, setErrorMessage] = useState("");
   const mountedRef = useRef(false);
   const sessionRef = useRef(session);
@@ -34,7 +34,7 @@ function AccentColorEditor(): ReactElement {
     () => hasPendingAccentColorWrite(session?.userId ?? null),
   );
   const isDisabled = !isSessionVerified || session === null;
-  const isCustomSelected = !accentPresets.some((preset) => preset.color === selectedColor);
+  const isCustomSelected = !accentPresets.some((preset) => preset.color === effectiveColor);
   const isValidCustomColor = customColor.length === 7 && /^#[0-9a-fA-F]{6}$/.test(customColor);
 
   useEffect(() => {
@@ -43,8 +43,8 @@ function AccentColorEditor(): ReactElement {
   }, []);
 
   useEffect(() => {
-    setCustomColor((draft) => /^#[0-9a-fA-F]{6}$/.test(draft) ? selectedColor : draft);
-  }, [selectedColor]);
+    setCustomColor((draft) => /^#[0-9a-fA-F]{6}$/.test(draft) ? effectiveColor : draft);
+  }, [effectiveColor]);
 
   function showPreferenceError(error: unknown, operation: "account_preferences_refresh" | "account_preferences_update"): void {
     if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)
@@ -106,8 +106,12 @@ function AccentColorEditor(): ReactElement {
     if (isDisabled) {
       return;
     }
-    if (color === defaultAccentColor || canCustomize) {
+    if (canCustomize) {
       persistColor(color);
+      return;
+    }
+    // Writing Default here would overwrite the retained premium selection that resubscription restores.
+    if (color === defaultAccentColor) {
       return;
     }
     const initiatingSession = sessionRef.current;
@@ -168,7 +172,7 @@ function AccentColorEditor(): ReactElement {
               <input
                 type="radio"
                 name="accent-color"
-                checked={selectedColor === preset.color}
+                checked={effectiveColor === preset.color}
                 onChange={() => chooseColor(preset.color)}
                 data-testid={`accent-preset-${preset.name}`}
               />
@@ -191,7 +195,7 @@ function AccentColorEditor(): ReactElement {
             {t("accentColorSettings.custom")}
             <input
               type="color"
-              value={isValidCustomColor ? customColor : selectedColor}
+              value={isValidCustomColor ? customColor : effectiveColor}
               disabled={isDisabled}
               onChange={(event) => {
                 const color = event.target.value.toUpperCase();
