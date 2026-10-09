@@ -46,6 +46,8 @@ final class MarketingScreenshotsTests: MarketingManualScreenshotTestCase {
             )
         }
 
+        try self.verifyHistoryDraftRoundTripIfNeeded(localeFixture: localeFixture)
+
         try self.step("capture review AI draft screenshot") {
             try self.captureMarketingScreenshotAndAssertWritten(
                 fileName: localeFixture.reviewAiDraftFileName

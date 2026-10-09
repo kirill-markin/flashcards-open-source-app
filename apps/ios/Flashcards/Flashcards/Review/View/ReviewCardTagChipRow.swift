@@ -40,6 +40,7 @@ struct ReviewCardTagChipRow: View {
                 Button(tag) {
                     self.onSelectTag(tag)
                 }
+                .accessibilityIdentifier(UITestIdentifier.reviewCardTagChipPrefix + tag)
                 .buttonStyle(.bordered)
                 .buttonBorderShape(.capsule)
                 .controlSize(.small)

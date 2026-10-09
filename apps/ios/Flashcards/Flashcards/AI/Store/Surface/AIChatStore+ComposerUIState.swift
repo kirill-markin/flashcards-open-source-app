@@ -153,6 +153,7 @@ extension AIChatStore {
         }
 
         let trimmedInputText = self.inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.composerSelection = nil
         if trimmedInputText.isEmpty {
             self.inputText = suggestion.text
             return
@@ -179,12 +180,14 @@ extension AIChatStore {
         }
     }
 
-    func consumeCompletedDictationTranscript(id: String) {
+    @discardableResult
+    func consumeCompletedDictationTranscript(id: String) -> Bool {
         guard self.completedDictationTranscript?.id == id else {
-            return
+            return false
         }
 
         self.completedDictationTranscript = nil
+        return true
     }
 
     func applyPresentationRequest(request: AIChatPresentationRequest) -> Bool {
@@ -193,6 +196,7 @@ extension AIChatStore {
             guard self.canEditDraft else {
                 return false
             }
+            self.composerSelection = nil
             self.inputText = aiChatCreateCardDraftPrompt
             return true
         case .attachCard(let card):

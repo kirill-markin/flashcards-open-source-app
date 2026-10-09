@@ -22,16 +22,9 @@ struct ReadableContentLayout<Content: View>: View {
     }
 
     var body: some View {
-        HStack(spacing: 0) {
-            Spacer(minLength: 0)
-
-            self.content
-                .frame(maxWidth: self.maxWidth, alignment: self.alignment)
-                .frame(maxWidth: .infinity, alignment: self.alignment)
-
-            Spacer(minLength: 0)
-        }
-        .padding(.horizontal, self.horizontalPadding)
-        .frame(maxWidth: .infinity, alignment: .center)
+        self.content
+            .frame(maxWidth: self.maxWidth, alignment: self.alignment)
+            .padding(.horizontal, self.horizontalPadding)
+            .frame(maxWidth: .infinity, alignment: .center)
     }
 }
