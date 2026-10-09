@@ -1,4 +1,6 @@
 import Foundation
+import ImageIO
+import UIKit
 import XCTest
 
 private enum MarketingManualScreenshotError: LocalizedError {
@@ -69,6 +71,7 @@ private struct MarketingScreenshotRuntimeConfiguration: Decodable {
     let includeManualScreenshotTests: Bool
     let outputDirectoryPath: String
     let localizationCode: String
+    let orientation: String?
 
     func validated() throws -> MarketingScreenshotRuntimeConfiguration {
         let trimmedOutputDirectoryPath = self.outputDirectoryPath.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -80,11 +83,15 @@ private struct MarketingScreenshotRuntimeConfiguration: Decodable {
         guard trimmedLocalizationCode.isEmpty == false else {
             throw MarketingManualScreenshotError.missingRuntimeConfigurationValue("localizationCode")
         }
+        guard self.orientation == nil || self.orientation == "portrait" || self.orientation == "landscape" else {
+            throw MarketingManualScreenshotError.missingRuntimeConfigurationValue("orientation (portrait or landscape)")
+        }
 
         return MarketingScreenshotRuntimeConfiguration(
             includeManualScreenshotTests: self.includeManualScreenshotTests,
             outputDirectoryPath: trimmedOutputDirectoryPath,
-            localizationCode: trimmedLocalizationCode
+            localizationCode: trimmedLocalizationCode,
+            orientation: self.orientation
         )
     }
 }
@@ -186,6 +193,8 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
             selectedTab: .review,
             aiHandoffCard: nil
         )
+        XCUIDevice.shared.orientation = try self.manualRuntimeConfiguration().orientation == "landscape"
+            ? .landscapeLeft : .portrait
         try self.assertReviewProgressBadge()
         try self.assertElementExists(
             identifier: LiveSmokeIdentifier.reviewShowAnswerButton,
@@ -242,6 +251,42 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
             aiHandoffCard: marketingAiHandoffFirstCardValue
         )
         try self.assertScreenVisible(screen: .ai, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        if try self.manualRuntimeConfiguration().orientation == "landscape" {
+            try self.tapTabBarItem(selectedTab: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.revealOpportunityCostReviewAnswer()
+            try self.tapButton(identifier: LiveSmokeIdentifier.aiCompanionToggle,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            // Exercise the same reviewed-card handoff as the real iPad toolbar regression.
+            try self.tapButton(identifier: LiveSmokeIdentifier.reviewAiButton,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.assertScreenVisible(screen: .ai, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        }
+    }
+
+    @MainActor
+    func verifyHistoryDraftRoundTripIfNeeded(localeFixture: MarketingScreenshotLocaleFixture) throws {
+        // History is server-backed: use the prepared guest workspace, not a local-only fixture.
+        if localeFixture.localizationCode == "en-US", try self.manualRuntimeConfiguration().orientation == "landscape" {
+            try self.step("retain the unsent draft through native AI history") {
+                try self.tapButton(identifier: LiveSmokeIdentifier.aiHistoryButton, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                try self.assertTextExists("Chat history", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                try self.tapFirstNavigationBackButton()
+                try self.waitForAiComposerValue(localeFixture.reviewAiDraftMessage, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                try self.tapTabBarItem(selectedTab: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                try self.waitForAiComposerValue(localeFixture.reviewAiDraftMessage, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                let answerParagraphs = localeFixture.reviewCard.backText.components(separatedBy: "\n\n")
+                let answerPredicate = NSCompoundPredicate(andPredicateWithSubpredicates: answerParagraphs.map {
+                    NSPredicate(format: "label CONTAINS %@", $0)
+                })
+                XCTAssertTrue(self.app.staticTexts.matching(answerPredicate).firstMatch.waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds))
+                for identifier in ["review.rating.0", "review.rating.1", LiveSmokeIdentifier.reviewRateGoodButton, "review.rating.3"] {
+                    XCTAssertTrue(self.app.buttons[identifier].isHittable)
+                }
+                let toggle = self.app.buttons[LiveSmokeIdentifier.aiCompanionToggle]
+                let bar = try XCTUnwrap(self.app.navigationBars.allElementsBoundByIndex.first { $0.buttons[LiveSmokeIdentifier.aiCompanionToggle].exists })
+                XCTAssertLessThanOrEqual(bar.frame.maxY - toggle.frame.maxY, toggle.frame.height)
+            }
+        }
     }
 
     @MainActor
@@ -339,13 +384,38 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
         let outputDirectoryURL = try self.outputDirectoryURL()
         let screenshotURL = outputDirectoryURL.appendingPathComponent(fileName, isDirectory: false)
         let screenshot = XCUIScreen.main.screenshot()
+        // XCTest PNGs can retain portrait storage with EXIF rotation. Draw the
+        // captured landscape image upright so App Store reads real landscape pixels.
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = screenshot.image.scale
+        format.opaque = true
+        format.preferredRange = .standard
+        let uprightImage = UIGraphicsImageRenderer(size: screenshot.image.size, format: format).image { _ in
+            screenshot.image.draw(in: CGRect(origin: .zero, size: screenshot.image.size))
+        }
+        let landscape = try self.manualRuntimeConfiguration().orientation == "landscape"
+        XCTAssertEqual(uprightImage.cgImage!.width > uprightImage.cgImage!.height, landscape,
+            "Marketing screenshot must use the requested orientation.")
         let attachment = XCTAttachment(screenshot: screenshot)
         attachment.name = fileName
         attachment.lifetime = .keepAlways
         self.add(attachment)
 
         do {
-            try screenshot.pngRepresentation.write(to: screenshotURL, options: .atomic)
+            let image = uprightImage.cgImage!
+            guard let context = CGContext(data: nil, width: image.width, height: image.height,
+                bitsPerComponent: 8, bytesPerRow: image.width * 4,
+                space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue) else {
+                throw CocoaError(.fileWriteUnknown)
+            }
+            context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+            let png = NSMutableData()
+            guard let encoder = CGImageDestinationCreateWithData(png, "public.png" as CFString, 1, nil),
+                  let opaqueImage = context.makeImage() else { throw CocoaError(.fileWriteUnknown) }
+            CGImageDestinationAddImage(encoder, opaqueImage, nil)
+            guard CGImageDestinationFinalize(encoder) else { throw CocoaError(.fileWriteUnknown) }
+            try (png as Data).write(to: screenshotURL, options: .atomic)
         } catch {
             throw MarketingManualScreenshotError.screenshotWriteFailed(screenshotURL.path, underlying: error)
         }
@@ -486,7 +556,8 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
         let runtimeConfiguration = MarketingScreenshotRuntimeConfiguration(
             includeManualScreenshotTests: true,
             outputDirectoryPath: environment[MarketingScreenshotEnvironment.outputDirectoryPathKey] ?? "",
-            localizationCode: environment[MarketingScreenshotEnvironment.localizationKey] ?? ""
+            localizationCode: environment[MarketingScreenshotEnvironment.localizationKey] ?? "",
+            orientation: environment["FLASHCARDS_MARKETING_SCREENSHOT_ORIENTATION"]
         )
 
         do {

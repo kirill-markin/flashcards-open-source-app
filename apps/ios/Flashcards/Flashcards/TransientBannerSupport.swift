@@ -230,25 +230,22 @@ struct GlobalTransientBannerHost: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
 
     var body: some View {
-        GeometryReader { proxy in
-            ZStack(alignment: .top) {
-                if let currentTransientBanner = self.store.currentTransientBanner {
-                    TransientBannerView(
-                        banner: currentTransientBanner,
-                        onDismiss: {
-                            self.dismissCurrentTransientBanner()
-                        }
-                    )
-                    .allowsHitTesting(true)
-                    .padding(.top, proxy.safeAreaInsets.top + 8)
-                    .padding(.horizontal, 16)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-                    .zIndex(1)
-                }
+        ZStack(alignment: .top) {
+            if let currentTransientBanner = self.store.currentTransientBanner {
+                TransientBannerView(
+                    banner: currentTransientBanner,
+                    onDismiss: {
+                        self.dismissCurrentTransientBanner()
+                    }
+                )
+                .allowsHitTesting(true)
+                .padding(.top, 8)
+                .padding(.horizontal, 16)
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .zIndex(1)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .ignoresSafeArea()
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .task(id: self.store.currentTransientBanner?.id) {
             await self.autoDismissCurrentTransientBanner()
         }

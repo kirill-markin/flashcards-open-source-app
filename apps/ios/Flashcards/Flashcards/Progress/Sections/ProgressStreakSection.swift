@@ -86,11 +86,26 @@ struct ProgressStreakSection: View {
 }
 
 private struct ProgressStreakCalendarGrid: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @ScaledMetric(relativeTo: .footnote) private var dayDiameter: CGFloat = 38
+
     let headerDays: [ProgressCalendarDay]
     let weeks: [ProgressCalendarWeek]
     let calendar: Calendar
 
     var body: some View {
+        if self.dynamicTypeSize.isAccessibilitySize {
+            ScrollView(.horizontal) {
+                self.calendarContent
+                    .frame(minWidth: self.dayDiameter * 7 + progressStreakCalendarColumnSpacing * 6)
+                    .padding(.vertical, 2)
+            }
+        } else {
+            self.calendarContent
+        }
+    }
+
+    private var calendarContent: some View {
         VStack(alignment: .leading, spacing: progressStreakCalendarHeaderSpacing) {
             HStack(spacing: progressStreakCalendarColumnSpacing) {
                 ForEach(self.headerDays) { day in
@@ -253,6 +268,8 @@ private struct ProgressFreezeBankChip: View {
 }
 
 private struct ProgressStreakDayCell: View {
+    @ScaledMetric(relativeTo: .footnote) private var dayDiameter: CGFloat = 38
+
     let day: ProgressCalendarDay
     let calendar: Calendar
 
@@ -276,10 +293,13 @@ private struct ProgressStreakDayCell: View {
                 Text(self.day.dayNumber.formatted())
                     .font(.footnote.weight(self.day.isToday ? .semibold : .regular))
                     .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
                     .foregroundStyle(self.foregroundColor)
             }
         }
-        .frame(width: 38, height: 38)
+        .frame(maxWidth: self.dayDiameter)
+        .frame(height: self.dayDiameter)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(self.accessibilityLabel)
     }

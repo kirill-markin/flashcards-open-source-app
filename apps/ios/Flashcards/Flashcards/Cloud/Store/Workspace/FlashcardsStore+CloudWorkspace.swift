@@ -135,6 +135,7 @@ extension FlashcardsStore {
             workspace: selectedWorkspace,
             linkedSession: activeSession
         )
+        self.reviewPresentationResetRevision += 1
         self.cloudRuntime.setActiveCloudSession(linkedSession: activeSession)
         try self.reload()
         self.syncStatus = .syncing
@@ -478,6 +479,9 @@ extension FlashcardsStore {
                 return (session, response)
             }
 
+            if resetResult.1.ok && self.workspace?.workspaceId == localWorkspaceId {
+                self.reviewPresentationResetRevision += 1
+            }
             let syncResult = try await self.runLinkedSync(linkedSession: resetResult.0)
             try await self.applySyncResultWithoutBlockingReset(
                 syncResult: syncResult,

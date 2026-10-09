@@ -70,7 +70,7 @@ iphone_only_locales=(
 print_usage() {
     cat <<'EOF' >&2
 Usage:
-  capture-ios-marketing-screenshot.sh [--locale <code>] <test_identifier> <description> <screenshot_index> [<screenshot_index> ...]
+  capture-ios-marketing-screenshot.sh [--locale <code>] [--orientation portrait|landscape] <test_identifier> <description> <screenshot_index> [<screenshot_index> ...]
   capture-ios-marketing-screenshot.sh --list-locales
   capture-ios-marketing-screenshot.sh --list-ipad-locales
 
@@ -350,6 +350,7 @@ if [[ $# -eq 0 ]]; then
 fi
 
 requested_locale=""
+orientation="${FLASHCARDS_MARKETING_SCREENSHOT_ORIENTATION:-}"
 positional_arguments=()
 
 while [[ $# -gt 0 ]]; do
@@ -366,6 +367,19 @@ while [[ $# -gt 0 ]]; do
             ;;
         --locale=*)
             requested_locale="${1#*=}"
+            shift
+            ;;
+        --orientation)
+            shift
+            if [[ $# -eq 0 ]]; then
+                echo "Missing value after --orientation." >&2
+                exit 1
+            fi
+            orientation="$1"
+            shift
+            ;;
+        --orientation=*)
+            orientation="${1#*=}"
             shift
             ;;
         --list-locales)
@@ -398,11 +412,15 @@ expected_screenshot_indices=("${positional_arguments[@]:2}")
 cleanup_test_identifier="MarketingScreenshotsTests/testCleanupMarketingGuestSession"
 
 localization_code="$(resolve_requested_locale "$requested_locale")"
+if [[ -n "$orientation" && "$orientation" != portrait && "$orientation" != landscape ]]; then
+    echo "Unsupported screenshot orientation: $orientation" >&2
+    exit 1
+fi
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 project_path="$repo_root/apps/ios/Flashcards/Flashcards Open Source App.xcodeproj"
 scheme_name="Flashcards Open Source App"
-derived_data_path="$repo_root/tmp/ios-derived-data"
+derived_data_path="${FLASHCARDS_IOS_DERIVED_DATA_PATH:-$repo_root/tmp/ios-derived-data}"
 runtime_configuration_path="/tmp/flashcards-open-source-app-ios-marketing-screenshot-config.json"
 capture_directory=""
 captured_screenshot_paths=()
@@ -433,7 +451,8 @@ write_runtime_configuration() {
 {
   "includeManualScreenshotTests": true,
   "outputDirectoryPath": "$(escape_json_string "$output_directory")",
-  "localizationCode": "$(escape_json_string "$localization_code")"
+  "localizationCode": "$(escape_json_string "$localization_code")",
+  "orientation": "$orientation"
 }
 EOF
 }
@@ -444,6 +463,10 @@ cleanup_runtime_configuration() {
 
 run_ios_marketing_xcodebuild_test() {
     local selected_test_identifier="$1"
+    local test_action="test"
+    if [[ "${FLASHCARDS_IOS_MARKETING_TEST_WITHOUT_BUILDING:-0}" == 1 ]]; then
+        test_action="test-without-building"
+    fi
 
     FLASHCARDS_INCLUDE_MANUAL_SCREENSHOT_TESTS=true \
     FLASHCARDS_MARKETING_SCREENSHOT_OUTPUT_DIRECTORY="$capture_directory" \
@@ -454,7 +477,7 @@ run_ios_marketing_xcodebuild_test() {
       -derivedDataPath "$derived_data_path" \
       -destination "platform=iOS Simulator,id=$simulator_id" \
       "-only-testing:Flashcards Open Source App UI Tests/$selected_test_identifier" \
-      test
+      "$test_action"
 }
 
 run_ios_marketing_guest_cleanup() {
@@ -625,6 +648,13 @@ resolve_screenshot_path_for_index() {
 simulator_id="$(resolve_booted_simulator_id)"
 simulator_name="$(resolve_simulator_name "$simulator_id")"
 device_family="$(resolve_device_family "$simulator_name")"
+if [[ -z "$orientation" ]]; then
+    if [[ "$device_family" == ipad ]]; then
+        orientation="landscape"
+    else
+        orientation="portrait"
+    fi
+fi
 
 if [[ "$device_family" == "ipad" ]] && is_iphone_only_locale "$localization_code"; then
     echo "Capture tag '$localization_code' is iPhone-only and has no $device_family screenshots." >&2
@@ -633,6 +663,10 @@ if [[ "$device_family" == "ipad" ]] && is_iphone_only_locale "$localization_code
 fi
 
 output_directory="$repo_root/apps/ios/docs/media/app-store-screenshots/$device_family"
+if [[ "$orientation" == landscape && "$device_family" != ipad ]]; then
+    echo "Landscape marketing captures are supported only on iPad; iPhone keeps its portrait policy." >&2
+    exit 1
+fi
 
 mkdir -p "$output_directory"
 mkdir -p "$repo_root/tmp"
