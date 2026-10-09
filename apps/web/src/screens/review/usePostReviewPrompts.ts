@@ -56,6 +56,7 @@ type PostReviewPromptUiState = Readonly<{
   isHardReminderVisible: boolean;
   isMobileAppPromotionDialogOpen: boolean;
   isReviewFilterMenuOpen: boolean;
+  isTagFilterDialogOpen: boolean;
 }>;
 
 type PostReviewPromptContext = Readonly<{
@@ -80,6 +81,7 @@ export type UsePostReviewPromptsParams = Readonly<{
   isEditorPresented: boolean;
   isHardReminderVisible: boolean;
   isReviewFilterMenuOpen: boolean;
+  isTagFilterDialogOpen: boolean;
   linkedUserId: string | null;
   locale: Locale;
   onFeedbackSubmitted: (message: string) => void;
@@ -102,6 +104,7 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
     isEditorPresented,
     isHardReminderVisible,
     isReviewFilterMenuOpen,
+    isTagFilterDialogOpen,
     linkedUserId,
     locale,
     onFeedbackSubmitted,
@@ -120,6 +123,7 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
     isHardReminderVisible: false,
     isMobileAppPromotionDialogOpen: false,
     isReviewFilterMenuOpen: false,
+    isTagFilterDialogOpen: false,
   });
   const promptContextRef = useRef<PostReviewPromptContext>({
     generation: 0,
@@ -139,6 +143,7 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
     isHardReminderVisible,
     isMobileAppPromotionDialogOpen,
     isReviewFilterMenuOpen,
+    isTagFilterDialogOpen,
   };
 
   const currentPromptContext = promptContextRef.current;
@@ -198,7 +203,8 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
       || uiState.isFeedbackDialogOpen
       || uiState.isHardReminderVisible
       || uiState.isMobileAppPromotionDialogOpen
-      || uiState.isReviewFilterMenuOpen;
+      || uiState.isReviewFilterMenuOpen
+      || uiState.isTagFilterDialogOpen;
   }
 
   function isPromptContextCurrent(context: PostReviewPromptContext): boolean {

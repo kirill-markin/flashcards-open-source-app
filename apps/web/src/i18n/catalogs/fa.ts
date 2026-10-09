@@ -1124,6 +1124,12 @@ const faCatalog: TranslationCatalog = {
     dismiss: "متوجه شدم",
     title: "یادآوری کوتاه",
   },
+  reviewTagFilterDialog: {
+    alreadySelectedBody: "هم‌اکنون در حال مرور کارت‌هایی با برچسب «{{tag}}» هستید.",
+    changeBody: "در حال مرور «{{currentFilter}}» هستید. به‌جای آن فقط کارت‌هایی با برچسب «{{tag}}» مرور شوند؟",
+    confirm: "تغییر فیلتر",
+    title: "فیلتر مرور",
+  },
   demoCard: {
     front: "بهترین برنامه برای مطالعه چیست؟",
     back1: "{{appName}} — همان برنامه‌ای که اکنون می‌بینید. همه‌چیز اینجا یک فلش‌کارت است: پرسش روی کارت و پاسخ پشت آن.",

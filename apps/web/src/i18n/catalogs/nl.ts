@@ -1124,6 +1124,12 @@ const nlCatalog: TranslationCatalog = {
     dismiss: "Duidelijk",
     title: "Korte herinnering",
   },
+  reviewTagFilterDialog: {
+    alreadySelectedBody: "Je herhaalt al kaarten met de tag ‘{{tag}}’.",
+    changeBody: "Je herhaalt nu ‘{{currentFilter}}’. In plaats daarvan alleen kaarten met de tag ‘{{tag}}’ herhalen?",
+    confirm: "Filter wijzigen",
+    title: "Herhalingsfilter",
+  },
   demoCard: {
     front: "Wat is de beste app om mee te leren?",
     back1: "{{appName}} — de app die je nu voor je hebt. Alles hier is een kaart: een vraag op de voorkant, het antwoord op de achterkant.",

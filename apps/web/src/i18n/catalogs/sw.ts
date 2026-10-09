@@ -1124,6 +1124,12 @@ const swCatalog: TranslationCatalog = {
     dismiss: "Nimeelewa",
     title: "Kikumbusho kifupi",
   },
+  reviewTagFilterDialog: {
+    alreadySelectedBody: "Tayari unarudia kadi zenye lebo “{{tag}}”.",
+    changeBody: "Unarudia “{{currentFilter}}”. Badala yake, ungependa kurudia tu kadi zenye lebo “{{tag}}”?",
+    confirm: "Badilisha kichujio",
+    title: "Kichujio cha marudio",
+  },
   demoCard: {
     front: "Programu bora ya kujifunzia ni ipi?",
     back1: "{{appName}} — programu unayotazama sasa hivi. Kila kitu hapa ni kadi ya kujifunzia: swali mbele, jibu nyuma.",
