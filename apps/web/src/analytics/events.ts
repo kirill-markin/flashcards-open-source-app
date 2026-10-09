@@ -171,6 +171,7 @@ export type AnalyticsPaywallEntryPoint =
   | "accent_color"
   | "review_animations"
   | "ai_chat_suggestions"
+  | "app_icon"
   | "guest_return";
 
 export type AnalyticsPurchaseOfferType = "free_trial" | "standard";
