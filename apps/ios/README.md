@@ -126,9 +126,8 @@ The grouped smoke suite still maps to the same top-level live-smoke contract as 
 
 ## App Icon
 
-The Apple app icon is the layered `Flashcards/Flashcards/AppIcon.icon` resource.
-Build and edit it with Xcode 27 or newer. See [App icon](docs/app-icon.md) for
-native appearance settings, previews, and verification.
+The Apple app icon is the Icon Composer document `Flashcards/Flashcards/AppIcon.icon`, with a light alternate beside it.
+See [App icon](docs/app-icon.md) before changing either.
 
 ## Marketing Screenshots
 
