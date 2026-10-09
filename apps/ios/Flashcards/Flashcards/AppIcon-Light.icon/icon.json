@@ -6,13 +6,13 @@
   "fill-specializations": [
     {
       "value": {
-        "solid": "srgb:0.137255,0.137255,0.137255,1.000000"
+        "automatic-gradient": "srgb:1.000000,1.000000,1.000000,1.000000"
       }
     },
     {
       "appearance": "dark",
       "value": {
-        "solid": "srgb:0.137255,0.137255,0.137255,1.000000"
+        "automatic-gradient": "srgb:1.000000,1.000000,1.000000,1.000000"
       }
     }
   ],
@@ -64,7 +64,7 @@
       }
     },
     {
-      "name": "01-Rear cream card",
+      "name": "01-Rear charcoal card",
       "layers": [
         {
           "name": "01-Rear-card",
@@ -73,13 +73,13 @@
           "fill-specializations": [
             {
               "value": {
-                "solid": "srgb:0.972549,0.952941,0.925490,1.000000"
+                "solid": "srgb:0.137255,0.137255,0.137255,1.000000"
               }
             },
             {
               "appearance": "dark",
               "value": {
-                "solid": "srgb:0.972549,0.952941,0.925490,1.000000"
+                "solid": "srgb:0.137255,0.137255,0.137255,1.000000"
               }
             },
             {
