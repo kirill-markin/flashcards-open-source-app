@@ -41,6 +41,8 @@ import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPaywall
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSubscriptionManagementDestination
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
 import com.flashcardsopensourceapp.core.ui.AppTechnicalError
+import com.flashcardsopensourceapp.data.local.appicon.AppIcon
+import com.flashcardsopensourceapp.data.local.appicon.effectiveAppIcon
 import com.flashcardsopensourceapp.data.local.model.cloud.canUseLocalPremiumFeatures
 import com.flashcardsopensourceapp.feature.friendinvite.FriendInvitationDialog
 import com.flashcardsopensourceapp.feature.friendinvite.FriendInvitationShareEffect
@@ -54,6 +56,7 @@ import com.flashcardsopensourceapp.feature.settings.ai.AiChatSuggestionsRoute
 import com.flashcardsopensourceapp.feature.settings.ai.OwnOpenAiKeyRoute
 import com.flashcardsopensourceapp.feature.settings.ai.OwnOpenAiKeyViewModel
 import com.flashcardsopensourceapp.feature.settings.ai.createOwnOpenAiKeyViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.appicon.AppIconRoute
 import com.flashcardsopensourceapp.feature.settings.createSettingsViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.device.DeviceDiagnosticsRoute
 import com.flashcardsopensourceapp.feature.settings.device.createDeviceDiagnosticsViewModelFactory
@@ -195,6 +198,9 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
             },
             onOpenAiChatSuggestions = {
                 navController.navigate(route = SettingsAiChatSuggestionsDestination.route)
+            },
+            onOpenAppIcon = {
+                navController.navigate(route = SettingsAppIconDestination.route)
             },
             onOpenOwnOpenAiKey = {
                 navController.navigate(route = SettingsOwnOpenAiKeyDestination.route)
@@ -406,6 +412,40 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
                 ) { result ->
                     if (result == PremiumResult.ACCESS_GRANTED) {
                         settingsViewModel.updateAiChatComposerSuggestionsEnabled(isEnabled = isEnabled)
+                    }
+                }
+            },
+            onBack = {
+                navController.popBackStack()
+            }
+        )
+    }
+
+    composable(route = SettingsAppIconDestination.route) {
+        val storedAppIcon by appGraph.appIconPreferencesStore.observeAppIcon().collectAsStateWithLifecycle()
+        val canCustomizeStyle: Boolean = canUseLocalPremiumFeatures(entitlement = premiumPresenter.entitlement)
+
+        DisposableEffect(premiumPresenter) {
+            onDispose { premiumPresenter.dismiss() }
+        }
+
+        AppIconRoute(
+            selectedAppIcon = effectiveAppIcon(storedAppIcon = storedAppIcon, canCustomizeStyle = canCustomizeStyle),
+            isPremiumRequired = canCustomizeStyle.not(),
+            onSelectAppIcon = { appIcon ->
+                if (appIcon == AppIcon.DEFAULT) {
+                    premiumPresenter.dismiss()
+                    // Default is already displayed without Premium; writing it would drop the retained choice.
+                    if (canUseLocalPremiumFeatures(entitlement = premiumPresenter.entitlement)) {
+                        appGraph.appIconPreferencesStore.updateAppIcon(appIcon = appIcon)
+                    }
+                } else {
+                    premiumPresenter.requestFeature(
+                        paywallEntryPoint = AnalyticsPaywallEntryPoint.APP_ICON
+                    ) { result ->
+                        if (result == PremiumResult.ACCESS_GRANTED) {
+                            appGraph.appIconPreferencesStore.updateAppIcon(appIcon = appIcon)
+                        }
                     }
                 }
             },

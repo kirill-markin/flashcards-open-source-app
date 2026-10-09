@@ -99,6 +99,7 @@ fun SettingsRoute(
     onOpenReviewAnimations: () -> Unit,
     onOpenAccentColor: () -> Unit,
     onOpenAiChatSuggestions: () -> Unit,
+    onOpenAppIcon: () -> Unit,
     onOpenOwnOpenAiKey: () -> Unit,
     onOpenLeaderboardParticipation: () -> Unit,
     onOpenProductAnalytics: () -> Unit,
@@ -265,6 +266,16 @@ fun SettingsRoute(
                     attentionCount = null,
                     testTag = settingsAiChatSuggestionsRowTag,
                     onClick = onOpenAiChatSuggestions
+                )
+            }
+
+            item {
+                SettingsRootRow(
+                    title = stringResource(R.string.settings_app_icon_title),
+                    summary = null,
+                    attentionCount = null,
+                    testTag = settingsAppIconRowTag,
+                    onClick = onOpenAppIcon
                 )
             }
 

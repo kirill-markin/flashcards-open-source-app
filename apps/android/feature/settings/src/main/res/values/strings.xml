@@ -108,6 +108,11 @@
     <string name="settings_ai_chat_suggestions_toggle_body">Suggested prompts appear above the AI chat composer when the conversation is ready.</string>
     <string name="settings_ai_chat_suggestions_update_failed">Could not update AI chat suggestions.</string>
     <string name="settings_ai_chat_suggestions_premium_note">Changing AI chat suggestions is included with Premium. Your saved choice is kept while suggestions stay on with the free plan.</string>
+    <string name="settings_app_icon_title">App icon</string>
+    <string name="settings_app_icon_default">Default</string>
+    <string name="settings_app_icon_light">Light</string>
+    <string name="settings_app_icon_premium_note">Changing the app icon is included with Premium. Your saved choice is kept while Default is displayed on the free plan.</string>
+    <string name="settings_app_icon_launcher_note">The new icon appears after you leave the app, and your launcher may take a moment to show it. If you placed the app icon on your home screen, you may need to add it again.</string>
     <string name="settings_own_openai_key_title">Your OpenAI key</string>
     <string name="settings_own_openai_key_toggle_title">Use my own OpenAI key</string>
     <string name="settings_own_openai_key_toggle_body">With your own key, AI chat, dictation and card images run on your OpenAI account, with no monthly limit on any plan. Suggested replies are off while your key is on. We never store your key on our servers: it stays on this device and is sent only with your AI requests, so enter it separately on iOS, Android and the web.</string>
