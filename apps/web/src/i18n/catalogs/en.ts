@@ -1123,6 +1123,12 @@ const enCatalog = {
     dismiss: "Got it",
     title: "Quick reminder",
   },
+  reviewTagFilterDialog: {
+    alreadySelectedBody: "You’re already reviewing cards tagged “{{tag}}”.",
+    changeBody: "You’re reviewing “{{currentFilter}}”. Review only cards tagged “{{tag}}” instead?",
+    confirm: "Change filter",
+    title: "Review filter",
+  },
   demoCard: {
     front: "What is the best application for studying?",
     back1: "{{appName}} — the app you are looking at right now. Everything here is a flashcard: a question on the front, the answer on the back.",

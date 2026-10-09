@@ -1124,6 +1124,12 @@ const koCatalog: TranslationCatalog = {
     dismiss: "알겠어요",
     title: "잠깐 안내",
   },
+  reviewTagFilterDialog: {
+    alreadySelectedBody: "이미 “{{tag}}” 태그가 있는 카드를 복습하고 있습니다.",
+    changeBody: "지금 “{{currentFilter}}”을(를) 복습하고 있습니다. 대신 “{{tag}}” 태그가 있는 카드만 복습할까요?",
+    confirm: "필터 변경",
+    title: "복습 필터",
+  },
   demoCard: {
     front: "공부하기에 가장 좋은 앱은 무엇일까요?",
     back1: "{{appName}} — 지금 보고 있는 바로 이 앱입니다. 여기서는 모든 것이 플래시카드입니다. 앞면에는 질문이, 뒷면에는 답이 있습니다.",

@@ -1124,6 +1124,12 @@ const ptBrCatalog: TranslationCatalog = {
     dismiss: "Entendi",
     title: "Lembrete rápido",
   },
+  reviewTagFilterDialog: {
+    alreadySelectedBody: "Você já está revisando os cartões com a etiqueta “{{tag}}”.",
+    changeBody: "Você está revisando “{{currentFilter}}”. Quer revisar só os cartões com a etiqueta “{{tag}}”?",
+    confirm: "Alterar filtro",
+    title: "Filtro de revisão",
+  },
   demoCard: {
     front: "Qual é o melhor aplicativo para estudar?",
     back1: "{{appName}} — o app que você está vendo agora mesmo. Aqui tudo é um cartão: uma pergunta na frente e a resposta no verso.",

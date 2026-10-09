@@ -1134,6 +1134,12 @@ const ltCatalog: TranslationCatalog = {
     dismiss: "Supratau",
     title: "Trumpas priminimas",
   },
+  reviewTagFilterDialog: {
+    alreadySelectedBody: "Jau kartojate korteles su žyma „{{tag}}“.",
+    changeBody: "Dabar kartojate: „{{currentFilter}}“. Ar vietoj to kartoti tik korteles su žyma „{{tag}}“?",
+    confirm: "Keisti filtrą",
+    title: "Kartojimo filtras",
+  },
   demoCard: {
     front: "Kokia programėlė geriausia mokymuisi?",
     back1: "{{appName}} – programėlė, į kurią dabar žiūrite. Čia viskas yra mokymosi kortelė: klausimas priekyje, atsakymas kitoje pusėje.",

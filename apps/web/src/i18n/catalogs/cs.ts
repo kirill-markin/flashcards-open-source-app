@@ -1134,6 +1134,12 @@ const csCatalog: TranslationCatalog = {
     dismiss: "Rozumím",
     title: "Krátká připomínka",
   },
+  reviewTagFilterDialog: {
+    alreadySelectedBody: "Už opakujete karty se štítkem „{{tag}}“.",
+    changeBody: "Právě opakujete: „{{currentFilter}}“. Chcete místo toho opakovat jen karty se štítkem „{{tag}}“?",
+    confirm: "Změnit filtr",
+    title: "Filtr opakování",
+  },
   demoCard: {
     front: "Jaká je nejlepší aplikace pro učení?",
     back1: "{{appName}} — aplikace, na kterou se právě díváte. Všechno je tu kartička: otázka na přední straně, odpověď na zadní.",

@@ -1134,6 +1134,12 @@ const plCatalog: TranslationCatalog = {
     dismiss: "Jasne",
     title: "Krótkie przypomnienie",
   },
+  reviewTagFilterDialog: {
+    alreadySelectedBody: "Już powtarzasz karty z tagiem „{{tag}}”.",
+    changeBody: "Powtarzasz teraz: „{{currentFilter}}”. Czy zamiast tego powtarzać tylko karty z tagiem „{{tag}}”?",
+    confirm: "Zmień filtr",
+    title: "Filtr powtórek",
+  },
   demoCard: {
     front: "Jaka jest najlepsza aplikacja do nauki?",
     back1: "{{appName}} — aplikacja, którą właśnie masz przed sobą. Wszystko tutaj jest kartą: pytanie z przodu, odpowiedź z tyłu.",

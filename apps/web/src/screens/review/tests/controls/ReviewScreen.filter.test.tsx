@@ -85,6 +85,14 @@ describe("ReviewScreen filter controls", () => {
 
     await clickElementAsync(tagButton);
 
+    expect(state.appData.selectReviewFilter).not.toHaveBeenCalled();
+    const confirmButton = document.querySelector("[data-testid='review-tag-filter-confirm']");
+    if (!(confirmButton instanceof HTMLButtonElement)) {
+      throw new Error("Review tag filter confirm button was not found");
+    }
+
+    await clickElementAsync(confirmButton);
+
     expect(state.appData.selectReviewFilter).toHaveBeenCalledWith({ kind: "tags", tags: ["germany"] });
   });
 
