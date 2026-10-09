@@ -1,0 +1,655 @@
+{
+  "provenance": "Complete native xcresult exports from release 1.33.0 Xcode Cloud 614, independently reconciled with the configured scheme/source/destination inventory and complete paginated Apple API. All 42 case-destination statuses and seven native skip reasons are retained. Final action/run both COMPLETE/SUCCEEDED; complete diagnostics were inspected and qualified under the canonical warning policy. Only the cloud-test gate is captured; other required release gates remain absent.",
+  "capture": {
+    "number": "614",
+    "sourceSha": "94b04494603551f28558b78992ffd253ee096de3",
+    "runId": "e6390e3a-0f5b-43a8-b9cf-d4f1a3346ae0",
+    "actionId": "0825993a-cf6a-447b-9c7f-6e3f25ef9f50",
+    "overallRunStatus": "SUCCEEDED",
+    "runExecutionProgress": "COMPLETE",
+    "actionStatus": "SUCCEEDED",
+    "actionExecutionProgress": "COMPLETE",
+    "sourceRef": "release-1.33.0/ios/cloud/614/614-test-artifacts",
+    "rawSha256": "39cb047d0929803dac2dab1b44669f79277c28059a5acf24437bd656c915c4ea",
+    "nativeExports": [
+      {
+        "artifactId": "98998f35-ef6f-4b6f-9df6-8823bb7e127f",
+        "zipSha256": "40b33ade618579d1d31aceaed4c16bd997350a96224bfcdba463e0960fa9ad0d",
+        "testsRef": "release-1.33.0/ios/cloud/614/614-test-artifacts/98998f35-ef6f-4b6f-9df6-8823bb7e127f-tests.json",
+        "testsSha256": "223c27c928a3c64e2299b56d060eb5533ba2e960a8c2fa9b378e44b9fd21dc0e",
+        "summaryRef": "release-1.33.0/ios/cloud/614/614-test-artifacts/98998f35-ef6f-4b6f-9df6-8823bb7e127f-summary.json",
+        "summarySha256": "ebd61751804624a2cadfaa9c1fad0e3272b476f1953db5a1365cd371510f7197",
+        "nativeCounts": {
+          "passedTests": 17,
+          "failedTests": 0,
+          "skippedTests": 4,
+          "totalTestCount": 21
+        }
+      },
+      {
+        "artifactId": "a4271a4f-3734-42bb-889e-2f3c7da2b40b",
+        "zipSha256": "050310b42c8e8099089a816ad1fa28ab5283ef2e9240ddc1af99a79162b237e8",
+        "testsRef": "release-1.33.0/ios/cloud/614/614-test-artifacts/a4271a4f-3734-42bb-889e-2f3c7da2b40b-tests.json",
+        "testsSha256": "5de26f78cb2edabf1dde60d75ccd8c524d8dd24db1b5c0837cf6631d586a486d",
+        "summaryRef": "release-1.33.0/ios/cloud/614/614-test-artifacts/a4271a4f-3734-42bb-889e-2f3c7da2b40b-summary.json",
+        "summarySha256": "170b42babebb90068dff5c5824320b8fb0b62718b89af0089c15723809b0eb01",
+        "nativeCounts": {
+          "passedTests": 18,
+          "failedTests": 0,
+          "skippedTests": 3,
+          "totalTestCount": 21
+        }
+      }
+    ],
+    "skipDetailsSha256": "a80dd8c2c5e268d75ce6db95f0ee4b1b4fd9306e3df4bea44bcaffd7b34d4c4a",
+    "destinations": [
+      {
+        "architecture": "arm64",
+        "deviceId": "37020D38-BE6A-4D17-BEB7-5669A923E905",
+        "deviceName": "iPhone 17",
+        "modelName": "iPhone 17",
+        "osBuildNumber": "24A434",
+        "osVersion": "27.0",
+        "platform": "iOS Simulator",
+        "caseDestination": "iPhone 17/iOS 27.0",
+        "resultArtifactId": "98998f35-ef6f-4b6f-9df6-8823bb7e127f",
+        "testPlanConfigurations": [
+          {
+            "configurationId": "1",
+            "configurationName": "Test Scheme Action"
+          }
+        ],
+        "configuredDestination": {
+          "deviceTypeName": "iPhone 17",
+          "deviceTypeIdentifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-17",
+          "runtimeName": "Latest from Selected Xcode (iOS 27.0)",
+          "runtimeIdentifier": "default",
+          "kind": "SIMULATOR"
+        }
+      },
+      {
+        "architecture": "arm64",
+        "deviceId": "19B6A633-B664-4F50-8B30-E761F6F0E24C",
+        "deviceName": "iPad Pro 13-inch (M5)",
+        "modelName": "iPad Pro 13-inch (M5)",
+        "osBuildNumber": "24A434",
+        "osVersion": "27.0",
+        "platform": "iOS Simulator",
+        "caseDestination": "iPad Pro 13-inch (M5)/iOS 27.0",
+        "resultArtifactId": "a4271a4f-3734-42bb-889e-2f3c7da2b40b",
+        "testPlanConfigurations": [
+          {
+            "configurationId": "1",
+            "configurationName": "Test Scheme Action"
+          }
+        ],
+        "configuredDestination": {
+          "deviceTypeName": "iPad Pro 13-inch (M5)",
+          "deviceTypeIdentifier": "com.apple.CoreSimulator.SimDeviceType.iPad-Pro-13-inch-M5-12GB",
+          "runtimeName": "Latest from Selected Xcode (iOS 27.0)",
+          "runtimeIdentifier": "default",
+          "kind": "SIMULATOR"
+        }
+      }
+    ],
+    "inventoryRef": "release-1.33.0/ios/cloud/614/independent-inventory.json",
+    "inventorySha256": "3519fab0486eee1bdf0132cc6a3a37dc14414f908baf22d89420024ce13c5464",
+    "schemeSha256": "e3856e00c88fb42dadb9f1c90c4f77a27ac24ed0c9904846ad05fde9c1dcaaab",
+    "destinationConfigurationSha256": "6d8d9990a021befd7febd307c35cf9feaba3c4ba2ab1d47f979ebe4c7c93ea84",
+    "inventorySourceDeclarations": [
+      {
+        "class": "LiveSmokeAiTests",
+        "method": "testLiveSmokeGuestAiCardCreationFlow",
+        "source": "apps/ios/Flashcards/FlashcardsUITests/LiveSmokeAiTests.swift",
+        "eligibility": "all"
+      },
+      {
+        "class": "LiveSmokeAiTests",
+        "method": "testLiveSmokeGuestAiChatResetFlow",
+        "source": "apps/ios/Flashcards/FlashcardsUITests/LiveSmokeAiTests.swift",
+        "eligibility": "all"
+      },
+      {
+        "class": "LiveSmokeCardsTests",
+        "method": "testLiveSmokeManualCardCreationFlow",
+        "source": "apps/ios/Flashcards/FlashcardsUITests/LiveSmokeCardsTests.swift",
+        "eligibility": "all"
+      },
+      {
+        "class": "LiveSmokeCardsTests",
+        "method": "testLiveSmokeUnsavedCardDraftSurvivesInteractiveDismissal",
+        "source": "apps/ios/Flashcards/FlashcardsUITests/LiveSmokeCardsTests.swift",
+        "eligibility": "all"
+      },
+      {
+        "class": "LiveSmokeCardsTests",
+        "method": "testLiveSmokeCardsEditorAiHandoffFlow",
+        "source": "apps/ios/Flashcards/FlashcardsUITests/LiveSmokeCardsTests.swift",
+        "eligibility": "all"
+      },
+      {
+        "class": "LiveSmokeIPadTests",
+        "method": "testIPadCompanionPreservesDraftAndRevealedReviewAcrossSections",
+        "source": "apps/ios/Flashcards/FlashcardsUITests/LiveSmokeIPadTests.swift",
+        "eligibility": "iPad"
+      },
+      {
+        "class": "LiveSmokeIPadTests",
+        "method": "testIPadReviewHardwareKeysRespectFilterAndRateCards",
+        "source": "apps/ios/Flashcards/FlashcardsUITests/LiveSmokeIPadTests.swift",
+        "eligibility": "iPad"
+      },
+      {
+        "class": "LiveSmokeOrdinaryIPhoneTests",
+        "method": "testOrdinaryPhoneReviewAIHandoffPreservesRevealedAnswer",
+        "source": "apps/ios/Flashcards/FlashcardsUITests/LiveSmokeOrdinaryIPhoneTests.swift",
+        "eligibility": "iPhone"
+      },
+      {
+        "class": "LiveSmokeOwnOpenAIKeyTests",
+        "method": "testOwnKeyPersistsAcrossRelaunchAndCanBeDisabledAndRemoved",
+        "source": "apps/ios/Flashcards/FlashcardsUITests/LiveSmokeOwnOpenAIKeyTests.swift",
+        "eligibility": "all"
+      },
+      {
+        "class": "LiveSmokeRTLTests",
+        "method": "testLiveSmokeArabicRTLTopLevelNavigation",
+        "source": "apps/ios/Flashcards/FlashcardsUITests/LiveSmokeRTLTests.swift",
+        "eligibility": "all"
+      },
+      {
+        "class": "LiveSmokeReviewTests",
+        "method": "testLiveSmokeManualCardReviewFlow",
+        "source": "apps/ios/Flashcards/FlashcardsUITests/LiveSmokeReviewTests.swift",
+        "eligibility": "all"
+      },
+      {
+        "class": "LiveSmokeReviewTests",
+        "method": "testLiveSmokeReviewReminderTabBadgeClearsAfterReview",
+        "source": "apps/ios/Flashcards/FlashcardsUITests/LiveSmokeReviewTests.swift",
+        "eligibility": "all"
+      },
+      {
+        "class": "LiveSmokeReviewTests",
+        "method": "testLiveSmokeGuestAiCardReviewFlow",
+        "source": "apps/ios/Flashcards/FlashcardsUITests/LiveSmokeReviewTests.swift",
+        "eligibility": "all"
+      },
+      {
+        "class": "LiveSmokeReviewTests",
+        "method": "testLiveSmokeReviewFilterMenuSupportsEmptyTagAndAllCardsStates",
+        "source": "apps/ios/Flashcards/FlashcardsUITests/LiveSmokeReviewTests.swift",
+        "eligibility": "all"
+      },
+      {
+        "class": "LiveSmokeSettingsTests",
+        "method": "testLiveSmokeGuestNavigationFlow",
+        "source": "apps/ios/Flashcards/FlashcardsUITests/LiveSmokeSettingsTests.swift",
+        "eligibility": "all"
+      },
+      {
+        "class": "LiveSmokeSettingsTests",
+        "method": "testLiveSmokeResetWorkspaceProgressFlow",
+        "source": "apps/ios/Flashcards/FlashcardsUITests/LiveSmokeSettingsTests.swift",
+        "eligibility": "all"
+      },
+      {
+        "class": "LiveSmokeSettingsTests",
+        "method": "testLiveSmokeNotificationTapColdStartOpensReviewOnce",
+        "source": "apps/ios/Flashcards/FlashcardsUITests/LiveSmokeSettingsTests.swift",
+        "eligibility": "all"
+      },
+      {
+        "class": "LiveSmokeSettingsTests",
+        "method": "testLiveSmokeUnsupportedNotificationTapDoesNotNavigate",
+        "source": "apps/ios/Flashcards/FlashcardsUITests/LiveSmokeSettingsTests.swift",
+        "eligibility": "all"
+      },
+      {
+        "class": "LiveSmokeSettingsTests",
+        "method": "testLiveSmokeLoginAndLinkedWorkspaceFlow",
+        "source": "apps/ios/Flashcards/FlashcardsUITests/LiveSmokeSettingsTests.swift",
+        "eligibility": "all"
+      },
+      {
+        "class": "MarketingScreenshotsTests",
+        "method": "testCleanupMarketingGuestSession",
+        "source": "apps/ios/Flashcards/FlashcardsUITests/MarketingScreenshots/MarketingReviewScreenshotsTests.swift",
+        "eligibility": "manual-marketing"
+      },
+      {
+        "class": "MarketingScreenshotsTests",
+        "method": "testGenerateMarketingScreenshots",
+        "source": "apps/ios/Flashcards/FlashcardsUITests/MarketingScreenshots/MarketingReviewScreenshotsTests.swift",
+        "eligibility": "manual-marketing"
+      }
+    ],
+    "inventory": [
+      {
+        "id": "LiveSmokeAiTests/testLiveSmokeGuestAiCardCreationFlow()@iPhone 17/iOS 27.0",
+        "disposition": "required"
+      },
+      {
+        "id": "LiveSmokeAiTests/testLiveSmokeGuestAiChatResetFlow()@iPhone 17/iOS 27.0",
+        "disposition": "required"
+      },
+      {
+        "id": "LiveSmokeCardsTests/testLiveSmokeManualCardCreationFlow()@iPhone 17/iOS 27.0",
+        "disposition": "required"
+      },
+      {
+        "id": "LiveSmokeCardsTests/testLiveSmokeUnsavedCardDraftSurvivesInteractiveDismissal()@iPhone 17/iOS 27.0",
+        "disposition": "required"
+      },
+      {
+        "id": "LiveSmokeCardsTests/testLiveSmokeCardsEditorAiHandoffFlow()@iPhone 17/iOS 27.0",
+        "disposition": "required"
+      },
+      {
+        "id": "LiveSmokeIPadTests/testIPadCompanionPreservesDraftAndRevealedReviewAcrossSections()@iPhone 17/iOS 27.0",
+        "disposition": "destination-exclusion",
+        "reason": "Test skipped - This smoke requires an iPad.",
+        "evidenceRef": "release-1.33.0/ios/cloud/614/independent-inventory.json",
+        "requiredCaseId": "LiveSmokeIPadTests/testIPadCompanionPreservesDraftAndRevealedReviewAcrossSections()@iPad Pro 13-inch (M5)/iOS 27.0"
+      },
+      {
+        "id": "LiveSmokeIPadTests/testIPadReviewHardwareKeysRespectFilterAndRateCards()@iPhone 17/iOS 27.0",
+        "disposition": "destination-exclusion",
+        "reason": "Test skipped - This smoke requires an iPad hardware-key surface.",
+        "evidenceRef": "release-1.33.0/ios/cloud/614/independent-inventory.json",
+        "requiredCaseId": "LiveSmokeIPadTests/testIPadReviewHardwareKeysRespectFilterAndRateCards()@iPad Pro 13-inch (M5)/iOS 27.0"
+      },
+      {
+        "id": "LiveSmokeOrdinaryIPhoneTests/testOrdinaryPhoneReviewAIHandoffPreservesRevealedAnswer()@iPhone 17/iOS 27.0",
+        "disposition": "required"
+      },
+      {
+        "id": "LiveSmokeOwnOpenAIKeyTests/testOwnKeyPersistsAcrossRelaunchAndCanBeDisabledAndRemoved()@iPhone 17/iOS 27.0",
+        "disposition": "required"
+      },
+      {
+        "id": "LiveSmokeRTLTests/testLiveSmokeArabicRTLTopLevelNavigation()@iPhone 17/iOS 27.0",
+        "disposition": "required"
+      },
+      {
+        "id": "LiveSmokeReviewTests/testLiveSmokeManualCardReviewFlow()@iPhone 17/iOS 27.0",
+        "disposition": "required"
+      },
+      {
+        "id": "LiveSmokeReviewTests/testLiveSmokeReviewReminderTabBadgeClearsAfterReview()@iPhone 17/iOS 27.0",
+        "disposition": "required"
+      },
+      {
+        "id": "LiveSmokeReviewTests/testLiveSmokeGuestAiCardReviewFlow()@iPhone 17/iOS 27.0",
+        "disposition": "required"
+      },
+      {
+        "id": "LiveSmokeReviewTests/testLiveSmokeReviewFilterMenuSupportsEmptyTagAndAllCardsStates()@iPhone 17/iOS 27.0",
+        "disposition": "required"
+      },
+      {
+        "id": "LiveSmokeSettingsTests/testLiveSmokeGuestNavigationFlow()@iPhone 17/iOS 27.0",
+        "disposition": "required"
+      },
+      {
+        "id": "LiveSmokeSettingsTests/testLiveSmokeResetWorkspaceProgressFlow()@iPhone 17/iOS 27.0",
+        "disposition": "required"
+      },
+      {
+        "id": "LiveSmokeSettingsTests/testLiveSmokeNotificationTapColdStartOpensReviewOnce()@iPhone 17/iOS 27.0",
+        "disposition": "required"
+      },
+      {
+        "id": "LiveSmokeSettingsTests/testLiveSmokeUnsupportedNotificationTapDoesNotNavigate()@iPhone 17/iOS 27.0",
+        "disposition": "required"
+      },
+      {
+        "id": "LiveSmokeSettingsTests/testLiveSmokeLoginAndLinkedWorkspaceFlow()@iPhone 17/iOS 27.0",
+        "disposition": "required"
+      },
+      {
+        "id": "MarketingScreenshotsTests/testCleanupMarketingGuestSession()@iPhone 17/iOS 27.0",
+        "disposition": "manual-exclusion",
+        "reason": "Test skipped - Manual iOS marketing screenshot tests run only from explicit wrapper scripts.",
+        "evidenceRef": "apps/ios/docs/marketing-screenshots.md"
+      },
+      {
+        "id": "MarketingScreenshotsTests/testGenerateMarketingScreenshots()@iPhone 17/iOS 27.0",
+        "disposition": "manual-exclusion",
+        "reason": "Test skipped - Manual iOS marketing screenshot tests run only from explicit wrapper scripts.",
+        "evidenceRef": "apps/ios/docs/marketing-screenshots.md"
+      },
+      {
+        "id": "LiveSmokeAiTests/testLiveSmokeGuestAiCardCreationFlow()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "disposition": "required"
+      },
+      {
+        "id": "LiveSmokeAiTests/testLiveSmokeGuestAiChatResetFlow()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "disposition": "required"
+      },
+      {
+        "id": "LiveSmokeCardsTests/testLiveSmokeManualCardCreationFlow()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "disposition": "required"
+      },
+      {
+        "id": "LiveSmokeCardsTests/testLiveSmokeUnsavedCardDraftSurvivesInteractiveDismissal()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "disposition": "required"
+      },
+      {
+        "id": "LiveSmokeCardsTests/testLiveSmokeCardsEditorAiHandoffFlow()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "disposition": "required"
+      },
+      {
+        "id": "LiveSmokeIPadTests/testIPadCompanionPreservesDraftAndRevealedReviewAcrossSections()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "disposition": "required"
+      },
+      {
+        "id": "LiveSmokeIPadTests/testIPadReviewHardwareKeysRespectFilterAndRateCards()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "disposition": "required"
+      },
+      {
+        "id": "LiveSmokeOrdinaryIPhoneTests/testOrdinaryPhoneReviewAIHandoffPreservesRevealedAnswer()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "disposition": "destination-exclusion",
+        "reason": "Test skipped - This smoke requires a phone.",
+        "evidenceRef": "release-1.33.0/ios/cloud/614/independent-inventory.json",
+        "requiredCaseId": "LiveSmokeOrdinaryIPhoneTests/testOrdinaryPhoneReviewAIHandoffPreservesRevealedAnswer()@iPhone 17/iOS 27.0"
+      },
+      {
+        "id": "LiveSmokeOwnOpenAIKeyTests/testOwnKeyPersistsAcrossRelaunchAndCanBeDisabledAndRemoved()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "disposition": "required"
+      },
+      {
+        "id": "LiveSmokeRTLTests/testLiveSmokeArabicRTLTopLevelNavigation()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "disposition": "required"
+      },
+      {
+        "id": "LiveSmokeReviewTests/testLiveSmokeManualCardReviewFlow()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "disposition": "required"
+      },
+      {
+        "id": "LiveSmokeReviewTests/testLiveSmokeReviewReminderTabBadgeClearsAfterReview()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "disposition": "required"
+      },
+      {
+        "id": "LiveSmokeReviewTests/testLiveSmokeGuestAiCardReviewFlow()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "disposition": "required"
+      },
+      {
+        "id": "LiveSmokeReviewTests/testLiveSmokeReviewFilterMenuSupportsEmptyTagAndAllCardsStates()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "disposition": "required"
+      },
+      {
+        "id": "LiveSmokeSettingsTests/testLiveSmokeGuestNavigationFlow()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "disposition": "required"
+      },
+      {
+        "id": "LiveSmokeSettingsTests/testLiveSmokeResetWorkspaceProgressFlow()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "disposition": "required"
+      },
+      {
+        "id": "LiveSmokeSettingsTests/testLiveSmokeNotificationTapColdStartOpensReviewOnce()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "disposition": "required"
+      },
+      {
+        "id": "LiveSmokeSettingsTests/testLiveSmokeUnsupportedNotificationTapDoesNotNavigate()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "disposition": "required"
+      },
+      {
+        "id": "LiveSmokeSettingsTests/testLiveSmokeLoginAndLinkedWorkspaceFlow()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "disposition": "required"
+      },
+      {
+        "id": "MarketingScreenshotsTests/testCleanupMarketingGuestSession()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "disposition": "manual-exclusion",
+        "reason": "Test skipped - Manual iOS marketing screenshot tests run only from explicit wrapper scripts.",
+        "evidenceRef": "apps/ios/docs/marketing-screenshots.md"
+      },
+      {
+        "id": "MarketingScreenshotsTests/testGenerateMarketingScreenshots()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "disposition": "manual-exclusion",
+        "reason": "Test skipped - Manual iOS marketing screenshot tests run only from explicit wrapper scripts.",
+        "evidenceRef": "apps/ios/docs/marketing-screenshots.md"
+      }
+    ],
+    "cases": [
+      {
+        "id": "LiveSmokeAiTests/testLiveSmokeGuestAiCardCreationFlow()@iPhone 17/iOS 27.0",
+        "status": "passed"
+      },
+      {
+        "id": "LiveSmokeAiTests/testLiveSmokeGuestAiChatResetFlow()@iPhone 17/iOS 27.0",
+        "status": "passed"
+      },
+      {
+        "id": "LiveSmokeCardsTests/testLiveSmokeCardsEditorAiHandoffFlow()@iPhone 17/iOS 27.0",
+        "status": "passed"
+      },
+      {
+        "id": "LiveSmokeCardsTests/testLiveSmokeManualCardCreationFlow()@iPhone 17/iOS 27.0",
+        "status": "passed"
+      },
+      {
+        "id": "LiveSmokeCardsTests/testLiveSmokeUnsavedCardDraftSurvivesInteractiveDismissal()@iPhone 17/iOS 27.0",
+        "status": "passed"
+      },
+      {
+        "id": "LiveSmokeIPadTests/testIPadCompanionPreservesDraftAndRevealedReviewAcrossSections()@iPhone 17/iOS 27.0",
+        "status": "skipped",
+        "reason": "Test skipped - This smoke requires an iPad."
+      },
+      {
+        "id": "LiveSmokeIPadTests/testIPadReviewHardwareKeysRespectFilterAndRateCards()@iPhone 17/iOS 27.0",
+        "status": "skipped",
+        "reason": "Test skipped - This smoke requires an iPad hardware-key surface."
+      },
+      {
+        "id": "LiveSmokeOrdinaryIPhoneTests/testOrdinaryPhoneReviewAIHandoffPreservesRevealedAnswer()@iPhone 17/iOS 27.0",
+        "status": "passed"
+      },
+      {
+        "id": "LiveSmokeOwnOpenAIKeyTests/testOwnKeyPersistsAcrossRelaunchAndCanBeDisabledAndRemoved()@iPhone 17/iOS 27.0",
+        "status": "passed"
+      },
+      {
+        "id": "LiveSmokeRTLTests/testLiveSmokeArabicRTLTopLevelNavigation()@iPhone 17/iOS 27.0",
+        "status": "passed"
+      },
+      {
+        "id": "LiveSmokeReviewTests/testLiveSmokeGuestAiCardReviewFlow()@iPhone 17/iOS 27.0",
+        "status": "passed"
+      },
+      {
+        "id": "LiveSmokeReviewTests/testLiveSmokeManualCardReviewFlow()@iPhone 17/iOS 27.0",
+        "status": "passed"
+      },
+      {
+        "id": "LiveSmokeReviewTests/testLiveSmokeReviewFilterMenuSupportsEmptyTagAndAllCardsStates()@iPhone 17/iOS 27.0",
+        "status": "passed"
+      },
+      {
+        "id": "LiveSmokeReviewTests/testLiveSmokeReviewReminderTabBadgeClearsAfterReview()@iPhone 17/iOS 27.0",
+        "status": "passed"
+      },
+      {
+        "id": "LiveSmokeSettingsTests/testLiveSmokeGuestNavigationFlow()@iPhone 17/iOS 27.0",
+        "status": "passed"
+      },
+      {
+        "id": "LiveSmokeSettingsTests/testLiveSmokeLoginAndLinkedWorkspaceFlow()@iPhone 17/iOS 27.0",
+        "status": "passed"
+      },
+      {
+        "id": "LiveSmokeSettingsTests/testLiveSmokeNotificationTapColdStartOpensReviewOnce()@iPhone 17/iOS 27.0",
+        "status": "passed"
+      },
+      {
+        "id": "LiveSmokeSettingsTests/testLiveSmokeResetWorkspaceProgressFlow()@iPhone 17/iOS 27.0",
+        "status": "passed"
+      },
+      {
+        "id": "LiveSmokeSettingsTests/testLiveSmokeUnsupportedNotificationTapDoesNotNavigate()@iPhone 17/iOS 27.0",
+        "status": "passed"
+      },
+      {
+        "id": "MarketingScreenshotsTests/testCleanupMarketingGuestSession()@iPhone 17/iOS 27.0",
+        "status": "skipped",
+        "reason": "Test skipped - Manual iOS marketing screenshot tests run only from explicit wrapper scripts."
+      },
+      {
+        "id": "MarketingScreenshotsTests/testGenerateMarketingScreenshots()@iPhone 17/iOS 27.0",
+        "status": "skipped",
+        "reason": "Test skipped - Manual iOS marketing screenshot tests run only from explicit wrapper scripts."
+      },
+      {
+        "id": "LiveSmokeAiTests/testLiveSmokeGuestAiCardCreationFlow()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "status": "passed"
+      },
+      {
+        "id": "LiveSmokeAiTests/testLiveSmokeGuestAiChatResetFlow()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "status": "passed"
+      },
+      {
+        "id": "LiveSmokeCardsTests/testLiveSmokeCardsEditorAiHandoffFlow()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "status": "passed"
+      },
+      {
+        "id": "LiveSmokeCardsTests/testLiveSmokeManualCardCreationFlow()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "status": "passed"
+      },
+      {
+        "id": "LiveSmokeCardsTests/testLiveSmokeUnsavedCardDraftSurvivesInteractiveDismissal()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "status": "passed"
+      },
+      {
+        "id": "LiveSmokeIPadTests/testIPadCompanionPreservesDraftAndRevealedReviewAcrossSections()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "status": "passed"
+      },
+      {
+        "id": "LiveSmokeIPadTests/testIPadReviewHardwareKeysRespectFilterAndRateCards()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "status": "passed"
+      },
+      {
+        "id": "LiveSmokeOrdinaryIPhoneTests/testOrdinaryPhoneReviewAIHandoffPreservesRevealedAnswer()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "status": "skipped",
+        "reason": "Test skipped - This smoke requires a phone."
+      },
+      {
+        "id": "LiveSmokeOwnOpenAIKeyTests/testOwnKeyPersistsAcrossRelaunchAndCanBeDisabledAndRemoved()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "status": "passed"
+      },
+      {
+        "id": "LiveSmokeRTLTests/testLiveSmokeArabicRTLTopLevelNavigation()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "status": "passed"
+      },
+      {
+        "id": "LiveSmokeReviewTests/testLiveSmokeGuestAiCardReviewFlow()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "status": "passed"
+      },
+      {
+        "id": "LiveSmokeReviewTests/testLiveSmokeManualCardReviewFlow()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "status": "passed"
+      },
+      {
+        "id": "LiveSmokeReviewTests/testLiveSmokeReviewFilterMenuSupportsEmptyTagAndAllCardsStates()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "status": "passed"
+      },
+      {
+        "id": "LiveSmokeReviewTests/testLiveSmokeReviewReminderTabBadgeClearsAfterReview()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "status": "passed"
+      },
+      {
+        "id": "LiveSmokeSettingsTests/testLiveSmokeGuestNavigationFlow()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "status": "passed"
+      },
+      {
+        "id": "LiveSmokeSettingsTests/testLiveSmokeLoginAndLinkedWorkspaceFlow()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "status": "passed"
+      },
+      {
+        "id": "LiveSmokeSettingsTests/testLiveSmokeNotificationTapColdStartOpensReviewOnce()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "status": "passed"
+      },
+      {
+        "id": "LiveSmokeSettingsTests/testLiveSmokeResetWorkspaceProgressFlow()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "status": "passed"
+      },
+      {
+        "id": "LiveSmokeSettingsTests/testLiveSmokeUnsupportedNotificationTapDoesNotNavigate()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "status": "passed"
+      },
+      {
+        "id": "MarketingScreenshotsTests/testCleanupMarketingGuestSession()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "status": "skipped",
+        "reason": "Test skipped - Manual iOS marketing screenshot tests run only from explicit wrapper scripts."
+      },
+      {
+        "id": "MarketingScreenshotsTests/testGenerateMarketingScreenshots()@iPad Pro 13-inch (M5)/iOS 27.0",
+        "status": "skipped",
+        "reason": "Test skipped - Manual iOS marketing screenshot tests run only from explicit wrapper scripts."
+      }
+    ],
+    "release": {
+      "version": "1.33.0",
+      "status": "passed",
+      "warningReview": "complete",
+      "warningReviewRef": "release-1.33.0/ios/cloud/614/614 diagnostic assessment.md",
+      "warnings": [
+        {
+          "id": "sentry-partial-app-hang-setter",
+          "decision": "accepted",
+          "notice": "setter for 'enableReportNonFullyBlockingAppHangs' is deprecated: App Hang tracking is deprecated and will be removed in v10 because it can produce less relevant stack traces and false positives. Enable the MetricKit integration for system-provided hang diagnostics. [#DeprecatedDeclaration]",
+          "owner": "Sentry-Cocoa",
+          "version": "9.30.0",
+          "reason": "Named compiler compatibility exception: current stable 9.30.1 retains the same deprecated setter and no supported replacement preserves fully-blocking-only hang policy. Official source/advisories, passed local iOS18 startup/settings/login/review and all35 eligible cloud smokes are retained; complete cloud diagnostics inspection is finished.",
+          "policyRef": "docs/release/README.md",
+          "evidenceRef": "release-1.33.0/iOS Sentry warning assessment.md"
+        },
+        {
+          "id": "apple-debugger-version-lookup",
+          "notice": "IDELaunchParametersSnapshot: debugger version lookup failed for path '<nil>': noURL; IDELaunchParametersSnapshot: no debugger version",
+          "version": "Xcode 27.0",
+          "reason": "19 phone and23 iPad hosted-Xcode launch instrumentation notices; each launch proceeds to automation and actual app execution. Complete native runs and final action pass, with no debugger crash evidence or supported project-controlled remediation.",
+          "decision": "accepted",
+          "owner": "Apple",
+          "policyRef": "docs/release/README.md",
+          "evidenceRef": "release-1.33.0/ios/cloud/614/614 diagnostic assessment.md"
+        },
+        {
+          "id": "apple-duplicate-accessibility-class",
+          "notice": "Class UIAccessibilityLoaderWebShared is implemented in both /Library/Developer/CoreSimulator/Volumes/iOS_24A434/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 27.0.simruntime/Contents/Resources/RuntimeRoot/System/Library/AccessibilityBundles/WebKit.axbundle/WebKit (0x105fa0398) and /Library/Developer/CoreSimulator/Volumes/iOS_24A434/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 27.0.simruntime/Contents/Resources/RuntimeRoot/System/Library/AccessibilityBundles/WebCore.axbundle/WebCore (0x106ed0310). This may cause spurious casting failures and mysterious crashes. One of the duplicates must be removed or renamed.",
+          "version": "iOS 27.0 24A434",
+          "reason": "One notice per destination identifies only Apple RuntimeRoot WebKit/WebCore accessibility bundles. No app-defined duplicate/dependency collision or actual app/runner failure in complete native selection. No supported project remediation for Apple runtime class packaging; retain bounded provider exception without claiming globally crash-free simulator.",
+          "decision": "accepted",
+          "owner": "Apple",
+          "policyRef": "docs/release/README.md",
+          "evidenceRef": "release-1.33.0/ios/cloud/614/614 diagnostic assessment.md"
+        },
+        {
+          "id": "apple-hosted-service-crash-reports",
+          "notice": "90 Apple first-party IPS reports:50 KonaSynthesizer DYLD Library missing AudioToolbox;34 intelligencetasksd EXC_BREAKPOINT/SIGTRAP;2 SettingsSearchReindexService and2 AppIntentsLiveEntityService EXC_BREAKPOINT/SIGTRAP;2 dtdeviceinfod LIBXPC XPC_EXIT_REASON_SIGTERM_TIMEOUT.",
+          "version": "macOS 27.0 26A428 and iOS 27.0 24A434",
+          "reason": "Every retained report body semantically inspected for header/process/bundle/path/exception/termination. No Nibomo app or UI-test runner appears; all35 eligible native cases pass with zero native runtime warnings/failures. Current selected stable hosted runtime offers no supported app-source/build remediation for these Apple processes. Bounded provider diagnostics retained; no unsupported daemon SIGTRAP root cause asserted.",
+          "decision": "accepted",
+          "owner": "Apple",
+          "policyRef": "docs/release/README.md",
+          "evidenceRef": "release-1.33.0/ios/cloud/614/614 diagnostic assessment.md"
+        }
+      ]
+    },
+    "expectedCloudReady": true,
+    "expectedCounts": {
+      "passed": 35,
+      "failed": 0,
+      "skipped": 7,
+      "pending": 0,
+      "missing": 0
+    },
+    "finishedDate": "2026-10-09T22:12:45.471Z",
+    "finalApiRef": "release-1.33.0/ios/cloud/614/614-final-api.json",
+    "finalApiSha256": "cdec0ac044c0376fd9970a4f07efe3da6007d9e1908b1321b93ddd12e7cd57e0",
+    "diagnosticAssessmentRef": "release-1.33.0/ios/cloud/614/614 diagnostic assessment.md",
+    "diagnosticAssessmentSha256": "2a5decdccd93d38e59f50f443aa395158b6fe1fb83a55a3a563b618acec19158",
+    "crashInventorySha256": "a50082d9ee8c5b025356aaf0ed69ad1390df65804e6d00b6fe3b686c2dffd637",
+    "diagnosticContextsSha256": "d263b5c45215d2ecdf52244cf00b6450604656d922728959f294f8c9cf4dcc80"
+  }
+}
