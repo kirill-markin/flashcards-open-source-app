@@ -59,6 +59,7 @@ struct ReviewView: View {
     @State var isReviewFilterPopoverPresented: Bool = false
     @State var reviewFilterDraft: ReviewFilter = .allCards
     @State private var reviewFilterPresentationContext: ReviewFilterPresentationContext? = nil
+    @State private var reviewTagFilterRequest: ReviewTagFilterRequest? = nil
 
     private var availableTagSuggestions: [TagSuggestion] {
         self.reviewTagSummaries.map { tagSummary in
@@ -341,6 +342,65 @@ struct ReviewView: View {
         } message: {
             Text(String(localized: "If you did not know the answer, choose \"Again\". \"Hard\" is only for answers you knew but it was difficult to recall.", table: reviewCardsStringsTableName))
         }
+        .alert(
+            String(
+                localized: "review.tag_filter_alert.title",
+                defaultValue: "Review filter",
+                table: reviewCardsStringsTableName,
+                comment: "Title of the alert shown after tapping a tag chip on the Review card"
+            ),
+            isPresented: Binding(
+                get: {
+                    self.reviewTagFilterRequest != nil
+                },
+                set: { isPresented in
+                    if isPresented == false {
+                        self.reviewTagFilterRequest = nil
+                    }
+                }
+            ),
+            presenting: self.reviewTagFilterRequest
+        ) { request in
+            if request.isRequestedTagFilterSelected {
+                Button(String(localized: "OK", table: reviewCardsStringsTableName), role: .cancel) {}
+            } else {
+                Button(String(localized: "Cancel", table: reviewCardsStringsTableName), role: .cancel) {}
+                Button(
+                    String(
+                        localized: "review.tag_filter_alert.change_filter",
+                        defaultValue: "Change filter",
+                        table: reviewCardsStringsTableName,
+                        comment: "Alert button that switches the review filter to the tapped tag"
+                    )
+                ) {
+                    store.selectReviewFilter(reviewFilter: makeReviewTagsFilter(tags: [request.tag]))
+                }
+            }
+        } message: { request in
+            Text(reviewTagFilterAlertMessage(request: request))
+        }
+        .onChange(of: store.workspace?.workspaceId) { _, _ in
+            self.reviewTagFilterRequest = nil
+        }
+    }
+
+    /// The toolbar names a multi-tag filter by its count, so the alert names its tags instead, joined
+    /// as "a, b, or c" because the filter matches cards with any of them.
+    private var reviewTagFilterCurrentFilterTitle: String {
+        guard case .tags(let tags) = store.selectedReviewFilter, tags.isEmpty == false else {
+            return self.selectedReviewFilterTitle
+        }
+
+        return tags.formatted(.list(type: .or))
+    }
+
+    private func requestReviewTagFilter(tag: String) {
+        self.reviewTagFilterRequest = ReviewTagFilterRequest(
+            tag: tag,
+            currentFilterTitle: self.reviewTagFilterCurrentFilterTitle,
+            // The filter id compares normalized tag keys, so a case or whitespace variant still matches.
+            isRequestedTagFilterSelected: store.selectedReviewFilter.id == makeReviewTagsFilter(tags: [tag]).id
+        )
     }
 
     private var reviewFilterMenu: some View {
@@ -466,9 +526,14 @@ struct ReviewView: View {
 
             HStack(alignment: .top, spacing: 12) {
                 HStack(spacing: 12) {
-                    Label(card.tags.isEmpty ? localizedNoTagsLabel() : formatTags(tags: card.tags), systemImage: "tag")
+                    ReviewCardTagChipRow(
+                        tags: card.tags,
+                        onSelectTag: self.requestReviewTagFilter(tag:)
+                    )
                     reviewRepetitionBadge(reps: card.reps)
                 }
+                // Without priority the trailing Spacer takes an equal share and the chips scroll early.
+                .layoutPriority(1)
 
                 Spacer(minLength: 12)
 
@@ -898,6 +963,26 @@ private func reviewAnswerButtonIdentifier(rating: ReviewRating) -> String {
     }
 
     return "review.rating.\(rating.rawValue)"
+}
+
+private func reviewTagFilterAlertMessage(request: ReviewTagFilterRequest) -> String {
+    if request.isRequestedTagFilterSelected {
+        let localizedFormat = String(
+            localized: "review.tag_filter_alert.already_selected_message",
+            defaultValue: "You’re already reviewing cards tagged “%@”.",
+            table: reviewCardsStringsTableName,
+            comment: "Alert message after tapping the tag chip that is already the review filter. %@ is the tag."
+        )
+        return String(format: localizedFormat, locale: Locale.current, request.tag)
+    }
+
+    let localizedFormat = String(
+        localized: "review.tag_filter_alert.change_message",
+        defaultValue: "You’re reviewing “%@”. Review only cards tagged “%@” instead?",
+        table: reviewCardsStringsTableName,
+        comment: "Alert message asking before switching the review filter to a tapped tag. The first %@ is the current review filter, the second %@ is the tag."
+    )
+    return String(format: localizedFormat, locale: Locale.current, request.currentFilterTitle, request.tag)
 }
 
 @ViewBuilder
