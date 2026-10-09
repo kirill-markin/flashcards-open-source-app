@@ -106,7 +106,7 @@ func classifyReviewContentPresentation(text: String) -> ReviewContentPresentatio
         return .markdown
     }
 
-    if hasStrongMarkdownCue(text: trimmedText) {
+    if hasStrongMarkdownCue(text: trimmedText) || hasInlineMarkdownFormatting(text: trimmedText) {
         return .markdown
     }
 
@@ -365,6 +365,17 @@ private func hasStrongMarkdownCue(text: String) -> Bool {
     return reviewContentMarkdownExpressions.contains { expression in
         expression.firstMatch(in: text, options: [], range: fullRange) != nil
     }
+}
+
+private func hasInlineMarkdownFormatting(text: String) -> Bool {
+    guard text.contains(where: { "*_~".contains($0) }) else {
+        return false
+    }
+
+    // MarkdownUI exposes semantic HTML rather than its syntax tree. Raw HTML is omitted and
+    // literal text is escaped, so these tags identify formatting accepted by the renderer.
+    let html = MarkdownContent(text).renderHTML()
+    return html.contains("<em>") || html.contains("<strong>") || html.contains("<del>")
 }
 
 private func normalizeReviewSpeakableMarkdownLine(line: String) -> String {
