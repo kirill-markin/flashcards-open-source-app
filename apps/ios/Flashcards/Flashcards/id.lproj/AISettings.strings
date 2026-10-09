@@ -886,6 +886,11 @@
 "settings.accentColor.premiumNote" = "Warna aksen khusus tersedia dengan Premium. Warna tersimpan Anda kembali saat Premium aktif.";
 "settings.reviewAnimations.premiumNote" = "Mematikan animasi pengulangan tersedia dengan Premium. Pengaturan tersimpan Anda kembali saat Premium aktif.";
 "settings.aiChatSuggestions.premiumNote" = "Mematikan saran obrolan AI tersedia dengan Premium. Pengaturan tersimpan Anda kembali saat Premium aktif.";
+"settings.appIcon.title" = "Ikon aplikasi";
+"settings.appIcon.default" = "Default";
+"settings.appIcon.light" = "Terang";
+"settings.appIcon.premiumNote" = "Mengganti ikon aplikasi tersedia dengan Premium. Ikon tersimpan Anda kembali saat Premium aktif.";
+"settings.appIcon.systemAlertNote" = "iOS mengonfirmasi setiap perubahan ikon dengan peringatan.";
 
 "premium.apple.monthlyProduct" = "%@ · Bulanan";
 "premium.apple.renewal" = "Diperpanjang otomatis hingga dibatalkan. Kelola atau batalkan di langganan App Store Anda.";

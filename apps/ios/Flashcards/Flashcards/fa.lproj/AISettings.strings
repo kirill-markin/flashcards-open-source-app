@@ -886,6 +886,11 @@
 "settings.accentColor.premiumNote" = "رنگ‌های تأکیدی سفارشی با Premium در دسترس هستند. وقتی Premium فعال باشد، رنگ ذخیره‌شده شما برمی‌گردد.";
 "settings.reviewAnimations.premiumNote" = "خاموش کردن پویانمایی‌های مرور با Premium در دسترس است. وقتی Premium فعال باشد، تنظیم ذخیره‌شده شما برمی‌گردد.";
 "settings.aiChatSuggestions.premiumNote" = "خاموش کردن پیشنهادهای گفت‌وگوی هوش مصنوعی با Premium در دسترس است. وقتی Premium فعال باشد، تنظیم ذخیره‌شده شما برمی‌گردد.";
+"settings.appIcon.title" = "نماد برنامه";
+"settings.appIcon.default" = "پیش‌فرض";
+"settings.appIcon.light" = "روشن";
+"settings.appIcon.premiumNote" = "تغییر نماد برنامه با Premium در دسترس است. وقتی Premium فعال باشد، نماد ذخیره‌شده شما برمی‌گردد.";
+"settings.appIcon.systemAlertNote" = "iOS هر تغییر نماد را با یک هشدار تأیید می‌کند.";
 
 "premium.apple.monthlyProduct" = "%@ · ماهانه";
 "premium.apple.renewal" = "تا زمان لغو، خودکار تمدید می‌شود. در بخش اشتراک‌های App Store آن را مدیریت یا لغو کنید.";

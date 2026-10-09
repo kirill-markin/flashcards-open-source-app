@@ -350,6 +350,7 @@ struct RootTabView: View {
         }
         .onChange(of: store.cloudEntitlement) { _, entitlement in
             self.premiumPresenter.reconcileAccess(entitlement: entitlement, identity: self.subscriptionIdentity)
+            self.store.applyEffectiveAppIcon()
         }
     }
 
@@ -782,6 +783,8 @@ struct RootTabView: View {
             ReviewAnimationsSettingsView()
         case .aiChatSuggestions:
             AIChatSuggestionsSettingsView()
+        case .appIcon:
+            AppIconSettingsView()
         case .ownOpenAIKey:
             OwnOpenAIKeySettingsView()
         case .leaderboardParticipation:

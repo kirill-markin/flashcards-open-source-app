@@ -157,6 +157,16 @@ struct SettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsAIChatSuggestionsRow)
+
+                NavigationLink(value: SettingsNavigationDestination.appIcon) {
+                    SettingsNavigationRow(
+                        title: appIconSettingsTitle(),
+                        value: store.effectiveAppIcon.title,
+                        systemImage: "apps.iphone",
+                        attentionCount: nil
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.settingsAppIconRow)
             }
 
             Section(aiSettingsLocalized("settings.section.general", "General")) {

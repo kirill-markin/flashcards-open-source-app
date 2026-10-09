@@ -220,6 +220,8 @@ struct FlashcardsApp: App {
                 .onChange(of: scenePhase) { _, nextPhase in
                     if nextPhase == .active {
                         self.refreshLowPowerModeState()
+                        // Before the startup gate: the icon needs only the entitlement the store cached at init.
+                        self.store.applyEffectiveAppIcon()
                     }
                     logAppLifecycleBreadcrumb(
                         action: .scenePhaseChanged,

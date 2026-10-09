@@ -886,6 +886,11 @@
 "settings.accentColor.premiumNote" = "Culorile de accent personalizate sunt disponibile cu Premium. Culoarea salvată revine când Premium este activ.";
 "settings.reviewAnimations.premiumNote" = "Dezactivarea animațiilor de recapitulare este disponibilă cu Premium. Setarea salvată revine când Premium este activ.";
 "settings.aiChatSuggestions.premiumNote" = "Dezactivarea sugestiilor pentru chatul AI este disponibilă cu Premium. Setarea salvată revine când Premium este activ.";
+"settings.appIcon.title" = "Pictograma aplicației";
+"settings.appIcon.default" = "Implicită";
+"settings.appIcon.light" = "Luminoasă";
+"settings.appIcon.premiumNote" = "Schimbarea pictogramei aplicației este disponibilă cu Premium. Pictograma salvată revine când Premium este activ.";
+"settings.appIcon.systemAlertNote" = "iOS confirmă fiecare schimbare a pictogramei printr-o alertă.";
 
 "premium.apple.monthlyProduct" = "%@ · Lunar";
 "premium.apple.renewal" = "Se reînnoiește automat până la anulare. Gestionează sau anulează din abonamentele App Store.";

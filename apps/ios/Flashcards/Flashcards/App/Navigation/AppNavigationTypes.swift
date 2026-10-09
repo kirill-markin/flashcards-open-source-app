@@ -54,6 +54,7 @@ enum SettingsNavigationDestination: Hashable, Sendable {
     case accentColor
     case reviewAnimations
     case aiChatSuggestions
+    case appIcon
     case ownOpenAIKey
     case leaderboardParticipation
     case productAnalytics

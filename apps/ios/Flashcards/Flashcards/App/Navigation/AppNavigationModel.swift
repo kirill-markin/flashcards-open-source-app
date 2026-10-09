@@ -14,6 +14,8 @@ func makeSettingsNavigationPath(destination: SettingsNavigationDestination) -> [
         return [.reviewAnimations]
     case .aiChatSuggestions:
         return [.aiChatSuggestions]
+    case .appIcon:
+        return [.appIcon]
     case .ownOpenAIKey:
         return [.ownOpenAIKey]
     case .leaderboardParticipation:

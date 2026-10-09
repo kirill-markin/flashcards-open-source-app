@@ -886,6 +886,11 @@
 "settings.accentColor.premiumNote" = "Sérsniðnir áherslulitir eru í boði með Premium. Vistaði liturinn þinn kemur aftur þegar Premium er virkt.";
 "settings.reviewAnimations.premiumNote" = "Að slökkva á hreyfimyndum við upprifjun er í boði með Premium. Vistaða stillingin þín kemur aftur þegar Premium er virkt.";
 "settings.aiChatSuggestions.premiumNote" = "Að slökkva á tillögum í gervigreindarspjalli er í boði með Premium. Vistaða stillingin þín kemur aftur þegar Premium er virkt.";
+"settings.appIcon.title" = "Forritstákn";
+"settings.appIcon.default" = "Sjálfgefið";
+"settings.appIcon.light" = "Ljóst";
+"settings.appIcon.premiumNote" = "Að skipta um forritstákn er í boði með Premium. Vistaða táknið þitt kemur aftur þegar Premium er virkt.";
+"settings.appIcon.systemAlertNote" = "iOS staðfestir hverja breytingu á tákni með tilkynningu.";
 
 "premium.apple.monthlyProduct" = "%@ · Mánaðarlega";
 "premium.apple.renewal" = "Endurnýjast sjálfkrafa þar til sagt er upp. Stjórnaðu eða segðu upp í App Store-áskriftunum þínum.";

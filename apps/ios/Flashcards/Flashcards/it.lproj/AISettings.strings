@@ -886,6 +886,11 @@
 "settings.accentColor.premiumNote" = "I colori di risalto personalizzati sono disponibili con Premium. Il colore salvato torna quando Premium è attivo.";
 "settings.reviewAnimations.premiumNote" = "La disattivazione delle animazioni di ripasso è disponibile con Premium. L’impostazione salvata torna quando Premium è attivo.";
 "settings.aiChatSuggestions.premiumNote" = "La disattivazione dei suggerimenti della chat IA è disponibile con Premium. L’impostazione salvata torna quando Premium è attivo.";
+"settings.appIcon.title" = "Icona dell’app";
+"settings.appIcon.default" = "Predefinita";
+"settings.appIcon.light" = "Chiara";
+"settings.appIcon.premiumNote" = "La modifica dell’icona dell’app è disponibile con Premium. L’icona salvata torna quando Premium è attivo.";
+"settings.appIcon.systemAlertNote" = "iOS conferma ogni cambio di icona con un avviso.";
 
 "premium.apple.monthlyProduct" = "%@ · Mensile";
 "premium.apple.renewal" = "Si rinnova automaticamente fino alla disdetta. Gestisci o annulla nei tuoi abbonamenti App Store.";

@@ -886,6 +886,11 @@
 "settings.accentColor.premiumNote" = "Rangi maalum za msisitizo zinapatikana kwa Premium. Rangi uliyohifadhi itarudi Premium inapokuwa hai.";
 "settings.reviewAnimations.premiumNote" = "Kuzima uhuishaji wa marudio kunapatikana kwa Premium. Mpangilio uliouhifadhi utarudi Premium inapokuwa hai.";
 "settings.aiChatSuggestions.premiumNote" = "Kuzima mapendekezo ya gumzo la AI kunapatikana kwa Premium. Mpangilio uliouhifadhi utarudi Premium inapokuwa hai.";
+"settings.appIcon.title" = "Ikoni ya programu";
+"settings.appIcon.default" = "Chaguomsingi";
+"settings.appIcon.light" = "Angavu";
+"settings.appIcon.premiumNote" = "Kubadilisha ikoni ya programu kunapatikana kwa Premium. Ikoni uliyohifadhi itarudi Premium inapokuwa hai.";
+"settings.appIcon.systemAlertNote" = "iOS huthibitisha kila badiliko la ikoni kwa arifa.";
 
 "premium.apple.monthlyProduct" = "%@ · Kila mwezi";
 "premium.apple.renewal" = "Hujisasisha kiotomatiki hadi utakapoighairi. Dhibiti au ghairi katika usajili wako wa App Store.";
