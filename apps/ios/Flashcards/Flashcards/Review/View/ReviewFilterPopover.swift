@@ -9,7 +9,7 @@ private let reviewFilterRowSpacing: CGFloat = 12
 
 struct ReviewFilterPopover: View {
     @Environment(\.locale) private var locale
-    @Environment(\.dismiss) private var dismiss
+
     @Binding var reviewFilter: ReviewFilter
     let decks: [Deck]
     let tagSummaries: [WorkspaceTagSummary]
@@ -58,22 +58,6 @@ struct ReviewFilterPopover: View {
     }
 
     var body: some View {
-        NavigationStack {
-            self.filterContent
-                .navigationTitle(String(localized: "Review", table: "ReviewCards"))
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button(String(localized: "Done", table: "ReviewCards")) {
-                            self.dismiss()
-                        }
-                    }
-                }
-        }
-        .frame(idealWidth: reviewFilterPopoverWidth, idealHeight: reviewFilterPopoverHeight)
-    }
-
-    private var filterContent: some View {
         ScrollView {
             LazyVStack(spacing: 0) {
                 self.allCardsButton
@@ -99,6 +83,7 @@ struct ReviewFilterPopover: View {
         }
         .scrollPosition(self.$scrollPosition)
         .accessibilityIdentifier(UITestIdentifier.reviewFilterScrollSurface)
+        .frame(width: reviewFilterPopoverWidth, height: reviewFilterPopoverHeight)
     }
 
     private var allCardsButton: some View {

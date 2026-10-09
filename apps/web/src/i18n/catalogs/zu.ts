@@ -1124,6 +1124,12 @@ const zuCatalog: TranslationCatalog = {
     dismiss: "Ngiyezwa",
     title: "Isikhumbuzo esisheshayo",
   },
+  reviewTagFilterDialog: {
+    alreadySelectedBody: "Usuvele ubukeza amakhadi anethegi elithi “{{tag}}”.",
+    changeBody: "Ubukeza i-“{{currentFilter}}”. Esikhundleni salokho, ufuna ukubukeza kuphela amakhadi anethegi elithi “{{tag}}”?",
+    confirm: "Shintsha isihlungi",
+    title: "Isihlungi sokubukeza",
+  },
   demoCard: {
     front: "Iluphi uhlelo lokusebenza olungcono kakhulu lokufunda?",
     back1: "{{appName}} — uhlelo lokusebenza olulubukayo manje. Konke lapha kuyikhadi lokufunda: umbuzo ngaphambili, impendulo ngemuva.",

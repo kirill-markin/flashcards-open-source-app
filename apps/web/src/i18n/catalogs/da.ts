@@ -1124,6 +1124,12 @@ const daCatalog: TranslationCatalog = {
     dismiss: "Forstået",
     title: "Kort påmindelse",
   },
+  reviewTagFilterDialog: {
+    alreadySelectedBody: "Du repeterer allerede kort med tagget “{{tag}}”.",
+    changeBody: "Du repeterer “{{currentFilter}}”. Vil du i stedet kun repetere kort med tagget “{{tag}}”?",
+    confirm: "Skift filter",
+    title: "Repetitionsfilter",
+  },
   demoCard: {
     front: "Hvilken app er bedst at lære med?",
     back1: "{{appName}} — appen du kigger på lige nu. Alt herinde er et kort: et spørgsmål på forsiden og svaret på bagsiden.",

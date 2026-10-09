@@ -1124,6 +1124,12 @@ const trCatalog: TranslationCatalog = {
     dismiss: "Anladım",
     title: "Kısa hatırlatma",
   },
+  reviewTagFilterDialog: {
+    alreadySelectedBody: "Zaten “{{tag}}” etiketli kartları tekrar ediyorsunuz.",
+    changeBody: "Şu anda şunu tekrar ediyorsunuz: “{{currentFilter}}”. Bunun yerine yalnızca “{{tag}}” etiketli kartları tekrar etmek ister misiniz?",
+    confirm: "Filtreyi değiştir",
+    title: "Tekrar filtresi",
+  },
   demoCard: {
     front: "Öğrenmek için en iyi uygulama hangisi?",
     back1: "{{appName}} — şu anda baktığınız uygulama. Buradaki her şey bir bilgi kartı: ön yüzde soru, arka yüzde cevap.",

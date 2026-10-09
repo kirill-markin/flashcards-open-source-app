@@ -830,7 +830,7 @@ struct AIChatView: View {
         return self.chatStore.repairStatus
     }
 
-    func handlePrimaryComposerAction(preservesComposerFocus: Bool = false) {
+    func handlePrimaryComposerAction() {
         guard self.chatStore.isChatInteractive else {
             return
         }
@@ -842,9 +842,7 @@ struct AIChatView: View {
         guard self.ensureExternalAIConsent() else {
             return
         }
-        if preservesComposerFocus == false {
-            self.dismissComposerFocus()
-        }
+        self.dismissComposerFocus()
         self.chatStore.sendMessage()
     }
 

@@ -1124,6 +1124,12 @@ const itCatalog: TranslationCatalog = {
     dismiss: "Ho capito",
     title: "Promemoria veloce",
   },
+  reviewTagFilterDialog: {
+    alreadySelectedBody: "Stai già ripassando le carte con il tag «{{tag}}».",
+    changeBody: "Stai ripassando «{{currentFilter}}». Vuoi ripassare solo le carte con il tag «{{tag}}»?",
+    confirm: "Cambia filtro",
+    title: "Filtro dei ripassi",
+  },
   demoCard: {
     front: "Qual è la migliore applicazione per studiare?",
     back1: "{{appName}} — l’app che hai davanti in questo momento. Qui tutto è una flashcard: una domanda sul fronte, la risposta sul retro.",

@@ -1124,6 +1124,12 @@ const lvCatalog: TranslationCatalog = {
     dismiss: "Sapratu",
     title: "Īss atgādinājums",
   },
+  reviewTagFilterDialog: {
+    alreadySelectedBody: "Jūs jau atkārtojat kartītes ar birku “{{tag}}”.",
+    changeBody: "Pašlaik atkārtojat: “{{currentFilter}}”. Vai tā vietā atkārtot tikai kartītes ar birku “{{tag}}”?",
+    confirm: "Mainīt filtru",
+    title: "Atkārtošanas filtrs",
+  },
   demoCard: {
     front: "Kura lietotne ir vislabākā mācībām?",
     back1: "{{appName}} — lietotne, kuru pašlaik skatāt. Šeit viss ir mācību kartīte: jautājums priekšpusē, atbilde aizmugurē.",

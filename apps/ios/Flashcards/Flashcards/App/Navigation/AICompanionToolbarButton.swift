@@ -38,9 +38,6 @@ struct AICompanionToolbarButton: View {
         if UIDevice.current.userInterfaceIdiom == .pad {
             return .topBarLeading
         }
-        if #available(iOS 27.0, *) {
-            return .topBarPinnedTrailing
-        }
         return .primaryAction
     }
 

@@ -350,7 +350,7 @@ if [[ $# -eq 0 ]]; then
 fi
 
 requested_locale=""
-orientation="${FLASHCARDS_MARKETING_SCREENSHOT_ORIENTATION:-portrait}"
+orientation="${FLASHCARDS_MARKETING_SCREENSHOT_ORIENTATION:-}"
 positional_arguments=()
 
 while [[ $# -gt 0 ]]; do
@@ -412,7 +412,7 @@ expected_screenshot_indices=("${positional_arguments[@]:2}")
 cleanup_test_identifier="MarketingScreenshotsTests/testCleanupMarketingGuestSession"
 
 localization_code="$(resolve_requested_locale "$requested_locale")"
-if [[ "$orientation" != portrait && "$orientation" != landscape ]]; then
+if [[ -n "$orientation" && "$orientation" != portrait && "$orientation" != landscape ]]; then
     echo "Unsupported screenshot orientation: $orientation" >&2
     exit 1
 fi
@@ -648,6 +648,13 @@ resolve_screenshot_path_for_index() {
 simulator_id="$(resolve_booted_simulator_id)"
 simulator_name="$(resolve_simulator_name "$simulator_id")"
 device_family="$(resolve_device_family "$simulator_name")"
+if [[ -z "$orientation" ]]; then
+    if [[ "$device_family" == ipad ]]; then
+        orientation="landscape"
+    else
+        orientation="portrait"
+    fi
+fi
 
 if [[ "$device_family" == "ipad" ]] && is_iphone_only_locale "$localization_code"; then
     echo "Capture tag '$localization_code' is iPhone-only and has no $device_family screenshots." >&2
