@@ -21,7 +21,9 @@
   ],
   "localeCount": 42,
   "imageCount": 210,
-  "uploaded": false,
+  "uploaded": true,
+  "uploadVerifiedDate": "2026-10-09",
+  "uploadDestination": "Nibomo App Store Connect Asset Library",
   "files": [
     {
       "locale": "en-US",
