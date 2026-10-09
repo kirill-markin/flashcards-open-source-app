@@ -1,0 +1,1102 @@
+{
+  "en-US": [
+    [
+      "Nibomo App",
+      "Create flashcards with AI"
+    ],
+    [
+      "Start Learning",
+      "Recall the answer yourself"
+    ],
+    [
+      "Smart Reviews",
+      "Review at the right time"
+    ],
+    [
+      "Your Progress",
+      "Track your study days"
+    ],
+    [
+      "Your Cards",
+      "All your cards in one place"
+    ]
+  ],
+  "es-ES": [
+    [
+      "Nibomo App",
+      "Crea tarjetas con IA"
+    ],
+    [
+      "Empieza a estudiar",
+      "Recuerda la respuesta por tu cuenta"
+    ],
+    [
+      "Repaso inteligente",
+      "Repasa en el momento adecuado"
+    ],
+    [
+      "Tu progreso",
+      "Sigue tus días de estudio"
+    ],
+    [
+      "Tus tarjetas",
+      "Todas tus tarjetas en un lugar"
+    ]
+  ],
+  "es-MX": [
+    [
+      "Nibomo App",
+      "Crea tarjetas con IA"
+    ],
+    [
+      "Empieza a estudiar",
+      "Recuerda la respuesta por tu cuenta"
+    ],
+    [
+      "Repaso inteligente",
+      "Repasa en el momento adecuado"
+    ],
+    [
+      "Tu progreso",
+      "Sigue tus días de estudio"
+    ],
+    [
+      "Tus tarjetas",
+      "Todas tus tarjetas en un lugar"
+    ]
+  ],
+  "ar": [
+    [
+      "Nibomo App",
+      "أنشئ بطاقات بالذكاء الاصطناعي"
+    ],
+    [
+      "ابدأ التعلّم",
+      "تذكّر الإجابة بنفسك"
+    ],
+    [
+      "مراجعات ذكية",
+      "راجع في الوقت المناسب"
+    ],
+    [
+      "تقدّمك",
+      "تابع أيام دراستك"
+    ],
+    [
+      "بطاقاتك",
+      "كل بطاقاتك في مكان واحد"
+    ]
+  ],
+  "de": [
+    [
+      "Nibomo App",
+      "Erstelle Lernkarten mit KI"
+    ],
+    [
+      "Lernen starten",
+      "Erinnere dich selbst an die Antwort"
+    ],
+    [
+      "Clever wiederholen",
+      "Wiederhole zur richtigen Zeit"
+    ],
+    [
+      "Dein Fortschritt",
+      "Verfolge deine Lerntage"
+    ],
+    [
+      "Deine Karten",
+      "Alle Karten an einem Ort"
+    ]
+  ],
+  "hi": [
+    [
+      "Nibomo App",
+      "AI से फ़्लैशकार्ड बनाएँ"
+    ],
+    [
+      "सीखना शुरू करें",
+      "जवाब खुद याद करें"
+    ],
+    [
+      "स्मार्ट रिव्यू",
+      "सही समय पर दोहराएँ"
+    ],
+    [
+      "आपकी प्रगति",
+      "पढ़ाई के दिन देखें"
+    ],
+    [
+      "आपके कार्ड",
+      "सारे कार्ड एक जगह"
+    ]
+  ],
+  "ja": [
+    [
+      "Nibomo App",
+      "AIでフラッシュカードを作成"
+    ],
+    [
+      "学習を始める",
+      "自分で答えを思い出す"
+    ],
+    [
+      "スマート復習",
+      "最適なタイミングで復習"
+    ],
+    [
+      "学習の進捗",
+      "学習した日を記録"
+    ],
+    [
+      "カード一覧",
+      "すべてのカードをひとつに"
+    ]
+  ],
+  "fr": [
+    [
+      "Nibomo App",
+      "Créez des cartes avec l’IA"
+    ],
+    [
+      "Étudiez",
+      "Retrouvez la réponse par vous-même"
+    ],
+    [
+      "Révisions",
+      "Révisez au bon moment"
+    ],
+    [
+      "Votre progression",
+      "Suivez vos jours d’étude"
+    ],
+    [
+      "Vos cartes",
+      "Toutes vos cartes au même endroit"
+    ]
+  ],
+  "pt-BR": [
+    [
+      "Nibomo App",
+      "Crie flashcards com IA"
+    ],
+    [
+      "Comece a estudar",
+      "Lembre a resposta por conta própria"
+    ],
+    [
+      "Revisão inteligente",
+      "Revise na hora certa"
+    ],
+    [
+      "Seu progresso",
+      "Acompanhe seus dias de estudo"
+    ],
+    [
+      "Seus cartões",
+      "Todos os cartões em um só lugar"
+    ]
+  ],
+  "ru": [
+    [
+      "Nibomo App",
+      "Создавайте карточки с ИИ"
+    ],
+    [
+      "Начните учить",
+      "Вспоминайте ответ сами"
+    ],
+    [
+      "Повторяйте",
+      "Повторяйте в нужный момент"
+    ],
+    [
+      "Ваш прогресс",
+      "Следите за днями занятий"
+    ],
+    [
+      "Ваши карточки",
+      "Все карточки под рукой"
+    ]
+  ],
+  "zh-Hans": [
+    [
+      "Nibomo App",
+      "用AI创建闪卡"
+    ],
+    [
+      "开始学习",
+      "自己回想答案"
+    ],
+    [
+      "智能复习",
+      "在合适的时间复习"
+    ],
+    [
+      "学习进度",
+      "记录你的学习日"
+    ],
+    [
+      "你的卡片",
+      "所有卡片尽在一处"
+    ]
+  ],
+  "it": [
+    [
+      "Nibomo App",
+      "Crea flashcard con l’IA"
+    ],
+    [
+      "Inizia a studiare",
+      "Ricorda la risposta da solo"
+    ],
+    [
+      "Ripassi intelligenti",
+      "Ripassa al momento giusto"
+    ],
+    [
+      "I tuoi progressi",
+      "Tieni traccia dei giorni di studio"
+    ],
+    [
+      "Le tue carte",
+      "Tutte le carte in un unico posto"
+    ]
+  ],
+  "ko": [
+    [
+      "Nibomo App",
+      "AI로 플래시카드 만들기"
+    ],
+    [
+      "학습 시작",
+      "스스로 답을 떠올려 보세요"
+    ],
+    [
+      "스마트 복습",
+      "알맞은 시점에 복습하세요"
+    ],
+    [
+      "나의 진도",
+      "공부한 날을 확인하세요"
+    ],
+    [
+      "나의 카드",
+      "모든 카드를 한곳에"
+    ]
+  ],
+  "id": [
+    [
+      "Nibomo App",
+      "Buat flashcard dengan AI"
+    ],
+    [
+      "Mulai Belajar",
+      "Ingat jawabannya sendiri"
+    ],
+    [
+      "Ulasan Cerdas",
+      "Ulangi pada waktu yang tepat"
+    ],
+    [
+      "Kemajuanmu",
+      "Pantau hari belajarmu"
+    ],
+    [
+      "Kartumu",
+      "Semua kartu di satu tempat"
+    ]
+  ],
+  "tr": [
+    [
+      "Nibomo App",
+      "Yapay zekâ ile kart oluştur"
+    ],
+    [
+      "Öğrenmeye Başla",
+      "Yanıtı kendin hatırla"
+    ],
+    [
+      "Akıllı Tekrarlar",
+      "Doğru zamanda tekrar et"
+    ],
+    [
+      "İlerlemen",
+      "Çalışma günlerini takip et"
+    ],
+    [
+      "Kartların",
+      "Tüm kartların tek bir yerde"
+    ]
+  ],
+  "nl": [
+    [
+      "Nibomo App",
+      "Maak flashcards met AI"
+    ],
+    [
+      "Begin met leren",
+      "Herinner je het antwoord zelf"
+    ],
+    [
+      "Slim herhalen",
+      "Herhaal op het juiste moment"
+    ],
+    [
+      "Jouw vooruitgang",
+      "Volg je studiedagen"
+    ],
+    [
+      "Jouw kaarten",
+      "Al je kaarten op één plek"
+    ]
+  ],
+  "pl": [
+    [
+      "Nibomo App",
+      "Twórz fiszki z AI"
+    ],
+    [
+      "Zacznij naukę",
+      "Przypomnij sobie odpowiedź"
+    ],
+    [
+      "Mądre powtórki",
+      "Powtarzaj we właściwym czasie"
+    ],
+    [
+      "Twoje postępy",
+      "Śledź dni nauki"
+    ],
+    [
+      "Twoje fiszki",
+      "Wszystkie fiszki w jednym miejscu"
+    ]
+  ],
+  "vi": [
+    [
+      "Nibomo App",
+      "Tạo thẻ ghi nhớ với AI"
+    ],
+    [
+      "Bắt đầu học",
+      "Tự nhớ lại câu trả lời"
+    ],
+    [
+      "Ôn thông minh",
+      "Ôn tập đúng thời điểm"
+    ],
+    [
+      "Tiến độ học",
+      "Theo dõi các ngày học"
+    ],
+    [
+      "Thẻ của bạn",
+      "Tất cả thẻ ở một nơi"
+    ]
+  ],
+  "th": [
+    [
+      "Nibomo App",
+      "สร้างแฟลชการ์ดด้วย AI"
+    ],
+    [
+      "เริ่มเรียนรู้",
+      "นึกคำตอบด้วยตัวเอง"
+    ],
+    [
+      "ทบทวนอัจฉริยะ",
+      "ทบทวนในเวลาที่เหมาะสม"
+    ],
+    [
+      "ความก้าวหน้า",
+      "ติดตามวันที่เรียน"
+    ],
+    [
+      "การ์ดของคุณ",
+      "ทุกการ์ดรวมอยู่ในที่เดียว"
+    ]
+  ],
+  "uk": [
+    [
+      "Nibomo App",
+      "Створюйте картки зі ШІ"
+    ],
+    [
+      "Почніть учити",
+      "Пригадуйте відповідь самі"
+    ],
+    [
+      "Розумні повтори",
+      "Повторюйте у потрібний момент"
+    ],
+    [
+      "Ваш прогрес",
+      "Стежте за днями навчання"
+    ],
+    [
+      "Ваші картки",
+      "Усі картки під рукою"
+    ]
+  ],
+  "he": [
+    [
+      "Nibomo App",
+      "צרו כרטיסיות עם בינה מלאכותית"
+    ],
+    [
+      "מתחילים ללמוד",
+      "היזכרו בתשובה בעצמכם"
+    ],
+    [
+      "חזרות חכמות",
+      "חזרו בזמן המתאים"
+    ],
+    [
+      "ההתקדמות שלכם",
+      "עקבו אחר ימי הלימוד"
+    ],
+    [
+      "הכרטיסיות שלכם",
+      "כל הכרטיסיות במקום אחד"
+    ]
+  ],
+  "sv": [
+    [
+      "Nibomo App",
+      "Skapa kunskapskort med AI"
+    ],
+    [
+      "Börja studera",
+      "Minns svaret på egen hand"
+    ],
+    [
+      "Smart repetition",
+      "Repetera vid rätt tillfälle"
+    ],
+    [
+      "Dina framsteg",
+      "Följ dina studiedagar"
+    ],
+    [
+      "Dina kort",
+      "Alla kort på ett ställe"
+    ]
+  ],
+  "da": [
+    [
+      "Nibomo App",
+      "Lav læringskort med AI"
+    ],
+    [
+      "Begynd at lære",
+      "Husk selv svaret"
+    ],
+    [
+      "Smart repetition",
+      "Gentag på det rette tidspunkt"
+    ],
+    [
+      "Dine fremskridt",
+      "Følg dine studiedage"
+    ],
+    [
+      "Dine kort",
+      "Alle kort på ét sted"
+    ]
+  ],
+  "nb": [
+    [
+      "Nibomo App",
+      "Lag læringskort med KI"
+    ],
+    [
+      "Begynn å lære",
+      "Husk svaret selv"
+    ],
+    [
+      "Smart repetisjon",
+      "Repeter til rett tid"
+    ],
+    [
+      "Din fremgang",
+      "Følg studiedagene dine"
+    ],
+    [
+      "Dine kort",
+      "Alle kort på ett sted"
+    ]
+  ],
+  "fi": [
+    [
+      "Nibomo App",
+      "Luo opiskelukortteja tekoälyllä"
+    ],
+    [
+      "Aloita opiskelu",
+      "Muista vastaus itse"
+    ],
+    [
+      "Älykäs kertaus",
+      "Kertaa oikeaan aikaan"
+    ],
+    [
+      "Edistymisesi",
+      "Seuraa opiskelupäiviäsi"
+    ],
+    [
+      "Omat kortit",
+      "Kaikki kortit yhdessä paikassa"
+    ]
+  ],
+  "cs": [
+    [
+      "Nibomo App",
+      "Vytvářejte kartičky s AI"
+    ],
+    [
+      "Začněte se učit",
+      "Vybavte si odpověď sami"
+    ],
+    [
+      "Chytré opakování",
+      "Opakujte ve správný čas"
+    ],
+    [
+      "Váš pokrok",
+      "Sledujte své studijní dny"
+    ],
+    [
+      "Vaše kartičky",
+      "Všechny kartičky na jednom místě"
+    ]
+  ],
+  "el": [
+    [
+      "Nibomo App",
+      "Φτιάξε κάρτες με AI"
+    ],
+    [
+      "Ξεκίνα μάθηση",
+      "Θυμήσου την απάντηση μόνος σου"
+    ],
+    [
+      "Σωστή επανάληψη",
+      "Επανάλαβε τη σωστή στιγμή"
+    ],
+    [
+      "Η πρόοδός σου",
+      "Παρακολούθησε τις ημέρες μελέτης"
+    ],
+    [
+      "Οι κάρτες σου",
+      "Όλες οι κάρτες σε ένα μέρος"
+    ]
+  ],
+  "ro": [
+    [
+      "Nibomo App",
+      "Creează fișe cu AI"
+    ],
+    [
+      "Începe să înveți",
+      "Amintește-ți singur răspunsul"
+    ],
+    [
+      "Recapitulări",
+      "Repetă la momentul potrivit"
+    ],
+    [
+      "Progresul tău",
+      "Urmărește zilele de studiu"
+    ],
+    [
+      "Fișele tale",
+      "Toate fișele într-un singur loc"
+    ]
+  ],
+  "hu": [
+    [
+      "Nibomo App",
+      "Készíts tanulókártyákat MI-vel"
+    ],
+    [
+      "Kezdj tanulni",
+      "Idézd fel magad a választ"
+    ],
+    [
+      "Okos ismétlés",
+      "Ismételj a megfelelő időben"
+    ],
+    [
+      "Haladásod",
+      "Kövesd a tanulási napjaidat"
+    ],
+    [
+      "Kártyáid",
+      "Minden kártyád egy helyen"
+    ]
+  ],
+  "fa": [
+    [
+      "Nibomo App",
+      "با هوش مصنوعی فلش‌کارت بسازید"
+    ],
+    [
+      "شروع یادگیری",
+      "پاسخ را خودتان به یاد بیاورید"
+    ],
+    [
+      "مرور هوشمند",
+      "در زمان مناسب مرور کنید"
+    ],
+    [
+      "پیشرفت شما",
+      "روزهای مطالعه را دنبال کنید"
+    ],
+    [
+      "کارت‌های شما",
+      "همهٔ کارت‌ها در یک جا"
+    ]
+  ],
+  "ca": [
+    [
+      "Nibomo App",
+      "Crea targetes amb IA"
+    ],
+    [
+      "Comença",
+      "Recorda la resposta pel teu compte"
+    ],
+    [
+      "Repassos",
+      "Repassa en el moment adequat"
+    ],
+    [
+      "El teu progrés",
+      "Segueix els dies d’estudi"
+    ],
+    [
+      "Les teves targetes",
+      "Totes les targetes en un sol lloc"
+    ]
+  ],
+  "bn": [
+    [
+      "Nibomo App",
+      "AI দিয়ে ফ্ল্যাশকার্ড তৈরি করুন"
+    ],
+    [
+      "শেখা শুরু করুন",
+      "নিজেই উত্তর মনে করুন"
+    ],
+    [
+      "স্মার্ট রিভিউ",
+      "সঠিক সময়ে ঝালিয়ে নিন"
+    ],
+    [
+      "আপনার অগ্রগতি",
+      "পড়ার দিনগুলো দেখুন"
+    ],
+    [
+      "আপনার কার্ড",
+      "সব কার্ড এক জায়গায়"
+    ]
+  ],
+  "gu": [
+    [
+      "Nibomo App",
+      "AI થી ફ્લૅશકાર્ડ બનાવો"
+    ],
+    [
+      "શીખવાનું શરૂ કરો",
+      "જવાબ જાતે યાદ કરો"
+    ],
+    [
+      "સ્માર્ટ રિવ્યૂ",
+      "યોગ્ય સમયે પુનરાવર્તન કરો"
+    ],
+    [
+      "તમારી પ્રગતિ",
+      "અભ્યાસના દિવસો જુઓ"
+    ],
+    [
+      "તમારા કાર્ડ",
+      "બધા કાર્ડ એક જગ્યાએ"
+    ]
+  ],
+  "kn": [
+    [
+      "Nibomo App",
+      "AI ಮೂಲಕ ಕಾರ್ಡ್‌ಗಳನ್ನು ರಚಿಸಿ"
+    ],
+    [
+      "ಕಲಿಯಲು ಆರಂಭಿಸಿ",
+      "ಉತ್ತರವನ್ನು ನೀವೇ ನೆನಪಿಸಿಕೊಳ್ಳಿ"
+    ],
+    [
+      "ಸ್ಮಾರ್ಟ್ ರಿವ್ಯೂ",
+      "ಸರಿಯಾದ ಸಮಯದಲ್ಲಿ ಪುನರಾವರ್ತಿಸಿ"
+    ],
+    [
+      "ನಿಮ್ಮ ಪ್ರಗತಿ",
+      "ಅಧ್ಯಯನದ ದಿನಗಳನ್ನು ನೋಡಿ"
+    ],
+    [
+      "ನಿಮ್ಮ ಕಾರ್ಡ್‌ಗಳು",
+      "ಎಲ್ಲಾ ಕಾರ್ಡ್‌ಗಳು ಒಂದೇ ಕಡೆ"
+    ]
+  ],
+  "ml": [
+    [
+      "Nibomo App",
+      "AI ഉപയോഗിച്ച് കാർഡുകൾ ഉണ്ടാക്കൂ"
+    ],
+    [
+      "പഠനം തുടങ്ങൂ",
+      "ഉത്തരം സ്വയം ഓർക്കൂ"
+    ],
+    [
+      "സ്മാർട്ട് റിവ്യൂ",
+      "ശരിയായ സമയത്ത് ആവർത്തിക്കൂ"
+    ],
+    [
+      "പുരോഗതി",
+      "പഠിച്ച ദിവസങ്ങൾ കാണൂ"
+    ],
+    [
+      "കാർഡുകൾ",
+      "എല്ലാ കാർഡുകളും ഒരിടത്ത്"
+    ]
+  ],
+  "mr": [
+    [
+      "Nibomo App",
+      "AI ने फ्लॅशकार्ड तयार करा"
+    ],
+    [
+      "शिकायला सुरुवात",
+      "उत्तर स्वतः आठवा"
+    ],
+    [
+      "स्मार्ट रिव्ह्यू",
+      "योग्य वेळी उजळणी करा"
+    ],
+    [
+      "तुमची प्रगती",
+      "अभ्यासाचे दिवस पाहा"
+    ],
+    [
+      "तुमची कार्डे",
+      "सर्व कार्डे एकाच ठिकाणी"
+    ]
+  ],
+  "pa": [
+    [
+      "Nibomo App",
+      "AI ਨਾਲ ਫਲੈਸ਼ਕਾਰਡ ਬਣਾਓ"
+    ],
+    [
+      "ਸਿੱਖਣਾ ਸ਼ੁਰੂ ਕਰੋ",
+      "ਜਵਾਬ ਆਪ ਯਾਦ ਕਰੋ"
+    ],
+    [
+      "ਸਮਾਰਟ ਰਿਵਿਊ",
+      "ਸਹੀ ਸਮੇਂ ਦੁਹਰਾਓ"
+    ],
+    [
+      "ਤੁਹਾਡੀ ਤਰੱਕੀ",
+      "ਪੜ੍ਹਾਈ ਦੇ ਦਿਨ ਵੇਖੋ"
+    ],
+    [
+      "ਤੁਹਾਡੇ ਕਾਰਡ",
+      "ਸਾਰੇ ਕਾਰਡ ਇੱਕ ਥਾਂ"
+    ]
+  ],
+  "ta": [
+    [
+      "Nibomo App",
+      "AI மூலம் கார்டுகளை உருவாக்குங்கள்"
+    ],
+    [
+      "கற்கத் தொடங்கு",
+      "பதிலை நீங்களே நினைவுகூருங்கள்"
+    ],
+    [
+      "சீரான மீள்பார்வை",
+      "சரியான நேரத்தில் மீள்பாருங்கள்"
+    ],
+    [
+      "உங்கள் முன்னேற்றம்",
+      "படித்த நாட்களைப் பாருங்கள்"
+    ],
+    [
+      "உங்கள் கார்டுகள்",
+      "எல்லா கார்டுகளும் ஒரே இடத்தில்"
+    ]
+  ],
+  "te": [
+    [
+      "Nibomo App",
+      "AI తో కార్డులు సృష్టించండి"
+    ],
+    [
+      "నేర్చుకోండి",
+      "జవాబును మీరే గుర్తు తెచ్చుకోండి"
+    ],
+    [
+      "స్మార్ట్ రివ్యూలు",
+      "సరైన సమయంలో పునశ్చరణ చేయండి"
+    ],
+    [
+      "మీ పురోగతి",
+      "చదివిన రోజులను చూడండి"
+    ],
+    [
+      "మీ కార్డులు",
+      "అన్ని కార్డులు ఒకే చోట"
+    ]
+  ],
+  "ur": [
+    [
+      "Nibomo App",
+      "AI سے فلیش کارڈز بنائیں"
+    ],
+    [
+      "سیکھنا شروع کریں",
+      "جواب خود یاد کریں"
+    ],
+    [
+      "اسمارٹ ریویو",
+      "صحیح وقت پر دہرائیں"
+    ],
+    [
+      "آپ کی پیش رفت",
+      "پڑھائی کے دن دیکھیں"
+    ],
+    [
+      "آپ کے کارڈز",
+      "تمام کارڈز ایک جگہ"
+    ]
+  ],
+  "sw": [
+    [
+      "Nibomo App",
+      "Unda kadi za kujifunza kwa AI"
+    ],
+    [
+      "Anza Kujifunza",
+      "Kumbuka jibu mwenyewe"
+    ],
+    [
+      "Marudio Mahiri",
+      "Rudia kwa wakati unaofaa"
+    ],
+    [
+      "Maendeleo Yako",
+      "Fuatilia siku za kujifunza"
+    ],
+    [
+      "Kadi Zako",
+      "Kadi zote sehemu moja"
+    ]
+  ],
+  "bg": [
+    [
+      "Nibomo App",
+      "Създавайте карти с AI"
+    ],
+    [
+      "Започнете учене",
+      "Припомнете си отговора сами"
+    ],
+    [
+      "Умни преговори",
+      "Преговаряйте в точния момент"
+    ],
+    [
+      "Вашият напредък",
+      "Следете дните на учене"
+    ],
+    [
+      "Вашите карти",
+      "Всички карти на едно място"
+    ]
+  ],
+  "et": [
+    [
+      "Nibomo App",
+      "Loo õpikaarte tehisintellektiga"
+    ],
+    [
+      "Alusta õppimist",
+      "Meenuta vastust ise"
+    ],
+    [
+      "Nutikas kordamine",
+      "Korda õigel ajal"
+    ],
+    [
+      "Sinu edusammud",
+      "Jälgi oma õppepäevi"
+    ],
+    [
+      "Sinu kaardid",
+      "Kõik kaardid ühes kohas"
+    ]
+  ],
+  "hr": [
+    [
+      "Nibomo App",
+      "Stvarajte kartice uz AI"
+    ],
+    [
+      "Počnite učiti",
+      "Sami se prisjetite odgovora"
+    ],
+    [
+      "Pametno ponovi",
+      "Ponavljajte u pravo vrijeme"
+    ],
+    [
+      "Vaš napredak",
+      "Pratite dane učenja"
+    ],
+    [
+      "Vaše kartice",
+      "Sve kartice na jednom mjestu"
+    ]
+  ],
+  "is": [
+    [
+      "Nibomo App",
+      "Búðu til námskort með gervigreind"
+    ],
+    [
+      "Byrjaðu að læra",
+      "Reyndu að muna svarið"
+    ],
+    [
+      "Snjöll upprifjun",
+      "Rifjaðu upp á réttum tíma"
+    ],
+    [
+      "Framfarir þínar",
+      "Fylgstu með námsdögunum"
+    ],
+    [
+      "Kortin þín",
+      "Öll kort á einum stað"
+    ]
+  ],
+  "lt": [
+    [
+      "Nibomo App",
+      "Kurkite mokymosi korteles su DI"
+    ],
+    [
+      "Pradėkite mokytis",
+      "Prisiminkite atsakymą patys"
+    ],
+    [
+      "Išmanus kartojimas",
+      "Kartokite tinkamu laiku"
+    ],
+    [
+      "Jūsų pažanga",
+      "Sekite mokymosi dienas"
+    ],
+    [
+      "Jūsų kortelės",
+      "Visos kortelės vienoje vietoje"
+    ]
+  ],
+  "lv": [
+    [
+      "Nibomo App",
+      "Veidojiet mācību kartītes ar MI"
+    ],
+    [
+      "Sāciet mācīties",
+      "Atcerieties atbildi paši"
+    ],
+    [
+      "Gudra atkārtošana",
+      "Atkārtojiet īstajā brīdī"
+    ],
+    [
+      "Jūsu progress",
+      "Sekojiet mācību dienām"
+    ],
+    [
+      "Jūsu kartītes",
+      "Visas kartītes vienuviet"
+    ]
+  ],
+  "sk": [
+    [
+      "Nibomo App",
+      "Vytvárajte kartičky s AI"
+    ],
+    [
+      "Začnite sa učiť",
+      "Spomeňte si na odpoveď sami"
+    ],
+    [
+      "Múdre opakovanie",
+      "Opakujte v správnom čase"
+    ],
+    [
+      "Váš pokrok",
+      "Sledujte svoje študijné dni"
+    ],
+    [
+      "Vaše kartičky",
+      "Všetky kartičky na jednom mieste"
+    ]
+  ],
+  "sl": [
+    [
+      "Nibomo App",
+      "Ustvarite učne kartice z UI"
+    ],
+    [
+      "Začnite se učiti",
+      "Sami se spomnite odgovora"
+    ],
+    [
+      "Pametno ponovi",
+      "Ponavljajte ob pravem času"
+    ],
+    [
+      "Vaš napredek",
+      "Spremljajte dneve učenja"
+    ],
+    [
+      "Vaše kartice",
+      "Vse kartice na enem mestu"
+    ]
+  ],
+  "zu": [
+    [
+      "Nibomo App",
+      "Dala amakhadi okufunda nge-AI"
+    ],
+    [
+      "Qala Ukufunda",
+      "Khumbula impendulo ngokwakho"
+    ],
+    [
+      "Buyekeza Kahle",
+      "Buyekeza ngesikhathi esifanele"
+    ],
+    [
+      "Intuthuko Yakho",
+      "Landelela izinsuku zokufunda"
+    ],
+    [
+      "Amakhadi Akho",
+      "Wonke amakhadi endaweni eyodwa"
+    ]
+  ]
+}

@@ -267,6 +267,24 @@ FLASHCARDS_MARKETING_SCREENSHOT_LOCALE=zh-Hans bash scripts/ios/capture-ios-mark
 
 ## Build derived marketing materials
 
+### Separate portrait store-card processing
+
+The approved orange/yellow store cards have their own independent
+[processing flow](../../../docs/store-screenshot-processing.md). It reads saved
+native PNGs and writes `apps/ios/docs/media/app-store-cards/`, without invoking
+XCUITest, guest cleanup, this horizontal builder, or store upload:
+
+```bash
+npm run render --prefix scripts/store-screenshots -- --platform ios
+```
+
+Install the processor dependencies once using its
+[README](../../../scripts/store-screenshots/README.md). Native capture and portrait
+card processing are separate commands; run capture first only when new original
+screenshots are needed.
+
+### Existing horizontal-material builder
+
 The derived-material builder is the wrapper that turns the five localized screenshots into one horizontal PNG on a dark-gray background.
 
 Default behavior:

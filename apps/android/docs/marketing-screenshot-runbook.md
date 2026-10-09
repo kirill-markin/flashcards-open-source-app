@@ -16,6 +16,19 @@ The screenshot reset rule also deletes any stored guest cloud screenshot session
 
 ## Current wrapper scripts
 
+The approved portrait store cards are produced by a separate
+[processing flow](../../../docs/store-screenshot-processing.md) after these native
+PNG captures already exist. It writes `apps/android/docs/media/play-store-cards/`
+and never starts instrumentation or guest cleanup:
+
+```bash
+npm run render --prefix scripts/store-screenshots -- --platform android
+```
+
+Install its dependencies once using the
+[processor README](../../../scripts/store-screenshots/README.md). The capture
+wrapper below remains a separate operation.
+
 Run this command from the repository root:
 
 ```bash

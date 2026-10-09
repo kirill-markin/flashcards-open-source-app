@@ -1,0 +1,10 @@
+{
+  "purpose": "Visual baselines of the transferred formatter; future native UI capture changes are expected to change the app pixels.",
+  "nativeSourceRevision": "8ad37887e71cb946a6697a9ad657ef0ab61ce6bd",
+  "date": "2026-10-09",
+  "files": [
+    "iphone-en-US.png",
+    "ipad-en-US.png",
+    "android-en-US.png"
+  ]
+}
