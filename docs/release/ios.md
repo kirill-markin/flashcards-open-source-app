@@ -91,7 +91,9 @@ resubmitting the same artifact. New artifacts follow all pre-submission gates.
    Inspect the actual passed, failed, and skipped test results, plus errors and
    warnings even if the overall run is green. Record skipped cases, their reasons, and the resulting coverage
    limits. Distinguish deliberate [manual marketing exclusions](../../apps/ios/docs/marketing-screenshots.md#prerequisites)
-   from unexpected skips; investigate unexpected skips rather than counting
+   from explicit [cloud destination guards](readiness.md#ios-cloud-destination-exclusions),
+   which retain the native skip and require the same method to pass on its eligible
+   destination in the complete run. Investigate unexpected skips rather than counting
    them as passed. Fix code/build/test issues, merge and deploy
    through normal CI, then repeat affected local and cloud gates for the
    corrected release SHA. After test-only or docs-only fixes, retain the
