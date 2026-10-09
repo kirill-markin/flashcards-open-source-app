@@ -12,7 +12,7 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.app.FlashcardsApplication
-import com.flashcardsopensourceapp.app.MainActivity
+import com.flashcardsopensourceapp.app.MainHostActivity
 import com.flashcardsopensourceapp.app.navigation.SettingsDestination
 import com.flashcardsopensourceapp.app.support.AppStateResetRule
 import com.flashcardsopensourceapp.data.local.ai.store.OwnOpenAiKeyStore
@@ -36,7 +36,7 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class OwnOpenAiKeySmokeTest {
-    private val composeRule = createAndroidComposeRule<MainActivity>()
+    private val composeRule = createAndroidComposeRule<MainHostActivity>()
 
     @get:Rule
     val ruleChain: TestRule = RuleChain.outerRule(AppStateResetRule()).around(composeRule)

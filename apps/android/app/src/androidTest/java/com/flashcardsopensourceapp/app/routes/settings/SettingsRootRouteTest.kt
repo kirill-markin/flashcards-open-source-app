@@ -26,6 +26,7 @@ import com.flashcardsopensourceapp.feature.settings.settingsAgentConnectionsRowT
 import com.flashcardsopensourceapp.feature.settings.settingsAccountSectionTag
 import com.flashcardsopensourceapp.feature.settings.settingsAdvancedSectionTag
 import com.flashcardsopensourceapp.feature.settings.settingsAiChatSuggestionsRowTag
+import com.flashcardsopensourceapp.feature.settings.settingsAppIconRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsOwnOpenAiKeyRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsCurrentWorkspaceRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsDecksRowTag
@@ -107,6 +108,7 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             settingsReviewRemindersRowTag,
             settingsReviewAnimationsRowTag,
             settingsAiChatSuggestionsRowTag,
+            settingsAppIconRowTag,
             settingsOwnOpenAiKeyRowTag,
             settingsLeaderboardParticipationRowTag,
             settingsProductAnalyticsRowTag,
@@ -181,6 +183,11 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         assertRowClick(
             rowTag = settingsAiChatSuggestionsRowTag,
             expectedClick = "ai_chat_suggestions",
+            clickedRows = clickedRows
+        )
+        assertRowClick(
+            rowTag = settingsAppIconRowTag,
+            expectedClick = "app_icon",
             clickedRows = clickedRows
         )
         assertRowClick(
@@ -383,6 +390,9 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     },
                     onOpenAiChatSuggestions = {
                         clickedRows += "ai_chat_suggestions"
+                    },
+                    onOpenAppIcon = {
+                        clickedRows += "app_icon"
                     },
                     onOpenOwnOpenAiKey = {
                         clickedRows += "own_openai_key"

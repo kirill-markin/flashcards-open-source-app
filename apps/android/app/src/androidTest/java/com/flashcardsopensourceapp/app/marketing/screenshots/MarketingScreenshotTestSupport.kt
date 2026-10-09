@@ -28,7 +28,7 @@ import androidx.compose.ui.semantics.getOrNull
 import androidx.test.core.app.ActivityScenario
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
-import com.flashcardsopensourceapp.app.MainActivity
+import com.flashcardsopensourceapp.app.MainHostActivity
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.dismissBlockingSystemDialogIfPresent
 import com.flashcardsopensourceapp.app.navigation.AiDestination
 import com.flashcardsopensourceapp.app.navigation.CardsDestination
@@ -67,7 +67,7 @@ private const val progressScreenshotUiTimeoutMillis: Long = 30_000L
 private const val marketingScreenshotDirectoryPath: String = "/sdcard/Download/flashcards-marketing-screenshots"
 
 internal typealias MainActivityComposeRule =
-    AndroidComposeTestRule<DeferredActivityScenarioRule<MainActivity>, MainActivity>
+    AndroidComposeTestRule<DeferredActivityScenarioRule<MainHostActivity>, MainHostActivity>
 
 internal class DeferredActivityScenarioRule<A : ComponentActivity>(
     private val activityClass: Class<A>
@@ -108,7 +108,7 @@ internal class DeferredActivityScenarioRule<A : ComponentActivity>(
 }
 
 internal fun createMarketingScreenshotComposeRule(): MainActivityComposeRule {
-    val activityRule = DeferredActivityScenarioRule(activityClass = MainActivity::class.java)
+    val activityRule = DeferredActivityScenarioRule(activityClass = MainHostActivity::class.java)
     return createAndroidComposeTestRule(
         activityRule = activityRule,
         activityProvider = { rule -> rule.requireActivity() }

@@ -3,7 +3,7 @@ package com.flashcardsopensourceapp.app.livesmoke.support
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.uiautomator.UiDevice
-import com.flashcardsopensourceapp.app.MainActivity
+import com.flashcardsopensourceapp.app.MainHostActivity
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.emitInlineRawScreenStateIfNeeded
 import org.junit.rules.TestName
 
@@ -21,7 +21,7 @@ internal const val systemDialogWaitButtonResourceId: String = "android:id/aerr_w
 internal const val systemDialogCloseAppButtonResourceId: String = "android:id/aerr_close"
 
 internal class LiveSmokeContext(
-    val composeRule: AndroidComposeTestRule<ActivityScenarioRule<MainActivity>, MainActivity>,
+    val composeRule: AndroidComposeTestRule<ActivityScenarioRule<MainHostActivity>, MainHostActivity>,
     val device: UiDevice,
     val testNameRule: TestName,
     var currentStepLabel: String,
