@@ -5,7 +5,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
 import com.flashcardsopensourceapp.app.FirebaseAppInstrumentationTimeoutTest
-import com.flashcardsopensourceapp.app.MainActivity
+import com.flashcardsopensourceapp.app.MainHostActivity
 import com.flashcardsopensourceapp.app.livesmoke.flows.assertSettingsInformationArchitecture
 import com.flashcardsopensourceapp.app.livesmoke.flows.openSettingsInformationArchitectureDetails
 import com.flashcardsopensourceapp.app.livesmoke.flows.openReviewTab
@@ -37,7 +37,7 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class LiveSmokeTest : FirebaseAppInstrumentationTimeoutTest() {
     private val appStateResetRule = AppStateResetRule()
-    private val composeRule = createAndroidComposeRule<MainActivity>()
+    private val composeRule = createAndroidComposeRule<MainHostActivity>()
     private val device: UiDevice = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
 
     @get:Rule
