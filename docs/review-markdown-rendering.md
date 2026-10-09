@@ -22,9 +22,11 @@ text, and Markdown. Existing word, character, and multiline thresholds continue
 to choose between the two plain-text modes.
 
 An ordinary Markdown link or image is a Markdown presentation cue on every
-client. Inline emphasis by itself does not change presentation selection. For
-example, `A **short** answer` remains subject to the existing plain-text
-selection policy unless the same content contains another Markdown cue.
+client. Valid inline strong, emphasis, or strikethrough also selects Markdown on
+either card side, without another cue. For example, `A **short** answer` renders
+`short` in bold. Unmatched or escaped markers and intraword underscores that
+the renderer treats as literal do not select Markdown. Ordinary prose retains
+the existing plain-text layout.
 Accepted inline or display math is also a Markdown presentation cue. Literal
 math forms described below, escaped dollar signs, dollar signs that fail the
 delimiter guards, unbalanced dollar signs, and dollar signs inside code are not
@@ -561,7 +563,7 @@ start a managed-media load.
 
 ## Manual parity sample
 
-Create or edit one card side on Web and iOS, paste the sample below, and replace
+Create or edit one card side on Web, iOS, and Android, paste the sample below, and replace
 the final placeholder line by inserting a recognizable image through the app's
 image action. Do not type or invent an asset id. The app-generated card text at
 that position must use `![label](fcasset:<mediaAssetId>)`.
@@ -595,7 +597,7 @@ Managed image inserted through the app:
 [REPLACE THIS LINE USING THE APP IMAGE ACTION]
 ````
 
-On both clients, confirm:
+On all three clients, confirm:
 
 - headings, inline styles, nested lists, the blockquote, table, thematic break,
   and code have equivalent document structure
@@ -607,3 +609,24 @@ On both clients, confirm:
 - the fenced `fcasset:` example stays literal and does not trigger media loading
 
 Platform-native typography and spacing differences are expected.
+
+### Inline-only presentation checks
+
+On each app, create cards with each source below on both the front and back,
+then review the front and reveal the answer. Do not add a heading, list, link,
+backtick, or other Markdown cue to these sides.
+
+| Source | Expected |
+| --- | --- |
+| `A **short** prompt` | `short` is bold, with no visible delimiters |
+| `A __short__ prompt` | `short` is bold, with no visible delimiters |
+| `A *short* prompt` and `A _short_ prompt` | `short` is italic, with no visible delimiters |
+| `A ~~short~~ prompt` | `short` is struck through, with no visible delimiters |
+| `中文标点紧邻**重点**，继续。` | `重点` is bold; adjacent punctuation remains intact |
+| `A **short prompt`, `A * short * prompt`, and `file_name_part` | Literal text retains the plain layout |
+| `A \*\*short\*\* prompt` and `A \~\~short\~\~ prompt` | Escaped markers retain the existing literal plain presentation |
+| `Short plain prompt` | Existing short plain layout |
+| Two ordinary paragraphs separated by a blank line | Existing paragraph plain layout |
+
+Also review an untouched demo card: the product name remains bold and the rating
+label remains inline code.
