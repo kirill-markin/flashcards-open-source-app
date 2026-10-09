@@ -97,6 +97,7 @@ setting's default and a premium note, and a change opens the shared Premium offe
 
 Each selection is stored independently of entitlement and distinct from what is displayed. A
 confirmed downgrade displays the default while retaining the selection; resubscription restores it.
+While a person cannot customize, choosing the default writes nothing, so the retained selection survives.
 Unknown or offline entitlement follows the [cached local-feature policy](premium-entitlements.md#offline-behaviour).
 Client setting and display boundaries gate usage; the backend adds no billing gate for storing a
 selection. Accent color and Review Animations are account-wide; AI Chat Suggestions are stored per
