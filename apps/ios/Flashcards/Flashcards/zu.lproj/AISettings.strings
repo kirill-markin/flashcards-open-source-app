@@ -886,6 +886,11 @@
 "settings.accentColor.premiumNote" = "Imibala yokugqamisa oyikhethayo iyatholakala nge-Premium. Umbala wakho ogciniwe ubuya lapho i-Premium isebenza.";
 "settings.reviewAnimations.premiumNote" = "Ukuvala ukugqwayiza kokubukeza kuyatholakala nge-Premium. Isilungiselelo sakho esigciniwe sibuya lapho i-Premium isebenza.";
 "settings.aiChatSuggestions.premiumNote" = "Ukuvala iziphakamiso zengxoxo ye-AI kuyatholakala nge-Premium. Isilungiselelo sakho esigciniwe sibuya lapho i-Premium isebenza.";
+"settings.appIcon.title" = "Isithonjana sohlelo";
+"settings.appIcon.default" = "Okuzenzakalelayo";
+"settings.appIcon.light" = "Okukhanyayo";
+"settings.appIcon.premiumNote" = "Ukushintsha isithonjana sohlelo kuyatholakala nge-Premium. Isithonjana sakho esigciniwe sibuya lapho i-Premium isebenza.";
+"settings.appIcon.systemAlertNote" = "I-iOS iqinisekisa ushintsho ngalunye lwesithonjana ngesexwayiso.";
 
 "premium.apple.monthlyProduct" = "%@ · Nyanga zonke";
 "premium.apple.renewal" = "Kuvuselelwa ngokuzenzakalelayo uze ukhansele. Phatha noma ukhansele ekubhaliseni kwakho kwe-App Store.";

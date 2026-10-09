@@ -91,17 +91,20 @@ uses the shared Stripe offer; new live purchases remain gated by backend configu
 
 ## Style settings
 
-The Style section of Settings holds the custom styles: Accent color, Review Animations, and AI Chat
-Suggestions. Premium and lifetime (effective rank at least 20) can change them. Free users see each
-setting's default and a premium note, and a change opens the shared Premium offer on every client.
+The Style section of Settings holds the custom styles: Accent color, Review Animations, AI Chat
+Suggestions, and, on iOS, App icon. Premium and lifetime (effective rank at least 20) can change
+them. Free users see each setting's default and a premium note, and a change opens the shared
+Premium offer on every client.
 
 Each selection is stored independently of entitlement and distinct from what is displayed. A
 confirmed downgrade displays the default while retaining the selection; resubscription restores it.
 While a person cannot customize, choosing the default writes nothing, so the retained selection survives.
 Unknown or offline entitlement follows the [cached local-feature policy](premium-entitlements.md#offline-behaviour).
 Client setting and display boundaries gate usage; the backend adds no billing gate for storing a
-selection. Accent color and Review Animations are account-wide; AI Chat Suggestions are stored per
-device.
+selection. Accent color and Review Animations are account-wide; AI Chat Suggestions and App icon are
+stored per device. The Home Screen icon follows the displayed App icon while the app is active, so a
+confirmed downgrade or a resubscription switches it by the next app open, behind the system's
+confirmation alert.
 
 ### Accent color
 
