@@ -78,6 +78,10 @@ extension AIChatStore {
             return
         }
 
+        if isAIChatAttachmentLimitError(error: error) {
+            return
+        }
+
         if isAiLimitReachedError(error: error) {
             return
         }

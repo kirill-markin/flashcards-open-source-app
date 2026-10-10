@@ -50,9 +50,13 @@
 "ai.attachment.error.unsupportedType" = "Tiedostotyyppiä ei tueta: .%@";
 "ai.attachment.error.cameraUnavailable" = "Kamera ei ole käytettävissä tällä laitteella.";
 "ai.attachment.error.photoUnavailable" = "Kuvien käyttö ei ole mahdollista tällä laitteella.";
-"ai.attachment.error.fileTooLarge" = "Tiedosto on liian suuri. Suurin sallittu koko on 3 Mt.";
+"ai.attachment.error.fileTooLarge" = "Tiedosto on liian suuri. Tiedostot voivat olla enintään 30 Mt ja kuvat enintään 10 Mt.";
 "ai.attachment.error.imageEncodeFailed" = "Valitun kuvan valmistelu epäonnistui.";
 "ai.attachment.error.imageDimensionsInvalid" = "Valitun kuvan lukeminen epäonnistui.";
+"ai.attachment.error.tooManyFiles" = "Viestissä voi olla enintään 10 tiedostoa ja kuvaa. Poista osa niistä ja yritä uudelleen.";
+"ai.attachment.error.imagesTooLarge" = "Yhden viestin kuvat voivat olla yhteensä enintään 15 Mt. Lähetä osa niistä toisessa viestissä.";
+"ai.attachment.error.unavailable" = "Liite ei ole enää tällä laitteella. Poista se, liitä se uudelleen ja yritä uudelleen.";
+"ai.attachment.error.uploadFailed" = "Liitteen lähettäminen epäonnistui. Tarkista yhteys ja yritä uudelleen.";
 "ai.composer.dictation.start" = "Aloita sanelu";
 "ai.composer.dictation.stop" = "Lopeta sanelu";
 "ai.composer.dictation.waiting" = "Odotetaan mikrofonin käyttöoikeutta...";
@@ -62,7 +66,7 @@
 "ai.error.requestTooLarge.title" = "Viesti on liian suuri";
 "ai.error.requestTooLarge.message" = "Tekoälykeskustelu ei voi lähettää näin paljon sisältöä kerralla. Poista liitteitä, valitse pienempi tiedosto tai kuva tai jaa pyyntö osiin ja yritä uudelleen.";
 "ai.error.attachmentUnsupported.title" = "Tiedostotyyppiä ei tueta";
-"ai.error.attachmentUnsupported.message" = "Tätä tiedostotyyppiä ei tueta tekoälykeskustelussa. Poista tiedosto tai tallenna se muodossa PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX tai kuvana ja yritä uudelleen.";
+"ai.error.attachmentUnsupported.message" = "Tätä tiedostotyyppiä ei tueta tekoälykeskustelussa. Poista tiedosto tai tallenna se muodossa PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG tai kuvana ja yritä uudelleen.";
 "ai.error.limitReached" = "Tämän kuukauden tekoälyraja on käytetty loppuun. Se nollautuu ensi kuun alussa.";
 "ai.error.summary.couldNotContinue" = "Tekoälyn vastausta ei voitu jatkaa";
 "ai.error.summary.invalidResponse" = "Saatiin virheellinen tekoälyn vastaus";

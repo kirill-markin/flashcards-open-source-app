@@ -10,7 +10,12 @@ let aiChatExternalProviderConsentUserDefaultsKey: String = "ai-chat-external-pro
 let aiChatExternalProviderConsentRequiredMessage: String = "Review AI data use and accept it on this device before using AI features."
 let aiChatAccuracyWarningText: String = "AI responses can be inaccurate or incomplete. Review important results before relying on them."
 let aiChatGuestQuotaButtonTitle: String = "Create account or Log in"
-let aiChatMaximumAttachmentBytes: Int = 3 * 1024 * 1024
+/// The backend's upload limits in `apps/backend/src/chatFiles/uploads.ts`; the attachment error copy in every
+/// `AISettings.strings` states these numbers.
+let aiChatMaximumFileAttachmentBytes: Int = 30 * 1024 * 1024
+let aiChatMaximumImageAttachmentBytes: Int = 10 * 1024 * 1024
+let aiChatMaximumTurnImageAttachmentBytes: Int = 15 * 1024 * 1024
+let aiChatMaximumUploadsPerTurn: Int = 10
 let aiChatMaximumStartRunRequestBytes: Int = 5 * 1024 * 1024
 let aiChatLocalSessionStalenessThreshold: TimeInterval = 6 * 60 * 60
 let aiChatSessionHistoryPageLimit: Int = 20
@@ -35,6 +40,8 @@ let aiChatSupportedFileExtensions: Set<String> = [
     "sql",
     "log",
     "docx",
+    "zip",
+    "apkg",
 ]
 let aiChatExternalProviderDisclosureItems: [String] = [
     "Typed prompts and card-derived context needed for your request can be sent to the hosted AI service.",

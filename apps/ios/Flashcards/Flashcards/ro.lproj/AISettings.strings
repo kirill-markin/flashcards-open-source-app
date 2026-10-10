@@ -50,9 +50,13 @@
 "ai.attachment.error.unsupportedType" = "Tip de fișier neacceptat: .%@";
 "ai.attachment.error.cameraUnavailable" = "Camera nu este disponibilă pe acest dispozitiv.";
 "ai.attachment.error.photoUnavailable" = "Accesul la poze nu este disponibil pe acest dispozitiv.";
-"ai.attachment.error.fileTooLarge" = "Fișierul este prea mare. Dimensiunea maximă permisă este de 3 MB.";
+"ai.attachment.error.fileTooLarge" = "Fișierul este prea mare. Fișierele pot avea cel mult 30 MB, iar imaginile cel mult 10 MB.";
 "ai.attachment.error.imageEncodeFailed" = "Poza selectată nu a putut fi pregătită.";
 "ai.attachment.error.imageDimensionsInvalid" = "Poza selectată nu a putut fi citită.";
+"ai.attachment.error.tooManyFiles" = "Un mesaj poate include cel mult 10 fișiere și imagini. Elimină câteva dintre ele, apoi încearcă din nou.";
+"ai.attachment.error.imagesTooLarge" = "Imaginile dintr-un mesaj pot avea împreună cel mult 15 MB. Trimite câteva dintre ele într-un alt mesaj.";
+"ai.attachment.error.unavailable" = "Un atașament nu mai este pe acest dispozitiv. Elimină-l, atașează-l din nou, apoi încearcă din nou.";
+"ai.attachment.error.uploadFailed" = "Un atașament nu a putut fi încărcat. Verifică conexiunea, apoi încearcă din nou.";
 "ai.composer.dictation.start" = "Începe dictarea";
 "ai.composer.dictation.stop" = "Oprește dictarea";
 "ai.composer.dictation.waiting" = "Se așteaptă accesul la microfon...";
@@ -62,7 +66,7 @@
 "ai.error.requestTooLarge.title" = "Mesajul este prea mare";
 "ai.error.requestTooLarge.message" = "Chatul AI nu poate trimite atât de mult conținut deodată. Elimină unul sau mai multe atașamente, alege un fișier sau o poză mai mică ori împarte cererea și încearcă din nou.";
 "ai.error.attachmentUnsupported.title" = "Tip de fișier neacceptat";
-"ai.error.attachmentUnsupported.message" = "Acest tip de fișier nu este acceptat în chatul AI. Elimină fișierul sau salvează-l ca PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX ori imagine, apoi încearcă din nou.";
+"ai.error.attachmentUnsupported.message" = "Acest tip de fișier nu este acceptat în chatul AI. Elimină fișierul sau salvează-l ca PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG ori imagine, apoi încearcă din nou.";
 "ai.error.limitReached" = "Ți-ai epuizat limita AI pentru luna aceasta. Se resetează la începutul lunii viitoare.";
 "ai.error.summary.couldNotContinue" = "Răspunsul AI nu a putut fi continuat";
 "ai.error.summary.invalidResponse" = "S-a primit un răspuns AI nevalid";
