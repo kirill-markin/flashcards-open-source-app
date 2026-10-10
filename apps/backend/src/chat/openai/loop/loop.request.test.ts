@@ -65,7 +65,7 @@ test("startOpenAILoopWithDeps sends a hashed safety identifier on the initial mo
   ), [
     "sql_query", "sql_execute", "list_workspaces", "get_guide",
     "next_review_card", "reveal_answer", "submit_review", "get_usage_limits",
-    "bash", "add_generated_image_to_card",
+    "bash", "view_file", "add_generated_image_to_card",
   ]);
   assert.equal(requests[0].parallel_tool_calls, false);
   assert.equal(Object.hasOwn(requests[0], "user"), false);
@@ -105,7 +105,7 @@ test("startOpenAILoopWithDeps uses the persisted runtime model and reasoning eff
   ), [
     "sql_query", "sql_execute", "list_workspaces", "get_guide",
     "next_review_card", "reveal_answer", "submit_review", "get_usage_limits",
-    "bash",
+    "bash", "view_file",
   ]);
   assert.equal(Object.hasOwn(requests[0], "parallel_tool_calls"), false);
   assert.doesNotMatch(getSystemInstructions(requests[0]), /Generated-image policy:/u);

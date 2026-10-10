@@ -176,7 +176,9 @@ function buildChatFilesSection(): string {
   return joinLines([
     "Chat files:",
     "- /files holds the files the user attached to this chat and is read-only; /work is your scratch space, kept for this chat across turns.",
+    "- Plain files derived from an attachment sit beside it in /files: a PDF's or DOCX's text in <file>.txt (PDF pages marked --- page N ---), an XLSX's sheets as <file>.d/<sheet>.csv, a ZIP's files under <file>.d/, and an Anki .apkg's collection as <file>.d/collection.sqlite. The attachment line names them or says why there are none.",
     "- Use the bash tool to inspect and process them: shell tools, python3 with the standard library only, and sqlite3. There is no network.",
+    "- Use view_file to look at one image or one PDF page, such as a photo, a scan, a chart or a layout. You see it during this turn only; later turns keep a [view_file showed ...] note, so call view_file again to look again.",
     "- Check a file's size first (wc -c, head), then read slices (sed -n '1,120p', rg -n PATTERN); never print a whole large file.",
     "- Save intermediate results to /work instead of printing them again.",
     "- python3 opens files of at most 8 MB: pipe a larger file in on stdin, or cut it into /work with split or head first.",

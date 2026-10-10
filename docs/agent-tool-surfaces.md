@@ -26,6 +26,7 @@ registers the specs that list its own surface
 | `get_usage_limits` | MCP, chat |
 | `add_generated_image_to_card` | chat only, not a registry spec |
 | `bash` | chat only, not a registry spec |
+| `view_file` | chat only, not a registry spec |
 
 `get_usage_limits` is account-scoped, because an allowance belongs to the person
 rather than to one of their workspaces: it takes no arguments at all, and its
@@ -67,7 +68,10 @@ standing contract; re-measure before deciding.
 runs commands over the session's files in the chat sandbox Lambda
 (`apps/backend/src/chatSandbox/handler.ts`). MCP and the Agent REST API do not
 get it, because an external AI client already runs code over files on its own
-side.
+side. `view_file`
+(`apps/backend/src/chat/openai/tools/viewFileToolContract.ts`), which shows the
+model one image or one PDF page of the session, is chat-only for the same
+reason: such a client looks at files on its own side.
 
 The chat serves all eight registry tools, review included. The model supplies
 the `reviewId` there exactly as it does on MCP, and a `reviewId` reused on a

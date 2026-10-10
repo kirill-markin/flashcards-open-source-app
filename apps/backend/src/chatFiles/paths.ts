@@ -82,14 +82,46 @@ function buildNumberedFileName(fileName: string, copyNumber: number): string {
   return `${stem} (${copyNumber})${extension}`;
 }
 
+function collectParentDirectories(paths: Iterable<string>): ReadonlySet<string> {
+  const directories = new Set<string>();
+  for (const path of paths) {
+    for (let end = path.indexOf("/", 1); end !== -1; end = path.indexOf("/", end + 1)) {
+      directories.add(path.slice(0, end));
+    }
+  }
+
+  return directories;
+}
+
+/**
+ * The first path that would make the session's files no tree: one taken twice, or one that is also the
+ * directory of another. The sandbox mounts the files as a tree, and refuses a session that is not one.
+ */
+export function findChatFilePathConflict(paths: ReadonlyArray<string>): string | null {
+  const seenPaths = new Set<string>();
+  const directories = collectParentDirectories(paths);
+  for (const path of paths) {
+    if (seenPaths.has(path) || directories.has(path)) {
+      return path;
+    }
+
+    seenPaths.add(path);
+  }
+
+  return null;
+}
+
 /**
  * `/files/<sanitized name>`, or `/files/image-<n>.<ext>` for an image, which arrives without a name. A
- * name already taken in the session gets ` (2)`, ` (3)`, ... before its extension.
+ * name already taken in the session, as a file or as the directory of derived files, gets ` (2)`,
+ * ` (3)`, ... before its extension.
  */
 export function allocateChatFilePath(
   request: ChatFilePathRequest,
   takenPaths: ReadonlySet<string>,
 ): string {
+  const takenDirectories = collectParentDirectories(takenPaths);
+  const isFree = (path: string): boolean => !takenPaths.has(path) && !takenDirectories.has(path);
   if (request.type === "image") {
     const extension = imageExtensionByMediaType[request.mediaType];
     if (extension === undefined) {
@@ -98,7 +130,7 @@ export function allocateChatFilePath(
 
     for (let imageNumber = 1; ; imageNumber += 1) {
       const path = `${chatFilesDirectoryPath}image-${imageNumber}.${extension}`;
-      if (!takenPaths.has(path)) {
+      if (isFree(path)) {
         return path;
       }
     }
@@ -107,7 +139,7 @@ export function allocateChatFilePath(
   const fileName = sanitizeChatFileName(request.fileName);
   for (let copyNumber = 1; ; copyNumber += 1) {
     const path = `${chatFilesDirectoryPath}${buildNumberedFileName(fileName, copyNumber)}`;
-    if (!takenPaths.has(path)) {
+    if (isFree(path)) {
       return path;
     }
   }

@@ -13,7 +13,7 @@ import { backendNodejsProjectPaths, resolveFromRepoRoot } from "../nodejs-projec
 const chatSandboxReservedConcurrency = 10;
 
 /**
- * Runs model-written commands over one chat session's files
+ * Runs model-written commands over one chat session's files and parses the files people attach
  * (`apps/backend/src/chatSandbox/handler.ts`). It is attached to no VPC and its role, which carries no
  * managed policy, may only write to the function's own log group: it reaches no AWS service, and only
  * the objects the chat worker pre-signed for one call.
@@ -43,9 +43,9 @@ export function createChatSandboxFunction(scope: Construct): lambdaNodejs.Nodejs
     bundling: {
       minify: true,
       sourceMap: true,
-      // just-bash loads its workers and the Python runtime from its own package directory, which a
-      // single-file bundle does not carry.
-      nodeModules: ["just-bash"],
+      // just-bash loads its workers and the Python runtime, and pdf.js its worker, font metrics and
+      // character maps, from their own package directories, which a single-file bundle does not carry.
+      nodeModules: ["just-bash", "pdfjs-dist"],
     },
   });
 }
