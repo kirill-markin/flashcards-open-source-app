@@ -1381,8 +1381,12 @@ const mrCatalog: TranslationCatalog = {
       remaining: "या महिन्यात शिल्लक: {{count}}",
     },
     alerts: {
+      attachmentImagesTooLarge: "AI चॅटच्या एका संदेशासाठी प्रतिमा खूप मोठ्या आहेत: एकूण कमाल {{limit}} MB असू शकतात. त्यांपैकी काही दुसऱ्या संदेशात पाठवा.",
       attachmentLimit: "संदेश खूप मोठा आहे. AI चॅट एकावेळी एवढा मजकूर पाठवू शकत नाही. एक किंवा अधिक जोडलेल्या फाइल काढा, लहान फाइल किंवा फोटो निवडा, किंवा विनंती विभागून पुन्हा प्रयत्न करा.",
-      attachmentUnsupported: "AI चॅटसाठी हा फाइल प्रकार समर्थित नाही. फाइल काढा किंवा ती PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX किंवा प्रतिमा म्हणून जतन करून पुन्हा प्रयत्न करा.",
+      attachmentTooLarge: "ही फाइल AI चॅटसाठी खूप मोठी आहे. फाइल कमाल {{fileLimit}} MB आणि प्रतिमा कमाल {{imageLimit}} MB असू शकतात. लहान फाइल निवडा आणि पुन्हा प्रयत्न करा.",
+      attachmentUnsupported: "AI चॅटसाठी हा फाइल प्रकार समर्थित नाही. फाइल काढा किंवा ती PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG किंवा प्रतिमा म्हणून जतन करून पुन्हा प्रयत्न करा.",
+      attachmentUploadFailed: "जोडलेली फाइल अपलोड करता आली नाही. तुमचे कनेक्शन तपासा आणि पुन्हा प्रयत्न करा.",
+      attachmentsTooMany: "AI चॅटच्या एका संदेशात कमाल {{limit}} फाइल आणि प्रतिमा जोडता येतात. उरलेल्या दुसऱ्या संदेशात पाठवा.",
       microphoneUnavailable: "या ब्राउझरमध्ये मायक्रोफोन रेकॉर्डिंग उपलब्ध नाही.",
     },
     composerPlaceholder: "कार्डे, उजळणीचा इतिहास यांबद्दल विचारा किंवा नोंदी जोडा...",

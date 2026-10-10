@@ -1381,8 +1381,12 @@ const ptBrCatalog: TranslationCatalog = {
       remaining: "Restam este mês: {{count}}",
     },
     alerts: {
+      attachmentImagesTooLarge: "As imagens são grandes demais para uma única mensagem do chat com IA: juntas, podem ter até {{limit}} MB. Envie algumas delas em outra mensagem.",
       attachmentLimit: "A mensagem é grande demais. O chat com IA não consegue enviar tanto conteúdo de uma vez. Remova um ou mais anexos, escolha um arquivo ou foto menor, ou divida o pedido e tente novamente.",
-      attachmentUnsupported: "Este tipo de arquivo não é compatível com o chat com IA. Remova o arquivo ou salve-o como PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX ou imagem e tente novamente.",
+      attachmentTooLarge: "Este arquivo é grande demais para o chat com IA. Arquivos podem ter até {{fileLimit}} MB e imagens até {{imageLimit}} MB. Escolha um arquivo menor e tente novamente.",
+      attachmentUnsupported: "Este tipo de arquivo não é compatível com o chat com IA. Remova o arquivo ou salve-o como PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG ou imagem e tente novamente.",
+      attachmentUploadFailed: "Não foi possível enviar o anexo. Verifique sua conexão e tente novamente.",
+      attachmentsTooMany: "Uma mensagem do chat com IA pode incluir até {{limit}} arquivos e imagens. Envie o restante em outra mensagem.",
       microphoneUnavailable: "A gravação pelo microfone não está disponível neste navegador.",
     },
     composerPlaceholder: "Pergunte sobre cartões, histórico de revisões ou anexe anotações...",

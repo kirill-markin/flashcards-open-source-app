@@ -48,7 +48,7 @@ function createBinaryAttachment(): BinaryPendingAttachment {
     type: "binary",
     fileName: "diagram.png",
     mediaType: "image/png",
-    base64Data: "base64-payload",
+    blob: new Blob(["binary-payload"], { type: "image/png" }),
   };
 }
 
@@ -137,7 +137,7 @@ describe("chatDraftStorage", () => {
 
     const rawValue = window.localStorage.getItem("flashcards-chat-drafts::workspace-1");
     expect(rawValue).not.toBeNull();
-    expect(rawValue).not.toContain("base64-payload");
+    expect(rawValue).not.toContain("diagram.png");
     expect(readChatDraftForSession(loadChatDraftWorkspaceState("workspace-1"), "session-1")).toEqual({
       inputText: "saved text",
       pendingAttachments: [],
@@ -166,7 +166,7 @@ describe("chatDraftStorage", () => {
 
     const rawValue = window.localStorage.getItem("flashcards-chat-drafts::workspace-1");
     expect(rawValue).not.toBeNull();
-    expect(rawValue).not.toContain("base64-payload");
+    expect(rawValue).not.toContain("diagram.png");
     expect(readChatDraftForSession(loadChatDraftWorkspaceState("workspace-1"), "session-1")).toEqual({
       inputText: "mixed draft",
       pendingAttachments: [cardAttachment],
@@ -195,7 +195,7 @@ describe("chatDraftStorage", () => {
     });
     const cleanedRawValue = window.localStorage.getItem("flashcards-chat-drafts::workspace-1");
     expect(cleanedRawValue).not.toBeNull();
-    expect(cleanedRawValue).not.toContain("base64-payload");
+    expect(cleanedRawValue).not.toContain("diagram.png");
   });
 
   it("ignores legacy stored drafts that only contain binary attachments", () => {

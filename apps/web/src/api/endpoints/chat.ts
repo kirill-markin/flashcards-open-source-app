@@ -28,6 +28,7 @@ import type {
   StopChatRunRequestBody,
   StopChatRunResponse,
 } from "../../types";
+import { ApiError } from "../transport/errors";
 import { parseContractResponse } from "../transport/response";
 import {
   allowAuthRecovery,
@@ -40,6 +41,7 @@ type ChatResumeRequestDiagnostics = Readonly<{
 }>;
 
 const CHAT_SESSIONS_PAGE_LIMIT = 20;
+const START_CHAT_RUN_GATEWAY_TIMEOUT_MAXIMUM_ATTEMPT_COUNT = 3;
 
 function buildOwnOpenAIKeyHeaders(): Record<string, string> {
   const ownOpenAIKey = readActiveOwnOpenAIKey();
@@ -135,7 +137,7 @@ export async function archiveChatSession(
   }, allowAuthRecovery), "POST /chat/sessions/:sessionId/archive", parseChatSessionArchiveResponse);
 }
 
-export async function startChatRun(body: StartChatRunRequestBody): Promise<StartChatRunResponse> {
+async function requestStartChatRun(body: StartChatRunRequestBody): Promise<StartChatRunResponse> {
   return parseContractResponse(await requestJson("/chat", {
     method: "POST",
     headers: {
@@ -144,6 +146,32 @@ export async function startChatRun(body: StartChatRunRequestBody): Promise<Start
     },
     body: JSON.stringify(body),
   }, allowAuthRecoveryWithTransientNetworkRetry), "POST /chat", parseStartChatRunResponse);
+}
+
+/**
+ * A gateway timeout can arrive after the backend persisted the turn, for example while it stores uploaded
+ * files, so it is retried with the same `clientRequestId`, which the backend answers from the persisted turn.
+ */
+export async function startChatRun(body: StartChatRunRequestBody): Promise<StartChatRunResponse> {
+  for (let attemptCount = 1; ; attemptCount += 1) {
+    try {
+      return await requestStartChatRun(body);
+    } catch (error) {
+      if (
+        error instanceof ApiError === false
+        || error.statusCode !== 504
+        || attemptCount >= START_CHAT_RUN_GATEWAY_TIMEOUT_MAXIMUM_ATTEMPT_COUNT
+      ) {
+        throw error;
+      }
+
+      console.warn("Chat start-run gateway timeout retry", {
+        attemptCount,
+        maximumAttemptCount: START_CHAT_RUN_GATEWAY_TIMEOUT_MAXIMUM_ATTEMPT_COUNT,
+        requestId: error.requestId,
+      });
+    }
+  }
 }
 
 export async function createNewChatSession(

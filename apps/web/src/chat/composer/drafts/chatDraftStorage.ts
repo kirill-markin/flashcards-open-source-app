@@ -256,7 +256,7 @@ function arePendingAttachmentsEqual(
     return right.type === "binary"
       && left.fileName === right.fileName
       && left.mediaType === right.mediaType
-      && left.base64Data === right.base64Data;
+      && left.blob === right.blob;
   }
 
   return right.type === "card"
