@@ -206,6 +206,109 @@ export type ChatReplayEncryptedItemsDroppedDetails = Readonly<{
   userSuppliedKey: boolean;
 }>;
 
+/** One stored message or run input whose inline attachments became session files. */
+export type ChatFileLegacyAttachmentsConvertedDetails = Readonly<{
+  source: "chat_item" | "run_turn_input";
+  itemId: string | null;
+  convertedPartCount: number;
+}>;
+
+/** A stored inline attachment today's chat attachment policy rejects, kept as a file because it was accepted when stored. */
+export type ChatFileLegacyAttachmentKeptAsFileDetails = Readonly<{
+  partType: "image" | "file";
+  mediaType: string;
+  sizeBytes: number;
+}>;
+
+/**
+ * Stored chat file objects that no `ai.chat_files` row names, because what had to follow their upload did not happen.
+ * `sandbox_unconfirmed` names every write slot of a chat sandbox attempt whose uploads no accepted answer
+ * confirmed, so some of its keys may hold no object. `path_taken` names files derived from an attachment
+ * whose paths another file of the session already had.
+ */
+export type ChatFileUploadOrphanedDetails = Readonly<{
+  s3Keys: ReadonlyArray<string>;
+  reason: "upload_failed" | "write_failed" | "already_converted" | "sandbox_unconfirmed" | "path_taken";
+  errorClass: string | null;
+  errorMessage: string | null;
+}>;
+
+/**
+ * One chat sandbox call that prepared the derived files of an attachment, never their content.
+ * `superseded` means the attachment was gone or already prepared once the result was recorded;
+ * `derivativesError` is what the attachment line shows the model for a failed one. `thrown` means the
+ * call or its record step threw, such as on an abort or a sandbox the worker could not reach, so the
+ * attachment stays unprepared; `errorClass` names that error.
+ */
+export type ChatFileDerivativesPreparedDetails = Readonly<{
+  fileId: string;
+  mediaType: string;
+  sizeBytes: number;
+  outcome: "prepared" | "failed" | "superseded" | "thrown";
+  derivedFileCount: number;
+  derivedBytes: number;
+  durationMs: number;
+  sandboxRequestId: string | null;
+  sandboxErrorType: string | null;
+  derivativesError: string | null;
+  errorClass: string | null;
+}>;
+
+/** One `view_file` tool call: the path and page, never the image or page shown. */
+export type ChatViewFileDetails = Readonly<{
+  toolCallId: string;
+  path: string | null;
+  page: number | null;
+  mediaType: string | null;
+  durationMs: number;
+  sandboxRequestId: string | null;
+  errorClass: string | null;
+}>;
+
+type ChatFileObjectDeleteFailureDetails = Readonly<{
+  s3Key: string;
+  errorCode: string;
+}>;
+
+/** One batch of released chat file objects; a failed key keeps its tombstone for the next batch. */
+export type ChatFileCleanupBatchDetails = Readonly<{
+  tombstones: number;
+  deleted: number;
+  failures: ReadonlyArray<ChatFileObjectDeleteFailureDetails>;
+}>;
+
+export type ChatFileCleanupRetryDetails = Readonly<{
+  attempt: number;
+  maxAttempts: number;
+  failures: ReadonlyArray<ChatFileObjectDeleteFailureDetails>;
+}>;
+
+/**
+ * One `bash` tool call run in the chat sandbox: the command, but never its output or a file's content.
+ * `command` is null when the arguments were invalid, and `exitCode` and the byte counts are null when the
+ * sandbox did not answer with a response.
+ */
+export type ChatSandboxCommandDetails = Readonly<{
+  toolCallId: string;
+  command: string | null;
+  exitCode: number | null;
+  durationMs: number;
+  stdoutBytes: number | null;
+  stderrBytes: number | null;
+  outputTruncated: boolean;
+  filesWritten: number;
+  filesDeleted: number;
+  sandboxRequestId: string | null;
+  errorClass: string | null;
+}>;
+
+/** A chat sandbox invoke that Lambda throttled or that got no answer, about to be retried. */
+export type ChatSandboxInvokeRetriedDetails = Readonly<{
+  attempt: number;
+  retryDelayMs: number;
+  errorClass: string;
+}>;
+
 /**
  * The shape of a follow-up composer suggestions response that yielded no suggestions, without any of
  * its text. Field names avoid the sanitizer's content keys (`message`, `output`, `content`), which
@@ -393,6 +496,12 @@ export type ChatBreadcrumbEvent =
   | EventByAction<"chat_transcription_failed", ChatTranscriptionFailureDetails>
   | EventByAction<"chat_session_not_current_refused", ChatSessionNotCurrentDetails>
   | EventByAction<"chat_replay_encrypted_items_dropped", ChatReplayEncryptedItemsDroppedDetails>
+  | EventByAction<"chat_file_legacy_attachments_converted", ChatFileLegacyAttachmentsConvertedDetails>
+  | EventByAction<"chat_file_legacy_attachment_kept_as_file", ChatFileLegacyAttachmentKeptAsFileDetails>
+  | EventByAction<"chat_file_cleanup_batch_completed", ChatFileCleanupBatchDetails>
+  | EventByAction<"chat_sandbox_command", ChatSandboxCommandDetails>
+  | EventByAction<"chat_file_derivatives_prepared", ChatFileDerivativesPreparedDetails>
+  | EventByAction<"chat_view_file", ChatViewFileDetails>
   | EventByAction<"chat_composer_suggestions_declined", ChatComposerSuggestionsResponseDetails>
   | EventByAction<"chat_composer_suggestions_unparseable", ChatComposerSuggestionsResponseDetails>
   | EventByAction<"generated_card_image_provider_complete", GeneratedCardImageProviderDetails>;
@@ -403,6 +512,12 @@ export type ChatWarningEvent =
   | (EventByAction<"chat_worker_terminal_state_persisted", ChatWorkerTerminalStateDetails> & Readonly<{ message: string }>)
   | (EventByAction<"chat_worker_composer_suggestions_failed", ChatWorkerLifecycleDetails> & Readonly<{ message: string }>)
   | (EventByAction<"chat_worker_provider_call_retried", ChatWorkerProviderCallRetriedDetails> & Readonly<{
+    message: string;
+  }>)
+  | (EventByAction<"chat_file_upload_orphaned", ChatFileUploadOrphanedDetails> & Readonly<{ message: string }>)
+  | (EventByAction<"chat_file_cleanup_retry", ChatFileCleanupRetryDetails> & Readonly<{ message: string }>)
+  | (EventByAction<"chat_sandbox_invoke_retried", ChatSandboxInvokeRetriedDetails> & Readonly<{ message: string }>)
+  | (EventByAction<"chat_file_derivatives_prepared", ChatFileDerivativesPreparedDetails> & Readonly<{
     message: string;
   }>)
   | (EventByAction<"chat_worker_heartbeat_failed", ChatWorkerHeartbeatFailedDetails> & Readonly<{ message: string }>)
@@ -490,4 +605,5 @@ export type ChatExceptionEvent =
   | (EventByAction<"chat_live_request_error", ChatLiveRequestDetails> & Readonly<{ error: Error }>)
   | (EventByAction<"chat_live_stream_crashed", ChatLiveStreamCrashDetails> & Readonly<{ error: Error }>)
   | (EventByAction<"chat_live_poll_failed", ChatLiveLifecycleDetails> & Readonly<{ error: Error }>)
+  | (EventByAction<"chat_file_cleanup_batch_failed", ChatFileCleanupBatchDetails> & Readonly<{ error: Error }>)
   | (EventByAction<"chat_worker_terminal_state_persisted", ChatWorkerTerminalStateDetails> & Readonly<{ error: Error }>);

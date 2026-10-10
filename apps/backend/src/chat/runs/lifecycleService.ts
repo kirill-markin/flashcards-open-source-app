@@ -37,12 +37,19 @@ import {
   resolveRequestedOrCreateChatSessionWithExecutor,
   STOPPED_BY_USER_TOOL_OUTPUT,
   updateChatItemWithExecutor,
+  updateChatSessionRunStateForActiveRunWithExecutor,
   updateChatSessionRunStateWithExecutor,
   INTERRUPTED_TOOL_CALL_OUTPUT,
 } from "../store";
 import { finalizePendingToolCallContent } from "../history";
 import { FAILED_TOOL_CALL_OUTPUT } from "../store";
-import type { ContentPart } from "../types";
+import type { ContentPart, UnconvertedContentPart } from "../types";
+import {
+  logOrphanedChatFileUploads,
+  recordTurnChatAttachmentsWithExecutor,
+  uploadTurnInlineChatAttachments,
+  type UploadedChatAttachment,
+} from "../../chatFiles";
 import type { ProductAnalyticsClientReportablePlatform } from "../../productAnalytics/catalog";
 import { CHAT_RUN_HEARTBEAT_INTERVAL_MS, isChatRunHeartbeatStale } from "../worker/lease";
 import { getChatRunClaimStateWithExecutor } from "./claimFence";
@@ -131,12 +138,18 @@ async function assertChatSessionAcceptsNewTurnsWithExecutor(
  * of this one and survive a rollback. So: this closure reads `ai.usage_events`, on a pooled connection of
  * its own while this transaction holds the session row, and writes nothing. A refusal therefore rolls
  * back having written nothing, and anything added to this closure later has to keep that true.
+ *
+ * Inline attachments become session files on the branch that inserts a new run, after the refusal, so the
+ * turn and its run store references and a replay or a refused turn uploads nothing. Their objects are
+ * stored before their rows, so a failure anywhere after the upload, COMMIT included, logs the objects the
+ * rollback leaves without a row, because cleanup follows deleted rows and never finds them. A commit with
+ * an unknown outcome is logged too; its error class says the rows may exist.
  */
 export async function prepareChatRun(
   userId: string,
   workspaceId: string,
   requestedSessionId: string | undefined,
-  content: ReadonlyArray<ContentPart>,
+  content: ReadonlyArray<UnconvertedContentPart>,
   requestId: string,
   timezone: string,
   uiLocale: ChatComposerSuggestionsLocale | null,
@@ -144,6 +157,20 @@ export async function prepareChatRun(
   clientPlatform: ProductAnalyticsClientReportablePlatform | null,
   assertAiUsageAllowance: () => Promise<void>,
 ): Promise<PreparedChatRun> {
+  const observationScope = createBackendObservationScope(
+    "backend-api",
+    null,
+    null,
+    null,
+    userId,
+    workspaceId,
+    requestId,
+    null,
+    requestedSessionId ?? null,
+    null,
+    null,
+  );
+  let uploadedAttachments: ReadonlyArray<UploadedChatAttachment> = [];
   return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
     const scope = { userId, workspaceId };
     const session = requestedSessionId === undefined
@@ -179,11 +206,20 @@ export async function prepareChatRun(
       }
     }
 
+    const uploads = await uploadTurnInlineChatAttachments(session.session_id, content, observationScope);
+    uploadedAttachments = [...uploads.values()];
+    const storedContent = await recordTurnChatAttachmentsWithExecutor(
+      executor,
+      scope,
+      session.session_id,
+      content,
+      uploads,
+    );
     await insertChatItemWithExecutor(executor, scope, {
       sessionId: session.session_id,
       role: "user",
       state: "completed",
-      content,
+      content: storedContent,
     });
 
     const assistantItem = await insertChatItemWithExecutor(executor, scope, {
@@ -201,7 +237,7 @@ export async function prepareChatRun(
       reasoningEffort: CHAT_MODEL_REASONING_EFFORT,
       timezone,
       uiLocale,
-      turnInput: content,
+      turnInput: storedContent,
       initiatingAuthIsSignedIn,
       clientPlatform,
     });
@@ -239,6 +275,9 @@ export async function prepareChatRun(
       shouldInvokeWorker: true,
       initiatingAuthIsSignedIn: run.initiating_auth_is_signed_in,
     };
+  }).catch((error: unknown) => {
+    logOrphanedChatFileUploads(observationScope, uploadedAttachments, "write_failed", error);
+    throw error;
   });
 }
 
@@ -637,6 +676,59 @@ export async function markQueuedChatRunDispatchFailed(
     }
 
     await finalizeInterruptedRunWithExecutor(executor, scope, run, errorMessage);
+  });
+}
+
+/**
+ * Fails a queued run the worker could not prepare for its claim, so the turn ends with `errorMessage`
+ * instead of staying queued until stale-run recovery interrupts it. Returns whether it failed the run; a
+ * run that is no longer queued belongs to whoever moved it on and is left as it is.
+ */
+export async function failQueuedChatRun(
+  userId: string,
+  workspaceId: string,
+  runId: string,
+  errorMessage: string,
+): Promise<boolean> {
+  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
+    const scope = { userId, workspaceId };
+    const run = await selectChatRunForUpdateWithExecutor(executor, scope, runId);
+    if (run === null || run.status !== "queued") {
+      return false;
+    }
+
+    await updateChatItemWithExecutor(executor, scope, {
+      itemId: run.assistant_item_id,
+      content: [{ type: "text", text: errorMessage }],
+      state: "error",
+    });
+    await updateChatRunStatusWithExecutor(
+      executor,
+      scope,
+      createChatRunStatusUpdateFromRow(run, {
+        status: "failed",
+        finishedAt: new Date(),
+        lastErrorMessage: errorMessage,
+      }),
+    );
+    const sessionUpdated = await updateChatSessionRunStateForActiveRunWithExecutor(
+      executor,
+      scope,
+      run.session_id,
+      "idle",
+      null,
+      null,
+      run.run_id,
+    );
+    if (sessionUpdated) {
+      await clearActiveChatComposerSuggestionGenerationWithExecutor(
+        executor,
+        scope,
+        run.session_id,
+        "run_failed",
+      );
+    }
+    return true;
   });
 }
 

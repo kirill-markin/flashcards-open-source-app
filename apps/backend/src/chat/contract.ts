@@ -8,7 +8,7 @@ import type {
   ChatSessionSnapshot,
 } from "./store";
 import type { ChatComposerSuggestion } from "./composerSuggestions";
-import type { ContentPart } from "./types";
+import type { ContentPart, FileContentPart, ImageContentPart } from "./types";
 
 type ChatConversationMessage = Readonly<{
   role: "user" | "assistant";
@@ -219,8 +219,14 @@ export type ChatLiveEventPayload =
     isStopped?: boolean;
   }>;
 
+/** Released clients decode attachments in this shape and never receive their bytes or file references. */
+type ChatWireAttachmentContentPart =
+  | Readonly<{ type: "image"; mediaType: string; base64Data: "" }>
+  | Readonly<{ type: "file"; mediaType: string; base64Data: ""; fileName: string }>;
+
 export type ChatWireContentPart =
-  | ContentPart
+  | Exclude<ContentPart, ImageContentPart | FileContentPart>
+  | ChatWireAttachmentContentPart
   | (Extract<ContentPart, Readonly<{ type: "card" }>> & Readonly<{ effortLevel: "fast" }>);
 
 export function buildConversationScopeId(sessionId: string): string {
@@ -240,6 +246,23 @@ function toLegacyChatWireContentPart(part: ContentPart): ChatWireContentPart {
     };
   }
 
+  if (part.type === "image") {
+    return {
+      type: "image",
+      mediaType: part.mediaType,
+      base64Data: "",
+    };
+  }
+
+  if (part.type === "file") {
+    return {
+      type: "file",
+      mediaType: part.mediaType,
+      base64Data: "",
+      fileName: part.fileName,
+    };
+  }
+
   return part;
 }
 
@@ -247,31 +270,6 @@ export function toLegacyChatWireContentParts(
   content: ReadonlyArray<ContentPart>,
 ): ReadonlyArray<ChatWireContentPart> {
   return content.map(toLegacyChatWireContentPart);
-}
-
-function sanitizeContent(
-  content: ReadonlyArray<ContentPart>,
-): ReadonlyArray<ChatWireContentPart> {
-  return content.map((part) => {
-    if (part.type === "image") {
-      return {
-        type: "image" as const,
-        mediaType: part.mediaType,
-        base64Data: "",
-      };
-    }
-
-    if (part.type === "file") {
-      return {
-        type: "file" as const,
-        mediaType: part.mediaType,
-        base64Data: "",
-        fileName: part.fileName,
-      };
-    }
-
-    return toLegacyChatWireContentPart(part);
-  });
 }
 
 export function toConversationMessage(
@@ -287,7 +285,7 @@ export function toConversationMessage(
 ): ChatConversationMessage {
   return {
     role: message.role,
-    content: sanitizeContent(message.content),
+    content: toLegacyChatWireContentParts(message.content),
     timestamp: message.timestamp,
     isError: message.isError,
     isStopped: message.isStopped,

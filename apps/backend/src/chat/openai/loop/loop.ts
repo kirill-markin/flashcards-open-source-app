@@ -14,12 +14,14 @@ import {
   createObservedUserOpenAIClient,
   getObservedOpenAIClient,
 } from "../client";
+import { prepareChatFileDerivatives, type ChatFileDerivativeIndex } from "../../../chatFiles";
 import { isDatabaseDeadlineExpiry } from "../../../database";
 import { isContextLengthExceededError } from "../../runtime/providerErrors";
 import { runOneToolCall as runObservedToolCall } from "../tools/toolExecutor";
 import {
   dropHistoryEncryptedItemsFromOtherKey,
   sliceReplayItemsFromLatestCompaction,
+  stripViewedContentFromReplayItems,
   toOpenAIResponseInputItem,
   type ServerChatMessage,
   type StoredOpenAIReplayItem,
@@ -88,6 +90,7 @@ const MAX_WITHIN_RUN_REPLAY_TOKENS = CHAT_MODEL_OPERATING_CONTEXT_WINDOW_TOKENS
 const REDUCED_HISTORY_REPLAY_TOKEN_BUDGET = Math.floor(CHAT_HISTORY_REPLAY_TOKEN_BUDGET / 2);
 
 type OpenAILoopDependencies = Readonly<{
+  prepareChatFileDerivatives: typeof prepareChatFileDerivatives;
   buildChatCompletionInput: typeof buildChatCompletionInput;
   buildChatCompletionInputWithBudget: typeof buildChatCompletionInputWithBudget;
   getObservedOpenAIClient: typeof getObservedOpenAIClient;
@@ -148,6 +151,7 @@ async function runOneToolCall(
 }
 
 const DEFAULT_OPENAI_LOOP_DEPENDENCIES: OpenAILoopDependencies = {
+  prepareChatFileDerivatives,
   buildChatCompletionInput,
   buildChatCompletionInputWithBudget,
   getObservedOpenAIClient,
@@ -273,6 +277,7 @@ async function runModelCallWithOverflowRetry(
   params: StartOpenAILoopParams,
   onEvent: OpenAILoopEventSink,
   dependencies: OpenAILoopDependencies,
+  fileDerivatives: ChatFileDerivativeIndex,
   baseInput: ReadonlyArray<OpenAI.Responses.ResponseInputItem>,
   buildRequest: BuildModelCallRequest,
   callIndex: number,
@@ -298,8 +303,10 @@ async function runModelCallWithOverflowRetry(
     const reducedBaseInput = await dependencies.buildChatCompletionInputWithBudget(
       params.localMessages,
       params.turnInput,
+      params.sessionId,
       params.timezone,
       params.generatedImageEligible,
+      fileDerivatives,
       REDUCED_HISTORY_REPLAY_TOKEN_BUDGET,
     );
     const retriedModelCall = await runOneModelCallWithPhase({
@@ -321,6 +328,7 @@ async function runToolLimitSummaryTurn(
   params: StartOpenAILoopParams,
   onEvent: OpenAILoopEventSink,
   dependencies: OpenAILoopDependencies,
+  fileDerivatives: ChatFileDerivativeIndex,
   client: OpenAI,
   baseInput: ReadonlyArray<OpenAI.Responses.ResponseInputItem>,
   continuationItems: ReadonlyArray<StoredOpenAIReplayItem>,
@@ -333,6 +341,7 @@ async function runToolLimitSummaryTurn(
       params,
       onEvent,
       dependencies,
+      fileDerivatives,
       baseInput,
       (input) => buildOpenAIResponsesRequest({
         ...selectModelCallInputFromLatestCompaction(input, continuationItems, params.generatedImageEligible),
@@ -369,11 +378,20 @@ async function runLoopWithDeps(
   const client = params.userOpenAIApiKey === null
     ? dependencies.getObservedOpenAIClient()
     : dependencies.createObservedUserOpenAIClient(params.userOpenAIApiKey);
+  // The attachment lines of the history name what was derived from each attachment.
+  const fileDerivatives = await dependencies.prepareChatFileDerivatives(
+    { userId: params.userId, workspaceId: params.workspaceId },
+    params.sessionId,
+    params.signal ?? null,
+    createChatLoopObservationScope(params),
+  );
   let baseInput = await dependencies.buildChatCompletionInput(
     params.localMessages,
     params.turnInput,
+    params.sessionId,
     params.timezone,
     params.generatedImageEligible,
+    fileDerivatives,
   );
   const continuationItems: Array<StoredOpenAIReplayItem> = [];
   const tools = buildOpenAIChatTools(params.generatedImageEligible);
@@ -391,6 +409,7 @@ async function runLoopWithDeps(
         params,
         onEvent,
         dependencies,
+        fileDerivatives,
         baseInput,
         (input) => buildOpenAIResponsesRequest({
           ...selectModelCallInputFromLatestCompaction(input, continuationItems, params.generatedImageEligible),
@@ -485,6 +504,7 @@ async function runLoopWithDeps(
         params,
         onEvent,
         dependencies,
+        fileDerivatives,
         client,
         baseInput,
         continuationItems,
@@ -518,9 +538,11 @@ export async function startOpenAILoopWithDeps(
       },
     });
   }
-  return runLoopWithDeps({ ...params, localMessages: history.messages }, onEvent, dependencies).finally(() => {
-    setExecutionPhase(params, "idle");
-  });
+  return runLoopWithDeps({ ...params, localMessages: history.messages }, onEvent, dependencies)
+    .then((completion) => ({ ...completion, openaiItems: stripViewedContentFromReplayItems(completion.openaiItems) }))
+    .finally(() => {
+      setExecutionPhase(params, "idle");
+    });
 }
 
 /**

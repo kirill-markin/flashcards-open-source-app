@@ -363,8 +363,10 @@ export function createDependencies(
         generatedImageTelemetry: result.generatedImageTelemetry ?? null,
         sqlTelemetry: result.sqlTelemetry ?? null,
         toolErrorClass: result.toolErrorClass ?? null,
+        modelContent: null,
       };
     },
+    prepareChatFileDerivatives: async () => new Map(),
   };
 }
 

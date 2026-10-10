@@ -29,11 +29,18 @@
     "@opentelemetry/sdk-trace-base": "^2.12.0",
     "@sentry/aws-serverless": "^10.76.1",
     "aws-jwt-verify": "^5.2.1",
+    "fflate": "^0.8.3",
     "google-auth-library": "11.2.0",
     "hono": "^4.13.13",
+    "just-bash": "^3.6.0",
+    "mammoth": "^1.13.0",
     "maxmind": "^5.0.7",
     "openai": "^7.30.0",
+    "papaparse": "^5.7.0",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^6.4.299",
     "pg": "^8.23.1",
+    "read-excel-file": "^9.3.12",
     "sharp": "^0.35.5",
     "stripe": "23.0.0",
     "yauzl": "^3.4.0",
@@ -43,6 +50,7 @@
     "@sentry/cli": "^3.8.0",
     "@types/aws-lambda": "^8.10.164",
     "@types/node": "^24.19.1",
+    "@types/papaparse": "^5.5.2",
     "@types/pg": "^8.23.1",
     "@types/yauzl": "^3.4.0",
     "js-tiktoken": "^1.0.21",
@@ -51,7 +59,10 @@
   },
   "overrides": {
     "protobufjs": "^8.8.0",
-    "undici": "6.29.0"
+    "undici": "6.29.0",
+    "guarded-fetch": {
+      "undici": "7.29.0"
+    }
   },
   "engines": {
     "node": "24.x"

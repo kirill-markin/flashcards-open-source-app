@@ -2,13 +2,21 @@
  * Worker entrypoint for backend-owned chat runs.
  * The HTTP route prepares and persists the run; the worker claims it and executes the model loop independently of the client connection.
  */
-import { claimChatRun } from "../runs";
+import { claimChatRun, failQueuedChatRun, recordAiRunFailedAnalytics } from "../runs";
 import { runPersistedChatSession, type ChatWorkerRunResult } from "../runtime";
+import {
+  classifyChatRunFailureCategory,
+  createPublicTerminalErrorMessage,
+} from "../runtime/providerErrors";
 import { logChatWorkerLifecycleEvent } from "./logging";
 import { resolveAiUsageTierForFacts } from "../../aiUsage";
 import { resolveAccountKindForSignedInAuth } from "../../billing/snapshot";
+import { convertLegacyChatSessionAttachments } from "../../chatFiles";
 import { runDatabaseOperationsWithPerCallCap } from "../../database";
-import type { BackendTraceCarrier } from "../../observability/sentry";
+import {
+  createBackendObservationScope,
+  type BackendTraceCarrier,
+} from "../../observability/sentry";
 import {
   wrapWorkerPayloadUserOpenAIApiKey,
   type UserOpenAIApiKey,
@@ -57,11 +65,59 @@ export async function handleChatWorkerEvent(
   );
 }
 
+/**
+ * Runs before the claim, because the claim builds the replayed history from the stored rows. A failure
+ * fails the still-queued run with the public message the claimed run's failure path would store, instead
+ * of leaving it queued until stale-run recovery interrupts it, and is rethrown for the handler to report.
+ */
+async function convertLegacyAttachmentsBeforeClaim(
+  event: ChatWorkerEvent,
+  executionContext: ChatWorkerExecutionContext,
+): Promise<void> {
+  try {
+    await convertLegacyChatSessionAttachments(
+      event.userId,
+      event.workspaceId,
+      event.runId,
+      createBackendObservationScope(
+        "chat-worker",
+        executionContext.lambdaRequestId,
+        null,
+        null,
+        event.userId,
+        event.workspaceId,
+        event.chatRequestId ?? null,
+        event.runId,
+        event.sessionId ?? null,
+        null,
+        null,
+      ),
+    );
+  } catch (error) {
+    const failed = await failQueuedChatRun(
+      event.userId,
+      event.workspaceId,
+      event.runId,
+      createPublicTerminalErrorMessage(error),
+    );
+    if (failed) {
+      await recordAiRunFailedAnalytics(
+        event.userId,
+        event.workspaceId,
+        event.runId,
+        classifyChatRunFailureCategory(error),
+      );
+    }
+    throw error;
+  }
+}
+
 async function claimAndRunChatWorkerEvent(
   event: ChatWorkerEvent,
   executionContext: ChatWorkerExecutionContext,
 ): Promise<void> {
   const userOpenAIApiKey = wrapWorkerPayloadUserOpenAIApiKey(event.userOpenAIApiKey);
+  await convertLegacyAttachmentsBeforeClaim(event, executionContext);
   const claimedRun = await claimChatRun(event.userId, event.workspaceId, event.runId);
   if (claimedRun === null) {
     logChatWorkerLifecycleEvent("chat_worker_skip", {
