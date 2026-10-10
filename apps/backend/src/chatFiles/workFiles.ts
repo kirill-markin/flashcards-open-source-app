@@ -36,7 +36,7 @@ const imageMediaTypeByExtension: Readonly<Record<string, string>> = {
 };
 
 /** By extension: the image types and attachment file types the chat accepts, octet-stream for the rest. */
-function resolveChatWorkFileMediaType(path: string): string {
+export function resolveChatFileMediaTypeFromPath(path: string): string {
   const imageMediaType = imageMediaTypeByExtension[posix.extname(path).slice(1).toLowerCase()];
   if (imageMediaType !== undefined) {
     return imageMediaType;
@@ -90,7 +90,7 @@ export async function recordChatWorkFileChanges(
           fileId: file.fileId,
           sessionId,
           path: file.path,
-          mediaType: resolveChatWorkFileMediaType(file.path),
+          mediaType: resolveChatFileMediaTypeFromPath(file.path),
           sizeBytes: file.sizeBytes,
           sha256: file.sha256,
           s3Key: file.s3Key,

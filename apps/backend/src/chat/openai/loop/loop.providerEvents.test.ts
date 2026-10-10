@@ -320,8 +320,10 @@ test("startOpenAILoopWithDeps retries a callIndex > 1 overflow once with the red
         generatedImageTelemetry: null,
         sqlTelemetry: null,
         toolErrorClass: null,
+        modelContent: null,
       };
     },
+    prepareChatFileDerivatives: async () => new Map(),
   };
 
   const result = await startOpenAILoopWithDeps(createParams({}), sink, dependencies);

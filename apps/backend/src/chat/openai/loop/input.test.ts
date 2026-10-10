@@ -15,7 +15,7 @@ test("buildChatCompletionInput serializes card parts into deterministic XML befo
       type: "text",
       text: "Improve this card.",
     },
-  ], "session-1", "Europe/Madrid", true);
+  ], "session-1", "Europe/Madrid", true, new Map());
 
   assert.equal(input.length, 3);
   const userMessage = input[2];
@@ -54,7 +54,7 @@ test("buildChatCompletionInput replays a file attachment as its workspace manife
       mediaType: "text/csv",
       sizeBytes: 2048,
     },
-  ], "session-1", "Europe/Madrid", true);
+  ], "session-1", "Europe/Madrid", true, new Map());
 
   assert.equal(input.length, 3);
   const userMessage = input[2];

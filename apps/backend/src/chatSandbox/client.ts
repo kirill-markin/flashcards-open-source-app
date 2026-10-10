@@ -8,11 +8,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { z } from "zod";
 import { writeCloudWatchRecord } from "../observability/cloudWatch";
 import type { BackendObservationScope } from "../observability/sentry";
-import {
-  chatSandboxBashResponseSchema,
-  type ChatSandboxBashRequest,
-  type ChatSandboxBashResponse,
-} from "./contract";
+import type { ChatSandboxRequest } from "./contract";
 
 /**
  * What Lambda returns for a call the sandbox did not answer: a thrown error, a timeout, running out of
@@ -34,7 +30,7 @@ export class ChatSandboxFunctionError extends Error {
 
   public constructor(errorType: string, sandboxErrorMessage: string, sandboxRequestId: string | null) {
     super(
-      `Chat sandbox did not answer the command. errorType=${errorType} `
+      `Chat sandbox did not answer the call. errorType=${errorType} `
         + `sandboxRequestId=${String(sandboxRequestId)} errorMessage=${sandboxErrorMessage}`,
     );
     this.name = "ChatSandboxFunctionError";
@@ -43,10 +39,10 @@ export class ChatSandboxFunctionError extends Error {
   }
 }
 
-export type ChatSandboxInvocation =
+export type ChatSandboxInvocation<Response> =
   | Readonly<{
     status: "completed";
-    response: ChatSandboxBashResponse;
+    response: Response;
     sandboxRequestId: string | null;
   }>
   | Readonly<{
@@ -59,8 +55,8 @@ export type ChatSandboxInvocation =
  * An attempt whose answer is lost may still be running and uploading, so every attempt gets a request
  * of its own, with write slots and URLs no other attempt has.
  */
-export type ChatSandboxBashAttempts = Readonly<{
-  prepare: () => Promise<ChatSandboxBashRequest>;
+export type ChatSandboxAttempts<Request extends ChatSandboxRequest> = Readonly<{
+  prepare: () => Promise<Request>;
   /** Called once for each prepared attempt that was not throttled and whose answer is never returned. */
   abandon: (error: unknown) => void;
 }>;
@@ -87,7 +83,7 @@ function getChatSandboxFunctionName(): string {
 
 /**
  * Throttling is refused before the sandbox runs. A transport error has no HTTP status because no answer
- * arrived; a sandbox that did run then left only uploads no row names, and the command runs again.
+ * arrived; a sandbox that did run then left only uploads no row names, and the operation runs again.
  */
 function isRetryableInvokeError(error: unknown): boolean {
   if (error instanceof TooManyRequestsException) {
@@ -101,7 +97,10 @@ function isRetryableInvokeError(error: unknown): boolean {
   return statusCode === undefined;
 }
 
-function readInvocationOutput(output: InvokeCommandOutput): ChatSandboxInvocation {
+function readInvocationOutput<Response>(
+  output: InvokeCommandOutput,
+  responseSchema: z.ZodType<Response>,
+): ChatSandboxInvocation<Response> {
   const sandboxRequestId = output.$metadata.requestId ?? null;
   if (output.StatusCode !== 200 || output.Payload === undefined) {
     throw new Error(
@@ -123,14 +122,15 @@ function readInvocationOutput(output: InvokeCommandOutput): ChatSandboxInvocatio
     };
   }
 
-  return { status: "completed", response: chatSandboxBashResponseSchema.parse(payload), sandboxRequestId };
+  return { status: "completed", response: responseSchema.parse(payload), sandboxRequestId };
 }
 
-export async function invokeChatSandboxBash(
-  attempts: ChatSandboxBashAttempts,
+export async function invokeChatSandbox<Request extends ChatSandboxRequest, Response>(
+  attempts: ChatSandboxAttempts<Request>,
+  responseSchema: z.ZodType<Response>,
   signal: AbortSignal | null,
   observationScope: BackendObservationScope,
-): Promise<ChatSandboxInvocation> {
+): Promise<ChatSandboxInvocation<Response>> {
   const functionName = getChatSandboxFunctionName();
   for (let attempt = 1; ; attempt += 1) {
     const request = await attempts.prepare();
@@ -168,7 +168,7 @@ export async function invokeChatSandboxBash(
     }
 
     try {
-      return readInvocationOutput(output);
+      return readInvocationOutput(output, responseSchema);
     } catch (error) {
       attempts.abandon(error);
       throw error;

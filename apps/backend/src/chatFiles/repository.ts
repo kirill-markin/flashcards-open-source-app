@@ -40,19 +40,47 @@ export type InsertChatWorkFileParams = Readonly<{
   s3Key: string;
 }>;
 
-export type ChatSessionFile = Readonly<{
+export type InsertChatDerivedFileParams = Readonly<{
+  fileId: string;
+  sessionId: string;
+  sourceFileId: string;
   path: string;
+  mediaType: string;
+  sizeBytes: number;
+  sha256: string;
+  s3Key: string;
+}>;
+
+export type ChatFileOrigin = "attachment" | "derived" | "work";
+
+/** `derivativesPrepared` and `derivativesError` describe an attachment's derived rows; see 0173. */
+export type ChatSessionFile = Readonly<{
+  fileId: string;
+  path: string;
+  origin: ChatFileOrigin;
+  sourceFileId: string | null;
+  mediaType: string;
   sizeBytes: number;
   s3Key: string;
+  derivativesPrepared: boolean;
+  derivativesError: string | null;
 }>;
 
 type ChatFilePathRow = Readonly<{ path: string }>;
 
 type ChatSessionFileRow = Readonly<{
+  file_id: string;
   path: string;
+  origin: string;
+  source_file_id: string | null;
+  media_type: string;
   size_bytes: string;
   s3_key: string;
+  derivatives_prepared: boolean;
+  derivatives_error: string | null;
 }>;
+
+type ChatAttachmentDerivativesRow = Readonly<{ derivatives_prepared: boolean }>;
 
 const LIST_CHAT_FILE_PATHS_SQL = `
   SELECT path
@@ -61,7 +89,16 @@ const LIST_CHAT_FILE_PATHS_SQL = `
 `;
 
 const LIST_CHAT_SESSION_FILES_SQL = `
-  SELECT path, size_bytes, s3_key
+  SELECT
+    file_id,
+    path,
+    origin,
+    source_file_id,
+    media_type,
+    size_bytes,
+    s3_key,
+    derivatives_prepared_at IS NOT NULL AS derivatives_prepared,
+    derivatives_error
   FROM ai.chat_files
   WHERE session_id = $1
     AND user_id = $2
@@ -105,6 +142,38 @@ const INSERT_CHAT_ATTACHMENT_FILE_SQL = `
     s3_key
   )
   VALUES ($1, $2, $3, $4, $5, 'attachment', $6, $7, $8, $9)
+`;
+
+const INSERT_CHAT_DERIVED_FILE_SQL = `
+  INSERT INTO ai.chat_files (
+    file_id,
+    session_id,
+    user_id,
+    workspace_id,
+    path,
+    origin,
+    source_file_id,
+    media_type,
+    size_bytes,
+    sha256,
+    s3_key
+  )
+  VALUES ($1, $2, $3, $4, $5, 'derived', $6, $7, $8, $9, $10)
+`;
+
+const SELECT_CHAT_ATTACHMENT_DERIVATIVES_SQL = `
+  SELECT derivatives_prepared_at IS NOT NULL AS derivatives_prepared
+  FROM ai.chat_files
+  WHERE file_id = $1
+    AND origin = 'attachment'
+`;
+
+const FINISH_CHAT_ATTACHMENT_DERIVATIVES_SQL = `
+  UPDATE ai.chat_files
+  SET derivatives_prepared_at = now(),
+      derivatives_error = $2,
+      updated_at = now()
+  WHERE file_id = $1
 `;
 
 const LOCK_CHAT_SESSION_SQL = `
@@ -195,8 +264,26 @@ export async function listChatSessionFilesWithExecutor(
       throw new Error(`Chat file size is not a safe integer. path=${row.path} sizeBytes=${row.size_bytes}`);
     }
 
-    return { path: row.path, sizeBytes, s3Key: row.s3_key };
+    return {
+      fileId: row.file_id,
+      path: row.path,
+      origin: parseChatFileOrigin(row.origin, row.path),
+      sourceFileId: row.source_file_id,
+      mediaType: row.media_type,
+      sizeBytes,
+      s3Key: row.s3_key,
+      derivativesPrepared: row.derivatives_prepared,
+      derivativesError: row.derivatives_error,
+    };
   });
+}
+
+function parseChatFileOrigin(origin: string, path: string): ChatFileOrigin {
+  if (origin === "attachment" || origin === "derived" || origin === "work") {
+    return origin;
+  }
+
+  throw new Error(`Chat file has an unknown origin. path=${path} origin=${origin}`);
 }
 
 /** Removes rows only: the chat file deletion cleanup removes their objects. */
@@ -245,6 +332,51 @@ export async function insertChatAttachmentFileWithExecutor(
   ]);
 }
 
+export async function insertChatDerivedFileWithExecutor(
+  executor: DatabaseExecutor,
+  scope: WorkspaceDatabaseScope,
+  params: InsertChatDerivedFileParams,
+): Promise<void> {
+  await queryWithScope(executor, scope, INSERT_CHAT_DERIVED_FILE_SQL, [
+    params.fileId,
+    params.sessionId,
+    scope.userId,
+    scope.workspaceId,
+    params.path,
+    params.sourceFileId,
+    params.mediaType,
+    params.sizeBytes,
+    params.sha256,
+    params.s3Key,
+  ]);
+}
+
+/** Null when the attachment is gone. */
+export async function selectChatAttachmentDerivativesPreparedWithExecutor(
+  executor: DatabaseExecutor,
+  scope: WorkspaceDatabaseScope,
+  fileId: string,
+): Promise<boolean | null> {
+  const result = await queryWithScope<ChatAttachmentDerivativesRow>(
+    executor,
+    scope,
+    SELECT_CHAT_ATTACHMENT_DERIVATIVES_SQL,
+    [fileId],
+  );
+  return result.rows[0]?.derivatives_prepared ?? null;
+}
+
+/** `error` is null when preparing succeeded. */
+export async function finishChatAttachmentDerivativesWithExecutor(
+  executor: DatabaseExecutor,
+  scope: WorkspaceDatabaseScope,
+  fileId: string,
+  error: string | null,
+): Promise<void> {
+  const result = await queryWithScope(executor, scope, FINISH_CHAT_ATTACHMENT_DERIVATIVES_SQL, [fileId, error]);
+  requireOneUpdatedRow(result.rowCount, "derivatives finish", fileId);
+}
+
 export async function lockChatSessionWithExecutor(
   executor: DatabaseExecutor,
   scope: WorkspaceDatabaseScope,
@@ -252,7 +384,7 @@ export async function lockChatSessionWithExecutor(
 ): Promise<void> {
   const result = await queryWithScope(executor, scope, LOCK_CHAT_SESSION_SQL, [sessionId]);
   if (result.rows.length !== 1) {
-    throw new Error(`Chat session to convert attachments for was not found. sessionId=${sessionId}`);
+    throw new Error(`Chat session to record files for was not found. sessionId=${sessionId}`);
   }
 }
 
