@@ -18,6 +18,11 @@ before a new release; do not ask for separate approval at every later step.
 A request only to explain or edit this guide, draft notes, or bump versions
 does not authorize a full release.
 
+An explicit user reservation of a final action overrides this general release
+authorization. Prepare and verify the handoff, then leave that exact action to
+the user; do not execute an equivalent API or console action. Follow the
+[iOS final-Submit handoff](ios.md#user-reserved-final-submit) when applicable.
+
 Prefer APIs/CLIs where supported; use the browser for store consoles and actions
 without adequate API access. Ask the user for login, MFA, missing permissions,
 or help with unexpected state or a decision the available evidence cannot
@@ -115,6 +120,13 @@ submission, approval, and a portal's **Published** label alone do not prove it.
 | Android | Exact production version is publicly available at the selected rollout scope, after the required GitHub/Device Run gates and applicable OS-specific checks. |
 | Web/backend and MCP Registry | Intended deployment/runtime or registry version is verified under its procedure. |
 | Established connector/plugin/directory channels | Required CI/scans and focused checks passed, and the exact update/publication request was accepted, or the unchanged publication was verified. |
+
+A user-reserved final action or [reviewer-disabled plugin publication](mcp-and-plugins.md#reviewer-disabled-plugin-publication)
+remains pending at its unchanged boundary. Close out independently completed
+work and preserve required tags, Releases, assets and safeguards, with the
+exact remaining action, owner and next condition in the ledger. Do not call
+the pending channel or the whole release complete; complete every available
+required action on the other channels.
 
 External iOS/provider review and directory crawl/propagation are follow-up; they
 do not hold overall closeout open after these boundaries. Record pending states
