@@ -1,3 +1,4 @@
+import { SqlDialectError } from "../sqlErrors";
 import {
   ensureSqlSourceColumnExists,
   getSqlSourceColumnDescriptors,
@@ -23,7 +24,7 @@ import type {
 const MAXIMUM_PREDICATE_GROUP_DEPTH = 16;
 
 export function parseStringLiteral(value: string): string {
-  assert(value.startsWith("'") && value.endsWith("'"), "Expected a quoted string literal");
+  assert(value.startsWith("'") && value.endsWith("'"), "Expected a quoted string literal", "unsupported_expression");
   return value.slice(1, -1).replaceAll("''", "'");
 }
 
@@ -53,7 +54,7 @@ export function parseSqlLiteral(value: string): SqlLiteral {
     return Number.parseFloat(trimmedValue);
   }
 
-  throw new Error(`Unsupported literal: ${trimmedValue}`);
+  throw new SqlDialectError(`Unsupported literal: ${trimmedValue}`, "unsupported_expression");
 }
 
 function parsePredicateValue(value: string): SqlPredicateValue {
@@ -72,8 +73,9 @@ function parsePostgresTextArrayElement(item: string, columnName: string, trimmed
   }
 
   if (trimmedItem === "" || trimmedItem.includes('"')) {
-    throw new Error(
+    throw new SqlDialectError(
       `Array column "${columnName}" accepts only string elements, e.g. {a,b} or {"a","b"}. Got: ${trimmedValue}`,
+      "invalid_value",
     );
   }
 
@@ -111,8 +113,9 @@ export function parseStringArrayLiteralList(value: string, columnName: string): 
   }
 
   if (innerValue === null) {
-    throw new Error(
+    throw new SqlDialectError(
       `Array column "${columnName}" expects a parenthesized list like ('tag1','tag2'), or () for an empty list. Got: ${trimmedValue}`,
+      "invalid_value",
     );
   }
 
@@ -123,8 +126,9 @@ export function parseStringArrayLiteralList(value: string, columnName: string): 
   return splitTopLevel(innerValue, ",").map((item) => {
     const parsedValue = parseSqlLiteral(item);
     if (typeof parsedValue !== "string") {
-      throw new Error(
+      throw new SqlDialectError(
         `Array column "${columnName}" accepts only quoted string literals, e.g. ('a','b'). Got: ${trimmedValue}`,
+        "invalid_value",
       );
     }
 
@@ -134,7 +138,7 @@ export function parseStringArrayLiteralList(value: string, columnName: string): 
 
 function parseLoweredStringLiteralList(value: string, operator: "IN" | "NOT IN"): ReadonlyArray<string> {
   const trimmedValue = value.trim();
-  assert(trimmedValue.startsWith("(") && trimmedValue.endsWith(")"), "Expected a parenthesized value list");
+  assert(trimmedValue.startsWith("(") && trimmedValue.endsWith(")"), "Expected a parenthesized value list", "unsupported_expression");
   const innerValue = trimmedValue.slice(1, -1).trim();
   if (innerValue === "") {
     return [];
@@ -143,7 +147,7 @@ function parseLoweredStringLiteralList(value: string, operator: "IN" | "NOT IN")
   return splitTopLevel(innerValue, ",").map((item) => {
     const parsedValue = parseSqlLiteral(item);
     if (typeof parsedValue !== "string") {
-      throw new Error(`LOWER(column) ${operator} (...) only supports string literals`);
+      throw new SqlDialectError(`LOWER(column) ${operator} (...) only supports string literals`, "unsupported_expression");
     }
 
     return parsedValue;
@@ -285,7 +289,7 @@ function parsePredicate(source: SqlFromSource, value: string): SqlPredicate {
     };
   }
 
-  throw new Error(`Unsupported predicate: ${trimmedValue}`);
+  throw new SqlDialectError(`Unsupported predicate: ${trimmedValue}`, "unsupported_expression");
 }
 
 /**
@@ -358,14 +362,15 @@ function parsePredicateExpression(
   depth: number,
 ): SqlPredicateExpression {
   if (depth > MAXIMUM_PREDICATE_GROUP_DEPTH) {
-    throw new Error(
+    throw new SqlDialectError(
       `WHERE clause nests parenthesized groups deeper than the supported limit of ${MAXIMUM_PREDICATE_GROUP_DEPTH}`,
+      "unsupported_expression",
     );
   }
 
   const trimmedValue = value.trim();
   if (trimmedValue === "") {
-    throw new Error("WHERE clause contains an empty predicate group");
+    throw new SqlDialectError("WHERE clause contains an empty predicate group", "empty_sql");
   }
 
   const orSegments = splitTopLevelByKeyword(trimmedValue, "OR");

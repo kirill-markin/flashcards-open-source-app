@@ -550,7 +550,7 @@ assert agent_payload["error"]["code"] == "QUERY_INVALID_SQL"
 assert agent_payload["error"]["message"] == expected_message
 assert agent_payload["error"]["details"]["validationIssues"] == [{
     "path": "sql",
-    "code": "invalid_sql",
+    "code": "column_not_filterable",
     "message": expected_message,
 }]
 assert "Fix the sql string" in agent_payload["instructions"]
