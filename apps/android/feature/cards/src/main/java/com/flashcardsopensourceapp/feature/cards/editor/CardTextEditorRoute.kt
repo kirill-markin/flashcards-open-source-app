@@ -62,6 +62,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
 import coil3.request.CachePolicy
@@ -174,6 +175,7 @@ fun CardTextEditorRoute(
                 .imePadding()
                 .padding(16.dp)
         ) {
+            val headerMaxHeight: Dp = maxHeight / 2
             Column(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier.fillMaxSize()
@@ -182,7 +184,7 @@ fun CardTextEditorRoute(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = maxHeight / 2)
+                        .heightIn(max = headerMaxHeight)
                         .verticalScroll(rememberScrollState())
                 ) {
                     Text(
