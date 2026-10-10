@@ -595,6 +595,9 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     const geoLiteCountryBucket = geoLiteCountry(this, api.backendFn);
     addDatabaseMigrationDependency(api.backendFn, migrationGate);
     addDatabaseMigrationDependency(api.directImageIngestionFn, migrationGate);
+    // The worker reads the product database on every run. The API waiting for the worker
+    // (gateways/api-gateway.ts) does not hold the worker back, so it needs its own gate.
+    addDatabaseMigrationDependency(api.chatWorkerFn, migrationGate);
     // The auth Lambda reads and writes the product database too, so it must not be published ahead
     // of the migrations its statements need (db/migrations/0159_surrogate_user_identity.sql grants
     // it the auth.user_identities INSERT its account creation performs).
@@ -604,6 +607,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     addDatabaseMigrationDependency(dailyVisitorHashSaltExpiryResult.expiryFunction, migrationGate);
     addDatabaseMigrationDependency(syntheticActorDetectorResult.detectorFunction, migrationGate);
     addDatabaseMigrationDependency(probableAndroidBurstRefreshResult.refreshFunction, migrationGate);
+    addDatabaseMigrationDependency(generatedMediaPromotionResult.promotionFunction, migrationGate);
     const web = webApp(this, {
       baseDomain,
       hosts: webHosts,

@@ -14,18 +14,42 @@ export type TextContentPart = Readonly<{
   streamPosition?: StreamPosition;
 }>;
 
+/** An attachment stored as a session file in `ai.chat_files`; `path` is the virtual path the model sees. */
 export type ImageContentPart = Readonly<{
+  type: "image";
+  fileId: string;
+  path: string;
+  mediaType: string;
+  sizeBytes: number;
+}>;
+
+export type FileContentPart = Readonly<{
+  type: "file";
+  fileId: string;
+  path: string;
+  mediaType: string;
+  sizeBytes: number;
+  fileName: string;
+}>;
+
+/**
+ * An attachment carried as inline base64: what released clients send in `POST /chat`, and what rows
+ * written before session files existed still store until their session's next turn converts them.
+ */
+export type InlineImageContentPart = Readonly<{
   type: "image";
   mediaType: string;
   base64Data: string;
 }>;
 
-export type FileContentPart = Readonly<{
+export type InlineFileContentPart = Readonly<{
   type: "file";
   mediaType: string;
   base64Data: string;
   fileName: string;
 }>;
+
+export type InlineAttachmentContentPart = InlineImageContentPart | InlineFileContentPart;
 
 export type CardContentPart = Readonly<{
   type: "card";
@@ -59,6 +83,11 @@ export type ContentPart =
   | CardContentPart
   | ToolCallContentPart
   | ReasoningSummaryContentPart;
+
+/** Content as a turn arrives in `POST /chat`, before its inline attachments become session files. */
+export type UnconvertedContentPart =
+  | Exclude<ContentPart, ImageContentPart | FileContentPart>
+  | InlineAttachmentContentPart;
 
 export type ChatMessage = Readonly<{
   role: ChatRole;

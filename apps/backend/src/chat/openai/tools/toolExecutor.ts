@@ -190,6 +190,7 @@ export async function runOneToolCall(
       {
         runId: params.runId,
         sessionId: params.sessionId,
+        toolCallId: params.item.call_id,
         operationKey: params.operationKey,
         generatedImageEligible: params.generatedImageEligible,
         userId: params.userId,

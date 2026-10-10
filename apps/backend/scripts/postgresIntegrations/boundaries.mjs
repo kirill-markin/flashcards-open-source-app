@@ -73,11 +73,14 @@ export const boundaryDefinitions = Object.freeze([
   // 0172 adds ai.chat_sessions.archived_at, which both latest-session queries (chat/store/repository.ts
   // and sessionService.ts) filter on, so a test below it that resolves the latest session fails with
   // `column "archived_at" does not exist`. Only two pinned tests import either file, and both reach
-  // prepareChatRun past the duplicate-request check, so both moved here: chat/cardImages/operation from
-  // 0162, and chat/runs/generatedImageAttemptBudget from 0136, whose entry held nothing else.
+  // prepareChatRun past the duplicate-request check, so both moved to 0172: chat/cardImages/operation
+  // from 0162, and chat/runs/generatedImageAttemptBudget from 0136, whose entry held nothing else.
+  // 0173 adds ai.chat_files, which prepareChatRun writes for every attachment a turn carries, so the
+  // entry moved on to it with the same tests, and 0172's schema keeps no coverage of its own. 0174 adds
+  // the triggers that fire on every ai.chat_files delete, so the entry moved on again.
   Object.freeze({
-    migrationFileName: "0172_ai_chat_session_history.sql",
-    expectedMigrationCount: 174,
+    migrationFileName: "0174_ai_chat_file_deletions.sql",
+    expectedMigrationCount: 176,
     testFiles: Object.freeze([
       "src/chat/cardImages/operation.postgres.integration.ts",
       "src/chat/runs/generatedImageAttemptBudget.postgres.integration.ts",

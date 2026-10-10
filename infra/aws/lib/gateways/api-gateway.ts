@@ -24,6 +24,7 @@ import {
 import { buildCookieDomains } from "../cookie-domains";
 import { parsePublicOrigin } from "../public-origin";
 import { createSafeApiGatewayAccessLogFormat } from "./api-gateway-access-log";
+import { createChatSandboxFunction } from "./chat-sandbox";
 import { createSentrySourceMapInjectionCommand, getDockerSentryCliPath } from "../sentry-source-maps";
 import { getLambdaSentryRelease } from "../lambda-sentry-release";
 import { createRdsCaBundleCopyCommand, rdsCaBundlePath } from "../rds-ca-bundle";
@@ -662,6 +663,17 @@ export function createMediaAssetsObjectPolicyStatement(bucket: s3.IBucket): cdk.
   });
 }
 
+/** Files of a chat session live under this prefix; see apps/backend/src/chatFiles/storage.ts. */
+export function createChatFilesObjectPolicyStatement(bucket: s3.IBucket): cdk.aws_iam.PolicyStatement {
+  return new cdk.aws_iam.PolicyStatement({
+    actions: [
+      "s3:GetObject",
+      "s3:PutObject",
+    ],
+    resources: [bucket.arnForObjects("chat-files/*")],
+  });
+}
+
 export function createDirectImageIngestionObjectPolicyStatement(
   bucket: s3.IBucket,
 ): cdk.aws_iam.PolicyStatement {
@@ -1215,10 +1227,16 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   // Update the worker before the API can persist runs with a new model
   // configuration. The worker resolves execution settings from the stable
   // ai_cost_mode role, so it can claim runs prepared by the previous API build.
+  backendFn.addToRolePolicy(createChatFilesObjectPolicyStatement(props.mediaAssetsBucket));
+  chatWorkerFn.addToRolePolicy(createChatFilesObjectPolicyStatement(props.mediaAssetsBucket));
   backendFn.node.addDependency(chatWorkerFn);
   backendFn.addEnvironment("CHAT_WORKER_FUNCTION_NAME", chatWorkerFn.functionName);
   backendFn.addEnvironment("CHAT_LIVE_URL", chatLiveFunctionUrl.url);
   chatWorkerFn.grantInvoke(backendFn);
+  // The worker pre-signs every object URL the sandbox uses, under its chat-files grant above.
+  const chatSandboxFn = createChatSandboxFunction(scope);
+  chatSandboxFn.grantInvoke(chatWorkerFn);
+  chatWorkerFn.addEnvironment("CHAT_SANDBOX_FUNCTION_NAME", chatSandboxFn.functionName);
   const accessLogGroup = new logs.LogGroup(scope, "ApiAccessLogGroup", {
     retention: logs.RetentionDays.ONE_WEEK,
   });

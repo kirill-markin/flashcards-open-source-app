@@ -482,6 +482,11 @@ export function validateChatFileAttachmentContent(
   };
 }
 
+/** A text-like attachment is read as it is; nothing is derived from it. */
+export function isTextLikeChatFileMediaType(mediaType: string): boolean {
+  return textLikeFileMediaTypes.has(mediaType);
+}
+
 export function isChatAttachmentUnsupportedTypeError(error: unknown): boolean {
   return error instanceof HttpError && error.code === chatAttachmentUnsupportedTypeCode;
 }
