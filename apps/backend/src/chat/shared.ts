@@ -155,14 +155,14 @@ function buildSqlRoutingSection(): string {
 }
 
 /**
- * The timezone is printed verbatim by `buildDatetimeSection`, and the reviewId is the
+ * The timezone is printed verbatim by `buildCurrentDatetimeLine`, and the reviewId is the
  * dedup key, so a model reusing one is refused rather than recording a second review.
  */
 function buildReviewLoopSection(): string {
   return joinLines([
     "Review loop:",
     "- To review the user one question at a time, call next_review_card, then reveal_answer for that cardId, then submit_review; call get_guide with topic review_flow for the grading and rating rules.",
-    "- Pass the User local timezone printed in the datetime line below as submit_review's reviewedTimeZone, spelled exactly as it appears there.",
+    "- Pass the User local timezone printed in the Current datetime message as submit_review's reviewedTimeZone, spelled exactly as it appears there.",
     "- Generate one fresh random UUID as submit_review's reviewId per learner review, and reuse it only to retry that same card's submission.",
   ]);
 }
@@ -193,7 +193,11 @@ function buildRepairSection(): string {
   ]);
 }
 
-function buildDatetimeSection(timezone: string): string {
+/**
+ * Kept out of `buildSystemInstructions`; `buildChatCompletionInputWithBudget` places it after the
+ * replayed history and says why.
+ */
+export function buildCurrentDatetimeLine(timezone: string): string {
   const now = new Date();
   const utc = now.toISOString().replace("T", " ").replace(/\.\d+Z$/, " UTC");
   const local = now.toLocaleString("en-US", {
@@ -215,7 +219,6 @@ function buildDatetimeSection(timezone: string): string {
  * Builds the canonical system instructions for backend-owned chat turns.
  */
 export function buildSystemInstructions(
-  timezone: string,
   generatedImageEligible: boolean,
 ): string {
   return buildPromptFromSections([
@@ -233,6 +236,5 @@ export function buildSystemInstructions(
     generatedImageEligible ? buildGeneratedImagePolicySection() : "",
     buildRepairSection(),
     "Be concise, direct, and operational.",
-    buildDatetimeSection(timezone),
   ]);
 }
