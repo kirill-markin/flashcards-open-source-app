@@ -198,6 +198,7 @@ The role gets `SELECT` on these tables only:
 - `ai.chat_items`, the stored chat transcript, `payload` included, and the generated `role` and `content_char_count` columns beside it
 - selected metadata and content columns on `ai.chat_runs`, `turn_input`, `last_error_message`, and `client_platform` included
 - selected metadata and content columns on `ai.chat_composer_suggestion_generations`, `suggestions` included
+- selected metadata columns on `ai.chat_files`, the files of a chat session, without `path`, which carries the file's name
 - `ai.usage_events`
 - `ai.model_prices`
 - `sync.workspace_sync_metadata`

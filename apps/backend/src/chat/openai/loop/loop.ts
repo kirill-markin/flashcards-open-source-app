@@ -298,6 +298,7 @@ async function runModelCallWithOverflowRetry(
     const reducedBaseInput = await dependencies.buildChatCompletionInputWithBudget(
       params.localMessages,
       params.turnInput,
+      params.sessionId,
       params.timezone,
       params.generatedImageEligible,
       REDUCED_HISTORY_REPLAY_TOKEN_BUDGET,
@@ -372,6 +373,7 @@ async function runLoopWithDeps(
   let baseInput = await dependencies.buildChatCompletionInput(
     params.localMessages,
     params.turnInput,
+    params.sessionId,
     params.timezone,
     params.generatedImageEligible,
   );

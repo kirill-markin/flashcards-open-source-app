@@ -115,20 +115,6 @@ export function toChatItemPayload(
   };
 }
 
-export function stripBase64FromContentParts(
-  parts: ReadonlyArray<ContentPart>,
-): ReadonlyArray<ContentPart> {
-  return parts.map((part) => {
-    if (part.type === "image") {
-      return { type: "image" as const, mediaType: part.mediaType, base64Data: "" };
-    }
-    if (part.type === "file") {
-      return { type: "file" as const, mediaType: part.mediaType, base64Data: "", fileName: part.fileName };
-    }
-    return part;
-  });
-}
-
 export function buildLocalChatMessages(
   messages: ReadonlyArray<PersistedChatMessageItem>,
 ): ReadonlyArray<ServerChatMessage> {
