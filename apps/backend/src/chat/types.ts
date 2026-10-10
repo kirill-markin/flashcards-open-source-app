@@ -51,6 +51,14 @@ export type InlineFileContentPart = Readonly<{
 
 export type InlineAttachmentContentPart = InlineImageContentPart | InlineFileContentPart;
 
+/** A file the client staged through `POST /chat/files/uploads`; see `apps/backend/src/chatFiles/uploads.ts`. */
+export type UploadContentPart = Readonly<{
+  type: "upload";
+  uploadId: string;
+  fileName: string;
+  mediaType: string;
+}>;
+
 export type CardContentPart = Readonly<{
   type: "card";
   cardId: string;
@@ -84,10 +92,11 @@ export type ContentPart =
   | ToolCallContentPart
   | ReasoningSummaryContentPart;
 
-/** Content as a turn arrives in `POST /chat`, before its inline attachments become session files. */
+/** Content as a turn arrives in `POST /chat`, before its attachments become session files. */
 export type UnconvertedContentPart =
   | Exclude<ContentPart, ImageContentPart | FileContentPart>
-  | InlineAttachmentContentPart;
+  | InlineAttachmentContentPart
+  | UploadContentPart;
 
 export type ChatMessage = Readonly<{
   role: ChatRole;
