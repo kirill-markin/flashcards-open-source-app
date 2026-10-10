@@ -50,9 +50,13 @@
 "ai.attachment.error.unsupportedType" = "지원하지 않는 파일 형식: .%@";
 "ai.attachment.error.cameraUnavailable" = "이 기기에서는 카메라를 사용할 수 없습니다.";
 "ai.attachment.error.photoUnavailable" = "이 기기에서는 사진 접근을 사용할 수 없습니다.";
-"ai.attachment.error.fileTooLarge" = "파일이 너무 큽니다. 최대 허용 크기는 3 MB입니다.";
+"ai.attachment.error.fileTooLarge" = "파일이 너무 큽니다. 파일은 최대 30 MB, 이미지는 최대 10 MB까지 첨부할 수 있습니다.";
 "ai.attachment.error.imageEncodeFailed" = "선택한 사진을 준비하지 못했습니다.";
 "ai.attachment.error.imageDimensionsInvalid" = "선택한 사진을 읽지 못했습니다.";
+"ai.attachment.error.tooManyFiles" = "메시지 하나에는 파일과 이미지를 최대 10개까지 포함할 수 있습니다. 일부를 제거한 후 다시 시도하세요.";
+"ai.attachment.error.imagesTooLarge" = "메시지 하나에 포함된 이미지는 합계 최대 15 MB까지입니다. 일부는 다른 메시지로 보내세요.";
+"ai.attachment.error.unavailable" = "첨부 파일이 더 이상 이 기기에 없습니다. 제거하고 다시 첨부한 후 다시 시도하세요.";
+"ai.attachment.error.uploadFailed" = "첨부 파일을 업로드하지 못했습니다. 연결을 확인한 후 다시 시도하세요.";
 "ai.composer.dictation.start" = "받아쓰기 시작";
 "ai.composer.dictation.stop" = "받아쓰기 중지";
 "ai.composer.dictation.waiting" = "마이크 접근 대기 중...";
@@ -62,7 +66,7 @@
 "ai.error.requestTooLarge.title" = "메시지가 너무 큼";
 "ai.error.requestTooLarge.message" = "AI 채팅은 한 번에 이렇게 많은 내용을 보낼 수 없습니다. 첨부 파일을 줄이거나 더 작은 파일 또는 사진을 선택하거나 요청을 나눠 다시 시도하세요.";
 "ai.error.attachmentUnsupported.title" = "지원하지 않는 파일 형식";
-"ai.error.attachmentUnsupported.message" = "AI 채팅에서 지원하지 않는 파일 형식입니다. 파일을 제거하거나 PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX 또는 이미지로 저장한 후 다시 시도하세요.";
+"ai.error.attachmentUnsupported.message" = "AI 채팅에서 지원하지 않는 파일 형식입니다. 파일을 제거하거나 PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG 또는 이미지로 저장한 후 다시 시도하세요.";
 "ai.error.limitReached" = "이번 달 AI 사용 한도를 모두 사용했습니다. 한도는 다음 달 초에 초기화됩니다.";
 "ai.error.summary.couldNotContinue" = "AI 응답을 이어가지 못함";
 "ai.error.summary.invalidResponse" = "잘못된 AI 응답 수신";

@@ -50,9 +50,13 @@
 "ai.attachment.error.unsupportedType" = "Tipo de archivo no compatible: .%@";
 "ai.attachment.error.cameraUnavailable" = "La camara no esta disponible en este dispositivo.";
 "ai.attachment.error.photoUnavailable" = "El acceso a Fotos no esta disponible en este dispositivo.";
-"ai.attachment.error.fileTooLarge" = "El archivo es demasiado grande. El tamano maximo permitido es de 3 MB.";
+"ai.attachment.error.fileTooLarge" = "El archivo es demasiado grande. Los archivos pueden ocupar como máximo 30 MB, y las imágenes, 10 MB.";
 "ai.attachment.error.imageEncodeFailed" = "No se pudo preparar la foto seleccionada.";
 "ai.attachment.error.imageDimensionsInvalid" = "No se pudo leer la foto seleccionada.";
+"ai.attachment.error.tooManyFiles" = "Un mensaje puede incluir como máximo 10 archivos e imágenes. Elimina algunos y vuelve a intentarlo.";
+"ai.attachment.error.imagesTooLarge" = "Las imágenes de un mensaje pueden ocupar como máximo 15 MB en total. Envía algunas en otro mensaje.";
+"ai.attachment.error.unavailable" = "Un archivo adjunto ya no está en este dispositivo. Elimínalo, vuelve a adjuntarlo e inténtalo de nuevo.";
+"ai.attachment.error.uploadFailed" = "No se pudo subir un archivo adjunto. Comprueba tu conexión y vuelve a intentarlo.";
 "ai.composer.dictation.start" = "Iniciar dictado";
 "ai.composer.dictation.stop" = "Detener dictado";
 "ai.composer.dictation.waiting" = "Esperando acceso al microfono...";
@@ -62,7 +66,7 @@
 "ai.error.requestTooLarge.title" = "El mensaje es demasiado grande";
 "ai.error.requestTooLarge.message" = "El chat de IA no puede enviar tanto contenido a la vez. Elimina uno o mas adjuntos, elige un archivo o una foto mas pequena, o divide la solicitud e intentalo de nuevo.";
 "ai.error.attachmentUnsupported.title" = "Tipo de archivo no compatible";
-"ai.error.attachmentUnsupported.message" = "Este tipo de archivo no es compatible con el chat de IA. Elimina el archivo o guardalo como PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX o una imagen, y vuelve a intentarlo.";
+"ai.error.attachmentUnsupported.message" = "Este tipo de archivo no es compatible con el chat de IA. Elimina el archivo o guardalo como PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG o una imagen, y vuelve a intentarlo.";
 "ai.error.limitReached" = "Has agotado tu límite de IA de este mes. Se restablece al principio del mes que viene.";
 "ai.error.summary.couldNotContinue" = "No se pudo continuar la respuesta de IA";
 "ai.error.summary.invalidResponse" = "Se recibio una respuesta de IA no valida";

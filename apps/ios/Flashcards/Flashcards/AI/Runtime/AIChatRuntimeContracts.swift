@@ -165,6 +165,15 @@ protocol AIChatSessionServicing: Sendable {
         request: AIChatStartRunRequestBody
     ) async throws -> AIChatStartRunResponse
 
+    /// Stages the file's bytes for the next turn and returns the upload id its `upload` part names.
+    func uploadChatFile(
+        session: CloudLinkedSession,
+        fileName: String,
+        mediaType: String,
+        sizeBytes: Int,
+        fileURL: URL
+    ) async throws -> String
+
     func createNewSession(
         session: CloudLinkedSession,
         request: AIChatNewSessionRequestBody

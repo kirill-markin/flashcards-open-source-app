@@ -50,9 +50,13 @@
 "ai.attachment.error.unsupportedType" = "فائل کی قسم معاون نہیں: .%@";
 "ai.attachment.error.cameraUnavailable" = "اس آلے پر کیمرا دستیاب نہیں ہے۔";
 "ai.attachment.error.photoUnavailable" = "اس آلے پر تصاویر کی رسائی دستیاب نہیں ہے۔";
-"ai.attachment.error.fileTooLarge" = "فائل بہت بڑی ہے۔ زیادہ سے زیادہ مجاز سائز 3 MB ہے۔";
+"ai.attachment.error.fileTooLarge" = "فائل بہت بڑی ہے۔ فائلیں زیادہ سے زیادہ 30 MB اور تصاویر زیادہ سے زیادہ 10 MB کی ہو سکتی ہیں۔";
 "ai.attachment.error.imageEncodeFailed" = "منتخب تصویر تیار نہیں ہو سکی۔";
 "ai.attachment.error.imageDimensionsInvalid" = "منتخب تصویر پڑھی نہیں جا سکی۔";
+"ai.attachment.error.tooManyFiles" = "ایک پیغام میں زیادہ سے زیادہ 10 فائلیں اور تصاویر شامل کی جا سکتی ہیں۔ ان میں سے کچھ ہٹائیں، پھر دوبارہ کوشش کریں۔";
+"ai.attachment.error.imagesTooLarge" = "ایک پیغام کی تصاویر کا کل سائز زیادہ سے زیادہ 15 MB ہو سکتا ہے۔ ان میں سے کچھ کسی دوسرے پیغام میں بھیجیں۔";
+"ai.attachment.error.unavailable" = "ایک منسلکہ اب اس آلے پر موجود نہیں ہے۔ اسے ہٹائیں، دوبارہ منسلک کریں، پھر دوبارہ کوشش کریں۔";
+"ai.attachment.error.uploadFailed" = "ایک منسلکہ اپ لوڈ نہیں ہو سکا۔ اپنا کنکشن چیک کریں، پھر دوبارہ کوشش کریں۔";
 "ai.composer.dictation.start" = "بول کر لکھنا شروع کریں";
 "ai.composer.dictation.stop" = "بول کر لکھنا روکیں";
 "ai.composer.dictation.waiting" = "مائیکروفون کی رسائی کا انتظار ہے...";
@@ -62,7 +66,7 @@
 "ai.error.requestTooLarge.title" = "پیغام بہت بڑا ہے";
 "ai.error.requestTooLarge.message" = "AI چیٹ ایک ساتھ اتنا مواد نہیں بھیج سکتی۔ ایک یا زیادہ منسلکات ہٹائیں، چھوٹی فائل یا تصویر چنیں، یا درخواست تقسیم کر کے دوبارہ کوشش کریں۔";
 "ai.error.attachmentUnsupported.title" = "غیر معاون فائل کی قسم";
-"ai.error.attachmentUnsupported.message" = "AI چیٹ اس فائل کی قسم کو معاونت نہیں دیتی۔ فائل ہٹائیں یا اسے PDF، TXT، CSV، JSON، XML، Markdown، HTML، Python، JavaScript، TypeScript، YAML، XLS/XLSX، DOCX یا تصویر کے طور پر محفوظ کر کے دوبارہ کوشش کریں۔";
+"ai.error.attachmentUnsupported.message" = "AI چیٹ اس فائل کی قسم کو معاونت نہیں دیتی۔ فائل ہٹائیں یا اسے PDF، TXT، CSV، JSON، XML، Markdown، HTML، Python، JavaScript، TypeScript، YAML، XLS/XLSX، DOCX، ZIP، Anki APKG یا تصویر کے طور پر محفوظ کر کے دوبارہ کوشش کریں۔";
 "ai.error.limitReached" = "اس ماہ کے لیے آپ کی AI کی حد ختم ہو گئی ہے۔ یہ اگلے ماہ کے آغاز پر ری سیٹ ہو جائے گی۔";
 "ai.error.summary.couldNotContinue" = "AI کا جواب جاری نہیں رہ سکا";
 "ai.error.summary.invalidResponse" = "AI کا غلط جواب موصول ہوا";

@@ -50,9 +50,13 @@
 "ai.attachment.error.unsupportedType" = "סוג קובץ לא נתמך: .%@";
 "ai.attachment.error.cameraUnavailable" = "המצלמה אינה זמינה במכשיר הזה.";
 "ai.attachment.error.photoUnavailable" = "הגישה לתמונות אינה זמינה במכשיר הזה.";
-"ai.attachment.error.fileTooLarge" = "הקובץ גדול מדי. הגודל המרבי המותר הוא 3 MB.";
+"ai.attachment.error.fileTooLarge" = "הקובץ גדול מדי. קבצים יכולים להיות בגודל של עד 30 MB, ותמונות עד 10 MB.";
 "ai.attachment.error.imageEncodeFailed" = "הכנת התמונה שנבחרה נכשלה.";
 "ai.attachment.error.imageDimensionsInvalid" = "קריאת התמונה שנבחרה נכשלה.";
+"ai.attachment.error.tooManyFiles" = "הודעה יכולה לכלול עד 10 קבצים ותמונות. יש להסיר חלק מהם ולנסות שוב.";
+"ai.attachment.error.imagesTooLarge" = "התמונות בהודעה אחת יכולות להיות בגודל כולל של עד 15 MB. יש לשלוח חלק מהן בהודעה אחרת.";
+"ai.attachment.error.unavailable" = "קובץ מצורף כבר לא נמצא במכשיר הזה. יש להסיר אותו, לצרף אותו שוב ולנסות שוב.";
+"ai.attachment.error.uploadFailed" = "לא ניתן היה להעלות קובץ מצורף. יש לבדוק את החיבור ולנסות שוב.";
 "ai.composer.dictation.start" = "התחלת הכתבה";
 "ai.composer.dictation.stop" = "עצירת הכתבה";
 "ai.composer.dictation.waiting" = "ממתין לגישה למיקרופון...";
@@ -62,7 +66,7 @@
 "ai.error.requestTooLarge.title" = "ההודעה גדולה מדי";
 "ai.error.requestTooLarge.message" = "צ׳אט AI אינו יכול לשלוח כמות כזו של תוכן בבת אחת. יש להסיר קובץ מצורף אחד או יותר, לבחור קובץ או תמונה קטנים יותר, או לפצל את הבקשה ולנסות שוב.";
 "ai.error.attachmentUnsupported.title" = "סוג הקובץ אינו נתמך";
-"ai.error.attachmentUnsupported.message" = "סוג הקובץ הזה אינו נתמך בצ׳אט AI. יש להסיר את הקובץ או לשמור אותו כ-PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX או כתמונה, ואז לנסות שוב.";
+"ai.error.attachmentUnsupported.message" = "סוג הקובץ הזה אינו נתמך בצ׳אט AI. יש להסיר את הקובץ או לשמור אותו כ-PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG או כתמונה, ואז לנסות שוב.";
 "ai.error.limitReached" = "מגבלת ה-AI שלך לחודש הזה נגמרה. היא מתאפסת בתחילת החודש הבא.";
 "ai.error.summary.couldNotContinue" = "לא ניתן להמשיך את תשובת AI";
 "ai.error.summary.invalidResponse" = "התקבלה תשובת AI לא תקינה";

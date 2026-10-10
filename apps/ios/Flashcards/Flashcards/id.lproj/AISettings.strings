@@ -50,9 +50,13 @@
 "ai.attachment.error.unsupportedType" = "Jenis file tidak didukung: .%@";
 "ai.attachment.error.cameraUnavailable" = "Kamera tidak tersedia di perangkat ini.";
 "ai.attachment.error.photoUnavailable" = "Akses foto tidak tersedia di perangkat ini.";
-"ai.attachment.error.fileTooLarge" = "File terlalu besar. Ukuran maksimum yang diizinkan 3 MB.";
+"ai.attachment.error.fileTooLarge" = "File terlalu besar. Ukuran file maksimum 30 MB, dan gambar maksimum 10 MB.";
 "ai.attachment.error.imageEncodeFailed" = "Gagal menyiapkan foto yang dipilih.";
 "ai.attachment.error.imageDimensionsInvalid" = "Gagal membaca foto yang dipilih.";
+"ai.attachment.error.tooManyFiles" = "Satu pesan dapat berisi maksimum 10 file dan gambar. Hapus beberapa, lalu coba lagi.";
+"ai.attachment.error.imagesTooLarge" = "Total ukuran gambar dalam satu pesan maksimum 15 MB. Kirim sebagian di pesan lain.";
+"ai.attachment.error.unavailable" = "Lampiran tidak ada lagi di perangkat ini. Hapus, lampirkan lagi, lalu coba lagi.";
+"ai.attachment.error.uploadFailed" = "Tidak dapat mengunggah lampiran. Periksa koneksi, lalu coba lagi.";
 "ai.composer.dictation.start" = "Mulai dikte";
 "ai.composer.dictation.stop" = "Hentikan dikte";
 "ai.composer.dictation.waiting" = "Menunggu akses mikrofon...";
@@ -62,7 +66,7 @@
 "ai.error.requestTooLarge.title" = "Pesan terlalu besar";
 "ai.error.requestTooLarge.message" = "Obrolan AI tidak dapat mengirim konten sebanyak ini sekaligus. Hapus lampiran, pilih file atau foto yang lebih kecil, atau bagi permintaan lalu coba lagi.";
 "ai.error.attachmentUnsupported.title" = "Jenis file tidak didukung";
-"ai.error.attachmentUnsupported.message" = "Jenis file ini tidak didukung obrolan AI. Hapus file atau simpan sebagai PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, atau gambar, lalu coba lagi.";
+"ai.error.attachmentUnsupported.message" = "Jenis file ini tidak didukung obrolan AI. Hapus file atau simpan sebagai PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG, atau gambar, lalu coba lagi.";
 "ai.error.limitReached" = "Batas AI Anda untuk bulan ini sudah habis. Batas ini disetel ulang pada awal bulan depan.";
 "ai.error.summary.couldNotContinue" = "Tidak Dapat Melanjutkan Respons AI";
 "ai.error.summary.invalidResponse" = "Menerima Respons AI Tidak Valid";

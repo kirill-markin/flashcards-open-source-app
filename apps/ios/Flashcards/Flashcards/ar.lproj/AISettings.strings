@@ -50,9 +50,13 @@
 "ai.attachment.error.unsupportedType" = "نوع الملف غير مدعوم: .%@";
 "ai.attachment.error.cameraUnavailable" = "الكاميرا غير متوفرة على هذا الجهاز.";
 "ai.attachment.error.photoUnavailable" = "الوصول إلى الصور غير متاح على هذا الجهاز.";
-"ai.attachment.error.fileTooLarge" = "الملف كبير جدًا. الحد الأقصى للحجم المسموح به هو 3 ميجابايت.";
+"ai.attachment.error.fileTooLarge" = "الملف كبير جدًا. يمكن أن يصل حجم الملفات إلى 30 ميجابايت كحد أقصى، والصور إلى 10 ميجابايت.";
 "ai.attachment.error.imageEncodeFailed" = "تعذر تجهيز الصورة المحددة.";
 "ai.attachment.error.imageDimensionsInvalid" = "تعذرت قراءة الصورة المحددة.";
+"ai.attachment.error.tooManyFiles" = "يمكن أن تتضمن الرسالة الواحدة 10 ملفات وصور كحد أقصى. أزل بعضها، ثم حاول مرة أخرى.";
+"ai.attachment.error.imagesTooLarge" = "يمكن أن يصل الحجم الإجمالي للصور في الرسالة الواحدة إلى 15 ميجابايت كحد أقصى. أرسل بعضها في رسالة أخرى.";
+"ai.attachment.error.unavailable" = "لم يعد أحد المرفقات موجودًا على هذا الجهاز. أزله وأرفقه مرة أخرى، ثم حاول مرة أخرى.";
+"ai.attachment.error.uploadFailed" = "تعذر رفع أحد المرفقات. تحقق من اتصالك، ثم حاول مرة أخرى.";
 "ai.composer.dictation.start" = "بدء الإملاء";
 "ai.composer.dictation.stop" = "إيقاف الإملاء";
 "ai.composer.dictation.waiting" = "في انتظار الوصول إلى الميكروفون...";
@@ -62,7 +66,7 @@
 "ai.error.requestTooLarge.title" = "الرسالة كبيرة جدًا";
 "ai.error.requestTooLarge.message" = "لا يمكن لدردشة الذكاء الاصطناعي إرسال هذا القدر من المحتوى دفعة واحدة. أزل مرفقًا واحدًا أو أكثر، أو اختر ملفًا أو صورة أصغر، أو قسّم الطلب ثم حاول مرة أخرى.";
 "ai.error.attachmentUnsupported.title" = "نوع ملف غير مدعوم";
-"ai.error.attachmentUnsupported.message" = "نوع الملف هذا غير مدعوم في دردشة الذكاء الاصطناعي. أزل الملف أو احفظه كـ PDF أو TXT أو CSV أو JSON أو XML أو Markdown أو HTML أو Python أو JavaScript أو TypeScript أو YAML أو XLS/XLSX أو DOCX أو صورة، ثم حاول مرة أخرى.";
+"ai.error.attachmentUnsupported.message" = "نوع الملف هذا غير مدعوم في دردشة الذكاء الاصطناعي. أزل الملف أو احفظه كـ PDF أو TXT أو CSV أو JSON أو XML أو Markdown أو HTML أو Python أو JavaScript أو TypeScript أو YAML أو XLS/XLSX أو DOCX أو ZIP أو Anki APKG أو صورة، ثم حاول مرة أخرى.";
 "ai.error.limitReached" = "لقد استنفدت حد الذكاء الاصطناعي لهذا الشهر. يُعاد ضبطه في بداية الشهر المقبل.";
 "ai.error.summary.couldNotContinue" = "تعذر متابعة استجابة الذكاء الاصطناعي";
 "ai.error.summary.invalidResponse" = "تم تلقي استجابة AI غير صالحة";

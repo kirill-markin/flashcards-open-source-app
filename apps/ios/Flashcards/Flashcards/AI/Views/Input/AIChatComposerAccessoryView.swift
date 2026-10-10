@@ -51,7 +51,7 @@ extension AIChatView {
                             ForEach(self.chatStore.pendingAttachments) { attachment in
                                 HStack(spacing: 6) {
                                     switch attachment.payload {
-                                    case .binary(let fileName, _, _):
+                                    case .localFile(let fileName, _, _):
                                         Image(systemName: attachment.isImage ? "photo" : "doc")
                                             .foregroundStyle(.secondary)
                                             .fixedSize()
@@ -306,7 +306,7 @@ extension AIChatView {
 
     private func composerAttachmentAccessibilityValue(_ attachment: AIChatAttachment) -> String {
         switch attachment.payload {
-        case .binary(let fileName, _, _):
+        case .localFile(let fileName, _, _):
             return fileName
         case .card(let card):
             return aiChatCardAttachmentLabel(card: card)
