@@ -11,6 +11,7 @@ import {
 } from "./contract";
 import { PresignedObjectReader, PresignedReadOnlyFs, type PresignedFile } from "./presignedFs";
 import { sha256Hex, uploadToWriteSlots, type SlotFile } from "./slotUploads";
+import { ChatSandboxSqlBridgeClient } from "./sqlBridge/sandboxClient";
 
 const filesMountPoint = "/files";
 const workMountPoint = "/work";
@@ -47,6 +48,8 @@ const executionLimits: NonNullable<BashOptions["executionLimits"]> = {
   maxExecutionTimeMs: maximumBashCommandSeconds * 1_000,
   maxPythonTimeoutMs: 60_000,
   maxSqliteTimeoutMs: 60_000,
+  // A js-exec script spends most of its time waiting on SQL bridge calls.
+  maxJsTimeoutMs: maximumBashCommandSeconds * 1_000,
 };
 
 /** Thrown by a `/work` file's loader when the change scan reads it at the path it was seeded at. */
@@ -206,7 +209,7 @@ function appendLine(text: string, line: string): string {
 export async function runChatSandboxBash(request: ChatSandboxBashRequest): Promise<ChatSandboxBashResponse> {
   // The package's CommonJS build cannot locate its python3 and sqlite3 workers, so its ES module
   // build is loaded; esbuild keeps this import() as it is in the CommonJS bundle.
-  const { Bash, DefenseInDepthBox, InMemoryFs, MountableFs } = await import("just-bash");
+  const { Bash, DefenseInDepthBox, InMemoryFs, MountableFs, decodeBytesToUtf8 } = await import("just-bash");
   const startedAt = Date.now();
   const mountedAt = new Date(startedAt);
   const reader = new PresignedObjectReader((run) => DefenseInDepthBox.runTrustedAsync(run));
@@ -241,11 +244,18 @@ export async function runChatSandboxBash(request: ChatSandboxBashRequest): Promi
       { mountPoint: workMountPoint, filesystem: work },
     ],
   });
+  const sqlBridge = request.sqlBridge === undefined
+    ? null
+    : new ChatSandboxSqlBridgeClient(request.sqlBridge, request.sessionId);
   const bash = new Bash({
     fs,
     cwd: workMountPoint,
     env: { HOME: workMountPoint },
     python: true,
+    ...(sqlBridge === null ? {} : {
+      javascript: { invokeTool: async (path, argsJson, signal) => sqlBridge.invokeTool(path, argsJson, signal) },
+      customCommands: [...sqlBridge.createCommands(decodeBytesToUtf8)],
+    }),
     executionLimitProfile: "hardened",
     executionLimits,
   });
@@ -268,5 +278,9 @@ export async function runChatSandboxBash(request: ChatSandboxBashRequest): Promi
     durationMs: Date.now() - startedAt,
     writtenFiles: [...writtenFiles],
     deletedPaths: refusal === null ? [...changes.deletedPaths] : [],
+    ...(sqlBridge === null ? {} : {
+      sqlCallCount: sqlBridge.callCount,
+      sqlExecuteCallCount: sqlBridge.executeCallCount,
+    }),
   };
 }
