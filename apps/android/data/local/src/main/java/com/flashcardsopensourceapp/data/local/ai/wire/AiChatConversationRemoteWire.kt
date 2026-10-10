@@ -9,6 +9,7 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatConversation
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatConversationEnvelope
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatFeatures
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatFileUpload
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatLiveStreamEnvelope
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatMessage
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatRole
@@ -138,6 +139,19 @@ private data class AiChatTranscriptionWire(
     val sessionId: StrictRemoteString
 )
 
+@Serializable
+private data class AiChatFileUploadTargetWire(
+    val method: StrictRemoteString,
+    val url: StrictRemoteString,
+    val headers: Map<String, StrictRemoteString>
+)
+
+@Serializable
+private data class AiChatFileUploadWire(
+    val uploadId: StrictRemoteString,
+    val upload: AiChatFileUploadTargetWire
+)
+
 internal fun decodeAiChatGuestSession(
     payload: String,
     apiBaseUrl: String,
@@ -191,6 +205,21 @@ internal fun decodeAiChatTranscription(payload: String): AiChatTranscriptionResu
     return AiChatTranscriptionResult(
         text = wire.text.value,
         sessionId = wire.sessionId.value
+    )
+}
+
+internal fun decodeAiChatFileUpload(payload: String): AiChatFileUpload {
+    val wire = decodeAiChatWire<AiChatFileUploadWire>(payload = payload, context = "chat.files.uploads")
+    if (wire.upload.method.value != "PUT") {
+        throw CloudContractMismatchException(
+            "Cloud contract mismatch for chat.files.uploads.upload.method: expected PUT but received " +
+                wire.upload.method.value
+        )
+    }
+    return AiChatFileUpload(
+        uploadId = wire.uploadId.value,
+        url = wire.upload.url.value,
+        headers = wire.upload.headers.mapValues { (_, value) -> value.value }
     )
 }
 

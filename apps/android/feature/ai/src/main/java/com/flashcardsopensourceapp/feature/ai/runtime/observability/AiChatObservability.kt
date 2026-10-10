@@ -7,6 +7,8 @@ import com.flashcardsopensourceapp.core.observability.AndroidWarningIssueEvent
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.CloudObservationIdentity
 import com.flashcardsopensourceapp.core.observability.shouldCaptureAndroidThrowable
+import com.flashcardsopensourceapp.data.local.ai.remote.AiChatAttachmentFileMissingException
+import com.flashcardsopensourceapp.data.local.ai.remote.AiChatAttachmentUploadException
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRequestTooLargeException
 import com.flashcardsopensourceapp.data.local.ai.remote.isExpectedAiChatRemoteUserError
@@ -276,6 +278,13 @@ internal fun aiChatFailureIssueDisposition(error: Exception): AiChatFailureIssue
     }
     if (error is AiChatRequestTooLargeException) {
         return AiChatFailureIssueDisposition.NONE
+    }
+    // The OS may evict the app cache that holds a picked attachment; the person attaches it again.
+    if (error is AiChatAttachmentFileMissingException) {
+        return AiChatFailureIssueDisposition.NONE
+    }
+    if (error is AiChatAttachmentUploadException) {
+        return aiChatFailureIssueDisposition(error = error.uploadFailure)
     }
     if (error is IOException) {
         return if (isLikelyTransientNetworkIoException(error = error)) {

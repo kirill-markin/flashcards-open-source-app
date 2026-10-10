@@ -12,7 +12,7 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatActiveRun
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatActiveRunLive
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatBootstrapResponse
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
-import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatConversation
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDraftState
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatLiveEvent
@@ -649,7 +649,8 @@ internal class FakeAiChatRepository : AiChatRepository {
     override suspend fun startRun(
         workspaceId: String?,
         state: AiChatPersistedState,
-        content: List<AiChatContentPart>,
+        draftMessage: String,
+        pendingAttachments: List<AiChatAttachment>,
         uiLocale: String?
     ): AiChatStartRunResponse {
         startRunCalls += 1

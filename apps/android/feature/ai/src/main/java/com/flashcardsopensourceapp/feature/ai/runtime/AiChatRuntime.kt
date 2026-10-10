@@ -16,6 +16,9 @@ import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEventRepos
 import com.flashcardsopensourceapp.feature.ai.AiCardHandoffResult
 import com.flashcardsopensourceapp.feature.ai.AiEntryPrefill
 import com.flashcardsopensourceapp.feature.ai.aiEntryPrefillPrompt
+import com.flashcardsopensourceapp.feature.ai.input.aiAttachmentImportAlert
+import com.flashcardsopensourceapp.feature.ai.input.deleteAiChatAttachmentStagedFiles
+import com.flashcardsopensourceapp.feature.ai.input.isAiChatAttachmentStaged
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiAccessContext
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiChatRuntimeState
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiComposerPhase
@@ -39,11 +42,19 @@ import com.flashcardsopensourceapp.feature.ai.runtime.observability.AiChatWarnin
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.recordAiChatBreadcrumb
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.recordAiChatWarning
 import com.flashcardsopensourceapp.feature.ai.strings.AiTextProvider
+import com.flashcardsopensourceapp.feature.settings.access.AccessCapability
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 internal class AiChatRuntime(
     scope: CoroutineScope,
@@ -205,12 +216,9 @@ internal class AiChatRuntime(
     }
 
     fun addPendingAttachment(attachment: AiChatAttachment) {
-        val currentState = runtimeStateMutable.value
-        val chatConfig = effectiveAiChatServerConfig(currentState.persistedState.lastKnownChatConfig)
-        if (
-            canManageAiDraftAttachments(state = currentState).not()
-            || chatConfig.features.attachmentsEnabled.not()
-        ) {
+        if (canAddPendingAttachment(state = runtimeStateMutable.value).not()) {
+            deleteAiChatAttachmentStagedFiles(attachments = listOf(attachment))
+            showAttachmentNotAddedAlert()
             return
         }
         runtimeStateMutable.update { state ->
@@ -223,10 +231,90 @@ internal class AiChatRuntime(
         persistCurrentDraft()
     }
 
-    fun removePendingAttachment(attachmentId: String) {
-        if (canManageAiDraftAttachments(state = runtimeStateMutable.value).not()) {
+    /**
+     * Runs [stageAttachment], a copy of up to the file limit that may come over the network from a
+     * document provider, in the runtime's scope so leaving the screen does not drop it. One import runs
+     * at a time, and the send waits until it lands in the draft.
+     */
+    fun importPendingAttachment(stageAttachment: suspend () -> AiChatAttachment) {
+        val currentState = runtimeStateMutable.value
+        if (currentState.isImportingAttachment || canAddPendingAttachment(state = currentState).not()) {
+            showAttachmentNotAddedAlert()
             return
         }
+        runtimeStateMutable.update { state ->
+            state.copy(
+                isImportingAttachment = true,
+                activeAlert = null,
+                errorMessage = ""
+            )
+        }
+
+        var importJob: Job? = null
+        importJob = context.scope.launch(start = CoroutineStart.LAZY) {
+            var unlandedAttachment: AiChatAttachment? = null
+            try {
+                val attachment = withContext(Dispatchers.IO) {
+                    stageAttachment().also { staged ->
+                        unlandedAttachment = staged
+                    }
+                }
+                if (landImportedAttachment(attachment = attachment)) {
+                    unlandedAttachment = null
+                } else {
+                    showAlert(
+                        alert = context.textProvider.generalError(
+                            message = context.textProvider.selectedAttachmentCouldNotBeAdded
+                        )
+                    )
+                }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                if (context.activeAttachmentImportJob !== importJob) {
+                    return@launch
+                }
+                showAlert(
+                    alert = aiAttachmentImportAlert(
+                        capability = AccessCapability.FILES,
+                        error = error,
+                        textProvider = context.textProvider
+                    )
+                )
+            } finally {
+                deleteAiChatAttachmentStagedFiles(attachments = listOfNotNull(unlandedAttachment))
+                if (context.activeAttachmentImportJob === importJob) {
+                    context.activeAttachmentImportJob = null
+                    runtimeStateMutable.update { state ->
+                        state.copy(isImportingAttachment = false)
+                    }
+                }
+            }
+        }
+        context.activeAttachmentImportJob = importJob
+        importJob.start()
+    }
+
+    /** Unlocks the chat at once; the copy stops at its next buffer and deletes what it staged. */
+    fun cancelAttachmentImport() {
+        val importJob = context.activeAttachmentImportJob ?: return
+        context.activeAttachmentImportJob = null
+        importJob.cancel(cause = CancellationException("AI attachment import cancelled by the user."))
+        runtimeStateMutable.update { state ->
+            state.copy(isImportingAttachment = false)
+        }
+    }
+
+    fun removePendingAttachment(attachmentId: String) {
+        val currentState = runtimeStateMutable.value
+        if (canManageAiDraftAttachments(state = currentState).not()) {
+            return
+        }
+        deleteAiChatAttachmentStagedFiles(
+            attachments = currentState.pendingAttachments.filter { attachment ->
+                attachment.id == attachmentId
+            }
+        )
         runtimeStateMutable.update { state ->
             state.copy(
                 pendingAttachments = state.pendingAttachments.filter { attachment ->
@@ -519,6 +607,53 @@ internal class AiChatRuntime(
         return state.persistedState.messages.isNotEmpty()
             || state.draftMessage.trim().isNotEmpty()
             || state.pendingAttachments.isNotEmpty()
+    }
+
+    private fun canAddPendingAttachment(state: AiChatRuntimeState): Boolean {
+        val chatConfig = effectiveAiChatServerConfig(state.persistedState.lastKnownChatConfig)
+        return canManageAiDraftAttachments(state = state) && chatConfig.features.attachmentsEnabled
+    }
+
+    /**
+     * Adds a finished import once the draft takes attachments again. The pick returns just before
+     * `ON_RESUME` reloads the chat, and the reload rebuilds the draft when it ends. Refuses when
+     * attachments were turned off meanwhile or an identity reset deleted the staged copy; an
+     * access-context change cancels the import instead.
+     */
+    private suspend fun landImportedAttachment(attachment: AiChatAttachment): Boolean {
+        var didLand = false
+        while (didLand.not()) {
+            val readyState = runtimeStateMutable.first { state ->
+                canManageAiDraftAttachments(state = state)
+            }
+            if (
+                canAddPendingAttachment(state = readyState).not()
+                || isAiChatAttachmentStaged(attachment = attachment).not()
+            ) {
+                return false
+            }
+            runtimeStateMutable.update { state ->
+                didLand = canManageAiDraftAttachments(state = state)
+                if (didLand.not()) {
+                    return@update state
+                }
+                state.copy(
+                    pendingAttachments = state.pendingAttachments + attachment,
+                    isImportingAttachment = false
+                )
+            }
+        }
+        // Through the serialized state write: the reload that just ended also writes the draft, without it.
+        context.persistCurrentState()
+        return true
+    }
+
+    private fun showAttachmentNotAddedAlert() {
+        showAlert(
+            alert = context.textProvider.generalError(
+                message = context.textProvider.selectedAttachmentNotAddedChatBusy
+            )
+        )
     }
 
     private fun requiresManualFreshSessionForCardHandoff(

@@ -105,6 +105,9 @@ internal fun AiRouteContent(
     onDismissErrorMessage: () -> Unit,
     onDismissAlert: () -> Unit,
     onAddPendingAttachment: (AiChatAttachment) -> Unit,
+    /** Runs the given staging of a picked document off the main thread, outliving this screen. */
+    onImportPendingAttachment: (suspend () -> AiChatAttachment) -> Unit,
+    onCancelAttachmentImport: () -> Unit,
     onRemovePendingAttachment: (String) -> Unit,
     // The two halves of the attachment fact. Like the permission results below, they are reported by
     // the caller: only it knows which surface the person is on and how an error maps onto the shared
@@ -182,6 +185,7 @@ internal fun AiRouteContent(
         try {
             onAddPendingAttachment(
                 makeAiChatAttachmentFromCameraBitmap(
+                    context = context,
                     bitmap = bitmap,
                     textProvider = textProvider
                 )
@@ -236,21 +240,13 @@ internal fun AiRouteContent(
             return@rememberLauncherForActivityResult
         }
 
-        try {
-            onAddPendingAttachment(
-                makeAiChatDocumentAttachmentFromUri(
-                    context = context,
-                    uri = uri,
-                    textProvider = textProvider
-                )
-            )
-        } catch (error: Exception) {
-            currentShowAlertAction(
-                aiAttachmentImportAlert(
-                    capability = AccessCapability.FILES,
-                    error = error,
-                    textProvider = textProvider
-                )
+        // The staging outlives this screen, so it holds the application context, never the activity.
+        val applicationContext = context.applicationContext
+        onImportPendingAttachment {
+            makeAiChatDocumentAttachmentFromUri(
+                context = applicationContext,
+                uri = uri,
+                textProvider = textProvider
             )
         }
     }
@@ -501,6 +497,7 @@ internal fun AiRouteContent(
                         },
                         onCancelStreaming = onCancelStreaming,
                         onRemovePendingAttachment = onRemovePendingAttachment,
+                        onCancelAttachmentImport = onCancelAttachmentImport,
                         onOpenAttachmentMenu = {
                             isAttachmentSheetVisible = true
                         },

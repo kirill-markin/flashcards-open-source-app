@@ -10,7 +10,7 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.ai.aiChatAttachmentUnsupportedTypeCode
-import com.flashcardsopensourceapp.data.local.model.ai.aiChatMaximumAttachmentBytes
+import com.flashcardsopensourceapp.data.local.model.ai.aiChatMaximumFileAttachmentBytes
 import com.flashcardsopensourceapp.data.local.model.ai.aiChatMaximumStartRunRequestBytes
 import com.flashcardsopensourceapp.data.local.model.ai.makeDefaultAiChatPersistedState
 import java.io.IOException
@@ -154,7 +154,8 @@ class AiChatRuntimeSendDraftRestorationTest {
             id = "attachment-1",
             fileName = "notes.txt",
             mediaType = "text/plain",
-            base64Data = "ZmlsZQ=="
+            localFilePath = "/missing/ai-chat-attachments/attachment-1",
+            sizeBytes = 4L
         )
 
         runtime.updateAccessContext(
@@ -200,9 +201,10 @@ class AiChatRuntimeSendDraftRestorationTest {
         val runtime = makeRuntime(scope = this, repository = repository)
         val attachment = AiChatAttachment.Binary(
             id = "attachment-1",
-            fileName = "large.txt",
+            fileName = "a".repeat(aiChatMaximumStartRunRequestBytes) + ".txt",
             mediaType = "text/plain",
-            base64Data = "a".repeat(aiChatMaximumStartRunRequestBytes)
+            localFilePath = "/missing/ai-chat-attachments/attachment-1",
+            sizeBytes = 4L
         )
 
         runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
@@ -237,10 +239,10 @@ class AiChatRuntimeSendDraftRestorationTest {
             id = "attachment-1",
             fileName = "restored.txt",
             mediaType = "text/plain",
-            base64Data = base64DataForDecodedByteCount(byteCount = aiChatMaximumAttachmentBytes + 1)
+            localFilePath = "/missing/ai-chat-attachments/attachment-1",
+            sizeBytes = aiChatMaximumFileAttachmentBytes + 1
         )
 
-        assertTrue(attachment.base64Data.length < aiChatMaximumStartRunRequestBytes)
         runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
         advanceUntilIdle()
 
@@ -359,7 +361,8 @@ class AiChatRuntimeSendDraftRestorationTest {
             id = "attachment-1",
             fileName = "notes.csv",
             mediaType = "text/csv",
-            base64Data = "ZmlsZQ=="
+            localFilePath = "/missing/ai-chat-attachments/attachment-1",
+            sizeBytes = 4L
         )
 
         runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
@@ -378,7 +381,7 @@ class AiChatRuntimeSendDraftRestorationTest {
         val alert = runtime.state.value.activeAlert as AiAlertState.GeneralError
         assertEquals("Unsupported file type", alert.title)
         assertEquals(
-            "This file type is not supported for AI chat. Remove the file or save it as PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, or an image, then try again.",
+            "This file type is not supported for AI chat. Remove the file or save it as PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG, or an image, then try again.",
             alert.message
         )
     }
@@ -399,7 +402,8 @@ class AiChatRuntimeSendDraftRestorationTest {
             id = "attachment-1",
             fileName = "notes.txt",
             mediaType = "text/plain",
-            base64Data = "ZmlsZQ=="
+            localFilePath = "/missing/ai-chat-attachments/attachment-1",
+            sizeBytes = 4L
         )
 
         runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
@@ -431,8 +435,4 @@ class AiChatRuntimeSendDraftRestorationTest {
             repository.draftStates[defaultTestWorkspaceId to "session-1"]?.pendingAttachments
         )
     }
-}
-
-private fun base64DataForDecodedByteCount(byteCount: Int): String {
-    return "a".repeat(((byteCount + 2) / 3) * 4)
 }

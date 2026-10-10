@@ -4,10 +4,18 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurat
 import java.util.UUID
 
 const val aiChatOptimisticAssistantStatusToken: String = "__ai_optimistic_assistant_status__"
-const val aiChatMaximumAttachmentBytes: Int = 3 * 1024 * 1024
+// Upload limits of one chat turn, the ones apps/backend/src/chatFiles/uploads.ts enforces.
+const val aiChatMaximumFileAttachmentBytes: Long = 30L * 1024 * 1024
+const val aiChatMaximumImageAttachmentBytes: Long = 10L * 1024 * 1024
+const val aiChatMaximumImageAttachmentBytesPerMessage: Long = 15L * 1024 * 1024
+const val aiChatMaximumUploadedAttachmentsPerMessage: Int = 10
 const val aiChatMaximumStartRunRequestBytes: Int = 5 * 1024 * 1024
 const val aiChatAttachmentUnsupportedTypeCode: String = "CHAT_ATTACHMENT_UNSUPPORTED_TYPE"
 const val aiChatRequestTooLargeCode: String = "CHAT_REQUEST_TOO_LARGE"
+const val aiChatFileUploadTooLargeCode: String = "CHAT_FILE_UPLOAD_TOO_LARGE"
+const val aiChatFileUploadNotFoundCode: String = "CHAT_FILE_UPLOAD_NOT_FOUND"
+const val aiChatFileUploadsTooManyCode: String = "CHAT_FILE_UPLOADS_TOO_MANY"
+const val aiChatFileUploadImagesTooLargeCode: String = "CHAT_FILE_UPLOAD_IMAGES_TOO_LARGE"
 // The code the backend raises when a turn targets a chat that is no longer the latest one.
 const val aiChatSessionNotCurrentCode: String = "CHAT_SESSION_NOT_CURRENT"
 // The code the backend raises when a signed-in account reaches its AI allowance.
@@ -83,10 +91,13 @@ val aiChatSupportedFileExtensions: Set<String> = setOf(
     "yml",
     "sql",
     "log",
-    "docx"
+    "docx",
+    "zip",
+    "apkg"
 )
 
 private val aiChatCanonicalFileMediaTypesByExtension: Map<String, String> = mapOf(
+    "apkg" to "application/apkg",
     "csv" to "text/csv",
     "docx" to "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "html" to "text/html",
@@ -103,7 +114,8 @@ private val aiChatCanonicalFileMediaTypesByExtension: Map<String, String> = mapO
     "xlsx" to "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     "xml" to "text/xml",
     "yaml" to "application/x-yaml",
-    "yml" to "application/x-yaml"
+    "yml" to "application/x-yaml",
+    "zip" to "application/zip"
 )
 
 data class AiChatFeatures(
@@ -179,11 +191,13 @@ enum class AiChatDictationState {
 sealed interface AiChatAttachment {
     val id: String
 
+    /** The picked bytes wait in [localFilePath] until the turn that uploads them is accepted. */
     data class Binary(
         override val id: String,
         val fileName: String,
         val mediaType: String,
-        val base64Data: String
+        val localFilePath: String,
+        val sizeBytes: Long
     ) : AiChatAttachment {
         val isImage: Boolean
             get() = mediaType.startsWith(prefix = "image/")
@@ -237,14 +251,12 @@ sealed interface AiChatContentPart {
 
     data class Image(
         val fileName: String?,
-        val mediaType: String,
-        val base64Data: String
+        val mediaType: String
     ) : AiChatContentPart
 
     data class File(
         val fileName: String,
-        val mediaType: String,
-        val base64Data: String
+        val mediaType: String
     ) : AiChatContentPart
 
     data class Card(
@@ -305,15 +317,11 @@ sealed interface AiChatWireContentPart {
         val text: String
     ) : AiChatWireContentPart
 
-    data class Image(
-        val mediaType: String,
-        val base64Data: String
-    ) : AiChatWireContentPart
-
-    data class File(
+    /** An image or a file whose bytes were staged through `POST /chat/files/uploads`. */
+    data class Upload(
+        val uploadId: String,
         val fileName: String,
-        val mediaType: String,
-        val base64Data: String
+        val mediaType: String
     ) : AiChatWireContentPart
 
     data class Card(
@@ -322,15 +330,14 @@ sealed interface AiChatWireContentPart {
         val backText: String,
         val tags: List<String>
     ) : AiChatWireContentPart
-
-    data class ToolCall(
-        val toolCallId: String,
-        val name: String,
-        val status: AiChatToolCallStatus,
-        val input: String?,
-        val output: String?
-    ) : AiChatWireContentPart
 }
+
+/** A pre-signed PUT for one attachment's bytes; the signature binds [headers] and the declared size. */
+data class AiChatFileUpload(
+    val uploadId: String,
+    val url: String,
+    val headers: Map<String, String>
+)
 
 data class AiChatStartRunRequest(
     val sessionId: String,
@@ -562,41 +569,38 @@ data class AiChatMinimalPersistedState(
     val draftText: String
 )
 
-fun buildAiChatRequestContent(content: List<AiChatContentPart>): List<AiChatWireContentPart> {
-    return content.mapNotNull { part ->
-        when (part) {
-            is AiChatContentPart.Text -> AiChatWireContentPart.Text(text = part.text)
-            is AiChatContentPart.ReasoningSummary -> null
-            is AiChatContentPart.Image -> AiChatWireContentPart.Image(
-                mediaType = part.mediaType,
-                base64Data = part.base64Data
+/** The turn in the order the composer shows it: attachments first, then the trimmed text. */
+fun buildAiChatRequestContent(
+    draftMessage: String,
+    pendingAttachments: List<AiChatAttachment>,
+    uploadIdsByAttachmentId: Map<String, String>
+): List<AiChatWireContentPart> {
+    val attachmentContent = pendingAttachments.mapNotNull { attachment ->
+        when (attachment) {
+            is AiChatAttachment.Binary -> AiChatWireContentPart.Upload(
+                uploadId = requireNotNull(uploadIdsByAttachmentId[attachment.id]) {
+                    "AI chat attachment ${attachment.id} has no upload."
+                },
+                fileName = attachment.fileName,
+                mediaType = attachment.mediaType
             )
 
-            is AiChatContentPart.File -> AiChatWireContentPart.File(
-                fileName = part.fileName,
-                mediaType = part.mediaType,
-                base64Data = part.base64Data
+            is AiChatAttachment.Card -> AiChatWireContentPart.Card(
+                cardId = attachment.cardId,
+                frontText = attachment.frontText,
+                backText = attachment.backText,
+                tags = attachment.tags
             )
 
-            is AiChatContentPart.Card -> AiChatWireContentPart.Card(
-                cardId = part.cardId,
-                frontText = part.frontText,
-                backText = part.backText,
-                tags = part.tags
-            )
-
-            is AiChatContentPart.ToolCall -> AiChatWireContentPart.ToolCall(
-                toolCallId = part.toolCall.toolCallId,
-                name = part.toolCall.name,
-                status = part.toolCall.status,
-                input = part.toolCall.input,
-                output = part.toolCall.output
-            )
-
-            is AiChatContentPart.AccountUpgradePrompt -> null
-            is AiChatContentPart.Unknown -> null
+            is AiChatAttachment.Unknown -> null
         }
     }
+    val trimmedMessage = draftMessage.trim()
+    if (trimmedMessage.isEmpty()) {
+        return attachmentContent
+    }
+
+    return attachmentContent + AiChatWireContentPart.Text(text = trimmedMessage)
 }
 
 fun isSendableAiChatAttachment(attachment: AiChatAttachment): Boolean {
@@ -610,13 +614,15 @@ fun isSendableAiChatAttachment(attachment: AiChatAttachment): Boolean {
 fun makeAiChatAttachment(
     fileName: String,
     mediaType: String,
-    base64Data: String
+    localFilePath: String,
+    sizeBytes: Long
 ): AiChatAttachment {
     return AiChatAttachment.Binary(
         id = UUID.randomUUID().toString().lowercase(),
         fileName = fileName,
         mediaType = mediaType,
-        base64Data = base64Data
+        localFilePath = localFilePath,
+        sizeBytes = sizeBytes
     )
 }
 
@@ -682,34 +688,39 @@ private fun escapeAiChatCardXmlValue(value: String): String {
         .replace(oldValue = "'", newValue = "&apos;")
 }
 
-fun requireAiChatAttachmentSize(byteCount: Int) {
-    require(byteCount <= aiChatMaximumAttachmentBytes) {
-        "File is too large. Maximum allowed size is 3 MB."
-    }
+enum class AiChatAttachmentLimitViolation {
+    FILE_TOO_LARGE,
+    TOO_MANY_UPLOADS,
+    IMAGES_TOO_LARGE
 }
 
-fun requireAiChatAttachmentSize(attachment: AiChatAttachment) {
-    when (attachment) {
-        is AiChatAttachment.Binary -> requireAiChatAttachmentSize(
-            byteCount = aiChatBase64DataByteCount(base64Data = attachment.base64Data)
-        )
-        is AiChatAttachment.Card,
-        is AiChatAttachment.Unknown -> Unit
+/** The first upload limit a turn with [pendingAttachments] breaks, or null when it fits all of them. */
+fun findAiChatAttachmentLimitViolation(
+    pendingAttachments: List<AiChatAttachment>
+): AiChatAttachmentLimitViolation? {
+    val uploadedAttachments = pendingAttachments.filterIsInstance<AiChatAttachment.Binary>()
+    val hasOversizedAttachment = uploadedAttachments.any { attachment ->
+        val maximumBytes = if (attachment.isImage) {
+            aiChatMaximumImageAttachmentBytes
+        } else {
+            aiChatMaximumFileAttachmentBytes
+        }
+        attachment.sizeBytes > maximumBytes
     }
-}
+    if (hasOversizedAttachment) {
+        return AiChatAttachmentLimitViolation.FILE_TOO_LARGE
+    }
+    if (uploadedAttachments.size > aiChatMaximumUploadedAttachmentsPerMessage) {
+        return AiChatAttachmentLimitViolation.TOO_MANY_UPLOADS
+    }
+    val imageBytes = uploadedAttachments.filter { attachment -> attachment.isImage }.sumOf { attachment ->
+        attachment.sizeBytes
+    }
+    if (imageBytes > aiChatMaximumImageAttachmentBytesPerMessage) {
+        return AiChatAttachmentLimitViolation.IMAGES_TOO_LARGE
+    }
 
-fun aiChatBase64DataByteCount(base64Data: String): Int {
-    val normalizedBase64Data = base64Data.trim()
-    if (normalizedBase64Data.isEmpty()) {
-        return 0
-    }
-
-    val paddingCharacters = when {
-        normalizedBase64Data.endsWith(suffix = "==") -> 2
-        normalizedBase64Data.endsWith(suffix = "=") -> 1
-        else -> 0
-    }
-    return (normalizedBase64Data.length * 3 / 4) - paddingCharacters
+    return null
 }
 
 fun requireSupportedAiChatAttachmentExtension(fileExtension: String) {

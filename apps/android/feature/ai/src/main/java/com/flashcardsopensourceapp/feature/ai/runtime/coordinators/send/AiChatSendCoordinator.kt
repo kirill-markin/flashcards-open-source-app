@@ -10,7 +10,6 @@ import com.flashcardsopensourceapp.data.local.ai.remote.requireAiChatStartRunReq
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatBootstrapResponse
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
-import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDraftState
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatPersistedState
@@ -19,9 +18,10 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatStartRunResponse
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.ai.buildAiChatRequestContent
+import com.flashcardsopensourceapp.data.local.model.ai.findAiChatAttachmentLimitViolation
 import com.flashcardsopensourceapp.data.local.model.ai.isSendableAiChatAttachment
-import com.flashcardsopensourceapp.data.local.model.ai.requireAiChatAttachmentSize
 import com.flashcardsopensourceapp.data.local.repository.AiChatPreparedRemoteSession
+import com.flashcardsopensourceapp.feature.ai.input.deleteAiChatAttachmentStagedFiles
 import com.flashcardsopensourceapp.feature.ai.runtime.AiChatRuntimeContext
 import com.flashcardsopensourceapp.feature.ai.runtime.aiChatBootstrapPageLimit
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiChatRuntimeState
@@ -88,17 +88,20 @@ internal class AiChatSendCoordinator(
             return
         }
 
-        if (canSendAttachmentsWithinSizeLimit(pendingAttachments = currentState.pendingAttachments).not()) {
+        val attachmentLimitViolation = findAiChatAttachmentLimitViolation(
+            pendingAttachments = currentState.pendingAttachments
+        )
+        if (attachmentLimitViolation != null) {
             context.runtimeStateMutable.update { state ->
                 state.copy(
-                    activeAlert = context.textProvider.requestTooLargeAlert(),
+                    activeAlert = context.textProvider.attachmentLimitAlert(violation = attachmentLimitViolation),
                     errorMessage = ""
                 )
             }
             return
         }
 
-        if (canSendStartRunRequestWithinSizeLimit(state = currentState, outgoingContent = outgoingContent).not()) {
+        if (canSendStartRunRequestWithinSizeLimit(state = currentState).not()) {
             context.runtimeStateMutable.update { state ->
                 state.copy(
                     activeAlert = context.textProvider.requestTooLargeAlert(),
@@ -189,10 +192,12 @@ internal class AiChatSendCoordinator(
                 val response = context.aiChatRepository.startRun(
                     workspaceId = context.runtimeStateMutable.value.workspaceId,
                     state = nextPersistedState,
-                    content = outgoingContent,
+                    draftMessage = draftMessageBackup,
+                    pendingAttachments = pendingAttachmentsBackup,
                     uiLocale = context.currentUiLocaleTag()
                 )
                 didAcceptRun = true
+                deleteAiChatAttachmentStagedFiles(attachments = pendingAttachmentsBackup)
                 applyAcceptedRunResponse(
                     response = response,
                     targetSessionId = requestSessionId
@@ -312,6 +317,9 @@ internal class AiChatSendCoordinator(
             return false
         }
         if (state.dictationState != AiChatDictationState.IDLE) {
+            return false
+        }
+        if (state.isImportingAttachment) {
             return false
         }
         return state.draftMessage.trim().isNotEmpty()
@@ -654,27 +662,23 @@ internal class AiChatSendCoordinator(
         return context.currentServerConfiguration()
     }
 
-    private fun canSendAttachmentsWithinSizeLimit(pendingAttachments: List<AiChatAttachment>): Boolean {
-        return try {
-            pendingAttachments.forEach(::requireAiChatAttachmentSize)
-            true
-        } catch (_: IllegalArgumentException) {
-            false
-        }
-    }
-
-    private fun canSendStartRunRequestWithinSizeLimit(
-        state: AiChatRuntimeState,
-        outgoingContent: List<AiChatContentPart>
-    ): Boolean {
+    private fun canSendStartRunRequestWithinSizeLimit(state: AiChatRuntimeState): Boolean {
         val requestSessionId = state.persistedState.chatSessionId.ifBlank {
             makeAiChatSessionId()
+        }
+        // Upload ids are not known before the uploads; attachment ids are UUIDs of the same length.
+        val standInUploadIdsByAttachmentId = state.pendingAttachments.associate { attachment ->
+            attachment.id to attachment.id
         }
         val request = AiChatStartRunRequest(
             sessionId = requestSessionId,
             workspaceId = state.workspaceId,
             clientRequestId = UUID.randomUUID().toString().lowercase(),
-            content = buildAiChatRequestContent(content = outgoingContent),
+            content = buildAiChatRequestContent(
+                draftMessage = state.draftMessage,
+                pendingAttachments = state.pendingAttachments,
+                uploadIdsByAttachmentId = standInUploadIdsByAttachmentId
+            ),
             timezone = TimeZone.getDefault().id,
             uiLocale = context.currentUiLocaleTag()
         )
