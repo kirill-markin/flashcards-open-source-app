@@ -10,7 +10,7 @@ historical status table in these permanent docs. Use one small row per channel:
 
 | Channel / target | Source and artifact | Gate evidence | Required operator actions | Provider/store state and publishing mode | Observed public availability | Remaining action |
 | --- | --- | --- | --- | --- | --- | --- |
-| Name / version | SHA, build/package identity, run | CI, smoke, skip/warning evidence or historical gaps | Complete/pending/blocked/excluded at the canonical boundary; accepted request/publication identity and time | Submitted/review pending/approved/rejected; saved automatic/manual/managed mode, or not applicable | Pending/live/unchanged verified; URL, observed version/time and storefront/rollout scope | External dependency or exact human/operator action, owner and condition; future fixes |
+| Name / version | SHA, build/package identity, run | CI, smoke, skip/warning evidence or historical gaps | Complete/pending/blocked/excluded at the canonical boundary; accepted or pending submission/request/publication identity, exact source and time | Submitted/review pending/approved/rejected; saved automatic/manual/managed mode, or not applicable | Pending/live/unchanged verified; URL, observed version/time and storefront/rollout scope | External dependency or exact human/operator action, owner, observation time and next condition; future fixes |
 
 Keep secrets and reviewer credentials out. Mark operator completion only at the
 [canonical boundary](README.md#release-inventory-and-completion); it does not
@@ -21,7 +21,11 @@ scoped initial launch; preserve its existing submission identity through the
 
 Use these same rows for handoff. While external review is pending, preserve the
 submission identity and next action instead of extending the run with polling
-or rebuilding/resubmitting an unchanged artifact. Record any later manual publication action.
+or rebuilding/resubmitting an unchanged artifact. Follow the
+[user-reserved iOS handoff](ios.md#user-reserved-final-submit) and
+[reviewer-disabled plugin rules](mcp-and-plugins.md#reviewer-disabled-plugin-publication).
+Record later external submission/publication observations without claiming
+agent execution or identifying an actor without evidence.
 Android remains open until public at its selected rollout scope; iOS automatic
 submission can be operator-complete while review/public availability remains pending.
 

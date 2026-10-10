@@ -14,6 +14,7 @@ the shared reuse rules; record its identity and observed availability in step 9
 without reconstructing historical logs. Preserve an existing review submission
 and verify its identity and release setting at step 7 instead of uploading or
 resubmitting the same artifact. New artifacts follow all pre-submission gates.
+For a user-reserved final Submit, apply the [handoff and resume rules](#user-reserved-final-submit).
 
 1. Prepare production build values using [iOS Local Setup](../ios-local-setup.md).
    From the repository root, compile an unsigned device Release archive:
@@ -130,7 +131,8 @@ resubmitting the same artifact. New artifacts follow all pre-submission gates.
    place the version in a **Ready for Review** draft submission.
 7. Select automatic release after approval unless manual release is explicitly
    intended, and verify the saved release setting. Verify the exact version/build
-   in the submission, then choose **Submit for Review**. Confirm **Waiting for
+   in the submission. If the user reserved final Submit, stop at the
+   [handoff](#user-reserved-final-submit). Otherwise choose **Submit for Review** and confirm **Waiting for
    Review**, **In Review**, or an approved state and record the submission
    identity, version/build, and saved release mode. A rejected submission needs
    correction and does not satisfy this boundary. A **Ready for Review** draft or an
@@ -164,3 +166,21 @@ evidence rule. Public availability is a separate observed state.
 
 Build configuration: [iOS CI/CD](../ios-ci-cd.md). API diagnostics and result
 bundles: [Xcode Cloud data access](../xcode-cloud-data-access.md).
+
+## User-Reserved Final Submit
+
+After all required gates and preparation pass, verify the **Ready for Review**
+draft's exact version, version ID, build number/build ID and submission ID.
+Verify the saved automatic-release-after-approval setting, unless manual mode
+was explicitly intended. Record these identities, gate evidence, saved mode
+and observation timestamp in the [ledger](evidence.md#release-ledger), with
+the user's precise remaining action: **Submit for Review** on that submission.
+Leave it pending; this handoff is neither submitted nor operator-complete.
+The [authorization rule](README.md) also prohibits an equivalent API submission.
+
+On resume, read the current version/build/submission state first. Reuse that
+matching submission if it was submitted externally; verify its saved release
+mode and continue from the observed state without a duplicate submission.
+Record the observation time and any provider-reported submission time separately.
+Attribute the submitting actor only with evidence; observing an external
+submission does not establish that the agent or the user executed it.
