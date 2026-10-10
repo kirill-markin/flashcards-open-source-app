@@ -7,10 +7,7 @@ import type { ContentPart, FileContentPart, ImageContentPart } from "../../types
 import { buildCurrentDatetimeLine, buildSystemInstructions } from "../../shared";
 import { CHAT_HISTORY_REPLAY_TOKEN_BUDGET } from "../../config";
 import { buildCardContextXml } from "../../cardContext";
-import {
-  validateChatFileAttachmentContent,
-  validateChatImageAttachmentContent,
-} from "../../attachmentPolicy";
+import { buildChatFileS3Key, getChatFileObjectBytes } from "../../../chatFiles";
 import {
   normalizeStoredOpenAIReplayItems,
   sliceReplayItemsFromLatestCompaction,
@@ -22,32 +19,49 @@ import {
 type OpenAIInputItem = OpenAI.Responses.ResponseInputItem;
 type OpenAIInputContent = OpenAI.Responses.ResponseInputMessageContentList[number];
 
-function buildImageDataUrl(part: ImageContentPart): string {
-  const attachment = validateChatImageAttachmentContent(part.mediaType, part.base64Data);
-  return `data:${attachment.mediaType};base64,${attachment.base64Data}`;
+function formatChatFileSize(sizeBytes: number): string {
+  if (sizeBytes < 1024) {
+    return `${sizeBytes} B`;
+  }
+
+  if (sizeBytes < 1024 * 1024) {
+    return `${(sizeBytes / 1024).toFixed(1)} KB`;
+  }
+
+  return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function buildFileDataUrl(part: FileContentPart): string {
-  const attachment = validateChatFileAttachmentContent(part.fileName, part.mediaType, part.base64Data);
-  return `data:${attachment.mediaType};base64,${attachment.base64Data}`;
+function buildFileManifestText(part: FileContentPart): string {
+  return `Attached file: ${part.path} (${part.mediaType}, ${formatChatFileSize(part.sizeBytes)}). `
+    + "It is in the chat workspace; read it with the workspace tools instead of asking the user to paste it.";
 }
 
+function buildImageManifestText(part: ImageContentPart): string {
+  return `Attached image: ${part.path}`;
+}
+
+async function buildImageDataUrl(sessionId: string, part: ImageContentPart): Promise<string> {
+  const bytes = await getChatFileObjectBytes(buildChatFileS3Key(sessionId, part.fileId));
+  return `data:${part.mediaType};base64,${bytes.toString("base64")}`;
+}
+
+/** A file is replayed as its one-line manifest; an image also stays visible to the model on every turn. */
 async function mapAttachmentPart(
+  sessionId: string,
   part: ImageContentPart | FileContentPart,
 ): Promise<ReadonlyArray<OpenAIInputContent>> {
   if (part.type === "image") {
-    return [{
-      type: "input_image",
-      detail: "auto",
-      image_url: buildImageDataUrl(part),
-    }];
+    return [
+      { type: "input_text", text: buildImageManifestText(part) },
+      {
+        type: "input_image",
+        detail: "auto",
+        image_url: await buildImageDataUrl(sessionId, part),
+      },
+    ];
   }
 
-  return [{
-    type: "input_file",
-    filename: part.fileName,
-    file_data: buildFileDataUrl(part),
-  }];
+  return [{ type: "input_text", text: buildFileManifestText(part) }];
 }
 
 function buildToolCallHistoryText(
@@ -70,13 +84,16 @@ function buildReasoningHistoryText(
   return `Reasoning summary:\n${part.summary}`;
 }
 
-async function mapMessagePart(part: ContentPart): Promise<ReadonlyArray<OpenAIInputContent>> {
+async function mapMessagePart(
+  sessionId: string,
+  part: ContentPart,
+): Promise<ReadonlyArray<OpenAIInputContent>> {
   if (part.type === "text") {
     return [{ type: "input_text", text: part.text }];
   }
 
   if (part.type === "image" || part.type === "file") {
-    return mapAttachmentPart(part);
+    return mapAttachmentPart(sessionId, part);
   }
 
   if (part.type === "card") {
@@ -177,18 +194,19 @@ function buildAssistantHistoryItems(
 }
 
 async function buildUserInputMessage(
+  sessionId: string,
   content: ReadonlyArray<ContentPart>,
 ): Promise<OpenAIInputItem> {
   return {
     role: "user",
     type: "message",
-    content: (await Promise.all(content.map(mapMessagePart))).flat(),
+    content: (await Promise.all(content.map((part) => mapMessagePart(sessionId, part)))).flat(),
   };
 }
 
 const HISTORY_ASCII_CHARS_PER_TOKEN = 4;
 const HISTORY_NON_ASCII_CHARS_PER_TOKEN = 1.6;
-const HISTORY_ATTACHMENT_TOKEN_ESTIMATE = 3_000;
+const HISTORY_IMAGE_TOKEN_ESTIMATE = 3_000;
 
 /**
  * Estimates provider tokens for a string without a real tokenizer.
@@ -220,8 +238,12 @@ function estimateContentPartTokens(part: ContentPart): number {
     return estimateTextTokens(part.text);
   }
 
-  if (part.type === "image" || part.type === "file") {
-    return HISTORY_ATTACHMENT_TOKEN_ESTIMATE;
+  if (part.type === "image") {
+    return HISTORY_IMAGE_TOKEN_ESTIMATE;
+  }
+
+  if (part.type === "file") {
+    return estimateTextTokens(buildFileManifestText(part));
   }
 
   if (part.type === "card") {
@@ -310,6 +332,7 @@ function windowHistoryToTokenBudget(
 export async function buildChatCompletionInputWithBudget(
   localMessages: ReadonlyArray<ServerChatMessage>,
   turnInput: ReadonlyArray<ContentPart>,
+  sessionId: string,
   timezone: string,
   generatedImageEligible: boolean,
   budgetTokens: number,
@@ -336,7 +359,7 @@ export async function buildChatCompletionInputWithBudget(
       continue;
     }
 
-    historyItems.push(await buildUserInputMessage(message.content));
+    historyItems.push(await buildUserInputMessage(sessionId, message.content));
   }
 
   const input = placeSystemPrompt(historyItems, generatedImageEligible);
@@ -345,7 +368,7 @@ export async function buildChatCompletionInputWithBudget(
     type: "message",
     content: buildCurrentDatetimeLine(timezone),
   });
-  input.push(await buildUserInputMessage(turnInput));
+  input.push(await buildUserInputMessage(sessionId, turnInput));
   return input;
 }
 
@@ -356,12 +379,14 @@ export async function buildChatCompletionInputWithBudget(
 export async function buildChatCompletionInput(
   localMessages: ReadonlyArray<ServerChatMessage>,
   turnInput: ReadonlyArray<ContentPart>,
+  sessionId: string,
   timezone: string,
   generatedImageEligible: boolean,
 ): Promise<ReadonlyArray<OpenAIInputItem>> {
   return buildChatCompletionInputWithBudget(
     localMessages,
     turnInput,
+    sessionId,
     timezone,
     generatedImageEligible,
     CHAT_HISTORY_REPLAY_TOKEN_BUDGET,
