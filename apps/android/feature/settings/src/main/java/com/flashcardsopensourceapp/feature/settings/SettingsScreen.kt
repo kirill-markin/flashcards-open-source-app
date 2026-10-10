@@ -5,8 +5,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -79,6 +81,8 @@ internal fun SettingsScreenScaffold(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues = innerPadding)
+                .consumeWindowInsets(innerPadding)
+                .imePadding()
         ) {
             content(PaddingValues(all = 0.dp))
         }
