@@ -1381,8 +1381,12 @@ const guCatalog: TranslationCatalog = {
       remaining: "આ મહિને બાકી: {{count}}",
     },
     alerts: {
+      attachmentImagesTooLarge: "AI ચૅટના એક સંદેશ માટે છબીઓ ખૂબ મોટી છે: કુલ મળીને તે વધુમાં વધુ {{limit}} MB હોઈ શકે. તેમાંથી કેટલીક બીજા સંદેશમાં મોકલો.",
       attachmentLimit: "સંદેશ ખૂબ મોટો છે. AI ચૅટ એકસાથે આટલી સામગ્રી મોકલી શકતી નથી. એક કે વધુ જોડાણ દૂર કરો, નાની ફાઇલ કે ફોટો પસંદ કરો, અથવા વિનંતી વહેંચીને ફરી પ્રયાસ કરો.",
-      attachmentUnsupported: "AI ચૅટમાં આ પ્રકારની ફાઇલ સમર્થિત નથી. ફાઇલ દૂર કરો અથવા તેને PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX અથવા છબી તરીકે સાચવીને ફરી પ્રયાસ કરો.",
+      attachmentTooLarge: "AI ચૅટ માટે આ ફાઇલ ખૂબ મોટી છે. ફાઇલો વધુમાં વધુ {{fileLimit}} MB અને છબીઓ વધુમાં વધુ {{imageLimit}} MB હોઈ શકે. નાની ફાઇલ પસંદ કરીને ફરી પ્રયાસ કરો.",
+      attachmentUnsupported: "AI ચૅટમાં આ પ્રકારની ફાઇલ સમર્થિત નથી. ફાઇલ દૂર કરો અથવા તેને PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG અથવા છબી તરીકે સાચવીને ફરી પ્રયાસ કરો.",
+      attachmentUploadFailed: "જોડાણ અપલોડ થઈ શક્યું નહીં. તમારું કનેક્શન તપાસીને ફરી પ્રયાસ કરો.",
+      attachmentsTooMany: "AI ચૅટના એક સંદેશમાં વધુમાં વધુ {{limit}} ફાઇલો અને છબીઓ ઉમેરી શકાય. બાકીની બીજા સંદેશમાં મોકલો.",
       microphoneUnavailable: "આ બ્રાઉઝરમાં માઇક્રોફોન રેકોર્ડિંગ ઉપલબ્ધ નથી.",
     },
     composerPlaceholder: "કાર્ડ, પુનરાવર્તનના ઇતિહાસ વિશે પૂછો અથવા નોંધો જોડો...",

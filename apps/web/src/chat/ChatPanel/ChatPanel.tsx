@@ -13,9 +13,7 @@ import {
   isBinaryPendingAttachment,
 } from "../attachments/FileAttachment";
 import { formatCardAttachmentLabel } from "../attachments/chatCardParts";
-import {
-  USER_VISIBLE_ATTACHMENT_LIMIT_MB,
-} from "../shared/chatHelpers";
+import { formatChatAttachmentLimitMessages } from "../shared/chatSizePolicy";
 import {
   formatAiLimitReachedMessageForHeldUsage,
   isHeldAiUsageCurrent,
@@ -108,9 +106,7 @@ export function ChatPanel(props: Props): ReactElement {
     scrollKey: currentSessionId,
   });
   const isInitialHistoryLoading = !isHistoryLoaded && messages.length === 0;
-  const attachmentLimitMessage = t("chatPanel.alerts.attachmentLimit", {
-    count: formatNumber(USER_VISIBLE_ATTACHMENT_LIMIT_MB),
-  });
+  const attachmentLimitMessages = formatChatAttachmentLimitMessages({ t, formatNumber });
   const attachmentUnsupportedMessage = t("chatPanel.alerts.attachmentUnsupported");
   const technicalErrorMessage = t("appError.technicalError.message");
   function showChatTechnicalError(error: unknown, operation: WebAppOperation): boolean {
@@ -163,7 +159,7 @@ export function ChatPanel(props: Props): ReactElement {
     startNewConversationComposerReset,
   } = useChatComposerSend({
     activeWorkspaceId,
-    attachmentLimitMessage,
+    attachmentLimitMessages,
     clearDraftForSession,
     clearTrackedDraftSelection,
     composerAction,
@@ -222,11 +218,9 @@ export function ChatPanel(props: Props): ReactElement {
     isDragOver,
     removeAttachment,
   } = useChatAttachments({
-    attachmentLimitMessage,
+    attachmentLimitMessages,
     attachmentUnsupportedMessage,
     canAttachDraftFiles: canDropDraftFiles,
-    currentSessionId,
-    draftInputText,
     indexedDbOpenRecoveryState,
     onTechnicalError: (error) => {
       if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {

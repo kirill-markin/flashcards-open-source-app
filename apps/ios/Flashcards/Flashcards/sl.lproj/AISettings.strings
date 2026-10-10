@@ -50,9 +50,13 @@
 "ai.attachment.error.unsupportedType" = "Nepodprta vrsta datoteke: .%@";
 "ai.attachment.error.cameraUnavailable" = "Kamera v tej napravi ni na voljo.";
 "ai.attachment.error.photoUnavailable" = "Dostop do fotografij v tej napravi ni na voljo.";
-"ai.attachment.error.fileTooLarge" = "Datoteka je prevelika. Največja dovoljena velikost je 3 MB.";
+"ai.attachment.error.fileTooLarge" = "Datoteka je prevelika. Datoteke so lahko velike največ 30 MB, slike pa največ 10 MB.";
 "ai.attachment.error.imageEncodeFailed" = "Izbrane fotografije ni bilo mogoče pripraviti.";
 "ai.attachment.error.imageDimensionsInvalid" = "Izbrane fotografije ni bilo mogoče prebrati.";
+"ai.attachment.error.tooManyFiles" = "Sporočilo lahko vsebuje največ 10 datotek in slik. Odstranite nekaj od njih in poskusite znova.";
+"ai.attachment.error.imagesTooLarge" = "Slike v enem sporočilu so lahko skupaj velike največ 15 MB. Nekatere pošljite v drugem sporočilu.";
+"ai.attachment.error.unavailable" = "Ena od prilog ni več v tej napravi. Odstranite jo, jo znova priložite in poskusite znova.";
+"ai.attachment.error.uploadFailed" = "Priloge ni bilo mogoče naložiti. Preverite povezavo in poskusite znova.";
 "ai.composer.dictation.start" = "Začni narekovanje";
 "ai.composer.dictation.stop" = "Ustavi narekovanje";
 "ai.composer.dictation.waiting" = "Čakanje na dostop do mikrofona ...";
@@ -62,7 +66,7 @@
 "ai.error.requestTooLarge.title" = "Sporočilo je preveliko";
 "ai.error.requestTooLarge.message" = "Klepet z UI ne more poslati toliko vsebine hkrati. Odstranite eno ali več prilog, izberite manjšo datoteko ali fotografijo ali razdelite zahtevo in poskusite znova.";
 "ai.error.attachmentUnsupported.title" = "Nepodprta vrsta datoteke";
-"ai.error.attachmentUnsupported.message" = "Ta vrsta datoteke ni podprta v klepetu z UI. Odstranite datoteko ali jo shranite kot PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX ali sliko in poskusite znova.";
+"ai.error.attachmentUnsupported.message" = "Ta vrsta datoteke ni podprta v klepetu z UI. Odstranite datoteko ali jo shranite kot PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG ali sliko in poskusite znova.";
 "ai.error.limitReached" = "Porabili ste svojo omejitev UI za ta mesec. Ponastavi se na začetku naslednjega meseca.";
 "ai.error.summary.couldNotContinue" = "Odgovora UI ni bilo mogoče nadaljevati";
 "ai.error.summary.invalidResponse" = "Prejet je neveljaven odgovor UI";

@@ -1381,8 +1381,12 @@ const daCatalog: TranslationCatalog = {
       remaining: "{{count}} tilbage denne måned",
     },
     alerts: {
+      attachmentImagesTooLarge: "Billederne er for store til én besked i AI-chatten: tilsammen må de højst fylde {{limit}} MB. Send nogle af dem i en anden besked.",
       attachmentLimit: "Beskeden er for stor. AI-chatten kan ikke sende så meget indhold på én gang. Fjern en eller flere vedhæftninger, vælg en mindre fil eller et mindre billede, eller del anmodningen op og prøv igen.",
-      attachmentUnsupported: "Denne filtype understøttes ikke i AI-chatten. Fjern filen, eller gem den som PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX eller et billede, og prøv igen.",
+      attachmentTooLarge: "Filen er for stor til AI-chatten. Filer må højst fylde {{fileLimit}} MB og billeder højst {{imageLimit}} MB. Vælg en mindre fil, og prøv igen.",
+      attachmentUnsupported: "Denne filtype understøttes ikke i AI-chatten. Fjern filen, eller gem den som PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG eller et billede, og prøv igen.",
+      attachmentUploadFailed: "Vedhæftningen kunne ikke uploades. Tjek din forbindelse, og prøv igen.",
+      attachmentsTooMany: "En besked i AI-chatten kan højst indeholde {{limit}} filer og billeder. Send resten i en anden besked.",
       microphoneUnavailable: "Optagelse med mikrofon er ikke tilgængelig i denne browser.",
     },
     composerPlaceholder: "Spørg om kort, repetitioner, eller vedhæft noter...",

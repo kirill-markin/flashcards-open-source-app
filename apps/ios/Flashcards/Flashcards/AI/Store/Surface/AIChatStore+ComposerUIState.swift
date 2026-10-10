@@ -130,9 +130,11 @@ extension AIChatStore {
 
     func appendAttachment(_ attachment: AIChatAttachment) {
         guard self.canAttachToDraft else {
+            aiChatRemoveAttachmentFiles(attachments: [attachment])
             return
         }
         guard self.hasExternalProviderConsent else {
+            aiChatRemoveAttachmentFiles(attachments: [attachment])
             self.showGeneralError(message: aiChatExternalProviderConsentRequiredMessage)
             return
         }
@@ -175,9 +177,13 @@ extension AIChatStore {
         guard self.canModifyDraftAttachments else {
             return
         }
+        let removedAttachments = self.pendingAttachments.filter { attachment in
+            attachment.id == id
+        }
         self.pendingAttachments.removeAll { attachment in
             attachment.id == id
         }
+        aiChatRemoveAttachmentFiles(attachments: removedAttachments)
     }
 
     @discardableResult

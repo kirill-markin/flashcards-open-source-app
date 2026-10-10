@@ -1381,8 +1381,12 @@ const bnCatalog: TranslationCatalog = {
       remaining: "এই মাসে বাকি: {{count}}",
     },
     alerts: {
+      attachmentImagesTooLarge: "এআই চ্যাটের একটি বার্তার জন্য ছবিগুলো খুব বড়: সব মিলিয়ে সর্বোচ্চ {{limit}} MB হতে পারে। কিছু ছবি অন্য বার্তায় পাঠান।",
       attachmentLimit: "বার্তাটি খুব বড়। এআই চ্যাট একবারে এত বিষয়বস্তু পাঠাতে পারে না। এক বা একাধিক সংযুক্তি সরান, ছোট ফাইল বা ছবি বেছে নিন, অথবা অনুরোধটি ভাগ করে আবার চেষ্টা করুন।",
-      attachmentUnsupported: "এআই চ্যাটে এই ফাইলের ধরন সমর্থিত নয়। ফাইলটি সরান অথবা PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX বা ছবি হিসেবে সংরক্ষণ করে আবার চেষ্টা করুন।",
+      attachmentTooLarge: "এআই চ্যাটের জন্য ফাইলটি খুব বড়। ফাইল সর্বোচ্চ {{fileLimit}} MB এবং ছবি সর্বোচ্চ {{imageLimit}} MB হতে পারে। ছোট ফাইল বেছে নিয়ে আবার চেষ্টা করুন।",
+      attachmentUnsupported: "এআই চ্যাটে এই ফাইলের ধরন সমর্থিত নয়। ফাইলটি সরান অথবা PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG বা ছবি হিসেবে সংরক্ষণ করে আবার চেষ্টা করুন।",
+      attachmentUploadFailed: "সংযুক্তি আপলোড করা যায়নি। আপনার সংযোগ পরীক্ষা করে আবার চেষ্টা করুন।",
+      attachmentsTooMany: "এআই চ্যাটের একটি বার্তায় সর্বোচ্চ {{limit}}টি ফাইল ও ছবি যোগ করা যায়। বাকিগুলো অন্য বার্তায় পাঠান।",
       microphoneUnavailable: "এই ব্রাউজারে মাইক্রোফোন রেকর্ডিং উপলভ্য নয়।",
     },
     composerPlaceholder: "কার্ড বা পুনরালোচনার ইতিহাস সম্পর্কে জিজ্ঞাসা করুন, অথবা নোট সংযুক্ত করুন...",

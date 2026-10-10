@@ -39,7 +39,7 @@ function getChatLiveUrl(): string {
   return chatLiveUrl;
 }
 
-function getBackendChatLiveAuthSecretArn(): string {
+export function getBackendChatLiveAuthSecretArn(): string {
   const secretArn = process.env.BACKEND_CHAT_LIVE_AUTH_SECRET_ARN;
   if (secretArn === undefined || secretArn.trim() === "") {
     throw new Error("BACKEND_CHAT_LIVE_AUTH_SECRET_ARN is required for chat live auth");

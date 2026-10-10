@@ -50,9 +50,13 @@
 "ai.attachment.error.unsupportedType" = "Nem támogatott fájltípus: .%@";
 "ai.attachment.error.cameraUnavailable" = "A kamera ezen az eszközön nem érhető el.";
 "ai.attachment.error.photoUnavailable" = "A fotóhozzáférés ezen az eszközön nem érhető el.";
-"ai.attachment.error.fileTooLarge" = "A fájl túl nagy. Legfeljebb 3 MB lehet.";
+"ai.attachment.error.fileTooLarge" = "A fájl túl nagy. A fájlok legfeljebb 30 MB-osak, a képek legfeljebb 10 MB-osak lehetnek.";
 "ai.attachment.error.imageEncodeFailed" = "Nem sikerült előkészíteni a kiválasztott fotót.";
 "ai.attachment.error.imageDimensionsInvalid" = "Nem sikerült beolvasni a kiválasztott fotót.";
+"ai.attachment.error.tooManyFiles" = "Egy üzenet legfeljebb 10 fájlt és képet tartalmazhat. Távolíts el közülük néhányat, majd próbáld újra.";
+"ai.attachment.error.imagesTooLarge" = "Egy üzenet képei együtt legfeljebb 15 MB-osak lehetnek. Néhányat küldj el egy másik üzenetben.";
+"ai.attachment.error.unavailable" = "Egy melléklet már nincs ezen az eszközön. Távolítsd el, csatold újra, majd próbáld újra.";
+"ai.attachment.error.uploadFailed" = "Egy mellékletet nem sikerült feltölteni. Ellenőrizd a kapcsolatot, majd próbáld újra.";
 "ai.composer.dictation.start" = "Diktálás indítása";
 "ai.composer.dictation.stop" = "Diktálás leállítása";
 "ai.composer.dictation.waiting" = "Várakozás mikrofonhozzáférésre…";
@@ -62,7 +66,7 @@
 "ai.error.requestTooLarge.title" = "Az üzenet túl nagy";
 "ai.error.requestTooLarge.message" = "Az AI-csevegés nem tud ennyi tartalmat egyszerre elküldeni. Távolíts el mellékleteket, válassz kisebb fájlt vagy fotót, vagy oszd fel a kérést, majd próbáld újra.";
 "ai.error.attachmentUnsupported.title" = "Nem támogatott fájltípus";
-"ai.error.attachmentUnsupported.message" = "Az AI-csevegés nem támogatja ezt a fájltípust. Távolítsd el, vagy mentsd PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX formátumban vagy képként, majd próbáld újra.";
+"ai.error.attachmentUnsupported.message" = "Az AI-csevegés nem támogatja ezt a fájltípust. Távolítsd el, vagy mentsd PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG formátumban vagy képként, majd próbáld újra.";
 "ai.error.limitReached" = "Elhasználtad az AI-korlátodat erre a hónapra. A következő hónap elején áll vissza.";
 "ai.error.summary.couldNotContinue" = "Nem sikerült folytatni az AI válaszát";
 "ai.error.summary.invalidResponse" = "Érvénytelen AI-válasz érkezett";

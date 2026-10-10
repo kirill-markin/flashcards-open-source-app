@@ -1381,8 +1381,12 @@ const paCatalog: TranslationCatalog = {
       remaining: "ਇਸ ਮਹੀਨੇ ਬਾਕੀ: {{count}}",
     },
     alerts: {
+      attachmentImagesTooLarge: "AI ਚੈਟ ਦੇ ਇੱਕ ਸੁਨੇਹੇ ਲਈ ਚਿੱਤਰ ਬਹੁਤ ਵੱਡੇ ਹਨ: ਕੁੱਲ ਮਿਲਾ ਕੇ ਵੱਧ ਤੋਂ ਵੱਧ {{limit}} MB ਹੋ ਸਕਦੇ ਹਨ. ਇਨ੍ਹਾਂ ਵਿੱਚੋਂ ਕੁਝ ਕਿਸੇ ਹੋਰ ਸੁਨੇਹੇ ਵਿੱਚ ਭੇਜੋ.",
       attachmentLimit: "ਸੁਨੇਹਾ ਬਹੁਤ ਵੱਡਾ ਹੈ. AI ਚੈਟ ਇੱਕੋ ਵਾਰ ਵਿੱਚ ਇੰਨੀ ਸਮੱਗਰੀ ਨਹੀਂ ਭੇਜ ਸਕਦੀ. ਇੱਕ ਜਾਂ ਵੱਧ ਅਟੈਚਮੈਂਟਾਂ ਹਟਾਓ, ਛੋਟੀ ਫ਼ਾਈਲ ਜਾਂ ਫ਼ੋਟੋ ਚੁਣੋ, ਜਾਂ ਬੇਨਤੀ ਨੂੰ ਵੰਡ ਕੇ ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ.",
-      attachmentUnsupported: "AI ਚੈਟ ਲਈ ਇਹ ਫ਼ਾਈਲ ਕਿਸਮ ਸਮਰਥਿਤ ਨਹੀਂ ਹੈ. ਫ਼ਾਈਲ ਹਟਾਓ ਜਾਂ ਇਸਨੂੰ PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX ਜਾਂ ਚਿੱਤਰ ਵਜੋਂ ਸੰਭਾਲੋ ਅਤੇ ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ.",
+      attachmentTooLarge: "ਇਹ ਫ਼ਾਈਲ AI ਚੈਟ ਲਈ ਬਹੁਤ ਵੱਡੀ ਹੈ. ਫ਼ਾਈਲਾਂ ਵੱਧ ਤੋਂ ਵੱਧ {{fileLimit}} MB ਅਤੇ ਚਿੱਤਰ ਵੱਧ ਤੋਂ ਵੱਧ {{imageLimit}} MB ਦੇ ਹੋ ਸਕਦੇ ਹਨ. ਛੋਟੀ ਫ਼ਾਈਲ ਚੁਣੋ ਅਤੇ ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ.",
+      attachmentUnsupported: "AI ਚੈਟ ਲਈ ਇਹ ਫ਼ਾਈਲ ਕਿਸਮ ਸਮਰਥਿਤ ਨਹੀਂ ਹੈ. ਫ਼ਾਈਲ ਹਟਾਓ ਜਾਂ ਇਸਨੂੰ PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG ਜਾਂ ਚਿੱਤਰ ਵਜੋਂ ਸੰਭਾਲੋ ਅਤੇ ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ.",
+      attachmentUploadFailed: "ਅਟੈਚਮੈਂਟ ਅੱਪਲੋਡ ਨਹੀਂ ਹੋ ਸਕੀ. ਆਪਣਾ ਕਨੈਕਸ਼ਨ ਜਾਂਚੋ ਅਤੇ ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ.",
+      attachmentsTooMany: "AI ਚੈਟ ਦੇ ਇੱਕ ਸੁਨੇਹੇ ਵਿੱਚ ਵੱਧ ਤੋਂ ਵੱਧ {{limit}} ਫ਼ਾਈਲਾਂ ਅਤੇ ਚਿੱਤਰ ਸ਼ਾਮਲ ਕੀਤੇ ਜਾ ਸਕਦੇ ਹਨ. ਬਾਕੀ ਕਿਸੇ ਹੋਰ ਸੁਨੇਹੇ ਵਿੱਚ ਭੇਜੋ.",
       microphoneUnavailable: "ਇਸ ਬ੍ਰਾਊਜ਼ਰ ਵਿੱਚ ਮਾਈਕ੍ਰੋਫ਼ੋਨ ਰਿਕਾਰਡਿੰਗ ਉਪਲਬਧ ਨਹੀਂ ਹੈ.",
     },
     composerPlaceholder: "ਕਾਰਡਾਂ, ਦੁਹਰਾਈ ਦੇ ਇਤਿਹਾਸ ਬਾਰੇ ਪੁੱਛੋ ਜਾਂ ਨੋਟ ਨੱਥੀ ਕਰੋ...",

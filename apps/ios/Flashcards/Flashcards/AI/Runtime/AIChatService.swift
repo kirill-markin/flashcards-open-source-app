@@ -84,20 +84,99 @@ func aiChatAttachmentUnsupportedTypeTitle() -> String {
 func aiChatAttachmentUnsupportedTypeMessage() -> String {
     aiSettingsLocalized(
         "ai.error.attachmentUnsupported.message",
-        "This file type is not supported for AI chat. Remove the file or save it as PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, or an image, then try again."
+        "This file type is not supported for AI chat. Remove the file or save it as PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG, or an image, then try again."
     )
 }
 
 func isAIChatAttachmentUnsupportedTypeError(error: Error) -> Bool {
-    guard let serviceError = error as? AIChatServiceError else {
+    aiChatServiceErrorCode(error: error) == aiChatAttachmentUnsupportedTypeCode
+}
+
+/// The upload error codes of `apps/backend/src/chatFiles/uploads.ts`.
+private let aiChatFileUploadTooLargeCode = "CHAT_FILE_UPLOAD_TOO_LARGE"
+private let aiChatFileUploadNotFoundCode = "CHAT_FILE_UPLOAD_NOT_FOUND"
+private let aiChatFileUploadsTooManyCode = "CHAT_FILE_UPLOADS_TOO_MANY"
+private let aiChatFileUploadImagesTooLargeCode = "CHAT_FILE_UPLOAD_IMAGES_TOO_LARGE"
+
+/// The message for attachments over a limit, whether this client or the backend refused them; nil for any other error.
+func aiChatAttachmentLimitMessage(error: Error) -> String? {
+    if let limitError = error as? AIChatAttachmentLimitError {
+        return limitError.errorDescription
+    }
+
+    guard let code = aiChatServiceErrorCode(error: error) else {
+        return nil
+    }
+
+    switch code {
+    case aiChatFileUploadTooLargeCode:
+        return aiChatAttachmentTooLargeMessage()
+    case aiChatFileUploadsTooManyCode:
+        return aiChatTooManyUploadsMessage()
+    case aiChatFileUploadImagesTooLargeCode:
+        return aiChatTurnImagesTooLargeMessage()
+    default:
+        return nil
+    }
+}
+
+/// The person resolves a limit by changing the message, so it is not reported as a failure.
+func isAIChatAttachmentLimitError(error: Error) -> Bool {
+    aiChatAttachmentLimitMessage(error: error) != nil
+}
+
+/// The message for an attachment whose bytes did not reach the backend; nil for any other error.
+func aiChatAttachmentUploadFailureMessage(error: Error) -> String? {
+    if error is AIChatAttachmentUnavailableError {
+        return aiChatAttachmentUnavailableMessage()
+    }
+
+    if error is AIChatFileUploadPutError || aiChatServiceErrorCode(error: error) == aiChatFileUploadNotFoundCode {
+        return aiChatAttachmentUploadFailedMessage()
+    }
+
+    return nil
+}
+
+private func aiChatServiceErrorCode(error: Error) -> String? {
+    guard let serviceError = error as? AIChatServiceError,
+          case .invalidResponse(let errorDetails, _, _) = serviceError else {
+        return nil
+    }
+
+    return errorDetails.code
+}
+
+/// The pre-signed PUT of an attachment failed; `diagnostics.rawSnippet` keeps the storage error body.
+struct AIChatFileUploadPutError: LocalizedError, AIChatFailureDiagnosticProviding {
+    let statusCode: Int
+    let diagnostics: AIChatFailureDiagnostics
+
+    var errorDescription: String? {
+        "AI chat file upload PUT failed with status \(self.statusCode)."
+    }
+}
+
+private let aiChatFileUploadPutMaxAttempts: Int = 3
+private let aiChatFileUploadPutRetryDelayNanoseconds: UInt64 = 500_000_000
+private let aiChatStartRunMaxAttempts: Int = 3
+
+private func aiChatFileUploadPutStatusIsRetryable(statusCode: Int) -> Bool {
+    statusCode == 408 || statusCode == 429 || (statusCode >= 500 && statusCode <= 599)
+}
+
+/// A client timeout and a gateway timeout can both hide a turn the backend already stored.
+private func isAIChatStartRunTimeout(error: Error) -> Bool {
+    if flashcardsURLErrorCode(error: error, remainingDepth: 4) == .timedOut {
+        return true
+    }
+
+    guard let serviceError = error as? AIChatServiceError,
+          case .invalidResponse(_, _, let diagnostics) = serviceError else {
         return false
     }
 
-    guard case .invalidResponse(let errorDetails, _, _) = serviceError else {
-        return false
-    }
-
-    return errorDetails.code == aiChatAttachmentUnsupportedTypeCode
+    return diagnostics.statusCode == 504
 }
 
 private let aiChatSessionNotCurrentCode = "CHAT_SESSION_NOT_CURRENT"
@@ -154,7 +233,6 @@ func encodeAIChatStartRunRequestBody(
     encoder: JSONEncoder,
     maximumByteCount: Int
 ) throws -> Data {
-    try validateAIChatOutgoingAttachmentSizes(outgoingContent: request.content)
     let encodedBody = try encoder.encode(request)
     try validateAIChatStartRunRequestBodySize(
         encodedBody: encodedBody,
@@ -173,54 +251,6 @@ func validateAIChatStartRunRequestBodySize(
             maximumByteCount: maximumByteCount
         )
     }
-}
-
-func validateAIChatOutgoingAttachmentSizes(outgoingContent: [AIChatContentPart]) throws {
-    for part in outgoingContent {
-        let base64Data: String?
-        switch part {
-        case .image(mediaType: _, base64Data: let imageBase64Data):
-            base64Data = imageBase64Data
-        case .file(fileName: _, mediaType: _, base64Data: let fileBase64Data):
-            base64Data = fileBase64Data
-        case .text,
-             .card,
-             .toolCall,
-             .reasoningSummary,
-             .accountUpgradePrompt,
-             .unknown:
-            base64Data = nil
-        }
-
-        guard let base64Data else {
-            continue
-        }
-
-        let byteCount = aiChatBase64DataByteCount(base64Data)
-        if byteCount > aiChatMaximumAttachmentBytes {
-            throw AIChatRequestTooLargeError(
-                byteCount: byteCount,
-                maximumByteCount: aiChatMaximumAttachmentBytes
-            )
-        }
-    }
-}
-
-private func aiChatBase64DataByteCount(_ base64Data: String) -> Int {
-    let normalizedBase64Data = base64Data.trimmingCharacters(in: .whitespacesAndNewlines)
-    if normalizedBase64Data.isEmpty {
-        return 0
-    }
-
-    let paddingCharacters: Int
-    if normalizedBase64Data.hasSuffix("==") {
-        paddingCharacters = 2
-    } else if normalizedBase64Data.hasSuffix("=") {
-        paddingCharacters = 1
-    } else {
-        paddingCharacters = 0
-    }
-    return (normalizedBase64Data.utf8.count * 3 / 4) - paddingCharacters
 }
 
 final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
@@ -427,7 +457,7 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
                 ownOpenAIKeyStore: self.ownOpenAIKeyStore
             )
         )
-        let data = try await self.execute(
+        let data = try await self.executeStartRun(
             session: session,
             request: urlRequest,
             clientRequestId: clientRequestId
@@ -454,6 +484,221 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
             )
             throw AIChatServiceError.invalidPayload("AI chat start response is invalid.", diagnostics)
         }
+    }
+
+    func uploadChatFile(
+        session: CloudLinkedSession,
+        fileName: String,
+        mediaType: String,
+        sizeBytes: Int,
+        fileURL: URL
+    ) async throws -> String {
+        let clientRequestId = UUID().uuidString.lowercased()
+        let urlRequest = try self.makeJsonRequest(
+            session: session,
+            path: "/chat/files/uploads",
+            method: "POST",
+            body: AIChatFileUploadRequestBody(
+                fileName: fileName,
+                mediaType: mediaType,
+                sizeBytes: sizeBytes
+            ),
+            clientRequestId: clientRequestId
+        )
+        let data = try await self.execute(
+            session: session,
+            request: urlRequest,
+            clientRequestId: clientRequestId
+        )
+        let response = try self.decodeSessionHistoryPayload(
+            AIChatFileUploadResponse.self,
+            data: data,
+            clientRequestId: clientRequestId,
+            invalidPayloadMessage: "AI chat file upload response is invalid."
+        )
+        try await self.putChatFile(
+            upload: response.upload,
+            fileURL: fileURL,
+            clientRequestId: clientRequestId
+        )
+        return response.uploadId
+    }
+
+    private func putChatFile(
+        upload: AIChatFileUploadTarget,
+        fileURL: URL,
+        clientRequestId: String
+    ) async throws {
+        guard let uploadURL = URL(string: upload.url) else {
+            throw AIChatServiceError.invalidPayload(
+                "AI chat file upload URL is invalid.",
+                makeAIChatFileUploadPutDiagnostics(
+                    clientRequestId: clientRequestId,
+                    stage: .requestBuild,
+                    errorKind: .invalidStreamContract,
+                    statusCode: nil,
+                    rawSnippet: nil
+                )
+            )
+        }
+
+        var request = URLRequest(url: uploadURL)
+        request.httpMethod = upload.method
+        request.httpShouldHandleCookies = false
+        request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+        for (headerName, headerValue) in upload.headers {
+            request.setValue(headerValue, forHTTPHeaderField: headerName)
+        }
+
+        var lastError: Error?
+        for attempt in 1...aiChatFileUploadPutMaxAttempts {
+            do {
+                let (data, response) = try await self.session.upload(for: request, fromFile: fileURL)
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    throw AIChatServiceError.invalidHttpResponse(
+                        makeAIChatFileUploadPutDiagnostics(
+                            clientRequestId: clientRequestId,
+                            stage: .invalidHttpResponse,
+                            errorKind: .invalidHttpResponse,
+                            statusCode: nil,
+                            rawSnippet: nil
+                        )
+                    )
+                }
+                if httpResponse.statusCode >= 200 && httpResponse.statusCode < 300 {
+                    return
+                }
+
+                let putError = AIChatFileUploadPutError(
+                    statusCode: httpResponse.statusCode,
+                    diagnostics: makeAIChatFileUploadPutDiagnostics(
+                        clientRequestId: clientRequestId,
+                        stage: .responseNotOk,
+                        errorKind: .invalidHttpResponse,
+                        statusCode: httpResponse.statusCode,
+                        rawSnippet: aiChatTruncatedSnippet(String(decoding: data, as: UTF8.self))
+                    )
+                )
+                lastError = putError
+                guard aiChatFileUploadPutStatusIsRetryable(statusCode: httpResponse.statusCode),
+                      attempt < aiChatFileUploadPutMaxAttempts else {
+                    throw putError
+                }
+
+                try await self.retryChatFilePut(
+                    error: putError,
+                    request: request,
+                    clientRequestId: clientRequestId,
+                    attempt: attempt
+                )
+            } catch let error as CancellationError {
+                throw error
+            } catch {
+                if isRequestCancellationError(error: error) {
+                    throw error
+                }
+                lastError = error
+                guard isRetryableNetworkTransportFailure(error: error),
+                      attempt < aiChatFileUploadPutMaxAttempts else {
+                    throw error
+                }
+
+                try await self.retryChatFilePut(
+                    error: error,
+                    request: request,
+                    clientRequestId: clientRequestId,
+                    attempt: attempt
+                )
+            }
+        }
+
+        guard let lastError else {
+            throw LocalStoreError.database("AI chat file upload PUT retry failed without an error")
+        }
+        throw lastError
+    }
+
+    private func retryChatFilePut(
+        error: Error,
+        request: URLRequest,
+        clientRequestId: String,
+        attempt: Int
+    ) async throws {
+        FlashcardsObservability.addBreadcrumb(
+            .cloudRetry(
+                CloudRetryObservation(
+                    action: "ai_chat_file_upload_put_retry",
+                    scope: makeAIChatRetryObservationScope(
+                        workspaceId: nil,
+                        clientRequestId: clientRequestId,
+                        configurationMode: nil
+                    ),
+                    attempt: attempt,
+                    maxAttempts: aiChatFileUploadPutMaxAttempts,
+                    apiBaseUrl: nil,
+                    messageSummary: Flashcards.errorMessage(error: error),
+                    transportDiagnostics: makeIOSNetworkTransportDiagnostics(
+                        error: error,
+                        httpMethod: request.httpMethod,
+                        endpointPath: request.url?.path,
+                        apiBaseUrl: nil
+                    )
+                )
+            )
+        )
+        try await Task.sleep(nanoseconds: aiChatFileUploadPutRetryDelayNanoseconds)
+    }
+
+    /// The backend de-duplicates a turn by its client request id, so a timed-out POST is sent again unchanged and
+    /// answers with the turn it may already have stored.
+    private func executeStartRun(
+        session: CloudLinkedSession,
+        request: URLRequest,
+        clientRequestId: String
+    ) async throws -> Data {
+        var lastError: Error?
+        for attempt in 1...aiChatStartRunMaxAttempts {
+            do {
+                return try await self.execute(
+                    session: session,
+                    request: request,
+                    clientRequestId: clientRequestId
+                )
+            } catch {
+                lastError = error
+                guard isAIChatStartRunTimeout(error: error), attempt < aiChatStartRunMaxAttempts else {
+                    throw error
+                }
+
+                FlashcardsObservability.addBreadcrumb(
+                    .cloudRetry(
+                        CloudRetryObservation(
+                            action: "ai_chat_start_run_retry",
+                            scope: makeAIChatRetryObservationScope(
+                                workspaceId: session.workspaceId,
+                                clientRequestId: clientRequestId,
+                                configurationMode: session.configurationMode
+                            ),
+                            attempt: attempt,
+                            maxAttempts: aiChatStartRunMaxAttempts,
+                            apiBaseUrl: session.apiBaseUrl,
+                            messageSummary: Flashcards.errorMessage(error: error),
+                            transportDiagnostics: makeIOSNetworkTransportDiagnostics(
+                                error: error,
+                                httpMethod: request.httpMethod,
+                                endpointPath: request.url?.path,
+                                apiBaseUrl: session.apiBaseUrl
+                            )
+                        )
+                    )
+                )
+            }
+        }
+
+        guard let lastError else {
+            throw LocalStoreError.database("AI chat start-run retry failed without an error")
+        }
+        throw lastError
     }
 
     func createNewSession(
@@ -896,6 +1141,48 @@ private func extractChatRequestId(httpResponse: HTTPURLResponse) -> String? {
     }
 
     return nil
+}
+
+private func makeAIChatFileUploadPutDiagnostics(
+    clientRequestId: String,
+    stage: AIChatFailureStage,
+    errorKind: AIChatFailureKind,
+    statusCode: Int?,
+    rawSnippet: String?
+) -> AIChatFailureDiagnostics {
+    AIChatFailureDiagnostics(
+        clientRequestId: clientRequestId,
+        backendRequestId: nil,
+        stage: stage,
+        errorKind: errorKind,
+        statusCode: statusCode,
+        eventType: nil,
+        toolName: nil,
+        toolCallId: nil,
+        lineNumber: nil,
+        rawSnippet: rawSnippet,
+        decoderSummary: nil,
+        continuationAttempt: nil,
+        continuationToolCallIds: []
+    )
+}
+
+private func makeAIChatRetryObservationScope(
+    workspaceId: String?,
+    clientRequestId: String,
+    configurationMode: CloudServiceConfigurationMode?
+) -> IOSObservationScope {
+    IOSObservationScope(
+        feature: .aiChat,
+        userId: nil,
+        workspaceId: workspaceId,
+        requestId: nil,
+        clientRequestId: clientRequestId,
+        sessionId: nil,
+        runId: nil,
+        cloudState: nil,
+        configurationMode: configurationMode
+    )
 }
 
 private func isAIChatRequestTooLargeResponse(statusCode: Int, code: String?) -> Bool {

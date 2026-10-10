@@ -1381,8 +1381,12 @@ const isCatalog: TranslationCatalog = {
       remaining: "Eftir í þessum mánuði: {{count}}",
     },
     alerts: {
+      attachmentImagesTooLarge: "Myndirnar eru of stórar fyrir ein skilaboð í gervigreindarspjallinu: samtals mega þær vera allt að {{limit}} MB. Sendu sumar þeirra í öðrum skilaboðum.",
       attachmentLimit: "Skilaboðin eru of stór. Gervigreindarspjallið getur ekki sent svona mikið efni í einu. Fjarlægðu eitt eða fleiri viðhengi, veldu minni skrá eða mynd, eða skiptu beiðninni upp og reyndu aftur.",
-      attachmentUnsupported: "Þessi skráartegund er ekki studd í gervigreindarspjallinu. Fjarlægðu skrána eða vistaðu hana sem PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX eða mynd og reyndu svo aftur.",
+      attachmentTooLarge: "Þessi skrá er of stór fyrir gervigreindarspjallið. Skrár mega vera allt að {{fileLimit}} MB og myndir allt að {{imageLimit}} MB. Veldu minni skrá og reyndu aftur.",
+      attachmentUnsupported: "Þessi skráartegund er ekki studd í gervigreindarspjallinu. Fjarlægðu skrána eða vistaðu hana sem PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG eða mynd og reyndu svo aftur.",
+      attachmentUploadFailed: "Ekki tókst að hlaða upp viðhenginu. Athugaðu tenginguna og reyndu aftur.",
+      attachmentsTooMany: "Ein skilaboð í gervigreindarspjallinu mega innihalda allt að {{limit}} skrár og myndir. Sendu afganginn í öðrum skilaboðum.",
       microphoneUnavailable: "Upptaka með hljóðnema er ekki tiltæk í þessum vafra.",
     },
     composerPlaceholder: "Spyrðu um spjöld, upprifjunarsögu eða hengdu við glósur...",

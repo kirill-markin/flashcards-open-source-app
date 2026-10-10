@@ -295,10 +295,11 @@ function parseSqlExecuteBatch(sql: string): ReadonlyArray<AgentSqlMutationStatem
 }
 
 /**
- * Read entrypoint for the in-app chat `sql_query` tool: the direction rule of
- * `runSqlQuery` without its result-size budget, because the chat caps its own
- * tool output in `apps/backend/src/chat/openai/tools/toolResults.ts`, so it builds no
- * agent envelope and reports no emitted size.
+ * Read entrypoint for the in-app chat `sql_query` tool and the chat sandbox's
+ * SQL bridge: the direction rule of `runSqlQuery` without its result-size
+ * budget, because the chat sizes its own output in
+ * `apps/backend/src/chat/openai/tools/`, so it builds no agent envelope and
+ * reports no emitted size.
  */
 export async function runChatSqlQuery(
   context: AgentSqlContext,
@@ -318,9 +319,9 @@ export async function runChatSqlQuery(
 }
 
 /**
- * Write entrypoint for the in-app chat `sql_execute` tool: the direction rule
- * of `runSqlExecute` without its result-size budget, for the same reason as
- * `runChatSqlQuery`.
+ * Write entrypoint for the in-app chat `sql_execute` tool and the chat
+ * sandbox's SQL bridge: the direction rule of `runSqlExecute` without its
+ * result-size budget, for the same reason as `runChatSqlQuery`.
  */
 export async function runChatSqlExecute(
   context: AgentSqlContext,

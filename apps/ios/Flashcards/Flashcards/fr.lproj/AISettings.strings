@@ -50,9 +50,13 @@
 "ai.attachment.error.unsupportedType" = "Type de fichier non pris en charge : .%@";
 "ai.attachment.error.cameraUnavailable" = "L’appareil photo n’est pas disponible sur cet appareil.";
 "ai.attachment.error.photoUnavailable" = "L’accès aux photos n’est pas disponible sur cet appareil.";
-"ai.attachment.error.fileTooLarge" = "Le fichier est trop volumineux. La taille maximale autorisée est de 3 Mo.";
+"ai.attachment.error.fileTooLarge" = "Le fichier est trop volumineux. Les fichiers peuvent faire au maximum 30 Mo, et les images 10 Mo.";
 "ai.attachment.error.imageEncodeFailed" = "Échec de la préparation de la photo sélectionnée.";
 "ai.attachment.error.imageDimensionsInvalid" = "Échec de la lecture de la photo sélectionnée.";
+"ai.attachment.error.tooManyFiles" = "Un message peut contenir au maximum 10 fichiers et images. Supprimez-en quelques-uns, puis réessayez.";
+"ai.attachment.error.imagesTooLarge" = "Les images d’un même message peuvent faire au maximum 15 Mo au total. Envoyez-en certaines dans un autre message.";
+"ai.attachment.error.unavailable" = "Une pièce jointe n’est plus sur cet appareil. Supprimez-la, joignez-la à nouveau, puis réessayez.";
+"ai.attachment.error.uploadFailed" = "Impossible d’envoyer une pièce jointe. Vérifiez votre connexion, puis réessayez.";
 "ai.composer.dictation.start" = "Démarrer la dictée";
 "ai.composer.dictation.stop" = "Arrêter la dictée";
 "ai.composer.dictation.waiting" = "En attente de l’accès au microphone...";
@@ -62,7 +66,7 @@
 "ai.error.requestTooLarge.title" = "Message trop volumineux";
 "ai.error.requestTooLarge.message" = "Le chat IA ne peut pas envoyer autant de contenu en une seule fois. Supprimez une ou plusieurs pièces jointes, choisissez un fichier ou une photo plus petite, ou divisez la demande et réessayez.";
 "ai.error.attachmentUnsupported.title" = "Type de fichier non pris en charge";
-"ai.error.attachmentUnsupported.message" = "Ce type de fichier n’est pas pris en charge dans le chat IA. Supprimez le fichier ou enregistrez-le au format PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX ou image, puis réessayez.";
+"ai.error.attachmentUnsupported.message" = "Ce type de fichier n’est pas pris en charge dans le chat IA. Supprimez le fichier ou enregistrez-le au format PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG ou image, puis réessayez.";
 "ai.error.limitReached" = "Votre limite d’IA pour ce mois est épuisée. Elle est réinitialisée au début du mois prochain.";
 "ai.error.summary.couldNotContinue" = "Impossible de poursuivre la réponse de l’IA";
 "ai.error.summary.invalidResponse" = "Réponse de l’IA non valide reçue";

@@ -1381,8 +1381,12 @@ const caCatalog: TranslationCatalog = {
       remaining: "Queden aquest mes: {{count}}",
     },
     alerts: {
+      attachmentImagesTooLarge: "Les imatges són massa grans per a un sol missatge del xat d'IA: en total poden ocupar fins a {{limit}} MB. Envia'n algunes en un altre missatge.",
       attachmentLimit: "El missatge és massa gran. El xat d'IA no pot enviar tant de contingut alhora. Elimina un o més fitxers adjunts, tria un fitxer o una foto més petits, o divideix la petició i torna-ho a provar.",
-      attachmentUnsupported: "Aquest tipus de fitxer no és compatible amb el xat d'IA. Elimina el fitxer o desa'l com a PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX o com a imatge i torna-ho a provar.",
+      attachmentTooLarge: "Aquest fitxer és massa gran per al xat d'IA. Els fitxers poden ocupar fins a {{fileLimit}} MB i les imatges fins a {{imageLimit}} MB. Tria un fitxer més petit i torna-ho a provar.",
+      attachmentUnsupported: "Aquest tipus de fitxer no és compatible amb el xat d'IA. Elimina el fitxer o desa'l com a PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG o com a imatge i torna-ho a provar.",
+      attachmentUploadFailed: "No s'ha pogut pujar el fitxer adjunt. Comprova la connexió i torna-ho a provar.",
+      attachmentsTooMany: "Un missatge del xat d'IA pot incloure fins a {{limit}} fitxers i imatges. Envia la resta en un altre missatge.",
       microphoneUnavailable: "La gravació amb micròfon no està disponible en aquest navegador.",
     },
     composerPlaceholder: "Pregunta sobre les targetes o l'historial de repassos, o adjunta apunts...",

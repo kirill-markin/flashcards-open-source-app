@@ -19,10 +19,14 @@ const sandboxFunctionErrorSchema = z.object({
   errorMessage: z.string(),
 });
 const invokeRetryDelaysMs: ReadonlyArray<number> = [1_000, 2_000, 4_000];
+/** Node's codes for a connection that never opened, so the request never reached Lambda. */
+const unsentInvokeErrorCodes: ReadonlySet<string> = new Set(["ECONNREFUSED", "ENOTFOUND", "EAI_AGAIN"]);
+const answerLostErrorType = "Invoke.AnswerLost";
 
 /**
  * A call the sandbox did not answer. `errorType` is Lambda's name for the failure, such as
- * `Sandbox.Timedout`, and `sandboxErrorMessage` the sandbox's own message, which reaches the model.
+ * `Sandbox.Timedout`, or `Invoke.AnswerLost` for an answer lost in transport, and `sandboxErrorMessage`
+ * the sandbox's own message or the invoke's, which reaches the model.
  */
 export class ChatSandboxFunctionError extends Error {
   public readonly errorType: string;
@@ -57,7 +61,7 @@ export type ChatSandboxInvocation<Response> =
  */
 export type ChatSandboxAttempts<Request extends ChatSandboxRequest> = Readonly<{
   prepare: () => Promise<Request>;
-  /** Called once for each prepared attempt that was not throttled and whose answer is never returned. */
+  /** Called once for each prepared attempt that was not throttled and for which no invocation is returned. */
   abandon: (error: unknown) => void;
 }>;
 
@@ -81,20 +85,53 @@ function getChatSandboxFunctionName(): string {
   return functionName;
 }
 
-/**
- * Throttling is refused before the sandbox runs. A transport error has no HTTP status because no answer
- * arrived; a sandbox that did run then left only uploads no row names, and the operation runs again.
- */
-function isRetryableInvokeError(error: unknown): boolean {
+/** Node's code of a failed request, such as `ECONNRESET`. */
+function readErrorCode(error: unknown): string | null {
+  return typeof error === "object" && error !== null && "code" in error && typeof error.code === "string"
+    ? error.code
+    : null;
+}
+
+/** Throttling, or a connection that never opened: the sandbox did not run the call. */
+function isRefusedInvokeError(error: unknown): boolean {
   if (error instanceof TooManyRequestsException) {
     return true;
   }
 
+  const code = readErrorCode(error);
+  return code !== null && unsentInvokeErrorCodes.has(code);
+}
+
+/**
+ * A transport error that is no refusal has no HTTP status because no answer arrived, though the sandbox
+ * may have run the call.
+ */
+function isAnswerLostInvokeError(error: unknown): boolean {
   const metadata = typeof error === "object" && error !== null && "$metadata" in error ? error.$metadata : null;
   const statusCode = typeof metadata === "object" && metadata !== null && "httpStatusCode" in metadata
     ? metadata.httpStatusCode
     : undefined;
-  return statusCode === undefined;
+  return statusCode === undefined && !isRefusedInvokeError(error);
+}
+
+/**
+ * A run whose answer was lost left only uploads no row names, so it runs again, unless it is a command
+ * whose code may have sent SQL writes, which must not land twice.
+ */
+function mayRunAgainAfterLostAnswer(request: ChatSandboxRequest): boolean {
+  return request.operation !== "bash" || request.sqlBridge === undefined;
+}
+
+/** The name and code only: a network error's message can carry the host, and this one reaches the model. */
+function createAnswerLostError(error: unknown): ChatSandboxFunctionError {
+  const name = error instanceof Error ? error.name : "UnknownError";
+  const code = readErrorCode(error);
+  return new ChatSandboxFunctionError(
+    answerLostErrorType,
+    `its answer was lost in transport (errorName=${name}${code === null ? "" : ` errorCode=${code}`}), `
+      + "so the command may have run in full",
+    null,
+  );
 }
 
 function readInvocationOutput<Response>(
@@ -143,13 +180,17 @@ export async function invokeChatSandbox<Request extends ChatSandboxRequest, Resp
     try {
       output = await getLambdaClient().send(command, signal === null ? {} : { abortSignal: signal });
     } catch (error) {
+      if (signal?.aborted !== true && isAnswerLostInvokeError(error) && !mayRunAgainAfterLostAnswer(request)) {
+        return { status: "failed", error: createAnswerLostError(error), sandboxRequestId: null };
+      }
+
       if (!(error instanceof TooManyRequestsException)) {
         attempts.abandon(error);
       }
 
       signal?.throwIfAborted();
       const retryDelayMs = invokeRetryDelaysMs[attempt - 1];
-      if (!isRetryableInvokeError(error) || retryDelayMs === undefined) {
+      if (!(isRefusedInvokeError(error) || isAnswerLostInvokeError(error)) || retryDelayMs === undefined) {
         throw error;
       }
 

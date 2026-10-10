@@ -15,8 +15,9 @@ const chatSandboxReservedConcurrency = 10;
 /**
  * Runs model-written commands over one chat session's files and parses the files people attach
  * (`apps/backend/src/chatSandbox/handler.ts`). It is attached to no VPC and its role, which carries no
- * managed policy, may only write to the function's own log group: it reaches no AWS service, and only
- * the objects the chat worker pre-signed for one call.
+ * managed policy, may only write to the function's own log group: it reaches no AWS service, only the
+ * objects the chat worker pre-signed for one call, and the backend API's SQL bridge under the
+ * capability the worker minted for that call.
  */
 export function createChatSandboxFunction(scope: Construct): lambdaNodejs.NodejsFunction {
   // Kept like every other function's log group, which Lambda creates with no expiry.

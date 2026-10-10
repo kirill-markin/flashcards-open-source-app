@@ -1395,8 +1395,12 @@ const ltCatalog: TranslationCatalog = {
       remaining: "Šį mėnesį liko: {{count}}",
     },
     alerts: {
+      attachmentImagesTooLarge: "Paveikslėliai per dideli vienai DI pokalbio žinutei: kartu jie gali užimti ne daugiau kaip {{limit}} MB. Dalį jų išsiųskite kita žinute.",
       attachmentLimit: "Žinutė per didelė. DI pokalbis negali vienu metu išsiųsti tiek turinio. Pašalinkite vieną ar kelis priedus, pasirinkite mažesnį failą ar nuotrauką arba padalykite užklausą ir bandykite dar kartą.",
-      attachmentUnsupported: "Šis failo tipas DI pokalbyje nepalaikomas. Pašalinkite failą arba išsaugokite jį kaip PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX ar paveikslėlį ir bandykite dar kartą.",
+      attachmentTooLarge: "Šis failas per didelis DI pokalbiui. Failai gali būti ne didesni nei {{fileLimit}} MB, o paveikslėliai – ne didesni nei {{imageLimit}} MB. Pasirinkite mažesnį failą ir bandykite dar kartą.",
+      attachmentUnsupported: "Šis failo tipas DI pokalbyje nepalaikomas. Pašalinkite failą arba išsaugokite jį kaip PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG ar paveikslėlį ir bandykite dar kartą.",
+      attachmentUploadFailed: "Nepavyko įkelti priedo. Patikrinkite ryšį ir bandykite dar kartą.",
+      attachmentsTooMany: "Vienoje DI pokalbio žinutėje gali būti ne daugiau kaip {{limit}} failų ir paveikslėlių. Likusius išsiųskite kita žinute.",
       microphoneUnavailable: "Įrašymas mikrofonu šioje naršyklėje nepasiekiamas.",
     },
     composerPlaceholder: "Klauskite apie korteles, kartojimų istoriją arba pridėkite užrašų...",

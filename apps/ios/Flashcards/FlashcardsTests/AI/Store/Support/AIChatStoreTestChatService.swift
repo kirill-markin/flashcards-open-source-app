@@ -1,3 +1,4 @@
+import Foundation
 @testable import Flashcards
 
 
@@ -89,6 +90,21 @@ extension AIChatStoreTestSupport {
                 throw LocalStoreError.validation("Unexpected AI chat start-run request in tests.")
             }
             return try startRunHandler(request)
+        }
+
+        func uploadChatFile(
+            session: CloudLinkedSession,
+            fileName: String,
+            mediaType: String,
+            sizeBytes: Int,
+            fileURL: URL
+        ) async throws -> String {
+            _ = session
+            _ = mediaType
+            _ = sizeBytes
+            _ = fileURL
+            self.events.append("uploadChatFile:\(fileName)")
+            throw LocalStoreError.validation("Unexpected AI chat file upload request in tests.")
         }
 
         func createNewSession(

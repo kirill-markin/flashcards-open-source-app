@@ -1381,8 +1381,12 @@ const huCatalog: TranslationCatalog = {
       remaining: "Ebben a hónapban még {{count}} maradt",
     },
     alerts: {
+      attachmentImagesTooLarge: "A képek túl nagyok egyetlen AI-csevegésüzenethez: együtt legfeljebb {{limit}} MB méretűek lehetnek. Néhányat küldj el egy másik üzenetben.",
       attachmentLimit: "Az üzenet túl nagy. Az AI-csevegés nem tud ennyi tartalmat egyszerre elküldeni. Távolíts el egy vagy több mellékletet, válassz kisebb fájlt vagy fotót, vagy bontsd szét a kérést, és próbáld újra.",
-      attachmentUnsupported: "Ez a fájltípus nem támogatott az AI-csevegésben. Távolítsd el a fájlt, vagy mentsd PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX formátumban vagy képként, majd próbáld újra.",
+      attachmentTooLarge: "Ez a fájl túl nagy az AI-csevegéshez. A fájlok legfeljebb {{fileLimit}} MB, a képek legfeljebb {{imageLimit}} MB méretűek lehetnek. Válassz kisebb fájlt, majd próbáld újra.",
+      attachmentUnsupported: "Ez a fájltípus nem támogatott az AI-csevegésben. Távolítsd el a fájlt, vagy mentsd PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG formátumban vagy képként, majd próbáld újra.",
+      attachmentUploadFailed: "Nem sikerült feltölteni a mellékletet. Ellenőrizd a kapcsolatot, majd próbáld újra.",
+      attachmentsTooMany: "Egy AI-csevegésüzenet legfeljebb {{limit}} fájlt és képet tartalmazhat. A többit küldd el egy másik üzenetben.",
       microphoneUnavailable: "A mikrofonos rögzítés nem érhető el ebben a böngészőben.",
     },
     composerPlaceholder: "Kérdezz kártyákról, ismétlési előzményekről, vagy csatolj jegyzeteket...",

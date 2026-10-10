@@ -88,15 +88,6 @@ export function isHeicFile(file: File): boolean {
   return isHeicMediaType(file.type) || hasHeicFileExtension(file.name);
 }
 
-function extractBase64Data(dataUrl: string, fileName: string): string {
-  const separatorIndex = dataUrl.indexOf(",");
-  if (separatorIndex <= 0 || separatorIndex >= dataUrl.length - 1) {
-    throw new Error(`Failed to read base64 data from file: ${fileName}`);
-  }
-
-  return dataUrl.slice(separatorIndex + 1);
-}
-
 function getScaledDimensions(
   originalWidth: number,
   originalHeight: number,
@@ -185,24 +176,6 @@ function canvasToBlob(
   });
 }
 
-export function compressImageBlobToBase64(
-  blob: Blob,
-  fileName: string,
-  options: ImageCompressionOptions,
-): Promise<Readonly<{ base64Data: string; mediaType: "image/jpeg" }>> {
-  return loadImageFromBlob(blob, fileName).then((image) => {
-    const outputOptions: ImageCanvasOutputOptions = {
-      ...options,
-      mediaType: "image/jpeg",
-      backgroundColor: null,
-    };
-    const { canvas } = drawImageToCanvas(image, fileName, outputOptions);
-    const dataUrl = canvas.toDataURL(outputOptions.mediaType, outputOptions.quality);
-    const base64Data = extractBase64Data(dataUrl, fileName);
-    return { base64Data, mediaType: "image/jpeg" };
-  });
-}
-
 export async function compressImageBlobToJpegBlob(
   blob: Blob,
   fileName: string,
@@ -241,20 +214,6 @@ export async function convertHeicToJpegBlob(file: File): Promise<Blob> {
     quality: 0.92,
   });
   return conversionResult;
-}
-
-export function base64DataToBlob(base64Data: string, mediaType: string): Blob {
-  if (typeof globalThis.atob !== "function") {
-    throw new Error("Base64 decoder is unavailable in this environment");
-  }
-
-  const binary = globalThis.atob(base64Data);
-  const bytes = new Uint8Array(binary.length);
-  for (let index = 0; index < binary.length; index += 1) {
-    bytes[index] = binary.charCodeAt(index);
-  }
-
-  return new Blob([bytes], { type: mediaType });
 }
 
 function readUint32LittleEndian(bytes: Uint8Array, offset: number): number {

@@ -50,9 +50,13 @@
 "ai.attachment.error.unsupportedType" = "不支持的文件类型：.%@";
 "ai.attachment.error.cameraUnavailable" = "相机在此设备上不可用。";
 "ai.attachment.error.photoUnavailable" = "此设备上无法访问照片。";
-"ai.attachment.error.fileTooLarge" = "文件太大。允许的最大大小为 3 MB。";
+"ai.attachment.error.fileTooLarge" = "文件太大。文件最大为 30 MB，图片最大为 10 MB。";
 "ai.attachment.error.imageEncodeFailed" = "无法准备所选照片。";
 "ai.attachment.error.imageDimensionsInvalid" = "无法读取所选照片。";
+"ai.attachment.error.tooManyFiles" = "一条消息最多可包含 10 个文件和图片。请移除部分附件，然后重试。";
+"ai.attachment.error.imagesTooLarge" = "一条消息中的图片总大小最多为 15 MB。请将部分图片放在另一条消息中发送。";
+"ai.attachment.error.unavailable" = "某个附件已不在此设备上。请移除该附件，重新添加，然后重试。";
+"ai.attachment.error.uploadFailed" = "无法上传附件。请检查连接后重试。";
 "ai.composer.dictation.start" = "开始听写";
 "ai.composer.dictation.stop" = "停止听写";
 "ai.composer.dictation.waiting" = "等待访问麦克风...";
@@ -62,7 +66,7 @@
 "ai.error.requestTooLarge.title" = "消息太大";
 "ai.error.requestTooLarge.message" = "AI 聊天一次无法发送这么多内容。请移除一个或多个附件，选择更小的文件或照片，或拆分请求后重试。";
 "ai.error.attachmentUnsupported.title" = "不支持的文件类型";
-"ai.error.attachmentUnsupported.message" = "AI 聊天不支持此文件类型。请移除该文件，或将其另存为 PDF、TXT、CSV、JSON、XML、Markdown、HTML、Python、JavaScript、TypeScript、YAML、XLS/XLSX、DOCX 或图片，然后重试。";
+"ai.error.attachmentUnsupported.message" = "AI 聊天不支持此文件类型。请移除该文件，或将其另存为 PDF、TXT、CSV、JSON、XML、Markdown、HTML、Python、JavaScript、TypeScript、YAML、XLS/XLSX、DOCX、ZIP、Anki APKG 或图片，然后重试。";
 "ai.error.limitReached" = "本月的 AI 使用额度已用完。额度将在下月初重置。";
 "ai.error.summary.couldNotContinue" = "无法继续 AI 回复";
 "ai.error.summary.invalidResponse" = "收到无效的 AI 响应";

@@ -1381,8 +1381,12 @@ const thCatalog: TranslationCatalog = {
       remaining: "เหลือในเดือนนี้: {{count}}",
     },
     alerts: {
+      attachmentImagesTooLarge: "รูปภาพใหญ่เกินไปสำหรับข้อความเดียวในแชท AI รวมกันได้ไม่เกิน {{limit}} MB ส่งบางรูปในข้อความอื่น",
       attachmentLimit: "ข้อความใหญ่เกินไป แชท AI ส่งเนื้อหามากขนาดนี้พร้อมกันไม่ได้ ลบไฟล์แนบออกบางส่วน เลือกไฟล์หรือรูปที่เล็กลง หรือแบ่งคำขอแล้วลองใหม่",
-      attachmentUnsupported: "แชท AI ไม่รองรับไฟล์ชนิดนี้ ลบไฟล์ออก หรือบันทึกเป็น PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX หรือรูปภาพ แล้วลองใหม่",
+      attachmentTooLarge: "ไฟล์นี้ใหญ่เกินไปสำหรับแชท AI ไฟล์มีขนาดได้ไม่เกิน {{fileLimit}} MB และรูปภาพไม่เกิน {{imageLimit}} MB เลือกไฟล์ที่เล็กลงแล้วลองใหม่",
+      attachmentUnsupported: "แชท AI ไม่รองรับไฟล์ชนิดนี้ ลบไฟล์ออก หรือบันทึกเป็น PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG หรือรูปภาพ แล้วลองใหม่",
+      attachmentUploadFailed: "อัปโหลดไฟล์แนบไม่สำเร็จ ตรวจสอบการเชื่อมต่อแล้วลองใหม่",
+      attachmentsTooMany: "ข้อความเดียวในแชท AI แนบไฟล์และรูปภาพได้ไม่เกิน {{limit}} รายการ ส่งที่เหลือในข้อความอื่น",
       microphoneUnavailable: "เบราว์เซอร์นี้บันทึกเสียงจากไมโครโฟนไม่ได้",
     },
     composerPlaceholder: "ถามเกี่ยวกับการ์ด ประวัติการทบทวน หรือแนบโน้ต...",

@@ -4,7 +4,11 @@ import { afterEach, beforeEach, expect, vi } from "vitest";
 import { AppErrorDialogProvider } from "../../../../appError/AppErrorContext";
 import { I18nProvider, loadTranslationCatalog, resolveLocaleState, useI18n } from "../../../../i18n";
 import type { Locale, LocalePreference } from "../../../../i18n/types";
-import type { ChatSessionSnapshot, StartChatRunRequestBody } from "../../../../types";
+import type {
+  ChatFileUploadRequestBody,
+  ChatSessionSnapshot,
+  StartChatRunRequestBody,
+} from "../../../../types";
 import type { AnalyticsSurface } from "../../../../analytics/events";
 import { defaultChatConfig } from "../../../sessionController/support/config";
 import { ChatDraftProvider } from "../../../composer/drafts/ChatDraftContext";
@@ -35,13 +39,16 @@ const {
   createNewChatSessionMock,
   stopChatRunMock,
   transcribeChatAudioMock,
+  createChatFileUploadMock,
+  putChatFileUploadMock,
+  ChatFileUploadTransferErrorMock,
   loadAiUsageMock,
   consumeChatLiveStreamMock,
   listOutboxRecordsMock,
   checkFileSizeMock,
   prepareAttachmentMock,
   recompressImageAttachmentMock,
-  binaryPendingAttachmentExceedsSizeLimitMock,
+  findPendingAttachmentLimitViolationMock,
   ChatAttachmentTooLargeErrorMock,
   isBinaryPendingAttachmentMock,
   trackAnalyticsEventMock,
@@ -180,13 +187,24 @@ const {
   createNewChatSessionMock: vi.fn(),
   stopChatRunMock: vi.fn(),
   transcribeChatAudioMock: vi.fn(),
+  createChatFileUploadMock: vi.fn(),
+  putChatFileUploadMock: vi.fn(),
+  ChatFileUploadTransferErrorMock: class ChatFileUploadTransferError extends Error {
+    readonly statusCode: number | null;
+
+    constructor(statusCode: number | null, message: string) {
+      super(message);
+      this.name = "ChatFileUploadTransferError";
+      this.statusCode = statusCode;
+    }
+  },
   loadAiUsageMock: vi.fn(),
   consumeChatLiveStreamMock: vi.fn(),
   listOutboxRecordsMock: vi.fn(),
   checkFileSizeMock: vi.fn(),
   prepareAttachmentMock: vi.fn(),
   recompressImageAttachmentMock: vi.fn(),
-  binaryPendingAttachmentExceedsSizeLimitMock: vi.fn(),
+  findPendingAttachmentLimitViolationMock: vi.fn(),
   ChatAttachmentTooLargeErrorMock: class ChatAttachmentTooLargeError extends Error {
     constructor() {
       super("AI chat attachment is too large.");
@@ -216,6 +234,9 @@ vi.mock("../../../../api", () => ({
   createNewChatSession: createNewChatSessionMock,
   stopChatRun: stopChatRunMock,
   transcribeChatAudio: transcribeChatAudioMock,
+  createChatFileUpload: createChatFileUploadMock,
+  putChatFileUpload: putChatFileUploadMock,
+  ChatFileUploadTransferError: ChatFileUploadTransferErrorMock,
   loadAiUsage: loadAiUsageMock,
 }));
 
@@ -258,7 +279,7 @@ vi.mock("../../../attachments/FileAttachment", () => ({
   checkFileSize: checkFileSizeMock,
   prepareAttachment: prepareAttachmentMock,
   recompressImageAttachment: recompressImageAttachmentMock,
-  binaryPendingAttachmentExceedsSizeLimit: binaryPendingAttachmentExceedsSizeLimitMock,
+  findPendingAttachmentLimitViolation: findPendingAttachmentLimitViolationMock,
   ChatAttachmentTooLargeError: ChatAttachmentTooLargeErrorMock,
   isChatAttachmentTooLargeError: (error: unknown) => error instanceof ChatAttachmentTooLargeErrorMock,
   isExpectedImageAttachmentPreparationError: () => false,
@@ -343,9 +364,11 @@ export {
   listOutboxRecordsMock,
   prepareAttachmentMock,
   recompressImageAttachmentMock,
-  binaryPendingAttachmentExceedsSizeLimitMock,
+  findPendingAttachmentLimitViolationMock,
   ChatAttachmentTooLargeErrorMock,
+  createChatFileUploadMock,
   createNewChatSessionMock,
+  putChatFileUploadMock,
   startChatRunMock,
   stopChatRunMock,
   transcribeChatAudioMock,
@@ -610,13 +633,15 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     createNewChatSessionMock.mockReset();
     stopChatRunMock.mockReset();
     transcribeChatAudioMock.mockReset();
+    createChatFileUploadMock.mockReset();
+    putChatFileUploadMock.mockReset();
     loadAiUsageMock.mockReset();
     consumeChatLiveStreamMock.mockReset();
     listOutboxRecordsMock.mockReset();
     checkFileSizeMock.mockReset();
     prepareAttachmentMock.mockReset();
     recompressImageAttachmentMock.mockReset();
-    binaryPendingAttachmentExceedsSizeLimitMock.mockReset();
+    findPendingAttachmentLimitViolationMock.mockReset();
     isBinaryPendingAttachmentMock.mockReset();
     trackAnalyticsEventMock.mockReset();
 
@@ -682,6 +707,16 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
       text: "dictated text",
       sessionId,
     }));
+    createChatFileUploadMock.mockImplementation(async (body: ChatFileUploadRequestBody) => ({
+      uploadId: "00000000-0000-4000-8000-000000000001",
+      upload: {
+        method: "PUT",
+        url: "https://uploads.example.test/chat-file-upload",
+        headers: { "content-type": body.mediaType },
+        expiresAt: "2026-03-10T00:15:00.000Z",
+      },
+    }));
+    putChatFileUploadMock.mockResolvedValue(undefined);
     loadAiUsageMock.mockResolvedValue({
       accountKind: "account",
       usage: {
@@ -697,14 +732,15 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
       type: "binary",
       fileName: "attached.txt",
       mediaType: "text/plain",
-      base64Data: "YXR0YWNoZWQ=",
+      blob: new Blob(["attached"], { type: "text/plain" }),
     });
     recompressImageAttachmentMock.mockResolvedValue({
+      type: "binary",
       fileName: "test-image.jpg",
       mediaType: "image/jpeg",
-      base64Data: "dGVzdA==",
+      blob: new Blob(["test"], { type: "image/jpeg" }),
     });
-    binaryPendingAttachmentExceedsSizeLimitMock.mockReturnValue(false);
+    findPendingAttachmentLimitViolationMock.mockReturnValue(null);
     isBinaryPendingAttachmentMock.mockImplementation((attachment) => attachment.type === "binary");
   });
 

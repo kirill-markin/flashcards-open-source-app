@@ -1381,8 +1381,12 @@ const koCatalog: TranslationCatalog = {
       remaining: "이번 달 잔여: {{count}}",
     },
     alerts: {
+      attachmentImagesTooLarge: "이미지가 너무 커서 AI 채팅 메시지 하나로 보낼 수 없습니다. 이미지는 합쳐서 최대 {{limit}}MB까지 보낼 수 있습니다. 일부는 다른 메시지로 보내 주세요.",
       attachmentLimit: "메시지가 너무 큽니다. AI 채팅은 한 번에 이만큼의 내용을 보낼 수 없습니다. 첨부 파일을 줄이거나, 더 작은 파일이나 사진을 고르거나, 요청을 나눠서 다시 시도해 주세요.",
-      attachmentUnsupported: "이 파일 형식은 AI 채팅에서 지원하지 않습니다. 파일을 빼거나 PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX 또는 이미지로 저장한 뒤 다시 시도해 주세요.",
+      attachmentTooLarge: "이 파일은 AI 채팅에 보내기에 너무 큽니다. 파일은 최대 {{fileLimit}}MB, 이미지는 최대 {{imageLimit}}MB까지 보낼 수 있습니다. 더 작은 파일을 골라 다시 시도해 주세요.",
+      attachmentUnsupported: "이 파일 형식은 AI 채팅에서 지원하지 않습니다. 파일을 빼거나 PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG 또는 이미지로 저장한 뒤 다시 시도해 주세요.",
+      attachmentUploadFailed: "첨부 파일을 업로드하지 못했습니다. 연결 상태를 확인한 뒤 다시 시도해 주세요.",
+      attachmentsTooMany: "AI 채팅 메시지 하나에는 파일과 이미지를 최대 {{limit}}개까지 첨부할 수 있습니다. 나머지는 다른 메시지로 보내 주세요.",
       microphoneUnavailable: "이 브라우저에서는 마이크 녹음을 사용할 수 없습니다.",
     },
     composerPlaceholder: "카드나 복습 기록에 대해 묻거나 메모를 첨부하세요...",

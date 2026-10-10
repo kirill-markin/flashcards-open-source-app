@@ -43,15 +43,75 @@ func aiChatServerConfig(lastKnownFeatures: AIChatFeatureFlags?) -> AIChatServerC
     AIChatServerConfig(features: lastKnownFeatures ?? aiChatDefaultServerConfig.features)
 }
 
-struct AIChatStartRunRequestBody: Codable, Hashable, Sendable {
+struct AIChatStartRunRequestBody: Encodable, Hashable, Sendable {
     let sessionId: String?
     let clientRequestId: String
-    let content: [AIChatContentPart]
+    let content: [AIChatStartRunContentPart]
     let timezone: String
     // Keep optional until minimum supported backend and first-party AI client versions are greater than 1.5.0.
     let uiLocale: String?
     // Keep optional until minimum supported backend and first-party AI client versions are greater than 1.5.0.
     let workspaceId: String?
+}
+
+/// File and image bytes never travel in `POST /chat`: each is staged through `POST /chat/files/uploads` and named by an `upload` part.
+enum AIChatStartRunContentPart: Encodable, Hashable, Sendable {
+    case text(String)
+    case card(AIChatCardReference)
+    case upload(uploadId: String, fileName: String, mediaType: String)
+
+    private enum CodingKeys: String, CodingKey {
+        case type
+        case text
+        case cardId
+        case frontText
+        case backText
+        case tags
+        case uploadId
+        case fileName
+        case mediaType
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+
+        switch self {
+        case .text(let text):
+            try container.encode("text", forKey: .type)
+            try container.encode(text, forKey: .text)
+        case .card(let card):
+            try container.encode("card", forKey: .type)
+            try container.encode(card.cardId, forKey: .cardId)
+            try container.encode(card.frontText, forKey: .frontText)
+            try container.encode(card.backText, forKey: .backText)
+            try container.encode(card.tags, forKey: .tags)
+        case .upload(let uploadId, let fileName, let mediaType):
+            try container.encode("upload", forKey: .type)
+            try container.encode(uploadId, forKey: .uploadId)
+            try container.encode(fileName, forKey: .fileName)
+            try container.encode(mediaType, forKey: .mediaType)
+        }
+    }
+}
+
+/// `POST /chat/files/uploads`; the contract lives in `apps/backend/src/chatFiles/uploads.ts`.
+struct AIChatFileUploadRequestBody: Encodable, Hashable, Sendable {
+    let fileName: String
+    let mediaType: String
+    let sizeBytes: Int
+}
+
+struct AIChatFileUploadResponse: Decodable, Hashable, Sendable {
+    let uploadId: String
+    let upload: AIChatFileUploadTarget
+}
+
+/// The signature binds `content-type` and `content-length`, so the PUT sends `headers` unchanged with exactly the declared bytes.
+struct AIChatFileUploadTarget: Decodable, Hashable, Sendable {
+    let method: String
+    let url: String
+    let headers: [String: String]
+    let expiresAt: String
 }
 
 enum AIChatComposerPhase: String, Hashable, Sendable {
@@ -200,7 +260,7 @@ extension AIChatStartRunRequestBody {
     init(
         sessionId: String?,
         clientRequestId: String,
-        content: [AIChatContentPart],
+        content: [AIChatStartRunContentPart],
         timezone: String,
         uiLocale: String?
     ) {
