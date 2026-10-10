@@ -40,8 +40,21 @@ export type StoredOpenAIReplayFunctionCallOutput = Readonly<{
   status?: OpenAI.Responses.ResponseInputItem.FunctionCallOutput["status"];
 }>;
 
+/**
+ * Emitted by OpenAI server-side compaction. It stands in for every input and output item before it, so replay
+ * starts at the latest one.
+ */
+export type StoredOpenAIReplayCompactionItem = Readonly<{
+  type: "compaction";
+  id: string;
+  encrypted_content: string;
+  /** As on reasoning items. Never sent to OpenAI. */
+  user_supplied_key: boolean;
+}>;
+
 export type StoredOpenAIReplayItem =
   | StoredOpenAIReplayReasoningItem
+  | StoredOpenAIReplayCompactionItem
   | StoredOpenAIReplayMessage
   | StoredOpenAIReplayFunctionToolCall
   | StoredOpenAIReplayFunctionCallOutput;
@@ -89,6 +102,20 @@ export function toStoredOpenAIReplayItem(
       summary: item.summary,
       encrypted_content: encryptedContent,
       ...(item.status !== undefined ? { status: item.status } : {}),
+      user_supplied_key: userSuppliedKey,
+    };
+  }
+
+  if (item.type === "compaction") {
+    const encryptedContent = item.encrypted_content;
+    if (typeof encryptedContent !== "string" || encryptedContent.length === 0) {
+      throw new Error("OpenAI compaction item is missing encrypted_content for stateless replay");
+    }
+
+    return {
+      type: "compaction",
+      id: item.id,
+      encrypted_content: encryptedContent,
       user_supplied_key: userSuppliedKey,
     };
   }
@@ -151,6 +178,15 @@ function normalizeStoredOpenAIReplayItem(
     };
   }
 
+  if (item.type === "compaction") {
+    return {
+      type: "compaction",
+      id: item.id,
+      encrypted_content: item.encrypted_content,
+      user_supplied_key: item.user_supplied_key === true,
+    };
+  }
+
   if (item.type === "function_call") {
     return {
       type: "function_call",
@@ -206,27 +242,90 @@ export function normalizeStoredOpenAIReplayItems(
 }
 
 /**
- * Drops the reasoning items of earlier turns that the other key produced. Their encrypted_content belongs to the
- * OpenAI organization that produced it, and a session can switch between the platform key and the person's own
- * key from one turn to the next. The turns' messages and tool calls are kept, as when normalization drops a
- * reasoning item it cannot replay.
+ * Drops the reasoning and compaction items of earlier turns that the other key produced. Their encrypted_content
+ * belongs to the OpenAI organization that produced it, and a session can switch between the platform key and the
+ * person's own key from one turn to the next. The turns' messages and tool calls are kept, as when normalization
+ * drops a reasoning item it cannot replay, so replay then starts at an earlier compaction item of this key or none.
  */
-export function dropHistoryReasoningItemsFromOtherKey(
+export function dropHistoryEncryptedItemsFromOtherKey(
   messages: ReadonlyArray<ServerChatMessage>,
   userSuppliedKey: boolean,
-): Readonly<{ messages: ReadonlyArray<ServerChatMessage>; droppedReasoningItems: number }> {
+): Readonly<{
+  messages: ReadonlyArray<ServerChatMessage>;
+  droppedReasoningItems: number;
+  droppedCompactionItems: number;
+}> {
   let droppedReasoningItems = 0;
+  let droppedCompactionItems = 0;
   const keptMessages = messages.map((message) => {
     if (message.openaiItems === undefined) {
       return message;
     }
-    const openaiItems = message.openaiItems.filter((item) => (
-      item.type !== "reasoning" || (item.user_supplied_key === true) === userSuppliedKey
-    ));
-    droppedReasoningItems += message.openaiItems.length - openaiItems.length;
+    const openaiItems = message.openaiItems.filter((item) => {
+      if (item.type !== "reasoning" && item.type !== "compaction") {
+        return true;
+      }
+      if ((item.user_supplied_key === true) === userSuppliedKey) {
+        return true;
+      }
+      if (item.type === "reasoning") {
+        droppedReasoningItems += 1;
+      } else {
+        droppedCompactionItems += 1;
+      }
+      return false;
+    });
     return { ...message, openaiItems };
   });
-  return { messages: keptMessages, droppedReasoningItems };
+  return { messages: keptMessages, droppedReasoningItems, droppedCompactionItems };
+}
+
+function findLatestCompactionItemIndex(
+  items: ReadonlyArray<StoredOpenAIReplayItem>,
+): number {
+  for (let index = items.length - 1; index >= 0; index -= 1) {
+    if (items[index].type === "compaction") {
+      return index;
+    }
+  }
+  return -1;
+}
+
+/**
+ * Returns the items to replay from the latest compaction item onward, or null when there is none. OpenAI ignores
+ * every input item before the latest compaction item, so a function call made before it and answered after it moves
+ * right after it, with the reasoning just before that call; otherwise OpenAI rejects the output with "No tool call
+ * found for function call output".
+ */
+export function sliceReplayItemsFromLatestCompaction(
+  items: ReadonlyArray<StoredOpenAIReplayItem>,
+): ReadonlyArray<StoredOpenAIReplayItem> | null {
+  const compactionIndex = findLatestCompactionItemIndex(items);
+  if (compactionIndex === -1) {
+    return null;
+  }
+
+  const itemsAfterCompaction = items.slice(compactionIndex + 1);
+  const callIdsAnsweredAfterCompaction = new Set(
+    itemsAfterCompaction.filter((item) => item.type === "function_call_output").map((item) => item.call_id),
+  );
+  const movedItems: Array<StoredOpenAIReplayItem> = [];
+  let movesPrecedingReasoning = false;
+  for (let index = compactionIndex - 1; index >= 0; index -= 1) {
+    const item = items[index];
+    if (item.type === "function_call" && callIdsAnsweredAfterCompaction.has(item.call_id)) {
+      movedItems.push(item);
+      movesPrecedingReasoning = true;
+      continue;
+    }
+    if (item.type === "reasoning" && movesPrecedingReasoning) {
+      movedItems.push(item);
+      continue;
+    }
+    movesPrecedingReasoning = false;
+  }
+
+  return [items[compactionIndex], ...movedItems.reverse(), ...itemsAfterCompaction];
 }
 
 /**
@@ -242,6 +341,13 @@ export function toOpenAIResponseInputItem(
       encrypted_content: item.encrypted_content,
       ...(item.status !== undefined ? { status: item.status } : {}),
     } as unknown as OpenAI.Responses.ResponseInputItem;
+  }
+  if (item.type === "compaction") {
+    return {
+      type: "compaction",
+      id: item.id,
+      encrypted_content: item.encrypted_content,
+    };
   }
   return item as unknown as OpenAI.Responses.ResponseInputItem;
 }
