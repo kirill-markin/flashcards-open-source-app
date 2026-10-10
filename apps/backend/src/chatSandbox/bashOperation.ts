@@ -315,6 +315,6 @@ export async function runChatSandboxBash(request: ChatSandboxBashRequest): Promi
     exitCode: refusal !== null && result.exitCode === 0 ? 1 : result.exitCode,
     durationMs: Date.now() - startedAt,
     writtenFiles,
-    deletedPaths: refusal === null ? changes.deletedPaths : [],
+    deletedPaths: refusal === null ? [...changes.deletedPaths] : [],
   };
 }
