@@ -18,7 +18,7 @@ import { MAX_SQL_RECORD_LIMIT } from "../toolContract/sqlToolLimits";
  * `AgentSqlContext` so a future surface cannot reach the shared executors
  * silently untagged in telemetry.
  */
-export type AgentSqlSurface = "chat-tool" | "agent-rest" | "mcp";
+export type AgentSqlSurface = "chat-tool" | "chat-sandbox" | "agent-rest" | "mcp";
 
 export type AgentSqlContext = Readonly<{
   userId: string;
