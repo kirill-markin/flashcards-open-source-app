@@ -47,7 +47,7 @@ import type { ContentPart, UnconvertedContentPart } from "../types";
 import {
   logOrphanedChatFileUploads,
   recordTurnChatAttachmentsWithExecutor,
-  uploadTurnInlineChatAttachments,
+  uploadTurnChatAttachments,
   type UploadedChatAttachment,
 } from "../../chatFiles";
 import type { ProductAnalyticsClientReportablePlatform } from "../../productAnalytics/catalog";
@@ -139,11 +139,11 @@ async function assertChatSessionAcceptsNewTurnsWithExecutor(
  * its own while this transaction holds the session row, and writes nothing. A refusal therefore rolls
  * back having written nothing, and anything added to this closure later has to keep that true.
  *
- * Inline attachments become session files on the branch that inserts a new run, after the refusal, so the
- * turn and its run store references and a replay or a refused turn uploads nothing. Their objects are
- * stored before their rows, so a failure anywhere after the upload, COMMIT included, logs the objects the
- * rollback leaves without a row, because cleanup follows deleted rows and never finds them. A commit with
- * an unknown outcome is logged too; its error class says the rows may exist.
+ * Attachments, inline or staged uploads, become session files on the branch that inserts a new run, after
+ * the refusal, so the turn and its run store references and a replay or a refused turn uploads nothing.
+ * Their objects are stored before their rows, so a failure anywhere after the upload, COMMIT included,
+ * logs the objects the rollback leaves without a row, because cleanup follows deleted rows and never finds
+ * them. A commit with an unknown outcome is logged too; its error class says the rows may exist.
  */
 export async function prepareChatRun(
   userId: string,
@@ -206,7 +206,7 @@ export async function prepareChatRun(
       }
     }
 
-    const uploads = await uploadTurnInlineChatAttachments(session.session_id, content, observationScope);
+    const uploads = await uploadTurnChatAttachments(session.session_id, userId, content, observationScope);
     uploadedAttachments = [...uploads.values()];
     const storedContent = await recordTurnChatAttachmentsWithExecutor(
       executor,
