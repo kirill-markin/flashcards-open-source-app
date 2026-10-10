@@ -50,9 +50,13 @@
 "ai.attachment.error.unsupportedType" = "Nepalaikomas failo tipas: .%@";
 "ai.attachment.error.cameraUnavailable" = "Šiame įrenginyje kamera nepasiekiama.";
 "ai.attachment.error.photoUnavailable" = "Šiame įrenginyje prieiga prie nuotraukų nepasiekiama.";
-"ai.attachment.error.fileTooLarge" = "Failas per didelis. Didžiausias leidžiamas dydis – 3 MB.";
+"ai.attachment.error.fileTooLarge" = "Failas per didelis. Failai gali būti ne didesni nei 30 MB, o paveikslėliai – ne didesni nei 10 MB.";
 "ai.attachment.error.imageEncodeFailed" = "Nepavyko paruošti pasirinktos nuotraukos.";
 "ai.attachment.error.imageDimensionsInvalid" = "Nepavyko perskaityti pasirinktos nuotraukos.";
+"ai.attachment.error.tooManyFiles" = "Žinutėje gali būti ne daugiau kaip 10 failų ir paveikslėlių. Pašalinkite kai kuriuos ir bandykite dar kartą.";
+"ai.attachment.error.imagesTooLarge" = "Vienos žinutės paveikslėliai kartu gali užimti ne daugiau kaip 15 MB. Kai kuriuos išsiųskite kitoje žinutėje.";
+"ai.attachment.error.unavailable" = "Vieno priedo šiame įrenginyje nebėra. Pašalinkite jį, pridėkite iš naujo ir bandykite dar kartą.";
+"ai.attachment.error.uploadFailed" = "Nepavyko įkelti priedo. Patikrinkite ryšį ir bandykite dar kartą.";
 "ai.composer.dictation.start" = "Pradėti diktavimą";
 "ai.composer.dictation.stop" = "Sustabdyti diktavimą";
 "ai.composer.dictation.waiting" = "Laukiama prieigos prie mikrofono...";
@@ -62,7 +66,7 @@
 "ai.error.requestTooLarge.title" = "Žinutė per didelė";
 "ai.error.requestTooLarge.message" = "DI pokalbis negali vienu metu išsiųsti tiek turinio. Pašalinkite vieną ar daugiau priedų, pasirinkite mažesnį failą ar nuotrauką arba padalykite užklausą ir bandykite dar kartą.";
 "ai.error.attachmentUnsupported.title" = "Nepalaikomas failo tipas";
-"ai.error.attachmentUnsupported.message" = "Šis failo tipas DI pokalbyje nepalaikomas. Pašalinkite failą arba išsaugokite jį kaip PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX ar paveikslėlį ir bandykite dar kartą.";
+"ai.error.attachmentUnsupported.message" = "Šis failo tipas DI pokalbyje nepalaikomas. Pašalinkite failą arba išsaugokite jį kaip PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG ar paveikslėlį ir bandykite dar kartą.";
 "ai.error.limitReached" = "Išnaudojote šio mėnesio DI limitą. Jis atkuriamas kito mėnesio pradžioje.";
 "ai.error.summary.couldNotContinue" = "Nepavyko tęsti DI atsakymo";
 "ai.error.summary.invalidResponse" = "Gautas netinkamas DI atsakymas";

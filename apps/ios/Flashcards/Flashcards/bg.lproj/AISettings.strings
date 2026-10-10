@@ -50,9 +50,13 @@
 "ai.attachment.error.unsupportedType" = "Неподдържан файлов тип: .%@";
 "ai.attachment.error.cameraUnavailable" = "Камерата не е налична на това устройство.";
 "ai.attachment.error.photoUnavailable" = "Достъпът до снимки не е наличен на това устройство.";
-"ai.attachment.error.fileTooLarge" = "Файлът е твърде голям. Максималният разрешен размер е 3 MB.";
+"ai.attachment.error.fileTooLarge" = "Файлът е твърде голям. Файловете могат да бъдат до 30 MB, а изображенията – до 10 MB.";
 "ai.attachment.error.imageEncodeFailed" = "Подготвянето на избраната снимка не бе успешно.";
 "ai.attachment.error.imageDimensionsInvalid" = "Прочитането на избраната снимка не бе успешно.";
+"ai.attachment.error.tooManyFiles" = "Едно съобщение може да съдържа най-много 10 файла и изображения. Премахнете някои от тях, след което опитайте отново.";
+"ai.attachment.error.imagesTooLarge" = "Изображенията в едно съобщение могат да бъдат общо до 15 MB. Изпратете някои от тях в друго съобщение.";
+"ai.attachment.error.unavailable" = "Един от прикачените файлове вече не е на това устройство. Премахнете го, прикачете го отново, след което опитайте отново.";
+"ai.attachment.error.uploadFailed" = "Прикаченият файл не можа да бъде качен. Проверете връзката си, след което опитайте отново.";
 "ai.composer.dictation.start" = "Започнете диктовка";
 "ai.composer.dictation.stop" = "Спрете диктовката";
 "ai.composer.dictation.waiting" = "Изчаква се достъп до микрофона...";
@@ -62,7 +66,7 @@
 "ai.error.requestTooLarge.title" = "Съобщението е твърде голямо";
 "ai.error.requestTooLarge.message" = "ИИ чатът не може да изпрати толкова много съдържание наведнъж. Премахнете един или повече прикачени файлове, изберете по-малък файл или снимка или разделете заявката и опитайте отново.";
 "ai.error.attachmentUnsupported.title" = "Неподдържан файлов тип";
-"ai.error.attachmentUnsupported.message" = "Този тип файл не се поддържа за ИИ чат. Премахнете файла или го запазете като PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX или изображение, след което опитайте отново.";
+"ai.error.attachmentUnsupported.message" = "Този тип файл не се поддържа за ИИ чат. Премахнете файла или го запазете като PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG или изображение, след което опитайте отново.";
 "ai.error.limitReached" = "Изчерпахте лимита си за ИИ за този месец. Той се нулира в началото на следващия месец.";
 "ai.error.summary.couldNotContinue" = "Не може да продължи отговорът на ИИ";
 "ai.error.summary.invalidResponse" = "Получен е невалиден ИИ отговор";

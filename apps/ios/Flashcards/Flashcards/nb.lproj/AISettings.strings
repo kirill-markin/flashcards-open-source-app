@@ -50,9 +50,13 @@
 "ai.attachment.error.unsupportedType" = "Filtypen støttes ikke: .%@";
 "ai.attachment.error.cameraUnavailable" = "Kamera er ikke tilgjengelig på denne enheten.";
 "ai.attachment.error.photoUnavailable" = "Bildetilgang er ikke tilgjengelig på denne enheten.";
-"ai.attachment.error.fileTooLarge" = "Filen er for stor. Maksimal tillatt størrelse er 3 MB.";
+"ai.attachment.error.fileTooLarge" = "Filen er for stor. Filer kan være på maksimalt 30 MB, og bilder på maksimalt 10 MB.";
 "ai.attachment.error.imageEncodeFailed" = "Kunne ikke klargjøre det valgte bildet.";
 "ai.attachment.error.imageDimensionsInvalid" = "Kunne ikke lese det valgte bildet.";
+"ai.attachment.error.tooManyFiles" = "En melding kan inneholde maksimalt 10 filer og bilder. Fjern noen av dem, og prøv igjen.";
+"ai.attachment.error.imagesTooLarge" = "Bildene i én melding kan til sammen være på maksimalt 15 MB. Send noen av dem i en annen melding.";
+"ai.attachment.error.unavailable" = "Et vedlegg finnes ikke lenger på denne enheten. Fjern det, legg det ved på nytt, og prøv igjen.";
+"ai.attachment.error.uploadFailed" = "Kunne ikke laste opp et vedlegg. Sjekk forbindelsen og prøv igjen.";
 "ai.composer.dictation.start" = "Start diktering";
 "ai.composer.dictation.stop" = "Stopp diktering";
 "ai.composer.dictation.waiting" = "Venter på mikrofontilgang...";
@@ -62,7 +66,7 @@
 "ai.error.requestTooLarge.title" = "Meldingen er for stor";
 "ai.error.requestTooLarge.message" = "AI-chatten kan ikke sende så mye innhold på én gang. Fjern ett eller flere vedlegg, velg en mindre fil eller et mindre bilde, eller del opp forespørselen og prøv igjen.";
 "ai.error.attachmentUnsupported.title" = "Filtypen støttes ikke";
-"ai.error.attachmentUnsupported.message" = "Denne filtypen støttes ikke i AI-chatten. Fjern filen eller lagre den som PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX eller et bilde, og prøv igjen.";
+"ai.error.attachmentUnsupported.message" = "Denne filtypen støttes ikke i AI-chatten. Fjern filen eller lagre den som PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG eller et bilde, og prøv igjen.";
 "ai.error.limitReached" = "AI-grensen din for denne måneden er brukt opp. Den nullstilles i begynnelsen av neste måned.";
 "ai.error.summary.couldNotContinue" = "Kunne ikke fortsette AI-svaret";
 "ai.error.summary.invalidResponse" = "Mottok et ugyldig AI-svar";

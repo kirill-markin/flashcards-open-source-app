@@ -210,10 +210,10 @@ final class AIChatStoreRemoteSessionProvisioningRetryPreemptionTests: XCTestCase
         store.acceptExternalProviderConsent()
         let expectedAttachment = AIChatAttachment(
             id: "attachment-1",
-            payload: .binary(
+            payload: .localFile(
                 fileName: "card.png",
                 mediaType: "image/png",
-                base64Data: "aW1hZ2U="
+                sizeBytes: 5
             )
         )
         let expectedDraft = AIChatComposerDraft(
@@ -274,10 +274,10 @@ final class AIChatStoreRemoteSessionProvisioningRetryPreemptionTests: XCTestCase
         store.acceptExternalProviderConsent()
         let expectedAttachment = AIChatAttachment(
             id: "attachment-1",
-            payload: .binary(
+            payload: .localFile(
                 fileName: "card.png",
                 mediaType: "image/png",
-                base64Data: "aW1hZ2U="
+                sizeBytes: 5
             )
         )
         let expectedDraft = AIChatComposerDraft(

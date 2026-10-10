@@ -63,13 +63,16 @@ final class AIChatDraftPersistenceTests: XCTestCase {
         try Data("front,back".utf8).write(to: fileUrl)
 
         let attachment = try aiChatMakeAttachmentFromFile(url: fileUrl)
+        defer {
+            aiChatRemoveAttachmentFiles(attachments: [attachment])
+        }
 
-        guard case .binary(let fileName, let mediaType, let base64Data) = attachment.payload else {
-            return XCTFail("Expected a binary attachment.")
+        guard case .localFile(let fileName, let mediaType, let sizeBytes) = attachment.payload else {
+            return XCTFail("Expected a local file attachment.")
         }
         XCTAssertEqual(fileName, "deck.csv")
         XCTAssertEqual(mediaType, "text/csv")
-        XCTAssertEqual(base64Data, "ZnJvbnQsYmFjaw==")
+        XCTAssertEqual(sizeBytes, 10)
     }
 
     func testAIChatMakeAttachmentFromFileNormalizesXmlMediaType() throws {
@@ -86,13 +89,16 @@ final class AIChatDraftPersistenceTests: XCTestCase {
         try Data("<cards />".utf8).write(to: fileUrl)
 
         let attachment = try aiChatMakeAttachmentFromFile(url: fileUrl)
+        defer {
+            aiChatRemoveAttachmentFiles(attachments: [attachment])
+        }
 
-        guard case .binary(let fileName, let mediaType, let base64Data) = attachment.payload else {
-            return XCTFail("Expected a binary attachment.")
+        guard case .localFile(let fileName, let mediaType, let sizeBytes) = attachment.payload else {
+            return XCTFail("Expected a local file attachment.")
         }
         XCTAssertEqual(fileName, "cards.xml")
         XCTAssertEqual(mediaType, "text/xml")
-        XCTAssertEqual(base64Data, "PGNhcmRzIC8+")
+        XCTAssertEqual(sizeBytes, 9)
     }
 
     func testAIChatHistoryStorePersistsDraftsOnlyForExplicitSessionIdsAndPrunesEmptyDrafts() async {

@@ -50,9 +50,13 @@
 "ai.attachment.error.unsupportedType" = "অসমর্থিত ফাইল প্রকার: .%@";
 "ai.attachment.error.cameraUnavailable" = "এই ডিভাইসে ক্যামেরা উপলব্ধ নেই।";
 "ai.attachment.error.photoUnavailable" = "এই ডিভাইসে ফটো অ্যাক্সেস পাওয়া যায় না।";
-"ai.attachment.error.fileTooLarge" = "ফাইলটি খুব বড়। সর্বাধিক অনুমোদিত আকার 3 এমবি।";
+"ai.attachment.error.fileTooLarge" = "ফাইলটি খুব বড়। ফাইল সর্বাধিক 30 এমবি এবং ছবি সর্বাধিক 10 এমবি হতে পারে।";
 "ai.attachment.error.imageEncodeFailed" = "নির্বাচিত ফটো প্রস্তুত করতে ব্যর্থ হয়েছে।";
 "ai.attachment.error.imageDimensionsInvalid" = "নির্বাচিত ফটো পড়তে ব্যর্থ হয়েছে।";
+"ai.attachment.error.tooManyFiles" = "একটি বার্তায় সর্বাধিক 10টি ফাইল ও ছবি রাখা যায়। কয়েকটি সরিয়ে আবার চেষ্টা করুন।";
+"ai.attachment.error.imagesTooLarge" = "একটি বার্তার ছবিগুলো মিলিয়ে সর্বাধিক 15 এমবি হতে পারে। কয়েকটি ছবি অন্য বার্তায় পাঠান।";
+"ai.attachment.error.unavailable" = "একটি সংযুক্তি আর এই ডিভাইসে নেই। এটি সরিয়ে আবার সংযুক্ত করুন, তারপর আবার চেষ্টা করুন।";
+"ai.attachment.error.uploadFailed" = "একটি সংযুক্তি আপলোড করা যায়নি। আপনার সংযোগ পরীক্ষা করে আবার চেষ্টা করুন।";
 "ai.composer.dictation.start" = "ডিক্টেশন শুরু করুন";
 "ai.composer.dictation.stop" = "ডিকটেশন বন্ধ করুন";
 "ai.composer.dictation.waiting" = "মাইক্রোফোন অ্যাক্সেসের জন্য অপেক্ষা করা হচ্ছে...";
@@ -62,7 +66,7 @@
 "ai.error.requestTooLarge.title" = "বার্তাটি খুব বড়।";
 "ai.error.requestTooLarge.message" = "এআই চ্যাট একবারে এত কন্টেন্ট পাঠাতে পারে না। এক বা একাধিক সংযুক্তি সরান, একটি ছোট ফাইল বা ফটো চয়ন করুন, বা অনুরোধটি বিভক্ত করুন এবং আবার চেষ্টা করুন।";
 "ai.error.attachmentUnsupported.title" = "অসমর্থিত ফাইল প্রকার";
-"ai.error.attachmentUnsupported.message" = "এই ফাইল টাইপ এআই চ্যাটের জন্য সমর্থিত নয়। ফাইলটি সরান বা এটিকে PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX হিসাবে সংরক্ষণ করুন, বা একটি চিত্র, তারপর আবার চেষ্টা করুন।";
+"ai.error.attachmentUnsupported.message" = "এই ফাইল টাইপ এআই চ্যাটের জন্য সমর্থিত নয়। ফাইলটি সরান বা এটিকে PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG হিসাবে সংরক্ষণ করুন, বা একটি চিত্র, তারপর আবার চেষ্টা করুন।";
 "ai.error.limitReached" = "এই মাসের জন্য আপনার এআই সীমা শেষ হয়ে গেছে। এটি পরের মাসের শুরুতে রিসেট হবে।";
 "ai.error.summary.couldNotContinue" = "এআই প্রতিক্রিয়া চালিয়ে যেতে পারেনি";
 "ai.error.summary.invalidResponse" = "একটি অবৈধ এআই প্রতিক্রিয়া গৃহীত হয়েছে।";

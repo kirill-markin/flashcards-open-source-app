@@ -50,9 +50,13 @@
 "ai.attachment.error.unsupportedType" = "サポートされていないファイル タイプ: .%@";
 "ai.attachment.error.cameraUnavailable" = "このデバイスではカメラを利用できません。";
 "ai.attachment.error.photoUnavailable" = "このデバイスでは写真にアクセスできません。";
-"ai.attachment.error.fileTooLarge" = "ファイルが大きすぎます。許可される最大サイズは 3 MB です。";
+"ai.attachment.error.fileTooLarge" = "ファイルが大きすぎます。ファイルは最大 30 MB、画像は最大 10 MB までです。";
 "ai.attachment.error.imageEncodeFailed" = "選択した写真を準備できませんでした。";
 "ai.attachment.error.imageDimensionsInvalid" = "選択した写真を読み取れませんでした。";
+"ai.attachment.error.tooManyFiles" = "1 つのメッセージに含められるファイルと画像は最大 10 個です。いくつか削除してから、もう一度お試しください。";
+"ai.attachment.error.imagesTooLarge" = "1 つのメッセージの画像は合計で最大 15 MB までです。一部を別のメッセージで送信してください。";
+"ai.attachment.error.unavailable" = "添付ファイルがこのデバイスにありません。削除してもう一度添付してから、もう一度お試しください。";
+"ai.attachment.error.uploadFailed" = "添付ファイルをアップロードできませんでした。接続を確認してから、もう一度お試しください。";
 "ai.composer.dictation.start" = "ディクテーションを開始";
 "ai.composer.dictation.stop" = "ディクテーションを停止";
 "ai.composer.dictation.waiting" = "マイクへのアクセスを待機しています...";
@@ -62,7 +66,7 @@
 "ai.error.requestTooLarge.title" = "メッセージが大きすぎます";
 "ai.error.requestTooLarge.message" = "AI チャットは一度にこれだけの内容を送信できません。添付ファイルを 1 つ以上削除するか、より小さいファイルまたは写真を選ぶか、リクエストを分けてもう一度お試しください。";
 "ai.error.attachmentUnsupported.title" = "サポートされていないファイル形式";
-"ai.error.attachmentUnsupported.message" = "このファイル形式は AI チャットでサポートされていません。ファイルを削除するか、PDF、TXT、CSV、JSON、XML、Markdown、HTML、Python、JavaScript、TypeScript、YAML、XLS/XLSX、DOCX、または画像として保存してから、もう一度お試しください。";
+"ai.error.attachmentUnsupported.message" = "このファイル形式は AI チャットでサポートされていません。ファイルを削除するか、PDF、TXT、CSV、JSON、XML、Markdown、HTML、Python、JavaScript、TypeScript、YAML、XLS/XLSX、DOCX、ZIP、Anki APKG、または画像として保存してから、もう一度お試しください。";
 "ai.error.limitReached" = "今月の AI 利用上限を使い切りました。上限は来月のはじめにリセットされます。";
 "ai.error.summary.couldNotContinue" = "AI の応答を続行できませんでした";
 "ai.error.summary.invalidResponse" = "無効な AI 応答を受信しました";
