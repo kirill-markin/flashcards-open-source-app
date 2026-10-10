@@ -1395,8 +1395,12 @@ const skCatalog: TranslationCatalog = {
       remaining: "Zostáva tento mesiac: {{count}}",
     },
     alerts: {
+      attachmentImagesTooLarge: "Obrázky sú na jednu správu v AI chate príliš veľké: spolu môžu mať najviac {{limit}} MB. Niektoré z nich pošlite v ďalšej správe.",
       attachmentLimit: "Správa je príliš veľká. AI chat nemôže naraz odoslať toľko obsahu. Odstráňte jednu alebo viac príloh, vyberte menší súbor alebo fotku, prípadne rozdeľte požiadavku a skúste to znova.",
-      attachmentUnsupported: "Tento typ súboru AI chat nepodporuje. Odstráňte súbor alebo ho uložte ako PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX alebo obrázok a skúste to znova.",
+      attachmentTooLarge: "Tento súbor je pre AI chat príliš veľký. Súbory môžu mať najviac {{fileLimit}} MB a obrázky najviac {{imageLimit}} MB. Vyberte menší súbor a skúste to znova.",
+      attachmentUnsupported: "Tento typ súboru AI chat nepodporuje. Odstráňte súbor alebo ho uložte ako PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG alebo obrázok a skúste to znova.",
+      attachmentUploadFailed: "Prílohu sa nepodarilo nahrať. Skontrolujte pripojenie a skúste to znova.",
+      attachmentsTooMany: "Jedna správa v AI chate môže obsahovať najviac {{limit}} súborov a obrázkov. Zvyšok pošlite v ďalšej správe.",
       microphoneUnavailable: "Nahrávanie z mikrofónu nie je v tomto prehliadači dostupné.",
     },
     composerPlaceholder: "Pýtajte sa na karty, históriu opakovania alebo priložte poznámky...",

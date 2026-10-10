@@ -1395,8 +1395,12 @@ const plCatalog: TranslationCatalog = {
       remaining: "Pozostało w tym miesiącu: {{count}}",
     },
     alerts: {
+      attachmentImagesTooLarge: "Obrazy są za duże na jedną wiadomość w czacie AI: łącznie mogą mieć maksymalnie {{limit}} MB. Wyślij część z nich w kolejnej wiadomości.",
       attachmentLimit: "Wiadomość jest za duża. Czat AI nie może wysłać tylu treści naraz. Usuń jeden załącznik lub więcej, wybierz mniejszy plik albo zdjęcie lub podziel zapytanie i spróbuj ponownie.",
-      attachmentUnsupported: "Ten typ pliku nie jest obsługiwany w czacie AI. Usuń plik lub zapisz go jako PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX albo obraz i spróbuj ponownie.",
+      attachmentTooLarge: "Ten plik jest za duży dla czatu AI. Pliki mogą mieć maksymalnie {{fileLimit}} MB, a obrazy maksymalnie {{imageLimit}} MB. Wybierz mniejszy plik i spróbuj ponownie.",
+      attachmentUnsupported: "Ten typ pliku nie jest obsługiwany w czacie AI. Usuń plik lub zapisz go jako PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG albo obraz i spróbuj ponownie.",
+      attachmentUploadFailed: "Nie udało się przesłać załącznika. Sprawdź połączenie i spróbuj ponownie.",
+      attachmentsTooMany: "Jedna wiadomość w czacie AI może zawierać maksymalnie {{limit}} plików i obrazów. Resztę wyślij w kolejnej wiadomości.",
       microphoneUnavailable: "Nagrywanie z mikrofonu jest niedostępne w tej przeglądarce.",
     },
     composerPlaceholder: "Zapytaj o karty, historię powtórek lub dołącz notatki...",

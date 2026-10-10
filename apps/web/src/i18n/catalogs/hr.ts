@@ -1395,8 +1395,12 @@ const hrCatalog: TranslationCatalog = {
       remaining: "Preostalo ovaj mjesec: {{count}}",
     },
     alerts: {
+      attachmentImagesTooLarge: "Slike su prevelike za jednu poruku u AI razgovoru: zajedno mogu imati najviše {{limit}} MB. Pošaljite neke od njih u drugoj poruci.",
       attachmentLimit: "Poruka je prevelika. AI razgovor ne može odjednom poslati toliko sadržaja. Uklonite jedan ili više privitaka, odaberite manju datoteku ili fotografiju ili podijelite zahtjev i pokušajte ponovno.",
-      attachmentUnsupported: "Ova vrsta datoteke nije podržana u AI razgovoru. Uklonite datoteku ili je spremite kao PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX ili sliku, a zatim pokušajte ponovno.",
+      attachmentTooLarge: "Ova je datoteka prevelika za AI razgovor. Datoteke mogu imati najviše {{fileLimit}} MB, a slike najviše {{imageLimit}} MB. Odaberite manju datoteku i pokušajte ponovno.",
+      attachmentUnsupported: "Ova vrsta datoteke nije podržana u AI razgovoru. Uklonite datoteku ili je spremite kao PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG ili sliku, a zatim pokušajte ponovno.",
+      attachmentUploadFailed: "Privitak nije moguće prenijeti. Provjerite vezu i pokušajte ponovno.",
+      attachmentsTooMany: "Jedna poruka u AI razgovoru može sadržavati najviše {{limit}} datoteka i slika. Ostatak pošaljite u drugoj poruci.",
       microphoneUnavailable: "Snimanje mikrofonom nije dostupno u ovom pregledniku.",
     },
     composerPlaceholder: "Pitajte o karticama, povijesti ponavljanja ili priložite bilješke...",

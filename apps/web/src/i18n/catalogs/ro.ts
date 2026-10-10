@@ -1395,8 +1395,12 @@ const roCatalog: TranslationCatalog = {
       remaining: "Rămase luna aceasta: {{count}}",
     },
     alerts: {
+      attachmentImagesTooLarge: "Imaginile sunt prea mari pentru un singur mesaj din chatul AI: împreună pot avea cel mult {{limit}} MB. Trimite o parte dintre ele într-un alt mesaj.",
       attachmentLimit: "Mesajul este prea mare. Chatul AI nu poate trimite atât de mult conținut deodată. Elimină unul sau mai multe atașamente, alege un fișier sau o poză mai mică ori împarte cererea și încearcă din nou.",
-      attachmentUnsupported: "Acest tip de fișier nu este acceptat în chatul AI. Elimină fișierul sau salvează-l ca PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX ori imagine, apoi încearcă din nou.",
+      attachmentTooLarge: "Acest fișier este prea mare pentru chatul AI. Fișierele pot avea cel mult {{fileLimit}} MB, iar imaginile cel mult {{imageLimit}} MB. Alege un fișier mai mic și încearcă din nou.",
+      attachmentUnsupported: "Acest tip de fișier nu este acceptat în chatul AI. Elimină fișierul sau salvează-l ca PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG ori imagine, apoi încearcă din nou.",
+      attachmentUploadFailed: "Atașamentul nu a putut fi încărcat. Verifică conexiunea și încearcă din nou.",
+      attachmentsTooMany: "Un mesaj din chatul AI poate include cel mult {{limit}} fișiere și imagini. Trimite restul într-un alt mesaj.",
       microphoneUnavailable: "Înregistrarea cu microfonul nu este disponibilă în acest browser.",
     },
     composerPlaceholder: "Întreabă despre fișe, istoricul recapitulărilor sau atașează notițe...",

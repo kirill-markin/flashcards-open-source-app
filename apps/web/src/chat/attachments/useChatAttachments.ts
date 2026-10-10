@@ -9,17 +9,12 @@ import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
   type IndexedDbOpenRecoveryState,
 } from "../../appError/AppErrorContext";
-import {
-  ATTACHMENT_PAYLOAD_LIMIT_BYTES,
-  IMAGE_MEDIA_TYPE_PREFIX,
-  buildContentParts,
-  buildStartRunContentParts,
-  toRequestBodySizeBytes,
-} from "../shared/chatHelpers";
+import { IMAGE_MEDIA_TYPE_PREFIX } from "../shared/chatHelpers";
+import type { ChatAttachmentLimitMessages } from "../shared/chatSizePolicy";
 import {
   EXTRA_AGGRESSIVE_IMAGE_COMPRESSION,
-  binaryPendingAttachmentExceedsSizeLimit,
   checkFileSize,
+  findPendingAttachmentLimitViolation,
   isBinaryPendingAttachment,
   isChatAttachmentTooLargeError,
   isExpectedImageAttachmentPreparationError,
@@ -37,12 +32,6 @@ import {
   type AnalyticsMediaUploadFailureReason,
   type AnalyticsSurface,
 } from "../../analytics";
-
-type DraftAttachmentRequestBody = Readonly<{
-  content: ReturnType<typeof buildContentParts>;
-  sessionId?: string;
-  timezone: string;
-}>;
 
 /**
  * What became of one attachment.
@@ -71,11 +60,9 @@ type ChatAttachReport = Readonly<{
 }>;
 
 type UseChatAttachmentsParams = Readonly<{
-  attachmentLimitMessage: string;
+  attachmentLimitMessages: ChatAttachmentLimitMessages;
   attachmentUnsupportedMessage: string;
   canAttachDraftFiles: boolean;
-  currentSessionId: string | null;
-  draftInputText: string;
   indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState;
   onTechnicalError: (error: unknown) => void;
   pendingAttachmentsRef: MutableRefObject<ReadonlyArray<PendingAttachment>>;
@@ -126,47 +113,11 @@ function ensureClipboardImageFileName(file: File, clipboardMediaType: string): F
   );
 }
 
-function buildDraftRequestBodyForAttachments(params: Readonly<{
-  attachments: ReadonlyArray<PendingAttachment>;
-  currentSessionId: string | null;
-  draftInputText: string;
-  timezone: string;
-}>): DraftAttachmentRequestBody | null {
-  const {
-    attachments,
-    currentSessionId,
-    draftInputText,
-    timezone,
-  } = params;
-  const draftContentParts = buildContentParts(draftInputText, attachments);
-  if (draftContentParts.length === 0) {
-    return null;
-  }
-
-  return {
-    sessionId: currentSessionId ?? undefined,
-    content: buildStartRunContentParts(draftContentParts),
-    timezone,
-  };
-}
-
-function measureDraftRequestBodySize(params: Readonly<{
-  attachments: ReadonlyArray<PendingAttachment>;
-  currentSessionId: string | null;
-  draftInputText: string;
-  timezone: string;
-}>): number {
-  const projectedRequestBody = buildDraftRequestBodyForAttachments(params);
-  return projectedRequestBody === null ? 0 : toRequestBodySizeBytes(projectedRequestBody);
-}
-
 export function useChatAttachments(params: UseChatAttachmentsParams): ChatAttachmentControls {
   const {
-    attachmentLimitMessage,
+    attachmentLimitMessages,
     attachmentUnsupportedMessage,
     canAttachDraftFiles,
-    currentSessionId,
-    draftInputText,
     indexedDbOpenRecoveryState,
     onTechnicalError,
     pendingAttachmentsRef,
@@ -182,23 +133,12 @@ export function useChatAttachments(params: UseChatAttachmentsParams): ChatAttach
       return { kind: "abandoned" };
     }
 
-    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     let finalAttachment = attachment;
-    if (binaryPendingAttachmentExceedsSizeLimit(finalAttachment)) {
-      window.alert(attachmentLimitMessage);
-      return { kind: "failed", reason: "too_large" };
-    }
-
     let candidateAttachments = [...pendingAttachmentsRef.current, finalAttachment];
-    let projectedSizeBytes = measureDraftRequestBodySize({
-      attachments: candidateAttachments,
-      currentSessionId,
-      draftInputText,
-      timezone,
-    });
+    let limitViolation = findPendingAttachmentLimitViolation(candidateAttachments);
 
     if (
-      projectedSizeBytes > ATTACHMENT_PAYLOAD_LIMIT_BYTES
+      limitViolation === "images_too_large"
       && isBinaryPendingAttachment(attachment)
       && attachment.mediaType.startsWith(IMAGE_MEDIA_TYPE_PREFIX)
     ) {
@@ -218,24 +158,15 @@ export function useChatAttachments(params: UseChatAttachmentsParams): ChatAttach
       }
 
       candidateAttachments = [...pendingAttachmentsRef.current, finalAttachment];
-      if (binaryPendingAttachmentExceedsSizeLimit(finalAttachment)) {
-        window.alert(attachmentLimitMessage);
-        return { kind: "failed", reason: "too_large" };
-      }
-      projectedSizeBytes = measureDraftRequestBodySize({
-        attachments: candidateAttachments,
-        currentSessionId,
-        draftInputText,
-        timezone,
-      });
+      limitViolation = findPendingAttachmentLimitViolation(candidateAttachments);
     }
 
     if (indexedDbOpenRecoveryState.hasFailed() || !canAttachDraftFilesRef.current) {
       return { kind: "abandoned" };
     }
 
-    if (projectedSizeBytes > ATTACHMENT_PAYLOAD_LIMIT_BYTES) {
-      window.alert(attachmentLimitMessage);
+    if (limitViolation !== null) {
+      window.alert(attachmentLimitMessages[limitViolation]);
       return { kind: "failed", reason: "too_large" };
     }
 
@@ -271,7 +202,7 @@ export function useChatAttachments(params: UseChatAttachmentsParams): ChatAttach
 
       const sizeError = checkFileSize(file);
       if (sizeError !== null) {
-        window.alert(attachmentLimitMessage);
+        window.alert(attachmentLimitMessages.attachment_too_large);
         if (fileReport !== null) {
           track({ name: "media_upload_failed", reason: "too_large" });
         }
@@ -308,7 +239,7 @@ export function useChatAttachments(params: UseChatAttachmentsParams): ChatAttach
         }
 
         if (isChatAttachmentTooLargeError(error)) {
-          window.alert(attachmentLimitMessage);
+          window.alert(attachmentLimitMessages.attachment_too_large);
           continue;
         }
 

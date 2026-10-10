@@ -1380,8 +1380,12 @@ const enCatalog = {
       remaining: "{{count}} left this month",
     },
     alerts: {
+      attachmentImagesTooLarge: "These images are too large for one AI chat message: together they can be up to {{limit}} MB. Send some of them in another message.",
       attachmentLimit: "Message is too large. AI chat can’t send this much content at once. Remove one or more attachments, choose a smaller file or photo, or split the request and try again.",
-      attachmentUnsupported: "This file type is not supported for AI chat. Remove the file or save it as PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, or an image, then try again.",
+      attachmentTooLarge: "This file is too large for AI chat. Files can be up to {{fileLimit}} MB and images up to {{imageLimit}} MB. Choose a smaller file and try again.",
+      attachmentUnsupported: "This file type is not supported for AI chat. Remove the file or save it as PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG, or an image, then try again.",
+      attachmentUploadFailed: "Couldn't upload the attachment. Check your connection and try again.",
+      attachmentsTooMany: "One AI chat message can include up to {{limit}} files and images. Send the rest in another message.",
       microphoneUnavailable: "Microphone recording is unavailable in this browser.",
     },
     composerPlaceholder: "Ask about cards, review history, or attach notes...",
