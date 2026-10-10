@@ -8,7 +8,9 @@ import { parseArgs } from "node:util";
 import { chromium } from "playwright";
 import sharp from "sharp";
 
-type File = { path: string; inputRoot: string; sourceRevision: string; source: string; sourceSha256: string; sha256: string; width: number; height: number; card: number; heading: string; caption: string; family?: string; captureTag?: string; storeLocale: string | null };
+type Bounds = { x: number; y: number; width: number; height: number };
+type IosAudit = { screen: Bounds; screenBox: Bounds; frame: Bounds; naturalWidth: number; naturalHeight: number; headingStyle: string; captionStyle: string; headingTop: number; captionTop: number };
+type File = { audit?: IosAudit; path: string; inputRoot: string; sourceRevision: string; source: string; sourceSha256: string; sha256: string; width: number; height: number; card: number; heading: string; caption: string; family?: string; captureTag?: string; storeLocale: string | null };
 type Manifest = { inputRoot: string; sourceRevision: string; results: File[] };
 type GalleryFile = { path: string; heading: string; caption: string };
 type IosGallery = Array<{ tag: string; sets: Array<{ family: string; files: GalleryFile[] }> }>;
@@ -16,6 +18,7 @@ type AndroidGallery = Array<{ tag: string; files: GalleryFile[] }>;
 const { values } = parseArgs({ options: { "chromium-executable": { type: "string" } } });
 const repoRoot = resolve(import.meta.dirname, "../..");
 const iosInput = resolve(repoRoot, "apps/ios/docs/media/app-store-screenshots");
+const portraitIosInput = resolve(import.meta.dirname, "fixtures/ios-portrait");
 const androidInput = resolve(repoRoot, "apps/android/docs/media/play-store-screenshots");
 const temporary = await mkdtemp(join(tmpdir(), "nibomo-store-smoke-"));
 const iosOutput = join(temporary, "ios");
@@ -34,6 +37,7 @@ function invoke(args: string[], expectedSuccess = true): string {
 async function sourceSnapshot(): Promise<Record<string, string>> {
   const paths = [
     ...(await readdir(join(iosInput, "iphone"))).filter(name => name.endsWith(".png")).map(name => join(iosInput, "iphone", name)),
+    ...(await readdir(join(portraitIosInput, "ipad"))).filter(name => name.endsWith(".png")).map(name => join(portraitIosInput, "ipad", name)),
     ...(await readdir(join(iosInput, "ipad"))).filter(name => name.endsWith(".png")).map(name => join(iosInput, "ipad", name)),
     ...(await readdir(androidInput)).filter(name => name.endsWith(".png")).map(name => join(androidInput, name)),
   ];
@@ -53,7 +57,22 @@ async function verifyExports(root: string, expectedCount: number, platform: "ios
     assert.equal(metadata.hasAlpha, false);
     if (file.card === 1) assert.equal(file.heading, "Nibomo App");
     const source = resolve(repoRoot, file.inputRoot, platform === "ios" ? file.source : file.source.split("/").at(-1)!);
-    assert.equal(hash(await readFile(source)), file.sourceSha256);
+    const native = await readFile(source);
+    assert.equal(hash(native), file.sourceSha256);
+    if (platform === "ios") {
+      const original = await sharp(native).metadata();
+      const audit = file.audit;
+      assert.ok(audit);
+      assert.equal(audit.naturalWidth, original.width);
+      assert.equal(audit.naturalHeight, original.height);
+      assert.ok(Math.abs(audit.screen.width / audit.screen.height - audit.naturalWidth / audit.naturalHeight) < .001, "Native screen must keep its actual source aspect ratio.");
+      assert.ok(audit.screen.x >= audit.screenBox.x - .1 && audit.screen.x + audit.screen.width <= audit.screenBox.x + audit.screenBox.width + .1);
+      assert.ok(audit.screen.y >= audit.screenBox.y - .1 && audit.screen.y + audit.screen.height <= audit.screenBox.y + audit.screenBox.height + .1);
+      assert.ok(Math.abs(audit.screen.x + audit.screen.width / 2 - audit.screenBox.x - audit.screenBox.width / 2) < .1);
+      assert.ok(Math.abs(audit.screen.y + audit.screen.height / 2 - audit.screenBox.y - audit.screenBox.height / 2) < .1);
+      assert.equal(file.width, file.family === "ipad" ? 2064 : 1284);
+      assert.equal(file.height, file.family === "ipad" ? 2752 : 2778);
+    }
   }
   return manifest;
 }
@@ -100,6 +119,25 @@ try {
   assert.equal(initialIos.inputRoot, iosInput);
   assert.ok(initialIos.results.every(file => file.inputRoot === iosInput && file.sourceRevision === initialIos.sourceRevision));
   await verifyGallery(iosOutput, "ios", 2);
+  assert.ok(initialIos.results.filter(file => file.family === "iphone").every(file => file.audit?.naturalWidth === 1284 && file.audit?.naturalHeight === 2778));
+  assert.ok(initialIos.results.filter(file => file.family === "ipad").every(file => file.audit?.naturalWidth === 2752 && file.audit?.naturalHeight === 2064));
+
+  console.log("Smoke: process real historical portrait iPad captures in the same approved frame.");
+  const portraitOutput = join(temporary, "ios-portrait");
+  invoke(["--platform", "ios", "--family", "ipad", "--locales", "en-US", "--input-root", portraitIosInput, "--output-root", portraitOutput]);
+  const portraitIos = await verifyExports(portraitOutput, 5, "ios");
+  for (const file of portraitIos.results) {
+    const audit = file.audit!;
+    assert.equal(audit.naturalWidth, 2064);
+    assert.equal(audit.naturalHeight, 2752);
+    const landscape = initialIos.results.find(item => item.family === "ipad" && item.captureTag === "en-US" && item.card === file.card)!.audit!;
+    assert.deepEqual(audit.frame, landscape.frame);
+    assert.deepEqual(audit.screenBox, landscape.screenBox);
+    assert.equal(audit.headingStyle, landscape.headingStyle);
+    assert.equal(audit.captionStyle, landscape.captionStyle);
+    assert.equal(audit.headingTop, landscape.headingTop);
+    assert.equal(audit.captionTop, landscape.captionTop);
+  }
 
   console.log("Smoke: process real English/Arabic Android captures.");
   invoke(["--platform", "android", "--locales", "en-US,ar", "--output-root", androidOutput]);
@@ -155,7 +193,7 @@ try {
   invoke(["--platform", "ios", "--family", "ipad", "--locales", "en-US", "--output-root", readOnlyOutput, "--check-layout"]);
   await assert.rejects(readFile(join(readOnlyOutput, "export-manifest.json")), { code: "ENOENT" });
   assert.deepEqual(await sourceSnapshot(), originalSources, "The native screenshot inventory changed during processing.");
-  console.log(`Store processor smoke passed: real PNG exports and galleries, incremental device sets, failure preservation, read-only validation, and all ${Object.keys(originalSources).length} native files unchanged.`);
+  console.log(`Store processor smoke passed: real portrait/landscape PNG exports and galleries, incremental device sets, failure preservation, read-only validation, and all ${Object.keys(originalSources).length} native files unchanged.`);
 } finally {
   await rm(temporary, { recursive: true, force: true });
 }

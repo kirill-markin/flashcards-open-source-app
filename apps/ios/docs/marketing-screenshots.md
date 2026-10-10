@@ -290,8 +290,11 @@ FLASHCARDS_MARKETING_SCREENSHOT_LOCALE=zh-Hans bash scripts/ios/capture-ios-mark
 ### Separate portrait store-card processing
 
 The approved orange/yellow store cards have their own independent
-[processing flow](../../../docs/store-screenshot-processing.md). It reads saved
-native PNGs and writes `apps/ios/docs/media/app-store-cards/`, without invoking
+[processing flow](../../../docs/store-screenshot-processing.md). Its
+[format profiles](../../../docs/store-screenshot-processing.md#format-profiles)
+accept both canonical iPad capture orientations inside the approved portrait
+frame; no rotation or recapture is needed for processing. It reads saved native
+PNGs and writes `apps/ios/docs/media/app-store-cards/`, without invoking
 XCUITest, guest cleanup, this horizontal builder, or store upload:
 
 ```bash

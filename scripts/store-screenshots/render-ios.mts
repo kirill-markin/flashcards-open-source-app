@@ -14,7 +14,7 @@ type Locale = { readonly name: string; readonly storeLocale: string; readonly ca
 type Bounds = { x: number; y: number; width: number; height: number };
 type PlatformFont = { familyName: string; postScriptName: string; isCustomFont: boolean; glyphCount: number };
 type Audit = {
-  group: Bounds; caption: Bounds; screen: Bounds; frame: Bounds;
+  group: Bounds; caption: Bounds; screen: Bounds; screenBox: Bounds; frame: Bounds;
   headingStyle: string; captionStyle: string; headingTop: number; captionTop: number;
   captionLines: number; headingLines: number; brand: string; naturalWidth: number; naturalHeight: number;
 };
@@ -63,16 +63,16 @@ for (const family of ["iphone", "ipad"] as const) {
   backgrounds[family] = assets;
 }
 
-function html(family: Family, tag: string, card: number, screen: string, frameColor: string): string {
+function html(family: Family, tag: string, card: number, screen: string, sourceWidth: number, sourceHeight: number, frameColor: string): string {
   const [width, height] = dimensions[family];
   const scale = family === "iphone" ? width / 519 : height / 1122;
   const textScale = scale * (family === "ipad" ? 1.35 : 1);
   const frameHeight = 860 * scale;
   const padding = 18 * scale;
   const screenHeight = frameHeight - padding * 2;
-  // The tablet frame covers the reference phone completely; the real screen keeps its 3:4 aspect.
   const frameWidth = family === "iphone" ? 418 * scale : 420 * width / 519;
   const paddingInline = family === "iphone" ? padding : (frameWidth - screenHeight * .75) / 2;
+  const screenScale = Math.min((frameWidth - paddingInline * 2) / sourceWidth, screenHeight / sourceHeight);
   const [base, header] = backgrounds[family][card - 1];
   const [heading, caption] = copy[tag][card - 1];
   const number = String(card).padStart(2, "0");
@@ -89,7 +89,7 @@ function html(family: Family, tag: string, card: number, screen: string, frameCo
   .caption{position:absolute;inset-block-start:${141 * scale}px;inset-inline:0;margin:0;font-family:Arial,sans-serif;font-size:${24 * textScale}px;font-weight:400;line-height:${28 * textScale}px;letter-spacing:0;text-align:center;white-space:nowrap;direction:${direction}}
   .frame{position:absolute;inset-block-start:${212 * scale}px;inset-inline-start:${(width - frameWidth) / 2}px;inline-size:${frameWidth}px;block-size:${frameHeight}px;padding-block:${padding}px;padding-inline:${paddingInline}px;background:${frameColor};border-radius:${51 * scale}px}
   .screen-box{inline-size:100%;block-size:100%;background:#000;overflow:hidden;border-radius:${33 * scale}px;display:flex;align-items:center;justify-content:center}
-  .screen{display:block;block-size:100%;inline-size:auto;max-inline-size:100%;object-fit:contain}
+  .screen{display:block;block-size:${sourceHeight * screenScale}px;inline-size:${sourceWidth * screenScale}px;flex-shrink:0}
   </style><article class="card"><img class="background" src="${base}"><img class="background clean" src="${header}">
   <div class="heading-row"><h1 class="heading"><span class="number">${number}.</span><span class="heading-text" dir="${headingDirection}">${escape(heading)}</span></h1></div>
   <p class="caption"><span>${escape(caption)}</span></p><div class="frame"><div class="screen-box"><img class="screen" src="${screen}"></div></div></article></html>`;
@@ -128,11 +128,15 @@ try {
         const source = `${family}/${names[0]}`;
         const raw = await readFile(join(inputRoot, source));
         const original = await sharp(raw).metadata();
-        if (original.width !== width || original.height !== height) throw new Error(`Wrong source dimensions: ${source}`);
+        const sourceWidth = original.width;
+        const sourceHeight = original.height;
+        if (!sourceWidth || !sourceHeight || !((sourceWidth === width && sourceHeight === height) || (family === "ipad" && sourceWidth === height && sourceHeight === width))) {
+          throw new Error(`Wrong source dimensions: ${source} (${sourceWidth}x${sourceHeight}); expected ${width}x${height}${family === "ipad" ? ` or ${height}x${width}` : ""}.`);
+        }
         const reference = await sharp(join(assetRoot, `reference/${String(card).padStart(2, "0")}.png`)).removeAlpha().raw().toBuffer({ resolveWithObject: true });
         const offset = (500 * reference.info.width + 51) * 3;
         const frameColor = `rgb(${reference.data[offset]},${reference.data[offset + 1]},${reference.data[offset + 2]})`;
-        await page.setContent(html(family, tag, card, dataUrl(raw), frameColor), { waitUntil: "load" });
+        await page.setContent(html(family, tag, card, dataUrl(raw), sourceWidth, sourceHeight, frameColor), { waitUntil: "load" });
         await page.evaluate(async () => { await document.fonts.ready; await Promise.all(Array.from(document.images, img => img.decode())); });
         const audit: Audit = await page.evaluate(() => {
           const bound = (element: Element): Bounds => { const r = element.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; };
@@ -147,7 +151,7 @@ try {
               ? { count: state.count, bottom: Math.max(state.bottom, rect.bottom) }
               : { count: state.count + 1, bottom: rect.bottom }, { count: 0, bottom: -Infinity }).count;
           };
-          return { group: bound(document.querySelector(".heading")!), caption: textBounds(".caption span"), screen: bound(image), frame: bound(document.querySelector(".frame")!),
+          return { group: bound(document.querySelector(".heading")!), caption: textBounds(".caption span"), screen: bound(image), screenBox: bound(document.querySelector(".screen-box")!), frame: bound(document.querySelector(".frame")!),
             headingStyle: style(".heading"), captionStyle: style(".caption"), headingTop: bound(document.querySelector(".heading-row")!).y,
             captionTop: bound(document.querySelector(".caption")!).y, captionLines: lines(captionRange), headingLines: lines(titleRange),
             brand: document.querySelector(".heading-text")!.textContent!, naturalWidth: image.naturalWidth, naturalHeight: image.naturalHeight };
@@ -159,8 +163,13 @@ try {
         if (audit.caption.x < 50 || audit.caption.x + audit.caption.width > width - 50) reasons.push(`Caption exceeds safe margins: ${audit.caption.width.toFixed(1)}px`);
         if (audit.caption.y + audit.caption.height >= audit.frame.y) reasons.push("Caption overlaps device");
         if (audit.headingLines !== 1 || audit.captionLines !== 1) reasons.push("Text wraps");
-        if (Math.abs(audit.screen.width / audit.screen.height - width / height) > .001) reasons.push("Screen is stretched");
-        if (audit.screen.y < audit.frame.y || audit.screen.y + audit.screen.height > audit.frame.y + audit.frame.height || audit.frame.y + audit.frame.height > height - 50) reasons.push("Device is cropped");
+        if (audit.naturalWidth !== sourceWidth || audit.naturalHeight !== sourceHeight) reasons.push("Screen dimensions differ from native source");
+        if (Math.abs(audit.screen.width / audit.screen.height - audit.naturalWidth / audit.naturalHeight) > .001) reasons.push("Screen is stretched");
+        if (audit.screen.x < audit.screenBox.x - .1 || audit.screen.x + audit.screen.width > audit.screenBox.x + audit.screenBox.width + .1
+          || audit.screen.y < audit.screenBox.y - .1 || audit.screen.y + audit.screen.height > audit.screenBox.y + audit.screenBox.height + .1
+          || audit.screenBox.x < audit.frame.x || audit.screenBox.x + audit.screenBox.width > audit.frame.x + audit.frame.width
+          || audit.screenBox.y < audit.frame.y || audit.screenBox.y + audit.screenBox.height > audit.frame.y + audit.frame.height
+          || audit.frame.x < 0 || audit.frame.x + audit.frame.width > width || audit.frame.y < 0 || audit.frame.y + audit.frame.height > height - 50) reasons.push("Device is cropped");
         typography.push([audit.headingStyle, audit.captionStyle, audit.headingTop, audit.captionTop]);
         if (typography.some(styles => JSON.stringify(styles) !== JSON.stringify(typography[0]))) reasons.push("Inconsistent typography within set");
         if (reasons.length) {
