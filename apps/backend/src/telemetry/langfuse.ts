@@ -120,7 +120,11 @@ const langfuseMaskPatterns: ReadonlyArray<Readonly<{
   replacement: string;
 }>> = [
   {
-    pattern: /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi,
+    // The local part is capped at RFC 5321's 64 characters to keep this linear. Unbounded, every word
+    // boundary inside a long run of local-part characters rescans the run to its end, and the base64
+    // of an ASCII-heavy PDF is one such run for megabytes: masking an attachment then blocked the chat
+    // worker's event loop for minutes, long enough for its run heartbeat to go stale.
+    pattern: /\b[A-Z0-9._%+-]{1,64}@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi,
     replacement: "<masked-email>",
   },
   {

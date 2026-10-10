@@ -73,7 +73,9 @@ export type AgentSqlDetails = Readonly<{
  * those cases: true when a handler ran, false when a tool was named but none
  * did -- the SDK validates a call's arguments against the tool's input schema
  * ahead of the handler, so a refused call never reaches it -- and null when the
- * request named no tool.
+ * request named no tool. `toolIsError` and `toolErrorCode` are the outcome the
+ * handler reported -- whether its result was an error and the `error.code` it
+ * sent -- and both are null when no handler ran.
  *
  * Of the body the transport owns, only a `tools/call` tool name is read: tool
  * arguments and results carry flashcard content and are never recorded, and
@@ -85,6 +87,8 @@ export type McpRequestDetails = Readonly<{
   jsonRpcMethod: string | null;
   toolName: string | null;
   toolExecuted: boolean | null;
+  toolIsError: boolean | null;
+  toolErrorCode: string | null;
   caller: string | null;
   connectionId: string;
   statusCode: number;

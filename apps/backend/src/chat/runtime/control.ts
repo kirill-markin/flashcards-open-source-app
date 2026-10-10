@@ -15,11 +15,17 @@ import type {
   ChatWorkerExecutionPhase,
   StartPersistedChatRunParams,
 } from "./types";
-import type {
-  ChatWorkerLogContext,
+import {
+  logChatWorkerHeartbeatFailed,
+  logChatWorkerHeartbeatSkipped,
+  logChatWorkerHeartbeatTimerLagged,
+  type ChatWorkerLogContext,
 } from "../worker/logging";
 
 export const CHAT_WORKER_PRE_TIMEOUT_BUFFER_MS = 180_000;
+// Below the stale-heartbeat threshold, so a blocked event loop shows up even when it was too short to
+// cost the run.
+const CHAT_WORKER_HEARTBEAT_TIMER_LAG_WARNING_MS = 10_000;
 export const CHAT_WORKER_INACTIVE_RECONCILIATION_MAXIMUM_MS = 10_000;
 export const CHAT_WORKER_TERMINAL_PERSISTENCE_RESERVE_MS = 10_000;
 // The end of the Lambda that terminal persistence's database deadline leaves for the work after it:
@@ -60,6 +66,8 @@ export function createChatRuntimeControl(
   let executionPhase: ChatWorkerExecutionPhase = "idle";
   let executionToolName: string | null = null;
   let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+  let heartbeatInFlightSinceMs: number | null = null;
+  let nextHeartbeatDueAtMs = 0;
   let softDeadlineTimer: ReturnType<typeof setTimeout> | null = null;
 
   const recordAbortRequest = (
@@ -144,20 +152,43 @@ export function createChatRuntimeControl(
     }
   };
 
+  const touchHeartbeat = async (timerLagMs: number): Promise<void> => {
+    const heartbeatAt = new Date();
+    try {
+      const state = await dependencies.touchChatRunHeartbeat(
+        params.userId,
+        params.workspaceId,
+        params.runId,
+        params.claimToken,
+        heartbeatAt,
+      );
+      handleHeartbeatState(heartbeatAt, state);
+    } catch (error) {
+      logChatWorkerHeartbeatFailed(logContext, error, Date.now() - heartbeatAt.getTime(), timerLagMs);
+    } finally {
+      heartbeatInFlightSinceMs = null;
+    }
+  };
+
   return {
     abortController,
     startHeartbeat: (): void => {
+      nextHeartbeatDueAtMs = Date.now() + CHAT_RUN_HEARTBEAT_INTERVAL_MS;
       heartbeatTimer = setInterval(() => {
-        const heartbeatAt = new Date();
-        void dependencies.touchChatRunHeartbeat(
-          params.userId,
-          params.workspaceId,
-          params.runId,
-          params.claimToken,
-          heartbeatAt,
-        ).then((state) => {
-          handleHeartbeatState(heartbeatAt, state);
-        }).catch((): void => undefined);
+        // Node schedules the next tick one interval after this one fires.
+        const firedAtMs = Date.now();
+        const timerLagMs = firedAtMs - nextHeartbeatDueAtMs;
+        nextHeartbeatDueAtMs = firedAtMs + CHAT_RUN_HEARTBEAT_INTERVAL_MS;
+        if (timerLagMs > CHAT_WORKER_HEARTBEAT_TIMER_LAG_WARNING_MS) {
+          logChatWorkerHeartbeatTimerLagged(logContext, timerLagMs, executionPhase, executionToolName);
+        }
+        if (heartbeatInFlightSinceMs !== null) {
+          logChatWorkerHeartbeatSkipped(logContext, firedAtMs - heartbeatInFlightSinceMs);
+          return;
+        }
+
+        heartbeatInFlightSinceMs = firedAtMs;
+        void touchHeartbeat(timerLagMs);
       }, CHAT_RUN_HEARTBEAT_INTERVAL_MS);
     },
     touchInitialHeartbeat: async (): Promise<InitialHeartbeatResult> => {

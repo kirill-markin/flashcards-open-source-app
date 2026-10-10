@@ -135,6 +135,30 @@ export type ChatWorkerProviderCallRetriedDetails = Readonly<{
   retryDelayMs: number;
 }>;
 
+/** A run heartbeat that threw; enough of them in a row and the run is repaired as interrupted. */
+export type ChatWorkerHeartbeatFailedDetails = Readonly<{
+  lambdaRequestId: string | null;
+  errorClass: string;
+  errorMessage: string;
+  sqlState: string | null;
+  elapsedMs: number;
+  timerLagMs: number;
+}>;
+
+/** A heartbeat tick that wrote nothing because the previous heartbeat was still pending. */
+export type ChatWorkerHeartbeatSkippedDetails = Readonly<{
+  lambdaRequestId: string | null;
+  pendingMs: number;
+}>;
+
+/** A heartbeat timer that fired this late means the event loop was blocked for that long. */
+export type ChatWorkerHeartbeatTimerLaggedDetails = Readonly<{
+  lambdaRequestId: string | null;
+  timerLagMs: number;
+  executionPhase: string;
+  toolName: string | null;
+}>;
+
 export type ChatWorkerDispatchFailureDetails = Readonly<{
   message: string;
 }>;
@@ -379,6 +403,11 @@ export type ChatWarningEvent =
   | (EventByAction<"chat_worker_terminal_state_persisted", ChatWorkerTerminalStateDetails> & Readonly<{ message: string }>)
   | (EventByAction<"chat_worker_composer_suggestions_failed", ChatWorkerLifecycleDetails> & Readonly<{ message: string }>)
   | (EventByAction<"chat_worker_provider_call_retried", ChatWorkerProviderCallRetriedDetails> & Readonly<{
+    message: string;
+  }>)
+  | (EventByAction<"chat_worker_heartbeat_failed", ChatWorkerHeartbeatFailedDetails> & Readonly<{ message: string }>)
+  | (EventByAction<"chat_worker_heartbeat_skipped", ChatWorkerHeartbeatSkippedDetails> & Readonly<{ message: string }>)
+  | (EventByAction<"chat_worker_heartbeat_timer_lagged", ChatWorkerHeartbeatTimerLaggedDetails> & Readonly<{
     message: string;
   }>)
   | (EventByAction<"chat_transcription_failed", ChatTranscriptionFailureDetails> & Readonly<{ message: string }>)
