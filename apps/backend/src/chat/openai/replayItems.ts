@@ -329,6 +329,18 @@ export function sliceReplayItemsFromLatestCompaction(
 }
 
 /**
+ * A function output that carries an image or a file, such as view_file's, keeps only its text: the model
+ * sees the image or file during the run that produced it, and no base64 lands in `ai.chat_items`.
+ */
+export function stripViewedContentFromReplayItems(
+  items: ReadonlyArray<StoredOpenAIReplayItem>,
+): ReadonlyArray<StoredOpenAIReplayItem> {
+  return items.map((item) => item.type === "function_call_output" && typeof item.output !== "string"
+    ? { ...item, output: item.output.flatMap((part) => part.type === "input_text" ? [part.text] : []).join("\n") }
+    : item);
+}
+
+/**
  * Converts a persisted replay item back into the OpenAI Responses input shape expected by replay.
  */
 export function toOpenAIResponseInputItem(

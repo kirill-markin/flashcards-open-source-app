@@ -14,11 +14,15 @@ export {
   runChatFileCleanupBatch,
   type ChatFileCleanupBatchResult,
 } from "./cleanup";
+export {
+  prepareChatFileDerivatives,
+  type ChatFileDerivativeIndex,
+  type ChatFileDerivatives,
+} from "./derivatives";
 export { convertLegacyChatSessionAttachments } from "./legacyConversion";
 export {
   buildChatFileS3Key,
   createChatFileDownloadUrl,
-  createChatFileUploadUrl,
   getChatFileObjectBytes,
 } from "./storage";
 export {
@@ -26,3 +30,8 @@ export {
   recordChatWorkFileChanges,
   type SavedChatWorkFile,
 } from "./workFiles";
+export {
+  createChatFileWriteSlots,
+  signChatFileWriteSlots,
+  type ChatFileWriteSlot,
+} from "./writeSlots";

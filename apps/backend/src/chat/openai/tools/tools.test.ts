@@ -233,7 +233,7 @@ test("generated image tool schema is strict and signed-in-only", () => {
     [
       "sql_query", "sql_execute", "list_workspaces", "get_guide",
       "next_review_card", "reveal_answer", "submit_review", "get_usage_limits",
-      "bash",
+      "bash", "view_file",
     ],
   );
   assert.deepEqual(
@@ -241,7 +241,7 @@ test("generated image tool schema is strict and signed-in-only", () => {
     [
       "sql_query", "sql_execute", "list_workspaces", "get_guide",
       "next_review_card", "reveal_answer", "submit_review", "get_usage_limits",
-      "bash", "add_generated_image_to_card",
+      "bash", "view_file", "add_generated_image_to_card",
     ],
   );
 });
