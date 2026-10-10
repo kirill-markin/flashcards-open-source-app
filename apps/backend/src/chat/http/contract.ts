@@ -4,6 +4,7 @@ import {
 } from "../composerSuggestions";
 import { HttpError } from "../../shared/errors";
 import type { ChatSessionHistoryCursor } from "../store";
+import type { InlineFileContentPart, InlineImageContentPart } from "../types";
 import {
   validateChatFileAttachmentContent,
   validateChatImageAttachmentContent,
@@ -22,19 +23,6 @@ export const chatRequestTooLargeMessage = `AI chat request is too large. Maximum
 type ChatTextContentPart = Readonly<{
   type: "text";
   text: string;
-}>;
-
-type ChatImageContentPart = Readonly<{
-  type: "image";
-  mediaType: string;
-  base64Data: string;
-}>;
-
-type ChatFileContentPart = Readonly<{
-  type: "file";
-  mediaType: string;
-  base64Data: string;
-  fileName: string;
 }>;
 
 type ChatCardContentPart = Readonly<{
@@ -56,8 +44,8 @@ type ChatToolCallContentPart = Readonly<{
 
 export type ChatContentPart =
   | ChatTextContentPart
-  | ChatImageContentPart
-  | ChatFileContentPart
+  | InlineImageContentPart
+  | InlineFileContentPart
   | ChatCardContentPart
   | ChatToolCallContentPart;
 

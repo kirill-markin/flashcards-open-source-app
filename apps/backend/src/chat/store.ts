@@ -23,7 +23,7 @@ export {
   STOPPED_BY_USER_TOOL_OUTPUT,
 } from "./store/types";
 
-export { stripBase64FromContentParts, buildLocalChatMessages } from "./store/mappers";
+export { buildLocalChatMessages } from "./store/mappers";
 
 export {
   insertChatItemWithExecutor,
