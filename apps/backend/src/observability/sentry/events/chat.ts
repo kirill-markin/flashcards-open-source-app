@@ -285,8 +285,8 @@ export type ChatFileCleanupRetryDetails = Readonly<{
 
 /**
  * One `bash` tool call run in the chat sandbox: the command, but never its output or a file's content.
- * `command` is null when the arguments were invalid, and `exitCode` and the byte counts are null when the
- * sandbox did not answer with a response.
+ * `command` is null when the arguments were invalid, and `exitCode`, the byte counts and the SQL call
+ * counts are null when the sandbox did not answer with a response.
  */
 export type ChatSandboxCommandDetails = Readonly<{
   toolCallId: string;
@@ -298,7 +298,28 @@ export type ChatSandboxCommandDetails = Readonly<{
   outputTruncated: boolean;
   filesWritten: number;
   filesDeleted: number;
+  sqlCallCount: number | null;
+  sqlExecuteCallCount: number | null;
   sandboxRequestId: string | null;
+  errorClass: string | null;
+}>;
+
+/**
+ * One SQL call a `bash` command's code sent through the chat sandbox's SQL bridge: the statement, cut to
+ * its head when longer than a record holds, and its outcome, but never the rows it read or returned.
+ */
+export type ChatSandboxSqlDetails = Readonly<{
+  kind: "query" | "execute";
+  explicitWorkspaceId: string | null;
+  sql: string;
+  sqlChars: number;
+  succeeded: boolean;
+  statementType: string | null;
+  statementCount: number | null;
+  rowOrAffectedCount: number | null;
+  durationMs: number;
+  errorCode: string | null;
+  dialectReason: string | null;
   errorClass: string | null;
 }>;
 
@@ -500,6 +521,7 @@ export type ChatBreadcrumbEvent =
   | EventByAction<"chat_file_legacy_attachment_kept_as_file", ChatFileLegacyAttachmentKeptAsFileDetails>
   | EventByAction<"chat_file_cleanup_batch_completed", ChatFileCleanupBatchDetails>
   | EventByAction<"chat_sandbox_command", ChatSandboxCommandDetails>
+  | EventByAction<"chat_sandbox_sql", ChatSandboxSqlDetails>
   | EventByAction<"chat_file_derivatives_prepared", ChatFileDerivativesPreparedDetails>
   | EventByAction<"chat_view_file", ChatViewFileDetails>
   | EventByAction<"chat_composer_suggestions_declined", ChatComposerSuggestionsResponseDetails>

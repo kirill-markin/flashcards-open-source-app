@@ -15,6 +15,7 @@ import {
   type ChatSandboxBashRequest,
   type ChatSandboxBashResponse,
 } from "../../../chatSandbox/contract";
+import { createChatSandboxSqlBridge } from "../../../chatSandbox/sqlBridge/capability";
 import { writeCloudWatchRecord } from "../../../observability/cloudWatch";
 import { cutHeadAtCodePoint } from "../../../shared/codePointCuts";
 import { toJsonbSafeText } from "../../../shared/jsonbSafeText";
@@ -56,13 +57,14 @@ function createBashToolResult(
   output: string,
   succeeded: boolean,
   isMutating: boolean,
+  shouldInvalidateMainContent: boolean,
   toolErrorClass: string | null,
 ): ExecutedChatToolCall {
   return {
     output: toJsonbSafeText(output),
     isMutating,
     succeeded,
-    shouldInvalidateMainContent: false,
+    shouldInvalidateMainContent,
     stopReason: null,
     generatedImageTelemetry: null,
     sqlTelemetry: null,
@@ -102,8 +104,9 @@ function readSavedWorkFiles(
 
 /**
  * Lists the session's files and runs the command in the sandbox. Every attempt is signed anew: one GET
- * URL per session file and fresh PUT slots. The slots of an attempt whose answer is lost are logged as
- * possibly orphaned, because the sandbox may still fill them. The model never sees a URL.
+ * URL per session file, fresh PUT slots and a fresh SQL bridge capability. The slots of an attempt whose
+ * answer is lost are logged as possibly orphaned, because the sandbox may still fill them. The model
+ * never sees a URL or the capability.
  */
 async function invokeSandbox(command: string, context: OpenAIToolContext): Promise<SandboxAnswer> {
   // Built for every tool call of the run, not only for image generation.
@@ -125,6 +128,13 @@ async function invokeSandbox(command: string, context: OpenAIToolContext): Promi
         getUrl: await createChatFileDownloadUrl(file.s3Key),
       }))),
       writeSlots: await signChatFileWriteSlots(attemptSlots),
+      sqlBridge: await createChatSandboxSqlBridge({
+        runId: context.runId,
+        sessionId: context.sessionId,
+        userId: context.userId,
+        workspaceId: context.workspaceId,
+        claimToken: context.claimToken,
+      }),
     };
     slots = attemptSlots;
     return request;
@@ -265,6 +275,8 @@ function logSandboxCommand(context: OpenAIToolContext, log: SandboxCommandLog): 
       outputTruncated: log.outputTruncated,
       filesWritten: log.filesWritten,
       filesDeleted: log.filesDeleted,
+      sqlCallCount: response?.sqlCallCount ?? null,
+      sqlExecuteCallCount: response?.sqlExecuteCallCount ?? null,
       sandboxRequestId: log.invocation?.sandboxRequestId ?? null,
       errorClass: log.errorClass,
     },
@@ -297,6 +309,7 @@ export async function executeBashToolCall(
     });
     return createBashToolResult(
       `Error: invalid arguments. Pass {"command": "..."} with a non-empty command of at most ${maximumBashCommandChars} characters.`,
+      false,
       false,
       false,
       errorClass,
@@ -334,12 +347,15 @@ export async function executeBashToolCall(
       outputTruncated: false,
       errorClass: invocation.error.errorType,
     });
+    // Every attempt carried a SQL bridge, so its code may have written before the call failed.
     return createBashToolResult(
-      `Error: the sandbox did not finish the command (${invocation.error.errorType}): `
+      `Error: the sandbox call failed (${invocation.error.errorType}): `
         + `${cutHeadAtCodePoint(invocation.error.sandboxErrorMessage, maximumSandboxErrorChars)}\n`
-        + "No change it made under /work was saved.",
+        + "No change it made under /work was saved, but SQL writes its code sent may have been applied: "
+        + "read back with sql_query before running it again.",
       false,
       false,
+      true,
       invocation.error.errorType,
     );
   }
@@ -354,10 +370,14 @@ export async function executeBashToolCall(
     outputTruncated: rendered.truncated,
     errorClass: null,
   });
+  // A write the command's code sent may have landed even when its call failed, so any write refreshes.
+  // The count is absent only for a request without a bridge, whose code could send nothing.
+  const sentSqlWrites = (invocation.response.sqlExecuteCallCount ?? 0) > 0;
   return createBashToolResult(
     rendered.output,
     true,
-    savedFiles.length > 0 || invocation.response.deletedPaths.length > 0,
+    savedFiles.length > 0 || invocation.response.deletedPaths.length > 0 || sentSqlWrites,
+    sentSqlWrites,
     null,
   );
 }

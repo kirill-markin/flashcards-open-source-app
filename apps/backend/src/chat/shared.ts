@@ -14,7 +14,8 @@ import {
   CARD_WEB_URL_LINES,
   SQL_MUTATION_TAG_FILTER_DESCRIPTION,
 } from "../aiTools/toolContract/sqlToolContract";
-import { maximumBashCommandSeconds } from "../chatSandbox/contract";
+import { MAX_SQL_RECORD_LIMIT } from "../aiTools/toolContract/sqlToolLimits";
+import { maximumBashCommandSeconds, maximumSqlCallsPerCommand } from "../chatSandbox/contract";
 
 function joinLines(lines: ReadonlyArray<string>): string {
   return lines.join("\n");
@@ -177,12 +178,31 @@ function buildChatFilesSection(): string {
     "Chat files:",
     "- /files holds the files the user attached to this chat and is read-only; /work is your scratch space, kept for this chat across turns.",
     "- Plain files derived from an attachment sit beside it in /files: a PDF's or DOCX's text in <file>.txt (PDF pages marked --- page N ---), an XLSX's sheets as <file>.d/<sheet>.csv, a ZIP's files under <file>.d/, and an Anki .apkg's collection as <file>.d/collection.sqlite. The attachment line names them or says why there are none.",
-    "- Use the bash tool to inspect and process them: shell tools, python3 with the standard library only, and sqlite3. There is no network.",
+    "- Use the bash tool to inspect and process them: shell tools, python3 with the standard library only, sqlite3, and js-exec. There is no network.",
     "- Use view_file to look at one image or one PDF page, such as a photo, a scan, a chart or a layout. You see it during this turn only; later turns keep a [view_file showed ...] note, so call view_file again to look again.",
     "- Check a file's size first (wc -c, head), then read slices (sed -n '1,120p', rg -n PATTERN); never print a whole large file.",
     "- Save intermediate results to /work instead of printing them again.",
     "- python3 opens files of at most 8 MB: pipe a larger file in on stdin, or cut it into /work with split or head first.",
     `- A command runs for at most ${maximumBashCommandSeconds} seconds.`,
+  ]);
+}
+
+/**
+ * Code reaches agent SQL through the bridge in `apps/backend/src/chatSandbox/sqlBridge/`, so a bulk job
+ * runs as one script and only its summary returns to the turn. just-bash gives python3 neither a tool
+ * nor a command bridge, so it cannot reach the functions.
+ */
+function buildSandboxSqlSection(): string {
+  return joinLines([
+    "SQL from code in the bash tool:",
+    "- js-exec runs JavaScript with the SQL tools as functions: tools.sql.query({ sql, workspaceId }) and tools.sql.execute({ sql, workspaceId }) return the tool's JSON result and throw an Error on failure, whose message is the tool's error JSON when the statement failed; omit workspaceId for the open workspace.",
+    "- In shell, fc-sql-query 'SQL' and fc-sql-execute 'SQL', or the statement on stdin, print the same JSON, or the failure on stderr with exit code 1.",
+    "- python3 cannot call them: parse in python3 if you like, then send the SQL from js-exec or the fc-sql commands.",
+    `- Prefer a script for bulk imports, bulk edits, and analysis over many rows: loop in code, put up to ${MAX_SQL_RECORD_LIMIT} rows in each INSERT, UPDATE, or DELETE, and print only a short summary such as counts and the rows that failed.`,
+    `- One bash command makes at most ${maximumSqlCallsPerCommand} SQL calls: split a larger job across commands and keep its progress in /work so it can resume.`,
+    "- Writes from code follow the write policy and the card rules above exactly as sql_execute calls do: describe the exact change before running the script.",
+    "- Imported cards start as new cards: review history and scheduling cannot be imported.",
+    "- A write whose error says it may have been applied must be read back with a SELECT before it is sent again.",
   ]);
 }
 
@@ -253,6 +273,7 @@ export function buildSystemInstructions(
     buildSqlRoutingSection(),
     buildReviewLoopSection(),
     buildChatFilesSection(),
+    buildSandboxSqlSection(),
     generatedImageEligible ? buildGeneratedImagePolicySection() : "",
     buildRepairSection(),
     "Be concise, direct, and operational.",
