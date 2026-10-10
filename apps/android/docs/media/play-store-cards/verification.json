@@ -1,0 +1,23 @@
+{
+  "generatedAt": "2026-10-09T13:08:44.185Z",
+  "screenshotChecksumsVerified": 255,
+  "featureGraphicChecksumsVerified": 51,
+  "headingStyles": [
+    "Arial, sans-serif;91.5607px;700;110.289px"
+  ],
+  "captionStyles": [
+    "Arial, sans-serif;49.9422px;400;58.2659px"
+  ],
+  "headingPositions": [
+    110
+  ],
+  "captionPositions": [
+    260
+  ],
+  "maximumCenterErrorPixels": 0.0078125,
+  "opaqueRGB": true,
+  "nativeSourceScreensUnmodified": true,
+  "sourceAspectPreserved": true,
+  "formatSource": "https://support.google.com/googleplay/android-developer/answer/9866151?hl=en",
+  "scope": "Local files and format/layout validation; no Play Console publication or review"
+}

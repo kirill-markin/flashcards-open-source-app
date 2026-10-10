@@ -25,6 +25,10 @@ and never starts instrumentation or guest cleanup:
 npm run render --prefix scripts/store-screenshots -- --platform android
 ```
 
+Approved portrait outputs in `play-store-cards/` are tracked Git files. For the
+finished inventory, upload status and reviewed refresh procedure, use the
+[processing guide](../../../docs/store-screenshot-processing.md#tracked-approved-delivery).
+
 Install its dependencies once using the
 [processor README](../../../scripts/store-screenshots/README.md). The capture
 wrapper below remains a separate operation.

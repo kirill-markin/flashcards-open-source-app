@@ -20,6 +20,7 @@ type Audit = {
 };
 type Result = {
   path: string; family: Family; captureTag: string; storeLocale: string | null; card: number;
+  inputRoot: string | null; sourceRevision: string;
   heading: string; caption: string; source: string; sourceSha256: string; sha256: string; width: number; height: number; audit: Audit;
 };
 
@@ -194,7 +195,7 @@ try {
         if (metadata.width !== width || metadata.height !== height || metadata.hasAlpha) throw new Error(`Invalid output PNG: ${family}/${tag}/${card}`);
         await mkdir(dirname(join(staging!, path)), { recursive: true });
         await writeFile(join(staging!, path), opaque);
-        results.push({ path, family, captureTag: tag, storeLocale: locale?.storeLocale ?? null, card,
+        results.push({ path, family, captureTag: tag, storeLocale: locale?.storeLocale ?? null, card, inputRoot, sourceRevision,
           heading: copy[tag][card - 1][0], caption: copy[tag][card - 1][1], source, sourceSha256: createHash("sha256").update(raw).digest("hex"), width, height,
           sha256: createHash("sha256").update(opaque).digest("hex"), audit });
       }
@@ -211,7 +212,7 @@ try {
       await mkdir(dirname(join(root, file.path)), { recursive: true });
       await copyFile(join(staging!, file.path), join(root, file.path));
     }
-    await writeFile(join(root, "export-manifest.json"), JSON.stringify({ generatedAt: new Date().toISOString(), sourceRevision, inputRoot: "apps/ios/docs/media/app-store-screenshots", results: mergeResults(previous, results), fontAudit, overflows }, null, 2) + "\n");
+    await writeFile(join(root, "export-manifest.json"), JSON.stringify({ generatedAt: new Date().toISOString(), sourceRevision, inputRoot, results: mergeResults(previous, results), fontAudit, overflows }, null, 2) + "\n");
     console.log(`Verified and exported ${results.length} opaque PNGs.`);
   }
 } finally {
