@@ -663,7 +663,10 @@ export function createMediaAssetsObjectPolicyStatement(bucket: s3.IBucket): cdk.
   });
 }
 
-/** Files of a chat session live under this prefix; see apps/backend/src/chatFiles/storage.ts. */
+/**
+ * Files of a chat session, and the uploads a client stages for one, live under this prefix; see
+ * apps/backend/src/chatFiles/storage.ts. The API signs the staged PUT under this grant.
+ */
 export function createChatFilesObjectPolicyStatement(bucket: s3.IBucket): cdk.aws_iam.PolicyStatement {
   return new cdk.aws_iam.PolicyStatement({
     actions: [

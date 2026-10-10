@@ -12,12 +12,19 @@ import type {
   ImageContentPart,
   InlineAttachmentContentPart,
   UnconvertedContentPart,
+  UploadContentPart,
 } from "../chat/types";
 import { allocateChatFilePath } from "./paths";
 import { insertChatAttachmentFileWithExecutor, listChatFilePathsWithExecutor, type StoredContent } from "./repository";
 import { buildChatFileS3Key, putChatFileObject } from "./storage";
+import {
+  assertChatImageUploadsPerTurnSize,
+  headChatFileUpload,
+  readChatFileUpload,
+  type StagedChatFileUpload,
+} from "./uploads";
 
-/** One inline attachment whose bytes are stored and whose `ai.chat_files` row is not yet inserted. */
+/** One attachment whose bytes are stored and whose `ai.chat_files` row is not yet inserted. */
 export type UploadedChatAttachment = Readonly<{
   fileId: string;
   s3Key: string;
@@ -27,6 +34,8 @@ export type UploadedChatAttachment = Readonly<{
 }> & (Readonly<{ type: "image" }> | Readonly<{ type: "file"; fileName: string }>);
 
 type ChatAttachmentReference = ImageContentPart | FileContentPart;
+
+type TurnAttachmentContentPart = InlineAttachmentContentPart | UploadContentPart;
 
 type OrphanedUploadReason =
   | "upload_failed"
@@ -211,21 +220,74 @@ export function replaceInlineAttachments(
   });
 }
 
+/** In a new turn every image or file part is inline. */
+function isTurnAttachmentContentPart(part: UnconvertedContentPart): part is TurnAttachmentContentPart {
+  return part.type === "image" || part.type === "file" || part.type === "upload";
+}
+
+/** Identical parts share one key, so they become one session file. */
+function buildTurnAttachmentKey(part: TurnAttachmentContentPart): string {
+  return part.type === "upload"
+    ? JSON.stringify([part.type, part.uploadId, part.fileName, part.mediaType])
+    : buildInlineAttachmentKey(part);
+}
+
+async function headTurnAttachment(
+  userId: string,
+  part: TurnAttachmentContentPart,
+): Promise<InlineAttachmentContentPart | StagedChatFileUpload> {
+  return part.type === "upload" ? headChatFileUpload(userId, part) : part;
+}
+
+async function decodeTurnAttachment(
+  attachment: InlineAttachmentContentPart | StagedChatFileUpload,
+): Promise<DecodedChatAttachment> {
+  return attachment.type === "upload" ? readChatFileUpload(attachment) : decodeInlineChatAttachment(attachment);
+}
+
+function replaceTurnAttachments(
+  content: ReadonlyArray<UnconvertedContentPart>,
+  references: ReadonlyMap<string, ChatAttachmentReference>,
+): ReadonlyArray<ContentPart> {
+  return content.map((part) => {
+    if (!isTurnAttachmentContentPart(part)) {
+      return part;
+    }
+
+    const reference = references.get(buildTurnAttachmentKey(part));
+    if (reference === undefined) {
+      throw new Error(`Chat attachment has no session file to replace it. type=${part.type} mediaType=${part.mediaType}`);
+    }
+
+    return reference;
+  });
+}
+
 /**
- * First half of turning a new turn's inline attachments into session files: stores their bytes. Every
- * attachment is validated before the first upload, so an invalid one stores nothing.
+ * First half of turning a new turn's attachments, inline or staged uploads, into session files: stores
+ * their bytes. Every upload is sized before the first one is downloaded, so an oversized turn downloads
+ * nothing, and every attachment is validated before the first one is stored, so an invalid one stores
+ * nothing.
  */
-export async function uploadTurnInlineChatAttachments(
+export async function uploadTurnChatAttachments(
   sessionId: string,
+  userId: string,
   content: ReadonlyArray<UnconvertedContentPart>,
   observationScope: BackendObservationScope,
 ): Promise<ReadonlyMap<string, UploadedChatAttachment>> {
-  const attachments = [...collectInlineAttachments([content])];
-  return uploadInlineChatAttachments(
-    sessionId,
-    new Map(attachments.map(([key, part]) => [key, decodeInlineChatAttachment(part)])),
-    observationScope,
+  const parts = new Map(
+    content.filter(isTurnAttachmentContentPart).map((part) => [buildTurnAttachmentKey(part), part]),
   );
+  const headed = await Promise.all([...parts].map(async ([key, part]) => (
+    [key, await headTurnAttachment(userId, part)] as const
+  )));
+  assertChatImageUploadsPerTurnSize(headed.flatMap(([, attachment]) => (
+    attachment.type === "upload" ? [attachment] : []
+  )));
+  const attachments = await Promise.all(headed.map(async ([key, attachment]) => (
+    [key, await decodeTurnAttachment(attachment)] as const
+  )));
+  return uploadInlineChatAttachments(sessionId, new Map(attachments), observationScope);
 }
 
 /**
@@ -240,10 +302,10 @@ export async function recordTurnChatAttachmentsWithExecutor(
   uploads: ReadonlyMap<string, UploadedChatAttachment>,
 ): Promise<ReadonlyArray<ContentPart>> {
   if (uploads.size === 0) {
-    return replaceInlineAttachments(content, new Map());
+    return replaceTurnAttachments(content, new Map());
   }
 
-  return replaceInlineAttachments(
+  return replaceTurnAttachments(
     content,
     await recordUploadedChatAttachmentsWithExecutor(executor, scope, sessionId, uploads),
   );

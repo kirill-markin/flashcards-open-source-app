@@ -36,6 +36,7 @@ import {
   chatRequestTooLargeCode,
   chatRequestTooLargeMessage,
   encodeChatSessionsCursor,
+  parseChatFileUploadRequestBody,
   parseChatPageQuery,
   parseChatRequestBody,
   parseChatSessionIdPathParam,
@@ -367,6 +368,24 @@ export function createPostChatHandler(dependencies: ChatRouteDependencies): Hand
     } catch (error) {
       return mapStoreError(error);
     }
+  };
+}
+
+/** Signs one attachment upload that a later `POST /chat` names in an `upload` part; see `chatFiles/uploads.ts`. */
+export function createPostChatFileUploadHandler(dependencies: ChatRouteDependencies): Handler<AppEnv> {
+  return async (context) => {
+    const requestContext = await loadSupportedRequestContext(
+      context.req.raw,
+      dependencies,
+    );
+    const body = parseChatFileUploadRequestBody(await parseJsonBody(context.req.raw));
+
+    return context.json(await dependencies.createChatFileUploadFn(
+      requestContext.userId,
+      body.fileName,
+      body.mediaType,
+      body.sizeBytes,
+    ));
   };
 }
 

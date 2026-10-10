@@ -1,11 +1,13 @@
 import { Buffer } from "node:buffer";
 import { TextDecoder } from "node:util";
+import { chatFileApkgMediaType, chatFileZipMediaType } from "../chatSandbox/contract";
 import { HttpError } from "../shared/errors";
 
 export const chatAttachmentUnsupportedTypeCode = "CHAT_ATTACHMENT_UNSUPPORTED_TYPE";
-export const chatAttachmentUnsupportedTypeMessage = "This file type is not supported for AI chat. Remove the file or save it as PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, or an image, then try again.";
+export const chatAttachmentUnsupportedTypeMessage = "This file type is not supported for AI chat. Remove the file or save it as PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG, or an image, then try again.";
 
 const canonicalFileMediaTypeByExtension: Readonly<Record<string, string>> = {
+  apkg: chatFileApkgMediaType,
   csv: "text/csv",
   docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   html: "text/html",
@@ -23,6 +25,7 @@ const canonicalFileMediaTypeByExtension: Readonly<Record<string, string>> = {
   xml: "text/xml",
   yaml: "application/x-yaml",
   yml: "application/x-yaml",
+  zip: chatFileZipMediaType,
 };
 
 const canonicalFileMediaTypes = new Set(Object.values(canonicalFileMediaTypeByExtension));
@@ -81,6 +84,11 @@ type DecodedAttachmentData = Readonly<{
 export type ValidatedChatAttachmentContent = Readonly<{
   mediaType: string;
   base64Data: string;
+}>;
+
+export type ChatUploadAttachmentType = Readonly<{
+  type: "image" | "file";
+  mediaType: string;
 }>;
 
 function throwUnsupportedChatAttachmentType(): never {
@@ -212,6 +220,11 @@ function hasZipSignature(data: Buffer): boolean {
   return startsWithBytes(data, [0x50, 0x4b, 0x03, 0x04])
     || startsWithBytes(data, [0x50, 0x4b, 0x05, 0x06])
     || startsWithBytes(data, [0x50, 0x4b, 0x07, 0x08]);
+}
+
+/** Only the magic: the sandbox opens the archive and says why when it cannot. */
+function hasZipLocalFileHeaderSignature(data: Buffer): boolean {
+  return startsWithBytes(data, [0x50, 0x4b, 0x03, 0x04]);
 }
 
 function hasOleCompoundFileSignature(data: Buffer): boolean {
@@ -445,6 +458,14 @@ function assertChatFileAttachmentData(mediaType: string, decodedData: Buffer): v
     throwUnsupportedChatAttachmentType();
   }
 
+  if (mediaType === chatFileZipMediaType || mediaType === chatFileApkgMediaType) {
+    if (hasZipLocalFileHeaderSignature(decodedData)) {
+      return;
+    }
+
+    throwUnsupportedChatAttachmentType();
+  }
+
   if (textLikeFileMediaTypes.has(mediaType)) {
     assertTextLikeAttachmentData(decodedData);
     return;
@@ -480,6 +501,33 @@ export function validateChatFileAttachmentContent(
     mediaType: canonicalMediaType,
     base64Data: decodedAttachment.base64Data,
   };
+}
+
+/** An upload is an image when its media type is one the chat accepts for images, and a file otherwise. */
+export function normalizeChatUploadAttachmentType(
+  fileName: string,
+  mediaType: string,
+): ChatUploadAttachmentType {
+  const imageMediaType = canonicalImageMediaTypeByAlias[normalizeRawMediaType(mediaType)];
+  if (imageMediaType !== undefined) {
+    return { type: "image", mediaType: imageMediaType };
+  }
+
+  return { type: "file", mediaType: normalizeChatFileAttachmentMediaType(fileName, mediaType) };
+}
+
+/** The checks the inline validators apply after decoding, for bytes that arrive unencoded. */
+export function assertChatUploadAttachmentBytes(attachmentType: ChatUploadAttachmentType, data: Buffer): void {
+  if (data.length === 0) {
+    throwUnsupportedChatAttachmentType();
+  }
+
+  if (attachmentType.type === "image") {
+    assertChatImageAttachmentData(attachmentType.mediaType, data);
+    return;
+  }
+
+  assertChatFileAttachmentData(attachmentType.mediaType, data);
 }
 
 /** A text-like attachment is read as it is; nothing is derived from it. */
