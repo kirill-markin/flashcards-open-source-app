@@ -1,21 +1,23 @@
-import { randomUUID } from "node:crypto";
 import {
-  buildChatFileS3Key,
   createChatFileDownloadUrl,
-  createChatFileUploadUrl,
+  createChatFileWriteSlots,
   listChatSessionFiles,
   logOrphanedChatFileUploads,
   recordChatWorkFileChanges,
+  signChatFileWriteSlots,
+  type ChatFileWriteSlot,
   type SavedChatWorkFile,
 } from "../../../chatFiles";
-import { invokeChatSandboxBash, type ChatSandboxInvocation } from "../../../chatSandbox/client";
+import { invokeChatSandbox, type ChatSandboxInvocation } from "../../../chatSandbox/client";
 import {
+  chatSandboxBashResponseSchema,
   cutToHeadAndTail,
   type ChatSandboxBashRequest,
   type ChatSandboxBashResponse,
 } from "../../../chatSandbox/contract";
 import { writeCloudWatchRecord } from "../../../observability/cloudWatch";
 import { cutHeadAtCodePoint } from "../../../shared/codePointCuts";
+import { toJsonbSafeText } from "../../../shared/jsonbSafeText";
 import { BASH_TOOL_ARGUMENT_VALIDATOR, maximumBashCommandChars } from "./bashToolContract";
 import { MAX_TOOL_OUTPUT_CHARS } from "./toolResults";
 import type { ExecutedChatToolCall, OpenAIToolContext } from "./tools";
@@ -28,25 +30,17 @@ const maximumSandboxErrorChars = 2_000;
 const reservedOutputChars = 5_000;
 const truncationHint =
   "read slices instead: wc -c FILE, head -n 50 FILE, sed -n '100,200p' FILE, rg -n PATTERN FILE, or redirect the output to a file under /work";
-/** Matched by code unit, so the pattern has no `u` flag. */
-const unpairedSurrogatePattern = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g;
-
-type WriteSlot = Readonly<{
-  fileId: string;
-  s3Key: string;
-}>;
-
 /** The sandbox's answer and the write slots of the attempt that gave it. */
 type SandboxAnswer = Readonly<{
-  invocation: ChatSandboxInvocation;
-  slots: ReadonlyMap<string, WriteSlot>;
+  invocation: ChatSandboxInvocation<ChatSandboxBashResponse>;
+  slots: ReadonlyMap<string, ChatFileWriteSlot>;
   workPaths: ReadonlySet<string>;
 }>;
 
 type SandboxCommandLog = Readonly<{
   command: string | null;
   durationMs: number;
-  invocation: ChatSandboxInvocation | null;
+  invocation: ChatSandboxInvocation<ChatSandboxBashResponse> | null;
   filesWritten: number;
   filesDeleted: number;
   outputTruncated: boolean;
@@ -57,15 +51,6 @@ type RenderedStream = Readonly<{
   text: string;
   truncated: boolean;
 }>;
-
-/**
- * Postgres jsonb, which stores the tool result, rejects U+0000, which binary output carries, and
- * unpaired surrogates, which a command can print. Each becomes one code unit, ␀ (U+2400) or U+FFFD, so
- * the output keeps the length its budget was measured in.
- */
-function toJsonbSafeText(text: string): string {
-  return text.replaceAll("\u0000", "␀").replace(unpairedSurrogatePattern, "�");
-}
 
 function createBashToolResult(
   output: string,
@@ -82,14 +67,8 @@ function createBashToolResult(
     generatedImageTelemetry: null,
     sqlTelemetry: null,
     toolErrorClass,
+    modelContent: null,
   };
-}
-
-function createWriteSlots(sessionId: string): ReadonlyMap<string, WriteSlot> {
-  return new Map(Array.from({ length: writeSlotCount }, () => {
-    const fileId = randomUUID();
-    return [fileId, { fileId, s3Key: buildChatFileS3Key(sessionId, fileId) }] as const;
-  }));
 }
 
 /**
@@ -98,7 +77,7 @@ function createWriteSlots(sessionId: string): ReadonlyMap<string, WriteSlot> {
  */
 function readSavedWorkFiles(
   response: ChatSandboxBashResponse,
-  slots: ReadonlyMap<string, WriteSlot>,
+  slots: ReadonlyMap<string, ChatFileWriteSlot>,
   workPaths: ReadonlySet<string>,
 ): ReadonlyArray<SavedChatWorkFile> {
   const writtenPaths = new Set<string>();
@@ -133,9 +112,9 @@ async function invokeSandbox(command: string, context: OpenAIToolContext): Promi
     { userId: context.userId, workspaceId: context.workspaceId },
     context.sessionId,
   );
-  let slots: ReadonlyMap<string, WriteSlot> = new Map();
+  let slots: ReadonlyMap<string, ChatFileWriteSlot> = new Map();
   const prepareRequest = async (): Promise<ChatSandboxBashRequest> => {
-    const attemptSlots = createWriteSlots(context.sessionId);
+    const attemptSlots = createChatFileWriteSlots(context.sessionId, writeSlotCount);
     const request: ChatSandboxBashRequest = {
       operation: "bash",
       sessionId: context.sessionId,
@@ -145,20 +124,17 @@ async function invokeSandbox(command: string, context: OpenAIToolContext): Promi
         sizeBytes: file.sizeBytes,
         getUrl: await createChatFileDownloadUrl(file.s3Key),
       }))),
-      writeSlots: await Promise.all([...attemptSlots.values()].map(async (slot) => ({
-        slotId: slot.fileId,
-        putUrl: await createChatFileUploadUrl(slot.s3Key),
-      }))),
+      writeSlots: await signChatFileWriteSlots(attemptSlots),
     };
     slots = attemptSlots;
     return request;
   };
-  const invocation = await invokeChatSandboxBash({
+  const invocation = await invokeChatSandbox({
     prepare: prepareRequest,
     abandon: (error) => {
       logOrphanedChatFileUploads(observationScope, [...slots.values()], "sandbox_unconfirmed", error);
     },
-  }, context.signal, observationScope);
+  }, chatSandboxBashResponseSchema, context.signal, observationScope);
   return {
     invocation,
     slots,
@@ -328,7 +304,7 @@ export async function executeBashToolCall(
   }
 
   let answer: SandboxAnswer;
-  let answeredInvocation: ChatSandboxInvocation | null = null;
+  let answeredInvocation: ChatSandboxInvocation<ChatSandboxBashResponse> | null = null;
   let savedFiles: ReadonlyArray<SavedChatWorkFile>;
   try {
     answer = await invokeSandbox(command, context);

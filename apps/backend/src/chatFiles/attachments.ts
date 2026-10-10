@@ -28,7 +28,12 @@ export type UploadedChatAttachment = Readonly<{
 
 type ChatAttachmentReference = ImageContentPart | FileContentPart;
 
-type OrphanedUploadReason = "upload_failed" | "write_failed" | "already_converted" | "sandbox_unconfirmed";
+type OrphanedUploadReason =
+  | "upload_failed"
+  | "write_failed"
+  | "already_converted"
+  | "sandbox_unconfirmed"
+  | "path_taken";
 
 export function isInlineAttachmentContentPart(
   part: ContentPart | InlineAttachmentContentPart,

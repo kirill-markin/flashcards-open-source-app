@@ -67,6 +67,8 @@ import {
 } from "./generatedImageToolContract";
 import { executeBashToolCall } from "./bashTool";
 import { BASH_TOOL_NAME, OPENAI_BASH_TOOL } from "./bashToolContract";
+import { executeViewFileToolCall } from "./viewFileTool";
+import { OPENAI_VIEW_FILE_TOOL, VIEW_FILE_TOOL_NAME } from "./viewFileToolContract";
 import {
   loadAiUsageStatus,
   resolveAiUsageTierForFacts,
@@ -142,6 +144,12 @@ export type ExecutedChatToolCall = Readonly<{
    * same error envelope and exports those as its own status instead.
    */
   toolErrorClass: string | null;
+  /**
+   * What the model receives in place of `output` during this run, such as the image `view_file` shows.
+   * Stored replay items keep only its text (`stripViewedContentFromReplayItems`), so later turns see
+   * `output` alone.
+   */
+  modelContent: ReadonlyArray<OpenAI.Responses.ResponseFunctionCallOutputItem> | null;
 }>;
 
 export type OpenAIToolDependencies = Readonly<{
@@ -541,14 +549,14 @@ export function buildOpenAIChatTools(
   generatedImageEligible: boolean,
 ): ReadonlyArray<OpenAI.Responses.FunctionTool> {
   return generatedImageEligible
-    ? [...OPENAI_CHAT_TOOLS, OPENAI_BASH_TOOL, OPENAI_GENERATED_IMAGE_TOOL]
-    : [...OPENAI_CHAT_TOOLS, OPENAI_BASH_TOOL];
+    ? [...OPENAI_CHAT_TOOLS, OPENAI_BASH_TOOL, OPENAI_VIEW_FILE_TOOL, OPENAI_GENERATED_IMAGE_TOOL]
+    : [...OPENAI_CHAT_TOOLS, OPENAI_BASH_TOOL, OPENAI_VIEW_FILE_TOOL];
 }
 
 type GeneratedImageExecutionState =
   Omit<
     ExecutedChatToolCall,
-    "output" | "generatedImageTelemetry" | "sqlTelemetry" | "toolErrorClass"
+    "output" | "generatedImageTelemetry" | "sqlTelemetry" | "toolErrorClass" | "modelContent"
   > & Readonly<{
     attempt: number | null;
     status: string;
@@ -565,6 +573,7 @@ function createGeneratedImageResult(
     generatedImageTelemetry: { attempt, status },
     sqlTelemetry: null,
     toolErrorClass: null,
+    modelContent: null,
   };
 }
 
@@ -996,6 +1005,7 @@ async function executeSqlChatToolCall(
       stopReason: null,
       generatedImageTelemetry: null,
       toolErrorClass: null,
+      modelContent: null,
       sqlTelemetry: {
         succeeded: true,
         errorCode: null,
@@ -1035,6 +1045,7 @@ async function executeSqlChatToolCall(
       stopReason: null,
       generatedImageTelemetry: null,
       toolErrorClass: null,
+      modelContent: null,
       sqlTelemetry: {
         succeeded: false,
         errorCode: error instanceof HttpError ? error.code : null,
@@ -1079,6 +1090,7 @@ async function executeReadOnlyChatToolCall<Data>(
       generatedImageTelemetry: null,
       sqlTelemetry: null,
       toolErrorClass: null,
+      modelContent: null,
     };
   } catch (error) {
     const instructions = createAgentRemediationInstructions(
@@ -1107,6 +1119,7 @@ async function executeReadOnlyChatToolCall<Data>(
       generatedImageTelemetry: null,
       sqlTelemetry: null,
       toolErrorClass: serializeToolError(error).name,
+      modelContent: null,
     };
   }
 }
@@ -1161,6 +1174,7 @@ async function executeReviewChatToolCall(
       generatedImageTelemetry: null,
       sqlTelemetry: null,
       toolErrorClass: null,
+      modelContent: null,
     };
   } catch (error) {
     const instructions = createAgentRemediationInstructions(
@@ -1189,6 +1203,7 @@ async function executeReviewChatToolCall(
       generatedImageTelemetry: null,
       sqlTelemetry: null,
       toolErrorClass: serializeToolError(error).name,
+      modelContent: null,
     };
   }
 }
@@ -1259,6 +1274,10 @@ export async function executeChatToolCallWithDependencies(
 
   if (toolName === BASH_TOOL_NAME) {
     return executeBashToolCall(rawArguments, context);
+  }
+
+  if (toolName === VIEW_FILE_TOOL_NAME) {
+    return executeViewFileToolCall(rawArguments, context);
   }
 
   return requireChatToolRunner(toolName)(rawArguments, context, dependencies);

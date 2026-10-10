@@ -324,7 +324,7 @@ export async function runOneModelCallWithPhase(
 
 function toFunctionCallOutputInputItem(
   callId: string,
-  output: string,
+  output: OpenAI.Responses.ResponseInputItem.FunctionCallOutput["output"],
 ): OpenAI.Responses.ResponseInputItem.FunctionCallOutput {
   return {
     type: "function_call_output",
@@ -402,7 +402,10 @@ export async function executeToolCalls(
         await params.onEvent(update.event);
       }
       replayItems.push(toStoredOpenAIReplayItem(
-        toFunctionCallOutputInputItem(functionCall.call_id, output.output),
+        toFunctionCallOutputInputItem(
+          functionCall.call_id,
+          output.modelContent === null ? output.output : [...output.modelContent],
+        ),
         params.userOpenAIApiKey !== null,
       ));
     } finally {

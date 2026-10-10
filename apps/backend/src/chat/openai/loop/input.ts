@@ -7,10 +7,18 @@ import type { ContentPart, FileContentPart, ImageContentPart } from "../../types
 import { buildCurrentDatetimeLine, buildSystemInstructions } from "../../shared";
 import { CHAT_HISTORY_REPLAY_TOKEN_BUDGET } from "../../config";
 import { buildCardContextXml } from "../../cardContext";
-import { buildChatFileS3Key, getChatFileObjectBytes } from "../../../chatFiles";
+import { isTextLikeChatFileMediaType } from "../../attachmentPolicy";
+import {
+  buildChatFileS3Key,
+  getChatFileObjectBytes,
+  type ChatFileDerivativeIndex,
+  type ChatFileDerivatives,
+} from "../../../chatFiles";
+import { findChatFileDerivativeKind } from "../../../chatSandbox/contract";
 import {
   normalizeStoredOpenAIReplayItems,
   sliceReplayItemsFromLatestCompaction,
+  stripViewedContentFromReplayItems,
   toOpenAIResponseInputItem,
   type ServerChatMessage,
   type StoredOpenAIReplayItem,
@@ -18,6 +26,9 @@ import {
 
 type OpenAIInputItem = OpenAI.Responses.ResponseInputItem;
 type OpenAIInputContent = OpenAI.Responses.ResponseInputMessageContentList[number];
+
+/** A ZIP can yield hundreds of files; the attachment line names the first few. */
+const maximumManifestDerivedPaths = 10;
 
 function formatChatFileSize(sizeBytes: number): string {
   if (sizeBytes < 1024) {
@@ -31,8 +42,36 @@ function formatChatFileSize(sizeBytes: number): string {
   return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function buildFileManifestText(part: FileContentPart): string {
-  return `Attached file: ${part.path} (${part.mediaType}, ${formatChatFileSize(part.sizeBytes)}). `
+/** The files derived from an attachment, or why there are none, as one clause of its attachment line. */
+function describeFileDerivatives(part: FileContentPart, derivatives: ChatFileDerivatives | undefined): string {
+  if (derivatives === undefined) {
+    return findChatFileDerivativeKind(part.mediaType) === null && !isTextLikeChatFileMediaType(part.mediaType)
+      ? "; no text is derived from this type"
+      : "";
+  }
+
+  if (derivatives.error !== null) {
+    return `; no derived files: ${derivatives.error.replace(/\.+$/u, "")}`;
+  }
+
+  const { derivedPaths } = derivatives;
+  if (derivedPaths.length === 0) {
+    return "; derived files: none";
+  }
+
+  if (derivedPaths.length === 1 && derivedPaths[0].endsWith(".txt")) {
+    return `; text: ${derivedPaths[0]}`;
+  }
+
+  const hiddenCount = derivedPaths.length - maximumManifestDerivedPaths;
+  return `; derived files: ${derivedPaths.slice(0, maximumManifestDerivedPaths).join(", ")}`
+    + (hiddenCount > 0 ? `, and ${hiddenCount} more under ${part.path}.d/` : "");
+}
+
+/** `derivatives` is undefined for an attachment nothing was derived from yet. */
+function buildFileManifestText(part: FileContentPart, derivatives: ChatFileDerivatives | undefined): string {
+  return `Attached file: ${part.path} (${part.mediaType}, ${formatChatFileSize(part.sizeBytes)})`
+    + `${describeFileDerivatives(part, derivatives)}. `
     + "It is in the chat workspace; read it with the workspace tools instead of asking the user to paste it.";
 }
 
@@ -48,6 +87,7 @@ async function buildImageDataUrl(sessionId: string, part: ImageContentPart): Pro
 /** A file is replayed as its one-line manifest; an image also stays visible to the model on every turn. */
 async function mapAttachmentPart(
   sessionId: string,
+  fileDerivatives: ChatFileDerivativeIndex,
   part: ImageContentPart | FileContentPart,
 ): Promise<ReadonlyArray<OpenAIInputContent>> {
   if (part.type === "image") {
@@ -61,7 +101,7 @@ async function mapAttachmentPart(
     ];
   }
 
-  return [{ type: "input_text", text: buildFileManifestText(part) }];
+  return [{ type: "input_text", text: buildFileManifestText(part, fileDerivatives.get(part.fileId)) }];
 }
 
 function buildToolCallHistoryText(
@@ -86,6 +126,7 @@ function buildReasoningHistoryText(
 
 async function mapMessagePart(
   sessionId: string,
+  fileDerivatives: ChatFileDerivativeIndex,
   part: ContentPart,
 ): Promise<ReadonlyArray<OpenAIInputContent>> {
   if (part.type === "text") {
@@ -93,7 +134,7 @@ async function mapMessagePart(
   }
 
   if (part.type === "image" || part.type === "file") {
-    return mapAttachmentPart(sessionId, part);
+    return mapAttachmentPart(sessionId, fileDerivatives, part);
   }
 
   if (part.type === "card") {
@@ -195,12 +236,13 @@ function buildAssistantHistoryItems(
 
 async function buildUserInputMessage(
   sessionId: string,
+  fileDerivatives: ChatFileDerivativeIndex,
   content: ReadonlyArray<ContentPart>,
 ): Promise<OpenAIInputItem> {
   return {
     role: "user",
     type: "message",
-    content: (await Promise.all(content.map((part) => mapMessagePart(sessionId, part)))).flat(),
+    content: (await Promise.all(content.map((part) => mapMessagePart(sessionId, fileDerivatives, part)))).flat(),
   };
 }
 
@@ -243,7 +285,7 @@ function estimateContentPartTokens(part: ContentPart): number {
   }
 
   if (part.type === "file") {
-    return estimateTextTokens(buildFileManifestText(part));
+    return estimateTextTokens(buildFileManifestText(part, undefined));
   }
 
   if (part.type === "card") {
@@ -275,14 +317,22 @@ function estimateMessageTokens(message: ServerChatMessage): number {
   );
 }
 
+function countViewedContentParts(items: ReadonlyArray<StoredOpenAIReplayItem>): number {
+  return items.reduce((total, item) => item.type === "function_call_output" && typeof item.output !== "string"
+    ? total + item.output.filter((part) => part.type !== "input_text").length
+    : total, 0);
+}
+
 /**
  * Estimates the provider token cost of a sequence of stored OpenAI replay items,
  * mirroring how assistant history is sized. Exposed for within-run growth caps.
+ * An image or a PDF page that view_file put into this run counts like an attached image, not as its base64.
  */
 export function estimateStoredReplayItemsTokens(
   items: ReadonlyArray<StoredOpenAIReplayItem>,
 ): number {
-  return estimateTextTokens(stringifyJson(items));
+  return estimateTextTokens(stringifyJson(stripViewedContentFromReplayItems(items)))
+    + countViewedContentParts(items) * HISTORY_IMAGE_TOKEN_ESTIMATE;
 }
 
 /**
@@ -335,6 +385,7 @@ export async function buildChatCompletionInputWithBudget(
   sessionId: string,
   timezone: string,
   generatedImageEligible: boolean,
+  fileDerivatives: ChatFileDerivativeIndex,
   budgetTokens: number,
 ): Promise<ReadonlyArray<OpenAIInputItem>> {
   const turnTokens = turnInput.reduce(
@@ -359,7 +410,7 @@ export async function buildChatCompletionInputWithBudget(
       continue;
     }
 
-    historyItems.push(await buildUserInputMessage(sessionId, message.content));
+    historyItems.push(await buildUserInputMessage(sessionId, fileDerivatives, message.content));
   }
 
   const input = placeSystemPrompt(historyItems, generatedImageEligible);
@@ -368,7 +419,7 @@ export async function buildChatCompletionInputWithBudget(
     type: "message",
     content: buildCurrentDatetimeLine(timezone),
   });
-  input.push(await buildUserInputMessage(sessionId, turnInput));
+  input.push(await buildUserInputMessage(sessionId, fileDerivatives, turnInput));
   return input;
 }
 
@@ -382,6 +433,7 @@ export async function buildChatCompletionInput(
   sessionId: string,
   timezone: string,
   generatedImageEligible: boolean,
+  fileDerivatives: ChatFileDerivativeIndex,
 ): Promise<ReadonlyArray<OpenAIInputItem>> {
   return buildChatCompletionInputWithBudget(
     localMessages,
@@ -389,6 +441,7 @@ export async function buildChatCompletionInput(
     sessionId,
     timezone,
     generatedImageEligible,
+    fileDerivatives,
     CHAT_HISTORY_REPLAY_TOKEN_BUDGET,
   );
 }

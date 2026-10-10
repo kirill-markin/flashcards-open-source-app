@@ -1,18 +1,16 @@
-import { createHash } from "node:crypto";
 import { posix } from "node:path";
 import type { Bash, BashOptions, InMemoryFs } from "just-bash";
 import { cutHeadAtCodePoint } from "../shared/codePointCuts";
 import {
   cutToHeadAndTail,
   maximumBashCommandSeconds,
+  maximumChatFilePathBytes,
   maximumTransportedStreamChars,
-  maximumWorkPathBytes,
   type ChatSandboxBashRequest,
   type ChatSandboxBashResponse,
-  type ChatSandboxWriteSlot,
 } from "./contract";
 import { PresignedObjectReader, PresignedReadOnlyFs, type PresignedFile } from "./presignedFs";
-import { uploadPresignedObject } from "./presignedTransfer";
+import { sha256Hex, uploadToWriteSlots, type SlotFile } from "./slotUploads";
 
 const filesMountPoint = "/files";
 const workMountPoint = "/work";
@@ -59,21 +57,6 @@ class UnchangedWorkFileSignal extends Error {
   }
 }
 
-/**
- * Thrown once every upload of the changed `/work` files settled and one of them failed. The slots the
- * others filled hold objects no row will name, so the handler logs them; the message, the failed
- * upload's own, reaches the model.
- */
-export class ChatSandboxWorkSaveError extends Error {
-  public readonly uploadedSlotIds: ReadonlyArray<string>;
-
-  public constructor(uploadedSlotIds: ReadonlyArray<string>, cause: unknown) {
-    super(cause instanceof Error ? cause.message : String(cause), { cause });
-    this.name = "ChatSandboxWorkSaveError";
-    this.uploadedSlotIds = uploadedSlotIds;
-  }
-}
-
 /** The path the change scan is reading, or null while the command runs. */
 type WorkScanState = { readingPath: string | null };
 
@@ -83,20 +66,11 @@ type CommandOutput = Readonly<{
   exitCode: number;
 }>;
 
-type ChangedWorkFile = Readonly<{
-  path: string;
-  bytes: Uint8Array;
-}>;
-
 type WorkChanges = Readonly<{
-  changedFiles: ReadonlyArray<ChangedWorkFile>;
+  changedFiles: ReadonlyArray<SlotFile>;
   deletedPaths: ReadonlyArray<string>;
   fileCount: number;
 }>;
-
-function sha256Hex(bytes: Uint8Array): string {
-  return createHash("sha256").update(bytes).digest("hex");
-}
 
 /** Session files keyed by their path inside the mount, such as `/book.pdf` for `/files/book.pdf`. */
 function selectMountedFiles(
@@ -164,7 +138,7 @@ async function collectWorkChanges(
   scan: WorkScanState,
 ): Promise<WorkChanges> {
   const paths = await listFilePaths(work, "/");
-  const changedFiles: Array<ChangedWorkFile> = [];
+  const changedFiles: Array<SlotFile> = [];
   for (const path of paths) {
     const bytes = await readChangedWorkFile(work, path, seededFiles.has(path), reader, scan);
     if (bytes !== null) {
@@ -191,32 +165,10 @@ function findWorkSaveRefusal(changes: WorkChanges, slotCount: number): string | 
     return `/work would hold ${changes.fileCount} files, and a chat keeps at most ${maximumWorkFiles}; delete files you no longer need`;
   }
 
-  const longPath = changes.changedFiles.find((file) => Buffer.byteLength(file.path) > maximumWorkPathBytes);
+  const longPath = changes.changedFiles.find((file) => Buffer.byteLength(file.path) > maximumChatFilePathBytes);
   return longPath === undefined
     ? null
-    : `a path is longer than ${maximumWorkPathBytes} bytes: ${cutHeadAtCodePoint(longPath.path, 120)}`;
-}
-
-async function saveChangedWorkFiles(
-  changedFiles: ReadonlyArray<ChangedWorkFile>,
-  slots: ReadonlyArray<ChatSandboxWriteSlot>,
-): Promise<ChatSandboxBashResponse["writtenFiles"]> {
-  const results = await Promise.allSettled(changedFiles.map(async (file, index) => {
-    const slot = slots[index];
-    if (slot === undefined) {
-      throw new Error(`No write slot is left for a changed work file. path=${file.path} slotCount=${slots.length}`);
-    }
-
-    await uploadPresignedObject(slot.putUrl, file.path, file.bytes);
-    return { path: file.path, slotId: slot.slotId, sizeBytes: file.bytes.byteLength, sha256: sha256Hex(file.bytes) };
-  }));
-  const writtenFiles = results.flatMap((result) => result.status === "fulfilled" ? [result.value] : []);
-  const failure = results.find((result): result is PromiseRejectedResult => result.status === "rejected");
-  if (failure !== undefined) {
-    throw new ChatSandboxWorkSaveError(writtenFiles.map((file) => file.slotId), failure.reason);
-  }
-
-  return writtenFiles;
+    : `a path is longer than ${maximumChatFilePathBytes} bytes: ${cutHeadAtCodePoint(longPath.path, 120)}`;
 }
 
 /**
@@ -302,7 +254,7 @@ export async function runChatSandboxBash(request: ChatSandboxBashRequest): Promi
 
   const changes = await collectWorkChanges(work, seededWorkFiles, reader, scan);
   const refusal = findWorkSaveRefusal(changes, request.writeSlots.length);
-  const writtenFiles = refusal === null ? await saveChangedWorkFiles(changes.changedFiles, request.writeSlots) : [];
+  const writtenFiles = refusal === null ? await uploadToWriteSlots(changes.changedFiles, request.writeSlots) : [];
   const stderr = refusal === null
     ? result.stderr
     : appendLine(result.stderr, `bash: nothing under /work was saved: ${refusal}.`);
@@ -314,7 +266,7 @@ export async function runChatSandboxBash(request: ChatSandboxBashRequest): Promi
     stderrBytes: Buffer.byteLength(stderr),
     exitCode: refusal !== null && result.exitCode === 0 ? 1 : result.exitCode,
     durationMs: Date.now() - startedAt,
-    writtenFiles,
+    writtenFiles: [...writtenFiles],
     deletedPaths: refusal === null ? [...changes.deletedPaths] : [],
   };
 }
