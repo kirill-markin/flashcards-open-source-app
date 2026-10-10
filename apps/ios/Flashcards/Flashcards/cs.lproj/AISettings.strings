@@ -50,9 +50,13 @@
 "ai.attachment.error.unsupportedType" = "Nepodporovaný typ souboru: .%@";
 "ai.attachment.error.cameraUnavailable" = "Fotoaparát není na tomto zařízení dostupný.";
 "ai.attachment.error.photoUnavailable" = "Přístup k fotkám není na tomto zařízení dostupný.";
-"ai.attachment.error.fileTooLarge" = "Soubor je příliš velký. Maximální povolená velikost je 3 MB.";
+"ai.attachment.error.fileTooLarge" = "Soubor je příliš velký. Soubory mohou mít nejvýše 30 MB a obrázky nejvýše 10 MB.";
 "ai.attachment.error.imageEncodeFailed" = "Vybranou fotku se nepodařilo připravit.";
 "ai.attachment.error.imageDimensionsInvalid" = "Vybranou fotku se nepodařilo přečíst.";
+"ai.attachment.error.tooManyFiles" = "Zpráva může obsahovat nejvýše 10 souborů a obrázků. Některé odeberte a zkuste to znovu.";
+"ai.attachment.error.imagesTooLarge" = "Obrázky v jedné zprávě mohou mít dohromady nejvýše 15 MB. Některé pošlete v jiné zprávě.";
+"ai.attachment.error.unavailable" = "Jedna příloha už v tomto zařízení není. Odeberte ji, znovu ji připojte a zkuste to znovu.";
+"ai.attachment.error.uploadFailed" = "Přílohu se nepodařilo nahrát. Zkontrolujte připojení a zkuste to znovu.";
 "ai.composer.dictation.start" = "Zahájit diktování";
 "ai.composer.dictation.stop" = "Zastavit diktování";
 "ai.composer.dictation.waiting" = "Čekání na přístup k mikrofonu…";
@@ -62,7 +66,7 @@
 "ai.error.requestTooLarge.title" = "Zpráva je příliš velká";
 "ai.error.requestTooLarge.message" = "Chat s AI nemůže odeslat tolik obsahu najednou. Odeberte jednu či více příloh, vyberte menší soubor nebo fotku nebo rozdělte požadavek a zkuste to znovu.";
 "ai.error.attachmentUnsupported.title" = "Nepodporovaný typ souboru";
-"ai.error.attachmentUnsupported.message" = "Tento typ souboru není v chatu s AI podporován. Odeberte soubor nebo jej uložte jako PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX nebo obrázek a zkuste to znovu.";
+"ai.error.attachmentUnsupported.message" = "Tento typ souboru není v chatu s AI podporován. Odeberte soubor nebo jej uložte jako PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG nebo obrázek a zkuste to znovu.";
 "ai.error.limitReached" = "Vyčerpali jste svůj limit AI pro tento měsíc. Obnoví se na začátku příštího měsíce.";
 "ai.error.summary.couldNotContinue" = "V odpovědi AI se nepodařilo pokračovat";
 "ai.error.summary.invalidResponse" = "Byla přijata neplatná odpověď AI";

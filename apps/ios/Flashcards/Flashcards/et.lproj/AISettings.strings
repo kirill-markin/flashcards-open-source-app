@@ -50,9 +50,13 @@
 "ai.attachment.error.unsupportedType" = "Toetamata failitüüp: .%@";
 "ai.attachment.error.cameraUnavailable" = "Kaamera pole selles seadmes saadaval.";
 "ai.attachment.error.photoUnavailable" = "Juurdepääs fotodele pole selles seadmes saadaval.";
-"ai.attachment.error.fileTooLarge" = "Fail on liiga suur. Suurim lubatud suurus on 3 MB.";
+"ai.attachment.error.fileTooLarge" = "Fail on liiga suur. Failid võivad olla kuni 30 MB ja pildid kuni 10 MB.";
 "ai.attachment.error.imageEncodeFailed" = "Valitud foto ettevalmistamine ebaõnnestus.";
 "ai.attachment.error.imageDimensionsInvalid" = "Valitud foto lugemine ebaõnnestus.";
+"ai.attachment.error.tooManyFiles" = "Sõnumis võib olla kuni 10 faili ja pilti. Eemalda mõned neist ja proovi uuesti.";
+"ai.attachment.error.imagesTooLarge" = "Ühe sõnumi pildid võivad kokku olla kuni 15 MB. Saada mõned neist teises sõnumis.";
+"ai.attachment.error.unavailable" = "Üht manust pole enam selles seadmes. Eemalda see, lisa see uuesti ja proovi uuesti.";
+"ai.attachment.error.uploadFailed" = "Manust ei õnnestunud üles laadida. Kontrolli ühendust ja proovi uuesti.";
 "ai.composer.dictation.start" = "Alusta dikteerimist";
 "ai.composer.dictation.stop" = "Peata dikteerimine";
 "ai.composer.dictation.waiting" = "Mikrofoni juurdepääsu ootamine...";
@@ -62,7 +66,7 @@
 "ai.error.requestTooLarge.title" = "Sõnum on liiga suur";
 "ai.error.requestTooLarge.message" = "Tehisintellekti vestlus ei saa korraga nii palju sisu saata. Eemalda mõni manus, vali väiksem fail või foto või jaga päring osadeks ja proovi uuesti.";
 "ai.error.attachmentUnsupported.title" = "Toetamata failitüüp";
-"ai.error.attachmentUnsupported.message" = "Seda failitüüpi tehisintellekti vestlus ei toeta. Eemalda fail või salvesta see vormingus PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX või pildina ja proovi uuesti.";
+"ai.error.attachmentUnsupported.message" = "Seda failitüüpi tehisintellekti vestlus ei toeta. Eemalda fail või salvesta see vormingus PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG või pildina ja proovi uuesti.";
 "ai.error.limitReached" = "Selle kuu tehisintellekti limiit on ära kasutatud. See lähtestatakse järgmise kuu alguses.";
 "ai.error.summary.couldNotContinue" = "Tehisintellekti vastust ei saanud jätkata";
 "ai.error.summary.invalidResponse" = "Saadi vigane tehisintellekti vastus";

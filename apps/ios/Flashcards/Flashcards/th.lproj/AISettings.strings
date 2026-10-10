@@ -50,9 +50,13 @@
 "ai.attachment.error.unsupportedType" = "ไม่รองรับประเภทไฟล์: .%@";
 "ai.attachment.error.cameraUnavailable" = "อุปกรณ์นี้ไม่มีกล้องให้ใช้งาน";
 "ai.attachment.error.photoUnavailable" = "อุปกรณ์นี้ไม่รองรับการเข้าถึงรูปภาพ";
-"ai.attachment.error.fileTooLarge" = "ไฟล์ใหญ่เกินไป ขนาดสูงสุดที่อนุญาตคือ 3 MB";
+"ai.attachment.error.fileTooLarge" = "ไฟล์ใหญ่เกินไป ไฟล์มีขนาดได้สูงสุด 30 MB และรูปภาพสูงสุด 10 MB";
 "ai.attachment.error.imageEncodeFailed" = "เตรียมรูปภาพที่เลือกไม่สำเร็จ";
 "ai.attachment.error.imageDimensionsInvalid" = "อ่านรูปภาพที่เลือกไม่สำเร็จ";
+"ai.attachment.error.tooManyFiles" = "ข้อความหนึ่งมีไฟล์และรูปภาพได้สูงสุด 10 รายการ นำบางรายการออกแล้วลองอีกครั้ง";
+"ai.attachment.error.imagesTooLarge" = "รูปภาพในข้อความเดียวมีขนาดรวมได้สูงสุด 15 MB ส่งบางรูปในข้อความอื่น";
+"ai.attachment.error.unavailable" = "ไฟล์แนบรายการหนึ่งไม่อยู่ในอุปกรณ์นี้แล้ว นำออก แนบอีกครั้ง แล้วลองอีกครั้ง";
+"ai.attachment.error.uploadFailed" = "ไม่สามารถอัปโหลดไฟล์แนบได้ ตรวจสอบการเชื่อมต่อแล้วลองอีกครั้ง";
 "ai.composer.dictation.start" = "เริ่มป้อนตามคำบอก";
 "ai.composer.dictation.stop" = "หยุดป้อนตามคำบอก";
 "ai.composer.dictation.waiting" = "กำลังรอสิทธิ์ใช้ไมโครโฟน...";
@@ -62,7 +66,7 @@
 "ai.error.requestTooLarge.title" = "ข้อความใหญ่เกินไป";
 "ai.error.requestTooLarge.message" = "แชต AI ส่งเนื้อหาปริมาณมากขนาดนี้ในครั้งเดียวไม่ได้ นำไฟล์แนบออก เลือกไฟล์หรือรูปภาพที่เล็กลง หรือแบ่งคำขอแล้วลองอีกครั้ง";
 "ai.error.attachmentUnsupported.title" = "ไม่รองรับประเภทไฟล์";
-"ai.error.attachmentUnsupported.message" = "แชต AI ไม่รองรับไฟล์ประเภทนี้ นำไฟล์ออกหรือบันทึกเป็น PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX หรือรูปภาพ แล้วลองอีกครั้ง";
+"ai.error.attachmentUnsupported.message" = "แชต AI ไม่รองรับไฟล์ประเภทนี้ นำไฟล์ออกหรือบันทึกเป็น PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG หรือรูปภาพ แล้วลองอีกครั้ง";
 "ai.error.limitReached" = "คุณใช้ขีดจำกัด AI ของเดือนนี้หมดแล้ว ขีดจำกัดจะรีเซ็ตในต้นเดือนหน้า";
 "ai.error.summary.couldNotContinue" = "ดำเนินคำตอบ AI ต่อไม่ได้";
 "ai.error.summary.invalidResponse" = "ได้รับคำตอบ AI ที่ไม่ถูกต้อง";

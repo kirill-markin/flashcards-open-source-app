@@ -556,6 +556,7 @@ extension FlashcardsStore {
             decoder: self.decoder,
             workspaceId: self.workspace?.workspaceId
         )
+        removeUnreferencedAIChatAttachmentFiles(userDefaults: self.userDefaults, decoder: self.decoder)
         let ownOpenAIKeyStore = makeOwnOpenAIKeyStore(userDefaults: self.userDefaults)
         let chatService = AIChatService(
             session: URLSession.shared,

@@ -49,6 +49,31 @@ func clearStoredAIChatHistories(userDefaults: UserDefaults) {
     for key in userDefaults.dictionaryRepresentation().keys where key.hasPrefix(aiChatDraftRestoreSuppressionKeyPrefix) {
         userDefaults.removeObject(forKey: key)
     }
+
+    aiChatRemoveAllAttachmentFiles()
+}
+
+/// A draft can drop its staged files without a send: a cancelled send, a draft that no longer decodes. Removes every
+/// file no stored draft of any workspace or session names, so it runs before the chat store can stage a file.
+func removeUnreferencedAIChatAttachmentFiles(userDefaults: UserDefaults, decoder: JSONDecoder) {
+    runAIChatHistoryMigrationCleanupIfNeeded(userDefaults: userDefaults)
+    var referencedAttachmentIds: Set<String> = []
+    for (key, value) in userDefaults.dictionaryRepresentation() where key.hasPrefix(aiChatDraftStorageKeyPrefix) {
+        guard let data = value as? Data else {
+            continue
+        }
+        do {
+            let draft = try decoder.decode(AIChatComposerDraft.self, from: data)
+            for attachment in draft.pendingAttachments {
+                referencedAttachmentIds.insert(attachment.id)
+            }
+        } catch {
+            // `loadDraft` reports and removes an undecodable draft, so its files are not kept for it.
+            continue
+        }
+    }
+
+    aiChatRemoveUnreferencedAttachmentFiles(referencedAttachmentIds: referencedAttachmentIds)
 }
 
 func storeAIChatHistoryStateSynchronously(

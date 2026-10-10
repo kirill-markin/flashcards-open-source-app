@@ -50,9 +50,13 @@
 "ai.attachment.error.unsupportedType" = "Nieobsługiwany typ pliku: .%@";
 "ai.attachment.error.cameraUnavailable" = "Aparat jest niedostępny na tym urządzeniu.";
 "ai.attachment.error.photoUnavailable" = "Dostęp do zdjęć jest niedostępny na tym urządzeniu.";
-"ai.attachment.error.fileTooLarge" = "Plik jest zbyt duży. Maksymalny dozwolony rozmiar to 3 MB.";
+"ai.attachment.error.fileTooLarge" = "Plik jest zbyt duży. Pliki mogą mieć maksymalnie 30 MB, a obrazy maksymalnie 10 MB.";
 "ai.attachment.error.imageEncodeFailed" = "Nie udało się przygotować wybranego zdjęcia.";
 "ai.attachment.error.imageDimensionsInvalid" = "Nie udało się odczytać wybranego zdjęcia.";
+"ai.attachment.error.tooManyFiles" = "Wiadomość może zawierać maksymalnie 10 plików i obrazów. Usuń niektóre z nich i spróbuj ponownie.";
+"ai.attachment.error.imagesTooLarge" = "Obrazy w jednej wiadomości mogą mieć łącznie maksymalnie 15 MB. Wyślij niektóre z nich w innej wiadomości.";
+"ai.attachment.error.unavailable" = "Jednego z załączników nie ma już na tym urządzeniu. Usuń go, dołącz ponownie i spróbuj jeszcze raz.";
+"ai.attachment.error.uploadFailed" = "Nie udało się przesłać załącznika. Sprawdź połączenie i spróbuj ponownie.";
 "ai.composer.dictation.start" = "Rozpocznij dyktowanie";
 "ai.composer.dictation.stop" = "Zatrzymaj dyktowanie";
 "ai.composer.dictation.waiting" = "Oczekiwanie na dostęp do mikrofonu...";
@@ -62,7 +66,7 @@
 "ai.error.requestTooLarge.title" = "Wiadomość jest zbyt duża";
 "ai.error.requestTooLarge.message" = "Czat AI nie może wysłać tyle treści naraz. Usuń co najmniej jeden załącznik, wybierz mniejszy plik lub zdjęcie albo podziel żądanie i spróbuj ponownie.";
 "ai.error.attachmentUnsupported.title" = "Nieobsługiwany typ pliku";
-"ai.error.attachmentUnsupported.message" = "Ten typ pliku nie jest obsługiwany w czacie AI. Usuń plik lub zapisz go jako PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX albo obraz i spróbuj ponownie.";
+"ai.error.attachmentUnsupported.message" = "Ten typ pliku nie jest obsługiwany w czacie AI. Usuń plik lub zapisz go jako PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG albo obraz i spróbuj ponownie.";
 "ai.error.limitReached" = "Limit AI na ten miesiąc został wykorzystany. Zostanie odnowiony na początku następnego miesiąca.";
 "ai.error.summary.couldNotContinue" = "Nie udało się kontynuować odpowiedzi AI";
 "ai.error.summary.invalidResponse" = "Otrzymano nieprawidłową odpowiedź AI";

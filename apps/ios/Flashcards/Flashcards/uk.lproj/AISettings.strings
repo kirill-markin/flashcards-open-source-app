@@ -50,9 +50,13 @@
 "ai.attachment.error.unsupportedType" = "Непідтримуваний тип файлу: .%@";
 "ai.attachment.error.cameraUnavailable" = "Камера недоступна на цьому пристрої.";
 "ai.attachment.error.photoUnavailable" = "Доступ до фото недоступний на цьому пристрої.";
-"ai.attachment.error.fileTooLarge" = "Файл завеликий. Максимальний дозволений розмір — 3 МБ.";
+"ai.attachment.error.fileTooLarge" = "Файл завеликий. Файли можуть бути не більше 30 МБ, зображення — не більше 10 МБ.";
 "ai.attachment.error.imageEncodeFailed" = "Не вдалося підготувати вибране фото.";
 "ai.attachment.error.imageDimensionsInvalid" = "Не вдалося прочитати вибране фото.";
+"ai.attachment.error.tooManyFiles" = "Одне повідомлення може містити не більше 10 файлів і зображень. Приберіть частину з них і спробуйте ще раз.";
+"ai.attachment.error.imagesTooLarge" = "Зображення в одному повідомленні разом можуть займати не більше 15 МБ. Надішліть частину з них в іншому повідомленні.";
+"ai.attachment.error.unavailable" = "Одного з вкладень більше немає на цьому пристрої. Приберіть його, прикріпіть знову й спробуйте ще раз.";
+"ai.attachment.error.uploadFailed" = "Не вдалося надіслати вкладення. Перевірте з’єднання та спробуйте ще раз.";
 "ai.composer.dictation.start" = "Почати диктування";
 "ai.composer.dictation.stop" = "Зупинити диктування";
 "ai.composer.dictation.waiting" = "Очікування доступу до мікрофона...";
@@ -62,7 +66,7 @@
 "ai.error.requestTooLarge.title" = "Повідомлення завелике";
 "ai.error.requestTooLarge.message" = "Чат ШІ не може надіслати стільки вмісту за раз. Приберіть одне чи кілька вкладень, виберіть менший файл або фото чи розділіть запит і спробуйте ще раз.";
 "ai.error.attachmentUnsupported.title" = "Непідтримуваний тип файлу";
-"ai.error.attachmentUnsupported.message" = "Цей тип файлу не підтримується в чаті ШІ. Приберіть файл або збережіть його як PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX чи зображення та спробуйте ще раз.";
+"ai.error.attachmentUnsupported.message" = "Цей тип файлу не підтримується в чаті ШІ. Приберіть файл або збережіть його як PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG чи зображення та спробуйте ще раз.";
 "ai.error.limitReached" = "Ваш ліміт ШІ на цей місяць вичерпано. Він оновиться на початку наступного місяця.";
 "ai.error.summary.couldNotContinue" = "Не вдалося продовжити відповідь ШІ";
 "ai.error.summary.invalidResponse" = "Отримано недійсну відповідь ШІ";

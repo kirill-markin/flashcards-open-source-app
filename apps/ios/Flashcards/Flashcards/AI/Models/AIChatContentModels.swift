@@ -359,7 +359,8 @@ struct AIChatAttachment: Codable, Hashable, Identifiable, Sendable {
     let payload: Payload
 
     enum Payload: Codable, Hashable, Sendable {
-        case binary(fileName: String, mediaType: String, base64Data: String)
+        /// The bytes stay on disk; see `aiChatAttachmentFileURL(attachmentId:)`.
+        case localFile(fileName: String, mediaType: String, sizeBytes: Int)
         case card(AIChatCardReference)
         case unknown(AIChatUnknownAttachmentPayload)
 
@@ -367,7 +368,7 @@ struct AIChatAttachment: Codable, Hashable, Identifiable, Sendable {
             case type
             case fileName
             case mediaType
-            case base64Data
+            case sizeBytes
             case cardId
             case frontText
             case backText
@@ -384,11 +385,11 @@ struct AIChatAttachment: Codable, Hashable, Identifiable, Sendable {
             let type = try container.decode(String.self, forKey: .type)
 
             switch type {
-            case "binary":
-                self = .binary(
+            case "local_file":
+                self = .localFile(
                     fileName: try container.decode(String.self, forKey: .fileName),
                     mediaType: try container.decode(String.self, forKey: .mediaType),
-                    base64Data: try container.decode(String.self, forKey: .base64Data)
+                    sizeBytes: try container.decode(Int.self, forKey: .sizeBytes)
                 )
             case "card":
                 self = .card(
@@ -423,11 +424,11 @@ struct AIChatAttachment: Codable, Hashable, Identifiable, Sendable {
             var container = encoder.container(keyedBy: CodingKeys.self)
 
             switch self {
-            case .binary(let fileName, let mediaType, let base64Data):
-                try container.encode("binary", forKey: .type)
+            case .localFile(let fileName, let mediaType, let sizeBytes):
+                try container.encode("local_file", forKey: .type)
                 try container.encode(fileName, forKey: .fileName)
                 try container.encode(mediaType, forKey: .mediaType)
-                try container.encode(base64Data, forKey: .base64Data)
+                try container.encode(sizeBytes, forKey: .sizeBytes)
             case .card(let card):
                 try container.encode("card", forKey: .type)
                 try container.encode(card.cardId, forKey: .cardId)
@@ -444,7 +445,7 @@ struct AIChatAttachment: Codable, Hashable, Identifiable, Sendable {
     }
 
     var isImage: Bool {
-        guard case .binary(_, let mediaType, _) = self.payload else {
+        guard case .localFile(_, let mediaType, _) = self.payload else {
             return false
         }
 

@@ -3,6 +3,7 @@ import UIKit
 import UniformTypeIdentifiers
 
 private let aiChatCanonicalFileMediaTypesByExtension: [String: String] = [
+    "apkg": "application/apkg",
     "csv": "text/csv",
     "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "html": "text/html",
@@ -19,8 +20,10 @@ private let aiChatCanonicalFileMediaTypesByExtension: [String: String] = [
     "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     "xml": "text/xml",
     "yaml": "application/x-yaml",
-    "yml": "application/x-yaml"
+    "yml": "application/x-yaml",
+    "zip": "application/zip"
 ]
+private let aiChatAttachmentFilesDirectoryName: String = "ai-chat-attachments"
 
 let aiChatAttachmentErrorDomain: String = "AIChatAttachment"
 
@@ -114,16 +117,24 @@ func aiChatMakeAttachmentFromFile(url: URL) throws -> AIChatAttachment {
         }
     }
 
-    let data = try Data(contentsOf: url)
-    try aiChatValidateAttachmentSize(data: data)
+    let sourceByteCount = try aiChatFileByteCount(url: url)
+    try aiChatValidateAttachmentSize(
+        byteCount: sourceByteCount,
+        maximumByteCount: aiChatMaximumFileAttachmentBytes
+    )
     let mediaType = try aiChatCanonicalFileAttachmentMediaType(fileExtension: fileExtension)
+    let attachmentId = UUID().uuidString.lowercased()
+    let fileURL = try aiChatAttachmentFileURL(attachmentId: attachmentId)
+    try FileManager.default.copyItem(at: url, to: fileURL)
+    // The upload declares the size of the copy it sends.
+    let sizeBytes = try aiChatFileByteCount(url: fileURL)
 
     return AIChatAttachment(
-        id: UUID().uuidString.lowercased(),
-        payload: .binary(
+        id: attachmentId,
+        payload: .localFile(
             fileName: url.lastPathComponent,
             mediaType: mediaType,
-            base64Data: data.base64EncodedString()
+            sizeBytes: sizeBytes
         )
     )
 }
@@ -153,15 +164,207 @@ func aiChatMakeImageAttachment(data: Data, fileName: String, mediaType: String) 
         fileName: fileName,
         mediaType: mediaType
     )
-    try aiChatValidateAttachmentSize(data: preparedImage.data)
+    try aiChatValidateAttachmentSize(
+        byteCount: preparedImage.data.count,
+        maximumByteCount: aiChatMaximumImageAttachmentBytes
+    )
+    let attachmentId = UUID().uuidString.lowercased()
+    let fileURL = try aiChatAttachmentFileURL(attachmentId: attachmentId)
+    try preparedImage.data.write(to: fileURL, options: .atomic)
 
     return AIChatAttachment(
-        id: UUID().uuidString.lowercased(),
-        payload: .binary(
+        id: attachmentId,
+        payload: .localFile(
             fileName: preparedImage.fileName,
             mediaType: preparedImage.mediaType,
-            base64Data: preparedImage.data.base64EncodedString()
+            sizeBytes: preparedImage.data.count
         )
+    )
+}
+
+/**
+ * The draft is persisted on every edit, so it names its file and image bytes instead of carrying them.
+ * They stay in the caches directory, which the system may clear while a draft waits; sending then fails
+ * with `AIChatAttachmentUnavailableError`.
+ */
+func aiChatAttachmentFileURL(attachmentId: String) throws -> URL {
+    let directoryURL = try aiChatAttachmentFilesDirectoryURL()
+    try FileManager.default.createDirectory(at: directoryURL, withIntermediateDirectories: true)
+    return directoryURL.appendingPathComponent(attachmentId, isDirectory: false)
+}
+
+private func aiChatAttachmentFilesDirectoryURL() throws -> URL {
+    try FileManager.default.url(
+        for: .cachesDirectory,
+        in: .userDomainMask,
+        appropriateFor: nil,
+        create: true
+    ).appendingPathComponent(aiChatAttachmentFilesDirectoryName, isDirectory: true)
+}
+
+func aiChatExistingAttachmentFileURL(attachmentId: String) throws -> URL {
+    let fileURL = try aiChatAttachmentFileURL(attachmentId: attachmentId)
+    guard FileManager.default.fileExists(atPath: fileURL.path) else {
+        throw AIChatAttachmentUnavailableError(attachmentId: attachmentId)
+    }
+
+    return fileURL
+}
+
+/// For attachments that were sent, refused by the draft, or taken out of it.
+func aiChatRemoveAttachmentFiles(attachments: [AIChatAttachment]) {
+    for attachment in attachments {
+        guard case .localFile = attachment.payload else {
+            continue
+        }
+
+        do {
+            let fileURL = try aiChatAttachmentFileURL(attachmentId: attachment.id)
+            try FileManager.default.removeItem(at: fileURL)
+        } catch {
+            logAIChatStoreEvent(
+                action: "ai_chat_attachment_file_remove_failed",
+                metadata: [
+                    "attachmentId": attachment.id,
+                    "error": Flashcards.errorMessage(error: error)
+                ]
+            )
+        }
+    }
+}
+
+/// For when every draft that could name a staged file is cleared.
+func aiChatRemoveAllAttachmentFiles() {
+    do {
+        let directoryURL = try aiChatAttachmentFilesDirectoryURL()
+        guard FileManager.default.fileExists(atPath: directoryURL.path) else {
+            return
+        }
+        try FileManager.default.removeItem(at: directoryURL)
+    } catch {
+        logAIChatStoreEvent(
+            action: "ai_chat_attachment_files_clear_failed",
+            metadata: [
+                "error": Flashcards.errorMessage(error: error)
+            ]
+        )
+    }
+}
+
+/// `referencedAttachmentIds` must cover the drafts of every workspace and session, or this removes files a draft still names.
+func aiChatRemoveUnreferencedAttachmentFiles(referencedAttachmentIds: Set<String>) {
+    let fileURLs: [URL]
+    do {
+        let directoryURL = try aiChatAttachmentFilesDirectoryURL()
+        guard FileManager.default.fileExists(atPath: directoryURL.path) else {
+            return
+        }
+        fileURLs = try FileManager.default.contentsOfDirectory(
+            at: directoryURL,
+            includingPropertiesForKeys: nil
+        )
+    } catch {
+        logAIChatStoreEvent(
+            action: "ai_chat_attachment_files_sweep_failed",
+            metadata: [
+                "error": Flashcards.errorMessage(error: error)
+            ]
+        )
+        return
+    }
+
+    for fileURL in fileURLs where referencedAttachmentIds.contains(fileURL.lastPathComponent) == false {
+        do {
+            try FileManager.default.removeItem(at: fileURL)
+        } catch {
+            logAIChatStoreEvent(
+                action: "ai_chat_attachment_file_remove_failed",
+                metadata: [
+                    "attachmentId": fileURL.lastPathComponent,
+                    "error": Flashcards.errorMessage(error: error)
+                ]
+            )
+        }
+    }
+}
+
+/// The backend's per-turn limits, checked before any byte is uploaded.
+func validateAIChatOutgoingAttachments(attachments: [AIChatAttachment]) throws {
+    var uploadCount = 0
+    var imageByteCount = 0
+    for attachment in attachments {
+        guard case .localFile(_, _, let sizeBytes) = attachment.payload else {
+            continue
+        }
+
+        uploadCount += 1
+        if attachment.isImage {
+            imageByteCount += sizeBytes
+        }
+    }
+
+    if uploadCount > aiChatMaximumUploadsPerTurn {
+        throw AIChatAttachmentLimitError.tooManyUploads
+    }
+    if imageByteCount > aiChatMaximumTurnImageAttachmentBytes {
+        throw AIChatAttachmentLimitError.imagesTooLarge
+    }
+}
+
+enum AIChatAttachmentLimitError: LocalizedError, Equatable {
+    case tooManyUploads
+    case imagesTooLarge
+
+    var errorDescription: String? {
+        switch self {
+        case .tooManyUploads:
+            return aiChatTooManyUploadsMessage()
+        case .imagesTooLarge:
+            return aiChatTurnImagesTooLargeMessage()
+        }
+    }
+}
+
+struct AIChatAttachmentUnavailableError: LocalizedError, Equatable {
+    let attachmentId: String
+
+    var errorDescription: String? {
+        aiChatAttachmentUnavailableMessage()
+    }
+}
+
+func aiChatAttachmentTooLargeMessage() -> String {
+    aiSettingsLocalized(
+        "ai.attachment.error.fileTooLarge",
+        "File is too large. Files can be at most 30 MB, and images at most 10 MB."
+    )
+}
+
+func aiChatTooManyUploadsMessage() -> String {
+    aiSettingsLocalized(
+        "ai.attachment.error.tooManyFiles",
+        "A message can include at most 10 files and images. Remove some of them, then try again."
+    )
+}
+
+func aiChatTurnImagesTooLargeMessage() -> String {
+    aiSettingsLocalized(
+        "ai.attachment.error.imagesTooLarge",
+        "The images in one message can be at most 15 MB together. Send some of them in another message."
+    )
+}
+
+func aiChatAttachmentUnavailableMessage() -> String {
+    aiSettingsLocalized(
+        "ai.attachment.error.unavailable",
+        "An attachment is no longer on this device. Remove it, attach it again, then try again."
+    )
+}
+
+func aiChatAttachmentUploadFailedMessage() -> String {
+    aiSettingsLocalized(
+        "ai.attachment.error.uploadFailed",
+        "Couldn’t upload an attachment. Check your connection, then try again."
     )
 }
 
@@ -286,19 +489,24 @@ func aiChatIsFilePermissionError(error: Error) -> Bool {
     return false
 }
 
-private func aiChatValidateAttachmentSize(data: Data) throws {
-    if data.count > aiChatMaximumAttachmentBytes {
+private func aiChatValidateAttachmentSize(byteCount: Int, maximumByteCount: Int) throws {
+    if byteCount > maximumByteCount {
         throw NSError(
             domain: aiChatAttachmentErrorDomain,
             code: AIChatAttachmentErrorCode.tooLarge.rawValue,
             userInfo: [
-                NSLocalizedDescriptionKey: aiSettingsLocalized(
-                    "ai.attachment.error.fileTooLarge",
-                    "File is too large. Maximum allowed size is 3 MB."
-                ),
+                NSLocalizedDescriptionKey: aiChatAttachmentTooLargeMessage(),
             ]
         )
     }
+}
+
+private func aiChatFileByteCount(url: URL) throws -> Int {
+    guard let fileSize = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize else {
+        throw CocoaError(.fileReadUnknown, userInfo: [NSURLErrorKey: url])
+    }
+
+    return fileSize
 }
 
 private struct AIChatPreparedImageAttachment {
@@ -327,7 +535,10 @@ private func aiChatPrepareImageAttachmentData(
     mediaType: String
 ) throws -> AIChatPreparedImageAttachment {
     guard let image = UIImage(data: data) else {
-        try aiChatValidateAttachmentSize(data: data)
+        try aiChatValidateAttachmentSize(
+            byteCount: data.count,
+            maximumByteCount: aiChatMaximumImageAttachmentBytes
+        )
         return AIChatPreparedImageAttachment(
             data: data,
             fileName: fileName,
@@ -339,7 +550,7 @@ private func aiChatPrepareImageAttachmentData(
         image: image,
         policy: aiChatDefaultImageCompressionPolicy
     )
-    if compressedData.count <= aiChatMaximumAttachmentBytes {
+    if compressedData.count <= aiChatMaximumImageAttachmentBytes {
         return AIChatPreparedImageAttachment(
             data: compressedData,
             fileName: aiChatJpegFileName(fileName),

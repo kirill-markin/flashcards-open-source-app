@@ -50,9 +50,13 @@
 "ai.attachment.error.unsupportedType" = "പിന്തുണയ്ക്കാത്ത ഫയൽ തരം: .%@";
 "ai.attachment.error.cameraUnavailable" = "ഈ ഉപകരണത്തിൽ ക്യാമറ ലഭ്യമല്ല.";
 "ai.attachment.error.photoUnavailable" = "ഈ ഉപകരണത്തിൽ ഫോട്ടോ ആക്സസ് ലഭ്യമല്ല.";
-"ai.attachment.error.fileTooLarge" = "ഫയൽ വളരെ വലുതാണ്. പരമാവധി അനുവദനീയമായ വലുപ്പം 3 MB ആണ്.";
+"ai.attachment.error.fileTooLarge" = "ഫയൽ വളരെ വലുതാണ്. ഫയലുകൾ പരമാവധി 30 MB-യും ചിത്രങ്ങൾ പരമാവധി 10 MB-യും ആകാം.";
 "ai.attachment.error.imageEncodeFailed" = "തിരഞ്ഞെടുത്ത ഫോട്ടോ തയ്യാറാക്കാനായില്ല.";
 "ai.attachment.error.imageDimensionsInvalid" = "തിരഞ്ഞെടുത്ത ഫോട്ടോ വായിക്കാനായില്ല.";
+"ai.attachment.error.tooManyFiles" = "ഒരു സന്ദേശത്തിൽ പരമാവധി 10 ഫയലുകളും ചിത്രങ്ങളും ഉൾപ്പെടുത്താം. അവയിൽ ചിലത് നീക്കം ചെയ്ത് വീണ്ടും ശ്രമിക്കുക.";
+"ai.attachment.error.imagesTooLarge" = "ഒരു സന്ദേശത്തിലെ ചിത്രങ്ങൾ ആകെ പരമാവധി 15 MB ആകാം. അവയിൽ ചിലത് മറ്റൊരു സന്ദേശത്തിൽ അയയ്ക്കുക.";
+"ai.attachment.error.unavailable" = "ഒരു അറ്റാച്ച്മെന്റ് ഇനി ഈ ഉപകരണത്തിൽ ഇല്ല. അത് നീക്കം ചെയ്ത് വീണ്ടും അറ്റാച്ച് ചെയ്ത ശേഷം വീണ്ടും ശ്രമിക്കുക.";
+"ai.attachment.error.uploadFailed" = "ഒരു അറ്റാച്ച്മെന്റ് അപ്‌ലോഡ് ചെയ്യാനായില്ല. ബന്ധം പരിശോധിച്ച് വീണ്ടും ശ്രമിക്കുക.";
 "ai.composer.dictation.start" = "പറഞ്ഞെഴുത്ത് തുടങ്ങുക";
 "ai.composer.dictation.stop" = "പറഞ്ഞെഴുത്ത് നിർത്തുക";
 "ai.composer.dictation.waiting" = "മൈക്രോഫോൺ അനുമതിക്കായി കാത്തിരിക്കുന്നു...";
@@ -62,7 +66,7 @@
 "ai.error.requestTooLarge.title" = "സന്ദേശം വളരെ വലുതാണ്";
 "ai.error.requestTooLarge.message" = "AI ചാറ്റിന് ഇത്രയും ഉള്ളടക്കം ഒരുമിച്ച് അയയ്ക്കാനാവില്ല. ഒന്നോ അതിലധികമോ അറ്റാച്ച്മെന്റുകൾ നീക്കുക, ചെറിയ ഫയലോ ഫോട്ടോയോ തിരഞ്ഞെടുക്കുക, അല്ലെങ്കിൽ അഭ്യർത്ഥന വിഭജിച്ച് വീണ്ടും ശ്രമിക്കുക.";
 "ai.error.attachmentUnsupported.title" = "പിന്തുണയ്ക്കാത്ത ഫയൽ തരം";
-"ai.error.attachmentUnsupported.message" = "ഈ ഫയൽ തരം AI ചാറ്റിൽ പിന്തുണയ്ക്കുന്നില്ല. ഫയൽ നീക്കുക അല്ലെങ്കിൽ PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX അല്ലെങ്കിൽ ചിത്രമായി സംരക്ഷിച്ച് വീണ്ടും ശ്രമിക്കുക.";
+"ai.error.attachmentUnsupported.message" = "ഈ ഫയൽ തരം AI ചാറ്റിൽ പിന്തുണയ്ക്കുന്നില്ല. ഫയൽ നീക്കുക അല്ലെങ്കിൽ PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG അല്ലെങ്കിൽ ചിത്രമായി സംരക്ഷിച്ച് വീണ്ടും ശ്രമിക്കുക.";
 "ai.error.limitReached" = "ഈ മാസത്തേക്കുള്ള നിങ്ങളുടെ AI പരിധി തീർന്നു. അടുത്ത മാസത്തിന്റെ തുടക്കത്തിൽ ഇത് പുനഃസജ്ജീകരിക്കും.";
 "ai.error.summary.couldNotContinue" = "AI മറുപടി തുടരാനായില്ല";
 "ai.error.summary.invalidResponse" = "അസാധുവായ AI മറുപടി ലഭിച്ചു";
