@@ -91,6 +91,11 @@ export function generatedMediaPromotion(
       },
     },
   }));
+  // Objects of deleted chat files; see apps/backend/src/chatFiles/cleanup.ts.
+  promotionFunction.addToRolePolicy(new iam.PolicyStatement({
+    actions: ["s3:DeleteObject"],
+    resources: [props.mediaAssetsBucket.arnForObjects("chat-files/*")],
+  }));
   props.schedulerRole.addToPolicy(new iam.PolicyStatement({
     actions: ["lambda:InvokeFunction"],
     resources: [promotionFunction.functionArn],
@@ -99,7 +104,7 @@ export function generatedMediaPromotion(
     scope,
     "GeneratedMediaPromotionSchedule",
     {
-      description: "Reconcile generated-media promotions and orphaned permanent blobs",
+      description: "Reconcile generated-media promotions, orphaned permanent blobs and deleted chat files",
       flexibleTimeWindow: { mode: "OFF" },
       name: generatedMediaPromotionScheduleName,
       scheduleExpression: generatedMediaPromotionScheduleExpression,
