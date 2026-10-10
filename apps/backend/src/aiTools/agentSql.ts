@@ -31,7 +31,7 @@ import {
   type AgentSqlSinglePayload,
 } from "./agentSql/shared";
 import { executeSqlMutationStatement } from "./agentSql/singleMutation";
-import { buildInvalidSqlError } from "./sqlErrors";
+import { buildInvalidSqlError, SqlDialectError } from "./sqlErrors";
 import { MAX_SQL_BATCH_STATEMENT_COUNT } from "./toolContract/sqlToolLimits";
 
 export type {
@@ -43,8 +43,11 @@ function parseSingleStatementSql(sql: string): ParsedSqlStatement {
   try {
     return parseSqlStatement(sql);
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw buildInvalidSqlError(message);
+    if (error instanceof SqlDialectError) {
+      throw buildInvalidSqlError(error.message, error.reason);
+    }
+
+    throw error;
   }
 }
 
@@ -52,8 +55,11 @@ function splitStatementSqls(sql: string): ReadonlyArray<string> {
   try {
     return splitSqlStatements(sql);
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw buildInvalidSqlError(message);
+    if (error instanceof SqlDialectError) {
+      throw buildInvalidSqlError(error.message, error.reason);
+    }
+
+    throw error;
   }
 }
 
@@ -62,8 +68,11 @@ function parseBatchStatements(statementSqls: ReadonlyArray<string>): ReadonlyArr
     try {
       return parseSqlStatement(statementSql);
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      throw buildInvalidSqlError(`SQL batch statement ${index + 1} failed: ${message}`);
+      if (error instanceof SqlDialectError) {
+        throw buildInvalidSqlError(`SQL batch statement ${index + 1} failed: ${error.message}`, error.reason);
+      }
+
+      throw error;
     }
   });
 }
@@ -72,11 +81,11 @@ function parseSqlBatch(sql: string): ReadonlyArray<ParsedSqlStatement> {
   const statementSqls = splitStatementSqls(sql);
 
   if (statementSqls.length === 0) {
-    throw buildInvalidSqlError("sql must not be empty");
+    throw buildInvalidSqlError("sql must not be empty", "empty_sql");
   }
 
   if (statementSqls.length > MAX_SQL_BATCH_STATEMENT_COUNT) {
-    throw buildInvalidSqlError(`SQL batch must contain at most ${MAX_SQL_BATCH_STATEMENT_COUNT} statements`);
+    throw buildInvalidSqlError(`SQL batch must contain at most ${MAX_SQL_BATCH_STATEMENT_COUNT} statements`, "batch_too_large");
   }
 
   if (statementSqls.length === 1) {
@@ -150,8 +159,8 @@ function getAgentSqlErrorCode(error: unknown): string | null {
 /**
  * Reads the dialect's reason for a rejection defensively: the first validation
  * issue code carried by the failure, treated as an opaque value. The dialect
- * owns that vocabulary (today it is one constant everywhere, later it will be
- * specific), so nothing here may depend on which values appear.
+ * owns that vocabulary (`SqlDialectReason` in `./sqlErrors`), so nothing here
+ * may depend on which values appear.
  */
 function getAgentSqlDialectReason(error: unknown): string | null {
   if (error instanceof HttpError) {
@@ -269,6 +278,7 @@ function parseSqlQueryBatch(sql: string): ReadonlyArray<AgentSqlReadStatement> {
 
   throw buildInvalidSqlError(
     "sql_query is read-only and accepts only SHOW TABLES, DESCRIBE, SHOW COLUMNS, and SELECT statements. Use sql_execute for INSERT, UPDATE, and DELETE.",
+    "wrong_tool_for_statement",
   );
 }
 
@@ -280,6 +290,7 @@ function parseSqlExecuteBatch(sql: string): ReadonlyArray<AgentSqlMutationStatem
 
   throw buildInvalidSqlError(
     "sql_execute is write-only and accepts only INSERT, UPDATE, and DELETE statements. Use sql_query for SHOW TABLES, DESCRIBE, SHOW COLUMNS, and SELECT.",
+    "wrong_tool_for_statement",
   );
 }
 

@@ -22,8 +22,8 @@ test("buildChatCompletionInput serializes card parts into deterministic XML befo
     },
   ], "Europe/Madrid", true);
 
-  assert.equal(input.length, 2);
-  const userMessage = input[1];
+  assert.equal(input.length, 3);
+  const userMessage = input[2];
   assert.equal(userMessage.type, "message");
   assert.equal(userMessage.role, "user");
   assert.deepEqual(userMessage.content, [
@@ -59,8 +59,8 @@ test("buildChatCompletionInput serializes normalized CSV attachment media type i
     },
   ], "Europe/Madrid", true);
 
-  assert.equal(input.length, 2);
-  const userMessage = input[1];
+  assert.equal(input.length, 3);
+  const userMessage = input[2];
   assert.equal(userMessage.type, "message");
   assert.equal(userMessage.role, "user");
   assert.deepEqual(userMessage.content, [
@@ -82,8 +82,8 @@ test("buildChatCompletionInput serializes normalized XML attachment media type i
     },
   ], "Europe/Madrid", true);
 
-  assert.equal(input.length, 2);
-  const userMessage = input[1];
+  assert.equal(input.length, 3);
+  const userMessage = input[2];
   assert.equal(userMessage.type, "message");
   assert.equal(userMessage.role, "user");
   assert.deepEqual(userMessage.content, [
@@ -115,7 +115,7 @@ test("buildChatCompletionInput normalizes persisted history attachment aliases b
     },
   ], "Europe/Madrid", true);
 
-  assert.equal(input.length, 3);
+  assert.equal(input.length, 4);
   const historyMessage = input[1];
   assert.equal(historyMessage.type, "message");
   assert.equal(historyMessage.role, "user");
