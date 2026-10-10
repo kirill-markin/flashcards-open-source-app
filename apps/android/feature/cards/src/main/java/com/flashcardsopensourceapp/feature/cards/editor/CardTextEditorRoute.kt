@@ -3,18 +3,23 @@ package com.flashcardsopensourceapp.feature.cards.editor
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.AddPhotoAlternate
@@ -161,53 +166,62 @@ fun CardTextEditorRoute(
             )
         }
     ) { innerPadding ->
-        Column(
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(
-                    start = 16.dp,
-                    top = innerPadding.calculateTopPadding() + 16.dp,
-                    end = 16.dp,
-                    bottom = innerPadding.calculateBottomPadding() + 16.dp
-                )
+                .padding(innerPadding)
+                .consumeWindowInsets(innerPadding)
+                .imePadding()
+                .padding(16.dp)
         ) {
-            Text(
-                text = supportingText,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = maxHeight / 2)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Text(
+                        text = supportingText,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
 
-            if (managedImageReferences.isNotEmpty()) {
-                CardEditorManagedImagePreviewStrip(
-                    references = managedImageReferences,
-                    onRemoveManagedImageReference = onRemoveManagedImageReference,
-                    onLoadManagedImageUri = onLoadManagedImageUri
+                    if (managedImageReferences.isNotEmpty()) {
+                        CardEditorManagedImagePreviewStrip(
+                            references = managedImageReferences,
+                            onRemoveManagedImageReference = onRemoveManagedImageReference,
+                            onLoadManagedImageUri = onLoadManagedImageUri
+                        )
+                    }
+                }
+
+                OutlinedTextField(
+                    value = textFieldValue,
+                    onValueChange = { nextValue ->
+                        textFieldValue = nextValue
+                        val nextSelection = cardSelectionFromTextRange(
+                            range = nextValue.selection,
+                            text = nextValue.text
+                        )
+                        if (nextValue.text != text) {
+                            onTextChange(nextValue.text, nextSelection)
+                        } else if (nextSelection != selection) {
+                            onSelectionChange(nextSelection)
+                        }
+                    },
+                    label = {
+                        Text(title)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .testTag(textFieldTag)
                 )
             }
-
-            OutlinedTextField(
-                value = textFieldValue,
-                onValueChange = { nextValue ->
-                    textFieldValue = nextValue
-                    val nextSelection = cardSelectionFromTextRange(
-                        range = nextValue.selection,
-                        text = nextValue.text
-                    )
-                    if (nextValue.text != text) {
-                        onTextChange(nextValue.text, nextSelection)
-                    } else if (nextSelection != selection) {
-                        onSelectionChange(nextSelection)
-                    }
-                },
-                label = {
-                    Text(title)
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .testTag(textFieldTag),
-                minLines = 14
-            )
         }
     }
 }
