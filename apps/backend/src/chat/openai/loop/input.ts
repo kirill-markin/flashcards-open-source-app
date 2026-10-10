@@ -4,7 +4,7 @@
  */
 import type OpenAI from "openai";
 import type { ContentPart, FileContentPart, ImageContentPart } from "../../types";
-import { buildSystemInstructions } from "../../shared";
+import { buildCurrentDatetimeLine, buildSystemInstructions } from "../../shared";
 import { CHAT_HISTORY_REPLAY_TOKEN_BUDGET } from "../../config";
 import { buildCardContextXml } from "../../cardContext";
 import {
@@ -258,6 +258,9 @@ function windowHistoryToTokenBudget(
  * The current turn is never truncated: its estimated tokens are reserved up front
  * and the persisted history is windowed against the remaining budget (clamped at
  * zero) so `history + current turn` stays within `budgetTokens`.
+ *
+ * Nothing before the current-datetime message may depend on the clock: the system prompt and
+ * replayed history are the prompt-cache prefix shared with the session's next turn.
  */
 export async function buildChatCompletionInputWithBudget(
   localMessages: ReadonlyArray<ServerChatMessage>,
@@ -269,7 +272,7 @@ export async function buildChatCompletionInputWithBudget(
   const input: Array<OpenAIInputItem> = [{
     role: "system",
     type: "message",
-    content: buildSystemInstructions(timezone, generatedImageEligible),
+    content: buildSystemInstructions(generatedImageEligible),
   }];
 
   const turnTokens = turnInput.reduce(
@@ -293,6 +296,11 @@ export async function buildChatCompletionInputWithBudget(
     input.push(await buildUserInputMessage(message.content));
   }
 
+  input.push({
+    role: "system",
+    type: "message",
+    content: buildCurrentDatetimeLine(timezone),
+  });
   input.push(await buildUserInputMessage(turnInput));
   return input;
 }
