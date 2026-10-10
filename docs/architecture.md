@@ -256,6 +256,7 @@ All current first-party clients use the backend-owned chat surface:
   - `POST /v1/chat`
   - `DELETE /v1/chat`
   - `POST /v1/chat/stop`
+  - `POST /v1/chat/files/uploads`
   - `POST /v1/chat/transcriptions`
   - `GET /v1/chat/sessions`
   - `POST /v1/chat/sessions/{sessionId}/rename`
@@ -264,6 +265,7 @@ All current first-party clients use the backend-owned chat surface:
 - The backend-owned chat stores canonical sessions, transcript items, and detached run state in Postgres under the `ai` schema.
 - A chat attachment is a file of its session: bytes in the media assets bucket, a row in `ai.chat_files`, and a reference in the transcript; see [`apps/backend/src/chatFiles/`](../apps/backend/src/chatFiles/index.ts).
 - Deleting a chat file row, directly or through a cascade such as account deletion, deletes its object from the bucket shortly after; see [`apps/backend/src/chatFiles/cleanup.ts`](../apps/backend/src/chatFiles/cleanup.ts).
+- Attachment bytes can travel outside the `POST /v1/chat` body: `POST /v1/chat/files/uploads` returns a pre-signed S3 PUT for a staged object, and the turn names it in an `upload` content part; limits, error codes, and ingest live in [`apps/backend/src/chatFiles/uploads.ts`](../apps/backend/src/chatFiles/uploads.ts), request shapes in [`apps/backend/src/chat/http/contract.ts`](../apps/backend/src/chat/http/contract.ts).
 - V2 is intentionally server-owned: the backend owns session ids, run state, transcript history, run execution, cancellation, and recovery behavior.
 - `POST /v1/chat` creates a persisted run and asynchronously dispatches the detached worker.
 - `POST /v1/chat` accepts new turns only for the current (latest) session; older sessions are read-only and answer `409 CHAT_SESSION_NOT_CURRENT`.

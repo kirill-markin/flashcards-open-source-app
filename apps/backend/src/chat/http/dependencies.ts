@@ -4,6 +4,7 @@ import {
   reportHeavyAiUsageWeightedTokens,
   resolveAiUsageAllowanceForEnforcement,
 } from "../../aiUsage";
+import { createChatFileUpload } from "../../chatFiles";
 import { assertGuestPlatformSupportsSurface } from "../../guestAuth/webPlatform";
 import { HttpError } from "../../shared/errors";
 import {
@@ -58,6 +59,7 @@ export type ChatRoutesOptions = Readonly<{
   resolveAiUsageAllowanceForEnforcementFn?: typeof resolveAiUsageAllowanceForEnforcement;
   assertAiUsageAllowanceNotReachedFn?: typeof assertAiUsageAllowanceNotReached;
   reportHeavyAiUsageWeightedTokensFn?: typeof reportHeavyAiUsageWeightedTokens;
+  createChatFileUploadFn?: typeof createChatFileUpload;
 }>;
 
 export type ChatRouteDependencies = Readonly<{
@@ -86,6 +88,7 @@ export type ChatRouteDependencies = Readonly<{
   resolveAiUsageAllowanceForEnforcementFn: typeof resolveAiUsageAllowanceForEnforcement;
   assertAiUsageAllowanceNotReachedFn: typeof assertAiUsageAllowanceNotReached;
   reportHeavyAiUsageWeightedTokensFn: typeof reportHeavyAiUsageWeightedTokens;
+  createChatFileUploadFn: typeof createChatFileUpload;
 }>;
 
 /**
@@ -163,6 +166,7 @@ export function createChatRouteDependencies(options: ChatRoutesOptions): ChatRou
       ?? assertAiUsageAllowanceNotReached,
     reportHeavyAiUsageWeightedTokensFn: options.reportHeavyAiUsageWeightedTokensFn
       ?? reportHeavyAiUsageWeightedTokens,
+    createChatFileUploadFn: options.createChatFileUploadFn ?? createChatFileUpload,
   };
 }
 
