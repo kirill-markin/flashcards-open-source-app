@@ -228,6 +228,24 @@ export type ChatFileUploadOrphanedDetails = Readonly<{
   errorMessage: string | null;
 }>;
 
+type ChatFileObjectDeleteFailureDetails = Readonly<{
+  s3Key: string;
+  errorCode: string;
+}>;
+
+/** One batch of released chat file objects; a failed key keeps its tombstone for the next batch. */
+export type ChatFileCleanupBatchDetails = Readonly<{
+  tombstones: number;
+  deleted: number;
+  failures: ReadonlyArray<ChatFileObjectDeleteFailureDetails>;
+}>;
+
+export type ChatFileCleanupRetryDetails = Readonly<{
+  attempt: number;
+  maxAttempts: number;
+  failures: ReadonlyArray<ChatFileObjectDeleteFailureDetails>;
+}>;
+
 /**
  * The shape of a follow-up composer suggestions response that yielded no suggestions, without any of
  * its text. Field names avoid the sanitizer's content keys (`message`, `output`, `content`), which
@@ -417,6 +435,7 @@ export type ChatBreadcrumbEvent =
   | EventByAction<"chat_replay_encrypted_items_dropped", ChatReplayEncryptedItemsDroppedDetails>
   | EventByAction<"chat_file_legacy_attachments_converted", ChatFileLegacyAttachmentsConvertedDetails>
   | EventByAction<"chat_file_legacy_attachment_kept_as_file", ChatFileLegacyAttachmentKeptAsFileDetails>
+  | EventByAction<"chat_file_cleanup_batch_completed", ChatFileCleanupBatchDetails>
   | EventByAction<"chat_composer_suggestions_declined", ChatComposerSuggestionsResponseDetails>
   | EventByAction<"chat_composer_suggestions_unparseable", ChatComposerSuggestionsResponseDetails>
   | EventByAction<"generated_card_image_provider_complete", GeneratedCardImageProviderDetails>;
@@ -430,6 +449,7 @@ export type ChatWarningEvent =
     message: string;
   }>)
   | (EventByAction<"chat_file_upload_orphaned", ChatFileUploadOrphanedDetails> & Readonly<{ message: string }>)
+  | (EventByAction<"chat_file_cleanup_retry", ChatFileCleanupRetryDetails> & Readonly<{ message: string }>)
   | (EventByAction<"chat_worker_heartbeat_failed", ChatWorkerHeartbeatFailedDetails> & Readonly<{ message: string }>)
   | (EventByAction<"chat_worker_heartbeat_skipped", ChatWorkerHeartbeatSkippedDetails> & Readonly<{ message: string }>)
   | (EventByAction<"chat_worker_heartbeat_timer_lagged", ChatWorkerHeartbeatTimerLaggedDetails> & Readonly<{
@@ -515,4 +535,5 @@ export type ChatExceptionEvent =
   | (EventByAction<"chat_live_request_error", ChatLiveRequestDetails> & Readonly<{ error: Error }>)
   | (EventByAction<"chat_live_stream_crashed", ChatLiveStreamCrashDetails> & Readonly<{ error: Error }>)
   | (EventByAction<"chat_live_poll_failed", ChatLiveLifecycleDetails> & Readonly<{ error: Error }>)
+  | (EventByAction<"chat_file_cleanup_batch_failed", ChatFileCleanupBatchDetails> & Readonly<{ error: Error }>)
   | (EventByAction<"chat_worker_terminal_state_persisted", ChatWorkerTerminalStateDetails> & Readonly<{ error: Error }>);

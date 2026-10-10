@@ -76,10 +76,11 @@ export const boundaryDefinitions = Object.freeze([
   // prepareChatRun past the duplicate-request check, so both moved to 0172: chat/cardImages/operation
   // from 0162, and chat/runs/generatedImageAttemptBudget from 0136, whose entry held nothing else.
   // 0173 adds ai.chat_files, which prepareChatRun writes for every attachment a turn carries, so the
-  // entry moved on to it with the same tests, and 0172's schema keeps no coverage of its own.
+  // entry moved on to it with the same tests, and 0172's schema keeps no coverage of its own. 0174 adds
+  // the triggers that fire on every ai.chat_files delete, so the entry moved on again.
   Object.freeze({
-    migrationFileName: "0173_ai_chat_files.sql",
-    expectedMigrationCount: 175,
+    migrationFileName: "0174_ai_chat_file_deletions.sql",
+    expectedMigrationCount: 176,
     testFiles: Object.freeze([
       "src/chat/cardImages/operation.postgres.integration.ts",
       "src/chat/runs/generatedImageAttemptBudget.postgres.integration.ts",
