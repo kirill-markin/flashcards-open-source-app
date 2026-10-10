@@ -24,7 +24,7 @@ type AuthSentryConfig = Readonly<{
   tracesSampleRate: number;
 }>;
 
-const emailPattern = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
+const emailPattern = /\b[A-Z0-9._%+-]{1,64}@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
 const secretKeyPattern = /otp|token|secret|password|code|authorization|cookie/i;
 const redactedSecretValue = "<redacted>";
 const maskedEmailValue = "<masked-email>";

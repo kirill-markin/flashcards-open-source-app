@@ -90,7 +90,7 @@ const sentryTextMaskPatterns: ReadonlyArray<Readonly<{
   replacement: string;
 }>> = [
   {
-    pattern: /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi,
+    pattern: /\b[A-Z0-9._%+-]{1,64}@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi,
     replacement: "<masked-email>",
   },
   {
