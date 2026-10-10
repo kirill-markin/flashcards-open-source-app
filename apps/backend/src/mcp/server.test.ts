@@ -163,6 +163,7 @@ function createTelemetryChannel(invokedToolNames: Array<string>): McpRequestTele
     recordInvokedTool: (toolName) => {
       invokedToolNames.push(toolName);
     },
+    recordToolOutcome: () => {},
   };
 }
 

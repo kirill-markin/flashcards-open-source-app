@@ -204,11 +204,28 @@ const DEFAULT_MCP_SERVER_DEPENDENCIES: McpServerDependencies = {
  * 2026-07-28 and most live callers are older. A batched request reports each
  * tool it runs, and the entrypoint keeps the last one so it still emits exactly
  * one record.
+ *
+ * `recordToolOutcome` reports, once per handler run, whether the tool answered
+ * with an error result and the code that result carries. A failed tool call is
+ * still a successful JSON-RPC response, so the transport status cannot tell it
+ * apart. Only the code is reported, never the message, which can quote
+ * flashcard content.
  */
 export type McpRequestTelemetryChannel = Readonly<{
   caller: string | null;
   recordInvokedTool: (toolName: string) => void;
+  recordToolOutcome: (outcome: McpToolOutcome) => void;
 }>;
+
+export type McpToolOutcome = Readonly<
+  | { isError: false; errorCode: null }
+  | { isError: true; errorCode: string }
+>;
+
+/** The `error.code` a failed tool call's envelope sends to the client. */
+function getToolErrorCode(error: unknown): string {
+  return error instanceof HttpError ? error.code ?? "REQUEST_FAILED" : "INTERNAL_ERROR";
+}
 
 /**
  * Serializes compactly on purpose: a tool result is read by programs and
@@ -258,9 +275,13 @@ async function buildWorkspaceSelectionDetails(
  * workspaces (with stats) are embedded under `error.details.workspaces` so the
  * model can pick a `workspaceId` and retry the failed tool without a separate
  * list_workspaces round-trip.
+ *
+ * `code` is `getToolErrorCode(error)`, taken once by the handler so the
+ * envelope and the `mcp_request` record cannot disagree.
  */
 async function buildToolErrorResult(
   error: unknown,
+  code: string,
   resourceUrl: string,
   connection: AuthenticatedMcpAccessToken,
   toolName: string,
@@ -310,7 +331,6 @@ async function buildToolErrorResult(
       }
     }
 
-    const code = error.code ?? "REQUEST_FAILED";
     const errorEnvelope = createAgentErrorEnvelope(
       resourceUrl,
       code,
@@ -421,7 +441,7 @@ async function buildToolErrorResult(
     content: buildToolResult(
       createAgentErrorEnvelope(
         resourceUrl,
-        "INTERNAL_ERROR",
+        code,
         "Internal error executing tool",
         createAgentRemediationInstructions("INTERNAL_ERROR", 500, { surface: "mcp", toolName }),
       ),
@@ -548,12 +568,23 @@ export function createMcpServerWithDependencies(
         telemetry.recordInvokedTool(spec.name);
         try {
           const result = await spec.execute(toolContext, rawInput);
-          return {
+          const toolResult: CallToolResult = {
             ...buildToolResult(createAgentEnvelope(resourceUrl, result.data, result.instructions)),
             structuredContent: { data: result.data },
           };
+          telemetry.recordToolOutcome({ isError: false, errorCode: null });
+          return toolResult;
         } catch (error) {
-          return buildToolErrorResult(error, resourceUrl, connection, spec.name, dependencies);
+          const errorCode = getToolErrorCode(error);
+          telemetry.recordToolOutcome({ isError: true, errorCode });
+          return buildToolErrorResult(
+            error,
+            errorCode,
+            resourceUrl,
+            connection,
+            spec.name,
+            dependencies,
+          );
         }
       },
     );

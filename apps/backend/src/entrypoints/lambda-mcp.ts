@@ -25,7 +25,7 @@ import { type Context, Hono } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { authenticateMcpBearerToken } from "../auth/mcpTokens";
-import { createMcpServer } from "../mcp/server";
+import { createMcpServer, type McpToolOutcome } from "../mcp/server";
 import {
   normalizeMcpTelemetryValue,
   readCallToolNameFromRequestBody,
@@ -228,6 +228,8 @@ type McpRequestRecordInput = Readonly<{
   response: Response | null;
   toolName: string | null;
   toolExecuted: boolean | null;
+  toolIsError: boolean | null;
+  toolErrorCode: string | null;
 }>;
 
 /**
@@ -280,6 +282,8 @@ async function emitMcpRequestRecord(input: McpRequestRecordInput): Promise<void>
     jsonRpcMethod: normalizeMcpTelemetryValue(input.request.headers.get("mcp-method")),
     toolName: input.toolName,
     toolExecuted: input.toolExecuted,
+    toolIsError: input.toolIsError,
+    toolErrorCode: input.toolErrorCode,
     statusCode: input.statusCode,
     durationMs,
     responseChars,
@@ -336,6 +340,8 @@ async function handleMcpTransportRequest(
   // Every tool the request runs, in call order. The last one is what the record
   // names, so a batched request still produces exactly one record.
   const invokedToolNames: Array<string> = [];
+  // Every outcome a handler reports, kept and chosen the same way.
+  const toolOutcomes: Array<McpToolOutcome> = [];
   const server = createMcpServer(
     connection,
     getMcpResourceUrl(mcpHost),
@@ -345,6 +351,9 @@ async function handleMcpTransportRequest(
       caller,
       recordInvokedTool: (toolName) => {
         invokedToolNames.push(toolName);
+      },
+      recordToolOutcome: (outcome) => {
+        toolOutcomes.push(outcome);
       },
     },
   );
@@ -357,6 +366,7 @@ async function handleMcpTransportRequest(
   const emitRequestRecord = (statusCode: number, response: Response | null): Promise<void> => {
     const invokedToolName = invokedToolNames.at(-1) ?? null;
     const toolName = invokedToolName ?? bodyToolName ?? headerToolName;
+    const toolOutcome = toolOutcomes.at(-1) ?? null;
     return emitMcpRequestRecord({
       request,
       connection,
@@ -366,6 +376,8 @@ async function handleMcpTransportRequest(
       response,
       toolName,
       toolExecuted: toolName === null ? null : invokedToolName !== null,
+      toolIsError: toolOutcome === null ? null : toolOutcome.isError,
+      toolErrorCode: toolOutcome === null ? null : toolOutcome.errorCode,
     });
   };
 
@@ -477,6 +489,8 @@ function buildMcpRoutes(app: Hono<McpAppEnv>): Hono<McpAppEnv> {
         response,
         toolName: null,
         toolExecuted: null,
+        toolIsError: null,
+        toolErrorCode: null,
       });
 
       return response;

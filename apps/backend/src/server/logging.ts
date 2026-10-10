@@ -305,6 +305,8 @@ export function logMcpRequestEvent(payload: McpRequestLogPayload): void {
     jsonRpcMethod: payload.jsonRpcMethod,
     toolName: payload.toolName,
     toolExecuted: payload.toolExecuted,
+    toolIsError: payload.toolIsError,
+    toolErrorCode: payload.toolErrorCode,
     caller: payload.caller,
     connectionId: payload.connectionId,
     statusCode: payload.statusCode,
