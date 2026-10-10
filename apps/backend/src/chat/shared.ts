@@ -14,6 +14,7 @@ import {
   CARD_WEB_URL_LINES,
   SQL_MUTATION_TAG_FILTER_DESCRIPTION,
 } from "../aiTools/toolContract/sqlToolContract";
+import { maximumBashCommandSeconds } from "../chatSandbox/contract";
 
 function joinLines(lines: ReadonlyArray<string>): string {
   return lines.join("\n");
@@ -167,6 +168,22 @@ function buildReviewLoopSection(): string {
   ]);
 }
 
+/**
+ * How to work in the bash tool's sandbox without flooding the turn: every tool result is re-sent on
+ * each later model call. The 8 MB limit is just-bash's fixed Python file bridge.
+ */
+function buildChatFilesSection(): string {
+  return joinLines([
+    "Chat files:",
+    "- /files holds the files the user attached to this chat and is read-only; /work is your scratch space, kept for this chat across turns.",
+    "- Use the bash tool to inspect and process them: shell tools, python3 with the standard library only, and sqlite3. There is no network.",
+    "- Check a file's size first (wc -c, head), then read slices (sed -n '1,120p', rg -n PATTERN); never print a whole large file.",
+    "- Save intermediate results to /work instead of printing them again.",
+    "- python3 opens files of at most 8 MB: pipe a larger file in on stdin, or cut it into /work with split or head first.",
+    `- A command runs for at most ${maximumBashCommandSeconds} seconds.`,
+  ]);
+}
+
 function buildGeneratedImagePolicySection(): string {
   return joinLines([
     "Generated-image policy:",
@@ -233,6 +250,7 @@ export function buildSystemInstructions(
     buildToolCallRulesSection(),
     buildSqlRoutingSection(),
     buildReviewLoopSection(),
+    buildChatFilesSection(),
     generatedImageEligible ? buildGeneratedImagePolicySection() : "",
     buildRepairSection(),
     "Be concise, direct, and operational.",

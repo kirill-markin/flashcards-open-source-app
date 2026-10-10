@@ -65,6 +65,8 @@ import {
   GENERATED_IMAGE_TOOL_NAME,
   OPENAI_GENERATED_IMAGE_TOOL,
 } from "./generatedImageToolContract";
+import { executeBashToolCall } from "./bashTool";
+import { BASH_TOOL_NAME, OPENAI_BASH_TOOL } from "./bashToolContract";
 import {
   loadAiUsageStatus,
   resolveAiUsageTierForFacts,
@@ -80,6 +82,7 @@ import {
 export type OpenAIToolContext = Readonly<{
   runId: string;
   sessionId: string;
+  toolCallId: string;
   userId: string;
   workspaceId: string;
   claimToken: ChatRunClaimToken;
@@ -538,8 +541,8 @@ export function buildOpenAIChatTools(
   generatedImageEligible: boolean,
 ): ReadonlyArray<OpenAI.Responses.FunctionTool> {
   return generatedImageEligible
-    ? [...OPENAI_CHAT_TOOLS, OPENAI_GENERATED_IMAGE_TOOL]
-    : OPENAI_CHAT_TOOLS;
+    ? [...OPENAI_CHAT_TOOLS, OPENAI_BASH_TOOL, OPENAI_GENERATED_IMAGE_TOOL]
+    : [...OPENAI_CHAT_TOOLS, OPENAI_BASH_TOOL];
 }
 
 type GeneratedImageExecutionState =
@@ -1252,6 +1255,10 @@ export async function executeChatToolCallWithDependencies(
 ): Promise<ExecutedChatToolCall> {
   if (toolName === GENERATED_IMAGE_TOOL_NAME) {
     return executeGeneratedImageToolCall(rawArguments, context, dependencies);
+  }
+
+  if (toolName === BASH_TOOL_NAME) {
+    return executeBashToolCall(rawArguments, context);
   }
 
   return requireChatToolRunner(toolName)(rawArguments, context, dependencies);

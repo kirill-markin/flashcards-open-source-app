@@ -54,6 +54,7 @@ const replicaId = "55555555-5555-4555-8555-555555555555";
 const context: OpenAIToolContext = {
   runId,
   sessionId,
+  toolCallId: "call-1",
   userId: "signed-in-user",
   workspaceId,
   claimToken: "2026-07-24 10:11:12.123456+00",
@@ -232,6 +233,7 @@ test("generated image tool schema is strict and signed-in-only", () => {
     [
       "sql_query", "sql_execute", "list_workspaces", "get_guide",
       "next_review_card", "reveal_answer", "submit_review", "get_usage_limits",
+      "bash",
     ],
   );
   assert.deepEqual(
@@ -239,7 +241,7 @@ test("generated image tool schema is strict and signed-in-only", () => {
     [
       "sql_query", "sql_execute", "list_workspaces", "get_guide",
       "next_review_card", "reveal_answer", "submit_review", "get_usage_limits",
-      "add_generated_image_to_card",
+      "bash", "add_generated_image_to_card",
     ],
   );
 });

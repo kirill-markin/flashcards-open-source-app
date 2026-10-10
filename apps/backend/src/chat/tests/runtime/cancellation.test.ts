@@ -197,6 +197,7 @@ test("generated-image dependency races surface cancellation to the runtime termi
               {
                 runId,
                 sessionId,
+                toolCallId: "call-1",
                 userId: params.userId,
                 workspaceId,
                 claimToken: params.claimToken,

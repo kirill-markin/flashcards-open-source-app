@@ -15,4 +15,14 @@ export {
   type ChatFileCleanupBatchResult,
 } from "./cleanup";
 export { convertLegacyChatSessionAttachments } from "./legacyConversion";
-export { buildChatFileS3Key, getChatFileObjectBytes } from "./storage";
+export {
+  buildChatFileS3Key,
+  createChatFileDownloadUrl,
+  createChatFileUploadUrl,
+  getChatFileObjectBytes,
+} from "./storage";
+export {
+  listChatSessionFiles,
+  recordChatWorkFileChanges,
+  type SavedChatWorkFile,
+} from "./workFiles";
