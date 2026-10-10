@@ -30,12 +30,65 @@ export type InlineAttachmentChatRunRow = Readonly<{
   inline_turn_input: StoredContent | null;
 }>;
 
+export type InsertChatWorkFileParams = Readonly<{
+  fileId: string;
+  sessionId: string;
+  path: string;
+  mediaType: string;
+  sizeBytes: number;
+  sha256: string;
+  s3Key: string;
+}>;
+
+export type ChatSessionFile = Readonly<{
+  path: string;
+  sizeBytes: number;
+  s3Key: string;
+}>;
+
 type ChatFilePathRow = Readonly<{ path: string }>;
+
+type ChatSessionFileRow = Readonly<{
+  path: string;
+  size_bytes: string;
+  s3_key: string;
+}>;
 
 const LIST_CHAT_FILE_PATHS_SQL = `
   SELECT path
   FROM ai.chat_files
   WHERE session_id = $1
+`;
+
+const LIST_CHAT_SESSION_FILES_SQL = `
+  SELECT path, size_bytes, s3_key
+  FROM ai.chat_files
+  WHERE session_id = $1
+    AND user_id = $2
+  ORDER BY path
+`;
+
+const DELETE_CHAT_WORK_FILES_SQL = `
+  DELETE FROM ai.chat_files
+  WHERE session_id = $1
+    AND origin = 'work'
+    AND path = ANY($2::text[])
+`;
+
+const INSERT_CHAT_WORK_FILE_SQL = `
+  INSERT INTO ai.chat_files (
+    file_id,
+    session_id,
+    user_id,
+    workspace_id,
+    path,
+    origin,
+    media_type,
+    size_bytes,
+    sha256,
+    s3_key
+  )
+  VALUES ($1, $2, $3, $4, $5, 'work', $6, $7, $8, $9)
 `;
 
 const INSERT_CHAT_ATTACHMENT_FILE_SQL = `
@@ -122,6 +175,56 @@ export async function listChatFilePathsWithExecutor(
 ): Promise<ReadonlySet<string>> {
   const result = await queryWithScope<ChatFilePathRow>(executor, scope, LIST_CHAT_FILE_PATHS_SQL, [sessionId]);
   return new Set(result.rows.map((row) => row.path));
+}
+
+/** Every file of the session, filtered by its owner as well as by row level security. */
+export async function listChatSessionFilesWithExecutor(
+  executor: DatabaseExecutor,
+  scope: WorkspaceDatabaseScope,
+  sessionId: string,
+): Promise<ReadonlyArray<ChatSessionFile>> {
+  const result = await queryWithScope<ChatSessionFileRow>(
+    executor,
+    scope,
+    LIST_CHAT_SESSION_FILES_SQL,
+    [sessionId, scope.userId],
+  );
+  return result.rows.map((row) => {
+    const sizeBytes = Number(row.size_bytes);
+    if (!Number.isSafeInteger(sizeBytes)) {
+      throw new Error(`Chat file size is not a safe integer. path=${row.path} sizeBytes=${row.size_bytes}`);
+    }
+
+    return { path: row.path, sizeBytes, s3Key: row.s3_key };
+  });
+}
+
+/** Removes rows only: the chat file deletion cleanup removes their objects. */
+export async function deleteChatWorkFilesWithExecutor(
+  executor: DatabaseExecutor,
+  scope: WorkspaceDatabaseScope,
+  sessionId: string,
+  paths: ReadonlyArray<string>,
+): Promise<void> {
+  await queryWithScope(executor, scope, DELETE_CHAT_WORK_FILES_SQL, [sessionId, paths]);
+}
+
+export async function insertChatWorkFileWithExecutor(
+  executor: DatabaseExecutor,
+  scope: WorkspaceDatabaseScope,
+  params: InsertChatWorkFileParams,
+): Promise<void> {
+  await queryWithScope(executor, scope, INSERT_CHAT_WORK_FILE_SQL, [
+    params.fileId,
+    params.sessionId,
+    scope.userId,
+    scope.workspaceId,
+    params.path,
+    params.mediaType,
+    params.sizeBytes,
+    params.sha256,
+    params.s3Key,
+  ]);
 }
 
 export async function insertChatAttachmentFileWithExecutor(
