@@ -4,11 +4,13 @@ import {
 } from "../composerSuggestions";
 import { HttpError } from "../../shared/errors";
 import type { ChatSessionHistoryCursor } from "../store";
-import type { InlineFileContentPart, InlineImageContentPart } from "../types";
+import type { InlineFileContentPart, InlineImageContentPart, UploadContentPart } from "../types";
 import {
+  normalizeChatUploadAttachmentType,
   validateChatFileAttachmentContent,
   validateChatImageAttachmentContent,
 } from "../attachmentPolicy";
+import { assertChatUploadCountPerTurn } from "../../chatFiles";
 import {
   expectNonEmptyString,
   expectRecord,
@@ -46,6 +48,7 @@ export type ChatContentPart =
   | ChatTextContentPart
   | InlineImageContentPart
   | InlineFileContentPart
+  | UploadContentPart
   | ChatCardContentPart
   | ChatToolCallContentPart;
 
@@ -65,6 +68,12 @@ export type ChatRequestBody = Readonly<{
   // pre-uiLocale request shape. Remove once the minimum supported first-party
   // AI client version is greater than 1.5.0.
   uiLocale?: ChatComposerSuggestionsLocale;
+}>;
+
+export type ChatFileUploadRequestBody = Readonly<{
+  fileName: string;
+  mediaType: string;
+  sizeBytes: number;
 }>;
 
 export type NewChatRequestBody = Readonly<{
@@ -227,6 +236,19 @@ function parseChatContentPart(value: unknown, context: string): ChatContentPart 
     };
   }
 
+  if (type === "upload") {
+    const fileName = expectNonEmptyString(body.fileName, `${context}.fileName`);
+    return {
+      type: "upload",
+      uploadId: expectUuidString(body.uploadId, `${context}.uploadId`),
+      fileName,
+      mediaType: normalizeChatUploadAttachmentType(
+        fileName,
+        expectString(body.mediaType, `${context}.mediaType`),
+      ).mediaType,
+    };
+  }
+
   if (type === "card") {
     const tagsValue = body.tags;
     if (!Array.isArray(tagsValue)) {
@@ -269,7 +291,9 @@ function parseChatContentParts(value: unknown, context: string): ReadonlyArray<C
     throw new HttpError(400, `${context} must be a non-empty array`);
   }
 
-  return value.map((part, index) => parseChatContentPart(part, `${context}[${index}]`));
+  const parts = value.map((part, index) => parseChatContentPart(part, `${context}[${index}]`));
+  assertChatUploadCountPerTurn(parts.filter((part) => part.type === "upload").length);
+  return parts;
 }
 
 function parseOptionalWorkspaceIdField(value: unknown): string | undefined {
@@ -309,6 +333,20 @@ export function parseChatRequestBody(value: unknown): ChatRequestBody {
     timezone: expectNonEmptyString(body.timezone, "timezone"),
     workspaceId: parseOptionalWorkspaceIdField(body.workspaceId),
     uiLocale: parseOptionalUiLocale(body.uiLocale, "uiLocale"),
+  };
+}
+
+export function parseChatFileUploadRequestBody(value: unknown): ChatFileUploadRequestBody {
+  const body = expectRecord(value);
+  const sizeBytes = body.sizeBytes;
+  if (typeof sizeBytes !== "number" || !Number.isSafeInteger(sizeBytes) || sizeBytes < 1) {
+    throw new HttpError(400, "sizeBytes must be a positive safe integer");
+  }
+
+  return {
+    fileName: expectNonEmptyString(body.fileName, "fileName"),
+    mediaType: expectString(body.mediaType, "mediaType"),
+    sizeBytes,
   };
 }
 

@@ -8,6 +8,7 @@ import {
   createChatRouteDependencies,
   createGetChatHandler,
   createGetChatSessionsHandler,
+  createPostChatFileUploadHandler,
   createPostChatHandler,
   createPostChatNewHandler,
   createPostChatSessionArchiveHandler,
@@ -36,6 +37,7 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
 
   app.get("/chat", createGetChatHandler(dependencies));
   app.post("/chat", createPostChatHandler(dependencies));
+  app.post("/chat/files/uploads", createPostChatFileUploadHandler(dependencies));
   app.post("/chat/new", createPostChatNewHandler(dependencies));
   app.post("/chat/stop", createPostChatStopHandler(dependencies));
   app.get("/chat/sessions", createGetChatSessionsHandler(dependencies));

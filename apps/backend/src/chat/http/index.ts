@@ -14,6 +14,7 @@ export {
 export {
   createGetChatHandler,
   createGetChatSessionsHandler,
+  createPostChatFileUploadHandler,
   createPostChatHandler,
   createPostChatNewHandler,
   createPostChatSessionArchiveHandler,

@@ -29,6 +29,11 @@ export function mediaAssets(scope: Construct, props: MediaAssetsProps): MediaAss
         expiration: cdk.Duration.days(7),
         abortIncompleteMultipartUploadAfter: cdk.Duration.days(1),
       },
+      {
+        // Chat attachments a client staged; see apps/backend/src/chatFiles/uploads.ts.
+        prefix: "chat-files/uploads/",
+        expiration: cdk.Duration.days(1),
+      },
     ],
     cors: [
       {
