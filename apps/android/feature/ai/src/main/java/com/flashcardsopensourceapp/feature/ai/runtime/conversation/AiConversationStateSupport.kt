@@ -62,14 +62,12 @@ private fun makeAttachmentContentPart(attachment: AiChatAttachment): AiChatConte
             if (attachment.isImage) {
                 AiChatContentPart.Image(
                     fileName = attachment.fileName,
-                    mediaType = attachment.mediaType,
-                    base64Data = attachment.base64Data
+                    mediaType = attachment.mediaType
                 )
             } else {
                 AiChatContentPart.File(
                     fileName = attachment.fileName,
-                    mediaType = attachment.mediaType,
-                    base64Data = attachment.base64Data
+                    mediaType = attachment.mediaType
                 )
             }
         }

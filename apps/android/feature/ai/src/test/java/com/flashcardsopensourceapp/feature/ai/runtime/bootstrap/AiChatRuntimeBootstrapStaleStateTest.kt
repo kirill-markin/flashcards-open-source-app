@@ -32,7 +32,8 @@ class AiChatRuntimeBootstrapStaleStateTest {
             id = "attachment-1",
             fileName = "notes.txt",
             mediaType = "text/plain",
-            base64Data = "ZmlsZQ=="
+            localFilePath = "/missing/ai-chat-attachments/attachment-1",
+            sizeBytes = 4L
         )
         val messages = listOf(
             makeUserMessage(
@@ -107,7 +108,8 @@ class AiChatRuntimeBootstrapStaleStateTest {
             id = "previous-attachment",
             fileName = "previous.txt",
             mediaType = "text/plain",
-            base64Data = "cHJldmlvdXM="
+            localFilePath = "/missing/ai-chat-attachments/previous-attachment",
+            sizeBytes = 4L
         )
         val previousMessages = listOf(
             makeUserMessage(

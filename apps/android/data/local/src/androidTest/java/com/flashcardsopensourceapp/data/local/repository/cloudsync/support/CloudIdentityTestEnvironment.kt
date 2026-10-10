@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.flashcardsopensourceapp.data.local.ai.store.AiChatHistoryStore
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatLiveRemoteService
 import com.flashcardsopensourceapp.data.local.ai.store.AiChatPreferencesStore
+import com.flashcardsopensourceapp.data.local.ai.store.AiChatStagedAttachmentStore
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteService
 import com.flashcardsopensourceapp.data.local.ai.remote.AiCoroutineDispatchers
 import com.flashcardsopensourceapp.data.local.ai.store.GuestAiSessionStore
@@ -93,6 +94,7 @@ internal class CloudIdentityTestEnvironment private constructor(
                 cloudPreferencesStore = cloudPreferencesStore,
                 aiChatPreferencesStore = aiChatPreferencesStore,
                 aiChatHistoryStore = aiChatHistoryStore,
+                aiChatStagedAttachmentStore = AiChatStagedAttachmentStore(context = context),
                 guestAiSessionStore = guestAiSessionStore,
                 ownOpenAiKeyStore = createOwnOpenAiKeyStore(context = context),
                 onLocalWorkspaceRecreated = {}
@@ -151,6 +153,7 @@ internal class CloudIdentityTestEnvironment private constructor(
             cloudPreferencesStore = restartedCloudPreferencesStore,
             aiChatPreferencesStore = restartedAiChatPreferencesStore,
             aiChatHistoryStore = restartedAiChatHistoryStore,
+            aiChatStagedAttachmentStore = AiChatStagedAttachmentStore(context = context),
             guestAiSessionStore = restartedGuestAiSessionStore,
             ownOpenAiKeyStore = createOwnOpenAiKeyStore(context = context),
             onLocalWorkspaceRecreated = {}
@@ -200,6 +203,7 @@ internal class CloudIdentityTestEnvironment private constructor(
             cloudPreferencesStore = restartedCloudPreferencesStore,
             aiChatPreferencesStore = restartedAiChatPreferencesStore,
             aiChatHistoryStore = restartedAiChatHistoryStore,
+            aiChatStagedAttachmentStore = AiChatStagedAttachmentStore(context = context),
             guestAiSessionStore = restartedGuestAiSessionStore,
             ownOpenAiKeyStore = createOwnOpenAiKeyStore(context = context),
             onLocalWorkspaceRecreated = {}

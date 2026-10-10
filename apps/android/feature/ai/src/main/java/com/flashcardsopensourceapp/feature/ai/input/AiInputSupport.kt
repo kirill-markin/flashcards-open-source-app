@@ -8,8 +8,10 @@ import android.net.Uri
 import android.os.Build
 import android.provider.OpenableColumns
 import android.webkit.MimeTypeMap
+import com.flashcardsopensourceapp.data.local.ai.store.AiChatStagedAttachmentStore
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
-import com.flashcardsopensourceapp.data.local.model.ai.aiChatMaximumAttachmentBytes
+import com.flashcardsopensourceapp.data.local.model.ai.aiChatMaximumFileAttachmentBytes
+import com.flashcardsopensourceapp.data.local.model.ai.aiChatMaximumImageAttachmentBytes
 import com.flashcardsopensourceapp.data.local.model.ai.aiChatSupportedFileExtensions
 import com.flashcardsopensourceapp.data.local.model.ai.canonicalAiChatAttachmentMediaTypeForExtension
 import com.flashcardsopensourceapp.data.local.model.ai.makeAiChatAttachment
@@ -20,7 +22,10 @@ import java.io.File
 import java.io.FileNotFoundException
 import java.io.IOException
 import java.io.InputStream
+import java.io.OutputStream
 import java.util.UUID
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 
 private const val cameraAttachmentFileName: String = "photo.jpg"
 private const val cameraAttachmentMediaType: String = "image/jpeg"
@@ -167,6 +172,7 @@ private fun createAiDictationMediaRecorder(context: Context): MediaRecorder {
 }
 
 fun makeAiChatAttachmentFromCameraBitmap(
+    context: Context,
     bitmap: Bitmap,
     textProvider: AiTextProvider
 ): AiChatAttachment {
@@ -183,10 +189,11 @@ fun makeAiChatAttachmentFromCameraBitmap(
         // than by this rethrow.
         throw IllegalArgumentException(error.message).apply { stackTrace = error.stackTrace }
     }
-    return makeAiChatAttachment(
+    return makeStagedAiChatAttachment(
+        context = context,
         fileName = cameraAttachmentFileName,
         mediaType = cameraAttachmentMediaType,
-        base64Data = bytes.base64()
+        bytes = bytes
     )
 }
 
@@ -210,24 +217,20 @@ fun makeAiChatImageAttachmentFromUri(
         textProvider = textProvider
     )
 
-    return makeAiChatAttachment(
+    return makeStagedAiChatAttachment(
+        context = context,
         fileName = jpegFileName(fileName = displayName),
         mediaType = cameraAttachmentMediaType,
-        base64Data = bytes.base64()
+        bytes = bytes
     )
 }
 
-fun makeAiChatDocumentAttachmentFromUri(
+/** Copies up to the file limit, so call it off the main thread; cancelling stops it at the next buffer. */
+suspend fun makeAiChatDocumentAttachmentFromUri(
     context: Context,
     uri: Uri,
     textProvider: AiTextProvider
 ): AiChatAttachment {
-    val bytes = readAiChatDocumentAttachmentBytes(
-        context = context,
-        uri = uri,
-        textProvider = textProvider
-    )
-
     val displayName = queryDisplayName(context = context, uri = uri)
         ?: throw AiAttachmentImportUserException(
             message = textProvider.selectedFileNameUnavailable,
@@ -244,29 +247,73 @@ fun makeAiChatDocumentAttachmentFromUri(
         textProvider = textProvider
     )
     val canonicalMediaType = canonicalAiChatAttachmentMediaTypeForExtension(fileExtension = fileExtension)
+    val stagedFile = stageAiChatDocumentAttachmentFile(
+        context = context,
+        uri = uri,
+        textProvider = textProvider
+    )
 
     return makeAiChatAttachment(
         fileName = displayName,
         mediaType = canonicalMediaType,
-        base64Data = bytes.base64()
+        localFilePath = stagedFile.absolutePath,
+        sizeBytes = stagedFile.length()
     )
 }
 
-private fun readAiChatDocumentAttachmentBytes(
+/**
+ * Drops the staged copies of attachments no turn will send. A copy left behind elsewhere stays in the
+ * app cache, which the OS evicts on its own.
+ */
+fun deleteAiChatAttachmentStagedFiles(attachments: List<AiChatAttachment>) {
+    attachments.filterIsInstance<AiChatAttachment.Binary>().forEach { attachment ->
+        File(attachment.localFilePath).delete()
+    }
+}
+
+/** False once the staged copy is gone, as after an identity reset deletes every staged attachment. */
+fun isAiChatAttachmentStaged(attachment: AiChatAttachment): Boolean {
+    return attachment !is AiChatAttachment.Binary || File(attachment.localFilePath).isFile
+}
+
+private fun makeStagedAiChatAttachment(
+    context: Context,
+    fileName: String,
+    mediaType: String,
+    bytes: ByteArray
+): AiChatAttachment {
+    val stagedFile = AiChatStagedAttachmentStore(context = context).makeFile()
+    stagedFile.writeBytes(bytes)
+    return makeAiChatAttachment(
+        fileName = fileName,
+        mediaType = mediaType,
+        localFilePath = stagedFile.absolutePath,
+        sizeBytes = bytes.size.toLong()
+    )
+}
+
+private suspend fun stageAiChatDocumentAttachmentFile(
     context: Context,
     uri: Uri,
     textProvider: AiTextProvider
-): ByteArray {
+): File {
+    val stagedFile = AiChatStagedAttachmentStore(context = context).makeFile()
+    var didStage = false
     return try {
         context.contentResolver.openInputStream(uri)?.use { inputStream ->
-            readAiChatDocumentAttachmentBytesBounded(
-                inputStream = inputStream,
-                textProvider = textProvider
-            )
+            stagedFile.outputStream().use { outputStream ->
+                copyAiChatDocumentAttachmentBytesBounded(
+                    inputStream = inputStream,
+                    outputStream = outputStream,
+                    textProvider = textProvider
+                )
+            }
         } ?: throw AiAttachmentImportUserException(
             message = textProvider.selectedFileReadFailed,
             cause = null
         )
+        didStage = true
+        stagedFile
     } catch (error: SecurityException) {
         throw error
     } catch (error: FileNotFoundException) {
@@ -279,25 +326,30 @@ private fun readAiChatDocumentAttachmentBytes(
             message = textProvider.selectedFileReadFailed,
             cause = error
         )
+    } finally {
+        if (didStage.not()) {
+            stagedFile.delete()
+        }
     }
 }
 
-/** Stops at the attachment limit so a huge pick fails as too large instead of exhausting the heap. */
-private fun readAiChatDocumentAttachmentBytesBounded(
+/** Stops at the file limit so a huge pick fails as too large instead of filling the cache. */
+private suspend fun copyAiChatDocumentAttachmentBytesBounded(
     inputStream: InputStream,
+    outputStream: OutputStream,
     textProvider: AiTextProvider
-): ByteArray {
-    val outputStream = ByteArrayOutputStream()
+) {
     val buffer = ByteArray(documentAttachmentReadBufferBytes)
-    var totalBytes = 0
+    var totalBytes = 0L
 
     while (true) {
+        currentCoroutineContext().ensureActive()
         val readCount: Int = inputStream.read(buffer)
         if (readCount == -1) {
             break
         }
         totalBytes += readCount
-        if (totalBytes > aiChatMaximumAttachmentBytes) {
+        if (totalBytes > aiChatMaximumFileAttachmentBytes) {
             throw AiAttachmentTooLargeUserException(
                 message = textProvider.attachmentTooLarge,
                 cause = null
@@ -306,7 +358,13 @@ private fun readAiChatDocumentAttachmentBytesBounded(
         outputStream.write(buffer, 0, readCount)
     }
 
-    return outputStream.toByteArray()
+    // The upload endpoint takes only a positive size.
+    if (totalBytes == 0L) {
+        throw AiAttachmentImportUserException(
+            message = textProvider.selectedFileEmpty,
+            cause = null
+        )
+    }
 }
 
 fun aiChatDocumentPickerMimeTypes(): Array<String> {
@@ -366,11 +424,11 @@ private fun resolveFileExtension(
         )
 }
 
-private fun requireAiChatAttachmentSize(
+private fun requireAiChatImageAttachmentSize(
     byteCount: Int,
     textProvider: AiTextProvider
 ) {
-    if (byteCount > aiChatMaximumAttachmentBytes) {
+    if (byteCount > aiChatMaximumImageAttachmentBytes) {
         throw AiAttachmentTooLargeUserException(
             message = textProvider.attachmentTooLarge,
             cause = null
@@ -458,7 +516,7 @@ private fun compressBitmapForAiChatAttachment(
         quality = imageAttachmentCompressionQuality,
         textProvider = textProvider
     )
-    if (bytes.size <= aiChatMaximumAttachmentBytes) {
+    if (bytes.size <= aiChatMaximumImageAttachmentBytes) {
         return bytes
     }
 
@@ -470,7 +528,7 @@ private fun compressBitmapForAiChatAttachment(
         quality = imageAttachmentFallbackCompressionQuality,
         textProvider = textProvider
     )
-    requireAiChatAttachmentSize(
+    requireAiChatImageAttachmentSize(
         byteCount = fallbackBytes.size,
         textProvider = textProvider
     )
@@ -543,8 +601,4 @@ private fun fileExtensionFromMimeType(
     mediaType: String
 ): String? {
     return MimeTypeMap.getSingleton().getExtensionFromMimeType(mediaType)?.trim()?.lowercase()
-}
-
-private fun ByteArray.base64(): String {
-    return android.util.Base64.encodeToString(this, android.util.Base64.NO_WRAP)
 }

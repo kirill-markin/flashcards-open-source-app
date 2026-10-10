@@ -52,6 +52,10 @@ internal class AiChatRuntimeLifecycleCoordinator(
         accessContextLoadGeneration += 1L
         val loadGeneration: Long = accessContextLoadGeneration
         cancelActiveDictation("AI dictation cancelled because access context changed.")
+        context.activeAttachmentImportJob?.cancel(
+            cause = CancellationException("AI attachment import cancelled because access context changed.")
+        )
+        context.activeAttachmentImportJob = null
         context.activeSendJob?.cancel(
             cause = CancellationException("AI send cancelled because access context changed.")
         )

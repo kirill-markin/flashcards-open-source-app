@@ -25,6 +25,7 @@ data class AiUiState(
     val conversationScrollStateKey: String,
     val messages: List<AiChatMessage>,
     val pendingAttachments: List<AiChatAttachment>,
+    val isImportingAttachment: Boolean,
     val draftMessage: String,
     val focusComposerRequestVersion: Long,
     val composerSuggestions: List<AiChatComposerSuggestion>,

@@ -56,6 +56,7 @@ import com.flashcardsopensourceapp.data.local.bootstrap.ensureLocalWorkspaceShel
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatLiveRemoteService
 import com.flashcardsopensourceapp.data.local.ai.store.AiChatHistoryStore
 import com.flashcardsopensourceapp.data.local.ai.store.AiChatPreferencesStore
+import com.flashcardsopensourceapp.data.local.ai.store.AiChatStagedAttachmentStore
 import com.flashcardsopensourceapp.data.local.ai.store.OwnOpenAiKeyStore
 import com.flashcardsopensourceapp.data.local.appicon.AppIcon
 import com.flashcardsopensourceapp.data.local.appicon.AppIconPreferencesStore
@@ -226,6 +227,7 @@ class AppGraph(
     val appIconPreferencesStore = AppIconPreferencesStore(context = context)
     private val ownOpenAiKeyStore = OwnOpenAiKeyStore(context = context, scope = appScope)
     private val aiChatHistoryStore = AiChatHistoryStore(context = context)
+    private val aiChatStagedAttachmentStore = AiChatStagedAttachmentStore(context = context)
     private val guestAiSessionStore = GuestAiSessionStore(context = context)
     private val aiCoroutineDispatchers = AiCoroutineDispatchers(io = Dispatchers.IO)
     private val aiChatLiveRemoteService = AiChatLiveRemoteService(
@@ -367,6 +369,7 @@ class AppGraph(
         cloudPreferencesStore = cloudPreferencesStore,
         aiChatPreferencesStore = aiChatPreferencesStore,
         aiChatHistoryStore = aiChatHistoryStore,
+        aiChatStagedAttachmentStore = aiChatStagedAttachmentStore,
         guestAiSessionStore = guestAiSessionStore,
         ownOpenAiKeyStore = ownOpenAiKeyStore,
         onLocalWorkspaceRecreated = { workspaceId ->
@@ -609,6 +612,7 @@ class AppGraph(
         cloudGuestSessionCoordinator = cloudGuestSessionCoordinator,
         syncRepository = syncRepository,
         aiChatRemoteService = aiChatRemoteService,
+        signedPutUploader = OkHttpSignedPutUploader(okHttpClient = okHttpClient),
         historyStore = aiChatHistoryStore,
         aiChatPreferencesStore = aiChatPreferencesStore,
         ownOpenAiKeyStore = ownOpenAiKeyStore

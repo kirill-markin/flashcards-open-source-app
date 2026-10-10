@@ -89,6 +89,7 @@ internal fun mapToAiUiState(
     val canEditConversation = isComposerBusy.not()
         && isConversationReady
         && runtimeState.dictationState == AiChatDictationState.IDLE
+        && runtimeState.isImportingAttachment.not()
     val canEditDraftText = canEditAiDraftText(state = runtimeState)
     val canEditDraft = canEditAiDraft(state = runtimeState)
     val canManageDraftAttachments = canManageAiDraftAttachments(state = runtimeState)
@@ -112,6 +113,7 @@ internal fun mapToAiUiState(
         conversationScrollStateKey = aiConversationScrollStateKey(runtimeState = runtimeState),
         messages = runtimeState.persistedState.messages,
         pendingAttachments = runtimeState.pendingAttachments,
+        isImportingAttachment = runtimeState.isImportingAttachment,
         draftMessage = runtimeState.draftMessage,
         focusComposerRequestVersion = runtimeState.focusComposerRequestVersion,
         composerSuggestions = composerSuggestions,
@@ -130,7 +132,9 @@ internal fun mapToAiUiState(
         canEditDraftText = canEditDraftText,
         canEditDraft = canEditDraft,
         canManageDraftAttachments = canManageDraftAttachments,
-        canAddDraftAttachment = canManageDraftAttachments && chatConfig.features.attachmentsEnabled,
+        canAddDraftAttachment = canManageDraftAttachments
+            && chatConfig.features.attachmentsEnabled
+            && runtimeState.isImportingAttachment.not(),
         canToggleDictation = canToggleDictation(
             runtimeState = runtimeState,
             chatConfig = chatConfig
@@ -141,6 +145,7 @@ internal fun mapToAiUiState(
             && runtimeState.composerPhase == AiComposerPhase.IDLE
             && hasActiveRun.not()
             && runtimeState.dictationState == AiChatDictationState.IDLE
+            && runtimeState.isImportingAttachment.not()
             && (hasDraftText || hasSendableAttachments),
         canStartNewChat = canEditConversation
             && (hasMessages || hasDraftText || runtimeState.pendingAttachments.isNotEmpty()),
@@ -165,6 +170,7 @@ internal fun makeInitialAiUiState(hasConsent: Boolean, textProvider: AiTextProvi
         conversationScrollStateKey = emptyAiConversationScrollStateKey(),
         messages = emptyList(),
         pendingAttachments = emptyList(),
+        isImportingAttachment = false,
         draftMessage = "",
         focusComposerRequestVersion = 0L,
         composerSuggestions = emptyList(),

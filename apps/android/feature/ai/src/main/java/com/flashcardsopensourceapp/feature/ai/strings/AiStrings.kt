@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.feature.ai.strings
 import android.content.Context
 import com.flashcardsopensourceapp.core.ui.bidiWrap
 import com.flashcardsopensourceapp.core.ui.currentResourceLocale
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachmentLimitViolation
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatToolCallStatus
 import com.flashcardsopensourceapp.feature.ai.R
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiAlertState
@@ -38,6 +39,7 @@ data class AiTextProvider(
     val microphonePermissionUnavailable: String,
     val audioRecordingStartFailed: String,
     val selectedAttachmentCouldNotBeAdded: String,
+    val selectedAttachmentNotAddedChatBusy: String,
     val cameraUnavailableOnDevice: String,
     val microphoneUnavailableOnDevice: String,
     val photoAccessUnavailableOnDevice: String,
@@ -48,10 +50,16 @@ data class AiTextProvider(
     val selectedImageReadFailed: String,
     val selectedItemNotImage: String,
     val selectedFileReadFailed: String,
+    val selectedFileEmpty: String,
     val selectedFileNameUnavailable: String,
     val selectedFileTypeUnsupported: String,
     val selectedFileTypeUnsupportedWithExtensionFormat: String,
     val attachmentTooLarge: String,
+    val attachmentUploadsTooMany: String,
+    val attachmentImagesTooLarge: String,
+    val attachmentUploadFailed: String,
+    val attachmentUploadNotFound: String,
+    val attachmentFileMissing: String,
     val attachmentUnsupportedTitle: String,
     val attachmentUnsupportedMessage: String,
     val requestTooLargeTitle: String,
@@ -115,6 +123,19 @@ data class AiTextProvider(
         return AiAlertState.GeneralError(
             title = requestTooLargeTitle,
             message = requestTooLargeMessage,
+            technicalError = null
+        )
+    }
+
+    /** Titled like [requestTooLargeAlert]: both refuse a turn before anything is sent. */
+    fun attachmentLimitAlert(violation: AiChatAttachmentLimitViolation): AiAlertState {
+        return AiAlertState.GeneralError(
+            title = requestTooLargeTitle,
+            message = when (violation) {
+                AiChatAttachmentLimitViolation.FILE_TOO_LARGE -> attachmentTooLarge
+                AiChatAttachmentLimitViolation.TOO_MANY_UPLOADS -> attachmentUploadsTooMany
+                AiChatAttachmentLimitViolation.IMAGES_TOO_LARGE -> attachmentImagesTooLarge
+            },
             technicalError = null
         )
     }
@@ -261,6 +282,7 @@ fun aiTextProvider(context: Context): AiTextProvider {
         microphonePermissionUnavailable = context.getString(R.string.ai_microphone_permission_unavailable),
         audioRecordingStartFailed = context.getString(R.string.ai_audio_recording_start_failed),
         selectedAttachmentCouldNotBeAdded = context.getString(R.string.ai_selected_attachment_could_not_be_added),
+        selectedAttachmentNotAddedChatBusy = context.getString(R.string.ai_selected_attachment_not_added_chat_busy),
         cameraUnavailableOnDevice = context.getString(R.string.ai_camera_unavailable_on_device),
         microphoneUnavailableOnDevice = context.getString(R.string.ai_microphone_unavailable_on_device),
         photoAccessUnavailableOnDevice = context.getString(R.string.ai_photo_access_unavailable_on_device),
@@ -271,10 +293,16 @@ fun aiTextProvider(context: Context): AiTextProvider {
         selectedImageReadFailed = context.getString(R.string.ai_selected_image_read_failed),
         selectedItemNotImage = context.getString(R.string.ai_selected_item_not_image),
         selectedFileReadFailed = context.getString(R.string.ai_selected_file_read_failed),
+        selectedFileEmpty = context.getString(R.string.ai_selected_file_empty),
         selectedFileNameUnavailable = context.getString(R.string.ai_selected_file_name_unavailable),
         selectedFileTypeUnsupported = context.getString(R.string.ai_selected_file_type_unsupported),
         selectedFileTypeUnsupportedWithExtensionFormat = context.getString(R.string.ai_selected_file_type_unsupported_with_extension),
         attachmentTooLarge = context.getString(R.string.ai_attachment_too_large),
+        attachmentUploadsTooMany = context.getString(R.string.ai_attachment_uploads_too_many),
+        attachmentImagesTooLarge = context.getString(R.string.ai_attachment_images_too_large),
+        attachmentUploadFailed = context.getString(R.string.ai_attachment_upload_failed),
+        attachmentUploadNotFound = context.getString(R.string.ai_attachment_upload_not_found),
+        attachmentFileMissing = context.getString(R.string.ai_attachment_file_missing),
         attachmentUnsupportedTitle = context.getString(R.string.ai_attachment_unsupported_title),
         attachmentUnsupportedMessage = context.getString(R.string.ai_attachment_unsupported_message),
         requestTooLargeTitle = context.getString(R.string.ai_request_too_large_title),
@@ -343,6 +371,7 @@ fun testAiTextProvider(): AiTextProvider {
         microphonePermissionUnavailable = "Microphone permission is unavailable.",
         audioRecordingStartFailed = "Audio recording could not be started.",
         selectedAttachmentCouldNotBeAdded = "The selected attachment could not be added.",
+        selectedAttachmentNotAddedChatBusy = "The selected attachment was not added because the chat was busy. Wait a moment, then attach it again.",
         cameraUnavailableOnDevice = "Camera is not available on this device.",
         microphoneUnavailableOnDevice = "Microphone is not available on this device.",
         photoAccessUnavailableOnDevice = "Photo access is not available on this device.",
@@ -353,12 +382,18 @@ fun testAiTextProvider(): AiTextProvider {
         selectedImageReadFailed = "Selected image could not be read.",
         selectedItemNotImage = "Selected item is not an image.",
         selectedFileReadFailed = "Selected file could not be read.",
+        selectedFileEmpty = "Selected file is empty.",
         selectedFileNameUnavailable = "Selected file name is unavailable.",
         selectedFileTypeUnsupported = "Selected file type is unsupported.",
         selectedFileTypeUnsupportedWithExtensionFormat = "Unsupported file type: .%1\$s",
-        attachmentTooLarge = "File is too large. Maximum allowed size is 3 MB.",
+        attachmentTooLarge = "This file is too large for AI chat. Files can be at most 30 MB, and images at most 10 MB.",
+        attachmentUploadsTooMany = "A message can carry at most 10 attached files. Send some of them in another message.",
+        attachmentImagesTooLarge = "The images attached to one message can be at most 15 MB together. Send some of them in another message.",
+        attachmentUploadFailed = "An attached file could not be uploaded. Check your connection and send the message again.",
+        attachmentUploadNotFound = "An attached file was not found on the server: its upload failed or expired. Send the message again.",
+        attachmentFileMissing = "An attached file is no longer on this device. Remove it, attach it again, then send the message.",
         attachmentUnsupportedTitle = "Unsupported file type",
-        attachmentUnsupportedMessage = "This file type is not supported for AI chat. Remove the file or save it as PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, or an image, then try again.",
+        attachmentUnsupportedMessage = "This file type is not supported for AI chat. Remove the file or save it as PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG, or an image, then try again.",
         requestTooLargeTitle = "Message is too large",
         requestTooLargeMessage = "AI chat can’t send this much content at once. Remove one or more attachments, choose a smaller file or photo, or split the request and try again.",
         serverChatOfficialUnavailable = "AI is temporarily unavailable on the official server. Try again later.",

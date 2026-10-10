@@ -352,13 +352,11 @@ class AiChatHistoryStore(
                 .put("type", "image")
                 .put("fileName", contentPart.fileName)
                 .put("mediaType", contentPart.mediaType)
-                .put("base64Data", contentPart.base64Data)
 
             is AiChatContentPart.File -> JSONObject()
                 .put("type", "file")
                 .put("fileName", contentPart.fileName)
                 .put("mediaType", contentPart.mediaType)
-                .put("base64Data", contentPart.base64Data)
 
             is AiChatContentPart.Card -> JSONObject()
                 .put("type", "card")
@@ -432,14 +430,12 @@ class AiChatHistoryStore(
 
             "image" -> AiChatContentPart.Image(
                 fileName = jsonObject.optString("fileName", "").ifBlank { null },
-                mediaType = jsonObject.getString("mediaType"),
-                base64Data = jsonObject.getString("base64Data")
+                mediaType = jsonObject.getString("mediaType")
             )
 
             "file" -> AiChatContentPart.File(
                 fileName = jsonObject.getString("fileName"),
-                mediaType = jsonObject.getString("mediaType"),
-                base64Data = jsonObject.getString("base64Data")
+                mediaType = jsonObject.getString("mediaType")
             )
 
             "card" -> AiChatContentPart.Card(
@@ -506,7 +502,8 @@ class AiChatHistoryStore(
                 .put("id", attachment.id)
                 .put("fileName", attachment.fileName)
                 .put("mediaType", attachment.mediaType)
-                .put("base64Data", attachment.base64Data)
+                .put("localFilePath", attachment.localFilePath)
+                .put("sizeBytes", attachment.sizeBytes)
 
             is AiChatAttachment.Card -> JSONObject()
                 .put("type", "card")
@@ -536,12 +533,7 @@ class AiChatHistoryStore(
     private fun decodeAttachment(jsonObject: JSONObject): AiChatAttachment {
         val storedType = jsonObject.getString("type")
         return when (storedType) {
-            "binary" -> AiChatAttachment.Binary(
-                id = jsonObject.getString("id"),
-                fileName = jsonObject.getString("fileName"),
-                mediaType = jsonObject.getString("mediaType"),
-                base64Data = jsonObject.getString("base64Data")
-            )
+            "binary" -> decodeBinaryAttachment(jsonObject = jsonObject)
 
             "card" -> AiChatAttachment.Card(
                 id = jsonObject.getString("id"),
@@ -569,6 +561,31 @@ class AiChatHistoryStore(
                 rawPayloadJson = jsonObject.toString()
             )
         }
+    }
+
+    /**
+     * A draft saved before attachments were staged as files holds its bytes inline. It can no longer be
+     * sent, so it comes back as an unsendable chip the person removes and attaches again.
+     */
+    private fun decodeBinaryAttachment(jsonObject: JSONObject): AiChatAttachment {
+        val id = jsonObject.getString("id")
+        val fileName = jsonObject.getString("fileName")
+        if (jsonObject.has("localFilePath").not()) {
+            return AiChatAttachment.Unknown(
+                id = id,
+                originalType = "binary",
+                summaryText = fileName,
+                rawPayloadJson = null
+            )
+        }
+
+        return AiChatAttachment.Binary(
+            id = id,
+            fileName = fileName,
+            mediaType = jsonObject.getString("mediaType"),
+            localFilePath = jsonObject.getString("localFilePath"),
+            sizeBytes = jsonObject.getLong("sizeBytes")
+        )
     }
 
     private fun decodeUnknownContentPart(
