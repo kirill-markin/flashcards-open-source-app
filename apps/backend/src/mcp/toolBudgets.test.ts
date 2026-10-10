@@ -77,6 +77,9 @@ const UNREACHED_TELEMETRY: McpRequestTelemetryChannel = {
   recordInvokedTool: () => {
     throw new Error("Unexpected tool invocation during a metadata-only listing");
   },
+  recordToolOutcome: () => {
+    throw new Error("Unexpected tool outcome during a metadata-only listing");
+  },
 };
 
 /** JSON-schema keywords whose value is a map of name to sub-schema. */
