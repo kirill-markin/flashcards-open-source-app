@@ -20,6 +20,38 @@ is no network fetch of replacement screenshots and no generated app UI. See the
 [processor README](../scripts/store-screenshots/README.md) for setup, selection,
 paths, manual GitHub Actions dispatch and regeneration commands.
 
+## Tracked approved delivery
+
+The finished output directories are ordinary Git files, alongside the independent
+processor and its canonical design assets. The approved inventory is:
+
+| Directory | Cards | Store status |
+| --- | --- | --- |
+| `apps/ios/docs/media/app-store-cards/ready/iphone/` | 210 | Uploaded to App Store Connect |
+| `apps/ios/docs/media/app-store-cards/ready/ipad/` | 210 | Prepared; existing store iPad screenshots unchanged |
+| `apps/ios/docs/media/app-store-cards/additional-languages/iphone/` | 40 | Prepared; these languages have no separate App Store listing |
+| `apps/android/docs/media/play-store-cards/ready/*/phoneScreenshots/` | 255 | Uploaded to Google Play, including Zulu |
+
+These 715 PNGs retain the exact approved delivery bytes. Their original
+`export-manifest.json` records output SHA-256 hashes and rendering measurements;
+`source-manifest.json` pins the native-source Git blobs to public app revision
+`8ad37887e71cb946a6697a9ad657ef0ab61ce6bd`. That revision records the original
+source package, not a new capture or the processor transfer commit. The source
+blobs match the saved native captures in this repository. Original font audits,
+verification files and gallery/overview PNGs are retained with the delivery.
+
+The processor owns reusable backgrounds, copy, locale maps and image-generation
+provenance under `scripts/store-screenshots/assets/`; output folders do not carry
+redundant copies. Android gallery feature-graphic links point at the canonical
+`play-store-feature-graphic/` files. Its package summary counts linked banners,
+not extra banner files in `ready/`.
+
+Use the [manual refresh procedure](../scripts/store-screenshots/README.md#manual-refresh-after-native-capture)
+to render candidates in cloud, review them, and commit approved replacements.
+Cloud checks render current tracked native sources into temporary output and do
+not replace approved files. Require **Format existing native captures** to pass
+before merge. Store upload remains separately authorized.
+
 ## Approved five-card contract
 
 | Output card | Role | Native screenshot index | English heading | English caption |
@@ -107,9 +139,9 @@ The transfer contains 50 iOS capture tags (49 languages, with two Spanish region
 and 51 Android listing variants (49 languages, with three Spanish regions).
 The iOS mapping separates 42 listing locales from eight iPhone-only non-Store
 languages. Android uses `en` as the raw capture prefix for listing `en-US` and
-retains the app's existing exact Play listing codes. Zulu assets have
-`consoleAvailability: unverified`, because Zulu is absent from Google's published
-listing-language list; the gallery retains that distinction.
+retains the app's existing exact Play listing codes. Zulu availability was verified
+in this app's Play Console during the phone upload; its mapping and gallery use
+`consoleAvailability: verified-in-play-console`.
 
 LLM work is **authoring only**, outside the renderer:
 

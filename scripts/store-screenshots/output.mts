@@ -30,11 +30,18 @@ export async function requireResolvedSeparation(input: string, output: string): 
   }
 }
 
-export async function previousResults<T extends { path: string }>(manifestPath: string): Promise<T[]> {
+export async function previousResults<T extends { path: string; inputRoot: string | null; sourceRevision: string }>(manifestPath: string): Promise<T[]> {
   try {
-    const manifest: { results: T[] } = JSON.parse(await readFile(manifestPath, "utf8"));
+    const manifest: { inputRoot?: string; sourceRevision: string; results: T[] } = JSON.parse(await readFile(manifestPath, "utf8"));
     if (!Array.isArray(manifest.results)) throw new Error(`Invalid existing export manifest: ${manifestPath}`);
-    return manifest.results;
+    return manifest.results.map(file => {
+      const inputRoot = file.inputRoot === undefined ? manifest.inputRoot ?? null : file.inputRoot;
+      const sourceRevision = file.sourceRevision === undefined ? manifest.sourceRevision : file.sourceRevision;
+      if ((inputRoot !== null && (typeof inputRoot !== "string" || !inputRoot.trim())) || typeof sourceRevision !== "string" || !sourceRevision.trim()) {
+        throw new Error(`Invalid existing source provenance for ${file.path} in ${manifestPath}: expected an inputRoot string or null and a sourceRevision string.`);
+      }
+      return { ...file, inputRoot, sourceRevision };
+    });
   } catch (error) {
     if (error instanceof Error && "code" in error && error.code === "ENOENT") return [];
     throw error;

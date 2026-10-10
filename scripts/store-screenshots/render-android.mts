@@ -19,6 +19,7 @@ type Audit = {
 };
 type Result = {
   path: string; imageType: "phoneScreenshots"; storeLocale: string; capturePrefix: string; copyTag: string; card: number;
+  inputRoot: string | null; sourceRevision: string;
   heading: string; caption: string; source: string; sourceSha256: string; sha256: string; width: number; height: number; audit: Audit;
 };
 
@@ -161,7 +162,7 @@ try {
       if (metadata.width !== width || metadata.height !== height || metadata.hasAlpha || metadata.channels !== 3) throw new Error(`Invalid Google Play RGB PNG: ${tag}/${card}`);
       await mkdir(dirname(join(staging!, path)), { recursive: true });
       await writeFile(join(staging!, path), opaque);
-      results.push({ path, imageType: "phoneScreenshots", storeLocale: tag, capturePrefix: locale.capturePrefix, copyTag: locale.copyTag, card,
+      results.push({ path, imageType: "phoneScreenshots", storeLocale: tag, capturePrefix: locale.capturePrefix, copyTag: locale.copyTag, card, inputRoot, sourceRevision,
         heading: copy[tag][card - 1][0], caption: copy[tag][card - 1][1], source, sourceSha256: createHash("sha256").update(raw).digest("hex"), width, height,
         sha256: createHash("sha256").update(opaque).digest("hex"), audit });
     }
@@ -173,7 +174,7 @@ try {
       await mkdir(dirname(join(root, file.path)), { recursive: true });
       await copyFile(join(staging!, file.path), join(root, file.path));
     }
-    await writeFile(join(root, "export-manifest.json"), JSON.stringify({ generatedAt: new Date().toISOString(), sourceRevision, inputRoot: "apps/android/docs/media/play-store-screenshots", results: mergeResults(previous, results), fontAudit, overflows }, null, 2) + "\n");
+    await writeFile(join(root, "export-manifest.json"), JSON.stringify({ generatedAt: new Date().toISOString(), sourceRevision, inputRoot, results: mergeResults(previous, results), fontAudit, overflows }, null, 2) + "\n");
   }
   console.log(`Verified ${values["check-layout"] ? "layout" : `${results.length} opaque 1080 × 1920 PNGs`}; ${overflows.length} layout errors.`);
   if (overflows.length) process.exitCode = 1;

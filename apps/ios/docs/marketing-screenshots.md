@@ -278,6 +278,10 @@ XCUITest, guest cleanup, this horizontal builder, or store upload:
 npm run render --prefix scripts/store-screenshots -- --platform ios
 ```
 
+Approved portrait outputs in `app-store-cards/` are tracked Git files. For the
+finished inventory, upload status and reviewed refresh procedure, use the
+[processing guide](../../../docs/store-screenshot-processing.md#tracked-approved-delivery).
+
 Install the processor dependencies once using its
 [README](../../../scripts/store-screenshots/README.md). Native capture and portrait
 card processing are separate commands; run capture first only when new original

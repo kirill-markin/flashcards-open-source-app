@@ -1,0 +1,1536 @@
+{
+  "repository": "kirill-markin/flashcards-open-source-app",
+  "revision": "8ad37887e71cb946a6697a9ad657ef0ab61ce6bd",
+  "files": [
+    {
+      "path": "play-store-feature-graphic/ar-feature-graphic.png",
+      "gitBlob": "4a8abd7a447e9a6549451cb1ef0c2595aa5ea45b",
+      "bytes": 300787
+    },
+    {
+      "path": "play-store-feature-graphic/bg-feature-graphic.png",
+      "gitBlob": "561182c521434076553632c26816e433461dd016",
+      "bytes": 173185
+    },
+    {
+      "path": "play-store-feature-graphic/bn-BD-feature-graphic.png",
+      "gitBlob": "5cb2d68c9b3a7eb80d7349b483c1d7943532b70b",
+      "bytes": 157977
+    },
+    {
+      "path": "play-store-feature-graphic/ca-feature-graphic.png",
+      "gitBlob": "1f1b5526b5877329452bd6172e86b1a7c4c5bb11",
+      "bytes": 170285
+    },
+    {
+      "path": "play-store-feature-graphic/cs-CZ-feature-graphic.png",
+      "gitBlob": "6fa94bee7ebb0f673cf8962b38991053098c6641",
+      "bytes": 169159
+    },
+    {
+      "path": "play-store-feature-graphic/da-DK-feature-graphic.png",
+      "gitBlob": "bc549cea8cd7684d00a3ebfb0a437cb06fb8369e",
+      "bytes": 165458
+    },
+    {
+      "path": "play-store-feature-graphic/de-DE-feature-graphic.png",
+      "gitBlob": "2e448a965e50b768c09095bdf9cd14f82ad47047",
+      "bytes": 294819
+    },
+    {
+      "path": "play-store-feature-graphic/el-GR-feature-graphic.png",
+      "gitBlob": "3a9f623836c5e8c0cc0b384869b4ebb2e11b6ab7",
+      "bytes": 176711
+    },
+    {
+      "path": "play-store-feature-graphic/en-US-feature-graphic.png",
+      "gitBlob": "bdc7835848bd57b844b872f682d7f9eab3d875b5",
+      "bytes": 295009
+    },
+    {
+      "path": "play-store-feature-graphic/es-419-feature-graphic.png",
+      "gitBlob": "a4ffbe89cf0726feda9d7655196f5c371e08d257",
+      "bytes": 295188
+    },
+    {
+      "path": "play-store-feature-graphic/es-ES-feature-graphic.png",
+      "gitBlob": "63a191b75cdae5ee7d4329777aed9a50bc10a156",
+      "bytes": 294891
+    },
+    {
+      "path": "play-store-feature-graphic/es-US-feature-graphic.png",
+      "gitBlob": "a4ffbe89cf0726feda9d7655196f5c371e08d257",
+      "bytes": 295188
+    },
+    {
+      "path": "play-store-feature-graphic/et-feature-graphic.png",
+      "gitBlob": "93806aa4c9ee9e62a2648ca89bf23b0a6f7135c6",
+      "bytes": 177835
+    },
+    {
+      "path": "play-store-feature-graphic/fa-feature-graphic.png",
+      "gitBlob": "f67747208a99cedb96fc89d96cb8a4659a8cd9c5",
+      "bytes": 192589
+    },
+    {
+      "path": "play-store-feature-graphic/fi-FI-feature-graphic.png",
+      "gitBlob": "06fc12466c73f57a11a66b0bb4b5501e391f2b32",
+      "bytes": 182451
+    },
+    {
+      "path": "play-store-feature-graphic/fr-FR-feature-graphic.png",
+      "gitBlob": "e00dc2b18b2e681f1aac96627e7f5767a084726a",
+      "bytes": 296441
+    },
+    {
+      "path": "play-store-feature-graphic/gu-feature-graphic.png",
+      "gitBlob": "c3fa8acc2b7015b6989ec811a8242e3d96cec91a",
+      "bytes": 163746
+    },
+    {
+      "path": "play-store-feature-graphic/hi-IN-feature-graphic.png",
+      "gitBlob": "f36c65183d84f01bd75dd070f8ac93394f7ca4ba",
+      "bytes": 279161
+    },
+    {
+      "path": "play-store-feature-graphic/hr-feature-graphic.png",
+      "gitBlob": "1ea3cf0c16493cce568c7da6f3eb5b83a0f21dca",
+      "bytes": 165246
+    },
+    {
+      "path": "play-store-feature-graphic/hu-HU-feature-graphic.png",
+      "gitBlob": "3cc00f124911de5a455f215a1135b6684d5700fa",
+      "bytes": 183413
+    },
+    {
+      "path": "play-store-feature-graphic/id-feature-graphic.png",
+      "gitBlob": "1aec93cc7d5c35aa0850a9a55a7b143a408c459a",
+      "bytes": 181389
+    },
+    {
+      "path": "play-store-feature-graphic/is-IS-feature-graphic.png",
+      "gitBlob": "ccafc0a771d04b0892a22547e837bbcf2b7ace9d",
+      "bytes": 170298
+    },
+    {
+      "path": "play-store-feature-graphic/it-IT-feature-graphic.png",
+      "gitBlob": "e9c8d260152958ef49d3c8b7f4d3e007fc02b5af",
+      "bytes": 178519
+    },
+    {
+      "path": "play-store-feature-graphic/iw-IL-feature-graphic.png",
+      "gitBlob": "09422b787cb1de9c31385e28e2db425b25164cb6",
+      "bytes": 153256
+    },
+    {
+      "path": "play-store-feature-graphic/ja-JP-feature-graphic.png",
+      "gitBlob": "3808453625a45c21f16cdb5236ff5f105539b46b",
+      "bytes": 298244
+    },
+    {
+      "path": "play-store-feature-graphic/kn-IN-feature-graphic.png",
+      "gitBlob": "b9873637425a8dac0579bc2bc2365f32f312f44d",
+      "bytes": 172961
+    },
+    {
+      "path": "play-store-feature-graphic/ko-KR-feature-graphic.png",
+      "gitBlob": "7685b10f91c58b23542e67966330f173dc9afb39",
+      "bytes": 153826
+    },
+    {
+      "path": "play-store-feature-graphic/lt-feature-graphic.png",
+      "gitBlob": "9f50c20d9c8928d21b3d5339561ecfb915edf48d",
+      "bytes": 172249
+    },
+    {
+      "path": "play-store-feature-graphic/lv-feature-graphic.png",
+      "gitBlob": "62e6483b73cc51561abb58cc54e50e146d047c31",
+      "bytes": 166600
+    },
+    {
+      "path": "play-store-feature-graphic/ml-IN-feature-graphic.png",
+      "gitBlob": "5ca39c1995b83aaf487e3651e1b9c7d61e3cdb51",
+      "bytes": 180134
+    },
+    {
+      "path": "play-store-feature-graphic/mr-IN-feature-graphic.png",
+      "gitBlob": "b0df79fdc66a9c1be837fccd3f66cdaea8f41cbf",
+      "bytes": 157398
+    },
+    {
+      "path": "play-store-feature-graphic/nl-NL-feature-graphic.png",
+      "gitBlob": "fa6ee39e165064abac638f32c1961f1e1ec46de8",
+      "bytes": 172049
+    },
+    {
+      "path": "play-store-feature-graphic/no-NO-feature-graphic.png",
+      "gitBlob": "e761f2a7d9d9c31dd4df9781508506acd5f1877e",
+      "bytes": 169010
+    },
+    {
+      "path": "play-store-feature-graphic/pa-feature-graphic.png",
+      "gitBlob": "503d8b7421b58a12ea900592558bfc75a3b246c3",
+      "bytes": 147767
+    },
+    {
+      "path": "play-store-feature-graphic/pl-PL-feature-graphic.png",
+      "gitBlob": "90f026fd789b1c0d676c7e5224789870b87c985d",
+      "bytes": 159486
+    },
+    {
+      "path": "play-store-feature-graphic/pt-BR-feature-graphic.png",
+      "gitBlob": "ed4adf3e1a100164cf40cf15b230268a0abc6f93",
+      "bytes": 295295
+    },
+    {
+      "path": "play-store-feature-graphic/ro-feature-graphic.png",
+      "gitBlob": "c8b122c278a33303b539313ab71d3373d46efba6",
+      "bytes": 167431
+    },
+    {
+      "path": "play-store-feature-graphic/ru-RU-feature-graphic.png",
+      "gitBlob": "c342ebcbeba1ba32f12e4f1113f58d9b28ddad80",
+      "bytes": 299175
+    },
+    {
+      "path": "play-store-feature-graphic/sk-feature-graphic.png",
+      "gitBlob": "f238db183e90f2cc0b05055f380abcb974a4ccc6",
+      "bytes": 169405
+    },
+    {
+      "path": "play-store-feature-graphic/sl-feature-graphic.png",
+      "gitBlob": "c138e8f3fece41b65d211094eaeb97fb1fff0969",
+      "bytes": 167625
+    },
+    {
+      "path": "play-store-feature-graphic/sv-SE-feature-graphic.png",
+      "gitBlob": "4ba4c355f6426684ea73bc9d561c4987c052f3e0",
+      "bytes": 177066
+    },
+    {
+      "path": "play-store-feature-graphic/sw-feature-graphic.png",
+      "gitBlob": "b0edd8dcab143b98719d8ba5e2020a9aa1eb7fb0",
+      "bytes": 167128
+    },
+    {
+      "path": "play-store-feature-graphic/ta-IN-feature-graphic.png",
+      "gitBlob": "177cae32bb1443591ab031090e9a5be6d7c59b9d",
+      "bytes": 175033
+    },
+    {
+      "path": "play-store-feature-graphic/te-IN-feature-graphic.png",
+      "gitBlob": "1d5feb4d1fc1f82ef6c6dc1f3dbfe7519e1e604d",
+      "bytes": 195704
+    },
+    {
+      "path": "play-store-feature-graphic/th-feature-graphic.png",
+      "gitBlob": "e6991fe5fe9b46ab80099d9a74e718c444ad49ab",
+      "bytes": 158072
+    },
+    {
+      "path": "play-store-feature-graphic/tr-TR-feature-graphic.png",
+      "gitBlob": "9a6e4c440a21d170e14d551dd888ddc85f5847ad",
+      "bytes": 180009
+    },
+    {
+      "path": "play-store-feature-graphic/uk-feature-graphic.png",
+      "gitBlob": "5983d5ed8b32e7ff45a92e204319ca3211cae5b4",
+      "bytes": 168731
+    },
+    {
+      "path": "play-store-feature-graphic/ur-feature-graphic.png",
+      "gitBlob": "dd0904d9b39c789cdc564ad79e2dc6bb84e34dc2",
+      "bytes": 163234
+    },
+    {
+      "path": "play-store-feature-graphic/vi-feature-graphic.png",
+      "gitBlob": "6af9d9faf456e58339d7acd6b9309b22ebd0ce1c",
+      "bytes": 179032
+    },
+    {
+      "path": "play-store-feature-graphic/zh-CN-feature-graphic.png",
+      "gitBlob": "6f74d9362e100778dbe0000df90b4f69e2eb8a27",
+      "bytes": 286553
+    },
+    {
+      "path": "play-store-feature-graphic/zu-feature-graphic.png",
+      "gitBlob": "37d3dc485e0a10570d8b3048b35ea5e03d828c1b",
+      "bytes": 183488
+    },
+    {
+      "path": "play-store-screenshots/ar-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "6319c4c931c696b2a83c4c8adbaa79fbd4dca9ed",
+      "bytes": 108481
+    },
+    {
+      "path": "play-store-screenshots/ar-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "89ba9d8d8a680b0785affa1d564844fb8175c721",
+      "bytes": 214728
+    },
+    {
+      "path": "play-store-screenshots/ar-3_progress-google-play-study-history.png",
+      "gitBlob": "0584175e1eff15bddaab3ffe03e6e45f22805b30",
+      "bytes": 165769
+    },
+    {
+      "path": "play-store-screenshots/ar-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "16defe827c7fe51df7fc7ba33e839ab9a256bcda",
+      "bytes": 143013
+    },
+    {
+      "path": "play-store-screenshots/ar-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "f068ca6cae939397a577aea4b0b45abc730ee66c",
+      "bytes": 212095
+    },
+    {
+      "path": "play-store-screenshots/bg-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "213012bd413800c6b1c5034245611f1c126093fd",
+      "bytes": 100948
+    },
+    {
+      "path": "play-store-screenshots/bg-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "179ad6a3a0b83ba374c1ff359a7de9ccace87c3f",
+      "bytes": 204104
+    },
+    {
+      "path": "play-store-screenshots/bg-3_progress-google-play-study-history.png",
+      "gitBlob": "f476696c6497663d7412636e07407ea7a3f73e11",
+      "bytes": 170843
+    },
+    {
+      "path": "play-store-screenshots/bg-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "b9b8508991cbbd9fb736aa63e97ee725242e158c",
+      "bytes": 117777
+    },
+    {
+      "path": "play-store-screenshots/bg-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "2d4d7580946003b6248e523706a0b38513279b19",
+      "bytes": 190265
+    },
+    {
+      "path": "play-store-screenshots/bn-BD-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "e114c1f2fd70069abd64e1db13d9a381499ea6c9",
+      "bytes": 117877
+    },
+    {
+      "path": "play-store-screenshots/bn-BD-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "59d7d132ccbe635b48e2b8f9030ec4cb3b789c84",
+      "bytes": 222305
+    },
+    {
+      "path": "play-store-screenshots/bn-BD-3_progress-google-play-study-history.png",
+      "gitBlob": "187ac252846a4b19a8e2d97cbc267a01d7a8dd5b",
+      "bytes": 184978
+    },
+    {
+      "path": "play-store-screenshots/bn-BD-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "0f3a154b6cbf4bf2756984436470fea3ca6dd67a",
+      "bytes": 163204
+    },
+    {
+      "path": "play-store-screenshots/bn-BD-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "df87b66f8b8c8f820a2c063e0b2db228c20244e8",
+      "bytes": 230248
+    },
+    {
+      "path": "play-store-screenshots/ca-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "0b2d4873e5a04e0e44fb40db327a18a1bb415550",
+      "bytes": 105466
+    },
+    {
+      "path": "play-store-screenshots/ca-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "1ba3c0af3a1e48c769b4a8ac6c6034533af8524d",
+      "bytes": 193573
+    },
+    {
+      "path": "play-store-screenshots/ca-3_progress-google-play-study-history.png",
+      "gitBlob": "9ba714c6ad40bf138f25dddd3f22952b6ed18e35",
+      "bytes": 177881
+    },
+    {
+      "path": "play-store-screenshots/ca-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "421c86e8ad651cb119826c4624bd0a5bfcdc1f4d",
+      "bytes": 131656
+    },
+    {
+      "path": "play-store-screenshots/ca-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "a6175497e300abb90695b21c17a6763efb541c2d",
+      "bytes": 204518
+    },
+    {
+      "path": "play-store-screenshots/cs-CZ-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "01acec0f817a27327d569ad57c8f6f9e92d7d66f",
+      "bytes": 112876
+    },
+    {
+      "path": "play-store-screenshots/cs-CZ-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "e528650cb1456404812e75c9d86ffdf3bb31c195",
+      "bytes": 204228
+    },
+    {
+      "path": "play-store-screenshots/cs-CZ-3_progress-google-play-study-history.png",
+      "gitBlob": "e664591c0b5cca96b9087bd707a92bb1c52daf46",
+      "bytes": 173727
+    },
+    {
+      "path": "play-store-screenshots/cs-CZ-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "0bd53f84ca9e16cc02004930665f25fd46fe6805",
+      "bytes": 134270
+    },
+    {
+      "path": "play-store-screenshots/cs-CZ-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "7fcf6fe22c55d9cd068c14b2eddf6f983a861da1",
+      "bytes": 199909
+    },
+    {
+      "path": "play-store-screenshots/da-DK-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "1d335b03738c9342f366446972d87316e5f4b709",
+      "bytes": 101193
+    },
+    {
+      "path": "play-store-screenshots/da-DK-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "7e40af5d225890387e0ccd55c0669d86854e831e",
+      "bytes": 201926
+    },
+    {
+      "path": "play-store-screenshots/da-DK-3_progress-google-play-study-history.png",
+      "gitBlob": "3da4b102f03dd3a7db7cae0abe058953e61d9ab7",
+      "bytes": 171965
+    },
+    {
+      "path": "play-store-screenshots/da-DK-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "7167abef2d5874b7eaf3559c4c77ea31bb9e8d27",
+      "bytes": 125166
+    },
+    {
+      "path": "play-store-screenshots/da-DK-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "2c46661d8fbbe0700bfcae3b99ca527e7322bb4c",
+      "bytes": 187720
+    },
+    {
+      "path": "play-store-screenshots/de-DE-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "b7dd5affd16d61acd2127989c35e127496ee74bc",
+      "bytes": 120590
+    },
+    {
+      "path": "play-store-screenshots/de-DE-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "44196147398279e7cb63ef2b8216cf188e9923fb",
+      "bytes": 227273
+    },
+    {
+      "path": "play-store-screenshots/de-DE-3_progress-google-play-study-history.png",
+      "gitBlob": "d2cd17a2e56a920c45cbf09d89e1032504abea6e",
+      "bytes": 181705
+    },
+    {
+      "path": "play-store-screenshots/de-DE-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "33e3d9d24b3b115f130f1f95d68752e6c33ba245",
+      "bytes": 138933
+    },
+    {
+      "path": "play-store-screenshots/de-DE-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "089baa5d69f4c678427e6e9e38f8483942b6354a",
+      "bytes": 216127
+    },
+    {
+      "path": "play-store-screenshots/el-GR-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "5df75dad7614ce21f56930b75b3a27163723f79e",
+      "bytes": 105573
+    },
+    {
+      "path": "play-store-screenshots/el-GR-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "0e1813ba1309f1190bf52cce5491c76d4a494288",
+      "bytes": 224585
+    },
+    {
+      "path": "play-store-screenshots/el-GR-3_progress-google-play-study-history.png",
+      "gitBlob": "72c53debb07ab71bc8956256d74452bdf6df0f11",
+      "bytes": 182583
+    },
+    {
+      "path": "play-store-screenshots/el-GR-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "e6868346afd50bb20cf696e24ea8248d5895076e",
+      "bytes": 143768
+    },
+    {
+      "path": "play-store-screenshots/el-GR-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "6be2051576e50d128ff65e2bbe2415e174e53f2e",
+      "bytes": 215084
+    },
+    {
+      "path": "play-store-screenshots/en-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "2f032bc84623029d8fe312a8b1bc4c37b4a0c781",
+      "bytes": 104448
+    },
+    {
+      "path": "play-store-screenshots/en-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "a4c232c31dfecf38b2539e134cbabaab23c52d52",
+      "bytes": 203971
+    },
+    {
+      "path": "play-store-screenshots/en-3_progress-google-play-study-history.png",
+      "gitBlob": "46869c25d6b8651d2019cc6a38036aa3dd91c579",
+      "bytes": 174474
+    },
+    {
+      "path": "play-store-screenshots/en-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "dbbe951e76fdd6bf07d288da89daa11bc2c4ea17",
+      "bytes": 132496
+    },
+    {
+      "path": "play-store-screenshots/en-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "6e5ae78230ff43b2f525668f859b055d1e975372",
+      "bytes": 207306
+    },
+    {
+      "path": "play-store-screenshots/es-419-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "850e5b89ac7f699b7a9f4d72efc1388aeef04f48",
+      "bytes": 108984
+    },
+    {
+      "path": "play-store-screenshots/es-419-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "bca36e3012dec7031cdcecb6554b7c40199d9526",
+      "bytes": 214369
+    },
+    {
+      "path": "play-store-screenshots/es-419-3_progress-google-play-study-history.png",
+      "gitBlob": "ebd0bed05bf2009b509667a132d2bee50c1d37f2",
+      "bytes": 175810
+    },
+    {
+      "path": "play-store-screenshots/es-419-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "12b382e6df903029b62176f07399c03c6c0dbfc1",
+      "bytes": 134109
+    },
+    {
+      "path": "play-store-screenshots/es-419-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "e40372fb23769d6837257e94312e586df11b63fd",
+      "bytes": 207659
+    },
+    {
+      "path": "play-store-screenshots/es-ES-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "477ced6a94d32b21bd5f66b07a55ea0d18af69ca",
+      "bytes": 110482
+    },
+    {
+      "path": "play-store-screenshots/es-ES-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "53f40a87dd8cbaa82c38e29d3fae6798b2e5f22e",
+      "bytes": 214533
+    },
+    {
+      "path": "play-store-screenshots/es-ES-3_progress-google-play-study-history.png",
+      "gitBlob": "1483e1205e4f8fac2a8d9be00f5f29512cb9cdb0",
+      "bytes": 176776
+    },
+    {
+      "path": "play-store-screenshots/es-ES-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "aa80019cf093fd99c8a1d215f5dfd014b8e6a4de",
+      "bytes": 134241
+    },
+    {
+      "path": "play-store-screenshots/es-ES-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "b62d5e1d4934825b5ac5b5ec97bbfbbf4d75db5b",
+      "bytes": 200226
+    },
+    {
+      "path": "play-store-screenshots/es-US-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "cbd67f80f5ee890126d6bf8567c6e31012942505",
+      "bytes": 107622
+    },
+    {
+      "path": "play-store-screenshots/es-US-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "a90fc309b76d0b9e74de66668921de0145f2d4b6",
+      "bytes": 213041
+    },
+    {
+      "path": "play-store-screenshots/es-US-3_progress-google-play-study-history.png",
+      "gitBlob": "6a75600d06a7ef17c138261ac4a2e8b8dbff297a",
+      "bytes": 174176
+    },
+    {
+      "path": "play-store-screenshots/es-US-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "52437c3ee8708fe07836868c2356ac063abc98b5",
+      "bytes": 133447
+    },
+    {
+      "path": "play-store-screenshots/es-US-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "91a1346804b7745594277b54200e33bfee06f85c",
+      "bytes": 206923
+    },
+    {
+      "path": "play-store-screenshots/et-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "553dbc5772f183ab5e2e645e7c572bd252eb0e05",
+      "bytes": 103805
+    },
+    {
+      "path": "play-store-screenshots/et-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "7d822a36896bbd74c49f795c1b12676663bf43c1",
+      "bytes": 188928
+    },
+    {
+      "path": "play-store-screenshots/et-3_progress-google-play-study-history.png",
+      "gitBlob": "cfa3da779d108cf072bbc61e143191a60da10274",
+      "bytes": 164760
+    },
+    {
+      "path": "play-store-screenshots/et-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "e03d2de8d190fd38305a64ce1e3176bd3804c8d7",
+      "bytes": 111529
+    },
+    {
+      "path": "play-store-screenshots/et-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "30f59173406ce17627f0c583c5c8fea26a2337bb",
+      "bytes": 184455
+    },
+    {
+      "path": "play-store-screenshots/fa-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "ee66993624a4c9523dcfc07a819ce66e8a623f14",
+      "bytes": 103509
+    },
+    {
+      "path": "play-store-screenshots/fa-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "36e3bc45c3a0c4bc246b8fea3c24b84cc8db8322",
+      "bytes": 197933
+    },
+    {
+      "path": "play-store-screenshots/fa-3_progress-google-play-study-history.png",
+      "gitBlob": "4338d6f0f3adc829c55789ce622a221928a7dbd6",
+      "bytes": 177338
+    },
+    {
+      "path": "play-store-screenshots/fa-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "3a7ab63947b0c1da2feaafaeece446792833e9be",
+      "bytes": 153506
+    },
+    {
+      "path": "play-store-screenshots/fa-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "52aace47b1d4d017f3766ac96158a9e571f24cd3",
+      "bytes": 194291
+    },
+    {
+      "path": "play-store-screenshots/fi-FI-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "59e3d78fc2f2dce45bb96483c56d1c95bf0b26f4",
+      "bytes": 110515
+    },
+    {
+      "path": "play-store-screenshots/fi-FI-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "f85561617e36cb242045fbae62838d9d7295b953",
+      "bytes": 193478
+    },
+    {
+      "path": "play-store-screenshots/fi-FI-3_progress-google-play-study-history.png",
+      "gitBlob": "a4bb9e12e1d85d37c68c32a6065c1cad31a717a9",
+      "bytes": 171576
+    },
+    {
+      "path": "play-store-screenshots/fi-FI-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "e5f8943165add084f03d4393cd52563bf69f27b9",
+      "bytes": 131850
+    },
+    {
+      "path": "play-store-screenshots/fi-FI-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "737f7c162dfb525ef1b589951a6839d09ce9da54",
+      "bytes": 198543
+    },
+    {
+      "path": "play-store-screenshots/fr-FR-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "1a78474fd99add48c31f9d69473ba42917b46a1c",
+      "bytes": 110987
+    },
+    {
+      "path": "play-store-screenshots/fr-FR-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "45fc34e5d78f5c1a14a15f5a702c1d88aea16b3e",
+      "bytes": 212383
+    },
+    {
+      "path": "play-store-screenshots/fr-FR-3_progress-google-play-study-history.png",
+      "gitBlob": "e37fafd34d176cf0bdb61faec74aa7781cebe9f5",
+      "bytes": 175096
+    },
+    {
+      "path": "play-store-screenshots/fr-FR-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "2b8c4d4a7181dfc029654928b6b53b0d637c595d",
+      "bytes": 135474
+    },
+    {
+      "path": "play-store-screenshots/fr-FR-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "648c9efd91fdf978e68c6695bf8db891ee611850",
+      "bytes": 201056
+    },
+    {
+      "path": "play-store-screenshots/gu-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "6b96acc87349068edffde433468c75484defca80",
+      "bytes": 106555
+    },
+    {
+      "path": "play-store-screenshots/gu-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "e52ad95bb43218aa3679b9f5793a81a508063bca",
+      "bytes": 213353
+    },
+    {
+      "path": "play-store-screenshots/gu-3_progress-google-play-study-history.png",
+      "gitBlob": "760e2821d97959eb25ef379fb44ef455200fb5ec",
+      "bytes": 174015
+    },
+    {
+      "path": "play-store-screenshots/gu-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "e8b99a629556a62127965536f77836bd7c59b5bf",
+      "bytes": 147626
+    },
+    {
+      "path": "play-store-screenshots/gu-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "8496586a5c369ef105736c82f921d6b1041f6d90",
+      "bytes": 233208
+    },
+    {
+      "path": "play-store-screenshots/hi-IN-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "1c65dd0174432cc55726a1b8c9b62cbe3c0135a0",
+      "bytes": 103453
+    },
+    {
+      "path": "play-store-screenshots/hi-IN-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "4d865177d038b8eaa7d1c3bd691a1585629af59a",
+      "bytes": 212483
+    },
+    {
+      "path": "play-store-screenshots/hi-IN-3_progress-google-play-study-history.png",
+      "gitBlob": "98ca073e7320dd4384ad847a55c97b6f2886fd26",
+      "bytes": 170760
+    },
+    {
+      "path": "play-store-screenshots/hi-IN-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "041597b8620689509de6ea2c0312f71c93520279",
+      "bytes": 143166
+    },
+    {
+      "path": "play-store-screenshots/hi-IN-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "40af9d2cf9b4c14a6456a9bfe061d96a5c4cb3d1",
+      "bytes": 200183
+    },
+    {
+      "path": "play-store-screenshots/hr-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "25757f052c88609b46d590ff43e2bc765b83850c",
+      "bytes": 112249
+    },
+    {
+      "path": "play-store-screenshots/hr-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "d2cea9f2ae1d3f1e3e32a8012f802d72f5ba36d6",
+      "bytes": 209850
+    },
+    {
+      "path": "play-store-screenshots/hr-3_progress-google-play-study-history.png",
+      "gitBlob": "5c1ce5e59b2a975bc1a54b07146925601076f0d2",
+      "bytes": 172467
+    },
+    {
+      "path": "play-store-screenshots/hr-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "57f8015c4359eacc3300db3912dd2a5a17db5269",
+      "bytes": 132643
+    },
+    {
+      "path": "play-store-screenshots/hr-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "5ba4b95a25cf2167baeb3ca3bffcac3e3ac2bb94",
+      "bytes": 197257
+    },
+    {
+      "path": "play-store-screenshots/hu-HU-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "8756a3cb0e246cef97b6fc09cd598874c16b5d02",
+      "bytes": 106459
+    },
+    {
+      "path": "play-store-screenshots/hu-HU-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "6e097ffa49e4722eb6fa918e7559f308684c7538",
+      "bytes": 201500
+    },
+    {
+      "path": "play-store-screenshots/hu-HU-3_progress-google-play-study-history.png",
+      "gitBlob": "3b92e70787d3247757da80112486214928854507",
+      "bytes": 173451
+    },
+    {
+      "path": "play-store-screenshots/hu-HU-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "5ae6c2ec36e1371275da8be40a7111a57cf4576f",
+      "bytes": 142303
+    },
+    {
+      "path": "play-store-screenshots/hu-HU-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "b4afe74c1f29f692bf86d4bfe31ef7472581639b",
+      "bytes": 194047
+    },
+    {
+      "path": "play-store-screenshots/id-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "85da4d9f6daceac0372443db8a5086963e3e1f7d",
+      "bytes": 101108
+    },
+    {
+      "path": "play-store-screenshots/id-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "9fb617bba5475e20da96f5943c0e1bed64c5d68e",
+      "bytes": 186989
+    },
+    {
+      "path": "play-store-screenshots/id-3_progress-google-play-study-history.png",
+      "gitBlob": "888a25adf2b29dda645fed799b9cc99a7d65911f",
+      "bytes": 158933
+    },
+    {
+      "path": "play-store-screenshots/id-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "cdbcae4af4b78366f87ef4ab0bfdb5aa596e82f2",
+      "bytes": 120207
+    },
+    {
+      "path": "play-store-screenshots/id-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "e5e96a62f2ab2a443813ab31b48c04f81613e990",
+      "bytes": 178356
+    },
+    {
+      "path": "play-store-screenshots/is-IS-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "a90a78b13b63720f03bc6c8f7d88ac168e4495f3",
+      "bytes": 106030
+    },
+    {
+      "path": "play-store-screenshots/is-IS-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "0362bb3e9f25f53e1228bd256a854c5e35507eb9",
+      "bytes": 195140
+    },
+    {
+      "path": "play-store-screenshots/is-IS-3_progress-google-play-study-history.png",
+      "gitBlob": "54d80342b3e60e4b5012ba74d202f0f715ff62c2",
+      "bytes": 162513
+    },
+    {
+      "path": "play-store-screenshots/is-IS-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "d9a44f020982203e3d6ed248d21b16dc973a0bc6",
+      "bytes": 129048
+    },
+    {
+      "path": "play-store-screenshots/is-IS-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "79ba1cbbc7fc6fd856aaa9c3914d4c7d71c5a195",
+      "bytes": 198576
+    },
+    {
+      "path": "play-store-screenshots/it-IT-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "e8bcd0ad5a40da7f80387f70bc7e56ce4efa7f1d",
+      "bytes": 103141
+    },
+    {
+      "path": "play-store-screenshots/it-IT-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "39f20b36054b57c0ea0443f4df310947fe778bbb",
+      "bytes": 189518
+    },
+    {
+      "path": "play-store-screenshots/it-IT-3_progress-google-play-study-history.png",
+      "gitBlob": "68e47d64e0cae9cabaae4b6b90a67ea0035680d8",
+      "bytes": 171847
+    },
+    {
+      "path": "play-store-screenshots/it-IT-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "3cf14769b4da230c43d28bdb559944fdaa62c7ce",
+      "bytes": 125912
+    },
+    {
+      "path": "play-store-screenshots/it-IT-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "373d81bcc24a2a1f318bcc726a9789260b5b180b",
+      "bytes": 192464
+    },
+    {
+      "path": "play-store-screenshots/iw-IL-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "a84689dff003942ba1ff085885bc011458053537",
+      "bytes": 90958
+    },
+    {
+      "path": "play-store-screenshots/iw-IL-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "640e1745e2bcf8ee5e935862a195529da2cc5673",
+      "bytes": 158113
+    },
+    {
+      "path": "play-store-screenshots/iw-IL-3_progress-google-play-study-history.png",
+      "gitBlob": "039b933f4001929e580b2048fe67d92a30c59d28",
+      "bytes": 147059
+    },
+    {
+      "path": "play-store-screenshots/iw-IL-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "647f98e2ed16100ebc44b83327b1b13436c7baa1",
+      "bytes": 114368
+    },
+    {
+      "path": "play-store-screenshots/iw-IL-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "a644f2f10910b9731e124092474aac918101c7b1",
+      "bytes": 158145
+    },
+    {
+      "path": "play-store-screenshots/ja-JP-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "9072feb28b329613b6fa88d105b5150ca6433d30",
+      "bytes": 128867
+    },
+    {
+      "path": "play-store-screenshots/ja-JP-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "c8f78cb6e4fbddc596bc6bd466163384c23a87e9",
+      "bytes": 273456
+    },
+    {
+      "path": "play-store-screenshots/ja-JP-3_progress-google-play-study-history.png",
+      "gitBlob": "60d888b76be1305e60ba8853364a243d6b5d1101",
+      "bytes": 190536
+    },
+    {
+      "path": "play-store-screenshots/ja-JP-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "27ac795c93d112c26b02f964ad3be7a70adf09b4",
+      "bytes": 206889
+    },
+    {
+      "path": "play-store-screenshots/ja-JP-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "e1b6c65ec398d56e30323074c320253faf942194",
+      "bytes": 252167
+    },
+    {
+      "path": "play-store-screenshots/kn-IN-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "3b1564aeb306f044ebf12e5731139684dc6a63ae",
+      "bytes": 137801
+    },
+    {
+      "path": "play-store-screenshots/kn-IN-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "ded4cfbeb821303be7ec89df59dbd8b3a35b7a23",
+      "bytes": 297553
+    },
+    {
+      "path": "play-store-screenshots/kn-IN-3_progress-google-play-study-history.png",
+      "gitBlob": "e804fcea0cdedfdd3ebaaf4e69016c3ab63810dd",
+      "bytes": 212329
+    },
+    {
+      "path": "play-store-screenshots/kn-IN-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "a1b1705afd4a568b27d9168b390463839652f11e",
+      "bytes": 212153
+    },
+    {
+      "path": "play-store-screenshots/kn-IN-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "20b5ee96ec94f74584107c689b508590db184cb0",
+      "bytes": 324526
+    },
+    {
+      "path": "play-store-screenshots/ko-KR-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "f2b99e41466ab547d89f1db21ae1040f44b4854b",
+      "bytes": 95254
+    },
+    {
+      "path": "play-store-screenshots/ko-KR-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "9fcff2167d952170147d03b4c4c8567634f23b3a",
+      "bytes": 175389
+    },
+    {
+      "path": "play-store-screenshots/ko-KR-3_progress-google-play-study-history.png",
+      "gitBlob": "73a68c9306a7185526ae935c1e5a3e0abc6522bb",
+      "bytes": 148794
+    },
+    {
+      "path": "play-store-screenshots/ko-KR-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "fec8233dddccde6e3106599f6a2ef0b351af5493",
+      "bytes": 120565
+    },
+    {
+      "path": "play-store-screenshots/ko-KR-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "a064426c28f335070e18fb41053cf05c33cf630f",
+      "bytes": 195037
+    },
+    {
+      "path": "play-store-screenshots/lt-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "88e961040175d080dfe1f2543f13594dea04a01d",
+      "bytes": 110755
+    },
+    {
+      "path": "play-store-screenshots/lt-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "8f4dda3a42047546af9230b54c172d5437443f1c",
+      "bytes": 199056
+    },
+    {
+      "path": "play-store-screenshots/lt-3_progress-google-play-study-history.png",
+      "gitBlob": "180354cd952729459960ff743393606231144192",
+      "bytes": 173953
+    },
+    {
+      "path": "play-store-screenshots/lt-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "5b9d3b95855fe8ad1aced22422f4b1100948a696",
+      "bytes": 127128
+    },
+    {
+      "path": "play-store-screenshots/lt-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "e92520411f801812e9e93c33d2b3c899a22d700d",
+      "bytes": 199063
+    },
+    {
+      "path": "play-store-screenshots/lv-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "3d523164b37dc27958db8cd3117ae9997fc22a35",
+      "bytes": 107569
+    },
+    {
+      "path": "play-store-screenshots/lv-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "7f1e31224ac36662c2578fda12f0e28f8cd0d674",
+      "bytes": 192261
+    },
+    {
+      "path": "play-store-screenshots/lv-3_progress-google-play-study-history.png",
+      "gitBlob": "da696b7d79d0510c2c86300b5d6ec727450731de",
+      "bytes": 171409
+    },
+    {
+      "path": "play-store-screenshots/lv-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "80b6159de487d0e95823035a4898126d6a40290a",
+      "bytes": 123811
+    },
+    {
+      "path": "play-store-screenshots/lv-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "82734a26f6550860cf6d49000d6d091589af71f6",
+      "bytes": 194933
+    },
+    {
+      "path": "play-store-screenshots/ml-IN-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "832e9e93333b1469c6028a2792f63a099667ae1f",
+      "bytes": 141453
+    },
+    {
+      "path": "play-store-screenshots/ml-IN-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "82d7e05bdc1b1a0c4ad1e887cf5de24b6eaea2fe",
+      "bytes": 308329
+    },
+    {
+      "path": "play-store-screenshots/ml-IN-3_progress-google-play-study-history.png",
+      "gitBlob": "68bc2c7715e38a6e0c59954156c3fd57213def09",
+      "bytes": 227070
+    },
+    {
+      "path": "play-store-screenshots/ml-IN-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "c33dffa5a9b2faa80cd0da75e4f4762a277e1ef7",
+      "bytes": 236656
+    },
+    {
+      "path": "play-store-screenshots/ml-IN-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "86e55f248eb76c22f0dae0ed6987f7e6e5d325aa",
+      "bytes": 335552
+    },
+    {
+      "path": "play-store-screenshots/mr-IN-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "cbfa3011a474cb8749a9cde903853b902549d49d",
+      "bytes": 104965
+    },
+    {
+      "path": "play-store-screenshots/mr-IN-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "5d0f7e1241f89162cc50fc5a4b301a2d2940459f",
+      "bytes": 192671
+    },
+    {
+      "path": "play-store-screenshots/mr-IN-3_progress-google-play-study-history.png",
+      "gitBlob": "2cc38a257c0edb309d1cfff58574457932e923ec",
+      "bytes": 163911
+    },
+    {
+      "path": "play-store-screenshots/mr-IN-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "bdda45837d7c6b875d25be6815c0eabfd2a33588",
+      "bytes": 132395
+    },
+    {
+      "path": "play-store-screenshots/mr-IN-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "f3e7949db3926c4a5023c08f27566dda45c66884",
+      "bytes": 208448
+    },
+    {
+      "path": "play-store-screenshots/nl-NL-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "1adbb85634350b62571a87d3a48dda3aa79abaac",
+      "bytes": 104153
+    },
+    {
+      "path": "play-store-screenshots/nl-NL-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "671be44572d8bfe80b4346b1fa452cef107e1c0f",
+      "bytes": 204666
+    },
+    {
+      "path": "play-store-screenshots/nl-NL-3_progress-google-play-study-history.png",
+      "gitBlob": "709dcf6ca7fd8d520cd2f6771d0c22f4385c1f89",
+      "bytes": 169946
+    },
+    {
+      "path": "play-store-screenshots/nl-NL-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "c3fffb40387f1ef646ba7e1e384be8ecd610e457",
+      "bytes": 124393
+    },
+    {
+      "path": "play-store-screenshots/nl-NL-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "84d370f74f71467be777ca73282f541cb6ef68fb",
+      "bytes": 206428
+    },
+    {
+      "path": "play-store-screenshots/no-NO-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "8b2aac371d9b3127cf7bd9c4496e38c06869073a",
+      "bytes": 102954
+    },
+    {
+      "path": "play-store-screenshots/no-NO-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "54bdc7b621a366e2ef25a3185b5e05d9b4019c31",
+      "bytes": 194092
+    },
+    {
+      "path": "play-store-screenshots/no-NO-3_progress-google-play-study-history.png",
+      "gitBlob": "61104e5076afd7387ef17cbb52fd079ea1c48180",
+      "bytes": 164293
+    },
+    {
+      "path": "play-store-screenshots/no-NO-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "7ab150a045e9431ec241af93b63c2e94ad06ab7e",
+      "bytes": 120108
+    },
+    {
+      "path": "play-store-screenshots/no-NO-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "7fa66753b6ac01a21e39292503596ec448c80a8c",
+      "bytes": 180090
+    },
+    {
+      "path": "play-store-screenshots/pa-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "d9b5075ce6d0f017e9b4759591dc21c25d483706",
+      "bytes": 100345
+    },
+    {
+      "path": "play-store-screenshots/pa-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "4d449f32971163fd837c56c939f26e05d4601f80",
+      "bytes": 185583
+    },
+    {
+      "path": "play-store-screenshots/pa-3_progress-google-play-study-history.png",
+      "gitBlob": "c5675e255ef4fef94d65c4de526bd379327e3a0c",
+      "bytes": 164504
+    },
+    {
+      "path": "play-store-screenshots/pa-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "fb70a38526e5f3905ac0db8ea615b653bd34a772",
+      "bytes": 135920
+    },
+    {
+      "path": "play-store-screenshots/pa-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "fb507fdc6923b164c7e93ec99bea65775d8e73d6",
+      "bytes": 214708
+    },
+    {
+      "path": "play-store-screenshots/pl-PL-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "b88b3dec8c430641cb1d197f9d98077060f4f931",
+      "bytes": 111018
+    },
+    {
+      "path": "play-store-screenshots/pl-PL-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "c6d333bafa0a8b69ec08e7122b6d1009f9c2260f",
+      "bytes": 213559
+    },
+    {
+      "path": "play-store-screenshots/pl-PL-3_progress-google-play-study-history.png",
+      "gitBlob": "9d48dbfc25e419af6b9ab06d6b12016aca02d55f",
+      "bytes": 182382
+    },
+    {
+      "path": "play-store-screenshots/pl-PL-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "69e698aa51114e43107244ee73b112738e28e097",
+      "bytes": 134944
+    },
+    {
+      "path": "play-store-screenshots/pl-PL-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "2001a6fa457116f8ae434153ac894e66c6a26263",
+      "bytes": 208377
+    },
+    {
+      "path": "play-store-screenshots/pt-BR-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "d5c119d42d38e2e0f80c2c64490c8a8ff128fb99",
+      "bytes": 108270
+    },
+    {
+      "path": "play-store-screenshots/pt-BR-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "661ff5b60348a8aac03b9f1e76164fcdc28fbd83",
+      "bytes": 212982
+    },
+    {
+      "path": "play-store-screenshots/pt-BR-3_progress-google-play-study-history.png",
+      "gitBlob": "f0319f6a205562f064882107a05ad82ecb0312fe",
+      "bytes": 181439
+    },
+    {
+      "path": "play-store-screenshots/pt-BR-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "516f4ca7f95658783908bc20fbddf77119341965",
+      "bytes": 131211
+    },
+    {
+      "path": "play-store-screenshots/pt-BR-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "9c58ef9a26f398fc44ee4aa3b3af78f8f3ede7fa",
+      "bytes": 206547
+    },
+    {
+      "path": "play-store-screenshots/ro-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "23dfdb307cf5b6c155606c1d67888386ab71cf99",
+      "bytes": 103882
+    },
+    {
+      "path": "play-store-screenshots/ro-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "320f7094cf8e9314a8d8f8bcef689f160e904498",
+      "bytes": 188799
+    },
+    {
+      "path": "play-store-screenshots/ro-3_progress-google-play-study-history.png",
+      "gitBlob": "7d42bfa778721ae0a754fe03ad056bd9177f6c33",
+      "bytes": 177957
+    },
+    {
+      "path": "play-store-screenshots/ro-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "ba88322c4a52f45990837879e8b0730cd7215ed4",
+      "bytes": 133662
+    },
+    {
+      "path": "play-store-screenshots/ro-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "194a76da667ce5d9c2eaf4161041d440dc52c95c",
+      "bytes": 196043
+    },
+    {
+      "path": "play-store-screenshots/ru-RU-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "e8f474e9400322e05c02f0810c23741913c01b06",
+      "bytes": 109271
+    },
+    {
+      "path": "play-store-screenshots/ru-RU-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "9e89d4e5e01aa537dce74c8779df590344d16b3f",
+      "bytes": 216329
+    },
+    {
+      "path": "play-store-screenshots/ru-RU-3_progress-google-play-study-history.png",
+      "gitBlob": "c2ef162e88095b26ede8385672e3dd3f8c921e21",
+      "bytes": 171468
+    },
+    {
+      "path": "play-store-screenshots/ru-RU-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "7da700cf32a3407e7f29da8cdc5f0a4541bf3bd4",
+      "bytes": 134492
+    },
+    {
+      "path": "play-store-screenshots/ru-RU-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "1964e0706704ac3705f0df50d35c0ef140fd7c53",
+      "bytes": 194477
+    },
+    {
+      "path": "play-store-screenshots/sk-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "25e0b4765af4af88e5b275fc81fd5c9462c95d7d",
+      "bytes": 113419
+    },
+    {
+      "path": "play-store-screenshots/sk-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "604f3f1fb3dc72db84254e8495eedd753f874510",
+      "bytes": 211123
+    },
+    {
+      "path": "play-store-screenshots/sk-3_progress-google-play-study-history.png",
+      "gitBlob": "eea876283ba020e20d65ec3df209074892a737e3",
+      "bytes": 171756
+    },
+    {
+      "path": "play-store-screenshots/sk-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "0d92c2e8b216551f4b1ed8cc5ac2fff6003b1ecd",
+      "bytes": 132113
+    },
+    {
+      "path": "play-store-screenshots/sk-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "6a1b3f5883ec60b5e56e5655c6066a80ac72550e",
+      "bytes": 201976
+    },
+    {
+      "path": "play-store-screenshots/sl-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "28a7531b904937704684ba75aa3caf703748b8b0",
+      "bytes": 111103
+    },
+    {
+      "path": "play-store-screenshots/sl-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "57c6eeba2744b47a25174efd0326b7af06e49fda",
+      "bytes": 203713
+    },
+    {
+      "path": "play-store-screenshots/sl-3_progress-google-play-study-history.png",
+      "gitBlob": "0e09818abf92ceedfa39cf3fac5728109d5d6762",
+      "bytes": 167952
+    },
+    {
+      "path": "play-store-screenshots/sl-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "396fb3613539626743a9940d6fa526cf0f89d341",
+      "bytes": 122814
+    },
+    {
+      "path": "play-store-screenshots/sl-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "0acf96f0926f1153453881779ae443ab08b8a0e4",
+      "bytes": 191621
+    },
+    {
+      "path": "play-store-screenshots/sv-SE-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "e1a48669d0ed80930c46758072ec0c7854386e4e",
+      "bytes": 103535
+    },
+    {
+      "path": "play-store-screenshots/sv-SE-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "f59e398aee3dde120539dce62b0f9c4e94dfbdbc",
+      "bytes": 193796
+    },
+    {
+      "path": "play-store-screenshots/sv-SE-3_progress-google-play-study-history.png",
+      "gitBlob": "c8e9c9b12bb9670d589defffeccf3fda3ee83002",
+      "bytes": 174512
+    },
+    {
+      "path": "play-store-screenshots/sv-SE-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "43a8683918464a61d9bd94e04ba7503d37d660d8",
+      "bytes": 122015
+    },
+    {
+      "path": "play-store-screenshots/sv-SE-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "8d2c9103827570507f01bae84b7498461f576c45",
+      "bytes": 194465
+    },
+    {
+      "path": "play-store-screenshots/sw-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "d4a9a0224d89b09d9fec96977afcf17acf111f8c",
+      "bytes": 100854
+    },
+    {
+      "path": "play-store-screenshots/sw-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "d624712f243bd68090955f95005fa917cf98e0d2",
+      "bytes": 190873
+    },
+    {
+      "path": "play-store-screenshots/sw-3_progress-google-play-study-history.png",
+      "gitBlob": "7d8e181ae2a9a198e5ee901e4f8b81bc08615b7a",
+      "bytes": 175234
+    },
+    {
+      "path": "play-store-screenshots/sw-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "eea22e1be8cd3d8c3a1eda926b77a387010bd255",
+      "bytes": 121788
+    },
+    {
+      "path": "play-store-screenshots/sw-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "8ca98c16b357efb4ff9f44061509ef83406b200a",
+      "bytes": 191675
+    },
+    {
+      "path": "play-store-screenshots/ta-IN-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "7824c00f63b89294e0a6f671e2a3f2695a3bfbd9",
+      "bytes": 120035
+    },
+    {
+      "path": "play-store-screenshots/ta-IN-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "d0816a6c65f70146d8225028d37bc6ba6d27e80f",
+      "bytes": 268028
+    },
+    {
+      "path": "play-store-screenshots/ta-IN-3_progress-google-play-study-history.png",
+      "gitBlob": "1fd52a9ad442a6c379adc5866aed139c7ce1face",
+      "bytes": 200329
+    },
+    {
+      "path": "play-store-screenshots/ta-IN-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "eb9916b0eaa855878b813ff76dcedb8df9e5960a",
+      "bytes": 208329
+    },
+    {
+      "path": "play-store-screenshots/ta-IN-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "3b1e26ce596ba790ee86715b5c9d8b2d7746fc9c",
+      "bytes": 262820
+    },
+    {
+      "path": "play-store-screenshots/te-IN-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "c582b8336c1dea1581d33809d2bf1840f7aedc43",
+      "bytes": 143564
+    },
+    {
+      "path": "play-store-screenshots/te-IN-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "48bed667db1631d0499d24c40bc8108f4341a50a",
+      "bytes": 288222
+    },
+    {
+      "path": "play-store-screenshots/te-IN-3_progress-google-play-study-history.png",
+      "gitBlob": "8b9ec6128e8e228fd1bb7eecf6dcb5d612c4e678",
+      "bytes": 211629
+    },
+    {
+      "path": "play-store-screenshots/te-IN-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "fe741e6565779dc52fded6a5ce6a41f538b4b8cf",
+      "bytes": 200708
+    },
+    {
+      "path": "play-store-screenshots/te-IN-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "0c1c00af5c5278e62a44eb1ea9e2cce87bf5923e",
+      "bytes": 321724
+    },
+    {
+      "path": "play-store-screenshots/th-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "46c39ba88037f56606214620466f2e6929a806e1",
+      "bytes": 113943
+    },
+    {
+      "path": "play-store-screenshots/th-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "241a6654d573dcf5b5150e02bdc9bab64a27322a",
+      "bytes": 216212
+    },
+    {
+      "path": "play-store-screenshots/th-3_progress-google-play-study-history.png",
+      "gitBlob": "f078ed9c120a9c5ab29937fec41e784f4f004117",
+      "bytes": 176531
+    },
+    {
+      "path": "play-store-screenshots/th-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "948e22df7cb58ea38838436bcba5743d83bfbaf6",
+      "bytes": 150349
+    },
+    {
+      "path": "play-store-screenshots/th-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "df8a0f754494e59137ba11e4af1c97fabb6987c8",
+      "bytes": 225223
+    },
+    {
+      "path": "play-store-screenshots/tr-TR-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "07c1545ea6177c2df7c6ba5c42a3983258ad084b",
+      "bytes": 98514
+    },
+    {
+      "path": "play-store-screenshots/tr-TR-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "e357edf8b20fb62354ba445e9c1c266c44a21fdc",
+      "bytes": 193633
+    },
+    {
+      "path": "play-store-screenshots/tr-TR-3_progress-google-play-study-history.png",
+      "gitBlob": "feb976e247695e5bd9d2d299bc4fbcd977fb7c97",
+      "bytes": 167427
+    },
+    {
+      "path": "play-store-screenshots/tr-TR-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "c76d7fab314f8ecd3ef0725597c4248f874d33d5",
+      "bytes": 124736
+    },
+    {
+      "path": "play-store-screenshots/tr-TR-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "64aa7f6e509a703e8a7f0334fa79456ff17076f2",
+      "bytes": 170995
+    },
+    {
+      "path": "play-store-screenshots/uk-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "9fe57b3ed512b4c6bbf8754a0b7bc10fb1503f38",
+      "bytes": 110516
+    },
+    {
+      "path": "play-store-screenshots/uk-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "5ec0c1807a5211a852a6b4fe878f3e5dda3e11fd",
+      "bytes": 210164
+    },
+    {
+      "path": "play-store-screenshots/uk-3_progress-google-play-study-history.png",
+      "gitBlob": "ae35d8313642e71db2e618cb8f378c4244f9c4e3",
+      "bytes": 173362
+    },
+    {
+      "path": "play-store-screenshots/uk-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "1d1d9fc4383944a4e8be6310bdc4c69fd65938ae",
+      "bytes": 129618
+    },
+    {
+      "path": "play-store-screenshots/uk-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "456f78d3db5b83bb9f896420de27bbc2f6c9222f",
+      "bytes": 195350
+    },
+    {
+      "path": "play-store-screenshots/ur-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "595b421871683a0bcc585be39316b82eec1f3fb1",
+      "bytes": 100597
+    },
+    {
+      "path": "play-store-screenshots/ur-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "2e30462af1609553b558ba0e77d6831b0a63d86e",
+      "bytes": 199098
+    },
+    {
+      "path": "play-store-screenshots/ur-3_progress-google-play-study-history.png",
+      "gitBlob": "6daa29ae1159b3620dbbfed5f7c6791670990ea7",
+      "bytes": 169877
+    },
+    {
+      "path": "play-store-screenshots/ur-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "85a430d8f4ecbaedc3bd74f87c7e383b23476457",
+      "bytes": 153370
+    },
+    {
+      "path": "play-store-screenshots/ur-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "35c30f41c740fc57e806f4151c503e6e60799609",
+      "bytes": 201001
+    },
+    {
+      "path": "play-store-screenshots/vi-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "6a9d19f608e72a1fc0ff60c39b714330bc7d97a4",
+      "bytes": 101462
+    },
+    {
+      "path": "play-store-screenshots/vi-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "d752c55c40c1bde19817f859ffde4bc2cbd43345",
+      "bytes": 188189
+    },
+    {
+      "path": "play-store-screenshots/vi-3_progress-google-play-study-history.png",
+      "gitBlob": "4e854cf886998333f5ea72e49fa653622538f215",
+      "bytes": 179837
+    },
+    {
+      "path": "play-store-screenshots/vi-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "14b5094972664373c3a0bcb1f2006f0d2ff4f954",
+      "bytes": 134030
+    },
+    {
+      "path": "play-store-screenshots/vi-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "ace0da6b63f3aaa1a01dbb20a781ba84481006ba",
+      "bytes": 187589
+    },
+    {
+      "path": "play-store-screenshots/zh-CN-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "318ffbf74681d38674de544163edd2591e291218",
+      "bytes": 113095
+    },
+    {
+      "path": "play-store-screenshots/zh-CN-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "148476061131ed97a3e5284b6dad03b8c170708f",
+      "bytes": 242681
+    },
+    {
+      "path": "play-store-screenshots/zh-CN-3_progress-google-play-study-history.png",
+      "gitBlob": "dff0b1a2f4fe980ed4140e8bba17daacdfe4c89d",
+      "bytes": 182174
+    },
+    {
+      "path": "play-store-screenshots/zh-CN-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "861313f2ffdb4ae86b7466fa3f3c7ce00701e0bb",
+      "bytes": 161138
+    },
+    {
+      "path": "play-store-screenshots/zh-CN-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "556f5f9bb920766efb3b3226c3ab322922f80aab",
+      "bytes": 218780
+    },
+    {
+      "path": "play-store-screenshots/zu-1_review-card-front-google-play-opportunity-cost.png",
+      "gitBlob": "2232debd21e5462db793e3e3a06bc7563e0b9304",
+      "bytes": 115312
+    },
+    {
+      "path": "play-store-screenshots/zu-2_review-card-result-google-play-opportunity-cost.png",
+      "gitBlob": "851f76ba0c1d72669375889d44dbeeb2a1e9105a",
+      "bytes": 206165
+    },
+    {
+      "path": "play-store-screenshots/zu-3_progress-google-play-study-history.png",
+      "gitBlob": "4047d2609295db0854cef2eaec45e68ad8dceb46",
+      "bytes": 171358
+    },
+    {
+      "path": "play-store-screenshots/zu-4_review-card-ai-draft-google-play-opportunity-cost.png",
+      "gitBlob": "b0a1c55ff3e977435d691c0f3416241cb1e0fb65",
+      "bytes": 142162
+    },
+    {
+      "path": "play-store-screenshots/zu-5_cards-list-google-play-vocabulary.png",
+      "gitBlob": "322617756dc9d6f1ea35b70f1d6da7c71c93cc7e",
+      "bytes": 223093
+    }
+  ]
+}
