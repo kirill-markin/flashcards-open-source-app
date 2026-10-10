@@ -57,6 +57,10 @@ export type ChatRunClaimRow = Readonly<{
   cancel_requested_at: string | null;
 }>;
 
+export type ChatRunHeartbeatRow = Readonly<{
+  cancel_requested_at: string | null;
+}>;
+
 export type InsertChatRunParams = Readonly<{
   sessionId: string;
   assistantItemId: string;
@@ -214,6 +218,32 @@ const UPDATE_CLAIMED_CHAT_RUN_STATUS_SQL = `
     AND worker_claimed_at = $2::timestamptz
   RETURNING
 ${CHAT_RUN_COLUMNS_SQL}
+`;
+
+// One statement that writes only the heartbeat and `updated_at` timestamps and never reads `turn_input`,
+// which can be megabytes of attachment data. It returns no row unless the run is still running under this claim and
+// is still its session's active run.
+const TOUCH_CLAIMED_CHAT_RUN_HEARTBEAT_SQL = `
+  WITH touched_run AS (
+    UPDATE ai.chat_runs
+    SET worker_heartbeat_at = $3::timestamptz,
+        updated_at = now()
+    WHERE run_id = $1
+      AND status = 'running'
+      AND worker_claimed_at = $2::timestamptz
+    RETURNING session_id, cancel_requested_at
+  ),
+  touched_session AS (
+    UPDATE ai.chat_sessions
+    SET active_run_heartbeat_at = $3::timestamptz,
+        updated_at = now()
+    WHERE session_id = (SELECT session_id FROM touched_run)
+      AND active_run_id = $1
+    RETURNING session_id
+  )
+  SELECT touched_run.cancel_requested_at
+  FROM touched_run
+  JOIN touched_session ON touched_session.session_id = touched_run.session_id
 `;
 
 const UPDATE_CHAT_RUN_POLICY_SNAPSHOT_SQL = `
@@ -493,6 +523,23 @@ export async function claimChatRunWithExecutor(
 ): Promise<ChatRunRow | null> {
   return withScopedExecutor(executor, scope, async () => {
     const rows = await executeQuery<ChatRunRow>(executor, CLAIM_CHAT_RUN_SQL, [runId]);
+    return rows[0] ?? null;
+  });
+}
+
+export async function touchClaimedChatRunHeartbeatWithExecutor(
+  executor: DatabaseExecutor,
+  scope: WorkspaceDatabaseScope,
+  runId: string,
+  claimToken: ChatRunClaimToken,
+  heartbeatAt: Date,
+): Promise<ChatRunHeartbeatRow | null> {
+  return withScopedExecutor(executor, scope, async () => {
+    const rows = await executeQuery<ChatRunHeartbeatRow>(executor, TOUCH_CLAIMED_CHAT_RUN_HEARTBEAT_SQL, [
+      runId,
+      claimToken,
+      heartbeatAt.toISOString(),
+    ]);
     return rows[0] ?? null;
   });
 }
