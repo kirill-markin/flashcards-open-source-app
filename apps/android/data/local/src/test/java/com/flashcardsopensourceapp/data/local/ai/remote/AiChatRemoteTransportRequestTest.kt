@@ -122,11 +122,7 @@ class AiChatRemoteTransportRequestTest {
                         workspaceId = AI_CHAT_TEST_WORKSPACE_ID,
                         clientRequestId = "request-1",
                         content = listOf(
-                            AiChatWireContentPart.File(
-                                fileName = "large.txt",
-                                mediaType = "text/plain",
-                                base64Data = "a".repeat(aiChatMaximumStartRunRequestBytes)
-                            )
+                            AiChatWireContentPart.Text(text = "a".repeat(aiChatMaximumStartRunRequestBytes))
                         ),
                         timezone = "Europe/Madrid",
                         uiLocale = AI_CHAT_TEST_UI_LOCALE

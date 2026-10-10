@@ -61,14 +61,16 @@ class AiChatModelsTest {
     @Test
     fun buildAiChatRequestContentDropsUnknownContent() {
         val requestContent = buildAiChatRequestContent(
-            content = listOf(
-                AiChatContentPart.Unknown(
+            draftMessage = "Hello",
+            pendingAttachments = listOf(
+                AiChatAttachment.Unknown(
+                    id = "attachment-1",
                     originalType = "audio_transcript_v2",
                     summaryText = "Unsupported content",
                     rawPayloadJson = """{"type":"audio_transcript_v2"}"""
-                ),
-                AiChatContentPart.Text(text = "Hello")
-            )
+                )
+            ),
+            uploadIdsByAttachmentId = emptyMap()
         )
 
         assertEquals(1, requestContent.size)

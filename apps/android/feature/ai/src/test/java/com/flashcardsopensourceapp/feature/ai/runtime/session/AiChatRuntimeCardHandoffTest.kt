@@ -130,7 +130,8 @@ class AiChatRuntimeCardHandoffTest {
             id = "attachment-1",
             fileName = "notes.txt",
             mediaType = "text/plain",
-            base64Data = "bm90ZXM="
+            localFilePath = "/missing/ai-chat-attachments/attachment-1",
+            sizeBytes = 4L
         )
 
         runtime.onScreenVisible()

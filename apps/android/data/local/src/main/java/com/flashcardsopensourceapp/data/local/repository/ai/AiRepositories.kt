@@ -4,10 +4,13 @@ import com.flashcardsopensourceapp.data.local.ai.store.AiChatHistoryStore
 import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.ai.store.AiChatPreferencesStore
 import com.flashcardsopensourceapp.data.local.ai.store.OwnOpenAiKeyStore
+import com.flashcardsopensourceapp.data.local.ai.remote.AiChatAttachmentFileMissingException
+import com.flashcardsopensourceapp.data.local.ai.remote.AiChatAttachmentUploadException
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteService
 import com.flashcardsopensourceapp.data.local.ai.store.makeAiChatHistoryScopedWorkspaceId
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatBootstrapResponse
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDraftState
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatPersistedState
@@ -29,21 +32,30 @@ import com.flashcardsopensourceapp.data.local.model.ai.OwnOpenAiKeySettings
 import com.flashcardsopensourceapp.data.local.model.ai.aiChatSessionsPageLimit
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
-import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.ai.buildAiChatRequestContent
 import com.flashcardsopensourceapp.data.local.model.cloud.shouldRefreshCloudIdToken
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway
+import com.flashcardsopensourceapp.data.local.network.SignedPutUploader
 import com.flashcardsopensourceapp.data.local.repository.AiChatPreparedRemoteSession
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.CloudGuestSessionCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.GuestCloudSessionRestoreResult
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileNotFoundException
+import java.io.IOException
+import java.net.SocketTimeoutException
 import java.util.TimeZone
 import java.util.UUID
+
+private const val aiChatStartRunMaximumAttemptCount: Int = 2
+private const val aiChatGatewayTimeoutStatusCode: Int = 504
 
 private data class AuthorizedAiChatSession(
     val apiBaseUrl: String,
@@ -57,6 +69,7 @@ class LocalAiChatRepository(
     private val cloudGuestSessionCoordinator: CloudGuestSessionCoordinator,
     private val syncRepository: SyncRepository,
     private val aiChatRemoteService: AiChatRemoteService,
+    private val signedPutUploader: SignedPutUploader,
     private val historyStore: AiChatHistoryStore,
     private val aiChatPreferencesStore: AiChatPreferencesStore,
     private val ownOpenAiKeyStore: OwnOpenAiKeyStore
@@ -360,17 +373,27 @@ class LocalAiChatRepository(
     override suspend fun startRun(
         workspaceId: String?,
         state: AiChatPersistedState,
-        content: List<AiChatContentPart>,
+        draftMessage: String,
+        pendingAttachments: List<AiChatAttachment>,
         uiLocale: String?
     ): AiChatStartRunResponse {
         val remoteWorkspaceId = requireRemoteWorkspaceId(workspaceId = workspaceId)
-        val session = authorizedSession(workspaceId = remoteWorkspaceId)
         val resolvedSessionId = requireExplicitAiChatSessionIdForRun(state = state)
+        val uploadIdsByAttachmentId = uploadAttachments(
+            session = authorizedSession(workspaceId = remoteWorkspaceId),
+            pendingAttachments = pendingAttachments
+        )
+        // Uploads can outlast an ID token, so the turn itself asks for a fresh one.
+        val session = authorizedSession(workspaceId = remoteWorkspaceId)
         val request = AiChatStartRunRequest(
             sessionId = resolvedSessionId,
             workspaceId = remoteWorkspaceId,
             clientRequestId = java.util.UUID.randomUUID().toString().lowercase(),
-            content = buildAiChatRequestContent(content = content),
+            content = buildAiChatRequestContent(
+                draftMessage = draftMessage,
+                pendingAttachments = pendingAttachments,
+                uploadIdsByAttachmentId = uploadIdsByAttachmentId
+            ),
             timezone = TimeZone.getDefault().id,
             uiLocale = uiLocale,
         )
@@ -382,17 +405,12 @@ class LocalAiChatRepository(
                 "chatSessionId" to request.sessionId,
                 "apiBaseUrl" to session.apiBaseUrl,
                 "messageCount" to state.messages.size.toString(),
-                "contentSummary" to AiChatDiagnosticsLogger.summarizeOutgoingContent(content = content)
+                "contentSummary" to AiChatDiagnosticsLogger.summarizeOutgoingContent(content = request.content)
             )
         )
 
         return try {
-            aiChatRemoteService.startRun(
-                apiBaseUrl = session.apiBaseUrl,
-                authorizationHeader = session.authorizationHeader,
-                ownOpenAiKey = ownOpenAiKeyStore.activeApiKeyOrNull(),
-                request = request
-            )
+            startRunRetryingTimeout(session = session, request = request)
         } catch (error: AiChatRemoteException) {
             AiChatDiagnosticsLogger.error(
                 event = "start_run_failed",
@@ -401,7 +419,7 @@ class LocalAiChatRepository(
                     "chatSessionId" to request.sessionId,
                     "apiBaseUrl" to session.apiBaseUrl,
                     "messageCount" to state.messages.size.toString(),
-                    "contentSummary" to AiChatDiagnosticsLogger.summarizeOutgoingContent(content = content),
+                    "contentSummary" to AiChatDiagnosticsLogger.summarizeOutgoingContent(content = request.content),
                     "requestId" to error.requestId,
                     "statusCode" to error.statusCode?.toString(),
                     "code" to error.code,
@@ -410,6 +428,119 @@ class LocalAiChatRepository(
                 throwable = error
             )
             throw error
+        }
+    }
+
+    /**
+     * A timed-out `POST /chat` may still have been accepted, so the retry repeats its clientRequestId
+     * and the backend replays that turn instead of starting a second one. The gateway answers 504 at
+     * its integration timeout, well before the client's own read timeout, while the Lambda keeps running.
+     */
+    private suspend fun startRunRetryingTimeout(
+        session: AuthorizedAiChatSession,
+        request: AiChatStartRunRequest
+    ): AiChatStartRunResponse {
+        for (attemptNumber in 1 until aiChatStartRunMaximumAttemptCount) {
+            try {
+                return aiChatRemoteService.startRun(
+                    apiBaseUrl = session.apiBaseUrl,
+                    authorizationHeader = session.authorizationHeader,
+                    ownOpenAiKey = ownOpenAiKeyStore.activeApiKeyOrNull(),
+                    request = request
+                )
+            } catch (error: SocketTimeoutException) {
+                warnStartRunTimeoutRetry(
+                    request = request,
+                    attemptNumber = attemptNumber,
+                    statusCode = null,
+                    error = error
+                )
+            } catch (error: AiChatRemoteException) {
+                if (error.statusCode != aiChatGatewayTimeoutStatusCode) {
+                    throw error
+                }
+                warnStartRunTimeoutRetry(
+                    request = request,
+                    attemptNumber = attemptNumber,
+                    statusCode = error.statusCode,
+                    error = error
+                )
+            }
+        }
+
+        return aiChatRemoteService.startRun(
+            apiBaseUrl = session.apiBaseUrl,
+            authorizationHeader = session.authorizationHeader,
+            ownOpenAiKey = ownOpenAiKeyStore.activeApiKeyOrNull(),
+            request = request
+        )
+    }
+
+    private fun warnStartRunTimeoutRetry(
+        request: AiChatStartRunRequest,
+        attemptNumber: Int,
+        statusCode: Int?,
+        error: Exception
+    ) {
+        AiChatDiagnosticsLogger.warn(
+            event = "start_run_timeout_retry",
+            fields = listOf(
+                "chatSessionId" to request.sessionId,
+                "clientRequestId" to request.clientRequestId,
+                "attemptNumber" to attemptNumber.toString(),
+                "statusCode" to statusCode?.toString(),
+                "message" to error.message
+            )
+        )
+    }
+
+    /** Uploads the files of one turn in order and returns each upload id by attachment id. */
+    private suspend fun uploadAttachments(
+        session: AuthorizedAiChatSession,
+        pendingAttachments: List<AiChatAttachment>
+    ): Map<String, String> {
+        return pendingAttachments.filterIsInstance<AiChatAttachment.Binary>().associate { attachment ->
+            attachment.id to uploadAttachment(session = session, attachment = attachment)
+        }
+    }
+
+    private suspend fun uploadAttachment(
+        session: AuthorizedAiChatSession,
+        attachment: AiChatAttachment.Binary
+    ): String {
+        val bytes = readAttachmentBytes(attachment = attachment)
+        val upload = aiChatRemoteService.createFileUpload(
+            apiBaseUrl = session.apiBaseUrl,
+            authorizationHeader = session.authorizationHeader,
+            fileName = attachment.fileName,
+            mediaType = attachment.mediaType,
+            sizeBytes = bytes.size.toLong()
+        )
+        try {
+            signedPutUploader.uploadSignedPut(
+                url = upload.url,
+                headers = upload.headers,
+                bodyBytes = bytes
+            )
+        } catch (error: IOException) {
+            throw AiChatAttachmentUploadException(
+                fileName = attachment.fileName,
+                uploadFailure = error
+            )
+        }
+        return upload.uploadId
+    }
+
+    private suspend fun readAttachmentBytes(attachment: AiChatAttachment.Binary): ByteArray {
+        return withContext(Dispatchers.IO) {
+            try {
+                File(attachment.localFilePath).readBytes()
+            } catch (error: FileNotFoundException) {
+                throw AiChatAttachmentFileMissingException(
+                    fileName = attachment.fileName,
+                    cause = error
+                )
+            }
         }
     }
 

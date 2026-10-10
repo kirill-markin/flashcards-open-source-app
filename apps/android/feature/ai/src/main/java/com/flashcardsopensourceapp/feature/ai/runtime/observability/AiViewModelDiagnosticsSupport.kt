@@ -2,6 +2,8 @@ package com.flashcardsopensourceapp.feature.ai.runtime.observability
 
 import com.flashcardsopensourceapp.core.observability.alreadyObservedAndroidThrowable
 import com.flashcardsopensourceapp.core.observability.shouldCaptureAndroidThrowable
+import com.flashcardsopensourceapp.data.local.ai.remote.AiChatAttachmentFileMissingException
+import com.flashcardsopensourceapp.data.local.ai.remote.AiChatAttachmentUploadException
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.ai.remote.isExpectedAiChatRemoteUserError
 import com.flashcardsopensourceapp.data.local.ai.remote.isOwnOpenAiKeyRemoteError
@@ -29,6 +31,22 @@ internal fun makeAiUserFacingErrorPresentation(
         return AiUserFacingErrorPresentation(
             message = textProvider.ownOpenAiKeyErrorMessage(providerMessage = remoteError.message.orEmpty()),
             technicalError = null
+        )
+    }
+    if (error is AiChatAttachmentFileMissingException) {
+        return AiUserFacingErrorPresentation(
+            message = textProvider.attachmentFileMissing,
+            technicalError = null
+        )
+    }
+    if (error is AiChatAttachmentUploadException) {
+        return AiUserFacingErrorPresentation(
+            message = textProvider.attachmentUploadFailed,
+            technicalError = if (aiChatFailureIssueDisposition(error = error) == AiChatFailureIssueDisposition.NONE) {
+                null
+            } else {
+                error
+            }
         )
     }
     val presentation = makeAiChatUserFacingErrorPresentation(

@@ -2,6 +2,10 @@ package com.flashcardsopensourceapp.feature.ai.runtime.errors
 
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurationMode
 import com.flashcardsopensourceapp.data.local.model.ai.aiChatAttachmentUnsupportedTypeCode
+import com.flashcardsopensourceapp.data.local.model.ai.aiChatFileUploadImagesTooLargeCode
+import com.flashcardsopensourceapp.data.local.model.ai.aiChatFileUploadNotFoundCode
+import com.flashcardsopensourceapp.data.local.model.ai.aiChatFileUploadTooLargeCode
+import com.flashcardsopensourceapp.data.local.model.ai.aiChatFileUploadsTooManyCode
 import com.flashcardsopensourceapp.data.local.model.ai.aiChatRequestTooLargeCode
 import com.flashcardsopensourceapp.feature.ai.strings.AiTextProvider
 
@@ -109,6 +113,18 @@ private fun mappedAiChatErrorMessage(
     }
     if (code == aiChatRequestTooLargeCode) {
         return textProvider.requestTooLargeMessage
+    }
+    if (code == aiChatFileUploadTooLargeCode) {
+        return textProvider.attachmentTooLarge
+    }
+    if (code == aiChatFileUploadsTooManyCode) {
+        return textProvider.attachmentUploadsTooMany
+    }
+    if (code == aiChatFileUploadImagesTooLargeCode) {
+        return textProvider.attachmentImagesTooLarge
+    }
+    if (code == aiChatFileUploadNotFoundCode) {
+        return textProvider.attachmentUploadNotFound
     }
 
     return aiChatAvailabilityMessage(

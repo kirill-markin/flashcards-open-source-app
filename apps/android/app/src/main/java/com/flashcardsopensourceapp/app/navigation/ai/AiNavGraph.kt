@@ -167,6 +167,8 @@ internal fun NavGraphBuilder.registerAiNavGraph(
             onDismissErrorMessage = aiViewModel::dismissErrorMessage,
             onDismissAlert = aiViewModel::dismissAlert,
             onAddPendingAttachment = aiViewModel::addPendingAttachment,
+            onImportPendingAttachment = aiViewModel::importPendingAttachment,
+            onCancelAttachmentImport = aiViewModel::cancelAttachmentImport,
             onRemovePendingAttachment = aiViewModel::removePendingAttachment,
             // The attachment itself, reported from here for the same reason the permission results
             // below are: this is where the surface the person is on is known.

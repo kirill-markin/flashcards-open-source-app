@@ -45,7 +45,8 @@ class AiChatRuntimeGuestQuotaPromptTest {
             id = "attachment-1",
             fileName = "notes.txt",
             mediaType = "text/plain",
-            base64Data = "ZmlsZQ=="
+            localFilePath = "/missing/ai-chat-attachments/attachment-1",
+            sizeBytes = 4L
         )
 
         runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))

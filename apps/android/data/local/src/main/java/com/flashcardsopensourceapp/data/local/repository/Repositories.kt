@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.data.local.repository
 
 import com.flashcardsopensourceapp.data.local.model.sync.AppMetadataSummary
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatBootstrapResponse
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatLiveEvent
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatLiveStreamEnvelope
@@ -396,10 +397,12 @@ interface AiChatRepository {
         audioBytes: ByteArray
     ): AiChatTranscriptionResult
     suspend fun warmUpLinkedSession()
+    /** Uploads the turn's file attachments, then starts the run that names them. */
     suspend fun startRun(
         workspaceId: String?,
         state: AiChatPersistedState,
-        content: List<com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart>,
+        draftMessage: String,
+        pendingAttachments: List<AiChatAttachment>,
         uiLocale: String?
     ): AiChatStartRunResponse
     fun attachLiveRun(

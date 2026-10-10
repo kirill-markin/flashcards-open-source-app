@@ -76,6 +76,7 @@ internal fun AiComposer(
     onSendMessage: () -> Unit,
     onCancelStreaming: () -> Unit,
     onRemovePendingAttachment: (String) -> Unit,
+    onCancelAttachmentImport: () -> Unit,
     onOpenAttachmentMenu: () -> Unit,
     onToggleDictation: () -> Unit,
     modifier: Modifier
@@ -119,7 +120,7 @@ internal fun AiComposer(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            if (uiState.pendingAttachments.isNotEmpty()) {
+            if (uiState.pendingAttachments.isNotEmpty() || uiState.isImportingAttachment) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier
@@ -172,6 +173,37 @@ internal fun AiComposer(
                                     Icon(
                                         imageVector = Icons.Outlined.Close,
                                         contentDescription = stringResource(id = R.string.ai_remove_attachment_content_description)
+                                    )
+                                }
+                            }
+                        )
+                    }
+
+                    if (uiState.isImportingAttachment) {
+                        FilterChip(
+                            selected = true,
+                            onClick = {},
+                            label = {
+                                Text(
+                                    text = stringResource(id = R.string.ai_attachment_importing),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            },
+                            leadingIcon = {
+                                CircularProgressIndicator(
+                                    strokeWidth = 2.dp,
+                                    modifier = Modifier.size(aiComposerProgressSize)
+                                )
+                            },
+                            trailingIcon = {
+                                IconButton(
+                                    onClick = onCancelAttachmentImport,
+                                    modifier = Modifier.size(aiComposerActionSize)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Close,
+                                        contentDescription = stringResource(id = R.string.ai_cancel_attachment_import_content_description)
                                     )
                                 }
                             }

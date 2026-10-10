@@ -10,6 +10,7 @@ import com.flashcardsopensourceapp.core.observability.CloudObservationIdentity
 import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.ai.wire.decodeAiChatArchivedSession
 import com.flashcardsopensourceapp.data.local.ai.wire.decodeAiChatBootstrapResponse
+import com.flashcardsopensourceapp.data.local.ai.wire.decodeAiChatFileUpload
 import com.flashcardsopensourceapp.data.local.ai.wire.decodeAiChatGuestSession
 import com.flashcardsopensourceapp.data.local.ai.wire.decodeAiChatNewSession
 import com.flashcardsopensourceapp.data.local.ai.wire.decodeAiChatRenamedSession
@@ -37,6 +38,7 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatSessionHistorySumma
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatTranscriptionResult
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatFileUpload
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatMessage
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatReasoningSummary
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatResumeDiagnostics
@@ -118,6 +120,9 @@ private val expectedAiChatHttpFailureCodes: Set<String> = setOf(
     "CHAT_TRANSCRIPTION_UNAVAILABLE",
     "CHAT_TRANSCRIPTION_PROVIDER_AUTH_FAILED",
     "CHAT_ATTACHMENT_UNSUPPORTED_TYPE",
+    "CHAT_FILE_UPLOAD_IMAGES_TOO_LARGE",
+    "CHAT_FILE_UPLOAD_TOO_LARGE",
+    "CHAT_FILE_UPLOADS_TOO_MANY",
     "CHAT_REQUEST_TOO_LARGE",
     "CHAT_SESSION_ARCHIVE_ACTIVE_RUN",
     "CHAT_SESSION_ID_CONFLICT",
@@ -197,6 +202,18 @@ class AiChatRequestTooLargeException(
     val byteCount: Int,
     val maximumByteCount: Int
 ) : Exception("AI chat request is too large.")
+
+/** The staged copy of a picked attachment is gone from the app cache, so there are no bytes to upload. */
+class AiChatAttachmentFileMissingException(
+    fileName: String,
+    cause: Throwable
+) : Exception("AI chat attachment file is missing: $fileName", cause)
+
+/** The PUT of an attachment's bytes to its pre-signed URL failed after the uploader's own retries. */
+class AiChatAttachmentUploadException(
+    fileName: String,
+    val uploadFailure: IOException
+) : Exception("AI chat attachment upload failed: $fileName", uploadFailure)
 
 fun encodeAiChatStartRunRequestJson(request: AiChatStartRunRequest): String {
     return encodeAiChatStartRunRequestPayload(request = request).toString()
@@ -289,16 +306,11 @@ private fun encodeAiChatWireContentPart(part: com.flashcardsopensourceapp.data.l
             .put("type", "text")
             .put("text", part.text)
 
-        is com.flashcardsopensourceapp.data.local.model.ai.AiChatWireContentPart.Image -> JSONObject()
-            .put("type", "image")
-            .put("mediaType", part.mediaType)
-            .put("base64Data", part.base64Data)
-
-        is com.flashcardsopensourceapp.data.local.model.ai.AiChatWireContentPart.File -> JSONObject()
-            .put("type", "file")
+        is com.flashcardsopensourceapp.data.local.model.ai.AiChatWireContentPart.Upload -> JSONObject()
+            .put("type", "upload")
+            .put("uploadId", part.uploadId)
             .put("fileName", part.fileName)
             .put("mediaType", part.mediaType)
-            .put("base64Data", part.base64Data)
 
         is com.flashcardsopensourceapp.data.local.model.ai.AiChatWireContentPart.Card -> JSONObject()
             .put("type", "card")
@@ -306,14 +318,6 @@ private fun encodeAiChatWireContentPart(part: com.flashcardsopensourceapp.data.l
             .put("frontText", part.frontText)
             .put("backText", part.backText)
             .put("tags", JSONArray(part.tags))
-
-        is com.flashcardsopensourceapp.data.local.model.ai.AiChatWireContentPart.ToolCall -> JSONObject()
-            .put("type", "tool_call")
-            .put("id", part.toolCallId)
-            .put("name", part.name)
-            .put("status", part.status.name.lowercase())
-            .put("input", part.input)
-            .put("output", part.output)
     }
 }
 
@@ -452,6 +456,33 @@ class AiChatRemoteService private constructor(
             expectedStatusCodes = emptySet()
         )
         return@withContext decodeAiChatStartRunResponse(responseBody)
+    }
+
+    /** Signs a PUT for one attachment that a later `POST /chat` names in an `upload` part. */
+    suspend fun createFileUpload(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        fileName: String,
+        mediaType: String,
+        sizeBytes: Long
+    ): AiChatFileUpload = withContext(dispatchers.io) {
+        val responseBody = readResponseBody(
+            request = buildRequest(
+                apiBaseUrl = apiBaseUrl,
+                path = "/chat/files/uploads",
+                method = "POST",
+                authorizationHeader = authorizationHeader,
+                requestBody = JSONObject()
+                    .put("fileName", fileName)
+                    .put("mediaType", mediaType)
+                    .put("sizeBytes", sizeBytes)
+                    .toString()
+                    .toRequestBody(aiJsonMediaType),
+                extraHeaders = emptyMap()
+            ),
+            expectedStatusCodes = emptySet()
+        )
+        return@withContext decodeAiChatFileUpload(payload = responseBody)
     }
 
     suspend fun loadSnapshot(
