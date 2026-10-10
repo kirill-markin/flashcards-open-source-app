@@ -44,7 +44,7 @@ import { finalizePendingToolCallContent } from "../history";
 import { FAILED_TOOL_CALL_OUTPUT } from "../store";
 import type { ContentPart } from "../types";
 import type { ProductAnalyticsClientReportablePlatform } from "../../productAnalytics/catalog";
-import { isChatRunHeartbeatStale } from "../worker/lease";
+import { CHAT_RUN_HEARTBEAT_INTERVAL_MS, isChatRunHeartbeatStale } from "../worker/lease";
 import { getChatRunClaimStateWithExecutor } from "./claimFence";
 import {
   createDiagnostics,
@@ -61,6 +61,7 @@ import {
   selectChatRunBySessionRequestWithExecutor,
   selectChatRunForUpdateWithExecutor,
   selectSessionForUpdateWithExecutor,
+  touchClaimedChatRunHeartbeatWithExecutor,
   updateChatRunPolicySnapshotWithExecutor,
   updateClaimedChatRunStatusWithExecutor,
   updateChatRunStatusWithExecutor,
@@ -358,6 +359,10 @@ export function assertClaimedRunStillActive(
   }
 }
 
+// A heartbeat stuck on a lock wait or a dead pooled connection fails at this bound, early enough for a
+// later tick's heartbeat to land before the last landed one goes stale.
+const CHAT_RUN_HEARTBEAT_DATABASE_TIMEOUT_MS = 2 * CHAT_RUN_HEARTBEAT_INTERVAL_MS;
+
 /**
  * Refreshes worker ownership for a claimed run and reports whether cancellation
  * or ownership loss occurred.
@@ -371,61 +376,28 @@ export async function touchClaimedChatRunHeartbeat(
   claimToken: ChatRunClaimToken,
   heartbeatAt: Date,
 ): Promise<ChatRunHeartbeatState> {
-  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
-    const scope = { userId, workspaceId };
-    const run = await selectChatRunForUpdateWithExecutor(executor, scope, runId);
-    if (
-      run === null
-      || run.status !== "running"
-      || run.worker_claimed_at !== claimToken
-    ) {
-      return {
-        cancellationRequested: false,
-        ownershipLost: true,
-      };
-    }
-
-    const session = await selectSessionForUpdateWithExecutor(executor, scope, run.session_id);
-    if (session.active_run_id !== run.run_id) {
-      return {
-        cancellationRequested: false,
-        ownershipLost: true,
-      };
-    }
-
-    const updatedRun = await updateClaimedChatRunStatusWithExecutor(
+  const touchedRun = await transactionWithWorkspaceScopeDeadline(
+    { userId, workspaceId },
+    heartbeatAt.getTime() + CHAT_RUN_HEARTBEAT_DATABASE_TIMEOUT_MS,
+    async (executor) => touchClaimedChatRunHeartbeatWithExecutor(
       executor,
-      scope,
-      claimToken,
-      createChatRunStatusUpdateFromRow(run, {
-        status: "running",
-        workerHeartbeatAt: heartbeatAt,
-        startedAt: run.started_at === null ? heartbeatAt : undefined,
-        finishedAt: null,
-        lastErrorMessage: null,
-      }),
-    );
-    if (updatedRun === null) {
-      return {
-        cancellationRequested: false,
-        ownershipLost: true,
-      };
-    }
-
-    await updateChatSessionRunStateWithExecutor(
-      executor,
-      scope,
-      run.session_id,
-      "running",
+      { userId, workspaceId },
       runId,
+      claimToken,
       heartbeatAt,
-    );
-
+    ),
+  );
+  if (touchedRun === null) {
     return {
-      cancellationRequested: run.cancel_requested_at !== null,
-      ownershipLost: false,
+      cancellationRequested: false,
+      ownershipLost: true,
     };
-  });
+  }
+
+  return {
+    cancellationRequested: touchedRun.cancel_requested_at !== null,
+    ownershipLost: false,
+  };
 }
 
 export async function reconcileInactiveClaimedChatRun(
