@@ -116,8 +116,9 @@ Sentry with their full message and stack, so use Sentry when a specific failure
 needs to be read rather than counted.
 
 `dialectReason` is recorded as an opaque value. The SQL dialect owns that
-vocabulary and will make it more specific over time; nothing in this record
-depends on which values appear.
+vocabulary, defined by the `SqlDialectReason` union in
+`apps/backend/src/aiTools/sqlErrors.ts`; nothing in this record depends on
+which values appear.
 
 A write whose result overflowed the budget still succeeds: `sql_execute` shrinks
 the already committed write's payload instead of failing it, so such an
