@@ -1,3 +1,4 @@
+import { SqlDialectError } from "../sqlErrors";
 import type {
   SqlColumnDescriptor,
   SqlFromSource,
@@ -442,7 +443,7 @@ export function getSqlColumnDescriptor(
     }
   }
 
-  throw new Error(`Unknown column for ${resourceName}: ${columnName}`);
+  throw new SqlDialectError(`Unknown column for ${resourceName}: ${columnName}`, "unknown_column");
 }
 
 export function getSqlSourceColumnDescriptors(
@@ -473,6 +474,6 @@ export function getSqlSourceColumnDescriptors(
 export function ensureSqlSourceColumnExists(source: SqlFromSource, columnName: string): void {
   const descriptor = getSqlSourceColumnDescriptors(source)[columnName];
   if (descriptor === undefined) {
-    throw new Error(`Unknown column for ${source.resourceName}: ${columnName}`);
+    throw new SqlDialectError(`Unknown column for ${source.resourceName}: ${columnName}`, "unknown_column");
   }
 }

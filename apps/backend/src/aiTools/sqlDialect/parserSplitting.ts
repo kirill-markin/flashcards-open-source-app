@@ -1,3 +1,5 @@
+import { SqlDialectError, type SqlDialectReason } from "../sqlErrors";
+
 export type TopLevelClauseDefinition<TName extends string> = Readonly<{
   name: TName;
   keyword: string;
@@ -112,7 +114,7 @@ export function splitSqlStatements(value: string): ReadonlyArray<string> {
       const statement = current.trim();
       const remainingValue = trimmedValue.slice(index + 1).trim();
       if (statement === "") {
-        throw new Error("SQL batch contains an empty statement");
+        throw new SqlDialectError("SQL batch contains an empty statement", "empty_sql");
       }
 
       statements.push(statement);
@@ -136,9 +138,9 @@ export function splitSqlStatements(value: string): ReadonlyArray<string> {
   return statements;
 }
 
-export function assert(condition: boolean, message: string): void {
+export function assert(condition: boolean, message: string, reason: SqlDialectReason): void {
   if (condition === false) {
-    throw new Error(message);
+    throw new SqlDialectError(message, reason);
   }
 }
 
@@ -379,15 +381,15 @@ export function extractTopLevelClauses<TName extends string>(
 
   for (const [index, match] of matches.entries()) {
     if (clauseValues.has(match.name)) {
-      throw new Error(`Duplicate ${context} clause: ${match.keyword}`);
+      throw new SqlDialectError(`Duplicate ${context} clause: ${match.keyword}`, "invalid_clause");
     }
 
     const order = definitionOrder.get(match.name);
     if (order === undefined) {
-      throw new Error(`Unknown ${context} clause: ${match.keyword}`);
+      throw new SqlDialectError(`Unknown ${context} clause: ${match.keyword}`, "unsupported_statement");
     }
     if (order < lastOrder) {
-      throw new Error(`Invalid ${context} clause order near ${match.keyword}`);
+      throw new SqlDialectError(`Invalid ${context} clause order near ${match.keyword}`, "invalid_clause");
     }
 
     const nextMatch = matches[index + 1];
@@ -397,7 +399,9 @@ export function extractTopLevelClauses<TName extends string>(
   }
 
   const firstMatch = matches[0];
-  assert(firstMatch !== undefined, `Expected at least one ${context} clause`);
+  if (firstMatch === undefined) {
+    throw new Error(`Expected at least one ${context} clause`);
+  }
   return {
     leadingSegment: value.slice(0, firstMatch.index).trim(),
     clauseValues,

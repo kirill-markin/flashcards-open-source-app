@@ -1,3 +1,4 @@
+import { SqlDialectError } from "../sqlErrors";
 import {
   ensureSqlSourceColumnExists,
   isSqlResourceName,
@@ -39,7 +40,7 @@ function parseSimpleNumberClauseValue(value: string | undefined, keyword: string
 
   const trimmedValue = value.trim();
   if (/^\d+$/u.test(trimmedValue) === false) {
-    throw new Error(`${keyword} must be a non-negative integer`);
+    throw new SqlDialectError(`${keyword} must be a non-negative integer`, "invalid_clause");
   }
 
   return Number.parseInt(trimmedValue, 10);
@@ -53,18 +54,18 @@ function parseOrderBy(value: string): ReadonlyArray<SqlSelectOrderBy> {
 
   for (const item of items) {
     if (/^RANDOM\s*\(\s*\)\s+(ASC|DESC)$/i.test(item)) {
-      throw new Error("RANDOM() does not support ASC or DESC");
+      throw new SqlDialectError("RANDOM() does not support ASC or DESC", "unsupported_expression");
     }
   }
 
   if (items.some((item) => /^RANDOM\s*\(\s*\)$/i.test(item))) {
-    throw new Error("RANDOM() must be the only ORDER BY item");
+    throw new SqlDialectError("RANDOM() must be the only ORDER BY item", "unsupported_expression");
   }
 
   return items.map((item) => {
     const match = item.match(/^([a-z_][a-z0-9_]*)(?:\s+(ASC|DESC))?$/i);
     if (match === null) {
-      throw new Error(`Unsupported ORDER BY item: ${item}`);
+      throw new SqlDialectError(`Unsupported ORDER BY item: ${item}`, "unsupported_expression");
     }
 
     return {
@@ -82,7 +83,7 @@ function parseFromSource(
 ): SqlFromSource {
   const normalizedResourceName = resourceName.toLowerCase();
   if (isSqlResourceName(normalizedResourceName) === false) {
-    throw new Error(`Unknown resource: ${normalizedResourceName}`);
+    throw new SqlDialectError(`Unknown resource: ${normalizedResourceName}`, "unknown_resource");
   }
 
   if (unnestColumnName === undefined && unnestAlias === undefined) {
@@ -96,7 +97,7 @@ function parseFromSource(
   const normalizedUnnestColumnName = (unnestColumnName ?? "").toLowerCase();
   const normalizedUnnestAlias = (unnestAlias ?? "").toLowerCase();
   if (normalizedResourceName !== "cards" || normalizedUnnestColumnName !== "tags") {
-    throw new Error("UNNEST is only supported for cards.tags");
+    throw new SqlDialectError("UNNEST is only supported for cards.tags", "unsupported_expression");
   }
 
   return {
@@ -164,19 +165,19 @@ function parseSelectItem(source: SqlFromSource, value: string): SqlSelectItem {
     };
   }
 
-  throw new Error(`Unsupported SELECT item: ${trimmedValue}`);
+  throw new SqlDialectError(`Unsupported SELECT item: ${trimmedValue}`, "unsupported_expression");
 }
 
 function parseSelectStatement(normalizedSql: string): SqlSelectStatement {
   const selectPrefixMatch = normalizedSql.match(/^SELECT\s+/i);
   if (selectPrefixMatch === null) {
-    throw new Error("Unsupported SELECT statement");
+    throw new SqlDialectError("Unsupported SELECT statement", "unsupported_statement");
   }
 
   const selectBody = normalizedSql.slice(selectPrefixMatch[0].length);
   const fromMatch = findTopLevelClauseMatches(selectBody, [{ name: "from", keyword: "FROM" }] as const)[0];
   if (fromMatch === undefined) {
-    throw new Error("Unsupported SELECT statement");
+    throw new SqlDialectError("Unsupported SELECT statement", "unsupported_statement");
   }
 
   const selectItemsSegment = selectBody.slice(0, fromMatch.index).trim();
@@ -196,7 +197,7 @@ function parseSelectStatement(normalizedSql: string): SqlSelectStatement {
     /^([a-z_][a-z0-9_]*)(?:\s+UNNEST\s+([a-z_][a-z0-9_]*)\s+AS\s+([a-z_][a-z0-9_]*))?$/i,
   );
   if (sourceMatch === null) {
-    throw new Error("Unsupported SELECT statement");
+    throw new SqlDialectError("Unsupported SELECT statement", "unsupported_statement");
   }
 
   const source = parseFromSource(sourceMatch[1] ?? "", sourceMatch[2], sourceMatch[3]);
@@ -215,20 +216,20 @@ function parseSelectStatement(normalizedSql: string): SqlSelectStatement {
   const wildcardSelect = selectItems.length === 1 && selectItems[0]?.type === "wildcard";
   const hasAggregateSelectItem = selectItems.some((item) => item.type === "aggregate");
   if (wildcardSelect && groupBy.length > 0) {
-    throw new Error("GROUP BY is not supported with SELECT *");
+    throw new SqlDialectError("GROUP BY is not supported with SELECT *", "invalid_grouping");
   }
 
   const requiresGroupedColumns = hasAggregateSelectItem || groupBy.length > 0;
   for (const item of selectItems) {
     if (requiresGroupedColumns && item.type === "column" && groupBy.includes(item.columnName) === false) {
-      throw new Error(`Grouped SELECT must list ${item.columnName} in GROUP BY`);
+      throw new SqlDialectError(`Grouped SELECT must list ${item.columnName} in GROUP BY`, "invalid_grouping");
     }
   }
 
   if (requiresGroupedColumns && source.unnestAlias !== null && groupBy.includes(source.unnestAlias) === false) {
     const referencesAlias = selectItems.some((item) => item.type === "column" && item.columnName === source.unnestAlias);
     if (referencesAlias) {
-      throw new Error(`Grouped SELECT must list ${source.unnestAlias} in GROUP BY`);
+      throw new SqlDialectError(`Grouped SELECT must list ${source.unnestAlias} in GROUP BY`, "invalid_grouping");
     }
   }
 
@@ -270,7 +271,7 @@ function parseDescribeStatement(normalizedSql: string): ParsedSqlStatement | nul
 
   const resourceName = (match[1] ?? "").toLowerCase();
   if (isSqlResourceName(resourceName) === false) {
-    throw new Error(`Unknown resource: ${resourceName}`);
+    throw new SqlDialectError(`Unknown resource: ${resourceName}`, "unknown_resource");
   }
 
   return {
@@ -289,7 +290,7 @@ function parseDescribeStatement(normalizedSql: string): ParsedSqlStatement | nul
 export function parseSqlStatement(value: string): ParsedSqlStatement {
   const normalizedSql = normalizeSqlWhitespace(value);
   if (normalizedSql === "") {
-    throw new Error("sql must not be empty");
+    throw new SqlDialectError("sql must not be empty", "empty_sql");
   }
 
   const showTablesStatement = parseShowTablesStatement(normalizedSql);
@@ -319,13 +320,13 @@ export function parseSqlStatement(value: string): ParsedSqlStatement {
     return parseDeleteStatement(normalizedSql);
   }
 
-  throw new Error("Unsupported SQL statement");
+  throw new SqlDialectError("Unsupported SQL statement", "unsupported_statement");
 }
 
 export function parseSqlStatements(value: string): ReadonlyArray<ParsedSqlStatement> {
   const statementValues = splitSqlStatements(value);
   if (statementValues.length === 0) {
-    throw new Error("sql must not be empty");
+    throw new SqlDialectError("sql must not be empty", "empty_sql");
   }
 
   return statementValues.map((statementValue) => parseSqlStatement(statementValue));

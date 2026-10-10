@@ -491,7 +491,7 @@ assert payload["error"]["code"] == "QUERY_INVALID_SQL"
 assert payload["error"]["message"] == expected_message
 assert payload["error"]["details"]["validationIssues"] == [{
     "path": "sql",
-    "code": "invalid_sql",
+    "code": "column_not_filterable",
     "message": expected_message,
 }]
 assert isinstance(payload["requestId"], str) and payload["requestId"] != ""
