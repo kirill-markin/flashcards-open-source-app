@@ -10,10 +10,10 @@ The record is emitted by `withAgentSqlTelemetry` in
 `runSqlExecute`, `runChatSqlQuery`, and `runChatSqlExecute`. It sits below the MCP tool handlers' own
 `catch`, which answers with a `CallToolResult` and therefore never reaches
 `app.onError`: without this record an MCP dialect rejection produces no record
-that identifies the failure, no Sentry event, and no Langfuse trace. The
-`mcp_request` record the same request emits counts the request but reports the
-transport's own `statusCode` 200, because a rejected tool call is a successful
-JSON-RPC response.
+of its SQL detail, no Sentry event, and no Langfuse trace. The `mcp_request`
+record the same request emits reports the transport's own `statusCode` 200,
+because a rejected tool call is a successful JSON-RPC response, and carries only
+the tool's `toolErrorCode`.
 
 ## Record envelope
 
@@ -153,7 +153,10 @@ is emitted, and that truncation is not recorded anywhere.
 ## The MCP caller label
 
 On the MCP surface `caller` is the request `User-Agent`, trimmed and capped at
-120 characters, and `null` when the client sends no `User-Agent`.
+120 characters, and `null` when the client sends no `User-Agent`. The
+post-deploy smoke (`scripts/checks/check-mcp-smoke.sh`) sends
+`User-Agent: nibomo-mcp-smoke/1`, and its deliberate failures are excluded
+from the failure queries below.
 
 The `initialize` clientInfo is not used because it is not reachable: the MCP
 Lambda runs the transport statelessly (`sessionIdGenerator: undefined` in
@@ -190,6 +193,8 @@ record: a response body that could not be measured is recorded as a `null`
 | `jsonRpcMethod` | `Mcp-Method` request header, so `initialize`, `tools/list`, `tools/call`; `null` on clients older than MCP revision 2026-07-28, which is where the header became REQUIRED |
 | `toolName` | Tool the request ran, observed in process from the tool handler, so it is present for a tool call whatever the client's protocol revision is; when no handler ran it falls back to the tool the `tools/call` body names and then to the client's own unvalidated `Mcp-Name` header, so a `tools/call` the SDK rejected before any handler is still named; `null` when the request named no tool, and always `null` on a non-POST request |
 | `toolExecuted` | `true` when a tool handler ran, `false` when a tool was named but no handler ran, `null` when the request named no tool. The SDK validates a call's arguments against the tool's input schema ahead of the handler, so an unknown tool, a wrong enum spelling, or a missing required argument answers the client with `-32602` and never reaches our code: those attempts are `toolExecuted = false`, and without this field they are indistinguishable from a client that never called the tool at all |
+| `toolIsError` | `true` when the tool handler answered with an error result, `false` when it answered with a result, `null` when no handler ran. A failed tool call is still a successful JSON-RPC response, so `statusCode` is 200 either way |
+| `toolErrorCode` | The `error.code` that error result sent the client, which is `INTERNAL_ERROR` for an unexpected failure; `null` unless `toolIsError` is `true`. The error message is never recorded |
 | `caller` | Calling client label, normalized like the `agent_sql` one |
 | `connectionId` | Agent connection the request ran under |
 | `statusCode` | HTTP status the client received, including the 405 a non-POST request gets |
@@ -324,10 +329,27 @@ getting the contract wrong; `statusCode` separates the rarer case of a request
 that faulted before reaching the handler. Compare it against the same tool's
 executed calls to see whether one client is failing systematically.
 
+## Tool calls that returned an error
+
+```
+filter message.domain = "backend" and message.action = "mcp_request"
+       and message.toolIsError = 1
+| stats count(*) as errors
+  by message.toolName, message.toolErrorCode, message.caller
+| sort errors desc
+| limit 20
+```
+
+A row here ran its handler and answered with an error result. Divide by the
+same tool's `toolExecuted = 1` count for its failure share. For `sql_query` and
+`sql_execute`, the `agent_sql` record with the same `requestId` carries the
+dialect detail.
+
 ## Failure share by surface
 
 ```
 filter message.domain = "backend" and message.action = "agent_sql"
+       and message.caller != "nibomo-mcp-smoke/1"
 | stats count(*) as executions,
         sum(message.succeeded = 0) as failures,
         sum(message.succeeded = 0) * 100 / count(*) as failureSharePct
@@ -343,6 +365,7 @@ client.
 ```
 filter message.domain = "backend" and message.action = "agent_sql"
        and message.succeeded = 0
+       and message.caller != "nibomo-mcp-smoke/1"
 | stats count(*) as failures
   by message.surface, message.errorCode, message.dialectReason, message.caller
 | sort failures desc

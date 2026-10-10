@@ -633,7 +633,7 @@ test("agent reviews select, filter, and schedule cards the way the first-party c
           "https://mcp.example.test/mcp",
           "https://example.test",
           "https://example.test/icon.svg",
-          { caller: "review-test", recordInvokedTool: () => {} },
+          { caller: "review-test", recordInvokedTool: () => {}, recordToolOutcome: () => {} },
         );
         const client = new Client({ name: "voice-client-test", version: "1" });
         const [clientTransport, serverTransport] =

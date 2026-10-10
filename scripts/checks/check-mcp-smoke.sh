@@ -40,6 +40,9 @@ CARD_TAG="mcp-smoke"
 REVIEW_ID="$(python3 -c 'import uuid; print(uuid.uuid4())')"
 REVIEW_TIME_ZONE="Europe/Sofia"
 MCP_RESOURCE_URL="${MCP_BASE_URL%/}/mcp"
+# Recorded as the MCP `caller`; the failure queries in docs/agent-sql-telemetry.md
+# exclude it, so this smoke's deliberate negative tests are not counted as failures.
+readonly SMOKE_USER_AGENT="nibomo-mcp-smoke/1"
 
 request_json() {
   local method="$1"
@@ -55,15 +58,15 @@ request_json() {
 
   if [[ -n "${body}" ]]; then
     if [[ -n "${auth_header}" ]]; then
-      status="$(curl -sS -D "${headers_file}" -o "${body_file}" -X "${method}" -H "${auth_header}" -H "content-type: application/json" --data "${body}" "${url}" -w "%{http_code}")"
+      status="$(curl -sS -A "${SMOKE_USER_AGENT}" -D "${headers_file}" -o "${body_file}" -X "${method}" -H "${auth_header}" -H "content-type: application/json" --data "${body}" "${url}" -w "%{http_code}")"
     else
-      status="$(curl -sS -D "${headers_file}" -o "${body_file}" -X "${method}" -H "content-type: application/json" --data "${body}" "${url}" -w "%{http_code}")"
+      status="$(curl -sS -A "${SMOKE_USER_AGENT}" -D "${headers_file}" -o "${body_file}" -X "${method}" -H "content-type: application/json" --data "${body}" "${url}" -w "%{http_code}")"
     fi
   else
     if [[ -n "${auth_header}" ]]; then
-      status="$(curl -sS -D "${headers_file}" -o "${body_file}" -X "${method}" -H "${auth_header}" "${url}" -w "%{http_code}")"
+      status="$(curl -sS -A "${SMOKE_USER_AGENT}" -D "${headers_file}" -o "${body_file}" -X "${method}" -H "${auth_header}" "${url}" -w "%{http_code}")"
     else
-      status="$(curl -sS -D "${headers_file}" -o "${body_file}" -X "${method}" "${url}" -w "%{http_code}")"
+      status="$(curl -sS -A "${SMOKE_USER_AGENT}" -D "${headers_file}" -o "${body_file}" -X "${method}" "${url}" -w "%{http_code}")"
     fi
   fi
 
@@ -83,6 +86,7 @@ request_mcp_jsonrpc() {
 
   status="$(
     curl -sS \
+      -A "${SMOKE_USER_AGENT}" \
       -D "${headers_file}" \
       -o "${body_file}" \
       -X "POST" \
