@@ -28,7 +28,7 @@ export type UploadedChatAttachment = Readonly<{
 
 type ChatAttachmentReference = ImageContentPart | FileContentPart;
 
-type OrphanedUploadReason = "upload_failed" | "write_failed" | "already_converted";
+type OrphanedUploadReason = "upload_failed" | "write_failed" | "already_converted" | "sandbox_unconfirmed";
 
 export function isInlineAttachmentContentPart(
   part: ContentPart | InlineAttachmentContentPart,
@@ -64,7 +64,7 @@ export function collectInlineAttachments(
 /** `error` is null when nothing failed and another writer converted the same attachments first. */
 export function logOrphanedChatFileUploads(
   observationScope: BackendObservationScope,
-  uploads: ReadonlyArray<UploadedChatAttachment>,
+  uploads: ReadonlyArray<Readonly<{ s3Key: string }>>,
   reason: OrphanedUploadReason,
   error: unknown,
 ): void {

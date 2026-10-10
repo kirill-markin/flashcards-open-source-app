@@ -3,6 +3,7 @@ import {
   type AgentSqlPayload,
   type AgentSqlReadPayload,
 } from "../../../aiTools/agentSql/shared";
+import { cutHeadAtCodePoint } from "../../../shared/codePointCuts";
 
 export type ToolErrorPayload = Readonly<{
   error: Readonly<{
@@ -20,7 +21,7 @@ export type ToolErrorPayload = Readonly<{
  * call in the turn, so one large SQL result set inflates every subsequent request and can
  * trigger context_length_exceeded. ~24K chars leaves roughly 6K tokens of headroom per result.
  */
-const MAX_TOOL_OUTPUT_CHARS = 24_000 as const;
+export const MAX_TOOL_OUTPUT_CHARS = 24_000 as const;
 
 /**
  * The marker overhead only seeds the first preview length. The slice is JSON-escaped into a
@@ -34,13 +35,15 @@ function capEnvelopeFieldToBudget(
   const serializedField = JSON.stringify(envelope[fieldKey] ?? null);
   const { [fieldKey]: _omitted, ...rest } = envelope;
   const previewKey = `${fieldKey}Preview`;
-  const buildCapped = (previewLength: number): string =>
-    JSON.stringify({
+  const buildCapped = (previewLength: number): string => {
+    const preview = cutHeadAtCodePoint(serializedField, previewLength);
+    return JSON.stringify({
       ...rest,
-      [previewKey]: serializedField.slice(0, previewLength),
+      [previewKey]: preview,
       truncated: true,
-      omittedChars: serializedField.length - Math.min(previewLength, serializedField.length),
+      omittedChars: serializedField.length - preview.length,
     });
+  };
 
   let previewLength = Math.max(0, MAX_TOOL_OUTPUT_CHARS - buildCapped(0).length);
   let capped = buildCapped(previewLength);

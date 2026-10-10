@@ -25,6 +25,7 @@ registers the specs that list its own surface
 | `submit_review` | MCP, chat |
 | `get_usage_limits` | MCP, chat |
 | `add_generated_image_to_card` | chat only, not a registry spec |
+| `bash` | chat only, not a registry spec |
 
 `get_usage_limits` is account-scoped, because an allowance belongs to the person
 rather than to one of their workspaces: it takes no arguments at all, and its
@@ -60,6 +61,13 @@ on 2026-09-15 over 39 generations in the chat worker Lambda's production logs â€
 the MCP gateway's 29-second integration timeout
 (`infra/aws/lib/gateways/mcp-gateway.ts`). That is one dated sample rather than a
 standing contract; re-measure before deciding.
+
+`bash` is not a registry spec either. It is declared in
+`apps/backend/src/chat/openai/tools/bashToolContract.ts`, sent on every run, and
+runs commands over the session's files in the chat sandbox Lambda
+(`apps/backend/src/chatSandbox/handler.ts`). MCP and the Agent REST API do not
+get it, because an external AI client already runs code over files on its own
+side.
 
 The chat serves all eight registry tools, review included. The model supplies
 the `reviewId` there exactly as it does on MCP, and a `reviewId` reused on a
