@@ -13,6 +13,7 @@ import {
 } from "../../attachmentPolicy";
 import {
   normalizeStoredOpenAIReplayItems,
+  sliceReplayItemsFromLatestCompaction,
   toOpenAIResponseInputItem,
   type ServerChatMessage,
   type StoredOpenAIReplayItem,
@@ -115,6 +116,50 @@ function normalizeHistoryMessages(
   }
 
   return localMessages.slice(0, -1);
+}
+
+/**
+ * Starts replayed history at the latest compaction item, in the newest assistant message carrying one, and drops
+ * every earlier message.
+ */
+function sliceHistoryFromLatestCompaction(
+  history: ReadonlyArray<ServerChatMessage>,
+): ReadonlyArray<ServerChatMessage> {
+  for (let index = history.length - 1; index >= 0; index -= 1) {
+    const message = history[index];
+    if (message.openaiItems === undefined) {
+      continue;
+    }
+
+    const openaiItems = sliceReplayItemsFromLatestCompaction(message.openaiItems);
+    if (openaiItems !== null) {
+      return [{ ...message, openaiItems }, ...history.slice(index + 1)];
+    }
+  }
+
+  return history;
+}
+
+/**
+ * Puts the current system prompt first, or right after the compaction item that replayed items start at: OpenAI
+ * ignores every input item before the latest compaction item, and a system message right after it overrides the
+ * system prompt that compaction carries from the call that made it.
+ */
+export function placeSystemPrompt(
+  replayedItems: ReadonlyArray<OpenAIInputItem>,
+  generatedImageEligible: boolean,
+): Array<OpenAIInputItem> {
+  const systemPrompt: OpenAIInputItem = {
+    role: "system",
+    type: "message",
+    content: buildSystemInstructions(generatedImageEligible),
+  };
+  const [firstItem, ...laterItems] = replayedItems;
+  if (firstItem !== undefined && firstItem.type === "compaction") {
+    return [firstItem, systemPrompt, ...laterItems];
+  }
+
+  return [systemPrompt, ...replayedItems];
 }
 
 /**
@@ -269,12 +314,6 @@ export async function buildChatCompletionInputWithBudget(
   generatedImageEligible: boolean,
   budgetTokens: number,
 ): Promise<ReadonlyArray<OpenAIInputItem>> {
-  const input: Array<OpenAIInputItem> = [{
-    role: "system",
-    type: "message",
-    content: buildSystemInstructions(generatedImageEligible),
-  }];
-
   const turnTokens = turnInput.reduce(
     (total, part) => total + estimateContentPartTokens(part),
     0,
@@ -282,10 +321,14 @@ export async function buildChatCompletionInputWithBudget(
   const historyBudgetTokens = Math.max(budgetTokens - turnTokens, 0);
 
   const normalizedHistory = normalizeHistoryMessages(localMessages, turnInput);
-  const windowedHistory = windowHistoryToTokenBudget(normalizedHistory, historyBudgetTokens);
+  const windowedHistory = windowHistoryToTokenBudget(
+    sliceHistoryFromLatestCompaction(normalizedHistory),
+    historyBudgetTokens,
+  );
+  const historyItems: Array<OpenAIInputItem> = [];
   for (const message of windowedHistory) {
     if (message.role === "assistant") {
-      input.push(...buildAssistantHistoryItems(message));
+      historyItems.push(...buildAssistantHistoryItems(message));
       continue;
     }
 
@@ -293,9 +336,10 @@ export async function buildChatCompletionInputWithBudget(
       continue;
     }
 
-    input.push(await buildUserInputMessage(message.content));
+    historyItems.push(await buildUserInputMessage(message.content));
   }
 
+  const input = placeSystemPrompt(historyItems, generatedImageEligible);
   input.push({
     role: "system",
     type: "message",

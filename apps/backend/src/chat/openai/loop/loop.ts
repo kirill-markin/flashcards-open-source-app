@@ -8,6 +8,7 @@ import {
   buildChatCompletionInput,
   buildChatCompletionInputWithBudget,
   estimateStoredReplayItemsTokens,
+  placeSystemPrompt,
 } from "./input";
 import {
   createObservedUserOpenAIClient,
@@ -17,7 +18,9 @@ import { isDatabaseDeadlineExpiry } from "../../../database";
 import { isContextLengthExceededError } from "../../runtime/providerErrors";
 import { runOneToolCall as runObservedToolCall } from "../tools/toolExecutor";
 import {
-  dropHistoryReasoningItemsFromOtherKey,
+  dropHistoryEncryptedItemsFromOtherKey,
+  sliceReplayItemsFromLatestCompaction,
+  toOpenAIResponseInputItem,
   type ServerChatMessage,
   type StoredOpenAIReplayItem,
 } from "../replayItems";
@@ -70,9 +73,9 @@ export type { OpenAILoopEventSink };
 
 /**
  * Maximum estimated tokens of within-run continuation growth (model output plus
- * tool-call replay items accumulated across tool rounds) before the loop diverts
- * into the tool-limit summary turn instead of scheduling another tool-enabled
- * call.
+ * tool-call replay items accumulated across tool rounds, from the run's latest
+ * compaction item onward) before the loop diverts into the tool-limit summary
+ * turn instead of scheduling another tool-enabled call.
  */
 const MAX_WITHIN_RUN_REPLAY_TOKENS = CHAT_MODEL_OPERATING_CONTEXT_WINDOW_TOKENS
   - CHAT_HISTORY_REPLAY_TOKEN_BUDGET
@@ -235,6 +238,31 @@ type BuildModelCallRequest = (
   baseInput: ReadonlyArray<OpenAI.Responses.ResponseInputItem>,
 ) => OpenAIResponsesRequest;
 
+type ModelCallInput = Readonly<{
+  baseInput: ReadonlyArray<OpenAI.Responses.ResponseInputItem>;
+  continuationItems: ReadonlyArray<StoredOpenAIReplayItem>;
+}>;
+
+/**
+ * A compaction item that a model call of this run returned carries the base input it compacted, current-datetime
+ * message included, so the next call replays from that item with only the current system prompt re-added.
+ */
+function selectModelCallInputFromLatestCompaction(
+  baseInput: ReadonlyArray<OpenAI.Responses.ResponseInputItem>,
+  continuationItems: ReadonlyArray<StoredOpenAIReplayItem>,
+  generatedImageEligible: boolean,
+): ModelCallInput {
+  const compactedItems = sliceReplayItemsFromLatestCompaction(continuationItems);
+  if (compactedItems === null) {
+    return { baseInput, continuationItems };
+  }
+
+  return {
+    baseInput: placeSystemPrompt(compactedItems.map(toOpenAIResponseInputItem), generatedImageEligible),
+    continuationItems: [],
+  };
+}
+
 /**
  * Runs exactly one model call and, on a `context_length_exceeded` overflow,
  * rebuilds only the history base input with a tighter history-replay budget and
@@ -307,8 +335,7 @@ async function runToolLimitSummaryTurn(
       dependencies,
       baseInput,
       (input) => buildOpenAIResponsesRequest({
-        baseInput: input,
-        continuationItems,
+        ...selectModelCallInputFromLatestCompaction(input, continuationItems, params.generatedImageEligible),
         userId: params.userId,
         sessionId: params.sessionId,
         modelId: params.modelId,
@@ -366,8 +393,7 @@ async function runLoopWithDeps(
         dependencies,
         baseInput,
         (input) => buildOpenAIResponsesRequest({
-          baseInput: input,
-          continuationItems,
+          ...selectModelCallInputFromLatestCompaction(input, continuationItems, params.generatedImageEligible),
           userId: params.userId,
           sessionId: params.sessionId,
           modelId: params.modelId,
@@ -451,8 +477,9 @@ async function runLoopWithDeps(
     }
 
     const reachedToolCallLimit = callIndex === CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS;
-    const exceededWithinRunReplayBudget = estimateStoredReplayItemsTokens(continuationItems)
-      > MAX_WITHIN_RUN_REPLAY_TOKENS;
+    const exceededWithinRunReplayBudget = estimateStoredReplayItemsTokens(
+      sliceReplayItemsFromLatestCompaction(continuationItems) ?? continuationItems,
+    ) > MAX_WITHIN_RUN_REPLAY_TOKENS;
     if (reachedToolCallLimit || exceededWithinRunReplayBudget) {
       return runToolLimitSummaryTurn(
         params,
@@ -479,12 +506,16 @@ export async function startOpenAILoopWithDeps(
 ): Promise<OpenAILoopCompletion> {
   setExecutionPhase(params, "idle");
   const userSuppliedKey = params.userOpenAIApiKey !== null;
-  const history = dropHistoryReasoningItemsFromOtherKey(params.localMessages, userSuppliedKey);
-  if (history.droppedReasoningItems > 0) {
+  const history = dropHistoryEncryptedItemsFromOtherKey(params.localMessages, userSuppliedKey);
+  if (history.droppedReasoningItems > 0 || history.droppedCompactionItems > 0) {
     addBackendBreadcrumb({
-      action: "chat_replay_reasoning_items_dropped",
+      action: "chat_replay_encrypted_items_dropped",
       scope: createChatLoopObservationScope(params),
-      details: { droppedReasoningItems: history.droppedReasoningItems, userSuppliedKey },
+      details: {
+        droppedReasoningItems: history.droppedReasoningItems,
+        droppedCompactionItems: history.droppedCompactionItems,
+        userSuppliedKey,
+      },
     });
   }
   return runLoopWithDeps({ ...params, localMessages: history.messages }, onEvent, dependencies).finally(() => {

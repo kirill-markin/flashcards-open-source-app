@@ -30,6 +30,13 @@ export const CHAT_MODEL_BADGE_LABEL = `${CHAT_MODEL_LABEL} · ${CHAT_MODEL_REASO
 export const CHAT_HISTORY_REPLAY_TOKEN_BUDGET = 110_000 as const;
 
 /**
+ * Provider-counted context size at which OpenAI compacts a chat call server-side. It sits well under the history
+ * window, whose char-based estimate over-counts encrypted reasoning and non-ASCII text, so compaction fires before
+ * windowing drops history.
+ */
+export const CHAT_COMPACT_THRESHOLD_TOKENS = 60_000 as const;
+
+/**
  * Conservative operating envelope in tokens. This intentionally stays below
  * the configured models' full context window to avoid crossing their
  * 272K input pricing threshold during long tool-driven runs.

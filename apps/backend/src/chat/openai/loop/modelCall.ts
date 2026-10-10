@@ -10,6 +10,7 @@ import {
 import type { ExecutedChatToolCall } from "../tools/tools";
 import { buildOpenAISafetyIdentifier } from "../safetyIdentifier";
 import {
+  CHAT_COMPACT_THRESHOLD_TOKENS,
   CHAT_MAX_OUTPUT_TOKENS,
   CHAT_MODEL_REASONING_SUMMARY,
   type ChatRuntimeModelId,
@@ -43,6 +44,7 @@ export type OpenAIResponsesRequest = Readonly<{
   tools: Array<OpenAI.Responses.Tool>;
   input: Array<OpenAI.Responses.ResponseInputItem>;
   max_output_tokens: number;
+  context_management: Array<{ type: "compaction"; compact_threshold: number }>;
   reasoning: Readonly<{
     effort: ChatRuntimeReasoningEffort;
     summary: typeof CHAT_MODEL_REASONING_SUMMARY;
@@ -214,6 +216,7 @@ export function buildOpenAIResponsesRequest(
     tools: [...params.tools],
     input: buildOpenAIInput(params.baseInput, params.continuationItems, params.extraInput),
     max_output_tokens: CHAT_MAX_OUTPUT_TOKENS,
+    context_management: [{ type: "compaction", compact_threshold: CHAT_COMPACT_THRESHOLD_TOKENS }],
     reasoning: {
       effort: params.reasoningEffort,
       summary: CHAT_MODEL_REASONING_SUMMARY,

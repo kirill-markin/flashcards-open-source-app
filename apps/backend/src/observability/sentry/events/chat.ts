@@ -172,9 +172,13 @@ export type ChatSessionNotCurrentDetails = Readonly<{
   currentSessionId: string | null;
 }>;
 
-/** Earlier turns' reasoning items one run left out of its replay, because the other OpenAI key produced them. */
-export type ChatReplayReasoningItemsDroppedDetails = Readonly<{
+/**
+ * Earlier turns' reasoning and compaction items one run left out of its replay, because the other OpenAI key
+ * produced them.
+ */
+export type ChatReplayEncryptedItemsDroppedDetails = Readonly<{
   droppedReasoningItems: number;
+  droppedCompactionItems: number;
   userSuppliedKey: boolean;
 }>;
 
@@ -364,7 +368,7 @@ export type ChatBreadcrumbEvent =
   | EventByAction<"chat_transcription_invalid_audio", ChatTranscriptionFailureDetails>
   | EventByAction<"chat_transcription_failed", ChatTranscriptionFailureDetails>
   | EventByAction<"chat_session_not_current_refused", ChatSessionNotCurrentDetails>
-  | EventByAction<"chat_replay_reasoning_items_dropped", ChatReplayReasoningItemsDroppedDetails>
+  | EventByAction<"chat_replay_encrypted_items_dropped", ChatReplayEncryptedItemsDroppedDetails>
   | EventByAction<"chat_composer_suggestions_declined", ChatComposerSuggestionsResponseDetails>
   | EventByAction<"chat_composer_suggestions_unparseable", ChatComposerSuggestionsResponseDetails>
   | EventByAction<"generated_card_image_provider_complete", GeneratedCardImageProviderDetails>;
