@@ -1381,8 +1381,12 @@ const teCatalog: TranslationCatalog = {
       remaining: "ఈ నెల మిగిలినవి: {{count}}",
     },
     alerts: {
+      attachmentImagesTooLarge: "AI చాట్‌లోని ఒక సందేశానికి చిత్రాలు చాలా పెద్దవిగా ఉన్నాయి: మొత్తం కలిపి గరిష్ఠంగా {{limit}} MB ఉండవచ్చు. వాటిలో కొన్నింటిని మరో సందేశంలో పంపండి.",
       attachmentLimit: "సందేశం చాలా పెద్దది. AI చాట్ ఒకేసారి ఇంత సమాచారాన్ని పంపలేదు. ఒకటి లేదా అంతకంటే ఎక్కువ జోడింపులను తీసివేయండి, చిన్న ఫైల్ లేదా ఫొటోను ఎంచుకోండి లేదా అభ్యర్థనను విడగొట్టి మళ్లీ ప్రయత్నించండి.",
-      attachmentUnsupported: "AI చాట్‌కు ఈ ఫైల్ రకానికి మద్దతు లేదు. ఫైల్‌ను తీసివేయండి లేదా దాన్ని PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX లేదా చిత్రంగా సేవ్ చేసి మళ్లీ ప్రయత్నించండి.",
+      attachmentTooLarge: "ఈ ఫైల్ AI చాట్‌కు చాలా పెద్దది. ఫైల్‌లు గరిష్ఠంగా {{fileLimit}} MB, చిత్రాలు గరిష్ఠంగా {{imageLimit}} MB ఉండవచ్చు. చిన్న ఫైల్‌ను ఎంచుకుని మళ్లీ ప్రయత్నించండి.",
+      attachmentUnsupported: "AI చాట్‌కు ఈ ఫైల్ రకానికి మద్దతు లేదు. ఫైల్‌ను తీసివేయండి లేదా దాన్ని PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG లేదా చిత్రంగా సేవ్ చేసి మళ్లీ ప్రయత్నించండి.",
+      attachmentUploadFailed: "జోడింపును అప్‌లోడ్ చేయలేకపోయాము. మీ కనెక్షన్‌ను తనిఖీ చేసి మళ్లీ ప్రయత్నించండి.",
+      attachmentsTooMany: "AI చాట్‌లోని ఒక సందేశంలో గరిష్ఠంగా {{limit}} ఫైల్‌లు, చిత్రాలు జోడించవచ్చు. మిగిలినవాటిని మరో సందేశంలో పంపండి.",
       microphoneUnavailable: "ఈ బ్రౌజర్‌లో మైక్రోఫోన్ రికార్డింగ్ అందుబాటులో లేదు.",
     },
     composerPlaceholder: "కార్డులు, పునశ్చరణ చరిత్ర గురించి అడగండి లేదా నోట్స్‌ను జోడించండి...",

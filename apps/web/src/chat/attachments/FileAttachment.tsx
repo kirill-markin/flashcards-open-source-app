@@ -1,27 +1,33 @@
 import { useRef, type ReactElement } from "react";
 import { useI18n } from "../../i18n";
 import {
-  AI_CHAT_MAXIMUM_ATTACHMENT_BYTES,
-  base64DataByteCount,
+  AI_CHAT_MAXIMUM_FILE_UPLOAD_BYTES,
+  AI_CHAT_MAXIMUM_IMAGE_UPLOAD_BYTES,
+  AI_CHAT_MAXIMUM_IMAGE_UPLOADS_PER_TURN_BYTES,
+  AI_CHAT_MAXIMUM_UPLOADS_PER_TURN,
+  type ChatAttachmentLimitViolation,
 } from "../shared/chatSizePolicy";
 import {
-  base64DataToBlob,
-  compressImageBlobToBase64,
+  compressImageBlobToJpegBlob,
   convertHeicToJpegBlob,
   isHeicFile,
   isImageFileCandidate,
   isImageMediaType,
   type ImageCompressionOptions,
 } from "../../media/imagePreparation";
-import { normalizeChatAttachmentFileMediaType } from "./attachmentMediaTypes";
+import {
+  ChatAttachmentUnsupportedTypeError,
+  normalizeChatAttachmentFileMediaType,
+} from "./attachmentMediaTypes";
 
 export type { ImageCompressionOptions } from "../../media/imagePreparation";
 
+/** Held only in memory; the send uploads `blob` unchanged. */
 export type BinaryPendingAttachment = Readonly<{
   type: "binary";
   fileName: string;
   mediaType: string;
-  base64Data: string;
+  blob: Blob;
 }>;
 
 export type CardPendingAttachment = Readonly<{
@@ -60,11 +66,11 @@ export class ChatImageAttachmentPreparationError extends Error {
   }
 }
 
-const ACCEPTED_TYPES = "image/*,.pdf,.txt,.csv,.json,.xml,.xlsx,.xls,.md,.html,.py,.js,.ts,.yaml,.yml,.sql,.log,.docx";
+const ACCEPTED_TYPES = "image/*,.pdf,.txt,.csv,.json,.xml,.xlsx,.xls,.md,.html,.py,.js,.ts,.yaml,.yml,.sql,.log,.docx,.zip,.apkg";
 const MB = 1024 * 1024;
 
 export const IMAGE_RAW_MAX_FILE_SIZE_BYTES = 40 * MB;
-export const NON_IMAGE_RAW_MAX_FILE_SIZE_BYTES = AI_CHAT_MAXIMUM_ATTACHMENT_BYTES;
+export const NON_IMAGE_RAW_MAX_FILE_SIZE_BYTES = AI_CHAT_MAXIMUM_FILE_UPLOAD_BYTES;
 
 export const AGGRESSIVE_IMAGE_COMPRESSION: ImageCompressionOptions = {
   maxSidePixels: 2_048,
@@ -92,15 +98,6 @@ function formatMegabytes(byteCount: number): string {
   return (byteCount / MB).toFixed(1);
 }
 
-function extractBase64Data(dataUrl: string, fileName: string): string {
-  const separatorIndex = dataUrl.indexOf(",");
-  if (separatorIndex <= 0 || separatorIndex >= dataUrl.length - 1) {
-    throw new Error(`Failed to read base64 data from file: ${fileName}`);
-  }
-
-  return dataUrl.slice(separatorIndex + 1);
-}
-
 export function checkFileSize(file: File): string | null {
   const sizeLimitBytes = fileSizeLimitBytes(file);
   if (file.size > sizeLimitBytes) {
@@ -116,17 +113,35 @@ export function checkFileSize(file: File): string | null {
   return null;
 }
 
-export function binaryPendingAttachmentByteCount(attachment: BinaryPendingAttachment): number {
-  return base64DataByteCount(attachment.base64Data);
+function isImagePendingAttachment(attachment: BinaryPendingAttachment): boolean {
+  return isImageMediaType(attachment.mediaType);
 }
 
-export function binaryPendingAttachmentExceedsSizeLimit(attachment: PendingAttachment): boolean {
-  if (attachment.type !== "binary") {
-    return false;
+function binaryPendingAttachmentExceedsSizeLimit(attachment: BinaryPendingAttachment): boolean {
+  const sizeLimitBytes = isImagePendingAttachment(attachment)
+    ? AI_CHAT_MAXIMUM_IMAGE_UPLOAD_BYTES
+    : AI_CHAT_MAXIMUM_FILE_UPLOAD_BYTES;
+  return attachment.blob.size > sizeLimitBytes;
+}
+
+/** Cards are not uploads, so only files and images count toward these limits. */
+export function findPendingAttachmentLimitViolation(
+  attachments: ReadonlyArray<PendingAttachment>,
+): ChatAttachmentLimitViolation | null {
+  const binaryAttachments = attachments.filter(isBinaryPendingAttachment);
+  if (binaryAttachments.some(binaryPendingAttachmentExceedsSizeLimit)) {
+    return "attachment_too_large";
   }
 
-  const byteCount = binaryPendingAttachmentByteCount(attachment);
-  return byteCount > AI_CHAT_MAXIMUM_ATTACHMENT_BYTES;
+  if (binaryAttachments.length > AI_CHAT_MAXIMUM_UPLOADS_PER_TURN) {
+    return "too_many_attachments";
+  }
+
+  const imageBytes = binaryAttachments.reduce(
+    (total, attachment) => isImagePendingAttachment(attachment) ? total + attachment.blob.size : total,
+    0,
+  );
+  return imageBytes > AI_CHAT_MAXIMUM_IMAGE_UPLOADS_PER_TURN_BYTES ? "images_too_large" : null;
 }
 
 export function isChatAttachmentTooLargeError(error: unknown): boolean {
@@ -137,62 +152,46 @@ export function isExpectedImageAttachmentPreparationError(error: unknown): boole
   return error instanceof ChatImageAttachmentPreparationError;
 }
 
-function readFileAsBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      const base64 = extractBase64Data(result, file.name);
-      resolve(base64);
-    };
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
-}
-
-async function prepareImageAttachment(
-  file: File,
+async function compressImageAttachment(
+  fileName: string,
+  imageBlob: Blob,
   options: ImageCompressionOptions,
-): Promise<PendingAttachment> {
-  const imageBlob = isHeicFile(file)
-    ? await convertHeicToJpegBlob(file)
-    : file;
-  const compressedImage = await compressImageBlobToBase64(imageBlob, file.name, options);
+): Promise<BinaryPendingAttachment> {
+  const compressedImage = await compressImageBlobToJpegBlob(imageBlob, fileName, {
+    ...options,
+    mediaType: "image/jpeg",
+    backgroundColor: null,
+  });
 
   return {
     type: "binary",
-    fileName: file.name,
+    fileName,
     mediaType: compressedImage.mediaType,
-    base64Data: compressedImage.base64Data,
+    blob: compressedImage.blob,
   };
 }
 
-async function prepareImageAttachmentWithinSizeLimit(file: File): Promise<PendingAttachment> {
-  const attachment = await prepareImageAttachment(file, AGGRESSIVE_IMAGE_COMPRESSION);
+async function prepareImageAttachmentWithinSizeLimit(file: File): Promise<BinaryPendingAttachment> {
+  const imageBlob = isHeicFile(file)
+    ? await convertHeicToJpegBlob(file)
+    : file;
+  const attachment = await compressImageAttachment(file.name, imageBlob, AGGRESSIVE_IMAGE_COMPRESSION);
   if (binaryPendingAttachmentExceedsSizeLimit(attachment) === false) {
     return attachment;
   }
 
-  return prepareImageAttachment(file, EXTRA_AGGRESSIVE_IMAGE_COMPRESSION);
+  return compressImageAttachment(file.name, imageBlob, EXTRA_AGGRESSIVE_IMAGE_COMPRESSION);
 }
 
 export async function recompressImageAttachment(
   attachment: PendingAttachment,
   options: ImageCompressionOptions,
 ): Promise<PendingAttachment> {
-  if (attachment.type !== "binary" || !isImageMediaType(attachment.mediaType)) {
+  if (attachment.type !== "binary" || !isImagePendingAttachment(attachment)) {
     throw new Error("Cannot recompress a non-image attachment");
   }
 
-  const sourceBlob = base64DataToBlob(attachment.base64Data, attachment.mediaType);
-  const compressedImage = await compressImageBlobToBase64(sourceBlob, attachment.fileName, options);
-
-  return {
-    type: "binary",
-    fileName: attachment.fileName,
-    mediaType: compressedImage.mediaType,
-    base64Data: compressedImage.base64Data,
-  };
+  return compressImageAttachment(attachment.fileName, attachment.blob, options);
 }
 
 export async function prepareAttachment(file: File): Promise<PendingAttachment> {
@@ -217,12 +216,17 @@ export async function prepareAttachment(file: File): Promise<PendingAttachment> 
     }
   }
 
-  const attachment: PendingAttachment = {
+  const attachment: BinaryPendingAttachment = {
     type: "binary",
     fileName: file.name,
     mediaType: normalizeChatAttachmentFileMediaType(file.name, file.type),
-    base64Data: await readFileAsBase64(file),
+    blob: file,
   };
+  // The backend refuses empty bytes as an unsupported file.
+  if (file.size === 0) {
+    throw new ChatAttachmentUnsupportedTypeError();
+  }
+
   if (binaryPendingAttachmentExceedsSizeLimit(attachment)) {
     throw new ChatAttachmentTooLargeError();
   }

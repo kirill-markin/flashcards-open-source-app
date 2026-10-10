@@ -1381,8 +1381,12 @@ export const zhHansCatalog = {
       remaining: "本月剩余：{{count}}",
     },
     alerts: {
+      attachmentImagesTooLarge: "图片太大，无法在一条 AI 聊天消息中发送：图片总大小最多 {{limit}} MB。请将部分图片放在另一条消息中发送。",
       attachmentLimit: "消息太大。AI 聊天无法一次发送这么多内容。请移除一个或多个附件，选择更小的文件或照片，或拆分请求后重试。",
-      attachmentUnsupported: "AI 聊天不支持此文件类型。请移除该文件，或将其另存为 PDF、TXT、CSV、JSON、XML、Markdown、HTML、Python、JavaScript、TypeScript、YAML、XLS/XLSX、DOCX 或图片，然后重试。",
+      attachmentTooLarge: "此文件太大，无法用于 AI 聊天。文件最大 {{fileLimit}} MB，图片最大 {{imageLimit}} MB。请选择更小的文件后重试。",
+      attachmentUnsupported: "AI 聊天不支持此文件类型。请移除该文件，或将其另存为 PDF、TXT、CSV、JSON、XML、Markdown、HTML、Python、JavaScript、TypeScript、YAML、XLS/XLSX、DOCX、ZIP、Anki APKG 或图片，然后重试。",
+      attachmentUploadFailed: "附件上传失败。请检查网络连接后重试。",
+      attachmentsTooMany: "一条 AI 聊天消息最多可包含 {{limit}} 个文件和图片。请将其余内容放在另一条消息中发送。",
       microphoneUnavailable: "此浏览器不支持麦克风录音。",
     },
     composerPlaceholder: "询问卡片、复习历史，或附加笔记以供提取...",

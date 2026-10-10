@@ -1381,8 +1381,12 @@ const esEsCatalog: TranslationCatalog = {
       remaining: "Quedan este mes: {{count}}",
     },
     alerts: {
+      attachmentImagesTooLarge: "Las imágenes son demasiado grandes para un solo mensaje del chat de IA: en total pueden ocupar hasta {{limit}} MB. Envía algunas en otro mensaje.",
       attachmentLimit: "El mensaje es demasiado grande. El chat de IA no puede enviar tanto contenido a la vez. Elimina uno o más adjuntos, elige un archivo o una foto más pequeños, o divide la solicitud e inténtalo de nuevo.",
-      attachmentUnsupported: "Este tipo de archivo no es compatible con el chat de IA. Elimina el archivo o guárdalo como PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX o una imagen, y vuelve a intentarlo.",
+      attachmentTooLarge: "Este archivo es demasiado grande para el chat de IA. Los archivos pueden ocupar hasta {{fileLimit}} MB y las imágenes hasta {{imageLimit}} MB. Elige un archivo más pequeño e inténtalo de nuevo.",
+      attachmentUnsupported: "Este tipo de archivo no es compatible con el chat de IA. Elimina el archivo o guárdalo como PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG o una imagen, y vuelve a intentarlo.",
+      attachmentUploadFailed: "No se ha podido subir el adjunto. Comprueba tu conexión e inténtalo de nuevo.",
+      attachmentsTooMany: "Un mensaje del chat de IA puede incluir hasta {{limit}} archivos e imágenes. Envía el resto en otro mensaje.",
       microphoneUnavailable: "La grabación con micrófono no está disponible en este navegador.",
     },
     composerPlaceholder: "Pregunta sobre tarjetas, historial de repaso o adjunta notas...",

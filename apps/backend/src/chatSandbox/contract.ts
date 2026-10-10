@@ -24,6 +24,8 @@ export const maximumPdfPageBytes = 4 * 1024 * 1024;
 export const maximumWholeEncryptedPdfPages = 10;
 /** Short enough to be one clause of the attachment line the model reads on every turn. */
 export const maximumDerivativeErrorChars = 300;
+/** The SQL calls one `bash` command's code may make through the SQL bridge, counted by the sandbox host. */
+export const maximumSqlCallsPerCommand = 500;
 
 /** The media types `apps/backend/src/chat/attachmentPolicy.ts` must give `.zip` and `.apkg` attachments. */
 export const chatFileZipMediaType = "application/zip";
@@ -81,12 +83,24 @@ const chatSandboxWriteSlotSchema = z.object({
   putUrl: z.string().url(),
 }).strict();
 
+/**
+ * Where a command's code sends agent SQL: the bridge route on the backend API and the capability the
+ * worker minted for this attempt. Both stay in the host process, out of the shell's environment, its
+ * files and the command's output. A worker that predates the bridge sends none, and its command gets no
+ * SQL functions.
+ */
+const chatSandboxSqlBridgeSchema = z.object({
+  url: z.string().url(),
+  authorization: z.string().min(1),
+}).strict();
+
 export const chatSandboxBashRequestSchema = z.object({
   operation: z.literal("bash"),
   sessionId: z.string().uuid(),
   command: z.string().min(1),
   files: z.array(chatSandboxFileSchema),
   writeSlots: z.array(chatSandboxWriteSlotSchema),
+  sqlBridge: chatSandboxSqlBridgeSchema.optional(),
 }).strict();
 
 /** Derives text, CSV or sqlite files from one attachment; the write slots fit its kind. */
@@ -111,7 +125,12 @@ export const chatSandboxRequestSchema = z.discriminatedUnion("operation", [
   chatSandboxPdfPageRequestSchema,
 ]);
 
-/** `stdout` and `stderr` are cut by `cutToHeadAndTail`; the byte counts are those of the whole streams. */
+/**
+ * `stdout` and `stderr` are cut by `cutToHeadAndTail`; the byte counts are those of the whole streams.
+ * `sqlCallCount` counts the SQL calls the command's code sent, `sqlExecuteCallCount` the writes among them;
+ * both are present only when the request carried `sqlBridge`, because a worker that predates the bridge
+ * rejects them.
+ */
 export const chatSandboxBashResponseSchema = z.object({
   stdout: z.string().max(maximumTransportedStreamChars),
   stdoutBytes: z.number().int().nonnegative(),
@@ -126,6 +145,8 @@ export const chatSandboxBashResponseSchema = z.object({
     sha256: sha256Schema,
   }).strict()),
   deletedPaths: z.array(workPathSchema),
+  sqlCallCount: z.number().int().nonnegative().max(maximumSqlCallsPerCommand).optional(),
+  sqlExecuteCallCount: z.number().int().nonnegative().max(maximumSqlCallsPerCommand).optional(),
 }).strict();
 
 /**
@@ -156,6 +177,7 @@ export const chatSandboxPdfPageResponseSchema = z.discriminatedUnion("outcome", 
 ]);
 
 export type ChatSandboxWriteSlot = z.infer<typeof chatSandboxWriteSlotSchema>;
+export type ChatSandboxSqlBridge = z.infer<typeof chatSandboxSqlBridgeSchema>;
 export type ChatSandboxRequest = z.infer<typeof chatSandboxRequestSchema>;
 export type ChatSandboxBashRequest = z.infer<typeof chatSandboxBashRequestSchema>;
 export type ChatSandboxBashResponse = z.infer<typeof chatSandboxBashResponseSchema>;

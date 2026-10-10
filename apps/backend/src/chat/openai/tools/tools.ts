@@ -21,7 +21,7 @@ import {
   DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
   type AgentToolOperationDependencies,
 } from "../../../aiTools/agentSql/operations";
-import type { AgentSqlPayload } from "../../../aiTools/agentSql/shared";
+import type { AgentSqlPayload, AgentSqlPayloadWithWorkspace } from "../../../aiTools/agentSql/shared";
 import { createAgentRemediationInstructions } from "../../../aiTools/toolContract/remediationInstructions";
 import { GUIDE_TOPICS } from "../../../aiTools/toolContract/sqlToolContract";
 import {
@@ -78,6 +78,7 @@ import {
   createSqlToolSuccessResult,
   createToolErrorResult,
   createToolSuccessResult,
+  createWholeSqlToolSuccessResult,
   type ToolErrorPayload,
 } from "./toolResults";
 
@@ -187,7 +188,11 @@ function getGeneratedImageToolSafeErrorCode(
     : null;
 }
 
-function createToolDependencies(context: OpenAIToolContext): AgentToolOperationDependencies {
+/** There is no agent connection behind the chat, so its SQL runs under this fixed label. */
+const chatSqlConnectionId = "chat-v2";
+
+/** The chat's SQL writes, from its tools and from the sandbox's SQL bridge, carry the workspace's AI-chat replica. */
+function createChatSqlOperationDependencies(signal: AbortSignal | null): AgentToolOperationDependencies {
   return {
     ...DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
     ensureAgentSyncReplica: async (workspaceId: string, userId: string): Promise<string> =>
@@ -195,9 +200,13 @@ function createToolDependencies(context: OpenAIToolContext): AgentToolOperationD
         workspaceId,
         userId,
         "web",
-        context.signal,
+        signal,
       ),
   };
+}
+
+function createToolDependencies(context: OpenAIToolContext): AgentToolOperationDependencies {
+  return createChatSqlOperationDependencies(context.signal);
 }
 
 /**
@@ -908,7 +917,7 @@ function buildChatAgentToolContext(
   return {
     userId: context.userId,
     selectedWorkspaceId: context.workspaceId,
-    connectionId: "chat-v2",
+    connectionId: chatSqlConnectionId,
     caller: null,
     sqlSurface: "chat-tool",
     resolveWorkspaceId: async (explicitWorkspaceId) => dependencies.resolveAccessibleChatWorkspaceId(
@@ -965,6 +974,65 @@ function buildChatAgentToolContext(
 
 type SqlToolInputSchema = typeof SQL_QUERY_TOOL_INPUT_SCHEMA | typeof SQL_EXECUTE_TOOL_INPUT_SCHEMA;
 
+type SqlToolFailure = Readonly<{
+  output: string;
+  sqlTelemetry: SqlToolTelemetry;
+}>;
+
+function createSqlToolSuccessTelemetry(data: AgentSqlPayload, startedAt: number): SqlToolTelemetry {
+  return {
+    succeeded: true,
+    errorCode: null,
+    errorClass: null,
+    dialectReason: null,
+    statementType: data.statementType,
+    statementCount: getSqlStatementCount(data),
+    rowOrAffectedCount: getSqlRowOrAffectedCount(data),
+    durationMs: Date.now() - startedAt,
+  };
+}
+
+/** The `{ ok: false }` envelope a failed SQL call answers with, carrying an `HttpError`'s `code` and `details`. */
+function createSqlToolFailure(
+  toolName: string,
+  sql: string | null,
+  error: unknown,
+  startedAt: number,
+): SqlToolFailure {
+  const instructions = createAgentRemediationInstructions(
+    error instanceof HttpError ? error.code : null,
+    getChatToolFailureStatusCode(error),
+    { surface: "chat", toolName },
+  );
+  const payload: ToolErrorPayload = error instanceof HttpError
+    ? {
+      sql,
+      error: serializeToolError(error),
+      instructions,
+      code: error.code ?? "REQUEST_FAILED",
+      details: createPublicHttpErrorDetails(error.details) ?? undefined,
+    }
+    : {
+      sql,
+      error: serializeToolError(error),
+      instructions,
+    };
+
+  return {
+    output: createToolErrorResult(toolName, payload),
+    sqlTelemetry: {
+      succeeded: false,
+      errorCode: error instanceof HttpError ? error.code : null,
+      errorClass: serializeToolError(error).name,
+      dialectReason: getSqlDialectReason(error),
+      statementType: null,
+      statementCount: null,
+      rowOrAffectedCount: null,
+      durationMs: Date.now() - startedAt,
+    },
+  };
+}
+
 /**
  * The arguments are parsed here as well as inside the spec because this envelope echoes the
  * statement that ran, and the echo has to be the trimmed string the executor received.
@@ -1006,39 +1074,12 @@ async function executeSqlChatToolCall(
       generatedImageTelemetry: null,
       toolErrorClass: null,
       modelContent: null,
-      sqlTelemetry: {
-        succeeded: true,
-        errorCode: null,
-        errorClass: null,
-        dialectReason: null,
-        statementType: result.data.statementType,
-        statementCount: getSqlStatementCount(result.data),
-        rowOrAffectedCount: getSqlRowOrAffectedCount(result.data),
-        durationMs: Date.now() - startedAt,
-      },
+      sqlTelemetry: createSqlToolSuccessTelemetry(result.data, startedAt),
     };
   } catch (error) {
-    const instructions = createAgentRemediationInstructions(
-      error instanceof HttpError ? error.code : null,
-      getChatToolFailureStatusCode(error),
-      { surface: "chat", toolName: spec.name },
-    );
-    const payload: ToolErrorPayload = error instanceof HttpError
-      ? {
-        sql,
-        error: serializeToolError(error),
-        instructions,
-        code: error.code ?? "REQUEST_FAILED",
-        details: createPublicHttpErrorDetails(error.details) ?? undefined,
-      }
-      : {
-        sql,
-        error: serializeToolError(error),
-        instructions,
-      };
-
+    const failure = createSqlToolFailure(spec.name, sql, error, startedAt);
     return {
-      output: createToolErrorResult(spec.name, payload),
+      output: failure.output,
       isMutating,
       succeeded: false,
       shouldInvalidateMainContent: false,
@@ -1046,17 +1087,78 @@ async function executeSqlChatToolCall(
       generatedImageTelemetry: null,
       toolErrorClass: null,
       modelContent: null,
-      sqlTelemetry: {
-        succeeded: false,
-        errorCode: error instanceof HttpError ? error.code : null,
-        errorClass: serializeToolError(error).name,
-        dialectReason: getSqlDialectReason(error),
-        statementType: null,
-        statementCount: null,
-        rowOrAffectedCount: null,
-        durationMs: Date.now() - startedAt,
-      },
+      sqlTelemetry: failure.sqlTelemetry,
     };
+  }
+}
+
+export type ChatSandboxSqlKind = "query" | "execute";
+
+export type ChatSandboxSqlCall = Readonly<{
+  /** The tool's JSON result, which the bridge answers with. */
+  output: string;
+  sqlTelemetry: SqlToolTelemetry;
+}>;
+
+/**
+ * A read answer above this would exceed Lambda's 6 MB response limit and reach the sandbox as an
+ * opaque gateway error. Only a read is refused for it: a write has already committed by then.
+ */
+const maximumChatSandboxReadOutputBytes = 4 * 1024 * 1024;
+
+/**
+ * One SQL call a `bash` command's code sent through the chat sandbox's SQL bridge
+ * (`apps/backend/src/chatSandbox/sqlBridge/route.ts`), run the way `sql_query` and `sql_execute` run
+ * theirs: the same argument schema, workspace resolver, chat executors and AI-chat replica, recorded as the
+ * `chat-sandbox` surface, and answered with the same envelope. The success envelope is not cut to
+ * `MAX_TOOL_OUTPUT_CHARS`, because the command's code reads it rather than the model.
+ */
+export async function executeChatSandboxSqlCall(
+  kind: ChatSandboxSqlKind,
+  sql: string,
+  explicitWorkspaceId: string | null,
+  session: Readonly<{ userId: string; workspaceId: string }>,
+): Promise<ChatSandboxSqlCall> {
+  const toolName = kind === "query" ? SQL_QUERY_TOOL_SPEC.name : SQL_EXECUTE_TOOL_SPEC.name;
+  const startedAt = Date.now();
+  try {
+    const rawInput = explicitWorkspaceId === null ? { sql } : { sql, workspaceId: explicitWorkspaceId };
+    const parsed = kind === "query"
+      ? SQL_QUERY_TOOL_INPUT_SCHEMA.parse(rawInput)
+      : SQL_EXECUTE_TOOL_INPUT_SCHEMA.parse(rawInput);
+    const workspaceId = await resolveAccessibleChatWorkspaceId(
+      { userId: session.userId, selectedWorkspaceId: session.workspaceId },
+      parsed.workspaceId,
+    );
+    const sqlContext = {
+      userId: session.userId,
+      workspaceId,
+      selectedWorkspaceId: session.workspaceId,
+      connectionId: chatSqlConnectionId,
+      surface: "chat-sandbox",
+      caller: null,
+    } as const;
+    const operationDependencies = createChatSqlOperationDependencies(null);
+    const result = kind === "query"
+      ? await runChatSqlQuery(sqlContext, parsed.sql, operationDependencies)
+      : await runChatSqlExecute(sqlContext, parsed.sql, operationDependencies);
+    const data: AgentSqlPayloadWithWorkspace = { ...result.data, workspaceId };
+    const output = createWholeSqlToolSuccessResult(toolName, {
+      sql: parsed.sql,
+      data,
+      instructions: result.instructions,
+    });
+    if (kind === "query" && Buffer.byteLength(output) > maximumChatSandboxReadOutputBytes) {
+      throw new HttpError(
+        400,
+        `The result is too large to return (${Buffer.byteLength(output)} bytes, limit ${maximumChatSandboxReadOutputBytes}). Read fewer rows per call: split a batch into separate calls, lower LIMIT, or SELECT fewer columns.`,
+        "QUERY_RESULT_TOO_LARGE",
+      );
+    }
+
+    return { output, sqlTelemetry: createSqlToolSuccessTelemetry(result.data, startedAt) };
+  } catch (error) {
+    return createSqlToolFailure(toolName, sql, error, startedAt);
   }
 }
 

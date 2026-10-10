@@ -12,15 +12,11 @@ import {
   type ChatDraftContent,
 } from "./drafts/chatDraftStorage";
 import {
-  binaryPendingAttachmentExceedsSizeLimit,
+  findPendingAttachmentLimitViolation,
   type PendingAttachment,
 } from "../attachments/FileAttachment";
-import {
-  ATTACHMENT_PAYLOAD_LIMIT_BYTES,
-  buildContentParts,
-  buildStartRunContentParts,
-  toRequestBodySizeBytes,
-} from "../shared/chatHelpers";
+import { buildContentParts } from "../shared/chatHelpers";
+import type { ChatAttachmentLimitMessages } from "../shared/chatSizePolicy";
 import type { ChatDictationState } from "./dictation/chatDictation";
 import type {
   SendChatMessageParams,
@@ -30,7 +26,7 @@ import type { ChatComposerAction } from "../sessionController/state/runState";
 
 type UseChatComposerSendParams = Readonly<{
   activeWorkspaceId: string | null;
-  attachmentLimitMessage: string;
+  attachmentLimitMessages: ChatAttachmentLimitMessages;
   clearDraftForSession: (sessionId: string | null) => void;
   clearTrackedDraftSelection: () => void;
   composerAction: ChatComposerAction;
@@ -70,7 +66,7 @@ export type ChatComposerSend = Readonly<{
 export function useChatComposerSend(params: UseChatComposerSendParams): ChatComposerSend {
   const {
     activeWorkspaceId,
-    attachmentLimitMessage,
+    attachmentLimitMessages,
     clearDraftForSession,
     clearTrackedDraftSelection,
     composerAction,
@@ -262,18 +258,9 @@ export function useChatComposerSend(params: UseChatComposerSendParams): ChatComp
       return;
     }
 
-    if (nextAttachments.some(binaryPendingAttachmentExceedsSizeLimit)) {
-      window.alert(attachmentLimitMessage);
-      return;
-    }
-
-    const requestBody = {
-      sessionId: currentSessionId ?? undefined,
-      content: buildStartRunContentParts(contentParts),
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    };
-    if (toRequestBodySizeBytes(requestBody) > ATTACHMENT_PAYLOAD_LIMIT_BYTES) {
-      window.alert(attachmentLimitMessage);
+    const attachmentLimitViolation = findPendingAttachmentLimitViolation(nextAttachments);
+    if (attachmentLimitViolation !== null) {
+      window.alert(attachmentLimitMessages[attachmentLimitViolation]);
       return;
     }
 

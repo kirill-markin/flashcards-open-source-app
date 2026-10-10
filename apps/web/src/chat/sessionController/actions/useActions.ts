@@ -8,6 +8,7 @@ import {
   ApiContractError,
   ApiError,
   AuthRedirectError,
+  ChatFileUploadTransferError,
   startChatRun,
   stopChatRun,
 } from "../../../api";
@@ -22,6 +23,7 @@ import type { Locale } from "../../../i18n/types";
 import type {
   AiUsageStatus,
   NewChatSessionResponse,
+  StartChatRunContentPart,
   StartChatRunRequestBody,
   StartChatRunResponse,
 } from "../../../types";
@@ -46,15 +48,21 @@ import type {
 } from "../support/types";
 import type { ChatSessionSnapshotSync } from "../snapshotSync/useSnapshotSync";
 import {
-  ATTACHMENT_PAYLOAD_LIMIT_BYTES,
   buildContentParts,
   buildStartRunContentParts,
   toRequestBodySizeBytes,
 } from "../../shared/chatHelpers";
-import { binaryPendingAttachmentExceedsSizeLimit } from "../../attachments/FileAttachment";
 import {
+  findPendingAttachmentLimitViolation,
+  type BinaryPendingAttachment,
+} from "../../attachments/FileAttachment";
+import { uploadPendingAttachments } from "../../attachments/chatAttachmentUploads";
+import {
+  AI_CHAT_MAXIMUM_START_RUN_REQUEST_BYTES,
+  CHAT_FILE_UPLOAD_NOT_FOUND_CODE,
   isAiChatAttachmentUnsupportedTypeError,
   isAiChatRequestTooLargeError,
+  toChatAttachmentLimitViolation,
 } from "../../shared/chatSizePolicy";
 import { isAiLimitReachedError } from "../../shared/chatAiLimitPolicy";
 import {
@@ -114,6 +122,9 @@ function isExpectedChatProductErrorCode(code: string | null): boolean {
     case "AUTH_UNAUTHORIZED":
     case "CHAT_ACTIVE_RUN_IN_PROGRESS":
     case "CHAT_ATTACHMENT_UNSUPPORTED_TYPE":
+    case "CHAT_FILE_UPLOAD_IMAGES_TOO_LARGE":
+    case "CHAT_FILE_UPLOAD_TOO_LARGE":
+    case "CHAT_FILE_UPLOADS_TOO_MANY":
     case "CHAT_REQUEST_TOO_LARGE":
     case "CHAT_SESSION_ID_CONFLICT":
     case "GUEST_AUTH_INVALID":
@@ -141,6 +152,12 @@ function shouldCaptureChatRunRequestError(error: Error): boolean {
   }
 
   if (isBrowserApiNetworkError(error)) {
+    return false;
+  }
+
+  // A PUT without a response failed on the connection, which the API transport does not report either; a
+  // response means the storage refused a PUT this client built from a signed target.
+  if (error instanceof ChatFileUploadTransferError && error.statusCode === null) {
     return false;
   }
 
@@ -476,10 +493,11 @@ export function useChatSessionActions(
       return createRejectedSendResult(state.currentSessionId);
     }
 
-    if (sendParams.attachments.some(binaryPendingAttachmentExceedsSizeLimit)) {
+    const attachmentLimitViolation = findPendingAttachmentLimitViolation(sendParams.attachments);
+    if (attachmentLimitViolation !== null) {
       dispatch({
         type: "error_shown",
-        message: uiMessages.attachmentLimit,
+        message: uiMessages.attachmentLimits[attachmentLimitViolation],
       });
       return createRejectedSendResult(state.currentSessionId);
     }
@@ -610,23 +628,29 @@ export function useChatSessionActions(
     }
 
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const createStartRunRequestBody = (requestSessionId: string): StartChatRunRequestBody => ({
+    const createStartRunRequestBody = (
+      requestSessionId: string,
+      content: ReadonlyArray<StartChatRunContentPart>,
+    ): StartChatRunRequestBody => ({
       sessionId: requestSessionId,
       workspaceId,
       clientRequestId: sendParams.clientRequestId,
-      content: buildStartRunContentParts(contentParts),
+      content,
       timezone,
       // Optional on the wire so older backend/client contract phases keep working.
       uiLocale,
     });
 
-    const startRunForSession = async (requestSessionId: string): Promise<StartChatRunResponse | null> => {
+    const startRunForSession = async (
+      requestSessionId: string,
+      content: ReadonlyArray<StartChatRunContentPart>,
+    ): Promise<StartChatRunResponse | null> => {
       indexedDbOpenRecoveryState.throwIfFailed();
-      const requestBody = createStartRunRequestBody(requestSessionId);
-      if (toRequestBodySizeBytes(requestBody) > ATTACHMENT_PAYLOAD_LIMIT_BYTES) {
+      const requestBody = createStartRunRequestBody(requestSessionId, content);
+      if (toRequestBodySizeBytes(requestBody) > AI_CHAT_MAXIMUM_START_RUN_REQUEST_BYTES) {
         dispatch({
           type: "error_shown",
-          message: uiMessages.attachmentLimit,
+          message: uiMessages.requestTooLarge,
         });
         return null;
       }
@@ -634,6 +658,54 @@ export function useChatSessionActions(
       const startRunResponse = await startChatRun(requestBody);
       indexedDbOpenRecoveryState.throwIfFailed();
       return startRunResponse;
+    };
+
+    const showAttachmentUploadFailure = (
+      error: unknown,
+      requestSessionId: string,
+      resultSessionId: string | null,
+    ): SendChatMessageResult => {
+      captureChatRunRequestError(error, workspaceId, {
+        operation: "chat_attachment_upload_failed",
+        sessionId: requestSessionId,
+        workspaceId,
+      });
+      dispatch({
+        type: "error_shown",
+        message: uiMessages.attachmentUploadFailed,
+      });
+      return createRejectedSendResult(resultSessionId);
+    };
+
+    const failAttachmentUploadRequest = (
+      error: unknown,
+      requestSessionId: string,
+      resultSessionId: string | null,
+    ): SendChatMessageResult => {
+      const uploadLimitViolation = isChatApiError(error) ? toChatAttachmentLimitViolation(error.code) : null;
+      if (uploadLimitViolation !== null) {
+        dispatch({
+          type: "error_shown",
+          message: uiMessages.attachmentLimits[uploadLimitViolation],
+        });
+        return createRejectedSendResult(resultSessionId);
+      }
+
+      if (
+        isChatApiError(error)
+        && isAiChatAttachmentUnsupportedTypeError({
+          statusCode: error.statusCode,
+          code: error.code,
+        })
+      ) {
+        dispatch({
+          type: "error_shown",
+          message: uiMessages.attachmentUnsupported,
+        });
+        return createRejectedSendResult(resultSessionId);
+      }
+
+      return showAttachmentUploadFailure(error, requestSessionId, resultSessionId);
     };
 
     const failStartRunRequest = (
@@ -684,9 +756,24 @@ export function useChatSessionActions(
       ) {
         dispatch({
           type: "error_shown",
-          message: uiMessages.attachmentLimit,
+          message: uiMessages.requestTooLarge,
         });
         return createRejectedSendResult(resultSessionId);
+      }
+
+      const uploadLimitViolation = isChatApiError(error) ? toChatAttachmentLimitViolation(error.code) : null;
+      if (uploadLimitViolation !== null) {
+        dispatch({
+          type: "error_shown",
+          message: uiMessages.attachmentLimits[uploadLimitViolation],
+        });
+        return createRejectedSendResult(resultSessionId);
+      }
+
+      // This client stages every upload right before this request and the backend keeps staged objects for a
+      // day, so a missing one means the staging pipeline broke.
+      if (isChatApiError(error) && error.code === CHAT_FILE_UPLOAD_NOT_FOUND_CODE) {
+        return showAttachmentUploadFailure(error, requestSessionId, resultSessionId);
       }
 
       if (
@@ -715,10 +802,39 @@ export function useChatSessionActions(
       return createRejectedSendResult(resultSessionId);
     };
 
+    let uploadIdsByAttachment: ReadonlyMap<BinaryPendingAttachment, string>;
+    try {
+      uploadIdsByAttachment = await uploadPendingAttachments(sendParams.attachments);
+      indexedDbOpenRecoveryState.throwIfFailed();
+    } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return createRejectedSendResult(state.currentSessionId);
+      }
+
+      if (isRequestSequenceCurrent(requestSequence) === false) {
+        return finishStaleRequest();
+      }
+
+      return failAttachmentUploadRequest(
+        error,
+        sessionId,
+        didRecoverSessionIdConflict ? sessionId : state.currentSessionId,
+      );
+    }
+
+    if (isRequestSequenceCurrent(requestSequence) === false) {
+      return finishStaleRequest();
+    }
+
+    const startRunContent = buildStartRunContentParts(
+      sendParams.text,
+      sendParams.attachments,
+      uploadIdsByAttachment,
+    );
     let response: StartChatRunResponse | null = null;
 
     try {
-      const initialResponse = await startRunForSession(sessionId);
+      const initialResponse = await startRunForSession(sessionId, startRunContent);
       indexedDbOpenRecoveryState.throwIfFailed();
       if (initialResponse === null) {
         return createRejectedSendResult(didRecoverSessionIdConflict ? sessionId : state.currentSessionId);
@@ -742,7 +858,7 @@ export function useChatSessionActions(
             sessionId = recovery.session.sessionId;
 
             try {
-              const retryResponse = await startRunForSession(recovery.session.sessionId);
+              const retryResponse = await startRunForSession(recovery.session.sessionId, startRunContent);
               indexedDbOpenRecoveryState.throwIfFailed();
               if (retryResponse === null) {
                 return createRejectedSendResult(recovery.session.sessionId);

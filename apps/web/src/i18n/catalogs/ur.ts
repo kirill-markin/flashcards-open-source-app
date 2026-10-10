@@ -1381,8 +1381,12 @@ const urCatalog: TranslationCatalog = {
       remaining: "اس ماہ باقی: {{count}}",
     },
     alerts: {
+      attachmentImagesTooLarge: "AI چیٹ کے ایک پیغام کے لیے تصاویر بہت بڑی ہیں: مل کر یہ زیادہ سے زیادہ {{limit}} MB ہو سکتی ہیں۔ ان میں سے کچھ کسی دوسرے پیغام میں بھیجیں۔",
       attachmentLimit: "پیغام بہت بڑا ہے۔ AI چیٹ اتنا مواد ایک ساتھ نہیں بھیج سکتی۔ ایک یا زیادہ منسلکات ہٹائیں، چھوٹی فائل یا تصویر چنیں، یا درخواست تقسیم کر کے دوبارہ کوشش کریں۔",
-      attachmentUnsupported: "AI چیٹ اس فائل کی قسم کو معاونت نہیں دیتی۔ فائل ہٹائیں یا اسے PDF، TXT، CSV، JSON، XML، Markdown، HTML، Python، JavaScript، TypeScript، YAML، XLS/XLSX، DOCX یا تصویر کے طور پر محفوظ کر کے دوبارہ کوشش کریں۔",
+      attachmentTooLarge: "یہ فائل AI چیٹ کے لیے بہت بڑی ہے۔ فائلیں زیادہ سے زیادہ {{fileLimit}} MB اور تصاویر زیادہ سے زیادہ {{imageLimit}} MB کی ہو سکتی ہیں۔ چھوٹی فائل چنیں اور دوبارہ کوشش کریں۔",
+      attachmentUnsupported: "AI چیٹ اس فائل کی قسم کو معاونت نہیں دیتی۔ فائل ہٹائیں یا اسے PDF، TXT، CSV، JSON، XML، Markdown، HTML، Python، JavaScript، TypeScript، YAML، XLS/XLSX، DOCX، ZIP، Anki APKG یا تصویر کے طور پر محفوظ کر کے دوبارہ کوشش کریں۔",
+      attachmentUploadFailed: "منسلکہ اپ لوڈ نہیں ہو سکا۔ اپنا کنکشن چیک کریں اور دوبارہ کوشش کریں۔",
+      attachmentsTooMany: "AI چیٹ کے ایک پیغام میں زیادہ سے زیادہ {{limit}} فائلیں اور تصاویر شامل ہو سکتی ہیں۔ باقی کسی دوسرے پیغام میں بھیجیں۔",
       microphoneUnavailable: "اس براؤزر میں مائیکروفون کی ریکارڈنگ دستیاب نہیں ہے۔",
     },
     composerPlaceholder: "کارڈز یا دہرائی کی تاریخ کے بارے میں پوچھیں، یا نوٹس منسلک کریں...",
