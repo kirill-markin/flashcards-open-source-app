@@ -1381,8 +1381,12 @@ const frCatalog: TranslationCatalog = {
       remaining: "Il reste {{count}} ce mois-ci",
     },
     alerts: {
+      attachmentImagesTooLarge: "Les images sont trop volumineuses pour un seul message du chat IA : ensemble, elles peuvent peser jusqu'à {{limit}} Mo. Envoyez-en une partie dans un autre message.",
       attachmentLimit: "Le message est trop volumineux. Le chat IA ne peut pas envoyer autant de contenu à la fois. Retirez une ou plusieurs pièces jointes, choisissez un fichier ou une photo plus léger, ou divisez votre demande, puis réessayez.",
-      attachmentUnsupported: "Ce type de fichier n'est pas pris en charge par le chat IA. Retirez le fichier ou enregistrez-le en PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX ou en image, puis réessayez.",
+      attachmentTooLarge: "Ce fichier est trop volumineux pour le chat IA. Les fichiers peuvent peser jusqu'à {{fileLimit}} Mo et les images jusqu'à {{imageLimit}} Mo. Choisissez un fichier plus léger, puis réessayez.",
+      attachmentUnsupported: "Ce type de fichier n'est pas pris en charge par le chat IA. Retirez le fichier ou enregistrez-le en PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG ou en image, puis réessayez.",
+      attachmentUploadFailed: "Impossible d'envoyer la pièce jointe. Vérifiez votre connexion, puis réessayez.",
+      attachmentsTooMany: "Un message du chat IA peut contenir jusqu'à {{limit}} fichiers et images. Envoyez le reste dans un autre message.",
       microphoneUnavailable: "L'enregistrement au microphone est indisponible dans ce navigateur.",
     },
     composerPlaceholder: "Posez une question sur les cartes, l'historique de révision, ou joignez des notes...",

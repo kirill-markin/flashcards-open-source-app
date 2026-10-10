@@ -1,14 +1,12 @@
-import type { CardContentPart, ContentPart } from "../../types";
-import type { PendingAttachment } from "../attachments/FileAttachment";
+import type { CardContentPart, ContentPart, StartChatRunContentPart } from "../../types";
+import type {
+  BinaryPendingAttachment,
+  CardPendingAttachment,
+  PendingAttachment,
+} from "../attachments/FileAttachment";
 import { isBinaryPendingAttachment } from "../attachments/FileAttachment";
-import {
-  AI_CHAT_MAXIMUM_START_RUN_REQUEST_BYTES,
-  USER_VISIBLE_ATTACHMENT_LIMIT_MB as USER_VISIBLE_START_RUN_REQUEST_LIMIT_MB,
-} from "./chatSizePolicy";
 
 export const IMAGE_MEDIA_TYPE_PREFIX = "image/";
-export const ATTACHMENT_PAYLOAD_LIMIT_BYTES = AI_CHAT_MAXIMUM_START_RUN_REQUEST_BYTES;
-export const USER_VISIBLE_ATTACHMENT_LIMIT_MB = USER_VISIBLE_START_RUN_REQUEST_LIMIT_MB;
 export const MIN_WIDTH = 280;
 export const MAX_WIDTH = 600;
 export const AUTO_SCROLL_INTERVAL_MS = 2_000;
@@ -33,9 +31,20 @@ export function calculateSidebarWidthFromPointer(
   return Math.max(minimumWidth, Math.min(nextWidth, maximumWidth));
 }
 
+function buildCardContentPart(attachment: CardPendingAttachment): CardContentPart {
+  return {
+    type: "card",
+    cardId: attachment.cardId,
+    frontText: attachment.frontText,
+    backText: attachment.backText,
+    tags: attachment.tags,
+  };
+}
+
 /**
- * Builds AI chat content parts while preserving attachment order and only
- * appending user text when its trimmed value is non-empty.
+ * Builds the local copy of a turn, preserving attachment order and only appending user text when its
+ * trimmed value is non-empty. A file or image is the label the backend returns for it as well, because no
+ * client holds attachment bytes once a turn is sent.
  */
 export function buildContentParts(
   text: string,
@@ -45,25 +54,19 @@ export function buildContentParts(
 
   for (const attachment of attachments) {
     if (!isBinaryPendingAttachment(attachment)) {
-      parts.push({
-        type: "card",
-        cardId: attachment.cardId,
-        frontText: attachment.frontText,
-        backText: attachment.backText,
-        tags: attachment.tags,
-      });
+      parts.push(buildCardContentPart(attachment));
       continue;
     }
 
     if (attachment.mediaType.startsWith(IMAGE_MEDIA_TYPE_PREFIX)) {
-      parts.push({ type: "image", mediaType: attachment.mediaType, base64Data: attachment.base64Data });
+      parts.push({ type: "image", mediaType: attachment.mediaType, base64Data: "" });
       continue;
     }
 
     parts.push({
       type: "file",
       mediaType: attachment.mediaType,
-      base64Data: attachment.base64Data,
+      base64Data: "",
       fileName: attachment.fileName,
     });
   }
@@ -75,7 +78,7 @@ export function buildContentParts(
   return parts;
 }
 
-function buildStartRunCardContentPart(part: CardContentPart): ContentPart {
+function buildStartRunCardContentPart(part: CardContentPart): StartChatRunContentPart {
   const legacyPart = {
     ...part,
     // TODO: Remove effortLevel when the backend chat wire contract drops legacy card effort.
@@ -85,8 +88,38 @@ function buildStartRunCardContentPart(part: CardContentPart): ContentPart {
   return legacyPart;
 }
 
-export function buildStartRunContentParts(contentParts: ReadonlyArray<ContentPart>): ReadonlyArray<ContentPart> {
-  return contentParts.map((part) => part.type === "card" ? buildStartRunCardContentPart(part) : part);
+/**
+ * Builds the `POST /chat` content of the same turn as `buildContentParts`: each file or image is named by
+ * the upload that staged its bytes.
+ */
+export function buildStartRunContentParts(
+  text: string,
+  attachments: ReadonlyArray<PendingAttachment>,
+  uploadIdsByAttachment: ReadonlyMap<BinaryPendingAttachment, string>,
+): ReadonlyArray<StartChatRunContentPart> {
+  const parts = attachments.map((attachment, index): StartChatRunContentPart => {
+    if (!isBinaryPendingAttachment(attachment)) {
+      return buildStartRunCardContentPart(buildCardContentPart(attachment));
+    }
+
+    const uploadId = uploadIdsByAttachment.get(attachment);
+    if (uploadId === undefined) {
+      throw new Error(`Chat attachment was not uploaded before the turn started: attachmentIndex=${index}`);
+    }
+
+    return {
+      type: "upload",
+      uploadId,
+      fileName: attachment.fileName,
+      mediaType: attachment.mediaType,
+    };
+  });
+
+  if (text.trim().length > 0) {
+    parts.push({ type: "text", text: text.trim() });
+  }
+
+  return parts;
 }
 
 /**

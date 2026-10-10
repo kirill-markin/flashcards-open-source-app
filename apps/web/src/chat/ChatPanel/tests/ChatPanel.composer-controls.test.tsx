@@ -12,7 +12,7 @@ import {
   dispatchChatComposerPasteEvent,
   dispatchChatPanelDragEvent,
   getChatSnapshotMock,
-  binaryPendingAttachmentExceedsSizeLimitMock,
+  findPendingAttachmentLimitViolationMock,
   prepareAttachmentMock,
   queryChatAttachButton,
   queryChatComposerInput,
@@ -62,7 +62,7 @@ describe("ChatPanel composer controls", () => {
       type: "binary",
       fileName: "attached.txt",
       mediaType: "text/plain",
-      base64Data: "YXR0YWNoZWQ=",
+      blob: new Blob(["attached"], { type: "text/plain" }),
     });
 
     await renderChatPanel();
@@ -83,7 +83,7 @@ describe("ChatPanel composer controls", () => {
       type: "binary",
       fileName: "pasted-image.png",
       mediaType: "image/png",
-      base64Data: "aW1hZ2U=",
+      blob: new Blob(["image"], { type: "image/png" }),
     });
 
     await renderChatPanel();
@@ -137,7 +137,7 @@ describe("ChatPanel composer controls", () => {
       type: "binary",
       fileName: "next-draft.txt",
       mediaType: "text/plain",
-      base64Data: "bmV4dA==",
+      blob: new Blob(["next"], { type: "text/plain" }),
     });
 
     await renderChatPanel();
@@ -284,9 +284,9 @@ describe("ChatPanel composer controls", () => {
       type: "binary",
       fileName: "large.txt",
       mediaType: "text/plain",
-      base64Data: "large",
+      blob: new Blob(["large"], { type: "text/plain" }),
     });
-    binaryPendingAttachmentExceedsSizeLimitMock.mockReturnValue(true);
+    findPendingAttachmentLimitViolationMock.mockReturnValue("attachment_too_large");
 
     await renderChatPanel();
     await flushAsync();
@@ -300,7 +300,7 @@ describe("ChatPanel composer controls", () => {
 
     expect(getContainer().textContent).not.toContain("large.txt");
     expect(textarea?.value).toBe("draft stays");
-    expect(getAlertMock()).toHaveBeenCalledWith("Message is too large. AI chat can’t send this much content at once. Remove one or more attachments, choose a smaller file or photo, or split the request and try again.");
+    expect(getAlertMock()).toHaveBeenCalledWith("This file is too large for AI chat. Files can be up to 30 MB and images up to 10 MB. Choose a smaller file and try again.");
   });
 
   it("keeps the draft unchanged when an existing attachment exceeds the send limit", async () => {
@@ -308,7 +308,7 @@ describe("ChatPanel composer controls", () => {
       type: "binary",
       fileName: "restored.txt",
       mediaType: "text/plain",
-      base64Data: "restored",
+      blob: new Blob(["restored"], { type: "text/plain" }),
     });
 
     await renderChatPanel();
@@ -322,14 +322,14 @@ describe("ChatPanel composer controls", () => {
     await flushAsync();
     expect(getContainer().textContent).toContain("restored.txt");
 
-    binaryPendingAttachmentExceedsSizeLimitMock.mockReturnValue(true);
+    findPendingAttachmentLimitViolationMock.mockReturnValue("attachment_too_large");
     await sendMessage("draft stays");
     await flushAsync();
 
     expect(startChatRunMock).not.toHaveBeenCalled();
     expect(textarea?.value).toBe("draft stays");
     expect(getContainer().textContent).toContain("restored.txt");
-    expect(getAlertMock()).toHaveBeenCalledWith("Message is too large. AI chat can’t send this much content at once. Remove one or more attachments, choose a smaller file or photo, or split the request and try again.");
+    expect(getAlertMock()).toHaveBeenCalledWith("This file is too large for AI chat. Files can be up to 30 MB and images up to 10 MB. Choose a smaller file and try again.");
   });
 
   it("ignores dropped files while a send is being prepared", async () => {
@@ -377,7 +377,7 @@ describe("ChatPanel composer controls", () => {
         type: "binary",
         fileName: "delayed.txt",
         mediaType: "text/plain",
-        base64Data: "ZGVsYXllZA==",
+        blob: new Blob(["delayed"], { type: "text/plain" }),
       });
     }));
 

@@ -24,7 +24,7 @@ describe("prepareAttachment", () => {
     }
     expect(attachment.fileName).toBe("deck.csv");
     expect(attachment.mediaType).toBe("text/csv");
-    expect(attachment.base64Data).toBe("ZnJvbnQsYmFjaw==");
+    expect(attachment.blob).toBe(file);
   });
 
   it("normalizes XML MIME aliases before storing the pending attachment", async () => {
@@ -40,6 +40,6 @@ describe("prepareAttachment", () => {
     }
     expect(attachment.fileName).toBe("cards.xml");
     expect(attachment.mediaType).toBe("text/xml");
-    expect(attachment.base64Data).toBe("PGNhcmRzIC8+");
+    expect(attachment.blob).toBe(file);
   });
 });

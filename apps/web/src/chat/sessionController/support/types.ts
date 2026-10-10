@@ -1,6 +1,7 @@
 import type { Locale } from "../../../i18n/types";
 import type { AiUsageStatus, ChatConfig, ChatComposerSuggestion } from "../../../types";
 import type { ChatErrorFallbackMessages } from "../../shared/chatHelpers";
+import type { ChatAttachmentLimitMessages } from "../../shared/chatSizePolicy";
 import type { PendingAttachment } from "../../attachments/FileAttachment";
 import type { StoredMessage } from "../../history/useChatHistory";
 import type { ChatComposerAction, ChatRunState } from "../state/runState";
@@ -9,8 +10,9 @@ import type { IndexedDbOpenRecoveryState } from "../../../appError/AppErrorConte
 export type ChatSessionControllerUiMessages = Readonly<{
   activeRunInProgress: string;
   formatAiLimitReached: (aiUsage: AiUsageStatus | null) => string;
-  attachmentLimit: string;
+  attachmentLimits: ChatAttachmentLimitMessages;
   attachmentUnsupported: string;
+  attachmentUploadFailed: string;
   errorFallbacks: ChatErrorFallbackMessages;
   genericChatFailed: string;
   liveStreamEndedBeforeCompletion: string;
@@ -19,6 +21,7 @@ export type ChatSessionControllerUiMessages = Readonly<{
   refreshFailedPrefix: string;
   remoteNotReady: string;
   requestFailedPrefix: string;
+  requestTooLarge: string;
   stopFailedPrefix: string;
   transcriptionUnexpectedSessionId: string;
   unexpectedSessionId: string;

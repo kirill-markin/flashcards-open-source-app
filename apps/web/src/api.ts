@@ -58,6 +58,11 @@ export {
   transcribeChatAudio,
 } from "./api/endpoints/chat";
 export {
+  ChatFileUploadTransferError,
+  createChatFileUpload,
+  putChatFileUpload,
+} from "./api/endpoints/chatFileUploads";
+export {
   loadFeedbackState,
   recordFeedbackPromptEvent,
   submitFeedback,

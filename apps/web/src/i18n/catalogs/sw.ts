@@ -1381,8 +1381,12 @@ const swCatalog: TranslationCatalog = {
       remaining: "Zimesalia mwezi huu: {{count}}",
     },
     alerts: {
+      attachmentImagesTooLarge: "Picha ni kubwa mno kwa ujumbe mmoja wa gumzo la AI: kwa jumla zinaweza kuwa hadi {{limit}} MB. Tuma baadhi yake kwenye ujumbe mwingine.",
       attachmentLimit: "Ujumbe ni mkubwa mno. Gumzo la AI haliwezi kutuma maudhui mengi hivi kwa mara moja. Ondoa kiambatisho kimoja au zaidi, chagua faili au picha ndogo zaidi, au gawanya ombi kisha ujaribu tena.",
-      attachmentUnsupported: "Aina hii ya faili haitumiki kwa gumzo la AI. Ondoa faili au uihifadhi kama PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX au picha, kisha ujaribu tena.",
+      attachmentTooLarge: "Faili hili ni kubwa mno kwa gumzo la AI. Faili zinaweza kuwa hadi {{fileLimit}} MB na picha hadi {{imageLimit}} MB. Chagua faili ndogo zaidi kisha ujaribu tena.",
+      attachmentUnsupported: "Aina hii ya faili haitumiki kwa gumzo la AI. Ondoa faili au uihifadhi kama PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG au picha, kisha ujaribu tena.",
+      attachmentUploadFailed: "Imeshindwa kupakia kiambatisho. Angalia muunganisho wako kisha ujaribu tena.",
+      attachmentsTooMany: "Ujumbe mmoja wa gumzo la AI unaweza kuwa na hadi faili na picha {{limit}}. Tuma zilizobaki kwenye ujumbe mwingine.",
       microphoneUnavailable: "Kurekodi kwa maikrofoni hakupatikani kwenye kivinjari hiki.",
     },
     composerPlaceholder: "Uliza kuhusu kadi, historia ya marudio, au ambatisha madokezo...",

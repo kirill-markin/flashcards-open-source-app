@@ -303,6 +303,7 @@ export type ChatSnapshotFailureDetails = Readonly<{
 
 export type ChatRunRequestFailureDetails = Readonly<{
   operation:
+    | "chat_attachment_upload_failed"
     | "chat_remote_session_failed"
     | "chat_start_run_failed"
     | "chat_fresh_session_failed"
