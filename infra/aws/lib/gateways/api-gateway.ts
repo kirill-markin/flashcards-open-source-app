@@ -24,6 +24,7 @@ import {
 import { buildCookieDomains } from "../cookie-domains";
 import { parsePublicOrigin } from "../public-origin";
 import { createSafeApiGatewayAccessLogFormat } from "./api-gateway-access-log";
+import { createChatSandboxFunction } from "./chat-sandbox";
 import { createSentrySourceMapInjectionCommand, getDockerSentryCliPath } from "../sentry-source-maps";
 import { getLambdaSentryRelease } from "../lambda-sentry-release";
 import { createRdsCaBundleCopyCommand, rdsCaBundlePath } from "../rds-ca-bundle";
@@ -1232,6 +1233,10 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   backendFn.addEnvironment("CHAT_WORKER_FUNCTION_NAME", chatWorkerFn.functionName);
   backendFn.addEnvironment("CHAT_LIVE_URL", chatLiveFunctionUrl.url);
   chatWorkerFn.grantInvoke(backendFn);
+  // The worker pre-signs every object URL the sandbox uses, under its chat-files grant above.
+  const chatSandboxFn = createChatSandboxFunction(scope);
+  chatSandboxFn.grantInvoke(chatWorkerFn);
+  chatWorkerFn.addEnvironment("CHAT_SANDBOX_FUNCTION_NAME", chatSandboxFn.functionName);
   const accessLogGroup = new logs.LogGroup(scope, "ApiAccessLogGroup", {
     retention: logs.RetentionDays.ONE_WEEK,
   });

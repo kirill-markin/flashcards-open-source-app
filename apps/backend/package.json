@@ -31,6 +31,7 @@
     "aws-jwt-verify": "^5.2.1",
     "google-auth-library": "11.2.0",
     "hono": "^4.13.13",
+    "just-bash": "^3.6.0",
     "maxmind": "^5.0.7",
     "openai": "^7.30.0",
     "pg": "^8.23.1",
@@ -51,7 +52,10 @@
   },
   "overrides": {
     "protobufjs": "^8.8.0",
-    "undici": "6.29.0"
+    "undici": "6.29.0",
+    "guarded-fetch": {
+      "undici": "7.29.0"
+    }
   },
   "engines": {
     "node": "24.x"

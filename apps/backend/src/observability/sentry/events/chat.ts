@@ -220,10 +220,14 @@ export type ChatFileLegacyAttachmentKeptAsFileDetails = Readonly<{
   sizeBytes: number;
 }>;
 
-/** Stored chat file objects that no `ai.chat_files` row names, because what had to follow their upload did not happen. */
+/**
+ * Stored chat file objects that no `ai.chat_files` row names, because what had to follow their upload did not happen.
+ * `sandbox_unconfirmed` names every write slot of a chat sandbox attempt whose uploads no accepted answer
+ * confirmed, so some of its keys may hold no object.
+ */
 export type ChatFileUploadOrphanedDetails = Readonly<{
   s3Keys: ReadonlyArray<string>;
-  reason: "upload_failed" | "write_failed" | "already_converted";
+  reason: "upload_failed" | "write_failed" | "already_converted" | "sandbox_unconfirmed";
   errorClass: string | null;
   errorMessage: string | null;
 }>;
@@ -244,6 +248,32 @@ export type ChatFileCleanupRetryDetails = Readonly<{
   attempt: number;
   maxAttempts: number;
   failures: ReadonlyArray<ChatFileObjectDeleteFailureDetails>;
+}>;
+
+/**
+ * One `bash` tool call run in the chat sandbox: the command, but never its output or a file's content.
+ * `command` is null when the arguments were invalid, and `exitCode` and the byte counts are null when the
+ * sandbox did not answer with a response.
+ */
+export type ChatSandboxCommandDetails = Readonly<{
+  toolCallId: string;
+  command: string | null;
+  exitCode: number | null;
+  durationMs: number;
+  stdoutBytes: number | null;
+  stderrBytes: number | null;
+  outputTruncated: boolean;
+  filesWritten: number;
+  filesDeleted: number;
+  sandboxRequestId: string | null;
+  errorClass: string | null;
+}>;
+
+/** A chat sandbox invoke that Lambda throttled or that got no answer, about to be retried. */
+export type ChatSandboxInvokeRetriedDetails = Readonly<{
+  attempt: number;
+  retryDelayMs: number;
+  errorClass: string;
 }>;
 
 /**
@@ -436,6 +466,7 @@ export type ChatBreadcrumbEvent =
   | EventByAction<"chat_file_legacy_attachments_converted", ChatFileLegacyAttachmentsConvertedDetails>
   | EventByAction<"chat_file_legacy_attachment_kept_as_file", ChatFileLegacyAttachmentKeptAsFileDetails>
   | EventByAction<"chat_file_cleanup_batch_completed", ChatFileCleanupBatchDetails>
+  | EventByAction<"chat_sandbox_command", ChatSandboxCommandDetails>
   | EventByAction<"chat_composer_suggestions_declined", ChatComposerSuggestionsResponseDetails>
   | EventByAction<"chat_composer_suggestions_unparseable", ChatComposerSuggestionsResponseDetails>
   | EventByAction<"generated_card_image_provider_complete", GeneratedCardImageProviderDetails>;
@@ -450,6 +481,7 @@ export type ChatWarningEvent =
   }>)
   | (EventByAction<"chat_file_upload_orphaned", ChatFileUploadOrphanedDetails> & Readonly<{ message: string }>)
   | (EventByAction<"chat_file_cleanup_retry", ChatFileCleanupRetryDetails> & Readonly<{ message: string }>)
+  | (EventByAction<"chat_sandbox_invoke_retried", ChatSandboxInvokeRetriedDetails> & Readonly<{ message: string }>)
   | (EventByAction<"chat_worker_heartbeat_failed", ChatWorkerHeartbeatFailedDetails> & Readonly<{ message: string }>)
   | (EventByAction<"chat_worker_heartbeat_skipped", ChatWorkerHeartbeatSkippedDetails> & Readonly<{ message: string }>)
   | (EventByAction<"chat_worker_heartbeat_timer_lagged", ChatWorkerHeartbeatTimerLaggedDetails> & Readonly<{
