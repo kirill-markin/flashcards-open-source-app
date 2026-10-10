@@ -914,6 +914,11 @@
 "settings.accentColor.premiumNote" = "ألوان التمييز المخصصة متاحة مع Premium. يعود لونك المحفوظ عندما يكون Premium نشطًا.";
 "settings.reviewAnimations.premiumNote" = "إيقاف رسوم المراجعة المتحركة متاح مع Premium. يعود إعدادك المحفوظ عندما يكون Premium نشطًا.";
 "settings.aiChatSuggestions.premiumNote" = "إيقاف اقتراحات دردشة الذكاء الاصطناعي متاح مع Premium. يعود إعدادك المحفوظ عندما يكون Premium نشطًا.";
+"settings.appIcon.title" = "أيقونة التطبيق";
+"settings.appIcon.default" = "الافتراضية";
+"settings.appIcon.light" = "فاتحة";
+"settings.appIcon.premiumNote" = "تغيير أيقونة التطبيق متاح مع Premium. تعود أيقونتك المحفوظة عندما يكون Premium نشطًا.";
+"settings.appIcon.systemAlertNote" = "يؤكد iOS كل تغيير للأيقونة بتنبيه.";
 
 "premium.apple.monthlyProduct" = "%@ · شهري";
 "premium.apple.renewal" = "يتجدد تلقائيًا حتى الإلغاء. يمكنك إدارته أو إلغاؤه من اشتراكات App Store.";

@@ -886,6 +886,11 @@
 "settings.accentColor.premiumNote" = "ഇഷ്ടമുള്ള ഹൈലൈറ്റ് നിറങ്ങൾ Premium-ൽ ലഭ്യമാണ്. Premium സജീവമാകുമ്പോൾ സംരക്ഷിച്ച നിറം തിരിച്ചുവരും.";
 "settings.reviewAnimations.premiumNote" = "ആവർത്തന ആനിമേഷനുകൾ ഓഫാക്കുന്നത് Premium-ൽ ലഭ്യമാണ്. Premium സജീവമാകുമ്പോൾ സംരക്ഷിച്ച ക്രമീകരണം തിരിച്ചുവരും.";
 "settings.aiChatSuggestions.premiumNote" = "AI ചാറ്റ് നിർദ്ദേശങ്ങൾ ഓഫാക്കുന്നത് Premium-ൽ ലഭ്യമാണ്. Premium സജീവമാകുമ്പോൾ സംരക്ഷിച്ച ക്രമീകരണം തിരിച്ചുവരും.";
+"settings.appIcon.title" = "ആപ്പ് ഐക്കൺ";
+"settings.appIcon.default" = "ഡിഫോൾട്ട്";
+"settings.appIcon.light" = "ലൈറ്റ്";
+"settings.appIcon.premiumNote" = "ആപ്പ് ഐക്കൺ മാറ്റുന്നത് Premium-ൽ ലഭ്യമാണ്. Premium സജീവമാകുമ്പോൾ സംരക്ഷിച്ച ഐക്കൺ തിരിച്ചുവരും.";
+"settings.appIcon.systemAlertNote" = "ഓരോ ഐക്കൺ മാറ്റവും iOS ഒരു അലേർട്ടിലൂടെ സ്ഥിരീകരിക്കുന്നു.";
 
 "premium.apple.monthlyProduct" = "%@ · പ്രതിമാസം";
 "premium.apple.renewal" = "റദ്ദാക്കുന്നതുവരെ സ്വയമേവ പുതുക്കും. App Store സബ്‌സ്‌ക്രിപ്‌ഷനുകളിൽ നിയന്ത്രിക്കുകയോ റദ്ദാക്കുകയോ ചെയ്യാം.";

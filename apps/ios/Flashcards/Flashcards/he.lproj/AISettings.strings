@@ -886,6 +886,11 @@
 "settings.accentColor.premiumNote" = "צבעי הדגשה מותאמים אישית זמינים עם Premium. הצבע השמור שלך חוזר כאשר Premium פעיל.";
 "settings.reviewAnimations.premiumNote" = "כיבוי הנפשות החזרה זמין עם Premium. ההגדרה השמורה שלך חוזרת כאשר Premium פעיל.";
 "settings.aiChatSuggestions.premiumNote" = "כיבוי ההצעות לצ׳אט AI זמין עם Premium. ההגדרה השמורה שלך חוזרת כאשר Premium פעיל.";
+"settings.appIcon.title" = "סמל האפליקציה";
+"settings.appIcon.default" = "ברירת מחדל";
+"settings.appIcon.light" = "בהיר";
+"settings.appIcon.premiumNote" = "שינוי סמל האפליקציה זמין עם Premium. הסמל השמור שלך חוזר כאשר Premium פעיל.";
+"settings.appIcon.systemAlertNote" = "מערכת iOS מאשרת כל שינוי סמל באמצעות התראה.";
 
 "premium.apple.monthlyProduct" = "%@ · חודשי";
 "premium.apple.renewal" = "מתחדש אוטומטית עד לביטול. אפשר לנהל או לבטל דרך המינויים ב-App Store.";

@@ -1,6 +1,6 @@
 {
   "name": "flashcards-open-source-app-backend",
-  "version": "1.32.0",
+  "version": "1.33.0",
   "private": true,
   "scripts": {
     "dev": "tsx watch src/entrypoints/index.ts",
@@ -29,7 +29,7 @@
     "@opentelemetry/sdk-trace-base": "^2.12.0",
     "@sentry/aws-serverless": "^10.76.1",
     "aws-jwt-verify": "^5.2.1",
-    "google-auth-library": "11.1.0",
+    "google-auth-library": "11.2.0",
     "hono": "^4.13.13",
     "maxmind": "^5.0.7",
     "openai": "^7.30.0",

@@ -1,6 +1,6 @@
 {
   "name": "flashcards-open-source-app-aws",
-  "version": "1.32.0",
+  "version": "1.33.0",
   "private": true,
   "scripts": {
     "build": "tsc",
@@ -16,7 +16,7 @@
     "@aws-sdk/client-cloudwatch": "^3.1147.0",
     "@aws-sdk/client-s3": "^3.1147.0",
     "@sentry/aws-serverless": "^10.76.1",
-    "aws-cdk-lib": "^2.272.0",
+    "aws-cdk-lib": "^2.273.0",
     "constructs": "^10.8.1"
   },
   "devDependencies": {

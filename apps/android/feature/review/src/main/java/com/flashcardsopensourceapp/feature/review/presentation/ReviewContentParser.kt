@@ -3,6 +3,12 @@ package com.flashcardsopensourceapp.feature.review
 import com.flashcardsopensourceapp.data.local.model.media.MediaAsset
 import com.flashcardsopensourceapp.data.local.model.media.ManagedMediaReference
 import com.flashcardsopensourceapp.data.local.model.media.parseManagedMediaReference
+import org.intellij.markdown.MarkdownElementTypes
+import org.intellij.markdown.ast.ASTNode
+import org.intellij.markdown.flavours.gfm.GFMElementTypes
+import org.intellij.markdown.flavours.gfm.GFMFlavourDescriptor
+import org.intellij.markdown.parser.CancellationToken
+import org.intellij.markdown.parser.MarkdownParser
 
 /*
  Keep review content presentation heuristics aligned with:
@@ -40,7 +46,7 @@ fun classifyReviewContentPresentation(text: String): ReviewContentPresentationMo
     if (trimmedText.contains('`')) {
         return ReviewContentPresentationMode.RICH
     }
-    if (hasStrongRichCue(text = trimmedText)) {
+    if (hasStrongRichCue(text = trimmedText) || hasInlineMarkdownFormatting(text = trimmedText)) {
         return ReviewContentPresentationMode.RICH
     }
     if (trimmedText.isEmpty()) {
@@ -196,6 +202,27 @@ private fun reviewManagedMarkdownBlocks(
             )
         )
     }
+}
+
+private fun hasInlineMarkdownFormatting(text: String): Boolean {
+    if (text.none { character -> character in "*_~" }) {
+        return false
+    }
+
+    val markdownText: CharSequence = text
+    val tree: ASTNode = MarkdownParser(
+        flavour = GFMFlavourDescriptor(),
+        assertionsEnabled = true,
+        cancellationToken = CancellationToken.NonCancellable
+    ).buildMarkdownTreeFromString(markdownText)
+    return hasInlineMarkdownFormattingNode(node = tree)
+}
+
+private fun hasInlineMarkdownFormattingNode(node: ASTNode): Boolean {
+    return node.type == MarkdownElementTypes.EMPH
+        || node.type == MarkdownElementTypes.STRONG
+        || node.type == GFMElementTypes.STRIKETHROUGH
+        || node.children.any { child -> hasInlineMarkdownFormattingNode(node = child) }
 }
 
 private fun hasStrongRichCue(text: String): Boolean {

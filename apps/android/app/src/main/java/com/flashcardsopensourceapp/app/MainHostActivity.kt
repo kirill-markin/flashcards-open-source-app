@@ -15,7 +15,7 @@ import com.flashcardsopensourceapp.app.notifications.consumeAppNotificationTapRe
 import com.flashcardsopensourceapp.core.ui.markHostActivityStarted
 import com.flashcardsopensourceapp.core.ui.markHostActivityStopped
 
-class MainActivity : ComponentActivity() {
+class MainHostActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         val application = application as FlashcardsApplication
         val splashScreen = installSplashScreen()
@@ -37,17 +37,17 @@ class MainActivity : ComponentActivity() {
                 FlashcardsAppLoadingScreen()
             } else {
                 DisposableEffect(appGraph) {
-                    val lifecycle = this@MainActivity.lifecycle
+                    val lifecycle = this@MainHostActivity.lifecycle
                     val observer = LifecycleEventObserver { _, event ->
                         when (event) {
                             Lifecycle.Event.ON_RESUME -> {
-                                appGraph.storeReviewActivityProvider.updateActivity(activity = this@MainActivity)
+                                appGraph.storeReviewActivityProvider.updateActivity(activity = this@MainHostActivity)
                             }
 
                             Lifecycle.Event.ON_PAUSE,
                             Lifecycle.Event.ON_STOP,
                             Lifecycle.Event.ON_DESTROY -> {
-                                appGraph.storeReviewActivityProvider.clearActivity(activity = this@MainActivity)
+                                appGraph.storeReviewActivityProvider.clearActivity(activity = this@MainHostActivity)
                             }
 
                             else -> Unit
@@ -55,13 +55,13 @@ class MainActivity : ComponentActivity() {
                     }
                     lifecycle.addObserver(observer)
                     if (lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
-                        appGraph.storeReviewActivityProvider.updateActivity(activity = this@MainActivity)
+                        appGraph.storeReviewActivityProvider.updateActivity(activity = this@MainHostActivity)
                     } else {
-                        appGraph.storeReviewActivityProvider.clearActivity(activity = this@MainActivity)
+                        appGraph.storeReviewActivityProvider.clearActivity(activity = this@MainHostActivity)
                     }
                     onDispose {
                         lifecycle.removeObserver(observer)
-                        appGraph.storeReviewActivityProvider.clearActivity(activity = this@MainActivity)
+                        appGraph.storeReviewActivityProvider.clearActivity(activity = this@MainHostActivity)
                     }
                 }
                 FlashcardsApp(

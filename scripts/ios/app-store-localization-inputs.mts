@@ -46,7 +46,7 @@ function screenshot(path: string, fileName: string, family: string): Screenshot 
   if (bytes.length < 33 || !bytes.subarray(0, 8).equals(Buffer.from("89504e470d0a1a0a", "hex"))
     || bytes.toString("ascii", 12, 16) !== "IHDR") throw new Error(`Invalid PNG: ${path}`);
   const size = `${bytes.readUInt32BE(16)}x${bytes.readUInt32BE(20)}`;
-  const sizes = family === "iphone" ? ["1284x2778"] : ["2064x2752", "2048x2732"];
+  const sizes = family === "iphone" ? ["1284x2778"] : ["2064x2752", "2048x2732", "2752x2064", "2732x2048"];
   if (!sizes.includes(size)) throw new Error(`${path}: unsupported ${family} dimensions ${size}; expected ${sizes.join(" or ")}`);
   if (![0, 2, 3].includes(bytes[25])) throw new Error(`${path}: App Store screenshots must not contain an alpha channel`);
   let offset = 8;

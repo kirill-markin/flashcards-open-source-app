@@ -886,6 +886,11 @@
 "settings.accentColor.premiumNote" = "Az egyéni kiemelőszínek a Premium részei. A mentett szín visszatér, amikor a Premium aktív.";
 "settings.reviewAnimations.premiumNote" = "Az ismétlési animációk kikapcsolása a Premium része. A mentett beállítás visszatér, amikor a Premium aktív.";
 "settings.aiChatSuggestions.premiumNote" = "Az AI-csevegési javaslatok kikapcsolása a Premium része. A mentett beállítás visszatér, amikor a Premium aktív.";
+"settings.appIcon.title" = "Alkalmazásikon";
+"settings.appIcon.default" = "Alapértelmezett";
+"settings.appIcon.light" = "Világos";
+"settings.appIcon.premiumNote" = "Az alkalmazásikon módosítása a Premium része. A mentett ikon visszatér, amikor a Premium aktív.";
+"settings.appIcon.systemAlertNote" = "Az iOS minden ikonváltást egy figyelmeztetéssel erősít meg.";
 
 "premium.apple.monthlyProduct" = "%@ · Havi";
 "premium.apple.renewal" = "Lemondásig automatikusan megújul. Kezelje vagy mondja le az App Store-előfizetéseinél.";

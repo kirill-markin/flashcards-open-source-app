@@ -886,6 +886,11 @@
 "settings.accentColor.premiumNote" = "ఇష్టమైన హైలైట్ రంగులు Premiumతో అందుబాటులో ఉంటాయి. Premium సక్రియంగా ఉన్నప్పుడు మీరు సేవ్ చేసిన రంగు తిరిగి వస్తుంది.";
 "settings.reviewAnimations.premiumNote" = "పునశ్చరణ యానిమేషన్‌లను ఆఫ్ చేయడం Premiumతో అందుబాటులో ఉంటుంది. Premium సక్రియంగా ఉన్నప్పుడు మీరు సేవ్ చేసిన సెట్టింగ్ తిరిగి వస్తుంది.";
 "settings.aiChatSuggestions.premiumNote" = "AI చాట్ సూచనలను ఆఫ్ చేయడం Premiumతో అందుబాటులో ఉంటుంది. Premium సక్రియంగా ఉన్నప్పుడు మీరు సేవ్ చేసిన సెట్టింగ్ తిరిగి వస్తుంది.";
+"settings.appIcon.title" = "యాప్ ఐకాన్";
+"settings.appIcon.default" = "డిఫాల్ట్";
+"settings.appIcon.light" = "లైట్";
+"settings.appIcon.premiumNote" = "యాప్ ఐకాన్‌ను మార్చడం Premiumతో అందుబాటులో ఉంటుంది. Premium సక్రియంగా ఉన్నప్పుడు మీరు సేవ్ చేసిన ఐకాన్ తిరిగి వస్తుంది.";
+"settings.appIcon.systemAlertNote" = "ప్రతి ఐకాన్ మార్పును iOS ఒక హెచ్చరికతో నిర్ధారిస్తుంది.";
 
 "premium.apple.monthlyProduct" = "%@ · నెలవారీ";
 "premium.apple.renewal" = "రద్దు చేసే వరకు స్వయంచాలకంగా పునరుద్ధరించబడుతుంది. మీ App Store సభ్యత్వాల్లో నిర్వహించండి లేదా రద్దు చేయండి.";

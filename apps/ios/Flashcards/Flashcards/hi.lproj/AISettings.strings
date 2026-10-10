@@ -914,6 +914,11 @@
 "settings.accentColor.premiumNote" = "पसंदीदा एक्सेंट रंग Premium के साथ उपलब्ध हैं। Premium सक्रिय होने पर आपका सहेजा गया रंग वापस आ जाता है।";
 "settings.reviewAnimations.premiumNote" = "समीक्षा एनिमेशन बंद करना Premium के साथ उपलब्ध है। Premium सक्रिय होने पर आपकी सहेजी गई सेटिंग वापस आ जाती है।";
 "settings.aiChatSuggestions.premiumNote" = "AI चैट सुझाव बंद करना Premium के साथ उपलब्ध है। Premium सक्रिय होने पर आपकी सहेजी गई सेटिंग वापस आ जाती है।";
+"settings.appIcon.title" = "ऐप आइकन";
+"settings.appIcon.default" = "डिफ़ॉल्ट";
+"settings.appIcon.light" = "लाइट";
+"settings.appIcon.premiumNote" = "ऐप आइकन बदलना Premium के साथ उपलब्ध है। Premium सक्रिय होने पर आपका सहेजा गया आइकन वापस आ जाता है।";
+"settings.appIcon.systemAlertNote" = "iOS हर आइकन बदलाव की पुष्टि एक अलर्ट से करता है।";
 
 "premium.apple.monthlyProduct" = "%@ · मासिक";
 "premium.apple.renewal" = "रद्द करने तक अपने आप नवीनीकृत होता है। अपनी App Store सदस्यताओं में इसे प्रबंधित या रद्द करें।";

@@ -30,12 +30,15 @@ fun sendSupportEmail(context: Context, emailAddress: String) {
     context.startActivity(intent)
 }
 
+/**
+ * Opens the chooser in the caller's task, so [context] must be an Activity; the launcher App icon
+ * switch waits while another app's activity is on top of that task.
+ */
 fun shareFlashcardsApp(context: Context, shareUrl: String, title: String, text: String) {
     val intent: Intent = Intent(Intent.ACTION_SEND)
         .setType("text/plain")
         .putExtra(Intent.EXTRA_TEXT, "$text\n$shareUrl")
     val chooserIntent: Intent = Intent.createChooser(intent, title)
-        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     context.startActivity(chooserIntent)
 }
 

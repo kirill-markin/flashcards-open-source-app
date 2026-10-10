@@ -239,21 +239,11 @@ Give the built-in AI chat a topic and it will create a set of cards for you.
 Try it right now: rate this card `Again`, and it will come back in about a minute — so this answer sticks.
 ```
 
-### The backticks are load-bearing, not decoration
+### Review presentation
 
-`classifyReviewContentPresentation` returns the Markdown mode as soon as the text contains a
-backtick, on all three clients
-(`apps/ios/Flashcards/Flashcards/Review/View/Content/ReviewContentPresentation.swift`,
-`apps/web/src/screens/review/components/card/reviewContentPresentation.ts`,
-`apps/android/feature/review/src/main/java/com/flashcardsopensourceapp/feature/review/presentation/ReviewContentParser.kt`).
-
-Inline emphasis alone never switches the mode:
-[docs/review-markdown-rendering.md](review-markdown-rendering.md) states this and uses
-`A **short** answer` as its example. The assembled back text carries no backtick-free Markdown cue
-and does contain newlines, so without a backtick it would classify as paragraph plain text and every
-new user, in every locale, would see literal `**` around the product name on their very first card.
-
-Anyone removing the backticks must also remove the bold.
+The demo follows the shared
+[review Markdown rendering contract](review-markdown-rendering.md): the product name renders in
+bold, and the rating label renders as inline code.
 
 ## Localization rules
 

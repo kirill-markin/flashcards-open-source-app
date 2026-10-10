@@ -1,7 +1,7 @@
 type Platform = "ios" | "android";
 type Status = "passed" | "failed" | "skipped" | "pending";
 type Identity = { sourceSha: string; version: string; build: string; artifactId: string; runId: string };
-type InventoryCase = { id: string; disposition: "required" | "manual-exclusion"; reason: string; evidenceRef: string };
+type InventoryCase = { id: string; disposition: "required" | "manual-exclusion" | "destination-exclusion"; reason: string; evidenceRef: string; requiredCaseId: string };
 type Gate = {
   id: string; identity: Identity; inventorySourceSha: string;
   inventoryRef: string; inventoryReviewedBy: string; inventoryComplete: true; cases: InventoryCase[];
@@ -26,7 +26,7 @@ export type Manifest = {
 type GateReport = {
   id: string; ready: boolean; expectedIdentity: Identity; recordedIdentity: Identity | null;
   evidenceRef: string | null; inventoryRef: string; errors: string[];
-  cases: { id: string; status: Status; disposition: string; exclusionRef: string | null }[];
+  cases: { id: string; status: Status; disposition: string; exclusionRef: string | null; requiredCaseId: string | null }[];
   counts: { passed: number; failed: number; skipped: number; pending: number; missing: number };
   warningReviewRef: string | null;
   warnings: { id: string; decision: string; owner: string; version: string; policyRef: string; evidenceRef: string }[];
@@ -82,12 +82,18 @@ function identity(value: unknown, path: string): Identity {
 }
 function inventoryCase(value: unknown, path: string): InventoryCase {
   const item = object(value, path);
-  const disposition = choice(item.disposition, ["required", "manual-exclusion"], `${path}.disposition`);
+  const disposition = choice(item.disposition, ["required", "manual-exclusion", "destination-exclusion"], `${path}.disposition`);
   return {
     id: token(item.id, `${path}.id`), disposition,
-    reason: disposition === "manual-exclusion" ? text(item.reason, `${path}.reason`) : "",
-    evidenceRef: disposition === "manual-exclusion" ? token(item.evidenceRef, `${path}.evidenceRef`) : "",
+    reason: disposition !== "required" ? text(item.reason, `${path}.reason`) : "",
+    evidenceRef: disposition !== "required" ? token(item.evidenceRef, `${path}.evidenceRef`) : "",
+    requiredCaseId: disposition === "destination-exclusion" ? token(item.requiredCaseId, `${path}.requiredCaseId`) : "",
   };
+}
+function destinationCaseIdentity(id: string, path: string): { test: string; destination: string } {
+  const match = /^([^/@]+\/[^/@]+\(\))@([^@]+)$/.exec(id);
+  if (match === null || match[2].trim().length === 0) invalid(path, "expected Class/method()@destination identity");
+  return { test: match[1], destination: match[2] };
 }
 function gate(value: unknown, path: string): Gate {
   const item = object(value, path);
@@ -157,6 +163,15 @@ export function parseManifest(value: unknown): Manifest {
   for (const [index, entry] of gates.entries()) {
     if (TEST_GATES.has(entry.id) && !entry.cases.some((test) => test.disposition === "required")) invalid(`manifest.gates[${index}].cases`, "test gate needs a nonempty required inventory");
     if (!TEST_GATES.has(entry.id) && entry.cases.length !== 0) invalid(`manifest.gates[${index}].cases`, "build gate inventory must be empty");
+    for (const [caseIndex, test] of entry.cases.entries()) {
+      if (test.disposition !== "destination-exclusion") continue;
+      const path = `manifest.gates[${index}].cases[${caseIndex}]`;
+      if (platform !== "ios" || entry.id !== "cloud-tests") invalid(`${path}.disposition`, "destination exclusions require iOS cloud-tests");
+      const excluded = destinationCaseIdentity(test.id, `${path}.id`);
+      const required = destinationCaseIdentity(test.requiredCaseId, `${path}.requiredCaseId`);
+      if (excluded.test !== required.test || excluded.destination === required.destination) invalid(`${path}.requiredCaseId`, "must identify the same logical test on a different destination");
+      if (!entry.cases.some((candidate) => candidate.id === test.requiredCaseId && candidate.disposition === "required")) invalid(`${path}.requiredCaseId`, "must reference a required case in the same gate");
+    }
   }
   for (const [index, entry] of equivalences.entries()) {
     if (entry.gateIds.some((id) => !requiredGates.includes(id))) invalid(`manifest.equivalences[${index}].gateIds`, "unknown gate");
@@ -195,7 +210,7 @@ function checkGate(gate: Gate, manifest: Manifest): GateReport {
       const expected = gate.cases.find((entry) => entry.id === test.id);
       if (expected === undefined) errors.push(`unexpected case ${test.id}`);
       if (test.status === "failed" || test.status === "pending") errors.push(`case ${test.id} is ${test.status}`);
-      if (test.status === "skipped" && (expected?.disposition !== "manual-exclusion" || expected.reason !== test.reason)) errors.push(`case ${test.id} is skipped without matching manual exclusion`);
+      if (test.status === "skipped" && (expected === undefined || expected.disposition === "required" || expected.reason !== test.reason)) errors.push(`case ${test.id} is skipped without matching declared exclusion`);
     }
   }
   for (const test of gate.cases) {
@@ -203,11 +218,15 @@ function checkGate(gate: Gate, manifest: Manifest): GateReport {
       counts.missing += 1;
       errors.push(`missing case ${test.id}`);
     }
+    if (test.disposition === "destination-exclusion" && !result?.cases.some((entry) => entry.id === test.requiredCaseId && entry.status === "passed")) errors.push(`case ${test.id} requires passed counterpart ${test.requiredCaseId}`);
   }
   return {
     id: gate.id, ready: errors.length === 0, expectedIdentity: gate.identity, recordedIdentity: result?.identity ?? null,
     evidenceRef: result?.evidenceRef ?? null, inventoryRef: gate.inventoryRef, errors, counts,
-    cases: (result?.cases ?? []).map((test) => ({ id: test.id, status: test.status, disposition: gate.cases.find((entry) => entry.id === test.id)?.disposition ?? "unexpected", exclusionRef: gate.cases.find((entry) => entry.id === test.id)?.evidenceRef || null })),
+    cases: (result?.cases ?? []).map((test) => {
+      const expected = gate.cases.find((entry) => entry.id === test.id);
+      return { id: test.id, status: test.status, disposition: expected?.disposition ?? "unexpected", exclusionRef: expected?.evidenceRef || null, requiredCaseId: expected?.requiredCaseId || null };
+    }),
     warningReviewRef: result?.warningReviewRef ?? null,
     warnings: (result?.warnings ?? []).map(({ id, decision, owner, version, policyRef, evidenceRef }) => ({ id, decision, owner, version, policyRef, evidenceRef })),
   };
@@ -235,7 +254,7 @@ export function checkReadiness(manifest: Manifest): {
     equivalences: manifest.equivalences.map(({ reason, ...entry }) => entry),
     limits: [
       "Offline supplied evidence only; no independent vendor, source-diff, inventory-completeness or artifact verification.",
-      "Warning acceptance and source equivalence are operator adjudications; references are not security proof.",
+      "Warning acceptance, source equivalence and destination eligibility are operator adjudications; references are not security proof.",
       "Inspect full native diagnostics and logs, store processing, binary localizations, metadata, signing and artifact provenance manually.",
       "Store submission, release settings, publication and public availability remain manual gates; ready is not operator completion or live release.",
     ],

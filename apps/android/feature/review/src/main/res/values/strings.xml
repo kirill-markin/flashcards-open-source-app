@@ -76,6 +76,12 @@
     <string name="review_later_section">Later</string>
     <string name="review_loading">Loading...</string>
     <string name="review_no_tags_label">No tags</string>
+    <string name="review_tag_chip_click_label">Change review filter</string>
+    <string name="review_tag_filter_dialog_title">Review filter</string>
+    <string name="review_tag_filter_dialog_change_body">You’re reviewing “%1$s”. Review only cards tagged “%2$s” instead?</string>
+    <string name="review_tag_filter_dialog_already_selected_body">You’re already reviewing cards tagged “%1$s”.</string>
+    <string name="review_tag_filter_dialog_confirm">Change filter</string>
+    <string name="review_cancel">Cancel</string>
     <string name="review_due_new">New</string>
     <string name="review_repetition_content_description">Repetitions: %1$s</string>
     <string name="review_interval_now">now</string>

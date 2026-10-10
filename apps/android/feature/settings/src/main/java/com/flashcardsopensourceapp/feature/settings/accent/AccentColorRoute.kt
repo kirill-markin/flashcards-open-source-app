@@ -62,6 +62,7 @@ private val accentPresets: List<AccentPreset> = listOf(
 @Composable
 fun AccentColorRoute(
     uiState: AccentColorUiState,
+    effectiveColor: String,
     isPremiumRequired: Boolean,
     onSelectColor: (String) -> Unit,
     onRequestCustom: (() -> Unit) -> Unit,
@@ -80,7 +81,7 @@ fun AccentColorRoute(
             modifier = Modifier.fillMaxSize().selectableGroup().testTag("settings.accent.screen")
         ) {
             item {
-                Text(stringResource(R.string.settings_accent_selected, uiState.selectedColor))
+                Text(stringResource(R.string.settings_accent_selected, effectiveColor))
             }
             if (isPremiumRequired) {
                 item {
@@ -103,7 +104,7 @@ fun AccentColorRoute(
                 }
             }
             items(items = accentPresets, key = { preset -> preset.color }) { preset ->
-                val selected = uiState.selectedColor == preset.color
+                val selected = effectiveColor == preset.color
                 Card(
                     modifier = Modifier.fillMaxWidth()
                         .testTag("settings.accent.preset." + preset.color.drop(1))
@@ -125,7 +126,7 @@ fun AccentColorRoute(
                 }
             }
             item {
-                val selected = accentPresets.none { preset -> preset.color == uiState.selectedColor }
+                val selected = accentPresets.none { preset -> preset.color == effectiveColor }
                 Card(
                     modifier = Modifier.fillMaxWidth().testTag("settings.accent.custom")
                         .selectable(
@@ -138,11 +139,11 @@ fun AccentColorRoute(
                     ListItem(
                         headlineContent = { Text(stringResource(R.string.settings_accent_custom)) },
                         supportingContent = if (selected) {
-                            { Text(uiState.selectedColor) }
+                            { Text(effectiveColor) }
                         } else {
                             null
                         },
-                        leadingContent = { AccentSwatch(color = uiState.selectedColor) },
+                        leadingContent = { AccentSwatch(color = effectiveColor) },
                         trailingContent = {
                             RadioButton(selected = selected, onClick = null, enabled = isEnabled)
                         }
@@ -153,7 +154,7 @@ fun AccentColorRoute(
     }
     if (isCustomDialogVisible) {
         CustomAccentColorDialog(
-            selectedColor = uiState.selectedColor,
+            selectedColor = effectiveColor,
             errorMessage = uiState.errorMessage,
             isEnabled = isEnabled,
             onSelectColor = onSelectColor,

@@ -10,6 +10,12 @@ extension AIChatView {
     }
 
     func handleCompletedDictationTranscript(_ completedTranscript: AIChatCompletedDictationTranscript) {
+        // A dismissed/cached presentation can still receive a queued callback. Only the
+        // current presentation may claim the transcript, and each ID is inserted once.
+        guard self.isPresentationActive,
+              self.chatStore.consumeCompletedDictationTranscript(id: completedTranscript.id) else {
+            return
+        }
         let insertionSelection = aiChatDictationInsertionSelection(
             text: self.chatStore.inputText,
             selection: self.composerSelection
@@ -24,6 +30,5 @@ extension AIChatView {
             text: insertionResult.text,
             selection: insertionResult.selection
         )
-        self.chatStore.consumeCompletedDictationTranscript(id: completedTranscript.id)
     }
 }

@@ -101,6 +101,8 @@ extension ReviewView {
     func submitReview(cardId: String, rating: ReviewRating) {
         do {
             try store.enqueueReviewSubmission(cardId: cardId, rating: rating)
+            // An enqueued rating ends this presentation, even if the card returns next.
+            self.isAnswerVisible = false
             self.screenErrorMessage = ""
         } catch {
             if let inlineErrorMessage = reviewSubmissionInlineErrorMessage(error: error) {
