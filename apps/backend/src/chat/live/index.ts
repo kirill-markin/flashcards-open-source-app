@@ -30,7 +30,6 @@ import {
 import {
   listChatMessagesAfterCursor,
   listChatMessagesLatest,
-  stripBase64FromContentParts,
   type PersistedChatMessageItem,
 } from "../store";
 import { diffAssistantContent } from "./diff";
@@ -252,7 +251,7 @@ function buildAssistantMessageDonePayload(
     type: "assistant_message_done",
     cursor: String(message.itemOrder),
     itemId: message.itemId,
-    content: stripBase64FromContentParts(message.content),
+    content: message.content,
     isError: message.isError,
     isStopped: message.isStopped,
   };
@@ -379,11 +378,10 @@ function emitAssistantMessageEvents(
   lastDeliveredCursor: number,
   emitPayload: (payload: ChatLiveEventPayload) => boolean,
 ): ContentEmissionState {
-  const strippedContent = stripBase64FromContentParts(message.content);
   const nextObservedCursor = message.itemOrder;
   const deltaEvents = diffAssistantContent(
     previousAssistantContent,
-    strippedContent,
+    message.content,
     String(message.itemOrder),
     message.itemId,
   );
@@ -403,14 +401,14 @@ function emitAssistantMessageEvents(
     return {
       lastObservedCursor: nextObservedCursor,
       lastDeliveredCursor,
-      previousAssistantContent: strippedContent,
+      previousAssistantContent: message.content,
       disconnected: false,
     };
   }
 
   for (const event of buildReasoningDonePayloads(
     previousAssistantContent,
-    strippedContent,
+    message.content,
     String(message.itemOrder),
     message.itemId,
   )) {

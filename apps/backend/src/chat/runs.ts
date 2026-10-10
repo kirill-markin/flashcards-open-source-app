@@ -39,6 +39,7 @@ export {
 export {
   claimChatRun,
   completeClaimedChatRun,
+  failQueuedChatRun,
   interruptPreparedChatRun,
   markQueuedChatRunDispatchFailed,
   persistClaimedChatRunCancelled,
