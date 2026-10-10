@@ -1,0 +1,100 @@
+name: Process Store Screenshots
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/store-screenshot-processing.yml
+      - .gitignore
+      - scripts/store-screenshots/**
+      - docs/store-screenshot-processing.md
+      - apps/ios/docs/marketing-screenshots.md
+      - apps/ios/docs/media/app-store-screenshots/**
+      - apps/ios/docs/media/app-store-cards/**
+      - apps/android/docs/marketing-screenshot-runbook.md
+      - apps/android/docs/media/play-store-screenshots/**
+      - apps/android/docs/media/play-store-cards/**
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Existing screenshot platform to process
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - ios
+          - android
+      family:
+        description: iOS device family (leave all for Android)
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - iphone
+          - ipad
+      locales:
+        description: Comma-separated locale IDs; empty processes all configured sets
+        required: false
+        type: string
+
+concurrency:
+  group: store-screenshots-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  process:
+    name: Format existing native captures
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: scripts/store-screenshots/package-lock.json
+      - name: Install processor dependencies
+        run: npm ci --prefix scripts/store-screenshots
+      - name: Install pinned rendering browser
+        working-directory: scripts/store-screenshots
+        run: npx playwright install chromium
+      - name: Type check processor
+        run: npm run check --prefix scripts/store-screenshots
+      - name: Smoke real exports and review galleries
+        run: npm run smoke --prefix scripts/store-screenshots
+      - name: Process saved screenshots without capture or upload
+        env:
+          PROCESS_PLATFORM: ${{ inputs.platform || 'all' }}
+          PROCESS_FAMILY: ${{ inputs.family || 'all' }}
+          PROCESS_LOCALES: ${{ inputs.locales }}
+        run: |
+          set -euo pipefail
+          if [[ "${PROCESS_PLATFORM}" == "android" && "${PROCESS_FAMILY}" != "all" ]]; then
+            echo "Android has phone captures only; choose family all." >&2
+            exit 1
+          fi
+          platforms=("${PROCESS_PLATFORM}")
+          if [[ "${PROCESS_PLATFORM}" == "all" ]]; then
+            platforms=(ios android)
+          fi
+          for platform in "${platforms[@]}"; do
+            args=(--platform "${platform}" --output-root "${RUNNER_TEMP}/nibomo-store-cards/${platform}")
+            if [[ "${platform}" == "ios" ]]; then
+              args+=(--family "${PROCESS_FAMILY}")
+            fi
+            if [[ -n "${PROCESS_LOCALES}" ]]; then
+              args+=(--locales "${PROCESS_LOCALES}")
+            fi
+            npm run render --prefix scripts/store-screenshots -- "${args[@]}"
+          done
+      - name: Save processed cards and review galleries
+        uses: actions/upload-artifact@v7
+        with:
+          name: nibomo-store-cards-${{ github.run_id }}
+          if-no-files-found: error
+          retention-days: 14
+          path: ${{ runner.temp }}/nibomo-store-cards/

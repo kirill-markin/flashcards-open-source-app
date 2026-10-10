@@ -1,0 +1,21 @@
+{
+  "checkedAt": "2026-10-09T12:48:36.745Z",
+  "images": 460,
+  "checksumsAndCopyPairs": "All 460 verified",
+  "appUploaderInputValidation": {
+    "localizations": 42,
+    "deviceSets": 84,
+    "images": 420,
+    "result": "passed",
+    "liveWrites": false
+  },
+  "maximumCenterErrorPixels": 0.0078125,
+  "typographyPresetCounts": {
+    "iphone": 1,
+    "ipad": 1
+  },
+  "fontCoverage": "All 50 capture tags rendered without LastResort fonts",
+  "screens": "Pinned native app captures, whole screen contained, native aspect ratio",
+  "png": "All opaque RGB at canonical device dimensions",
+  "gallery": "Russian default, English iPad, Estonian iPhone availability and five images per selection verified offline"
+}

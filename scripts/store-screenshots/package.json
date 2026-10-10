@@ -1,0 +1,19 @@
+{
+  "name": "nibomo-store-screenshot-processing",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22.18.0" },
+  "scripts": {
+    "render": "node --experimental-strip-types render.mts",
+    "check": "tsc --noEmit",
+    "smoke": "node --experimental-strip-types smoke.mts"
+  },
+  "dependencies": {
+    "playwright": "1.62.1",
+    "sharp": "0.35.5"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.1",
+    "typescript": "6.0.3"
+  }
+}

@@ -1,0 +1,212 @@
+[
+  {
+    "name": "English (U.S.)",
+    "storeLocale": "en-US",
+    "captureTag": "en-US"
+  },
+  {
+    "name": "Arabic",
+    "storeLocale": "ar-SA",
+    "captureTag": "ar"
+  },
+  {
+    "name": "Chinese (Simplified)",
+    "storeLocale": "zh-Hans",
+    "captureTag": "zh-Hans"
+  },
+  {
+    "name": "French",
+    "storeLocale": "fr-FR",
+    "captureTag": "fr"
+  },
+  {
+    "name": "German",
+    "storeLocale": "de-DE",
+    "captureTag": "de"
+  },
+  {
+    "name": "Hindi",
+    "storeLocale": "hi",
+    "captureTag": "hi"
+  },
+  {
+    "name": "Japanese",
+    "storeLocale": "ja",
+    "captureTag": "ja"
+  },
+  {
+    "name": "Portuguese (Brazil)",
+    "storeLocale": "pt-BR",
+    "captureTag": "pt-BR"
+  },
+  {
+    "name": "Russian",
+    "storeLocale": "ru",
+    "captureTag": "ru"
+  },
+  {
+    "name": "Spanish (Mexico)",
+    "storeLocale": "es-MX",
+    "captureTag": "es-MX"
+  },
+  {
+    "name": "Spanish (Spain)",
+    "storeLocale": "es-ES",
+    "captureTag": "es-ES"
+  },
+  {
+    "name": "Bangla",
+    "storeLocale": "bn-BD",
+    "captureTag": "bn"
+  },
+  {
+    "name": "Catalan",
+    "storeLocale": "ca",
+    "captureTag": "ca"
+  },
+  {
+    "name": "Czech",
+    "storeLocale": "cs",
+    "captureTag": "cs"
+  },
+  {
+    "name": "Danish",
+    "storeLocale": "da",
+    "captureTag": "da"
+  },
+  {
+    "name": "Greek",
+    "storeLocale": "el",
+    "captureTag": "el"
+  },
+  {
+    "name": "Finnish",
+    "storeLocale": "fi",
+    "captureTag": "fi"
+  },
+  {
+    "name": "Gujarati",
+    "storeLocale": "gu-IN",
+    "captureTag": "gu"
+  },
+  {
+    "name": "Hebrew",
+    "storeLocale": "he",
+    "captureTag": "he"
+  },
+  {
+    "name": "Croatian",
+    "storeLocale": "hr",
+    "captureTag": "hr"
+  },
+  {
+    "name": "Hungarian",
+    "storeLocale": "hu",
+    "captureTag": "hu"
+  },
+  {
+    "name": "Indonesian",
+    "storeLocale": "id",
+    "captureTag": "id"
+  },
+  {
+    "name": "Italian",
+    "storeLocale": "it",
+    "captureTag": "it"
+  },
+  {
+    "name": "Kannada",
+    "storeLocale": "kn-IN",
+    "captureTag": "kn"
+  },
+  {
+    "name": "Korean",
+    "storeLocale": "ko",
+    "captureTag": "ko"
+  },
+  {
+    "name": "Malayalam",
+    "storeLocale": "ml-IN",
+    "captureTag": "ml"
+  },
+  {
+    "name": "Marathi",
+    "storeLocale": "mr-IN",
+    "captureTag": "mr"
+  },
+  {
+    "name": "Norwegian",
+    "storeLocale": "no",
+    "captureTag": "nb"
+  },
+  {
+    "name": "Dutch",
+    "storeLocale": "nl-NL",
+    "captureTag": "nl"
+  },
+  {
+    "name": "Punjabi",
+    "storeLocale": "pa-IN",
+    "captureTag": "pa"
+  },
+  {
+    "name": "Polish",
+    "storeLocale": "pl",
+    "captureTag": "pl"
+  },
+  {
+    "name": "Romanian",
+    "storeLocale": "ro",
+    "captureTag": "ro"
+  },
+  {
+    "name": "Slovak",
+    "storeLocale": "sk",
+    "captureTag": "sk"
+  },
+  {
+    "name": "Slovenian",
+    "storeLocale": "sl-SI",
+    "captureTag": "sl"
+  },
+  {
+    "name": "Swedish",
+    "storeLocale": "sv",
+    "captureTag": "sv"
+  },
+  {
+    "name": "Tamil",
+    "storeLocale": "ta-IN",
+    "captureTag": "ta"
+  },
+  {
+    "name": "Telugu",
+    "storeLocale": "te-IN",
+    "captureTag": "te"
+  },
+  {
+    "name": "Thai",
+    "storeLocale": "th",
+    "captureTag": "th"
+  },
+  {
+    "name": "Turkish",
+    "storeLocale": "tr",
+    "captureTag": "tr"
+  },
+  {
+    "name": "Ukrainian",
+    "storeLocale": "uk",
+    "captureTag": "uk"
+  },
+  {
+    "name": "Urdu",
+    "storeLocale": "ur-PK",
+    "captureTag": "ur"
+  },
+  {
+    "name": "Vietnamese",
+    "storeLocale": "vi",
+    "captureTag": "vi"
+  }
+]
