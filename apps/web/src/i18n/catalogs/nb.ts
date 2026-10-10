@@ -1381,8 +1381,12 @@ const nbCatalog: TranslationCatalog = {
       remaining: "{{count}} igjen denne måneden",
     },
     alerts: {
+      attachmentImagesTooLarge: "Bildene er for store for én melding i AI-chatten: til sammen kan de være på opptil {{limit}} MB. Send noen av dem i en annen melding.",
       attachmentLimit: "Meldingen er for stor. AI-chatten kan ikke sende så mye innhold på én gang. Fjern ett eller flere vedlegg, velg en mindre fil eller et mindre bilde, eller del opp forespørselen og prøv igjen.",
-      attachmentUnsupported: "Denne filtypen støttes ikke i AI-chatten. Fjern filen, eller lagre den som PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX eller et bilde, og prøv igjen.",
+      attachmentTooLarge: "Filen er for stor for AI-chatten. Filer kan være på opptil {{fileLimit}} MB og bilder på opptil {{imageLimit}} MB. Velg en mindre fil, og prøv igjen.",
+      attachmentUnsupported: "Denne filtypen støttes ikke i AI-chatten. Fjern filen, eller lagre den som PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG eller et bilde, og prøv igjen.",
+      attachmentUploadFailed: "Kunne ikke laste opp vedlegget. Sjekk tilkoblingen, og prøv igjen.",
+      attachmentsTooMany: "Én melding i AI-chatten kan inneholde opptil {{limit}} filer og bilder. Send resten i en annen melding.",
       microphoneUnavailable: "Mikrofonopptak er ikke tilgjengelig i denne nettleseren.",
     },
     composerPlaceholder: "Spør om kort og repetisjonshistorikk, eller legg ved notater...",

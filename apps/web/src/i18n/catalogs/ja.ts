@@ -1381,8 +1381,12 @@ export const jaCatalog = {
       remaining: "今月の残り: {{count}}",
     },
     alerts: {
+      attachmentImagesTooLarge: "画像が大きすぎて、AI チャットの 1 件のメッセージで送信できません。画像は合計 {{limit}} MB までです。一部を別のメッセージで送信してください。",
       attachmentLimit: "メッセージが大きすぎます。AI チャットはこの量の内容を一度に送信できません。添付を1つ以上削除するか、小さいファイルや写真を選ぶか、依頼を分けてもう一度お試しください。",
-      attachmentUnsupported: "このファイル形式は AI チャットでサポートされていません。ファイルを削除するか、PDF、TXT、CSV、JSON、XML、Markdown、HTML、Python、JavaScript、TypeScript、YAML、XLS/XLSX、DOCX、または画像として保存してから、もう一度お試しください。",
+      attachmentTooLarge: "このファイルは AI チャットには大きすぎます。ファイルは {{fileLimit}} MB まで、画像は {{imageLimit}} MB までです。小さいファイルを選んで、もう一度お試しください。",
+      attachmentUnsupported: "このファイル形式は AI チャットでサポートされていません。ファイルを削除するか、PDF、TXT、CSV、JSON、XML、Markdown、HTML、Python、JavaScript、TypeScript、YAML、XLS/XLSX、DOCX、ZIP、Anki APKG、または画像として保存してから、もう一度お試しください。",
+      attachmentUploadFailed: "添付ファイルをアップロードできませんでした。接続を確認して、もう一度お試しください。",
+      attachmentsTooMany: "AI チャットの 1 件のメッセージに添付できるファイルと画像は {{limit}} 個までです。残りは別のメッセージで送信してください。",
       microphoneUnavailable: "このブラウザではマイク録音を利用できません。",
     },
     composerPlaceholder: "カードや復習履歴について質問するか、抽出用のメモを添付してください...",

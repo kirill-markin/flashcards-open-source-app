@@ -4,9 +4,11 @@ import {
   ApiErrorMock,
   captureWebExceptionMock,
   createChatActiveRun,
+  createChatFileUploadMock,
   createChatSessionIdConflictError,
   createChatSnapshot,
   createNewChatSessionMock,
+  putChatFileUploadMock,
   queryChatComposerInput,
   queryChatSendButton,
   queryChatSendButtonBusyIndicator,
@@ -99,10 +101,10 @@ describe("ChatPanel send recovered drafts", () => {
       sessionId: recoveredSessionId,
       content: [
         {
-          type: "file",
-          mediaType: "text/plain",
-          base64Data: "YXR0YWNoZWQ=",
+          type: "upload",
+          uploadId: "00000000-0000-4000-8000-000000000001",
           fileName: "attached.txt",
+          mediaType: "text/plain",
         },
         {
           type: "text",
@@ -110,6 +112,13 @@ describe("ChatPanel send recovered drafts", () => {
         },
       ],
     }));
+    expect(createChatFileUploadMock).toHaveBeenCalledTimes(1);
+    expect(createChatFileUploadMock).toHaveBeenCalledWith({
+      fileName: "attached.txt",
+      mediaType: "text/plain",
+      sizeBytes: 8,
+    });
+    expect(putChatFileUploadMock).toHaveBeenCalledTimes(1);
     expect(textarea?.value).toBe("keep this draft after retry failure");
     expect(readStoredDraftInputText("workspace-1", staleSessionId as string)).toBeNull();
     expect(readStoredDraftInputText("workspace-1", recoveredSessionId as string)).toBe("keep this draft after retry failure");

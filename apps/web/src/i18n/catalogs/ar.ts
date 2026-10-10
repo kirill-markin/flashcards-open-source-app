@@ -1381,8 +1381,12 @@ const arCatalog: TranslationCatalog = {
       remaining: "المتبقي هذا الشهر: {{count}}",
     },
     alerts: {
+      attachmentImagesTooLarge: "الصور كبيرة جدًا لرسالة واحدة في دردشة الذكاء الاصطناعي: يمكن أن يصل حجمها معًا إلى {{limit}} ميغابايت. أرسل بعضها في رسالة أخرى.",
       attachmentLimit: "الرسالة كبيرة جدًا. لا يمكن لدردشة الذكاء الاصطناعي إرسال هذا القدر من المحتوى دفعة واحدة. أزل مرفقًا واحدًا أو أكثر، أو اختر ملفًا أو صورة أصغر، أو قسّم الطلب ثم حاول مرة أخرى.",
-      attachmentUnsupported: "نوع الملف هذا غير مدعوم في دردشة الذكاء الاصطناعي. أزل الملف أو احفظه كـ PDF أو TXT أو CSV أو JSON أو XML أو Markdown أو HTML أو Python أو JavaScript أو TypeScript أو YAML أو XLS/XLSX أو DOCX أو صورة، ثم حاول مرة أخرى.",
+      attachmentTooLarge: "هذا الملف كبير جدًا لدردشة الذكاء الاصطناعي. يمكن أن يصل حجم الملفات إلى {{fileLimit}} ميغابايت والصور إلى {{imageLimit}} ميغابايت. اختر ملفًا أصغر ثم حاول مرة أخرى.",
+      attachmentUnsupported: "نوع الملف هذا غير مدعوم في دردشة الذكاء الاصطناعي. أزل الملف أو احفظه كـ PDF أو TXT أو CSV أو JSON أو XML أو Markdown أو HTML أو Python أو JavaScript أو TypeScript أو YAML أو XLS/XLSX أو DOCX أو ZIP أو Anki APKG أو صورة، ثم حاول مرة أخرى.",
+      attachmentUploadFailed: "تعذّر رفع المرفق. تحقق من اتصالك ثم حاول مرة أخرى.",
+      attachmentsTooMany: "يمكن أن تتضمن رسالة واحدة في دردشة الذكاء الاصطناعي ما يصل إلى {{limit}} من الملفات والصور. أرسل الباقي في رسالة أخرى.",
       microphoneUnavailable: "تسجيل الميكروفون غير متاح في هذا المتصفح.",
     },
     composerPlaceholder: "اسأل عن البطاقات أو سجل المراجعة أو أرفق ملاحظات...",

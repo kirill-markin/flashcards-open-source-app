@@ -1,4 +1,7 @@
+// Mirrors apps/backend/src/chat/attachmentPolicy.ts; the backend unpacks ZIP and APKG only under these exact
+// media types.
 const canonicalFileMediaTypeByExtension: Readonly<Record<string, string>> = {
+  apkg: "application/apkg",
   csv: "text/csv",
   docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   html: "text/html",
@@ -16,6 +19,7 @@ const canonicalFileMediaTypeByExtension: Readonly<Record<string, string>> = {
   xml: "text/xml",
   yaml: "application/x-yaml",
   yml: "application/x-yaml",
+  zip: "application/zip",
 };
 
 const canonicalFileMediaTypes = new Set(Object.values(canonicalFileMediaTypeByExtension));

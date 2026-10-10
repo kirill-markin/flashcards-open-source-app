@@ -6,7 +6,7 @@ import {
 } from "../../appError/AppErrorContext";
 import { useI18n } from "../../i18n";
 import { formatAiLimitReachedMessageForHeldUsage } from "../shared/chatAiLimitPolicy";
-import { USER_VISIBLE_ATTACHMENT_LIMIT_MB } from "../shared/chatHelpers";
+import { formatChatAttachmentLimitMessages } from "../shared/chatSizePolicy";
 import {
   useChatSessionController,
   type ChatSessionController,
@@ -54,10 +54,9 @@ export function ChatSessionControllerProvider(props: Props): ReactElement {
     uiMessages: {
       activeRunInProgress: t("chatPanel.errors.activeRunInProgress"),
       formatAiLimitReached: (aiUsage) => formatAiLimitReachedMessageForHeldUsage({ aiUsage, t, formatDate }),
-      attachmentLimit: t("chatPanel.alerts.attachmentLimit", {
-        count: formatNumber(USER_VISIBLE_ATTACHMENT_LIMIT_MB),
-      }),
+      attachmentLimits: formatChatAttachmentLimitMessages({ t, formatNumber }),
       attachmentUnsupported: t("chatPanel.alerts.attachmentUnsupported"),
+      attachmentUploadFailed: t("chatPanel.alerts.attachmentUploadFailed"),
       errorFallbacks: {
         emptyBackendResponse: t("chatPanel.errors.emptyBackendResponse"),
         upstreamHtmlResponse: t("chatPanel.errors.upstreamHtmlResponse"),
@@ -69,6 +68,7 @@ export function ChatSessionControllerProvider(props: Props): ReactElement {
       refreshFailedPrefix: t("chatPanel.errors.refreshFailedPrefix"),
       remoteNotReady: t("chatPanel.transientErrors.remoteNotReady"),
       requestFailedPrefix: t("chatPanel.errors.requestFailedPrefix"),
+      requestTooLarge: t("chatPanel.alerts.attachmentLimit"),
       stopFailedPrefix: t("chatPanel.errors.stopFailedPrefix"),
       transcriptionUnexpectedSessionId: t("chatPanel.errors.transcriptionUnexpectedSessionId"),
       unexpectedSessionId: t("chatPanel.errors.unexpectedSessionId"),
