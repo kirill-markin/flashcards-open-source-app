@@ -194,3 +194,15 @@ export function parseStringArray(value: unknown, endpoint: string, path: string)
 export function parseNumberArray(value: unknown, endpoint: string, path: string): ReadonlyArray<number> {
   return parseArray(value, endpoint, path, parseNumber);
 }
+
+export function parseStringRecord(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): Readonly<Record<string, string>> {
+  const objectValue = parseObject(value, endpoint, path);
+  return Object.fromEntries(Object.entries(objectValue).map(([key, fieldValue]) => [
+    key,
+    parseString(fieldValue, endpoint, joinPath(path, key)),
+  ]));
+}

@@ -1383,8 +1383,12 @@ const hiCatalog: TranslationCatalog = {
       remaining: "इस महीने शेष: {{count}}",
     },
     alerts: {
+      attachmentImagesTooLarge: "AI चैट के एक संदेश के लिए इमेज बहुत बड़ी हैं: कुल मिलाकर वे ज़्यादा से ज़्यादा {{limit}} MB हो सकती हैं। इनमें से कुछ को दूसरे संदेश में भेजें।",
       attachmentLimit: "संदेश बहुत बड़ा है। AI चैट एक बार में इतना कंटेंट नहीं भेज सकती। एक या अधिक अटैचमेंट हटाएँ, छोटी फ़ाइल या फ़ोटो चुनें, या अनुरोध को बाँटकर फिर कोशिश करें।",
-      attachmentUnsupported: "AI चैट में यह फ़ाइल प्रकार समर्थित नहीं है। फ़ाइल हटाएँ या उसे PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX या इमेज के रूप में सहेजें, फिर दोबारा कोशिश करें।",
+      attachmentTooLarge: "यह फ़ाइल AI चैट के लिए बहुत बड़ी है। फ़ाइलें ज़्यादा से ज़्यादा {{fileLimit}} MB और इमेज ज़्यादा से ज़्यादा {{imageLimit}} MB की हो सकती हैं। छोटी फ़ाइल चुनें और फिर कोशिश करें।",
+      attachmentUnsupported: "AI चैट में यह फ़ाइल प्रकार समर्थित नहीं है। फ़ाइल हटाएँ या उसे PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG या इमेज के रूप में सहेजें, फिर दोबारा कोशिश करें।",
+      attachmentUploadFailed: "अटैचमेंट अपलोड नहीं हो सका। अपना कनेक्शन जाँचें और फिर कोशिश करें।",
+      attachmentsTooMany: "AI चैट के एक संदेश में ज़्यादा से ज़्यादा {{limit}} फ़ाइलें और इमेज जोड़ी जा सकती हैं। बाकी को दूसरे संदेश में भेजें।",
       microphoneUnavailable: "इस ब्राउज़र में माइक्रोफ़ोन रिकॉर्डिंग उपलब्ध नहीं है।",
     },
     composerPlaceholder: "कार्ड, रिव्यू इतिहास के बारे में पूछें या नोट्स अटैच करें...",

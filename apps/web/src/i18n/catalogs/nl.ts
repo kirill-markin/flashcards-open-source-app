@@ -1381,8 +1381,12 @@ const nlCatalog: TranslationCatalog = {
       remaining: "Nog {{count}} deze maand",
     },
     alerts: {
+      attachmentImagesTooLarge: "De afbeeldingen zijn te groot voor één bericht in de AI-chat: samen mogen ze maximaal {{limit}} MB zijn. Stuur een deel ervan in een ander bericht.",
       attachmentLimit: "Het bericht is te groot. De AI-chat kan niet zoveel inhoud in één keer versturen. Verwijder een of meer bijlagen, kies een kleiner bestand of een kleinere foto, of splits je verzoek en probeer het opnieuw.",
-      attachmentUnsupported: "Dit bestandstype wordt niet ondersteund in de AI-chat. Verwijder het bestand of sla het op als PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX of als afbeelding en probeer het opnieuw.",
+      attachmentTooLarge: "Dit bestand is te groot voor de AI-chat. Bestanden mogen maximaal {{fileLimit}} MB zijn en afbeeldingen maximaal {{imageLimit}} MB. Kies een kleiner bestand en probeer het opnieuw.",
+      attachmentUnsupported: "Dit bestandstype wordt niet ondersteund in de AI-chat. Verwijder het bestand of sla het op als PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG of als afbeelding en probeer het opnieuw.",
+      attachmentUploadFailed: "De bijlage kon niet worden geüpload. Controleer je verbinding en probeer het opnieuw.",
+      attachmentsTooMany: "Eén bericht in de AI-chat kan maximaal {{limit}} bestanden en afbeeldingen bevatten. Stuur de rest in een ander bericht.",
       microphoneUnavailable: "Opnemen met de microfoon is niet beschikbaar in deze browser.",
     },
     composerPlaceholder: "Vraag naar kaarten of je herhalingsgeschiedenis, of voeg notities toe...",

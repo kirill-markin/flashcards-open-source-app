@@ -79,13 +79,23 @@ export type ChatSessionSnapshot = Readonly<{
   activeRun: ChatActiveRun | null;
 }>;
 
+/** A file or image staged through `POST /chat/files/uploads`; the backend stores it as a session file. */
+export type UploadContentPart = Readonly<{
+  type: "upload";
+  uploadId: string;
+  fileName: string;
+  mediaType: string;
+}>;
+
+export type StartChatRunContentPart = TextContentPart | CardContentPart | UploadContentPart;
+
 export type StartChatRunRequestBody = Readonly<{
   sessionId: string;
   // Optional on the wire until the minimum supported backend and first-party AI
   // client versions are greater than 1.5.0.
   workspaceId?: string;
   clientRequestId: string;
-  content: ReadonlyArray<ContentPart>;
+  content: ReadonlyArray<StartChatRunContentPart>;
   timezone: string;
   // Optional on the wire until the minimum supported backend and first-party AI
   // client versions are greater than 1.5.0.
@@ -95,6 +105,24 @@ export type StartChatRunRequestBody = Readonly<{
 export type StartChatRunResponse = ChatSessionSnapshot & Readonly<{
   accepted: true;
   deduplicated?: boolean;
+}>;
+
+export type ChatFileUploadRequestBody = Readonly<{
+  fileName: string;
+  mediaType: string;
+  sizeBytes: number;
+}>;
+
+export type ChatFileUploadTarget = Readonly<{
+  method: "PUT";
+  url: string;
+  headers: Readonly<Record<string, string>>;
+  expiresAt: string;
+}>;
+
+export type ChatFileUploadResponse = Readonly<{
+  uploadId: string;
+  upload: ChatFileUploadTarget;
 }>;
 
 export type NewChatSessionRequestBody = Readonly<{

@@ -1409,8 +1409,12 @@ const slCatalog: TranslationCatalog = {
       remaining: "Preostanek ta mesec: {{count}}",
     },
     alerts: {
+      attachmentImagesTooLarge: "Slike so prevelike za eno sporočilo v klepetu z UI: skupaj imajo lahko največ {{limit}} MB. Nekatere pošljite v drugem sporočilu.",
       attachmentLimit: "Sporočilo je preveliko. Klepet z UI ne more naenkrat poslati toliko vsebine. Odstranite eno ali več prilog, izberite manjšo datoteko ali fotografijo ali razdelite zahtevo in poskusite znova.",
-      attachmentUnsupported: "Ta vrsta datoteke v klepetu z UI ni podprta. Odstranite datoteko ali jo shranite kot PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX ali sliko, nato poskusite znova.",
+      attachmentTooLarge: "Ta datoteka je prevelika za klepet z UI. Datoteke imajo lahko največ {{fileLimit}} MB, slike pa največ {{imageLimit}} MB. Izberite manjšo datoteko in poskusite znova.",
+      attachmentUnsupported: "Ta vrsta datoteke v klepetu z UI ni podprta. Odstranite datoteko ali jo shranite kot PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG ali sliko, nato poskusite znova.",
+      attachmentUploadFailed: "Priloge ni bilo mogoče naložiti. Preverite povezavo in poskusite znova.",
+      attachmentsTooMany: "Eno sporočilo v klepetu z UI lahko vsebuje največ {{limit}} datotek in slik. Preostale pošljite v drugem sporočilu.",
       microphoneUnavailable: "Snemanje z mikrofonom v tem brskalniku ni na voljo.",
     },
     composerPlaceholder: "Vprašajte o karticah, zgodovini ponavljanja ali priložite zapiske ...",

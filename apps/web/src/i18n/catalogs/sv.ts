@@ -1381,8 +1381,12 @@ const svCatalog: TranslationCatalog = {
       remaining: "{{count}} kvar den här månaden",
     },
     alerts: {
+      attachmentImagesTooLarge: "Bilderna är för stora för ett meddelande i AI-chatten: tillsammans får de vara högst {{limit}} MB. Skicka några av dem i ett annat meddelande.",
       attachmentLimit: "Meddelandet är för stort. AI-chatten kan inte skicka så mycket innehåll på en gång. Ta bort en eller flera bilagor, välj en mindre fil eller bild, eller dela upp frågan och försök igen.",
-      attachmentUnsupported: "Filtypen stöds inte i AI-chatten. Ta bort filen eller spara den som PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX eller en bild, och försök igen.",
+      attachmentTooLarge: "Filen är för stor för AI-chatten. Filer får vara högst {{fileLimit}} MB och bilder högst {{imageLimit}} MB. Välj en mindre fil och försök igen.",
+      attachmentUnsupported: "Filtypen stöds inte i AI-chatten. Ta bort filen eller spara den som PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG eller en bild, och försök igen.",
+      attachmentUploadFailed: "Det gick inte att ladda upp bilagan. Kontrollera anslutningen och försök igen.",
+      attachmentsTooMany: "Ett meddelande i AI-chatten kan innehålla högst {{limit}} filer och bilder. Skicka resten i ett annat meddelande.",
       microphoneUnavailable: "Mikrofoninspelning är inte tillgänglig i den här webbläsaren.",
     },
     composerPlaceholder: "Fråga om kort, repetitionshistorik eller bifoga anteckningar...",

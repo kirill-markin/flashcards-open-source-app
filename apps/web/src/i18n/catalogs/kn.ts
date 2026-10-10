@@ -1381,8 +1381,12 @@ const knCatalog: TranslationCatalog = {
       remaining: "ಈ ತಿಂಗಳು ಉಳಿದಿರುವುದು: {{count}}",
     },
     alerts: {
+      attachmentImagesTooLarge: "AI ಚಾಟ್‌ನ ಒಂದು ಸಂದೇಶಕ್ಕೆ ಚಿತ್ರಗಳು ತುಂಬಾ ದೊಡ್ಡದಾಗಿವೆ: ಒಟ್ಟು ಗರಿಷ್ಠ {{limit}} MB ಇರಬಹುದು. ಅವುಗಳಲ್ಲಿ ಕೆಲವನ್ನು ಇನ್ನೊಂದು ಸಂದೇಶದಲ್ಲಿ ಕಳುಹಿಸಿ.",
       attachmentLimit: "ಸಂದೇಶ ತುಂಬಾ ದೊಡ್ಡದು. AI ಚಾಟ್ ಒಂದೇ ಬಾರಿ ಇಷ್ಟು ವಿಷಯ ಕಳುಹಿಸಲು ಸಾಧ್ಯವಿಲ್ಲ. ಒಂದು ಅಥವಾ ಹೆಚ್ಚು ಲಗತ್ತುಗಳನ್ನು ತೆಗೆದುಹಾಕಿ, ಚಿಕ್ಕ ಫೈಲ್ ಅಥವಾ ಫೋಟೋ ಆಯ್ಕೆಮಾಡಿ ಅಥವಾ ವಿನಂತಿಯನ್ನು ಭಾಗಿಸಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
-      attachmentUnsupported: "AI ಚಾಟ್ ಈ ಫೈಲ್ ಪ್ರಕಾರ ಬೆಂಬಲಿಸುವುದಿಲ್ಲ. ಫೈಲ್ ತೆಗೆದುಹಾಕಿ ಅಥವಾ ಅದನ್ನು PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX ಅಥವಾ ಚಿತ್ರವಾಗಿ ಉಳಿಸಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+      attachmentTooLarge: "ಈ ಫೈಲ್ AI ಚಾಟ್‌ಗೆ ತುಂಬಾ ದೊಡ್ಡದಾಗಿದೆ. ಫೈಲ್‌ಗಳು ಗರಿಷ್ಠ {{fileLimit}} MB ಮತ್ತು ಚಿತ್ರಗಳು ಗರಿಷ್ಠ {{imageLimit}} MB ಇರಬಹುದು. ಚಿಕ್ಕ ಫೈಲ್ ಆಯ್ಕೆಮಾಡಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+      attachmentUnsupported: "AI ಚಾಟ್ ಈ ಫೈಲ್ ಪ್ರಕಾರ ಬೆಂಬಲಿಸುವುದಿಲ್ಲ. ಫೈಲ್ ತೆಗೆದುಹಾಕಿ ಅಥವಾ ಅದನ್ನು PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG ಅಥವಾ ಚಿತ್ರವಾಗಿ ಉಳಿಸಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+      attachmentUploadFailed: "ಲಗತ್ತನ್ನು ಅಪ್‌ಲೋಡ್ ಮಾಡಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ನಿಮ್ಮ ಸಂಪರ್ಕ ಪರಿಶೀಲಿಸಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+      attachmentsTooMany: "AI ಚಾಟ್‌ನ ಒಂದು ಸಂದೇಶದಲ್ಲಿ ಗರಿಷ್ಠ {{limit}} ಫೈಲ್‌ಗಳು ಮತ್ತು ಚಿತ್ರಗಳನ್ನು ಸೇರಿಸಬಹುದು. ಉಳಿದವನ್ನು ಇನ್ನೊಂದು ಸಂದೇಶದಲ್ಲಿ ಕಳುಹಿಸಿ.",
       microphoneUnavailable: "ಈ ಬ್ರೌಸರ್‌ನಲ್ಲಿ ಮೈಕ್ರೊಫೋನ್ ರೆಕಾರ್ಡಿಂಗ್ ಲಭ್ಯವಿಲ್ಲ.",
     },
     composerPlaceholder: "ಕಾರ್ಡ್‌ಗಳು, ಪುನರಾವರ್ತನೆ ಇತಿಹಾಸದ ಬಗ್ಗೆ ಕೇಳಿ ಅಥವಾ ಟಿಪ್ಪಣಿಗಳನ್ನು ಲಗತ್ತಿಸಿ...",

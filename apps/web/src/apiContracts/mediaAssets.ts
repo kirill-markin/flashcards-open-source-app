@@ -22,6 +22,7 @@ import {
   parseObject,
   parseRequiredField,
   parseString,
+  parseStringRecord,
 } from "./core";
 
 export function parseMediaAsset(value: unknown, endpoint: string, path: string): MediaAsset {
@@ -125,18 +126,6 @@ function assertFieldPresent<ParsedValue>(
   }
 
   return value;
-}
-
-function parseStringRecord(
-  value: unknown,
-  endpoint: string,
-  path: string,
-): Readonly<Record<string, string>> {
-  const objectValue = parseObject(value, endpoint, path);
-  return Object.fromEntries(Object.entries(objectValue).map(([key, fieldValue]) => [
-    key,
-    parseString(fieldValue, endpoint, joinPath(path, key)),
-  ]));
 }
 
 function parseMediaAssetUploadPartUrl(

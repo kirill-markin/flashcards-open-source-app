@@ -1,6 +1,8 @@
 import type {
   ChatComposerSuggestion,
   ChatConfig,
+  ChatFileUploadResponse,
+  ChatFileUploadTarget,
   ChatLiveStream,
   ChatSessionArchiveResponse,
   ChatSessionHistoryMessage,
@@ -30,6 +32,7 @@ import {
   parseRequiredField,
   parseString,
   parseStringArray,
+  parseStringRecord,
 } from "./core";
 import { parseLegacyEffortLevel } from "./studyData";
 
@@ -291,6 +294,29 @@ export function parseStartChatRunResponse(value: unknown, endpoint: string): Sta
     chatConfig: parseRequiredField(objectValue, "chatConfig", endpoint, "", parseChatConfig),
     activeRun: parseRequiredField(objectValue, "activeRun", endpoint, "", parseNullableChatActiveRun),
     deduplicated: parseOptionalField(objectValue, "deduplicated", endpoint, "", parseBoolean),
+  };
+}
+
+function parseChatFileUploadTarget(value: unknown, endpoint: string, path: string): ChatFileUploadTarget {
+  const objectValue = parseObject(value, endpoint, path);
+  return {
+    method: parseLiteral(
+      parseRequiredField(objectValue, "method", endpoint, path, parseString),
+      endpoint,
+      joinPath(path, "method"),
+      "PUT",
+    ),
+    url: parseRequiredField(objectValue, "url", endpoint, path, parseString),
+    headers: parseRequiredField(objectValue, "headers", endpoint, path, parseStringRecord),
+    expiresAt: parseRequiredField(objectValue, "expiresAt", endpoint, path, parseString),
+  };
+}
+
+export function parseChatFileUploadResponse(value: unknown, endpoint: string): ChatFileUploadResponse {
+  const objectValue = parseObject(value, endpoint, "");
+  return {
+    uploadId: parseRequiredField(objectValue, "uploadId", endpoint, "", parseString),
+    upload: parseRequiredField(objectValue, "upload", endpoint, "", parseChatFileUploadTarget),
   };
 }
 

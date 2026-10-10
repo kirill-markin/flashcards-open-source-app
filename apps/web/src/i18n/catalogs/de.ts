@@ -1381,8 +1381,12 @@ const deCatalog: TranslationCatalog = {
       remaining: "Noch {{count}} in diesem Monat",
     },
     alerts: {
+      attachmentImagesTooLarge: "Die Bilder sind zu groß für eine Nachricht im AI-Chat: Zusammen dürfen sie höchstens {{limit}} MB groß sein. Sende einige davon in einer weiteren Nachricht.",
       attachmentLimit: "Die Nachricht ist zu groß. Der AI-Chat kann nicht so viele Inhalte auf einmal senden. Entferne einen oder mehrere Anhänge, wähle eine kleinere Datei oder ein kleineres Foto oder teile die Anfrage auf und versuche es erneut.",
-      attachmentUnsupported: "Dieser Dateityp wird im AI-Chat nicht unterstützt. Entferne die Datei oder speichere sie als PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX oder Bild und versuche es erneut.",
+      attachmentTooLarge: "Diese Datei ist zu groß für den AI-Chat. Dateien dürfen höchstens {{fileLimit}} MB und Bilder höchstens {{imageLimit}} MB groß sein. Wähle eine kleinere Datei und versuche es erneut.",
+      attachmentUnsupported: "Dieser Dateityp wird im AI-Chat nicht unterstützt. Entferne die Datei oder speichere sie als PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG oder Bild und versuche es erneut.",
+      attachmentUploadFailed: "Der Anhang konnte nicht hochgeladen werden. Prüfe deine Verbindung und versuche es erneut.",
+      attachmentsTooMany: "Eine Nachricht im AI-Chat kann höchstens {{limit}} Dateien und Bilder enthalten. Sende den Rest in einer weiteren Nachricht.",
       microphoneUnavailable: "Mikrofonaufnahme ist in diesem Browser nicht verfügbar.",
     },
     composerPlaceholder: "Frage nach Karten, Wiederholungsverlauf oder hänge Notizen an...",
