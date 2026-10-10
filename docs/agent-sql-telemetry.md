@@ -152,7 +152,10 @@ is emitted, and that truncation is not recorded anywhere.
 ## The MCP caller label
 
 On the MCP surface `caller` is the request `User-Agent`, trimmed and capped at
-120 characters, and `null` when the client sends no `User-Agent`.
+120 characters, and `null` when the client sends no `User-Agent`. The
+post-deploy smoke (`scripts/checks/check-mcp-smoke.sh`) sends
+`User-Agent: nibomo-mcp-smoke/1`, and its deliberate failures are excluded
+from the failure queries below.
 
 The `initialize` clientInfo is not used because it is not reachable: the MCP
 Lambda runs the transport statelessly (`sessionIdGenerator: undefined` in
@@ -327,6 +330,7 @@ executed calls to see whether one client is failing systematically.
 
 ```
 filter message.domain = "backend" and message.action = "agent_sql"
+       and message.caller != "nibomo-mcp-smoke/1"
 | stats count(*) as executions,
         sum(message.succeeded = 0) as failures,
         sum(message.succeeded = 0) * 100 / count(*) as failureSharePct
@@ -342,6 +346,7 @@ client.
 ```
 filter message.domain = "backend" and message.action = "agent_sql"
        and message.succeeded = 0
+       and message.caller != "nibomo-mcp-smoke/1"
 | stats count(*) as failures
   by message.surface, message.errorCode, message.dialectReason, message.caller
 | sort failures desc
