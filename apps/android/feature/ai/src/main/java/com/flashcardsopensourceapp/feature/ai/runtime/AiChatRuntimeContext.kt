@@ -76,6 +76,7 @@ internal class AiChatRuntimeContext(
     val runtimeStateMutable = MutableStateFlow(makeDefaultAiDraftState())
     var activeSendJob: Job? = null
     var activeDictationJob: Job? = null
+    var activeAttachmentImportJob: Job? = null
     var activeLiveJob: Job? = null
     var activeWarmUpJob: Job? = null
     var activeBootstrapJob: Job? = null

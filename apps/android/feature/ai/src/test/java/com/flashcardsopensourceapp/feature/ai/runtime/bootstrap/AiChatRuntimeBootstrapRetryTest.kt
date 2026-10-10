@@ -271,7 +271,8 @@ class AiChatRuntimeBootstrapRetryTest {
             id = "attachment-1",
             fileName = "prompt.txt",
             mediaType = "text/plain",
-            base64Data = "cHJvbXB0"
+            localFilePath = "/missing/ai-chat-attachments/attachment-1",
+            sizeBytes = 4L
         )
         val pendingFreshState = makeDefaultAiChatPersistedState().copy(
             chatSessionId = freshSessionId,

@@ -206,6 +206,16 @@ class AiViewModel(
         chatRuntime.addPendingAttachment(attachment = attachment)
     }
 
+    fun importPendingAttachment(
+        stageAttachment: suspend () -> com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
+    ) {
+        chatRuntime.importPendingAttachment(stageAttachment = stageAttachment)
+    }
+
+    fun cancelAttachmentImport() {
+        chatRuntime.cancelAttachmentImport()
+    }
+
     fun removePendingAttachment(attachmentId: String) {
         chatRuntime.removePendingAttachment(attachmentId = attachmentId)
     }

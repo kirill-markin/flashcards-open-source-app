@@ -1,7 +1,7 @@
 package com.flashcardsopensourceapp.data.local.ai.diagnostics
 
 import android.util.Log
-import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatWireContentPart
 
 private const val aiChatDiagnosticsLogTag: String = "FlashcardsAI"
 private const val aiChatDiagnosticsMaxValueLength: Int = 1_200
@@ -23,29 +23,19 @@ object AiChatDiagnosticsLogger {
         writeError(message = buildMessage(event = event, fields = fields), throwable = throwable)
     }
 
-    fun summarizeOutgoingContent(content: List<AiChatContentPart>): String {
-        val textPartCount = content.count { part -> part is AiChatContentPart.Text }
-        val reasoningSummaryPartCount = content.count { part -> part is AiChatContentPart.ReasoningSummary }
-        val imagePartCount = content.count { part -> part is AiChatContentPart.Image }
-        val filePartCount = content.count { part -> part is AiChatContentPart.File }
-        val cardPartCount = content.count { part -> part is AiChatContentPart.Card }
-        val toolCallPartCount = content.count { part -> part is AiChatContentPart.ToolCall }
-        val accountUpgradePartCount = content.count { part -> part is AiChatContentPart.AccountUpgradePrompt }
-        val unknownPartCount = content.count { part -> part is AiChatContentPart.Unknown }
+    fun summarizeOutgoingContent(content: List<AiChatWireContentPart>): String {
+        val textPartCount = content.count { part -> part is AiChatWireContentPart.Text }
+        val uploadPartCount = content.count { part -> part is AiChatWireContentPart.Upload }
+        val cardPartCount = content.count { part -> part is AiChatWireContentPart.Card }
         val textLength = content.sumOf { part ->
             when (part) {
-                is AiChatContentPart.Text -> part.text.length
-                is AiChatContentPart.ReasoningSummary -> 0
-                is AiChatContentPart.Image -> 0
-                is AiChatContentPart.File -> 0
-                is AiChatContentPart.Card -> 0
-                is AiChatContentPart.ToolCall -> 0
-                is AiChatContentPart.AccountUpgradePrompt -> 0
-                is AiChatContentPart.Unknown -> 0
+                is AiChatWireContentPart.Text -> part.text.length
+                is AiChatWireContentPart.Upload -> 0
+                is AiChatWireContentPart.Card -> 0
             }
         }
 
-        return "textParts=$textPartCount,reasoningSummaryParts=$reasoningSummaryPartCount,imageParts=$imagePartCount,fileParts=$filePartCount,cardParts=$cardPartCount,toolCallParts=$toolCallPartCount,accountUpgradeParts=$accountUpgradePartCount,unknownParts=$unknownPartCount,textLength=$textLength"
+        return "textParts=$textPartCount,uploadParts=$uploadPartCount,cardParts=$cardPartCount,textLength=$textLength"
     }
 
     fun logUnknownContentReceived(

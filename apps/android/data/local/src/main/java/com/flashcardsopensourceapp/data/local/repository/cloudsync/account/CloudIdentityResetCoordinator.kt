@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.data.local.repository.cloudsync.account
 
 import com.flashcardsopensourceapp.data.local.ai.store.AiChatHistoryStore
 import com.flashcardsopensourceapp.data.local.ai.store.AiChatPreferencesStore
+import com.flashcardsopensourceapp.data.local.ai.store.AiChatStagedAttachmentStore
 import com.flashcardsopensourceapp.data.local.ai.store.GuestAiSessionStore
 import com.flashcardsopensourceapp.data.local.ai.store.OwnOpenAiKeyStore
 import com.flashcardsopensourceapp.data.local.bootstrap.ensureLocalWorkspaceShell
@@ -18,6 +19,7 @@ class CloudIdentityResetCoordinator(
     private val cloudPreferencesStore: CloudPreferencesStore,
     private val aiChatPreferencesStore: AiChatPreferencesStore,
     private val aiChatHistoryStore: AiChatHistoryStore,
+    private val aiChatStagedAttachmentStore: AiChatStagedAttachmentStore,
     private val guestAiSessionStore: GuestAiSessionStore,
     private val ownOpenAiKeyStore: OwnOpenAiKeyStore,
     /**
@@ -46,6 +48,7 @@ class CloudIdentityResetCoordinator(
                 cloudPreferencesStore.clearCloudCredentialRecoveryState()
                 cloudPreferencesStore.clearAccountPreferences()
                 aiChatPreferencesStore.clearConsent()
+                aiChatStagedAttachmentStore.deleteAll()
                 aiChatHistoryStore.clearAllState()
                 guestAiSessionStore.clearAllSessions()
                 ownOpenAiKeyStore.clear()
@@ -98,6 +101,7 @@ class CloudIdentityResetCoordinator(
                 cloudPreferencesStore.clearPendingGuestUpgrade()
                 cloudPreferencesStore.clearAccountPreferences()
                 aiChatPreferencesStore.clearConsent()
+                aiChatStagedAttachmentStore.deleteAll()
                 aiChatHistoryStore.clearAllState()
                 guestAiSessionStore.clearAllSessions()
                 ownOpenAiKeyStore.clear()

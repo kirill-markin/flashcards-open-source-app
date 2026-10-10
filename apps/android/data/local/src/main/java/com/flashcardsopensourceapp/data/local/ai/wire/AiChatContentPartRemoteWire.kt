@@ -37,16 +37,14 @@ private data class AiChatReasoningSummaryContentPartWire(
 @SerialName("image")
 private data class AiChatImageContentPartWire(
     val fileName: StrictRemoteString? = null,
-    val mediaType: StrictRemoteString,
-    val base64Data: StrictRemoteString
+    val mediaType: StrictRemoteString
 )
 
 @Serializable
 @SerialName("file")
 private data class AiChatFileContentPartWire(
     val fileName: StrictRemoteString,
-    val mediaType: StrictRemoteString,
-    val base64Data: StrictRemoteString
+    val mediaType: StrictRemoteString
 )
 
 @Serializable
@@ -110,8 +108,7 @@ internal fun mapAiChatContentPart(
             val wire = decodeAiChatWireElement<AiChatImageContentPartWire>(element = part, context = "chat.content.image")
             AiChatContentPart.Image(
                 fileName = wire.fileName?.value?.ifBlank { null },
-                mediaType = wire.mediaType.value,
-                base64Data = wire.base64Data.value
+                mediaType = wire.mediaType.value
             )
         }
 
@@ -119,8 +116,7 @@ internal fun mapAiChatContentPart(
             val wire = decodeAiChatWireElement<AiChatFileContentPartWire>(element = part, context = "chat.content.file")
             AiChatContentPart.File(
                 fileName = wire.fileName.value,
-                mediaType = wire.mediaType.value,
-                base64Data = wire.base64Data.value
+                mediaType = wire.mediaType.value
             )
         }
 
