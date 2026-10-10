@@ -6,31 +6,6 @@ enum AIChatLiveAttachTermination: Sendable {
     case failed(message: String, requestId: String?, clientRequestId: String?)
 }
 
-func validateAIChatStartRunRequestSize(
-    sessionId: String,
-    workspaceId: String?,
-    outgoingContent: [AIChatContentPart]
-) throws {
-    let effectiveSessionId = sessionId.trimmingCharacters(in: .whitespacesAndNewlines)
-    if effectiveSessionId.isEmpty {
-        throw LocalStoreError.validation("AI chat session orchestration started without a provisioned session id.")
-    }
-
-    let encoder = JSONEncoder()
-    _ = try encodeAIChatStartRunRequestBody(
-        request: AIChatStartRunRequestBody(
-            sessionId: effectiveSessionId,
-            clientRequestId: makeAIChatClientRequestId(),
-            content: outgoingContent,
-            timezone: TimeZone.current.identifier,
-            uiLocale: currentAIChatUILocaleIdentifier(),
-            workspaceId: workspaceId
-        ),
-        encoder: encoder,
-        maximumByteCount: aiChatMaximumStartRunRequestBytes
-    )
-}
-
 actor AIChatSessionRuntime {
     private let chatService: any AIChatSessionServicing
     private let contextLoader: any AIChatContextLoading
@@ -47,18 +22,6 @@ actor AIChatSessionRuntime {
         self.liveStreamClient = AIChatLiveStreamClient(urlSession: urlSession)
     }
 
-    func validateStartRunRequestSize(
-        session: CloudLinkedSession,
-        sessionId: String,
-        outgoingContent: [AIChatContentPart]
-    ) throws {
-        try validateAIChatStartRunRequestSize(
-            sessionId: sessionId,
-            workspaceId: session.workspaceId,
-            outgoingContent: outgoingContent
-        )
-    }
-
     /**
      * Starts a new run request and reports the accepted response back to the
      * store. Snapshot/bootstrap remains the source of truth for session state.
@@ -69,7 +32,7 @@ actor AIChatSessionRuntime {
         session: CloudLinkedSession,
         sessionId: String,
         afterCursor: String?,
-        outgoingContent: [AIChatContentPart],
+        outgoingContent: [AIChatStartRunContentPart],
         eventHandler: @escaping @Sendable (AIChatRuntimeEvent) async -> Void
     ) async throws {
         _ = self.contextLoader

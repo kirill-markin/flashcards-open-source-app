@@ -25,7 +25,7 @@ describe("chat content parts", () => {
       backText: "Back",
       tags: ["grammar"],
     }]);
-    expect(buildStartRunContentParts(contentParts)).toEqual([{
+    expect(buildStartRunContentParts("", attachments, new Map())).toEqual([{
       type: "card",
       cardId: "card-1",
       frontText: "Front",

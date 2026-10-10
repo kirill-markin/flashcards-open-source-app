@@ -57,6 +57,8 @@ backend surface, which is what makes querying the log groups together valid.
   `service = "backend-api"`)
 - surface `chat-tool`: chat worker Lambda log group
   (`/aws/lambda/<ChatWorkerFunctionName>`, `service = "chat-worker"`)
+- surface `chat-sandbox`: backend API Lambda log group, because the chat
+  sandbox's SQL bridge route runs there (`service = "backend-api"`)
 
 The function names are the `BackendFunctionName`, `McpFunctionName`, and
 `ChatWorkerFunctionName` CDK stack outputs. Query the three log groups together
@@ -77,7 +79,7 @@ be made in the stack. The MCP and chat worker groups are not managed this way.
 
 | Field | Meaning |
 | --- | --- |
-| `surface` | `chat-tool`, `agent-rest`, or `mcp` |
+| `surface` | `chat-tool`, `chat-sandbox`, `agent-rest`, or `mcp` |
 | `caller` | Calling client label; `null` on every surface except MCP |
 | `connectionId` | Agent connection the execution ran under |
 | `succeeded` | Outcome; the denominator for any failure ratio |
@@ -85,7 +87,7 @@ be made in the stack. The MCP and chat worker groups are not managed this way.
 | `resource` | `cards`, `decks`, and so on; `null` for batches and on failure |
 | `statementCount` | Statements in the submitted SQL; `null` on failure |
 | `rowOrAffectedCount` | Rows read or records affected; `null` on failure |
-| `resultChars` | Characters of the emitted agent envelope, as measured against the result-size budget; `null` on failure and on `chat-tool`, which builds no envelope |
+| `resultChars` | Characters of the emitted agent envelope, as measured against the result-size budget; `null` on failure and on `chat-tool` and `chat-sandbox`, which build no envelope |
 | `rowsOmitted` | `true` when a committed write's rows were dropped to fit that budget; `null` on failure |
 | `rowsTruncated` | `true` when an oversized single `SELECT` answered with only the leading rows that fit that budget; `null` on a mutation, on a batch, and on failure |
 | `durationMs` | Wall-clock duration of the execution |
@@ -101,9 +103,9 @@ the shared observation scope on every record, and so does the record's own
 records emitted there carry it and the REST and chat surfaces record null.
 
 `workspaceId` is the workspace the call targeted, not the workspace the caller
-has selected. On `chat-tool` those differ whenever the model passes an explicit
-`workspaceId`, so grouping chat SQL by workspace can surface workspaces the chat
-session did not have open.
+has selected. On `chat-tool` and `chat-sandbox` those differ whenever the model
+or its code passes an explicit `workspaceId`, so grouping chat SQL by workspace
+can surface workspaces the chat session did not have open.
 
 Raw SQL text is never logged. `sqlFingerprint` plus `errorCode` and
 `dialectReason` are what make repeated failures groupable, the same choice the
@@ -145,10 +147,42 @@ batch, `SHOW TABLES`, `DESCRIBE`, and a single `SELECT` whose one row is over
 budget on its own. `resultChars` is the same measurement the budget enforces,
 taken on the payload that was actually emitted, so it is the post-reduction size
 on a degraded write and the post-truncation size on a truncated read. The
-`chat-tool` surface builds no envelope and applies none of this, so its single
-reads record `rowsTruncated = 0` and its read batches `null`, like every other
-batch: the chat tool truncates its own tool output separately, after this record
-is emitted, and that truncation is not recorded anywhere.
+`chat-tool` and `chat-sandbox` surfaces build no envelope and apply none of this,
+so their single reads record `rowsTruncated = 0` and their read batches `null`,
+like every other batch: the chat tool truncates its own tool output separately,
+after this record is emitted, and that truncation is not recorded anywhere, and
+the SQL bridge refuses a read whose answer would exceed 4 MiB with
+`QUERY_RESULT_TOO_LARGE` after this record already says `succeeded = 1`; its
+own record below says `succeeded = 0`.
+
+## The chat sandbox SQL record
+
+Code a chat `bash` command runs calls agent SQL through the SQL bridge
+(`apps/backend/src/chatSandbox/sqlBridge/route.ts`), and every call emits one
+`action = "chat_sandbox_sql"` record into the backend API log group beside its
+`agent_sql` one. Unlike `agent_sql` it carries the statement text, cut to its
+first 64,000 characters with `sqlChars` counting the whole statement, so the
+sandbox's activity can be read back call by call; it never carries the rows a
+call read or returned. Its scope names `runId`, `sessionId`, `userId`, and the
+session's `workspaceId`, and `explicitWorkspaceId` the workspace the call asked
+for, if any. `kind` is `query` or `execute`, and the outcome fields are the
+chat tool's own SQL telemetry: `succeeded`, `statementType`, `statementCount`,
+`rowOrAffectedCount`, `durationMs`, `errorCode`, `dialectReason`, and
+`errorClass`. A call the bridge refuses before running it, for an invalid or
+expired capability, an invalid body, or a run that is no longer running, emits
+only the `request_error` record, which names its status and code.
+
+The command itself is the `chat_sandbox_command` record in the chat worker log
+group, whose `sqlCallCount` and `sqlExecuteCallCount` count the calls its code
+sent. The sandbox Lambda logs a `chat_sandbox_sql_retried` warning for every
+retried call.
+
+```
+filter message.action = "chat_sandbox_sql"
+| fields @timestamp, message.runId, message.kind, message.succeeded,
+         message.errorCode, message.rowOrAffectedCount, message.sql
+| sort @timestamp asc
+```
 
 ## The MCP caller label
 
@@ -388,9 +422,10 @@ filter message.domain = "backend" and message.action = "agent_sql"
 
 `degradedWrites` counts successful writes that answered without their rows, and
 `truncatedReads` successful single `SELECT`s that answered with only the leading
-rows that fit the budget. The percentiles skip the `chat-tool` surface, whose
-`resultChars` is always `null`, and `truncatedReads` is always `0` there, for
-the same reason: that surface applies no envelope budget. An over-budget write
+rows that fit the budget. The percentiles skip the `chat-tool` and
+`chat-sandbox` surfaces, whose `resultChars` is always `null`, and
+`truncatedReads` is always `0` there, for the same reason: those surfaces apply
+no envelope budget. An over-budget write
 first tries shortening its echoed statement text, applies that only when it
 makes the emitted payload smaller, and keeps its rows whenever the payload fits
 the budget without dropping them, so `rowsOmitted = 0` does not by itself mean

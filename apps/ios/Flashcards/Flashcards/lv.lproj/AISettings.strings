@@ -50,9 +50,13 @@
 "ai.attachment.error.unsupportedType" = "Neatbalstīts faila tips: .%@";
 "ai.attachment.error.cameraUnavailable" = "Šajā ierīcē kamera nav pieejama.";
 "ai.attachment.error.photoUnavailable" = "Šajā ierīcē piekļuve fotoattēliem nav pieejama.";
-"ai.attachment.error.fileTooLarge" = "Fails ir pārāk liels. Maksimālais atļautais izmērs ir 3 MB.";
+"ai.attachment.error.fileTooLarge" = "Fails ir pārāk liels. Faili var būt ne lielāki par 30 MB, bet attēli – ne lielāki par 10 MB.";
 "ai.attachment.error.imageEncodeFailed" = "Neizdevās sagatavot izvēlēto fotoattēlu.";
 "ai.attachment.error.imageDimensionsInvalid" = "Neizdevās nolasīt izvēlēto fotoattēlu.";
+"ai.attachment.error.tooManyFiles" = "Ziņojumā var būt ne vairāk kā 10 failu un attēlu. Noņemiet dažus no tiem un mēģiniet vēlreiz.";
+"ai.attachment.error.imagesTooLarge" = "Viena ziņojuma attēli kopā var būt ne lielāki par 15 MB. Dažus no tiem nosūtiet citā ziņojumā.";
+"ai.attachment.error.unavailable" = "Viens pielikums vairs nav šajā ierīcē. Noņemiet to, pievienojiet to atkārtoti un mēģiniet vēlreiz.";
+"ai.attachment.error.uploadFailed" = "Neizdevās augšupielādēt pielikumu. Pārbaudiet savienojumu un mēģiniet vēlreiz.";
 "ai.composer.dictation.start" = "Sākt diktēšanu";
 "ai.composer.dictation.stop" = "Apturēt diktēšanu";
 "ai.composer.dictation.waiting" = "Gaida piekļuvi mikrofonam...";
@@ -62,7 +66,7 @@
 "ai.error.requestTooLarge.title" = "Ziņa ir pārāk liela";
 "ai.error.requestTooLarge.message" = "MI saruna nevar nosūtīt tik daudz satura vienlaikus. Noņemiet vienu vai vairākus pielikumus, izvēlieties mazāku failu vai fotoattēlu vai sadaliet pieprasījumu un mēģiniet vēlreiz.";
 "ai.error.attachmentUnsupported.title" = "Neatbalstīts faila tips";
-"ai.error.attachmentUnsupported.message" = "Šis faila tips MI sarunā netiek atbalstīts. Noņemiet failu vai saglabājiet to kā PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX vai attēlu un mēģiniet vēlreiz.";
+"ai.error.attachmentUnsupported.message" = "Šis faila tips MI sarunā netiek atbalstīts. Noņemiet failu vai saglabājiet to kā PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG vai attēlu un mēģiniet vēlreiz.";
 "ai.error.limitReached" = "Šī mēneša MI ierobežojums ir izlietots. Tas tiek atjaunots nākamā mēneša sākumā.";
 "ai.error.summary.couldNotContinue" = "Neizdevās turpināt MI atbildi";
 "ai.error.summary.invalidResponse" = "Saņemta nederīga MI atbilde";

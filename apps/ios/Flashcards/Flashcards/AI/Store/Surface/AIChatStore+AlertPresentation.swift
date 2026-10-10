@@ -89,6 +89,20 @@ private func aiChatAlertPresentation(
         )
     }
 
+    if let attachmentLimitMessage = aiChatAttachmentLimitMessage(error: error) {
+        return AIChatAlertPresentation(
+            title: aiChatRequestTooLargeTitle(),
+            message: attachmentLimitMessage
+        )
+    }
+
+    if let attachmentUploadFailureMessage = aiChatAttachmentUploadFailureMessage(error: error) {
+        return AIChatAlertPresentation(
+            title: aiSettingsLocalized("ai.error.title", "Error"),
+            message: attachmentUploadFailureMessage
+        )
+    }
+
     if let liveError = error as? AIChatLiveStreamError {
         return aiChatAlertPresentation(
             liveError: liveError,

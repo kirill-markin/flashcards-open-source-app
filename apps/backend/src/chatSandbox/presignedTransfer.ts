@@ -21,13 +21,18 @@ function isRetryableStatus(status: number): boolean {
   return status === 429 || status >= 500;
 }
 
-/** Network errors carry the host in their message, so only the error name and its cause code are kept. */
-function describeNetworkError(error: unknown): string {
-  const name = error instanceof Error ? error.name : "UnknownError";
+/** The system or undici code of a failed `fetch`, such as `ECONNREFUSED`, which it carries as its cause. */
+export function readNetworkErrorCode(error: unknown): string | null {
   const cause = error instanceof Error ? error.cause : undefined;
-  const code = typeof cause === "object" && cause !== null && "code" in cause && typeof cause.code === "string"
+  return typeof cause === "object" && cause !== null && "code" in cause && typeof cause.code === "string"
     ? cause.code
     : null;
+}
+
+/** Network errors carry the host in their message, so only the error name and its cause code are kept. */
+export function describeNetworkError(error: unknown): string {
+  const name = error instanceof Error ? error.name : "UnknownError";
+  const code = readNetworkErrorCode(error);
   return code === null ? `errorName=${name}` : `errorName=${name} errorCode=${code}`;
 }
 

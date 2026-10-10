@@ -50,9 +50,13 @@
 "ai.attachment.error.unsupportedType" = "Desteklenmeyen dosya türü: .%@";
 "ai.attachment.error.cameraUnavailable" = "Bu aygıtta kamera kullanılamıyor.";
 "ai.attachment.error.photoUnavailable" = "Bu aygıtta fotoğraf erişimi kullanılamıyor.";
-"ai.attachment.error.fileTooLarge" = "Dosya çok büyük. İzin verilen en büyük boyut 3 MB.";
+"ai.attachment.error.fileTooLarge" = "Dosya çok büyük. Dosyalar en fazla 30 MB, görseller en fazla 10 MB olabilir.";
 "ai.attachment.error.imageEncodeFailed" = "Seçilen fotoğraf hazırlanamadı.";
 "ai.attachment.error.imageDimensionsInvalid" = "Seçilen fotoğraf okunamadı.";
+"ai.attachment.error.tooManyFiles" = "Bir mesaj en fazla 10 dosya ve görsel içerebilir. Bazılarını kaldırıp tekrar deneyin.";
+"ai.attachment.error.imagesTooLarge" = "Bir mesajdaki görsellerin toplam boyutu en fazla 15 MB olabilir. Bazılarını başka bir mesajda gönderin.";
+"ai.attachment.error.unavailable" = "Eklerden biri artık bu cihazda değil. Eki kaldırın, yeniden ekleyin ve tekrar deneyin.";
+"ai.attachment.error.uploadFailed" = "Bir ek yüklenemedi. Bağlantınızı kontrol edip tekrar deneyin.";
 "ai.composer.dictation.start" = "Dikteyi başlat";
 "ai.composer.dictation.stop" = "Dikteyi durdur";
 "ai.composer.dictation.waiting" = "Mikrofon erişimi bekleniyor...";
@@ -62,7 +66,7 @@
 "ai.error.requestTooLarge.title" = "Mesaj çok büyük";
 "ai.error.requestTooLarge.message" = "AI sohbeti bu kadar içeriği tek seferde gönderemez. Bir veya daha fazla eki kaldırın, daha küçük bir dosya veya fotoğraf seçin ya da isteği bölüp tekrar deneyin.";
 "ai.error.attachmentUnsupported.title" = "Desteklenmeyen dosya türü";
-"ai.error.attachmentUnsupported.message" = "Bu dosya türü AI sohbetinde desteklenmiyor. Dosyayı kaldırın veya PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX ya da görsel olarak kaydedip tekrar deneyin.";
+"ai.error.attachmentUnsupported.message" = "Bu dosya türü AI sohbetinde desteklenmiyor. Dosyayı kaldırın veya PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG ya da görsel olarak kaydedip tekrar deneyin.";
 "ai.error.limitReached" = "Bu aya ait AI limitinizi doldurdunuz. Limit, gelecek ayın başında sıfırlanır.";
 "ai.error.summary.couldNotContinue" = "AI Yanıtına Devam Edilemedi";
 "ai.error.summary.invalidResponse" = "Geçersiz AI Yanıtı Alındı";

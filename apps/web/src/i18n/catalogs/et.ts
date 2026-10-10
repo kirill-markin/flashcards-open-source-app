@@ -1381,8 +1381,12 @@ const etCatalog: TranslationCatalog = {
       remaining: "Sel kuul alles {{count}}",
     },
     alerts: {
+      attachmentImagesTooLarge: "Pildid on ühe tehisintellekti vestluse sõnumi jaoks liiga suured: kokku võivad need olla kuni {{limit}} MB. Saada osa neist teises sõnumis.",
       attachmentLimit: "Sõnum on liiga suur. Tehisintellekti vestlus ei saa korraga nii palju sisu saata. Eemalda üks või mitu manust, vali väiksem fail või foto või jaga päring osadeks ja proovi uuesti.",
-      attachmentUnsupported: "Seda failitüüpi tehisintellekti vestlus ei toeta. Eemalda fail või salvesta see vormingus PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX või pildina ja proovi uuesti.",
+      attachmentTooLarge: "See fail on tehisintellekti vestluse jaoks liiga suur. Failid võivad olla kuni {{fileLimit}} MB ja pildid kuni {{imageLimit}} MB. Vali väiksem fail ja proovi uuesti.",
+      attachmentUnsupported: "Seda failitüüpi tehisintellekti vestlus ei toeta. Eemalda fail või salvesta see vormingus PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG või pildina ja proovi uuesti.",
+      attachmentUploadFailed: "Manust ei õnnestunud üles laadida. Kontrolli ühendust ja proovi uuesti.",
+      attachmentsTooMany: "Üks tehisintellekti vestluse sõnum võib sisaldada kuni {{limit}} faili ja pilti. Saada ülejäänud teises sõnumis.",
       microphoneUnavailable: "Mikrofoniga salvestamine pole selles brauseris saadaval.",
     },
     composerPlaceholder: "Küsi kaartide või kordamiste ajaloo kohta või lisa märkmeid...",

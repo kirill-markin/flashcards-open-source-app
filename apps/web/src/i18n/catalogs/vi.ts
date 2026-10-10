@@ -1381,8 +1381,12 @@ const viCatalog: TranslationCatalog = {
       remaining: "Còn lại tháng này: {{count}}",
     },
     alerts: {
+      attachmentImagesTooLarge: "Hình ảnh quá lớn cho một tin nhắn trong trò chuyện AI: tổng dung lượng tối đa là {{limit}} MB. Hãy gửi bớt một số ảnh trong tin nhắn khác.",
       attachmentLimit: "Tin nhắn quá lớn. Trò chuyện AI không gửi được nhiều nội dung như vậy cùng lúc. Hãy bớt một vài tệp đính kèm, chọn tệp hoặc ảnh nhỏ hơn, hoặc tách yêu cầu ra rồi thử lại.",
-      attachmentUnsupported: "Loại tệp này không được hỗ trợ trong trò chuyện AI. Hãy xóa tệp hoặc lưu lại dưới dạng PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX hoặc hình ảnh, rồi thử lại.",
+      attachmentTooLarge: "Tệp này quá lớn đối với trò chuyện AI. Tệp có dung lượng tối đa {{fileLimit}} MB và hình ảnh tối đa {{imageLimit}} MB. Hãy chọn tệp nhỏ hơn rồi thử lại.",
+      attachmentUnsupported: "Loại tệp này không được hỗ trợ trong trò chuyện AI. Hãy xóa tệp hoặc lưu lại dưới dạng PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG hoặc hình ảnh, rồi thử lại.",
+      attachmentUploadFailed: "Không tải lên được tệp đính kèm. Hãy kiểm tra kết nối rồi thử lại.",
+      attachmentsTooMany: "Một tin nhắn trong trò chuyện AI có thể đính kèm tối đa {{limit}} tệp và hình ảnh. Hãy gửi phần còn lại trong tin nhắn khác.",
       microphoneUnavailable: "Trình duyệt này không hỗ trợ ghi âm bằng micrô.",
     },
     composerPlaceholder: "Hỏi về thẻ, lịch sử ôn tập hoặc đính kèm ghi chú...",

@@ -1381,8 +1381,12 @@ const itCatalog: TranslationCatalog = {
       remaining: "Rimasti questo mese: {{count}}",
     },
     alerts: {
+      attachmentImagesTooLarge: "Le immagini sono troppo grandi per un solo messaggio della chat AI: insieme possono pesare al massimo {{limit}} MB. Inviane alcune in un altro messaggio.",
       attachmentLimit: "Il messaggio è troppo grande. La chat AI non può inviare tutto questo contenuto in una volta sola. Rimuovi uno o più allegati, scegli un file o una foto più piccoli, oppure dividi la richiesta e riprova.",
-      attachmentUnsupported: "Questo tipo di file non è supportato dalla chat AI. Rimuovi il file oppure salvalo come PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX o immagine, poi riprova.",
+      attachmentTooLarge: "Questo file è troppo grande per la chat AI. I file possono pesare al massimo {{fileLimit}} MB e le immagini al massimo {{imageLimit}} MB. Scegli un file più piccolo e riprova.",
+      attachmentUnsupported: "Questo tipo di file non è supportato dalla chat AI. Rimuovi il file oppure salvalo come PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG o immagine, poi riprova.",
+      attachmentUploadFailed: "Impossibile caricare l'allegato. Controlla la connessione e riprova.",
+      attachmentsTooMany: "Un messaggio della chat AI può includere al massimo {{limit}} file e immagini. Invia il resto in un altro messaggio.",
       microphoneUnavailable: "La registrazione dal microfono non è disponibile in questo browser.",
     },
     composerPlaceholder: "Chiedi di carte e cronologia dei ripassi oppure allega appunti...",

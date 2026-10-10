@@ -50,9 +50,13 @@
 "ai.attachment.error.unsupportedType" = "ಬೆಂಬಲವಿಲ್ಲದ ಫೈಲ್ ಪ್ರಕಾರ: .%@";
 "ai.attachment.error.cameraUnavailable" = "ಈ ಸಾಧನದಲ್ಲಿ ಕ್ಯಾಮೆರಾ ಲಭ್ಯವಿಲ್ಲ.";
 "ai.attachment.error.photoUnavailable" = "ಈ ಸಾಧನದಲ್ಲಿ ಫೋಟೋ ಪ್ರವೇಶ ಲಭ್ಯವಿಲ್ಲ.";
-"ai.attachment.error.fileTooLarge" = "ಫೈಲ್ ತುಂಬಾ ದೊಡ್ಡದು. ಅನುಮತಿಸಲಾದ ಗರಿಷ್ಠ ಗಾತ್ರ 3 MB.";
+"ai.attachment.error.fileTooLarge" = "ಫೈಲ್ ತುಂಬಾ ದೊಡ್ಡದು. ಫೈಲ್‌ಗಳು ಗರಿಷ್ಠ 30 MB ಮತ್ತು ಚಿತ್ರಗಳು ಗರಿಷ್ಠ 10 MB ಇರಬಹುದು.";
 "ai.attachment.error.imageEncodeFailed" = "ಆಯ್ದ ಫೋಟೋ ಸಿದ್ಧಪಡಿಸಲಾಗಲಿಲ್ಲ.";
 "ai.attachment.error.imageDimensionsInvalid" = "ಆಯ್ದ ಫೋಟೋ ಓದಲಾಗಲಿಲ್ಲ.";
+"ai.attachment.error.tooManyFiles" = "ಒಂದು ಸಂದೇಶದಲ್ಲಿ ಗರಿಷ್ಠ 10 ಫೈಲ್‌ಗಳು ಮತ್ತು ಚಿತ್ರಗಳನ್ನು ಸೇರಿಸಬಹುದು. ಅವುಗಳಲ್ಲಿ ಕೆಲವನ್ನು ತೆಗೆದುಹಾಕಿ, ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.";
+"ai.attachment.error.imagesTooLarge" = "ಒಂದು ಸಂದೇಶದ ಚಿತ್ರಗಳು ಒಟ್ಟು ಗರಿಷ್ಠ 15 MB ಇರಬಹುದು. ಅವುಗಳಲ್ಲಿ ಕೆಲವನ್ನು ಇನ್ನೊಂದು ಸಂದೇಶದಲ್ಲಿ ಕಳುಹಿಸಿ.";
+"ai.attachment.error.unavailable" = "ಒಂದು ಲಗತ್ತು ಈಗ ಈ ಸಾಧನದಲ್ಲಿ ಇಲ್ಲ. ಅದನ್ನು ತೆಗೆದುಹಾಕಿ, ಮತ್ತೆ ಲಗತ್ತಿಸಿ, ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.";
+"ai.attachment.error.uploadFailed" = "ಲಗತ್ತನ್ನು ಅಪ್‌ಲೋಡ್ ಮಾಡಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ಸಂಪರ್ಕ ಪರಿಶೀಲಿಸಿ, ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.";
 "ai.composer.dictation.start" = "ಹೇಳಿ ಬರೆಯುವುದನ್ನು ಪ್ರಾರಂಭಿಸಿ";
 "ai.composer.dictation.stop" = "ಹೇಳಿ ಬರೆಯುವುದನ್ನು ನಿಲ್ಲಿಸಿ";
 "ai.composer.dictation.waiting" = "ಮೈಕ್ರೊಫೋನ್ ಪ್ರವೇಶಕ್ಕಾಗಿ ಕಾಯಲಾಗುತ್ತಿದೆ...";
@@ -62,7 +66,7 @@
 "ai.error.requestTooLarge.title" = "ಸಂದೇಶ ತುಂಬಾ ದೊಡ್ಡದು";
 "ai.error.requestTooLarge.message" = "AI ಚಾಟ್ ಒಂದೇ ಬಾರಿ ಇಷ್ಟು ವಿಷಯ ಕಳುಹಿಸಲು ಸಾಧ್ಯವಿಲ್ಲ. ಒಂದು ಅಥವಾ ಹೆಚ್ಚು ಲಗತ್ತುಗಳನ್ನು ತೆಗೆದುಹಾಕಿ, ಚಿಕ್ಕ ಫೈಲ್ ಅಥವಾ ಫೋಟೋ ಆಯ್ಕೆಮಾಡಿ ಅಥವಾ ವಿನಂತಿಯನ್ನು ಭಾಗಿಸಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.";
 "ai.error.attachmentUnsupported.title" = "ಬೆಂಬಲವಿಲ್ಲದ ಫೈಲ್ ಪ್ರಕಾರ";
-"ai.error.attachmentUnsupported.message" = "AI ಚಾಟ್ ಈ ಫೈಲ್ ಪ್ರಕಾರ ಬೆಂಬಲಿಸುವುದಿಲ್ಲ. ಫೈಲ್ ತೆಗೆದುಹಾಕಿ ಅಥವಾ PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX ಅಥವಾ ಚಿತ್ರವಾಗಿ ಉಳಿಸಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.";
+"ai.error.attachmentUnsupported.message" = "AI ಚಾಟ್ ಈ ಫೈಲ್ ಪ್ರಕಾರ ಬೆಂಬಲಿಸುವುದಿಲ್ಲ. ಫೈಲ್ ತೆಗೆದುಹಾಕಿ ಅಥವಾ PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG ಅಥವಾ ಚಿತ್ರವಾಗಿ ಉಳಿಸಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.";
 "ai.error.limitReached" = "ಈ ತಿಂಗಳ ನಿಮ್ಮ AI ಮಿತಿ ಮುಗಿದಿದೆ. ಮುಂದಿನ ತಿಂಗಳ ಆರಂಭದಲ್ಲಿ ಇದನ್ನು ಮರುಹೊಂದಿಸಲಾಗುತ್ತದೆ.";
 "ai.error.summary.couldNotContinue" = "AI ಉತ್ತರ ಮುಂದುವರಿಸಲಾಗಲಿಲ್ಲ";
 "ai.error.summary.invalidResponse" = "ಅಮಾನ್ಯ AI ಉತ್ತರ ಸ್ವೀಕರಿಸಲಾಗಿದೆ";

@@ -185,6 +185,11 @@ export function createSqlToolSuccessResult(toolName: string, payload: SqlToolSuc
   return capSerializedEnvelope(envelope, "data");
 }
 
+/** The same envelope uncut, for code that reads it rather than the model: the chat sandbox's SQL bridge. */
+export function createWholeSqlToolSuccessResult(toolName: string, payload: SqlToolSuccessPayload): string {
+  return JSON.stringify(buildSqlToolEnvelope(toolName, payload));
+}
+
 export function createToolErrorResult(toolName: string, payload: ToolErrorPayload): string {
   return capSerializedEnvelope(
     {

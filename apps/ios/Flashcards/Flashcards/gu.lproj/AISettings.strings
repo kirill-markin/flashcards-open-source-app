@@ -50,9 +50,13 @@
 "ai.attachment.error.unsupportedType" = "ફાઇલનો પ્રકાર સમર્થિત નથી: .%@";
 "ai.attachment.error.cameraUnavailable" = "આ ઉપકરણ પર કૅમેરા ઉપલબ્ધ નથી.";
 "ai.attachment.error.photoUnavailable" = "આ ઉપકરણ પર ફોટાની ઍક્સેસ ઉપલબ્ધ નથી.";
-"ai.attachment.error.fileTooLarge" = "ફાઇલ ખૂબ મોટી છે. મહત્તમ મંજૂર કદ 3 MB છે.";
+"ai.attachment.error.fileTooLarge" = "ફાઇલ ખૂબ મોટી છે. ફાઇલો વધુમાં વધુ 30 MB અને છબીઓ વધુમાં વધુ 10 MB ની હોઈ શકે છે.";
 "ai.attachment.error.imageEncodeFailed" = "પસંદ કરેલો ફોટો તૈયાર કરવામાં નિષ્ફળતા.";
 "ai.attachment.error.imageDimensionsInvalid" = "પસંદ કરેલો ફોટો વાંચવામાં નિષ્ફળતા.";
+"ai.attachment.error.tooManyFiles" = "એક સંદેશમાં વધુમાં વધુ 10 ફાઇલો અને છબીઓ ઉમેરી શકાય છે. તેમાંથી કેટલીક દૂર કરો, પછી ફરી પ્રયાસ કરો.";
+"ai.attachment.error.imagesTooLarge" = "એક સંદેશની છબીઓ કુલ મળીને વધુમાં વધુ 15 MB ની હોઈ શકે છે. તેમાંથી કેટલીક બીજા સંદેશમાં મોકલો.";
+"ai.attachment.error.unavailable" = "એક જોડાણ હવે આ ઉપકરણ પર નથી. તેને દૂર કરો, ફરીથી જોડો, પછી ફરી પ્રયાસ કરો.";
+"ai.attachment.error.uploadFailed" = "એક જોડાણ અપલોડ કરી શકાયું નથી. તમારું ઇન્ટરનેટ કનેક્શન તપાસો, પછી ફરી પ્રયાસ કરો.";
 "ai.composer.dictation.start" = "બોલીને લખવાનું શરૂ કરો";
 "ai.composer.dictation.stop" = "બોલીને લખવાનું રોકો";
 "ai.composer.dictation.waiting" = "માઇક્રોફોનની ઍક્સેસની રાહ જોઈ રહ્યું છે...";
@@ -62,7 +66,7 @@
 "ai.error.requestTooLarge.title" = "સંદેશ ખૂબ મોટો છે";
 "ai.error.requestTooLarge.message" = "AI ચૅટ એકસાથે આટલી સામગ્રી મોકલી શકતી નથી. એક કે વધુ જોડાણ દૂર કરો, નાની ફાઇલ કે ફોટો પસંદ કરો, અથવા વિનંતી વહેંચીને ફરી પ્રયાસ કરો.";
 "ai.error.attachmentUnsupported.title" = "ફાઇલનો પ્રકાર સમર્થિત નથી";
-"ai.error.attachmentUnsupported.message" = "AI ચૅટમાં આ પ્રકારની ફાઇલ સમર્થિત નથી. ફાઇલ દૂર કરો અથવા તેને PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX અથવા છબી તરીકે સાચવીને ફરી પ્રયાસ કરો.";
+"ai.error.attachmentUnsupported.message" = "AI ચૅટમાં આ પ્રકારની ફાઇલ સમર્થિત નથી. ફાઇલ દૂર કરો અથવા તેને PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG અથવા છબી તરીકે સાચવીને ફરી પ્રયાસ કરો.";
 "ai.error.limitReached" = "આ મહિના માટેની તમારી AI મર્યાદા વપરાઈ ગઈ છે. તે આવતા મહિનાની શરૂઆતમાં રીસેટ થશે.";
 "ai.error.summary.couldNotContinue" = "AI નો જવાબ ચાલુ રાખી શકાયો નહીં";
 "ai.error.summary.invalidResponse" = "અમાન્ય AI જવાબ મળ્યો";

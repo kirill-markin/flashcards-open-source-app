@@ -343,7 +343,7 @@ describe("useAiCardHandoff", () => {
       type: "binary",
       fileName: "existing.txt",
       mediaType: "text/plain",
-      base64Data: "ZXhpc3Rpbmc=",
+      blob: new Blob(["existing"], { type: "text/plain" }),
     };
 
     useOptionalChatLayoutMock.mockReturnValue({

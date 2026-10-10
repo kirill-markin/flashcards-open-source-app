@@ -1395,8 +1395,12 @@ const ukCatalog: TranslationCatalog = {
       remaining: "Залишилося цього місяця: {{count}}",
     },
     alerts: {
+      attachmentImagesTooLarge: "Зображення завеликі для одного повідомлення в AI-чаті: разом вони можуть займати не більше {{limit}} МБ. Надішліть частину з них в іншому повідомленні.",
       attachmentLimit: "Повідомлення завелике. AI-чат не може надіслати стільки вмісту за раз. Приберіть одне чи кілька вкладень, оберіть менший файл або фото чи розділіть запит і спробуйте ще раз.",
-      attachmentUnsupported: "Цей тип файлу не підтримується в AI-чаті. Приберіть файл або збережіть його як PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX чи зображення, а потім спробуйте ще раз.",
+      attachmentTooLarge: "Цей файл завеликий для AI-чату. Файли можуть займати не більше {{fileLimit}} МБ, а зображення — не більше {{imageLimit}} МБ. Оберіть менший файл і спробуйте ще раз.",
+      attachmentUnsupported: "Цей тип файлу не підтримується в AI-чаті. Приберіть файл або збережіть його як PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG чи зображення, а потім спробуйте ще раз.",
+      attachmentUploadFailed: "Не вдалося завантажити вкладення. Перевірте з'єднання і спробуйте ще раз.",
+      attachmentsTooMany: "Одне повідомлення в AI-чаті може містити не більше {{limit}} файлів і зображень. Надішліть решту в іншому повідомленні.",
       microphoneUnavailable: "Запис з мікрофона недоступний у цьому браузері.",
     },
     composerPlaceholder: "Запитайте про картки, історію повторень або додайте нотатки...",

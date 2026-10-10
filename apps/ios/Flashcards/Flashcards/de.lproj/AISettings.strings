@@ -50,9 +50,13 @@
 "ai.attachment.error.unsupportedType" = "Nicht unterstützter Dateityp: .%@";
 "ai.attachment.error.cameraUnavailable" = "Die Kamera ist auf diesem Gerät nicht verfügbar.";
 "ai.attachment.error.photoUnavailable" = "Der Zugriff auf Fotos ist auf diesem Gerät nicht verfügbar.";
-"ai.attachment.error.fileTooLarge" = "Die Datei ist zu groß. Die maximal zulässige Größe beträgt 3 MB.";
+"ai.attachment.error.fileTooLarge" = "Die Datei ist zu groß. Dateien dürfen höchstens 30 MB groß sein, Bilder höchstens 10 MB.";
 "ai.attachment.error.imageEncodeFailed" = "Das ausgewählte Foto konnte nicht vorbereitet werden.";
 "ai.attachment.error.imageDimensionsInvalid" = "Das ausgewählte Foto konnte nicht gelesen werden.";
+"ai.attachment.error.tooManyFiles" = "Eine Nachricht kann höchstens 10 Dateien und Bilder enthalten. Entfernen Sie einige davon und versuchen Sie es erneut.";
+"ai.attachment.error.imagesTooLarge" = "Die Bilder einer Nachricht dürfen zusammen höchstens 15 MB groß sein. Senden Sie einige davon in einer anderen Nachricht.";
+"ai.attachment.error.unavailable" = "Ein Anhang ist nicht mehr auf diesem Gerät. Entfernen Sie ihn, hängen Sie ihn erneut an und versuchen Sie es noch einmal.";
+"ai.attachment.error.uploadFailed" = "Ein Anhang konnte nicht hochgeladen werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.";
 "ai.composer.dictation.start" = "Diktat starten";
 "ai.composer.dictation.stop" = "Diktat stoppen";
 "ai.composer.dictation.waiting" = "Warten auf Zugriff auf das Mikrofon...";
@@ -62,7 +66,7 @@
 "ai.error.requestTooLarge.title" = "Nachricht ist zu groß";
 "ai.error.requestTooLarge.message" = "Der AI-Chat kann nicht so viel Inhalt auf einmal senden. Entfernen Sie einen oder mehrere Anhänge, wählen Sie eine kleinere Datei oder ein kleineres Foto, oder teilen Sie die Anfrage auf und versuchen Sie es erneut.";
 "ai.error.attachmentUnsupported.title" = "Nicht unterstützter Dateityp";
-"ai.error.attachmentUnsupported.message" = "Dieser Dateityp wird im AI-Chat nicht unterstützt. Entfernen Sie die Datei oder speichern Sie sie als PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX oder Bild und versuchen Sie es erneut.";
+"ai.error.attachmentUnsupported.message" = "Dieser Dateityp wird im AI-Chat nicht unterstützt. Entfernen Sie die Datei oder speichern Sie sie als PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG oder Bild und versuchen Sie es erneut.";
 "ai.error.limitReached" = "Ihr AI-Limit für diesen Monat ist aufgebraucht. Es wird zu Beginn des nächsten Monats zurückgesetzt.";
 "ai.error.summary.couldNotContinue" = "KI-Antwort konnte nicht fortgesetzt werden";
 "ai.error.summary.invalidResponse" = "Es wurde eine ungültige AI-Antwort empfangen";

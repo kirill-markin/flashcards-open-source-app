@@ -68,7 +68,15 @@ standing contract; re-measure before deciding.
 runs commands over the session's files in the chat sandbox Lambda
 (`apps/backend/src/chatSandbox/handler.ts`). MCP and the Agent REST API do not
 get it, because an external AI client already runs code over files on its own
-side. `view_file`
+side. Code a command runs reaches `sql_query` and `sql_execute` as functions
+(`tools.sql.*` in js-exec, `fc-sql-query` and `fc-sql-execute` in the shell)
+through the chat sandbox's SQL bridge (`apps/backend/src/chatSandbox/sqlBridge/`):
+the sandbox host sends each call to `POST /v1/chat/sandbox/sql` under a
+capability the worker mints per command, and the route runs it on the chat's own
+SQL path (`executeChatSandboxSqlCall` in
+`apps/backend/src/chat/openai/tools/tools.ts`) as the `chat-sandbox` SQL surface
+([agent SQL telemetry](agent-sql-telemetry.md)). It is chat-only for the same
+reason as `bash`. `view_file`
 (`apps/backend/src/chat/openai/tools/viewFileToolContract.ts`), which shows the
 model one image or one PDF page of the session, is chat-only for the same
 reason: such a client looks at files on its own side.

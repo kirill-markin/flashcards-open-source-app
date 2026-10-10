@@ -50,9 +50,13 @@
 "ai.attachment.error.unsupportedType" = "ஆதரிக்கப்படாத கோப்பு வகை: .%@";
 "ai.attachment.error.cameraUnavailable" = "இந்தச் சாதனத்தில் கேமரா கிடைக்கவில்லை.";
 "ai.attachment.error.photoUnavailable" = "இந்தச் சாதனத்தில் புகைப்பட அணுகல் கிடைக்கவில்லை.";
-"ai.attachment.error.fileTooLarge" = "கோப்பு மிகப் பெரியது. அதிகபட்ச அனுமதிக்கப்பட்ட அளவு 3 MB.";
+"ai.attachment.error.fileTooLarge" = "கோப்பு மிகப் பெரியது. கோப்புகள் அதிகபட்சம் 30 MB, படங்கள் அதிகபட்சம் 10 MB வரை இருக்கலாம்.";
 "ai.attachment.error.imageEncodeFailed" = "தேர்ந்தெடுத்த புகைப்படத்தைத் தயாரிக்க முடியவில்லை.";
 "ai.attachment.error.imageDimensionsInvalid" = "தேர்ந்தெடுத்த புகைப்படத்தைப் படிக்க முடியவில்லை.";
+"ai.attachment.error.tooManyFiles" = "ஒரு செய்தியில் அதிகபட்சம் 10 கோப்புகளையும் படங்களையும் சேர்க்கலாம். அவற்றில் சிலவற்றை அகற்றி மீண்டும் முயலவும்.";
+"ai.attachment.error.imagesTooLarge" = "ஒரு செய்தியில் உள்ள படங்கள் மொத்தமாக அதிகபட்சம் 15 MB வரை இருக்கலாம். அவற்றில் சிலவற்றை வேறொரு செய்தியில் அனுப்பவும்.";
+"ai.attachment.error.unavailable" = "ஓர் இணைப்பு இனி இந்தச் சாதனத்தில் இல்லை. அதை அகற்றி, மீண்டும் இணைத்து, பிறகு மீண்டும் முயலவும்.";
+"ai.attachment.error.uploadFailed" = "ஓர் இணைப்பைப் பதிவேற்ற முடியவில்லை. இணைய இணைப்பைச் சரிபார்த்து மீண்டும் முயலவும்.";
 "ai.composer.dictation.start" = "பேசித் தட்டச்சைத் தொடங்கு";
 "ai.composer.dictation.stop" = "பேசித் தட்டச்சை நிறுத்து";
 "ai.composer.dictation.waiting" = "மைக்ரோஃபோன் அணுகலுக்குக் காத்திருக்கிறது...";
@@ -62,7 +66,7 @@
 "ai.error.requestTooLarge.title" = "செய்தி மிகப் பெரியது";
 "ai.error.requestTooLarge.message" = "AI அரட்டையால் ஒரே நேரத்தில் இவ்வளவு உள்ளடக்கத்தை அனுப்ப முடியாது. ஓர் இணைப்பையோ பலவற்றையோ நீக்கவும், சிறிய கோப்பு அல்லது புகைப்படத்தைத் தேர்ந்தெடுக்கவும் அல்லது கோரிக்கையைப் பிரித்து மீண்டும் முயலவும்.";
 "ai.error.attachmentUnsupported.title" = "ஆதரிக்கப்படாத கோப்பு வகை";
-"ai.error.attachmentUnsupported.message" = "இந்தக் கோப்பு வகை AI அரட்டையில் ஆதரிக்கப்படவில்லை. கோப்பை அகற்றவும் அல்லது PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX அல்லது படமாகச் சேமித்து மீண்டும் முயலவும்.";
+"ai.error.attachmentUnsupported.message" = "இந்தக் கோப்பு வகை AI அரட்டையில் ஆதரிக்கப்படவில்லை. கோப்பை அகற்றவும் அல்லது PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG அல்லது படமாகச் சேமித்து மீண்டும் முயலவும்.";
 "ai.error.limitReached" = "இந்த மாதத்திற்கான உங்கள் AI வரம்பு தீர்ந்துவிட்டது. இது அடுத்த மாதத் தொடக்கத்தில் மீட்டமைக்கப்படும்.";
 "ai.error.summary.couldNotContinue" = "AI பதிலைத் தொடர முடியவில்லை";
 "ai.error.summary.invalidResponse" = "தவறான AI பதில் கிடைத்தது";
