@@ -10,6 +10,7 @@ import type {
   SqlReturningClause,
   SqlRow,
 } from "../sqlDialect";
+import { buildInvalidSqlError } from "../sqlErrors";
 import { MAX_SQL_RECORD_LIMIT } from "../toolContract/sqlToolLimits";
 
 /**
@@ -262,7 +263,7 @@ function expectLegacyEffortLevel(value: unknown, columnName: string): LegacyEffo
     return value;
   }
 
-  throw new HttpError(400, `${columnName} must contain only fast, medium, or long`, "QUERY_INVALID_SQL");
+  throw buildInvalidSqlError(`${columnName} must contain only fast, medium, or long`, "invalid_value");
 }
 
 function projectReturningRow(returning: SqlReturningClause, row: SqlRow): SqlRow {
@@ -341,19 +342,19 @@ export function buildCreateCardInput(
   const effortLevel = values.get("effort_level");
 
   if (typeof frontText !== "string") {
-    throw new HttpError(400, "front_text is required for INSERT INTO cards", "QUERY_INVALID_SQL");
+    throw buildInvalidSqlError("front_text is required for INSERT INTO cards", "invalid_value");
   }
 
   if (typeof backText !== "string") {
-    throw new HttpError(400, "back_text is required for INSERT INTO cards", "QUERY_INVALID_SQL");
+    throw buildInvalidSqlError("back_text is required for INSERT INTO cards", "invalid_value");
   }
 
   if (effortLevel !== undefined && isLegacyEffortLevel(effortLevel) === false) {
-    throw new HttpError(400, "effort_level must be fast, medium, or long", "QUERY_INVALID_SQL");
+    throw buildInvalidSqlError("effort_level must be fast, medium, or long", "invalid_value");
   }
 
   if (cardType !== undefined && typeof cardType !== "string") {
-    throw new HttpError(400, "card_type must be a string", "QUERY_INVALID_SQL");
+    throw buildInvalidSqlError("card_type must be a string", "invalid_value");
   }
 
   return {
@@ -380,11 +381,11 @@ export function buildCreateDeckInput(
   const effortLevels = values.get("effort_levels");
 
   if (typeof name !== "string") {
-    throw new HttpError(400, "name is required for INSERT INTO decks", "QUERY_INVALID_SQL");
+    throw buildInvalidSqlError("name is required for INSERT INTO decks", "invalid_value");
   }
 
   if (effortLevels !== undefined && Array.isArray(effortLevels) === false) {
-    throw new HttpError(400, "effort_levels must be a string array", "QUERY_INVALID_SQL");
+    throw buildInvalidSqlError("effort_levels must be a string array", "invalid_value");
   }
 
   const legacyEffortTags = (Array.isArray(effortLevels) ? effortLevels : []).map(
@@ -458,35 +459,35 @@ export function buildCardUpdateInput(
   for (const assignment of assignments) {
     if (assignment.columnName === "front_text") {
       if (typeof assignment.value !== "string") {
-        throw new HttpError(400, "front_text must be a string", "QUERY_INVALID_SQL");
+        throw buildInvalidSqlError("front_text must be a string", "invalid_value");
       }
       frontText = assignment.value;
     }
 
     if (assignment.columnName === "back_text") {
       if (typeof assignment.value !== "string") {
-        throw new HttpError(400, "back_text must be a string", "QUERY_INVALID_SQL");
+        throw buildInvalidSqlError("back_text must be a string", "invalid_value");
       }
       backText = assignment.value;
     }
 
     if (assignment.columnName === "card_type") {
       if (typeof assignment.value !== "string") {
-        throw new HttpError(400, "card_type must be a string", "QUERY_INVALID_SQL");
+        throw buildInvalidSqlError("card_type must be a string", "invalid_value");
       }
       cardType = assignment.value;
     }
 
     if (assignment.columnName === "tags") {
       if (Array.isArray(assignment.value) === false) {
-        throw new HttpError(400, "tags must be a string array", "QUERY_INVALID_SQL");
+        throw buildInvalidSqlError("tags must be a string array", "invalid_value");
       }
       tags = assignment.value.filter((item): item is string => typeof item === "string");
     }
 
     if (assignment.columnName === "effort_level") {
       if (isLegacyEffortLevel(assignment.value) === false) {
-        throw new HttpError(400, "effort_level must be fast, medium, or long", "QUERY_INVALID_SQL");
+        throw buildInvalidSqlError("effort_level must be fast, medium, or long", "invalid_value");
       }
       legacyEffortLevel = assignment.value;
     }
@@ -525,21 +526,21 @@ export function buildDeckUpdateInput(
   for (const assignment of assignments) {
     if (assignment.columnName === "name") {
       if (typeof assignment.value !== "string") {
-        throw new HttpError(400, "name must be a string", "QUERY_INVALID_SQL");
+        throw buildInvalidSqlError("name must be a string", "invalid_value");
       }
       name = assignment.value;
     }
 
     if (assignment.columnName === "effort_levels") {
       if (Array.isArray(assignment.value) === false) {
-        throw new HttpError(400, "effort_levels must be a string array", "QUERY_INVALID_SQL");
+        throw buildInvalidSqlError("effort_levels must be a string array", "invalid_value");
       }
       legacyEffortLevels = assignment.value.map((item) => expectLegacyEffortLevel(item, "effort_levels"));
     }
 
     if (assignment.columnName === "tags") {
       if (Array.isArray(assignment.value) === false) {
-        throw new HttpError(400, "tags must be a string array", "QUERY_INVALID_SQL");
+        throw buildInvalidSqlError("tags must be a string array", "invalid_value");
       }
       tags = assignment.value.filter((item): item is string => typeof item === "string");
     }
@@ -606,10 +607,9 @@ export function assertSqlMutationRecordLimit(
   count: number,
 ): void {
   if (count > MAX_SQL_LIMIT) {
-    throw new HttpError(
-      400,
+    throw buildInvalidSqlError(
       `${statementType.toUpperCase()} may affect at most ${MAX_SQL_LIMIT} records per statement`,
-      "QUERY_INVALID_SQL",
+      "batch_too_large",
     );
   }
 }

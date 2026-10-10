@@ -1,9 +1,12 @@
+import { getDatabaseErrorFields } from "../../database/transient";
+import { writeCloudWatchRecord } from "../../observability/cloudWatch";
 import {
   addBackendBreadcrumb,
   captureBackendException,
   captureBackendWarning,
   captureBackendWarningWithFingerprint,
   createBackendObservationScope,
+  getBackendErrorLogDetails,
   type BackendObservationScope,
   type ChatWorkerLifecycleDetails,
   type ChatWorkerTerminalStateDetails,
@@ -114,6 +117,62 @@ export function logChatWorkerTerminalStateEvent(
     scope,
     details,
   });
+}
+
+export function logChatWorkerHeartbeatFailed(
+  context: ChatWorkerLogContext,
+  error: unknown,
+  elapsedMs: number,
+  timerLagMs: number,
+): void {
+  const errorDetails = getBackendErrorLogDetails(error);
+  writeCloudWatchRecord({
+    action: "chat_worker_heartbeat_failed",
+    message: "Chat run heartbeat failed.",
+    scope: createChatWorkerScope(context),
+    details: {
+      lambdaRequestId: context.lambdaRequestId,
+      errorClass: errorDetails.errorClass,
+      errorMessage: errorDetails.errorMessage,
+      sqlState: getDatabaseErrorFields(error).sqlState,
+      elapsedMs,
+      timerLagMs,
+    },
+  }, "warning");
+}
+
+export function logChatWorkerHeartbeatSkipped(
+  context: ChatWorkerLogContext,
+  pendingMs: number,
+): void {
+  writeCloudWatchRecord({
+    action: "chat_worker_heartbeat_skipped",
+    message: "Chat run heartbeat tick skipped because the previous heartbeat is still pending.",
+    scope: createChatWorkerScope(context),
+    details: {
+      lambdaRequestId: context.lambdaRequestId,
+      pendingMs,
+    },
+  }, "warning");
+}
+
+export function logChatWorkerHeartbeatTimerLagged(
+  context: ChatWorkerLogContext,
+  timerLagMs: number,
+  executionPhase: string,
+  toolName: string | null,
+): void {
+  writeCloudWatchRecord({
+    action: "chat_worker_heartbeat_timer_lagged",
+    message: "Chat run heartbeat timer fired late because the event loop was blocked.",
+    scope: createChatWorkerScope(context),
+    details: {
+      lambdaRequestId: context.lambdaRequestId,
+      timerLagMs,
+      executionPhase,
+      toolName,
+    },
+  }, "warning");
 }
 
 export function captureChatWorkerTerminalStateException(
