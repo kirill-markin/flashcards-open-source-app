@@ -4,6 +4,11 @@ import {
   type GeneratedMediaPromotionBatchResult,
 } from "../../chat/cardImages/promotion/processor";
 import {
+  ChatFileCleanupBatchError,
+  runChatFileCleanupBatch,
+  type ChatFileCleanupBatchResult,
+} from "../../chatFiles";
+import {
   MediaBlobCleanupBatchError,
   runMediaBlobCleanupBatch,
   type MediaBlobCleanupBatchResult,
@@ -23,12 +28,17 @@ export const mediaBlobCleanupMaximumCandidates = 5;
 export const mediaBlobCleanupLeaseDurationMs = 60_000;
 export const generatedMediaPromotionFinalizationReserveMs = 10_000;
 export const mediaBlobCleanupMinimumStartBudgetMs = 1_000;
+export const chatFileCleanupMinimumStartBudgetMs = 5_000;
 export const mediaBlobCleanupEnabledEnvironmentName =
   "MEDIA_BLOB_CLEANUP_ENABLED";
 type GeneratedMediaPromotionResponse = Omit<GeneratedMediaPromotionBatchResult, "results"> & Readonly<{
   ok: true;
   cleanup: Omit<MediaBlobCleanupBatchResult, "results">;
+  chatFileCleanup: ChatFileCleanupBatchResult | null;
 }>;
+const emptyChatFileCleanupResult: ChatFileCleanupBatchResult = {
+  tombstones: 0, deleted: 0, failures: [],
+};
 function emptyDetails(): GeneratedMediaPromotionBatchDetails {
   return {
     maximumJobs: generatedMediaPromotionMaximumJobs,
@@ -98,6 +108,7 @@ function toCleanupDetails(result: MediaBlobCleanupBatchResult): MediaBlobCleanup
 export type GeneratedMediaScheduledWorkloadDependencies = Readonly<{
   runPromotionFn: typeof runGeneratedMediaPromotionBatch;
   runCleanupFn: typeof runMediaBlobCleanupBatch;
+  runChatFileCleanupFn: typeof runChatFileCleanupBatch;
   nowFn: () => number;
 }>;
 
@@ -112,6 +123,8 @@ export type GeneratedMediaScheduledWorkloadInput = Readonly<{
 export type GeneratedMediaScheduledWorkloadResult = Readonly<{
   promotion: GeneratedMediaPromotionBatchResult;
   cleanup: MediaBlobCleanupBatchResult;
+  /** Null when the invocation had too little budget left to start it. */
+  chatFileCleanup: ChatFileCleanupBatchResult | null;
 }>;
 
 export async function runGeneratedMediaScheduledWorkloads(
@@ -184,14 +197,46 @@ export async function runGeneratedMediaScheduledWorkloads(
     }
   }
 
-  if (promotionError !== null && cleanupError !== null) {
+  let chatFileCleanupResult: ChatFileCleanupBatchResult | null = null;
+  let chatFileCleanupError: unknown = null;
+  if (
+    !input.signal.aborted
+    && dependencies.nowFn() + chatFileCleanupMinimumStartBudgetMs
+      < input.deadlineAtMs
+  ) {
+    try {
+      chatFileCleanupResult = await dependencies.runChatFileCleanupFn({
+        deadlineAtMs: input.deadlineAtMs,
+        observationScope: input.observationScope,
+        signal: input.signal,
+      });
+      addBackendBreadcrumb({
+        action: "chat_file_cleanup_batch_completed",
+        scope: input.observationScope,
+        details: chatFileCleanupResult,
+      });
+    } catch (error) {
+      chatFileCleanupError = error;
+      captureBackendException({
+        action: "chat_file_cleanup_batch_failed",
+        error: normalizeCaughtError(error),
+        scope: input.observationScope,
+        details: error instanceof ChatFileCleanupBatchError
+          ? error.result
+          : emptyChatFileCleanupResult,
+      });
+    }
+  }
+
+  const failures = [promotionError, cleanupError, chatFileCleanupError]
+    .filter((error) => error !== null);
+  if (failures.length > 1) {
     throw new AggregateError(
-      [promotionError, cleanupError],
-      "Generated-media promotion and media-blob cleanup both failed.",
+      failures,
+      "More than one generated-media scheduled workload failed.",
     );
   }
-  if (promotionError !== null) throw promotionError;
-  if (cleanupError !== null) throw cleanupError;
+  if (failures.length === 1) throw failures[0];
   if (promotionResult === null) {
     throw new Error(
       "Generated-media promotion did not return a result or a failure.",
@@ -200,12 +245,14 @@ export async function runGeneratedMediaScheduledWorkloads(
   return {
     promotion: promotionResult,
     cleanup: cleanupResult,
+    chatFileCleanup: chatFileCleanupResult,
   };
 }
 
 const scheduledWorkloadDependencies: GeneratedMediaScheduledWorkloadDependencies = {
   runPromotionFn: runGeneratedMediaPromotionBatch,
   runCleanupFn: runMediaBlobCleanupBatch,
+  runChatFileCleanupFn: runChatFileCleanupBatch,
   nowFn: Date.now,
 };
 
@@ -251,6 +298,7 @@ async (_event, context) => {
         reconciliationRequired: cleanupResult.reconciliationRequired,
         interrupted: cleanupResult.interrupted,
       },
+      chatFileCleanup: workloadResult.chatFileCleanup,
     };
   } finally {
     clearTimeout(deadlineTimer);

@@ -9,5 +9,10 @@ export {
   uploadTurnInlineChatAttachments,
   type UploadedChatAttachment,
 } from "./attachments";
+export {
+  ChatFileCleanupBatchError,
+  runChatFileCleanupBatch,
+  type ChatFileCleanupBatchResult,
+} from "./cleanup";
 export { convertLegacyChatSessionAttachments } from "./legacyConversion";
 export { buildChatFileS3Key, getChatFileObjectBytes } from "./storage";

@@ -3,6 +3,7 @@ import test from "node:test";
 import type {
   GeneratedMediaPromotionBatchResult,
 } from "../../chat/cardImages/promotion/processor";
+import type { ChatFileCleanupBatchResult } from "../../chatFiles";
 import {
   MediaBlobCleanupBatchError,
   type MediaBlobCleanupBatchResult,
@@ -54,6 +55,12 @@ const cleanupResult: MediaBlobCleanupBatchResult = {
   results: [],
 };
 
+const chatFileCleanupResult: ChatFileCleanupBatchResult = {
+  tombstones: 0,
+  deleted: 0,
+  failures: [],
+};
+
 function input(
   signal: AbortSignal,
   cleanupEnabled: boolean,
@@ -88,6 +95,7 @@ test("disabled cleanup leaves generated-media promotion running", async () => {
       calls.push("cleanup");
       return cleanupResult;
     },
+    runChatFileCleanupFn: async () => chatFileCleanupResult,
     nowFn: () => 0,
   };
 
@@ -125,6 +133,7 @@ test("scheduled work prioritizes promotion and reports cleanup interruption when
       calls.push("cleanup");
       return cleanupResult;
     },
+    runChatFileCleanupFn: async () => chatFileCleanupResult,
     nowFn: () => nowMs,
   };
 
@@ -160,6 +169,7 @@ test("scheduled work aggregates successful promotion and cleanup results in prio
       calls.push("cleanup");
       return cleanupResult;
     },
+    runChatFileCleanupFn: async () => chatFileCleanupResult,
     nowFn: () => 0,
   };
 
@@ -186,6 +196,7 @@ test("scheduled work surfaces cleanup failure after promotion and aggregates bot
       calls.push("cleanup");
       throw cleanupFailure;
     },
+    runChatFileCleanupFn: async () => chatFileCleanupResult,
     nowFn: () => 0,
   };
 
@@ -205,6 +216,7 @@ test("scheduled work surfaces cleanup failure after promotion and aggregates bot
     runCleanupFn: async () => {
       throw cleanupFailure;
     },
+    runChatFileCleanupFn: async () => chatFileCleanupResult,
     nowFn: () => 0,
   };
   await assert.rejects(
@@ -246,6 +258,7 @@ test("scheduled work preserves the exact partial cleanup batch for failure telem
     runCleanupFn: async () => {
       throw cleanupFailure;
     },
+    runChatFileCleanupFn: async () => chatFileCleanupResult,
     nowFn: () => 0,
   };
 
