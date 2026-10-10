@@ -1,0 +1,1736 @@
+[
+  {
+    "tag": "en-US",
+    "label": "English (English)",
+    "preview": "previews/en-US-phone.png",
+    "banner": "../play-store-feature-graphic/en-US-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/en-US/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "Create flashcards with AI"
+      },
+      {
+        "path": "ready/en-US/phoneScreenshots/02_start-learning.png",
+        "heading": "Start Learning",
+        "caption": "Recall the answer yourself"
+      },
+      {
+        "path": "ready/en-US/phoneScreenshots/03_smart-reviews.png",
+        "heading": "Smart Reviews",
+        "caption": "Review at the right time"
+      },
+      {
+        "path": "ready/en-US/phoneScreenshots/04_your-progress.png",
+        "heading": "Your Progress",
+        "caption": "Track your study days"
+      },
+      {
+        "path": "ready/en-US/phoneScreenshots/05_your-cards.png",
+        "heading": "Your Cards",
+        "caption": "All your cards in one place"
+      }
+    ]
+  },
+  {
+    "tag": "ar",
+    "label": "العربية (Arabic)",
+    "preview": "previews/ar-phone.png",
+    "banner": "../play-store-feature-graphic/ar-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/ar/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "أنشئ بطاقات بالذكاء الاصطناعي"
+      },
+      {
+        "path": "ready/ar/phoneScreenshots/02_start-learning.png",
+        "heading": "ابدأ التعلّم",
+        "caption": "تذكّر الإجابة بنفسك"
+      },
+      {
+        "path": "ready/ar/phoneScreenshots/03_smart-reviews.png",
+        "heading": "مراجعات ذكية",
+        "caption": "راجع في الوقت المناسب"
+      },
+      {
+        "path": "ready/ar/phoneScreenshots/04_your-progress.png",
+        "heading": "تقدّمك",
+        "caption": "تابع أيام دراستك"
+      },
+      {
+        "path": "ready/ar/phoneScreenshots/05_your-cards.png",
+        "heading": "بطاقاتك",
+        "caption": "كل بطاقاتك في مكان واحد"
+      }
+    ]
+  },
+  {
+    "tag": "zh-CN",
+    "label": "简体中文 (Chinese (Simplified))",
+    "preview": "previews/zh-CN-phone.png",
+    "banner": "../play-store-feature-graphic/zh-CN-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/zh-CN/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "用AI创建闪卡"
+      },
+      {
+        "path": "ready/zh-CN/phoneScreenshots/02_start-learning.png",
+        "heading": "开始学习",
+        "caption": "自己回想答案"
+      },
+      {
+        "path": "ready/zh-CN/phoneScreenshots/03_smart-reviews.png",
+        "heading": "智能复习",
+        "caption": "在合适的时间复习"
+      },
+      {
+        "path": "ready/zh-CN/phoneScreenshots/04_your-progress.png",
+        "heading": "学习进度",
+        "caption": "记录你的学习日"
+      },
+      {
+        "path": "ready/zh-CN/phoneScreenshots/05_your-cards.png",
+        "heading": "你的卡片",
+        "caption": "所有卡片尽在一处"
+      }
+    ]
+  },
+  {
+    "tag": "fr-FR",
+    "label": "Français (French)",
+    "preview": "previews/fr-FR-phone.png",
+    "banner": "../play-store-feature-graphic/fr-FR-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/fr-FR/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "Créez des cartes avec l’IA"
+      },
+      {
+        "path": "ready/fr-FR/phoneScreenshots/02_start-learning.png",
+        "heading": "Étudiez",
+        "caption": "Retrouvez la réponse par vous-même"
+      },
+      {
+        "path": "ready/fr-FR/phoneScreenshots/03_smart-reviews.png",
+        "heading": "Révisions",
+        "caption": "Révisez au bon moment"
+      },
+      {
+        "path": "ready/fr-FR/phoneScreenshots/04_your-progress.png",
+        "heading": "Votre progression",
+        "caption": "Suivez vos jours d’étude"
+      },
+      {
+        "path": "ready/fr-FR/phoneScreenshots/05_your-cards.png",
+        "heading": "Vos cartes",
+        "caption": "Toutes vos cartes au même endroit"
+      }
+    ]
+  },
+  {
+    "tag": "de-DE",
+    "label": "Deutsch (German)",
+    "preview": "previews/de-DE-phone.png",
+    "banner": "../play-store-feature-graphic/de-DE-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/de-DE/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "Erstelle Lernkarten mit KI"
+      },
+      {
+        "path": "ready/de-DE/phoneScreenshots/02_start-learning.png",
+        "heading": "Lernen starten",
+        "caption": "Erinnere dich selbst an die Antwort"
+      },
+      {
+        "path": "ready/de-DE/phoneScreenshots/03_smart-reviews.png",
+        "heading": "Clever wiederholen",
+        "caption": "Wiederhole zur richtigen Zeit"
+      },
+      {
+        "path": "ready/de-DE/phoneScreenshots/04_your-progress.png",
+        "heading": "Dein Fortschritt",
+        "caption": "Verfolge deine Lerntage"
+      },
+      {
+        "path": "ready/de-DE/phoneScreenshots/05_your-cards.png",
+        "heading": "Deine Karten",
+        "caption": "Alle Karten an einem Ort"
+      }
+    ]
+  },
+  {
+    "tag": "hi-IN",
+    "label": "हिन्दी (Hindi)",
+    "preview": "previews/hi-IN-phone.png",
+    "banner": "../play-store-feature-graphic/hi-IN-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/hi-IN/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "AI से फ़्लैशकार्ड बनाएँ"
+      },
+      {
+        "path": "ready/hi-IN/phoneScreenshots/02_start-learning.png",
+        "heading": "सीखना शुरू करें",
+        "caption": "जवाब खुद याद करें"
+      },
+      {
+        "path": "ready/hi-IN/phoneScreenshots/03_smart-reviews.png",
+        "heading": "स्मार्ट रिव्यू",
+        "caption": "सही समय पर दोहराएँ"
+      },
+      {
+        "path": "ready/hi-IN/phoneScreenshots/04_your-progress.png",
+        "heading": "आपकी प्रगति",
+        "caption": "पढ़ाई के दिन देखें"
+      },
+      {
+        "path": "ready/hi-IN/phoneScreenshots/05_your-cards.png",
+        "heading": "आपके कार्ड",
+        "caption": "सारे कार्ड एक जगह"
+      }
+    ]
+  },
+  {
+    "tag": "ja-JP",
+    "label": "日本語 (Japanese)",
+    "preview": "previews/ja-JP-phone.png",
+    "banner": "../play-store-feature-graphic/ja-JP-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/ja-JP/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "AIでフラッシュカードを作成"
+      },
+      {
+        "path": "ready/ja-JP/phoneScreenshots/02_start-learning.png",
+        "heading": "学習を始める",
+        "caption": "自分で答えを思い出す"
+      },
+      {
+        "path": "ready/ja-JP/phoneScreenshots/03_smart-reviews.png",
+        "heading": "スマート復習",
+        "caption": "最適なタイミングで復習"
+      },
+      {
+        "path": "ready/ja-JP/phoneScreenshots/04_your-progress.png",
+        "heading": "学習の進捗",
+        "caption": "学習した日を記録"
+      },
+      {
+        "path": "ready/ja-JP/phoneScreenshots/05_your-cards.png",
+        "heading": "カード一覧",
+        "caption": "すべてのカードをひとつに"
+      }
+    ]
+  },
+  {
+    "tag": "pt-BR",
+    "label": "Português (Brasil) (Portuguese (Brazil))",
+    "preview": "previews/pt-BR-phone.png",
+    "banner": "../play-store-feature-graphic/pt-BR-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/pt-BR/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "Crie flashcards com IA"
+      },
+      {
+        "path": "ready/pt-BR/phoneScreenshots/02_start-learning.png",
+        "heading": "Comece a estudar",
+        "caption": "Lembre a resposta por conta própria"
+      },
+      {
+        "path": "ready/pt-BR/phoneScreenshots/03_smart-reviews.png",
+        "heading": "Revisão inteligente",
+        "caption": "Revise na hora certa"
+      },
+      {
+        "path": "ready/pt-BR/phoneScreenshots/04_your-progress.png",
+        "heading": "Seu progresso",
+        "caption": "Acompanhe seus dias de estudo"
+      },
+      {
+        "path": "ready/pt-BR/phoneScreenshots/05_your-cards.png",
+        "heading": "Seus cartões",
+        "caption": "Todos os cartões em um só lugar"
+      }
+    ]
+  },
+  {
+    "tag": "ru-RU",
+    "label": "Русский (Russian)",
+    "preview": "previews/ru-RU-phone.png",
+    "banner": "../play-store-feature-graphic/ru-RU-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/ru-RU/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "Создавайте карточки с ИИ"
+      },
+      {
+        "path": "ready/ru-RU/phoneScreenshots/02_start-learning.png",
+        "heading": "Начните учить",
+        "caption": "Вспоминайте ответ сами"
+      },
+      {
+        "path": "ready/ru-RU/phoneScreenshots/03_smart-reviews.png",
+        "heading": "Повторяйте",
+        "caption": "Повторяйте в нужный момент"
+      },
+      {
+        "path": "ready/ru-RU/phoneScreenshots/04_your-progress.png",
+        "heading": "Ваш прогресс",
+        "caption": "Следите за днями занятий"
+      },
+      {
+        "path": "ready/ru-RU/phoneScreenshots/05_your-cards.png",
+        "heading": "Ваши карточки",
+        "caption": "Все карточки под рукой"
+      }
+    ]
+  },
+  {
+    "tag": "es-419",
+    "label": "Español · Latinoamérica (Spanish)",
+    "preview": "previews/es-419-phone.png",
+    "banner": "../play-store-feature-graphic/es-419-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/es-419/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "Crea tarjetas con IA"
+      },
+      {
+        "path": "ready/es-419/phoneScreenshots/02_start-learning.png",
+        "heading": "Empieza a estudiar",
+        "caption": "Recuerda la respuesta por tu cuenta"
+      },
+      {
+        "path": "ready/es-419/phoneScreenshots/03_smart-reviews.png",
+        "heading": "Repaso inteligente",
+        "caption": "Repasa en el momento adecuado"
+      },
+      {
+        "path": "ready/es-419/phoneScreenshots/04_your-progress.png",
+        "heading": "Tu progreso",
+        "caption": "Sigue tus días de estudio"
+      },
+      {
+        "path": "ready/es-419/phoneScreenshots/05_your-cards.png",
+        "heading": "Tus tarjetas",
+        "caption": "Todas tus tarjetas en un lugar"
+      }
+    ]
+  },
+  {
+    "tag": "es-ES",
+    "label": "Español · España (Spanish)",
+    "preview": "previews/es-ES-phone.png",
+    "banner": "../play-store-feature-graphic/es-ES-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/es-ES/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "Crea tarjetas con IA"
+      },
+      {
+        "path": "ready/es-ES/phoneScreenshots/02_start-learning.png",
+        "heading": "Empieza a estudiar",
+        "caption": "Recuerda la respuesta por tu cuenta"
+      },
+      {
+        "path": "ready/es-ES/phoneScreenshots/03_smart-reviews.png",
+        "heading": "Repaso inteligente",
+        "caption": "Repasa en el momento adecuado"
+      },
+      {
+        "path": "ready/es-ES/phoneScreenshots/04_your-progress.png",
+        "heading": "Tu progreso",
+        "caption": "Sigue tus días de estudio"
+      },
+      {
+        "path": "ready/es-ES/phoneScreenshots/05_your-cards.png",
+        "heading": "Tus tarjetas",
+        "caption": "Todas tus tarjetas en un lugar"
+      }
+    ]
+  },
+  {
+    "tag": "es-US",
+    "label": "Español · Estados Unidos (Spanish)",
+    "preview": "previews/es-US-phone.png",
+    "banner": "../play-store-feature-graphic/es-US-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/es-US/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "Crea tarjetas con IA"
+      },
+      {
+        "path": "ready/es-US/phoneScreenshots/02_start-learning.png",
+        "heading": "Empieza a estudiar",
+        "caption": "Recuerda la respuesta por tu cuenta"
+      },
+      {
+        "path": "ready/es-US/phoneScreenshots/03_smart-reviews.png",
+        "heading": "Repaso inteligente",
+        "caption": "Repasa en el momento adecuado"
+      },
+      {
+        "path": "ready/es-US/phoneScreenshots/04_your-progress.png",
+        "heading": "Tu progreso",
+        "caption": "Sigue tus días de estudio"
+      },
+      {
+        "path": "ready/es-US/phoneScreenshots/05_your-cards.png",
+        "heading": "Tus tarjetas",
+        "caption": "Todas tus tarjetas en un lugar"
+      }
+    ]
+  },
+  {
+    "tag": "bg",
+    "label": "Български (Bulgarian)",
+    "preview": "previews/bg-phone.png",
+    "banner": "../play-store-feature-graphic/bg-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/bg/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "Създавайте карти с AI"
+      },
+      {
+        "path": "ready/bg/phoneScreenshots/02_start-learning.png",
+        "heading": "Започнете учене",
+        "caption": "Припомнете си отговора сами"
+      },
+      {
+        "path": "ready/bg/phoneScreenshots/03_smart-reviews.png",
+        "heading": "Умни преговори",
+        "caption": "Преговаряйте в точния момент"
+      },
+      {
+        "path": "ready/bg/phoneScreenshots/04_your-progress.png",
+        "heading": "Вашият напредък",
+        "caption": "Следете дните на учене"
+      },
+      {
+        "path": "ready/bg/phoneScreenshots/05_your-cards.png",
+        "heading": "Вашите карти",
+        "caption": "Всички карти на едно място"
+      }
+    ]
+  },
+  {
+    "tag": "bn-BD",
+    "label": "বাংলা (Bengali)",
+    "preview": "previews/bn-BD-phone.png",
+    "banner": "../play-store-feature-graphic/bn-BD-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/bn-BD/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "AI দিয়ে ফ্ল্যাশকার্ড তৈরি করুন"
+      },
+      {
+        "path": "ready/bn-BD/phoneScreenshots/02_start-learning.png",
+        "heading": "শেখা শুরু করুন",
+        "caption": "নিজেই উত্তর মনে করুন"
+      },
+      {
+        "path": "ready/bn-BD/phoneScreenshots/03_smart-reviews.png",
+        "heading": "স্মার্ট রিভিউ",
+        "caption": "সঠিক সময়ে ঝালিয়ে নিন"
+      },
+      {
+        "path": "ready/bn-BD/phoneScreenshots/04_your-progress.png",
+        "heading": "আপনার অগ্রগতি",
+        "caption": "পড়ার দিনগুলো দেখুন"
+      },
+      {
+        "path": "ready/bn-BD/phoneScreenshots/05_your-cards.png",
+        "heading": "আপনার কার্ড",
+        "caption": "সব কার্ড এক জায়গায়"
+      }
+    ]
+  },
+  {
+    "tag": "ca",
+    "label": "Català (Catalan)",
+    "preview": "previews/ca-phone.png",
+    "banner": "../play-store-feature-graphic/ca-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/ca/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "Crea targetes amb IA"
+      },
+      {
+        "path": "ready/ca/phoneScreenshots/02_start-learning.png",
+        "heading": "Comença",
+        "caption": "Recorda la resposta pel teu compte"
+      },
+      {
+        "path": "ready/ca/phoneScreenshots/03_smart-reviews.png",
+        "heading": "Repassos",
+        "caption": "Repassa en el moment adequat"
+      },
+      {
+        "path": "ready/ca/phoneScreenshots/04_your-progress.png",
+        "heading": "El teu progrés",
+        "caption": "Segueix els dies d’estudi"
+      },
+      {
+        "path": "ready/ca/phoneScreenshots/05_your-cards.png",
+        "heading": "Les teves targetes",
+        "caption": "Totes les targetes en un sol lloc"
+      }
+    ]
+  },
+  {
+    "tag": "cs-CZ",
+    "label": "Čeština (Czech)",
+    "preview": "previews/cs-CZ-phone.png",
+    "banner": "../play-store-feature-graphic/cs-CZ-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/cs-CZ/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "Vytvářejte kartičky s AI"
+      },
+      {
+        "path": "ready/cs-CZ/phoneScreenshots/02_start-learning.png",
+        "heading": "Začněte se učit",
+        "caption": "Vybavte si odpověď sami"
+      },
+      {
+        "path": "ready/cs-CZ/phoneScreenshots/03_smart-reviews.png",
+        "heading": "Chytré opakování",
+        "caption": "Opakujte ve správný čas"
+      },
+      {
+        "path": "ready/cs-CZ/phoneScreenshots/04_your-progress.png",
+        "heading": "Váš pokrok",
+        "caption": "Sledujte své studijní dny"
+      },
+      {
+        "path": "ready/cs-CZ/phoneScreenshots/05_your-cards.png",
+        "heading": "Vaše kartičky",
+        "caption": "Všechny kartičky na jednom místě"
+      }
+    ]
+  },
+  {
+    "tag": "da-DK",
+    "label": "Dansk (Danish)",
+    "preview": "previews/da-DK-phone.png",
+    "banner": "../play-store-feature-graphic/da-DK-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/da-DK/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "Lav læringskort med AI"
+      },
+      {
+        "path": "ready/da-DK/phoneScreenshots/02_start-learning.png",
+        "heading": "Begynd at lære",
+        "caption": "Husk selv svaret"
+      },
+      {
+        "path": "ready/da-DK/phoneScreenshots/03_smart-reviews.png",
+        "heading": "Smart repetition",
+        "caption": "Gentag på det rette tidspunkt"
+      },
+      {
+        "path": "ready/da-DK/phoneScreenshots/04_your-progress.png",
+        "heading": "Dine fremskridt",
+        "caption": "Følg dine studiedage"
+      },
+      {
+        "path": "ready/da-DK/phoneScreenshots/05_your-cards.png",
+        "heading": "Dine kort",
+        "caption": "Alle kort på ét sted"
+      }
+    ]
+  },
+  {
+    "tag": "el-GR",
+    "label": "Ελληνικά (Greek)",
+    "preview": "previews/el-GR-phone.png",
+    "banner": "../play-store-feature-graphic/el-GR-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/el-GR/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "Φτιάξε κάρτες με AI"
+      },
+      {
+        "path": "ready/el-GR/phoneScreenshots/02_start-learning.png",
+        "heading": "Ξεκίνα μάθηση",
+        "caption": "Θυμήσου την απάντηση μόνος σου"
+      },
+      {
+        "path": "ready/el-GR/phoneScreenshots/03_smart-reviews.png",
+        "heading": "Σωστή επανάληψη",
+        "caption": "Επανάλαβε τη σωστή στιγμή"
+      },
+      {
+        "path": "ready/el-GR/phoneScreenshots/04_your-progress.png",
+        "heading": "Η πρόοδός σου",
+        "caption": "Παρακολούθησε τις ημέρες μελέτης"
+      },
+      {
+        "path": "ready/el-GR/phoneScreenshots/05_your-cards.png",
+        "heading": "Οι κάρτες σου",
+        "caption": "Όλες οι κάρτες σε ένα μέρος"
+      }
+    ]
+  },
+  {
+    "tag": "et",
+    "label": "Eesti (Estonian)",
+    "preview": "previews/et-phone.png",
+    "banner": "../play-store-feature-graphic/et-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/et/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "Loo õpikaarte tehisintellektiga"
+      },
+      {
+        "path": "ready/et/phoneScreenshots/02_start-learning.png",
+        "heading": "Alusta õppimist",
+        "caption": "Meenuta vastust ise"
+      },
+      {
+        "path": "ready/et/phoneScreenshots/03_smart-reviews.png",
+        "heading": "Nutikas kordamine",
+        "caption": "Korda õigel ajal"
+      },
+      {
+        "path": "ready/et/phoneScreenshots/04_your-progress.png",
+        "heading": "Sinu edusammud",
+        "caption": "Jälgi oma õppepäevi"
+      },
+      {
+        "path": "ready/et/phoneScreenshots/05_your-cards.png",
+        "heading": "Sinu kaardid",
+        "caption": "Kõik kaardid ühes kohas"
+      }
+    ]
+  },
+  {
+    "tag": "fa",
+    "label": "فارسی (Persian)",
+    "preview": "previews/fa-phone.png",
+    "banner": "../play-store-feature-graphic/fa-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/fa/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "با هوش مصنوعی فلش‌کارت بسازید"
+      },
+      {
+        "path": "ready/fa/phoneScreenshots/02_start-learning.png",
+        "heading": "شروع یادگیری",
+        "caption": "پاسخ را خودتان به یاد بیاورید"
+      },
+      {
+        "path": "ready/fa/phoneScreenshots/03_smart-reviews.png",
+        "heading": "مرور هوشمند",
+        "caption": "در زمان مناسب مرور کنید"
+      },
+      {
+        "path": "ready/fa/phoneScreenshots/04_your-progress.png",
+        "heading": "پیشرفت شما",
+        "caption": "روزهای مطالعه را دنبال کنید"
+      },
+      {
+        "path": "ready/fa/phoneScreenshots/05_your-cards.png",
+        "heading": "کارت‌های شما",
+        "caption": "همهٔ کارت‌ها در یک جا"
+      }
+    ]
+  },
+  {
+    "tag": "fi-FI",
+    "label": "Suomi (Finnish)",
+    "preview": "previews/fi-FI-phone.png",
+    "banner": "../play-store-feature-graphic/fi-FI-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/fi-FI/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "Luo opiskelukortteja tekoälyllä"
+      },
+      {
+        "path": "ready/fi-FI/phoneScreenshots/02_start-learning.png",
+        "heading": "Aloita opiskelu",
+        "caption": "Muista vastaus itse"
+      },
+      {
+        "path": "ready/fi-FI/phoneScreenshots/03_smart-reviews.png",
+        "heading": "Älykäs kertaus",
+        "caption": "Kertaa oikeaan aikaan"
+      },
+      {
+        "path": "ready/fi-FI/phoneScreenshots/04_your-progress.png",
+        "heading": "Edistymisesi",
+        "caption": "Seuraa opiskelupäiviäsi"
+      },
+      {
+        "path": "ready/fi-FI/phoneScreenshots/05_your-cards.png",
+        "heading": "Omat kortit",
+        "caption": "Kaikki kortit yhdessä paikassa"
+      }
+    ]
+  },
+  {
+    "tag": "gu",
+    "label": "ગુજરાતી (Gujarati)",
+    "preview": "previews/gu-phone.png",
+    "banner": "../play-store-feature-graphic/gu-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/gu/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "AI થી ફ્લૅશકાર્ડ બનાવો"
+      },
+      {
+        "path": "ready/gu/phoneScreenshots/02_start-learning.png",
+        "heading": "શીખવાનું શરૂ કરો",
+        "caption": "જવાબ જાતે યાદ કરો"
+      },
+      {
+        "path": "ready/gu/phoneScreenshots/03_smart-reviews.png",
+        "heading": "સ્માર્ટ રિવ્યૂ",
+        "caption": "યોગ્ય સમયે પુનરાવર્તન કરો"
+      },
+      {
+        "path": "ready/gu/phoneScreenshots/04_your-progress.png",
+        "heading": "તમારી પ્રગતિ",
+        "caption": "અભ્યાસના દિવસો જુઓ"
+      },
+      {
+        "path": "ready/gu/phoneScreenshots/05_your-cards.png",
+        "heading": "તમારા કાર્ડ",
+        "caption": "બધા કાર્ડ એક જગ્યાએ"
+      }
+    ]
+  },
+  {
+    "tag": "iw-IL",
+    "label": "עברית (Hebrew)",
+    "preview": "previews/iw-IL-phone.png",
+    "banner": "../play-store-feature-graphic/iw-IL-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/iw-IL/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "צרו כרטיסיות עם בינה מלאכותית"
+      },
+      {
+        "path": "ready/iw-IL/phoneScreenshots/02_start-learning.png",
+        "heading": "מתחילים ללמוד",
+        "caption": "היזכרו בתשובה בעצמכם"
+      },
+      {
+        "path": "ready/iw-IL/phoneScreenshots/03_smart-reviews.png",
+        "heading": "חזרות חכמות",
+        "caption": "חזרו בזמן המתאים"
+      },
+      {
+        "path": "ready/iw-IL/phoneScreenshots/04_your-progress.png",
+        "heading": "ההתקדמות שלכם",
+        "caption": "עקבו אחר ימי הלימוד"
+      },
+      {
+        "path": "ready/iw-IL/phoneScreenshots/05_your-cards.png",
+        "heading": "הכרטיסיות שלכם",
+        "caption": "כל הכרטיסיות במקום אחד"
+      }
+    ]
+  },
+  {
+    "tag": "hr",
+    "label": "Hrvatski (Croatian)",
+    "preview": "previews/hr-phone.png",
+    "banner": "../play-store-feature-graphic/hr-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/hr/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "Stvarajte kartice uz AI"
+      },
+      {
+        "path": "ready/hr/phoneScreenshots/02_start-learning.png",
+        "heading": "Počnite učiti",
+        "caption": "Sami se prisjetite odgovora"
+      },
+      {
+        "path": "ready/hr/phoneScreenshots/03_smart-reviews.png",
+        "heading": "Pametno ponovi",
+        "caption": "Ponavljajte u pravo vrijeme"
+      },
+      {
+        "path": "ready/hr/phoneScreenshots/04_your-progress.png",
+        "heading": "Vaš napredak",
+        "caption": "Pratite dane učenja"
+      },
+      {
+        "path": "ready/hr/phoneScreenshots/05_your-cards.png",
+        "heading": "Vaše kartice",
+        "caption": "Sve kartice na jednom mjestu"
+      }
+    ]
+  },
+  {
+    "tag": "hu-HU",
+    "label": "Magyar (Hungarian)",
+    "preview": "previews/hu-HU-phone.png",
+    "banner": "../play-store-feature-graphic/hu-HU-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/hu-HU/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "Készíts tanulókártyákat MI-vel"
+      },
+      {
+        "path": "ready/hu-HU/phoneScreenshots/02_start-learning.png",
+        "heading": "Kezdj tanulni",
+        "caption": "Idézd fel magad a választ"
+      },
+      {
+        "path": "ready/hu-HU/phoneScreenshots/03_smart-reviews.png",
+        "heading": "Okos ismétlés",
+        "caption": "Ismételj a megfelelő időben"
+      },
+      {
+        "path": "ready/hu-HU/phoneScreenshots/04_your-progress.png",
+        "heading": "Haladásod",
+        "caption": "Kövesd a tanulási napjaidat"
+      },
+      {
+        "path": "ready/hu-HU/phoneScreenshots/05_your-cards.png",
+        "heading": "Kártyáid",
+        "caption": "Minden kártyád egy helyen"
+      }
+    ]
+  },
+  {
+    "tag": "id",
+    "label": "Bahasa Indonesia (Indonesian)",
+    "preview": "previews/id-phone.png",
+    "banner": "../play-store-feature-graphic/id-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/id/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "Buat flashcard dengan AI"
+      },
+      {
+        "path": "ready/id/phoneScreenshots/02_start-learning.png",
+        "heading": "Mulai Belajar",
+        "caption": "Ingat jawabannya sendiri"
+      },
+      {
+        "path": "ready/id/phoneScreenshots/03_smart-reviews.png",
+        "heading": "Ulasan Cerdas",
+        "caption": "Ulangi pada waktu yang tepat"
+      },
+      {
+        "path": "ready/id/phoneScreenshots/04_your-progress.png",
+        "heading": "Kemajuanmu",
+        "caption": "Pantau hari belajarmu"
+      },
+      {
+        "path": "ready/id/phoneScreenshots/05_your-cards.png",
+        "heading": "Kartumu",
+        "caption": "Semua kartu di satu tempat"
+      }
+    ]
+  },
+  {
+    "tag": "is-IS",
+    "label": "Íslenska (Icelandic)",
+    "preview": "previews/is-IS-phone.png",
+    "banner": "../play-store-feature-graphic/is-IS-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/is-IS/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "Búðu til námskort með gervigreind"
+      },
+      {
+        "path": "ready/is-IS/phoneScreenshots/02_start-learning.png",
+        "heading": "Byrjaðu að læra",
+        "caption": "Reyndu að muna svarið"
+      },
+      {
+        "path": "ready/is-IS/phoneScreenshots/03_smart-reviews.png",
+        "heading": "Snjöll upprifjun",
+        "caption": "Rifjaðu upp á réttum tíma"
+      },
+      {
+        "path": "ready/is-IS/phoneScreenshots/04_your-progress.png",
+        "heading": "Framfarir þínar",
+        "caption": "Fylgstu með námsdögunum"
+      },
+      {
+        "path": "ready/is-IS/phoneScreenshots/05_your-cards.png",
+        "heading": "Kortin þín",
+        "caption": "Öll kort á einum stað"
+      }
+    ]
+  },
+  {
+    "tag": "it-IT",
+    "label": "Italiano (Italian)",
+    "preview": "previews/it-IT-phone.png",
+    "banner": "../play-store-feature-graphic/it-IT-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/it-IT/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "Crea flashcard con l’IA"
+      },
+      {
+        "path": "ready/it-IT/phoneScreenshots/02_start-learning.png",
+        "heading": "Inizia a studiare",
+        "caption": "Ricorda la risposta da solo"
+      },
+      {
+        "path": "ready/it-IT/phoneScreenshots/03_smart-reviews.png",
+        "heading": "Ripassi intelligenti",
+        "caption": "Ripassa al momento giusto"
+      },
+      {
+        "path": "ready/it-IT/phoneScreenshots/04_your-progress.png",
+        "heading": "I tuoi progressi",
+        "caption": "Tieni traccia dei giorni di studio"
+      },
+      {
+        "path": "ready/it-IT/phoneScreenshots/05_your-cards.png",
+        "heading": "Le tue carte",
+        "caption": "Tutte le carte in un unico posto"
+      }
+    ]
+  },
+  {
+    "tag": "kn-IN",
+    "label": "ಕನ್ನಡ (Kannada)",
+    "preview": "previews/kn-IN-phone.png",
+    "banner": "../play-store-feature-graphic/kn-IN-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/kn-IN/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "AI ಮೂಲಕ ಕಾರ್ಡ್‌ಗಳನ್ನು ರಚಿಸಿ"
+      },
+      {
+        "path": "ready/kn-IN/phoneScreenshots/02_start-learning.png",
+        "heading": "ಕಲಿಯಲು ಆರಂಭಿಸಿ",
+        "caption": "ಉತ್ತರವನ್ನು ನೀವೇ ನೆನಪಿಸಿಕೊಳ್ಳಿ"
+      },
+      {
+        "path": "ready/kn-IN/phoneScreenshots/03_smart-reviews.png",
+        "heading": "ಸ್ಮಾರ್ಟ್ ರಿವ್ಯೂ",
+        "caption": "ಸರಿಯಾದ ಸಮಯದಲ್ಲಿ ಪುನರಾವರ್ತಿಸಿ"
+      },
+      {
+        "path": "ready/kn-IN/phoneScreenshots/04_your-progress.png",
+        "heading": "ನಿಮ್ಮ ಪ್ರಗತಿ",
+        "caption": "ಅಧ್ಯಯನದ ದಿನಗಳನ್ನು ನೋಡಿ"
+      },
+      {
+        "path": "ready/kn-IN/phoneScreenshots/05_your-cards.png",
+        "heading": "ನಿಮ್ಮ ಕಾರ್ಡ್‌ಗಳು",
+        "caption": "ಎಲ್ಲಾ ಕಾರ್ಡ್‌ಗಳು ಒಂದೇ ಕಡೆ"
+      }
+    ]
+  },
+  {
+    "tag": "ko-KR",
+    "label": "한국어 (Korean)",
+    "preview": "previews/ko-KR-phone.png",
+    "banner": "../play-store-feature-graphic/ko-KR-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/ko-KR/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "AI로 플래시카드 만들기"
+      },
+      {
+        "path": "ready/ko-KR/phoneScreenshots/02_start-learning.png",
+        "heading": "학습 시작",
+        "caption": "스스로 답을 떠올려 보세요"
+      },
+      {
+        "path": "ready/ko-KR/phoneScreenshots/03_smart-reviews.png",
+        "heading": "스마트 복습",
+        "caption": "알맞은 시점에 복습하세요"
+      },
+      {
+        "path": "ready/ko-KR/phoneScreenshots/04_your-progress.png",
+        "heading": "나의 진도",
+        "caption": "공부한 날을 확인하세요"
+      },
+      {
+        "path": "ready/ko-KR/phoneScreenshots/05_your-cards.png",
+        "heading": "나의 카드",
+        "caption": "모든 카드를 한곳에"
+      }
+    ]
+  },
+  {
+    "tag": "lt",
+    "label": "Lietuvių (Lithuanian)",
+    "preview": "previews/lt-phone.png",
+    "banner": "../play-store-feature-graphic/lt-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/lt/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "Kurkite mokymosi korteles su DI"
+      },
+      {
+        "path": "ready/lt/phoneScreenshots/02_start-learning.png",
+        "heading": "Pradėkite mokytis",
+        "caption": "Prisiminkite atsakymą patys"
+      },
+      {
+        "path": "ready/lt/phoneScreenshots/03_smart-reviews.png",
+        "heading": "Išmanus kartojimas",
+        "caption": "Kartokite tinkamu laiku"
+      },
+      {
+        "path": "ready/lt/phoneScreenshots/04_your-progress.png",
+        "heading": "Jūsų pažanga",
+        "caption": "Sekite mokymosi dienas"
+      },
+      {
+        "path": "ready/lt/phoneScreenshots/05_your-cards.png",
+        "heading": "Jūsų kortelės",
+        "caption": "Visos kortelės vienoje vietoje"
+      }
+    ]
+  },
+  {
+    "tag": "lv",
+    "label": "Latviešu (Latvian)",
+    "preview": "previews/lv-phone.png",
+    "banner": "../play-store-feature-graphic/lv-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/lv/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "Veidojiet mācību kartītes ar MI"
+      },
+      {
+        "path": "ready/lv/phoneScreenshots/02_start-learning.png",
+        "heading": "Sāciet mācīties",
+        "caption": "Atcerieties atbildi paši"
+      },
+      {
+        "path": "ready/lv/phoneScreenshots/03_smart-reviews.png",
+        "heading": "Gudra atkārtošana",
+        "caption": "Atkārtojiet īstajā brīdī"
+      },
+      {
+        "path": "ready/lv/phoneScreenshots/04_your-progress.png",
+        "heading": "Jūsu progress",
+        "caption": "Sekojiet mācību dienām"
+      },
+      {
+        "path": "ready/lv/phoneScreenshots/05_your-cards.png",
+        "heading": "Jūsu kartītes",
+        "caption": "Visas kartītes vienuviet"
+      }
+    ]
+  },
+  {
+    "tag": "ml-IN",
+    "label": "മലയാളം (Malayalam)",
+    "preview": "previews/ml-IN-phone.png",
+    "banner": "../play-store-feature-graphic/ml-IN-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/ml-IN/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "AI ഉപയോഗിച്ച് കാർഡുകൾ ഉണ്ടാക്കൂ"
+      },
+      {
+        "path": "ready/ml-IN/phoneScreenshots/02_start-learning.png",
+        "heading": "പഠനം തുടങ്ങൂ",
+        "caption": "ഉത്തരം സ്വയം ഓർക്കൂ"
+      },
+      {
+        "path": "ready/ml-IN/phoneScreenshots/03_smart-reviews.png",
+        "heading": "സ്മാർട്ട് റിവ്യൂ",
+        "caption": "ശരിയായ സമയത്ത് ആവർത്തിക്കൂ"
+      },
+      {
+        "path": "ready/ml-IN/phoneScreenshots/04_your-progress.png",
+        "heading": "പുരോഗതി",
+        "caption": "പഠിച്ച ദിവസങ്ങൾ കാണൂ"
+      },
+      {
+        "path": "ready/ml-IN/phoneScreenshots/05_your-cards.png",
+        "heading": "കാർഡുകൾ",
+        "caption": "എല്ലാ കാർഡുകളും ഒരിടത്ത്"
+      }
+    ]
+  },
+  {
+    "tag": "mr-IN",
+    "label": "मराठी (Marathi)",
+    "preview": "previews/mr-IN-phone.png",
+    "banner": "../play-store-feature-graphic/mr-IN-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/mr-IN/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "AI ने फ्लॅशकार्ड तयार करा"
+      },
+      {
+        "path": "ready/mr-IN/phoneScreenshots/02_start-learning.png",
+        "heading": "शिकायला सुरुवात",
+        "caption": "उत्तर स्वतः आठवा"
+      },
+      {
+        "path": "ready/mr-IN/phoneScreenshots/03_smart-reviews.png",
+        "heading": "स्मार्ट रिव्ह्यू",
+        "caption": "योग्य वेळी उजळणी करा"
+      },
+      {
+        "path": "ready/mr-IN/phoneScreenshots/04_your-progress.png",
+        "heading": "तुमची प्रगती",
+        "caption": "अभ्यासाचे दिवस पाहा"
+      },
+      {
+        "path": "ready/mr-IN/phoneScreenshots/05_your-cards.png",
+        "heading": "तुमची कार्डे",
+        "caption": "सर्व कार्डे एकाच ठिकाणी"
+      }
+    ]
+  },
+  {
+    "tag": "nl-NL",
+    "label": "Nederlands (Dutch)",
+    "preview": "previews/nl-NL-phone.png",
+    "banner": "../play-store-feature-graphic/nl-NL-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/nl-NL/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "Maak flashcards met AI"
+      },
+      {
+        "path": "ready/nl-NL/phoneScreenshots/02_start-learning.png",
+        "heading": "Begin met leren",
+        "caption": "Herinner je het antwoord zelf"
+      },
+      {
+        "path": "ready/nl-NL/phoneScreenshots/03_smart-reviews.png",
+        "heading": "Slim herhalen",
+        "caption": "Herhaal op het juiste moment"
+      },
+      {
+        "path": "ready/nl-NL/phoneScreenshots/04_your-progress.png",
+        "heading": "Jouw vooruitgang",
+        "caption": "Volg je studiedagen"
+      },
+      {
+        "path": "ready/nl-NL/phoneScreenshots/05_your-cards.png",
+        "heading": "Jouw kaarten",
+        "caption": "Al je kaarten op één plek"
+      }
+    ]
+  },
+  {
+    "tag": "no-NO",
+    "label": "Norsk bokmål (Norwegian Bokmål)",
+    "preview": "previews/no-NO-phone.png",
+    "banner": "../play-store-feature-graphic/no-NO-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/no-NO/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "Lag læringskort med KI"
+      },
+      {
+        "path": "ready/no-NO/phoneScreenshots/02_start-learning.png",
+        "heading": "Begynn å lære",
+        "caption": "Husk svaret selv"
+      },
+      {
+        "path": "ready/no-NO/phoneScreenshots/03_smart-reviews.png",
+        "heading": "Smart repetisjon",
+        "caption": "Repeter til rett tid"
+      },
+      {
+        "path": "ready/no-NO/phoneScreenshots/04_your-progress.png",
+        "heading": "Din fremgang",
+        "caption": "Følg studiedagene dine"
+      },
+      {
+        "path": "ready/no-NO/phoneScreenshots/05_your-cards.png",
+        "heading": "Dine kort",
+        "caption": "Alle kort på ett sted"
+      }
+    ]
+  },
+  {
+    "tag": "pa",
+    "label": "ਪੰਜਾਬੀ (Punjabi)",
+    "preview": "previews/pa-phone.png",
+    "banner": "../play-store-feature-graphic/pa-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/pa/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "AI ਨਾਲ ਫਲੈਸ਼ਕਾਰਡ ਬਣਾਓ"
+      },
+      {
+        "path": "ready/pa/phoneScreenshots/02_start-learning.png",
+        "heading": "ਸਿੱਖਣਾ ਸ਼ੁਰੂ ਕਰੋ",
+        "caption": "ਜਵਾਬ ਆਪ ਯਾਦ ਕਰੋ"
+      },
+      {
+        "path": "ready/pa/phoneScreenshots/03_smart-reviews.png",
+        "heading": "ਸਮਾਰਟ ਰਿਵਿਊ",
+        "caption": "ਸਹੀ ਸਮੇਂ ਦੁਹਰਾਓ"
+      },
+      {
+        "path": "ready/pa/phoneScreenshots/04_your-progress.png",
+        "heading": "ਤੁਹਾਡੀ ਤਰੱਕੀ",
+        "caption": "ਪੜ੍ਹਾਈ ਦੇ ਦਿਨ ਵੇਖੋ"
+      },
+      {
+        "path": "ready/pa/phoneScreenshots/05_your-cards.png",
+        "heading": "ਤੁਹਾਡੇ ਕਾਰਡ",
+        "caption": "ਸਾਰੇ ਕਾਰਡ ਇੱਕ ਥਾਂ"
+      }
+    ]
+  },
+  {
+    "tag": "pl-PL",
+    "label": "Polski (Polish)",
+    "preview": "previews/pl-PL-phone.png",
+    "banner": "../play-store-feature-graphic/pl-PL-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/pl-PL/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "Twórz fiszki z AI"
+      },
+      {
+        "path": "ready/pl-PL/phoneScreenshots/02_start-learning.png",
+        "heading": "Zacznij naukę",
+        "caption": "Przypomnij sobie odpowiedź"
+      },
+      {
+        "path": "ready/pl-PL/phoneScreenshots/03_smart-reviews.png",
+        "heading": "Mądre powtórki",
+        "caption": "Powtarzaj we właściwym czasie"
+      },
+      {
+        "path": "ready/pl-PL/phoneScreenshots/04_your-progress.png",
+        "heading": "Twoje postępy",
+        "caption": "Śledź dni nauki"
+      },
+      {
+        "path": "ready/pl-PL/phoneScreenshots/05_your-cards.png",
+        "heading": "Twoje fiszki",
+        "caption": "Wszystkie fiszki w jednym miejscu"
+      }
+    ]
+  },
+  {
+    "tag": "ro",
+    "label": "Română (Romanian)",
+    "preview": "previews/ro-phone.png",
+    "banner": "../play-store-feature-graphic/ro-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/ro/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "Creează fișe cu AI"
+      },
+      {
+        "path": "ready/ro/phoneScreenshots/02_start-learning.png",
+        "heading": "Începe să înveți",
+        "caption": "Amintește-ți singur răspunsul"
+      },
+      {
+        "path": "ready/ro/phoneScreenshots/03_smart-reviews.png",
+        "heading": "Recapitulări",
+        "caption": "Repetă la momentul potrivit"
+      },
+      {
+        "path": "ready/ro/phoneScreenshots/04_your-progress.png",
+        "heading": "Progresul tău",
+        "caption": "Urmărește zilele de studiu"
+      },
+      {
+        "path": "ready/ro/phoneScreenshots/05_your-cards.png",
+        "heading": "Fișele tale",
+        "caption": "Toate fișele într-un singur loc"
+      }
+    ]
+  },
+  {
+    "tag": "sk",
+    "label": "Slovenčina (Slovak)",
+    "preview": "previews/sk-phone.png",
+    "banner": "../play-store-feature-graphic/sk-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/sk/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "Vytvárajte kartičky s AI"
+      },
+      {
+        "path": "ready/sk/phoneScreenshots/02_start-learning.png",
+        "heading": "Začnite sa učiť",
+        "caption": "Spomeňte si na odpoveď sami"
+      },
+      {
+        "path": "ready/sk/phoneScreenshots/03_smart-reviews.png",
+        "heading": "Múdre opakovanie",
+        "caption": "Opakujte v správnom čase"
+      },
+      {
+        "path": "ready/sk/phoneScreenshots/04_your-progress.png",
+        "heading": "Váš pokrok",
+        "caption": "Sledujte svoje študijné dni"
+      },
+      {
+        "path": "ready/sk/phoneScreenshots/05_your-cards.png",
+        "heading": "Vaše kartičky",
+        "caption": "Všetky kartičky na jednom mieste"
+      }
+    ]
+  },
+  {
+    "tag": "sl",
+    "label": "Slovenščina (Slovenian)",
+    "preview": "previews/sl-phone.png",
+    "banner": "../play-store-feature-graphic/sl-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/sl/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "Ustvarite učne kartice z UI"
+      },
+      {
+        "path": "ready/sl/phoneScreenshots/02_start-learning.png",
+        "heading": "Začnite se učiti",
+        "caption": "Sami se spomnite odgovora"
+      },
+      {
+        "path": "ready/sl/phoneScreenshots/03_smart-reviews.png",
+        "heading": "Pametno ponovi",
+        "caption": "Ponavljajte ob pravem času"
+      },
+      {
+        "path": "ready/sl/phoneScreenshots/04_your-progress.png",
+        "heading": "Vaš napredek",
+        "caption": "Spremljajte dneve učenja"
+      },
+      {
+        "path": "ready/sl/phoneScreenshots/05_your-cards.png",
+        "heading": "Vaše kartice",
+        "caption": "Vse kartice na enem mestu"
+      }
+    ]
+  },
+  {
+    "tag": "sv-SE",
+    "label": "Svenska (Swedish)",
+    "preview": "previews/sv-SE-phone.png",
+    "banner": "../play-store-feature-graphic/sv-SE-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/sv-SE/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "Skapa kunskapskort med AI"
+      },
+      {
+        "path": "ready/sv-SE/phoneScreenshots/02_start-learning.png",
+        "heading": "Börja studera",
+        "caption": "Minns svaret på egen hand"
+      },
+      {
+        "path": "ready/sv-SE/phoneScreenshots/03_smart-reviews.png",
+        "heading": "Smart repetition",
+        "caption": "Repetera vid rätt tillfälle"
+      },
+      {
+        "path": "ready/sv-SE/phoneScreenshots/04_your-progress.png",
+        "heading": "Dina framsteg",
+        "caption": "Följ dina studiedagar"
+      },
+      {
+        "path": "ready/sv-SE/phoneScreenshots/05_your-cards.png",
+        "heading": "Dina kort",
+        "caption": "Alla kort på ett ställe"
+      }
+    ]
+  },
+  {
+    "tag": "sw",
+    "label": "Kiswahili (Swahili)",
+    "preview": "previews/sw-phone.png",
+    "banner": "../play-store-feature-graphic/sw-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/sw/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "Unda kadi za kujifunza kwa AI"
+      },
+      {
+        "path": "ready/sw/phoneScreenshots/02_start-learning.png",
+        "heading": "Anza Kujifunza",
+        "caption": "Kumbuka jibu mwenyewe"
+      },
+      {
+        "path": "ready/sw/phoneScreenshots/03_smart-reviews.png",
+        "heading": "Marudio Mahiri",
+        "caption": "Rudia kwa wakati unaofaa"
+      },
+      {
+        "path": "ready/sw/phoneScreenshots/04_your-progress.png",
+        "heading": "Maendeleo Yako",
+        "caption": "Fuatilia siku za kujifunza"
+      },
+      {
+        "path": "ready/sw/phoneScreenshots/05_your-cards.png",
+        "heading": "Kadi Zako",
+        "caption": "Kadi zote sehemu moja"
+      }
+    ]
+  },
+  {
+    "tag": "ta-IN",
+    "label": "தமிழ் (Tamil)",
+    "preview": "previews/ta-IN-phone.png",
+    "banner": "../play-store-feature-graphic/ta-IN-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/ta-IN/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "AI மூலம் கார்டுகளை உருவாக்குங்கள்"
+      },
+      {
+        "path": "ready/ta-IN/phoneScreenshots/02_start-learning.png",
+        "heading": "கற்கத் தொடங்கு",
+        "caption": "பதிலை நீங்களே நினைவுகூருங்கள்"
+      },
+      {
+        "path": "ready/ta-IN/phoneScreenshots/03_smart-reviews.png",
+        "heading": "சீரான மீள்பார்வை",
+        "caption": "சரியான நேரத்தில் மீள்பாருங்கள்"
+      },
+      {
+        "path": "ready/ta-IN/phoneScreenshots/04_your-progress.png",
+        "heading": "உங்கள் முன்னேற்றம்",
+        "caption": "படித்த நாட்களைப் பாருங்கள்"
+      },
+      {
+        "path": "ready/ta-IN/phoneScreenshots/05_your-cards.png",
+        "heading": "உங்கள் கார்டுகள்",
+        "caption": "எல்லா கார்டுகளும் ஒரே இடத்தில்"
+      }
+    ]
+  },
+  {
+    "tag": "te-IN",
+    "label": "తెలుగు (Telugu)",
+    "preview": "previews/te-IN-phone.png",
+    "banner": "../play-store-feature-graphic/te-IN-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/te-IN/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "AI తో కార్డులు సృష్టించండి"
+      },
+      {
+        "path": "ready/te-IN/phoneScreenshots/02_start-learning.png",
+        "heading": "నేర్చుకోండి",
+        "caption": "జవాబును మీరే గుర్తు తెచ్చుకోండి"
+      },
+      {
+        "path": "ready/te-IN/phoneScreenshots/03_smart-reviews.png",
+        "heading": "స్మార్ట్ రివ్యూలు",
+        "caption": "సరైన సమయంలో పునశ్చరణ చేయండి"
+      },
+      {
+        "path": "ready/te-IN/phoneScreenshots/04_your-progress.png",
+        "heading": "మీ పురోగతి",
+        "caption": "చదివిన రోజులను చూడండి"
+      },
+      {
+        "path": "ready/te-IN/phoneScreenshots/05_your-cards.png",
+        "heading": "మీ కార్డులు",
+        "caption": "అన్ని కార్డులు ఒకే చోట"
+      }
+    ]
+  },
+  {
+    "tag": "th",
+    "label": "ไทย (Thai)",
+    "preview": "previews/th-phone.png",
+    "banner": "../play-store-feature-graphic/th-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/th/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "สร้างแฟลชการ์ดด้วย AI"
+      },
+      {
+        "path": "ready/th/phoneScreenshots/02_start-learning.png",
+        "heading": "เริ่มเรียนรู้",
+        "caption": "นึกคำตอบด้วยตัวเอง"
+      },
+      {
+        "path": "ready/th/phoneScreenshots/03_smart-reviews.png",
+        "heading": "ทบทวนอัจฉริยะ",
+        "caption": "ทบทวนในเวลาที่เหมาะสม"
+      },
+      {
+        "path": "ready/th/phoneScreenshots/04_your-progress.png",
+        "heading": "ความก้าวหน้า",
+        "caption": "ติดตามวันที่เรียน"
+      },
+      {
+        "path": "ready/th/phoneScreenshots/05_your-cards.png",
+        "heading": "การ์ดของคุณ",
+        "caption": "ทุกการ์ดรวมอยู่ในที่เดียว"
+      }
+    ]
+  },
+  {
+    "tag": "tr-TR",
+    "label": "Türkçe (Turkish)",
+    "preview": "previews/tr-TR-phone.png",
+    "banner": "../play-store-feature-graphic/tr-TR-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/tr-TR/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "Yapay zekâ ile kart oluştur"
+      },
+      {
+        "path": "ready/tr-TR/phoneScreenshots/02_start-learning.png",
+        "heading": "Öğrenmeye Başla",
+        "caption": "Yanıtı kendin hatırla"
+      },
+      {
+        "path": "ready/tr-TR/phoneScreenshots/03_smart-reviews.png",
+        "heading": "Akıllı Tekrarlar",
+        "caption": "Doğru zamanda tekrar et"
+      },
+      {
+        "path": "ready/tr-TR/phoneScreenshots/04_your-progress.png",
+        "heading": "İlerlemen",
+        "caption": "Çalışma günlerini takip et"
+      },
+      {
+        "path": "ready/tr-TR/phoneScreenshots/05_your-cards.png",
+        "heading": "Kartların",
+        "caption": "Tüm kartların tek bir yerde"
+      }
+    ]
+  },
+  {
+    "tag": "uk",
+    "label": "Українська (Ukrainian)",
+    "preview": "previews/uk-phone.png",
+    "banner": "../play-store-feature-graphic/uk-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/uk/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "Створюйте картки зі ШІ"
+      },
+      {
+        "path": "ready/uk/phoneScreenshots/02_start-learning.png",
+        "heading": "Почніть учити",
+        "caption": "Пригадуйте відповідь самі"
+      },
+      {
+        "path": "ready/uk/phoneScreenshots/03_smart-reviews.png",
+        "heading": "Розумні повтори",
+        "caption": "Повторюйте у потрібний момент"
+      },
+      {
+        "path": "ready/uk/phoneScreenshots/04_your-progress.png",
+        "heading": "Ваш прогрес",
+        "caption": "Стежте за днями навчання"
+      },
+      {
+        "path": "ready/uk/phoneScreenshots/05_your-cards.png",
+        "heading": "Ваші картки",
+        "caption": "Усі картки під рукою"
+      }
+    ]
+  },
+  {
+    "tag": "ur",
+    "label": "اردو (Urdu)",
+    "preview": "previews/ur-phone.png",
+    "banner": "../play-store-feature-graphic/ur-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/ur/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "AI سے فلیش کارڈز بنائیں"
+      },
+      {
+        "path": "ready/ur/phoneScreenshots/02_start-learning.png",
+        "heading": "سیکھنا شروع کریں",
+        "caption": "جواب خود یاد کریں"
+      },
+      {
+        "path": "ready/ur/phoneScreenshots/03_smart-reviews.png",
+        "heading": "اسمارٹ ریویو",
+        "caption": "صحیح وقت پر دہرائیں"
+      },
+      {
+        "path": "ready/ur/phoneScreenshots/04_your-progress.png",
+        "heading": "آپ کی پیش رفت",
+        "caption": "پڑھائی کے دن دیکھیں"
+      },
+      {
+        "path": "ready/ur/phoneScreenshots/05_your-cards.png",
+        "heading": "آپ کے کارڈز",
+        "caption": "تمام کارڈز ایک جگہ"
+      }
+    ]
+  },
+  {
+    "tag": "vi",
+    "label": "Tiếng Việt (Vietnamese)",
+    "preview": "previews/vi-phone.png",
+    "banner": "../play-store-feature-graphic/vi-feature-graphic.png",
+    "consoleAvailability": "listed-in-google-help",
+    "files": [
+      {
+        "path": "ready/vi/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "Tạo thẻ ghi nhớ với AI"
+      },
+      {
+        "path": "ready/vi/phoneScreenshots/02_start-learning.png",
+        "heading": "Bắt đầu học",
+        "caption": "Tự nhớ lại câu trả lời"
+      },
+      {
+        "path": "ready/vi/phoneScreenshots/03_smart-reviews.png",
+        "heading": "Ôn thông minh",
+        "caption": "Ôn tập đúng thời điểm"
+      },
+      {
+        "path": "ready/vi/phoneScreenshots/04_your-progress.png",
+        "heading": "Tiến độ học",
+        "caption": "Theo dõi các ngày học"
+      },
+      {
+        "path": "ready/vi/phoneScreenshots/05_your-cards.png",
+        "heading": "Thẻ của bạn",
+        "caption": "Tất cả thẻ ở một nơi"
+      }
+    ]
+  },
+  {
+    "tag": "zu",
+    "label": "isiZulu (Zulu)",
+    "preview": "previews/zu-phone.png",
+    "banner": "../play-store-feature-graphic/zu-feature-graphic.png",
+    "consoleAvailability": "verified-in-play-console",
+    "files": [
+      {
+        "path": "ready/zu/phoneScreenshots/01_ai-flashcards.png",
+        "heading": "Nibomo App",
+        "caption": "Dala amakhadi okufunda nge-AI"
+      },
+      {
+        "path": "ready/zu/phoneScreenshots/02_start-learning.png",
+        "heading": "Qala Ukufunda",
+        "caption": "Khumbula impendulo ngokwakho"
+      },
+      {
+        "path": "ready/zu/phoneScreenshots/03_smart-reviews.png",
+        "heading": "Buyekeza Kahle",
+        "caption": "Buyekeza ngesikhathi esifanele"
+      },
+      {
+        "path": "ready/zu/phoneScreenshots/04_your-progress.png",
+        "heading": "Intuthuko Yakho",
+        "caption": "Landelela izinsuku zokufunda"
+      },
+      {
+        "path": "ready/zu/phoneScreenshots/05_your-cards.png",
+        "heading": "Amakhadi Akho",
+        "caption": "Wonke amakhadi endaweni eyodwa"
+      }
+    ]
+  }
+]

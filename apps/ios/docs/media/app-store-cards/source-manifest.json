@@ -1,0 +1,2306 @@
+{
+  "repository": "kirill-markin/flashcards-open-source-app",
+  "revision": "8ad37887e71cb946a6697a9ad657ef0ab61ce6bd",
+  "files": [
+    {
+      "path": "ipad/ar-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "f3771943a8e658b3d7bcab3d2bb5643570985bcd",
+      "bytes": 212695
+    },
+    {
+      "path": "ipad/ar-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "92966c2171fb4cc5b90f626678bc1a2702c59124",
+      "bytes": 392730
+    },
+    {
+      "path": "ipad/ar-3_progress-app-store-study-history.png",
+      "gitBlob": "c5828446a9f4a03b0b8d9a7bc26ad16a7919a796",
+      "bytes": 283965
+    },
+    {
+      "path": "ipad/ar-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "62cfa036aa322fa53f2357acb22178217f649286",
+      "bytes": 214555
+    },
+    {
+      "path": "ipad/ar-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "36786c6acf9c2c3185b8d9c9ba3190daceeeb02f",
+      "bytes": 256380
+    },
+    {
+      "path": "ipad/bn-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "48a4b8e62b7d2a7d535396c19147db015575c22e",
+      "bytes": 220663
+    },
+    {
+      "path": "ipad/bn-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "346da8ff75903442f910fc32564b3f8b42a7d231",
+      "bytes": 395509
+    },
+    {
+      "path": "ipad/bn-3_progress-app-store-study-history.png",
+      "gitBlob": "907e2186320a3be82aa58d3e7403ed8ef5e6918c",
+      "bytes": 292859
+    },
+    {
+      "path": "ipad/bn-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "c688fa408da025f76e3e5ffa4b2ed5d76a1dcc15",
+      "bytes": 237631
+    },
+    {
+      "path": "ipad/bn-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "29451e0a0744f6b03343f082a6adc2631c6411d3",
+      "bytes": 249458
+    },
+    {
+      "path": "ipad/ca-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "66bfa744ae357096b12ecb8b5660bae00f1ac77d",
+      "bytes": 212638
+    },
+    {
+      "path": "ipad/ca-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "d2508458059baee413f880fd1a2faa02ffcab947",
+      "bytes": 394469
+    },
+    {
+      "path": "ipad/ca-3_progress-app-store-study-history.png",
+      "gitBlob": "1700390fc2a9647bef4598b9aa947f91c1967994",
+      "bytes": 299533
+    },
+    {
+      "path": "ipad/ca-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "27c508eb5450609797ae388710dbfa75226b36d8",
+      "bytes": 221215
+    },
+    {
+      "path": "ipad/ca-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "c58f60ba10ee94d0aab75914d6e732ae697bfeb6",
+      "bytes": 242279
+    },
+    {
+      "path": "ipad/cs-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "da61fa354fe5b7b56a6fcc76926093e41fd22df9",
+      "bytes": 228611
+    },
+    {
+      "path": "ipad/cs-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "df3d2f75b7e5b731b7e70da41ff7b38c01512c31",
+      "bytes": 411173
+    },
+    {
+      "path": "ipad/cs-3_progress-app-store-study-history.png",
+      "gitBlob": "d1ee25ddda19722827b75eac77a1dba38bd6ffc8",
+      "bytes": 295616
+    },
+    {
+      "path": "ipad/cs-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "10d9ff906fa327a3570d0cd9c47f8d52514df83c",
+      "bytes": 227594
+    },
+    {
+      "path": "ipad/cs-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "386b2c7c260a58ead405084cd423636dd8cc6451",
+      "bytes": 245707
+    },
+    {
+      "path": "ipad/da-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "2d08caac6bb465390c15fa8d4fac49eaaf4267bf",
+      "bytes": 211632
+    },
+    {
+      "path": "ipad/da-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "eff5da379f9d532d81a15287d9cfe5adfc0a514b",
+      "bytes": 393543
+    },
+    {
+      "path": "ipad/da-3_progress-app-store-study-history.png",
+      "gitBlob": "869e6e05f8d129141b269aa6f42d704c4ac53239",
+      "bytes": 296051
+    },
+    {
+      "path": "ipad/da-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "fa26a577175291c30cb30a5c09b568bc789ac4f5",
+      "bytes": 218215
+    },
+    {
+      "path": "ipad/da-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "1b7cc050f2957354519185fb42784b340d312348",
+      "bytes": 229846
+    },
+    {
+      "path": "ipad/de-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "b6c9c9dcc418ce1c6306953403e495475ac922bb",
+      "bytes": 225642
+    },
+    {
+      "path": "ipad/de-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "011b5d1cb3d1d142717fadeee5a60aa6166af5f7",
+      "bytes": 443039
+    },
+    {
+      "path": "ipad/de-3_progress-app-store-study-history.png",
+      "gitBlob": "cdcb70efe738c37d1929b665b81f6c97aea75596",
+      "bytes": 294550
+    },
+    {
+      "path": "ipad/de-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "23786fa6f9dcbac71975c606d1fff58565e1c5a5",
+      "bytes": 234523
+    },
+    {
+      "path": "ipad/de-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "96eb334eca3883592ebd300ad34e4dd17ebc2b76",
+      "bytes": 254345
+    },
+    {
+      "path": "ipad/el-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "2bc6973a3e9825792bbf8327a4d57b340587b5e5",
+      "bytes": 221078
+    },
+    {
+      "path": "ipad/el-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "f5e084011c17bcfda238d248b2dfacb43829f5e0",
+      "bytes": 422735
+    },
+    {
+      "path": "ipad/el-3_progress-app-store-study-history.png",
+      "gitBlob": "6ebffd03032dc969b8421ea5181e407a8e59d652",
+      "bytes": 304266
+    },
+    {
+      "path": "ipad/el-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "379bcd617de6269d3d37b37aebedb9358a3ed390",
+      "bytes": 234402
+    },
+    {
+      "path": "ipad/el-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "2b67a137df3049f5140a88448ec5b9b98ee9bb80",
+      "bytes": 254477
+    },
+    {
+      "path": "ipad/en-US-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "711ac392cc5633532164e815883a726388591143",
+      "bytes": 212981
+    },
+    {
+      "path": "ipad/en-US-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "a16e6745173e867641ac097b14dfacb03f763b81",
+      "bytes": 406916
+    },
+    {
+      "path": "ipad/en-US-3_progress-app-store-study-history.png",
+      "gitBlob": "45ac9e716cff0c3113aa3834b1417027b7bbd838",
+      "bytes": 287431
+    },
+    {
+      "path": "ipad/en-US-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "a5280659a6fd2007f5ca7de682a2158fdd065b07",
+      "bytes": 222054
+    },
+    {
+      "path": "ipad/en-US-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "f5dc91a031ef54ffbc6c686265c318518d05df41",
+      "bytes": 245396
+    },
+    {
+      "path": "ipad/es-ES-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "6ec270a078ffcf810b0cd6684d08c464e40431bd",
+      "bytes": 214121
+    },
+    {
+      "path": "ipad/es-ES-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "36b696a0583bdf6bb5c8abd8434e92a7a51216b9",
+      "bytes": 420003
+    },
+    {
+      "path": "ipad/es-ES-3_progress-app-store-study-history.png",
+      "gitBlob": "093a321547eb9236f746364a73850e74231d9fbc",
+      "bytes": 293166
+    },
+    {
+      "path": "ipad/es-ES-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "113daa4e5f706220df791304f89bca32066b78b2",
+      "bytes": 228088
+    },
+    {
+      "path": "ipad/es-ES-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "a919830bdc75566c8c2bcd7eac31f0ebc41b78f8",
+      "bytes": 242106
+    },
+    {
+      "path": "ipad/es-MX-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "680290dbb185d4b631458fafa05cfc1401fd8b39",
+      "bytes": 213288
+    },
+    {
+      "path": "ipad/es-MX-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "bdc1ed9ab1761e703f612522e7bbb2555e3b2996",
+      "bytes": 419671
+    },
+    {
+      "path": "ipad/es-MX-3_progress-app-store-study-history.png",
+      "gitBlob": "a3e1ebd2506f60a4b1333d8930123fd9315bf509",
+      "bytes": 284372
+    },
+    {
+      "path": "ipad/es-MX-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "641e47e8a3797657979f5536b5f626908c43eb5e",
+      "bytes": 228507
+    },
+    {
+      "path": "ipad/es-MX-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "10a39627544e7bbd66e2a5b11a1d3f3206fc0e90",
+      "bytes": 247178
+    },
+    {
+      "path": "ipad/fi-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "10c498d6e65b163d67ec6518ebc8e2ac996132ec",
+      "bytes": 212979
+    },
+    {
+      "path": "ipad/fi-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "c2781dcba7a88f14c045d1b946fe57525cae4bf3",
+      "bytes": 394972
+    },
+    {
+      "path": "ipad/fi-3_progress-app-store-study-history.png",
+      "gitBlob": "ca687c7b68a4fe7f8c3bdc993e3c4150e187a8df",
+      "bytes": 293278
+    },
+    {
+      "path": "ipad/fi-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "aa25cece74530b314cfaab90da483454ba1981d2",
+      "bytes": 229699
+    },
+    {
+      "path": "ipad/fi-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "bbc4f23827a3f44fea3018f9a957578299f3f43e",
+      "bytes": 237286
+    },
+    {
+      "path": "ipad/fr-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "7293fb5a8b961e6e5d780572f3140cef96cce196",
+      "bytes": 219252
+    },
+    {
+      "path": "ipad/fr-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "05e60b7ce8976a1d8bc7b50394b87ad2b40ec6ca",
+      "bytes": 420600
+    },
+    {
+      "path": "ipad/fr-3_progress-app-store-study-history.png",
+      "gitBlob": "58a66b63423056382e1735e0a505903db7c8397b",
+      "bytes": 299529
+    },
+    {
+      "path": "ipad/fr-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "00cf22c7ac04046fb5f813dbc5dad12f9a971bf2",
+      "bytes": 228771
+    },
+    {
+      "path": "ipad/fr-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "86a5b516d424687c298d16fa85ec068b0413c315",
+      "bytes": 246911
+    },
+    {
+      "path": "ipad/gu-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "b38992adddf13296a5dc27216fe799be40daf405",
+      "bytes": 207413
+    },
+    {
+      "path": "ipad/gu-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "aee736307f7c826f944530c7a13e092e8dc124ee",
+      "bytes": 395322
+    },
+    {
+      "path": "ipad/gu-3_progress-app-store-study-history.png",
+      "gitBlob": "1a9136372ef84bc27d97704316dc08e6d7ae5e43",
+      "bytes": 284709
+    },
+    {
+      "path": "ipad/gu-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "680be6ed2e35508cc39e84ea1e814b429bd21a23",
+      "bytes": 225555
+    },
+    {
+      "path": "ipad/gu-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "5af541365bb6a9d34959feb0d5f51328e0c03242",
+      "bytes": 258432
+    },
+    {
+      "path": "ipad/he-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "9320b70b5f56fa3bcc60da9ab3288c02722afbf8",
+      "bytes": 196637
+    },
+    {
+      "path": "ipad/he-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "6a28d44d566514af86227f232deaa556fc796693",
+      "bytes": 350389
+    },
+    {
+      "path": "ipad/he-3_progress-app-store-study-history.png",
+      "gitBlob": "2083ce485e6cd953a050806c37b72ebe226546e9",
+      "bytes": 258190
+    },
+    {
+      "path": "ipad/he-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "0318ded8b1d21c2af8d45a450527caa069f6c835",
+      "bytes": 181990
+    },
+    {
+      "path": "ipad/he-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "66c148dd1fb0e3982e23bd5633d6bc38c9413c0b",
+      "bytes": 207020
+    },
+    {
+      "path": "ipad/hi-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "f8ce365a9185933b8b69e4e43ba0e08b3114a4b5",
+      "bytes": 206352
+    },
+    {
+      "path": "ipad/hi-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "49852f0c7ffb2a360e8321f7ca91650040981c42",
+      "bytes": 394285
+    },
+    {
+      "path": "ipad/hi-3_progress-app-store-study-history.png",
+      "gitBlob": "7f7557bfe13593b3a3224ab5d6d3b76b53a5bfbf",
+      "bytes": 271261
+    },
+    {
+      "path": "ipad/hi-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "e74ab1c173c6e0f3196a9533e0eb528a5869e6ed",
+      "bytes": 224657
+    },
+    {
+      "path": "ipad/hi-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "97a02c7944f0ec4f9f6810ed56582101b4452e87",
+      "bytes": 234553
+    },
+    {
+      "path": "ipad/hr-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "ad93ca987bd75bfa603bf839e61b2fcab220b918",
+      "bytes": 216408
+    },
+    {
+      "path": "ipad/hr-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "a59402ddcad0d6d913bba1ee4b7747a2789aa5b8",
+      "bytes": 393013
+    },
+    {
+      "path": "ipad/hr-3_progress-app-store-study-history.png",
+      "gitBlob": "6889cbb2a1664a6dee46513b283b9d874eb43b60",
+      "bytes": 290994
+    },
+    {
+      "path": "ipad/hr-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "2531a3ae7882468dc43c3fdf48b7c8748270ff52",
+      "bytes": 201992
+    },
+    {
+      "path": "ipad/hr-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "7ed5d9a59ba8a9c3198f554b2a2fd3c480d7d788",
+      "bytes": 236357
+    },
+    {
+      "path": "ipad/hu-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "bc71f5279cae861830f51fb596f5b3cca0e4ca3b",
+      "bytes": 218429
+    },
+    {
+      "path": "ipad/hu-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "01a5ecff6976fb694f95bd3c8e9432e2815768d3",
+      "bytes": 406718
+    },
+    {
+      "path": "ipad/hu-3_progress-app-store-study-history.png",
+      "gitBlob": "579d4990ac1cb9312f658f52657e6b813e00042c",
+      "bytes": 294276
+    },
+    {
+      "path": "ipad/hu-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "f7bc75cbfbc6ed8ee83cd36831acdc2a9b481501",
+      "bytes": 237489
+    },
+    {
+      "path": "ipad/hu-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "c00aeab979e5621d3bb4532e4ef8c307a4115456",
+      "bytes": 241817
+    },
+    {
+      "path": "ipad/id-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "762f780194114160b24cac8dee4d6794eb5d316c",
+      "bytes": 212178
+    },
+    {
+      "path": "ipad/id-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "abb21ef28f909d9d6b8efde517825093d89a343d",
+      "bytes": 391461
+    },
+    {
+      "path": "ipad/id-3_progress-app-store-study-history.png",
+      "gitBlob": "dbadb900bf258a0bbbd0f8636a6cfc098fafa9f8",
+      "bytes": 281972
+    },
+    {
+      "path": "ipad/id-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "493257b1a5ff190eaf7d7b7a1814a35f22fd3f42",
+      "bytes": 218779
+    },
+    {
+      "path": "ipad/id-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "b044fa7cb6226ebcbff9938d1a3b6b3ee4c9ecf0",
+      "bytes": 227057
+    },
+    {
+      "path": "ipad/it-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "11f78ef593775afa305b6e91d7d5db8a9b219c0a",
+      "bytes": 214954
+    },
+    {
+      "path": "ipad/it-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "501ae2b4517ceecfdfa42ff315447d47d13802b0",
+      "bytes": 390154
+    },
+    {
+      "path": "ipad/it-3_progress-app-store-study-history.png",
+      "gitBlob": "f3c8bf04f1542baed817559ead4c5568281984d5",
+      "bytes": 291870
+    },
+    {
+      "path": "ipad/it-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "426c7f26c811b70afd3d88df358a7dcfe72d3df1",
+      "bytes": 225529
+    },
+    {
+      "path": "ipad/it-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "c46ef3ea977f654568e52d444454fa6ed80e7971",
+      "bytes": 237963
+    },
+    {
+      "path": "ipad/ja-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "7ef7ed7bf18d44423762195e2a9815ddf8fdd8f3",
+      "bytes": 221816
+    },
+    {
+      "path": "ipad/ja-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "d5c985ec0a77145e25612a3d30e5001d263daf80",
+      "bytes": 419815
+    },
+    {
+      "path": "ipad/ja-3_progress-app-store-study-history.png",
+      "gitBlob": "f0c89072e827d0879f4667d6729ddc37fd84e454",
+      "bytes": 307538
+    },
+    {
+      "path": "ipad/ja-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "ee18afd9b168750cb27754a1d7b4ebac68ffc996",
+      "bytes": 251850
+    },
+    {
+      "path": "ipad/ja-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "0745816e61e323bdf21dfb12046198342f9ca8db",
+      "bytes": 286206
+    },
+    {
+      "path": "ipad/kn-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "56171a6031626a99dce3366255c48803adf3ed5a",
+      "bytes": 245700
+    },
+    {
+      "path": "ipad/kn-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "9751900186c7a11e3ee0633b45f78b4e32c0369f",
+      "bytes": 469605
+    },
+    {
+      "path": "ipad/kn-3_progress-app-store-study-history.png",
+      "gitBlob": "c5bea1a44891b3d7479e02817b835bb8d80c0cad",
+      "bytes": 332421
+    },
+    {
+      "path": "ipad/kn-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "1cb56bccde2093a9796b3d29a852b4b1539f74c2",
+      "bytes": 268536
+    },
+    {
+      "path": "ipad/kn-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "ac8a164653d1a509405aba8fe51f04b4b90d58ed",
+      "bytes": 329877
+    },
+    {
+      "path": "ipad/ko-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "4f69480504e72ac4a7edabed73c47e17c80109f3",
+      "bytes": 205707
+    },
+    {
+      "path": "ipad/ko-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "ae9cb7afd49640d70d1c22b01bb84f5aadbd9e41",
+      "bytes": 351578
+    },
+    {
+      "path": "ipad/ko-3_progress-app-store-study-history.png",
+      "gitBlob": "0fe3e2092ed5a3e88df2e5724dcfa716bd493592",
+      "bytes": 272650
+    },
+    {
+      "path": "ipad/ko-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "ca802cd3a868d1541aaa877e40f51df77fe4b94a",
+      "bytes": 203788
+    },
+    {
+      "path": "ipad/ko-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "8e2e9d488c8317c470c87db8b69c05dcddbbad98",
+      "bytes": 240075
+    },
+    {
+      "path": "ipad/ml-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "0d5b50e1f511953e54bd7806cd40a377c37f4e25",
+      "bytes": 254395
+    },
+    {
+      "path": "ipad/ml-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "ba7d903ad09538d3676c006568cd6fbf4db93421",
+      "bytes": 478994
+    },
+    {
+      "path": "ipad/ml-3_progress-app-store-study-history.png",
+      "gitBlob": "1fa5d25f48b91bcc15dd3eeda8f18430319b111c",
+      "bytes": 351753
+    },
+    {
+      "path": "ipad/ml-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "57d9395ceca63029b46a53684c28b618de982cf9",
+      "bytes": 275051
+    },
+    {
+      "path": "ipad/ml-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "758fbea6372c29e308779cda5b5a74716c0a9387",
+      "bytes": 329973
+    },
+    {
+      "path": "ipad/mr-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "47649d54434ec3e2a6ec3d4b91fe9fcd13959cd7",
+      "bytes": 207324
+    },
+    {
+      "path": "ipad/mr-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "5b702ab3d66647e6c98ddfce4c89d5b8249100d0",
+      "bytes": 372081
+    },
+    {
+      "path": "ipad/mr-3_progress-app-store-study-history.png",
+      "gitBlob": "9d6d8c5fe91ab65eec075a6cfc77d89f5cc308eb",
+      "bytes": 267980
+    },
+    {
+      "path": "ipad/mr-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "1960e9f667aecc6376f778cdc3a483fa8ccf3679",
+      "bytes": 205232
+    },
+    {
+      "path": "ipad/mr-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "19d4bf4ffae7f3af43f05f14ded22a1726909552",
+      "bytes": 242237
+    },
+    {
+      "path": "ipad/nb-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "a20cedad13dff61f4183e46132d0833f185d6541",
+      "bytes": 205678
+    },
+    {
+      "path": "ipad/nb-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "6e642312b337a582e6d4ea68d681ca20b3b0cf54",
+      "bytes": 386318
+    },
+    {
+      "path": "ipad/nb-3_progress-app-store-study-history.png",
+      "gitBlob": "e9320f6aef8470a636124309fb862c46d26c5a54",
+      "bytes": 291280
+    },
+    {
+      "path": "ipad/nb-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "aae44798ee1d935cd2022c6f4fd9163aca108ac6",
+      "bytes": 215551
+    },
+    {
+      "path": "ipad/nb-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "95d332e6c93c87dd6302b9a7caf66d24a1249674",
+      "bytes": 222944
+    },
+    {
+      "path": "ipad/nl-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "3052a360b6fe78849fb37022e128a828818e3e86",
+      "bytes": 211227
+    },
+    {
+      "path": "ipad/nl-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "f24a418d67ea4797a666beb6860cd14f69cf65ab",
+      "bytes": 401522
+    },
+    {
+      "path": "ipad/nl-3_progress-app-store-study-history.png",
+      "gitBlob": "d7d723714d37c49cdae25557574f489081263fce",
+      "bytes": 300937
+    },
+    {
+      "path": "ipad/nl-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "bc7a23e2a0f47bed382790ef5281105f555888a1",
+      "bytes": 223234
+    },
+    {
+      "path": "ipad/nl-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "1e3bda2c013ca1f5471fe2daf2174080d8b5fe6f",
+      "bytes": 238927
+    },
+    {
+      "path": "ipad/pa-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "f3877f19edcbcfe9350911cd03538deb6cd45481",
+      "bytes": 204516
+    },
+    {
+      "path": "ipad/pa-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "b199d3fee5fdda02471d8bf82f371501894e125b",
+      "bytes": 379351
+    },
+    {
+      "path": "ipad/pa-3_progress-app-store-study-history.png",
+      "gitBlob": "ff547ef7698ebccf88207bca55d7c4a6a6ef8b68",
+      "bytes": 267696
+    },
+    {
+      "path": "ipad/pa-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "36409142cd9e1d1d9a27564808a529ef0fad71c1",
+      "bytes": 202923
+    },
+    {
+      "path": "ipad/pa-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "4491fd76b538772b7801ff8d6616c62b76795188",
+      "bytes": 245556
+    },
+    {
+      "path": "ipad/pl-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "6dca0cbbb40c5814b584c4744666fc845ddac162",
+      "bytes": 215579
+    },
+    {
+      "path": "ipad/pl-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "8b967203c95c7dd3570e57f40c9ccb93411b0e59",
+      "bytes": 406366
+    },
+    {
+      "path": "ipad/pl-3_progress-app-store-study-history.png",
+      "gitBlob": "f71ec16ac40756476aee0ddea6c9d33a1c167336",
+      "bytes": 299473
+    },
+    {
+      "path": "ipad/pl-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "42d19d89c517f2e1c9b30c2dce69087a3763fe7d",
+      "bytes": 230148
+    },
+    {
+      "path": "ipad/pl-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "dec90a20f0bcd01b3e54b31ab23e5025cff291f3",
+      "bytes": 245995
+    },
+    {
+      "path": "ipad/pt-BR-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "2fc69fc76acb5892bf94a9f1006e1e3ee1ee3429",
+      "bytes": 213367
+    },
+    {
+      "path": "ipad/pt-BR-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "51930f35f3ec873675ccb4b5b6cef640dd79dff7",
+      "bytes": 415088
+    },
+    {
+      "path": "ipad/pt-BR-3_progress-app-store-study-history.png",
+      "gitBlob": "5c7c2f12943681249ab44b235e69ad2e4ae82aa9",
+      "bytes": 296027
+    },
+    {
+      "path": "ipad/pt-BR-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "4af2d3ad9dc3e403c254e07ffa1aded443d332ef",
+      "bytes": 222578
+    },
+    {
+      "path": "ipad/pt-BR-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "e257f0c9925dcc3ff868eb0ac6ac79f6d1a159ce",
+      "bytes": 249889
+    },
+    {
+      "path": "ipad/ro-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "4fed4b0b365a2db30ed8e1627db03abd2f5f8eac",
+      "bytes": 213159
+    },
+    {
+      "path": "ipad/ro-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "d1c163a0efb67741d9b9279c86a2e0471ab74533",
+      "bytes": 396665
+    },
+    {
+      "path": "ipad/ro-3_progress-app-store-study-history.png",
+      "gitBlob": "18b24d5b7d434b0569367ca0df38d27a98729775",
+      "bytes": 295964
+    },
+    {
+      "path": "ipad/ro-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "3f9cf74e08b743b6a25d64e0a1c4b853b95ab401",
+      "bytes": 203391
+    },
+    {
+      "path": "ipad/ro-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "d3bee1e38a246b7a3305bc3d0754dcd7b82c2b35",
+      "bytes": 231558
+    },
+    {
+      "path": "ipad/ru-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "791a8edb19fb3305741edd60e0e2f0b4d8771cd6",
+      "bytes": 219877
+    },
+    {
+      "path": "ipad/ru-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "1d51dd8b7463c39bb13cf5e3d80640219aec2656",
+      "bytes": 444088
+    },
+    {
+      "path": "ipad/ru-3_progress-app-store-study-history.png",
+      "gitBlob": "5ef7cacd57e6456c61e392a96a74b47fda95540f",
+      "bytes": 300070
+    },
+    {
+      "path": "ipad/ru-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "5d1f38a64ed187fd601b08e38d8b594c6ee9ecee",
+      "bytes": 229086
+    },
+    {
+      "path": "ipad/ru-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "323f478c5d7825e22301e13d4d88c0fd66f19ab5",
+      "bytes": 239554
+    },
+    {
+      "path": "ipad/sk-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "8b261aed68c359d3fd0b5be1eb3211e33e630f25",
+      "bytes": 226991
+    },
+    {
+      "path": "ipad/sk-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "6ba635875435930015246e0e556b8ce86bbb38af",
+      "bytes": 406936
+    },
+    {
+      "path": "ipad/sk-3_progress-app-store-study-history.png",
+      "gitBlob": "dae5e96e703b9114908facfc7c89ba6381da6729",
+      "bytes": 294762
+    },
+    {
+      "path": "ipad/sk-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "735172483a40a3e52fb621092a61c5989baa5492",
+      "bytes": 223251
+    },
+    {
+      "path": "ipad/sk-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "f6554931374235417487606b9ebaffa81cd6be8e",
+      "bytes": 243988
+    },
+    {
+      "path": "ipad/sl-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "578562c135d8d90978aadb57b9c649acdd5d7a52",
+      "bytes": 215581
+    },
+    {
+      "path": "ipad/sl-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "b66ba57bb5bcbc9a59de1dbea301f8e0a6d0b9e7",
+      "bytes": 392412
+    },
+    {
+      "path": "ipad/sl-3_progress-app-store-study-history.png",
+      "gitBlob": "2991956fd05ef0f6d6d3e39c73b3f9d68480eb6b",
+      "bytes": 289003
+    },
+    {
+      "path": "ipad/sl-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "075bece701f3ffb9dbccc88fd96d1935513f08bc",
+      "bytes": 202818
+    },
+    {
+      "path": "ipad/sl-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "719afac3efb3f404f30637d8240f98fad1fa9fef",
+      "bytes": 235097
+    },
+    {
+      "path": "ipad/sv-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "f5453e439b44c25690d55afcf649fe7727479733",
+      "bytes": 208779
+    },
+    {
+      "path": "ipad/sv-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "7150e15b732fd1b55235d46039cc87e85816a3bf",
+      "bytes": 388567
+    },
+    {
+      "path": "ipad/sv-3_progress-app-store-study-history.png",
+      "gitBlob": "75f27c5f3a155d69ed226642888119fda127b200",
+      "bytes": 295366
+    },
+    {
+      "path": "ipad/sv-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "d18ce17ede70932de25edbacbed6d3419b97bbe6",
+      "bytes": 214402
+    },
+    {
+      "path": "ipad/sv-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "89589f04e6a7cb60831a417064f3041e87127dc3",
+      "bytes": 232683
+    },
+    {
+      "path": "ipad/ta-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "6ecea968c09465b179bfaf802d0fcc9b06f4219f",
+      "bytes": 222461
+    },
+    {
+      "path": "ipad/ta-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "81f2b9d84134885a19c40e11c848dd5d42fe4b50",
+      "bytes": 431126
+    },
+    {
+      "path": "ipad/ta-3_progress-app-store-study-history.png",
+      "gitBlob": "24ceee6f175d0df2ca7a3d7c0ec427eccb74929e",
+      "bytes": 313288
+    },
+    {
+      "path": "ipad/ta-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "6c1e9957c4dc25fbefe67f4e00c8d0039747d138",
+      "bytes": 247663
+    },
+    {
+      "path": "ipad/ta-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "82293c6f72ea97358ba086e7b9a41aff1357d9f1",
+      "bytes": 273800
+    },
+    {
+      "path": "ipad/te-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "3fadee64cead673ca53aaff2cad0df7d2b69d6c4",
+      "bytes": 251610
+    },
+    {
+      "path": "ipad/te-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "e3252842f5d368c102d327a715f864488c199434",
+      "bytes": 476197
+    },
+    {
+      "path": "ipad/te-3_progress-app-store-study-history.png",
+      "gitBlob": "3991aa5a4fe63c22e8c03c34ea61fdf4b46b8439",
+      "bytes": 348693
+    },
+    {
+      "path": "ipad/te-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "7acd3d892f496a06574082a88eb9d8e540e40611",
+      "bytes": 271485
+    },
+    {
+      "path": "ipad/te-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "9502b914b223d54b8a4dc5fa18144865a4b52f7c",
+      "bytes": 352227
+    },
+    {
+      "path": "ipad/th-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "e04c788981c2dec49b27af9abd7bd8df1f8ca09c",
+      "bytes": 231557
+    },
+    {
+      "path": "ipad/th-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "c1d05f17df735739093c3cbb6bb49d680510ad66",
+      "bytes": 418818
+    },
+    {
+      "path": "ipad/th-3_progress-app-store-study-history.png",
+      "gitBlob": "ec6afbb6ae3a70c74d3ea48534e5939a1bc61432",
+      "bytes": 293028
+    },
+    {
+      "path": "ipad/th-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "df9deba0d7c6578eae3ec44a7754652cd836844b",
+      "bytes": 235112
+    },
+    {
+      "path": "ipad/th-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "cb0e1adbd8401e0140365b5aeb4593d162611f9c",
+      "bytes": 264052
+    },
+    {
+      "path": "ipad/tr-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "35a00631c3243ca468dbd041ad1b97d347a53711",
+      "bytes": 206955
+    },
+    {
+      "path": "ipad/tr-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "7fd2410b23aecacb357a55fccc9aa0d2c25ce314",
+      "bytes": 386466
+    },
+    {
+      "path": "ipad/tr-3_progress-app-store-study-history.png",
+      "gitBlob": "ef145305ad6ad00267310c326a1a15ff535dc322",
+      "bytes": 272409
+    },
+    {
+      "path": "ipad/tr-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "596dac38d180e7c6b47f5adb5ef97babd8e46b6b",
+      "bytes": 216390
+    },
+    {
+      "path": "ipad/tr-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "6071c038db690a1390271957bff88d8ab1ae5666",
+      "bytes": 219089
+    },
+    {
+      "path": "ipad/uk-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "5d2b42f386000f659ecc8378f86e012c817dc243",
+      "bytes": 211980
+    },
+    {
+      "path": "ipad/uk-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "62f2686ad8ed2ad83529cf9947e0add63c40565e",
+      "bytes": 396524
+    },
+    {
+      "path": "ipad/uk-3_progress-app-store-study-history.png",
+      "gitBlob": "a39de38c89815f116a5cd2097cbdb039829df467",
+      "bytes": 289702
+    },
+    {
+      "path": "ipad/uk-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "422396fbe4057a7425f9fcd8b98e8cfe80acc77e",
+      "bytes": 214236
+    },
+    {
+      "path": "ipad/uk-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "21626d854763e0ffa94e2b35d1a56c5653f7b05a",
+      "bytes": 238775
+    },
+    {
+      "path": "ipad/ur-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "ad1fa9c9e7bee4633f71184bf3c80825ab9ecc4d",
+      "bytes": 207213
+    },
+    {
+      "path": "ipad/ur-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "51bfa8b0e6db239d89a0a20481d4706c422a17e0",
+      "bytes": 376839
+    },
+    {
+      "path": "ipad/ur-3_progress-app-store-study-history.png",
+      "gitBlob": "c6c12a4571fefdf03585c6d25eee87c01468a011",
+      "bytes": 272524
+    },
+    {
+      "path": "ipad/ur-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "335b69195064c40018db6ae5f8f65b0179202c06",
+      "bytes": 202360
+    },
+    {
+      "path": "ipad/ur-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "47f98634536cc4c779357d2490fddc1a90d07037",
+      "bytes": 243348
+    },
+    {
+      "path": "ipad/vi-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "83f21c2b35412598a7a542ffd5971a886fb86cd7",
+      "bytes": 212599
+    },
+    {
+      "path": "ipad/vi-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "aa653f4b1ee5b69b8d1ffc1985520c4ce1419a46",
+      "bytes": 392309
+    },
+    {
+      "path": "ipad/vi-3_progress-app-store-study-history.png",
+      "gitBlob": "d00a77361664793dab36486a8e8b4834299bf935",
+      "bytes": 300802
+    },
+    {
+      "path": "ipad/vi-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "c9585fba34589c98b27786ed3ef825b703388adc",
+      "bytes": 223743
+    },
+    {
+      "path": "ipad/vi-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "ead19912ec9c23fd205f061efd2d336cb89d55ca",
+      "bytes": 241200
+    },
+    {
+      "path": "ipad/zh-Hans-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "7373eb0f8b915cf9979df7effbca7c3def2f465b",
+      "bytes": 209675
+    },
+    {
+      "path": "ipad/zh-Hans-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "7061a798fbc5efabe124ab80f515869e27f5be96",
+      "bytes": 405122
+    },
+    {
+      "path": "ipad/zh-Hans-3_progress-app-store-study-history.png",
+      "gitBlob": "74b44f93472ce960562a513a35942039a55a278e",
+      "bytes": 286636
+    },
+    {
+      "path": "ipad/zh-Hans-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "b5ac2119a6d4cc9f87734de07634c12cfc260e25",
+      "bytes": 219881
+    },
+    {
+      "path": "ipad/zh-Hans-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "439b3902a404ef7fe15911a1b6b3d7167fbca49a",
+      "bytes": 251913
+    },
+    {
+      "path": "iphone/ar-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "dcd17002ebb49e497da76a0155e73d3249dcd973",
+      "bytes": 262636
+    },
+    {
+      "path": "iphone/ar-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "3075747b32d88495a3ab2e36d2633cf0830c8946",
+      "bytes": 582205
+    },
+    {
+      "path": "iphone/ar-3_progress-app-store-study-history.png",
+      "gitBlob": "4040ee9e71816acc527bc36dc715deb9442c74b7",
+      "bytes": 325678
+    },
+    {
+      "path": "iphone/ar-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "e9314aba5a4b820cdad2bda186b740655c6ac76e",
+      "bytes": 297896
+    },
+    {
+      "path": "iphone/ar-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "170d4d67440b9216eb6372360b17698834543b33",
+      "bytes": 338710
+    },
+    {
+      "path": "iphone/bg-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "8524e99b38743677d30b22ee84d1a878ec36a2f5",
+      "bytes": 252562
+    },
+    {
+      "path": "iphone/bg-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "317386a8dc0a6b5f7d4ea8145fd111b91007b74b",
+      "bytes": 698163
+    },
+    {
+      "path": "iphone/bg-3_progress-app-store-study-history.png",
+      "gitBlob": "9573905dab55e3b10c0c393377a902c24b9b047f",
+      "bytes": 349718
+    },
+    {
+      "path": "iphone/bg-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "8c361ceae8bc6bb5994119a194fe0570edf6178c",
+      "bytes": 311985
+    },
+    {
+      "path": "iphone/bg-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "c07dff43c7cd13debad3491035eba150b37de7c1",
+      "bytes": 330064
+    },
+    {
+      "path": "iphone/bn-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "68cd1850c09de6a0db43f25aad5559d0e7f30cea",
+      "bytes": 248142
+    },
+    {
+      "path": "iphone/bn-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "3171c9339f3629510b118a430c1ca7f67d2e812c",
+      "bytes": 540026
+    },
+    {
+      "path": "iphone/bn-3_progress-app-store-study-history.png",
+      "gitBlob": "e5590ec255a29ac54aa7f9004521aefa25ff5c7e",
+      "bytes": 320991
+    },
+    {
+      "path": "iphone/bn-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "a93fbb6b9f33013e29a7a66cc6062f6d5f4ec38f",
+      "bytes": 302841
+    },
+    {
+      "path": "iphone/bn-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "5e525440bececaf84875d29c833f39319fb8cc80",
+      "bytes": 338147
+    },
+    {
+      "path": "iphone/ca-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "c080c047c0abeec05dfba2f6e5f873d8dddfde88",
+      "bytes": 235255
+    },
+    {
+      "path": "iphone/ca-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "50473d362466d0b476f160f85c9e3de160d238e9",
+      "bytes": 572524
+    },
+    {
+      "path": "iphone/ca-3_progress-app-store-study-history.png",
+      "gitBlob": "8a0360a19d4ed2f8cda6fab6a74b7670a2cb667d",
+      "bytes": 348712
+    },
+    {
+      "path": "iphone/ca-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "98527f06fc702e02beab555d0fb44afe13ffb018",
+      "bytes": 295490
+    },
+    {
+      "path": "iphone/ca-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "65fb9b17d0405e8a25f3ffb9ef55ae1d226f4db8",
+      "bytes": 301783
+    },
+    {
+      "path": "iphone/cs-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "d6a65920d561e0c796f23504f87b3efb67318522",
+      "bytes": 274308
+    },
+    {
+      "path": "iphone/cs-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "d9cb45d1dc8e90221b9ff2ceedadfbefb39114ea",
+      "bytes": 607943
+    },
+    {
+      "path": "iphone/cs-3_progress-app-store-study-history.png",
+      "gitBlob": "9ad4a551bcf06b4a12ff0fadd503fab05083b914",
+      "bytes": 336517
+    },
+    {
+      "path": "iphone/cs-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "6dc329e91b7dcf4fbf46bb81112934d132f25c13",
+      "bytes": 299667
+    },
+    {
+      "path": "iphone/cs-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "8b69cc7e1ce1edf738b94f49a9f95f5ddf7d380a",
+      "bytes": 323328
+    },
+    {
+      "path": "iphone/da-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "6c45af6c305304ef4ef18717f309302d116f3a54",
+      "bytes": 231877
+    },
+    {
+      "path": "iphone/da-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "5517d4f5933635c77468630802efa8f8f4ea2ce3",
+      "bytes": 582143
+    },
+    {
+      "path": "iphone/da-3_progress-app-store-study-history.png",
+      "gitBlob": "63761bbda21dd16094f95651b96249a8c62d3bcc",
+      "bytes": 330862
+    },
+    {
+      "path": "iphone/da-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "500d9a2856d7370c06891b420e8fa9e429584b69",
+      "bytes": 286557
+    },
+    {
+      "path": "iphone/da-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "7cba074f4bc27d96dc0da08e409cd182ecb0274a",
+      "bytes": 281616
+    },
+    {
+      "path": "iphone/de-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "be5344d16dde0cecce0fa34a9220555b50aca5c0",
+      "bytes": 271538
+    },
+    {
+      "path": "iphone/de-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "cc6170b52f8a0794ac6bdce7354001ba20737138",
+      "bytes": 663549
+    },
+    {
+      "path": "iphone/de-3_progress-app-store-study-history.png",
+      "gitBlob": "ea4fbfe095ef2a66d7d8a91c7799d210a9c26be5",
+      "bytes": 333969
+    },
+    {
+      "path": "iphone/de-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "6b11aa5b05dd2b315f38d20a68d9848de3391b3b",
+      "bytes": 310778
+    },
+    {
+      "path": "iphone/de-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "6ef51f3e4c53a4c356500a6abdc64388c76b8848",
+      "bytes": 361283
+    },
+    {
+      "path": "iphone/el-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "ad4bab6992c1cce55495a5c4285ed3e14b022505",
+      "bytes": 246473
+    },
+    {
+      "path": "iphone/el-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "a8e5d320686dceb3e6cea14d3efffab444f605ca",
+      "bytes": 623389
+    },
+    {
+      "path": "iphone/el-3_progress-app-store-study-history.png",
+      "gitBlob": "769539c29f454406f9eedfcbf91a2ba43ce53701",
+      "bytes": 339674
+    },
+    {
+      "path": "iphone/el-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "34a4071a9d32f43036223671e4628ffb71f7dd7b",
+      "bytes": 313120
+    },
+    {
+      "path": "iphone/el-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "c5fcf8536fd9fd286c210f3b718f49a6f0cf4e82",
+      "bytes": 365025
+    },
+    {
+      "path": "iphone/en-US-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "ce064d5e91d2e72f47de6207b970cac63a2c18c8",
+      "bytes": 233190
+    },
+    {
+      "path": "iphone/en-US-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "dc143e4f318462a99c3745f6eb9a1bda306035c9",
+      "bytes": 579903
+    },
+    {
+      "path": "iphone/en-US-3_progress-app-store-study-history.png",
+      "gitBlob": "2bb4daf466e68633416bf11ea9160e51bd5ae94e",
+      "bytes": 289727
+    },
+    {
+      "path": "iphone/en-US-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "56c909b19f0137580f6ca70aa58331854405b44c",
+      "bytes": 287814
+    },
+    {
+      "path": "iphone/en-US-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "0b903b55ce49163038ded1263fa1f2521c09bfb9",
+      "bytes": 301073
+    },
+    {
+      "path": "iphone/es-ES-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "9709b60b302e171686c68685cbbdef473d3f5d57",
+      "bytes": 259173
+    },
+    {
+      "path": "iphone/es-ES-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "94c42845cd67284c911e3f940a6f144d5a6e6924",
+      "bytes": 632280
+    },
+    {
+      "path": "iphone/es-ES-3_progress-app-store-study-history.png",
+      "gitBlob": "c8b940eb6dca9be923f0e60ec0620e7ca04fab65",
+      "bytes": 337127
+    },
+    {
+      "path": "iphone/es-ES-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "efb7c18bcd58c54af0522d2567c90905feabc43e",
+      "bytes": 306309
+    },
+    {
+      "path": "iphone/es-ES-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "c916e1061d13aaea17d32571af8fe2887b064d6b",
+      "bytes": 304743
+    },
+    {
+      "path": "iphone/es-MX-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "cf6d88abf8928a4139f9f850a3a255f4e9cad5ce",
+      "bytes": 255821
+    },
+    {
+      "path": "iphone/es-MX-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "2e9a78c873ae7212ce134d201bb54d928e25a677",
+      "bytes": 628066
+    },
+    {
+      "path": "iphone/es-MX-3_progress-app-store-study-history.png",
+      "gitBlob": "b4ae3905de7192e729e7c27e025bbec59e62bed8",
+      "bytes": 320439
+    },
+    {
+      "path": "iphone/es-MX-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "d2c0528f6d08a9a021c4ff4ce525e431c00a867f",
+      "bytes": 306135
+    },
+    {
+      "path": "iphone/es-MX-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "c0a60c7433e3ac370599df3130a6e1d1162f9a84",
+      "bytes": 366760
+    },
+    {
+      "path": "iphone/et-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "c7ab98cd51ad7ada557fac2fa0702215744023f5",
+      "bytes": 248614
+    },
+    {
+      "path": "iphone/et-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "0fffddf57918216f3ad41616728d26a02e1ad907",
+      "bytes": 595636
+    },
+    {
+      "path": "iphone/et-3_progress-app-store-study-history.png",
+      "gitBlob": "35e015c9ae546e9e01a831586575ec995c103cd9",
+      "bytes": 286236
+    },
+    {
+      "path": "iphone/et-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "d15d0d8e767e02c54e3cdecf80b337ccc2248570",
+      "bytes": 271997
+    },
+    {
+      "path": "iphone/et-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "102d4af3fbe6be3e9f5f8c6d732205237b70a86f",
+      "bytes": 281537
+    },
+    {
+      "path": "iphone/fa-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "14213df9f853bf8bcdf522b07a7acca858a636e1",
+      "bytes": 247425
+    },
+    {
+      "path": "iphone/fa-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "d8e9fb266409a5e5f0af40e7df8cf777c71d2e07",
+      "bytes": 561336
+    },
+    {
+      "path": "iphone/fa-3_progress-app-store-study-history.png",
+      "gitBlob": "4b84f11247b031fd7972fad50df208b968a015c7",
+      "bytes": 317334
+    },
+    {
+      "path": "iphone/fa-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "73b89d9fe31f13b01c9d35a27cd27ec9302c7f66",
+      "bytes": 289025
+    },
+    {
+      "path": "iphone/fa-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "92e52c15f862e76eef7f186bf220a9be16fcce2d",
+      "bytes": 322757
+    },
+    {
+      "path": "iphone/fi-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "be92c6e842aa03f15948b37cff79004312a2f424",
+      "bytes": 260425
+    },
+    {
+      "path": "iphone/fi-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "330bdf914461746bca9a1b8084e5804b202ce1a6",
+      "bytes": 590047
+    },
+    {
+      "path": "iphone/fi-3_progress-app-store-study-history.png",
+      "gitBlob": "0e3a4ae75e6e431b503a2711a5425dc9c43b6a18",
+      "bytes": 329401
+    },
+    {
+      "path": "iphone/fi-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "4bd81719baca886059e6c7c0a5bd61f9f971290b",
+      "bytes": 302653
+    },
+    {
+      "path": "iphone/fi-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "9fbcf0860d93007041a8cf5911a89e8ba34b17cf",
+      "bytes": 348390
+    },
+    {
+      "path": "iphone/fr-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "792be75f2517de09b28c9b50960b3b72dc9525bf",
+      "bytes": 255815
+    },
+    {
+      "path": "iphone/fr-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "d7885c56492302a079164ea819f830478f602545",
+      "bytes": 621481
+    },
+    {
+      "path": "iphone/fr-3_progress-app-store-study-history.png",
+      "gitBlob": "1a196afe8d4b6d2b42e73dd3f6def48bde3e69bf",
+      "bytes": 336499
+    },
+    {
+      "path": "iphone/fr-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "3d2aaa0af8cc3c8d3bc360059a00b202eff728d7",
+      "bytes": 309008
+    },
+    {
+      "path": "iphone/fr-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "610109c72ea139183f19f0f669f186aa4cb6bf86",
+      "bytes": 323023
+    },
+    {
+      "path": "iphone/gu-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "db80b7817bacce74ed4d86b63fac7d4085ddd905",
+      "bytes": 230227
+    },
+    {
+      "path": "iphone/gu-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "bffbc97ea572c6b42f12a5f318387eadbdc90152",
+      "bytes": 581578
+    },
+    {
+      "path": "iphone/gu-3_progress-app-store-study-history.png",
+      "gitBlob": "f1feb637c2c7a9d60f87fd4771e0ad234b1e237e",
+      "bytes": 325804
+    },
+    {
+      "path": "iphone/gu-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "81bae2c70233e1c0d9e92a7c6e3aed74b3f8eb2a",
+      "bytes": 289760
+    },
+    {
+      "path": "iphone/gu-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "114d3945c1b1d9c1bfab99113bbef87de4c5bc8a",
+      "bytes": 362888
+    },
+    {
+      "path": "iphone/he-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "cbe3a14def50e7ca159d5de06c03f709f24d344d",
+      "bytes": 221069
+    },
+    {
+      "path": "iphone/he-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "0363a0f3d6fa27ca2588736638538daced8cde1f",
+      "bytes": 486491
+    },
+    {
+      "path": "iphone/he-3_progress-app-store-study-history.png",
+      "gitBlob": "e35cdf36e55413cf3817fa394d1de688480953a4",
+      "bytes": 267187
+    },
+    {
+      "path": "iphone/he-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "12f1324fd29a6ccecd6ed7319307cfa878734058",
+      "bytes": 233233
+    },
+    {
+      "path": "iphone/he-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "f968f5912cb05ec8341c14195b834d781ce4897f",
+      "bytes": 241594
+    },
+    {
+      "path": "iphone/hi-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "1a0f618aba23deb19aeece9c14588aee8c449f14",
+      "bytes": 227663
+    },
+    {
+      "path": "iphone/hi-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "543c91d7899029abfef3c5544c4d280a36c3b7da",
+      "bytes": 579238
+    },
+    {
+      "path": "iphone/hi-3_progress-app-store-study-history.png",
+      "gitBlob": "494bda32bd4094e9410de110d9fea703a43cc30f",
+      "bytes": 309502
+    },
+    {
+      "path": "iphone/hi-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "e81360514c882fb85aaf83825714408b12de791d",
+      "bytes": 285084
+    },
+    {
+      "path": "iphone/hi-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "bc39ac7f62fc499412dd3742f2a6354f4290502f",
+      "bytes": 322499
+    },
+    {
+      "path": "iphone/hr-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "13def126c91a08f82bbd7a6dc3cdf1b492f70f70",
+      "bytes": 249476
+    },
+    {
+      "path": "iphone/hr-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "5ca513e93f52ff8019b73882788cebf65658e73d",
+      "bytes": 561469
+    },
+    {
+      "path": "iphone/hr-3_progress-app-store-study-history.png",
+      "gitBlob": "6c46a1aaa8783f36a821b4c53b47bd6b9435e4aa",
+      "bytes": 328412
+    },
+    {
+      "path": "iphone/hr-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "0725ec380ef86824d0f6f52899a1d3d2cb6b4ad0",
+      "bytes": 281012
+    },
+    {
+      "path": "iphone/hr-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "1913e694e2039a2d8f9f2b5e9a2ae201c8f00a90",
+      "bytes": 292079
+    },
+    {
+      "path": "iphone/hu-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "3b22f3fdfbdeb4803e2e5e62ceae36a345515b95",
+      "bytes": 260896
+    },
+    {
+      "path": "iphone/hu-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "602f8830d86271dcc203a4c4a23db67caf6883a6",
+      "bytes": 593957
+    },
+    {
+      "path": "iphone/hu-3_progress-app-store-study-history.png",
+      "gitBlob": "bea842b9b69a2c870089f015097137e6ca009f13",
+      "bytes": 337676
+    },
+    {
+      "path": "iphone/hu-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "6bb180e22bb9a569afe33d6c56bf7947b3e9d099",
+      "bytes": 313424
+    },
+    {
+      "path": "iphone/hu-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "a3b6baa5c6aca6d836af3f64070f2a59841cdc77",
+      "bytes": 302502
+    },
+    {
+      "path": "iphone/id-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "f6fc7fa61028c98f6b6d2fd2e2c28e10b35e29fd",
+      "bytes": 235121
+    },
+    {
+      "path": "iphone/id-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "cd6cfb2bc8119368b6b7246393bfc8b24d0e24ad",
+      "bytes": 548540
+    },
+    {
+      "path": "iphone/id-3_progress-app-store-study-history.png",
+      "gitBlob": "2965f3dc4deb1ee4641637a9ab6c6641a76be413",
+      "bytes": 310355
+    },
+    {
+      "path": "iphone/id-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "233f6296348c3ac9e3a10d7739d21df687e70f45",
+      "bytes": 285324
+    },
+    {
+      "path": "iphone/id-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "203a938f2ef74829971e63ca2ea5203115afdca8",
+      "bytes": 275554
+    },
+    {
+      "path": "iphone/is-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "0c53e057b0bf3453913e6794268b6f95925c60cd",
+      "bytes": 235055
+    },
+    {
+      "path": "iphone/is-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "f0f87e331ea3bfc9c007797205eeaa9880a860c8",
+      "bytes": 581430
+    },
+    {
+      "path": "iphone/is-3_progress-app-store-study-history.png",
+      "gitBlob": "cb091b2280eb86f025d5791874895aa47f16cb63",
+      "bytes": 296162
+    },
+    {
+      "path": "iphone/is-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "cfcc4ea054dcda74c9e2a2f8e76407edaacd3eeb",
+      "bytes": 294504
+    },
+    {
+      "path": "iphone/is-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "7ba0e5503b3d2542aa2baa38cac5ba31474ddf46",
+      "bytes": 300590
+    },
+    {
+      "path": "iphone/it-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "612715b1e3a79b7ff52e61eec51b4957c276326a",
+      "bytes": 236556
+    },
+    {
+      "path": "iphone/it-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "7210fb8136e0d17ed87d25c8c25ca2d0dca245e3",
+      "bytes": 545890
+    },
+    {
+      "path": "iphone/it-3_progress-app-store-study-history.png",
+      "gitBlob": "2266d8f2cb32ed2f768aa8e7743d3dc6625b5391",
+      "bytes": 321570
+    },
+    {
+      "path": "iphone/it-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "328e57f9b096ec5476dbd3718a2ed50750572855",
+      "bytes": 298761
+    },
+    {
+      "path": "iphone/it-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "90132b72420d59ed4fe4a02230ff8381346cac48",
+      "bytes": 317591
+    },
+    {
+      "path": "iphone/ja-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "5fcabb1f169b37d9a1f5b7038f52fa4d7443b2dd",
+      "bytes": 270090
+    },
+    {
+      "path": "iphone/ja-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "4c9defe0c92000bb0d097e4346a9ca2e7ab8ee82",
+      "bytes": 631233
+    },
+    {
+      "path": "iphone/ja-3_progress-app-store-study-history.png",
+      "gitBlob": "7b6e4a0983fec17e54760fd3a5ac88cc5ac624cd",
+      "bytes": 316066
+    },
+    {
+      "path": "iphone/ja-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "9d2e2fe9f781a0a03d5ef0591f19c4c2b6d6a3b5",
+      "bytes": 331624
+    },
+    {
+      "path": "iphone/ja-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "d151ff27a55d8fa6ac26333ca0da025f7180f1a0",
+      "bytes": 363629
+    },
+    {
+      "path": "iphone/kn-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "177d4a2c892851237bd4b4e75ab5210d871d87a6",
+      "bytes": 321643
+    },
+    {
+      "path": "iphone/kn-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "db42381ffc4639fc9e7210cd57930a6e74bf2914",
+      "bytes": 703998
+    },
+    {
+      "path": "iphone/kn-3_progress-app-store-study-history.png",
+      "gitBlob": "f95208e9d3abaa4fc5804a932d41c4a1093757cf",
+      "bytes": 353209
+    },
+    {
+      "path": "iphone/kn-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "404594584b735752a03437e4f98d8197c33e309a",
+      "bytes": 393096
+    },
+    {
+      "path": "iphone/kn-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "5f0bd93018119c7986e2212bd36f2d70ffddbbd8",
+      "bytes": 417978
+    },
+    {
+      "path": "iphone/ko-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "7a5ddaeb46ef8614454600859b94bb35301c674e",
+      "bytes": 237713
+    },
+    {
+      "path": "iphone/ko-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "042756ca5a63d2a3c103f86d903021e6ed5a5fdc",
+      "bytes": 492259
+    },
+    {
+      "path": "iphone/ko-3_progress-app-store-study-history.png",
+      "gitBlob": "d6df2224b0e6cc213b934de2788f4e8cdf732cab",
+      "bytes": 280513
+    },
+    {
+      "path": "iphone/ko-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "2f3d7c1870d219300d3e481d867e0e1c16d133e3",
+      "bytes": 265039
+    },
+    {
+      "path": "iphone/ko-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "e3443e609e319597aa773381ad4e360e5a7e1bf5",
+      "bytes": 288561
+    },
+    {
+      "path": "iphone/lt-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "9daed634b717c51e06e57466ad5488dfaec54aab",
+      "bytes": 242797
+    },
+    {
+      "path": "iphone/lt-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "87d3d03a6a3f200fe5dc8645b8c935350f4a029f",
+      "bytes": 621526
+    },
+    {
+      "path": "iphone/lt-3_progress-app-store-study-history.png",
+      "gitBlob": "f6f7fe6eaf5e4f6807fa81e77e8f2d8d6edc8454",
+      "bytes": 336875
+    },
+    {
+      "path": "iphone/lt-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "f9af34d7e25be04c7353261096c6b30d59bcff18",
+      "bytes": 301065
+    },
+    {
+      "path": "iphone/lt-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "e853704ac6ca71dc4da380a288c036921b7eb872",
+      "bytes": 299769
+    },
+    {
+      "path": "iphone/lv-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "3f80a7a738146542c88a2bfba4582f0863638208",
+      "bytes": 257812
+    },
+    {
+      "path": "iphone/lv-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "5782e227abe4d22faad43bb1e9c7cede6663011b",
+      "bytes": 608460
+    },
+    {
+      "path": "iphone/lv-3_progress-app-store-study-history.png",
+      "gitBlob": "a1b083c69dece6dc0c59df172d11764cca8f04f4",
+      "bytes": 331363
+    },
+    {
+      "path": "iphone/lv-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "947d3fb751c447c08f3884add0642a3c5636b55b",
+      "bytes": 290260
+    },
+    {
+      "path": "iphone/lv-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "2fc1cf2984258e0fdf1aa66f35cb6e897b00d658",
+      "bytes": 288867
+    },
+    {
+      "path": "iphone/ml-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "24f95da06a57ffa540a586a2f3d75ae7d5bcb606",
+      "bytes": 329190
+    },
+    {
+      "path": "iphone/ml-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "7c9e380309706cc1f9048c8d7ba5671fcb192786",
+      "bytes": 747097
+    },
+    {
+      "path": "iphone/ml-3_progress-app-store-study-history.png",
+      "gitBlob": "651c675ea34a80c98982a0b352e167b842f82982",
+      "bytes": 373673
+    },
+    {
+      "path": "iphone/ml-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "9bb880bcb82c94af275c721d0164db5653e42b50",
+      "bytes": 400925
+    },
+    {
+      "path": "iphone/ml-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "3d856bd02c6e5f1af71cc9a41559f38548a2efea",
+      "bytes": 436560
+    },
+    {
+      "path": "iphone/mr-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "19cb5de35b0f37a26a94ada504007c5d154fdd45",
+      "bytes": 231533
+    },
+    {
+      "path": "iphone/mr-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "4ef2b72a83b40bebf1645e13e5a75ab89f534d87",
+      "bytes": 498307
+    },
+    {
+      "path": "iphone/mr-3_progress-app-store-study-history.png",
+      "gitBlob": "5bcf60122e5fd581f3e2cc3a62facd48993b9a79",
+      "bytes": 303419
+    },
+    {
+      "path": "iphone/mr-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "bb37f94283bb0e55baaa26792a9b34da7b06d90f",
+      "bytes": 273699
+    },
+    {
+      "path": "iphone/mr-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "142e3a3b69cbc8458e574611ef0fc2fa2a965f0c",
+      "bytes": 338352
+    },
+    {
+      "path": "iphone/nb-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "0e190662fed9411aca0c67c85740ef1cd4572e5f",
+      "bytes": 222674
+    },
+    {
+      "path": "iphone/nb-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "ebc8562c64f4922fb7aac0294f3796ea723b9982",
+      "bytes": 563680
+    },
+    {
+      "path": "iphone/nb-3_progress-app-store-study-history.png",
+      "gitBlob": "a0c1df61a2c2644dd3dbade88c47d60e93db63bd",
+      "bytes": 324805
+    },
+    {
+      "path": "iphone/nb-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "b4474dc150bf2df68166b862320cd4b85d063aa7",
+      "bytes": 283170
+    },
+    {
+      "path": "iphone/nb-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "4a39db7abc1a480462bc816a9e6c3107b8554944",
+      "bytes": 273790
+    },
+    {
+      "path": "iphone/nl-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "bff8b96be830762ced47089550d32b8011d74fe8",
+      "bytes": 250108
+    },
+    {
+      "path": "iphone/nl-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "967c70af82476331ad94194b2a9f89154c21e9cb",
+      "bytes": 612024
+    },
+    {
+      "path": "iphone/nl-3_progress-app-store-study-history.png",
+      "gitBlob": "bd7095283a9bb379629d639496ab6b6c4e88b0ce",
+      "bytes": 340255
+    },
+    {
+      "path": "iphone/nl-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "4d4ab448b0f60bd70060bbde4d7d84dea4982a18",
+      "bytes": 298855
+    },
+    {
+      "path": "iphone/nl-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "fa29349c93667a30266d71961b5f835dfd7a63b6",
+      "bytes": 351774
+    },
+    {
+      "path": "iphone/pa-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "36ea547d94d71779a163db733b6a58d2aeca2a9b",
+      "bytes": 229628
+    },
+    {
+      "path": "iphone/pa-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "7571be1f6cc07f03e5b4d5cd778a26c4551d4925",
+      "bytes": 549837
+    },
+    {
+      "path": "iphone/pa-3_progress-app-store-study-history.png",
+      "gitBlob": "33fe1b56931124eff8b8efe7af3155180f448ed6",
+      "bytes": 304191
+    },
+    {
+      "path": "iphone/pa-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "389b3de0fd431376169fda66839cda16ceb23ed7",
+      "bytes": 267351
+    },
+    {
+      "path": "iphone/pa-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "9cc20661a5baf926b30044ae87eb7971158070ec",
+      "bytes": 337487
+    },
+    {
+      "path": "iphone/pl-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "cbdc16fa7e3441d2ff339e214bb4177caf2b98ca",
+      "bytes": 242175
+    },
+    {
+      "path": "iphone/pl-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "0ddb8e976f551d5b82e5a272ba723bce5c98698c",
+      "bytes": 589640
+    },
+    {
+      "path": "iphone/pl-3_progress-app-store-study-history.png",
+      "gitBlob": "be79069c316a4687c9c408e029eabccc5bd58eac",
+      "bytes": 307456
+    },
+    {
+      "path": "iphone/pl-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "f23c5b98959516837053a7d72b16fb7f72f8370f",
+      "bytes": 307017
+    },
+    {
+      "path": "iphone/pl-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "79b5950f8c317371524202bc29aa50f8a7bf5a27",
+      "bytes": 310382
+    },
+    {
+      "path": "iphone/pt-BR-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "f5b6ab32dc7875934987e7441836afac057f745d",
+      "bytes": 258231
+    },
+    {
+      "path": "iphone/pt-BR-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "49896cd1deae303cf906f106f7669ad54b232419",
+      "bytes": 621049
+    },
+    {
+      "path": "iphone/pt-BR-3_progress-app-store-study-history.png",
+      "gitBlob": "899b9e2b46c0bfbe93f21b596f79324524aa4706",
+      "bytes": 328718
+    },
+    {
+      "path": "iphone/pt-BR-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "3637d0a8744d0a431be02ece49366d92fc4eece4",
+      "bytes": 294567
+    },
+    {
+      "path": "iphone/pt-BR-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "0415e8ec712d0e409122bbdfef9b7218336b7029",
+      "bytes": 361756
+    },
+    {
+      "path": "iphone/ro-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "8f2cf7a4ebc3f48f902e6fa6a3e7c57fea230fb6",
+      "bytes": 236987
+    },
+    {
+      "path": "iphone/ro-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "b0db39fed8710fa85aec8c86184df6f250b73bde",
+      "bytes": 574759
+    },
+    {
+      "path": "iphone/ro-3_progress-app-store-study-history.png",
+      "gitBlob": "c0725ecc81b0630145d7469dc37a03258a6a72dd",
+      "bytes": 336894
+    },
+    {
+      "path": "iphone/ro-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "7726b74ebd1ecd152f6da4681cc1e77026d52dbc",
+      "bytes": 280038
+    },
+    {
+      "path": "iphone/ro-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "5ff5f751865380990932d5e25b6bdeff99a010ff",
+      "bytes": 284180
+    },
+    {
+      "path": "iphone/ru-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "b680b8f57cedd2f420aee029023c7a5355e6af75",
+      "bytes": 258949
+    },
+    {
+      "path": "iphone/ru-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "ad923c6057763d0400128b795b19d46bb2942995",
+      "bytes": 645746
+    },
+    {
+      "path": "iphone/ru-3_progress-app-store-study-history.png",
+      "gitBlob": "19ee7b2a45db6b4646e4dcc817f1ca46f8867ca8",
+      "bytes": 360565
+    },
+    {
+      "path": "iphone/ru-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "e647642182ae6815adc4ccfde5858979ebf12da0",
+      "bytes": 304020
+    },
+    {
+      "path": "iphone/ru-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "d47583238080436f106fefec5bfbaebc0f0128f8",
+      "bytes": 337319
+    },
+    {
+      "path": "iphone/sk-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "cef2a86226aef746ca4fface88e9084ae1cfb4a7",
+      "bytes": 271765
+    },
+    {
+      "path": "iphone/sk-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "35f7ae27f9ebbf7c202e49b659382cf4c41ebb05",
+      "bytes": 604192
+    },
+    {
+      "path": "iphone/sk-3_progress-app-store-study-history.png",
+      "gitBlob": "32aced85def3fad7faf0def2cfc8c9a0b6c909da",
+      "bytes": 329916
+    },
+    {
+      "path": "iphone/sk-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "79755a91d4aeba8ee78addf6c58464c13d5e3b75",
+      "bytes": 294773
+    },
+    {
+      "path": "iphone/sk-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "4c25441d9eda1c6b67710c7f8dc15a19bdd93443",
+      "bytes": 303663
+    },
+    {
+      "path": "iphone/sl-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "ce1ee66c16021b031e4141eed79a30af10b5c3e7",
+      "bytes": 246110
+    },
+    {
+      "path": "iphone/sl-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "006968be5a3b993867a88799e6d4612292246755",
+      "bytes": 553743
+    },
+    {
+      "path": "iphone/sl-3_progress-app-store-study-history.png",
+      "gitBlob": "4604943fac673fef436956dc06a966a5096dea84",
+      "bytes": 293253
+    },
+    {
+      "path": "iphone/sl-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "c747f00d4bf6105d261669944f7d62af4dc00148",
+      "bytes": 280348
+    },
+    {
+      "path": "iphone/sl-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "5b07a37bc421f1f4a3114cba897deffe5764d5a1",
+      "bytes": 290203
+    },
+    {
+      "path": "iphone/sv-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "197c14fc1a8ed3e8bac5b87b111cc7e1b6ce722d",
+      "bytes": 230071
+    },
+    {
+      "path": "iphone/sv-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "45bd069cde18ae510ffe70dbbe9781ac0086ae50",
+      "bytes": 575174
+    },
+    {
+      "path": "iphone/sv-3_progress-app-store-study-history.png",
+      "gitBlob": "1c9aa4e1e2670b5d840487b1408bf11bedc5e177",
+      "bytes": 337039
+    },
+    {
+      "path": "iphone/sv-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "a3233fb2ef40202be4bbe68e85f2582548f2ae5f",
+      "bytes": 285168
+    },
+    {
+      "path": "iphone/sv-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "29aa83e0d0a905c0f7e7102ff3715f30755c5e6d",
+      "bytes": 293307
+    },
+    {
+      "path": "iphone/sw-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "7439436ddb63a0eb2533678a1c1c89ae31f5fcc2",
+      "bytes": 233731
+    },
+    {
+      "path": "iphone/sw-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "4a52b93f3c4940ad4d11f9809351095fc3779fba",
+      "bytes": 580225
+    },
+    {
+      "path": "iphone/sw-3_progress-app-store-study-history.png",
+      "gitBlob": "b08cd71bc4e8fa347a27bdf0a2747335717f9eb5",
+      "bytes": 302285
+    },
+    {
+      "path": "iphone/sw-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "7740c5e5d90d6118e71465a1814b8e3a362489a1",
+      "bytes": 293523
+    },
+    {
+      "path": "iphone/sw-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "608336e0cf5a3ef6b130fae46c147e53f39541ce",
+      "bytes": 309604
+    },
+    {
+      "path": "iphone/ta-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "ecdd448246a09eda67669665da884359986237a8",
+      "bytes": 282875
+    },
+    {
+      "path": "iphone/ta-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "e1e56ceab9d5b1f420d609ae334f8755b1c5d0a2",
+      "bytes": 671209
+    },
+    {
+      "path": "iphone/ta-3_progress-app-store-study-history.png",
+      "gitBlob": "2c9437561569fb51fb9786789071f797b56e5a1d",
+      "bytes": 350221
+    },
+    {
+      "path": "iphone/ta-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "496595279043c18d5db9cd3b4886525507479c3c",
+      "bytes": 355395
+    },
+    {
+      "path": "iphone/ta-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "41229db3e4521455ce2fbc2ba89633d5a1d3c481",
+      "bytes": 358829
+    },
+    {
+      "path": "iphone/te-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "519c1691b69a0dc421656c068109734d398ab373",
+      "bytes": 306001
+    },
+    {
+      "path": "iphone/te-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "4f2a4e2db96e94bfb5ca7ec6d609a51e0e12800b",
+      "bytes": 691581
+    },
+    {
+      "path": "iphone/te-3_progress-app-store-study-history.png",
+      "gitBlob": "cbfb254ab25a1f4f77e91a4b1d28b6a17907668d",
+      "bytes": 386561
+    },
+    {
+      "path": "iphone/te-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "a106850a683ec3a894238cd870f4f7931fe48fe5",
+      "bytes": 380151
+    },
+    {
+      "path": "iphone/te-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "cf0f375e79e6734220501ca8a60467aae89971de",
+      "bytes": 444071
+    },
+    {
+      "path": "iphone/th-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "8dccf516e7eee52b44b472112414cf2a35981ed9",
+      "bytes": 288953
+    },
+    {
+      "path": "iphone/th-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "5c5e33789e7756a8ee473a2457068fcd63f64045",
+      "bytes": 612137
+    },
+    {
+      "path": "iphone/th-3_progress-app-store-study-history.png",
+      "gitBlob": "af7a2c5ce87767bfb56c8bcb48db412254e03c9c",
+      "bytes": 329738
+    },
+    {
+      "path": "iphone/th-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "a20b41ee0e83553635e044985c17b7856d8fece6",
+      "bytes": 307503
+    },
+    {
+      "path": "iphone/th-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "259066e30a4b9ac0847d18b06bbb3d606f731a1a",
+      "bytes": 366789
+    },
+    {
+      "path": "iphone/tr-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "8418ce6351af3b6b4728279005966b208e4230f1",
+      "bytes": 240482
+    },
+    {
+      "path": "iphone/tr-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "24b34321bdee1e14a13d7661dccb9b5c78dc3646",
+      "bytes": 559967
+    },
+    {
+      "path": "iphone/tr-3_progress-app-store-study-history.png",
+      "gitBlob": "71edcac152d425af5f12c79db1cba25f78905a53",
+      "bytes": 285232
+    },
+    {
+      "path": "iphone/tr-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "74d1fdef34867207b33989ae44caeb314a9c6fb4",
+      "bytes": 286657
+    },
+    {
+      "path": "iphone/tr-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "69e40808e900d8f0691dc7f80360c2750515f0d3",
+      "bytes": 270796
+    },
+    {
+      "path": "iphone/uk-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "fd8786ef1280477f4c0afce9b6361b6a8b83de62",
+      "bytes": 253626
+    },
+    {
+      "path": "iphone/uk-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "ccfee08feae5320e3d61e72e4415d5a766f5cf01",
+      "bytes": 594136
+    },
+    {
+      "path": "iphone/uk-3_progress-app-store-study-history.png",
+      "gitBlob": "a29d04714453d5041024666a6f87008d44e3a453",
+      "bytes": 328892
+    },
+    {
+      "path": "iphone/uk-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "d710281ab1f40b7ad73776f84e3a6de6670bc230",
+      "bytes": 281752
+    },
+    {
+      "path": "iphone/uk-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "e652b034b3f340119a9e5267ea31fef3fc4cdc33",
+      "bytes": 344813
+    },
+    {
+      "path": "iphone/ur-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "2e3e762def92cb557e26d8f6c672a192772110bf",
+      "bytes": 243365
+    },
+    {
+      "path": "iphone/ur-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "95ae2965318f8846a45ccfa792e09d592d516891",
+      "bytes": 535113
+    },
+    {
+      "path": "iphone/ur-3_progress-app-store-study-history.png",
+      "gitBlob": "47d71d67dc1a761224d6a9be3465bd3bf20e0453",
+      "bytes": 290642
+    },
+    {
+      "path": "iphone/ur-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "b3335150cdab43035b7ce1480eee857bf8da90ae",
+      "bytes": 267239
+    },
+    {
+      "path": "iphone/ur-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "eebea3bb738356cb82906f873913833f605cdd8d",
+      "bytes": 320061
+    },
+    {
+      "path": "iphone/vi-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "65c2cc72daf518962f10fc9afec221baf8734196",
+      "bytes": 262479
+    },
+    {
+      "path": "iphone/vi-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "3d11913d03154bd3ae4ee65b3d2bc4068fb389f0",
+      "bytes": 588867
+    },
+    {
+      "path": "iphone/vi-3_progress-app-store-study-history.png",
+      "gitBlob": "22a6f304c0f86822dbcb1a9751c0f131bb224981",
+      "bytes": 331775
+    },
+    {
+      "path": "iphone/vi-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "c049b6c7164d02bdf46ac25c7d93f9c1ed5d0f97",
+      "bytes": 306536
+    },
+    {
+      "path": "iphone/vi-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "d16c411f46d0059857a72a7d76d4c78ec6c02936",
+      "bytes": 321087
+    },
+    {
+      "path": "iphone/zh-Hans-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "112d90c38a394c5fad099c38ef47f763ab20ab75",
+      "bytes": 247113
+    },
+    {
+      "path": "iphone/zh-Hans-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "c2a391df23659bc4caea2b3f6a6997f78a599b24",
+      "bytes": 569158
+    },
+    {
+      "path": "iphone/zh-Hans-3_progress-app-store-study-history.png",
+      "gitBlob": "843fb0c83aa5861b41bd99f718cd631dbfcf72d3",
+      "bytes": 293765
+    },
+    {
+      "path": "iphone/zh-Hans-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "5fdc9fd9e0e92900aa41b613634e8a92bc8b00d7",
+      "bytes": 280159
+    },
+    {
+      "path": "iphone/zh-Hans-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "ddf3976ef83bc685ce6015c9483042f7f1e7c7fd",
+      "bytes": 300903
+    },
+    {
+      "path": "iphone/zu-1_review-card-front-app-store-opportunity-cost.png",
+      "gitBlob": "ddd4a90719125d818df3356d068b6a8b3a3bb503",
+      "bytes": 277485
+    },
+    {
+      "path": "iphone/zu-2_review-card-result-app-store-opportunity-cost.png",
+      "gitBlob": "b1559dfb6c5fd6f548ee614743c6ad1235a1e329",
+      "bytes": 660303
+    },
+    {
+      "path": "iphone/zu-3_progress-app-store-study-history.png",
+      "gitBlob": "09f6d1cc29d3a53c80c156a66b8de4c9b01a1e59",
+      "bytes": 361350
+    },
+    {
+      "path": "iphone/zu-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "gitBlob": "bc3e1915145c33e7ddf2727cdfd7abe6ad74816a",
+      "bytes": 313204
+    },
+    {
+      "path": "iphone/zu-5_cards-list-app-store-vocabulary.png",
+      "gitBlob": "fe948633138d471057183346589afa997b2b5910",
+      "bytes": 356283
+    }
+  ]
+}

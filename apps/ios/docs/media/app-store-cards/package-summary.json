@@ -1,0 +1,33 @@
+{
+  "images": 460,
+  "appStoreImages": 420,
+  "additionalImages": 40,
+  "languages": 49,
+  "captureTags": 50,
+  "storeLocalizations": 42,
+  "sets": 92,
+  "sourceRevision": "8ad37887e71cb946a6697a9ad657ef0ab61ce6bd",
+  "families": {
+    "iphone": {
+      "width": 1284,
+      "height": 2778,
+      "storeImages": 210
+    },
+    "ipad": {
+      "width": 2064,
+      "height": 2752,
+      "storeImages": 210
+    }
+  },
+  "excludedStoreLocales": [
+    "bg",
+    "et",
+    "fa",
+    "is",
+    "lt",
+    "lv",
+    "sw",
+    "zu"
+  ],
+  "screenshotsPerSet": 5
+}

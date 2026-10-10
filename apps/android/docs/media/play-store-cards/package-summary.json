@@ -1,0 +1,26 @@
+{
+  "screenshots": 255,
+  "featureGraphics": 51,
+  "languages": 49,
+  "localeVariants": 51,
+  "screenshotsPerSet": 5,
+  "phoneScreenshots": {
+    "width": 1080,
+    "height": 1920,
+    "aspectRatio": "9:16",
+    "color": "RGB PNG without alpha"
+  },
+  "featureGraphic": {
+    "width": 1024,
+    "height": 500,
+    "treatment": "Existing app templates, unmodified",
+    "location": "../play-store-feature-graphic/<locale>-feature-graphic.png"
+  },
+  "sourceRevision": "8ad37887e71cb946a6697a9ad657ef0ab61ce6bd",
+  "headingStyle": "Arial, sans-serif;91.5607px;700;110.289px",
+  "captionStyle": "Arial, sans-serif;49.9422px;400;58.2659px",
+  "maximumCenterErrorPixels": 0.0078125,
+  "tabletScreenshots": 0,
+  "tabletStatus": "Native Android tablet captures were not available in the pinned app source; actual tablet captures are needed to create accurate tablet assets.",
+  "localeAvailabilityUnverified": []
+}
