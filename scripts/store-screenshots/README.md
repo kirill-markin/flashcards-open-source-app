@@ -62,6 +62,11 @@ builder (which can regenerate native captures).
 | iOS | `apps/ios/docs/media/app-store-screenshots/` | `apps/ios/docs/media/app-store-cards/` |
 | Android | `apps/android/docs/media/play-store-screenshots/` | `apps/android/docs/media/play-store-cards/` |
 
+Supported native input dimensions and the fixed portrait output geometry are in
+the [format profiles](../../docs/store-screenshot-processing.md#format-profiles).
+Both portrait and landscape iPad captures keep their complete native proportions
+inside the same approved frame.
+
 Open `index.html` in either output directory to review available languages and
 devices. `previews/` contains five-card overviews. Full cards are under:
 
@@ -137,7 +142,9 @@ npm run smoke --prefix scripts/store-screenshots
 ```
 
 The smoke flow exercises the actual command, saved native inputs, Chromium,
-PNG exports and interactive galleries in temporary directories. It checks
+PNG exports and interactive galleries in temporary directories. It also renders
+the saved real portrait iPad [fixtures](fixtures/ios-portrait/README.md) alongside
+current landscape captures and compares their frame/header geometry. It checks
 source immutability, selected/incremental device sets, missing-input preservation
 of existing output, and refusal to write into a raw-input tree. It does not run
 or alter either native app.

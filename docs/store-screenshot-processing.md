@@ -37,7 +37,8 @@ These 715 PNGs retain the exact approved delivery bytes. Their original
 `source-manifest.json` pins the native-source Git blobs to public app revision
 `8ad37887e71cb946a6697a9ad657ef0ab61ce6bd`. That revision records the original
 source package, not a new capture or the processor transfer commit. The source
-blobs match the saved native captures in this repository. Original font audits,
+blobs identify the delivery inputs; current native captures can differ after a
+separately reviewed capture refresh. Original font audits,
 verification files and gallery/overview PNGs are retained with the delivery.
 
 The processor owns reusable backgrounds, copy, locale maps and image-generation
@@ -90,7 +91,7 @@ the reference's old header text and old app screen are not used as the output UI
 | Profile | Output size | Native input size | Shared font scale |
 | --- | --- | --- | --- |
 | iPhone | 1284 × 2778 | 1284 × 2778 | width / 519 |
-| iPad | 2064 × 2752 | 2064 × 2752 | height / 1122 × 1.35 |
+| iPad | 2064 × 2752 | 2064 × 2752 portrait or 2752 × 2064 landscape | height / 1122 × 1.35 |
 | Android phone | 1080 × 1920 | 1080 × 2400 | width / 519 |
 
 The base heading is Arial/sans-serif 44 px, weight 700, line height 53 px. The
@@ -101,8 +102,11 @@ format scale multiplies those text measurements uniformly.
 iOS keeps the approved reference proportions: heading row top `63 × scale`,
 caption top `141 × scale`, frame top `212 × scale`, frame height `860 × scale`,
 padding `18 × scale`. The iPad frame is wider to cover the old reference frame,
-while its actual app screen retains its 3:4 proportion. The exact CSS and frame
-geometry are in `render-ios.mts`.
+with a fixed portrait screen box. Both supported iPad orientations fit completely
+and proportionally inside that box, centered with unused space around landscape
+captures. Native capture defaults to landscape on iPad; processing preserves the
+portrait canvas, frame and header geometry. Other input resolutions are rejected.
+The exact CSS and frame geometry are in `render-ios.mts`.
 
 Android uses a separate 9:16 canvas. Its heading row starts at 110 px, caption at
 260 px and frame at 370 px. The entire native 1080 × 2400 capture is displayed
