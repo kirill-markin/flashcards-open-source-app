@@ -212,9 +212,10 @@ export function logAdminQueryEvent(
 
 /**
  * The shared agent SQL executor runs in two Lambdas: the chat tool executes
- * inside the chat worker, while the REST agent routes and the MCP transport
- * execute inside the backend API. Map the surface onto the emitting service so
- * the record's `service` matches the log group it lands in.
+ * inside the chat worker, while the REST agent routes, the chat sandbox's SQL
+ * bridge and the MCP transport execute inside the backend API. Map the surface
+ * onto the emitting service so the record's `service` matches the log group it
+ * lands in.
  */
 function getAgentSqlService(surface: AgentSqlDetails["surface"]): BackendService {
   return surface === "chat-tool" ? "chat-worker" : "backend-api";

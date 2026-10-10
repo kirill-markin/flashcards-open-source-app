@@ -11,7 +11,7 @@ export type AdminQueryDetails = Readonly<{
 
 /**
  * One record per agent SQL execution, emitted on success and on failure by
- * every surface (`chat-tool`, `agent-rest`, `mcp`). `succeeded` is the
+ * every surface (`chat-tool`, `chat-sandbox`, `agent-rest`, `mcp`). `succeeded` is the
  * denominator the failure ratio is computed from, and `errorCode` /
  * `dialectReason` are the aggregable causes. `dialectReason` is the first
  * validation-issue code carried by the failure, recorded as an opaque value:
@@ -22,7 +22,7 @@ export type AdminQueryDetails = Readonly<{
  * really sent, whether that payload is a committed write whose rows the budget
  * dropped, and whether it is a read the budget cut down to the rows that fit.
  * All three are null on failure. `resultChars` is also null on the `chat-tool`
- * surface, which builds no agent envelope to measure, and `rowsTruncated` is
+ * and `chat-sandbox` surfaces, which build no agent envelope to measure, and `rowsTruncated` is
  * also null on a mutation and on a batch, neither of which can be truncated,
  * rather than false.
  *
