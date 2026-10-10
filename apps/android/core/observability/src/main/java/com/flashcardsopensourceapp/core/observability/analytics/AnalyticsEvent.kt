@@ -255,7 +255,8 @@ enum class AnalyticsPaywallEntryPoint(val wireValue: String) {
     AI_LIMIT(wireValue = "ai_limit"),
     ACCENT_COLOR(wireValue = "accent_color"),
     REVIEW_ANIMATIONS(wireValue = "review_animations"),
-    AI_CHAT_SUGGESTIONS(wireValue = "ai_chat_suggestions")
+    AI_CHAT_SUGGESTIONS(wireValue = "ai_chat_suggestions"),
+    APP_ICON(wireValue = "app_icon")
 }
 
 /** Whether the offer being bought starts with a Google Play free-trial phase. */

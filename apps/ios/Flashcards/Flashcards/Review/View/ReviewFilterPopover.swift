@@ -118,12 +118,13 @@ struct ReviewFilterPopover: View {
                 Image(systemName: "square.stack.3d.up")
                     .frame(width: reviewFilterSelectionColumnWidth)
                 Text(String(localized: "Edit decks", table: "ReviewCards"))
-                    .lineLimit(1)
+                    .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, reviewFilterRowHorizontalPadding)
             .padding(.vertical, reviewFilterRowVerticalPadding)
+            .frame(minHeight: 44)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -156,12 +157,13 @@ struct ReviewFilterPopover: View {
                     .frame(width: reviewFilterSelectionColumnWidth)
 
                 Text(title)
-                    .lineLimit(1)
+                    .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, reviewFilterRowHorizontalPadding)
             .padding(.vertical, reviewFilterRowVerticalPadding)
+            .frame(minHeight: 44)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

@@ -1,3 +1,7 @@
+import remarkGfm from "remark-gfm";
+import remarkParse from "remark-parse";
+import { unified } from "unified";
+import { EXIT, visit } from "unist-util-visit";
 import { hasEligibleReviewMath } from "./reviewMathBlocks";
 
 /**
@@ -21,6 +25,20 @@ const newlinePattern = /[\r\n]/;
 const whitespacePattern = /\s+/;
 const shortPlainWordLimit = 4;
 const shortPlainVisibleCharacterLimit = 48;
+const inlineFormattingProcessor = unified().use(remarkParse).use(remarkGfm);
+
+function hasInlineMarkdownFormatting(text: string): boolean {
+  if (!/[*_~]/.test(text)) {
+    return false;
+  }
+
+  let hasFormatting = false;
+  visit(inlineFormattingProcessor.parse(text), ["emphasis", "strong", "delete"], () => {
+    hasFormatting = true;
+    return EXIT;
+  });
+  return hasFormatting;
+}
 
 function hasStrongMarkdownCue(text: string): boolean {
   return markdownHeadingPattern.test(text)
@@ -42,7 +60,7 @@ export function classifyReviewContentPresentation(text: string): ReviewContentPr
     return "markdown";
   }
 
-  if (hasStrongMarkdownCue(trimmedText)) {
+  if (hasStrongMarkdownCue(trimmedText) || hasInlineMarkdownFormatting(trimmedText)) {
     return "markdown";
   }
 

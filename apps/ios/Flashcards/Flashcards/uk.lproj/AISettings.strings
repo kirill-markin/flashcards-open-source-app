@@ -886,6 +886,11 @@
 "settings.accentColor.premiumNote" = "Власні кольори акценту доступні з Premium. Збережений колір повернеться, коли Premium буде активним.";
 "settings.reviewAnimations.premiumNote" = "Вимкнення анімацій повторення доступне з Premium. Збережене налаштування повернеться, коли Premium буде активним.";
 "settings.aiChatSuggestions.premiumNote" = "Вимкнення пропозицій чату ШІ доступне з Premium. Збережене налаштування повернеться, коли Premium буде активним.";
+"settings.appIcon.title" = "Іконка застосунку";
+"settings.appIcon.default" = "За замовчуванням";
+"settings.appIcon.light" = "Світла";
+"settings.appIcon.premiumNote" = "Зміна іконки застосунку доступна з Premium. Збережена іконка повернеться, коли Premium буде активним.";
+"settings.appIcon.systemAlertNote" = "iOS підтверджує кожну зміну іконки сповіщенням.";
 
 "premium.apple.monthlyProduct" = "%@ · Щомісяця";
 "premium.apple.renewal" = "Поновлюється автоматично до скасування. Керувати підпискою або скасувати її можна в App Store.";

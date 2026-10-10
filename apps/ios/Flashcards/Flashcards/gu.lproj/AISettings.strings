@@ -886,6 +886,11 @@
 "settings.accentColor.premiumNote" = "પસંદગીના એક્સેન્ટ રંગો Premium સાથે ઉપલબ્ધ છે. Premium સક્રિય હોય ત્યારે તમારો સાચવેલો રંગ પાછો આવે છે.";
 "settings.reviewAnimations.premiumNote" = "પુનરાવર્તન ઍનિમેશન બંધ કરવાની સુવિધા Premium સાથે ઉપલબ્ધ છે. Premium સક્રિય હોય ત્યારે તમારું સાચવેલું સેટિંગ પાછું આવે છે.";
 "settings.aiChatSuggestions.premiumNote" = "AI ચૅટનાં સૂચનો બંધ કરવાની સુવિધા Premium સાથે ઉપલબ્ધ છે. Premium સક્રિય હોય ત્યારે તમારું સાચવેલું સેટિંગ પાછું આવે છે.";
+"settings.appIcon.title" = "ઍપનું ચિહ્ન";
+"settings.appIcon.default" = "ડિફૉલ્ટ";
+"settings.appIcon.light" = "લાઇટ";
+"settings.appIcon.premiumNote" = "ઍપનું ચિહ્ન બદલવાની સુવિધા Premium સાથે ઉપલબ્ધ છે. Premium સક્રિય હોય ત્યારે તમારું સાચવેલું ચિહ્ન પાછું આવે છે.";
+"settings.appIcon.systemAlertNote" = "iOS દરેક ચિહ્ન ફેરફારની પુષ્ટિ એક સૂચના વડે કરે છે.";
 
 "premium.apple.monthlyProduct" = "%@ · માસિક";
 "premium.apple.renewal" = "રદ ન કરો ત્યાં સુધી આપમેળે રિન્યૂ થાય છે. તમારા App Store સબ્સ્ક્રિપ્શનમાં તેને મેનેજ કરો અથવા રદ કરો.";

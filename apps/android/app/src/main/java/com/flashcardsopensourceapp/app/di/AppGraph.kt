@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStoreOwner
 import com.flashcardsopensourceapp.app.AutoSyncController
+import com.flashcardsopensourceapp.app.appicon.syncLauncherAppIcon
 import com.flashcardsopensourceapp.app.TestTechnicalErrorDialogPreviewController
 import com.flashcardsopensourceapp.app.enqueueMediaUploadWorker
 import com.flashcardsopensourceapp.app.navigation.AppPackageInfo
@@ -56,6 +57,9 @@ import com.flashcardsopensourceapp.data.local.ai.remote.AiChatLiveRemoteService
 import com.flashcardsopensourceapp.data.local.ai.store.AiChatHistoryStore
 import com.flashcardsopensourceapp.data.local.ai.store.AiChatPreferencesStore
 import com.flashcardsopensourceapp.data.local.ai.store.OwnOpenAiKeyStore
+import com.flashcardsopensourceapp.data.local.appicon.AppIcon
+import com.flashcardsopensourceapp.data.local.appicon.AppIconPreferencesStore
+import com.flashcardsopensourceapp.data.local.appicon.effectiveAppIcon
 import com.flashcardsopensourceapp.data.local.ai.remote.AiCoroutineDispatchers
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteService
 import com.flashcardsopensourceapp.data.local.ai.store.GuestAiSessionStore
@@ -76,6 +80,7 @@ import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersStore
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
+import com.flashcardsopensourceapp.data.local.model.cloud.canUseLocalPremiumFeatures
 import com.flashcardsopensourceapp.data.local.model.sync.isProductAnalyticsEnabled
 import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
 import com.flashcardsopensourceapp.data.local.review.SharedPreferencesReviewPreferencesStore
@@ -218,6 +223,7 @@ class AppGraph(
         isAutomation = automationEnvironment.isAutomation
     )
     private val aiChatPreferencesStore = AiChatPreferencesStore(context = context)
+    val appIconPreferencesStore = AppIconPreferencesStore(context = context)
     private val ownOpenAiKeyStore = OwnOpenAiKeyStore(context = context, scope = appScope)
     private val aiChatHistoryStore = AiChatHistoryStore(context = context)
     private val guestAiSessionStore = GuestAiSessionStore(context = context)
@@ -1108,6 +1114,24 @@ class AppGraph(
                     "event=account_context_refresh_failed source=$source ${renderSanitizedThrowableLogFields(error = error)}"
                 )
             }
+        }
+    }
+
+    /**
+     * Applies the effective App icon to the launcher when the app leaves the foreground;
+     * [syncLauncherAppIcon] defers the switch while the person is still in the app. The stored
+     * choice and entitlement persist, so a deferred change is picked up by the next call, also after
+     * a process restart.
+     */
+    fun syncLauncherAppIconInBackground() {
+        val appIcon: AppIcon = effectiveAppIcon(
+            storedAppIcon = appIconPreferencesStore.observeAppIcon().value,
+            canCustomizeStyle = canUseLocalPremiumFeatures(
+                entitlement = cloudPreferencesStore.observeEntitlement().value
+            )
+        )
+        appScope.launch {
+            syncLauncherAppIcon(context = applicationContext, appIcon = appIcon)
         }
     }
 

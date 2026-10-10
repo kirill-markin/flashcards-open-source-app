@@ -14,6 +14,28 @@ enum AppTab: Hashable, CaseIterable, Sendable {
     case ai
     case cards
     case settings
+
+    var localizedTitle: String {
+        let key: String
+        switch self {
+        case .review: key = "root_tab.review.title"
+        case .progress: key = "root_tab.progress.title"
+        case .ai: key = "root_tab.ai.title"
+        case .cards: key = "root_tab.cards.title"
+        case .settings: key = "root_tab.settings.title"
+        }
+        return String(localized: String.LocalizationValue(key), table: "Foundation")
+    }
+
+    var systemImage: String {
+        switch self {
+        case .review: "rectangle.on.rectangle"
+        case .progress: "chart.bar.xaxis"
+        case .ai: "sparkles.rectangle.stack"
+        case .cards: "rectangle.stack"
+        case .settings: "gearshape"
+        }
+    }
 }
 
 enum ProgressPresentationTarget: Hashable, Sendable {
@@ -32,6 +54,7 @@ enum SettingsNavigationDestination: Hashable, Sendable {
     case accentColor
     case reviewAnimations
     case aiChatSuggestions
+    case appIcon
     case ownOpenAIKey
     case leaderboardParticipation
     case productAnalytics

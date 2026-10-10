@@ -886,6 +886,11 @@
 "settings.accentColor.premiumNote" = "Özel vurgu renkleri Premium ile kullanılabilir. Kaydedilen renginiz Premium etkin olduğunda geri gelir.";
 "settings.reviewAnimations.premiumNote" = "Tekrar animasyonlarını kapatmak Premium ile kullanılabilir. Kaydedilen ayarınız Premium etkin olduğunda geri gelir.";
 "settings.aiChatSuggestions.premiumNote" = "AI sohbet önerilerini kapatmak Premium ile kullanılabilir. Kaydedilen ayarınız Premium etkin olduğunda geri gelir.";
+"settings.appIcon.title" = "Uygulama simgesi";
+"settings.appIcon.default" = "Varsayılan";
+"settings.appIcon.light" = "Açık";
+"settings.appIcon.premiumNote" = "Uygulama simgesini değiştirmek Premium ile kullanılabilir. Kaydedilen simgeniz Premium etkin olduğunda geri gelir.";
+"settings.appIcon.systemAlertNote" = "iOS her simge değişikliğini bir uyarıyla onaylar.";
 
 "premium.apple.monthlyProduct" = "%@ · Aylık";
 "premium.apple.renewal" = "İptal edilene kadar otomatik yenilenir. App Store aboneliklerinizden yönetin veya iptal edin.";

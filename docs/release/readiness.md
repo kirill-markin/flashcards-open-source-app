@@ -41,7 +41,7 @@ without reconstructing evidence merely to turn this report green.
    results, at the source SHA used by that gate. Save the scheme/test plan or
    Gradle/instrumentation selection, source test declarations, selected devices,
    configurations and any exclusions in the release record. Include all selected
-   cases and destinations, including failing and manually excluded cases. For
+   cases and destinations, including failing, manually excluded and platform-guarded cases. For
    local iOS smoke, include the guest-navigation selection or all three
    compatibility smokes when that local selection satisfies the actual 18.x
    requirement; cloud iOS includes the entire selected UI suite. Android
@@ -203,10 +203,11 @@ Each result has `gateId`, the same five-field `identity`, `status`,
 Again, include the entire recorded case array, not just this example.
 Gate and case status is `passed`, `failed`, `skipped`, or `pending`; only a
 passed gate can be ready. Every required case must pass. Every declared case,
-including manual exclusions, must appear. A skipped case requires a nonempty
-`reason` exactly matching its declared manual exclusion; investigation notes do
+including manual and destination exclusions, must appear. A skipped case requires a nonempty
+`reason` exactly matching its declared exclusion; investigation notes do
 not authorize skipping a required smoke. Failed/pending cases always fail, even
-if manually excluded. An excluded case that executes and passes is acceptable.
+if excluded. An excluded case that executes and passes is acceptable, subject
+to the destination counterpart requirement below.
 
 `warningReview` is `complete` or `pending`; pending inspection blocks readiness.
 Use an empty warnings array only after inspecting retained evidence and finding
@@ -228,6 +229,44 @@ operator adjudication under the canonical policy; it is not a waiver, security
 assessment, vulnerability scan, or proof that a vendor-supported fix is absent.
 The report carries reference/identity/decision fields; exact notice and reason
 remain in the manifest bound by the report's `manifestSha256`.
+
+### iOS cloud destination exclusions
+
+The complete latest-OS suite can select both phone and iPad destinations while
+individual methods explicitly guard their eligible device idiom. Preserve
+these native skips as `skipped`; do not remove them, mark them passed or call
+them manual marketing exclusions. Only iOS `cloud-tests` supports the additive
+`destination-exclusion` disposition. Independently review the source guard,
+configured destinations and native skip reason, then declare:
+
+```json
+{
+  "id": "LiveSmokeIPadTests/testIPadReviewHardwareKeysRespectFilterAndRateCards()@iPhone 17/iOS 27.0",
+  "disposition": "destination-exclusion",
+  "reason": "Test skipped - This smoke requires an iPad hardware-key surface.",
+  "evidenceRef": "ios/cloud/platform-guard-and-destination-review",
+  "requiredCaseId": "LiveSmokeIPadTests/testIPadReviewHardwareKeysRespectFilterAndRateCards()@iPad Pro 13-inch M5/iOS 27.0"
+}
+```
+
+Both IDs must use `Class/method()@destination`, naming the same logical test
+on different destinations. The referenced case must be a `required` case in
+this same gate, with an actual `passed` result from the same recorded run/action
+identity. Missing, skipped, failed or pending counterparts block readiness;
+manual exclusions and other destination exclusions cannot serve as counterparts.
+The counterpart must pass even if the excluded destination unexpectedly executes
+and passes. The checker validates this relationship and exact native skip reason;
+the operator must establish that the source guard actually makes that destination
+ineligible. It does not independently inspect source or destination eligibility.
+
+For the 21-method phone/iPad selection, retain all 42 case/destination records:
+two iPad-only methods have phone destination exclusions, one phone-only method
+has an iPad destination exclusion, and each remains required on its eligible
+destination. The two manual marketing methods remain separate manual exclusions
+on each destination. Keep every native status and count, including any failures.
+This disposition cannot satisfy the local smoke, iOS 18 compatibility or Android
+gates, or excuse a required latest-OS smoke that did not execute on its eligible
+destination.
 
 ## Bounded source equivalence
 
@@ -263,7 +302,7 @@ accepted; redundant/unrelated records fail.
 Keep input and output outside tracked release history in the operator release
 record, with the ledger pointing to both. Reports contain expected/recorded
 identities, named pass/fail/skip/pending results, missing counts, warning and
-exclusion evidence references, bounded equivalences, limits, and the input
+exclusion evidence references and required counterpart IDs, bounded equivalences, limits, and the input
 SHA-256 and the manifest's `schemaVersion`. Keep them with the referenced durable
 native evidence; a temporary signed URL is not a durable reference. Reason/notice text and unrelated extra
 input fields are not echoed. A report is only current for that exact manifest;
@@ -281,13 +320,21 @@ Other gates are deliberately missing: CI requires the successful cloud gate
 to pass while the platform report stays blocked, and requires the historical
 failed case to block despite the green overall summary. This checks the CLI
 boundary against real captured cases; it is not a new live device run or proof
-of the historical release's complete gates.
+of the historical release's complete gates. The 1.33.0 fixture retains the complete
+42-record run 614 matrix and independently reviewed platform guards. CI also
+replays missing, skipped, failed and pending counterparts, wrong guard reasons,
+missing native cases and invalid destination relationships; each must block
+readiness or reject malformed input. Native evidence remains unchanged; boundary
+mutations are made only to copies.
 
 For an operator's complete real manifest, perform these focused manual checks
 on copies in the private release record:
 
 1. Run the command on complete passing evidence. Expect exit `0`, all gates
-   ready, exact intended identities, and expected manual skips counted separately.
+   ready, exact intended identities, and manual/destination skips reported distinctly.
+   For a destination exclusion, remove or skip/fail its eligible counterpart:
+   expect exit `1`. Point it at another method, the same destination or a
+   non-required case: expect exit `2`.
 2. Use the actual failed run/action and all its named results with a matching
    expected identity/inventory. A green summary with the historical reset-case
    failure must return `1` and name that failure. Keep the earlier source

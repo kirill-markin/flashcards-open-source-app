@@ -886,6 +886,11 @@
 "settings.accentColor.premiumNote" = "Els colors d’accent personalitzats estan disponibles amb Premium. El color desat torna quan Premium està actiu.";
 "settings.reviewAnimations.premiumNote" = "Desactivar les animacions de repàs està disponible amb Premium. La configuració desada torna quan Premium està actiu.";
 "settings.aiChatSuggestions.premiumNote" = "Desactivar els suggeriments de xat d’IA està disponible amb Premium. La configuració desada torna quan Premium està actiu.";
+"settings.appIcon.title" = "Icona de l’aplicació";
+"settings.appIcon.default" = "Per defecte";
+"settings.appIcon.light" = "Clara";
+"settings.appIcon.premiumNote" = "Canviar la icona de l’aplicació està disponible amb Premium. La icona desada torna quan Premium està actiu.";
+"settings.appIcon.systemAlertNote" = "iOS confirma cada canvi d’icona amb un avís.";
 
 "premium.apple.monthlyProduct" = "%@ · Mensual";
 "premium.apple.renewal" = "Es renova automàticament fins que la cancel·lis. Gestiona o cancel·la la subscripció a l’App Store.";

@@ -886,6 +886,11 @@
 "settings.accentColor.premiumNote" = "Barve poudarka po meri so na voljo s Premium. Shranjena barva se vrne, ko je Premium aktiven.";
 "settings.reviewAnimations.premiumNote" = "Izklop animacij pri ponavljanju je na voljo s Premium. Shranjena nastavitev se vrne, ko je Premium aktiven.";
 "settings.aiChatSuggestions.premiumNote" = "Izklop predlogov klepeta z UI je na voljo s Premium. Shranjena nastavitev se vrne, ko je Premium aktiven.";
+"settings.appIcon.title" = "Ikona aplikacije";
+"settings.appIcon.default" = "Privzeta";
+"settings.appIcon.light" = "Svetla";
+"settings.appIcon.premiumNote" = "Spreminjanje ikone aplikacije je na voljo s Premium. Shranjena ikona se vrne, ko je Premium aktiven.";
+"settings.appIcon.systemAlertNote" = "iOS vsako spremembo ikone potrdi z opozorilom.";
 
 "premium.apple.monthlyProduct" = "%@ · Mesečno";
 "premium.apple.renewal" = "Samodejno se podaljšuje do preklica. Upravljajte ali prekličite v naročninah App Store.";

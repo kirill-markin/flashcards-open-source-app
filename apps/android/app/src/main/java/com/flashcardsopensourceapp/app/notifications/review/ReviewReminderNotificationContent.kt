@@ -7,7 +7,7 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import com.flashcardsopensourceapp.app.MainActivity
+import com.flashcardsopensourceapp.app.MainHostActivity
 import com.flashcardsopensourceapp.app.R
 import com.flashcardsopensourceapp.app.notifications.AppNotificationTapType
 import com.flashcardsopensourceapp.app.notifications.appNotificationTapExtraPrefix
@@ -109,7 +109,7 @@ private fun createReviewReminderPendingIntent(
     context: Context,
     requestId: String
 ): PendingIntent {
-    val intent = Intent(context, MainActivity::class.java).apply {
+    val intent = Intent(context, MainHostActivity::class.java).apply {
         flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
         putExtra(
             "$appNotificationTapExtraPrefix::$appNotificationTapTypeDataKey",

@@ -10,7 +10,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
 import com.flashcardsopensourceapp.app.FirebaseAppInstrumentationTimeoutTest
-import com.flashcardsopensourceapp.app.MainActivity
+import com.flashcardsopensourceapp.app.MainHostActivity
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitForFlowValue
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitUntilAtLeastOneExistsOrFail
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitUntilWithMitigation
@@ -37,7 +37,7 @@ import org.junit.runners.model.Statement
 @RunWith(AndroidJUnit4::class)
 class NotificationTapSmokeTest : FirebaseAppInstrumentationTimeoutTest() {
     private val appStateResetRule = AppStateResetRule()
-    private val composeRule = createAndroidComposeRule<MainActivity>()
+    private val composeRule = createAndroidComposeRule<MainHostActivity>()
     private val device: UiDevice = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
 
     @get:Rule
@@ -197,7 +197,7 @@ class NotificationTapSmokeTest : FirebaseAppInstrumentationTimeoutTest() {
 }
 
 private class NotificationTapComposeRule(
-    private val delegate: AndroidComposeTestRule<ActivityScenarioRule<MainActivity>, MainActivity>
+    private val delegate: AndroidComposeTestRule<ActivityScenarioRule<MainHostActivity>, MainHostActivity>
 ) : TestRule {
     override fun apply(base: Statement, description: Description): Statement {
         val delegateStatement = delegate.apply(base, description)

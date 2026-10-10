@@ -102,7 +102,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
 
     private val appStateResetRule = AppStateResetRule()
 
-    private val composeRule = createAndroidComposeRule<MainActivity>()
+    private val composeRule = createAndroidComposeRule<MainHostActivity>()
 
     @get:Rule
     val ruleChain: TestRule = RuleChain

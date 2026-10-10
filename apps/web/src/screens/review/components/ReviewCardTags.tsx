@@ -21,6 +21,7 @@ export function ReviewCardTags(props: ReviewCardTagsProps): ReactElement {
           className="badge review-metadata-chip review-tag-button"
           key={tag}
           type="button"
+          aria-haspopup="dialog"
           aria-label={`${t("deckDetail.actions.openReview")}: ${tag}`}
           // A pointer click (detail > 0) releases focus so Space and 1-4 reach the review shortcuts again.
           onClick={(event) => {

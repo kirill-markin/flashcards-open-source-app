@@ -157,6 +157,16 @@ struct SettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsAIChatSuggestionsRow)
+
+                NavigationLink(value: SettingsNavigationDestination.appIcon) {
+                    SettingsNavigationRow(
+                        title: appIconSettingsTitle(),
+                        value: store.effectiveAppIcon.title,
+                        systemImage: "apps.iphone",
+                        attentionCount: nil
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.settingsAppIconRow)
             }
 
             Section(aiSettingsLocalized("settings.section.general", "General")) {
@@ -436,24 +446,24 @@ struct SettingsNavigationRow: View {
     let attentionCount: Int?
 
     var body: some View {
-        HStack(spacing: 12) {
+        LabeledContent {
+            HStack(spacing: 12) {
+                if let value {
+                    Text(value)
+                        .font(.subheadline.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
+
+                if let attentionCount, attentionCount > 0 {
+                    SettingsAttentionBadgeView(count: attentionCount)
+                }
+            }
+        } label: {
             Label {
                 Text(title)
                     .foregroundStyle(Color.primary)
             } icon: {
                 Image(systemName: systemImage)
-            }
-
-            Spacer()
-
-            if let value {
-                Text(value)
-                    .font(.subheadline.monospacedDigit())
-                    .foregroundStyle(.secondary)
-            }
-
-            if let attentionCount, attentionCount > 0 {
-                SettingsAttentionBadgeView(count: attentionCount)
             }
         }
     }

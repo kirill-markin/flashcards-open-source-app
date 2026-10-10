@@ -52,8 +52,11 @@ struct ReviewCardSideView: View {
                             Image(systemName: self.isSpeechPlaying ? "speaker.wave.2.fill" : "speaker.wave.2")
                                 .font(.callout.weight(.semibold))
                                 .foregroundStyle(.secondary)
-                                .frame(width: 32, height: 32)
-                                .background(.thinMaterial, in: Circle())
+                                .padding(6)
+                                .frame(minWidth: 32, minHeight: 32)
+                                .background(.thinMaterial, in: Capsule())
+                                .frame(minWidth: 44, minHeight: 44)
+                                .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel(
@@ -76,9 +79,12 @@ struct ReviewCardSideView: View {
                             Text(String(localized: "AI", table: reviewCardsStringsTableName))
                                 .font(.caption2.weight(.bold))
                                 .foregroundStyle(.white)
-                                .frame(height: 32)
+                                .padding(.vertical, 6)
                                 .padding(.horizontal, 11)
+                                .frame(minHeight: 32)
                                 .background(.tint, in: Capsule())
+                                .frame(minWidth: 44, minHeight: 44)
+                                .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         .accessibilityIdentifier(UITestIdentifier.reviewAiButton)

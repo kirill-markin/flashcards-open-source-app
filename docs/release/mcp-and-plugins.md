@@ -175,9 +175,10 @@ tracked on `main`. Update these listings; do not create duplicate submissions.
    automatically only when Anthropic's applied policy allows it, the toggle is
    on, and no reviewer hold applies. Inspect the actual policy and version status
    on every run: a matching version may already have published automatically.
-   Otherwise select **Publish** / **Publish update** as offered and verify
+   Otherwise select an enabled **Publish** / **Publish update** as offered and verify
    whether it went live or created a reviewer request; do not assume every
-   version requires reviewer approval.
+   version requires reviewer approval. If reviewer policy disables the action,
+   follow [Reviewer-Disabled Plugin Publication](#reviewer-disabled-plugin-publication).
    Reuse an already submitted or published matching version on resume.
 5. **Publication evidence:** record plugin version, source commit, CI and scan
    results, publication policy, request/status, and public listing link when
@@ -194,3 +195,27 @@ A scan or private package upload alone is insufficient; complete the available
 **Publish** action. Record a resulting reviewer request or propagation delay
 as external follow-up under the [common completion rule](README.md#release-inventory-and-completion);
 do not wait for public/install propagation or label pending updates live.
+For a disabled action, preserve the distinct pending outcome below; it does not
+meet the accepted-request boundary.
+
+### Reviewer-Disabled Plugin Publication
+
+When the exact target version/source SHA is detected and its required CI,
+scans and focused checks pass, but reviewer policy disables **Publish update**,
+record **provider-held operator action pending**, the disabled control and
+policy/reason, observation time, Anthropic as hold owner and the operator's
+conditional **Publish update** action in the [ledger](evidence.md#release-ledger).
+Scan approval is not an accepted publication request or automatic publication.
+Record the target version/SHA separately from every accepted pending request's
+ID, version/SHA and acceptance time; an older request never counts as acceptance
+of the newer source, even when its manifest version matches.
+
+Preserve the existing pending request and tracked ref. Do not poll, rebuild,
+resubmit or change the ref/settings to bypass the hold. The next condition is
+Anthropic releasing the hold to enable the action or publishing the exact target.
+On resume, inspect current state first: reuse a matching accepted request or
+publication; if the action becomes available, complete it and verify acceptance.
+Continue available required work and hand off the held action under the
+[canonical completion rule](README.md#release-inventory-and-completion).
+Keep scan result, request acceptance, automatic publication and the actual
+public/installable version as separate observations.

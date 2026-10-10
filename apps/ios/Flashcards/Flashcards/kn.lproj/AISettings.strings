@@ -886,6 +886,11 @@
 "settings.accentColor.premiumNote" = "ಆಯ್ಕೆಯ ಹೈಲೈಟ್ ಬಣ್ಣಗಳು Premium ಜೊತೆಗೆ ಲಭ್ಯವಿವೆ. Premium ಸಕ್ರಿಯವಾದಾಗ ಉಳಿಸಿದ ಬಣ್ಣ ಮರಳಿ ಬರುತ್ತದೆ.";
 "settings.reviewAnimations.premiumNote" = "ಪುನರಾವರ್ತನೆ ಅನಿಮೇಶನ್‌ಗಳನ್ನು ಆಫ್ ಮಾಡುವುದು Premium ಜೊತೆಗೆ ಲಭ್ಯವಿದೆ. Premium ಸಕ್ರಿಯವಾದಾಗ ಉಳಿಸಿದ ಸೆಟ್ಟಿಂಗ್ ಮರಳಿ ಬರುತ್ತದೆ.";
 "settings.aiChatSuggestions.premiumNote" = "AI ಚಾಟ್ ಸಲಹೆಗಳನ್ನು ಆಫ್ ಮಾಡುವುದು Premium ಜೊತೆಗೆ ಲಭ್ಯವಿದೆ. Premium ಸಕ್ರಿಯವಾದಾಗ ಉಳಿಸಿದ ಸೆಟ್ಟಿಂಗ್ ಮರಳಿ ಬರುತ್ತದೆ.";
+"settings.appIcon.title" = "ಆ್ಯಪ್ ಐಕಾನ್";
+"settings.appIcon.default" = "ಡೀಫಾಲ್ಟ್";
+"settings.appIcon.light" = "ಲೈಟ್";
+"settings.appIcon.premiumNote" = "ಆ್ಯಪ್ ಐಕಾನ್ ಬದಲಾಯಿಸುವುದು Premium ಜೊತೆಗೆ ಲಭ್ಯವಿದೆ. Premium ಸಕ್ರಿಯವಾದಾಗ ಉಳಿಸಿದ ಐಕಾನ್ ಮರಳಿ ಬರುತ್ತದೆ.";
+"settings.appIcon.systemAlertNote" = "ಪ್ರತಿ ಐಕಾನ್ ಬದಲಾವಣೆಯನ್ನು iOS ಒಂದು ಎಚ್ಚರಿಕೆಯ ಮೂಲಕ ದೃಢೀಕರಿಸುತ್ತದೆ.";
 
 "premium.apple.monthlyProduct" = "%@ · ಮಾಸಿಕ";
 "premium.apple.renewal" = "ರದ್ದು ಮಾಡುವವರೆಗೆ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ನವೀಕರಣಗೊಳ್ಳುತ್ತದೆ. ನಿಮ್ಮ App Store ಚಂದಾದಾರಿಕೆಗಳಲ್ಲಿ ನಿರ್ವಹಿಸಿ ಅಥವಾ ರದ್ದುಮಾಡಿ.";
