@@ -1,5 +1,5 @@
-"kMDItemKeywords" = "flashcards,bilgi kartları,kelime kartları,çalışma kartları";
-"MDItemKeywords" = "flashcards,bilgi kartları,kelime kartları,çalışma kartları";
+"kMDItemKeywords" = "flashcards,flash cards,bilgi kartları,kelime kartları,çalışma kartları,tekrar kartları";
+"MDItemKeywords" = "flashcards,flash cards,bilgi kartları,kelime kartları,çalışma kartları,tekrar kartları";
 "NSCameraUsageDescription" = "AI sohbetine eklemek üzere fotoğraf çekmek için kamera erişimine izin verin.";
 "NSMicrophoneUsageDescription" = "AI sohbetine metin dikte etmek için mikrofon erişimine izin verin.";
 "NSPhotoLibraryUsageDescription" = "AI sohbetine eklemek üzere fotoğraf seçmek için fotoğraf arşivine erişime izin verin.";

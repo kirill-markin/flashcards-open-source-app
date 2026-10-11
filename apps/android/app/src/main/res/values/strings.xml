@@ -1,5 +1,5 @@
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="app_name">Nibomo</string>
+    <string name="app_name">Nibomo Flashcards</string>
     <string name="top_level_review">Review</string>
     <string name="top_level_ai">AI</string>
     <string name="top_level_progress">Progress</string>

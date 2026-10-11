@@ -1,5 +1,5 @@
-"kMDItemKeywords" = "flashcards,fiszki,karty do nauki";
-"MDItemKeywords" = "flashcards,fiszki,karty do nauki";
+"kMDItemKeywords" = "flashcards,flash cards,fiszki,karty do nauki,karty do powtórek";
+"MDItemKeywords" = "flashcards,flash cards,fiszki,karty do nauki,karty do powtórek";
 "NSCameraUsageDescription" = "Zezwól na dostęp do aparatu, aby robić zdjęcia do załączników czatu AI.";
 "NSMicrophoneUsageDescription" = "Zezwól na dostęp do mikrofonu, aby dyktować tekst w czacie AI.";
 "NSPhotoLibraryUsageDescription" = "Zezwól na dostęp do biblioteki zdjęć, aby wybierać zdjęcia do załączników czatu AI.";
