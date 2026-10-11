@@ -6,7 +6,7 @@
   "captureTags": 50,
   "storeLocalizations": 42,
   "sets": 94,
-  "sourceRevision": "b615b50fd14fbe5b782469281d9c79869ca73d14",
+  "sourceRevision": "25a4d50085f442b72350c9f4a8dd62dbcfa45cbb",
   "families": {
     "iphone": {
       "width": 1284,
@@ -24,19 +24,19 @@
       "storeImages": 5
     },
     "iphone-duo-inner": {
-      "width": 2007,
-      "height": 2853,
+      "width": 2853,
+      "height": 2007,
       "storeImages": 5
     }
   },
   "excludedStoreLocales": [
+    "fa",
+    "sw",
     "bg",
     "et",
-    "fa",
     "is",
     "lt",
     "lv",
-    "sw",
     "zu"
   ],
   "screenshotsPerSet": 5
