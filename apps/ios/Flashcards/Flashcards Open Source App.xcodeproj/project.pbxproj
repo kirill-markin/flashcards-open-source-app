@@ -459,6 +459,9 @@
 			buildSettings = {
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Config/Info.plist;
+				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = Config/MacCatalyst.entitlements;
+				"ENABLE_APP_SANDBOX[sdk=macosx*]" = YES;
+				"ENABLE_HARDENED_RUNTIME[sdk=macosx*]" = YES;
 				PRODUCT_MODULE_NAME = Flashcards;
 				PRODUCT_NAME = "Flashcards Open Source App";
 			};
@@ -470,6 +473,9 @@
 			buildSettings = {
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Config/Info.plist;
+				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = Config/MacCatalyst.entitlements;
+				"ENABLE_APP_SANDBOX[sdk=macosx*]" = YES;
+				"ENABLE_HARDENED_RUNTIME[sdk=macosx*]" = YES;
 				PRODUCT_MODULE_NAME = Flashcards;
 				PRODUCT_NAME = "Flashcards Open Source App";
 			};
@@ -481,6 +487,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGNING_ALLOWED = NO;
+				"CODE_SIGNING_ALLOWED[sdk=macosx*]" = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -493,6 +500,7 @@
 				PRODUCT_NAME = "Flashcards Open Source App Tests";
 				SDKROOT = iphoneos;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Flashcards Open Source App.app/Flashcards Open Source App";
+				"TEST_HOST[sdk=macosx*]" = "$(BUILT_PRODUCTS_DIR)/Flashcards Open Source App.app/Contents/MacOS/Flashcards Open Source App";
 				TEST_TARGET_NAME = "Flashcards Open Source App";
 			};
 			name = Debug;
@@ -503,6 +511,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGNING_ALLOWED = NO;
+				"CODE_SIGNING_ALLOWED[sdk=macosx*]" = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -515,6 +524,7 @@
 				PRODUCT_NAME = "Flashcards Open Source App Tests";
 				SDKROOT = iphoneos;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Flashcards Open Source App.app/Flashcards Open Source App";
+				"TEST_HOST[sdk=macosx*]" = "$(BUILT_PRODUCTS_DIR)/Flashcards Open Source App.app/Contents/MacOS/Flashcards Open Source App";
 				TEST_TARGET_NAME = "Flashcards Open Source App";
 			};
 			name = Release;
@@ -524,6 +534,7 @@
 			baseConfigurationReference = A10000000000000000000018 /* Config/Debug.xcconfig */;
 			buildSettings = {
 				CODE_SIGNING_ALLOWED = NO;
+				"CODE_SIGNING_ALLOWED[sdk=macosx*]" = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -544,6 +555,7 @@
 			baseConfigurationReference = A10000000000000000000019 /* Config/Release.xcconfig */;
 			buildSettings = {
 				CODE_SIGNING_ALLOWED = NO;
+				"CODE_SIGNING_ALLOWED[sdk=macosx*]" = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -629,10 +641,10 @@
 		};
 		A10000000000000000000042 /* XCRemoteSwiftPackageReference "RaTeX" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/erweixin/RaTeX";
+			repositoryURL = "https://github.com/kirill-markin/RaTeX";
 			requirement = {
 				kind = exactVersion;
-				version = 0.1.14;
+				version = "0.1.14-catalyst.1";
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
