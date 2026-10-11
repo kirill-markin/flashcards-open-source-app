@@ -1,9 +1,14 @@
 import Foundation
 import Observation
+import OSLog
 import StoreKit
 import UIKit
 
 private let applePremiumProductId: String = "premium_monthly"
+private let appleSubscriptionLogger: Logger = Logger(
+    subsystem: appBundleIdentifier(),
+    category: "apple_subscription"
+)
 
 enum AppleSubscriptionError: LocalizedError {
     case accountUnavailable
@@ -193,12 +198,22 @@ final class AppleSubscriptionService {
         case .userCancelled:
             return .cancelled
         case .success(let verification):
-            guard let transaction = try self.verifiedPremiumTransaction(verification),
-                  transaction.appAccountToken == token else {
+            guard let transaction = try self.verifiedPremiumTransaction(verification) else {
+                appleSubscriptionLogger.error("event=apple_store_purchase_rejected reason=product_mismatch")
+                throw AppleSubscriptionError.unexpectedPurchaseResult
+            }
+            guard transaction.appAccountToken == token else {
+                appleSubscriptionLogger.error(
+                    """
+                    event=apple_store_purchase_rejected reason=account_token_mismatch \
+                    token_present=\(String(transaction.appAccountToken != nil), privacy: .public)
+                    """
+                )
                 throw AppleSubscriptionError.unexpectedPurchaseResult
             }
             return .verified(verification: verification, transaction: transaction)
         @unknown default:
+            appleSubscriptionLogger.error("event=apple_store_purchase_rejected reason=unknown_result")
             throw AppleSubscriptionError.unexpectedPurchaseResult
         }
     }
