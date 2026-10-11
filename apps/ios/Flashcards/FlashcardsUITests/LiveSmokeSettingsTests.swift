@@ -90,8 +90,8 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
             identifier: LiveSmokeIdentifier.languageSettingsSystemText,
             timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
         )
-        try self.assertTextExistsScrollingIntoView("English", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        try self.assertTextExistsScrollingIntoView("Spanish Spain", timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.assertLanguageTextExistsScrollingIntoView("English", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.assertLanguageTextExistsScrollingIntoView("Spanish Spain", timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
         try self.returnToSettingsRoot()
 
         try self.openSettingsRootRow(identifier: LiveSmokeIdentifier.settingsAccessRow)
@@ -149,6 +149,46 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
             identifier: identifier,
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
+    }
+
+    @MainActor
+    private func assertLanguageTextExistsScrollingIntoView(_ text: String, timeout: TimeInterval) throws {
+        #if targetEnvironment(macCatalyst)
+        try self.runWithInlineRawScreenStateOnFailure(action: "assert_text_exists_scrolling.\(text)") {
+            let languageList = self.app.collectionViews[LiveSmokeIdentifier.languageSettingsScreen].firstMatch
+            guard languageList.exists else {
+                throw LiveSmokeFailure.missingElement(
+                    identifier: LiveSmokeIdentifier.languageSettingsScreen,
+                    timeoutSeconds: timeout,
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
+            }
+
+            let predicate = NSPredicate(format: "label == %@ OR identifier == %@", text, text)
+            let textElement = languageList.descendants(matching: .any).matching(predicate).firstMatch
+            let deadline = Date().addingTimeInterval(timeout)
+
+            while Date() < deadline {
+                if textElement.exists {
+                    return
+                }
+
+                languageList.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.5))
+                    .scroll(byDeltaX: 0, deltaY: -120)
+                RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
+            }
+
+            throw LiveSmokeFailure.missingText(
+                text: text,
+                timeoutSeconds: timeout,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+        #else
+        try self.assertTextExistsScrollingIntoView(text, timeout: timeout)
+        #endif
     }
 
     @MainActor
