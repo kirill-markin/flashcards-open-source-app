@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { ChatSandboxWriteSlot } from "./contract";
+import { chatSandboxUploadErrorType, type ChatSandboxWriteSlot } from "./contract";
 import { uploadPresignedObject } from "./presignedTransfer";
 
 export type SlotFile = Readonly<{
@@ -23,7 +23,7 @@ export class ChatSandboxUploadError extends Error {
 
   public constructor(uploadedSlotIds: ReadonlyArray<string>, cause: unknown) {
     super(cause instanceof Error ? cause.message : String(cause), { cause });
-    this.name = "ChatSandboxUploadError";
+    this.name = chatSandboxUploadErrorType;
     this.uploadedSlotIds = uploadedSlotIds;
   }
 }
