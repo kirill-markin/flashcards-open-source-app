@@ -1,4 +1,12 @@
-import { reviewEventPlatforms, type AdminQueryValue, type ReviewEventPlatform } from "../adminApi";
+import {
+  productEventDeviceTypes,
+  productEventOsNames,
+  reviewEventPlatforms,
+  type AdminQueryValue,
+  type ProductEventDeviceType,
+  type ProductEventOsName,
+  type ReviewEventPlatform,
+} from "../adminApi";
 
 // Runtime guards for the untyped rows `POST /v1/admin/reports/query` returns, plus the UTC calendar
 // arithmetic every report needs to fill in the days its SQL returned no row for. `reportLabel` is the
@@ -184,4 +192,30 @@ export function assertPlatform(
   }
 
   return platform as ReviewEventPlatform;
+}
+
+export function assertOsName(
+  value: AdminQueryValue,
+  reportLabel: string,
+  fieldName: string,
+): ProductEventOsName {
+  const osName = assertIsString(value, reportLabel, fieldName);
+  if (productEventOsNames.includes(osName as ProductEventOsName) === false) {
+    throw new Error(`${reportLabel} field "${fieldName}" must be a supported OS name. Got "${osName}".`);
+  }
+
+  return osName as ProductEventOsName;
+}
+
+export function assertDeviceType(
+  value: AdminQueryValue,
+  reportLabel: string,
+  fieldName: string,
+): ProductEventDeviceType {
+  const deviceType = assertIsString(value, reportLabel, fieldName);
+  if (productEventDeviceTypes.includes(deviceType as ProductEventDeviceType) === false) {
+    throw new Error(`${reportLabel} field "${fieldName}" must be a supported device type. Got "${deviceType}".`);
+  }
+
+  return deviceType as ProductEventDeviceType;
 }

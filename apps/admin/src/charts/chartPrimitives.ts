@@ -2,6 +2,8 @@ import * as d3 from "d3";
 import {
   reviewEventCohorts,
   reviewEventPlatforms,
+  type ProductEventDeviceType,
+  type ProductEventOsName,
   type ReviewEventCohort,
   type ReviewEventPlatform,
 } from "../adminApi";
@@ -71,7 +73,7 @@ export type StackedChartRectEntry = Readonly<{
 }>;
 
 export type GroupedChartRectEntry = Readonly<{
-  key: ReviewEventPlatform;
+  key: string;
   date: string;
   value: number;
 }>;
@@ -98,6 +100,38 @@ const platformColors: Readonly<Record<ReviewEventPlatform, string>> = {
   ios: "#f28e2b",
   agent: "#af7aa1",
   unattributed: "#8c8c8c",
+};
+
+export const osNameLabels: Readonly<Record<ProductEventOsName, string>> = {
+  ios: "iOS",
+  ipados: "iPadOS",
+  macos: "macOS",
+  android: "Android",
+  unknown: "Unknown",
+};
+
+export const osNameColors: Readonly<Record<ProductEventOsName, string>> = {
+  ios: "#f28e2b",
+  ipados: "#e15759",
+  macos: "#76b7b2",
+  android: "#59a14f",
+  unknown: "#8c8c8c",
+};
+
+export const deviceTypeLabels: Readonly<Record<ProductEventDeviceType, string>> = {
+  phone: "Phone",
+  tablet: "Tablet",
+  desktop: "Desktop",
+  tv: "TV",
+  unknown: "Unknown",
+};
+
+export const deviceTypeColors: Readonly<Record<ProductEventDeviceType, string>> = {
+  phone: "#4e79a7",
+  tablet: "#e15759",
+  desktop: "#76b7b2",
+  tv: "#ff9da7",
+  unknown: "#8c8c8c",
 };
 
 export const uniqueUserCohortKeys = reviewEventCohorts;
