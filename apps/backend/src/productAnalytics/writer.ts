@@ -172,6 +172,9 @@ const insertProductAnalyticsIdentityLinkSql = [
   " AND EXCLUDED.source = 'server_derived'",
 ].join("");
 
+// An installation's OS family, device class and model never change, so a NULL there means the
+// client did not report it, not that it was cleared: those three keep the stored value, and an
+// omitted one is not a change for the hourly throttle. Every other column replaces with NULL.
 const upsertInstallationProfileSql = `
   INSERT INTO analytics.installation_profiles (
     anonymous_id, platform, user_id, app_version, os_version, device_locale, timezone,
@@ -184,9 +187,9 @@ const upsertInstallationProfileSql = `
     os_version = EXCLUDED.os_version,
     device_locale = EXCLUDED.device_locale,
     timezone = EXCLUDED.timezone,
-    os_name = EXCLUDED.os_name,
-    device_type = EXCLUDED.device_type,
-    device_model = EXCLUDED.device_model,
+    os_name = COALESCE(EXCLUDED.os_name, installation_profiles.os_name),
+    device_type = COALESCE(EXCLUDED.device_type, installation_profiles.device_type),
+    device_model = COALESCE(EXCLUDED.device_model, installation_profiles.device_model),
     last_seen = EXCLUDED.last_seen
   WHERE EXCLUDED.last_seen >= installation_profiles.last_seen
     AND (
@@ -197,8 +200,10 @@ const upsertInstallationProfileSql = `
           installation_profiles.device_type, installation_profiles.device_model)
         IS DISTINCT FROM
          (EXCLUDED.user_id, EXCLUDED.app_version, EXCLUDED.os_version,
-          EXCLUDED.device_locale, EXCLUDED.timezone, EXCLUDED.os_name,
-          EXCLUDED.device_type, EXCLUDED.device_model)
+          EXCLUDED.device_locale, EXCLUDED.timezone,
+          COALESCE(EXCLUDED.os_name, installation_profiles.os_name),
+          COALESCE(EXCLUDED.device_type, installation_profiles.device_type),
+          COALESCE(EXCLUDED.device_model, installation_profiles.device_model))
     )
 `;
 
