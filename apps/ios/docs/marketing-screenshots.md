@@ -20,9 +20,12 @@ plus `bg`, `et`, `fa`, `is`, `lt`, `lv`, `sw`, and `zu`. The expected raw
 inventory is five screenshots per tag per captured device family: 250 iPhone PNGs
 and 210 iPad PNGs, because the eight non-Store tags are captured on iPhone only.
 The optional iPhone Duo outer and inner families each use the 42 Store locales
-(210 PNGs per display once captured); those native assets are not generated yet.
-Catalog support alone does not establish that these assets have been generated or
-uploaded.
+(210 PNGs per display once captured). Five genuine `en-US` PNGs per display are
+tracked now; the remaining 41 locales per display have not been captured. Their
+capture provenance is in the separate
+[`duo-source-manifest.json`](media/app-store-cards/duo-source-manifest.json).
+Catalog support alone does not establish that other assets have been generated
+or uploaded.
 
 Each locale captures:
 
@@ -302,9 +305,8 @@ bash scripts/ios/capture-ios-marketing-screenshots.sh --locale en-US --duo-displ
 
 For all Duo Store locales, use `--list-ipad-locales` for the locale loop and
 pass the same `--duo-display` on every invocation. No command currently switches
-the Duo pose automatically. Xcode 27.0 on the existing local Mac lacks the Duo
-simulator; these commands have not produced native Duo PNGs, and physical Duo
-behavior remains unverified.
+the Duo pose automatically. The English outer and inner captures used the iOS
+27.1 iPhone Duo simulator; physical Duo behavior remains unverified.
 
 For a sequential bulk capture from frozen sources, first run one locale with
 the default `test` action to build and validate the current app and test runner.

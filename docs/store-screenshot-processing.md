@@ -29,14 +29,21 @@ processor and its canonical design assets. The approved inventory is:
 | --- | --- | --- |
 | `apps/ios/docs/media/app-store-cards/ready/iphone/` | 210 | Uploaded to App Store Connect |
 | `apps/ios/docs/media/app-store-cards/ready/ipad/` | 210 | Prepared; existing store iPad screenshots unchanged |
+| `apps/ios/docs/media/app-store-cards/ready/iphone-duo-outer/` | 5 | Prepared in English; not uploaded |
+| `apps/ios/docs/media/app-store-cards/ready/iphone-duo-inner/` | 5 | Prepared in English; not uploaded |
 | `apps/ios/docs/media/app-store-cards/additional-languages/iphone/` | 40 | Prepared; these languages have no separate App Store listing |
 | `apps/android/docs/media/play-store-cards/ready/*/phoneScreenshots/` | 255 | Uploaded to Google Play, including Zulu |
 
-These 715 PNGs retain the exact approved delivery bytes. Their original
+The original 715 PNGs retain their exact approved delivery bytes. The ten new
+English Duo cards bring the tracked inventory to 725. The current
 `export-manifest.json` records output SHA-256 hashes and rendering measurements;
 `source-manifest.json` pins the native-source Git blobs to public app revision
 `8ad37887e71cb946a6697a9ad657ef0ab61ce6bd`. That revision records the original
-source package, not a new capture or the processor transfer commit. The source
+source package, not the Duo capture or processing revision. The separate
+[`duo-source-manifest.json`](../apps/ios/docs/media/app-store-cards/duo-source-manifest.json)
+records each genuine Duo input's hash, Git blob, app revision, producer state and
+simulator toolchain. Only `en-US` has been captured and processed for Duo; the
+other Store locales remain selectable but have no Duo assets yet. The source
 blobs identify the delivery inputs; current native captures can differ after a
 separately reviewed capture refresh. Original font audits,
 verification files and gallery/overview PNGs are retained with the delivery.
