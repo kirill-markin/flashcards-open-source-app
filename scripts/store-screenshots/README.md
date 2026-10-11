@@ -86,8 +86,9 @@ devices. `previews/` contains five-card overviews. Full cards are under:
 - Android: `ready/<Play-listing-locale>/phoneScreenshots/<card>_<slug>.png`.
 
 Both output directories are ordinary tracked Git files. The approved inventory
-contains 460 iOS cards (210 iPhone Store cards, 210 prepared iPad cards and 40
-additional-language iPhone cards) and 255 Android phone cards. Store-upload status
+contains 470 iOS cards (210 iPhone Store cards, 210 prepared iPad cards, 40
+additional-language iPhone cards and ten English Duo cards, five per display) and
+255 Android phone cards. Store-upload status
 and original delivery provenance are recorded in the
 [processing guide](../../docs/store-screenshot-processing.md#tracked-approved-delivery).
 
@@ -166,9 +167,13 @@ or alter either native app.
 Newly rendered `export-manifest.json` files record exact source/output SHA-256
 hashes, source names, locale/device mapping, dimensions, typography and measured
 bounds. Their `sourceRevision` is the processing checkout revision, **not evidence
-of a fresh native capture**. The approved delivery retains its original export
-manifest and separate Git-blob `source-manifest.json`; see the processing guide.
-Font reports describe the recorded rendering invocation.
+of a fresh native capture**. The current iOS `export-manifest.json` is a mixed
+package: its top-level revision and input root describe the Duo processing run,
+while retained and Duo rows keep their own revisions and input roots. Only
+`source-manifest.json` preserves the original native-source package; the
+[iOS card provenance](../../apps/ios/docs/media/app-store-cards/README.md) details
+both row sets and links the Duo capture manifest. Font reports describe the
+recorded rendering invocation.
 
 The top-level `inputRoot` is the resolved absolute directory read by that
 invocation, including overrides. Each new result records its own `inputRoot` and

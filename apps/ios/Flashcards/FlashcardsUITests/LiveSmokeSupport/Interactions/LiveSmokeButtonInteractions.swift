@@ -75,6 +75,46 @@ extension LiveSmokeTestCase {
     }
 
     @MainActor
+    func tapSettingsButtonScrollingIntoView(identifier: String, timeout: TimeInterval) throws {
+        let button = self.app.buttons[identifier].firstMatch
+        let settingsList = self.app.collectionViews[LiveSmokeIdentifier.settingsScreen].firstMatch
+        try self.runWithInlineRawScreenStateOnFailure(action: "tap_button_scrolling_into_view.\(identifier)") {
+            let deadline = Date().addingTimeInterval(timeout)
+
+            guard settingsList.exists else {
+                throw LiveSmokeFailure.missingElement(
+                    identifier: LiveSmokeIdentifier.settingsScreen,
+                    timeoutSeconds: timeout,
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
+            }
+
+            while Date() < deadline {
+                if button.exists && button.isHittable {
+                    try self.tapExistingButton(
+                        button,
+                        identifier: identifier,
+                        action: "tap_button_scrolling_into_view",
+                        note: "button tapped after scrolling into view"
+                    )
+                    return
+                }
+
+                settingsList.swipeUp()
+                RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
+            }
+
+            throw LiveSmokeFailure.missingElement(
+                identifier: identifier,
+                timeoutSeconds: timeout,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+    }
+
+    @MainActor
     func tapButtonScrollingIntoViewPreservingAlerts(identifier: String, timeout: TimeInterval) throws {
         let button = self.app.buttons[identifier].firstMatch
         try self.runWithInlineRawScreenStateOnFailure(action: "tap_button_scrolling_into_view_preserving_alerts.\(identifier)") {
