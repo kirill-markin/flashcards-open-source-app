@@ -118,6 +118,7 @@ extension LiveSmokeTestCase {
             identifier: LiveSmokeIdentifier.aiComposerDismissKeyboardButton,
             timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
         )
+#if !targetEnvironment(macCatalyst)
         guard self.softwareKeyboardIsVisible() else {
             throw LiveSmokeFailure.unexpectedAiConversationState(
                 message: "Expected the software keyboard to remain visible for the focused AI draft before New.",
@@ -125,6 +126,7 @@ extension LiveSmokeTestCase {
                 step: self.currentStepTitle
             )
         }
+#endif
 
         try self.tapButton(
             identifier: LiveSmokeIdentifier.aiNewChatButton,
