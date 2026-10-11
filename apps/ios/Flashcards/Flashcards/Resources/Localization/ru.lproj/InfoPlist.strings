@@ -1,5 +1,5 @@
-"kMDItemKeywords" = "flashcards,флешкарты,карточки";
-"MDItemKeywords" = "flashcards,флешкарты,карточки";
+"kMDItemKeywords" = "flashcards,flash cards,флешкарты,карточки,учебные карточки,карточки для повторения";
+"MDItemKeywords" = "flashcards,flash cards,флешкарты,карточки,учебные карточки,карточки для повторения";
 "NSCameraUsageDescription" = "Разрешите доступ к камере, чтобы делать фото для вложений в чате с ИИ.";
 "NSMicrophoneUsageDescription" = "Разрешите доступ к микрофону, чтобы диктовать текст в чате с ИИ.";
 "NSPhotoLibraryUsageDescription" = "Разрешите доступ к фото, чтобы выбирать изображения для вложений в чате с ИИ.";
