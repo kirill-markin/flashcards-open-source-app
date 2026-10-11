@@ -55,6 +55,10 @@ import com.flashcardsopensourceapp.feature.review.reviewQueueButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewShowAnswerButtonTag
 import com.flashcardsopensourceapp.feature.settings.R as SettingsR
 import com.flashcardsopensourceapp.feature.settings.deck.deckCardRowTag
+import com.flashcardsopensourceapp.feature.settings.deck.deckEditorNameFieldTag
+import com.flashcardsopensourceapp.feature.settings.deck.deckEditorSaveButtonTag
+import com.flashcardsopensourceapp.feature.settings.deck.deckEditorScreenTag
+import com.flashcardsopensourceapp.feature.settings.deck.deckEditorTagOptionTag
 import com.flashcardsopensourceapp.feature.settings.settingsAccessRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsAccountStatusRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsAgentConnectionsRowTag
@@ -75,6 +79,7 @@ import com.flashcardsopensourceapp.feature.settings.scheduler.schedulerLearningS
 import com.flashcardsopensourceapp.feature.settings.scheduler.schedulerMaximumIntervalFieldTag
 import com.flashcardsopensourceapp.feature.settings.scheduler.schedulerRelearningStepsFieldTag
 import com.flashcardsopensourceapp.feature.settings.scheduler.schedulerSaveButtonTag
+import com.flashcardsopensourceapp.feature.settings.scheduler.schedulerSettingsScreenTag
 import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceChangeActionTag
 import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceNameTag
 import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceRenameActionTag
@@ -322,9 +327,14 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         openSettingsRow(rowTag = settingsDecksRowTag)
 
         composeRule.onNodeWithContentDescription(settingsString(SettingsR.string.settings_decks_add_content_description)).performClick()
-        composeRule.onNodeWithText(settingsString(SettingsR.string.settings_deck_editor_name_label)).performTextInput(deckTitle)
-        composeRule.onNodeWithText("storage (1)").performClick()
-        composeRule.onNodeWithText(settingsString(SettingsR.string.settings_save)).performClick()
+        waitForTagToExist(tag = deckEditorScreenTag)
+        scrollToTag(containerTag = deckEditorScreenTag, nodeTag = deckEditorNameFieldTag)
+        composeRule.onNodeWithTag(deckEditorNameFieldTag).performTextInput(deckTitle)
+        val storageTagOption: String = deckEditorTagOptionTag(tag = "storage")
+        scrollToTag(containerTag = deckEditorScreenTag, nodeTag = storageTagOption)
+        composeRule.onNodeWithTag(storageTagOption).performClick()
+        scrollToTag(containerTag = deckEditorScreenTag, nodeTag = deckEditorSaveButtonTag)
+        composeRule.onNodeWithTag(deckEditorSaveButtonTag).performClick()
 
         waitForTagToExist(tag = deckCardRowTag(cardId = matchingCardId))
         composeRule.onNodeWithTag(testTag = deckCardRowTag(cardId = matchingCardId)).performClick()
@@ -353,22 +363,16 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
     fun schedulerSettingsFlowUpdatesWorkspaceSummaryFromEmptyState() {
         waitForCardsEmptyState()
 
-        openSettingsRow(rowTag = settingsSchedulingRowTag)
-        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodesWithTag(schedulerDesiredRetentionFieldTag).fetchSemanticsNodes().isNotEmpty()
-                && composeRule.onAllNodesWithTag(schedulerLearningStepsFieldTag).fetchSemanticsNodes().isNotEmpty()
-                && composeRule.onAllNodesWithTag(schedulerRelearningStepsFieldTag).fetchSemanticsNodes().isNotEmpty()
-                && composeRule.onAllNodesWithTag(schedulerMaximumIntervalFieldTag).fetchSemanticsNodes().isNotEmpty()
-        }
-        composeRule.onNodeWithTag(schedulerDesiredRetentionFieldTag).performScrollTo()
+        openSettingsRow(rowTag = settingsSchedulingRowTag, destinationTag = schedulerSettingsScreenTag)
+        scrollToTag(containerTag = schedulerSettingsScreenTag, nodeTag = schedulerDesiredRetentionFieldTag)
         composeRule.onNodeWithTag(schedulerDesiredRetentionFieldTag).performTextReplacement("0.85")
-        composeRule.onNodeWithTag(schedulerLearningStepsFieldTag).performScrollTo()
+        scrollToTag(containerTag = schedulerSettingsScreenTag, nodeTag = schedulerLearningStepsFieldTag)
         composeRule.onNodeWithTag(schedulerLearningStepsFieldTag).performTextReplacement("1, 10")
-        composeRule.onNodeWithTag(schedulerRelearningStepsFieldTag).performScrollTo()
+        scrollToTag(containerTag = schedulerSettingsScreenTag, nodeTag = schedulerRelearningStepsFieldTag)
         composeRule.onNodeWithTag(schedulerRelearningStepsFieldTag).performTextReplacement("10")
-        composeRule.onNodeWithTag(schedulerMaximumIntervalFieldTag).performScrollTo()
+        scrollToTag(containerTag = schedulerSettingsScreenTag, nodeTag = schedulerMaximumIntervalFieldTag)
         composeRule.onNodeWithTag(schedulerMaximumIntervalFieldTag).performTextReplacement("36500")
-        composeRule.onNodeWithTag(schedulerSaveButtonTag).performScrollTo()
+        scrollToTag(containerTag = schedulerSettingsScreenTag, nodeTag = schedulerSaveButtonTag)
         composeRule.onNodeWithTag(schedulerSaveButtonTag).performClick()
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithTag(schedulerApplyButtonTag).fetchSemanticsNodes().isNotEmpty()
@@ -377,8 +381,8 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithText(settingsString(SettingsR.string.settings_scheduling_title)).fetchSemanticsNodes().isNotEmpty()
         }
-        openSettingsRow(rowTag = settingsSchedulingRowTag)
-        composeRule.onNodeWithTag(schedulerDesiredRetentionFieldTag).performScrollTo()
+        openSettingsRow(rowTag = settingsSchedulingRowTag, destinationTag = schedulerSettingsScreenTag)
+        scrollToTag(containerTag = schedulerSettingsScreenTag, nodeTag = schedulerDesiredRetentionFieldTag)
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithText("0.85").fetchSemanticsNodes().isNotEmpty()
         }
@@ -958,6 +962,12 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
 
     private fun scrollToText(text: String) {
         composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText(text))
+    }
+
+    private fun scrollToTag(containerTag: String, nodeTag: String) {
+        composeRule.onNodeWithTag(testTag = containerTag)
+            .performScrollToNode(matcher = hasTestTag(nodeTag))
+        composeRule.onNodeWithTag(testTag = nodeTag).performScrollTo()
     }
 
     private fun waitForTextToExist(text: String) {
