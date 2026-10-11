@@ -444,6 +444,7 @@ const bnCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — ফ্ল্যাশকার্ড",
     crashTitle: "কিছু একটা ভুল হয়েছে",
     crashMessage: "এই স্ক্রিনটি ফিরিয়ে আনতে অ্যাপটি পুনরায় লোড করুন।",
     crashReload: "অ্যাপ পুনরায় লোড করুন",

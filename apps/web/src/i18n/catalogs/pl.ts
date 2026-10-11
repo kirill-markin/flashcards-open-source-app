@@ -452,6 +452,7 @@ const plCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — Fiszki",
     crashTitle: "Coś poszło nie tak",
     crashMessage: "Przeładuj aplikację, aby przywrócić ten ekran.",
     crashReload: "Przeładuj aplikację",

@@ -444,6 +444,7 @@ const esMxCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — Tarjetas",
     crashTitle: "Algo salió mal",
     crashMessage: "Recarga la app para restaurar esta pantalla.",
     crashReload: "Recargar app",

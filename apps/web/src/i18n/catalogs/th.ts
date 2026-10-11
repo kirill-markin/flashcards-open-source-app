@@ -444,6 +444,7 @@ const thCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — แฟลชการ์ด",
     crashTitle: "เกิดข้อผิดพลาดบางอย่าง",
     crashMessage: "โหลดแอปใหม่เพื่อกู้คืนหน้าจอนี้",
     crashReload: "โหลดแอปใหม่",

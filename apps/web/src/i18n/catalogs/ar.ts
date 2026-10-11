@@ -444,6 +444,7 @@ const arCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — بطاقات تعليمية",
     crashTitle: "حدث خطأ ما",
     crashMessage: "أعد تحميل التطبيق لاستعادة هذه الشاشة.",
     crashReload: "إعادة تحميل التطبيق",

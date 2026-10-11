@@ -452,6 +452,7 @@ const skCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — Učebné kartičky",
     crashTitle: "Vyskytla sa chyba",
     crashMessage: "Ak chcete obnoviť túto obrazovku, znova načítajte aplikáciu.",
     crashReload: "Znova načítať aplikáciu",

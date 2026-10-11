@@ -444,6 +444,7 @@ const lvCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — Mācību kartītes",
     crashTitle: "Radās kļūda",
     crashMessage: "Pārlādējiet lietotni, lai atjaunotu šo ekrānu.",
     crashReload: "Pārlādēt lietotni",

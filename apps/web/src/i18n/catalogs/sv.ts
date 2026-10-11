@@ -444,6 +444,7 @@ const svCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — Minneskort",
     crashTitle: "Något gick fel",
     crashMessage: "Ladda om appen för att återställa skärmen.",
     crashReload: "Ladda om appen",
