@@ -48,11 +48,15 @@ export function handleSyncExecutorQuery<Row extends pg.QueryResultRow>(
     const expectedPlatform = params[1];
     const targetUserId = params[2];
     const nextAppVersion = params[3];
+    const nextOsName = params[4];
+    const nextDeviceType = params[5];
 
     if (
       typeof installationId !== "string"
       || typeof expectedPlatform !== "string"
       || typeof targetUserId !== "string"
+      || (nextOsName !== null && typeof nextOsName !== "string")
+      || (nextDeviceType !== null && typeof nextDeviceType !== "string")
     ) {
       throw new Error("Invalid sync.claim_installation arguments");
     }
@@ -79,6 +83,8 @@ export function handleSyncExecutorQuery<Row extends pg.QueryResultRow>(
       user_id: targetUserId,
       platform: installation.platform,
       app_version: typeof nextAppVersion === "string" ? nextAppVersion : null,
+      os_name: nextOsName ?? installation.os_name,
+      device_type: nextDeviceType ?? installation.device_type,
       is_automation: installation.is_automation,
     });
 

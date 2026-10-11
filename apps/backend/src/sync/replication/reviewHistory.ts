@@ -136,6 +136,8 @@ export async function processSyncReviewHistoryPull(
       installationId: input.installationId,
       platform: input.platform,
       appVersion: input.appVersion ?? null,
+      osName: input.osName ?? null,
+      deviceType: input.deviceType ?? null,
       isAutomation: input.isAutomation === true,
     });
 
@@ -185,6 +187,8 @@ export async function processSyncReviewHistoryImport(
         installationId: input.installationId,
         platform: input.platform,
         appVersion: input.appVersion ?? null,
+        osName: input.osName ?? null,
+        deviceType: input.deviceType ?? null,
         isAutomation: input.isAutomation === true,
       });
 

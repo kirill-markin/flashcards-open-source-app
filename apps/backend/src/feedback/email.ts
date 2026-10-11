@@ -91,6 +91,8 @@ function buildFeedbackNotificationHtml(input: FeedbackNotificationEmailInput): s
     createEmailField("Submission ID", input.feedbackSubmissionId),
     createEmailField("Trigger", input.trigger),
     createEmailField("Platform", input.platform),
+    createEmailField("OS", input.osName),
+    createEmailField("Device type", input.deviceType),
     createEmailField("App version", input.appVersion),
     createEmailField("Locale", input.locale),
     createEmailField("Timezone", input.timezone),

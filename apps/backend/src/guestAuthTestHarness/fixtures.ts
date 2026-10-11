@@ -196,6 +196,8 @@ export function createMergeState(params: Readonly<{
         user_id: params.guestUserId,
         platform: "ios",
         app_version: "1.2.3",
+        os_name: null,
+        device_type: null,
         is_automation: false,
       },
     ]]),

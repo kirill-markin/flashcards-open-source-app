@@ -398,6 +398,29 @@ export function readProductAnalyticsClientPlatform(
   ) ?? null;
 }
 
+// x-client-os-name and x-client-device-type: a header outside the list is recorded as absent.
+export function readProductAnalyticsClientOsName(
+  clientOsName: string | null,
+): ProductAnalyticsOsName | null {
+  if (clientOsName === null) {
+    return null;
+  }
+
+  const osName = clientOsName.trim().toLowerCase();
+  return productAnalyticsOsNames.find((knownOsName) => knownOsName === osName) ?? null;
+}
+
+export function readProductAnalyticsClientDeviceType(
+  clientDeviceType: string | null,
+): ProductAnalyticsDeviceType | null {
+  if (clientDeviceType === null) {
+    return null;
+  }
+
+  const deviceType = clientDeviceType.trim().toLowerCase();
+  return productAnalyticsDeviceTypes.find((knownDeviceType) => knownDeviceType === deviceType) ?? null;
+}
+
 export type ProductAnalyticsPropertyValue = string | number;
 export type ProductAnalyticsEventProperties = Readonly<Record<string, ProductAnalyticsPropertyValue>>;
 export type ProductAnalyticsExperimentAssignments = Readonly<Record<string, string>>;

@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  productAnalyticsDeviceTypes,
+  productAnalyticsOsNames,
+} from "../productAnalytics/catalog";
 import { HttpError, type HttpErrorDetails, type ValidationIssueSummary } from "../shared/errors";
 import {
   isWorkspaceId,
@@ -28,6 +32,8 @@ const workspaceIdStringSchema = z.string()
   .transform((value) => value.toLowerCase());
 const nullableWorkspaceIdStringSchema = workspaceIdStringSchema.nullable();
 const platformSchema = z.enum(["ios", "android", "web"]);
+const osNameSchema = z.enum(productAnalyticsOsNames).nullable().optional();
+const deviceTypeSchema = z.enum(productAnalyticsDeviceTypes).nullable().optional();
 const promptEventTypeSchema = z.enum(["automatic_prompt_shown", "automatic_prompt_dismissed"]);
 const submissionTriggerSchema = z.enum(["automatic", "settings"]);
 const requiredNullableTextSchema = z.string().trim().min(1).nullable();
@@ -41,6 +47,8 @@ const feedbackPromptEventInputSchema = z.strictObject({
   workspaceId: nullableWorkspaceIdStringSchema,
   installationId: nullableUuidStringSchema,
   platform: platformSchema,
+  osName: osNameSchema,
+  deviceType: deviceTypeSchema,
   appVersion: requiredNullableTextSchema,
   locale: requiredNullableTextSchema,
   timezone: requiredNullableTextSchema,
@@ -53,6 +61,8 @@ const feedbackSubmissionInputSchema = z.strictObject({
   workspaceId: nullableWorkspaceIdStringSchema,
   installationId: nullableUuidStringSchema,
   platform: platformSchema,
+  osName: osNameSchema,
+  deviceType: deviceTypeSchema,
   appVersion: requiredNullableTextSchema,
   locale: requiredNullableTextSchema,
   timezone: requiredNullableTextSchema,

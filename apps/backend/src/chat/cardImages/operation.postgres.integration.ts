@@ -105,7 +105,7 @@ async function createClaimedImageRun(fixture: PostgresIntegrationFixture): Promi
   const prepared = await prepareChatRun(
     fixture.userId, fixture.workspaceId, undefined,
     [{ type: "text", text: "Generate an image for this card." }],
-    randomUUID(), "Europe/Madrid", null, true, null,
+    randomUUID(), "Europe/Madrid", null, true, null, null, null,
     // This test is about the image attempt budget rather than metering, so the allowance check the
     // route passes in is a no-op here.
     async () => undefined,
