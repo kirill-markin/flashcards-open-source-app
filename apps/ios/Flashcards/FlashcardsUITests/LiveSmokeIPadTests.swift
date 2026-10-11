@@ -53,9 +53,16 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
             studySurface.tap()
 #endif
             try self.tapButton(identifier: LiveSmokeIdentifier.reviewCardTagChipPrefix + "smoke-guest-ai-review", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+#if targetEnvironment(macCatalyst)
+            try self.waitForNativeTagFilterSheet(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+#endif
             self.app.typeKey(XCUIKeyboardKey.space.rawValue, modifierFlags: [])
             self.app.typeKey(key, modifierFlags: [])
+#if targetEnvironment(macCatalyst)
+            try self.cancelNativeTagFilterSheet(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+#else
             try self.tapButton(identifier: LiveSmokeIdentifier.reviewTagFilterCancelButton, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+#endif
 #if targetEnvironment(macCatalyst)
             self.app.activate()
 #else
@@ -73,9 +80,16 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
             try self.assertElementDoesNotExist(identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             try self.waitForReviewAnswerReveal()
             try self.tapButton(identifier: LiveSmokeIdentifier.reviewCardTagChipPrefix + "smoke-guest-ai-review", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+#if targetEnvironment(macCatalyst)
+            try self.waitForNativeTagFilterSheet(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+#endif
             self.app.typeKey(XCUIKeyboardKey.space.rawValue, modifierFlags: [])
             self.app.typeKey(key, modifierFlags: [])
+#if targetEnvironment(macCatalyst)
+            try self.cancelNativeTagFilterSheet(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+#else
             try self.tapButton(identifier: LiveSmokeIdentifier.reviewTagFilterCancelButton, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+#endif
             try self.waitForReviewAnswerReveal()
 #if targetEnvironment(macCatalyst)
             self.app.activate()
@@ -88,6 +102,25 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
             try self.assertScreenVisible(screen: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         }
     }
+
+#if targetEnvironment(macCatalyst)
+    @MainActor
+    private func waitForNativeTagFilterSheet(timeout: TimeInterval) throws {
+        let sheet = self.app.sheets.firstMatch
+        if self.waitForOptionalElement(sheet, identifier: "review.tagFilter.nativeSheet", timeout: timeout) == false {
+            throw LiveSmokeFailure.missingElement(identifier: "review.tagFilter.nativeSheet", timeoutSeconds: timeout, screen: self.currentScreenSummary(), step: self.currentStepTitle)
+        }
+    }
+
+    @MainActor
+    private func cancelNativeTagFilterSheet(timeout: TimeInterval) throws {
+        let sheet = self.app.sheets.firstMatch
+        self.app.typeKey(XCUIKeyboardKey.escape.rawValue, modifierFlags: [])
+        if sheet.waitForNonExistence(timeout: timeout) == false {
+            throw LiveSmokeFailure.elementDidNotDisappear(identifier: "review.tagFilter.nativeSheet", timeoutSeconds: timeout, screen: self.currentScreenSummary(), step: self.currentStepTitle)
+        }
+    }
+#endif
 
     @MainActor
     private func acceptCompanionConsentIfPresented() throws {
