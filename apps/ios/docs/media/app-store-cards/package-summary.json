@@ -1,12 +1,12 @@
 {
-  "images": 460,
-  "appStoreImages": 420,
+  "images": 470,
+  "appStoreImages": 430,
   "additionalImages": 40,
   "languages": 49,
   "captureTags": 50,
   "storeLocalizations": 42,
-  "sets": 92,
-  "sourceRevision": "8ad37887e71cb946a6697a9ad657ef0ab61ce6bd",
+  "sets": 94,
+  "sourceRevision": "b615b50fd14fbe5b782469281d9c79869ca73d14",
   "families": {
     "iphone": {
       "width": 1284,
@@ -17,6 +17,16 @@
       "width": 2064,
       "height": 2752,
       "storeImages": 210
+    },
+    "iphone-duo-outer": {
+      "width": 1398,
+      "height": 2034,
+      "storeImages": 5
+    },
+    "iphone-duo-inner": {
+      "width": 2007,
+      "height": 2853,
+      "storeImages": 5
     }
   },
   "excludedStoreLocales": [
