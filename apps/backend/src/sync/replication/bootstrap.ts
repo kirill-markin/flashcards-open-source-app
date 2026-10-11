@@ -186,6 +186,8 @@ export async function processSyncBootstrap(
         installationId: input.installationId,
         platform: input.platform,
         appVersion: input.appVersion ?? null,
+        osName: input.osName ?? null,
+        deviceType: input.deviceType ?? null,
         isAutomation: input.isAutomation === true,
       });
       await ensureWorkspaceSyncMetadataInExecutor(executor, workspaceId);
@@ -286,6 +288,8 @@ export async function processSyncBootstrap(
       installationId: input.installationId,
       platform: input.platform,
       appVersion: input.appVersion ?? null,
+      osName: input.osName ?? null,
+      deviceType: input.deviceType ?? null,
       isAutomation: input.isAutomation === true,
     });
     await ensureWorkspaceSyncMetadataInExecutor(executor, workspaceId);

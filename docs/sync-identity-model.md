@@ -13,6 +13,8 @@ The sync layer now treats installation identity and workspace actor identity as 
 
 `sync.installations` stores this global client identity. These rows are not historical actors and must never be used as foreign keys from cards, decks, review events, scheduler settings, or sync logs. It also carries the automation marker a client declares about itself, documented in [Audience analytics](analytics-audience.md).
 
+Native clients may also report `osName` and `deviceType` on sync requests; the installation keeps the latest reported values, as [the migration that adds them](../db/migrations/0176_client_os_name_device_type.sql) describes.
+
 ## Replica Id
 
 `replicaId` is an immutable actor inside one workspace.

@@ -16,7 +16,11 @@ import {
   getBackendTraceCarrier,
   startBackendSpan,
 } from "../../observability/sentry";
-import { readProductAnalyticsClientPlatform } from "../../productAnalytics/catalog";
+import {
+  readProductAnalyticsClientDeviceType,
+  readProductAnalyticsClientOsName,
+  readProductAnalyticsClientPlatform,
+} from "../../productAnalytics/catalog";
 import {
   aiLimitReachedCode,
   guestAiLimitReachedCode,
@@ -245,6 +249,8 @@ export function createPostChatHandler(dependencies: ChatRouteDependencies): Hand
         body.uiLocale ?? null,
         requestContext.transport === "bearer" || requestContext.transport === "session",
         readProductAnalyticsClientPlatform(context.get("clientPlatform") ?? null),
+        readProductAnalyticsClientOsName(context.get("clientOsName") ?? null),
+        readProductAnalyticsClientDeviceType(context.get("clientDeviceType") ?? null),
         // The turn is refused before it is persisted, so a caller who has used their month's messages
         // never starts a run the worker would then have to pay for. Every caller is checked the same way
         // and the allowance resolved above decides; the model calls the run goes on to make append their
