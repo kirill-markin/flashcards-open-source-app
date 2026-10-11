@@ -20,6 +20,8 @@ struct PushRequest: Encodable {
     let installationId: String
     let platform: String
     let appVersion: String
+    let osName: String
+    let deviceType: String
     let isAutomation: Bool
     let operations: [SyncOperationEnvelope]
 }
@@ -32,6 +34,8 @@ struct PullRequest: Encodable {
     let installationId: String
     let platform: String
     let appVersion: String
+    let osName: String
+    let deviceType: String
     let isAutomation: Bool
     let afterHotChangeId: Int64
     let limit: Int
@@ -49,6 +53,8 @@ struct BootstrapPullRequest: Encodable {
     let installationId: String
     let platform: String
     let appVersion: String
+    let osName: String
+    let deviceType: String
     let isAutomation: Bool
     let cursor: String?
     let limit: Int
@@ -59,6 +65,8 @@ struct BootstrapPullRequest: Encodable {
         case installationId
         case platform
         case appVersion
+        case osName
+        case deviceType
         case isAutomation
         case cursor
         case limit
@@ -75,6 +83,8 @@ struct BootstrapPullRequest: Encodable {
         try container.encode(self.installationId, forKey: .installationId)
         try container.encode(self.platform, forKey: .platform)
         try container.encode(self.appVersion, forKey: .appVersion)
+        try container.encode(self.osName, forKey: .osName)
+        try container.encode(self.deviceType, forKey: .deviceType)
         try container.encode(self.isAutomation, forKey: .isAutomation)
         if let cursor = self.cursor {
             try container.encode(cursor, forKey: .cursor)
@@ -96,6 +106,8 @@ struct BootstrapPushRequest: Encodable {
     let installationId: String
     let platform: String
     let appVersion: String
+    let osName: String
+    let deviceType: String
     let isAutomation: Bool
     let includeMediaAssets: Bool
     let entries: [SyncBootstrapEntryEnvelope]
@@ -121,6 +133,8 @@ struct ReviewHistoryPullRequest: Encodable {
     let installationId: String
     let platform: String
     let appVersion: String
+    let osName: String
+    let deviceType: String
     let isAutomation: Bool
     let afterReviewSequenceId: Int64
     let limit: Int
@@ -134,6 +148,8 @@ struct ReviewHistoryImportRequest: Encodable {
     let installationId: String
     let platform: String
     let appVersion: String
+    let osName: String
+    let deviceType: String
     let isAutomation: Bool
     let reviewEvents: [ReviewEvent]
 }
