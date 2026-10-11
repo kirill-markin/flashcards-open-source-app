@@ -13,7 +13,6 @@ enum AppIconOption: String, CaseIterable, Identifiable, Sendable {
         self.rawValue
     }
 
-    /// The name `UIApplication.setAlternateIconName(_:)` takes; `nil` is the primary `AppIcon`.
     var alternateIconName: String? {
         switch self {
         case .default:
@@ -76,7 +75,8 @@ extension FlashcardsStore {
      */
     func applyEffectiveAppIcon() -> Void {
         let target = self.effectiveAppIcon
-        guard UIApplication.shared.applicationState == .active,
+        guard UIApplication.shared.supportsAlternateIcons,
+              UIApplication.shared.applicationState == .active,
               self.isAppIconChangeInFlight == false,
               UIApplication.shared.alternateIconName != target.alternateIconName else {
             return
