@@ -94,9 +94,9 @@
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>kMDItemKeywords</key>
-	<string>flashcards,flash cards</string>
+	<string>flashcards,flash cards,study cards,revision cards</string>
 	<key>MDItemKeywords</key>
-	<string>flashcards,flash cards</string>
+	<string>flashcards,flash cards,study cards,revision cards</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.education</string>
 	<key>LSRequiresIPhoneOS</key>
