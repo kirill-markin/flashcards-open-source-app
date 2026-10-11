@@ -12,8 +12,10 @@ import {
 } from "../../observability/runtime";
 import {
   productAnalyticsSchemaVersion,
+  type ProductAnalyticsDeviceType,
   type ProductAnalyticsEventName,
   type ProductAnalyticsEventProperties,
+  type ProductAnalyticsOsName,
   type ProductAnalyticsPlatform,
 } from "../catalog";
 import type { ProductAnalyticsEventDetails, ProductAnalyticsEventRow } from "../types";
@@ -24,13 +26,13 @@ import { insertProductAnalyticsEvents, insertProductAnalyticsIdentityLink } from
 // session_id and anonymous_id NULL, and product_events_client_columns_shape rejects the row if it
 // ever stops doing so.
 //
-// platform is the one field that describes a client, and it is not a hole in that rule. What the
-// rule forbids is a platform a client request body claimed: a client able to name its own platform
-// on a server-derived row could attribute the backend's own observation to any platform it liked,
-// and the table is append-only, so that could never be repaired. A producer therefore reads it only
-// from data the server itself stored.
+// platform, osName and deviceType are the fields that describe a client, and they are not a hole in
+// that rule. What the rule forbids is a value a client request body claimed: a client able to name
+// its own platform on a server-derived row could attribute the backend's own observation to any
+// platform it liked, and the table is append-only, so that could never be repaired. A producer
+// therefore reads them only from data the server itself stored.
 //
-// The field is optional, and null is always a correct answer. A producer that cannot justify a
+// Each field is optional, and null is always a correct answer. A producer that cannot justify a
 // value passes null, and there is no safe default it may reach for instead. Both outcomes have a
 // cost and they are not symmetric: null leaves the row out of "daily active users by platform",
 // while a guess files it under a platform it never had, permanently, on an append-only table. Each
@@ -80,6 +82,8 @@ export type ServerDerivedProductAnalyticsEvent = Readonly<{
   guestSessionId: string | null;
   workspaceId: string | null;
   platform: ProductAnalyticsPlatform | null;
+  osName: ProductAnalyticsOsName | null;
+  deviceType: ProductAnalyticsDeviceType | null;
   properties: ProductAnalyticsEventProperties;
   // Free-form provenance about how this row was produced, such as the production table a
   // reconstructed fact was read from. Nothing that identifies a person may go here: the column
@@ -146,15 +150,15 @@ function createServerDerivedProductAnalyticsRow(
     clientSentAt: null,
     sessionId: null,
     anonymousId: null,
-    // The exception, and only because the producer read it from a source the server stored itself.
-    // See the invariant on ServerDerivedProductAnalyticsEvent: a platform a client request body
-    // claimed must never reach this column on a server-derived row.
+    // The exception, and only because the producer read them from a source the server stored
+    // itself. See the invariant on ServerDerivedProductAnalyticsEvent: a value a client request body
+    // claimed must never reach these columns on a server-derived row.
     platform: event.platform,
+    osName: event.osName,
+    deviceType: event.deviceType,
     appVersion: null,
     osVersion: null,
     deviceModel: null,
-    osName: null,
-    deviceType: null,
     deviceLocale: null,
     timezone: null,
     country: null,

@@ -54,6 +54,8 @@ export async function recordFriendInvitationCreatedAnalytics(
     // to read directly — has no row for this request either. The request headers do name a platform
     // and are a client claim this row must not repeat.
     platform: null,
+    osName: null,
+    deviceType: null,
     properties: {},
     details: null,
   });
@@ -109,6 +111,8 @@ async function emitFriendshipCreatedForViewer(
     // session on these routes, and the headers are a client claim. The inviter's row makes the point
     // twice over, because no client of theirs is involved in this moment at all.
     platform: null,
+    osName: null,
+    deviceType: null,
     properties: {},
     details: null,
   });

@@ -36,6 +36,8 @@ export type ChatRunRow = Readonly<{
   timezone: string;
   ui_locale: ChatComposerSuggestionsLocale | null;
   client_platform: ProductAnalyticsClientReportablePlatform | null;
+  client_os_name: ProductAnalyticsOsName | null;
+  client_device_type: ProductAnalyticsDeviceType | null;
   turn_input: ReadonlyArray<ContentPart>;
   worker_claimed_at: string | null;
   worker_heartbeat_at: string | null;
@@ -122,6 +124,8 @@ const CHAT_RUN_COLUMNS_SQL = `
     timezone,
     ui_locale,
     client_platform,
+    client_os_name,
+    client_device_type,
     turn_input,
     worker_claimed_at::text AS worker_claimed_at,
     worker_heartbeat_at,

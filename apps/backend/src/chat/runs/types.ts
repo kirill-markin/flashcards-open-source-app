@@ -5,7 +5,11 @@ import type {
   ChatRuntimeReasoningEffort,
 } from "../config";
 import type { ChatCostPolicyMode } from "../costPolicy";
-import type { ProductAnalyticsClientReportablePlatform } from "../../productAnalytics/catalog";
+import type {
+  ProductAnalyticsClientReportablePlatform,
+  ProductAnalyticsDeviceType,
+  ProductAnalyticsOsName,
+} from "../../productAnalytics/catalog";
 import type {
   ChatSessionRunState,
   ChatSessionSnapshot,
@@ -74,6 +78,8 @@ export type ClaimedChatRun = Readonly<{
   turnInput: ReadonlyArray<ContentPart>;
   initiatingAuthIsSignedIn: boolean;
   clientPlatform: ProductAnalyticsClientReportablePlatform | null;
+  clientOsName: ProductAnalyticsOsName | null;
+  clientDeviceType: ProductAnalyticsDeviceType | null;
   diagnostics: ChatRunDiagnostics;
 }>;
 

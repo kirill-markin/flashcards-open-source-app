@@ -8,7 +8,11 @@ import {
   TransientDatabaseHttpError,
 } from "../../../database/transient";
 import { GeneratedMediaPromotionStorageTransientError } from "../../../mediaAssets/storage";
-import type { ProductAnalyticsClientReportablePlatform } from "../../../productAnalytics/catalog";
+import type {
+  ProductAnalyticsClientReportablePlatform,
+  ProductAnalyticsDeviceType,
+  ProductAnalyticsOsName,
+} from "../../../productAnalytics/catalog";
 import { resolveAccessibleChatWorkspaceId } from "../../../server/requestContext";
 import { createPublicHttpErrorDetails, HttpError } from "../../../shared/errors";
 import {
@@ -94,6 +98,8 @@ export type OpenAIToolContext = Readonly<{
   signal: AbortSignal | null;
   generatedImageOperationDeadlineMs: number;
   clientPlatform: ProductAnalyticsClientReportablePlatform | null;
+  clientOsName: ProductAnalyticsOsName | null;
+  clientDeviceType: ProductAnalyticsDeviceType | null;
   /**
    * Whether the request that started this run authenticated as a signed-in account, carried from
    * `ai.chat_runs.initiating_auth_is_signed_in`. It is the reading the chat route enforced this
@@ -943,7 +949,7 @@ function buildChatAgentToolContext(
       // workspace's AI-chat replica, the same sync actor the chat's SQL writes carry. Binding the
       // review write without one would attribute every chat review to the placeholder connection id
       // above, which names no connection at all. That replica names no device, so the review's
-      // analytics platform is the device this run was started from.
+      // analytics device is the one this run was started from.
       submitAgentReview: async (reviewContext, request) => dependencies.submitAgentReview(
         reviewContext,
         request,
@@ -953,7 +959,11 @@ function buildChatAgentToolContext(
           "web",
           context.signal,
         ),
-        context.clientPlatform,
+        {
+          platform: context.clientPlatform,
+          osName: context.clientOsName,
+          deviceType: context.clientDeviceType,
+        },
       ),
       // This is the one surface a guest reaches, and a guest and an account carry different caps,
       // so the kind has to be right rather than assumed. It comes from the claim the request that
