@@ -18,7 +18,7 @@ const familyLabels: Readonly<Record<Family, string>> = {
   iphone: "iPhone", ipad: "iPad", "iphone-duo-outer": "iPhone Duo outer", "iphone-duo-inner": "iPhone Duo inner",
 };
 const familyDimensions: Readonly<Record<Family, readonly [number, number]>> = {
-  iphone: [1284, 2778], ipad: [2064, 2752], "iphone-duo-outer": [1398, 2034], "iphone-duo-inner": [2007, 2853],
+  iphone: [1284, 2778], ipad: [2064, 2752], "iphone-duo-outer": [1398, 2034], "iphone-duo-inner": [2853, 2007],
 };
 const families = Object.keys(familyLabels) as Family[];
 const escape = (value: string): string => value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll("\"", "&quot;");
@@ -51,6 +51,9 @@ for (const tag of tags) {
       if (file.heading !== copy[tag][file.card - 1][0] || file.caption !== copy[tag][file.card - 1][1]) throw new Error(`Copy differs from rendered export: ${file.path}`);
       const metadata = await sharp(bytes).metadata();
       if (metadata.hasAlpha || metadata.width !== file.width || metadata.height !== file.height) throw new Error(`Invalid output PNG: ${file.path}`);
+      if (family === "iphone-duo-inner" && !((file.width === 2853 && file.height === 2007) || (file.width === 2007 && file.height === 2853))) {
+        throw new Error(`Invalid Duo inner dimensions: ${file.path} (${file.width}x${file.height})`);
+      }
       inputs.push(await sharp(bytes).resize(width, height).png().toBuffer());
     }
     const title = `${getLocaleEnglishName(locale)}${tag === "es-MX" ? " (Mexico)" : tag === "es-ES" ? " (Spain)" : ""} · ${familyLabels[family]}`;
@@ -74,11 +77,16 @@ for(const item of catalog){const option=document.createElement('option');option.
 function render(){const item=catalog.find(item=>item.tag===language.value);for(const option of device.options)option.disabled=!item.sets.some(set=>set.family===option.value);if(!item.sets.some(set=>set.family===device.value))device.value=item.sets[0].family;const set=item.sets.find(set=>set.family===device.value);document.querySelector('#details').textContent=item.storeLocale?'App Store · '+item.storeLocale+' · '+familyLabels[device.value]:'Дополнительный язык приложения: у Apple нет отдельной локализации App Store.';document.querySelector('#overview').href=set.preview;const cards=document.querySelector('#cards');cards.replaceChildren();for(const file of set.files){const figure=document.createElement('figure');const link=document.createElement('a');link.href=file.path;link.target='_blank';const image=document.createElement('img');image.src=file.path;image.alt=file.heading+' — '+file.caption;link.append(image);figure.append(link);const caption=document.createElement('figcaption');caption.textContent=file.heading+' · '+file.caption;figure.append(caption);cards.append(figure)}}language.addEventListener('change',render);device.addEventListener('change',render);render();
 </script></html>`;
 await writeFile(join(root, "index.html"), page);
+const innerResults = manifest.results.filter(file => file.family === "iphone-duo-inner");
+const retainedPortraitInner = innerResults.filter(file => file.width === 2007 && file.height === 2853).length;
+const onlyPortraitInner = innerResults.length > 0 && retainedPortraitInner === innerResults.length;
 const summary = { images: manifest.results.length, appStoreImages: manifest.results.filter(file => file.storeLocale).length, additionalImages: manifest.results.filter(file => !file.storeLocale).length, languages: new Set(tags.map(tag => aliases[tag] ?? tag)).size, captureTags: tags.length, storeLocalizations: new Set(manifest.results.filter(file => file.storeLocale).map(file => file.storeLocale)).size,
   sets: gallery.reduce((count, item) => count + item.sets.length, 0), sourceRevision: manifest.sourceRevision,
   families: Object.fromEntries(families.filter(family => family === "iphone" || family === "ipad" || manifest.results.some(file => file.family === family)).map(family => [family, {
-    width: familyDimensions[family][0], height: familyDimensions[family][1],
+    width: family === "iphone-duo-inner" && onlyPortraitInner ? 2007 : familyDimensions[family][0],
+    height: family === "iphone-duo-inner" && onlyPortraitInner ? 2853 : familyDimensions[family][1],
     storeImages: manifest.results.filter(file => file.family === family && file.storeLocale).length,
+    ...(family === "iphone-duo-inner" && retainedPortraitInner > 0 && !onlyPortraitInner ? { retainedPortraitImages: retainedPortraitInner } : {}),
   }])),
   excludedStoreLocales: tags.filter(tag => !manifest.results.find(file => file.captureTag === tag)!.storeLocale), screenshotsPerSet: 5 };
 await writeFile(join(root, "package-summary.json"), JSON.stringify(summary, null, 2) + "\n");

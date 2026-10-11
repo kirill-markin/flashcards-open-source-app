@@ -25,7 +25,7 @@ capture filename tags come from the existing
 For each selected locale, the input root must contain exactly one
 `<capture-tag>-1_*.png` through `-5_*.png` in each of
 `iphone-duo-outer/` and `iphone-duo-inner/`. The outer cards are
-1398 × 2034; the inner cards are 2007 × 2853. Both are opaque 8-bit RGB PNGs.
+1398 × 2034; the inner cards are 2853 × 2007 landscape. Both are opaque 8-bit RGB PNGs.
 The command checks every selected file, the editable draft, existing
 localizations, Apple's current Duo catalog specifications, and group capacity
 before writing. The ten cards share one group with a catalog-defined limit;

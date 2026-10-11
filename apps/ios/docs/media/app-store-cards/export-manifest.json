@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-10-11T10:06:23.745Z",
-  "sourceRevision": "b615b50fd14fbe5b782469281d9c79869ca73d14",
-  "inputRoot": "/private/tmp/nibomo-duo-assets-worktree/apps/ios/docs/media/app-store-screenshots",
+  "generatedAt": "2026-10-11T11:08:55.721Z",
+  "sourceRevision": "25a4d50085f442b72350c9f4a8dd62dbcfa45cbb",
+  "inputRoot": "/private/tmp/nibomo-duo-landscape-worktree/apps/ios/docs/media/app-store-screenshots",
   "results": [
     {
       "path": "ready/iphone/en-US-1_ai-flashcards.png",
@@ -23294,50 +23294,50 @@
       "captureTag": "en-US",
       "storeLocale": "en-US",
       "card": 1,
-      "inputRoot": "/private/tmp/nibomo-duo-assets-worktree/apps/ios/docs/media/app-store-screenshots",
-      "sourceRevision": "b615b50fd14fbe5b782469281d9c79869ca73d14",
+      "inputRoot": "/private/tmp/nibomo-duo-landscape-worktree/apps/ios/docs/media/app-store-screenshots",
+      "sourceRevision": "25a4d50085f442b72350c9f4a8dd62dbcfa45cbb",
       "heading": "Nibomo App",
       "caption": "Create flashcards with AI",
       "source": "iphone-duo-inner/en-US-4_review-card-ai-draft-app-store-opportunity-cost.png",
       "sourceSha256": "157e9c47e00d0a4fc7290b8f55839a53fcd59c32fccd136cbec1535b624f0c6f",
-      "width": 2007,
-      "height": 2853,
-      "sha256": "7b9bb8d918715bc11d393b825e20e60c3afb8fc44ba7a4336e79b06b257711a6",
+      "width": 2853,
+      "height": 2007,
+      "sha256": "004084bb60d0c70eca2f9063c839813278feb48ab783ba605ba69332c3865788",
       "audit": {
         "group": {
-          "x": 444.171875,
-          "y": 160.1875,
-          "width": 1118.640625,
-          "height": 181.9375
+          "x": 1033.046875,
+          "y": 112.6875,
+          "width": 786.90625,
+          "height": 127.984375
         },
         "caption": {
-          "x": 547.90625,
-          "y": 360.53125,
-          "width": 911.171875,
-          "height": 92
+          "x": 1106.015625,
+          "y": 253.203125,
+          "width": 640.96875,
+          "height": 64
         },
         "screen": {
-          "x": 217.765625,
-          "y": 1079.71875,
-          "width": 1571.4375,
-          "height": 1105.453125
+          "x": 378.859375,
+          "y": 411.40625,
+          "width": 2095.25,
+          "height": 1473.9375
         },
         "screenBox": {
-          "x": 217.765625,
-          "y": 584.828125,
-          "width": 1571.4375,
-          "height": 2095.25
+          "x": 378.859375,
+          "y": 411.40625,
+          "width": 2095.265625,
+          "height": 1473.953125
         },
         "frame": {
-          "x": 191.40625,
-          "y": 539.0625,
-          "width": 1624.15625,
-          "height": 2186.78125
+          "x": 346.671875,
+          "y": 379.21875,
+          "width": 2159.640625,
+          "height": 1538.328125
         },
-        "headingStyle": "Arial, sans-serif;151.041px;700;181.936px",
-        "captionStyle": "Arial, sans-serif;82.3861px;400;96.1171px",
-        "headingTop": 160.1875,
-        "captionTop": 358.53125,
+        "headingStyle": "Arial, sans-serif;106.253px;700;127.986px",
+        "captionStyle": "Arial, sans-serif;57.9562px;400;67.6155px",
+        "headingTop": 112.6875,
+        "captionTop": 252.203125,
         "captionLines": 1,
         "headingLines": 1,
         "brand": "Nibomo App",
@@ -23351,50 +23351,50 @@
       "captureTag": "en-US",
       "storeLocale": "en-US",
       "card": 2,
-      "inputRoot": "/private/tmp/nibomo-duo-assets-worktree/apps/ios/docs/media/app-store-screenshots",
-      "sourceRevision": "b615b50fd14fbe5b782469281d9c79869ca73d14",
+      "inputRoot": "/private/tmp/nibomo-duo-landscape-worktree/apps/ios/docs/media/app-store-screenshots",
+      "sourceRevision": "25a4d50085f442b72350c9f4a8dd62dbcfa45cbb",
       "heading": "Start Learning",
       "caption": "Recall the answer yourself",
       "source": "iphone-duo-inner/en-US-1_review-card-front-app-store-opportunity-cost.png",
       "sourceSha256": "7a65351074ddb80826355b832ffcc2fc7a7acfc39cb2c8eb349f82657d940bba",
-      "width": 2007,
-      "height": 2853,
-      "sha256": "b6137fabd6e23921c582c60005ea82c8978a7b3c0dcb66d4814edc5492da5f28",
+      "width": 2853,
+      "height": 2007,
+      "sha256": "ae65673840a53db8bef9e25e0e93bd902d1a5c27c4ddb010a19b3ab3f50f07be",
       "audit": {
         "group": {
-          "x": 378.28125,
-          "y": 160.1875,
-          "width": 1250.421875,
-          "height": 181.9375
+          "x": 986.6875,
+          "y": 112.6875,
+          "width": 879.609375,
+          "height": 127.984375
         },
         "caption": {
-          "x": 520.4375,
-          "y": 360.53125,
-          "width": 966.125,
-          "height": 92
+          "x": 1086.6875,
+          "y": 253.203125,
+          "width": 679.625,
+          "height": 64
         },
         "screen": {
-          "x": 217.765625,
-          "y": 1079.71875,
-          "width": 1571.4375,
-          "height": 1105.453125
+          "x": 378.859375,
+          "y": 411.40625,
+          "width": 2095.25,
+          "height": 1473.9375
         },
         "screenBox": {
-          "x": 217.765625,
-          "y": 584.828125,
-          "width": 1571.4375,
-          "height": 2095.25
+          "x": 378.859375,
+          "y": 411.40625,
+          "width": 2095.265625,
+          "height": 1473.953125
         },
         "frame": {
-          "x": 191.40625,
-          "y": 539.0625,
-          "width": 1624.15625,
-          "height": 2186.78125
+          "x": 346.671875,
+          "y": 379.21875,
+          "width": 2159.640625,
+          "height": 1538.328125
         },
-        "headingStyle": "Arial, sans-serif;151.041px;700;181.936px",
-        "captionStyle": "Arial, sans-serif;82.3861px;400;96.1171px",
-        "headingTop": 160.1875,
-        "captionTop": 358.53125,
+        "headingStyle": "Arial, sans-serif;106.253px;700;127.986px",
+        "captionStyle": "Arial, sans-serif;57.9562px;400;67.6155px",
+        "headingTop": 112.6875,
+        "captionTop": 252.203125,
         "captionLines": 1,
         "headingLines": 1,
         "brand": "Start Learning",
@@ -23408,50 +23408,50 @@
       "captureTag": "en-US",
       "storeLocale": "en-US",
       "card": 3,
-      "inputRoot": "/private/tmp/nibomo-duo-assets-worktree/apps/ios/docs/media/app-store-screenshots",
-      "sourceRevision": "b615b50fd14fbe5b782469281d9c79869ca73d14",
+      "inputRoot": "/private/tmp/nibomo-duo-landscape-worktree/apps/ios/docs/media/app-store-screenshots",
+      "sourceRevision": "25a4d50085f442b72350c9f4a8dd62dbcfa45cbb",
       "heading": "Smart Reviews",
       "caption": "Review at the right time",
       "source": "iphone-duo-inner/en-US-2_review-card-result-app-store-opportunity-cost.png",
       "sourceSha256": "bbfa56c0eba73eb3899a8052b4258cd24ec0426339e778cc3fb7072af8698fc1",
-      "width": 2007,
-      "height": 2853,
-      "sha256": "e247ea065c1cdd4eda440f7a3c6eac1442ce1ca5b268e35dad66176e68f76ba7",
+      "width": 2853,
+      "height": 2007,
+      "sha256": "b25a347242e288d45df2e980bc2dc65d7af3de00aebe46b495caff0846e2f79f",
       "audit": {
         "group": {
-          "x": 352.90625,
-          "y": 160.1875,
-          "width": 1301.171875,
-          "height": 181.9375
+          "x": 968.84375,
+          "y": 112.6875,
+          "width": 915.3125,
+          "height": 127.984375
         },
         "caption": {
-          "x": 573.109375,
-          "y": 360.53125,
-          "width": 860.78125,
-          "height": 92
+          "x": 1123.734375,
+          "y": 253.203125,
+          "width": 605.515625,
+          "height": 64
         },
         "screen": {
-          "x": 217.765625,
-          "y": 1079.71875,
-          "width": 1571.4375,
-          "height": 1105.453125
+          "x": 378.859375,
+          "y": 411.40625,
+          "width": 2095.25,
+          "height": 1473.9375
         },
         "screenBox": {
-          "x": 217.765625,
-          "y": 584.828125,
-          "width": 1571.4375,
-          "height": 2095.25
+          "x": 378.859375,
+          "y": 411.40625,
+          "width": 2095.265625,
+          "height": 1473.953125
         },
         "frame": {
-          "x": 191.40625,
-          "y": 539.0625,
-          "width": 1624.15625,
-          "height": 2186.78125
+          "x": 346.671875,
+          "y": 379.21875,
+          "width": 2159.640625,
+          "height": 1538.328125
         },
-        "headingStyle": "Arial, sans-serif;151.041px;700;181.936px",
-        "captionStyle": "Arial, sans-serif;82.3861px;400;96.1171px",
-        "headingTop": 160.1875,
-        "captionTop": 358.53125,
+        "headingStyle": "Arial, sans-serif;106.253px;700;127.986px",
+        "captionStyle": "Arial, sans-serif;57.9562px;400;67.6155px",
+        "headingTop": 112.6875,
+        "captionTop": 252.203125,
         "captionLines": 1,
         "headingLines": 1,
         "brand": "Smart Reviews",
@@ -23465,50 +23465,50 @@
       "captureTag": "en-US",
       "storeLocale": "en-US",
       "card": 4,
-      "inputRoot": "/private/tmp/nibomo-duo-assets-worktree/apps/ios/docs/media/app-store-screenshots",
-      "sourceRevision": "b615b50fd14fbe5b782469281d9c79869ca73d14",
+      "inputRoot": "/private/tmp/nibomo-duo-landscape-worktree/apps/ios/docs/media/app-store-screenshots",
+      "sourceRevision": "25a4d50085f442b72350c9f4a8dd62dbcfa45cbb",
       "heading": "Your Progress",
       "caption": "Track your study days",
       "source": "iphone-duo-inner/en-US-3_progress-app-store-study-history.png",
       "sourceSha256": "f551d0c18b7b385d4d3161fadb3f93b0b09017f876bc088a21b1e2b22711cb17",
-      "width": 2007,
-      "height": 2853,
-      "sha256": "54b07f4ea71142292974838ebbc0367e559359a04c712d1d848937e4c3dbe9f9",
+      "width": 2853,
+      "height": 2007,
+      "sha256": "0b697dc03b2656f0c9af72c9372b2316ba28021c1778e16175ebea90a54a985c",
       "audit": {
         "group": {
-          "x": 375.40625,
-          "y": 160.1875,
-          "width": 1256.171875,
-          "height": 181.9375
+          "x": 984.671875,
+          "y": 112.6875,
+          "width": 883.65625,
+          "height": 127.984375
         },
         "caption": {
-          "x": 602.125,
-          "y": 360.53125,
-          "width": 802.734375,
-          "height": 92
+          "x": 1144.15625,
+          "y": 253.203125,
+          "width": 564.6875,
+          "height": 64
         },
         "screen": {
-          "x": 217.765625,
-          "y": 1079.71875,
-          "width": 1571.4375,
-          "height": 1105.453125
+          "x": 378.859375,
+          "y": 411.40625,
+          "width": 2095.25,
+          "height": 1473.9375
         },
         "screenBox": {
-          "x": 217.765625,
-          "y": 584.828125,
-          "width": 1571.4375,
-          "height": 2095.25
+          "x": 378.859375,
+          "y": 411.40625,
+          "width": 2095.265625,
+          "height": 1473.953125
         },
         "frame": {
-          "x": 191.40625,
-          "y": 539.0625,
-          "width": 1624.15625,
-          "height": 2186.78125
+          "x": 346.671875,
+          "y": 379.21875,
+          "width": 2159.640625,
+          "height": 1538.328125
         },
-        "headingStyle": "Arial, sans-serif;151.041px;700;181.936px",
-        "captionStyle": "Arial, sans-serif;82.3861px;400;96.1171px",
-        "headingTop": 160.1875,
-        "captionTop": 358.53125,
+        "headingStyle": "Arial, sans-serif;106.253px;700;127.986px",
+        "captionStyle": "Arial, sans-serif;57.9562px;400;67.6155px",
+        "headingTop": 112.6875,
+        "captionTop": 252.203125,
         "captionLines": 1,
         "headingLines": 1,
         "brand": "Your Progress",
@@ -23522,50 +23522,50 @@
       "captureTag": "en-US",
       "storeLocale": "en-US",
       "card": 5,
-      "inputRoot": "/private/tmp/nibomo-duo-assets-worktree/apps/ios/docs/media/app-store-screenshots",
-      "sourceRevision": "b615b50fd14fbe5b782469281d9c79869ca73d14",
+      "inputRoot": "/private/tmp/nibomo-duo-landscape-worktree/apps/ios/docs/media/app-store-screenshots",
+      "sourceRevision": "25a4d50085f442b72350c9f4a8dd62dbcfa45cbb",
       "heading": "Your Cards",
       "caption": "All your cards in one place",
       "source": "iphone-duo-inner/en-US-5_cards-list-app-store-vocabulary.png",
       "sourceSha256": "3621e4672c5fb8dc65e13f10a91163c0f8d9a12817be1e1b5382a7f65ca0663b",
-      "width": 2007,
-      "height": 2853,
-      "sha256": "1b868cdd183d3e82875f2dd7095181e5b475941e921b9fa7d2be2b124c83c887",
+      "width": 2853,
+      "height": 2007,
+      "sha256": "0897b9c4178aa69869eed4fec4e76eda2d66770eb9313d3d23e8884d17349e76",
       "audit": {
         "group": {
-          "x": 488.765625,
-          "y": 160.1875,
-          "width": 1029.46875,
-          "height": 181.9375
+          "x": 1064.40625,
+          "y": 112.6875,
+          "width": 724.1875,
+          "height": 127.984375
         },
         "caption": {
-          "x": 520.390625,
-          "y": 360.53125,
-          "width": 966.203125,
-          "height": 92
+          "x": 1086.65625,
+          "y": 253.203125,
+          "width": 679.671875,
+          "height": 64
         },
         "screen": {
-          "x": 217.765625,
-          "y": 1079.71875,
-          "width": 1571.4375,
-          "height": 1105.453125
+          "x": 378.859375,
+          "y": 411.40625,
+          "width": 2095.25,
+          "height": 1473.9375
         },
         "screenBox": {
-          "x": 217.765625,
-          "y": 584.828125,
-          "width": 1571.4375,
-          "height": 2095.25
+          "x": 378.859375,
+          "y": 411.40625,
+          "width": 2095.265625,
+          "height": 1473.953125
         },
         "frame": {
-          "x": 191.40625,
-          "y": 539.0625,
-          "width": 1624.15625,
-          "height": 2186.78125
+          "x": 346.671875,
+          "y": 379.21875,
+          "width": 2159.640625,
+          "height": 1538.328125
         },
-        "headingStyle": "Arial, sans-serif;151.041px;700;181.936px",
-        "captionStyle": "Arial, sans-serif;82.3861px;400;96.1171px",
-        "headingTop": 160.1875,
-        "captionTop": 358.53125,
+        "headingStyle": "Arial, sans-serif;106.253px;700;127.986px",
+        "captionStyle": "Arial, sans-serif;57.9562px;400;67.6155px",
+        "headingTop": 112.6875,
+        "captionTop": 252.203125,
         "captionLines": 1,
         "headingLines": 1,
         "brand": "Your Cards",
@@ -24255,5 +24255,6 @@
         }
       ]
     }
-  ]
+  ],
+  "overflows": []
 }
