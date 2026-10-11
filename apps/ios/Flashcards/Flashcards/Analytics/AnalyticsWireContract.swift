@@ -135,12 +135,16 @@ struct AnalyticsBatchPayload: Sendable, Equatable, Encodable {
 struct AnalyticsContextPayload: Sendable, Equatable, Encodable {
     let osVersion: String?
     let deviceModel: String?
+    let osName: String
+    let deviceType: String
     let deviceLocale: String?
     let timezone: String?
 
     private enum CodingKeys: String, CodingKey {
         case osVersion
         case deviceModel
+        case osName
+        case deviceType
         case deviceLocale
         case timezone
     }
@@ -149,6 +153,8 @@ struct AnalyticsContextPayload: Sendable, Equatable, Encodable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(self.osVersion, forKey: .osVersion)
         try container.encode(self.deviceModel, forKey: .deviceModel)
+        try container.encode(self.osName, forKey: .osName)
+        try container.encode(self.deviceType, forKey: .deviceType)
         try container.encode(self.deviceLocale, forKey: .deviceLocale)
         try container.encode(self.timezone, forKey: .timezone)
     }
