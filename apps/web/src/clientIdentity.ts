@@ -83,16 +83,12 @@ function loadLegacyMappedInstallationId(): string | null {
 }
 
 function clearLegacyInstallationStorage(): void {
-  // Legacy installation keys remain only for cleanup after the hard cutover.
   window.localStorage.removeItem(LEGACY_DEVICE_ID_STORAGE_KEY);
   window.localStorage.removeItem(LEGACY_DEVICE_ID_MAP_STORAGE_KEY);
 }
 
 /**
  * Returns one browser-stable installation id reused across users and workspaces.
- * Only the dedicated installation storage key is a valid source of truth.
- * Legacy per-user and device-scoped keys are no longer read for migration;
- * they are deleted only as cleanup from the retired storage layout.
  */
 export function getStableInstallationId(): string {
   const existingInstallationId = loadStoredInstallationId();
