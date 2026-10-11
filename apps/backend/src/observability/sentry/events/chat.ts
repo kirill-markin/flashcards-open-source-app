@@ -236,15 +236,15 @@ export type ChatFileUploadOrphanedDetails = Readonly<{
 /**
  * One chat sandbox call that prepared the derived files of an attachment, never their content.
  * `superseded` means the attachment was gone or already prepared once the result was recorded;
- * `derivativesError` is what the attachment line shows the model for a failed one. `thrown` means the
- * call or its record step threw, such as on an abort or a sandbox the worker could not reach, so the
- * attachment stays unprepared; `errorClass` names that error.
+ * `derivativesError` is what the attachment line shows the model for a failed one. `transient` means a
+ * failure the file did not cause, and `thrown` that the call or its record step threw, such as on an
+ * abort; either leaves the attachment unprepared, and `errorClass` names the error thrown.
  */
 export type ChatFileDerivativesPreparedDetails = Readonly<{
   fileId: string;
   mediaType: string;
   sizeBytes: number;
-  outcome: "prepared" | "failed" | "superseded" | "thrown";
+  outcome: "prepared" | "failed" | "superseded" | "transient" | "thrown";
   derivedFileCount: number;
   derivedBytes: number;
   durationMs: number;
