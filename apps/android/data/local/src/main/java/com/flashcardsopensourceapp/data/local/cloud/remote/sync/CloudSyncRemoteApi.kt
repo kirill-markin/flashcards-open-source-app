@@ -1,5 +1,7 @@
 package com.flashcardsopensourceapp.data.local.cloud.remote.sync
 
+import com.flashcardsopensourceapp.core.observability.ClientDeviceType
+import com.flashcardsopensourceapp.core.observability.androidClientOsName
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.cloud.remote.transport.CloudJsonHttpClient
 import com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException
@@ -9,6 +11,7 @@ import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudObjectOrNull
 import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudStringOrNull
 import com.flashcardsopensourceapp.data.local.cloud.wire.parseCloudEntitlement
 import com.flashcardsopensourceapp.data.local.cloud.wire.parseOptionalReviewTimeZone
+import com.flashcardsopensourceapp.data.local.cloud.wire.putNullableString
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudArray
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudBoolean
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudInt
@@ -99,7 +102,8 @@ data class RemotePushResponse(
 
 internal class CloudSyncRemoteApi(
     private val httpClient: CloudJsonHttpClient,
-    private val isAutomation: Boolean
+    private val isAutomation: Boolean,
+    private val clientDeviceTypeProvider: () -> ClientDeviceType?
 ) {
     suspend fun push(
         apiBaseUrl: String,
@@ -111,7 +115,7 @@ internal class CloudSyncRemoteApi(
             baseUrl = apiBaseUrl,
             path = "/workspaces/$workspaceId/sync/push",
             authorizationHeader = authorizationHeader,
-            body = withAutomationDeclaration(body = body)
+            body = withInstallationDeclarations(body = body)
         )
         return parseRemotePushResponse(response = response)
     }
@@ -126,7 +130,7 @@ internal class CloudSyncRemoteApi(
             baseUrl = apiBaseUrl,
             path = "/workspaces/$workspaceId/sync/pull",
             authorizationHeader = authorizationHeader,
-            body = withAutomationDeclaration(body = body)
+            body = withInstallationDeclarations(body = body)
         )
 
         return RemotePullResponse(
@@ -159,7 +163,7 @@ internal class CloudSyncRemoteApi(
             baseUrl = apiBaseUrl,
             path = "/workspaces/$workspaceId/sync/bootstrap",
             authorizationHeader = authorizationHeader,
-            body = withAutomationDeclaration(body = body)
+            body = withInstallationDeclarations(body = body)
         )
 
         return RemoteBootstrapPullResponse(
@@ -181,7 +185,7 @@ internal class CloudSyncRemoteApi(
             baseUrl = apiBaseUrl,
             path = "/workspaces/$workspaceId/sync/bootstrap",
             authorizationHeader = authorizationHeader,
-            body = withAutomationDeclaration(body = body)
+            body = withInstallationDeclarations(body = body)
         )
 
         return RemoteBootstrapPushResponse(
@@ -200,7 +204,7 @@ internal class CloudSyncRemoteApi(
             baseUrl = apiBaseUrl,
             path = "/workspaces/$workspaceId/sync/review-history/pull",
             authorizationHeader = authorizationHeader,
-            body = withAutomationDeclaration(body = body)
+            body = withInstallationDeclarations(body = body)
         )
 
         return RemoteReviewHistoryPullResponse(
@@ -220,7 +224,7 @@ internal class CloudSyncRemoteApi(
             baseUrl = apiBaseUrl,
             path = "/workspaces/$workspaceId/sync/review-history/import",
             authorizationHeader = authorizationHeader,
-            body = withAutomationDeclaration(body = body)
+            body = withInstallationDeclarations(body = body)
         )
 
         return RemoteReviewHistoryImportResponse(
@@ -231,18 +235,20 @@ internal class CloudSyncRemoteApi(
     }
 
     /**
-     * Adds the automation declaration the backend stores on the installation. It rides on every
-     * sync body rather than on one chosen call, because the request that first registers the
-     * installation is not fixed. Returns a copy; the caller's body is left alone.
+     * Adds the automation declaration and the client device facts the backend stores on the
+     * installation. They ride on every sync body rather than on one chosen call, because the request
+     * that first registers the installation is not fixed. Returns a copy; the caller's body is left
+     * alone.
      */
-    private fun withAutomationDeclaration(body: JSONObject): JSONObject {
-        if (isAutomation.not()) {
-            return body
-        }
-
+    private fun withInstallationDeclarations(body: JSONObject): JSONObject {
         val declaredBody = JSONObject()
         body.keys().forEach { key -> declaredBody.put(key, body.get(key)) }
-        return declaredBody.put("isAutomation", true)
+        declaredBody.put("osName", androidClientOsName)
+        declaredBody.putNullableString(key = "deviceType", value = clientDeviceTypeProvider()?.wireValue)
+        if (isAutomation) {
+            declaredBody.put("isAutomation", true)
+        }
+        return declaredBody
     }
 }
 
