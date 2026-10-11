@@ -2,6 +2,27 @@ import XCTest
 
 extension LiveSmokeTestCase {
     @MainActor
+    func scrollSettingsRootContent(timeout: TimeInterval) throws {
+        let settingsList = self.app.collectionViews[LiveSmokeIdentifier.settingsScreen].firstMatch
+        guard settingsList.exists else {
+            throw LiveSmokeFailure.missingElement(
+                identifier: LiveSmokeIdentifier.settingsScreen,
+                timeoutSeconds: timeout,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+
+        #if targetEnvironment(macCatalyst)
+        // The Settings collection also spans the sidebar; aim inside its right content area.
+        settingsList.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.5))
+            .scroll(byDeltaX: 0, deltaY: -120)
+        #else
+        settingsList.swipeUp()
+        #endif
+    }
+
+    @MainActor
     func scrollBestEffort() {
         let collectionView = self.app.collectionViews.firstMatch
         if collectionView.exists {

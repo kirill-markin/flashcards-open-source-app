@@ -288,7 +288,7 @@ extension LiveSmokeTestCase {
     func openWorkspaceResetProgressFlow() throws {
         try self.tapTabBarItem(selectedTab: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        try self.tapButtonScrollingIntoView(
+        try self.tapSettingsButtonScrollingIntoView(
             identifier: LiveSmokeIdentifier.settingsResetStudyProgressRow,
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
