@@ -444,6 +444,7 @@ const nlCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — Flitskaarten",
     crashTitle: "Er is iets misgegaan",
     crashMessage: "Laad de app opnieuw om dit scherm te herstellen.",
     crashReload: "App opnieuw laden",

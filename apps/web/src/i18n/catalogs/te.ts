@@ -444,6 +444,7 @@ const teCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — ఫ్లాష్ కార్డులు",
     crashTitle: "ఏదో తప్పు జరిగింది",
     crashMessage: "ఈ స్క్రీన్‌ను పునరుద్ధరించడానికి యాప్‌ను రీలోడ్ చేయండి.",
     crashReload: "యాప్‌ను రీలోడ్ చేయి",

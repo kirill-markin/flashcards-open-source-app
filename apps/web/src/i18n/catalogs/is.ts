@@ -444,6 +444,7 @@ const isCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — Minnisspjöld",
     crashTitle: "Villa kom upp",
     crashMessage: "Endurhladdu forritið til að endurheimta þennan skjá.",
     crashReload: "Endurhlaða forrit",

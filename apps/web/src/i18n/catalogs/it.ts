@@ -444,6 +444,7 @@ const itCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — Schede didattiche",
     crashTitle: "Si è verificato un problema",
     crashMessage: "Ricarica l’app per ripristinare questa schermata.",
     crashReload: "Ricarica l’app",

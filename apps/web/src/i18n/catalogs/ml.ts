@@ -444,6 +444,7 @@ const mlCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — ഫ്ലാഷ്കാർഡുകൾ",
     crashTitle: "എന്തോ കുഴപ്പം സംഭവിച്ചു",
     crashMessage: "ഈ സ്ക്രീൻ പുനഃസ്ഥാപിക്കാൻ ആപ്പ് റീലോഡ് ചെയ്യുക.",
     crashReload: "ആപ്പ് റീലോഡ് ചെയ്യുക",

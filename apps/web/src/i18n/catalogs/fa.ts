@@ -444,6 +444,7 @@ const faCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — فلش‌کارت",
     crashTitle: "مشکلی پیش آمد",
     crashMessage: "برای بازگرداندن این صفحه، برنامه را دوباره بارگذاری کنید.",
     crashReload: "بارگذاری دوبارهٔ برنامه",

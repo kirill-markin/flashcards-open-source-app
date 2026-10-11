@@ -444,6 +444,7 @@ const viCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — Thẻ ghi nhớ",
     crashTitle: "Đã xảy ra lỗi",
     crashMessage: "Hãy tải lại ứng dụng để khôi phục màn hình này.",
     crashReload: "Tải lại ứng dụng",

@@ -444,6 +444,7 @@ const taCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — கற்றல் அட்டைகள்",
     crashTitle: "ஏதோ தவறாகிவிட்டது",
     crashMessage: "இந்தத் திரையை மீட்க செயலியை மீண்டும் ஏற்றவும்.",
     crashReload: "செயலியை மீண்டும் ஏற்று",

@@ -444,6 +444,7 @@ const idCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — Kartu belajar",
     crashTitle: "Terjadi kesalahan",
     crashMessage: "Muat ulang aplikasi untuk memulihkan layar ini.",
     crashReload: "Muat ulang aplikasi",

@@ -444,6 +444,7 @@ const huCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — Tanulókártyák",
     crashTitle: "Hiba történt",
     crashMessage: "Töltsd újra az alkalmazást a képernyő helyreállításához.",
     crashReload: "Alkalmazás újratöltése",

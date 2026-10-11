@@ -444,6 +444,7 @@ const deCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — Karteikarten",
     crashTitle: "Etwas ist schiefgelaufen",
     crashMessage: "Lade die App neu, um diesen Bildschirm wiederherzustellen.",
     crashReload: "App neu laden",

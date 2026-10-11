@@ -495,7 +495,7 @@ export function createMcpServerWithDependencies(
     {
       name: SERVER_NAME,
       version: SERVER_VERSION,
-      title: "Nibomo",
+      title: "Nibomo Flashcards",
       websiteUrl,
       icons: [{ src: iconUrl, mimeType: "image/svg+xml", sizes: ["any"] }],
     },

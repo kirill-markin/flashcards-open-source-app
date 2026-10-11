@@ -444,6 +444,7 @@ const ptBrCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — Cartões de memória",
     crashTitle: "Algo deu errado",
     crashMessage: "Recarregue o app para restaurar esta tela.",
     crashReload: "Recarregar app",

@@ -443,6 +443,7 @@ const enCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — Flashcards",
     crashTitle: "Something went wrong",
     crashMessage: "Reload the app to restore this screen.",
     crashReload: "Reload app",
