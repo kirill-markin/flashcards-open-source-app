@@ -28,9 +28,11 @@ export function loadGoogleAuthClient(): AwsClient {
       regional_cred_verification_url: "https://sts.{region}.amazonaws.com?Action=GetCallerIdentity&Version=2011-06-15",
     },
     transporterOptions: {
+      // gaxios defaults to node-fetch, whose timeout abort carries no TimeoutError code and is never retried.
+      fetchImplementation: fetch,
       timeout: 5_000,
       retry: true,
-      maxRedirects: 0,
+      redirect: "error",
       retryConfig: {
         retry: 2,
         noResponseRetries: 2,
