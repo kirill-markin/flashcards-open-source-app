@@ -232,18 +232,34 @@ struct CardEditorScreen: View {
         .accessibilityIdentifier(UITestIdentifier.cardEditorScreen)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button(String(localized: "Cancel", table: reviewCardsStringsTableName), action: onCancel)
-                    .keyboardShortcut(.cancelAction)
+                self.cancelButton
                     .reviewCardsShortcutHelp(key: "⎋")
             }
 
             ToolbarItem(placement: .confirmationAction) {
-                Button(String(localized: "Save", table: reviewCardsStringsTableName), action: onSave)
-                    .keyboardShortcut("s", modifiers: .command)
+                self.saveButton
                     .reviewCardsShortcutHelp(key: "⌘S")
                     .accessibilityIdentifier(UITestIdentifier.cardEditorSaveButton)
             }
         }
+    }
+
+    private var cancelButton: some View {
+        let button = Button(String(localized: "Cancel", table: reviewCardsStringsTableName), action: onCancel)
+        #if targetEnvironment(macCatalyst)
+        return button
+        #else
+        return button.keyboardShortcut(.cancelAction)
+        #endif
+    }
+
+    private var saveButton: some View {
+        let button = Button(String(localized: "Save", table: reviewCardsStringsTableName), action: onSave)
+        #if targetEnvironment(macCatalyst)
+        return button
+        #else
+        return button.keyboardShortcut("s", modifiers: .command)
+        #endif
     }
 }
 
