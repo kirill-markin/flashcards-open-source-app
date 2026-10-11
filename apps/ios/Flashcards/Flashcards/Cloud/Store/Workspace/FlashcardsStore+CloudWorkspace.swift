@@ -397,10 +397,19 @@ extension FlashcardsStore {
         }
 
         let localWorkspaceId = try requireWorkspaceId(workspace: self.workspace)
+        try self.cloudRuntime.beginWorkspaceDeletion(workspaceId: localWorkspaceId)
+        defer {
+            self.cloudRuntime.endWorkspaceDeletion(workspaceId: localWorkspaceId)
+        }
         self.syncStatus = .syncing
 
         do {
+            try await self.cloudRuntime.cancelActiveCloudSyncForWorkspaceDeletion()
+            try Task.checkCancellation()
+            try self.throwIfCloudCredentialRecoveryRequired()
+            self.cloudRuntime.cancelForWorkspaceSwitch()
             let deleteResult = try await self.withAuthenticatedCloudSession { session in
+                try Task.checkCancellation()
                 let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.dependencies.cloudSyncService)
                 let response = try await cloudSyncService.deleteWorkspace(
                     apiBaseUrl: session.apiBaseUrl,
@@ -408,6 +417,11 @@ extension FlashcardsStore {
                     workspaceId: localWorkspaceId,
                     confirmationText: confirmationText
                 )
+                guard response.ok,
+                    response.deletedWorkspaceId == localWorkspaceId,
+                    response.workspace.workspaceId != localWorkspaceId else {
+                    throw LocalStoreError.validation("Workspace deletion did not confirm the deleted workspace and its replacement")
+                }
                 return (session, response)
             }
 
@@ -420,7 +434,6 @@ extension FlashcardsStore {
                 authorization: deleteResult.0.authorization
             )
             let database = try requireLocalDatabase(database: self.database)
-            self.cloudRuntime.cancelForWorkspaceSwitch()
             await self.prepareWorkspaceScopedStateForSwitch(nextWorkspaceId: replacementSession.workspaceId)
             try database.replaceLocalWorkspaceAfterRemoteDelete(
                 localWorkspaceId: localWorkspaceId,
@@ -429,6 +442,8 @@ extension FlashcardsStore {
             )
             self.cloudRuntime.setActiveCloudSession(linkedSession: replacementSession)
             try self.reload()
+            self.cloudRuntime.endWorkspaceDeletion(workspaceId: localWorkspaceId)
+            try Task.checkCancellation()
             let syncResult = try await self.runLinkedSync(linkedSession: replacementSession)
             try await self.applySyncResultWithoutBlockingReset(
                 syncResult: syncResult,
