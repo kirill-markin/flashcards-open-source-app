@@ -34,6 +34,9 @@ struct ReviewView: View {
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
     @Environment(PremiumPresenter.self) private var premiumPresenter: PremiumPresenter
     @FocusState private var isReviewKeyboardFocused: Bool
+    #if targetEnvironment(macCatalyst)
+    @State private var reviewKeyboardFocusRequest: StudyKeyboardFocusRequest?
+    #endif
 
     @StateObject private var reviewSpeechController = ReviewSpeechController()
     @State var isAnswerVisible: Bool = false
@@ -204,7 +207,7 @@ struct ReviewView: View {
         .onAppear {
             self.isReviewReactionScreenVisible = true
             if self.canUseReviewKeyboardShortcuts && self.navigation.isAIChatVisible == false {
-                self.isReviewKeyboardFocused = true
+                self.requestAutomaticReviewKeyboardFocus()
             }
             if self.areReviewReactionAnimationsEnabled {
                 self.prewarmReviewReactionLottieAssets()
@@ -212,7 +215,7 @@ struct ReviewView: View {
         }
         .onChange(of: self.shouldShowReviewLoader) { _, isLoading in
             if isLoading == false && self.canUseReviewKeyboardShortcuts && self.navigation.isAIChatVisible == false {
-                self.isReviewKeyboardFocused = true
+                self.requestAutomaticReviewKeyboardFocus()
             }
         }
         .onChange(of: self.areReviewReactionAnimationsEnabled) { _, isEnabled in
@@ -241,6 +244,9 @@ struct ReviewView: View {
         }
         .onDisappear {
             self.isReviewKeyboardFocused = false
+            #if targetEnvironment(macCatalyst)
+            self.reviewKeyboardFocusRequest = nil
+            #endif
             self.isReviewReactionScreenVisible = false
             self.reviewSpeechController.stopSpeech()
             self.cancelReviewReactionLottiePrewarm()
@@ -259,6 +265,17 @@ struct ReviewView: View {
             showsBackground: UIDevice.current.userInterfaceIdiom != .pad
         ) {
             reviewBottomAccessory
+        }
+        .background {
+            #if targetEnvironment(macCatalyst)
+            MacStudyKeyboardReceiver(
+                isEnabled: self.canUseReviewKeyboardShortcuts,
+                isStudyActive: self.isReviewReactionScreenVisible && self.navigation.selectedTab == .review && self.scenePhase == .active,
+                focusRequest: self.reviewKeyboardFocusRequest,
+                onInput: self.handleReviewKeyboardInput
+            )
+            .frame(width: 1, height: 1)
+            #endif
         }
         .ignoresSafeArea(UIDevice.current.userInterfaceIdiom == .pad || self.navigation.canPresentAICompanion == false || self.isKeyboardDocked ? [] : .keyboard, edges: .bottom)
         .simultaneousGesture(
@@ -353,18 +370,19 @@ struct ReviewView: View {
                         )
                         self.isEditorPresented = false
                     },
-                    onCancel: {
-                        self.finishCardEditorSession()
-                        self.isEditorPresented = false
-                    },
-                    onSave: {
-                        self.saveEditedCard()
-                    },
+                    onCancel: self.cancelReviewCardEditor,
+                    onSave: self.saveEditedCard,
                     onDelete: {
                         self.deleteEditingCard()
                     }
                 )
             }
+            .modifier(CardEditorKeyboardModifier(
+                isEnabled: self.isEditorPresented && self.store.presentedTechnicalError == nil,
+                isSummaryVisible: self.cardFormState.navigationPath.isEmpty,
+                onCancel: self.cancelReviewCardEditor,
+                onSave: self.saveEditedCard
+            ))
             .technicalErrorSheet(store: self.store)
             .interactiveDismissDisabled()
             .onAppear {
@@ -1013,25 +1031,48 @@ struct ReviewView: View {
         guard self.canUseReviewKeyboardShortcuts, press.modifiers.isEmpty else {
             return .ignored
         }
+        let input = press.key == .space ? " " : press.characters
+        return self.handleReviewKeyboardInput(input) ? .handled : .ignored
+    }
+
+    private func handleReviewKeyboardInput(_ input: String) -> Bool {
+        guard self.canUseReviewKeyboardShortcuts else { return false }
         self.dismissActiveReviewReactions(reason: "interaction")
-        if press.key == .space {
-            guard self.isAnswerVisible == false else { return .ignored }
+        if input == " " {
+            guard self.isAnswerVisible == false else { return false }
             self.revealReviewAnswer()
-            return .handled
+            return true
         }
         guard self.isAnswerVisible, let card = self.currentCard,
               self.cachedPreparedCurrentRevealState?.reviewAnswerGridOptions != nil,
-              let number = Int(press.characters), let rating = ReviewRating(rawValue: number - 1) else {
-            return .ignored
+              let number = Int(input), let rating = ReviewRating(rawValue: number - 1) else {
+            return false
         }
         self.rateReviewCard(cardId: card.cardId, rating: rating)
-        return .handled
+        return true
     }
 
     private func focusReviewKeyboard() {
         if self.canUseReviewKeyboardShortcuts {
+            #if targetEnvironment(macCatalyst)
+            self.reviewKeyboardFocusRequest = .study(UUID())
+            #else
             self.isReviewKeyboardFocused = true
+            #endif
         }
+    }
+
+    private func requestAutomaticReviewKeyboardFocus() {
+        #if targetEnvironment(macCatalyst)
+        self.reviewKeyboardFocusRequest = .automatic(UUID())
+        #else
+        self.isReviewKeyboardFocused = true
+        #endif
+    }
+
+    private func cancelReviewCardEditor() {
+        self.finishCardEditorSession()
+        self.isEditorPresented = false
     }
 
     /**
@@ -1277,6 +1318,9 @@ private struct ReviewHardwareKeyboardModifier: ViewModifier {
 
     @ViewBuilder
     func body(content: Content) -> some View {
+        #if targetEnvironment(macCatalyst)
+        content.simultaneousGesture(TapGesture().onEnded(self.onTap))
+        #else
         if UIDevice.current.userInterfaceIdiom == .pad {
             content
                 .focusable()
@@ -1287,5 +1331,6 @@ private struct ReviewHardwareKeyboardModifier: ViewModifier {
         } else {
             content
         }
+        #endif
     }
 }
