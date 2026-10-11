@@ -12,6 +12,10 @@ remain on iOS 18.0. The dedicated Catalyst app uses
 `com.flashcards-open-source-app.app` and the coordinated version from
 `Config/Base.xcconfig`; do not derive a `maccatalyst.` bundle ID.
 
+Mac SDK builds produce `Nibomo.app`; iPhone/iPad builds retain the
+`Flashcards Open Source App` product name. The shared project, target, scheme
+and `Flashcards` Swift module retain their technical names.
+
 `Config/MacCatalyst.entitlements` applies only to the app's `macosx` SDK builds.
 The sandbox permits outgoing connections, microphone/camera access and read
 access to user-selected files. Localized usage descriptions and security-scoped
@@ -148,28 +152,32 @@ at an accepted size before submission. Never substitute an iPad screenshot.
 Record version/build, SHA, OS, steps and results alongside native smoke evidence
 before App Review. These checks exercise the signed app and actual services.
 
-1. Resize between narrow and wide landscape layouts. Open/close AI beside
+1. Confirm the installed bundle is `Nibomo.app`, its `CFBundleName` and
+   `CFBundleDisplayName` are `Nibomo`, and its `CFBundleExecutable` is `Nibomo`.
+   Verify Finder, Dock and Spotlight show and find Nibomo. Upgrade an existing
+   installation and confirm local workspaces and cards remain available.
+2. Resize between narrow and wide landscape layouts. Open/close AI beside
    Review, Progress, Cards and Settings; preserve the draft and revealed answer.
    Verify dark appearance and scrolling.
-2. Reveal with Space and rate with 1–4. Click a rating, then press Space on the
+3. Reveal with Space and rate with 1–4. Click a rating, then press Space on the
    next card without clicking elsewhere. Inspect localized reveal/rating hover
    hints in English and another supported locale. Type Space/1–4 in AI and card
    editors while hovering review controls; focus and reviews must stay intact.
-3. Create/edit a card; verify save and cancel. Inspect inline and display math,
+4. Create/edit a card; verify save and cancel. Inspect inline and display math,
    including fractions, in cards. Play/stop review speech. Inspect native
    screenshots for rendered card formulas rather than raw TeX; AI transcripts
    retain the shared Apple plaintext presentation.
-4. Disconnect networking, create/edit/review locally, quit and relaunch. Confirm
+5. Disconnect networking, create/edit/review locally, quit and relaunch. Confirm
    persistence. Reconnect, sign in, sync and verify changes on another client.
    Inspect failed sync errors.
-5. Send AI text, dictate with microphone access allowed/denied, attach a photo
+6. Send AI text, dictate with microphone access allowed/denied, attach a photo
    and user-selected file, then send. Exercise camera when UIKit offers it;
    otherwise verify the localized unavailable error and photo/file selection.
    Confirm cancelling does not upload anything.
-6. Allow/deny notifications, schedule a review reminder and open its delivered
+7. Allow/deny notifications, schedule a review reminder and open its delivered
    notification with the app running and after quitting. Review must open once;
    foregrounding again must preserve the current section.
-7. Using an Apple sandbox account, load Premium, purchase, restore and manage
+8. Using an Apple sandbox account, load Premium, purchase, restore and manage
    subscriptions. Verify backend entitlement and offline cosmetics follow the
    [paid-access contract](premium-entitlements.md).
 
