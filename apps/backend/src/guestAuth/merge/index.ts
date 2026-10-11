@@ -521,6 +521,9 @@ async function recreateGuestReplicasInExecutor(
         installationId: replica.installationId,
         platform: toSyncClientPlatform(replica.platform),
         appVersion: replica.appVersion,
+        // The upgrade request reports no device, so the installation keeps what it stored.
+        osName: null,
+        deviceType: null,
         // The upgrade request carries no declaration of its own, so the marker the guest
         // installation already stored is what the recreated replica keeps: a merge is the same
         // physical installation adopting an account, and it can neither claim nor drop automation.

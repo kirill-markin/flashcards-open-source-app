@@ -1,35 +1,77 @@
 import type { JSX } from "react";
-import { reviewEventPlatforms } from "../adminApi";
+import { productEventDeviceTypes, productEventOsNames, reviewEventPlatforms } from "../adminApi";
 import {
+  deviceTypeColors,
+  deviceTypeLabels,
   getPlatformColor,
+  osNameColors,
+  osNameLabels,
   platformLabels,
   uniqueUserCohortColors,
   uniqueUserCohortKeys,
   uniqueUserCohortLabels,
 } from "./chartPrimitives";
 
-export function PlatformKey(): JSX.Element {
+function ChartColorKey<Key extends string>(
+  props: Readonly<{
+    ariaLabel: string;
+    keys: ReadonlyArray<Key>;
+    getColor: (key: Key) => string;
+    getLabel: (key: Key) => string;
+  }>,
+): JSX.Element {
   return (
-    <div className="platform-key" aria-label="Platform color key">
-      {reviewEventPlatforms.map((platform) => (
-        <span key={platform} className="platform-key-item">
-          <span className="platform-key-swatch" style={{ backgroundColor: getPlatformColor(platform) }} />
-          <span>{platformLabels[platform]}</span>
+    <div className="platform-key" aria-label={props.ariaLabel}>
+      {props.keys.map((key) => (
+        <span key={key} className="platform-key-item">
+          <span className="platform-key-swatch" style={{ backgroundColor: props.getColor(key) }} />
+          <span>{props.getLabel(key)}</span>
         </span>
       ))}
     </div>
   );
 }
 
+export function PlatformKey(): JSX.Element {
+  return (
+    <ChartColorKey
+      ariaLabel="Platform color key"
+      keys={reviewEventPlatforms}
+      getColor={getPlatformColor}
+      getLabel={(platform) => platformLabels[platform]}
+    />
+  );
+}
+
+export function OsNameKey(): JSX.Element {
+  return (
+    <ChartColorKey
+      ariaLabel="OS name color key"
+      keys={productEventOsNames}
+      getColor={(osName) => osNameColors[osName]}
+      getLabel={(osName) => osNameLabels[osName]}
+    />
+  );
+}
+
+export function DeviceTypeKey(): JSX.Element {
+  return (
+    <ChartColorKey
+      ariaLabel="Device type color key"
+      keys={productEventDeviceTypes}
+      getColor={(deviceType) => deviceTypeColors[deviceType]}
+      getLabel={(deviceType) => deviceTypeLabels[deviceType]}
+    />
+  );
+}
+
 export function UniqueUserCohortKey(): JSX.Element {
   return (
-    <div className="platform-key" aria-label="Unique users cohort color key">
-      {uniqueUserCohortKeys.map((cohort) => (
-        <span key={cohort} className="platform-key-item">
-          <span className="platform-key-swatch" style={{ backgroundColor: uniqueUserCohortColors[cohort] }} />
-          <span>{uniqueUserCohortLabels[cohort]}</span>
-        </span>
-      ))}
-    </div>
+    <ChartColorKey
+      ariaLabel="Unique users cohort color key"
+      keys={uniqueUserCohortKeys}
+      getColor={(cohort) => uniqueUserCohortColors[cohort]}
+      getLabel={(cohort) => uniqueUserCohortLabels[cohort]}
+    />
   );
 }
