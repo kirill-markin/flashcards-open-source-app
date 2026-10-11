@@ -26,6 +26,12 @@ export const maximumWholeEncryptedPdfPages = 10;
 export const maximumDerivativeErrorChars = 300;
 /** The SQL calls one `bash` command's code may make through the SQL bridge, counted by the sandbox host. */
 export const maximumSqlCallsPerCommand = 500;
+/** The `errorType` of a call that downloaded an object whose size is not the one its row records. */
+export const chatSandboxSizeMismatchErrorType = "PresignedObjectSizeMismatchError";
+/** The `errorType` of a call whose pre-signed download or upload failed once its retries ran out. */
+export const chatSandboxTransferErrorType = "PresignedTransferError";
+/** The `errorType` of a call that failed to upload one of the files it wrote. */
+export const chatSandboxUploadErrorType = "ChatSandboxUploadError";
 
 /** The media types `apps/backend/src/chat/attachmentPolicy.ts` must give `.zip` and `.apkg` attachments. */
 export const chatFileZipMediaType = "application/zip";
@@ -86,8 +92,7 @@ const chatSandboxWriteSlotSchema = z.object({
 /**
  * Where a command's code sends agent SQL: the bridge route on the backend API and the capability the
  * worker minted for this attempt. Both stay in the host process, out of the shell's environment, its
- * files and the command's output. A worker that predates the bridge sends none, and its command gets no
- * SQL functions.
+ * files and the command's output.
  */
 const chatSandboxSqlBridgeSchema = z.object({
   url: z.string().url(),
@@ -100,7 +105,7 @@ export const chatSandboxBashRequestSchema = z.object({
   command: z.string().min(1),
   files: z.array(chatSandboxFileSchema),
   writeSlots: z.array(chatSandboxWriteSlotSchema),
-  sqlBridge: chatSandboxSqlBridgeSchema.optional(),
+  sqlBridge: chatSandboxSqlBridgeSchema,
 }).strict();
 
 /** Derives text, CSV or sqlite files from one attachment; the write slots fit its kind. */
@@ -127,9 +132,7 @@ export const chatSandboxRequestSchema = z.discriminatedUnion("operation", [
 
 /**
  * `stdout` and `stderr` are cut by `cutToHeadAndTail`; the byte counts are those of the whole streams.
- * `sqlCallCount` counts the SQL calls the command's code sent, `sqlExecuteCallCount` the writes among them;
- * both are present only when the request carried `sqlBridge`, because a worker that predates the bridge
- * rejects them.
+ * `sqlCallCount` counts the SQL calls the command's code sent, `sqlExecuteCallCount` the writes among them.
  */
 export const chatSandboxBashResponseSchema = z.object({
   stdout: z.string().max(maximumTransportedStreamChars),
@@ -145,8 +148,8 @@ export const chatSandboxBashResponseSchema = z.object({
     sha256: sha256Schema,
   }).strict()),
   deletedPaths: z.array(workPathSchema),
-  sqlCallCount: z.number().int().nonnegative().max(maximumSqlCallsPerCommand).optional(),
-  sqlExecuteCallCount: z.number().int().nonnegative().max(maximumSqlCallsPerCommand).optional(),
+  sqlCallCount: z.number().int().nonnegative().max(maximumSqlCallsPerCommand),
+  sqlExecuteCallCount: z.number().int().nonnegative().max(maximumSqlCallsPerCommand),
 }).strict();
 
 /**
