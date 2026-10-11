@@ -26,8 +26,8 @@ async function runOperation(request: ChatSandboxRequest): Promise<CompletedOpera
         writtenFileCount: response.writtenFiles.length,
         deletedPathCount: response.deletedPaths.length,
         uploadedSlotIds: response.writtenFiles.map((file) => file.slotId),
-        sqlCallCount: response.sqlCallCount ?? null,
-        sqlExecuteCallCount: response.sqlExecuteCallCount ?? null,
+        sqlCallCount: response.sqlCallCount,
+        sqlExecuteCallCount: response.sqlExecuteCallCount,
       },
     };
   }
