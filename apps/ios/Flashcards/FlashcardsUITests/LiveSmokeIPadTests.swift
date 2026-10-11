@@ -5,9 +5,13 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
     @MainActor
     func testIPadCompanionPreservesDraftAndRevealedReviewAcrossSections() throws {
         try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .pad, "This smoke requires an iPad.")
+#if !targetEnvironment(macCatalyst)
         defer { XCUIDevice.shared.orientation = .portrait }
+#endif
         try self.launchApplication(launchScenario: .guestManualReviewCard, selectedTab: .review)
+#if !targetEnvironment(macCatalyst)
         XCUIDevice.shared.orientation = .landscapeLeft
+#endif
         try self.tapButton(identifier: LiveSmokeIdentifier.aiCompanionToggle, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.assertScreenVisible(screen: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.tapButton(identifier: LiveSmokeIdentifier.reviewShowAnswerButton, timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds)
