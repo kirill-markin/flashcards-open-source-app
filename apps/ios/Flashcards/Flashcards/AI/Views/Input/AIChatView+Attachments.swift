@@ -1,5 +1,6 @@
 import PhotosUI
 import SwiftUI
+import UIKit
 
 extension AIChatView {
     func handleSelectedPhotoItem(_ item: PhotosPickerItem) async {
@@ -112,7 +113,9 @@ extension AIChatView {
 
     @MainActor
     func presentCameraIfAvailable() async {
-        let initialStatus = accessPermissionStatus(kind: .camera)
+        let initialStatus = UIImagePickerController.isSourceTypeAvailable(.camera)
+            ? accessPermissionStatus(kind: .camera)
+            : .unavailable
         let requestedStatus = initialStatus == .askEveryTime
             ? await requestAccessPermission(kind: .camera)
             : nil

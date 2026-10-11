@@ -1,5 +1,4 @@
 {
-  "originHash" : "2c281b27cccaf512edc409e7c00360a4d7667243032272ced5601d12f3d45cc5",
   "pins" : [
     {
       "identity" : "lottie-spm",
@@ -22,10 +21,10 @@
     {
       "identity" : "ratex",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/erweixin/RaTeX",
+      "location" : "https://github.com/kirill-markin/RaTeX",
       "state" : {
-        "revision" : "ae391d727ac615437c63c308f4538d971a84bede",
-        "version" : "0.1.14"
+        "revision" : "d22e916b54cb1422ac823c129d540295e3f0b616",
+        "version" : "0.1.14-catalyst.1"
       }
     },
     {
