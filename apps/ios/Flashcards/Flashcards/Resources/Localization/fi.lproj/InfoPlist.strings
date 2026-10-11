@@ -1,4 +1,5 @@
 "kMDItemKeywords" = "flashcards,muistikortit,opiskelukortit,oppiminen,kertaus";
+"MDItemKeywords" = "flashcards,muistikortit,opiskelukortit,oppiminen,kertaus";
 "NSCameraUsageDescription" = "Salli kameran käyttö kuvien ottamiseksi tekoälykeskustelun liitteisiin.";
 "NSMicrophoneUsageDescription" = "Salli mikrofonin käyttö tekstin sanelemiseksi tekoälykeskusteluun.";
 "NSPhotoLibraryUsageDescription" = "Salli kuvakirjaston käyttö kuvien valitsemiseksi tekoälykeskustelun liitteisiin.";

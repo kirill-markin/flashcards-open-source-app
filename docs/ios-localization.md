@@ -140,15 +140,19 @@ Do not add new generic `es.lproj` app resources. Spanish resource files must use
 At minimum, keep these aligned:
 
 - `kMDItemKeywords`
+- `MDItemKeywords`
 - `NSCameraUsageDescription`
 - `NSMicrophoneUsageDescription`
 - `NSPhotoLibraryUsageDescription`
 
-`kMDItemKeywords` is a comma-separated Spotlight keyword list.
-The base value lives in [Info.plist](../apps/ios/Flashcards/Config/Info.plist), and every locale's `InfoPlist.strings`, `en.lproj` included, overrides it with terms for that language.
-The app is named Nibomo, so without it on-device search cannot find the app by the user's own word for flashcards.
-Keep `flashcards` as the first keyword in every locale and follow it with the natural terms in that language, including alternative spellings people actually type.
-The key is undocumented by Apple but recommended by Apple DTS, so do not drop it as unknown.
+Spotlight uses `kMDItemKeywords` on iOS and `MDItemKeywords` on macOS, as
+[Apple DTS recommends](https://developer.apple.com/forums/thread/761535).
+Both are `String` values containing the same comma-separated keyword list in
+the base [Info.plist](../apps/ios/Flashcards/Config/Info.plist) and in each
+locale's `InfoPlist.strings`, including `en.lproj`. Keep each locale's two values
+identical, with `flashcards` first followed by its natural localized terms and
+alternative spellings. Nibomo is searchable by its app name; these keywords
+provide flashcard terms without changing that name.
 
 If we later localize app display name or other Info.plist-facing copy, add those keys here too.
 
