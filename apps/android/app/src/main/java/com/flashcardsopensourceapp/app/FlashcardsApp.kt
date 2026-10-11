@@ -70,11 +70,9 @@ import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.di.AppStartupState
 import com.flashcardsopensourceapp.app.navigation.AppNavHost
 import com.flashcardsopensourceapp.app.navigation.AppNotificationTapHandoffRequest
-import com.flashcardsopensourceapp.app.navigation.AiDestination
 import com.flashcardsopensourceapp.app.navigation.CardsDestination
 import com.flashcardsopensourceapp.app.navigation.ReviewDestination
 import com.flashcardsopensourceapp.app.navigation.SettingsDestination
-import com.flashcardsopensourceapp.app.navigation.TopLevelDestination
 import com.flashcardsopensourceapp.app.navigation.currentVisibleAppScreen
 import com.flashcardsopensourceapp.app.navigation.currentTopLevelDestination
 import com.flashcardsopensourceapp.app.navigation.isWithinRoutePrefix
@@ -311,7 +309,6 @@ fun FlashcardsApp(
         val density = LocalDensity.current
         val isImeVisible = WindowInsets.ime.getBottom(density = density) > 0
         val shouldHideNavigationSuite = shouldHideNavigationSuite(
-            destination = currentDestination,
             navigationSuiteType = navigationSuiteType,
             isImeVisible = isImeVisible
         )
@@ -825,13 +822,10 @@ internal fun FlashcardsAppLoadingScreen() {
 }
 
 private fun shouldHideNavigationSuite(
-    destination: TopLevelDestination,
     navigationSuiteType: NavigationSuiteType,
     isImeVisible: Boolean
 ): Boolean {
-    return destination == AiDestination &&
-        navigationSuiteType == NavigationSuiteType.NavigationBar &&
-        isImeVisible
+    return navigationSuiteType == NavigationSuiteType.NavigationBar && isImeVisible
 }
 
 @Composable
