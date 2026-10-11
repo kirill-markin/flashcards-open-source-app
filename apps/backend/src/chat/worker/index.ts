@@ -207,6 +207,8 @@ async function claimAndRunChatWorkerEvent(
     ),
     userOpenAIApiKey,
     clientPlatform: claimedRun.clientPlatform,
+    clientOsName: claimedRun.clientOsName,
+    clientDeviceType: claimedRun.clientDeviceType,
     tierAtCall,
     initiatingAuthIsSignedIn: claimedRun.initiatingAuthIsSignedIn,
     diagnostics: claimedRun.diagnostics,

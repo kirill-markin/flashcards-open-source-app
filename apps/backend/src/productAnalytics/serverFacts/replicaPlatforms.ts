@@ -1,4 +1,10 @@
-import type { ProductAnalyticsPlatform } from "../catalog";
+import {
+  productAnalyticsDeviceTypes,
+  productAnalyticsOsNames,
+  type ProductAnalyticsDeviceType,
+  type ProductAnalyticsOsName,
+  type ProductAnalyticsPlatform,
+} from "../catalog";
 
 // The facts the platform of one server-derived event is decided from, always carried together.
 // platform on its own decides nothing: sync.workspace_replicas constrains it to ios, android, web
@@ -9,6 +15,10 @@ import type { ProductAnalyticsPlatform } from "../catalog";
 export type WorkspaceReplicaPlatformFacts = Readonly<{
   actorKind: string;
   platform: string;
+  // sync.installations.os_name and device_type as stored for the installation behind this replica,
+  // and null for a replica with no installation. Like platform, they decide nothing on their own.
+  osName: string | null;
+  deviceType: string | null;
   // The installation behind this replica declared itself automation
   // (db/migrations/0141_sync_installation_automation_marker.sql). It is carried beside the platform
   // rather than folded into it, because the two answer different questions: a null platform still
@@ -16,19 +26,24 @@ export type WorkspaceReplicaPlatformFacts = Readonly<{
   isAutomation: boolean;
 }>;
 
-// The same facts as one replica row selects them, alongside the id they belong to. is_automation is
-// the joined sync.installations marker, never a column of sync.workspace_replicas.
+// The same facts as one replica row selects them, alongside the id they belong to. os_name,
+// device_type and is_automation are joined from sync.installations, never columns of
+// sync.workspace_replicas.
 export type WorkspaceReplicaPlatformRow = Readonly<{
   replica_id: string;
   actor_kind: string;
   platform: string;
+  os_name: string | null;
+  device_type: string | null;
   is_automation: boolean;
 }>;
 
-// What one replica decides for every event attributed to it: the platform to file it under, and
+// What one replica decides for every event attributed to it: the device to file it under, and
 // whether it may be reported at all.
 export type WorkspaceReplicaAttribution = Readonly<{
   platform: ProductAnalyticsPlatform | null;
+  osName: ProductAnalyticsOsName | null;
+  deviceType: ProductAnalyticsDeviceType | null;
   isAutomation: boolean;
 }>;
 
@@ -39,7 +54,7 @@ export type WorkspaceReplicaAttribution = Readonly<{
  * ./contentWrites.ts - so that one replica cannot be read two ways, and by the writers that
  * already hold the facts they ensured the replica with, so that a platform named up front and one
  * read back later cannot disagree. The one reader that bypasses it is ./reviewAnswers.ts for an
- * ai_chat replica: a chat review takes its platform from its chat run rather than from the replica,
+ * ai_chat replica: a chat review takes its device from its chat run rather than from the replica,
  * so the same ai_chat replica can give a device on review_answered and still gives null on
  * card_created and deck_created.
  *
@@ -85,8 +100,19 @@ function toWorkspaceReplicaPlatform(
 export function toWorkspaceReplicaAttribution(
   replica: WorkspaceReplicaPlatformFacts,
 ): WorkspaceReplicaAttribution {
+  const platform = toWorkspaceReplicaPlatform(replica);
+  // The installation's device facts follow the platform's own rule: only a client_installation
+  // replica whose platform resolved is a device a person used, and a stored value is confirmed
+  // against the catalog for the reason toWorkspaceReplicaPlatform confirms the platform.
+  const isInstallationDevice = replica.actorKind === "client_installation" && platform !== null;
   return {
-    platform: toWorkspaceReplicaPlatform(replica),
+    platform,
+    osName: isInstallationDevice
+      ? productAnalyticsOsNames.find((osName) => osName === replica.osName) ?? null
+      : null,
+    deviceType: isInstallationDevice
+      ? productAnalyticsDeviceTypes.find((deviceType) => deviceType === replica.deviceType) ?? null
+      : null,
     isAutomation: replica.isAutomation,
   };
 }
@@ -97,6 +123,8 @@ export function toWorkspaceReplicaRowAttribution(
   return toWorkspaceReplicaAttribution({
     actorKind: row.actor_kind,
     platform: row.platform,
+    osName: row.os_name,
+    deviceType: row.device_type,
     isAutomation: row.is_automation,
   });
 }

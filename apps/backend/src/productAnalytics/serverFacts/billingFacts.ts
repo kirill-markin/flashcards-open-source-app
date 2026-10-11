@@ -114,6 +114,8 @@ export async function recordEntitlementChangedAnalytics(
     guestSessionId: null,
     workspaceId: null,
     platform: null,
+    osName: null,
+    deviceType: null,
     properties: {
       from_tier: fact.fromTier,
       to_tier: fact.toTier,
@@ -164,6 +166,8 @@ export async function recordTrialStartedAnalytics(fact: TrialStartedFact): Promi
     guestSessionId: null,
     workspaceId: null,
     platform: null,
+    osName: null,
+    deviceType: null,
     properties: {
       tier: fact.tier,
       provider: fact.provider,
@@ -217,6 +221,8 @@ export async function recordPurchaseCompletedAnalytics(
     guestSessionId: null,
     workspaceId: null,
     platform: null,
+    osName: null,
+    deviceType: null,
     properties: {
       tier: fact.tier,
       provider: fact.provider,
@@ -262,6 +268,8 @@ export async function recordSubscriptionRenewedAnalytics(
     guestSessionId: null,
     workspaceId: null,
     platform: null,
+    osName: null,
+    deviceType: null,
     properties: {
       tier: fact.tier,
       provider: fact.provider,
@@ -295,6 +303,8 @@ export async function recordSubscriptionRevokedAnalytics(
     guestSessionId: null,
     workspaceId: null,
     platform: null,
+    osName: null,
+    deviceType: null,
     properties: {
       tier: fact.tier,
       provider: fact.provider,
@@ -345,6 +355,8 @@ export async function recordAutorenewDisabledAnalytics(
     guestSessionId: null,
     workspaceId: null,
     platform: null,
+    osName: null,
+    deviceType: null,
     properties: {
       tier: fact.tier,
       provider: fact.provider,
@@ -380,6 +392,8 @@ export async function recordAutorenewEnabledAnalytics(
     guestSessionId: null,
     workspaceId: null,
     platform: null,
+    osName: null,
+    deviceType: null,
     properties: {
       tier: fact.tier,
       provider: fact.provider,
@@ -414,6 +428,8 @@ export async function recordBillingIssueStartedAnalytics(
     guestSessionId: null,
     workspaceId: null,
     platform: null,
+    osName: null,
+    deviceType: null,
     properties: {
       tier: fact.tier,
       provider: fact.provider,

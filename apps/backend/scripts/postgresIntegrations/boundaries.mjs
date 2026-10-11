@@ -79,7 +79,8 @@ export const boundaryDefinitions = Object.freeze([
   // productAnalytics/writer, which stores feedback, from 0175, and chat/cardImages/operation and
   // chat/runs/generatedImageAttemptBudget from 0174. A guest merge claims only the installations
   // behind the guest's client replicas, and guestAuth/upgrade/boundGuestSession creates none, so it
-  // stays.
+  // stays. serverFacts/authoringUpdates moved here from 0175 because the content writes drain's
+  // replica read selects the installation device columns 0176 adds.
   Object.freeze({
     migrationFileName: "0176_client_os_name_device_type.sql",
     expectedMigrationCount: 178,
@@ -89,6 +90,7 @@ export const boundaryDefinitions = Object.freeze([
       "src/chat/cardImages/operation.postgres.integration.ts",
       "src/chat/cardImages/promotion/jobsSettlement.postgres.integration.ts",
       "src/chat/runs/generatedImageAttemptBudget.postgres.integration.ts",
+      "src/productAnalytics/serverFacts/authoringUpdates.postgres.integration.ts",
       "src/productAnalytics/writer.postgres.integration.ts",
       "src/sync/freshBootstrap.postgres.integration.ts",
     ]),
@@ -100,15 +102,14 @@ export const boundaryDefinitions = Object.freeze([
   // serverFacts/authoringUpdates and billing/entitlement from 0167. writer also covers the
   // installation_profiles columns 0175 adds. A test that only emits server-derived facts stays where
   // it is, because the writer drops a refused emission with a warning; serverFacts/serverEvents and
-  // androidBurstReporting stay too, as neither inserts through the writer. writer and
-  // billing/entitlement moved on to 0176.
+  // androidBurstReporting stay too, as neither inserts through the writer. writer,
+  // billing/entitlement and serverFacts/authoringUpdates moved on to 0176.
   Object.freeze({
     migrationFileName: "0175_analytics_os_name_device_type.sql",
     expectedMigrationCount: 177,
     testFiles: Object.freeze([
       "src/catalog/distribution/install/install.postgres.integration.ts",
       "src/productAnalytics/dailyVisitorHash.postgres.integration.ts",
-      "src/productAnalytics/serverFacts/authoringUpdates.postgres.integration.ts",
     ]),
   }),
   // 0172 adds ai.chat_sessions.archived_at, which both latest-session queries (chat/store/repository.ts

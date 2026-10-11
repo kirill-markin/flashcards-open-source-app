@@ -9,7 +9,11 @@ import {
   type ExecutedChatToolCall,
 } from "./tools";
 import type { ChatRunClaimToken } from "../../runs";
-import type { ProductAnalyticsClientReportablePlatform } from "../../../productAnalytics/catalog";
+import type {
+  ProductAnalyticsClientReportablePlatform,
+  ProductAnalyticsDeviceType,
+  ProductAnalyticsOsName,
+} from "../../../productAnalytics/catalog";
 import type { UserOpenAIApiKey } from "../../userOpenAIApiKey";
 
 /**
@@ -152,6 +156,8 @@ export async function runOneToolCall(
     signal: AbortSignal | null;
     generatedImageOperationDeadlineMs: number;
     clientPlatform: ProductAnalyticsClientReportablePlatform | null;
+    clientOsName: ProductAnalyticsOsName | null;
+    clientDeviceType: ProductAnalyticsDeviceType | null;
     initiatingAuthIsSignedIn: boolean;
     userOpenAIApiKey: UserOpenAIApiKey | null;
     rootObservation: LangfuseObservation | null;
@@ -199,6 +205,8 @@ export async function runOneToolCall(
         signal: params.signal,
         generatedImageOperationDeadlineMs: params.generatedImageOperationDeadlineMs,
         clientPlatform: params.clientPlatform,
+        clientOsName: params.clientOsName,
+        clientDeviceType: params.clientDeviceType,
         initiatingAuthIsSignedIn: params.initiatingAuthIsSignedIn,
         userOpenAIApiKey: params.userOpenAIApiKey,
         generatedImageObservationContext: {

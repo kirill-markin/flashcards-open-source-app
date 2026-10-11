@@ -18,6 +18,8 @@ import {
 import type { WorkspaceReplicaActorKind } from "../../sync/identity/replica";
 import type {
   ProductAnalyticsClientReportablePlatform,
+  ProductAnalyticsDeviceType,
+  ProductAnalyticsOsName,
   ProductAnalyticsPlatform,
   productAnalyticsEventCatalog,
 } from "../catalog";
@@ -70,9 +72,21 @@ function toReviewAnsweredSource(actorKind: string): ReviewAnsweredSource | null 
     : null;
 }
 
+/**
+ * The device an in-app chat run was started from, as its ai.chat_runs row stores it. A chat review
+ * takes it from the run, because the ai_chat replica the review is written through names no device.
+ */
+export type AiChatRunClientDevice = Readonly<{
+  platform: ProductAnalyticsClientReportablePlatform | null;
+  osName: ProductAnalyticsOsName | null;
+  deviceType: ProductAnalyticsDeviceType | null;
+}>;
+
 // What one drain resolved from a single replica row. A replica it did not resolve has no entry.
 type ReviewAnswerReplicaAttribution = Readonly<{
   platform: ProductAnalyticsPlatform | null;
+  osName: ProductAnalyticsOsName | null;
+  deviceType: ProductAnalyticsDeviceType | null;
   source: ReviewAnsweredSource | null;
   // The installation behind the replica declared itself automation, so its answers are never
   // reported. This is read back from sync.installations on every drain rather than taken from the
@@ -252,9 +266,9 @@ const reviewAnswerPlatformResolutionTimeoutMs = 2_000;
  * Resolves the replicas of one drain to the platform and the source each of their reviews was
  * answered through.
  *
- * An ai_chat replica's platform column describes no device, so its reviews take
- * aiChatClientPlatform instead, which only the opener of the transaction can name: the device an
- * in-app chat run was started from when that run's review write opened it, and null otherwise.
+ * An ai_chat replica's platform column describes no device, so its reviews take aiChatClient
+ * instead, which only the opener of the transaction can name: the device an in-app chat run was
+ * started from when that run's review write opened it, and null otherwise.
  *
  * One query for the whole drain, after the product transaction committed. That is what makes the
  * derivation affordable at all: the answers were collected per transaction, so the review write
@@ -278,7 +292,7 @@ const reviewAnswerPlatformResolutionTimeoutMs = 2_000;
 async function resolveReviewAnswerReplicas(
   answers: ReadonlyArray<ReviewAnswer>,
   budget: PostCommitAnalyticsBudget,
-  aiChatClientPlatform: ProductAnalyticsClientReportablePlatform | null,
+  aiChatClient: AiChatRunClientDevice | null,
 ): Promise<ReadonlyMap<string, ReviewAnswerReplicaAttribution>> {
   const attributionByReplicaId = new Map<string, ReviewAnswerReplicaAttribution>();
   const scopingAnswer = answers[0];
@@ -315,6 +329,7 @@ async function resolveReviewAnswerReplicas(
             // the only place it is ever stored. A replica with no installation behind it - every actor
             // kind but client_installation - joins to no row and is no automation.
             "SELECT replicas.replica_id, replicas.actor_kind, replicas.platform,",
+            "installations.os_name, installations.device_type,",
             "COALESCE(installations.is_automation, FALSE) AS is_automation",
             "FROM sync.workspace_replicas AS replicas",
             "LEFT JOIN sync.installations AS installations",
@@ -361,10 +376,11 @@ async function resolveReviewAnswerReplicas(
     }
     for (const replica of replicas) {
       const attribution = toWorkspaceReplicaRowAttribution(replica);
+      const isAiChat = replica.actor_kind === "ai_chat";
       attributionByReplicaId.set(replica.replica_id, {
-        platform: replica.actor_kind === "ai_chat"
-          ? aiChatClientPlatform
-          : attribution.platform,
+        platform: isAiChat ? (aiChatClient?.platform ?? null) : attribution.platform,
+        osName: isAiChat ? (aiChatClient?.osName ?? null) : attribution.osName,
+        deviceType: isAiChat ? (aiChatClient?.deviceType ?? null) : attribution.deviceType,
         source: toReviewAnsweredSource(replica.actor_kind),
         isAutomation: attribution.isAutomation,
       });
@@ -394,6 +410,8 @@ function toReviewAnsweredEvent(
   answer: ReviewAnswer,
   recordedAt: Date,
   platform: ProductAnalyticsPlatform | null,
+  osName: ProductAnalyticsOsName | null,
+  deviceType: ProductAnalyticsDeviceType | null,
   source: ReviewAnsweredSource | null,
 ): ServerDerivedProductAnalyticsEvent {
   const serverAnchor = resolveReviewAnsweredServerAnchor(answer, recordedAt);
@@ -453,6 +471,10 @@ function toReviewAnsweredEvent(
     // the review under a platform it never had, permanently, on an append-only table, while null
     // only leaves it out of a per-platform breakdown.
     platform,
+    // The stored device facts of the same source as platform, under the same rule: the
+    // installation behind a client_installation replica, or the chat run for an ai_chat one.
+    osName,
+    deviceType,
     properties: {
       rating: reviewAnsweredRatingNames[answer.rating],
       ...(source === null ? {} : { source }),
@@ -572,7 +594,7 @@ function dropAutomationReviewAnswers(
 async function emitCollectedReviewAnswers(
   executor: DatabaseExecutor,
   budget: PostCommitAnalyticsBudget,
-  aiChatClientPlatform: ProductAnalyticsClientReportablePlatform | null,
+  aiChatClient: AiChatRunClientDevice | null,
 ): Promise<void> {
   const collected = takePostCommitFacts(collectedReviewAnswers, executor);
   if (collected === undefined) {
@@ -589,7 +611,7 @@ async function emitCollectedReviewAnswers(
   const attributionByReplicaId = await resolveReviewAnswerReplicas(
     collected,
     budget,
-    aiChatClientPlatform,
+    aiChatClient,
   );
   const reportable = dropAutomationReviewAnswers(collected, attributionByReplicaId);
   if (reportable.length === 0) {
@@ -605,6 +627,8 @@ async function emitCollectedReviewAnswers(
         answer,
         recordedAt,
         attribution?.platform ?? null,
+        attribution?.osName ?? null,
+        attribution?.deviceType ?? null,
         attribution?.source ?? null,
       );
     },
@@ -651,12 +675,12 @@ export type CommittedReviewTransaction<Result> = Readonly<{
  * only four call sites: making each one name the request's own clock is cheaper than leaving a
  * default that a fifth path could quietly inherit and re-break the bound with.
  *
- * aiChatClientPlatform is the device platform stored on the in-app chat run whose review write
- * opens this transaction, and null from every other opener.
+ * aiChatClient is the device stored on the in-app chat run whose review write opens this
+ * transaction, and null from every other opener.
  */
 export async function runTransactionReportingReviewAnswers<Result>(
   budget: PostCommitAnalyticsBudget,
-  aiChatClientPlatform: ProductAnalyticsClientReportablePlatform | null,
+  aiChatClient: AiChatRunClientDevice | null,
   openTransaction: (
     body: (executor: DatabaseExecutor) => Promise<CommittedReviewTransaction<Result>>,
   ) => Promise<CommittedReviewTransaction<Result>>,
@@ -668,7 +692,7 @@ export async function runTransactionReportingReviewAnswers<Result>(
     async (committed) => emitCollectedReviewAnswers(
       committed.executor,
       budget,
-      aiChatClientPlatform,
+      aiChatClient,
     ),
   );
 }
