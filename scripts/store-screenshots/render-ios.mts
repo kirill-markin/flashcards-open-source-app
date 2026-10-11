@@ -42,7 +42,7 @@ const slugs = ["ai-flashcards", "start-learning", "smart-reviews", "your-progres
 const rtl = new Set(["ar", "he", "fa", "ur"]);
 const dimensions: Readonly<Record<Family, readonly [number, number]>> = {
   iphone: [1284, 2778], ipad: [2064, 2752],
-  "iphone-duo-outer": [1398, 2034], "iphone-duo-inner": [2007, 2853],
+  "iphone-duo-outer": [1398, 2034], "iphone-duo-inner": [2853, 2007],
 };
 const nativeDimensions: Readonly<Record<Family, readonly [number, number]>> = {
   iphone: [1284, 2778], ipad: [2064, 2752],
@@ -86,9 +86,11 @@ function html(family: Family, tag: string, card: number, screen: string, sourceW
   const frameHeight = 860 * scale;
   const padding = 18 * scale;
   const screenHeight = frameHeight - padding * 2;
-  const frameWidth = family === "iphone" ? 418 * scale : 420 * width / 519;
+  const frameWidth = family === "iphone" ? 418 * scale
+    : family === "iphone-duo-inner" ? screenHeight * nativeDimensions[family][0] / nativeDimensions[family][1] + padding * 2
+    : 420 * width / 519;
   const screenAspect = family === "iphone-duo-outer" ? nativeDimensions[family][0] / nativeDimensions[family][1] : .75;
-  const paddingInline = family === "iphone" ? padding : (frameWidth - screenHeight * screenAspect) / 2;
+  const paddingInline = family === "iphone" || family === "iphone-duo-inner" ? padding : (frameWidth - screenHeight * screenAspect) / 2;
   const screenScale = Math.min((frameWidth - paddingInline * 2) / sourceWidth, screenHeight / sourceHeight);
   const [base, header] = backgrounds[card - 1];
   const [heading, caption] = copy[tag][card - 1];
