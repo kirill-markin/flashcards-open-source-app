@@ -155,18 +155,19 @@ struct CardsScreen: View {
                             self.openEditingCardWithAI(editingCardId: editingCardId)
                         }
                     },
-                    onCancel: {
-                        self.finishCardEditorSession()
-                        self.editorPresentation = nil
-                    },
-                    onSave: {
-                        self.saveCard()
-                    },
+                    onCancel: self.cancelCardEditor,
+                    onSave: self.saveCard,
                     onDelete: {
                         self.deleteEditingCard()
                     }
                 )
             }
+            .modifier(CardEditorKeyboardModifier(
+                isEnabled: self.editorPresentation == presentation && self.store.presentedTechnicalError == nil,
+                isSummaryVisible: self.cardFormState.navigationPath.isEmpty,
+                onCancel: self.cancelCardEditor,
+                onSave: self.saveCard
+            ))
             .technicalErrorSheet(store: self.store)
             .accessibilityIdentifier(UITestIdentifier.cardEditorScreen)
             .interactiveDismissDisabled()
@@ -197,6 +198,11 @@ struct CardsScreen: View {
         .task(id: self.queryReloadKey) {
             await self.reloadCardsSnapshot()
         }
+    }
+
+    private func cancelCardEditor() {
+        self.finishCardEditorSession()
+        self.editorPresentation = nil
     }
 
     private var bodyContent: some View {
