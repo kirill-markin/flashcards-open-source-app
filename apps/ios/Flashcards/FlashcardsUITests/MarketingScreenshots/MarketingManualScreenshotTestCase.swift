@@ -273,7 +273,51 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
             try self.tapButton(identifier: LiveSmokeIdentifier.aiCompanionToggle,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             // Exercise the same reviewed-card handoff as the real iPad toolbar regression.
-            try self.tapButton(identifier: LiveSmokeIdentifier.reviewAiButton,
+            let aiButtonIdentifier = LiveSmokeIdentifier.reviewAiButton
+            let matchingContainers = self.app.windows.allElementsBoundByIndex.flatMap { window in
+                window.scrollViews.allElementsBoundByIndex
+                    .filter { $0.buttons[aiButtonIdentifier].exists }
+                    .map { (window: window, scrollView: $0) }
+            }
+            let container = try XCTUnwrap(
+                matchingContainers.count == 1 ? matchingContainers.first : nil,
+                "Expected one Review scroll view containing \(aiButtonIdentifier); found \(matchingContainers.count)."
+            )
+            let matchingButtons = container.scrollView.buttons.matching(identifier: aiButtonIdentifier).allElementsBoundByIndex
+            let aiButton = try XCTUnwrap(
+                matchingButtons.count == 1 ? matchingButtons.first : nil,
+                "Expected one \(aiButtonIdentifier) button in Review scroll view; found \(matchingButtons.count)."
+            )
+            let ratingButtons = try [
+                "review.rating.0",
+                "review.rating.1",
+                LiveSmokeIdentifier.reviewRateGoodButton,
+                "review.rating.3"
+            ].map { identifier in
+                let matches = self.app.buttons.matching(identifier: identifier).allElementsBoundByIndex
+                return try XCTUnwrap(matches.count == 1 ? matches.first : nil,
+                    "Expected one \(identifier) rating button; found \(matches.count).")
+            }
+            var isFullyVisible = false
+            for swipeCount in 0...4 {
+                let buttonFrame = aiButton.frame
+                if buttonFrame.isEmpty == false,
+                    container.scrollView.frame.contains(buttonFrame),
+                    container.window.frame.contains(buttonFrame),
+                    ratingButtons.allSatisfy({ $0.frame.isEmpty == false && $0.frame.intersects(buttonFrame) == false }),
+                    aiButton.isHittable {
+                    isFullyVisible = true
+                    break
+                }
+                if swipeCount < 4 {
+                    container.scrollView.swipeUp()
+                }
+            }
+            let exposedAiButton = try XCTUnwrap(
+                isFullyVisible ? aiButton : nil,
+                "Could not fully expose \(aiButtonIdentifier) after four Review scroll swipes. button=\(aiButton.frame), scroll=\(container.scrollView.frame), window=\(container.window.frame), ratings=\(ratingButtons.map(\.frame))."
+            )
+            try self.tapButton(button: exposedAiButton, identifier: aiButtonIdentifier,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             try self.assertScreenVisible(screen: .ai, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
         }
