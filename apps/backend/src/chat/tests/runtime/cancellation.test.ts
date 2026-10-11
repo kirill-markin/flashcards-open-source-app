@@ -207,6 +207,8 @@ test("generated-image dependency races surface cancellation to the runtime termi
                 generatedImageOperationDeadlineMs:
                   params.generatedImageOperationDeadlineMs,
                 clientPlatform: params.clientPlatform,
+                clientOsName: params.clientOsName,
+                clientDeviceType: params.clientDeviceType,
                 initiatingAuthIsSignedIn: params.initiatingAuthIsSignedIn,
                 userOpenAIApiKey: params.userOpenAIApiKey,
                 generatedImageObservationContext: {
