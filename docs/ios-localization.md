@@ -150,9 +150,12 @@ Spotlight uses `kMDItemKeywords` on iOS and `MDItemKeywords` on macOS, as
 Both are `String` values containing the same comma-separated keyword list in
 the base [Info.plist](../apps/ios/Flashcards/Config/Info.plist) and in each
 locale's `InfoPlist.strings`, including `en.lproj`. Keep each locale's two values
-identical, with `flashcards` first followed by its natural localized terms and
-alternative spellings. Nibomo is searchable by its app name; these keywords
-provide flashcard terms without changing that name.
+identical, with `flashcards,flash cards` first followed by its natural localized
+terms and alternative spellings. Include localized equivalents of study cards
+and revision cards where distinct; preserve existing aliases and deduplicate.
+The English list is `flashcards,flash cards,study cards,revision cards`. Nibomo
+is searchable by its app name; these keywords provide study terms without
+changing that name.
 
 If we later localize app display name or other Info.plist-facing copy, add those keys here too.
 
@@ -351,6 +354,15 @@ names, including Norwegian Bokmål and separate Spanish (Mexico) and Spanish
 listing locales are a separate inventory.
 
 ### Manual runtime validation
+
+On the installed release candidate, keep the app display name `Nibomo` and
+search iPhone/iPad Spotlight separately for `Nibomo`, `flashcards`, `flash cards`,
+`study cards`, and `revision cards` with English selected. Launch the app from
+each result. Repeat with another supported system language using that locale's
+study/revision terms from `InfoPlist.strings`; record the artifact, OS, language,
+exact queries and results. Changing only the in-app language does not establish
+which keywords Spotlight indexed. Use the [Mac manual checklist](macos-ci-cd.md#manual-checklist-on-the-verified-mac-artifact)
+for Catalyst.
 
 Check all of these on a simulator or device:
 
