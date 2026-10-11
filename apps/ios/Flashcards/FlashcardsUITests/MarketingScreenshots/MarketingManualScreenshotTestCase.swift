@@ -475,14 +475,23 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
 
     @MainActor
     private static func uprightImage(for screenshot: XCUIScreenshot) -> UIImage {
-        // XCTest PNGs can retain portrait storage with EXIF rotation. Draw the
-        // captured landscape image upright so App Store reads real landscape pixels.
+        let source = screenshot.image
+        let sourcePixels = source.cgImage!
+        let pixelSize: CGSize
+        switch source.imageOrientation {
+        case .left, .right, .leftMirrored, .rightMirrored:
+            pixelSize = CGSize(width: sourcePixels.height, height: sourcePixels.width)
+        default:
+            pixelSize = CGSize(width: sourcePixels.width, height: sourcePixels.height)
+        }
+        // UIImage.size is measured in points; use the original integer pixel extent.
         let format = UIGraphicsImageRendererFormat()
-        format.scale = screenshot.image.scale
+        format.scale = 1
         format.opaque = true
         format.preferredRange = .standard
-        let uprightImage = UIGraphicsImageRenderer(size: screenshot.image.size, format: format).image { _ in
-            screenshot.image.draw(in: CGRect(origin: .zero, size: screenshot.image.size))
+        let uprightImage = UIGraphicsImageRenderer(size: pixelSize, format: format).image { context in
+            context.cgContext.interpolationQuality = .none
+            source.draw(in: CGRect(origin: .zero, size: pixelSize))
         }
         return uprightImage
     }
