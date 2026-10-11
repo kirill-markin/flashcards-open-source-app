@@ -28,6 +28,8 @@ Record later external submission/publication observations without claiming
 agent execution or identifying an actor without evidence.
 Android remains open until public at its selected rollout scope; iOS automatic
 submission can be operator-complete while review/public availability remains pending.
+macOS uses a separate `MAC_OS` row under the [Mac procedure](macos.md), even
+when its marketing version and app ID match iOS.
 
 Before a new mobile submission/publication, follow the [recorded mobile readiness procedure](readiness.md)
 and retain its manifest and JSON report alongside the ledger in the operator's
@@ -35,6 +37,21 @@ release record, outside tracked release history. Preserve the referenced native
 evidence durably. Its offline result covers recorded build/test gates only;
 manual diagnostics, store checks and completion remain governed by the platform
 procedures and canonical boundaries above.
+
+## macOS Evidence
+
+Before a new Mac submission/publication, retain a separate readiness manifest
+and operator inspection decision under [macOS release](macos.md). The
+[mobile-readiness CLI](readiness.md) supports only iOS/Android; do not relabel
+Mac evidence or claim a CLI pass. Record target/archive/test source SHAs,
+version/build, workflow/run/action/artifact and uploaded `MAC_OS` build IDs,
+export checksum, both architectures' signing/profile/capability evidence, full
+independently reviewed native inventory and named results, exact skip reasons,
+diagnostics/warning decisions, screenshot/manual-check results and gaps.
+Preserve any failed Cloud action and Keychain diagnosis separately from the
+genuinely signed full local native result; the Cloud failure never becomes a
+pass. Include bounded source comparisons, reviewer, inspection time and the
+submission/publication decision with durable private evidence references.
 
 ## Resume and Artifact Reuse
 
@@ -71,8 +88,11 @@ artifacts use the cloud-first gates below; retained schema-1 readiness records
 keep their original local and cloud requirements. For Android, correlate the
 signed AAB, version code, GitHub
 run/attempt and all four exact completed Device Run sessions, job labels and named
-case results. For iOS, recover both archive and test
-workflows and the uploaded build identity. Record passed/failed/skipped cases,
+case results. For iOS and macOS, recover both archive and test
+workflows and each platform's uploaded build identity. Mac additionally retains
+its exact export and [full native/manual evidence](macos.md), including any
+diagnosed Cloud signing limitation and authorized local alternative. Record
+passed/failed/skipped cases,
 skip reasons, coverage limits, and inspected warnings. Investigate unexpected
 skips; a green summary or unexecuted test is not a pass.
 
@@ -110,7 +130,8 @@ Record the SHA, commands, toolchain versions, and results in the chat. Missing
 local SDKs or build inputs block that platform's dispatch until resolved; do
 not silently substitute a cloud build for the local check.
 
-Local success does not replace any cloud gate in its platform procedure. Cloud signing, build
+For iOS, local success does not replace any cloud gate in its platform procedure.
+Cloud signing, build
 environments, managed-device tests, and store processing can fail independently;
 still run and inspect them, including their errors and warnings. After cloud
 failures require source fixes, repeat the affected local preflight before
