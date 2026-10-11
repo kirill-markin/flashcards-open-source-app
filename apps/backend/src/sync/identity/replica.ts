@@ -4,6 +4,10 @@ import {
   transactionWithWorkspaceScope,
   type DatabaseExecutor,
 } from "../../database";
+import type {
+  ProductAnalyticsDeviceType,
+  ProductAnalyticsOsName,
+} from "../../productAnalytics/catalog";
 import { declareContentWriteReplicaFacts } from "../../productAnalytics/serverFacts/contentWrites";
 import { HttpError } from "../../shared/errors";
 import { lockWorkspaceAccessLifecycleInExecutor } from "../../workspaces/accessLocks";
@@ -54,6 +58,9 @@ type EnsureClientWorkspaceReplicaParams = Readonly<{
   installationId: string;
   platform: SyncClientPlatform;
   appVersion: string | null;
+  // What the request reported about the device; null keeps the value the installation already stored.
+  osName: ProductAnalyticsOsName | null;
+  deviceType: ProductAnalyticsDeviceType | null;
   // This installation runs under automation, so nothing it does is product analytics. `true` is a
   // claim that is also stored, and `false` is the absence of a claim rather than a denial of one:
   // the stored marker is never cleared, so a request that says nothing leaves an earlier claim
@@ -115,14 +122,16 @@ async function ensureInstallationInExecutor(
   installationId: string,
   platform: SyncClientPlatform,
   appVersion: string | null,
+  osName: ProductAnalyticsOsName | null,
+  deviceType: ProductAnalyticsDeviceType | null,
   isAutomation: boolean,
 ): Promise<boolean> {
   const claimResult = await executor.query<ClaimInstallationRow>(
     [
       "SELECT claim_status, installation_id, platform, previous_user_id, current_user_id, is_automation",
-      "FROM sync.claim_installation($1, $2, $3, $4)",
+      "FROM sync.claim_installation($1, $2, $3, $4, $5, $6)",
     ].join(" "),
-    [installationId, platform, userId, appVersion],
+    [installationId, platform, userId, appVersion, osName, deviceType],
   );
 
   const claimRow = claimResult.rows[0];
@@ -330,6 +339,8 @@ export async function ensureWorkspaceReplicaInExecutor(
     params.installationId,
     params.platform,
     params.appVersion,
+    params.osName,
+    params.deviceType,
     params.isAutomation,
   );
 

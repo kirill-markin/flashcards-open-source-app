@@ -70,8 +70,12 @@ const providerFailureSchema = z.object({
   response: z.object({ status: z.number().int().min(100).max(599) }).optional(),
 });
 const transportFailureSchema = z.object({
-  code: z.enum(["ETIMEDOUT", "ECONNRESET", "ECONNREFUSED", "EAI_AGAIN", "ENOTFOUND", "TimeoutError", "AbortError"]).optional(),
+  code: z.enum([
+    "ETIMEDOUT", "ECONNRESET", "ECONNREFUSED", "EAI_AGAIN", "ENOTFOUND", "UND_ERR_SOCKET", "TimeoutError", "AbortError",
+  ]),
 });
+// Built-in fetch rejects socket failures as TypeError("fetch failed") whose cause carries the system code.
+const fetchFailureSchema = z.object({ cause: z.object({ cause: transportFailureSchema }) });
 
 function requirePurchaseToken(purchaseToken: string): string {
   const token = tokenSchema.safeParse(purchaseToken);
@@ -90,8 +94,10 @@ async function callGoogle<Result>(operation: string, callback: () => Promise<Res
     // SDK errors carry credentials, purchase URLs and provider payloads; never retain their cause.
     const failure = providerFailureSchema.safeParse(error);
     const transportFailure = transportFailureSchema.safeParse(error);
+    const fetchFailure = fetchFailureSchema.safeParse(error);
     const httpStatus = failure.success ? failure.data.response?.status ?? null : null;
-    const transportCode = transportFailure.success ? transportFailure.data.code : undefined;
+    const transportCode = transportFailure.success ? transportFailure.data.code
+      : fetchFailure.success ? fetchFailure.data.cause.cause.code : undefined;
     const retryable = httpStatus === 408 || httpStatus === 409 || httpStatus === 429
       || (httpStatus !== null && httpStatus >= 500) || (httpStatus === null && transportCode !== undefined);
     throw new GoogleBillingError("GOOGLE_PROVIDER_FAILED", retryable, httpStatus,

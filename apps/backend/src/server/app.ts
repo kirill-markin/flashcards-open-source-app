@@ -299,6 +299,8 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
     context.set("requestId", requestId);
     context.set("clientAppVersion", context.req.header("x-client-version") ?? null);
     context.set("clientPlatform", context.req.header("x-client-platform") ?? null);
+    context.set("clientOsName", context.req.header("x-client-os-name") ?? null);
+    context.set("clientDeviceType", context.req.header("x-client-device-type") ?? null);
     context.header("X-Request-Id", requestId);
     await next();
   });

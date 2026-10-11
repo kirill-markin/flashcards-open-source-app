@@ -270,8 +270,8 @@ export async function recordFeedbackPromptEventForUser(
       [
         "INSERT INTO support.feedback_prompt_events (",
         "feedback_prompt_event_id, user_id, workspace_id, installation_id, platform,",
-        "app_version, locale, timezone, event_type, created_at_client",
-        ") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
+        "app_version, locale, timezone, event_type, created_at_client, os_name, device_type",
+        ") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
         "ON CONFLICT (feedback_prompt_event_id) DO NOTHING",
         "RETURNING feedback_prompt_event_id AS id",
       ].join(" "),
@@ -286,6 +286,8 @@ export async function recordFeedbackPromptEventForUser(
         input.timezone,
         input.eventType,
         input.createdAtClient,
+        input.osName ?? null,
+        input.deviceType ?? null,
       ],
     );
 
@@ -323,8 +325,8 @@ export async function storeFeedbackSubmissionForUser(
       [
         "INSERT INTO support.feedback_submissions (",
         "feedback_submission_id, user_id, email, workspace_id, installation_id, platform,",
-        "app_version, locale, timezone, trigger, message, created_at_client, country",
-        ") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)",
+        "app_version, locale, timezone, trigger, message, created_at_client, country, os_name, device_type",
+        ") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)",
         "ON CONFLICT (feedback_submission_id) DO NOTHING",
         "RETURNING feedback_submission_id, created_at_server, workspace_id",
       ].join(" "),
@@ -342,6 +344,8 @@ export async function storeFeedbackSubmissionForUser(
         input.message,
         input.createdAtClient,
         country,
+        input.osName ?? null,
+        input.deviceType ?? null,
       ],
     );
 

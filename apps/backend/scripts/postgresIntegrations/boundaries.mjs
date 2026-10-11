@@ -70,6 +70,29 @@ export const createdRolesByMigration = new Map([
   ["0044_reporting_readonly_role.sql", Object.freeze(["reporting_readonly"])],
 ]);
 export const boundaryDefinitions = Object.freeze([
+  // 0176 makes every sync request claim its installation through the six-argument
+  // sync.claim_installation, and adds the device columns the support.feedback_* inserts and the
+  // ai.chat_runs insert in prepareChatRun name, so every pinned test that runs one of those statements
+  // moved here: sync/freshBootstrap from 0141, whose entry held nothing else and was removed,
+  // agent/reviews from 0167 and chat/cardImages/promotion/jobsSettlement from 0162, which both call
+  // processSyncPull, billing/entitlement, which pulls through the sync route, and
+  // productAnalytics/writer, which stores feedback, from 0175, and chat/cardImages/operation and
+  // chat/runs/generatedImageAttemptBudget from 0174. A guest merge claims only the installations
+  // behind the guest's client replicas, and guestAuth/upgrade/boundGuestSession creates none, so it
+  // stays.
+  Object.freeze({
+    migrationFileName: "0176_client_os_name_device_type.sql",
+    expectedMigrationCount: 178,
+    testFiles: Object.freeze([
+      "src/agent/reviews.postgres.integration.ts",
+      "src/billing/entitlement.postgres.integration.ts",
+      "src/chat/cardImages/operation.postgres.integration.ts",
+      "src/chat/cardImages/promotion/jobsSettlement.postgres.integration.ts",
+      "src/chat/runs/generatedImageAttemptBudget.postgres.integration.ts",
+      "src/productAnalytics/writer.postgres.integration.ts",
+      "src/sync/freshBootstrap.postgres.integration.ts",
+    ]),
+  }),
   // 0175 adds analytics.product_events.os_name and device_type, which the shared writer column list
   // names on every insert, so every test that stores an event through the writer and reads it back
   // moved here: productAnalytics/writer and catalog/distribution/install from 0138, and
@@ -77,16 +100,15 @@ export const boundaryDefinitions = Object.freeze([
   // serverFacts/authoringUpdates and billing/entitlement from 0167. writer also covers the
   // installation_profiles columns 0175 adds. A test that only emits server-derived facts stays where
   // it is, because the writer drops a refused emission with a warning; serverFacts/serverEvents and
-  // androidBurstReporting stay too, as neither inserts through the writer.
+  // androidBurstReporting stay too, as neither inserts through the writer. writer and
+  // billing/entitlement moved on to 0176.
   Object.freeze({
     migrationFileName: "0175_analytics_os_name_device_type.sql",
     expectedMigrationCount: 177,
     testFiles: Object.freeze([
-      "src/billing/entitlement.postgres.integration.ts",
       "src/catalog/distribution/install/install.postgres.integration.ts",
       "src/productAnalytics/dailyVisitorHash.postgres.integration.ts",
       "src/productAnalytics/serverFacts/authoringUpdates.postgres.integration.ts",
-      "src/productAnalytics/writer.postgres.integration.ts",
     ]),
   }),
   // 0172 adds ai.chat_sessions.archived_at, which both latest-session queries (chat/store/repository.ts
@@ -96,13 +118,12 @@ export const boundaryDefinitions = Object.freeze([
   // from 0162, and chat/runs/generatedImageAttemptBudget from 0136, whose entry held nothing else.
   // 0173 adds ai.chat_files, which prepareChatRun writes for every attachment a turn carries, so the
   // entry moved on to it with the same tests, and 0172's schema keeps no coverage of its own. 0174 adds
-  // the triggers that fire on every ai.chat_files delete, so the entry moved on again.
+  // the triggers that fire on every ai.chat_files delete, so the entry moved on again. 0176 took
+  // operation and generatedImageAttemptBudget on once more.
   Object.freeze({
     migrationFileName: "0174_ai_chat_file_deletions.sql",
     expectedMigrationCount: 176,
     testFiles: Object.freeze([
-      "src/chat/cardImages/operation.postgres.integration.ts",
-      "src/chat/runs/generatedImageAttemptBudget.postgres.integration.ts",
       "src/chat/store/historyService.postgres.integration.ts",
     ]),
   }),
@@ -117,7 +138,6 @@ export const boundaryDefinitions = Object.freeze([
     migrationFileName: "0167_stripe_email_deliveries.sql",
     expectedMigrationCount: 169,
     testFiles: Object.freeze([
-      "src/agent/reviews.postgres.integration.ts",
       "src/auth/surrogateUserId.postgres.integration.ts",
       "src/guestAuth/upgrade/boundGuestSession.postgres.integration.ts",
       "src/routes/system/account/accountPreferences.postgres.integration.ts",
@@ -131,7 +151,6 @@ export const boundaryDefinitions = Object.freeze([
       "src/chat/cardImages/generationBudget.postgres.integration.ts",
       "src/chat/cardImages/promotion/jobsLeasing.postgres.integration.ts",
       "src/chat/cardImages/promotion/jobsRevocation.postgres.integration.ts",
-      "src/chat/cardImages/promotion/jobsSettlement.postgres.integration.ts",
       "src/mediaAssets/blobLifecycle/cleanup/reconciliation.postgres.integration.ts",
     ]),
   }),
@@ -140,13 +159,6 @@ export const boundaryDefinitions = Object.freeze([
     expectedMigrationCount: 163,
     testFiles: Object.freeze([
       "src/aiUsage/aiUsage.postgres.integration.ts",
-    ]),
-  }),
-  Object.freeze({
-    migrationFileName: "0141_sync_installation_automation_marker.sql",
-    expectedMigrationCount: 143,
-    testFiles: Object.freeze([
-      "src/sync/freshBootstrap.postgres.integration.ts",
     ]),
   }),
   Object.freeze({

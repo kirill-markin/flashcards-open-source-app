@@ -84,6 +84,8 @@ function createNotificationEmailInput(
     workspaceId: input.workspaceId,
     installationId: input.installationId,
     platform: input.platform,
+    osName: input.osName ?? null,
+    deviceType: input.deviceType ?? null,
     appVersion: input.appVersion,
     locale: input.locale,
     timezone: input.timezone,
