@@ -70,6 +70,8 @@ const productAnalyticsInsertColumns: ReadonlyArray<ProductAnalyticsInsertColumn<
   { columnName: "app_version", columnType: "text", readValue: (row) => row.appVersion },
   { columnName: "os_version", columnType: "text", readValue: (row) => row.osVersion },
   { columnName: "device_model", columnType: "text", readValue: (row) => row.deviceModel },
+  { columnName: "os_name", columnType: "text", readValue: (row) => row.osName },
+  { columnName: "device_type", columnType: "text", readValue: (row) => row.deviceType },
   { columnName: "device_locale", columnType: "text", readValue: (row) => row.deviceLocale },
   { columnName: "timezone", columnType: "text", readValue: (row) => row.timezone },
   { columnName: "country", columnType: "text", readValue: (row) => row.country },
@@ -94,11 +96,7 @@ const productAnalyticsInsertColumns: ReadonlyArray<ProductAnalyticsInsertColumn<
 ];
 
 // The credential-free collector's columns: the shared list plus the two columns only that collector
-// writes. Keeping them out of the shared list is deliberate: every other producer, and every
-// integration test pinned by apps/backend/scripts/postgresIntegrations/boundaries.mjs to a schema
-// older than db/migrations/0144_anonymous_client_daily_visitor_hash.sql and
-// db/migrations/0145_anonymous_client_automated_marker.sql, inserts through the shared list, and
-// naming either column there would fail each of those writes.
+// writes.
 const anonymousProductAnalyticsInsertColumns: ReadonlyArray<
   ProductAnalyticsInsertColumn<AnonymousProductAnalyticsEventRow>
 > = [
@@ -177,25 +175,30 @@ const insertProductAnalyticsIdentityLinkSql = [
 const upsertInstallationProfileSql = `
   INSERT INTO analytics.installation_profiles (
     anonymous_id, platform, user_id, app_version, os_version, device_locale, timezone,
-    first_seen, last_seen
+    os_name, device_type, device_model, first_seen, last_seen
   ) VALUES ($1::uuid, $2::text, $3::uuid, $4::text, $5::text, $6::text, $7::text,
-    $8::timestamptz, $8::timestamptz)
+    $8::text, $9::text, $10::text, $11::timestamptz, $11::timestamptz)
   ON CONFLICT (anonymous_id, platform) DO UPDATE SET
     user_id = EXCLUDED.user_id,
     app_version = EXCLUDED.app_version,
     os_version = EXCLUDED.os_version,
     device_locale = EXCLUDED.device_locale,
     timezone = EXCLUDED.timezone,
+    os_name = EXCLUDED.os_name,
+    device_type = EXCLUDED.device_type,
+    device_model = EXCLUDED.device_model,
     last_seen = EXCLUDED.last_seen
   WHERE EXCLUDED.last_seen >= installation_profiles.last_seen
     AND (
       installation_profiles.last_seen <= EXCLUDED.last_seen - INTERVAL '1 hour'
       OR (installation_profiles.user_id, installation_profiles.app_version,
           installation_profiles.os_version, installation_profiles.device_locale,
-          installation_profiles.timezone)
+          installation_profiles.timezone, installation_profiles.os_name,
+          installation_profiles.device_type, installation_profiles.device_model)
         IS DISTINCT FROM
          (EXCLUDED.user_id, EXCLUDED.app_version, EXCLUDED.os_version,
-          EXCLUDED.device_locale, EXCLUDED.timezone)
+          EXCLUDED.device_locale, EXCLUDED.timezone, EXCLUDED.os_name,
+          EXCLUDED.device_type, EXCLUDED.device_model)
     )
 `;
 
@@ -484,6 +487,9 @@ async function upsertInstallationProfileInTransaction(
     installation.context.osVersion,
     installation.context.deviceLocale,
     installation.context.timezone,
+    installation.context.osName,
+    installation.context.deviceType,
+    installation.context.deviceModel,
     installation.observedAt,
   ]);
 }

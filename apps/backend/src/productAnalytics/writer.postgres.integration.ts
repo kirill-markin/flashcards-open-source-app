@@ -34,6 +34,8 @@ type StoredEventRow = Readonly<{
   app_version: string | null;
   os_version: string | null;
   device_model: string | null;
+  os_name: string | null;
+  device_type: string | null;
   device_locale: string | null;
   timezone: string | null;
   country: string | null;
@@ -58,6 +60,9 @@ type StoredInstallationRow = Readonly<{
   os_version: string | null;
   device_locale: string | null;
   timezone: string | null;
+  os_name: string | null;
+  device_type: string | null;
+  device_model: string | null;
   first_seen: Date;
   last_seen: Date;
 }>;
@@ -67,7 +72,8 @@ async function loadStoredInstallation(
   installation: ProductAnalyticsInstallationObservation,
 ): Promise<StoredInstallationRow | undefined> {
   const result = await pool.query<StoredInstallationRow>(
-    `SELECT user_id::text, app_version, os_version, device_locale, timezone, first_seen, last_seen
+    `SELECT user_id::text, app_version, os_version, device_locale, timezone, os_name, device_type,
+       device_model, first_seen, last_seen
      FROM analytics.installation_profiles WHERE anonymous_id = $1::uuid AND platform = $2`,
     [installation.anonymousId, installation.platform],
   );
@@ -96,6 +102,8 @@ const storedEventColumns = `
   app_version,
   os_version,
   device_model,
+  os_name,
+  device_type,
   device_locale,
   timezone,
   country,
@@ -163,6 +171,8 @@ const fullyPopulatedRow: ProductAnalyticsEventRow = {
   appVersion: "1.23.0",
   osVersion: "18.2",
   deviceModel: "iPhone15,2",
+  osName: "ios",
+  deviceType: "phone",
   deviceLocale: "ru-RU",
   timezone: "Europe/Madrid",
   country: null,
@@ -202,6 +212,8 @@ const minimalRow: ProductAnalyticsEventRow = {
   appVersion: null,
   osVersion: null,
   deviceModel: null,
+  osName: null,
+  deviceType: null,
   deviceLocale: null,
   timezone: null,
   country: null,
@@ -237,6 +249,8 @@ const slugPropertyRow: ProductAnalyticsEventRow = {
   appVersion: "1.23.0",
   osVersion: null,
   deviceModel: null,
+  osName: null,
+  deviceType: null,
   deviceLocale: null,
   timezone: null,
   country: null,
@@ -278,6 +292,8 @@ test("the product analytics writer stores a batch, dedupes a redelivery, and lin
     context: {
       osVersion: "18.2",
       deviceModel: "iPhone15,2",
+      osName: "ios",
+      deviceType: "phone",
       deviceLocale: "ru-RU",
       timezone: "Europe/Madrid",
     },
@@ -325,6 +341,9 @@ test("the product analytics writer stores a batch, dedupes a redelivery, and lin
       os_version: "18.2",
       device_locale: "ru-RU",
       timezone: "Europe/Madrid",
+      os_name: "ios",
+      device_type: "phone",
+      device_model: "iPhone15,2",
       first_seen: serverReceivedAt,
       last_seen: serverReceivedAt,
     });
@@ -350,6 +369,8 @@ test("the product analytics writer stores a batch, dedupes a redelivery, and lin
     assert.equal(storedFullyPopulated?.anonymous_id, anonymousId);
     assert.equal(storedFullyPopulated?.platform, "ios");
     assert.equal(storedFullyPopulated?.app_version, "1.23.0");
+    assert.equal(storedFullyPopulated?.os_name, "ios");
+    assert.equal(storedFullyPopulated?.device_type, "phone");
     assert.equal(storedFullyPopulated?.network_state, "wifi");
     assert.equal(storedFullyPopulated?.screen, "review");
     assert.equal(storedFullyPopulated?.country, null);
@@ -399,6 +420,8 @@ test("the product analytics writer stores a batch, dedupes a redelivery, and lin
     assert.equal(storedMinimal?.platform, null);
     assert.equal(storedMinimal?.app_version, null);
     assert.equal(storedMinimal?.device_model, null);
+    assert.equal(storedMinimal?.os_name, null);
+    assert.equal(storedMinimal?.device_type, null);
     assert.equal(storedMinimal?.device_locale, null);
     assert.equal(storedMinimal?.timezone, null);
     assert.equal(storedMinimal?.ui_locale, null);
@@ -549,7 +572,10 @@ test("country periods dedupe concurrent days, retain first known country, and ex
   const installation: ProductAnalyticsInstallationObservation = {
     anonymousId: installationId, platform: "ios", userId: countryUserId, guestSessionId: null,
     appVersion: "1.23.0",
-    context: { osVersion: "18.2", deviceModel: null, deviceLocale: "ru-RU", timezone: "Europe/Madrid" },
+    context: {
+      osVersion: "18.2", deviceModel: null, osName: null, deviceType: null, deviceLocale: "ru-RU",
+      timezone: "Europe/Madrid",
+    },
     observedAt: startedAt, countryLookup: async () => null,
   };
   const event: ProductAnalyticsEventRow = {

@@ -1,10 +1,12 @@
 import type { RequestCountryLookup } from "../geolocation/requestCountry";
 import type {
   ProductAnalyticsClientReportablePlatform,
+  ProductAnalyticsDeviceType,
   ProductAnalyticsEventName,
   ProductAnalyticsEventProperties,
   ProductAnalyticsExperimentAssignments,
   ProductAnalyticsNetworkState,
+  ProductAnalyticsOsName,
   ProductAnalyticsPlatform,
   ProductAnalyticsSurface,
 } from "./catalog";
@@ -35,13 +37,16 @@ export type ProductAnalyticsTrustLevel =
   | "anonymous_client"
   | "backfill_derived";
 
-// Batch-level device context. It describes the device, never the person, and every field is
-// dropped when the account behind the row is anonymized. Network state is deliberately not here: it
-// is the one time-varying field, and an offline-first client can only flush a queued batch while it
-// is online, so a batch-level capture could never record the offline value the column exists for.
+// Batch-level device context. It describes the device, never the person. Anonymizing the account
+// behind a row drops every free-text field and keeps osName and deviceType, bounded classes kept as
+// platform is. Network state is deliberately not here: it is the one time-varying field, and an
+// offline-first client can only flush a queued batch while it is online, so a batch-level capture
+// could never record the offline value the column exists for.
 export type ProductAnalyticsClientContext = Readonly<{
   osVersion: string | null;
   deviceModel: string | null;
+  osName: ProductAnalyticsOsName | null;
+  deviceType: ProductAnalyticsDeviceType | null;
   deviceLocale: string | null;
   timezone: string | null;
 }>;
@@ -115,6 +120,8 @@ export type ProductAnalyticsEventRow = Readonly<{
   appVersion: string | null;
   osVersion: string | null;
   deviceModel: string | null;
+  osName: ProductAnalyticsOsName | null;
+  deviceType: ProductAnalyticsDeviceType | null;
   deviceLocale: string | null;
   timezone: string | null;
   country: string | null;
