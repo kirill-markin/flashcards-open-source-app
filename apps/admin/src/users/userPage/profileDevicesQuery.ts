@@ -19,6 +19,8 @@ export type InstallationRow = Readonly<{
   installationId: string;
   platform: string;
   appVersion: string | null;
+  osName: string | null;
+  deviceType: string | null;
   isAutomation: boolean;
   createdAt: string;
   lastSeenAt: string;
@@ -28,7 +30,10 @@ export type InstallationProfileRow = Readonly<{
   anonymousId: string;
   platform: string;
   appVersion: string | null;
+  osName: string | null;
   osVersion: string | null;
+  deviceType: string | null;
+  deviceModel: string | null;
   deviceLocale: string | null;
   timeZone: string | null;
   firstCountry: string | null;
@@ -71,6 +76,8 @@ export const installationsQuery: DeviceListQuery<InstallationRow> = {
     "installation-id": "installations.installation_id::text",
     platform: "installations.platform",
     "app-version": "installations.app_version",
+    "os-name": "installations.os_name",
+    "device-type": "installations.device_type",
     automation: "installations.is_automation",
     created: "installations.created_at",
     "last-seen": "installations.last_seen_at",
@@ -79,17 +86,21 @@ export const installationsQuery: DeviceListQuery<InstallationRow> = {
     installationId: "installations.installation_id::text",
     platform: "installations.platform",
     appVersion: "installations.app_version",
+    osName: "installations.os_name",
+    deviceType: "installations.device_type",
     isAutomation: "installations.is_automation",
     createdAt: utcInstantSql("installations.created_at"),
     lastSeenAt: utcInstantSql("installations.last_seen_at"),
   } satisfies Readonly<Record<keyof InstallationRow, string>>,
-  enumColumnIds: ["platform", "app-version"],
+  enumColumnIds: ["platform", "app-version", "os-name", "device-type"],
   defaultOrderBySql: "installations.last_seen_at DESC",
   tiebreakOrderBySql: "installations.installation_id",
   parseRow: (row, location) => ({
     installationId: readRowString(row, "installationId", location),
     platform: readRowString(row, "platform", location),
     appVersion: readRowNullableString(row, "appVersion", location),
+    osName: readRowNullableString(row, "osName", location),
+    deviceType: readRowNullableString(row, "deviceType", location),
     isAutomation: readRowBoolean(row, "isAutomation", location),
     createdAt: readRowString(row, "createdAt", location),
     lastSeenAt: readRowString(row, "lastSeenAt", location),
@@ -104,7 +115,10 @@ export const installationProfilesQuery: DeviceListQuery<InstallationProfileRow> 
     "anonymous-id": "profiles.anonymous_id::text",
     platform: "profiles.platform",
     "app-version": "profiles.app_version",
+    "os-name": "profiles.os_name",
     "os-version": "profiles.os_version",
+    "device-type": "profiles.device_type",
+    "device-model": "profiles.device_model",
     "device-locale": "profiles.device_locale",
     timezone: "profiles.timezone",
     "first-country": "profiles.first_country",
@@ -115,21 +129,30 @@ export const installationProfilesQuery: DeviceListQuery<InstallationProfileRow> 
     anonymousId: "profiles.anonymous_id::text",
     platform: "profiles.platform",
     appVersion: "profiles.app_version",
+    osName: "profiles.os_name",
     osVersion: "profiles.os_version",
+    deviceType: "profiles.device_type",
+    deviceModel: "profiles.device_model",
     deviceLocale: "profiles.device_locale",
     timeZone: "profiles.timezone",
     firstCountry: "profiles.first_country",
     firstSeenAt: utcInstantSql("profiles.first_seen"),
     lastSeenAt: utcInstantSql("profiles.last_seen"),
   } satisfies Readonly<Record<keyof InstallationProfileRow, string>>,
-  enumColumnIds: ["platform", "app-version", "os-version", "device-locale", "timezone", "first-country"],
+  enumColumnIds: [
+    "platform", "app-version", "os-name", "os-version", "device-type", "device-model", "device-locale", "timezone",
+    "first-country",
+  ],
   defaultOrderBySql: "profiles.last_seen DESC",
   tiebreakOrderBySql: "profiles.anonymous_id, profiles.platform",
   parseRow: (row, location) => ({
     anonymousId: readRowString(row, "anonymousId", location),
     platform: readRowString(row, "platform", location),
     appVersion: readRowNullableString(row, "appVersion", location),
+    osName: readRowNullableString(row, "osName", location),
     osVersion: readRowNullableString(row, "osVersion", location),
+    deviceType: readRowNullableString(row, "deviceType", location),
+    deviceModel: readRowNullableString(row, "deviceModel", location),
     deviceLocale: readRowNullableString(row, "deviceLocale", location),
     timeZone: readRowNullableString(row, "timeZone", location),
     firstCountry: readRowNullableString(row, "firstCountry", location),
