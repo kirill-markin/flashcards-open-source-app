@@ -446,6 +446,8 @@ runtime_configuration_path="/tmp/flashcards-open-source-app-ios-marketing-screen
 capture_directory=""
 captured_screenshot_paths=()
 capture_complete=false
+host_capture_pid=""
+host_capture_directory=""
 
 list_booted_simulator_lines() {
     xcrun simctl list devices booted | sed -nE '/^[[:space:]]+.+ \([0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\) \(Booted\)[[:space:]]*$/p'
@@ -467,15 +469,59 @@ escape_json_string() {
 write_runtime_configuration() {
     local output_directory="$1"
     local localization_code="$2"
+    local duo_configuration=""
+    if [[ -n "$host_capture_directory" ]]; then
+        duo_configuration=",
+  \"targetPixelWidth\": $duo_width,
+  \"targetPixelHeight\": $duo_height,
+  \"hostCaptureDirectoryPath\": \"$(escape_json_string "$host_capture_directory")\""
+    fi
 
     cat >"$runtime_configuration_path" <<EOF
 {
   "includeManualScreenshotTests": true,
   "outputDirectoryPath": "$(escape_json_string "$output_directory")",
   "localizationCode": "$(escape_json_string "$localization_code")",
-  "orientation": "$orientation"
+  "orientation": "$orientation"$duo_configuration
 }
 EOF
+}
+
+duo_native_dimensions() {
+    case "$device_family" in
+        iphone-duo-outer) echo "1398x2034" ;;
+        iphone-duo-inner) echo "2853x2007" ;;
+        *) return 1 ;;
+    esac
+}
+
+start_duo_host_capture() {
+    [[ -n "$host_capture_directory" ]] || return 0
+    python3 "$repo_root/scripts/ios/duo-host-screenshot-service.py" \
+        "$simulator_id" "$duo_width" "$duo_height" "$host_capture_directory" &
+    host_capture_pid="$!"
+    local attempt
+    for ((attempt = 0; attempt < 100; attempt++)); do
+        [[ -f "$host_capture_directory/ready" ]] && return 0
+        if ! kill -0 "$host_capture_pid" 2>/dev/null; then
+            wait "$host_capture_pid" || true
+            host_capture_pid=""
+            echo "Duo host screenshot service failed to start. Check simulator Connected Screens and Device Hub pose." >&2
+            return 1
+        fi
+        sleep 0.1
+    done
+    echo "Duo host screenshot service did not become ready within 10 seconds." >&2
+    return 1
+}
+
+stop_duo_host_capture() {
+    [[ -n "$host_capture_pid" ]] || return 0
+    touch "$host_capture_directory/stop"
+    local service_status=0
+    wait "$host_capture_pid" || service_status="$?"
+    host_capture_pid=""
+    return "$service_status"
 }
 
 cleanup_runtime_configuration() {
@@ -534,6 +580,8 @@ cleanup_on_exit() {
     local exit_status="$?"
 
     set +e
+    stop_duo_host_capture
+    local host_capture_status="$?"
     run_ios_marketing_guest_cleanup
     local cleanup_status="$?"
     cleanup_runtime_configuration
@@ -543,6 +591,12 @@ cleanup_on_exit() {
         echo "ERROR: iOS marketing screenshot guest cleanup failed; captured screenshots will not be published." >&2
         if [[ "$exit_status" -eq 0 ]]; then
             exit_status="$cleanup_status"
+        fi
+    fi
+    if [[ "$host_capture_status" -ne 0 ]]; then
+        echo "ERROR: Duo host screenshot service failed; captured screenshots will not be published." >&2
+        if [[ "$exit_status" -eq 0 ]]; then
+            exit_status="$host_capture_status"
         fi
     fi
     if [[ "$configuration_cleanup_status" -ne 0 ]]; then
@@ -646,11 +700,8 @@ verify_duo_screenshot_dimensions() {
     local width=""
     local height=""
 
-    case "$device_family" in
-        iphone-duo-outer) expected_dimensions="1398x2034" ;;
-        iphone-duo-inner) expected_dimensions="2853x2007" ;;
-        *) return ;;
-    esac
+    [[ "$device_family" == iphone-duo-* ]] || return
+    expected_dimensions="$(duo_native_dimensions)"
 
     width="$(sips -g pixelWidth "$screenshot_path" | sed -nE 's/^[[:space:]]*pixelWidth: ([0-9]+)$/\1/p')"
     height="$(sips -g pixelHeight "$screenshot_path" | sed -nE 's/^[[:space:]]*pixelHeight: ([0-9]+)$/\1/p')"
@@ -734,6 +785,11 @@ capture_directory="$(mktemp -d "$repo_root/tmp/ios-marketing-capture.XXXXXX")"
 trap cleanup_on_exit EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
+if [[ "$device_family" == iphone-duo-* ]]; then
+    IFS=x read -r duo_width duo_height <<< "$(duo_native_dimensions)"
+    host_capture_directory="$capture_directory/host-capture"
+    mkdir -p "$host_capture_directory/requests" "$host_capture_directory/responses"
+fi
 write_runtime_configuration "$capture_directory" "$localization_code"
 
 echo "Running manual iOS marketing screenshot script for $description on $simulator_name."
@@ -741,6 +797,7 @@ echo "Locale: $localization_code"
 xcrun simctl bootstatus "$simulator_id" -b
 
 run_ios_marketing_guest_cleanup
+start_duo_host_capture
 run_ios_marketing_xcodebuild_test "$test_identifier"
 
 for screenshot_index in "${expected_screenshot_indices[@]}"; do

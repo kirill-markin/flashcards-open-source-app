@@ -95,6 +95,7 @@ The manual screenshot flows treat guest cloud sessions as short-lived per-run fi
 - after each manual screenshot test, XCTest still relaunches the app in the same dedicated cleanup scenario and waits for the UI-test readiness marker before finishing teardown
 - the wrapper also registers an exit trap that runs the dedicated cleanup XCUITest entrypoint after `xcodebuild` exits, including failure exits, before it removes the runtime configuration file
 - capture writes to a fresh staging directory under `tmp/`; the wrapper publishes the expected PNGs only after the full capture, output verification, final guest cleanup, and runtime configuration removal succeed, preserving the previous locale PNGs if any of those steps fail
+- for Duo only, the wrapper starts a host `simctl` screenshot service after initial cleanup; each test screenshot waits for its matching full native display frame before advancing, and the wrapper stops the service before final cleanup
 - the cleanup relaunch clears the final guest session remotely and then runs the same local reset path, so both cloud and local screenshot state are removed predictably
 
 This is why the screenshot wrappers must still run sequentially. The cleanup relaunch is part of the supported lifecycle, not an optional background best effort.
@@ -287,7 +288,11 @@ portrait pixels. For a local filesystem that adds signing resource forks, set
 the pinned packages.
 
 Capture the two Duo displays sequentially after selecting each one in Device
-Hub. These commands reuse the existing five scenarios and guest cleanup:
+Hub. Xcode 27.1 or newer must expose exactly one integrated screen with the
+selected display's native pixel size through `simctl io enumerate`. The host
+captures that screen with public `simctl io screenshot --display`; missing or
+ambiguous displays and undersized frames fail the run. These commands reuse
+the existing five scenarios and guest cleanup:
 
 ```bash
 bash scripts/ios/capture-ios-marketing-screenshots.sh --locale en-US --duo-display outer
