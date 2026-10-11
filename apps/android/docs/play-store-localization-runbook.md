@@ -39,6 +39,32 @@ every filename or Android qualifier. Use these existing maps:
 Check Google's current [localization help and available languages](https://support.google.com/googleplay/android-developer/answer/9844778?hl=en)
 against the Console picker instead of assuming a generic app tag is selectable.
 
+### Installed app label in the next native release
+
+The base `app_name` is `Nibomo Flashcards`. The application label references this
+resource, and both launcher icon aliases inherit it; review and strict-reminder
+notification titles also use it. Android's [application label documentation](https://developer.android.com/guide/topics/manifest/application-element#label)
+supports a localized string resource for this label.
+
+Play App strings can override the base resource in translated builds. After the
+next authorized native release uploads its draft AAB, open **Grow users →
+Translations → App strings**, select that exact draft bundle and locate
+`app_name` by key. Confirm its source is `Nibomo Flashcards`, uncheck its
+**Translate** checkbox to preserve the approved label across languages, then
+click **Apply changes**. Google's [App strings procedure](https://support.google.com/googleplay/android-developer/answer/9844778?hl=en#zippy=%2Capp-strings-translation-using-gemini)
+applies this exclusion across languages to draft and future bundles. Keep the
+enabled language set intact; store listing titles remain a separate surface.
+
+Before publishing, install the Play-delivered candidate for that version code.
+With English and another supported device language, confirm the launcher and
+Android app settings show `Nibomo Flashcards`. Search the launcher separately
+for `Nibomo` and `Flashcards` and launch the matching app; repeat for both icon
+styles. Check review and strict-reminder notification titles. Record the exact
+bundle/version code, OS, launcher, languages, queries and results: launcher
+search behavior varies, and a local debug build cannot prove Play's translated
+label. Follow the existing [Android release procedure](../../../docs/release/android.md)
+for release authorization and publication.
+
 ## 2. Complete each locale's repository artifacts
 
 | Artifact | Source and required output |
