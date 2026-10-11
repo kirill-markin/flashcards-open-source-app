@@ -9,9 +9,9 @@ final class ReviewSpeechController: NSObject, ObservableObject, @preconcurrency 
     @Published private(set) var activeSide: ReviewSpeechSide? = nil
 
     private let synthesizer = AVSpeechSynthesizer()
+    private var hasRequestedSpeech: Bool = false
     private let audioSession = AVAudioSession.sharedInstance()
     private var isAudioSessionActive: Bool = false
-    /// Last queued utterance of the current playback; nil when nothing of ours is playing.
     private var finalUtterance: AVSpeechUtterance? = nil
 
     override init() {
@@ -64,6 +64,7 @@ final class ReviewSpeechController: NSObject, ObservableObject, @preconcurrency 
         self.activeSide = side
         self.finalUtterance = utterances.last
         for utterance in utterances {
+            self.hasRequestedSpeech = true
             self.synthesizer.speak(utterance)
         }
         return nil
@@ -72,6 +73,11 @@ final class ReviewSpeechController: NSObject, ObservableObject, @preconcurrency 
     func stopSpeech() {
         self.activeSide = nil
         self.finalUtterance = nil
+        if self.hasRequestedSpeech == false {
+            self.deactivateReviewSpeechAudioSession()
+            return
+        }
+
         if self.synthesizer.isSpeaking || self.synthesizer.isPaused {
             self.synthesizer.stopSpeaking(at: .immediate)
         } else {
