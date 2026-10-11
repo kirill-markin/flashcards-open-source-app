@@ -122,8 +122,6 @@ and localized copy. The outer profile fits its complete portrait native screensh
 inside a shorter portrait frame. The inner profile uses a landscape canvas and
 a frame matching the native screenshot's aspect ratio, with the complete app UI
 centered below the shared header.
-The tracked portrait inner cards remain historical approved output until their
-separate asset replacement; new inner renders are landscape.
 They read only genuine native PNGs from `iphone-duo-outer/` and
 `iphone-duo-inner/` under the iOS screenshot input root and write separate
 `ready/` folders with the same family names. Select one family explicitly with
