@@ -44,6 +44,8 @@ export async function recordAiMessageSentAnalytics(
     // The run carries no server-stored platform for the actor, and the request headers that do name
     // one are a client claim this row must not repeat.
     platform: null,
+    osName: null,
+    deviceType: null,
     properties: {},
     details: null,
   });
@@ -79,6 +81,8 @@ export async function recordAiRunFailedAnalytics(
     // Null for the reason spelled out on the producer above: the only platform this path could read
     // is the one the client claimed in the request that started the run.
     platform: null,
+    osName: null,
+    deviceType: null,
     properties: { reason },
     details: null,
   });
@@ -123,6 +127,8 @@ export async function recordAiLimitReachedAnalytics(
     workspaceId,
     // Null for the reason spelled out on `recordAiMessageSentAnalytics`.
     platform: null,
+    osName: null,
+    deviceType: null,
     properties: {
       tier: refusal.tier,
       account_kind: refusal.accountKind,

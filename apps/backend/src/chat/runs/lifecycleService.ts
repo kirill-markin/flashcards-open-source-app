@@ -367,6 +367,8 @@ export async function claimChatRun(
       turnInput: claimedRun.turn_input,
       initiatingAuthIsSignedIn: claimedRun.initiating_auth_is_signed_in,
       clientPlatform: claimedRun.client_platform,
+      clientOsName: claimedRun.client_os_name,
+      clientDeviceType: claimedRun.client_device_type,
       diagnostics: createDiagnostics(scope, claimedRun, messages, {
         model: runtimeConfig.modelId,
         aiCostMode: claimedRun.ai_cost_mode,

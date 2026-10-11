@@ -379,6 +379,8 @@ export async function runPersistedChatSessionWithDeps(
             generatedImageEligible: params.generatedImageEligible,
             generatedImageOperationDeadlineMs,
             clientPlatform: params.clientPlatform,
+            clientOsName: params.clientOsName,
+            clientDeviceType: params.clientDeviceType,
             tierAtCall: params.tierAtCall,
             initiatingAuthIsSignedIn: params.initiatingAuthIsSignedIn,
             userOpenAIApiKey: params.userOpenAIApiKey,

@@ -56,6 +56,8 @@ export async function recordAccountDeletedAnalytics(userId: string): Promise<voi
     // cleared a statement later.
     workspaceId: null,
     platform: null,
+    osName: null,
+    deviceType: null,
     properties: {},
     details: null,
   });
@@ -87,6 +89,8 @@ export async function recordWorkspaceDeletedAnalytics(
     // The org.workspaces row is gone by now, so this names a workspace that no longer exists.
     workspaceId,
     platform: null,
+    osName: null,
+    deviceType: null,
     properties: {},
     details: null,
   });
@@ -121,6 +125,8 @@ export async function recordStudyProgressResetAnalytics(
     guestSessionId: null,
     workspaceId,
     platform: null,
+    osName: null,
+    deviceType: null,
     properties: {},
     details: null,
   });
@@ -169,6 +175,8 @@ export async function recordWorkspacePackageImportedAnalytics(
     guestSessionId: fact.guestSessionId,
     workspaceId: fact.workspaceId,
     platform: null,
+    osName: null,
+    deviceType: null,
     properties: {
       card_count: fact.cardCount,
     },
@@ -209,6 +217,8 @@ export async function recordWorkspacePackageExportedAnalytics(
     guestSessionId: fact.guestSessionId,
     workspaceId: fact.workspaceId,
     platform: null,
+    osName: null,
+    deviceType: null,
     properties: {},
     details: null,
   });
@@ -244,6 +254,8 @@ export async function recordAgentConnectionCreatedAnalytics(
     // `agent` belongs to the facts this connection goes on to produce, not to its creation, which
     // happens in whatever client the person was signed in to.
     platform: null,
+    osName: null,
+    deviceType: null,
     properties: {},
     details: null,
   });
@@ -290,6 +302,8 @@ export async function recordFeedbackSubmittedAnalytics(
     guestSessionId: fact.guestSessionId,
     workspaceId: fact.workspaceId,
     platform: null,
+    osName: null,
+    deviceType: null,
     properties: {},
     details: null,
   });

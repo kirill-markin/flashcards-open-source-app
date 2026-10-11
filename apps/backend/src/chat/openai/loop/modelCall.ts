@@ -17,7 +17,11 @@ import {
   type ChatRuntimeReasoningEffort,
 } from "../../config";
 import type { ChatRunClaimToken } from "../../runs";
-import type { ProductAnalyticsClientReportablePlatform } from "../../../productAnalytics/catalog";
+import type {
+  ProductAnalyticsClientReportablePlatform,
+  ProductAnalyticsDeviceType,
+  ProductAnalyticsOsName,
+} from "../../../productAnalytics/catalog";
 import type { UserOpenAIApiKey } from "../../userOpenAIApiKey";
 import { createGeneratedImageOperationKey } from "../../generatedImageOperationIdentity";
 import { GENERATED_IMAGE_TOOL_NAME } from "../tools/generatedImageToolContract";
@@ -89,6 +93,8 @@ export type RunOneToolCall = (params: Readonly<{
   signal: AbortSignal | null;
   generatedImageOperationDeadlineMs: number;
   clientPlatform: ProductAnalyticsClientReportablePlatform | null;
+  clientOsName: ProductAnalyticsOsName | null;
+  clientDeviceType: ProductAnalyticsDeviceType | null;
   initiatingAuthIsSignedIn: boolean;
   userOpenAIApiKey: UserOpenAIApiKey | null;
   rootObservation: LangfuseObservation | null;
@@ -108,6 +114,8 @@ type ExecuteToolCallsParams = Readonly<{
   signal: AbortSignal | undefined;
   generatedImageOperationDeadlineMs: number;
   clientPlatform: ProductAnalyticsClientReportablePlatform | null;
+  clientOsName: ProductAnalyticsOsName | null;
+  clientDeviceType: ProductAnalyticsDeviceType | null;
   initiatingAuthIsSignedIn: boolean;
   userOpenAIApiKey: UserOpenAIApiKey | null;
   rootObservation: LangfuseObservation | null;
@@ -373,6 +381,8 @@ export async function executeToolCalls(
         signal: params.signal ?? null,
         generatedImageOperationDeadlineMs: params.generatedImageOperationDeadlineMs,
         clientPlatform: params.clientPlatform,
+        clientOsName: params.clientOsName,
+        clientDeviceType: params.clientDeviceType,
         initiatingAuthIsSignedIn: params.initiatingAuthIsSignedIn,
         userOpenAIApiKey: params.userOpenAIApiKey,
         rootObservation: params.rootObservation,

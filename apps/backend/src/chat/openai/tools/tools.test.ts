@@ -63,6 +63,8 @@ const context: OpenAIToolContext = {
   signal: new AbortController().signal,
   generatedImageOperationDeadlineMs: Date.now() + 120_000,
   clientPlatform: null,
+  clientOsName: null,
+  clientDeviceType: null,
   initiatingAuthIsSignedIn: true,
   userOpenAIApiKey: null,
   generatedImageObservationContext: {

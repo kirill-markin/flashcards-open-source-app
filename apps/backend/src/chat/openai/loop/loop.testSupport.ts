@@ -33,6 +33,8 @@ export function createParams(
     generatedImageEligible: false,
     generatedImageOperationDeadlineMs: Date.now() + 600_000,
     clientPlatform: null,
+    clientOsName: null,
+    clientDeviceType: null,
     tierAtCall: "free",
     initiatingAuthIsSignedIn: true,
     userOpenAIApiKey: null,

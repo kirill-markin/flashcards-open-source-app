@@ -25,7 +25,9 @@ import {
 } from "../../observability/runtime";
 import type { WorkspaceReplicaActorKind } from "../../sync/identity/replica";
 import type {
+  ProductAnalyticsDeviceType,
   ProductAnalyticsEventName,
+  ProductAnalyticsOsName,
   ProductAnalyticsPlatform,
   productAnalyticsEventCatalog,
 } from "../catalog";
@@ -300,6 +302,9 @@ const declaredReplicaAttributions = new WeakMap<
  * requests it declares nothing on - naming this request's body here instead would silently un-mark
  * the installation for exactly those.
  *
+ * The installation's device facts hold the same way: the caller reads them back from the
+ * installation row its claim just wrote, never from this request's body.
+ *
  * Declaring is optional everywhere. Writes naming a replica nothing declared are resolved by the
  * drain instead, which is the only route left to a caller that was handed a replica id and no facts
  * at all - a workspace-package import, or a tool write whose replica was ensured in an earlier
@@ -442,6 +447,7 @@ async function resolveContentWriteReplicaAttributions(
               // and the only place it is ever stored. A replica with no installation behind it - every
               // actor kind but client_installation - joins to no row and is no automation.
               "SELECT replicas.replica_id, replicas.actor_kind, replicas.platform,",
+              "installations.os_name, installations.device_type,",
               "COALESCE(installations.is_automation, FALSE) AS is_automation",
               "FROM sync.workspace_replicas AS replicas",
               "LEFT JOIN sync.installations AS installations",
@@ -477,6 +483,8 @@ async function resolveContentWriteReplicaAttributions(
       attributionByReplicaId.set(replica.replica_id, toContentWriteReplicaAttribution({
         actorKind: replica.actor_kind,
         platform: replica.platform,
+        osName: replica.os_name,
+        deviceType: replica.device_type,
         isAutomation: replica.is_automation,
       }));
     }
@@ -506,6 +514,8 @@ function toContentWriteEvent(
   actorUserId: string,
   recordedAt: Date,
   platform: ProductAnalyticsPlatform | null,
+  osName: ProductAnalyticsOsName | null,
+  deviceType: ProductAnalyticsDeviceType | null,
   source: ContentCreationSource | null,
 ): ServerDerivedProductAnalyticsEvent {
   const eventName = contentWriteEventNames[write.entityType][write.action];
@@ -575,6 +585,10 @@ function toContentWriteEvent(
     // a guess would file the row under a platform it never had, permanently, on an append-only table,
     // while null only leaves it out of a per-platform breakdown.
     platform,
+    // The stored device facts of the installation behind the same replica, which the same rule gives
+    // only beside a client installation's platform.
+    osName,
+    deviceType,
     // `source` goes on card creations and nowhere else, because that is the only place the catalog
     // declares it and a property the catalog does not declare makes the writer refuse the whole
     // batch. A deletion is left out because the channel a tombstone arrived over is a different
@@ -741,13 +755,18 @@ async function emitCollectedContentWrites(
   const outcome = await emitPostCommitFactEvents(
     reportable,
     budget,
-    (write) => toContentWriteEvent(
-      write,
-      actorUserId,
-      recordedAt,
-      attributionByReplicaId.get(write.replicaId)?.platform ?? null,
-      declaredSource ?? attributionByReplicaId.get(write.replicaId)?.source ?? null,
-    ),
+    (write) => {
+      const attribution = attributionByReplicaId.get(write.replicaId);
+      return toContentWriteEvent(
+        write,
+        actorUserId,
+        recordedAt,
+        attribution?.platform ?? null,
+        attribution?.osName ?? null,
+        attribution?.deviceType ?? null,
+        declaredSource ?? attribution?.source ?? null,
+      );
+    },
   );
   if (outcome.status === "aborted") {
     reportAbandonedContentWrites({
