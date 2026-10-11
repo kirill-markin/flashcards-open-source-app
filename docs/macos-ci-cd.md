@@ -46,10 +46,68 @@ toolchain, destinations, production values and secret presence via the
 workflows and masked secrets. Dispatch the independent Mac archive and tests
 concurrently only after the Catalyst patch reaches `main`.
 
-Native compilation and runtime checks belong to Xcode Cloud. PR static checks
-cannot establish Catalyst compatibility. Inspect exact logs, warnings, named
-test results and `.xcresult` artifacts from both runs. Failures require a
-narrow reviewed fix and new cloud evidence for the resulting SHA.
+Xcode Cloud owns distribution archives. PR static checks cannot establish
+Catalyst compatibility. Inspect exact logs, warnings, named test results and
+`.xcresult` artifacts from both runs. Cloud's Mac Test action can inject an
+ad hoc identity that cannot authorize the app's private Keychain identity;
+[Apple DTS describes the restricted-entitlement limitation](https://developer.apple.com/forums/thread/724812).
+Retain failed Cloud results and their signing diagnosis. For this limitation,
+use the signed local native route below; other failures require a narrow
+reviewed fix and fresh native evidence for the resulting SHA.
+
+### Signed local native alternative
+
+Run only within the session's local-execution authorization. Prepare the
+existing [local configuration](ios-local-setup.md#after-cloning) with the same
+production service values. Use the current Xcode and a registered execution
+Mac, with an installed Apple Development certificate and private key.
+[Create and install a genuine Mac development profile](https://developer.apple.com/help/account/provisioning-profiles/create-a-development-provisioning-profile)
+for the existing app ID, that certificate and that Mac
+(`MAC_CATALYST_APP_DEVELOPMENT` for Catalyst). A certificate alone is insufficient.
+
+Keep a temporary signing xcconfig outside the repository, substituting the
+installed, unexpired profile's UUID. This dispatches on `PRODUCT_MODULE_NAME`: only
+`Flashcards` uses manual provisioning; `FlashcardsUITests` and `FlashcardsTests`
+retain automatic signing with no app profile assigned to the UI runner.
+
+```xcconfig
+_LOCAL_MANUAL_Flashcards = YES
+_LOCAL_SIGN_STYLE_ = Automatic
+_LOCAL_SIGN_STYLE_YES = Manual
+_LOCAL_PROFILE_Flashcards = <genuine-profile-uuid>
+CODE_SIGN_STYLE[sdk=macosx*][config=Debug] = $(_LOCAL_SIGN_STYLE_$(_LOCAL_MANUAL_$(PRODUCT_MODULE_NAME)))
+PROVISIONING_PROFILE_SPECIFIER[sdk=macosx*][config=Debug] = $(_LOCAL_PROFILE_$(PRODUCT_MODULE_NAME))
+CODE_SIGN_INJECT_BASE_ENTITLEMENTS[sdk=macosx*][config=Debug] = YES
+```
+
+Build the unchanged shared scheme's full selection, then use its original
+generated `.xctestrun` under `tmp/macos-derived-data/Build/Products`:
+
+```bash
+xcodebuild -project "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj" \
+  -scheme "Flashcards Open Source App" -configuration Debug \
+  -destination 'platform=macOS,variant=Mac Catalyst,id=<registered-mac-id>' \
+  -derivedDataPath "tmp/macos-derived-data" -xcconfig '<external-signing-xcconfig>' \
+  DEVELOPMENT_TEAM='<team-id>' CODE_SIGN_IDENTITY='Apple Development' build-for-testing
+TEST_RUNNER_FLASHCARDS_LIVE_REVIEW_EMAIL='<configured-review-email>' \
+xcodebuild -xctestrun '<generated-xctestrun>' \
+  -destination 'platform=macOS,variant=Mac Catalyst,id=<registered-mac-id>' \
+  -resultBundlePath 'tmp/macos-smoke-<unique-run>.xcresult' test-without-building
+```
+
+Before testing, inspect the built app with `codesign -d --entitlements :- '<built-app>'`
+and decode its embedded profile with `security cms -D -i '<embedded-profile>'`. Require both
+`application-identifier` and `com.apple.application-identifier` to match the
+profile-authorized private app identity. Confirm the profile includes the
+current signing certificate and execution Mac.
+An absent explicit Keychain access group is valid for default private access.
+Keep the sandbox and secure storage; do not add sharing, fabricate identifiers,
+disable signing or bypass Keychain cleanup. Keep the same Xcode and built
+products for both phases; do not edit the scheme/manifest or filter tests.
+Inspect the completed `.xcresult`, every selected named result, warnings and
+attachments. Build/signature success, partial or interrupted runs do not count
+as a passing suite. Save actual local evidence alongside failed Cloud results
+in the [release ledger](release/evidence.md#release-ledger).
 
 ## Native smoke evidence
 
@@ -78,14 +136,14 @@ Successful Mac smokes retain `mac-review-formulas` and
 formulas and actual layout; control assertions alone do not prove visual
 correctness. Record the result bundle and attachment names. These are also
 the shortest source of actual Mac store screenshots. Inspect pixels before
-reuse: Apple accepts 2880×1800, 2560×1600, 1440×900 or 1280×800. The cloud display
+reuse: Apple accepts 2880×1800, 2560×1600, 1440×900 or 1280×800. The Mac display
 and window determine capture dimensions; an attachment is not automatically
 store-ready. If size/content is unsuitable, capture the verified Mac artifact
 at an accepted size before submission. Never substitute an iPad screenshot.
 
 ## Manual checklist on the verified Mac artifact
 
-Record version/build, SHA, OS, steps and results alongside cloud-native evidence
+Record version/build, SHA, OS, steps and results alongside native smoke evidence
 before App Review. These checks exercise the signed app and actual services.
 
 1. Resize between narrow and wide landscape layouts. Open/close AI beside
@@ -96,8 +154,9 @@ before App Review. These checks exercise the signed app and actual services.
    hints in English and another supported locale. Type Space/1–4 in AI and card
    editors while hovering review controls; focus and reviews must stay intact.
 3. Create/edit a card; verify save and cancel. Inspect inline and display math,
-   including fractions, in cards and AI messages. Play/stop review speech.
-   Inspect native screenshots for rendered formulas rather than raw TeX.
+   including fractions, in cards. Play/stop review speech. Inspect native
+   screenshots for rendered card formulas rather than raw TeX; AI transcripts
+   retain the shared Apple plaintext presentation.
 4. Disconnect networking, create/edit/review locally, quit and relaunch. Confirm
    persistence. Reconnect, sign in, sync and verify changes on another client.
    Inspect failed sync errors.
