@@ -84,7 +84,9 @@ function EventSections(props: Readonly<{ event: AnalyticsEvent; onNavigate: (pat
         rows={[
           row("platform", "Platform", event.platform),
           row("app-version", "App version", event.appVersion),
+          row("os-name", "OS name", event.osName),
           row("os-version", "OS version", event.osVersion),
+          row("device-type", "Device type", event.deviceType),
           row("device-model", "Device model", event.deviceModel),
           row("device-locale", "Device locale", event.deviceLocale),
           row("ui-locale", "UI locale", event.uiLocale),
