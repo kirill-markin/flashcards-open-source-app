@@ -73,10 +73,12 @@ The General area carries three report sections in page order:
 - `catalog-deck-installs`
 - `review-events-by-date`
 
-The dashboard shows ten charts:
+The dashboard shows twelve charts:
 
 - daily unique active users, new vs returning
 - daily active users by platform
+- daily active users by OS
+- daily active users by device type
 - daily active users stacked by user
 - daily catalog deck installs, stacked by deck
 - daily unique users with at least 1 review event, new vs returning

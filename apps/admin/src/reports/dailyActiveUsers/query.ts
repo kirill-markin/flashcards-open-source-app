@@ -1,12 +1,21 @@
-import { reviewEventPlatforms, runAdminQuery } from "../../adminApi";
+import {
+  productEventDeviceTypes,
+  productEventOsNames,
+  reviewEventPlatforms,
+  runAdminQuery,
+} from "../../adminApi";
 import type {
   AdminQueryResultSet,
   AdminQueryValue,
   DailyActiveUsersCohortTotal,
+  DailyActiveUsersDeviceTypeTotal,
+  DailyActiveUsersOsNameTotal,
   DailyActiveUsersPlatformTotal,
   DailyActiveUsersReport,
   DailyActiveUsersRow,
   DailyActiveUsersUser,
+  ProductEventDeviceType,
+  ProductEventOsName,
   ReviewEventPlatform,
 } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
@@ -24,7 +33,9 @@ import {
 } from "../../filters/filterSql";
 import { escapeSqlStringLiteral } from "../../sql";
 import {
+  assertDeviceType,
   assertIsString,
+  assertOsName,
   assertPlatform,
   assertValidDateRange,
   buildRequestedDateRange,
@@ -37,12 +48,18 @@ type DailyActiveUsersQueryRow = Readonly<{
   user_id: string;
   email: string;
   platform: ReviewEventPlatform;
+  os_name: ProductEventOsName;
+  device_type: ProductEventDeviceType;
   user_first_active_date: string;
 }>;
 
 type DailyActiveUsersAggregateFields = Readonly<Pick<
   DailyActiveUsersReport,
-  "users" | "dailyCohortTotals" | "platformActiveUserTotals"
+  | "users"
+  | "dailyCohortTotals"
+  | "platformActiveUserTotals"
+  | "osNameActiveUserTotals"
+  | "deviceTypeActiveUserTotals"
 >>;
 
 function toDailyActiveUsersQueryRow(
@@ -53,6 +70,8 @@ function toDailyActiveUsersQueryRow(
     user_id: assertIsString(resultSetRow.user_id ?? null, reportLabel, "user_id"),
     email: assertIsString(resultSetRow.email ?? null, reportLabel, "email"),
     platform: assertPlatform(resultSetRow.platform ?? null, reportLabel, "platform"),
+    os_name: assertOsName(resultSetRow.os_name ?? null, reportLabel, "os_name"),
+    device_type: assertDeviceType(resultSetRow.device_type ?? null, reportLabel, "device_type"),
     user_first_active_date: assertIsString(
       resultSetRow.user_first_active_date ?? null,
       reportLabel,
@@ -119,23 +138,59 @@ function buildDailyCohortTotals(
   }));
 }
 
+/** Distinct actors per `${date}:${key}`, so one person on two devices of one key counts once. */
+function countActiveUsersByDateAndKey(
+  rows: ReadonlyArray<DailyActiveUsersRow>,
+  getKey: (row: DailyActiveUsersRow) => string,
+): ReadonlyMap<string, number> {
+  const usersByDateKey = new Map<string, Set<string>>();
+
+  for (const row of rows) {
+    const dateKey = `${row.date}:${getKey(row)}`;
+    const users = usersByDateKey.get(dateKey) ?? new Set<string>();
+    users.add(row.userId);
+    usersByDateKey.set(dateKey, users);
+  }
+
+  return new Map(Array.from(usersByDateKey.entries()).map(([dateKey, users]) => [dateKey, users.size]));
+}
+
 function buildPlatformActiveUserTotals(
   rows: ReadonlyArray<DailyActiveUsersRow>,
   dates: ReadonlyArray<string>,
 ): ReadonlyArray<DailyActiveUsersPlatformTotal> {
-  const usersByDatePlatform = new Map<string, Set<string>>();
-
-  for (const row of rows) {
-    const key = `${row.date}:${row.platform}`;
-    const users = usersByDatePlatform.get(key) ?? new Set<string>();
-    users.add(row.userId);
-    usersByDatePlatform.set(key, users);
-  }
+  const activeUsersByDatePlatform = countActiveUsersByDateAndKey(rows, (row) => row.platform);
 
   return dates.flatMap((date) => reviewEventPlatforms.map((platform) => ({
     date,
     platform,
-    activeUserCount: usersByDatePlatform.get(`${date}:${platform}`)?.size ?? 0,
+    activeUserCount: activeUsersByDatePlatform.get(`${date}:${platform}`) ?? 0,
+  })));
+}
+
+function buildOsNameActiveUserTotals(
+  rows: ReadonlyArray<DailyActiveUsersRow>,
+  dates: ReadonlyArray<string>,
+): ReadonlyArray<DailyActiveUsersOsNameTotal> {
+  const activeUsersByDateOsName = countActiveUsersByDateAndKey(rows, (row) => row.osName);
+
+  return dates.flatMap((date) => productEventOsNames.map((osName) => ({
+    date,
+    osName,
+    activeUserCount: activeUsersByDateOsName.get(`${date}:${osName}`) ?? 0,
+  })));
+}
+
+function buildDeviceTypeActiveUserTotals(
+  rows: ReadonlyArray<DailyActiveUsersRow>,
+  dates: ReadonlyArray<string>,
+): ReadonlyArray<DailyActiveUsersDeviceTypeTotal> {
+  const activeUsersByDateDeviceType = countActiveUsersByDateAndKey(rows, (row) => row.deviceType);
+
+  return dates.flatMap((date) => productEventDeviceTypes.map((deviceType) => ({
+    date,
+    deviceType,
+    activeUserCount: activeUsersByDateDeviceType.get(`${date}:${deviceType}`) ?? 0,
   })));
 }
 
@@ -147,6 +202,8 @@ function buildDailyActiveUsersAggregateFields(
     users: buildDailyActiveUsersUsers(rows),
     dailyCohortTotals: buildDailyCohortTotals(rows, dates),
     platformActiveUserTotals: buildPlatformActiveUserTotals(rows, dates),
+    osNameActiveUserTotals: buildOsNameActiveUserTotals(rows, dates),
+    deviceTypeActiveUserTotals: buildDeviceTypeActiveUserTotals(rows, dates),
   };
 }
 
@@ -163,6 +220,8 @@ function buildDailyActiveUsersReport(
       userId: row.user_id,
       email: row.email,
       platform: row.platform,
+      osName: row.os_name,
+      deviceType: row.device_type,
       firstActiveDate: row.user_first_active_date,
     }))
     .sort((left, right) => {
@@ -174,7 +233,15 @@ function buildDailyActiveUsersReport(
         return left.userId.localeCompare(right.userId);
       }
 
-      return left.platform.localeCompare(right.platform);
+      if (left.platform !== right.platform) {
+        return left.platform.localeCompare(right.platform);
+      }
+
+      if (left.osName !== right.osName) {
+        return left.osName.localeCompare(right.osName);
+      }
+
+      return left.deviceType.localeCompare(right.deviceType);
     });
   const dates = buildRequestedDateRange(from, to, reportLabel);
 
@@ -207,10 +274,12 @@ const dailyActiveUsersCohortSqlExpression = "CASE WHEN app_opens.active_date = a
 // function about deleted accounts, the case fold and the identity rules applies here unchanged; only
 // the event name and the meaning of a row differ.
 //
-// ONE ROW PER (DAY, ACTOR, PLATFORM), AND THE ROWS ARE NEVER SUMMED. A person can open the phone and
-// the browser on the same day and is then two rows on that day. Every "unique users" number in this
-// section is therefore a distinct count of actors, computed client-side over a set, and the platform
-// series is grouped rather than stacked. See `db/migrations/0121_backfill_synthetic_app_opened_days
+// ONE ROW PER (DAY, ACTOR, PLATFORM, OS NAME, DEVICE TYPE), AND THE ROWS ARE NEVER SUMMED. A person
+// can open the phone and the browser on the same day and is then two rows on that day. Every "unique
+// users" number in this section is therefore a distinct count of actors, computed client-side over a
+// set, and the platform, OS name and device type series are grouped rather than stacked. A row with
+// no OS name or device type, every web row among them, lands in `unknown` rather than being guessed
+// from `platform`. See `db/migrations/0121_backfill_synthetic_app_opened_days
 // .sql` for why the `agent` bucket in particular must stay its own visible series: an
 // `agent_connection` replica is the machine API, and a scheduled MCP client files an active day for
 // its owner on every calendar day it runs, so that series is an upper bound on human agent use.
@@ -247,6 +316,8 @@ export function buildDailyActiveUsersSql(filters: AnalyticsFilterState): string 
     "      WHEN resolved.platform IN ('web', 'android', 'ios', 'agent') THEN resolved.platform",
     "      ELSE 'unattributed'",
     "    END AS platform,",
+    "    COALESCE(resolved.os_name, 'unknown') AS os_name,",
+    "    COALESCE(resolved.device_type, 'unknown') AS device_type,",
     "    COALESCE(NULLIF(btrim(user_settings.email), ''), '(no email)') AS email",
     "  FROM analytics.product_events_resolved AS resolved",
     "  LEFT JOIN org.user_settings AS user_settings",
@@ -271,6 +342,8 @@ export function buildDailyActiveUsersSql(filters: AnalyticsFilterState): string 
     "  app_opens.actor_id AS user_id,",
     "  app_opens.email,",
     "  app_opens.platform,",
+    "  app_opens.os_name,",
+    "  app_opens.device_type,",
     "  to_char(actor_first_active_date.first_active_date, 'YYYY-MM-DD') AS user_first_active_date",
     "FROM app_opens",
     "INNER JOIN actor_first_active_date",
@@ -289,11 +362,15 @@ export function buildDailyActiveUsersSql(filters: AnalyticsFilterState): string 
     "  app_opens.actor_id,",
     "  app_opens.email,",
     "  app_opens.platform,",
+    "  app_opens.os_name,",
+    "  app_opens.device_type,",
     "  actor_first_active_date.first_active_date",
     "ORDER BY",
     "  app_opens.active_date ASC,",
     "  app_opens.actor_id ASC,",
-    "  app_opens.platform ASC",
+    "  app_opens.platform ASC,",
+    "  app_opens.os_name ASC,",
+    "  app_opens.device_type ASC",
   ].join("\n");
 }
 
