@@ -47,7 +47,8 @@ applicable source/artifact gates pass, create or verify immutable current-versio
 tags in both app and companion repositories at their exact recorded release commits,
 whose manifests still report that version. Prefer annotated tags and existing
 naming conventions. Record any artifact-SHA comparison under the reuse rules.
-Publish GitHub Releases with the English notes and preserve the companion's
+Publish GitHub Releases with the English notes and
+[contributor thanks](release-notes.md#github-release-thanks), and preserve the companion's
 exact successful **Plugin packages** CI assets under its
 [publishing procedure](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md).
 Record asset identity/checksums and provenance; an expiring Actions artifact
