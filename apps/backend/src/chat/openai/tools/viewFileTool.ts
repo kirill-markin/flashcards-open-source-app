@@ -2,7 +2,7 @@ import { posix } from "node:path";
 import type OpenAI from "openai";
 import type { z } from "zod";
 import { createChatFileDownloadUrl, getChatFileObjectBytes, listChatSessionFiles } from "../../../chatFiles";
-import { invokeChatSandbox } from "../../../chatSandbox/client";
+import { ChatSandboxUnansweredError, invokeChatSandbox } from "../../../chatSandbox/client";
 import { chatSandboxPdfPageResponseSchema, type ChatSandboxPdfPageRequest } from "../../../chatSandbox/contract";
 import { writeCloudWatchRecord } from "../../../observability/cloudWatch";
 import { cutHeadAtCodePoint } from "../../../shared/codePointCuts";
@@ -253,13 +253,15 @@ export async function executeViewFileToolCall(
   try {
     outcome = await viewFile(args, context);
   } catch (error) {
+    // An unanswered call is named by the send error that left it so.
+    const failure = error instanceof ChatSandboxUnansweredError && error.cause instanceof Error ? error.cause : error;
     logViewFile(context, {
       path: args.path,
       page: args.page,
       mediaType: null,
       durationMs: Date.now() - startedAt,
       sandboxRequestId: null,
-      errorClass: error instanceof Error ? error.name : "UnknownError",
+      errorClass: failure instanceof Error ? failure.name : "UnknownError",
     });
     throw error;
   }
