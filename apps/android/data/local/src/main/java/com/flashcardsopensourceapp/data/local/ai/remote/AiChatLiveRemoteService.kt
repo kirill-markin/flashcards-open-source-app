@@ -1,6 +1,8 @@
 package com.flashcardsopensourceapp.data.local.ai.remote
 
 import com.flashcardsopensourceapp.core.observability.AppObservability
+import com.flashcardsopensourceapp.core.observability.ClientDeviceType
+import com.flashcardsopensourceapp.core.observability.androidClientOsName
 import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.ai.wire.AiChatLiveEventPayloadDecodeResult
 import com.flashcardsopensourceapp.data.local.ai.wire.decodeAiChatLiveEventPayloadResult
@@ -32,6 +34,15 @@ const val aiChatLiveStreamEndedBeforeTerminalCode: String = "ai_live_stream_ende
 const val aiChatLiveStreamReadFailedCode: String = "ai_live_stream_read_failed"
 
 internal const val aiChatClientPlatform: String = "android"
+
+/** A null device type omits only that header; the OS name is always known. */
+internal fun aiChatClientDeviceHeaders(clientDeviceType: ClientDeviceType?): Map<String, String> {
+    val osNameHeader: Map<String, String> = mapOf("X-Client-Os-Name" to androidClientOsName)
+    if (clientDeviceType == null) {
+        return osNameHeader
+    }
+    return osNameHeader + ("X-Client-Device-Type" to clientDeviceType.wireValue)
+}
 
 private const val aiChatLiveAttachThrottleStatusCode: Int = 429
 
@@ -69,14 +80,16 @@ class AiChatLiveRemoteService private constructor(
     private val dispatchers: AiCoroutineDispatchers,
     okHttpClient: OkHttpClient,
     private val observability: AppObservability,
-    private val observationVersions: AiChatHttpObservationVersions
+    private val observationVersions: AiChatHttpObservationVersions,
+    private val clientDeviceTypeProvider: () -> ClientDeviceType?
 ) {
     constructor(
         dispatchers: AiCoroutineDispatchers,
         okHttpClient: OkHttpClient,
         observability: AppObservability,
         appVersion: String,
-        versionCode: Int
+        versionCode: Int,
+        clientDeviceTypeProvider: () -> ClientDeviceType
     ) : this(
         dispatchers = dispatchers,
         okHttpClient = okHttpClient,
@@ -84,7 +97,8 @@ class AiChatLiveRemoteService private constructor(
         observationVersions = createAiChatHttpObservationVersions(
             appVersion = appVersion,
             versionCode = versionCode
-        )
+        ),
+        clientDeviceTypeProvider = clientDeviceTypeProvider
     )
 
     constructor(
@@ -97,7 +111,8 @@ class AiChatLiveRemoteService private constructor(
         observationVersions = createAiChatHttpObservationVersions(
             appVersion = null,
             versionCode = null
-        )
+        ),
+        clientDeviceTypeProvider = { null }
     )
 
     constructor(dispatchers: AiCoroutineDispatchers) : this(
@@ -229,6 +244,9 @@ class AiChatLiveRemoteService private constructor(
             .header("Authorization", authorization)
             .header("X-Client-Platform", aiChatClientPlatform)
             .header("X-Chat-Live-Client-Id", aiChatLiveClientId)
+        aiChatClientDeviceHeaders(clientDeviceType = clientDeviceTypeProvider()).forEach { (headerName, headerValue) ->
+            requestBuilder.header(headerName, headerValue)
+        }
         val clientVersion = observationVersions.clientVersion
         if (clientVersion != null) {
             requestBuilder.header("X-Client-Version", clientVersion)

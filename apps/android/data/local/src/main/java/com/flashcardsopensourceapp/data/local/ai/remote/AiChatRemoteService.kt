@@ -6,6 +6,7 @@ import com.flashcardsopensourceapp.core.observability.AndroidExceptionIssueEvent
 import com.flashcardsopensourceapp.core.observability.AndroidObservationFeature
 import com.flashcardsopensourceapp.core.observability.AndroidWarningIssueEvent
 import com.flashcardsopensourceapp.core.observability.AppObservability
+import com.flashcardsopensourceapp.core.observability.ClientDeviceType
 import com.flashcardsopensourceapp.core.observability.CloudObservationIdentity
 import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.ai.wire.decodeAiChatArchivedSession
@@ -346,7 +347,8 @@ class AiChatRemoteService private constructor(
     private val liveRemoteService: AiChatLiveRemoteService,
     okHttpClient: OkHttpClient,
     private val observability: AppObservability,
-    private val observationVersions: AiChatHttpObservationVersions
+    private val observationVersions: AiChatHttpObservationVersions,
+    private val clientDeviceTypeProvider: () -> ClientDeviceType?
 ) : GuestCloudSessionCreator {
     constructor(
         dispatchers: AiCoroutineDispatchers,
@@ -354,7 +356,8 @@ class AiChatRemoteService private constructor(
         okHttpClient: OkHttpClient,
         observability: AppObservability,
         appVersion: String,
-        versionCode: Int
+        versionCode: Int,
+        clientDeviceTypeProvider: () -> ClientDeviceType
     ) : this(
         dispatchers = dispatchers,
         liveRemoteService = liveRemoteService,
@@ -363,7 +366,8 @@ class AiChatRemoteService private constructor(
         observationVersions = createAiChatHttpObservationVersions(
             appVersion = appVersion,
             versionCode = versionCode
-        )
+        ),
+        clientDeviceTypeProvider = clientDeviceTypeProvider
     )
 
     constructor(
@@ -378,7 +382,8 @@ class AiChatRemoteService private constructor(
         observationVersions = createAiChatHttpObservationVersions(
             appVersion = null,
             versionCode = null
-        )
+        ),
+        clientDeviceTypeProvider = { null }
     )
 
     constructor(
@@ -451,6 +456,7 @@ class AiChatRemoteService private constructor(
                 authorizationHeader = authorizationHeader,
                 requestBody = requestJson.toRequestBody(aiJsonMediaType),
                 extraHeaders = mapOf("X-Client-Platform" to aiChatClientPlatform) +
+                    aiChatClientDeviceHeaders(clientDeviceType = clientDeviceTypeProvider()) +
                     ownOpenAiKeyHeaders(ownOpenAiKey = ownOpenAiKey)
             ),
             expectedStatusCodes = emptySet()
@@ -813,7 +819,7 @@ class AiChatRemoteService private constructor(
             "X-Chat-Resume-Attempt-Id" to resumeDiagnostics.resumeAttemptId.toString(),
             "X-Client-Platform" to resumeDiagnostics.clientPlatform,
             "X-Client-Version" to resumeDiagnostics.clientVersion
-        )
+        ) + aiChatClientDeviceHeaders(clientDeviceType = clientDeviceTypeProvider())
     }
 
     /** [expectedStatusCodes] are normal outcomes for this request, recorded as breadcrumbs instead of Sentry warnings. */

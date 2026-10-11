@@ -1,5 +1,7 @@
 package com.flashcardsopensourceapp.data.local.repository.feedback
 
+import com.flashcardsopensourceapp.core.observability.ClientDeviceType
+import com.flashcardsopensourceapp.core.observability.androidClientOsName
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
@@ -37,7 +39,8 @@ class LocalFeedbackRepository(
     private val cloudGuestSessionCoordinator: CloudGuestSessionCoordinator,
     private val syncRepository: SyncRepository,
     private val appVersion: String,
-    private val currentUiLocaleTag: () -> String
+    private val currentUiLocaleTag: () -> String,
+    private val currentClientDeviceType: () -> ClientDeviceType
 ) : FeedbackRepository {
     override suspend fun loadFeedbackStateForExistingCloudSession(): CloudFeedbackState? {
         val session = authorizedSession(createGuestSessionIfMissing = false) ?: return null
@@ -58,6 +61,8 @@ class LocalFeedbackRepository(
                 workspaceId = session.workspaceId,
                 installationId = session.installationId,
                 platform = androidClientPlatform,
+                osName = androidClientOsName,
+                deviceType = currentClientDeviceType(),
                 appVersion = appVersion,
                 locale = uiLocale,
                 timezone = currentTimeZoneId(),
@@ -91,6 +96,8 @@ class LocalFeedbackRepository(
                 workspaceId = session.workspaceId,
                 installationId = session.installationId,
                 platform = androidClientPlatform,
+                osName = androidClientOsName,
+                deviceType = currentClientDeviceType(),
                 appVersion = appVersion,
                 locale = uiLocale,
                 timezone = currentTimeZoneId(),
