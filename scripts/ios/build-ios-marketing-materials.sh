@@ -11,7 +11,7 @@ raw_screenshot_root="$repo_root/apps/ios/docs/media/app-store-screenshots"
 print_usage() {
     cat <<'EOF' >&2
 Usage:
-  build-ios-marketing-materials.sh [--all-locales | --locale <code>] [--family <iphone|ipad>] [--skip-screenshots] [--optimization-mode <visually-lossless|lossless|none>]
+  build-ios-marketing-materials.sh [--all-locales | --locale <code>] [--family <iphone|ipad|iphone-duo-outer|iphone-duo-inner>] [--duo-display outer|inner] [--skip-screenshots] [--optimization-mode <visually-lossless|lossless|none>]
   build-ios-marketing-materials.sh --list-locales
   build-ios-marketing-materials.sh --list-ipad-locales
 
@@ -22,7 +22,7 @@ What it does:
 
 Locale selection:
   --all-locales      Build every capture tag of the resolved family. This is the default if no locale flag is passed.
-                     The iPad family excludes the iPhone-only capture tags.
+                     The iPad and Duo families exclude the iPhone-only capture tags.
   --locale <code>    Build one locale. Supported canonical locales match the raw screenshot pipeline.
 
 Locale discovery:
@@ -31,6 +31,7 @@ Locale discovery:
 
 Family selection:
   --family <value>   Required with --skip-screenshots. Optional otherwise; when omitted, the script derives the family from the currently booted simulator.
+  --duo-display <outer|inner>  Required for Duo composition, which uses --skip-screenshots and matching --family.
 
 Optimization:
   visually-lossless  Use pngquant with a high-quality range. Best size reduction for UI-heavy PNGs.
@@ -50,7 +51,7 @@ print_supported_locales() {
 print_locales_for_family() {
     local family="$1"
 
-    if [[ "$family" == "ipad" ]]; then
+    if [[ "$family" == "ipad" || "$family" == iphone-duo-* ]]; then
         bash "$repo_root/scripts/ios/capture-ios-marketing-screenshot.sh" --list-ipad-locales
         return
     fi
@@ -292,6 +293,20 @@ resolve_simulator_name() {
 resolve_device_family_from_simulator_name() {
     local simulator_name="$1"
 
+    if [[ "$simulator_name" == *"iPhone"* && "$simulator_name" == *"Duo"* ]]; then
+        if [[ -z "$requested_duo_display" ]]; then
+            echo "iPhone Duo requires --duo-display outer|inner after selecting that display in Device Hub." >&2
+            exit 1
+        fi
+        echo "iphone-duo-$requested_duo_display"
+        return
+    fi
+
+    if [[ -n "$requested_duo_display" ]]; then
+        echo "--duo-display requires a booted iPhone Duo simulator; found '$simulator_name'." >&2
+        exit 1
+    fi
+
     if [[ "$simulator_name" == *"iPad"* ]]; then
         echo "ipad"
         return
@@ -310,8 +325,18 @@ resolve_requested_family() {
     local requested_family="$1"
     local should_capture_screenshots="$2"
 
-    if [[ -n "$requested_family" && "$requested_family" != "iphone" && "$requested_family" != "ipad" ]]; then
+    if [[ -n "$requested_family" && "$requested_family" != "iphone" && "$requested_family" != "ipad" && "$requested_family" != "iphone-duo-outer" && "$requested_family" != "iphone-duo-inner" ]]; then
         echo "Unsupported family: $requested_family" >&2
+        exit 1
+    fi
+
+    if [[ "$requested_family" == iphone-duo-* ]]; then
+        if [[ "$requested_family" != "iphone-duo-$requested_duo_display" ]]; then
+            echo "Family '$requested_family' requires matching --duo-display outer|inner." >&2
+            exit 1
+        fi
+    elif [[ -n "$requested_duo_display" && "$should_capture_screenshots" == "false" ]]; then
+        echo "--duo-display requires a matching Duo --family when --skip-screenshots is used." >&2
         exit 1
     fi
 
@@ -425,7 +450,8 @@ capture_raw_screenshots_for_locale() {
 
 compose_marketing_material() {
     local output_path="$1"
-    shift
+    local family="$2"
+    shift 2
     local -a screenshot_paths=("$@")
 
     if [[ "${#screenshot_paths[@]}" -eq 0 ]]; then
@@ -450,6 +476,12 @@ compose_marketing_material() {
 
         if [[ "$current_width" != "$screenshot_width" || "$current_height" != "$screenshot_height" ]]; then
             echo "All screenshots must have the same dimensions. Expected ${screenshot_width}x${screenshot_height}, got ${current_width}x${current_height} for $screenshot_path" >&2
+            exit 1
+        fi
+
+        if [[ "$family" == iphone-duo-outer && "${current_width}x${current_height}" != "1398x2034" ]] ||
+           [[ "$family" == iphone-duo-inner && "${current_width}x${current_height}" != "2853x2007" ]]; then
+            echo "Wrong raw Duo dimensions for $screenshot_path: got ${current_width}x${current_height} for $family." >&2
             exit 1
         fi
     done
@@ -522,6 +554,7 @@ optimize_marketing_material() {
 
 requested_locale=""
 requested_family=""
+requested_duo_display=""
 requested_optimization_mode="visually-lossless"
 should_capture_screenshots="true"
 use_all_locales="false"
@@ -556,6 +589,19 @@ while [[ $# -gt 0 ]]; do
             ;;
         --family=*)
             requested_family="${1#*=}"
+            shift
+            ;;
+        --duo-display)
+            shift
+            if [[ $# -eq 0 ]]; then
+                echo "Missing value after --duo-display." >&2
+                exit 1
+            fi
+            requested_duo_display="$1"
+            shift
+            ;;
+        --duo-display=*)
+            requested_duo_display="${1#*=}"
             shift
             ;;
         --optimization-mode)
@@ -595,9 +641,18 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+if [[ -n "$requested_duo_display" && "$requested_duo_display" != outer && "$requested_duo_display" != inner ]]; then
+    echo "Unsupported Duo display: $requested_duo_display. Use outer or inner." >&2
+    exit 1
+fi
+
 ensure_command_exists "magick"
 
 resolved_family="$(resolve_requested_family "$requested_family" "$should_capture_screenshots")"
+if [[ "$resolved_family" == iphone-duo-* && "$should_capture_screenshots" == "true" ]]; then
+    echo "Capture Duo screenshots explicitly first, then run this builder with --skip-screenshots, matching --family, and --duo-display." >&2
+    exit 1
+fi
 
 if [[ "$use_all_locales" == "false" && -z "$requested_locale" ]]; then
     use_all_locales="true"
@@ -625,7 +680,7 @@ for locale in "${resolved_locales[@]}"; do
     output_path="$output_directory/${locale}-1-2-3-4-5-horizontal-dark-gray.png"
 
     echo "Building marketing material for locale $locale"
-    compose_marketing_material "$output_path" "${screenshot_paths[@]}"
+    compose_marketing_material "$output_path" "$resolved_family" "${screenshot_paths[@]}"
     optimize_marketing_material "$output_path" "$requested_optimization_mode"
     echo "Saved marketing material to $output_path"
 done
