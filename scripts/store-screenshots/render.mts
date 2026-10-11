@@ -13,7 +13,8 @@ if (values.help) {
   console.log(`Process existing native screenshots; never capture or upload them.
 Usage: npm --prefix scripts/store-screenshots run render -- [options]
   --platform all|ios|android          Default: all
-  --family all|iphone|ipad            iOS family; default: all
+  --family all|iphone|ipad|iphone-duo-outer|iphone-duo-inner
+                                      iOS family; default: existing iPhone and iPad
   --locales en-US,ar                  Selected capture tags or listing locale IDs
   --input-root <directory>            Override native input root for one platform
   --output-root <directory>           Override derived output root for one platform
@@ -25,7 +26,7 @@ Default outputs: apps/{ios,android}/docs/media/{app-store,play-store}-cards`);
   process.exit(0);
 }
 if (!["all", "ios", "android"].includes(values.platform!)) throw new Error("--platform must be all, ios, or android.");
-if (!["all", "iphone", "ipad"].includes(values.family!)) throw new Error("--family must be all, iphone, or ipad.");
+if (!["all", "iphone", "ipad", "iphone-duo-outer", "iphone-duo-inner"].includes(values.family!)) throw new Error("--family must be all, iphone, ipad, iphone-duo-outer, or iphone-duo-inner.");
 if (values.platform === "android" && values.family !== "all") throw new Error("Android currently has phone captures only; --family is an iOS option.");
 if (values.platform === "all" && (values["input-root"] || values["output-root"])) throw new Error("Directory overrides require --platform ios or --platform android.");
 const requested = values.locales?.split(",");

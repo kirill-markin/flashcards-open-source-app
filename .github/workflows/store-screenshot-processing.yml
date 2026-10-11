@@ -33,6 +33,8 @@ on:
           - all
           - iphone
           - ipad
+          - iphone-duo-outer
+          - iphone-duo-inner
       locales:
         description: Comma-separated locale IDs; empty processes all configured sets
         required: false
