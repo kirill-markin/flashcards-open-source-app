@@ -118,7 +118,7 @@ function loadFiles(root: string, locale: Locale, specs: Map<string, JsonObject>)
       const fileName = family + "-" + sourceName;
       const path = join(directory, sourceName);
       const { bytes, width, height } = png(path);
-      const expected = family === "iphone-duo-outer" ? "1398x2034" : "2007x2853";
+      const expected = family === "iphone-duo-outer" ? "1398x2034" : "2853x2007";
       if (width + "x" + height !== expected) throw new Error(path + ": expected " + expected + ", got " + width + "x" + height);
       const specId = matchingSpec(specs, width, height, bytes.length, path);
       const slot = locale.storeLocale + ":" + family + ":" + index;

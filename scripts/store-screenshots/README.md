@@ -2,7 +2,7 @@
 
 An independent post-processing flow for **already generated** native screenshots.
 It adds Nibomo's approved store-card backgrounds and localized marketing copy,
-checks the layout, and writes five portrait cards plus a review gallery into a
+checks the layout, and writes five cards per selected device plus a review gallery into a
 new adjacent directory. It never calls screenshot capture, simulators, emulators,
 guest-session APIs, image-generation services, or store upload commands.
 
@@ -68,10 +68,12 @@ builder (which can regenerate native captures).
 | iOS | `apps/ios/docs/media/app-store-screenshots/` | `apps/ios/docs/media/app-store-cards/` |
 | Android | `apps/android/docs/media/play-store-screenshots/` | `apps/android/docs/media/play-store-cards/` |
 
-Supported native input dimensions and the fixed portrait output geometry are in
+Supported native input dimensions and output geometry are in
 the [format profiles](../../docs/store-screenshot-processing.md#format-profiles).
 Both portrait and landscape iPad captures keep their complete native proportions
-inside the same approved frame. Duo processing requires genuine native captures
+inside the same approved portrait frame. Duo outer cards remain portrait; Duo inner
+cards use the full landscape native capture in a matching landscape frame.
+Duo processing requires genuine native captures
 in `iphone-duo-outer/` or `iphone-duo-inner/` under the iOS input root. A selected
 Duo family fails when its folder or any of the five screenshots is missing or
 has the wrong dimensions. Neither family is included in the default `all` run.
