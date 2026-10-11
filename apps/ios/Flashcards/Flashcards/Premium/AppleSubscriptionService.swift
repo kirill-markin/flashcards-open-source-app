@@ -205,14 +205,13 @@ final class AppleSubscriptionService {
                 appleSubscriptionLogger.error("event=apple_store_purchase_rejected reason=product_mismatch")
                 throw AppleSubscriptionError.unexpectedPurchaseResult
             }
-            guard transaction.appAccountToken == token else {
-                appleSubscriptionLogger.error(
+            if transaction.appAccountToken != token {
+                appleSubscriptionLogger.warning(
                     """
-                    event=apple_store_purchase_rejected reason=account_token_mismatch \
+                    event=apple_store_purchase_account_token_mismatch \
                     token_present=\(String(transaction.appAccountToken != nil), privacy: .public)
                     """
                 )
-                throw AppleSubscriptionError.unexpectedPurchaseResult
             }
             return .verified(verification: verification, transaction: transaction)
         @unknown default:
