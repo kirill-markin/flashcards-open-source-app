@@ -14,9 +14,8 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
             }
         }
         try self.tapTabBarItem(identifier: LiveSmokeSelectedTab.review.itemIdentifier, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        let studySurface = self.app.descendants(matching: .any).matching(identifier: LiveSmokeIdentifier.reviewScreen).firstMatch
         try self.assertElementExists(identifier: LiveSmokeIdentifier.reviewShowAnswerButton, timeout: LiveSmokeConfiguration.reviewInitialProbeTimeoutSeconds)
-        studySurface.click()
+        self.app.activate()
 
         try self.step("reveal using Space and rate with the pointer") {
             self.app.buttons[LiveSmokeIdentifier.reviewShowAnswerButton].hover()
