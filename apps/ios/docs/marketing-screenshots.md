@@ -176,9 +176,11 @@ Use these canonical targets for committed App Store assets:
 | iPhone Duo outer | `iPhone Duo` with outer display selected | `1398 × 2034` portrait | Duo outer display |
 | iPhone Duo inner | `iPhone Duo` with inner display selected | `2853 × 2007` landscape | Duo inner display |
 
-The Duo capture wrapper checks every staged PNG against the selected display's
-native pixel dimensions before guest cleanup can publish it. A wrong pose or
-display fails while previously published screenshots stay in place. The
+For Duo, the wrapper passes the requested native pixel dimensions to XCUITest,
+which selects exactly one full screen from the active native screens by its
+normalized dimensions. The wrapper also checks every staged PNG before guest
+cleanup can publish it. A wrong pose or missing or ambiguous matching screen
+fails while previously published screenshots stay in place. The
 horizontal builder applies the same dimension check to saved Duo raw inputs.
 The ordinary iPhone and iPad capture paths and output folders remain separate.
 

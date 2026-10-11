@@ -467,13 +467,20 @@ escape_json_string() {
 write_runtime_configuration() {
     local output_directory="$1"
     local localization_code="$2"
+    local target_dimensions_json=""
+    if [[ "$device_family" == iphone-duo-* ]]; then
+        local expected_dimensions
+        expected_dimensions="$(duo_native_dimensions)"
+        printf -v target_dimensions_json ',\n  "targetPixelWidth": %s,\n  "targetPixelHeight": %s' \
+            "${expected_dimensions%x*}" "${expected_dimensions#*x}"
+    fi
 
     cat >"$runtime_configuration_path" <<EOF
 {
   "includeManualScreenshotTests": true,
   "outputDirectoryPath": "$(escape_json_string "$output_directory")",
   "localizationCode": "$(escape_json_string "$localization_code")",
-  "orientation": "$orientation"
+  "orientation": "$orientation"$target_dimensions_json
 }
 EOF
 }
@@ -640,17 +647,24 @@ resolve_device_family() {
     exit 1
 }
 
+duo_native_dimensions() {
+    case "$device_family" in
+        iphone-duo-outer) echo "1398x2034" ;;
+        iphone-duo-inner) echo "2853x2007" ;;
+        *) return 1 ;;
+    esac
+}
+
 verify_duo_screenshot_dimensions() {
     local screenshot_path="$1"
     local expected_dimensions=""
     local width=""
     local height=""
 
-    case "$device_family" in
-        iphone-duo-outer) expected_dimensions="1398x2034" ;;
-        iphone-duo-inner) expected_dimensions="2853x2007" ;;
-        *) return ;;
-    esac
+    if [[ "$device_family" != iphone-duo-* ]]; then
+        return
+    fi
+    expected_dimensions="$(duo_native_dimensions)"
 
     width="$(sips -g pixelWidth "$screenshot_path" | sed -nE 's/^[[:space:]]*pixelWidth: ([0-9]+)$/\1/p')"
     height="$(sips -g pixelHeight "$screenshot_path" | sed -nE 's/^[[:space:]]*pixelHeight: ([0-9]+)$/\1/p')"

@@ -7,6 +7,9 @@ private enum MarketingManualScreenshotError: LocalizedError {
     case runtimeConfigurationReadFailed(String, underlying: Error)
     case runtimeConfigurationNotLoaded(String)
     case missingRuntimeConfigurationValue(String)
+    case invalidTargetDimensions(width: Int?, height: Int?)
+    case nativeScreenSelectionFailed(width: Int, height: Int, matches: Int, available: [String])
+    case nativeScreenDoesNotContainApplication(width: Int, height: Int, appFrame: CGRect)
     case unsupportedLocalization(String)
     case cleanupApplicationDidNotReachForeground(timeout: TimeInterval, currentState: String)
     case cleanupLaunchPreparationFailed(String)
@@ -22,6 +25,12 @@ private enum MarketingManualScreenshotError: LocalizedError {
             return "Manual iOS marketing screenshot runtime configuration was not loaded from '\(path)'."
         case .missingRuntimeConfigurationValue(let key):
             return "Manual iOS marketing screenshot runtime configuration is missing '\(key)'."
+        case .invalidTargetDimensions(let width, let height):
+            return "Manual iOS marketing screenshot targetPixelWidth and targetPixelHeight must both be positive integers; got width=\(width.map { String($0) } ?? "missing"), height=\(height.map { String($0) } ?? "missing")."
+        case .nativeScreenSelectionFailed(let width, let height, let matches, let available):
+            return "Expected exactly one native screen with normalized \(width)x\(height) pixels; found \(matches). Available screens: \(available.joined(separator: ", ")). Select the matching iPhone Duo display in Device Hub and recapture."
+        case .nativeScreenDoesNotContainApplication(let width, let height, let appFrame):
+            return "The \(width)x\(height) iPhone Duo screen does not contain the active app (app frame: \(appFrame.width)x\(appFrame.height) points). Select the matching display in Device Hub and recapture."
         case .unsupportedLocalization(let value):
             let supportedValues = MarketingScreenshotFixture.supportedLocalizationCodes.joined(separator: ", ")
             return "Unsupported iOS marketing screenshot localization '\(value)'. Supported values: \(supportedValues)."
@@ -72,6 +81,8 @@ private struct MarketingScreenshotRuntimeConfiguration: Decodable {
     let outputDirectoryPath: String
     let localizationCode: String
     let orientation: String?
+    let targetPixelWidth: Int?
+    let targetPixelHeight: Int?
 
     func validated() throws -> MarketingScreenshotRuntimeConfiguration {
         let trimmedOutputDirectoryPath = self.outputDirectoryPath.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -86,12 +97,21 @@ private struct MarketingScreenshotRuntimeConfiguration: Decodable {
         guard self.orientation == nil || self.orientation == "portrait" || self.orientation == "landscape" else {
             throw MarketingManualScreenshotError.missingRuntimeConfigurationValue("orientation (portrait or landscape)")
         }
+        guard (self.targetPixelWidth == nil && self.targetPixelHeight == nil) ||
+            (self.targetPixelWidth ?? 0) > 0 && (self.targetPixelHeight ?? 0) > 0 else {
+            throw MarketingManualScreenshotError.invalidTargetDimensions(
+                width: self.targetPixelWidth,
+                height: self.targetPixelHeight
+            )
+        }
 
         return MarketingScreenshotRuntimeConfiguration(
             includeManualScreenshotTests: self.includeManualScreenshotTests,
             outputDirectoryPath: trimmedOutputDirectoryPath,
             localizationCode: trimmedLocalizationCode,
-            orientation: self.orientation
+            orientation: self.orientation,
+            targetPixelWidth: self.targetPixelWidth,
+            targetPixelHeight: self.targetPixelHeight
         )
     }
 }
@@ -383,17 +403,47 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
     func captureMarketingScreenshot(fileName: String) throws -> URL {
         let outputDirectoryURL = try self.outputDirectoryURL()
         let screenshotURL = outputDirectoryURL.appendingPathComponent(fileName, isDirectory: false)
-        let screenshot = XCUIScreen.main.screenshot()
-        // XCTest PNGs can retain portrait storage with EXIF rotation. Draw the
-        // captured landscape image upright so App Store reads real landscape pixels.
-        let format = UIGraphicsImageRendererFormat()
-        format.scale = screenshot.image.scale
-        format.opaque = true
-        format.preferredRange = .standard
-        let uprightImage = UIGraphicsImageRenderer(size: screenshot.image.size, format: format).image { _ in
-            screenshot.image.draw(in: CGRect(origin: .zero, size: screenshot.image.size))
+        let runtimeConfiguration = try self.manualRuntimeConfiguration()
+        let selectedCapture: (screenshot: XCUIScreenshot, image: UIImage)
+        if let targetWidth = runtimeConfiguration.targetPixelWidth,
+            let targetHeight = runtimeConfiguration.targetPixelHeight {
+            var matchingCaptures: [(screenshot: XCUIScreenshot, image: UIImage)] = []
+            var availableScreens: [String] = []
+            for (index, screen) in XCUIScreen.screens.enumerated() {
+                let candidate = screen.screenshot()
+                let image = Self.uprightImage(for: candidate)
+                let width = image.cgImage!.width
+                let height = image.cgImage!.height
+                availableScreens.append("screen \(index): \(width)x\(height)")
+                if width == targetWidth && height == targetHeight {
+                    matchingCaptures.append((candidate, image))
+                }
+            }
+            guard matchingCaptures.count == 1 else {
+                throw MarketingManualScreenshotError.nativeScreenSelectionFailed(
+                    width: targetWidth,
+                    height: targetHeight,
+                    matches: matchingCaptures.count,
+                    available: availableScreens
+                )
+            }
+            let appFrame = self.app.frame
+            guard appFrame.width > 0, appFrame.height > 0,
+                abs(appFrame.width / appFrame.height - CGFloat(targetWidth) / CGFloat(targetHeight)) < 0.01 else {
+                throw MarketingManualScreenshotError.nativeScreenDoesNotContainApplication(
+                    width: targetWidth,
+                    height: targetHeight,
+                    appFrame: appFrame
+                )
+            }
+            selectedCapture = matchingCaptures[0]
+        } else {
+            let screenshot = XCUIScreen.main.screenshot()
+            selectedCapture = (screenshot, Self.uprightImage(for: screenshot))
         }
-        let landscape = try self.manualRuntimeConfiguration().orientation == "landscape"
+        let screenshot = selectedCapture.screenshot
+        let uprightImage = selectedCapture.image
+        let landscape = runtimeConfiguration.orientation == "landscape"
         XCTAssertEqual(uprightImage.cgImage!.width > uprightImage.cgImage!.height, landscape,
             "Marketing screenshot must use the requested orientation.")
         let attachment = XCTAttachment(screenshot: screenshot)
@@ -421,6 +471,20 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
         }
 
         return screenshotURL
+    }
+
+    @MainActor
+    private static func uprightImage(for screenshot: XCUIScreenshot) -> UIImage {
+        // XCTest PNGs can retain portrait storage with EXIF rotation. Draw the
+        // captured landscape image upright so App Store reads real landscape pixels.
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = screenshot.image.scale
+        format.opaque = true
+        format.preferredRange = .standard
+        let uprightImage = UIGraphicsImageRenderer(size: screenshot.image.size, format: format).image { _ in
+            screenshot.image.draw(in: CGRect(origin: .zero, size: screenshot.image.size))
+        }
+        return uprightImage
     }
 
     @MainActor
@@ -557,7 +621,9 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
             includeManualScreenshotTests: true,
             outputDirectoryPath: environment[MarketingScreenshotEnvironment.outputDirectoryPathKey] ?? "",
             localizationCode: environment[MarketingScreenshotEnvironment.localizationKey] ?? "",
-            orientation: environment["FLASHCARDS_MARKETING_SCREENSHOT_ORIENTATION"]
+            orientation: environment["FLASHCARDS_MARKETING_SCREENSHOT_ORIENTATION"],
+            targetPixelWidth: nil,
+            targetPixelHeight: nil
         )
 
         do {
