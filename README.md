@@ -1,86 +1,30 @@
 # Nibomo
 
-AI-powered open-source flashcards app for iOS, Android, and web.
+AI-powered, open-source flashcards for iPhone, iPad, Mac, Android, and the web.
 
 ![Nibomo screenshots](apps/ios/docs/media/marketing-materials/iphone/en-US-1-2-3-4-5-horizontal-dark-gray.png)
 
-Nibomo (formerly Flashcards Open Source App) is an open-source AI-powered flashcards app built for serious daily study on iOS, Android, and the web. Use it to prepare for exams, learn vocabulary, memorize technical terms and facts, improve your material with AI, and review with spaced repetition. The project also includes an external agent API for terminal and AI-agent workflows.
+Prepare for exams, learn vocabulary, and memorize technical terms and facts. Create and improve cards with AI, study offline on mobile, and review with FSRS spaced repetition.
 
 ## Available on
 
-- [iOS](https://apps.apple.com/us/app/flashcards-open-source-app/id6760538964)
-- [Android](https://play.google.com/store/apps/details?id=com.flashcardsopensourceapp.app&pcampaignid=web_share)
-- [Web](https://app.nibomo.com/review)
-- MCP server: https://mcp.nibomo.com/mcp
-- Agent API: https://api.flashcards-open-source-app.com/v1/
+- [iPhone and iPad](https://apps.apple.com/us/app/flashcards-open-source-app/id6760538964) — including iPhone Duo; iOS / iPadOS 18+.
+- [macOS](https://apps.apple.com/us/app/flashcards-open-source-app/id6760538964) — macOS 15+ on Apple silicon.
+- [Android](https://play.google.com/store/apps/details?id=com.flashcardsopensourceapp.app&pcampaignid=web_share) — Android 11, 12, 12L, 13, 14, 15, 16, and 17.
+- [Web](https://app.nibomo.com/review) — study in your browser.
+- [AI assistants via MCP](https://nibomo.com/docs/mcp-connector/) — connect at `https://mcp.nibomo.com/mcp`.
 
-## Card scheduling
+## Documentation
 
-Card scheduling uses FSRS-based spaced repetition. Detailed scheduling rules live in [docs/fsrs-scheduling-logic.md](docs/fsrs-scheduling-logic.md).
-
-## MCP connector
-
-The hosted MCP server is available at `https://mcp.nibomo.com/mcp` and publishes to MCP registries under `com.nibomo/flashcards`. It exposes eight tools, most of them workspace-scoped: `list_workspaces`, `sql_query`, `sql_execute`, `get_guide`, `next_review_card`, `reveal_answer`, `submit_review`, and the account-scoped `get_usage_limits`.
-
-The dedicated review tools support one-question-at-a-time conversations and idempotent FSRS scheduling. See [conversational reviews](docs/conversational-reviews.md) for the contract shared by MCP, the in-app chat, and the Agent API, and for voice-session examples. ChatGPT Voice currently does not invoke apps/MCP; these tools do not remove that external limitation.
-
-Interactive clients authenticate with OAuth 2.1 authorization code + PKCE and Dynamic Client Registration. Headless clients can use an `fca_` Bearer token.
-
-The former address `https://mcp.flashcards-open-source-app.com/mcp` still serves the same server, so existing client configurations keep working. A client moved to `https://mcp.nibomo.com/mcp` authorizes once more; [backend and web deployment](docs/backend-web-deployment.md) owns why.
-
-- [MCP connector docs](https://nibomo.com/docs/mcp-connector/)
-- [Agent API docs](https://nibomo.com/docs/api/)
-- [Privacy](https://nibomo.com/privacy/)
-- [Support](https://nibomo.com/support/)
-
-### Cline CLI
-
-Create an agent API key using the [MCP connector authentication instructions](https://nibomo.com/docs/mcp-connector/#authentication). Add the following `nibomo` entry to `mcpServers` in Cline's MCP settings, preserving any existing servers and replacing `<YOUR_AGENT_KEY>` with your key:
-
-```json
-{
-  "mcpServers": {
-    "nibomo": {
-      "type": "streamableHttp",
-      "url": "https://mcp.nibomo.com/mcp",
-      "headers": {
-        "Authorization": "Bearer <YOUR_AGENT_KEY>"
-      },
-      "disabled": false,
-      "autoApprove": []
-    }
-  }
-}
-```
-
-Cline CLI 3.0.68 reads `~/.cline/data/settings/cline_mcp_settings.json` by default. If `CLINE_DATA_DIR` is set, use `$CLINE_DATA_DIR/settings/cline_mcp_settings.json`. For an isolated profile, set `CLINE_MCP_SETTINGS_PATH` to the full path of your MCP settings file when launching Cline; this overrides the default path.
-
-After saving, restart Cline CLI before using the tools so the new session loads the server registration. Ask: "Use Nibomo's `list_workspaces` tool to list my workspaces without changing any data." Approve that read-only call when prompted.
-
-## Docs
-
-- [iOS app](apps/ios/README.md)
-- [Android app](apps/android/README.md)
-- [Web app](apps/web/README.md)
-- [Architecture](docs/architecture.md)
-- [Backend and web deployment](docs/backend-web-deployment.md)
-- [Public site URLs (`PUBLIC_SITE_BASE_URL`)](docs/public-site-urls.md)
-- [Release gates and monitoring](docs/release-gates.md)
-- [Release all platforms](docs/release/README.md)
-- [Platform release procedures](docs/release/README.md#required-reading)
-- [iOS local setup](docs/ios-local-setup.md)
-- [iOS CI/CD](docs/ios-ci-cd.md)
-- [Android CI/CD](docs/android-ci-cd.md)
-- [Agent API](https://api.flashcards-open-source-app.com/v1/)
+- [User guides](https://nibomo.com/docs/)
+- [Developer docs](docs/README.md) — platform guides, architecture, scheduling, setup, and releases.
+- [MCP client setup](docs/mcp-connector.md)
+- [Support](https://nibomo.com/support/) · [Privacy](https://nibomo.com/privacy/)
 
 ## Contributing
 
-See the [contribution guide](CONTRIBUTING.md).
+Contributions are welcome! See the [contribution guide](CONTRIBUTING.md).
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Author
-
-- [Kirill Markin](https://github.com/kirill-markin)
+[MIT](LICENSE). Created by [Kirill Markin](https://github.com/kirill-markin).
