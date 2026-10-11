@@ -484,11 +484,16 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
         guard fileName.range(of: "^[A-Za-z0-9][A-Za-z0-9_-]*\\.png$", options: .regularExpression) != nil else {
             throw MarketingManualScreenshotError.hostCaptureFailed("Invalid screenshot filename '\(fileName)'.")
         }
-        let appFrame = self.app.frame
-        guard self.app.state == .runningForeground, appFrame.width > 0, appFrame.height > 0,
-            abs(appFrame.width / appFrame.height - CGFloat(targetWidth) / CGFloat(targetHeight)) < 0.01 else {
+        let visibleWindowFrames = self.app.windows.allElementsBoundByIndex
+            .filter(\.isHittable)
+            .map(\.frame)
+        guard self.app.state == .runningForeground, visibleWindowFrames.isEmpty == false,
+            visibleWindowFrames.allSatisfy({ frame in
+                frame.width > 0 && frame.height > 0 &&
+                    abs(frame.width / frame.height - CGFloat(targetWidth) / CGFloat(targetHeight)) < 0.01
+            }) else {
             throw MarketingManualScreenshotError.hostCaptureFailed(
-                "The active app frame \(appFrame.width)x\(appFrame.height) does not match the \(targetWidth)x\(targetHeight) Duo display. Select the matching pose in Device Hub."
+                "The visible app window frames \(visibleWindowFrames) do not match the \(targetWidth)x\(targetHeight) Duo display. Select the matching pose in Device Hub."
             )
         }
         let directory = URL(fileURLWithPath: directoryPath, isDirectory: true)
