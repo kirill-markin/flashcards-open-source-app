@@ -264,10 +264,14 @@ extension FlashcardsStore {
         if self.isCloudAccountDeletedError(error) {
             return .triggerOwnedCapture
         }
+        if isSilentlyIgnorableNetworkTransportFailure(error: error) {
+            return .skip
+        }
 
-        // Everything a cancellation, an identity conflict or a retryable transport failure explains has
-        // already returned above, so what reaches the repetition gate is an unexplained failure from a
-        // trigger that reports nothing. Repeated, that is the one thing here worth waking Sentry for.
+        // Everything a cancellation, an identity conflict, a retryable transport failure or a
+        // TLS/certificate transport failure explains has already returned above, so what reaches the
+        // repetition gate is an unexplained failure from a trigger that reports nothing. Repeated, that
+        // is the one thing here worth waking Sentry for.
         guard cloudSyncFailureRepetitionGate.admitsCapture(
             signature: cloudSyncFailureRepetitionSignature(
                 error: error,
