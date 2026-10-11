@@ -145,7 +145,7 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
     @MainActor
     private func openSettingsRootRow(identifier: String) throws {
         try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        try self.tapButtonScrollingIntoView(
+        try self.tapSettingsButtonScrollingIntoView(
             identifier: identifier,
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
