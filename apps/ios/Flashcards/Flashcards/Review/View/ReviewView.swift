@@ -673,11 +673,7 @@ struct ReviewView: View {
             .modifier(ReviewHardwareKeyboardModifier(
                 isFocused: self.$isReviewKeyboardFocused,
                 onKeyPress: self.handleReviewKeyPress,
-                onTap: {
-                    if self.canUseReviewKeyboardShortcuts {
-                        self.isReviewKeyboardFocused = true
-                    }
-                }
+                onTap: self.focusReviewKeyboard
             ))
             .onChange(of: isAnswerVisible) { wasVisible, isVisible in
                 guard wasVisible == false, isVisible else {
@@ -1032,9 +1028,13 @@ struct ReviewView: View {
         return .handled
     }
 
+    private func focusReviewKeyboard() {
+        if self.canUseReviewKeyboardShortcuts {
+            self.isReviewKeyboardFocused = true
+        }
+    }
+
     /**
-     * The flip, and the only place the answer side is shown.
-     *
      * `review_card_revealed` is emitted from the explicit reveal action rather than from a state observer,
      * because an observer fires for view updates the person did not cause. The guard is
      * `isAnswerVisible`, which is per *presentation* and not per card: `.onChange(of:
@@ -1060,6 +1060,7 @@ struct ReviewView: View {
 
     private var showAnswerButton: some View {
         Button {
+            self.focusReviewKeyboard()
             self.revealReviewAnswer()
         } label: {
             Label(String(localized: "Show answer", table: reviewCardsStringsTableName), systemImage: "eye")
@@ -1067,6 +1068,7 @@ struct ReviewView: View {
                 .frame(minHeight: showAnswerButtonMinHeight)
         }
         .nativeProminentActionButtonStyle()
+        .reviewCardsShortcutHelp(key: String(localized: "Space", table: reviewCardsStringsTableName))
         .accessibilityIdentifier(UITestIdentifier.reviewShowAnswerButton)
     }
 
@@ -1106,6 +1108,7 @@ struct ReviewView: View {
 
     private func reviewAnswerButton(cardId: String, option: ReviewAnswerOption) -> some View {
         Button {
+            self.focusReviewKeyboard()
             self.rateReviewCard(cardId: cardId, rating: option.rating)
         } label: {
             VStack(alignment: .center, spacing: 4) {
@@ -1127,6 +1130,7 @@ struct ReviewView: View {
             .frame(maxWidth: .infinity, minHeight: reviewAnswerButtonMinHeight, alignment: .center)
         }
         .nativeProminentActionButtonStyle()
+        .reviewCardsShortcutHelp(key: String(option.rating.rawValue + 1))
         .disabled(store.isReviewPending(cardId: cardId))
         .accessibilityIdentifier(reviewAnswerButtonIdentifier(rating: option.rating))
     }
@@ -1266,7 +1270,6 @@ private func reviewRepetitionBadge(reps: Int) -> some View {
     }
 }
 
-/// Add hardware study focus only to iPad; phones retain their native focus behavior.
 private struct ReviewHardwareKeyboardModifier: ViewModifier {
     var isFocused: FocusState<Bool>.Binding
     var onKeyPress: (KeyPress) -> KeyPress.Result
