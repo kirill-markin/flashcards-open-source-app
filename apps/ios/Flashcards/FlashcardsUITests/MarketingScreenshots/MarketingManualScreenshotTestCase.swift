@@ -12,6 +12,7 @@ private enum MarketingManualScreenshotError: LocalizedError {
     case cleanupLaunchPreparationFailed(String)
     case cleanupLaunchPreparationTimedOut(expectedValue: String, actualValue: String)
     case outputDirectoryCreationFailed(String, underlying: Error)
+    case hostCaptureFailed(String)
     case screenshotWriteFailed(String, underlying: Error)
 
     var errorDescription: String? {
@@ -33,6 +34,8 @@ private enum MarketingManualScreenshotError: LocalizedError {
             return "Marketing screenshot cleanup launch preparation did not reach '\(expectedValue)'. actualValue='\(actualValue)'."
         case .outputDirectoryCreationFailed(let path, let underlying):
             return "Failed to create iOS marketing screenshot output directory at '\(path)': \(underlying.localizedDescription)"
+        case .hostCaptureFailed(let message):
+            return "Duo host screenshot capture failed: \(message)"
         case .screenshotWriteFailed(let path, let underlying):
             return "Failed to write iOS marketing screenshot PNG to '\(path)': \(underlying.localizedDescription)"
         }
@@ -72,6 +75,9 @@ private struct MarketingScreenshotRuntimeConfiguration: Decodable {
     let outputDirectoryPath: String
     let localizationCode: String
     let orientation: String?
+    let targetPixelWidth: Int?
+    let targetPixelHeight: Int?
+    let hostCaptureDirectoryPath: String?
 
     func validated() throws -> MarketingScreenshotRuntimeConfiguration {
         let trimmedOutputDirectoryPath = self.outputDirectoryPath.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -86,12 +92,22 @@ private struct MarketingScreenshotRuntimeConfiguration: Decodable {
         guard self.orientation == nil || self.orientation == "portrait" || self.orientation == "landscape" else {
             throw MarketingManualScreenshotError.missingRuntimeConfigurationValue("orientation (portrait or landscape)")
         }
+        let hasDuoConfiguration = self.targetPixelWidth != nil || self.targetPixelHeight != nil || self.hostCaptureDirectoryPath != nil
+        if hasDuoConfiguration {
+            guard (self.targetPixelWidth ?? 0) > 0, (self.targetPixelHeight ?? 0) > 0,
+                let path = self.hostCaptureDirectoryPath, path.hasPrefix("/") else {
+                throw MarketingManualScreenshotError.hostCaptureFailed("Expected positive targetPixelWidth, targetPixelHeight, and an absolute hostCaptureDirectoryPath.")
+            }
+        }
 
         return MarketingScreenshotRuntimeConfiguration(
             includeManualScreenshotTests: self.includeManualScreenshotTests,
             outputDirectoryPath: trimmedOutputDirectoryPath,
             localizationCode: trimmedLocalizationCode,
-            orientation: self.orientation
+            orientation: self.orientation,
+            targetPixelWidth: self.targetPixelWidth,
+            targetPixelHeight: self.targetPixelHeight,
+            hostCaptureDirectoryPath: self.hostCaptureDirectoryPath
         )
     }
 }
@@ -383,23 +399,61 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
     func captureMarketingScreenshot(fileName: String) throws -> URL {
         let outputDirectoryURL = try self.outputDirectoryURL()
         let screenshotURL = outputDirectoryURL.appendingPathComponent(fileName, isDirectory: false)
-        let screenshot = XCUIScreen.main.screenshot()
+        let runtimeConfiguration = try self.manualRuntimeConfiguration()
+        let screenshot: XCUIScreenshot?
+        let sourceImage: UIImage
+        if let hostDirectory = runtimeConfiguration.hostCaptureDirectoryPath,
+            let targetWidth = runtimeConfiguration.targetPixelWidth,
+            let targetHeight = runtimeConfiguration.targetPixelHeight {
+            let capturedData = try self.requestDuoHostScreenshot(
+                fileName: fileName, directoryPath: hostDirectory,
+                targetWidth: targetWidth, targetHeight: targetHeight
+            )
+            guard let image = UIImage(data: capturedData) else {
+                throw MarketingManualScreenshotError.hostCaptureFailed("Could not decode host PNG for \(fileName).")
+            }
+            guard let nativePixels = image.cgImage,
+                [nativePixels.width, nativePixels.height].sorted() == [targetWidth, targetHeight].sorted() else {
+                throw MarketingManualScreenshotError.hostCaptureFailed(
+                    "Host PNG for \(fileName) does not contain the full \(targetWidth)x\(targetHeight) native pixel frame."
+                )
+            }
+            sourceImage = image
+            screenshot = nil
+            let attachment = XCTAttachment(data: capturedData, uniformTypeIdentifier: "public.png")
+            attachment.name = fileName
+            attachment.lifetime = .keepAlways
+            self.add(attachment)
+        } else {
+            let captured = XCUIScreen.main.screenshot()
+            sourceImage = captured.image
+            screenshot = captured
+        }
         // XCTest PNGs can retain portrait storage with EXIF rotation. Draw the
         // captured landscape image upright so App Store reads real landscape pixels.
         let format = UIGraphicsImageRendererFormat()
-        format.scale = screenshot.image.scale
+        format.scale = sourceImage.scale
         format.opaque = true
         format.preferredRange = .standard
-        let uprightImage = UIGraphicsImageRenderer(size: screenshot.image.size, format: format).image { _ in
-            screenshot.image.draw(in: CGRect(origin: .zero, size: screenshot.image.size))
+        let uprightImage = UIGraphicsImageRenderer(size: sourceImage.size, format: format).image { _ in
+            sourceImage.draw(in: CGRect(origin: .zero, size: sourceImage.size))
         }
-        let landscape = try self.manualRuntimeConfiguration().orientation == "landscape"
+        if let targetWidth = runtimeConfiguration.targetPixelWidth,
+            let targetHeight = runtimeConfiguration.targetPixelHeight,
+            (uprightImage.cgImage?.width != targetWidth || uprightImage.cgImage?.height != targetHeight) {
+            throw MarketingManualScreenshotError.hostCaptureFailed(
+                "Expected full native \(targetWidth)x\(targetHeight) pixels for \(fileName), got \(uprightImage.cgImage?.width ?? 0)x\(uprightImage.cgImage?.height ?? 0)."
+            )
+        }
+        let landscape = runtimeConfiguration.orientation == "landscape"
         XCTAssertEqual(uprightImage.cgImage!.width > uprightImage.cgImage!.height, landscape,
             "Marketing screenshot must use the requested orientation.")
-        let attachment = XCTAttachment(screenshot: screenshot)
-        attachment.name = fileName
-        attachment.lifetime = .keepAlways
-        self.add(attachment)
+        if let screenshot {
+            let attachment = XCTAttachment(screenshot: screenshot)
+            attachment.name = fileName
+            attachment.lifetime = .keepAlways
+            self.add(attachment)
+        }
 
         do {
             let image = uprightImage.cgImage!
@@ -421,6 +475,51 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
         }
 
         return screenshotURL
+    }
+
+    @MainActor
+    private func requestDuoHostScreenshot(
+        fileName: String, directoryPath: String, targetWidth: Int, targetHeight: Int
+    ) throws -> Data {
+        guard fileName.range(of: "^[A-Za-z0-9][A-Za-z0-9_-]*\\.png$", options: .regularExpression) != nil else {
+            throw MarketingManualScreenshotError.hostCaptureFailed("Invalid screenshot filename '\(fileName)'.")
+        }
+        let appFrame = self.app.frame
+        guard self.app.state == .runningForeground, appFrame.width > 0, appFrame.height > 0,
+            abs(appFrame.width / appFrame.height - CGFloat(targetWidth) / CGFloat(targetHeight)) < 0.01 else {
+            throw MarketingManualScreenshotError.hostCaptureFailed(
+                "The active app frame \(appFrame.width)x\(appFrame.height) does not match the \(targetWidth)x\(targetHeight) Duo display. Select the matching pose in Device Hub."
+            )
+        }
+        let directory = URL(fileURLWithPath: directoryPath, isDirectory: true)
+        let request = directory.appendingPathComponent("requests/\(fileName).request")
+        let response = directory.appendingPathComponent("responses/\(fileName)")
+        let failure = directory.appendingPathComponent("responses/\(fileName).error")
+        guard FileManager.default.fileExists(atPath: request.path) == false,
+            FileManager.default.fileExists(atPath: response.path) == false,
+            FileManager.default.fileExists(atPath: failure.path) == false else {
+            throw MarketingManualScreenshotError.hostCaptureFailed("Duplicate host request for \(fileName).")
+        }
+        do {
+            try Data().write(to: request, options: .atomic)
+        } catch {
+            throw MarketingManualScreenshotError.hostCaptureFailed("Could not submit \(fileName) to \(request.path): \(error.localizedDescription)")
+        }
+        let deadline = Date().addingTimeInterval(30)
+        while Date() < deadline {
+            if FileManager.default.fileExists(atPath: failure.path) {
+                let message = (try? String(contentsOf: failure, encoding: .utf8)) ?? "Host service reported an unreadable error."
+                throw MarketingManualScreenshotError.hostCaptureFailed("\(fileName): \(message)")
+            }
+            if FileManager.default.fileExists(atPath: response.path) {
+                do { return try Data(contentsOf: response) }
+                catch {
+                    throw MarketingManualScreenshotError.hostCaptureFailed("Could not read \(response.path): \(error.localizedDescription)")
+                }
+            }
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.1))
+        }
+        throw MarketingManualScreenshotError.hostCaptureFailed("Timed out after 30 seconds waiting for \(fileName) at \(response.path).")
     }
 
     @MainActor
@@ -557,7 +656,10 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
             includeManualScreenshotTests: true,
             outputDirectoryPath: environment[MarketingScreenshotEnvironment.outputDirectoryPathKey] ?? "",
             localizationCode: environment[MarketingScreenshotEnvironment.localizationKey] ?? "",
-            orientation: environment["FLASHCARDS_MARKETING_SCREENSHOT_ORIENTATION"]
+            orientation: environment["FLASHCARDS_MARKETING_SCREENSHOT_ORIENTATION"],
+            targetPixelWidth: nil,
+            targetPixelHeight: nil,
+            hostCaptureDirectoryPath: nil
         )
 
         do {
