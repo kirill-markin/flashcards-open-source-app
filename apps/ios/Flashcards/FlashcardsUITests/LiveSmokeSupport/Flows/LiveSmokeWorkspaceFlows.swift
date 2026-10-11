@@ -218,7 +218,7 @@ extension LiveSmokeTestCase {
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
 
-        try self.tapAlertButtonPreservingAlerts(label: "Continue", timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.tapWorkspaceWarningContinuePreservingAlerts(timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
 
         let confirmationPhrase = self.app.staticTexts[LiveSmokeIdentifier.deleteWorkspaceConfirmationPhrase]
         if self.waitForOptionalElement(
@@ -297,7 +297,7 @@ extension LiveSmokeTestCase {
             identifier: LiveSmokeIdentifier.workspaceSettingsResetProgressButton,
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
-        try self.tapAlertButtonPreservingAlerts(label: "Continue", timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.tapWorkspaceWarningContinuePreservingAlerts(timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
         try self.assertElementExists(
             identifier: LiveSmokeIdentifier.resetWorkspaceProgressConfirmationPhrase,
             timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
