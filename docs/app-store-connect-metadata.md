@@ -1,5 +1,8 @@
 # App Store Connect Metadata
 
+Duo screenshot upload has a separate
+[Asset Library procedure](app-store-connect-duo-screenshots.md).
+
 Related competitor references: [iOS competitors](competitor-store-metadata.md#ios)
 
 Premium subscription configuration and texts: [subscription store metadata](subscription-store-metadata.md)
