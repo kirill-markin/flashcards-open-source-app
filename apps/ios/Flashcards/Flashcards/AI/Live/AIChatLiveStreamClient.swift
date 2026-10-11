@@ -51,11 +51,13 @@ actor AIChatLiveStreamClient {
         afterCursor: String?,
         configurationMode: CloudServiceConfigurationMode,
         resumeAttemptDiagnostics: AIChatResumeAttemptDiagnostics?
-    ) -> AsyncThrowingStream<AIChatLiveStreamElement, Error> {
+    ) async -> AsyncThrowingStream<AIChatLiveStreamElement, Error> {
         let decoder = self.decoder
         let fallbackConfiguration = self.fallbackSession.configuration
         let liveConfiguration = self.configuration
         let clientRequestId = makeAIChatClientRequestId()
+        let clientOsName = await currentClientOsName()
+        let clientDeviceType = await currentClientDeviceType()
         return AsyncThrowingStream { continuation in
             do {
                 let url = try makeAIChatLiveStreamURL(
@@ -87,6 +89,8 @@ actor AIChatLiveStreamClient {
                 request.setValue(clientRequestId, forHTTPHeaderField: "X-Chat-Request-Id")
                 request.setValue(aiChatClientPlatform, forHTTPHeaderField: "X-Client-Platform")
                 request.setValue(aiChatAppVersion(), forHTTPHeaderField: "X-Client-Version")
+                request.setValue(clientOsName, forHTTPHeaderField: "X-Client-Os-Name")
+                request.setValue(clientDeviceType, forHTTPHeaderField: "X-Client-Device-Type")
                 request.setValue(aiChatLiveClientId, forHTTPHeaderField: "X-Chat-Live-Client-Id")
                 if let resumeAttemptDiagnostics {
                     request.setValue(
