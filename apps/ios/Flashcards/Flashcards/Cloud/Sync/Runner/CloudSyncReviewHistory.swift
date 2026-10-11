@@ -89,6 +89,8 @@ extension CloudSyncRunner {
                     installationId: installationId,
                     platform: "ios",
                     appVersion: self.transport.appVersion(),
+                    osName: currentClientOsName(),
+                    deviceType: currentClientDeviceType(),
                     isAutomation: AutomationRun.current.isAutomation,
                     reviewEvents: Array(reviewEvents[startIndex..<endIndex])
                 )
@@ -123,6 +125,8 @@ extension CloudSyncRunner {
                     installationId: installationId,
                     platform: "ios",
                     appVersion: self.transport.appVersion(),
+                    osName: currentClientOsName(),
+                    deviceType: currentClientDeviceType(),
                     isAutomation: AutomationRun.current.isAutomation,
                     afterReviewSequenceId: afterReviewSequenceId,
                     limit: 200

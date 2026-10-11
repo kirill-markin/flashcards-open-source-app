@@ -44,7 +44,9 @@ export type AnalyticsEvent = Readonly<{
   dailyVisitorHash: string | null;
   platform: string | null;
   appVersion: string | null;
+  osName: string | null;
   osVersion: string | null;
+  deviceType: string | null;
   deviceModel: string | null;
   deviceLocale: string | null;
   timezone: string | null;
@@ -89,7 +91,9 @@ const eventFieldSql: Readonly<Record<EventField, string>> = {
   dailyVisitorHash: "events.daily_visitor_hash",
   platform: "events.platform",
   appVersion: "events.app_version",
+  osName: "events.os_name",
   osVersion: "events.os_version",
+  deviceType: "events.device_type",
   deviceModel: "events.device_model",
   deviceLocale: "events.device_locale",
   timezone: "events.timezone",
@@ -145,7 +149,9 @@ function parseEvent(row: AdminQueryRow): AnalyticsEvent {
     dailyVisitorHash: nullableString("dailyVisitorHash"),
     platform: nullableString("platform"),
     appVersion: nullableString("appVersion"),
+    osName: nullableString("osName"),
     osVersion: nullableString("osVersion"),
+    deviceType: nullableString("deviceType"),
     deviceModel: nullableString("deviceModel"),
     deviceLocale: nullableString("deviceLocale"),
     timezone: nullableString("timezone"),

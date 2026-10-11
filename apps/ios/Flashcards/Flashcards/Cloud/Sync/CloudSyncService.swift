@@ -644,6 +644,8 @@ final class CloudSyncService: @unchecked Sendable {
                 installationId: installationId,
                 platform: "ios",
                 appVersion: self.transport.appVersion(),
+                osName: currentClientOsName(),
+                deviceType: currentClientDeviceType(),
                 isAutomation: AutomationRun.current.isAutomation,
                 cursor: nil,
                 limit: 1,
