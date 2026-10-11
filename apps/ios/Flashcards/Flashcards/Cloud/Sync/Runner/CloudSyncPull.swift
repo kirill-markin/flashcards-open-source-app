@@ -71,6 +71,8 @@ extension CloudSyncRunner {
                     installationId: installationId,
                     platform: "ios",
                     appVersion: self.transport.appVersion(),
+                    osName: currentClientOsName(),
+                    deviceType: currentClientDeviceType(),
                     isAutomation: AutomationRun.current.isAutomation,
                     afterHotChangeId: afterHotChangeId,
                     limit: 200,
