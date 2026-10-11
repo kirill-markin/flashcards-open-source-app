@@ -138,6 +138,8 @@ test("ensureWorkspaceReplicaInExecutor accepts inserted, refreshed, and reassign
       installationId: "installation-1",
       platform: "ios",
       appVersion: "1.2.3",
+      osName: null,
+      deviceType: null,
       isAutomation: false,
     });
 
@@ -149,7 +151,7 @@ test("ensureWorkspaceReplicaInExecutor accepts inserted, refreshed, and reassign
     assert.ok(isWorkspaceAccessLockQuery(recordedQueries[2]!.text));
     assert.deepEqual(recordedQueries[2]!.params, ["user-b", "workspace-1"]);
     assert.match(recordedQueries[3]!.text, /FROM sync\.claim_installation/);
-    assert.deepEqual(recordedQueries[3]!.params, ["installation-1", "ios", "user-b", "1.2.3"]);
+    assert.deepEqual(recordedQueries[3]!.params, ["installation-1", "ios", "user-b", "1.2.3", null, null]);
     assert.match(recordedQueries[4]!.text, /INSERT INTO sync\.workspace_replicas/);
     assert.equal(replicaId, recordedQueries[4]!.params[0]);
   }
@@ -169,6 +171,8 @@ test("ensureWorkspaceReplicaInExecutor raises platform mismatch without touching
       installationId: "installation-1",
       platform: "ios",
       appVersion: "1.2.3",
+      osName: null,
+      deviceType: null,
       isAutomation: false,
     }),
     (error: unknown): boolean => {
@@ -200,6 +204,8 @@ test("ensureWorkspaceReplicaInExecutor raises workspace not found before registe
       installationId: "installation-1",
       platform: "ios",
       appVersion: "1.2.3",
+      osName: null,
+      deviceType: null,
       isAutomation: false,
     }),
     (error: unknown): boolean => {

@@ -518,6 +518,8 @@ test("chat run deduplication preserves the initiating guest classification and c
       null,
       false,
       "ios",
+      null,
+      null,
       countAllowanceCheck,
     );
     assert.equal(guestRun.initiatingAuthIsSignedIn, false);
@@ -533,6 +535,8 @@ test("chat run deduplication preserves the initiating guest classification and c
       null,
       true,
       "web",
+      null,
+      null,
       countAllowanceCheck,
     );
     assert.equal(signedInReplay.deduplicated, true);

@@ -12,7 +12,11 @@ import {
 } from "../config";
 import type { ChatCostPolicyMode } from "../costPolicy";
 import type { ChatComposerSuggestionsLocale } from "../composerSuggestions";
-import type { ProductAnalyticsClientReportablePlatform } from "../../productAnalytics/catalog";
+import type {
+  ProductAnalyticsClientReportablePlatform,
+  ProductAnalyticsDeviceType,
+  ProductAnalyticsOsName,
+} from "../../productAnalytics/catalog";
 import type { ChatSessionRunState } from "../store";
 import type { ChatSessionRow } from "../store/repository";
 import type { ContentPart } from "../types";
@@ -72,6 +76,8 @@ export type InsertChatRunParams = Readonly<{
   turnInput: ReadonlyArray<ContentPart>;
   initiatingAuthIsSignedIn: boolean;
   clientPlatform: ProductAnalyticsClientReportablePlatform | null;
+  clientOsName: ProductAnalyticsOsName | null;
+  clientDeviceType: ProductAnalyticsDeviceType | null;
 }>;
 
 export type UpdateChatRunPolicySnapshotParams = Readonly<{
@@ -168,9 +174,11 @@ const INSERT_CHAT_RUN_SQL = `
     turn_input,
     initiating_auth_is_signed_in,
     client_platform,
+    client_os_name,
+    client_device_type,
     updated_at
   )
-  VALUES ($1, $2, 'queued', $3, $4, $5, $6, $7, $8::jsonb, $9, $10, now())
+  VALUES ($1, $2, 'queued', $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11, $12, now())
   RETURNING
 ${CHAT_RUN_COLUMNS_SQL}
 `;
@@ -474,6 +482,8 @@ export async function insertChatRunWithExecutor(
       JSON.stringify(params.turnInput),
       params.initiatingAuthIsSignedIn,
       params.clientPlatform,
+      params.clientOsName,
+      params.clientDeviceType,
     ]);
     return requireRunRow(rows[0], "insert");
   });

@@ -7,6 +7,10 @@ import type {
 import { normalizeIsoTimestamp } from "../conflicts/lww";
 import { validateIanaTimeZone } from "../../progress/timeZone";
 import { expectMediaAssetSourceUrl } from "../../mediaAssets/validators";
+import {
+  productAnalyticsDeviceTypes,
+  productAnalyticsOsNames,
+} from "../../productAnalytics/catalog";
 
 type Platform = "ios" | "android" | "web";
 
@@ -15,6 +19,8 @@ const fsrsCardStateSchema = z.enum(["new", "learning", "review", "relearning"]);
 const reviewRatingSchema = z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]);
 const platformSchema = z.enum(["ios", "android", "web"]);
 const installationIdSchema = z.string().uuid();
+const osNameSchema = z.enum(productAnalyticsOsNames).nullable().optional();
+const deviceTypeSchema = z.enum(productAnalyticsDeviceTypes).nullable().optional();
 // What a client says about itself: `true` claims that this installation runs under automation. An
 // absent field is the negative case, which is what every already released client sends, and `false`
 // is accepted and means exactly the same thing - a client holding a real boolean may send it on
@@ -363,6 +369,8 @@ const syncPushInputBaseSchema = z.object({
   installationId: installationIdSchema,
   platform: platformSchema,
   appVersion: z.string().min(1).nullable().optional(),
+  osName: osNameSchema,
+  deviceType: deviceTypeSchema,
   isAutomation: automationDeclarationSchema,
   operations: z.array(syncPushOperationSchema),
 });
@@ -398,6 +406,8 @@ const syncPullInputSchema = z.object({
   installationId: installationIdSchema,
   platform: platformSchema,
   appVersion: z.string().min(1).nullable().optional(),
+  osName: osNameSchema,
+  deviceType: deviceTypeSchema,
   isAutomation: automationDeclarationSchema,
   afterHotChangeId: z.number().int().nonnegative(),
   limit: z.number().int().positive().max(syncIncrementalPullLimit),
@@ -409,6 +419,8 @@ const syncBootstrapPullInputSchema = z.object({
   installationId: installationIdSchema,
   platform: platformSchema,
   appVersion: z.string().min(1).nullable().optional(),
+  osName: osNameSchema,
+  deviceType: deviceTypeSchema,
   isAutomation: automationDeclarationSchema,
   cursor: z.string().min(1).nullable(),
   limit: z.number().int().positive().max(syncBootstrapPullLimit),
@@ -420,6 +432,8 @@ const syncBootstrapPushInputSchema = z.object({
   installationId: installationIdSchema,
   platform: platformSchema,
   appVersion: z.string().min(1).nullable().optional(),
+  osName: osNameSchema,
+  deviceType: deviceTypeSchema,
   isAutomation: automationDeclarationSchema,
   includeMediaAssets: z.boolean().optional(),
   entries: z.array(
@@ -456,6 +470,8 @@ const syncReviewHistoryPullInputSchema = z.object({
   installationId: installationIdSchema,
   platform: platformSchema,
   appVersion: z.string().min(1).nullable().optional(),
+  osName: osNameSchema,
+  deviceType: deviceTypeSchema,
   isAutomation: automationDeclarationSchema,
   afterReviewSequenceId: z.number().int().nonnegative(),
   limit: z.number().int().positive().max(syncReviewHistoryPullLimit),
@@ -465,6 +481,8 @@ const syncReviewHistoryImportInputSchema = z.object({
   installationId: installationIdSchema,
   platform: platformSchema,
   appVersion: z.string().min(1).nullable().optional(),
+  osName: osNameSchema,
+  deviceType: deviceTypeSchema,
   isAutomation: automationDeclarationSchema,
   reviewEvents: z.array(reviewEventImportPayloadSchema),
 });

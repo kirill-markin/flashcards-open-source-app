@@ -1,3 +1,8 @@
+import type {
+  ProductAnalyticsDeviceType,
+  ProductAnalyticsOsName,
+} from "../productAnalytics/catalog";
+
 export const feedbackAutomaticPromptCooldownDays = 30;
 export const feedbackMessageMaxCharacters = 5000;
 export const feedbackNotificationRecipientEmail = "kirill+flashcards@kirill-markin.com";
@@ -23,6 +28,9 @@ export type FeedbackPromptEventInput = Readonly<{
   workspaceId: string | null;
   installationId: string | null;
   platform: FeedbackPlatform;
+  // Optional because the web client and clients released before these fields send neither.
+  osName?: ProductAnalyticsOsName | null;
+  deviceType?: ProductAnalyticsDeviceType | null;
   appVersion: string | null;
   locale: string | null;
   timezone: string | null;
@@ -35,6 +43,8 @@ export type FeedbackSubmissionInput = Readonly<{
   workspaceId: string | null;
   installationId: string | null;
   platform: FeedbackPlatform;
+  osName?: ProductAnalyticsOsName | null;
+  deviceType?: ProductAnalyticsDeviceType | null;
   appVersion: string | null;
   locale: string | null;
   timezone: string | null;
@@ -67,6 +77,8 @@ export type FeedbackNotificationEmailInput = Readonly<{
   workspaceId: string | null;
   installationId: string | null;
   platform: FeedbackPlatform;
+  osName: ProductAnalyticsOsName | null;
+  deviceType: ProductAnalyticsDeviceType | null;
   appVersion: string | null;
   locale: string | null;
   timezone: string | null;
