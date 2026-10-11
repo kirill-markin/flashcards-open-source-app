@@ -4,9 +4,11 @@ UI language belongs to the event and is captured before offline queuing. Device 
 timezone, and current app/OS versions describe the installation at upload time. Country is
 a daily server observation of an installation, with sparse change periods; it must never
 be assigned retroactively to offline events. Missing values remain unknown. No account-global
-language inference is performed, and the only historical backfill is event `os_name` and
+language inference is performed, and the only historical backfills are event `os_name` and
 `device_type`, filled where the event's stored platform and device model make them certain
-([rules](../db/migrations/0177_backfill_analytics_os_name_device_type.sql)).
+([rules](../db/migrations/0177_backfill_analytics_os_name_device_type.sql)), and installation
+profile `os_name`, `device_type` and `device_model`, filled where the installation's own events
+make them certain ([rules](../db/migrations/0178_backfill_installation_profiles_os_device.sql)).
 
 - [Event and installation types](../apps/backend/src/productAnalytics/types.ts)
 - [Authenticated event wire validation](../apps/backend/src/productAnalytics/validation.ts):
