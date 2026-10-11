@@ -439,8 +439,8 @@ enum LiveSmokeLaunchFixtureData {
 }
 
 let aiComposerPlaceholderText: String = "Ask about cards, review history, or propose a change..."
-let aiCreatePromptText: String = "Create exactly one flashcard with frontText \"What is the smoke test AI card?\" "
-    + "and backText \"The smoke test AI card was created successfully.\"; I approve the create operation; do not ask a follow-up."
+let aiCreatePromptText: String = "Create exactly one flashcard with these exact field values. Question (frontText): What is the smoke test AI card? "
+    + "Answer (backText): The smoke test AI card was created successfully. I approve the create operation; do not ask a follow-up."
 let aiResetPromptText: String = "Reply with exactly: reset ok"
 // The failed, loading, and empty chat surfaces expose no accessibility identifier XCUITest can
 // resolve, so their English titles are the only way to name them from the tests; probes using them
