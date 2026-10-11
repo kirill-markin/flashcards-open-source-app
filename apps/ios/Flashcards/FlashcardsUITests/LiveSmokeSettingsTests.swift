@@ -39,7 +39,7 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
             timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
         )
 
-        try self.assertTextExistsScrollingIntoView("Account", timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.assertSettingsRootTextExistsScrollingIntoView("Account", timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
         try self.openSettingsRootRow(identifier: LiveSmokeIdentifier.settingsAccountStatusRow)
         try self.assertElementExists(
             identifier: LiveSmokeIdentifier.accountStatusSignInButton,
@@ -51,7 +51,7 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
         try self.assertScreenVisible(screen: .currentWorkspace, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.returnToSettingsRoot()
 
-        try self.assertTextExistsScrollingIntoView("Style", timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.assertSettingsRootTextExistsScrollingIntoView("Style", timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
         try self.assertSettingsRowOrder(
             identifiers: [
                 LiveSmokeIdentifier.settingsReviewAnimationsRow,
@@ -67,7 +67,7 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
         try self.assertScreenVisible(screen: .aiChatSuggestionsSettings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.returnToSettingsRoot()
 
-        try self.assertTextExistsScrollingIntoView("General", timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.assertSettingsRootTextExistsScrollingIntoView("General", timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
         try self.openSettingsRootRow(identifier: LiveSmokeIdentifier.settingsReviewRemindersRow)
         try self.assertTextExistsScrollingIntoView("Permission", timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
         try self.returnToSettingsRoot()
@@ -98,22 +98,22 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
         try self.assertTextExists("Permissions", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.returnToSettingsRoot()
 
-        try self.assertElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsDecksRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
-        try self.assertElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsTagsRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
-        try self.assertElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsExportRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.assertSettingsRootElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsDecksRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.assertSettingsRootElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsTagsRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.assertSettingsRootElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsExportRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
 
-        try self.assertTextExistsScrollingIntoView("Support", timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
-        try self.assertElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsFeedbackRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
-        try self.assertElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsSupportRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
-        try self.assertElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsLegalRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
-        try self.assertElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsOpenSourceRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.assertSettingsRootTextExistsScrollingIntoView("Support", timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.assertSettingsRootElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsFeedbackRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.assertSettingsRootElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsSupportRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.assertSettingsRootElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsLegalRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.assertSettingsRootElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsOpenSourceRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
 
-        try self.assertTextExistsScrollingIntoView("Advanced", timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.assertSettingsRootTextExistsScrollingIntoView("Advanced", timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
         try self.openSettingsRootRow(identifier: LiveSmokeIdentifier.settingsSchedulingRow)
         try self.assertTextExists("Scheduler", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.returnToSettingsRoot()
 
-        try self.assertElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsAgentConnectionsRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.assertSettingsRootElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsAgentConnectionsRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
 
         try self.openSettingsRootRow(identifier: LiveSmokeIdentifier.settingsServerRow)
         try self.assertTextExists("Current Server", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
@@ -123,8 +123,8 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
         try self.assertTextExists("Operating system", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.returnToSettingsRoot()
 
-        try self.assertElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsResetStudyProgressRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
-        try self.assertElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsDeleteCurrentWorkspaceRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.assertSettingsRootElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsResetStudyProgressRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.assertSettingsRootElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsDeleteCurrentWorkspaceRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
 
         try self.openSettingsRootRow(identifier: LiveSmokeIdentifier.settingsDeleteAccountRow)
         try self.assertElementExists(
@@ -152,9 +152,68 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
     }
 
     @MainActor
+    private func assertSettingsRootTextExistsScrollingIntoView(_ text: String, timeout: TimeInterval) throws {
+        #if targetEnvironment(macCatalyst)
+        try self.runWithInlineRawScreenStateOnFailure(action: "assert_text_exists_scrolling.\(text)") {
+            let settingsList = self.app.collectionViews[LiveSmokeIdentifier.settingsScreen].firstMatch
+            let predicate = NSPredicate(format: "label == %@ OR identifier == %@", text, text)
+            let textElement = settingsList.descendants(matching: .any).matching(predicate).firstMatch
+            let deadline = Date().addingTimeInterval(timeout)
+
+            while Date() < deadline {
+                if textElement.exists {
+                    return
+                }
+
+                try self.scrollSettingsRootContent(timeout: timeout)
+                RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
+            }
+
+            throw LiveSmokeFailure.missingText(
+                text: text,
+                timeoutSeconds: timeout,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+        #else
+        try self.assertTextExistsScrollingIntoView(text, timeout: timeout)
+        #endif
+    }
+
+    @MainActor
+    private func assertSettingsRootElementExistsScrollingIntoView(identifier: String, timeout: TimeInterval) throws {
+        #if targetEnvironment(macCatalyst)
+        try self.runWithInlineRawScreenStateOnFailure(action: "assert_element_exists_scrolling.\(identifier)") {
+            let settingsList = self.app.collectionViews[LiveSmokeIdentifier.settingsScreen].firstMatch
+            let element = settingsList.descendants(matching: .any).matching(identifier: identifier).firstMatch
+            let deadline = Date().addingTimeInterval(timeout)
+
+            while Date() < deadline {
+                if element.exists {
+                    return
+                }
+
+                try self.scrollSettingsRootContent(timeout: timeout)
+                RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
+            }
+
+            throw LiveSmokeFailure.missingElement(
+                identifier: identifier,
+                timeoutSeconds: timeout,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+        #else
+        try self.assertElementExistsScrollingIntoView(identifier: identifier, timeout: timeout)
+        #endif
+    }
+
+    @MainActor
     private func assertSettingsRowOrder(identifiers: [String], message: String) throws {
         for identifier in identifiers {
-            try self.assertElementExistsScrollingIntoView(
+            try self.assertSettingsRootElementExistsScrollingIntoView(
                 identifier: identifier,
                 timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
             )

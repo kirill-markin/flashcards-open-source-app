@@ -101,7 +101,7 @@ extension LiveSmokeTestCase {
                     return
                 }
 
-                settingsList.swipeUp()
+                try self.scrollSettingsRootContent(timeout: timeout)
                 RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
             }
 
