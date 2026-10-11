@@ -452,6 +452,7 @@ export const ruCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — Флешкарты",
     crashTitle: "Что-то пошло не так",
     crashMessage: "Перезагрузите приложение, чтобы восстановить этот экран.",
     crashReload: "Перезагрузить приложение",

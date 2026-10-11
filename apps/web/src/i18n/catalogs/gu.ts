@@ -444,6 +444,7 @@ const guCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — ફ્લૅશકાર્ડ",
     crashTitle: "કંઈક ખોટું થયું",
     crashMessage: "આ સ્ક્રીન પાછી લાવવા ઍપ ફરી લોડ કરો.",
     crashReload: "ઍપ ફરી લોડ કરો",

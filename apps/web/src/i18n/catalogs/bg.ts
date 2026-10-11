@@ -444,6 +444,7 @@ const bgCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — Учебни карти",
     crashTitle: "Нещо се обърка",
     crashMessage: "Презаредете приложението, за да възстановите този екран.",
     crashReload: "Презареждане на приложението",

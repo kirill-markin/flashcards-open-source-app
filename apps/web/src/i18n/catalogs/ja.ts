@@ -444,6 +444,7 @@ export const jaCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — 暗記カード",
     crashTitle: "問題が発生しました",
     crashMessage: "この画面を復元するにはアプリを再読み込みしてください。",
     crashReload: "アプリを再読み込み",

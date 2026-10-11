@@ -444,6 +444,7 @@ const koCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — 플래시카드",
     crashTitle: "문제가 발생했습니다",
     crashMessage: "이 화면을 복구하려면 앱을 다시 불러오세요.",
     crashReload: "앱 새로 고침",

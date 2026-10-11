@@ -444,6 +444,7 @@ const esEsCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — Tarjetas",
     crashTitle: "Algo ha salido mal",
     crashMessage: "Recarga la app para restaurar esta pantalla.",
     crashReload: "Recargar app",

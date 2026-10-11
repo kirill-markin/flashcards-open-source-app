@@ -444,6 +444,7 @@ const frCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — Cartes mémoire",
     crashTitle: "Une erreur est survenue",
     crashMessage: "Rechargez l'application pour restaurer cet écran.",
     crashReload: "Recharger l'application",

@@ -452,6 +452,7 @@ const roCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — Fișe de studiu",
     crashTitle: "A apărut o problemă",
     crashMessage: "Reîncarcă aplicația pentru a restabili acest ecran.",
     crashReload: "Reîncarcă aplicația",

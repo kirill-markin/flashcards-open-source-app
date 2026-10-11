@@ -444,6 +444,7 @@ const elCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — Κάρτες μελέτης",
     crashTitle: "Παρουσιάστηκε σφάλμα",
     crashMessage: "Επαναφορτώστε την εφαρμογή για να επανέλθει αυτή η οθόνη.",
     crashReload: "Επαναφόρτωση εφαρμογής",

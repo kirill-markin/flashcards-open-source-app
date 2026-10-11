@@ -460,6 +460,7 @@ const slCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — Učne kartice",
     crashTitle: "Prišlo je do napake",
     crashMessage: "Znova naložite aplikacijo, da obnovite ta zaslon.",
     crashReload: "Znova naloži aplikacijo",

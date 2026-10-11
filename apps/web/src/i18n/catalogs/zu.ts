@@ -444,6 +444,7 @@ const zuCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — Amakhadi okufunda",
     crashTitle: "Kukhona okungahambanga kahle",
     crashMessage: "Layisha kabusha uhlelo lokusebenza ukuze ubuyisele lesi sikrini.",
     crashReload: "Layisha kabusha uhlelo",
