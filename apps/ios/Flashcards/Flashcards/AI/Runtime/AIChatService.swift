@@ -330,12 +330,13 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
                 URLQueryItem(name: "workspaceId", value: session.workspaceId)
             ]
         )
+        let additionalHeaders = await self.resumeAttemptHeaders(diagnostics: resumeAttemptDiagnostics)
         let request = try self.makeRequest(
             session: session,
             path: path,
             method: "GET",
             clientRequestId: clientRequestId,
-            additionalHeaders: self.resumeAttemptHeaders(diagnostics: resumeAttemptDiagnostics)
+            additionalHeaders: additionalHeaders
         )
         let data = try await self.execute(
             session: session,
@@ -446,6 +447,8 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
             encoder: self.encoder,
             maximumByteCount: aiChatMaximumStartRunRequestBytes
         )
+        let clientOsName = await currentClientOsName()
+        let clientDeviceType = await currentClientDeviceType()
         let urlRequest = try self.makeJsonRequest(
             session: session,
             path: "/chat",
@@ -453,7 +456,11 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
             bodyData: encodedBody,
             clientRequestId: clientRequestId,
             additionalHeaders: try addingOwnOpenAIKeyHeader(
-                headers: ["X-Client-Platform": aiChatClientPlatform],
+                headers: [
+                    "X-Client-Platform": aiChatClientPlatform,
+                    "X-Client-Os-Name": clientOsName,
+                    "X-Client-Device-Type": clientDeviceType,
+                ],
                 ownOpenAIKeyStore: self.ownOpenAIKeyStore
             )
         )
@@ -1047,15 +1054,19 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
 
     private func resumeAttemptHeaders(
         diagnostics: AIChatResumeAttemptDiagnostics?
-    ) -> [String: String] {
+    ) async -> [String: String] {
         guard let diagnostics else {
             return [:]
         }
 
+        let clientOsName = await currentClientOsName()
+        let clientDeviceType = await currentClientDeviceType()
         return [
             "X-Chat-Resume-Attempt-Id": diagnostics.headerValue,
             "X-Client-Platform": aiChatClientPlatform,
             "X-Client-Version": aiChatAppVersion(),
+            "X-Client-Os-Name": clientOsName,
+            "X-Client-Device-Type": clientDeviceType,
         ]
     }
 

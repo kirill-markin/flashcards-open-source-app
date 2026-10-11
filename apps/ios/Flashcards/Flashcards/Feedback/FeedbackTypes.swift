@@ -32,6 +32,8 @@ struct FeedbackPromptEventRequest: Encodable, Hashable, Sendable {
     let installationId: String?
     let platform: String
     let appVersion: String?
+    let osName: String
+    let deviceType: String
     let locale: String?
     let timezone: String
     let eventType: String
@@ -43,6 +45,8 @@ struct FeedbackPromptEventRequest: Encodable, Hashable, Sendable {
         case installationId
         case platform
         case appVersion
+        case osName
+        case deviceType
         case locale
         case timezone
         case eventType
@@ -56,6 +60,8 @@ struct FeedbackPromptEventRequest: Encodable, Hashable, Sendable {
         try container.encode(self.installationId, forKey: .installationId)
         try container.encode(self.platform, forKey: .platform)
         try container.encode(self.appVersion, forKey: .appVersion)
+        try container.encode(self.osName, forKey: .osName)
+        try container.encode(self.deviceType, forKey: .deviceType)
         try container.encode(self.locale, forKey: .locale)
         try container.encode(self.timezone, forKey: .timezone)
         try container.encode(self.eventType, forKey: .eventType)
@@ -69,6 +75,8 @@ struct FeedbackSubmissionRequest: Encodable, Hashable, Sendable {
     let installationId: String?
     let platform: String
     let appVersion: String?
+    let osName: String
+    let deviceType: String
     let locale: String?
     let timezone: String
     let trigger: String
@@ -81,6 +89,8 @@ struct FeedbackSubmissionRequest: Encodable, Hashable, Sendable {
         case installationId
         case platform
         case appVersion
+        case osName
+        case deviceType
         case locale
         case timezone
         case trigger
@@ -95,6 +105,8 @@ struct FeedbackSubmissionRequest: Encodable, Hashable, Sendable {
         try container.encode(self.installationId, forKey: .installationId)
         try container.encode(self.platform, forKey: .platform)
         try container.encode(self.appVersion, forKey: .appVersion)
+        try container.encode(self.osName, forKey: .osName)
+        try container.encode(self.deviceType, forKey: .deviceType)
         try container.encode(self.locale, forKey: .locale)
         try container.encode(self.timezone, forKey: .timezone)
         try container.encode(self.trigger, forKey: .trigger)
@@ -275,6 +287,7 @@ func makeFeedbackPromptStateAfterSubmission(
     )
 }
 
+@MainActor
 func makeFeedbackPromptEventRequest(
     workspaceId: String?,
     installationId: String?,
@@ -287,6 +300,8 @@ func makeFeedbackPromptEventRequest(
         installationId: installationId,
         platform: "ios",
         appVersion: appMarketingVersion(),
+        osName: currentClientOsName(),
+        deviceType: currentClientDeviceType(),
         locale: currentAppUILocaleIdentifier(),
         timezone: TimeZone.current.identifier,
         eventType: eventType.rawValue,
@@ -294,6 +309,7 @@ func makeFeedbackPromptEventRequest(
     )
 }
 
+@MainActor
 func makeFeedbackSubmissionRequest(
     workspaceId: String?,
     installationId: String?,
@@ -307,6 +323,8 @@ func makeFeedbackSubmissionRequest(
         installationId: installationId,
         platform: "ios",
         appVersion: appMarketingVersion(),
+        osName: currentClientOsName(),
+        deviceType: currentClientDeviceType(),
         locale: currentAppUILocaleIdentifier(),
         timezone: TimeZone.current.identifier,
         trigger: trigger.rawValue,
