@@ -1,5 +1,7 @@
 package com.flashcardsopensourceapp.data.local.model.feedback
 
+import com.flashcardsopensourceapp.core.observability.ClientDeviceType
+
 const val cloudFeedbackMessageMaximumLength: Int = 5000
 
 enum class CloudFeedbackTrigger(
@@ -27,6 +29,8 @@ data class CloudFeedbackPromptEventRequest(
     val workspaceId: String?,
     val installationId: String?,
     val platform: String,
+    val osName: String,
+    val deviceType: ClientDeviceType,
     val appVersion: String?,
     val locale: String,
     val timezone: String,
@@ -39,6 +43,8 @@ data class CloudFeedbackSubmissionRequest(
     val workspaceId: String?,
     val installationId: String?,
     val platform: String,
+    val osName: String,
+    val deviceType: ClientDeviceType,
     val appVersion: String?,
     val locale: String,
     val timezone: String,

@@ -37,7 +37,9 @@ import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsNetwork
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSyncFailureReporter
 import com.flashcardsopensourceapp.core.observability.analytics.PendingSignOutReport
 import com.flashcardsopensourceapp.core.observability.AppObservability
+import com.flashcardsopensourceapp.core.observability.ClientDeviceType
 import com.flashcardsopensourceapp.core.observability.CloudObservationIdentity
+import com.flashcardsopensourceapp.core.observability.currentClientDeviceType
 import com.flashcardsopensourceapp.core.observability.shouldCaptureAndroidThrowable
 import com.flashcardsopensourceapp.core.ui.AppMessageBus
 import com.flashcardsopensourceapp.core.ui.AppTechnicalError
@@ -216,12 +218,16 @@ class AppGraph(
     val appHandoffCoordinator = AppHandoffCoordinator()
     val database: AppDatabase = buildAppDatabase(context = context)
     private val cloudPreferencesStore = CloudPreferencesStore(context = context, database = database)
+    private val clientDeviceTypeProvider: () -> ClientDeviceType = {
+        currentClientDeviceType(context = applicationContext)
+    }
     private val cloudRemoteService = CloudRemoteService(
         okHttpClient = okHttpClient,
         observability = observability,
         appVersion = appPackageInfo.versionName,
         versionCode = appPackageInfo.longVersionCode.toInt(),
-        isAutomation = automationEnvironment.isAutomation
+        isAutomation = automationEnvironment.isAutomation,
+        clientDeviceTypeProvider = clientDeviceTypeProvider
     )
     private val aiChatPreferencesStore = AiChatPreferencesStore(context = context)
     val appIconPreferencesStore = AppIconPreferencesStore(context = context)
@@ -235,7 +241,8 @@ class AppGraph(
         okHttpClient = okHttpClient,
         observability = observability,
         appVersion = appPackageInfo.versionName,
-        versionCode = appPackageInfo.longVersionCode.toInt()
+        versionCode = appPackageInfo.longVersionCode.toInt(),
+        clientDeviceTypeProvider = clientDeviceTypeProvider
     )
     private val aiChatRemoteService = AiChatRemoteService(
         dispatchers = aiCoroutineDispatchers,
@@ -243,7 +250,8 @@ class AppGraph(
         okHttpClient = okHttpClient,
         observability = observability,
         appVersion = appPackageInfo.versionName,
-        versionCode = appPackageInfo.longVersionCode.toInt()
+        versionCode = appPackageInfo.longVersionCode.toInt(),
+        clientDeviceTypeProvider = clientDeviceTypeProvider
     )
     // One instance per graph, shared by both creators: its mutex is the lock that keeps the
     // analytics mint and the cloud guest restore from creating two permanent guest identities for
@@ -563,7 +571,8 @@ class AppGraph(
         cloudGuestSessionCoordinator = cloudGuestSessionCoordinator,
         syncRepository = syncRepository,
         appVersion = appPackageInfo.versionName,
-        currentUiLocaleTag = { currentAppUiLocaleTag(context = context) ?: "und" }
+        currentUiLocaleTag = { currentAppUiLocaleTag(context = context) ?: "und" },
+        currentClientDeviceType = clientDeviceTypeProvider
     )
     val guestSignInAfterReviewPromptController = GuestSignInAfterReviewPromptController(
         appScope = appScope,

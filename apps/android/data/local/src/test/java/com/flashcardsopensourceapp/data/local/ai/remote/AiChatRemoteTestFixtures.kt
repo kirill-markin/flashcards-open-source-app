@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.data.local.ai.remote
 
+import com.flashcardsopensourceapp.core.observability.ClientDeviceType
 import com.sun.net.httpserver.HttpExchange
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
@@ -22,7 +23,8 @@ internal fun makeAiChatTestLiveRemoteService(): AiChatLiveRemoteService {
         okHttpClient = OkHttpClient(),
         observability = NoopAiChatHttpObservability,
         appVersion = AI_CHAT_TEST_APP_VERSION,
-        versionCode = AI_CHAT_TEST_VERSION_CODE
+        versionCode = AI_CHAT_TEST_VERSION_CODE,
+        clientDeviceTypeProvider = { ClientDeviceType.PHONE }
     )
 }
 
