@@ -108,7 +108,8 @@ base caption is 24 px, weight 400, line height 28 px. The base number capsule is
 50 × 30 px with 20 px text, 15 px radius and a 16 px gap to the heading. The
 format scale multiplies those text measurements uniformly.
 
-iOS keeps the approved reference proportions: heading row top `63 × scale`,
+iOS uses the approved reference proportions for iPhone, iPad, and Duo outer:
+heading row top `63 × scale`,
 caption top `141 × scale`, frame top `212 × scale`, frame height `860 × scale`,
 padding `18 × scale`. The iPad frame is wider to cover the old reference frame,
 with a fixed portrait screen box. Both supported iPad orientations fit completely
@@ -120,8 +121,11 @@ The exact CSS and frame geometry are in `render-ios.mts`.
 Duo cards reuse the five backgrounds, heading and caption styling, card order,
 and localized copy. The outer profile fits its complete portrait native screenshot
 inside a shorter portrait frame. The inner profile uses a landscape canvas and
-a frame matching the native screenshot's aspect ratio, with the complete app UI
-centered below the shared header.
+a frame whose inner box matches the native screenshot's aspect ratio, with the
+complete app UI centered below the shared header. Its frame spans
+`420 × canvas width / 519` to cover the old reference frame, with equal
+`18 × scale` padding on all four sides. The inner heading, caption, and frame
+start at `45 × scale`, `125 × scale`, and `175 × scale` respectively.
 They read only genuine native PNGs from `iphone-duo-outer/` and
 `iphone-duo-inner/` under the iOS screenshot input root and write separate
 `ready/` folders with the same family names. Select one family explicitly with
