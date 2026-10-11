@@ -32,6 +32,7 @@ final class CloudSessionRuntime {
     private let cloudSyncService: (any CloudSyncServing)?
     private let credentialStore: any CredentialStoring
     private(set) var state: CloudSessionRuntimeState
+    private(set) var workspaceIdPendingDeletion: String? = nil
 
     init(
         cloudAuthService: any CloudAuthServing,
@@ -471,21 +472,24 @@ final class CloudSessionRuntime {
     func runLinkedSync(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {
         let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.cloudSyncService)
         return try await self.runCloudSyncTask {
-            try await cloudSyncService.runLinkedSync(linkedSession: linkedSession)
+            try self.throwIfWorkspaceDeletionBlocksSync(linkedSession: linkedSession)
+            return try await cloudSyncService.runLinkedSync(linkedSession: linkedSession)
         }
     }
 
     func runGuestLocalRecoveryLinkedSync(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {
         let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.cloudSyncService)
         return try await self.runCloudSyncTask {
-            try await cloudSyncService.runGuestLocalRecoveryLinkedSync(linkedSession: linkedSession)
+            try self.throwIfWorkspaceDeletionBlocksSync(linkedSession: linkedSession)
+            return try await cloudSyncService.runGuestLocalRecoveryLinkedSync(linkedSession: linkedSession)
         }
     }
 
     func runFreshLinkedSyncAfterActiveSyncSettles(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {
         let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.cloudSyncService)
         return try await self.runFreshCloudSyncAfterActiveSyncSettles {
-            try await cloudSyncService.runLinkedSync(linkedSession: linkedSession)
+            try self.throwIfWorkspaceDeletionBlocksSync(linkedSession: linkedSession)
+            return try await cloudSyncService.runLinkedSync(linkedSession: linkedSession)
         }
     }
 
@@ -494,7 +498,8 @@ final class CloudSessionRuntime {
     ) async throws -> CloudSyncResult {
         let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.cloudSyncService)
         return try await self.runFreshCloudSyncAfterActiveSyncSettles {
-            try await cloudSyncService.runGuestLocalRecoveryLinkedSync(linkedSession: linkedSession)
+            try self.throwIfWorkspaceDeletionBlocksSync(linkedSession: linkedSession)
+            return try await cloudSyncService.runGuestLocalRecoveryLinkedSync(linkedSession: linkedSession)
         }
     }
 
@@ -609,8 +614,10 @@ final class CloudSessionRuntime {
     ) async throws -> CloudSyncResult {
         var accumulatedResult = CloudSyncResult.noChanges
         while true {
+            try Task.checkCancellation()
             self.state.pendingCloudResync = false
             let syncResult = try await operation()
+            try Task.checkCancellation()
             accumulatedResult = accumulatedResult.merging(syncResult)
 
             if self.state.pendingCloudResync == false {
@@ -872,6 +879,43 @@ final class CloudSessionRuntime {
     func disconnectSession() {
         self.state.activeCloudSession = nil
         FlashcardsObservability.setIdentity(nil)
+    }
+
+    func beginWorkspaceDeletion(workspaceId: String) throws {
+        guard self.workspaceIdPendingDeletion == nil else {
+            throw LocalStoreError.validation("Workspace deletion is already in progress")
+        }
+        self.workspaceIdPendingDeletion = workspaceId
+    }
+
+    func endWorkspaceDeletion(workspaceId: String) {
+        if self.workspaceIdPendingDeletion == workspaceId {
+            self.workspaceIdPendingDeletion = nil
+        }
+    }
+
+    func throwIfWorkspaceDeletionBlocksSync(linkedSession: CloudLinkedSession) throws {
+        if self.workspaceIdPendingDeletion == linkedSession.workspaceId {
+            throw CancellationError()
+        }
+    }
+
+    func cancelActiveCloudSyncForWorkspaceDeletion() async throws {
+        guard let activeCloudSyncTask = self.state.activeCloudSyncTask else {
+            return
+        }
+        activeCloudSyncTask.task.cancel()
+        defer {
+            self.clearActiveCloudSyncTaskIfCurrent(id: activeCloudSyncTask.id)
+        }
+        do {
+            _ = try await activeCloudSyncTask.task.value
+        } catch {
+            let cancellationError: Error = (error as? CloudSyncLocalIdRepairFailure)?.underlyingError ?? error
+            if isRequestCancellationError(error: cancellationError) == false {
+                throw error
+            }
+        }
     }
 
     func cancelForWorkspaceSwitch() {
