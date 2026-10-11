@@ -1,17 +1,20 @@
 import { useCallback, useEffect, useMemo, useRef, type JSX } from "react";
 import * as d3 from "d3";
 import {
+  productEventDeviceTypes,
+  productEventOsNames,
   reviewEventPlatforms,
   type DailyActiveUsersCohortTotal,
-  type DailyActiveUsersPlatformTotal,
   type DailyActiveUsersReport,
   type DailyActiveUsersRow,
   type DailyActiveUsersUser,
 } from "../../adminApi";
-import { PlatformKey, UniqueUserCohortKey } from "../../charts/ChartLegends";
+import { DeviceTypeKey, OsNameKey, PlatformKey, UniqueUserCohortKey } from "../../charts/ChartLegends";
 import { ChartTooltip, useChartTooltip } from "../../charts/ChartTooltip";
 import { createTickDates, type MatrixChartEntry } from "../../charts/chartPrimitives";
 import {
+  renderDailyActiveUsersByDeviceTypeChart,
+  renderDailyActiveUsersByOsNameChart,
   renderDailyActiveUsersByPlatformChart,
   renderDailyActiveUsersByUserChart,
   renderDailyActiveUsersChart,
@@ -25,10 +28,14 @@ type DailyActiveUsersChartModel = Readonly<{
   activeUserIds: ReadonlyArray<string>;
   dailyActiveUserCohortMatrix: ReadonlyArray<MatrixChartEntry>;
   platformActiveUsersMatrix: ReadonlyArray<MatrixChartEntry>;
+  osNameActiveUsersMatrix: ReadonlyArray<MatrixChartEntry>;
+  deviceTypeActiveUsersMatrix: ReadonlyArray<MatrixChartEntry>;
   activeUserMatrix: ReadonlyArray<MatrixChartEntry>;
   dailyActiveUsersByDate: ReadonlyMap<string, number>;
   peakDailyActiveUsers: number;
   peakDailyPlatformActiveUsers: number;
+  peakDailyOsNameActiveUsers: number;
+  peakDailyDeviceTypeActiveUsers: number;
 }>;
 
 function buildDailyActiveUserCohortMatrix(
@@ -43,22 +50,31 @@ function buildDailyActiveUserCohortMatrix(
   }));
 }
 
-function buildPlatformActiveUsersMatrix(
-  platformTotals: ReadonlyArray<DailyActiveUsersPlatformTotal>,
+function buildKeyedActiveUsersMatrix<Total extends Readonly<{ date: string; activeUserCount: number }>>(
+  keyedTotals: ReadonlyArray<Total>,
+  getKey: (total: Total) => string,
   dates: ReadonlyArray<string>,
 ): ReadonlyArray<MatrixChartEntry> {
   const valuesByDate = new Map<string, Record<string, number>>();
 
-  for (const platformTotal of platformTotals) {
-    const currentValues = valuesByDate.get(platformTotal.date) ?? {};
-    currentValues[platformTotal.platform] = platformTotal.activeUserCount;
-    valuesByDate.set(platformTotal.date, currentValues);
+  for (const keyedTotal of keyedTotals) {
+    const currentValues = valuesByDate.get(keyedTotal.date) ?? {};
+    currentValues[getKey(keyedTotal)] = keyedTotal.activeUserCount;
+    valuesByDate.set(keyedTotal.date, currentValues);
   }
 
   return dates.map((date) => ({
     date,
     valuesByKey: valuesByDate.get(date) ?? {},
   }));
+}
+
+/** The tallest single bar of a grouped chart, which is its y-axis peak. */
+function getPeakGroupedValue(
+  matrix: ReadonlyArray<MatrixChartEntry>,
+  keys: ReadonlyArray<string>,
+): number {
+  return d3.max(matrix, (entry) => d3.max(keys, (key) => entry.valuesByKey[key] ?? 0) ?? 0) ?? 0;
 }
 
 /** One unit per person per day, so a person on two platforms in one day is still one unit. */
@@ -86,7 +102,21 @@ function buildDailyActiveUsersChartModel(report: DailyActiveUsersReport): DailyA
     cohortTotal.date,
     cohortTotal.newActiveUsers + cohortTotal.returningActiveUsers,
   ]));
-  const platformActiveUsersMatrix = buildPlatformActiveUsersMatrix(report.platformActiveUserTotals, dates);
+  const platformActiveUsersMatrix = buildKeyedActiveUsersMatrix(
+    report.platformActiveUserTotals,
+    (total) => total.platform,
+    dates,
+  );
+  const osNameActiveUsersMatrix = buildKeyedActiveUsersMatrix(
+    report.osNameActiveUserTotals,
+    (total) => total.osName,
+    dates,
+  );
+  const deviceTypeActiveUsersMatrix = buildKeyedActiveUsersMatrix(
+    report.deviceTypeActiveUserTotals,
+    (total) => total.deviceType,
+    dates,
+  );
 
   return {
     dates,
@@ -95,6 +125,8 @@ function buildDailyActiveUsersChartModel(report: DailyActiveUsersReport): DailyA
     activeUserIds: report.users.map((user) => user.userId),
     dailyActiveUserCohortMatrix: buildDailyActiveUserCohortMatrix(report.dailyCohortTotals),
     platformActiveUsersMatrix,
+    osNameActiveUsersMatrix,
+    deviceTypeActiveUsersMatrix,
     activeUserMatrix: buildActiveUserMatrix(report.rows, dates),
     dailyActiveUsersByDate,
     // Also the peak of the stacked-by-user chart, whose column height is that same distinct count.
@@ -102,10 +134,9 @@ function buildDailyActiveUsersChartModel(report: DailyActiveUsersReport): DailyA
       report.dailyCohortTotals,
       (cohortTotal) => cohortTotal.newActiveUsers + cohortTotal.returningActiveUsers,
     ) ?? 0,
-    peakDailyPlatformActiveUsers: d3.max(
-      platformActiveUsersMatrix,
-      (entry) => d3.max(reviewEventPlatforms, (platform) => entry.valuesByKey[platform] ?? 0) ?? 0,
-    ) ?? 0,
+    peakDailyPlatformActiveUsers: getPeakGroupedValue(platformActiveUsersMatrix, reviewEventPlatforms),
+    peakDailyOsNameActiveUsers: getPeakGroupedValue(osNameActiveUsersMatrix, productEventOsNames),
+    peakDailyDeviceTypeActiveUsers: getPeakGroupedValue(deviceTypeActiveUsersMatrix, productEventDeviceTypes),
   };
 }
 
@@ -125,6 +156,8 @@ export function DailyActiveUsersSection(
 ): JSX.Element {
   const activeUsersChartRef = useRef<SVGSVGElement | null>(null);
   const platformActiveUsersChartRef = useRef<SVGSVGElement | null>(null);
+  const osNameActiveUsersChartRef = useRef<SVGSVGElement | null>(null);
+  const deviceTypeActiveUsersChartRef = useRef<SVGSVGElement | null>(null);
   const activeUsersByUserChartRef = useRef<SVGSVGElement | null>(null);
   const { tooltipState, tooltipHandlers } = useChartTooltip();
   const chartModel = useMemo(
@@ -144,10 +177,14 @@ export function DailyActiveUsersSection(
   useEffect(() => {
     const activeUsersSvgElement = activeUsersChartRef.current;
     const platformActiveUsersSvgElement = platformActiveUsersChartRef.current;
+    const osNameActiveUsersSvgElement = osNameActiveUsersChartRef.current;
+    const deviceTypeActiveUsersSvgElement = deviceTypeActiveUsersChartRef.current;
     const activeUsersByUserSvgElement = activeUsersByUserChartRef.current;
     if (
       activeUsersSvgElement === null
       || platformActiveUsersSvgElement === null
+      || osNameActiveUsersSvgElement === null
+      || deviceTypeActiveUsersSvgElement === null
       || activeUsersByUserSvgElement === null
     ) {
       return;
@@ -169,6 +206,24 @@ export function DailyActiveUsersSection(
       platformActiveUsersMatrix: chartModel.platformActiveUsersMatrix,
       dailyActiveUsersByDate: chartModel.dailyActiveUsersByDate,
       peakDailyPlatformActiveUsers: chartModel.peakDailyPlatformActiveUsers,
+      tooltipHandlers,
+    });
+    renderDailyActiveUsersByOsNameChart({
+      svgElement: osNameActiveUsersSvgElement,
+      dates: chartModel.dates,
+      tickDates: chartModel.tickDates,
+      osNameActiveUsersMatrix: chartModel.osNameActiveUsersMatrix,
+      dailyActiveUsersByDate: chartModel.dailyActiveUsersByDate,
+      peakDailyOsNameActiveUsers: chartModel.peakDailyOsNameActiveUsers,
+      tooltipHandlers,
+    });
+    renderDailyActiveUsersByDeviceTypeChart({
+      svgElement: deviceTypeActiveUsersSvgElement,
+      dates: chartModel.dates,
+      tickDates: chartModel.tickDates,
+      deviceTypeActiveUsersMatrix: chartModel.deviceTypeActiveUsersMatrix,
+      dailyActiveUsersByDate: chartModel.dailyActiveUsersByDate,
+      peakDailyDeviceTypeActiveUsers: chartModel.peakDailyDeviceTypeActiveUsers,
       tooltipHandlers,
     });
     renderDailyActiveUsersByUserChart({
@@ -197,7 +252,7 @@ export function DailyActiveUsersSection(
       <header className="dashboard-section-header">
         <h2>Daily active users</h2>
         <p className="dashboard-section-description">
-          Everyone who opened the app on a calendar date, from the <code>app_opened</code> event, rather than only the people who answered a card. Platform is always split and never summed, because one person can be active on more than one platform in a day. Dates are grouped in <strong>UTC</strong>.
+          Everyone who opened the app on a calendar date, from the <code>app_opened</code> event, rather than only the people who answered a card. Platform, OS and device type are always split and never summed, because one person can be active on more than one device in a day; a row that reports no OS or device type, every web row among them, shows as Unknown. Dates are grouped in <strong>UTC</strong>.
         </p>
       </header>
 
@@ -223,6 +278,30 @@ export function DailyActiveUsersSection(
           </div>
           <div className="chart-scroll">
             <svg ref={platformActiveUsersChartRef} />
+          </div>
+        </div>
+
+        <div className="chart-shell">
+          <div className="chart-meta">
+            <span>Daily active users by OS</span>
+            <div className="chart-meta-right">
+              <OsNameKey />
+            </div>
+          </div>
+          <div className="chart-scroll">
+            <svg ref={osNameActiveUsersChartRef} />
+          </div>
+        </div>
+
+        <div className="chart-shell">
+          <div className="chart-meta">
+            <span>Daily active users by device type</span>
+            <div className="chart-meta-right">
+              <DeviceTypeKey />
+            </div>
+          </div>
+          <div className="chart-scroll">
+            <svg ref={deviceTypeActiveUsersChartRef} />
           </div>
         </div>
 
