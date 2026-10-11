@@ -207,8 +207,8 @@ The role gets `SELECT` on these tables only:
 - selected key columns on `progress.user_active_review_days`
 - `analytics.product_events`
 - `analytics.identity_links`
-- `analytics.product_events_resolved`, the view that resolves anonymous events to their eventual account at read time
-- `analytics.installation_profiles`
+- `analytics.product_events_resolved`, the view that resolves anonymous events to their eventual account at read time, with the device facts `os_name` and `device_type` beside `platform`
+- `analytics.installation_profiles`, including the latest reported `os_name`, `device_type`, and `device_model`
 - `analytics.installation_country_observations`
 - `analytics.excluded_actors`
 - `analytics.probable_android_burst_actors`, the hourly-refreshed probable Android test-burst classification
