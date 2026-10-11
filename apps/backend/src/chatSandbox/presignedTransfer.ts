@@ -1,4 +1,5 @@
 import { setTimeout as sleep } from "node:timers/promises";
+import { chatSandboxSizeMismatchErrorType, chatSandboxTransferErrorType } from "./contract";
 
 type TransferOperation = "download" | "upload";
 
@@ -13,7 +14,15 @@ const transferAttemptTimeoutMs = 60_000;
 export class PresignedTransferError extends Error {
   public constructor(operation: TransferOperation, path: string, detail: string) {
     super(`Could not ${operation} ${path}: ${detail}`);
-    this.name = "PresignedTransferError";
+    this.name = chatSandboxTransferErrorType;
+  }
+}
+
+/** The object is not the size its row records, which no retry changes. */
+class PresignedObjectSizeMismatchError extends PresignedTransferError {
+  public constructor(path: string, expectedBytes: number, receivedBytes: number) {
+    super("download", path, `expected ${expectedBytes} bytes, received ${receivedBytes}`);
+    this.name = chatSandboxSizeMismatchErrorType;
   }
 }
 
@@ -36,17 +45,19 @@ export function describeNetworkError(error: unknown): string {
   return code === null ? `errorName=${name}` : `errorName=${name} errorCode=${code}`;
 }
 
-async function sendWithRetries(
+/** `read` runs inside the attempt, so a body cut off or timed out mid-read is retried like a failed request. */
+async function sendWithRetries<T>(
   operation: TransferOperation,
   path: string,
   send: (signal: AbortSignal) => Promise<Response>,
-): Promise<Response> {
+  read: (response: Response) => Promise<T>,
+): Promise<T> {
   for (let attempt = 1; ; attempt += 1) {
     let failure: string;
     try {
       const response = await send(AbortSignal.timeout(transferAttemptTimeoutMs));
       if (response.ok) {
-        return response;
+        return await read(response);
       }
 
       await response.body?.cancel();
@@ -73,16 +84,25 @@ async function sendWithRetries(
 }
 
 export async function downloadPresignedObject(url: string, path: string, sizeBytes: number): Promise<Uint8Array> {
-  const response = await sendWithRetries("download", path, (signal) => fetch(url, { signal }));
-  const bytes = new Uint8Array(await response.arrayBuffer());
+  const bytes = await sendWithRetries(
+    "download",
+    path,
+    (signal) => fetch(url, { signal }),
+    async (response) => new Uint8Array(await response.arrayBuffer()),
+  );
   if (bytes.byteLength !== sizeBytes) {
-    throw new PresignedTransferError("download", path, `expected ${sizeBytes} bytes, received ${bytes.byteLength}`);
+    throw new PresignedObjectSizeMismatchError(path, sizeBytes, bytes.byteLength);
   }
 
   return bytes;
 }
 
 export async function uploadPresignedObject(url: string, path: string, bytes: Uint8Array): Promise<void> {
-  const response = await sendWithRetries("upload", path, (signal) => fetch(url, { method: "PUT", body: bytes, signal }));
+  const response = await sendWithRetries(
+    "upload",
+    path,
+    (signal) => fetch(url, { method: "PUT", body: bytes, signal }),
+    async (sentResponse) => sentResponse,
+  );
   await response.body?.cancel();
 }

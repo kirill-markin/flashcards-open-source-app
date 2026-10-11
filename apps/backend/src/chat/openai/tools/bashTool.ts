@@ -8,7 +8,12 @@ import {
   type ChatFileWriteSlot,
   type SavedChatWorkFile,
 } from "../../../chatFiles";
-import { invokeChatSandbox, type ChatSandboxInvocation } from "../../../chatSandbox/client";
+import {
+  answerLostErrorType,
+  ChatSandboxUnansweredError,
+  invokeChatSandbox,
+  type ChatSandboxInvocation,
+} from "../../../chatSandbox/client";
 import {
   chatSandboxBashResponseSchema,
   cutToHeadAndTail,
@@ -324,6 +329,8 @@ export async function executeBashToolCall(
     answeredInvocation = answer.invocation;
     savedFiles = await recordSandboxAnswer(answer, context);
   } catch (error) {
+    // An unanswered call is named by the send error that left it so.
+    const failure = error instanceof ChatSandboxUnansweredError && error.cause instanceof Error ? error.cause : error;
     logSandboxCommand(context, {
       command,
       durationMs: Date.now() - startedAt,
@@ -331,7 +338,7 @@ export async function executeBashToolCall(
       filesWritten: 0,
       filesDeleted: 0,
       outputTruncated: false,
-      errorClass: error instanceof Error ? error.name : "UnknownError",
+      errorClass: failure instanceof Error ? failure.name : "UnknownError",
     });
     throw error;
   }
@@ -347,12 +354,17 @@ export async function executeBashToolCall(
       outputTruncated: false,
       errorClass: invocation.error.errorType,
     });
-    // Every attempt carried a SQL bridge, so its code may have written before the call failed.
+    // Every attempt carried a SQL bridge, so its code may have written before the call failed, and after a
+    // lost answer the sandbox may still be running it, up to its 2-minute timeout.
     return createBashToolResult(
       `Error: the sandbox call failed (${invocation.error.errorType}): `
         + `${cutHeadAtCodePoint(invocation.error.sandboxErrorMessage, maximumSandboxErrorChars)}\n`
-        + "No change it made under /work was saved, but SQL writes its code sent may have been applied: "
-        + "read back with sql_query before running it again.",
+        + (invocation.error.errorType === answerLostErrorType
+          ? "No change it made under /work was saved, but the command may still be running, and SQL writes its "
+            + "code sends may keep landing for up to about 2 minutes: wait, or check with sql_query, before "
+            + "running anything that writes again."
+          : "No change it made under /work was saved, but SQL writes its code sent may have been applied: "
+            + "read back with sql_query before running it again."),
       false,
       false,
       true,
@@ -371,8 +383,7 @@ export async function executeBashToolCall(
     errorClass: null,
   });
   // A write the command's code sent may have landed even when its call failed, so any write refreshes.
-  // The count is absent only for a request without a bridge, whose code could send nothing.
-  const sentSqlWrites = (invocation.response.sqlExecuteCallCount ?? 0) > 0;
+  const sentSqlWrites = invocation.response.sqlExecuteCallCount > 0;
   return createBashToolResult(
     rendered.output,
     true,
