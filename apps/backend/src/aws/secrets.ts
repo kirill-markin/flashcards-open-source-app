@@ -52,7 +52,13 @@ async function loadDatabaseCredentialsSecret(
     throw new Error(`Secret ${secretArn} does not contain SecretString`);
   }
 
-  const value = JSON.parse(response.SecretString) as Partial<DatabaseCredentialsSecret>;
+  let value: Partial<DatabaseCredentialsSecret>;
+  try {
+    value = JSON.parse(response.SecretString) as Partial<DatabaseCredentialsSecret>;
+  } catch {
+    // The SyntaxError message quotes the parsed input, i.e. the secret, so neither it nor `cause` is attached.
+    throw new Error(`Secret ${secretArn} SecretString is not valid JSON`);
+  }
   if (typeof value.username !== "string" || value.username.trim() === "") {
     throw new Error(`Secret ${secretArn} does not contain a valid username`);
   }

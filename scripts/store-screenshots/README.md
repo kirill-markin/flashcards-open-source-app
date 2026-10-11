@@ -42,6 +42,12 @@ npm run render --prefix scripts/store-screenshots -- \
 npm run render --prefix scripts/store-screenshots -- \
   --platform ios --family ipad --locales en-US
 
+# Process five saved native Duo outer or inner captures for one Store locale.
+npm run render --prefix scripts/store-screenshots -- \
+  --platform ios --family iphone-duo-outer --locales en-US
+npm run render --prefix scripts/store-screenshots -- \
+  --platform ios --family iphone-duo-inner --locales en-US
+
 # Process selected existing Android phone sets.
 npm run render --prefix scripts/store-screenshots -- \
   --platform android --locales en-US,ar,ru-RU
@@ -65,13 +71,17 @@ builder (which can regenerate native captures).
 Supported native input dimensions and the fixed portrait output geometry are in
 the [format profiles](../../docs/store-screenshot-processing.md#format-profiles).
 Both portrait and landscape iPad captures keep their complete native proportions
-inside the same approved frame.
+inside the same approved frame. Duo processing requires genuine native captures
+in `iphone-duo-outer/` or `iphone-duo-inner/` under the iOS input root. A selected
+Duo family fails when its folder or any of the five screenshots is missing or
+has the wrong dimensions. Neither family is included in the default `all` run.
 
 Open `index.html` in either output directory to review available languages and
 devices. `previews/` contains five-card overviews. Full cards are under:
 
 - iOS Store locales: `ready/iphone/<capture-tag>-<card>_<slug>.png` and
-  `ready/ipad/<capture-tag>-<card>_<slug>.png`.
+  `ready/ipad/<capture-tag>-<card>_<slug>.png`. Explicit Duo processing adds
+  `ready/iphone-duo-outer/` or `ready/iphone-duo-inner/` with the same filenames.
 - Additional iPhone languages: `additional-languages/iphone/`.
 - Android: `ready/<Play-listing-locale>/phoneScreenshots/<card>_<slug>.png`.
 
@@ -85,16 +95,18 @@ The independent **Process Store Screenshots** GitHub Actions workflow runs for
 processor, native-input and finished-output pull requests, and on manual dispatch.
 It typechecks the processor, runs the real export/gallery smoke, and renders the
 selected current committed native sources into runner-temporary directories.
-Pull requests render every configured set. Its **Format existing native captures**
-check must succeed before merging these changes. It saves the candidate output as
+Pull requests render the existing iPhone, iPad, and Android sets. Select a Duo
+family on manual dispatch after real native captures have been saved. Its
+**Format existing native captures** check must succeed before merging these
+changes. It saves the candidate output as
 an artifact, has read-only repository permissions and performs no publication.
 Native capture/build/release workflows remain separate.
 
 For a refresh, manually dispatch the workflow on the intended source revision.
 Use platform/family selection and optional comma-separated locales to review a
-candidate subset. To replace a platform delivery, render that platform with
-family `all` and empty locales so its export manifest and gallery cover the full
-inventory. Download its artifact, review all five full-size cards and previews
+candidate subset. To replace the existing platform delivery, render that platform
+with family `all` and empty locales so its export manifest and gallery cover the
+existing inventory. Download its artifact, review all five full-size cards and previews
 for each changed set, and copy the approved complete platform output into the
 corresponding tracked output directory. A subset artifact is not a complete
 replacement manifest or gallery. Retain original delivery source/export manifests
@@ -125,7 +137,9 @@ inconsistent Android font settings or stale copy fail gallery validation.
 ## Options and checks
 
 - `--platform all|ios|android`: defaults to all.
-- `--family all|iphone|ipad`: selects iOS families; Android supports phones only.
+- `--family all|iphone|ipad|iphone-duo-outer|iphone-duo-inner`: selects iOS
+  families. `all` keeps the existing iPhone and iPad selection; Duo requires an
+  explicit family. Android supports phones only.
 - `--locales <comma-separated IDs>`: capture tags or matching listing IDs. An
   unknown or empty identifier is an error, and aliases are resolved from the
   tracked mapping rather than guessed.
