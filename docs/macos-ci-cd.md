@@ -1,4 +1,8 @@
-# Mac Catalyst CI/CD and release
+# Mac Catalyst CI/CD
+
+Release authorization, dispatch, App Review, publication and closeout belong to
+[macOS release](release/macos.md). This file owns the technical configuration,
+signing alternative and native/manual checklist.
 
 Nibomo's Mac app uses the existing Apple target, SwiftUI/UIKit iPad interface,
 SQLite, offline outbox, sync, authentication and StoreKit implementation under
@@ -40,11 +44,9 @@ signing only for `macosx`; iOS test signing settings remain unchanged.
 | `macos-build-workflow` | `9d704b65-5254-4f04-be24-bebc0f0cfc7d` | Archive: macOS / Any Mac Catalyst, App Store eligible; internal testers postaction |
 | `macos-tests-workflow` | `b737acb2-4548-45bb-a7a3-8ac26bc8f111` | Build: Any Mac Catalyst; required Test: Mac (Mac Catalyst), latest builder OS, use scheme settings |
 
-Before authorized dispatch, inspect the saved workflows, exact `main` SHA,
-toolchain, destinations, production values and secret presence via the
-[Xcode Cloud access procedure](xcode-cloud-data-access.md). Preserve the iOS
-workflows and masked secrets. Dispatch the independent Mac archive and tests
-concurrently only after the Catalyst patch reaches `main`.
+Inspect saved settings through [Xcode Cloud access](xcode-cloud-data-access.md);
+the [macOS release procedure](release/macos.md) owns preflight and dispatch.
+Preserve the iOS workflows and masked secrets.
 
 Xcode Cloud owns distribution archives. PR static checks cannot establish
 Catalyst compatibility. Inspect exact logs, warnings, named test results and
@@ -173,22 +175,7 @@ before App Review. These checks exercise the signed app and actual services.
 
 ## Mac App Review procedure
 
-This is the single dedicated Mac procedure. Coordinated releases use the
-[shared authorization rules](release/README.md). A Mac-only release must not
-dispatch iOS/Android release workflows or replace an in-review iOS version.
-
-1. Require green repository static checks, a successful Mac archive and complete
-   native smoke evidence for the intended merged code. Resolve warnings and
-   runtime failures before preparing submission.
-2. Select the exact verified Mac version/build under the existing ASC app.
-   The initial Mac **1.33.0** draft is
-   `dc402853-988e-418c-aa71-9f59d46c0d89`, with **After Approval** release mode.
-   Do not withdraw, replace or resubmit the iOS **1.33.0** awaiting review.
-3. Verify localized Mac metadata, accepted-size screenshots, review credentials,
-   privacy/compliance and final capability notes. Review Apple's copied iOS
-   review notes against the actual Mac artifact. Select the verified Mac build
-   and submit only that platform after its recorded gates pass.
-4. Save platform, version/build, SHA, workflow/run IDs, named smoke results,
-   screenshot evidence and saved release mode in the execution ledger.
-   Submission, approval and public availability are separate states; monitor
-   Mac without disturbing the pending iOS submission.
+Follow [macOS release](release/macos.md) for the reusable release sequence,
+exact-artifact gates, platform-specific submission and publication, and
+[shared versioning](release/versioning.md#ios-and-macos) for Apple identities.
+Keep current draft/build/review status in the execution ledger.

@@ -5,8 +5,8 @@
 A human or an AI with API/CLI and browser access can execute this runbook.
 A request to run the full release authorizes the documented platform workflow dispatches
 and existing distribution update/publication actions: store metadata, Android
-rollout, iOS App Review and final Apple publication, MCP Registry, existing
-connector/plugin/directory updates, companion tags and CI-produced packages,
+rollout, iOS and dedicated macOS App Review and final Apple publication, MCP
+Registry, existing connector/plugin/directory updates, companion tags and CI-produced packages,
 necessary website distribution-link updates, release-version preparation, and closeout.
 This includes committing, pushing, and merging release fixes and version
 alignment in this repository, `kirill-markin/nibomo-plugins`, and necessary link
@@ -43,6 +43,7 @@ mandatory when following a linked procedure directly.
 | Platform/topic | Procedure |
 | --- | --- |
 | iOS | [Local preflight, Xcode Cloud, App Review, and publication](ios.md) |
+| macOS | [Dedicated Catalyst archive, full native tests, App Review, and publication](macos.md) |
 | Android | [Cloud validation, Device Run, and Play publication](android.md) |
 | Web and backend | [Deployment and public runtime verification](web-backend.md) |
 | MCP and plugins | [Canonical channel inventory, directories, website links, and publication](mcp-and-plugins.md) |
@@ -65,10 +66,11 @@ Use this routine checklist; the linked procedures own the detailed gates.
    prepare reusable [release notes](release-notes.md) in the chat. Keep that version through fixes.
 4. **Run platform flows in parallel.** Follow the [platform procedures](#required-reading):
    complete required iOS local gates before Xcode Cloud dispatch, use Android's
-   [cloud-first gate](evidence.md#android-cloud-release-gate), and prepare metadata while builds run.
+   [cloud-first gate](evidence.md#android-cloud-release-gate), and run the independent
+   [macOS archive and full native test flow](macos.md). Prepare metadata while builds run.
 5. **Verify results and artifacts.** Inspect native results, warnings, source/build
    correlation, uploaded binaries and saved metadata under those procedures;
-   retain [readiness evidence](evidence.md#release-ledger) before new mobile submission/publication.
+   retain [readiness evidence](evidence.md#release-ledger) before new Apple or Android submission/publication.
 6. **Complete distribution actions.** Submit/publish the exact verified artifacts
    and existing channel updates to their [completion boundaries](#release-inventory-and-completion).
 7. **Preserve and close out.** Verify app/companion [tags, Releases and package assets](versioning.md#github-tag-and-release),
@@ -87,6 +89,10 @@ If a fix affects an already published artifact, ask the user how to handle that 
   against the actual archive/result/runtime needs; there is no universal free-space threshold.
   Inspect installed [iOS runtimes/devices](../ios-local-setup.md#local-testing-rules)
   and the actual [Cloud catalog](../ios-ci-cd.md#supported-os-destinations).
+- For macOS, inspect the [saved Mac workflows and latest builder destination](macos.md#preflight-and-cloud-gates),
+  shared Apple version and separate `MAC_OS` build/draft. Reserve disk for the
+  exact export and native evidence; inspect local signing resources only if the
+  diagnosed Keychain alternative is needed. Preserve pending iOS submissions.
 - Verify authenticated access for the remaining provider/store actions and the
   [saved Xcode Cloud configuration](../ios-ci-cd.md#cloud-configuration-preflight).
   Check all four configured [Device Run destinations](../android-ci-cd.md#choose-the-device-run-devices)
@@ -117,6 +123,7 @@ submission, approval, and a portal's **Published** label alone do not prove it.
 | Channel | Operator completion boundary |
 | --- | --- |
 | iOS | Exact version/build successfully submitted for review with automatic release after approval enabled and its saved setting verified. In manual mode, complete any available final release action and record a later action still awaiting approval as follow-up. |
+| macOS | Exact `MAC_OS` version/build successfully submitted for review, with saved automatic release after approval verified; in manual mode, complete any available final release action and record any action awaiting approval as follow-up. Full Mac native and exact-artifact gates remain mandatory. |
 | Android | Exact production version is publicly available at the selected rollout scope, after the required GitHub/Device Run gates and applicable OS-specific checks. |
 | Web/backend and MCP Registry | Intended deployment/runtime or registry version is verified under its procedure. |
 | Established connector/plugin/directory channels | Required CI/scans and focused checks passed, and the exact update/publication request was accepted, or the unchanged publication was verified. |
@@ -128,7 +135,7 @@ exact remaining action, owner and next condition in the ledger. Do not call
 the pending channel or the whole release complete; complete every available
 required action on the other channels.
 
-External iOS/provider review and directory crawl/propagation are follow-up; they
+External iOS/macOS/provider review and directory crawl/propagation are follow-up; they
 do not hold overall closeout open after these boundaries. Record pending states
 factually and any later operator action, without calling them live. OpenAI's
 initial publication is excluded from routine release until a separately scoped
@@ -136,7 +143,7 @@ initial launch establishes that channel; preserve its submission identity throug
 the [companion procedure](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md).
 
 Before a new publication/submission, apply the [release warning policy](#release-warning-policy).
-Already-published matching mobile artifacts count complete under the
+Already-published matching Apple or Android artifacts count complete under the
 [reuse rules](evidence.md#reuse-existing-artifacts); historical gaps do not reopen
 them. Reuse valid evidence on unchanged inputs and do not extend completed
 publication with optional tests. These boundaries, together with mandatory tags,
@@ -149,6 +156,9 @@ Before a new publication/submission, fix release errors, failed required tests,
 applicable security vulnerabilities, and actionable first-party, configuration,
 build, compiler, lint, and toolchain warnings. A known failure blocks that action.
 All existing build, test, security, and publication gates remain mandatory.
+For the diagnosed Mac Cloud Keychain limitation, only the [Mac procedure](macos.md)
+permits a separately passing full signed local native gate; preserve the failed
+Cloud action and diagnosis. This is not a warning waiver or a Cloud pass.
 Only the bounded warning exceptions below may remain.
 
 Vendor-owned, non-actionable deprecation, tool, or runtime notices may remain
