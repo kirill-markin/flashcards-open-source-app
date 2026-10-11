@@ -73,6 +73,10 @@ After saving, restart Cline CLI before using the tools so the new session loads 
 - [Android CI/CD](docs/android-ci-cd.md)
 - [Agent API](https://api.flashcards-open-source-app.com/v1/)
 
+## Contributing
+
+See the [contribution guide](CONTRIBUTING.md).
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
