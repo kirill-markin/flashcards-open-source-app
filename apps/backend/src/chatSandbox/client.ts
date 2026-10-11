@@ -1,6 +1,7 @@
 import {
   InvokeCommand,
   LambdaClient,
+  ServiceException,
   TooManyRequestsException,
   type InvokeCommandOutput,
 } from "@aws-sdk/client-lambda";
@@ -21,7 +22,7 @@ const sandboxFunctionErrorSchema = z.object({
 const invokeRetryDelaysMs: ReadonlyArray<number> = [1_000, 2_000, 4_000];
 /** Node's codes for a connection that never opened, so the request never reached Lambda. */
 const unsentInvokeErrorCodes: ReadonlySet<string> = new Set(["ECONNREFUSED", "ENOTFOUND", "EAI_AGAIN"]);
-const answerLostErrorType = "Invoke.AnswerLost";
+export const answerLostErrorType = "Invoke.AnswerLost";
 
 /**
  * A call the sandbox did not answer. `errorType` is Lambda's name for the failure, such as
@@ -40,6 +41,18 @@ export class ChatSandboxFunctionError extends Error {
     this.name = "ChatSandboxFunctionError";
     this.errorType = errorType;
     this.sandboxErrorMessage = sandboxErrorMessage;
+  }
+}
+
+/**
+ * A call Lambda gave no answer to: still throttled or its answer still lost once the retries ran out,
+ * failed with Lambda's own internal error, or answered without a payload. Nothing in it is about the
+ * request; `cause` is the send error, when there is one.
+ */
+export class ChatSandboxUnansweredError extends Error {
+  public constructor(message: string, options: ErrorOptions) {
+    super(message, options);
+    this.name = "ChatSandboxUnansweredError";
   }
 }
 
@@ -115,11 +128,11 @@ function isAnswerLostInvokeError(error: unknown): boolean {
 }
 
 /**
- * A run whose answer was lost left only uploads no row names, so it runs again, unless it is a command
+ * A run whose answer was lost left only uploads no row names, so it runs again, unless it is a command,
  * whose code may have sent SQL writes, which must not land twice.
  */
 function mayRunAgainAfterLostAnswer(request: ChatSandboxRequest): boolean {
-  return request.operation !== "bash" || request.sqlBridge === undefined;
+  return request.operation !== "bash";
 }
 
 /** The name and code only: a network error's message can carry the host, and this one reaches the model. */
@@ -134,14 +147,24 @@ function createAnswerLostError(error: unknown): ChatSandboxFunctionError {
   );
 }
 
+function createUnansweredError(error: unknown, attempts: number): ChatSandboxUnansweredError {
+  return new ChatSandboxUnansweredError(
+    `Chat sandbox did not answer the call. attempts=${attempts} `
+      + `errorName=${error instanceof Error ? error.name : "UnknownError"} errorCode=${String(readErrorCode(error))} `
+      + `errorMessage=${error instanceof Error ? error.message : String(error)}`,
+    { cause: error },
+  );
+}
+
 function readInvocationOutput<Response>(
   output: InvokeCommandOutput,
   responseSchema: z.ZodType<Response>,
 ): ChatSandboxInvocation<Response> {
   const sandboxRequestId = output.$metadata.requestId ?? null;
   if (output.StatusCode !== 200 || output.Payload === undefined) {
-    throw new Error(
+    throw new ChatSandboxUnansweredError(
       `Chat sandbox invoke returned no payload. statusCode=${String(output.StatusCode)} sandboxRequestId=${String(sandboxRequestId)}`,
+      {},
     );
   }
 
@@ -189,9 +212,14 @@ export async function invokeChatSandbox<Request extends ChatSandboxRequest, Resp
       }
 
       signal?.throwIfAborted();
-      const retryDelayMs = invokeRetryDelaysMs[attempt - 1];
-      if (!(isRefusedInvokeError(error) || isAnswerLostInvokeError(error)) || retryDelayMs === undefined) {
+      const isRetried = isRefusedInvokeError(error) || isAnswerLostInvokeError(error);
+      if (!isRetried && !(error instanceof ServiceException)) {
         throw error;
+      }
+
+      const retryDelayMs = invokeRetryDelaysMs[attempt - 1];
+      if (!isRetried || retryDelayMs === undefined) {
+        throw createUnansweredError(error, attempt);
       }
 
       writeCloudWatchRecord({
