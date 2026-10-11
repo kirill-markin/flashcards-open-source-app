@@ -262,6 +262,8 @@ function toProductAnalyticsEventRow(
     appVersion: facts.appVersion,
     osVersion: validation.context.osVersion,
     deviceModel: validation.context.deviceModel,
+    osName: validation.context.osName,
+    deviceType: validation.context.deviceType,
     deviceLocale: validation.context.deviceLocale,
     timezone: validation.context.timezone,
     country: null,
