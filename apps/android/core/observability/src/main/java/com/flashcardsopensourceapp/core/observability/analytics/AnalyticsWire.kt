@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.core.observability.analytics
 
+import com.flashcardsopensourceapp.core.observability.ClientDeviceType
 import org.json.JSONException
 import org.json.JSONObject
 import java.security.SecureRandom
@@ -90,6 +91,8 @@ internal fun newAnalyticsUuid(): String {
 data class AnalyticsDeviceContext(
     val osVersion: String?,
     val deviceModel: String?,
+    val osName: String,
+    val deviceType: ClientDeviceType,
     val deviceLocale: String?,
     val timezone: String?
 )
@@ -186,6 +189,8 @@ private fun renderAnalyticsContextJson(deviceContext: AnalyticsDeviceContext?): 
     return JSONObject()
         .put("osVersion", clampAnalyticsContextField(value = deviceContext.osVersion))
         .put("deviceModel", clampAnalyticsContextField(value = deviceContext.deviceModel))
+        .put("osName", deviceContext.osName)
+        .put("deviceType", deviceContext.deviceType.wireValue)
         .put("deviceLocale", clampAnalyticsContextField(value = deviceContext.deviceLocale))
         .put("timezone", clampAnalyticsContextField(value = deviceContext.timezone))
         .toString()

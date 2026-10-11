@@ -7,6 +7,8 @@ import android.os.Build
 import com.flashcardsopensourceapp.core.observability.AndroidAnalyticsObservationName
 import com.flashcardsopensourceapp.core.observability.AndroidWarningIssueEvent
 import com.flashcardsopensourceapp.core.observability.AppObservability
+import com.flashcardsopensourceapp.core.observability.androidClientOsName
+import com.flashcardsopensourceapp.core.observability.currentClientDeviceType
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -931,6 +933,8 @@ fun currentAnalyticsDeviceContext(context: Context): AnalyticsDeviceContext {
     return AnalyticsDeviceContext(
         osVersion = Build.VERSION.RELEASE,
         deviceModel = "${Build.MANUFACTURER} ${Build.MODEL}",
+        osName = androidClientOsName,
+        deviceType = currentClientDeviceType(context = context),
         // The process default can include the per-app language override.
         deviceLocale = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             context.getSystemService(LocaleManager::class.java)?.systemLocales?.get(0)?.toLanguageTag()

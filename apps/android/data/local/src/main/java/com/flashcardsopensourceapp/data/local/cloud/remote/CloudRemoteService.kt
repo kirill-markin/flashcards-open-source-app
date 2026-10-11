@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.data.local.cloud.remote
 
 import com.flashcardsopensourceapp.core.observability.AppObservability
+import com.flashcardsopensourceapp.core.observability.ClientDeviceType
 import com.flashcardsopensourceapp.data.local.cloud.remote.billing.CloudGoogleBillingGateway
 import com.flashcardsopensourceapp.data.local.cloud.remote.billing.CloudGoogleBillingRemoteApi
 import com.flashcardsopensourceapp.data.local.cloud.remote.billing.GooglePurchaseIntent
@@ -73,14 +74,16 @@ class CloudRemoteService private constructor(
     okHttpClient: OkHttpClient,
     observability: AppObservability,
     observationVersions: CloudHttpObservationVersions,
-    isAutomation: Boolean
+    isAutomation: Boolean,
+    clientDeviceTypeProvider: () -> ClientDeviceType?
 ) : CloudRemoteGateway, CloudGoogleBillingGateway {
     constructor(
         okHttpClient: OkHttpClient,
         observability: AppObservability,
         appVersion: String,
         versionCode: Int,
-        isAutomation: Boolean
+        isAutomation: Boolean,
+        clientDeviceTypeProvider: () -> ClientDeviceType
     ) : this(
         okHttpClient = okHttpClient,
         observability = observability,
@@ -88,13 +91,14 @@ class CloudRemoteService private constructor(
             appVersion = appVersion,
             versionCode = versionCode
         ),
-        isAutomation = isAutomation
+        isAutomation = isAutomation,
+        clientDeviceTypeProvider = clientDeviceTypeProvider
     )
 
-    // No app version and no automation declaration. Today's only caller probes cloud configuration,
-    // which registers no installation; nothing here prevents a future caller from syncing through
-    // it, and such a caller would send unmarked bodies, so give it the constructor that takes
-    // `isAutomation` instead.
+    // No app version, no automation declaration, and no device type. Today's only caller probes
+    // cloud configuration, which registers no installation; nothing here prevents a future caller
+    // from syncing through it, and such a caller would send unmarked bodies, so give it the
+    // constructor that takes `isAutomation` and the device type instead.
     constructor(okHttpClient: OkHttpClient) : this(
         okHttpClient = okHttpClient,
         observability = NoopCloudHttpObservability,
@@ -102,7 +106,8 @@ class CloudRemoteService private constructor(
             appVersion = null,
             versionCode = null
         ),
-        isAutomation = false
+        isAutomation = false,
+        clientDeviceTypeProvider = { null }
     )
 
     constructor() : this(okHttpClient = OkHttpClient())
@@ -121,7 +126,11 @@ class CloudRemoteService private constructor(
     private val feedbackApi = CloudFeedbackRemoteApi(httpClient = httpClient)
     private val mediaAssetApi = CloudMediaAssetRemoteApi(httpClient = httpClient)
     private val agentConnectionApi = CloudAgentConnectionRemoteApi(httpClient = httpClient)
-    private val syncApi = CloudSyncRemoteApi(httpClient = httpClient, isAutomation = isAutomation)
+    private val syncApi = CloudSyncRemoteApi(
+        httpClient = httpClient,
+        isAutomation = isAutomation,
+        clientDeviceTypeProvider = clientDeviceTypeProvider
+    )
     private val workspacePackageApi = CloudWorkspacePackageRemoteApi(httpClient = httpClient)
 
     override suspend fun loadGoogleBillingAccount(apiBaseUrl: String, authorizationHeader: String): String {
