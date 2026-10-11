@@ -674,6 +674,9 @@ extension FlashcardsStore {
     }
 
     var isCloudSyncBlocked: Bool {
+        if self.cloudRuntime.workspaceIdPendingDeletion != nil {
+            return true
+        }
         if self.isCloudCredentialRecoveryRequired {
             return true
         }
@@ -691,6 +694,7 @@ extension FlashcardsStore {
     }
 
     func runLinkedSync(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {
+        try self.cloudRuntime.throwIfWorkspaceDeletionBlocksSync(linkedSession: linkedSession)
         try self.enforceCloudCredentialRecoveryGateOutsideIdentityResolution(detectedAt: Date())
         try self.throwIfCustomGuestWorkspacePausedDuringSync(linkedSession: linkedSession)
         do {
@@ -739,6 +743,7 @@ extension FlashcardsStore {
     }
 
     func runFreshLinkedSyncAfterActiveSyncSettles(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {
+        try self.cloudRuntime.throwIfWorkspaceDeletionBlocksSync(linkedSession: linkedSession)
         try self.enforceCloudCredentialRecoveryGateOutsideIdentityResolution(detectedAt: Date())
         try self.throwIfCustomGuestWorkspacePausedDuringSync(linkedSession: linkedSession)
         do {
