@@ -244,18 +244,14 @@ export async function runChatSandboxBash(request: ChatSandboxBashRequest): Promi
       { mountPoint: workMountPoint, filesystem: work },
     ],
   });
-  const sqlBridge = request.sqlBridge === undefined
-    ? null
-    : new ChatSandboxSqlBridgeClient(request.sqlBridge, request.sessionId);
+  const sqlBridge = new ChatSandboxSqlBridgeClient(request.sqlBridge, request.sessionId);
   const bash = new Bash({
     fs,
     cwd: workMountPoint,
     env: { HOME: workMountPoint },
     python: true,
-    ...(sqlBridge === null ? {} : {
-      javascript: { invokeTool: async (path, argsJson, signal) => sqlBridge.invokeTool(path, argsJson, signal) },
-      customCommands: [...sqlBridge.createCommands(decodeBytesToUtf8)],
-    }),
+    javascript: { invokeTool: async (path, argsJson, signal) => sqlBridge.invokeTool(path, argsJson, signal) },
+    customCommands: [...sqlBridge.createCommands(decodeBytesToUtf8)],
     executionLimitProfile: "hardened",
     executionLimits,
   });
@@ -278,9 +274,7 @@ export async function runChatSandboxBash(request: ChatSandboxBashRequest): Promi
     durationMs: Date.now() - startedAt,
     writtenFiles: [...writtenFiles],
     deletedPaths: refusal === null ? [...changes.deletedPaths] : [],
-    ...(sqlBridge === null ? {} : {
-      sqlCallCount: sqlBridge.callCount,
-      sqlExecuteCallCount: sqlBridge.executeCallCount,
-    }),
+    sqlCallCount: sqlBridge.callCount,
+    sqlExecuteCallCount: sqlBridge.executeCallCount,
   };
 }
