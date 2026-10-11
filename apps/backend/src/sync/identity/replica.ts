@@ -42,6 +42,8 @@ type ClaimInstallationRow = Readonly<{
 type WorkspaceReplicaRow = Readonly<{
   replica_id: string;
   platform: WorkspaceReplicaPlatform;
+  os_name: string | null;
+  device_type: string | null;
 }>;
 
 type WorkspaceAccessLockRow = Readonly<{
@@ -215,7 +217,9 @@ async function markInstallationAutomationInExecutor(
  *
  * The automation marker travels with them for the same reason: the caller passes the marker the
  * installation it just claimed really carries - what the claim read back, with this request's own
- * declaration folded in - so it is known of the stored row rather than assumed of it too.
+ * declaration folded in - so it is known of the stored row rather than assumed of it too. The
+ * installation's device facts are read back by the statement that pins the replica, after the claim
+ * that stored them, for the same reason.
  *
  * A declaration is live only in a transaction opened through one of the reporting wrappers in
  * ../../productAnalytics/serverFacts/contentWrites.ts, and dies with the executor it is keyed on
@@ -239,6 +243,16 @@ async function upsertWorkspaceReplicaInExecutor(
   isAutomation: boolean,
   signal: AbortSignal | null,
 ): Promise<string> {
+  // A system actor has no installation, so only a client replica reads device facts back.
+  const returningSql = installationId === null
+    ? "RETURNING replica_id, platform, NULL::text AS os_name, NULL::text AS device_type"
+    : [
+      "RETURNING replica_id, platform,",
+      "(SELECT installations.os_name FROM sync.installations AS installations",
+      "WHERE installations.installation_id = $5) AS os_name,",
+      "(SELECT installations.device_type FROM sync.installations AS installations",
+      "WHERE installations.installation_id = $5) AS device_type",
+    ].join(" ");
   signal?.throwIfAborted();
   const insertResult = await executor.query<WorkspaceReplicaRow>(
     [
@@ -248,14 +262,21 @@ async function upsertWorkspaceReplicaInExecutor(
       ")",
       "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now())",
       "ON CONFLICT (replica_id) DO NOTHING",
-      "RETURNING replica_id, platform",
+      returningSql,
     ].join(" "),
     [replicaId, workspaceId, userId, actorKind, installationId, actorKey, platform, appVersion],
   );
   signal?.throwIfAborted();
 
-  if (insertResult.rows.length === 1) {
-    declareContentWriteReplicaFacts(executor, replicaId, { actorKind, platform, isAutomation });
+  const insertedReplica = insertResult.rows[0];
+  if (insertedReplica !== undefined) {
+    declareContentWriteReplicaFacts(executor, replicaId, {
+      actorKind,
+      platform,
+      osName: insertedReplica.os_name,
+      deviceType: insertedReplica.device_type,
+      isAutomation,
+    });
     return replicaId;
   }
 
@@ -270,14 +291,21 @@ async function upsertWorkspaceReplicaInExecutor(
       "AND installation_id IS NOT DISTINCT FROM $5",
       "AND actor_key IS NOT DISTINCT FROM $6",
       "AND platform = $7",
-      "RETURNING replica_id, platform",
+      returningSql,
     ].join(" "),
     [replicaId, workspaceId, userId, actorKind, installationId, actorKey, platform, appVersion],
   );
   signal?.throwIfAborted();
 
-  if (updateResult.rows.length === 1) {
-    declareContentWriteReplicaFacts(executor, replicaId, { actorKind, platform, isAutomation });
+  const updatedReplica = updateResult.rows[0];
+  if (updatedReplica !== undefined) {
+    declareContentWriteReplicaFacts(executor, replicaId, {
+      actorKind,
+      platform,
+      osName: updatedReplica.os_name,
+      deviceType: updatedReplica.device_type,
+      isAutomation,
+    });
     return replicaId;
   }
 

@@ -208,6 +208,8 @@ async function recordGuestUpgradeCompletedAnalytics(
       // does not read the session row and reporting the platform of upgrades is not what this change
       // is for; a producer that starts reading it may fill this in.
       platform: null,
+      osName: null,
+      deviceType: null,
       properties: {},
       details: null,
     });
