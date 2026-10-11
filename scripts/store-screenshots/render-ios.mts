@@ -8,7 +8,7 @@ import { createHash } from "node:crypto";
 import { parseArgs } from "node:util";
 import sharp from "sharp";
 
-type Family = "iphone" | "ipad";
+type Family = "iphone" | "ipad" | "iphone-duo-outer" | "iphone-duo-inner";
 type Copy = Readonly<Record<string, ReadonlyArray<readonly [string, string]>>>;
 type Locale = { readonly name: string; readonly storeLocale: string; readonly captureTag: string };
 type Bounds = { x: number; y: number; width: number; height: number };
@@ -40,40 +40,57 @@ const locales: ReadonlyArray<Locale> = JSON.parse(await readFile(join(assetRoot,
 const order = [4, 1, 2, 3, 5] as const;
 const slugs = ["ai-flashcards", "start-learning", "smart-reviews", "your-progress", "your-cards"] as const;
 const rtl = new Set(["ar", "he", "fa", "ur"]);
-const dimensions: Readonly<Record<Family, readonly [number, number]>> = { iphone: [1284, 2778], ipad: [2064, 2752] };
+const dimensions: Readonly<Record<Family, readonly [number, number]>> = {
+  iphone: [1284, 2778], ipad: [2064, 2752],
+  "iphone-duo-outer": [1398, 2034], "iphone-duo-inner": [2007, 2853],
+};
+const nativeDimensions: Readonly<Record<Family, readonly [number, number]>> = {
+  iphone: [1284, 2778], ipad: [2064, 2752],
+  "iphone-duo-outer": [1398, 2034], "iphone-duo-inner": [2853, 2007],
+};
+if (values.family !== "all" && !Object.hasOwn(dimensions, values.family!)) throw new Error(`Unsupported iOS family: ${values.family}`);
 const selected = values.locales ? new Set(values.locales.split(",")) : null;
-const needsIpad = values.family !== "iphone" && Object.keys(copy).some(tag => (!selected || selected.has(tag)) && locales.some(locale => locale.captureTag === tag));
+const needsIpad = (values.family === "all" || values.family === "ipad") && Object.keys(copy).some(tag => (!selected || selected.has(tag)) && locales.some(locale => locale.captureTag === tag));
+async function readSourceNames(family: Family): Promise<ReadonlyArray<string>> {
+  try {
+    return await readdir(join(inputRoot, family));
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+      throw new Error(`Missing native ${family} screenshot folder: ${join(inputRoot, family)}. Capture the five real screenshots per selected locale first.`, { cause: error });
+    }
+    throw error;
+  }
+}
 const sourceNames: Readonly<Record<Family, ReadonlyArray<string>>> = {
-  iphone: values.family === "ipad" ? [] : await readdir(join(inputRoot, "iphone")),
-  ipad: needsIpad ? await readdir(join(inputRoot, "ipad")) : [],
+  iphone: values.family === "all" || values.family === "iphone" ? await readSourceNames("iphone") : [],
+  ipad: needsIpad ? await readSourceNames("ipad") : [],
+  "iphone-duo-outer": values.family === "iphone-duo-outer" ? await readSourceNames("iphone-duo-outer") : [],
+  "iphone-duo-inner": values.family === "iphone-duo-inner" ? await readSourceNames("iphone-duo-inner") : [],
 };
 const escape = (text: string): string => text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll("\"", "&quot;");
 const dataUrl = (bytes: Buffer): string => `data:image/png;base64,${bytes.toString("base64")}`;
 
-const backgrounds: Record<Family, ReadonlyArray<readonly [string, string]>> = { iphone: [], ipad: [] };
-for (const family of ["iphone", "ipad"] as const) {
-  const assets: Array<readonly [string, string]> = [];
-  for (let card = 1; card <= 5; card++) {
-    const number = String(card).padStart(2, "0");
-    assets.push([
-      dataUrl(await readFile(join(assetRoot, `reference/${number}.png`))),
-      dataUrl(await readFile(join(assetRoot, `header-background/${number}.png`))),
-    ]);
-  }
-  backgrounds[family] = assets;
+const backgrounds: Array<readonly [string, string]> = [];
+for (let card = 1; card <= 5; card++) {
+  const number = String(card).padStart(2, "0");
+  backgrounds.push([
+    dataUrl(await readFile(join(assetRoot, `reference/${number}.png`))),
+    dataUrl(await readFile(join(assetRoot, `header-background/${number}.png`))),
+  ]);
 }
 
 function html(family: Family, tag: string, card: number, screen: string, sourceWidth: number, sourceHeight: number, frameColor: string): string {
   const [width, height] = dimensions[family];
   const scale = family === "iphone" ? width / 519 : height / 1122;
-  const textScale = scale * (family === "ipad" ? 1.35 : 1);
+  const textScale = scale * (family === "iphone" ? 1 : 1.35);
   const frameHeight = 860 * scale;
   const padding = 18 * scale;
   const screenHeight = frameHeight - padding * 2;
   const frameWidth = family === "iphone" ? 418 * scale : 420 * width / 519;
-  const paddingInline = family === "iphone" ? padding : (frameWidth - screenHeight * .75) / 2;
+  const screenAspect = family === "iphone-duo-outer" ? nativeDimensions[family][0] / nativeDimensions[family][1] : .75;
+  const paddingInline = family === "iphone" ? padding : (frameWidth - screenHeight * screenAspect) / 2;
   const screenScale = Math.min((frameWidth - paddingInline * 2) / sourceWidth, screenHeight / sourceHeight);
-  const [base, header] = backgrounds[family][card - 1];
+  const [base, header] = backgrounds[card - 1];
   const [heading, caption] = copy[tag][card - 1];
   const number = String(card).padStart(2, "0");
   const direction = rtl.has(tag) ? "rtl" : "ltr";
@@ -111,12 +128,13 @@ try {
   for (const tag of Object.keys(copy)) {
     if (selected && !selected.has(tag)) continue;
     const locale = locales.find(item => item.captureTag === tag);
-    if (!locale && values.family === "ipad") {
-      if (selected) throw new Error(`No iPad capture is configured for iPhone-only language ${tag}. Select --family iphone.`);
+    if (!locale && values.family !== "all" && values.family !== "iphone") {
+      if (selected) throw new Error(`No ${values.family} capture is configured for iPhone-only language ${tag}. Select --family iphone.`);
       continue;
     }
     if (copy[tag].length !== 5 || copy[tag][0][0] !== "Nibomo App") throw new Error(`Invalid copy set: ${tag}`);
-    for (const family of ((locale ? ["iphone", "ipad"] : ["iphone"]) as Family[]).filter(family => values.family === "all" || values.family === family)) {
+    const families: Family[] = values.family === "all" ? locale ? ["iphone", "ipad"] : ["iphone"] : [values.family as Family];
+    for (const family of families) {
       const [width, height] = dimensions[family];
       await page.setViewportSize({ width, height });
       const group = locale ? "ready" : "additional-languages";
@@ -124,14 +142,16 @@ try {
       const typography: Array<readonly [string, string, number, number]> = [];
       for (let card = 1; card <= 5; card++) {
         const names = sourceNames[family].filter(name => name.startsWith(`${tag}-${order[card - 1]}_`) && name.endsWith(".png"));
-        if (names.length !== 1) throw new Error(`Expected one source for ${family}/${tag}/${card}; found ${names.length}`);
+        if (names.length !== 1) throw new Error(`Expected one native source matching ${family}/${tag}-${order[card - 1]}_*.png under ${inputRoot}; found ${names.length}. Capture the selected five-shot set first.`);
         const source = `${family}/${names[0]}`;
         const raw = await readFile(join(inputRoot, source));
         const original = await sharp(raw).metadata();
         const sourceWidth = original.width;
         const sourceHeight = original.height;
-        if (!sourceWidth || !sourceHeight || !((sourceWidth === width && sourceHeight === height) || (family === "ipad" && sourceWidth === height && sourceHeight === width))) {
-          throw new Error(`Wrong source dimensions: ${source} (${sourceWidth}x${sourceHeight}); expected ${width}x${height}${family === "ipad" ? ` or ${height}x${width}` : ""}.`);
+        const [nativeWidth, nativeHeight] = nativeDimensions[family];
+        const acceptsIpadLandscape = family === "ipad" && sourceWidth === height && sourceHeight === width;
+        if (!sourceWidth || !sourceHeight || !((sourceWidth === nativeWidth && sourceHeight === nativeHeight) || acceptsIpadLandscape)) {
+          throw new Error(`Wrong source dimensions: ${source} (${sourceWidth}x${sourceHeight}); expected ${nativeWidth}x${nativeHeight}${family === "ipad" ? ` or ${height}x${width}` : ""}.`);
         }
         const reference = await sharp(join(assetRoot, `reference/${String(card).padStart(2, "0")}.png`)).removeAlpha().raw().toBuffer({ resolveWithObject: true });
         const offset = (500 * reference.info.width + 51) * 3;
@@ -216,7 +236,7 @@ try {
     console.log(JSON.stringify({ overflows }, null, 2));
     if (overflows.length) process.exitCode = 1;
   } else {
-    if (!results.length) throw new Error("No selected iOS capture sets match this family. iPhone-only languages cannot produce iPad cards.");
+    if (!results.length) throw new Error(`No selected iOS capture sets match ${values.family}. Check the selected locales and native screenshot folders.`);
     for (const file of results) {
       await mkdir(dirname(join(root, file.path)), { recursive: true });
       await copyFile(join(staging!, file.path), join(root, file.path));

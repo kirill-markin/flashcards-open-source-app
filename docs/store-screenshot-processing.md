@@ -92,6 +92,8 @@ the reference's old header text and old app screen are not used as the output UI
 | --- | --- | --- | --- |
 | iPhone | 1284 × 2778 | 1284 × 2778 | width / 519 |
 | iPad | 2064 × 2752 | 2064 × 2752 portrait or 2752 × 2064 landscape | height / 1122 × 1.35 |
+| iPhone Duo outer | 1398 × 2034 | 1398 × 2034 portrait | height / 1122 × 1.35 |
+| iPhone Duo inner | 2007 × 2853 | 2853 × 2007 landscape | height / 1122 × 1.35 |
 | Android phone | 1080 × 1920 | 1080 × 2400 | width / 519 |
 
 The base heading is Arial/sans-serif 44 px, weight 700, line height 53 px. The
@@ -107,6 +109,19 @@ and proportionally inside that box, centered with unused space around landscape
 captures. Native capture defaults to landscape on iPad; processing preserves the
 portrait canvas, frame and header geometry. Other input resolutions are rejected.
 The exact CSS and frame geometry are in `render-ios.mts`.
+
+Duo cards reuse those portrait compositions, backgrounds, five-card order, and
+localized copy. The outer profile fits its complete portrait native screenshot
+inside a shorter frame; the inner profile fits its complete landscape native
+screenshot proportionally inside the portrait frame, leaving space around it.
+They read only genuine native PNGs from `iphone-duo-outer/` and
+`iphone-duo-inner/` under the iOS screenshot input root and write separate
+`ready/` folders with the same family names. Select one family explicitly with
+`--platform ios --family iphone-duo-outer` or `--family iphone-duo-inner`, plus
+optional `--locales`. The default `--family all` continues to process only the
+existing iPhone and iPad sets. Duo outputs and uploads require a separate review;
+this processing step does not capture screenshots or upload cards. The 42 existing
+App Store locales supply Duo copy; there are no new locale variants.
 
 Android uses a separate 9:16 canvas. Its heading row starts at 110 px, caption at
 260 px and frame at 370 px. The entire native 1080 × 2400 capture is displayed
