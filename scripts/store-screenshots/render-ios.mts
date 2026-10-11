@@ -142,7 +142,7 @@ try {
       const typography: Array<readonly [string, string, number, number]> = [];
       for (let card = 1; card <= 5; card++) {
         const names = sourceNames[family].filter(name => name.startsWith(`${tag}-${order[card - 1]}_`) && name.endsWith(".png"));
-        if (names.length !== 1) throw new Error(`Expected one native source matching ${family}/${tag}-${order[card - 1]}_*.png under ${inputRoot}; found ${names.length}. Capture the selected five-shot set first.`);
+        if (names.length !== 1) throw new Error(`Expected one source matching ${family}/${tag}-${order[card - 1]}_*.png under ${inputRoot}; found ${names.length}. Capture the selected five-shot set first.`);
         const source = `${family}/${names[0]}`;
         const raw = await readFile(join(inputRoot, source));
         const original = await sharp(raw).metadata();
