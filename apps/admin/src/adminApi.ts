@@ -46,6 +46,18 @@ export const reviewEventPlatforms = ["web", "android", "ios", "agent", "unattrib
 
 export type ReviewEventPlatform = (typeof reviewEventPlatforms)[number];
 
+// The closed domains of `analytics.product_events.os_name` and `device_type`, which
+// `db/migrations/0175_analytics_os_name_device_type.sql` defines, plus the bucket for a row that
+// carries no value. `platform` names the client build, so these are what tell an iPhone, an iPad and
+// a Mac apart, and an Android tablet from an Android phone.
+export const productEventOsNames = ["ios", "ipados", "macos", "android", "unknown"] as const;
+
+export type ProductEventOsName = (typeof productEventOsNames)[number];
+
+export const productEventDeviceTypes = ["phone", "tablet", "desktop", "tv", "unknown"] as const;
+
+export type ProductEventDeviceType = (typeof productEventDeviceTypes)[number];
+
 export const reviewEventCohorts = ["returning", "new"] as const;
 
 export type ReviewEventCohort = (typeof reviewEventCohorts)[number];
@@ -134,12 +146,14 @@ export type DailyActiveUsersUser = Readonly<{
   activeDayCount: number;
 }>;
 
-/** One (UTC date, actor, platform) the actor opened the app on. */
+/** One (UTC date, actor, platform, OS name, device type) the actor opened the app on. */
 export type DailyActiveUsersRow = Readonly<{
   date: string;
   userId: string;
   email: string;
   platform: ReviewEventPlatform;
+  osName: ProductEventOsName;
+  deviceType: ProductEventDeviceType;
   firstActiveDate: string;
 }>;
 
@@ -155,6 +169,18 @@ export type DailyActiveUsersPlatformTotal = Readonly<{
   activeUserCount: number;
 }>;
 
+export type DailyActiveUsersOsNameTotal = Readonly<{
+  date: string;
+  osName: ProductEventOsName;
+  activeUserCount: number;
+}>;
+
+export type DailyActiveUsersDeviceTypeTotal = Readonly<{
+  date: string;
+  deviceType: ProductEventDeviceType;
+  activeUserCount: number;
+}>;
+
 export type DailyActiveUsersReport = Readonly<{
   generatedAtUtc: string;
   from: string;
@@ -162,6 +188,8 @@ export type DailyActiveUsersReport = Readonly<{
   users: ReadonlyArray<DailyActiveUsersUser>;
   dailyCohortTotals: ReadonlyArray<DailyActiveUsersCohortTotal>;
   platformActiveUserTotals: ReadonlyArray<DailyActiveUsersPlatformTotal>;
+  osNameActiveUserTotals: ReadonlyArray<DailyActiveUsersOsNameTotal>;
+  deviceTypeActiveUserTotals: ReadonlyArray<DailyActiveUsersDeviceTypeTotal>;
   rows: ReadonlyArray<DailyActiveUsersRow>;
 }>;
 
