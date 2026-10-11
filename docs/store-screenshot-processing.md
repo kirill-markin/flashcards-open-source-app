@@ -100,7 +100,7 @@ the reference's old header text and old app screen are not used as the output UI
 | iPhone | 1284 × 2778 | 1284 × 2778 | width / 519 |
 | iPad | 2064 × 2752 | 2064 × 2752 portrait or 2752 × 2064 landscape | height / 1122 × 1.35 |
 | iPhone Duo outer | 1398 × 2034 | 1398 × 2034 portrait | height / 1122 × 1.35 |
-| iPhone Duo inner | 2007 × 2853 | 2853 × 2007 landscape | height / 1122 × 1.35 |
+| iPhone Duo inner | 2853 × 2007 landscape | 2853 × 2007 landscape | height / 1122 × 1.35 |
 | Android phone | 1080 × 1920 | 1080 × 2400 | width / 519 |
 
 The base heading is Arial/sans-serif 44 px, weight 700, line height 53 px. The
@@ -117,10 +117,13 @@ captures. Native capture defaults to landscape on iPad; processing preserves the
 portrait canvas, frame and header geometry. Other input resolutions are rejected.
 The exact CSS and frame geometry are in `render-ios.mts`.
 
-Duo cards reuse those portrait compositions, backgrounds, five-card order, and
-localized copy. The outer profile fits its complete portrait native screenshot
-inside a shorter frame; the inner profile fits its complete landscape native
-screenshot proportionally inside the portrait frame, leaving space around it.
+Duo cards reuse the five backgrounds, heading and caption styling, card order,
+and localized copy. The outer profile fits its complete portrait native screenshot
+inside a shorter portrait frame. The inner profile uses a landscape canvas and
+a frame matching the native screenshot's aspect ratio, with the complete app UI
+centered below the shared header.
+The tracked portrait inner cards remain historical approved output until their
+separate asset replacement; new inner renders are landscape.
 They read only genuine native PNGs from `iphone-duo-outer/` and
 `iphone-duo-inner/` under the iOS screenshot input root and write separate
 `ready/` folders with the same family names. Select one family explicitly with
