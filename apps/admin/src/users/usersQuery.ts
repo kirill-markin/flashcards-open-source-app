@@ -59,7 +59,10 @@ export type UserRow = Readonly<{
   installationsLastSeenAt: string | null;
   /** `analytics.installation_profiles` rows whose latest observed owner is the person. */
   analyticsInstallationCount: number;
+  osNames: ReadonlyArray<string>;
   osVersions: ReadonlyArray<string>;
+  deviceTypes: ReadonlyArray<string>;
+  deviceModels: ReadonlyArray<string>;
   deviceLocales: ReadonlyArray<string>;
   deviceTimeZones: ReadonlyArray<string>;
   firstCountries: ReadonlyArray<string>;
@@ -168,7 +171,10 @@ const userColumnSql = {
   "automation-installation": "COALESCE(installations.has_automation, FALSE)",
   "installations-last-seen": "installations.last_seen_at",
   "analytics-installations": "COALESCE(installation_profiles.profile_count, 0)",
+  "os-names": "COALESCE(installation_profiles.os_names, ARRAY[]::text[])",
   "os-versions": "COALESCE(installation_profiles.os_versions, ARRAY[]::text[])",
+  "device-types": "COALESCE(installation_profiles.device_types, ARRAY[]::text[])",
+  "device-models": "COALESCE(installation_profiles.device_models, ARRAY[]::text[])",
   "device-locales": "COALESCE(installation_profiles.device_locales, ARRAY[]::text[])",
   "device-time-zones": "COALESCE(installation_profiles.timezones, ARRAY[]::text[])",
   "first-countries": "COALESCE(installation_profiles.first_countries, ARRAY[]::text[])",
@@ -260,7 +266,10 @@ const userFieldSql: Readonly<Record<UserField, string>> = {
   hasAutomationInstallation: userColumnSql["automation-installation"],
   installationsLastSeenAt: utcInstantSql(userColumnSql["installations-last-seen"]),
   analyticsInstallationCount: userColumnSql["analytics-installations"],
+  osNames: userColumnSql["os-names"],
   osVersions: userColumnSql["os-versions"],
+  deviceTypes: userColumnSql["device-types"],
+  deviceModels: userColumnSql["device-models"],
   deviceLocales: userColumnSql["device-locales"],
   deviceTimeZones: userColumnSql["device-time-zones"],
   firstCountries: userColumnSql["first-countries"],
@@ -388,7 +397,10 @@ ${buildConnectionCountrySamplesSql(countrySampleRange, null)}
   ), installation_profiles AS (
     SELECT user_id::text AS user_id,
       count(*)::int AS profile_count,
+      array_agg(DISTINCT os_name ORDER BY os_name) FILTER (WHERE os_name IS NOT NULL) AS os_names,
       array_agg(DISTINCT os_version ORDER BY os_version) FILTER (WHERE os_version IS NOT NULL) AS os_versions,
+      array_agg(DISTINCT device_type ORDER BY device_type) FILTER (WHERE device_type IS NOT NULL) AS device_types,
+      array_agg(DISTINCT device_model ORDER BY device_model) FILTER (WHERE device_model IS NOT NULL) AS device_models,
       array_agg(DISTINCT device_locale ORDER BY device_locale) FILTER (WHERE device_locale IS NOT NULL) AS device_locales,
       array_agg(DISTINCT timezone ORDER BY timezone) FILTER (WHERE timezone IS NOT NULL) AS timezones,
       array_agg(DISTINCT first_country ORDER BY first_country) FILTER (WHERE first_country IS NOT NULL) AS first_countries
@@ -687,7 +699,10 @@ function parseUserRow(value: AdminQueryValue | undefined, rowIndex: number): Use
     hasAutomationInstallation: reader.boolean("hasAutomationInstallation"),
     installationsLastSeenAt: reader.nullableString("installationsLastSeenAt"),
     analyticsInstallationCount: reader.count("analyticsInstallationCount"),
+    osNames: reader.stringArray("osNames"),
     osVersions: reader.stringArray("osVersions"),
+    deviceTypes: reader.stringArray("deviceTypes"),
+    deviceModels: reader.stringArray("deviceModels"),
     deviceLocales: reader.stringArray("deviceLocales"),
     deviceTimeZones: reader.stringArray("deviceTimeZones"),
     firstCountries: reader.stringArray("firstCountries"),
@@ -815,7 +830,10 @@ const enumListColumnIds: ReadonlyArray<UserColumnId> = [
   "exclusion-reason",
   "platforms",
   "countries",
+  "os-names",
   "os-versions",
+  "device-types",
+  "device-models",
   "device-locales",
   "device-time-zones",
   "first-countries",
