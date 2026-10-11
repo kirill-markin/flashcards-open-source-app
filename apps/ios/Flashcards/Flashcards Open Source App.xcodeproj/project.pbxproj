@@ -464,6 +464,7 @@
 				"ENABLE_HARDENED_RUNTIME[sdk=macosx*]" = YES;
 				PRODUCT_MODULE_NAME = Flashcards;
 				PRODUCT_NAME = "Flashcards Open Source App";
+				"PRODUCT_NAME[sdk=macosx*]" = Nibomo;
 			};
 			name = Debug;
 		};
@@ -478,6 +479,7 @@
 				"ENABLE_HARDENED_RUNTIME[sdk=macosx*]" = YES;
 				PRODUCT_MODULE_NAME = Flashcards;
 				PRODUCT_NAME = "Flashcards Open Source App";
+				"PRODUCT_NAME[sdk=macosx*]" = Nibomo;
 			};
 			name = Release;
 		};
@@ -500,7 +502,7 @@
 				PRODUCT_NAME = "Flashcards Open Source App Tests";
 				SDKROOT = iphoneos;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Flashcards Open Source App.app/Flashcards Open Source App";
-				"TEST_HOST[sdk=macosx*]" = "$(BUILT_PRODUCTS_DIR)/Flashcards Open Source App.app/Contents/MacOS/Flashcards Open Source App";
+				"TEST_HOST[sdk=macosx*]" = "$(BUILT_PRODUCTS_DIR)/Nibomo.app/Contents/MacOS/Nibomo";
 				TEST_TARGET_NAME = "Flashcards Open Source App";
 			};
 			name = Debug;
@@ -524,7 +526,7 @@
 				PRODUCT_NAME = "Flashcards Open Source App Tests";
 				SDKROOT = iphoneos;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Flashcards Open Source App.app/Flashcards Open Source App";
-				"TEST_HOST[sdk=macosx*]" = "$(BUILT_PRODUCTS_DIR)/Flashcards Open Source App.app/Contents/MacOS/Flashcards Open Source App";
+				"TEST_HOST[sdk=macosx*]" = "$(BUILT_PRODUCTS_DIR)/Nibomo.app/Contents/MacOS/Nibomo";
 				TEST_TARGET_NAME = "Flashcards Open Source App";
 			};
 			name = Release;
