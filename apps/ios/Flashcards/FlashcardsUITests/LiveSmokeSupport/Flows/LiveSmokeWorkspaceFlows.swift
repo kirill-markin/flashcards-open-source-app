@@ -424,6 +424,20 @@ extension LiveSmokeTestCase {
 
     @MainActor
     func scrollWorkspaceChooserToCreateWorkspaceButton() throws {
+        let chooserList = self.app.collectionViews[LiveSmokeIdentifier.cloudWorkspaceChooserScreen].firstMatch
+        if self.waitForOptionalElement(
+            chooserList,
+            identifier: LiveSmokeIdentifier.cloudWorkspaceChooserScreen,
+            timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+        ) == false {
+            throw LiveSmokeFailure.missingElement(
+                identifier: LiveSmokeIdentifier.cloudWorkspaceChooserScreen,
+                timeoutSeconds: LiveSmokeConfiguration.shortUiTimeoutSeconds,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+
         let createButton = self.app.buttons[LiveSmokeIdentifier.cloudSignInCreateWorkspaceButton].firstMatch
         let deadline = Date().addingTimeInterval(LiveSmokeConfiguration.longUiTimeoutSeconds)
 
@@ -432,7 +446,7 @@ extension LiveSmokeTestCase {
                 return
             }
 
-            self.app.swipeUp()
+            chooserList.swipeUp()
             RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
         }
 
