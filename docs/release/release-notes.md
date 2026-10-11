@@ -24,7 +24,24 @@ where the user-visible effect is unclear.
   store draft requires additional locales, prepare and retain those texts too.
 - Reuse these texts in each store's What's New/release notes fields; use the
   English text for GitHub Release. Never publish the raw generated commit, PR,
-  or contributor list as release notes.
+  or contributor list as release notes; the only contributor addition is the
+  [GitHub Release thanks](#github-release-thanks) line.
+
+## GitHub Release thanks
+
+When publishing a GitHub Release here or in `kirill-markin/nibomo-plugins`,
+append one line to its English notes naming every other human commit author in
+that repository's range from the previous release tag to the current one:
+
+```bash
+gh api --paginate "repos/<owner>/<repo>/compare/<previous-tag>...<tag>?per_page=100" \
+  --jq '.commits[].author.login // empty' | sort -u
+```
+
+Write `@login` handles, for example `Thanks to @murlexander and @Noah-zipit`.
+Exclude the maintainer `kirill-markin`, `[bot]` logins, and AI accounts; ignore
+`Co-authored-by` trailers. Omit the line when nobody else contributed. Store
+release notes never carry it.
 
 ## Android draft upload input
 
