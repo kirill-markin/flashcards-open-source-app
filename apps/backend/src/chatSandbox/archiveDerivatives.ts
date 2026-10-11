@@ -65,15 +65,28 @@ function findArchiveRefusal(files: ReadonlyArray<UnzipFileInfo>): string | null 
     : null;
 }
 
-/** Every file entry under `<path>.d/`, or nothing when one entry or the archive is over a limit. */
+/** The Finder metadata a ZIP made on a Mac carries: `__MACOSX/`, `.DS_Store` and AppleDouble `._` files. */
+function isMacMetadataEntry(name: string): boolean {
+  const fileName = name.slice(name.lastIndexOf("/") + 1);
+  return name.split("/").includes("__MACOSX") || fileName === ".DS_Store" || fileName.startsWith("._");
+}
+
+function isExtractedEntry(entry: UnzipFileInfo): boolean {
+  return !entry.name.endsWith("/") && !isMacMetadataEntry(entry.name);
+}
+
+/**
+ * Every file entry under `<path>.d/`, or nothing when one entry or the archive is over a limit. macOS
+ * metadata is neither extracted nor counted toward the limits.
+ */
 export function deriveZipEntries(path: string, bytes: Uint8Array): ReadonlyArray<SlotFile> {
-  const files = listArchiveEntries(bytes).filter((entry) => !entry.name.endsWith("/"));
+  const files = listArchiveEntries(bytes).filter(isExtractedEntry);
   const refusal = findArchiveRefusal(files);
   if (refusal !== null) {
     throw new DerivativeRefusal(refusal);
   }
 
-  const unzipped = unzipSync(bytes, { filter: (entry) => !entry.name.endsWith("/") });
+  const unzipped = unzipSync(bytes, { filter: isExtractedEntry });
   return files.map((entry) => ({ path: `${path}.d/${entry.name}`, bytes: unzipped[entry.name] }));
 }
 

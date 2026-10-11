@@ -1,7 +1,10 @@
 import { posix } from "node:path";
-import { invokeChatSandbox, type ChatSandboxInvocation } from "../chatSandbox/client";
+import { ChatSandboxUnansweredError, invokeChatSandbox, type ChatSandboxInvocation } from "../chatSandbox/client";
 import {
   chatSandboxPrepareResponseSchema,
+  chatSandboxSizeMismatchErrorType,
+  chatSandboxTransferErrorType,
+  chatSandboxUploadErrorType,
   countDerivativeWriteSlots,
   findChatFileDerivativeKind,
   maximumDerivativeErrorChars,
@@ -11,7 +14,7 @@ import {
 } from "../chatSandbox/contract";
 import { transactionWithWorkspaceScope, type WorkspaceDatabaseScope } from "../database";
 import { writeCloudWatchRecord } from "../observability/cloudWatch";
-import type { BackendObservationScope } from "../observability/sentry";
+import { captureBackendWarningWithFingerprint, type BackendObservationScope } from "../observability/sentry";
 import { cutHeadAtCodePoint } from "../shared/codePointCuts";
 import { toJsonbSafeText } from "../shared/jsonbSafeText";
 import { logOrphanedChatFileUploads } from "./attachments";
@@ -43,21 +46,53 @@ type DerivedChatFile = ChatFileWriteSlot & Readonly<{
   sha256: string;
 }>;
 
-/** A failed preparation carries the slots the sandbox may have filled without saying so. */
+/**
+ * A failed or transient preparation carries the slots the sandbox may have filled without saying so.
+ * `transient` is a failure the file did not cause, which leaves the attachment for the next run to retry.
+ */
 type Preparation =
   | Readonly<{ outcome: "prepared"; derivedFiles: ReadonlyArray<DerivedChatFile> }>
-  | Readonly<{ outcome: "failed"; error: string; unconfirmedSlots: ReadonlyArray<ChatFileWriteSlot> }>;
+  | Readonly<{ outcome: "failed"; error: string; unconfirmedSlots: ReadonlyArray<ChatFileWriteSlot> }>
+  | Readonly<{ outcome: "transient"; unconfirmedSlots: ReadonlyArray<ChatFileWriteSlot> }>;
 
 /** `superseded`: the attachment was gone or already prepared once the result was recorded. */
 type RecordedPreparation =
   | Readonly<{ outcome: "prepared" }>
   | Readonly<{ outcome: "failed"; error: string }>
-  | Readonly<{ outcome: "superseded" }>;
+  | Readonly<{ outcome: "superseded" }>
+  | Readonly<{ outcome: "transient" }>;
 
 type PendingAttachment = Readonly<{
   file: ChatSessionFile;
   kind: ChatFileDerivativeKind;
 }>;
+
+/**
+ * The unanswered calls the file caused, which a retry would fail again: Lambda's names for a sandbox
+ * that ran out of time or memory, where a parser that exhausts the JS heap aborts the runtime with
+ * `Runtime.ExitError`, and an object that is not the size its row records.
+ */
+const fileCausedSandboxErrorTypes: ReadonlySet<string> = new Set([
+  "Sandbox.Timedout",
+  "Runtime.OutOfMemory",
+  "Runtime.ExitError",
+  chatSandboxSizeMismatchErrorType,
+]);
+
+/** A failed transfer or upload says nothing about the file, so the next run tries it again. */
+const transientSandboxErrorTypes: ReadonlySet<string> = new Set([
+  chatSandboxTransferErrorType,
+  chatSandboxUploadErrorType,
+]);
+
+/**
+ * Neither set: a contract violation, a broken deploy, or a parser crash Lambda names after the thrown
+ * error. It is recorded as failed, so a file that crashes its parser cannot fail every later run, and
+ * reaches Sentry.
+ */
+function isUnclassifiedSandboxErrorType(errorType: string): boolean {
+  return !fileCausedSandboxErrorTypes.has(errorType) && !transientSandboxErrorTypes.has(errorType);
+}
 
 function toStoredDerivativeError(error: string): string {
   return toJsonbSafeText(cutHeadAtCodePoint(error, maximumDerivativeErrorChars));
@@ -94,6 +129,10 @@ function readPreparation(
   invocation: ChatSandboxInvocation<ChatSandboxPrepareResponse>,
   slots: ReadonlyMap<string, ChatFileWriteSlot>,
 ): Preparation {
+  if (invocation.status === "failed" && transientSandboxErrorTypes.has(invocation.error.errorType)) {
+    return { outcome: "transient", unconfirmedSlots: [...slots.values()] };
+  }
+
   if (invocation.status === "failed") {
     return {
       outcome: "failed",
@@ -125,7 +164,7 @@ async function recordPreparation(
   scope: WorkspaceDatabaseScope,
   sessionId: string,
   file: ChatSessionFile,
-  preparation: Preparation,
+  preparation: Exclude<Preparation, Readonly<{ outcome: "transient" }>>,
 ): Promise<RecordedPreparation> {
   return transactionWithWorkspaceScope(scope, async (executor): Promise<RecordedPreparation> => {
     await lockChatSessionWithExecutor(executor, scope, sessionId);
@@ -173,7 +212,7 @@ function logUnrecordedUploads(
   preparation: Preparation,
   recorded: RecordedPreparation,
 ): void {
-  if (preparation.outcome === "failed") {
+  if (preparation.outcome !== "prepared") {
     logOrphanedChatFileUploads(observationScope, preparation.unconfirmedSlots, "sandbox_unconfirmed", null);
     return;
   }
@@ -188,20 +227,25 @@ function logUnrecordedUploads(
   }
 }
 
-/** One sandbox call: derives the files, records them or the error, and logs one record, also when it throws. */
+/**
+ * One sandbox call: derives the files, records them or the error, and logs one record, also when it throws.
+ * A call Lambda left unanswered is transient and does not throw; it returns the class of the error that
+ * left it so, and null for every other call.
+ */
 async function prepareAttachmentDerivatives(
   scope: WorkspaceDatabaseScope,
   sessionId: string,
   pending: PendingAttachment,
   signal: AbortSignal | null,
   observationScope: BackendObservationScope,
-): Promise<void> {
+): Promise<string | null> {
   const { file, kind } = pending;
   const startedAt = Date.now();
   let slots: ReadonlyMap<string, ChatFileWriteSlot> = new Map();
   let invocation: ChatSandboxInvocation<ChatSandboxPrepareResponse> | null = null;
   let preparation: Preparation | null = null;
   let recorded: RecordedPreparation;
+  let unansweredErrorClass: string | null = null;
   try {
     invocation = await invokeChatSandbox({
       prepare: async (): Promise<ChatSandboxPrepareRequest> => {
@@ -225,35 +269,44 @@ async function prepareAttachmentDerivatives(
       },
     }, chatSandboxPrepareResponseSchema, signal, observationScope);
     preparation = readPreparation(file, invocation, slots);
-    recorded = await recordPreparation(scope, sessionId, file, preparation);
+    recorded = preparation.outcome === "transient"
+      ? { outcome: "transient" }
+      : await recordPreparation(scope, sessionId, file, preparation);
   } catch (error) {
-    // Abandoned sandbox attempts logged their slots already; an answer whose record step threw is logged here.
-    if (preparation !== null) {
-      logOrphanedChatFileUploads(
-        observationScope,
-        preparation.outcome === "prepared" ? preparation.derivedFiles : preparation.unconfirmedSlots,
-        "write_failed",
-        error,
-      );
+    if (!(error instanceof ChatSandboxUnansweredError)) {
+      // Abandoned sandbox attempts logged their slots already; an answer whose record step threw is logged here.
+      if (preparation !== null) {
+        logOrphanedChatFileUploads(
+          observationScope,
+          preparation.outcome === "prepared" ? preparation.derivedFiles : preparation.unconfirmedSlots,
+          "write_failed",
+          error,
+        );
+      }
+      writeCloudWatchRecord({
+        action: "chat_file_derivatives_prepared",
+        scope: observationScope,
+        details: {
+          fileId: file.fileId,
+          mediaType: file.mediaType,
+          sizeBytes: file.sizeBytes,
+          outcome: "thrown",
+          derivedFileCount: 0,
+          derivedBytes: 0,
+          durationMs: Date.now() - startedAt,
+          sandboxRequestId: invocation?.sandboxRequestId ?? null,
+          sandboxErrorType: invocation?.status === "failed" ? invocation.error.errorType : null,
+          derivativesError: null,
+          errorClass: error instanceof Error ? error.name : "UnknownError",
+        },
+      }, "breadcrumb");
+      throw error;
     }
-    writeCloudWatchRecord({
-      action: "chat_file_derivatives_prepared",
-      scope: observationScope,
-      details: {
-        fileId: file.fileId,
-        mediaType: file.mediaType,
-        sizeBytes: file.sizeBytes,
-        outcome: "thrown",
-        derivedFileCount: 0,
-        derivedBytes: 0,
-        durationMs: Date.now() - startedAt,
-        sandboxRequestId: invocation?.sandboxRequestId ?? null,
-        sandboxErrorType: invocation?.status === "failed" ? invocation.error.errorType : null,
-        derivativesError: null,
-        errorClass: error instanceof Error ? error.name : "UnknownError",
-      },
-    }, "breadcrumb");
-    throw error;
+
+    // The client logged the slots of every attempt it gave up on.
+    preparation = { outcome: "transient", unconfirmedSlots: [] };
+    recorded = { outcome: "transient" };
+    unansweredErrorClass = error.cause instanceof Error ? error.cause.name : error.name;
   }
 
   logUnrecordedUploads(observationScope, preparation, recorded);
@@ -271,18 +324,57 @@ async function prepareAttachmentDerivatives(
       derivedFileCount: derivedFiles.length,
       derivedBytes: derivedFiles.reduce((total, derivedFile) => total + derivedFile.sizeBytes, 0),
       durationMs: Date.now() - startedAt,
-      sandboxRequestId: invocation.sandboxRequestId,
-      sandboxErrorType: invocation.status === "failed" ? invocation.error.errorType : null,
+      sandboxRequestId: invocation?.sandboxRequestId ?? null,
+      sandboxErrorType: invocation?.status === "failed" ? invocation.error.errorType : null,
       derivativesError: recorded.outcome === "failed" ? recorded.error : null,
-      errorClass: null,
+      errorClass: unansweredErrorClass,
     },
   } as const;
-  if (recorded.outcome === "failed") {
+  if (invocation?.status === "failed" && isUnclassifiedSandboxErrorType(invocation.error.errorType)) {
+    captureBackendWarningWithFingerprint({
+      ...event,
+      message: "A chat sandbox call failed with an error type the worker does not classify; "
+        + "the attachment is not tried again.",
+    }, ["chat_file_derivatives_prepared", "unclassified_sandbox_error", invocation.error.errorType]);
+  } else if (recorded.outcome === "failed") {
     writeCloudWatchRecord({ ...event, message: "No files could be derived from a chat attachment." }, "warning");
-    return;
+  } else if (recorded.outcome === "transient") {
+    writeCloudWatchRecord({
+      ...event,
+      message: "Files could not be derived from a chat attachment in this run; the next run tries again.",
+    }, "warning");
+  } else {
+    writeCloudWatchRecord(event, "breadcrumb");
   }
 
-  writeCloudWatchRecord(event, "breadcrumb");
+  return unansweredErrorClass;
+}
+
+/** An attachment this run left for the next one, because the sandbox did not answer an earlier call. */
+function logSkippedAttachment(
+  file: ChatSessionFile,
+  unansweredErrorClass: string,
+  observationScope: BackendObservationScope,
+): void {
+  writeCloudWatchRecord({
+    action: "chat_file_derivatives_prepared",
+    message: "Files were not derived from a chat attachment in this run because the sandbox did not answer "
+      + "an earlier call; the next run tries again.",
+    scope: observationScope,
+    details: {
+      fileId: file.fileId,
+      mediaType: file.mediaType,
+      sizeBytes: file.sizeBytes,
+      outcome: "transient",
+      derivedFileCount: 0,
+      derivedBytes: 0,
+      durationMs: 0,
+      sandboxRequestId: null,
+      sandboxErrorType: null,
+      derivativesError: null,
+      errorClass: unansweredErrorClass,
+    },
+  }, "warning");
 }
 
 function buildChatFileDerivativeIndex(files: ReadonlyArray<ChatSessionFile>): ChatFileDerivativeIndex {
@@ -302,10 +394,11 @@ function buildChatFileDerivativeIndex(files: ReadonlyArray<ChatSessionFile>): Ch
 
 /**
  * Runs before a chat run builds its history: every attachment of the session that text, CSV or sqlite
- * files can be derived from and that was not prepared yet gets one sandbox call. A call that failed, a
- * file the sandbox could not read and a sandbox that did not finish alike, is recorded as the
- * attachment's derivatives_error and never tried again; only a sandbox the worker could not reach throws.
- * Returns what every prepared attachment of the session yielded.
+ * files can be derived from and that was not prepared yet gets one sandbox call. A failure the file
+ * caused is recorded as the attachment's derivatives_error and never tried again; a transient one leaves
+ * the attachment without derived files in this run and unprepared for the next. Once one call goes
+ * unanswered, the rest wait for the next run, so a throttled sandbox does not spend each call's retries
+ * before the first model call. Returns what every prepared attachment of the session yielded.
  */
 export async function prepareChatFileDerivatives(
   scope: WorkspaceDatabaseScope,
@@ -318,8 +411,20 @@ export async function prepareChatFileDerivatives(
     const kind = findChatFileDerivativeKind(file.mediaType);
     return file.origin === "attachment" && !file.derivativesPrepared && kind !== null ? [{ file, kind }] : [];
   });
-  for (const pending of pendingAttachments) {
-    await prepareAttachmentDerivatives(scope, sessionId, pending, signal, observationScope);
+  for (const [index, pending] of pendingAttachments.entries()) {
+    const unansweredErrorClass = await prepareAttachmentDerivatives(
+      scope,
+      sessionId,
+      pending,
+      signal,
+      observationScope,
+    );
+    if (unansweredErrorClass !== null) {
+      for (const skipped of pendingAttachments.slice(index + 1)) {
+        logSkippedAttachment(skipped.file, unansweredErrorClass, observationScope);
+      }
+      break;
+    }
   }
 
   return buildChatFileDerivativeIndex(
