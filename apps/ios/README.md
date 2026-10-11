@@ -16,6 +16,7 @@ On iOS, the UI and interaction design should stay maximally native to iOS.
 
 - Language and UI stack: Swift + SwiftUI
 - Current deployment target: iOS/iPadOS 18.0; build with the current Xcode/SDK and pinned packages
+- Dedicated Mac app: Mac Catalyst on macOS 15.0+, Scale Interface to Match iPad; shared Apple target, bundle ID, version, offline data and product flows. See [Mac Catalyst CI/CD and release](../../docs/macos-ci-cd.md).
 - Default visual direction: dark appearance with the existing orange accent color
 - Primary local storage: SQLite on device
 - Product scope should stay aligned with the supported top-level flows: Review, Progress, AI, Cards, Settings

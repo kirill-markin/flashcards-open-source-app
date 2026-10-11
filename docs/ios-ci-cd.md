@@ -1,5 +1,7 @@
 # iOS CI/CD
 
+The dedicated Mac Catalyst app uses the [Mac cloud and release procedure](macos-ci-cd.md).
+
 This repository uses Xcode Cloud as the explicitly dispatched native iOS release gate and distribution path. The GitHub-side AWS/Web release workflow does not start or wait for Xcode Cloud on `main`.
 We do not aim for exhaustive iOS test coverage in this pipeline. The most trusted automated signal is the native simulator-backed live smoke because it exercises the real app closest to production behavior, while any non-smoke tests should stay targeted to important native contracts.
 

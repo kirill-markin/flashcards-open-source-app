@@ -240,7 +240,11 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
             try self.tapTabBarItem(selectedTab: .cards, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             try self.assertScreenVisible(screen: .cards, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
 
+            #if targetEnvironment(macCatalyst)
+            self.app.typeKey("h", modifierFlags: .command)
+            #else
             XCUIDevice.shared.press(.home)
+            #endif
             self.app.activate()
             try self.waitForApplicationToReachForeground(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             try self.assertScreenVisible(screen: .cards, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
