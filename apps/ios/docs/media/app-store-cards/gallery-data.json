@@ -65,6 +65,68 @@
             "caption": "All your cards in one place"
           }
         ]
+      },
+      {
+        "family": "iphone-duo-outer",
+        "preview": "previews/en-US-iphone-duo-outer.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-outer/en-US-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "Create flashcards with AI"
+          },
+          {
+            "path": "ready/iphone-duo-outer/en-US-2_start-learning.png",
+            "heading": "Start Learning",
+            "caption": "Recall the answer yourself"
+          },
+          {
+            "path": "ready/iphone-duo-outer/en-US-3_smart-reviews.png",
+            "heading": "Smart Reviews",
+            "caption": "Review at the right time"
+          },
+          {
+            "path": "ready/iphone-duo-outer/en-US-4_your-progress.png",
+            "heading": "Your Progress",
+            "caption": "Track your study days"
+          },
+          {
+            "path": "ready/iphone-duo-outer/en-US-5_your-cards.png",
+            "heading": "Your Cards",
+            "caption": "All your cards in one place"
+          }
+        ]
+      },
+      {
+        "family": "iphone-duo-inner",
+        "preview": "previews/en-US-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/en-US-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "Create flashcards with AI"
+          },
+          {
+            "path": "ready/iphone-duo-inner/en-US-2_start-learning.png",
+            "heading": "Start Learning",
+            "caption": "Recall the answer yourself"
+          },
+          {
+            "path": "ready/iphone-duo-inner/en-US-3_smart-reviews.png",
+            "heading": "Smart Reviews",
+            "caption": "Review at the right time"
+          },
+          {
+            "path": "ready/iphone-duo-inner/en-US-4_your-progress.png",
+            "heading": "Your Progress",
+            "caption": "Track your study days"
+          },
+          {
+            "path": "ready/iphone-duo-inner/en-US-5_your-cards.png",
+            "heading": "Your Cards",
+            "caption": "All your cards in one place"
+          }
+        ]
       }
     ]
   },
