@@ -46,13 +46,21 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
         for key in ["1", "2", "3", "4"] {
             try self.launchApplication(launchScenario: .guestAIReviewCard, selectedTab: .review)
             try self.assertElementExists(identifier: LiveSmokeIdentifier.reviewShowAnswerButton, timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds)
+#if targetEnvironment(macCatalyst)
+            self.app.activate()
+#else
             let studySurface = self.app.descendants(matching: .any).matching(identifier: LiveSmokeIdentifier.reviewScreen).firstMatch
             studySurface.tap()
+#endif
             try self.tapButton(identifier: LiveSmokeIdentifier.reviewCardTagChipPrefix + "smoke-guest-ai-review", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             self.app.typeKey(XCUIKeyboardKey.space.rawValue, modifierFlags: [])
             self.app.typeKey(key, modifierFlags: [])
             try self.tapButton(identifier: LiveSmokeIdentifier.reviewTagFilterCancelButton, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+#if targetEnvironment(macCatalyst)
+            self.app.activate()
+#else
             studySurface.tap()
+#endif
             self.app.typeKey(key, modifierFlags: [])
             XCTAssertTrue(self.app.buttons[LiveSmokeIdentifier.reviewShowAnswerButton].exists, "A rating key must not submit a hidden answer.")
             self.app.typeKey(XCUIKeyboardKey.space.rawValue, modifierFlags: [])
@@ -69,7 +77,11 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
             self.app.typeKey(key, modifierFlags: [])
             try self.tapButton(identifier: LiveSmokeIdentifier.reviewTagFilterCancelButton, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             try self.waitForReviewAnswerReveal()
+#if targetEnvironment(macCatalyst)
+            self.app.activate()
+#else
             studySurface.tap()
+#endif
             self.app.typeKey(key, modifierFlags: [])
             try self.assertElementDoesNotExist(identifier: LiveSmokeIdentifier.reviewRateGoodButton, timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds)
             try self.assertElementDoesNotExist(identifier: LiveSmokeIdentifier.reviewShowAnswerButton, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
