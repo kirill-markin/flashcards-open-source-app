@@ -106,13 +106,44 @@ extension LiveSmokeTestCase {
 
     @MainActor
     func tapFirstNavigationBackButton() throws {
-        let backButton = self.app.navigationBars.buttons.firstMatch
+        let navigationBarButton = self.app.navigationBars.buttons.firstMatch
+        let toolbarBackButton = self.app.toolbars.buttons["BackButton"].firstMatch
         try self.runWithInlineRawScreenStateOnFailure(action: "tap_back_button.navigation.backButton") {
-            if self.waitForOptionalElement(
-                backButton,
+            let timeout = LiveSmokeConfiguration.shortUiTimeoutSeconds
+            self.logSmokeBreadcrumb(
+                event: "wait_start",
+                action: "wait_for_element",
                 identifier: "navigation.backButton",
-                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
-            ) == false {
+                timeoutSeconds: formatDuration(seconds: timeout),
+                durationSeconds: "-",
+                result: "start",
+                note: "wait begins"
+            )
+            let startedAt = Date()
+            let deadline = startedAt.addingTimeInterval(timeout)
+            var backButton: XCUIElement?
+            while Date() < deadline {
+                if navigationBarButton.exists {
+                    backButton = navigationBarButton
+                    break
+                }
+                if toolbarBackButton.exists {
+                    backButton = toolbarBackButton
+                    break
+                }
+                RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
+            }
+            self.logSmokeBreadcrumb(
+                event: "wait_end",
+                action: "wait_for_element",
+                identifier: "navigation.backButton",
+                timeoutSeconds: formatDuration(seconds: timeout),
+                durationSeconds: formatDuration(seconds: Date().timeIntervalSince(startedAt)),
+                result: backButton == nil ? "failure" : "success",
+                note: "wait finished"
+            )
+
+            guard let backButton else {
                 throw LiveSmokeFailure.missingBackButton(
                     screen: self.currentScreenSummary(),
                     step: self.currentStepTitle
