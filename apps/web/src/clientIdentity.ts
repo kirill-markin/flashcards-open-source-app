@@ -58,7 +58,17 @@ function loadLegacyMappedInstallationId(): string | null {
     return null;
   }
 
-  const parsedValue = JSON.parse(legacyDeviceMap) as unknown;
+  let parsedValue: unknown;
+  try {
+    parsedValue = JSON.parse(legacyDeviceMap);
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      return null;
+    }
+
+    throw error;
+  }
+
   if (typeof parsedValue !== "object" || parsedValue === null || Array.isArray(parsedValue)) {
     return null;
   }
