@@ -234,11 +234,13 @@ struct CardEditorScreen: View {
             ToolbarItem(placement: .cancellationAction) {
                 Button(String(localized: "Cancel", table: reviewCardsStringsTableName), action: onCancel)
                     .keyboardShortcut(.cancelAction)
+                    .reviewCardsShortcutHelp(key: "⎋")
             }
 
             ToolbarItem(placement: .confirmationAction) {
                 Button(String(localized: "Save", table: reviewCardsStringsTableName), action: onSave)
                     .keyboardShortcut("s", modifiers: .command)
+                    .reviewCardsShortcutHelp(key: "⌘S")
                     .accessibilityIdentifier(UITestIdentifier.cardEditorSaveButton)
             }
         }
