@@ -1,4 +1,5 @@
 "kMDItemKeywords" = "flashcards,kartice za učenje,memorijske kartice,kartice";
+"MDItemKeywords" = "flashcards,kartice za učenje,memorijske kartice,kartice";
 "NSCameraUsageDescription" = "Dopustite pristup kameri za snimanje fotografija za privitke u AI razgovoru.";
 "NSMicrophoneUsageDescription" = "Dopustite pristup mikrofonu za diktiranje teksta u AI razgovoru.";
 "NSPhotoLibraryUsageDescription" = "Dopustite pristup fototeci za odabir fotografija za privitke u AI razgovoru.";

@@ -95,6 +95,8 @@
 	<false/>
 	<key>kMDItemKeywords</key>
 	<string>flashcards,flash cards</string>
+	<key>MDItemKeywords</key>
+	<string>flashcards,flash cards</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.education</string>
 	<key>LSRequiresIPhoneOS</key>
