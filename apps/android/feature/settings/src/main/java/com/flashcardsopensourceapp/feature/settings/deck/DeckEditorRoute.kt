@@ -42,12 +42,20 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.data.local.model.cards.DeckFilterDefinition
+import com.flashcardsopensourceapp.data.local.model.cards.normalizeTagKey
 import com.flashcardsopensourceapp.feature.settings.R
 import com.flashcardsopensourceapp.feature.settings.createSettingsStringResolver
 
+const val deckEditorScreenTag: String = "deck_editor_screen"
+const val deckEditorNameFieldTag: String = "deck_editor_name_field"
+const val deckEditorSaveButtonTag: String = "deck_editor_save_button"
 const val deckEditorDeleteButtonTag: String = "deck_editor_delete_button"
 const val deckEditorConfirmDeleteButtonTag: String = "deck_editor_confirm_delete_button"
 const val deckEditorCancelDeleteButtonTag: String = "deck_editor_cancel_delete_button"
+
+fun deckEditorTagOptionTag(tag: String): String {
+    return "deck_editor_tag_option_${normalizeTagKey(tag = tag)}"
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -170,6 +178,7 @@ fun DeckEditorRoute(
                 .padding(innerPadding)
                 .consumeWindowInsets(innerPadding)
                 .imePadding()
+                .testTag(deckEditorScreenTag)
         ) {
             item {
                 if (uiState.errorMessage.isNotEmpty()) {
@@ -209,7 +218,9 @@ fun DeckEditorRoute(
                     label = {
                         Text(stringResource(R.string.settings_deck_editor_name_label))
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(deckEditorNameFieldTag)
                 )
             }
 
@@ -248,7 +259,8 @@ fun DeckEditorRoute(
                                             tagSummary.cardsCount
                                         )
                                     )
-                                }
+                                },
+                                modifier = Modifier.testTag(deckEditorTagOptionTag(tag = tagSummary.tag))
                             )
                         }
                     }
@@ -294,7 +306,9 @@ fun DeckEditorRoute(
                     Button(
                         onClick = onSave,
                         enabled = isEditorEnabled,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag(deckEditorSaveButtonTag)
                     ) {
                         Text(stringResource(R.string.settings_save))
                     }
