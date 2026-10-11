@@ -444,6 +444,7 @@ const etCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — Õpikaardid",
     crashTitle: "Midagi läks valesti",
     crashMessage: "Selle kuva taastamiseks laadi rakendus uuesti.",
     crashReload: "Laadi rakendus uuesti",

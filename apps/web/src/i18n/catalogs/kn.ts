@@ -444,6 +444,7 @@ const knCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — ಫ್ಲ್ಯಾಶ್‌ಕಾರ್ಡ್‌ಗಳು",
     crashTitle: "ಏನೋ ತಪ್ಪಾಗಿದೆ",
     crashMessage: "ಈ ಪರದೆ ಮರಳಿ ತರಲು ಆ್ಯಪ್ ಮರುಲೋಡ್ ಮಾಡಿ.",
     crashReload: "ಆ್ಯಪ್ ಮರುಲೋಡ್ ಮಾಡಿ",

@@ -444,6 +444,7 @@ const mrCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — फ्लॅशकार्ड",
     crashTitle: "काहीतरी चूक झाली",
     crashMessage: "ही स्क्रीन पूर्ववत करण्यासाठी ॲप पुन्हा लोड करा.",
     crashReload: "ॲप पुन्हा लोड करा",

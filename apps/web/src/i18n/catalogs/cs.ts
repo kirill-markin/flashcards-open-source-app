@@ -452,6 +452,7 @@ const csCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — Kartičky",
     crashTitle: "Něco se pokazilo",
     crashMessage: "Načtěte aplikaci znovu a obnovte tuto obrazovku.",
     crashReload: "Načíst aplikaci znovu",

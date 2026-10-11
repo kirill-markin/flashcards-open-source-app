@@ -444,6 +444,7 @@ const hiCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — फ्लैशकार्ड",
     crashTitle: "कुछ गलत हो गया",
     crashMessage: "इस स्क्रीन को वापस लाने के लिए ऐप फिर से लोड करें।",
     crashReload: "ऐप फिर से लोड करें",
