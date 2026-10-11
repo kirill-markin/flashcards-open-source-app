@@ -2,6 +2,8 @@
 
 Open-source, offline-first flashcards platform.
 
+Before contributing, read [CONTRIBUTING.md](CONTRIBUTING.md).
+
 - Domain: `nibomo.com` carries the marketing site, legal pages, docs, and the
   hosts browsers use (`app.`, `admin.`, `auth.`, and the `api.` they call). The
   `flashcards-open-source-app.com` hosts are permanent, not deprecated: they
