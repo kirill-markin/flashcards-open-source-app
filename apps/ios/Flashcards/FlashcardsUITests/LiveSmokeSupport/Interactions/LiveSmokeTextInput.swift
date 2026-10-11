@@ -124,15 +124,15 @@ extension LiveSmokeTestCase {
         }
     }
 
-    // Raw XCUIElement.typeText can hang until XCTest's global execution allowance
-    // when Simulator or CI never grants keyboard focus. Always gate text entry on
-    // explicit focus so text-input failures fail fast with local diagnostics.
     @MainActor
     func focusElementForTextInput(
         _ element: XCUIElement,
         identifier: String,
         timeout: TimeInterval
     ) throws {
+#if targetEnvironment(macCatalyst)
+        self.app.activate()
+#endif
         if self.waitForOptionalElement(
             element,
             identifier: identifier,
@@ -148,6 +148,59 @@ extension LiveSmokeTestCase {
 
         let startedAt = Date()
         let deadline = startedAt.addingTimeInterval(timeout)
+#if targetEnvironment(macCatalyst)
+        self.logSmokeBreadcrumb(
+            event: "wait_start",
+            action: "wait_for_text_input_hittable",
+            identifier: identifier,
+            timeoutSeconds: formatDuration(seconds: timeout),
+            durationSeconds: "-",
+            result: "start",
+            note: "waiting for text input to exist and be hittable"
+        )
+
+        while Date() < deadline {
+            if element.exists && element.isHittable {
+                self.logSmokeBreadcrumb(
+                    event: "wait_end",
+                    action: "wait_for_text_input_hittable",
+                    identifier: identifier,
+                    timeoutSeconds: formatDuration(seconds: timeout),
+                    durationSeconds: formatDuration(seconds: Date().timeIntervalSince(startedAt)),
+                    result: "success",
+                    note: "text input exists and is hittable"
+                )
+                self.logActionStart(action: "click_text_input", identifier: identifier)
+                element.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
+                self.logActionEnd(
+                    action: "click_text_input",
+                    identifier: identifier,
+                    result: "success",
+                    note: "interior pointer click completed; text entry remains unverified"
+                )
+                return
+            }
+
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
+        }
+
+        let durationSeconds = Date().timeIntervalSince(startedAt)
+        let failureNote = "exists=\(element.exists) hittable=\(element.isHittable) label=\(element.label) value=\(self.elementValue(element: element))"
+        self.logSmokeBreadcrumb(
+            event: "wait_end",
+            action: "wait_for_text_input_hittable",
+            identifier: identifier,
+            timeoutSeconds: formatDuration(seconds: timeout),
+            durationSeconds: formatDuration(seconds: durationSeconds),
+            result: "failure",
+            note: failureNote
+        )
+        throw LiveSmokeFailure.stepFailed(
+            title: self.currentStepTitle,
+            durationSeconds: durationSeconds,
+            underlyingMessage: "Text input '\(identifier)' did not become hittable within \(formatDuration(seconds: timeout)) on screen: \(self.currentScreenSummary()). \(failureNote)"
+        )
+#else
         var didRetryActivation = false
         self.logSmokeBreadcrumb(
             event: "wait_start",
@@ -226,6 +279,7 @@ extension LiveSmokeTestCase {
             elementLabel: element.label,
             elementValue: self.elementValue(element: element)
         )
+#endif
     }
 
     @MainActor
