@@ -361,7 +361,7 @@ extension LiveSmokeTestCase {
     @MainActor
     func openDeleteCurrentWorkspaceFromSettings() throws {
         try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        try self.tapButtonScrollingIntoView(
+        try self.tapSettingsButtonScrollingIntoView(
             identifier: LiveSmokeIdentifier.settingsDeleteCurrentWorkspaceRow,
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
