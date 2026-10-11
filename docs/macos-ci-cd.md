@@ -155,9 +155,10 @@ before App Review. These checks exercise the signed app and actual services.
 1. Confirm the installed bundle is `Nibomo.app`, its `CFBundleName` and
    `CFBundleDisplayName` are `Nibomo`, and its `CFBundleExecutable` is `Nibomo`.
    Verify Finder and Dock show Nibomo. With English selected, search Spotlight
-   for `Nibomo` and `flashcards` and launch the installed app from each result.
-   Repeat in another supported locale using a term from its `MDItemKeywords`;
-   record the locale and exact query. Upgrade an existing installation and
+   for `Nibomo`, `flashcards`, `flash cards`, `study cards`, and `revision cards`
+   separately and launch the installed app from each result. Repeat with another
+   supported system language using its study/revision terms from `MDItemKeywords`;
+   record the language and exact queries. Upgrade an existing installation and
    confirm local workspaces and cards remain available.
 2. Resize between narrow and wide landscape layouts. Open/close AI beside
    Review, Progress, Cards and Settings; preserve the draft and revealed answer.
