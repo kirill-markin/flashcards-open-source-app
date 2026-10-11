@@ -27,6 +27,10 @@ export type EventRow = Readonly<{
   userId: string | null;
   platform: string | null;
   appVersion: string | null;
+  osName: string | null;
+  osVersion: string | null;
+  deviceType: string | null;
+  deviceModel: string | null;
   screen: string | null;
   country: string | null;
   uiLocale: string | null;
@@ -59,6 +63,10 @@ const eventColumnSqlById: Readonly<Record<string, string>> = {
   "user-id": "events.user_id::text",
   platform: "events.platform",
   "app-version": "events.app_version",
+  "os-name": "events.os_name",
+  "os-version": "events.os_version",
+  "device-type": "events.device_type",
+  "device-model": "events.device_model",
   screen: "events.screen",
   country: "events.country",
   "ui-locale": "events.ui_locale",
@@ -82,6 +90,10 @@ const eventFieldSql: Readonly<Record<EventField, string>> = {
   userId: "events.user_id::text",
   platform: "events.platform",
   appVersion: "events.app_version",
+  osName: "events.os_name",
+  osVersion: "events.os_version",
+  deviceType: "events.device_type",
+  deviceModel: "events.device_model",
   screen: "events.screen",
   country: "events.country",
   uiLocale: "events.ui_locale",
@@ -96,8 +108,8 @@ const eventFieldSql: Readonly<Record<EventField, string>> = {
 /** The view columns the paged statement hands to the outer one, which aliases them as `events` again. */
 const pagedViewColumnsSql = [
   "event_id", "occurred_at", "server_received_at", "event_name", "actor_id", "user_id", "platform",
-  "app_version", "screen", "country", "ui_locale", "origin", "trust_level", "identity_state", "session_id",
-  "event_properties",
+  "app_version", "os_name", "os_version", "device_type", "device_model", "screen", "country", "ui_locale",
+  "origin", "trust_level", "identity_state", "session_id", "event_properties",
 ].map((column) => `events.${column}`).join(", ");
 
 // One email per actor, on the folded settings id every admin surface joins `actor_id` to. Unique on
@@ -155,6 +167,10 @@ function parseEventRow(row: AdminQueryRow, rowIndex: number): EventRow {
     userId: nullableString("userId"),
     platform: nullableString("platform"),
     appVersion: nullableString("appVersion"),
+    osName: nullableString("osName"),
+    osVersion: nullableString("osVersion"),
+    deviceType: nullableString("deviceType"),
+    deviceModel: nullableString("deviceModel"),
     screen: nullableString("screen"),
     country: nullableString("country"),
     uiLocale: nullableString("uiLocale"),
@@ -194,7 +210,8 @@ export async function loadEventsPage(
 }
 
 const plainEnumColumnIds = [
-  "event", "platform", "app-version", "screen", "country", "ui-locale", "origin", "trust-level", "identity-state",
+  "event", "platform", "app-version", "os-name", "os-version", "device-type", "device-model", "screen", "country",
+  "ui-locale", "origin", "trust-level", "identity-state",
 ] as const;
 
 const exclusionReasonColumnId = "exclusion-reason";
