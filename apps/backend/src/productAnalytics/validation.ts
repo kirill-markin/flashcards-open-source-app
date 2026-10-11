@@ -6,7 +6,9 @@ import {
   isPlainObject,
   isRetiredProductAnalyticsClientEventName,
   parseProductAnalyticsExperimentAssignments,
+  productAnalyticsDeviceTypes,
   productAnalyticsNetworkStateSchema,
+  productAnalyticsOsNames,
   productAnalyticsPropertyKeyLimit,
   productAnalyticsPropertyStringMaxLength,
   productAnalyticsSurfaceSchema,
@@ -87,6 +89,10 @@ const analyticsUuidSchema = z.string().uuid().transform((value) => value.toLower
 const clientContextSchema = z.object({
   osVersion: z.string().max(productAnalyticsPropertyStringMaxLength).nullish(),
   deviceModel: z.string().max(productAnalyticsPropertyStringMaxLength).nullish(),
+  // An unknown value fails the whole batch envelope, so a new value must be deployed here before
+  // any client sends it.
+  osName: z.enum(productAnalyticsOsNames).nullish(),
+  deviceType: z.enum(productAnalyticsDeviceTypes).nullish(),
   deviceLocale: z.string().max(productAnalyticsPropertyStringMaxLength).nullish(),
   timezone: z.string().max(productAnalyticsPropertyStringMaxLength).nullish(),
 }).strict();
@@ -183,6 +189,8 @@ function toClientContext(context: ParsedClientContext | null | undefined): Produ
   return {
     osVersion: context?.osVersion ?? null,
     deviceModel: context?.deviceModel ?? null,
+    osName: context?.osName ?? null,
+    deviceType: context?.deviceType ?? null,
     deviceLocale: context?.deviceLocale ?? null,
     timezone: context?.timezone ?? null,
   };
