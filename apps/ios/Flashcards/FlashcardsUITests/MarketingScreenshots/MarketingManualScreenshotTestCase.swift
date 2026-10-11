@@ -9,6 +9,7 @@ private enum MarketingManualScreenshotError: LocalizedError {
     case missingRuntimeConfigurationValue(String)
     case invalidTargetDimensions(width: Int?, height: Int?)
     case nativeScreenSelectionFailed(width: Int, height: Int, matches: Int, available: [String])
+    case nativeScreenPNGDecodeFailed(index: Int)
     case nativeScreenDoesNotContainApplication(width: Int, height: Int, appFrame: CGRect)
     case unsupportedLocalization(String)
     case cleanupApplicationDidNotReachForeground(timeout: TimeInterval, currentState: String)
@@ -29,6 +30,8 @@ private enum MarketingManualScreenshotError: LocalizedError {
             return "Manual iOS marketing screenshot targetPixelWidth and targetPixelHeight must both be positive integers; got width=\(width.map { String($0) } ?? "missing"), height=\(height.map { String($0) } ?? "missing")."
         case .nativeScreenSelectionFailed(let width, let height, let matches, let available):
             return "Expected exactly one native screen with normalized \(width)x\(height) pixels; found \(matches). Available screens: \(available.joined(separator: ", ")). Select the matching iPhone Duo display in Device Hub and recapture."
+        case .nativeScreenPNGDecodeFailed(let index):
+            return "Could not decode native screen \(index) PNG from XCUIScreenshot.pngRepresentation. Recapture the iPhone Duo display."
         case .nativeScreenDoesNotContainApplication(let width, let height, let appFrame):
             return "The \(width)x\(height) iPhone Duo screen does not contain the active app (app frame: \(appFrame.width)x\(appFrame.height) points). Select the matching display in Device Hub and recapture."
         case .unsupportedLocalization(let value):
@@ -411,10 +414,21 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
             var availableScreens: [String] = []
             for (index, screen) in XCUIScreen.screens.enumerated() {
                 let candidate = screen.screenshot()
-                let image = Self.uprightImage(for: candidate)
+                guard let encodedImage = UIImage(data: candidate.pngRepresentation),
+                    let encodedPixels = encodedImage.cgImage else {
+                    throw MarketingManualScreenshotError.nativeScreenPNGDecodeFailed(index: index)
+                }
+                let propertyImage = candidate.image
+                let propertyExtent = propertyImage.cgImage.map { "\($0.width)x\($0.height)" } ?? "none"
+                let image = Self.uprightImage(for: encodedImage)
                 let width = image.cgImage!.width
                 let height = image.cgImage!.height
-                availableScreens.append("screen \(index): \(width)x\(height)")
+                let sourceDescription =
+                    "screen \(index): encoded=\(encodedPixels.width)x\(encodedPixels.height) orientation=\(encodedImage.imageOrientation) " +
+                    "image=\(propertyExtent) points=\(propertyImage.size) " +
+                    "scale=\(propertyImage.scale) orientation=\(propertyImage.imageOrientation) normalized=\(width)x\(height)"
+                availableScreens.append(sourceDescription)
+                print("Marketing native screenshot source: \(sourceDescription)")
                 if width == targetWidth && height == targetHeight {
                     matchingCaptures.append((candidate, image))
                 }
@@ -439,7 +453,7 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
             selectedCapture = matchingCaptures[0]
         } else {
             let screenshot = XCUIScreen.main.screenshot()
-            selectedCapture = (screenshot, Self.uprightImage(for: screenshot))
+            selectedCapture = (screenshot, Self.uprightImage(for: screenshot.image))
         }
         let screenshot = selectedCapture.screenshot
         let uprightImage = selectedCapture.image
@@ -474,8 +488,7 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
     }
 
     @MainActor
-    private static func uprightImage(for screenshot: XCUIScreenshot) -> UIImage {
-        let source = screenshot.image
+    private static func uprightImage(for source: UIImage) -> UIImage {
         let sourcePixels = source.cgImage!
         let pixelSize: CGSize
         switch source.imageOrientation {
