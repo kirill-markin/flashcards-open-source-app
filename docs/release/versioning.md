@@ -64,11 +64,34 @@ A conflicting publication needs the user's explicit resolution. Locate and verif
 the recorded release commit even if `main` has advanced with the same version;
 a matching version string alone is insufficient to identify released source.
 
+### Mac-only source and tags
+
+A coordinated release retains the core and companion `vX.Y.Z` tags/Releases
+and exact package provenance above; record Mac archive/test SHAs and any bounded
+comparison to the coordinated core tag. A Mac-only release resumes the recorded
+shared Apple version unless a new version was explicitly chosen. It does not
+authorize another platform's dispatch, submission replacement or companion publication.
+Preserve existing core/companion tags, Releases, assets and pending submissions.
+
+Reuse an existing core tag only when its Mac inputs are proven equivalent under
+[shared reuse](evidence.md#resume-and-artifact-reuse). When Mac archive source
+differs, preserve its exact commit with a separate immutable annotated
+`macos-vX.Y.Z-buildN` tag and platform GitHub Release, where `N` is the verified
+Mac distribution build number; include archive/source comparison and Mac
+evidence in that Release. Do not move the coordinated tag to a later same-version
+commit or imply the companion shipped new source. Verify any existing platform
+tag/Release before creating it; conflicts require explicit resolution. Keep
+remaining coordinated channels' ledger entries pending and close out only the
+authorized Mac scope.
+
 <a id="next-development-version"></a>
 
 ## Release Closeout and Development
 
 Close the release after the [operator completion boundaries](README.md#release-inventory-and-completion).
+For Mac-only scope, apply [its tag and preservation rules](#mac-only-source-and-tags)
+to the existing coordinated publications and any required platform tag/Release;
+do not create another companion release just to close the Mac channel.
 Verify both release tags, GitHub Releases, and preserved package assets; record
 external review/propagation and any later manual publication action as follow-up
 without calling pending channels live. Keep the selected version across app and companion
@@ -194,21 +217,30 @@ of the real release version.
 
 Android `versionCode` is not bumped manually in the repo. Release builds receive `ANDROID_VERSION_CODE` from CI, and the workflow computes that value at release time.
 
-### iOS
+<a id="ios"></a>
 
-The iOS marketing version lives in:
+### iOS and macOS
+
+The shared iOS and dedicated Mac Catalyst marketing version lives in:
 
 - `apps/ios/Flashcards/Config/Base.xcconfig`
 
 `Info.plist` reads that marketing version indirectly, so do not replace the variable wiring there unless the build system changes.
 
-The runtime-reported iOS app version must be read from bundle metadata (`CFBundleShortVersionString`) through:
+Both Apple apps' runtime-reported version must be read from bundle metadata (`CFBundleShortVersionString`) through:
 
 - `apps/ios/Flashcards/Flashcards/Cloud/Support/CloudSupport.swift`
 
-Do not introduce aligned literals, overrides, or fallbacks for the iOS app version; a missing or blank bundle version is a configuration error that should fail explicitly.
+Do not introduce aligned literals, overrides, or fallbacks for either Apple app version; a missing or blank bundle version is a configuration error that should fail explicitly.
 
-Under the current release process, the repo-tracked iOS build number is intentionally left alone during normal version bumps. Xcode Cloud handles signed archive and distribution separately, and the repository documentation does not define an in-repo build-number bump workflow.
+Under the current release process, the shared repo-tracked Apple build number is intentionally left alone during normal version bumps. Xcode Cloud handles signed archive and distribution separately, and the repository documentation does not define an in-repo build-number bump workflow.
+
+iOS and macOS share the target, bundle ID and marketing-version source, but
+use independent Xcode Cloud workflows, archive/test runs, uploaded platform
+build IDs and App Review drafts. Cloud run numbers are not distribution build
+numbers. Record each exact build identity; never attach an iOS build to the
+`MAC_OS` draft or replace another platform's pending submission. Follow the
+[Mac procedure](macos.md) without changing the iOS gate contract.
 
 If backend or client-side compatibility comments name the current iOS or
 first-party app version explicitly, update those references too so the release

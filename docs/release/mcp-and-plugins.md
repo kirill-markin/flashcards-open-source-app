@@ -10,6 +10,7 @@ following this procedure.
 | --- | --- |
 | Web, backend, machine API/MCP runtime | Verify deployed components, public web access, machine discovery, and applicable smokes under [Web and Backend](web-backend.md#web-and-backend). |
 | iOS | Verify the exact submission and saved release mode, or matching existing publication; [iOS procedure](ios.md#ios). |
+| macOS | Verify the separate `MAC_OS` build, exact submission and saved release mode, or matching existing Mac publication; [macOS procedure](macos.md). |
 | Android | Verify the matching production version and rollout on Google Play; [Android procedure](android.md#android). |
 | Official MCP Registry | Verify `com.nibomo/flashcards` at the target manifest version; [MCP procedure](mcp-and-plugins.md#mcp). |
 | Claude connector and plugin | Verify runtime and accepted updates to the [connector](https://claude.ai/directory/nibomo) and separate plugin; record each public state under the [Anthropic gate](mcp-and-plugins.md#anthropic-connector-and-plugin). |

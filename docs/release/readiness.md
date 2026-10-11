@@ -1,6 +1,6 @@
 # Recorded Mobile Readiness
 
-Before a new mobile submission/publication, use this read-only, offline command
+Before a new iOS/Android submission/publication, use this read-only, offline command
 alongside the [platform procedures](README.md#required-reading). It compares
 recorded identities and named results; it does not collect evidence or contact
 Apple, Device Run, Google Play, GitHub, or a device.
@@ -27,6 +27,16 @@ contract, native checks and store procedure remain mandatory. New Android
 records use schema 2's cloud-first gates; iOS retains its local and cloud gates.
 Already-published artifacts follow the [historical reuse rule](evidence.md#reuse-existing-artifacts),
 without reconstructing evidence merely to turn this report green.
+
+## macOS Readiness Boundary
+
+This CLI accepts only `ios` and `android`; neither supported schema accepts
+macOS. Do not relabel Mac as iOS, add Mac gates to a mobile schema, or manufacture
+a passing report. Keep a separate Mac readiness manifest and dated operator
+inspection decision under the [Mac evidence contract](evidence.md#macos-evidence)
+and [Mac procedure](macos.md). This is manually inspected readiness evidence,
+not CLI-validated readiness; refresh the decision when source, artifact,
+selected attempt or evidence changes.
 
 ## Collect and correlate evidence
 
