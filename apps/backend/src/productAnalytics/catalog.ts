@@ -326,9 +326,28 @@ export const productAnalyticsPlatforms = [
   "agent",
 ] as const;
 
+// The device a client runs on, reported beside `platform` rather than folded into it: `platform`
+// names the client build, so the Apple client reports `ios` on an iPhone, an iPad and a Mac alike, and
+// these two facts are what tell them apart. The web client reports neither.
+export const productAnalyticsOsNames = [
+  "ios",
+  "ipados",
+  "macos",
+  "android",
+] as const;
+
+export const productAnalyticsDeviceTypes = [
+  "phone",
+  "tablet",
+  "desktop",
+  "tv",
+] as const;
+
 export type ProductAnalyticsSurface = (typeof productAnalyticsSurfaces)[number];
 export type ProductAnalyticsNetworkState = (typeof productAnalyticsNetworkStates)[number];
 export type ProductAnalyticsPlatform = (typeof productAnalyticsPlatforms)[number];
+export type ProductAnalyticsOsName = (typeof productAnalyticsOsNames)[number];
+export type ProductAnalyticsDeviceType = (typeof productAnalyticsDeviceTypes)[number];
 
 // Which of the stored platform values a client request may claim for itself. The two sets are
 // deliberately different, and the difference is load-bearing rather than tidiness: the ingestion

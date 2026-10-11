@@ -70,6 +70,25 @@ export const createdRolesByMigration = new Map([
   ["0044_reporting_readonly_role.sql", Object.freeze(["reporting_readonly"])],
 ]);
 export const boundaryDefinitions = Object.freeze([
+  // 0175 adds analytics.product_events.os_name and device_type, which the shared writer column list
+  // names on every insert, so every test that stores an event through the writer and reads it back
+  // moved here: productAnalytics/writer and catalog/distribution/install from 0138, and
+  // productAnalytics/dailyVisitorHash from 0145, both entries left empty and removed, and
+  // serverFacts/authoringUpdates and billing/entitlement from 0167. writer also covers the
+  // installation_profiles columns 0175 adds. A test that only emits server-derived facts stays where
+  // it is, because the writer drops a refused emission with a warning; serverFacts/serverEvents and
+  // androidBurstReporting stay too, as neither inserts through the writer.
+  Object.freeze({
+    migrationFileName: "0175_analytics_os_name_device_type.sql",
+    expectedMigrationCount: 177,
+    testFiles: Object.freeze([
+      "src/billing/entitlement.postgres.integration.ts",
+      "src/catalog/distribution/install/install.postgres.integration.ts",
+      "src/productAnalytics/dailyVisitorHash.postgres.integration.ts",
+      "src/productAnalytics/serverFacts/authoringUpdates.postgres.integration.ts",
+      "src/productAnalytics/writer.postgres.integration.ts",
+    ]),
+  }),
   // 0172 adds ai.chat_sessions.archived_at, which both latest-session queries (chat/store/repository.ts
   // and sessionService.ts) filter on, so a test below it that resolves the latest session fails with
   // `column "archived_at" does not exist`. Only two pinned tests import either file, and both reach
@@ -100,11 +119,9 @@ export const boundaryDefinitions = Object.freeze([
     testFiles: Object.freeze([
       "src/agent/reviews.postgres.integration.ts",
       "src/auth/surrogateUserId.postgres.integration.ts",
-      "src/billing/entitlement.postgres.integration.ts",
       "src/guestAuth/upgrade/boundGuestSession.postgres.integration.ts",
       "src/routes/system/account/accountPreferences.postgres.integration.ts",
       "src/cards/managedMedia/managedImageSnapshotMerge.postgres.integration.ts",
-      "src/productAnalytics/serverFacts/authoringUpdates.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
@@ -125,34 +142,11 @@ export const boundaryDefinitions = Object.freeze([
       "src/aiUsage/aiUsage.postgres.integration.ts",
     ]),
   }),
-  // 0145 adds analytics.product_events.automated_client, beside the daily_visitor_hash and
-  // analytics.daily_visitor_hash_salts 0144 added. Only the credential-free collector's insert names
-  // any of them, which is why the shared writer column list leaves both columns out and no test
-  // pinned below this migration moves here. This entry replaces 0144's, which listed the same one
-  // test file: that collector insert now names automated_client on every row it writes, so a test
-  // calling insertAnonymousProductAnalyticsEvent against 0144's database would fail with
-  // `column "automated_client" of relation "product_events" does not exist`. The test covers both
-  // columns here, and 0144's schema keeps no coverage of its own, as with every earlier re-pin.
-  Object.freeze({
-    migrationFileName: "0145_anonymous_client_automated_marker.sql",
-    expectedMigrationCount: 147,
-    testFiles: Object.freeze([
-      "src/productAnalytics/dailyVisitorHash.postgres.integration.ts",
-    ]),
-  }),
   Object.freeze({
     migrationFileName: "0141_sync_installation_automation_marker.sql",
     expectedMigrationCount: 143,
     testFiles: Object.freeze([
       "src/sync/freshBootstrap.postgres.integration.ts",
-    ]),
-  }),
-  Object.freeze({
-    migrationFileName: "0138_feedback_connection_country.sql",
-    expectedMigrationCount: 140,
-    testFiles: Object.freeze([
-      "src/catalog/distribution/install/install.postgres.integration.ts",
-      "src/productAnalytics/writer.postgres.integration.ts",
     ]),
   }),
   Object.freeze({

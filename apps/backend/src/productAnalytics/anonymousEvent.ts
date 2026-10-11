@@ -265,6 +265,8 @@ export function parseAnonymousEvent(
     appVersion: null,
     osVersion: null,
     deviceModel: null,
+    osName: null,
+    deviceType: null,
     deviceLocale: normalizeDeviceLocale(event.deviceLocale),
     timezone: null,
     country: null,

@@ -153,6 +153,8 @@ function createServerDerivedProductAnalyticsRow(
     appVersion: null,
     osVersion: null,
     deviceModel: null,
+    osName: null,
+    deviceType: null,
     deviceLocale: null,
     timezone: null,
     country: null,
