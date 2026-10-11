@@ -84,12 +84,13 @@ function html(family: Family, tag: string, card: number, screen: string, sourceW
   const [width, height] = dimensions[family];
   const scale = family === "iphone" ? width / 519 : height / 1122;
   const textScale = scale * (family === "iphone" ? 1 : 1.35);
-  const frameHeight = 860 * scale;
   const padding = 18 * scale;
-  const screenHeight = frameHeight - padding * 2;
   const frameWidth = family === "iphone" ? 418 * scale
-    : family === "iphone-duo-inner" ? screenHeight * nativeDimensions[family][0] / nativeDimensions[family][1] + padding * 2
     : 420 * width / 519;
+  const frameHeight = family === "iphone-duo-inner"
+    ? (frameWidth - padding * 2) * nativeDimensions[family][1] / nativeDimensions[family][0] + padding * 2
+    : 860 * scale;
+  const screenHeight = frameHeight - padding * 2;
   const screenAspect = family === "iphone-duo-outer" ? nativeDimensions[family][0] / nativeDimensions[family][1] : .75;
   const paddingInline = family === "iphone" || family === "iphone-duo-inner" ? padding : (frameWidth - screenHeight * screenAspect) / 2;
   const screenScale = Math.min((frameWidth - paddingInline * 2) / sourceWidth, screenHeight / sourceHeight);
@@ -103,11 +104,11 @@ function html(family: Family, tag: string, card: number, screen: string, sourceW
   .card{position:relative;inline-size:${width}px;block-size:${height}px;overflow:hidden;border-radius:${10 * scale}px;color:#101010}
   .background{position:absolute;inset:0;inline-size:100%;block-size:100%}
   .clean{clip-path:inset(0 round ${20 * scale}px);mask-image:linear-gradient(to bottom,#000 0px,#000 ${450 * height / 2778}px,transparent ${510 * height / 2778}px)}
-  .heading-row{position:absolute;inset-block-start:${63 * scale}px;inset-inline:0;block-size:${53 * textScale}px;display:flex;align-items:center;justify-content:center}
+  .heading-row{position:absolute;inset-block-start:${(family === "iphone-duo-inner" ? 45 : 63) * scale}px;inset-inline:0;block-size:${53 * textScale}px;display:flex;align-items:center;justify-content:center}
   .heading{display:inline-flex;direction:${headingDirection};align-items:center;gap:${16 * textScale}px;margin:0;font-family:Arial,sans-serif;font-size:${44 * textScale}px;font-weight:700;line-height:${53 * textScale}px;letter-spacing:0;white-space:nowrap}
   .number{display:flex;flex:0 0 auto;direction:ltr;align-items:center;justify-content:center;inline-size:${50 * textScale}px;block-size:${30 * textScale}px;border-radius:${15 * textScale}px;background:#000;color:#fff;font-family:Arial,sans-serif;font-size:${20 * textScale}px;font-weight:400;line-height:1}
-  .caption{position:absolute;inset-block-start:${141 * scale}px;inset-inline:0;margin:0;font-family:Arial,sans-serif;font-size:${24 * textScale}px;font-weight:400;line-height:${28 * textScale}px;letter-spacing:0;text-align:center;white-space:nowrap;direction:${direction}}
-  .frame{position:absolute;inset-block-start:${212 * scale}px;inset-inline-start:${(width - frameWidth) / 2}px;inline-size:${frameWidth}px;block-size:${frameHeight}px;padding-block:${padding}px;padding-inline:${paddingInline}px;background:${frameColor};border-radius:${51 * scale}px}
+  .caption{position:absolute;inset-block-start:${(family === "iphone-duo-inner" ? 125 : 141) * scale}px;inset-inline:0;margin:0;font-family:Arial,sans-serif;font-size:${24 * textScale}px;font-weight:400;line-height:${28 * textScale}px;letter-spacing:0;text-align:center;white-space:nowrap;direction:${direction}}
+  .frame{position:absolute;inset-block-start:${(family === "iphone-duo-inner" ? 175 : 212) * scale}px;inset-inline-start:${(width - frameWidth) / 2}px;inline-size:${frameWidth}px;block-size:${frameHeight}px;padding-block:${padding}px;padding-inline:${paddingInline}px;background:${frameColor};border-radius:${51 * scale}px}
   .screen-box{inline-size:100%;block-size:100%;background:#000;overflow:hidden;border-radius:${33 * scale}px;display:flex;align-items:center;justify-content:center}
   .screen{display:block;block-size:${sourceHeight * screenScale}px;inline-size:${sourceWidth * screenScale}px;flex-shrink:0}
   </style><article class="card"><img class="background" src="${base}"><img class="background clean" src="${header}">
