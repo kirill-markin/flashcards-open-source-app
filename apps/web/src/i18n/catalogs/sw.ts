@@ -444,6 +444,7 @@ const swCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — Kadi za kujifunzia",
     crashTitle: "Hitilafu imetokea",
     crashMessage: "Pakia upya programu ili kurejesha skrini hii.",
     crashReload: "Pakia upya programu",

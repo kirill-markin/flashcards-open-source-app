@@ -444,6 +444,7 @@ const urCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — فلیش کارڈز",
     crashTitle: "کچھ غلط ہو گیا",
     crashMessage: "یہ اسکرین بحال کرنے کے لیے ایپ دوبارہ لوڈ کریں۔",
     crashReload: "ایپ دوبارہ لوڈ کریں",

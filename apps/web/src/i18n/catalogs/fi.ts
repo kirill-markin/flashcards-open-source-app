@@ -444,6 +444,7 @@ const fiCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — Muistikortit",
     crashTitle: "Jokin meni pieleen",
     crashMessage: "Lataa sovellus uudelleen, niin tämä näkymä palautuu.",
     crashReload: "Lataa sovellus uudelleen",

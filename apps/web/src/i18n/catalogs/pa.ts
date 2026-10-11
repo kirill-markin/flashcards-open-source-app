@@ -444,6 +444,7 @@ const paCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — ਫਲੈਸ਼ਕਾਰਡ",
     crashTitle: "ਕੁਝ ਗਲਤ ਹੋ ਗਿਆ",
     crashMessage: "ਇਹ ਸਕ੍ਰੀਨ ਬਹਾਲ ਕਰਨ ਲਈ ਐਪ ਮੁੜ ਲੋਡ ਕਰੋ.",
     crashReload: "ਐਪ ਮੁੜ ਲੋਡ ਕਰੋ",

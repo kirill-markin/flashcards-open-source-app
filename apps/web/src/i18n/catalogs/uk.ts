@@ -452,6 +452,7 @@ const ukCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — Навчальні картки",
     crashTitle: "Щось пішло не так",
     crashMessage: "Перезавантажте застосунок, щоб відновити цей екран.",
     crashReload: "Перезавантажити застосунок",

@@ -444,6 +444,7 @@ const trCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — Bilgi kartları",
     crashTitle: "Bir şeyler ters gitti",
     crashMessage: "Bu ekranı geri getirmek için uygulamayı yeniden yükleyin.",
     crashReload: "Uygulamayı yeniden yükle",

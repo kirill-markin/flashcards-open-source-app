@@ -444,6 +444,7 @@ const caCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — Targetes d’estudi",
     crashTitle: "Alguna cosa ha fallat",
     crashMessage: "Torna a carregar l'app per restaurar aquesta pantalla.",
     crashReload: "Torna a carregar l'app",
