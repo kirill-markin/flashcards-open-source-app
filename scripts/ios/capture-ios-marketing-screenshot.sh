@@ -70,7 +70,7 @@ iphone_only_locales=(
 print_usage() {
     cat <<'EOF' >&2
 Usage:
-  capture-ios-marketing-screenshot.sh [--locale <code>] [--orientation portrait|landscape] <test_identifier> <description> <screenshot_index> [<screenshot_index> ...]
+  capture-ios-marketing-screenshot.sh [--locale <code>] [--orientation portrait|landscape] [--duo-display outer|inner] <test_identifier> <description> <screenshot_index> [<screenshot_index> ...]
   capture-ios-marketing-screenshot.sh --list-locales
   capture-ios-marketing-screenshot.sh --list-ipad-locales
 
@@ -126,12 +126,15 @@ Supported locales:
   vi
   zu
 
-iPad locales are these locales without the iPhone-only capture tags. Print them
-with --list-ipad-locales. Capturing an iPhone-only tag on a booted iPad fails.
+iPad and Duo locales are these locales without the iPhone-only capture tags. Print
+them with --list-ipad-locales. Capturing an iPhone-only tag on either fails.
 
 Environment:
   FLASHCARDS_MARKETING_SCREENSHOT_LOCALE   Canonical locale code or supported alias.
   FLASHCARDS_IOS_SIMULATOR_ID              Booted simulator device UUID.
+
+For iPhone Duo, select the display in Device Hub before capture and pass
+--duo-display outer or --duo-display inner. The wrapper verifies native pixels.
 EOF
 }
 
@@ -351,6 +354,7 @@ fi
 
 requested_locale=""
 orientation="${FLASHCARDS_MARKETING_SCREENSHOT_ORIENTATION:-}"
+duo_display=""
 positional_arguments=()
 
 while [[ $# -gt 0 ]]; do
@@ -380,6 +384,19 @@ while [[ $# -gt 0 ]]; do
             ;;
         --orientation=*)
             orientation="${1#*=}"
+            shift
+            ;;
+        --duo-display)
+            shift
+            if [[ $# -eq 0 ]]; then
+                echo "Missing value after --duo-display." >&2
+                exit 1
+            fi
+            duo_display="$1"
+            shift
+            ;;
+        --duo-display=*)
+            duo_display="${1#*=}"
             shift
             ;;
         --list-locales)
@@ -414,6 +431,10 @@ cleanup_test_identifier="MarketingScreenshotsTests/testCleanupMarketingGuestSess
 localization_code="$(resolve_requested_locale "$requested_locale")"
 if [[ -n "$orientation" && "$orientation" != portrait && "$orientation" != landscape ]]; then
     echo "Unsupported screenshot orientation: $orientation" >&2
+    exit 1
+fi
+if [[ -n "$duo_display" && "$duo_display" != outer && "$duo_display" != inner ]]; then
+    echo "Unsupported Duo display: $duo_display. Use outer or inner." >&2
     exit 1
 fi
 
@@ -591,6 +612,20 @@ resolve_simulator_name() {
 resolve_device_family() {
     local simulator_name="$1"
 
+    if [[ "$simulator_name" == *"iPhone"* && "$simulator_name" == *"Duo"* ]]; then
+        if [[ -z "$duo_display" ]]; then
+            echo "iPhone Duo requires --duo-display outer|inner after selecting that display in Device Hub." >&2
+            exit 1
+        fi
+        echo "iphone-duo-$duo_display"
+        return
+    fi
+
+    if [[ -n "$duo_display" ]]; then
+        echo "--duo-display requires a booted iPhone Duo simulator; found '$simulator_name'." >&2
+        exit 1
+    fi
+
     if [[ "$simulator_name" == *"iPad"* ]]; then
         echo "ipad"
         return
@@ -603,6 +638,26 @@ resolve_device_family() {
 
     echo "Unable to derive iOS screenshot device family from booted simulator '$simulator_name'." >&2
     exit 1
+}
+
+verify_duo_screenshot_dimensions() {
+    local screenshot_path="$1"
+    local expected_dimensions=""
+    local width=""
+    local height=""
+
+    case "$device_family" in
+        iphone-duo-outer) expected_dimensions="1398x2034" ;;
+        iphone-duo-inner) expected_dimensions="2853x2007" ;;
+        *) return ;;
+    esac
+
+    width="$(sips -g pixelWidth "$screenshot_path" | sed -nE 's/^[[:space:]]*pixelWidth: ([0-9]+)$/\1/p')"
+    height="$(sips -g pixelHeight "$screenshot_path" | sed -nE 's/^[[:space:]]*pixelHeight: ([0-9]+)$/\1/p')"
+    if [[ "${width}x${height}" != "$expected_dimensions" ]]; then
+        echo "Wrong active iPhone Duo display for $screenshot_path: expected $device_family $expected_dimensions, got ${width:-unknown}x${height:-unknown}. Select the matching display in Device Hub and recapture." >&2
+        exit 1
+    fi
 }
 
 resolve_screenshot_path_for_index() {
@@ -649,22 +704,27 @@ simulator_id="$(resolve_booted_simulator_id)"
 simulator_name="$(resolve_simulator_name "$simulator_id")"
 device_family="$(resolve_device_family "$simulator_name")"
 if [[ -z "$orientation" ]]; then
-    if [[ "$device_family" == ipad ]]; then
+    if [[ "$device_family" == ipad || "$device_family" == iphone-duo-inner ]]; then
         orientation="landscape"
     else
         orientation="portrait"
     fi
 fi
+if [[ "$device_family" == iphone-duo-outer && "$orientation" != portrait ]] ||
+   [[ "$device_family" == iphone-duo-inner && "$orientation" != landscape ]]; then
+    echo "$device_family requires its native display orientation." >&2
+    exit 1
+fi
 
-if [[ "$device_family" == "ipad" ]] && is_iphone_only_locale "$localization_code"; then
+if [[ "$device_family" != "iphone" ]] && is_iphone_only_locale "$localization_code"; then
     echo "Capture tag '$localization_code' is iPhone-only and has no $device_family screenshots." >&2
     echo "Boot an iPhone simulator, or capture the $device_family tags from --list-ipad-locales." >&2
     exit 1
 fi
 
 output_directory="$repo_root/apps/ios/docs/media/app-store-screenshots/$device_family"
-if [[ "$orientation" == landscape && "$device_family" != ipad ]]; then
-    echo "Landscape marketing captures are supported only on iPad; iPhone keeps its portrait policy." >&2
+if [[ "$orientation" == landscape && "$device_family" != ipad && "$device_family" != iphone-duo-inner ]]; then
+    echo "Landscape marketing captures are supported only on iPad and iPhone Duo inner; ordinary iPhone keeps its portrait policy." >&2
     exit 1
 fi
 
@@ -685,6 +745,7 @@ run_ios_marketing_xcodebuild_test "$test_identifier"
 
 for screenshot_index in "${expected_screenshot_indices[@]}"; do
     output_path="$(resolve_screenshot_path_for_index "$capture_directory" "$localization_code" "$screenshot_index")"
+    verify_duo_screenshot_dimensions "$output_path"
     captured_screenshot_paths+=("$output_path")
 done
 capture_complete=true

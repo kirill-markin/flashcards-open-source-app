@@ -19,6 +19,8 @@ The capture catalog supports 50 capture tags (49 languages): the 42 Store locale
 plus `bg`, `et`, `fa`, `is`, `lt`, `lv`, `sw`, and `zu`. The expected raw
 inventory is five screenshots per tag per captured device family: 250 iPhone PNGs
 and 210 iPad PNGs, because the eight non-Store tags are captured on iPhone only.
+The optional iPhone Duo outer and inner families each use the 42 Store locales
+(210 PNGs per display once captured); those native assets are not generated yet.
 Catalog support alone does not establish that these assets have been generated or
 uploaded.
 
@@ -110,7 +112,7 @@ script, feed website marketing assets, and are never upload inputs; see the
 [locale mapping](../../../docs/app-store-connect-metadata.md). The iPad tag set is
 the canonical list minus those eight, so iPad capture loops use
 `--list-ipad-locales` and the derived-material builder subtracts them whenever the
-resolved family is `ipad`.
+resolved family is `ipad`, `iphone-duo-outer`, or `iphone-duo-inner`.
 
 Store aliases use the
 [App Store locale map](../../../docs/app-store-connect-metadata.md): for example
@@ -147,14 +149,15 @@ bash scripts/ios/capture-ios-marketing-screenshot.sh --list-ipad-locales
 
 If you pass an unsupported locale or alias, the wrapper exits with an error before running XCUITest.
 
-## iPhone vs iPad output selection
+## Device family and Duo display selection
 
-The generator does not have a `--family` flag.
+The capture generator does not have a `--family` flag.
 
 It derives the output family from the one already booted simulator:
 
 - simulator name contains `iPhone` -> writes into `iphone/`
 - simulator name contains `iPad` -> writes into `ipad/`, except for an iPhone-only tag from [Supported locales](#supported-locales), which fails before anything is written
+- simulator name contains both `iPhone` and `Duo` -> requires `--duo-display outer|inner` and writes into `iphone-duo-outer/` or `iphone-duo-inner/`; an iPhone-only tag is refused
 
 This means:
 
@@ -170,6 +173,14 @@ Use these canonical targets for committed App Store assets:
 | --- | --- | --- | --- |
 | iPhone | `iPhone 14 Plus` | `1284 × 2778` | `APP_IPHONE_65` |
 | iPad | `iPad Pro 13-inch (M5)` | `2064 × 2752` portrait or `2752 × 2064` landscape | `APP_IPAD_PRO_3GEN_129` |
+| iPhone Duo outer | `iPhone Duo` with outer display selected | `1398 × 2034` portrait | Duo outer display |
+| iPhone Duo inner | `iPhone Duo` with inner display selected | `2853 × 2007` landscape | Duo inner display |
+
+The Duo capture wrapper checks every staged PNG against the selected display's
+native pixel dimensions before guest cleanup can publish it. A wrong pose or
+display fails while previously published screenshots stay in place. The
+horizontal builder applies the same dimension check to saved Duo raw inputs.
+The ordinary iPhone and iPad capture paths and output folders remain separate.
 
 The uploader also accepts `2048 × 2732` portrait and `2732 × 2048` landscape iPad PNGs, matching [Apple's screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications). Keep every image opaque: no
 alpha channel or PNG `tRNS` chunk, even if it looks opaque on screen. Inspect
@@ -183,8 +194,12 @@ Final outputs are published into:
 
 - `apps/ios/docs/media/app-store-screenshots/iphone/`
 - `apps/ios/docs/media/app-store-screenshots/ipad/`
+- `apps/ios/docs/media/app-store-screenshots/iphone-duo-outer/`
+- `apps/ios/docs/media/app-store-screenshots/iphone-duo-inner/`
 - `apps/ios/docs/media/marketing-materials/iphone/`
 - `apps/ios/docs/media/marketing-materials/ipad/`
+- `apps/ios/docs/media/marketing-materials/iphone-duo-outer/`
+- `apps/ios/docs/media/marketing-materials/iphone-duo-inner/`
 
 There are no locale subdirectories. Locale and screenshot index are encoded in the file name:
 
@@ -222,6 +237,8 @@ Before running any screenshot script:
 - start from the repository root
 - boot exactly one local iOS simulator manually
 - use the canonical simulator for the selected family from the table above
+- for Duo, use Xcode 27.1 or newer with the iPhone Duo simulator installed;
+  select the outer or inner display in Device Hub before the matching command
 - if multiple simulators are already booted, set `FLASHCARDS_IOS_SIMULATOR_ID`
 - keep the simulator UI hidden while the generator runs; do not keep `Simulator.app` visible on screen during screenshot capture
 
@@ -259,14 +276,30 @@ Run the unified scenario for a specific locale:
 bash scripts/ios/capture-ios-marketing-screenshots.sh --locale es-ES
 ```
 
-The default orientation is landscape on iPad and portrait on iPhone. Override it
+The default orientation is landscape on iPad and Duo inner, portrait on ordinary
+iPhone and Duo outer. Override it
 with `--orientation portrait|landscape` or
 `FLASHCARDS_MARKETING_SCREENSHOT_ORIENTATION`; the CLI option wins. Landscape
-is refused on iPhone. Each capture
+is refused on ordinary iPhone and Duo outer; Duo inner requires landscape. Each capture
 asserts the requested orientation before publishing; do not rotate exported
 portrait pixels. For a local filesystem that adds signing resource forks, set
 `FLASHCARDS_IOS_DERIVED_DATA_PATH` to an unsynced DerivedData path while retaining
 the pinned packages.
+
+Capture the two Duo displays sequentially after selecting each one in Device
+Hub. These commands reuse the existing five scenarios and guest cleanup:
+
+```bash
+bash scripts/ios/capture-ios-marketing-screenshots.sh --locale en-US --duo-display outer
+# Select the inner display in Device Hub before the next command.
+bash scripts/ios/capture-ios-marketing-screenshots.sh --locale en-US --duo-display inner
+```
+
+For all Duo Store locales, use `--list-ipad-locales` for the locale loop and
+pass the same `--duo-display` on every invocation. No command currently switches
+the Duo pose automatically. Xcode 27.0 on the existing local Mac lacks the Duo
+simulator; these commands have not produced native Duo PNGs, and physical Duo
+behavior remains unverified.
 
 For a sequential bulk capture from frozen sources, first run one locale with
 the default `test` action to build and validate the current app and test runner.
@@ -320,6 +353,9 @@ Default behavior:
 - raw screenshot regeneration is enabled
 - optimization mode defaults to `visually-lossless`
 - output family is inferred from the currently booted simulator unless you pass `--skip-screenshots`, in which case `--family` becomes required
+- Duo material builds require `--skip-screenshots`, `--duo-display outer|inner`,
+  and the matching `--family iphone-duo-outer|iphone-duo-inner`. Capture the
+  native PNGs with the separate capture wrapper first
 
 Run the full pipeline for every capture tag of the currently booted simulator family:
 
@@ -337,6 +373,13 @@ Reuse already generated raw screenshots and only rebuild the derived assets for 
 
 ```bash
 bash scripts/ios/build-ios-marketing-materials.sh --all-locales --skip-screenshots --family iphone
+```
+
+After genuine Duo raw captures exist, build a display's horizontal material
+independently, for example:
+
+```bash
+bash scripts/ios/build-ios-marketing-materials.sh --locale en-US --skip-screenshots --family iphone-duo-inner --duo-display inner
 ```
 
 Use strict lossless PNG optimization instead of the higher-compression visually lossless mode:
