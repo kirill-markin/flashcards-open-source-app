@@ -41,7 +41,7 @@ final class LiveSmokeOwnOpenAIKeyTests: LiveSmokeTestCase {
 
     @MainActor
     private func openOwnKeySettings() throws {
-        try self.tapButtonScrollingIntoView(
+        try self.tapSettingsButtonScrollingIntoView(
             identifier: "settings.ownOpenAIKeyRow",
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
