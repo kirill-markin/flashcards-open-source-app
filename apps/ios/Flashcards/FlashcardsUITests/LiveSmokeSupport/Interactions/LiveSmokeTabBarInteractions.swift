@@ -105,6 +105,9 @@ extension LiveSmokeTestCase {
 
     @MainActor
     func tapTabBarItem(selectedTab: LiveSmokeSelectedTab, timeout: TimeInterval) throws {
+        #if targetEnvironment(macCatalyst)
+        try self.tapTabBarItem(identifier: selectedTab.itemIdentifier, timeout: timeout)
+        #else
         try self.runWithInlineRawScreenStateOnFailure(action: "tap_tab.\(selectedTab.rawValue)") {
             let tabBarItemLookup = selectedTab.tabBarItemLookup(localization: self.currentLaunchLocalization)
             let tabBarItemCandidates = self.tabBarItemCandidates(lookup: tabBarItemLookup)
@@ -133,6 +136,7 @@ extension LiveSmokeTestCase {
                 step: self.currentStepTitle
             )
         }
+        #endif
     }
 
     @MainActor
