@@ -18,6 +18,7 @@ enum AppleSubscriptionError: LocalizedError {
     case entitlementNotConfirmed
     case premiumAlreadyAvailable
     case unexpectedPurchaseResult
+    case subscriptionManagementOpenFailed
 
     var errorDescription: String? {
         switch self {
@@ -35,6 +36,8 @@ enum AppleSubscriptionError: LocalizedError {
             return "Your account already has Premium access. No purchase is needed."
         case .unexpectedPurchaseResult:
             return "The App Store returned an unsupported purchase result."
+        case .subscriptionManagementOpenFailed:
+            return "Apple's subscription management page could not be opened. Open https://apps.apple.com/account/subscriptions to manage your subscription."
         }
     }
 }
@@ -300,7 +303,16 @@ final class AppleSubscriptionService {
             .subscriptionManagementOpened(destination: .appStore),
             screen: analyticsSurface(tab: self.store.currentVisibleTab)
         )
+        #if targetEnvironment(macCatalyst)
+        guard let managementURL = URL(string: "https://apps.apple.com/account/subscriptions") else {
+            throw AppleSubscriptionError.subscriptionManagementOpenFailed
+        }
+        guard await UIApplication.shared.open(managementURL, options: [:]) else {
+            throw AppleSubscriptionError.subscriptionManagementOpenFailed
+        }
+        #else
         try await AppStore.showManageSubscriptions(in: scene)
+        #endif
     }
 
     func refreshPurchaseDetails(identity: AppleSubscriptionIdentity) async throws {
