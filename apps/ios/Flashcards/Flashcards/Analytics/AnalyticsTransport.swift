@@ -36,7 +36,7 @@ final class AnalyticsTransport: @unchecked Sendable {
             clientSentAt: analyticsTimestampString(date: Date()),
             anonymousId: anonymousId,
             sessionId: sessionId,
-            context: analyticsClientContextPayload(),
+            context: await analyticsClientContextPayload(),
             isAutomation: AutomationRun.current.isAutomation,
             events: payloads
         )
@@ -142,17 +142,23 @@ func makeAnalyticsIngestRequest(credentials: AnalyticsCredentials, body: Data) t
 }
 
 /// Device context, describing the device at flush time.
+@MainActor
 func analyticsClientContextPayload() -> AnalyticsContextPayload {
     let operatingSystemVersion = ProcessInfo.processInfo.operatingSystemVersion
     return AnalyticsContextPayload(
         osVersion: "\(operatingSystemVersion.majorVersion).\(operatingSystemVersion.minorVersion).\(operatingSystemVersion.patchVersion)",
         deviceModel: analyticsDeviceModelIdentifier(),
+        osName: currentClientOsName(),
+        deviceType: currentClientDeviceType(),
         deviceLocale: Locale.current.identifier(.bcp47),
         timezone: TimeZone.current.identifier
     )
 }
 
 func analyticsDeviceModelIdentifier() -> String? {
+    #if targetEnvironment(macCatalyst)
+    return currentMacModelIdentifier()
+    #else
     if let simulatorModel = ProcessInfo.processInfo.environment["SIMULATOR_MODEL_IDENTIFIER"] {
         return simulatorModel
     }
@@ -169,6 +175,7 @@ func analyticsDeviceModelIdentifier() -> String? {
         }
     }
     return identifier.isEmpty ? nil : identifier
+    #endif
 }
 
 let analyticsRequestDebugLogEnvironmentKey: String = "FLASHCARDS_ANALYTICS_LOG_REQUEST"
