@@ -50,7 +50,11 @@ import {
   uploadTurnChatAttachments,
   type UploadedChatAttachment,
 } from "../../chatFiles";
-import type { ProductAnalyticsClientReportablePlatform } from "../../productAnalytics/catalog";
+import type {
+  ProductAnalyticsClientReportablePlatform,
+  ProductAnalyticsDeviceType,
+  ProductAnalyticsOsName,
+} from "../../productAnalytics/catalog";
 import { CHAT_RUN_HEARTBEAT_INTERVAL_MS, isChatRunHeartbeatStale } from "../worker/lease";
 import { getChatRunClaimStateWithExecutor } from "./claimFence";
 import {
@@ -155,6 +159,8 @@ export async function prepareChatRun(
   uiLocale: ChatComposerSuggestionsLocale | null,
   initiatingAuthIsSignedIn: boolean,
   clientPlatform: ProductAnalyticsClientReportablePlatform | null,
+  clientOsName: ProductAnalyticsOsName | null,
+  clientDeviceType: ProductAnalyticsDeviceType | null,
   assertAiUsageAllowance: () => Promise<void>,
 ): Promise<PreparedChatRun> {
   const observationScope = createBackendObservationScope(
@@ -240,6 +246,8 @@ export async function prepareChatRun(
       turnInput: storedContent,
       initiatingAuthIsSignedIn,
       clientPlatform,
+      clientOsName,
+      clientDeviceType,
     });
     const costPolicy = await decideChatCostPolicyWithExecutor(executor, scope, timezone);
     const run = await updateChatRunPolicySnapshotWithExecutor(executor, scope, {

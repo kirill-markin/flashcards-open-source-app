@@ -180,9 +180,9 @@ The role gets `SELECT` on these tables only:
 - `content.review_events`
 - `content.media_assets`
 - `sync.workspace_replicas`
-- `sync.installations`
-- `support.feedback_submissions`
-- `support.feedback_prompt_events`
+- `sync.installations`, with the latest `os_name` and `device_type` a native client reported on sync
+- `support.feedback_submissions`, with `os_name` and `device_type` beside `platform`
+- `support.feedback_prompt_events`, with `os_name` and `device_type` beside `platform`
 - `community.public_profiles`
 - `community.public_review_activity_facts`
 - `community.leaderboard_snapshots`
@@ -196,7 +196,7 @@ The role gets `SELECT` on these tables only:
 - selected entitlement columns on `auth.admin_users`, the join key an admin report uses to exclude admin-generated activity
 - selected metadata and content columns on `ai.chat_sessions`, `composer_suggestions` included
 - `ai.chat_items`, the stored chat transcript, `payload` included, and the generated `role` and `content_char_count` columns beside it
-- selected metadata and content columns on `ai.chat_runs`, `turn_input`, `last_error_message`, and `client_platform` included
+- selected metadata and content columns on `ai.chat_runs`, `turn_input`, `last_error_message`, `client_platform`, `client_os_name`, and `client_device_type` included
 - selected metadata and content columns on `ai.chat_composer_suggestion_generations`, `suggestions` included
 - selected metadata columns on `ai.chat_files`, the files of a chat session, without `path`, which carries the file's name
 - `ai.usage_events`

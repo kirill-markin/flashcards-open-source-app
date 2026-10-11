@@ -52,6 +52,8 @@ export type InstallationState = Readonly<{
   user_id: string;
   platform: "ios" | "android" | "web";
   app_version: string | null;
+  os_name: string | null;
+  device_type: string | null;
   is_automation: boolean;
 }>;
 
