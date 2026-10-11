@@ -444,6 +444,7 @@ const nbCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — Læringskort",
     crashTitle: "Noe gikk galt",
     crashMessage: "Last inn appen på nytt for å gjenopprette denne skjermen.",
     crashReload: "Last inn appen på nytt",

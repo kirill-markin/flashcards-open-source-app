@@ -452,6 +452,7 @@ const hrCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — Kartice za učenje",
     crashTitle: "Nešto je pošlo po zlu",
     crashMessage: "Ponovno učitajte aplikaciju da biste vratili ovaj zaslon.",
     crashReload: "Ponovno učitaj aplikaciju",

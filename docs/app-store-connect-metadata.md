@@ -166,7 +166,7 @@ Terms of Use (EULA): https://www.apple.com/legal/internet-services/itunes/dev/st
 
 ### Keywords
 
-notes,photo,spaced,repetition,language,memorize,revision,learning,practice,decks,tags
+notes,photo,spaced,repetition,language,memorize,revision,learning,practice,decks,tags,quiz,offline
 
 ### What's New
 
@@ -201,7 +201,7 @@ Nibomo: بطاقات ذكاء اصطناعي
 
 ### Keywords
 
-ملاحظات,صور,مراجعة,تكرار,متباعد,مفردات,لغات,حفظ,دراسة
+ملاحظات,صور,مراجعة,تكرار,متباعد,مفردات,لغات,حفظ,دراسة,بدون إنترنت
 
 ### What's New
 
@@ -236,7 +236,7 @@ AI 功能需要联网。
 
 ### Keywords
 
-照片,复习,间隔重复,词汇,语言,记忆,学习,练习,卡组,标签
+照片,复习,间隔重复,词汇,语言,记忆,学习,练习,卡组,标签,测验,离线
 
 ### What's New
 
@@ -271,7 +271,7 @@ Conditions d’utilisation (EULA): https://www.apple.com/legal/internet-services
 
 ### Keywords
 
-notes,photo,répétition,espacée,examen,langue,mémoire,apprentissage,cartes,paquets
+notes,photo,répétition,espacée,examen,langue,mémoire,apprentissage,cartes,paquets,quiz,hors ligne
 
 ### What's New
 
@@ -306,7 +306,7 @@ Nutzungsbedingungen (EULA): https://www.apple.com/legal/internet-services/itunes
 
 ### Keywords
 
-Notizen,Fotos,Wiederholung,Lernen,Gedächtnis,Sprachen,Üben,Karten,Stapel,Tags
+Notizen,Fotos,Wiederholung,Lernen,Gedächtnis,Sprachen,Üben,Karten,Stapel,Tags,Quiz,offline
 
 ### What's New
 
@@ -341,7 +341,7 @@ AI सुविधाओं के लिए इंटरनेट कनेक�
 
 ### Keywords
 
-नोट्स,फोटो,दोहराई,भाषा,याददाश्त,पढ़ाई,अभ्यास
+नोट्स,फोटो,दोहराई,भाषा,याददाश्त,पढ़ाई,अभ्यास,क्विज़,ऑफ़लाइन
 
 ### What's New
 
@@ -376,7 +376,7 @@ AI機能にはインターネット接続が必要です。
 
 ### Keywords
 
-ノート,写真,復習,間隔反復,語彙,語学,暗記,勉強,練習,デッキ,タグ
+ノート,写真,復習,間隔反復,語彙,語学,暗記,勉強,練習,デッキ,タグ,クイズ,オフライン
 
 ### What's New
 
@@ -411,7 +411,7 @@ Termos de Serviço (EULA): https://www.apple.com/legal/internet-services/itunes/
 
 ### Keywords
 
-notas,fotos,revisão,repetição,espaçada,prova,idioma,vocabulário,memória,estudo,baralhos
+notas,fotos,revisão,repetição,espaçada,prova,idioma,vocabulário,memória,estudo,baralhos,quiz,offline
 
 ### What's New
 
@@ -446,7 +446,7 @@ Nibomo: ИИ-флешкарты
 
 ### Keywords
 
-заметки,фото,повторение,интервалы,слова,языки,память,учёба,практика,колоды,теги
+заметки,фото,повторение,интервалы,слова,языки,память,учёба,практика,колоды,теги,викторина,офлайн
 
 ### What's New
 
@@ -553,7 +553,7 @@ AI সুবিধার জন্য ইন্টারনেট সংযো�
 
 ### Keywords
 
-নোট,ছবি,রিভিশন,ভাষা,স্মৃতি,পড়াশোনা,অনুশীলন
+নোট,ছবি,রিভিশন,ভাষা,স্মৃতি,পড়াশোনা,অনুশীলন,কুইজ,অফলাইন
 
 ### What's New
 
@@ -590,7 +590,7 @@ Condicions del servei (EULA): https://www.apple.com/legal/internet-services/itun
 
 ### Keywords
 
-apunts,fotos,repàs,repetició,espaiada,idioma,vocabulari,memòria,estudi,pràctica
+apunts,fotos,repàs,repetició,espaiada,idioma,vocabulari,memòria,estudi,pràctica,qüestionari
 
 ### What's New
 
@@ -627,7 +627,7 @@ Podmínky služby (EULA): https://www.apple.com/legal/internet-services/itunes/d
 
 ### Keywords
 
-poznámky,fotky,opakování,jazyky,paměť,učení,procvičování,balíčky,štítky
+poznámky,fotky,opakování,jazyky,paměť,učení,procvičování,balíčky,štítky,kvíz,offline
 
 ### What's New
 
@@ -664,7 +664,7 @@ Servicevilkår (EULA): https://www.apple.com/legal/internet-services/itunes/dev/
 
 ### Keywords
 
-noter,fotos,repetition,sprog,hukommelse,læring,øvelse,kort,bunker,tags
+noter,fotos,repetition,sprog,hukommelse,læring,øvelse,kort,bunker,tags,quiz,offline
 
 ### What's New
 
@@ -701,7 +701,7 @@ Nibomo: Κάρτες με AI
 
 ### Keywords
 
-σημειώσεις,φωτογραφίες,επανάληψη,λεξιλόγιο,γλώσσες,μνήμη,μελέτη,εξάσκηση
+σημειώσεις,φωτογραφίες,επανάληψη,λεξιλόγιο,γλώσσες,μνήμη,μελέτη,εξάσκηση,κουίζ,εκτός σύνδεσης
 
 ### What's New
 
@@ -738,7 +738,7 @@ Käyttöehdot (EULA): https://www.apple.com/legal/internet-services/itunes/dev/s
 
 ### Keywords
 
-muistiinpanot,kuvat,kertaus,kielet,sanasto,muisti,opiskelu,harjoittelu,pakat,tunnisteet
+muistiinpanot,kuvat,kertaus,kielet,sanasto,muisti,opiskelu,harjoittelu,pakat,tunnisteet,tietovisa
 
 ### What's New
 
@@ -775,7 +775,7 @@ AI સુવિધાઓ માટે ઇન્ટરનેટ કનેક્�
 
 ### Keywords
 
-નોંધ,ફોટો,પુનરાવર્તન,ભાષા,યાદશક્તિ,અભ્યાસ
+નોંધ,ફોટો,પુનરાવર્તન,ભાષા,યાદશક્તિ,અભ્યાસ,ક્વિઝ,ઑફલાઇન
 
 ### What's New
 
@@ -812,7 +812,7 @@ Nibomo: כרטיסיות עם AI
 
 ### Keywords
 
-הערות,תמונות,חזרה,מרווחת,שפות,זיכרון,למידה,תרגול,תגיות
+הערות,תמונות,חזרה,מרווחת,שפות,זיכרון,למידה,תרגול,תגיות,חידון,לא מקוון
 
 ### What's New
 
@@ -849,7 +849,7 @@ Uvjeti pružanja usluge (EULA): https://www.apple.com/legal/internet-services/it
 
 ### Keywords
 
-bilješke,fotografije,ponavljanje,jezici,pamćenje,učenje,vježba,špilovi,oznake
+bilješke,fotografije,ponavljanje,jezici,pamćenje,učenje,vježba,špilovi,oznake,kviz,izvan mreže
 
 ### What's New
 
@@ -886,7 +886,7 @@ Felhasználási feltételek (EULA): https://www.apple.com/legal/internet-service
 
 ### Keywords
 
-jegyzet,fotó,ismétlés,nyelv,memória,tanulás,gyakorlás,pakli,címke
+jegyzet,fotó,ismétlés,nyelv,memória,tanulás,gyakorlás,pakli,címke,kvíz,offline
 
 ### What's New
 
@@ -923,7 +923,7 @@ Ketentuan Layanan (EULA): https://www.apple.com/legal/internet-services/itunes/d
 
 ### Keywords
 
-catatan,foto,pengulangan,berjarak,bahasa,ingatan,belajar,latihan,dek,tag
+catatan,foto,pengulangan,berjarak,bahasa,ingatan,belajar,latihan,dek,tag,kuis,luring
 
 ### What's New
 
@@ -960,7 +960,7 @@ Termini di servizio (EULA): https://www.apple.com/legal/internet-services/itunes
 
 ### Keywords
 
-appunti,foto,ripasso,ripetizione,spaziata,lingue,vocabolario,memoria,studio,mazzi
+appunti,foto,ripasso,ripetizione,spaziata,lingue,vocabolario,memoria,studio,mazzi,quiz,offline
 
 ### What's New
 
@@ -997,7 +997,7 @@ AI ಸೌಲಭ್ಯಗಳಿಗೆ ಇಂಟರ್ನೆಟ್ ಸಂಪರ್
 
 ### Keywords
 
-ಟಿಪ್ಪಣಿ,ಫೋಟೋ,ಪುನರಾವರ್ತನೆ,ಭಾಷೆ,ನೆನಪು,ಅಭ್ಯಾಸ
+ಟಿಪ್ಪಣಿ,ಫೋಟೋ,ಪುನರಾವರ್ತನೆ,ಭಾಷೆ,ನೆನಪು,ಅಭ್ಯಾಸ,ರಸಪ್ರಶ್ನೆ,ಆಫ್‌ಲೈನ್
 
 ### What's New
 
@@ -1034,7 +1034,7 @@ AI 기능을 사용하려면 인터넷 연결이 필요해요.
 
 ### Keywords
 
-노트,사진,복습,간격반복,단어,언어,암기,공부,연습,덱,태그
+노트,사진,복습,간격반복,단어,언어,암기,공부,연습,덱,태그,퀴즈,오프라인
 
 ### What's New
 
@@ -1071,7 +1071,7 @@ AI സൗകര്യങ്ങൾക്ക് ഇന്റർനെറ്റ് 
 
 ### Keywords
 
-കുറിപ്പ്,ഫോട്ടോ,ആവർത്തനം,ഭാഷ,ഓർമ,പഠനം,പരിശീലനം
+കുറിപ്പ്,ഫോട്ടോ,ആവർത്തനം,ഭാഷ,ഓർമ,പഠനം,പരിശീലനം,ക്വിസ്,ഓഫ്‌ലൈൻ
 
 ### What's New
 
@@ -1108,7 +1108,7 @@ AI सुविधांसाठी इंटरनेट कनेक्शन
 
 ### Keywords
 
-नोंदी,फोटो,उजळणी,भाषा,स्मरणशक्ती,अभ्यास,सराव
+नोंदी,फोटो,उजळणी,भाषा,स्मरणशक्ती,अभ्यास,सराव,प्रश्नमंजुषा,ऑफलाइन
 
 ### What's New
 
@@ -1145,7 +1145,7 @@ Tjenestevilkår (EULA): https://www.apple.com/legal/internet-services/itunes/dev
 
 ### Keywords
 
-notater,bilder,repetisjon,språk,ordforråd,hukommelse,læring,øving,kortstokker,etiketter
+notater,bilder,repetisjon,språk,ordforråd,hukommelse,læring,øving,kortstokker,etiketter,quiz,offline
 
 ### What's New
 
@@ -1182,7 +1182,7 @@ Servicevoorwaarden (EULA): https://www.apple.com/legal/internet-services/itunes/
 
 ### Keywords
 
-notities,fotos,herhaling,talen,woordenschat,geheugen,leren,oefenen,stapels,tags
+notities,fotos,herhaling,talen,woordenschat,geheugen,leren,oefenen,stapels,tags,quiz,offline
 
 ### What's New
 
@@ -1219,7 +1219,7 @@ AI ਸਹੂਲਤਾਂ ਲਈ ਇੰਟਰਨੈੱਟ ਕਨੈਕਸ਼ਨ �
 
 ### Keywords
 
-ਨੋਟਸ,ਫੋਟੋ,ਦੁਹਰਾਈ,ਭਾਸ਼ਾ,ਯਾਦਦਾਸ਼ਤ,ਪੜ੍ਹਾਈ,ਅਭਿਆਸ
+ਨੋਟਸ,ਫੋਟੋ,ਦੁਹਰਾਈ,ਭਾਸ਼ਾ,ਯਾਦਦਾਸ਼ਤ,ਪੜ੍ਹਾਈ,ਅਭਿਆਸ,ਕੁਇਜ਼,ਆਫਲਾਈਨ
 
 ### What's New
 
@@ -1256,7 +1256,7 @@ Warunki korzystania (EULA): https://www.apple.com/legal/internet-services/itunes
 
 ### Keywords
 
-notatki,zdjęcia,powtórki,języki,pamięć,nauka,ćwiczenia,talie,tagi
+notatki,zdjęcia,powtórki,języki,pamięć,nauka,ćwiczenia,talie,tagi,quiz,bez internetu
 
 ### What's New
 
@@ -1293,7 +1293,7 @@ Condiții de utilizare (EULA): https://www.apple.com/legal/internet-services/itu
 
 ### Keywords
 
-notițe,fotografii,recapitulare,repetiție,spațiată,limbi,vocabular,memorie,studiu,exersare
+notițe,fotografii,recapitulare,repetiție,spațiată,limbi,vocabular,memorie,studiu,exersare,chestionar
 
 ### What's New
 
@@ -1330,7 +1330,7 @@ Podmienky používania (EULA): https://www.apple.com/legal/internet-services/itu
 
 ### Keywords
 
-poznámky,fotky,opakovanie,jazyky,pamäť,učenie,precvičovanie,balíčky,štítky
+poznámky,fotky,opakovanie,jazyky,pamäť,učenie,precvičovanie,balíčky,štítky,kvíz,offline
 
 ### What's New
 
@@ -1367,7 +1367,7 @@ Pogoji uporabe (EULA): https://www.apple.com/legal/internet-services/itunes/dev/
 
 ### Keywords
 
-zapiski,fotografije,ponavljanje,jeziki,besedišče,spomin,učenje,vaja,zbirke,oznake
+zapiski,fotografije,ponavljanje,jeziki,besedišče,spomin,učenje,vaja,zbirke,oznake,kviz,brez povezave
 
 ### What's New
 
@@ -1404,7 +1404,7 @@ Användarvillkor (EULA): https://www.apple.com/legal/internet-services/itunes/de
 
 ### Keywords
 
-anteckningar,foton,repetition,språk,ordförråd,minne,lärande,övning,kortlekar,taggar
+anteckningar,foton,repetition,språk,ordförråd,minne,lärande,övning,kortlekar,taggar,frågesport
 
 ### What's New
 
@@ -1441,7 +1441,7 @@ AI வசதிகளுக்கு இணைய இணைப்பு தே�
 
 ### Keywords
 
-குறிப்பு,படம்,மீள்பார்வை,மொழி,நினைவு,படிப்பு,பயிற்சி
+குறிப்பு,படம்,மீள்பார்வை,மொழி,நினைவு,படிப்பு,பயிற்சி,வினாடி வினா,இணையமின்றி
 
 ### What's New
 
@@ -1478,7 +1478,7 @@ AI సౌకర్యాలకు ఇంటర్నెట్ కనెక్ష
 
 ### Keywords
 
-నోట్స్,ఫోటో,పునశ్చరణ,భాష,జ్ఞాపకం,చదువు,అభ్యాసం
+నోట్స్,ఫోటో,పునశ్చరణ,భాష,జ్ఞాపకం,చదువు,అభ్యాసం,క్విజ్,ఆఫ్‌లైన్
 
 ### What's New
 
@@ -1515,7 +1515,7 @@ Nibomo: แฟลชการ์ด AI
 
 ### Keywords
 
-โน้ต,ภาพถ่าย,ทบทวน,เว้นระยะ,ภาษา,ความจำ,เรียน,ฝึก
+โน้ต,ภาพถ่าย,ทบทวน,เว้นระยะ,ภาษา,ความจำ,เรียน,ฝึก,แบบทดสอบ,ออฟไลน์
 
 ### What's New
 
@@ -1552,7 +1552,7 @@ Hizmet Koşulları (EULA): https://www.apple.com/legal/internet-services/itunes/
 
 ### Keywords
 
-not,fotoğraf,aralıklı,tekrar,dil,hafıza,çalışma,alıştırma,deste,etiket
+not,fotoğraf,aralıklı,tekrar,dil,hafıza,çalışma,alıştırma,deste,etiket,test,çevrimdışı
 
 ### What's New
 
@@ -1589,7 +1589,7 @@ Nibomo: Картки з ШІ
 
 ### Keywords
 
-нотатки,фото,повторення,інтервали,мови,пам'ять,навчання,практика,колоди,теги
+нотатки,фото,повторення,інтервали,мови,пам'ять,навчання,практика,колоди,теги,вікторина,офлайн
 
 ### What's New
 
@@ -1626,7 +1626,7 @@ AI کی سہولتوں کے لیے انٹرنیٹ کنکشن ضروری ہے۔
 
 ### Keywords
 
-نوٹس,تصویر,دہرائی,زبان,یادداشت,پڑھائی,مشق
+نوٹس,تصویر,دہرائی,زبان,یادداشت,پڑھائی,مشق,کوئز,آف لائن
 
 ### What's New
 
@@ -1663,7 +1663,7 @@ Chính sách quyền riêng tư: https://nibomo.com/privacy/
 
 ### Keywords
 
-ghi chú,ảnh,ôn tập,ngắt quãng,ngoại ngữ,trí nhớ,học tập,luyện tập,bộ thẻ,nhãn
+ghi chú,ảnh,ôn tập,ngắt quãng,ngoại ngữ,trí nhớ,học tập,luyện tập,bộ thẻ,nhãn,trắc nghiệm
 
 ### What's New
 

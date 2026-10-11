@@ -444,6 +444,7 @@ const heCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — כרטיסיות",
     crashTitle: "משהו השתבש",
     crashMessage: "רענן את האפליקציה כדי לשחזר את המסך הזה.",
     crashReload: "רענון האפליקציה",

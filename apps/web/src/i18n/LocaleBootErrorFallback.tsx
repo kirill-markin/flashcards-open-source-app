@@ -22,6 +22,7 @@ export function LocaleBootErrorFallback(): ReactElement {
   useLayoutEffect(() => {
     document.documentElement.lang = defaultLocale;
     document.documentElement.dir = getLocaleDirection(defaultLocale);
+    document.title = enCatalog.app.documentTitle;
   }, []);
 
   function continueInDefaultLocale(): void {

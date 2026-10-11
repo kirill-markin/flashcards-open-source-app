@@ -452,6 +452,7 @@ const ltCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — Mokymosi kortelės",
     crashTitle: "Įvyko klaida",
     crashMessage: "Įkelkite programėlę iš naujo, kad atkurtumėte šį ekraną.",
     crashReload: "Įkelti programėlę iš naujo",

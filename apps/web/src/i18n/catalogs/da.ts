@@ -444,6 +444,7 @@ const daCatalog: TranslationCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — Læringskort",
     crashTitle: "Noget gik galt",
     crashMessage: "Genindlæs appen for at gendanne denne skærm.",
     crashReload: "Genindlæs appen",

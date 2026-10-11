@@ -444,6 +444,7 @@ export const zhHansCatalog = {
   },
   app: {
     title: "Nibomo",
+    documentTitle: "Nibomo — 闪卡",
     crashTitle: "出现问题",
     crashMessage: "请重新加载应用以恢复此屏幕。",
     crashReload: "重新加载应用",

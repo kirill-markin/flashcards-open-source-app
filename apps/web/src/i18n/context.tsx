@@ -129,6 +129,7 @@ export function I18nProvider(props: Props): ReactElement {
     lastRenderedTranslation.current = readRenderedTranslation(documentLocale, documentDirection);
     document.documentElement.lang = documentLocale;
     document.documentElement.dir = documentDirection;
+    document.title = translateMessage(documentLocale, "app.documentTitle", undefined);
   }, [documentDirection, documentLocale, targetDirection, targetLocale]);
 
   // Raised above every catalog consumer, so LocaleBootErrorFallback in main.tsx is what catches it.
