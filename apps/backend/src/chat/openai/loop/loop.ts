@@ -36,7 +36,11 @@ import {
   type ChatRuntimeReasoningEffort,
 } from "../../config";
 import type { ChatRunClaimToken } from "../../runs";
-import type { ProductAnalyticsClientReportablePlatform } from "../../../productAnalytics/catalog";
+import type {
+  ProductAnalyticsClientReportablePlatform,
+  ProductAnalyticsDeviceType,
+  ProductAnalyticsOsName,
+} from "../../../productAnalytics/catalog";
 import {
   appendAiUsageEvent,
   toOpenAIResponsesUsageCounters,
@@ -114,6 +118,8 @@ export type StartOpenAILoopParams = Readonly<{
   generatedImageEligible: boolean;
   generatedImageOperationDeadlineMs: number;
   clientPlatform: ProductAnalyticsClientReportablePlatform | null;
+  clientOsName: ProductAnalyticsOsName | null;
+  clientDeviceType: ProductAnalyticsDeviceType | null;
   tierAtCall: EntitlementTier;
   initiatingAuthIsSignedIn: boolean;
   userOpenAIApiKey: UserOpenAIApiKey | null;
@@ -142,6 +148,8 @@ async function runOneToolCall(
     signal: AbortSignal | null;
     generatedImageOperationDeadlineMs: number;
     clientPlatform: ProductAnalyticsClientReportablePlatform | null;
+    clientOsName: ProductAnalyticsOsName | null;
+    clientDeviceType: ProductAnalyticsDeviceType | null;
     initiatingAuthIsSignedIn: boolean;
     userOpenAIApiKey: UserOpenAIApiKey | null;
     rootObservation: LangfuseObservation | null;
@@ -471,6 +479,8 @@ async function runLoopWithDeps(
         signal: params.signal,
         generatedImageOperationDeadlineMs: params.generatedImageOperationDeadlineMs,
         clientPlatform: params.clientPlatform,
+        clientOsName: params.clientOsName,
+        clientDeviceType: params.clientDeviceType,
         initiatingAuthIsSignedIn: params.initiatingAuthIsSignedIn,
         userOpenAIApiKey: params.userOpenAIApiKey,
         rootObservation: params.rootObservation,

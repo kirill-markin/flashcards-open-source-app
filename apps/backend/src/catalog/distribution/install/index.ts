@@ -435,6 +435,8 @@ export async function installCatalogPackageVersion(
     // The install names no server-stored replica or guest session row here, and the request headers
     // that do name a platform are a client claim this row must not repeat.
     platform: null,
+    osName: null,
+    deviceType: null,
     properties: {
       package_slug: packageSlug.packageSlug,
       card_count: result.summary.cardCount,

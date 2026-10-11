@@ -59,6 +59,8 @@ function createRunRow(
     timezone: "Europe/Madrid",
     ui_locale: "es",
     client_platform: null,
+    client_os_name: null,
+    client_device_type: null,
     turn_input: [],
     worker_claimed_at: firstClaimToken,
     worker_heartbeat_at: null,

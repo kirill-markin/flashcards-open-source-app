@@ -93,6 +93,8 @@ export function createParams(): StartPersistedChatRunParams {
     turnInput: [{ type: "text", text: "hello" }],
     generatedImageEligible: false,
     clientPlatform: null,
+    clientOsName: null,
+    clientDeviceType: null,
     tierAtCall: "free",
     initiatingAuthIsSignedIn: true,
     userOpenAIApiKey: null,
