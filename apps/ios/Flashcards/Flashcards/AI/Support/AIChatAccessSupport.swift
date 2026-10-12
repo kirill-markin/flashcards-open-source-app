@@ -5,14 +5,6 @@ enum AIChatAccessState: Equatable {
     case ready
 }
 
-func hasAIChatExternalProviderConsent(userDefaults: UserDefaults) -> Bool {
-    userDefaults.bool(forKey: aiChatExternalProviderConsentUserDefaultsKey)
-}
-
-func grantAIChatExternalProviderConsent(userDefaults: UserDefaults) {
-    userDefaults.set(true, forKey: aiChatExternalProviderConsentUserDefaultsKey)
-}
-
 func aiChatAccessState(
     hasExternalProviderConsent: Bool
 ) -> AIChatAccessState {

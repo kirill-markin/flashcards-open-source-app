@@ -232,6 +232,7 @@ struct AccountStatusView: View {
             Button(aiSettingsLocalized("settings.account.status.logOut", "Log out"), role: .destructive) {
                 self.logoutCloudAccount()
             }
+            .accessibilityIdentifier(UITestIdentifier.accountStatusLogoutConfirmButton)
         } message: {
             Text(
                 aiSettingsLocalized(

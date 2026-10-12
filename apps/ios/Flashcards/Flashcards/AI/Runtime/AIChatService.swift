@@ -258,12 +258,30 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
     private let ownOpenAIKeyStore: OwnOpenAIKeyStore
+    private let consentReceiptProvider: AIConsentReceiptProvider
 
-    init(session: URLSession, encoder: JSONEncoder, decoder: JSONDecoder, ownOpenAIKeyStore: OwnOpenAIKeyStore) {
+    convenience init(session: URLSession, encoder: JSONEncoder, decoder: JSONDecoder, ownOpenAIKeyStore: OwnOpenAIKeyStore) {
+        self.init(
+            session: session,
+            encoder: encoder,
+            decoder: decoder,
+            ownOpenAIKeyStore: ownOpenAIKeyStore,
+            consentReceiptProvider: { _ in throw AIConsentError.required }
+        )
+    }
+
+    init(
+        session: URLSession,
+        encoder: JSONEncoder,
+        decoder: JSONDecoder,
+        ownOpenAIKeyStore: OwnOpenAIKeyStore,
+        consentReceiptProvider: @escaping AIConsentReceiptProvider
+    ) {
         self.session = session
         self.encoder = encoder
         self.decoder = decoder
         self.ownOpenAIKeyStore = ownOpenAIKeyStore
+        self.consentReceiptProvider = consentReceiptProvider
     }
 
     func loadSnapshot(
@@ -457,6 +475,7 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
             clientRequestId: clientRequestId,
             additionalHeaders: try addingOwnOpenAIKeyHeader(
                 headers: [
+                    aiConsentIdHeader: try await self.consentReceiptProvider(session),
                     "X-Client-Platform": aiChatClientPlatform,
                     "X-Client-Os-Name": clientOsName,
                     "X-Client-Device-Type": clientDeviceType,
@@ -500,6 +519,8 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
         sizeBytes: Int,
         fileURL: URL
     ) async throws -> String {
+        try Task.checkCancellation()
+        let consentId = try await self.consentReceiptProvider(session)
         let clientRequestId = UUID().uuidString.lowercased()
         let urlRequest = try self.makeJsonRequest(
             session: session,
@@ -524,6 +545,8 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
             invalidPayloadMessage: "AI chat file upload response is invalid."
         )
         try await self.putChatFile(
+            session: session,
+            consentId: consentId,
             upload: response.upload,
             fileURL: fileURL,
             clientRequestId: clientRequestId
@@ -532,6 +555,8 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
     }
 
     private func putChatFile(
+        session: CloudLinkedSession,
+        consentId: String,
         upload: AIChatFileUploadTarget,
         fileURL: URL,
         clientRequestId: String
@@ -560,6 +585,8 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
         var lastError: Error?
         for attempt in 1...aiChatFileUploadPutMaxAttempts {
             do {
+                try Task.checkCancellation()
+                guard try await self.consentReceiptProvider(session) == consentId else { throw AIConsentError.required }
                 let (data, response) = try await self.session.upload(for: request, fromFile: fileURL)
                 guard let httpResponse = response as? HTTPURLResponse else {
                     throw AIChatServiceError.invalidHttpResponse(
@@ -666,6 +693,10 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
         var lastError: Error?
         for attempt in 1...aiChatStartRunMaxAttempts {
             do {
+                try Task.checkCancellation()
+                guard try await self.consentReceiptProvider(session) == request.value(forHTTPHeaderField: aiConsentIdHeader) else {
+                    throw AIConsentError.required
+                }
                 return try await self.execute(
                     session: session,
                     request: request,

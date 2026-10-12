@@ -46,6 +46,7 @@ extension FlashcardsStore {
         // were created against the server being left, so they are discarded here for the same reason
         // they are on logout rather than posted to the new one under a new identity.
         Analytics.reset()
+        try self.resetAIConsentIdentity()
         self.cloudRuntime.cancelForAccountDeletion()
         self.clearCloudCredentialRecoveryState()
         try self.cloudRuntime.clearCredentials()

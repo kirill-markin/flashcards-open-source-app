@@ -26,7 +26,7 @@ extension AIChatStore {
     }
 
     var canModifyDraftAttachments: Bool {
-        self.canEditDraft
+        self.canEditDraft && self.hasExternalProviderConsent
     }
 
     var canAttachToDraft: Bool {
@@ -40,6 +40,7 @@ extension AIChatStore {
 
     var canStartDictation: Bool {
         self.isChatInteractive
+            && self.hasExternalProviderConsent
             && self.serverChatConfig.features.dictationEnabled
             && self.dictationState == .idle
             && aiChatComposerPhaseAllowsDraftPreparation(self.composerPhase)
@@ -62,7 +63,7 @@ extension AIChatStore {
     }
 
     var canStartNewChat: Bool {
-        guard self.isChatInteractive else {
+        guard self.isChatInteractive, self.hasExternalProviderConsent else {
             return false
         }
         guard self.dictationState == .idle else {
@@ -90,7 +91,7 @@ extension AIChatStore {
     }
 
     var canShowComposerSuggestions: Bool {
-        guard self.areComposerSuggestionsEnabled else {
+        guard self.areComposerSuggestionsEnabled, self.hasExternalProviderConsent else {
             return false
         }
         guard self.bootstrapPhase == .ready || self.bootstrapPhase == .loading else {
