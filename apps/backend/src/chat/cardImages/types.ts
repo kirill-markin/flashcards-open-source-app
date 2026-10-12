@@ -5,6 +5,7 @@ import type { UserOpenAIApiKey } from "../userOpenAIApiKey";
 import type { GeneratedCardImageObservationContext } from "./providerTypes";
 
 export type GeneratedCardImageInput = Readonly<{
+  aiConsentId?: string | null;
   runId: string;
   operationKey: string;
   sessionId: string;

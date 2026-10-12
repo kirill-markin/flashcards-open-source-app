@@ -162,6 +162,7 @@ export async function prepareChatRun(
   clientOsName: ProductAnalyticsOsName | null,
   clientDeviceType: ProductAnalyticsDeviceType | null,
   assertAiUsageAllowance: () => Promise<void>,
+  aiConsentId?: string | null,
 ): Promise<PreparedChatRun> {
   const observationScope = createBackendObservationScope(
     "backend-api",
@@ -248,6 +249,7 @@ export async function prepareChatRun(
       clientPlatform,
       clientOsName,
       clientDeviceType,
+      aiConsentId: aiConsentId ?? null,
     });
     const costPolicy = await decideChatCostPolicyWithExecutor(executor, scope, timezone);
     const run = await updateChatRunPolicySnapshotWithExecutor(executor, scope, {
@@ -366,6 +368,7 @@ export async function claimChatRun(
       localMessages: messages,
       turnInput: claimedRun.turn_input,
       initiatingAuthIsSignedIn: claimedRun.initiating_auth_is_signed_in,
+      aiConsentId: claimedRun.ai_consent_event_id ?? null,
       clientPlatform: claimedRun.client_platform,
       clientOsName: claimedRun.client_os_name,
       clientDeviceType: claimedRun.client_device_type,
