@@ -117,6 +117,7 @@ final class LiveSmokeAIConsentTests: LiveSmokeTestCase {
             throw LiveSmokeFailure.unexpectedAccountState(message: "The linked consent smoke requires the configured review email.", screen: self.currentScreenSummary(), step: self.currentStepTitle)
         }
         var guestReceipt: LiveAIConsentReceipt?
+        var cleanupWithdrawalReceipt: LiveAIConsentReceipt?
         try self.runGuestToLinkedWorkspaceScenario(
             context: self.makeRunContext(), reviewEmail: email,
             beforeSignIn: {
@@ -124,6 +125,14 @@ final class LiveSmokeAIConsentTests: LiveSmokeTestCase {
                 try self.allowAIConsent()
                 try self.openAIConsentLegalSettings()
                 guestReceipt = try self.readConsentReceipt()
+                try self.tapFirstNavigationBackButton()
+            },
+            beforeDelete: {
+                try self.openAIConsentLegalSettings()
+                let grant = try self.readConsentReceipt()
+                try self.tapButtonScrollingIntoView(identifier: LiveSmokeIdentifier.aiConsentWithdrawButton, timeout: 10)
+                try self.assertElementDoesNotExist(identifier: LiveSmokeIdentifier.aiConsentWithdrawButton, timeout: 10)
+                cleanupWithdrawalReceipt = try self.readConsentReceiptDifferentFrom(grant.eventId)
                 try self.tapFirstNavigationBackButton()
             },
             scenario: {
@@ -137,6 +146,15 @@ final class LiveSmokeAIConsentTests: LiveSmokeTestCase {
                 try self.tapTabBarItem(selectedTab: .settings, timeout: 10)
             }
         )
+        try self.tapFirstNavigationBackButton()
+        try self.openAIConsentLegalSettings()
+        try self.tapButtonScrollingIntoView(identifier: LiveSmokeIdentifier.aiConsentReviewButton, timeout: 10)
+        try self.assertElementExists(identifier: LiveSmokeIdentifier.aiConsentBody, timeout: 10)
+        try self.tapButton(identifier: LiveSmokeIdentifier.aiConsentAcceptButton, timeout: 10)
+        try self.assertElementDoesNotExist(identifier: LiveSmokeIdentifier.aiConsentTitle, timeout: 30)
+        let regrant = try self.readConsentReceiptDifferentFrom(try XCTUnwrap(cleanupWithdrawalReceipt).eventId)
+        XCTAssertNotEqual(regrant.eventId, try XCTUnwrap(guestReceipt).eventId)
+        try self.assertElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.aiConsentWithdrawButton, timeout: 10)
         try self.tapFirstNavigationBackButton()
         try self.openAccountStatus()
         try self.logoutFromAccountStatus()
