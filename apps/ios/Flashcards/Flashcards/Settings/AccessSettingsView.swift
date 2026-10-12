@@ -26,7 +26,7 @@ struct AccessSettingsView: View {
                 Text(
                     aiSettingsLocalized(
                         "settings.access.footer",
-                        "Nibomo requests only the access needed for attachments and chat dictation."
+                        "Camera and microphone access are used for capture and dictation. You can choose photo attachments without library access."
                     )
                 )
                     .foregroundStyle(.secondary)

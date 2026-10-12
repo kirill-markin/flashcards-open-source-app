@@ -424,12 +424,12 @@
 "settings.access.section.permissions" = "Povolenia";
 "settings.access.notifications" = "Hlásenia";
 "settings.access.thisDevice" = "Toto zariadenie";
-"settings.access.footer" = "Nibomo žiada iba o prístup potrebný na prílohy a diktovanie v chate.";
+"settings.access.footer" = "Prístup ku kamere a mikrofónu slúži na snímanie a diktovanie. Fotky pre prílohy môžete vyberať aj bez prístupu ku knižnici fotiek.";
 "settings.access.detail.status" = "Stav";
 "settings.access.kind.photos" = "Fotky";
 "settings.access.kind.camera" = "Fotoaparát";
 "settings.access.kind.microphone" = "Mikrofón";
-"settings.access.description.photos" = "Vyberte fotky, ktoré chcete priložiť k chatu s AI a poslať spoločnosti OpenAI na spracovanie pomocou AI.";
+"settings.access.description.photos" = "Prístup ku knižnici fotiek je oddelený od príloh v AI chate. Nástroj na výber fotiek zdieľa iba fotky, ktoré vyberiete.";
 "settings.access.description.camera" = "Foťte pre chat s AI. Priložené fotky sa posielajú spoločnosti OpenAI na spracovanie pomocou AI.";
 "settings.access.description.microphone" = "Nahrávajte diktovaný hlas a posielajte ho spoločnosti OpenAI na prepis na text pre chat s AI.";
 "settings.access.status.allowed" = "Povolené";
@@ -439,8 +439,8 @@
 "settings.access.status.unavailable" = "Nedostupné";
 "settings.access.action.request" = "Požiadať o prístup";
 "settings.access.action.openSettings" = "Otvoriť Nastavenia";
-"settings.access.guidance.photos.limited" = "Dostupné sú iba fotky, ktoré ste už zdieľali s Nibomo. Širší prístup k fotkám povoľte v Nastaveniach.";
-"settings.access.guidance.photos.blocked" = "Prístup k fotkám je pre Nibomo vypnutý. Zmeňte ho v Nastavenia > Súkromie a bezpečnosť > Fotky.";
+"settings.access.guidance.photos.limited" = "Prístup ku knižnici fotiek je obmedzený. Stále môžete vyberať fotky ako prílohy v AI chate.";
+"settings.access.guidance.photos.blocked" = "Prístup ku knižnici fotiek je vypnutý. Stále môžete vyberať fotky ako prílohy v AI chate.";
 "settings.access.guidance.camera.blocked" = "Prístup k fotoaparátu je pre Nibomo vypnutý. Zmeňte ho v Nastavenia > Súkromie a bezpečnosť > Kamera.";
 "settings.access.guidance.microphone.blocked" = "Prístup k mikrofónu je pre Nibomo vypnutý. Zmeňte ho v Nastavenia > Súkromie a bezpečnosť > Mikrofón.";
 "settings.access.guidance.askEveryTime" = "Požiadajte o prístup teraz alebo ho neskôr spravujte ručne v Nastaveniach.";

@@ -424,12 +424,12 @@
 "settings.access.section.permissions" = "Izimvume";
 "settings.access.notifications" = "Izaziso";
 "settings.access.thisDevice" = "Le divayisi";
-"settings.access.footer" = "I-Nibomo icela kuphela imvume edingekayo yokunamathisela nokubhala ngokukhuluma engxoxweni.";
+"settings.access.footer" = "Imvume yokusebenzisa ikhamera nemakrofoni isetshenziselwa ukuthwebula nokubhala ngokukhuluma. Ungakhetha izithombe ozozinamathisela ngaphandle kwemvume yokufinyelela kumtapo wezithombe.";
 "settings.access.detail.status" = "Isimo";
 "settings.access.kind.photos" = "Izithombe";
 "settings.access.kind.camera" = "Ikhamera";
 "settings.access.kind.microphone" = "Imakrofoni";
-"settings.access.description.photos" = "Khetha izithombe ozozinamathisela engxoxweni ye-AI bese uzithumela ku-OpenAI ukuze zicutshungulwe nge-AI.";
+"settings.access.description.photos" = "Imvume yokufinyelela kumtapo wezithombe ihlukile kokunamathiselwe engxoxweni ye-AI. Isikhethi sezithombe sabelana kuphela ngezithombe ozikhethayo.";
 "settings.access.description.camera" = "Thatha izithombe zengxoxo ye-AI. Izithombe ozinamathiselayo zithunyelwa ku-OpenAI ukuze zicutshungulwe nge-AI.";
 "settings.access.description.microphone" = "Rekhoda umsindo wokubizela umbhalo bese uwuthumela ku-OpenAI ukuze ubhalwe njengombhalo wengxoxo ye-AI.";
 "settings.access.status.allowed" = "Kuvunyelwe";
@@ -439,8 +439,8 @@
 "settings.access.status.unavailable" = "Akutholakali";
 "settings.access.action.request" = "Cela imvume";
 "settings.access.action.openSettings" = "Vula Izilungiselelo";
-"settings.access.guidance.photos.limited" = "Kutholakala kuphela izithombe osuvele wabelane ngazo ne-Nibomo. Vula Izilungiselelo ukuze uvumele ukufinyelela ezithombeni ezengeziwe.";
-"settings.access.guidance.photos.blocked" = "Imvume yezithombe ye-Nibomo ivaliwe. Vula Izilungiselelo > Ubumfihlo Nokuphepha > Izithombe ukuze uyishintshe.";
+"settings.access.guidance.photos.limited" = "Imvume yokufinyelela kumtapo wezithombe ikhawulelwe. Usengakhetha izithombe ozozinamathisela engxoxweni ye-AI.";
+"settings.access.guidance.photos.blocked" = "Imvume yokufinyelela kumtapo wezithombe ivaliwe. Usengakhetha izithombe ozozinamathisela engxoxweni ye-AI.";
 "settings.access.guidance.camera.blocked" = "Imvume yekhamera ye-Nibomo ivaliwe. Vula Izilungiselelo > Ubumfihlo Nokuphepha > Ikhamera ukuze uyishintshe.";
 "settings.access.guidance.microphone.blocked" = "Imvume yemakrofoni ye-Nibomo ivaliwe. Vula Izilungiselelo > Ubumfihlo Nokuphepha > Imakrofoni ukuze uyishintshe.";
 "settings.access.guidance.askEveryTime" = "Cela imvume manje, noma uvule Izilungiselelo kamuva ukuze uzilawulele yona.";

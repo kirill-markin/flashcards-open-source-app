@@ -433,12 +433,12 @@
 "settings.access.section.permissions" = "Berechtigungen";
 "settings.access.notifications" = "Benachrichtigungen";
 "settings.access.thisDevice" = "Dieses Gerät";
-"settings.access.footer" = "Nibomo fordert nur den Zugriff an, der für Anhänge und Diktate im Chat erforderlich ist.";
+"settings.access.footer" = "Der Zugriff auf Kamera und Mikrofon wird für Aufnahmen und Diktate verwendet. Du kannst Fotos als Anhänge auswählen, ohne Zugriff auf die Fotomediathek zu gewähren.";
 "settings.access.detail.status" = "Status";
 "settings.access.kind.photos" = "Fotos";
 "settings.access.kind.camera" = "Kamera";
 "settings.access.kind.microphone" = "Mikrofon";
-"settings.access.description.photos" = "Wähle Fotos aus, um sie an den KI-Chat anzuhängen und zur KI-Verarbeitung an OpenAI zu senden.";
+"settings.access.description.photos" = "Der Zugriff auf die Fotomediathek ist unabhängig von Anhängen im KI-Chat. Die Fotoauswahl gibt nur die von dir ausgewählten Fotos weiter.";
 "settings.access.description.camera" = "Nimm Fotos für den KI-Chat auf. Angehängte Fotos werden zur KI-Verarbeitung an OpenAI gesendet.";
 "settings.access.description.microphone" = "Nimm Diktat-Audio auf und sende es an OpenAI, um es für den KI-Chat in Text umzuwandeln.";
 "settings.access.status.allowed" = "Zulässig";
@@ -448,8 +448,8 @@
 "settings.access.status.unavailable" = "Nicht verfügbar";
 "settings.access.action.request" = "Zugriff anfordern";
 "settings.access.action.openSettings" = "Öffnen Sie Einstellungen";
-"settings.access.guidance.photos.limited" = "Es sind nur Fotos verfügbar, die Sie bereits mit Nibomo geteilt haben. Öffnen Sie die Einstellungen, um umfassenderen Zugriff auf Fotos zu gewähren.";
-"settings.access.guidance.photos.blocked" = "Der Zugriff auf Fotos ist für Nibomo deaktiviert. Öffnen Sie Einstellungen > Datenschutz und Sicherheit > Fotos, um es zu ändern.";
+"settings.access.guidance.photos.limited" = "Der Zugriff auf die Fotomediathek ist eingeschränkt. Du kannst weiterhin Fotos als Anhänge im KI-Chat auswählen.";
+"settings.access.guidance.photos.blocked" = "Der Zugriff auf die Fotomediathek ist deaktiviert. Du kannst weiterhin Fotos als Anhänge im KI-Chat auswählen.";
 "settings.access.guidance.camera.blocked" = "Der Kamerazugriff ist für Nibomo deaktiviert. Öffnen Sie Einstellungen > Datenschutz und Sicherheit > Kamera, um sie zu ändern.";
 "settings.access.guidance.microphone.blocked" = "Der Mikrofonzugriff ist für Nibomo deaktiviert. Öffnen Sie Einstellungen > Datenschutz und Sicherheit > Mikrofon, um es zu ändern.";
 "settings.access.guidance.askEveryTime" = "Fordern Sie jetzt den Zugriff an oder öffnen Sie später die Einstellungen, wenn Sie ihn manuell verwalten möchten.";

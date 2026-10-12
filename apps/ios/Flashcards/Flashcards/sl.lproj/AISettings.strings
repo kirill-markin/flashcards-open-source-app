@@ -424,12 +424,12 @@
 "settings.access.section.permissions" = "Dovoljenja";
 "settings.access.notifications" = "Obvestila";
 "settings.access.thisDevice" = "Ta naprava";
-"settings.access.footer" = "Nibomo zahteva le dostop, potreben za priloge in narekovanje v klepetu.";
+"settings.access.footer" = "Dostop do kamere in mikrofona se uporablja za zajemanje in narekovanje. Fotografije za priloge lahko izbirate brez dostopa do knjižnice fotografij.";
 "settings.access.detail.status" = "Stanje";
 "settings.access.kind.photos" = "Fotografije";
 "settings.access.kind.camera" = "Kamera";
 "settings.access.kind.microphone" = "Mikrofon";
-"settings.access.description.photos" = "Izberite fotografije, ki jih želite priložiti klepetu z AI in poslati v OpenAI za obdelavo z AI.";
+"settings.access.description.photos" = "Dostop do knjižnice fotografij je ločen od prilog v klepetu z AI. Izbirnik fotografij deli le fotografije, ki jih izberete.";
 "settings.access.description.camera" = "Fotografirajte za klepet z AI. Priložene fotografije se pošljejo v OpenAI za obdelavo z AI.";
 "settings.access.description.microphone" = "Posnemite zvok narekovanja in ga pošljite v OpenAI za prepis v besedilo za klepet z AI.";
 "settings.access.status.allowed" = "Dovoljeno";
@@ -439,8 +439,8 @@
 "settings.access.status.unavailable" = "Ni na voljo";
 "settings.access.action.request" = "Zahtevaj dostop";
 "settings.access.action.openSettings" = "Odpri Nastavitve";
-"settings.access.guidance.photos.limited" = "Na voljo so le fotografije, ki ste jih že delili z Nibomo. Širši dostop do fotografij dovolite v Nastavitvah.";
-"settings.access.guidance.photos.blocked" = "Dostop do fotografij je za Nibomo izklopljen. Spremenite ga v Nastavitve > Zasebnost in varnost > Fotografije.";
+"settings.access.guidance.photos.limited" = "Dostop do knjižnice fotografij je omejen. Še vedno lahko izbirate fotografije za priloge v klepetu z AI.";
+"settings.access.guidance.photos.blocked" = "Dostop do knjižnice fotografij je izklopljen. Še vedno lahko izbirate fotografije za priloge v klepetu z AI.";
 "settings.access.guidance.camera.blocked" = "Dostop do kamere je za Nibomo izklopljen. Spremenite ga v Nastavitve > Zasebnost in varnost > Kamera.";
 "settings.access.guidance.microphone.blocked" = "Dostop do mikrofona je za Nibomo izklopljen. Spremenite ga v Nastavitve > Zasebnost in varnost > Mikrofon.";
 "settings.access.guidance.askEveryTime" = "Dostop zahtevajte zdaj ali ga pozneje ročno uredite v Nastavitvah.";

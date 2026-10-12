@@ -433,12 +433,12 @@
 "settings.access.section.permissions" = "Разрешения";
 "settings.access.notifications" = "Уведомления";
 "settings.access.thisDevice" = "Это устройство";
-"settings.access.footer" = "Nibomo запрашивает только доступ, необходимый для вложений и диктовки в чате.";
+"settings.access.footer" = "Доступ к камере и микрофону используется для съёмки и диктовки. Вы можете выбирать фотографии для вложений без доступа к медиатеке.";
 "settings.access.detail.status" = "Статус";
 "settings.access.kind.photos" = "Фотографии";
 "settings.access.kind.camera" = "Камера";
 "settings.access.kind.microphone" = "Микрофон";
-"settings.access.description.photos" = "Выбирайте фотографии, чтобы прикрепить их к чату с ИИ и отправить в OpenAI для обработки ИИ.";
+"settings.access.description.photos" = "Доступ к медиатеке не связан с вложениями в чате с ИИ. Окно выбора фотографий передаёт только выбранные вами фотографии.";
 "settings.access.description.camera" = "Делайте фотографии для чата с ИИ. Прикреплённые фотографии отправляются в OpenAI для обработки ИИ.";
 "settings.access.description.microphone" = "Записывайте звук диктовки и отправляйте его в OpenAI для преобразования в текст для чата с ИИ.";
 "settings.access.status.allowed" = "Разрешено";
@@ -448,8 +448,8 @@
 "settings.access.status.unavailable" = "Недоступно";
 "settings.access.action.request" = "Запросить доступ";
 "settings.access.action.openSettings" = "Откройте настройки";
-"settings.access.guidance.photos.limited" = "Доступны только фотографии, которыми вы уже поделились с Nibomo. Откройте «Настройки», чтобы предоставить более широкий доступ к фотографиям.";
-"settings.access.guidance.photos.blocked" = "Доступ к фотографиям отключен для Nibomo. Откройте «Настройки» > «Конфиденциальность и безопасность» > «Фотографии», чтобы изменить их.";
+"settings.access.guidance.photos.limited" = "Доступ к медиатеке ограничен. Вы по-прежнему можете выбирать фотографии для вложений в чате с ИИ.";
+"settings.access.guidance.photos.blocked" = "Доступ к медиатеке отключён. Вы по-прежнему можете выбирать фотографии для вложений в чате с ИИ.";
 "settings.access.guidance.camera.blocked" = "Доступ к камере отключен для Nibomo. Откройте «Настройки» > «Конфиденциальность и безопасность» > «Камера», чтобы изменить его.";
 "settings.access.guidance.microphone.blocked" = "Доступ к микрофону отключен для Nibomo. Откройте «Настройки» > «Конфиденциальность и безопасность» > «Микрофон», чтобы изменить его.";
 "settings.access.guidance.askEveryTime" = "Запросите доступ сейчас или откройте «Настройки» позже, если вы хотите управлять им вручную.";

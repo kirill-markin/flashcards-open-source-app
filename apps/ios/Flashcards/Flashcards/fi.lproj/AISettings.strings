@@ -424,12 +424,12 @@
 "settings.access.section.permissions" = "Luvat";
 "settings.access.notifications" = "Ilmoitukset";
 "settings.access.thisDevice" = "Tämä laite";
-"settings.access.footer" = "Nibomo pyytää vain liitteisiin ja keskustelun saneluun tarvittavat käyttöoikeudet.";
+"settings.access.footer" = "Kameran ja mikrofonin käyttöoikeuksia käytetään kuvaamiseen ja saneluun. Voit valita kuvaliitteitä ilman kuvakirjaston käyttöoikeutta.";
 "settings.access.detail.status" = "Tila";
 "settings.access.kind.photos" = "Kuvat";
 "settings.access.kind.camera" = "Kamera";
 "settings.access.kind.microphone" = "Mikrofoni";
-"settings.access.description.photos" = "Valitse kuvia liitettäväksi tekoälykeskusteluun ja lähetettäväksi OpenAI:lle tekoälykäsittelyyn.";
+"settings.access.description.photos" = "Kuvakirjaston käyttöoikeus ja tekoälykeskustelun liitteet ovat erillisiä asioita. Kuvanvalitsin jakaa vain valitsemasi kuvat.";
 "settings.access.description.camera" = "Ota kuvia tekoälykeskustelua varten. Liittämäsi kuvat lähetetään OpenAI:lle tekoälykäsittelyyn.";
 "settings.access.description.microphone" = "Tallenna saneluääntä ja lähetä se OpenAI:lle muunnettavaksi tekstiksi tekoälykeskustelua varten.";
 "settings.access.status.allowed" = "Sallittu";
@@ -439,8 +439,8 @@
 "settings.access.status.unavailable" = "Ei saatavilla";
 "settings.access.action.request" = "Pyydä käyttöoikeutta";
 "settings.access.action.openSettings" = "Avaa asetukset";
-"settings.access.guidance.photos.limited" = "Vain Nibomon kanssa jo jakamasi kuvat ovat käytettävissä. Anna laajempi kuvien käyttöoikeus asetuksissa.";
-"settings.access.guidance.photos.blocked" = "Nibomon kuvien käyttöoikeus on poistettu. Muuta sitä kohdassa Asetukset > Tietosuoja ja suojaus > Kuvat.";
+"settings.access.guidance.photos.limited" = "Kuvakirjaston käyttöoikeus on rajoitettu. Voit silti valita kuvia tekoälykeskustelun liitteiksi.";
+"settings.access.guidance.photos.blocked" = "Kuvakirjaston käyttöoikeus on poistettu käytöstä. Voit silti valita kuvia tekoälykeskustelun liitteiksi.";
 "settings.access.guidance.camera.blocked" = "Nibomon kameran käyttöoikeus on poistettu. Muuta sitä kohdassa Asetukset > Tietosuoja ja suojaus > Kamera.";
 "settings.access.guidance.microphone.blocked" = "Nibomon mikrofonin käyttöoikeus on poistettu. Muuta sitä kohdassa Asetukset > Tietosuoja ja suojaus > Mikrofoni.";
 "settings.access.guidance.askEveryTime" = "Pyydä käyttöoikeutta nyt tai hallitse sitä myöhemmin asetuksissa.";

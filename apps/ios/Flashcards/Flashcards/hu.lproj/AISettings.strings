@@ -424,12 +424,12 @@
 "settings.access.section.permissions" = "Engedélyek";
 "settings.access.notifications" = "Értesítések";
 "settings.access.thisDevice" = "Ez az eszköz";
-"settings.access.footer" = "A Nibomo csak a mellékletekhez és a csevegési diktáláshoz szükséges hozzáférést kéri.";
+"settings.access.footer" = "A kamerához és a mikrofonhoz való hozzáférés felvételkészítésre és diktálásra szolgál. A fotókönyvtárhoz való hozzáférés nélkül is választhatsz fotómellékleteket.";
 "settings.access.detail.status" = "Állapot";
 "settings.access.kind.photos" = "Fotók";
 "settings.access.kind.camera" = "Kamera";
 "settings.access.kind.microphone" = "Mikrofon";
-"settings.access.description.photos" = "Válassz fotókat, amelyeket az MI-csevegéshez csatolhatsz és elküldhetsz az OpenAI-nak MI-feldolgozásra.";
+"settings.access.description.photos" = "A fotókönyvtárhoz való hozzáférés független az MI-csevegés mellékleteitől. A fotóválasztó csak az általad kiválasztott fotókat osztja meg.";
 "settings.access.description.camera" = "Készíts fotókat az MI-csevegéshez. A csatolt fotókat elküldjük az OpenAI-nak MI-feldolgozásra.";
 "settings.access.description.microphone" = "Rögzítsd a diktált hangot, és küldd el az OpenAI-nak, hogy szöveggé alakítsa az MI-csevegéshez.";
 "settings.access.status.allowed" = "Engedélyezve";
@@ -439,8 +439,8 @@
 "settings.access.status.unavailable" = "Nem érhető el";
 "settings.access.action.request" = "Hozzáférés kérése";
 "settings.access.action.openSettings" = "Beállítások megnyitása";
-"settings.access.guidance.photos.limited" = "Csak a Nibomóval már megosztott fotók érhetők el. További fotókhoz a Beállításokban adhatsz hozzáférést.";
-"settings.access.guidance.photos.blocked" = "A Nibomo fotóhozzáférése ki van kapcsolva. Módosítsd a Beállítások > Adatvédelem és biztonság > Fotók alatt.";
+"settings.access.guidance.photos.limited" = "A fotókönyvtárhoz való hozzáférés korlátozott. Továbbra is választhatsz fotókat az MI-csevegés mellékleteihez.";
+"settings.access.guidance.photos.blocked" = "A fotókönyvtárhoz való hozzáférés ki van kapcsolva. Továbbra is választhatsz fotókat az MI-csevegés mellékleteihez.";
 "settings.access.guidance.camera.blocked" = "A Nibomo kamerahozzáférése ki van kapcsolva. Módosítsd a Beállítások > Adatvédelem és biztonság > Kamera alatt.";
 "settings.access.guidance.microphone.blocked" = "A Nibomo mikrofonhozzáférése ki van kapcsolva. Módosítsd a Beállítások > Adatvédelem és biztonság > Mikrofon alatt.";
 "settings.access.guidance.askEveryTime" = "Kérj hozzáférést most, vagy kezeld később a Beállításokban.";

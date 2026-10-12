@@ -424,12 +424,12 @@
 "settings.access.section.permissions" = "Dopuštenja";
 "settings.access.notifications" = "Obavijesti";
 "settings.access.thisDevice" = "Ovaj uređaj";
-"settings.access.footer" = "Nibomo traži samo pristup potreban za privitke i diktiranje u razgovoru.";
+"settings.access.footer" = "Pristup kameri i mikrofonu koristi se za snimanje i diktiranje. Fotografije za privitke možete odabrati bez pristupa biblioteci fotografija.";
 "settings.access.detail.status" = "Stanje";
 "settings.access.kind.photos" = "Fotografije";
 "settings.access.kind.camera" = "Kamera";
 "settings.access.kind.microphone" = "Mikrofon";
-"settings.access.description.photos" = "Odaberite fotografije koje želite priložiti AI chatu i poslati OpenAI-ju na obradu AI-jem.";
+"settings.access.description.photos" = "Pristup biblioteci fotografija odvojen je od privitaka u AI chatu. Alat za odabir fotografija dijeli samo fotografije koje odaberete.";
 "settings.access.description.camera" = "Snimajte fotografije za AI chat. Priložene fotografije šalju se OpenAI-ju na obradu AI-jem.";
 "settings.access.description.microphone" = "Snimajte zvuk diktiranja i pošaljite ga OpenAI-ju za pretvaranje u tekst za AI chat.";
 "settings.access.status.allowed" = "Dopušteno";
@@ -439,8 +439,8 @@
 "settings.access.status.unavailable" = "Nedostupno";
 "settings.access.action.request" = "Zatraži pristup";
 "settings.access.action.openSettings" = "Otvori Postavke";
-"settings.access.guidance.photos.limited" = "Dostupne su samo fotografije koje ste već podijelili s aplikacijom Nibomo. Otvorite Postavke da biste dopustili širi pristup fotografijama.";
-"settings.access.guidance.photos.blocked" = "Pristup fotografijama isključen je za Nibomo. Za promjenu otvorite Postavke > Privatnost i sigurnost > Fotografije.";
+"settings.access.guidance.photos.limited" = "Pristup biblioteci fotografija je ograničen. I dalje možete birati fotografije za privitke u AI chatu.";
+"settings.access.guidance.photos.blocked" = "Pristup biblioteci fotografija je isključen. I dalje možete birati fotografije za privitke u AI chatu.";
 "settings.access.guidance.camera.blocked" = "Pristup kameri isključen je za Nibomo. Za promjenu otvorite Postavke > Privatnost i sigurnost > Kamera.";
 "settings.access.guidance.microphone.blocked" = "Pristup mikrofonu isključen je za Nibomo. Za promjenu otvorite Postavke > Privatnost i sigurnost > Mikrofon.";
 "settings.access.guidance.askEveryTime" = "Zatražite pristup sada ili otvorite Postavke kasnije da biste njime upravljali ručno.";

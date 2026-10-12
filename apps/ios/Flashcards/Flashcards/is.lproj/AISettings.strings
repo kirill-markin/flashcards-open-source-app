@@ -424,12 +424,12 @@
 "settings.access.section.permissions" = "Heimildir";
 "settings.access.notifications" = "Tilkynningar";
 "settings.access.thisDevice" = "Þetta tæki";
-"settings.access.footer" = "Nibomo biður aðeins um aðgang sem þarf fyrir viðhengi og innlestur í spjall.";
+"settings.access.footer" = "Aðgangur að myndavél og hljóðnema er notaður til myndatöku og innlestrar. Þú getur valið myndviðhengi án aðgangs að myndasafni.";
 "settings.access.detail.status" = "Staða";
 "settings.access.kind.photos" = "Myndir";
 "settings.access.kind.camera" = "Myndavél";
 "settings.access.kind.microphone" = "Hljóðnemi";
-"settings.access.description.photos" = "Veldu myndir til að hengja við gervigreindarspjallið og senda til OpenAI til vinnslu með gervigreind.";
+"settings.access.description.photos" = "Aðgangur að myndasafni er óháður viðhengjum í gervigreindarspjalli. Valglugginn fyrir myndir deilir aðeins myndunum sem þú velur.";
 "settings.access.description.camera" = "Taktu myndir fyrir gervigreindarspjallið. Meðfylgjandi myndir eru sendar til OpenAI til vinnslu með gervigreind.";
 "settings.access.description.microphone" = "Taktu upp upplestur og sendu hljóðið til OpenAI til að breyta því í texta fyrir gervigreindarspjallið.";
 "settings.access.status.allowed" = "Leyft";
@@ -439,8 +439,8 @@
 "settings.access.status.unavailable" = "Ekki tiltækt";
 "settings.access.action.request" = "Óska eftir aðgangi";
 "settings.access.action.openSettings" = "Opna Stillingar";
-"settings.access.guidance.photos.limited" = "Aðeins myndir sem þú hefur þegar deilt með Nibomo eru tiltækar. Opnaðu Stillingar til að veita víðtækari aðgang að myndum.";
-"settings.access.guidance.photos.blocked" = "Slökkt er á myndaaðgangi fyrir Nibomo. Opnaðu Stillingar > Persónuvernd og öryggi > Myndir til að breyta því.";
+"settings.access.guidance.photos.limited" = "Aðgangur að myndasafni er takmarkaður. Þú getur samt valið myndir sem viðhengi í gervigreindarspjalli.";
+"settings.access.guidance.photos.blocked" = "Slökkt er á aðgangi að myndasafni. Þú getur samt valið myndir sem viðhengi í gervigreindarspjalli.";
 "settings.access.guidance.camera.blocked" = "Slökkt er á myndavélaaðgangi fyrir Nibomo. Opnaðu Stillingar > Persónuvernd og öryggi > Myndavél til að breyta því.";
 "settings.access.guidance.microphone.blocked" = "Slökkt er á hljóðnemaaðgangi fyrir Nibomo. Opnaðu Stillingar > Persónuvernd og öryggi > Hljóðnemi til að breyta því.";
 "settings.access.guidance.askEveryTime" = "Óskaðu eftir aðgangi núna eða opnaðu Stillingar síðar til að stjórna honum handvirkt.";

@@ -424,12 +424,12 @@
 "settings.access.section.permissions" = "அனுமதிகள்";
 "settings.access.notifications" = "அறிவிப்புகள்";
 "settings.access.thisDevice" = "இந்தச் சாதனம்";
-"settings.access.footer" = "இணைப்புகளுக்கும் அரட்டையில் பேசித் தட்டச்சு செய்வதற்கும் தேவையான அணுகலை மட்டுமே Nibomo கோருகிறது.";
+"settings.access.footer" = "படமெடுப்பதற்கும் பேசித் தட்டச்சு செய்வதற்கும் கேமரா மற்றும் மைக்ரோஃபோன் அணுகல் பயன்படுத்தப்படுகிறது. புகைப்பட நூலக அணுகல் இல்லாமலேயே இணைப்புகளுக்கான புகைப்படங்களைத் தேர்ந்தெடுக்கலாம்.";
 "settings.access.detail.status" = "நிலை";
 "settings.access.kind.photos" = "புகைப்படங்கள்";
 "settings.access.kind.camera" = "கேமரா";
 "settings.access.kind.microphone" = "மைக்ரோஃபோன்";
-"settings.access.description.photos" = "AI அரட்டையில் இணைக்கவும் AI செயலாக்கத்திற்காக OpenAI-க்கு அனுப்பவும் படங்களைத் தேர்ந்தெடுக்கவும்.";
+"settings.access.description.photos" = "புகைப்பட நூலக அணுகலும் AI அரட்டை இணைப்புகளும் தனித்தனியானவை. புகைப்படத் தேர்வுக் கருவி நீங்கள் தேர்ந்தெடுக்கும் புகைப்படங்களை மட்டுமே பகிர்கிறது.";
 "settings.access.description.camera" = "AI அரட்டைக்காகப் படங்களை எடுக்கவும். இணைக்கும் படங்கள் AI செயலாக்கத்திற்காக OpenAI-க்கு அனுப்பப்படும்.";
 "settings.access.description.microphone" = "குரல்வழி உள்ளீட்டை ஒலியாகப் பதிவுசெய்து, AI அரட்டைக்கான உரையாக மாற்ற OpenAI-க்கு அனுப்பவும்.";
 "settings.access.status.allowed" = "அனுமதிக்கப்பட்டது";
@@ -439,8 +439,8 @@
 "settings.access.status.unavailable" = "கிடைக்கவில்லை";
 "settings.access.action.request" = "அணுகலைக் கோரு";
 "settings.access.action.openSettings" = "அமைப்புகளைத் திற";
-"settings.access.guidance.photos.limited" = "Nibomo-வுடன் ஏற்கனவே பகிர்ந்த புகைப்படங்கள் மட்டுமே கிடைக்கும். கூடுதல் புகைப்பட அணுகலை வழங்க அமைப்புகளைத் திறக்கவும்.";
-"settings.access.guidance.photos.blocked" = "Nibomo-க்கு புகைப்பட அணுகல் முடக்கப்பட்டுள்ளது. மாற்ற அமைப்புகள் > தனியுரிமை மற்றும் பாதுகாப்பு > புகைப்படங்களைத் திறக்கவும்.";
+"settings.access.guidance.photos.limited" = "புகைப்பட நூலக அணுகல் வரம்புக்குட்பட்டுள்ளது. AI அரட்டையில் இணைக்க நீங்கள் இன்னும் புகைப்படங்களைத் தேர்ந்தெடுக்கலாம்.";
+"settings.access.guidance.photos.blocked" = "புகைப்பட நூலக அணுகல் முடக்கப்பட்டுள்ளது. AI அரட்டையில் இணைக்க நீங்கள் இன்னும் புகைப்படங்களைத் தேர்ந்தெடுக்கலாம்.";
 "settings.access.guidance.camera.blocked" = "Nibomo-க்கு கேமரா அணுகல் முடக்கப்பட்டுள்ளது. மாற்ற அமைப்புகள் > தனியுரிமை மற்றும் பாதுகாப்பு > கேமராவைத் திறக்கவும்.";
 "settings.access.guidance.microphone.blocked" = "Nibomo-க்கு மைக்ரோஃபோன் அணுகல் முடக்கப்பட்டுள்ளது. மாற்ற அமைப்புகள் > தனியுரிமை மற்றும் பாதுகாப்பு > மைக்ரோஃபோனைத் திறக்கவும்.";
 "settings.access.guidance.askEveryTime" = "இப்போது அணுகலைக் கோரவும் அல்லது பின்னர் நீங்களே நிர்வகிக்க அமைப்புகளைத் திறக்கவும்.";

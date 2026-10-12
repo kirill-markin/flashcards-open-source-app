@@ -424,12 +424,12 @@
 "settings.access.section.permissions" = "Άδειες";
 "settings.access.notifications" = "Γνωστοποιήσεις";
 "settings.access.thisDevice" = "Αυτή η συσκευή";
-"settings.access.footer" = "Το Nibomo ζητά μόνο την πρόσβαση που χρειάζεται για συνημμένα και υπαγόρευση στη συνομιλία.";
+"settings.access.footer" = "Η πρόσβαση στην κάμερα και το μικρόφωνο χρησιμοποιείται για λήψη εικόνων και υπαγόρευση. Μπορείτε να επιλέγετε φωτογραφίες ως συνημμένα χωρίς πρόσβαση στη βιβλιοθήκη φωτογραφιών.";
 "settings.access.detail.status" = "Κατάσταση";
 "settings.access.kind.photos" = "Φωτογραφίες";
 "settings.access.kind.camera" = "Κάμερα";
 "settings.access.kind.microphone" = "Μικρόφωνο";
-"settings.access.description.photos" = "Επιλέξτε φωτογραφίες για επισύναψη στη συνομιλία ΤΝ και αποστολή στο OpenAI για επεξεργασία με ΤΝ.";
+"settings.access.description.photos" = "Η πρόσβαση στη βιβλιοθήκη φωτογραφιών είναι ανεξάρτητη από τα συνημμένα στη συνομιλία ΤΝ. Ο επιλογέας φωτογραφιών κοινοποιεί μόνο τις φωτογραφίες που επιλέγετε.";
 "settings.access.description.camera" = "Τραβήξτε φωτογραφίες για τη συνομιλία ΤΝ. Οι συνημμένες φωτογραφίες στέλνονται στο OpenAI για επεξεργασία με ΤΝ.";
 "settings.access.description.microphone" = "Ηχογραφήστε υπαγόρευση και στείλτε τον ήχο στο OpenAI για μετατροπή σε κείμενο στη συνομιλία ΤΝ.";
 "settings.access.status.allowed" = "Επιτρέπεται";
@@ -439,8 +439,8 @@
 "settings.access.status.unavailable" = "Μη διαθέσιμο";
 "settings.access.action.request" = "Αίτημα πρόσβασης";
 "settings.access.action.openSettings" = "Άνοιγμα Ρυθμίσεων";
-"settings.access.guidance.photos.limited" = "Είναι διαθέσιμες μόνο οι φωτογραφίες που έχετε ήδη μοιραστεί με το Nibomo. Ανοίξτε τις Ρυθμίσεις για ευρύτερη πρόσβαση στις φωτογραφίες.";
-"settings.access.guidance.photos.blocked" = "Η πρόσβαση στις φωτογραφίες είναι απενεργοποιημένη για το Nibomo. Αλλάξτε την στις Ρυθμίσεις > Απόρρητο και ασφάλεια > Φωτογραφίες.";
+"settings.access.guidance.photos.limited" = "Η πρόσβαση στη βιβλιοθήκη φωτογραφιών είναι περιορισμένη. Μπορείτε ακόμα να επιλέγετε φωτογραφίες ως συνημμένα στη συνομιλία ΤΝ.";
+"settings.access.guidance.photos.blocked" = "Η πρόσβαση στη βιβλιοθήκη φωτογραφιών είναι απενεργοποιημένη. Μπορείτε ακόμα να επιλέγετε φωτογραφίες ως συνημμένα στη συνομιλία ΤΝ.";
 "settings.access.guidance.camera.blocked" = "Η πρόσβαση στην κάμερα είναι απενεργοποιημένη για το Nibomo. Αλλάξτε την στις Ρυθμίσεις > Απόρρητο και ασφάλεια > Κάμερα.";
 "settings.access.guidance.microphone.blocked" = "Η πρόσβαση στο μικρόφωνο είναι απενεργοποιημένη για το Nibomo. Αλλάξτε την στις Ρυθμίσεις > Απόρρητο και ασφάλεια > Μικρόφωνο.";
 "settings.access.guidance.askEveryTime" = "Ζητήστε πρόσβαση τώρα ή διαχειριστείτε τη χειροκίνητα αργότερα στις Ρυθμίσεις.";
