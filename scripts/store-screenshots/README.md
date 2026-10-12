@@ -106,10 +106,14 @@ The independent **Process Store Screenshots** GitHub Actions workflow runs for
 processor, native-input and finished-output pull requests, and on manual dispatch.
 It typechecks the processor, runs the real export/gallery smoke, and renders the
 selected current committed native sources into runner-temporary directories.
-Pull requests render the existing iPhone, iPad, and Android sets. Select a Duo or Mac
-family on manual dispatch after real native captures have been saved. Mac inputs,
-when present, are also processed by the default cloud run; missing deferred Mac
-assets do not fail the default run. Its
+Pull requests render all five cards for representative `en-US,ru,ar,zh-Hans,hi`
+sets on iPhone, iPad, and Android, covering English, Russian, RTL, CJK, and Indic.
+Manual dispatch renders the full default inventory when locales are empty and
+honors explicit platform, family, and locale selections. Select a Duo or Mac
+family after real native captures have been saved. Mac inputs, when present, are
+also processed by the default cloud run with the same locale selection; missing
+deferred Mac assets do not fail the default run. Pull-request artifacts are
+representative subsets; use manual dispatch for a complete refresh. Its
 **Format existing native captures** check must succeed before merging these
 changes. It saves the candidate output as
 an artifact, has read-only repository permissions and performs no publication.
