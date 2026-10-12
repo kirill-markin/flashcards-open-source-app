@@ -19,7 +19,7 @@ following this procedure.
 | Cursor Directory | Verify/update the [existing Nibomo plugin](https://cursor.directory/plugins/nibomo), source, MCP configuration, and shared skills under the [Cursor Directory procedure](#cursor-directory). |
 | Gemini CLI | Verify the [gallery entry](https://geminicli.com/extensions/?name=kirill-markinnibomo-plugins) and released install/update source and version. |
 | Executor | Verify/update the [existing public app](https://v2.executor.sh/apps/nibomo/nibomo) through the companion's **Executor Publish** workflow; follow the [Executor procedure](#executor). |
-| OpenAI | Initial publication is excluded from routine release until a separately scoped initial launch establishes this channel. Preserve the existing submission identity and procedure in the companion repository; a disabled website button is not a public listing. |
+| OpenAI | Verify/update existing plugin `asdk_app_6ab77a6e971c81918b9e9185a6a19d58` and its [public listing](https://chatgpt.com/plugins/plugin_asdk_app_6ab77a6e971c81918b9e9185a6a19d58); inspect hosted MCP scans/live tools and submitted/published package version/skills separately under the [OpenAI gate](#openai). |
 | Antigravity | Optional marketplace work; packaged assets do not prove listing approval. Include publication only when explicitly scoped. |
 
 Provider-specific update, installation, and workflow verification belong in
@@ -128,6 +128,51 @@ Follow the companion's [canonical procedure and credential setup](https://github
    needed** result completes operator work. External propagation remains
    follow-up. Existing installed copies do not update automatically; record
    unexecuted installed-copy/runtime checks explicitly.
+
+## OpenAI
+
+Use the companion's [canonical OpenAI procedure](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md#openai)
+for the existing plugin, publisher `kirill@kirill-markin.com`, verified
+**SAMO DANNI EOOD** identity and owning organization/project. Preserve that
+identity and any accepted pending review; no new listing or transfer is needed.
+The publisher login is separate from the private Nibomo reviewer test account.
+
+Every coordinated release inspects both channels and records an evidence-based
+**no update needed**, **submitted**, **live**, **pending**, or **blocked** decision
+in the [ledger](evidence.md#release-ledger); never silently skip OpenAI.
+
+- **Hosted MCP:** verify the intended backend deployment SHA and runtime at
+  `https://mcp.nibomo.com/mcp` under [Web and Backend](web-backend.md#web-and-backend).
+  Inspect OpenAI's scan findings, held updates, live definitions and actual tool
+  availability independently. Eligible hosted tool changes become available
+  after automated scans; they do not require a new package or publish action.
+  Preserve compatibility with approved schemas while updates are held.
+  `initialize.serverInfo.version` is the server identity, not the package version
+  or evidence of the deployed app SHA.
+- **Package:** align the companion version to the selected coordinated release
+  under [release preparation](versioning.md#release-preparation). For a required
+  package update, use the complete exact-source OpenAI CI ZIP from the companion's
+  [durable package procedure](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md#release-source-and-durable-packages),
+  with successful `packages` and **Executor typecheck** for that SHA; retain its
+  version, run and digest. Inspect selected draft, required metadata/skill scans,
+  review materials and accepted submission/publication requests under the
+  canonical procedure. Package metadata, assets, skills and coordinated package
+  versions use ZIP review/publication; merge or backend deploy alone does not
+  publish them. The public legacy `1.29.0` MCP listing does not establish the
+  companion's current `1.33.0` package or three bundled skills. Reconcile its
+  downloaded release ZIP and actual installed copy against maintained source;
+  use the [metadata mapping](../openai-plugin-metadata.md).
+
+Completion follows the [common boundary](README.md#release-inventory-and-completion):
+required CI/scans and applicable focused checks pass, and the exact required
+update/submission/publication request is accepted or matching live content is
+verified. A ZIP upload or scan alone is insufficient. Record package review,
+approval, accepted publication and public installation separately from MCP scan
+and live-tool state. External review or propagation remains pending follow-up;
+a provider-held unavailable operator action remains pending at its boundary.
+Preserve immutable release assets and accepted pending source during
+[closeout](versioning.md#release-closeout-and-development), and record each next
+action without describing pending packages or skills as live.
 
 ## Anthropic Connector and Plugin
 
