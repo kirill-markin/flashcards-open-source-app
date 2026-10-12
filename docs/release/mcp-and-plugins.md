@@ -18,7 +18,7 @@ following this procedure.
 | Glama | Verify/update the [existing connector](https://glama.ai/mcp/connectors/com.nibomo/flashcards), endpoint, health, auth, and discovered tools. |
 | Cursor Directory | Verify/update the [existing Nibomo plugin](https://cursor.directory/plugins/nibomo), source, MCP configuration, and shared skills under the [Cursor Directory procedure](#cursor-directory). |
 | Gemini CLI | Verify the [gallery entry](https://geminicli.com/extensions/?name=kirill-markinnibomo-plugins) and released install/update source and version. |
-| Executor | Verify/update the [existing public app](https://v2.executor.sh/apps/nibomo/nibomo) through the companion's **Executor Publish** workflow; follow the [Executor procedure](#executor). |
+| Executor | Verify/update the [existing public app](https://executor.sh/apps/nibomo.executor.community/nibomo) through the companion's **Executor Publish** workflow; follow the [Executor procedure](#executor). |
 | OpenAI | Verify/update existing plugin `asdk_app_6ab77a6e971c81918b9e9185a6a19d58` and its [public listing](https://chatgpt.com/plugins/plugin_asdk_app_6ab77a6e971c81918b9e9185a6a19d58); inspect hosted MCP scans/live tools and submitted/published package version/skills separately under the [OpenAI gate](#openai). |
 | Antigravity | Optional marketplace work; packaged assets do not prove listing approval. Include publication only when explicitly scoped. |
 
