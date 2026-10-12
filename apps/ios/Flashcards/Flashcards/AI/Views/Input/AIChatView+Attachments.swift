@@ -107,9 +107,7 @@ extension AIChatView {
             }
         case .choosePhoto:
             self.selectedPhotoItem = nil
-            Task {
-                await self.presentPhotoPickerIfAvailable()
-            }
+            self.isPhotoPickerPresented = true
         case .chooseFile:
             self.isFileImporterPresented = true
         }
@@ -131,27 +129,6 @@ extension AIChatView {
         switch presentationResult {
         case .present:
             self.isCameraPresented = true
-        case .stopSilently:
-            return
-        case .showAlert(let alert):
-            self.chatStore.showAlert(alert)
-        }
-    }
-
-    @MainActor
-    func presentPhotoPickerIfAvailable() async {
-        let initialStatus = accessPermissionStatus(kind: .photos)
-        let requestedStatus = initialStatus == .askEveryTime
-            ? await requestAccessPermission(kind: .photos)
-            : nil
-        let presentationResult = aiChatPhotoPresentationResult(
-            initialStatus: initialStatus,
-            requestedStatus: requestedStatus
-        )
-        guard self.ensureExternalAIConsent() else { return }
-        switch presentationResult {
-        case .present:
-            self.isPhotoPickerPresented = true
         case .stopSilently:
             return
         case .showAlert(let alert):
