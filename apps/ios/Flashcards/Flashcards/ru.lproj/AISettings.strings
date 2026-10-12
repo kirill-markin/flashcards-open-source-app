@@ -253,7 +253,9 @@
 "settings.subscription.manage" = "Управлять подпиской";
 "settings.language.title" = "Язык";
 "settings.language.systemDescription" = "iOS управляет языком приложения. В настройках iOS откройте Nibomo и выберите «Язык». Если пункта «Язык» нет, сначала добавьте второй язык в «Настройки» > «Основные» > «Язык и регион». iOS показывает этот пункт, только если на устройстве выбрано больше одного предпочитаемого языка.";
+"settings.language.macSystemDescription" = "На Mac измените язык Nibomo в разделе «Системные настройки» > «Основные» > «Язык и регион» > «Приложения».";
 "settings.language.action.openAppSettings" = "Открыть настройки Nibomo";
+"settings.language.action.openSystemSettings" = "Открыть системные настройки";
 "settings.language.section.supportedLanguages" = "Поддерживаемые языки";
 "settings.language.supported.english" = "Английский";
 "settings.language.supported.arabic" = "Арабский";

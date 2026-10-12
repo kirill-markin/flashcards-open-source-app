@@ -250,7 +250,9 @@
 "settings.subscription.manage" = "Administrer abonnement";
 "settings.language.title" = "Sprog";
 "settings.language.systemDescription" = "iOS styrer appens sprog. Åbn Nibomo i iOS-indstillingerne, og vælg Sprog. Hvis Sprog ikke vises, skal du først tilføje et ekstra sprog under Indstillinger > Generelt > Sprog & område. iOS viser kun denne mulighed, når enheden har mere end ét foretrukket sprog.";
+"settings.language.macSystemDescription" = "På Mac kan du ændre sproget i Nibomo under Systemindstillinger > Generelt > Sprog & område > Apps.";
 "settings.language.action.openAppSettings" = "Åbn Nibomo-indstillinger";
+"settings.language.action.openSystemSettings" = "Åbn Systemindstillinger";
 "settings.language.section.supportedLanguages" = "Understøttede sprog";
 "settings.language.supported.english" = "Engelsk";
 "settings.language.supported.arabic" = "Arabisk";
