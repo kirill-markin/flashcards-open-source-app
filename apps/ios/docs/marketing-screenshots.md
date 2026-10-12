@@ -19,10 +19,13 @@ The capture catalog supports 50 capture tags (49 languages): the 42 Store locale
 plus `bg`, `et`, `fa`, `is`, `lt`, `lv`, `sw`, and `zu`. The expected raw
 inventory is five screenshots per tag per captured device family: 250 iPhone PNGs
 and 210 iPad PNGs, because the eight non-Store tags are captured on iPhone only.
-The optional iPhone Duo inner family has 210 tracked native PNGs for the 42 Store
-locales. The outer family has five tracked English native PNGs; its remaining
-locales have not been captured. Their capture provenance is in the separate
+The optional iPhone Duo inner family has 210 tracked native PNGs for the 42
+Store locales. The outer family has five tracked English native PNGs; its
+remaining locales have not been captured. Their capture provenance is in
+the separate
 [`duo-source-manifest.json`](media/app-store-cards/duo-source-manifest.json).
+The complete Mac inventory and its provenance are recorded under
+[Native Mac Catalyst capture](#native-mac-catalyst-capture).
 The prepared inner cards have been uploaded to the iOS 1.33.0 listing for all
 42 Store locales. The English outer cards have not been placed.
 
@@ -484,8 +487,15 @@ Mac capture uses the same five localized fixtures and genuine product screens,
 with native filename indices 1 front, 2 answer, 3 progress, 4 AI draft, 5 cards.
 The independent [store-card processor](../../../docs/store-screenshot-processing.md)
 orders the cards as 4, 1, 2, 3, 5. Capture never processes or uploads images.
-The complete target inventory is 210 originals for the 42 existing Store locales;
-wrapper support alone does not establish that those files have been generated.
+The complete 42-locale inventory is saved in
+`media/app-store-screenshots/macos/`: five opaque RGB 1440 × 900 native windows
+per locale, captured on 2026-10-12 from
+`4fb044b41043b4c0344ef6763253f8e3d2c0bb0f`. All originals and corresponding
+landscape store cards were visually inspected. The separate
+[`macos-source-manifest.json`](media/app-store-cards/macos-source-manifest.json)
+records the genuine capture-only build identity, toolchain and original hashes;
+the [processing guide](../../../docs/store-screenshot-processing.md#tracked-approved-delivery)
+owns decorated inventory and upload status.
 
 Prepare the gitignored `Config/Local.xcconfig` with the service values from
 [local setup](../../../docs/ios-local-setup.md). Follow the
