@@ -424,12 +424,12 @@
 "settings.access.section.permissions" = "પરવાનગીઓ";
 "settings.access.notifications" = "સૂચનાઓ";
 "settings.access.thisDevice" = "આ ઉપકરણ";
-"settings.access.footer" = "Nibomo ફક્ત જોડાણો અને ચૅટમાં બોલીને લખવા જરૂરી ઍક્સેસ જ માગે છે.";
+"settings.access.footer" = "ફોટા લેવા અને બોલીને લખવા માટે કૅમેરા અને માઇક્રોફોનની ઍક્સેસ વપરાય છે. તમે ફોટો લાઇબ્રેરીની ઍક્સેસ વિના પણ જોડવા માટે ફોટા પસંદ કરી શકો છો.";
 "settings.access.detail.status" = "સ્થિતિ";
 "settings.access.kind.photos" = "ફોટા";
 "settings.access.kind.camera" = "કૅમેરા";
 "settings.access.kind.microphone" = "માઇક્રોફોન";
-"settings.access.description.photos" = "એઆઈ ચેટમાં જોડવા અને એઆઈ પ્રક્રિયા માટે OpenAI ને મોકલવા ફોટા પસંદ કરો.";
+"settings.access.description.photos" = "ફોટો લાઇબ્રેરીની ઍક્સેસ અને એઆઈ ચૅટનાં જોડાણો અલગ બાબતો છે. ફોટા પસંદ કરવાનું સાધન ફક્ત તમે પસંદ કરેલા ફોટા જ શેર કરે છે.";
 "settings.access.description.camera" = "એઆઈ ચેટ માટે ફોટા લો. જોડેલા ફોટા એઆઈ પ્રક્રિયા માટે OpenAI ને મોકલવામાં આવે છે.";
 "settings.access.description.microphone" = "બોલીને લખવા માટે અવાજ રેકોર્ડ કરો અને એઆઈ ચેટ માટે તેને લખાણમાં ફેરવવા OpenAI ને મોકલો.";
 "settings.access.status.allowed" = "મંજૂર";
@@ -439,8 +439,8 @@
 "settings.access.status.unavailable" = "ઉપલબ્ધ નથી";
 "settings.access.action.request" = "ઍક્સેસની વિનંતી કરો";
 "settings.access.action.openSettings" = "સેટિંગ્સ ખોલો";
-"settings.access.guidance.photos.limited" = "તમે Nibomo સાથે શેર કરેલા ફોટા જ ઉપલબ્ધ છે. વધુ ફોટાની ઍક્સેસ આપવા સેટિંગ્સ ખોલો.";
-"settings.access.guidance.photos.blocked" = "Nibomo માટે ફોટાની ઍક્સેસ બંધ છે. બદલવા માટે સેટિંગ્સ > ગોપનીયતા અને સુરક્ષા > ફોટા ખોલો.";
+"settings.access.guidance.photos.limited" = "ફોટો લાઇબ્રેરીની ઍક્સેસ મર્યાદિત છે. તમે હજી પણ એઆઈ ચૅટમાં જોડવા માટે ફોટા પસંદ કરી શકો છો.";
+"settings.access.guidance.photos.blocked" = "ફોટો લાઇબ્રેરીની ઍક્સેસ બંધ છે. તમે હજી પણ એઆઈ ચૅટમાં જોડવા માટે ફોટા પસંદ કરી શકો છો.";
 "settings.access.guidance.camera.blocked" = "Nibomo માટે કૅમેરાની ઍક્સેસ બંધ છે. બદલવા માટે સેટિંગ્સ > ગોપનીયતા અને સુરક્ષા > કૅમેરા ખોલો.";
 "settings.access.guidance.microphone.blocked" = "Nibomo માટે માઇક્રોફોનની ઍક્સેસ બંધ છે. બદલવા માટે સેટિંગ્સ > ગોપનીયતા અને સુરક્ષા > માઇક્રોફોન ખોલો.";
 "settings.access.guidance.askEveryTime" = "હમણાં ઍક્સેસની વિનંતી કરો અથવા તેને જાતે સંચાલિત કરવા પછી સેટિંગ્સ ખોલો.";

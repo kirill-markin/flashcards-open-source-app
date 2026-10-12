@@ -424,12 +424,12 @@
 "settings.access.section.permissions" = "Tilladelser";
 "settings.access.notifications" = "Notifikationer";
 "settings.access.thisDevice" = "Denne enhed";
-"settings.access.footer" = "Nibomo anmoder kun om den adgang, der er nødvendig til vedhæftninger og diktering i chatten.";
+"settings.access.footer" = "Adgang til kamera og mikrofon bruges til optagelse og diktering. Du kan vælge fotos til vedhæftning uden adgang til fotobiblioteket.";
 "settings.access.detail.status" = "Status";
 "settings.access.kind.photos" = "Fotos";
 "settings.access.kind.camera" = "Kamera";
 "settings.access.kind.microphone" = "Mikrofon";
-"settings.access.description.photos" = "Vælg fotos, der skal vedhæftes AI-chatten og sendes til OpenAI til AI-behandling.";
+"settings.access.description.photos" = "Adgang til fotobiblioteket er adskilt fra vedhæftninger i AI-chatten. Fotovælgeren deler kun de fotos, du vælger.";
 "settings.access.description.camera" = "Tag fotos til AI-chatten. Vedhæftede fotos sendes til OpenAI til AI-behandling.";
 "settings.access.description.microphone" = "Optag diktatlyd, og send den til OpenAI for at omdanne den til tekst til AI-chatten.";
 "settings.access.status.allowed" = "Tilladt";
@@ -439,8 +439,8 @@
 "settings.access.status.unavailable" = "Ikke tilgængelig";
 "settings.access.action.request" = "Anmod om adgang";
 "settings.access.action.openSettings" = "Åbn Indstillinger";
-"settings.access.guidance.photos.limited" = "Kun de fotos, du allerede har delt med Nibomo, er tilgængelige. Åbn Indstillinger for at give adgang til flere fotos.";
-"settings.access.guidance.photos.blocked" = "Fotoadgang er slået fra for Nibomo. Åbn Indstillinger > Anonymitet & sikkerhed > Fotos for at ændre det.";
+"settings.access.guidance.photos.limited" = "Adgangen til fotobiblioteket er begrænset. Du kan stadig vælge fotos til vedhæftning i AI-chatten.";
+"settings.access.guidance.photos.blocked" = "Adgangen til fotobiblioteket er slået fra. Du kan stadig vælge fotos til vedhæftning i AI-chatten.";
 "settings.access.guidance.camera.blocked" = "Kameraadgang er slået fra for Nibomo. Åbn Indstillinger > Anonymitet & sikkerhed > Kamera for at ændre det.";
 "settings.access.guidance.microphone.blocked" = "Mikrofonadgang er slået fra for Nibomo. Åbn Indstillinger > Anonymitet & sikkerhed > Mikrofon for at ændre det.";
 "settings.access.guidance.askEveryTime" = "Anmod om adgang nu, eller administrer den senere manuelt i Indstillinger.";

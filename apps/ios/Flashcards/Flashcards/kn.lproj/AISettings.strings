@@ -424,12 +424,12 @@
 "settings.access.section.permissions" = "ಅನುಮತಿಗಳು";
 "settings.access.notifications" = "ಅಧಿಸೂಚನೆಗಳು";
 "settings.access.thisDevice" = "ಈ ಸಾಧನ";
-"settings.access.footer" = "Nibomo ಲಗತ್ತುಗಳು ಮತ್ತು ಚಾಟ್‌ನಲ್ಲಿ ಹೇಳಿ ಬರೆಯಲು ಬೇಕಾದ ಪ್ರವೇಶವನ್ನು ಮಾತ್ರ ಕೇಳುತ್ತದೆ.";
+"settings.access.footer" = "ಫೋಟೋ ತೆಗೆಯಲು ಮತ್ತು ಹೇಳಿ ಬರೆಯಲು ಕ್ಯಾಮೆರಾ ಮತ್ತು ಮೈಕ್ರೋಫೋನ್ ಪ್ರವೇಶವನ್ನು ಬಳಸಲಾಗುತ್ತದೆ. ಫೋಟೋ ಲೈಬ್ರರಿಯ ಪ್ರವೇಶವಿಲ್ಲದೆಯೂ ಲಗತ್ತಿಸಲು ಫೋಟೋಗಳನ್ನು ಆಯ್ಕೆ ಮಾಡಬಹುದು.";
 "settings.access.detail.status" = "ಸ್ಥಿತಿ";
 "settings.access.kind.photos" = "ಫೋಟೋಗಳು";
 "settings.access.kind.camera" = "ಕ್ಯಾಮೆರಾ";
 "settings.access.kind.microphone" = "ಮೈಕ್ರೊಫೋನ್";
-"settings.access.description.photos" = "AI ಚಾಟ್‌ಗೆ ಲಗತ್ತಿಸಲು ಮತ್ತು AI ಪ್ರಕ್ರಿಯೆಗಾಗಿ OpenAI ಗೆ ಕಳುಹಿಸಲು ಫೋಟೋಗಳನ್ನು ಆಯ್ಕೆ ಮಾಡಿ.";
+"settings.access.description.photos" = "ಫೋಟೋ ಲೈಬ್ರರಿಯ ಪ್ರವೇಶ ಮತ್ತು AI ಚಾಟ್‌ನ ಲಗತ್ತುಗಳು ಬೇರೆ ಬೇರೆ ವಿಷಯಗಳು. ಫೋಟೋ ಆಯ್ಕೆ ಸಾಧನವು ನೀವು ಆಯ್ಕೆ ಮಾಡಿದ ಫೋಟೋಗಳನ್ನು ಮಾತ್ರ ಹಂಚಿಕೊಳ್ಳುತ್ತದೆ.";
 "settings.access.description.camera" = "AI ಚಾಟ್‌ಗಾಗಿ ಫೋಟೋಗಳನ್ನು ತೆಗೆಯಿರಿ. ಲಗತ್ತಿಸಿದ ಫೋಟೋಗಳನ್ನು AI ಪ್ರಕ್ರಿಯೆಗಾಗಿ OpenAI ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ.";
 "settings.access.description.microphone" = "ಮಾತಿನ ಮೂಲಕ ಬರೆಯಲು ಆಡಿಯೊ ರೆಕಾರ್ಡ್ ಮಾಡಿ ಮತ್ತು AI ಚಾಟ್‌ಗಾಗಿ ಪಠ್ಯಕ್ಕೆ ಪರಿವರ್ತಿಸಲು OpenAI ಗೆ ಕಳುಹಿಸಿ.";
 "settings.access.status.allowed" = "ಅನುಮತಿಸಲಾಗಿದೆ";
@@ -439,8 +439,8 @@
 "settings.access.status.unavailable" = "ಲಭ್ಯವಿಲ್ಲ";
 "settings.access.action.request" = "ಪ್ರವೇಶ ವಿನಂತಿಸಿ";
 "settings.access.action.openSettings" = "ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ತೆರೆಯಿರಿ";
-"settings.access.guidance.photos.limited" = "ನೀವು ಈಗಾಗಲೇ Nibomo ಜೊತೆ ಹಂಚಿಕೊಂಡ ಫೋಟೋಗಳು ಮಾತ್ರ ಲಭ್ಯವಿವೆ. ಹೆಚ್ಚಿನ ಫೋಟೋಗಳಿಗೆ ಪ್ರವೇಶ ನೀಡಲು ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ತೆರೆಯಿರಿ.";
-"settings.access.guidance.photos.blocked" = "Nibomoಗೆ ಫೋಟೋ ಪ್ರವೇಶ ನಿಷ್ಕ್ರಿಯವಾಗಿದೆ. ಬದಲಿಸಲು ಸೆಟ್ಟಿಂಗ್‌ಗಳು > ಗೌಪ್ಯತೆ ಮತ್ತು ಭದ್ರತೆ > ಫೋಟೋಗಳು ತೆರೆಯಿರಿ.";
+"settings.access.guidance.photos.limited" = "ಫೋಟೋ ಲೈಬ್ರರಿಯ ಪ್ರವೇಶ ಸೀಮಿತವಾಗಿದೆ. AI ಚಾಟ್‌ಗೆ ಲಗತ್ತಿಸಲು ನೀವು ಇನ್ನೂ ಫೋಟೋಗಳನ್ನು ಆಯ್ಕೆ ಮಾಡಬಹುದು.";
+"settings.access.guidance.photos.blocked" = "ಫೋಟೋ ಲೈಬ್ರರಿಯ ಪ್ರವೇಶ ನಿಷ್ಕ್ರಿಯವಾಗಿದೆ. AI ಚಾಟ್‌ಗೆ ಲಗತ್ತಿಸಲು ನೀವು ಇನ್ನೂ ಫೋಟೋಗಳನ್ನು ಆಯ್ಕೆ ಮಾಡಬಹುದು.";
 "settings.access.guidance.camera.blocked" = "Nibomoಗೆ ಕ್ಯಾಮೆರಾ ಪ್ರವೇಶ ನಿಷ್ಕ್ರಿಯವಾಗಿದೆ. ಬದಲಿಸಲು ಸೆಟ್ಟಿಂಗ್‌ಗಳು > ಗೌಪ್ಯತೆ ಮತ್ತು ಭದ್ರತೆ > ಕ್ಯಾಮೆರಾ ತೆರೆಯಿರಿ.";
 "settings.access.guidance.microphone.blocked" = "Nibomoಗೆ ಮೈಕ್ರೊಫೋನ್ ಪ್ರವೇಶ ನಿಷ್ಕ್ರಿಯವಾಗಿದೆ. ಬದಲಿಸಲು ಸೆಟ್ಟಿಂಗ್‌ಗಳು > ಗೌಪ್ಯತೆ ಮತ್ತು ಭದ್ರತೆ > ಮೈಕ್ರೊಫೋನ್ ತೆರೆಯಿರಿ.";
 "settings.access.guidance.askEveryTime" = "ಈಗ ಪ್ರವೇಶವನ್ನು ವಿನಂತಿಸಿ ಅಥವಾ ನಂತರ ಕೈಯಾರೆ ನಿರ್ವಹಿಸಲು ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ತೆರೆಯಿರಿ.";

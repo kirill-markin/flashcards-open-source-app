@@ -433,12 +433,12 @@
 "settings.access.section.permissions" = "Autorisations";
 "settings.access.notifications" = "Notifications";
 "settings.access.thisDevice" = "Cet appareil";
-"settings.access.footer" = "Nibomo demande uniquement les accès nécessaires aux pièces jointes et à la dictée dans le chat.";
+"settings.access.footer" = "L’accès à la caméra et au microphone sert à la capture d’images et à la dictée. Vous pouvez choisir des photos à joindre sans autoriser l’accès à la photothèque.";
 "settings.access.detail.status" = "Statut";
 "settings.access.kind.photos" = "Photos";
 "settings.access.kind.camera" = "Appareil photo";
 "settings.access.kind.microphone" = "Microphone";
-"settings.access.description.photos" = "Choisissez des photos à joindre au chat IA et à envoyer à OpenAI pour être traitées par l’IA.";
+"settings.access.description.photos" = "L’accès à la photothèque est indépendant des pièces jointes du chat IA. Le sélecteur de photos partage uniquement les photos que vous choisissez.";
 "settings.access.description.camera" = "Prenez des photos pour le chat IA. Les photos jointes sont envoyées à OpenAI pour être traitées par l’IA.";
 "settings.access.description.microphone" = "Enregistrez votre dictée et envoyez-la à OpenAI pour la transcrire en texte dans le chat IA.";
 "settings.access.status.allowed" = "Autorisé";
@@ -448,8 +448,8 @@
 "settings.access.status.unavailable" = "Indisponible";
 "settings.access.action.request" = "Demander l’accès";
 "settings.access.action.openSettings" = "Ouvrir Réglages";
-"settings.access.guidance.photos.limited" = "Seules les photos que vous avez déjà partagées avec Nibomo sont disponibles. Ouvrez Réglages pour accorder un accès plus large aux photos.";
-"settings.access.guidance.photos.blocked" = "L’accès aux photos est désactivé pour Nibomo. Ouvrez Réglages > Confidentialité et sécurité > Photos pour le modifier.";
+"settings.access.guidance.photos.limited" = "L’accès à la photothèque est limité. Vous pouvez toujours choisir des photos à joindre au chat IA.";
+"settings.access.guidance.photos.blocked" = "L’accès à la photothèque est désactivé. Vous pouvez toujours choisir des photos à joindre au chat IA.";
 "settings.access.guidance.camera.blocked" = "L’accès à l’appareil photo est désactivé pour Nibomo. Ouvrez Réglages > Confidentialité et sécurité > Appareil photo pour le modifier.";
 "settings.access.guidance.microphone.blocked" = "L’accès au microphone est désactivé pour Nibomo. Ouvrez Réglages > Confidentialité et sécurité > Microphone pour le modifier.";
 "settings.access.guidance.askEveryTime" = "Demandez l’accès maintenant, ou ouvrez Réglages plus tard si vous souhaitez le gérer manuellement.";

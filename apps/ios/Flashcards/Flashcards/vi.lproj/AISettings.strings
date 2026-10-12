@@ -424,12 +424,12 @@
 "settings.access.section.permissions" = "Quyền truy cập";
 "settings.access.notifications" = "Thông báo";
 "settings.access.thisDevice" = "Thiết bị này";
-"settings.access.footer" = "Nibomo chỉ yêu cầu quyền cần cho tệp đính kèm và đọc chính tả trong trò chuyện.";
+"settings.access.footer" = "Quyền truy cập máy ảnh và micrô được dùng để chụp ảnh và đọc chính tả. Bạn có thể chọn ảnh đính kèm mà không cần quyền truy cập thư viện ảnh.";
 "settings.access.detail.status" = "Trạng thái";
 "settings.access.kind.photos" = "Ảnh";
 "settings.access.kind.camera" = "Camera";
 "settings.access.kind.microphone" = "Micrô";
-"settings.access.description.photos" = "Chọn ảnh để đính kèm vào cuộc trò chuyện AI và gửi tới OpenAI để xử lý bằng AI.";
+"settings.access.description.photos" = "Quyền truy cập thư viện ảnh tách biệt với tệp đính kèm trong trò chuyện AI. Trình chọn ảnh chỉ chia sẻ những ảnh bạn chọn.";
 "settings.access.description.camera" = "Chụp ảnh cho cuộc trò chuyện AI. Ảnh đính kèm được gửi tới OpenAI để xử lý bằng AI.";
 "settings.access.description.microphone" = "Ghi âm lời đọc và gửi tới OpenAI để chuyển thành văn bản cho cuộc trò chuyện AI.";
 "settings.access.status.allowed" = "Đã cho phép";
@@ -439,8 +439,8 @@
 "settings.access.status.unavailable" = "Không khả dụng";
 "settings.access.action.request" = "Yêu cầu quyền truy cập";
 "settings.access.action.openSettings" = "Mở Cài đặt";
-"settings.access.guidance.photos.limited" = "Chỉ có các ảnh bạn đã chia sẻ với Nibomo. Mở Cài đặt để cấp quyền truy cập thêm ảnh.";
-"settings.access.guidance.photos.blocked" = "Quyền truy cập ảnh của Nibomo đang tắt. Mở Cài đặt > Quyền riêng tư & Bảo mật > Ảnh để thay đổi.";
+"settings.access.guidance.photos.limited" = "Quyền truy cập thư viện ảnh bị giới hạn. Bạn vẫn có thể chọn ảnh để đính kèm trong trò chuyện AI.";
+"settings.access.guidance.photos.blocked" = "Quyền truy cập thư viện ảnh đang tắt. Bạn vẫn có thể chọn ảnh để đính kèm trong trò chuyện AI.";
 "settings.access.guidance.camera.blocked" = "Quyền truy cập camera của Nibomo đang tắt. Mở Cài đặt > Quyền riêng tư & Bảo mật > Camera để thay đổi.";
 "settings.access.guidance.microphone.blocked" = "Quyền truy cập micrô của Nibomo đang tắt. Mở Cài đặt > Quyền riêng tư & Bảo mật > Micrô để thay đổi.";
 "settings.access.guidance.askEveryTime" = "Yêu cầu quyền truy cập ngay hoặc mở Cài đặt sau để tự quản lý.";

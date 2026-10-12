@@ -424,12 +424,12 @@
 "settings.access.section.permissions" = "Atļaujas";
 "settings.access.notifications" = "Paziņojumi";
 "settings.access.thisDevice" = "Šī ierīce";
-"settings.access.footer" = "Nibomo pieprasa tikai piekļuvi, kas vajadzīga pielikumiem un sarunas diktēšanai.";
+"settings.access.footer" = "Piekļuve kamerai un mikrofonam tiek izmantota fotoattēlu uzņemšanai un diktēšanai. Varat atlasīt fotoattēlus pievienošanai arī bez piekļuves fotoattēlu bibliotēkai.";
 "settings.access.detail.status" = "Statuss";
 "settings.access.kind.photos" = "Fotoattēli";
 "settings.access.kind.camera" = "Kamera";
 "settings.access.kind.microphone" = "Mikrofons";
-"settings.access.description.photos" = "Atlasiet fotoattēlus, ko pievienot MI sarunai un nosūtīt uz OpenAI apstrādei ar MI.";
+"settings.access.description.photos" = "Piekļuve fotoattēlu bibliotēkai ir atsevišķa no MI sarunas pielikumiem. Fotoattēlu atlasītājs kopīgo tikai jūsu atlasītos fotoattēlus.";
 "settings.access.description.camera" = "Uzņemiet fotoattēlus MI sarunai. Pievienotie fotoattēli tiek sūtīti uz OpenAI apstrādei ar MI.";
 "settings.access.description.microphone" = "Ierakstiet diktēšanas audio un nosūtiet to uz OpenAI, lai pārvērstu tekstā MI sarunai.";
 "settings.access.status.allowed" = "Atļauts";
@@ -439,8 +439,8 @@
 "settings.access.status.unavailable" = "Nav pieejams";
 "settings.access.action.request" = "Pieprasīt piekļuvi";
 "settings.access.action.openSettings" = "Atvērt iestatījumus";
-"settings.access.guidance.photos.limited" = "Pieejami tikai fotoattēli, kurus jau kopīgojāt ar Nibomo. Lai piešķirtu plašāku piekļuvi, atveriet iestatījumus.";
-"settings.access.guidance.photos.blocked" = "Nibomo piekļuve fotoattēliem ir izslēgta. Lai to mainītu, atveriet Iestatījumi > Privātums un drošība > Fotoattēli.";
+"settings.access.guidance.photos.limited" = "Piekļuve fotoattēlu bibliotēkai ir ierobežota. Joprojām varat atlasīt fotoattēlus MI sarunas pielikumiem.";
+"settings.access.guidance.photos.blocked" = "Piekļuve fotoattēlu bibliotēkai ir izslēgta. Joprojām varat atlasīt fotoattēlus MI sarunas pielikumiem.";
 "settings.access.guidance.camera.blocked" = "Nibomo piekļuve kamerai ir izslēgta. Lai to mainītu, atveriet Iestatījumi > Privātums un drošība > Kamera.";
 "settings.access.guidance.microphone.blocked" = "Nibomo piekļuve mikrofonam ir izslēgta. Lai to mainītu, atveriet Iestatījumi > Privātums un drošība > Mikrofons.";
 "settings.access.guidance.askEveryTime" = "Pieprasiet piekļuvi tagad vai vēlāk pārvaldiet to iestatījumos.";
