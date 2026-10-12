@@ -3,4 +3,7 @@
     <cache-path
         name="workspace_package_export"
         path="workspace-package-export/" />
+    <cache-path
+        name="ai_chat_camera_capture"
+        path="ai-chat-camera-capture/" />
 </paths>
