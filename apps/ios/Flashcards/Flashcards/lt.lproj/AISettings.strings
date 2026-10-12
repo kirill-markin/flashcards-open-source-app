@@ -250,7 +250,9 @@
 "settings.subscription.manage" = "Tvarkyti prenumeratą";
 "settings.language.title" = "Kalba";
 "settings.language.systemDescription" = "iOS valdo programėlės kalbą. iOS nustatymuose atidarykite Nibomo ir pasirinkite Kalba. Jei parinkties Kalba nėra, pirmiausia pridėkite antrą kalbą: Nustatymai > Bendra > Kalba ir regionas. iOS rodo šią parinktį tik tada, kai įrenginyje nustatyta daugiau nei viena pageidaujama kalba.";
+"settings.language.macSystemDescription" = "Mac kompiuteryje Nibomo kalbą pakeiskite skiltyje Sistemos nustatymai > Bendrieji > Kalba ir regionas > Programos.";
 "settings.language.action.openAppSettings" = "Atidaryti Nibomo nustatymus";
+"settings.language.action.openSystemSettings" = "Atidaryti sistemos nustatymus";
 "settings.language.section.supportedLanguages" = "Palaikomos kalbos";
 "settings.language.supported.english" = "Anglų";
 "settings.language.supported.arabic" = "Arabų";

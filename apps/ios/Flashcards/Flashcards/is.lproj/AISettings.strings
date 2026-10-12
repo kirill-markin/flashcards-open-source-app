@@ -250,7 +250,9 @@
 "settings.subscription.manage" = "Stjórna áskrift";
 "settings.language.title" = "Tungumál";
 "settings.language.systemDescription" = "iOS stjórnar tungumáli forritsins. Opnaðu Nibomo í Stillingum iOS og veldu Tungumál. Ef Tungumál sést ekki skaltu fyrst bæta við öðru tungumáli í Stillingar > Almennt > Tungumál og svæði. iOS sýnir þennan valkost aðeins þegar tækið er með fleiri en eitt valið tungumál.";
+"settings.language.macSystemDescription" = "Á Mac geturðu breytt tungumáli Nibomo undir Kerfisstillingar > Almennt > Tungumál og svæði > Forrit.";
 "settings.language.action.openAppSettings" = "Opna stillingar Nibomo";
+"settings.language.action.openSystemSettings" = "Opna kerfisstillingar";
 "settings.language.section.supportedLanguages" = "Studd tungumál";
 "settings.language.supported.english" = "Enska";
 "settings.language.supported.arabic" = "Arabíska";

@@ -250,7 +250,9 @@
 "settings.subscription.manage" = "Halda tellimust";
 "settings.language.title" = "Keel";
 "settings.language.systemDescription" = "iOS määrab rakenduse keele. Ava iOS-i seadetes Nibomo ja vali Keel. Kui valikut Keel ei kuvata, lisa esmalt teine keel asukohas Seaded > Üldine > Keel ja piirkond. iOS kuvab selle valiku ainult siis, kui seadmel on rohkem kui üks eelistatud keel.";
+"settings.language.macSystemDescription" = "Macis saad muuta Nibomo keelt jaotises Süsteemiseaded > Üldine > Keel ja piirkond > Rakendused.";
 "settings.language.action.openAppSettings" = "Ava Nibomo seaded";
+"settings.language.action.openSystemSettings" = "Ava süsteemiseaded";
 "settings.language.section.supportedLanguages" = "Toetatud keeled";
 "settings.language.supported.english" = "Inglise";
 "settings.language.supported.arabic" = "Araabia";

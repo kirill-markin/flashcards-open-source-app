@@ -250,7 +250,9 @@
 "settings.subscription.manage" = "Phatha okubhaliselwe";
 "settings.language.title" = "Ulimi";
 "settings.language.systemDescription" = "iOS ilawula ulimi lohlelo lokusebenza. Ezilungiselelweni ze-iOS, vula i-Nibomo bese ukhetha Ulimi. Uma Ulimi lungaboniswa, qala ngokwengeza ulimi lwesibili kokuthi Izilungiselelo > Okuvamile > Ulimi Nesifunda. I-iOS ibonisa le nketho kuphela uma idivayisi inolimi olukhethwayo olungaphezu kolulodwa.";
+"settings.language.macSystemDescription" = "Ku-Mac, shintsha ulimi lwe-Nibomo ngaphansi kokuthi Izilungiselelo zesistimu > Okuvamile > Ulimi nesifunda > Izinhlelo zokusebenza.";
 "settings.language.action.openAppSettings" = "Vula izilungiselelo ze-Nibomo";
+"settings.language.action.openSystemSettings" = "Vula izilungiselelo zesistimu";
 "settings.language.section.supportedLanguages" = "Izilimi ezisekelwayo";
 "settings.language.supported.english" = "IsiNgisi";
 "settings.language.supported.arabic" = "Isi-Arabhu";
