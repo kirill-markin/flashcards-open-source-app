@@ -225,7 +225,6 @@ test("generated-image dependency races surface cancellation to the runtime termi
                     null,
                     null,
                   ),
-                  rootObservation: null,
                 },
               },
               toolDependencies,

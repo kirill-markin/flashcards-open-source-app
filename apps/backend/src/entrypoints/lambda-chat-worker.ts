@@ -16,7 +16,6 @@ initializeBackendSentry("chat-worker");
 type HttpErrorClass = typeof import("../shared/errors").HttpError;
 type ChatWorkerRuntime = Readonly<{
   handleChatWorkerEvent: typeof import("../chat/worker").handleChatWorkerEvent;
-  flushLangfuseTelemetry: typeof import("../telemetry/langfuse").flushLangfuseTelemetry;
   HttpError: HttpErrorClass;
 }>;
 
@@ -24,18 +23,14 @@ let chatWorkerRuntimePromise: Promise<ChatWorkerRuntime> | null = null;
 
 async function createChatWorkerRuntime(): Promise<ChatWorkerRuntime> {
   const [
-    { flushLangfuseTelemetry, initializeLangfuseTelemetry },
     { handleChatWorkerEvent },
     { HttpError },
   ] = await Promise.all([
-    import("../telemetry/langfuse"),
     import("../chat/worker"),
     import("../shared/errors"),
   ]);
-  initializeLangfuseTelemetry();
   return {
     handleChatWorkerEvent,
-    flushLangfuseTelemetry,
     HttpError,
   };
 }
@@ -85,10 +80,8 @@ const chatWorkerHandler: Handler<ChatWorkerEvent, void> = async (event, context)
     null,
   );
   let runtimeHttpError: HttpErrorClass | null = null;
-  let runtime: ChatWorkerRuntime | null = null;
   try {
     const initializedRuntime = await getChatWorkerRuntime();
-    runtime = initializedRuntime;
     runtimeHttpError = initializedRuntime.HttpError;
     await continueBackendTrace(event.traceContext ?? null, async () => startBackendSpan(
       "chat.worker.run",
@@ -109,10 +102,6 @@ const chatWorkerHandler: Handler<ChatWorkerEvent, void> = async (event, context)
       details: createChatWorkerFailureDetails(event, lambdaRequestId, normalizedError, runtimeHttpError),
     });
     throw error;
-  } finally {
-    if (runtime !== null) {
-      await runtime.flushLangfuseTelemetry(observationScope);
-    }
   }
 };
 
