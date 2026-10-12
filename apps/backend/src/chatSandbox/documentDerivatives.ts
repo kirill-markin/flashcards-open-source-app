@@ -15,6 +15,8 @@ function toBuffer(bytes: Uint8Array): Buffer {
   return Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
 }
 
+const pdfPageWithoutTextLayerHint = "[no text layer: this page is probably scanned; look at it with view_file]";
+
 /**
  * Every page's text under a `--- page N ---` marker, so a page found in the text can be looked at with
  * view_file. pdf.js may detach `bytes`.
@@ -45,7 +47,9 @@ export async function derivePdfText(path: string, bytes: Uint8Array): Promise<Re
       );
     }
 
-    const text = pageTexts.map((pageText, index) => `--- page ${index + 1} ---\n${pageText}`).join("\n");
+    const text = pageTexts
+      .map((pageText, index) => `--- page ${index + 1} ---\n${pageText.trim() === "" ? pdfPageWithoutTextLayerHint : pageText}`)
+      .join("\n");
     return [{ path: `${path}.txt`, bytes: Buffer.from(text) }];
   } finally {
     await loadingTask.destroy();

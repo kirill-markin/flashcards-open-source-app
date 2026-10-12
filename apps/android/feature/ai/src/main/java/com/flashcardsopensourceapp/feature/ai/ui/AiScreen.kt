@@ -1,6 +1,6 @@
 package com.flashcardsopensourceapp.feature.ai.ui
 
-import android.graphics.Bitmap
+import android.net.Uri
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -74,11 +74,13 @@ import com.flashcardsopensourceapp.feature.ai.input.AttachmentSheet
 import com.flashcardsopensourceapp.feature.ai.input.aiAttachmentImportAlert
 import com.flashcardsopensourceapp.feature.ai.input.aiCapabilityPresentationResult
 import com.flashcardsopensourceapp.feature.ai.input.aiChatDocumentPickerMimeTypes
+import com.flashcardsopensourceapp.feature.ai.input.deleteAiChatCameraCapture
 import com.flashcardsopensourceapp.feature.ai.input.dictationAccessAlertFailureReason
 import com.flashcardsopensourceapp.feature.ai.input.handleAttachmentAction
 import com.flashcardsopensourceapp.feature.ai.input.handleCameraAction
 import com.flashcardsopensourceapp.feature.ai.input.handleDictationToggle
-import com.flashcardsopensourceapp.feature.ai.input.makeAiChatAttachmentFromCameraBitmap
+import com.flashcardsopensourceapp.feature.ai.input.makeAiChatAttachmentFromCameraUri
+import com.flashcardsopensourceapp.feature.ai.input.makeAiChatCameraCaptureUri
 import com.flashcardsopensourceapp.feature.ai.input.makeAiChatDocumentAttachmentFromUri
 import com.flashcardsopensourceapp.feature.ai.input.makeAiChatImageAttachmentFromUri
 import com.flashcardsopensourceapp.feature.ai.input.startDictationRecording
@@ -148,6 +150,8 @@ internal fun AiRouteContent(
         )
     }
     var isAttachmentSheetVisible by remember { mutableStateOf(value = false) }
+    // Saveable so the result still finds its file after the process is recreated behind the camera.
+    var pendingCameraCaptureUri by rememberSaveable { mutableStateOf<String?>(value = null) }
     val currentConsentRequired by rememberUpdatedState(uiState.isConsentRequired)
     val currentDictationState by rememberUpdatedState(uiState.dictationState)
     val currentWarmUpAction by rememberUpdatedState(onWarmUpSessionIfNeeded)
@@ -170,23 +174,30 @@ internal fun AiRouteContent(
     val showComposer = uiState.isConsentRequired.not() && showConversation
 
     // The camera pair is complete on its success half and incomplete on its failure half, by an OS
-    // limitation rather than by choice: `TakePicturePreview` hands back only a bitmap or null, so a
+    // limitation rather than by choice: `TakePicture` hands back only true or false, so a
     // capture that genuinely failed is indistinguishable from a person backing out of the camera,
     // and both end here reporting nothing. iOS can tell them apart and reports the failure. So an
     // Android camera capture that fails is never reported at all, and `media_upload_failed` carries
     // no `source` to look the gap up by.
     val takePictureLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicturePreview()
-    ) { bitmap: Bitmap? ->
-        if (bitmap == null) {
-            return@rememberLauncherForActivityResult
-        }
+        contract = ActivityResultContracts.TakePicture()
+    ) { didCapture: Boolean ->
+        val captureUri = Uri.parse(
+            requireNotNull(pendingCameraCaptureUri) {
+                "AI chat camera result arrived without a pending capture URI."
+            }
+        )
+        pendingCameraCaptureUri = null
 
         try {
+            if (didCapture.not()) {
+                return@rememberLauncherForActivityResult
+            }
+
             onAddPendingAttachment(
-                makeAiChatAttachmentFromCameraBitmap(
+                makeAiChatAttachmentFromCameraUri(
                     context = context,
-                    bitmap = bitmap,
+                    uri = captureUri,
                     textProvider = textProvider
                 )
             )
@@ -201,7 +212,17 @@ internal fun AiRouteContent(
                 )
             )
             onMediaAttachmentFailed(error)
+        } finally {
+            deleteAiChatCameraCapture(
+                context = context,
+                uri = captureUri
+            )
         }
+    }
+    val launchCamera: () -> Unit = {
+        val captureUri = makeAiChatCameraCaptureUri(context = context)
+        pendingCameraCaptureUri = captureUri.toString()
+        takePictureLauncher.launch(captureUri)
     }
     val choosePhotoLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
@@ -276,7 +297,7 @@ internal fun AiRouteContent(
                 textProvider = textProvider
             )
         ) {
-            AiCapabilityPresentationResult.Present -> takePictureLauncher.launch(null)
+            AiCapabilityPresentationResult.Present -> launchCamera()
             AiCapabilityPresentationResult.StopSilently -> Unit
             is AiCapabilityPresentationResult.ShowAlert -> currentShowAlertAction(result.alert)
         }
@@ -538,7 +559,7 @@ internal fun AiRouteContent(
                             textProvider = textProvider,
                             onShowAlert = onShowAlert,
                             onShowErrorMessage = onShowErrorMessage,
-                            takePictureLauncher = takePictureLauncher,
+                            onLaunchCamera = launchCamera,
                             cameraPermissionLauncher = cameraPermissionLauncher
                         )
                     }
