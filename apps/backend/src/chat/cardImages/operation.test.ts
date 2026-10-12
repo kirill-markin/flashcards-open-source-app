@@ -61,7 +61,6 @@ function createInput(signal: AbortSignal): GeneratedCardImageInput {
         null,
         null,
       ),
-      rootObservation: null,
     },
     signal,
     operationDeadlineMs: Date.now() + 120_000,

@@ -38,7 +38,6 @@ type BackendApiHandler = (
 
 type BackendApiRuntime = Readonly<{
   handleRequest: BackendApiHandler;
-  flushLangfuseTelemetry: typeof import("../telemetry/langfuse").flushLangfuseTelemetry;
 }>;
 
 type BackendApiRequestContext = Readonly<{
@@ -51,19 +50,15 @@ let backendApiRuntimePromise: Promise<BackendApiRuntime> | null = null;
 
 async function createBackendApiRuntime(): Promise<BackendApiRuntime> {
   const [
-    { flushLangfuseTelemetry, initializeLangfuseTelemetry },
     { handle },
     { createApp },
   ] = await Promise.all([
-    import("../telemetry/langfuse"),
     import("hono/aws-lambda"),
     import("../server/app"),
   ]);
-  initializeLangfuseTelemetry();
   const app = createApp("");
   return {
     handleRequest: handle(app),
-    flushLangfuseTelemetry,
   };
 }
 
@@ -191,10 +186,6 @@ const backendApiBootstrapHandler: BackendApiHandler = async (event, context) => 
         });
       }
       throw error;
-    } finally {
-      if (runtime !== null) {
-        await runtime.flushLangfuseTelemetry(observationScope);
-      }
     }
   };
 

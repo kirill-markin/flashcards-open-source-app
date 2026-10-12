@@ -287,7 +287,7 @@ test("startOpenAILoopWithDeps retries a callIndex > 1 overflow once with the red
       reducedBudgetRebuilds += 1;
       return [];
     },
-    getObservedOpenAIClient: () => ({
+    getOpenAIClient: () => ({
       responses: {
         create: async () => {
           streamCallCount += 1;
@@ -306,7 +306,7 @@ test("startOpenAILoopWithDeps retries a callIndex > 1 overflow once with the red
         },
       },
     } as unknown as OpenAI),
-    createObservedUserOpenAIClient: () => {
+    createUserOpenAIClient: () => {
       throw new Error("This test runs on the platform key and never builds a client from the person's own key.");
     },
     runOneToolCall: async () => {
@@ -317,7 +317,6 @@ test("startOpenAILoopWithDeps retries a callIndex > 1 overflow once with the red
         succeeded: true,
         shouldInvalidateMainContent: false,
         stopReason: null,
-        generatedImageTelemetry: null,
         sqlTelemetry: null,
         toolErrorClass: null,
         modelContent: null,

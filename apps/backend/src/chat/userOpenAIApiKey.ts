@@ -1,6 +1,6 @@
 /**
  * The person's own OpenAI API key, accepted on `POST /chat` and `POST /chat/transcriptions` only and never
- * stored: not in Postgres, logs, Sentry, or Langfuse. It reaches the chat worker only inside the asynchronous
+ * stored: not in Postgres, logs, or Sentry. It reaches the chat worker only inside the asynchronous
  * invoke payload (`./worker/invoke.ts`).
  */
 import { inspect } from "node:util";

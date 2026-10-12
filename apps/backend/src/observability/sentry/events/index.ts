@@ -93,11 +93,6 @@ export type {
   ChatWorkerLifecycleDetails,
   ChatWorkerTerminalStateDetails,
   GeneratedCardImageProviderDetails,
-  LangfuseChatTranscriptionExportFailureDetails,
-  LangfuseChatTranscriptionStartFailureDetails,
-  LangfuseChatTurnExportFailureDetails,
-  LangfuseChatTurnStartFailureDetails,
-  LangfuseTelemetryFlushFailureDetails,
   McpWorkspaceSelectionEnrichmentFailureDetails,
 } from "./chat";
 export type {

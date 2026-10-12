@@ -247,12 +247,8 @@ test("runPersistedChatSessionWithDeps completes a successful run and persists co
   assert.equal(findLog(logs, "chat_worker_terminal_state_persisted")?.runStatus, "completed");
 });
 
-test("runPersistedChatSessionWithDeps passes low-cost model and policy metadata to runtime dependencies", async () => {
+test("runPersistedChatSessionWithDeps passes low-cost model and reasoning effort to OpenAI dependencies", async () => {
   const baseParams = createParams();
-  let observedModel: string | null = null;
-  let observedAiCostMode: string | null = null;
-  let observedChatTurnsLast7d: number | null = null;
-  let observedGoodReviewDaysLast7d: number | null = null;
   let openAIModel: string | null = null;
   let openAIReasoningEffort: string | null = null;
 
@@ -270,13 +266,6 @@ test("runPersistedChatSessionWithDeps passes low-cost model and policy metadata 
       },
     },
     createDependencies({
-      startChatTurnObservation: async (params, execute) => {
-        observedModel = params.model;
-        observedAiCostMode = params.aiCostMode;
-        observedChatTurnsLast7d = params.chatTurnsLast7d;
-        observedGoodReviewDaysLast7d = params.goodReviewDaysLast7d;
-        await execute(null);
-      },
       startOpenAILoop: async (
         params: StartOpenAILoopParams,
         _onEvent: OpenAILoopEventSink,
@@ -292,10 +281,6 @@ test("runPersistedChatSessionWithDeps passes low-cost model and policy metadata 
   );
 
   assert.equal(result.outcome, "completed");
-  assert.equal(observedModel, "gpt-6-luna");
-  assert.equal(observedAiCostMode, "low_cost");
-  assert.equal(observedChatTurnsLast7d, 20);
-  assert.equal(observedGoodReviewDaysLast7d, 1);
   assert.equal(openAIModel, "gpt-6-luna");
   assert.equal(openAIReasoningEffort, "high");
 });

@@ -28,14 +28,7 @@ type GlobalMetricsSnapshotRuntime = Readonly<{
 let globalMetricsSnapshotRuntimePromise: Promise<GlobalMetricsSnapshotRuntime> | null = null;
 
 async function createGlobalMetricsSnapshotRuntime(): Promise<GlobalMetricsSnapshotRuntime> {
-  const [
-    { initializeLangfuseTelemetry },
-    { generateAndWriteGlobalMetricsSnapshot },
-  ] = await Promise.all([
-    import("../../telemetry/langfuse"),
-    import("../../globalMetrics/generation"),
-  ]);
-  initializeLangfuseTelemetry();
+  const { generateAndWriteGlobalMetricsSnapshot } = await import("../../globalMetrics/generation");
   return {
     generateAndWriteGlobalMetricsSnapshot,
   };

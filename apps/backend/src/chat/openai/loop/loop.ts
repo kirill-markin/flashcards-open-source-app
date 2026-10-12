@@ -1,9 +1,4 @@
-/**
- * OpenAI model loop for backend-owned chat runs.
- * The loop replays persisted history, sequences model and tool steps, and returns replay items for the next recovery point.
- */
 import OpenAI from "openai";
-import type { LangfuseObservation } from "@langfuse/tracing";
 import {
   buildChatCompletionInput,
   buildChatCompletionInputWithBudget,
@@ -11,13 +6,13 @@ import {
   placeSystemPrompt,
 } from "./input";
 import {
-  createObservedUserOpenAIClient,
-  getObservedOpenAIClient,
+  createUserOpenAIClient,
+  getOpenAIClient,
 } from "../client";
 import { prepareChatFileDerivatives, type ChatFileDerivativeIndex } from "../../../chatFiles";
 import { isDatabaseDeadlineExpiry } from "../../../database";
 import { isContextLengthExceededError } from "../../runtime/providerErrors";
-import { runOneToolCall as runObservedToolCall } from "../tools/toolExecutor";
+import { runOneToolCall } from "../tools/toolExecutor";
 import {
   dropHistoryEncryptedItemsFromOtherKey,
   sliceReplayItemsFromLatestCompaction,
@@ -26,7 +21,7 @@ import {
   type ServerChatMessage,
   type StoredOpenAIReplayItem,
 } from "../replayItems";
-import { buildOpenAIChatTools, type ExecutedChatToolCall } from "../tools/tools";
+import { buildOpenAIChatTools } from "../tools/tools";
 import type { ContentPart } from "../../types";
 import {
   CHAT_HISTORY_REPLAY_TOKEN_BUDGET,
@@ -97,8 +92,8 @@ type OpenAILoopDependencies = Readonly<{
   prepareChatFileDerivatives: typeof prepareChatFileDerivatives;
   buildChatCompletionInput: typeof buildChatCompletionInput;
   buildChatCompletionInputWithBudget: typeof buildChatCompletionInputWithBudget;
-  getObservedOpenAIClient: typeof getObservedOpenAIClient;
-  createObservedUserOpenAIClient: typeof createObservedUserOpenAIClient;
+  getOpenAIClient: typeof getOpenAIClient;
+  createUserOpenAIClient: typeof createUserOpenAIClient;
   runOneToolCall: RunOneToolCall;
   appendAiUsageEvent: typeof appendAiUsageEvent;
 }>;
@@ -128,42 +123,17 @@ export type StartOpenAILoopParams = Readonly<{
   timezone: string;
   localMessages: ReadonlyArray<ServerChatMessage>;
   turnInput: ReadonlyArray<ContentPart>;
-  rootObservation: LangfuseObservation | null;
   signal?: AbortSignal;
   onExecutionPhaseChanged?: (phase: "idle" | "model" | "tool", toolName: string | null) => void;
   shouldStopBeforeNextStep?: () => boolean;
 }>;
 
-async function runOneToolCall(
-  params: Readonly<{
-    item: OpenAI.Responses.ResponseFunctionToolCall;
-    requestId: string;
-    runId: string;
-    sessionId: string;
-    operationKey: string;
-    generatedImageEligible: boolean;
-    claimToken: ChatRunClaimToken;
-    userId: string;
-    workspaceId: string;
-    signal: AbortSignal | null;
-    generatedImageOperationDeadlineMs: number;
-    clientPlatform: ProductAnalyticsClientReportablePlatform | null;
-    clientOsName: ProductAnalyticsOsName | null;
-    clientDeviceType: ProductAnalyticsDeviceType | null;
-    initiatingAuthIsSignedIn: boolean;
-    userOpenAIApiKey: UserOpenAIApiKey | null;
-    rootObservation: LangfuseObservation | null;
-  }>,
-): Promise<ExecutedChatToolCall> {
-  return runObservedToolCall(params);
-}
-
 const DEFAULT_OPENAI_LOOP_DEPENDENCIES: OpenAILoopDependencies = {
   prepareChatFileDerivatives,
   buildChatCompletionInput,
   buildChatCompletionInputWithBudget,
-  getObservedOpenAIClient,
-  createObservedUserOpenAIClient,
+  getOpenAIClient,
+  createUserOpenAIClient,
   runOneToolCall,
   appendAiUsageEvent,
 };
@@ -384,8 +354,8 @@ async function runLoopWithDeps(
 ): Promise<OpenAILoopCompletion> {
   // One client for every model call of the run, built from the person's own key when the turn carried one.
   const client = params.userOpenAIApiKey === null
-    ? dependencies.getObservedOpenAIClient()
-    : dependencies.createObservedUserOpenAIClient(params.userOpenAIApiKey);
+    ? dependencies.getOpenAIClient()
+    : dependencies.createUserOpenAIClient(params.userOpenAIApiKey);
   // The attachment lines of the history name what was derived from each attachment.
   const fileDerivatives = await dependencies.prepareChatFileDerivatives(
     { userId: params.userId, workspaceId: params.workspaceId },
@@ -483,7 +453,6 @@ async function runLoopWithDeps(
         clientDeviceType: params.clientDeviceType,
         initiatingAuthIsSignedIn: params.initiatingAuthIsSignedIn,
         userOpenAIApiKey: params.userOpenAIApiKey,
-        rootObservation: params.rootObservation,
         onExecutionPhaseChanged: params.onExecutionPhaseChanged,
         shouldStopBeforeNextStep: params.shouldStopBeforeNextStep,
         onEvent,
@@ -555,9 +524,6 @@ export async function startOpenAILoopWithDeps(
     });
 }
 
-/**
- * Runs the OpenAI loop with the production dependency set.
- */
 export async function startOpenAILoop(
   params: StartOpenAILoopParams,
   onEvent: OpenAILoopEventSink,
