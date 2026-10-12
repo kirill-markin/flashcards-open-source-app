@@ -1,5 +1,5 @@
 "kMDItemKeywords" = "flashcards,flash cards,ફ્લૅશકાર્ડ,ફ્લેશકાર્ડ,અભ્યાસ કાર્ડ,યાદશક્તિ કાર્ડ,પુનરાવર્તન કાર્ડ";
 "MDItemKeywords" = "flashcards,flash cards,ફ્લૅશકાર્ડ,ફ્લેશકાર્ડ,અભ્યાસ કાર્ડ,યાદશક્તિ કાર્ડ,પુનરાવર્તન કાર્ડ";
-"NSCameraUsageDescription" = "AI ચૅટમાં જોડવા ફોટા લેવા કૅમેરાની ઍક્સેસ આપો.";
-"NSMicrophoneUsageDescription" = "AI ચૅટમાં બોલીને લખવા માઇક્રોફોનની ઍક્સેસ આપો.";
-"NSPhotoLibraryUsageDescription" = "AI ચૅટમાં જોડવા ફોટા પસંદ કરવા ફોટો લાઇબ્રેરીની ઍક્સેસ આપો.";
+"NSCameraUsageDescription" = "એઆઈ ચેટ માટે ફોટા લો. જોડેલા ફોટા એઆઈ પ્રક્રિયા માટે OpenAI ને મોકલવામાં આવે છે.";
+"NSMicrophoneUsageDescription" = "બોલીને લખવા માટે અવાજ રેકોર્ડ કરો અને એઆઈ ચેટ માટે તેને લખાણમાં ફેરવવા OpenAI ને મોકલો.";
+"NSPhotoLibraryUsageDescription" = "એઆઈ ચેટમાં જોડવા અને એઆઈ પ્રક્રિયા માટે OpenAI ને મોકલવા ફોટા પસંદ કરો.";

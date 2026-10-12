@@ -1,5 +1,5 @@
 "kMDItemKeywords" = "flashcards,flash cards,kartičky,výukové kartičky,učební kartičky,kartičky na opakování";
 "MDItemKeywords" = "flashcards,flash cards,kartičky,výukové kartičky,učební kartičky,kartičky na opakování";
-"NSCameraUsageDescription" = "Povolte přístup k fotoaparátu pro pořizování fotek jako příloh v chatu s AI.";
-"NSMicrophoneUsageDescription" = "Povolte přístup k mikrofonu pro diktování textu do chatu s AI.";
-"NSPhotoLibraryUsageDescription" = "Povolte přístup ke knihovně fotek pro výběr fotek jako příloh v chatu s AI.";
+"NSCameraUsageDescription" = "Pořizujte fotky pro chat s AI. Přiložené fotky se posílají společnosti OpenAI ke zpracování pomocí AI.";
+"NSMicrophoneUsageDescription" = "Nahrávejte diktovaný hlas a posílejte jej společnosti OpenAI k přepisu na text pro chat s AI.";
+"NSPhotoLibraryUsageDescription" = "Vyberte fotky, které chcete přiložit k chatu s AI a poslat společnosti OpenAI ke zpracování pomocí AI.";

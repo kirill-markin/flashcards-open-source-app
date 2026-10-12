@@ -1,5 +1,5 @@
 "kMDItemKeywords" = "flashcards,flash cards,kartu belajar,kartu hafalan,kartu kilas,kartu untuk mengulang pelajaran";
 "MDItemKeywords" = "flashcards,flash cards,kartu belajar,kartu hafalan,kartu kilas,kartu untuk mengulang pelajaran";
-"NSCameraUsageDescription" = "Izinkan akses kamera untuk mengambil foto sebagai lampiran obrolan AI.";
-"NSMicrophoneUsageDescription" = "Izinkan akses mikrofon untuk mendiktekan teks ke obrolan AI.";
-"NSPhotoLibraryUsageDescription" = "Izinkan akses perpustakaan foto untuk memilih foto sebagai lampiran obrolan AI.";
+"NSCameraUsageDescription" = "Ambil foto untuk obrolan AI. Foto yang dilampirkan dikirim ke OpenAI untuk pemrosesan AI.";
+"NSMicrophoneUsageDescription" = "Rekam suara dikte dan kirim ke OpenAI untuk ditranskripsikan menjadi teks bagi obrolan AI.";
+"NSPhotoLibraryUsageDescription" = "Pilih foto untuk dilampirkan ke obrolan AI dan dikirim ke OpenAI untuk pemrosesan AI.";

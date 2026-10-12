@@ -1,5 +1,5 @@
 "kMDItemKeywords" = "flashcards,flash cards,targetes d’estudi,targetes de memòria,fitxes d’estudi,targetes de repàs";
 "MDItemKeywords" = "flashcards,flash cards,targetes d’estudi,targetes de memòria,fitxes d’estudi,targetes de repàs";
-"NSCameraUsageDescription" = "Permet l’accés a la càmera per fer fotos i adjuntar-les al xat amb IA.";
-"NSMicrophoneUsageDescription" = "Permet l’accés al micròfon per dictar text al xat amb IA.";
-"NSPhotoLibraryUsageDescription" = "Permet l’accés a la fototeca per triar fotos i adjuntar-les al xat amb IA.";
+"NSCameraUsageDescription" = "Fes fotos per al xat amb IA. Les fotos que hi adjuntis s’envien a OpenAI per al processament amb IA.";
+"NSMicrophoneUsageDescription" = "Enregistra àudio de dictat i envia’l a OpenAI per transcriure’l com a text al xat amb IA.";
+"NSPhotoLibraryUsageDescription" = "Tria fotos per adjuntar-les al xat amb IA i enviar-les a OpenAI per al processament amb IA.";
