@@ -258,9 +258,6 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     const stripeBillingSecretArn = getOptionalContextValue(this, "stripeBillingSecretArn");
     const stripeCheckoutLiveEnabled = getOptionalRawContextValue(this, "stripeCheckoutLiveEnabled") === "true";
     const openAiApiKeySecretArn = getOptionalContextValue(this, "openAiApiKeySecretArn");
-    const langfusePublicKeySecretArn = getOptionalContextValue(this, "langfusePublicKeySecretArn");
-    const langfuseSecretKeySecretArn = getOptionalContextValue(this, "langfuseSecretKeySecretArn");
-    const langfuseBaseUrl = getOptionalContextValue(this, "langfuseBaseUrl");
     // Optional per-deploy override for the public marketing-site origin used by
     // the discovery legal links and MCP implementation metadata. Defaults inside
     // each gateway to `https://<baseDomain>` when unset, so prod works without
@@ -572,9 +569,6 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       stripeBillingSecretArn,
       stripeCheckoutLiveEnabled,
       openAiApiKeySecretArn,
-      langfusePublicKeySecretArn,
-      langfuseSecretKeySecretArn,
-      langfuseBaseUrl,
       ...sentryContext,
       resendApiKeySecretArn,
       resendSenderEmail,

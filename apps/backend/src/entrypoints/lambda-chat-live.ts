@@ -10,7 +10,6 @@ import { readOptionalChatRequestIdHeader, type LiveStreamParams } from "../chat/
 import {
   addBackendBreadcrumb,
   captureBackendException,
-  type BackendObservationScope,
   type ChatLiveBootstrapFailureDetails,
   continueBackendTrace,
   createBackendObservationScope,
@@ -144,10 +143,7 @@ type ChatLiveRuntime = Readonly<{
   runLiveStream: typeof import("../chat/live").runLiveStream;
   createChatLiveErrorResponse: typeof import("../chat/live/errors").createChatLiveErrorResponse;
   handleLiveRequest: typeof import("../chat/live/request").handleLiveRequest;
-  flushLangfuseTelemetry: typeof import("../telemetry/langfuse").flushLangfuseTelemetry;
 }>;
-
-type FlushLangfuseTelemetry = ChatLiveRuntime["flushLangfuseTelemetry"];
 
 type ChatLiveBootstrapErrorBody = Readonly<{
   error: string;
@@ -159,22 +155,18 @@ let chatLiveRuntimePromise: Promise<ChatLiveRuntime> | null = null;
 
 async function createChatLiveRuntime(): Promise<ChatLiveRuntime> {
   const [
-    { flushLangfuseTelemetry, initializeLangfuseTelemetry },
     { runLiveStream },
     { createChatLiveErrorResponse },
     { handleLiveRequest },
   ] = await Promise.all([
-    import("../telemetry/langfuse"),
     import("../chat/live"),
     import("../chat/live/errors"),
     import("../chat/live/request"),
   ]);
-  initializeLangfuseTelemetry();
   return {
     runLiveStream,
     createChatLiveErrorResponse,
     handleLiveRequest,
-    flushLangfuseTelemetry,
   };
 }
 
@@ -184,14 +176,6 @@ function getChatLiveRuntime(): Promise<ChatLiveRuntime> {
   }
 
   return chatLiveRuntimePromise;
-}
-
-async function flushLiveTelemetry(
-  flushLangfuseTelemetry: FlushLangfuseTelemetry,
-  observationScope: BackendObservationScope,
-): Promise<void> {
-  await flushLangfuseTelemetry(observationScope);
-  await flushBackendSentry(2000);
 }
 
 function createLiveRequestUrl(event: APIGatewayProxyEventV2): URL {
@@ -264,7 +248,6 @@ async function liveStreamHandler(
     runLiveStream,
     createChatLiveErrorResponse,
     handleLiveRequest,
-    flushLangfuseTelemetry,
   } = runtime;
   const requestId = getLiveRequestId(event);
   const url = createLiveRequestUrl(event);
@@ -330,7 +313,7 @@ async function liveStreamHandler(
     const stream = awslambda.HttpResponseStream.from(responseStream, metadata);
     stream.write(JSON.stringify(errorResponse.body));
     stream.end();
-    await flushLiveTelemetry(flushLangfuseTelemetry, requestObservationScope);
+    await flushBackendSentry(2000);
     return;
   }
 
@@ -389,7 +372,7 @@ async function liveStreamHandler(
         requestId,
       }),
     ));
-    await flushLiveTelemetry(flushLangfuseTelemetry, streamObservationScope);
+    await flushBackendSentry(2000);
   } catch (error) {
     captureBackendException({
       action: "chat_live_stream_crashed",
@@ -411,7 +394,7 @@ async function liveStreamHandler(
         clientVersion: params.clientVersion ?? null,
       },
     });
-    await flushLiveTelemetry(flushLangfuseTelemetry, streamObservationScope);
+    await flushBackendSentry(2000);
     if (stream.destroyed === false && stream.writableEnded === false) {
       stream.end();
     }
@@ -422,10 +405,8 @@ const chatLiveStreamHandler: StreamifyHandler<APIGatewayProxyEventV2, void> = as
   event: APIGatewayProxyEventV2,
   responseStream: awslambda.HttpResponseStream,
 ): Promise<void> => {
-  let flushLangfuseTelemetry: ((observationScope: BackendObservationScope) => Promise<void>) | null = null;
   try {
     const runtime = await getChatLiveRuntime();
-    flushLangfuseTelemetry = runtime.flushLangfuseTelemetry;
     await liveStreamHandler(event, responseStream, runtime);
   } catch (error) {
     const normalizedError = normalizeCaughtError(error);
@@ -455,11 +436,7 @@ const chatLiveStreamHandler: StreamifyHandler<APIGatewayProxyEventV2, void> = as
     try {
       writeChatLiveBootstrapErrorResponse(responseStream, requestId);
     } finally {
-      if (flushLangfuseTelemetry === null) {
-        await flushBackendSentry(2000);
-      } else {
-        await flushLiveTelemetry(flushLangfuseTelemetry, observationScope);
-      }
+      await flushBackendSentry(2000);
     }
   }
 };

@@ -68,9 +68,6 @@ export interface ApiGatewayProps {
   stripeBillingSecretArn: string | undefined;
   stripeCheckoutLiveEnabled: boolean;
   openAiApiKeySecretArn: string | undefined;
-  langfusePublicKeySecretArn: string | undefined;
-  langfuseSecretKeySecretArn: string | undefined;
-  langfuseBaseUrl: string | undefined;
   sentryDsnSecretArn: string | undefined;
   sentryEnvironment: string | undefined;
   sentryRelease: string | undefined;
@@ -126,9 +123,6 @@ interface BackendFunctionProps {
   userPoolArn: string;
   userPoolClientId: string;
   openAiApiKeySecretArn: string | undefined;
-  langfusePublicKeySecretArn: string | undefined;
-  langfuseSecretKeySecretArn: string | undefined;
-  langfuseBaseUrl: string | undefined;
   sentryConfig: BackendSentryConfig;
   resendApiKeySecretArn: string | undefined;
   resendSenderEmail: string | undefined;
@@ -552,35 +546,6 @@ function createLambdaBundling(
   };
 }
 
-function getLangfuseSecretConfig(
-  props: Readonly<{
-    langfusePublicKeySecretArn: string | undefined;
-    langfuseSecretKeySecretArn: string | undefined;
-    langfuseBaseUrl: string | undefined;
-  }>,
-): Readonly<{
-  publicKeySecretArn: string;
-  secretKeySecretArn: string;
-  baseUrl: string;
-}> | null {
-  const hasPublicKeySecret = props.langfusePublicKeySecretArn !== undefined && props.langfusePublicKeySecretArn !== "";
-  const hasSecretKeySecret = props.langfuseSecretKeySecretArn !== undefined && props.langfuseSecretKeySecretArn !== "";
-
-  if (!hasPublicKeySecret && !hasSecretKeySecret) {
-    return null;
-  }
-
-  if (!hasPublicKeySecret || !hasSecretKeySecret) {
-    throw new Error("langfusePublicKeySecretArn and langfuseSecretKeySecretArn must both be set when Langfuse is configured");
-  }
-
-  return {
-    publicKeySecretArn: props.langfusePublicKeySecretArn as string,
-    secretKeySecretArn: props.langfuseSecretKeySecretArn as string,
-    baseUrl: props.langfuseBaseUrl ?? "https://cloud.langfuse.com",
-  };
-}
-
 function addLambdaSecretEnvironment(
   scope: Construct,
   fn: lambdaNodejs.NodejsFunction,
@@ -746,12 +711,7 @@ function addBackendSentryEnvironment(
   fn.addEnvironment("SENTRY_TRACES_SAMPLE_RATE", resolvedConfig.tracesSampleRate);
 }
 
-/**
- * Creates a backend Lambda with the shared network, database, auth, and model
- * secret configuration used by the public backend handler and detached worker.
- */
 function createBackendFunction(scope: Construct, props: BackendFunctionProps): lambdaNodejs.NodejsFunction {
-  const langfuseConfig = getLangfuseSecretConfig(props);
   const fn = createCachedNodejsFunction(scope, props.constructId, {
     entry: props.entry,
     handler: "handler",
@@ -802,9 +762,6 @@ function createBackendFunction(scope: Construct, props: BackendFunctionProps): l
       ...(props.publicAuthAlternateOrigin === undefined
         ? {}
         : { PUBLIC_AUTH_ALTERNATE_BASE_URL: props.publicAuthAlternateOrigin }),
-      ...(langfuseConfig === null
-        ? {}
-        : { LANGFUSE_BASE_URL: langfuseConfig.baseUrl }),
     },
   });
 
@@ -823,22 +780,6 @@ function createBackendFunction(scope: Construct, props: BackendFunctionProps): l
     `${props.constructId}OpenAiApiKeySecret`,
     "OPENAI_API_KEY",
   );
-  if (langfuseConfig !== null) {
-    addLambdaSecretEnvironment(
-      scope,
-      fn,
-      langfuseConfig.publicKeySecretArn,
-      `${props.constructId}LangfusePublicKeySecret`,
-      "LANGFUSE_PUBLIC_KEY",
-    );
-    addLambdaSecretEnvironment(
-      scope,
-      fn,
-      langfuseConfig.secretKeySecretArn,
-      `${props.constructId}LangfuseSecretKeySecret`,
-      "LANGFUSE_SECRET_KEY",
-    );
-  }
   addBackendSentryEnvironment(scope, fn, props.sentryConfig, props.constructId);
   addLambdaSecretEnvironment(
     scope,
@@ -1055,9 +996,6 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     userPoolArn: props.userPoolArn,
     userPoolClientId: props.userPoolClientId,
     openAiApiKeySecretArn: props.openAiApiKeySecretArn,
-    langfusePublicKeySecretArn: props.langfusePublicKeySecretArn,
-    langfuseSecretKeySecretArn: props.langfuseSecretKeySecretArn,
-    langfuseBaseUrl: props.langfuseBaseUrl,
     sentryConfig: {
       dsnSecretArn: props.sentryDsnSecretArn,
       environment: props.sentryEnvironment,
@@ -1152,9 +1090,6 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     userPoolArn: props.userPoolArn,
     userPoolClientId: props.userPoolClientId,
     openAiApiKeySecretArn: props.openAiApiKeySecretArn,
-    langfusePublicKeySecretArn: props.langfusePublicKeySecretArn,
-    langfuseSecretKeySecretArn: props.langfuseSecretKeySecretArn,
-    langfuseBaseUrl: props.langfuseBaseUrl,
     sentryConfig: {
       dsnSecretArn: props.sentryDsnSecretArn,
       environment: props.sentryEnvironment,
@@ -1197,9 +1132,6 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     userPoolArn: props.userPoolArn,
     userPoolClientId: props.userPoolClientId,
     openAiApiKeySecretArn: props.openAiApiKeySecretArn,
-    langfusePublicKeySecretArn: props.langfusePublicKeySecretArn,
-    langfuseSecretKeySecretArn: props.langfuseSecretKeySecretArn,
-    langfuseBaseUrl: props.langfuseBaseUrl,
     sentryConfig: {
       dsnSecretArn: props.sentryDsnSecretArn,
       environment: props.sentryEnvironment,

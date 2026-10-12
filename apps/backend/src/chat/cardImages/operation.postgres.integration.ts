@@ -96,7 +96,6 @@ function createInput(
         fixture.workspaceId, "generated-image-postgres-chat-request", run.runId,
         run.sessionId, null, null,
       ),
-      rootObservation: null,
     },
     signal, operationDeadlineMs: Date.now() + 120_000,
   };
