@@ -326,6 +326,11 @@ export function createGuestUpgradeExecutor(state: MutableState): DatabaseExecuto
         return communityActivityResult;
       }
 
+      if (text === "SELECT ai.transfer_guest_consent($1, $2)") {
+        context.scope.requireCurrentUserScope(String(params[1]));
+        return createQueryResult<Row>([]);
+      }
+
       throw new Error(`Unexpected query: ${text}`);
     },
   };
@@ -355,6 +360,7 @@ export function isGuestUpgradeMergeOnlyExecutorQuery(text: string): boolean {
     || text.includes("UPDATE sync.workspace_replicas")
     || text.includes("INSERT INTO auth.guest_upgrade_history")
     || text.includes("INSERT INTO auth.guest_replica_aliases")
+    || text === "SELECT ai.transfer_guest_consent($1, $2)"
     || text === "SELECT support.transfer_guest_feedback($1, $2, $3, $4)"
     || text === "SELECT community.transfer_guest_public_profile($1, $2)"
     || text.startsWith("UPDATE billing.")

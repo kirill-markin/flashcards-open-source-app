@@ -2,6 +2,7 @@ import {
   emptyChatComposerSuggestions,
   type ChatComposerSuggestion,
 } from "../composerSuggestions";
+import { HttpError } from "../../shared/errors";
 import type {
   StoredOpenAIReplayItem,
 } from "../openai/replayItems";
@@ -77,8 +78,12 @@ async function generateTerminalComposerSuggestions(
         requestId: params.requestId,
         tierAtCall: params.tierAtCall,
       },
+      params.aiConsentId ?? null,
     );
   } catch (error) {
+    if (error instanceof HttpError && error.code === "AI_CONSENT_REQUIRED") {
+      return emptyChatComposerSuggestions();
+    }
     logChatWorkerLifecycleEvent("chat_worker_composer_suggestions_failed", logContext, {
       abortReason: null,
       signalAborted: false,

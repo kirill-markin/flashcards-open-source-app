@@ -36,6 +36,7 @@ type ChatRunDiagnostics = Readonly<{
 }>;
 
 export type StartPersistedChatRunParams = Readonly<{
+  aiConsentId?: string | null;
   lambdaRequestId: string | null;
   runId: string;
   claimToken: ChatRunClaimToken;

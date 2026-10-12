@@ -88,7 +88,7 @@ The apex `<domain>` is an optional CloudFront redirect to `app.<domain>`.
 
 ## Backend runtime structure
 
-`apps/backend/src/server/app.ts` mounts ten route modules:
+`apps/backend/src/server/app.ts` mounts route modules:
 
 - `system`: runtime discovery, source-discovery probes, health, session/account inspection, and account deletion
 - `agent`: machine-facing source-discovery aliases, workspace bootstrap, and SQL endpoints
@@ -97,6 +97,7 @@ The apex `<domain>` is an optional CloudFront redirect to `app.<domain>`.
 - `cards`: workspace card query and tag summary endpoints
 - `globalSnapshot`: one public route, `GET /v1/global/snapshot`
 - `guestAuth`: guest session and upgrade endpoints
+- `aiConsent`: native AI consent receipts ([contract and verification](ai-consent.md))
 - `chatTranscriptions`: transcription upload endpoint
 - `chat`: backend-owned chat control-plane endpoints
 - `sync`: offline-first push, pull, bootstrap, and review-history endpoints

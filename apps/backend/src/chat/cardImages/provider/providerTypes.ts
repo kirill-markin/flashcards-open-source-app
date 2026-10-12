@@ -9,6 +9,7 @@ export type GeneratedProviderImage = Readonly<{
 }>;
 
 export type OpenAIImageGenerationInput = Readonly<{
+  aiConsentId?: string | null;
   userId: string;
   imagePrompt: string;
   observationContext: GeneratedCardImageObservationContext;
