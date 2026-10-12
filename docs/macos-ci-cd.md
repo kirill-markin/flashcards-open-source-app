@@ -146,8 +146,11 @@ Keep the existing non-production Sentry override for these tests.
 Successful Mac smokes retain `mac-review-formulas` and
 `mac-ai-companion-focus` window/screen image attachments. Inspect rendered
 formulas and actual layout; control assertions alone do not prove visual
-correctness. Record the result bundle and attachment names. These are also
-the shortest source of actual Mac store screenshots. Inspect pixels before
+correctness. Record the result bundle and attachment names. For repeatable localized store originals, use the separate
+[native Mac marketing capture](../apps/ios/docs/marketing-screenshots.md#native-mac-catalyst-capture)
+with its genuine capture-only bundle/profile, separate runtime file and
+`tmp/macos-marketing-derived-data`. That route checks isolation before guest
+cleanup and preserves the installed production container. Inspect pixels before
 reuse: Apple accepts 2880×1800, 2560×1600, 1440×900 or 1280×800. The Mac display
 and window determine capture dimensions; an attachment is not automatically
 store-ready. If size/content is unsuitable, capture the verified Mac artifact

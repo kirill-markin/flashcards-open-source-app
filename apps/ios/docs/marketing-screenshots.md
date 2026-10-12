@@ -1,6 +1,6 @@
-# iOS Marketing Screenshots
+# Apple Marketing Screenshots
 
-This document explains the manual iOS App Store screenshot generator and the derived iOS marketing-material builder.
+This document explains native iOS and Mac Catalyst App Store capture and the derived iOS marketing-material builder.
 
 The generator is a small manual pipeline built from:
 
@@ -176,7 +176,7 @@ Use these canonical targets for committed App Store assets:
 | Family | Simulator | Capture pixels | Upload display slot |
 | --- | --- | --- | --- |
 | iPhone | `iPhone 14 Plus` | `1284 × 2778` | `APP_IPHONE_65` |
-| iPad | `iPad Pro 13-inch (M5)` | `2064 × 2752` portrait or `2752 × 2064` landscape | `APP_IPAD_PRO_3GEN_129` |
+| iPad | `iPad Pro 13-inch (M5)` | `2752 × 2064` landscape | `APP_IPAD_PRO_3GEN_129` |
 | iPhone Duo outer | `iPhone Duo` with outer display selected | `1398 × 2034` portrait | Duo outer display |
 | iPhone Duo inner | `iPhone Duo` with inner display selected | `2853 × 2007` landscape | Duo inner display |
 
@@ -280,11 +280,11 @@ Run the unified scenario for a specific locale:
 bash scripts/ios/capture-ios-marketing-screenshots.sh --locale es-ES
 ```
 
-The default orientation is landscape on iPad and Duo inner, portrait on ordinary
-iPhone and Duo outer. Override it
-with `--orientation portrait|landscape` or
-`FLASHCARDS_MARKETING_SCREENSHOT_ORIENTATION`; the CLI option wins. Landscape
-is refused on ordinary iPhone and Duo outer; Duo inner requires landscape. Each capture
+Capture orientation is landscape on iPad and Duo inner, portrait on ordinary
+iPhone and Duo outer. `--orientation` or
+`FLASHCARDS_MARKETING_SCREENSHOT_ORIENTATION` may declare the required orientation;
+the CLI option wins. iPad and Duo inner refuse portrait. Ordinary iPhone and
+Duo outer refuse landscape. Each capture
 asserts the requested orientation before publishing; do not rotate exported
 portrait pixels. For a local filesystem that adds signing resource forks, set
 `FLASHCARDS_IOS_DERIVED_DATA_PATH` to an unsynced DerivedData path while retaining
@@ -332,9 +332,7 @@ FLASHCARDS_MARKETING_SCREENSHOT_LOCALE=zh-Hans bash scripts/ios/capture-ios-mark
 The approved orange/yellow store cards have their own independent
 [processing flow](../../../docs/store-screenshot-processing.md). Its
 [format profiles](../../../docs/store-screenshot-processing.md#format-profiles)
-accept both canonical iPad capture orientations inside the approved portrait
-frame and use a landscape frame for Duo inner captures. No rotation or recapture
-is needed for processing. It reads saved native
+describe the supported native dimensions and frames. It reads saved native
 PNGs and writes `apps/ios/docs/media/app-store-cards/`, without invoking
 XCUITest, guest cleanup, this horizontal builder, or store upload:
 
@@ -480,3 +478,66 @@ Future marketing screenshot flows should keep the same shape:
 6. If the new raw screenshots should also produce a derived composition, update `scripts/ios/build-ios-marketing-materials.sh` and document the new output in this file.
 
 That keeps the pipeline reviewable, deterministic, localized, and separate from the normal iOS smoke suite.
+
+## Native Mac Catalyst capture
+
+Mac capture uses the same five localized fixtures and genuine product screens,
+with native filename indices 1 front, 2 answer, 3 progress, 4 AI draft, 5 cards.
+The independent [store-card processor](../../../docs/store-screenshot-processing.md)
+orders the cards as 4, 1, 2, 3, 5. Capture never processes or uploads images.
+The complete target inventory is 210 originals for the 42 existing Store locales;
+wrapper support alone does not establish that those files have been generated.
+
+Prepare the gitignored `Config/Local.xcconfig` with the service values from
+[local setup](../../../docs/ios-local-setup.md). Follow the
+[signed Mac prerequisites](../../../docs/macos-ci-cd.md#signed-local-native-alternative)
+with a separately registered `com.flashcards-open-source-app.app.marketing-capture`
+identifier and genuine matching development profile. The external signing
+xcconfig must override `APP_BUNDLE_IDENTIFIER`, `DEVELOPMENT_TEAM` and
+`CODE_SIGN_IDENTITY = Apple Development`, assigning the capture app profile only
+to the `Flashcards` module. Keep production target settings unchanged. The
+wrapper checks the built bundle, its signature, both private app identities and
+the registered Mac before any guest reset. It refuses the production bundle;
+its container and pending outbox are never capture inputs.
+
+Run from the repository root on an unlocked Mac with a display large enough for
+the complete app window. Do not interact with that window while XCTest drives it:
+
+```bash
+bash scripts/ios/capture-macos-marketing-screenshots.sh \
+  --signing-xcconfig /absolute/path/mac-capture-signing.xcconfig \
+  --mac-id <registered-mac-id> --locale en-US
+```
+
+`--list-locales` prints the existing 42 Store capture tags; `--locale` accepts a
+capture tag or its Store locale ID. `--all-locales` captures them sequentially
+using one build. `--skip-build` reuses the original generated `.xctestrun` only
+when application/test sources and signing inputs remain unchanged. Rebuild after
+any change. Mac products use `tmp/macos-marketing-derived-data`; an unsynced
+alternative may be supplied through `FLASHCARDS_MACOS_MARKETING_DERIVED_DATA_PATH`.
+
+The default native window size is 1440 × 900 pixels. `--size` also accepts
+1280x800, 2560x1600 and 2880x1800. Public XCTest mouse drags resize the genuine
+Catalyst window before each scenario launch; capture reads the native window element’s `screenshot()`.
+Every exported PNG must contain the complete window at exactly the requested
+size, with opaque native pixels and no desktop. The wrapper fails on a size
+mismatch; it never stretches, crops or substitutes an iPad image.
+
+Outputs publish to `apps/ios/docs/media/app-store-screenshots/macos/`, using
+`<locale>-<index>_<slug>.png`. For an untracked pilot use
+`--output-directory /absolute/tmp/path`. Each locale stages under
+`tmp/macos-marketing-capture.*`. The sandboxed UI runner writes native opaque
+PNGs into its own temporary directory, records them as named XCTest attachments
+and removes those private temporary files. The wrapper exports the five PNGs
+with `xcresulttool`, runs guest cleanup before and after capture, checks all five
+PNGs and removes runtime configuration before publishing. An
+exit trap retries pending cleanup after failures. Existing locale originals
+remain untouched on capture, verification or cleanup failure. Staging and
+`.xcresult` bundles are retained there as evidence, including failed runs.
+
+Mac runtime configuration lives at
+`/tmp/flashcards-open-source-app-macos-marketing-screenshot-config.json`, with a
+capture lock beside it. It is independent of the iOS/Duo runtime file. Capture
+only one Mac sequence at a time; a stale lock requires checking that its previous
+run has ended before removal. Native Mac capture is manual and excluded from
+ordinary CI, unrelated smoke selections, release and store upload.
