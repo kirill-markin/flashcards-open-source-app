@@ -31,7 +31,7 @@ internal fun handleCameraAction(
     textProvider: AiTextProvider,
     onShowAlert: (AiAlertState) -> Unit,
     onShowErrorMessage: (String) -> Unit,
-    takePictureLauncher: ActivityResultLauncher<Void?>,
+    onLaunchCamera: () -> Unit,
     cameraPermissionLauncher: ActivityResultLauncher<String>
 ) {
     if (activity == null) {
@@ -70,7 +70,7 @@ internal fun handleCameraAction(
                 return
             }
 
-            takePictureLauncher.launch(null)
+            onLaunchCamera()
         }
 
         AiCapabilityPresentationResult.StopSilently -> Unit
