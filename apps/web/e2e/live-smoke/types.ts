@@ -43,5 +43,6 @@ export type LiveSmokeSession = {
   scenario: LiveSmokeScenario;
   baseUrl: string;
   reviewEmail: string;
+  ownedWorkspaceId: string | null;
   cleanupRequested: boolean;
 };
