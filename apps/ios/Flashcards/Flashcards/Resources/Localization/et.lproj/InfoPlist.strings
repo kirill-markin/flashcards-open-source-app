@@ -1,5 +1,5 @@
 "kMDItemKeywords" = "flashcards,flash cards,õpikaardid,mälukaardid,õppimine,kordamine,kordamiskaardid";
 "MDItemKeywords" = "flashcards,flash cards,õpikaardid,mälukaardid,õppimine,kordamine,kordamiskaardid";
-"NSCameraUsageDescription" = "Luba juurdepääs kaamerale, et pildistada tehisintellekti vestluse manuste jaoks.";
-"NSMicrophoneUsageDescription" = "Luba juurdepääs mikrofonile, et dikteerida teksti tehisintellekti vestlusesse.";
-"NSPhotoLibraryUsageDescription" = "Luba juurdepääs fotokogule, et valida fotosid tehisintellekti vestluse manusteks.";
+"NSCameraUsageDescription" = "Tee fotosid tehisintellektivestluse jaoks. Lisatud fotod saadetakse OpenAI-le tehisintellektiga töötlemiseks.";
+"NSMicrophoneUsageDescription" = "Salvesta dikteerimisheli ja saada see OpenAI-le tehisintellektivestluse jaoks tekstiks teisendamiseks.";
+"NSPhotoLibraryUsageDescription" = "Vali fotod, mida lisada tehisintellektivestlusse ja saata OpenAI-le tehisintellektiga töötlemiseks.";

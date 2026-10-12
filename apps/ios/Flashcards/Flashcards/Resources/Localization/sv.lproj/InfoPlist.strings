@@ -1,5 +1,5 @@
 "kMDItemKeywords" = "flashcards,flash cards,minneskort,pluggkort,studiekort,repetitionskort";
 "MDItemKeywords" = "flashcards,flash cards,minneskort,pluggkort,studiekort,repetitionskort";
-"NSCameraUsageDescription" = "Tillåt kameraåtkomst för att ta bilder att bifoga i AI-chatten.";
-"NSMicrophoneUsageDescription" = "Tillåt mikrofonåtkomst för att diktera text i AI-chatten.";
-"NSPhotoLibraryUsageDescription" = "Tillåt åtkomst till bildbiblioteket för att välja bilder att bifoga i AI-chatten.";
+"NSCameraUsageDescription" = "Ta bilder för AI-chatten. Bifogade bilder skickas till OpenAI för AI-bearbetning.";
+"NSMicrophoneUsageDescription" = "Spela in dikteringsljud och skicka det till OpenAI för att omvandla det till text för AI-chatten.";
+"NSPhotoLibraryUsageDescription" = "Välj bilder att bifoga i AI-chatten och skicka till OpenAI för AI-bearbetning.";
