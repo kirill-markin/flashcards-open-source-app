@@ -12,7 +12,6 @@ type TestToolCallResult = Readonly<{
   succeeded: boolean;
   shouldInvalidateMainContent?: boolean;
   stopReason?: "deadline_reached" | "run_inactive" | null;
-  generatedImageTelemetry?: null;
   sqlTelemetry?: null;
   toolErrorClass?: string | null;
 }>;
@@ -43,7 +42,6 @@ export function createParams(
     timezone: "Europe/Madrid",
     localMessages: [],
     turnInput: [{ type: "text", text: "hello" }],
-    rootObservation: null,
     ...overrides,
   };
 }
@@ -345,14 +343,14 @@ export function createDependencies(
     buildChatCompletionInput: async () => [],
     buildChatCompletionInputWithBudget: async () => [],
     appendAiUsageEvent: async () => undefined,
-    getObservedOpenAIClient: () => ({
+    getOpenAIClient: () => ({
       responses: {
         create: async (
           request: OpenAI.Responses.ResponseCreateParamsStreaming,
         ): Promise<OpenAIResponseStream> => streamFactory(request),
       },
     } as unknown as OpenAI),
-    createObservedUserOpenAIClient: () => {
+    createUserOpenAIClient: () => {
       throw new Error("Loop tests run on the platform key and never build a client from the person's own key.");
     },
     runOneToolCall: async (params) => {
@@ -362,7 +360,6 @@ export function createDependencies(
         shouldInvalidateMainContent: result.shouldInvalidateMainContent
           ?? (result.succeeded && result.isMutating),
         stopReason: result.stopReason ?? null,
-        generatedImageTelemetry: result.generatedImageTelemetry ?? null,
         sqlTelemetry: result.sqlTelemetry ?? null,
         toolErrorClass: result.toolErrorClass ?? null,
         modelContent: null,

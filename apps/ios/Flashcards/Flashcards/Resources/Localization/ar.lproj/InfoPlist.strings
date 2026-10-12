@@ -1,5 +1,5 @@
 "kMDItemKeywords" = "flashcards,flash cards,بطاقات تعليمية,بطاقات,بطاقات الدراسة,بطاقات المراجعة";
 "MDItemKeywords" = "flashcards,flash cards,بطاقات تعليمية,بطاقات,بطاقات الدراسة,بطاقات المراجعة";
-"NSCameraUsageDescription" = "اسمح بالوصول إلى الكاميرا لالتقاط صور لمرفقات دردشة الذكاء الاصطناعي.";
-"NSMicrophoneUsageDescription" = "اسمح بالوصول إلى الميكروفون لإملاء النص في دردشة الذكاء الاصطناعي.";
-"NSPhotoLibraryUsageDescription" = "اسمح بالوصول إلى مكتبة الصور لاختيار صور لمرفقات دردشة الذكاء الاصطناعي.";
+"NSCameraUsageDescription" = "التقط صورًا لمحادثة الذكاء الاصطناعي. تُرسل الصور التي ترفقها إلى OpenAI لمعالجتها بالذكاء الاصطناعي.";
+"NSMicrophoneUsageDescription" = "سجّل صوت الإملاء وأرسله إلى OpenAI لتحويله إلى نص لمحادثة الذكاء الاصطناعي.";
+"NSPhotoLibraryUsageDescription" = "اختر صورًا لإرفاقها بمحادثة الذكاء الاصطناعي وإرسالها إلى OpenAI لمعالجتها بالذكاء الاصطناعي.";

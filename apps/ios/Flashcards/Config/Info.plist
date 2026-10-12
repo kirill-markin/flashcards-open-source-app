@@ -102,11 +102,11 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Allow camera access to take photos for AI chat attachments.</string>
+	<string>Take photos for AI chat. Photos you attach are sent to OpenAI for AI processing.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Allow microphone access to dictate text into AI chat.</string>
+	<string>Record dictation audio and send it to OpenAI to transcribe text for AI chat.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Allow photo library access to choose photos for AI chat attachments.</string>
+	<string>Choose photos to attach to AI chat and send to OpenAI for AI processing.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

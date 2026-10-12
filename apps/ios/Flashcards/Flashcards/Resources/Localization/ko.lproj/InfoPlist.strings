@@ -1,5 +1,5 @@
 "kMDItemKeywords" = "flashcards,flash cards,플래시카드,플래시 카드,암기 카드,학습 카드,복습 카드";
 "MDItemKeywords" = "flashcards,flash cards,플래시카드,플래시 카드,암기 카드,학습 카드,복습 카드";
-"NSCameraUsageDescription" = "AI 채팅에 첨부할 사진을 찍도록 카메라 접근을 허용하세요.";
-"NSMicrophoneUsageDescription" = "AI 채팅에 음성으로 텍스트를 입력하도록 마이크 접근을 허용하세요.";
-"NSPhotoLibraryUsageDescription" = "AI 채팅에 첨부할 사진을 선택하도록 사진 보관함 접근을 허용하세요.";
+"NSCameraUsageDescription" = "AI 채팅용 사진을 촬영합니다. 첨부한 사진은 AI 처리를 위해 OpenAI로 전송됩니다.";
+"NSMicrophoneUsageDescription" = "음성 입력을 녹음하고 OpenAI로 보내 AI 채팅용 텍스트로 변환합니다.";
+"NSPhotoLibraryUsageDescription" = "AI 채팅에 첨부할 사진을 선택하고 AI 처리를 위해 OpenAI로 보냅니다.";

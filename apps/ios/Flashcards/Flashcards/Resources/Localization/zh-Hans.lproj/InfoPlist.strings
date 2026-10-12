@@ -1,5 +1,5 @@
 "kMDItemKeywords" = "flashcards,flash cards,闪卡,抽认卡,学习卡片,复习卡片";
 "MDItemKeywords" = "flashcards,flash cards,闪卡,抽认卡,学习卡片,复习卡片";
-"NSCameraUsageDescription" = "允许访问相机，以便为 AI 聊天附件拍摄照片。";
-"NSMicrophoneUsageDescription" = "允许访问麦克风，以便在 AI 聊天中进行语音输入。";
-"NSPhotoLibraryUsageDescription" = "允许访问照片图库，以便为 AI 聊天附件选择照片。";
+"NSCameraUsageDescription" = "拍摄用于 AI 聊天的照片。附加的照片会发送给 OpenAI 进行 AI 处理。";
+"NSMicrophoneUsageDescription" = "录制语音输入并发送给 OpenAI，转写成用于 AI 聊天的文本。";
+"NSPhotoLibraryUsageDescription" = "选择照片附加到 AI 聊天中，并发送给 OpenAI 进行 AI 处理。";

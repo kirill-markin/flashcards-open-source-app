@@ -8,14 +8,16 @@ import { createClient, object, request, resource, string, text } from "./app-sto
 import type { Client, Json, JsonObject, Resource } from "./app-store-connect-client.mts";
 
 const USAGE = [
-  "Upload ten Duo store cards per selected locale to an existing editable iOS version.",
-  "node scripts/ios/upload-app-store-duo-screenshots.mts --version <editable-version> --screenshots apps/ios/docs/media/app-store-cards/ready --locale en-US",
+  "Upload five or ten Duo store cards per selected locale to an existing editable iOS version.",
+  "node scripts/ios/upload-app-store-duo-screenshots.mts --version <editable-version> --screenshots apps/ios/docs/media/app-store-cards/ready --locale en-US --family iphone-duo-inner",
+  "Required --family: iphone-duo-inner, iphone-duo-outer, or all (outer 1–5, then inner 1–5).",
   "Use --all-locales instead of --locale for all 42 existing Store locales.",
   "Requires Node 24 and the main checkout's App Store Connect .env credentials.",
   "This is a live write command. It does not capture, render, create or submit a version.",
 ].join("\n");
 
 const FAMILIES = ["iphone-duo-outer", "iphone-duo-inner"] as const;
+type Family = (typeof FAMILIES)[number];
 type ImageFile = { path: string; fileName: string; size: number; width: number; height: number; referenceName: string; specId: string; slot: string };
 type Locale = { storeLocale: string; captureTag: string };
 type Placement = { id: string; imageId: string; image: Resource };
@@ -106,8 +108,8 @@ function matchingSpec(specs: Map<string, JsonObject>, width: number, height: num
   return matches[0][0];
 }
 
-function loadFiles(root: string, locale: Locale, specs: Map<string, JsonObject>): ImageFile[] {
-  return FAMILIES.flatMap((family) => {
+function loadFiles(root: string, locale: Locale, specs: Map<string, JsonObject>, families: readonly Family[]): ImageFile[] {
+  return families.flatMap((family) => {
     const directory = join(root, family);
     const names = readdirSync(directory);
     return [1, 2, 3, 4, 5].map((index) => {
@@ -323,10 +325,14 @@ async function applyPlan(client: Client, libraryId: string, group: string, limit
 }
 
 async function main(): Promise<void> {
-  const { values } = parseArgs({ options: { version: { type: "string" }, screenshots: { type: "string" }, locale: { type: "string" }, "all-locales": { type: "boolean" }, help: { type: "boolean" } }, strict: true });
+  const { values } = parseArgs({ options: { version: { type: "string" }, screenshots: { type: "string" }, locale: { type: "string" }, "all-locales": { type: "boolean" }, family: { type: "string" }, help: { type: "boolean" } }, strict: true });
   if (values.help) { console.log(USAGE); return; }
   if (values.version === undefined || values.screenshots === undefined || (values.locale === undefined) === (values["all-locales"] !== true)) throw new Error(USAGE);
   if (!/^\d+(?:\.\d+){1,2}$/.test(values.version)) throw new Error("--version must name an explicit numeric App Store version");
+  if (values.family !== "iphone-duo-inner" && values.family !== "iphone-duo-outer" && values.family !== "all") {
+    throw new Error("--family is required: iphone-duo-inner, iphone-duo-outer, or all");
+  }
+  const families: readonly Family[] = values.family === "all" ? FAMILIES : [values.family];
   const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
   const locales = JSON.parse(readFileSync(join(repoRoot, "scripts/store-screenshots/assets/app-store/store-locales.json"), "utf8")) as Locale[];
   if (!Array.isArray(locales) || locales.length !== 42 || locales.some((locale) => typeof locale.storeLocale !== "string" || typeof locale.captureTag !== "string")) {
@@ -352,7 +358,7 @@ async function main(): Promise<void> {
   if (library.type !== "appAssetLibraries") throw new Error("App did not return an asset library");
   const libraryId = string(library.id, "assetLibrary.id");
   const root = resolve(values.screenshots);
-  const files = selected.map((locale) => loadFiles(root, locale, reference.specs));
+  const files = selected.map((locale) => loadFiles(root, locale, reference.specs, families));
   const localizations = await client.list("/v1/appStoreVersions/" + version.id + "/appStoreVersionLocalizations?limit=200", "appStoreVersionLocalizations");
   const images = await client.list("/v1/appAssetLibraries/" + libraryId + "/images?limit=200", "appAssetLibraryImages");
   const plans: Plan[] = [];
@@ -369,10 +375,10 @@ async function main(): Promise<void> {
     }
     plans.push({ locale, localizationId: matches[0].id, files: files[index] });
   }
-  console.log(JSON.stringify({ event: "duo_preflight_complete", version: values.version, locales: plans.length, images: plans.length * 10, group: reference.group, limit: reference.limit }));
+  console.log(JSON.stringify({ event: "duo_preflight_complete", version: values.version, family: values.family, locales: plans.length, images: files.reduce((count, localeFiles) => count + localeFiles.length, 0), group: reference.group, limit: reference.limit }));
   for (const plan of plans) await applyPlan(client, libraryId, reference.group, reference.limit, plan, images, guard);
   await guard();
-  console.log(JSON.stringify({ event: "duo_upload_verified", version: values.version, locales: plans.length }));
+  console.log(JSON.stringify({ event: "duo_upload_verified", version: values.version, family: values.family, locales: plans.length, images: files.reduce((count, localeFiles) => count + localeFiles.length, 0) }));
 }
 
 await main();

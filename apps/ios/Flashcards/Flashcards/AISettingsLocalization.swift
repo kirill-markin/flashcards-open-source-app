@@ -141,11 +141,11 @@ func localizedAccessPermissionKindTitle(_ kind: AccessPermissionKind) -> String 
 func localizedAccessPermissionDescription(_ kind: AccessPermissionKind) -> String {
     switch kind {
     case .photos:
-        return aiSettingsLocalized("settings.access.description.photos", "Choose photos for AI chat attachments.")
+        return aiSettingsLocalized("settings.access.description.photos", "Choose photos to attach to AI chat and send to OpenAI for AI processing.")
     case .camera:
-        return aiSettingsLocalized("settings.access.description.camera", "Take photos directly from AI chat.")
+        return aiSettingsLocalized("settings.access.description.camera", "Take photos for AI chat. Photos you attach are sent to OpenAI for AI processing.")
     case .microphone:
-        return aiSettingsLocalized("settings.access.description.microphone", "Dictate text into AI chat.")
+        return aiSettingsLocalized("settings.access.description.microphone", "Record dictation audio and send it to OpenAI to transcribe text for AI chat.")
     }
 }
 

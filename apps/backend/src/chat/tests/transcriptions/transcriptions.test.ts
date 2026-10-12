@@ -100,10 +100,10 @@ async function assertTranscriptionHttpError(
       },
       createFailingTranscriptionClient(error),
       {
-        getObservedOpenAIClient: () => {
+        getOpenAIClient: () => {
           throw new Error("Expected explicit transcription client.");
         },
-        createObservedUserOpenAIClient: () => {
+        createUserOpenAIClient: () => {
           throw new Error("Expected explicit transcription client.");
         },
       },

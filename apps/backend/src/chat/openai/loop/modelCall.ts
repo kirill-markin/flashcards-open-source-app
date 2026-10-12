@@ -1,5 +1,4 @@
 import OpenAI from "openai";
-import type { LangfuseObservation } from "@langfuse/tracing";
 import { applyToolCallOutput, type ToolCallStateMap } from "../tools/toolCalls";
 import {
   toOpenAIResponseInputItem,
@@ -97,7 +96,6 @@ export type RunOneToolCall = (params: Readonly<{
   clientDeviceType: ProductAnalyticsDeviceType | null;
   initiatingAuthIsSignedIn: boolean;
   userOpenAIApiKey: UserOpenAIApiKey | null;
-  rootObservation: LangfuseObservation | null;
 }>) => Promise<ExecutedChatToolCall>;
 
 type ExecuteToolCallsParams = Readonly<{
@@ -118,7 +116,6 @@ type ExecuteToolCallsParams = Readonly<{
   clientDeviceType: ProductAnalyticsDeviceType | null;
   initiatingAuthIsSignedIn: boolean;
   userOpenAIApiKey: UserOpenAIApiKey | null;
-  rootObservation: LangfuseObservation | null;
   onExecutionPhaseChanged: ((phase: "idle" | "model" | "tool", toolName: string | null) => void) | undefined;
   shouldStopBeforeNextStep: (() => boolean) | undefined;
   onEvent: OpenAILoopEventSink;
@@ -385,7 +382,6 @@ export async function executeToolCalls(
         clientDeviceType: params.clientDeviceType,
         initiatingAuthIsSignedIn: params.initiatingAuthIsSignedIn,
         userOpenAIApiKey: params.userOpenAIApiKey,
-        rootObservation: params.rootObservation,
       });
       if (output.stopReason !== null) {
         return {
