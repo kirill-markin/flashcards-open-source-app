@@ -10,7 +10,7 @@ This stack deploys v1 backend infrastructure for `flashcards-open-source-app`.
 - API Gateway (REST API) for backend + API Gateway (REST API) for auth + backend/auth/worker/email Lambdas
 - S3 bucket + CloudFront distribution for the web app
 - Secrets Manager — DB credentials (auto-generated), backend/auth DB passwords, session encryption key
-- Optional Secrets Manager secrets for Resend, the review/demo auth password, AI provider API keys, and Langfuse telemetry keys
+- Optional Secrets Manager secrets for Resend, the review/demo auth password, and AI provider API keys
 - CloudWatch alarms + SNS notifications
 - AWS Backup plan for RDS
 - GitHub Actions OIDC deployment role
@@ -38,7 +38,6 @@ Keep these values in root `.env` before running setup or deploy scripts:
 - `RESEND_API_KEY`
 - `RESEND_ADMIN_API_KEY`
 - `OPENAI_API_KEY` when needed
-- `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, and optionally `LANGFUSE_BASE_URL` when Langfuse tracing is enabled
 - Required backend Sentry setup:
   `SENTRY_DSN` for bootstrap-created AWS secret `flashcards-open-source-app/sentry-dsn`, or `SENTRY_DSN_SECRET_ARN` for an existing AWS Secrets Manager secret; `SENTRY_ENVIRONMENT`; `SENTRY_RELEASE` (required legacy context input; CI supplies the GitHub SHA, while Lambda release labels use the emitted code asset hash); `SENTRY_TRACES_SAMPLE_RATE`; `SENTRY_ORG`; `SENTRY_BACKEND_PROJECT`; and `SENTRY_AUTH_TOKEN` for backend source map uploads
 - Optional web Sentry setup:
@@ -92,7 +91,7 @@ For cloud verification, compare the `lambda_asset_cache` JSON records in the fir
 - `bash scripts/setup/setup-resend-secret.sh --region <aws-region>`
   Stores `RESEND_API_KEY` in AWS Secrets Manager and derives `no-reply@mail.<domain>` from `DOMAIN_NAME`.
 - `bash scripts/setup/setup-ai-secrets.sh --region <aws-region>`
-  Stores optional AI provider keys and Langfuse keys in AWS Secrets Manager.
+  Stores optional AI provider keys in AWS Secrets Manager.
 - `bash scripts/setup/setup-auth-secrets.sh --region <aws-region>`
   Stores the shared insecure review/demo password in AWS Secrets Manager when `DEMO_PASSWORD_DOSTIP` is set.
 
@@ -146,27 +145,6 @@ This AWS bootstrap helper does not manage the Android Google Cloud and Firebase 
 
 - docs: [`docs/android-ci-cd.md`](../../docs/android-ci-cd.md)
 - sync command: `bash scripts/android/setup-github-android.sh`
-
-## Langfuse tracing
-
-The modern backend-owned AI surfaces can export Langfuse traces:
-
-- persisted `/chat` worker runs use trace name `chat_turn`
-- `/chat/transcriptions` uses trace name `chat_transcription`
-
-Required deploy inputs when Langfuse is enabled:
-
-- AWS secret `flashcards-open-source-app/langfuse-public-key`
-- AWS secret `flashcards-open-source-app/langfuse-secret-key`
-- optional GitHub variable `CDK_LANGFUSE_BASE_URL`
-
-The helper flow is:
-
-1. Set `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, and optionally `LANGFUSE_BASE_URL` in root `.env`.
-2. Run `bash scripts/setup/setup-ai-secrets.sh --region <aws-region>`.
-3. Run `bash scripts/setup/setup-github.sh`.
-4. Deploy as usual.
-5. Verify traces in Langfuse using [`docs/langfuse-operations.md`](../../docs/langfuse-operations.md).
 
 ## Review/demo accounts
 

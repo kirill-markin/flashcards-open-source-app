@@ -16,12 +16,7 @@ import {
   updateAssistantMessageItem,
   updateAssistantMessageItemAndInvalidateMainContent,
 } from "../store";
-import {
-  startChatTurnObservation,
-} from "../../telemetry/langfuse";
-
 export type ChatRuntimeDependencies = Readonly<{
-  startChatTurnObservation: typeof startChatTurnObservation;
   startOpenAILoop: typeof startOpenAILoop;
   generateFollowUpChatComposerSuggestions: typeof generateFollowUpChatComposerSuggestions;
   completeChatRun: typeof completeClaimedChatRun;
@@ -37,7 +32,6 @@ export type ChatRuntimeDependencies = Readonly<{
 }>;
 
 export const DEFAULT_CHAT_RUNTIME_DEPENDENCIES: ChatRuntimeDependencies = {
-  startChatTurnObservation,
   startOpenAILoop,
   generateFollowUpChatComposerSuggestions,
   completeChatRun: completeClaimedChatRun,
