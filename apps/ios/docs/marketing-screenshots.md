@@ -19,15 +19,15 @@ The capture catalog supports 50 capture tags (49 languages): the 42 Store locale
 plus `bg`, `et`, `fa`, `is`, `lt`, `lv`, `sw`, and `zu`. The expected raw
 inventory is five screenshots per tag per captured device family: 250 iPhone PNGs
 and 210 iPad PNGs, because the eight non-Store tags are captured on iPhone only.
-The optional iPhone Duo outer and inner families each use the 42 Store locales
-(210 PNGs per display once captured). Five genuine `en-US` PNGs per display are
-tracked now; the remaining 41 locales per display have not been captured. Their
-capture provenance is in the separate
+The optional iPhone Duo inner family has 210 tracked native PNGs for the 42
+Store locales. The outer family has five tracked English native PNGs; its
+remaining locales have not been captured. Their capture provenance is in
+the separate
 [`duo-source-manifest.json`](media/app-store-cards/duo-source-manifest.json).
 The complete Mac inventory and its provenance are recorded under
 [Native Mac Catalyst capture](#native-mac-catalyst-capture).
-Catalog support alone does not establish that other assets have been generated
-or uploaded.
+The prepared inner cards have been uploaded to the iOS 1.33.0 listing for all
+42 Store locales. The English outer cards have not been placed.
 
 Each locale captures:
 

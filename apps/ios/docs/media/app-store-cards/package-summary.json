@@ -1,11 +1,11 @@
 {
-  "images": 680,
-  "appStoreImages": 640,
+  "images": 885,
+  "appStoreImages": 845,
   "additionalImages": 40,
   "languages": 49,
   "captureTags": 50,
   "storeLocalizations": 42,
-  "sets": 136,
+  "sets": 177,
   "sourceRevision": "4fb044b41043b4c0344ef6763253f8e3d2c0bb0f",
   "families": {
     "iphone": {
@@ -26,7 +26,7 @@
     "iphone-duo-inner": {
       "width": 2853,
       "height": 2007,
-      "storeImages": 5
+      "storeImages": 210
     },
     "macos": {
       "width": 2880,
