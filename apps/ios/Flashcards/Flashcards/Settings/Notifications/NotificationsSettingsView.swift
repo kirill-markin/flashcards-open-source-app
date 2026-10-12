@@ -6,6 +6,7 @@ struct NotificationsSettingsView: View {
 
     @State private var permissionStatus: ReviewNotificationPermissionStatus = .notRequested
     @State private var permissionErrorMessage: String = ""
+    @State private var isRequestingPermission: Bool = false
 
     var body: some View {
         List {
@@ -20,9 +21,17 @@ struct NotificationsSettingsView: View {
                     Text(localizedReviewNotificationPermissionStatusTitle(self.permissionStatus))
                 }
 
-                Button(localizedReviewNotificationPermissionActionTitle(self.permissionStatus)) {
+                Button {
                     self.handlePermissionAction()
+                } label: {
+                    HStack {
+                        Text(localizedReviewNotificationPermissionActionTitle(self.permissionStatus))
+                        if self.isRequestingPermission {
+                            ProgressView()
+                        }
+                    }
                 }
+                .disabled(self.isRequestingPermission)
             }
 
             if self.permissionStatus == .allowed {
@@ -258,22 +267,24 @@ struct NotificationsSettingsView: View {
     }
 
     private func handlePermissionAction() {
-        switch self.permissionStatus {
-        case .allowed, .blocked:
-            Task { @MainActor in
-                self.permissionErrorMessage = ""
-                do {
-                    try await openApplicationSettings()
-                } catch {
-                    self.permissionErrorMessage = errorMessage(error: error)
-                }
+        let permissionStatus = self.permissionStatus
+        self.isRequestingPermission = true
+        self.permissionErrorMessage = ""
+        Task { @MainActor in
+            defer {
+                self.isRequestingPermission = false
             }
-        case .notRequested:
-            Task { @MainActor in
-                self.permissionStatus = await store.requestReviewNotificationPermissionFromSettings(
-                    now: Date()
-                )
-                self.permissionErrorMessage = ""
+            do {
+                switch permissionStatus {
+                case .allowed, .blocked:
+                    try await openApplicationSettings()
+                case .notRequested:
+                    self.permissionStatus = try await store.requestReviewNotificationPermissionFromSettings(
+                        now: Date()
+                    )
+                }
+            } catch {
+                self.permissionErrorMessage = errorMessage(error: error)
             }
         }
     }
