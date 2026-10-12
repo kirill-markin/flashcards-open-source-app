@@ -17,6 +17,7 @@ export const browserCorsAllowHeaders = [
   "x-media-last-operation-id",
   "x-package-media-key",
   "x-openai-api-key",
+  "x-ai-consent-id",
 ] as const;
 
 export const browserCorsExposeHeaders = [

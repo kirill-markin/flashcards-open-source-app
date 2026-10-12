@@ -350,6 +350,7 @@ export async function runPersistedChatSessionWithDeps(
         "chat.worker.openai_loop",
         "ai.openai",
         async () => dependencies.startOpenAILoop({
+          aiConsentId: params.aiConsentId ?? null,
           requestId: params.requestId,
           runId: params.runId,
           claimToken: params.claimToken,

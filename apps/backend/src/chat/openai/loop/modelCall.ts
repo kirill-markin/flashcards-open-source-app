@@ -1,4 +1,6 @@
 import OpenAI from "openai";
+import { assertAiConsentReceiptActive } from "../../../aiConsent";
+import { getReceiptProviderRetryDelayMs, waitForReceiptProviderRetry } from "../receiptRetry";
 import { applyToolCallOutput, type ToolCallStateMap } from "../tools/toolCalls";
 import {
   toOpenAIResponseInputItem,
@@ -69,6 +71,7 @@ type BuildOpenAIResponsesRequestParams = Readonly<{
 }>;
 
 type RunOneModelCallParams = Readonly<{
+  aiConsent?: Readonly<{ userId: string; eventId: string | null }>;
   client: OpenAI;
   signal: AbortSignal | undefined;
   onExecutionPhaseChanged: ((phase: "idle" | "model" | "tool", toolName: string | null) => void) | undefined;
@@ -96,6 +99,7 @@ export type RunOneToolCall = (params: Readonly<{
   clientDeviceType: ProductAnalyticsDeviceType | null;
   initiatingAuthIsSignedIn: boolean;
   userOpenAIApiKey: UserOpenAIApiKey | null;
+  aiConsentId?: string | null;
 }>) => Promise<ExecutedChatToolCall>;
 
 type ExecuteToolCallsParams = Readonly<{
@@ -116,6 +120,7 @@ type ExecuteToolCallsParams = Readonly<{
   clientDeviceType: ProductAnalyticsDeviceType | null;
   initiatingAuthIsSignedIn: boolean;
   userOpenAIApiKey: UserOpenAIApiKey | null;
+  aiConsentId?: string | null;
   onExecutionPhaseChanged: ((phase: "idle" | "model" | "tool", toolName: string | null) => void) | undefined;
   shouldStopBeforeNextStep: (() => boolean) | undefined;
   onEvent: OpenAILoopEventSink;
@@ -239,10 +244,27 @@ async function runOneModelCallAttempt(
   params: RunOneModelCallParams,
   onEvent: OpenAILoopEventSink,
 ): Promise<ModelCallResult> {
-  const stream: ResponseStreamWithOptionalFinalResponse = await params.client.responses.create(
-    { ...params.request, stream: true },
-    { signal: params.signal },
-  );
+  const receipt = params.aiConsent;
+  let stream: ResponseStreamWithOptionalFinalResponse;
+  for (let attempt = 1; ; attempt += 1) {
+    if (receipt !== undefined) {
+      await assertAiConsentReceiptActive(receipt.userId, receipt.eventId);
+    }
+    params.signal?.throwIfAborted();
+    try {
+      stream = await params.client.responses.create(
+        { ...params.request, stream: true },
+        { signal: params.signal, ...(receipt?.eventId == null ? {} : { maxRetries: 0 }) },
+      );
+      break;
+    } catch (error) {
+      const retryDelayMs = receipt?.eventId == null || params.signal?.aborted
+        ? null : getReceiptProviderRetryDelayMs(error, attempt);
+      if (retryDelayMs === null || !(error instanceof OpenAI.APIError)) throw error;
+      logProviderCallRetried(params, error, retryDelayMs);
+      await waitForReceiptProviderRetry(retryDelayMs, params.signal);
+    }
+  }
   return collectResponseStream({
     stream,
     signal: params.signal,
@@ -278,7 +300,7 @@ function logProviderCallRetried(
 ): void {
   writeCloudWatchRecord({
     action: "chat_worker_provider_call_retried",
-    message: "OpenAI chat model call will retry after an in-stream overload.",
+    message: "OpenAI chat model call will retry after a provider failure.",
     scope: params.observationScope,
     details: {
       callIndex: params.callIndex,
@@ -382,6 +404,7 @@ export async function executeToolCalls(
         clientDeviceType: params.clientDeviceType,
         initiatingAuthIsSignedIn: params.initiatingAuthIsSignedIn,
         userOpenAIApiKey: params.userOpenAIApiKey,
+        aiConsentId: params.aiConsentId ?? null,
       });
       if (output.stopReason !== null) {
         return {
