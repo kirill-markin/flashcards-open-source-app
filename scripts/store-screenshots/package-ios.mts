@@ -5,28 +5,29 @@ import sharp from "sharp";
 import { parseArgs } from "node:util";
 import { getLocaleEnglishName, getLocaleNativeName, isSupportedLocale } from "./locale-names.mts";
 
-type Family = "iphone" | "ipad" | "iphone-duo-outer" | "iphone-duo-inner";
+type Family = "iphone" | "ipad" | "iphone-duo-outer" | "iphone-duo-inner" | "macos";
 type Result = { path: string; family: Family; captureTag: string; storeLocale: string | null; card: number; heading: string; caption: string; sha256: string; width: number; height: number };
 type Manifest = { sourceRevision: string; generatedAt: string; results: ReadonlyArray<Result> };
-const { values } = parseArgs({ options: { "output-root": { type: "string" } } });
+const { values } = parseArgs({ options: { "output-root": { type: "string" }, family: { type: "string" } } });
 const assetRoot = resolve(import.meta.dirname, "assets/app-store");
 const root = resolve(import.meta.dirname, "../..", values["output-root"] ?? "apps/ios/docs/media/app-store-cards");
 const manifest: Manifest = JSON.parse(await readFile(join(root, "export-manifest.json"), "utf8"));
 const copy: Readonly<Record<string, ReadonlyArray<readonly [string, string]>>> = JSON.parse(await readFile(resolve(assetRoot, "../localized-copy.json"), "utf8"));
 const aliases: Readonly<Record<string, string>> = { "en-US": "en", "es-ES": "es", "es-MX": "es", "pt-BR": "pt", "zh-Hans": "zh" };
 const familyLabels: Readonly<Record<Family, string>> = {
-  iphone: "iPhone", ipad: "iPad", "iphone-duo-outer": "iPhone Duo outer", "iphone-duo-inner": "iPhone Duo inner",
+  iphone: "iPhone", ipad: "iPad", "iphone-duo-outer": "iPhone Duo outer", "iphone-duo-inner": "iPhone Duo inner", macos: "Mac",
 };
 const familyDimensions: Readonly<Record<Family, readonly [number, number]>> = {
-  iphone: [1284, 2778], ipad: [2064, 2752], "iphone-duo-outer": [1398, 2034], "iphone-duo-inner": [2853, 2007],
+  iphone: [1284, 2778], ipad: [2752, 2064], "iphone-duo-outer": [1398, 2034], "iphone-duo-inner": [2853, 2007], macos: [2880, 1800],
 };
 const families = Object.keys(familyLabels) as Family[];
+if (values.family && values.family !== "all" && !Object.hasOwn(familyLabels, values.family)) throw new Error(`Unknown iOS preview family: ${values.family}`);
 const escape = (value: string): string => value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll("\"", "&quot;");
 const tags = [...new Set(manifest.results.map(file => file.captureTag))];
 if (!manifest.results.length || manifest.results.length % 5 !== 0) throw new Error("Expected complete five-card iOS sets.");
 for (const file of manifest.results) {
   if (!Object.hasOwn(familyLabels, file.family)) throw new Error(`Unknown iOS family in export manifest: ${file.family}`);
-  if (file.family.startsWith("iphone-duo-") && !file.storeLocale) throw new Error(`Duo cards require an App Store locale: ${file.path}`);
+  if (file.family !== "iphone" && !file.storeLocale) throw new Error(`${file.family} cards require an App Store locale: ${file.path}`);
 }
 const gallery: Array<{ tag: string; label: string; storeLocale: string | null; sets: Array<{ family: string; preview: string; files: Array<{ path: string; heading: string; caption: string }> }> }> = [];
 await mkdir(join(root, "previews"), { recursive: true });
@@ -51,17 +52,20 @@ for (const tag of tags) {
       if (file.heading !== copy[tag][file.card - 1][0] || file.caption !== copy[tag][file.card - 1][1]) throw new Error(`Copy differs from rendered export: ${file.path}`);
       const metadata = await sharp(bytes).metadata();
       if (metadata.hasAlpha || metadata.width !== file.width || metadata.height !== file.height) throw new Error(`Invalid output PNG: ${file.path}`);
-      if (family === "iphone-duo-inner" && !((file.width === 2853 && file.height === 2007) || (file.width === 2007 && file.height === 2853))) {
-        throw new Error(`Invalid Duo inner dimensions: ${file.path} (${file.width}x${file.height})`);
+      if (!(file.width === familyDimensions[family][0] && file.height === familyDimensions[family][1])
+        && !(family === "iphone-duo-inner" && file.width === 2007 && file.height === 2853)) {
+        throw new Error(`Invalid ${family} dimensions: ${file.path} (${file.width}x${file.height})`);
       }
       inputs.push(await sharp(bytes).resize(width, height).png().toBuffer());
     }
     const title = `${getLocaleEnglishName(locale)}${tag === "es-MX" ? " (Mexico)" : tag === "es-ES" ? " (Spain)" : ""} · ${familyLabels[family]}`;
     const labelSvg = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${canvasWidth}" height="48"><text x="16" y="32" fill="#ededed" font-family="Arial,sans-serif" font-size="24">${escape(title)}</text></svg>`);
     const preview = `previews/${tag}-${family}.png`;
-    await sharp({ create: { width: canvasWidth, height: height + 80, channels: 3, background: "#202020" } }).composite([
+    const refreshPreview = !values.family || values.family === family || (values.family === "all" && (family === "iphone" || family === "ipad"));
+    if (refreshPreview) await sharp({ create: { width: canvasWidth, height: height + 80, channels: 3, background: "#202020" } }).composite([
       { input: labelSvg, left: 0, top: 0 }, ...inputs.map((input, index) => ({ input, left: gap + index * (width + gap), top: 60 })),
     ]).png().toFile(join(root, preview));
+    else await readFile(join(root, preview));
     item.sets.push({ family, preview, files: files.map(file => ({ path: file.path, heading: file.heading, caption: file.caption })) });
   }
   gallery.push(item);

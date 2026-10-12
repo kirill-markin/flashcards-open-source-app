@@ -8,7 +8,7 @@ import { createHash } from "node:crypto";
 import { parseArgs } from "node:util";
 import sharp from "sharp";
 
-type Family = "iphone" | "ipad" | "iphone-duo-outer" | "iphone-duo-inner";
+type Family = "iphone" | "ipad" | "iphone-duo-outer" | "iphone-duo-inner" | "macos";
 type Copy = Readonly<Record<string, ReadonlyArray<readonly [string, string]>>>;
 type Locale = { readonly name: string; readonly storeLocale: string; readonly captureTag: string };
 type Bounds = { x: number; y: number; width: number; height: number };
@@ -42,12 +42,13 @@ const order = [4, 1, 2, 3, 5] as const;
 const slugs = ["ai-flashcards", "start-learning", "smart-reviews", "your-progress", "your-cards"] as const;
 const rtl = new Set(["ar", "he", "fa", "ur"]);
 const dimensions: Readonly<Record<Family, readonly [number, number]>> = {
-  iphone: [1284, 2778], ipad: [2064, 2752],
-  "iphone-duo-outer": [1398, 2034], "iphone-duo-inner": [2853, 2007],
+  iphone: [1284, 2778], ipad: [2752, 2064],
+  "iphone-duo-outer": [1398, 2034], "iphone-duo-inner": [2853, 2007], macos: [2880, 1800],
 };
-const nativeDimensions: Readonly<Record<Family, readonly [number, number]>> = {
-  iphone: [1284, 2778], ipad: [2064, 2752],
-  "iphone-duo-outer": [1398, 2034], "iphone-duo-inner": [2853, 2007],
+const nativeDimensions: Readonly<Record<Family, ReadonlyArray<readonly [number, number]>>> = {
+  iphone: [[1284, 2778]], ipad: [[2752, 2064]],
+  "iphone-duo-outer": [[1398, 2034]], "iphone-duo-inner": [[2853, 2007]],
+  macos: [[1280, 800], [1440, 900], [2560, 1600], [2880, 1800]],
 };
 if (values.family !== "all" && !Object.hasOwn(dimensions, values.family!)) throw new Error(`Unsupported iOS family: ${values.family}`);
 const selected = values.locales ? new Set(values.locales.split(",")) : null;
@@ -67,6 +68,7 @@ const sourceNames: Readonly<Record<Family, ReadonlyArray<string>>> = {
   ipad: needsIpad ? await readSourceNames("ipad") : [],
   "iphone-duo-outer": values.family === "iphone-duo-outer" ? await readSourceNames("iphone-duo-outer") : [],
   "iphone-duo-inner": values.family === "iphone-duo-inner" ? await readSourceNames("iphone-duo-inner") : [],
+  macos: values.family === "macos" ? await readSourceNames("macos") : [],
 };
 const escape = (text: string): string => text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll("\"", "&quot;");
 const dataUrl = (bytes: Buffer): string => `data:image/png;base64,${bytes.toString("base64")}`;
@@ -85,14 +87,16 @@ function html(family: Family, tag: string, card: number, screen: string, sourceW
   const scale = family === "iphone" ? width / 519 : height / 1122;
   const textScale = scale * (family === "iphone" ? 1 : 1.35);
   const padding = 18 * scale;
+  const landscape = family === "ipad" || family === "iphone-duo-inner" || family === "macos";
+  const landscapeWidth = Math.min(420 * width / 519, (height - 50 - 175 * scale - padding * 2) * sourceWidth / sourceHeight + padding * 2);
   const frameWidth = family === "iphone" ? 418 * scale
-    : 420 * width / 519;
-  const frameHeight = family === "iphone-duo-inner"
-    ? (frameWidth - padding * 2) * nativeDimensions[family][1] / nativeDimensions[family][0] + padding * 2
+    : landscape ? landscapeWidth : 420 * width / 519;
+  const frameHeight = landscape
+    ? (frameWidth - padding * 2) * sourceHeight / sourceWidth + padding * 2
     : 860 * scale;
   const screenHeight = frameHeight - padding * 2;
-  const screenAspect = family === "iphone-duo-outer" ? nativeDimensions[family][0] / nativeDimensions[family][1] : .75;
-  const paddingInline = family === "iphone" || family === "iphone-duo-inner" ? padding : (frameWidth - screenHeight * screenAspect) / 2;
+  const screenAspect = family === "iphone-duo-outer" ? sourceWidth / sourceHeight : .75;
+  const paddingInline = family === "iphone" || landscape ? padding : (frameWidth - screenHeight * screenAspect) / 2;
   const screenScale = Math.min((frameWidth - paddingInline * 2) / sourceWidth, screenHeight / sourceHeight);
   const [base, header] = backgrounds[card - 1];
   const [heading, caption] = copy[tag][card - 1];
@@ -104,11 +108,11 @@ function html(family: Family, tag: string, card: number, screen: string, sourceW
   .card{position:relative;inline-size:${width}px;block-size:${height}px;overflow:hidden;border-radius:${10 * scale}px;color:#101010}
   .background{position:absolute;inset:0;inline-size:100%;block-size:100%}
   .clean{clip-path:inset(0 round ${20 * scale}px);mask-image:linear-gradient(to bottom,#000 0px,#000 ${450 * height / 2778}px,transparent ${510 * height / 2778}px)}
-  .heading-row{position:absolute;inset-block-start:${(family === "iphone-duo-inner" ? 45 : 63) * scale}px;inset-inline:0;block-size:${53 * textScale}px;display:flex;align-items:center;justify-content:center}
+  .heading-row{position:absolute;inset-block-start:${(landscape ? 45 : 63) * scale}px;inset-inline:0;block-size:${53 * textScale}px;display:flex;align-items:center;justify-content:center}
   .heading{display:inline-flex;direction:${headingDirection};align-items:center;gap:${16 * textScale}px;margin:0;font-family:Arial,sans-serif;font-size:${44 * textScale}px;font-weight:700;line-height:${53 * textScale}px;letter-spacing:0;white-space:nowrap}
   .number{display:flex;flex:0 0 auto;direction:ltr;align-items:center;justify-content:center;inline-size:${50 * textScale}px;block-size:${30 * textScale}px;border-radius:${15 * textScale}px;background:#000;color:#fff;font-family:Arial,sans-serif;font-size:${20 * textScale}px;font-weight:400;line-height:1}
-  .caption{position:absolute;inset-block-start:${(family === "iphone-duo-inner" ? 125 : 141) * scale}px;inset-inline:0;margin:0;font-family:Arial,sans-serif;font-size:${24 * textScale}px;font-weight:400;line-height:${28 * textScale}px;letter-spacing:0;text-align:center;white-space:nowrap;direction:${direction}}
-  .frame{position:absolute;inset-block-start:${(family === "iphone-duo-inner" ? 175 : 212) * scale}px;inset-inline-start:${(width - frameWidth) / 2}px;inline-size:${frameWidth}px;block-size:${frameHeight}px;padding-block:${padding}px;padding-inline:${paddingInline}px;background:${frameColor};border-radius:${51 * scale}px}
+  .caption{position:absolute;inset-block-start:${(landscape ? 125 : 141) * scale}px;inset-inline:0;margin:0;font-family:Arial,sans-serif;font-size:${24 * textScale}px;font-weight:400;line-height:${28 * textScale}px;letter-spacing:0;text-align:center;white-space:nowrap;direction:${direction}}
+  .frame{position:absolute;inset-block-start:${(landscape ? 175 : 212) * scale}px;inset-inline-start:${(width - frameWidth) / 2}px;inline-size:${frameWidth}px;block-size:${frameHeight}px;padding-block:${padding}px;padding-inline:${paddingInline}px;background:${frameColor};border-radius:${51 * scale}px}
   .screen-box{inline-size:100%;block-size:100%;background:#000;overflow:hidden;border-radius:${33 * scale}px;display:flex;align-items:center;justify-content:center}
   .screen{display:block;block-size:${sourceHeight * screenScale}px;inline-size:${sourceWidth * screenScale}px;flex-shrink:0}
   </style><article class="card"><img class="background" src="${base}"><img class="background clean" src="${header}">
@@ -164,10 +168,8 @@ try {
         const original = await sharp(raw).metadata();
         const sourceWidth = original.width;
         const sourceHeight = original.height;
-        const [nativeWidth, nativeHeight] = nativeDimensions[family];
-        const acceptsIpadLandscape = family === "ipad" && sourceWidth === height && sourceHeight === width;
-        if (!sourceWidth || !sourceHeight || !((sourceWidth === nativeWidth && sourceHeight === nativeHeight) || acceptsIpadLandscape)) {
-          throw new Error(`Wrong source dimensions: ${source} (${sourceWidth}x${sourceHeight}); expected ${nativeWidth}x${nativeHeight}${family === "ipad" ? ` or ${height}x${width}` : ""}.`);
+        if (!sourceWidth || !sourceHeight || !nativeDimensions[family].some(([nativeWidth, nativeHeight]) => sourceWidth === nativeWidth && sourceHeight === nativeHeight)) {
+          throw new Error(`Wrong source dimensions: ${source} (${sourceWidth}x${sourceHeight}); expected ${nativeDimensions[family].map(([nativeWidth, nativeHeight]) => `${nativeWidth}x${nativeHeight}`).join(" or ")}. Capture the genuine native ${family} screen; do not rotate or resize another family.`);
         }
         const reference = await sharp(join(assetRoot, `reference/${String(card).padStart(2, "0")}.png`)).removeAlpha().raw().toBuffer({ resolveWithObject: true });
         const offset = (500 * reference.info.width + 51) * 3;
@@ -206,6 +208,13 @@ try {
           || audit.screenBox.x < audit.frame.x || audit.screenBox.x + audit.screenBox.width > audit.frame.x + audit.frame.width
           || audit.screenBox.y < audit.frame.y || audit.screenBox.y + audit.screenBox.height > audit.frame.y + audit.frame.height
           || audit.frame.x < 0 || audit.frame.x + audit.frame.width > width || audit.frame.y < 0 || audit.frame.y + audit.frame.height > height - 50) reasons.push("Device is cropped");
+        if (family === "ipad" || family === "iphone-duo-inner" || family === "macos") {
+          const paddings = [audit.screen.x - audit.frame.x, audit.screen.y - audit.frame.y,
+            audit.frame.x + audit.frame.width - audit.screen.x - audit.screen.width,
+            audit.frame.y + audit.frame.height - audit.screen.y - audit.screen.height];
+          if (Math.max(...paddings) - Math.min(...paddings) > .1) reasons.push("Landscape frame padding differs across sides");
+          if (Math.abs(audit.screen.width - audit.screenBox.width) > .1 || Math.abs(audit.screen.height - audit.screenBox.height) > .1) reasons.push("Landscape screen is letterboxed");
+        }
         typography.push([audit.headingStyle, audit.captionStyle, audit.headingTop, audit.captionTop]);
         if (typography.some(styles => JSON.stringify(styles) !== JSON.stringify(typography[0]))) reasons.push("Inconsistent typography within set");
         if (reasons.length) {
