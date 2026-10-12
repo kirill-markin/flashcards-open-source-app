@@ -342,7 +342,7 @@ async function main(): Promise<void> {
     const actual = await client.read("/v1/appStoreVersions/" + version.id, "appStoreVersions");
     const state = text(actual, "appVersionState");
     if (actual.attributes.versionString !== values.version || actual.attributes.platform !== "IOS"
-      || (state !== "PREPARE_FOR_SUBMISSION" && state !== "DEVELOPER_REJECTED")) {
+      || (state !== "PREPARE_FOR_SUBMISSION" && state !== "DEVELOPER_REJECTED" && state !== "REJECTED")) {
       throw new Error("Version " + version.id + " is " + state + "; only the selected editable iOS draft can be changed");
     }
   };
