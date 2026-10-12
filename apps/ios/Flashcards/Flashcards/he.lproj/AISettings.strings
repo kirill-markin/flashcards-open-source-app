@@ -424,12 +424,12 @@
 "settings.access.section.permissions" = "הרשאות";
 "settings.access.notifications" = "התראות";
 "settings.access.thisDevice" = "המכשיר הזה";
-"settings.access.footer" = "Nibomo מבקש רק גישה הנדרשת לקבצים מצורפים ולהכתבה בצ׳אט.";
+"settings.access.footer" = "הגישה למצלמה ולמיקרופון משמשת לצילום ולהכתבה. אפשר לבחור תמונות לצירוף ללא גישה לספריית התמונות.";
 "settings.access.detail.status" = "מצב";
 "settings.access.kind.photos" = "תמונות";
 "settings.access.kind.camera" = "מצלמה";
 "settings.access.kind.microphone" = "מיקרופון";
-"settings.access.description.photos" = "בחירת תמונות לצירוף לצ׳אט AI ולשליחה ל-OpenAI לעיבוד באמצעות AI.";
+"settings.access.description.photos" = "הגישה לספריית התמונות נפרדת מקבצים מצורפים בצ׳אט AI. בורר התמונות משתף רק את התמונות שבחרת.";
 "settings.access.description.camera" = "צילום תמונות לצ׳אט AI. התמונות המצורפות נשלחות ל-OpenAI לעיבוד באמצעות AI.";
 "settings.access.description.microphone" = "הקלטת הכתבה ושליחתה ל-OpenAI כדי לתמלל אותה לטקסט לצ׳אט AI.";
 "settings.access.status.allowed" = "מותרת";
@@ -439,8 +439,8 @@
 "settings.access.status.unavailable" = "לא זמין";
 "settings.access.action.request" = "בקשת גישה";
 "settings.access.action.openSettings" = "פתיחת ההגדרות";
-"settings.access.guidance.photos.limited" = "רק התמונות שכבר שותפו עם Nibomo זמינות. יש לפתוח את ההגדרות כדי לאפשר גישה לתמונות נוספות.";
-"settings.access.guidance.photos.blocked" = "הגישה לתמונות כבויה עבור Nibomo. לשינוי, יש לפתוח הגדרות > פרטיות ואבטחה > תמונות.";
+"settings.access.guidance.photos.limited" = "הגישה לספריית התמונות מוגבלת. עדיין אפשר לבחור תמונות לצירוף לצ׳אט AI.";
+"settings.access.guidance.photos.blocked" = "הגישה לספריית התמונות כבויה. עדיין אפשר לבחור תמונות לצירוף לצ׳אט AI.";
 "settings.access.guidance.camera.blocked" = "הגישה למצלמה כבויה עבור Nibomo. לשינוי, יש לפתוח הגדרות > פרטיות ואבטחה > מצלמה.";
 "settings.access.guidance.microphone.blocked" = "הגישה למיקרופון כבויה עבור Nibomo. לשינוי, יש לפתוח הגדרות > פרטיות ואבטחה > מיקרופון.";
 "settings.access.guidance.askEveryTime" = "אפשר לבקש גישה כעת, או לפתוח את ההגדרות בהמשך לניהול ידני שלה.";

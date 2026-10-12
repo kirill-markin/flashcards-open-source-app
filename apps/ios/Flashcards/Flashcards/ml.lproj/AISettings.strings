@@ -424,12 +424,12 @@
 "settings.access.section.permissions" = "അനുമതികൾ";
 "settings.access.notifications" = "അറിയിപ്പുകൾ";
 "settings.access.thisDevice" = "ഈ ഉപകരണം";
-"settings.access.footer" = "അറ്റാച്ച്മെന്റുകൾക്കും ചാറ്റ് പറഞ്ഞെഴുത്തിനും ആവശ്യമായ അനുമതികൾ മാത്രമേ Nibomo ചോദിക്കൂ.";
+"settings.access.footer" = "ഫോട്ടോ എടുക്കാനും പറഞ്ഞെഴുതാനും ക്യാമറയിലേക്കും മൈക്രോഫോണിലേക്കുമുള്ള ആക്‌സസ് ഉപയോഗിക്കുന്നു. ഫോട്ടോ ലൈബ്രറിയിലേക്കുള്ള ആക്‌സസ് ഇല്ലാതെയും അറ്റാച്ച് ചെയ്യാനുള്ള ഫോട്ടോകൾ തിരഞ്ഞെടുക്കാം.";
 "settings.access.detail.status" = "നില";
 "settings.access.kind.photos" = "ഫോട്ടോകൾ";
 "settings.access.kind.camera" = "ക്യാമറ";
 "settings.access.kind.microphone" = "മൈക്രോഫോൺ";
-"settings.access.description.photos" = "AI ചാറ്റിൽ അറ്റാച്ച് ചെയ്യാനും AI പ്രോസസ്സിംഗിനായി OpenAI-യിലേക്ക് അയയ്ക്കാനും ഫോട്ടോകൾ തിരഞ്ഞെടുക്കുക.";
+"settings.access.description.photos" = "ഫോട്ടോ ലൈബ്രറിയിലേക്കുള്ള ആക്‌സസും AI ചാറ്റിലെ അറ്റാച്ച്മെന്റുകളും വേറിട്ട കാര്യങ്ങളാണ്. ഫോട്ടോ തിരഞ്ഞെടുക്കാനുള്ള സംവിധാനം നിങ്ങൾ തിരഞ്ഞെടുക്കുന്ന ഫോട്ടോകൾ മാത്രം പങ്കിടുന്നു.";
 "settings.access.description.camera" = "AI ചാറ്റിനായി ഫോട്ടോകൾ എടുക്കുക. അറ്റാച്ച് ചെയ്ത ഫോട്ടോകൾ AI പ്രോസസ്സിംഗിനായി OpenAI-യിലേക്ക് അയയ്ക്കുന്നു.";
 "settings.access.description.microphone" = "ശബ്ദത്തിലൂടെ എഴുതാൻ ഓഡിയോ റെക്കോർഡ് ചെയ്ത്, AI ചാറ്റിനായി ടെക്സ്റ്റാക്കി മാറ്റാൻ OpenAI-യിലേക്ക് അയയ്ക്കുക.";
 "settings.access.status.allowed" = "അനുവദിച്ചു";
@@ -439,8 +439,8 @@
 "settings.access.status.unavailable" = "ലഭ്യമല്ല";
 "settings.access.action.request" = "അനുമതി അഭ്യർത്ഥിക്കുക";
 "settings.access.action.openSettings" = "ക്രമീകരണങ്ങൾ തുറക്കുക";
-"settings.access.guidance.photos.limited" = "Nibomo-യുമായി ഇതിനകം പങ്കിട്ട ഫോട്ടോകൾ മാത്രമേ ലഭ്യമാകൂ. കൂടുതൽ ഫോട്ടോകൾക്ക് അനുമതി നൽകാൻ ക്രമീകരണങ്ങൾ തുറക്കുക.";
-"settings.access.guidance.photos.blocked" = "Nibomo-യ്ക്ക് ഫോട്ടോ അനുമതി ഓഫാണ്. മാറ്റാൻ ക്രമീകരണങ്ങൾ > സ്വകാര്യതയും സുരക്ഷയും > ഫോട്ടോകൾ തുറക്കുക.";
+"settings.access.guidance.photos.limited" = "ഫോട്ടോ ലൈബ്രറിയിലേക്കുള്ള ആക്‌സസ് പരിമിതമാണ്. AI ചാറ്റിൽ അറ്റാച്ച് ചെയ്യാൻ നിങ്ങൾക്ക് ഇപ്പോഴും ഫോട്ടോകൾ തിരഞ്ഞെടുക്കാം.";
+"settings.access.guidance.photos.blocked" = "ഫോട്ടോ ലൈബ്രറിയിലേക്കുള്ള ആക്‌സസ് ഓഫാണ്. AI ചാറ്റിൽ അറ്റാച്ച് ചെയ്യാൻ നിങ്ങൾക്ക് ഇപ്പോഴും ഫോട്ടോകൾ തിരഞ്ഞെടുക്കാം.";
 "settings.access.guidance.camera.blocked" = "Nibomo-യ്ക്ക് ക്യാമറ അനുമതി ഓഫാണ്. മാറ്റാൻ ക്രമീകരണങ്ങൾ > സ്വകാര്യതയും സുരക്ഷയും > ക്യാമറ തുറക്കുക.";
 "settings.access.guidance.microphone.blocked" = "Nibomo-യ്ക്ക് മൈക്രോഫോൺ അനുമതി ഓഫാണ്. മാറ്റാൻ ക്രമീകരണങ്ങൾ > സ്വകാര്യതയും സുരക്ഷയും > മൈക്രോഫോൺ തുറക്കുക.";
 "settings.access.guidance.askEveryTime" = "ഇപ്പോൾ അനുമതി അഭ്യർത്ഥിക്കുക, അല്ലെങ്കിൽ പിന്നീട് ക്രമീകരണങ്ങളിൽ അത് നിയന്ത്രിക്കുക.";

@@ -433,12 +433,12 @@
 "settings.access.section.permissions" = "权限";
 "settings.access.notifications" = "通知";
 "settings.access.thisDevice" = "此设备";
-"settings.access.footer" = "Nibomo 仅请求聊天中附件和听写所需的访问权限。";
+"settings.access.footer" = "相机和麦克风访问权限用于拍摄和听写。您无需授予照片图库访问权限，也可以选择照片作为附件。";
 "settings.access.detail.status" = "状态";
 "settings.access.kind.photos" = "照片";
 "settings.access.kind.camera" = "相机";
 "settings.access.kind.microphone" = "麦克风";
-"settings.access.description.photos" = "选择照片附加到 AI 聊天中，并发送给 OpenAI 进行 AI 处理。";
+"settings.access.description.photos" = "照片图库的访问权限与 AI 附件是两回事。照片选择器只共享您选择的照片。";
 "settings.access.description.camera" = "拍摄用于 AI 聊天的照片。附加的照片会发送给 OpenAI 进行 AI 处理。";
 "settings.access.description.microphone" = "录制语音输入并发送给 OpenAI，转写成用于 AI 聊天的文本。";
 "settings.access.status.allowed" = "允许";
@@ -448,8 +448,8 @@
 "settings.access.status.unavailable" = "不可用";
 "settings.access.action.request" = "请求访问";
 "settings.access.action.openSettings" = "打开设置";
-"settings.access.guidance.photos.limited" = "仅可使用您已与 Nibomo 共享的照片。打开“设置”以授予对照片更广泛的访问权限。";
-"settings.access.guidance.photos.blocked" = "Nibomo 禁用对照片的访问。打开“设置”>“隐私和安全”>“照片”进行更改。";
+"settings.access.guidance.photos.limited" = "照片图库的访问权限受到限制。您仍可选择照片作为 AI 附件。";
+"settings.access.guidance.photos.blocked" = "照片图库的访问权限已关闭。您仍可选择照片作为 AI 附件。";
 "settings.access.guidance.camera.blocked" = "Nibomo 禁用相机访问。打开“设置”>“隐私和安全”>“相机”进行更改。";
 "settings.access.guidance.microphone.blocked" = "Nibomo 禁用麦克风访问。打开“设置”>“隐私和安全”>“麦克风”进行更改。";
 "settings.access.guidance.askEveryTime" = "立即请求访问权限，如果您想手动管理，请稍后打开“设置”。";

@@ -424,12 +424,12 @@
 "settings.access.section.permissions" = "Leidimai";
 "settings.access.notifications" = "Pranešimai";
 "settings.access.thisDevice" = "Šis įrenginys";
-"settings.access.footer" = "Nibomo prašo tik priedams ir pokalbio diktavimui reikalingos prieigos.";
+"settings.access.footer" = "Prieiga prie kameros ir mikrofono naudojama fotografuoti ir diktuoti tekstą. Galite pasirinkti nuotraukų priedus be prieigos prie nuotraukų bibliotekos.";
 "settings.access.detail.status" = "Būsena";
 "settings.access.kind.photos" = "Nuotraukos";
 "settings.access.kind.camera" = "Kamera";
 "settings.access.kind.microphone" = "Mikrofonas";
-"settings.access.description.photos" = "Pasirinkite nuotraukas, kurias norite pridėti prie DI pokalbio ir siųsti OpenAI apdoroti naudojant DI.";
+"settings.access.description.photos" = "Prieiga prie nuotraukų bibliotekos ir DI pokalbio priedai yra atskiri dalykai. Nuotraukų parinkiklis bendrina tik jūsų pasirinktas nuotraukas.";
 "settings.access.description.camera" = "Fotografuokite DI pokalbiui. Pridėtos nuotraukos siunčiamos OpenAI apdoroti naudojant DI.";
 "settings.access.description.microphone" = "Įrašykite diktuojamą garsą ir siųskite jį OpenAI, kad būtų paverstas tekstu DI pokalbiui.";
 "settings.access.status.allowed" = "Leidžiama";
@@ -439,8 +439,8 @@
 "settings.access.status.unavailable" = "Nepasiekiama";
 "settings.access.action.request" = "Prašyti prieigos";
 "settings.access.action.openSettings" = "Atidaryti nustatymus";
-"settings.access.guidance.photos.limited" = "Pasiekiamos tik nuotraukos, kuriomis jau pasidalijote su Nibomo. Norėdami suteikti platesnę prieigą, atidarykite nustatymus.";
-"settings.access.guidance.photos.blocked" = "Nibomo prieiga prie nuotraukų išjungta. Norėdami ją pakeisti, atidarykite Nustatymai > Privatumas ir sauga > Nuotraukos.";
+"settings.access.guidance.photos.limited" = "Prieiga prie nuotraukų bibliotekos ribota. Vis tiek galite pasirinkti nuotraukas kaip DI pokalbio priedus.";
+"settings.access.guidance.photos.blocked" = "Prieiga prie nuotraukų bibliotekos išjungta. Vis tiek galite pasirinkti nuotraukas kaip DI pokalbio priedus.";
 "settings.access.guidance.camera.blocked" = "Nibomo prieiga prie kameros išjungta. Norėdami ją pakeisti, atidarykite Nustatymai > Privatumas ir sauga > Kamera.";
 "settings.access.guidance.microphone.blocked" = "Nibomo prieiga prie mikrofono išjungta. Norėdami ją pakeisti, atidarykite Nustatymai > Privatumas ir sauga > Mikrofonas.";
 "settings.access.guidance.askEveryTime" = "Prašykite prieigos dabar arba vėliau atidarykite nustatymus ir valdykite ją patys.";

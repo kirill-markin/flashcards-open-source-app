@@ -424,12 +424,12 @@
 "settings.access.section.permissions" = "Load";
 "settings.access.notifications" = "Teavitused";
 "settings.access.thisDevice" = "See seade";
-"settings.access.footer" = "Nibomo küsib ainult manuste ja vestluses dikteerimise jaoks vajalikke pääsuõigusi.";
+"settings.access.footer" = "Kaamera ja mikrofoni juurdepääsu kasutatakse pildistamiseks ja dikteerimiseks. Saad valida fotosid manusteks ilma fotokogule juurdepääsu andmata.";
 "settings.access.detail.status" = "Olek";
 "settings.access.kind.photos" = "Fotod";
 "settings.access.kind.camera" = "Kaamera";
 "settings.access.kind.microphone" = "Mikrofon";
-"settings.access.description.photos" = "Vali fotod, mida lisada tehisintellektivestlusse ja saata OpenAI-le tehisintellektiga töötlemiseks.";
+"settings.access.description.photos" = "Juurdepääs fotokogule on tehisintellektivestluse manustest sõltumatu. Fotovalija jagab ainult sinu valitud fotosid.";
 "settings.access.description.camera" = "Tee fotosid tehisintellektivestluse jaoks. Lisatud fotod saadetakse OpenAI-le tehisintellektiga töötlemiseks.";
 "settings.access.description.microphone" = "Salvesta dikteerimisheli ja saada see OpenAI-le tehisintellektivestluse jaoks tekstiks teisendamiseks.";
 "settings.access.status.allowed" = "Lubatud";
@@ -439,8 +439,8 @@
 "settings.access.status.unavailable" = "Pole saadaval";
 "settings.access.action.request" = "Taotle juurdepääsu";
 "settings.access.action.openSettings" = "Ava seaded";
-"settings.access.guidance.photos.limited" = "Saadaval on ainult fotod, mida oled juba Nibomoga jaganud. Laiema juurdepääsu andmiseks ava seaded.";
-"settings.access.guidance.photos.blocked" = "Nibomo fotodele juurdepääs on välja lülitatud. Selle muutmiseks ava Seaded > Privaatsus ja turvalisus > Fotod.";
+"settings.access.guidance.photos.limited" = "Juurdepääs fotokogule on piiratud. Saad endiselt valida fotosid tehisintellektivestluse manusteks.";
+"settings.access.guidance.photos.blocked" = "Juurdepääs fotokogule on välja lülitatud. Saad endiselt valida fotosid tehisintellektivestluse manusteks.";
 "settings.access.guidance.camera.blocked" = "Nibomo kaamerale juurdepääs on välja lülitatud. Selle muutmiseks ava Seaded > Privaatsus ja turvalisus > Kaamera.";
 "settings.access.guidance.microphone.blocked" = "Nibomo mikrofoni juurdepääs on välja lülitatud. Selle muutmiseks ava Seaded > Privaatsus ja turvalisus > Mikrofon.";
 "settings.access.guidance.askEveryTime" = "Taotle juurdepääsu kohe või ava seaded hiljem, et seda käsitsi hallata.";

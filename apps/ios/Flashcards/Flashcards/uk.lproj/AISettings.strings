@@ -424,12 +424,12 @@
 "settings.access.section.permissions" = "Дозволи";
 "settings.access.notifications" = "Сповіщення";
 "settings.access.thisDevice" = "Цей пристрій";
-"settings.access.footer" = "Nibomo запитує лише доступ, необхідний для вкладень і диктування в чаті.";
+"settings.access.footer" = "Доступ до камери й мікрофона використовується для знімання та диктування. Ви можете вибирати фотографії для вкладень без доступу до фототеки.";
 "settings.access.detail.status" = "Стан";
 "settings.access.kind.photos" = "Фото";
 "settings.access.kind.camera" = "Камера";
 "settings.access.kind.microphone" = "Мікрофон";
-"settings.access.description.photos" = "Вибирайте фотографії, щоб прикріпити їх до чату з ШІ й надіслати до OpenAI для обробки ШІ.";
+"settings.access.description.photos" = "Доступ до фототеки не пов’язаний із вкладеннями в чаті з ШІ. Вікно вибору фото передає лише вибрані вами фотографії.";
 "settings.access.description.camera" = "Робіть фотографії для чату з ШІ. Прикріплені фотографії надсилаються до OpenAI для обробки ШІ.";
 "settings.access.description.microphone" = "Записуйте звук диктування й надсилайте його до OpenAI для перетворення на текст для чату з ШІ.";
 "settings.access.status.allowed" = "Дозволено";
@@ -439,8 +439,8 @@
 "settings.access.status.unavailable" = "Недоступно";
 "settings.access.action.request" = "Запросити доступ";
 "settings.access.action.openSettings" = "Відкрити Параметри";
-"settings.access.guidance.photos.limited" = "Доступні лише фото, якими ви вже поділилися з Nibomo. Відкрийте Параметри, щоб надати доступ до інших фото.";
-"settings.access.guidance.photos.blocked" = "Доступ Nibomo до фото вимкнено. Відкрийте Параметри > Приватність і безпека > Фото, щоб змінити це.";
+"settings.access.guidance.photos.limited" = "Доступ до фототеки обмежений. Ви й далі можете вибирати фотографії для вкладень у чаті з ШІ.";
+"settings.access.guidance.photos.blocked" = "Доступ до фототеки вимкнений. Ви й далі можете вибирати фотографії для вкладень у чаті з ШІ.";
 "settings.access.guidance.camera.blocked" = "Доступ Nibomo до камери вимкнено. Відкрийте Параметри > Приватність і безпека > Камера, щоб змінити це.";
 "settings.access.guidance.microphone.blocked" = "Доступ Nibomo до мікрофона вимкнено. Відкрийте Параметри > Приватність і безпека > Мікрофон, щоб змінити це.";
 "settings.access.guidance.askEveryTime" = "Запросіть доступ зараз або відкрийте Параметри пізніше, щоб керувати ним вручну.";

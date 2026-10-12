@@ -424,12 +424,12 @@
 "settings.access.section.permissions" = "Permisiuni";
 "settings.access.notifications" = "Notificări";
 "settings.access.thisDevice" = "Acest dispozitiv";
-"settings.access.footer" = "Nibomo solicită doar accesul necesar pentru atașamente și dictare în chat.";
+"settings.access.footer" = "Accesul la cameră și microfon este folosit pentru captură și dictare. Poți alege fotografii de atașat fără acces la biblioteca foto.";
 "settings.access.detail.status" = "Stare";
 "settings.access.kind.photos" = "Poze";
 "settings.access.kind.camera" = "Cameră";
 "settings.access.kind.microphone" = "Microfon";
-"settings.access.description.photos" = "Alege fotografii pentru a le atașa la chatul IA și a le trimite către OpenAI pentru procesare cu IA.";
+"settings.access.description.photos" = "Accesul la biblioteca foto este separat de atașamentele din chatul IA. Selectorul de fotografii partajează doar fotografiile pe care le alegi.";
 "settings.access.description.camera" = "Fă fotografii pentru chatul IA. Fotografiile atașate sunt trimise către OpenAI pentru procesare cu IA.";
 "settings.access.description.microphone" = "Înregistrează dictarea audio și trimite-o către OpenAI pentru transcriere în text pentru chatul IA.";
 "settings.access.status.allowed" = "Permis";
@@ -439,8 +439,8 @@
 "settings.access.status.unavailable" = "Indisponibil";
 "settings.access.action.request" = "Solicită acces";
 "settings.access.action.openSettings" = "Deschide Configurări";
-"settings.access.guidance.photos.limited" = "Sunt disponibile doar pozele deja partajate cu Nibomo. Deschide Configurări pentru a permite accesul la mai multe poze.";
-"settings.access.guidance.photos.blocked" = "Accesul la poze este dezactivat pentru Nibomo. Deschide Configurări > Intimitate și securitate > Poze pentru a-l modifica.";
+"settings.access.guidance.photos.limited" = "Accesul la biblioteca foto este limitat. Poți alege în continuare fotografii de atașat la chatul IA.";
+"settings.access.guidance.photos.blocked" = "Accesul la biblioteca foto este dezactivat. Poți alege în continuare fotografii de atașat la chatul IA.";
 "settings.access.guidance.camera.blocked" = "Accesul la cameră este dezactivat pentru Nibomo. Deschide Configurări > Intimitate și securitate > Cameră pentru a-l modifica.";
 "settings.access.guidance.microphone.blocked" = "Accesul la microfon este dezactivat pentru Nibomo. Deschide Configurări > Intimitate și securitate > Microfon pentru a-l modifica.";
 "settings.access.guidance.askEveryTime" = "Solicită acces acum sau deschide Configurări mai târziu pentru a-l gestiona manual.";

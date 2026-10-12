@@ -433,12 +433,12 @@
 "settings.access.section.permissions" = "Permissões";
 "settings.access.notifications" = "Notificações";
 "settings.access.thisDevice" = "Este dispositivo";
-"settings.access.footer" = "O Nibomo pede apenas o acesso necessário para anexos e para o ditado no chat.";
+"settings.access.footer" = "O acesso à câmera e ao microfone é usado para capturar imagens e ditar texto. Você pode escolher fotos para anexar sem permitir acesso à fototeca.";
 "settings.access.detail.status" = "Status";
 "settings.access.kind.photos" = "Fotos";
 "settings.access.kind.camera" = "Câmera";
 "settings.access.kind.microphone" = "Microfone";
-"settings.access.description.photos" = "Escolha fotos para anexar ao chat com IA e enviar à OpenAI para processamento por IA.";
+"settings.access.description.photos" = "O acesso à fototeca é independente dos anexos do chat com IA. O seletor de fotos compartilha apenas as fotos que você escolhe.";
 "settings.access.description.camera" = "Tire fotos para o chat com IA. As fotos anexadas são enviadas à OpenAI para processamento por IA.";
 "settings.access.description.microphone" = "Grave áudio de ditado e envie-o à OpenAI para transcrever o texto no chat com IA.";
 "settings.access.status.allowed" = "Permitido";
@@ -448,8 +448,8 @@
 "settings.access.status.unavailable" = "Indisponível";
 "settings.access.action.request" = "Solicitar acesso";
 "settings.access.action.openSettings" = "Abrir Ajustes";
-"settings.access.guidance.photos.limited" = "Somente as fotos que você já compartilhou com o Nibomo estão disponíveis. Abra os Ajustes para conceder um acesso mais amplo às fotos.";
-"settings.access.guidance.photos.blocked" = "O acesso às fotos está desativado para o Nibomo. Abra Ajustes > Privacidade e Segurança > Fotos para alterar.";
+"settings.access.guidance.photos.limited" = "O acesso à fototeca está limitado. Você ainda pode escolher fotos para anexar ao chat com IA.";
+"settings.access.guidance.photos.blocked" = "O acesso à fototeca está desativado. Você ainda pode escolher fotos para anexar ao chat com IA.";
 "settings.access.guidance.camera.blocked" = "O acesso à câmera está desativado para o Nibomo. Abra Ajustes > Privacidade e Segurança > Câmera para alterar.";
 "settings.access.guidance.microphone.blocked" = "O acesso ao microfone está desativado para o Nibomo. Abra Ajustes > Privacidade e Segurança > Microfone para alterar.";
 "settings.access.guidance.askEveryTime" = "Solicite o acesso agora ou abra os Ajustes depois, se quiser gerenciá-lo manualmente.";

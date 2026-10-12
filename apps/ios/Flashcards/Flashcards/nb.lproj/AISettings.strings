@@ -424,12 +424,12 @@
 "settings.access.section.permissions" = "Tillatelser";
 "settings.access.notifications" = "Varslinger";
 "settings.access.thisDevice" = "Denne enheten";
-"settings.access.footer" = "Nibomo ber bare om tilgangen som trengs for vedlegg og diktering i chatten.";
+"settings.access.footer" = "Tilgang til kamera og mikrofon brukes til opptak og diktering. Du kan velge bildevedlegg uten tilgang til bildebiblioteket.";
 "settings.access.detail.status" = "Status";
 "settings.access.kind.photos" = "Bilder";
 "settings.access.kind.camera" = "Kamera";
 "settings.access.kind.microphone" = "Mikrofon";
-"settings.access.description.photos" = "Velg bilder du vil legge ved KI-chatten og sende til OpenAI for KI-behandling.";
+"settings.access.description.photos" = "Tilgang til bildebiblioteket er adskilt fra vedlegg i KI-chatten. Bildevelgeren deler bare bildene du velger.";
 "settings.access.description.camera" = "Ta bilder til KI-chatten. Vedlagte bilder sendes til OpenAI for KI-behandling.";
 "settings.access.description.microphone" = "Ta opp diktert lyd og send den til OpenAI for å transkribere den til tekst for KI-chatten.";
 "settings.access.status.allowed" = "Tillatt";
@@ -439,8 +439,8 @@
 "settings.access.status.unavailable" = "Utilgjengelig";
 "settings.access.action.request" = "Be om tilgang";
 "settings.access.action.openSettings" = "Åpne Innstillinger";
-"settings.access.guidance.photos.limited" = "Bare bildene du allerede har delt med Nibomo, er tilgjengelige. Åpne Innstillinger for å gi tilgang til flere bilder.";
-"settings.access.guidance.photos.blocked" = "Bildetilgang er slått av for Nibomo. Åpne Innstillinger > Personvern og sikkerhet > Bilder for å endre dette.";
+"settings.access.guidance.photos.limited" = "Tilgangen til bildebiblioteket er begrenset. Du kan fortsatt velge bilder som vedlegg i KI-chatten.";
+"settings.access.guidance.photos.blocked" = "Tilgangen til bildebiblioteket er slått av. Du kan fortsatt velge bilder som vedlegg i KI-chatten.";
 "settings.access.guidance.camera.blocked" = "Kameratilgang er slått av for Nibomo. Åpne Innstillinger > Personvern og sikkerhet > Kamera for å endre dette.";
 "settings.access.guidance.microphone.blocked" = "Mikrofontilgang er slått av for Nibomo. Åpne Innstillinger > Personvern og sikkerhet > Mikrofon for å endre dette.";
 "settings.access.guidance.askEveryTime" = "Be om tilgang nå, eller åpne Innstillinger senere hvis du vil administrere den selv.";

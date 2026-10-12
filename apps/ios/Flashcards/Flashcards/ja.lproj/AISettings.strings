@@ -433,12 +433,12 @@
 "settings.access.section.permissions" = "権限";
 "settings.access.notifications" = "通知";
 "settings.access.thisDevice" = "このデバイス";
-"settings.access.footer" = "Nibomo は、チャットでの添付と口述に必要なアクセスのみを要求します。";
+"settings.access.footer" = "カメラとマイクへのアクセスは、撮影と音声入力に使われます。写真ライブラリへのアクセスがなくても、添付する写真を選べます。";
 "settings.access.detail.status" = "ステータス";
 "settings.access.kind.photos" = "写真";
 "settings.access.kind.camera" = "カメラ";
 "settings.access.kind.microphone" = "マイク";
-"settings.access.description.photos" = "AIチャットに添付する写真を選択し、AI処理のためにOpenAIに送信します。";
+"settings.access.description.photos" = "写真ライブラリへのアクセスとAIチャットへの添付は別のものです。写真の選択画面では、選んだ写真だけが共有されます。";
 "settings.access.description.camera" = "AIチャット用の写真を撮影します。添付した写真はAI処理のためにOpenAIに送信されます。";
 "settings.access.description.microphone" = "音声入力を録音してOpenAIに送信し、AIチャット用のテキストに文字起こしします。";
 "settings.access.status.allowed" = "許可";
@@ -448,8 +448,8 @@
 "settings.access.status.unavailable" = "利用できません";
 "settings.access.action.request" = "アクセスのリクエスト";
 "settings.access.action.openSettings" = "設定を開く";
-"settings.access.guidance.photos.limited" = "Nibomo で既に共有した写真のみが利用可能です。 [設定] を開いて、写真への幅広いアクセスを許可します。";
-"settings.access.guidance.photos.blocked" = "Nibomo では、写真へのアクセスが無効になっています。変更するには、[設定] > [プライバシーとセキュリティ] > [写真] を開きます。";
+"settings.access.guidance.photos.limited" = "写真ライブラリへのアクセスは制限されています。AIチャットに添付する写真は引き続き選べます。";
+"settings.access.guidance.photos.blocked" = "写真ライブラリへのアクセスはオフになっています。AIチャットに添付する写真は引き続き選べます。";
 "settings.access.guidance.camera.blocked" = "Nibomo ではカメラ アクセスが無効になっています。変更するには、[設定] > [プライバシーとセキュリティ] > [カメラ] を開いてください。";
 "settings.access.guidance.microphone.blocked" = "Nibomo ではマイク アクセスが無効になっています。 [設定] > [プライバシーとセキュリティ] > [マイク] を開いて変更します。";
 "settings.access.guidance.askEveryTime" = "今すぐアクセスをリクエストするか、手動で管理する場合は後で設定を開いてください。";

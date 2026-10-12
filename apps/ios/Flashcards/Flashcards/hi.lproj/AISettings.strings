@@ -433,12 +433,12 @@
 "settings.access.section.permissions" = "अनुमतियाँ";
 "settings.access.notifications" = "सूचनाएं";
 "settings.access.thisDevice" = "यह डिवाइस";
-"settings.access.footer" = "Nibomo केवल चैट में संलग्नक और श्रुतलेख के लिए आवश्यक पहुंच का अनुरोध करता है।";
+"settings.access.footer" = "फ़ोटो लेने और बोलकर लिखने के लिए कैमरे और माइक्रोफ़ोन के ऐक्सेस का इस्तेमाल होता है। आप फ़ोटो लाइब्रेरी का ऐक्सेस दिए बिना भी अटैच करने के लिए फ़ोटो चुन सकते हैं।";
 "settings.access.detail.status" = "स्थिति";
 "settings.access.kind.photos" = "तस्वीरें";
 "settings.access.kind.camera" = "कैमरा";
 "settings.access.kind.microphone" = "माइक्रोफ़ोन";
-"settings.access.description.photos" = "AI चैट में अटैच करने और AI प्रोसेसिंग के लिए OpenAI को भेजने के लिए फ़ोटो चुनें।";
+"settings.access.description.photos" = "फ़ोटो लाइब्रेरी का ऐक्सेस और AI चैट में अटैचमेंट जोड़ना अलग बातें हैं। फ़ोटो चुनने का टूल केवल आपकी चुनी हुई फ़ोटो ही शेयर करता है।";
 "settings.access.description.camera" = "AI चैट के लिए फ़ोटो लें। अटैच की गई फ़ोटो AI प्रोसेसिंग के लिए OpenAI को भेजी जाती हैं।";
 "settings.access.description.microphone" = "बोलकर लिखने के लिए आवाज़ रिकॉर्ड करें और उसे OpenAI को भेजें, ताकि AI चैट के लिए उसे टेक्स्ट में बदला जा सके।";
 "settings.access.status.allowed" = "अनुमति है";
@@ -448,8 +448,8 @@
 "settings.access.status.unavailable" = "उपलब्ध नहीं है";
 "settings.access.action.request" = "पहुंच का अनुरोध करें";
 "settings.access.action.openSettings" = "सेटिंग्स खोलें";
-"settings.access.guidance.photos.limited" = "केवल वे फ़ोटो ही उपलब्ध हैं जिन्हें आपने Nibomo के साथ पहले ही साझा कर लिया है। फ़ोटो तक व्यापक पहुंच प्रदान करने के लिए सेटिंग्स खोलें।";
-"settings.access.guidance.photos.blocked" = "Nibomo के लिए फ़ोटो तक पहुंच अक्षम है। इसे बदलने के लिए सेटिंग्स > गोपनीयता और सुरक्षा > फ़ोटो खोलें।";
+"settings.access.guidance.photos.limited" = "फ़ोटो लाइब्रेरी का ऐक्सेस सीमित है। आप अभी भी AI चैट में अटैच करने के लिए फ़ोटो चुन सकते हैं।";
+"settings.access.guidance.photos.blocked" = "फ़ोटो लाइब्रेरी का ऐक्सेस बंद है। आप अभी भी AI चैट में अटैच करने के लिए फ़ोटो चुन सकते हैं।";
 "settings.access.guidance.camera.blocked" = "Nibomo के लिए कैमरा एक्सेस अक्षम है। इसे बदलने के लिए सेटिंग्स > गोपनीयता और सुरक्षा > कैमरा खोलें।";
 "settings.access.guidance.microphone.blocked" = "Nibomo के लिए माइक्रोफ़ोन एक्सेस अक्षम है। इसे बदलने के लिए सेटिंग्स > गोपनीयता और सुरक्षा > माइक्रोफ़ोन खोलें।";
 "settings.access.guidance.askEveryTime" = "यदि आप इसे मैन्युअल रूप से प्रबंधित करना चाहते हैं तो अभी पहुंच का अनुरोध करें या बाद में सेटिंग्स खोलें।";

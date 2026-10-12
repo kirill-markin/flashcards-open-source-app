@@ -433,12 +433,12 @@
 "settings.access.section.permissions" = "الأذونات";
 "settings.access.notifications" = "الإخطارات";
 "settings.access.thisDevice" = "هذا الجهاز";
-"settings.access.footer" = "يطلب تطبيق Nibomo فقط الوصول الضروري للمرفقات والإملاء في الدردشة.";
+"settings.access.footer" = "يُستخدم الوصول إلى الكاميرا والميكروفون لالتقاط الصور والإملاء. يمكنك اختيار صور لإرفاقها دون السماح بالوصول إلى مكتبة الصور.";
 "settings.access.detail.status" = "الحالة";
 "settings.access.kind.photos" = "صور";
 "settings.access.kind.camera" = "الكاميرا";
 "settings.access.kind.microphone" = "ميكروفون";
-"settings.access.description.photos" = "اختر صورًا لإرفاقها بمحادثة الذكاء الاصطناعي وإرسالها إلى OpenAI لمعالجتها بالذكاء الاصطناعي.";
+"settings.access.description.photos" = "الوصول إلى مكتبة الصور منفصل عن مرفقات الذكاء الاصطناعي. يشارك منتقي الصور الصور التي تختارها فقط.";
 "settings.access.description.camera" = "التقط صورًا لمحادثة الذكاء الاصطناعي. تُرسل الصور التي ترفقها إلى OpenAI لمعالجتها بالذكاء الاصطناعي.";
 "settings.access.description.microphone" = "سجّل صوت الإملاء وأرسله إلى OpenAI لتحويله إلى نص لمحادثة الذكاء الاصطناعي.";
 "settings.access.status.allowed" = "مسموح به";
@@ -448,8 +448,8 @@
 "settings.access.status.unavailable" = "غير متاح";
 "settings.access.action.request" = "طلب الوصول";
 "settings.access.action.openSettings" = "افتح الإعدادات";
-"settings.access.guidance.photos.limited" = "تتوفر فقط الصور التي قمت بمشاركتها بالفعل مع تطبيق Nibomo. افتح الإعدادات لمنح وصولاً أوسع إلى الصور.";
-"settings.access.guidance.photos.blocked" = "تم تعطيل الوصول إلى الصور لتطبيق Nibomo. افتح الإعدادات > الخصوصية والأمان > الصور لتغييرها.";
+"settings.access.guidance.photos.limited" = "الوصول إلى مكتبة الصور محدود. لا يزال بإمكانك اختيار صور لإرفاقها بمحادثة الذكاء الاصطناعي.";
+"settings.access.guidance.photos.blocked" = "الوصول إلى مكتبة الصور معطّل. لا يزال بإمكانك اختيار صور لإرفاقها بمحادثة الذكاء الاصطناعي.";
 "settings.access.guidance.camera.blocked" = "تم تعطيل الوصول إلى الكاميرا لتطبيق Nibomo. افتح الإعدادات > الخصوصية والأمان > الكاميرا لتغييرها.";
 "settings.access.guidance.microphone.blocked" = "تم تعطيل الوصول إلى الميكروفون لتطبيق Nibomo. افتح الإعدادات > الخصوصية والأمان > الميكروفون لتغييره.";
 "settings.access.guidance.askEveryTime" = "اطلب الوصول الآن أو افتح الإعدادات لاحقًا إذا كنت تريد إدارتها يدويًا.";
