@@ -424,12 +424,12 @@
 "settings.access.section.permissions" = "مجوزها";
 "settings.access.notifications" = "اعلان‌ها";
 "settings.access.thisDevice" = "این دستگاه";
-"settings.access.footer" = "Nibomo فقط دسترسی‌های لازم برای پیوست‌ها و دیکته در گفت‌وگو را درخواست می‌کند.";
+"settings.access.footer" = "دسترسی به دوربین و میکروفون برای ثبت تصویر و دیکته استفاده می‌شود. می‌توانید عکس‌های پیوست را بدون دسترسی به کتابخانهٔ عکس‌ها انتخاب کنید.";
 "settings.access.detail.status" = "وضعیت";
 "settings.access.kind.photos" = "عکس‌ها";
 "settings.access.kind.camera" = "دوربین";
 "settings.access.kind.microphone" = "میکروفون";
-"settings.access.description.photos" = "عکس‌هایی را برای پیوست به گفتگوی هوش مصنوعی و ارسال به OpenAI جهت پردازش با هوش مصنوعی انتخاب کنید.";
+"settings.access.description.photos" = "دسترسی به کتابخانهٔ عکس‌ها از پیوست‌های هوش مصنوعی مستقل است. انتخابگر عکس فقط عکس‌هایی را به اشتراک می‌گذارد که انتخاب می‌کنید.";
 "settings.access.description.camera" = "برای گفتگوی هوش مصنوعی عکس بگیرید. عکس‌های پیوست‌شده برای پردازش با هوش مصنوعی به OpenAI فرستاده می‌شوند.";
 "settings.access.description.microphone" = "گفتار را ضبط کنید و صدای آن را به OpenAI بفرستید تا برای گفتگوی هوش مصنوعی به متن تبدیل شود.";
 "settings.access.status.allowed" = "مجاز";
@@ -439,8 +439,8 @@
 "settings.access.status.unavailable" = "در دسترس نیست";
 "settings.access.action.request" = "درخواست دسترسی";
 "settings.access.action.openSettings" = "باز کردن تنظیمات";
-"settings.access.guidance.photos.limited" = "فقط عکس‌هایی که قبلاً با Nibomo به اشتراک گذاشته‌اید در دسترس‌اند. برای دسترسی بیشتر به عکس‌ها، تنظیمات را باز کنید.";
-"settings.access.guidance.photos.blocked" = "دسترسی Nibomo به عکس‌ها غیرفعال است. برای تغییر آن، تنظیمات > حریم خصوصی و امنیت > عکس‌ها را باز کنید.";
+"settings.access.guidance.photos.limited" = "دسترسی به کتابخانهٔ عکس‌ها محدود است. همچنان می‌توانید عکس‌هایی را برای پیوست به گفت‌وگوی هوش مصنوعی انتخاب کنید.";
+"settings.access.guidance.photos.blocked" = "دسترسی به کتابخانهٔ عکس‌ها غیرفعال است. همچنان می‌توانید عکس‌هایی را برای پیوست به گفت‌وگوی هوش مصنوعی انتخاب کنید.";
 "settings.access.guidance.camera.blocked" = "دسترسی Nibomo به دوربین غیرفعال است. برای تغییر آن، تنظیمات > حریم خصوصی و امنیت > دوربین را باز کنید.";
 "settings.access.guidance.microphone.blocked" = "دسترسی Nibomo به میکروفون غیرفعال است. برای تغییر آن، تنظیمات > حریم خصوصی و امنیت > میکروفون را باز کنید.";
 "settings.access.guidance.askEveryTime" = "اکنون درخواست دسترسی دهید یا برای مدیریت دستی آن بعداً تنظیمات را باز کنید.";

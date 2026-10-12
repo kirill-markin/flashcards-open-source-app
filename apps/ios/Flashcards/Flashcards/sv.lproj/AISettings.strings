@@ -424,12 +424,12 @@
 "settings.access.section.permissions" = "Behörigheter";
 "settings.access.notifications" = "Notiser";
 "settings.access.thisDevice" = "Den här enheten";
-"settings.access.footer" = "Nibomo begär bara den åtkomst som behövs för bilagor och diktering i chatten.";
+"settings.access.footer" = "Åtkomst till kamera och mikrofon används för inspelning och diktering. Du kan välja bilder som bilagor utan åtkomst till bildbiblioteket.";
 "settings.access.detail.status" = "Status";
 "settings.access.kind.photos" = "Bilder";
 "settings.access.kind.camera" = "Kamera";
 "settings.access.kind.microphone" = "Mikrofon";
-"settings.access.description.photos" = "Välj bilder att bifoga i AI-chatten och skicka till OpenAI för AI-bearbetning.";
+"settings.access.description.photos" = "Åtkomst till bildbiblioteket är separat från bilagor i AI-chatten. Bildväljaren delar bara de bilder du väljer.";
 "settings.access.description.camera" = "Ta bilder för AI-chatten. Bifogade bilder skickas till OpenAI för AI-bearbetning.";
 "settings.access.description.microphone" = "Spela in dikteringsljud och skicka det till OpenAI för att omvandla det till text för AI-chatten.";
 "settings.access.status.allowed" = "Tillåten";
@@ -439,8 +439,8 @@
 "settings.access.status.unavailable" = "Ej tillgänglig";
 "settings.access.action.request" = "Begär åtkomst";
 "settings.access.action.openSettings" = "Öppna Inställningar";
-"settings.access.guidance.photos.limited" = "Endast bilder som du redan har delat med Nibomo är tillgängliga. Tillåt åtkomst till fler bilder i Inställningar.";
-"settings.access.guidance.photos.blocked" = "Bildåtkomst är avstängd för Nibomo. Ändra det under Inställningar > Integritet och säkerhet > Bilder.";
+"settings.access.guidance.photos.limited" = "Åtkomst till bildbiblioteket är begränsad. Du kan fortfarande välja bilder som bilagor i AI-chatten.";
+"settings.access.guidance.photos.blocked" = "Åtkomst till bildbiblioteket är avstängd. Du kan fortfarande välja bilder som bilagor i AI-chatten.";
 "settings.access.guidance.camera.blocked" = "Kameraåtkomst är avstängd för Nibomo. Ändra det under Inställningar > Integritet och säkerhet > Kamera.";
 "settings.access.guidance.microphone.blocked" = "Mikrofonåtkomst är avstängd för Nibomo. Ändra det under Inställningar > Integritet och säkerhet > Mikrofon.";
 "settings.access.guidance.askEveryTime" = "Begär åtkomst nu eller hantera den manuellt i Inställningar senare.";

@@ -424,12 +424,12 @@
 "settings.access.section.permissions" = "اجازتیں";
 "settings.access.notifications" = "اطلاعات";
 "settings.access.thisDevice" = "یہ آلہ";
-"settings.access.footer" = "Nibomo صرف منسلکات اور چیٹ میں بول کر لکھنے کے لیے ضروری رسائی طلب کرتا ہے۔";
+"settings.access.footer" = "کیمرے اور مائیکروفون کی رسائی تصاویر لینے اور بول کر لکھنے کے لیے استعمال ہوتی ہے۔ آپ فوٹو لائبریری کی رسائی دیے بغیر بھی منسلک کرنے کے لیے تصاویر منتخب کر سکتے ہیں۔";
 "settings.access.detail.status" = "حالت";
 "settings.access.kind.photos" = "تصاویر";
 "settings.access.kind.camera" = "کیمرا";
 "settings.access.kind.microphone" = "مائیکروفون";
-"settings.access.description.photos" = "تصاویر منتخب کریں تاکہ انہیں مصنوعی ذہانت کی چیٹ میں منسلک کر کے پروسیسنگ کے لیے OpenAI کو بھیجا جا سکے۔";
+"settings.access.description.photos" = "فوٹو لائبریری کی رسائی اور مصنوعی ذہانت کی چیٹ میں منسلکات الگ چیزیں ہیں۔ تصویر منتخب کرنے کا ٹول صرف آپ کی منتخب کردہ تصاویر شیئر کرتا ہے۔";
 "settings.access.description.camera" = "مصنوعی ذہانت کی چیٹ کے لیے تصاویر لیں۔ منسلک تصاویر مصنوعی ذہانت سے پروسیسنگ کے لیے OpenAI کو بھیجی جاتی ہیں۔";
 "settings.access.description.microphone" = "بول کر لکھوانے کے لیے آواز ریکارڈ کریں اور اسے OpenAI کو بھیجیں تاکہ مصنوعی ذہانت کی چیٹ کے لیے متن میں تبدیل کیا جا سکے۔";
 "settings.access.status.allowed" = "اجازت ہے";
@@ -439,8 +439,8 @@
 "settings.access.status.unavailable" = "دستیاب نہیں";
 "settings.access.action.request" = "رسائی کی درخواست کریں";
 "settings.access.action.openSettings" = "ترتیبات کھولیں";
-"settings.access.guidance.photos.limited" = "صرف وہ تصاویر دستیاب ہیں جو آپ پہلے ہی Nibomo کے ساتھ شیئر کر چکے ہیں۔ مزید تصاویر کی رسائی دینے کے لیے ترتیبات کھولیں۔";
-"settings.access.guidance.photos.blocked" = "Nibomo کے لیے تصاویر کی رسائی بند ہے۔ اسے بدلنے کے لیے ترتیبات > رازداری اور سیکیورٹی > تصاویر کھولیں۔";
+"settings.access.guidance.photos.limited" = "فوٹو لائبریری کی رسائی محدود ہے۔ آپ اب بھی مصنوعی ذہانت کی چیٹ میں منسلک کرنے کے لیے تصاویر منتخب کر سکتے ہیں۔";
+"settings.access.guidance.photos.blocked" = "فوٹو لائبریری کی رسائی بند ہے۔ آپ اب بھی مصنوعی ذہانت کی چیٹ میں منسلک کرنے کے لیے تصاویر منتخب کر سکتے ہیں۔";
 "settings.access.guidance.camera.blocked" = "Nibomo کے لیے کیمرے کی رسائی بند ہے۔ اسے بدلنے کے لیے ترتیبات > رازداری اور سیکیورٹی > کیمرا کھولیں۔";
 "settings.access.guidance.microphone.blocked" = "Nibomo کے لیے مائیکروفون کی رسائی بند ہے۔ اسے بدلنے کے لیے ترتیبات > رازداری اور سیکیورٹی > مائیکروفون کھولیں۔";
 "settings.access.guidance.askEveryTime" = "ابھی رسائی کی درخواست کریں، یا بعد میں خود انتظام کرنے کے لیے ترتیبات کھولیں۔";

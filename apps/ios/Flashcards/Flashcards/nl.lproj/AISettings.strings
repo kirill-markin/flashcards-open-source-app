@@ -424,12 +424,12 @@
 "settings.access.section.permissions" = "Machtigingen";
 "settings.access.notifications" = "Meldingen";
 "settings.access.thisDevice" = "Dit apparaat";
-"settings.access.footer" = "Nibomo vraagt alleen de toegang die nodig is voor bijlagen en dicteren in de chat.";
+"settings.access.footer" = "Toegang tot camera en microfoon wordt gebruikt voor opnamen en dicteren. Je kunt foto’s als bijlagen kiezen zonder toegang tot de fotobibliotheek.";
 "settings.access.detail.status" = "Status";
 "settings.access.kind.photos" = "Foto's";
 "settings.access.kind.camera" = "Camera";
 "settings.access.kind.microphone" = "Microfoon";
-"settings.access.description.photos" = "Kies foto’s om bij de AI-chat te voegen en naar OpenAI te sturen voor verwerking door AI.";
+"settings.access.description.photos" = "Toegang tot de fotobibliotheek staat los van bijlagen in de AI-chat. De fotokiezer deelt alleen de foto’s die je kiest.";
 "settings.access.description.camera" = "Maak foto’s voor de AI-chat. Bijgevoegde foto’s worden naar OpenAI gestuurd voor verwerking door AI.";
 "settings.access.description.microphone" = "Neem dicteeraudio op en stuur die naar OpenAI om tekst voor de AI-chat te transcriberen.";
 "settings.access.status.allowed" = "Toegestaan";
@@ -439,8 +439,8 @@
 "settings.access.status.unavailable" = "Niet beschikbaar";
 "settings.access.action.request" = "Toegang aanvragen";
 "settings.access.action.openSettings" = "Instellingen openen";
-"settings.access.guidance.photos.limited" = "Alleen de foto's die je al met Nibomo hebt gedeeld, zijn beschikbaar. Open Instellingen om toegang tot meer foto's te geven.";
-"settings.access.guidance.photos.blocked" = "Fototoegang is uitgeschakeld voor Nibomo. Open Instellingen > Privacy en beveiliging > Foto's om dit te wijzigen.";
+"settings.access.guidance.photos.limited" = "Toegang tot de fotobibliotheek is beperkt. Je kunt nog steeds foto’s kiezen als bijlagen in de AI-chat.";
+"settings.access.guidance.photos.blocked" = "Toegang tot de fotobibliotheek is uitgeschakeld. Je kunt nog steeds foto’s kiezen als bijlagen in de AI-chat.";
 "settings.access.guidance.camera.blocked" = "Cameratoegang is uitgeschakeld voor Nibomo. Open Instellingen > Privacy en beveiliging > Camera om dit te wijzigen.";
 "settings.access.guidance.microphone.blocked" = "Microfoontoegang is uitgeschakeld voor Nibomo. Open Instellingen > Privacy en beveiliging > Microfoon om dit te wijzigen.";
 "settings.access.guidance.askEveryTime" = "Vraag nu toegang aan of open later Instellingen om dit zelf te beheren.";

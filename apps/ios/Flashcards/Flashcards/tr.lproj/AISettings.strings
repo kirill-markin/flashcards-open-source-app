@@ -424,12 +424,12 @@
 "settings.access.section.permissions" = "İzinler";
 "settings.access.notifications" = "Bildirimler";
 "settings.access.thisDevice" = "Bu aygıt";
-"settings.access.footer" = "Nibomo yalnızca ekler ve sohbet diktesi için gereken erişimi ister.";
+"settings.access.footer" = "Kamera ve mikrofon erişimi, çekim ve dikte için kullanılır. Fotoğraf arşivi erişimi olmadan da eklenecek fotoğrafları seçebilirsiniz.";
 "settings.access.detail.status" = "Durum";
 "settings.access.kind.photos" = "Fotoğraflar";
 "settings.access.kind.camera" = "Kamera";
 "settings.access.kind.microphone" = "Mikrofon";
-"settings.access.description.photos" = "Yapay zekâ sohbetine eklemek ve yapay zekâ ile işlenmek üzere OpenAI’ye göndermek için fotoğraf seçin.";
+"settings.access.description.photos" = "Fotoğraf arşivi erişimi, yapay zekâ sohbetindeki eklerden bağımsızdır. Fotoğraf seçici yalnızca seçtiğiniz fotoğrafları paylaşır.";
 "settings.access.description.camera" = "Yapay zekâ sohbeti için fotoğraf çekin. Eklediğiniz fotoğraflar yapay zekâ ile işlenmek üzere OpenAI’ye gönderilir.";
 "settings.access.description.microphone" = "Dikte sesini kaydedip yapay zekâ sohbeti için metne dönüştürülmek üzere OpenAI’ye gönderin.";
 "settings.access.status.allowed" = "İzin verildi";
@@ -439,8 +439,8 @@
 "settings.access.status.unavailable" = "Kullanılamıyor";
 "settings.access.action.request" = "Erişim iste";
 "settings.access.action.openSettings" = "Ayarlar’ı Aç";
-"settings.access.guidance.photos.limited" = "Yalnızca Nibomo ile daha önce paylaştığınız fotoğraflar kullanılabilir. Daha geniş fotoğraf erişimi vermek için Ayarlar’ı açın.";
-"settings.access.guidance.photos.blocked" = "Nibomo için fotoğraf erişimi kapalı. Değiştirmek için Ayarlar > Gizlilik ve Güvenlik > Fotoğraflar’ı açın.";
+"settings.access.guidance.photos.limited" = "Fotoğraf arşivi erişimi sınırlı. Yapay zekâ sohbetine eklemek için yine de fotoğraf seçebilirsiniz.";
+"settings.access.guidance.photos.blocked" = "Fotoğraf arşivi erişimi kapalı. Yapay zekâ sohbetine eklemek için yine de fotoğraf seçebilirsiniz.";
 "settings.access.guidance.camera.blocked" = "Nibomo için kamera erişimi kapalı. Değiştirmek için Ayarlar > Gizlilik ve Güvenlik > Kamera’yı açın.";
 "settings.access.guidance.microphone.blocked" = "Nibomo için mikrofon erişimi kapalı. Değiştirmek için Ayarlar > Gizlilik ve Güvenlik > Mikrofon’u açın.";
 "settings.access.guidance.askEveryTime" = "Şimdi erişim isteyin veya daha sonra elle yönetmek için Ayarlar’ı açın.";

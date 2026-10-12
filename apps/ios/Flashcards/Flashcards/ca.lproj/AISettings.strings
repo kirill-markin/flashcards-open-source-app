@@ -424,12 +424,12 @@
 "settings.access.section.permissions" = "Permisos";
 "settings.access.notifications" = "Notificacions";
 "settings.access.thisDevice" = "Aquest dispositiu";
-"settings.access.footer" = "Nibomo sol·licita només l'accés necessari per als fitxers adjunts i el dictat de xat.";
+"settings.access.footer" = "L’accés a la càmera i al micròfon s’utilitza per capturar imatges i dictar text. Pots triar fotos per adjuntar-les sense accés a la fototeca.";
 "settings.access.detail.status" = "Estat";
 "settings.access.kind.photos" = "Fotos";
 "settings.access.kind.camera" = "Càmera";
 "settings.access.kind.microphone" = "Micròfon";
-"settings.access.description.photos" = "Tria fotos per adjuntar-les al xat amb IA i enviar-les a OpenAI per al processament amb IA.";
+"settings.access.description.photos" = "L’accés a la fototeca és independent dels fitxers adjunts de la IA. El selector de fotos només comparteix les fotos que tries.";
 "settings.access.description.camera" = "Fes fotos per al xat amb IA. Les fotos que hi adjuntis s’envien a OpenAI per al processament amb IA.";
 "settings.access.description.microphone" = "Enregistra àudio de dictat i envia’l a OpenAI per transcriure’l com a text al xat amb IA.";
 "settings.access.status.allowed" = "Permès";
@@ -439,8 +439,8 @@
 "settings.access.status.unavailable" = "No disponible";
 "settings.access.action.request" = "Sol·licitar accés";
 "settings.access.action.openSettings" = "Obriu Configuració";
-"settings.access.guidance.photos.limited" = "Només estan disponibles les fotos que ja has compartit amb Nibomo. Obriu Configuració per concedir un accés més ampli a les fotos.";
-"settings.access.guidance.photos.blocked" = "L'accés a les fotos està desactivat per a Nibomo. Obriu Configuració > Privadesa i seguretat > Fotos per canviar-ho.";
+"settings.access.guidance.photos.limited" = "L’accés a la fototeca és limitat. Encara pots triar fotos per adjuntar-les al xat amb IA.";
+"settings.access.guidance.photos.blocked" = "L’accés a la fototeca està desactivat. Encara pots triar fotos per adjuntar-les al xat amb IA.";
 "settings.access.guidance.camera.blocked" = "L'accés a la càmera està desactivat per a Nibomo. Obriu Configuració > Privadesa i seguretat > Càmera per canviar-ho.";
 "settings.access.guidance.microphone.blocked" = "L'accés al micròfon està desactivat per a Nibomo. Obriu Configuració > Privadesa i seguretat > Micròfon per canviar-lo.";
 "settings.access.guidance.askEveryTime" = "Sol·liciteu accés ara o obriu Configuració més tard si voleu gestionar-lo manualment.";

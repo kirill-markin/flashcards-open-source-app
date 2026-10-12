@@ -114,7 +114,7 @@ func localizedAccessPermissionKindTitle(_ kind: AccessPermissionKind) -> String 
 func localizedAccessPermissionDescription(_ kind: AccessPermissionKind) -> String {
     switch kind {
     case .photos:
-        return aiSettingsLocalized("settings.access.description.photos", "Choose photos to attach to AI chat and send to OpenAI for AI processing.")
+        return aiSettingsLocalized("settings.access.description.photos", "Photo library access is separate from AI attachments. The photo picker shares only the photos you choose.")
     case .camera:
         return aiSettingsLocalized("settings.access.description.camera", "Take photos for AI chat. Photos you attach are sent to OpenAI for AI processing.")
     case .microphone:
@@ -153,12 +153,12 @@ func localizedAccessPermissionGuidance(kind: AccessPermissionKind, status: Acces
     case (.photos, .limited):
         return aiSettingsLocalized(
             "settings.access.guidance.photos.limited",
-            "Only the photos you already shared with Nibomo are available. Open Settings to grant broader photo access."
+            "Library access is limited. You can still choose photos for AI attachments."
         )
     case (.photos, .blocked):
         return aiSettingsLocalized(
             "settings.access.guidance.photos.blocked",
-            "Photo access is turned off for Nibomo. Open Settings > Privacy & Security > Photos to change it."
+            "Library access is off. You can still choose photos for AI attachments."
         )
     case (.camera, .blocked):
         return aiSettingsLocalized(
