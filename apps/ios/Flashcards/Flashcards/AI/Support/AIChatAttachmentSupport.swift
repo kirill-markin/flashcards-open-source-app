@@ -417,49 +417,6 @@ func aiChatCameraPresentationResult(
     }
 }
 
-func aiChatPhotoPresentationResult(
-    initialStatus: AccessPermissionStatus,
-    requestedStatus: AccessPermissionStatus?
-) -> AIChatAttachmentPresentationResult {
-    switch initialStatus {
-    case .allowed, .limited:
-        return .present
-    case .askEveryTime:
-        guard let requestedStatus else {
-            return .stopSilently
-        }
-
-        switch requestedStatus {
-        case .allowed, .limited:
-            return .present
-        case .blocked, .askEveryTime:
-            return .stopSilently
-        case .unavailable:
-            return .showAlert(
-                .generalError(
-                    title: aiSettingsLocalized("ai.error.title", "Error"),
-                    message: aiSettingsLocalized(
-                        "ai.attachment.error.photoUnavailable",
-                        "Photo access is not available on this device."
-                    )
-                )
-            )
-        }
-    case .blocked:
-        return .showAlert(.attachmentSettings(source: .photos))
-    case .unavailable:
-        return .showAlert(
-            .generalError(
-                title: aiSettingsLocalized("ai.error.title", "Error"),
-                message: aiSettingsLocalized(
-                    "ai.attachment.error.photoUnavailable",
-                    "Photo access is not available on this device."
-                )
-            )
-        )
-    }
-}
-
 func aiChatFileImportAlert(error: Error) -> AIChatAlert {
     if aiChatIsFilePermissionError(error: error) {
         return .attachmentSettings(source: .files)
