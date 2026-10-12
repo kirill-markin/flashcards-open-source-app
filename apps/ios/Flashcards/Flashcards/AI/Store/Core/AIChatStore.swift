@@ -119,7 +119,7 @@ final class AIChatStore {
     }
 
     var serverChatConfig: AIChatServerConfig
-    var hasExternalProviderConsent: Bool
+    var hasExternalProviderConsent: Bool { self.flashcardsStore.hasAIDataSharingConsent }
     var areComposerSuggestionsEnabled: Bool {
         self.flashcardsStore.effectiveAIChatComposerSuggestionsEnabled
     }
@@ -584,7 +584,7 @@ final class AIChatStore {
         )
         historyStore.activateWorkspace(workspaceId: initialHistoryWorkspaceId)
         let persistedState = historyStore.loadState()
-        let initialConsentState = hasAIChatExternalProviderConsent(userDefaults: flashcardsStore.userDefaults)
+        let initialConsentState = flashcardsStore.hasAIDataSharingConsent
         self.conversationState = AIChatConversationState(
             messages: persistedState.messages,
             hasOlderMessages: false,
@@ -613,7 +613,6 @@ final class AIChatStore {
         self.runLifecycle = .idle
         self.activeRunSession = nil
         self.serverChatConfig = aiChatServerConfig(lastKnownFeatures: persistedState.lastKnownChatFeatures)
-        self.hasExternalProviderConsent = initialConsentState
         self.chatSessionId = aiChatResolvedSessionId(
             workspaceId: initialHistoryWorkspaceId,
             sessionId: persistedState.chatSessionId
