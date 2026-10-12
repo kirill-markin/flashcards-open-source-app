@@ -1,4 +1,3 @@
-import type { LangfuseObservation } from "@langfuse/tracing";
 import * as Sentry from "@sentry/aws-serverless";
 import {
   formatCapturedConsoleMessage,
@@ -20,48 +19,6 @@ export type ProviderTelemetryCapture = Readonly<{
 type MutableSentryTelemetryModule = typeof sentryModule & Readonly<{
   addBreadcrumb: typeof Sentry.addBreadcrumb;
 }>;
-
-export type RecordedLangfuseTelemetry = Readonly<{
-  rootObservation: LangfuseObservation;
-  starts: Array<Readonly<{
-    name: string;
-    attributes: unknown;
-    options: unknown;
-  }>>;
-  updates: Array<unknown>;
-  getEndCount: () => number;
-}>;
-
-export function createRecordedLangfuseTelemetry(): RecordedLangfuseTelemetry {
-  const starts: RecordedLangfuseTelemetry["starts"] = [];
-  const updates: RecordedLangfuseTelemetry["updates"] = [];
-  let endCount = 0;
-  const childObservation = {
-    updateOtelSpanAttributes: (attributes: unknown): void => {
-      updates.push(attributes);
-    },
-    end: (): void => {
-      endCount += 1;
-    },
-  };
-  const rootObservation = {
-    startObservation: (name: string, attributes: unknown, options: unknown) => {
-      starts.push({
-        name,
-        attributes,
-        options,
-      });
-      return childObservation;
-    },
-  } as unknown as LangfuseObservation;
-
-  return {
-    rootObservation,
-    starts,
-    updates,
-    getEndCount: (): number => endCount,
-  };
-}
 
 export async function withProviderTelemetryCapture<Result>(
   run: (capture: ProviderTelemetryCapture) => Promise<Result>,

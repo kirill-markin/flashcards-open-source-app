@@ -63,7 +63,7 @@ function collectRuntimeImportGraph(entrypoint: string): Readonly<{
   };
 }
 
-test("dedicated direct ingestion entrypoint excludes the shared app, AI, Langfuse, and Sentry SDK", () => {
+test("dedicated direct ingestion entrypoint excludes the shared app, AI, and Sentry SDK", () => {
   const graph = collectRuntimeImportGraph(directEntrypoint);
   assert.ok(graph.files.includes("server/mediaRequests/directImageIngestionApp.ts"));
   assert.equal(graph.files.includes("server/app.ts"), false);
@@ -71,7 +71,6 @@ test("dedicated direct ingestion entrypoint excludes the shared app, AI, Langfus
     graph.files.some((filePath) =>
       filePath.startsWith("routes/chat")
       || filePath.startsWith("chat/")
-      || filePath.startsWith("telemetry/langfuse")
       || filePath.startsWith("observability/sentry/capture")
       || filePath.startsWith("observability/sentry/config")
       || filePath.startsWith("observability/sentry/tracing")
@@ -80,5 +79,4 @@ test("dedicated direct ingestion entrypoint excludes the shared app, AI, Langfus
   );
   assert.equal(graph.externalModules.includes("@sentry/aws-serverless"), false);
   assert.equal(graph.externalModules.includes("openai"), false);
-  assert.equal(graph.externalModules.includes("@langfuse/tracing"), false);
 });

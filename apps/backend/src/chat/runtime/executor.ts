@@ -126,7 +126,6 @@ function isTurnDatabaseDeadlineExpiry(
 }
 
 /**
- * Runs one persisted chat session using a single awaited provider-control flow.
  * User cancellation is terminal and persists exactly once.
  * Ownership loss is non-terminal for the losing worker because another worker
  * may already own the run and is the only worker allowed to finalize it.
@@ -335,116 +334,95 @@ export async function runPersistedChatSessionWithDeps(
       return afterInitialHeartbeatDeadlineResult;
     }
 
-    const beforeObservationDeadlineResult = await persistInterruptedIfDeadlineReached();
-    if (beforeObservationDeadlineResult !== null) {
-      return beforeObservationDeadlineResult;
-    }
-
     const generatedImageOperationDeadlineMs = Date.now()
       + Math.max(0, params.getRemainingTimeInMillis() - CHAT_WORKER_PRE_TIMEOUT_BUFFER_MS);
 
     // The turn's database work ends with the soft deadline, so a call hanging past it fails instead
     // of holding the run until the Lambda is killed. The heartbeat, started above, stays outside.
-    await runDatabaseOperationsWithDeadline(turnDatabaseDeadlineAtMs, async () => dependencies.startChatTurnObservation(
-      {
-        requestId: params.requestId,
-        userId: params.userId,
-        workspaceId: params.workspaceId,
-        sessionId: params.sessionId,
-        model: params.modelId,
-        aiCostMode: params.diagnostics.aiCostMode,
-        chatTurnsLast7d: params.diagnostics.chatTurnsLast7d,
-        goodReviewDaysLast7d: params.diagnostics.goodReviewDaysLast7d,
-        turnIndex: params.diagnostics.messageCount,
-        runState: "running",
-        turnInput: params.turnInput,
-      },
-      async (rootObservation): Promise<void> => {
-        runtimeResult = await persistInterruptedIfDeadlineReached();
-        if (runtimeResult !== null) {
-          return;
-        }
+    await runDatabaseOperationsWithDeadline(turnDatabaseDeadlineAtMs, async (): Promise<void> => {
+      runtimeResult = await persistInterruptedIfDeadlineReached();
+      if (runtimeResult !== null) {
+        return;
+      }
 
-        logProviderCallStarted(logContext, new Date(), control.abortController.signal.aborted);
-        const completion: OpenAILoopCompletion = await startBackendSpan(
-          "chat.worker.openai_loop",
-          "ai.openai",
-          async () => dependencies.startOpenAILoop({
-            requestId: params.requestId,
-            runId: params.runId,
-            claimToken: params.claimToken,
-            userId: params.userId,
-            workspaceId: params.workspaceId,
-            sessionId: params.sessionId,
-            generatedImageEligible: params.generatedImageEligible,
-            generatedImageOperationDeadlineMs,
-            clientPlatform: params.clientPlatform,
-            clientOsName: params.clientOsName,
-            clientDeviceType: params.clientDeviceType,
-            tierAtCall: params.tierAtCall,
-            initiatingAuthIsSignedIn: params.initiatingAuthIsSignedIn,
-            userOpenAIApiKey: params.userOpenAIApiKey,
-            modelId: params.modelId,
-            reasoningEffort: params.reasoningEffort,
-            timezone: params.timezone,
-            localMessages: params.localMessages,
-            turnInput: params.turnInput,
-            rootObservation,
-            signal: control.abortController.signal,
-            onExecutionPhaseChanged: control.setExecutionPhase,
-            shouldStopBeforeNextStep,
-          }, async (event): Promise<void> => {
-            if (control.shouldIgnoreStreamEvent(event)) {
-              return;
-            }
-
-            if (control.getAbortReason() === "deadline_reached") {
-              await runOutsideTurnDatabaseDeadline(async () => persistStreamEvent(event));
-              return;
-            }
-            await persistStreamEvent(event);
-          }),
-        );
-
-        if (runtimeResult !== null) {
-          return;
-        }
-
-        if (control.getOwnershipLost()) {
-          throw new ChatRunOwnershipLostError(params.runId);
-        }
-
-        if (completion.terminationReason === "run_inactive") {
-          const inactiveOutcome = await reconcileInactiveRun();
-          if (inactiveOutcome === "user_cancelled") {
-            runtimeResult = await persistCancelled("user_cancelled");
+      logProviderCallStarted(logContext, new Date(), control.abortController.signal.aborted);
+      const completion: OpenAILoopCompletion = await startBackendSpan(
+        "chat.worker.openai_loop",
+        "ai.openai",
+        async () => dependencies.startOpenAILoop({
+          requestId: params.requestId,
+          runId: params.runId,
+          claimToken: params.claimToken,
+          userId: params.userId,
+          workspaceId: params.workspaceId,
+          sessionId: params.sessionId,
+          generatedImageEligible: params.generatedImageEligible,
+          generatedImageOperationDeadlineMs,
+          clientPlatform: params.clientPlatform,
+          clientOsName: params.clientOsName,
+          clientDeviceType: params.clientDeviceType,
+          tierAtCall: params.tierAtCall,
+          initiatingAuthIsSignedIn: params.initiatingAuthIsSignedIn,
+          userOpenAIApiKey: params.userOpenAIApiKey,
+          modelId: params.modelId,
+          reasoningEffort: params.reasoningEffort,
+          timezone: params.timezone,
+          localMessages: params.localMessages,
+          turnInput: params.turnInput,
+          signal: control.abortController.signal,
+          onExecutionPhaseChanged: control.setExecutionPhase,
+          shouldStopBeforeNextStep,
+        }, async (event): Promise<void> => {
+          if (control.shouldIgnoreStreamEvent(event)) {
             return;
           }
-          throw new ChatRunOwnershipLostError(params.runId);
-        }
 
-        if (
-          completion.terminationReason === "stopped_before_next_step"
-          || control.getAbortReason() === "deadline_reached"
-        ) {
-          runtimeResult = await persistInterrupted(
-            DEADLINE_REACHED_MESSAGE,
-            completion.openaiItems,
-          );
+          if (control.getAbortReason() === "deadline_reached") {
+            await runOutsideTurnDatabaseDeadline(async () => persistStreamEvent(event));
+            return;
+          }
+          await persistStreamEvent(event);
+        }),
+      );
+
+      if (runtimeResult !== null) {
+        return;
+      }
+
+      if (control.getOwnershipLost()) {
+        throw new ChatRunOwnershipLostError(params.runId);
+      }
+
+      if (completion.terminationReason === "run_inactive") {
+        const inactiveOutcome = await reconcileInactiveRun();
+        if (inactiveOutcome === "user_cancelled") {
+          runtimeResult = await persistCancelled("user_cancelled");
           return;
         }
+        throw new ChatRunOwnershipLostError(params.runId);
+      }
 
-        if (control.getStopRequestedByUser()) {
-          runtimeResult = await persistCancelled(control.getAbortReason() ?? "user_cancelled");
-          return;
-        }
+      if (
+        completion.terminationReason === "stopped_before_next_step"
+        || control.getAbortReason() === "deadline_reached"
+      ) {
+        runtimeResult = await persistInterrupted(
+          DEADLINE_REACHED_MESSAGE,
+          completion.openaiItems,
+        );
+        return;
+      }
 
-        if (!isFinalized) {
-          runtimeResult = await persistCompleted(completion.openaiItems);
-          return;
-        }
-      },
-    ));
+      if (control.getStopRequestedByUser()) {
+        runtimeResult = await persistCancelled(control.getAbortReason() ?? "user_cancelled");
+        return;
+      }
+
+      if (!isFinalized) {
+        runtimeResult = await persistCompleted(completion.openaiItems);
+        return;
+      }
+    });
     if (runtimeResult !== null) {
       return runtimeResult;
     }
@@ -576,9 +554,6 @@ export async function runPersistedChatSessionWithDeps(
   }
 }
 
-/**
- * Runs one persisted chat session with the production runtime dependencies.
- */
 export async function runPersistedChatSession(
   params: StartPersistedChatRunParams,
 ): Promise<ChatWorkerRunResult> {
