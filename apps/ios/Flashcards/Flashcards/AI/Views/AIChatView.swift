@@ -359,7 +359,13 @@ struct AIChatView: View {
             }
             Button(aiSettingsLocalized("common.openSettings", "Open Settings")) {
                 self.chatStore.dismissAlert()
-                openApplicationSettings()
+                Task { @MainActor in
+                    do {
+                        try await openApplicationSettings()
+                    } catch {
+                        self.chatStore.showGeneralError(message: errorMessage(error: error))
+                    }
+                }
             }
         } else {
             Button(aiSettingsLocalized("common.ok", "OK"), role: .cancel) {
@@ -898,7 +904,6 @@ struct AIChatView: View {
     }
 
     func handleComposerPhaseChange(previousPhase: AIChatComposerPhase, nextPhase: AIChatComposerPhase) {
-        // A turn ends by returning the composer to idle, and the allowance it used is read again then.
         if nextPhase == .idle && previousPhase != .idle {
             self.refreshAIUsage()
         }

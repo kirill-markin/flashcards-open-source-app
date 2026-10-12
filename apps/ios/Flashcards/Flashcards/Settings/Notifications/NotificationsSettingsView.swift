@@ -260,7 +260,14 @@ struct NotificationsSettingsView: View {
     private func handlePermissionAction() {
         switch self.permissionStatus {
         case .allowed, .blocked:
-            openApplicationSettings()
+            Task { @MainActor in
+                self.permissionErrorMessage = ""
+                do {
+                    try await openApplicationSettings()
+                } catch {
+                    self.permissionErrorMessage = errorMessage(error: error)
+                }
+            }
         case .notRequested:
             Task { @MainActor in
                 self.permissionStatus = await store.requestReviewNotificationPermissionFromSettings(

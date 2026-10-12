@@ -210,7 +210,6 @@ private func supportedLanguageSettingsItems() -> [SupportedLanguageSettingsItem]
     ]
 }
 
-/// The language iOS resolved for this app, titled as in the Supported Languages list.
 func currentAppLanguageSettingsTitle() -> String? {
     guard let localeIdentifier = currentAppUILocaleIdentifier() else {
         return nil
@@ -222,20 +221,30 @@ func currentAppLanguageSettingsTitle() -> String? {
 }
 
 struct LanguageSettingsView: View {
+    @State private var settingsErrorMessage: String = ""
+
     var body: some View {
         List {
+            if self.settingsErrorMessage.isEmpty == false {
+                Section {
+                    CopyableErrorMessageView(message: self.settingsErrorMessage)
+                }
+            }
+
             Section {
-                Text(
-                    aiSettingsLocalized(
-                        "settings.language.systemDescription",
-                        "iOS controls the app language. In iOS Settings, open Nibomo and choose Language. If Language is not shown, first add a second language in Settings > General > Language & Region. iOS shows this option only when the device has more than one preferred language."
-                    )
-                )
+                Text(self.systemDescription)
                     .foregroundStyle(.secondary)
                     .accessibilityIdentifier(UITestIdentifier.languageSettingsSystemText)
 
-                Button(aiSettingsLocalized("settings.language.action.openAppSettings", "Open Nibomo settings")) {
-                    openApplicationSettings()
+                Button(self.openSettingsActionTitle) {
+                    Task { @MainActor in
+                        self.settingsErrorMessage = ""
+                        do {
+                            try await openApplicationSettings()
+                        } catch {
+                            self.settingsErrorMessage = errorMessage(error: error)
+                        }
+                    }
                 }
             }
 
@@ -252,6 +261,28 @@ struct LanguageSettingsView: View {
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.languageSettingsScreen)
         .navigationTitle(aiSettingsLocalized("settings.language.title", "Language"))
+    }
+
+    private var systemDescription: String {
+        #if targetEnvironment(macCatalyst)
+        return aiSettingsLocalized(
+            "settings.language.macSystemDescription",
+            "On Mac, change Nibomo’s language in System Settings > General > Language & Region > Applications."
+        )
+        #else
+        return aiSettingsLocalized(
+            "settings.language.systemDescription",
+            "iOS controls the app language. In iOS Settings, open Nibomo and choose Language. If Language is not shown, first add a second language in Settings > General > Language & Region. iOS shows this option only when the device has more than one preferred language."
+        )
+        #endif
+    }
+
+    private var openSettingsActionTitle: String {
+        #if targetEnvironment(macCatalyst)
+        return aiSettingsLocalized("settings.language.action.openSystemSettings", "Open System Settings")
+        #else
+        return aiSettingsLocalized("settings.language.action.openAppSettings", "Open Nibomo settings")
+        #endif
     }
 }
 
