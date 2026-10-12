@@ -10,6 +10,7 @@ import {
 } from "../../auth/userIdentities";
 import { assertSubjectIsNotDeletedInExecutor } from "../../auth/deletedSubjects";
 import { transferAiUsageToUpgradedAccountInExecutor } from "../../aiUsage/identity";
+import { transferGuestAiConsentInExecutor } from "../../aiConsent";
 import { transferBillingToUpgradedAccountInExecutor } from "../../billing/identity";
 import { HttpError } from "../../shared/errors";
 import {
@@ -638,6 +639,8 @@ export async function completeGuestUpgradeInExecutor(
   // session is gone. Remove only after those clients are explicitly out of
   // support.
   await recordGuestUpgradeHistoryInExecutor(executor, guestUpgradeMerge.history);
+  await applyUserDatabaseScopeInExecutor(executor, { userId: guestUpgradeResolution.targetUserId });
+  await transferGuestAiConsentInExecutor(executor, guestSession.userId, guestUpgradeResolution.targetUserId);
 
   // Phase 10: persist the selected target workspace.
   await persistGuestUpgradeTargetSelectionInExecutor(

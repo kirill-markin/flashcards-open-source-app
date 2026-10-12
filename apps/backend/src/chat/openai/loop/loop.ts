@@ -104,6 +104,7 @@ export type OpenAILoopCompletion = Readonly<{
 }>;
 
 export type StartOpenAILoopParams = Readonly<{
+  aiConsentId?: string | null;
   requestId: string;
   runId: string;
   claimToken: ChatRunClaimToken;
@@ -270,6 +271,7 @@ async function runModelCallWithOverflowRetry(
       callIndex,
       userSuppliedKey: params.userOpenAIApiKey !== null,
       observationScope: createChatLoopObservationScope(params),
+      aiConsent: { userId: params.userId, eventId: params.aiConsentId ?? null },
     });
     await recordModelCallUsage(params, dependencies, modelCall);
     return { baseInput, modelCall };
@@ -296,6 +298,7 @@ async function runModelCallWithOverflowRetry(
       callIndex,
       userSuppliedKey: params.userOpenAIApiKey !== null,
       observationScope: createChatLoopObservationScope(params),
+      aiConsent: { userId: params.userId, eventId: params.aiConsentId ?? null },
     });
     await recordModelCallUsage(params, dependencies, retriedModelCall);
     return { baseInput: reducedBaseInput, modelCall: retriedModelCall };
@@ -453,6 +456,7 @@ async function runLoopWithDeps(
         clientDeviceType: params.clientDeviceType,
         initiatingAuthIsSignedIn: params.initiatingAuthIsSignedIn,
         userOpenAIApiKey: params.userOpenAIApiKey,
+        aiConsentId: params.aiConsentId ?? null,
         onExecutionPhaseChanged: params.onExecutionPhaseChanged,
         shouldStopBeforeNextStep: params.shouldStopBeforeNextStep,
         onEvent,

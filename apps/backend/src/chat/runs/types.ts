@@ -63,6 +63,7 @@ export type ChatRunDiagnostics = Readonly<{
 }>;
 
 export type ClaimedChatRun = Readonly<{
+  aiConsentId?: string | null;
   runId: string;
   claimToken: ChatRunClaimToken;
   sessionId: string;
