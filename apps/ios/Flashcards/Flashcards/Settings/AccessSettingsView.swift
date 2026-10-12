@@ -97,7 +97,14 @@ struct AccessPermissionDetailView: View {
                 self.guidanceMessage = ""
             }
         case .allowed, .blocked, .limited:
-            openApplicationSettings()
+            Task { @MainActor in
+                self.guidanceMessage = ""
+                do {
+                    try await openApplicationSettings()
+                } catch {
+                    self.guidanceMessage = errorMessage(error: error)
+                }
+            }
         case .unavailable:
             self.guidanceMessage = aiSettingsLocalized(
                 "settings.access.guidance.unavailable",
