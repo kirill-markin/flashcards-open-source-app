@@ -467,15 +467,12 @@ private func safeReviewManagedMediaDownloadError(
     mediaAssetId: String
 ) -> Error {
     if isRequestCancellationError(error: error) {
-        return LocalStoreError.validation(
-            "Managed media download was cancelled for mediaAssetId=\(mediaAssetId)"
-        )
+        return CancellationError()
     }
 
-    if let urlErrorCode = flashcardsURLErrorCode(error: error, remainingDepth: 4) {
-        return LocalStoreError.validation(
-            "Managed media download transport failed for mediaAssetId=\(mediaAssetId) with urlErrorCode=\(urlErrorCode.rawValue)"
-        )
+    // A bare URLError keeps the code for transport classifiers but drops userInfo, which carries the signed URL.
+    if let urlErrorCode: URLError.Code = flashcardsURLErrorCode(error: error, remainingDepth: 4) {
+        return URLError(urlErrorCode)
     }
 
     return LocalStoreError.validation(
