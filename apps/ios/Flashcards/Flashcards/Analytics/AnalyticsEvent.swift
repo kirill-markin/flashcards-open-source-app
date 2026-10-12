@@ -253,15 +253,6 @@ enum AnalyticsPermission: String, Sendable, Equatable {
     case microphone
 }
 
-/**
- * How the OS permission dialog was answered. `dismissed` is the answer that is not one: the person
- * closed the dialog leaving the permission undetermined.
- *
- * Only the photo-library request can report it, because only `PHPhotoLibrary` answers with a status
- * that can still be `notDetermined`. The camera, microphone and notification requests answer with a
- * bool, so an undecided close is indistinguishable from a denial there and is reported as `denied`.
- * A zero `dismissed` count for those three is structural rather than a signal.
- */
 enum AnalyticsPermissionOutcome: String, Sendable, Equatable {
     case granted
     case denied
