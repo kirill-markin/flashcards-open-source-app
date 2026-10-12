@@ -108,7 +108,7 @@ test("backend Sentry init preserves safe integrations only", () => {
   }
 });
 
-test("backend Sentry init does not register Langfuse span processors on Sentry OpenTelemetry provider", () => {
+test("backend Sentry init uses its own OpenTelemetry provider without extra span processors", () => {
   resetBackendSentryForTests();
   let capturedInitOptions: CapturedSentryInitOptions | null = null;
 

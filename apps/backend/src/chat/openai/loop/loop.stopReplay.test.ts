@@ -370,7 +370,6 @@ test("generated image reuse is stable when reclaim changes preceding SQL call co
                   null,
                   null,
                 ),
-                rootObservation: null,
               },
               signal: params.signal ?? new AbortController().signal,
               operationDeadlineMs: params.generatedImageOperationDeadlineMs,

@@ -498,9 +498,6 @@ export function decodeGeneratedCardImageBase64(base64Image: string): Buffer {
   return imageBytes;
 }
 
-/**
- * Calls the official OpenAI Image API while keeping retries, aborts, and safe provider telemetry explicit.
- */
 export class OpenAIGeneratedCardImageProvider {
   readonly #client: OpenAI;
 
@@ -509,177 +506,76 @@ export class OpenAIGeneratedCardImageProvider {
   }
 
   public async generate(input: OpenAIImageGenerationInput): Promise<GeneratedProviderImage> {
-    const providerObservation = input.observationContext.rootObservation?.startObservation(
-      "generated_card_image_provider",
-      {
-        input: {
-          hasPrompt: true,
-          promptLength: input.imagePrompt.length,
-        },
-        metadata: {
-          model: generatedCardImageModel,
-          size: generatedCardImageSize,
-          quality: generatedCardImageQuality,
-          outputFormat: generatedCardImageOutputFormat,
-        },
-      },
-      {
-        asType: "generation",
-      },
-    ) ?? null;
-    let providerResultRecorded = false;
-    try {
-      for (let attempt = 1; attempt <= generatedCardImageMaximumProviderAttempts; attempt += 1) {
-        input.signal.throwIfAborted();
-        const attemptStartedAt = Date.now();
-        const requestTimeoutMs = providerRequestTimeoutMs(input.operationDeadlineMs);
-        const providerDeadline = createProviderDeadlineController(requestTimeoutMs);
-        const requestSignal = AbortSignal.any([
-          input.signal,
-          providerDeadline.controller.signal,
-        ]);
+    for (let attempt = 1; attempt <= generatedCardImageMaximumProviderAttempts; attempt += 1) {
+      input.signal.throwIfAborted();
+      const attemptStartedAt = Date.now();
+      const requestTimeoutMs = providerRequestTimeoutMs(input.operationDeadlineMs);
+      const providerDeadline = createProviderDeadlineController(requestTimeoutMs);
+      const requestSignal = AbortSignal.any([
+        input.signal,
+        providerDeadline.controller.signal,
+      ]);
 
+      try {
+        const providerRequest = this.#client.images.generate(
+          {
+            model: generatedCardImageModel,
+            prompt: input.imagePrompt,
+            n: 1,
+            size: generatedCardImageSize,
+            quality: generatedCardImageQuality,
+            output_format: generatedCardImageOutputFormat,
+            user: buildOpenAISafetyIdentifier(input.userId),
+          },
+          {
+            maxRetries: 0,
+            signal: requestSignal,
+          },
+        );
+        const rawProviderResponse = await providerRequest.asResponse();
+        const providerRequestId = rawProviderResponse.headers.get("x-request-id");
+
+        let imageBytes: Buffer;
+        let usageCounters: AiUsageCounters | null;
         try {
-          const providerRequest = this.#client.images.generate(
-            {
-              model: generatedCardImageModel,
-              prompt: input.imagePrompt,
-              n: 1,
-              size: generatedCardImageSize,
-              quality: generatedCardImageQuality,
-              output_format: generatedCardImageOutputFormat,
-              user: buildOpenAISafetyIdentifier(input.userId),
-            },
-            {
-              maxRetries: 0,
-              signal: requestSignal,
-            },
+          const providerResponse = await providerRequest;
+          usageCounters = toOpenAIImageUsageCounters(providerResponse.usage);
+          imageBytes = decodeGeneratedCardImageBase64(
+            extractGeneratedImageBase64(providerResponse),
           );
-          const rawProviderResponse = await providerRequest.asResponse();
-          const providerRequestId = rawProviderResponse.headers.get("x-request-id");
-
-          let imageBytes: Buffer;
-          let usageCounters: AiUsageCounters | null;
-          try {
-            const providerResponse = await providerRequest;
-            usageCounters = toOpenAIImageUsageCounters(providerResponse.usage);
-            imageBytes = decodeGeneratedCardImageBase64(
-              extractGeneratedImageBase64(providerResponse),
-            );
-          } catch (error) {
-            throw createInvalidProviderResponseError(
-              "OpenAI image generation returned an invalid image response.",
-              rawProviderResponse.status,
-              providerRequestId,
-              error,
-            );
-          }
-
-          const details = createSuccessProviderDetails(
-            input.imagePrompt,
-            attempt,
-            providerRequestId,
-            Date.now() - attemptStartedAt,
-            requestTimeoutMs,
-          );
-          addBackendBreadcrumb({
-            action: "generated_card_image_provider_complete",
-            scope: input.observationContext.scope,
-            details,
-          });
-          providerObservation?.updateOtelSpanAttributes({
-            output: { result: "success" }, metadata: details,
-          });
-          providerResultRecorded = true;
-          return {
-            bytes: imageBytes,
-            providerRequestId,
-            usageCounters,
-          };
         } catch (error) {
-          if (input.signal.aborted) {
-            throw error;
-          }
+          throw createInvalidProviderResponseError(
+            "OpenAI image generation returned an invalid image response.",
+            rawProviderResponse.status,
+            providerRequestId,
+            error,
+          );
+        }
 
-          const metadata = getOpenAIImageFailureMetadata(error);
-          if (providerDeadline.controller.signal.aborted) {
-            const details = createProviderDetails(
-              input.imagePrompt,
-              attempt,
-              null,
-              metadata,
-              Date.now() - attemptStartedAt,
-              requestTimeoutMs,
-              false,
-            );
-            captureBackendWarning({
-              action: "generated_card_image_provider_failed",
-              message: "OpenAI image generation reached its bounded request deadline.",
-              scope: input.observationContext.scope,
-              details,
-            });
-            providerObservation?.updateOtelSpanAttributes({
-              output: { result: "deadline" },
-              metadata: details,
-            });
-            providerResultRecorded = true;
-            throw new GeneratedCardImageDeadlineExceededError(error);
-          }
-          if (isExpectedOpenAIImageGenerationFailure(error) === false) {
-            throw error;
-          }
+        const details = createSuccessProviderDetails(
+          input.imagePrompt,
+          attempt,
+          providerRequestId,
+          Date.now() - attemptStartedAt,
+          requestTimeoutMs,
+        );
+        addBackendBreadcrumb({
+          action: "generated_card_image_provider_complete",
+          scope: input.observationContext.scope,
+          details,
+        });
+        return {
+          bytes: imageBytes,
+          providerRequestId,
+          usageCounters,
+        };
+      } catch (error) {
+        if (input.signal.aborted) {
+          throw error;
+        }
 
-          if (
-            attempt < generatedCardImageMaximumProviderAttempts
-            && isTransientProviderFailure(error, metadata)
-          ) {
-            const delayMs = retryDelayForFailureMs(error, attempt);
-            if (hasProviderRetryBudget(input.operationDeadlineMs, delayMs)) {
-              const details = createProviderDetails(
-                input.imagePrompt,
-                attempt,
-                delayMs,
-                metadata,
-                Date.now() - attemptStartedAt,
-                requestTimeoutMs,
-                false,
-              );
-              captureBackendWarning({
-                action: "generated_card_image_provider_retry",
-                message: "OpenAI image generation will retry after a transient provider failure.",
-                scope: input.observationContext.scope,
-                details,
-              });
-              providerObservation?.updateOtelSpanAttributes({
-                metadata: details,
-              });
-              await waitForRetry(delayMs, input.signal);
-              continue;
-            }
-
-            const details = createProviderDetails(
-              input.imagePrompt,
-              attempt,
-              delayMs,
-              metadata,
-              Date.now() - attemptStartedAt,
-              requestTimeoutMs,
-              true,
-            );
-            captureBackendWarning({
-              action: "generated_card_image_provider_failed",
-              message: "OpenAI image generation could not retry within the remaining operation budget.",
-              scope: input.observationContext.scope,
-              details,
-            });
-            providerObservation?.updateOtelSpanAttributes({
-              output: { result: "error" },
-              metadata: details,
-            });
-            providerResultRecorded = true;
-            throw createMappedProviderError(error, metadata);
-          }
-
+        const metadata = getOpenAIImageFailureMetadata(error);
+        if (providerDeadline.controller.signal.aborted) {
           const details = createProviderDetails(
             input.imagePrompt,
             attempt,
@@ -691,39 +587,81 @@ export class OpenAIGeneratedCardImageProvider {
           );
           captureBackendWarning({
             action: "generated_card_image_provider_failed",
-            message: "OpenAI image generation failed.",
+            message: "OpenAI image generation reached its bounded request deadline.",
             scope: input.observationContext.scope,
             details,
           });
-          providerObservation?.updateOtelSpanAttributes({
-            output: { result: "error" }, metadata: details,
-          });
-          providerResultRecorded = true;
-          throw createMappedProviderError(error, metadata);
-        } finally {
-          clearTimeout(providerDeadline.timer);
+          throw new GeneratedCardImageDeadlineExceededError(error);
         }
-      }
+        if (isExpectedOpenAIImageGenerationFailure(error) === false) {
+          throw error;
+        }
 
-      throw new Error("OpenAI image generation exhausted its attempt loop without a result.");
-    } catch (error) {
-      if (
-        (input.signal.aborted || error instanceof GeneratedCardImageDeadlineExceededError)
-        && providerResultRecorded === false
-      ) {
-        providerObservation?.updateOtelSpanAttributes({
-          output: {
-            result: error instanceof GeneratedCardImageDeadlineExceededError
-              ? "deadline"
-              : "aborted",
-          },
+        if (
+          attempt < generatedCardImageMaximumProviderAttempts
+          && isTransientProviderFailure(error, metadata)
+        ) {
+          const delayMs = retryDelayForFailureMs(error, attempt);
+          if (hasProviderRetryBudget(input.operationDeadlineMs, delayMs)) {
+            const details = createProviderDetails(
+              input.imagePrompt,
+              attempt,
+              delayMs,
+              metadata,
+              Date.now() - attemptStartedAt,
+              requestTimeoutMs,
+              false,
+            );
+            captureBackendWarning({
+              action: "generated_card_image_provider_retry",
+              message: "OpenAI image generation will retry after a transient provider failure.",
+              scope: input.observationContext.scope,
+              details,
+            });
+            await waitForRetry(delayMs, input.signal);
+            continue;
+          }
+
+          const details = createProviderDetails(
+            input.imagePrompt,
+            attempt,
+            delayMs,
+            metadata,
+            Date.now() - attemptStartedAt,
+            requestTimeoutMs,
+            true,
+          );
+          captureBackendWarning({
+            action: "generated_card_image_provider_failed",
+            message: "OpenAI image generation could not retry within the remaining operation budget.",
+            scope: input.observationContext.scope,
+            details,
+          });
+          throw createMappedProviderError(error, metadata);
+        }
+
+        const details = createProviderDetails(
+          input.imagePrompt,
+          attempt,
+          null,
+          metadata,
+          Date.now() - attemptStartedAt,
+          requestTimeoutMs,
+          false,
+        );
+        captureBackendWarning({
+          action: "generated_card_image_provider_failed",
+          message: "OpenAI image generation failed.",
+          scope: input.observationContext.scope,
+          details,
         });
-        providerResultRecorded = true;
+        throw createMappedProviderError(error, metadata);
+      } finally {
+        clearTimeout(providerDeadline.timer);
       }
-      throw error;
-    } finally {
-      providerObservation?.end();
     }
+
+    throw new Error("OpenAI image generation exhausted its attempt loop without a result.");
   }
 }
 

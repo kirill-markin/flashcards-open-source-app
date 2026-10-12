@@ -117,7 +117,6 @@ export function createParams(): StartPersistedChatRunParams {
 
 export function createDependencies(overrides: DependencyOverrides): ChatRuntimeDependencies {
   const dependencies: ChatRuntimeDependencies = {
-    startChatTurnObservation: async (_params, execute) => execute(null),
     startOpenAILoop: async (_params, _onEvent) => createCompletedLoopCompletion(),
     generateFollowUpChatComposerSuggestions: async () => [],
     completeChatRun: async () => undefined,

@@ -1,10 +1,8 @@
-import type { LangfuseObservation } from "@langfuse/tracing";
 import type { BackendObservationScope } from "../../observability/sentry";
 import type { GeneratedMediaPromotionJobConflictError } from "./promotion/jobs";
 
 export type GeneratedCardImageObservationContext = Readonly<{
   scope: BackendObservationScope;
-  rootObservation: LangfuseObservation | null;
 }>;
 
 export type GeneratedCardImageOperationReference =

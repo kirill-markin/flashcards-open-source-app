@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# Create optional AI and telemetry secrets in AWS Secrets Manager only when missing.
 
 set -euo pipefail
 
@@ -8,8 +7,6 @@ REGION=""
 TEMP_DIR="$(mktemp -d)"
 
 OPENAI_SECRET_NAME="flashcards-open-source-app/openai-api-key"
-LANGFUSE_PUBLIC_KEY_SECRET_NAME="flashcards-open-source-app/langfuse-public-key"
-LANGFUSE_SECRET_KEY_SECRET_NAME="flashcards-open-source-app/langfuse-secret-key"
 
 # shellcheck disable=SC1091
 source "${SCRIPT_DIR}/../lib/root-env.sh"
@@ -69,18 +66,8 @@ create_secret_if_missing() {
     --output text
 }
 
-if [[ -n "${LANGFUSE_PUBLIC_KEY:-}" && -z "${LANGFUSE_SECRET_KEY:-}" ]]; then
-  echo "ERROR: LANGFUSE_PUBLIC_KEY is set but LANGFUSE_SECRET_KEY is missing." >&2
-  exit 1
-fi
-
-if [[ -z "${LANGFUSE_PUBLIC_KEY:-}" && -n "${LANGFUSE_SECRET_KEY:-}" ]]; then
-  echo "ERROR: LANGFUSE_SECRET_KEY is set but LANGFUSE_PUBLIC_KEY is missing." >&2
-  exit 1
-fi
-
-if [[ -z "${OPENAI_API_KEY:-}" && -z "${LANGFUSE_PUBLIC_KEY:-}" && -z "${LANGFUSE_SECRET_KEY:-}" ]]; then
-  echo "Skipping optional AI secret setup: OPENAI_API_KEY and LANGFUSE_* are not set."
+if [[ -z "${OPENAI_API_KEY:-}" ]]; then
+  echo "Skipping optional AI secret setup: OPENAI_API_KEY is not set."
   exit 0
 fi
 
@@ -90,18 +77,4 @@ if [[ -n "${OPENAI_API_KEY:-}" ]]; then
     "${OPENAI_API_KEY}" \
     "OpenAI API key for flashcards-open-source-app backend chat")
   echo "Configured OpenAI API key secret in AWS Secrets Manager: ${OPENAI_SECRET_ARN}"
-fi
-
-if [[ -n "${LANGFUSE_PUBLIC_KEY:-}" ]]; then
-  LANGFUSE_PUBLIC_SECRET_ARN=$(create_secret_if_missing \
-    "$LANGFUSE_PUBLIC_KEY_SECRET_NAME" \
-    "${LANGFUSE_PUBLIC_KEY}" \
-    "Langfuse public key for flashcards-open-source-app backend AI telemetry")
-  echo "Configured Langfuse public key secret in AWS Secrets Manager: ${LANGFUSE_PUBLIC_SECRET_ARN}"
-
-  LANGFUSE_SECRET_SECRET_ARN=$(create_secret_if_missing \
-    "$LANGFUSE_SECRET_KEY_SECRET_NAME" \
-    "${LANGFUSE_SECRET_KEY}" \
-    "Langfuse secret key for flashcards-open-source-app backend AI telemetry")
-  echo "Configured Langfuse secret key secret in AWS Secrets Manager: ${LANGFUSE_SECRET_SECRET_ARN}"
 fi
