@@ -229,6 +229,37 @@
         ]
       },
       {
+        "family": "iphone-duo-inner",
+        "preview": "previews/es-ES-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/es-ES-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "Crea tarjetas con IA"
+          },
+          {
+            "path": "ready/iphone-duo-inner/es-ES-2_start-learning.png",
+            "heading": "Empieza a estudiar",
+            "caption": "Recuerda la respuesta por tu cuenta"
+          },
+          {
+            "path": "ready/iphone-duo-inner/es-ES-3_smart-reviews.png",
+            "heading": "Repaso inteligente",
+            "caption": "Repasa en el momento adecuado"
+          },
+          {
+            "path": "ready/iphone-duo-inner/es-ES-4_your-progress.png",
+            "heading": "Tu progreso",
+            "caption": "Sigue tus días de estudio"
+          },
+          {
+            "path": "ready/iphone-duo-inner/es-ES-5_your-cards.png",
+            "heading": "Tus tarjetas",
+            "caption": "Todas tus tarjetas en un lugar"
+          }
+        ]
+      },
+      {
         "family": "macos",
         "preview": "previews/es-ES-macos.png",
         "files": [
@@ -323,6 +354,37 @@
           },
           {
             "path": "ready/ipad/es-MX-5_your-cards.png",
+            "heading": "Tus tarjetas",
+            "caption": "Todas tus tarjetas en un lugar"
+          }
+        ]
+      },
+      {
+        "family": "iphone-duo-inner",
+        "preview": "previews/es-MX-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/es-MX-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "Crea tarjetas con IA"
+          },
+          {
+            "path": "ready/iphone-duo-inner/es-MX-2_start-learning.png",
+            "heading": "Empieza a estudiar",
+            "caption": "Recuerda la respuesta por tu cuenta"
+          },
+          {
+            "path": "ready/iphone-duo-inner/es-MX-3_smart-reviews.png",
+            "heading": "Repaso inteligente",
+            "caption": "Repasa en el momento adecuado"
+          },
+          {
+            "path": "ready/iphone-duo-inner/es-MX-4_your-progress.png",
+            "heading": "Tu progreso",
+            "caption": "Sigue tus días de estudio"
+          },
+          {
+            "path": "ready/iphone-duo-inner/es-MX-5_your-cards.png",
             "heading": "Tus tarjetas",
             "caption": "Todas tus tarjetas en un lugar"
           }
@@ -429,6 +491,37 @@
         ]
       },
       {
+        "family": "iphone-duo-inner",
+        "preview": "previews/ar-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/ar-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "أنشئ بطاقات بالذكاء الاصطناعي"
+          },
+          {
+            "path": "ready/iphone-duo-inner/ar-2_start-learning.png",
+            "heading": "ابدأ التعلّم",
+            "caption": "تذكّر الإجابة بنفسك"
+          },
+          {
+            "path": "ready/iphone-duo-inner/ar-3_smart-reviews.png",
+            "heading": "مراجعات ذكية",
+            "caption": "راجع في الوقت المناسب"
+          },
+          {
+            "path": "ready/iphone-duo-inner/ar-4_your-progress.png",
+            "heading": "تقدّمك",
+            "caption": "تابع أيام دراستك"
+          },
+          {
+            "path": "ready/iphone-duo-inner/ar-5_your-cards.png",
+            "heading": "بطاقاتك",
+            "caption": "كل بطاقاتك في مكان واحد"
+          }
+        ]
+      },
+      {
         "family": "macos",
         "preview": "previews/ar-macos.png",
         "files": [
@@ -523,6 +616,37 @@
           },
           {
             "path": "ready/ipad/de-5_your-cards.png",
+            "heading": "Deine Karten",
+            "caption": "Alle Karten an einem Ort"
+          }
+        ]
+      },
+      {
+        "family": "iphone-duo-inner",
+        "preview": "previews/de-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/de-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "Erstelle Lernkarten mit KI"
+          },
+          {
+            "path": "ready/iphone-duo-inner/de-2_start-learning.png",
+            "heading": "Lernen starten",
+            "caption": "Erinnere dich selbst an die Antwort"
+          },
+          {
+            "path": "ready/iphone-duo-inner/de-3_smart-reviews.png",
+            "heading": "Clever wiederholen",
+            "caption": "Wiederhole zur richtigen Zeit"
+          },
+          {
+            "path": "ready/iphone-duo-inner/de-4_your-progress.png",
+            "heading": "Dein Fortschritt",
+            "caption": "Verfolge deine Lerntage"
+          },
+          {
+            "path": "ready/iphone-duo-inner/de-5_your-cards.png",
             "heading": "Deine Karten",
             "caption": "Alle Karten an einem Ort"
           }
@@ -629,6 +753,37 @@
         ]
       },
       {
+        "family": "iphone-duo-inner",
+        "preview": "previews/hi-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/hi-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "AI से फ़्लैशकार्ड बनाएँ"
+          },
+          {
+            "path": "ready/iphone-duo-inner/hi-2_start-learning.png",
+            "heading": "सीखना शुरू करें",
+            "caption": "जवाब खुद याद करें"
+          },
+          {
+            "path": "ready/iphone-duo-inner/hi-3_smart-reviews.png",
+            "heading": "स्मार्ट रिव्यू",
+            "caption": "सही समय पर दोहराएँ"
+          },
+          {
+            "path": "ready/iphone-duo-inner/hi-4_your-progress.png",
+            "heading": "आपकी प्रगति",
+            "caption": "पढ़ाई के दिन देखें"
+          },
+          {
+            "path": "ready/iphone-duo-inner/hi-5_your-cards.png",
+            "heading": "आपके कार्ड",
+            "caption": "सारे कार्ड एक जगह"
+          }
+        ]
+      },
+      {
         "family": "macos",
         "preview": "previews/hi-macos.png",
         "files": [
@@ -723,6 +878,37 @@
           },
           {
             "path": "ready/ipad/ja-5_your-cards.png",
+            "heading": "カード一覧",
+            "caption": "すべてのカードをひとつに"
+          }
+        ]
+      },
+      {
+        "family": "iphone-duo-inner",
+        "preview": "previews/ja-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/ja-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "AIでフラッシュカードを作成"
+          },
+          {
+            "path": "ready/iphone-duo-inner/ja-2_start-learning.png",
+            "heading": "学習を始める",
+            "caption": "自分で答えを思い出す"
+          },
+          {
+            "path": "ready/iphone-duo-inner/ja-3_smart-reviews.png",
+            "heading": "スマート復習",
+            "caption": "最適なタイミングで復習"
+          },
+          {
+            "path": "ready/iphone-duo-inner/ja-4_your-progress.png",
+            "heading": "学習の進捗",
+            "caption": "学習した日を記録"
+          },
+          {
+            "path": "ready/iphone-duo-inner/ja-5_your-cards.png",
             "heading": "カード一覧",
             "caption": "すべてのカードをひとつに"
           }
@@ -829,6 +1015,37 @@
         ]
       },
       {
+        "family": "iphone-duo-inner",
+        "preview": "previews/fr-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/fr-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "Créez des cartes avec l’IA"
+          },
+          {
+            "path": "ready/iphone-duo-inner/fr-2_start-learning.png",
+            "heading": "Étudiez",
+            "caption": "Retrouvez la réponse par vous-même"
+          },
+          {
+            "path": "ready/iphone-duo-inner/fr-3_smart-reviews.png",
+            "heading": "Révisions",
+            "caption": "Révisez au bon moment"
+          },
+          {
+            "path": "ready/iphone-duo-inner/fr-4_your-progress.png",
+            "heading": "Votre progression",
+            "caption": "Suivez vos jours d’étude"
+          },
+          {
+            "path": "ready/iphone-duo-inner/fr-5_your-cards.png",
+            "heading": "Vos cartes",
+            "caption": "Toutes vos cartes au même endroit"
+          }
+        ]
+      },
+      {
         "family": "macos",
         "preview": "previews/fr-macos.png",
         "files": [
@@ -923,6 +1140,37 @@
           },
           {
             "path": "ready/ipad/pt-BR-5_your-cards.png",
+            "heading": "Seus cartões",
+            "caption": "Todos os cartões em um só lugar"
+          }
+        ]
+      },
+      {
+        "family": "iphone-duo-inner",
+        "preview": "previews/pt-BR-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/pt-BR-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "Crie flashcards com IA"
+          },
+          {
+            "path": "ready/iphone-duo-inner/pt-BR-2_start-learning.png",
+            "heading": "Comece a estudar",
+            "caption": "Lembre a resposta por conta própria"
+          },
+          {
+            "path": "ready/iphone-duo-inner/pt-BR-3_smart-reviews.png",
+            "heading": "Revisão inteligente",
+            "caption": "Revise na hora certa"
+          },
+          {
+            "path": "ready/iphone-duo-inner/pt-BR-4_your-progress.png",
+            "heading": "Seu progresso",
+            "caption": "Acompanhe seus dias de estudo"
+          },
+          {
+            "path": "ready/iphone-duo-inner/pt-BR-5_your-cards.png",
             "heading": "Seus cartões",
             "caption": "Todos os cartões em um só lugar"
           }
@@ -1029,6 +1277,37 @@
         ]
       },
       {
+        "family": "iphone-duo-inner",
+        "preview": "previews/ru-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/ru-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "Создавайте карточки с ИИ"
+          },
+          {
+            "path": "ready/iphone-duo-inner/ru-2_start-learning.png",
+            "heading": "Начните учить",
+            "caption": "Вспоминайте ответ сами"
+          },
+          {
+            "path": "ready/iphone-duo-inner/ru-3_smart-reviews.png",
+            "heading": "Повторяйте",
+            "caption": "Повторяйте в нужный момент"
+          },
+          {
+            "path": "ready/iphone-duo-inner/ru-4_your-progress.png",
+            "heading": "Ваш прогресс",
+            "caption": "Следите за днями занятий"
+          },
+          {
+            "path": "ready/iphone-duo-inner/ru-5_your-cards.png",
+            "heading": "Ваши карточки",
+            "caption": "Все карточки под рукой"
+          }
+        ]
+      },
+      {
         "family": "macos",
         "preview": "previews/ru-macos.png",
         "files": [
@@ -1123,6 +1402,37 @@
           },
           {
             "path": "ready/ipad/zh-Hans-5_your-cards.png",
+            "heading": "你的卡片",
+            "caption": "所有卡片尽在一处"
+          }
+        ]
+      },
+      {
+        "family": "iphone-duo-inner",
+        "preview": "previews/zh-Hans-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/zh-Hans-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "用AI创建闪卡"
+          },
+          {
+            "path": "ready/iphone-duo-inner/zh-Hans-2_start-learning.png",
+            "heading": "开始学习",
+            "caption": "自己回想答案"
+          },
+          {
+            "path": "ready/iphone-duo-inner/zh-Hans-3_smart-reviews.png",
+            "heading": "智能复习",
+            "caption": "在合适的时间复习"
+          },
+          {
+            "path": "ready/iphone-duo-inner/zh-Hans-4_your-progress.png",
+            "heading": "学习进度",
+            "caption": "记录你的学习日"
+          },
+          {
+            "path": "ready/iphone-duo-inner/zh-Hans-5_your-cards.png",
             "heading": "你的卡片",
             "caption": "所有卡片尽在一处"
           }
@@ -1229,6 +1539,37 @@
         ]
       },
       {
+        "family": "iphone-duo-inner",
+        "preview": "previews/it-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/it-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "Crea flashcard con l’IA"
+          },
+          {
+            "path": "ready/iphone-duo-inner/it-2_start-learning.png",
+            "heading": "Inizia a studiare",
+            "caption": "Ricorda la risposta da solo"
+          },
+          {
+            "path": "ready/iphone-duo-inner/it-3_smart-reviews.png",
+            "heading": "Ripassi intelligenti",
+            "caption": "Ripassa al momento giusto"
+          },
+          {
+            "path": "ready/iphone-duo-inner/it-4_your-progress.png",
+            "heading": "I tuoi progressi",
+            "caption": "Tieni traccia dei giorni di studio"
+          },
+          {
+            "path": "ready/iphone-duo-inner/it-5_your-cards.png",
+            "heading": "Le tue carte",
+            "caption": "Tutte le carte in un unico posto"
+          }
+        ]
+      },
+      {
         "family": "macos",
         "preview": "previews/it-macos.png",
         "files": [
@@ -1323,6 +1664,37 @@
           },
           {
             "path": "ready/ipad/ko-5_your-cards.png",
+            "heading": "나의 카드",
+            "caption": "모든 카드를 한곳에"
+          }
+        ]
+      },
+      {
+        "family": "iphone-duo-inner",
+        "preview": "previews/ko-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/ko-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "AI로 플래시카드 만들기"
+          },
+          {
+            "path": "ready/iphone-duo-inner/ko-2_start-learning.png",
+            "heading": "학습 시작",
+            "caption": "스스로 답을 떠올려 보세요"
+          },
+          {
+            "path": "ready/iphone-duo-inner/ko-3_smart-reviews.png",
+            "heading": "스마트 복습",
+            "caption": "알맞은 시점에 복습하세요"
+          },
+          {
+            "path": "ready/iphone-duo-inner/ko-4_your-progress.png",
+            "heading": "나의 진도",
+            "caption": "공부한 날을 확인하세요"
+          },
+          {
+            "path": "ready/iphone-duo-inner/ko-5_your-cards.png",
             "heading": "나의 카드",
             "caption": "모든 카드를 한곳에"
           }
@@ -1429,6 +1801,37 @@
         ]
       },
       {
+        "family": "iphone-duo-inner",
+        "preview": "previews/id-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/id-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "Buat flashcard dengan AI"
+          },
+          {
+            "path": "ready/iphone-duo-inner/id-2_start-learning.png",
+            "heading": "Mulai Belajar",
+            "caption": "Ingat jawabannya sendiri"
+          },
+          {
+            "path": "ready/iphone-duo-inner/id-3_smart-reviews.png",
+            "heading": "Ulasan Cerdas",
+            "caption": "Ulangi pada waktu yang tepat"
+          },
+          {
+            "path": "ready/iphone-duo-inner/id-4_your-progress.png",
+            "heading": "Kemajuanmu",
+            "caption": "Pantau hari belajarmu"
+          },
+          {
+            "path": "ready/iphone-duo-inner/id-5_your-cards.png",
+            "heading": "Kartumu",
+            "caption": "Semua kartu di satu tempat"
+          }
+        ]
+      },
+      {
         "family": "macos",
         "preview": "previews/id-macos.png",
         "files": [
@@ -1523,6 +1926,37 @@
           },
           {
             "path": "ready/ipad/tr-5_your-cards.png",
+            "heading": "Kartların",
+            "caption": "Tüm kartların tek bir yerde"
+          }
+        ]
+      },
+      {
+        "family": "iphone-duo-inner",
+        "preview": "previews/tr-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/tr-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "Yapay zekâ ile kart oluştur"
+          },
+          {
+            "path": "ready/iphone-duo-inner/tr-2_start-learning.png",
+            "heading": "Öğrenmeye Başla",
+            "caption": "Yanıtı kendin hatırla"
+          },
+          {
+            "path": "ready/iphone-duo-inner/tr-3_smart-reviews.png",
+            "heading": "Akıllı Tekrarlar",
+            "caption": "Doğru zamanda tekrar et"
+          },
+          {
+            "path": "ready/iphone-duo-inner/tr-4_your-progress.png",
+            "heading": "İlerlemen",
+            "caption": "Çalışma günlerini takip et"
+          },
+          {
+            "path": "ready/iphone-duo-inner/tr-5_your-cards.png",
             "heading": "Kartların",
             "caption": "Tüm kartların tek bir yerde"
           }
@@ -1629,6 +2063,37 @@
         ]
       },
       {
+        "family": "iphone-duo-inner",
+        "preview": "previews/nl-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/nl-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "Maak flashcards met AI"
+          },
+          {
+            "path": "ready/iphone-duo-inner/nl-2_start-learning.png",
+            "heading": "Begin met leren",
+            "caption": "Herinner je het antwoord zelf"
+          },
+          {
+            "path": "ready/iphone-duo-inner/nl-3_smart-reviews.png",
+            "heading": "Slim herhalen",
+            "caption": "Herhaal op het juiste moment"
+          },
+          {
+            "path": "ready/iphone-duo-inner/nl-4_your-progress.png",
+            "heading": "Jouw vooruitgang",
+            "caption": "Volg je studiedagen"
+          },
+          {
+            "path": "ready/iphone-duo-inner/nl-5_your-cards.png",
+            "heading": "Jouw kaarten",
+            "caption": "Al je kaarten op één plek"
+          }
+        ]
+      },
+      {
         "family": "macos",
         "preview": "previews/nl-macos.png",
         "files": [
@@ -1723,6 +2188,37 @@
           },
           {
             "path": "ready/ipad/pl-5_your-cards.png",
+            "heading": "Twoje fiszki",
+            "caption": "Wszystkie fiszki w jednym miejscu"
+          }
+        ]
+      },
+      {
+        "family": "iphone-duo-inner",
+        "preview": "previews/pl-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/pl-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "Twórz fiszki z AI"
+          },
+          {
+            "path": "ready/iphone-duo-inner/pl-2_start-learning.png",
+            "heading": "Zacznij naukę",
+            "caption": "Przypomnij sobie odpowiedź"
+          },
+          {
+            "path": "ready/iphone-duo-inner/pl-3_smart-reviews.png",
+            "heading": "Mądre powtórki",
+            "caption": "Powtarzaj we właściwym czasie"
+          },
+          {
+            "path": "ready/iphone-duo-inner/pl-4_your-progress.png",
+            "heading": "Twoje postępy",
+            "caption": "Śledź dni nauki"
+          },
+          {
+            "path": "ready/iphone-duo-inner/pl-5_your-cards.png",
             "heading": "Twoje fiszki",
             "caption": "Wszystkie fiszki w jednym miejscu"
           }
@@ -1829,6 +2325,37 @@
         ]
       },
       {
+        "family": "iphone-duo-inner",
+        "preview": "previews/vi-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/vi-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "Tạo thẻ ghi nhớ với AI"
+          },
+          {
+            "path": "ready/iphone-duo-inner/vi-2_start-learning.png",
+            "heading": "Bắt đầu học",
+            "caption": "Tự nhớ lại câu trả lời"
+          },
+          {
+            "path": "ready/iphone-duo-inner/vi-3_smart-reviews.png",
+            "heading": "Ôn thông minh",
+            "caption": "Ôn tập đúng thời điểm"
+          },
+          {
+            "path": "ready/iphone-duo-inner/vi-4_your-progress.png",
+            "heading": "Tiến độ học",
+            "caption": "Theo dõi các ngày học"
+          },
+          {
+            "path": "ready/iphone-duo-inner/vi-5_your-cards.png",
+            "heading": "Thẻ của bạn",
+            "caption": "Tất cả thẻ ở một nơi"
+          }
+        ]
+      },
+      {
         "family": "macos",
         "preview": "previews/vi-macos.png",
         "files": [
@@ -1923,6 +2450,37 @@
           },
           {
             "path": "ready/ipad/th-5_your-cards.png",
+            "heading": "การ์ดของคุณ",
+            "caption": "ทุกการ์ดรวมอยู่ในที่เดียว"
+          }
+        ]
+      },
+      {
+        "family": "iphone-duo-inner",
+        "preview": "previews/th-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/th-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "สร้างแฟลชการ์ดด้วย AI"
+          },
+          {
+            "path": "ready/iphone-duo-inner/th-2_start-learning.png",
+            "heading": "เริ่มเรียนรู้",
+            "caption": "นึกคำตอบด้วยตัวเอง"
+          },
+          {
+            "path": "ready/iphone-duo-inner/th-3_smart-reviews.png",
+            "heading": "ทบทวนอัจฉริยะ",
+            "caption": "ทบทวนในเวลาที่เหมาะสม"
+          },
+          {
+            "path": "ready/iphone-duo-inner/th-4_your-progress.png",
+            "heading": "ความก้าวหน้า",
+            "caption": "ติดตามวันที่เรียน"
+          },
+          {
+            "path": "ready/iphone-duo-inner/th-5_your-cards.png",
             "heading": "การ์ดของคุณ",
             "caption": "ทุกการ์ดรวมอยู่ในที่เดียว"
           }
@@ -2029,6 +2587,37 @@
         ]
       },
       {
+        "family": "iphone-duo-inner",
+        "preview": "previews/uk-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/uk-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "Створюйте картки зі ШІ"
+          },
+          {
+            "path": "ready/iphone-duo-inner/uk-2_start-learning.png",
+            "heading": "Почніть учити",
+            "caption": "Пригадуйте відповідь самі"
+          },
+          {
+            "path": "ready/iphone-duo-inner/uk-3_smart-reviews.png",
+            "heading": "Розумні повтори",
+            "caption": "Повторюйте у потрібний момент"
+          },
+          {
+            "path": "ready/iphone-duo-inner/uk-4_your-progress.png",
+            "heading": "Ваш прогрес",
+            "caption": "Стежте за днями навчання"
+          },
+          {
+            "path": "ready/iphone-duo-inner/uk-5_your-cards.png",
+            "heading": "Ваші картки",
+            "caption": "Усі картки під рукою"
+          }
+        ]
+      },
+      {
         "family": "macos",
         "preview": "previews/uk-macos.png",
         "files": [
@@ -2123,6 +2712,37 @@
           },
           {
             "path": "ready/ipad/he-5_your-cards.png",
+            "heading": "הכרטיסיות שלכם",
+            "caption": "כל הכרטיסיות במקום אחד"
+          }
+        ]
+      },
+      {
+        "family": "iphone-duo-inner",
+        "preview": "previews/he-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/he-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "צרו כרטיסיות עם בינה מלאכותית"
+          },
+          {
+            "path": "ready/iphone-duo-inner/he-2_start-learning.png",
+            "heading": "מתחילים ללמוד",
+            "caption": "היזכרו בתשובה בעצמכם"
+          },
+          {
+            "path": "ready/iphone-duo-inner/he-3_smart-reviews.png",
+            "heading": "חזרות חכמות",
+            "caption": "חזרו בזמן המתאים"
+          },
+          {
+            "path": "ready/iphone-duo-inner/he-4_your-progress.png",
+            "heading": "ההתקדמות שלכם",
+            "caption": "עקבו אחר ימי הלימוד"
+          },
+          {
+            "path": "ready/iphone-duo-inner/he-5_your-cards.png",
             "heading": "הכרטיסיות שלכם",
             "caption": "כל הכרטיסיות במקום אחד"
           }
@@ -2229,6 +2849,37 @@
         ]
       },
       {
+        "family": "iphone-duo-inner",
+        "preview": "previews/sv-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/sv-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "Skapa kunskapskort med AI"
+          },
+          {
+            "path": "ready/iphone-duo-inner/sv-2_start-learning.png",
+            "heading": "Börja studera",
+            "caption": "Minns svaret på egen hand"
+          },
+          {
+            "path": "ready/iphone-duo-inner/sv-3_smart-reviews.png",
+            "heading": "Smart repetition",
+            "caption": "Repetera vid rätt tillfälle"
+          },
+          {
+            "path": "ready/iphone-duo-inner/sv-4_your-progress.png",
+            "heading": "Dina framsteg",
+            "caption": "Följ dina studiedagar"
+          },
+          {
+            "path": "ready/iphone-duo-inner/sv-5_your-cards.png",
+            "heading": "Dina kort",
+            "caption": "Alla kort på ett ställe"
+          }
+        ]
+      },
+      {
         "family": "macos",
         "preview": "previews/sv-macos.png",
         "files": [
@@ -2323,6 +2974,37 @@
           },
           {
             "path": "ready/ipad/da-5_your-cards.png",
+            "heading": "Dine kort",
+            "caption": "Alle kort på ét sted"
+          }
+        ]
+      },
+      {
+        "family": "iphone-duo-inner",
+        "preview": "previews/da-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/da-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "Lav læringskort med AI"
+          },
+          {
+            "path": "ready/iphone-duo-inner/da-2_start-learning.png",
+            "heading": "Begynd at lære",
+            "caption": "Husk selv svaret"
+          },
+          {
+            "path": "ready/iphone-duo-inner/da-3_smart-reviews.png",
+            "heading": "Smart repetition",
+            "caption": "Gentag på det rette tidspunkt"
+          },
+          {
+            "path": "ready/iphone-duo-inner/da-4_your-progress.png",
+            "heading": "Dine fremskridt",
+            "caption": "Følg dine studiedage"
+          },
+          {
+            "path": "ready/iphone-duo-inner/da-5_your-cards.png",
             "heading": "Dine kort",
             "caption": "Alle kort på ét sted"
           }
@@ -2429,6 +3111,37 @@
         ]
       },
       {
+        "family": "iphone-duo-inner",
+        "preview": "previews/nb-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/nb-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "Lag læringskort med KI"
+          },
+          {
+            "path": "ready/iphone-duo-inner/nb-2_start-learning.png",
+            "heading": "Begynn å lære",
+            "caption": "Husk svaret selv"
+          },
+          {
+            "path": "ready/iphone-duo-inner/nb-3_smart-reviews.png",
+            "heading": "Smart repetisjon",
+            "caption": "Repeter til rett tid"
+          },
+          {
+            "path": "ready/iphone-duo-inner/nb-4_your-progress.png",
+            "heading": "Din fremgang",
+            "caption": "Følg studiedagene dine"
+          },
+          {
+            "path": "ready/iphone-duo-inner/nb-5_your-cards.png",
+            "heading": "Dine kort",
+            "caption": "Alle kort på ett sted"
+          }
+        ]
+      },
+      {
         "family": "macos",
         "preview": "previews/nb-macos.png",
         "files": [
@@ -2523,6 +3236,37 @@
           },
           {
             "path": "ready/ipad/fi-5_your-cards.png",
+            "heading": "Omat kortit",
+            "caption": "Kaikki kortit yhdessä paikassa"
+          }
+        ]
+      },
+      {
+        "family": "iphone-duo-inner",
+        "preview": "previews/fi-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/fi-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "Luo opiskelukortteja tekoälyllä"
+          },
+          {
+            "path": "ready/iphone-duo-inner/fi-2_start-learning.png",
+            "heading": "Aloita opiskelu",
+            "caption": "Muista vastaus itse"
+          },
+          {
+            "path": "ready/iphone-duo-inner/fi-3_smart-reviews.png",
+            "heading": "Älykäs kertaus",
+            "caption": "Kertaa oikeaan aikaan"
+          },
+          {
+            "path": "ready/iphone-duo-inner/fi-4_your-progress.png",
+            "heading": "Edistymisesi",
+            "caption": "Seuraa opiskelupäiviäsi"
+          },
+          {
+            "path": "ready/iphone-duo-inner/fi-5_your-cards.png",
             "heading": "Omat kortit",
             "caption": "Kaikki kortit yhdessä paikassa"
           }
@@ -2629,6 +3373,37 @@
         ]
       },
       {
+        "family": "iphone-duo-inner",
+        "preview": "previews/cs-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/cs-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "Vytvářejte kartičky s AI"
+          },
+          {
+            "path": "ready/iphone-duo-inner/cs-2_start-learning.png",
+            "heading": "Začněte se učit",
+            "caption": "Vybavte si odpověď sami"
+          },
+          {
+            "path": "ready/iphone-duo-inner/cs-3_smart-reviews.png",
+            "heading": "Chytré opakování",
+            "caption": "Opakujte ve správný čas"
+          },
+          {
+            "path": "ready/iphone-duo-inner/cs-4_your-progress.png",
+            "heading": "Váš pokrok",
+            "caption": "Sledujte své studijní dny"
+          },
+          {
+            "path": "ready/iphone-duo-inner/cs-5_your-cards.png",
+            "heading": "Vaše kartičky",
+            "caption": "Všechny kartičky na jednom místě"
+          }
+        ]
+      },
+      {
         "family": "macos",
         "preview": "previews/cs-macos.png",
         "files": [
@@ -2723,6 +3498,37 @@
           },
           {
             "path": "ready/ipad/el-5_your-cards.png",
+            "heading": "Οι κάρτες σου",
+            "caption": "Όλες οι κάρτες σε ένα μέρος"
+          }
+        ]
+      },
+      {
+        "family": "iphone-duo-inner",
+        "preview": "previews/el-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/el-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "Φτιάξε κάρτες με AI"
+          },
+          {
+            "path": "ready/iphone-duo-inner/el-2_start-learning.png",
+            "heading": "Ξεκίνα μάθηση",
+            "caption": "Θυμήσου την απάντηση μόνος σου"
+          },
+          {
+            "path": "ready/iphone-duo-inner/el-3_smart-reviews.png",
+            "heading": "Σωστή επανάληψη",
+            "caption": "Επανάλαβε τη σωστή στιγμή"
+          },
+          {
+            "path": "ready/iphone-duo-inner/el-4_your-progress.png",
+            "heading": "Η πρόοδός σου",
+            "caption": "Παρακολούθησε τις ημέρες μελέτης"
+          },
+          {
+            "path": "ready/iphone-duo-inner/el-5_your-cards.png",
             "heading": "Οι κάρτες σου",
             "caption": "Όλες οι κάρτες σε ένα μέρος"
           }
@@ -2829,6 +3635,37 @@
         ]
       },
       {
+        "family": "iphone-duo-inner",
+        "preview": "previews/ro-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/ro-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "Creează fișe cu AI"
+          },
+          {
+            "path": "ready/iphone-duo-inner/ro-2_start-learning.png",
+            "heading": "Începe să înveți",
+            "caption": "Amintește-ți singur răspunsul"
+          },
+          {
+            "path": "ready/iphone-duo-inner/ro-3_smart-reviews.png",
+            "heading": "Recapitulări",
+            "caption": "Repetă la momentul potrivit"
+          },
+          {
+            "path": "ready/iphone-duo-inner/ro-4_your-progress.png",
+            "heading": "Progresul tău",
+            "caption": "Urmărește zilele de studiu"
+          },
+          {
+            "path": "ready/iphone-duo-inner/ro-5_your-cards.png",
+            "heading": "Fișele tale",
+            "caption": "Toate fișele într-un singur loc"
+          }
+        ]
+      },
+      {
         "family": "macos",
         "preview": "previews/ro-macos.png",
         "files": [
@@ -2923,6 +3760,37 @@
           },
           {
             "path": "ready/ipad/hu-5_your-cards.png",
+            "heading": "Kártyáid",
+            "caption": "Minden kártyád egy helyen"
+          }
+        ]
+      },
+      {
+        "family": "iphone-duo-inner",
+        "preview": "previews/hu-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/hu-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "Készíts tanulókártyákat MI-vel"
+          },
+          {
+            "path": "ready/iphone-duo-inner/hu-2_start-learning.png",
+            "heading": "Kezdj tanulni",
+            "caption": "Idézd fel magad a választ"
+          },
+          {
+            "path": "ready/iphone-duo-inner/hu-3_smart-reviews.png",
+            "heading": "Okos ismétlés",
+            "caption": "Ismételj a megfelelő időben"
+          },
+          {
+            "path": "ready/iphone-duo-inner/hu-4_your-progress.png",
+            "heading": "Haladásod",
+            "caption": "Kövesd a tanulási napjaidat"
+          },
+          {
+            "path": "ready/iphone-duo-inner/hu-5_your-cards.png",
             "heading": "Kártyáid",
             "caption": "Minden kártyád egy helyen"
           }
@@ -3067,6 +3935,37 @@
         ]
       },
       {
+        "family": "iphone-duo-inner",
+        "preview": "previews/ca-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/ca-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "Crea targetes amb IA"
+          },
+          {
+            "path": "ready/iphone-duo-inner/ca-2_start-learning.png",
+            "heading": "Comença",
+            "caption": "Recorda la resposta pel teu compte"
+          },
+          {
+            "path": "ready/iphone-duo-inner/ca-3_smart-reviews.png",
+            "heading": "Repassos",
+            "caption": "Repassa en el moment adequat"
+          },
+          {
+            "path": "ready/iphone-duo-inner/ca-4_your-progress.png",
+            "heading": "El teu progrés",
+            "caption": "Segueix els dies d’estudi"
+          },
+          {
+            "path": "ready/iphone-duo-inner/ca-5_your-cards.png",
+            "heading": "Les teves targetes",
+            "caption": "Totes les targetes en un sol lloc"
+          }
+        ]
+      },
+      {
         "family": "macos",
         "preview": "previews/ca-macos.png",
         "files": [
@@ -3161,6 +4060,37 @@
           },
           {
             "path": "ready/ipad/bn-5_your-cards.png",
+            "heading": "আপনার কার্ড",
+            "caption": "সব কার্ড এক জায়গায়"
+          }
+        ]
+      },
+      {
+        "family": "iphone-duo-inner",
+        "preview": "previews/bn-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/bn-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "AI দিয়ে ফ্ল্যাশকার্ড তৈরি করুন"
+          },
+          {
+            "path": "ready/iphone-duo-inner/bn-2_start-learning.png",
+            "heading": "শেখা শুরু করুন",
+            "caption": "নিজেই উত্তর মনে করুন"
+          },
+          {
+            "path": "ready/iphone-duo-inner/bn-3_smart-reviews.png",
+            "heading": "স্মার্ট রিভিউ",
+            "caption": "সঠিক সময়ে ঝালিয়ে নিন"
+          },
+          {
+            "path": "ready/iphone-duo-inner/bn-4_your-progress.png",
+            "heading": "আপনার অগ্রগতি",
+            "caption": "পড়ার দিনগুলো দেখুন"
+          },
+          {
+            "path": "ready/iphone-duo-inner/bn-5_your-cards.png",
             "heading": "আপনার কার্ড",
             "caption": "সব কার্ড এক জায়গায়"
           }
@@ -3267,6 +4197,37 @@
         ]
       },
       {
+        "family": "iphone-duo-inner",
+        "preview": "previews/gu-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/gu-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "AI થી ફ્લૅશકાર્ડ બનાવો"
+          },
+          {
+            "path": "ready/iphone-duo-inner/gu-2_start-learning.png",
+            "heading": "શીખવાનું શરૂ કરો",
+            "caption": "જવાબ જાતે યાદ કરો"
+          },
+          {
+            "path": "ready/iphone-duo-inner/gu-3_smart-reviews.png",
+            "heading": "સ્માર્ટ રિવ્યૂ",
+            "caption": "યોગ્ય સમયે પુનરાવર્તન કરો"
+          },
+          {
+            "path": "ready/iphone-duo-inner/gu-4_your-progress.png",
+            "heading": "તમારી પ્રગતિ",
+            "caption": "અભ્યાસના દિવસો જુઓ"
+          },
+          {
+            "path": "ready/iphone-duo-inner/gu-5_your-cards.png",
+            "heading": "તમારા કાર્ડ",
+            "caption": "બધા કાર્ડ એક જગ્યાએ"
+          }
+        ]
+      },
+      {
         "family": "macos",
         "preview": "previews/gu-macos.png",
         "files": [
@@ -3361,6 +4322,37 @@
           },
           {
             "path": "ready/ipad/kn-5_your-cards.png",
+            "heading": "ನಿಮ್ಮ ಕಾರ್ಡ್‌ಗಳು",
+            "caption": "ಎಲ್ಲಾ ಕಾರ್ಡ್‌ಗಳು ಒಂದೇ ಕಡೆ"
+          }
+        ]
+      },
+      {
+        "family": "iphone-duo-inner",
+        "preview": "previews/kn-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/kn-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "AI ಮೂಲಕ ಕಾರ್ಡ್‌ಗಳನ್ನು ರಚಿಸಿ"
+          },
+          {
+            "path": "ready/iphone-duo-inner/kn-2_start-learning.png",
+            "heading": "ಕಲಿಯಲು ಆರಂಭಿಸಿ",
+            "caption": "ಉತ್ತರವನ್ನು ನೀವೇ ನೆನಪಿಸಿಕೊಳ್ಳಿ"
+          },
+          {
+            "path": "ready/iphone-duo-inner/kn-3_smart-reviews.png",
+            "heading": "ಸ್ಮಾರ್ಟ್ ರಿವ್ಯೂ",
+            "caption": "ಸರಿಯಾದ ಸಮಯದಲ್ಲಿ ಪುನರಾವರ್ತಿಸಿ"
+          },
+          {
+            "path": "ready/iphone-duo-inner/kn-4_your-progress.png",
+            "heading": "ನಿಮ್ಮ ಪ್ರಗತಿ",
+            "caption": "ಅಧ್ಯಯನದ ದಿನಗಳನ್ನು ನೋಡಿ"
+          },
+          {
+            "path": "ready/iphone-duo-inner/kn-5_your-cards.png",
             "heading": "ನಿಮ್ಮ ಕಾರ್ಡ್‌ಗಳು",
             "caption": "ಎಲ್ಲಾ ಕಾರ್ಡ್‌ಗಳು ಒಂದೇ ಕಡೆ"
           }
@@ -3467,6 +4459,37 @@
         ]
       },
       {
+        "family": "iphone-duo-inner",
+        "preview": "previews/ml-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/ml-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "AI ഉപയോഗിച്ച് കാർഡുകൾ ഉണ്ടാക്കൂ"
+          },
+          {
+            "path": "ready/iphone-duo-inner/ml-2_start-learning.png",
+            "heading": "പഠനം തുടങ്ങൂ",
+            "caption": "ഉത്തരം സ്വയം ഓർക്കൂ"
+          },
+          {
+            "path": "ready/iphone-duo-inner/ml-3_smart-reviews.png",
+            "heading": "സ്മാർട്ട് റിവ്യൂ",
+            "caption": "ശരിയായ സമയത്ത് ആവർത്തിക്കൂ"
+          },
+          {
+            "path": "ready/iphone-duo-inner/ml-4_your-progress.png",
+            "heading": "പുരോഗതി",
+            "caption": "പഠിച്ച ദിവസങ്ങൾ കാണൂ"
+          },
+          {
+            "path": "ready/iphone-duo-inner/ml-5_your-cards.png",
+            "heading": "കാർഡുകൾ",
+            "caption": "എല്ലാ കാർഡുകളും ഒരിടത്ത്"
+          }
+        ]
+      },
+      {
         "family": "macos",
         "preview": "previews/ml-macos.png",
         "files": [
@@ -3561,6 +4584,37 @@
           },
           {
             "path": "ready/ipad/mr-5_your-cards.png",
+            "heading": "तुमची कार्डे",
+            "caption": "सर्व कार्डे एकाच ठिकाणी"
+          }
+        ]
+      },
+      {
+        "family": "iphone-duo-inner",
+        "preview": "previews/mr-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/mr-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "AI ने फ्लॅशकार्ड तयार करा"
+          },
+          {
+            "path": "ready/iphone-duo-inner/mr-2_start-learning.png",
+            "heading": "शिकायला सुरुवात",
+            "caption": "उत्तर स्वतः आठवा"
+          },
+          {
+            "path": "ready/iphone-duo-inner/mr-3_smart-reviews.png",
+            "heading": "स्मार्ट रिव्ह्यू",
+            "caption": "योग्य वेळी उजळणी करा"
+          },
+          {
+            "path": "ready/iphone-duo-inner/mr-4_your-progress.png",
+            "heading": "तुमची प्रगती",
+            "caption": "अभ्यासाचे दिवस पाहा"
+          },
+          {
+            "path": "ready/iphone-duo-inner/mr-5_your-cards.png",
             "heading": "तुमची कार्डे",
             "caption": "सर्व कार्डे एकाच ठिकाणी"
           }
@@ -3667,6 +4721,37 @@
         ]
       },
       {
+        "family": "iphone-duo-inner",
+        "preview": "previews/pa-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/pa-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "AI ਨਾਲ ਫਲੈਸ਼ਕਾਰਡ ਬਣਾਓ"
+          },
+          {
+            "path": "ready/iphone-duo-inner/pa-2_start-learning.png",
+            "heading": "ਸਿੱਖਣਾ ਸ਼ੁਰੂ ਕਰੋ",
+            "caption": "ਜਵਾਬ ਆਪ ਯਾਦ ਕਰੋ"
+          },
+          {
+            "path": "ready/iphone-duo-inner/pa-3_smart-reviews.png",
+            "heading": "ਸਮਾਰਟ ਰਿਵਿਊ",
+            "caption": "ਸਹੀ ਸਮੇਂ ਦੁਹਰਾਓ"
+          },
+          {
+            "path": "ready/iphone-duo-inner/pa-4_your-progress.png",
+            "heading": "ਤੁਹਾਡੀ ਤਰੱਕੀ",
+            "caption": "ਪੜ੍ਹਾਈ ਦੇ ਦਿਨ ਵੇਖੋ"
+          },
+          {
+            "path": "ready/iphone-duo-inner/pa-5_your-cards.png",
+            "heading": "ਤੁਹਾਡੇ ਕਾਰਡ",
+            "caption": "ਸਾਰੇ ਕਾਰਡ ਇੱਕ ਥਾਂ"
+          }
+        ]
+      },
+      {
         "family": "macos",
         "preview": "previews/pa-macos.png",
         "files": [
@@ -3761,6 +4846,37 @@
           },
           {
             "path": "ready/ipad/ta-5_your-cards.png",
+            "heading": "உங்கள் கார்டுகள்",
+            "caption": "எல்லா கார்டுகளும் ஒரே இடத்தில்"
+          }
+        ]
+      },
+      {
+        "family": "iphone-duo-inner",
+        "preview": "previews/ta-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/ta-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "AI மூலம் கார்டுகளை உருவாக்குங்கள்"
+          },
+          {
+            "path": "ready/iphone-duo-inner/ta-2_start-learning.png",
+            "heading": "கற்கத் தொடங்கு",
+            "caption": "பதிலை நீங்களே நினைவுகூருங்கள்"
+          },
+          {
+            "path": "ready/iphone-duo-inner/ta-3_smart-reviews.png",
+            "heading": "சீரான மீள்பார்வை",
+            "caption": "சரியான நேரத்தில் மீள்பாருங்கள்"
+          },
+          {
+            "path": "ready/iphone-duo-inner/ta-4_your-progress.png",
+            "heading": "உங்கள் முன்னேற்றம்",
+            "caption": "படித்த நாட்களைப் பாருங்கள்"
+          },
+          {
+            "path": "ready/iphone-duo-inner/ta-5_your-cards.png",
             "heading": "உங்கள் கார்டுகள்",
             "caption": "எல்லா கார்டுகளும் ஒரே இடத்தில்"
           }
@@ -3867,6 +4983,37 @@
         ]
       },
       {
+        "family": "iphone-duo-inner",
+        "preview": "previews/te-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/te-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "AI తో కార్డులు సృష్టించండి"
+          },
+          {
+            "path": "ready/iphone-duo-inner/te-2_start-learning.png",
+            "heading": "నేర్చుకోండి",
+            "caption": "జవాబును మీరే గుర్తు తెచ్చుకోండి"
+          },
+          {
+            "path": "ready/iphone-duo-inner/te-3_smart-reviews.png",
+            "heading": "స్మార్ట్ రివ్యూలు",
+            "caption": "సరైన సమయంలో పునశ్చరణ చేయండి"
+          },
+          {
+            "path": "ready/iphone-duo-inner/te-4_your-progress.png",
+            "heading": "మీ పురోగతి",
+            "caption": "చదివిన రోజులను చూడండి"
+          },
+          {
+            "path": "ready/iphone-duo-inner/te-5_your-cards.png",
+            "heading": "మీ కార్డులు",
+            "caption": "అన్ని కార్డులు ఒకే చోట"
+          }
+        ]
+      },
+      {
         "family": "macos",
         "preview": "previews/te-macos.png",
         "files": [
@@ -3961,6 +5108,37 @@
           },
           {
             "path": "ready/ipad/ur-5_your-cards.png",
+            "heading": "آپ کے کارڈز",
+            "caption": "تمام کارڈز ایک جگہ"
+          }
+        ]
+      },
+      {
+        "family": "iphone-duo-inner",
+        "preview": "previews/ur-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/ur-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "AI سے فلیش کارڈز بنائیں"
+          },
+          {
+            "path": "ready/iphone-duo-inner/ur-2_start-learning.png",
+            "heading": "سیکھنا شروع کریں",
+            "caption": "جواب خود یاد کریں"
+          },
+          {
+            "path": "ready/iphone-duo-inner/ur-3_smart-reviews.png",
+            "heading": "اسمارٹ ریویو",
+            "caption": "صحیح وقت پر دہرائیں"
+          },
+          {
+            "path": "ready/iphone-duo-inner/ur-4_your-progress.png",
+            "heading": "آپ کی پیش رفت",
+            "caption": "پڑھائی کے دن دیکھیں"
+          },
+          {
+            "path": "ready/iphone-duo-inner/ur-5_your-cards.png",
             "heading": "آپ کے کارڈز",
             "caption": "تمام کارڈز ایک جگہ"
           }
@@ -4181,6 +5359,37 @@
         ]
       },
       {
+        "family": "iphone-duo-inner",
+        "preview": "previews/hr-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/hr-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "Stvarajte kartice uz AI"
+          },
+          {
+            "path": "ready/iphone-duo-inner/hr-2_start-learning.png",
+            "heading": "Počnite učiti",
+            "caption": "Sami se prisjetite odgovora"
+          },
+          {
+            "path": "ready/iphone-duo-inner/hr-3_smart-reviews.png",
+            "heading": "Pametno ponovi",
+            "caption": "Ponavljajte u pravo vrijeme"
+          },
+          {
+            "path": "ready/iphone-duo-inner/hr-4_your-progress.png",
+            "heading": "Vaš napredak",
+            "caption": "Pratite dane učenja"
+          },
+          {
+            "path": "ready/iphone-duo-inner/hr-5_your-cards.png",
+            "heading": "Vaše kartice",
+            "caption": "Sve kartice na jednom mjestu"
+          }
+        ]
+      },
+      {
         "family": "macos",
         "preview": "previews/hr-macos.png",
         "files": [
@@ -4395,6 +5604,37 @@
         ]
       },
       {
+        "family": "iphone-duo-inner",
+        "preview": "previews/sk-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/sk-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "Vytvárajte kartičky s AI"
+          },
+          {
+            "path": "ready/iphone-duo-inner/sk-2_start-learning.png",
+            "heading": "Začnite sa učiť",
+            "caption": "Spomeňte si na odpoveď sami"
+          },
+          {
+            "path": "ready/iphone-duo-inner/sk-3_smart-reviews.png",
+            "heading": "Múdre opakovanie",
+            "caption": "Opakujte v správnom čase"
+          },
+          {
+            "path": "ready/iphone-duo-inner/sk-4_your-progress.png",
+            "heading": "Váš pokrok",
+            "caption": "Sledujte svoje študijné dni"
+          },
+          {
+            "path": "ready/iphone-duo-inner/sk-5_your-cards.png",
+            "heading": "Vaše kartičky",
+            "caption": "Všetky kartičky na jednom mieste"
+          }
+        ]
+      },
+      {
         "family": "macos",
         "preview": "previews/sk-macos.png",
         "files": [
@@ -4489,6 +5729,37 @@
           },
           {
             "path": "ready/ipad/sl-5_your-cards.png",
+            "heading": "Vaše kartice",
+            "caption": "Vse kartice na enem mestu"
+          }
+        ]
+      },
+      {
+        "family": "iphone-duo-inner",
+        "preview": "previews/sl-iphone-duo-inner.png",
+        "files": [
+          {
+            "path": "ready/iphone-duo-inner/sl-1_ai-flashcards.png",
+            "heading": "Nibomo App",
+            "caption": "Ustvarite učne kartice z UI"
+          },
+          {
+            "path": "ready/iphone-duo-inner/sl-2_start-learning.png",
+            "heading": "Začnite se učiti",
+            "caption": "Sami se spomnite odgovora"
+          },
+          {
+            "path": "ready/iphone-duo-inner/sl-3_smart-reviews.png",
+            "heading": "Pametno ponovi",
+            "caption": "Ponavljajte ob pravem času"
+          },
+          {
+            "path": "ready/iphone-duo-inner/sl-4_your-progress.png",
+            "heading": "Vaš napredek",
+            "caption": "Spremljajte dneve učenja"
+          },
+          {
+            "path": "ready/iphone-duo-inner/sl-5_your-cards.png",
             "heading": "Vaše kartice",
             "caption": "Vse kartice na enem mestu"
           }
