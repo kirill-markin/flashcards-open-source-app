@@ -86,6 +86,12 @@ PROVISIONING_PROFILE_SPECIFIER[sdk=macosx*][config=Debug] = $(_LOCAL_PROFILE_$(P
 CODE_SIGN_INJECT_BASE_ENTITLEMENTS[sdk=macosx*][config=Debug] = YES
 ```
 
+Quit any installed App Store or TestFlight copy before building and testing.
+The Debug build shares that copy's bundle ID, sandbox container, database and
+Keychain sign-in, and UI-test scenario launches reset them. Quitting only
+prevents concurrent access: the run still erases the copy's local data and signs
+it out, so sync it first, keep no guest or unsynced data, then sign back in.
+
 Build the unchanged shared scheme's full selection, then use its original
 generated `.xctestrun` under `tmp/macos-derived-data/Build/Products`:
 
