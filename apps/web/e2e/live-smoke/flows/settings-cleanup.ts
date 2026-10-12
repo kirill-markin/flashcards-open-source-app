@@ -2,12 +2,13 @@ import { expect, type Locator } from "@playwright/test";
 
 import {
   trackedClick,
+  trackedExpectAttribute,
   trackedExpectVisible,
   trackedFill,
   trackedGoto,
   trackedReadRequiredTextContent,
 } from "../../live-smoke.actions";
-import { settingsDeleteCurrentWorkspaceRoute } from "../../../src/routes";
+import { buildWorkspaceRoute, settingsDeleteCurrentWorkspaceRoute } from "../../../src/routes";
 import { externalUiTimeoutMs, localUiTimeoutMs } from "../config";
 import { waitForDeleteWorkspaceConfirmation } from "../observations/workspace-delete";
 import { runLiveSmokeStep } from "../steps";
@@ -21,12 +22,16 @@ export async function runWorkspaceCleanupFlow(session: LiveSmokeSession): Promis
 
 async function deleteEphemeralWorkspace(session: LiveSmokeSession): Promise<void> {
   const { page, diagnostics, scenario, baseUrl } = session;
+  const deletedWorkspaceId = session.ownedWorkspaceId;
+  if (deletedWorkspaceId === null) {
+    throw new Error("Cannot clean up the scenario workspace without its captured owned workspace id");
+  }
   const activeWorkspaceTopbar = page.getByTestId("topbar-active-workspace");
   await trackedGoto(
     page,
     diagnostics,
-    "open delete current workspace route before cleanup",
-    `${baseUrl}${settingsDeleteCurrentWorkspaceRoute}`,
+    "open the owned workspace deletion route before cleanup",
+    `${baseUrl}${buildWorkspaceRoute(deletedWorkspaceId, settingsDeleteCurrentWorkspaceRoute)}`,
     externalUiTimeoutMs,
   );
   await trackedExpectVisible(
@@ -36,10 +41,13 @@ async function deleteEphemeralWorkspace(session: LiveSmokeSession): Promise<void
     localUiTimeoutMs,
   );
 
-  const deletedWorkspaceId = await readRequiredActiveWorkspaceId(
+  await trackedExpectAttribute(
     diagnostics,
-    "capture active workspace id before deleting the isolated workspace",
+    "confirm the owned workspace is active before opening deletion",
     activeWorkspaceTopbar,
+    "data-workspace-id",
+    deletedWorkspaceId,
+    externalUiTimeoutMs,
   );
 
   await trackedClick(diagnostics, "open delete workspace dialog", page.getByTestId("delete-current-workspace-open"));
@@ -68,6 +76,14 @@ async function deleteEphemeralWorkspace(session: LiveSmokeSession): Promise<void
     confirmationInput,
     confirmationPhrase,
   );
+  await trackedExpectAttribute(
+    diagnostics,
+    "confirm the owned workspace is active before submitting deletion",
+    activeWorkspaceTopbar,
+    "data-workspace-id",
+    deletedWorkspaceId,
+    localUiTimeoutMs,
+  );
   await trackedClick(
     diagnostics,
     `submit workspace deletion for ${scenario.workspaceName}`,
@@ -85,21 +101,6 @@ async function deleteEphemeralWorkspace(session: LiveSmokeSession): Promise<void
       ).toBe(true);
     },
   );
-}
-
-async function readRequiredActiveWorkspaceId(
-  diagnostics: LiveSmokeSession["diagnostics"],
-  actionName: string,
-  locator: Locator,
-): Promise<string> {
-  return diagnostics.runAction(actionName, async () => {
-    const activeWorkspaceId = await readActiveWorkspaceId(locator);
-    if (activeWorkspaceId === "") {
-      throw new Error("Topbar active workspace id contract is missing");
-    }
-
-    return activeWorkspaceId;
-  });
 }
 
 async function readActiveWorkspaceId(locator: Locator): Promise<string> {

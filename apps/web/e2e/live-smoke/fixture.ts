@@ -56,6 +56,7 @@ export const test = base.extend<LiveSmokeTestFixtures, LiveSmokeWorkerFixtures>(
       scenario: buildScenario(runIdFromClock()),
       baseUrl: liveSmokeEnvironment.appBaseUrl,
       reviewEmail,
+      ownedWorkspaceId: null,
       cleanupRequested: false,
     };
 

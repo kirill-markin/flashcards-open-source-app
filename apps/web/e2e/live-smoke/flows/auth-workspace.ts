@@ -1,3 +1,5 @@
+import { expect } from "@playwright/test";
+
 import {
   trackedClick,
   trackedExpectAttribute,
@@ -8,7 +10,7 @@ import {
   trackedIsVisible,
   trackedWaitForUrl,
 } from "../../live-smoke.actions";
-import { reviewRoute, workspaceRoutePrefix } from "../../../src/routes";
+import { reviewRoute, splitWorkspaceRoutePath, workspaceRoutePrefix } from "../../../src/routes";
 import { primaryNavigationLinkSelector } from "../navigation";
 import { authBaseUrl, externalUiTimeoutMs, localUiTimeoutMs } from "../config";
 import { seedLinkedWorkspaceForTest } from "../seedBridge";
@@ -133,6 +135,18 @@ async function createEphemeralWorkspace(session: LiveSmokeSession): Promise<void
     scenario.workspaceName,
     externalUiTimeoutMs,
   );
+  session.ownedWorkspaceId = await diagnostics.runAction("capture the created scenario workspace id", async () => {
+    const workspaceId = (await page.getByTestId("topbar-active-workspace").getAttribute("data-workspace-id"))?.trim();
+    if (workspaceId === undefined || workspaceId === "") {
+      throw new Error("Created scenario workspace id is missing from the topbar");
+    }
+
+    await expect.poll(
+      () => splitWorkspaceRoutePath(new URL(page.url()).pathname).workspaceId,
+      { timeout: externalUiTimeoutMs },
+    ).toBe(workspaceId);
+    return workspaceId;
+  });
 }
 
 async function assertLinkedAccountStatus(session: LiveSmokeSession): Promise<void> {
