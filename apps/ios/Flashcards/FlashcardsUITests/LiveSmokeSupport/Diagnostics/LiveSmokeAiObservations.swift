@@ -4,20 +4,30 @@ extension LiveSmokeTestCase {
     @MainActor
     func visibleAssistantRowTexts(ignoredExactLabels: Set<String>) -> [String] {
         self.elements(
-            query: self.app.descendants(matching: .any)
-                .matching(identifier: LiveSmokeIdentifier.aiAssistantVisibleText)
+            query: self.app.cells.containing(.any, identifier: LiveSmokeIdentifier.aiAssistantVisibleText)
         )
-        .compactMap { element in
-            let value = self.elementValue(element: element).trimmingCharacters(in: .whitespacesAndNewlines)
-            if value.isEmpty == false {
-                return value
-            }
-
-            let label = element.label.trimmingCharacters(in: .whitespacesAndNewlines)
-            return label.isEmpty ? nil : label
+        .filter { row in
+            row.identifier != LiveSmokeIdentifier.aiAssistantErrorMessage
+                && row.descendants(matching: .any)
+                .matching(identifier: LiveSmokeIdentifier.aiAssistantErrorMessage).firstMatch.exists == false
         }
-        .filter { text in
-            text.isEmpty == false && ignoredExactLabels.contains(text) == false
+        .compactMap { row in
+            self.elements(
+                query: row.descendants(matching: .any)
+                    .matching(identifier: LiveSmokeIdentifier.aiAssistantVisibleText)
+            )
+            .compactMap { element in
+                let value = self.elementValue(element: element).trimmingCharacters(in: .whitespacesAndNewlines)
+                if value.isEmpty == false {
+                    return value
+                }
+
+                let label = element.label.trimmingCharacters(in: .whitespacesAndNewlines)
+                return label.isEmpty ? nil : label
+            }
+            .first { text in
+                text.isEmpty == false && ignoredExactLabels.contains(text) == false
+            }
         }
     }
 
@@ -43,16 +53,7 @@ extension LiveSmokeTestCase {
 
     @MainActor
     func visibleMeaningfulAssistantTextMessages() -> [String] {
-        var seenMessages: Set<String> = []
-        return self.visibleAssistantRowTexts(ignoredExactLabels: [])
-            .filter { message in
-                message.isEmpty == false
-                    && message != "Assistant"
-                    && message != "Assistant is typing"
-            }
-            .filter { message in
-                seenMessages.insert(message).inserted
-            }
+        self.visibleAssistantRowTexts(ignoredExactLabels: ["Assistant", "Assistant is typing"])
     }
 
     @MainActor
@@ -64,7 +65,13 @@ extension LiveSmokeTestCase {
     func latestVisibleAssistantErrorMessage() -> String? {
         let element = self.visibleAssistantErrorElement()
         guard element.exists else {
-            return nil
+            let alert = self.app.alerts.firstMatch
+            guard alert.exists else {
+                return nil
+            }
+            let alertText = self.elements(query: alert.descendants(matching: .staticText))
+                .map(\.label).joined(separator: " | ")
+            return "AI request presented an alert: \(alertText)"
         }
 
         let nestedStaticTextLabels = self.elements(query: element.descendants(matching: .staticText))

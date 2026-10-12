@@ -50,7 +50,7 @@ final class LiveSmokeAIConsentTests: LiveSmokeTestCase {
         XCTAssertNotEqual(regrant.eventId, grant.eventId)
         XCTAssertNotEqual(regrant.eventId, withdrawal.eventId)
         try self.tapTabBarItem(selectedTab: .ai, timeout: 10)
-        _ = try self.waitForAiComposerUsable(timeout: 30)
+        try self.createGuestAiConversationForReset()
         try self.launchApplication(launchScenario: .marketingGuestSessionCleanup, selectedTab: .settings)
     }
 

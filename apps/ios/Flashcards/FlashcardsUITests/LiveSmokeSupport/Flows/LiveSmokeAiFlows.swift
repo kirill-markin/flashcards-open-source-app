@@ -459,10 +459,19 @@ extension LiveSmokeTestCase {
     @MainActor
     func waitForAiComposerAfterConsent() throws {
         let consentButton = self.app.buttons[LiveSmokeIdentifier.aiConsentAcceptButton]
+        let consentFailure = self.app.descendants(matching: .any)
+            .matching(identifier: LiveSmokeIdentifier.aiConsentFailure).firstMatch
         let deadline = Date().addingTimeInterval(LiveSmokeConfiguration.longUiTimeoutSeconds)
-        var nextConsentRetryTapAt = Date()
 
         while Date() < deadline {
+            if consentFailure.exists {
+                throw LiveSmokeFailure.unexpectedAiConversationState(
+                    message: "AI consent acknowledgement failed: \(consentFailure.label)",
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
+            }
+
             if consentButton.exists == false {
                 _ = try self.waitForAiComposerUsable(
                     timeout: deadline.timeIntervalSinceNow
@@ -470,12 +479,7 @@ extension LiveSmokeTestCase {
                 return
             }
 
-            if consentButton.exists && consentButton.isHittable && Date() >= nextConsentRetryTapAt {
-                consentButton.tap()
-                nextConsentRetryTapAt = Date().addingTimeInterval(aiConsentRetryTapIntervalSeconds)
-            }
-
-            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
         }
 
         if consentButton.exists {
@@ -516,10 +520,6 @@ extension LiveSmokeTestCase {
             .matching(identifier: LiveSmokeIdentifier.aiMessageRow)
             .count
         try self.prepareAiComposerForResetConversation(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        let completedMarkerCountBeforeWait = self.app.descendants(matching: .any)
-            .matching(identifier: LiveSmokeIdentifier.aiToolCallCompletedStatus)
-            .count
-        let errorMarkerCountBeforeWait = self.visibleAssistantErrorMessageCount()
         let assistantTextCountBeforeWait = self.visibleMeaningfulAssistantTextMessages().count
         try self.assertElementEnabled(
             identifier: LiveSmokeIdentifier.aiComposerSendButton,
@@ -529,28 +529,13 @@ extension LiveSmokeTestCase {
             identifier: LiveSmokeIdentifier.aiComposerSendButton,
             timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
         )
-        try self.assertAiRunStartedOrFinished(
-            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds,
-            completedMarkerCountBeforeWait: completedMarkerCountBeforeWait,
-            errorMarkerCountBeforeWait: errorMarkerCountBeforeWait,
-            assistantTextCountBeforeWait: assistantTextCountBeforeWait
-        )
         try self.waitForUserAiMessageRowCountIncrease(
             previousCount: messageRowsBeforeSend,
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
-        try self.assertElementLabel(
-            identifier: LiveSmokeIdentifier.aiComposerSendButton,
-            expectedLabel: "Send message",
-            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
-        )
-        try self.assertElementDisabled(
-            identifier: LiveSmokeIdentifier.aiComposerSendButton,
-            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
-        )
-        try self.assertElementEnabled(
-            identifier: LiveSmokeIdentifier.aiNewChatButton,
-            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        try self.waitForCompletedAiTextResponse(
+            assistantTextCountBeforeSend: assistantTextCountBeforeWait,
+            timeout: aiCreateRunCompletionTimeoutSeconds
         )
     }
 
@@ -832,6 +817,49 @@ extension LiveSmokeTestCase {
         )
         throw LiveSmokeFailure.unexpectedAiConversationState(
             message: "Expected at least one new user AI message row after sending the prompt, but the count stayed at \(currentCount).",
+            screen: self.currentScreenSummary(),
+            step: self.currentStepTitle
+        )
+    }
+
+    @MainActor
+    func waitForCompletedAiTextResponse(
+        assistantTextCountBeforeSend: Int,
+        timeout: TimeInterval
+    ) throws {
+        let composer = self.aiComposerTextFieldElement()
+        let sendButton = self.app.buttons[LiveSmokeIdentifier.aiComposerSendButton]
+        let newChatButton = self.app.buttons[LiveSmokeIdentifier.aiNewChatButton]
+        let deadline = Date().addingTimeInterval(timeout)
+
+        while Date() < deadline {
+            if let errorMessage = self.latestVisibleAssistantErrorMessage() {
+                throw LiveSmokeFailure.aiRunReportedError(
+                    message: errorMessage,
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
+            }
+
+            if self.visibleMeaningfulAssistantTextMessages().count > assistantTextCountBeforeSend,
+               composer.exists, composer.isEnabled,
+               sendButton.exists, sendButton.label == "Send message", sendButton.isEnabled == false,
+               newChatButton.exists, newChatButton.isEnabled {
+                if let errorMessage = self.latestVisibleAssistantErrorMessage() {
+                    throw LiveSmokeFailure.aiRunReportedError(
+                        message: errorMessage,
+                        screen: self.currentScreenSummary(),
+                        step: self.currentStepTitle
+                    )
+                }
+                return
+            }
+
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
+        }
+
+        throw LiveSmokeFailure.unexpectedAiConversationState(
+            message: "AI request did not finish with a new non-error assistant reply and idle composer within \(formatDuration(seconds: timeout)). AssistantMessages: \(self.visibleMeaningfulAssistantTextMessages())",
             screen: self.currentScreenSummary(),
             step: self.currentStepTitle
         )
