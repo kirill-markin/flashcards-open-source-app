@@ -3,7 +3,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 // App Store Connect language inventory; screenshot tags match the capture wrappers.
-const LOCALES: ReadonlyArray<readonly [string, string, string]> = [
+export const LOCALES: ReadonlyArray<readonly [string, string, string]> = [
   ["English (U.S.)", "en-US", "en-US"], ["Arabic", "ar-SA", "ar"],
   ["Chinese (Simplified)", "zh-Hans", "zh-Hans"], ["French", "fr-FR", "fr"],
   ["German", "de-DE", "de"], ["Hindi", "hi", "hi"], ["Japanese", "ja", "ja"],

@@ -28,25 +28,25 @@ processor and its canonical design assets. The approved inventory is:
 | Directory | Cards | Store status |
 | --- | --- | --- |
 | `apps/ios/docs/media/app-store-cards/ready/iphone/` | 210 | Uploaded to App Store Connect |
-| `apps/ios/docs/media/app-store-cards/ready/ipad/` | 210 | Prepared; existing store iPad screenshots unchanged |
+| `apps/ios/docs/media/app-store-cards/ready/ipad/` | 210 landscape | Prepared; existing store iPad screenshots unchanged |
 | `apps/ios/docs/media/app-store-cards/ready/iphone-duo-outer/` | 5 | Prepared in English; not uploaded |
 | `apps/ios/docs/media/app-store-cards/ready/iphone-duo-inner/` | 5 | Prepared in English; not uploaded |
 | `apps/ios/docs/media/app-store-cards/additional-languages/iphone/` | 40 | Prepared; these languages have no separate App Store listing |
 | `apps/android/docs/media/play-store-cards/ready/*/phoneScreenshots/` | 255 | Uploaded to Google Play, including Zulu |
 
-The original 715 PNGs retain their exact approved delivery bytes. The ten new
-English Duo cards bring the tracked inventory to 725. The current
-`export-manifest.json` records output SHA-256 hashes and rendering measurements;
-`source-manifest.json` pins the native-source Git blobs to public app revision
-`8ad37887e71cb946a6697a9ad657ef0ab61ce6bd`. That revision records the original
-source package, not the Duo capture or processing revision. The separate
+The tracked inventory contains 725 cards. The 210 iPad cards use the current
+2752 × 2064 native landscape inputs; the other 515 cards retain their exact
+delivery bytes. The current `export-manifest.json` records output/source SHA-256
+hashes, row-level processing provenance and rendering measurements.
+`source-manifest.json` pins the original native-source package to public app
+revision `8ad37887e71cb946a6697a9ad657ef0ab61ce6bd`; it is historical provenance,
+not the input inventory for the current iPad render. The
+[iOS card provenance](../apps/ios/docs/media/app-store-cards/README.md) records the
+current processing invocation. The separate
 [`duo-source-manifest.json`](../apps/ios/docs/media/app-store-cards/duo-source-manifest.json)
-records each genuine Duo input's hash, Git blob, app revision, producer state and
-simulator toolchain. Only `en-US` has been captured and processed for Duo; the
-other Store locales remain selectable but have no Duo assets yet. The source
-blobs identify the delivery inputs; current native captures can differ after a
-separately reviewed capture refresh. Original font audits,
-verification files and gallery/overview PNGs are retained with the delivery.
+owns genuine Duo capture provenance. Only `en-US` has Duo assets. Mac Catalyst's
+explicit profile is available, but its native screenshots and cards remain
+pending; selecting `macos` fails clearly until genuine native inputs are saved.
 
 The processor owns reusable backgrounds, copy, locale maps and image-generation
 provenance under `scripts/store-screenshots/assets/`; output folders do not carry
@@ -98,9 +98,10 @@ the reference's old header text and old app screen are not used as the output UI
 | Profile | Output size | Native input size | Shared font scale |
 | --- | --- | --- | --- |
 | iPhone | 1284 × 2778 | 1284 × 2778 | width / 519 |
-| iPad | 2064 × 2752 | 2064 × 2752 portrait or 2752 × 2064 landscape | height / 1122 × 1.35 |
+| iPad | 2752 × 2064 landscape | 2752 × 2064 landscape | height / 1122 × 1.35 |
 | iPhone Duo outer | 1398 × 2034 | 1398 × 2034 portrait | height / 1122 × 1.35 |
 | iPhone Duo inner | 2853 × 2007 landscape | 2853 × 2007 landscape | height / 1122 × 1.35 |
+| Mac Catalyst | 2880 × 1800 landscape | 1280 × 800, 1440 × 900, 2560 × 1600, or 2880 × 1800 | height / 1122 × 1.35 |
 | Android phone | 1080 × 1920 | 1080 × 2400 | width / 519 |
 
 The base heading is Arial/sans-serif 44 px, weight 700, line height 53 px. The
@@ -108,32 +109,25 @@ base caption is 24 px, weight 400, line height 28 px. The base number capsule is
 50 × 30 px with 20 px text, 15 px radius and a 16 px gap to the heading. The
 format scale multiplies those text measurements uniformly.
 
-iOS uses the approved reference proportions for iPhone, iPad, and Duo outer:
-heading row top `63 × scale`,
-caption top `141 × scale`, frame top `212 × scale`, frame height `860 × scale`,
-padding `18 × scale`. The iPad frame is wider to cover the old reference frame,
-with a fixed portrait screen box. Both supported iPad orientations fit completely
-and proportionally inside that box, centered with unused space around landscape
-captures. Native capture defaults to landscape on iPad; processing preserves the
-portrait canvas, frame and header geometry. Other input resolutions are rejected.
-The exact CSS and frame geometry are in `render-ios.mts`.
+iPhone and Duo outer retain the approved portrait geometry: heading row top
+`63 × scale`, caption top `141 × scale`, frame top `212 × scale` and frame
+height `860 × scale`.
 
-Duo cards reuse the five backgrounds, heading and caption styling, card order,
-and localized copy. The outer profile fits its complete portrait native screenshot
-inside a shorter portrait frame. The inner profile uses a landscape canvas and
-a frame whose inner box matches the native screenshot's aspect ratio, with the
-complete app UI centered below the shared header. Its frame spans
-`420 × canvas width / 519` to cover the old reference frame, with equal
-`18 × scale` padding on all four sides. The inner heading, caption, and frame
-start at `45 × scale`, `125 × scale`, and `175 × scale` respectively.
-They read only genuine native PNGs from `iphone-duo-outer/` and
-`iphone-duo-inner/` under the iOS screenshot input root and write separate
-`ready/` folders with the same family names. Select one family explicitly with
-`--platform ios --family iphone-duo-outer` or `--family iphone-duo-inner`, plus
-optional `--locales`. The default `--family all` continues to process only the
-existing iPhone and iPad sets. Duo outputs and uploads require a separate review;
-this processing step does not capture screenshots or upload cards. The 42 existing
-App Store locales supply Duo copy; there are no new locale variants.
+iPad, Duo inner and Mac Catalyst use a landscape canvas and an inner frame box
+matching the genuine source aspect ratio. The complete native screen has equal
+`18 × scale` frame-color padding on all four sides, without internal letterboxing.
+The heading, caption and frame start at `45 × scale`, `125 × scale` and
+`175 × scale`. Frame width is `420 × canvas width / 519`, constrained by a
+50 px bottom margin. The exact CSS and measured audits are in `render-ios.mts`
+and the export manifest. Portrait iPad inputs are rejected.
+
+Duo and Mac profiles reuse the five backgrounds, copy, and card order. They read
+only genuine native PNGs from their matching family folder under the iOS input
+root and write separate `ready/<family>/` folders. Select them explicitly with
+`--platform ios --family iphone-duo-outer|iphone-duo-inner|macos`, plus optional
+`--locales`. The default `--family all` processes only iPhone and iPad. The 42
+existing App Store locales supply iPad, Duo and Mac copy. Capture and store upload
+remain separate operations.
 
 Android uses a separate 9:16 canvas. Its heading row starts at 110 px, caption at
 260 px and frame at 370 px. The entire native 1080 × 2400 capture is displayed

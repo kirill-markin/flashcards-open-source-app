@@ -773,6 +773,11 @@ if [[ "$device_family" != "iphone" ]] && is_iphone_only_locale "$localization_co
     exit 1
 fi
 
+if [[ "$device_family" == ipad && "$orientation" != landscape ]]; then
+    echo "iPad marketing captures require landscape. Capture native landscape pixels." >&2
+    exit 1
+fi
+
 output_directory="$repo_root/apps/ios/docs/media/app-store-screenshots/$device_family"
 if [[ "$orientation" == landscape && "$device_family" != ipad && "$device_family" != iphone-duo-inner ]]; then
     echo "Landscape marketing captures are supported only on iPad and iPhone Duo inner; ordinary iPhone keeps its portrait policy." >&2
