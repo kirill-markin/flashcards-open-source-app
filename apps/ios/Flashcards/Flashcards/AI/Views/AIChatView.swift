@@ -140,14 +140,7 @@ struct AIChatView: View {
     }
 
     var bodyPresentationModifiers: some View {
-        self.bodyLifecycleModifiers
-            .fileImporter(
-                isPresented: self.$isFileImporterPresented,
-                allowedContentTypes: aiChatImporterContentTypes(),
-                allowsMultipleSelection: true
-            ) { result in
-                self.handleFileImportResult(result: result)
-            }
+        self.bodyFilePickerModifiers
             .photosPicker(
                 isPresented: self.$isPhotoPickerPresented,
                 selection: self.$selectedPhotoItem,
@@ -162,6 +155,33 @@ struct AIChatView: View {
                 actions: self.alertActionsContent,
                 message: self.alertMessageContent
             )
+    }
+
+    var bodyFilePickerModifiers: some View {
+        #if targetEnvironment(macCatalyst)
+        self.bodyLifecycleModifiers
+            .sheet(isPresented: self.$isFileImporterPresented) {
+                AIChatDocumentPicker(
+                    contentTypes: aiChatImporterContentTypes(),
+                    onSelection: { urls in
+                        self.isFileImporterPresented = false
+                        self.handleFileImportResult(result: .success(urls))
+                    },
+                    onCancel: {
+                        self.isFileImporterPresented = false
+                    }
+                )
+            }
+        #else
+        self.bodyLifecycleModifiers
+            .fileImporter(
+                isPresented: self.$isFileImporterPresented,
+                allowedContentTypes: aiChatImporterContentTypes(),
+                allowsMultipleSelection: true
+            ) { result in
+                self.handleFileImportResult(result: result)
+            }
+        #endif
     }
 
     var bodyLifecycleModifiers: some View {
