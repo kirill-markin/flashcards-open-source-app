@@ -841,10 +841,10 @@ extension LiveSmokeTestCase {
                 )
             }
 
-            if self.visibleMeaningfulAssistantTextMessages().count > assistantTextCountBeforeSend,
-               composer.exists, composer.isEnabled,
+            if composer.exists, composer.isEnabled,
                sendButton.exists, sendButton.label == "Send message", sendButton.isEnabled == false,
-               newChatButton.exists, newChatButton.isEnabled {
+               newChatButton.exists, newChatButton.isEnabled,
+               self.visibleMeaningfulAssistantTextMessages().count > assistantTextCountBeforeSend {
                 if let errorMessage = self.latestVisibleAssistantErrorMessage() {
                     throw LiveSmokeFailure.aiRunReportedError(
                         message: errorMessage,
@@ -859,7 +859,7 @@ extension LiveSmokeTestCase {
         }
 
         throw LiveSmokeFailure.unexpectedAiConversationState(
-            message: "AI request did not finish with a new non-error assistant reply and idle composer within \(formatDuration(seconds: timeout)). AssistantMessages: \(self.visibleMeaningfulAssistantTextMessages())",
+            message: "AI request did not finish with a new non-error assistant reply and idle composer within \(formatDuration(seconds: timeout)).",
             screen: self.currentScreenSummary(),
             step: self.currentStepTitle
         )
