@@ -1,5 +1,5 @@
 "kMDItemKeywords" = "flashcards,flash cards,כרטיסיות,כרטיסיות לימוד,כרטיסי זיכרון,כרטיסיות חזרה";
 "MDItemKeywords" = "flashcards,flash cards,כרטיסיות,כרטיסיות לימוד,כרטיסי זיכרון,כרטיסיות חזרה";
-"NSCameraUsageDescription" = "יש לאפשר גישה למצלמה כדי לצלם תמונות לצירוף לצ׳אט AI.";
-"NSMicrophoneUsageDescription" = "יש לאפשר גישה למיקרופון כדי להכתיב טקסט בצ׳אט AI.";
-"NSPhotoLibraryUsageDescription" = "יש לאפשר גישה לספריית התמונות כדי לבחור תמונות לצירוף לצ׳אט AI.";
+"NSCameraUsageDescription" = "צילום תמונות לצ׳אט AI. התמונות המצורפות נשלחות ל-OpenAI לעיבוד באמצעות AI.";
+"NSMicrophoneUsageDescription" = "הקלטת הכתבה ושליחתה ל-OpenAI כדי לתמלל אותה לטקסט לצ׳אט AI.";
+"NSPhotoLibraryUsageDescription" = "בחירת תמונות לצירוף לצ׳אט AI ולשליחה ל-OpenAI לעיבוד באמצעות AI.";
