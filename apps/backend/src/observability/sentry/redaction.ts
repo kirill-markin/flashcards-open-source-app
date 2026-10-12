@@ -90,6 +90,12 @@ const sentryTextMaskPatterns: ReadonlyArray<Readonly<{
   replacement: string;
 }>> = [
   {
+    // Google Play purchase tokens embedded in androidpublisher URL paths; keeps the `:acknowledge`-style suffix.
+    // First, so no other mask can split a token; at most two segments before `tokens/` keeps matching linear.
+    pattern: /(\/purchases\/(?:[^\s"'<>?#):/]+\/){0,2}tokens\/)[^\s"'<>?#):/]+/g,
+    replacement: "$1<masked-purchase-token>",
+  },
+  {
     pattern: /\b[A-Z0-9._%+-]{1,64}@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi,
     replacement: "<masked-email>",
   },
