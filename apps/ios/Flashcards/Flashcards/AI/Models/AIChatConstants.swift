@@ -43,9 +43,3 @@ let aiChatSupportedFileExtensions: Set<String> = [
     "zip",
     "apkg",
 ]
-let aiChatExternalProviderDisclosureItems: [String] = [
-    "Typed prompts and card-derived context needed for your request can be sent to the hosted AI service.",
-    "Uploaded files and images can be sent to the hosted AI service for AI processing.",
-    "Dictated audio and transcription requests can be sent to the hosted AI service for speech processing.",
-    "Technical diagnostics about failed or slow AI requests can be sent to help debug the hosted AI service.",
-]

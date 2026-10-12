@@ -226,6 +226,8 @@ extension AIChatStore {
     ) async throws -> [AIChatStartRunContentPart] {
         var content: [AIChatStartRunContentPart] = []
         for attachment in attachments {
+            try Task.checkCancellation()
+            _ = try self.flashcardsStore.aiConsent.requireReceipt(session: session)
             switch attachment.payload {
             case .localFile(let fileName, let mediaType, let sizeBytes):
                 let fileURL = try aiChatExistingAttachmentFileURL(attachmentId: attachment.id)
