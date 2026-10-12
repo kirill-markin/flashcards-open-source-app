@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { LangfuseObservation } from "@langfuse/tracing";
 import OpenAI from "openai";
 import { maximumImageIngestionOriginalBytes } from "../../../mediaAssets/validators";
 import {
@@ -22,8 +21,6 @@ import type {
 } from "./providerTypes";
 import { GeneratedCardImageDeadlineExceededError } from "../providerTypes";
 import {
-  createRecordedLangfuseTelemetry,
-  type RecordedLangfuseTelemetry,
   withProviderTelemetryCapture,
 } from "./providerTelemetryCapture.testSupport";
 import {
@@ -65,7 +62,6 @@ function createProviderWithFetch(fetch: typeof globalThis.fetch): OpenAIGenerate
 function createProviderInput(
   imagePrompt: string,
   signal: AbortSignal,
-  rootObservation: LangfuseObservation | null,
 ): OpenAIImageGenerationInput {
   return {
     userId: "provider-test-user",
@@ -84,7 +80,6 @@ function createProviderInput(
         null,
         null,
       ),
-      rootObservation,
     },
     signal,
     operationDeadlineMs: Date.now() + 120_000,
@@ -128,24 +123,10 @@ function getErrorField(error: Error, fieldName: string): unknown {
   return toRecord(error)[fieldName];
 }
 
-function countLangfuseResults(
-  telemetry: RecordedLangfuseTelemetry,
-  expectedResult: "success" | "error" | "aborted" | "deadline",
-): number {
-  return telemetry.updates.filter((update) => {
-    const output = toRecord(update).output;
-    return typeof output === "object"
-      && output !== null
-      && Array.isArray(output) === false
-      && toRecord(output).result === expectedResult;
-  }).length;
-}
-
 test("provider uses the official SDK request path and keeps provider telemetry content-free", async () => {
   const imagePrompt = "PRIVATE_PROVIDER_PROMPT_7e50b7ca";
   const imageBytes = Buffer.from("PRIVATE_PROVIDER_IMAGE_BYTES_92c57c18", "utf8");
   const providerBase64 = imageBytes.toString("base64");
-  const langfuse = createRecordedLangfuseTelemetry();
 
   await withProviderTestServer(
     (_request, requestNumber, response) => {
@@ -183,7 +164,6 @@ test("provider uses the official SDK request path and keeps provider telemetry c
           createProviderInput(
             imagePrompt,
             new AbortController().signal,
-            langfuse.rootObservation,
           ),
         );
       });
@@ -214,8 +194,6 @@ test("provider uses the official SDK request path and keeps provider telemetry c
         1,
       );
       assert.equal(capture.sentryBreadcrumbs.length, 1);
-      assert.equal(langfuse.starts.length, 1);
-      assert.equal(langfuse.getEndCount(), 1);
 
       const retryRecord = parseJsonObject(capture.cloudWatchWarnings[0] ?? "");
       assert.equal(retryRecord.action, "generated_card_image_provider_retry");
@@ -237,8 +215,6 @@ test("provider uses the official SDK request path and keeps provider telemetry c
         cloudWatchWarnings: capture.cloudWatchWarnings,
         sentryBreadcrumbs: capture.sentryBreadcrumbs,
         sentryContexts: capture.sentryContexts,
-        langfuseStarts: langfuse.starts,
-        langfuseUpdates: langfuse.updates,
       });
       assert.equal(serializedTelemetry.includes(imagePrompt), false);
       assert.equal(serializedTelemetry.includes(providerBase64), false);
@@ -265,7 +241,6 @@ test("provider preserves unexpected SDK invocation errors unchanged", async () =
       createProviderInput(
         "Draw an unexpected SDK invocation diagram.",
         new AbortController().signal,
-        null,
       ),
     ),
     (error: unknown) => error === unexpectedError,
@@ -313,52 +288,12 @@ test("provider preserves base and unselected OpenAI SDK errors unchanged", async
         createProviderInput(
           "Draw an unexpected SDK error diagram.",
           new AbortController().signal,
-          null,
         ),
       ),
     );
     assert.equal(capturedError, unexpectedError);
     assert.equal(capturedError.cause, unexpectedError.cause);
   }
-});
-
-test("provider preserves unexpected telemetry failures after a successful request", async () => {
-  const unexpectedError = new Error(
-    "Generated-image provider telemetry update failed.",
-  );
-  const childObservation = {
-    updateOtelSpanAttributes: (): never => {
-      throw unexpectedError;
-    },
-    end: (): void => undefined,
-  };
-  const rootObservation = {
-    startObservation: () => childObservation,
-  } as unknown as LangfuseObservation;
-
-  await withProviderTestServer(
-    (_request, _requestNumber, response) => {
-      writeJsonResponse(response, 200, "req_unexpected_telemetry", {
-        created: 1_721_000_000,
-        data: [{ b64_json: Buffer.from("image").toString("base64") }],
-      });
-    },
-    async (server) => {
-      const { result: error } = await withProviderTelemetryCapture(async () =>
-        captureThrownError(
-          createProvider(server.baseURL).generate(
-            createProviderInput(
-              "Draw an unexpected telemetry diagram.",
-              new AbortController().signal,
-              rootObservation,
-            ),
-          ),
-        ));
-
-      assert.equal(server.requests.length, 1);
-      assert.equal(error, unexpectedError);
-    },
-  );
 });
 
 test("provider requires exactly one non-empty base64 image", async () => {
@@ -422,7 +357,6 @@ test("provider requires exactly one non-empty base64 image", async () => {
                 createProviderInput(
                   "Draw a provider response validation diagram.",
                   new AbortController().signal,
-                  null,
                 ),
               ),
             ),
@@ -434,7 +368,6 @@ test("provider requires exactly one non-empty base64 image", async () => {
               createProviderInput(
                 "Draw a malformed JSON response diagram.",
                 new AbortController().signal,
-                null,
               ),
             ),
           ),
@@ -546,7 +479,6 @@ test("provider makes exactly three attempts for transient 5xx failures", async (
             createProviderInput(
               "Draw a transient retry diagram.",
               new AbortController().signal,
-              null,
             ),
           ),
         );
@@ -596,14 +528,14 @@ test("native SDK connection timeout retries and preserves terminal timeout class
       { status: 200, headers: { "content-type": "application/json",
         "x-request-id": "req_native_timeout_success" } });
   }).generate(createProviderInput("Draw a native timeout retry diagram.",
-    new AbortController().signal, null));
+    new AbortController().signal));
   assert.deepEqual(result.bytes, successBytes); assert.equal(successFetchCalls, 2);
   let exhaustedFetchCalls = 0;
   const exhaustedError = await captureThrownError(createProviderWithFetch(async () => {
     exhaustedFetchCalls += 1;
     throw new DOMException("socket timed out", "TimeoutError");
   }).generate(createProviderInput("Draw an exhausted native timeout diagram.",
-    new AbortController().signal, null)));
+    new AbortController().signal)));
   assert.equal(exhaustedFetchCalls, 3); assert.equal(exhaustedError.name, "OpenAIImageGenerationError");
   assert.equal(getErrorField(exhaustedError, "status"), null);
   assert.equal(exhaustedError instanceof GeneratedCardImageDeadlineExceededError, false);
@@ -692,7 +624,6 @@ test("provider does not retry invalid, authentication, permission, conflict, or 
                 createProviderInput(
                   "Draw a non-retry status diagram.",
                   new AbortController().signal,
-                  null,
                 ),
               ),
             ),
@@ -745,13 +676,11 @@ test("provider aborts the in-flight SDK request without retrying", async () => {
     },
     async (server) => {
       const controller = new AbortController();
-      const langfuse = createRecordedLangfuseTelemetry();
       const { capture, result: error } = await withProviderTelemetryCapture(async () => {
         const providerCall = createProvider(server.baseURL).generate(
           createProviderInput(
             "Draw an in-flight abort diagram.",
             controller.signal,
-            langfuse.rootObservation,
           ),
         );
         await server.waitForRequestCount(1);
@@ -763,8 +692,6 @@ test("provider aborts the in-flight SDK request without retrying", async () => {
       assert.equal(server.requests.length, 1);
       assert.equal(capture.cloudWatchWarnings.length, 0);
       assert.equal(capture.cloudWatchLogs.length, 0);
-      assert.equal(countLangfuseResults(langfuse, "aborted"), 1);
-      assert.equal(langfuse.getEndCount(), 1);
     },
   );
 });
@@ -776,7 +703,7 @@ test("provider preserves a known 429 when the remaining budget cannot fit a retr
       { error: { message: "Rate limited.", type: "rate_limit_error", code: "rate_limit_exceeded" } }),
     async (server) => {
       const input = createProviderInput("Draw a bounded retry diagram.",
-        new AbortController().signal, null);
+        new AbortController().signal);
       const error = await captureThrownError(createProvider(server.baseURL).generate(
         { ...input, operationDeadlineMs: Date.now() + 35_000 }));
       assert.equal(server.requests.length, 1); assert.equal(error.name, "OpenAIImageGenerationError");
@@ -793,7 +720,7 @@ test("provider reports a true request deadline distinctly", async () => {
     },
     async (server) => {
       const input = createProviderInput("Draw a provider deadline diagram.",
-        new AbortController().signal, null);
+        new AbortController().signal);
       const error = await captureThrownError(createProvider(server.baseURL).generate(
         { ...input, operationDeadlineMs: Date.now() + 30_500 }));
       assert.equal(error instanceof GeneratedCardImageDeadlineExceededError, true);
@@ -824,13 +751,11 @@ test("provider aborts explicit backoff before a second request", async () => {
     async (server) => {
       const controller = new AbortController();
       const abortReason = new Error("Chat run stopped during image retry backoff.");
-      const langfuse = createRecordedLangfuseTelemetry();
       const { capture, result: error } = await withProviderTelemetryCapture(async (telemetry) => {
         const providerCall = createProvider(server.baseURL).generate(
           createProviderInput(
             "Draw an abortable retry diagram.",
             controller.signal,
-            langfuse.rootObservation,
           ),
         );
         await waitForCondition(
@@ -851,13 +776,11 @@ test("provider aborts explicit backoff before a second request", async () => {
         parseJsonObject(capture.cloudWatchWarnings[0] ?? "").retryDelayMs,
         30_000,
       );
-      assert.equal(countLangfuseResults(langfuse, "aborted"), 1);
-      assert.equal(langfuse.getEndCount(), 1);
     },
   );
 });
 
-test("provider records a pre-aborted request exactly once without calling OpenAI", async () => {
+test("provider rejects a pre-aborted request without calling OpenAI", async () => {
   await withProviderTestServer(
     (_request, requestNumber, _response) => {
       throw new Error(`Unexpected pre-aborted provider request ${requestNumber}.`);
@@ -865,7 +788,6 @@ test("provider records a pre-aborted request exactly once without calling OpenAI
     async (server) => {
       const controller = new AbortController();
       const abortReason = new Error("Chat run stopped before image generation.");
-      const langfuse = createRecordedLangfuseTelemetry();
       controller.abort(abortReason);
 
       const { capture, result: error } = await withProviderTelemetryCapture(async () => {
@@ -874,7 +796,6 @@ test("provider records a pre-aborted request exactly once without calling OpenAI
             createProviderInput(
               "Draw a pre-aborted provider diagram.",
               controller.signal,
-              langfuse.rootObservation,
             ),
           ),
         );
@@ -884,8 +805,6 @@ test("provider records a pre-aborted request exactly once without calling OpenAI
       assert.equal(server.requests.length, 0);
       assert.equal(capture.cloudWatchWarnings.length, 0);
       assert.equal(capture.cloudWatchLogs.length, 0);
-      assert.equal(countLangfuseResults(langfuse, "aborted"), 1);
-      assert.equal(langfuse.getEndCount(), 1);
     },
   );
 });

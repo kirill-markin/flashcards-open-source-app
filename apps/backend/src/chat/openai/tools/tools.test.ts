@@ -81,7 +81,6 @@ const context: OpenAIToolContext = {
       null,
       null,
     ),
-    rootObservation: null,
   },
 };
 
@@ -391,10 +390,6 @@ test("guest execution rejects before every generated-image dependency", async ()
 
   assert.deepEqual(calls, []);
   assert.equal(JSON.parse(result.output).code, "sign_in_required");
-  assert.deepEqual(result.generatedImageTelemetry, {
-    attempt: null,
-    status: "sign_in_required",
-  });
 });
 
 test("reservation outcomes remain distinct", async () => {

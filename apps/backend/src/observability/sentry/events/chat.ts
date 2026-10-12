@@ -445,61 +445,6 @@ export type McpWorkspaceSelectionEnrichmentFailureDetails = Readonly<{
   errorMessage: string;
 }>;
 
-export type LangfuseTelemetryFlushFailureDetails = Readonly<{
-  errorClass: string;
-  errorMessage: string;
-  telemetryStarted: boolean;
-  hasTracerProvider: boolean;
-}>;
-
-export type LangfuseChatTurnExportFailureDetails = Readonly<{
-  requestId: string;
-  userId: string;
-  workspaceId: string;
-  sessionId: string;
-  model: string;
-  turnIndex: number;
-  runState: string;
-  errorClass: string;
-  errorMessage: string;
-}>;
-
-export type LangfuseChatTurnStartFailureDetails = Readonly<{
-  requestId: string;
-  userId: string;
-  workspaceId: string;
-  sessionId: string;
-  model: string;
-  turnIndex: number;
-  runState: string;
-  errorClass: string;
-  errorMessage: string;
-}>;
-
-export type LangfuseChatTranscriptionExportFailureDetails = Readonly<{
-  requestId: string;
-  userId: string;
-  sessionId: string;
-  source: string;
-  fileExtension: string | null;
-  mediaType: string;
-  fileSize: number;
-  errorClass: string;
-  errorMessage: string;
-}>;
-
-export type LangfuseChatTranscriptionStartFailureDetails = Readonly<{
-  requestId: string;
-  userId: string;
-  sessionId: string;
-  source: string;
-  fileExtension: string | null;
-  mediaType: string;
-  fileSize: number;
-  errorClass: string;
-  errorMessage: string;
-}>;
-
 export type ChatBreadcrumbEvent =
   | EventByAction<"chat_live_attach_start", ChatLiveAttachDetails>
   | EventByAction<"chat_live_request_error", ChatLiveRequestDetails>
@@ -598,11 +543,6 @@ export type ChatWarningEvent =
     "mcp_workspace_selection_enrichment_failed",
     McpWorkspaceSelectionEnrichmentFailureDetails
   > & Readonly<{ message: string }>)
-  | EventByAction<"langfuse_telemetry_flush_failed", LangfuseTelemetryFlushFailureDetails>
-  | EventByAction<"langfuse_chat_turn_export_failed", LangfuseChatTurnExportFailureDetails>
-  | EventByAction<"langfuse_chat_turn_start_failed", LangfuseChatTurnStartFailureDetails>
-  | EventByAction<"langfuse_chat_transcription_export_failed", LangfuseChatTranscriptionExportFailureDetails>
-  | EventByAction<"langfuse_chat_transcription_start_failed", LangfuseChatTranscriptionStartFailureDetails>
   | (EventByAction<"chat_resume_contract_violation", Readonly<{
     path: string;
     method: string;
