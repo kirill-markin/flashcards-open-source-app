@@ -1,5 +1,8 @@
 import { Buffer } from "node:buffer";
-import { toFile } from "openai";
+import OpenAI, { toFile } from "openai";
+import { writeCloudWatchRecord } from "../observability/cloudWatch";
+import { getReceiptProviderRetryDelayMs, waitForReceiptProviderRetry } from "./openai/receiptRetry";
+import { assertAiConsentReceiptActive } from "../aiConsent";
 import {
   toOpenAITranscriptionUsageCounters,
   type AiUsageCounters,
@@ -36,6 +39,7 @@ type OpenAITranscriptionClient = Readonly<{
           file: File;
           model: "gpt-4o-transcribe";
         }>,
+        options?: OpenAI.RequestOptions,
       ) => Promise<Readonly<{
         text: string;
         // Optional because the provider decides whether to report usage for a call, and a call it
@@ -56,6 +60,7 @@ export type ChatTranscriptionUpload = Readonly<{
 }>;
 
 export type ChatTranscriptionRequestContext = Readonly<{
+  aiConsent?: Readonly<{ userId: string; eventId: string | null }>;
   requestId: string;
   sessionId: string;
   /** The person's own OpenAI key, which pays for this one transcription instead of the platform key. */
@@ -287,6 +292,67 @@ export async function transcribeChatAudioUpload(
   );
 }
 
+function throwChatTranscriptionFailure(
+  error: unknown,
+  upload: ChatTranscriptionUpload,
+  requestContext: ChatTranscriptionRequestContext,
+): never {
+  const userOpenAIApiKey = requestContext.userOpenAIApiKey;
+  const metadata = getAIProviderFailureMetadata(error);
+  const errorDetails = getBackendErrorLogDetails(error);
+  const failureDetails: ChatTranscriptionFailureDetails = {
+    requestId: requestContext.requestId,
+    sessionId: requestContext.sessionId,
+    source: upload.source,
+    provider: "openai",
+    userSuppliedKey: userOpenAIApiKey !== null,
+    fileSize: upload.file.size,
+    fileExtension: normalizeFileExtension(upload.file.name),
+    mediaType: upload.file.type.trim().toLowerCase(),
+    upstreamStatus: metadata.upstreamStatus,
+    upstreamRequestId: metadata.upstreamRequestId,
+    errorClass: errorDetails.errorClass,
+    errorMessage: errorDetails.errorMessage,
+  };
+
+  if (isInvalidAudioFailure(error)) {
+    logChatTranscriptionInvalidAudio(failureDetails);
+    throw new HttpError(
+      422,
+      CHAT_TRANSCRIPTION_INVALID_AUDIO_ERROR_MESSAGE,
+      "CHAT_TRANSCRIPTION_INVALID_AUDIO",
+    );
+  }
+
+  if (failureDetails.userSuppliedKey && isKeyOwnedProviderFailure(error)) {
+    logChatTranscriptionKeyOwnedFailure(failureDetails);
+  } else {
+    logChatTranscriptionFailure(failureDetails);
+  }
+
+  // OpenAI's answer to a call made with the person's own key is theirs to act on, so it is passed on.
+  const ownKeyProviderErrorText = userOpenAIApiKey === null ? null : readOwnOpenAIKeyProviderErrorText(error);
+  if (ownKeyProviderErrorText !== null) {
+    throw makeOwnOpenAIKeyProviderError(ownKeyProviderErrorText);
+  }
+
+  const normalizedFailure = classifyChatTranscriptionFailure(error);
+  if (error instanceof EmptyTranscriptTextError) {
+    throw new ChatTranscriptionEmptyTranscriptError(
+      error.usageCounters,
+      normalizedFailure.statusCode,
+      normalizedFailure.message,
+      normalizedFailure.code,
+    );
+  }
+
+  throw new HttpError(
+    normalizedFailure.statusCode,
+    normalizedFailure.message,
+    normalizedFailure.code,
+  );
+}
+
 export async function transcribeChatAudioUploadWithDependencies(
   upload: ChatTranscriptionUpload,
   requestContext: ChatTranscriptionRequestContext,
@@ -299,83 +365,59 @@ export async function transcribeChatAudioUploadWithDependencies(
     throw makeChatTranscriptionNotConfiguredError();
   }
 
+  let transcriptionClient: OpenAITranscriptionClient;
+  let file: File;
   try {
-    const transcriptionClient = client
+    transcriptionClient = client
       ?? (userOpenAIApiKey === null
         ? dependencies.getOpenAIClient()
         : dependencies.createUserOpenAIClient(userOpenAIApiKey));
     const buffer = Buffer.from(await upload.file.arrayBuffer());
-    const file = await toFile(buffer, upload.file.name, { type: upload.file.type });
-    // OpenAI transcription requests do not expose an end-user safety identifier field.
-    const result = await transcriptionClient.audio.transcriptions.create({
-      file,
-      model: CHAT_TRANSCRIPTION_MODEL,
-    });
-    // Read before the emptiness check, because the provider has already answered and been paid by this
-    // point: an empty transcript must lose the transcript, not the fact.
-    const usageCounters = toOpenAITranscriptionUsageCounters(result.usage);
-    const trimmedText = result.text.trim();
-    if (trimmedText === "") {
-      throw new EmptyTranscriptTextError(usageCounters);
-    }
-
-    return {
-      text: trimmedText,
-      usageCounters,
-    };
+    file = await toFile(buffer, upload.file.name, { type: upload.file.type });
   } catch (error) {
-    const metadata = getAIProviderFailureMetadata(error);
-    const errorDetails = getBackendErrorLogDetails(error);
-    const failureDetails: ChatTranscriptionFailureDetails = {
-      requestId: requestContext.requestId,
-      sessionId: requestContext.sessionId,
-      source: upload.source,
-      provider: "openai",
-      userSuppliedKey: userOpenAIApiKey !== null,
-      fileSize: upload.file.size,
-      fileExtension: normalizeFileExtension(upload.file.name),
-      mediaType: upload.file.type.trim().toLowerCase(),
-      upstreamStatus: metadata.upstreamStatus,
-      upstreamRequestId: metadata.upstreamRequestId,
-      errorClass: errorDetails.errorClass,
-      errorMessage: errorDetails.errorMessage,
-    };
+    throwChatTranscriptionFailure(error, upload, requestContext);
+  }
 
-    if (isInvalidAudioFailure(error)) {
-      logChatTranscriptionInvalidAudio(failureDetails);
-      throw new HttpError(
-        422,
-        CHAT_TRANSCRIPTION_INVALID_AUDIO_ERROR_MESSAGE,
-        "CHAT_TRANSCRIPTION_INVALID_AUDIO",
-      );
+  const receipt = requestContext.aiConsent;
+  for (let attempt = 1; ; attempt += 1) {
+    if (receipt !== undefined) {
+      await assertAiConsentReceiptActive(receipt.userId, receipt.eventId);
     }
-
-    if (failureDetails.userSuppliedKey && isKeyOwnedProviderFailure(error)) {
-      logChatTranscriptionKeyOwnedFailure(failureDetails);
-    } else {
-      logChatTranscriptionFailure(failureDetails);
+    try {
+      // OpenAI transcription requests do not expose an end-user safety identifier field.
+      const result = await transcriptionClient.audio.transcriptions.create({
+        file,
+        model: CHAT_TRANSCRIPTION_MODEL,
+      }, receipt?.eventId == null ? undefined : { maxRetries: 0 });
+      const usageCounters = toOpenAITranscriptionUsageCounters(result.usage);
+      const trimmedText = result.text.trim();
+      if (trimmedText === "") {
+        throw new EmptyTranscriptTextError(usageCounters);
+      }
+      return { text: trimmedText, usageCounters };
+    } catch (error) {
+      const retryDelayMs = receipt?.eventId == null ? null : getReceiptProviderRetryDelayMs(error, attempt);
+      if (retryDelayMs !== null && error instanceof OpenAI.APIError) {
+        writeCloudWatchRecord({
+          action: "chat_transcription_provider_call_retried",
+          message: "OpenAI transcription will retry after a provider failure.",
+          scope: createBackendObservationScope(
+            "backend-api", requestContext.requestId, null, null, receipt?.userId ?? null,
+            null, null, null, requestContext.sessionId, null, null,
+          ),
+          details: {
+            callIndex: attempt,
+            userSuppliedKey: userOpenAIApiKey !== null,
+            providerErrorCode: error.code ?? null,
+            providerErrorType: error.type ?? null,
+            providerRequestId: error.requestID ?? null,
+            retryDelayMs,
+          },
+        }, "warning");
+        await waitForReceiptProviderRetry(retryDelayMs, undefined);
+        continue;
+      }
+      throwChatTranscriptionFailure(error, upload, requestContext);
     }
-
-    // OpenAI's answer to a call made with the person's own key is theirs to act on, so it is passed on.
-    const ownKeyProviderErrorText = userOpenAIApiKey === null ? null : readOwnOpenAIKeyProviderErrorText(error);
-    if (ownKeyProviderErrorText !== null) {
-      throw makeOwnOpenAIKeyProviderError(ownKeyProviderErrorText);
-    }
-
-    const normalizedFailure = classifyChatTranscriptionFailure(error);
-    if (error instanceof EmptyTranscriptTextError) {
-      throw new ChatTranscriptionEmptyTranscriptError(
-        error.usageCounters,
-        normalizedFailure.statusCode,
-        normalizedFailure.message,
-        normalizedFailure.code,
-      );
-    }
-
-    throw new HttpError(
-      normalizedFailure.statusCode,
-      normalizedFailure.message,
-      normalizedFailure.code,
-    );
   }
 }

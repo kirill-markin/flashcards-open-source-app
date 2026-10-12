@@ -84,6 +84,7 @@ import {
   maximumGeneratedImagePromptCodePoints,
 } from "./contract";
 import type { UserOpenAIApiKey } from "../userOpenAIApiKey";
+import { assertAiConsentReceiptActive } from "../../aiConsent";
 
 const maximumTimerDelayMs = 2_147_483_647;
 
@@ -181,6 +182,7 @@ function normalizeGeneratedCardImageInput(input: GeneratedCardImageInput): Gener
     replicaId: expectUuidString(input.replicaId, "replicaId"),
     tierAtCall: input.tierAtCall,
     userOpenAIApiKey: input.userOpenAIApiKey,
+    aiConsentId: input.aiConsentId ?? null,
     observationContext: input.observationContext,
     signal: input.signal,
     operationDeadlineMs: input.operationDeadlineMs,
@@ -202,6 +204,7 @@ function normalizeRunlessGeneratedCardImageInput(
     replicaId: expectUuidString(input.replicaId, "replicaId"),
     tierAtCall: input.tierAtCall,
     userOpenAIApiKey: input.userOpenAIApiKey,
+    aiConsentId: input.aiConsentId ?? null,
     observationContext: input.observationContext,
     signal: input.signal,
     operationDeadlineMs: input.operationDeadlineMs,
@@ -311,6 +314,7 @@ async function prepareStagedGeneratedCardImage(
   input.signal.throwIfAborted();
   // The chat flag is set in the same transaction that asserts the run claim; a request-content
   // operation has no run, so its create-if-absent storage marker fences the paid call instead.
+  await assertAiConsentReceiptActive(input.userId, input.aiConsentId ?? null);
   const providerStart = isChatRunGeneratedCardImageInput(input)
     ? await dependencies.markProviderStartedFn({
       userId: input.userId,
@@ -349,6 +353,7 @@ async function prepareStagedGeneratedCardImage(
   input.signal.throwIfAborted();
   const generatedImage = await dependencies.generateProviderImageFn({
     userId: input.userId, imagePrompt: input.imagePrompt,
+    aiConsentId: input.aiConsentId ?? null,
     observationContext: input.observationContext,
     signal: input.signal, operationDeadlineMs: input.operationDeadlineMs,
   }, input.userOpenAIApiKey);

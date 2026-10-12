@@ -186,6 +186,7 @@ async function claimAndRunChatWorkerEvent(
   );
 
   const result: ChatWorkerRunResult = await runPersistedChatSession({
+    aiConsentId: claimedRun.aiConsentId ?? null,
     lambdaRequestId: executionContext.lambdaRequestId,
     runId: claimedRun.runId,
     claimToken: claimedRun.claimToken,
