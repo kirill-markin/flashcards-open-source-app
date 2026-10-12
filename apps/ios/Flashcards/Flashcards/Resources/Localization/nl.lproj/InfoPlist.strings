@@ -1,5 +1,5 @@
 "kMDItemKeywords" = "flashcards,flash cards,flitskaarten,leerkaarten,woordkaartjes,studiekaarten,herhalingskaarten";
 "MDItemKeywords" = "flashcards,flash cards,flitskaarten,leerkaarten,woordkaartjes,studiekaarten,herhalingskaarten";
-"NSCameraUsageDescription" = "Sta cameratoegang toe om foto's als bijlage voor de AI-chat te maken.";
-"NSMicrophoneUsageDescription" = "Sta microfoontoegang toe om tekst in de AI-chat te dicteren.";
-"NSPhotoLibraryUsageDescription" = "Sta toegang tot je fotobibliotheek toe om foto's als bijlage voor de AI-chat te kiezen.";
+"NSCameraUsageDescription" = "Maak foto’s voor de AI-chat. Bijgevoegde foto’s worden naar OpenAI gestuurd voor verwerking door AI.";
+"NSMicrophoneUsageDescription" = "Neem dicteeraudio op en stuur die naar OpenAI om tekst voor de AI-chat te transcriberen.";
+"NSPhotoLibraryUsageDescription" = "Kies foto’s om bij de AI-chat te voegen en naar OpenAI te sturen voor verwerking door AI.";

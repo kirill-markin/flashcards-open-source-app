@@ -1,5 +1,5 @@
 "kMDItemKeywords" = "flashcards,flash cards,schede didattiche,carte per studiare,schede di ripasso";
 "MDItemKeywords" = "flashcards,flash cards,schede didattiche,carte per studiare,schede di ripasso";
-"NSCameraUsageDescription" = "Consenti l’accesso alla fotocamera per scattare foto da allegare alla chat IA.";
-"NSMicrophoneUsageDescription" = "Consenti l’accesso al microfono per dettare testo nella chat IA.";
-"NSPhotoLibraryUsageDescription" = "Consenti l’accesso alla libreria foto per scegliere foto da allegare alla chat IA.";
+"NSCameraUsageDescription" = "Scatta foto per la chat IA. Le foto allegate vengono inviate a OpenAI per l’elaborazione con l’IA.";
+"NSMicrophoneUsageDescription" = "Registra l’audio di dettatura e invialo a OpenAI per trascriverlo in testo per la chat IA.";
+"NSPhotoLibraryUsageDescription" = "Scegli foto da allegare alla chat IA e inviare a OpenAI per l’elaborazione con l’IA.";

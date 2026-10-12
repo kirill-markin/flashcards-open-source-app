@@ -1,5 +1,5 @@
 "kMDItemKeywords" = "flashcards,flash cards,暗記カード,フラッシュカード,学習カード,復習カード";
 "MDItemKeywords" = "flashcards,flash cards,暗記カード,フラッシュカード,学習カード,復習カード";
-"NSCameraUsageDescription" = "AI チャットの添付用写真を撮るためにカメラへのアクセスを許可してください。";
-"NSMicrophoneUsageDescription" = "AI チャットでテキストを音声入力するためにマイクへのアクセスを許可してください。";
-"NSPhotoLibraryUsageDescription" = "AI チャットの添付用写真を選ぶために写真ライブラリへのアクセスを許可してください。";
+"NSCameraUsageDescription" = "AIチャット用の写真を撮影します。添付した写真はAI処理のためにOpenAIに送信されます。";
+"NSMicrophoneUsageDescription" = "音声入力を録音してOpenAIに送信し、AIチャット用のテキストに文字起こしします。";
+"NSPhotoLibraryUsageDescription" = "AIチャットに添付する写真を選択し、AI処理のためにOpenAIに送信します。";
