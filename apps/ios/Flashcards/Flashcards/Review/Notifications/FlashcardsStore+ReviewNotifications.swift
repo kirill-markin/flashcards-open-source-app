@@ -119,14 +119,11 @@ extension FlashcardsStore {
                 showAppIconBadge: isEnabled
             )
         )
-        // When the toggle is turned off, drop any badge currently shown on the icon
-        // so the user gets immediate feedback rather than waiting for the next reminder.
         if isEnabled == false {
             self.clearAppIconBadge()
         }
     }
 
-    /// Clears the app icon badge. Safe to call from any path; resets to zero unconditionally.
     func clearAppIconBadge() {
         Task { @MainActor in
             try? await UNUserNotificationCenter.current().setBadgeCount(0)
@@ -258,7 +255,11 @@ extension FlashcardsStore {
         )
         self.restoreSurfaceAfterNotificationPrePrompt()
         Task { @MainActor in
-            _ = await self.requestReviewNotificationPermissionFromSettings(now: Date())
+            do {
+                _ = try await self.requestReviewNotificationPermissionFromSettings(now: Date())
+            } catch {
+                self.presentTechnicalError(error)
+            }
         }
     }
 
@@ -272,9 +273,7 @@ extension FlashcardsStore {
         )
     }
 
-    /// Requests the top-level system notification permission and then reconciles
-    /// reminder delivery. Internal reminder toggles keep their stored values.
-    func requestReviewNotificationPermissionFromSettings(now: Date) async -> ReviewNotificationPermissionStatus {
+    func requestReviewNotificationPermissionFromSettings(now: Date) async throws -> ReviewNotificationPermissionStatus {
         let currentPermissionStatus = await resolveReviewNotificationPermissionStatus()
         if currentPermissionStatus == .allowed {
             self.reconcileReviewNotifications(trigger: .permissionChanged, now: now)
@@ -285,21 +284,7 @@ extension FlashcardsStore {
             return .blocked
         }
 
-        // The one branch that actually presents the OS dialog: the two returns above answer from a
-        // decision already stored, without anything being shown, and reporting those would count
-        // dialogs nobody saw. A throw is not an answer either, so only a returned decision reports.
-        // iOS gives no way to close this dialog undecided, which is why `dismissed` never appears
-        // here. Among the access permissions only the photo-library request can report it; camera and
-        // microphone answer with a bool exactly as this one does.
-        let authorizationDecision = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound])
-        if let authorizationDecision {
-            Analytics.trackPermissionPromptAnswered(
-                permission: .notifications,
-                outcome: authorizationDecision ? .granted : .denied
-            )
-        }
-
-        let isAllowed = authorizationDecision ?? false
+        _ = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound])
         self.updateNotificationPermissionPromptState(
             state: NotificationPermissionPromptState(
                 hasShownPrePrompt: true,
@@ -308,17 +293,27 @@ extension FlashcardsStore {
             )
         )
 
-        if isAllowed {
-            self.reconcileReviewNotifications(trigger: .permissionChanged, now: now)
-            self.reconcileStrictReminders(trigger: .permissionChanged, now: now)
-            return .allowed
+        let notificationSettings = await UNUserNotificationCenter.current().notificationSettings()
+        let permissionStatus = reviewNotificationPermissionStatus(authorizationStatus: notificationSettings.authorizationStatus)
+        switch notificationSettings.authorizationStatus {
+        case .authorized, .provisional, .ephemeral:
+            Analytics.trackPermissionPromptAnswered(permission: .notifications, outcome: .granted)
+        case .denied:
+            Analytics.trackPermissionPromptAnswered(permission: .notifications, outcome: .denied)
+        case .notDetermined:
+            break
+        @unknown default:
+            break
         }
 
-        return .blocked
+        if permissionStatus == .allowed {
+            self.reconcileReviewNotifications(trigger: .permissionChanged, now: now)
+            self.reconcileStrictReminders(trigger: .permissionChanged, now: now)
+        }
+
+        return permissionStatus
     }
 
-    /// Reconciles review notifications to the current app state.
-    ///
     /// The reconciler is idempotent and safe to call from multiple triggers. It clears
     /// pending review reminders before rescheduling, and it clears already delivered
     /// review reminders when the app becomes active or a review is recorded.
