@@ -250,7 +250,9 @@
 "settings.subscription.manage" = "सदस्यता व्यवस्थापित करा";
 "settings.language.title" = "भाषा";
 "settings.language.systemDescription" = "iOS अ‍ॅपची भाषा ठरवते. iOS सेटिंग्जमध्ये Nibomo उघडा आणि भाषा निवडा. भाषा दिसत नसल्यास आधी सेटिंग्ज > सामान्य > भाषा आणि प्रदेश येथे दुसरी भाषा जोडा. डिव्हाइसमध्ये एकापेक्षा जास्त पसंतीच्या भाषा असतील तेव्हाच iOS हा पर्याय दाखवते.";
+"settings.language.macSystemDescription" = "Mac वर Nibomo ची भाषा बदलण्यासाठी सिस्टम सेटिंग्ज > सामान्य > भाषा आणि प्रदेश > ॲप्लिकेशन्स येथे जा.";
 "settings.language.action.openAppSettings" = "Nibomo सेटिंग्ज उघडा";
+"settings.language.action.openSystemSettings" = "सिस्टम सेटिंग्ज उघडा";
 "settings.language.section.supportedLanguages" = "समर्थित भाषा";
 "settings.language.supported.english" = "इंग्रजी";
 "settings.language.supported.arabic" = "अरबी";

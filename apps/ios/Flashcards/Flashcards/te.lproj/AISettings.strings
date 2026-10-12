@@ -250,7 +250,9 @@
 "settings.subscription.manage" = "సబ్‌స్క్రిప్షన్‌ను నిర్వహించండి";
 "settings.language.title" = "భాష";
 "settings.language.systemDescription" = "iOS యాప్ భాషను నియంత్రిస్తుంది. iOS సెట్టింగ్‌లలో Nibomo తెరిచి భాషను ఎంచుకోండి. భాష కనిపించకపోతే ముందుగా సెట్టింగ్‌లు > సాధారణం > భాష మరియు ప్రాంతంలో రెండవ భాషను చేర్చండి. పరికరంలో ఒకటి కంటే ఎక్కువ ప్రాధాన్య భాషలు ఉన్నప్పుడు మాత్రమే iOS ఈ ఎంపికను చూపిస్తుంది.";
+"settings.language.macSystemDescription" = "Macలో Nibomo భాషను మార్చడానికి సిస్టమ్ సెట్టింగ్‌లు > సాధారణ > భాష మరియు ప్రాంతం > అప్లికేషన్‌లు విభాగానికి వెళ్లండి.";
 "settings.language.action.openAppSettings" = "Nibomo సెట్టింగ్‌లను తెరువు";
+"settings.language.action.openSystemSettings" = "సిస్టమ్ సెట్టింగ్‌లను తెరవండి";
 "settings.language.section.supportedLanguages" = "మద్దతు ఉన్న భాషలు";
 "settings.language.supported.english" = "ఇంగ్లీష్";
 "settings.language.supported.arabic" = "అరబిక్";

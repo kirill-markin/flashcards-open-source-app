@@ -250,7 +250,9 @@
 "settings.subscription.manage" = "مدیریت اشتراک";
 "settings.language.title" = "زبان";
 "settings.language.systemDescription" = "iOS زبان برنامه را کنترل می‌کند. در تنظیمات iOS، بخش Nibomo را باز کنید و «زبان» را انتخاب کنید. اگر «زبان» نمایش داده نمی‌شود، ابتدا زبان دومی در تنظیمات > عمومی > زبان و منطقه اضافه کنید. iOS این گزینه را فقط زمانی نشان می‌دهد که دستگاه بیش از یک زبان ترجیحی داشته باشد.";
+"settings.language.macSystemDescription" = "در Mac، زبان Nibomo را از مسیر تنظیمات سیستم > عمومی > زبان و منطقه > برنامه‌ها تغییر دهید.";
 "settings.language.action.openAppSettings" = "باز کردن تنظیمات Nibomo";
+"settings.language.action.openSystemSettings" = "باز کردن تنظیمات سیستم";
 "settings.language.section.supportedLanguages" = "زبان‌های پشتیبانی‌شده";
 "settings.language.supported.english" = "انگلیسی";
 "settings.language.supported.arabic" = "عربی";

@@ -250,7 +250,9 @@
 "settings.subscription.manage" = "Gestisci abbonamento";
 "settings.language.title" = "Lingua";
 "settings.language.systemDescription" = "iOS gestisce la lingua dell’app. Nelle Impostazioni di iOS, apri Nibomo e scegli Lingua. Se Lingua non compare, aggiungi prima una seconda lingua in Impostazioni > Generali > Lingua e zona. iOS mostra questa opzione solo quando il dispositivo ha più di una lingua preferita.";
+"settings.language.macSystemDescription" = "Sul Mac, cambia la lingua di Nibomo in Impostazioni di Sistema > Generali > Lingua e zona > Applicazioni.";
 "settings.language.action.openAppSettings" = "Apri impostazioni di Nibomo";
+"settings.language.action.openSystemSettings" = "Apri Impostazioni di Sistema";
 "settings.language.section.supportedLanguages" = "Lingue supportate";
 "settings.language.supported.english" = "Inglese";
 "settings.language.supported.arabic" = "Arabo";

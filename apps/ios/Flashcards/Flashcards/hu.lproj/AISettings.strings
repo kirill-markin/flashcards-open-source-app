@@ -250,7 +250,9 @@
 "settings.subscription.manage" = "Előfizetés kezelése";
 "settings.language.title" = "Nyelv";
 "settings.language.systemDescription" = "Az alkalmazás nyelvét az iOS kezeli. Az iOS Beállításokban nyisd meg a Nibomót, és válaszd a Nyelv lehetőséget. Ha a Nyelv nem látható, előbb adj hozzá egy második nyelvet a Beállítások > Általános > Nyelv és régió alatt. Az iOS csak akkor mutatja ezt a lehetőséget, ha az eszközön egynél több előnyben részesített nyelv van.";
+"settings.language.macSystemDescription" = "Macen a Nibomo nyelvét a Rendszerbeállítások > Általános > Nyelv és régió > Alkalmazások alatt módosíthatod.";
 "settings.language.action.openAppSettings" = "Nibomo beállításainak megnyitása";
+"settings.language.action.openSystemSettings" = "Rendszerbeállítások megnyitása";
 "settings.language.section.supportedLanguages" = "Támogatott nyelvek";
 "settings.language.supported.english" = "Angol";
 "settings.language.supported.arabic" = "Arab";

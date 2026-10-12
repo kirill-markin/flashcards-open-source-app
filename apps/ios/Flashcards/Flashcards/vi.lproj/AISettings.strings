@@ -250,7 +250,9 @@
 "settings.subscription.manage" = "Quản lý gói đăng ký";
 "settings.language.title" = "Ngôn ngữ";
 "settings.language.systemDescription" = "iOS quản lý ngôn ngữ ứng dụng. Trong Cài đặt iOS, mở Nibomo và chọn Ngôn ngữ. Nếu không thấy Ngôn ngữ, trước tiên hãy thêm ngôn ngữ thứ hai trong Cài đặt > Cài đặt chung > Ngôn ngữ & Vùng. iOS chỉ hiển thị tùy chọn này khi thiết bị có nhiều hơn một ngôn ngữ ưu tiên.";
+"settings.language.macSystemDescription" = "Trên Mac, đổi ngôn ngữ của Nibomo trong Cài đặt hệ thống > Cài đặt chung > Ngôn ngữ & Vùng > Ứng dụng.";
 "settings.language.action.openAppSettings" = "Mở cài đặt Nibomo";
+"settings.language.action.openSystemSettings" = "Mở Cài đặt hệ thống";
 "settings.language.section.supportedLanguages" = "Ngôn ngữ được hỗ trợ";
 "settings.language.supported.english" = "Tiếng Anh";
 "settings.language.supported.arabic" = "Tiếng Ả Rập";
