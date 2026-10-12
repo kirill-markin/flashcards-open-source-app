@@ -57646,6 +57646,614 @@
         }
       }
     },
+    "system_settings.error.invalidLink" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "رابط الإعدادات غير صالح. افتح إعدادات النظام يدويًا."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Връзката към настройките е невалидна. Отворете системните настройки ръчно."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সেটিংসের লিঙ্কটি বৈধ নয়। সিস্টেম সেটিংস নিজে খুলুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’enllaç de configuració no és vàlid. Obriu la configuració del sistema manualment."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odkaz na nastavení je neplatný. Otevřete systémové nastavení ručně."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Linket til indstillingerne er ugyldigt. Åbn systemindstillingerne manuelt."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Link zu den Einstellungen ist ungültig. Öffne die Systemeinstellungen manuell."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ο σύνδεσμος για τις ρυθμίσεις δεν είναι έγκυρος. Ανοίξτε τις ρυθμίσεις συστήματος χειροκίνητα."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The Settings link is invalid. Open system settings manually."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El enlace a los ajustes no es válido. Abre los ajustes del sistema manualmente."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El enlace a la configuración no es válido. Abre la configuración del sistema manualmente."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seadete link on vigane. Ava süsteemiseaded käsitsi."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "پیوند تنظیمات نامعتبر است. تنظیمات سیستم را دستی باز کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Asetuksiin johtava linkki on virheellinen. Avaa järjestelmäasetukset käsin."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le lien vers les réglages est invalide. Ouvrez les réglages système manuellement."
+          }
+        },
+        "gu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "સેટિંગ્સની લિંક અમાન્ય છે. સિસ્ટમ સેટિંગ્સ જાતે ખોલો."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "הקישור להגדרות אינו תקין. יש לפתוח את הגדרות המערכת באופן ידני."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सेटिंग का लिंक अमान्य है। सिस्टम सेटिंग खुद खोलें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Poveznica na postavke nije valjana. Ručno otvorite postavke sustava."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A beállításokra mutató hivatkozás érvénytelen. Nyisd meg manuálisan a rendszerbeállításokat."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tautan pengaturan tidak valid. Buka pengaturan sistem secara manual."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tengillinn í stillingar er ógildur. Opnaðu kerfisstillingar handvirkt."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il link alle impostazioni non è valido. Apri manualmente le impostazioni di sistema."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定へのリンクが無効です。システムの設定を手動で開いてください。"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಸೆಟ್ಟಿಂಗ್‌ಗಳ ಲಿಂಕ್ ಅಮಾನ್ಯವಾಗಿದೆ. ಸಿಸ್ಟಮ್ ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ಕೈಯಾರೆ ತೆರೆಯಿರಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "설정 링크가 올바르지 않습니다. 시스템 설정을 직접 여세요."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nuoroda į nustatymus netinkama. Sistemos nustatymus atidarykite rankiniu būdu."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saite uz iestatījumiem nav derīga. Atveriet sistēmas iestatījumus manuāli."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ക്രമീകരണങ്ങളിലേക്കുള്ള ലിങ്ക് അസാധുവാണ്. സിസ്റ്റം ക്രമീകരണങ്ങൾ സ്വയം തുറക്കുക."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सेटिंग्जची लिंक अवैध आहे. सिस्टम सेटिंग्ज स्वतः उघडा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lenken til innstillingene er ugyldig. Åpne systeminnstillingene manuelt."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De link naar de instellingen is ongeldig. Open de systeeminstellingen handmatig."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਸੈਟਿੰਗਾਂ ਦਾ ਲਿੰਕ ਅਵੈਧ ਹੈ। ਸਿਸਟਮ ਸੈਟਿੰਗਾਂ ਖੁਦ ਖੋਲ੍ਹੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Łącze do ustawień jest nieprawidłowe. Otwórz ustawienia systemowe ręcznie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O link para os ajustes é inválido. Abra os ajustes do sistema manualmente."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Linkul către configurări nu este valid. Deschide manual configurările sistemului."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ссылка на настройки недействительна. Откройте системные настройки вручную."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odkaz na nastavenia je neplatný. Otvorte systémové nastavenia manuálne."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Povezava do nastavitev ni veljavna. Ročno odprite nastavitve sistema."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Länken till inställningarna är ogiltig. Öppna systeminställningarna manuellt."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kiungo cha mipangilio si halali. Fungua mipangilio ya mfumo mwenyewe."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "அமைப்புகளுக்கான இணைப்பு செல்லுபடியாகாது. முறைமை அமைப்புகளை நீங்களே திறக்கவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "సెట్టింగ్‌ల లింక్ చెల్లదు. సిస్టమ్ సెట్టింగ్‌లను మీరే తెరవండి."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ลิงก์ไปยังการตั้งค่าไม่ถูกต้อง เปิดการตั้งค่าระบบด้วยตนเอง"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ayarlar bağlantısı geçersiz. Sistem ayarlarını elle açın."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Посилання на параметри недійсне. Відкрийте системні параметри вручну."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "سیٹنگز کا لنک درست نہیں ہے۔ سسٹم سیٹنگز خود کھولیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liên kết đến cài đặt không hợp lệ. Hãy mở cài đặt hệ thống theo cách thủ công."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设置链接无效。请手动打开系统设置。"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Isixhumanisi sezilungiselelo asivumelekile. Vula izilungiselelo zesistimu ngokwakho."
+          }
+        }
+      }
+    },
+    "system_settings.error.openFailed" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تعذر فتح الإعدادات. افتح إعدادات النظام يدويًا."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Настройките не се отвориха. Отворете системните настройки ръчно."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সেটিংস খোলা যায়নি। সিস্টেম সেটিংস নিজে খুলুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No s’ha pogut obrir la configuració. Obriu la configuració del sistema manualment."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nastavení se nepodařilo otevřít. Otevřete systémové nastavení ručně."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indstillingerne kunne ikke åbnes. Åbn systemindstillingerne manuelt."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Einstellungen konnten nicht geöffnet werden. Öffne die Systemeinstellungen manuell."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δεν ήταν δυνατό το άνοιγμα των ρυθμίσεων. Ανοίξτε τις ρυθμίσεις συστήματος χειροκίνητα."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings couldn’t open. Open system settings manually."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se han podido abrir los ajustes. Abre los ajustes del sistema manualmente."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo abrir la configuración. Abre la configuración del sistema manualmente."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seadeid ei saanud avada. Ava süsteemiseaded käsitsi."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تنظیمات باز نشد. تنظیمات سیستم را دستی باز کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Asetuksia ei voitu avata. Avaa järjestelmäasetukset käsin."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible d’ouvrir les réglages. Ouvrez les réglages système manuellement."
+          }
+        },
+        "gu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "સેટિંગ્સ ખોલી શકાયાં નહીં. સિસ્ટમ સેટિંગ્સ જાતે ખોલો."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "לא ניתן היה לפתוח את ההגדרות. יש לפתוח את הגדרות המערכת באופן ידני."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सेटिंग खोलना संभव नहीं हुआ। सिस्टम सेटिंग खुद खोलें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Postavke se nisu mogle otvoriti. Ručno otvorite postavke sustava."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nem sikerült megnyitni a beállításokat. Nyisd meg manuálisan a rendszerbeállításokat."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pengaturan tidak dapat dibuka. Buka pengaturan sistem secara manual."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekki tókst að opna stillingar. Opnaðu kerfisstillingar handvirkt."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non è stato possibile aprire le impostazioni. Apri manualmente le impostazioni di sistema."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定を開けませんでした。システムの設定を手動で開いてください。"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ತೆರೆಯಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ಸಿಸ್ಟಮ್ ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ಕೈಯಾರೆ ತೆರೆಯಿರಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "설정을 열 수 없었습니다. 시스템 설정을 직접 여세요."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nepavyko atidaryti nustatymų. Sistemos nustatymus atidarykite rankiniu būdu."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Iestatījumus neizdevās atvērt. Atveriet sistēmas iestatījumus manuāli."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ക്രമീകരണങ്ങൾ തുറക്കാനായില്ല. സിസ്റ്റം ക്രമീകരണങ്ങൾ സ്വയം തുറക്കുക."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सेटिंग्ज उघडता आल्या नाहीत. सिस्टम सेटिंग्ज स्वतः उघडा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Innstillingene kunne ikke åpnes. Åpne systeminnstillingene manuelt."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De instellingen konden niet worden geopend. Open de systeeminstellingen handmatig."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਸੈਟਿੰਗਾਂ ਖੋਲ੍ਹੀਆਂ ਨਹੀਂ ਜਾ ਸਕੀਆਂ। ਸਿਸਟਮ ਸੈਟਿੰਗਾਂ ਖੁਦ ਖੋਲ੍ਹੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się otworzyć ustawień. Otwórz ustawienia systemowe ręcznie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível abrir os ajustes. Abra os ajustes do sistema manualmente."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configurările nu au putut fi deschise. Deschide manual configurările sistemului."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось открыть настройки. Откройте системные настройки вручную."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nastavenia sa nepodarilo otvoriť. Otvorte systémové nastavenia manuálne."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nastavitev ni bilo mogoče odpreti. Ročno odprite nastavitve sistema."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Det gick inte att öppna inställningarna. Öppna systeminställningarna manuellt."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mipangilio haikuweza kufunguliwa. Fungua mipangilio ya mfumo mwenyewe."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "அமைப்புகளைத் திறக்க முடியவில்லை. முறைமை அமைப்புகளை நீங்களே திறக்கவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "సెట్టింగ్‌లను తెరవడం సాధ్యం కాలేదు. సిస్టమ్ సెట్టింగ్‌లను మీరే తెరవండి."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ไม่สามารถเปิดการตั้งค่าได้ เปิดการตั้งค่าระบบด้วยตนเอง"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ayarlar açılamadı. Sistem ayarlarını elle açın."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося відкрити параметри. Відкрийте системні параметри вручну."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "سیٹنگز نہیں کھل سکیں۔ سسٹم سیٹنگز خود کھولیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Không thể mở cài đặt. Hãy mở cài đặt hệ thống theo cách thủ công."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法打开设置。请手动打开系统设置。"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Izilungiselelo azikwazanga ukuvuleka. Vula izilungiselelo zesistimu ngokwakho."
+          }
+        }
+      }
+    },
     "technical_error.generic.message" : {
       "comment" : "Generic technical error sheet user-safe message",
       "localizations" : {

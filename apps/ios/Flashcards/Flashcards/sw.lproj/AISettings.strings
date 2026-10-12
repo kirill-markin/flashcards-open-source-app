@@ -250,7 +250,9 @@
 "settings.subscription.manage" = "Dhibiti usajili";
 "settings.language.title" = "Lugha";
 "settings.language.systemDescription" = "iOS hudhibiti lugha ya programu. Katika Mipangilio ya iOS, fungua Nibomo na uchague Lugha. Ikiwa Lugha haionekani, kwanza ongeza lugha ya pili katika Mipangilio > Jumla > Lugha na Eneo. iOS huonyesha chaguo hili tu wakati kifaa kina zaidi ya lugha moja inayopendelewa.";
+"settings.language.macSystemDescription" = "Kwenye Mac, badilisha lugha ya Nibomo katika Mipangilio ya Mfumo > Jumla > Lugha na Eneo > Programu.";
 "settings.language.action.openAppSettings" = "Fungua mipangilio ya Nibomo";
+"settings.language.action.openSystemSettings" = "Fungua mipangilio ya mfumo";
 "settings.language.section.supportedLanguages" = "Lugha Zinazotumika";
 "settings.language.supported.english" = "Kiingereza";
 "settings.language.supported.arabic" = "Kiarabu";

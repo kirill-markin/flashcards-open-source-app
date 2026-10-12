@@ -250,7 +250,9 @@
 "settings.subscription.manage" = "Керувати підпискою";
 "settings.language.title" = "Мова";
 "settings.language.systemDescription" = "iOS керує мовою застосунку. У Параметрах iOS відкрийте Nibomo та виберіть «Мова». Якщо пункту «Мова» немає, спершу додайте другу мову в Параметри > Загальні > Мова і регіон. iOS показує цей пункт, лише коли на пристрої вибрано більше однієї бажаної мови.";
+"settings.language.macSystemDescription" = "На Mac змініть мову Nibomo в розділі «Системні параметри» > «Загальні» > «Мова і регіон» > «Програми».";
 "settings.language.action.openAppSettings" = "Відкрити параметри Nibomo";
+"settings.language.action.openSystemSettings" = "Відкрити системні параметри";
 "settings.language.section.supportedLanguages" = "Підтримувані мови";
 "settings.language.supported.english" = "Англійська";
 "settings.language.supported.arabic" = "Арабська";

@@ -250,7 +250,9 @@
 "settings.subscription.manage" = "Gestionează abonamentul";
 "settings.language.title" = "Limbă";
 "settings.language.systemDescription" = "iOS controlează limba aplicației. În Configurări iOS, deschide Nibomo și alege Limbă. Dacă Limbă nu apare, adaugă mai întâi o a doua limbă în Configurări > General > Limbă și regiune. iOS afișează această opțiune doar când dispozitivul are mai multe limbi preferate.";
+"settings.language.macSystemDescription" = "Pe Mac, schimbă limba Nibomo în Configurări sistem > General > Limbă și regiune > Aplicații.";
 "settings.language.action.openAppSettings" = "Deschide configurările Nibomo";
+"settings.language.action.openSystemSettings" = "Deschide Configurări sistem";
 "settings.language.section.supportedLanguages" = "Limbi acceptate";
 "settings.language.supported.english" = "Engleză";
 "settings.language.supported.arabic" = "Arabă";

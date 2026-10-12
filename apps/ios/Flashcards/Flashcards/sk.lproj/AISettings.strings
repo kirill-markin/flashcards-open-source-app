@@ -250,7 +250,9 @@
 "settings.subscription.manage" = "Spravovať predplatné";
 "settings.language.title" = "Jazyk";
 "settings.language.systemDescription" = "Jazyk aplikácie riadi iOS. V Nastaveniach iOS otvorte Nibomo a vyberte Jazyk. Ak sa Jazyk nezobrazuje, najprv pridajte druhý jazyk v Nastavenia > Všeobecné > Jazyk a región. iOS zobrazuje túto voľbu, len keď má zariadenie viac ako jeden preferovaný jazyk.";
+"settings.language.macSystemDescription" = "Na Macu zmeňte jazyk aplikácie Nibomo v časti Systémové nastavenia > Všeobecné > Jazyk a región > Aplikácie.";
 "settings.language.action.openAppSettings" = "Otvoriť nastavenia Nibomo";
+"settings.language.action.openSystemSettings" = "Otvoriť systémové nastavenia";
 "settings.language.section.supportedLanguages" = "Podporované jazyky";
 "settings.language.supported.english" = "Angličtina";
 "settings.language.supported.arabic" = "Arabčina";

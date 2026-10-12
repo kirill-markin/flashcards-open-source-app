@@ -250,7 +250,9 @@
 "settings.subscription.manage" = "Pārvaldīt abonementu";
 "settings.language.title" = "Valoda";
 "settings.language.systemDescription" = "iOS pārvalda lietotnes valodu. iOS iestatījumos atveriet Nibomo un izvēlieties Valoda. Ja Valoda netiek rādīta, vispirms pievienojiet otru valodu sadaļā Iestatījumi > Vispārīgi > Valoda un reģions. iOS rāda šo iespēju tikai tad, ja ierīcē ir vairāk nekā viena vēlamā valoda.";
+"settings.language.macSystemDescription" = "Mac datorā mainiet Nibomo valodu sadaļā Sistēmas iestatījumi > Vispārīgi > Valoda un reģions > Lietotnes.";
 "settings.language.action.openAppSettings" = "Atvērt Nibomo iestatījumus";
+"settings.language.action.openSystemSettings" = "Atvērt sistēmas iestatījumus";
 "settings.language.section.supportedLanguages" = "Atbalstītās valodas";
 "settings.language.supported.english" = "Angļu";
 "settings.language.supported.arabic" = "Arābu";

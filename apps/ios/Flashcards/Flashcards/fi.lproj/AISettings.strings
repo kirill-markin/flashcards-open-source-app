@@ -250,7 +250,9 @@
 "settings.subscription.manage" = "Hallitse tilausta";
 "settings.language.title" = "Kieli";
 "settings.language.systemDescription" = "iOS määrittää sovelluksen kielen. Avaa iOS-asetuksista Nibomo ja valitse Kieli. Jos Kieli-valintaa ei näy, lisää ensin toinen kieli kohdassa Asetukset > Yleiset > Kieli ja alue. iOS näyttää tämän valinnan vain, kun laitteella on useampi kuin yksi ensisijainen kieli.";
+"settings.language.macSystemDescription" = "Macissa voit vaihtaa Nibomo-sovelluksen kielen kohdassa Järjestelmäasetukset > Yleiset > Kieli ja alue > Apit.";
 "settings.language.action.openAppSettings" = "Avaa Nibomon asetukset";
+"settings.language.action.openSystemSettings" = "Avaa Järjestelmäasetukset";
 "settings.language.section.supportedLanguages" = "Tuetut kielet";
 "settings.language.supported.english" = "Englanti";
 "settings.language.supported.arabic" = "Arabia";
