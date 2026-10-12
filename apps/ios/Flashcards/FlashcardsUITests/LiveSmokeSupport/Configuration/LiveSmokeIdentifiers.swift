@@ -472,4 +472,3 @@ let aiCreatePromptMaximumAttempts: Int = 3
 let aiResetPromptMaximumAttempts: Int = 3
 let aiCreateRunCompletionTimeoutSeconds: TimeInterval = 90
 let liveSmokeFocusPollIntervalSeconds: TimeInterval = 0.2
-let aiConsentRetryTapIntervalSeconds: TimeInterval = 1
