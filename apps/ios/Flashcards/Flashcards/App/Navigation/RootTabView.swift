@@ -400,6 +400,7 @@ struct RootTabView: View {
             } label: {
                 self.tabLabel(.review, identifier: UITestIdentifier.rootTabReviewItem)
             }
+            .accessibilityIdentifier(UITestIdentifier.rootTabReviewItem, isEnabled: true)
             .badge(self.reviewReminderAttentionBadgeCount)
 
             Tab(value: AppTab.progress) {
@@ -407,24 +408,28 @@ struct RootTabView: View {
             } label: {
                 self.tabLabel(.progress, identifier: UITestIdentifier.rootTabProgressItem)
             }
+            .accessibilityIdentifier(UITestIdentifier.rootTabProgressItem, isEnabled: true)
 
             Tab(value: AppTab.ai) {
                 self.aiTab(aiPath: $navigation.aiPath)
             } label: {
                 self.tabLabel(.ai, identifier: UITestIdentifier.rootTabAIItem)
             }
+            .accessibilityIdentifier(UITestIdentifier.rootTabAIItem, isEnabled: true)
 
             Tab(value: AppTab.cards) {
                 self.cardsTab
             } label: {
                 self.tabLabel(.cards, identifier: UITestIdentifier.rootTabCardsItem)
             }
+            .accessibilityIdentifier(UITestIdentifier.rootTabCardsItem, isEnabled: true)
 
             Tab(value: AppTab.settings) {
                 self.settingsTab(settingsPath: $navigation.settingsPath)
             } label: {
                 self.tabLabel(.settings, identifier: UITestIdentifier.rootTabSettingsItem)
             }
+            .accessibilityIdentifier(UITestIdentifier.rootTabSettingsItem, isEnabled: true)
             .badge(self.settingsAttentionSummary.settingsTabCount)
         }
     }

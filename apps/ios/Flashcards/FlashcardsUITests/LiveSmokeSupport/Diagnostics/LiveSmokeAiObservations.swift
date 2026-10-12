@@ -3,19 +3,18 @@ import XCTest
 extension LiveSmokeTestCase {
     @MainActor
     func visibleAssistantRowTexts(ignoredExactLabels: Set<String>) -> [String] {
-        self.elements(
-            query: self.app.cells.containing(.any, identifier: LiveSmokeIdentifier.aiAssistantVisibleText)
-        )
+        self.app.collectionViews[LiveSmokeIdentifier.aiScreen].firstMatch.cells
+            .containing(.staticText, identifier: LiveSmokeIdentifier.aiAssistantVisibleText)
+            .allElementsBoundByAccessibilityElement
         .filter { row in
             row.identifier != LiveSmokeIdentifier.aiAssistantErrorMessage
                 && row.descendants(matching: .any)
                 .matching(identifier: LiveSmokeIdentifier.aiAssistantErrorMessage).firstMatch.exists == false
         }
         .compactMap { row in
-            self.elements(
-                query: row.descendants(matching: .any)
-                    .matching(identifier: LiveSmokeIdentifier.aiAssistantVisibleText)
-            )
+            row.staticTexts.matching(identifier: LiveSmokeIdentifier.aiAssistantVisibleText)
+                .allElementsBoundByAccessibilityElement
+                .lazy
             .compactMap { element in
                 let value = self.elementValue(element: element).trimmingCharacters(in: .whitespacesAndNewlines)
                 if value.isEmpty == false {
