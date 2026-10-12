@@ -24,6 +24,8 @@ The optional iPhone Duo outer and inner families each use the 42 Store locales
 tracked now; the remaining 41 locales per display have not been captured. Their
 capture provenance is in the separate
 [`duo-source-manifest.json`](media/app-store-cards/duo-source-manifest.json).
+The complete Mac inventory and its provenance are recorded under
+[Native Mac Catalyst capture](#native-mac-catalyst-capture).
 Catalog support alone does not establish that other assets have been generated
 or uploaded.
 
@@ -485,8 +487,15 @@ Mac capture uses the same five localized fixtures and genuine product screens,
 with native filename indices 1 front, 2 answer, 3 progress, 4 AI draft, 5 cards.
 The independent [store-card processor](../../../docs/store-screenshot-processing.md)
 orders the cards as 4, 1, 2, 3, 5. Capture never processes or uploads images.
-The complete target inventory is 210 originals for the 42 existing Store locales;
-wrapper support alone does not establish that those files have been generated.
+The complete 42-locale inventory is saved in
+`media/app-store-screenshots/macos/`: five opaque RGB 1440 × 900 native windows
+per locale, captured on 2026-10-12 from
+`4fb044b41043b4c0344ef6763253f8e3d2c0bb0f`. All originals and corresponding
+landscape store cards were visually inspected. The separate
+[`macos-source-manifest.json`](media/app-store-cards/macos-source-manifest.json)
+records the genuine capture-only build identity, toolchain and original hashes;
+the [processing guide](../../../docs/store-screenshot-processing.md#tracked-approved-delivery)
+owns decorated inventory and upload status.
 
 Prepare the gitignored `Config/Local.xcconfig` with the service values from
 [local setup](../../../docs/ios-local-setup.md). Follow the

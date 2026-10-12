@@ -1,12 +1,12 @@
 {
-  "images": 470,
-  "appStoreImages": 430,
+  "images": 680,
+  "appStoreImages": 640,
   "additionalImages": 40,
   "languages": 49,
   "captureTags": 50,
   "storeLocalizations": 42,
-  "sets": 94,
-  "sourceRevision": "518480a83bc8a99b2900e39a2250db3086132be0",
+  "sets": 136,
+  "sourceRevision": "4fb044b41043b4c0344ef6763253f8e3d2c0bb0f",
   "families": {
     "iphone": {
       "width": 1284,
@@ -27,6 +27,11 @@
       "width": 2853,
       "height": 2007,
       "storeImages": 5
+    },
+    "macos": {
+      "width": 2880,
+      "height": 1800,
+      "storeImages": 210
     }
   },
   "excludedStoreLocales": [
