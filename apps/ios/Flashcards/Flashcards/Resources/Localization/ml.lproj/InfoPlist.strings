@@ -1,5 +1,5 @@
 "kMDItemKeywords" = "flashcards,flash cards,ഫ്ലാഷ്കാർഡുകൾ,പഠന കാർഡുകൾ,ഫ്ലാഷ് കാർഡുകൾ,ആവർത്തന കാർഡുകൾ";
 "MDItemKeywords" = "flashcards,flash cards,ഫ്ലാഷ്കാർഡുകൾ,പഠന കാർഡുകൾ,ഫ്ലാഷ് കാർഡുകൾ,ആവർത്തന കാർഡുകൾ";
-"NSCameraUsageDescription" = "AI ചാറ്റ് അറ്റാച്ച്മെന്റുകൾക്കായി ഫോട്ടോ എടുക്കാൻ ക്യാമറ അനുമതി നൽകുക.";
-"NSMicrophoneUsageDescription" = "AI ചാറ്റിലേക്ക് പറഞ്ഞെഴുതാൻ മൈക്രോഫോൺ അനുമതി നൽകുക.";
-"NSPhotoLibraryUsageDescription" = "AI ചാറ്റ് അറ്റാച്ച്മെന്റുകൾക്കായി ഫോട്ടോകൾ തിരഞ്ഞെടുക്കാൻ ഫോട്ടോ ലൈബ്രറി അനുമതി നൽകുക.";
+"NSCameraUsageDescription" = "AI ചാറ്റിനായി ഫോട്ടോകൾ എടുക്കുക. അറ്റാച്ച് ചെയ്ത ഫോട്ടോകൾ AI പ്രോസസ്സിംഗിനായി OpenAI-യിലേക്ക് അയയ്ക്കുന്നു.";
+"NSMicrophoneUsageDescription" = "ശബ്ദത്തിലൂടെ എഴുതാൻ ഓഡിയോ റെക്കോർഡ് ചെയ്ത്, AI ചാറ്റിനായി ടെക്സ്റ്റാക്കി മാറ്റാൻ OpenAI-യിലേക്ക് അയയ്ക്കുക.";
+"NSPhotoLibraryUsageDescription" = "AI ചാറ്റിൽ അറ്റാച്ച് ചെയ്യാനും AI പ്രോസസ്സിംഗിനായി OpenAI-യിലേക്ക് അയയ്ക്കാനും ഫോട്ടോകൾ തിരഞ്ഞെടുക്കുക.";

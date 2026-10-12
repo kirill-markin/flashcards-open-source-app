@@ -1,5 +1,5 @@
 "kMDItemKeywords" = "flashcards,flash cards,thẻ ghi nhớ,thẻ học,thẻ ôn tập";
 "MDItemKeywords" = "flashcards,flash cards,thẻ ghi nhớ,thẻ học,thẻ ôn tập";
-"NSCameraUsageDescription" = "Cho phép truy cập camera để chụp ảnh đính kèm vào trò chuyện AI.";
-"NSMicrophoneUsageDescription" = "Cho phép truy cập micrô để đọc chính tả vào trò chuyện AI.";
-"NSPhotoLibraryUsageDescription" = "Cho phép truy cập thư viện ảnh để chọn ảnh đính kèm vào trò chuyện AI.";
+"NSCameraUsageDescription" = "Chụp ảnh cho cuộc trò chuyện AI. Ảnh đính kèm được gửi tới OpenAI để xử lý bằng AI.";
+"NSMicrophoneUsageDescription" = "Ghi âm lời đọc và gửi tới OpenAI để chuyển thành văn bản cho cuộc trò chuyện AI.";
+"NSPhotoLibraryUsageDescription" = "Chọn ảnh để đính kèm vào cuộc trò chuyện AI và gửi tới OpenAI để xử lý bằng AI.";

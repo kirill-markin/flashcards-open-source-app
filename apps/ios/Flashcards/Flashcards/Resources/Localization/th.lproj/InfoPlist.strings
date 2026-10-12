@@ -1,5 +1,5 @@
 "kMDItemKeywords" = "flashcards,flash cards,แฟลชการ์ด,บัตรคำ,บัตรช่วยจำ,บัตรเรียนรู้,บัตรทบทวนบทเรียน";
 "MDItemKeywords" = "flashcards,flash cards,แฟลชการ์ด,บัตรคำ,บัตรช่วยจำ,บัตรเรียนรู้,บัตรทบทวนบทเรียน";
-"NSCameraUsageDescription" = "อนุญาตให้ใช้กล้องเพื่อถ่ายภาพแนบในแชต AI";
-"NSMicrophoneUsageDescription" = "อนุญาตให้ใช้ไมโครโฟนเพื่อป้อนข้อความด้วยเสียงในแชต AI";
-"NSPhotoLibraryUsageDescription" = "อนุญาตให้เข้าถึงคลังรูปภาพเพื่อเลือกรูปภาพแนบในแชต AI";
+"NSCameraUsageDescription" = "ถ่ายรูปสำหรับแชท AI รูปที่แนบจะถูกส่งไปยัง OpenAI เพื่อประมวลผลด้วย AI";
+"NSMicrophoneUsageDescription" = "บันทึกเสียงที่พูดและส่งไปยัง OpenAI เพื่อถอดเป็นข้อความสำหรับแชท AI";
+"NSPhotoLibraryUsageDescription" = "เลือกรูปเพื่อแนบในแชท AI และส่งไปยัง OpenAI เพื่อประมวลผลด้วย AI";
