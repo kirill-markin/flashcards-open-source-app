@@ -19,6 +19,7 @@ import {
   type PublicHttpErrorDetails,
 } from "../shared/errors";
 import { createChatRoutes } from "../routes/chat";
+import { createAiConsentRoutes } from "../routes/aiConsent";
 import { createChatTranscriptionsRoutes } from "../routes/chatTranscriptions";
 import { createAgentRoutes } from "../routes/agent";
 import { createCardsRoutes } from "../routes/cards";
@@ -536,6 +537,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
   }));
   app.route("/", createGlobalSnapshotRoutes({}));
   app.route("/", createGuestAuthRoutes());
+  app.route("/", createAiConsentRoutes({ allowedOrigins }));
   app.route("/", createChatTranscriptionsRoutes({ allowedOrigins }));
   app.route("/", createChatRoutes({ allowedOrigins }));
   app.route("/", createSyncRoutes({ allowedOrigins }));

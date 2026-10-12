@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { HttpError } from "../../shared/errors";
 import {
   chatAttachmentUnsupportedTypeMessage,
   isChatAttachmentUnsupportedTypeError,
@@ -273,6 +274,9 @@ export function createSafeProviderErrorDetails(error: unknown | null): SafeProvi
 }
 
 export function createPublicTerminalErrorMessage(error: unknown): string {
+  if (error instanceof HttpError && error.code === "AI_CONSENT_REQUIRED") {
+    return "AI consent was withdrawn or superseded. Review the disclosure and grant consent before sending another message.";
+  }
   const providerMetadata = getAIProviderFailureMetadata(error);
   const category = classifyProviderErrorCategory(error, providerMetadata.upstreamStatus);
   const providerErrorCode = readErrorRecordStringField(error, "code");

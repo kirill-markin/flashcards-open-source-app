@@ -1,4 +1,6 @@
 import type { Handler } from "hono";
+import { assertAiConsentReceiptActive } from "../../aiConsent";
+import { readAiConsentIdHeader } from "../../aiConsent/input";
 import type { AppEnv } from "../../server/app";
 import {
   type ChatComposerSuggestionsLocale,
@@ -202,6 +204,8 @@ export function createPostChatHandler(dependencies: ChatRouteDependencies): Hand
       context.req.raw,
       dependencies,
     );
+    const aiConsentId = readAiConsentIdHeader(context.req.raw);
+    await assertAiConsentReceiptActive(requestContext.userId, aiConsentId);
     const userOpenAIApiKey = readUserOpenAIApiKeyHeader(context.req.raw);
     const rawBody = await parseJsonBodyWithByteLimit(
       context.req.raw,
@@ -276,6 +280,7 @@ export function createPostChatHandler(dependencies: ChatRouteDependencies): Hand
             aiUsageNow,
           );
         },
+        aiConsentId,
       ));
     } catch (error) {
       // Recorded here, outside the run transaction, and before the refusal reaches the client unchanged.

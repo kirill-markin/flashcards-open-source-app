@@ -32,6 +32,7 @@ export async function runOneToolCall(
     clientDeviceType: ProductAnalyticsDeviceType | null;
     initiatingAuthIsSignedIn: boolean;
     userOpenAIApiKey: UserOpenAIApiKey | null;
+    aiConsentId?: string | null;
   }>,
 ): Promise<ExecutedChatToolCall> {
   return executeChatToolCall(
@@ -45,6 +46,7 @@ export async function runOneToolCall(
       generatedImageEligible: params.generatedImageEligible,
       userId: params.userId,
       workspaceId: params.workspaceId,
+      aiConsentId: params.aiConsentId ?? null,
       claimToken: params.claimToken,
       signal: params.signal,
       generatedImageOperationDeadlineMs: params.generatedImageOperationDeadlineMs,
