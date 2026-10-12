@@ -558,11 +558,16 @@ extension FlashcardsStore {
         )
         removeUnreferencedAIChatAttachmentFiles(userDefaults: self.userDefaults, decoder: self.decoder)
         let ownOpenAIKeyStore = makeOwnOpenAIKeyStore(userDefaults: self.userDefaults)
+        let consentReceiptProvider: AIConsentReceiptProvider = { [weak self] session in
+            guard let self else { throw AIConsentError.required }
+            return try self.aiConsent.requireReceipt(session: session)
+        }
         let chatService = AIChatService(
             session: URLSession.shared,
             encoder: self.encoder,
             decoder: self.decoder,
-            ownOpenAIKeyStore: ownOpenAIKeyStore
+            ownOpenAIKeyStore: ownOpenAIKeyStore,
+            consentReceiptProvider: consentReceiptProvider
         )
         let contextLoader: any AIChatContextLoading
         if let databaseURL = self.localDatabaseURL {
@@ -580,7 +585,8 @@ extension FlashcardsStore {
             audioTranscriber: AIChatTranscriptionService(
                 session: URLSession.shared,
                 decoder: self.decoder,
-                ownOpenAIKeyStore: ownOpenAIKeyStore
+                ownOpenAIKeyStore: ownOpenAIKeyStore,
+                consentReceiptProvider: consentReceiptProvider
             )
         )
     }

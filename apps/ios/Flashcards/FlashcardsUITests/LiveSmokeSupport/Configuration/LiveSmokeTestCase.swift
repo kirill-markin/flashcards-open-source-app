@@ -7,6 +7,8 @@ class LiveSmokeTestCase: XCTestCase {
     var hasPrintedInlineRawScreenStateForCurrentFailure: Bool = false
     var recentBreadcrumbs: [LiveSmokeBreadcrumb] = []
     var currentLaunchLocalization: LiveSmokeLaunchLocalization = .english
+    var additionalLaunchEnvironment: [String: String] = [:]
+    var additionalLaunchArguments: [String] = []
 
     override func setUpWithError() throws {
         try super.setUpWithError()
@@ -24,6 +26,8 @@ class LiveSmokeTestCase: XCTestCase {
         self.recentBreadcrumbs = []
         self.currentStepTitle = "test bootstrap"
         self.currentLaunchLocalization = .english
+        self.additionalLaunchEnvironment = [:]
+        self.additionalLaunchArguments = []
         try super.tearDownWithError()
     }
 

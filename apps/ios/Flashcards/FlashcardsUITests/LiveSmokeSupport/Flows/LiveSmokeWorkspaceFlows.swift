@@ -19,6 +19,18 @@ extension LiveSmokeTestCase {
         reviewEmail: String,
         scenario: () throws -> Void
     ) throws {
+        try self.runGuestToLinkedWorkspaceScenario(
+            context: context, reviewEmail: reviewEmail, beforeSignIn: {}, scenario: scenario
+        )
+    }
+
+    @MainActor
+    func runGuestToLinkedWorkspaceScenario(
+        context: LiveSmokeRunContext,
+        reviewEmail: String,
+        beforeSignIn: () throws -> Void,
+        scenario: () throws -> Void
+    ) throws {
         try self.launchApplication(
             launchScenario: .guestEmptyWorkspace,
             selectedTab: .settings
@@ -28,6 +40,7 @@ extension LiveSmokeTestCase {
         var shouldDeleteWorkspace = false
 
         do {
+            try beforeSignIn()
             var didCreateWorkspaceInChooser = false
             try self.step("sign in with the configured review account") {
                 didCreateWorkspaceInChooser = try self.signInWithReviewAccount(reviewEmail: reviewEmail)
@@ -374,7 +387,7 @@ extension LiveSmokeTestCase {
             identifier: LiveSmokeIdentifier.accountStatusLogoutButton,
             timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
         )
-        try self.tapAlertButton(label: "Log out", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.tapButton(identifier: LiveSmokeIdentifier.accountStatusLogoutConfirmButton, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
     }
 
     @MainActor

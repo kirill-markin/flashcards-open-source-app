@@ -363,6 +363,9 @@ extension FlashcardsStore {
             )
         }
 
+        try self.aiConsent.eraseDeletedGuestReceipts(guest: AIConsentActor(
+            userId: storedGuestSession.userId, apiBaseUrl: storedGuestSession.apiBaseUrl
+        ))
         try self.dependencies.guestCredentialStore.clearGuestSession()
         return true
     }
@@ -596,6 +599,7 @@ extension FlashcardsStore {
     }
 
     func completeLocalAccountDeletion() throws {
+        try self.aiConsent.eraseDeletedAccountReceipts(userId: self.cloudSettings?.linkedUserId)
         self.userDefaults.removeObject(forKey: accountDeletionPendingUserDefaultsKey)
         try self.resetLocalStateForCloudIdentityChange()
     }

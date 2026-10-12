@@ -364,10 +364,10 @@ struct AIChatView: View {
 
     @ToolbarContentBuilder
     var toolbarContent: some ToolbarContent {
+        ToolbarItem(placement: .topBarTrailing) {
+            self.historyToolbarButton
+        }
         if self.accessState == .ready {
-            ToolbarItem(placement: .topBarTrailing) {
-                self.historyToolbarButton
-            }
             ToolbarItem(placement: .topBarTrailing) {
                 if UIDevice.current.userInterfaceIdiom == .pad {
                     self.newChatToolbarButton.tint(Color.primary)
@@ -392,7 +392,7 @@ struct AIChatView: View {
         }
         .accessibilityLabel(aiSettingsLocalized("ai.history.button", "History"))
         .accessibilityIdentifier(UITestIdentifier.aiHistoryButton)
-        .disabled(self.chatStore.isChatInteractive == false || self.chatStore.dictationState != .idle)
+        .disabled(self.chatStore.dictationState != .idle)
     }
 
     private var newChatToolbarButton: some View {
@@ -404,51 +404,7 @@ struct AIChatView: View {
     }
 
     var consentGate: some View {
-        ScrollView {
-            ReadableContentLayout(
-                maxWidth: flashcardsReadableFormMaxWidth,
-                horizontalPadding: self.usesStudySpacing ? 20 : 24
-            ) {
-                VStack(alignment: .leading, spacing: 16) {
-                    Image(systemName: "lock.shield")
-                        .font(.system(size: 40))
-                        .foregroundStyle(.secondary)
-
-                    Text(aiSettingsLocalized("ai.consent.title", "Before you use AI"))
-                        .font(.title3.weight(.semibold))
-
-                    Text(aiSettingsLocalized("ai.consent.warning", "AI can be wrong. Review important results before relying on them."))
-                        .foregroundStyle(.secondary)
-
-                    VStack(alignment: .leading, spacing: 10) {
-                        ForEach(aiChatExternalProviderDisclosureItems, id: \.self) { item in
-                            Label(localizedAIChatDisclosureItem(item), systemImage: "checkmark.circle")
-                        }
-                    }
-                    .font(.subheadline)
-
-                    Button(aiSettingsLocalized("common.ok", "OK")) {
-                        self.acceptExternalAIConsent()
-                    }
-                    .nativeProminentActionButtonStyle()
-                    .accessibilityIdentifier(UITestIdentifier.aiConsentAcceptButton)
-
-                    VStack(alignment: .leading, spacing: 10) {
-                        if let privacyUrl = URL(string: flashcardsPrivacyPolicyUrl) {
-                            Link(aiSettingsLocalized("common.privacyPolicy", "Privacy Policy"), destination: privacyUrl)
-                        }
-                        if let termsUrl = URL(string: flashcardsTermsOfServiceUrl) {
-                            Link(aiSettingsLocalized("common.termsOfService", "Terms of Service"), destination: termsUrl)
-                        }
-                        if let supportUrl = URL(string: flashcardsSupportUrl) {
-                            Link(aiSettingsLocalized("common.support", "Support"), destination: supportUrl)
-                        }
-                    }
-                    .font(.subheadline.weight(.medium))
-                }
-                .padding(.vertical, 24)
-            }
-        }
+        AIConsentDisclosureView(onAllowed: self.acceptExternalAIConsent, onNotNow: self.leaveAIAfterDecliningConsent)
     }
 
     @ViewBuilder
@@ -548,16 +504,20 @@ struct AIChatView: View {
     }
 
     func acceptExternalAIConsent() {
-        guard self.chatStore.hasExternalProviderConsent == false else {
-            return
-        }
-
-        self.chatStore.acceptExternalProviderConsent()
         self.syncChatSurface(refreshConsent: false)
         self.handleAIChatPresentationRequest(
             request: self.navigation.aiChatPresentationRequest,
             source: .acceptedExternalAIConsent
         )
+    }
+
+    func leaveAIAfterDecliningConsent() {
+        self.deferredPresentationRequest = nil
+        if let request = self.navigation.aiChatPresentationRequest {
+            self.navigation.clearAIChatPresentationRequest(request: request)
+        }
+        self.navigation.isAICompanionPresented = false
+        if self.navigation.selectedTab == .ai { self.navigation.selectTab(.review) }
     }
 
     func refreshExternalAIConsentState() {
@@ -941,6 +901,12 @@ struct AIChatView: View {
 
     func handleExternalProviderConsentChange(hasConsent: Bool) {
         guard hasConsent else {
+            self.isCameraPresented = false
+            self.isFileImporterPresented = false
+            self.isPhotoPickerPresented = false
+            self.selectedPhotoItem = nil
+            self.dismissComposerFocus()
+            self.syncChatSurface(refreshConsent: false)
             return
         }
 

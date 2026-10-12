@@ -68,6 +68,11 @@ extension AIChatStore {
 
             do {
                 try await self.voiceRecorder.startRecording()
+                try Task.checkCancellation()
+                guard self.hasExternalProviderConsent else {
+                    self.voiceRecorder.cancelRecording()
+                    throw CancellationError()
+                }
                 self.dictationState = .recording
                 // The recorder is running, which is what `dictation_started` means. Reporting the
                 // button tap instead would count a microphone refusal as a start.
@@ -136,11 +141,15 @@ extension AIChatStore {
                     try? FileManager.default.removeItem(at: recordedAudio.fileUrl)
                 }
 
+                try Task.checkCancellation()
+                _ = try self.flashcardsStore.aiConsent.requireReceipt(session: session)
                 let transcription = try await self.audioTranscriber.transcribe(
                     session: session,
                     sessionId: explicitSessionId,
                     recordedAudio: recordedAudio
                 )
+                try Task.checkCancellation()
+                _ = try self.flashcardsStore.aiConsent.requireReceipt(session: session)
                 guard transcription.sessionId == explicitSessionId else {
                     throw LocalStoreError.validation(
                         "AI dictation returned an unexpected session id. expected=\(explicitSessionId) actual=\(transcription.sessionId)"

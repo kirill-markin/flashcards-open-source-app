@@ -214,6 +214,8 @@ extension AIChatView {
                 .overlay(alignment: .topLeading) {
                     if self.chatStore.dictationState != .idle {
                         AIChatDictationStatusLane(statusText: self.dictationStatusText)
+                            .accessibilityIdentifier(UITestIdentifier.aiDictationStatus)
+                            .accessibilityValue(String(describing: self.chatStore.dictationState))
                             .padding(.top, 12)
                             .padding(.leading, 12)
                             .padding(.trailing, aiChatComposerSendButtonReservedTrailingPadding)
@@ -254,6 +256,7 @@ extension AIChatView {
                             .nativeActionButtonStyle()
                             .tint(.accentColor)
                             .disabled(self.chatStore.canAttachToDraft == false)
+                            .accessibilityIdentifier(UITestIdentifier.aiComposerAttachmentButton)
                             .accessibilityLabel(aiSettingsLocalized("ai.composer.addAttachment", "Add attachment"))
                             .accessibilityHint(
                                 aiSettingsLocalized(
@@ -275,6 +278,7 @@ extension AIChatView {
                             .nativeActionButtonStyle()
                             .tint(self.chatStore.dictationState == .recording ? .red : .accentColor)
                             .disabled(self.chatStore.canUseDictation == false)
+                            .accessibilityIdentifier(UITestIdentifier.aiComposerDictationButton)
                             .accessibilityLabel(
                                 self.chatStore.dictationState == .recording
                                     ? aiSettingsLocalized("ai.composer.dictation.stop", "Stop dictation")

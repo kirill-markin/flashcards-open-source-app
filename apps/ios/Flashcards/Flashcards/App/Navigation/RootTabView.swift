@@ -546,6 +546,7 @@ struct RootTabView: View {
             ))
         }
         .task {
+            self.store.retryAIConsentSync()
             let previousTab = store.currentVisibleTab
             prepareVisibleTabForPresentationWithBreadcrumb(
                 store: self.store,
@@ -603,6 +604,7 @@ struct RootTabView: View {
             )
         }
         .onChange(of: store.cloudSettings?.cloudState) { _, _ in
+            self.store.retryAIConsentSync()
             self.reconcileGuestSignInAfterReviewPrompt()
         }
         .onChange(of: self.premiumPresenter.request) { _, _ in
@@ -619,6 +621,7 @@ struct RootTabView: View {
         }
         .onChange(of: self.scenePhase) { _, nextPhase in
             if nextPhase == .active {
+                self.store.retryAIConsentSync()
                 self.reconcileGuestSignInAfterReviewPrompt()
             }
         }

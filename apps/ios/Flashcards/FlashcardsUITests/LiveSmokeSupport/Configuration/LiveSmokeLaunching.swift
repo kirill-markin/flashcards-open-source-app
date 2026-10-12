@@ -276,6 +276,10 @@ extension LiveSmokeTestCase {
             arguments: self.app.launchArguments
         )
         self.app.launchArguments += request.launchLocalization.launchArguments
+        self.app.launchArguments += self.additionalLaunchArguments
+        for (key, value) in self.additionalLaunchEnvironment {
+            self.app.launchEnvironment[key] = value
+        }
         if let launchScenario = request.launchScenario {
             self.app.launchEnvironment[LiveSmokeConfiguration.launchScenarioEnvironmentKey] = launchScenario.rawValue
         }

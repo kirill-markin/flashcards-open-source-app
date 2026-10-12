@@ -23,6 +23,10 @@ extension AIChatView {
             }
 
             let mediaType = item.supportedContentTypes.first?.preferredMIMEType ?? "image/jpeg"
+            guard self.ensureExternalAIConsent() else {
+                self.selectedPhotoItem = nil
+                return
+            }
             let fileExtension = item.supportedContentTypes.first?.preferredFilenameExtension ?? "jpg"
             let attachment = try aiChatMakeImageAttachment(
                 data: data,
@@ -123,6 +127,7 @@ extension AIChatView {
             initialStatus: initialStatus,
             requestedStatus: requestedStatus
         )
+        guard self.ensureExternalAIConsent() else { return }
         switch presentationResult {
         case .present:
             self.isCameraPresented = true
@@ -143,6 +148,7 @@ extension AIChatView {
             initialStatus: initialStatus,
             requestedStatus: requestedStatus
         )
+        guard self.ensureExternalAIConsent() else { return }
         switch presentationResult {
         case .present:
             self.isPhotoPickerPresented = true
