@@ -1,8 +1,8 @@
 # Connector / MCP Directory Submission Package
 
 Versioned submission copy for listing the remote MCP server in connector
-directories (for example the Anthropic Connectors Directory and the OpenAI Apps
-directory). Same spirit as
+directories (for example the Anthropic Connectors Directory and the OpenAI
+Plugins Directory). Same spirit as
 [app-store-connect-metadata.md](app-store-connect-metadata.md) and
 [google-play-store-metadata.md](google-play-store-metadata.md): keep the listing
 copy, reviewer walkthrough, example prompts, and per-directory checklist
@@ -216,7 +216,7 @@ server name is wrong or the registry publish failed.
 | 7 | mcpservers.org | https://mcpservers.org/submit | Submitter account and manual moderation may be required. | Reuse the same listing metadata and source URL. |
 | 8 | mcp.so | https://mcp.so/ | Use the site's current submit/claim flow if available. | Reuse the same listing metadata and source URL. |
 | 9 | Anthropic Connectors Directory | https://claude.com/docs/connectors/building/submission | Review-heavy product directory: OAuth, tool annotations, policy checks, and reviewer access are evaluated. | Paste listing metadata, tool inventory, allowed links if requested, and private reviewer credentials only in the submission portal. |
-| 10 | OpenAI Apps Directory | https://developers.openai.com/apps-sdk/deploy/submission | Review-heavy product directory: dashboard review, verified organization, global data residency, OAuth, and live testing are evaluated. | Paste listing metadata, MCP server URL, tool information, test prompts, screenshots if requested, and private reviewer credentials only in the submission portal. |
+| 10 | OpenAI Plugins Directory | https://developers.openai.com/plugins/deploy/submission | Update existing plugin `asdk_app_6ab77a6e971c81918b9e9185a6a19d58` under publisher `kirill@kirill-markin.com`, its owning organization/project and verified developer identity; global MCP-review project, OAuth and required scans. | Follow the [canonical complete-ZIP procedure](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md#openai), with [reference-copy mapping](openai-plugin-metadata.md); private reviewer access only in **Review details**. |
 
 ## Per-directory submission checklist
 
@@ -240,21 +240,34 @@ requirements against each directory's own documentation at submission time.
       `auth.flashcards-open-source-app.com`.
 - [ ] Reviewer test account / walkthrough above shared with the reviewer.
 
-### OpenAI Apps directory
+### OpenAI Plugins Directory
 
-- [ ] Remote MCP server reachable at the published HTTPS URL with valid TLS.
-- [ ] OAuth authorization flow verified from the OpenAI client.
-- [ ] Listing metadata, icon, and privacy / terms / support / docs URLs
-      provided.
-- [ ] Developer / organization verification completed as required.
-- [ ] EU data-residency note: review the EU-residency requirement and document
-      where the reference deployment processes data (AWS); self-hosters control
-      their own region.
-- [ ] Domain ownership demonstrable for `nibomo.com`, which covers both the
-      listing metadata URLs and the MCP server host.
-- [ ] Domain ownership for `flashcards-open-source-app.com` also available if
-      the directory asks: the OAuth authorization server stays on
-      `auth.flashcards-open-source-app.com`.
+Use the companion's [canonical OpenAI procedure](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md#openai)
+for operator steps and the [release gate](release/mcp-and-plugins.md#openai)
+for completion and evidence.
+
+- [ ] Existing plugin and [public listing](https://chatgpt.com/plugins/plugin_asdk_app_6ab77a6e971c81918b9e9185a6a19d58)
+      inspected under publisher `kirill@kirill-markin.com`, the existing owning
+      organization/project and verified **SAMO DANNI EOOD** identity; required
+      permissions and global/non-EU MCP-review project confirmed.
+- [ ] Hosted endpoint, OAuth, domain verification, required MCP scans and actual
+      live tools checked independently of package state.
+- [ ] Complete exact-source CI ZIP reconciled with maintained companion
+      `plugin.json`, `mcp.json`, intended skills, references and assets; required
+      metadata/skill scans and applicable focused checks passed.
+- [ ] Listing and review copy mapped using the [metadata guide](openai-plugin-metadata.md);
+      imported values, review cases/demo and translation limitations checked.
+      Dedicated Nibomo reviewer credentials/instructions supplied only through
+      secure **Review details**; publisher credentials kept separate.
+- [ ] Domain ownership demonstrable for `nibomo.com`, including the MCP host,
+      and `flashcards-open-source-app.com` available if requested for the OAuth
+      authorization server on `auth.flashcards-open-source-app.com`.
+- [ ] MCP deployed SHA/scanned/live state and package source/version/digest,
+      decision, accepted requests, review/publication and observed public
+      installed version/skills recorded separately in the
+      [ledger](release/evidence.md#release-ledger), with actual next actions.
+      Legacy MCP-only availability or private imports do not prove public
+      companion-skill installation.
 
 ## Registry manifest
 

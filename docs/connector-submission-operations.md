@@ -238,10 +238,22 @@ completes using the demo account. Record the result inline:
 
 ## OpenAI prerequisites
 
-Before submitting to the OpenAI Apps directory:
+Follow the companion's [canonical OpenAI ZIP procedure](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md#openai)
+for the existing plugin and the [app release gate](release/mcp-and-plugins.md#openai)
+for coordinated releases. Before an applicable update/submission:
 
-- Complete identity/business verification in the OpenAI platform dashboard.
-- Ensure the OpenAI project is **not** set to EU data residency (global only).
+- Use publisher login `kirill@kirill-markin.com` and the existing owning
+  organization/project, plugin `asdk_app_6ab77a6e971c81918b9e9185a6a19d58`, and
+  verified **SAMO DANNI EOOD** developer identity. Confirm organization-owner
+  access or **Apps Management Write**; preserve existing pending review.
+- Keep this publisher login separate from the dedicated Nibomo reviewer demo
+  account. Supply private reviewer credentials and sign-in instructions only
+  through **Review details**, keeping the account and sample data available for
+  subsequent reviews under the canonical procedure.
+- Ensure the MCP-review project is **not** set to EU data residency (global
+  only), as required by [OpenAI app review](https://developers.openai.com/plugins/deploy/app-review).
+  Use the [current submission guide](https://developers.openai.com/plugins/deploy/submission)
+  for the actual package/update flow.
 - Confirm demonstrable domain ownership of `nibomo.com`, which covers both the
   listing metadata URLs and the MCP server host.
 - Keep domain ownership of `flashcards-open-source-app.com` available too: the
