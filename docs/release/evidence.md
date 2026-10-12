@@ -14,10 +14,23 @@ historical status table in these permanent docs. Use one small row per channel:
 
 Keep secrets and reviewer credentials out. Mark operator completion only at the
 [canonical boundary](README.md#release-inventory-and-completion); it does not
-change the observed public state. Record exclusions and their scope. OpenAI
-initial publication is excluded by the routine-release policy until a separately
-scoped initial launch; preserve its existing submission identity through the
-[companion procedure](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md).
+change the observed public state. Record exclusions and their scope.
+
+For [OpenAI](mcp-and-plugins.md#openai), retain separate hosted MCP and package
+observations on every coordinated release. Record publisher login
+`kirill@kirill-markin.com`, owning organization/project, verified developer
+identity and existing plugin/submission ID; keep reviewer access private.
+Record the app's deployed backend SHA and runtime verification separately from
+MCP scan identity/time, findings, held updates, live definitions and tool
+availability. Record companion source SHA, selected package version, exact
+successful CI run, ZIP SHA-256 digest, package decision (**no update needed**,
+**submitted**, **live**, **pending**, or **blocked**), accepted request identity/time,
+review/approval and publication state, and immediate public listing/installed
+version and skills evidence. Unknown or unexecuted observations remain explicit
+gaps. Package CI, a server version, an MCP-only listing, and a private import
+cannot establish public bundled-skill availability. Follow the
+[companion procedure](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md#openai)
+and record the remaining action and next condition independently for each state.
 
 Use these same rows for handoff. While external review is pending, preserve the
 submission identity and next action instead of extending the run with polling
