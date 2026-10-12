@@ -6,7 +6,7 @@
   "captureTags": 50,
   "storeLocalizations": 42,
   "sets": 94,
-  "sourceRevision": "4fb98ece8127ab446f81b7bfb31a0c70104f2c7b",
+  "sourceRevision": "518480a83bc8a99b2900e39a2250db3086132be0",
   "families": {
     "iphone": {
       "width": 1284,
@@ -14,8 +14,8 @@
       "storeImages": 210
     },
     "ipad": {
-      "width": 2064,
-      "height": 2752,
+      "width": 2752,
+      "height": 2064,
       "storeImages": 210
     },
     "iphone-duo-outer": {
