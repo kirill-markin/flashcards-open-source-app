@@ -1,0 +1,1400 @@
+{
+  "repository": "kirill-markin/flashcards-open-source-app",
+  "captureSource": "Public XCTest native Catalyst window screenshots exported from named xcresult PNG attachments",
+  "captureRevision": "4fb044b41043b4c0344ef6763253f8e3d2c0bb0f",
+  "capturedDateUtc": "2026-10-12",
+  "captureApp": {
+    "bundleIdentifier": "com.flashcards-open-source-app.app.marketing-capture",
+    "profileUuid": "13d2abaf-eb31-4d61-a498-02cacdc43902",
+    "teamIdentifier": [
+      "P6F95J4ZPA"
+    ],
+    "macId": "00006020-0006698C1AD3C01E",
+    "appExecutableFiles": [
+      {
+        "path": "Contents/MacOS/__preview.dylib",
+        "bytes": 34928,
+        "sha256": "8857d116550ae19ff90f8db1814805875babc44fa9c5ce98ed5c8326bd496360",
+        "mtimeNs": 1791785205787191612
+      },
+      {
+        "path": "Contents/MacOS/Nibomo",
+        "bytes": 60560,
+        "sha256": "be672f80d14dcdd59336911c29376c1c07a483b386204fe886895853f4e3c9b6",
+        "mtimeNs": 1791785205980805068
+      },
+      {
+        "path": "Contents/MacOS/Nibomo.debug.dylib",
+        "bytes": 53895072,
+        "sha256": "51aeed1b3e47e0192969c045cd995577f154742fa880c35ca3c8a534c58e896d",
+        "mtimeNs": 1791785205737637654
+      }
+    ],
+    "signingCertificateSha1": "A4B9602E86002A44080F6B02524A07C77DB40065",
+    "xctestrun": [
+      {
+        "path": "/Users/m1/.codex/worktrees/mac-store-assets-42-locales/flashcards-open-source-app/tmp/macos-marketing-derived-data/Build/Products/Flashcards Open Source App_macosx27.0-arm64.xctestrun",
+        "sha256": "b7a32ea6a9e7f66b623dcd627d68b301b8bdba0b265270e5a80da0ab35a09fd3"
+      }
+    ]
+  },
+  "toolchain": {
+    "xcode": "Xcode 27.0\nBuild version 27A266a",
+    "macOS": "ProductName:\t\tmacOS\nProductVersion:\t\t26.6.1\nBuildVersion:\t\t25G76"
+  },
+  "nativeWidth": 1440,
+  "nativeHeight": 900,
+  "pngMode": "opaque RGB, 8-bit, no alpha or tRNS",
+  "storeLocales": [
+    "en-US",
+    "ar",
+    "zh-Hans",
+    "fr",
+    "de",
+    "hi",
+    "ja",
+    "pt-BR",
+    "ru",
+    "es-MX",
+    "es-ES",
+    "bn",
+    "ca",
+    "cs",
+    "da",
+    "el",
+    "fi",
+    "gu",
+    "he",
+    "hr",
+    "hu",
+    "id",
+    "it",
+    "kn",
+    "ko",
+    "ml",
+    "mr",
+    "nb",
+    "nl",
+    "pa",
+    "pl",
+    "ro",
+    "sk",
+    "sl",
+    "sv",
+    "ta",
+    "te",
+    "th",
+    "tr",
+    "uk",
+    "ur",
+    "vi"
+  ],
+  "counts": {
+    "locales": 42,
+    "originals": 210,
+    "decoratedCards": 210,
+    "previews": 42
+  },
+  "captureRecipe": {
+    "initial": "bash scripts/ios/capture-macos-marketing-screenshots.sh --signing-xcconfig <external-capture-signing.xcconfig> --mac-id 00006020-0006698C1AD3C01E --locale en-US --size 1440x900",
+    "remaining": "same wrapper with --locale <captureTag> --size 1440x900 --skip-build, sequentially, unchanged build and signing inputs",
+    "wrapperSha256": "f7a81e19a49b5dadb042a7b72e4215ccaaef43bad0eb4ac5b75f30991e19a860",
+    "nativeOrder": [
+      "review question",
+      "answer and intervals",
+      "progress",
+      "AI draft",
+      "cards library"
+    ]
+  },
+  "processing": {
+    "revision": "4fb044b41043b4c0344ef6763253f8e3d2c0bb0f",
+    "command": "npm run render --prefix scripts/store-screenshots -- --platform ios --family macos --locales <captureTag> (42 sequential individual locale renders)",
+    "rendererSha256": "e9966244581b9f4c326f338cc0e4f9db7ce36bccdb6d9bda50d5cebeb3a5d53a",
+    "packageLockSha256": "6472980313404c1fad32d6ebd575b215ae9ecf394dffa82f5e1afd0dd54b3e2c",
+    "decoratedSourceIndices": [
+      4,
+      1,
+      2,
+      3,
+      5
+    ],
+    "outputWidth": 2880,
+    "outputHeight": 1800,
+    "exportManifest": "export-manifest.json",
+    "cssPadding": {
+      "left": 28.875,
+      "top": 28.875,
+      "right": 28.875,
+      "bottom": 28.890625
+    },
+    "solidFramePixels": {
+      "left": 29,
+      "right": 29,
+      "top": 29,
+      "bottom": 29
+    }
+  },
+  "files": [
+    {
+      "path": "macos/ar-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 128047,
+      "sha256": "2795dd3d303675c93d8ad60df587b6c745aa8dae459e60a6869bc49847f1547d",
+      "capturedAtUtc": "2026-10-12T06:35:37.852564+00:00"
+    },
+    {
+      "path": "macos/ar-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 249784,
+      "sha256": "7fe490da7233a110f807f07c99be7bb05a4b9b42100555c329ebd34479098142",
+      "capturedAtUtc": "2026-10-12T06:35:37.863523+00:00"
+    },
+    {
+      "path": "macos/ar-3_progress-app-store-study-history.png",
+      "bytes": 133127,
+      "sha256": "8ec598dd5a96d67e32c2a49782f5093a44fe6f258e8df108e8ceb58fb8ef1121",
+      "capturedAtUtc": "2026-10-12T06:35:37.872611+00:00"
+    },
+    {
+      "path": "macos/ar-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 329844,
+      "sha256": "90a86d93e759aeee6ea457102744180afcd9f16c5f90ca5890d6d7688ba0fb1b",
+      "capturedAtUtc": "2026-10-12T06:35:37.881108+00:00"
+    },
+    {
+      "path": "macos/ar-5_cards-list-app-store-vocabulary.png",
+      "bytes": 193840,
+      "sha256": "dcfb98b97ee06dba6b2f644dfad22879f0bb41f171fca70934dd96d47b7d818a",
+      "capturedAtUtc": "2026-10-12T06:35:37.889707+00:00"
+    },
+    {
+      "path": "macos/bn-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 133394,
+      "sha256": "8bb98b7cdef7063010ddcece2bd7691c7f72be39d01e19d6c566f88907ee2ec4",
+      "capturedAtUtc": "2026-10-12T06:58:27.626852+00:00"
+    },
+    {
+      "path": "macos/bn-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 258763,
+      "sha256": "c1555c47ade7d104d557096b4e8f6889326d73c654937f6916c82f11ab630f79",
+      "capturedAtUtc": "2026-10-12T06:58:27.640011+00:00"
+    },
+    {
+      "path": "macos/bn-3_progress-app-store-study-history.png",
+      "bytes": 139916,
+      "sha256": "738c6e09a562c22a670bdde5df5f986995ab7b292d636e041a981513971c5953",
+      "capturedAtUtc": "2026-10-12T06:58:27.648530+00:00"
+    },
+    {
+      "path": "macos/bn-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 341678,
+      "sha256": "a52bf8880fa6ec791e697ac457c73b32f2f0aa94b1aee4aef4f60c862d8abdae",
+      "capturedAtUtc": "2026-10-12T06:58:27.656804+00:00"
+    },
+    {
+      "path": "macos/bn-5_cards-list-app-store-vocabulary.png",
+      "bytes": 194491,
+      "sha256": "51f6be0ed3319c43eb228b2b7f225f69c4d3afc93e08d4b50b48e05194fd3ae3",
+      "capturedAtUtc": "2026-10-12T06:58:27.665029+00:00"
+    },
+    {
+      "path": "macos/ca-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 130758,
+      "sha256": "c7eead5bf84056f7c4cfa481befaac9db6b9082c571c323ddaed4a3de86aff29",
+      "capturedAtUtc": "2026-10-12T07:00:29.645413+00:00"
+    },
+    {
+      "path": "macos/ca-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 254464,
+      "sha256": "ba804d9760ee8ebdf1ddf4164bd37664f9c6ef872ea6c1907a0575417b89def5",
+      "capturedAtUtc": "2026-10-12T07:00:29.657047+00:00"
+    },
+    {
+      "path": "macos/ca-3_progress-app-store-study-history.png",
+      "bytes": 140069,
+      "sha256": "d02c17535bd509b30f944256deb1a0ca6e0d1fbd5d8be40e9dfd7817c4ca9be4",
+      "capturedAtUtc": "2026-10-12T07:00:29.664689+00:00"
+    },
+    {
+      "path": "macos/ca-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 341099,
+      "sha256": "d2dfef96e03132ac2b76deff7377c239bbee86c3b7219cf0bbbf12e1443815cf",
+      "capturedAtUtc": "2026-10-12T07:00:29.671282+00:00"
+    },
+    {
+      "path": "macos/ca-5_cards-list-app-store-vocabulary.png",
+      "bytes": 196229,
+      "sha256": "909b47523955da92a3cee352fab57757fe8015feb0739fe5fa1abfa14a234278",
+      "capturedAtUtc": "2026-10-12T07:00:29.678869+00:00"
+    },
+    {
+      "path": "macos/cs-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 133491,
+      "sha256": "5eae8ae513dafbd56e85fb6fa5b70df6ea07f84d7b17591023bcc83283aa74bc",
+      "capturedAtUtc": "2026-10-12T07:02:41.536744+00:00"
+    },
+    {
+      "path": "macos/cs-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 255430,
+      "sha256": "ee73235a71c2a8645f0362784d924b856b517fbddcae14806294c50d1ffb6615",
+      "capturedAtUtc": "2026-10-12T07:02:41.549234+00:00"
+    },
+    {
+      "path": "macos/cs-3_progress-app-store-study-history.png",
+      "bytes": 135417,
+      "sha256": "fdd81195a374fdf179378c1fb3874dbe8b8a89185cf47235dc3acd038c2f2034",
+      "capturedAtUtc": "2026-10-12T07:02:41.557366+00:00"
+    },
+    {
+      "path": "macos/cs-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 330473,
+      "sha256": "0c8bdfb80120362af82a8492ee9d9a37284edeee3d1a6865b5239c588d49b6c0",
+      "capturedAtUtc": "2026-10-12T07:02:41.565239+00:00"
+    },
+    {
+      "path": "macos/cs-5_cards-list-app-store-vocabulary.png",
+      "bytes": 194773,
+      "sha256": "6a94c341042a126f18200f8792655f50805853e242081b9bbf82ed02ec8f47d0",
+      "capturedAtUtc": "2026-10-12T07:02:41.572823+00:00"
+    },
+    {
+      "path": "macos/da-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 127725,
+      "sha256": "0d3c975e08c317030ff57009b93f8a4c1629ef1be603b408977aee09b217d771",
+      "capturedAtUtc": "2026-10-12T07:04:40.585424+00:00"
+    },
+    {
+      "path": "macos/da-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 251515,
+      "sha256": "646ddeda5279d0748ec2283dc44354148f1e6035ccae57c9d004cf41fcd31b93",
+      "capturedAtUtc": "2026-10-12T07:04:40.597789+00:00"
+    },
+    {
+      "path": "macos/da-3_progress-app-store-study-history.png",
+      "bytes": 138071,
+      "sha256": "eba4c941adf162538aeceb5028b3996f45cf1d054ed6f55eca699af0805f2e92",
+      "capturedAtUtc": "2026-10-12T07:04:40.605384+00:00"
+    },
+    {
+      "path": "macos/da-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 323754,
+      "sha256": "414d8e3e3a8eea77db7346a4f195e11b9cb1e663e4904a420748833eb04f48cf",
+      "capturedAtUtc": "2026-10-12T07:04:40.613328+00:00"
+    },
+    {
+      "path": "macos/da-5_cards-list-app-store-vocabulary.png",
+      "bytes": 186110,
+      "sha256": "e22f83b39041e6b9400a9a2a73040bc0407112faf1790276673e639b4f3e8b2d",
+      "capturedAtUtc": "2026-10-12T07:04:40.621632+00:00"
+    },
+    {
+      "path": "macos/de-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 133731,
+      "sha256": "cb1fb58df26c191ab028928a49586d391e9205ba42f281a13793fa0877c55340",
+      "capturedAtUtc": "2026-10-12T06:46:13.410705+00:00"
+    },
+    {
+      "path": "macos/de-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 282244,
+      "sha256": "87a28c76449947a0618a599c96a98dd96d04178d7e5ead9bcf3c9d8d5ef1ee60",
+      "capturedAtUtc": "2026-10-12T06:46:13.419848+00:00"
+    },
+    {
+      "path": "macos/de-3_progress-app-store-study-history.png",
+      "bytes": 140944,
+      "sha256": "2d1ab223deb004da4f55a4fe80e33f6ffaa0aafd3248838b50ba841bdabdd4bb",
+      "capturedAtUtc": "2026-10-12T06:46:13.428155+00:00"
+    },
+    {
+      "path": "macos/de-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 369794,
+      "sha256": "4021b24bcdfe1a74fd8035a5730e754716f2d402e6b0d3ec7786150b7c5cb3bd",
+      "capturedAtUtc": "2026-10-12T06:46:13.437141+00:00"
+    },
+    {
+      "path": "macos/de-5_cards-list-app-store-vocabulary.png",
+      "bytes": 210574,
+      "sha256": "21f83366e4b51782095914c0f90402c6cf90fcd36ac94cd1f74801ce7179aabc",
+      "capturedAtUtc": "2026-10-12T06:46:13.445094+00:00"
+    },
+    {
+      "path": "macos/el-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 133980,
+      "sha256": "cf66ceed9ab53a6e3470912c8e35eca7c209bf6d44dddecb51f25f3f993f70ba",
+      "capturedAtUtc": "2026-10-12T07:06:41.689373+00:00"
+    },
+    {
+      "path": "macos/el-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 270356,
+      "sha256": "4f2bf89f439954a6ed73af97250e0b34d8b3ce1ff74e210d67cc57bbab73f541",
+      "capturedAtUtc": "2026-10-12T07:06:41.700288+00:00"
+    },
+    {
+      "path": "macos/el-3_progress-app-store-study-history.png",
+      "bytes": 140147,
+      "sha256": "b6997d95fb0115901f352c0e6ae5097defb1b0b3ff6f94764dd57550c2e702ef",
+      "capturedAtUtc": "2026-10-12T07:06:41.707815+00:00"
+    },
+    {
+      "path": "macos/el-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 355447,
+      "sha256": "12ceb5ee4ea3941dbf141fb724362e0a2b8ffc07e29db5f37ea601321a6c8511",
+      "capturedAtUtc": "2026-10-12T07:06:41.716073+00:00"
+    },
+    {
+      "path": "macos/el-5_cards-list-app-store-vocabulary.png",
+      "bytes": 208449,
+      "sha256": "ba8655d11ff567c3e1dc4679bf5b4ac43792b98dd94b448f0473a07fba262910",
+      "capturedAtUtc": "2026-10-12T07:06:41.724600+00:00"
+    },
+    {
+      "path": "macos/en-US-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 127508,
+      "sha256": "48e79c3d0e008f54977dde5601ecdd2bab56a2b2f4249c7d00ff9fcd7ddd9ec1",
+      "capturedAtUtc": "2026-10-12T06:33:02.314859+00:00"
+    },
+    {
+      "path": "macos/en-US-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 258964,
+      "sha256": "7e601eadeeb80dae770e718088b2f12956c4846881d13b63357a8af434dd6026",
+      "capturedAtUtc": "2026-10-12T06:33:02.328941+00:00"
+    },
+    {
+      "path": "macos/en-US-3_progress-app-store-study-history.png",
+      "bytes": 132082,
+      "sha256": "27c8e4a575e1e4c16f0add4e1877935147314f9c024303681b83b7170c782cb1",
+      "capturedAtUtc": "2026-10-12T06:33:02.349125+00:00"
+    },
+    {
+      "path": "macos/en-US-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 335560,
+      "sha256": "d647f436e2b30148a0b3828626b1be194a0b4ca2c1bff56372aa7e679a26013a",
+      "capturedAtUtc": "2026-10-12T06:33:02.361258+00:00"
+    },
+    {
+      "path": "macos/en-US-5_cards-list-app-store-vocabulary.png",
+      "bytes": 191230,
+      "sha256": "8e405fe171e12373ee369e133ef405db79325f53aad587d86ef886b5b6c6f01a",
+      "capturedAtUtc": "2026-10-12T06:33:02.368802+00:00"
+    },
+    {
+      "path": "macos/es-ES-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 131354,
+      "sha256": "5a15e17cbb7d69c33e745bd98bedbf79b5e29235bf2971aa66525e453ea3b616",
+      "capturedAtUtc": "2026-10-12T06:56:23.262378+00:00"
+    },
+    {
+      "path": "macos/es-ES-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 276402,
+      "sha256": "c7c6a6984b749375b7e9a3bc0f23b6143535a53caa0ae4f17ec91528401eb817",
+      "capturedAtUtc": "2026-10-12T06:56:23.284320+00:00"
+    },
+    {
+      "path": "macos/es-ES-3_progress-app-store-study-history.png",
+      "bytes": 137866,
+      "sha256": "e907280b549e5cbe78ba91dfe5488a54904121a08177bdaf14d5fc601642f36e",
+      "capturedAtUtc": "2026-10-12T06:56:23.301219+00:00"
+    },
+    {
+      "path": "macos/es-ES-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 356470,
+      "sha256": "0cf108b51bd8faf5705411c13977d3c42f38733c36c72a1e898e4657d6d5d002",
+      "capturedAtUtc": "2026-10-12T06:56:23.322918+00:00"
+    },
+    {
+      "path": "macos/es-ES-5_cards-list-app-store-vocabulary.png",
+      "bytes": 196855,
+      "sha256": "54ec482d0bd6df78cc0d4a1edf200bf31ce6f060bf1b8766b3667a20613eb26f",
+      "capturedAtUtc": "2026-10-12T06:56:23.343727+00:00"
+    },
+    {
+      "path": "macos/es-MX-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 131210,
+      "sha256": "5d027b52ca16f0bb9d30e566e3a3188c73a7bc8dfd8cea4bc37bbf7085bf883f",
+      "capturedAtUtc": "2026-10-12T06:54:17.905423+00:00"
+    },
+    {
+      "path": "macos/es-MX-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 276293,
+      "sha256": "3e3e3fca8c41d47771f510ffd8e88acfcdaa061ed060247a0dfe7667511fc328",
+      "capturedAtUtc": "2026-10-12T06:54:17.915945+00:00"
+    },
+    {
+      "path": "macos/es-MX-3_progress-app-store-study-history.png",
+      "bytes": 135065,
+      "sha256": "074ee5036e69c323d9cd83d4f5e6b3e9d4a29a68ff2c89549afe1788fdfc41e1",
+      "capturedAtUtc": "2026-10-12T06:54:17.923439+00:00"
+    },
+    {
+      "path": "macos/es-MX-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 356214,
+      "sha256": "57a3ce846a2e95a1db64c588a55260f666eb12b06d49f74b69069922ca4c8ac8",
+      "capturedAtUtc": "2026-10-12T06:54:17.930691+00:00"
+    },
+    {
+      "path": "macos/es-MX-5_cards-list-app-store-vocabulary.png",
+      "bytes": 199960,
+      "sha256": "b577828c87d17239a03774a401a850fe02aae86f08a9b14b9cf3164756cc8aa4",
+      "capturedAtUtc": "2026-10-12T06:54:17.938012+00:00"
+    },
+    {
+      "path": "macos/fi-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 131781,
+      "sha256": "aca835c8a2f61a0c86e74f8b6e5aeb48d1b67a015c5cec8c0d6d72d401001a0f",
+      "capturedAtUtc": "2026-10-12T07:08:42.296815+00:00"
+    },
+    {
+      "path": "macos/fi-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 257360,
+      "sha256": "9234cedbbaad3ba21df19b7a2a59673dacb7656e8c9fac79a7eff8de5647f297",
+      "capturedAtUtc": "2026-10-12T07:08:42.309210+00:00"
+    },
+    {
+      "path": "macos/fi-3_progress-app-store-study-history.png",
+      "bytes": 138839,
+      "sha256": "faf0b3e4ca32ab9d087beac09cd3488f12a984897688192d9ebecf8702a19c15",
+      "capturedAtUtc": "2026-10-12T07:08:42.317215+00:00"
+    },
+    {
+      "path": "macos/fi-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 336683,
+      "sha256": "64291c1ca1f700e24921967b3472ca9d1aab58d798c4279d27879e5acd046d7a",
+      "capturedAtUtc": "2026-10-12T07:08:42.324923+00:00"
+    },
+    {
+      "path": "macos/fi-5_cards-list-app-store-vocabulary.png",
+      "bytes": 204126,
+      "sha256": "8f659708c705e80aa7c6e909eab803d68f4fadff4e4ef405f2a54af74d3a9ad7",
+      "capturedAtUtc": "2026-10-12T07:08:42.333258+00:00"
+    },
+    {
+      "path": "macos/fr-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 132843,
+      "sha256": "0be42f44858bfd86551e5c2ad8159f3243780eb1bc3a42b294e634a8872c6ffb",
+      "capturedAtUtc": "2026-10-12T06:43:57.359261+00:00"
+    },
+    {
+      "path": "macos/fr-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 268447,
+      "sha256": "08257651fa0a7e8503ccb2c84c3c3bff97b75a799c2d3b44a88866299cfcc168",
+      "capturedAtUtc": "2026-10-12T06:43:57.371439+00:00"
+    },
+    {
+      "path": "macos/fr-3_progress-app-store-study-history.png",
+      "bytes": 137357,
+      "sha256": "8e66bfea9a040a03332275a558f044b2ba498f900dbb6f97c9476e2bb43c539d",
+      "capturedAtUtc": "2026-10-12T06:43:57.384929+00:00"
+    },
+    {
+      "path": "macos/fr-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 352245,
+      "sha256": "64ae1a8f426c8b2b86aa2145f967caad1510c6f56d90b6dc48f63ff8b2f262bf",
+      "capturedAtUtc": "2026-10-12T06:43:57.399284+00:00"
+    },
+    {
+      "path": "macos/fr-5_cards-list-app-store-vocabulary.png",
+      "bytes": 207311,
+      "sha256": "663fec4e502ca37cef1c15eada5f699aa6b8df88cd2e6c21d3df17cf07063e1c",
+      "capturedAtUtc": "2026-10-12T06:43:57.410911+00:00"
+    },
+    {
+      "path": "macos/gu-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 127233,
+      "sha256": "03c9dcdbf5a81baefd041c05141c8066e441c072c2e35d8ab8629af81a3ac308",
+      "capturedAtUtc": "2026-10-12T07:10:45.310588+00:00"
+    },
+    {
+      "path": "macos/gu-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 252568,
+      "sha256": "5b7834edc8b414a8c45dec1028494dad877da31459f5699afd9f0cab11d24cad",
+      "capturedAtUtc": "2026-10-12T07:10:45.322913+00:00"
+    },
+    {
+      "path": "macos/gu-3_progress-app-store-study-history.png",
+      "bytes": 134643,
+      "sha256": "07aaedd442ca62a75e19528544dbf604fc05639d19dd071be85204dd3e846838",
+      "capturedAtUtc": "2026-10-12T07:10:45.330124+00:00"
+    },
+    {
+      "path": "macos/gu-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 332361,
+      "sha256": "471487efd7311bb561aee290f2926efb3b62a10971432472a87c29bbd12fb870",
+      "capturedAtUtc": "2026-10-12T07:10:45.337109+00:00"
+    },
+    {
+      "path": "macos/gu-5_cards-list-app-store-vocabulary.png",
+      "bytes": 192349,
+      "sha256": "696fd86c7e0bb73c66212e595d9928da5b170bcbb6b3f1441091a9006938514e",
+      "capturedAtUtc": "2026-10-12T07:10:45.344553+00:00"
+    },
+    {
+      "path": "macos/he-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 127313,
+      "sha256": "592dddca381f9fbc0d5408c8dd896247ba52d80e9cc4cef4fe4a4ce16e771780",
+      "capturedAtUtc": "2026-10-12T07:12:50.908098+00:00"
+    },
+    {
+      "path": "macos/he-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 240917,
+      "sha256": "c74c49d61ff4ae2f4d8d07b4c452299d7f0e9cc4be034e0a6d4f8f52e91503e8",
+      "capturedAtUtc": "2026-10-12T07:12:50.921341+00:00"
+    },
+    {
+      "path": "macos/he-3_progress-app-store-study-history.png",
+      "bytes": 125675,
+      "sha256": "a9c5cdab8925267d3d795632de6784daf9126a59fdaece10bde543d10e54a4cd",
+      "capturedAtUtc": "2026-10-12T07:12:50.929057+00:00"
+    },
+    {
+      "path": "macos/he-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 309934,
+      "sha256": "1ffac28006d9f3b59aedf4dcb1cbb20d66c5e3875c00230eef8e016fbf666c2d",
+      "capturedAtUtc": "2026-10-12T07:12:50.936492+00:00"
+    },
+    {
+      "path": "macos/he-5_cards-list-app-store-vocabulary.png",
+      "bytes": 169019,
+      "sha256": "78d80559efdaa5e6ec115aafc906a70d4c2a6d4802e64cdb859ae2a166d9dd91",
+      "capturedAtUtc": "2026-10-12T07:12:50.943759+00:00"
+    },
+    {
+      "path": "macos/hi-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 127523,
+      "sha256": "306d009bb875c6eefefb0c70e17fa2a708d0a5805cad7ce89a92fd717d476b91",
+      "capturedAtUtc": "2026-10-12T06:38:16.345082+00:00"
+    },
+    {
+      "path": "macos/hi-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 255578,
+      "sha256": "7ace90dcf2335a0637bfc60c0ed89fa8d5c6a654c73d3d94686dd2ebb3881da9",
+      "capturedAtUtc": "2026-10-12T06:38:16.362132+00:00"
+    },
+    {
+      "path": "macos/hi-3_progress-app-store-study-history.png",
+      "bytes": 130803,
+      "sha256": "ff0968305657af9088b5351490ee36a2d7dceffc9ab13a0c908a8bf1e7b1d691",
+      "capturedAtUtc": "2026-10-12T06:38:16.377158+00:00"
+    },
+    {
+      "path": "macos/hi-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 338858,
+      "sha256": "8c5fa5ad1a8f21fad2ace0ebad4d717961ed794ce2662b84d0b5c6cb4c5773c2",
+      "capturedAtUtc": "2026-10-12T06:38:16.388404+00:00"
+    },
+    {
+      "path": "macos/hi-5_cards-list-app-store-vocabulary.png",
+      "bytes": 192023,
+      "sha256": "a01e19569b8af453e244c6274045d308652a2461498c31bb0f3e3f6a6a527dc5",
+      "capturedAtUtc": "2026-10-12T06:38:16.399842+00:00"
+    },
+    {
+      "path": "macos/hr-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 131519,
+      "sha256": "3666bc32f614d7790a3087e11da0dc32de190186b43279a35de9df53ee2eb6c5",
+      "capturedAtUtc": "2026-10-12T07:14:53.755538+00:00"
+    },
+    {
+      "path": "macos/hr-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 252837,
+      "sha256": "aad73b77d5386ba12e1c90a83cccec13951218a27f7796f0298eb8057f248337",
+      "capturedAtUtc": "2026-10-12T07:14:53.765684+00:00"
+    },
+    {
+      "path": "macos/hr-3_progress-app-store-study-history.png",
+      "bytes": 135669,
+      "sha256": "f39e5c14945b99a5fd8b0960125bdf09e21edc6d2053057a21314d9e3cb4bd15",
+      "capturedAtUtc": "2026-10-12T07:14:53.773695+00:00"
+    },
+    {
+      "path": "macos/hr-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 326920,
+      "sha256": "ca6ce5c373a3f2be9e2953532c16511be2e0f8972d4a579d463d801eaa1154a6",
+      "capturedAtUtc": "2026-10-12T07:14:53.781777+00:00"
+    },
+    {
+      "path": "macos/hr-5_cards-list-app-store-vocabulary.png",
+      "bytes": 189961,
+      "sha256": "70f428cf531db37d3fb03ff11a5dc1260a4a733152197be20df6bbe484d48f60",
+      "capturedAtUtc": "2026-10-12T07:14:53.789748+00:00"
+    },
+    {
+      "path": "macos/hu-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 133426,
+      "sha256": "506205d4bc245bb49d2c998d9b03ac6568d1d0c978bcebce27a619917be2c30c",
+      "capturedAtUtc": "2026-10-12T07:16:59.969692+00:00"
+    },
+    {
+      "path": "macos/hu-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 262977,
+      "sha256": "ef56da08c22041aad2a4b44e003448b625f805ac92869f48cc28b6434dcaf001",
+      "capturedAtUtc": "2026-10-12T07:16:59.983031+00:00"
+    },
+    {
+      "path": "macos/hu-3_progress-app-store-study-history.png",
+      "bytes": 138302,
+      "sha256": "720481422c57cb58bddc4afbabfd504901e600b526fe4df27378e882355bc23a",
+      "capturedAtUtc": "2026-10-12T07:16:59.991376+00:00"
+    },
+    {
+      "path": "macos/hu-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 344633,
+      "sha256": "3509b34749c16250bff0c1ccb6ce80df5cee7d0987f034275773ad0ef9118978",
+      "capturedAtUtc": "2026-10-12T07:16:59.999949+00:00"
+    },
+    {
+      "path": "macos/hu-5_cards-list-app-store-vocabulary.png",
+      "bytes": 199249,
+      "sha256": "e0c8a4b4f19ace631097bcc375e26ce0291c97f35907bab905cf0fc7fa1f6959",
+      "capturedAtUtc": "2026-10-12T07:17:00.008105+00:00"
+    },
+    {
+      "path": "macos/id-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 130902,
+      "sha256": "e63e80fa7abbf420e02de61a0529197fd094bffd4958078a3f2e0aae8900f4b9",
+      "capturedAtUtc": "2026-10-12T07:19:06.876322+00:00"
+    },
+    {
+      "path": "macos/id-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 253059,
+      "sha256": "3a6125f47c86f360df1ed6f53729b20e26efa7987f141d9bbf86079bfd3b055a",
+      "capturedAtUtc": "2026-10-12T07:19:06.888544+00:00"
+    },
+    {
+      "path": "macos/id-3_progress-app-store-study-history.png",
+      "bytes": 137880,
+      "sha256": "acc8509545849af5b1322ee36af49c9ae34b8b72d35f71e548a834e2374b96e8",
+      "capturedAtUtc": "2026-10-12T07:19:06.897369+00:00"
+    },
+    {
+      "path": "macos/id-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 327234,
+      "sha256": "9d99e6f2d9d5666aeed3c81920bc36a109efe1b6825d07385fd130dc4137b4f8",
+      "capturedAtUtc": "2026-10-12T07:19:06.906482+00:00"
+    },
+    {
+      "path": "macos/id-5_cards-list-app-store-vocabulary.png",
+      "bytes": 191325,
+      "sha256": "3ba0ab7bc9519199bfb8ea68a130e462660a259450d9e6a74f0ee6c7701ba461",
+      "capturedAtUtc": "2026-10-12T07:19:06.914406+00:00"
+    },
+    {
+      "path": "macos/it-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 130385,
+      "sha256": "27ac9f8c24d7c7efabf5e0195205f51c8edd3d52be50152fdde1bdec294a95f7",
+      "capturedAtUtc": "2026-10-12T07:21:09.248862+00:00"
+    },
+    {
+      "path": "macos/it-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 252278,
+      "sha256": "b6a185b0fc68dbfcf07c2e119535497f25bcdf0610046fff8c7e997fb4bfc663",
+      "capturedAtUtc": "2026-10-12T07:21:09.262039+00:00"
+    },
+    {
+      "path": "macos/it-3_progress-app-store-study-history.png",
+      "bytes": 134766,
+      "sha256": "2aaa1487a1b2f4f8d5ba646b77c845fb74ee28b4974fe879905886d6adce1a36",
+      "capturedAtUtc": "2026-10-12T07:21:09.268768+00:00"
+    },
+    {
+      "path": "macos/it-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 330477,
+      "sha256": "c26662b06b353526f104445c27a8a3494c1f15f3b287dd0366b02cb0f8dc21a9",
+      "capturedAtUtc": "2026-10-12T07:21:09.275280+00:00"
+    },
+    {
+      "path": "macos/it-5_cards-list-app-store-vocabulary.png",
+      "bytes": 198277,
+      "sha256": "40b88f4d51b9a0a00858ab7d5c315e4ebefc5f2910e515acc8ae04d81ed319f0",
+      "capturedAtUtc": "2026-10-12T07:21:09.281684+00:00"
+    },
+    {
+      "path": "macos/ja-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 130275,
+      "sha256": "4c28899191e8c7733fd7b0613536c92ccfc328de069693c5da64e818420d4db8",
+      "capturedAtUtc": "2026-10-12T06:48:19.128295+00:00"
+    },
+    {
+      "path": "macos/ja-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 249899,
+      "sha256": "a2118bf45c5d2bcf9dd7325d98683799931e0a787c210e6b8fe5f23fe6636ec8",
+      "capturedAtUtc": "2026-10-12T06:48:19.136897+00:00"
+    },
+    {
+      "path": "macos/ja-3_progress-app-store-study-history.png",
+      "bytes": 133050,
+      "sha256": "05aea134b27149c6badd96b1b0f297bc62c1d09659dd5ae99dd0be6d0d420c74",
+      "capturedAtUtc": "2026-10-12T06:48:19.144845+00:00"
+    },
+    {
+      "path": "macos/ja-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 336147,
+      "sha256": "48abfe093142f158e5729f424d45c3fd1b6dc307b02470b887699c02f86cb481",
+      "capturedAtUtc": "2026-10-12T06:48:19.152485+00:00"
+    },
+    {
+      "path": "macos/ja-5_cards-list-app-store-vocabulary.png",
+      "bytes": 198496,
+      "sha256": "f71fb59bb933fc5e6e63fc5f80f41c6360f732a7e37cbe6ef0477de403375970",
+      "capturedAtUtc": "2026-10-12T06:48:19.159623+00:00"
+    },
+    {
+      "path": "macos/kn-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 144452,
+      "sha256": "bd505c7e74da0383dd37072a92d663022d0e6049f9e1edda2e709dd2ac8eb59f",
+      "capturedAtUtc": "2026-10-12T07:23:14.070236+00:00"
+    },
+    {
+      "path": "macos/kn-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 286181,
+      "sha256": "cc137d38677337846130c972a45c47314cd4ff042289e6178ccf8ae270040f5e",
+      "capturedAtUtc": "2026-10-12T07:23:14.081863+00:00"
+    },
+    {
+      "path": "macos/kn-3_progress-app-store-study-history.png",
+      "bytes": 147268,
+      "sha256": "ee767e8f8027abaddf9ddc2783fedcae9581714f24772ac5f67af485d71a4728",
+      "capturedAtUtc": "2026-10-12T07:23:14.089283+00:00"
+    },
+    {
+      "path": "macos/kn-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 370272,
+      "sha256": "967f9ba72d6ea6011792bf2b0d0769df5392f02e0b3d67a446914e1ed5dd601f",
+      "capturedAtUtc": "2026-10-12T07:23:14.096690+00:00"
+    },
+    {
+      "path": "macos/kn-5_cards-list-app-store-vocabulary.png",
+      "bytes": 220491,
+      "sha256": "320cb8900213b879cea9a319a774195bc23e8563fd508c755523e8bf02af7609",
+      "capturedAtUtc": "2026-10-12T07:23:14.104102+00:00"
+    },
+    {
+      "path": "macos/ko-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 128113,
+      "sha256": "e6e37963966368b34a4ccf88b880381352914192dfbfaacfab2638c832c65e4b",
+      "capturedAtUtc": "2026-10-12T07:25:18.972356+00:00"
+    },
+    {
+      "path": "macos/ko-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 232229,
+      "sha256": "63ceb8d5caada13acd00919b63e04c005b336a96883b5dcbe6759f0cf860ba4d",
+      "capturedAtUtc": "2026-10-12T07:25:18.985806+00:00"
+    },
+    {
+      "path": "macos/ko-3_progress-app-store-study-history.png",
+      "bytes": 126919,
+      "sha256": "f7198eec986f29548ca043e20ad086f3091bb303f02b3553c36f94f56af307a6",
+      "capturedAtUtc": "2026-10-12T07:25:18.993448+00:00"
+    },
+    {
+      "path": "macos/ko-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 319304,
+      "sha256": "fe9a2896deada7425124997dc1bfe9deb53b8a710e9affa917895c2e32cf7212",
+      "capturedAtUtc": "2026-10-12T07:25:19.002342+00:00"
+    },
+    {
+      "path": "macos/ko-5_cards-list-app-store-vocabulary.png",
+      "bytes": 186807,
+      "sha256": "f383432a69fb2c06d63102106ef2ba32e6071050f5dfe17ab77c8cadc783b9e2",
+      "capturedAtUtc": "2026-10-12T07:25:19.010702+00:00"
+    },
+    {
+      "path": "macos/ml-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 141179,
+      "sha256": "801ca8c00307a8321d7125241a0e299dd7cc1fbd97e97c78ef00e4ec8001bbac",
+      "capturedAtUtc": "2026-10-12T07:27:24.089683+00:00"
+    },
+    {
+      "path": "macos/ml-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 274504,
+      "sha256": "c9710075b31fd0201abe7345ca6006807255e0fea8d576284721abae76580841",
+      "capturedAtUtc": "2026-10-12T07:27:24.099857+00:00"
+    },
+    {
+      "path": "macos/ml-3_progress-app-store-study-history.png",
+      "bytes": 148272,
+      "sha256": "a7341efacff77417ec29ec459e6345a69f86a47e62b6c3c7bb3303e39d0a4a66",
+      "capturedAtUtc": "2026-10-12T07:27:24.105689+00:00"
+    },
+    {
+      "path": "macos/ml-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 367108,
+      "sha256": "97152ae38281a5d779291de7f4077178bc81045097541fd7a15e8414bb7a1e93",
+      "capturedAtUtc": "2026-10-12T07:27:24.111502+00:00"
+    },
+    {
+      "path": "macos/ml-5_cards-list-app-store-vocabulary.png",
+      "bytes": 218701,
+      "sha256": "6d0c7e89fff4c3e18ef5b79da8310accbf56ead600d40301731281572994ea8d",
+      "capturedAtUtc": "2026-10-12T07:27:24.118212+00:00"
+    },
+    {
+      "path": "macos/mr-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 126773,
+      "sha256": "a79b3e69e993664d6df73edbbdb0506e836e10decdf3c4a8fad69b389fe30fc6",
+      "capturedAtUtc": "2026-10-12T07:29:28.377792+00:00"
+    },
+    {
+      "path": "macos/mr-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 246579,
+      "sha256": "f7e17e225b99f4fca36173b24353eedd6a593d2e68b5e8bf3f6c3544dafb6679",
+      "capturedAtUtc": "2026-10-12T07:29:28.391284+00:00"
+    },
+    {
+      "path": "macos/mr-3_progress-app-store-study-history.png",
+      "bytes": 130765,
+      "sha256": "e39f5be593c3146409b18ed276f70e3debc6f65333b083d502128b3357e63b2b",
+      "capturedAtUtc": "2026-10-12T07:29:28.398312+00:00"
+    },
+    {
+      "path": "macos/mr-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 326717,
+      "sha256": "ad4f16fb91fea669083279539ee72ce2423f71803cf911bb4a598eff0c259cf1",
+      "capturedAtUtc": "2026-10-12T07:29:28.404654+00:00"
+    },
+    {
+      "path": "macos/mr-5_cards-list-app-store-vocabulary.png",
+      "bytes": 189149,
+      "sha256": "dd0ea84a3e011bfd1c9ce7888d17908aa4866346c1e7f9ef3f5bd0b2f27a166c",
+      "capturedAtUtc": "2026-10-12T07:29:28.412368+00:00"
+    },
+    {
+      "path": "macos/nb-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 126106,
+      "sha256": "f7d8e286c351bf5bdbcc6f94245b7d51c8f6b2f60aa3d415a1cdc720c24cb988",
+      "capturedAtUtc": "2026-10-12T07:31:36.496591+00:00"
+    },
+    {
+      "path": "macos/nb-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 249363,
+      "sha256": "f13d33a4bd1216aba47136c5034fd45814d2b91e16140820c5c5716eec09727d",
+      "capturedAtUtc": "2026-10-12T07:31:36.508977+00:00"
+    },
+    {
+      "path": "macos/nb-3_progress-app-store-study-history.png",
+      "bytes": 137608,
+      "sha256": "c68eef7851219f2888a3ad9385fd10a4c501087081e7c9f2cc80a25eab032f59",
+      "capturedAtUtc": "2026-10-12T07:31:36.517311+00:00"
+    },
+    {
+      "path": "macos/nb-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 322870,
+      "sha256": "b6ad1e06b80591b026a8e34d459b348453d14f21494b961af5dea3594b7cb1f9",
+      "capturedAtUtc": "2026-10-12T07:31:36.525781+00:00"
+    },
+    {
+      "path": "macos/nb-5_cards-list-app-store-vocabulary.png",
+      "bytes": 185475,
+      "sha256": "f59e5745c3b8f7358ea7b4724eb952e983571448eb8a40c57a6cfcbcc92fa8bc",
+      "capturedAtUtc": "2026-10-12T07:31:36.534567+00:00"
+    },
+    {
+      "path": "macos/nl-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 130949,
+      "sha256": "15b288b8165f4cdb15cd3b57e87bc2bbec70b7d1f4ec8ebe5f62a5e040a6b33a",
+      "capturedAtUtc": "2026-10-12T07:33:53.814024+00:00"
+    },
+    {
+      "path": "macos/nl-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 257006,
+      "sha256": "c100d785b8cde07b398e0bb056f4d547ad47a6dbf6caba2b88da9f89b57cdffd",
+      "capturedAtUtc": "2026-10-12T07:33:53.825770+00:00"
+    },
+    {
+      "path": "macos/nl-3_progress-app-store-study-history.png",
+      "bytes": 141239,
+      "sha256": "87a524d0dfe8d6b2ae2922c4e52055a10bc80bf276d8c89e323583383441897c",
+      "capturedAtUtc": "2026-10-12T07:33:53.832975+00:00"
+    },
+    {
+      "path": "macos/nl-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 355357,
+      "sha256": "5eb151b535387b1bc0cd5274fba99e275e0dd6233419226cb2bfebbb5de0e239",
+      "capturedAtUtc": "2026-10-12T07:33:53.840094+00:00"
+    },
+    {
+      "path": "macos/nl-5_cards-list-app-store-vocabulary.png",
+      "bytes": 199464,
+      "sha256": "7b603a9844010f9452992d794f8f3a33c52f67494364b4a08f0ae607f696a191",
+      "capturedAtUtc": "2026-10-12T07:33:53.847476+00:00"
+    },
+    {
+      "path": "macos/pa-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 129112,
+      "sha256": "175b0d9dca3e7420c2830790985ad47ad4e2d50bd4b5c42950c63292871158c2",
+      "capturedAtUtc": "2026-10-12T07:36:03.316783+00:00"
+    },
+    {
+      "path": "macos/pa-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 253179,
+      "sha256": "73159978d341ace2b819fbd97a712798dcc8697b3f8e7fa7edea78914d43331e",
+      "capturedAtUtc": "2026-10-12T07:36:03.330742+00:00"
+    },
+    {
+      "path": "macos/pa-3_progress-app-store-study-history.png",
+      "bytes": 131955,
+      "sha256": "dbfbab0f1e7b6afeab71ca07103debdf6a07db9fdc65ac63607f9e1308b3efde",
+      "capturedAtUtc": "2026-10-12T07:36:03.340263+00:00"
+    },
+    {
+      "path": "macos/pa-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 318689,
+      "sha256": "d2c33e5da2caf66213c21348e8e50ef8dbee967b1b553c39b2a8ba4e9af3c935",
+      "capturedAtUtc": "2026-10-12T07:36:03.348864+00:00"
+    },
+    {
+      "path": "macos/pa-5_cards-list-app-store-vocabulary.png",
+      "bytes": 182995,
+      "sha256": "efd7e90dd150746052a650384edb47d0748988adba391c80fa9563c4ebfa36e6",
+      "capturedAtUtc": "2026-10-12T07:36:03.358233+00:00"
+    },
+    {
+      "path": "macos/pl-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 131295,
+      "sha256": "f0e482764f8e22630e114d84c6f671a44caae58f294d11e6f1ce47cc6d7e4744",
+      "capturedAtUtc": "2026-10-12T07:39:23.415244+00:00"
+    },
+    {
+      "path": "macos/pl-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 255772,
+      "sha256": "8b4c6d366ec48452c27fc4c57961bff58e534a640122ec47c88473ae74d695ab",
+      "capturedAtUtc": "2026-10-12T07:39:23.432285+00:00"
+    },
+    {
+      "path": "macos/pl-3_progress-app-store-study-history.png",
+      "bytes": 134119,
+      "sha256": "e1361994ce905e1d07a9f189fbba13b21d22407829cdceb44e6b9cd0a5026661",
+      "capturedAtUtc": "2026-10-12T07:39:23.440860+00:00"
+    },
+    {
+      "path": "macos/pl-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 342833,
+      "sha256": "f896c9be214b53172b847fcc4549df4dbf2483e2c66f94fffbb11bb20d369c9d",
+      "capturedAtUtc": "2026-10-12T07:39:23.450563+00:00"
+    },
+    {
+      "path": "macos/pl-5_cards-list-app-store-vocabulary.png",
+      "bytes": 197525,
+      "sha256": "95164b777c3eefb6dc325638984528182e2a1320455c2b7f962f3dcd626e4b6f",
+      "capturedAtUtc": "2026-10-12T07:39:23.459832+00:00"
+    },
+    {
+      "path": "macos/pt-BR-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 130534,
+      "sha256": "4cd036897253252abe3a5d75decc475896f7027cec0598e161c56d84bfd3a9ec",
+      "capturedAtUtc": "2026-10-12T06:50:17.040929+00:00"
+    },
+    {
+      "path": "macos/pt-BR-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 265513,
+      "sha256": "c5e40db2945c3682fdd62db09e62899eec33695f557e227d1c1be32fd3a42612",
+      "capturedAtUtc": "2026-10-12T06:50:17.053030+00:00"
+    },
+    {
+      "path": "macos/pt-BR-3_progress-app-store-study-history.png",
+      "bytes": 139182,
+      "sha256": "119b6d4311d91f3c78acad3ce8fd182d335a1445d8d1abdf44e9095dd645feb9",
+      "capturedAtUtc": "2026-10-12T06:50:17.061016+00:00"
+    },
+    {
+      "path": "macos/pt-BR-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 352532,
+      "sha256": "c497bfdeb65cb6357888d22002c2e1fd915c1ea9e1fd8d8602cbbf2db4e33e75",
+      "capturedAtUtc": "2026-10-12T06:50:17.069031+00:00"
+    },
+    {
+      "path": "macos/pt-BR-5_cards-list-app-store-vocabulary.png",
+      "bytes": 199059,
+      "sha256": "9d47a5de736078942305b4298f1440993c1cb9c53620f2fe364a5fa78ecdcf41",
+      "capturedAtUtc": "2026-10-12T06:50:17.077279+00:00"
+    },
+    {
+      "path": "macos/ro-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 130354,
+      "sha256": "8550def8222228216694497e29a6f95b9de567024a55024e9014037813a692e0",
+      "capturedAtUtc": "2026-10-12T07:41:31.442894+00:00"
+    },
+    {
+      "path": "macos/ro-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 253721,
+      "sha256": "5eebe35c80d2335ade91f34362f0ae7764579ecb3219e91bbf7edcde300ed358",
+      "capturedAtUtc": "2026-10-12T07:41:31.461021+00:00"
+    },
+    {
+      "path": "macos/ro-3_progress-app-store-study-history.png",
+      "bytes": 138486,
+      "sha256": "89a7565e5e471c01fed96901d502c5901b63d8dfcd651899042d3d3ac2f42c21",
+      "capturedAtUtc": "2026-10-12T07:41:31.469505+00:00"
+    },
+    {
+      "path": "macos/ro-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 338015,
+      "sha256": "110d81000554d142e485e838676586f12431e43e084e67028e00b90f699646e4",
+      "capturedAtUtc": "2026-10-12T07:41:31.477321+00:00"
+    },
+    {
+      "path": "macos/ro-5_cards-list-app-store-vocabulary.png",
+      "bytes": 191038,
+      "sha256": "3598ba7415861b00a3a223934dde813f332ba4a71646b69c257f1d0ebe7264b7",
+      "capturedAtUtc": "2026-10-12T07:41:31.485242+00:00"
+    },
+    {
+      "path": "macos/ru-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 133384,
+      "sha256": "82aa81ea1dd6d32f4d85f6da6ae85a7196a034e023a12146e29b6088bd966120",
+      "capturedAtUtc": "2026-10-12T06:52:15.848305+00:00"
+    },
+    {
+      "path": "macos/ru-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 283176,
+      "sha256": "ac1d7b4ebb362e46eeeea3937f21b308ca990d583dc1c345ca553bf745681d0e",
+      "capturedAtUtc": "2026-10-12T06:52:15.856878+00:00"
+    },
+    {
+      "path": "macos/ru-3_progress-app-store-study-history.png",
+      "bytes": 143831,
+      "sha256": "5f33e42060178c12534187d77413955c6be58afe15e8cd3751e730005dda0821",
+      "capturedAtUtc": "2026-10-12T06:52:15.864093+00:00"
+    },
+    {
+      "path": "macos/ru-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 364961,
+      "sha256": "6336ca6136210087898ee595b49e204a314461ae35bd798aaf27f8ddd14130b6",
+      "capturedAtUtc": "2026-10-12T06:52:15.872418+00:00"
+    },
+    {
+      "path": "macos/ru-5_cards-list-app-store-vocabulary.png",
+      "bytes": 203346,
+      "sha256": "461ea76943d1fd8332070330cd965d8123119fc9a0df55bd04b2be99fa973665",
+      "capturedAtUtc": "2026-10-12T06:52:15.880994+00:00"
+    },
+    {
+      "path": "macos/sk-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 133239,
+      "sha256": "2a4236aa5d244bf8ef0b5ce599be06518d5c3e314bfa50b7eebf5927432e9779",
+      "capturedAtUtc": "2026-10-12T07:43:36.083098+00:00"
+    },
+    {
+      "path": "macos/sk-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 255094,
+      "sha256": "1f747902f9cd96ec2aabe14722f26a6601e83b268128396ef4c9556fd696970f",
+      "capturedAtUtc": "2026-10-12T07:43:36.156236+00:00"
+    },
+    {
+      "path": "macos/sk-3_progress-app-store-study-history.png",
+      "bytes": 137718,
+      "sha256": "27ddce756e886389ce013aaf646ecd325fe6fa125e629981c1ca6ad8b515f16f",
+      "capturedAtUtc": "2026-10-12T07:43:36.164152+00:00"
+    },
+    {
+      "path": "macos/sk-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 328484,
+      "sha256": "7f3998a25d364e35450ac990ce87729cdb5da6531c80e487b8b5e3404fdf7550",
+      "capturedAtUtc": "2026-10-12T07:43:36.172811+00:00"
+    },
+    {
+      "path": "macos/sk-5_cards-list-app-store-vocabulary.png",
+      "bytes": 192686,
+      "sha256": "5e03fe330068e963920fd33c882a19c4f8b5e54cd4cd7368d67f1bfedf00be84",
+      "capturedAtUtc": "2026-10-12T07:43:36.181381+00:00"
+    },
+    {
+      "path": "macos/sl-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 131636,
+      "sha256": "f2f8a21c4870b35359ed77be5a9e087b9b250cd06bceefa41d0f73c4df2107f5",
+      "capturedAtUtc": "2026-10-12T07:45:41.322274+00:00"
+    },
+    {
+      "path": "macos/sl-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 252734,
+      "sha256": "f3282e108bcac32e82fc916a20915a5bcb60fd46518e36a764d1afb002fc185f",
+      "capturedAtUtc": "2026-10-12T07:45:41.338486+00:00"
+    },
+    {
+      "path": "macos/sl-3_progress-app-store-study-history.png",
+      "bytes": 133361,
+      "sha256": "0d217f67820a3e222127ab331b9ee100b29b7b237e059a3c477f4fec5f880b14",
+      "capturedAtUtc": "2026-10-12T07:45:41.345775+00:00"
+    },
+    {
+      "path": "macos/sl-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 325168,
+      "sha256": "0664b4b52686dd7583ef94d69fb539242c31f906b1fe5797b160800aece4d3f1",
+      "capturedAtUtc": "2026-10-12T07:45:41.354274+00:00"
+    },
+    {
+      "path": "macos/sl-5_cards-list-app-store-vocabulary.png",
+      "bytes": 189500,
+      "sha256": "482f1cc8768f00a36a8de4bb9c327699d4e9ffa57a6c8610fe6752a5ac0cb5e2",
+      "capturedAtUtc": "2026-10-12T07:45:41.362013+00:00"
+    },
+    {
+      "path": "macos/sv-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 127874,
+      "sha256": "201bf2a9981868251df170f7425b41bf1676ef70b3572d812909b3d2cec2c96c",
+      "capturedAtUtc": "2026-10-12T07:47:44.501948+00:00"
+    },
+    {
+      "path": "macos/sv-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 251189,
+      "sha256": "e7d2539a2069182fa9af27e53a37f824d0f0a766de478d0c7fc05f9d9bfc2538",
+      "capturedAtUtc": "2026-10-12T07:47:44.521712+00:00"
+    },
+    {
+      "path": "macos/sv-3_progress-app-store-study-history.png",
+      "bytes": 138613,
+      "sha256": "209b41fc5229de6bd793ef329307f88730c98794fcdd8266fdbab452bcb9c86e",
+      "capturedAtUtc": "2026-10-12T07:47:44.530098+00:00"
+    },
+    {
+      "path": "macos/sv-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 324487,
+      "sha256": "4cefe347d5b8a92ae0c5a12a98fd8215d2b99903be96819304d6f3591855c516",
+      "capturedAtUtc": "2026-10-12T07:47:44.537661+00:00"
+    },
+    {
+      "path": "macos/sv-5_cards-list-app-store-vocabulary.png",
+      "bytes": 190569,
+      "sha256": "e72acab3b0d56eb5de7df1962dd3882ce75d7a785315fb55b52ac6cde8438ff5",
+      "capturedAtUtc": "2026-10-12T07:47:44.544046+00:00"
+    },
+    {
+      "path": "macos/ta-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 133595,
+      "sha256": "555282510f52f674b69c5ee90ebfdd79ba170d02800d9306ee549bd0ffc77efa",
+      "capturedAtUtc": "2026-10-12T07:49:47.325654+00:00"
+    },
+    {
+      "path": "macos/ta-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 262340,
+      "sha256": "740a385f2b7429b506fcd70f89ed41907ff011493308802aecc9b2ecd63c8a32",
+      "capturedAtUtc": "2026-10-12T07:49:47.340650+00:00"
+    },
+    {
+      "path": "macos/ta-3_progress-app-store-study-history.png",
+      "bytes": 144534,
+      "sha256": "dc5852d7b8f0e025789c47a73f375b4c1b26b40a64d692a4d37fde6ad053557a",
+      "capturedAtUtc": "2026-10-12T07:49:47.348756+00:00"
+    },
+    {
+      "path": "macos/ta-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 350374,
+      "sha256": "4625e1fb96f6f5d25598aea171ddf0abdb120b5ce1995e790daaf39dfe39c708",
+      "capturedAtUtc": "2026-10-12T07:49:47.356548+00:00"
+    },
+    {
+      "path": "macos/ta-5_cards-list-app-store-vocabulary.png",
+      "bytes": 214521,
+      "sha256": "29ce3fe43c79c85cc864c7c19d0ee8800d5e8ea215e35fdb440d84c63abf37b6",
+      "capturedAtUtc": "2026-10-12T07:49:47.364725+00:00"
+    },
+    {
+      "path": "macos/te-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 139548,
+      "sha256": "3af9f20f5fd117cfff20e5e7a31dd265085867ec1b62fca3799f35932f7555be",
+      "capturedAtUtc": "2026-10-12T07:51:51.614351+00:00"
+    },
+    {
+      "path": "macos/te-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 284660,
+      "sha256": "892fd7bd0ae7f88f78ce4c29fd32979ed20d40b90101daca20dc7fda59d40bc8",
+      "capturedAtUtc": "2026-10-12T07:51:51.634851+00:00"
+    },
+    {
+      "path": "macos/te-3_progress-app-store-study-history.png",
+      "bytes": 148712,
+      "sha256": "2460ca0fe2df73421e68b7fdc2a4c7783f177a9494e9f92504ce2d937db4f7d4",
+      "capturedAtUtc": "2026-10-12T07:51:51.642847+00:00"
+    },
+    {
+      "path": "macos/te-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 374519,
+      "sha256": "0ca2758f7a4e6e04a697c11efd6fe45fa1446fe051bf466f08a54c3091694a8e",
+      "capturedAtUtc": "2026-10-12T07:51:51.654496+00:00"
+    },
+    {
+      "path": "macos/te-5_cards-list-app-store-vocabulary.png",
+      "bytes": 229406,
+      "sha256": "48152ba52c927f8a19dce2a1168e0d4c4c99e77c9efe6e6692ebde580f24e074",
+      "capturedAtUtc": "2026-10-12T07:51:51.664762+00:00"
+    },
+    {
+      "path": "macos/th-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 136322,
+      "sha256": "f3927519c36db4da76ac40cbfdbf7129107f720346dccd80489044bbc6d0645b",
+      "capturedAtUtc": "2026-10-12T07:53:56.934838+00:00"
+    },
+    {
+      "path": "macos/th-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 266218,
+      "sha256": "f02d93465932d7c091ea660a45389fe97cfa99d3abeb5a602b4194855a4682a4",
+      "capturedAtUtc": "2026-10-12T07:53:56.953585+00:00"
+    },
+    {
+      "path": "macos/th-3_progress-app-store-study-history.png",
+      "bytes": 134356,
+      "sha256": "548fbffd308941254635423d6d1d107fa9c8225a966f2fdf3968892d6e7fea94",
+      "capturedAtUtc": "2026-10-12T07:53:56.960947+00:00"
+    },
+    {
+      "path": "macos/th-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 342241,
+      "sha256": "aaf1eafac489092364887efb53b220641bb5fcac5c222ee2478081815acdd63d",
+      "capturedAtUtc": "2026-10-12T07:53:56.967722+00:00"
+    },
+    {
+      "path": "macos/th-5_cards-list-app-store-vocabulary.png",
+      "bytes": 196207,
+      "sha256": "534d6aae8df6b86bd3cfba40e747636c04d8353d5109c7486a8e1e8d49fd81ea",
+      "capturedAtUtc": "2026-10-12T07:53:56.974238+00:00"
+    },
+    {
+      "path": "macos/tr-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 129040,
+      "sha256": "5d805c9f49eeb05f08e534c63710a5288d436da22f26fb6afa9269f3ce4dccdf",
+      "capturedAtUtc": "2026-10-12T07:56:00.731860+00:00"
+    },
+    {
+      "path": "macos/tr-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 249288,
+      "sha256": "5a441125f2c432a9a35dc360c4f6a3e2cea4527363f7336f1d5b77517180e0eb",
+      "capturedAtUtc": "2026-10-12T07:56:00.753193+00:00"
+    },
+    {
+      "path": "macos/tr-3_progress-app-store-study-history.png",
+      "bytes": 129166,
+      "sha256": "6251098c875db1b9581d3bd30d6296226b885dfc538d434935efb3a385dd6b87",
+      "capturedAtUtc": "2026-10-12T07:56:00.761754+00:00"
+    },
+    {
+      "path": "macos/tr-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 327234,
+      "sha256": "4f8645a5f14a472e55d914706687898045b8314c4412e8ec1ea21b566b0b7a55",
+      "capturedAtUtc": "2026-10-12T07:56:00.769364+00:00"
+    },
+    {
+      "path": "macos/tr-5_cards-list-app-store-vocabulary.png",
+      "bytes": 182438,
+      "sha256": "e3d5ed456eb39df211016eb849deb1eff8170d25ce4127849334c29be272adf3",
+      "capturedAtUtc": "2026-10-12T07:56:00.776609+00:00"
+    },
+    {
+      "path": "macos/uk-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 132115,
+      "sha256": "32a274be7287340f343f1c05364a80dd79c5018a0c307bc160c6134daf9c1469",
+      "capturedAtUtc": "2026-10-12T07:58:04.365303+00:00"
+    },
+    {
+      "path": "macos/uk-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 256404,
+      "sha256": "06997b25860465723551040c9a696021c63e65dc6dd1b97764a1d587394a26a0",
+      "capturedAtUtc": "2026-10-12T07:58:04.384706+00:00"
+    },
+    {
+      "path": "macos/uk-3_progress-app-store-study-history.png",
+      "bytes": 134562,
+      "sha256": "45b8e00326aeb2198cbd13c18e372fcf734b77d09f9c5ece0bafe7992e699ad0",
+      "capturedAtUtc": "2026-10-12T07:58:04.393358+00:00"
+    },
+    {
+      "path": "macos/uk-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 344324,
+      "sha256": "cb844b35823968be1991532bc6106f0280b7f519904c5cc28c6cf39cd8b4e93c",
+      "capturedAtUtc": "2026-10-12T07:58:04.401011+00:00"
+    },
+    {
+      "path": "macos/uk-5_cards-list-app-store-vocabulary.png",
+      "bytes": 195542,
+      "sha256": "bb2b01608a8ea3bdaed7fe0c031edcf5b298ce947bb8a2cf3a8ba7b5e9ec2028",
+      "capturedAtUtc": "2026-10-12T07:58:04.409370+00:00"
+    },
+    {
+      "path": "macos/ur-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 124413,
+      "sha256": "5237626d684097e98351047560008daab39fa0db84c5d4e3931984fa5e8d4110",
+      "capturedAtUtc": "2026-10-12T08:00:08.766417+00:00"
+    },
+    {
+      "path": "macos/ur-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 251423,
+      "sha256": "190a93b64bedfd9ed8e0edf3d5385dc4b308ce9fbd4f0ae3dab41dd447adfed1",
+      "capturedAtUtc": "2026-10-12T08:00:08.788307+00:00"
+    },
+    {
+      "path": "macos/ur-3_progress-app-store-study-history.png",
+      "bytes": 122189,
+      "sha256": "83a1acbfd6ad29d748ff61032d58624da3940707184c6339e53904c1b89cb1ee",
+      "capturedAtUtc": "2026-10-12T08:00:08.796607+00:00"
+    },
+    {
+      "path": "macos/ur-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 316408,
+      "sha256": "b4b9e6abbacb185821f9b8bd72949c5e1075e84f870de7c2fe80b7deeb9f40ad",
+      "capturedAtUtc": "2026-10-12T08:00:08.804102+00:00"
+    },
+    {
+      "path": "macos/ur-5_cards-list-app-store-vocabulary.png",
+      "bytes": 166263,
+      "sha256": "5e6a6279aec76a9fa250c829868ba34a00e25dc45126930116da7be9ff776b17",
+      "capturedAtUtc": "2026-10-12T08:00:08.810680+00:00"
+    },
+    {
+      "path": "macos/vi-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 129390,
+      "sha256": "035a28528b4f59c877d0aaf9faf20359e4ca2f827e08ab29e7dc56ad27be1f5f",
+      "capturedAtUtc": "2026-10-12T08:02:15.011743+00:00"
+    },
+    {
+      "path": "macos/vi-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 250751,
+      "sha256": "153a12635f3b2474dc2aba69ce8c9e68607df6103e40db2a1f21ab0f81782cf3",
+      "capturedAtUtc": "2026-10-12T08:02:15.034196+00:00"
+    },
+    {
+      "path": "macos/vi-3_progress-app-store-study-history.png",
+      "bytes": 142196,
+      "sha256": "afa14e739ead6d026a4127c2de3719be25c8f1e579d7adfa45b9793e2ba1a6a9",
+      "capturedAtUtc": "2026-10-12T08:02:15.042304+00:00"
+    },
+    {
+      "path": "macos/vi-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 330415,
+      "sha256": "32a9520fb7ac9975d6ae90f0c9b0073eac9f38031e143274b6dda16fb2f6dccf",
+      "capturedAtUtc": "2026-10-12T08:02:15.050821+00:00"
+    },
+    {
+      "path": "macos/vi-5_cards-list-app-store-vocabulary.png",
+      "bytes": 198625,
+      "sha256": "6547fa672cd98bc440074a286a524896b4fdefcbd1080045f6a716f8e8d0b22b",
+      "capturedAtUtc": "2026-10-12T08:02:15.059153+00:00"
+    },
+    {
+      "path": "macos/zh-Hans-1_review-card-front-app-store-opportunity-cost.png",
+      "bytes": 128725,
+      "sha256": "18fd9ba20fd1c9524c3dc18dfb31a8b0b727d14db0f5bc4ac0164b38cdd20b29",
+      "capturedAtUtc": "2026-10-12T06:41:37.748045+00:00"
+    },
+    {
+      "path": "macos/zh-Hans-2_review-card-result-app-store-opportunity-cost.png",
+      "bytes": 250996,
+      "sha256": "bb4819e36a4c38ca5d5bd17c200414705760592de74a78e4dba6043fba1efd73",
+      "capturedAtUtc": "2026-10-12T06:41:37.760714+00:00"
+    },
+    {
+      "path": "macos/zh-Hans-3_progress-app-store-study-history.png",
+      "bytes": 129647,
+      "sha256": "6878cfad5c663a6e3c4134c413442988e2d7a890f08cafb289a91f0efdb2831f",
+      "capturedAtUtc": "2026-10-12T06:41:37.771645+00:00"
+    },
+    {
+      "path": "macos/zh-Hans-4_review-card-ai-draft-app-store-opportunity-cost.png",
+      "bytes": 322552,
+      "sha256": "dd2e3b5850847df8e9c9840206ed161184daa773b3879ed014b28b13e3ce8a6d",
+      "capturedAtUtc": "2026-10-12T06:41:37.780208+00:00"
+    },
+    {
+      "path": "macos/zh-Hans-5_cards-list-app-store-vocabulary.png",
+      "bytes": 179424,
+      "sha256": "c806efe79a72327e71b6285e129d5e871e53347164015beaf5bd3e0319fbee9f",
+      "capturedAtUtc": "2026-10-12T06:41:37.788680+00:00"
+    }
+  ]
+}

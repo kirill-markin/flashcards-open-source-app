@@ -83,8 +83,8 @@ listed in the format profiles and exports 2880 × 1800 cards.
 Duo and Mac processing reads matching `iphone-duo-outer/`, `iphone-duo-inner/`
 or `macos/` folders under the iOS input root. Explicit selection fails if the
 folder, any of the five screenshots, or the required native dimensions are
-missing. These families are excluded from the default `all` run; Mac assets
-have not yet been captured or processed.
+missing. These families are excluded from the default `all` run. Mac originals
+and cards are available for all 42 Store locales.
 
 Open `index.html` in either output directory to review available languages and
 devices. `previews/` contains five-card overviews. Full cards are under:
@@ -96,8 +96,9 @@ devices. `previews/` contains five-card overviews. Full cards are under:
 - Android: `ready/<Play-listing-locale>/phoneScreenshots/<card>_<slug>.png`.
 
 Both output directories are ordinary tracked Git files. The approved inventory
-contains 470 iOS cards (210 iPhone Store cards, 210 prepared landscape iPad cards, 40
-additional-language iPhone cards and ten English Duo cards, five per display) and
+contains 680 Apple cards (210 iPhone Store cards, 210 prepared landscape iPad cards,
+210 prepared Mac cards, 40 additional-language iPhone cards and ten English Duo
+cards, five per display) and
 255 Android phone cards. Store-upload status
 and original delivery provenance are recorded in the
 [processing guide](../../docs/store-screenshot-processing.md#tracked-approved-delivery).
@@ -185,7 +186,7 @@ Newly rendered `export-manifest.json` files record exact source/output SHA-256
 hashes, source names, locale/device mapping, dimensions, typography and measured
 bounds. Their `sourceRevision` is the processing checkout revision, **not evidence
 of a fresh native capture**. The current iOS `export-manifest.json` is a mixed
-package: its top-level revision and input root describe the iPad processing invocation, while retained rows keep
+package: its top-level revision and input root describe the final Mac locale processing invocation, while retained rows keep
 their own provenance. The
 [iOS card provenance](../../apps/ios/docs/media/app-store-cards/README.md) records
 the current invocation and links native-source manifests. Font reports describe the

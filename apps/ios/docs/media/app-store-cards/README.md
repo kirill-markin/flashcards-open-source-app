@@ -7,13 +7,14 @@ The [processing guide](../../../../../docs/store-screenshot-processing.md#tracke
 owns the inventory, store-upload status, source and processing provenance, and
 links to the manual refresh procedure.
 
-The current `export-manifest.json` contains 210 landscape iPad cards at processing
+The current `export-manifest.json` contains 210 Mac cards at processing
+HEAD `4fb044b41043b4c0344ef6763253f8e3d2c0bb0f`, 210 landscape iPad cards at processing
 base HEAD `518480a83bc8a99b2900e39a2250db3086132be0`, 250 retained iPhone
 rows at `8ad37887e71cb946a6697a9ad657ef0ab61ce6bd`, five Duo outer rows at
 `b615b50fd14fbe5b782469281d9c79869ca73d14`, and five Duo inner rows at
-`4fb98ece8127ab446f81b7bfb31a0c70104f2c7b`. The 260 retained rows and their
+`4fb98ece8127ab446f81b7bfb31a0c70104f2c7b`. The 470 retained rows and their
 PNG/preview bytes are unchanged. The manifest's top-level revision and input
-root describe the iPad invocation; every row retains its own provenance.
+root describe the final Mac locale invocation; every row retains its own provenance.
 
 The iPad delivery is 42 Store locales × five 2752 × 2064 opaque RGB cards, using
 the committed native landscape package from
@@ -36,7 +37,14 @@ Chinese and Hindi PNGs each have 33 solid border pixels on every side.
 `source-manifest.json` preserves the original native-source package, including
 historical iPad hashes. [`duo-source-manifest.json`](duo-source-manifest.json)
 owns Duo capture provenance. Mac Catalyst has an explicit processing profile;
-its genuine native screenshots and derived cards remain pending.
+[`macos-source-manifest.json`](macos-source-manifest.json) owns the 42-locale Mac
+capture provenance and exact processing recipe. The delivery contains 210
+1440 × 900 native window originals, 210 opaque RGB 2880 × 1800 cards and 42
+previews. All five states and full-size cards in every locale were visually
+inspected. The Mac cards use source order 4, 1, 2, 3, 5 and measure 29 solid grey
+border pixels on each side; CSS padding is 28.875 px, except 28.890625 px at the
+bottom from browser subpixel rounding. The complete native window remains
+visible and proportional. These Mac assets are prepared and have not been uploaded.
 
 Reusable design assets, copy and locale maps are in the
 [processor assets](../../../../../scripts/store-screenshots/assets/).
