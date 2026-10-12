@@ -6,8 +6,8 @@ Asset Library API and leaves the ordinary iPhone/iPad screenshot uploader and
 its sets alone. Capture and rendering are separate manual steps.
 
 Run from the repository root with Node 24, the main checkout's App Store
-Connect credentials, an existing `PREPARE_FOR_SUBMISSION` or
-`DEVELOPER_REJECTED` iOS version, and ten rendered RGB PNGs:
+Connect credentials, an existing `PREPARE_FOR_SUBMISSION`,
+`DEVELOPER_REJECTED`, or `REJECTED` iOS version, and ten rendered RGB PNGs:
 
 ```bash
 node scripts/ios/upload-app-store-duo-screenshots.mts \
