@@ -23,6 +23,7 @@ import type { ContentPart } from "../types";
 import type { ChatRunClaimToken, ChatRunStatus } from "./types";
 
 export type ChatRunRow = Readonly<{
+  ai_consent_event_id?: string | null;
   run_id: string;
   session_id: string;
   assistant_item_id: string;
@@ -68,6 +69,7 @@ export type ChatRunHeartbeatRow = Readonly<{
 }>;
 
 export type InsertChatRunParams = Readonly<{
+  aiConsentId?: string | null;
   sessionId: string;
   assistantItemId: string;
   requestId: string;
@@ -111,6 +113,7 @@ type CreateChatRunStatusUpdateFromRowParams = Readonly<{
 }>;
 
 const CHAT_RUN_COLUMNS_SQL = `
+    ai_consent_event_id,
     run_id,
     session_id,
     assistant_item_id,
@@ -180,9 +183,10 @@ const INSERT_CHAT_RUN_SQL = `
     client_platform,
     client_os_name,
     client_device_type,
+    ai_consent_event_id,
     updated_at
   )
-  VALUES ($1, $2, 'queued', $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11, $12, now())
+  VALUES ($1, $2, 'queued', $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11, $12, $13, now())
   RETURNING
 ${CHAT_RUN_COLUMNS_SQL}
 `;
@@ -488,6 +492,7 @@ export async function insertChatRunWithExecutor(
       params.clientPlatform,
       params.clientOsName,
       params.clientDeviceType,
+      params.aiConsentId ?? null,
     ]);
     return requireRunRow(rows[0], "insert");
   });

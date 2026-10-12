@@ -87,6 +87,7 @@ import {
 } from "./toolResults";
 
 export type OpenAIToolContext = Readonly<{
+  aiConsentId?: string | null;
   runId: string;
   sessionId: string;
   toolCallId: string;
@@ -738,6 +739,7 @@ async function executeGeneratedImageToolCall(
       replicaId,
       tierAtCall,
       userOpenAIApiKey: context.userOpenAIApiKey,
+      aiConsentId: context.aiConsentId ?? null,
       observationContext: context.generatedImageObservationContext,
       signal: operationSignal,
       operationDeadlineMs: context.generatedImageOperationDeadlineMs,
