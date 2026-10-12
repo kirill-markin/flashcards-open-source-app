@@ -151,14 +151,13 @@ extension AIChatStore {
     }
 
     func acceptExternalProviderConsent() {
-        grantAIChatExternalProviderConsent(userDefaults: self.flashcardsStore.userDefaults)
-        self.hasExternalProviderConsent = true
+        self.flashcardsStore.allowAIDataSharing(disclosure: .current())
     }
 
     func refreshExternalProviderConsentState() {
-        self.hasExternalProviderConsent = hasAIChatExternalProviderConsent(
-            userDefaults: self.flashcardsStore.userDefaults
-        )
+        if !self.hasExternalProviderConsent {
+            self.cancelDictation()
+        }
     }
 
     func updateSurface(activity: AIChatSurfaceActivity) {
@@ -168,7 +167,6 @@ extension AIChatStore {
         let didBecomeVisible = previousActivity.isVisible == false && activity.isVisible
         let didBecomeHidden = previousActivity.isVisible && activity.isVisible == false
         self.surfaceState.activity = activity
-        self.hasExternalProviderConsent = activity.hasExternalProviderConsent
 
         if didBecomeHidden || aiChatSurfaceShouldCancelDictation(activity: activity) {
             self.cancelDictation()

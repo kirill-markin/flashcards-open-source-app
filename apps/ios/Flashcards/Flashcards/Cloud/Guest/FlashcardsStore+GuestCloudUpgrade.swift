@@ -47,6 +47,15 @@ extension FlashcardsStore {
                 userId: linkContext.userId,
                 apiBaseUrl: linkContext.apiBaseUrl
             )
+            if let pendingState = try self.loadPendingGuestUpgradeState() {
+                guard pendingState.common.userId == linkContext.userId,
+                      pendingState.common.apiBaseUrl == configuration.apiBaseUrl,
+                      pendingState.common.configurationMode == configuration.mode else {
+                    throw LocalStoreError.validation(localizedCloudCredentialRecoveryInterruptedUpgradeAccountMessage())
+                }
+                try self.cloudRuntime.saveCredentials(credentials: linkContext.credentials)
+                return try await self.performPendingGuestUpgradeResume(trigger: trigger)
+            }
             guard let guestSession = try self.loadUsableGuestSessionForCurrentConfiguration() else {
                 try self.markPendingGuestUpgradeGuestSessionMissing(detectedAt: trigger.now)
                 try self.throwIfCloudCredentialRecoveryRequired()
@@ -69,8 +78,7 @@ extension FlashcardsStore {
                     configuration: configuration,
                     trigger: trigger
                 )
-                // The drain suspends, so re-read the cancel before writing this identity's
-                // credentials and the pending-upgrade record that follows them.
+                try await self.flushGuestAIConsentBeforeUpgrade(guest: guestSession)
                 try Task.checkCancellation()
                 try self.cloudRuntime.saveCredentials(credentials: linkContext.credentials)
                 let inFlightState = pendingGuestUpgradeInFlightState(
@@ -144,12 +152,17 @@ extension FlashcardsStore {
         guard try self.shouldPrepareGuestUpgradeModeForCloudLink(apiBaseUrl: verifiedContext.apiBaseUrl) else {
             return nil
         }
+        if let pendingState = try self.matchingInFlightPendingGuestUpgradeState(apiBaseUrl: verifiedContext.apiBaseUrl) {
+            return pendingState.supportsDroppedEntities ? .mergeRequired : .bound
+        }
         guard let guestSession = try self.loadUsableGuestSessionForCurrentConfiguration() else {
             try self.markPendingGuestUpgradeGuestSessionMissing(detectedAt: detectedAt)
             try self.throwIfCloudCredentialRecoveryRequired()
             throw LocalStoreError.uninitialized("Guest AI session is unavailable")
         }
 
+        try await self.flushGuestAIConsentBeforeUpgrade(guest: guestSession)
+        try Task.checkCancellation()
         return try await self.dependencies.guestCloudAuthService.prepareGuestUpgrade(
             apiBaseUrl: verifiedContext.apiBaseUrl,
             bearerToken: verifiedContext.credentials.idToken,
@@ -489,6 +502,7 @@ extension FlashcardsStore {
             workspace: state.workspace,
             trigger: trigger
         )
+        try Task.checkCancellation()
 
         // Unconditional, unlike the sign-in site in `completeCloudLink`, which keeps an
         // analytics-only credential for its background claim. Safe only because this route is reached
@@ -499,6 +513,7 @@ extension FlashcardsStore {
         self.clearPendingGuestUpgradeStateAndUnblockMutations()
         self.clearCloudCredentialRecoveryState()
         self.globalErrorMessage = ""
+        self.retryAIConsentSync()
     }
 
     private func blockGuestUpgradeLocalOutboxMutationsBeforeDrain() async {
@@ -529,6 +544,7 @@ extension FlashcardsStore {
                 commonState: inFlightState.common,
                 detectedAt: detectedAt
             )
+            try Task.checkCancellation()
             let workspace = try await self.dependencies.guestCloudAuthService.completeGuestUpgrade(
                 apiBaseUrl: inFlightState.common.apiBaseUrl,
                 bearerToken: credentials.idToken,
@@ -545,6 +561,18 @@ extension FlashcardsStore {
             // leave a pending-upgrade record naming the abandoned account behind a reset that has
             // already cleared it, so the write re-reads cancellation rather than trusting the await.
             try Task.checkCancellation()
+            try self.aiConsent.transferAcknowledgedGuest(
+                guest: AIConsentActor(session: CloudLinkedSession(
+                    userId: guestSession.userId, workspaceId: guestSession.workspaceId, email: nil,
+                    configurationMode: guestSession.configurationMode, apiBaseUrl: guestSession.apiBaseUrl,
+                    authorization: .guest(guestSession.guestToken)
+                )),
+                account: AIConsentActor(session: CloudLinkedSession(
+                    userId: inFlightState.common.userId, workspaceId: workspace.workspaceId, email: inFlightState.common.email,
+                    configurationMode: inFlightState.common.configurationMode, apiBaseUrl: inFlightState.common.apiBaseUrl,
+                    authorization: .bearer(credentials.idToken)
+                ))
+            )
             try self.savePendingGuestUpgradeState(state: .completed(completionState))
             return completionState
         }
