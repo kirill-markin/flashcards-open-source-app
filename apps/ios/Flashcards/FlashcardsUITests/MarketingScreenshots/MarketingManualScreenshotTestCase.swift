@@ -35,7 +35,7 @@ private enum MarketingManualScreenshotError: LocalizedError {
         case .outputDirectoryCreationFailed(let path, let underlying):
             return "Failed to create iOS marketing screenshot output directory at '\(path)': \(underlying.localizedDescription)"
         case .hostCaptureFailed(let message):
-            return "Duo host screenshot capture failed: \(message)"
+            return "Native screenshot capture failed: \(message)"
         case .screenshotWriteFailed(let path, let underlying):
             return "Failed to write iOS marketing screenshot PNG to '\(path)': \(underlying.localizedDescription)"
         }
@@ -67,7 +67,11 @@ private let marketingExpectedReviewProgressBadgeValue: String = [
 private let marketingAiHandoffFirstCardValue: String = "first_card"
 
 private enum MarketingScreenshotRuntimeConfigurationStorage {
+    #if targetEnvironment(macCatalyst)
+    static let filePath: String = "/tmp/flashcards-open-source-app-macos-marketing-screenshot-config.json"
+    #else
     static let filePath: String = "/tmp/flashcards-open-source-app-ios-marketing-screenshot-config.json"
+    #endif
 }
 
 private struct MarketingScreenshotRuntimeConfiguration: Decodable {
@@ -92,6 +96,14 @@ private struct MarketingScreenshotRuntimeConfiguration: Decodable {
         guard self.orientation == nil || self.orientation == "portrait" || self.orientation == "landscape" else {
             throw MarketingManualScreenshotError.missingRuntimeConfigurationValue("orientation (portrait or landscape)")
         }
+        #if targetEnvironment(macCatalyst)
+        guard self.orientation == "landscape",
+            let width = self.targetPixelWidth, let height = self.targetPixelHeight,
+            ["1280x800", "1440x900", "2560x1600", "2880x1800"].contains("\(width)x\(height)"),
+            self.hostCaptureDirectoryPath == nil else {
+            throw MarketingManualScreenshotError.missingRuntimeConfigurationValue("Mac landscape targetPixelWidth/targetPixelHeight (accepted 16:10 size)")
+        }
+        #else
         let hasDuoConfiguration = self.targetPixelWidth != nil || self.targetPixelHeight != nil || self.hostCaptureDirectoryPath != nil
         if hasDuoConfiguration {
             guard (self.targetPixelWidth ?? 0) > 0, (self.targetPixelHeight ?? 0) > 0,
@@ -99,6 +111,8 @@ private struct MarketingScreenshotRuntimeConfiguration: Decodable {
                 throw MarketingManualScreenshotError.hostCaptureFailed("Expected positive targetPixelWidth, targetPixelHeight, and an absolute hostCaptureDirectoryPath.")
             }
         }
+
+        #endif
 
         return MarketingScreenshotRuntimeConfiguration(
             includeManualScreenshotTests: self.includeManualScreenshotTests,
@@ -192,6 +206,11 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
             selectedTab: selectedTab,
             timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
         )
+        #if targetEnvironment(macCatalyst)
+        let configuration = try self.manualRuntimeConfiguration()
+        try resizeMarketingMacWindow(app: self.app,
+            targetWidth: configuration.targetPixelWidth!, targetHeight: configuration.targetPixelHeight!)
+        #endif
         self.logActionEnd(
             action: "launch_app",
             identifier: "application",
@@ -209,8 +228,10 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
             selectedTab: .review,
             aiHandoffCard: nil
         )
+        #if !targetEnvironment(macCatalyst)
         XCUIDevice.shared.orientation = try self.manualRuntimeConfiguration().orientation == "landscape"
             ? .landscapeLeft : .portrait
+        #endif
         try self.assertReviewProgressBadge()
         try self.assertElementExists(
             identifier: LiveSmokeIdentifier.reviewShowAnswerButton,
@@ -272,8 +293,11 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
             try self.revealOpportunityCostReviewAnswer()
             try self.tapButton(identifier: LiveSmokeIdentifier.aiCompanionToggle,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-            // Exercise the same reviewed-card handoff as the real iPad toolbar regression.
             let aiButtonIdentifier = LiveSmokeIdentifier.reviewAiButton
+            #if targetEnvironment(macCatalyst)
+            try self.tapButton(identifier: aiButtonIdentifier,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            #else
             let matchingContainers = self.app.windows.allElementsBoundByIndex.flatMap { window in
                 window.scrollViews.allElementsBoundByIndex
                     .filter { $0.buttons[aiButtonIdentifier].exists }
@@ -319,6 +343,7 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
             )
             try self.tapButton(button: exposedAiButton, identifier: aiButtonIdentifier,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            #endif
             try self.assertScreenVisible(screen: .ai, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
         }
     }
@@ -342,9 +367,11 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
                 for identifier in ["review.rating.0", "review.rating.1", LiveSmokeIdentifier.reviewRateGoodButton, "review.rating.3"] {
                     XCTAssertTrue(self.app.buttons[identifier].isHittable)
                 }
+                #if !targetEnvironment(macCatalyst)
                 let toggle = self.app.buttons[LiveSmokeIdentifier.aiCompanionToggle]
                 let bar = try XCTUnwrap(self.app.navigationBars.allElementsBoundByIndex.first { $0.buttons[LiveSmokeIdentifier.aiCompanionToggle].exists })
                 XCTAssertLessThanOrEqual(bar.frame.maxY - toggle.frame.maxY, toggle.frame.height)
+                #endif
             }
         }
     }
@@ -469,10 +496,19 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
             attachment.lifetime = .keepAlways
             self.add(attachment)
         } else {
+            #if targetEnvironment(macCatalyst)
+            let window = try XCTUnwrap(self.app.windows.allElementsBoundByIndex.first { $0.isHittable },
+                "Expected a visible native Mac marketing window.")
+            let captured = window.screenshot()
+            #else
             let captured = XCUIScreen.main.screenshot()
+            #endif
             sourceImage = captured.image
             screenshot = captured
         }
+        #if targetEnvironment(macCatalyst)
+        let uprightPixels = try XCTUnwrap(sourceImage.cgImage, "Expected native Catalyst window pixels.")
+        #else
         // XCTest PNGs can retain portrait storage with EXIF rotation. Draw the
         // captured landscape image upright so App Store reads real landscape pixels.
         let format = UIGraphicsImageRendererFormat()
@@ -482,25 +518,29 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
         let uprightImage = UIGraphicsImageRenderer(size: sourceImage.size, format: format).image { _ in
             sourceImage.draw(in: CGRect(origin: .zero, size: sourceImage.size))
         }
+        let uprightPixels = uprightImage.cgImage!
+        #endif
         if let targetWidth = runtimeConfiguration.targetPixelWidth,
             let targetHeight = runtimeConfiguration.targetPixelHeight,
-            (uprightImage.cgImage?.width != targetWidth || uprightImage.cgImage?.height != targetHeight) {
+            (uprightPixels.width != targetWidth || uprightPixels.height != targetHeight) {
             throw MarketingManualScreenshotError.hostCaptureFailed(
-                "Expected full native \(targetWidth)x\(targetHeight) pixels for \(fileName), got \(uprightImage.cgImage?.width ?? 0)x\(uprightImage.cgImage?.height ?? 0)."
+                "Expected full native \(targetWidth)x\(targetHeight) pixels for \(fileName), got \(uprightPixels.width)x\(uprightPixels.height)."
             )
         }
         let landscape = runtimeConfiguration.orientation == "landscape"
-        XCTAssertEqual(uprightImage.cgImage!.width > uprightImage.cgImage!.height, landscape,
+        XCTAssertEqual(uprightPixels.width > uprightPixels.height, landscape,
             "Marketing screenshot must use the requested orientation.")
+        #if !targetEnvironment(macCatalyst)
         if let screenshot {
             let attachment = XCTAttachment(screenshot: screenshot)
             attachment.name = fileName
             attachment.lifetime = .keepAlways
             self.add(attachment)
         }
+        #endif
 
         do {
-            let image = uprightImage.cgImage!
+            let image = uprightPixels
             guard let context = CGContext(data: nil, width: image.width, height: image.height,
                 bitsPerComponent: 8, bytesPerRow: image.width * 4,
                 space: CGColorSpace(name: CGColorSpace.sRGB)!,
@@ -514,6 +554,12 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
             CGImageDestinationAddImage(encoder, opaqueImage, nil)
             guard CGImageDestinationFinalize(encoder) else { throw CocoaError(.fileWriteUnknown) }
             try (png as Data).write(to: screenshotURL, options: .atomic)
+            #if targetEnvironment(macCatalyst)
+            let attachment = XCTAttachment(data: png as Data, uniformTypeIdentifier: "public.png")
+            attachment.name = fileName
+            attachment.lifetime = .keepAlways
+            self.add(attachment)
+            #endif
         } catch {
             throw MarketingManualScreenshotError.screenshotWriteFailed(screenshotURL.path, underlying: error)
         }
@@ -578,6 +624,9 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
             FileManager.default.fileExists(atPath: screenshotURL.path),
             "Expected screenshot file at \(screenshotURL.path)."
         )
+        #if targetEnvironment(macCatalyst)
+        try FileManager.default.removeItem(at: screenshotURL)
+        #endif
     }
 
     @MainActor
@@ -645,7 +694,11 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
     }
 
     private func outputDirectoryURL() throws -> URL {
+        #if targetEnvironment(macCatalyst)
+        let outputDirectoryPath = NSTemporaryDirectory()
+        #else
         let outputDirectoryPath = try self.manualRuntimeConfiguration().outputDirectoryPath
+        #endif
         let outputDirectoryURL = URL(fileURLWithPath: outputDirectoryPath, isDirectory: true)
 
         do {
