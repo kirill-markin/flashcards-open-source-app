@@ -1,7 +1,4 @@
-/**
- * Route factory for the shared backend-owned dictation endpoint.
- * The endpoint stays thin: it authenticates, meters the provider call against the caller's tier, and delegates upload parsing and transcription to the chat module. The monthly AI allowance never refuses dictation.
- */
+/** The monthly AI allowance never refuses dictation. */
 import { Hono } from "hono";
 import { isChatSessionRequestedSessionIdConflictError } from "../chat/errors";
 import { getRecoveredChatSessionSnapshot } from "../chat/runs";
@@ -16,7 +13,6 @@ import {
 } from "../chat/transcriptions";
 import { readUserOpenAIApiKeyHeader } from "../chat/userOpenAIApiKey";
 import { HttpError } from "../shared/errors";
-import { startChatTranscriptionObservation } from "../telemetry/langfuse";
 import {
   appendAiUsageEvent,
   resolveAiUsageTierForFacts,
@@ -61,9 +57,6 @@ async function resolveChatTranscriptionSessionId(
     throw new HttpError(400, "sessionId must be a UUID", "CHAT_SESSION_ID_INVALID");
   }
 
-  // First-party clients at >1.5.0 no longer omit sessionId here. Keep this
-  // legacy session-less path temporarily for older released clients, then
-  // remove it in a future legacy chat cleanup.
   try {
     const snapshot = await getRecoveredChatSessionSnapshotFn(userId, workspaceId, requestedSessionId);
     return snapshot.sessionId;
@@ -80,9 +73,6 @@ async function resolveChatTranscriptionSessionId(
   }
 }
 
-/**
- * Mounts the shared `/chat/transcriptions` endpoint used by web and mobile dictation flows.
- */
 export function createChatTranscriptionsRoutes(options: ChatTranscriptionsRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
   const loadRequestContextFromRequestFn = options.loadRequestContextFromRequestFn ?? loadRequestContextFromRequest;
@@ -121,68 +111,54 @@ export function createChatTranscriptionsRoutes(options: ChatTranscriptionsRoutes
       upload.sessionId,
       getRecoveredChatSessionSnapshotFn,
     );
-    const text = await startChatTranscriptionObservation(
-      {
-        requestId: context.get("requestId"),
-        userId: requestContext.userId,
-        sessionId,
-        source: upload.source,
-        fileName: upload.file.name,
-        mediaType: upload.file.type,
-        fileSize: upload.file.size,
-      },
-      async (): Promise<string> => {
-        const tierAtCall = await resolveAiUsageTierForFactsFn(
-          requestContext.userId,
-          resolveAccountKindForTransport(requestContext.transport),
-          new Date(),
-        );
-
-        const appendDictationUsageFact = async (
-          counters: AiUsageCounters | null,
-        ): Promise<void> => {
-          await appendAiUsageEventFn({
-            userId: requestContext.userId,
-            workspaceId,
-            occurredAt: new Date(),
-            surface: "dictation",
-            provider: "openai",
-            modelId: CHAT_TRANSCRIPTION_MODEL,
-            requestId: context.get("requestId"),
-            tierAtCall,
-            counters,
-            imageCount: null,
-            imageSize: null,
-            imageQuality: null,
-            userSuppliedKey: userOpenAIApiKey !== null,
-          });
-        };
-
-        let transcription: ChatTranscriptionResult;
-        try {
-          transcription = await transcribeAudioFn(upload, {
-            requestId: context.get("requestId"),
-            sessionId,
-            userOpenAIApiKey,
-          });
-        } catch (error) {
-          // A transcript that came back empty is still a call the provider was paid for, and it carries
-          // its counters out with it, so the fact is appended here exactly once and the failure is
-          // re-raised with the status, message and code it already had.
-          if (error instanceof ChatTranscriptionEmptyTranscriptError) {
-            await appendDictationUsageFact(error.usageCounters);
-          }
-
-          throw error;
-        }
-
-        await appendDictationUsageFact(transcription.usageCounters);
-
-        return transcription.text;
-      },
+    const tierAtCall = await resolveAiUsageTierForFactsFn(
+      requestContext.userId,
+      resolveAccountKindForTransport(requestContext.transport),
+      new Date(),
     );
+
+    const appendDictationUsageFact = async (
+      counters: AiUsageCounters | null,
+    ): Promise<void> => {
+      await appendAiUsageEventFn({
+        userId: requestContext.userId,
+        workspaceId,
+        occurredAt: new Date(),
+        surface: "dictation",
+        provider: "openai",
+        modelId: CHAT_TRANSCRIPTION_MODEL,
+        requestId: context.get("requestId"),
+        tierAtCall,
+        counters,
+        imageCount: null,
+        imageSize: null,
+        imageQuality: null,
+        userSuppliedKey: userOpenAIApiKey !== null,
+      });
+    };
+
+    let transcription: ChatTranscriptionResult;
+    try {
+      transcription = await transcribeAudioFn(upload, {
+        requestId: context.get("requestId"),
+        sessionId,
+        userOpenAIApiKey,
+      });
+    } catch (error) {
+      // A transcript that came back empty is still a call the provider was paid for, and it carries
+      // its counters out with it, so the fact is appended here exactly once and the failure is
+      // re-raised with the status, message and code it already had.
+      if (error instanceof ChatTranscriptionEmptyTranscriptError) {
+        await appendDictationUsageFact(error.usageCounters);
+      }
+
+      throw error;
+    }
+
+    await appendDictationUsageFact(transcription.usageCounters);
+
     return context.json({
-      text,
+      text: transcription.text,
       sessionId,
     } satisfies ChatTranscriptionRouteResponse);
   });

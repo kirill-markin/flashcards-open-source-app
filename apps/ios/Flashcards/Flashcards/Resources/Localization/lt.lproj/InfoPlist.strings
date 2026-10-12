@@ -1,5 +1,5 @@
 "kMDItemKeywords" = "flashcards,flash cards,mokymosi kortelės,atminties kortelės,korteles,kartojimo kortelės";
 "MDItemKeywords" = "flashcards,flash cards,mokymosi kortelės,atminties kortelės,korteles,kartojimo kortelės";
-"NSCameraUsageDescription" = "Leiskite naudoti kamerą DI pokalbio priedų nuotraukoms fotografuoti.";
-"NSMicrophoneUsageDescription" = "Leiskite naudoti mikrofoną tekstui DI pokalbyje diktuoti.";
-"NSPhotoLibraryUsageDescription" = "Leiskite naudoti nuotraukų biblioteką DI pokalbio priedų nuotraukoms pasirinkti.";
+"NSCameraUsageDescription" = "Fotografuokite DI pokalbiui. Pridėtos nuotraukos siunčiamos OpenAI apdoroti naudojant DI.";
+"NSMicrophoneUsageDescription" = "Įrašykite diktuojamą garsą ir siųskite jį OpenAI, kad būtų paverstas tekstu DI pokalbiui.";
+"NSPhotoLibraryUsageDescription" = "Pasirinkite nuotraukas, kurias norite pridėti prie DI pokalbio ir siųsti OpenAI apdoroti naudojant DI.";

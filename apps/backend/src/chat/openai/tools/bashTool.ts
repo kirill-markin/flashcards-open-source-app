@@ -71,7 +71,6 @@ function createBashToolResult(
     succeeded,
     shouldInvalidateMainContent,
     stopReason: null,
-    generatedImageTelemetry: null,
     sqlTelemetry: null,
     toolErrorClass,
     modelContent: null,

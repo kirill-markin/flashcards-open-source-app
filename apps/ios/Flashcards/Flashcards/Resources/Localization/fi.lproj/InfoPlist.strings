@@ -1,5 +1,5 @@
 "kMDItemKeywords" = "flashcards,flash cards,muistikortit,opiskelukortit,oppiminen,kertaus,kertauskortit";
 "MDItemKeywords" = "flashcards,flash cards,muistikortit,opiskelukortit,oppiminen,kertaus,kertauskortit";
-"NSCameraUsageDescription" = "Salli kameran käyttö kuvien ottamiseksi tekoälykeskustelun liitteisiin.";
-"NSMicrophoneUsageDescription" = "Salli mikrofonin käyttö tekstin sanelemiseksi tekoälykeskusteluun.";
-"NSPhotoLibraryUsageDescription" = "Salli kuvakirjaston käyttö kuvien valitsemiseksi tekoälykeskustelun liitteisiin.";
+"NSCameraUsageDescription" = "Ota kuvia tekoälykeskustelua varten. Liittämäsi kuvat lähetetään OpenAI:lle tekoälykäsittelyyn.";
+"NSMicrophoneUsageDescription" = "Tallenna saneluääntä ja lähetä se OpenAI:lle muunnettavaksi tekstiksi tekoälykeskustelua varten.";
+"NSPhotoLibraryUsageDescription" = "Valitse kuvia liitettäväksi tekoälykeskusteluun ja lähetettäväksi OpenAI:lle tekoälykäsittelyyn.";

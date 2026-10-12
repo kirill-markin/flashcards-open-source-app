@@ -113,17 +113,6 @@ export type OpenAIToolContext = Readonly<{
   generatedImageObservationContext: GeneratedCardImageObservationContext;
 }>;
 
-export type GeneratedImageToolTelemetry = Readonly<{
-  attempt: number | null;
-  status: string;
-}>;
-
-/**
- * Structured outcome of one SQL tool call, exported to Langfuse by the tool executor.
- * A failed SQL call returns an error envelope to the model instead of throwing, so this
- * is the only signal that tells the failure apart from a successful call.
- * `dialectReason` is read as an opaque value: the dialect owns its vocabulary of codes.
- */
 export type SqlToolTelemetry = Readonly<{
   succeeded: boolean;
   errorCode: string | null;
@@ -141,15 +130,7 @@ export type ExecutedChatToolCall = Readonly<{
   succeeded: boolean;
   shouldInvalidateMainContent: boolean;
   stopReason: "deadline_reached" | "run_inactive" | null;
-  generatedImageTelemetry: GeneratedImageToolTelemetry | null;
   sqlTelemetry: SqlToolTelemetry | null;
-  /**
-   * The error class of a failed call whose tool reports no SQL telemetry, so such a failure still
-   * names its cause in the exported metadata and still marks its observation. The SQL tools report
-   * their class inside `sqlTelemetry` and leave this null; the generated-image tool leaves it null
-   * on purpose, because it returns expected product outcomes such as `limit_reached` through the
-   * same error envelope and exports those as its own status instead.
-   */
   toolErrorClass: string | null;
   /**
    * What the model receives in place of `output` during this run, such as the image `view_file` shows.
@@ -571,21 +552,16 @@ export function buildOpenAIChatTools(
 type GeneratedImageExecutionState =
   Omit<
     ExecutedChatToolCall,
-    "output" | "generatedImageTelemetry" | "sqlTelemetry" | "toolErrorClass" | "modelContent"
-  > & Readonly<{
-    attempt: number | null;
-    status: string;
-  }>;
+    "output" | "sqlTelemetry" | "toolErrorClass" | "modelContent"
+  >;
 
 function createGeneratedImageResult(
   payload: Readonly<Record<string, unknown>>,
   execution: GeneratedImageExecutionState,
 ): ExecutedChatToolCall {
-  const { attempt, status, ...executionResult } = execution;
   return {
     output: JSON.stringify({ tool: GENERATED_IMAGE_TOOL_NAME, ...payload }),
-    ...executionResult,
-    generatedImageTelemetry: { attempt, status },
+    ...execution,
     sqlTelemetry: null,
     toolErrorClass: null,
     modelContent: null,
@@ -602,8 +578,6 @@ function createGeneratedImageErrorResult(
   return createGeneratedImageResult(
     { ok: false, code, retryable, ...(attempt === null ? {} : { attempt }) },
     {
-      attempt,
-      status: code,
       succeeded: false,
       isMutating: false,
       shouldInvalidateMainContent,
@@ -781,8 +755,6 @@ async function executeGeneratedImageToolCall(
         placeholderApplied: result.placeholderApplied,
       },
       {
-        attempt: reservation.attempt,
-        status: result.status,
         succeeded: true,
         isMutating: mutated,
         shouldInvalidateMainContent: result.placeholderApplied,
@@ -828,8 +800,6 @@ async function executeGeneratedImageToolCall(
           resetsAt: error.resetsAt,
         },
         {
-          attempt,
-          status: code,
           succeeded: false,
           isMutating: false,
           shouldInvalidateMainContent: false,
@@ -893,8 +863,6 @@ async function executeGeneratedImageToolCall(
       return createGeneratedImageResult(
         { ok: false, code, retryable, ...(attempt === null ? {} : { attempt }), providerMessage },
         {
-          attempt,
-          status: code,
           succeeded: false,
           isMutating: false,
           shouldInvalidateMainContent: false,
@@ -1081,7 +1049,6 @@ async function executeSqlChatToolCall(
       shouldInvalidateMainContent: isMutating
         && (parsed.workspaceId === undefined || parsed.workspaceId === context.workspaceId),
       stopReason: null,
-      generatedImageTelemetry: null,
       toolErrorClass: null,
       modelContent: null,
       sqlTelemetry: createSqlToolSuccessTelemetry(result.data, startedAt),
@@ -1094,7 +1061,6 @@ async function executeSqlChatToolCall(
       succeeded: false,
       shouldInvalidateMainContent: false,
       stopReason: null,
-      generatedImageTelemetry: null,
       toolErrorClass: null,
       modelContent: null,
       sqlTelemetry: failure.sqlTelemetry,
@@ -1199,7 +1165,6 @@ async function executeReadOnlyChatToolCall<Data>(
       succeeded: true,
       shouldInvalidateMainContent: false,
       stopReason: null,
-      generatedImageTelemetry: null,
       sqlTelemetry: null,
       toolErrorClass: null,
       modelContent: null,
@@ -1228,7 +1193,6 @@ async function executeReadOnlyChatToolCall<Data>(
       succeeded: false,
       shouldInvalidateMainContent: false,
       stopReason: null,
-      generatedImageTelemetry: null,
       sqlTelemetry: null,
       toolErrorClass: serializeToolError(error).name,
       modelContent: null,
@@ -1283,7 +1247,6 @@ async function executeReviewChatToolCall(
       succeeded: true,
       shouldInvalidateMainContent: isMutating && result.data.workspaceId === context.workspaceId,
       stopReason: null,
-      generatedImageTelemetry: null,
       sqlTelemetry: null,
       toolErrorClass: null,
       modelContent: null,
@@ -1312,7 +1275,6 @@ async function executeReviewChatToolCall(
       succeeded: false,
       shouldInvalidateMainContent: false,
       stopReason: null,
-      generatedImageTelemetry: null,
       sqlTelemetry: null,
       toolErrorClass: serializeToolError(error).name,
       modelContent: null,

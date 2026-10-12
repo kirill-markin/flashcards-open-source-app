@@ -1,5 +1,5 @@
 "kMDItemKeywords" = "flashcards,flash cards,учебни карти,флашкарти,карти за учене,карти за преговор";
 "MDItemKeywords" = "flashcards,flash cards,учебни карти,флашкарти,карти за учене,карти за преговор";
-"NSCameraUsageDescription" = "Разрешете достъп до камерата, за да прикачвате направени снимки към чата с ИИ.";
-"NSMicrophoneUsageDescription" = "Разрешете достъп до микрофона, за да диктувате текст в чата с ИИ.";
-"NSPhotoLibraryUsageDescription" = "Разрешете достъп до снимките, за да избирате изображения за прикачване към чата с ИИ.";
+"NSCameraUsageDescription" = "Правете снимки за чата с ИИ. Прикачените снимки се изпращат до OpenAI за обработка с ИИ.";
+"NSMicrophoneUsageDescription" = "Записвайте звук от диктовка и го изпращайте до OpenAI за преобразуване в текст за чата с ИИ.";
+"NSPhotoLibraryUsageDescription" = "Избирайте снимки, които да прикачите към чата с ИИ и да изпратите до OpenAI за обработка с ИИ.";
