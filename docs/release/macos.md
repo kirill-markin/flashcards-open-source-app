@@ -105,7 +105,7 @@ authorize dispatch, signed local execution, submission or publication.
    Require the correct bundle/team and profile-authorized private identity
    (`application-identifier` / `com.apple.application-identifier`), valid App
    Store signing/provisioning, sandbox, outgoing network, microphone/camera and
-   user-selected read-only file capabilities, with no distribution debug
+   user-selected read-write file capabilities, with no distribution debug
    entitlement. Inspect nested signed code too. Default private Keychain access
    may omit an explicit sharing group; never invent one to silence a mismatch.
    Correlate these observations with the uploaded build's `buildBundles`
