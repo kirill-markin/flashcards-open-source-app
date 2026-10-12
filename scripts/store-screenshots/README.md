@@ -96,8 +96,9 @@ devices. `previews/` contains five-card overviews. Full cards are under:
 - Android: `ready/<Play-listing-locale>/phoneScreenshots/<card>_<slug>.png`.
 
 Both output directories are ordinary tracked Git files. The approved inventory
-contains 470 iOS cards (210 iPhone Store cards, 210 prepared landscape iPad cards, 40
-additional-language iPhone cards and ten English Duo cards, five per display) and
+contains 675 iOS cards (210 iPhone Store cards, 210 prepared landscape iPad cards,
+210 uploaded Duo inner cards, five prepared English Duo outer cards, and 40
+additional-language iPhone cards) and
 255 Android phone cards. Store-upload status
 and original delivery provenance are recorded in the
 [processing guide](../../docs/store-screenshot-processing.md#tracked-approved-delivery).

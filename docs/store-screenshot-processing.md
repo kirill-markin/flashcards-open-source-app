@@ -30,13 +30,14 @@ processor and its canonical design assets. The approved inventory is:
 | `apps/ios/docs/media/app-store-cards/ready/iphone/` | 210 | Uploaded to App Store Connect |
 | `apps/ios/docs/media/app-store-cards/ready/ipad/` | 210 landscape | Prepared; existing store iPad screenshots unchanged |
 | `apps/ios/docs/media/app-store-cards/ready/iphone-duo-outer/` | 5 | Prepared in English; not uploaded |
-| `apps/ios/docs/media/app-store-cards/ready/iphone-duo-inner/` | 5 | Prepared in English; not uploaded |
+| `apps/ios/docs/media/app-store-cards/ready/iphone-duo-inner/` | 210 landscape | Uploaded to the iOS 1.33.0 listing in all 42 Store locales |
 | `apps/ios/docs/media/app-store-cards/additional-languages/iphone/` | 40 | Prepared; these languages have no separate App Store listing |
 | `apps/android/docs/media/play-store-cards/ready/*/phoneScreenshots/` | 255 | Uploaded to Google Play, including Zulu |
 
-The tracked inventory contains 725 cards. The 210 iPad cards use the current
-2752 × 2064 native landscape inputs; the other 515 cards retain their exact
-delivery bytes. The current `export-manifest.json` records output/source SHA-256
+The tracked inventory contains 930 cards: 675 iOS and 255 Android. The 210
+iPad cards use the current 2752 × 2064 native landscape inputs; the other
+720 cards retain their exact approved delivery bytes. The current
+`export-manifest.json` records output/source SHA-256
 hashes, row-level processing provenance and rendering measurements.
 `source-manifest.json` pins the original native-source package to public app
 revision `8ad37887e71cb946a6697a9ad657ef0ab61ce6bd`; it is historical provenance,
@@ -44,8 +45,9 @@ not the input inventory for the current iPad render. The
 [iOS card provenance](../apps/ios/docs/media/app-store-cards/README.md) records the
 current processing invocation. The separate
 [`duo-source-manifest.json`](../apps/ios/docs/media/app-store-cards/duo-source-manifest.json)
-owns genuine Duo capture provenance. Only `en-US` has Duo assets. Mac Catalyst's
-explicit profile is available, but its native screenshots and cards remain
+owns genuine Duo capture provenance. All 42 Store locales have inner assets;
+only `en-US` has outer assets. Mac Catalyst's explicit profile is available,
+but its native screenshots and cards remain
 pending; selecting `macos` fails clearly until genuine native inputs are saved.
 
 The processor owns reusable backgrounds, copy, locale maps and image-generation

@@ -10,10 +10,15 @@ links to the manual refresh procedure.
 The current `export-manifest.json` contains 210 landscape iPad cards at processing
 base HEAD `518480a83bc8a99b2900e39a2250db3086132be0`, 250 retained iPhone
 rows at `8ad37887e71cb946a6697a9ad657ef0ab61ce6bd`, five Duo outer rows at
-`b615b50fd14fbe5b782469281d9c79869ca73d14`, and five Duo inner rows at
-`4fb98ece8127ab446f81b7bfb31a0c70104f2c7b`. The 260 retained rows and their
-PNG/preview bytes are unchanged. The manifest's top-level revision and input
-root describe the iPad invocation; every row retains its own provenance.
+`b615b50fd14fbe5b782469281d9c79869ca73d14`, and 210 Duo inner rows.
+The five English inner rows retain renderer revision
+`4fb98ece8127ab446f81b7bfb31a0c70104f2c7b`; the 205 localized rows retain
+their actual `0ee31be3f4edfd4465c941b9b84a25f996eaf485` or
+`e694d7eb2df39a68711cdc02a91c506bc3521ec0` renderer revision. All
+pre-existing PNG and preview bytes are unchanged. The manifest's top-level
+revision and input root describe the retained iPad invocation; every row
+records its own provenance. The localized inner cards were assembled from
+previously reviewed outputs, without a new render.
 
 The iPad delivery is 42 Store locales × five 2752 × 2064 opaque RGB cards, using
 the committed native landscape package from
@@ -35,8 +40,12 @@ Chinese and Hindi PNGs each have 33 solid border pixels on every side.
 
 `source-manifest.json` preserves the original native-source package, including
 historical iPad hashes. [`duo-source-manifest.json`](duo-source-manifest.json)
-owns Duo capture provenance. Mac Catalyst has an explicit processing profile;
-its genuine native screenshots and derived cards remain pending.
+owns Duo capture provenance. The 205 localized native inner captures come from
+the frozen app and capture code at `b615b50fd14fbe5b782469281d9c79869ca73d14`;
+their hashes and Git blob identities are recorded per file, without claiming
+the captures existed in that source commit. Mac Catalyst has an explicit
+processing profile; its genuine native screenshots and derived cards remain
+pending.
 
 Reusable design assets, copy and locale maps are in the
 [processor assets](../../../../../scripts/store-screenshots/assets/).
