@@ -137,10 +137,11 @@ required action on the other channels.
 
 External iOS/macOS/provider review and directory crawl/propagation are follow-up; they
 do not hold overall closeout open after these boundaries. Record pending states
-factually and any later operator action, without calling them live. OpenAI's
-initial publication is excluded from routine release until a separately scoped
-initial launch establishes that channel; preserve its submission identity through
-the [companion procedure](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md).
+factually and any later operator action, without calling them live. Every coordinated
+release includes the established [OpenAI channel](mcp-and-plugins.md#openai):
+inspect its hosted MCP and package independently, then verify unchanged live
+content or complete the applicable update under the
+[companion procedure](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md#openai).
 
 Before a new publication/submission, apply the [release warning policy](#release-warning-policy).
 Already-published matching Apple or Android artifacts count complete under the
