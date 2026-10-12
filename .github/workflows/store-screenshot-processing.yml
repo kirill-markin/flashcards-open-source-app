@@ -35,6 +35,7 @@ on:
           - ipad
           - iphone-duo-outer
           - iphone-duo-inner
+          - macos
       locales:
         description: Comma-separated locale IDs; empty processes all configured sets
         required: false
@@ -72,7 +73,7 @@ jobs:
         env:
           PROCESS_PLATFORM: ${{ inputs.platform || 'all' }}
           PROCESS_FAMILY: ${{ inputs.family || 'all' }}
-          PROCESS_LOCALES: ${{ inputs.locales }}
+          PROCESS_LOCALES: ${{ github.event_name == 'pull_request' && 'en-US,ru,ar,zh-Hans,hi' || inputs.locales }}
         run: |
           set -euo pipefail
           if [[ "${PROCESS_PLATFORM}" == "android" && "${PROCESS_FAMILY}" != "all" ]]; then
@@ -92,6 +93,16 @@ jobs:
               args+=(--locales "${PROCESS_LOCALES}")
             fi
             npm run render --prefix scripts/store-screenshots -- "${args[@]}"
+            if [[ "${platform}" == "ios" && "${PROCESS_FAMILY}" == "all" && -d apps/ios/docs/media/app-store-screenshots/macos ]]; then
+              mac_sources=(apps/ios/docs/media/app-store-screenshots/macos/*.png)
+              if [[ -f "${mac_sources[0]}" ]]; then
+                mac_args=(--platform ios --family macos --output-root "${RUNNER_TEMP}/nibomo-store-cards/ios")
+                if [[ -n "${PROCESS_LOCALES}" ]]; then
+                  mac_args+=(--locales "${PROCESS_LOCALES}")
+                fi
+                npm run render --prefix scripts/store-screenshots -- "${mac_args[@]}"
+              fi
+            fi
           done
       - name: Save processed cards and review galleries
         uses: actions/upload-artifact@v7

@@ -13,7 +13,7 @@ if (values.help) {
   console.log(`Process existing native screenshots; never capture or upload them.
 Usage: npm --prefix scripts/store-screenshots run render -- [options]
   --platform all|ios|android          Default: all
-  --family all|iphone|ipad|iphone-duo-outer|iphone-duo-inner
+  --family all|iphone|ipad|iphone-duo-outer|iphone-duo-inner|macos
                                       iOS family; default: existing iPhone and iPad
   --locales en-US,ar                  Selected capture tags or listing locale IDs
   --input-root <directory>            Override native input root for one platform
@@ -26,7 +26,7 @@ Default outputs: apps/{ios,android}/docs/media/{app-store,play-store}-cards`);
   process.exit(0);
 }
 if (!["all", "ios", "android"].includes(values.platform!)) throw new Error("--platform must be all, ios, or android.");
-if (!["all", "iphone", "ipad", "iphone-duo-outer", "iphone-duo-inner"].includes(values.family!)) throw new Error("--family must be all, iphone, ipad, iphone-duo-outer, or iphone-duo-inner.");
+if (!["all", "iphone", "ipad", "iphone-duo-outer", "iphone-duo-inner", "macos"].includes(values.family!)) throw new Error("--family must be all, iphone, ipad, iphone-duo-outer, iphone-duo-inner, or macos.");
 if (values.platform === "android" && values.family !== "all") throw new Error("Android currently has phone captures only; --family is an iOS option.");
 if (values.platform === "all" && (values["input-root"] || values["output-root"])) throw new Error("Directory overrides require --platform ios or --platform android.");
 const requested = values.locales?.split(",");
@@ -58,5 +58,9 @@ for (const platform of values.platform === "all" ? ["ios", "android"] : [values.
     if (values["verify-existing"]) args.push("--verify-existing");
   }
   run(platform === "ios" ? "render-ios.mts" : "render-android.mts", args);
-  if (!values["check-layout"]) run(platform === "ios" ? "package-ios.mts" : "package-android.mts", values["output-root"] ? ["--output-root", values["output-root"]] : []);
+  if (!values["check-layout"]) {
+    const packageArgs = values["output-root"] ? ["--output-root", values["output-root"]] : [];
+    if (platform === "ios") packageArgs.push("--family", values.family!);
+    run(platform === "ios" ? "package-ios.mts" : "package-android.mts", packageArgs);
+  }
 }
