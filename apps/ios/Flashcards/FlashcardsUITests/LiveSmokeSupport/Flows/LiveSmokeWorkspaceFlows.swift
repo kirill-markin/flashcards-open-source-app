@@ -436,7 +436,19 @@ extension LiveSmokeTestCase {
             identifier: LiveSmokeIdentifier.accountStatusLogoutButton,
             timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
         )
+        #if targetEnvironment(macCatalyst)
+        let button = self.app.sheets
+            .matching(NSPredicate(format: "label == %@", "alert"))
+            .buttons.matching(identifier: "action-button--999")
+            .element
+        try self.tapButton(
+            button: button,
+            identifier: "accountStatus.logoutConfirmButton.sheet.action-button--999",
+            timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+        )
+        #else
         try self.tapButton(identifier: LiveSmokeIdentifier.accountStatusLogoutConfirmButton, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        #endif
     }
 
     @MainActor
