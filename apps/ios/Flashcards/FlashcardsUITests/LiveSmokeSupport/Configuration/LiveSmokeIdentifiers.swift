@@ -136,6 +136,7 @@ enum LiveSmokeIdentifier {
     static let aiHistoryButton: String = "ai.historyButton"
     static let aiHistoryList: String = "ai.history.list"
     static let aiHistorySessionRow: String = "ai.history.sessionRow"
+    static let aiHistoryCurrentSessionRow: String = "ai.history.currentSessionRow"
     static let aiHistoryReader: String = "ai.history.reader"
     static let aiMessageRow: String = "ai.messageRow"
     static let aiComposerTextField: String = "ai.composerTextField"
