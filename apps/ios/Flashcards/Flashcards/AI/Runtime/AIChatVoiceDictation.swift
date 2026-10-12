@@ -146,6 +146,7 @@ final class AIChatVoiceRecorder: NSObject, AIChatVoiceRecording {
             }
         }
 
+        try Task.checkCancellation()
         let audioSession = AVAudioSession.sharedInstance()
         try audioSession.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker])
         try audioSession.setActive(true)
@@ -250,11 +251,27 @@ final class AIChatTranscriptionService: @unchecked Sendable {
     private let session: URLSession
     private let decoder: JSONDecoder
     private let ownOpenAIKeyStore: OwnOpenAIKeyStore
+    private let consentReceiptProvider: AIConsentReceiptProvider
 
-    init(session: URLSession, decoder: JSONDecoder, ownOpenAIKeyStore: OwnOpenAIKeyStore) {
+    convenience init(session: URLSession, decoder: JSONDecoder, ownOpenAIKeyStore: OwnOpenAIKeyStore) {
+        self.init(
+            session: session,
+            decoder: decoder,
+            ownOpenAIKeyStore: ownOpenAIKeyStore,
+            consentReceiptProvider: { _ in throw AIConsentError.required }
+        )
+    }
+
+    init(
+        session: URLSession,
+        decoder: JSONDecoder,
+        ownOpenAIKeyStore: OwnOpenAIKeyStore,
+        consentReceiptProvider: @escaping AIConsentReceiptProvider
+    ) {
         self.session = session
         self.decoder = decoder
         self.ownOpenAIKeyStore = ownOpenAIKeyStore
+        self.consentReceiptProvider = consentReceiptProvider
     }
 }
 
@@ -264,13 +281,17 @@ extension AIChatTranscriptionService: AIChatAudioTranscribing {
         sessionId: String?,
         recordedAudio: AIChatRecordedAudio
     ) async throws -> AIChatTranscriptionResult {
-        let request = try self.makeRequest(
+        let consentId = try await self.consentReceiptProvider(session)
+        var request = try self.makeRequest(
             session: session,
             sessionId: sessionId,
             recordedAudio: recordedAudio
         )
+        request.setValue(consentId, forHTTPHeaderField: aiConsentIdHeader)
 
         do {
+            try Task.checkCancellation()
+            guard try await self.consentReceiptProvider(session) == consentId else { throw AIConsentError.required }
             let (data, response) = try await self.session.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse else {
                 throw AIChatTranscriptionError.serviceUnavailable

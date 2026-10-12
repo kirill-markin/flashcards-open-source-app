@@ -41,6 +41,7 @@ extension FlashcardsStore {
         let database = try requireLocalDatabase(database: self.database)
         let previousStrictReminderNotificationScope = storedStrictReminderNotificationScope(userDefaults: self.userDefaults)
 
+        try self.resetAIConsentIdentity()
         self.reviewRuntime.cancelForAccountDeletion()
         self.cloudRuntime.cancelForAccountDeletion()
         let previousStrictRemindersReconciliationTask = self.cancelStrictRemindersReconciliation()

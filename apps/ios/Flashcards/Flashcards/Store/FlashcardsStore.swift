@@ -193,6 +193,8 @@ final class FlashcardsStore {
     /// indefinitely, across that whole cohort.
     @ObservationIgnored var reportedProductAnalyticsPushFailureStages: Set<String>
     @ObservationIgnored var cachedAIChatStore: AIChatStore?
+    @ObservationIgnored var cachedAIConsentStore: AIConsentStore?
+    @ObservationIgnored var aiConsentRegistrationTask: Task<Void, Never>?
     @ObservationIgnored var currentVisibleTab: AppTab
     @ObservationIgnored var lastImmediateCloudSyncTriggerAt: Date?
     @ObservationIgnored var activeReviewNotificationsRescheduleTask: Task<Void, Never>?
@@ -258,6 +260,7 @@ final class FlashcardsStore {
     }
 
     func shutdownForTests() {
+        self.aiConsentRegistrationTask?.cancel()
         self.cachedAIChatStore?.shutdownForTests()
         self.activeAutomaticFeedbackPromptTask?.cancel()
         self.reviewRuntime.cancelForAccountDeletion()
