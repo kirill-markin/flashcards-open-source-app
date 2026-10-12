@@ -362,6 +362,21 @@ extension LiveSmokeTestCase {
 
             while Date() < deadline {
                 if accountStatusRow.exists && accountStatusRow.isHittable {
+                    #if targetEnvironment(macCatalyst)
+                    // Catalyst can report a row hidden under the fixed navigation bar as hittable.
+                    let navigationBar = self.app.navigationBars.firstMatch
+                    let rowFrame = accountStatusRow.frame
+                    let isInsideVisibleContent = navigationBar.exists
+                        && navigationBar.frame.isEmpty == false
+                        && rowFrame.isEmpty == false
+                        && rowFrame.minY >= navigationBar.frame.maxY
+                        && self.app.collectionViews[LiveSmokeIdentifier.settingsScreen].firstMatch.frame.contains(rowFrame)
+                    if isInsideVisibleContent == false {
+                        try self.scrollSettingsRootContentTowardEarlierRows(timeout: timeout)
+                        RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
+                        continue
+                    }
+                    #endif
                     try self.tapExistingButton(
                         accountStatusRow,
                         identifier: LiveSmokeIdentifier.settingsAccountStatusRow,
@@ -375,12 +390,20 @@ extension LiveSmokeTestCase {
                 RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
             }
 
+            #if targetEnvironment(macCatalyst)
+            throw LiveSmokeFailure.unexpectedAccountState(
+                message: "'\(LiveSmokeIdentifier.settingsAccountStatusRow)' did not become hittable inside the Settings viewport below its navigation bar within \(formatDuration(seconds: timeout)).",
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+            #else
             throw LiveSmokeFailure.missingElement(
                 identifier: LiveSmokeIdentifier.settingsAccountStatusRow,
                 timeoutSeconds: timeout,
                 screen: self.currentScreenSummary(),
                 step: self.currentStepTitle
             )
+            #endif
         }
         try self.assertScreenVisible(screen: .accountStatus, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
     }
