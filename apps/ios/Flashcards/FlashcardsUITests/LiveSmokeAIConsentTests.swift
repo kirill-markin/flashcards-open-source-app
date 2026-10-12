@@ -36,7 +36,7 @@ final class LiveSmokeAIConsentTests: LiveSmokeTestCase {
         try self.assertConsentBlocksProducingControls()
         try self.tapButton(identifier: LiveSmokeIdentifier.aiHistoryButton, timeout: 10)
         try self.assertElementExists(identifier: LiveSmokeIdentifier.aiHistoryList, timeout: 30)
-        try self.assertElementExists(identifier: LiveSmokeIdentifier.aiHistorySessionRow, timeout: 30)
+        try self.assertElementExists(identifier: LiveSmokeIdentifier.aiHistoryCurrentSessionRow, timeout: 30)
 
         self.app.terminate()
         try self.launchApplication(launchScenario: nil, selectedTab: .ai)
