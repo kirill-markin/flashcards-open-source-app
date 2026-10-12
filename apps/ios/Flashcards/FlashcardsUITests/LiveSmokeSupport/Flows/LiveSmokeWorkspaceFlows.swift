@@ -20,7 +20,7 @@ extension LiveSmokeTestCase {
         scenario: () throws -> Void
     ) throws {
         try self.runGuestToLinkedWorkspaceScenario(
-            context: context, reviewEmail: reviewEmail, beforeSignIn: {}, scenario: scenario
+            context: context, reviewEmail: reviewEmail, beforeSignIn: {}, beforeDelete: {}, scenario: scenario
         )
     }
 
@@ -29,6 +29,7 @@ extension LiveSmokeTestCase {
         context: LiveSmokeRunContext,
         reviewEmail: String,
         beforeSignIn: () throws -> Void,
+        beforeDelete: () throws -> Void,
         scenario: () throws -> Void
     ) throws {
         try self.launchApplication(
@@ -69,6 +70,7 @@ extension LiveSmokeTestCase {
             }
             do {
                 try self.step("delete the isolated workspace") {
+                    try beforeDelete()
                     try self.deleteEphemeralWorkspace(workspaceName: context.workspaceName)
                 }
             } catch {
