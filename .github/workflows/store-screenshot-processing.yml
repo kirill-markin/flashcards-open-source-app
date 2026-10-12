@@ -73,7 +73,7 @@ jobs:
         env:
           PROCESS_PLATFORM: ${{ inputs.platform || 'all' }}
           PROCESS_FAMILY: ${{ inputs.family || 'all' }}
-          PROCESS_LOCALES: ${{ inputs.locales }}
+          PROCESS_LOCALES: ${{ github.event_name == 'pull_request' && 'en-US,ru,ar,zh-Hans,hi' || inputs.locales }}
         run: |
           set -euo pipefail
           if [[ "${PROCESS_PLATFORM}" == "android" && "${PROCESS_FAMILY}" != "all" ]]; then
@@ -96,7 +96,11 @@ jobs:
             if [[ "${platform}" == "ios" && "${PROCESS_FAMILY}" == "all" && -d apps/ios/docs/media/app-store-screenshots/macos ]]; then
               mac_sources=(apps/ios/docs/media/app-store-screenshots/macos/*.png)
               if [[ -f "${mac_sources[0]}" ]]; then
-                npm run render --prefix scripts/store-screenshots -- --platform ios --family macos --output-root "${RUNNER_TEMP}/nibomo-store-cards/ios"
+                mac_args=(--platform ios --family macos --output-root "${RUNNER_TEMP}/nibomo-store-cards/ios")
+                if [[ -n "${PROCESS_LOCALES}" ]]; then
+                  mac_args+=(--locales "${PROCESS_LOCALES}")
+                fi
+                npm run render --prefix scripts/store-screenshots -- "${mac_args[@]}"
               fi
             fi
           done
