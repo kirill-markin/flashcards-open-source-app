@@ -18,7 +18,6 @@ type AndroidGallery = Array<{ tag: string; files: GalleryFile[] }>;
 const { values } = parseArgs({ options: { "chromium-executable": { type: "string" } } });
 const repoRoot = resolve(import.meta.dirname, "../..");
 const iosInput = resolve(repoRoot, "apps/ios/docs/media/app-store-screenshots");
-const portraitIosInput = resolve(import.meta.dirname, "fixtures/ios-portrait");
 const androidInput = resolve(repoRoot, "apps/android/docs/media/play-store-screenshots");
 const temporary = await mkdtemp(join(tmpdir(), "nibomo-store-smoke-"));
 const iosOutput = join(temporary, "ios");
@@ -34,10 +33,18 @@ function invoke(args: string[], expectedSuccess = true): string {
   return output;
 }
 
+async function macSourceNames(): Promise<string[]> {
+  try { return (await readdir(join(iosInput, "macos"))).filter(name => name.endsWith(".png")); }
+  catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") return [];
+    throw error;
+  }
+}
+
 async function sourceSnapshot(): Promise<Record<string, string>> {
   const paths = [
+    ...(await macSourceNames()).map(name => join(iosInput, "macos", name)),
     ...(await readdir(join(iosInput, "iphone"))).filter(name => name.endsWith(".png")).map(name => join(iosInput, "iphone", name)),
-    ...(await readdir(join(portraitIosInput, "ipad"))).filter(name => name.endsWith(".png")).map(name => join(portraitIosInput, "ipad", name)),
     ...(await readdir(join(iosInput, "ipad"))).filter(name => name.endsWith(".png")).map(name => join(iosInput, "ipad", name)),
     ...(await readdir(androidInput)).filter(name => name.endsWith(".png")).map(name => join(androidInput, name)),
   ];
@@ -70,8 +77,16 @@ async function verifyExports(root: string, expectedCount: number, platform: "ios
       assert.ok(audit.screen.y >= audit.screenBox.y - .1 && audit.screen.y + audit.screen.height <= audit.screenBox.y + audit.screenBox.height + .1);
       assert.ok(Math.abs(audit.screen.x + audit.screen.width / 2 - audit.screenBox.x - audit.screenBox.width / 2) < .1);
       assert.ok(Math.abs(audit.screen.y + audit.screen.height / 2 - audit.screenBox.y - audit.screenBox.height / 2) < .1);
-      assert.equal(file.width, file.family === "ipad" ? 2064 : 1284);
-      assert.equal(file.height, file.family === "ipad" ? 2752 : 2778);
+      const dimensions: Readonly<Record<string, readonly [number, number]>> = { iphone: [1284, 2778], ipad: [2752, 2064], macos: [2880, 1800] };
+      assert.equal(file.width, dimensions[file.family!][0]);
+      assert.equal(file.height, dimensions[file.family!][1]);
+      if (file.family === "ipad" || file.family === "macos") {
+        const paddings = [audit.screen.x - audit.frame.x, audit.screen.y - audit.frame.y,
+          audit.frame.x + audit.frame.width - audit.screen.x - audit.screen.width,
+          audit.frame.y + audit.frame.height - audit.screen.y - audit.screen.height];
+        assert.ok(Math.max(...paddings) - Math.min(...paddings) < .1, "Landscape padding must match on all four sides.");
+        assert.ok(Math.abs(audit.screen.width - audit.screenBox.width) < .1 && Math.abs(audit.screen.height - audit.screenBox.height) < .1, "Landscape frames must not letterbox.");
+      }
     }
   }
   return manifest;
@@ -99,7 +114,8 @@ async function verifyGallery(root: string, platform: "ios" | "android", expected
     await page.selectOption("#language", "ar");
     await loaded();
     if (platform === "ios") {
-      await page.selectOption("#device", "ipad");
+      const family = (data as IosGallery).some(item => item.sets.some(set => set.family === "ipad")) ? "ipad" : "macos";
+      await page.selectOption("#device", family);
       await loaded();
       if (expectedLanguages === 3) {
         await page.selectOption("#language", "ru");
@@ -122,21 +138,18 @@ try {
   assert.ok(initialIos.results.filter(file => file.family === "iphone").every(file => file.audit?.naturalWidth === 1284 && file.audit?.naturalHeight === 2778));
   assert.ok(initialIos.results.filter(file => file.family === "ipad").every(file => file.audit?.naturalWidth === 2752 && file.audit?.naturalHeight === 2064));
 
-  console.log("Smoke: process real historical portrait iPad captures in the same approved frame.");
-  const portraitOutput = join(temporary, "ios-portrait");
-  invoke(["--platform", "ios", "--family", "ipad", "--locales", "en-US", "--input-root", portraitIosInput, "--output-root", portraitOutput]);
-  const portraitIos = await verifyExports(portraitOutput, 5, "ios");
-  for (const file of portraitIos.results) {
-    const audit = file.audit!;
-    assert.equal(audit.naturalWidth, 2064);
-    assert.equal(audit.naturalHeight, 2752);
-    const landscape = initialIos.results.find(item => item.family === "ipad" && item.captureTag === "en-US" && item.card === file.card)!.audit!;
-    assert.deepEqual(audit.frame, landscape.frame);
-    assert.deepEqual(audit.screenBox, landscape.screenBox);
-    assert.equal(audit.headingStyle, landscape.headingStyle);
-    assert.equal(audit.captionStyle, landscape.captionStyle);
-    assert.equal(audit.headingTop, landscape.headingTop);
-    assert.equal(audit.captionTop, landscape.captionTop);
+  console.log("Smoke: explicit Mac selection uses only genuine native inputs.");
+  const macOutput = join(temporary, "macos");
+  if ((await macSourceNames()).length) {
+    const macLocales: Array<{ captureTag: string }> = JSON.parse(await readFile(resolve(import.meta.dirname, "assets/app-store/store-locales.json"), "utf8"));
+    invoke(["--platform", "ios", "--family", "macos", "--output-root", macOutput]);
+    const mac = await verifyExports(macOutput, macLocales.length * 5, "ios");
+    assert.ok(mac.results.every(file => file.family === "macos"));
+    await verifyGallery(macOutput, "ios", macLocales.length);
+  } else {
+    const missingMac = invoke(["--platform", "ios", "--family", "macos", "--locales", "en-US", "--output-root", macOutput], false);
+    assert.match(missingMac, /Missing native macos screenshot folder|Expected one source matching macos/);
+    await assert.rejects(readFile(join(macOutput, "export-manifest.json")), { code: "ENOENT" });
   }
 
   console.log("Smoke: process real English/Arabic Android captures.");
@@ -193,7 +206,7 @@ try {
   invoke(["--platform", "ios", "--family", "ipad", "--locales", "en-US", "--output-root", readOnlyOutput, "--check-layout"]);
   await assert.rejects(readFile(join(readOnlyOutput, "export-manifest.json")), { code: "ENOENT" });
   assert.deepEqual(await sourceSnapshot(), originalSources, "The native screenshot inventory changed during processing.");
-  console.log(`Store processor smoke passed: real portrait/landscape PNG exports and galleries, incremental device sets, failure preservation, read-only validation, and all ${Object.keys(originalSources).length} native files unchanged.`);
+  console.log(`Store processor smoke passed: real landscape iPad/Mac and portrait iPhone PNG exports and galleries, incremental device sets, failure preservation, read-only validation, and all ${Object.keys(originalSources).length} native files unchanged.`);
 } finally {
   await rm(temporary, { recursive: true, force: true });
 }
