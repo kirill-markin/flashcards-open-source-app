@@ -10,7 +10,7 @@ The record is emitted by `withAgentSqlTelemetry` in
 `runSqlExecute`, `runChatSqlQuery`, and `runChatSqlExecute`. It sits below the MCP tool handlers' own
 `catch`, which answers with a `CallToolResult` and therefore never reaches
 `app.onError`: without this record an MCP dialect rejection produces no record
-of its SQL detail, no Sentry event, and no Langfuse trace. The `mcp_request`
+of its SQL detail and no Sentry event. The `mcp_request`
 record the same request emits reports the transport's own `statusCode` 200,
 because a rejected tool call is a successful JSON-RPC response, and carries only
 the tool's `toolErrorCode`.
