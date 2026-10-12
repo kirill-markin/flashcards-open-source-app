@@ -298,3 +298,11 @@ The comparison the header draws between the two tables is still the reason this 
 same with the older table in the past tense: a weights-applied total per user-month could not be
 re-priced, split by surface or attributed to a model. Its rows were not carried over when it was dropped,
 so guest AI consumption from before the cutover is gone rather than restated here.
+
+### `0176_client_os_name_device_type.sql` — the four-argument overload is gone
+
+Its header says that the four-argument `sync.claim_installation` from `0168` "stays unchanged" and that
+a call "resolves to exactly one of them by its argument count".
+`0179_drop_four_argument_claim_installation.sql` drops that overload, so the six-argument function `0176`
+adds is the only `sync.claim_installation`, and `0179` records why the drop waited for a separate deploy.
+`0168`'s handling of concurrent first claims lives on unchanged in that six-argument definition.

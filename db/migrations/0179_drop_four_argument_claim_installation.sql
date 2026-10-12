@@ -1,0 +1,32 @@
+-- Migration status: Current / contract cleanup.
+-- Removes: the four-argument sync.claim_installation(UUID, TEXT, TEXT, TEXT), last defined by
+--   db/migrations/0168_sync_claim_installation_concurrent_insert.sql. Its EXECUTE grants to
+--   backend_app and auth_app and its comment go with it, so nothing is revoked first.
+-- Current guidance: the six-argument overload from db/migrations/0176_client_os_name_device_type.sql
+--   is the only sync.claim_installation. It is 0168's definition with the reported operating system
+--   family and device class added, so nothing the four-argument overload did is lost.
+-- Current guidance: 0176 was the expand half of an expand-and-contract split and kept this overload
+--   because the migration gate applies a file before the backend released with it serves a request,
+--   while the previous backend, which called only this overload, kept serving until it was replaced.
+--   This file is the contract half and a separate deploy. It was written only after the backend that
+--   calls just the six-argument form (apps/backend/src/sync/identity/replica.ts) had served
+--   production through several releases, and pg_stat_user_functions showed this overload's call count
+--   no longer growing while the six-argument count kept rising.
+-- Current guidance: only backend code older than that switch names this overload, so redeploying such
+--   code after this file fails every installation claim with 42883 (undefined_function). That cost is
+--   accepted rather than guarded against.
+-- Current guidance: DROP FUNCTION locks only the function object, and calling a function takes no
+--   lock on it, so the drop neither waits behind sync traffic nor makes it queue, and no table is
+--   locked. That is why there is no SET LOCAL lock_timeout here, unlike the index and table drops in
+--   db/migrations/0133_drop_cards_search_trgm_index.sql and
+--   db/migrations/0157_drop_guest_ai_monthly_usage.sql; 0141 dropped this signature the same way.
+-- Current guidance: the argument list names exactly this overload, so the six-argument one is
+--   untouched. The drop is deliberately neither IF EXISTS nor CASCADE: no migration makes anything
+--   depend on this function, so a drop that fails means that assumption stopped holding and is a
+--   signal rather than something to force through.
+-- Schemas touched/read explicitly: sync.
+-- See also: db/migrations/0141_sync_installation_automation_marker.sql,
+--   db/migrations/0168_sync_claim_installation_concurrent_insert.sql,
+--   db/migrations/0176_client_os_name_device_type.sql, docs/sync-identity-model.md.
+
+DROP FUNCTION sync.claim_installation(UUID, TEXT, TEXT, TEXT);
