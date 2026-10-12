@@ -23,6 +23,26 @@ extension LiveSmokeTestCase {
     }
 
     @MainActor
+    func scrollSettingsRootContentTowardEarlierRows(timeout: TimeInterval) throws {
+        let settingsList = self.app.collectionViews[LiveSmokeIdentifier.settingsScreen].firstMatch
+        guard settingsList.exists else {
+            throw LiveSmokeFailure.missingElement(
+                identifier: LiveSmokeIdentifier.settingsScreen,
+                timeoutSeconds: timeout,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+
+        #if targetEnvironment(macCatalyst)
+        settingsList.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.5))
+            .scroll(byDeltaX: 0, deltaY: 120)
+        #else
+        settingsList.swipeDown()
+        #endif
+    }
+
+    @MainActor
     func scrollBestEffort() {
         let collectionView = self.app.collectionViews.firstMatch
         if collectionView.exists {

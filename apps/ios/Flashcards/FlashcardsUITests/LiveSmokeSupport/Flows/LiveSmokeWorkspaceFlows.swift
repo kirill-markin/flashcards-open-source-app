@@ -275,8 +275,8 @@ extension LiveSmokeTestCase {
     @MainActor
     func scrollSettingsToCurrentWorkspaceRow() throws {
         try self.runWithInlineRawScreenStateOnFailure(action: "scroll_settings_to_current_workspace") {
-            let workspaceRow = self.app.buttons[LiveSmokeIdentifier.settingsCurrentWorkspaceRow].firstMatch
             let settingsList = self.app.collectionViews[LiveSmokeIdentifier.settingsScreen].firstMatch
+            let workspaceRow = settingsList.buttons[LiveSmokeIdentifier.settingsCurrentWorkspaceRow].firstMatch
             let deadline = Date().addingTimeInterval(LiveSmokeConfiguration.longUiTimeoutSeconds)
 
             while Date() < deadline {
@@ -284,7 +284,7 @@ extension LiveSmokeTestCase {
                     return
                 }
 
-                settingsList.swipeDown()
+                try self.scrollSettingsRootContentTowardEarlierRows(timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
                 RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
             }
 
@@ -354,10 +354,34 @@ extension LiveSmokeTestCase {
     @MainActor
     func openAccountStatus() throws {
         try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        try self.tapButtonScrollingIntoView(
-            identifier: LiveSmokeIdentifier.settingsAccountStatusRow,
-            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
-        )
+        try self.runWithInlineRawScreenStateOnFailure(action: "open_account_status") {
+            let accountStatusRow = self.app.collectionViews[LiveSmokeIdentifier.settingsScreen].firstMatch
+                .buttons[LiveSmokeIdentifier.settingsAccountStatusRow].firstMatch
+            let timeout = LiveSmokeConfiguration.longUiTimeoutSeconds
+            let deadline = Date().addingTimeInterval(timeout)
+
+            while Date() < deadline {
+                if accountStatusRow.exists && accountStatusRow.isHittable {
+                    try self.tapExistingButton(
+                        accountStatusRow,
+                        identifier: LiveSmokeIdentifier.settingsAccountStatusRow,
+                        action: "open_account_status",
+                        note: "Account Status tapped in Settings content"
+                    )
+                    return
+                }
+
+                try self.scrollSettingsRootContentTowardEarlierRows(timeout: timeout)
+                RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
+            }
+
+            throw LiveSmokeFailure.missingElement(
+                identifier: LiveSmokeIdentifier.settingsAccountStatusRow,
+                timeoutSeconds: timeout,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
         try self.assertScreenVisible(screen: .accountStatus, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
     }
 
