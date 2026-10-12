@@ -2,7 +2,10 @@
  * Session rows expose only the active suggestion set, while history is stored
  * separately as append-only generations.
  */
-import type OpenAI from "openai";
+import OpenAI from "openai";
+import { assertAiConsentReceiptActive } from "../aiConsent";
+import { writeCloudWatchRecord } from "../observability/cloudWatch";
+import { getReceiptProviderRetryDelayMs, waitForReceiptProviderRetry } from "./openai/receiptRetry";
 import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import {
@@ -632,6 +635,7 @@ export async function generateFollowUpChatComposerSuggestions(
   assistantItemId: string,
   uiLocale: string | null | undefined,
   usageAttribution: AiUsageCallAttribution,
+  aiConsentId?: string | null,
 ): Promise<ReadonlyArray<ChatComposerSuggestion>> {
   return generateFollowUpChatComposerSuggestionsWithDependencies(
     userId,
@@ -641,6 +645,7 @@ export async function generateFollowUpChatComposerSuggestions(
     uiLocale,
     usageAttribution,
     DEFAULT_CHAT_COMPOSER_SUGGESTIONS_DEPENDENCIES,
+    aiConsentId,
   );
 }
 
@@ -652,6 +657,7 @@ export async function generateFollowUpChatComposerSuggestionsWithDependencies(
   uiLocale: string | null | undefined,
   usageAttribution: AiUsageCallAttribution,
   dependencies: ChatComposerSuggestionsDependencies,
+  aiConsentId?: string | null,
 ): Promise<ReadonlyArray<ChatComposerSuggestion>> {
   const userMessage = extractPlainText(userContent);
   const assistantReply = extractPlainText(assistantContent);
@@ -661,7 +667,7 @@ export async function generateFollowUpChatComposerSuggestionsWithDependencies(
 
   const normalizedUiLocale = normalizeChatComposerSuggestionsUiLocale(uiLocale);
 
-  const response = await dependencies.getOpenAIClient().responses.create({
+  const request: OpenAI.Responses.ResponseCreateParamsNonStreaming = {
     model: CHAT_COMPOSER_SUGGESTIONS_MODEL_ID,
     reasoning: {
       effort: CHAT_COMPOSER_SUGGESTIONS_REASONING_EFFORT,
@@ -686,7 +692,36 @@ export async function generateFollowUpChatComposerSuggestionsWithDependencies(
     text: {
       format: zodTextFormat(followUpSuggestionsWireSchema, "composer_suggestions"),
     },
-  });
+  };
+  const client = dependencies.getOpenAIClient();
+  let response: OpenAI.Responses.Response;
+  for (let attempt = 1; ; attempt += 1) {
+    await assertAiConsentReceiptActive(userId, aiConsentId ?? null);
+    try {
+      response = await client.responses.create(request, aiConsentId == null ? undefined : { maxRetries: 0 });
+      break;
+    } catch (error) {
+      const retryDelayMs = aiConsentId == null ? null : getReceiptProviderRetryDelayMs(error, attempt);
+      if (retryDelayMs === null || !(error instanceof OpenAI.APIError)) throw error;
+      writeCloudWatchRecord({
+        action: "chat_composer_suggestions_provider_call_retried",
+        message: "OpenAI follow-up suggestions will retry after a provider failure.",
+        scope: createBackendObservationScope(
+          "chat-worker", null, null, null, userId, usageAttribution.workspaceId,
+          usageAttribution.requestId, null, null, null, null,
+        ),
+        details: {
+          callIndex: attempt,
+          userSuppliedKey: false,
+          providerErrorCode: error.code ?? null,
+          providerErrorType: error.type ?? null,
+          providerRequestId: error.requestID ?? null,
+          retryDelayMs,
+        },
+      }, "warning");
+      await waitForReceiptProviderRetry(retryDelayMs, undefined);
+    }
+  }
 
   // Appended before the response is parsed, because an unparseable answer was paid for exactly like a
   // usable one, and the early return and throw below would otherwise drop the fact.

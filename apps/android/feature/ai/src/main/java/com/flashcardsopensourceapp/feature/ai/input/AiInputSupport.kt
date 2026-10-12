@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Build
 import android.provider.OpenableColumns
 import android.webkit.MimeTypeMap
+import androidx.core.content.FileProvider
 import com.flashcardsopensourceapp.data.local.ai.store.AiChatStagedAttachmentStore
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.aiChatMaximumFileAttachmentBytes
@@ -29,6 +30,8 @@ import kotlinx.coroutines.ensureActive
 
 private const val cameraAttachmentFileName: String = "photo.jpg"
 private const val cameraAttachmentMediaType: String = "image/jpeg"
+// Shared with the `ai_chat_camera_capture` entry in the app's `file_paths.xml`.
+private const val cameraCaptureDirectoryName: String = "ai-chat-camera-capture"
 private const val imageAttachmentMaxSidePixels: Int = 2_048
 private const val imageAttachmentCompressionQuality: Int = 80
 private const val imageAttachmentFallbackMaxSidePixels: Int = 1_280
@@ -62,10 +65,10 @@ class AiAttachmentTooLargeUserException(
 
 /**
  * A JPEG encode the platform refused. Deliberately not an [AiAttachmentImportUserException]: nothing
- * about the picked item is wrong and there is nothing to pick differently. Confined to the photo
- * picker, which wraps it as an unreadable image and keeps the dialog it already showed, so the
+ * about the picked item is wrong and there is nothing to pick differently. The image compressor wraps
+ * it as an unreadable image, so the photo picker keeps the dialog it already showed and the
  * analytics mapping can find it in the cause chain and report `server_error`, which is what iOS
- * reports for the same failure. [makeAiChatAttachmentFromCameraBitmap] converts it away again,
+ * reports for the same failure. [makeAiChatAttachmentFromCameraUri] converts it away again,
  * because the camera surfaces the thrown class itself to the person and to Sentry.
  */
 class AiAttachmentEncodeFailedException(
@@ -171,23 +174,52 @@ private fun createAiDictationMediaRecorder(context: Context): MediaRecorder {
     }
 }
 
-fun makeAiChatAttachmentFromCameraBitmap(
+/**
+ * A fresh, not yet created file in the app cache for the camera app to write the full-resolution
+ * photo into, as a URI it can be granted. Delete it with [deleteAiChatCameraCapture].
+ */
+fun makeAiChatCameraCaptureUri(context: Context): Uri {
+    val captureDirectory = File(context.cacheDir, cameraCaptureDirectoryName)
+    if (captureDirectory.mkdirs().not() && captureDirectory.isDirectory.not()) {
+        throw IllegalStateException(
+            "AI chat camera capture cache path is not a directory: ${captureDirectory.absolutePath}"
+        )
+    }
+
+    return FileProvider.getUriForFile(
+        context,
+        "${context.packageName}.fileprovider",
+        File(captureDirectory, "capture-${UUID.randomUUID()}.jpg")
+    )
+}
+
+/** Deletes a capture file from [makeAiChatCameraCaptureUri]; one the camera never wrote is already absent. */
+fun deleteAiChatCameraCapture(
     context: Context,
-    bitmap: Bitmap,
+    uri: Uri
+) {
+    context.contentResolver.delete(uri, null, null)
+}
+
+fun makeAiChatAttachmentFromCameraUri(
+    context: Context,
+    uri: Uri,
     textProvider: AiTextProvider
 ): AiChatAttachment {
     // An encode failure leaves this path untyped: the camera renders the thrown class in its
     // technical-details dialog and reports it to Sentry, and the analytics mapping buckets an
     // unmatched throwable as `server_error`, the same reason the typed one carries.
     val bytes = try {
-        compressBitmapForAiChatAttachment(
-            bitmap = bitmap,
+        compressImageUriForAiChatAttachment(
+            context = context,
+            uri = uri,
             textProvider = textProvider
         )
-    } catch (error: AiAttachmentEncodeFailedException) {
+    } catch (error: AiAttachmentImportUserException) {
+        val encodeFailure = error.cause as? AiAttachmentEncodeFailedException ?: throw error
         // Keep the encode site's frames, so Sentry groups this by where the encode failed rather
         // than by this rethrow.
-        throw IllegalArgumentException(error.message).apply { stackTrace = error.stackTrace }
+        throw IllegalArgumentException(encodeFailure.message).apply { stackTrace = encodeFailure.stackTrace }
     }
     return makeStagedAiChatAttachment(
         context = context,

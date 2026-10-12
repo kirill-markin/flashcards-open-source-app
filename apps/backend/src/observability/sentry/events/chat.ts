@@ -481,6 +481,12 @@ export type ChatWarningEvent =
   | (EventByAction<"chat_worker_provider_call_retried", ChatWorkerProviderCallRetriedDetails> & Readonly<{
     message: string;
   }>)
+  | (EventByAction<"chat_transcription_provider_call_retried", ChatWorkerProviderCallRetriedDetails> & Readonly<{
+    message: string;
+  }>)
+  | (EventByAction<"chat_composer_suggestions_provider_call_retried", ChatWorkerProviderCallRetriedDetails> & Readonly<{
+    message: string;
+  }>)
   | (EventByAction<"chat_file_upload_orphaned", ChatFileUploadOrphanedDetails> & Readonly<{ message: string }>)
   | (EventByAction<"chat_file_cleanup_retry", ChatFileCleanupRetryDetails> & Readonly<{ message: string }>)
   | (EventByAction<"chat_sandbox_invoke_retried", ChatSandboxInvokeRetriedDetails> & Readonly<{ message: string }>)

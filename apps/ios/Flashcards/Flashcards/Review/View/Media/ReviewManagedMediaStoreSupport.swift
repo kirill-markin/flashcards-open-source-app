@@ -119,7 +119,8 @@ extension FlashcardsStore {
         } catch {
             let isExpectedCancellation: Bool =
                 Task.isCancelled && isRequestCancellationError(error: error)
-            if isExpectedCancellation == false {
+            let isExpectedTransportFailure: Bool = isSilentlyIgnorableNetworkTransportFailure(error: error)
+            if isExpectedCancellation == false && isExpectedTransportFailure == false {
                 self.captureReviewManagedMediaLoadFailure(
                     error: error,
                     stage: "cache_download"

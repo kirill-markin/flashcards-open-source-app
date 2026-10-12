@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { assertAiConsentReceiptActive } from "../../../aiConsent";
 import { buildOpenAISafetyIdentifier } from "../../openai/safetyIdentifier";
 import { createUserOpenAIClient, getOpenAIClient } from "../../openai/client";
 import type { UserOpenAIApiKey } from "../../userOpenAIApiKey";
@@ -517,6 +518,8 @@ export class OpenAIGeneratedCardImageProvider {
       ]);
 
       try {
+        await assertAiConsentReceiptActive(input.userId, input.aiConsentId ?? null);
+        requestSignal.throwIfAborted();
         const providerRequest = this.#client.images.generate(
           {
             model: generatedCardImageModel,
