@@ -70,7 +70,7 @@ test("real consent HTTP and PostgreSQL lifecycle preserves decisions through rep
       locale: "fr", disclosureText: "Nibomo transmet le contenu demandé à OpenAI pour les fonctions IA.",
       appVersion: "1.33.0", appBuild: "133", platform: "ios",
     });
-    const submit = (token: string, body: object): Promise<Response> => app.request("/v1/ai/consent", {
+    const submit = async (token: string, body: object): Promise<Response> => app.request("/v1/ai/consent", {
       method: "POST", headers: { authorization: `Guest ${token}`, "content-type": "application/json" },
       body: JSON.stringify(body),
     });
