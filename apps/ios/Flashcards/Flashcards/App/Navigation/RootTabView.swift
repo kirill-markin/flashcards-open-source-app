@@ -397,6 +397,13 @@ struct RootTabView: View {
         return TabView(selection: selectedTabBinding) {
             Tab(value: AppTab.review) {
                 self.reviewTab
+                    .background {
+                        if UIDevice.current.userInterfaceIdiom == .phone {
+                            RootTabAccessibilityMetadataAdapter()
+                                .allowsHitTesting(false)
+                                .accessibilityHidden(true)
+                        }
+                    }
             } label: {
                 self.tabLabel(.review, identifier: UITestIdentifier.rootTabReviewItem)
             }
@@ -405,6 +412,13 @@ struct RootTabView: View {
 
             Tab(value: AppTab.progress) {
                 self.progressTab
+                    .background {
+                        if UIDevice.current.userInterfaceIdiom == .phone {
+                            RootTabAccessibilityMetadataAdapter()
+                                .allowsHitTesting(false)
+                                .accessibilityHidden(true)
+                        }
+                    }
             } label: {
                 self.tabLabel(.progress, identifier: UITestIdentifier.rootTabProgressItem)
             }
@@ -412,6 +426,13 @@ struct RootTabView: View {
 
             Tab(value: AppTab.ai) {
                 self.aiTab(aiPath: $navigation.aiPath)
+                    .background {
+                        if UIDevice.current.userInterfaceIdiom == .phone {
+                            RootTabAccessibilityMetadataAdapter()
+                                .allowsHitTesting(false)
+                                .accessibilityHidden(true)
+                        }
+                    }
             } label: {
                 self.tabLabel(.ai, identifier: UITestIdentifier.rootTabAIItem)
             }
@@ -419,6 +440,13 @@ struct RootTabView: View {
 
             Tab(value: AppTab.cards) {
                 self.cardsTab
+                    .background {
+                        if UIDevice.current.userInterfaceIdiom == .phone {
+                            RootTabAccessibilityMetadataAdapter()
+                                .allowsHitTesting(false)
+                                .accessibilityHidden(true)
+                        }
+                    }
             } label: {
                 self.tabLabel(.cards, identifier: UITestIdentifier.rootTabCardsItem)
             }
@@ -426,6 +454,13 @@ struct RootTabView: View {
 
             Tab(value: AppTab.settings) {
                 self.settingsTab(settingsPath: $navigation.settingsPath)
+                    .background {
+                        if UIDevice.current.userInterfaceIdiom == .phone {
+                            RootTabAccessibilityMetadataAdapter()
+                                .allowsHitTesting(false)
+                                .accessibilityHidden(true)
+                        }
+                    }
             } label: {
                 self.tabLabel(.settings, identifier: UITestIdentifier.rootTabSettingsItem)
             }
