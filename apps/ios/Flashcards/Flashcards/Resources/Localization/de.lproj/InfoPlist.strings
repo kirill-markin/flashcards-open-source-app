@@ -1,5 +1,5 @@
 "kMDItemKeywords" = "flashcards,flash cards,Karteikarten,Lernkarten,Karteikarten zum Wiederholen";
 "MDItemKeywords" = "flashcards,flash cards,Karteikarten,Lernkarten,Karteikarten zum Wiederholen";
-"NSCameraUsageDescription" = "Erlaube den Kamerazugriff, um Fotos für KI-Chat-Anhänge aufzunehmen.";
-"NSMicrophoneUsageDescription" = "Erlaube den Mikrofonzugriff, um Text in den KI-Chat zu diktieren.";
-"NSPhotoLibraryUsageDescription" = "Erlaube den Zugriff auf die Fotomediathek, um Fotos für KI-Chat-Anhänge auszuwählen.";
+"NSCameraUsageDescription" = "Nimm Fotos für den KI-Chat auf. Angehängte Fotos werden zur KI-Verarbeitung an OpenAI gesendet.";
+"NSMicrophoneUsageDescription" = "Nimm Diktat-Audio auf und sende es an OpenAI, um es für den KI-Chat in Text umzuwandeln.";
+"NSPhotoLibraryUsageDescription" = "Wähle Fotos aus, um sie an den KI-Chat anzuhängen und zur KI-Verarbeitung an OpenAI zu senden.";

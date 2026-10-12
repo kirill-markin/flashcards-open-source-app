@@ -1,5 +1,5 @@
 "kMDItemKeywords" = "flashcards,flash cards,mācību kartītes,kartītes,kartites,atkārtošanas kartītes";
 "MDItemKeywords" = "flashcards,flash cards,mācību kartītes,kartītes,kartites,atkārtošanas kartītes";
-"NSCameraUsageDescription" = "Atļaujiet piekļuvi kamerai, lai uzņemtu fotoattēlus MI sarunas pielikumiem.";
-"NSMicrophoneUsageDescription" = "Atļaujiet piekļuvi mikrofonam, lai diktētu tekstu MI sarunā.";
-"NSPhotoLibraryUsageDescription" = "Atļaujiet piekļuvi fotoattēlu bibliotēkai, lai izvēlētos fotoattēlus MI sarunas pielikumiem.";
+"NSCameraUsageDescription" = "Uzņemiet fotoattēlus MI sarunai. Pievienotie fotoattēli tiek sūtīti uz OpenAI apstrādei ar MI.";
+"NSMicrophoneUsageDescription" = "Ierakstiet diktēšanas audio un nosūtiet to uz OpenAI, lai pārvērstu tekstā MI sarunai.";
+"NSPhotoLibraryUsageDescription" = "Atlasiet fotoattēlus, ko pievienot MI sarunai un nosūtīt uz OpenAI apstrādei ar MI.";

@@ -1,5 +1,5 @@
 "kMDItemKeywords" = "flashcards,flash cards,kartice za učenje,memorijske kartice,kartice,kartice za ponavljanje";
 "MDItemKeywords" = "flashcards,flash cards,kartice za učenje,memorijske kartice,kartice,kartice za ponavljanje";
-"NSCameraUsageDescription" = "Dopustite pristup kameri za snimanje fotografija za privitke u AI razgovoru.";
-"NSMicrophoneUsageDescription" = "Dopustite pristup mikrofonu za diktiranje teksta u AI razgovoru.";
-"NSPhotoLibraryUsageDescription" = "Dopustite pristup fototeci za odabir fotografija za privitke u AI razgovoru.";
+"NSCameraUsageDescription" = "Snimajte fotografije za AI chat. Priložene fotografije šalju se OpenAI-ju na obradu AI-jem.";
+"NSMicrophoneUsageDescription" = "Snimajte zvuk diktiranja i pošaljite ga OpenAI-ju za pretvaranje u tekst za AI chat.";
+"NSPhotoLibraryUsageDescription" = "Odaberite fotografije koje želite priložiti AI chatu i poslati OpenAI-ju na obradu AI-jem.";
