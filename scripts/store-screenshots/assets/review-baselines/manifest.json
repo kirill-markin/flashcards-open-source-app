@@ -1,10 +1,28 @@
 {
-  "purpose": "Visual baselines of the transferred formatter; future native UI capture changes are expected to change the app pixels.",
-  "nativeSourceRevision": "8ad37887e71cb946a6697a9ad657ef0ab61ce6bd",
-  "date": "2026-10-09",
+  "purpose": "Formatter visual baselines; future native UI capture changes are expected to change the app pixels.",
   "files": [
     "iphone-en-US.png",
     "ipad-en-US.png",
     "android-en-US.png"
-  ]
+  ],
+  "provenance": {
+    "iphone-en-US.png": {
+      "date": "2026-10-09",
+      "nativeSourceRevision": "8ad37887e71cb946a6697a9ad657ef0ab61ce6bd"
+    },
+    "ipad-en-US.png": {
+      "source": "apps/ios/docs/media/app-store-cards/previews/en-US-ipad.png",
+      "generatedAt": "2026-10-12T05:11:18.997Z",
+      "processingSourceRevision": "518480a83bc8a99b2900e39a2250db3086132be0",
+      "nativeInputPackageCommit": "d7496a1c3be51f2b4a9fc134ca9e7e732c164e8a",
+      "rendererSha256": "e9966244581b9f4c326f338cc0e4f9db7ce36bccdb6d9bda50d5cebeb3a5d53a",
+      "rendererGitBlob": "6e4c8279142166f6ae9ef868b7f6d7187d3cd25e",
+      "rendererDiffSha256": "5b14080dce91a3ffacb4a93ce47d916eb429ec3fd64fbccec70ea8e2d2f834ec",
+      "sha256": "aa4c2fd773283644d1adbdbe267082a25b22eb4ac1e646f210e0febd6b56d6f6"
+    },
+    "android-en-US.png": {
+      "date": "2026-10-09",
+      "nativeSourceRevision": "8ad37887e71cb946a6697a9ad657ef0ab61ce6bd"
+    }
+  }
 }
