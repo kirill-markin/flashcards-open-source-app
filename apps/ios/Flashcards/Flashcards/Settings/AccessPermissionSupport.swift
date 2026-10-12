@@ -234,8 +234,6 @@ func accessPermissionGuidance(kind: AccessPermissionKind, status: AccessPermissi
 }
 
 /**
- * Requests one OS permission and reports what the person answered.
- *
  * Every caller in the app already asks only when the permission is undetermined, and this checks it
  * again because that is what makes the event honest: an already-decided permission resolves from the
  * stored answer without a dialog being shown, and reporting one then would count dialogs nobody saw.
@@ -267,9 +265,6 @@ func analyticsPermission(kind: AccessPermissionKind) -> AnalyticsPermission {
 }
 
 /**
- * Maps a post-request status onto the catalog's three outcomes, or to nothing when no dialog can
- * have produced it.
- *
  * `limited` is a grant: the person allowed the app a chosen set of photos, which is an answer of yes
  * with a scope attached, and the catalog has no narrower value for it. `askEveryTime` means the
  * request came back with the permission still undetermined, which is the person closing the dialog
@@ -328,13 +323,40 @@ private func performAccessPermissionRequest(kind: AccessPermissionKind) async ->
     }
 }
 
+private enum SystemSettingsError: LocalizedError {
+    case invalidLink
+    case openFailed
+
+    var errorDescription: String? {
+        switch self {
+        case .invalidLink:
+            return String(
+                localized: "system_settings.error.invalidLink",
+                defaultValue: "The Settings link is invalid. Open system settings manually.",
+                table: "Foundation"
+            )
+        case .openFailed:
+            return String(
+                localized: "system_settings.error.openFailed",
+                defaultValue: "Settings couldn’t open. Open system settings manually.",
+                table: "Foundation"
+            )
+        }
+    }
+}
+
 @MainActor
-func openApplicationSettings() {
-    guard let settingsUrl = URL(string: UIApplication.openSettingsURLString) else {
-        return
+func openApplicationSettings() async throws {
+    #if targetEnvironment(macCatalyst)
+    let settingsUrlString: String = "x-apple.systempreferences:"
+    #else
+    let settingsUrlString: String = UIApplication.openSettingsURLString
+    #endif
+    guard let settingsUrl = URL(string: settingsUrlString) else {
+        throw SystemSettingsError.invalidLink
     }
 
-    if UIApplication.shared.canOpenURL(settingsUrl) {
-        UIApplication.shared.open(settingsUrl)
+    guard await UIApplication.shared.open(settingsUrl, options: [:]) else {
+        throw SystemSettingsError.openFailed
     }
 }
