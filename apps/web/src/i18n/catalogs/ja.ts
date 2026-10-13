@@ -1393,6 +1393,7 @@ export const jaCatalog = {
       microphoneUnavailable: "このブラウザではマイク録音を利用できません。",
     },
     composerPlaceholder: "カードや復習履歴について質問するか、抽出用のメモを添付してください...",
+    currentChatRecovered: "このチャットは新しいチャットに置き換えられました。メッセージは入力欄に残っています。もう一度送信してください。",
     dictation: {
       listening: "聞き取り中...",
       start: "音声入力を開始",
@@ -1411,6 +1412,7 @@ export const jaCatalog = {
       aiLimitReachedAccount: "今月の AI メッセージを使い切りました。{{date}}に更新されます。続けるには、設定で自分の OpenAI キーを追加できます。",
       aiLimitReachedAccountNoDate: "今月の AI メッセージを使い切りました。続けるには、設定で自分の OpenAI キーを追加できます。",
       aiLimitReachedGuest: "今月の無料 AI メッセージを使い切りました。続けるには、アカウントを作成するか、設定で自分の OpenAI キーを追加してください。",
+      currentChatDraftConflict: "現在のチャットにはすでに下書きがあります。メッセージはここに残ります。チャットを開き直す前にコピーしてください。",
       emptyBackendResponse: "バックエンドが空のエラーレスポンスを返しました。",
       genericFailure: "AI チャットに失敗しました。",
       liveStreamEndedBeforeCompletion: "AI のライブストリームが実行完了前に終了しました。",

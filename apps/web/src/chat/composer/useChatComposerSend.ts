@@ -97,6 +97,8 @@ export function useChatComposerSend(params: UseChatComposerSendParams): ChatComp
   const activeWorkspaceIdRef = useRef<string | null>(activeWorkspaceId);
   const isComposerMountedRef = useRef<boolean>(true);
   const pendingAttachmentsRef = useRef<ReadonlyArray<PendingAttachment>>([]);
+  const draftPendingAttachmentsRef = useRef<ReadonlyArray<PendingAttachment>>(draftPendingAttachments);
+  draftPendingAttachmentsRef.current = draftPendingAttachments;
   const inputText = isDraftOptimisticallyClearedForSend ? "" : draftInputText;
   const pendingAttachments = isDraftOptimisticallyClearedForSend ? [] : draftPendingAttachments;
 
@@ -161,15 +163,17 @@ export function useChatComposerSend(params: UseChatComposerSendParams): ChatComp
     currentDraftUpdatedAt: number | null,
     resultSessionId: string | null,
   ): void {
-    if (resultSessionId !== null && resultSessionId !== currentDraftSessionId) {
-      moveDraftToSession(
+    const restoredDraftUpdatedAt = resultSessionId === null
+      ? null
+      : moveDraftToSession(
         currentDraftSessionId,
         currentDraftUpdatedAt,
         resultSessionId,
         createChatDraftContent(inputText, nextAttachments),
       );
-    }
-    restoreComposerAfterPendingSend(nextAttachments);
+    restoreComposerAfterPendingSend(restoredDraftUpdatedAt === null
+      ? draftPendingAttachmentsRef.current
+      : nextAttachments);
   }
 
   function movePendingSendDraftToSession(
@@ -332,20 +336,28 @@ export function useChatComposerSend(params: UseChatComposerSendParams): ChatComp
       let pendingDraftSessionId: string | null = sourceSessionId;
       let resultDraftUpdatedAt: number | null = sourceDraftUpdatedAt;
       const handleSessionDraftTargetReady = (targetSessionId: string): number | null => {
-        if (indexedDbOpenRecoveryState.hasFailed()) {
-          return resultDraftUpdatedAt;
+        if (
+          indexedDbOpenRecoveryState.hasFailed()
+          || isSendLifecycleRequestCurrent(requestSequence) === false
+          || isComposerMountedRef.current === false
+        ) {
+          return null;
         }
         if (pendingDraftSessionId === targetSessionId) {
           return resultDraftUpdatedAt;
         }
 
-        resultDraftUpdatedAt = movePendingSendDraftToSession(
+        const movedDraftUpdatedAt = movePendingSendDraftToSession(
           nextText,
           nextAttachments,
           pendingDraftSessionId,
           resultDraftUpdatedAt,
           targetSessionId,
         );
+        if (movedDraftUpdatedAt === null) {
+          return null;
+        }
+        resultDraftUpdatedAt = movedDraftUpdatedAt;
         pendingDraftSessionId = targetSessionId;
         return resultDraftUpdatedAt;
       };
@@ -353,6 +365,7 @@ export function useChatComposerSend(params: UseChatComposerSendParams): ChatComp
         clientRequestId: crypto.randomUUID().toLowerCase(),
         text: nextText,
         attachments: nextAttachments,
+        isDraftTargetCurrent: () => isSendLifecycleRequestCurrent(requestSequence) && isComposerMountedRef.current,
         onSessionDraftTargetReady: handleSessionDraftTargetReady,
       });
       indexedDbOpenRecoveryState.throwIfFailed();

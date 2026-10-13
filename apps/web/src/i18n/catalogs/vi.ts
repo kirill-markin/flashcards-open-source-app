@@ -1393,6 +1393,7 @@ const viCatalog: TranslationCatalog = {
       microphoneUnavailable: "Trình duyệt này không hỗ trợ ghi âm bằng micrô.",
     },
     composerPlaceholder: "Hỏi về thẻ, lịch sử ôn tập hoặc đính kèm ghi chú...",
+    currentChatRecovered: "Cuộc trò chuyện này đã được thay bằng một cuộc trò chuyện mới hơn. Tin nhắn của bạn vẫn còn trong ô nhập — hãy gửi lại.",
     dictation: {
       listening: "Đang nghe...",
       start: "Bắt đầu đọc chính tả",
@@ -1411,6 +1412,7 @@ const viCatalog: TranslationCatalog = {
       aiLimitReachedAccount: "Bạn đã dùng hết tin nhắn AI của tháng này. Tin nhắn sẽ được làm mới vào {{date}}. Để tiếp tục, bạn có thể thêm khóa OpenAI của riêng mình trong Cài đặt.",
       aiLimitReachedAccountNoDate: "Bạn đã dùng hết tin nhắn AI của tháng này. Để tiếp tục, bạn có thể thêm khóa OpenAI của riêng mình trong Cài đặt.",
       aiLimitReachedGuest: "Bạn đã dùng hết tin nhắn AI miễn phí của tháng này. Để tiếp tục, hãy tạo tài khoản hoặc thêm khóa OpenAI của riêng bạn trong Cài đặt.",
+      currentChatDraftConflict: "Cuộc trò chuyện hiện tại đã có bản nháp. Tin nhắn của bạn vẫn ở đây. Hãy sao chép trước khi mở lại cuộc trò chuyện.",
       emptyBackendResponse: "Máy chủ trả về phản hồi lỗi rỗng.",
       genericFailure: "Trò chuyện AI thất bại.",
       liveStreamEndedBeforeCompletion: "Luồng trực tiếp của AI kết thúc trước khi phản hồi hoàn tất.",

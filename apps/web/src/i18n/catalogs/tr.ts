@@ -1393,6 +1393,7 @@ const trCatalog: TranslationCatalog = {
       microphoneUnavailable: "Bu tarayıcıda mikrofon kaydı kullanılamıyor.",
     },
     composerPlaceholder: "Kartlar veya tekrar geçmişi hakkında soru sorun ya da not ekleyin...",
+    currentChatRecovered: "Bu sohbet daha yeni bir sohbetle değiştirildi. Mesajınız hâlâ metin kutusunda — tekrar gönderin.",
     dictation: {
       listening: "Dinleniyor...",
       start: "Dikteyi başlat",
@@ -1411,6 +1412,7 @@ const trCatalog: TranslationCatalog = {
       aiLimitReachedAccount: "Bu ayın AI mesajlarını kullandınız. Mesajlar {{date}} tarihinde yenilenir. Devam etmek için Ayarlar'dan kendi OpenAI anahtarınızı ekleyebilirsiniz.",
       aiLimitReachedAccountNoDate: "Bu ayın AI mesajlarını kullandınız. Devam etmek için Ayarlar'dan kendi OpenAI anahtarınızı ekleyebilirsiniz.",
       aiLimitReachedGuest: "Bu ayın ücretsiz AI mesajlarını kullandınız. Devam etmek için bir hesap oluşturun veya Ayarlar'dan kendi OpenAI anahtarınızı ekleyin.",
+      currentChatDraftConflict: "Geçerli sohbette zaten bir taslak var. Mesajınız bu sohbette kalır. Bu mesajı taşımadan önce diğer taslağı inceleyin.",
       emptyBackendResponse: "Sunucu boş bir hata yanıtı döndürdü.",
       genericFailure: "AI sohbeti başarısız oldu.",
       liveStreamEndedBeforeCompletion: "AI canlı akışı, işlem bitmeden sona erdi.",

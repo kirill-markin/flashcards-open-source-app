@@ -1393,6 +1393,7 @@ const etCatalog: TranslationCatalog = {
       microphoneUnavailable: "Mikrofoniga salvestamine pole selles brauseris saadaval.",
     },
     composerPlaceholder: "Küsi kaartide või kordamiste ajaloo kohta või lisa märkmeid...",
+    currentChatRecovered: "See vestlus asendati uuemaga. Sinu sõnum on endiselt tekstiväljas – saada see uuesti.",
     dictation: {
       listening: "Kuulamine...",
       start: "Alusta dikteerimist",
@@ -1411,6 +1412,7 @@ const etCatalog: TranslationCatalog = {
       aiLimitReachedAccount: "Oled selle kuu tehisintellekti sõnumid ära kasutanud. Need uuenevad {{date}}. Jätkamiseks saad seadetes lisada oma OpenAI võtme.",
       aiLimitReachedAccountNoDate: "Oled selle kuu tehisintellekti sõnumid ära kasutanud. Jätkamiseks saad seadetes lisada oma OpenAI võtme.",
       aiLimitReachedGuest: "Oled selle kuu tasuta tehisintellekti sõnumid ära kasutanud. Jätkamiseks loo konto või lisa seadetes oma OpenAI võti.",
+      currentChatDraftConflict: "Praeguses vestluses on juba mustand. Teie sõnum jääb siia. Kopeerige see enne vestluse uuesti avamist.",
       emptyBackendResponse: "Server tagastas tühja veavastuse.",
       genericFailure: "Tehisintellekti vestlus ebaõnnestus.",
       liveStreamEndedBeforeCompletion: "Tehisintellekti otsevoog lõppes enne töö valmimist.",

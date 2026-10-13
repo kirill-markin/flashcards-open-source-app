@@ -20,6 +20,7 @@ export type ChatSessionControllerState = Readonly<{
 
 export type ChatSessionControllerAction =
   | Readonly<{ type: "accept_server_session_id"; sessionId: string | null }>
+  | Readonly<{ type: "composer_notice_shown"; message: string }>
   | Readonly<{ type: "error_dismissed" }>
   | Readonly<{ type: "error_shown"; message: string }>
   | Readonly<{ type: "fresh_session_ready"; sessionId: string; composerSuggestions: ReadonlyArray<ChatComposerSuggestion>; chatConfig: ChatConfig }>
@@ -124,6 +125,8 @@ export function chatSessionControllerReducer(
         ...state,
         currentSessionId: action.sessionId,
       };
+    case "composer_notice_shown":
+      return { ...state, composerNotice: action.message, errorDialogMessage: null };
     case "error_dismissed":
       return {
         ...state,

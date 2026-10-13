@@ -1407,6 +1407,7 @@ const ltCatalog: TranslationCatalog = {
       microphoneUnavailable: "Įrašymas mikrofonu šioje naršyklėje nepasiekiamas.",
     },
     composerPlaceholder: "Klauskite apie korteles, kartojimų istoriją arba pridėkite užrašų...",
+    currentChatRecovered: "Šis pokalbis buvo pakeistas naujesniu. Jūsų žinutė vis dar teksto laukelyje — išsiųskite ją dar kartą.",
     dictation: {
       listening: "Klausomasi...",
       start: "Pradėti diktavimą",
@@ -1425,6 +1426,7 @@ const ltCatalog: TranslationCatalog = {
       aiLimitReachedAccount: "Išnaudojote šio mėnesio DI žinutes. Jos atsinaujins {{date}}. Norėdami tęsti, nustatymuose galite pridėti savo OpenAI raktą.",
       aiLimitReachedAccountNoDate: "Išnaudojote šio mėnesio DI žinutes. Norėdami tęsti, nustatymuose galite pridėti savo OpenAI raktą.",
       aiLimitReachedGuest: "Išnaudojote šio mėnesio nemokamas DI žinutes. Norėdami tęsti, susikurkite paskyrą arba nustatymuose pridėkite savo OpenAI raktą.",
+      currentChatDraftConflict: "Dabartiniame pokalbyje jau yra juodraštis. Jūsų žinutė lieka čia. Nukopijuokite ją prieš vėl atidarydami pokalbį.",
       emptyBackendResponse: "Serveris grąžino tuščią klaidos atsakymą.",
       genericFailure: "DI pokalbis nepavyko.",
       liveStreamEndedBeforeCompletion: "DI tiesioginis srautas baigėsi anksčiau, nei buvo užbaigtas vykdymas.",

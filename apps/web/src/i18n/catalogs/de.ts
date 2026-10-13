@@ -1393,6 +1393,7 @@ const deCatalog: TranslationCatalog = {
       microphoneUnavailable: "Mikrofonaufnahme ist in diesem Browser nicht verfügbar.",
     },
     composerPlaceholder: "Frage nach Karten, Wiederholungsverlauf oder hänge Notizen an...",
+    currentChatRecovered: "Dieser Chat wurde durch einen neueren ersetzt. Ihre Nachricht steht noch im Eingabefeld – senden Sie sie erneut.",
     dictation: {
       listening: "Hört zu...",
       start: "Diktat starten",
@@ -1411,6 +1412,7 @@ const deCatalog: TranslationCatalog = {
       aiLimitReachedAccount: "Du hast die AI-Nachrichten für diesen Monat aufgebraucht. Sie werden am {{date}} erneuert. Du kannst in den Einstellungen deinen eigenen OpenAI-Schlüssel hinzufügen, um weiterzumachen.",
       aiLimitReachedAccountNoDate: "Du hast die AI-Nachrichten für diesen Monat aufgebraucht. Du kannst in den Einstellungen deinen eigenen OpenAI-Schlüssel hinzufügen, um weiterzumachen.",
       aiLimitReachedGuest: "Du hast die kostenlosen AI-Nachrichten für diesen Monat aufgebraucht. Erstelle ein Konto oder füge in den Einstellungen deinen eigenen OpenAI-Schlüssel hinzu, um weiterzumachen.",
+      currentChatDraftConflict: "Der aktuelle Chat hat bereits einen Entwurf. Ihre Nachricht bleibt in diesem Chat. Prüfen Sie den anderen Entwurf, bevor Sie diese Nachricht verschieben.",
       emptyBackendResponse: "Das Backend hat eine leere Fehlerantwort zurückgegeben.",
       genericFailure: "AI-Chat ist fehlgeschlagen.",
       liveStreamEndedBeforeCompletion: "Der AI-Livestream endete, bevor der Lauf abgeschlossen war.",
