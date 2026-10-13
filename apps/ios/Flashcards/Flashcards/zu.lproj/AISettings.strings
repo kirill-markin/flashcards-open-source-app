@@ -566,9 +566,9 @@
 "settings.account.cloudSignIn.loadingWorkspaces" = "Kulayishwa izindawo zokusebenza…";
 "settings.account.cloudSignIn.loadingWorkspacesDescription" = "Ukungena kuphumelele. Uhlelo selulayisha isinyathelo sendawo yokusebenza yefu.";
 "settings.account.cloudSignIn.guestLocalRecovery.prepare.title" = "Kulungiswa indawo yokusebenza ebuyiselwe...";
-"settings.account.cloudSignIn.guestLocalRecovery.prepare.message" = "Idatha yasendaweni isekhona kule divayisi. Gcina lesi sikrini sivulekile ngenkathi uhlelo ilungisa indawo yokusebenza ebuyiselwe.";
+"settings.account.cloudSignIn.guestLocalRecovery.prepare.message" = "Idatha yasendaweni isekhona kule divayisi. Gcina lesi sikrini sivulekile ngenkathi uhlelo lulungisa indawo yokusebenza ebuyiselwe.";
 "settings.account.cloudSignIn.guestLocalRecovery.recovering.title" = "Kubuyiselwa idatha yasendaweni";
-"settings.account.cloudSignIn.guestLocalRecovery.recovering.message" = "Gcina lesi sikrini sivulekile ngenkathi uhlelo iphinde ixhuma idatha yasendaweni yale divayisi endaweni yakho yokusebenza ebuyiselwe.";
+"settings.account.cloudSignIn.guestLocalRecovery.recovering.message" = "Gcina lesi sikrini sivulekile ngenkathi uhlelo luphinde luxhuma idatha yasendaweni yale divayisi endaweni yakho yokusebenza ebuyiselwe.";
 "settings.account.cloudSignIn.guestLocalRecovery.failure.title" = "Ukubuyiselwa kwedatha yasendaweni kuhlulekile.";
 "settings.account.cloudSignIn.guestLocalRecovery.failure.message" = "Zama futhi; idatha yasendaweni ihlala kule divayisi.";
 "settings.account.cloudSignIn.technicalDetails" = "Imininingwane yobuchwepheshe";
