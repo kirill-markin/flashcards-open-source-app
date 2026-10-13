@@ -87,6 +87,11 @@ an `ai_chat` or `agent_connection` replica, whose `installation_id` is NULL and 
 carries no marker by design. A marked installation is not an installation that produces zero events;
 read residue as these producers rather than as a defect in the marker.
 
+[Shared actor exclusions](../apps/backend/src/reviewMetricsSql.ts) hide current guest owners of
+marked installations at reporting time, including these surviving server facts. Raw events remain
+stored. A Cognito identity keeps its owner outside this installation-based exclusion; unmarked
+guests and guests without a registered installation are outside it too.
+
 The eight billing facts in
 [billingFacts.ts](../apps/backend/src/productAnalytics/serverFacts/billingFacts.ts) -
 `entitlement_changed`, `trial_started`, `purchase_completed`, `subscription_renewed`, `subscription_revoked`,
