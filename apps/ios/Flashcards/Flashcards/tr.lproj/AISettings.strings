@@ -566,9 +566,9 @@
 "settings.account.cloudSignIn.loadingWorkspaces" = "Çalışma alanları yükleniyor…";
 "settings.account.cloudSignIn.loadingWorkspacesDescription" = "Giriş başarılı. Uygulama şimdi bulut çalışma alanı adımını yüklüyor.";
 "settings.account.cloudSignIn.guestLocalRecovery.prepare.title" = "Kurtarılan çalışma alanı hazırlanıyor...";
-"settings.account.cloudSignIn.guestLocalRecovery.prepare.message" = "Yerel veriler hâlâ bu aygıtta. uygulama kurtarılan çalışma alanını hazırlarken bu ekranı açık tutun.";
+"settings.account.cloudSignIn.guestLocalRecovery.prepare.message" = "Yerel veriler hâlâ bu aygıtta. Uygulama kurtarılan çalışma alanını hazırlarken bu ekranı açık tutun.";
 "settings.account.cloudSignIn.guestLocalRecovery.recovering.title" = "Yerel veriler kurtarılıyor";
-"settings.account.cloudSignIn.guestLocalRecovery.recovering.message" = "uygulama bu aygıttaki yerel verileri kurtarılan çalışma alanınıza yeniden bağlarken bu ekranı açık tutun.";
+"settings.account.cloudSignIn.guestLocalRecovery.recovering.message" = "Uygulama bu aygıttaki yerel verileri kurtarılan çalışma alanınıza yeniden bağlarken bu ekranı açık tutun.";
 "settings.account.cloudSignIn.guestLocalRecovery.failure.title" = "Yerel veriler kurtarılamadı.";
 "settings.account.cloudSignIn.guestLocalRecovery.failure.message" = "Tekrar deneyin; yerel veriler bu aygıtta kalır.";
 "settings.account.cloudSignIn.technicalDetails" = "Teknik ayrıntılar";
