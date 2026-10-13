@@ -8,7 +8,7 @@ Nibomo's Mac app uses the existing Apple target, SwiftUI/UIKit iPad interface,
 SQLite, offline outbox, sync, authentication and StoreKit implementation under
 `apps/ios/Flashcards`. Mac Catalyst uses **Scale Interface to Match iPad**
 (`TARGETED_DEVICE_FAMILY = 1,2`), with macOS 15.0 as the baseline. iPhone/iPad
-remain on iOS 18.0. The dedicated Catalyst app uses
+remain on iOS 18.0. Release uses
 `com.flashcards-open-source-app.app` and the coordinated version from
 `Config/Base.xcconfig`; do not derive a `maccatalyst.` bundle ID.
 
@@ -37,9 +37,9 @@ invent it when editing the pin or move published tags/artifacts.
 ## Xcode Cloud
 
 The manual, main-only Mac workflows use the existing project container and
-shared **Flashcards Open Source App** scheme, production configuration and
-[cloud inputs/hooks](ios-ci-cd.md#xcode-cloud-inputs), including the same bundle
-ID, Sentry project and secure values. No extra local helper is required.
+shared **Flashcards Open Source App** scheme and
+[cloud inputs/hooks](ios-ci-cd.md#xcode-cloud-inputs), Sentry project and secure values.
+The scheme's Debug test configuration uses the development bundle identity below.
 Archives use Release and managed App Store signing. Mac test bundles enable
 signing only for `macosx`; iOS test signing settings remain unchanged.
 
@@ -68,7 +68,7 @@ existing [local configuration](ios-local-setup.md#after-cloning) with the same
 production service values. Use the current Xcode and a registered execution
 Mac, with an installed Apple Development certificate and private key.
 [Create and install a genuine Mac development profile](https://developer.apple.com/help/account/provisioning-profiles/create-a-development-provisioning-profile)
-for the existing app ID, that certificate and that Mac
+for `com.flashcards-open-source-app.app.development`, that certificate and that Mac
 (`MAC_CATALYST_APP_DEVELOPMENT` for Catalyst). A certificate alone is insufficient.
 
 Keep a temporary signing xcconfig outside the repository, substituting the
@@ -86,11 +86,11 @@ PROVISIONING_PROFILE_SPECIFIER[sdk=macosx*][config=Debug] = $(_LOCAL_PROFILE_$(P
 CODE_SIGN_INJECT_BASE_ENTITLEMENTS[sdk=macosx*][config=Debug] = YES
 ```
 
-Quit any installed App Store or TestFlight copy before building and testing.
-The Debug build shares that copy's bundle ID, sandbox container, database and
-Keychain sign-in, and UI-test scenario launches reset them. Quitting only
-prevents concurrent access: the run still erases the copy's local data and signs
-it out, so sync it first, keep no guest or unsynced data, then sign back in.
+Debug uses `com.flashcards-open-source-app.app.development` on every Apple platform,
+with its own sandbox, database, preferences and private Keychain credential services.
+UI-test resets affect that development installation. Release keeps the production
+identity. External marketing-capture signing configuration retains its explicit
+capture-only bundle override. Do not override ordinary Debug tests to production.
 
 Build the unchanged shared scheme's full selection, then use its original
 generated `.xctestrun` under `tmp/macos-derived-data/Build/Products`:
@@ -155,6 +155,60 @@ reuse: Apple accepts 2880×1800, 2560×1600, 1440×900 or 1280×800. The Mac dis
 and window determine capture dimensions; an attachment is not automatically
 store-ready. If size/content is unsuitable, capture the verified Mac artifact
 at an accepted size before submission. Never substitute an iPad screenshot.
+
+## Development analytics verification
+
+Run on a genuinely signed Debug app from the final source SHA, using the development
+profile above. Record SHA, bundle/signature, OS, UTC start/end and native results.
+Static CI does not establish these outcomes.
+
+1. Keep a production installation with a synced card, sign-in and analytics preference.
+   Launch ordinary Debug with no automation environment variable: require
+   `isDebugBuild=true`, `isSimulator=false`, `isUITestLaunch=false`, `isAutomation=true`
+   in the `automation_run` log. Development must start with separate local data and
+   credentials; production must retain its card, sign-in and preference after testing.
+2. Start a fresh development guest, create a card with a unique question such as
+   `Development analytics smoke <UTC timestamp>?`, reveal and rate it, and complete
+   guest cloud sync. Connect as `reporting_readonly` through the current
+   [SSM procedure](analytics-db-access.md#operator-path-ssm-port-forwarding), using
+   the `flashcards-open-source-app` AWS profile. Find the exact card and its installation:
+
+   ```sql
+   SELECT c.card_id, c.workspace_id, i.installation_id, i.user_id, i.is_automation,
+          (SELECT count(*) FROM content.review_events r
+           WHERE r.card_id = c.card_id) AS stored_reviews
+   FROM content.cards c
+   JOIN sync.workspace_replicas p ON p.replica_id = c.last_modified_by_replica_id
+   JOIN sync.installations i ON i.installation_id = p.installation_id
+   WHERE c.front_text = '<exact unique question>';
+   ```
+
+   Require one matching card, at least one stored review, and `is_automation=true`.
+   Using that fresh guest user ID, require zero rows from:
+
+   ```sql
+   SELECT event_name, origin, occurred_at
+   FROM analytics.product_events
+   WHERE (subject_user_id::text = '<guest user ID>' OR user_id::text = '<guest user ID>')
+     AND (origin = 'client' OR event_name IN ('card_created', 'review_answered'));
+   ```
+
+3. Refresh account preferences, relaunch, and attempt both analytics toggle values.
+   The switch must remain off. Sign into the configured review account and repeat;
+   compare its `org.user_settings.product_analytics_enabled` before/after and require
+   no change. Do not count unrelated server producers as a marker failure; see
+   [automation coverage](analytics-audience.md#automation-installations).
+4. Run the full existing signed native smoke selection and retain every named result.
+   A recognized UI-test launch must remain automation even with
+   `FLASHCARDS_AUTOMATION_RUN=0`. The authorized Xcode Cloud Mac Test action may
+   provide this evidence after merge; retain any private-Keychain signing limitation.
+5. For intentional real-analytics verification, launch outside UI tests with
+   `FLASHCARDS_AUTOMATION_RUN=0` before a fresh disposable installation's first sync.
+   Require `isAutomation=false` and normal preference behavior. An installation
+   already marked remains marked on the backend, so it cannot verify real server facts.
+   On real hardware, ordinary Release without the flag must also decide false;
+   Release with `FLASHCARDS_AUTOMATION_RUN=1` must decide true and record nothing locally.
+   Release UI tests and simulator launches remain protected automatically.
 
 ## Manual checklist on the verified Mac artifact
 

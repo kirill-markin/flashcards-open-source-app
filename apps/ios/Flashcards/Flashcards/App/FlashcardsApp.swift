@@ -60,17 +60,10 @@ struct FlashcardsApp: App {
             isRecoveryGateActive: nil,
             messageSummary: nil
         )
+        Analytics.setEnabled(ProductAnalyticsPreference.effectiveIsEnabled(userDefaults: .standard))
         let store = FlashcardsStore()
         let processInfo = ProcessInfo.processInfo
-        if isFlashcardsUITestLaunch(processInfo: processInfo) {
-            // The release-gate smoke suite signs into a real review account and the screenshot runs
-            // drive the same flows, so the kill switch goes on before anything can be recorded.
-            Analytics.setEnabled(false)
-        } else {
-            // The stored answer, before anything is recorded. The cold `app_opened` below is emitted
-            // ahead of the first `/me` of the launch, so this mirror is the only thing that can tell
-            // an opted-out install not to record it.
-            Analytics.setEnabled(ProductAnalyticsPreference.isEnabled(userDefaults: .standard))
+        if AutomationRun.current.isAutomation == false {
             Analytics.configure(
                 credentialsProvider: { [weak store] in
                     store?.analyticsCredentials()

@@ -10,6 +10,12 @@ cp apps/ios/Flashcards/Config/Local.xcconfig.example apps/ios/Flashcards/Config/
 
 `Local.xcconfig` is gitignored and must be filled on each machine that builds the iOS app.
 
+Debug selects `com.flashcards-open-source-app.app.development` after loading this file,
+isolating its data and private credentials from Release. Physical-device signing must
+provision that development App ID. Release uses the configured production identity.
+External capture signing overrides remain explicit; see the
+[signed Mac procedure](macos-ci-cd.md#signed-local-native-alternative).
+
 If you want local signed archives to reuse the same values as Xcode Cloud, keep
 the `XCODE_CLOUD_*` keys in the repo-root `.env` and regenerate
 `Local.xcconfig` with:
