@@ -13,7 +13,7 @@ import {
   uniqueUserCohortLabels,
 } from "./chartPrimitives";
 
-function ChartColorKey<Key extends string>(
+export function ChartColorKey<Key extends string>(
   props: Readonly<{
     ariaLabel: string;
     keys: ReadonlyArray<Key>;

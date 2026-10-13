@@ -17,6 +17,7 @@ import { AudienceSection } from "../reports/audience/AudienceSection";
 import { CatalogInstallsSection } from "../reports/catalogInstalls/CatalogInstallsSection";
 import { DailyActiveUsersSection } from "../reports/dailyActiveUsers/DailyActiveUsersSection";
 import { FunnelsArea } from "../reports/funnels/FunnelsArea";
+import { LevelOneMetricsArea } from "../reports/levelOneMetrics/LevelOneMetricsArea";
 import { ReviewActivitySection } from "../reports/reviewEventsByDate/ReviewActivitySection";
 import type { ReviewEventsByDateRange } from "../reports/reviewEventsByDate/query";
 import { SocialConnectionsSection } from "../reports/socialConnections/SocialConnectionsSection";
@@ -34,8 +35,8 @@ export type AdminReportsData = Readonly<{
 
 /**
  * The General report data an analytics area either already has, is still fetching, or failed to
- * fetch. Every area waits for it, because it also carries the shared range and the filter bar's
- * option lists. A failure is area-local and retryable; only a terminal 401/403 replaces the whole
+ * fetch. Every area but Level 1 metrics waits for it, because it also carries the shared range and
+ * the filter bar's option lists. A failure is area-local and retryable; only a terminal 401/403 replaces the whole
  * page.
  */
 export type AdminReportState =
@@ -214,13 +215,15 @@ export function AdminDashboard(
     onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
   }>,
 ): JSX.Element {
+  // Level 1 metrics loads and ranges its own charts, so nothing below about the General reports applies.
+  const usesGeneralReports = props.activeArea !== "level-1-metrics";
   // The range the numbers on screen were produced with, which lags the selection while a reload runs.
-  const appliedRange = props.reportState.status === "ready"
+  const appliedRange = usesGeneralReports && props.reportState.status === "ready"
     ? { from: props.reportState.data.report.from, to: props.reportState.data.report.to }
     : null;
 
   return (
-    <main className="shell">
+    <main className={usesGeneralReports ? "shell" : "shell shell-full-width"}>
       <section className="hero">
         <div>
           <p className="eyebrow">Admin Analytics</p>
@@ -235,11 +238,19 @@ export function AdminDashboard(
 
       <AdminNavigation activePage={props.activeArea} onNavigate={props.onNavigate} />
 
-      {props.reportState.status === "loading" ? (
+      {usesGeneralReports ? null : (
+        <LevelOneMetricsArea
+          config={props.config}
+          onNavigate={props.onNavigate}
+          onTerminalAdminError={props.onTerminalAdminError}
+        />
+      )}
+
+      {usesGeneralReports && props.reportState.status === "loading" ? (
         <p className="report-state" aria-live="polite">Loading analytics reports…</p>
       ) : null}
 
-      {props.reportState.status === "error" ? (
+      {usesGeneralReports && props.reportState.status === "error" ? (
         <div className="report-state report-state-error">
           <strong>Analytics reports failed to load.</strong>
           <span>{props.reportState.message}</span>
@@ -258,7 +269,7 @@ export function AdminDashboard(
         sticky banner above the filter panel, stacked over the popovers, carrying the Retry the
         operator has to press because nothing retries on its own.
       */}
-      {props.reportState.status === "ready" && props.reportState.reloadError !== "" ? (
+      {usesGeneralReports && props.reportState.status === "ready" && props.reportState.reloadError !== "" ? (
         <div className="report-reload-banner" role="alert">
           <div className="report-reload-banner-text">
             {/*
@@ -283,7 +294,7 @@ export function AdminDashboard(
         </div>
       ) : null}
 
-      {props.reportState.status === "ready" && props.filters !== null ? (
+      {usesGeneralReports && props.reportState.status === "ready" && props.filters !== null ? (
         <AnalyticsReportSections
           activeArea={props.activeArea}
           config={props.config}
