@@ -456,8 +456,7 @@ final class FlashcardsStore {
         self.cloudSettings = nil
         self.accountPreferences = makeDefaultAccountPreferences()
         self.isProductAnalyticsEnabled = ProductAnalyticsPreference.effectiveIsEnabled(
-            userDefaults: userDefaults,
-            processInfo: ProcessInfo.processInfo
+            userDefaults: userDefaults
         )
         self.cards = []
         self.decks = []

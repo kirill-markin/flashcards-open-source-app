@@ -137,24 +137,17 @@ automation and the backend then refuses to emit product analytics for them, perm
 declaration is described in [`analytics-audience.md`](analytics-audience.md#automation-installations)
 and decided in `apps/ios/Flashcards/Flashcards/App/AutomationRun.swift`.
 
-The decision combines two positive inputs, and neither covers the other:
-
-- the app is running on a simulator, which needs no configuration and catches local runs and the
-  simulator-backed Xcode Cloud tests
-- `FLASHCARDS_AUTOMATION_RUN` is set to `1`, `true` or `yes` in the app process environment, which is
-  the only input that works in a cloud device farm on real hardware
-
-Setting `FLASHCARDS_AUTOMATION_RUN` to `0`, `false` or `no` (trimmed, case-insensitive, like the
-affirmative values) overrides both inputs and declares the run human. Because the simulator input
-cannot be turned off and the backend marker is sticky, that override is the only way to exercise the
-real install and ingest path from a simulator; it is logged separately from an unset variable, so an
-unmarked run still explains itself.
+The process decision and preference protection are documented in
+[audience analytics](analytics-audience.md#automation-installations). For manual real-analytics
+verification outside UI tests, `FLASHCARDS_AUTOMATION_RUN=0`, `false` or `no` overrides Debug
+and simulator detection (trimmed, case-insensitive). It cannot override a recognized UI-test launch.
+Use a fresh installation before its first sync: the backend marker is permanent.
 
 The repository's own XCUITest harnesses set that variable through `XCUIApplication.launchEnvironment`
 in `LiveSmokeLaunching.swift` and `MarketingManualScreenshotTestCase.swift`, so it reaches the app on
 a physical device too. Any other automation that drives this app must set it the same way.
 
-Every launch logs the decision and all three of its inputs under the `automation_run` category, so a
+Every launch logs the decision, Debug/simulator/UI-test inputs and environment value under the `automation_run` category, so a
 run that should have been marked and was not is diagnosable from the run's own log.
 The line is emitted at default level, so it is both streamable live and persisted for later reading.
 
