@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, type JSX } from "react";
+import { useEffect, useMemo, useRef, useState, type JSX } from "react";
 import * as d3 from "d3";
 import {
   productEventDeviceTypes,
@@ -6,36 +6,58 @@ import {
   reviewEventPlatforms,
   type DailyActiveUsersCohortTotal,
   type DailyActiveUsersReport,
-  type DailyActiveUsersRow,
-  type DailyActiveUsersUser,
 } from "../../adminApi";
-import { DeviceTypeKey, OsNameKey, PlatformKey, UniqueUserCohortKey } from "../../charts/ChartLegends";
+import {
+  DeviceTypeKey,
+  OsNameKey,
+  PlatformKey,
+  UniqueActiveUsersMarkerKey,
+  UniqueUserCohortKey,
+} from "../../charts/ChartLegends";
 import { ChartTooltip, useChartTooltip } from "../../charts/ChartTooltip";
 import { createTickDates, type MatrixChartEntry } from "../../charts/chartPrimitives";
 import {
   renderDailyActiveUsersByDeviceTypeChart,
   renderDailyActiveUsersByOsNameChart,
   renderDailyActiveUsersByPlatformChart,
-  renderDailyActiveUsersByUserChart,
   renderDailyActiveUsersChart,
+  renderDailyActiveUsersTotalChart,
 } from "../../charts/chartRenderers";
 import { formatGeneratedAt } from "../../charts/formatting";
-import type { UserColorScale } from "../../dashboard/userColors";
+
+const dailyActiveUsersBreakdowns = ["none", "cohort", "platform", "osName", "deviceType"] as const;
+type DailyActiveUsersBreakdown = (typeof dailyActiveUsersBreakdowns)[number];
+
+const dailyActiveUsersBreakdownLabels: Readonly<Record<DailyActiveUsersBreakdown, string>> = {
+  none: "None",
+  cohort: "New vs returning",
+  platform: "Platform",
+  osName: "OS",
+  deviceType: "Device type",
+};
+
+const dailyActiveUsersChartTitles: Readonly<Record<DailyActiveUsersBreakdown, string>> = {
+  none: "Daily unique active users",
+  cohort: "Daily unique active users — new vs returning",
+  platform: "Daily active users by platform",
+  osName: "Daily active users by OS",
+  deviceType: "Daily active users by device type",
+};
+
+const dailyActiveUsersBreakdownFieldId = "daily-active-users-breakdown";
 
 type DailyActiveUsersChartModel = Readonly<{
   dates: ReadonlyArray<string>;
   tickDates: ReadonlyArray<string>;
-  activeUserIds: ReadonlyArray<string>;
   dailyActiveUserCohortMatrix: ReadonlyArray<MatrixChartEntry>;
   platformActiveUsersMatrix: ReadonlyArray<MatrixChartEntry>;
   osNameActiveUsersMatrix: ReadonlyArray<MatrixChartEntry>;
   deviceTypeActiveUsersMatrix: ReadonlyArray<MatrixChartEntry>;
-  activeUserMatrix: ReadonlyArray<MatrixChartEntry>;
   dailyActiveUsersByDate: ReadonlyMap<string, number>;
   peakDailyActiveUsers: number;
-  peakDailyPlatformActiveUsers: number;
-  peakDailyOsNameActiveUsers: number;
-  peakDailyDeviceTypeActiveUsers: number;
+  peakDailyPlatformValue: number;
+  peakDailyOsNameValue: number;
+  peakDailyDeviceTypeValue: number;
 }>;
 
 function buildDailyActiveUserCohortMatrix(
@@ -69,35 +91,21 @@ function buildKeyedActiveUsersMatrix<Total extends Readonly<{ date: string; acti
   }));
 }
 
-/** The tallest single bar of a grouped chart, which is its y-axis peak. */
-function getPeakGroupedValue(
+/** The y-axis peak of a stack drawn under a unique-total marker: whichever of the two is taller on any day. */
+function getPeakStackOrUniqueTotal(
   matrix: ReadonlyArray<MatrixChartEntry>,
   keys: ReadonlyArray<string>,
+  dailyActiveUsersByDate: ReadonlyMap<string, number>,
 ): number {
-  return d3.max(matrix, (entry) => d3.max(keys, (key) => entry.valuesByKey[key] ?? 0) ?? 0) ?? 0;
-}
-
-/** One unit per person per day, so a person on two platforms in one day is still one unit. */
-function buildActiveUserMatrix(
-  rows: ReadonlyArray<DailyActiveUsersRow>,
-  dates: ReadonlyArray<string>,
-): ReadonlyArray<MatrixChartEntry> {
-  const valuesByDate = new Map<string, Record<string, number>>();
-
-  for (const row of rows) {
-    const currentValues = valuesByDate.get(row.date) ?? {};
-    currentValues[row.userId] = 1;
-    valuesByDate.set(row.date, currentValues);
-  }
-
-  return dates.map((date) => ({
-    date,
-    valuesByKey: valuesByDate.get(date) ?? {},
-  }));
+  return d3.max(matrix, (entry) => Math.max(
+    d3.sum(keys, (key) => entry.valuesByKey[key] ?? 0),
+    dailyActiveUsersByDate.get(entry.date) ?? 0,
+  )) ?? 0;
 }
 
 function buildDailyActiveUsersChartModel(report: DailyActiveUsersReport): DailyActiveUsersChartModel {
   const dates = report.dailyCohortTotals.map((cohortTotal) => cohortTotal.date);
+  // New and returning partition each day's distinct actors, so their sum is the unique total.
   const dailyActiveUsersByDate = new Map(report.dailyCohortTotals.map((cohortTotal) => [
     cohortTotal.date,
     cohortTotal.newActiveUsers + cohortTotal.returningActiveUsers,
@@ -121,199 +129,169 @@ function buildDailyActiveUsersChartModel(report: DailyActiveUsersReport): DailyA
   return {
     dates,
     tickDates: createTickDates(dates),
-    // Already ordered by active days, so the people with the most days sit at the bottom of the stack.
-    activeUserIds: report.users.map((user) => user.userId),
     dailyActiveUserCohortMatrix: buildDailyActiveUserCohortMatrix(report.dailyCohortTotals),
     platformActiveUsersMatrix,
     osNameActiveUsersMatrix,
     deviceTypeActiveUsersMatrix,
-    activeUserMatrix: buildActiveUserMatrix(report.rows, dates),
     dailyActiveUsersByDate,
-    // Also the peak of the stacked-by-user chart, whose column height is that same distinct count.
-    peakDailyActiveUsers: d3.max(
-      report.dailyCohortTotals,
-      (cohortTotal) => cohortTotal.newActiveUsers + cohortTotal.returningActiveUsers,
-    ) ?? 0,
-    peakDailyPlatformActiveUsers: getPeakGroupedValue(platformActiveUsersMatrix, reviewEventPlatforms),
-    peakDailyOsNameActiveUsers: getPeakGroupedValue(osNameActiveUsersMatrix, productEventOsNames),
-    peakDailyDeviceTypeActiveUsers: getPeakGroupedValue(deviceTypeActiveUsersMatrix, productEventDeviceTypes),
+    peakDailyActiveUsers: d3.max(dailyActiveUsersByDate.values()) ?? 0,
+    peakDailyPlatformValue: getPeakStackOrUniqueTotal(
+      platformActiveUsersMatrix,
+      reviewEventPlatforms,
+      dailyActiveUsersByDate,
+    ),
+    peakDailyOsNameValue: getPeakStackOrUniqueTotal(
+      osNameActiveUsersMatrix,
+      productEventOsNames,
+      dailyActiveUsersByDate,
+    ),
+    peakDailyDeviceTypeValue: getPeakStackOrUniqueTotal(
+      deviceTypeActiveUsersMatrix,
+      productEventDeviceTypes,
+      dailyActiveUsersByDate,
+    ),
   };
 }
 
-function buildActiveUserById(
-  users: ReadonlyArray<DailyActiveUsersUser>,
-): ReadonlyMap<string, DailyActiveUsersUser> {
-  return new Map(users.map((user) => [user.userId, user]));
+function parseDailyActiveUsersBreakdown(value: string): DailyActiveUsersBreakdown {
+  const breakdown = dailyActiveUsersBreakdowns.find((candidate) => candidate === value);
+  if (breakdown === undefined) {
+    throw new Error(`Unsupported daily active users breakdown: ${value}`);
+  }
+
+  return breakdown;
+}
+
+function DailyActiveUsersBreakdownKey(props: Readonly<{ breakdown: DailyActiveUsersBreakdown }>): JSX.Element | null {
+  switch (props.breakdown) {
+    case "none":
+      return null;
+    case "cohort":
+      return <UniqueUserCohortKey />;
+    case "platform":
+      return <><PlatformKey /><UniqueActiveUsersMarkerKey /></>;
+    case "osName":
+      return <><OsNameKey /><UniqueActiveUsersMarkerKey /></>;
+    case "deviceType":
+      return <><DeviceTypeKey /><UniqueActiveUsersMarkerKey /></>;
+  }
 }
 
 export function DailyActiveUsersSection(
   props: Readonly<{
     filteredReport: DailyActiveUsersReport;
     generatedAtUtc: string;
-    userColorScale: UserColorScale;
-    onUserFilterApply: (userId: string) => void;
   }>,
 ): JSX.Element {
-  const activeUsersChartRef = useRef<SVGSVGElement | null>(null);
-  const platformActiveUsersChartRef = useRef<SVGSVGElement | null>(null);
-  const osNameActiveUsersChartRef = useRef<SVGSVGElement | null>(null);
-  const deviceTypeActiveUsersChartRef = useRef<SVGSVGElement | null>(null);
-  const activeUsersByUserChartRef = useRef<SVGSVGElement | null>(null);
+  const chartRef = useRef<SVGSVGElement | null>(null);
+  const [breakdown, setBreakdown] = useState<DailyActiveUsersBreakdown>("none");
   const { tooltipState, tooltipHandlers } = useChartTooltip();
   const chartModel = useMemo(
     () => buildDailyActiveUsersChartModel(props.filteredReport),
     [props.filteredReport],
   );
-  const userById = useMemo(
-    () => buildActiveUserById(props.filteredReport.users),
-    [props.filteredReport.users],
-  );
-
-  const handleUserFilterApply = useCallback((userId: string): void => {
-    props.onUserFilterApply(userId);
-    tooltipHandlers.hideTooltip();
-  }, [props.onUserFilterApply, tooltipHandlers]);
 
   useEffect(() => {
-    const activeUsersSvgElement = activeUsersChartRef.current;
-    const platformActiveUsersSvgElement = platformActiveUsersChartRef.current;
-    const osNameActiveUsersSvgElement = osNameActiveUsersChartRef.current;
-    const deviceTypeActiveUsersSvgElement = deviceTypeActiveUsersChartRef.current;
-    const activeUsersByUserSvgElement = activeUsersByUserChartRef.current;
-    if (
-      activeUsersSvgElement === null
-      || platformActiveUsersSvgElement === null
-      || osNameActiveUsersSvgElement === null
-      || deviceTypeActiveUsersSvgElement === null
-      || activeUsersByUserSvgElement === null
-    ) {
+    const svgElement = chartRef.current;
+    if (svgElement === null) {
       return;
     }
 
-    renderDailyActiveUsersChart({
-      svgElement: activeUsersSvgElement,
-      dates: chartModel.dates,
-      tickDates: chartModel.tickDates,
-      dailyActiveUserCohortMatrix: chartModel.dailyActiveUserCohortMatrix,
-      dailyActiveUsersByDate: chartModel.dailyActiveUsersByDate,
-      peakDailyActiveUsers: chartModel.peakDailyActiveUsers,
-      tooltipHandlers,
-    });
-    renderDailyActiveUsersByPlatformChart({
-      svgElement: platformActiveUsersSvgElement,
-      dates: chartModel.dates,
-      tickDates: chartModel.tickDates,
-      platformActiveUsersMatrix: chartModel.platformActiveUsersMatrix,
-      dailyActiveUsersByDate: chartModel.dailyActiveUsersByDate,
-      peakDailyPlatformActiveUsers: chartModel.peakDailyPlatformActiveUsers,
-      tooltipHandlers,
-    });
-    renderDailyActiveUsersByOsNameChart({
-      svgElement: osNameActiveUsersSvgElement,
-      dates: chartModel.dates,
-      tickDates: chartModel.tickDates,
-      osNameActiveUsersMatrix: chartModel.osNameActiveUsersMatrix,
-      dailyActiveUsersByDate: chartModel.dailyActiveUsersByDate,
-      peakDailyOsNameActiveUsers: chartModel.peakDailyOsNameActiveUsers,
-      tooltipHandlers,
-    });
-    renderDailyActiveUsersByDeviceTypeChart({
-      svgElement: deviceTypeActiveUsersSvgElement,
-      dates: chartModel.dates,
-      tickDates: chartModel.tickDates,
-      deviceTypeActiveUsersMatrix: chartModel.deviceTypeActiveUsersMatrix,
-      dailyActiveUsersByDate: chartModel.dailyActiveUsersByDate,
-      peakDailyDeviceTypeActiveUsers: chartModel.peakDailyDeviceTypeActiveUsers,
-      tooltipHandlers,
-    });
-    renderDailyActiveUsersByUserChart({
-      svgElement: activeUsersByUserSvgElement,
-      dates: chartModel.dates,
-      tickDates: chartModel.tickDates,
-      activeUserMatrix: chartModel.activeUserMatrix,
-      activeUserIds: chartModel.activeUserIds,
-      userColorScale: props.userColorScale,
-      userById,
-      dailyActiveUsersByDate: chartModel.dailyActiveUsersByDate,
-      peakDailyActiveUsers: chartModel.peakDailyActiveUsers,
-      onUserFilterApply: handleUserFilterApply,
-      tooltipHandlers,
-    });
-  }, [
-    chartModel,
-    props.userColorScale,
-    userById,
-    handleUserFilterApply,
-    tooltipHandlers,
-  ]);
+    switch (breakdown) {
+      case "none":
+        renderDailyActiveUsersTotalChart({
+          svgElement,
+          dates: chartModel.dates,
+          tickDates: chartModel.tickDates,
+          dailyActiveUsersByDate: chartModel.dailyActiveUsersByDate,
+          peakDailyActiveUsers: chartModel.peakDailyActiveUsers,
+          tooltipHandlers,
+        });
+        return;
+      case "cohort":
+        renderDailyActiveUsersChart({
+          svgElement,
+          dates: chartModel.dates,
+          tickDates: chartModel.tickDates,
+          dailyActiveUserCohortMatrix: chartModel.dailyActiveUserCohortMatrix,
+          dailyActiveUsersByDate: chartModel.dailyActiveUsersByDate,
+          peakDailyActiveUsers: chartModel.peakDailyActiveUsers,
+          tooltipHandlers,
+        });
+        return;
+      case "platform":
+        renderDailyActiveUsersByPlatformChart({
+          svgElement,
+          dates: chartModel.dates,
+          tickDates: chartModel.tickDates,
+          activeUsersMatrix: chartModel.platformActiveUsersMatrix,
+          dailyActiveUsersByDate: chartModel.dailyActiveUsersByDate,
+          peakDailyValue: chartModel.peakDailyPlatformValue,
+          tooltipHandlers,
+        });
+        return;
+      case "osName":
+        renderDailyActiveUsersByOsNameChart({
+          svgElement,
+          dates: chartModel.dates,
+          tickDates: chartModel.tickDates,
+          activeUsersMatrix: chartModel.osNameActiveUsersMatrix,
+          dailyActiveUsersByDate: chartModel.dailyActiveUsersByDate,
+          peakDailyValue: chartModel.peakDailyOsNameValue,
+          tooltipHandlers,
+        });
+        return;
+      case "deviceType":
+        renderDailyActiveUsersByDeviceTypeChart({
+          svgElement,
+          dates: chartModel.dates,
+          tickDates: chartModel.tickDates,
+          activeUsersMatrix: chartModel.deviceTypeActiveUsersMatrix,
+          dailyActiveUsersByDate: chartModel.dailyActiveUsersByDate,
+          peakDailyValue: chartModel.peakDailyDeviceTypeValue,
+          tooltipHandlers,
+        });
+        return;
+    }
+  }, [chartModel, breakdown, tooltipHandlers]);
 
   return (
     <section className="dashboard-section">
       <header className="dashboard-section-header">
         <h2>Daily active users</h2>
         <p className="dashboard-section-description">
-          Everyone who opened the app on a calendar date, from the <code>app_opened</code> event, rather than only the people who answered a card. Platform, OS and device type are always split and never summed, because one person can be active on more than one device in a day; a row that reports no OS or device type, every web row among them, shows as Unknown. Dates are grouped in <strong>UTC</strong>.
+          Everyone who opened the app on a calendar date, from the <code>app_opened</code> event, rather than only the people who answered a card. The chart counts each person once per day; <strong>Break down by</strong> splits that count. New vs returning divides it exactly, so its stack is the daily total. Platform, OS and device type give one segment per value, and one person active on more than one device in a day sits in more than one segment, so a stack can rise above the line that marks the day&rsquo;s real unique total. A row that reports no OS or device type, every web row among them, shows as Unknown. Dates are grouped in <strong>UTC</strong>.
         </p>
       </header>
+
+      <div className="funnel-group-by-row">
+        <div className="funnel-group-by">
+          <label htmlFor={dailyActiveUsersBreakdownFieldId}>Break down by</label>
+          <select
+            id={dailyActiveUsersBreakdownFieldId}
+            className="funnel-group-by-select"
+            data-testid={dailyActiveUsersBreakdownFieldId}
+            value={breakdown}
+            onChange={(event) => setBreakdown(parseDailyActiveUsersBreakdown(event.target.value))}
+          >
+            {dailyActiveUsersBreakdowns.map((option) => (
+              <option key={option} value={option}>{dailyActiveUsersBreakdownLabels[option]}</option>
+            ))}
+          </select>
+        </div>
+      </div>
 
       <section className="chart-column">
         <div className="chart-shell">
           <div className="chart-meta">
-            <span>Daily unique active users &mdash; new vs returning</span>
+            <span>{dailyActiveUsersChartTitles[breakdown]}</span>
             <div className="chart-meta-right">
-              <UniqueUserCohortKey />
-            </div>
-          </div>
-          <div className="chart-scroll">
-            <svg ref={activeUsersChartRef} />
-          </div>
-        </div>
-
-        <div className="chart-shell">
-          <div className="chart-meta">
-            <span>Daily active users by platform</span>
-            <div className="chart-meta-right">
-              <PlatformKey />
-            </div>
-          </div>
-          <div className="chart-scroll">
-            <svg ref={platformActiveUsersChartRef} />
-          </div>
-        </div>
-
-        <div className="chart-shell">
-          <div className="chart-meta">
-            <span>Daily active users by OS</span>
-            <div className="chart-meta-right">
-              <OsNameKey />
-            </div>
-          </div>
-          <div className="chart-scroll">
-            <svg ref={osNameActiveUsersChartRef} />
-          </div>
-        </div>
-
-        <div className="chart-shell">
-          <div className="chart-meta">
-            <span>Daily active users by device type</span>
-            <div className="chart-meta-right">
-              <DeviceTypeKey />
-            </div>
-          </div>
-          <div className="chart-scroll">
-            <svg ref={deviceTypeActiveUsersChartRef} />
-          </div>
-        </div>
-
-        <div className="chart-shell">
-          <div className="chart-meta">
-            <span>Daily active users stacked by user &mdash; one unit per person per day</span>
-            <div className="chart-meta-right">
+              <DailyActiveUsersBreakdownKey breakdown={breakdown} />
               <span>Generated {formatGeneratedAt(props.generatedAtUtc)}</span>
             </div>
           </div>
           <div className="chart-scroll">
-            <svg ref={activeUsersByUserChartRef} />
+            <svg ref={chartRef} />
           </div>
         </div>
       </section>
