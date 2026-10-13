@@ -11,9 +11,7 @@ import {
   toAnalyticsFilterSearchParams,
 } from "./filters/analyticsFiltersUrl";
 import { loadAnalyticsFilterOptions, type AnalyticsFilterOptions } from "./filters/optionsQuery";
-import { AnalyticsIndexPage } from "./navigation/AnalyticsIndexPage";
 import { NotFoundPage } from "./navigation/NotFoundPage";
-import { RootIndexPage } from "./navigation/RootIndexPage";
 import {
   parseAiUsageControls,
   withAiUsageControlSearchParams,
@@ -130,9 +128,12 @@ function buildUnionRange(
   };
 }
 
-/** Every analytics area renders the shared filter bar and carries its selection in the URL. */
+/**
+ * Every analytics area but Level 1 metrics renders the shared filter bar and carries its selection in
+ * the URL. Level 1 metrics owns its range and its available range, so entering it loads nothing here.
+ */
 function doesRouteUseAnalyticsFilters(route: AdminRoute): boolean {
-  return route.kind === "analyticsArea";
+  return route.kind === "analyticsArea" && route.area !== "level-1-metrics";
 }
 
 /**
@@ -181,6 +182,17 @@ function buildAreaSearchParams(
   }
 
   return filterSearchParams;
+}
+
+function replaceWithCanonicalPath(): void {
+  const canonicalPath = getAdminRoutePath(parseAdminRoute(window.location.pathname));
+  if (canonicalPath !== window.location.pathname) {
+    window.history.replaceState(
+      null,
+      "",
+      `${canonicalPath}${window.location.search}${window.location.hash}`,
+    );
+  }
 }
 
 function redirectToLogin(config: AdminAppConfig): void {
@@ -261,21 +273,15 @@ export default function App(): JSX.Element {
     options: AnalyticsFilterOptions;
   }> | null>(null);
 
-  // A trailing-slash variant of a known route is rewritten in place, so the address bar and any
-  // later history entry carry the canonical path without a network redirect.
+  // A trailing-slash variant of a known route, and `/` or `/analytics`, is rewritten in place, so the
+  // address bar and any later history entry carry the canonical path without a network redirect.
   useEffect(() => {
-    const canonicalPath = getAdminRoutePath(parseAdminRoute(window.location.pathname));
-    if (canonicalPath !== window.location.pathname) {
-      window.history.replaceState(
-        null,
-        "",
-        `${canonicalPath}${window.location.search}${window.location.hash}`,
-      );
-    }
+    replaceWithCanonicalPath();
   }, []);
 
   useEffect(() => {
     function handlePopState(): void {
+      replaceWithCanonicalPath();
       setRoute(parseAdminRoute(window.location.pathname));
     }
 
@@ -617,14 +623,6 @@ export default function App(): JSX.Element {
 
   if (appState.status === "error") {
     return <ErrorState message={appState.message} />;
-  }
-
-  if (route.kind === "root") {
-    return <RootIndexPage onNavigate={navigateToPath} />;
-  }
-
-  if (route.kind === "analyticsIndex") {
-    return <AnalyticsIndexPage onNavigate={navigateToPath} />;
   }
 
   if (route.kind === "notFound") {

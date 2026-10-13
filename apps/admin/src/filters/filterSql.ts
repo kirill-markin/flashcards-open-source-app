@@ -180,11 +180,18 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  * would zero the import-screen step for every signed-out visitor, whose `screen_viewed` rows are
  * credential-free by construction.
  *
- * NOT ENTRIES, AND NOT OMISSIONS. The two available-range probes,
- * `buildReviewEventsByDateAvailableRangeSql` and `buildCatalogInstallFunnelAvailableRangeSql`, and the
- * catalog install funnel's effective-start statement read the same view but derive no actor fact at
- * all - each is a `MIN(occurred_at)` over event names - so none needs this predicate, and the funnel's
- * two read `anonymous_client` deck page views on purpose. The
+ * NOT AN ENTRY, FOR THE CATALOG COHORT'S REASON: `identified_site_visitors`, the `Web` series of
+ * `reports/whoSawUs/query.ts`. It counts the browser visitor identities that `anonymous_client`
+ * `site_page_viewed` rows carry - the site's own facts - so this predicate would empty it. It is a
+ * count of site visitors, never merged into a count of people, and it applies the exclusion rule
+ * above.
+ *
+ * NOT ENTRIES, AND NOT OMISSIONS. The three available-range probes,
+ * `buildReviewEventsByDateAvailableRangeSql`, `buildCatalogInstallFunnelAvailableRangeSql` and
+ * `buildWhoSawUsAvailableRangeSql`, and the catalog install funnel's effective-start statement read
+ * the same view but derive no actor fact at all - each is a `MIN(occurred_at)` over event names - so
+ * none needs this predicate; the funnel's two read `anonymous_client` deck page views, and Who saw
+ * us's reads every `site_page_viewed`, on purpose. The
  * review-events one is still the one surface a credential-free `app_opened` row can move: it reads
  * that name with no trust predicate, so such a row pulls the earliest selectable date backwards.
  * That widens a date picker rather than deciding anything about a person, so it stays out of this
@@ -218,15 +225,16 @@ export function buildTrustedActorRowsFilterSql(trustLevelSqlExpression: string):
  * collector rows, which restate it too.
  *   - `buildHashedSiteRowSqlLines` in `apps/admin/src/reports/funnels/funnelAudienceSql.ts`, the
  *     cookieless hashed cohort of the site-entry funnels that read it - the home page funnel and the
- *     blog platform-choice funnel, while the blog web-app funnel deliberately reads none - and of the
- *     deck funnel: every hashed page view and every hashed click. Those rows carry a NULL `actor_id`
- *     by construction, so this is the only level at which they can be judged at all, and a marked
- *     browser-day never becomes a person.
+ *     blog platform-choice funnel, while the blog web-app funnel deliberately reads none - of the
+ *     deck funnel, and of the `Web` series of Who saw us (`hashed_site_visitors` in
+ *     `reports/whoSawUs/query.ts`): every hashed page view and every hashed click. Those rows carry
+ *     a NULL `actor_id` by construction, so this is the only level at which they can be judged at
+ *     all, and a marked browser-day never becomes a person.
  *   - `attribution_clicks` in `buildCatalogInstallAttributionSql` below, because its journey bridge
  *     matches a click that claimed no visitor at all, whose own actor is therefore never the install's
  *     and is never tested by the rule the install side applies.
  *
- * The two available-range probes are deliberately not on this list, exactly as they are not on
+ * The three available-range probes are deliberately not on this list, exactly as they are not on
  * `buildTrustedActorRowsFilterSql`'s: each is a `MIN(occurred_at)` that widens a date picker and
  * decides nothing about a person.
  */

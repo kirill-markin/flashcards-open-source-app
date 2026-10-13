@@ -90,12 +90,20 @@ const lastThreeDaysReportRangePreset: ReportRangePreset = {
   lookbackDays: 3,
 };
 
+/** Also the window Level 1 metrics opens on. */
+export const lastSixtyDaysReportRangePreset: ReportRangePreset = {
+  id: "last-60-days",
+  label: "Last 60 days",
+  kind: "lookback",
+  lookbackDays: 60,
+};
+
 // The one-click ranges every time filter offers, in row order.
 export const reportRangePresets: ReadonlyArray<ReportRangePreset> = [
   lastThreeDaysReportRangePreset,
   { id: "last-7-days", label: "Last 7 days", kind: "lookback", lookbackDays: 7 },
   { id: "last-30-days", label: "Last 30 days", kind: "lookback", lookbackDays: 30 },
-  { id: "last-60-days", label: "Last 60 days", kind: "lookback", lookbackDays: 60 },
+  lastSixtyDaysReportRangePreset,
   { id: "last-90-days", label: "Last 90 days", kind: "lookback", lookbackDays: 90 },
   { id: "last-130-days", label: "Last 130 days", kind: "lookback", lookbackDays: 130 },
   { id: "last-360-days", label: "Last 360 days", kind: "lookback", lookbackDays: 360 },

@@ -1,0 +1,212 @@
+import { useEffect, useMemo, useRef, useState, type JSX } from "react";
+import * as d3 from "d3";
+import { ChartColorKey } from "../../charts/ChartLegends";
+import { ChartTooltip, useChartTooltip } from "../../charts/ChartTooltip";
+import { createTickDates, type MatrixChartEntry } from "../../charts/chartPrimitives";
+import { renderWhoSawUsChart } from "../../charts/chartRenderers";
+import { escapeHtml, formatGeneratedAt } from "../../charts/formatting";
+import type { AdminAppConfig } from "../../config";
+import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
+import { formatCalendarDate } from "../reportValues";
+import {
+  loadWhoSawUsReport,
+  whoSawUsSeriesKeys,
+  type WhoSawUsDay,
+  type WhoSawUsReport,
+  type WhoSawUsSeriesKey,
+} from "./query";
+
+const whoSawUsSeriesLabels: Readonly<Record<WhoSawUsSeriesKey, string>> = {
+  web: "Web",
+  "app-store": "App Store",
+  "google-play": "Google Play",
+};
+
+const whoSawUsSeriesColors: Readonly<Record<WhoSawUsSeriesKey, string>> = {
+  web: "#4e79a7",
+  "app-store": "#f28e2b",
+  "google-play": "#59a14f",
+};
+
+// The store reports arrive late and are revised: Google Play lags three to seven days.
+const notFinalDayCount = 3;
+
+const numberFormatter = d3.format(",");
+
+type LoadState =
+  | Readonly<{ status: "loading" }>
+  | Readonly<{ status: "error"; message: string }>
+  | Readonly<{ status: "ready"; report: WhoSawUsReport }>;
+
+type WhoSawUsChartModel = Readonly<{
+  dates: ReadonlyArray<string>;
+  tickDates: ReadonlyArray<string>;
+  matrix: ReadonlyArray<MatrixChartEntry>;
+  dayByDate: ReadonlyMap<string, WhoSawUsDay>;
+  peakDailyTotal: number;
+  lastFinalDate: string;
+}>;
+
+function getSeriesKey(key: string): WhoSawUsSeriesKey {
+  const seriesKey = whoSawUsSeriesKeys.find((candidate) => candidate === key);
+  if (seriesKey === undefined) {
+    throw new Error(`Unsupported Who saw us series key: ${key}`);
+  }
+
+  return seriesKey;
+}
+
+function getDayTotal(day: WhoSawUsDay): number {
+  return d3.sum(whoSawUsSeriesKeys, (key) => day.visitorsBySeries[key] ?? 0);
+}
+
+/** The UTC day `notFinalDayCount` days before the day the query ran. */
+function buildLastFinalDate(generatedAtUtc: string): string {
+  const generatedAt = new Date(generatedAtUtc);
+  if (Number.isNaN(generatedAt.getTime())) {
+    throw new Error(`Who saw us report generation time is invalid: ${generatedAtUtc}`);
+  }
+
+  return formatCalendarDate(new Date(Date.UTC(
+    generatedAt.getUTCFullYear(),
+    generatedAt.getUTCMonth(),
+    generatedAt.getUTCDate() - notFinalDayCount,
+  )));
+}
+
+function buildWhoSawUsChartModel(report: WhoSawUsReport): WhoSawUsChartModel {
+  const dates = report.days.map((day) => day.date);
+
+  return {
+    dates,
+    tickDates: createTickDates(dates),
+    // A missing value is drawn as no bar, which is what the section description says it means.
+    matrix: report.days.map((day) => ({
+      date: day.date,
+      valuesByKey: Object.fromEntries(
+        whoSawUsSeriesKeys.map((key) => [key, day.visitorsBySeries[key] ?? 0]),
+      ),
+    })),
+    dayByDate: new Map(report.days.map((day) => [day.date, day])),
+    peakDailyTotal: d3.max(report.days, getDayTotal) ?? 0,
+    lastFinalDate: buildLastFinalDate(report.generatedAtUtc),
+  };
+}
+
+function buildDayTooltipMetricsHtml(day: WhoSawUsDay, lastFinalDate: string): string {
+  return [
+    ...whoSawUsSeriesKeys.map((key) => {
+      const value = day.visitorsBySeries[key];
+      return `<div class="tooltip-metric"><span>${escapeHtml(whoSawUsSeriesLabels[key])}</span><strong>${value === null ? "No data" : numberFormatter(value)}</strong></div>`;
+    }),
+    `<div class="tooltip-metric"><span>Day total</span><strong>${numberFormatter(getDayTotal(day))}</strong></div>`,
+    day.date > lastFinalDate
+      ? `<p class="tooltip-hint">Not final: store numbers for this day can still arrive or change.</p>`
+      : "",
+  ].join("");
+}
+
+export function WhoSawUsSection(
+  props: Readonly<{
+    config: AdminAppConfig;
+    dateRange: AnalyticsDateRange;
+    onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
+  }>,
+): JSX.Element {
+  const chartRef = useRef<SVGSVGElement | null>(null);
+  const [loadState, setLoadState] = useState<LoadState>({ status: "loading" });
+  const [revision, setRevision] = useState<number>(0);
+  const { tooltipState, tooltipHandlers } = useChartTooltip();
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadState({ status: "loading" });
+    void loadWhoSawUsReport(props.config, props.dateRange).then((report) => {
+      if (!cancelled) setLoadState({ status: "ready", report });
+    }).catch((error: unknown) => {
+      if (cancelled || props.onTerminalAdminError(error, props.config)) return;
+      setLoadState({ status: "error", message: error instanceof Error ? error.message : "Unexpected Who saw us query error." });
+    });
+    return () => { cancelled = true; };
+  }, [props.config, props.dateRange, props.onTerminalAdminError, revision]);
+
+  const chartModel = useMemo(
+    () => (loadState.status === "ready" ? buildWhoSawUsChartModel(loadState.report) : null),
+    [loadState],
+  );
+
+  useEffect(() => {
+    const svgElement = chartRef.current;
+    if (svgElement === null || chartModel === null) {
+      return;
+    }
+
+    renderWhoSawUsChart({
+      svgElement,
+      dates: chartModel.dates,
+      tickDates: chartModel.tickDates,
+      matrix: chartModel.matrix,
+      keys: whoSawUsSeriesKeys,
+      getKeyColor: (key) => whoSawUsSeriesColors[getSeriesKey(key)],
+      getKeyLabel: (key) => whoSawUsSeriesLabels[getSeriesKey(key)],
+      peakDailyTotal: chartModel.peakDailyTotal,
+      lastFinalDate: chartModel.lastFinalDate,
+      buildTooltipMetricsHtml: (entry) => {
+        const day = chartModel.dayByDate.get(entry.date);
+        if (day === undefined) {
+          throw new Error(`Who saw us chart has no day for ${entry.date}.`);
+        }
+
+        return buildDayTooltipMetricsHtml(day, chartModel.lastFinalDate);
+      },
+      tooltipHandlers,
+    });
+  }, [chartModel, tooltipHandlers]);
+
+  return (
+    <section className="dashboard-section" data-testid="who-saw-us-section">
+      <header className="dashboard-section-header">
+        <h2>Who saw us</h2>
+        <p className="dashboard-section-description">
+          Approximate daily unique visitors of the marketing website, our App Store page and our Google Play listing, stacked. <strong>Web</strong> is the distinct identified visitors of the site after the shared exclusions, plus its distinct cookieless visitors, of whom only automated traffic is dropped, so an admin browsing without consent still counts. <strong>App Store</strong> is the product page views by unique count plus the browser views of the apps.apple.com page, which Apple reports without a unique count. <strong>Google Play</strong> is the store listing visitors. The stores count per breakdown row and the three surfaces overlap, so one person can be counted more than once. A day with no store row has no bar for that store, which means the data is missing rather than zero, and the tooltip says No data. Store numbers to the right of the dashed line are not final, and Google Play can lag up to a week. Dates are grouped in <strong>UTC</strong>.
+        </p>
+      </header>
+
+      {loadState.status === "loading" ? (
+        <p className="report-state" aria-live="polite">Loading Who saw us…</p>
+      ) : null}
+
+      {loadState.status === "error" ? (
+        <div className="report-state report-state-error">
+          <strong>Who saw us query failed.</strong>
+          <span>{loadState.message}</span>
+          <button className="filter-button" type="button" onClick={() => setRevision((value) => value + 1)}>Retry</button>
+        </div>
+      ) : null}
+
+      {loadState.status === "ready" ? (
+        <section className="chart-column">
+          <div className="chart-shell">
+            <div className="chart-meta">
+              <span>Daily unique visitors by surface</span>
+              <div className="chart-meta-right">
+                <ChartColorKey
+                  ariaLabel="Who saw us color key"
+                  keys={whoSawUsSeriesKeys}
+                  getColor={(key) => whoSawUsSeriesColors[key]}
+                  getLabel={(key) => whoSawUsSeriesLabels[key]}
+                />
+                <span>Generated {formatGeneratedAt(loadState.report.generatedAtUtc)}</span>
+              </div>
+            </div>
+            <div className="chart-scroll">
+              <svg ref={chartRef} />
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      <ChartTooltip {...tooltipState} />
+    </section>
+  );
+}
