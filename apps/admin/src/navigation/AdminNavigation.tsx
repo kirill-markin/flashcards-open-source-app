@@ -5,6 +5,7 @@ import { AdminLink } from "./AdminLink";
 export type AdminNavigationPage = AnalyticsArea | "users" | "events";
 
 const analyticsAreaTestIds: Readonly<Record<AnalyticsArea, string | undefined>> = {
+  "level-1-metrics": "analytics-level-1-metrics-tab",
   general: undefined,
   funnels: undefined,
   audience: "analytics-audience-tab",

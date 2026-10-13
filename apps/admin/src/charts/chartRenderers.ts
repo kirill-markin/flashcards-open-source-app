@@ -906,6 +906,55 @@ export function renderCatalogInstallsByPackageChart(params: RenderCatalogInstall
   });
 }
 
+export type RenderWhoSawUsChartParams = Readonly<{
+  svgElement: SVGSVGElement;
+  dates: ReadonlyArray<string>;
+  tickDates: ReadonlyArray<string>;
+  matrix: ReadonlyArray<MatrixChartEntry>;
+  keys: ReadonlyArray<string>;
+  getKeyColor: (key: string) => string;
+  getKeyLabel: (key: string) => string;
+  peakDailyTotal: number;
+  /** The days after this one are not final yet, and a dashed line marks where they start. */
+  lastFinalDate: string;
+  buildTooltipMetricsHtml: (entry: StackedChartRectEntry) => string;
+  tooltipHandlers: ChartTooltipHandlers;
+}>;
+
+export function renderWhoSawUsChart(params: RenderWhoSawUsChartParams): void {
+  const frame = renderKeyedStackedBarChart({
+    svgElement: params.svgElement,
+    dates: params.dates,
+    tickDates: params.tickDates,
+    matrix: params.matrix,
+    keys: params.keys,
+    getKeyColor: params.getKeyColor,
+    getKeyLabel: params.getKeyLabel,
+    peakStackedValue: params.peakDailyTotal,
+    yAxisLabel: "Visitors",
+    xAxisLabel: "Date",
+    buildTooltipMetricsHtml: params.buildTooltipMetricsHtml,
+    tooltipHandlers: params.tooltipHandlers,
+  });
+  const firstNotFinalDate = params.dates.find((date) => date > params.lastFinalDate);
+  if (firstNotFinalDate === undefined) {
+    return;
+  }
+
+  // In the middle of the gap before the first not-final bar, so the line never covers a bar.
+  const lineX = (frame.x(firstNotFinalDate) ?? 0) - (frame.x.step() - frame.x.bandwidth()) / 2;
+  const marker = frame.group.append("g").attr("class", "not-final-marker");
+  marker.append("line")
+    .attr("x1", lineX)
+    .attr("x2", lineX)
+    .attr("y1", -6)
+    .attr("y2", frame.y.range()[0]);
+  marker.append("text")
+    .attr("x", lineX + 6)
+    .attr("y", -10)
+    .text("Not final →");
+}
+
 /** One funnel step as the step chart draws it; the shares arrive preformatted so the chart and its text alternative cannot disagree. */
 export type FunnelStepBar = Readonly<{
   label: string;
