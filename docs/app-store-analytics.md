@@ -3,6 +3,8 @@
 Use App Store Connect Analytics Reports API for store discovery, downloads,
 usage, purchases, and subscriptions. Reuse the main checkout's
 [App Store Connect credentials](xcode-cloud-data-access.md#required-local-secrets).
+The [store analytics import](store-analytics.md) copies every report into
+Postgres hourly; query those tables before calling the API.
 
 1. Read `GET /v1/apps/{appId}/analyticsReportRequests`. An empty successful
    response means no report requests exist, not that API access failed.
