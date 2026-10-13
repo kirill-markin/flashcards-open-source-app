@@ -733,6 +733,35 @@ export type SyntheticActorDetectorLargeRunDetails = Readonly<{
   threshold: number;
 }>;
 
+export type StoreAnalyticsAppleRetryDetails = Readonly<{
+  label: string;
+  attempt: number;
+  status: number | null;
+}>;
+
+/** One record per run of the store analytics import; `rowsInserted` is keyed by table name. */
+export type StoreAnalyticsAppleImportCompletedDetails = Readonly<{
+  reportRequests: number;
+  reports: number;
+  instancesListed: number;
+  instancesAlreadyImported: number;
+  instancesWithoutSegments: number;
+  instancesImported: number;
+  instancesFailed: number;
+  instancesRemaining: number;
+  segmentsImported: number;
+  rowsInserted: Readonly<Record<string, number>>;
+  rowsSkippedAsSuperseded: number;
+}>;
+
+export type StoreAnalyticsAppleInstanceFailureDetails = Readonly<{
+  reportName: string;
+  instanceId: string;
+  granularity: string;
+  processingDate: string;
+  message: string;
+}>;
+
 /**
  * How long ago the GeoLite Country object a container just loaded was written to S3, in whole
  * hours. It is the only place that age becomes a metric: the bucket's lifecycle expiry
@@ -765,6 +794,8 @@ export type OperationsBreadcrumbEvent =
   | EventByAction<"daily_visitor_hash_salt_expiry_completed", Readonly<{ deleted: number }>>
   | EventByAction<"synthetic_actor_excluded", SyntheticActorExcludedDetails>
   | EventByAction<"synthetic_actor_detector_completed", SyntheticActorDetectorCompletedDetails>
+  | EventByAction<"store_analytics_apple_retry", StoreAnalyticsAppleRetryDetails>
+  | EventByAction<"store_analytics_apple_import_completed", StoreAnalyticsAppleImportCompletedDetails>
   | EventByAction<"generated_media_promotion_batch_completed", GeneratedMediaPromotionBatchDetails>
   | EventByAction<"geolite_country_database_loaded", GeoLiteCountryDatabaseLoadedDetails>
   | EventByAction<"media_blob_cleanup_batch_completed", MediaBlobCleanupBatchDetails>
@@ -849,6 +880,10 @@ export type OperationsExceptionEvent =
   | (EventByAction<"daily_visitor_hash_salt_expiry_failed", Readonly<{ message: string }>> & Readonly<{ error: Error }>)
   | (EventByAction<"synthetic_actor_detector_failed", Readonly<{ message: string }>> & Readonly<{ error: Error }>)
   | (EventByAction<"probable_android_burst_refresh_failed", Readonly<{ message: string }>> & Readonly<{ error: Error }>)
+  | (EventByAction<"store_analytics_import_failed", Readonly<{ source: "app_store"; message: string }>>
+    & Readonly<{ error: Error }>)
+  | (EventByAction<"store_analytics_apple_instance_failed", StoreAnalyticsAppleInstanceFailureDetails>
+    & Readonly<{ error: Error }>)
   | (EventByAction<"global_metrics_snapshot_failed", GlobalMetricsSnapshotFailureDetails> & Readonly<{ error: Error }>)
   | (EventByAction<"catalog_dump_failed", CatalogDumpFailureDetails> & Readonly<{ error: Error }>)
   | (EventByAction<"catalog_dump_refresh_failed", CatalogDumpRefreshFailureDetails> & Readonly<{ error: Error }>)

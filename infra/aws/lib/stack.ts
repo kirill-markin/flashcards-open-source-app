@@ -33,6 +33,7 @@ import { countryRetention } from "./scheduled-jobs/country-retention";
 import { dailyVisitorHashSaltExpiry } from "./scheduled-jobs/daily-visitor-hash-salt-expiry";
 import { syntheticActorDetector } from "./scheduled-jobs/synthetic-actor-detector";
 import { probableAndroidBurstRefresh } from "./scheduled-jobs/probable-android-burst-refresh";
+import { storeAnalyticsImport } from "./scheduled-jobs/store-analytics-import";
 import { webGuestReaper } from "./scheduled-jobs/web-guest-reaper";
 import type { AlternateHeartbeatHosts } from "./scheduled-jobs/public-endpoint-heartbeat";
 import { publicEndpointHeartbeat } from "./scheduled-jobs/public-endpoint-heartbeat";
@@ -394,6 +395,14 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       ...sentryContext,
       schedulerRole,
     });
+    const storeAnalyticsImportResult = storeAnalyticsImport(this, {
+      vpc: net.vpc,
+      lambdaSg: net.lambdaSg,
+      db: dbResult.db,
+      backendDbSecret: dbResult.backendDbSecret,
+      ...sentryContext,
+      schedulerRole,
+    });
     publicEndpointHeartbeat(this, { baseDomain, alternateHeartbeatHosts, schedulerRole });
     // Both distributions are resolved here, before either is constructed and
     // before the media bucket, auth and API stages that have to allow their
@@ -601,6 +610,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     addDatabaseMigrationDependency(dailyVisitorHashSaltExpiryResult.expiryFunction, migrationGate);
     addDatabaseMigrationDependency(syntheticActorDetectorResult.detectorFunction, migrationGate);
     addDatabaseMigrationDependency(probableAndroidBurstRefreshResult.refreshFunction, migrationGate);
+    addDatabaseMigrationDependency(storeAnalyticsImportResult.importFunction, migrationGate);
     addDatabaseMigrationDependency(generatedMediaPromotionResult.promotionFunction, migrationGate);
     const web = webApp(this, {
       baseDomain,
@@ -650,6 +660,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       dailyVisitorHashSaltExpiryFn: dailyVisitorHashSaltExpiryResult.expiryFunction,
       syntheticActorDetectorFn: syntheticActorDetectorResult.detectorFunction,
       probableAndroidBurstRefreshFn: probableAndroidBurstRefreshResult.refreshFunction,
+      storeAnalyticsImportFn: storeAnalyticsImportResult.importFunction,
       webGuestReaperFn: webGuestReaperResult.reaperFunction,
       generatedMediaPromotionFn: generatedMediaPromotionResult.promotionFunction,
       multipartCompletionReconciliationFn:
