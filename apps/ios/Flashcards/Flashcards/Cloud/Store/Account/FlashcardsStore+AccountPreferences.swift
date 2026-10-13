@@ -145,8 +145,8 @@ extension FlashcardsStore {
     func updateProductAnalyticsEnabled(isEnabled: Bool) async throws {
         guard self.isProductAnalyticsPreferenceStoredRemotely else {
             // Ahead of the local write, not only of the remote one: recording the answer would also
-            // record a debt, and a later normal launch of the same container would then push a
-            // UI-test toggle onto the shared review account.
+            // record a debt, and a later normal launch of the same container would then push
+            // an automation toggle onto the shared review account.
             self.applyStoredProductAnalyticsPreference()
             return
         }
@@ -223,24 +223,14 @@ extension FlashcardsStore {
         }
     }
 
-    /**
-     * A UI-test launch stores nothing server-side.
-     *
-     * The suites sign into the shared review account, and the client is force-disabled for the whole
-     * process anyway, so a smoke or screenshot flow driving this toggle would write a permanent
-     * opt-out onto that account for a switch that was never really on.
-     */
+    // Automation must not write synthetic choices or settle stored debts on a real account.
     private var isProductAnalyticsPreferenceStoredRemotely: Bool {
-        isFlashcardsUITestLaunch(processInfo: ProcessInfo.processInfo) == false
+        AutomationRun.current.isAutomation == false
     }
 
-    /// Hands the client kill switch the answer this device now holds, and publishes the value the
-    /// switch actually took — which a UI-test launch forces off regardless of the stored answer, so
-    /// the settings surfaces cannot read "On" while nothing is being recorded.
     func applyStoredProductAnalyticsPreference() {
         let isEnabled = ProductAnalyticsPreference.effectiveIsEnabled(
-            userDefaults: self.userDefaults,
-            processInfo: ProcessInfo.processInfo
+            userDefaults: self.userDefaults
         )
         self.isProductAnalyticsEnabled = isEnabled
         Analytics.setEnabled(isEnabled)

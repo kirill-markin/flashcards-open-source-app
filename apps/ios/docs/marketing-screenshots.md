@@ -504,7 +504,9 @@ with a separately registered `com.flashcards-open-source-app.app.marketing-captu
 identifier and genuine matching development profile. The external signing
 xcconfig must override `APP_BUNDLE_IDENTIFIER`, `DEVELOPMENT_TEAM` and
 `CODE_SIGN_IDENTITY = Apple Development`, assigning the capture app profile only
-to the `Flashcards` module. Keep production target settings unchanged. The
+to the `Flashcards` module. This external override takes precedence over Debug's
+ordinary `.development` identity; keep the capture profile matched to the capture ID.
+Keep production target settings unchanged. The
 wrapper checks the built bundle, its signature, both private app identities and
 the registered Mac before any guest reset. It refuses the production bundle;
 its container and pending outbox are never capture inputs.
