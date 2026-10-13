@@ -634,7 +634,7 @@ struct CloudPostAuthSyncPresentation: Equatable {
 func makeCloudPostAuthSyncPresentation() -> CloudPostAuthSyncPresentation {
     CloudPostAuthSyncPresentation(
         title: aiSettingsLocalized("settings.account.cloudSignIn.sync.title", "Your account is syncing with the cloud."),
-        message: aiSettingsLocalized("settings.account.cloudSignIn.sync.message", "Please do not turn off your phone. This usually takes a few minutes.")
+        message: aiSettingsLocalized("settings.account.cloudSignIn.sync.message", "Keep Nibomo open while your account syncs. This usually takes a few minutes.")
     )
 }
 
@@ -647,7 +647,7 @@ func makeCloudPostAuthSyncPresentation(operation: CloudPostAuthSyncOperation) ->
             ),
             message: aiSettingsLocalized(
                 "settings.account.cloudSignIn.guestLocalRecovery.recovering.message",
-                "Keep this screen open while iOS reconnects local data on this device to your recovered workspace."
+                "Keep this screen open while the app reconnects local data on this device to your recovered workspace."
             )
         )
     }

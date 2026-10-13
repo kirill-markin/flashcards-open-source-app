@@ -219,7 +219,7 @@
 "settings.aiChatSuggestions.description" = "Cuando está desactivado, el chat con IA no muestra sugerencias de mensajes encima del redactor.";
 "settings.ownOpenAIKey.title" = "Tu clave de OpenAI";
 "settings.ownOpenAIKey.toggle" = "Usar mi propia clave de OpenAI";
-"settings.ownOpenAIKey.description" = "Con tu propia clave, el chat con IA, el dictado y las imágenes de tarjetas funcionan con tu cuenta de OpenAI, sin límite mensual en ningún plan. Las sugerencias de respuesta están desactivadas mientras tu clave esté activada. Nunca guardamos tu clave en nuestros servidores: se queda en este dispositivo y solo se envía con tus solicitudes de IA, así que ingrésala por separado en iOS, Android y la web.";
+"settings.ownOpenAIKey.description" = "Con tu propia clave, el chat con IA, el dictado y las imágenes de tarjetas funcionan con tu cuenta de OpenAI, sin límite mensual en ningún plan. Las sugerencias de respuesta están desactivadas mientras tu clave esté activada. Nunca guardamos tu clave en nuestros servidores: se queda en este dispositivo y solo se envía con tus solicitudes de IA, así que ingrésala por separado en cada dispositivo.";
 "settings.ownOpenAIKey.keyField" = "Clave de API de OpenAI";
 "settings.ownOpenAIKey.monthMessages.one" = "Este mes con tu clave: %d mensaje";
 "settings.ownOpenAIKey.monthMessages.other" = "Este mes con tu clave: %d mensajes";
@@ -319,12 +319,10 @@
 "settings.thisDevice.deviceModel" = "Modelo del dispositivo";
 "settings.thisDevice.appVersion" = "Version de la app";
 "settings.thisDevice.build" = "Compilacion";
-"settings.thisDevice.client" = "Cliente";
+"settings.thisDevice.uiFramework" = "Framework de interfaz de usuario";
 "settings.thisDevice.storage" = "Almacenamiento";
 "settings.thisDevice.installationId" = "ID de instalacion";
 "settings.thisDevice.note.localOnly" = "No hace falta iniciar sesion para crear tarjetas, guardar mazos o repasar.";
-"settings.thisDevice.note.syncScope" = "La sincronizacion futura queda limitada solo al espacio de trabajo actual.";
-"settings.thisDevice.note.schema" = "El esquema se mantiene cercano al backend sin descargar datos remotos por defecto.";
 
 "settings.test.title" = "Prueba";
 "settings.test.section.tools" = "Herramientas";
@@ -493,9 +491,9 @@
 "settings.account.openSource.section.openSource" = "Codigo abierto";
 "settings.account.openSource.section.links" = "Enlaces";
 "settings.account.openSource.section.selfHosting" = "Autoalojamiento";
-"settings.account.openSource.description" = "La app de iOS y el backend son completamente de codigo abierto. Puedes inspeccionar el codigo, usar la licencia MIT y ejecutar toda la pila en tus propios servidores.";
+"settings.account.openSource.description" = "Esta app y el backend son completamente de codigo abierto. Puedes inspeccionar el codigo, usar la licencia MIT y ejecutar toda la pila en tus propios servidores.";
 "settings.account.openSource.repository" = "Repositorio de GitHub (Licencia MIT)";
-"settings.account.openSource.selfHosting" = "Si necesitas tu propio backend, puedes desplegar la misma pila de codigo abierto y apuntar la app de iOS a tu dominio desde Avanzado > Servidor.";
+"settings.account.openSource.selfHosting" = "Si necesitas tu propio backend, puedes desplegar la misma pila de codigo abierto y apuntar esta app a tu dominio desde Avanzado > Servidor.";
 "settings.account.openSource.section.thirdPartyNotices" = "Avisos de terceros";
 "settings.account.openSource.thirdPartyNotice" = "Animaciones Lottie de repaso: 38 animaciones de animales y naturaleza de Google Inc., Copyright (c) 2026 Google Inc., usadas bajo Creative Commons Attribution 4.0. Los runtimes de Lottie usan licencias MIT y Apache 2.0.";
 "settings.account.openSource.thirdPartyNoticeFull" = "Avisos completos de terceros";
@@ -578,14 +576,14 @@
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "Se inicio sesion, pero fallo la actualizacion de la cuenta.";
 "settings.account.cloudSignIn.failureDescription" = "El inicio de sesion se completo, pero la configuracion del espacio de trabajo en la nube o la sincronizacion inicial no terminaron.";
 "settings.account.cloudSignIn.sync.title" = "Tu cuenta se esta sincronizando con la nube.";
-"settings.account.cloudSignIn.sync.message" = "No apagues el telefono. Esto suele tardar unos minutos.";
+"settings.account.cloudSignIn.sync.message" = "Mantén Nibomo abierto mientras se sincroniza tu cuenta. Esto suele tardar unos minutos.";
 "settings.account.cloudSignIn.cloudSyncTitle" = "Sincronizacion en la nube";
 "settings.account.cloudSignIn.loadingWorkspaces" = "Cargando espacios de trabajo...";
 "settings.account.cloudSignIn.loadingWorkspacesDescription" = "El inicio de sesion se completo. La app esta cargando ahora el paso del espacio de trabajo en la nube.";
 "settings.account.cloudSignIn.guestLocalRecovery.prepare.title" = "Preparando espacio de trabajo recuperado...";
-"settings.account.cloudSignIn.guestLocalRecovery.prepare.message" = "Los datos locales siguen en este dispositivo. Manten esta pantalla abierta mientras iOS prepara un espacio de trabajo recuperado.";
+"settings.account.cloudSignIn.guestLocalRecovery.prepare.message" = "Los datos locales siguen en este dispositivo. Manten esta pantalla abierta mientras la app prepara un espacio de trabajo recuperado.";
 "settings.account.cloudSignIn.guestLocalRecovery.recovering.title" = "Recuperando datos locales";
-"settings.account.cloudSignIn.guestLocalRecovery.recovering.message" = "Manten esta pantalla abierta mientras iOS vuelve a conectar los datos locales de este dispositivo con tu espacio de trabajo recuperado.";
+"settings.account.cloudSignIn.guestLocalRecovery.recovering.message" = "Manten esta pantalla abierta mientras la app vuelve a conectar los datos locales de este dispositivo con tu espacio de trabajo recuperado.";
 "settings.account.cloudSignIn.guestLocalRecovery.failure.title" = "Fallo la recuperacion de datos locales.";
 "settings.account.cloudSignIn.guestLocalRecovery.failure.message" = "Intentalo de nuevo; los datos locales permanecen en este dispositivo.";
 "settings.account.cloudSignIn.technicalDetails" = "Detalles tecnicos";

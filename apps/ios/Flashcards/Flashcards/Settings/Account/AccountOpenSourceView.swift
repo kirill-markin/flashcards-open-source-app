@@ -214,7 +214,7 @@ struct AccountOpenSourceView: View {
                 Text(
                     aiSettingsLocalized(
                         "settings.account.openSource.description",
-                        "The iOS app and the backend are fully open source. You can inspect the code, use the MIT license, and run the full stack on your own servers."
+                        "This app and the backend are fully open source. You can inspect the code, use the MIT license, and run the full stack on your own servers."
                     )
                 )
                     .foregroundStyle(.secondary)
@@ -237,7 +237,7 @@ struct AccountOpenSourceView: View {
                 Text(
                     aiSettingsLocalized(
                         "settings.account.openSource.selfHosting",
-                        "If you need your own backend, you can deploy the same open-source stack yourself and point the iOS app to your domain from Advanced > Server."
+                        "If you need your own backend, you can deploy the same open-source stack yourself and point this app to your domain from Advanced > Server."
                     )
                 )
                     .foregroundStyle(.secondary)
