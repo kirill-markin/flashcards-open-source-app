@@ -45,6 +45,7 @@ const zuCatalog: TranslationCatalog = {
     active: "Kuyasebenza",
     automatic: "Okuzenzakalelayo",
     cancel: "Khansela",
+    close: "Vala",
     countLabels: {
       card: {
         one: "ikhadi",
@@ -1024,6 +1025,7 @@ const zuCatalog: TranslationCatalog = {
     searchPlaceholder: "Sesha izinqwaba noma amathegi",
   },
   reviewScreen: {
+    selectTextAriaLabel: "Khetha futhi ukopishe umbhalo: {{side}}",
     actions: {
       createCard: "Dala ikhadi",
       createWithAi: "Dala nge-AI",

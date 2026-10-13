@@ -44,6 +44,7 @@ export type ReviewPaneProps = Readonly<{
   onAiHandoff: (card: Card) => Promise<boolean>;
   onEditCard: (card: Card) => void;
   onRequestTagFilter: (tag: string) => void;
+  onRequestTextSelection: (side: ReviewSpeechSide) => void;
   onRevealAnswer: () => void;
   onReview: (card: Card, rating: ReviewRating) => Promise<void>;
   onShortcutButtonPointerEnter: ReviewShortcutPointerEnterHandler;
@@ -64,6 +65,7 @@ type ReviewLoadingPaneProps = Readonly<{
   localReadVersion: number;
   loadingReviewCurrentCard: ReviewLoadingSnapshot["currentCard"];
   onRequestTagFilter: (tag: string) => void;
+  onRequestTextSelection: (side: ReviewSpeechSide) => void;
   reviewLoadingSnapshot: ReviewLoadingSnapshot | null;
   workspaceId: string | null;
 }>;
@@ -82,6 +84,7 @@ type ReviewActiveCardPaneProps = Readonly<{
   onAiHandoff: (card: Card) => Promise<boolean>;
   onEditCard: (card: Card) => void;
   onRequestTagFilter: (tag: string) => void;
+  onRequestTextSelection: (side: ReviewSpeechSide) => void;
   onRevealAnswer: () => void;
   onReview: (card: Card, rating: ReviewRating) => Promise<void>;
   onShortcutButtonPointerEnter: ReviewShortcutPointerEnterHandler;
@@ -127,6 +130,7 @@ function ReviewLoadingPane(props: ReviewLoadingPaneProps): ReactElement {
     localReadVersion,
     loadingReviewCurrentCard,
     onRequestTagFilter,
+    onRequestTextSelection,
     reviewLoadingSnapshot,
     workspaceId,
   } = props;
@@ -170,6 +174,7 @@ function ReviewLoadingPane(props: ReviewLoadingPaneProps): ReactElement {
             contentClassName="review-front"
             isSpeaking={false}
             onOpenAi={null}
+            onOpenTextSelection={() => onRequestTextSelection("front")}
             onToggleSpeech={handleDisabledSpeechToggle}
             showAiButton={false}
             showSpeechButton={true}
@@ -296,6 +301,7 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
     onAiHandoff,
     onEditCard,
     onRequestTagFilter,
+    onRequestTextSelection,
     onRevealAnswer,
     onReview,
     onShortcutButtonPointerEnter,
@@ -369,6 +375,7 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
             contentClassName="review-front"
             isSpeaking={activeSpeechSide === "front"}
             onOpenAi={null}
+            onOpenTextSelection={() => onRequestTextSelection("front")}
             onToggleSpeech={() => onToggleSpeech("front", selectedCard.frontText)}
             showAiButton={false}
             showSpeechButton={selectedFrontSpeakableText !== ""}
@@ -396,6 +403,7 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
               contentClassName="review-back"
               isSpeaking={activeSpeechSide === "back"}
               onOpenAi={() => void onAiHandoff(selectedCard)}
+              onOpenTextSelection={() => onRequestTextSelection("back")}
               onToggleSpeech={() => onToggleSpeech("back", selectedCard.backText)}
               showAiButton={true}
               showSpeechButton={selectedBackSpeakableText !== ""}
@@ -466,6 +474,7 @@ export function ReviewPane(props: ReviewPaneProps): ReactElement {
     onAiHandoff,
     onEditCard,
     onRequestTagFilter,
+    onRequestTextSelection,
     onRevealAnswer,
     onReview,
     onShortcutButtonPointerEnter,
@@ -500,6 +509,7 @@ export function ReviewPane(props: ReviewPaneProps): ReactElement {
           localReadVersion={localReadVersion}
           loadingReviewCurrentCard={loadingReviewCurrentCard}
           onRequestTagFilter={onRequestTagFilter}
+          onRequestTextSelection={onRequestTextSelection}
           reviewLoadingSnapshot={reviewLoadingSnapshot}
           workspaceId={workspaceId}
         />
@@ -520,6 +530,7 @@ export function ReviewPane(props: ReviewPaneProps): ReactElement {
           onAiHandoff={onAiHandoff}
           onEditCard={onEditCard}
           onRequestTagFilter={onRequestTagFilter}
+          onRequestTextSelection={onRequestTextSelection}
           onRevealAnswer={onRevealAnswer}
           onReview={onReview}
           onShortcutButtonPointerEnter={onShortcutButtonPointerEnter}

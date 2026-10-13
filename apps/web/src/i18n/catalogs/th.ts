@@ -45,6 +45,7 @@ const thCatalog: TranslationCatalog = {
     active: "ใช้งานอยู่",
     automatic: "อัตโนมัติ",
     cancel: "ยกเลิก",
+    close: "ปิด",
     countLabels: {
       card: {
         one: "การ์ด",
@@ -1024,6 +1025,7 @@ const thCatalog: TranslationCatalog = {
     searchPlaceholder: "ค้นหาเด็คหรือแท็ก",
   },
   reviewScreen: {
+    selectTextAriaLabel: "เลือกและคัดลอกข้อความ: {{side}}",
     actions: {
       createCard: "สร้างการ์ด",
       createWithAi: "สร้างด้วย AI",

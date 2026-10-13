@@ -45,6 +45,7 @@ const viCatalog: TranslationCatalog = {
     active: "Đang hoạt động",
     automatic: "Tự động",
     cancel: "Hủy",
+    close: "Đóng",
     countLabels: {
       card: {
         one: "thẻ",
@@ -1024,6 +1025,7 @@ const viCatalog: TranslationCatalog = {
     searchPlaceholder: "Tìm bộ thẻ hoặc nhãn",
   },
   reviewScreen: {
+    selectTextAriaLabel: "Chọn và sao chép văn bản: {{side}}",
     actions: {
       createCard: "Tạo thẻ",
       createWithAi: "Tạo bằng AI",

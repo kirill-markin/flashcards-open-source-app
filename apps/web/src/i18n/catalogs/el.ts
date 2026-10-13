@@ -45,6 +45,7 @@ const elCatalog: TranslationCatalog = {
     active: "Ενεργό",
     automatic: "Αυτόματα",
     cancel: "Ακύρωση",
+    close: "Κλείσιμο",
     countLabels: {
       card: {
         one: "κάρτα",
@@ -1024,6 +1025,7 @@ const elCatalog: TranslationCatalog = {
     searchPlaceholder: "Αναζήτηση δεσμών ή ετικετών",
   },
   reviewScreen: {
+    selectTextAriaLabel: "Επιλογή και αντιγραφή κειμένου: {{side}}",
     actions: {
       createCard: "Δημιουργία κάρτας",
       createWithAi: "Δημιουργία με ΤΝ",

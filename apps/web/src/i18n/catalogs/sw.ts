@@ -45,6 +45,7 @@ const swCatalog: TranslationCatalog = {
     active: "Inatumika",
     automatic: "Kiotomatiki",
     cancel: "Ghairi",
+    close: "Funga",
     countLabels: {
       card: {
         one: "kadi",
@@ -1024,6 +1025,7 @@ const swCatalog: TranslationCatalog = {
     searchPlaceholder: "Tafuta mafungu au lebo",
   },
   reviewScreen: {
+    selectTextAriaLabel: "Chagua na unakili maandishi: {{side}}",
     actions: {
       createCard: "Unda kadi",
       createWithAi: "Unda kwa AI",

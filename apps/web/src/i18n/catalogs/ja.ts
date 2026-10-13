@@ -45,6 +45,7 @@ export const jaCatalog = {
     active: "アクティブ",
     automatic: "自動",
     cancel: "キャンセル",
+    close: "閉じる",
     countLabels: {
       card: {
         one: "枚",
@@ -1024,6 +1025,7 @@ export const jaCatalog = {
     searchPlaceholder: "デッキまたはタグを検索",
   },
   reviewScreen: {
+    selectTextAriaLabel: "テキストを選択してコピー：{{side}}",
     actions: {
       createCard: "カードを作成",
       createWithAi: "AI で作成",

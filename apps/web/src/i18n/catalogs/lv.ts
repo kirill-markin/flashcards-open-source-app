@@ -45,6 +45,7 @@ const lvCatalog: TranslationCatalog = {
     active: "Aktīvs",
     automatic: "Automātiski",
     cancel: "Atcelt",
+    close: "Aizvērt",
     countLabels: {
       card: {
         one: "kartīte",
@@ -1024,6 +1025,7 @@ const lvCatalog: TranslationCatalog = {
     searchPlaceholder: "Meklēt kavas vai birkas",
   },
   reviewScreen: {
+    selectTextAriaLabel: "Atlasīt un kopēt tekstu: {{side}}",
     actions: {
       createCard: "Izveidot kartīti",
       createWithAi: "Izveidot ar MI",

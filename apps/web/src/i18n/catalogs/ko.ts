@@ -45,6 +45,7 @@ const koCatalog: TranslationCatalog = {
     active: "활성",
     automatic: "자동",
     cancel: "취소",
+    close: "닫기",
     countLabels: {
       card: {
         one: "장의 카드",
@@ -1024,6 +1025,7 @@ const koCatalog: TranslationCatalog = {
     searchPlaceholder: "덱 또는 태그 검색",
   },
   reviewScreen: {
+    selectTextAriaLabel: "텍스트 선택 및 복사: {{side}}",
     actions: {
       createCard: "카드 만들기",
       createWithAi: "AI로 만들기",

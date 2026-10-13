@@ -45,6 +45,7 @@ const nlCatalog: TranslationCatalog = {
     active: "Actief",
     automatic: "Automatisch",
     cancel: "Annuleren",
+    close: "Sluiten",
     countLabels: {
       card: {
         one: "kaart",
@@ -1024,6 +1025,7 @@ const nlCatalog: TranslationCatalog = {
     searchPlaceholder: "Zoek in decks of tags",
   },
   reviewScreen: {
+    selectTextAriaLabel: "Tekst selecteren en kopiëren: {{side}}",
     actions: {
       createCard: "Kaart maken",
       createWithAi: "Maken met AI",

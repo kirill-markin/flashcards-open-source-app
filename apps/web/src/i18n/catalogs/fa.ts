@@ -45,6 +45,7 @@ const faCatalog: TranslationCatalog = {
     active: "فعال",
     automatic: "خودکار",
     cancel: "لغو",
+    close: "بستن",
     countLabels: {
       card: {
         one: "کارت",
@@ -1024,6 +1025,7 @@ const faCatalog: TranslationCatalog = {
     searchPlaceholder: "جست‌وجوی دسته‌ها یا برچسب‌ها",
   },
   reviewScreen: {
+    selectTextAriaLabel: "انتخاب و کپی متن: {{side}}",
     actions: {
       createCard: "ساخت کارت",
       createWithAi: "ساخت با هوش مصنوعی",

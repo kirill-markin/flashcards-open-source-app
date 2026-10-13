@@ -45,6 +45,7 @@ const taCatalog: TranslationCatalog = {
     active: "செயலில்",
     automatic: "தானியங்கி",
     cancel: "ரத்துசெய்",
+    close: "மூடு",
     countLabels: {
       card: {
         one: "அட்டை",
@@ -1024,6 +1025,7 @@ const taCatalog: TranslationCatalog = {
     searchPlaceholder: "தொகுப்புகள் அல்லது குறிச்சொற்களைத் தேடு",
   },
   reviewScreen: {
+    selectTextAriaLabel: "உரையைத் தேர்ந்தெடுத்து நகலெடுக்கவும்: {{side}}",
     actions: {
       createCard: "அட்டையை உருவாக்கு",
       createWithAi: "AI மூலம் உருவாக்கு",

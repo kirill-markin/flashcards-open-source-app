@@ -45,6 +45,7 @@ const etCatalog: TranslationCatalog = {
     active: "Aktiivne",
     automatic: "Automaatne",
     cancel: "Tühista",
+    close: "Sulge",
     countLabels: {
       card: {
         one: "kaart",
@@ -1024,6 +1025,7 @@ const etCatalog: TranslationCatalog = {
     searchPlaceholder: "Otsi pakke või silte",
   },
   reviewScreen: {
+    selectTextAriaLabel: "Vali ja kopeeri tekst: {{side}}",
     actions: {
       createCard: "Loo kaart",
       createWithAi: "Loo tehisintellektiga",

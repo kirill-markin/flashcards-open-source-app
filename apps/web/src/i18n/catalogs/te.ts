@@ -45,6 +45,7 @@ const teCatalog: TranslationCatalog = {
     active: "సక్రియం",
     automatic: "స్వయంచాలకం",
     cancel: "రద్దు చేయి",
+    close: "మూసివేయి",
     countLabels: {
       card: {
         one: "కార్డు",
@@ -1024,6 +1025,7 @@ const teCatalog: TranslationCatalog = {
     searchPlaceholder: "డెక్‌లు లేదా ట్యాగ్‌లను వెతకండి",
   },
   reviewScreen: {
+    selectTextAriaLabel: "వచనాన్ని ఎంచుకుని కాపీ చేయండి: {{side}}",
     actions: {
       createCard: "కార్డు సృష్టించు",
       createWithAi: "AIతో సృష్టించు",
