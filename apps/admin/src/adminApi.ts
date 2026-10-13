@@ -124,8 +124,6 @@ export type ReviewEventsByDateReport = Readonly<{
   to: string;
   totalReviewEvents: number;
   users: ReadonlyArray<ReviewEventsByDateUser>;
-  /** Users with community activity in range but no review events in range. */
-  communityOnlyUsers: ReadonlyArray<ReviewEventsByDateUser>;
   dateTotals: ReadonlyArray<ReviewEventsByDateTotal>;
   dailyUniqueUserCohorts: ReadonlyArray<ReviewEventsByDateUniqueUserCohort>;
   platformActiveUserTotals: ReadonlyArray<ReviewEventsByDatePlatformActiveUserTotal>;
