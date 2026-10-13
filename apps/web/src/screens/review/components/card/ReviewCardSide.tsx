@@ -21,6 +21,7 @@ import reviewMathBlocks, {
   normalizeReviewPlainTextEscapedDollars,
 } from "./reviewMathBlocks";
 import { ReviewMathBlock } from "./ReviewMathBlock";
+import { useI18n } from "../../../../i18n";
 
 const REVIEW_MARKDOWN_FENCE_PATTERN = /^\s{0,3}(`{3,}|~{3,})/;
 const REVIEW_MARKDOWN_SYMBOL_ONLY_LIST_ITEM_PATTERN = /^(\s{0,3}[-*+]\s+)([+*\-#>])(\s*)$/;
@@ -40,6 +41,7 @@ export type ReviewCardSideProps = Readonly<{
   isSpeaking: boolean;
   label: string;
   onOpenAi: (() => void) | null;
+  onOpenTextSelection?: () => void;
   onToggleSpeech: () => void;
   showAiButton: boolean;
   showSpeechButton: boolean;
@@ -389,6 +391,7 @@ export function ReviewCardSide(props: ReviewCardSideProps): ReactElement {
     isSpeaking,
     label,
     onOpenAi,
+    onOpenTextSelection,
     onToggleSpeech,
     showAiButton,
     showSpeechButton,
@@ -402,6 +405,7 @@ export function ReviewCardSide(props: ReviewCardSideProps): ReactElement {
     text,
     workspaceId,
   } = props;
+  const { t } = useI18n();
   const presentationMode = parseManagedImageMarkdownReferences(text).length > 0
     ? "markdown"
     : classifyReviewContentPresentation(text);
@@ -413,7 +417,24 @@ export function ReviewCardSide(props: ReviewCardSideProps): ReactElement {
       data-card-id={surfaceCardId}
       data-card-front-text={surfaceFrontText}
     >
-      <div className="review-label">{label}</div>
+      {onOpenTextSelection === undefined ? (
+        <div className="review-label">{label}</div>
+      ) : (
+        <button
+          type="button"
+          className="review-label review-label-button"
+          aria-label={t("reviewScreen.selectTextAriaLabel", { side: label })}
+          aria-haspopup="dialog"
+          title={t("reviewScreen.selectTextAriaLabel", { side: label })}
+          onClick={(event) => {
+            event.currentTarget.focus();
+            onOpenTextSelection();
+          }}
+          onKeyDown={(event) => event.stopPropagation()}
+        >
+          {label}
+        </button>
+      )}
       <div className="review-card-body">
         <div className="review-card-content-wrap">
           <div

@@ -45,6 +45,7 @@ const slCatalog: TranslationCatalog = {
     active: "Aktivno",
     automatic: "Samodejno",
     cancel: "Prekliči",
+    close: "Zapri",
     countLabels: {
       card: {
         one: "kartica",
@@ -1044,6 +1045,7 @@ const slCatalog: TranslationCatalog = {
     searchPlaceholder: "Išči komplete ali oznake",
   },
   reviewScreen: {
+    selectTextAriaLabel: "Izberi in kopiraj besedilo: {{side}}",
     actions: {
       createCard: "Ustvari kartico",
       createWithAi: "Ustvari z UI",

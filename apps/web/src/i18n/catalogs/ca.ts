@@ -45,6 +45,7 @@ const caCatalog: TranslationCatalog = {
     active: "Activa",
     automatic: "Automàtic",
     cancel: "Cancel·la",
+    close: "Tanca",
     countLabels: {
       card: {
         one: "targeta",
@@ -1024,6 +1025,7 @@ const caCatalog: TranslationCatalog = {
     searchPlaceholder: "Cerca baralles o etiquetes",
   },
   reviewScreen: {
+    selectTextAriaLabel: "Selecciona i copia el text: {{side}}",
     actions: {
       createCard: "Crea una targeta",
       createWithAi: "Crea amb IA",

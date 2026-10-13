@@ -45,6 +45,7 @@ const svCatalog: TranslationCatalog = {
     active: "Aktiv",
     automatic: "Automatiskt",
     cancel: "Avbryt",
+    close: "Stäng",
     countLabels: {
       card: {
         one: "kort",
@@ -1024,6 +1025,7 @@ const svCatalog: TranslationCatalog = {
     searchPlaceholder: "Sök kortlekar eller taggar",
   },
   reviewScreen: {
+    selectTextAriaLabel: "Markera och kopiera text: {{side}}",
     actions: {
       createCard: "Skapa kort",
       createWithAi: "Skapa med AI",

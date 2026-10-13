@@ -45,6 +45,7 @@ const knCatalog: TranslationCatalog = {
     active: "ಸಕ್ರಿಯ",
     automatic: "ಸ್ವಯಂಚಾಲಿತ",
     cancel: "ರದ್ದುಮಾಡಿ",
+    close: "ಮುಚ್ಚಿ",
     countLabels: {
       card: {
         one: "ಕಾರ್ಡ್",
@@ -1024,6 +1025,7 @@ const knCatalog: TranslationCatalog = {
     searchPlaceholder: "ಡೆಕ್ ಅಥವಾ ಟ್ಯಾಗ್ ಹುಡುಕಿ",
   },
   reviewScreen: {
+    selectTextAriaLabel: "ಪಠ್ಯವನ್ನು ಆಯ್ಕೆಮಾಡಿ ಮತ್ತು ನಕಲಿಸಿ: {{side}}",
     actions: {
       createCard: "ಕಾರ್ಡ್ ರಚಿಸಿ",
       createWithAi: "AI ಬಳಸಿ ರಚಿಸಿ",

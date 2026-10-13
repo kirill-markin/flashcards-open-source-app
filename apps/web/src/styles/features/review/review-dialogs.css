@@ -19,7 +19,8 @@
 }
 
 .review-hard-reminder-overlay,
-.review-tag-filter-overlay {
+.review-tag-filter-overlay,
+.review-text-selection-overlay {
   position: fixed;
   inset: 0;
   padding: 24px;
@@ -61,6 +62,48 @@
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 12px;
+}
+
+.review-text-selection-modal {
+  width: min(780px, 100%);
+  max-height: calc(100dvh - 48px);
+  min-height: 0;
+  border: 0;
+  background: var(--surface);
+  box-shadow: none;
+  overflow: auto;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 20px;
+}
+
+.review-text-selection-source {
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  height: min(55dvh, 520px);
+  padding: 12px;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow: auto;
+  overscroll-behavior: contain;
+  resize: none;
+}
+
+.review-text-selection-source:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.review-text-selection-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .mobile-app-promo-overlay {
@@ -115,6 +158,14 @@
 }
 
 @media (max-width: 720px) {
+  .review-text-selection-overlay {
+    padding: 16px;
+  }
+
+  .review-text-selection-modal {
+    max-height: calc(100dvh - 32px);
+  }
+
   .mobile-app-promo-overlay {
     padding: 16px;
   }

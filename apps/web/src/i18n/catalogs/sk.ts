@@ -45,6 +45,7 @@ const skCatalog: TranslationCatalog = {
     active: "Aktívne",
     automatic: "Automaticky",
     cancel: "Zrušiť",
+    close: "Zavrieť",
     countLabels: {
       card: {
         one: "karta",
@@ -1034,6 +1035,7 @@ const skCatalog: TranslationCatalog = {
     searchPlaceholder: "Hľadať balíčky alebo značky",
   },
   reviewScreen: {
+    selectTextAriaLabel: "Vybrať a skopírovať text: {{side}}",
     actions: {
       createCard: "Vytvoriť kartu",
       createWithAi: "Vytvoriť pomocou AI",

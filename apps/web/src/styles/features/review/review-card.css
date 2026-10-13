@@ -205,6 +205,23 @@
   color: var(--text-tertiary);
 }
 
+.review-label-button {
+  justify-self: start;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  text-align: start;
+  line-height: inherit;
+  cursor: pointer;
+}
+
+.review-label-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
 .review-card-body {
   min-height: 64px;
   display: grid;

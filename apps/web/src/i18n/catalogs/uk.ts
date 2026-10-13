@@ -45,6 +45,7 @@ const ukCatalog: TranslationCatalog = {
     active: "Активний",
     automatic: "Автоматично",
     cancel: "Скасувати",
+    close: "Закрити",
     countLabels: {
       card: {
         one: "картка",
@@ -1034,6 +1035,7 @@ const ukCatalog: TranslationCatalog = {
     searchPlaceholder: "Пошук колод або тегів",
   },
   reviewScreen: {
+    selectTextAriaLabel: "Виділити й скопіювати текст: {{side}}",
     actions: {
       createCard: "Створити картку",
       createWithAi: "Створити з AI",

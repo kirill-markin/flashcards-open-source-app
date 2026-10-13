@@ -45,6 +45,7 @@ const frCatalog: TranslationCatalog = {
     active: "Actif",
     automatic: "Automatique",
     cancel: "Annuler",
+    close: "Fermer",
     countLabels: {
       card: {
         one: "carte",
@@ -1024,6 +1025,7 @@ const frCatalog: TranslationCatalog = {
     searchPlaceholder: "Rechercher des paquets ou des étiquettes",
   },
   reviewScreen: {
+    selectTextAriaLabel: "Sélectionner et copier le texte : {{side}}",
     actions: {
       createCard: "Créer une carte",
       createWithAi: "Créer avec l'IA",

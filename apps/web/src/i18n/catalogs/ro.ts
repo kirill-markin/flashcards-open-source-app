@@ -45,6 +45,7 @@ const roCatalog: TranslationCatalog = {
     active: "Activ",
     automatic: "Automat",
     cancel: "Anulează",
+    close: "Închide",
     countLabels: {
       card: {
         one: "fișă",
@@ -1034,6 +1035,7 @@ const roCatalog: TranslationCatalog = {
     searchPlaceholder: "Caută pachete sau etichete",
   },
   reviewScreen: {
+    selectTextAriaLabel: "Selectează și copiază textul: {{side}}",
     actions: {
       createCard: "Creează o fișă",
       createWithAi: "Creează cu AI",

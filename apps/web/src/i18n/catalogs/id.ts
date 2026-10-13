@@ -45,6 +45,7 @@ const idCatalog: TranslationCatalog = {
     active: "Aktif",
     automatic: "Otomatis",
     cancel: "Batal",
+    close: "Tutup",
     countLabels: {
       card: {
         one: "kartu",
@@ -1024,6 +1025,7 @@ const idCatalog: TranslationCatalog = {
     searchPlaceholder: "Cari dek atau tag",
   },
   reviewScreen: {
+    selectTextAriaLabel: "Pilih dan salin teks: {{side}}",
     actions: {
       createCard: "Buat kartu",
       createWithAi: "Buat dengan AI",

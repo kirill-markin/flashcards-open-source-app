@@ -3,6 +3,7 @@ import { useAppErrorDialog } from "../../appError/AppErrorContext";
 import { FeedbackDialog } from "../../feedback/FeedbackDialog";
 import { useEffectiveReviewReactionAnimationsEnabled } from "../../premium/styleSettings";
 import { ReviewEditorModal } from "./components/card/ReviewEditorModal";
+import { ReviewTextSelectionDialog } from "./components/card/ReviewTextSelectionDialog";
 import { ReviewPane } from "./components/ReviewPane";
 import { ReviewQueuePanel } from "./components/ReviewQueuePanel";
 import { ReviewScreenHeader } from "./components/ReviewScreenHeader";
@@ -30,6 +31,7 @@ export function ReviewScreen(): ReactElement {
     reviewReactionFallbackHandler,
     reviewReactionEvents,
     tagFilterDialogProps,
+    textSelectionDialogProps,
   } = useReviewScreenController({
     reviewReactionAnimationsEnabled,
   });
@@ -68,6 +70,7 @@ export function ReviewScreen(): ReactElement {
       <ReviewHardReminderDialog {...hardReminderDialogProps} />
       <MobileAppPromotionDialog {...mobileAppPromotionDialogProps} />
       <ReviewTagFilterDialog {...tagFilterDialogProps} />
+      <ReviewTextSelectionDialog {...textSelectionDialogProps} />
     </main>
   );
 }
