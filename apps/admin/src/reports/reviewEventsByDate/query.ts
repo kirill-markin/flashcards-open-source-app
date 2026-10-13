@@ -228,32 +228,6 @@ function assertCommunityRowsInRange(
   }
 }
 
-function buildCommunityOnlyUsers(
-  communityRows: ReadonlyArray<ReviewEventsByDateCommunityRow>,
-  reviewUsers: ReadonlyArray<ReviewEventsByDateUser>,
-): ReadonlyArray<ReviewEventsByDateUser> {
-  const reviewUserIds = new Set(reviewUsers.map((user) => user.userId));
-  const usersByUserId = new Map<string, ReviewEventsByDateUser>();
-
-  for (const row of communityRows) {
-    if (reviewUserIds.has(row.userId) || usersByUserId.has(row.userId)) {
-      continue;
-    }
-
-    usersByUserId.set(row.userId, {
-      userId: row.userId,
-      email: row.email,
-      totalReviewEvents: 0,
-    });
-  }
-
-  return Array.from(usersByUserId.values()).sort((left, right) => {
-    const leftLabel = left.email === "(no email)" ? left.userId : left.email;
-    const rightLabel = right.email === "(no email)" ? right.userId : right.email;
-    return leftLabel.localeCompare(rightLabel);
-  });
-}
-
 function buildReviewEventsByDateAggregateFields(
   rows: ReadonlyArray<ReviewEventsByDateRow>,
   dates: ReadonlyArray<string>,
@@ -326,7 +300,6 @@ function buildReviewEventsByDateReport(
     from,
     to,
     ...aggregateFields,
-    communityOnlyUsers: buildCommunityOnlyUsers(communityRows, aggregateFields.users),
     rows,
     communityRows,
   };

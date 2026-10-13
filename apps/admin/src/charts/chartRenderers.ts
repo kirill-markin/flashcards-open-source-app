@@ -13,8 +13,8 @@ import { getUserPath } from "../routing";
 import {
   chartMargin,
   chartWidth,
-  dailyActiveUsersTotalBarColor,
   dailyActiveUsersUniqueTotalMarkerColor,
+  dailyTotalBarColor,
   deviceTypeColors,
   deviceTypeLabels,
   funnelHashedSegmentMixColor,
@@ -184,6 +184,18 @@ type DailyTotalEntry = Readonly<{
   value: number;
 }>;
 
+type DailyTotalBarChartParams = Readonly<{
+  svgElement: SVGSVGElement;
+  dates: ReadonlyArray<string>;
+  tickDates: ReadonlyArray<string>;
+  totalsByDate: ReadonlyMap<string, number>;
+  peakDailyTotal: number;
+  yAxisLabel: string;
+  xAxisLabel: string;
+  tooltipMetricLabel: string;
+  tooltipHandlers: ChartTooltipHandlers;
+}>;
+
 type KeyedStackedBarChartFrame = Readonly<{
   group: d3.Selection<SVGGElement, unknown, null, undefined>;
   x: d3.ScaleBand<string>;
@@ -194,28 +206,17 @@ export type RenderDailyFriendInvitationsChartParams = Readonly<{
   svgElement: SVGSVGElement;
   dates: ReadonlyArray<string>;
   tickDates: ReadonlyArray<string>;
-  friendInvitationUserMatrix: ReadonlyArray<MatrixChartEntry>;
-  friendInvitationUserIds: ReadonlyArray<string>;
-  userColorScale: UserColorScale;
-  userById: ReadonlyMap<string, ReviewEventsByDateUser>;
-  totalFriendInvitationsByDate: ReadonlyMap<string, number>;
-  friendInvitationTotalsByUserId: ReadonlyMap<string, number>;
+  friendInvitationsByDate: ReadonlyMap<string, number>;
   peakDailyFriendInvitations: number;
-  onUserFilterApply: (userId: string) => void;
   tooltipHandlers: ChartTooltipHandlers;
 }>;
 
-export type RenderDailyFriendshipsChartParams = Readonly<{
+export type RenderDailyFriendConnectionsChartParams = Readonly<{
   svgElement: SVGSVGElement;
   dates: ReadonlyArray<string>;
   tickDates: ReadonlyArray<string>;
-  friendshipUserMatrix: ReadonlyArray<MatrixChartEntry>;
-  friendshipUserIds: ReadonlyArray<string>;
-  userColorScale: UserColorScale;
-  userById: ReadonlyMap<string, ReviewEventsByDateUser>;
-  totalFriendshipsByDate: ReadonlyMap<string, number>;
-  peakDailyFriendships: number;
-  onUserFilterApply: (userId: string) => void;
+  friendConnectionsByDate: ReadonlyMap<string, number>;
+  peakDailyFriendConnections: number;
   tooltipHandlers: ChartTooltipHandlers;
 }>;
 
@@ -515,12 +516,12 @@ export function renderDailyActiveUsersChart(params: RenderDailyActiveUsersChartP
   });
 }
 
-export function renderDailyActiveUsersTotalChart(params: RenderDailyActiveUsersTotalChartParams): void {
+function renderDailyTotalBarChart(params: DailyTotalBarChartParams): void {
   const svg = d3.select(params.svgElement);
   const x = createDateScale(params.dates);
   const innerHeight = getInnerHeight(simpleChartHeight);
   const y = d3.scaleLinear()
-    .domain([0, Math.max(1, params.peakDailyActiveUsers)])
+    .domain([0, Math.max(1, params.peakDailyTotal)])
     .nice()
     .range([innerHeight, 0]);
   const group = renderChartFrame(svg, {
@@ -528,18 +529,18 @@ export function renderDailyActiveUsersTotalChart(params: RenderDailyActiveUsersT
     x,
     y,
     tickDates: params.tickDates,
-    yAxisLabel: "Active users",
-    xAxisLabel: "Date",
+    yAxisLabel: params.yAxisLabel,
+    xAxisLabel: params.xAxisLabel,
   });
   const bars: ReadonlyArray<DailyTotalEntry> = params.dates
-    .map((date) => ({ date, value: params.dailyActiveUsersByDate.get(date) ?? 0 }))
+    .map((date) => ({ date, value: params.totalsByDate.get(date) ?? 0 }))
     .filter((entry) => entry.value > 0);
 
   group.selectAll<SVGRectElement, DailyTotalEntry>(".bar-segment")
     .data(bars)
     .join("rect")
     .attr("class", "bar-segment")
-    .attr("fill", dailyActiveUsersTotalBarColor)
+    .attr("fill", dailyTotalBarColor)
     .attr("x", (entry) => x(entry.date) ?? 0)
     .attr("y", (entry) => y(entry.value))
     .attr("width", x.bandwidth())
@@ -549,13 +550,27 @@ export function renderDailyActiveUsersTotalChart(params: RenderDailyActiveUsersT
       params.tooltipHandlers.showTooltip(
         [
           `<p class="tooltip-title">${escapeHtml(formatDateRangeLabel(entry.date))}</p>`,
-          `<div class="tooltip-metric"><span>Unique active users</span><strong>${numberFormatter(entry.value)}</strong></div>`,
+          `<div class="tooltip-metric"><span>${escapeHtml(params.tooltipMetricLabel)}</span><strong>${numberFormatter(entry.value)}</strong></div>`,
         ].join(""),
         event.clientX,
         event.clientY,
       );
     })
     .on("mouseleave", params.tooltipHandlers.hideTooltip);
+}
+
+export function renderDailyActiveUsersTotalChart(params: RenderDailyActiveUsersTotalChartParams): void {
+  renderDailyTotalBarChart({
+    svgElement: params.svgElement,
+    dates: params.dates,
+    tickDates: params.tickDates,
+    totalsByDate: params.dailyActiveUsersByDate,
+    peakDailyTotal: params.peakDailyActiveUsers,
+    yAxisLabel: "Active users",
+    xAxisLabel: "Date",
+    tooltipMetricLabel: "Unique active users",
+    tooltipHandlers: params.tooltipHandlers,
+  });
 }
 
 export function renderUserReviewEventsChart(params: RenderUserReviewEventsChartParams): void {
@@ -582,47 +597,29 @@ export function renderUserReviewEventsChart(params: RenderUserReviewEventsChartP
 }
 
 export function renderDailyFriendInvitationsChart(params: RenderDailyFriendInvitationsChartParams): void {
-  renderUserStackedBarChart({
+  renderDailyTotalBarChart({
     svgElement: params.svgElement,
     dates: params.dates,
     tickDates: params.tickDates,
-    userMatrix: params.friendInvitationUserMatrix,
-    userIds: params.friendInvitationUserIds,
-    userColorScale: params.userColorScale,
-    userById: params.userById,
-    peakStackedValue: params.peakDailyFriendInvitations,
+    totalsByDate: params.friendInvitationsByDate,
+    peakDailyTotal: params.peakDailyFriendInvitations,
     yAxisLabel: "Invite links",
     xAxisLabel: "Date",
-    segmentClass: "friend-invitations",
-    buildTooltipMetricsHtml: (entry, user) => [
-      `<div class="tooltip-metric"><span>User invite links</span><strong>${numberFormatter(entry.value)}</strong></div>`,
-      `<div class="tooltip-metric"><span>Total on this date</span><strong>${numberFormatter(params.totalFriendInvitationsByDate.get(entry.date) ?? entry.value)}</strong></div>`,
-      `<div class="tooltip-metric"><span>User total</span><strong>${numberFormatter(params.friendInvitationTotalsByUserId.get(user.userId) ?? entry.value)}</strong></div>`,
-    ].join(""),
-    onUserFilterApply: params.onUserFilterApply,
+    tooltipMetricLabel: "Invite links created",
     tooltipHandlers: params.tooltipHandlers,
   });
 }
 
-// Friend connections are an end-of-day snapshot per user, so there is no meaningful range total to show.
-export function renderDailyFriendshipsChart(params: RenderDailyFriendshipsChartParams): void {
-  renderUserStackedBarChart({
+export function renderDailyFriendConnectionsChart(params: RenderDailyFriendConnectionsChartParams): void {
+  renderDailyTotalBarChart({
     svgElement: params.svgElement,
     dates: params.dates,
     tickDates: params.tickDates,
-    userMatrix: params.friendshipUserMatrix,
-    userIds: params.friendshipUserIds,
-    userColorScale: params.userColorScale,
-    userById: params.userById,
-    peakStackedValue: params.peakDailyFriendships,
+    totalsByDate: params.friendConnectionsByDate,
+    peakDailyTotal: params.peakDailyFriendConnections,
     yAxisLabel: "Connections",
     xAxisLabel: "Date",
-    segmentClass: "friend-connections",
-    buildTooltipMetricsHtml: (entry) => [
-      `<div class="tooltip-metric"><span>User connections at end of day</span><strong>${numberFormatter(entry.value)}</strong></div>`,
-      `<div class="tooltip-metric"><span>Total on this date</span><strong>${numberFormatter(params.totalFriendshipsByDate.get(entry.date) ?? entry.value)}</strong></div>`,
-    ].join(""),
-    onUserFilterApply: params.onUserFilterApply,
+    tooltipMetricLabel: "Connections at end of day",
     tooltipHandlers: params.tooltipHandlers,
   });
 }
