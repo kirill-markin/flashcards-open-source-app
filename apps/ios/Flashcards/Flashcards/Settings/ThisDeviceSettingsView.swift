@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 
 private let testModeUnlockRequiredTapCount: Int = 5
 private let testModeUnlockMaximumTapIntervalSeconds: TimeInterval = 2
@@ -10,13 +9,19 @@ struct ThisDeviceSettingsView: View {
     @State private var lastAppVersionTapAt: Date? = nil
 
     private var deviceModel: String {
-        let model = UIDevice.current.model.trimmingCharacters(in: .whitespacesAndNewlines)
-        return model.isEmpty ? aiSettingsLocalized("common.unavailable", "Unavailable") : model
+        currentClientDeviceModelIdentifier() ?? aiSettingsLocalized("common.unavailable", "Unavailable")
     }
 
     private var operatingSystem: String {
-        let currentDevice = UIDevice.current
-        return "\(currentDevice.systemName) \(currentDevice.systemVersion)"
+        let version = currentClientOsVersion()
+        switch currentClientOsName() {
+        case "macos":
+            return "macOS \(version)"
+        case "ipados":
+            return "iPadOS \(version)"
+        default:
+            return "iOS \(version)"
+        }
     }
 
     private var appVersion: String {
