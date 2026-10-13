@@ -81,6 +81,7 @@ function EnumFilter(props: Readonly<{
   testId: string;
   label: string;
   options: ReadonlyArray<string>;
+  getOptionLabel: ((value: string) => string) | undefined;
   selected: ReadonlyArray<string>;
   onChange: (values: ReadonlyArray<string>) => void;
 }>): JSX.Element {
@@ -101,7 +102,7 @@ function EnumFilter(props: Readonly<{
               checked={props.selected.includes(option)}
               onChange={(event) => toggle(option, event.target.checked)}
             />
-            <span>{option === "" ? emptyEnumOptionLabel : option}</span>
+            <span>{option === "" ? emptyEnumOptionLabel : props.getOptionLabel === undefined ? option : props.getOptionLabel(option)}</span>
           </label>
         ))}
       </div>
@@ -162,6 +163,7 @@ function ColumnFilter<Row>(props: Readonly<{
           testId={props.testId}
           label={label}
           options={props.enumOptions}
+          getOptionLabel={column.kind === "enum" ? column.enumOptionLabel : undefined}
           selected={filter?.kind === "enum" ? filter.values : []}
           onChange={(values) => props.onChange({ kind: "enum", values })}
         />

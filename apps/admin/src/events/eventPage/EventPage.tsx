@@ -4,6 +4,7 @@ import { AdminLink } from "../../navigation/AdminLink";
 import { AdminNavigation } from "../../navigation/AdminNavigation";
 import { formatInstant } from "../../users/userPage/formatInstant";
 import { ProfileRecordCard, renderUserLink, type ProfileRecordRow } from "../../users/userPage/ProfileTab";
+import { getEventPlatformLabel } from "../eventPlatformLabel";
 import { loadAnalyticsEvent, type AnalyticsEvent, type LoadedAnalyticsEvent } from "./eventQuery";
 import "../../table/dataTable.css";
 import "../../users/userPage/userPage.css";
@@ -82,7 +83,7 @@ function EventSections(props: Readonly<{ event: AnalyticsEvent; onNavigate: (pat
         title="Device and context"
         testId="event-page-context"
         rows={[
-          row("platform", "Platform", event.platform),
+          row("platform", "Client platform", event.platform === null ? null : getEventPlatformLabel(event.platform)),
           row("app-version", "App version", event.appVersion),
           row("os-name", "OS name", event.osName),
           row("os-version", "OS version", event.osVersion),
