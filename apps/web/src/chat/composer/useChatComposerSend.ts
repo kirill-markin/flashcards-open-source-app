@@ -339,7 +339,6 @@ export function useChatComposerSend(params: UseChatComposerSendParams): ChatComp
         if (
           indexedDbOpenRecoveryState.hasFailed()
           || isSendLifecycleRequestCurrent(requestSequence) === false
-          || isComposerMountedRef.current === false
         ) {
           return null;
         }
