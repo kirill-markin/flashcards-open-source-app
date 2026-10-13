@@ -45,6 +45,7 @@ const itCatalog: TranslationCatalog = {
     active: "Attivo",
     automatic: "Automatico",
     cancel: "Annulla",
+    close: "Chiudi",
     countLabels: {
       card: {
         one: "carta",
@@ -1024,6 +1025,7 @@ const itCatalog: TranslationCatalog = {
     searchPlaceholder: "Cerca mazzi o tag",
   },
   reviewScreen: {
+    selectTextAriaLabel: "Seleziona e copia il testo: {{side}}",
     actions: {
       createCard: "Crea una carta",
       createWithAi: "Crea con l’AI",

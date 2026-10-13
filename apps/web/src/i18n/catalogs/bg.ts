@@ -45,6 +45,7 @@ const bgCatalog: TranslationCatalog = {
     active: "Активно",
     automatic: "Автоматично",
     cancel: "Отказ",
+    close: "Затваряне",
     countLabels: {
       card: {
         one: "карта",
@@ -1024,6 +1025,7 @@ const bgCatalog: TranslationCatalog = {
     searchPlaceholder: "Търсене на тестета или етикети",
   },
   reviewScreen: {
+    selectTextAriaLabel: "Избиране и копиране на текст: {{side}}",
     actions: {
       createCard: "Създаване на карта",
       createWithAi: "Създаване с ИИ",

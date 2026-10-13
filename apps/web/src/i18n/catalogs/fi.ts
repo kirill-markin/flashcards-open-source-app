@@ -45,6 +45,7 @@ const fiCatalog: TranslationCatalog = {
     active: "Aktiivinen",
     automatic: "Automaattinen",
     cancel: "Peruuta",
+    close: "Sulje",
     countLabels: {
       card: {
         one: "kortti",
@@ -1024,6 +1025,7 @@ const fiCatalog: TranslationCatalog = {
     searchPlaceholder: "Hae pakkoja tai tunnisteita",
   },
   reviewScreen: {
+    selectTextAriaLabel: "Valitse ja kopioi teksti: {{side}}",
     actions: {
       createCard: "Luo kortti",
       createWithAi: "Luo tekoälyllä",

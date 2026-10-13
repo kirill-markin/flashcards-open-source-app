@@ -45,6 +45,7 @@ export const ruCatalog = {
     active: "Активно",
     automatic: "Автоматически",
     cancel: "Отмена",
+    close: "Закрыть",
     countLabels: {
       card: {
         one: "карточка",
@@ -1034,6 +1035,7 @@ export const ruCatalog = {
     searchPlaceholder: "Искать колоды или теги",
   },
   reviewScreen: {
+    selectTextAriaLabel: "Выделить и скопировать текст: {{side}}",
     actions: {
       createCard: "Создать карточку",
       createWithAi: "Создать с AI",

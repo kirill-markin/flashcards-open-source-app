@@ -45,6 +45,7 @@ const ptBrCatalog: TranslationCatalog = {
     active: "Ativo",
     automatic: "Automático",
     cancel: "Cancelar",
+    close: "Fechar",
     countLabels: {
       card: {
         one: "cartão",
@@ -1024,6 +1025,7 @@ const ptBrCatalog: TranslationCatalog = {
     searchPlaceholder: "Buscar baralhos ou etiquetas",
   },
   reviewScreen: {
+    selectTextAriaLabel: "Selecionar e copiar texto: {{side}}",
     actions: {
       createCard: "Criar cartão",
       createWithAi: "Criar com IA",

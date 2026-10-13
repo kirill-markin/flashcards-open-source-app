@@ -45,6 +45,7 @@ const heCatalog: TranslationCatalog = {
     active: "פעיל",
     automatic: "אוטומטי",
     cancel: "ביטול",
+    close: "סגירה",
     countLabels: {
       card: {
         one: "כרטיס",
@@ -1024,6 +1025,7 @@ const heCatalog: TranslationCatalog = {
     searchPlaceholder: "חפש חפיסות או תגיות",
   },
   reviewScreen: {
+    selectTextAriaLabel: "בחירה והעתקה של טקסט: {{side}}",
     actions: {
       createCard: "יצירת כרטיס",
       createWithAi: "יצירה עם AI",

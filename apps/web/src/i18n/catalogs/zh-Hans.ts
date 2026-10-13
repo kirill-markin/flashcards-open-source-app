@@ -45,6 +45,7 @@ export const zhHansCatalog = {
     active: "活动",
     automatic: "自动",
     cancel: "取消",
+    close: "关闭",
     countLabels: {
       card: {
         one: "张卡片",
@@ -1024,6 +1025,7 @@ export const zhHansCatalog = {
     searchPlaceholder: "搜索牌组或标签",
   },
   reviewScreen: {
+    selectTextAriaLabel: "选择并复制文本：{{side}}",
     actions: {
       createCard: "创建卡片",
       createWithAi: "使用 AI 创建",

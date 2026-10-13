@@ -45,6 +45,7 @@ const arCatalog: TranslationCatalog = {
     active: "نشط",
     automatic: "تلقائي",
     cancel: "إلغاء",
+    close: "إغلاق",
     countLabels: {
       card: {
         one: "بطاقة",
@@ -1024,6 +1025,7 @@ const arCatalog: TranslationCatalog = {
     searchPlaceholder: "ابحث في المجموعات أو الوسوم",
   },
   reviewScreen: {
+    selectTextAriaLabel: "تحديد النص ونسخه: {{side}}",
     actions: {
       createCard: "أنشئ بطاقة",
       createWithAi: "أنشئ بالذكاء الاصطناعي",

@@ -45,6 +45,7 @@ const ltCatalog: TranslationCatalog = {
     active: "Aktyvu",
     automatic: "Automatiškai",
     cancel: "Atšaukti",
+    close: "Uždaryti",
     countLabels: {
       card: {
         one: "kortelė",
@@ -1034,6 +1035,7 @@ const ltCatalog: TranslationCatalog = {
     searchPlaceholder: "Ieškoti kaladžių arba žymų",
   },
   reviewScreen: {
+    selectTextAriaLabel: "Pažymėti ir kopijuoti tekstą: {{side}}",
     actions: {
       createCard: "Sukurti kortelę",
       createWithAi: "Kurti su DI",

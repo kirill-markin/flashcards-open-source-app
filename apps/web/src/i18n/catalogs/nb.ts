@@ -45,6 +45,7 @@ const nbCatalog: TranslationCatalog = {
     active: "Aktiv",
     automatic: "Automatisk",
     cancel: "Avbryt",
+    close: "Lukk",
     countLabels: {
       card: {
         one: "kort",
@@ -1024,6 +1025,7 @@ const nbCatalog: TranslationCatalog = {
     searchPlaceholder: "Søk i kortstokker eller tagger",
   },
   reviewScreen: {
+    selectTextAriaLabel: "Marker og kopier tekst: {{side}}",
     actions: {
       createCard: "Lag kort",
       createWithAi: "Lag med AI",

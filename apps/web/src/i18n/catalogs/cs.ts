@@ -45,6 +45,7 @@ const csCatalog: TranslationCatalog = {
     active: "Aktivní",
     automatic: "Automaticky",
     cancel: "Zrušit",
+    close: "Zavřít",
     countLabels: {
       card: {
         one: "kartička",
@@ -1034,6 +1035,7 @@ const csCatalog: TranslationCatalog = {
     searchPlaceholder: "Hledat balíčky nebo štítky",
   },
   reviewScreen: {
+    selectTextAriaLabel: "Vybrat a zkopírovat text: {{side}}",
     actions: {
       createCard: "Vytvořit kartičku",
       createWithAi: "Vytvořit pomocí AI",

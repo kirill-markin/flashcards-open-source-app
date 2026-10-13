@@ -45,6 +45,7 @@ const deCatalog: TranslationCatalog = {
     active: "Aktiv",
     automatic: "Automatisch",
     cancel: "Abbrechen",
+    close: "Schließen",
     countLabels: {
       card: {
         one: "Karte",
@@ -1024,6 +1025,7 @@ const deCatalog: TranslationCatalog = {
     searchPlaceholder: "Decks oder Tags suchen",
   },
   reviewScreen: {
+    selectTextAriaLabel: "Text auswählen und kopieren: {{side}}",
     actions: {
       createCard: "Karte erstellen",
       createWithAi: "Mit AI erstellen",

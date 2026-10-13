@@ -45,6 +45,7 @@ const isCatalog: TranslationCatalog = {
     active: "Virkt",
     automatic: "Sjálfvirkt",
     cancel: "Hætta við",
+    close: "Loka",
     countLabels: {
       card: {
         one: "spjald",
@@ -1024,6 +1025,7 @@ const isCatalog: TranslationCatalog = {
     searchPlaceholder: "Leita að stokkum eða merkjum",
   },
   reviewScreen: {
+    selectTextAriaLabel: "Velja og afrita texta: {{side}}",
     actions: {
       createCard: "Búa til spjald",
       createWithAi: "Búa til með gervigreind",

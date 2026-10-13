@@ -45,6 +45,7 @@ const urCatalog: TranslationCatalog = {
     active: "سرگرم",
     automatic: "خودکار",
     cancel: "منسوخ کریں",
+    close: "بند کریں",
     countLabels: {
       card: {
         one: "کارڈ",
@@ -1024,6 +1025,7 @@ const urCatalog: TranslationCatalog = {
     searchPlaceholder: "ڈیکس یا ٹیگز تلاش کریں",
   },
   reviewScreen: {
+    selectTextAriaLabel: "متن منتخب کریں اور کاپی کریں: {{side}}",
     actions: {
       createCard: "کارڈ بنائیں",
       createWithAi: "AI سے بنائیں",

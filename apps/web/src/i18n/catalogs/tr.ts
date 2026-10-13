@@ -45,6 +45,7 @@ const trCatalog: TranslationCatalog = {
     active: "Aktif",
     automatic: "Otomatik",
     cancel: "Vazgeç",
+    close: "Kapat",
     countLabels: {
       card: {
         one: "kart",
@@ -1024,6 +1025,7 @@ const trCatalog: TranslationCatalog = {
     searchPlaceholder: "Deste veya etiket ara",
   },
   reviewScreen: {
+    selectTextAriaLabel: "Metni seç ve kopyala: {{side}}",
     actions: {
       createCard: "Kart oluştur",
       createWithAi: "AI ile oluştur",
