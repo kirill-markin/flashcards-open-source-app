@@ -52,11 +52,9 @@ enum ProductAnalyticsPreference {
         self.storedAnswer(userDefaults: userDefaults) ?? true
     }
 
-    /// The value the client switch actually holds, which a UI-test launch forces off for the whole
-    /// process. The settings surfaces report this rather than the stored answer, so they cannot read
-    /// "On" while the client is recording nothing.
-    static func effectiveIsEnabled(userDefaults: UserDefaults, processInfo: ProcessInfo) -> Bool {
-        guard isFlashcardsUITestLaunch(processInfo: processInfo) == false else {
+    // Automation is a process-only override; never persist it as the person's answer.
+    static func effectiveIsEnabled(userDefaults: UserDefaults) -> Bool {
+        guard AutomationRun.current.isAutomation == false else {
             return false
         }
 

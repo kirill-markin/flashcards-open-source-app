@@ -130,10 +130,15 @@ that installation permanently.
   Firebase Test Lab runs on real hardware, where the emulator check sees nothing. Its argument arrives from
   [the submission script](../scripts/android/run-android-firebase-test-lab.sh), and the device
   setting marks the run on its own if that argument is ever dropped on the way.
-- [iOS declaration](../apps/ios/Flashcards/Flashcards/App/AutomationRun.swift): simulator detection
-  or the `FLASHCARDS_AUTOMATION_RUN` environment signal, with an explicit negative value of that
-  variable overriding both, decided once per launch and sent on every sync request and analytics
-  batch; the harness side is in [`ios-ci-cd.md`](ios-ci-cd.md#automation-marker).
+- [Apple declaration](../apps/ios/Flashcards/Flashcards/App/AutomationRun.swift): Debug builds,
+  recognized UI-test launches, simulators or the `FLASHCARDS_AUTOMATION_RUN` environment signal.
+  An explicit negative value permits real analytics outside UI tests. The decision is fixed for
+  the process and sent through the existing sync/batch contract. Marked runs disable client
+  recording before startup and throughout preference refresh/toggle, without storing a forced
+  opt-out or pushing preferences onto the linked review account. Debug's development identity
+  isolates local data and private credentials; Release keeps its production identity and normal
+  preference behavior on unmarked real hardware. See [harness/logging](ios-ci-cd.md#automation-marker)
+  and [signed native/database verification](macos-ci-cd.md#development-analytics-verification).
 - [Web declaration](../apps/web/src/analytics/deliveryRuntime.ts): `navigator.webdriver`, decided
   once per page load and sent on every authenticated analytics batch; web sync requests and
   credential-free collector events carry no declaration.

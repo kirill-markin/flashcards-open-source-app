@@ -1,2 +1,3 @@
 #include "Base.xcconfig"
 #include? "Local.xcconfig"
+APP_BUNDLE_IDENTIFIER = com.flashcards-open-source-app.app.development
