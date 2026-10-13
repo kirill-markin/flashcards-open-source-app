@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.feature.review
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,14 +41,18 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
@@ -73,6 +78,11 @@ private val reviewEditIconSize = 14.dp
 private val reviewSpeechButtonSize = 32.dp
 private val reviewSpeechIconSize = 18.dp
 private val reviewCurrentCardCornerRadius = 12.dp
+
+private enum class ReviewTextSelectionSide {
+    FRONT,
+    BACK
+}
 
 internal fun reviewContentBottomPadding(hasCurrentCard: Boolean, isAnswerVisible: Boolean): Dp {
     if (hasCurrentCard.not()) {
@@ -109,6 +119,7 @@ internal fun ReviewContent(
     modifier: Modifier,
     contentPadding: PaddingValues
 ) {
+    val currentCard = uiState.preparedCurrentCard?.card
     val presentedCardId: String? = if (uiState.isLoading) {
         null
     } else {
@@ -116,6 +127,14 @@ internal fun ReviewContent(
     }
     val frontBringIntoViewRequester = remember { BringIntoViewRequester() }
     val backBringIntoViewRequester = remember { BringIntoViewRequester() }
+    var textSelectionSide by remember(
+        presentedCardId,
+        currentCard?.frontText,
+        currentCard?.backText,
+        uiState.isAnswerVisible
+    ) {
+        mutableStateOf<ReviewTextSelectionSide?>(value = null)
+    }
 
     LaunchedEffect(presentedCardId, uiState.isAnswerVisible) {
         when (
@@ -182,6 +201,12 @@ internal fun ReviewContent(
                         onToggleFrontSpeech = onToggleFrontSpeech,
                         onToggleBackSpeech = onToggleBackSpeech,
                         onRequestTagFilter = onRequestTagFilter,
+                        onSelectFrontText = {
+                            textSelectionSide = ReviewTextSelectionSide.FRONT
+                        },
+                        onSelectBackText = {
+                            textSelectionSide = ReviewTextSelectionSide.BACK
+                        },
                         frontBringIntoViewRequester = frontBringIntoViewRequester,
                         backBringIntoViewRequester = backBringIntoViewRequester
                     )
@@ -199,6 +224,23 @@ internal fun ReviewContent(
                 else -> Unit
             }
         }
+    }
+
+    val selectedSide = textSelectionSide
+    if (currentCard != null && selectedSide != null) {
+        ReviewTextSelectionSheet(
+            title = stringResource(
+                id = when (selectedSide) {
+                    ReviewTextSelectionSide.FRONT -> R.string.review_front_label
+                    ReviewTextSelectionSide.BACK -> R.string.review_back_label
+                }
+            ),
+            sourceText = when (selectedSide) {
+                ReviewTextSelectionSide.FRONT -> currentCard.frontText
+                ReviewTextSelectionSide.BACK -> currentCard.backText
+            },
+            onDismiss = { textSelectionSide = null }
+        )
     }
 }
 
@@ -280,6 +322,8 @@ private fun ReviewCardContent(
     onToggleFrontSpeech: () -> Unit,
     onToggleBackSpeech: () -> Unit,
     onRequestTagFilter: (String) -> Unit,
+    onSelectFrontText: () -> Unit,
+    onSelectBackText: () -> Unit,
     frontBringIntoViewRequester: BringIntoViewRequester,
     backBringIntoViewRequester: BringIntoViewRequester
 ) {
@@ -349,9 +393,10 @@ private fun ReviewCardContent(
                     label = stringResource(id = R.string.review_front_label),
                     content = currentCard.frontContent,
                     sectionModifier = Modifier,
-                    labelModifier = Modifier.bringIntoViewRequester(
-                        frontBringIntoViewRequester
-                    ),
+                    labelModifier = Modifier
+                        .bringIntoViewRequester(frontBringIntoViewRequester)
+                        .testTag(reviewSelectFrontTextButtonTag),
+                    onSelectText = onSelectFrontText,
                     contentModifier = Modifier.testTag(reviewCurrentCardFrontContentTag),
                     onLoadManagedMediaFile = onLoadManagedMediaFile,
                     onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl,
@@ -369,7 +414,8 @@ private fun ReviewCardContent(
                         sectionModifier = Modifier.bringIntoViewRequester(
                             backBringIntoViewRequester
                         ),
-                        labelModifier = Modifier,
+                        labelModifier = Modifier.testTag(reviewSelectBackTextButtonTag),
+                        onSelectText = onSelectBackText,
                         contentModifier = Modifier,
                         onLoadManagedMediaFile = onLoadManagedMediaFile,
                         onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl,
@@ -432,6 +478,7 @@ private fun ReviewCardSideSection(
     content: ReviewRenderedContent,
     sectionModifier: Modifier,
     labelModifier: Modifier,
+    onSelectText: () -> Unit,
     contentModifier: Modifier,
     onLoadManagedMediaFile: suspend (String) -> ReviewMediaAssetFile,
     onLoadManagedMediaDownloadUrl: suspend (String) -> MediaAssetDownloadUrl,
@@ -443,6 +490,10 @@ private fun ReviewCardSideSection(
 ) {
     val context = LocalContext.current
     val locale = currentResourceLocale(resources = context.resources)
+    val selectTextContentDescription = stringResource(
+        id = R.string.review_select_text_content_description,
+        bidiWrap(text = label, locale = locale)
+    )
 
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -453,6 +504,10 @@ private fun ReviewCardSideSection(
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = labelModifier
+                .clickable(role = Role.Button, onClick = onSelectText)
+                .semantics {
+                    contentDescription = selectTextContentDescription
+                }
         )
         ReviewRenderedContentView(
             content = content,
