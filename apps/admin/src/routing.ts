@@ -1,8 +1,12 @@
-export const analyticsAreas = ["general", "funnels", "audience", "ai-usage"] as const;
+export const analyticsAreas = ["level-1-metrics", "general", "funnels", "audience", "ai-usage"] as const;
 
 export type AnalyticsArea = (typeof analyticsAreas)[number];
 
+/** Where `/` and `/analytics` land. */
+export const defaultAnalyticsArea: AnalyticsArea = "level-1-metrics";
+
 export const analyticsAreaLabels: Readonly<Record<AnalyticsArea, string>> = {
+  "level-1-metrics": "Level 1 metrics",
   general: "General",
   funnels: "Funnels",
   audience: "Audience",
@@ -21,8 +25,6 @@ export const userPageTabLabels: Readonly<Record<UserPageTab, string>> = {
 };
 
 export type AdminRoute =
-  | Readonly<{ kind: "root" }>
-  | Readonly<{ kind: "analyticsIndex" }>
   | Readonly<{ kind: "analyticsArea"; area: AnalyticsArea }>
   | Readonly<{ kind: "users" }>
   | Readonly<{ kind: "user"; userId: string; tab: UserPageTab }>
@@ -32,9 +34,9 @@ export type AdminRoute =
   | Readonly<{ kind: "event"; eventId: string }>
   | Readonly<{ kind: "notFound"; pathname: string }>;
 
-export const rootPath = "/";
+const rootPath = "/";
 
-export const analyticsIndexPath = "/analytics";
+const analyticsIndexPath = "/analytics";
 
 export const usersPath = "/users";
 
@@ -64,10 +66,6 @@ export function getEventPath(eventId: string): string {
  */
 export function getAdminRoutePath(route: AdminRoute): string {
   switch (route.kind) {
-    case "root":
-      return rootPath;
-    case "analyticsIndex":
-      return analyticsIndexPath;
     case "analyticsArea":
       return getAnalyticsAreaPath(route.area);
     case "users":
@@ -135,15 +133,12 @@ function parseEventRoute(normalizedPathname: string): AdminRoute | null {
   }
 }
 
+/** `/` and `/analytics` parse to the default area, so canonicalizing the path is their redirect. */
 export function parseAdminRoute(pathname: string): AdminRoute {
   const normalizedPathname = stripTrailingSlashes(pathname);
 
-  if (normalizedPathname === rootPath) {
-    return { kind: "root" };
-  }
-
-  if (normalizedPathname === analyticsIndexPath) {
-    return { kind: "analyticsIndex" };
+  if (normalizedPathname === rootPath || normalizedPathname === analyticsIndexPath) {
+    return { kind: "analyticsArea", area: defaultAnalyticsArea };
   }
 
   if (normalizedPathname === usersPath) {
