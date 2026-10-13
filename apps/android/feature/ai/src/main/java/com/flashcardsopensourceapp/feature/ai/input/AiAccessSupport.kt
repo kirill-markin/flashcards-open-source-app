@@ -81,7 +81,7 @@ private fun aiCameraPresentationResult(
     return when (initialStatus) {
         AccessStatus.ALLOWED -> AiCapabilityPresentationResult.Present
         AccessStatus.ASK_EVERY_TIME -> when (requestedStatus) {
-            null -> AiCapabilityPresentationResult.StopSilently
+            null -> AiCapabilityPresentationResult.Present
             AccessStatus.ALLOWED -> AiCapabilityPresentationResult.Present
             AccessStatus.ASK_EVERY_TIME,
             AccessStatus.BLOCKED -> AiCapabilityPresentationResult.StopSilently
@@ -110,7 +110,7 @@ private fun aiMicrophonePresentationResult(
     return when (initialStatus) {
         AccessStatus.ALLOWED -> AiCapabilityPresentationResult.Present
         AccessStatus.ASK_EVERY_TIME -> when (requestedStatus) {
-            null -> AiCapabilityPresentationResult.StopSilently
+            null -> AiCapabilityPresentationResult.Present
             AccessStatus.ALLOWED -> AiCapabilityPresentationResult.Present
             AccessStatus.ASK_EVERY_TIME,
             AccessStatus.BLOCKED -> AiCapabilityPresentationResult.StopSilently

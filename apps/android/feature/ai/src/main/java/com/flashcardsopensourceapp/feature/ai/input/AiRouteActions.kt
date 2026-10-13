@@ -192,10 +192,6 @@ internal fun handleDictationToggle(
             )
         }
 
-        // This branch shows nothing at all, and with `requestedStatus = null` it is where an
-        // `ASK_EVERY_TIME` microphone lands — which covers both a person who declined once and a
-        // person this app has never asked. Only the first is a refusal, so the first tap on a
-        // fresh install reports nothing rather than filing the commonest case as one.
         AiCapabilityPresentationResult.StopSilently -> {
             if (
                 isDictationPermissionRefusal(
