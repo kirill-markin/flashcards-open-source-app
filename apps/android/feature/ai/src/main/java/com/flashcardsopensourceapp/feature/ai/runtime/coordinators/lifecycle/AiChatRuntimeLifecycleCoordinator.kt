@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.feature.ai.runtime.coordinators.lifecycle
 
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteException
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatResumeDiagnostics
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.feature.ai.runtime.AiChatRuntimeContext
@@ -177,6 +178,13 @@ internal class AiChatRuntimeLifecycleCoordinator(
         val accessContext = context.activeAccessContext ?: return
         val activeWorkspaceId = accessContext.workspaceId ?: return
         if (currentState.workspaceId != activeWorkspaceId) {
+            return
+        }
+        // Returning from the permission dialog must not bootstrap away the active dictation.
+        if (
+            currentState.dictationState == AiChatDictationState.REQUESTING_PERMISSION
+            || currentState.dictationState == AiChatDictationState.RECORDING
+        ) {
             return
         }
         if (
