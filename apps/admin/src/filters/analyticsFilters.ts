@@ -242,9 +242,14 @@ const funnelsAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = analyt
 // on screen beside its own two controls.
 const aiUsageAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = ["dateRange"];
 
+// `level-1-metrics` offers the date range alone, by decision: its chart adds marketing-site visitors
+// to store-reported aggregates, which carry no person, platform or locale a field could narrow.
+const levelOneMetricsAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = ["dateRange"];
+
 export const analyticsFilterFieldsByArea: Readonly<
   Record<AnalyticsArea, ReadonlyArray<AnalyticsFilterField>>
 > = {
+  "level-1-metrics": levelOneMetricsAnalyticsFilterFields,
   general: analyticsFilterFields,
   funnels: funnelsAnalyticsFilterFields,
   audience: analyticsFilterFields,
@@ -442,9 +447,19 @@ const aiUsageAnalyticsFilterFieldExplanations: Readonly<
     "The span the equal-length periods are cut out of. They are anchored at the recent end, so the most recent period is always whole and any leftover days fall off the old end of this range rather than forming a short panel.",
 };
 
+// The store series are dated by the store's own report day rather than by an event, and their range can
+// start long before the website's, so the shared wording would be false here.
+const levelOneMetricsAnalyticsFilterFieldExplanations: Readonly<
+  Partial<Record<AnalyticsFilterField, string>>
+> = {
+  dateRange:
+    "Shows only the UTC calendar days inside this range, both ends included. Website days come from page views and store days from the App Store and Google Play daily reports, so All time starts on the earliest day any of them has data.",
+};
+
 const analyticsFilterFieldExplanationOverridesByArea: Readonly<
   Record<AnalyticsArea, Readonly<Partial<Record<AnalyticsFilterField, string>>>>
 > = {
+  "level-1-metrics": levelOneMetricsAnalyticsFilterFieldExplanations,
   general: {},
   funnels: funnelsAnalyticsFilterFieldExplanations,
   audience: audienceAnalyticsFilterFieldExplanations,
@@ -478,9 +493,16 @@ const aiUsageAnalyticsFilterFieldLabels: Readonly<
   dateRange: "Date range the periods are cut from",
 };
 
+const levelOneMetricsAnalyticsFilterFieldLabels: Readonly<
+  Partial<Record<AnalyticsFilterField, string>>
+> = {
+  dateRange: "Date range of the days shown",
+};
+
 const analyticsFilterFieldLabelOverridesByArea: Readonly<
   Record<AnalyticsArea, Readonly<Partial<Record<AnalyticsFilterField, string>>>>
 > = {
+  "level-1-metrics": levelOneMetricsAnalyticsFilterFieldLabels,
   general: {},
   funnels: funnelsAnalyticsFilterFieldLabels,
   audience: {},

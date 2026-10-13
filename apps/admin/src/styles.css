@@ -54,6 +54,10 @@ svg {
   padding: 32px 20px 48px;
 }
 
+.shell-full-width {
+  max-width: none;
+}
+
 .centered-shell {
   display: grid;
   place-items: center;
@@ -1442,6 +1446,34 @@ h2 {
   padding: 8px 8px 16px;
 }
 
+/*
+ * Level 1 metrics: one chart per cell of a two-column grid. A chart there is drawn at about half the
+ * width the shared chart geometry assumes, so its text takes a larger size to read the same.
+ */
+.level-1-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 24px;
+  align-items: start;
+}
+
+.level-1-metrics-grid .axis text,
+.level-1-metrics-grid .axis-label {
+  font-size: 16px;
+}
+
+.not-final-marker line {
+  stroke: var(--muted);
+  stroke-width: 2;
+  stroke-dasharray: 6 5;
+}
+
+.not-final-marker text {
+  fill: var(--muted);
+  font-size: 16px;
+  font-weight: 700;
+}
+
 .axis text,
 .axis-label {
   fill: var(--muted);
@@ -1617,6 +1649,10 @@ h2 {
 }
 
 @media (max-width: 1100px) {
+  .level-1-metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
   .filter-bar {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
