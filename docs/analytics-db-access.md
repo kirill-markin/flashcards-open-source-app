@@ -134,7 +134,7 @@ The baseline schema migration creates a dedicated login role and its read-only g
 - role name: `reporting_readonly`
 - login enabled
 - `CONNECT` on database `flashcards`
-- `USAGE` on schemas `org`, `content`, `sync`, `support`, `community`, `auth`, `ai`, `progress`, `analytics`, `catalog`, `billing`
+- `USAGE` on schemas `org`, `content`, `sync`, `support`, `community`, `auth`, `ai`, `progress`, `analytics`, `catalog`, `billing`, `store_analytics`
 - `SELECT` only on the allowed tables listed below
 
 The baseline schema migration also enforces the persistent runtime policy for this role:
@@ -167,6 +167,7 @@ The role gets `USAGE` on these schemas:
 - `analytics`
 - `catalog`
 - `billing`
+- `store_analytics`
 
 ## Granted tables
 
@@ -217,6 +218,7 @@ The role gets `SELECT` on these tables only:
 - `billing.purchases`
 - `billing.grants`
 - selected trial, purchase-history, and row-timestamp columns on `billing.user_billing_state`
+- every table in `store_analytics`: `import_files`, one row per imported App Store Connect Analytics report segment or Google Play statistics file, and the row tables `apple_discovery_engagement`, `apple_web_preview_engagement`, `apple_downloads`, `apple_installs_deletions`, `apple_sessions`, `apple_purchases`, `apple_subscription_events`, `apple_subscription_states`, `apple_crashes`, `apple_opt_in`, `apple_other_report_rows`, `play_store_performance_country`, `play_store_performance_traffic_source`, `play_installs`, `play_ratings`, `play_crashes`, `play_subscriptions`, and `play_other_report_rows`
 
 No write access is granted.
 
@@ -227,6 +229,8 @@ For granted tables that have row-level security enabled, migrations create expli
 Those policies currently use `USING (true)`, which means the role is allowed to read all rows from those allowed tables. This is intentional for manual operator analytics.
 
 The granted `auth` analytics tables currently do not have row-level security enabled. Their `reporting_readonly` access is limited by explicit read-only column grants instead.
+
+The `store_analytics` tables do not have row-level security enabled either. They hold store-reported aggregates rather than per-person rows, and `reporting_readonly` reads them whole.
 
 ## Manual local workflow
 
