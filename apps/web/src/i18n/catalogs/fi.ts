@@ -1393,6 +1393,7 @@ const fiCatalog: TranslationCatalog = {
       microphoneUnavailable: "Mikrofonilla nauhoittaminen ei ole käytettävissä tässä selaimessa.",
     },
     composerPlaceholder: "Kysy korteista tai kertaushistoriasta tai liitä muistiinpanoja...",
+    currentChatRecovered: "Tämä keskustelu korvattiin uudemmalla. Viestisi on yhä tekstikentässä – lähetä se uudelleen.",
     dictation: {
       listening: "Kuunnellaan...",
       start: "Aloita sanelu",
@@ -1411,6 +1412,7 @@ const fiCatalog: TranslationCatalog = {
       aiLimitReachedAccount: "Olet käyttänyt tämän kuun tekoälyviestit. Ne uusiutuvat {{date}}. Voit jatkaa lisäämällä oman OpenAI-avaimesi Asetuksissa.",
       aiLimitReachedAccountNoDate: "Olet käyttänyt tämän kuun tekoälyviestit. Voit jatkaa lisäämällä oman OpenAI-avaimesi Asetuksissa.",
       aiLimitReachedGuest: "Olet käyttänyt tämän kuun maksuttomat tekoälyviestit. Voit jatkaa luomalla tilin tai lisäämällä oman OpenAI-avaimesi Asetuksissa.",
+      currentChatDraftConflict: "Nykyisessä keskustelussa on jo luonnos. Viestisi jää tähän. Kopioi se ennen keskustelun avaamista uudelleen.",
       emptyBackendResponse: "Taustapalvelu palautti tyhjän virhevastauksen.",
       genericFailure: "Tekoälykeskustelu epäonnistui.",
       liveStreamEndedBeforeCompletion: "Tekoälyn reaaliaikainen virta päättyi ennen suorituksen valmistumista.",

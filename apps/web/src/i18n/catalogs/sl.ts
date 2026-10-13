@@ -1421,6 +1421,7 @@ const slCatalog: TranslationCatalog = {
       microphoneUnavailable: "Snemanje z mikrofonom v tem brskalniku ni na voljo.",
     },
     composerPlaceholder: "Vprašajte o karticah, zgodovini ponavljanja ali priložite zapiske ...",
+    currentChatRecovered: "Ta klepet je bil nadomeščen z novejšim. Vaše sporočilo je še vedno v polju za vnos — pošljite ga znova.",
     dictation: {
       listening: "Poslušanje ...",
       start: "Začni narekovanje",
@@ -1439,6 +1440,7 @@ const slCatalog: TranslationCatalog = {
       aiLimitReachedAccount: "Porabili ste sporočila UI za ta mesec. Datum obnovitve: {{date}}. Če želite nadaljevati, lahko v nastavitvah dodate lasten ključ OpenAI.",
       aiLimitReachedAccountNoDate: "Porabili ste sporočila UI za ta mesec. Če želite nadaljevati, lahko v nastavitvah dodate lasten ključ OpenAI.",
       aiLimitReachedGuest: "Porabili ste brezplačna sporočila UI za ta mesec. Če želite nadaljevati, ustvarite račun ali v nastavitvah dodajte lasten ključ OpenAI.",
+      currentChatDraftConflict: "Trenutni klepet že ima osnutek. Vaše sporočilo ostane tukaj. Kopirajte ga, preden ponovno odprete klepet.",
       emptyBackendResponse: "Zaledje je vrnilo prazen odgovor o napaki.",
       genericFailure: "Klepet z UI ni uspel.",
       liveStreamEndedBeforeCompletion: "Tok UI v živo se je končal, preden se je izvajanje zaključilo.",

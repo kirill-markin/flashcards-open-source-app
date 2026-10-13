@@ -1393,6 +1393,7 @@ export const zhHansCatalog = {
       microphoneUnavailable: "此浏览器不支持麦克风录音。",
     },
     composerPlaceholder: "询问卡片、复习历史，或附加笔记以供提取...",
+    currentChatRecovered: "此聊天已被更新的聊天取代。你的消息仍在输入框中，请重新发送。",
     dictation: {
       listening: "正在聆听...",
       start: "开始语音输入",
@@ -1411,6 +1412,7 @@ export const zhHansCatalog = {
       aiLimitReachedAccount: "你已用完本月的 AI 消息。消息将于 {{date}} 恢复。如需继续，可以在设置中添加你自己的 OpenAI 密钥。",
       aiLimitReachedAccountNoDate: "你已用完本月的 AI 消息。如需继续，可以在设置中添加你自己的 OpenAI 密钥。",
       aiLimitReachedGuest: "你已用完本月的免费 AI 消息。如需继续，请创建账户，或在设置中添加你自己的 OpenAI 密钥。",
+      currentChatDraftConflict: "当前聊天已有草稿。你的消息会保留在此聊天中。移动此消息前，请先查看另一份草稿。",
       emptyBackendResponse: "后端返回了空的错误响应。",
       genericFailure: "AI 聊天失败。",
       liveStreamEndedBeforeCompletion: "AI 实时流在运行完成前结束。",

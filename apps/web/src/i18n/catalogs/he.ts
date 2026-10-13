@@ -1393,6 +1393,7 @@ const heCatalog: TranslationCatalog = {
       microphoneUnavailable: "הקלטה במיקרופון אינה זמינה בדפדפן הזה.",
     },
     composerPlaceholder: "שאל על כרטיסים, על היסטוריית החזרות, או צרף הערות...",
+    currentChatRecovered: "הצ׳אט הזה הוחלף בצ׳אט חדש יותר. ההודעה עדיין בתיבת הטקסט — יש לשלוח אותה שוב.",
     dictation: {
       listening: "מאזין...",
       start: "התחלת הכתבה",
@@ -1411,6 +1412,7 @@ const heCatalog: TranslationCatalog = {
       aiLimitReachedAccount: "השתמשת בכל הודעות ה-AI של החודש. הן מתחדשות ב-{{date}}. כדי להמשיך, אפשר להוסיף מפתח OpenAI משלך בהגדרות.",
       aiLimitReachedAccountNoDate: "השתמשת בכל הודעות ה-AI של החודש. כדי להמשיך, אפשר להוסיף מפתח OpenAI משלך בהגדרות.",
       aiLimitReachedGuest: "השתמשת בכל הודעות ה-AI החינמיות של החודש. כדי להמשיך, יש ליצור חשבון או להוסיף מפתח OpenAI משלך בהגדרות.",
+      currentChatDraftConflict: "בצ׳אט הנוכחי כבר יש טיוטה. ההודעה שלך נשארת כאן. יש להעתיק אותה לפני פתיחת הצ׳אט מחדש.",
       emptyBackendResponse: "השרת החזיר תשובת שגיאה ריקה.",
       genericFailure: "צ'אט AI נכשל.",
       liveStreamEndedBeforeCompletion: "השידור החי של ה-AI הסתיים לפני שהריצה הושלמה.",

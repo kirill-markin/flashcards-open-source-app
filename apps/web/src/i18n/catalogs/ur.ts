@@ -1393,6 +1393,7 @@ const urCatalog: TranslationCatalog = {
       microphoneUnavailable: "اس براؤزر میں مائیکروفون کی ریکارڈنگ دستیاب نہیں ہے۔",
     },
     composerPlaceholder: "کارڈز یا دہرائی کی تاریخ کے بارے میں پوچھیں، یا نوٹس منسلک کریں...",
+    currentChatRecovered: "اس چیٹ کی جگہ ایک نئی چیٹ نے لے لی ہے۔ آپ کا پیغام ابھی بھی لکھنے کے خانے میں ہے — اسے دوبارہ بھیجیں۔",
     dictation: {
       listening: "سنا جا رہا ہے...",
       start: "بول کر لکھنا شروع کریں",
@@ -1411,6 +1412,7 @@ const urCatalog: TranslationCatalog = {
       aiLimitReachedAccount: "آپ اس ماہ کے AI پیغامات استعمال کر چکے ہیں۔ یہ {{date}} کو تجدید ہوں گے۔ جاری رکھنے کے لیے آپ ترتیبات میں اپنی OpenAI کلید شامل کر سکتے ہیں۔",
       aiLimitReachedAccountNoDate: "آپ اس ماہ کے AI پیغامات استعمال کر چکے ہیں۔ جاری رکھنے کے لیے آپ ترتیبات میں اپنی OpenAI کلید شامل کر سکتے ہیں۔",
       aiLimitReachedGuest: "آپ اس ماہ کے مفت AI پیغامات استعمال کر چکے ہیں۔ جاری رکھنے کے لیے اکاؤنٹ بنائیں یا ترتیبات میں اپنی OpenAI کلید شامل کریں۔",
+      currentChatDraftConflict: "موجودہ چیٹ میں پہلے سے ایک مسودہ ہے۔ آپ کا پیغام اسی چیٹ میں رہے گا۔ اس پیغام کو منتقل کرنے سے پہلے دوسرے مسودے کا جائزہ لیں۔",
       emptyBackendResponse: "بیک اینڈ نے خالی خرابی کا جواب دیا۔",
       genericFailure: "AI چیٹ ناکام رہی۔",
       liveStreamEndedBeforeCompletion: "AI کی لائیو اسٹریم رن مکمل ہونے سے پہلے ختم ہو گئی۔",

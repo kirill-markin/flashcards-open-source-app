@@ -60,11 +60,18 @@ type UseChatSessionSnapshotSyncParams = Readonly<{
 }>;
 
 type SnapshotRequestTrigger =
+  | "current_session_recovery"
   | "initial_hydration"
   | "stream_transport_error"
   | "terminal_reconcile"
   | "unexpected_stream_end"
   | "visible_resume";
+
+type CurrentSessionRecovery = Readonly<{
+  workspaceId: string;
+  sessionId: string;
+  requestVersion: number;
+}>;
 
 export type ChatSessionSnapshotRuntimeRefs = Readonly<{
   currentWorkspaceIdRef: MutableRefObject<string | null>;
@@ -75,6 +82,7 @@ export type ChatSessionSnapshotRuntimeRefs = Readonly<{
   chatConfigRef: MutableRefObject<ChatSessionControllerState["chatConfig"]>;
   lastSnapshotUpdatedAtRef: MutableRefObject<number | null>;
   snapshotRequestVersionRef: MutableRefObject<number>;
+  currentSessionRecoveryRef: MutableRefObject<CurrentSessionRecovery | null>;
   liveCursorRef: MutableRefObject<string | null>;
 }>;
 
@@ -90,6 +98,7 @@ export type ChatSessionSnapshotSync = Readonly<{
     trigger: SnapshotRequestTrigger,
     resumeAttemptId: number | null,
   ) => Promise<ChatSessionSnapshot | null>;
+  applyRecoveredSnapshot: (snapshot: ChatSessionSnapshot) => void;
   resetSnapshotTracking: (updatedAt: number | null) => void;
   runtimeRefs: ChatSessionSnapshotRuntimeRefs;
   setKnownActiveRunId: (runId: string | null) => void;
@@ -260,6 +269,7 @@ export function useChatSessionSnapshotSync(
   const chatConfigRef = useRef<ChatSessionControllerState["chatConfig"]>(state.chatConfig);
   const lastSnapshotUpdatedAtRef = useRef<number | null>(initialLastSnapshotUpdatedAt);
   const snapshotRequestVersionRef = useRef<number>(0);
+  const currentSessionRecoveryRef = useRef<CurrentSessionRecovery | null>(null);
   const activeSnapshotAbortControllersRef = useRef<Set<AbortController>>(new Set<AbortController>());
   const visibilityResumePromiseRef = useRef<Promise<void> | null>(null);
   const streamTransportRecoveryPromiseRef = useRef<Promise<void> | null>(null);
@@ -288,6 +298,7 @@ export function useChatSessionSnapshotSync(
     chatConfigRef,
     lastSnapshotUpdatedAtRef,
     snapshotRequestVersionRef,
+    currentSessionRecoveryRef,
     liveCursorRef,
   };
 
@@ -311,6 +322,7 @@ export function useChatSessionSnapshotSync(
 
   const invalidatePendingSnapshotRequests = useCallback((): void => {
     snapshotRequestVersionRef.current += 1;
+    currentSessionRecoveryRef.current = null;
   }, []);
 
   const abortPendingSnapshotRequests = useCallback((): void => {
@@ -504,6 +516,8 @@ export function useChatSessionSnapshotSync(
         || state.isHistoryLoaded === false
         || hasActiveLiveConnection()
         || visibilityResumePromiseRef.current !== null
+        || (currentSessionRecoveryRef.current?.workspaceId === workspaceId
+          && currentSessionRecoveryRef.current.sessionId === currentSessionIdRef.current)
       ) {
         return;
       }
@@ -698,6 +712,75 @@ export function useChatSessionSnapshotSync(
     resetToolRunPostSync,
   ]);
 
+  const applySnapshot = useCallback((
+    snapshot: ChatSessionSnapshot,
+    replaceHistory: boolean,
+    trigger: SnapshotRequestTrigger,
+  ): void => {
+    const nextRunState = toSnapshotRunState(snapshot);
+    const nextMainContentInvalidationVersion = snapshot.conversation.mainContentInvalidationVersion;
+    const shouldReplaceVisibleMessages = replaceHistory
+      && areMessagesEqual(messagesRef.current, snapshot.conversation.messages) === false;
+    const shouldUpdateChatConfig = areChatConfigsEqual(chatConfigRef.current, snapshot.chatConfig) === false;
+    const didRunBecomeTerminal = runStateRef.current === "running" && nextRunState === "idle";
+    const snapshotBelongsToCurrentRun = snapshot.activeRun !== null
+      || didRunBecomeTerminal
+      || trigger === "terminal_reconcile";
+    if (snapshotBelongsToCurrentRun) {
+      markRunHadToolCallsFromSnapshot(
+        snapshot.activeRun,
+        snapshot.conversation.messages,
+        null,
+        null,
+      );
+    }
+
+    setKnownActiveRunId(snapshot.activeRun?.runId ?? null);
+    dispatch({
+      type: "snapshot_applied",
+      sessionId: snapshot.sessionId,
+      runState: nextRunState,
+      activeRunId: snapshot.activeRun?.runId ?? null,
+      mainContentInvalidationVersion: nextMainContentInvalidationVersion,
+      composerSuggestions: snapshot.composerSuggestions,
+      chatConfig: snapshot.chatConfig,
+    });
+    setKnownLiveCursor(snapshot.activeRun?.live.cursor ?? null);
+    if (shouldUpdateChatConfig) {
+      storeChatConfig(snapshot.chatConfig);
+    }
+
+    if (nextRunState === "idle") {
+      triggerToolRunPostSyncIfNeeded();
+    }
+
+    if (shouldReplaceVisibleMessages) {
+      messagesRef.current = snapshot.conversation.messages;
+      replaceMessages(snapshot.conversation.messages);
+    }
+
+    lastSnapshotUpdatedAtRef.current = lastSnapshotUpdatedAtRef.current === null
+      ? snapshot.conversation.updatedAt
+      : Math.max(lastSnapshotUpdatedAtRef.current, snapshot.conversation.updatedAt);
+  }, [
+    dispatch,
+    markRunHadToolCallsFromSnapshot,
+    replaceMessages,
+    setKnownActiveRunId,
+    setKnownLiveCursor,
+    triggerToolRunPostSyncIfNeeded,
+  ]);
+
+  const applyRecoveredSnapshot = useCallback((snapshot: ChatSessionSnapshot): void => {
+    invalidatePendingSnapshotRequests();
+    detachLiveStream(null, null);
+    resetSnapshotTracking(null);
+    resetToolRunPostSync();
+    currentSessionIdRef.current = snapshot.sessionId;
+    runStateRef.current = toSnapshotRunState(snapshot);
+    applySnapshot(snapshot, true, "current_session_recovery");
+  }, [applySnapshot, detachLiveStream, invalidatePendingSnapshotRequests, resetSnapshotTracking, resetToolRunPostSync]);
+
   const loadAndApplySnapshot = useCallback(async (
     sessionId: string,
     replaceHistory: boolean,
@@ -705,6 +788,16 @@ export function useChatSessionSnapshotSync(
     resumeAttemptId: number | null,
   ): Promise<ChatSessionSnapshot | null> => {
     if (indexedDbOpenRecoveryState.hasFailed()) {
+      return null;
+    }
+
+    const currentSessionRecovery = currentSessionRecoveryRef.current;
+    if (
+      currentSessionRecovery !== null
+      && currentSessionRecovery.workspaceId === workspaceId
+      && currentSessionRecovery.sessionId === sessionId
+      && currentSessionRecovery.requestVersion === snapshotRequestVersionRef.current
+    ) {
       return null;
     }
 
@@ -740,57 +833,7 @@ export function useChatSessionSnapshotSync(
         return null;
       }
 
-      const nextRunState = toSnapshotRunState(snapshot);
-      const nextMainContentInvalidationVersion = snapshot.conversation.mainContentInvalidationVersion;
-      const shouldReplaceVisibleMessages = replaceHistory
-        && areMessagesEqual(messagesRef.current, snapshot.conversation.messages) === false;
-      const shouldUpdateChatConfig = areChatConfigsEqual(chatConfigRef.current, snapshot.chatConfig) === false;
-      const didRunBecomeTerminal = runStateRef.current === "running" && nextRunState === "idle";
-      const snapshotBelongsToCurrentRun = snapshot.activeRun !== null
-        || didRunBecomeTerminal
-        || trigger === "terminal_reconcile";
-      if (snapshotBelongsToCurrentRun) {
-        markRunHadToolCallsFromSnapshot(
-          snapshot.activeRun,
-          snapshot.conversation.messages,
-          null,
-          null,
-        );
-      }
-
-      setKnownActiveRunId(snapshot.activeRun?.runId ?? null);
-      dispatch({
-        type: "snapshot_applied",
-        sessionId: snapshot.sessionId,
-        runState: nextRunState,
-        activeRunId: snapshot.activeRun?.runId ?? null,
-        // Keep the server invalidation version in controller state for snapshot
-        // parity and warm-start persistence even though AI-triggered refreshes
-        // now come only from tool-call detection + terminal run completion.
-        mainContentInvalidationVersion: nextMainContentInvalidationVersion,
-        composerSuggestions: snapshot.composerSuggestions,
-        chatConfig: snapshot.chatConfig,
-      });
-      setKnownLiveCursor(snapshot.activeRun?.live.cursor ?? null);
-      if (shouldUpdateChatConfig) {
-        storeChatConfig(snapshot.chatConfig);
-      }
-
-      if (nextRunState === "idle") {
-        // Snapshot recovery is the fallback terminal path for runs that finish
-        // outside the happy-path live event flow, and cold-start hydration
-        // consumes the same persisted one-shot flag after a reload.
-        triggerToolRunPostSyncIfNeeded();
-      }
-
-      if (shouldReplaceVisibleMessages) {
-        messagesRef.current = snapshot.conversation.messages;
-        replaceMessages(snapshot.conversation.messages);
-      }
-
-      lastSnapshotUpdatedAtRef.current = lastSnapshotUpdatedAtRef.current === null
-        ? snapshot.conversation.updatedAt
-        : Math.max(lastSnapshotUpdatedAtRef.current, snapshot.conversation.updatedAt);
+      applySnapshot(snapshot, replaceHistory, trigger);
 
       debugLog("snapshot_request_succeeded", {
         workspaceId,
@@ -798,7 +841,7 @@ export function useChatSessionSnapshotSync(
         replaceHistory,
         requestVersion,
         trigger,
-        runState: nextRunState,
+        runState: toSnapshotRunState(snapshot),
         messageCount: snapshot.conversation.messages.length,
         composerSuggestionCount: snapshot.composerSuggestions.length,
       });
@@ -827,17 +870,13 @@ export function useChatSessionSnapshotSync(
       activeSnapshotAbortControllersRef.current.delete(abortController);
     }
   }, [
+    applySnapshot,
     debugLog,
     dispatch,
     clearAssistantMessageDoneTerminalReconcileTimer,
     indexedDbOpenRecoveryState,
     invalidatePendingSnapshotRequests,
-    markRunHadToolCallsFromSnapshot,
-    replaceMessages,
-    triggerToolRunPostSyncIfNeeded,
     uiMessages,
-    setKnownActiveRunId,
-    setKnownLiveCursor,
     workspaceId,
   ]);
 
@@ -943,6 +982,7 @@ export function useChatSessionSnapshotSync(
     detachLiveStream,
     invalidatePendingSnapshotRequests,
     loadAndApplySnapshot,
+    applyRecoveredSnapshot,
     resetSnapshotTracking,
     runtimeRefs,
     setKnownActiveRunId,

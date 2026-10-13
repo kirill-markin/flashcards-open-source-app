@@ -1393,6 +1393,7 @@ const zuCatalog: TranslationCatalog = {
       microphoneUnavailable: "Ukuqopha ngemakrofoni akutholakali kulesi siphequluli.",
     },
     composerPlaceholder: "Buza ngamakhadi, umlando wokubukeza, noma unamathisele amanothi...",
+    currentChatRecovered: "Le ngxoxo ithathelwe indawo ngengxoxo entsha. Umlayezo wakho usesebhokisini lombhalo — wuthumele futhi.",
     dictation: {
       listening: "Kuyalalelwa...",
       start: "Qala ukuloba ngezwi",
@@ -1411,6 +1412,7 @@ const zuCatalog: TranslationCatalog = {
       aiLimitReachedAccount: "Usuyisebenzisile imilayezo ye-AI yale nyanga. Izovuselelwa ngo-{{date}}. Ukuze uqhubeke, ungengeza ukhiye wakho we-OpenAI kuzilungiselelo.",
       aiLimitReachedAccountNoDate: "Usuyisebenzisile imilayezo ye-AI yale nyanga. Ukuze uqhubeke, ungengeza ukhiye wakho we-OpenAI kuzilungiselelo.",
       aiLimitReachedGuest: "Usuyisebenzisile imilayezo ye-AI yamahhala yale nyanga. Ukuze uqhubeke, dala i-akhawunti noma wengeze ukhiye wakho we-OpenAI kuzilungiselelo.",
+      currentChatDraftConflict: "Ingxoxo yamanje isivele inombhalo osalungiswa. Umlayezo wakho uhlala kule ngxoxo. Hlola omunye umbhalo osalungiswa ngaphambi kokuhambisa lo mlayezo.",
       emptyBackendResponse: "Iseva ibuyise impendulo yephutha engenalutho.",
       genericFailure: "Ingxoxo ye-AI yehlulekile.",
       liveStreamEndedBeforeCompletion: "Ukusakaza bukhoma kwe-AI kuphele ngaphambi kokuthi umsebenzi uqede.",

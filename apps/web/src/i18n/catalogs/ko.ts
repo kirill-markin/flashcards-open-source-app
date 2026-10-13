@@ -1393,6 +1393,7 @@ const koCatalog: TranslationCatalog = {
       microphoneUnavailable: "이 브라우저에서는 마이크 녹음을 사용할 수 없습니다.",
     },
     composerPlaceholder: "카드나 복습 기록에 대해 묻거나 메모를 첨부하세요...",
+    currentChatRecovered: "이 채팅은 더 최근 채팅으로 대체되었습니다. 메시지는 입력창에 그대로 있으니 다시 보내세요.",
     dictation: {
       listening: "듣는 중...",
       start: "받아쓰기 시작",
@@ -1411,6 +1412,7 @@ const koCatalog: TranslationCatalog = {
       aiLimitReachedAccount: "이번 달 AI 메시지를 모두 사용했습니다. {{date}}에 갱신됩니다. 계속하려면 설정에서 내 OpenAI 키를 추가할 수 있습니다.",
       aiLimitReachedAccountNoDate: "이번 달 AI 메시지를 모두 사용했습니다. 계속하려면 설정에서 내 OpenAI 키를 추가할 수 있습니다.",
       aiLimitReachedGuest: "이번 달 무료 AI 메시지를 모두 사용했습니다. 계속하려면 계정을 만들거나 설정에서 내 OpenAI 키를 추가하세요.",
+      currentChatDraftConflict: "현재 채팅에 이미 초안이 있습니다. 메시지는 여기에 남아 있습니다. 채팅을 다시 열기 전에 복사하세요.",
       emptyBackendResponse: "백엔드가 빈 오류 응답을 반환했습니다.",
       genericFailure: "AI 채팅에 실패했습니다.",
       liveStreamEndedBeforeCompletion: "실행이 끝나기 전에 AI 라이브 스트림이 종료되었습니다.",

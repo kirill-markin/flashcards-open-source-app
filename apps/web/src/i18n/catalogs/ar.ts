@@ -1393,6 +1393,7 @@ const arCatalog: TranslationCatalog = {
       microphoneUnavailable: "تسجيل الميكروفون غير متاح في هذا المتصفح.",
     },
     composerPlaceholder: "اسأل عن البطاقات أو سجل المراجعة أو أرفق ملاحظات...",
+    currentChatRecovered: "تم استبدال هذه الدردشة بدردشة أحدث. رسالتك لا تزال في مربع الكتابة — أرسلها مرة أخرى.",
     dictation: {
       listening: "جارٍ الاستماع...",
       start: "بدء الإملاء",
@@ -1411,6 +1412,7 @@ const arCatalog: TranslationCatalog = {
       aiLimitReachedAccount: "لقد استخدمت رسائل الذكاء الاصطناعي لهذا الشهر. تتجدد في {{date}}. للمتابعة، يمكنك إضافة مفتاح OpenAI الخاص بك في الإعدادات.",
       aiLimitReachedAccountNoDate: "لقد استخدمت رسائل الذكاء الاصطناعي لهذا الشهر. للمتابعة، يمكنك إضافة مفتاح OpenAI الخاص بك في الإعدادات.",
       aiLimitReachedGuest: "لقد استخدمت رسائل الذكاء الاصطناعي المجانية لهذا الشهر. للمتابعة، أنشئ حسابًا أو أضف مفتاح OpenAI الخاص بك في الإعدادات.",
+      currentChatDraftConflict: "تحتوي الدردشة الحالية على مسودة بالفعل. تبقى رسالتك في هذه الدردشة. راجع المسودة الأخرى قبل نقل هذه الرسالة.",
       emptyBackendResponse: "أعاد الخادم الخلفي استجابة خطأ فارغة.",
       genericFailure: "فشلت دردشة الذكاء الاصطناعي.",
       liveStreamEndedBeforeCompletion: "انتهى البث المباشر للذكاء الاصطناعي قبل اكتمال التشغيل.",

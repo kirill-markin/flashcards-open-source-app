@@ -1407,6 +1407,7 @@ const roCatalog: TranslationCatalog = {
       microphoneUnavailable: "Înregistrarea cu microfonul nu este disponibilă în acest browser.",
     },
     composerPlaceholder: "Întreabă despre fișe, istoricul recapitulărilor sau atașează notițe...",
+    currentChatRecovered: "Acest chat a fost înlocuit cu unul mai nou. Mesajul tău este încă în caseta de text — trimite-l din nou.",
     dictation: {
       listening: "Se ascultă...",
       start: "Începe dictarea",
@@ -1425,6 +1426,7 @@ const roCatalog: TranslationCatalog = {
       aiLimitReachedAccount: "Ai folosit mesajele AI din luna aceasta. Se reînnoiesc pe {{date}}. Pentru a continua, poți adăuga propria cheie OpenAI în Setări.",
       aiLimitReachedAccountNoDate: "Ai folosit mesajele AI din luna aceasta. Pentru a continua, poți adăuga propria cheie OpenAI în Setări.",
       aiLimitReachedGuest: "Ai folosit mesajele AI gratuite din luna aceasta. Pentru a continua, creează un cont sau adaugă propria cheie OpenAI în Setări.",
+      currentChatDraftConflict: "Conversația curentă are deja o ciornă. Mesajul tău rămâne în această conversație. Verifică cealaltă ciornă înainte de a muta acest mesaj.",
       emptyBackendResponse: "Backendul a returnat un răspuns de eroare gol.",
       genericFailure: "Chatul AI a eșuat.",
       liveStreamEndedBeforeCompletion: "Fluxul AI în timp real s-a încheiat înainte de finalizarea execuției.",

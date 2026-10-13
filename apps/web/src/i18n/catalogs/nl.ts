@@ -1393,6 +1393,7 @@ const nlCatalog: TranslationCatalog = {
       microphoneUnavailable: "Opnemen met de microfoon is niet beschikbaar in deze browser.",
     },
     composerPlaceholder: "Vraag naar kaarten of je herhalingsgeschiedenis, of voeg notities toe...",
+    currentChatRecovered: "Deze chat is vervangen door een nieuwere. Je bericht staat nog in het invoerveld — verstuur het opnieuw.",
     dictation: {
       listening: "Luisteren...",
       start: "Dicteren starten",
@@ -1411,6 +1412,7 @@ const nlCatalog: TranslationCatalog = {
       aiLimitReachedAccount: "Je hebt de AI-berichten van deze maand gebruikt. Ze worden op {{date}} vernieuwd. Je kunt in Instellingen je eigen OpenAI-sleutel toevoegen om door te gaan.",
       aiLimitReachedAccountNoDate: "Je hebt de AI-berichten van deze maand gebruikt. Je kunt in Instellingen je eigen OpenAI-sleutel toevoegen om door te gaan.",
       aiLimitReachedGuest: "Je hebt de gratis AI-berichten van deze maand gebruikt. Maak een account aan of voeg in Instellingen je eigen OpenAI-sleutel toe om door te gaan.",
+      currentChatDraftConflict: "De huidige chat heeft al een concept. Je bericht blijft hier. Kopieer het voordat je de chat opnieuw opent.",
       emptyBackendResponse: "De backend gaf een lege foutmelding terug.",
       genericFailure: "De AI-chat is mislukt.",
       liveStreamEndedBeforeCompletion: "De live-stream van de AI stopte voordat de run klaar was.",

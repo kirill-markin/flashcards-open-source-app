@@ -1393,6 +1393,7 @@ const nbCatalog: TranslationCatalog = {
       microphoneUnavailable: "Mikrofonopptak er ikke tilgjengelig i denne nettleseren.",
     },
     composerPlaceholder: "Spør om kort og repetisjonshistorikk, eller legg ved notater...",
+    currentChatRecovered: "Denne chatten er erstattet av en nyere. Meldingen din står fortsatt i tekstfeltet – send den på nytt.",
     dictation: {
       listening: "Lytter...",
       start: "Start diktering",
@@ -1411,6 +1412,7 @@ const nbCatalog: TranslationCatalog = {
       aiLimitReachedAccount: "Du har brukt denne månedens AI-meldinger. De fornyes {{date}}. Du kan legge til din egen OpenAI-nøkkel i Innstillinger for å fortsette.",
       aiLimitReachedAccountNoDate: "Du har brukt denne månedens AI-meldinger. Du kan legge til din egen OpenAI-nøkkel i Innstillinger for å fortsette.",
       aiLimitReachedGuest: "Du har brukt denne månedens gratis AI-meldinger. Opprett en konto eller legg til din egen OpenAI-nøkkel i Innstillinger for å fortsette.",
+      currentChatDraftConflict: "Den gjeldende chatten har allerede et utkast. Meldingen din blir i denne chatten. Se gjennom det andre utkastet før du flytter meldingen.",
       emptyBackendResponse: "Serveren returnerte et tomt feilsvar.",
       genericFailure: "AI-chatten mislyktes.",
       liveStreamEndedBeforeCompletion: "AI-strømmen ble avsluttet før kjøringen var ferdig.",
