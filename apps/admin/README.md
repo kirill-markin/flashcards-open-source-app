@@ -67,11 +67,12 @@ Do not host the browser entry on a raw CloudFront or other non-admin hostname, e
 
 ## Current scope
 
-The General area carries three report sections in page order:
+The General area carries four report sections in page order:
 
 - `daily-active-users`
-- `catalog-deck-installs`
 - `review-events-by-date`
+- `catalog-deck-installs`
+- `social-connections`
 
 The dashboard shows eight charts:
 
@@ -81,8 +82,8 @@ The dashboard shows eight charts:
 - stacked review events by user
 - daily reviewing users by platform
 - daily review events by platform
-- daily friend invite links created, stacked by user
-- existing friend connections at the end of each day, counted per user and stacked by user
+- daily friend invite links created, as plain daily totals
+- existing friend connections at the end of each day, counted per user and drawn as plain daily totals
 
 The default chart range is shared by every section and covers the last 30 days ending today, inclusive, in the dashboard timezone. The dashboard includes date range filters that can narrow the chart range, widen it back over the full history starting on the earlier of the first calendar day carrying an `app_opened`, `review_answered`, `friend_invitation_created`, or `friendship_created` event and the first day carrying a catalog install click, and reset back to that default.
 One shared filter bar sits above the sections of every analytics area and offers exactly the fields [the filter model](src/filters/analyticsFilters.ts) declares applicable to the active area. Study vs AI offers the date range alone, because a hosted AI chat message carries no platform, cohort, catalog click or locale of its own and narrowing only the review half of a person would move their dot rather than remove it. Funnels does not render the five identity-derived fields at all, because a row there is a browser visitor identity whose first steps happen before sign-in; the catalog fields and the platform field apply there by the anchoring click's own properties rather than through a completed install. Every field's popover carries the field's full label, what it counts and how, and the current selection as removable chips; the option fields are multi-selects, the date field opens the two-month UTC range calendar, where the second click applies the range, and the threshold field takes one minimum count per event type, combined so a user must clear every one of them. The connection country and app interface language fields restrict people rather than rows: a country comes from a retained connection sample, kept for 90 days only, and a language from the UI locale a client wrote on the event, so a person with neither matches no value and is dropped as soon as either field is narrowed. The four catalog click fields restrict people the same way, through a completed install attributed to one site click by the shared visitor identity or, on older rows, by the install journey id, as [`buildCatalogInstallAttributionSql`](src/filters/filterSql.ts) defines. Every field the bar offers applies to every chart of the user-scoped areas, including the friend invite and friend connection charts, which carry per-user community rows; on Funnels the funnel itself reads every field the area offers, but its two no-visit diagnostics can only read the date range, the deck and the platform, so narrowing a click dimension leaves those lines wider than the funnel above them by design, which the section says on screen. A cohort or platform filter keeps community rows only for users that still have review events in range, and the user filter list also offers users with community activity but no review events in range. On the analytics areas user emails and user IDs are shown only inside the user filter popup and chart tooltips, not as a persistent page list; the Users list is where people are listed. A plain click on a segment of a stacked-by-user chart applies that user filter, while a ⌘/Ctrl-click or a middle click on it, or on a Study vs AI dot, opens that person's user page in a new tab, as the tooltip says; every user filter option carries an `Open` link to the same page. [`chartPrimitives.ts`](src/charts/chartPrimitives.ts) owns the new-tab gesture.
