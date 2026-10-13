@@ -6,6 +6,7 @@ let reviewContentSurfaceCornerRadius: CGFloat = 24
 struct ReviewCardSideView: View {
     let label: String
     let content: ReviewRenderedContent
+    let onSelectText: () -> Void
     let isSpeechPlaying: Bool
     let onToggleSpeech: () -> Void
     let showsSpeechButton: Bool
@@ -16,6 +17,7 @@ struct ReviewCardSideView: View {
     init(
         label: String,
         content: ReviewRenderedContent,
+        onSelectText: @escaping () -> Void,
         isSpeechPlaying: Bool,
         onToggleSpeech: @escaping () -> Void,
         showsSpeechButton: Bool,
@@ -25,6 +27,7 @@ struct ReviewCardSideView: View {
     ) {
         self.label = label
         self.content = content
+        self.onSelectText = onSelectText
         self.isSpeechPlaying = isSpeechPlaying
         self.onToggleSpeech = onToggleSpeech
         self.showsSpeechButton = showsSpeechButton
@@ -35,10 +38,30 @@ struct ReviewCardSideView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(label)
-                .font(.caption)
-                .textCase(.uppercase)
-                .foregroundStyle(.secondary)
+            Button(action: self.onSelectText) {
+                Text(self.label)
+                    .font(.caption)
+                    .textCase(.uppercase)
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier(self.surfaceStyle == .front
+                ? UITestIdentifier.reviewFrontTextSelectionButton
+                : UITestIdentifier.reviewBackTextSelectionButton)
+            .accessibilityLabel(
+                Text(self.label) + Text(", ") + Text(String(
+                    localized: "review.text_selection.action",
+                    defaultValue: "Select text",
+                    table: reviewCardsStringsTableName,
+                    comment: "Accessibility action appended to the Front or Back card caption button"
+                ))
+            )
+            .accessibilityHint(String(
+                localized: "review.text_selection.hint",
+                defaultValue: "Opens the complete source text for selection and copying.",
+                table: reviewCardsStringsTableName,
+                comment: "Accessibility hint for opening a card side in the native text selection sheet"
+            ))
 
             contentView
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -131,8 +154,6 @@ struct ReviewCardSideView: View {
                         )
                         .frame(maxWidth: .infinity, alignment: .topLeading)
                     case .formula(let formula):
-                        // Only display formulas remain standalone blocks; inline formulas stay
-                        // inside their paragraph.
                         ReviewMathFormulaView(
                             formula: formula,
                             surfaceStyle: surfaceStyle
