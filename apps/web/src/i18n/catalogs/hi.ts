@@ -1395,6 +1395,7 @@ const hiCatalog: TranslationCatalog = {
       microphoneUnavailable: "इस ब्राउज़र में माइक्रोफ़ोन रिकॉर्डिंग उपलब्ध नहीं है।",
     },
     composerPlaceholder: "कार्ड, रिव्यू इतिहास के बारे में पूछें या नोट्स अटैच करें...",
+    currentChatRecovered: "इस चैट को एक नई चैट से बदल दिया गया है। आपका संदेश अभी भी टेक्स्ट बॉक्स में है — इसे फिर से भेजें।",
     dictation: {
       listening: "सुन रहा है...",
       start: "डिक्टेशन शुरू करें",
@@ -1413,6 +1414,7 @@ const hiCatalog: TranslationCatalog = {
       aiLimitReachedAccount: "आपने इस महीने के AI संदेश इस्तेमाल कर लिए हैं। ये {{date}} को नवीनीकृत होंगे। जारी रखने के लिए आप सेटिंग्स में अपनी OpenAI कुंजी जोड़ सकते हैं।",
       aiLimitReachedAccountNoDate: "आपने इस महीने के AI संदेश इस्तेमाल कर लिए हैं। जारी रखने के लिए आप सेटिंग्स में अपनी OpenAI कुंजी जोड़ सकते हैं।",
       aiLimitReachedGuest: "आपने इस महीने के मुफ़्त AI संदेश इस्तेमाल कर लिए हैं। जारी रखने के लिए खाता बनाएँ या सेटिंग्स में अपनी OpenAI कुंजी जोड़ें।",
+      currentChatDraftConflict: "मौजूदा चैट में पहले से एक ड्राफ़्ट है। आपका संदेश यहीं रहेगा। चैट फिर से खोलने से पहले इसे कॉपी करें।",
       emptyBackendResponse: "बैकएंड ने खाली त्रुटि प्रतिक्रिया लौटाई।",
       genericFailure: "AI चैट विफल रही।",
       liveStreamEndedBeforeCompletion: "AI लाइव स्ट्रीम रन पूरा होने से पहले समाप्त हो गई।",

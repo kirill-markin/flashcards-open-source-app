@@ -1393,6 +1393,7 @@ const svCatalog: TranslationCatalog = {
       microphoneUnavailable: "Mikrofoninspelning är inte tillgänglig i den här webbläsaren.",
     },
     composerPlaceholder: "Fråga om kort, repetitionshistorik eller bifoga anteckningar...",
+    currentChatRecovered: "Den här chatten har ersatts av en nyare. Ditt meddelande finns kvar i textfältet – skicka det igen.",
     dictation: {
       listening: "Lyssnar...",
       start: "Starta diktering",
@@ -1411,6 +1412,7 @@ const svCatalog: TranslationCatalog = {
       aiLimitReachedAccount: "Du har använt den här månadens AI-meddelanden. De förnyas den {{date}}. Du kan lägga till din egen OpenAI-nyckel i Inställningar för att fortsätta.",
       aiLimitReachedAccountNoDate: "Du har använt den här månadens AI-meddelanden. Du kan lägga till din egen OpenAI-nyckel i Inställningar för att fortsätta.",
       aiLimitReachedGuest: "Du har använt den här månadens kostnadsfria AI-meddelanden. Skapa ett konto eller lägg till din egen OpenAI-nyckel i Inställningar för att fortsätta.",
+      currentChatDraftConflict: "Den aktuella chatten har redan ett utkast. Ditt meddelande stannar här. Kopiera det innan du öppnar chatten igen.",
       emptyBackendResponse: "Backend returnerade ett tomt felsvar.",
       genericFailure: "AI-chatten misslyckades.",
       liveStreamEndedBeforeCompletion: "AI-strömmen avslutades innan körningen var klar.",

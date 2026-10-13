@@ -1393,6 +1393,7 @@ const huCatalog: TranslationCatalog = {
       microphoneUnavailable: "A mikrofonos rögzítés nem érhető el ebben a böngészőben.",
     },
     composerPlaceholder: "Kérdezz kártyákról, ismétlési előzményekről, vagy csatolj jegyzeteket...",
+    currentChatRecovered: "Ezt a csevegést egy újabb váltotta fel. Az üzeneted még a szövegmezőben van – küldd el újra.",
     dictation: {
       listening: "Hallgatom...",
       start: "Diktálás indítása",
@@ -1411,6 +1412,7 @@ const huCatalog: TranslationCatalog = {
       aiLimitReachedAccount: "Elhasználtad az e havi AI-üzeneteket. Megújulásuk dátuma: {{date}}. A folytatáshoz hozzáadhatod a saját OpenAI-kulcsodat a Beállításokban.",
       aiLimitReachedAccountNoDate: "Elhasználtad az e havi AI-üzeneteket. A folytatáshoz hozzáadhatod a saját OpenAI-kulcsodat a Beállításokban.",
       aiLimitReachedGuest: "Elhasználtad az e havi ingyenes AI-üzeneteket. A folytatáshoz hozz létre fiókot, vagy add hozzá a saját OpenAI-kulcsodat a Beállításokban.",
+      currentChatDraftConflict: "A jelenlegi csevegésben már van piszkozat. Az üzenete itt marad. Másolja ki a csevegés újbóli megnyitása előtt.",
       emptyBackendResponse: "A backend üres hibaválaszt adott.",
       genericFailure: "Az AI-csevegés nem sikerült.",
       liveStreamEndedBeforeCompletion: "Az AI élő adatfolyama a futás befejezése előtt véget ért.",

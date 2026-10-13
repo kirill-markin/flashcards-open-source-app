@@ -1393,6 +1393,7 @@ const swCatalog: TranslationCatalog = {
       microphoneUnavailable: "Kurekodi kwa maikrofoni hakupatikani kwenye kivinjari hiki.",
     },
     composerPlaceholder: "Uliza kuhusu kadi, historia ya marudio, au ambatisha madokezo...",
+    currentChatRecovered: "Gumzo hili limebadilishwa na jipya zaidi. Ujumbe wako bado uko kwenye kisanduku cha maandishi — utume tena.",
     dictation: {
       listening: "Inasikiliza...",
       start: "Anza kuandika kwa sauti",
@@ -1411,6 +1412,7 @@ const swCatalog: TranslationCatalog = {
       aiLimitReachedAccount: "Umetumia jumbe za AI za mwezi huu. Zitasasishwa tarehe {{date}}. Ili kuendelea, unaweza kuongeza ufunguo wako mwenyewe wa OpenAI kwenye Mipangilio.",
       aiLimitReachedAccountNoDate: "Umetumia jumbe za AI za mwezi huu. Ili kuendelea, unaweza kuongeza ufunguo wako mwenyewe wa OpenAI kwenye Mipangilio.",
       aiLimitReachedGuest: "Umetumia jumbe za bure za AI za mwezi huu. Ili kuendelea, fungua akaunti au ongeza ufunguo wako mwenyewe wa OpenAI kwenye Mipangilio.",
+      currentChatDraftConflict: "Gumzo la sasa tayari lina rasimu. Ujumbe wako unabaki katika gumzo hili. Kagua rasimu nyingine kabla ya kuhamisha ujumbe huu.",
       emptyBackendResponse: "Seva imerudisha jibu tupu la hitilafu.",
       genericFailure: "Gumzo la AI limeshindwa.",
       liveStreamEndedBeforeCompletion: "Mtiririko wa moja kwa moja wa AI umeisha kabla ya kukamilika.",

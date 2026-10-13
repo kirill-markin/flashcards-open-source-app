@@ -28,9 +28,6 @@ export function ChatSessionControllerProvider(props: Props): ReactElement {
   const setAppErrorMessage = appData.setErrorMessage;
 
   const handleToolRunPostSyncRequested = useCallback(async (): Promise<void> => {
-    // Web now matches the shared client rule: AI-driven data refreshes come
-    // from one post-run sync after any tool-backed run, not from chat-specific
-    // invalidation callbacks.
     try {
       indexedDbOpenRecoveryState.throwIfFailed();
       await runSync();
@@ -53,6 +50,8 @@ export function ChatSessionControllerProvider(props: Props): ReactElement {
     onToolRunPostSyncRequested: handleToolRunPostSyncRequested,
     uiMessages: {
       activeRunInProgress: t("chatPanel.errors.activeRunInProgress"),
+      currentChatRecovered: t("chatPanel.currentChatRecovered"),
+      currentChatDraftConflict: t("chatPanel.errors.currentChatDraftConflict"),
       formatAiLimitReached: (aiUsage) => formatAiLimitReachedMessageForHeldUsage({ aiUsage, t, formatDate }),
       attachmentLimits: formatChatAttachmentLimitMessages({ t, formatNumber }),
       attachmentUnsupported: t("chatPanel.alerts.attachmentUnsupported"),

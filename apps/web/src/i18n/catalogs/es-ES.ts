@@ -1393,6 +1393,7 @@ const esEsCatalog: TranslationCatalog = {
       microphoneUnavailable: "La grabación con micrófono no está disponible en este navegador.",
     },
     composerPlaceholder: "Pregunta sobre tarjetas, historial de repaso o adjunta notas...",
+    currentChatRecovered: "Este chat se ha sustituido por uno más reciente. Tu mensaje sigue en el cuadro de texto: vuelve a enviarlo.",
     dictation: {
       listening: "Escuchando...",
       start: "Iniciar dictado",
@@ -1411,6 +1412,7 @@ const esEsCatalog: TranslationCatalog = {
       aiLimitReachedAccount: "Has usado los mensajes de IA de este mes. Se renuevan el {{date}}. Para seguir, puedes añadir tu propia clave de OpenAI en Ajustes.",
       aiLimitReachedAccountNoDate: "Has usado los mensajes de IA de este mes. Para seguir, puedes añadir tu propia clave de OpenAI en Ajustes.",
       aiLimitReachedGuest: "Has usado los mensajes de IA gratuitos de este mes. Para seguir, crea una cuenta o añade tu propia clave de OpenAI en Ajustes.",
+      currentChatDraftConflict: "El chat actual ya tiene un borrador. Tu mensaje sigue aquí. Cópialo antes de volver a abrir el chat.",
       emptyBackendResponse: "El backend devolvió una respuesta de error vacía.",
       genericFailure: "El chat con IA ha fallado.",
       liveStreamEndedBeforeCompletion: "La transmisión en vivo con IA terminó antes de que finalizara la ejecución.",

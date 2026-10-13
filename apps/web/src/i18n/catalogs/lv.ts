@@ -1393,6 +1393,7 @@ const lvCatalog: TranslationCatalog = {
       microphoneUnavailable: "Mikrofona ierakstīšana šajā pārlūkā nav pieejama.",
     },
     composerPlaceholder: "Jautājiet par kartītēm, atkārtošanas vēsturi vai pievienojiet piezīmes...",
+    currentChatRecovered: "Šī tērzēšana tika aizstāta ar jaunāku. Jūsu ziņa joprojām ir teksta laukā — nosūtiet to vēlreiz.",
     dictation: {
       listening: "Klausās...",
       start: "Sākt diktēšanu",
@@ -1411,6 +1412,7 @@ const lvCatalog: TranslationCatalog = {
       aiLimitReachedAccount: "Šī mēneša MI ziņas ir izlietotas. Atjaunošanas datums: {{date}}. Lai turpinātu, iestatījumos varat pievienot savu OpenAI atslēgu.",
       aiLimitReachedAccountNoDate: "Šī mēneša MI ziņas ir izlietotas. Lai turpinātu, iestatījumos varat pievienot savu OpenAI atslēgu.",
       aiLimitReachedGuest: "Šī mēneša bezmaksas MI ziņas ir izlietotas. Lai turpinātu, izveidojiet kontu vai iestatījumos pievienojiet savu OpenAI atslēgu.",
+      currentChatDraftConflict: "Pašreizējā sarunā jau ir melnraksts. Jūsu ziņojums paliek šeit. Nokopējiet to pirms sarunas atkārtotas atvēršanas.",
       emptyBackendResponse: "Serveris atgrieza tukšu kļūdas atbildi.",
       genericFailure: "MI saruna neizdevās.",
       liveStreamEndedBeforeCompletion: "MI tiešraides straume beidzās pirms izpildes pabeigšanas.",

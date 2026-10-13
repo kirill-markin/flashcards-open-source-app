@@ -56,6 +56,17 @@ function buildChatSnapshotPath(sessionId: string, workspaceId: string): string {
   return `/chat?${searchParams.toString()}`;
 }
 
+export async function getCurrentChatSnapshot(
+  workspaceId: string,
+  signal: AbortSignal,
+): Promise<ChatSessionSnapshot> {
+  const searchParams = new URLSearchParams({ workspaceId });
+  return parseContractResponse(await requestJson(`/chat?${searchParams.toString()}`, {
+    method: "GET",
+    signal,
+  }, allowAuthRecoveryWithTransientNetworkRetry), "GET /chat", parseChatSessionSnapshotResponse);
+}
+
 export async function getChatSnapshot(
   sessionId: string,
   workspaceId: string,

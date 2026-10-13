@@ -1393,6 +1393,7 @@ const isCatalog: TranslationCatalog = {
       microphoneUnavailable: "Upptaka með hljóðnema er ekki tiltæk í þessum vafra.",
     },
     composerPlaceholder: "Spyrðu um spjöld, upprifjunarsögu eða hengdu við glósur...",
+    currentChatRecovered: "Þessu spjalli var skipt út fyrir nýrra spjall. Skilaboðin þín eru enn í textareitnum — sendu þau aftur.",
     dictation: {
       listening: "Hlusta...",
       start: "Hefja raddinnslátt",
@@ -1411,6 +1412,7 @@ const isCatalog: TranslationCatalog = {
       aiLimitReachedAccount: "Þú hefur notað gervigreindarskilaboð þessa mánaðar. Þau endurnýjast {{date}}. Þú getur bætt við þínum eigin OpenAI-lykli í Stillingum til að halda áfram.",
       aiLimitReachedAccountNoDate: "Þú hefur notað gervigreindarskilaboð þessa mánaðar. Þú getur bætt við þínum eigin OpenAI-lykli í Stillingum til að halda áfram.",
       aiLimitReachedGuest: "Þú hefur notað ókeypis gervigreindarskilaboð þessa mánaðar. Stofnaðu aðgang eða bættu við þínum eigin OpenAI-lykli í Stillingum til að halda áfram.",
+      currentChatDraftConflict: "Núverandi spjall er þegar með drög. Skilaboðin þín verða áfram hér. Afritaðu þau áður en þú opnar spjallið aftur.",
       emptyBackendResponse: "Bakendinn skilaði tómu villusvari.",
       genericFailure: "Gervigreindarspjall mistókst.",
       liveStreamEndedBeforeCompletion: "Beinstreymi gervigreindar lauk áður en keyrslunni lauk.",

@@ -1393,6 +1393,7 @@ const daCatalog: TranslationCatalog = {
       microphoneUnavailable: "Optagelse med mikrofon er ikke tilgængelig i denne browser.",
     },
     composerPlaceholder: "Spørg om kort, repetitioner, eller vedhæft noter...",
+    currentChatRecovered: "Denne chat er blevet erstattet af en nyere. Din besked står stadig i feltet – send den igen.",
     dictation: {
       listening: "Lytter...",
       start: "Start diktering",
@@ -1411,6 +1412,7 @@ const daCatalog: TranslationCatalog = {
       aiLimitReachedAccount: "Du har brugt denne måneds AI-beskeder. De fornyes den {{date}}. Du kan tilføje din egen OpenAI-nøgle i Indstillinger for at fortsætte.",
       aiLimitReachedAccountNoDate: "Du har brugt denne måneds AI-beskeder. Du kan tilføje din egen OpenAI-nøgle i Indstillinger for at fortsætte.",
       aiLimitReachedGuest: "Du har brugt denne måneds gratis AI-beskeder. Opret en konto, eller tilføj din egen OpenAI-nøgle i Indstillinger for at fortsætte.",
+      currentChatDraftConflict: "Den aktuelle chat har allerede en kladde. Din besked bliver i denne chat. Gennemgå den anden kladde, før du flytter beskeden.",
       emptyBackendResponse: "Backend returnerede et tomt fejlsvar.",
       genericFailure: "AI-chatten mislykkedes.",
       liveStreamEndedBeforeCompletion: "AI-livestrømmen sluttede, før kørslen var færdig.",
