@@ -134,18 +134,6 @@ export type ReviewEventsByDateReport = Readonly<{
   communityRows: ReadonlyArray<ReviewEventsByDateCommunityRow>;
 }>;
 
-/**
- * One person in the daily active users report.
- *
- * `userId` carries the same resolved `actor_id` as `ReviewEventsByDateUser`, so the same person keeps
- * one identity, one filter entry and one colour across both sections.
- */
-export type DailyActiveUsersUser = Readonly<{
-  userId: string;
-  email: string;
-  activeDayCount: number;
-}>;
-
 /** One (UTC date, actor, platform, OS name, device type) the actor opened the app on. */
 export type DailyActiveUsersRow = Readonly<{
   date: string;
@@ -185,7 +173,6 @@ export type DailyActiveUsersReport = Readonly<{
   generatedAtUtc: string;
   from: string;
   to: string;
-  users: ReadonlyArray<DailyActiveUsersUser>;
   dailyCohortTotals: ReadonlyArray<DailyActiveUsersCohortTotal>;
   platformActiveUserTotals: ReadonlyArray<DailyActiveUsersPlatformTotal>;
   osNameActiveUserTotals: ReadonlyArray<DailyActiveUsersOsNameTotal>;
