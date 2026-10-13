@@ -7,11 +7,13 @@ Supported browser entrypoints:
 - `http://localhost:3001`
 - `https://admin.<domain>`
 
-Each serves `/`, `/analytics`, `/analytics/general`, `/analytics/funnels`, `/analytics/audience`, `/analytics/ai-usage`, `/users`, `/users/<id>/<tab>`, `/users/<id>/chats/<sessionId>`, `/events` and `/events/<eventId>`, and renders a not-found page on any other path. The route contract and its per-route loading are in [apps/admin/README.md](../apps/admin/README.md).
+Each serves `/analytics/level-1-metrics`, the landing page that `/` and `/analytics` redirect to, `/analytics/general`, `/analytics/funnels`, `/analytics/audience`, `/analytics/ai-usage`, `/users`, `/users/<id>/<tab>`, `/users/<id>/chats/<sessionId>`, `/events` and `/events/<eventId>`, and renders a not-found page on any other path. The route contract and its per-route loading are in [apps/admin/README.md](../apps/admin/README.md).
 
 ## Scope
 
-The dashboard has three top-level analytics sections. `General` contains these four report sections, in page order:
+`Level 1 metrics` is the first analytics area and the one the admin app opens on. It carries a date range of its own, opening on the last 60 days, and one chart so far, `Who saw us`: approximate daily unique visitors of the marketing website, the App Store page and the Google Play listing, stacked per UTC day. The website series reads `analytics.product_events_resolved` and the store series read the `store_analytics` tables; [apps/admin/README.md](../apps/admin/README.md#level-1-metrics) defines each series and [its query](../apps/admin/src/reports/whoSawUs/query.ts) owns them.
+
+`General` contains these four report sections, in page order:
 
 - `daily-active-users`
 - `review-events-by-date`
@@ -289,6 +291,7 @@ The admin frontend fails fast on any other non-local hostname. Do not serve the 
 
 - `https://admin.<domain>` returns `200`
 - unauthenticated access redirects to the login flow
+- a listed admin email opening `https://admin.<domain>/` lands on `/analytics/level-1-metrics` with Back not returning to `/`, sees the `Who saw us` chart in the left half of a full-width page on the last 60 days, with a dashed `Not final →` line after the day three days before today, and a tooltip listing every series, `No data` where a source has no row, and the day total
 - a listed admin email loads `https://admin.<domain>/analytics/general`, where the shared hero and filter row sit above titled report sections, each separated by a divider
 - General still contains every existing chart; Funnels opens separately with a shared bar of date range, client platform, connection country and app interface language, Mobile first launch, Home page to web app, Deck page to install, Blog article to platform choice, Blog article to web app and Paywall to purchase appear in that order, and only Deck page to install carries a filter row of its own, with its deck and catalog-click filters
 - Audience opens as a sibling and the shared filters remain visible
