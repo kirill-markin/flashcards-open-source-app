@@ -145,8 +145,6 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
         <DailyActiveUsersSection
         filteredReport={dailyActiveUsersReport}
         generatedAtUtc={dailyActiveUsersReport.generatedAtUtc}
-        userColorScale={userColorScale}
-        onUserFilterApply={props.onChartUserFilterApply}
       />
 
         <CatalogInstallsSection

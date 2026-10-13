@@ -3,7 +3,6 @@ import {
   productEventDeviceTypes,
   productEventOsNames,
   reviewEventPlatforms,
-  type DailyActiveUsersUser,
   type ProductEventDeviceType,
   type ProductEventOsName,
   type ReviewEventPlatform,
@@ -14,6 +13,8 @@ import { getUserPath } from "../routing";
 import {
   chartMargin,
   chartWidth,
+  dailyActiveUsersTotalBarColor,
+  dailyActiveUsersUniqueTotalMarkerColor,
   deviceTypeColors,
   deviceTypeLabels,
   funnelHashedSegmentMixColor,
@@ -143,48 +144,50 @@ export type RenderDailyActiveUsersChartParams = Readonly<{
   tooltipHandlers: ChartTooltipHandlers;
 }>;
 
-export type RenderDailyActiveUsersByPlatformChartParams = Readonly<{
+export type RenderDailyActiveUsersTotalChartParams = Readonly<{
   svgElement: SVGSVGElement;
   dates: ReadonlyArray<string>;
   tickDates: ReadonlyArray<string>;
-  platformActiveUsersMatrix: ReadonlyArray<MatrixChartEntry>;
-  dailyActiveUsersByDate: ReadonlyMap<string, number>;
-  peakDailyPlatformActiveUsers: number;
-  tooltipHandlers: ChartTooltipHandlers;
-}>;
-
-export type RenderDailyActiveUsersByOsNameChartParams = Readonly<{
-  svgElement: SVGSVGElement;
-  dates: ReadonlyArray<string>;
-  tickDates: ReadonlyArray<string>;
-  osNameActiveUsersMatrix: ReadonlyArray<MatrixChartEntry>;
-  dailyActiveUsersByDate: ReadonlyMap<string, number>;
-  peakDailyOsNameActiveUsers: number;
-  tooltipHandlers: ChartTooltipHandlers;
-}>;
-
-export type RenderDailyActiveUsersByDeviceTypeChartParams = Readonly<{
-  svgElement: SVGSVGElement;
-  dates: ReadonlyArray<string>;
-  tickDates: ReadonlyArray<string>;
-  deviceTypeActiveUsersMatrix: ReadonlyArray<MatrixChartEntry>;
-  dailyActiveUsersByDate: ReadonlyMap<string, number>;
-  peakDailyDeviceTypeActiveUsers: number;
-  tooltipHandlers: ChartTooltipHandlers;
-}>;
-
-export type RenderDailyActiveUsersByUserChartParams = Readonly<{
-  svgElement: SVGSVGElement;
-  dates: ReadonlyArray<string>;
-  tickDates: ReadonlyArray<string>;
-  activeUserMatrix: ReadonlyArray<MatrixChartEntry>;
-  activeUserIds: ReadonlyArray<string>;
-  userColorScale: UserColorScale;
-  userById: ReadonlyMap<string, DailyActiveUsersUser>;
   dailyActiveUsersByDate: ReadonlyMap<string, number>;
   peakDailyActiveUsers: number;
-  onUserFilterApply: (userId: string) => void;
   tooltipHandlers: ChartTooltipHandlers;
+}>;
+
+/** One breakdown of daily active users whose keys can overlap: platform, OS name or device type. */
+export type RenderDailyActiveUsersKeyedBreakdownChartParams = Readonly<{
+  svgElement: SVGSVGElement;
+  dates: ReadonlyArray<string>;
+  tickDates: ReadonlyArray<string>;
+  activeUsersMatrix: ReadonlyArray<MatrixChartEntry>;
+  dailyActiveUsersByDate: ReadonlyMap<string, number>;
+  /** The taller of each day's stack and its unique-user total, over the range. */
+  peakDailyValue: number;
+  tooltipHandlers: ChartTooltipHandlers;
+}>;
+
+type DailyActiveUsersOverlappingStackChartParams = Readonly<{
+  svgElement: SVGSVGElement;
+  dates: ReadonlyArray<string>;
+  tickDates: ReadonlyArray<string>;
+  matrix: ReadonlyArray<MatrixChartEntry>;
+  keys: ReadonlyArray<string>;
+  getKeyColor: (key: string) => string;
+  getKeyLabel: (key: string) => string;
+  segmentMetricLabel: string;
+  dailyActiveUsersByDate: ReadonlyMap<string, number>;
+  peakDailyValue: number;
+  tooltipHandlers: ChartTooltipHandlers;
+}>;
+
+type DailyTotalEntry = Readonly<{
+  date: string;
+  value: number;
+}>;
+
+type KeyedStackedBarChartFrame = Readonly<{
+  group: d3.Selection<SVGGElement, unknown, null, undefined>;
+  x: d3.ScaleBand<string>;
+  y: d3.ScaleLinear<number, number>;
 }>;
 
 export type RenderDailyFriendInvitationsChartParams = Readonly<{
@@ -512,6 +515,49 @@ export function renderDailyActiveUsersChart(params: RenderDailyActiveUsersChartP
   });
 }
 
+export function renderDailyActiveUsersTotalChart(params: RenderDailyActiveUsersTotalChartParams): void {
+  const svg = d3.select(params.svgElement);
+  const x = createDateScale(params.dates);
+  const innerHeight = getInnerHeight(simpleChartHeight);
+  const y = d3.scaleLinear()
+    .domain([0, Math.max(1, params.peakDailyActiveUsers)])
+    .nice()
+    .range([innerHeight, 0]);
+  const group = renderChartFrame(svg, {
+    chartHeight: simpleChartHeight,
+    x,
+    y,
+    tickDates: params.tickDates,
+    yAxisLabel: "Active users",
+    xAxisLabel: "Date",
+  });
+  const bars: ReadonlyArray<DailyTotalEntry> = params.dates
+    .map((date) => ({ date, value: params.dailyActiveUsersByDate.get(date) ?? 0 }))
+    .filter((entry) => entry.value > 0);
+
+  group.selectAll<SVGRectElement, DailyTotalEntry>(".bar-segment")
+    .data(bars)
+    .join("rect")
+    .attr("class", "bar-segment")
+    .attr("fill", dailyActiveUsersTotalBarColor)
+    .attr("x", (entry) => x(entry.date) ?? 0)
+    .attr("y", (entry) => y(entry.value))
+    .attr("width", x.bandwidth())
+    .attr("height", (entry) => Math.max(0, innerHeight - y(entry.value)))
+    .attr("rx", 3)
+    .on("mousemove", (event, entry: DailyTotalEntry) => {
+      params.tooltipHandlers.showTooltip(
+        [
+          `<p class="tooltip-title">${escapeHtml(formatDateRangeLabel(entry.date))}</p>`,
+          `<div class="tooltip-metric"><span>Unique active users</span><strong>${numberFormatter(entry.value)}</strong></div>`,
+        ].join(""),
+        event.clientX,
+        event.clientY,
+      );
+    })
+    .on("mouseleave", params.tooltipHandlers.hideTooltip);
+}
+
 export function renderUserReviewEventsChart(params: RenderUserReviewEventsChartParams): void {
   renderUserStackedBarChart({
     svgElement: params.svgElement,
@@ -575,29 +621,6 @@ export function renderDailyFriendshipsChart(params: RenderDailyFriendshipsChartP
     buildTooltipMetricsHtml: (entry) => [
       `<div class="tooltip-metric"><span>User connections at end of day</span><strong>${numberFormatter(entry.value)}</strong></div>`,
       `<div class="tooltip-metric"><span>Total on this date</span><strong>${numberFormatter(params.totalFriendshipsByDate.get(entry.date) ?? entry.value)}</strong></div>`,
-    ].join(""),
-    onUserFilterApply: params.onUserFilterApply,
-    tooltipHandlers: params.tooltipHandlers,
-  });
-}
-
-export function renderDailyActiveUsersByUserChart(params: RenderDailyActiveUsersByUserChartParams): void {
-  renderUserStackedBarChart({
-    svgElement: params.svgElement,
-    dates: params.dates,
-    tickDates: params.tickDates,
-    userMatrix: params.activeUserMatrix,
-    userIds: params.activeUserIds,
-    userColorScale: params.userColorScale,
-    userById: params.userById,
-    peakStackedValue: params.peakDailyActiveUsers,
-    yAxisLabel: "Active users",
-    xAxisLabel: "Date",
-    segmentClass: "daily-active-users",
-    // Every segment is one person on one day, so the segment value itself carries no information.
-    buildTooltipMetricsHtml: (entry, user) => [
-      `<div class="tooltip-metric"><span>Total active users on this date</span><strong>${numberFormatter(params.dailyActiveUsersByDate.get(entry.date) ?? entry.value)}</strong></div>`,
-      `<div class="tooltip-metric"><span>User active days in range</span><strong>${numberFormatter(user.activeDayCount)}</strong></div>`,
     ].join(""),
     onUserFilterApply: params.onUserFilterApply,
     tooltipHandlers: params.tooltipHandlers,
@@ -675,70 +698,7 @@ export function renderPlatformActiveUsersChart(params: RenderPlatformActiveUsers
   });
 }
 
-// Grouped rather than stacked: a person active on the phone and the browser on one day appears in
-// both platform bars, so the bars must never be read as parts of one total. The OS name and device
-// type charts below are grouped for the same reason.
-export function renderDailyActiveUsersByPlatformChart(params: RenderDailyActiveUsersByPlatformChartParams): void {
-  renderKeyedGroupedUsersChart({
-    svgElement: params.svgElement,
-    dates: params.dates,
-    tickDates: params.tickDates,
-    matrix: params.platformActiveUsersMatrix,
-    keys: reviewEventPlatforms,
-    getKeyColor: getPlatformColor,
-    getKeyLabel: (key) => platformLabels[key as ReviewEventPlatform],
-    peakGroupedValue: params.peakDailyPlatformActiveUsers,
-    yAxisLabel: "Active users",
-    xAxisLabel: "Date",
-    buildTooltipMetricsHtml: (entry) => [
-      `<div class="tooltip-metric"><span>Active users on this platform</span><strong>${numberFormatter(entry.value)}</strong></div>`,
-      `<div class="tooltip-metric"><span>Total unique active users on this date</span><strong>${numberFormatter(params.dailyActiveUsersByDate.get(entry.date) ?? 0)}</strong></div>`,
-    ].join(""),
-    tooltipHandlers: params.tooltipHandlers,
-  });
-}
-
-export function renderDailyActiveUsersByOsNameChart(params: RenderDailyActiveUsersByOsNameChartParams): void {
-  renderKeyedGroupedUsersChart({
-    svgElement: params.svgElement,
-    dates: params.dates,
-    tickDates: params.tickDates,
-    matrix: params.osNameActiveUsersMatrix,
-    keys: productEventOsNames,
-    getKeyColor: (key) => osNameColors[key as ProductEventOsName],
-    getKeyLabel: (key) => osNameLabels[key as ProductEventOsName],
-    peakGroupedValue: params.peakDailyOsNameActiveUsers,
-    yAxisLabel: "Active users",
-    xAxisLabel: "Date",
-    buildTooltipMetricsHtml: (entry) => [
-      `<div class="tooltip-metric"><span>Active users on this OS</span><strong>${numberFormatter(entry.value)}</strong></div>`,
-      `<div class="tooltip-metric"><span>Total unique active users on this date</span><strong>${numberFormatter(params.dailyActiveUsersByDate.get(entry.date) ?? 0)}</strong></div>`,
-    ].join(""),
-    tooltipHandlers: params.tooltipHandlers,
-  });
-}
-
-export function renderDailyActiveUsersByDeviceTypeChart(params: RenderDailyActiveUsersByDeviceTypeChartParams): void {
-  renderKeyedGroupedUsersChart({
-    svgElement: params.svgElement,
-    dates: params.dates,
-    tickDates: params.tickDates,
-    matrix: params.deviceTypeActiveUsersMatrix,
-    keys: productEventDeviceTypes,
-    getKeyColor: (key) => deviceTypeColors[key as ProductEventDeviceType],
-    getKeyLabel: (key) => deviceTypeLabels[key as ProductEventDeviceType],
-    peakGroupedValue: params.peakDailyDeviceTypeActiveUsers,
-    yAxisLabel: "Active users",
-    xAxisLabel: "Date",
-    buildTooltipMetricsHtml: (entry) => [
-      `<div class="tooltip-metric"><span>Active users on this device type</span><strong>${numberFormatter(entry.value)}</strong></div>`,
-      `<div class="tooltip-metric"><span>Total unique active users on this date</span><strong>${numberFormatter(params.dailyActiveUsersByDate.get(entry.date) ?? 0)}</strong></div>`,
-    ].join(""),
-    tooltipHandlers: params.tooltipHandlers,
-  });
-}
-
-function renderKeyedStackedBarChart(params: KeyedStackedBarChartParams): void {
+function renderKeyedStackedBarChart(params: KeyedStackedBarChartParams): KeyedStackedBarChartFrame {
   const svg = d3.select(params.svgElement);
   const x = createDateScale(params.dates);
   const innerHeight = getInnerHeight(stackedChartHeight);
@@ -790,6 +750,119 @@ function renderKeyedStackedBarChart(params: KeyedStackedBarChartParams): void {
       );
     })
     .on("mouseleave", params.tooltipHandlers.hideTooltip);
+
+  return { group, x, y };
+}
+
+// A person active on the phone and the browser on one day sits in both segments, so a stack can rise
+// above the day's unique total; the marker drawn over it is that total, and the only number to read
+// as "how many people".
+function renderDailyActiveUsersOverlappingStackChart(params: DailyActiveUsersOverlappingStackChartParams): void {
+  const frame = renderKeyedStackedBarChart({
+    svgElement: params.svgElement,
+    dates: params.dates,
+    tickDates: params.tickDates,
+    matrix: params.matrix,
+    keys: params.keys,
+    getKeyColor: params.getKeyColor,
+    getKeyLabel: params.getKeyLabel,
+    peakStackedValue: params.peakDailyValue,
+    yAxisLabel: "Active users",
+    xAxisLabel: "Date",
+    buildTooltipMetricsHtml: (entry) => [
+      `<div class="tooltip-metric"><span>${escapeHtml(params.segmentMetricLabel)}</span><strong>${numberFormatter(entry.value)}</strong></div>`,
+      `<div class="tooltip-metric"><span>Unique active users on this date</span><strong>${numberFormatter(params.dailyActiveUsersByDate.get(entry.date) ?? 0)}</strong></div>`,
+    ].join(""),
+    tooltipHandlers: params.tooltipHandlers,
+  });
+  const stackTotalByDate = new Map(params.matrix.map((entry) => [
+    entry.date,
+    d3.sum(params.keys, (key) => entry.valuesByKey[key] ?? 0),
+  ]));
+  const markers: ReadonlyArray<DailyTotalEntry> = params.dates
+    .map((date) => ({ date, value: params.dailyActiveUsersByDate.get(date) ?? 0 }))
+    .filter((entry) => entry.value > 0);
+
+  // The marker never crosses half the gap between bands, so on a dense range each one still sits
+  // over its own day's bar alone; the transparent hit line keeps it hoverable when that bar is thin.
+  const overhang = Math.min(2, (frame.x.step() - frame.x.bandwidth()) / 2);
+  const markerGroups = frame.group.selectAll<SVGGElement, DailyTotalEntry>(".unique-total-marker")
+    .data(markers)
+    .join("g")
+    .attr("class", "unique-total-marker");
+
+  for (const [stroke, strokeWidth] of [[dailyActiveUsersUniqueTotalMarkerColor, 3], ["transparent", 9]] as const) {
+    markerGroups.append("line")
+      .attr("x1", (entry) => (frame.x(entry.date) ?? 0) - overhang)
+      .attr("x2", (entry) => (frame.x(entry.date) ?? 0) + frame.x.bandwidth() + overhang)
+      .attr("y1", (entry) => frame.y(entry.value))
+      .attr("y2", (entry) => frame.y(entry.value))
+      .attr("stroke", stroke)
+      .attr("stroke-width", strokeWidth)
+      .attr("stroke-linecap", "butt");
+  }
+
+  markerGroups
+    .on("mousemove", (event, entry: DailyTotalEntry) => {
+      params.tooltipHandlers.showTooltip(
+        [
+          `<p class="tooltip-title">${escapeHtml(formatDateRangeLabel(entry.date))}</p>`,
+          `<div class="tooltip-metric"><span>Unique active users</span><strong>${numberFormatter(entry.value)}</strong></div>`,
+          `<div class="tooltip-metric"><span>Sum of the segments</span><strong>${numberFormatter(stackTotalByDate.get(entry.date) ?? 0)}</strong></div>`,
+        ].join(""),
+        event.clientX,
+        event.clientY,
+      );
+    })
+    .on("mouseleave", params.tooltipHandlers.hideTooltip);
+}
+
+export function renderDailyActiveUsersByPlatformChart(params: RenderDailyActiveUsersKeyedBreakdownChartParams): void {
+  renderDailyActiveUsersOverlappingStackChart({
+    svgElement: params.svgElement,
+    dates: params.dates,
+    tickDates: params.tickDates,
+    matrix: params.activeUsersMatrix,
+    keys: reviewEventPlatforms,
+    getKeyColor: getPlatformColor,
+    getKeyLabel: (key) => platformLabels[key as ReviewEventPlatform],
+    segmentMetricLabel: "Active users on this platform",
+    dailyActiveUsersByDate: params.dailyActiveUsersByDate,
+    peakDailyValue: params.peakDailyValue,
+    tooltipHandlers: params.tooltipHandlers,
+  });
+}
+
+export function renderDailyActiveUsersByOsNameChart(params: RenderDailyActiveUsersKeyedBreakdownChartParams): void {
+  renderDailyActiveUsersOverlappingStackChart({
+    svgElement: params.svgElement,
+    dates: params.dates,
+    tickDates: params.tickDates,
+    matrix: params.activeUsersMatrix,
+    keys: productEventOsNames,
+    getKeyColor: (key) => osNameColors[key as ProductEventOsName],
+    getKeyLabel: (key) => osNameLabels[key as ProductEventOsName],
+    segmentMetricLabel: "Active users on this OS",
+    dailyActiveUsersByDate: params.dailyActiveUsersByDate,
+    peakDailyValue: params.peakDailyValue,
+    tooltipHandlers: params.tooltipHandlers,
+  });
+}
+
+export function renderDailyActiveUsersByDeviceTypeChart(params: RenderDailyActiveUsersKeyedBreakdownChartParams): void {
+  renderDailyActiveUsersOverlappingStackChart({
+    svgElement: params.svgElement,
+    dates: params.dates,
+    tickDates: params.tickDates,
+    matrix: params.activeUsersMatrix,
+    keys: productEventDeviceTypes,
+    getKeyColor: (key) => deviceTypeColors[key as ProductEventDeviceType],
+    getKeyLabel: (key) => deviceTypeLabels[key as ProductEventDeviceType],
+    segmentMetricLabel: "Active users on this device type",
+    dailyActiveUsersByDate: params.dailyActiveUsersByDate,
+    peakDailyValue: params.peakDailyValue,
+    tooltipHandlers: params.tooltipHandlers,
+  });
 }
 
 export function renderPlatformReviewEventsChart(params: RenderPlatformReviewEventsChartParams): void {
