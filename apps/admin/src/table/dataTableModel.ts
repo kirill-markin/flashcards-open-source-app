@@ -18,7 +18,11 @@ export type DataTableColumn<Row> =
   | DataTableColumnBase<Row> & Readonly<{ kind: "number"; value: (row: Row) => number | null }>
   /** An ISO-8601 UTC instant (`...Z`), so instants sort as strings and their first ten characters are the UTC date. */
   | DataTableColumnBase<Row> & Readonly<{ kind: "date"; value: (row: Row) => string | null }>
-  | DataTableColumnBase<Row> & Readonly<{ kind: "enum"; value: (row: Row) => string | null }>
+  | DataTableColumnBase<Row> & Readonly<{
+    kind: "enum";
+    value: (row: Row) => string | null;
+    enumOptionLabel?: (value: string) => string;
+  }>
   /** Several values per row, each one offered to the enum filter; an empty list is the NULL of the other kinds. */
   | DataTableColumnBase<Row> & Readonly<{ kind: "enum-list"; value: (row: Row) => ReadonlyArray<string> }>
   | DataTableColumnBase<Row> & Readonly<{ kind: "boolean"; value: (row: Row) => boolean | null }>;

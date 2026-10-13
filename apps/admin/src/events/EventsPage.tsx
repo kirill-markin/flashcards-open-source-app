@@ -13,6 +13,7 @@ import {
 } from "../table/dataTableModel";
 import { JsonPreviewCell } from "../table/JsonPreviewCell";
 import { renderUserLink } from "../users/UsersPage";
+import { getEventPlatformLabel } from "./eventPlatformLabel";
 import {
   emptyEventsEnumOptions,
   loadEventsEnumOptions,
@@ -61,7 +62,14 @@ function buildEventColumns(onNavigate: (path: string) => void): ReadonlyArray<Da
     { id: "actor-id", label: "Actor ID", kind: "text", value: (event) => event.actorId, renderCell: (event) => renderUserLink(event.actorId, event.actorId, onNavigate) },
     { id: "actor-email", label: "Actor email", kind: "text", value: (event) => event.actorEmail, renderCell: (event) => renderUserLink(event.actorId, event.actorEmail, onNavigate) },
     { id: "user-id", label: "Recorded user ID", kind: "text", value: (event) => event.userId, renderCell: (event) => renderUserLink(event.userId, event.userId, onNavigate) },
-    { id: "platform", label: "Platform", kind: "enum", value: (event) => event.platform, renderCell: null },
+    {
+      id: "platform",
+      label: "Client platform",
+      kind: "enum",
+      value: (event) => event.platform,
+      renderCell: (event) => event.platform === null ? null : getEventPlatformLabel(event.platform),
+      enumOptionLabel: getEventPlatformLabel,
+    },
     { id: "app-version", label: "App version", kind: "enum", value: (event) => event.appVersion, renderCell: null },
     { id: "os-name", label: "OS name", kind: "enum", value: (event) => event.osName, renderCell: null },
     { id: "os-version", label: "OS version", kind: "enum", value: (event) => event.osVersion, renderCell: null },
