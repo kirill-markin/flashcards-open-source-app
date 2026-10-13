@@ -147,8 +147,8 @@ export const uniqueUserCohortColors: Readonly<Record<UniqueUserCohortKey, string
   new: "#2e6f95",
 };
 
-/** The plain daily active users bars: the value of `--accent` in `../styles.css`, tracked by hand. */
-export const dailyActiveUsersTotalBarColor = "#c44b2d";
+/** The plain daily total bars: the value of `--accent` in `../styles.css`, tracked by hand. */
+export const dailyTotalBarColor = "#c44b2d";
 
 /**
  * The line marking a day's unique active users over a breakdown whose segments can sum above it: the
