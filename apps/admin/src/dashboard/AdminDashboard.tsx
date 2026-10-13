@@ -19,6 +19,7 @@ import { DailyActiveUsersSection } from "../reports/dailyActiveUsers/DailyActive
 import { FunnelsArea } from "../reports/funnels/FunnelsArea";
 import { ReviewActivitySection } from "../reports/reviewEventsByDate/ReviewActivitySection";
 import type { ReviewEventsByDateRange } from "../reports/reviewEventsByDate/query";
+import { SocialConnectionsSection } from "../reports/socialConnections/SocialConnectionsSection";
 import type { AnalyticsArea } from "../routing";
 import { getStableUserColorDomain, getUserColorScale } from "./userColors";
 
@@ -88,8 +89,8 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
   const filterOptions = props.data.filterOptions;
 
   const filteredUserById = useMemo(
-    () => buildUserById([...report.users, ...report.communityOnlyUsers]),
-    [report.communityOnlyUsers, report.users],
+    () => buildUserById(report.users),
+    [report.users],
   );
   // Both colour domains come from the range-scoped options rather than from the reports on screen,
   // so a person keeps one colour wherever they appear and a deck does not change colour because a
@@ -147,12 +148,6 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
         generatedAtUtc={dailyActiveUsersReport.generatedAtUtc}
       />
 
-        <CatalogInstallsSection
-        filteredReport={catalogInstallsReport}
-        generatedAtUtc={catalogInstallsReport.generatedAtUtc}
-        packageColorScale={packageColorScale}
-      />
-
         <ReviewActivitySection
         filteredReport={report}
         generatedAtUtc={report.generatedAtUtc}
@@ -160,6 +155,17 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
         userColorScale={userColorScale}
         onUserFilterApply={props.onChartUserFilterApply}
         />
+
+        <CatalogInstallsSection
+        filteredReport={catalogInstallsReport}
+        generatedAtUtc={catalogInstallsReport.generatedAtUtc}
+        packageColorScale={packageColorScale}
+      />
+
+        <SocialConnectionsSection
+        filteredReport={report}
+        generatedAtUtc={report.generatedAtUtc}
+      />
         </div> : null}
 
       {props.activeArea === "funnels" ? <FunnelsArea
