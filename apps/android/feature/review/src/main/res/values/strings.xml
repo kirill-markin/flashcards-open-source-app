@@ -34,6 +34,7 @@
     <string name="review_edit_card_content_description">Edit card</string>
     <string name="review_front_label">Front</string>
     <string name="review_back_label">Back</string>
+    <string name="review_select_text_content_description">Select %1$s text</string>
     <string name="review_stop_speech">Stop %1$s speech</string>
     <string name="review_speak">Speak %1$s</string>
     <string name="review_show_answer">Show answer</string>
