@@ -2,10 +2,12 @@
 
 package com.flashcardsopensourceapp.app.livesmoke.flows
 
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextReplacement
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.clickTag
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.clickText
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.currentBlockingSystemDialogSummaryOrNull
@@ -21,6 +23,7 @@ import com.flashcardsopensourceapp.app.livesmoke.support.captureVisibleWorkspace
 import com.flashcardsopensourceapp.app.livesmoke.support.cloudSyncChooserPrompt
 import com.flashcardsopensourceapp.app.livesmoke.support.currentCloudSettingsSummary
 import com.flashcardsopensourceapp.app.livesmoke.support.currentWorkspaceSummaryOrNull
+import com.flashcardsopensourceapp.app.livesmoke.support.internalUiTimeoutMillis
 import com.flashcardsopensourceapp.feature.settings.cloud.cloudPostAuthExistingButtonTag
 import com.flashcardsopensourceapp.feature.settings.cloud.cloudPostAuthWorkspaceRowTag
 import com.flashcardsopensourceapp.feature.settings.cloud.cloudSignInEmailFieldTag
@@ -49,8 +52,12 @@ private enum class CloudSignInSendCodeOutcome {
 internal fun LiveSmokeContext.signInWithReviewAccount(reviewEmail: String) {
     openSettingsRow(rowTag = settingsAccountStatusRowTag, rowLabel = "Account status")
     clickText(text = "Sign in or sign up", substring = false)
-    composeRule.onNodeWithTag(cloudSignInEmailFieldTag).performTextInput(reviewEmail)
-    sendReviewAccountCodeWithRetries()
+    runWithInlineRawScreenStateOnFailure(action = "set_review_account_email") {
+        clickTag(tag = cloudSignInEmailFieldTag, label = "Email")
+        composeRule.onNodeWithTag(cloudSignInEmailFieldTag).performTextReplacement(reviewEmail)
+        composeRule.waitForIdle()
+    }
+    sendReviewAccountCodeWithRetries(reviewEmail = reviewEmail)
 
     completeCloudPostAuthWorkspaceSelectionIfNeeded()
     waitForLinkedAccountStatusAfterSignIn()
@@ -58,9 +65,20 @@ internal fun LiveSmokeContext.signInWithReviewAccount(reviewEmail: String) {
     tapBackIcon()
 }
 
-private fun LiveSmokeContext.sendReviewAccountCodeWithRetries() {
+private fun LiveSmokeContext.sendReviewAccountCodeWithRetries(reviewEmail: String) {
     var attemptNumber: Int = 1
     while (attemptNumber <= sendCodeAttemptLimit) {
+        waitUntilWithMitigation(
+            timeoutMillis = internalUiTimeoutMillis,
+            context = "while verifying the configured email before sending a sign-in code"
+        ) {
+            composeRule.onAllNodesWithTag(cloudSignInEmailFieldTag)
+                .fetchSemanticsNodes()
+                .singleOrNull()
+                ?.config
+                ?.getOrNull(SemanticsProperties.EditableText)
+                ?.text == reviewEmail
+        }
         clickTag(tag = cloudSignInSendCodeButtonTag, label = "Send code")
         when (waitForCloudSignInSendCodeOutcome()) {
             CloudSignInSendCodeOutcome.READY -> return
