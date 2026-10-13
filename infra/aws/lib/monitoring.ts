@@ -32,6 +32,7 @@ import { dailyVisitorHashSaltExpiryScheduleHours } from "./scheduled-jobs/daily-
 import { geoLiteCountryObjectExpirationDays } from "./geolite-country";
 import { syntheticActorDetectorScheduleHours } from "./scheduled-jobs/synthetic-actor-detector";
 import { probableAndroidBurstRefreshScheduleHours } from "./scheduled-jobs/probable-android-burst-refresh";
+import { storeAnalyticsImportScheduleHours } from "./scheduled-jobs/store-analytics-import";
 import { addProductAnalyticsMonitoring } from "./product-analytics-monitoring";
 
 const restApiNoTrafficEvaluationPeriods = 4;
@@ -72,6 +73,7 @@ export interface MonitoringProps {
   dailyVisitorHashSaltExpiryFn: lambda.IFunction;
   syntheticActorDetectorFn: lambda.IFunction;
   probableAndroidBurstRefreshFn: lambda.IFunction;
+  storeAnalyticsImportFn: lambda.IFunction;
   generatedMediaPromotionFn: lambda.IFunction;
   multipartCompletionReconciliationFn: lambda.IFunction;
   multipartCompletionReconciliationLogGroup: logs.ILogGroup;
@@ -955,6 +957,27 @@ export function monitoring(scope: Construct, props: MonitoringProps): void {
     evaluationPeriods: 2,
     datapointsToAlarm: 2,
     alarmDescription: "Probable Android burst refresh has not run for two consecutive hours",
+    treatMissingData: cloudwatch.TreatMissingData.BREACHING,
+  }), alertTopic);
+
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "StoreAnalyticsImportLambdaErrorAlarm", {
+    metric: props.storeAnalyticsImportFn.metricErrors({ period: cdk.Duration.minutes(15), statistic: "Sum" }),
+    threshold: 1,
+    evaluationPeriods: 1,
+    alarmDescription: "Store analytics import failed; App Store report rows are missing or stale in store_analytics",
+    treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+  }), alertTopic);
+
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "StoreAnalyticsImportStaleAlarm", {
+    metric: props.storeAnalyticsImportFn.metricInvocations({
+      period: cdk.Duration.hours(storeAnalyticsImportScheduleHours),
+      statistic: "Sum",
+    }),
+    threshold: 1,
+    comparisonOperator: cloudwatch.ComparisonOperator.LESS_THAN_THRESHOLD,
+    evaluationPeriods: 2,
+    datapointsToAlarm: 2,
+    alarmDescription: "Store analytics import has not run for two consecutive hours",
     treatMissingData: cloudwatch.TreatMissingData.BREACHING,
   }), alertTopic);
 

@@ -14,6 +14,7 @@ export type BackendService =
   | "daily-visitor-hash-salt-expiry"
   | "synthetic-actor-detector"
   | "probable-android-burst-refresh"
+  | "store-analytics-import"
   | "generated-media-promotion"
   | "multipart-completion-reconciliation"
   | "migration";

@@ -82,6 +82,7 @@ Details, rollback rules, and live smoke references: [docs/release-gates.md](docs
 - Internal admin reports on product events, audience, and catalog-install funnels: [docs/admin-app.md](docs/admin-app.md).
 - Product-wide aggregates: the daily snapshot behind `GET /v1/global/snapshot`, [docs/global-metrics.md](docs/global-metrics.md).
 - App Store discovery, downloads, usage, sales, and subscriptions: App Store Connect Analytics Reports API, [docs/app-store-analytics.md](docs/app-store-analytics.md).
+- The same App Store reports imported hourly into Postgres: the `store_analytics` schema, [docs/store-analytics.md](docs/store-analytics.md).
 - iOS cloud build and test runs, per-test timings, and `.xcresult` bundles: [docs/xcode-cloud-data-access.md](docs/xcode-cloud-data-access.md).
 
 Reach the database through an SSM port-forward: `bash scripts/setup/get-analytics-db-access.sh` prints the current instance id, endpoint, and password, `aws ssm start-session --document-name AWS-StartPortForwardingSessionToRemoteHost` opens the tunnel, and a local Postgres client connects on the forwarded port. There is no SSH path and the bastion has no ingress rules. Never reuse a previously noted instance id, because a deploy can change it. The role is read-only at session level, so writes fail with SQLSTATE `25006`. Close the tunnel with `aws ssm terminate-session`; killing the CLI leaves the plugin process and the session running.
