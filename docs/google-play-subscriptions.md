@@ -121,6 +121,8 @@ name, update both restrictions
 before enabling billing; do not broaden them to the whole AWS account or pool.
 The existing GitHub federation and Android CI identity remain separate; see
 [Android CI/CD](android-ci-cd.md).
+The Play bulk reports import uses its own provider and service account; see
+[Store Analytics Import](store-analytics.md#google-play).
 
 [Runtime configuration](../apps/backend/src/billing/google/config.ts) constructs
 Google's external-account `AwsClient` from the Lambda's temporary AWS credentials

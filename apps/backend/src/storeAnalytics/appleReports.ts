@@ -1,14 +1,19 @@
 import { gunzipSync } from "node:zlib";
-import { parse } from "papaparse";
+import {
+  assertDistinctHeaders,
+  findHeaderIndex,
+  parseDelimitedReport,
+  readTypedValue,
+  type ReportColumnType,
+  type ReportFile,
+} from "./reportFiles";
 
 export type AppleDetailLevel = "standard" | "detailed" | "single";
-
-type AppleColumnType = "text" | "numeric" | "date";
 
 type AppleTypedColumn = Readonly<{
   column: string;
   header: string;
-  type: AppleColumnType;
+  type: ReportColumnType;
 }>;
 
 /**
@@ -28,11 +33,6 @@ export type AppleReportVariant = Readonly<{
   detailLevel: AppleDetailLevel;
 }>;
 
-export type AppleReportFile = Readonly<{
-  header: ReadonlyArray<string>;
-  rows: ReadonlyArray<ReadonlyArray<string>>;
-}>;
-
 export type AppleMappedRow = Readonly<{
   reportDate: string;
   appAppleIdentifier: string;
@@ -44,8 +44,6 @@ export type AppleMappedRow = Readonly<{
 const appAppleIdentifierHeader = "App Apple Identifier";
 // Every row repeats the app's display name; the identifier beside it is what is kept.
 const appNameHeader = "App Name";
-const isoDatePattern = /^\d{4}-\d{2}-\d{2}$/;
-const numericPattern = /^-?(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?$/;
 
 function text(header: string, column: string): AppleTypedColumn {
   return { header, column, type: "text" };
@@ -327,11 +325,6 @@ function normalizeName(value: string): string {
   return value.normalize("NFKC").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
-/** Headers are matched by name, ignoring case and spacing, never by position. */
-function normalizeHeader(value: string): string {
-  return value.normalize("NFKC").replace(/\s+/g, " ").trim().toLowerCase();
-}
-
 export function resolveAppleReportVariant(reportName: string): AppleReportVariant {
   const normalized = normalizeName(reportName);
   const suffix = /^(.*) (standard|detailed)$/.exec(normalized);
@@ -342,51 +335,10 @@ export function resolveAppleReportVariant(reportName: string): AppleReportVarian
 }
 
 /** Apple documents gzip-compressed TSV; the gzip magic bytes decide, so a plain file reads as is. */
-export function parseAppleReportFile(bytes: Buffer, label: string): AppleReportFile {
+export function parseAppleReportFile(bytes: Buffer, label: string): ReportFile {
   const isGzip = bytes.length >= 2 && bytes[0] === 0x1f && bytes[1] === 0x8b;
   const content = (isGzip ? gunzipSync(bytes) : bytes).toString("utf8").replace(/^﻿/, "");
-  const result = parse<Array<string>>(content, { delimiter: "\t", header: false, skipEmptyLines: true });
-  if (result.errors.length > 0) {
-    const details = result.errors
-      .slice(0, 5)
-      .map((error) => `row ${error.row ?? "?"}: ${error.code}: ${error.message}`)
-      .join("; ");
-    throw new Error(`${label}: TSV parse failed: ${details}`);
-  }
-
-  const [header, ...rows] = result.data;
-  if (header === undefined) {
-    return { header: [], rows: [] };
-  }
-  const trimmedHeader = header.map((name) => name.trim());
-  rows.forEach((row, index) => {
-    if (row.length !== trimmedHeader.length) {
-      throw new Error(
-        `${label}: row ${index + 2} has ${row.length} fields but the header has ${trimmedHeader.length}`,
-      );
-    }
-  });
-  return { header: trimmedHeader, rows };
-}
-
-function findHeaderIndex(header: ReadonlyArray<string>, name: string): number | null {
-  const wanted = normalizeHeader(name);
-  const index = header.findIndex((candidate) => normalizeHeader(candidate) === wanted);
-  return index === -1 ? null : index;
-}
-
-function readTypedValue(value: string, type: AppleColumnType, context: string): string | null {
-  const trimmed = value.trim();
-  if (trimmed === "") {
-    return null;
-  }
-  if (type === "date" && !isoDatePattern.test(trimmed)) {
-    throw new Error(`${context}: expected a YYYY-MM-DD date, got ${JSON.stringify(value)}`);
-  }
-  if (type === "numeric" && !numericPattern.test(trimmed)) {
-    throw new Error(`${context}: expected a number, got ${JSON.stringify(value)}`);
-  }
-  return trimmed;
+  return parseDelimitedReport(content, "\t", label);
 }
 
 /**
@@ -395,7 +347,7 @@ function readTypedValue(value: string, type: AppleColumnType, context: string): 
  */
 export function mapAppleReportRows(
   table: AppleReportTable,
-  file: AppleReportFile,
+  file: ReportFile,
   fallbackAppId: string,
   label: string,
 ): ReadonlyArray<AppleMappedRow> {
@@ -403,14 +355,7 @@ export function mapAppleReportRows(
     return [];
   }
 
-  const seenHeaders = new Set<string>();
-  for (const name of file.header) {
-    const normalized = normalizeHeader(name);
-    if (seenHeaders.has(normalized)) {
-      throw new Error(`${label}: header ${name} appears more than once`);
-    }
-    seenHeaders.add(normalized);
-  }
+  assertDistinctHeaders(file.header, label);
 
   const reportDateIndex = table.reportDateHeaders
     .map((name) => findHeaderIndex(file.header, name))
