@@ -58,6 +58,7 @@ When proposing a test plan, treat "real testing" as one of these two options onl
 For iOS local testing details, see [docs/ios-local-setup.md](docs/ios-local-setup.md).
 For Android local testing details, see [docs/android-ci-cd.md](docs/android-ci-cd.md).
 Local Gradle, `xcodebuild`, simulator, and emulator runs are unrestricted, so run them whenever they are useful without asking the user for approval.
+For every manual or automated Apple test, local or cloud, including Release/TestFlight, set `FLASHCARDS_AUTOMATION_RUN=1` in the app process and verify `automation_run_decided` reports `isAutomation=true` before interacting; on Mac, launch with `bash scripts/ios/launch-macos-test-app.sh "<path/Nibomo.app>"`.
 
 ## Release Gates and Monitoring
 
