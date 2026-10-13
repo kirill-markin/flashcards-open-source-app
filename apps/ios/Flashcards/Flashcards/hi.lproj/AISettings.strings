@@ -219,7 +219,7 @@
 "settings.aiChatSuggestions.description" = "यह बंद होने पर, AI चैट कंपोज़र के ऊपर सुझाए गए प्रॉम्प्ट नहीं दिखाता.";
 "settings.ownOpenAIKey.title" = "आपकी OpenAI कुंजी";
 "settings.ownOpenAIKey.toggle" = "मेरी अपनी OpenAI कुंजी का उपयोग करें";
-"settings.ownOpenAIKey.description" = "अपनी कुंजी के साथ AI चैट, श्रुतलेखन और कार्ड की छवियाँ आपके OpenAI खाते पर चलती हैं, और किसी भी प्लान में कोई मासिक सीमा नहीं होती। जब तक आपकी कुंजी चालू है, सुझाए गए जवाब बंद रहते हैं। हम आपकी कुंजी कभी भी अपने सर्वर पर सहेजते नहीं हैं: यह इसी डिवाइस पर रहती है और केवल आपके AI अनुरोधों के साथ भेजी जाती है, इसलिए इसे iOS, Android और वेब पर अलग-अलग दर्ज करें।";
+"settings.ownOpenAIKey.description" = "अपनी कुंजी के साथ AI चैट, श्रुतलेखन और कार्ड की छवियाँ आपके OpenAI खाते पर चलती हैं, और किसी भी प्लान में कोई मासिक सीमा नहीं होती। जब तक आपकी कुंजी चालू है, सुझाए गए जवाब बंद रहते हैं। हम आपकी कुंजी कभी भी अपने सर्वर पर सहेजते नहीं हैं: यह इसी डिवाइस पर रहती है और केवल आपके AI अनुरोधों के साथ भेजी जाती है, इसलिए इसे हर डिवाइस पर अलग-अलग दर्ज करें।";
 "settings.ownOpenAIKey.keyField" = "OpenAI API कुंजी";
 "settings.ownOpenAIKey.monthMessages.one" = "इस महीने आपकी कुंजी से: %d संदेश";
 "settings.ownOpenAIKey.monthMessages.other" = "इस महीने आपकी कुंजी से: %d संदेश";
@@ -319,12 +319,10 @@
 "settings.thisDevice.deviceModel" = "डिवाइस मॉडल";
 "settings.thisDevice.appVersion" = "ऐप संस्करण";
 "settings.thisDevice.build" = "संकलन";
-"settings.thisDevice.client" = "ग्राहक";
+"settings.thisDevice.uiFramework" = "यूज़र इंटरफ़ेस फ़्रेमवर्क";
 "settings.thisDevice.storage" = "भंडारण";
 "settings.thisDevice.installationId" = "इंस्टालेशन आईडी";
 "settings.thisDevice.note.localOnly" = "कार्ड बनाने, डेक सहेजने या समीक्षा करने के लिए लॉग इन करने की कोई आवश्यकता नहीं है।";
-"settings.thisDevice.note.syncScope" = "भविष्य का सिंक्रनाइज़ेशन केवल वर्तमान कार्यक्षेत्र तक ही सीमित है।";
-"settings.thisDevice.note.schema" = "स्कीमा डिफ़ॉल्ट रूप से दूरस्थ डेटा डाउनलोड किए बिना बैकएंड के करीब रहता है।";
 
 "settings.test.title" = "टेस्ट";
 "settings.test.section.tools" = "टूल्स";
@@ -493,9 +491,9 @@
 "settings.account.openSource.section.openSource" = "खुला स्रोत";
 "settings.account.openSource.section.links" = "लिंक";
 "settings.account.openSource.section.selfHosting" = "स्व-आवास";
-"settings.account.openSource.description" = "iOS ऐप और बैकएंड पूरी तरह से ओपन सोर्स हैं। आप कोड का निरीक्षण कर सकते हैं, एमआईटी लाइसेंस का उपयोग कर सकते हैं, और पूरे स्टैक को अपने सर्वर पर चला सकते हैं।";
+"settings.account.openSource.description" = "यह ऐप और बैकएंड पूरी तरह से ओपन सोर्स हैं। आप कोड का निरीक्षण कर सकते हैं, एमआईटी लाइसेंस का उपयोग कर सकते हैं, और पूरे स्टैक को अपने सर्वर पर चला सकते हैं।";
 "settings.account.openSource.repository" = "GitHub रिपॉजिटरी (MIT लाइसेंस)";
-"settings.account.openSource.selfHosting" = "यदि आपको अपने स्वयं के बैकएंड की आवश्यकता है, तो आप उसी ओपन सोर्स स्टैक को तैनात कर सकते हैं और उन्नत> सर्वर से iOS ऐप को अपने डोमेन पर इंगित कर सकते हैं।";
+"settings.account.openSource.selfHosting" = "यदि आपको अपने स्वयं के बैकएंड की आवश्यकता है, तो आप उसी ओपन सोर्स स्टैक को तैनात कर सकते हैं और उन्नत> सर्वर से इस ऐप को अपने डोमेन पर इंगित कर सकते हैं।";
 "settings.account.openSource.section.thirdPartyNotices" = "तृतीय-पक्ष नोटिस";
 "settings.account.openSource.thirdPartyNotice" = "पुनरावलोकन के Lottie ऐनिमेशन: Google Inc. के जानवरों और प्रकृति के 38 ऐनिमेशन, Copyright (c) 2026 Google Inc., Creative Commons Attribution 4.0 के तहत इस्तेमाल किए गए। Lottie रनटाइम MIT और Apache 2.0 लाइसेंस का उपयोग करते हैं।";
 "settings.account.openSource.thirdPartyNoticeFull" = "पूरे तृतीय-पक्ष नोटिस";
@@ -578,14 +576,14 @@
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "मैंने लॉग इन किया, लेकिन खाता अपडेट विफल रहा।";
 "settings.account.cloudSignIn.failureDescription" = "लॉगिन पूरा हो गया, लेकिन क्लाउड वर्कस्पेस सेटअप या प्रारंभिक सिंक समाप्त नहीं हुआ।";
 "settings.account.cloudSignIn.sync.title" = "आपका खाता क्लाउड के साथ समन्वयित हो रहा है।";
-"settings.account.cloudSignIn.sync.message" = "फ़ोन बंद न करें. इसमें आमतौर पर कुछ मिनट लगते हैं।";
+"settings.account.cloudSignIn.sync.message" = "आपका खाता सिंक होने के दौरान Nibomo खुला रखें। इसमें आमतौर पर कुछ मिनट लगते हैं।";
 "settings.account.cloudSignIn.cloudSyncTitle" = "क्लाउड सिंक";
 "settings.account.cloudSignIn.loadingWorkspaces" = "कार्यस्थान लोड हो रहा है...";
 "settings.account.cloudSignIn.loadingWorkspacesDescription" = "लॉगिन पूरा हो गया है. ऐप अब क्लाउड वर्कस्पेस चरण लोड कर रहा है।";
 "settings.account.cloudSignIn.guestLocalRecovery.prepare.title" = "रिकवर किया गया कार्यक्षेत्र तैयार हो रहा है...";
-"settings.account.cloudSignIn.guestLocalRecovery.prepare.message" = "स्थानीय डेटा अभी भी इस डिवाइस पर है. iOS के रिकवर किए गए कार्यक्षेत्र को तैयार करने तक यह स्क्रीन खुली रखें।";
+"settings.account.cloudSignIn.guestLocalRecovery.prepare.message" = "स्थानीय डेटा अभी भी इस डिवाइस पर है. ऐप के रिकवर किए गए कार्यक्षेत्र को तैयार करने तक यह स्क्रीन खुली रखें।";
 "settings.account.cloudSignIn.guestLocalRecovery.recovering.title" = "स्थानीय डेटा रिकवर किया जा रहा है";
-"settings.account.cloudSignIn.guestLocalRecovery.recovering.message" = "iOS जब इस डिवाइस के स्थानीय डेटा को आपके रिकवर किए गए कार्यक्षेत्र से फिर से जोड़ता है, तब यह स्क्रीन खुली रखें।";
+"settings.account.cloudSignIn.guestLocalRecovery.recovering.message" = "ऐप जब इस डिवाइस के स्थानीय डेटा को आपके रिकवर किए गए कार्यक्षेत्र से फिर से जोड़ता है, तब यह स्क्रीन खुली रखें।";
 "settings.account.cloudSignIn.guestLocalRecovery.failure.title" = "स्थानीय डेटा रिकवरी विफल रही।";
 "settings.account.cloudSignIn.guestLocalRecovery.failure.message" = "फिर से कोशिश करें; स्थानीय डेटा इस डिवाइस पर ही रहता है।";
 "settings.account.cloudSignIn.technicalDetails" = "तकनीकी विवरण";

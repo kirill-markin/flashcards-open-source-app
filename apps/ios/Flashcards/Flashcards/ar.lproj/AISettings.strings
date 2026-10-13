@@ -219,7 +219,7 @@
 "settings.aiChatSuggestions.description" = "عند إيقاف هذا الخيار، لن تعرض دردشة الذكاء الاصطناعي اقتراحات فوق محرر الرسائل.";
 "settings.ownOpenAIKey.title" = "مفتاح OpenAI الخاص بك";
 "settings.ownOpenAIKey.toggle" = "استخدام مفتاح OpenAI الخاص بي";
-"settings.ownOpenAIKey.description" = "باستخدام مفتاحك الخاص، تعمل دردشة الذكاء الاصطناعي والإملاء وصور البطاقات عبر حسابك في OpenAI، دون أي حد شهري في أي خطة. تكون الردود المقترحة متوقفة ما دام مفتاحك مفعّلًا. لا نخزّن مفتاحك على خوادمنا أبدًا: فهو يبقى على هذا الجهاز ولا يُرسَل إلا مع طلبات الذكاء الاصطناعي الخاصة بك، لذا أدخله بشكل منفصل على iOS و Android والويب.";
+"settings.ownOpenAIKey.description" = "باستخدام مفتاحك الخاص، تعمل دردشة الذكاء الاصطناعي والإملاء وصور البطاقات عبر حسابك في OpenAI، دون أي حد شهري في أي خطة. تكون الردود المقترحة متوقفة ما دام مفتاحك مفعّلًا. لا نخزّن مفتاحك على خوادمنا أبدًا: فهو يبقى على هذا الجهاز ولا يُرسَل إلا مع طلبات الذكاء الاصطناعي الخاصة بك، لذا أدخله بشكل منفصل على كل جهاز.";
 "settings.ownOpenAIKey.keyField" = "مفتاح API من OpenAI";
 "settings.ownOpenAIKey.monthMessages.one" = "الرسائل بمفتاحك هذا الشهر: %d";
 "settings.ownOpenAIKey.monthMessages.other" = "الرسائل بمفتاحك هذا الشهر: %d";
@@ -319,12 +319,10 @@
 "settings.thisDevice.deviceModel" = "طراز الجهاز";
 "settings.thisDevice.appVersion" = "إصدار التطبيق";
 "settings.thisDevice.build" = "تجميع";
-"settings.thisDevice.client" = "العميل";
+"settings.thisDevice.uiFramework" = "إطار عمل واجهة المستخدم";
 "settings.thisDevice.storage" = "التخزين";
 "settings.thisDevice.installationId" = "معرف التثبيت";
 "settings.thisDevice.note.localOnly" = "ليست هناك حاجة لتسجيل الدخول لإنشاء بطاقات أو حفظ مجموعات أو مراجعة.";
-"settings.thisDevice.note.syncScope" = "تقتصر المزامنة المستقبلية على مساحة العمل الحالية فقط.";
-"settings.thisDevice.note.schema" = "يظل المخطط قريبًا من الواجهة الخلفية بدون تنزيل البيانات البعيدة بشكل افتراضي.";
 
 "settings.test.title" = "اختبار";
 "settings.test.section.tools" = "الأدوات";
@@ -493,9 +491,9 @@
 "settings.account.openSource.section.openSource" = "مفتوح المصدر";
 "settings.account.openSource.section.links" = "الروابط";
 "settings.account.openSource.section.selfHosting" = "الإقامة الذاتية";
-"settings.account.openSource.description" = "تطبيق iOS والواجهة الخلفية مفتوحان المصدر تمامًا. يمكنك فحص التعليمات البرمجية، واستخدام ترخيص MIT، وتشغيل الحزمة بأكملها على خوادمك الخاصة.";
+"settings.account.openSource.description" = "هذا التطبيق والواجهة الخلفية مفتوحان المصدر تمامًا. يمكنك فحص التعليمات البرمجية، واستخدام ترخيص MIT، وتشغيل الحزمة بأكملها على خوادمك الخاصة.";
 "settings.account.openSource.repository" = "مستودع GitHub (ترخيص MIT)";
-"settings.account.openSource.selfHosting" = "إذا كنت بحاجة إلى الواجهة الخلفية الخاصة بك، فيمكنك نشر نفس المكدس مفتوح المصدر وتوجيه تطبيق iOS إلى المجال الخاص بك من Advanced > Server.";
+"settings.account.openSource.selfHosting" = "إذا كنت بحاجة إلى الواجهة الخلفية الخاصة بك، فيمكنك نشر نفس المكدس مفتوح المصدر وتوجيه هذا التطبيق إلى المجال الخاص بك من Advanced > Server.";
 "settings.account.openSource.section.thirdPartyNotices" = "إشعارات الجهات الخارجية";
 "settings.account.openSource.thirdPartyNotice" = "رسوم Lottie لمراجعة البطاقات: 38 رسمًا متحركًا للحيوانات والطبيعة من Google Inc.، حقوق النشر (c) 2026 Google Inc.، مستخدمة بموجب Creative Commons Attribution 4.0. تستخدم مشغلات Lottie تراخيص MIT وApache 2.0.";
 "settings.account.openSource.thirdPartyNoticeFull" = "إشعارات الجهات الخارجية الكاملة";
@@ -578,14 +576,14 @@
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "لقد قمت بتسجيل الدخول، ولكن فشل تحديث الحساب.";
 "settings.account.cloudSignIn.failureDescription" = "اكتمل تسجيل الدخول، ولكن لم يتم الانتهاء من إعداد مساحة العمل السحابية أو المزامنة الأولية.";
 "settings.account.cloudSignIn.sync.title" = "تتم الآن مزامنة حسابك مع السحابة.";
-"settings.account.cloudSignIn.sync.message" = "لا تقم بإيقاف تشغيل الهاتف. يستغرق هذا عادةً بضع دقائق.";
+"settings.account.cloudSignIn.sync.message" = "أبقِ Nibomo مفتوحًا أثناء مزامنة حسابك. يستغرق هذا عادةً بضع دقائق.";
 "settings.account.cloudSignIn.cloudSyncTitle" = "المزامنة السحابية";
 "settings.account.cloudSignIn.loadingWorkspaces" = "جارٍ تحميل مساحات العمل...";
 "settings.account.cloudSignIn.loadingWorkspacesDescription" = "اكتمل تسجيل الدخول. يقوم التطبيق الآن بتحميل خطوة مساحة العمل السحابية.";
 "settings.account.cloudSignIn.guestLocalRecovery.prepare.title" = "جارٍ تحضير مساحة العمل المستردة...";
-"settings.account.cloudSignIn.guestLocalRecovery.prepare.message" = "لا تزال البيانات المحلية على هذا الجهاز. اترك هذه الشاشة مفتوحة بينما يجهز iOS مساحة عمل مستردة.";
+"settings.account.cloudSignIn.guestLocalRecovery.prepare.message" = "لا تزال البيانات المحلية على هذا الجهاز. اترك هذه الشاشة مفتوحة بينما يجهز التطبيق مساحة عمل مستردة.";
 "settings.account.cloudSignIn.guestLocalRecovery.recovering.title" = "استرداد البيانات المحلية";
-"settings.account.cloudSignIn.guestLocalRecovery.recovering.message" = "اترك هذه الشاشة مفتوحة بينما يعيد iOS ربط البيانات المحلية على هذا الجهاز بمساحة العمل المستردة.";
+"settings.account.cloudSignIn.guestLocalRecovery.recovering.message" = "اترك هذه الشاشة مفتوحة بينما يعيد التطبيق ربط البيانات المحلية على هذا الجهاز بمساحة العمل المستردة.";
 "settings.account.cloudSignIn.guestLocalRecovery.failure.title" = "فشل استرداد البيانات المحلية.";
 "settings.account.cloudSignIn.guestLocalRecovery.failure.message" = "حاول مرة أخرى؛ تظل البيانات المحلية على هذا الجهاز.";
 "settings.account.cloudSignIn.technicalDetails" = "التفاصيل الفنية";

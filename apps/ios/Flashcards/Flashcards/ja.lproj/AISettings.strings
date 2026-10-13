@@ -219,7 +219,7 @@
 "settings.aiChatSuggestions.description" = "オフにすると、AIチャットは入力欄の上に候補プロンプトを表示しません。";
 "settings.ownOpenAIKey.title" = "自分の OpenAI キー";
 "settings.ownOpenAIKey.toggle" = "自分の OpenAI キーを使用";
-"settings.ownOpenAIKey.description" = "自分のキーを使うと、AIチャット、ディクテーション、カード画像はあなたの OpenAI アカウントで実行され、どのプランでも月間上限はありません。自分のキーがオンの間は、返信の候補はオフになります。キーが当社のサーバーに保存されることはありません。キーはこのデバイス上に保持され、AI リクエストと一緒にのみ送信されるため、iOS、Android、ウェブではそれぞれ別に入力してください。";
+"settings.ownOpenAIKey.description" = "自分のキーを使うと、AIチャット、ディクテーション、カード画像はあなたの OpenAI アカウントで実行され、どのプランでも月間上限はありません。自分のキーがオンの間は、返信の候補はオフになります。キーが当社のサーバーに保存されることはありません。キーはこのデバイス上に保持され、AI リクエストと一緒にのみ送信されるため、各デバイスでそれぞれ別に入力してください。";
 "settings.ownOpenAIKey.keyField" = "OpenAI API キー";
 "settings.ownOpenAIKey.monthMessages.one" = "今月、自分のキーで送信したメッセージ: %d 件";
 "settings.ownOpenAIKey.monthMessages.other" = "今月、自分のキーで送信したメッセージ: %d 件";
@@ -319,12 +319,10 @@
 "settings.thisDevice.deviceModel" = "デバイスモデル";
 "settings.thisDevice.appVersion" = "アプリのバージョン";
 "settings.thisDevice.build" = "コンピレーション";
-"settings.thisDevice.client" = "顧客";
+"settings.thisDevice.uiFramework" = "UIフレームワーク";
 "settings.thisDevice.storage" = "ストレージ";
 "settings.thisDevice.installationId" = "インストール ID";
 "settings.thisDevice.note.localOnly" = "カードの作成、デッキの保存、レビューのためにログインする必要はありません。";
-"settings.thisDevice.note.syncScope" = "今後の同期は現在のワークスペースのみに限定されます。";
-"settings.thisDevice.note.schema" = "デフォルトでは、スキーマはリモート データをダウンロードせずにバックエンドの近くに留まります。";
 
 "settings.test.title" = "テスト";
 "settings.test.section.tools" = "ツール";
@@ -493,9 +491,9 @@
 "settings.account.openSource.section.openSource" = "オープンソース";
 "settings.account.openSource.section.links" = "リンク";
 "settings.account.openSource.section.selfHosting" = "セルフホスティング";
-"settings.account.openSource.description" = "iOS アプリとバックエンドは完全にオープンソースです。コードを検査し、MIT ライセンスを使用し、スタック全体を独自のサーバーで実行できます。";
+"settings.account.openSource.description" = "このアプリとバックエンドは完全にオープンソースです。コードを検査し、MIT ライセンスを使用し、スタック全体を独自のサーバーで実行できます。";
 "settings.account.openSource.repository" = "GitHub リポジトリ (MIT ライセンス)";
-"settings.account.openSource.selfHosting" = "独自のバックエンドが必要な場合は、同じオープン ソース スタックをデプロイし、[詳細] > [サーバー] から iOS アプリをドメインに指定できます。";
+"settings.account.openSource.selfHosting" = "独自のバックエンドが必要な場合は、同じオープン ソース スタックをデプロイし、[詳細] > [サーバー] から このアプリをドメインに指定できます。";
 "settings.account.openSource.section.thirdPartyNotices" = "サードパーティ通知";
 "settings.account.openSource.thirdPartyNotice" = "復習用Lottieアニメーション: Google Inc. による動物と自然のアニメーション38件。Copyright (c) 2026 Google Inc. Creative Commons Attribution 4.0 の下で使用。Lottieランタイムは MIT および Apache 2.0 ライセンスです。";
 "settings.account.openSource.thirdPartyNoticeFull" = "完全なサードパーティ通知";
@@ -578,14 +576,14 @@
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "ログインしましたが、アカウントの更新に失敗しました。";
 "settings.account.cloudSignIn.failureDescription" = "ログインは完了しましたが、クラウド ワークスペースのセットアップまたは初期同期が完了していません。";
 "settings.account.cloudSignIn.sync.title" = "アカウントはクラウドと同期しています。";
-"settings.account.cloudSignIn.sync.message" = "電話の電源を切らないでください。通常、これには数分かかります。";
+"settings.account.cloudSignIn.sync.message" = "アカウントの同期中はNibomoを開いたままにしてください。通常、これには数分かかります。";
 "settings.account.cloudSignIn.cloudSyncTitle" = "クラウド同期";
 "settings.account.cloudSignIn.loadingWorkspaces" = "ワークスペースを読み込み中...";
 "settings.account.cloudSignIn.loadingWorkspacesDescription" = "ログインが完了しました。アプリは現在、クラウド ワークスペース ステップを読み込み中です。";
 "settings.account.cloudSignIn.guestLocalRecovery.prepare.title" = "復元したワークスペースを準備中...";
-"settings.account.cloudSignIn.guestLocalRecovery.prepare.message" = "ローカルデータはまだこのデバイスにあります。iOS が復元したワークスペースを準備する間、この画面を開いたままにしてください。";
+"settings.account.cloudSignIn.guestLocalRecovery.prepare.message" = "ローカルデータはまだこのデバイスにあります。アプリが復元したワークスペースを準備する間、この画面を開いたままにしてください。";
 "settings.account.cloudSignIn.guestLocalRecovery.recovering.title" = "ローカルデータを復元中";
-"settings.account.cloudSignIn.guestLocalRecovery.recovering.message" = "iOS がこのデバイスのローカルデータを復元したワークスペースに再接続する間、この画面を開いたままにしてください。";
+"settings.account.cloudSignIn.guestLocalRecovery.recovering.message" = "アプリがこのデバイスのローカルデータを復元したワークスペースに再接続する間、この画面を開いたままにしてください。";
 "settings.account.cloudSignIn.guestLocalRecovery.failure.title" = "ローカルデータの復元に失敗しました。";
 "settings.account.cloudSignIn.guestLocalRecovery.failure.message" = "もう一度試してください。ローカルデータはこのデバイスに残っています。";
 "settings.account.cloudSignIn.technicalDetails" = "技術的な詳細";

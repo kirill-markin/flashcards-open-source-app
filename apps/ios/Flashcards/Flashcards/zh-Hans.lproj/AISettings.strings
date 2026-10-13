@@ -219,7 +219,7 @@
 "settings.aiChatSuggestions.description" = "关闭后，AI 聊天不会在输入框上方显示建议提示。";
 "settings.ownOpenAIKey.title" = "你的 OpenAI 密钥";
 "settings.ownOpenAIKey.toggle" = "使用我自己的 OpenAI 密钥";
-"settings.ownOpenAIKey.description" = "使用你自己的密钥时，AI 聊天、听写和卡片图片将通过你的 OpenAI 账户运行，任何方案均无每月限额。启用你的密钥期间，建议回复会关闭。我们绝不会在服务器上存储你的密钥：它只保存在这台设备上，并且仅随你的 AI 请求一起发送，因此需要在 iOS、Android 和网页版上分别输入。";
+"settings.ownOpenAIKey.description" = "使用你自己的密钥时，AI 聊天、听写和卡片图片将通过你的 OpenAI 账户运行，任何方案均无每月限额。启用你的密钥期间，建议回复会关闭。我们绝不会在服务器上存储你的密钥：它只保存在这台设备上，并且仅随你的 AI 请求一起发送，因此需要在每台设备上分别输入。";
 "settings.ownOpenAIKey.keyField" = "OpenAI API 密钥";
 "settings.ownOpenAIKey.monthMessages.one" = "本月使用你的密钥：%d 条消息";
 "settings.ownOpenAIKey.monthMessages.other" = "本月使用你的密钥：%d 条消息";
@@ -319,12 +319,10 @@
 "settings.thisDevice.deviceModel" = "设备型号";
 "settings.thisDevice.appVersion" = "应用版本";
 "settings.thisDevice.build" = "编译";
-"settings.thisDevice.client" = "客户";
+"settings.thisDevice.uiFramework" = "用户界面框架";
 "settings.thisDevice.storage" = "存储";
 "settings.thisDevice.installationId" = "安装ID";
 "settings.thisDevice.note.localOnly" = "无需登录即可创建卡片、保存牌组或查看。";
-"settings.thisDevice.note.syncScope" = "未来同步仅限于当前工作区。";
-"settings.thisDevice.note.schema" = "默认情况下，模式保持靠近后端而不下载远程数据。";
 
 "settings.test.title" = "测试";
 "settings.test.section.tools" = "工具";
@@ -493,9 +491,9 @@
 "settings.account.openSource.section.openSource" = "开源";
 "settings.account.openSource.section.links" = "链接";
 "settings.account.openSource.section.selfHosting" = "自托管";
-"settings.account.openSource.description" = "iOS 应用程序和后端是完全开源的。您可以检查代码，使用 MIT 许可证，并在您自己的服务器上运行整个堆栈。";
+"settings.account.openSource.description" = "此应用程序和后端是完全开源的。您可以检查代码，使用 MIT 许可证，并在您自己的服务器上运行整个堆栈。";
 "settings.account.openSource.repository" = "GitHub 存储库（MIT 许可证）";
-"settings.account.openSource.selfHosting" = "如果您需要自己的后端，则可以部署相同的开源堆栈并将 iOS 应用程序从“高级”>“服务器”指向您的域。";
+"settings.account.openSource.selfHosting" = "如果您需要自己的后端，则可以部署相同的开源堆栈并将 此应用程序从“高级”>“服务器”指向您的域。";
 "settings.account.openSource.section.thirdPartyNotices" = "第三方声明";
 "settings.account.openSource.thirdPartyNotice" = "复习 Lottie 动画：Google Inc. 提供的 38 个动物和自然动画，Copyright (c) 2026 Google Inc.，根据 Creative Commons Attribution 4.0 使用。Lottie 运行时使用 MIT 和 Apache 2.0 许可证。";
 "settings.account.openSource.thirdPartyNoticeFull" = "完整第三方声明";
@@ -578,14 +576,14 @@
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "我已登录，但帐户更新失败。";
 "settings.account.cloudSignIn.failureDescription" = "登录已完成，但云工作区设置或初始同步未完成。";
 "settings.account.cloudSignIn.sync.title" = "您的帐户正在与云端同步。";
-"settings.account.cloudSignIn.sync.message" = "不要关闭手机。这通常需要几分钟。";
+"settings.account.cloudSignIn.sync.message" = "同步账户时，请保持 Nibomo 打开。这通常需要几分钟。";
 "settings.account.cloudSignIn.cloudSyncTitle" = "云同步";
 "settings.account.cloudSignIn.loadingWorkspaces" = "正在加载工作区...";
 "settings.account.cloudSignIn.loadingWorkspacesDescription" = "登录完成。应用程序现在正在加载云工作区步骤。";
 "settings.account.cloudSignIn.guestLocalRecovery.prepare.title" = "正在准备已恢复的工作空间...";
-"settings.account.cloudSignIn.guestLocalRecovery.prepare.message" = "本地数据仍在此设备上。请保持此屏幕打开，iOS 正在准备已恢复的工作空间。";
+"settings.account.cloudSignIn.guestLocalRecovery.prepare.message" = "本地数据仍在此设备上。请保持此屏幕打开，应用程序 正在准备已恢复的工作空间。";
 "settings.account.cloudSignIn.guestLocalRecovery.recovering.title" = "正在恢复本地数据";
-"settings.account.cloudSignIn.guestLocalRecovery.recovering.message" = "请保持此屏幕打开，iOS 正在将此设备上的本地数据重新连接到已恢复的工作空间。";
+"settings.account.cloudSignIn.guestLocalRecovery.recovering.message" = "请保持此屏幕打开，应用程序 正在将此设备上的本地数据重新连接到已恢复的工作空间。";
 "settings.account.cloudSignIn.guestLocalRecovery.failure.title" = "本地数据恢复失败。";
 "settings.account.cloudSignIn.guestLocalRecovery.failure.message" = "请重试；本地数据仍保留在此设备上。";
 "settings.account.cloudSignIn.technicalDetails" = "技术细节";

@@ -219,7 +219,7 @@
 "settings.aiChatSuggestions.description" = "Wenn diese Einstellung aus ist, zeigt der KI-Chat keine vorgeschlagenen Prompts über dem Texteingabefeld.";
 "settings.ownOpenAIKey.title" = "Ihr OpenAI-Schlüssel";
 "settings.ownOpenAIKey.toggle" = "Eigenen OpenAI-Schlüssel verwenden";
-"settings.ownOpenAIKey.description" = "Mit Ihrem eigenen Schlüssel laufen KI-Chat, Diktat und Kartenbilder über Ihr OpenAI-Konto, ohne Monatslimit, unabhängig vom Tarif. Antwortvorschläge sind deaktiviert, solange Ihr Schlüssel aktiv ist. Wir speichern Ihren Schlüssel nie auf unseren Servern: Er bleibt auf diesem Gerät und wird nur mit Ihren KI-Anfragen gesendet. Geben Sie ihn daher unter iOS, Android und im Web jeweils separat ein.";
+"settings.ownOpenAIKey.description" = "Mit Ihrem eigenen Schlüssel laufen KI-Chat, Diktat und Kartenbilder über Ihr OpenAI-Konto, ohne Monatslimit, unabhängig vom Tarif. Antwortvorschläge sind deaktiviert, solange Ihr Schlüssel aktiv ist. Wir speichern Ihren Schlüssel nie auf unseren Servern: Er bleibt auf diesem Gerät und wird nur mit Ihren KI-Anfragen gesendet. Geben Sie ihn daher auf jedem Gerät separat ein.";
 "settings.ownOpenAIKey.keyField" = "OpenAI-API-Schlüssel";
 "settings.ownOpenAIKey.monthMessages.one" = "Diesen Monat mit Ihrem Schlüssel: %d Nachricht";
 "settings.ownOpenAIKey.monthMessages.other" = "Diesen Monat mit Ihrem Schlüssel: %d Nachrichten";
@@ -319,12 +319,10 @@
 "settings.thisDevice.deviceModel" = "Gerätemodell";
 "settings.thisDevice.appVersion" = "App-Version";
 "settings.thisDevice.build" = "Zusammenstellung";
-"settings.thisDevice.client" = "Kunde";
+"settings.thisDevice.uiFramework" = "UI-Framework";
 "settings.thisDevice.storage" = "Lagerung";
 "settings.thisDevice.installationId" = "Installations-ID";
 "settings.thisDevice.note.localOnly" = "Sie müssen sich nicht anmelden, um Karten zu erstellen, Decks zu speichern oder zu überprüfen.";
-"settings.thisDevice.note.syncScope" = "Zukünftige Synchronisierungen sind nur auf den aktuellen Arbeitsbereich beschränkt.";
-"settings.thisDevice.note.schema" = "Das Schema bleibt standardmäßig nah am Backend, ohne Remote-Daten herunterzuladen.";
 
 "settings.test.title" = "Test";
 "settings.test.section.tools" = "Werkzeuge";
@@ -493,9 +491,9 @@
 "settings.account.openSource.section.openSource" = "Open Source";
 "settings.account.openSource.section.links" = "Links";
 "settings.account.openSource.section.selfHosting" = "Selbstunterkunft";
-"settings.account.openSource.description" = "Die iOS-App und das Backend sind vollständig Open Source. Sie können den Code überprüfen, die MIT-Lizenz verwenden und den gesamten Stack auf Ihren eigenen Servern ausführen.";
+"settings.account.openSource.description" = "Diese App und das Backend sind vollständig Open Source. Sie können den Code überprüfen, die MIT-Lizenz verwenden und den gesamten Stack auf Ihren eigenen Servern ausführen.";
 "settings.account.openSource.repository" = "GitHub-Repository (MIT-Lizenz)";
-"settings.account.openSource.selfHosting" = "Wenn Sie Ihr eigenes Backend benötigen, können Sie denselben Open-Source-Stack bereitstellen und die iOS-App über Erweitert > Server auf Ihre Domäne verweisen.";
+"settings.account.openSource.selfHosting" = "Wenn Sie Ihr eigenes Backend benötigen, können Sie denselben Open-Source-Stack bereitstellen und diese App über Erweitert > Server auf Ihre Domäne verweisen.";
 "settings.account.openSource.section.thirdPartyNotices" = "Drittanbieterhinweise";
 "settings.account.openSource.thirdPartyNotice" = "Review-Lottie-Animationen: 38 Tier- und Naturanimationen von Google Inc., Copyright (c) 2026 Google Inc., verwendet unter Creative Commons Attribution 4.0. Lottie-Runtimes verwenden MIT- und Apache-2.0-Lizenzen.";
 "settings.account.openSource.thirdPartyNoticeFull" = "Vollständige Drittanbieterhinweise";
@@ -578,14 +576,14 @@
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "Ich habe mich angemeldet, aber die Kontoaktualisierung ist fehlgeschlagen.";
 "settings.account.cloudSignIn.failureDescription" = "Die Anmeldung wurde abgeschlossen, aber die Einrichtung des Cloud-Arbeitsbereichs oder die anfängliche Synchronisierung wurde nicht abgeschlossen.";
 "settings.account.cloudSignIn.sync.title" = "Ihr Konto wird mit der Cloud synchronisiert.";
-"settings.account.cloudSignIn.sync.message" = "Schalten Sie das Telefon nicht aus. Dies dauert normalerweise einige Minuten.";
+"settings.account.cloudSignIn.sync.message" = "Lassen Sie Nibomo geöffnet, während Ihr Konto synchronisiert wird. Dies dauert normalerweise einige Minuten.";
 "settings.account.cloudSignIn.cloudSyncTitle" = "Cloud-Synchronisierung";
 "settings.account.cloudSignIn.loadingWorkspaces" = "Arbeitsbereiche werden geladen...";
 "settings.account.cloudSignIn.loadingWorkspacesDescription" = "Die Anmeldung ist abgeschlossen. Die App lädt jetzt den Cloud-Workspace-Schritt.";
 "settings.account.cloudSignIn.guestLocalRecovery.prepare.title" = "Geretteter Arbeitsbereich wird vorbereitet...";
-"settings.account.cloudSignIn.guestLocalRecovery.prepare.message" = "Lokale Daten sind weiterhin auf diesem Gerät. Lassen Sie diesen Bildschirm geöffnet, während iOS einen wiederhergestellten Arbeitsbereich vorbereitet.";
+"settings.account.cloudSignIn.guestLocalRecovery.prepare.message" = "Lokale Daten sind weiterhin auf diesem Gerät. Lassen Sie diesen Bildschirm geöffnet, während die App einen wiederhergestellten Arbeitsbereich vorbereitet.";
 "settings.account.cloudSignIn.guestLocalRecovery.recovering.title" = "Lokale Daten werden wiederhergestellt";
-"settings.account.cloudSignIn.guestLocalRecovery.recovering.message" = "Lassen Sie diesen Bildschirm geöffnet, während iOS lokale Daten auf diesem Gerät wieder mit dem wiederhergestellten Arbeitsbereich verbindet.";
+"settings.account.cloudSignIn.guestLocalRecovery.recovering.message" = "Lassen Sie diesen Bildschirm geöffnet, während die App lokale Daten auf diesem Gerät wieder mit dem wiederhergestellten Arbeitsbereich verbindet.";
 "settings.account.cloudSignIn.guestLocalRecovery.failure.title" = "Lokale Datenwiederherstellung fehlgeschlagen.";
 "settings.account.cloudSignIn.guestLocalRecovery.failure.message" = "Versuchen Sie es erneut; lokale Daten bleiben auf diesem Gerät.";
 "settings.account.cloudSignIn.technicalDetails" = "Technische Details";
