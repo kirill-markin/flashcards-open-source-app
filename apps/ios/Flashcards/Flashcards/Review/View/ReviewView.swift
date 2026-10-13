@@ -40,6 +40,7 @@ struct ReviewView: View {
 
     @StateObject private var reviewSpeechController = ReviewSpeechController()
     @State var isAnswerVisible: Bool = false
+    @State private var textSelection: ReviewCardTextSelection? = nil
     @State private var lastPresentedReviewCardId: String? = nil
     @State private var lastPresentedReviewWorkspaceId: String? = nil
     @State var preparedRevealState: PreparedReviewRevealState? = nil
@@ -193,14 +194,17 @@ struct ReviewView: View {
             }
         }
         .onChange(of: store.workspace?.workspaceId) { _, _ in
+            self.textSelection = nil
             self.dismissReviewFilterPopoverIfContextDiverged()
         }
         .onChange(of: store.selectedReviewFilter) { _, _ in
+            self.textSelection = nil
             self.isAnswerVisible = false
             self.reviewSpeechController.stopSpeech()
             self.dismissReviewFilterPopoverIfContextDiverged()
         }
         .onChange(of: store.reviewPresentationResetRevision) { _, _ in
+            self.textSelection = nil
             self.isAnswerVisible = false
             self.reviewSpeechController.stopSpeech()
             self.lastPresentedReviewCardId = self.currentCard?.cardId
@@ -246,11 +250,15 @@ struct ReviewView: View {
             self.cancelReviewReactionLottiePrewarm()
             self.dismissActiveReviewReactions(reason: "memory_warning")
         }
-        .onChange(of: currentCard?.cardId, initial: true) { _, _ in
+        .onChange(of: currentCard?.cardId, initial: true) { _, cardId in
+            if self.textSelection?.cardId != cardId {
+                self.textSelection = nil
+            }
             self.reviewSpeechController.stopSpeech()
             self.reconcileReviewPresentation()
         }
         .onDisappear {
+            self.textSelection = nil
             self.isReviewKeyboardFocused = false
             #if targetEnvironment(macCatalyst)
             self.reviewKeyboardFocusRequest = nil
@@ -278,7 +286,7 @@ struct ReviewView: View {
             #if targetEnvironment(macCatalyst)
             MacStudyKeyboardReceiver(
                 isEnabled: self.canUseReviewKeyboardShortcuts,
-                isStudyActive: self.isReviewReactionScreenVisible && self.navigation.selectedTab == .review && self.scenePhase == .active,
+                isStudyActive: self.isReviewReactionScreenVisible && self.navigation.selectedTab == .review && self.scenePhase == .active && self.textSelection == nil,
                 focusRequest: self.reviewKeyboardFocusRequest,
                 onInput: self.handleReviewKeyboardInput
             )
@@ -332,6 +340,13 @@ struct ReviewView: View {
                     }
                 )
             }
+        }
+        .sheet(item: self.$textSelection, onDismiss: {
+            if self.navigation.isAIChatVisible == false {
+                self.focusReviewKeyboard()
+            }
+        }) { selection in
+            ReviewCardTextSelectionSheet(selection: selection)
         }
         .sheet(
             isPresented: self.$isEditorPresented,
@@ -748,6 +763,9 @@ struct ReviewView: View {
             ReviewCardSideView(
                 label: String(localized: "Front", table: reviewCardsStringsTableName),
                 content: preparedRevealState.frontContent,
+                onSelectText: {
+                    self.openReviewTextSelection(card: card, side: .front)
+                },
                 isSpeechPlaying: self.reviewSpeechController.activeSide == .front,
                 onToggleSpeech: {
                     self.toggleSpeech(side: .front, sourceText: card.frontText)
@@ -763,6 +781,9 @@ struct ReviewView: View {
                 ReviewCardSideView(
                     label: String(localized: "Back", table: reviewCardsStringsTableName),
                     content: preparedRevealState.backContent,
+                    onSelectText: {
+                        self.openReviewTextSelection(card: card, side: .back)
+                    },
                     isSpeechPlaying: self.reviewSpeechController.activeSide == .back,
                     onToggleSpeech: {
                         self.toggleSpeech(side: .back, sourceText: card.backText)
@@ -1011,11 +1032,29 @@ struct ReviewView: View {
         }
     }
 
+    private func openReviewTextSelection(card: Card, side: ReviewCardSurfaceStyle) {
+        guard self.currentCard?.cardId == card.cardId else { return }
+        guard side == .front || self.isAnswerVisible else { return }
+        self.isReviewKeyboardFocused = false
+        #if targetEnvironment(macCatalyst)
+        self.reviewKeyboardFocusRequest = nil
+        #endif
+        self.textSelection = ReviewCardTextSelection(
+            id: UUID(),
+            cardId: card.cardId,
+            title: side == .front
+                ? String(localized: "Front", table: reviewCardsStringsTableName)
+                : String(localized: "Back", table: reviewCardsStringsTableName),
+            sourceText: side == .front ? card.frontText : card.backText
+        )
+    }
+
     private var canUseReviewKeyboardShortcuts: Bool {
         UIDevice.current.userInterfaceIdiom == .pad
             && self.navigation.selectedTab == .review
             && self.scenePhase == .active
             && self.isEditorPresented == false
+            && self.textSelection == nil
             && self.isQueuePreviewPresented == false
             && self.isReviewFilterPopoverPresented == false
             && self.reviewTagFilterRequest == nil
