@@ -532,7 +532,7 @@ export function useChatSessionActions(
 
     let preparedDraftSessionId: string | null = sourceSessionId;
     const prepareDraftTargetSession = (targetSessionId: string): boolean => {
-      if (isRequestSequenceCurrent(requestSequence) === false || sendParams.isDraftTargetCurrent() === false) {
+      if (isRequestSequenceCurrent(requestSequence) === false) {
         return false;
       }
 
