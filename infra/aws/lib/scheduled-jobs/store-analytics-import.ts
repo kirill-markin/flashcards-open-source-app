@@ -30,7 +30,7 @@ export interface StoreAnalyticsImportResult {
 }
 
 export const storeAnalyticsImportScheduleHours = 1;
-// Hourly: most runs find no new report instance and exit after listing.
+// Hourly: most runs find no new report instance or file and exit after listing.
 export const storeAnalyticsImportScheduleExpression = "cron(20 * * * ? *)";
 
 // Created outside the stack; holds the read-only App Store Connect team key as
@@ -130,7 +130,7 @@ export function storeAnalyticsImport(scope: Construct, props: StoreAnalyticsImpo
   ).grantRead(importFunction);
   addOptionalSentryEnvironment(scope, importFunction, props);
 
-  // No automatic retry: an instance left unimported is picked up by the next hourly run.
+  // No automatic retry: an instance or file left unimported is picked up by the next hourly run.
   importFunction.configureAsyncInvoke({ retryAttempts: 0 });
 
   props.schedulerRole.addToPolicy(new iam.PolicyStatement({
@@ -139,7 +139,7 @@ export function storeAnalyticsImport(scope: Construct, props: StoreAnalyticsImpo
   }));
 
   new scheduler.CfnSchedule(scope, "StoreAnalyticsImportHourlySchedule", {
-    description: "Import new App Store Connect Analytics report instances every hour",
+    description: "Import new App Store Connect and Google Play store reports every hour",
     flexibleTimeWindow: { mode: "OFF" },
     scheduleExpression: storeAnalyticsImportScheduleExpression,
     scheduleExpressionTimezone: "UTC",

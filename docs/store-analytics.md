@@ -1,6 +1,6 @@
 # Store Analytics Import
 
-[A scheduled Lambda](../infra/aws/lib/scheduled-jobs/store-analytics-import.ts) copies store reports into the `store_analytics` schema ([migration](../db/migrations/0181_store_analytics_schema.sql)). It runs hourly at minute 20 UTC as the IAM role `FlashcardsStoreReportsImportRole`; [the handler](../apps/backend/src/entrypoints/scheduledJobs/lambda-store-analytics-import.ts) logs one `store_analytics_apple_import_completed` record per run.
+[A scheduled Lambda](../infra/aws/lib/scheduled-jobs/store-analytics-import.ts) copies store reports into the `store_analytics` schema ([migration](../db/migrations/0181_store_analytics_schema.sql)). It runs hourly at minute 20 UTC as the IAM role `FlashcardsStoreReportsImportRole`; [the handler](../apps/backend/src/entrypoints/scheduledJobs/lambda-store-analytics-import.ts) runs App Store, then Google Play, under one lock and one 12-minute budget. One source failing does not stop the other; the run still fails, and each failure is reported to Sentry. The importers log one `store_analytics_apple_import_completed` and one `store_analytics_play_import_completed` record per run.
 
 ## App Store
 
@@ -9,6 +9,13 @@
 - Replacement: [the importer](../apps/backend/src/storeAnalytics/appleImport.ts) keeps, per report name, granularity, detail level and report date, only the rows of the newest processing date. An equal processing date replaces the earlier copy, so the ongoing and snapshot requests never double a date.
 - Retries: a failed instance is reported to Sentry and retried by the next run. A run stops starting instances after 12 minutes and the next run continues. Runs are serialized by a session advisory lock: a run that cannot take it within 10 seconds fails and alerts like any other failed run. The run fails while no `ONGOING` request is active; an App Store Connect Admin must then create one.
 
+## Google Play
+
+- Source: every CSV under `stats/` and `financial-stats/subscriptions/` in the Play Console reports bucket `pubsite_prod_6698442103294061634`, for every package in it; `reviews/`, `sales/` and `earnings/` are not imported. [The client](../apps/backend/src/storeAnalytics/googleStorageClient.ts) has no key file: the Lambda role federates through Workload Identity provider `aws-store-reports-import` in pool `nibomo-aws-store-reports` and impersonates `nibomo-store-reports@flashcards-open-source-app.iam.gserviceaccount.com`, a Play Console user allowed to download bulk reports and view financial data. The provider trusts only `FlashcardsStoreReportsImportRole`; the billing identity in [Google Play subscriptions](google-play-subscriptions.md) is separate.
+- Tables: [the file mapping](../apps/backend/src/storeAnalytics/playReports.ts) routes each file by directory and file-name breakdown, and every other file, including a breakdown the schema does not list, to `play_other_report_rows`. Columns are matched by header name; the byte order mark picks UTF-16LE, UTF-16BE or UTF-8.
+- Replacement: Google rewrites a month's file in place as a new object generation. [The importer](../apps/backend/src/storeAnalytics/playImport.ts) records `<objectName>#<generation>` as `source_ref` and, in one transaction, deletes every earlier generation of the object with its rows before inserting the new one.
+- Retries: a failed file, including one in an unknown encoding or with an unknown breakdown header, is reported to Sentry and retried by the next run.
+
 ## Freshness
 
-`store_analytics.import_files` has one row per imported segment. Read the latest `processing_date` and `imported_at` per `report_name` and `granularity` there; an instance absent from it has not been imported. Apple deletes instances 35 days after generation.
+`store_analytics.import_files` has one row per imported App Store segment or Play file. For App Store, read the latest `processing_date` and `imported_at` per `report_name` and `granularity` there; an instance absent from it has not been imported. Apple deletes instances 35 days after generation. For Google Play, read `file_month`, `report_date_to` and `imported_at` per `report_name`; Google posts each day 3–7 days late.
