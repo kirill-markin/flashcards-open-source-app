@@ -56,13 +56,16 @@ export const automatedActorIdsSqlLines: ReadonlyArray<string> = [
   "  AND automated_events.actor_id IS NOT NULL",
 ];
 
-// The installation's current owner, so a marked installation that later signs in drops that account
-// too: per db/migrations/0141_sync_installation_automation_marker.sql it never becomes a person.
-// `user_id` is TEXT NOT NULL, so folding alone yields non-NULL canonical ids.
 export const automationInstallationActorIdsSqlLines: ReadonlyArray<string> = [
   "SELECT pg_catalog.lower(automation_installations.user_id)",
   "FROM sync.installations AS automation_installations",
   "WHERE automation_installations.is_automation",
+  "  AND NOT EXISTS (",
+  "    SELECT 1",
+  "    FROM auth.user_identities AS signed_in_identities",
+  "    WHERE signed_in_identities.provider_type = 'cognito'",
+  "      AND pg_catalog.lower(signed_in_identities.user_id) = pg_catalog.lower(automation_installations.user_id)",
+  "  )",
 ];
 
 export function buildExcludedActorSqlLines(
