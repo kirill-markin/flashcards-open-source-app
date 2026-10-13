@@ -45,6 +45,7 @@ const bnCatalog: TranslationCatalog = {
     active: "সক্রিয়",
     automatic: "স্বয়ংক্রিয়",
     cancel: "বাতিল করুন",
+    close: "বন্ধ করুন",
     countLabels: {
       card: {
         one: "কার্ড",
@@ -1024,6 +1025,7 @@ const bnCatalog: TranslationCatalog = {
     searchPlaceholder: "ডেক বা ট্যাগ খুঁজুন",
   },
   reviewScreen: {
+    selectTextAriaLabel: "লেখা নির্বাচন করে কপি করুন: {{side}}",
     actions: {
       createCard: "কার্ড তৈরি করুন",
       createWithAi: "এআই দিয়ে তৈরি করুন",

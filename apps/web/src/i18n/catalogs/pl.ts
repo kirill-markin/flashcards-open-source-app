@@ -45,6 +45,7 @@ const plCatalog: TranslationCatalog = {
     active: "Aktywne",
     automatic: "Automatycznie",
     cancel: "Anuluj",
+    close: "Zamknij",
     countLabels: {
       card: {
         one: "karta",
@@ -1034,6 +1035,7 @@ const plCatalog: TranslationCatalog = {
     searchPlaceholder: "Szukaj talii lub tagów",
   },
   reviewScreen: {
+    selectTextAriaLabel: "Zaznacz i skopiuj tekst: {{side}}",
     actions: {
       createCard: "Utwórz kartę",
       createWithAi: "Utwórz z AI",

@@ -16,6 +16,7 @@ import type { Card } from "../../types";
 import { handleRefreshLocalDataError } from "../shared/refreshLocalDataError";
 import { isCardFormStateDirty } from "../cards/form/CardForm";
 import type { ReviewEditorModalProps } from "./components/card/ReviewEditorModal";
+import type { ReviewTextSelectionDialogProps, ReviewTextSelectionRequest } from "./components/card/ReviewTextSelectionDialog";
 import type { ReviewPaneProps } from "./components/ReviewPane";
 import type { ReviewQueuePanelProps } from "./components/ReviewQueuePanel";
 import type { ReviewScreenHeaderProps } from "./components/ReviewScreenHeader";
@@ -36,7 +37,7 @@ import { useReviewKeyboardShortcuts } from "./input/useReviewKeyboardShortcuts";
 import type { MobileAppPromotionDialogProps } from "./mobileAppPromo/MobileAppPromotionDialog";
 import { usePostReviewPrompts } from "./usePostReviewPrompts";
 import { useReviewRatingReactions, type UseReviewRatingReactionsResult } from "./reactions/useReviewRatingReactions";
-import { makeReviewSpeakableText, useReviewSpeech } from "./speech/reviewSpeech";
+import { makeReviewSpeakableText, useReviewSpeech, type ReviewSpeechSide } from "./speech/reviewSpeech";
 import type { ReviewTagFilterDialogProps, ReviewTagFilterRequest } from "./tagFilter/ReviewTagFilterDialog";
 
 export type UseReviewScreenControllerResult = Readonly<{
@@ -51,6 +52,7 @@ export type UseReviewScreenControllerResult = Readonly<{
   reviewReactionFallbackHandler: UseReviewRatingReactionsResult["handleReactionEventFallback"];
   reviewReactionEvents: UseReviewRatingReactionsResult["events"];
   tagFilterDialogProps: ReviewTagFilterDialogProps;
+  textSelectionDialogProps: ReviewTextSelectionDialogProps;
 }>;
 
 export type UseReviewScreenControllerParams = Readonly<{
@@ -90,6 +92,7 @@ export function useReviewScreenController(
   const [isHardReminderVisible, setIsHardReminderVisible] = useState<boolean>(false);
   const [isReviewQueuePanelOpen, setIsReviewQueuePanelOpen] = useState<boolean>(false);
   const [tagFilterRequest, setTagFilterRequest] = useState<ReviewTagFilterRequest | null>(null);
+  const [textSelectionRequest, setTextSelectionRequest] = useState<ReviewTextSelectionRequest | null>(null);
   const isTagFilterDialogOpen = tagFilterRequest !== null;
   const [hardReminderLastShownAt, setHardReminderLastShownAt] = useState<number | null>(() => loadReviewHardReminderLastShownAt());
   const recentReviewRatingsRef = useRef<Array<ReviewRating>>([]);
@@ -135,6 +138,15 @@ export function useReviewScreenController(
     userId: session?.userId ?? null,
   });
   const selectedCard = currentReviewCard(activeReviewQueue);
+  const loadingReviewCurrentCard = reviewLoadingSnapshot?.currentCard ?? reviewLoadingSnapshot?.queuePreview[0] ?? null;
+  const visibleReviewCardId = isInitialReviewLoad ? loadingReviewCurrentCard?.cardId : selectedCard?.cardId;
+  const visibleTextSelectionRequest = textSelectionRequest !== null
+    && textSelectionRequest.cardId === visibleReviewCardId
+    && textSelectionRequest.workspaceId === (activeWorkspace?.workspaceId ?? null)
+    && (textSelectionRequest.side === "front" || isAnswerVisible)
+    ? textSelectionRequest
+    : null;
+  const isTextSelectionDialogOpen = visibleTextSelectionRequest !== null;
   const {
     activeSide: activeSpeechSide,
     stopSpeech,
@@ -219,6 +231,7 @@ export function useReviewScreenController(
     isHardReminderVisible,
     isReviewFilterMenuOpen,
     isTagFilterDialogOpen,
+    isTextSelectionDialogOpen,
     linkedUserId: cloudSettings?.linkedUserId ?? null,
     locale,
     onFeedbackSubmitted: showReviewFeedbackMessage,
@@ -230,7 +243,6 @@ export function useReviewScreenController(
   const selectedBackSpeakableText = selectedCard === null ? "" : makeReviewSpeakableText(selectedCard.backText);
   const hasCards = localWorkspaceCardCount > 0;
   const shouldShowSwitchToAllCardsAction = resolvedReviewFilter.kind !== "allCards";
-  const loadingReviewCurrentCard = reviewLoadingSnapshot?.currentCard ?? reviewLoadingSnapshot?.queuePreview[0] ?? null;
   const requestedReviewFilterTitle = resolveReviewFilterTitle(
     selectedReviewFilter,
     deckSummaries,
@@ -460,9 +472,38 @@ export function useReviewScreenController(
     setTagFilterRequest(null);
   }
 
+  function handleRequestTextSelection(side: ReviewSpeechSide): void {
+    const visibleCard = isInitialReviewLoad ? loadingReviewCurrentCard : selectedCard;
+    if (visibleCard === null) {
+      return;
+    }
+
+    let sourceText: string;
+    if (side === "back") {
+      if (isInitialReviewLoad || !isAnswerVisible || selectedCard === null) {
+        return;
+      }
+      sourceText = selectedCard.backText;
+    } else {
+      sourceText = visibleCard.frontText;
+    }
+    setTextSelectionRequest({
+      cardId: visibleCard.cardId,
+      side,
+      text: sourceText,
+      workspaceId: activeWorkspace?.workspaceId ?? null,
+    });
+  }
+
+  function handleDismissTextSelection(): void {
+    setTextSelectionRequest(null);
+  }
+
   useEffect(() => {
-    // Clearing the reveal ref here is what makes it mean "this presentation": a new presentation
-    // always changes this dep, so the guard and the card on screen move together.
+    setTextSelectionRequest(null);
+  }, [activeWorkspace?.workspaceId, isInitialReviewLoad, visibleReviewCardId]);
+
+  useEffect(() => {
     revealedCardIdRef.current = null;
     setIsAnswerVisible(false);
     stopSpeech();
@@ -501,6 +542,7 @@ export function useReviewScreenController(
     isReviewFilterMenuOpen,
     isSubmitting,
     isTagFilterDialogOpen,
+    isTextSelectionDialogOpen,
     onShortcutInputStart: dismissReviewReactions,
     selectedCard,
     setIsAnswerVisible: (value) => {
@@ -639,6 +681,7 @@ export function useReviewScreenController(
       onAiHandoff: handleReviewPaneAiHandoff,
       onEditCard: handleOpenEditor,
       onRequestTagFilter: handleRequestTagFilter,
+      onRequestTextSelection: handleRequestTextSelection,
       onRevealAnswer: handleRevealAnswer,
       onReview: handleReview,
       onShortcutButtonPointerEnter: handleShortcutButtonPointerEnter,
@@ -672,6 +715,10 @@ export function useReviewScreenController(
       onConfirm: handleConfirmTagFilter,
       onDismiss: handleDismissTagFilter,
       request: tagFilterRequest,
+    },
+    textSelectionDialogProps: {
+      onDismiss: handleDismissTextSelection,
+      request: visibleTextSelectionRequest,
     },
   };
 }

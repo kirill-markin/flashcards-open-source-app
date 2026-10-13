@@ -45,6 +45,7 @@ const daCatalog: TranslationCatalog = {
     active: "Aktiv",
     automatic: "Automatisk",
     cancel: "Annuller",
+    close: "Luk",
     countLabels: {
       card: {
         one: "kort",
@@ -1024,6 +1025,7 @@ const daCatalog: TranslationCatalog = {
     searchPlaceholder: "Søg i bunker eller tags",
   },
   reviewScreen: {
+    selectTextAriaLabel: "Markér og kopiér tekst: {{side}}",
     actions: {
       createCard: "Opret kort",
       createWithAi: "Opret med AI",

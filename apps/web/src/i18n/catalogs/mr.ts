@@ -45,6 +45,7 @@ const mrCatalog: TranslationCatalog = {
     active: "सक्रिय",
     automatic: "स्वयंचलित",
     cancel: "रद्द करा",
+    close: "बंद करा",
     countLabels: {
       card: {
         one: "कार्ड",
@@ -1024,6 +1025,7 @@ const mrCatalog: TranslationCatalog = {
     searchPlaceholder: "संच किंवा टॅग शोधा",
   },
   reviewScreen: {
+    selectTextAriaLabel: "मजकूर निवडा आणि कॉपी करा: {{side}}",
     actions: {
       createCard: "कार्ड तयार करा",
       createWithAi: "AI ने तयार करा",

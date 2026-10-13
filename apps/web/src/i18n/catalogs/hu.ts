@@ -45,6 +45,7 @@ const huCatalog: TranslationCatalog = {
     active: "Aktív",
     automatic: "Automatikus",
     cancel: "Mégse",
+    close: "Bezárás",
     countLabels: {
       card: {
         one: "kártya",
@@ -1024,6 +1025,7 @@ const huCatalog: TranslationCatalog = {
     searchPlaceholder: "Paklik vagy címkék keresése",
   },
   reviewScreen: {
+    selectTextAriaLabel: "Szöveg kijelölése és másolása: {{side}}",
     actions: {
       createCard: "Kártya létrehozása",
       createWithAi: "Létrehozás AI-val",

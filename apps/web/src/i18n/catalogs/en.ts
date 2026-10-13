@@ -44,6 +44,7 @@ const enCatalog = {
     active: "Active",
     automatic: "Automatic",
     cancel: "Cancel",
+    close: "Close",
     countLabels: {
       card: {
         one: "card",
@@ -1023,6 +1024,7 @@ const enCatalog = {
     searchPlaceholder: "Search decks or tags",
   },
   reviewScreen: {
+    selectTextAriaLabel: "Select and copy text: {{side}}",
     actions: {
       createCard: "Create card",
       createWithAi: "Create with AI",

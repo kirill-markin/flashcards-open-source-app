@@ -45,6 +45,7 @@ const paCatalog: TranslationCatalog = {
     active: "ਸਰਗਰਮ",
     automatic: "ਆਪਣੇ-ਆਪ",
     cancel: "ਰੱਦ ਕਰੋ",
+    close: "ਬੰਦ ਕਰੋ",
     countLabels: {
       card: {
         one: "ਕਾਰਡ",
@@ -1024,6 +1025,7 @@ const paCatalog: TranslationCatalog = {
     searchPlaceholder: "ਡੈੱਕ ਜਾਂ ਟੈਗ ਲੱਭੋ",
   },
   reviewScreen: {
+    selectTextAriaLabel: "ਲਿਖਤ ਚੁਣੋ ਅਤੇ ਕਾਪੀ ਕਰੋ: {{side}}",
     actions: {
       createCard: "ਕਾਰਡ ਬਣਾਓ",
       createWithAi: "AI ਨਾਲ ਬਣਾਓ",

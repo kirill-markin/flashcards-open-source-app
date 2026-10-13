@@ -45,6 +45,7 @@ const guCatalog: TranslationCatalog = {
     active: "સક્રિય",
     automatic: "આપમેળે",
     cancel: "રદ કરો",
+    close: "બંધ કરો",
     countLabels: {
       card: {
         one: "કાર્ડ",
@@ -1024,6 +1025,7 @@ const guCatalog: TranslationCatalog = {
     searchPlaceholder: "ડેક કે ટૅગ શોધો",
   },
   reviewScreen: {
+    selectTextAriaLabel: "લખાણ પસંદ કરો અને કૉપિ કરો: {{side}}",
     actions: {
       createCard: "કાર્ડ બનાવો",
       createWithAi: "AI સાથે બનાવો",

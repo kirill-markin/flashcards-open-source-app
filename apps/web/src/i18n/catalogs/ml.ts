@@ -45,6 +45,7 @@ const mlCatalog: TranslationCatalog = {
     active: "സജീവം",
     automatic: "സ്വയമേവ",
     cancel: "റദ്ദാക്കുക",
+    close: "അടയ്ക്കുക",
     countLabels: {
       card: {
         one: "കാർഡ്",
@@ -1024,6 +1025,7 @@ const mlCatalog: TranslationCatalog = {
     searchPlaceholder: "ഡെക്കുകളോ ടാഗുകളോ തിരയുക",
   },
   reviewScreen: {
+    selectTextAriaLabel: "ടെക്സ്റ്റ് തിരഞ്ഞെടുത്ത് പകർത്തുക: {{side}}",
     actions: {
       createCard: "കാർഡ് സൃഷ്ടിക്കുക",
       createWithAi: "AI ഉപയോഗിച്ച് സൃഷ്ടിക്കുക",

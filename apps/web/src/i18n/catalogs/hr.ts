@@ -45,6 +45,7 @@ const hrCatalog: TranslationCatalog = {
     active: "Aktivno",
     automatic: "Automatski",
     cancel: "Odustani",
+    close: "Zatvori",
     countLabels: {
       card: {
         one: "kartica",
@@ -1034,6 +1035,7 @@ const hrCatalog: TranslationCatalog = {
     searchPlaceholder: "Pretraži špilove ili oznake",
   },
   reviewScreen: {
+    selectTextAriaLabel: "Odaberi i kopiraj tekst: {{side}}",
     actions: {
       createCard: "Stvori karticu",
       createWithAi: "Stvori uz AI",
