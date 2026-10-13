@@ -1,5 +1,6 @@
 import {
   automatedActorIdsSqlLines,
+  automationInstallationActorIdsSqlLines,
   buildExcludedActorSqlLines,
   excludedAdminActorIdsSqlLines,
   excludedListedActorIdsSqlLines,
@@ -43,6 +44,7 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
     `  CASE WHEN ${actorIdSqlExpression} IN (${inline(excludedAdminActorIdsSqlLines)}) THEN 'admin' END,`,
     `  CASE WHEN ${actorIdSqlExpression} IN (${inline(excludedListedActorIdsSqlLines)}) THEN 'exclusion list' END,`,
     `  CASE WHEN ${actorIdSqlExpression} IN (${inline(automatedActorIdsSqlLines)}) THEN 'automated client' END,`,
+    `  CASE WHEN ${actorIdSqlExpression} IN (${inline(automationInstallationActorIdsSqlLines)}) THEN 'automation install' END,`,
     `  CASE WHEN ${actorIdSqlExpression} IN (${inline(probableAndroidBurstActorIdsSqlLines)}) THEN 'probable Android test burst' END`,
     ")",
   ].join("\n");
