@@ -763,6 +763,29 @@ export type StoreAnalyticsAppleInstanceFailureDetails = Readonly<{
 }>;
 
 /**
+ * One record per run of the Google Play import; `rowsInserted` is keyed by table name.
+ * `listingSkippedForDeadline` is true when the App Store import used the whole budget (or the run
+ * lost its lock) first, so the bucket was not listed and every count is zero rather than measured.
+ */
+export type StoreAnalyticsPlayImportCompletedDetails = Readonly<{
+  listingSkippedForDeadline: boolean;
+  objectsListed: number;
+  objectsNotCsv: number;
+  filesAlreadyImported: number;
+  filesImported: number;
+  filesReplacingEarlierGeneration: number;
+  filesFailed: number;
+  filesRemaining: number;
+  rowsInserted: Readonly<Record<string, number>>;
+}>;
+
+export type StoreAnalyticsPlayFileFailureDetails = Readonly<{
+  objectName: string;
+  generation: string;
+  message: string;
+}>;
+
+/**
  * How long ago the GeoLite Country object a container just loaded was written to S3, in whole
  * hours. It is the only place that age becomes a metric: the bucket's lifecycle expiry
  * (infra/aws/lib/geolite-country.ts) deletes the object once refreshes stop landing, after which
@@ -796,6 +819,8 @@ export type OperationsBreadcrumbEvent =
   | EventByAction<"synthetic_actor_detector_completed", SyntheticActorDetectorCompletedDetails>
   | EventByAction<"store_analytics_apple_retry", StoreAnalyticsAppleRetryDetails>
   | EventByAction<"store_analytics_apple_import_completed", StoreAnalyticsAppleImportCompletedDetails>
+  | EventByAction<"store_analytics_play_retry", StoreAnalyticsAppleRetryDetails>
+  | EventByAction<"store_analytics_play_import_completed", StoreAnalyticsPlayImportCompletedDetails>
   | EventByAction<"generated_media_promotion_batch_completed", GeneratedMediaPromotionBatchDetails>
   | EventByAction<"geolite_country_database_loaded", GeoLiteCountryDatabaseLoadedDetails>
   | EventByAction<"media_blob_cleanup_batch_completed", MediaBlobCleanupBatchDetails>
@@ -880,9 +905,13 @@ export type OperationsExceptionEvent =
   | (EventByAction<"daily_visitor_hash_salt_expiry_failed", Readonly<{ message: string }>> & Readonly<{ error: Error }>)
   | (EventByAction<"synthetic_actor_detector_failed", Readonly<{ message: string }>> & Readonly<{ error: Error }>)
   | (EventByAction<"probable_android_burst_refresh_failed", Readonly<{ message: string }>> & Readonly<{ error: Error }>)
-  | (EventByAction<"store_analytics_import_failed", Readonly<{ source: "app_store"; message: string }>>
-    & Readonly<{ error: Error }>)
+  | (EventByAction<
+    "store_analytics_import_failed",
+    Readonly<{ source: "app_store" | "google_play" | null; message: string }>
+  > & Readonly<{ error: Error }>)
   | (EventByAction<"store_analytics_apple_instance_failed", StoreAnalyticsAppleInstanceFailureDetails>
+    & Readonly<{ error: Error }>)
+  | (EventByAction<"store_analytics_play_file_failed", StoreAnalyticsPlayFileFailureDetails>
     & Readonly<{ error: Error }>)
   | (EventByAction<"global_metrics_snapshot_failed", GlobalMetricsSnapshotFailureDetails> & Readonly<{ error: Error }>)
   | (EventByAction<"catalog_dump_failed", CatalogDumpFailureDetails> & Readonly<{ error: Error }>)
