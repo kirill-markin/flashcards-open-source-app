@@ -26,6 +26,34 @@ func currentClientDeviceType() -> String {
     #endif
 }
 
+func currentClientOsVersion() -> String {
+    let version = ProcessInfo.processInfo.operatingSystemVersion
+    return "\(version.majorVersion).\(version.minorVersion).\(version.patchVersion)"
+}
+
+func currentClientDeviceModelIdentifier() -> String? {
+    #if targetEnvironment(macCatalyst)
+    return currentMacModelIdentifier()
+    #else
+    if let simulatorModel = ProcessInfo.processInfo.environment["SIMULATOR_MODEL_IDENTIFIER"] {
+        return simulatorModel
+    }
+
+    var systemInfo = utsname()
+    guard uname(&systemInfo) == 0 else {
+        return nil
+    }
+
+    let machine = systemInfo.machine
+    let identifier = withUnsafePointer(to: machine) { pointer in
+        pointer.withMemoryRebound(to: CChar.self, capacity: MemoryLayout.size(ofValue: machine)) { characters in
+            String(cString: characters)
+        }
+    }
+    return identifier.isEmpty ? nil : identifier
+    #endif
+}
+
 #if targetEnvironment(macCatalyst)
 /// The Mac model identifier, such as `Mac15,11`; `uname` reports only the CPU architecture on a Mac.
 func currentMacModelIdentifier() -> String? {
