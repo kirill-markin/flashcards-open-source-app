@@ -1407,6 +1407,7 @@ const plCatalog: TranslationCatalog = {
       microphoneUnavailable: "Nagrywanie z mikrofonu jest niedostępne w tej przeglądarce.",
     },
     composerPlaceholder: "Zapytaj o karty, historię powtórek lub dołącz notatki...",
+    currentChatRecovered: "Ten czat został zastąpiony nowszym. Twoja wiadomość nadal jest w polu tekstowym — wyślij ją ponownie.",
     dictation: {
       listening: "Słucham...",
       start: "Rozpocznij dyktowanie",
@@ -1425,6 +1426,7 @@ const plCatalog: TranslationCatalog = {
       aiLimitReachedAccount: "Wykorzystano wiadomości AI na ten miesiąc. Odnowią się {{date}}. Aby kontynuować, możesz dodać własny klucz OpenAI w Ustawieniach.",
       aiLimitReachedAccountNoDate: "Wykorzystano wiadomości AI na ten miesiąc. Aby kontynuować, możesz dodać własny klucz OpenAI w Ustawieniach.",
       aiLimitReachedGuest: "Wykorzystano darmowe wiadomości AI na ten miesiąc. Aby kontynuować, załóż konto lub dodaj własny klucz OpenAI w Ustawieniach.",
+      currentChatDraftConflict: "Bieżący czat ma już szkic. Twoja wiadomość pozostaje tutaj. Skopiuj ją przed ponownym otwarciem czatu.",
       emptyBackendResponse: "Backend zwrócił pustą odpowiedź błędu.",
       genericFailure: "Czat AI nie powiódł się.",
       liveStreamEndedBeforeCompletion: "Strumień AI zakończył się przed końcem odpowiedzi.",

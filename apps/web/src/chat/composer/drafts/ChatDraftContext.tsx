@@ -103,7 +103,10 @@ export function ChatDraftProvider(props: Props): ReactElement {
         return;
       }
 
-      const nextDraftsBySessionId = loadChatDraftWorkspaceState(activeWorkspaceId);
+      const nextDraftsBySessionId = mergeStoredAndInMemoryDrafts(
+        loadChatDraftWorkspaceState(activeWorkspaceId),
+        draftsBySessionIdRef.current,
+      );
       draftsBySessionIdRef.current = nextDraftsBySessionId;
       setDraftsBySessionId(nextDraftsBySessionId);
     });
@@ -235,7 +238,25 @@ export function ChatDraftProvider(props: Props): ReactElement {
     targetSessionId: string,
     nextDraft: ChatDraftContent,
   ): number | null {
-    const currentDraftsBySessionId = loadChatDraftWorkspaceState(activeWorkspaceId);
+    const currentDraftsBySessionId = mergeStoredAndInMemoryDrafts(
+      loadChatDraftWorkspaceState(activeWorkspaceId),
+      draftsBySessionIdRef.current,
+    );
+    const existingTargetDraft = readStoredChatDraftForSession(currentDraftsBySessionId, targetSessionId);
+    if (sourceSessionId === targetSessionId) {
+      if (
+        existingTargetDraft === null
+        || existingTargetDraft.updatedAt !== sourceDraftUpdatedAt
+        || areChatDraftContentsEqual(toPersistableChatDraftContent(existingTargetDraft), toPersistableChatDraftContent(nextDraft)) === false
+      ) {
+        return null;
+      }
+      if (areChatDraftContentsEqual(existingTargetDraft, nextDraft)) {
+        return existingTargetDraft.updatedAt;
+      }
+    } else if (existingTargetDraft !== null && areChatDraftContentsEqual(existingTargetDraft, nextDraft) === false) {
+      return null;
+    }
     const targetDraftsBySessionId = replaceChatDraftForSession(
       currentDraftsBySessionId,
       targetSessionId,
@@ -248,7 +269,7 @@ export function ChatDraftProvider(props: Props): ReactElement {
       && sourceDraft !== null
       && sourceDraftUpdatedAt !== null
       && sourceDraft.updatedAt === sourceDraftUpdatedAt
-      && areChatDraftContentsEqual(sourceDraft, toPersistableChatDraftContent(nextDraft));
+      && areChatDraftContentsEqual(toPersistableChatDraftContent(sourceDraft), toPersistableChatDraftContent(nextDraft));
     const nextDraftsBySessionId = shouldClearSourceDraft === false
       ? targetDraftsBySessionId
       : replaceChatDraftForSession(
@@ -326,6 +347,26 @@ export function ChatDraftProvider(props: Props): ReactElement {
       {children}
     </ChatDraftContext.Provider>
   );
+}
+
+function mergeStoredAndInMemoryDrafts(
+  storedDraftsBySessionId: Readonly<Record<string, StoredChatDraft>>,
+  memoryDraftsBySessionId: Readonly<Record<string, StoredChatDraft>>,
+): Record<string, StoredChatDraft> {
+  const nextDraftsBySessionId = { ...storedDraftsBySessionId };
+  for (const [sessionId, memoryDraft] of Object.entries(memoryDraftsBySessionId)) {
+    const storedDraft = storedDraftsBySessionId[sessionId];
+    const persistableMemoryDraft = toPersistableChatDraftContent(memoryDraft);
+    if (
+      (storedDraft !== undefined
+        && storedDraft.updatedAt === memoryDraft.updatedAt
+        && areChatDraftContentsEqual(storedDraft, persistableMemoryDraft))
+      || (storedDraft === undefined && isChatDraftContentEmpty(persistableMemoryDraft))
+    ) {
+      nextDraftsBySessionId[sessionId] = memoryDraft;
+    }
+  }
+  return nextDraftsBySessionId;
 }
 
 function getActiveDraft(

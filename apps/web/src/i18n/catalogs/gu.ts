@@ -1393,6 +1393,7 @@ const guCatalog: TranslationCatalog = {
       microphoneUnavailable: "આ બ્રાઉઝરમાં માઇક્રોફોન રેકોર્ડિંગ ઉપલબ્ધ નથી.",
     },
     composerPlaceholder: "કાર્ડ, પુનરાવર્તનના ઇતિહાસ વિશે પૂછો અથવા નોંધો જોડો...",
+    currentChatRecovered: "આ ચેટને નવી ચેટથી બદલવામાં આવી છે. તમારો સંદેશ હજી પણ લખવાના બોક્સમાં છે — તેને ફરી મોકલો.",
     dictation: {
       listening: "સાંભળી રહ્યું છે...",
       start: "બોલીને લખવાનું શરૂ કરો",
@@ -1411,6 +1412,7 @@ const guCatalog: TranslationCatalog = {
       aiLimitReachedAccount: "તમે આ મહિનાના AI સંદેશા વાપરી લીધા છે. તે {{date}}ના રોજ નવીકરણ થશે. ચાલુ રાખવા માટે તમે સેટિંગ્સમાં તમારી પોતાની OpenAI કી ઉમેરી શકો છો.",
       aiLimitReachedAccountNoDate: "તમે આ મહિનાના AI સંદેશા વાપરી લીધા છે. ચાલુ રાખવા માટે તમે સેટિંગ્સમાં તમારી પોતાની OpenAI કી ઉમેરી શકો છો.",
       aiLimitReachedGuest: "તમે આ મહિનાના મફત AI સંદેશા વાપરી લીધા છે. ચાલુ રાખવા માટે એકાઉન્ટ બનાવો અથવા સેટિંગ્સમાં તમારી પોતાની OpenAI કી ઉમેરો.",
+      currentChatDraftConflict: "વર્તમાન ચેટમાં પહેલેથી જ ડ્રાફ્ટ છે. તમારો સંદેશ અહીં જ રહેશે. ચેટ ફરી ખોલતાં પહેલાં તેની નકલ કરો.",
       emptyBackendResponse: "બૅકએન્ડે ખાલી ભૂલનો જવાબ પાછો આપ્યો.",
       genericFailure: "AI ચૅટ નિષ્ફળ ગઈ.",
       liveStreamEndedBeforeCompletion: "પ્રક્રિયા પૂરી થાય તે પહેલાં AI લાઇવ સ્ટ્રીમ સમાપ્ત થઈ ગઈ.",

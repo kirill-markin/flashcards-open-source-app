@@ -1407,6 +1407,7 @@ const csCatalog: TranslationCatalog = {
       microphoneUnavailable: "Nahrávání z mikrofonu není v tomto prohlížeči dostupné.",
     },
     composerPlaceholder: "Zeptejte se na kartičky či historii opakování nebo přiložte poznámky...",
+    currentChatRecovered: "Tento chat byl nahrazen novějším. Vaše zpráva je stále v textovém poli – odešlete ji znovu.",
     dictation: {
       listening: "Poslouchání...",
       start: "Zahájit diktování",
@@ -1425,6 +1426,7 @@ const csCatalog: TranslationCatalog = {
       aiLimitReachedAccount: "Využili jste zprávy AI na tento měsíc. Obnoví se {{date}}. Chcete-li pokračovat, můžete si v Nastavení přidat vlastní klíč OpenAI.",
       aiLimitReachedAccountNoDate: "Využili jste zprávy AI na tento měsíc. Chcete-li pokračovat, můžete si v Nastavení přidat vlastní klíč OpenAI.",
       aiLimitReachedGuest: "Využili jste bezplatné zprávy AI na tento měsíc. Chcete-li pokračovat, vytvořte si účet nebo si v Nastavení přidejte vlastní klíč OpenAI.",
+      currentChatDraftConflict: "Aktuální chat už má koncept. Vaše zpráva zůstává zde. Před opětovným otevřením chatu ji zkopírujte.",
       emptyBackendResponse: "Backend vrátil prázdnou chybovou odpověď.",
       genericFailure: "Chat s AI selhal.",
       liveStreamEndedBeforeCompletion: "Živý stream AI skončil dřív, než byl běh dokončen.",

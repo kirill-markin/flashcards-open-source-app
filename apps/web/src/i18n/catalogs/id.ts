@@ -1393,6 +1393,7 @@ const idCatalog: TranslationCatalog = {
       microphoneUnavailable: "Perekaman mikrofon tidak tersedia di peramban ini.",
     },
     composerPlaceholder: "Tanyakan tentang kartu, riwayat tinjauan, atau lampirkan catatan...",
+    currentChatRecovered: "Obrolan ini telah diganti dengan yang lebih baru. Pesan Anda masih ada di kotak teks — kirim lagi.",
     dictation: {
       listening: "Mendengarkan...",
       start: "Mulai dikte",
@@ -1411,6 +1412,7 @@ const idCatalog: TranslationCatalog = {
       aiLimitReachedAccount: "Anda sudah menggunakan pesan AI bulan ini. Pesan diperbarui pada {{date}}. Untuk melanjutkan, Anda dapat menambahkan kunci OpenAI Anda sendiri di Pengaturan.",
       aiLimitReachedAccountNoDate: "Anda sudah menggunakan pesan AI bulan ini. Untuk melanjutkan, Anda dapat menambahkan kunci OpenAI Anda sendiri di Pengaturan.",
       aiLimitReachedGuest: "Anda sudah menggunakan pesan AI gratis bulan ini. Untuk melanjutkan, buat akun atau tambahkan kunci OpenAI Anda sendiri di Pengaturan.",
+      currentChatDraftConflict: "Chat saat ini sudah memiliki draf. Pesan Anda tetap di sini. Salin sebelum membuka kembali chat.",
       emptyBackendResponse: "Backend mengembalikan respons kesalahan yang kosong.",
       genericFailure: "Obrolan AI gagal.",
       liveStreamEndedBeforeCompletion: "Aliran langsung AI berakhir sebelum proses selesai.",

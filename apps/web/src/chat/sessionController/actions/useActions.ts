@@ -9,6 +9,7 @@ import {
   ApiError,
   AuthRedirectError,
   ChatFileUploadTransferError,
+  getCurrentChatSnapshot,
   startChatRun,
   stopChatRun,
 } from "../../../api";
@@ -255,6 +256,7 @@ export function useChatSessionActions(
     startAssistantMessage,
   } = history;
   const {
+    applyRecoveredSnapshot,
     detachLiveStream,
     hasActiveLiveConnection,
     invalidatePendingSnapshotRequests,
@@ -530,7 +532,7 @@ export function useChatSessionActions(
 
     let preparedDraftSessionId: string | null = sourceSessionId;
     const prepareDraftTargetSession = (targetSessionId: string): boolean => {
-      if (isRequestSequenceCurrent(requestSequence) === false) {
+      if (isRequestSequenceCurrent(requestSequence) === false || sendParams.isDraftTargetCurrent() === false) {
         return false;
       }
 
@@ -538,7 +540,9 @@ export function useChatSessionActions(
         return true;
       }
 
-      sendParams.onSessionDraftTargetReady(targetSessionId);
+      if (sendParams.onSessionDraftTargetReady(targetSessionId) === null) {
+        throw createChatSessionActionError(uiMessages.currentChatDraftConflict);
+      }
       preparedDraftSessionId = targetSessionId;
       return true;
     };
@@ -556,6 +560,7 @@ export function useChatSessionActions(
       resetSnapshotTracking(null);
       runtimeRefs.messagesRef.current = [];
       clearHistory();
+      runtimeRefs.currentSessionIdRef.current = session.sessionId;
       dispatch({
         type: "fresh_session_ready",
         sessionId: session.sessionId,
@@ -802,6 +807,55 @@ export function useChatSessionActions(
       return createRejectedSendResult(resultSessionId);
     };
 
+    const recoverCurrentSession = async (requestSessionId: string): Promise<SendChatMessageResult> => {
+      const isRecoverySessionCurrent = (): boolean => isRequestSequenceCurrent(requestSequence)
+        && runtimeRefs.currentSessionIdRef.current === requestSessionId
+        && sendParams.isDraftTargetCurrent();
+      if (isRecoverySessionCurrent() === false) {
+        return finishStaleRequest();
+      }
+
+      invalidatePendingSnapshotRequests();
+      const snapshotRequestVersion = runtimeRefs.snapshotRequestVersionRef.current;
+      const recoveryRequest = { workspaceId, sessionId: requestSessionId, requestVersion: snapshotRequestVersion };
+      runtimeRefs.currentSessionRecoveryRef.current = recoveryRequest;
+      const abortController = new AbortController();
+      try {
+        const snapshot = await getCurrentChatSnapshot(workspaceId, abortController.signal);
+        indexedDbOpenRecoveryState.throwIfFailed();
+        if (isRecoverySessionCurrent() === false) {
+          return finishStaleRequest();
+        }
+        if (runtimeRefs.snapshotRequestVersionRef.current !== snapshotRequestVersion) {
+          return createRejectedSendResult(requestSessionId);
+        }
+
+        if (sendParams.onSessionDraftTargetReady(snapshot.sessionId) === null) {
+          dispatch({ type: "error_shown", message: uiMessages.currentChatDraftConflict });
+          return createRejectedSendResult(requestSessionId);
+        }
+        preparedDraftSessionId = snapshot.sessionId;
+        applyRecoveredSnapshot(snapshot);
+        dispatch({ type: "composer_notice_shown", message: uiMessages.currentChatRecovered });
+        if (snapshot.activeRun !== null && isDocumentVisibleRef.current) {
+          startActiveRunLiveStream(snapshot.sessionId, snapshot.activeRun, null);
+        }
+        return createRejectedSendResult(snapshot.sessionId);
+      } catch (recoveryError) {
+        if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, recoveryError)) {
+          return createRejectedSendResult(requestSessionId);
+        }
+        if (isRecoverySessionCurrent() === false) {
+          return finishStaleRequest();
+        }
+        return failStartRunRequest(recoveryError, requestSessionId, requestSessionId);
+      } finally {
+        if (runtimeRefs.currentSessionRecoveryRef.current === recoveryRequest) {
+          runtimeRefs.currentSessionRecoveryRef.current = null;
+        }
+      }
+    };
+
     let uploadIdsByAttachment: ReadonlyMap<BinaryPendingAttachment, string>;
     try {
       uploadIdsByAttachment = await uploadPendingAttachments(sendParams.attachments);
@@ -849,6 +903,10 @@ export function useChatSessionActions(
         return finishStaleRequest();
       }
 
+      if (isChatApiError(error) && error.statusCode === 409 && error.code === "CHAT_SESSION_NOT_CURRENT") {
+        return recoverCurrentSession(sessionId);
+      }
+
       if (isChatSessionIdConflictError(error) && didRecoverSessionIdConflict === false) {
         try {
           const recovery = await recoverAndActivateSession();
@@ -871,6 +929,10 @@ export function useChatSessionActions(
 
               if (isRequestSequenceCurrent(requestSequence) === false) {
                 return finishStaleRequest();
+              }
+
+              if (isChatApiError(retryError) && retryError.statusCode === 409 && retryError.code === "CHAT_SESSION_NOT_CURRENT") {
+                return recoverCurrentSession(recovery.session.sessionId);
               }
 
               return failStartRunRequest(retryError, recovery.session.sessionId, recovery.session.sessionId);
@@ -945,6 +1007,7 @@ export function useChatSessionActions(
       sessionId: response.sessionId,
     };
   }, [
+    applyRecoveredSnapshot,
     appendUserMessage,
     dispatch,
     getActiveRequestSequence,

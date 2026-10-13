@@ -1393,6 +1393,7 @@ const caCatalog: TranslationCatalog = {
       microphoneUnavailable: "La gravació amb micròfon no està disponible en aquest navegador.",
     },
     composerPlaceholder: "Pregunta sobre les targetes o l'historial de repassos, o adjunta apunts...",
+    currentChatRecovered: "Aquest xat s’ha substituït per un de més recent. El teu missatge encara és al quadre de text: torna’l a enviar.",
     dictation: {
       listening: "Escoltant...",
       start: "Comença el dictat",
@@ -1411,6 +1412,7 @@ const caCatalog: TranslationCatalog = {
       aiLimitReachedAccount: "Has fet servir els missatges d'IA d'aquest mes. Es renoven el {{date}}. Per continuar, pots afegir la teva pròpia clau d'OpenAI a Configuració.",
       aiLimitReachedAccountNoDate: "Has fet servir els missatges d'IA d'aquest mes. Per continuar, pots afegir la teva pròpia clau d'OpenAI a Configuració.",
       aiLimitReachedGuest: "Has fet servir els missatges d'IA gratuïts d'aquest mes. Per continuar, crea un compte o afegeix la teva pròpia clau d'OpenAI a Configuració.",
+      currentChatDraftConflict: "El xat actual ja té un esborrany. El teu missatge es queda en aquest xat. Revisa l’altre esborrany abans de moure aquest missatge.",
       emptyBackendResponse: "El backend ha retornat una resposta d'error buida.",
       genericFailure: "El xat d'IA ha fallat.",
       liveStreamEndedBeforeCompletion: "La reproducció en directe d'IA s'ha acabat abans que finalitzés l'execució.",

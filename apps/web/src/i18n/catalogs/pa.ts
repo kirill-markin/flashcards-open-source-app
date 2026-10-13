@@ -1393,6 +1393,7 @@ const paCatalog: TranslationCatalog = {
       microphoneUnavailable: "ਇਸ ਬ੍ਰਾਊਜ਼ਰ ਵਿੱਚ ਮਾਈਕ੍ਰੋਫ਼ੋਨ ਰਿਕਾਰਡਿੰਗ ਉਪਲਬਧ ਨਹੀਂ ਹੈ.",
     },
     composerPlaceholder: "ਕਾਰਡਾਂ, ਦੁਹਰਾਈ ਦੇ ਇਤਿਹਾਸ ਬਾਰੇ ਪੁੱਛੋ ਜਾਂ ਨੋਟ ਨੱਥੀ ਕਰੋ...",
+    currentChatRecovered: "ਇਸ ਚੈਟ ਨੂੰ ਇੱਕ ਨਵੀਂ ਚੈਟ ਨਾਲ ਬਦਲ ਦਿੱਤਾ ਗਿਆ ਹੈ। ਤੁਹਾਡਾ ਸੁਨੇਹਾ ਅਜੇ ਵੀ ਲਿਖਣ ਵਾਲੇ ਖਾਨੇ ਵਿੱਚ ਹੈ — ਇਸਨੂੰ ਦੁਬਾਰਾ ਭੇਜੋ।",
     dictation: {
       listening: "ਸੁਣਿਆ ਜਾ ਰਿਹਾ ਹੈ...",
       start: "ਬੋਲ ਕੇ ਲਿਖਣਾ ਸ਼ੁਰੂ ਕਰੋ",
@@ -1411,6 +1412,7 @@ const paCatalog: TranslationCatalog = {
       aiLimitReachedAccount: "ਤੁਸੀਂ ਇਸ ਮਹੀਨੇ ਦੇ AI ਸੁਨੇਹੇ ਵਰਤ ਲਏ ਹਨ. ਇਹ {{date}} ਨੂੰ ਨਵੇਂ ਹੋਣਗੇ. ਜਾਰੀ ਰੱਖਣ ਲਈ ਤੁਸੀਂ ਸੈਟਿੰਗਾਂ ਵਿੱਚ ਆਪਣੀ OpenAI ਕੁੰਜੀ ਜੋੜ ਸਕਦੇ ਹੋ.",
       aiLimitReachedAccountNoDate: "ਤੁਸੀਂ ਇਸ ਮਹੀਨੇ ਦੇ AI ਸੁਨੇਹੇ ਵਰਤ ਲਏ ਹਨ. ਜਾਰੀ ਰੱਖਣ ਲਈ ਤੁਸੀਂ ਸੈਟਿੰਗਾਂ ਵਿੱਚ ਆਪਣੀ OpenAI ਕੁੰਜੀ ਜੋੜ ਸਕਦੇ ਹੋ.",
       aiLimitReachedGuest: "ਤੁਸੀਂ ਇਸ ਮਹੀਨੇ ਦੇ ਮੁਫ਼ਤ AI ਸੁਨੇਹੇ ਵਰਤ ਲਏ ਹਨ. ਜਾਰੀ ਰੱਖਣ ਲਈ ਖਾਤਾ ਬਣਾਓ ਜਾਂ ਸੈਟਿੰਗਾਂ ਵਿੱਚ ਆਪਣੀ OpenAI ਕੁੰਜੀ ਜੋੜੋ.",
+      currentChatDraftConflict: "ਮੌਜੂਦਾ ਚੈਟ ਵਿੱਚ ਪਹਿਲਾਂ ਹੀ ਇੱਕ ਡਰਾਫਟ ਹੈ। ਤੁਹਾਡਾ ਸੁਨੇਹਾ ਇਸੇ ਚੈਟ ਵਿੱਚ ਰਹੇਗਾ। ਇਸ ਸੁਨੇਹੇ ਨੂੰ ਲਿਜਾਣ ਤੋਂ ਪਹਿਲਾਂ ਦੂਜਾ ਡਰਾਫਟ ਵੇਖੋ।",
       emptyBackendResponse: "ਬੈਕਐਂਡ ਨੇ ਖਾਲੀ ਗਲਤੀ ਜਵਾਬ ਦਿੱਤਾ.",
       genericFailure: "AI ਚੈਟ ਅਸਫਲ ਰਹੀ.",
       liveStreamEndedBeforeCompletion: "AI ਲਾਈਵ ਸਟ੍ਰੀਮ ਰਨ ਪੂਰਾ ਹੋਣ ਤੋਂ ਪਹਿਲਾਂ ਖ਼ਤਮ ਹੋ ਗਈ.",

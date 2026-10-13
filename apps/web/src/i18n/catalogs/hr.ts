@@ -1407,6 +1407,7 @@ const hrCatalog: TranslationCatalog = {
       microphoneUnavailable: "Snimanje mikrofonom nije dostupno u ovom pregledniku.",
     },
     composerPlaceholder: "Pitajte o karticama, povijesti ponavljanja ili priložite bilješke...",
+    currentChatRecovered: "Ovaj je razgovor zamijenjen novijim. Vaša je poruka još u polju za unos — pošaljite je ponovno.",
     dictation: {
       listening: "Slušanje...",
       start: "Pokreni diktiranje",
@@ -1425,6 +1426,7 @@ const hrCatalog: TranslationCatalog = {
       aiLimitReachedAccount: "Iskoristili ste AI poruke za ovaj mjesec. Obnavljaju se {{date}}. Za nastavak možete dodati vlastiti OpenAI ključ u Postavkama.",
       aiLimitReachedAccountNoDate: "Iskoristili ste AI poruke za ovaj mjesec. Za nastavak možete dodati vlastiti OpenAI ključ u Postavkama.",
       aiLimitReachedGuest: "Iskoristili ste besplatne AI poruke za ovaj mjesec. Za nastavak stvorite račun ili dodajte vlastiti OpenAI ključ u Postavkama.",
+      currentChatDraftConflict: "Trenutačni razgovor već ima skicu. Vaša poruka ostaje ovdje. Kopirajte je prije ponovnog otvaranja razgovora.",
       emptyBackendResponse: "Pozadinski sustav vratio je prazan odgovor o pogrešci.",
       genericFailure: "AI razgovor nije uspio.",
       liveStreamEndedBeforeCompletion: "AI prijenos uživo završio je prije dovršetka izvođenja.",

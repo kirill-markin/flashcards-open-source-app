@@ -75,6 +75,7 @@ export function ChatPanel(props: Props): ReactElement {
     chatConfig,
     composerSuggestions,
     composerAction,
+    composerNotice,
     errorDialogMessage,
     aiUsage,
     refreshAiUsage,
@@ -491,6 +492,12 @@ export function ChatPanel(props: Props): ReactElement {
         data-draft-state={hasDraftContent ? "filled" : "empty"}
         data-can-send={canSendPendingMessage ? "true" : "false"}
       >
+        {composerNotice !== null ? (
+          <p className="chat-ai-usage-notice" role="status" data-testid="chat-composer-notice">
+            {composerNotice}
+          </p>
+        ) : null}
+
         {remainingAiMessagesNotice !== null ? (
           <p className="chat-ai-usage-notice" data-testid="chat-ai-usage-remaining">
             {t("chatPanel.aiUsage.remaining", {

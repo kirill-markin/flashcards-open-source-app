@@ -1392,6 +1392,7 @@ const enCatalog = {
       microphoneUnavailable: "Microphone recording is unavailable in this browser.",
     },
     composerPlaceholder: "Ask about cards, review history, or attach notes...",
+    currentChatRecovered: "This chat was replaced by a newer one. Your message is still in the box — send it again.",
     dictation: {
       listening: "Listening...",
       start: "Start dictation",
@@ -1410,6 +1411,7 @@ const enCatalog = {
       aiLimitReachedAccount: "You've used this month's AI messages. They renew on {{date}}. You can add your own OpenAI key in Settings to keep going.",
       aiLimitReachedAccountNoDate: "You've used this month's AI messages. You can add your own OpenAI key in Settings to keep going.",
       aiLimitReachedGuest: "You've used this month's free AI messages. Create an account or add your own OpenAI key in Settings to keep going.",
+      currentChatDraftConflict: "The current chat already has a draft. Your message stays here. Copy it before reopening chat.",
       emptyBackendResponse: "The backend returned an empty error response.",
       genericFailure: "AI chat failed.",
       liveStreamEndedBeforeCompletion: "AI live stream ended before the run finished.",

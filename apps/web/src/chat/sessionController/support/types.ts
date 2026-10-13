@@ -9,6 +9,8 @@ import type { IndexedDbOpenRecoveryState } from "../../../appError/AppErrorConte
 
 export type ChatSessionControllerUiMessages = Readonly<{
   activeRunInProgress: string;
+  currentChatRecovered: string;
+  currentChatDraftConflict: string;
   formatAiLimitReached: (aiUsage: AiUsageStatus | null) => string;
   attachmentLimits: ChatAttachmentLimitMessages;
   attachmentUnsupported: string;
@@ -41,6 +43,7 @@ export type SendChatMessageParams = Readonly<{
   clientRequestId: string;
   text: string;
   attachments: ReadonlyArray<PendingAttachment>;
+  isDraftTargetCurrent: () => boolean;
   onSessionDraftTargetReady: (sessionId: string) => number | null;
 }>;
 
