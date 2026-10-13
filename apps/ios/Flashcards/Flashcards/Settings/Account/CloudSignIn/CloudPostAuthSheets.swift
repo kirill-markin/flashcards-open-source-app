@@ -240,7 +240,7 @@ struct CloudPostAuthGuestLocalRecoveryPreparationSheet: View {
                     Text(
                         aiSettingsLocalized(
                             "settings.account.cloudSignIn.guestLocalRecovery.prepare.message",
-                            "Local data is still on this device. Keep this screen open while iOS prepares a recovered workspace."
+                            "Local data is still on this device. Keep this screen open while the app prepares a recovered workspace."
                         )
                     )
                     .foregroundStyle(.secondary)
