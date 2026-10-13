@@ -161,6 +161,29 @@
   list-style: none;
 }
 
+.data-table-enum-filter summary::-webkit-details-marker {
+  display: none;
+}
+
+/* The Yes/No select and the enum summary take the analytics dropdowns' chevron and inset. Kept after
+   both base rules, whose padding and `background` shorthand would otherwise win. */
+select.data-table-filter-input,
+.data-table-enum-filter summary {
+  padding: 0 34px 0 14px;
+  background-image: var(--dropdown-chevron);
+  background-position: right 14px center;
+  background-repeat: no-repeat;
+  background-size: 10px 10px;
+}
+
+/* The base 72px floor plus the 32px of extra inset, so a short-header column keeps the old 54px for
+   the value. */
+select.data-table-filter-input {
+  min-width: 104px;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
 .data-table-enum-options {
   position: absolute;
   z-index: 2;
