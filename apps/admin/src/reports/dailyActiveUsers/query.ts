@@ -13,7 +13,6 @@ import type {
   DailyActiveUsersPlatformTotal,
   DailyActiveUsersReport,
   DailyActiveUsersRow,
-  DailyActiveUsersUser,
   ProductEventDeviceType,
   ProductEventOsName,
   ReviewEventPlatform,
@@ -55,7 +54,6 @@ type DailyActiveUsersQueryRow = Readonly<{
 
 type DailyActiveUsersAggregateFields = Readonly<Pick<
   DailyActiveUsersReport,
-  | "users"
   | "dailyCohortTotals"
   | "platformActiveUserTotals"
   | "osNameActiveUserTotals"
@@ -78,40 +76,6 @@ function toDailyActiveUsersQueryRow(
       "user_first_active_date",
     ),
   };
-}
-
-/** Active days per person, counted once per calendar day however many platforms carried that day. */
-function buildDailyActiveUsersUsers(
-  rows: ReadonlyArray<DailyActiveUsersRow>,
-): ReadonlyArray<DailyActiveUsersUser> {
-  const emailByUserId = new Map<string, string>();
-  const activeDatesByUserId = new Map<string, Set<string>>();
-
-  for (const row of rows) {
-    if (emailByUserId.has(row.userId) === false) {
-      emailByUserId.set(row.userId, row.email);
-    }
-
-    const activeDates = activeDatesByUserId.get(row.userId) ?? new Set<string>();
-    activeDates.add(row.date);
-    activeDatesByUserId.set(row.userId, activeDates);
-  }
-
-  return Array.from(activeDatesByUserId.entries())
-    .map(([userId, activeDates]) => ({
-      userId,
-      email: emailByUserId.get(userId) ?? "(no email)",
-      activeDayCount: activeDates.size,
-    }))
-    .sort((left, right) => {
-      if (right.activeDayCount !== left.activeDayCount) {
-        return right.activeDayCount - left.activeDayCount;
-      }
-
-      const leftLabel = left.email === "(no email)" ? left.userId : left.email;
-      const rightLabel = right.email === "(no email)" ? right.userId : right.email;
-      return leftLabel.localeCompare(rightLabel);
-    });
 }
 
 // A person active on two platforms in one day is one active person, so every count here is over a
@@ -199,7 +163,6 @@ function buildDailyActiveUsersAggregateFields(
   dates: ReadonlyArray<string>,
 ): DailyActiveUsersAggregateFields {
   return {
-    users: buildDailyActiveUsersUsers(rows),
     dailyCohortTotals: buildDailyCohortTotals(rows, dates),
     platformActiveUserTotals: buildPlatformActiveUserTotals(rows, dates),
     osNameActiveUserTotals: buildOsNameActiveUserTotals(rows, dates),
@@ -277,9 +240,9 @@ const dailyActiveUsersCohortSqlExpression = "CASE WHEN app_opens.active_date = a
 // ONE ROW PER (DAY, ACTOR, PLATFORM, OS NAME, DEVICE TYPE), AND THE ROWS ARE NEVER SUMMED. A person
 // can open the phone and the browser on the same day and is then two rows on that day. Every "unique
 // users" number in this section is therefore a distinct count of actors, computed client-side over a
-// set, and the platform, OS name and device type series are grouped rather than stacked. A row with
-// no OS name or device type, every web row among them, lands in `unknown` rather than being guessed
-// from `platform`. See `db/migrations/0121_backfill_synthetic_app_opened_days
+// set, and the platform, OS name and device type stacks are drawn under a marker at that count, which
+// they can exceed. A row with no OS name or device type, every web row among them, lands in `unknown`
+// rather than being guessed from `platform`. See `db/migrations/0121_backfill_synthetic_app_opened_days
 // .sql` for why the `agent` bucket in particular must stay its own visible series: an
 // `agent_connection` replica is the machine API, and a scheduled MCP client files an active day for
 // its owner on every calendar day it runs, so that series is an upper bound on human agent use.
