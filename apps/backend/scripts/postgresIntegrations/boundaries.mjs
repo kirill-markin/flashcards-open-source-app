@@ -71,8 +71,8 @@ export const createdRolesByMigration = new Map([
 ]);
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
-    migrationFileName: "0180_ai_consent_receipts.sql",
-    expectedMigrationCount: 182,
+    migrationFileName: "0181_store_analytics_schema.sql",
+    expectedMigrationCount: 183,
     testFiles: Object.freeze([
       "src/aiConsent/consent.postgres.integration.ts",
       "src/chat/cardImages/operation.postgres.integration.ts",
