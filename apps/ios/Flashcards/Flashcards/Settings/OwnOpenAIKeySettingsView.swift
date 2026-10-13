@@ -33,7 +33,7 @@ struct OwnOpenAIKeySettingsView: View {
                 Text(
                     aiSettingsLocalized(
                         "settings.ownOpenAIKey.description",
-                        "With your own key, AI chat, dictation and card images run on your OpenAI account, with no monthly limit on any plan. Suggested replies are off while your key is on. We never store your key on our servers: it stays on this device and is sent only with your AI requests, so enter it separately on iOS, Android and the web."
+                        "With your own key, AI chat, dictation and card images run on your OpenAI account, with no monthly limit on any plan. Suggested replies are off while your key is on. We never store your key on our servers: it stays on this device and is sent only with your AI requests, so enter it separately on each device."
                     )
                 )
             }

@@ -219,7 +219,7 @@
 "settings.aiChatSuggestions.description" = "Quando isto está desativado, o chat com IA não mostra sugestões de mensagem acima do campo de texto.";
 "settings.ownOpenAIKey.title" = "Sua chave da OpenAI";
 "settings.ownOpenAIKey.toggle" = "Usar minha própria chave da OpenAI";
-"settings.ownOpenAIKey.description" = "Com sua própria chave, o chat com IA, o ditado e as imagens dos cartões usam sua conta da OpenAI, sem limite mensal em nenhum plano. As sugestões do chat com IA ficam desativadas enquanto sua chave estiver ativada. Nunca armazenamos sua chave nos nossos servidores: ela fica neste dispositivo e só é enviada com suas solicitações de IA, então insira-a separadamente no iOS, no Android e na web.";
+"settings.ownOpenAIKey.description" = "Com sua própria chave, o chat com IA, o ditado e as imagens dos cartões usam sua conta da OpenAI, sem limite mensal em nenhum plano. As sugestões do chat com IA ficam desativadas enquanto sua chave estiver ativada. Nunca armazenamos sua chave nos nossos servidores: ela fica neste dispositivo e só é enviada com suas solicitações de IA, então insira-a separadamente em cada dispositivo.";
 "settings.ownOpenAIKey.keyField" = "Chave de API da OpenAI";
 "settings.ownOpenAIKey.monthMessages.one" = "Este mês com sua chave: %d mensagem";
 "settings.ownOpenAIKey.monthMessages.other" = "Este mês com sua chave: %d mensagens";
@@ -319,12 +319,10 @@
 "settings.thisDevice.deviceModel" = "Modelo do dispositivo";
 "settings.thisDevice.appVersion" = "Versão do app";
 "settings.thisDevice.build" = "Build";
-"settings.thisDevice.client" = "Cliente";
+"settings.thisDevice.uiFramework" = "Framework da interface do usuário";
 "settings.thisDevice.storage" = "Armazenamento";
 "settings.thisDevice.installationId" = "ID de instalação";
 "settings.thisDevice.note.localOnly" = "Não é preciso fazer login para criar cartões, salvar baralhos ou revisar.";
-"settings.thisDevice.note.syncScope" = "A sincronização futura fica restrita apenas ao espaço de trabalho atual.";
-"settings.thisDevice.note.schema" = "O esquema fica próximo ao do backend sem baixar dados remotos por padrão.";
 
 "settings.test.title" = "Teste";
 "settings.test.section.tools" = "Ferramentas";
@@ -493,9 +491,9 @@
 "settings.account.openSource.section.openSource" = "Código aberto";
 "settings.account.openSource.section.links" = "Links";
 "settings.account.openSource.section.selfHosting" = "Hospedagem própria";
-"settings.account.openSource.description" = "O app iOS e o backend são totalmente de código aberto. Você pode inspecionar o código, usar a licença MIT e rodar toda a stack nos seus próprios servidores.";
+"settings.account.openSource.description" = "Este app e o backend são totalmente de código aberto. Você pode inspecionar o código, usar a licença MIT e rodar toda a stack nos seus próprios servidores.";
 "settings.account.openSource.repository" = "Repositório no GitHub (licença MIT)";
-"settings.account.openSource.selfHosting" = "Se você precisa do seu próprio backend, pode implantar a mesma stack de código aberto e apontar o app iOS para o seu domínio em Avançado > Servidor.";
+"settings.account.openSource.selfHosting" = "Se você precisa do seu próprio backend, pode implantar a mesma stack de código aberto e apontar este app para o seu domínio em Avançado > Servidor.";
 "settings.account.openSource.section.thirdPartyNotices" = "Avisos de terceiros";
 "settings.account.openSource.thirdPartyNotice" = "Animações Lottie da revisão: 38 animações de animais e natureza da Google Inc., Copyright (c) 2026 Google Inc., usadas sob a licença Creative Commons Attribution 4.0. Os runtimes do Lottie usam as licenças MIT e Apache 2.0.";
 "settings.account.openSource.thirdPartyNoticeFull" = "Avisos de terceiros completos";
@@ -578,14 +576,14 @@
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "Você entrou, mas a atualização da conta falhou.";
 "settings.account.cloudSignIn.failureDescription" = "Seu acesso foi concluído, mas a configuração do espaço de trabalho na nuvem ou a sincronização inicial não terminou.";
 "settings.account.cloudSignIn.sync.title" = "Sua conta está sincronizando com a nuvem.";
-"settings.account.cloudSignIn.sync.message" = "Não desligue o celular. Isso costuma levar alguns minutos.";
+"settings.account.cloudSignIn.sync.message" = "Mantenha o Nibomo aberto enquanto sua conta é sincronizada. Isso costuma levar alguns minutos.";
 "settings.account.cloudSignIn.cloudSyncTitle" = "Sincronização na nuvem";
 "settings.account.cloudSignIn.loadingWorkspaces" = "Carregando espaços de trabalho…";
 "settings.account.cloudSignIn.loadingWorkspacesDescription" = "Seu acesso foi concluído. O app está carregando a etapa do espaço de trabalho na nuvem.";
 "settings.account.cloudSignIn.guestLocalRecovery.prepare.title" = "Preparando o espaço de trabalho recuperado...";
-"settings.account.cloudSignIn.guestLocalRecovery.prepare.message" = "Os dados locais continuam neste dispositivo. Mantenha esta tela aberta enquanto o iOS prepara um espaço de trabalho recuperado.";
+"settings.account.cloudSignIn.guestLocalRecovery.prepare.message" = "Os dados locais continuam neste dispositivo. Mantenha esta tela aberta enquanto o app prepara um espaço de trabalho recuperado.";
 "settings.account.cloudSignIn.guestLocalRecovery.recovering.title" = "Recuperando dados locais";
-"settings.account.cloudSignIn.guestLocalRecovery.recovering.message" = "Mantenha esta tela aberta enquanto o iOS reconecta os dados locais deste dispositivo ao seu espaço de trabalho recuperado.";
+"settings.account.cloudSignIn.guestLocalRecovery.recovering.message" = "Mantenha esta tela aberta enquanto o app reconecta os dados locais deste dispositivo ao seu espaço de trabalho recuperado.";
 "settings.account.cloudSignIn.guestLocalRecovery.failure.title" = "A recuperação dos dados locais falhou.";
 "settings.account.cloudSignIn.guestLocalRecovery.failure.message" = "Tente novamente; os dados locais continuam neste dispositivo.";
 "settings.account.cloudSignIn.technicalDetails" = "Detalhes técnicos";

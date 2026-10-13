@@ -67,7 +67,7 @@ struct ThisDeviceSettingsView: View {
                     Text(self.buildNumber)
                 }
 
-                LabeledContent(aiSettingsLocalized("settings.thisDevice.client", "Client")) {
+                LabeledContent(aiSettingsLocalized("settings.thisDevice.uiFramework", "UI framework")) {
                     Text("SwiftUI")
                 }
 
@@ -87,20 +87,6 @@ struct ThisDeviceSettingsView: View {
                         "No login is required to create cards, save decks, or review."
                     ),
                     systemImage: "internaldrive"
-                )
-                Label(
-                    aiSettingsLocalized(
-                        "settings.thisDevice.note.syncScope",
-                        "Future sync stays scoped to the current workspace only."
-                    ),
-                    systemImage: "lock.shield"
-                )
-                Label(
-                    aiSettingsLocalized(
-                        "settings.thisDevice.note.schema",
-                        "The schema stays close to the backend without pulling remote data by default."
-                    ),
-                    systemImage: "externaldrive.badge.checkmark"
                 )
             }
         }

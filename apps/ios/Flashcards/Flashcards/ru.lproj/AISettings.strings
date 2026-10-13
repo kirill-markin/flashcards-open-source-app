@@ -219,7 +219,7 @@
 "settings.aiChatSuggestions.description" = "Когда настройка выключена, AI-чат не показывает предложенные запросы над полем ввода.";
 "settings.ownOpenAIKey.title" = "Ваш ключ OpenAI";
 "settings.ownOpenAIKey.toggle" = "Использовать свой ключ OpenAI";
-"settings.ownOpenAIKey.description" = "С вашим ключом AI-чат, диктовка и изображения для карточек работают через ваш аккаунт OpenAI без месячного лимита на любом тарифе. Пока ваш ключ включен, подсказки AI-чата отключены. Мы никогда не храним ваш ключ на наших серверах: он остается на этом устройстве и отправляется только вместе с вашими запросами к ИИ, поэтому вводите его отдельно на iOS, Android и в веб-версии.";
+"settings.ownOpenAIKey.description" = "С вашим ключом AI-чат, диктовка и изображения для карточек работают через ваш аккаунт OpenAI без месячного лимита на любом тарифе. Пока ваш ключ включен, подсказки AI-чата отключены. Мы никогда не храним ваш ключ на наших серверах: он остается на этом устройстве и отправляется только вместе с вашими запросами к ИИ, поэтому вводите его отдельно на каждом устройстве.";
 "settings.ownOpenAIKey.keyField" = "API-ключ OpenAI";
 "settings.ownOpenAIKey.monthMessages.one" = "Сообщений с вашим ключом в этом месяце: %d";
 "settings.ownOpenAIKey.monthMessages.other" = "Сообщений с вашим ключом в этом месяце: %d";
@@ -319,12 +319,10 @@
 "settings.thisDevice.deviceModel" = "Модель устройства";
 "settings.thisDevice.appVersion" = "Версия приложения";
 "settings.thisDevice.build" = "Сборник";
-"settings.thisDevice.client" = "Клиент";
+"settings.thisDevice.uiFramework" = "Фреймворк интерфейса";
 "settings.thisDevice.storage" = "Хранилище";
 "settings.thisDevice.installationId" = "Идентификатор установки";
 "settings.thisDevice.note.localOnly" = "Нет необходимости входить в систему, чтобы создавать карты, сохранять колоды или просматривать их.";
-"settings.thisDevice.note.syncScope" = "Будущая синхронизация ограничивается только текущей рабочей областью.";
-"settings.thisDevice.note.schema" = "По умолчанию схема остается близкой к серверной части, не загружая удаленные данные.";
 
 "settings.test.title" = "Тест";
 "settings.test.section.tools" = "Инструменты";
@@ -493,9 +491,9 @@
 "settings.account.openSource.section.openSource" = "Открытый исходный код";
 "settings.account.openSource.section.links" = "Ссылки";
 "settings.account.openSource.section.selfHosting" = "Самостоятельное размещение";
-"settings.account.openSource.description" = "Приложение iOS и серверная часть имеют полностью открытый исходный код. Вы можете проверить код, использовать лицензию MIT и запустить весь стек на своих серверах.";
+"settings.account.openSource.description" = "Это приложение и серверная часть имеют полностью открытый исходный код. Вы можете проверить код, использовать лицензию MIT и запустить весь стек на своих серверах.";
 "settings.account.openSource.repository" = "Репозиторий GitHub (лицензия MIT)";
-"settings.account.openSource.selfHosting" = "Если вам нужен собственный бэкэнд, вы можете развернуть тот же стек с открытым исходным кодом и указать приложение iOS в своем домене, выбрав «Дополнительно» > «Сервер».";
+"settings.account.openSource.selfHosting" = "Если вам нужен собственный бэкэнд, вы можете развернуть тот же стек с открытым исходным кодом и направить это приложение на свой домен, выбрав «Дополнительно» > «Сервер».";
 "settings.account.openSource.section.thirdPartyNotices" = "Сторонние материалы";
 "settings.account.openSource.thirdPartyNotice" = "Lottie-анимации повторения: 38 анимаций животных и природы от Google Inc., Copyright (c) 2026 Google Inc., используются по лицензии Creative Commons Attribution 4.0. Среды выполнения Lottie используют лицензии MIT и Apache 2.0.";
 "settings.account.openSource.thirdPartyNoticeFull" = "Полные сведения о сторонних материалах";
@@ -578,14 +576,14 @@
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "Я вошел в систему, но обновление учетной записи не удалось.";
 "settings.account.cloudSignIn.failureDescription" = "Вход выполнен, но настройка облачного рабочего пространства или первоначальная синхронизация не завершены.";
 "settings.account.cloudSignIn.sync.title" = "Ваша учетная запись синхронизируется с облаком.";
-"settings.account.cloudSignIn.sync.message" = "Не выключайте телефон. Обычно это занимает несколько минут.";
+"settings.account.cloudSignIn.sync.message" = "Держите Nibomo открытым, пока ваш аккаунт синхронизируется. Обычно это занимает несколько минут.";
 "settings.account.cloudSignIn.cloudSyncTitle" = "Облачная синхронизация";
 "settings.account.cloudSignIn.loadingWorkspaces" = "Загрузка рабочих пространств...";
 "settings.account.cloudSignIn.loadingWorkspacesDescription" = "Вход завершен. Приложение сейчас загружает этап облачной рабочей области.";
 "settings.account.cloudSignIn.guestLocalRecovery.prepare.title" = "Подготовка восстановленного рабочего пространства...";
-"settings.account.cloudSignIn.guestLocalRecovery.prepare.message" = "Локальные данные все еще на этом устройстве. Оставьте этот экран открытым, пока iOS подготавливает восстановленное рабочее пространство.";
+"settings.account.cloudSignIn.guestLocalRecovery.prepare.message" = "Локальные данные все еще на этом устройстве. Оставьте этот экран открытым, пока приложение подготавливает восстановленное рабочее пространство.";
 "settings.account.cloudSignIn.guestLocalRecovery.recovering.title" = "Восстановление локальных данных";
-"settings.account.cloudSignIn.guestLocalRecovery.recovering.message" = "Оставьте этот экран открытым, пока iOS повторно подключает локальные данные на этом устройстве к восстановленному рабочему пространству.";
+"settings.account.cloudSignIn.guestLocalRecovery.recovering.message" = "Оставьте этот экран открытым, пока приложение повторно подключает локальные данные на этом устройстве к восстановленному рабочему пространству.";
 "settings.account.cloudSignIn.guestLocalRecovery.failure.title" = "Не удалось восстановить локальные данные.";
 "settings.account.cloudSignIn.guestLocalRecovery.failure.message" = "Попробуйте еще раз; локальные данные остаются на этом устройстве.";
 "settings.account.cloudSignIn.technicalDetails" = "Технические подробности";
