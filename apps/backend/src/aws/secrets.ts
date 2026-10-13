@@ -38,6 +38,14 @@ export async function loadAppleSigningSecretJson(secretArn: string): Promise<str
   return response.SecretString;
 }
 
+export async function loadAppStoreConnectReportsSecretJson(secretId: string): Promise<string> {
+  const response = await secretsClient.send(new GetSecretValueCommand({ SecretId: secretId }));
+  if (!response.SecretString) {
+    throw new Error(`Secret ${secretId} does not contain SecretString`);
+  }
+  return response.SecretString;
+}
+
 async function loadDatabaseCredentialsSecret(
   secretArn: string,
   abortSignal: AbortSignal | null,
