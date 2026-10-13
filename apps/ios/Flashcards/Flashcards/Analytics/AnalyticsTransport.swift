@@ -1,8 +1,6 @@
 import Foundation
 
 /**
- * The external connector for one analytics ingest request.
- *
  * `@unchecked Sendable` because `AnalyticsRuntime` owns the only reference and serializes every call.
  * The session and JSON codecs are created once and never reconfigured after initialization.
  */
@@ -141,41 +139,16 @@ func makeAnalyticsIngestRequest(credentials: AnalyticsCredentials, body: Data) t
     return request
 }
 
-/// Device context, describing the device at flush time.
 @MainActor
 func analyticsClientContextPayload() -> AnalyticsContextPayload {
-    let operatingSystemVersion = ProcessInfo.processInfo.operatingSystemVersion
     return AnalyticsContextPayload(
-        osVersion: "\(operatingSystemVersion.majorVersion).\(operatingSystemVersion.minorVersion).\(operatingSystemVersion.patchVersion)",
-        deviceModel: analyticsDeviceModelIdentifier(),
+        osVersion: currentClientOsVersion(),
+        deviceModel: currentClientDeviceModelIdentifier(),
         osName: currentClientOsName(),
         deviceType: currentClientDeviceType(),
         deviceLocale: Locale.current.identifier(.bcp47),
         timezone: TimeZone.current.identifier
     )
-}
-
-func analyticsDeviceModelIdentifier() -> String? {
-    #if targetEnvironment(macCatalyst)
-    return currentMacModelIdentifier()
-    #else
-    if let simulatorModel = ProcessInfo.processInfo.environment["SIMULATOR_MODEL_IDENTIFIER"] {
-        return simulatorModel
-    }
-
-    var systemInfo = utsname()
-    guard uname(&systemInfo) == 0 else {
-        return nil
-    }
-
-    let machine = systemInfo.machine
-    let identifier = withUnsafePointer(to: machine) { pointer in
-        pointer.withMemoryRebound(to: CChar.self, capacity: MemoryLayout.size(ofValue: machine)) { characters in
-            String(cString: characters)
-        }
-    }
-    return identifier.isEmpty ? nil : identifier
-    #endif
 }
 
 let analyticsRequestDebugLogEnvironmentKey: String = "FLASHCARDS_ANALYTICS_LOG_REQUEST"
