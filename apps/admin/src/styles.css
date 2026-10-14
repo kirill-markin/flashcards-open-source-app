@@ -824,11 +824,14 @@ h2 {
   min-width: 0;
 }
 
-.filter-explanation {
+/* The `(i)` of `ExplanationTip`, wherever it sits; the container it sits in decides where its text
+   opens. Hidden by `display` rather than by opacity, so the text takes no space and no hit area while
+   it is away; a screen reader still reads it, because `aria-describedby` names it directly. */
+.explanation-tip {
   display: inline-flex;
 }
 
-.filter-explanation-toggle {
+.explanation-tip-toggle {
   display: inline-grid;
   place-items: center;
   width: 20px;
@@ -845,41 +848,75 @@ h2 {
   text-transform: none;
 }
 
-/* Anchored to the header rather than to the `(i)`, so a long explanation opens down the popover's own
-   width instead of past its right edge, and capped so it cannot stretch the popover either. The
-   header is outside the popover's scroll box, so this box is clipped by neither: it overlays the
-   picker, and reaches past the popover's own bottom edge when it is taller than what is under it.
-   Hidden by `display` rather than by opacity, so it takes no space and no hit area while it is away;
-   a screen reader still reads it, because `aria-describedby` names it directly. `pointer-events:
-   none` leaves the picker underneath clickable and lets the wheel scroll it while a pinned
-   explanation stays put and whole. */
-.filter-explanation-text {
+.explanation-tip-text {
   position: absolute;
-  z-index: 1;
-  top: calc(100% + 8px);
-  right: 0;
-  left: 0;
   display: none;
-  max-width: 320px;
   padding: 10px 12px;
   border: 1px solid var(--panel-border);
   border-radius: 12px;
   background: var(--tooltip-bg);
   color: var(--tooltip-text);
-  font-size: 12px;
-  font-weight: 600;
   line-height: 1.55;
-  pointer-events: none;
   text-transform: none;
+}
+
+.explanation-tip-text ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.explanation-tip-text li + li,
+.explanation-tip-text ul ul {
+  margin-top: 4px;
 }
 
 /* The `open` class is the only thing that shows it. Hover is answered in the component that owns the
    class rather than by a `:hover` rule here, because the button's `aria-expanded` reads the same one
    state: a rule that could show the text on its own would be a way for the screen and the screen
-   reader to disagree, and it is what used to keep a tooltip up under the pointer that had just been
-   clicked shut. */
-.filter-explanation.open .filter-explanation-text {
+   reader to disagree, and it would keep a tooltip up under the pointer that has just clicked it
+   shut. */
+.explanation-tip.open .explanation-tip-text {
   display: block;
+}
+
+/* Anchored to the header rather than to the `(i)`, so a long explanation opens down the popover's own
+   width instead of past its right edge, and capped so it cannot stretch the popover either. The
+   header is outside the popover's scroll box, so this box is clipped by neither: it overlays the
+   picker, and reaches past the popover's own bottom edge when it is taller than what is under it.
+   `pointer-events: none` leaves the picker underneath clickable and lets the wheel scroll it while a
+   pinned explanation stays put and whole. */
+.filter-popover-header .explanation-tip-text {
+  z-index: 1;
+  top: calc(100% + 8px);
+  right: 0;
+  left: 0;
+  max-width: 320px;
+  font-size: 12px;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+/* A section heading with its `(i)` right after it. The row anchors the explanation, so it opens from
+   the section's own left edge rather than from the `(i)` and cannot run off a narrow screen. */
+.explained-heading-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Wide enough for a list and never wider than its section, laid over the charts below and under the
+   filter popovers and the stale banner, and scrolled inside itself once it is taller than the
+   viewport. Unlike the filter one it takes the pointer, so it can be scrolled and its text selected. */
+.explained-heading-row .explanation-tip-text {
+  z-index: 10;
+  top: calc(100% + 8px);
+  left: 0;
+  width: min(560px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .filter-popover-actions {
