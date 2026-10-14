@@ -3,6 +3,8 @@ import {
   getDatabaseErrorFields,
   logDatabasePoolError,
   toDatabaseBoundaryError,
+  toDatabasePoolBoundaryError,
+  withTransientDatabaseRetry,
 } from "../database/transient";
 import {
   captureBackendWarning,
@@ -10,7 +12,8 @@ import {
 } from "../observability/sentry";
 import { getDatabaseCredentialsSecret } from "../aws/secrets";
 
-const reportingPoolMaxConnections = 4;
+const reportingPoolMaxConnections = 2;
+const reportingPoolConnectionTimeoutMs = 5_000;
 
 let reportingDatabaseUrl: string | undefined;
 let reportingPool: pg.Pool | undefined;
@@ -48,19 +51,17 @@ async function getReportingPool(): Promise<pg.Pool> {
   }
 
   const connectionString = await getReportingDatabaseUrl();
-  // Re-checked after the await, as apps/backend/src/database/core.ts, apps/auth/src/db.ts and
-  // apps/backend/src/productAnalytics/writer.ts do. No reporting caller is known to issue
-  // concurrent queries today - every one of them runs a single transaction at a time - but without
-  // the second check any future concurrent first touch on a cold container would build one pool per
-  // caller, and only the last would stay reachable to end(); the rest would hold their connections
-  // for the life of the container with no reference left to close them.
   if (reportingPool !== undefined) {
     return reportingPool;
   }
 
   const ssl = process.env.REPORTING_DB_SECRET_ARN !== undefined && process.env.REPORTING_DB_SECRET_ARN !== "";
-  // Keep the pool below the reporting_readonly role connection limit.
-  reportingPool = new pg.Pool({ connectionString, ssl, max: reportingPoolMaxConnections });
+  reportingPool = new pg.Pool({
+    connectionString,
+    ssl,
+    max: reportingPoolMaxConnections,
+    connectionTimeoutMillis: reportingPoolConnectionTimeoutMs,
+  });
   reportingPool.on("error", (error: Error): void => {
     logDatabasePoolError("reporting", error);
   });
@@ -68,11 +69,16 @@ async function getReportingPool(): Promise<pg.Pool> {
 }
 
 async function connectReportingClient(): Promise<pg.PoolClient> {
-  try {
-    return await (await getReportingPool()).connect();
-  } catch (error) {
-    throw toDatabaseBoundaryError(error);
-  }
+  return withTransientDatabaseRetry(
+    async () => {
+      try {
+        return await (await getReportingPool()).connect();
+      } catch (error) {
+        throw toDatabasePoolBoundaryError(error);
+      }
+    },
+    createBackendRuntimeObservationScope,
+  );
 }
 
 async function executeReportingTransactionCommand(
@@ -122,14 +128,6 @@ async function rollbackReportingTransaction(client: pg.PoolClient): Promise<unkn
   }
 }
 
-function toClientReleaseError(error: unknown): Error {
-  if (error instanceof Error) {
-    return error;
-  }
-
-  return new Error(String(error));
-}
-
 export async function withReportingClient<Result>(
   run: (client: pg.PoolClient) => Promise<Result>,
 ): Promise<Result> {
@@ -139,7 +137,8 @@ export async function withReportingClient<Result>(
   } catch (error) {
     throw toDatabaseBoundaryError(error);
   } finally {
-    client.release();
+    // Idle Lambda containers must not retain the reporting role's limited connections.
+    client.release(true);
   }
 }
 
@@ -147,7 +146,6 @@ export async function withReportingReadOnlyTransaction<Result>(
   run: (client: pg.PoolClient) => Promise<Result>,
 ): Promise<Result> {
   const client = await connectReportingClient();
-  let releaseError: Error | undefined;
   try {
     await executeReportingTransactionCommand(client, "BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY");
     const result = await run(client);
@@ -156,17 +154,12 @@ export async function withReportingReadOnlyTransaction<Result>(
   } catch (error) {
     const rollbackError = await rollbackReportingTransaction(client);
     if (rollbackError !== null) {
-      releaseError = toClientReleaseError(rollbackError);
       tryLogReportingRollbackFailure(error, rollbackError);
       throw toDatabaseBoundaryError(error);
     }
 
     throw toDatabaseBoundaryError(error);
   } finally {
-    if (releaseError === undefined) {
-      client.release();
-    } else {
-      client.release(releaseError);
-    }
+    client.release(true);
   }
 }

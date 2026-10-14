@@ -509,16 +509,6 @@ async function reapWebGuestInExecutor(
 /**
  * Deliberately not wrapped in `withTransientDatabaseRetry`, unlike the neighbouring scheduled jobs.
  *
- * The transient set covers exactly the mid-query connection terminations an RDS failover or reboot
- * produces (`57P01`, `57P02`, `08006`, `ECONNRESET`), and one of those can arrive most of the way
- * through a scan. `withReportingReadOnlyTransaction` builds its pool with no
- * `connectionTimeoutMillis` and issues its statements with no `query_timeout`, so a retried attempt
- * is bounded only by the reporting role's server-side 30s and, while the instance is unreachable,
- * by the OS TCP connect timeout. Retrying would therefore let a page begun with exactly
- * `candidateScanBudgetMs` left run past `request.deadlineAtMs`, through the entrypoint's
- * finalization reserve, and into a Lambda hard timeout that loses the whole
- * `web_guest_reaper_completed` record - the loss the reserve exists to prevent.
- *
  * The daily schedule is the retry instead: the run is idempotent and the next run walks the same
  * candidates. The caller catches the failure rather than letting it escape, so a scan that throws
  * costs the run its remaining pages but not the record of the guests it already deleted; it still

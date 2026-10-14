@@ -85,7 +85,7 @@ test("withReportingReadOnlyTransaction preserves original error when rollback cl
     "BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY",
     "ROLLBACK",
   ]);
-  assert.deepEqual(releaseArguments, [rollbackError]);
+  assert.deepEqual(releaseArguments, [true]);
   assert.deepEqual(warningRecords, [
     {
       domain: "backend",
