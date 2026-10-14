@@ -58,6 +58,10 @@ export interface AuthGatewayProps {
   adminAdditionalHost: string | undefined;
   demoEmailDostip: string | undefined;
   demoPasswordSecretArn: string | undefined;
+  googleSignInConfig: string | undefined;
+  googleSignInSecretArn: string | undefined;
+  appleSignInConfig: string | undefined;
+  appleSignInSecretArn: string | undefined;
   userPoolId: string;
   userPoolClientId: string;
   sentryDsnSecretArn: string | undefined;
@@ -382,6 +386,18 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
     "DemoPasswordSecret",
     "DEMO_PASSWORD_SECRET_ARN",
   );
+  for (const provider of [
+    { name: "GOOGLE", config: props.googleSignInConfig, secretArn: props.googleSignInSecretArn },
+    { name: "APPLE", config: props.appleSignInConfig, secretArn: props.appleSignInSecretArn },
+  ]) {
+    if (provider.config === undefined && provider.secretArn === undefined) continue;
+    if (provider.config === undefined || provider.config.trim() === "" || provider.secretArn === undefined
+      || !/^arn:aws[a-z-]*:secretsmanager:[a-z0-9-]+:\d{12}:secret:[A-Za-z0-9/_+=.@-]+-[A-Za-z0-9]{6}$/.test(provider.secretArn)) {
+      throw new Error(`${provider.name} sign-in config and complete secret ARN must be configured together`);
+    }
+    authFn.addEnvironment(`${provider.name}_SIGN_IN_CONFIG`, provider.config);
+    addLambdaSecretArnEnvironment(scope, authFn, provider.secretArn, `${provider.name}SignInSecret`, `${provider.name}_SIGN_IN_SECRET_ARN`);
+  }
   const accessLogGroup = new logs.LogGroup(scope, "AuthApiAccessLogGroup", {
     retention: logs.RetentionDays.ONE_WEEK,
   });

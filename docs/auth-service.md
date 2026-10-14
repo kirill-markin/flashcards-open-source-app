@@ -129,6 +129,46 @@ The [private cloud gate](../scripts/checks/check-native-proof-bridge.sh) runs au
 deployment job before release success. It uses the existing configured review account and tests the
 Cognito/database boundary, not Apple/Google proof validation or email delivery.
 
+## Provider proof setup
+
+The dormant [provider modules](../apps/auth/src/server/social/) verify proofs and exchange codes;
+no public route or login method invokes them. [Configuration](../apps/auth/src/server/social/config.ts)
+requires each provider JSON and Secrets Manager ARN together; omitted providers remain unavailable.
+Use the four `CDK_GOOGLE_SIGN_IN_CONFIG`, `CDK_GOOGLE_SIGN_IN_SECRET_ARN`,
+`CDK_APPLE_SIGN_IN_CONFIG`, `CDK_APPLE_SIGN_IN_SECRET_ARN` GitHub variables. CI maps them through
+`CDK_CONTEXT_*` to `googleSignInConfig`, `googleSignInSecretArn`, `appleSignInConfig`,
+`appleSignInSecretArn`; the auth Lambda receives the same names without `CDK_`.
+The [.env example](../.env.example) and source types define JSON fields and secret contracts.
+Only auth receives permission to read these existing secrets; no provider secrets enter browser config.
+
+Before enabling login, register both auth host families with each provider at
+`/api/social/google/callback` and `/api/social/apple/callback`. Follow
+[Google iOS server setup](https://developers.google.com/identity/sign-in/ios/start-integrating),
+[Android Credential Manager setup](https://developer.android.com/identity/sign-in/credential-manager-siwg-implementation),
+and [Apple web registration](https://developer.apple.com/help/account/capabilities/configure-sign-in-with-apple-for-the-web/).
+The server attempt must own client type, nonce and callback; never trust client-supplied replacements.
+Google native requests use the web/server client ID as audience and registered native client as
+`azp` ([Google hybrid claims](https://developers.google.com/identity/openid-connect/openid-connect)).
+Google uses the raw attempt nonce; every Apple client sends `appleRequestNonce(rawNonce)` as its
+request nonce. [Apple nonce](https://developer.apple.com/documentation/signinwithapplejs/clientconfigi/nonce)
+is echoed unchanged; SHA-256 lowercase hexadecimal is this service's chosen cross-client convention.
+
+[Apple credentials](../apps/auth/src/server/social/appleCredential.ts) are encrypted with a
+purpose-separated key derived from the existing session secret and bound to provider subject/client.
+Persist the returned credential after binding the proved identity, before issuing a product session.
+[Credential storage](../db/migrations/0185_apple_revocation_credentials.sql) survives principal erasure:
+the lifecycle caller must durably arrange revocation, retry failures, and remove only successfully
+revoked ciphertext. Retain the session secret until stored credentials have been re-encrypted for rotation.
+Registration is insufficient evidence for activation: verify real native proofs, code exchange,
+revocation and relay OTP receipt before exposing the methods.
+
+For relay delivery, register exact header From and envelope MAIL FROM sources and configure
+aligned DKIM/SPF under [Apple's relay procedure](https://developer.apple.com/help/account/capabilities/configure-private-email-relay-service/).
+The production sender is `no-reply@mail.nibomo.com`, DKIM domain `mail.nibomo.com`, envelope domain
+`send.mail.nibomo.com`; the existing Resend delivery path remains responsible for OTP.
+Accept both `privaterelay.appleid.com` and `private.icloud.com`
+([Apple relay domain update](https://developer.apple.com/news/?id=1ptvdtcm)).
+
 ## Login funnel analytics
 
 `apps/auth` measures the web sign-in funnel itself, server-side, from its own route handlers. The
