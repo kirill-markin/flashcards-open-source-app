@@ -274,10 +274,13 @@ export async function recordGoogleNotification(
     VALUES ('google', $1, $2, $3, '', $4, $5, $6, $7::jsonb) ON CONFLICT (provider, event_id) DO NOTHING`,
   [notification.eventId, notification.eventType, notification.occurredAt, purchase?.user_id ?? null,
     notification.purchaseToken, purchase?.environment ?? null,
-    purchase?.user_id != null && purchase.account_deleted_at === null ? JSON.stringify({
-      previousWillRenew: previous?.will_renew ?? null, previousProviderStatus: previous?.provider_status_raw ?? null,
-      previousIsTrial: previous?.is_trial ?? null,
-    }) : null]);
+    notification.revokedOrderId !== null || (purchase?.user_id != null && purchase.account_deleted_at === null)
+      ? JSON.stringify({ revokedOrderId: notification.revokedOrderId,
+        ...(purchase?.user_id != null && purchase.account_deleted_at === null ? {
+          previousWillRenew: previous?.will_renew ?? null, previousProviderStatus: previous?.provider_status_raw ?? null,
+          previousIsTrial: previous?.is_trial ?? null,
+        } : {}),
+      }) : null]);
   await executor.query(`SELECT event_id FROM billing.provider_events
     WHERE provider = 'google' AND event_id = $1 FOR UPDATE`, [notification.eventId]);
   await readGoogleNotification(executor, notification);

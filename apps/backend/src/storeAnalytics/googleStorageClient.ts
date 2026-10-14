@@ -42,7 +42,9 @@ function isRetryableStatus(status: number): boolean {
   return status === 408 || status === 429 || status >= 500;
 }
 
-function createStoreReportsAuthClient(onRetry: (retry: GoogleStorageRetry) => void): AwsClient {
+export function createStoreReportsAuthClient(
+  onRetry: (retry: GoogleStorageRetry) => void, scopes: ReadonlyArray<string>,
+): AwsClient {
   for (const field of ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "AWS_REGION"]) {
     if (process.env[field] === undefined || process.env[field]?.trim() === "") {
       throw new Error(`Google Play reports access requires Lambda temporary AWS credentials and region: ${field} is missing`);
@@ -54,7 +56,7 @@ function createStoreReportsAuthClient(onRetry: (retry: GoogleStorageRetry) => vo
     subject_token_type: "urn:ietf:params:aws:token-type:aws4_request",
     token_url: "https://sts.googleapis.com/v1/token",
     service_account_impersonation_url: `https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${googleServiceAccount}:generateAccessToken`,
-    scopes: [storageReadOnlyScope],
+    scopes: [...scopes],
     credential_source: {
       environment_id: "aws1",
       regional_cred_verification_url: "https://sts.{region}.amazonaws.com?Action=GetCallerIdentity&Version=2011-06-15",
@@ -74,7 +76,7 @@ function createStoreReportsAuthClient(onRetry: (retry: GoogleStorageRetry) => vo
         maxRetryDelay: 500,
         onRetryAttempt: (error): void => {
           onRetry({
-            label: "Google access token exchange",
+            label: "Google reports identity request",
             attempt: error.config.retryConfig?.currentRetryAttempt ?? 0,
             status: error.response?.status ?? null,
           });
@@ -84,16 +86,12 @@ function createStoreReportsAuthClient(onRetry: (retry: GoogleStorageRetry) => vo
   });
 }
 
-/**
- * Read-only Cloud Storage JSON API client authenticated by Workload Identity Federation from the
- * Lambda's AWS credentials; no Google key file exists.
- */
 export class GoogleStorageClient {
   private readonly authClient: AwsClient;
   private readonly onRetry: (retry: GoogleStorageRetry) => void;
 
   constructor(onRetry: (retry: GoogleStorageRetry) => void) {
-    this.authClient = createStoreReportsAuthClient(onRetry);
+    this.authClient = createStoreReportsAuthClient(onRetry, [storageReadOnlyScope]);
     this.onRetry = onRetry;
   }
 
