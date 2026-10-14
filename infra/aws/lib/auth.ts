@@ -40,7 +40,7 @@ export function auth(scope: Construct, props: AuthProps): AuthResult {
 
   const userPool = new cognito.UserPool(scope, "UserPool", {
     userPoolName: "flashcards-users",
-    selfSignUpEnabled: true,
+    selfSignUpEnabled: false,
     signInAliases: { email: true },
     autoVerify: { email: true },
     customSenderKmsKey: sender.kmsKey,
