@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
 import pg from "pg";
+import { unsafeTransaction } from "../../database/unsafe";
+import { linkProvedCognitoPrincipalInExecutor } from "../../auth/userIdentities";
 import { ensureCognitoUserProfile } from "../../auth/ensureUser";
 import { updateAccountPreferences } from "../../routes/system/account/accountPreferences";
 import { parseAccountPreferencesInput } from "../../routes/system/support";
@@ -280,5 +282,78 @@ test("guest merge adopts a guest accent only for a default destination and prese
     } finally {
       await ownerPool.end();
     }
+  }
+});
+
+test("an unprovisioned provider principal binds a legacy native guest without a second account", async () => {
+  const ownerPool = new pg.Pool({ connectionString: requireOwnerDatabaseUrl() });
+  const subject = randomUUID();
+  const userIds: Array<string> = [];
+  const workspaceIds: Array<string> = [];
+  try {
+    await unsafeTransaction(async (executor) => {
+      await executor.query("SELECT auth.register_cognito_principal($1, $2)", [subject, subject]);
+      await executor.query("SELECT auth.bind_provider_identity('google', $1, $2)", [subject, subject]);
+    });
+    const before = await ownerPool.query("SELECT user_id FROM org.user_settings WHERE user_id = $1", [subject]);
+    assert.equal(before.rowCount, 0);
+    assert.deepEqual(await readMappedUserIds(ownerPool, subject), []);
+    const guest = await createGuestSession(null, null);
+    userIds.push(guest.userId);
+    workspaceIds.push(guest.workspaceId);
+    assert.equal((await prepareGuestUpgrade(guest.guestToken, subject, null)).mode, "bound");
+    const complete = await completeGuestUpgrade(guest.guestToken, subject, { type: "existing", workspaceId: guest.workspaceId }, UPGRADE_CAPABILITIES);
+    assert.equal(complete.targetUserId, guest.userId);
+    assert.equal((await ensureCognitoUserProfile(subject, null)).userId, guest.userId);
+    assert.deepEqual(await readMappedUserIds(ownerPool, subject), [guest.userId]);
+  } finally {
+    try {
+      await removeAccounts(ownerPool, userIds, workspaceIds);
+      await ownerPool.query("DELETE FROM auth.cognito_principals WHERE cognito_subject = $1", [subject]);
+    } finally { await ownerPool.end(); }
+  }
+});
+
+test("committed guest merge replays through another proved principal of the same account", async () => {
+  const ownerPool = new pg.Pool({ connectionString: requireOwnerDatabaseUrl() });
+  const subject = randomUUID();
+  const alias = randomUUID();
+  const unrelated = randomUUID();
+  const userIds: Array<string> = [];
+  const workspaceIds: Array<string> = [];
+  let guestSessionId: string | null = null;
+  try {
+    const account = await ensureCognitoUserProfile(subject, null);
+    const other = await ensureCognitoUserProfile(unrelated, null);
+    userIds.push(account.userId, other.userId);
+    if (account.selectedWorkspaceId === null) throw new Error("Expected a target workspace.");
+    for (const profile of [account, other]) {
+      if (profile.selectedWorkspaceId !== null) workspaceIds.push(profile.selectedWorkspaceId);
+    }
+    const guest = await createGuestSession("android", null);
+    userIds.push(guest.userId);
+    workspaceIds.push(guest.workspaceId);
+    assert.equal((await prepareGuestUpgrade(guest.guestToken, subject, null)).mode, "merge_required");
+    const selection = { type: "existing", workspaceId: account.selectedWorkspaceId } as const;
+    const first = await completeGuestUpgrade(guest.guestToken, subject, selection, UPGRADE_CAPABILITIES);
+    guestSessionId = first.guestSessionId;
+    await unsafeTransaction(async (executor) => {
+      await executor.query("SELECT auth.register_cognito_principal($1, $2)", [alias, alias]);
+    });
+    await unsafeTransaction(async (executor) => {
+      await linkProvedCognitoPrincipalInExecutor(executor, subject, alias);
+    });
+    const replay = await completeGuestUpgrade(guest.guestToken, alias, selection, UPGRADE_CAPABILITIES);
+    assert.equal(replay.outcome, "idempotent_replay");
+    assert.equal(replay.targetUserId, first.targetUserId);
+    assert.equal(replay.targetWorkspaceId, first.targetWorkspaceId);
+    assert.equal(replay.targetSubjectUserId, alias);
+    await assert.rejects(completeGuestUpgrade(guest.guestToken, unrelated, selection, UPGRADE_CAPABILITIES), isGuestAuthInvalid);
+  } finally {
+    try {
+      await removeAccounts(ownerPool, userIds, workspaceIds);
+      await ownerPool.query("DELETE FROM auth.guest_upgrade_history WHERE source_guest_session_id = $1", [guestSessionId]);
+      await ownerPool.query("DELETE FROM auth.cognito_principals WHERE cognito_subject = $1", [alias]);
+    } finally { await ownerPool.end(); }
   }
 });

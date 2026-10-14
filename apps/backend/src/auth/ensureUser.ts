@@ -11,6 +11,7 @@ import {
   bindCognitoIdentityMappingInExecutor,
   loadCognitoIdentityMappingInExecutor,
   lockCognitoIdentityLifecycleInExecutor,
+  lockAccountLifecyclesInExecutor,
 } from "./userIdentities";
 
 /** A recorded analytics consent decision. No decision is null, never a third choice value. */
@@ -67,6 +68,8 @@ export async function ensureUserProfileInExecutor(
   userId: string,
   email: string | null,
 ): Promise<UserProfile> {
+  await lockAccountLifecyclesInExecutor(executor, [userId]);
+  await executor.query("SELECT auth.assert_account_live($1)", [userId]);
   await executor.query(
     upsertUserSettingsSql,
     [userId, email],
@@ -141,6 +144,8 @@ export async function ensureCognitoUserProfileInExecutor(
   const existingMapping = await loadCognitoIdentityMappingInExecutor(executor, subjectUserId);
 
   if (existingMapping !== null) {
+    await lockAccountLifecyclesInExecutor(executor, [existingMapping.userId]);
+    await assertSubjectIsNotDeletedInExecutor(executor, subjectUserId);
     await applyUserDatabaseScopeInExecutor(executor, { userId: existingMapping.userId });
     return ensureUserProfileInExecutor(executor, existingMapping.userId, email);
   }

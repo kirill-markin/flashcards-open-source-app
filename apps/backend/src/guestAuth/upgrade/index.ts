@@ -7,6 +7,7 @@ import {
   hasCognitoIdentityMappingForUserInExecutor,
   loadCognitoIdentityMappingInExecutor,
   lockCognitoIdentityLifecycleInExecutor,
+  lockAccountLifecyclesInExecutor,
 } from "../../auth/userIdentities";
 import { assertSubjectIsNotDeletedInExecutor } from "../../auth/deletedSubjects";
 import { transferAiUsageToUpgradedAccountInExecutor } from "../../aiUsage/identity";
@@ -281,7 +282,8 @@ async function resolveRevokedGuestUpgradeReplayInExecutor(
     throw new HttpError(401, "Guest session is invalid.", "GUEST_AUTH_INVALID");
   }
 
-  if (replay.targetSubjectUserId !== cognitoSubject) {
+  const mapping = await loadCognitoIdentityMappingInExecutor(executor, cognitoSubject);
+  if (mapping === null || mapping.userId !== replay.targetUserId) {
     logSuspiciousGuestUpgradeReplay(
       "revoked_session_subject_mismatch",
       guestSessionId,
@@ -291,7 +293,7 @@ async function resolveRevokedGuestUpgradeReplayInExecutor(
     throw new HttpError(401, "Guest session is invalid.", "GUEST_AUTH_INVALID");
   }
 
-  return createGuestUpgradeReplayCompletionInExecutor(executor, replay, capabilities);
+  return createGuestUpgradeReplayCompletionInExecutor(executor, { ...replay, targetSubjectUserId: cognitoSubject }, capabilities);
 }
 
 /**
@@ -309,7 +311,8 @@ async function resolveDeletedGuestUpgradeReplayInExecutor(
     throw new HttpError(401, "Guest session is invalid.", "GUEST_AUTH_INVALID");
   }
 
-  if (replay.targetSubjectUserId !== cognitoSubject) {
+  const mapping = await loadCognitoIdentityMappingInExecutor(executor, cognitoSubject);
+  if (mapping === null || mapping.userId !== replay.targetUserId) {
     logSuspiciousGuestUpgradeReplay(
       "deleted_session_subject_mismatch",
       replay.sourceGuestSessionId,
@@ -319,7 +322,7 @@ async function resolveDeletedGuestUpgradeReplayInExecutor(
     throw new HttpError(401, "Guest session is invalid.", "GUEST_AUTH_INVALID");
   }
 
-  return createGuestUpgradeReplayCompletionInExecutor(executor, replay, capabilities);
+  return createGuestUpgradeReplayCompletionInExecutor(executor, { ...replay, targetSubjectUserId: cognitoSubject }, capabilities);
 }
 
 async function resolveGuestUpgradeTargetInExecutor(
@@ -380,9 +383,13 @@ export async function prepareGuestUpgradeInExecutor(
 ): Promise<GuestUpgradePreparation> {
   await lockCognitoIdentityLifecycleInExecutor(executor, cognitoSubject);
   await assertSubjectIsNotDeletedInExecutor(executor, cognitoSubject);
-  const guestSession = await loadGuestSessionWithUserSettingsLockInExecutor(executor, guestToken);
-  assertGuestUpgradeSupportedPlatform(guestSession.platform);
+  const unlockedSession = await loadGuestSessionRecordInExecutor(executor, guestToken, false);
+  if (unlockedSession === null) throw new HttpError(401, "Guest session is invalid.", "GUEST_AUTH_INVALID");
+  assertGuestUpgradeSupportedPlatform(unlockedSession.platform);
   const existingMapping = await loadCognitoIdentityMappingInExecutor(executor, cognitoSubject);
+  await lockAccountLifecyclesInExecutor(executor, [unlockedSession.userId, existingMapping?.userId ?? cognitoSubject]);
+  await assertSubjectIsNotDeletedInExecutor(executor, cognitoSubject);
+  const guestSession = await loadGuestSessionWithUserSettingsLockInExecutor(executor, guestToken);
 
   if (existingMapping !== null && existingMapping.userId === guestSession.userId) {
     await updateUserEmailInExecutor(executor, guestSession.userId, email);
@@ -448,6 +455,12 @@ export async function completeGuestUpgradeInExecutor(
   await assertSubjectIsNotDeletedInExecutor(executor, cognitoSubject);
   // Phase 1: load the guest session identity before taking user row locks.
   const unlockedGuestSession = await loadGuestSessionRecordInExecutor(executor, guestToken, false);
+  const targetMapping = await loadCognitoIdentityMappingInExecutor(executor, cognitoSubject);
+  await lockAccountLifecyclesInExecutor(executor, [
+    ...(unlockedGuestSession === null ? [] : [unlockedGuestSession.userId]),
+    ...(targetMapping === null ? [] : [targetMapping.userId]),
+  ]);
+  await assertSubjectIsNotDeletedInExecutor(executor, cognitoSubject);
   if (unlockedGuestSession === null) {
     return resolveDeletedGuestUpgradeReplayInExecutor(
       executor,
@@ -460,7 +473,6 @@ export async function completeGuestUpgradeInExecutor(
   assertGuestUpgradeSupportedPlatform(unlockedGuestSession.platform);
 
   // Phase 2: resolve the mapped target user.
-  const targetMapping = await loadCognitoIdentityMappingInExecutor(executor, cognitoSubject);
   if (targetMapping === null) {
     const guestSession = await lockGuestSessionAfterUserSettingsInExecutor(
       executor,
