@@ -6,6 +6,7 @@ import { customEmailSender } from "./custom-email-sender";
 
 export interface AuthProps {
   preSignUpFn: lambda.Function;
+  nativeProofChallengeFn: lambda.Function;
   resendApiKeySecretArn: string | undefined;
   resendSenderEmail: string | undefined;
   sentryDsnSecretArn: string | undefined;
@@ -47,6 +48,9 @@ export function auth(scope: Construct, props: AuthProps): AuthResult {
     lambdaTriggers: {
       preSignUp: props.preSignUpFn,
       customEmailSender: sender.fn,
+      defineAuthChallenge: props.nativeProofChallengeFn,
+      createAuthChallenge: props.nativeProofChallengeFn,
+      verifyAuthChallengeResponse: props.nativeProofChallengeFn,
     },
     removalPolicy: cdk.RemovalPolicy.RETAIN,
   });
@@ -68,7 +72,7 @@ export function auth(scope: Construct, props: AuthProps): AuthResult {
   // CDK L2 doesn't expose USER_AUTH auth flow — override via L1
   (userPoolClient.node.defaultChild as cdk.CfnResource).addPropertyOverride(
     "ExplicitAuthFlows",
-    ["ALLOW_USER_AUTH", "ALLOW_REFRESH_TOKEN_AUTH"],
+    ["ALLOW_USER_AUTH", "ALLOW_REFRESH_TOKEN_AUTH", "ALLOW_CUSTOM_AUTH"],
   );
 
   return {

@@ -13,6 +13,7 @@ on:
       - 'scripts/checks/check-agent-api-smoke.sh'
       - 'scripts/checks/check-api-health.sh'
       - 'scripts/checks/check-demo-cognito-users.sh'
+      - 'scripts/checks/check-native-proof-bridge.sh'
       - 'scripts/checks/check-multipart-completion-reconciliation-schedule.sh'
       - 'scripts/checks/check-mcp-smoke.sh'
       - 'scripts/checks/check-mcp-capacity-smoke.py'
@@ -652,6 +653,10 @@ jobs:
       - name: Check demo Cognito users
         if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
         run: bash scripts/checks/check-demo-cognito-users.sh --stack-name ${{ env.STACK_NAME }} --region ${{ env.AWS_REGION }}
+
+      - name: Verify private Cognito native proof bridge
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
+        run: bash scripts/checks/check-native-proof-bridge.sh --stack-name ${{ env.STACK_NAME }} --region ${{ env.AWS_REGION }}
 
       - name: Seed global metrics snapshot
         if: ${{ needs.changes.outputs.deploy_platform == 'true' }}

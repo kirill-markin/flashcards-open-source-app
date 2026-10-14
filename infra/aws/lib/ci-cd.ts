@@ -12,6 +12,7 @@ export interface CiCdProps {
   githubRepo: string;
   githubOidcProviderArn: string | undefined;
   authFn: lambda.IFunction;
+  nativeProofGateFn: lambda.IFunction;
   demoPasswordSecretArn: string | undefined;
   globalMetricsSnapshotFn: lambda.IFunction;
   globalMetricsSnapshotFreshnessCheckerFn: lambda.IFunction;
@@ -104,6 +105,11 @@ export function ciCd(scope: Construct, props: CiCdProps): void {
       sid: "InvokeMigrationLambda",
       actions: ["lambda:InvokeFunction"],
       resources: [props.migrationFn.functionArn],
+    }),
+    new iam.PolicyStatement({
+      sid: "InvokeNativeProofGate",
+      actions: ["lambda:InvokeFunction"],
+      resources: [props.nativeProofGateFn.functionArn],
     }),
     createGeneratedMediaPromotionScheduleReadStatement(
       props.generatedMediaPromotionScheduleArn,
