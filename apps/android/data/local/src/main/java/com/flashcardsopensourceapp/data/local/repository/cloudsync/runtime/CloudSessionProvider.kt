@@ -11,6 +11,8 @@ import com.flashcardsopensourceapp.data.local.model.cloud.shouldRefreshCloudIdTo
 import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.CloudIdentityResetCoordinator
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 internal data class AuthenticatedCloudSession(
     val configuration: CloudServiceConfiguration,
@@ -24,10 +26,12 @@ internal class CloudSessionProvider(
     private val operationCoordinator: CloudOperationCoordinator,
     private val resetCoordinator: CloudIdentityResetCoordinator
 ) {
-    suspend fun authenticatedSession(): AuthenticatedCloudSession {
+    suspend fun authenticatedSession(): AuthenticatedCloudSession = operationCoordinator.runExclusive {
         try {
             val configuration: CloudServiceConfiguration = preferencesStore.currentServerConfiguration()
-            val storedCredentials: StoredCloudCredentials = requireNotNull(preferencesStore.loadCredentials()) {
+            val storedCredentials: StoredCloudCredentials = requireNotNull(
+                withContext(Dispatchers.IO) { preferencesStore.loadCredentials() }
+            ) {
                 "Cloud account is not signed in."
             }
 
@@ -40,7 +44,11 @@ internal class CloudSessionProvider(
                 remoteService.refreshIdToken(
                     refreshToken = storedCredentials.refreshToken,
                     authBaseUrl = configuration.authBaseUrl
-                ).also(preferencesStore::saveCredentials)
+                ).also { credentials ->
+                    withContext(Dispatchers.IO) {
+                        preferencesStore.saveCredentials(credentials)
+                    }
+                }
             } else {
                 storedCredentials
             }
@@ -51,7 +59,7 @@ internal class CloudSessionProvider(
             requireFetchedAccountMatchesActiveLinkedIdentity(accountSnapshot = accountSnapshot)
             preferencesStore.saveAccountPreferences(preferences = accountSnapshot.preferences)
 
-            return AuthenticatedCloudSession(
+            AuthenticatedCloudSession(
                 configuration = configuration,
                 credentials = refreshedCredentials,
                 accountSnapshot = accountSnapshot

@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.data.local.support
 
 import android.content.Context
+import android.util.AtomicFile
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.flashcardsopensourceapp.data.local.bootstrap.ensureLocalWorkspaceShell
@@ -76,6 +77,7 @@ internal fun closeLocalDatabaseTestRuntime(runtime: LocalDatabaseTestRuntime): U
 internal fun clearLocalDatabaseSharedPreferences(context: Context): Unit {
     context.deleteSharedPreferences("flashcards-cloud-metadata")
     context.deleteSharedPreferences("flashcards-cloud-secrets")
+    AtomicFile(File(context.filesDir, "flashcards-cloud-secrets-encrypted.bin")).delete()
     context.deleteSharedPreferences("flashcards-review-preferences")
 }
 
