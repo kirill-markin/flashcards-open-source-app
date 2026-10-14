@@ -16,6 +16,19 @@ export type StripeHistoryPage<Item> = Readonly<{
 }>;
 export type StripeHistoryPayment = Readonly<{ invoice: StripeInvoiceHistory; payment: StripePaymentHistory }>;
 export type StripeHistoryRefund = Readonly<{ charge: StripeRefundChargeContext; refund: StripeRefundHistory }>;
+type NativeDecimalField = Readonly<{ unit_amount_decimal?: string | null }>;
+type NativeSubscriptionItem = Omit<Stripe.SubscriptionItem, "price"> & Readonly<{
+  price: Omit<Stripe.Price, "unit_amount_decimal"> & NativeDecimalField;
+}>;
+type NativeSubscription = Omit<Stripe.Subscription, "items"> & Readonly<{
+  items: Omit<Stripe.Subscription["items"], "data"> & Readonly<{ data: Array<NativeSubscriptionItem> }>;
+}>;
+type NativeInvoiceLine = Omit<Stripe.InvoiceLineItem, "pricing"> & Readonly<{
+  pricing?: (Omit<NonNullable<Stripe.InvoiceLineItem["pricing"]>, "unit_amount_decimal"> & NativeDecimalField) | null;
+}>;
+type NativeInvoice = Omit<Stripe.Invoice, "lines"> & Readonly<{
+  lines: Omit<Stripe.Invoice["lines"], "data"> & Readonly<{ data: Array<NativeInvoiceLine> }>;
+}>;
 
 export class StripeHistoryBudgetExhausted extends Error {
   constructor() {
@@ -33,8 +46,33 @@ function requireHistoryMatch(matches: boolean): void {
     "Stripe history object does not match its verified Nibomo catalog, customer, parent or environment.");
 }
 
+function nativeDecimalString(value: Stripe.Decimal | string | null): string | null {
+  return value === null || typeof value === "string" ? value : value.toJSON();
+}
+
+function normalizeSubscriptionDecimals(input: Stripe.Subscription): NativeSubscription {
+  const data: Array<NativeSubscriptionItem> = input.items.data.map((item) => {
+    const { unit_amount_decimal: amount, ...price } = item.price;
+    return { ...item, price: { ...price,
+      ...(amount === undefined ? {} : { unit_amount_decimal: nativeDecimalString(amount) }) } };
+  });
+  return { ...input, items: { ...input.items, data } };
+}
+
+function normalizeInvoiceDecimals(input: Stripe.Invoice): NativeInvoice {
+  const data: Array<NativeInvoiceLine> = input.lines.data.map((line) => {
+    const { pricing: sdkPricing, ...fields } = line;
+    if (sdkPricing === undefined) return fields;
+    if (sdkPricing === null) return { ...fields, pricing: null };
+    const { unit_amount_decimal: amount, ...pricing } = sdkPricing;
+    return { ...fields, pricing: { ...pricing,
+      ...(amount === undefined ? {} : { unit_amount_decimal: nativeDecimalString(amount) }) } };
+  });
+  return { ...input, lines: { ...input.lines, data } };
+}
+
 function parseNative<Schema extends z.ZodType>(
-  schema: Schema, object: Stripe.Subscription | Stripe.Invoice | Stripe.InvoicePayment | Stripe.Refund,
+  schema: Schema, object: NativeSubscription | NativeInvoice | Stripe.InvoicePayment | Stripe.Refund,
 ): z.output<Schema> {
   const result = schema.safeParse(object);
   if (!result.success) throw new BillingHistoryError("BILLING_HISTORY_INVALID",
@@ -123,7 +161,7 @@ export class StripeHistoryProvider {
     for (const input of page.data) {
       const subscription = await this.completeSubscription(input);
       requireHistoryMatch(this.ownsSubscription(subscription));
-      data.push(parseNative(stripeSubscriptionHistorySchema, subscription));
+      data.push(parseNative(stripeSubscriptionHistorySchema, normalizeSubscriptionDecimals(subscription)));
     }
     return { data, nextCursor: pageCursor(page) };
   }
@@ -165,7 +203,7 @@ export class StripeHistoryProvider {
     }
     if (!ownsParent && !matches.some(Boolean)) return null;
     requireHistoryMatch(objectId(invoice.customer) !== null && (matches.length === 0 || matches.every(Boolean)));
-    return parseNative(stripeInvoiceHistorySchema, invoice);
+    return parseNative(stripeInvoiceHistorySchema, normalizeInvoiceDecimals(invoice));
   }
 
   async invoicesPage(cursor: string | null, requestedTo: Date): Promise<StripeHistoryPage<StripeInvoiceHistory>> {
