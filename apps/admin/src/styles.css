@@ -127,9 +127,11 @@ h2 {
   border-top: 1px solid var(--panel-border);
 }
 
+/* Collapses with the next block's own top margin, so content that already brings 24px keeps it. */
 .dashboard-section-header {
   display: grid;
   gap: 12px;
+  margin-bottom: 24px;
 }
 
 .analytics-navigation {
