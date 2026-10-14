@@ -118,6 +118,17 @@ Email + OTP authentication via AWS Cognito (passwordless).
   - `infra/aws/lib/auth.ts`: CDK Cognito User Pool construct
   - `db/migrations/0002_user_settings.sql`: `user_settings` table
 
+The dormant native provider session bridge is implemented in
+[`nativeProofBridge.ts`](../apps/auth/src/server/social/nativeProofBridge.ts),
+with [Cognito triggers](../apps/auth/src/triggers/nativeProof.ts) and
+[atomic grants](../db/migrations/0184_cognito_native_proof_grants.sql).
+Only server code that freshly verified a provider proof may call the bridge after registering its
+principal; no public route invokes it. Metadata registration and session issuance create no product
+rows, so native guest prepare/complete must still precede generic account provisioning.
+The [private cloud gate](../scripts/checks/check-native-proof-bridge.sh) runs automatically in the AWS
+deployment job before release success. It uses the existing configured review account and tests the
+Cognito/database boundary, not Apple/Google proof validation or email delivery.
+
 ## Login funnel analytics
 
 `apps/auth` measures the web sign-in funnel itself, server-side, from its own route handlers. The
