@@ -25,6 +25,8 @@ import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.syncBloc
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.requireCurrentWorkspace
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.toGuestUpgradeSelection
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 internal suspend fun resumePendingGuestUpgradeRecoveryIfNeeded(
     database: AppDatabase,
@@ -35,7 +37,7 @@ internal suspend fun resumePendingGuestUpgradeRecoveryIfNeeded(
     appVersion: String
 ): CloudWorkspaceSummary? {
     val pendingGuestUpgradeState: PendingGuestUpgradeState =
-        preferencesStore.loadPendingGuestUpgrade() ?: return null
+        withContext(Dispatchers.IO) { preferencesStore.loadPendingGuestUpgrade() } ?: return null
     val refreshedGuestUpgradeState: PendingGuestUpgradeState = refreshPendingGuestUpgradeCredentialsIfNeeded(
         pendingGuestUpgradeState = pendingGuestUpgradeState,
         preferencesStore = preferencesStore,
@@ -82,7 +84,9 @@ private suspend fun refreshPendingGuestUpgradeCredentialsIfNeeded(
         credentials = refreshedCredentials,
         accountSnapshot = refreshedAccountSnapshot
     )
-    preferencesStore.savePendingGuestUpgrade(pendingGuestUpgradeState = refreshedGuestUpgradeState)
+    withContext(Dispatchers.IO) {
+        preferencesStore.savePendingGuestUpgrade(pendingGuestUpgradeState = refreshedGuestUpgradeState)
+    }
     return refreshedGuestUpgradeState
 }
 
@@ -124,7 +128,9 @@ private suspend fun finalizePendingGuestUpgradeRecovery(
         completion = completion
     )
     preferencesStore.saveAccountPreferences(preferences = pendingGuestUpgradeState.accountSnapshot.preferences)
-    preferencesStore.saveCredentials(pendingGuestUpgradeState.credentials)
+    withContext(Dispatchers.IO) {
+        preferencesStore.saveCredentials(pendingGuestUpgradeState.credentials)
+    }
     preferencesStore.clearCloudCredentialRecoveryState()
     requireNoPendingGuestUpgradeOutbox(
         syncLocalStore = syncLocalStore,
@@ -139,7 +145,9 @@ private suspend fun finalizePendingGuestUpgradeRecovery(
         appVersion = appVersion
     )
     guestSessionStore.clearAllSessions()
-    preferencesStore.clearPendingGuestUpgrade()
+    withContext(Dispatchers.IO) {
+        preferencesStore.clearPendingGuestUpgrade()
+    }
     return completion.workspace
 }
 
@@ -161,9 +169,11 @@ private suspend fun completePendingGuestUpgradeIfNeeded(
         guestWorkspaceSyncedAndOutboxDrained = true,
         supportsDroppedEntities = pendingGuestUpgradeState.guestUpgradeMode == CloudGuestUpgradeMode.MERGE_REQUIRED
     )
-    preferencesStore.savePendingGuestUpgrade(
-        pendingGuestUpgradeState = pendingGuestUpgradeState.copy(completion = completion)
-    )
+    withContext(Dispatchers.IO) {
+        preferencesStore.savePendingGuestUpgrade(
+            pendingGuestUpgradeState = pendingGuestUpgradeState.copy(completion = completion)
+        )
+    }
     return completion
 }
 
