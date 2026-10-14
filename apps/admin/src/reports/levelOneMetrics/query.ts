@@ -3,16 +3,20 @@ import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import { assertIsString, assertValidDateRange } from "../reportValues";
 import { buildWhoSawUsAvailableRangeSql } from "../whoSawUs/query";
+import { buildWhoPaidUsAvailableRangeSql } from "../whoPaidUs/query";
 import { buildMeaningfulActivityCtesSql } from "./meaningfulActivitySql";
 
 export function buildLevelOneMetricsAvailableRangeSql(): string {
   return `WITH ${buildMeaningfulActivityCtesSql()}, sight_range AS (
 ${buildWhoSawUsAvailableRangeSql()}
+), payment_range AS (
+${buildWhoPaidUsAvailableRangeSql()}
 )
-SELECT to_char(LEAST(sight_range.from_date::date, activity_coverage.history_from), 'YYYY-MM-DD') AS from_date,
+SELECT to_char(LEAST(sight_range.from_date::date, activity_coverage.history_from, payment_range.history_from), 'YYYY-MM-DD') AS from_date,
   sight_range.to_date
 FROM sight_range
-CROSS JOIN activity_coverage`;
+CROSS JOIN activity_coverage
+CROSS JOIN payment_range`;
 }
 
 export async function loadLevelOneMetricsAvailableRange(config: AdminAppConfig): Promise<AnalyticsDateRange> {
