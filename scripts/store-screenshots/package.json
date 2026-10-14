@@ -9,11 +9,11 @@
     "smoke": "node --experimental-strip-types smoke.mts"
   },
   "dependencies": {
-    "playwright": "1.62.1",
+    "playwright": "1.64.0",
     "sharp": "0.35.5"
   },
   "devDependencies": {
-    "@types/node": "24.19.1",
-    "typescript": "6.0.3"
+    "@types/node": "24.19.2",
+    "typescript": "7.0.2"
   }
 }
