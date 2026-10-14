@@ -6,7 +6,11 @@ import {
   type GlobalMetricsSnapshotWriteResult,
 } from "./storage";
 import type { GlobalMetricsSnapshot } from "./snapshot";
-import type { BackendObservationScope } from "../observability/sentry";
+import { getDatabaseErrorFields } from "../database/transient";
+import {
+  addBackendBreadcrumb,
+  type BackendObservationScope,
+} from "../observability/sentry";
 
 type GenerateAndWriteGlobalMetricsSnapshotDependencies = Readonly<{
   generateGlobalMetricsSnapshotFn: () => Promise<GlobalMetricsSnapshot>;
@@ -15,6 +19,23 @@ type GenerateAndWriteGlobalMetricsSnapshotDependencies = Readonly<{
     snapshot: GlobalMetricsSnapshot,
   ) => Promise<GlobalMetricsSnapshotWriteResult>;
 }>;
+
+function logGlobalMetricsSnapshotVersionFailure(
+  observationScope: BackendObservationScope,
+  snapshotVersion: "v2" | "v3",
+  error: unknown,
+): void {
+  const { sqlState, errorCode } = getDatabaseErrorFields(error);
+  addBackendBreadcrumb({
+    action: "global_metrics_snapshot_version_failed",
+    scope: observationScope,
+    details: {
+      snapshotVersion,
+      sqlState: sqlState !== null && /^[A-Z0-9]{5}$/u.test(sqlState) ? sqlState : null,
+      errorCode: errorCode !== null && /^[A-Za-z0-9_]{1,64}$/u.test(errorCode) ? errorCode : null,
+    },
+  });
+}
 
 export async function generateAndWriteGlobalMetricsSnapshotWithDependencies(
   observationScope: BackendObservationScope,
@@ -36,6 +57,13 @@ export async function generateAndWriteGlobalMetricsSnapshot(
       writeGlobalMetricsSnapshotV3ToS3(observationScope, snapshot)
     )),
   ]);
+
+  if (v2Result.status === "rejected") {
+    logGlobalMetricsSnapshotVersionFailure(observationScope, "v2", v2Result.reason);
+  }
+  if (v3Result.status === "rejected") {
+    logGlobalMetricsSnapshotVersionFailure(observationScope, "v3", v3Result.reason);
+  }
 
   if (v2Result.status === "rejected" && v3Result.status === "rejected") {
     throw new AggregateError(
