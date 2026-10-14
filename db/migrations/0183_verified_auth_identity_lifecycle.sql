@@ -1,3 +1,4 @@
+-- Schemas touched/read explicitly: auth, org, pg_catalog.
 -- Subject locks precede account locks, which precede user/guest/workspace row locks.
 -- Account locks serialize aliases without acquiring another subject lock during deletion.
 CREATE TABLE auth.cognito_principals (
