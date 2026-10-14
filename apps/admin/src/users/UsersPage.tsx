@@ -335,7 +335,7 @@ export function UsersPage(props: Readonly<{
 
       <AdminNavigation activePage="users" onNavigate={props.onNavigate} />
 
-      <section className="dashboard-section" data-testid="users-section">
+      <section data-testid="users-section">
         {loadState.status === "loading" ? <p className="report-state" aria-live="polite">Loading users…</p> : null}
         {loadState.status === "error" ? <div className="report-state report-state-error">
           <strong>Users query failed.</strong><span>{loadState.message}</span>

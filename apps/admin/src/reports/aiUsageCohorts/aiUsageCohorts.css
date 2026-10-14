@@ -42,8 +42,8 @@
   line-height: 1.6;
 }
 
-/* Three across is the widest row whose squares still read at this page width; below that the panels
-   stack rather than shrink, because a small multiple too small to see defeats the report. */
+/* Below 300px a panel's squares stop reading, so the panels stack rather than shrink, because a small
+   multiple too small to see defeats the report. */
 .ai-usage-panel-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
