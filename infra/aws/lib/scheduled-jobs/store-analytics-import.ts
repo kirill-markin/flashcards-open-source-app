@@ -153,7 +153,7 @@ export function storeAnalyticsImport(scope: Construct, props: StoreAnalyticsImpo
   }));
 
   new scheduler.CfnSchedule(scope, "StoreAnalyticsImportHourlySchedule", {
-    description: "Import store reports and reconcile Apple and Stripe native billing history every hour",
+    description: "Import store reports and reconcile Google, Apple and Stripe native billing history every hour",
     flexibleTimeWindow: { mode: "OFF" },
     scheduleExpression: storeAnalyticsImportScheduleExpression,
     scheduleExpressionTimezone: "UTC",
