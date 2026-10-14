@@ -78,6 +78,7 @@ export const boundaryDefinitions = Object.freeze([
       "src/guestAuth/upgrade/boundGuestSession.postgres.integration.ts",
       "src/aiConsent/consent.postgres.integration.ts",
       "src/routes/system/account/accountPreferences.postgres.integration.ts",
+      "src/agent/reviews.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
@@ -94,7 +95,6 @@ export const boundaryDefinitions = Object.freeze([
     migrationFileName: "0176_client_os_name_device_type.sql",
     expectedMigrationCount: 178,
     testFiles: Object.freeze([
-      "src/agent/reviews.postgres.integration.ts",
       "src/billing/entitlement.postgres.integration.ts",
       "src/chat/cardImages/promotion/jobsSettlement.postgres.integration.ts",
       "src/productAnalytics/serverFacts/authoringUpdates.postgres.integration.ts",
