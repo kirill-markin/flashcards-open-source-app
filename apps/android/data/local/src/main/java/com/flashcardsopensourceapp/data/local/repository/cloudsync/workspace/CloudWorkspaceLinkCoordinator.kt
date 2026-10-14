@@ -42,6 +42,8 @@ import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.CloudWor
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.runCloudSyncCore
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.syncBlockedExceptionFor
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 internal class CloudWorkspaceLinkCoordinator(
     private val database: AppDatabase,
@@ -134,7 +136,9 @@ internal class CloudWorkspaceLinkCoordinator(
                 bearerToken = authenticatedSession.credentials.idToken,
                 selectedWorkspace = selectedWorkspace
             )
-            preferencesStore.saveCredentials(authenticatedSession.credentials)
+            withContext(Dispatchers.IO) {
+                preferencesStore.saveCredentials(authenticatedSession.credentials)
+            }
             preferencesStore.clearCloudCredentialRecoveryState()
             // Requested here rather than off a `LINKED` cloud-settings emission, and deliberately
             // after `saveCredentials`: `applyLinkedWorkspace` writes `LINKED` one statement earlier,
@@ -208,7 +212,9 @@ internal class CloudWorkspaceLinkCoordinator(
                     selection = validatedSelection,
                     completion = null
                 )
-                preferencesStore.savePendingGuestUpgrade(pendingGuestUpgradeState = pendingGuestUpgradeState)
+                withContext(Dispatchers.IO) {
+                    preferencesStore.savePendingGuestUpgrade(pendingGuestUpgradeState = pendingGuestUpgradeState)
+                }
                 requireNotNull(resumePendingGuestUpgradeIfNeeded()) {
                     "Pending guest upgrade recovery did not find the saved upgrade state."
                 }
@@ -436,7 +442,9 @@ internal class CloudWorkspaceLinkCoordinator(
         loadResumableGuestLocalRecoveryWorkspaceOrNull(
             authenticatedSession = authenticatedSession
         )?.let { resumableWorkspace ->
-            preferencesStore.saveCredentials(authenticatedSession.credentials)
+            withContext(Dispatchers.IO) {
+                preferencesStore.saveCredentials(authenticatedSession.credentials)
+            }
             transitionCoordinator.requireTransitionInvariant(
                 stage = "before resumed guest local recovery sync",
                 expectedWorkspaceId = resumableWorkspace.workspaceId
@@ -459,7 +467,9 @@ internal class CloudWorkspaceLinkCoordinator(
             bearerToken = authenticatedSession.credentials.idToken,
             name = "Personal"
         )
-        preferencesStore.saveCredentials(authenticatedSession.credentials)
+        withContext(Dispatchers.IO) {
+            preferencesStore.saveCredentials(authenticatedSession.credentials)
+        }
         transitionCoordinator.applyLinkedWorkspacePreservingLocalData(
             accountSnapshot = authenticatedSession.accountSnapshot,
             selectedWorkspace = selectedWorkspace
@@ -492,7 +502,9 @@ internal class CloudWorkspaceLinkCoordinator(
         authenticatedSession: AuthenticatedCloudSession,
         selectedWorkspace: CloudWorkspaceSummary
     ): CloudWorkspaceSummary {
-        preferencesStore.saveCredentials(authenticatedSession.credentials)
+        withContext(Dispatchers.IO) {
+            preferencesStore.saveCredentials(authenticatedSession.credentials)
+        }
         transitionCoordinator.applyLinkedWorkspacePreservingLocalData(
             accountSnapshot = authenticatedSession.accountSnapshot,
             selectedWorkspace = selectedWorkspace

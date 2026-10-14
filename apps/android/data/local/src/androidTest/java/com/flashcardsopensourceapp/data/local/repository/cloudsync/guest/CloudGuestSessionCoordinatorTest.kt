@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.data.local.repository.cloudsync.guest
 import android.content.Context
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.data.local.ai.remote.GuestCloudSessionCreator
+import com.flashcardsopensourceapp.data.local.cloud.CloudCredentialStore
 import com.flashcardsopensourceapp.data.local.cloud.PendingGuestUpgradeState
 import com.flashcardsopensourceapp.data.local.database.entities.SyncStateEntity
 import com.flashcardsopensourceapp.data.local.model.ai.StoredGuestAiSession
@@ -674,13 +675,9 @@ class CloudGuestSessionCoordinatorTest {
 
     @Test
     fun startupReconciliationFailsExplicitlyWhenPendingGuestUpgradeStateIsCorrupt() = runBlocking {
-        val didWriteCorruptState = environment.context.getSharedPreferences(
-            "flashcards-cloud-secrets",
-            Context.MODE_PRIVATE
-        ).edit()
-            .putString("pending-guest-upgrade", "{")
-            .commit()
-        assertTrue(didWriteCorruptState)
+        CloudCredentialStore(context = environment.context).update { secrets ->
+            secrets.copy(pendingGuestUpgrade = "{")
+        }
         val coordinator = environment.createCloudGuestSessionCoordinator(
             remoteGateway = FakeCloudRemoteGateway.standard()
         )

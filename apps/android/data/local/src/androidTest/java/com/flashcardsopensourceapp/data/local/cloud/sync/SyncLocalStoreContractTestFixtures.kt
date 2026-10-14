@@ -1,6 +1,8 @@
 package com.flashcardsopensourceapp.data.local.cloud.sync
 
 import android.content.Context
+import android.util.AtomicFile
+import java.io.File
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
@@ -125,5 +127,6 @@ internal suspend fun insertSyncContractCard(
 private fun clearSyncLocalStoreSharedPreferences(context: Context): Unit {
     context.deleteSharedPreferences("flashcards-cloud-metadata")
     context.deleteSharedPreferences("flashcards-cloud-secrets")
+    AtomicFile(File(context.filesDir, "flashcards-cloud-secrets-encrypted.bin")).delete()
     context.deleteSharedPreferences("flashcards-review-preferences")
 }
