@@ -47,7 +47,7 @@ export function renderMeaningfulActivityHitTargets(
     const bounds = this.getBoundingClientRect();
     tooltipHandlers.showTooltip(getTooltipHtml(date), bounds.left, bounds.top);
   };
-  frame.group.selectAll(".activity-chart-hit").data(dates).join("rect")
+  frame.group.selectAll<SVGRectElement, string>(".activity-chart-hit").data(dates).join("rect")
     .attr("class", "activity-chart-hit")
     .attr("x", (date) => frame.x(date) ?? 0).attr("y", 0)
     .attr("width", frame.x.bandwidth()).attr("height", frame.innerHeight)
