@@ -62,7 +62,9 @@ import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.Clo
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.CloudWorkspaceLinkCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.CloudWorkspaceOperationsCoordinator
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.withContext
 
 class LocalCloudAccountRepository(
     private val database: AppDatabase,
@@ -688,7 +690,9 @@ class LocalCloudAccountRepository(
         val configuration = preferencesStore.currentServerConfiguration()
         return when (cloudSettings.cloudState) {
             CloudAccountState.LINKED -> {
-                val storedCredentials = requireNotNull(preferencesStore.loadCredentials()) {
+                val storedCredentials = requireNotNull(
+                    withContext(Dispatchers.IO) { preferencesStore.loadCredentials() }
+                ) {
                     "Cloud account is not signed in."
                 }
                 val refreshedCredentials = if (
@@ -700,7 +704,11 @@ class LocalCloudAccountRepository(
                     remoteService.refreshIdToken(
                         refreshToken = storedCredentials.refreshToken,
                         authBaseUrl = configuration.authBaseUrl
-                    ).also(preferencesStore::saveCredentials)
+                    ).also { credentials ->
+                        withContext(Dispatchers.IO) {
+                            preferencesStore.saveCredentials(credentials)
+                        }
+                    }
                 } else {
                     storedCredentials
                 }

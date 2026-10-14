@@ -18,4 +18,19 @@
     <exclude
         domain="sharedpref"
         path="flashcards-ai-own-openai-key-switch.xml" />
+    <exclude
+        domain="sharedpref"
+        path="flashcards-cloud-secrets.xml" />
+    <exclude
+        domain="sharedpref"
+        path="flashcards-cloud-secrets.xml.bak" />
+    <exclude
+        domain="file"
+        path="flashcards-cloud-secrets-encrypted.bin" />
+    <exclude
+        domain="file"
+        path="flashcards-cloud-secrets-encrypted.bin.new" />
+    <exclude
+        domain="file"
+        path="flashcards-cloud-secrets-encrypted.bin.bak" />
 </full-backup-content>

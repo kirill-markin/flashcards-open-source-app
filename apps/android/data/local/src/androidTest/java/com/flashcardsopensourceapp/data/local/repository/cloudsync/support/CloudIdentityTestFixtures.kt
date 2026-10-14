@@ -1,6 +1,8 @@
 package com.flashcardsopensourceapp.data.local.repository.cloudsync.support
 
 import android.content.Context
+import android.util.AtomicFile
+import java.io.File
 import com.flashcardsopensourceapp.data.local.database.entities.SyncStateEntity
 import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.sync.defaultAccountPreferences
@@ -16,6 +18,7 @@ import com.flashcardsopensourceapp.data.local.model.ai.StoredGuestAiSession
 internal fun clearCloudAndAiPreferences(context: Context) {
     context.deleteSharedPreferences("flashcards-cloud-metadata")
     context.deleteSharedPreferences("flashcards-cloud-secrets")
+    AtomicFile(File(context.filesDir, "flashcards-cloud-secrets-encrypted.bin")).delete()
     context.deleteSharedPreferences("flashcards-review-preferences")
     context.deleteSharedPreferences("flashcards-ai-chat-preferences")
     context.deleteSharedPreferences("flashcards-ai-chat-history")

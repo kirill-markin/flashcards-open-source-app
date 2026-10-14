@@ -28,6 +28,7 @@ import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.loa
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.preserveReferencedWorkspaceMediaAssets
 import java.io.IOException
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 
@@ -181,7 +182,9 @@ class CloudGuestSessionCoordinator(
         }
 
         val configuration = preferencesStore.currentServerConfiguration()
-        val storedCredentials = preferencesStore.loadCredentials()
+        val storedCredentials = withContext(Dispatchers.IO) {
+            preferencesStore.loadCredentials()
+        }
         val storedGuestSession = guestSessionStore.loadAnySession(configuration = configuration)
         val reconciledCloudSettings = preferencesStore.currentCloudSettings()
         // A linked account holding a guest session is the analytics guest waiting for its identity
@@ -343,13 +346,15 @@ class CloudGuestSessionCoordinator(
         )
     }
 
-    private fun activeCredentialRecoveryReconciliationResultOrNull(
+    private suspend fun activeCredentialRecoveryReconciliationResultOrNull(
         recoveryState: CloudCredentialRecoveryState?
     ): CloudIdentityReconciliationResult? {
         if (recoveryState == null) {
             return null
         }
-        preferencesStore.loadPendingGuestUpgrade()
+        withContext(Dispatchers.IO) {
+            preferencesStore.loadPendingGuestUpgrade()
+        }
         return CloudIdentityReconciliationResult(
             cloudSettings = preferencesStore.currentCloudSettings(),
             restoredGuestSession = null,
@@ -690,7 +695,9 @@ class CloudGuestSessionCoordinator(
     }
 
     private suspend fun normalizeLegacyLinkingReadyStateLocked(cloudSettings: CloudSettings) {
-        preferencesStore.clearCredentials()
+        withContext(Dispatchers.IO) {
+            preferencesStore.clearCredentials()
+        }
         preferencesStore.updateCloudSettings(
             cloudState = CloudAccountState.DISCONNECTED,
             linkedUserId = null,
