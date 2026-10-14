@@ -1694,6 +1694,28 @@ h2 {
   color: rgba(248, 250, 252, 0.56);
 }
 
+.payment-tooltip-table {
+  width: 100%;
+  margin-top: 8px;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.payment-tooltip-table th,
+.payment-tooltip-table td {
+  padding: 3px;
+  text-align: right;
+}
+
+.payment-tooltip-table th:first-child {
+  text-align: left;
+}
+
+.payment-tooltip-note {
+  margin: 8px 0 0;
+  font-size: 12px;
+}
+
 .state-panel {
   max-width: 620px;
   padding: 28px;
