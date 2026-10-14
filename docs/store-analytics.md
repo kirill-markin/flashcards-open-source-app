@@ -1,6 +1,6 @@
 # Store Analytics Import
 
-[A scheduled Lambda](../infra/aws/lib/scheduled-jobs/store-analytics-import.ts) copies store reports into the `store_analytics` schema ([migration](../db/migrations/0181_store_analytics_schema.sql)). It runs hourly at minute 20 UTC as the IAM role `FlashcardsStoreReportsImportRole`; [the handler](../apps/backend/src/entrypoints/scheduledJobs/lambda-store-analytics-import.ts) runs App Store, then Google Play, under one lock and one 12-minute budget. One source failing does not stop the other; the run still fails, and each failure is reported to Sentry. The importers log one `store_analytics_apple_import_completed` and one `store_analytics_play_import_completed` record per run.
+[A scheduled Lambda](../infra/aws/lib/scheduled-jobs/store-analytics-import.ts) copies store reports into the `store_analytics` schema ([migration](../db/migrations/0181_store_analytics_schema.sql)). It runs hourly at minute 20 UTC as the IAM role `FlashcardsStoreReportsImportRole`; [the handler](../apps/backend/src/entrypoints/scheduledJobs/lambda-store-analytics-import.ts) runs App Store reports, Google Play reports, then [Apple native billing history](billing-history.md#apple-collection-and-backfill), under one lock and one 12-minute budget. Each report source can start work for four minutes; Apple history receives the remaining budget with a two-minute cap per environment. One source failing does not stop the others; the run still fails, and each failure is reported to Sentry. The importers log one `store_analytics_apple_import_completed` and one `store_analytics_play_import_completed` record per run.
 
 ## App Store
 
@@ -19,3 +19,5 @@
 ## Freshness
 
 `store_analytics.import_files` has one row per imported App Store segment or Play file. For App Store, read the latest `processing_date` and `imported_at` per `report_name` and `granularity` there; an instance absent from it has not been imported. Apple deletes instances 35 days after generation. For Google Play, read `file_month`, `report_date_to` and `imported_at` per `report_name`; Google posts each day 3–7 days late.
+
+Native transaction history uses the existing Apple IAP secret and the same importer role. It does not write or sum store-report tables. Existing ONGOING and ONE_TIME_SNAPSHOT Apple requests are read together; do not create another request when a commerce report has no instances. An empty instance list is unavailable report history, not zero sales.
