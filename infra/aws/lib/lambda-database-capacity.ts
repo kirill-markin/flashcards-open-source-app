@@ -1,9 +1,9 @@
-// Reservation-based accounting for the six main application pools below. The synth guard does
+// Reservation-based accounting for the main application pools below. The synth guard does
 // not bound all connections to Postgres: secondary pools, other functions and idle connections in
 // retained Lambda environments also draw from the database.
 //
 // The db.t4g.small instance has 181 connections, with 3 reserved for superusers: 178 usable.
-// Main-pool allocation: (12 + 6 + 16 + 16 + 3 + 2) x 3 = 165, leaving 13 for additional draw.
+// Main-pool allocation: (12 + 6 + 16 + 16 + 3 + 2 + 2 + 1) x 3 = 174, leaving 4 for additional draw.
 // Every budgeted function receives DB_POOL_MAX_CONNECTIONS from here; the backend and auth pool
 // constructors enforce it in apps/backend/src/database/core.ts and apps/auth/src/db.ts.
 //
@@ -22,7 +22,7 @@
 //   GlobalMetricsSnapshotHandler uses reporting; its freshness checker reads S3, not Postgres.
 //   DbMigrationHandler uses a separate owner connection.
 //
-// The remaining 13 connections do not cover simultaneous saturation of these additional pools.
+// The remaining 4 connections do not cover simultaneous saturation of these additional pools.
 // Reservation increases require observed database headroom and post-deploy monitoring; they do
 // not guarantee a whole-fleet worst case or eliminate throttling when demand exceeds a reservation.
 const databasePoolMaxConnectionsPerContainer = 3;
@@ -34,6 +34,8 @@ export const databasePoolMaxConnectionsEnvName = "DB_POOL_MAX_CONNECTIONS";
 export const databasePoolMaxConnectionsEnvValue = String(databasePoolMaxConnectionsPerContainer);
 export const backendHandlerReservedConcurrency = 12;
 export const authHandlerReservedConcurrency = 6;
+export const nativeProofChallengeReservedConcurrency = 2;
+export const nativeProofGateReservedConcurrency = 1;
 export const mcpHandlerReservedConcurrency = 16;
 // SSE holds a container for the whole stream, so concurrency depends on session duration.
 export const chatLiveHandlerReservedConcurrency = 16;
@@ -43,6 +45,8 @@ export const directImageIngestionHandlerReservedConcurrency = 2;
 const budgetedDatabaseConnections = [
   backendHandlerReservedConcurrency,
   authHandlerReservedConcurrency,
+  nativeProofChallengeReservedConcurrency,
+  nativeProofGateReservedConcurrency,
   mcpHandlerReservedConcurrency,
   chatLiveHandlerReservedConcurrency,
   chatRunWorkerHandlerReservedConcurrency,

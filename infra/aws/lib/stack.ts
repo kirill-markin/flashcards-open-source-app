@@ -6,6 +6,8 @@ import { Construct } from "constructs";
 import { networking } from "./networking";
 import { database } from "./database";
 import { preSignUp } from "./pre-signup";
+import { nativeProofChallenge } from "./native-proof-challenge";
+import { nativeProofGate } from "./native-proof-gate";
 import { auth } from "./auth";
 import { apiGateway } from "./gateways/api-gateway";
 import type { MonitoringProps } from "./monitoring";
@@ -499,8 +501,15 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       });
     }
     const preSignUpFn = preSignUp(this, { ...sentryContext });
+    const nativeProofChallengeFn = nativeProofChallenge(this, {
+      vpc: net.vpc,
+      lambdaSg: net.lambdaSg,
+      db: dbResult.db,
+      authDbSecret: dbResult.authDbSecret,
+    });
     const authResult = auth(this, {
       preSignUpFn,
+      nativeProofChallengeFn,
       resendApiKeySecretArn,
       resendSenderEmail,
       ...sentryContext,
@@ -555,6 +564,18 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       ...sentryContext,
     });
     const migrationGate = databaseMigrationGate(this, migrationFn);
+    const nativeProofGateFn = nativeProofGate(this, {
+      vpc: net.vpc,
+      lambdaSg: net.lambdaSg,
+      db: dbResult.db,
+      authDbSecret: dbResult.authDbSecret,
+      userPoolId: authResult.userPool.userPoolId,
+      userPoolClientId: authResult.userPoolClient.userPoolClientId,
+      demoEmailDostip,
+      demoPasswordSecretArn,
+    });
+    addDatabaseMigrationDependency(nativeProofGateFn, migrationGate);
+    new cdk.CfnOutput(this, "NativeProofGateFunctionName", { value: nativeProofGateFn.functionName });
     const api = apiGateway(this, {
       vpc: net.vpc,
       lambdaSg: net.lambdaSg,
@@ -607,6 +628,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     // of the migrations its statements need (db/migrations/0159_surrogate_user_identity.sql grants
     // it the auth.user_identities INSERT its account creation performs).
     addDatabaseMigrationDependency(authApi.authFn, migrationGate);
+    addDatabaseMigrationDependency(nativeProofChallengeFn, migrationGate);
     addDatabaseMigrationDependency(webGuestReaperResult.reaperFunction, migrationGate);
     addDatabaseMigrationDependency(countryRetentionResult.retentionFunction, migrationGate);
     addDatabaseMigrationDependency(dailyVisitorHashSaltExpiryResult.expiryFunction, migrationGate);
@@ -682,6 +704,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     };
 
     ciCd(this, {
+      nativeProofGateFn,
       stackId: this.stackId,
       geoLiteCountryBucket,
       githubRepo,

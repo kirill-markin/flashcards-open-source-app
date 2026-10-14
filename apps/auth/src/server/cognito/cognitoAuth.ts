@@ -45,7 +45,7 @@ const getRegion = (): string => {
   return region;
 };
 
-const getClientId = (): string => {
+export const getClientId = (): string => {
   const clientId = process.env.COGNITO_CLIENT_ID ?? "";
   if (clientId === "") throw new Error("COGNITO_CLIENT_ID is not configured");
   return clientId;
@@ -100,7 +100,7 @@ function parseCognitoErrorResponse(
   };
 }
 
-const cognitoFetch = async (
+export const cognitoFetch = async (
   target: CognitoOperation,
   body: Record<string, unknown>,
 ): Promise<Record<string, unknown>> => {
@@ -197,7 +197,7 @@ function extractRequiredStringField(
   return value;
 }
 
-function extractTokenResult(
+export function extractTokenResult(
   result: Record<string, unknown>,
   context: string,
 ): TokenResult {
