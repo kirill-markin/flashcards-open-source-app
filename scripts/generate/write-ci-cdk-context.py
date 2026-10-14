@@ -114,6 +114,10 @@ def build_context_values(aws_deploy_role_arn: str) -> dict[str, str]:
         "alertEmail": get_trimmed_env("CDK_CONTEXT_ALERT_EMAIL"),
         "analyticsAccessEnabled": get_trimmed_env("CDK_CONTEXT_ANALYTICS_ACCESS_ENABLED"),
         "anthropicApiKeySecretArn": get_trimmed_env("CDK_CONTEXT_ANTHROPIC_API_KEY_SECRET_ARN"),
+        "appleSignInConfig": get_raw_env("CDK_CONTEXT_APPLE_SIGN_IN_CONFIG"),
+        "appleSignInSecretArn": get_raw_env("CDK_CONTEXT_APPLE_SIGN_IN_SECRET_ARN"),
+        "googleSignInConfig": get_raw_env("CDK_CONTEXT_GOOGLE_SIGN_IN_CONFIG"),
+        "googleSignInSecretArn": get_raw_env("CDK_CONTEXT_GOOGLE_SIGN_IN_SECRET_ARN"),
         "appleIapSecretArn": get_trimmed_env("CDK_CONTEXT_APPLE_IAP_SECRET_ARN"),
         "stripeBillingSecretArn": get_trimmed_env("CDK_CONTEXT_STRIPE_BILLING_SECRET_ARN"),
         "stripeCheckoutLiveEnabled": get_raw_env("CDK_CONTEXT_STRIPE_CHECKOUT_LIVE_ENABLED"),
@@ -160,6 +164,21 @@ def build_context_values(aws_deploy_role_arn: str) -> dict[str, str]:
         ),
         "webPrimaryHostRetired": get_trimmed_env("CDK_CONTEXT_WEB_PRIMARY_HOST_RETIRED"),
     }
+    for provider in ("apple", "google"):
+        config_key = f"{provider}SignInConfig"
+        arn_key = f"{provider}SignInSecretArn"
+        config = values[config_key]
+        arn = values[arn_key]
+        if config == "" and arn == "":
+            continue
+        if config.strip() == "" or AWS_SECRETS_MANAGER_SECRET_ARN_RE.fullmatch(arn) is None:
+            raise ValueError(f"{provider} sign-in config and secret ARN must be configured together")
+        try:
+            parsed_config = json.loads(config)
+        except ValueError:
+            raise ValueError(f"{provider} sign-in config must be a JSON object") from None
+        if not isinstance(parsed_config, dict):
+            raise ValueError(f"{provider} sign-in config must be a JSON object")
     validate_required_backend_sentry_context(values, aws_deploy_role_arn)
     return {key: value for key, value in values.items() if value != ""}
 
