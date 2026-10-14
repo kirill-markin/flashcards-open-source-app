@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.data.local.repository.cloudsync.guest
 
 import android.content.Context
+import com.flashcardsopensourceapp.data.local.ai.store.GuestAiSessionStore
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.data.local.ai.remote.GuestCloudSessionCreator
 import com.flashcardsopensourceapp.data.local.cloud.CloudCredentialStore
@@ -15,6 +16,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeCompl
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurationMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSelection
+import com.flashcardsopensourceapp.data.local.model.cloud.makeCustomCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.cloud.makeOfficialCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.CloudIdentityTestEnvironment
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.FakeCloudRemoteGateway
@@ -23,7 +25,14 @@ import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.creat
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.createCloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.createStoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.createStoredGuestAiSession
+import java.io.File
 import java.net.SocketTimeoutException
+import java.security.KeyStore
+import org.json.JSONObject
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -693,6 +702,190 @@ class CloudGuestSessionCoordinatorTest {
     }
 
     @Test
+    fun legacyGuestSessionsAndCreationKeyMigrateTogetherWithoutChangingLocalIdentity() = runBlocking {
+        val preservationState = seedCredentialRecoveryLocalData(environment = environment)
+        val legacyPreferences = environment.context.getSharedPreferences(
+            "flashcards-ai-chat-guest-session", Context.MODE_PRIVATE
+        )
+        val cloudSession = createStoredGuestAiSession(
+            workspaceId = "cloud-workspace",
+            configurationMode = CloudServiceConfigurationMode.OFFICIAL,
+            apiBaseUrl = "https://api.nibomo.com/v1",
+            guestToken = "legacy-cloud-secret",
+            userId = "legacy-cloud-user"
+        )
+        val analyticsSession = cloudSession.copy(
+            workspaceId = "analytics-workspace",
+            guestToken = "legacy-analytics-secret",
+            userId = "legacy-analytics-user",
+            isAnalyticsOnly = true
+        )
+        assertTrue(
+            legacyPreferences.edit()
+                .putString("guest-ai-session", legacyGuestSessionJson(session = cloudSession))
+                .putString("guest-ai-session::analytics-workspace", legacyGuestSessionJson(session = analyticsSession))
+                .putString("guest-ai-session::malformed", "{")
+                .putString("guest-session-creation-idempotency-key", "legacy-pending-creation-secret")
+                .commit()
+        )
+
+        val restartedStore = GuestAiSessionStore(context = environment.context)
+        val configuration = makeOfficialCloudServiceConfiguration()
+        assertEquals(analyticsSession, restartedStore.loadAnySession(configuration = configuration))
+        assertEquals(cloudSession, restartedStore.loadSession(localWorkspaceId = null, configuration = configuration))
+        assertEquals("legacy-pending-creation-secret", restartedStore.loadPendingCreationIdempotencyKey())
+        assertTrue(legacyPreferences.all.isEmpty())
+        val payload = File(environment.context.filesDir, "flashcards-ai-chat-guest-session-encrypted.bin")
+            .readBytes().toString(Charsets.ISO_8859_1)
+        listOf(cloudSession.guestToken, analyticsSession.guestToken, "legacy-pending-creation-secret")
+            .forEach { secret -> assertTrue(payload.contains(secret).not()) }
+
+        restartedStore.clearCloudOwnedSessions()
+        val afterCleanup = GuestAiSessionStore(context = environment.context)
+        assertNull(afterCleanup.loadSession(localWorkspaceId = null, configuration = configuration))
+        assertEquals(analyticsSession, afterCleanup.loadAnySession(configuration = configuration))
+        assertEquals("legacy-pending-creation-secret", afterCleanup.loadPendingCreationIdempotencyKey())
+        afterCleanup.clearStoredSessions()
+        assertNull(afterCleanup.loadAnySession(configuration = configuration))
+        assertEquals("legacy-pending-creation-secret", afterCleanup.loadPendingCreationIdempotencyKey())
+        afterCleanup.clearAllSessions()
+        assertNull(GuestAiSessionStore(context = environment.context).loadPendingCreationIdempotencyKey())
+        assertCredentialRecoveryPreservedLocalData(environment = environment, preservationState = preservationState)
+    }
+
+    @Test
+    fun guestMigrationReadFailureRetainsLegacyCredentialsAndLocalData() = runBlocking {
+        val preservationState = seedCredentialRecoveryLocalData(environment = environment)
+        val legacyPreferences = environment.context.getSharedPreferences(
+            "flashcards-ai-chat-guest-session", Context.MODE_PRIVATE
+        )
+        assertTrue(legacyPreferences.edit().putString("guest-session-creation-idempotency-key", "pending-key").commit())
+        val file = File(environment.context.filesDir, "flashcards-ai-chat-guest-session-encrypted.bin")
+        assertTrue(file.mkdir())
+        try {
+            try {
+                environment.guestAiSessionStore.loadPendingCreationIdempotencyKey()
+                throw AssertionError("Expected unreadable protected guest storage to fail.")
+            } catch (error: IllegalStateException) {
+                assertTrue(error.message?.contains("Stored data was retained") == true)
+            }
+            assertEquals("pending-key", legacyPreferences.getString("guest-session-creation-idempotency-key", null))
+            assertCredentialRecoveryPreservedLocalData(environment = environment, preservationState = preservationState)
+        } finally {
+            assertTrue(file.delete())
+        }
+    }
+
+    @Test
+    fun tamperedGuestCiphertextFailsWithoutLegacyFallbackAndExplicitClearPreservesLocalData() = runBlocking {
+        val preservationState = seedCredentialRecoveryLocalData(environment = environment)
+        environment.guestAiSessionStore.savePendingCreationIdempotencyKey(idempotencyKey = "protected-key")
+        val file = File(environment.context.filesDir, "flashcards-ai-chat-guest-session-encrypted.bin")
+        val tampered = file.readBytes()
+        tampered[tampered.lastIndex] = (tampered.last().toInt() xor 1).toByte()
+        file.writeBytes(tampered)
+        val legacyPreferences = environment.context.getSharedPreferences(
+            "flashcards-ai-chat-guest-session", Context.MODE_PRIVATE
+        )
+        assertTrue(legacyPreferences.edit().putString("guest-session-creation-idempotency-key", "stale-key").commit())
+
+        try {
+            environment.createCloudGuestSessionCoordinator(remoteGateway = FakeCloudRemoteGateway.standard())
+                .reconcilePersistedCloudState()
+            throw AssertionError("Expected authenticated guest storage to reject tampered data.")
+        } catch (error: IllegalStateException) {
+            assertTrue(error.message?.contains("could not be decrypted") == true)
+        }
+        assertTrue(file.readBytes().contentEquals(tampered))
+        assertEquals("stale-key", legacyPreferences.getString("guest-session-creation-idempotency-key", null))
+        assertCredentialRecoveryPreservedLocalData(environment = environment, preservationState = preservationState)
+
+        environment.guestAiSessionStore.clearAllSessions()
+        assertNull(GuestAiSessionStore(context = environment.context).loadPendingCreationIdempotencyKey())
+        assertTrue(legacyPreferences.all.isEmpty())
+        assertCredentialRecoveryPreservedLocalData(environment = environment, preservationState = preservationState)
+    }
+
+    @Test
+    fun missingGuestKeystoreKeyFailsUntilExplicitClearWithoutDeletingLocalData() = runBlocking {
+        val preservationState = seedCredentialRecoveryLocalData(environment = environment)
+        environment.guestAiSessionStore.savePendingCreationIdempotencyKey(idempotencyKey = "protected-key")
+        val file = File(environment.context.filesDir, "flashcards-ai-chat-guest-session-encrypted.bin")
+        val payload = file.readBytes()
+        KeyStore.getInstance("AndroidKeyStore").apply {
+            load(null)
+            deleteEntry("flashcards-ai-chat-guest-session-aes-gcm-v1")
+        }
+
+        try {
+            GuestAiSessionStore(context = environment.context).loadPendingCreationIdempotencyKey()
+            throw AssertionError("Expected a missing guest Keystore key to fail.")
+        } catch (error: IllegalStateException) {
+            assertTrue(error.message?.contains("key for stored guest sessions is missing") == true)
+        }
+        assertTrue(file.readBytes().contentEquals(payload))
+        assertCredentialRecoveryPreservedLocalData(environment = environment, preservationState = preservationState)
+        environment.guestAiSessionStore.clearAllSessions()
+        assertNull(GuestAiSessionStore(context = environment.context).loadPendingCreationIdempotencyKey())
+        assertCredentialRecoveryPreservedLocalData(environment = environment, preservationState = preservationState)
+    }
+
+    @Test
+    fun analyticsMintCapturesConfigurationAfterExclusiveIdentityBoundary() = runBlocking {
+        val boundaryEntered = CompletableDeferred<Unit>()
+        val releaseBoundary = CompletableDeferred<Unit>()
+        val customConfiguration = makeCustomCloudServiceConfiguration(customOrigin = "https://guest.example.com")
+        val customSession = createStoredGuestAiSession(
+            workspaceId = "custom-workspace",
+            configurationMode = customConfiguration.mode,
+            apiBaseUrl = customConfiguration.apiBaseUrl,
+            guestToken = "custom-guest-token",
+            userId = "custom-guest-user"
+        )
+        val presentedApiBaseUrl = CompletableDeferred<String>()
+        val creator = object : GuestCloudSessionCreator {
+            override suspend fun createGuestSession(
+                apiBaseUrl: String,
+                configurationMode: CloudServiceConfigurationMode,
+                idempotencyKey: String
+            ): StoredGuestAiSession {
+                presentedApiBaseUrl.complete(apiBaseUrl)
+                return customSession
+            }
+        }
+        val minter = AnalyticsGuestSessionMinter(
+            preferencesStore = environment.cloudPreferencesStore,
+            creationCoordinator = GuestCloudSessionCreationCoordinator(
+                guestSessionStore = environment.guestAiSessionStore,
+                guestSessionCreator = creator
+            ),
+            operationCoordinator = environment.operationCoordinator
+        )
+        val boundary = launch {
+            environment.operationCoordinator.runExclusive {
+                boundaryEntered.complete(Unit)
+                releaseBoundary.await()
+                environment.cloudPreferencesStore.applyCustomServer(configuration = customConfiguration)
+                environment.guestAiSessionStore.clearAllSessions()
+            }
+        }
+        boundaryEntered.await()
+        val mint = async(start = CoroutineStart.UNDISPATCHED) { minter.mintAnalyticsGuestSession() }
+        try {
+            assertTrue(presentedApiBaseUrl.isCompleted.not())
+        } finally {
+            releaseBoundary.complete(Unit)
+        }
+        boundary.join()
+        assertEquals(customSession.copy(isAnalyticsOnly = true), mint.await())
+        assertEquals(customConfiguration.apiBaseUrl, presentedApiBaseUrl.await())
+        assertEquals(
+            customSession.copy(isAnalyticsOnly = true),
+            GuestAiSessionStore(context = environment.context).loadAnySession(configuration = customConfiguration)
+        )
+    }
+
+    @Test
     fun guestSessionStoreClearsWorkspaceScopedSessionWhenStoredWorkspaceIdDoesNotMatchKey() {
         environment.guestAiSessionStore.saveSession(
             localWorkspaceId = "local-workspace",
@@ -753,12 +946,7 @@ class CloudGuestSessionCoordinatorTest {
     }
 
 
-    /**
-     * The creation idempotency key is minted once and kept until the session is committed, so a
-     * retry reuses it and the server returns the same guest identity instead of minting a second
-     * permanent one for the install.
-     */
-    @Test
+        @Test
     fun guestCloudSessionCreationRetryReusesPersistedIdempotencyKeyUntilSessionIsCommitted() = runBlocking {
         val guestSessionCreator = RecordingGuestSessionCreator(
             session = createStoredGuestAiSession(
@@ -811,11 +999,6 @@ class CloudGuestSessionCoordinatorTest {
 
 }
 
-/**
- * [initialFailureCount] fails that many attempts before succeeding, standing in for a creation whose
- * result never became durable — a lost response, or a persist that failed after the server had
- * already committed the guest.
- */
 private class RecordingGuestSessionCreator(
     private val session: StoredGuestAiSession,
     private val initialFailureCount: Int = 0
@@ -835,4 +1018,15 @@ private class RecordingGuestSessionCreator(
         }
         return session
     }
+}
+
+private fun legacyGuestSessionJson(session: StoredGuestAiSession): String {
+    return JSONObject()
+        .put("guestToken", session.guestToken)
+        .put("userId", session.userId)
+        .put("workspaceId", session.workspaceId)
+        .put("configurationMode", session.configurationMode.name)
+        .put("apiBaseUrl", session.apiBaseUrl)
+        .put("isAnalyticsOnly", session.isAnalyticsOnly)
+        .toString()
 }

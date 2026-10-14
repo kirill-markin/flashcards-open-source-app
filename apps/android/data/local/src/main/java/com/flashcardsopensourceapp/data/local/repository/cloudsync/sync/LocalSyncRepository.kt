@@ -357,10 +357,12 @@ class LocalSyncRepository(
                 ) {
                     "Cloud sync requires an active guest workspace."
                 }
-                val guestSession = guestSessionStore.loadSession(
-                    localWorkspaceId = workspaceId,
-                    configuration = configuration
-                )
+                val guestSession = withContext(Dispatchers.IO) {
+                    guestSessionStore.loadSession(
+                        localWorkspaceId = workspaceId,
+                        configuration = configuration
+                    )
+                }
                 val storedGuestSession = requireNotNull(guestSession) {
                     "Guest AI session is unavailable."
                 }
