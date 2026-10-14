@@ -4,6 +4,7 @@ import {
   hasCognitoIdentityMappingForUserInExecutor,
   loadCognitoIdentityMappingInExecutor,
   lockCognitoIdentityLifecycleInExecutor,
+  lockAccountLifecyclesInExecutor,
 } from "../../auth/userIdentities";
 import type { DatabaseExecutor } from "../../database";
 import { insertProductAnalyticsIdentityLinkInExecutor } from "../../productAnalytics/writer";
@@ -11,6 +12,7 @@ import { HttpError } from "../../shared/errors";
 import {
   guestOwnsUpgradeTransferableDataInExecutor,
   loadGuestSessionRecordWithUserSettingsLockInExecutor,
+  loadGuestSessionRecordInExecutor,
   loadGuestWorkspaceIdInExecutor,
   revokeGuestSessionInExecutor,
 } from "../store/index";
@@ -70,16 +72,6 @@ function createGuestIdentityLinkOtherAccountError(): HttpError {
  * that drops the token on it loses that guest's whole tail. `docs/auth-service.md` states the
  * ordering obligation and the retry rule for the clients that call this route.
  *
- * The deleted-subject gate below is the same one both guest-upgrade paths take, and it is not
- * optional here. A deleted account's client keeps a valid id token until it expires, and account
- * deletion sweeps `analytics.identity_links` exactly once and never runs again, so a link written
- * inside that window would be permanent and would silently break the deletion guarantee. Taking the
- * Cognito identity lifecycle lock first is what closes the window rather than narrowing it: account
- * deletion holds that same lock across its sweep and its tombstone write, so this transaction either
- * runs before the sweep and has its link swept, or waits and sees the tombstone. That lock is also
- * the one this repository requires ahead of user-settings, guest-session and workspace lifecycle
- * locks, which is why it is taken before the guest session is loaded.
- *
  * The link and the revoke are both written on this transaction and therefore reach the same commit:
  * neither can land without the other. That is what makes the pair safe rather than the order of the
  * two statements, and it is not a refinement. A link without its revoke leaves a guest session live
@@ -104,15 +96,14 @@ export async function linkGuestAnalyticsIdentityInExecutor(
   await lockCognitoIdentityLifecycleInExecutor(executor, cognitoSubject);
   await assertSubjectIsNotDeletedInExecutor(executor, cognitoSubject);
 
-  const guestSession = await loadGuestSessionRecordWithUserSettingsLockInExecutor(executor, guestToken);
-  if (guestSession === null || guestSession.revokedAt !== null) {
-    return;
-  }
-
+  const unlockedGuestSession = await loadGuestSessionRecordInExecutor(executor, guestToken, false);
+  if (unlockedGuestSession === null || unlockedGuestSession.revokedAt !== null) return;
   const accountMapping = await loadCognitoIdentityMappingInExecutor(executor, cognitoSubject);
-  if (accountMapping === null) {
-    throw createGuestIdentityLinkAccountRequiredError();
-  }
+  if (accountMapping === null) throw createGuestIdentityLinkAccountRequiredError();
+  await lockAccountLifecyclesInExecutor(executor, [accountMapping.userId, unlockedGuestSession.userId]);
+  await assertSubjectIsNotDeletedInExecutor(executor, cognitoSubject);
+  const guestSession = await loadGuestSessionRecordWithUserSettingsLockInExecutor(executor, guestToken);
+  if (guestSession === null || guestSession.revokedAt !== null) return;
 
   // The guest user id is already this account, so its events resolve to the account without a link
   // and writing one would map the identity to itself. This mirrors the bound-completion branch of

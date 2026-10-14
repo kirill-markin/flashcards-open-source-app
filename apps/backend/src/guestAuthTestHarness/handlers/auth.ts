@@ -13,6 +13,10 @@ export function handleAuthExecutorQuery<Row extends pg.QueryResultRow>(
 ): pg.QueryResult<Row> | null {
   const { state } = context;
 
+  if (text === "SELECT auth.lock_account_lifecycle($1)" || text === "SELECT auth.assert_account_live($1)") {
+    return createQueryResult<Row>([]);
+  }
+
   if (
     text
       === "SELECT pg_advisory_xact_lock(hashtextextended('auth.cognito_identity:' || $1::text, 2::bigint))"
@@ -135,7 +139,7 @@ export function handleAuthExecutorQuery<Row extends pg.QueryResultRow>(
     return createQueryResult<Row>(rows);
   }
 
-  if (text.includes("INSERT INTO auth.user_identities")) {
+  if (text === "SELECT auth.bind_cognito_account($1, $2)") {
     const providerSubject = String(params[0]);
     const userId = String(params[1]);
     if (!state.identityMappings.has(providerSubject)) {

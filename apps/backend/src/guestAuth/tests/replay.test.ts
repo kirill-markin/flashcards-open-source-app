@@ -209,7 +209,7 @@ test("completeGuestUpgradeInExecutor rejects deleted-session replay with dropped
   assert.equal(fixture.state.guestSession, null);
 });
 
-test("completeGuestUpgradeInExecutor rejects a replay from a different subject", async () => {
+test("completeGuestUpgradeInExecutor rejects a replay from a different product account", async () => {
   const guestToken = "guest-token-3";
   const guestSessionId = "guest-session-3";
   const guestUserId = "guest-user";
@@ -263,7 +263,7 @@ test("completeGuestUpgradeInExecutor rejects a replay from a different subject",
       source_guest_session_id: guestSessionId,
       source_guest_session_secret_hash: hashGuestToken(guestToken),
       target_subject_user_id: "original-subject",
-      target_user_id: "linked-user",
+      target_user_id: "original-account",
       target_workspace_id: targetWorkspaceId,
       selection_type: "existing",
       dropped_entities: null,

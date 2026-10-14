@@ -12,11 +12,13 @@ import { unsafeTransaction } from "../database/unsafe";
 import {
   isDeletedSubjectInExecutor,
   markDeletedSubjectInExecutor,
+  hashDeletedSubject,
 } from "./deletedSubjects";
 import {
   bindCognitoIdentityMappingInExecutor,
   loadCognitoIdentityMappingInExecutor,
   lockCognitoIdentityLifecycleInExecutor,
+  lockAccountLifecyclesInExecutor,
 } from "./userIdentities";
 import { isConfiguredDemoEmail } from "./demoEmailAccess";
 import { recordAccountDeletedAnalytics } from "../productAnalytics/serverFacts/decisionFacts";
@@ -37,7 +39,7 @@ type AccountDeletionInput = Readonly<{
 
 type AccountDeletionDependencies = Readonly<{
   unsafeTransaction: typeof unsafeTransaction;
-  deleteCognitoUser: (cognitoUsername: string) => Promise<void>;
+  deleteCognitoUser: (cognitoSubject: string) => Promise<void>;
   isConfiguredDemoEmail: (email: string | null) => boolean;
 }>;
 
@@ -72,18 +74,6 @@ function assertValidConfirmationText(confirmationText: string): void {
       "ACCOUNT_DELETE_CONFIRMATION_INVALID",
     );
   }
-}
-
-function assertCognitoUsername(cognitoUsername: string | null): string {
-  if (cognitoUsername === null || cognitoUsername.trim() === "") {
-    throw new HttpError(
-      500,
-      "Account deletion could not resolve the Cognito username for this user.",
-      "ACCOUNT_DELETE_IDENTITY_DELETE_FAILED",
-    );
-  }
-
-  return cognitoUsername;
 }
 
 // Both guest upgrades and explicit guest-identity links can connect a person's older identities.
@@ -298,15 +288,6 @@ async function deleteAccountDataInExecutor(
   );
   await executor.query("DELETE FROM org.user_settings WHERE user_id = $1", [appUserId]);
 
-  // A row read above is locked, so the DELETE removes exactly it. An empty read locks nothing, and it
-  // still matches the DELETE for two reasons. A mapped id always has a profile, because
-  // auth.user_identities.user_id references org.user_settings(user_id)
-  // (db/migrations/0031_guest_ai_identity_and_quota.sql), so an empty read means appUserId is the
-  // unmapped subject. And every path that creates or binds an account for a subject takes the
-  // identity lifecycle lock deleteAccountForAuthenticatedUser holds. The writers that skip it
-  // (ensureUserSettingsAndSelectWorkspace in apps/auth, ensureUserSettingsRowInExecutor,
-  // ensureUserProfile) upsert only an id resolved earlier, so one reaches this subject only if it
-  // resolved it before an earlier deletion and writes after it.
   return userSettingsResult.rows.length > 0;
 }
 
@@ -321,7 +302,6 @@ async function deleteAccountDataInExecutor(
 async function deleteRealAccountDataInExecutor(
   executor: DatabaseExecutor,
   appUserId: string,
-  authSubjectUserId: string,
 ): Promise<void> {
   await deleteAccountDataInExecutor(executor, appUserId);
   // Reported before the sweep below, never after it: the analytics writer commits on its own
@@ -344,7 +324,6 @@ async function deleteRealAccountDataInExecutor(
   await anonymizeBillingForDeletedPersonInExecutor(executor, personUserIds, anonymizedUserId);
   await anonymizeAiUsageForDeletedPersonInExecutor(executor, personUserIds, anonymizedUserId);
   await eraseAnalyticsExclusionsInExecutor(executor, personUserIds);
-  await markDeletedSubjectInExecutor(executor, authSubjectUserId);
 }
 
 /**
@@ -386,6 +365,9 @@ async function deleteDemoAccountDataInExecutor(
   appUserId: string,
   authSubjectUserId: string,
 ): Promise<void> {
+  const mappings = await executor.query<Readonly<{ provider_subject: string }>>(
+    "SELECT provider_subject FROM auth.user_identities WHERE provider_type = 'cognito' AND user_id = $1", [appUserId],
+  );
   const accountExisted = await deleteAccountDataInExecutor(executor, appUserId);
 
   if (accountExisted) {
@@ -394,18 +376,84 @@ async function deleteDemoAccountDataInExecutor(
     await executor.query("INSERT INTO org.user_settings (user_id) VALUES ($1)", [appUserId]);
     // Profile before mapping: auth.user_identities.user_id references org.user_settings(user_id)
     // (db/migrations/0031_guest_ai_identity_and_quota.sql).
-    await bindCognitoIdentityMappingInExecutor(executor, authSubjectUserId, appUserId);
+    for (const subject of new Set([authSubjectUserId, ...mappings.rows.map((row) => row.provider_subject)])) {
+      await bindCognitoIdentityMappingInExecutor(executor, subject, appUserId);
+    }
   }
 
   await anonymizeProductAnalyticsInExecutor(executor, appUserId, randomUUID());
 }
 
+/** The account lock freezes its alias inventory until the cascade and tombstones commit. */
+async function stageAccountIdentityDeletionInExecutor(
+  executor: DatabaseExecutor,
+  appUserId: string,
+  input: AccountDeletionInput,
+): Promise<void> {
+  const deletionId = randomUUID();
+  const principals = await executor.query<Readonly<{ provider_subject: string }>>(
+    [
+      "SELECT identity.provider_subject FROM auth.user_identities AS identity",
+      "WHERE identity.provider_type = 'cognito' AND identity.user_id = $1",
+    ].join(" "), [appUserId],
+  );
+  const subjects = new Set([input.authSubjectUserId, ...principals.rows.map((row) => row.provider_subject)]);
+  for (const subject of subjects) {
+    await markDeletedSubjectInExecutor(executor, subject);
+    await executor.query("UPDATE auth.deleted_subjects SET deletion_id = $2 WHERE subject_sha256 = $1", [hashDeletedSubject(subject), deletionId]);
+  }
+  for (const subject of subjects) {
+    await executor.query("INSERT INTO auth.cognito_deletion_jobs (deletion_id, cognito_subject) VALUES ($1, $2)", [deletionId, subject]);
+  }
+  const emails = await executor.query<Readonly<{ email: string }>>(
+    "SELECT email FROM auth.verified_login_emails WHERE cognito_subject = ANY($1::text[])", [[...subjects]],
+  );
+  const loginEmails = new Set(emails.rows.map((row) => row.email));
+  if (input.email !== null) loginEmails.add(input.email);
+  for (const email of loginEmails) {
+    await executor.query("SELECT auth.delete_user_auth_artifacts($1, $2)", [appUserId, email]);
+  }
+  await executor.query("DELETE FROM auth.cognito_principals WHERE cognito_subject = ANY($1::text[])", [[...subjects]]);
+  await executor.query("INSERT INTO auth.deleted_accounts (user_id_sha256) VALUES ($1) ON CONFLICT DO NOTHING", [hashDeletedSubject(appUserId)]);
+}
+
+async function finishAccountIdentityDeletion(
+  subject: string,
+  dependencies: AccountDeletionDependencies,
+): Promise<void> {
+  const deletionId = await dependencies.unsafeTransaction(async (executor) => {
+    const result = await executor.query<Readonly<{ deletion_id: string | null }>>(
+      "SELECT deletion_id FROM auth.deleted_subjects WHERE subject_sha256 = $1", [hashDeletedSubject(subject)],
+    );
+    const row = result.rows[0];
+    if (row === undefined) throw new Error("Account deletion did not persist its subject tombstone.");
+    return row.deletion_id;
+  });
+  // Pre-lifecycle tombstones have no durable multi-principal cleanup inventory.
+  if (deletionId === null) {
+    await deleteCognitoIdentity(subject, dependencies);
+    return;
+  }
+  const jobs = await dependencies.unsafeTransaction(async (executor) => executor.query<Readonly<{
+    deletion_id: string; cognito_subject: string;
+  }>>(
+    "SELECT deletion_id, cognito_subject FROM auth.cognito_deletion_jobs WHERE deletion_id = $1 ORDER BY cognito_subject",
+    [deletionId],
+  ));
+  for (const job of jobs.rows) {
+    await deleteCognitoIdentity(job.cognito_subject, dependencies);
+    await dependencies.unsafeTransaction(async (executor) => {
+      await executor.query("DELETE FROM auth.cognito_deletion_jobs WHERE deletion_id = $1 AND cognito_subject = $2", [job.deletion_id, job.cognito_subject]);
+    });
+  }
+}
+
 async function deleteCognitoIdentity(
-  cognitoUsername: string,
+  cognitoSubject: string,
   dependencies: AccountDeletionDependencies,
 ): Promise<void> {
   try {
-    await dependencies.deleteCognitoUser(cognitoUsername);
+    await dependencies.deleteCognitoUser(cognitoSubject);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     throw new HttpError(
@@ -431,6 +479,8 @@ export async function deleteAccountForAuthenticatedUser(
 
     const mapping = await loadCognitoIdentityMappingInExecutor(executor, input.authSubjectUserId);
     const authoritativeUserId = mapping?.userId ?? input.authSubjectUserId;
+    await lockAccountLifecyclesInExecutor(executor, [authoritativeUserId]);
+    if (await isDeletedSubjectInExecutor(executor, input.authSubjectUserId)) return [];
     await applyUserDatabaseScopeInExecutor(executor, { userId: authoritativeUserId });
 
     const personUserIds = await loadAnalyticsUserIdsForPersonInExecutor(executor, authoritativeUserId);
@@ -441,7 +491,8 @@ export async function deleteAccountForAuthenticatedUser(
       return transitions;
     }
 
-    await deleteRealAccountDataInExecutor(executor, authoritativeUserId, input.authSubjectUserId);
+    await stageAccountIdentityDeletionInExecutor(executor, authoritativeUserId, input);
+    await deleteRealAccountDataInExecutor(executor, authoritativeUserId);
     return [];
   });
 
@@ -450,6 +501,5 @@ export async function deleteAccountForAuthenticatedUser(
     return;
   }
 
-  const cognitoUsername = assertCognitoUsername(input.cognitoUsername);
-  await deleteCognitoIdentity(cognitoUsername, dependencies);
+  await finishAccountIdentityDeletion(input.authSubjectUserId, dependencies);
 }

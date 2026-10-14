@@ -71,15 +71,23 @@ export const createdRolesByMigration = new Map([
 ]);
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
+    migrationFileName: "0183_verified_auth_identity_lifecycle.sql",
+    expectedMigrationCount: 185,
+    testFiles: Object.freeze([
+      "src/auth/surrogateUserId.postgres.integration.ts",
+      "src/guestAuth/upgrade/boundGuestSession.postgres.integration.ts",
+      "src/aiConsent/consent.postgres.integration.ts",
+      "src/routes/system/account/accountPreferences.postgres.integration.ts",
+    ]),
+  }),
+  Object.freeze({
     migrationFileName: "0181_store_analytics_schema.sql",
     expectedMigrationCount: 183,
     testFiles: Object.freeze([
       "src/admin/reportingDb.postgres.integration.ts",
-      "src/aiConsent/consent.postgres.integration.ts",
       "src/chat/cardImages/operation.postgres.integration.ts",
       "src/chat/runs/generatedImageAttemptBudget.postgres.integration.ts",
       "src/chat/store/historyService.postgres.integration.ts",
-      "src/guestAuth/upgrade/boundGuestSession.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
@@ -113,8 +121,6 @@ export const boundaryDefinitions = Object.freeze([
     migrationFileName: "0167_stripe_email_deliveries.sql",
     expectedMigrationCount: 169,
     testFiles: Object.freeze([
-      "src/auth/surrogateUserId.postgres.integration.ts",
-      "src/routes/system/account/accountPreferences.postgres.integration.ts",
       "src/cards/managedMedia/managedImageSnapshotMerge.postgres.integration.ts",
     ]),
   }),

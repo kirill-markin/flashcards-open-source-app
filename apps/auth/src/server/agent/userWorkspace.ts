@@ -19,7 +19,6 @@ import { createHash, randomUUID } from "node:crypto";
 import {
   applyUserDatabaseScopeInExecutor,
   applyWorkspaceDatabaseScopeInExecutor,
-  query,
   transaction,
   type DatabaseExecutor,
 } from "../../db.js";
@@ -58,17 +57,6 @@ const selectIdentityMappingSql = [
   "WHERE provider_type = 'cognito' AND provider_subject = $1",
   "LIMIT 1",
 ].join(" ");
-
-/**
- * The canonical org user id a Cognito subject maps to via auth.user_identities, or null when no
- * mapping row exists. Null is deliberately not the subject: only a caller that already knows the
- * subject names an account may read it that way.
- */
-async function resolveCanonicalUserId(providerSubject: string): Promise<string | null> {
-  const result = await query<IdentityMappingRow>(selectIdentityMappingSql, [providerSubject]);
-
-  return result.rows[0]?.user_id ?? null;
-}
 
 async function resolveCanonicalUserIdInExecutor(
   executor: DatabaseExecutor,
@@ -155,11 +143,7 @@ async function bindIdentityMappingInExecutor(
 ): Promise<void> {
   await applyUserDatabaseScopeInExecutor(executor, { userId });
   await executor.query(
-    [
-      "INSERT INTO auth.user_identities (provider_type, provider_subject, user_id)",
-      "VALUES ('cognito', $1, $2)",
-      "ON CONFLICT (provider_type, provider_subject) DO NOTHING",
-    ].join(" "),
+    "SELECT auth.bind_cognito_account($1, $2)",
     [providerSubject, userId],
   );
 
@@ -191,6 +175,8 @@ async function createOrAdoptAccountForSubject(
     // accounts, and it is also what would make the other paths' bind throw at them.
     const mappedUserId = await resolveCanonicalUserIdInExecutor(executor, providerSubject);
     if (mappedUserId !== null) {
+      await executor.query("SELECT auth.lock_account_lifecycle($1)", [mappedUserId]);
+      await assertSubjectIsNotDeletedInExecutor(executor, providerSubject);
       return mappedUserId;
     }
 
@@ -231,42 +217,7 @@ export async function resolveOrCreateCanonicalUserId(
   providerSubject: string,
   email: string,
 ): Promise<string> {
-  // Checked before the mapping read, not only under the lock below. Deleting an account cascades the
-  // subject's mapping away, but a mapping can still exist for a deleted subject: one written after
-  // the deletion by a writer that did not check tombstones. The locked check stays, because this
-  // unlocked read can miss a deletion that commits after it.
-  await assertSubjectIsNotDeletedInExecutor({ query }, providerSubject);
-  const mappedUserId = await resolveCanonicalUserId(providerSubject);
-  if (mappedUserId !== null) {
-    return mappedUserId;
-  }
-
-  // No mapping row: either an account stored under the subject itself that nothing has bound yet,
-  // or no account at all. Only the org.user_settings read inside the locked transaction tells those
-  // two apart.
-  try {
-    return await createOrAdoptAccountForSubject(providerSubject, email);
-  } catch (error) {
-    if (!(error instanceof CognitoIdentityMappingConflictError)) {
-      throw error;
-    }
-
-    // Unreachable while every writer takes the lock above, and kept because the alternative is a
-    // 500 on a question with an obvious answer: whoever bound the subject won, and their mapping is
-    // the account.
-    const boundUserId = await resolveCanonicalUserId(providerSubject);
-    if (boundUserId === null) {
-      // The mapping vanished between the throw and this read. Returning the subject here would hand
-      // the caller an id nothing names, and its org.user_settings upsert would then create the
-      // subject-keyed account this module exists to stop creating
-      // (db/migrations/0159_surrogate_user_identity.sql), so this fails instead.
-      throw new Error(
-        `Cognito subject ${providerSubject} lost its identity mapping while this request resolved it; retry the request.`,
-      );
-    }
-
-    return boundUserId;
-  }
+  return createOrAdoptAccountForSubject(providerSubject, email);
 }
 
 async function createWorkspaceInExecutor(
@@ -338,6 +289,8 @@ export async function ensureUserSettingsAndSelectWorkspace(
   userId: string,
   email: string,
 ): Promise<string | null> {
+  await executor.query("SELECT auth.lock_account_lifecycle($1)", [userId]);
+  await executor.query("SELECT auth.assert_account_live($1)", [userId]);
   await executor.query(upsertUserSettingsSql, [userId, email]);
 
   const membershipResult = await executor.query<WorkspaceMembershipRow>(

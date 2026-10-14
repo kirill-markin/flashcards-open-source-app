@@ -1,4 +1,5 @@
 import { applyUserDatabaseScopeInExecutor, type DatabaseExecutor } from "../database";
+import { lockAccountLifecyclesInExecutor } from "../auth/userIdentities";
 import { HttpError } from "../shared/errors";
 
 type AgentApiKeySelectionRow = Readonly<{
@@ -27,6 +28,7 @@ export async function lockUserSettingsForWorkspaceLifecycleInExecutor(
   executor: DatabaseExecutor,
   userId: string,
 ): Promise<void> {
+  await lockAccountLifecyclesInExecutor(executor, [userId]);
   await applyUserDatabaseScopeInExecutor(executor, { userId });
   const result = await executor.query<UserSettingsLockRow>(
     "SELECT user_id FROM org.user_settings WHERE user_id = $1 FOR UPDATE",

@@ -82,23 +82,18 @@ export async function loadCognitoIdentityMappingInExecutor(
   return row === undefined ? null : mapCognitoIdentityMapping(row);
 }
 
-/**
- * Inserts an immutable Cognito mapping while the caller owns the subject lock.
- * The resulting row is always reread so an unexpected conflicting writer is
- * surfaced instead of being hidden by ON CONFLICT DO NOTHING.
- */
 export async function bindCognitoIdentityMappingInExecutor(
   executor: DatabaseExecutor,
   providerSubject: string,
   userId: string,
 ): Promise<CognitoIdentityMapping> {
+  const existing = await loadCognitoIdentityMappingInExecutor(executor, providerSubject);
+  if (existing !== null && existing.userId !== userId) {
+    throw new CognitoIdentityMappingConflictError(providerSubject, userId, existing.userId);
+  }
   await applyUserDatabaseScopeInExecutor(executor, { userId });
   await executor.query(
-    [
-      "INSERT INTO auth.user_identities (provider_type, provider_subject, user_id)",
-      "VALUES ('cognito', $1, $2)",
-      "ON CONFLICT (provider_type, provider_subject) DO NOTHING",
-    ].join(" "),
+    "SELECT auth.bind_cognito_account($1, $2)",
     [providerSubject, userId],
   );
 
@@ -136,4 +131,28 @@ export async function hasCognitoIdentityMappingForUser(
   return unsafeTransactionWithDeadline(databaseDeadlineAtMs,
     async (executor) => hasCognitoIdentityMappingForUserInExecutor(executor, userId),
   );
+}
+
+/** Acquire sorted account locks after all subject locks, before any row lifecycle locks. */
+export async function lockAccountLifecyclesInExecutor(
+  executor: DatabaseExecutor,
+  userIds: ReadonlyArray<string>,
+): Promise<void> {
+  for (const userId of [...new Set(userIds)].sort()) {
+    await executor.query("SELECT auth.lock_account_lifecycle($1)", [userId]);
+  }
+}
+
+/** First identity operation in the transaction. Caller freshly proves both identities; email matching is never proof. */
+export async function linkProvedCognitoPrincipalInExecutor(
+  executor: DatabaseExecutor,
+  currentSubject: string,
+  newSubject: string,
+): Promise<CognitoIdentityMapping> {
+  const result = await executor.query<Readonly<{ user_id: string }>>(
+    "SELECT auth.link_proved_cognito_principal($1, $2) AS user_id", [currentSubject, newSubject],
+  );
+  const row = result.rows[0];
+  if (row === undefined) throw new Error("Identity linking returned no product account.");
+  return { providerSubject: newSubject, userId: row.user_id };
 }
