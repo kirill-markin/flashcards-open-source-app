@@ -23,6 +23,7 @@ internal fun clearCloudAndAiPreferences(context: Context) {
     context.deleteSharedPreferences("flashcards-ai-chat-preferences")
     context.deleteSharedPreferences("flashcards-ai-chat-history")
     context.deleteSharedPreferences("flashcards-ai-chat-guest-session")
+    AtomicFile(File(context.filesDir, "flashcards-ai-chat-guest-session-encrypted.bin")).delete()
     context.deleteSharedPreferences("flashcards-ai-own-openai-key-switch")
     context.deleteSharedPreferences("flashcards-ai-own-openai-key")
 }

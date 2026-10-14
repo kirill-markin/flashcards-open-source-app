@@ -521,7 +521,7 @@ internal class CloudWorkspaceLinkCoordinator(
             stage = "after linked credential recovery initial sync",
             expectedWorkspaceId = selectedWorkspace.workspaceId
         )
-        guestSessionStore.clearCloudOwnedSessions()
+        withContext(Dispatchers.IO) { guestSessionStore.clearCloudOwnedSessions() }
         preferencesStore.clearCloudCredentialRecoveryState()
         onAnalyticsGuestIdentityLinkRequested()
         return selectedWorkspace
@@ -570,7 +570,7 @@ internal class CloudWorkspaceLinkCoordinator(
      * `completeLinkedCredentialRecoveryCloudLink` uses [GuestAiSessionStore.clearCloudOwnedSessions]
      * instead: an analytics guest is normal there and still has to be claimed.
      */
-    private fun clearGuestSessionsIfNeeded() {
-        guestSessionStore.clearAllSessions()
+    private suspend fun clearGuestSessionsIfNeeded() {
+        withContext(Dispatchers.IO) { guestSessionStore.clearAllSessions() }
     }
 }

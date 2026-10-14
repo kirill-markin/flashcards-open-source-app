@@ -253,6 +253,7 @@ class AppGraph(
         versionCode = appPackageInfo.longVersionCode.toInt(),
         clientDeviceTypeProvider = clientDeviceTypeProvider
     )
+    private val cloudOperationCoordinator = CloudOperationCoordinator()
     // One instance per graph, shared by both creators: its mutex is the lock that keeps the
     // analytics mint and the cloud guest restore from creating two permanent guest identities for
     // one install. `AppGraph` is rebuilt inside a running process, so this is not process-wide the
@@ -267,7 +268,8 @@ class AppGraph(
     )
     private val analyticsGuestSessionMinter = AnalyticsGuestSessionMinter(
         preferencesStore = cloudPreferencesStore,
-        creationCoordinator = guestCloudSessionCreationCoordinator
+        creationCoordinator = guestCloudSessionCreationCoordinator,
+        operationCoordinator = cloudOperationCoordinator
     )
     private val analyticsNetworkMonitor = AnalyticsNetworkMonitor(context = context, scope = appScope)
     private val analyticsClient = AnalyticsClient(
@@ -279,6 +281,7 @@ class AppGraph(
             cloudPreferencesStore = cloudPreferencesStore,
             guestAiSessionStore = guestAiSessionStore,
             analyticsGuestSessionMinter = analyticsGuestSessionMinter,
+            operationCoordinator = cloudOperationCoordinator,
             reportGuestSessionMintFailure = ::reportAnalyticsGuestSessionMintFailure
         ),
         networkStateProvider = analyticsNetworkMonitor,
@@ -324,7 +327,6 @@ class AppGraph(
         timeProvider = SystemTimeProvider
     )
     private val strictRemindersScheduler = AndroidStrictRemindersScheduler(context = context)
-    private val cloudOperationCoordinator = CloudOperationCoordinator()
     val reviewNotificationsManager = ReviewNotificationsManager(
         context = context,
         database = database,

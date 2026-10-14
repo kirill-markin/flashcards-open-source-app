@@ -34,6 +34,21 @@
         <exclude
             domain="file"
             path="flashcards-cloud-secrets-encrypted.bin.bak" />
+        <exclude
+            domain="sharedpref"
+            path="flashcards-ai-chat-guest-session.xml" />
+        <exclude
+            domain="sharedpref"
+            path="flashcards-ai-chat-guest-session.xml.bak" />
+        <exclude
+            domain="file"
+            path="flashcards-ai-chat-guest-session-encrypted.bin" />
+        <exclude
+            domain="file"
+            path="flashcards-ai-chat-guest-session-encrypted.bin.new" />
+        <exclude
+            domain="file"
+            path="flashcards-ai-chat-guest-session-encrypted.bin.bak" />
     </cloud-backup>
     <device-transfer>
         <exclude
@@ -69,5 +84,20 @@
         <exclude
             domain="file"
             path="flashcards-cloud-secrets-encrypted.bin.bak" />
+        <exclude
+            domain="sharedpref"
+            path="flashcards-ai-chat-guest-session.xml" />
+        <exclude
+            domain="sharedpref"
+            path="flashcards-ai-chat-guest-session.xml.bak" />
+        <exclude
+            domain="file"
+            path="flashcards-ai-chat-guest-session-encrypted.bin" />
+        <exclude
+            domain="file"
+            path="flashcards-ai-chat-guest-session-encrypted.bin.new" />
+        <exclude
+            domain="file"
+            path="flashcards-ai-chat-guest-session-encrypted.bin.bak" />
     </device-transfer>
 </data-extraction-rules>

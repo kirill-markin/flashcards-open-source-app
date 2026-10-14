@@ -185,7 +185,9 @@ class CloudGuestSessionCoordinator(
         val storedCredentials = withContext(Dispatchers.IO) {
             preferencesStore.loadCredentials()
         }
-        val storedGuestSession = guestSessionStore.loadAnySession(configuration = configuration)
+        val storedGuestSession = withContext(Dispatchers.IO) {
+            guestSessionStore.loadAnySession(configuration = configuration)
+        }
         val reconciledCloudSettings = preferencesStore.currentCloudSettings()
         // A linked account holding a guest session is the analytics guest waiting for its identity
         // link, not an inconsistency: it is minted without cloud state and dropped once
@@ -196,7 +198,7 @@ class CloudGuestSessionCoordinator(
             storedGuestSession != null &&
             reconciledCloudSettings.cloudState != CloudAccountState.LINKED
         ) {
-            guestSessionStore.clearAllSessions()
+            withContext(Dispatchers.IO) { guestSessionStore.clearAllSessions() }
             resetCoordinator.disconnectCloudIdentityPreservingLocalState()
             return CloudIdentityReconciliationResult(
                 cloudSettings = preferencesStore.currentCloudSettings(),
@@ -391,7 +393,9 @@ class CloudGuestSessionCoordinator(
 
     private suspend fun deleteStoredGuestCloudSessionIfPresentLocked() {
         val configuration = preferencesStore.currentServerConfiguration()
-        val storedGuestSession = guestSessionStore.loadAnySession(configuration = configuration)
+        val storedGuestSession = withContext(Dispatchers.IO) {
+            guestSessionStore.loadAnySession(configuration = configuration)
+        }
             ?: return
 
         try {
@@ -436,22 +440,22 @@ class CloudGuestSessionCoordinator(
         }
     }
 
-    private fun loadGuestSessionForCurrentConfiguration(
+    private suspend fun loadGuestSessionForCurrentConfiguration(
         workspaceId: String?,
         configurationApiBaseUrl: String
-    ): StoredGuestAiSession? {
+    ): StoredGuestAiSession? = withContext(Dispatchers.IO) {
         val configuration = preferencesStore.currentServerConfiguration()
         require(configuration.apiBaseUrl == configurationApiBaseUrl) {
             "Guest session configuration mismatch. expected='${configuration.apiBaseUrl}' actual='$configurationApiBaseUrl'"
         }
         if (workspaceId.isNullOrBlank()) {
-            return guestSessionStore.loadAnySession(configuration = configuration)
+            return@withContext guestSessionStore.loadAnySession(configuration = configuration)
         }
 
         // The analytics mint stores its session unbound to a local workspace, so a workspace-scoped
         // miss still has to find it. Creating a second one instead would be a second permanent
         // guest identity, and `analytics.identity_links` is first-link-wins with no repair path.
-        return guestSessionStore.loadSession(
+        guestSessionStore.loadSession(
             localWorkspaceId = workspaceId,
             configuration = configuration
         ) ?: guestSessionStore.loadAnySession(configuration = configuration)
@@ -481,10 +485,12 @@ class CloudGuestSessionCoordinator(
             currentCloudSettings.linkedWorkspaceId == session.workspaceId &&
             currentCloudSettings.activeWorkspaceId == session.workspaceId
         if (isAlreadyGuestLinked) {
-            guestSessionStore.saveSession(
-                localWorkspaceId = cloudOwnedSession.workspaceId,
-                session = cloudOwnedSession
-            )
+            withContext(Dispatchers.IO) {
+                guestSessionStore.saveSession(
+                    localWorkspaceId = cloudOwnedSession.workspaceId,
+                    session = cloudOwnedSession
+                )
+            }
             markGuestCloudState(session = cloudOwnedSession)
             return false
         }
@@ -525,12 +531,16 @@ class CloudGuestSessionCoordinator(
                     "Expected='${session.workspaceId}' Actual='${resultingWorkspace.workspaceId}'."
             }
             if (currentWorkspace?.workspaceId != null && currentWorkspace.workspaceId != session.workspaceId) {
-                guestSessionStore.clearSession(localWorkspaceId = currentWorkspace.workspaceId)
+                withContext(Dispatchers.IO) {
+                    guestSessionStore.clearSession(localWorkspaceId = currentWorkspace.workspaceId)
+                }
             }
-            guestSessionStore.saveSession(
-                localWorkspaceId = cloudOwnedSession.workspaceId,
-                session = cloudOwnedSession
-            )
+            withContext(Dispatchers.IO) {
+                guestSessionStore.saveSession(
+                    localWorkspaceId = cloudOwnedSession.workspaceId,
+                    session = cloudOwnedSession
+                )
+            }
             markGuestCloudState(session = cloudOwnedSession)
             bootstrapProbe.remoteIsEmpty.not()
         }
@@ -551,7 +561,7 @@ class CloudGuestSessionCoordinator(
         // The session was found through `loadAnySession`, so the two keys it usually sits under are
         // not necessarily the only ones holding it or another guest; the server-side guest this
         // install had is gone, and nothing stored may outlive it as an analytics credential.
-        guestSessionStore.clearStoredSessions()
+        withContext(Dispatchers.IO) { guestSessionStore.clearStoredSessions() }
 
         val currentCloudSettings = preferencesStore.currentCloudSettings()
         val shouldDisconnectDeletedGuestState = currentCloudSettings.cloudState == CloudAccountState.GUEST &&

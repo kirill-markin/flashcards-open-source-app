@@ -23,6 +23,7 @@ import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsMediaUp
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSyncFailureReason
 import com.flashcardsopensourceapp.core.observability.shouldCaptureAndroidThrowable
+import com.flashcardsopensourceapp.data.local.ai.store.GuestAiSessionStorageException
 import com.flashcardsopensourceapp.data.local.ai.store.GuestAiSessionStore
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
@@ -36,6 +37,7 @@ import com.flashcardsopensourceapp.data.local.network.isLikelyTransientNetworkIo
 import com.flashcardsopensourceapp.data.local.repository.SyncBlockedException
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.AnalyticsGuestSessionMinter
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.loadProductAnalyticsGuestSessionOrNull
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudOperationCoordinator
 import com.flashcardsopensourceapp.data.local.repository.media.ManagedMediaAuthoringImportException
 import com.flashcardsopensourceapp.feature.ai.input.AiAttachmentEncodeFailedException
 import com.flashcardsopensourceapp.feature.ai.input.AiAttachmentImportUserException
@@ -44,6 +46,8 @@ import java.io.IOException
 import java.net.SocketTimeoutException
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 private const val maxAnalyticsFailureCauseDepth: Int = 8
 
@@ -124,21 +128,20 @@ internal class AppAnalyticsCredentialProvider(
     private val cloudPreferencesStore: CloudPreferencesStore,
     private val guestAiSessionStore: GuestAiSessionStore,
     private val analyticsGuestSessionMinter: AnalyticsGuestSessionMinter,
+    private val operationCoordinator: CloudOperationCoordinator,
     private val reportGuestSessionMintFailure: () -> Unit = {},
     private val currentTimeMillisProvider: () -> Long = System::currentTimeMillis
 ) : AnalyticsCredentialProvider {
-    override suspend fun currentCredential(): AnalyticsCredential? {
-        val configuration: CloudServiceConfiguration = cloudPreferencesStore.currentServerConfiguration()
-        val cloudSettings: CloudSettings = cloudPreferencesStore.currentCloudSettings()
-
-        return when (cloudSettings.cloudState) {
-            CloudAccountState.LINKED -> bearerCredential(configuration = configuration)
-            // A guest session missing under `GUEST` is the credential-recovery flow's business, not
-            // something to mint over: that install already owns a guest workspace on the server.
+    override suspend fun currentCredential(): AnalyticsCredential? = operationCoordinator.runExclusive {
+        val configuration = cloudPreferencesStore.currentServerConfiguration()
+        val cloudSettings = cloudPreferencesStore.currentCloudSettings()
+        when (cloudSettings.cloudState) {
+            CloudAccountState.LINKED -> withContext(Dispatchers.IO) {
+                bearerCredential(configuration = configuration)
+            }
             CloudAccountState.GUEST -> guestCredential(configuration = configuration)
             CloudAccountState.DISCONNECTED, CloudAccountState.LINKING_READY ->
-                guestCredential(configuration = configuration)
-                    ?: mintedGuestCredential()
+                guestCredential(configuration = configuration) ?: mintedGuestCredential()
         }
     }
 
@@ -150,7 +153,7 @@ internal class AppAnalyticsCredentialProvider(
      * preference push in `LocalCloudAccountRepository`, which retires it on the same two status
      * codes; one dead token can be refused on both in the same process. Whichever runs second finds
      * the session already gone, or a replacement the check below rejects as not the refused one, so
-     * the second retire is a no-op and the two need no coordination. Left in place the token would
+     * the second retire is a no-op. Left in place the token would
      * be handed back on every flush — [guestCredential] returns whatever is stored while
      * [mintedGuestCredential] is unreachable as long as it is — and analytics for that install would
      * stay silent until the 14-day queue TTL discarded the events.
@@ -168,8 +171,14 @@ internal class AppAnalyticsCredentialProvider(
         }
 
         try {
-            retireRefusedAnalyticsGuestSession(credential = credential)
+            operationCoordinator.runExclusive {
+                withContext(Dispatchers.IO) {
+                    retireRefusedAnalyticsGuestSession(credential = credential)
+                }
+            }
         } catch (error: CancellationException) {
+            throw error
+        } catch (error: GuestAiSessionStorageException) {
             throw error
         } catch (_: Exception) {
             // The next refusal retries. `AnalyticsClient` reports everything that escapes a
@@ -178,7 +187,7 @@ internal class AppAnalyticsCredentialProvider(
         }
     }
 
-    private fun retireRefusedAnalyticsGuestSession(credential: AnalyticsCredential) {
+    private suspend fun retireRefusedAnalyticsGuestSession(credential: AnalyticsCredential) {
         val configuration: CloudServiceConfiguration = cloudPreferencesStore.currentServerConfiguration()
         // The same lookup the batches and the preference push resolve through, so this retires the
         // credential that was actually presented rather than whichever session happens to be read
@@ -227,6 +236,8 @@ internal class AppAnalyticsCredentialProvider(
             analyticsGuestSessionMinter.mintAnalyticsGuestSession()
         } catch (error: CancellationException) {
             throw error
+        } catch (error: GuestAiSessionStorageException) {
+            throw error
         } catch (error: Exception) {
             if (isSilentAnalyticsGuestMintFailure(error = error).not()) {
                 reportGuestSessionMintFailure()
@@ -256,7 +267,7 @@ internal class AppAnalyticsCredentialProvider(
         )
     }
 
-    private fun guestCredential(configuration: CloudServiceConfiguration): AnalyticsCredential? {
+    private suspend fun guestCredential(configuration: CloudServiceConfiguration): AnalyticsCredential? {
         // Shared with the product-analytics preference push, so the answer always lands on the
         // credential these batches are actually sent under.
         val guestSession: StoredGuestAiSession = loadProductAnalyticsGuestSessionOrNull(
