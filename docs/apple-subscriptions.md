@@ -133,7 +133,9 @@ price differs, stop for an explicit commercial correction instead of overwriting
 2. Require green `Repository static checks`, merge the reviewed patch to `main`, then wait
    for `AWS/Web Release` deployment and all selected smokes under [release gates](release-gates.md).
    Both context-generation steps must receive `CDK_CONTEXT_APPLE_IAP_SECRET_ARN`. Read back
-   the HTTP Lambda's `APPLE_IAP_SECRET_ARN` and read grant; workers must have neither.
+   the HTTP Lambda and deterministic store-analytics importer’s `APPLE_IAP_SECRET_ARN` and
+   read grants; other workers must have neither. Native import operations are in
+   [billing history](billing-history.md#apple-collection-and-backfill).
    No local AWS build or deploy is part of this procedure.
 3. With an ordinary mobile guest credential, call
    `GET https://api.flashcards-open-source-app.com/v1/billing/apple/account` twice. Require
