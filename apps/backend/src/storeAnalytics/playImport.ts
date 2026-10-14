@@ -6,6 +6,7 @@ import {
   normalizeCaughtError,
   type BackendObservationScope,
 } from "../observability/sentry";
+import { decodeGoogleSalesArchive } from "./googleSalesReports";
 import { GoogleStorageClient, type GoogleStorageObject } from "./googleStorageClient";
 import {
   decodePlayReportFile,
@@ -19,13 +20,12 @@ import {
 
 const playReportsBucket = "pubsite_prod_6698442103294061634";
 // stats/ covers installs, ratings, crashes, store_performance and every other statistics family.
-// reviews/, sales/ and earnings/ are not imported.
-const importedPrefixes: ReadonlyArray<string> = ["stats/", "financial-stats/subscriptions/"];
+const importedPrefixes: ReadonlyArray<string> = ["stats/", "financial-stats/subscriptions/", "sales/"];
 const insertBatchRows = 1_000;
 
 export type PlayImportSummary = Readonly<{
-  /** True when the budget was already spent or the lock lost at the start, so the bucket was never listed. */
   listingSkippedForDeadline: boolean;
+  salesInventoryComplete: boolean;
   objectsListed: number;
   objectsNotCsv: number;
   filesAlreadyImported: number;
@@ -35,6 +35,16 @@ export type PlayImportSummary = Readonly<{
   filesRemaining: number;
   rowsInserted: Readonly<Record<string, number>>;
 }>;
+
+export class PlayReportsImportError extends Error {
+  readonly summary: PlayImportSummary;
+
+  constructor(summary: PlayImportSummary) {
+    super(`${summary.filesFailed} Google Play report files failed to import; see store_analytics_play_file_failed.`);
+    this.name = "PlayReportsImportError";
+    this.summary = summary;
+  }
+}
 
 type DownloadedFile = Readonly<{
   object: GoogleStorageObject;
@@ -70,7 +80,6 @@ function jsonColumnName(table: PlayReportTable): string {
   return table.kind === "named" ? "extra_columns" : "columns";
 }
 
-/** Every inserted column with its SQL type, in the order of the record built by `toRecord`. */
 function recordColumns(table: PlayReportTable): ReadonlyArray<Readonly<{ column: string; type: string }>> {
   const typedColumns = [...new Map(table.columns.map((typedColumn) => [typedColumn.column, typedColumn.type])).entries()]
     .map(([column, type]) => ({ column, type }));
@@ -165,14 +174,18 @@ async function downloadFile(client: GoogleStorageClient, object: GoogleStorageOb
   }
   const sourceRef = toSourceRef(object);
   const label = `gs://${playReportsBucket}/${sourceRef}`;
+  const bytes = await client.downloadObject(playReportsBucket, object);
+  if (object.name.startsWith("sales/")) {
+    const sales = decodeGoogleSalesArchive(bytes, object.name);
+    return { object, sourceRef, ...sales };
+  }
   const route = routePlayObject(object.name);
-  const file = decodePlayReportFile(await client.downloadObject(playReportsBucket, object), label);
+  const file = decodePlayReportFile(bytes, label);
   return { object, sourceRef, route, header: file.header, rows: mapPlayReportRows(route, file, label) };
 }
 
 /**
- * Imports every Google Play statistics CSV generation not yet in store_analytics, for every package
- * in the bucket. No new file is started after `deadlineAtMs` or once `signal` aborts (the run lost
+ * No new file is started after `deadlineAtMs` or once `signal` aborts (the run lost
  * its lock), and the bucket is not even listed when that is already true at the start; the next run
  * continues with what remains. A failed file is reported and skipped, and the run throws once every
  * other file was attempted.
@@ -188,6 +201,7 @@ export async function importPlayReports(
   if (Date.now() >= deadlineAtMs || signal.aborted) {
     const skippedSummary: PlayImportSummary = {
       listingSkippedForDeadline: true,
+      salesInventoryComplete: false,
       objectsListed: 0,
       objectsNotCsv: 0,
       filesAlreadyImported: 0,
@@ -209,7 +223,8 @@ export async function importPlayReports(
   for (const prefix of importedPrefixes) {
     listed.push(...await client.listObjects(playReportsBucket, prefix));
   }
-  const csvObjects = listed.filter((object) => object.name.endsWith(".csv"));
+  const csvObjects = listed.filter((object) => object.name.startsWith("sales/")
+    ? object.name.endsWith(".zip") : object.name.endsWith(".csv"));
   const importedSourceRefs = await loadImportedSourceRefs(csvObjects.map(toSourceRef));
   const pendingObjects = csvObjects
     .filter((object) => !importedSourceRefs.has(toSourceRef(object)))
@@ -219,6 +234,7 @@ export async function importPlayReports(
   let filesImported = 0;
   let filesReplacingEarlierGeneration = 0;
   let filesFailed = 0;
+  let salesFilesFailed = 0;
 
   for (const object of pendingObjects) {
     if (Date.now() >= deadlineAtMs || signal.aborted) {
@@ -235,6 +251,7 @@ export async function importPlayReports(
       rowsInserted[file.route.table.tableName] += file.rows.length;
     } catch (error) {
       filesFailed += 1;
+      if (object.name.startsWith("sales/")) salesFilesFailed += 1;
       const normalizedError = normalizeCaughtError(error);
       captureBackendException({
         action: "store_analytics_play_file_failed",
@@ -251,6 +268,8 @@ export async function importPlayReports(
 
   const summary: PlayImportSummary = {
     listingSkippedForDeadline: false,
+    salesInventoryComplete: salesFilesFailed === 0
+      && !pendingObjects.slice(filesAttempted).some((object) => object.name.startsWith("sales/")),
     objectsListed: listed.length,
     objectsNotCsv: listed.length - csvObjects.length,
     filesAlreadyImported: csvObjects.length - pendingObjects.length,
@@ -263,7 +282,7 @@ export async function importPlayReports(
   addBackendBreadcrumb({ action: "store_analytics_play_import_completed", scope, details: summary });
 
   if (filesFailed > 0) {
-    throw new Error(`${filesFailed} Google Play report files failed to import; see store_analytics_play_file_failed.`);
+    throw new PlayReportsImportError(summary);
   }
   return summary;
 }

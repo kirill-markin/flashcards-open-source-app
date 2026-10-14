@@ -10,6 +10,7 @@ import {
 import { markCapturedBackendException } from "../../observability/reportedErrors";
 import type { AppleImportSummary } from "../../storeAnalytics/appleImport";
 import type { PlayImportSummary } from "../../storeAnalytics/playImport";
+import type { GoogleHistoryImportSummary } from "../../billing/history/googleImport";
 
 initializeBackendSentry("store-analytics-import");
 
@@ -31,9 +32,10 @@ type StoreAnalyticsImportResponse = Readonly<{
   ok: true;
   appStore: AppleImportSummary;
   googlePlay: PlayImportSummary;
+  googleHistory: GoogleHistoryImportSummary;
 }>;
 
-type ImportSource = "app_store" | "google_play";
+type ImportSource = "app_store" | "google_play" | "google_history";
 
 type SourceOutcome<Summary> =
   | Readonly<{ ok: true; summary: Summary }>
@@ -42,9 +44,9 @@ type SourceOutcome<Summary> =
 type ImportOutcomes = Readonly<{
   appStore: SourceOutcome<AppleImportSummary>;
   googlePlay: SourceOutcome<PlayImportSummary>;
+  googleHistory: SourceOutcome<GoogleHistoryImportSummary>;
 }>;
 
-/** Reports a failed source and returns it, so one source failing never stops the other. */
 async function runSource<Summary>(
   scope: BackendObservationScope,
   source: ImportSource,
@@ -67,7 +69,8 @@ async function runSource<Summary>(
 async function runImports(scope: BackendObservationScope, deadlineAtMs: number): Promise<ImportOutcomes> {
   const { withSessionAdvisoryLock } = await import("../../database");
   const { importAppleReports } = await import("../../storeAnalytics/appleImport");
-  const { importPlayReports } = await import("../../storeAnalytics/playImport");
+  const { importPlayReports, PlayReportsImportError } = await import("../../storeAnalytics/playImport");
+  const { importGoogleBillingHistory } = await import("../../billing/history/googleImport");
   return withSessionAdvisoryLock(
     {
       lockName: importLockName,
@@ -76,10 +79,15 @@ async function runImports(scope: BackendObservationScope, deadlineAtMs: number):
       pollIntervalMs: importLockPollIntervalMs,
       signal: new AbortController().signal,
     },
-    async (signal) => ({
-      appStore: await runSource(scope, "app_store", () => importAppleReports(scope, deadlineAtMs, signal)),
-      googlePlay: await runSource(scope, "google_play", () => importPlayReports(scope, deadlineAtMs, signal)),
-    }),
+    async (signal) => {
+      const appStore = await runSource(scope, "app_store", () => importAppleReports(scope, deadlineAtMs, signal));
+      const googlePlay = await runSource(scope, "google_play", () => importPlayReports(scope, deadlineAtMs, signal));
+      const reports = googlePlay.ok ? googlePlay.summary
+        : googlePlay.error instanceof PlayReportsImportError ? googlePlay.error.summary : null;
+      const googleHistory = await runSource(scope, "google_history", () =>
+        importGoogleBillingHistory(scope, deadlineAtMs, signal, reports));
+      return { appStore, googlePlay, googleHistory };
+    },
   );
 }
 
@@ -115,9 +123,9 @@ const storeAnalyticsImportHandler: Handler<
     throw error;
   }
 
-  const { appStore, googlePlay } = outcomes;
-  if (!appStore.ok || !googlePlay.ok) {
-    const failures = [appStore, googlePlay].flatMap((outcome) => outcome.ok ? [] : [outcome]);
+  const { appStore, googlePlay, googleHistory } = outcomes;
+  if (!appStore.ok || !googlePlay.ok || !googleHistory.ok) {
+    const failures = [appStore, googlePlay, googleHistory].flatMap((outcome) => outcome.ok ? [] : [outcome]);
     const failure = new AggregateError(
       failures.map((outcome) => outcome.error),
       `Store analytics import failed: ${failures.map((outcome) => `${outcome.source}: ${outcome.error.message}`).join(" | ")}`,
@@ -126,7 +134,7 @@ const storeAnalyticsImportHandler: Handler<
     markCapturedBackendException(failure);
     throw failure;
   }
-  return { ok: true, appStore: appStore.summary, googlePlay: googlePlay.summary };
+  return { ok: true, appStore: appStore.summary, googlePlay: googlePlay.summary, googleHistory: googleHistory.summary };
 };
 
 export const handler = wrapBackendHandler(storeAnalyticsImportHandler);
