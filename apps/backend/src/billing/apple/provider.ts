@@ -1,10 +1,14 @@
 import { setTimeout } from "node:timers/promises";
 import {
   APIError, APIException, AppStoreServerAPIClient, Environment, SignedDataVerifier,
-  VerificationException, VerificationStatus, Type, OfferDiscountType, ExpirationIntent, InAppOwnershipType,
+  VerificationException, VerificationStatus, GetTransactionHistoryVersion, Order, Type, OfferDiscountType, ExpirationIntent, InAppOwnershipType,
   type JWSTransactionDecodedPayload, type JWSRenewalInfoDecodedPayload,
 } from "@apple/app-store-server-library";
 import { z } from "zod";
+import {
+  appleTransactionHistorySchema, appleRenewalHistorySchema, type AppleTransactionHistory,
+} from "../history/apple";
+import { parseHistoryFields } from "../history/store";
 import { appleRootCertificates } from "./certificates";
 import {
   AppleBillingError, appleAppId, appleBundleId, appleProductId,
@@ -125,12 +129,13 @@ export class AppleProvider {
     return { ...decoded, ...transaction.data, transactionReason: transaction.data.transactionReason };
   }
 
-  private async renewal(signed: string, identity: ApplePurchaseIdentity): Promise<JWSRenewalInfoDecodedPayload> {
+  private async renewal(signed: string, identity: ApplePurchaseIdentity): Promise<JWSRenewalInfoDecodedPayload & z.infer<typeof renewalSchema>> {
     const decoded = await callApple("verify renewal", () => this.verifiers[identity.environment].verifyAndDecodeRenewalInfo(signed));
-    if (!renewalSchema.safeParse(decoded).success || decoded.originalTransactionId !== identity.originalTransactionId) {
+    const renewal = renewalSchema.safeParse(decoded);
+    if (!renewal.success || decoded.originalTransactionId !== identity.originalTransactionId) {
       throw new AppleBillingError("APPLE_RENEWAL_INVALID", false, "Apple renewal does not match this premium_monthly purchase.");
     }
-    return decoded;
+    return { ...decoded, ...renewal.data };
   }
 
   async verifyTransaction(signed: string): Promise<ApplePurchaseIdentity> {
@@ -153,16 +158,96 @@ export class AppleProvider {
       environment, originalTransactionId: requireValue(transaction.originalTransactionId, "originalTransactionId"),
       appAccountToken: transaction.appAccountToken ?? null,
     };
+    let renewalInfo: z.infer<typeof appleRenewalHistorySchema> | undefined;
     if (decoded.data?.signedRenewalInfo !== undefined) {
       if (identity === null) throw new AppleBillingError("APPLE_NOTIFICATION_INVALID", false, "Apple renewal has no transaction identity.");
-      await this.renewal(decoded.data.signedRenewalInfo, identity);
+      renewalInfo = parseHistoryFields(appleRenewalHistorySchema, await this.renewal(decoded.data.signedRenewalInfo, identity));
     }
     const eventType = requireValue(decoded.notificationType, "notificationType");
     if (identity === null && eventType !== "TEST") {
       throw new AppleBillingError("APPLE_NOTIFICATION_UNSUPPORTED", false, "Apple notification has no subscription transaction.");
     }
     return { eventId, eventType, environment, identity, signedPayload,
+      historyTransaction: transaction === null ? undefined
+        : parseHistoryFields(appleTransactionHistorySchema, { ...transaction, renewalInfo }),
       occurredAt: new Date(requireValue(decoded.signedDate, "signedDate")) };
+  }
+
+  async transactionHistoryPage(
+    environment: AppleEnvironment, originalTransactionId: string, revision: string | null,
+    from: Date, to: Date,
+  ): Promise<Readonly<{ transactions: ReadonlyArray<AppleTransactionHistory>; revision: string; hasMore: boolean }>> {
+    const response = await callApple("getTransactionHistory", () => this.clients[environment].getTransactionHistory(
+      originalTransactionId, revision, {
+        startDate: from.getTime(), endDate: to.getTime(), productIds: [appleProductId], sort: Order.ASCENDING,
+      }, GetTransactionHistoryVersion.V2));
+    if (response.bundleId !== appleBundleId || toEnvironment(requireValue(response.environment, "environment")) !== environment
+      || (environment === "production" && response.appAppleId !== appleAppId)) {
+      throw new AppleBillingError("APPLE_HISTORY_IDENTITY_INVALID", false, "Apple history identifies another app or environment.");
+    }
+    const nextRevision = requireValue(response.revision, "revision");
+    const hasMore = requireValue(response.hasMore, "hasMore");
+    if (hasMore && (nextRevision === "" || nextRevision === revision)) {
+      throw new AppleBillingError("APPLE_HISTORY_PAGINATION_INVALID", false, "Apple history revision did not advance.");
+    }
+    const transactions: Array<AppleTransactionHistory> = [];
+    for (const signed of requireValue(response.signedTransactions, "signedTransactions")) {
+      transactions.push(parseHistoryFields(appleTransactionHistorySchema, await this.transaction(signed, environment)));
+    }
+    return { transactions, revision: nextRevision, hasMore };
+  }
+
+  async notificationHistoryPage(
+    environment: AppleEnvironment, paginationToken: string | null, from: Date, to: Date,
+  ): Promise<Readonly<{ transactions: ReadonlyArray<AppleTransactionHistory>; paginationToken: string | null; hasMore: boolean }>> {
+    const response = await callApple("getNotificationHistory", () => this.clients[environment].getNotificationHistory(
+      paginationToken, { startDate: from.getTime(), endDate: to.getTime(), onlyFailures: false }));
+    const hasMore = requireValue(response.hasMore, "hasMore");
+    const nextToken = response.paginationToken ?? null;
+    if (hasMore && (nextToken === null || nextToken === "" || nextToken === paginationToken)) {
+      throw new AppleBillingError("APPLE_HISTORY_PAGINATION_INVALID", false, "Apple notification history token did not advance.");
+    }
+    const transactions: Array<AppleTransactionHistory> = [];
+    for (const item of requireValue(response.notificationHistory, "notificationHistory")) {
+      const signed = requireValue(item.signedPayload, "signedPayload");
+      const decoded = await callApple("verify history notification", () => this.verifiers[environment].verifyAndDecodeNotification(signed));
+      if (!z.uuid().safeParse(decoded.notificationUUID).success || decoded.version !== "2.0"
+        || !z.number().int().nonnegative().safeParse(decoded.signedDate).success) {
+        throw new AppleBillingError("APPLE_NOTIFICATION_INVALID", false, "Apple history notification has invalid identity or signing time.");
+      }
+      if (decoded.data?.signedTransactionInfo !== undefined) {
+        const transaction = await this.transaction(decoded.data.signedTransactionInfo, environment);
+        const renewalInfo = decoded.data.signedRenewalInfo === undefined ? undefined
+          : parseHistoryFields(appleRenewalHistorySchema, await this.renewal(decoded.data.signedRenewalInfo, {
+            environment, originalTransactionId: transaction.originalTransactionId, appAccountToken: null,
+          }));
+        transactions.push(parseHistoryFields(appleTransactionHistorySchema, { ...transaction, renewalInfo }));
+      }
+    }
+    return { transactions, paginationToken: nextToken, hasMore };
+  }
+
+  async currentHistoryTransaction(
+    environment: AppleEnvironment, originalTransactionId: string,
+  ): Promise<AppleTransactionHistory> {
+    const response = await callApple("getAllSubscriptionStatuses history", () =>
+      this.clients[environment].getAllSubscriptionStatuses(originalTransactionId));
+    if (response.bundleId !== appleBundleId || toEnvironment(requireValue(response.environment, "environment")) !== environment
+      || (environment === "production" && response.appAppleId !== appleAppId)) {
+      throw new AppleBillingError("APPLE_HISTORY_IDENTITY_INVALID", false, "Apple status history identifies another app or environment.");
+    }
+    const items = (response.data ?? []).flatMap((group) => group.lastTransactions ?? [])
+      .filter((item) => item.originalTransactionId === originalTransactionId);
+    if (items.length !== 1) {
+      throw new AppleBillingError("APPLE_STATUS_MISSING", true, "Apple history did not return exactly one current status.");
+    }
+    const transaction = await this.transaction(requireValue(items[0].signedTransactionInfo, "signedTransactionInfo"), environment);
+    const renewalInfo = parseHistoryFields(appleRenewalHistorySchema, await this.renewal(
+      requireValue(items[0].signedRenewalInfo, "signedRenewalInfo"), { environment, originalTransactionId, appAccountToken: null }));
+    if (transaction.originalTransactionId !== originalTransactionId) {
+      throw new AppleBillingError("APPLE_IDENTITY_MISMATCH", false, "Apple history status identifies another original transaction.");
+    }
+    return parseHistoryFields(appleTransactionHistorySchema, { ...transaction, renewalInfo });
   }
 
   async currentState(identity: ApplePurchaseIdentity): Promise<ApplePurchaseState> {

@@ -19,6 +19,7 @@ export interface StoreAnalyticsImportProps {
   db: rds.DatabaseInstance;
   backendDbSecret: cdk.aws_secretsmanager.Secret;
   stripeBillingSecretArn: string | undefined;
+  appleIapSecretArn: string | undefined;
   sentryDsnSecretArn: string | undefined;
   sentryEnvironment: string | undefined;
   sentryRelease: string | undefined;
@@ -128,6 +129,13 @@ export function storeAnalyticsImport(scope: Construct, props: StoreAnalyticsImpo
     "AppStoreConnectReportsSecret",
     appStoreConnectReportsSecretName,
   ).grantRead(importFunction);
+  if (hasConfiguredValue(props.appleIapSecretArn)) {
+    const appleIapSecret = cdk.aws_secretsmanager.Secret.fromSecretCompleteArn(
+      scope, "StoreAnalyticsImportAppleIapSecret", props.appleIapSecretArn,
+    );
+    appleIapSecret.grantRead(importFunction);
+    importFunction.addEnvironment("APPLE_IAP_SECRET_ARN", appleIapSecret.secretArn);
+  }
   addOptionalSentryEnvironment(scope, importFunction, props);
   if (hasConfiguredValue(props.stripeBillingSecretArn)) {
     cdk.aws_secretsmanager.Secret.fromSecretCompleteArn(
@@ -145,7 +153,7 @@ export function storeAnalyticsImport(scope: Construct, props: StoreAnalyticsImpo
   }));
 
   new scheduler.CfnSchedule(scope, "StoreAnalyticsImportHourlySchedule", {
-    description: "Import store reports and reconcile Stripe native billing history every hour",
+    description: "Import store reports and reconcile Apple and Stripe native billing history every hour",
     flexibleTimeWindow: { mode: "OFF" },
     scheduleExpression: storeAnalyticsImportScheduleExpression,
     scheduleExpressionTimezone: "UTC",
