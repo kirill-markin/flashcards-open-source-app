@@ -18,6 +18,7 @@ export interface StoreAnalyticsImportProps {
   lambdaSg: ec2.SecurityGroup;
   db: rds.DatabaseInstance;
   backendDbSecret: cdk.aws_secretsmanager.Secret;
+  appleIapSecretArn: string | undefined;
   sentryDsnSecretArn: string | undefined;
   sentryEnvironment: string | undefined;
   sentryRelease: string | undefined;
@@ -128,6 +129,13 @@ export function storeAnalyticsImport(scope: Construct, props: StoreAnalyticsImpo
     "AppStoreConnectReportsSecret",
     appStoreConnectReportsSecretName,
   ).grantRead(importFunction);
+  if (hasConfiguredValue(props.appleIapSecretArn)) {
+    const appleIapSecret = cdk.aws_secretsmanager.Secret.fromSecretCompleteArn(
+      scope, "StoreAnalyticsImportAppleIapSecret", props.appleIapSecretArn,
+    );
+    appleIapSecret.grantRead(importFunction);
+    importFunction.addEnvironment("APPLE_IAP_SECRET_ARN", appleIapSecret.secretArn);
+  }
   addOptionalSentryEnvironment(scope, importFunction, props);
 
   // No automatic retry: an instance or file left unimported is picked up by the next hourly run.
