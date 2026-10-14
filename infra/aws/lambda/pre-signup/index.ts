@@ -1,6 +1,5 @@
 import * as Sentry from "@sentry/aws-serverless";
 
-/** Cognito PreSignUp trigger: auto-confirms user and verifies email. */
 type PreSignUpEvent = {
   request: {
     userAttributes: Record<string, string | undefined>;
@@ -61,9 +60,7 @@ if (dsn === undefined || dsn.trim() === "") {
 }
 
 export const handler = Sentry.wrapHandler(async (event: PreSignUpEvent) => {
-  event.response.autoConfirmUser = true;
-  if (event.request.userAttributes.email) {
-    event.response.autoVerifyEmail = true;
-  }
+  event.response.autoConfirmUser = false;
+  event.response.autoVerifyEmail = false;
   return event;
 });
