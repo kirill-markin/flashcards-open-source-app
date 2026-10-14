@@ -1202,6 +1202,7 @@ export const renderLoginPage = (
       var redirectUri = ${JSON.stringify(redirectUri)};
       var copy = ${JSON.stringify(copy)};
       var uiLocale = ${JSON.stringify(locale)};
+      var collectionDisabled = new URLSearchParams(window.location.search).get("analytics_collection") === "off";
 
       var csrfToken = "";
 
@@ -1280,6 +1281,7 @@ export const renderLoginPage = (
         // send it is in server/analytics/signInFunnel.ts.
         return fetch("api/refresh-session?screen=signin&ui_locale=" + encodeURIComponent(uiLocale), {
           method: "POST",
+          headers: collectionDisabled ? { "X-Product-Analytics-Enabled": "0" } : {},
           credentials: "same-origin",
         }).then(function(res) {
           if (res.ok) {
@@ -1315,7 +1317,9 @@ export const renderLoginPage = (
 
         fetch("api/send-code?screen=signin&ui_locale=" + encodeURIComponent(uiLocale), {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: collectionDisabled
+            ? { "Content-Type": "application/json", "X-Product-Analytics-Enabled": "0" }
+            : { "Content-Type": "application/json" },
           credentials: "same-origin",
           body: JSON.stringify({ email: email }),
         })
@@ -1362,7 +1366,9 @@ export const renderLoginPage = (
 
         fetch("api/verify-code?screen=signin&ui_locale=" + encodeURIComponent(uiLocale), {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: collectionDisabled
+            ? { "Content-Type": "application/json", "X-Product-Analytics-Enabled": "0" }
+            : { "Content-Type": "application/json" },
           credentials: "same-origin",
           body: JSON.stringify({
             code: code,
