@@ -81,6 +81,51 @@ export type AnalyticsNetworkState = "wifi" | "cellular" | "offline" | "unknown";
  */
 export type AnalyticsLaunchType = "cold" | "warm";
 
+export type AnalyticsAuthMethod = "email" | "apple" | "google";
+export type AnalyticsAuthProvider = "apple" | "google";
+export type AnalyticsAuthCodeRequestAction = "initial" | "resend";
+export type AnalyticsAuthCodeRequestOutcome =
+  | "accepted"
+  | "rate_limited"
+  | "offline"
+  | "timeout"
+  | "server_error";
+export type AnalyticsAuthCodeVerificationOutcome =
+  | "verified"
+  | "invalid_code"
+  | "expired_code"
+  | "code_already_used"
+  | "rate_limited"
+  | "offline"
+  | "timeout"
+  | "server_error";
+export type AnalyticsAuthProviderOutcome =
+  | "credential_received"
+  | "cancelled"
+  | "denied"
+  | "unavailable"
+  | "invalid_response"
+  | "offline"
+  | "timeout"
+  | "provider_error"
+  | "server_error";
+export type AnalyticsAuthAccountLinkOutcome =
+  | "linked"
+  | "already_linked"
+  | "conflict"
+  | "verification_required"
+  | "cancelled"
+  | "offline"
+  | "timeout"
+  | "server_error";
+export type AnalyticsAuthGuestUpgradeOutcome =
+  | "completed"
+  | "conflict"
+  | "offline"
+  | "timeout"
+  | "storage_error"
+  | "server_error";
+
 export type AnalyticsSignInFailureReason =
   | "invalid_code"
   | "expired_code"
@@ -178,7 +223,10 @@ export type AnalyticsPurchaseOfferType = "free_trial" | "standard";
 
 export type AnalyticsPurchaseOutcome = "completed" | "cancelled" | "failed" | "pending";
 
-export type AnalyticsSubscriptionManagementDestination = "stripe_portal" | "app_store" | "google_play";
+export type AnalyticsSubscriptionManagementDestination =
+  | "stripe_portal"
+  | "app_store"
+  | "google_play";
 
 /** Equals the campaign bucket the store link carries (docs/marketing-links.md). */
 export type AnalyticsStorePlacement =
@@ -232,8 +280,85 @@ export type AnalyticsEvent =
     screen: AnalyticsSurface;
   }>
   | Readonly<{
+    name: "auth_method_selected";
+    screen: AnalyticsSurface;
+    method: AnalyticsAuthMethod;
+  }>
+  | Readonly<{
+    name: "auth_code_form_shown";
+    screen: AnalyticsSurface;
+    method: AnalyticsAuthMethod;
+  }>
+  | Readonly<{
+    name: "auth_code_submitted";
+    screen: AnalyticsSurface;
+    method: AnalyticsAuthMethod;
+  }>
+  | Readonly<{
+    name: "auth_code_resend_requested";
+    screen: AnalyticsSurface;
+    method: AnalyticsAuthMethod;
+  }>
+  | Readonly<{
+    name: "auth_code_request_finished";
+    screen: AnalyticsSurface;
+    method: AnalyticsAuthMethod;
+    action: AnalyticsAuthCodeRequestAction;
+    outcome: AnalyticsAuthCodeRequestOutcome;
+  }>
+  | Readonly<{
+    name: "auth_code_verification_finished";
+    screen: AnalyticsSurface;
+    method: AnalyticsAuthMethod;
+    outcome: AnalyticsAuthCodeVerificationOutcome;
+  }>
+  | Readonly<{
+    name: "auth_provider_requested";
+    screen: AnalyticsSurface;
+    method: AnalyticsAuthProvider;
+  }>
+  | Readonly<{
+    name: "auth_provider_finished";
+    screen: AnalyticsSurface;
+    method: AnalyticsAuthProvider;
+    outcome: AnalyticsAuthProviderOutcome;
+  }>
+  | Readonly<{
+    name: "auth_session_accepted";
+    screen: AnalyticsSurface;
+    method: AnalyticsAuthMethod;
+  }>
+  | Readonly<{
+    name: "auth_account_ready";
+    screen: AnalyticsSurface;
+    method: AnalyticsAuthMethod;
+  }>
+  | Readonly<{
+    name: "auth_account_link_finished";
+    screen: AnalyticsSurface;
+    method: AnalyticsAuthMethod;
+    outcome: AnalyticsAuthAccountLinkOutcome;
+  }>
+  | Readonly<{
+    name: "auth_guest_upgrade_finished";
+    screen: AnalyticsSurface;
+    method: AnalyticsAuthMethod;
+    outcome: AnalyticsAuthGuestUpgradeOutcome;
+  }>
+  | Readonly<{
+    name: "signin_code_requested";
+    screen: AnalyticsSurface;
+    method?: AnalyticsAuthMethod;
+  }>
+  | Readonly<{
+    name: "signin_succeeded";
+    screen: AnalyticsSurface;
+    method?: AnalyticsAuthMethod;
+  }>
+  | Readonly<{
     name: "signin_failed";
     reason: AnalyticsSignInFailureReason;
+    method?: AnalyticsAuthMethod;
   }>
   /**
    * The end of this browser's account relationship. This client reports all three reasons, and it
@@ -427,8 +552,35 @@ export function buildAnalyticsEventProperties(event: AnalyticsEvent): AnalyticsE
       return { launch_type: event.launchType };
     case "screen_viewed":
       return null;
+    case "auth_method_selected":
+      return { method: event.method };
+    case "auth_code_form_shown":
+      return { method: event.method };
+    case "auth_code_submitted":
+      return { method: event.method };
+    case "auth_code_resend_requested":
+      return { method: event.method };
+    case "auth_code_request_finished":
+      return { method: event.method, action: event.action, outcome: event.outcome };
+    case "auth_code_verification_finished":
+      return { method: event.method, outcome: event.outcome };
+    case "auth_provider_requested":
+      return { method: event.method };
+    case "auth_provider_finished":
+      return { method: event.method, outcome: event.outcome };
+    case "auth_session_accepted":
+      return { method: event.method };
+    case "auth_account_ready":
+      return { method: event.method };
+    case "auth_account_link_finished":
+      return { method: event.method, outcome: event.outcome };
+    case "auth_guest_upgrade_finished":
+      return { method: event.method, outcome: event.outcome };
+    case "signin_code_requested":
+    case "signin_succeeded":
+      return event.method === undefined ? null : { method: event.method };
     case "signin_failed":
-      return { reason: event.reason };
+      return { reason: event.reason, ...(event.method === undefined ? {} : { method: event.method }) };
     case "signed_out":
       return { reason: event.reason };
     case "review_card_revealed":
