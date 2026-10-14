@@ -782,6 +782,7 @@ export type StoreAnalyticsAppleInstanceFailureDetails = Readonly<{
  */
 export type StoreAnalyticsPlayImportCompletedDetails = Readonly<{
   listingSkippedForDeadline: boolean;
+  salesInventoryComplete: boolean;
   objectsListed: number;
   objectsNotCsv: number;
   filesAlreadyImported: number;
@@ -796,6 +797,21 @@ export type StoreAnalyticsPlayFileFailureDetails = Readonly<{
   objectName: string;
   generation: string;
   message: string;
+}>;
+
+export type GoogleHistoryImportCompletedDetails = Readonly<{
+  ordersHandled: number;
+  subscriptionsObserved: number;
+  unfinishedSources: number;
+  failedSources: number;
+  tokenLookupsUnavailable: number;
+}>;
+
+export type GoogleHistorySourceFailureDetails = Readonly<{
+  source: "google_orders" | "google_subscriptions" | "unclassified_rtdn_tokens";
+  environment: "production" | "sandbox" | null;
+  code: string;
+  httpStatus: number | null;
 }>;
 
 /**
@@ -837,6 +853,9 @@ export type OperationsBreadcrumbEvent =
   | EventByAction<"store_analytics_apple_import_completed", StoreAnalyticsAppleImportCompletedDetails>
   | EventByAction<"store_analytics_play_retry", StoreAnalyticsAppleRetryDetails>
   | EventByAction<"store_analytics_play_import_completed", StoreAnalyticsPlayImportCompletedDetails>
+  | EventByAction<"google_history_retry", StoreAnalyticsAppleRetryDetails>
+  | EventByAction<"google_history_import_completed", GoogleHistoryImportCompletedDetails>
+  | EventByAction<"google_history_source_failed", GoogleHistorySourceFailureDetails>
   | EventByAction<"generated_media_promotion_batch_completed", GeneratedMediaPromotionBatchDetails>
   | EventByAction<"geolite_country_database_loaded", GeoLiteCountryDatabaseLoadedDetails>
   | EventByAction<"media_blob_cleanup_batch_completed", MediaBlobCleanupBatchDetails>
@@ -923,7 +942,7 @@ export type OperationsExceptionEvent =
   | (EventByAction<"probable_android_burst_refresh_failed", Readonly<{ message: string }>> & Readonly<{ error: Error }>)
   | (EventByAction<
     "store_analytics_import_failed",
-    Readonly<{ source: "app_store" | "google_play" | "stripe_history" | "apple_history" | null; message: string }>
+    Readonly<{ source: "app_store" | "google_play" | "google_history" | "stripe_history" | "apple_history" | null; message: string }>
   > & Readonly<{ error: Error }>)
   | (EventByAction<
     "stripe_history_import_failed",
