@@ -400,6 +400,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       lambdaSg: net.lambdaSg,
       db: dbResult.db,
       backendDbSecret: dbResult.backendDbSecret,
+      stripeBillingSecretArn,
       ...sentryContext,
       schedulerRole,
     });

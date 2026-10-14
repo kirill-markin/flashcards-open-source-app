@@ -24,7 +24,7 @@ export async function loadStripeEnvironmentSecret(environment: StripeEnvironment
   const arn = process.env.STRIPE_BILLING_SECRET_ARN?.trim();
   if (arn === undefined || arn === "") {
     throw new StripeBillingError("STRIPE_BILLING_UNAVAILABLE", true,
-      "Stripe billing is unavailable: configure STRIPE_BILLING_SECRET_ARN on the HTTP backend.");
+      "Stripe billing is unavailable: configure STRIPE_BILLING_SECRET_ARN on the backend function.");
   }
   const secret = parseStripeBillingSecret(await loadStripeBillingSecretJson(arn))[environment];
   if (secret === undefined) {

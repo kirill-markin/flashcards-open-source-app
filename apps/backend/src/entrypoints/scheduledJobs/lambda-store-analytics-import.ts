@@ -10,13 +10,13 @@ import {
 import { markCapturedBackendException } from "../../observability/reportedErrors";
 import type { AppleImportSummary } from "../../storeAnalytics/appleImport";
 import type { PlayImportSummary } from "../../storeAnalytics/playImport";
+import type { StripeHistoryImportSummary } from "../../billing/history/stripeImport";
 
 initializeBackendSentry("store-analytics-import");
 
-// App Store then Google Play share this budget. No new report instance or file starts after it; the
-// rest of the 15-minute Lambda timeout lets the one in flight finish. The next hourly run continues
-// with what remains.
+// The rest of the 15-minute Lambda timeout lets the request in flight finish.
 const importTimeBudgetMs = 12 * 60 * 1000;
+const stripeHistoryTimeBudgetMs = 3 * 60 * 1000;
 
 // One run at a time: replacing a report date is check-then-delete-then-insert under READ
 // COMMITTED, so two overlapping runs (a duplicate scheduler delivery or a manual invoke) could
@@ -31,9 +31,10 @@ type StoreAnalyticsImportResponse = Readonly<{
   ok: true;
   appStore: AppleImportSummary;
   googlePlay: PlayImportSummary;
+  stripe: StripeHistoryImportSummary;
 }>;
 
-type ImportSource = "app_store" | "google_play";
+type ImportSource = "app_store" | "google_play" | "stripe_history";
 
 type SourceOutcome<Summary> =
   | Readonly<{ ok: true; summary: Summary }>
@@ -42,9 +43,9 @@ type SourceOutcome<Summary> =
 type ImportOutcomes = Readonly<{
   appStore: SourceOutcome<AppleImportSummary>;
   googlePlay: SourceOutcome<PlayImportSummary>;
+  stripe: SourceOutcome<StripeHistoryImportSummary>;
 }>;
 
-/** Reports a failed source and returns it, so one source failing never stops the other. */
 async function runSource<Summary>(
   scope: BackendObservationScope,
   source: ImportSource,
@@ -68,6 +69,7 @@ async function runImports(scope: BackendObservationScope, deadlineAtMs: number):
   const { withSessionAdvisoryLock } = await import("../../database");
   const { importAppleReports } = await import("../../storeAnalytics/appleImport");
   const { importPlayReports } = await import("../../storeAnalytics/playImport");
+  const { importStripeHistory } = await import("../../billing/history/stripeImport");
   return withSessionAdvisoryLock(
     {
       lockName: importLockName,
@@ -77,6 +79,8 @@ async function runImports(scope: BackendObservationScope, deadlineAtMs: number):
       signal: new AbortController().signal,
     },
     async (signal) => ({
+      stripe: await runSource(scope, "stripe_history", () => importStripeHistory(scope,
+        Math.min(deadlineAtMs, Date.now() + stripeHistoryTimeBudgetMs), signal)),
       appStore: await runSource(scope, "app_store", () => importAppleReports(scope, deadlineAtMs, signal)),
       googlePlay: await runSource(scope, "google_play", () => importPlayReports(scope, deadlineAtMs, signal)),
     }),
@@ -115,9 +119,9 @@ const storeAnalyticsImportHandler: Handler<
     throw error;
   }
 
-  const { appStore, googlePlay } = outcomes;
-  if (!appStore.ok || !googlePlay.ok) {
-    const failures = [appStore, googlePlay].flatMap((outcome) => outcome.ok ? [] : [outcome]);
+  const { appStore, googlePlay, stripe } = outcomes;
+  if (!appStore.ok || !googlePlay.ok || !stripe.ok) {
+    const failures = [appStore, googlePlay, stripe].flatMap((outcome) => outcome.ok ? [] : [outcome]);
     const failure = new AggregateError(
       failures.map((outcome) => outcome.error),
       `Store analytics import failed: ${failures.map((outcome) => `${outcome.source}: ${outcome.error.message}`).join(" | ")}`,
@@ -126,7 +130,7 @@ const storeAnalyticsImportHandler: Handler<
     markCapturedBackendException(failure);
     throw failure;
   }
-  return { ok: true, appStore: appStore.summary, googlePlay: googlePlay.summary };
+  return { ok: true, appStore: appStore.summary, googlePlay: googlePlay.summary, stripe: stripe.summary };
 };
 
 export const handler = wrapBackendHandler(storeAnalyticsImportHandler);

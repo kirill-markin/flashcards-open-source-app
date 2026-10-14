@@ -914,7 +914,13 @@ export type OperationsExceptionEvent =
   | (EventByAction<"probable_android_burst_refresh_failed", Readonly<{ message: string }>> & Readonly<{ error: Error }>)
   | (EventByAction<
     "store_analytics_import_failed",
-    Readonly<{ source: "app_store" | "google_play" | null; message: string }>
+    Readonly<{ source: "app_store" | "google_play" | "stripe_history" | null; message: string }>
+  > & Readonly<{ error: Error }>)
+  | (EventByAction<
+    "stripe_history_import_failed",
+    Readonly<{ environment: "production" | "sandbox";
+      source?: "stripe_subscriptions" | "stripe_invoices" | "stripe_payments" | "stripe_refunds";
+      failureCode?: string; runId?: string }>
   > & Readonly<{ error: Error }>)
   | (EventByAction<"store_analytics_apple_instance_failed", StoreAnalyticsAppleInstanceFailureDetails>
     & Readonly<{ error: Error }>)
