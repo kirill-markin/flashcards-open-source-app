@@ -13,6 +13,7 @@ import { loadLevelOneMetricsAvailableRange } from "./query";
 import { WhoSawUsSection } from "../whoSawUs/WhoSawUsSection";
 import { WhoUsedUsSection } from "../whoUsedUs/WhoUsedUsSection";
 import { WhoCameBackSection } from "../whoCameBack/WhoCameBackSection";
+import { WhoPaidUsSection } from "../whoPaidUs/WhoPaidUsSection";
 
 const levelOneMetricsReportLabel = "Level 1 metrics";
 
@@ -159,6 +160,11 @@ export function LevelOneMetricsArea(
           onTerminalAdminError={props.onTerminalAdminError}
         />
         <WhoCameBackSection
+          config={props.config}
+          dateRange={dateRange}
+          onTerminalAdminError={props.onTerminalAdminError}
+        />
+        <WhoPaidUsSection
           config={props.config}
           dateRange={dateRange}
           onTerminalAdminError={props.onTerminalAdminError}
