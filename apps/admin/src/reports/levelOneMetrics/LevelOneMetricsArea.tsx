@@ -9,13 +9,13 @@ import {
   type AnalyticsFilterState,
 } from "../../filters/analyticsFilters";
 import { buildPresetReportRange, lastSixtyDaysReportRangePreset } from "../reportValues";
-import { loadWhoSawUsAvailableRange } from "../whoSawUs/query";
+import { loadLevelOneMetricsAvailableRange } from "./query";
 import { WhoSawUsSection } from "../whoSawUs/WhoSawUsSection";
+import { WhoUsedUsSection } from "../whoUsedUs/WhoUsedUsSection";
+import { WhoCameBackSection } from "../whoCameBack/WhoCameBackSection";
 
 const levelOneMetricsReportLabel = "Level 1 metrics";
 
-// The bar offers the date range alone here, so the option lists of the fields it does not render are
-// empty and no chart colours a person.
 const noOptions: ReadonlyArray<never> = [];
 const noUserColorScale = getUserColorScale([]);
 
@@ -28,7 +28,6 @@ type RangeLoadState =
       defaultRange: AnalyticsDateRange;
     }>;
 
-/** Both ends are `YYYY-MM-DD`, so comparing them as text compares them as dates. */
 function validateRequestedRange(
   range: AnalyticsDateRange,
   availableRange: AnalyticsDateRange,
@@ -48,11 +47,6 @@ function validateRequestedRange(
   return null;
 }
 
-/**
- * The Level 1 metrics area: its own date range over its own available range, and the charts of the
- * area in a two-column grid. The range lives here rather than in the shared selection and is not
- * written to the URL, so every entry opens on the last 60 days.
- */
 export function LevelOneMetricsArea(
   props: Readonly<{
     config: AdminAppConfig;
@@ -68,7 +62,7 @@ export function LevelOneMetricsArea(
   useEffect(() => {
     let cancelled = false;
     setRangeLoadState({ status: "loading" });
-    void loadWhoSawUsAvailableRange(props.config).then((availableRange) => {
+    void loadLevelOneMetricsAvailableRange(props.config).then((availableRange) => {
       if (cancelled) return;
       const defaultRange = buildPresetReportRange(
         lastSixtyDaysReportRangePreset,
@@ -87,7 +81,6 @@ export function LevelOneMetricsArea(
     return () => { cancelled = true; };
   }, [props.config, props.onTerminalAdminError, rangeLoadRevision]);
 
-  // The bar edits a whole selection, of which only the date range is offered and read here.
   const filters = useMemo(
     () => (dateRange === null ? null : buildDefaultAnalyticsFilterState(dateRange)),
     [dateRange],
@@ -156,6 +149,16 @@ export function LevelOneMetricsArea(
 
       <div className="level-1-metrics-grid">
         <WhoSawUsSection
+          config={props.config}
+          dateRange={dateRange}
+          onTerminalAdminError={props.onTerminalAdminError}
+        />
+        <WhoUsedUsSection
+          config={props.config}
+          dateRange={dateRange}
+          onTerminalAdminError={props.onTerminalAdminError}
+        />
+        <WhoCameBackSection
           config={props.config}
           dateRange={dateRange}
           onTerminalAdminError={props.onTerminalAdminError}

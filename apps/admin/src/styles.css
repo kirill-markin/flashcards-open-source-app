@@ -1479,10 +1479,6 @@ h2 {
   padding: 8px 8px 16px;
 }
 
-/*
- * Level 1 metrics: one chart per cell of a two-column grid. A chart there is drawn at about half the
- * width the shared chart geometry assumes, so its text takes a larger size to read the same.
- */
 .level-1-metrics-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1493,6 +1489,46 @@ h2 {
 .level-1-metrics-grid .axis text,
 .level-1-metrics-grid .axis-label {
   font-size: 16px;
+}
+
+.activity-chart-hit:focus {
+  outline: none;
+  stroke: var(--text);
+  stroke-width: 2;
+}
+
+.activity-coverage-note {
+  margin: 8px 0 16px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.activity-chart-table {
+  margin-top: 16px;
+}
+
+.activity-chart-table summary {
+  cursor: pointer;
+}
+
+.activity-chart-table table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+}
+
+.activity-chart-table th,
+.activity-chart-table td {
+  padding: 8px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.activity-chart-table caption {
+  padding: 12px 8px;
+  text-align: left;
+  color: var(--muted);
 }
 
 .not-final-marker line {

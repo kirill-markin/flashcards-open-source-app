@@ -11,7 +11,7 @@ Each serves `/analytics/level-1-metrics`, the landing page that `/` and `/analyt
 
 ## Scope
 
-`Level 1 metrics` is the first analytics area and the one the admin app opens on. It carries a date range of its own, opening on the last 60 days, and one chart so far, `Who saw us`: approximate daily unique visitors of the marketing website, the App Store page and the Google Play listing, stacked per UTC day. The website series reads `analytics.product_events_resolved` and the store series read the `store_analytics` tables; [apps/admin/README.md](../apps/admin/README.md#level-1-metrics) defines each series and [its query](../apps/admin/src/reports/whoSawUs/query.ts) owns them.
+`Level 1 metrics` opens on its own last-60-days date range. Its responsive grid has `Who saw us` at the upper left, `Who used us` at the upper right and `Who came back` at the lower left; the fourth cell is deferred. [The Level 1 contract](../apps/admin/README.md#level-1-metrics) defines sources, meaningful activity, identity resolution, rolling unique users, W1/W4 cohort maturity and retained-history limits. The [area](../apps/admin/src/reports/levelOneMetrics/LevelOneMetricsArea.tsx) coordinates only the date selection, while each chart loads and retries independently.
 
 `General` contains these four report sections, in page order:
 
@@ -292,6 +292,13 @@ The admin frontend fails fast on any other non-local hostname. Do not serve the 
 - `https://admin.<domain>` returns `200`
 - unauthenticated access redirects to the login flow
 - a listed admin email opening `https://admin.<domain>/` lands on `/analytics/level-1-metrics` with Back not returning to `/`, sees the `Who saw us` chart in the left half of a full-width page on the last 60 days, with a dashed `Not final →` line after the day three days before today, and a tooltip listing every series, `No data` where a source has no row, and the day total
+- Level 1 metrics also shows rolling seven-day usage at the upper right and W1/W4 retention at the lower left; hover or keyboard-focus a date to read counts, and open each chart's data table
+- choose a single complete day and confirm usage includes its six preceding days; switching the selection must not turn existing users into new users
+- choose early retained history and today-only ranges; incomplete rolling windows show unavailable rather than zero
+- choose recent cohorts and confirm immature W1/W4 rates are unavailable; choose an older cohort ending before its return window and confirm later returns still count
+- compare one attachment-only user chat and an upgraded guest's review/chat history; meaningful usage counts the resolved person once, while assistant-only and background activity alone do not qualify
+- an empty matured cohort has no rate, and a matured cohort with no returns shows 0% with exact 0 / base counts; narrow edge weeks name the selected first-use days
+- change the range during loading or retry a failed chart; the other Level 1 sections and date controls keep working, while terminal authorization errors follow the existing page-level handling
 - a listed admin email loads `https://admin.<domain>/analytics/general`, where the shared hero and filter row sit above titled report sections, each separated by a divider
 - General still contains every existing chart; Funnels opens separately with a shared bar of date range, client platform, connection country and app interface language, Mobile first launch, Home page to web app, Deck page to install, Blog article to platform choice, Blog article to web app and Paywall to purchase appear in that order, and only Deck page to install carries a filter row of its own, with its deck and catalog-click filters
 - Audience opens as a sibling and the shared filters remain visible
