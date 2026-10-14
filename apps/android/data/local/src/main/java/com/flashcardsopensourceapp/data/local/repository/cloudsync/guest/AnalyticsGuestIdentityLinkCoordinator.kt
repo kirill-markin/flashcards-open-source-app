@@ -16,8 +16,10 @@ import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.Cloud
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudSessionProvider
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.isRemoteAccountDeletedError
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 
 internal class AnalyticsGuestIdentityLinkCoordinator(
     private val preferencesStore: CloudPreferencesStore,
@@ -41,20 +43,15 @@ internal class AnalyticsGuestIdentityLinkCoordinator(
 
     suspend fun linkAnalyticsGuestIdentityToSignedInAccount() {
         analyticsGuestIdentityLinkMutex.withLock {
-            val cloudSettings: CloudSettings = preferencesStore.currentCloudSettings()
-            if (cloudSettings.cloudState != CloudAccountState.LINKED) {
-                return@withLock
-            }
-            if (preferencesStore.loadCloudCredentialRecoveryState() != null) {
-                return@withLock
-            }
-            val configuration: CloudServiceConfiguration = preferencesStore.currentServerConfiguration()
-            val guestSession: StoredGuestAiSession = guestSessionStore.loadAnySession(
-                configuration = configuration
-            )?.takeIf { session -> session.isAnalyticsOnly } ?: return@withLock
-            val credentials: StoredCloudCredentials = analyticsGuestIdentityLinkCredentialsOrNull(
-                configuration = configuration
-            ) ?: return@withLock
+            val context: AnalyticsGuestLinkContext = operationCoordinator.runExclusive {
+                withContext(Dispatchers.IO) { loadAnalyticsGuestLinkContextOrNull() }
+            } ?: return@withLock
+            val configuration = context.configuration
+            val guestSession = context.guestSession
+            val credentials = analyticsGuestIdentityLinkCredentials(
+                configuration = configuration,
+                storedCredentials = context.credentials
+            )
 
             try {
                 // Loads a request context first, which is what writes the account's identity row.
@@ -97,13 +94,31 @@ internal class AnalyticsGuestIdentityLinkCoordinator(
                     throw error
                 }
             }
-            if (storedAnalyticsGuestStillMatchingOrNull(guestSession = guestSession) == null) {
-                return@withLock
+            operationCoordinator.runExclusive {
+                withContext(Dispatchers.IO) {
+                    if (storedAnalyticsGuestStillMatchingOrNull(guestSession = guestSession) != null) {
+                        guestSessionStore.clearStoredSessions()
+                    }
+                }
             }
-            // Not the two keys this session happens to sit under: any other stored session would
-            // survive and later be presented as an analytics credential or sent here again.
-            guestSessionStore.clearStoredSessions()
         }
+    }
+
+    private fun loadAnalyticsGuestLinkContextOrNull(): AnalyticsGuestLinkContext? {
+        if (preferencesStore.currentCloudSettings().cloudState != CloudAccountState.LINKED ||
+            preferencesStore.loadCloudCredentialRecoveryState() != null
+        ) {
+            return null
+        }
+        val configuration = preferencesStore.currentServerConfiguration()
+        val guestSession = guestSessionStore.loadAnySession(configuration = configuration)
+            ?.takeIf { session -> session.isAnalyticsOnly } ?: return null
+        val credentials = preferencesStore.loadCredentials() ?: return null
+        return AnalyticsGuestLinkContext(
+            configuration = configuration,
+            guestSession = guestSession,
+            credentials = credentials
+        )
     }
 
     /**
@@ -171,10 +186,10 @@ internal class AnalyticsGuestIdentityLinkCoordinator(
      * also saves — could land after a concurrent logout had already cleared them, leaving
      * `DISCONNECTED` with an orphan credential. The refreshed token lives for this request only.
      */
-    private suspend fun analyticsGuestIdentityLinkCredentialsOrNull(
-        configuration: CloudServiceConfiguration
-    ): StoredCloudCredentials? {
-        val storedCredentials: StoredCloudCredentials = preferencesStore.loadCredentials() ?: return null
+    private suspend fun analyticsGuestIdentityLinkCredentials(
+        configuration: CloudServiceConfiguration,
+        storedCredentials: StoredCloudCredentials
+    ): StoredCloudCredentials {
         if (
             shouldRefreshCloudIdToken(
                 idTokenExpiresAtMillis = storedCredentials.idTokenExpiresAtMillis,
@@ -207,14 +222,18 @@ internal class AnalyticsGuestIdentityLinkCoordinator(
      * stored, and must never re-create one deleted since the capture. See
      * [storedAnalyticsGuestStillMatchingOrNull] for what that would cost.
      */
-    private fun retireAnalyticsOnlyGuestForUpgradePath(guestSession: StoredGuestAiSession) {
-        val storedSession: StoredGuestAiSession = storedAnalyticsGuestStillMatchingOrNull(
-            guestSession = guestSession
-        ) ?: return
-        guestSessionStore.saveSession(
-            localWorkspaceId = storedSession.workspaceId,
-            session = storedSession.copy(isAnalyticsOnly = false)
-        )
+    private suspend fun retireAnalyticsOnlyGuestForUpgradePath(guestSession: StoredGuestAiSession) {
+        operationCoordinator.runExclusive {
+            withContext(Dispatchers.IO) {
+                val storedSession = storedAnalyticsGuestStillMatchingOrNull(
+                    guestSession = guestSession
+                ) ?: return@withContext
+                guestSessionStore.saveSession(
+                    localWorkspaceId = storedSession.workspaceId,
+                    session = storedSession.copy(isAnalyticsOnly = false)
+                )
+            }
+        }
     }
 
     private fun isGuestIdentityOwnedByOtherAccountError(error: CloudRemoteException): Boolean {
@@ -225,3 +244,9 @@ internal class AnalyticsGuestIdentityLinkCoordinator(
         return error.statusCode == 409 && error.errorCode == "GUEST_IDENTITY_LINK_UPGRADE_REQUIRED"
     }
 }
+
+private data class AnalyticsGuestLinkContext(
+    val configuration: CloudServiceConfiguration,
+    val guestSession: StoredGuestAiSession,
+    val credentials: StoredCloudCredentials
+)
