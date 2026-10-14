@@ -223,7 +223,7 @@ export function AdminDashboard(
     : null;
 
   return (
-    <main className={usesGeneralReports ? "shell" : "shell shell-full-width"}>
+    <main className="shell">
       <section className="hero">
         <div>
           <p className="eyebrow">Admin Analytics</p>
