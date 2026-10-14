@@ -217,6 +217,8 @@ The role gets `SELECT` on these tables only:
 - selected key and slug columns on `catalog.packages`, the deck label an admin report prints instead of a raw package version id
 - `billing.purchases`
 - `billing.grants`
+- explicit financial columns and allowlisted JSONB on `billing.apple_transactions`, `billing.google_orders`, `billing.google_subscription_observations`, `billing.stripe_subscriptions`, `billing.stripe_invoices`, `billing.stripe_payments`, `billing.stripe_refunds`
+- explicit ownership and coverage columns on `billing.history_subjects` and `billing.history_import_runs`, excluding subject/scope hashes and checkpoints
 - selected trial, purchase-history, and row-timestamp columns on `billing.user_billing_state`
 - every table in `store_analytics`: `import_files`, one row per imported App Store Connect Analytics report segment or Google Play statistics file, and the row tables `apple_discovery_engagement`, `apple_web_preview_engagement`, `apple_downloads`, `apple_installs_deletions`, `apple_sessions`, `apple_purchases`, `apple_subscription_events`, `apple_subscription_states`, `apple_crashes`, `apple_opt_in`, `apple_other_report_rows`, `play_store_performance_country`, `play_store_performance_traffic_source`, `play_installs`, `play_ratings`, `play_crashes`, `play_subscriptions`, and `play_other_report_rows`
 
@@ -334,6 +336,8 @@ Use billing tables when the investigation needs purchase and provider state, ope
 - `billing.user_billing_state`
 
 Billing analytics intentionally do expose the store transaction identifiers `billing.purchases.provider_purchase_id` and `billing.purchases.linked_from_purchase_id`, because support and reconciliation have to be able to name the purchase a provider is talking about. They do not expose `billing.provider_events`, whose `payload_raw` is verbatim provider input, or `billing.entitlement_snapshots`, which is a derived cache rather than a fact and may be truncated at any time, so resolve what a person is entitled to from the purchase and grant rows instead. They also do not expose the provider-side account handles `billing.user_billing_state.stripe_customer_id`, `apple_app_account_token`, and `google_obfuscated_account_id`, which exist only as attribution lookup keys; a report names a person by `user_id`.
+
+For provider periods, orders, payments, refunds and import coverage, use the [native billing history contracts and operator guidance](billing-history.md). Those objects are independent of current purchases; missing import coverage is unavailable. Their explicit grants are defined in [0182](../db/migrations/0182_provider_native_billing_history.sql).
 
 Use AI chat tables when the investigation needs chat session volume, run health, model/cost-policy distribution, stuck/failed run timing, or what people actually asked the AI and what it answered:
 
