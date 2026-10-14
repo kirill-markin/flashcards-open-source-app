@@ -2,8 +2,7 @@
  * Hand-written mirror of the parts of the product analytics contract this service emits, in the same
  * way the web, iOS and Android clients mirror it. The source of truth is
  * `apps/backend/src/productAnalytics/catalog.ts`, and the backend rejects anything it does not
- * declare, so only what the auth origin actually reports is declared here: one surface and the four
- * events of the web sign-in funnel.
+ * declare.
  *
  * Nothing server-owned is mirrored. `schema_version`, `platform` and the identity columns are derived
  * by the backend from the request, and the collector this producer posts to refuses an event that
@@ -18,15 +17,23 @@ import type { LoginPageLocale } from "../../routes/browser/loginPageLocale.js";
  */
 export type AuthAnalyticsSurface = "signin";
 
-/**
- * The events this service reports: the sign-in funnel from the form being shown to its outcome.
- * Only `signin_failed` declares a property in the catalog.
- */
 export type AuthAnalyticsEventName =
   | "screen_viewed"
   | "signin_code_requested"
   | "signin_succeeded"
-  | "signin_failed";
+  | "signin_failed"
+  | "auth_method_selected"
+  | "auth_code_form_shown"
+  | "auth_code_submitted"
+  | "auth_code_resend_requested"
+  | "auth_code_request_finished"
+  | "auth_code_verification_finished"
+  | "auth_provider_requested"
+  | "auth_provider_finished"
+  | "auth_session_accepted"
+  | "auth_account_ready"
+  | "auth_account_link_finished"
+  | "auth_guest_upgrade_finished";
 
 /**
  * The `signin_failed.reason` values this origin can produce. The catalog also declares `offline` and
@@ -48,8 +55,98 @@ export type AuthSignInFailureReason =
   | "rate_limited"
   | "server_error";
 
-/** The one property any event of this mirror carries, on `signin_failed` alone. */
-export type AuthAnalyticsEventProperties = Readonly<{ reason: AuthSignInFailureReason }>;
+export type AuthAnalyticsMethod = "email" | "apple" | "google";
+export type AuthAnalyticsProvider = "apple" | "google";
+export type AuthAnalyticsCodeRequestAction = "initial" | "resend";
+export type AuthAnalyticsCodeRequestOutcome =
+  | "accepted"
+  | "rate_limited"
+  | "offline"
+  | "timeout"
+  | "server_error";
+export type AuthAnalyticsCodeVerificationOutcome =
+  | "verified"
+  | "invalid_code"
+  | "expired_code"
+  | "code_already_used"
+  | "rate_limited"
+  | "offline"
+  | "timeout"
+  | "server_error";
+export type AuthAnalyticsProviderOutcome =
+  | "credential_received"
+  | "cancelled"
+  | "denied"
+  | "unavailable"
+  | "invalid_response"
+  | "offline"
+  | "timeout"
+  | "provider_error"
+  | "server_error";
+export type AuthAnalyticsAccountLinkOutcome =
+  | "linked"
+  | "already_linked"
+  | "conflict"
+  | "verification_required"
+  | "cancelled"
+  | "offline"
+  | "timeout"
+  | "server_error";
+export type AuthAnalyticsGuestUpgradeOutcome =
+  | "completed"
+  | "conflict"
+  | "offline"
+  | "timeout"
+  | "storage_error"
+  | "server_error";
+
+export type AuthAnalyticsFact =
+  | Readonly<{ eventName: "auth_method_selected"; method: AuthAnalyticsMethod; }>
+  | Readonly<{ eventName: "auth_code_form_shown"; method: AuthAnalyticsMethod; }>
+  | Readonly<{ eventName: "auth_code_submitted"; method: AuthAnalyticsMethod; }>
+  | Readonly<{ eventName: "auth_code_resend_requested"; method: AuthAnalyticsMethod; }>
+  | Readonly<{
+    eventName: "auth_code_request_finished";
+    method: AuthAnalyticsMethod;
+    action: AuthAnalyticsCodeRequestAction;
+    outcome: AuthAnalyticsCodeRequestOutcome;
+  }>
+  | Readonly<{
+    eventName: "auth_code_verification_finished";
+    method: AuthAnalyticsMethod;
+    outcome: AuthAnalyticsCodeVerificationOutcome;
+  }>
+  | Readonly<{ eventName: "auth_provider_requested"; method: AuthAnalyticsProvider; }>
+  | Readonly<{
+    eventName: "auth_provider_finished";
+    method: AuthAnalyticsProvider;
+    outcome: AuthAnalyticsProviderOutcome;
+  }>
+  | Readonly<{ eventName: "auth_session_accepted"; method: AuthAnalyticsMethod; }>
+  | Readonly<{ eventName: "auth_account_ready"; method: AuthAnalyticsMethod; }>
+  | Readonly<{
+    eventName: "auth_account_link_finished";
+    method: AuthAnalyticsMethod;
+    outcome: AuthAnalyticsAccountLinkOutcome;
+  }>
+  | Readonly<{
+    eventName: "auth_guest_upgrade_finished";
+    method: AuthAnalyticsMethod;
+    outcome: AuthAnalyticsGuestUpgradeOutcome;
+  }>;
+
+export type AuthAnalyticsEventProperties =
+  | Readonly<{ reason: AuthSignInFailureReason; method?: AuthAnalyticsMethod }>
+  | Readonly<{ method: AuthAnalyticsMethod }>
+  | Readonly<{
+    method: AuthAnalyticsMethod;
+    action: AuthAnalyticsCodeRequestAction;
+    outcome: AuthAnalyticsCodeRequestOutcome;
+  }>
+  | Readonly<{ method: AuthAnalyticsMethod; outcome: AuthAnalyticsCodeVerificationOutcome; }>
+  | Readonly<{ method: AuthAnalyticsProvider; outcome: AuthAnalyticsProviderOutcome; }>
+  | Readonly<{ method: AuthAnalyticsMethod; outcome: AuthAnalyticsAccountLinkOutcome; }>
+  | Readonly<{ method: AuthAnalyticsMethod; outcome: AuthAnalyticsGuestUpgradeOutcome; }>;
 
 /**
  * Exactly the fields the credential-free collector accepts, and no others: `anonymousEventSchema` in
@@ -196,11 +293,6 @@ export function createSignInCodeRequestedEvent(
   );
 }
 
-/**
- * The visitor is now signed in, reported under the same single-call budget as every other step of
- * this funnel: nothing follows it inside the request any more, so its post is no longer the shorter
- * half of a deadline it shared with an identity link.
- */
 export function createSignInSucceededEvent(
   anonymousId: string,
   nowMs: number,
@@ -218,6 +310,78 @@ export function createSignInSucceededEvent(
 export function createSignInFailedEventFactory(reason: AuthSignInFailureReason): AuthAnalyticsEventFactory {
   return (anonymousId, nowMs, uiLocale) => createAuthAnalyticsEvent(
     { eventName: "signin_failed", screen: null, properties: { reason } },
+    anonymousId,
+    nowMs,
+    uiLocale,
+  );
+}
+
+function buildAuthAnalyticsFactProperties(fact: AuthAnalyticsFact): AuthAnalyticsEventProperties {
+  switch (fact.eventName) {
+    case "auth_method_selected":
+      return { method: fact.method };
+    case "auth_code_form_shown":
+      return { method: fact.method };
+    case "auth_code_submitted":
+      return { method: fact.method };
+    case "auth_code_resend_requested":
+      return { method: fact.method };
+    case "auth_code_request_finished":
+      return { method: fact.method, action: fact.action, outcome: fact.outcome };
+    case "auth_code_verification_finished":
+      return { method: fact.method, outcome: fact.outcome };
+    case "auth_provider_requested":
+      return { method: fact.method };
+    case "auth_provider_finished":
+      return { method: fact.method, outcome: fact.outcome };
+    case "auth_session_accepted":
+      return { method: fact.method };
+    case "auth_account_ready":
+      return { method: fact.method };
+    case "auth_account_link_finished":
+      return { method: fact.method, outcome: fact.outcome };
+    case "auth_guest_upgrade_finished":
+      return { method: fact.method, outcome: fact.outcome };
+  }
+}
+
+export function createAuthAnalyticsFactEventFactory(fact: AuthAnalyticsFact): AuthAnalyticsEventFactory {
+  return (anonymousId, nowMs, uiLocale) => createAuthAnalyticsEvent(
+    { eventName: fact.eventName, screen: "signin", properties: buildAuthAnalyticsFactProperties(fact) },
+    anonymousId,
+    nowMs,
+    uiLocale,
+  );
+}
+
+export function createSignInCodeRequestedWithMethodEventFactory(
+  method: AuthAnalyticsMethod,
+): AuthAnalyticsEventFactory {
+  return (anonymousId, nowMs, uiLocale) => createAuthAnalyticsEvent(
+    { eventName: "signin_code_requested", screen: "signin", properties: { method } },
+    anonymousId,
+    nowMs,
+    uiLocale,
+  );
+}
+
+export function createSignInSucceededWithMethodEventFactory(
+  method: AuthAnalyticsMethod,
+): AuthAnalyticsEventFactory {
+  return (anonymousId, nowMs, uiLocale) => createAuthAnalyticsEvent(
+    { eventName: "signin_succeeded", screen: "signin", properties: { method } },
+    anonymousId,
+    nowMs,
+    uiLocale,
+  );
+}
+
+export function createSignInFailedWithMethodEventFactory(
+  method: AuthAnalyticsMethod,
+  reason: AuthSignInFailureReason,
+): AuthAnalyticsEventFactory {
+  return (anonymousId, nowMs, uiLocale) => createAuthAnalyticsEvent(
+    { eventName: "signin_failed", screen: null, properties: { method, reason } },
     anonymousId,
     nowMs,
     uiLocale,

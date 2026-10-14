@@ -41,6 +41,35 @@ enum AnalyticsEvent: Sendable, Equatable {
     case signInCodeRequested(screen: AnalyticsSurface)
     case signInSucceeded(screen: AnalyticsSurface)
     case signInFailed(reason: AnalyticsSignInFailureReason)
+    // Legacy producers keep their constructors; method-aware callers opt in explicitly.
+    case signInCodeRequestedWithMethod(method: AnalyticsAuthMethod, screen: AnalyticsSurface)
+    case signInSucceededWithMethod(method: AnalyticsAuthMethod, screen: AnalyticsSurface)
+    case signInFailedWithMethod(method: AnalyticsAuthMethod, reason: AnalyticsSignInFailureReason)
+    case authMethodSelected(method: AnalyticsAuthMethod, screen: AnalyticsSurface)
+    case authCodeFormShown(method: AnalyticsAuthMethod, screen: AnalyticsSurface)
+    case authCodeSubmitted(method: AnalyticsAuthMethod, screen: AnalyticsSurface)
+    case authCodeResendRequested(method: AnalyticsAuthMethod, screen: AnalyticsSurface)
+    case authCodeRequestFinished(
+        method: AnalyticsAuthMethod,
+        action: AnalyticsAuthCodeRequestAction,
+        outcome: AnalyticsAuthCodeRequestOutcome,
+        screen: AnalyticsSurface
+    )
+    case authCodeVerificationFinished(
+        method: AnalyticsAuthMethod,
+        outcome: AnalyticsAuthCodeVerificationOutcome,
+        screen: AnalyticsSurface
+    )
+    case authProviderRequested(method: AnalyticsAuthProvider, screen: AnalyticsSurface)
+    case authProviderFinished(method: AnalyticsAuthProvider, outcome: AnalyticsAuthProviderOutcome, screen: AnalyticsSurface)
+    case authSessionAccepted(method: AnalyticsAuthMethod, screen: AnalyticsSurface)
+    case authAccountReady(method: AnalyticsAuthMethod, screen: AnalyticsSurface)
+    case authAccountLinkFinished(method: AnalyticsAuthMethod, outcome: AnalyticsAuthAccountLinkOutcome, screen: AnalyticsSurface)
+    case authGuestUpgradeFinished(
+        method: AnalyticsAuthMethod,
+        outcome: AnalyticsAuthGuestUpgradeOutcome,
+        screen: AnalyticsSurface
+    )
     /**
      * The end of this install's account relationship, the counterpart to `signInSucceeded`.
      *
@@ -287,6 +316,73 @@ enum AnalyticsMediaUploadFailureReason: String, Sendable, Equatable {
     case serverError = "server_error"
 }
 
+enum AnalyticsAuthMethod: String, Sendable, Equatable {
+    case email
+    case apple
+    case google
+}
+
+enum AnalyticsAuthProvider: String, Sendable, Equatable {
+    case apple
+    case google
+}
+
+enum AnalyticsAuthCodeRequestAction: String, Sendable, Equatable {
+    case initial
+    case resend
+}
+
+enum AnalyticsAuthCodeRequestOutcome: String, Sendable, Equatable {
+    case accepted
+    case rateLimited = "rate_limited"
+    case offline
+    case timeout
+    case serverError = "server_error"
+}
+
+enum AnalyticsAuthCodeVerificationOutcome: String, Sendable, Equatable {
+    case verified
+    case invalidCode = "invalid_code"
+    case expiredCode = "expired_code"
+    case codeAlreadyUsed = "code_already_used"
+    case rateLimited = "rate_limited"
+    case offline
+    case timeout
+    case serverError = "server_error"
+}
+
+enum AnalyticsAuthProviderOutcome: String, Sendable, Equatable {
+    case credentialReceived = "credential_received"
+    case cancelled
+    case denied
+    case unavailable
+    case invalidResponse = "invalid_response"
+    case offline
+    case timeout
+    case providerError = "provider_error"
+    case serverError = "server_error"
+}
+
+enum AnalyticsAuthAccountLinkOutcome: String, Sendable, Equatable {
+    case linked
+    case alreadyLinked = "already_linked"
+    case conflict
+    case verificationRequired = "verification_required"
+    case cancelled
+    case offline
+    case timeout
+    case serverError = "server_error"
+}
+
+enum AnalyticsAuthGuestUpgradeOutcome: String, Sendable, Equatable {
+    case completed
+    case conflict
+    case offline
+    case timeout
+    case storageError = "storage_error"
+    case serverError = "server_error"
+}
+
 /**
  * `codeAlreadyUsed` is reported only by app versions whose mapping separates the auth service's
  * `OTP_CHALLENGE_CONSUMED` from an expired session. One that folds them reports `expiredCode` for
@@ -450,12 +546,36 @@ extension AnalyticsEvent {
             return "app_opened"
         case .screenViewed:
             return "screen_viewed"
-        case .signInCodeRequested:
+        case .signInCodeRequested, .signInCodeRequestedWithMethod:
             return "signin_code_requested"
-        case .signInSucceeded:
+        case .signInSucceeded, .signInSucceededWithMethod:
             return "signin_succeeded"
-        case .signInFailed:
+        case .signInFailed, .signInFailedWithMethod:
             return "signin_failed"
+        case .authMethodSelected:
+            return "auth_method_selected"
+        case .authCodeFormShown:
+            return "auth_code_form_shown"
+        case .authCodeSubmitted:
+            return "auth_code_submitted"
+        case .authCodeResendRequested:
+            return "auth_code_resend_requested"
+        case .authCodeRequestFinished:
+            return "auth_code_request_finished"
+        case .authCodeVerificationFinished:
+            return "auth_code_verification_finished"
+        case .authProviderRequested:
+            return "auth_provider_requested"
+        case .authProviderFinished:
+            return "auth_provider_finished"
+        case .authSessionAccepted:
+            return "auth_session_accepted"
+        case .authAccountReady:
+            return "auth_account_ready"
+        case .authAccountLinkFinished:
+            return "auth_account_link_finished"
+        case .authGuestUpgradeFinished:
+            return "auth_guest_upgrade_finished"
         case .signedOut:
             return "signed_out"
         case .reviewCardRevealed:
@@ -521,6 +641,23 @@ extension AnalyticsEvent {
         // of being left to a `track(screen:)` a call site can forget.
         case .signInCodeRequested(let screen), .signInSucceeded(let screen):
             return screen
+        case .signInCodeRequestedWithMethod(_, let screen), .signInSucceededWithMethod(_, let screen):
+            return screen
+        case .authMethodSelected(_, let screen),
+             .authCodeFormShown(_, let screen),
+             .authCodeSubmitted(_, let screen),
+             .authCodeResendRequested(_, let screen),
+             .authProviderRequested(_, let screen),
+             .authSessionAccepted(_, let screen),
+             .authAccountReady(_, let screen):
+            return screen
+        case .authCodeVerificationFinished(_, _, let screen),
+             .authProviderFinished(_, _, let screen),
+             .authAccountLinkFinished(_, _, let screen),
+             .authGuestUpgradeFinished(_, _, let screen):
+            return screen
+        case .authCodeRequestFinished(_, _, _, let screen):
+            return screen
         // The catalog requires a surface on the attachment, and this app attaches from the chat and
         // from the card editor, so the screen is carried by the event rather than left to the call
         // site: a caller that forgot it would produce an event the server rejects `missing_screen`.
@@ -536,8 +673,7 @@ extension AnalyticsEvent {
     }
 
     /**
-     * Every declared property is required — the server builds a strict object with no optional
-     * members — so each case fills in all of its own. Counters are clamped at zero because the
+     * Counters are clamped at zero because the
      * catalog admits no negative value and the table they land in is append-only.
      */
     var properties: [String: AnalyticsPropertyValue] {
@@ -550,6 +686,34 @@ extension AnalyticsEvent {
             return [:]
         case .signInFailed(let reason):
             return ["reason": .string(reason.rawValue)]
+        case .signInCodeRequestedWithMethod(let method, _), .signInSucceededWithMethod(let method, _):
+            return ["method": .string(method.rawValue)]
+        case .signInFailedWithMethod(let method, let reason):
+            return ["method": .string(method.rawValue), "reason": .string(reason.rawValue)]
+        case .authMethodSelected(let method, _):
+            return ["method": .string(method.rawValue)]
+        case .authCodeFormShown(let method, _):
+            return ["method": .string(method.rawValue)]
+        case .authCodeSubmitted(let method, _):
+            return ["method": .string(method.rawValue)]
+        case .authCodeResendRequested(let method, _):
+            return ["method": .string(method.rawValue)]
+        case .authCodeRequestFinished(let method, let action, let outcome, _):
+            return ["method": .string(method.rawValue), "action": .string(action.rawValue), "outcome": .string(outcome.rawValue)]
+        case .authCodeVerificationFinished(let method, let outcome, _):
+            return ["method": .string(method.rawValue), "outcome": .string(outcome.rawValue)]
+        case .authProviderRequested(let method, _):
+            return ["method": .string(method.rawValue)]
+        case .authProviderFinished(let method, let outcome, _):
+            return ["method": .string(method.rawValue), "outcome": .string(outcome.rawValue)]
+        case .authSessionAccepted(let method, _):
+            return ["method": .string(method.rawValue)]
+        case .authAccountReady(let method, _):
+            return ["method": .string(method.rawValue)]
+        case .authAccountLinkFinished(let method, let outcome, _):
+            return ["method": .string(method.rawValue), "outcome": .string(outcome.rawValue)]
+        case .authGuestUpgradeFinished(let method, let outcome, _):
+            return ["method": .string(method.rawValue), "outcome": .string(outcome.rawValue)]
         case .signedOut(let reason):
             return ["reason": .string(reason.rawValue)]
         case .reviewCardRevealed:
