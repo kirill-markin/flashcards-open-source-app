@@ -23,7 +23,7 @@ V3 and the [admin review report](../apps/admin/src/reports/reviewEventsByDate/qu
 
 ## Freshness and consumers
 
-Render UTC bucket dates without local-time conversion. Display `generatedAtUtc` as snapshot freshness and `to` as the last complete day. Admin report event rows are live at their displayed refresh timestamp, while the [probable Android test burst](analytics-audience.md) classification is as of its last refresh; reports visibly mark today's UTC data partial. Public snapshots refresh daily, so late-arriving events, identity changes, and newly applied exclusions can change historical days on the next generation. Comparing the two requires the same cutoff, no narrowed admin filters, and allowance for arrivals after generation.
+Render UTC bucket dates without local-time conversion. Display `generatedAtUtc` as snapshot freshness and `to` as the last complete day. Admin report event rows are live at their displayed refresh timestamp, while the [probable Android test burst](analytics-audience.md) classification is as of its last refresh; the Review activity explanation marks today's UTC data partial. Public snapshots refresh daily, so late-arriving events, identity changes, and newly applied exclusions can change historical days on the next generation. Comparing the two requires the same cutoff, no narrowed admin filters, and allowance for arrivals after generation.
 
 Consumers opt into v3 explicitly. Existing v2 consumers keep the complete old shape and calculation. The website consumer is maintained in the separate website repository.
 

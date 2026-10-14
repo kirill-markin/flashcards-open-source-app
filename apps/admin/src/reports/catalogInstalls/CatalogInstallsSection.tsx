@@ -9,6 +9,7 @@ import {
 } from "../../charts/chartPrimitives";
 import { renderCatalogInstallsByPackageChart } from "../../charts/chartRenderers";
 import { formatGeneratedAt } from "../../charts/formatting";
+import { ExplanationTip } from "../../explanations/ExplanationTip";
 import { buildRequestedDateRange } from "../reportValues";
 import { catalogInstallsReportLabel } from "./query";
 
@@ -122,10 +123,33 @@ export function CatalogInstallsSection(
   return (
     <section className="dashboard-section">
       <header className="dashboard-section-header">
-        <h2>Catalog deck installs</h2>
-        <p className="dashboard-section-description">
-          One install action by one person, from the <code>catalog_deck_installed</code> event. Installs of the delisted <code>test</code> fixture deck and installs by the excluded people every section drops — admins, example.com and +test email accounts and the actors on the analytics exclusion list — are left out, which leaves almost nothing on production history so far. The event carries no platform, so every install sits in the <strong>Unresolved</strong> bucket and picking any device platform empties this section. Dates are grouped in <strong>UTC</strong>.
-        </p>
+        <div className="explained-heading-row">
+          <h2>Catalog deck installs</h2>
+          <ExplanationTip label="What Catalog deck installs shows" explanationId="catalog-installs-explanation">
+            <ul>
+              <li>
+                <strong>What it shows:</strong> install actions per <strong>UTC</strong> day, from the <code>catalog_deck_installed</code> event
+                <ul>
+                  <li>One install = one install action by one person</li>
+                </ul>
+              </li>
+              <li>
+                <strong>Left out</strong>
+                <ul>
+                  <li>Installs of the delisted <code>test</code> fixture deck</li>
+                  <li>Installs by people the shared exclusions drop</li>
+                  <li>Together these leave almost nothing on production history so far</li>
+                </ul>
+              </li>
+              <li>
+                <strong>Platform:</strong> the event carries none, so every install sits in the <strong>Unresolved</strong> bucket
+                <ul>
+                  <li>Picking any device platform empties this section</li>
+                </ul>
+              </li>
+            </ul>
+          </ExplanationTip>
+        </div>
       </header>
 
       <section className="summary-grid">

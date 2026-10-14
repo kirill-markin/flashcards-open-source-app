@@ -113,7 +113,6 @@ h2 {
   line-height: 1;
 }
 
-.dashboard-section-description,
 .state-copy {
   margin: 0;
   max-width: 920px;
@@ -627,7 +626,7 @@ h2 {
 }
 
 .funnel-detail-card p,
-.funnel-disclosure {
+.report-generated-at {
   color: var(--muted);
   font-size: 12px;
   line-height: 1.55;
@@ -648,7 +647,7 @@ h2 {
   text-align: right;
 }
 
-.funnel-disclosure {
+.report-generated-at {
   margin: 20px 0 0;
 }
 
@@ -896,8 +895,9 @@ h2 {
   pointer-events: none;
 }
 
-/* A section heading with its `(i)` right after it. The row anchors the explanation, so it opens from
-   the section's own left edge rather than from the `(i)` and cannot run off a narrow screen. */
+/* A section or page heading with its `(i)` right after it, or the `(i)` alone at the top of a tab. The
+   row anchors the explanation, so it opens from the row's own left edge rather than from the `(i)` and
+   cannot run off a narrow screen. */
 .explained-heading-row {
   position: relative;
   display: flex;

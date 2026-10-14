@@ -24,6 +24,7 @@ import {
   renderDailyActiveUsersTotalChart,
 } from "../../charts/chartRenderers";
 import { formatGeneratedAt } from "../../charts/formatting";
+import { ExplanationTip } from "../../explanations/ExplanationTip";
 
 const dailyActiveUsersBreakdowns = ["none", "cohort", "platform", "osName", "deviceType"] as const;
 type DailyActiveUsersBreakdown = (typeof dailyActiveUsersBreakdowns)[number];
@@ -258,10 +259,32 @@ export function DailyActiveUsersSection(
   return (
     <section className="dashboard-section">
       <header className="dashboard-section-header">
-        <h2>Daily active users</h2>
-        <p className="dashboard-section-description">
-          Everyone who opened the app on a calendar date, from the <code>app_opened</code> event, rather than only the people who answered a card. The chart counts each person once per day; <strong>Break down by</strong> splits that count. New vs returning divides it exactly, so its stack is the daily total. Platform, OS and device type give one segment per value, and one person active on more than one device in a day sits in more than one segment, so a stack can rise above the line that marks the day&rsquo;s real unique total. A row that reports no OS or device type, every web row among them, shows as Unknown. Dates are grouped in <strong>UTC</strong>.
-        </p>
+        <div className="explained-heading-row">
+          <h2>Daily active users</h2>
+          <ExplanationTip label="What Daily active users shows" explanationId="daily-active-users-explanation">
+            <ul>
+              <li>
+                <strong>What it shows:</strong> everyone who opened the app, from the <code>app_opened</code> event, not only the people who answered a card
+                <ul>
+                  <li>Each person counted once per <strong>UTC</strong> day</li>
+                </ul>
+              </li>
+              <li>
+                <strong>Break down by</strong> splits that daily count
+                <ul>
+                  <li><strong>New vs returning:</strong> divides it exactly, so its stack is the daily total</li>
+                  <li>
+                    <strong>Platform, OS, device type:</strong> one segment per value
+                    <ul>
+                      <li>A person active on more than one device in a day sits in more than one segment, so a stack can rise above the line marking the day&rsquo;s real unique total</li>
+                      <li>A row reporting no OS or device type, every web row among them, shows as Unknown</li>
+                    </ul>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </ExplanationTip>
+        </div>
       </header>
 
       <div className="funnel-group-by-row">

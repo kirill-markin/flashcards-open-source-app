@@ -8,6 +8,7 @@ import {
   renderDailyFriendInvitationsChart,
 } from "../../charts/chartRenderers";
 import { formatGeneratedAt } from "../../charts/formatting";
+import { ExplanationTip } from "../../explanations/ExplanationTip";
 
 type SocialConnectionsChartModel = Readonly<{
   dates: ReadonlyArray<string>;
@@ -81,10 +82,25 @@ export function SocialConnectionsSection(
   return (
     <section className="dashboard-section">
       <header className="dashboard-section-header">
-        <h2>Social: invites and friend connections</h2>
-        <p className="dashboard-section-description">
-          Friend invite links created per day, from the <code>friend_invitation_created</code> event, and existing friend connections at the end of each day, each person's running sum of <code>friendship_created</code> added up over everyone, so a friendship between two counted people adds two. Both follow every active filter. Dates are grouped in <strong>UTC</strong>.
-        </p>
+        <div className="explained-heading-row">
+          <h2>Social: invites and friend connections</h2>
+          <ExplanationTip label="What Social shows" explanationId="social-connections-explanation">
+            <ul>
+              <li>
+                <strong>What it shows:</strong> two daily charts, grouped by <strong>UTC</strong> day, both following every active filter
+                <ul>
+                  <li><strong>Friend invite links created:</strong> per day, from the <code>friend_invitation_created</code> event</li>
+                  <li>
+                    <strong>Existing friend connections:</strong> at the end of each day, each person's running sum of <code>friendship_created</code>, added up over everyone
+                    <ul>
+                      <li>So a friendship between two counted people adds two</li>
+                    </ul>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </ExplanationTip>
+        </div>
       </header>
 
       <section className="chart-column">
