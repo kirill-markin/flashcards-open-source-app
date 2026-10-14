@@ -1,4 +1,6 @@
 import type { AgentSqlSurface } from "../../../aiTools/agentSql/shared";
+import type { AppleEnvironment } from "../../../billing/apple/contracts";
+import type { AppleHistoryImportSummary } from "../../../billing/history/appleImport";
 import type { EventByAction } from "./common";
 
 export type AdminQueryDetails = Readonly<{
@@ -739,6 +741,11 @@ export type SyntheticActorDetectorLargeRunDetails = Readonly<{
   threshold: number;
 }>;
 
+export type BillingHistoryAppleEnvironmentFailureDetails = Readonly<{
+  environment: AppleEnvironment;
+  failureCode: string;
+}>;
+
 export type StoreAnalyticsAppleRetryDetails = Readonly<{
   label: string;
   attempt: number;
@@ -840,6 +847,8 @@ export type OperationsBreadcrumbEvent =
   | EventByAction<"daily_visitor_hash_salt_expiry_completed", Readonly<{ deleted: number }>>
   | EventByAction<"synthetic_actor_excluded", SyntheticActorExcludedDetails>
   | EventByAction<"synthetic_actor_detector_completed", SyntheticActorDetectorCompletedDetails>
+  | EventByAction<"billing_history_apple_environment_failed", BillingHistoryAppleEnvironmentFailureDetails>
+  | EventByAction<"billing_history_apple_import_completed", AppleHistoryImportSummary>
   | EventByAction<"store_analytics_apple_retry", StoreAnalyticsAppleRetryDetails>
   | EventByAction<"store_analytics_apple_import_completed", StoreAnalyticsAppleImportCompletedDetails>
   | EventByAction<"store_analytics_play_retry", StoreAnalyticsAppleRetryDetails>
@@ -933,7 +942,13 @@ export type OperationsExceptionEvent =
   | (EventByAction<"probable_android_burst_refresh_failed", Readonly<{ message: string }>> & Readonly<{ error: Error }>)
   | (EventByAction<
     "store_analytics_import_failed",
-    Readonly<{ source: "app_store" | "google_play" | "google_history" | null; message: string }>
+    Readonly<{ source: "app_store" | "google_play" | "google_history" | "stripe_history" | "apple_history" | null; message: string }>
+  > & Readonly<{ error: Error }>)
+  | (EventByAction<
+    "stripe_history_import_failed",
+    Readonly<{ environment: "production" | "sandbox";
+      source?: "stripe_subscriptions" | "stripe_invoices" | "stripe_payments" | "stripe_refunds";
+      failureCode?: string; runId?: string }>
   > & Readonly<{ error: Error }>)
   | (EventByAction<"store_analytics_apple_instance_failed", StoreAnalyticsAppleInstanceFailureDetails>
     & Readonly<{ error: Error }>)
