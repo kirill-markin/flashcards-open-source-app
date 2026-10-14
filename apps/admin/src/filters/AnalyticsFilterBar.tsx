@@ -13,6 +13,7 @@ import {
   uniqueUserCohortLabels,
 } from "../charts/chartPrimitives";
 import type { UserColorScale } from "../dashboard/userColors";
+import { ExplanationTip } from "../explanations/ExplanationTip";
 import { AdminLink } from "../navigation/AdminLink";
 import type {
   CatalogInstallDeviceCategory,
@@ -598,61 +599,6 @@ function buildAmbiguousDeckSlugs(
 // for a filter the URL can still carry, so it is a compile error here rather than a silent omission.
 function assertEveryFilterFieldIsWired(field: never): never {
   throw new Error(`Analytics filter field ${String(field)} has no control in the filter bar.`);
-}
-
-// The explanation waiting behind the popover header's `(i)`. One boolean decides both the class that
-// shows the text and `aria-expanded`, so what a screen reader is told and what is on screen cannot
-// disagree; CSS has no reveal rule of its own for that reason. A mouse reveals it by resting on the
-// button, and a click decides it outright from whatever is currently shown - so a click closes a
-// tooltip the pointer is still holding open, which hover alone could never do, and it is also the one
-// way in that a touch device and the browsers that do not focus a button on click both have. A
-// closing click holds while the pointer is still on the button and lapses once it leaves, so the next
-// hover is a fresh question rather than one already answered. Touch contacts are not hover, or the tap
-// that opens the tooltip would arrive as a click on an already-open one and close it again. The state
-// is local because the popover is mounted only while it is open, so every opening starts with the
-// explanation away.
-function FilterFieldExplanation(
-  props: Readonly<{
-    fieldLabel: string;
-    explanationId: string;
-    explanation: string;
-  }>,
-): JSX.Element {
-  const [clickedState, setClickedState] = useState<"none" | "open" | "closed">("none");
-  const [isPointerOver, setIsPointerOver] = useState<boolean>(false);
-  const isOpen = clickedState === "none" ? isPointerOver : clickedState === "open";
-
-  useEffect(() => {
-    if (clickedState === "closed" && isPointerOver === false) {
-      setClickedState("none");
-    }
-  }, [clickedState, isPointerOver]);
-
-  return (
-    <span
-      className={`filter-explanation${isOpen ? " open" : ""}`}
-      onPointerEnter={(event) => {
-        if (event.pointerType === "mouse") {
-          setIsPointerOver(true);
-        }
-      }}
-      onPointerLeave={() => setIsPointerOver(false)}
-    >
-      <button
-        className="filter-explanation-toggle"
-        type="button"
-        aria-label={`What ${props.fieldLabel} means`}
-        aria-describedby={props.explanationId}
-        aria-expanded={isOpen}
-        onClick={() => setClickedState(isOpen ? "closed" : "open")}
-      >
-        i
-      </button>
-      <span id={props.explanationId} className="filter-explanation-text" role="tooltip">
-        {props.explanation}
-      </span>
-    </span>
-  );
 }
 
 function FilterFieldResetButton(
@@ -1308,20 +1254,17 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
               {openField === entry.field ? (
                 <div id={popoverId} className="filter-popover">
                   <div className="filter-popover-header">
-                    <span className="filter-popover-field">
+                    <div className="filter-popover-field">
                       <span>{fieldLabel}</span>
                       {/*
                         The explanations run to a paragraph, so one waits behind its `(i)` instead of
-                        standing between the header and the picker. A real button with a described
-                        tooltip rather than a `title`, because it has to be reachable by keyboard and
-                        readable by a screen reader.
+                        standing between the header and the picker. The popover is mounted only while
+                        it is open, so every opening starts with the explanation away.
                       */}
-                      <FilterFieldExplanation
-                        fieldLabel={fieldLabel}
-                        explanationId={explanationId}
-                        explanation={getAnalyticsFilterFieldExplanation(props.area, entry.field)}
-                      />
-                    </span>
+                      <ExplanationTip label={`What ${fieldLabel} means`} explanationId={explanationId}>
+                        {getAnalyticsFilterFieldExplanation(props.area, entry.field)}
+                      </ExplanationTip>
+                    </div>
                     <span>{entry.view.summary}</span>
                   </div>
                   {/*
