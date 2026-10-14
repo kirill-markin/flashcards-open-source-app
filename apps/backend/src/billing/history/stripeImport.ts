@@ -46,6 +46,8 @@ type Inventory<Item> = Readonly<{
 }>;
 type SourceAttempt = Readonly<{ input: HistoryImportInput; run: HistoryImportRun }>;
 type SourceResult = Readonly<{ summary: StripeSourceSummary; error: Error | null }>;
+export type StripeHistoryImportStage = "checkpoint_read" | "page_read" | "page_transaction"
+  | "native_persistence" | "checkpoint_write" | "completion" | "page_commit";
 const checkpointSchema = z.object({ version: z.literal(1), cursor: z.string().min(1).nullable() });
 
 function inventoryKey(environment: StripeEnvironment): string {
@@ -105,6 +107,7 @@ async function collectInventory<Item>(
 ): Promise<SourceResult> {
   let summary = pendingSummary(inventory.source, attempt);
   if (summary.status === "succeeded") return { summary, error: null };
+  let stage: StripeHistoryImportStage = "checkpoint_read";
   try {
     let cursor: string | null = null;
     if (attempt.run.checkpoint !== null) {
@@ -117,21 +120,29 @@ async function collectInventory<Item>(
       cursor = parsedCheckpoint.cursor;
     }
     do {
+      stage = "page_read";
       reader.requireBudget();
       const page = await inventory.page(cursor, attempt.input.requestedTo);
       const observation: HistoryObservation = { environment: reader.environment, observedAt: new Date() };
       const recordCount = summary.recordCount + page.data.length;
+      stage = "page_transaction";
       await unsafeTransaction(async (executor) => {
+        stage = "native_persistence";
         for (const item of page.data) {
           reader.requireBudget();
           await inventory.persist(executor, item, observation);
         }
+        stage = "checkpoint_write";
         await checkpointHistoryImportInExecutor(executor, { runId: attempt.run.run_id, recordCount,
           checkpoint: JSON.stringify({ version: 1, cursor: page.nextCursor }) });
-        if (page.nextCursor === null) await completeHistoryImportInExecutor(executor, {
-          runId: attempt.run.run_id, status: "succeeded",
-          coveredFrom: attempt.input.requestedFrom, coveredTo: attempt.input.requestedTo,
-        });
+        if (page.nextCursor === null) {
+          stage = "completion";
+          await completeHistoryImportInExecutor(executor, {
+            runId: attempt.run.run_id, status: "succeeded",
+            coveredFrom: attempt.input.requestedFrom, coveredTo: attempt.input.requestedTo,
+          });
+        }
+        stage = "page_commit";
       });
       summary = { ...summary, recordCount, status: page.nextCursor === null ? "succeeded" : "running" };
       cursor = page.nextCursor;
@@ -140,14 +151,18 @@ async function collectInventory<Item>(
   } catch (error) {
     if (error instanceof StripeHistoryBudgetExhausted) return { summary, error: null };
     const failureCode = error instanceof Error ? importFailure(error) : "STRIPE_HISTORY_IMPORT_FAILED";
+    // These validators expose only fixed text and schema field paths, never provider values.
+    const validationCause = error instanceof BillingHistoryError && error.code === "BILLING_HISTORY_INVALID"
+      ? error.message.slice(0, 2048) : null;
     await unsafeTransaction((executor) => failHistoryImportInExecutor(executor, attempt.run.run_id, failureCode));
-    // Provider/SQL exception causes and parameters are never forwarded to telemetry.
-    const failure = new Error(`Stripe ${reader.environment} ${inventory.source} import failed (${failureCode}). `
+    const failure = new Error(`Stripe ${reader.environment} ${inventory.source} import failed (${failureCode}) at ${stage}. `
+      + (validationCause === null ? "" : validationCause + ". ")
       + "Check the restricted key read permissions, catalog and import checkpoint before retrying.");
+    const details = { environment: reader.environment, source: inventory.source, failureCode,
+      runId: attempt.run.run_id, stage, validationCause };
     captureBackendException({ action: "stripe_history_import_failed", scope, error: failure,
-      details: { environment: reader.environment, source: inventory.source, failureCode, runId: attempt.run.run_id } });
-    console.warn(JSON.stringify({ event: "stripe_history_import_failed", environment: reader.environment,
-      source: inventory.source, failureCode, runId: attempt.run.run_id }));
+      details });
+    console.warn(JSON.stringify({ event: "stripe_history_import_failed", ...details }));
     return { summary: { ...summary, status: "failed" }, error: failure };
   }
 }
