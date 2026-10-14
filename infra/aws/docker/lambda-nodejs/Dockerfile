@@ -1,12 +1,11 @@
-# Keep aligned with aws-cdk-lib/aws-lambda-nodejs/lib/docker/Dockerfile.
 ARG IMAGE=public.ecr.aws/sam/build-nodejs24.x
 FROM $IMAGE
 
-RUN npm install --global yarn@1.22.5
+RUN npm install --global --allow-scripts=yarn@1.22.22 yarn@1.22.22
 
-RUN npm install --global pnpm@7.33.7
+RUN npm install --global --allow-scripts=pnpm@12.11.2 pnpm@12.11.2
 
-RUN npm install --global --allow-scripts=bun@1.2.23 bun@1.2.23
+RUN npm install --global --allow-scripts=bun@1.4.3 bun@1.4.3
 
 RUN npm install --global typescript
 
