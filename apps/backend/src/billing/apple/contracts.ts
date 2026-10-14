@@ -2,6 +2,7 @@ import type {
   ProductAnalyticsAutorenewDisabledReason, ProductAnalyticsSubscriptionRevokedReason,
 } from "../../productAnalytics/catalog";
 import type { PurchasePrice } from "../../productAnalytics/serverFacts/billingFacts";
+import type { AppleTransactionHistory } from "../history/apple";
 import type { PurchaseStatus } from "../resolver";
 
 export const appleAppId = 6760538964;
@@ -43,6 +44,7 @@ export type AppleNotification = Readonly<{
   environment: AppleEnvironment;
   identity: ApplePurchaseIdentity | null;
   signedPayload: string;
+  historyTransaction?: AppleTransactionHistory;
 }>;
 export class AppleBillingError extends Error {
   constructor(readonly code: string, readonly retryable: boolean, message: string) {

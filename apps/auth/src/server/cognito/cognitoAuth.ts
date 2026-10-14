@@ -1,10 +1,8 @@
-/**
- * Cognito Identity Provider API client for passwordless Email OTP.
- *
- * Calls the Cognito IDP endpoint directly via fetch — no AWS SDK needed.
- * Uses USER_AUTH flow with EMAIL_OTP challenge (Essentials tier).
- */
-import { randomInt } from "node:crypto";
+import {
+  AdminCreateUserCommand,
+  CognitoIdentityProviderClient,
+  CognitoIdentityProviderServiceException,
+} from "@aws-sdk/client-cognito-identity-provider";
 import {
   createCognitoTypedError,
   getCognitoErrorType,
@@ -146,74 +144,46 @@ type CognitoFetchFunction = (
   body: Record<string, unknown>,
 ) => Promise<Record<string, unknown>>;
 
-type RandomIndex = (maxExclusive: number) => number;
+let provisioningClient: CognitoIdentityProviderClient | undefined;
 
-const COGNITO_SIGN_UP_PASSWORD_LENGTH = 64;
-const COGNITO_SIGN_UP_PASSWORD_LOWERCASE = "abcdefghijklmnopqrstuvwxyz";
-const COGNITO_SIGN_UP_PASSWORD_UPPERCASE = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-const COGNITO_SIGN_UP_PASSWORD_DIGITS = "0123456789";
-const COGNITO_SIGN_UP_PASSWORD_SYMBOLS = "^$*.[]{}()?\"!@#%&/\\,><':;|_~`=+-";
-const COGNITO_SIGN_UP_PASSWORD_ALPHABET = [
-  COGNITO_SIGN_UP_PASSWORD_LOWERCASE,
-  COGNITO_SIGN_UP_PASSWORD_UPPERCASE,
-  COGNITO_SIGN_UP_PASSWORD_DIGITS,
-  COGNITO_SIGN_UP_PASSWORD_SYMBOLS,
-].join("");
-
-function pickRandomCharacter(characters: string, randomIndex: RandomIndex): string {
-  const index = randomIndex(characters.length);
-  const character = characters[index];
-  if (character === undefined) {
-    throw new Error("Password character selection produced an out-of-range index");
+function getProvisioningClient(): CognitoIdentityProviderClient {
+  if (provisioningClient === undefined) {
+    provisioningClient = new CognitoIdentityProviderClient({ region: getRegion() });
   }
-  return character;
+  return provisioningClient;
 }
 
-function shuffleCharacters(
-  characters: ReadonlyArray<string>,
-  randomIndex: RandomIndex,
-): ReadonlyArray<string> {
-  const shuffledCharacters = [...characters];
-  for (let index = shuffledCharacters.length - 1; index > 0; index -= 1) {
-    const swapIndex = randomIndex(index + 1);
-    const currentCharacter = shuffledCharacters[index];
-    const swapCharacter = shuffledCharacters[swapIndex];
-    if (currentCharacter === undefined || swapCharacter === undefined) {
-      throw new Error("Password character shuffle produced an out-of-range index");
-    }
-    shuffledCharacters[index] = swapCharacter;
-    shuffledCharacters[swapIndex] = currentCharacter;
+async function createPasswordlessUser(email: string): Promise<void> {
+  const userPoolId = process.env.COGNITO_USER_POOL_ID ?? "";
+  if (userPoolId === "") throw new Error("COGNITO_USER_POOL_ID is not configured");
+
+  try {
+    // SUPPRESS prevents an invitation; EMAIL_OTP delivers the only sign-in message.
+    // With passwordless enabled, omitting TemporaryPassword creates no password:
+    // https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_AdminCreateUser.html
+    await getProvisioningClient().send(new AdminCreateUserCommand({
+      UserPoolId: userPoolId,
+      Username: email,
+      MessageAction: "SUPPRESS",
+      ForceAliasCreation: false,
+      UserAttributes: [
+        { Name: "email", Value: email },
+        { Name: "email_verified", Value: "false" },
+      ],
+    }));
+  } catch (error) {
+    if (!(error instanceof CognitoIdentityProviderServiceException)) throw error;
+    throw createCognitoTypedError({
+      operation: "AdminCreateUser",
+      providerStatusCode: error.$metadata.httpStatusCode ?? 500,
+      cognitoType: error.name,
+      reasonCode: "reasonCode" in error && typeof error.reasonCode === "string"
+        ? error.reasonCode
+        : null,
+      message: error.message,
+    });
   }
-  return shuffledCharacters;
 }
-
-function createCognitoSignUpPasswordWithRandomIndex(randomIndex: RandomIndex): string {
-  const requiredCharacters = [
-    pickRandomCharacter(COGNITO_SIGN_UP_PASSWORD_LOWERCASE, randomIndex),
-    pickRandomCharacter(COGNITO_SIGN_UP_PASSWORD_UPPERCASE, randomIndex),
-    pickRandomCharacter(COGNITO_SIGN_UP_PASSWORD_DIGITS, randomIndex),
-    pickRandomCharacter(COGNITO_SIGN_UP_PASSWORD_SYMBOLS, randomIndex),
-  ];
-  const remainingLength = COGNITO_SIGN_UP_PASSWORD_LENGTH - requiredCharacters.length;
-  const randomCharacters = Array.from(
-    { length: remainingLength },
-    () => pickRandomCharacter(COGNITO_SIGN_UP_PASSWORD_ALPHABET, randomIndex),
-  );
-  return shuffleCharacters([...requiredCharacters, ...randomCharacters], randomIndex).join("");
-}
-
-function createCognitoSignUpPassword(): string {
-  return createCognitoSignUpPasswordWithRandomIndex(randomInt);
-}
-
-const signUpUser = async (email: string): Promise<void> => {
-  await cognitoFetch("SignUp", {
-    ClientId: getClientId(),
-    Username: email,
-    Password: createCognitoSignUpPassword(),
-    UserAttributes: [{ Name: "email", Value: email }],
-  });
-};
 
 function extractRequiredStringField(
   value: unknown,
@@ -292,9 +262,8 @@ export const initiateEmailOtp = async (email: string): Promise<InitiateAuthResul
     const cognitoType = getCognitoErrorType(err);
     if (cognitoType === "UserNotFoundException") {
       try {
-        await signUpUser(email);
+        await createPasswordlessUser(email);
       } catch (signUpErr) {
-        // Concurrent request already created the user — safe to proceed
         const signUpType = getCognitoErrorType(signUpErr);
         if (signUpType !== "UsernameExistsException") throw signUpErr;
       }
@@ -304,12 +273,12 @@ export const initiateEmailOtp = async (email: string): Promise<InitiateAuthResul
     }
   }
 
-  const session = result.Session as string | undefined;
-  if (session === undefined || session === "") {
-    throw new Error("Cognito InitiateAuth did not return a session");
+  const challenge = extractChallengeResponse(result, "Cognito InitiateAuth");
+  if (challenge.challengeName !== "EMAIL_OTP") {
+    throw new Error(`Unexpected Cognito email challenge: ${challenge.challengeName}`);
   }
 
-  return { session };
+  return { session: challenge.session };
 };
 
 export const verifyEmailOtp = async (
@@ -405,8 +374,6 @@ export const signInWithPassword = async (
 ): Promise<TokenResult> => signInWithPasswordViaCognito(cognitoFetch, email, password);
 
 export const __internal = {
-  createCognitoSignUpPassword,
-  createCognitoSignUpPasswordWithRandomIndex,
   signInWithPasswordViaCognito,
 };
 
