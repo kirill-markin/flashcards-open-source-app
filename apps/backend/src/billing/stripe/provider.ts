@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import { StripeHistoryProvider } from "../history/stripeProvider";
 import { requireStripeEmailData, stripeEmailNoticeSchema, stripeTransactionAmount, type StripeEmailNotice } from "./emailProjection";
 import { stripeCheckoutCustomText } from "./checkoutPresentation";
 import { z } from "zod";
@@ -67,6 +68,10 @@ export class StripeProvider {
     const account = await callStripe("verify account", () => provider.#client.accounts.retrieve(null));
     requireMatch(account.id === stripeCatalog[environment].accountId);
     return provider;
+  }
+
+  historyReader(deadlineAtMs: number, signal: AbortSignal): StripeHistoryProvider {
+    return new StripeHistoryProvider(this.#client, this.environment, this.#catalog, callStripe, deadlineAtMs, signal);
   }
 
   private requireEnvironment(value: Readonly<{ livemode: boolean }>): void {
