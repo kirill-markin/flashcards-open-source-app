@@ -354,6 +354,14 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
     },
   });
 
+  authFn.addToRolePolicy(new cdk.aws_iam.PolicyStatement({
+    actions: ["cognito-idp:AdminCreateUser"],
+    resources: [cdk.Stack.of(scope).formatArn({
+      service: "cognito-idp",
+      resource: "userpool",
+      resourceName: props.userPoolId,
+    })],
+  }));
   oidcSigningKey.grant(authFn, "kms:Sign", "kms:GetPublicKey");
   sessionEncryptionKey.grantRead(authFn);
   props.authDbSecret.grantRead(authFn);
