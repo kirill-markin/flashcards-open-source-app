@@ -199,6 +199,73 @@ enum class AnalyticsMediaUploadFailureReason(val wireValue: String) {
     SERVER_ERROR(wireValue = "server_error")
 }
 
+enum class AnalyticsAuthMethod(val wireValue: String) {
+    EMAIL(wireValue = "email"),
+    APPLE(wireValue = "apple"),
+    GOOGLE(wireValue = "google")
+}
+
+enum class AnalyticsAuthProvider(val wireValue: String) {
+    APPLE(wireValue = "apple"),
+    GOOGLE(wireValue = "google")
+}
+
+enum class AnalyticsAuthCodeRequestAction(val wireValue: String) {
+    INITIAL(wireValue = "initial"),
+    RESEND(wireValue = "resend")
+}
+
+enum class AnalyticsAuthCodeRequestOutcome(val wireValue: String) {
+    ACCEPTED(wireValue = "accepted"),
+    RATE_LIMITED(wireValue = "rate_limited"),
+    OFFLINE(wireValue = "offline"),
+    TIMEOUT(wireValue = "timeout"),
+    SERVER_ERROR(wireValue = "server_error")
+}
+
+enum class AnalyticsAuthCodeVerificationOutcome(val wireValue: String) {
+    VERIFIED(wireValue = "verified"),
+    INVALID_CODE(wireValue = "invalid_code"),
+    EXPIRED_CODE(wireValue = "expired_code"),
+    CODE_ALREADY_USED(wireValue = "code_already_used"),
+    RATE_LIMITED(wireValue = "rate_limited"),
+    OFFLINE(wireValue = "offline"),
+    TIMEOUT(wireValue = "timeout"),
+    SERVER_ERROR(wireValue = "server_error")
+}
+
+enum class AnalyticsAuthProviderOutcome(val wireValue: String) {
+    CREDENTIAL_RECEIVED(wireValue = "credential_received"),
+    CANCELLED(wireValue = "cancelled"),
+    DENIED(wireValue = "denied"),
+    UNAVAILABLE(wireValue = "unavailable"),
+    INVALID_RESPONSE(wireValue = "invalid_response"),
+    OFFLINE(wireValue = "offline"),
+    TIMEOUT(wireValue = "timeout"),
+    PROVIDER_ERROR(wireValue = "provider_error"),
+    SERVER_ERROR(wireValue = "server_error")
+}
+
+enum class AnalyticsAuthAccountLinkOutcome(val wireValue: String) {
+    LINKED(wireValue = "linked"),
+    ALREADY_LINKED(wireValue = "already_linked"),
+    CONFLICT(wireValue = "conflict"),
+    VERIFICATION_REQUIRED(wireValue = "verification_required"),
+    CANCELLED(wireValue = "cancelled"),
+    OFFLINE(wireValue = "offline"),
+    TIMEOUT(wireValue = "timeout"),
+    SERVER_ERROR(wireValue = "server_error")
+}
+
+enum class AnalyticsAuthGuestUpgradeOutcome(val wireValue: String) {
+    COMPLETED(wireValue = "completed"),
+    CONFLICT(wireValue = "conflict"),
+    OFFLINE(wireValue = "offline"),
+    TIMEOUT(wireValue = "timeout"),
+    STORAGE_ERROR(wireValue = "storage_error"),
+    SERVER_ERROR(wireValue = "server_error")
+}
+
 /**
  * [CODE_ALREADY_USED] is reported only by app versions whose mapping separates the auth service's
  * `OTP_CHALLENGE_CONSUMED` from an expired session. One that folds them reports [EXPIRED_CODE] for
@@ -380,6 +447,171 @@ sealed interface AnalyticsEvent {
     ) : AnalyticsEvent {
         override val eventName: String = "signin_succeeded"
         override val properties: Map<String, AnalyticsPropertyValue> = emptyMap()
+    }
+
+    // Legacy producers keep their constructors; method-aware callers opt in explicitly.
+    data class SignInCodeRequestedWithMethod(
+        val method: AnalyticsAuthMethod,
+        override val screen: AnalyticsSurface
+    ) : AnalyticsEvent {
+        override val eventName: String = "signin_code_requested"
+        override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
+            "method" to AnalyticsPropertyValue.Text(value = method.wireValue)
+        )
+    }
+
+    data class SignInSucceededWithMethod(
+        val method: AnalyticsAuthMethod,
+        override val screen: AnalyticsSurface
+    ) : AnalyticsEvent {
+        override val eventName: String = "signin_succeeded"
+        override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
+            "method" to AnalyticsPropertyValue.Text(value = method.wireValue)
+        )
+    }
+
+    data class SignInFailedWithMethod(
+        val method: AnalyticsAuthMethod,
+        val reason: AnalyticsSignInFailureReason,
+        override val screen: AnalyticsSurface?
+    ) : AnalyticsEvent {
+        override val eventName: String = "signin_failed"
+        override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
+            "method" to AnalyticsPropertyValue.Text(value = method.wireValue),
+            "reason" to AnalyticsPropertyValue.Text(value = reason.wireValue)
+        )
+    }
+
+    data class AuthMethodSelected(
+        val method: AnalyticsAuthMethod,
+        override val screen: AnalyticsSurface
+    ) : AnalyticsEvent {
+        override val eventName: String = "auth_method_selected"
+        override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
+            "method" to AnalyticsPropertyValue.Text(value = method.wireValue)
+        )
+    }
+
+    data class AuthCodeFormShown(
+        val method: AnalyticsAuthMethod,
+        override val screen: AnalyticsSurface
+    ) : AnalyticsEvent {
+        override val eventName: String = "auth_code_form_shown"
+        override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
+            "method" to AnalyticsPropertyValue.Text(value = method.wireValue)
+        )
+    }
+
+    data class AuthCodeSubmitted(
+        val method: AnalyticsAuthMethod,
+        override val screen: AnalyticsSurface
+    ) : AnalyticsEvent {
+        override val eventName: String = "auth_code_submitted"
+        override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
+            "method" to AnalyticsPropertyValue.Text(value = method.wireValue)
+        )
+    }
+
+    data class AuthCodeResendRequested(
+        val method: AnalyticsAuthMethod,
+        override val screen: AnalyticsSurface
+    ) : AnalyticsEvent {
+        override val eventName: String = "auth_code_resend_requested"
+        override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
+            "method" to AnalyticsPropertyValue.Text(value = method.wireValue)
+        )
+    }
+
+    data class AuthCodeRequestFinished(
+        val method: AnalyticsAuthMethod,
+        val action: AnalyticsAuthCodeRequestAction,
+        val outcome: AnalyticsAuthCodeRequestOutcome,
+        override val screen: AnalyticsSurface
+    ) : AnalyticsEvent {
+        override val eventName: String = "auth_code_request_finished"
+        override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
+            "method" to AnalyticsPropertyValue.Text(value = method.wireValue),
+            "action" to AnalyticsPropertyValue.Text(value = action.wireValue),
+            "outcome" to AnalyticsPropertyValue.Text(value = outcome.wireValue)
+        )
+    }
+
+    data class AuthCodeVerificationFinished(
+        val method: AnalyticsAuthMethod,
+        val outcome: AnalyticsAuthCodeVerificationOutcome,
+        override val screen: AnalyticsSurface
+    ) : AnalyticsEvent {
+        override val eventName: String = "auth_code_verification_finished"
+        override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
+            "method" to AnalyticsPropertyValue.Text(value = method.wireValue),
+            "outcome" to AnalyticsPropertyValue.Text(value = outcome.wireValue)
+        )
+    }
+
+    data class AuthProviderRequested(
+        val method: AnalyticsAuthProvider,
+        override val screen: AnalyticsSurface
+    ) : AnalyticsEvent {
+        override val eventName: String = "auth_provider_requested"
+        override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
+            "method" to AnalyticsPropertyValue.Text(value = method.wireValue)
+        )
+    }
+
+    data class AuthProviderFinished(
+        val method: AnalyticsAuthProvider,
+        val outcome: AnalyticsAuthProviderOutcome,
+        override val screen: AnalyticsSurface
+    ) : AnalyticsEvent {
+        override val eventName: String = "auth_provider_finished"
+        override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
+            "method" to AnalyticsPropertyValue.Text(value = method.wireValue),
+            "outcome" to AnalyticsPropertyValue.Text(value = outcome.wireValue)
+        )
+    }
+
+    data class AuthSessionAccepted(
+        val method: AnalyticsAuthMethod,
+        override val screen: AnalyticsSurface
+    ) : AnalyticsEvent {
+        override val eventName: String = "auth_session_accepted"
+        override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
+            "method" to AnalyticsPropertyValue.Text(value = method.wireValue)
+        )
+    }
+
+    data class AuthAccountReady(
+        val method: AnalyticsAuthMethod,
+        override val screen: AnalyticsSurface
+    ) : AnalyticsEvent {
+        override val eventName: String = "auth_account_ready"
+        override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
+            "method" to AnalyticsPropertyValue.Text(value = method.wireValue)
+        )
+    }
+
+    data class AuthAccountLinkFinished(
+        val method: AnalyticsAuthMethod,
+        val outcome: AnalyticsAuthAccountLinkOutcome,
+        override val screen: AnalyticsSurface
+    ) : AnalyticsEvent {
+        override val eventName: String = "auth_account_link_finished"
+        override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
+            "method" to AnalyticsPropertyValue.Text(value = method.wireValue),
+            "outcome" to AnalyticsPropertyValue.Text(value = outcome.wireValue)
+        )
+    }
+
+    data class AuthGuestUpgradeFinished(
+        val method: AnalyticsAuthMethod,
+        val outcome: AnalyticsAuthGuestUpgradeOutcome,
+        override val screen: AnalyticsSurface
+    ) : AnalyticsEvent {
+        override val eventName: String = "auth_guest_upgrade_finished"
+        override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
+            "method" to AnalyticsPropertyValue.Text(value = method.wireValue),
+            "outcome" to AnalyticsPropertyValue.Text(value = outcome.wireValue)
+        )
     }
 
     data class SignInFailed(
