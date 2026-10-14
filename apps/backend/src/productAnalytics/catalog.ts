@@ -216,6 +216,67 @@ const productAnalyticsBillingPeriodTypes = ["trial", "paid"] as const;
 // apps/backend/src/billing/limits.ts the same way the tiers above mirror theirs.
 const productAnalyticsAccountKinds = ["account", "guest"] as const;
 
+// Method is the selected authentication path, including its subsequent email-code proof.
+// Provider outcomes describe the observable callback, never provider-internal UI or an app session.
+const productAnalyticsAuthMethods = ["email", "apple", "google"] as const;
+const productAnalyticsAuthProviders = ["apple", "google"] as const;
+const productAnalyticsAuthCodeRequestActions = ["initial", "resend"] as const;
+const productAnalyticsAuthCodeRequestOutcomes = [
+  "accepted",
+  "rate_limited",
+  "offline",
+  "timeout",
+  "server_error",
+] as const;
+const productAnalyticsAuthCodeVerificationOutcomes = [
+  "verified",
+  "invalid_code",
+  "expired_code",
+  "code_already_used",
+  "rate_limited",
+  "offline",
+  "timeout",
+  "server_error",
+] as const;
+const productAnalyticsAuthProviderOutcomes = [
+  "credential_received",
+  "cancelled",
+  "denied",
+  "unavailable",
+  "invalid_response",
+  "offline",
+  "timeout",
+  "provider_error",
+  "server_error",
+] as const;
+const productAnalyticsAuthAccountLinkOutcomes = [
+  "linked",
+  "already_linked",
+  "conflict",
+  "verification_required",
+  "cancelled",
+  "offline",
+  "timeout",
+  "server_error",
+] as const;
+const productAnalyticsAuthGuestUpgradeOutcomes = [
+  "completed",
+  "conflict",
+  "offline",
+  "timeout",
+  "storage_error",
+  "server_error",
+] as const;
+
+export type ProductAnalyticsAuthMethod = (typeof productAnalyticsAuthMethods)[number];
+export type ProductAnalyticsAuthProvider = (typeof productAnalyticsAuthProviders)[number];
+export type ProductAnalyticsAuthCodeRequestAction = (typeof productAnalyticsAuthCodeRequestActions)[number];
+export type ProductAnalyticsAuthCodeRequestOutcome = (typeof productAnalyticsAuthCodeRequestOutcomes)[number];
+export type ProductAnalyticsAuthCodeVerificationOutcome = (typeof productAnalyticsAuthCodeVerificationOutcomes)[number];
+export type ProductAnalyticsAuthProviderOutcome = (typeof productAnalyticsAuthProviderOutcomes)[number];
+export type ProductAnalyticsAuthAccountLinkOutcome = (typeof productAnalyticsAuthAccountLinkOutcomes)[number];
+export type ProductAnalyticsAuthGuestUpgradeOutcome = (typeof productAnalyticsAuthGuestUpgradeOutcomes)[number];
+
 export type ProductAnalyticsEntitlementTier = (typeof productAnalyticsEntitlementTiers)[number];
 export type ProductAnalyticsAccountKind = (typeof productAnalyticsAccountKinds)[number];
 export type ProductAnalyticsEntitlementStatus = (typeof productAnalyticsEntitlementStatuses)[number];
@@ -626,22 +687,26 @@ export const productAnalyticsEventCatalog = {
   // sends `signin`, and a client adopting these would send `signin` or `credential_recovery`. That
   // is `screen` in its ordinary reading, where the person is now, and not the entry-point reading
   // the surface comment above reserves for `signin_failed` alone, so a funnel must not read the
-  // three events' screens the same way. Neither carries a property: the step is the whole fact, and
-  // `screen`, `platform` and the event name already carry the rest.
+  // three events' screens the same way. Optional method never changes those historical boundaries.
   signin_code_requested: {
     serverOnly: false,
     requiresScreen: true,
-    properties: {},
+    properties: {
+      method: { kind: "enum", values: productAnalyticsAuthMethods, optional: true },
+    },
   },
   signin_succeeded: {
     serverOnly: false,
     requiresScreen: true,
-    properties: {},
+    properties: {
+      method: { kind: "enum", values: productAnalyticsAuthMethods, optional: true },
+    },
   },
   signin_failed: {
     serverOnly: false,
     requiresScreen: false,
     properties: {
+      method: { kind: "enum", values: productAnalyticsAuthMethods, optional: true },
       reason: {
         kind: "enum",
         values: [
@@ -664,6 +729,110 @@ export const productAnalyticsEventCatalog = {
           "cancelled",
         ],
       },
+    },
+  },
+  // Client observations: screen always names the current surface, unlike legacy signin_failed.
+  // No email, provider subject, token, nonce or journey identifier belongs in these properties.
+  // An explicit method choice; showing a remembered choice alone reports nothing.
+  auth_method_selected: {
+    serverOnly: false,
+    requiresScreen: true,
+    properties: {
+      method: { kind: "enum", values: productAnalyticsAuthMethods },
+    },
+  },
+  // The code input is visible and usable, once per presentation; no delivery is inferred.
+  auth_code_form_shown: {
+    serverOnly: false,
+    requiresScreen: true,
+    properties: {
+      method: { kind: "enum", values: productAnalyticsAuthMethods },
+    },
+  },
+  // A code verification request was launched; typing or client-side rejection reports nothing.
+  auth_code_submitted: {
+    serverOnly: false,
+    requiresScreen: true,
+    properties: {
+      method: { kind: "enum", values: productAnalyticsAuthMethods },
+    },
+  },
+  // An explicit resend request was launched, after local guards passed.
+  auth_code_resend_requested: {
+    serverOnly: false,
+    requiresScreen: true,
+    properties: {
+      method: { kind: "enum", values: productAnalyticsAuthMethods },
+    },
+  },
+  // accepted means the auth service accepted the request, never that an email was delivered.
+  auth_code_request_finished: {
+    serverOnly: false,
+    requiresScreen: true,
+    properties: {
+      method: { kind: "enum", values: productAnalyticsAuthMethods },
+      action: { kind: "enum", values: productAnalyticsAuthCodeRequestActions },
+      outcome: { kind: "enum", values: productAnalyticsAuthCodeRequestOutcomes },
+    },
+  },
+  // The code verifier returned or failed; verified alone does not imply an app session.
+  auth_code_verification_finished: {
+    serverOnly: false,
+    requiresScreen: true,
+    properties: {
+      method: { kind: "enum", values: productAnalyticsAuthMethods },
+      outcome: { kind: "enum", values: productAnalyticsAuthCodeVerificationOutcomes },
+    },
+  },
+  // The provider authorization request was launched, not merely its control pressed.
+  auth_provider_requested: {
+    serverOnly: false,
+    requiresScreen: true,
+    properties: {
+      method: { kind: "enum", values: productAnalyticsAuthProviders },
+    },
+  },
+  // credential_received is a provider callback credential, before the app validates or exchanges it.
+  auth_provider_finished: {
+    serverOnly: false,
+    requiresScreen: true,
+    properties: {
+      method: { kind: "enum", values: productAnalyticsAuthProviders },
+      outcome: { kind: "enum", values: productAnalyticsAuthProviderOutcomes },
+    },
+  },
+  // The app accepted and stored its session; provider credentials alone cannot produce this fact.
+  auth_session_accepted: {
+    serverOnly: false,
+    requiresScreen: true,
+    properties: {
+      method: { kind: "enum", values: productAnalyticsAuthMethods },
+    },
+  },
+  // Account context and a usable workspace are available; accepting a session alone is insufficient.
+  auth_account_ready: {
+    serverOnly: false,
+    requiresScreen: true,
+    properties: {
+      method: { kind: "enum", values: productAnalyticsAuthMethods },
+    },
+  },
+  // One account-identity linking operation returned or failed, as observed by the caller.
+  auth_account_link_finished: {
+    serverOnly: false,
+    requiresScreen: true,
+    properties: {
+      method: { kind: "enum", values: productAnalyticsAuthMethods },
+      outcome: { kind: "enum", values: productAnalyticsAuthAccountLinkOutcomes },
+    },
+  },
+  // The client observed its guest-data upgrade finish; backend guest_upgrade_completed stays authoritative.
+  auth_guest_upgrade_finished: {
+    serverOnly: false,
+    requiresScreen: true,
+    properties: {
+      method: { kind: "enum", values: productAnalyticsAuthMethods },
+      outcome: { kind: "enum", values: productAnalyticsAuthGuestUpgradeOutcomes },
     },
   },
   // The end of a session's account relationship, the counterpart to `signin_succeeded`. It is the
@@ -762,7 +931,9 @@ export const productAnalyticsEventCatalog = {
   guest_upgrade_completed: {
     serverOnly: true,
     requiresScreen: false,
-    properties: {},
+    properties: {
+      method: { kind: "enum", values: productAnalyticsAuthMethods, optional: true },
+    },
   },
   // The card flip. It never reaches the backend on its own, so only a client can report it, and it
   // is the denominator `review_answered` is read against: the gap between the two is the person who
