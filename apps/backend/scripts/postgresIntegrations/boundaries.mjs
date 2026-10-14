@@ -71,6 +71,13 @@ export const createdRolesByMigration = new Map([
 ]);
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
+    migrationFileName: "0185_apple_revocation_credentials.sql",
+    expectedMigrationCount: 187,
+    testFiles: Object.freeze([
+      "src/auth/appleCredential.postgres.integration.ts",
+    ]),
+  }),
+  Object.freeze({
     migrationFileName: "0184_cognito_native_proof_grants.sql",
     expectedMigrationCount: 186,
     testFiles: Object.freeze([

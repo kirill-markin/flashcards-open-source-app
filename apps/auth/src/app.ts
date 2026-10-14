@@ -33,6 +33,7 @@ import {
   getTraceId,
   jsonAuthError,
 } from "./server/apiErrors.js";
+import { getAppleSignInConfig, getGoogleSignInConfig } from "./server/social/config.js";
 import { getDemoEmailAccessConfig } from "./server/demoEmailAccess.js";
 import { createAgentErrorEnvelope } from "./server/agent/agentEnvelope.js";
 import { isTransientDatabaseError } from "./server/databaseErrors.js";
@@ -219,6 +220,8 @@ export function registerAuthErrorHandler(app: Hono<AuthAppEnv>): void {
 
 function createMountedApp(basePath: string): Hono<AuthAppEnv> {
   getDemoEmailAccessConfig();
+  getAppleSignInConfig();
+  getGoogleSignInConfig();
   const app = new Hono<AuthAppEnv>().basePath(basePath);
   const allowedApiOrigins = getAllowedApiOrigins();
 

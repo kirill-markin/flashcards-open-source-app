@@ -294,6 +294,16 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     });
     const demoEmailDostip = getOptionalContextValue(this, "demoEmailDostip");
     const demoPasswordSecretArn = getOptionalContextValue(this, "demoPasswordSecretArn");
+    const socialProviderContext = Object.fromEntries([
+      "googleSignInConfig", "googleSignInSecretArn", "appleSignInConfig", "appleSignInSecretArn",
+    ].map((key) => {
+      const value: unknown = this.node.tryGetContext(key);
+      if (value !== undefined && (typeof value !== "string" || value.trim() === "")) {
+        throw new Error(`${key} must be absent or a nonempty string`);
+      }
+      return [key, value];
+    })) as Readonly<Record<string, string | undefined>>;
+
     const adminEmails = getOptionalContextValue(this, "adminEmails");
     const resendApiKeySecretArn = getOptionalContextValue(this, "resendApiKeySecretArn");
     const resendSenderEmail = getOptionalContextValue(this, "resendSenderEmail");
@@ -515,6 +525,10 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       ...sentryContext,
     });
     const authApi = authGateway(this, {
+      googleSignInConfig: socialProviderContext.googleSignInConfig,
+      googleSignInSecretArn: socialProviderContext.googleSignInSecretArn,
+      appleSignInConfig: socialProviderContext.appleSignInConfig,
+      appleSignInSecretArn: socialProviderContext.appleSignInSecretArn,
       vpc: net.vpc,
       lambdaSg: net.lambdaSg,
       db: dbResult.db,
