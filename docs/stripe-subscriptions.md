@@ -314,7 +314,8 @@ charge.dispute.funds_withdrawn
 charge.dispute.funds_reinstated
 ```
 
-Only the HTTP backend receives these nonsecret deployment inputs:
+The HTTP backend receives these nonsecret deployment inputs; the hourly importer
+also receives the secret ARN for [native history reads](billing-history.md#stripe-inventory-and-backfill):
 
 | GitHub repository variable | CI context environment | CDK context | Runtime environment |
 | --- | --- | --- | --- |
@@ -332,8 +333,9 @@ an existing installation, then use normal CI/CD.
 
 Use the complete vault ARN
 `arn:aws:secretsmanager:eu-central-1:506210661494:secret:flashcards-open-source-app/stripe-billing-juxXCn`.
-CDK grants that secret's read access only to the HTTP backend and injects its ARN,
-never its value. Chat/MCP/auth functions and frontend/build environments receive
+CDK grants that secret's read access to the HTTP backend and existing hourly
+store-analytics importer and injects its ARN, never its value.
+Chat/MCP/auth functions and frontend/build environments receive
 neither secret values nor a Stripe runtime grant.
 
 The [runtime parser](../apps/backend/src/billing/stripe/config.ts) accepts a JSON

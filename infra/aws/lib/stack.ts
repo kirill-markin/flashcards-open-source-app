@@ -396,10 +396,12 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       schedulerRole,
     });
     const storeAnalyticsImportResult = storeAnalyticsImport(this, {
+      appleIapSecretArn,
       vpc: net.vpc,
       lambdaSg: net.lambdaSg,
       db: dbResult.db,
       backendDbSecret: dbResult.backendDbSecret,
+      stripeBillingSecretArn,
       ...sentryContext,
       schedulerRole,
     });

@@ -167,6 +167,25 @@ the off switch crosses in either direction only toward less collection, so an ac
 never re-enables a browser that has turned it off
 ([web sync](../apps/web/src/analytics/accountAnalyticsPreferences.ts)).
 
+The web shares the effective collection decision with auth in the non-identifying
+`product_analytics_collection` preference cookie (`1` for on, `0` for off), with the visitor
+cookie's parent-domain scope, `Path=/`, `SameSite=Lax` and 13-month lifetime (`Secure` on HTTPS).
+The default-on value is published only once the identifier-consent question has settled; an
+explicit collection preference can be persisted as a necessary setting independently of that
+question. The browser's stored off and the shared cookie's off both win during reconciliation;
+only an explicit re-enable changes an off preference to on. Account preference application uses
+the same writer, so an account opt-out reaches auth as soon as the web applies it.
+
+Auth requires this cookie to say `1`, the login-page marker, a shared visitor id and a browser
+`User-Agent` before reporting. Missing or invalid collection preference is unmeasured, including a
+direct auth-first visit; auth mints neither a visitor identity nor this preference. The web login
+URL also carries an off-only hint, forwarded by the login page as `X-Product-Analytics-Enabled: 0`,
+so a browser whose preference-cookie write failed can still suppress its sign-in reports. The
+header never enables collection or overrides a stored off. Identifier consent remains a separate
+gate: collection-on without a visitor cookie produces no auth funnel rows. Auth reads no account
+preference before the existing web account reconciliation, and retains its 150 ms reporting budget
+and credential-free transport without analytics-schema grants.
+
 Turning the switch off also stops this browser asking for the shared identifier: the id exists only
 to attribute product-analytics rows, so a web client with the switch off mints no new cookie, on any
 tick or connectivity change, and asks again only when the switch goes back on. A cookie it already

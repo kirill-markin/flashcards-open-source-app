@@ -70,7 +70,7 @@ export function preSignUp(scope: Construct, props: PreSignUpProps): lambdaNodejs
     handler: "handler",
     runtime: lambda.Runtime.NODEJS_24_X,
     bundling,
-    description: "Auto-confirm user and verify email on sign-up",
+    description: "Leave email verification to Cognito OTP",
   });
 
   fn.addPermission("CognitoInvoke", {
