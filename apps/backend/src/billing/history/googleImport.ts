@@ -375,7 +375,7 @@ export async function importGoogleBillingHistory(
         verifiedEnvironment: row.verified_environment }]));
       const attempt = await openAttempt(source, environment,
         source === "google_orders" ? inventoryKey : subscriptionInventoryKey,
-        { orders: source === "google_orders" ? orders : [], subscriptions: source === "google_subscriptions"
+        { orders: source === "google_orders" ? [...orders] : [], subscriptions: source === "google_subscriptions"
           ? tokens.map((purchaseToken) => ({ purchaseToken, observationId: randomUUID() })) : [],
           handledOrderIds: [], unavailableSubscriptions: 0, unavailableOrders: 0 });
       try {
