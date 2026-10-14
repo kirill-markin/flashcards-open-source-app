@@ -37,6 +37,9 @@ invoice for a payment and verified parent charge for a refund. Verify Nibomo cat
 and customer scope through the existing Stripe provider. Exhaust invoice lines and
 subscription items before writing; truncated embedded lists are rejected. Customer
 IDs are used only for private matching, then removed from JSONB.
+Stripe decimal amounts remain JSON strings; the
+[reader](../apps/backend/src/billing/history/stripeProvider.ts) converts SDK decimals
+at subscription item prices and invoice line pricing before initial validation.
 
 Primary provider contracts:
 [Apple transaction](https://github.com/apple/app-store-server-library-node/blob/v3.1.0/models/JWSTransactionDecodedPayload.ts),
