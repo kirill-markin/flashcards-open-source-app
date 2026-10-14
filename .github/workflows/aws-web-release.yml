@@ -173,20 +173,6 @@ jobs:
     if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
-    services:
-      postgres:
-        image: public.ecr.aws/docker/library/postgres:18
-        env:
-          POSTGRES_DB: postgres
-          POSTGRES_PASSWORD: postgres-integration-${{ github.run_id }}-${{ github.run_attempt }}
-          POSTGRES_USER: postgres_integration
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres_integration -d postgres"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
 
     steps:
       - uses: actions/checkout@v7
@@ -199,6 +185,48 @@ jobs:
 
       - name: Install backend dependencies
         run: npm ci --prefix apps/backend
+
+      # A service container would pull before any step could log in, and
+      # anonymous ECR Public pulls hit a shared data limit.
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Log in to Amazon ECR Public
+        uses: aws-actions/amazon-ecr-login@v2.1.7
+        with:
+          registry-type: public
+
+      - name: Start PostgreSQL 18
+        env:
+          POSTGRES_PASSWORD: postgres-integration-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          # Later steps must not inherit the deploy role; empty values read as absent and the Docker login persists.
+          printf '%s=\n' AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION AWS_DEFAULT_REGION >> "${GITHUB_ENV}"
+          docker run -d --name postgres \
+            -e POSTGRES_DB=postgres \
+            -e POSTGRES_PASSWORD \
+            -e POSTGRES_USER=postgres_integration \
+            -p 5432:5432 \
+            --health-cmd "pg_isready -U postgres_integration -d postgres" \
+            --health-interval 5s \
+            --health-timeout 5s \
+            --health-retries 10 \
+            public.ecr.aws/docker/library/postgres:18
+          # 20 polls x 5s covers 10 health retries of up to 5s interval + 5s timeout.
+          for _ in $(seq 1 20); do
+            status="$(docker inspect --format '{{.State.Health.Status}}' postgres)"
+            if [ "${status}" = "healthy" ]; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "PostgreSQL container did not become healthy; last health status: ${status}" >&2
+          docker logs postgres >&2
+          exit 1
 
       - name: Test PostgreSQL 18 lifecycle and 0096 to 0097 security boundaries
         env:
@@ -289,6 +317,21 @@ jobs:
       - name: Prepare exact Lambda copied inputs
         if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
         run: bash scripts/deploy/prepare-lambda-build-inputs.sh
+
+      - name: Configure AWS credentials (OIDC)
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # CDK bundling pulls public.ecr.aws/sam/build-nodejs24.x on a Lambda input
+      # cache miss. The action authenticates ECR Public in us-east-1 itself.
+      - name: Log in to Amazon ECR Public
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
+        uses: aws-actions/amazon-ecr-login@v2.1.7
+        with:
+          registry-type: public
 
       - name: Synthesize infra
         if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
@@ -428,6 +471,14 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
+
+      # CDK bundling pulls public.ecr.aws/sam/build-nodejs24.x on a Lambda input
+      # cache miss. The action authenticates ECR Public in us-east-1 itself.
+      - name: Log in to Amazon ECR Public
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
+        uses: aws-actions/amazon-ecr-login@v2.1.7
+        with:
+          registry-type: public
 
       - name: Pin AWS CLI for monitoring ownership reads
         if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
