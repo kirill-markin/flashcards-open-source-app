@@ -1,6 +1,7 @@
 import type { AgentSqlSurface } from "../../../aiTools/agentSql/shared";
 import type { AppleEnvironment } from "../../../billing/apple/contracts";
 import type { AppleHistoryImportSummary } from "../../../billing/history/appleImport";
+import type { StripeHistoryImportStage } from "../../../billing/history/stripeImport";
 import type { EventByAction } from "./common";
 
 export type AdminQueryDetails = Readonly<{
@@ -948,7 +949,7 @@ export type OperationsExceptionEvent =
     "stripe_history_import_failed",
     Readonly<{ environment: "production" | "sandbox";
       source?: "stripe_subscriptions" | "stripe_invoices" | "stripe_payments" | "stripe_refunds";
-      failureCode?: string; runId?: string }>
+      failureCode?: string; runId?: string; stage?: StripeHistoryImportStage; validationCause?: string | null }>
   > & Readonly<{ error: Error }>)
   | (EventByAction<"store_analytics_apple_instance_failed", StoreAnalyticsAppleInstanceFailureDetails>
     & Readonly<{ error: Error }>)
