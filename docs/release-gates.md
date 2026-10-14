@@ -26,20 +26,22 @@ mapping and the fallbacks. Each component diffs its last released SHA, stored
 in SSM at `/FlashcardsOpenSourceApp/release/deployed-sha/{platform,web,admin}`,
 against the run's commit, so every merge since that release lands in one diff.
 A selected component whose deploy job failed or was cancelled, or whose smokes
-did not pass, may already run unverified code, so its parameter is cleared and
-the next run deploys it in full; keeping the old SHA would let a revert to that
-tree select nothing. A failed SSM read at record time also clears
-the parameter instead of writing. `workflow_dispatch`, any selection error, and
-a failed AWS login or SSM read, which leaves all three parameters unreadable,
-deploy everything; a missing or unreadable parameter, or rewritten history,
-deploys only that component in full. The
+did not pass, may already run unverified code, so its parameter is cleared to a
+`cleared-by-run:<run id>` marker and the next run deploys it in full; keeping
+the old SHA would let a revert to that tree select nothing. A failed SSM read
+at record time also clears the parameter instead of writing.
+`workflow_dispatch`, any selection error, and a failed AWS login or SSM read,
+which leaves all three parameters unreadable, deploy everything; a missing,
+cleared, or unreadable parameter, or rewritten history, deploys only that
+component in full. The
 `Select release components` job summary shows each component's deployed SHA,
 the decision, and its reason; `Record deployed component SHAs` shows what the
 run recorded. The `main-release` concurrency group serializes runs, so a run
 reads the SHAs only after the previous run has written them. Each write is a
-compare-and-set against the value the run read at selection: when a rerun of an
-older run finds a newer SHA already recorded, it deletes the parameter instead,
-and the next run deploys that component in full.
+compare-and-set against the value the run read at selection or the run's own
+marker, so a passing "re-run failed jobs" attempt still records its SHA. When a
+rerun of an older run finds a newer value already recorded, it clears the
+parameter instead, and the next run deploys that component in full.
 
 Platform releases require both native ARM pre-deploy checks/synthesis and the
 independent PostgreSQL integration job before deployment. They run concurrently.

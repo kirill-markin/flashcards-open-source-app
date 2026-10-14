@@ -94,6 +94,11 @@ select_component() {
     return
   fi
 
+  if [[ "${deployed_sha}" == cleared-by-run:* ]]; then
+    printf 'true\tfull deploy: deployed SHA cleared by run %s\n' "${deployed_sha#cleared-by-run:}"
+    return
+  fi
+
   if [[ ! "${deployed_sha}" =~ ^[0-9a-f]{40}$ ]]; then
     printf 'true\tfull deploy: deployed SHA could not be read from SSM\n'
     return
