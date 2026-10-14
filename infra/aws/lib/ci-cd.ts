@@ -177,6 +177,13 @@ export function ciCd(scope: Construct, props: CiCdProps): void {
         `arn:aws:ssm:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:parameter/${cdk.Stack.of(scope).stackName}/release/deployed-sha/${component}`
       ),
     }),
+    // Authenticated public.ecr.aws pulls for the PostgreSQL integration checks in
+    // .github/workflows/aws-web-release.yml; neither action supports resource scoping.
+    new iam.PolicyStatement({
+      sid: "PullEcrPublicImagesAuthenticated",
+      actions: ["ecr-public:GetAuthorizationToken", "sts:GetServiceBearerToken"],
+      resources: ["*"],
+    }),
   ];
 
   if (props.demoPasswordSecretArn !== undefined) {
