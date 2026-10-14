@@ -113,6 +113,12 @@ export type GlobalMetricsSnapshotFailureDetails = Readonly<{
   message: string;
 }>;
 
+export type GlobalMetricsSnapshotVersionFailureDetails = Readonly<{
+  snapshotVersion: "v2" | "v3";
+  sqlState: string | null;
+  errorCode: string | null;
+}>;
+
 export type CatalogDumpGeneratedDetails = Readonly<{
   bucketName: string;
   objectKey: string;
@@ -807,6 +813,7 @@ export type OperationsBreadcrumbEvent =
   | EventByAction<"agent_sql", AgentSqlDetails>
   | EventByAction<"mcp_request", McpRequestDetails>
   | EventByAction<"global_metrics_snapshot_generated", GlobalMetricsSnapshotGeneratedDetails>
+  | EventByAction<"global_metrics_snapshot_version_failed", GlobalMetricsSnapshotVersionFailureDetails>
   | EventByAction<"catalog_dump_generated", CatalogDumpGeneratedDetails>
   | EventByAction<"catalog_dump_media_published", CatalogDumpMediaPublishedDetails>
   | EventByAction<"community_leaderboard_snapshot_generated", CommunityLeaderboardSnapshotGeneratedDetails>
