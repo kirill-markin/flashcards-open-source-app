@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { unsafeTransaction } from "../../database/unsafe";
+import { persistAppleTransactionInExecutor } from "../history/apple";
 import { AppleProvider } from "./provider";
 import { AppleBillingError, type AppleSigningSecret, type ApplePurchaseIdentity, type AppleNotification } from "./contracts";
 import { accountToken, lockPurchase, recordNotification, persistPurchase, finishNotification } from "./store";
@@ -20,6 +21,10 @@ async function persistCurrentState(
   const outcome = await unsafeTransaction(async (executor): Promise<AppleCommittedTransition | AppleBillingError | null> => {
     const { previous, accounts, ownerUserId } = await lockPurchase(executor, identity, presentingUserId);
     if (notification !== null && await recordNotification(executor, notification, previous, accounts, ownerUserId)) return null;
+    if (notification?.historyTransaction !== undefined) {
+      await persistAppleTransactionInExecutor(executor, notification.historyTransaction,
+        { environment: notification.environment, observedAt: notification.occurredAt });
+    }
     // The fetch belongs inside the original-transaction lock, never before it.
     await executor.query("SAVEPOINT apple_purchase", []);
     try {

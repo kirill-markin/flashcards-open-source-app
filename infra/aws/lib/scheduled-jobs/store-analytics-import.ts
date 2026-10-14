@@ -18,6 +18,8 @@ export interface StoreAnalyticsImportProps {
   lambdaSg: ec2.SecurityGroup;
   db: rds.DatabaseInstance;
   backendDbSecret: cdk.aws_secretsmanager.Secret;
+  stripeBillingSecretArn: string | undefined;
+  appleIapSecretArn: string | undefined;
   sentryDsnSecretArn: string | undefined;
   sentryEnvironment: string | undefined;
   sentryRelease: string | undefined;
@@ -30,7 +32,6 @@ export interface StoreAnalyticsImportResult {
 }
 
 export const storeAnalyticsImportScheduleHours = 1;
-// Hourly: most runs find no new report instance or file and exit after listing.
 export const storeAnalyticsImportScheduleExpression = "cron(20 * * * ? *)";
 
 // Created outside the stack; holds the read-only App Store Connect team key as
@@ -128,7 +129,20 @@ export function storeAnalyticsImport(scope: Construct, props: StoreAnalyticsImpo
     "AppStoreConnectReportsSecret",
     appStoreConnectReportsSecretName,
   ).grantRead(importFunction);
+  if (hasConfiguredValue(props.appleIapSecretArn)) {
+    const appleIapSecret = cdk.aws_secretsmanager.Secret.fromSecretCompleteArn(
+      scope, "StoreAnalyticsImportAppleIapSecret", props.appleIapSecretArn,
+    );
+    appleIapSecret.grantRead(importFunction);
+    importFunction.addEnvironment("APPLE_IAP_SECRET_ARN", appleIapSecret.secretArn);
+  }
   addOptionalSentryEnvironment(scope, importFunction, props);
+  if (hasConfiguredValue(props.stripeBillingSecretArn)) {
+    cdk.aws_secretsmanager.Secret.fromSecretCompleteArn(
+      scope, "StoreAnalyticsImportStripeBillingSecret", props.stripeBillingSecretArn,
+    ).grantRead(importFunction);
+    importFunction.addEnvironment("STRIPE_BILLING_SECRET_ARN", props.stripeBillingSecretArn);
+  }
 
   // No automatic retry: an instance or file left unimported is picked up by the next hourly run.
   importFunction.configureAsyncInvoke({ retryAttempts: 0 });
@@ -139,7 +153,7 @@ export function storeAnalyticsImport(scope: Construct, props: StoreAnalyticsImpo
   }));
 
   new scheduler.CfnSchedule(scope, "StoreAnalyticsImportHourlySchedule", {
-    description: "Import new App Store Connect and Google Play store reports every hour",
+    description: "Import store reports and reconcile Apple and Stripe native billing history every hour",
     flexibleTimeWindow: { mode: "OFF" },
     scheduleExpression: storeAnalyticsImportScheduleExpression,
     scheduleExpressionTimezone: "UTC",

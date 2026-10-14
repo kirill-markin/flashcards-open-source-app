@@ -42,6 +42,7 @@ import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.CloudGuestSessionCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.GuestCloudSessionRestoreResult
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudOperationCoordinator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
@@ -67,6 +68,7 @@ class LocalAiChatRepository(
     private val preferencesStore: CloudPreferencesStore,
     private val cloudRemoteService: CloudRemoteGateway,
     private val cloudGuestSessionCoordinator: CloudGuestSessionCoordinator,
+    private val operationCoordinator: CloudOperationCoordinator,
     private val syncRepository: SyncRepository,
     private val aiChatRemoteService: AiChatRemoteService,
     private val signedPutUploader: SignedPutUploader,
@@ -627,17 +629,19 @@ class LocalAiChatRepository(
         }
     }
 
-    private suspend fun authorizedSession(workspaceId: String?): AuthorizedAiChatSession {
+    private suspend fun authorizedSession(workspaceId: String?): AuthorizedAiChatSession = operationCoordinator.runExclusive {
         val reconciliation = cloudGuestSessionCoordinator.reconcilePersistedCloudState()
         val configuration = preferencesStore.currentServerConfiguration()
         if (reconciliation.cloudSettings.cloudState == CloudAccountState.LINKED) {
             val credentials = refreshedCredentials(
-                storedCredentials = requireNotNull(preferencesStore.loadCredentials()) {
+                storedCredentials = requireNotNull(
+                    withContext(Dispatchers.IO) { preferencesStore.loadCredentials() }
+                ) {
                     "Cloud account is not signed in."
                 },
                 authBaseUrl = configuration.authBaseUrl
             )
-            return AuthorizedAiChatSession(
+            return@runExclusive AuthorizedAiChatSession(
                 apiBaseUrl = configuration.apiBaseUrl,
                 authorizationHeader = "Bearer ${credentials.idToken}"
             )
@@ -659,7 +663,7 @@ class LocalAiChatRepository(
         if (guestSession.shouldSync) {
             syncRepository.syncNow()
         }
-        return AuthorizedAiChatSession(
+        AuthorizedAiChatSession(
             apiBaseUrl = guestSession.session.apiBaseUrl,
             authorizationHeader = "Guest ${guestSession.session.guestToken}"
         )
@@ -694,7 +698,11 @@ class LocalAiChatRepository(
         return cloudRemoteService.refreshIdToken(
             refreshToken = storedCredentials.refreshToken,
             authBaseUrl = authBaseUrl
-        ).also(preferencesStore::saveCredentials)
+        ).also { credentials ->
+            withContext(Dispatchers.IO) {
+                preferencesStore.saveCredentials(credentials)
+            }
+        }
     }
 }
 
