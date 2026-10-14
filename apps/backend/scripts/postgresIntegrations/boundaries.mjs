@@ -71,6 +71,13 @@ export const createdRolesByMigration = new Map([
 ]);
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
+    migrationFileName: "0184_cognito_native_proof_grants.sql",
+    expectedMigrationCount: 186,
+    testFiles: Object.freeze([
+      "src/auth/nativeProofGrant.postgres.integration.ts",
+    ]),
+  }),
+  Object.freeze({
     migrationFileName: "0183_verified_auth_identity_lifecycle.sql",
     expectedMigrationCount: 185,
     testFiles: Object.freeze([

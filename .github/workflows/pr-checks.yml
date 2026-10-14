@@ -256,22 +256,23 @@ jobs:
           CDK_VARS_JSON: ${{ toJSON(vars) }}
           CDK_CONTEXT_REGION: ${{ vars.AWS_REGION }}
           CDK_CONTEXT_SENTRY_RELEASE: ${{ github.sha }}
+          CDK_CONTEXT_DEMO_EMAIL_DOSTIP: ${{ secrets.CDK_DEMO_EMAIL_DOSTIP }}
           # Only parsed to derive githubOidcProviderArn; without it the template gains a resource.
           AWS_DEPLOY_ROLE_ARN: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
-          IS_FORK: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
+          IS_FORK: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
         run: |
           set -euo pipefail
 
-          if [[ "${IS_FORK}" == "true" ]] && ! jq -e '(.CDK_DOMAIN_NAME // "") != ""' <<<"${CDK_VARS_JSON}" > /dev/null; then
-            echo "::notice::The CloudFormation resource budget check needs repository variables, which this fork pull request does not receive. A maintainer must verify the per-stack resource count before merging."
+          if [[ "${IS_FORK}" == "true" ]] && { [[ -z "${CDK_CONTEXT_DEMO_EMAIL_DOSTIP}" ]] || ! jq -e '(.CDK_DOMAIN_NAME // "") != ""' <<<"${CDK_VARS_JSON}" > /dev/null; }; then
+            echo "::notice::The CloudFormation resource budget check needs repository variables and the review-email secret, which this fork pull request does not receive. A maintainer must verify the per-stack resource count before merging."
             exit 0
           fi
 
           # Same mapping as the aws-web-release.yml synth env: vars.CDK_<suffix> -> CDK_CONTEXT_<suffix>,
-          # except REGION and SENTRY_RELEASE, which come from the step env above.
+          # except REGION, SENTRY_RELEASE, and DEMO_EMAIL_DOSTIP, which come from the step env above.
           vars_path="${RUNNER_TEMP}/cdk-vars.bin"
           jq -j 'to_entries[]
-            | select((.key | startswith("CDK_")) and .key != "CDK_REGION" and .key != "CDK_SENTRY_RELEASE")
+            | select((.key | startswith("CDK_")) and .key != "CDK_REGION" and .key != "CDK_SENTRY_RELEASE" and .key != "CDK_DEMO_EMAIL_DOSTIP")
             | .key, "\u0000", .value, "\u0000"' <<<"${CDK_VARS_JSON}" > "${vars_path}"
           while IFS= read -r -d '' key && IFS= read -r -d '' value; do
             export "CDK_CONTEXT_${key#CDK_}=${value}"
