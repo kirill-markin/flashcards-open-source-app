@@ -2,7 +2,7 @@ export type CognitoOperation =
   | "InitiateAuth"
   | "RespondToAuthChallenge"
   | "RevokeToken"
-  | "SignUp";
+  | "AdminCreateUser";
 
 export type CognitoErrorMetadata = Readonly<{
   operation: CognitoOperation;
@@ -32,7 +32,7 @@ function isCognitoOperation(value: unknown): value is CognitoOperation {
   return value === "InitiateAuth"
     || value === "RespondToAuthChallenge"
     || value === "RevokeToken"
-    || value === "SignUp";
+    || value === "AdminCreateUser";
 }
 
 export function isCognitoTypedError(error: unknown): error is CognitoTypedError {
@@ -65,7 +65,7 @@ export function getNormalizedCognitoErrorType(error: unknown): string {
 
 export function isCognitoInvalidEmailError(error: unknown): error is CognitoTypedError {
   return isCognitoTypedError(error)
-    && error.operation === "SignUp"
+    && error.operation === "AdminCreateUser"
     && error.cognitoType === "InvalidParameterException"
     && error.message.trim().toLowerCase() === "invalid email address format.";
 }
