@@ -85,9 +85,10 @@ jobs:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # Each value is the component's last successfully released SHA, "missing"
-      # when the parameter does not exist yet, or "unreadable" when SSM could not
-      # be read. The selection step deploys the component for both sentinels.
+      # Each value is the component's last successfully released SHA,
+      # "cleared-by-run:<run id>" after an unverified release, "missing" when the
+      # parameter does not exist yet, or "unreadable" when SSM could not be
+      # read. The selection step deploys the component for all three sentinels.
       - name: Read deployed component SHAs
         id: deployed
         continue-on-error: true
@@ -932,17 +933,20 @@ jobs:
   # the next run reads these values only after this job has finished.
   #
   # A selected component that may have changed production without being
-  # verified is cleared: its parameter is deleted, so the next run deploys it in
-  # full. Keeping the old SHA would be wrong, because reverting the bad commit
-  # makes the tree equal that SHA again and the diff would select nothing. This
+  # verified is cleared: its parameter is overwritten with
+  # "cleared-by-run:<run id>", so the next run deploys it in full. Keeping the
+  # old SHA would be wrong, because reverting the bad commit makes the tree
+  # equal that SHA again and the diff would select nothing. This
   # covers a failed smoke and an `aws_deploy` job that failed or was cancelled
   # after its deploy steps may have run. When `changes` fails, `aws_deploy`
   # cannot run and nothing reached production, so this job is skipped.
   #
-  # Each write is a compare-and-set against the value the `changes` job read. A
-  # rerun of an older run keeps that run's selection, so after a newer run has
-  # recorded its SHA the stored value no longer matches; the parameter is then
-  # deleted instead of moved back, and the next run deploys that component.
+  # Each write is a compare-and-set against the value the `changes` job read,
+  # or against this run's own marker: "re-run failed jobs" reuses the selection
+  # of the attempt that cleared it. A rerun of an older run keeps that run's
+  # selection, so after a newer run has recorded its SHA the stored value no
+  # longer matches; the parameter is then cleared instead of moved back, and
+  # the next run deploys that component.
   record_deployed_shas:
     name: Record deployed component SHAs
     needs:
@@ -979,6 +983,7 @@ jobs:
           set -euo pipefail
 
           parameter_prefix="/${STACK_NAME}/release/deployed-sha"
+          cleared_marker="cleared-by-run:${GITHUB_RUN_ID}"
           summary_rows=""
           write_failed="false"
 
@@ -1001,15 +1006,18 @@ jobs:
             printf '%s' "${value}"
           }
 
-          # Deletes the parameter so the next run deploys the component in
-          # full. An already absent parameter counts as cleared.
+          # Writes this run's marker so the next run deploys the component in
+          # full.
           clear_component() {
             local component="$1"
             local name="$2"
             local reason="$3"
             local output
-            if output="$(aws ssm delete-parameter --name "${name}" 2>&1)" \
-              || [[ "${output}" == *ParameterNotFound* ]]; then
+            if output="$(aws ssm put-parameter \
+              --name "${name}" \
+              --type String \
+              --value "${cleared_marker}" \
+              --overwrite 2>&1)"; then
               summary_rows="${summary_rows}| ${component} | cleared: ${reason}; the next run deploys it |"$'\n'
             else
               echo "::error::Clearing ${name} failed, so it may still name a SHA production no longer runs: ${output}"
@@ -1078,6 +1086,7 @@ jobs:
             # absent when it is still absent now.
             if [[ "${current_sha}" == "${GITHUB_SHA}" \
               || "${current_sha}" == "${read_sha}" \
+              || "${current_sha}" == "${cleared_marker}" \
               || ( "${current_sha}" == "missing" && "${read_sha}" == "unreadable" ) ]]; then
               if aws ssm put-parameter \
                 --name "${parameter_name}" \
