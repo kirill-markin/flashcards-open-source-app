@@ -244,7 +244,7 @@ export function EventsPage(props: Readonly<{
 
       <AdminNavigation activePage="events" onNavigate={props.onNavigate} />
 
-      <section className="dashboard-section" data-testid="events-section">
+      <section data-testid="events-section">
         {loadState.status === "loading" ? <p className="report-state" aria-live="polite">Loading events…</p> : null}
         {loadState.status === "error" ? <div className="report-state report-state-error">
           <strong>Events query failed.</strong><span>{loadState.message}</span>
