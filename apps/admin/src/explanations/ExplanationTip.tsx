@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState, type JSX, type ReactNode } from "react";
 
-// How long hover keeps holding the tip after the pointer leaves it: enough to cross from the `(i)` to
-// an explanation that opens beside it rather than under it, short enough that leaving still reads as
-// closing it.
+// How long hover keeps holding the tip after the pointer leaves it: enough to cross the gap down to
+// the text, which opens below the `(i)`, short enough that leaving still reads as closing it.
 const HOVER_RELEASE_DELAY_MS = 180;
 
 // An explanation waiting behind an `(i)`. A real button with a described tooltip rather than a
@@ -14,11 +13,13 @@ const HOVER_RELEASE_DELAY_MS = 180;
 // do, and it is also the one way in that a touch device and the browsers that do not focus a button on
 // click both have. A closing click holds while hover does and lapses once hover is released, so the
 // next hover is a fresh question rather than one already answered. Hover is released a moment after
-// the pointer leaves rather than at once, so a pointer on its way into the text, wherever the text
-// opens, finds it still there; coming back within that moment keeps it. Touch contacts are
-// not hover, or the tap that opens the tooltip would arrive as a click on an already-open one and
-// close it again. Where it sits decides only where the text opens, which the stylesheet places by the
-// container the tip is rendered in.
+// the pointer leaves rather than at once, so a pointer crossing the gap down to the text finds it
+// still there; coming back within that moment keeps it. Only text that takes the pointer, the section
+// explanation, holds hover once the pointer reaches it; the filter explanation lets the pointer through
+// to the picker under it, so it closes that moment after the pointer leaves the `(i)`. Touch
+// contacts are not hover, or the tap that opens the tooltip would arrive as a click on an already-open
+// one and close it again. Where it sits decides only where the text opens, which the stylesheet places
+// by the container the tip is rendered in.
 export function ExplanationTip(
   props: Readonly<{
     /** The button's accessible name, which says what the explanation is about. */

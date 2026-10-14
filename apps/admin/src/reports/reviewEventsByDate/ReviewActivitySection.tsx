@@ -1,6 +1,7 @@
 import { useMemo, type JSX } from "react";
 import type { ReviewEventsByDateReport, ReviewEventsByDateUser } from "../../adminApi";
 import type { UserColorScale } from "../../dashboard/userColors";
+import { ExplanationTip } from "../../explanations/ExplanationTip";
 import { ReviewEventsByDateCharts } from "./charts/ReviewEventsByDateCharts";
 import { buildReviewEventsByDateChartModel } from "./charts/chartModel";
 import {
@@ -33,13 +34,28 @@ export function ReviewActivitySection(
   return (
     <section className="dashboard-section">
       <header className="dashboard-section-header">
-        <h2>Review activity</h2>
-        <p className="dashboard-section-description">
-          Daily unique reviewers, stacked review-event volume, and platform activity by calendar date. Dates are grouped in <strong>UTC</strong>.
-        </p>
-        <p className="dashboard-section-description">
-          Today’s UTC data is partial through the report’s last refresh. Public statistics include only completed UTC days and refresh daily, so recent arrivals can differ.
-        </p>
+        <div className="explained-heading-row">
+          <h2>Review activity</h2>
+          <ExplanationTip label="What Review activity shows" explanationId="review-activity-explanation">
+            <ul>
+              <li>
+                <strong>What it shows:</strong> per <strong>UTC</strong> day
+                <ul>
+                  <li>Daily unique reviewers</li>
+                  <li>Stacked review-event volume</li>
+                  <li>Platform activity</li>
+                </ul>
+              </li>
+              <li>
+                <strong>Caveats</strong>
+                <ul>
+                  <li>Today&rsquo;s UTC data is partial, through the report&rsquo;s last refresh</li>
+                  <li>Public statistics include only completed UTC days and refresh daily, so recent arrivals can differ from them</li>
+                </ul>
+              </li>
+            </ul>
+          </ExplanationTip>
+        </div>
       </header>
 
       <ReviewEventsByDateSummary cards={summaryCards} />

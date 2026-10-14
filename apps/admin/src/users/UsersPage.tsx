@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from "react";
 import type { AdminAppConfig } from "../config";
+import { ExplanationTip } from "../explanations/ExplanationTip";
 import { AdminLink } from "../navigation/AdminLink";
 import { AdminNavigation } from "../navigation/AdminNavigation";
 import { getUserPath, usersPath } from "../routing";
@@ -306,7 +307,24 @@ export function UsersPage(props: Readonly<{
       <section className="hero">
         <div>
           <p className="eyebrow">Admin</p>
-          <h1>Users</h1>
+          <div className="explained-heading-row">
+            <h1>Users</h1>
+            <ExplanationTip label="What the Users list shows" explanationId="users-explanation">
+              <ul>
+                <li>
+                  <strong>What it shows:</strong> every live account and guest, one row per settings row, newest first
+                  <ul>
+                    <li>A deleted account is not listed</li>
+                    <li>A guest merged into an account is hidden until the <strong>Merged guest</strong> filter is cleared</li>
+                    <li>People the shared exclusions drop from every report are listed too, dimmed, with the reason</li>
+                  </ul>
+                </li>
+                <li><strong>Activity columns:</strong> analytics events credited to the row&rsquo;s own id, so a merged guest&rsquo;s activity shows on its account&rsquo;s row instead</li>
+                <li><strong>Countries (90 days):</strong> from connection samples, which are kept for 90 days</li>
+                <li>Sorting, filters and pages apply to every user</li>
+              </ul>
+            </ExplanationTip>
+          </div>
         </div>
         <div className="hero-meta">
           <span className="hero-badge">Signed in as {props.adminEmail}</span>
@@ -318,9 +336,6 @@ export function UsersPage(props: Readonly<{
       <AdminNavigation activePage="users" onNavigate={props.onNavigate} />
 
       <section className="dashboard-section" data-testid="users-section">
-        <header className="dashboard-section-header">
-          <p className="dashboard-section-description">Every live account and guest, one row per settings row, newest first; a deleted account is not listed, and a guest merged into an account is hidden until the Merged guest filter is cleared. People the analytics exclusion rule drops from every report are listed too, dimmed, with the reason. Activity comes from analytics events credited to the row's own id, so a guest merged into an account shows its activity on that account's row instead. Countries come from connection samples, which are kept for 90 days. Sorting, filters and pages apply to every user.</p>
-        </header>
         {loadState.status === "loading" ? <p className="report-state" aria-live="polite">Loading users…</p> : null}
         {loadState.status === "error" ? <div className="report-state report-state-error">
           <strong>Users query failed.</strong><span>{loadState.message}</span>
