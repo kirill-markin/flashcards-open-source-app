@@ -220,8 +220,9 @@ not provide a historical renewal-state inventory.
 
 The only provider scope key is
 `com.flashcards-open-source-app.app:notification-discovery` for each environment.
-It requests epoch to the run cutoff, discovers the retained 179 days of notifications
-on the first scan, and subsequently overlaps the previous cutoff by 24 hours.
+It requests epoch to the run cutoff. Apple's notification retention is 180 days in
+production and 30 days in sandbox; the first discovery scan uses 179 and 29 days
+respectively, then subsequent scans overlap the previous cutoff by 24 hours.
 After exhausting notifications and known subjects, its status is `partial` with
 `covered_from`/`covered_to` describing only the notification window. This scope
 is notification-discovery coverage, never complete merchant transaction coverage.
@@ -238,7 +239,10 @@ page after its two-minute/environment or shared deadline. A provider read has a
 resume their fixed window and private checkpoints next hour. API, verification,
 checkpoint and persistence failures remain failed coverage with sanitized codes.
 The next invocation starts a replacement attempt with the same window, committed
-counts and cursors; failed run rows remain failure evidence. Subject failures retain
+counts and cursors; failed run rows remain failure evidence. A failed sandbox
+discovery window longer than 30 days with no committed records, token or subject
+progress starts a fresh retained window instead; its failed row stays intact.
+Subject failures retain
 their committed revision and completed-page state as private retry obligations while
 later discovered subjects continue within the same bounds. After discovery, pending
 subjects resume in replacement subject runs; a subject that fails is not retried again
