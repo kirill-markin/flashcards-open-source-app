@@ -1,5 +1,6 @@
 import { useEffect, useState, type JSX } from "react";
 import type { AdminAppConfig } from "../../config";
+import { ExplanationTip } from "../../explanations/ExplanationTip";
 import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
 import { audienceTotal, loadAudienceReport, type AudienceBucket, type AudienceReport } from "./query";
 import "./audience.css";
@@ -8,6 +9,11 @@ type LoadState =
   | Readonly<{ status: "loading" }>
   | Readonly<{ status: "error"; message: string }>
   | Readonly<{ status: "ready"; report: AudienceReport }>;
+
+/** The oldest instant a connection sample is still retained at when the report ran. */
+function buildRetainedSince(generatedAtUtc: string): string {
+  return new Date(new Date(generatedAtUtc).getTime() - 90 * 86_400_000).toISOString();
+}
 
 function percentage(count: number, total: number): string {
   return total === 0 ? "—" : `${(100 * count / total).toFixed(1)}%`;
@@ -35,7 +41,7 @@ function BucketTable(props: Readonly<{
 function AudienceResults(props: Readonly<{ report: AudienceReport; from: string }>): JSX.Element {
   const report = props.report;
   const total = audienceTotal(report, "total");
-  const retainedSince = new Date(new Date(report.generatedAtUtc).getTime() - 90 * 86_400_000).toISOString();
+  const retainedSince = buildRetainedSince(report.generatedAtUtc);
   const tiles = [
     { label: "Distinct users in cohort", value: total.toLocaleString("en-US") },
     { label: "Known connection country", value: `${audienceTotal(report, "country_known")} / ${total} · ${percentage(audienceTotal(report, "country_known"), total)}` },
@@ -88,7 +94,7 @@ function AudienceResults(props: Readonly<{ report: AudienceReport; from: string 
         <p>Current state, not activity in the range: neither setting stores history, so the range picks the people and the values are whatever they hold today. Each trio splits the same distinct-user denominator with no overlap, but the two trios overlap each other: do not add them. A signed-out browser’s opt-out is invisible here, because it never leaves that browser.</p>
       </section>
     </div>
-    <p className="funnel-disclosure">Sample coverage is a conservative lower bound. Only retained first/latest sample endpoints with a matching accepted event batch count; intermediate samples, empty or duplicate batches, and unsampled gaps cannot be reconstructed. Known counts for past ranges can shrink as endpoints advance or expire. Both event date and upload sample must be inside the selected range for country and pairs. Detailed country cutoff: {retainedSince}. Generated: {report.generatedAtUtc}.</p>
+    <p className="report-generated-at">Generated: {report.generatedAtUtc}</p>
   </>;
 }
 
@@ -116,15 +122,45 @@ export function AudienceSection(props: Readonly<{
     return () => { cancelled = true; };
   }, [props.config, props.filters, props.isRangeLoading, props.onTerminalAdminError, revision]);
 
+  const retainedSince = loadState.status === "ready" ? buildRetainedSince(loadState.report.generatedAtUtc) : null;
+
   return <section className="dashboard-section" data-testid="audience-section">
     <header className="dashboard-section-header">
-      <p className="eyebrow">Audience report</p><h2>Countries and UI languages</h2>
-      <p className="dashboard-section-description">Distinct resolved users, including linked guests: everyone with at least one app open inside the selected range. Admins, example.com and +test email accounts and the actors on the analytics exclusion list are excluded, the same rule every section applies.</p>
+      <p className="eyebrow">Audience report</p>
+      <div className="explained-heading-row">
+        <h2>Countries and UI languages</h2>
+        <ExplanationTip label="What the Audience report shows" explanationId="audience-explanation">
+          <ul>
+            <li><strong>What it shows:</strong> distinct resolved users, linked guests included: everyone with at least one app open inside the selected range, after the shared exclusions</li>
+            <li>
+              <strong>Filters:</strong> every filter in the shared bar applies, including the per-user event thresholds
+              <ul>
+                <li><strong>New:</strong> activity on that person&rsquo;s first recorded app-open day; an app open the credential-free public collector wrote is not recorded as anybody&rsquo;s</li>
+                <li>A user may qualify as both new and returning during a range</li>
+              </ul>
+            </li>
+            <li>
+              <strong>Language:</strong> describes the cohort&rsquo;s events across the selected platforms in the range, not only its app opens
+              <ul>
+                <li>Older clients and old queued events can have unknown UI language</li>
+              </ul>
+            </li>
+            <li>
+              <strong>Sample coverage:</strong> a conservative lower bound
+              <ul>
+                <li>Only retained first/latest sample endpoints with a matching accepted event batch count; intermediate samples, empty or duplicate batches and unsampled gaps cannot be reconstructed</li>
+                <li>Known counts for past ranges can shrink as endpoints advance or expire</li>
+                <li>For country and pairs, both the event date and the upload sample must be inside the selected range</li>
+                {retainedSince !== null ? <li>Detailed country cutoff: {retainedSince}</li> : null}
+              </ul>
+            </li>
+          </ul>
+        </ExplanationTip>
+      </div>
     </header>
     <div className="funnel-filter-panel">
       <span>{props.filters.dateRange.from} to {props.filters.dateRange.to}, inclusive</span>
     </div>
-    <p className="funnel-disclosure">Every filter in the shared bar applies here, including the per-user event thresholds. New means activity on that person’s first recorded app-open day, where an app open the credential-free public collector wrote is not recorded as anybody’s. A user may qualify as both new and returning during a range. Language describes that cohort’s events across selected platforms in the range, not only its app opens. Older clients and old queued events can have unknown UI language.</p>
     {props.isRangeLoading || loadState.status === "loading" ? <p className="report-state" aria-live="polite">Loading Audience…</p> : null}
     {!props.isRangeLoading && loadState.status === "error" ? <div className="report-state report-state-error">
       <strong>Audience query failed.</strong><span>{loadState.message}</span>

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from "react";
 import type { AdminAppConfig } from "../../config";
+import { ExplanationTip } from "../../explanations/ExplanationTip";
 import { DataTable } from "../../table/DataTable";
 import { clampDataTablePage, emptyDataTableState, type DataTableColumn, type DataTableState } from "../../table/dataTableModel";
 import {
@@ -240,9 +241,26 @@ export function CardsTab(props: Readonly<{
 
   return (
     <div className="user-tab" data-testid="user-cards">
-      <p className="dashboard-section-description">
-        Every card in this person's workspaces, newest first, deleted cards included and dimmed. Front and back show their first {cardTextPreviewLength.toLocaleString("en-US")} characters, while filtering and sorting read the whole text; Show full text loads the whole card. Sorting, filters and pages apply to every card.
-      </p>
+      <div className="explained-heading-row">
+        <ExplanationTip label="What the Cards tab shows" explanationId="user-cards-explanation">
+          <ul>
+            <li>
+              <strong>What it shows:</strong> every card in this person&rsquo;s workspaces, newest first
+              <ul>
+                <li>Deleted cards included and dimmed</li>
+              </ul>
+            </li>
+            <li>
+              <strong>Front and back:</strong> show their first {cardTextPreviewLength.toLocaleString("en-US")} characters
+              <ul>
+                <li>Filtering and sorting read the whole text</li>
+                <li><strong>Show full text</strong> loads the whole card</li>
+              </ul>
+            </li>
+            <li>Sorting, filters and pages apply to every card</li>
+          </ul>
+        </ExplanationTip>
+      </div>
       {loadState.status === "loading" ? <p className="report-state" aria-live="polite">Loading cards…</p> : null}
       {loadState.status === "error" ? <div className="report-state report-state-error">
         <strong>User cards query failed.</strong><span>{loadState.message}</span>

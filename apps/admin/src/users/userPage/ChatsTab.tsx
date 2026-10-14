@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type JSX } from "react";
 import type { AdminAppConfig } from "../../config";
+import { ExplanationTip } from "../../explanations/ExplanationTip";
 import { AdminLink } from "../../navigation/AdminLink";
 import { getUserChatPath } from "../../routing";
 import { DataTable } from "../../table/DataTable";
@@ -178,9 +179,21 @@ export function ChatsTab(props: Readonly<{
 
   return (
     <div className="user-tab" data-testid="user-chats">
-      <p className="dashboard-section-description">
-        Every AI chat this person owns, most recently updated first. Characters count the text of every message, the person's and the model's. Open a chat to read it. A guest's chats are deleted with the guest when it merges into an account, so none carry over. Sorting, filters and pages apply to every chat of this person.
-      </p>
+      <div className="explained-heading-row">
+        <ExplanationTip label="What the Chats tab shows" explanationId="user-chats-explanation">
+          <ul>
+            <li>
+              <strong>What it shows:</strong> every AI chat this person owns, most recently updated first
+              <ul>
+                <li>Open a chat to read it</li>
+                <li>A guest&rsquo;s chats are deleted with the guest when it merges into an account, so none carry over</li>
+              </ul>
+            </li>
+            <li><strong>Characters:</strong> the text of every message, the person&rsquo;s and the model&rsquo;s</li>
+            <li>Sorting, filters and pages apply to every chat of this person</li>
+          </ul>
+        </ExplanationTip>
+      </div>
       {loadState.status === "loading" ? <p className="report-state" aria-live="polite">Loading chats…</p> : null}
       {loadState.status === "error" ? <div className="report-state report-state-error">
         <strong>User chats query failed.</strong><span>{loadState.message}</span>
