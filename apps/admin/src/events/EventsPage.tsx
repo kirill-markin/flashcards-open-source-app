@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from "react";
 import type { AdminAppConfig } from "../config";
+import { ExplanationTip } from "../explanations/ExplanationTip";
 import { AdminLink } from "../navigation/AdminLink";
 import { AdminNavigation } from "../navigation/AdminNavigation";
 import { eventsPath, getEventPath } from "../routing";
@@ -218,7 +219,21 @@ export function EventsPage(props: Readonly<{
       <section className="hero">
         <div>
           <p className="eyebrow">Admin</p>
-          <h1>Events</h1>
+          <div className="explained-heading-row">
+            <h1>Events</h1>
+            <ExplanationTip label="What the Events list shows" explanationId="events-explanation">
+              <ul>
+                <li>
+                  <strong>What it shows:</strong> every analytics event at every trust level, newest first
+                  <ul>
+                    <li>Billing facts and cookieless visitor rows included</li>
+                    <li>People the shared exclusions drop from every report are listed too, dimmed, with the reason</li>
+                  </ul>
+                </li>
+                <li>Sorting, filters and pages apply to the whole history</li>
+              </ul>
+            </ExplanationTip>
+          </div>
         </div>
         <div className="hero-meta">
           <span className="hero-badge">Signed in as {props.adminEmail}</span>
@@ -230,9 +245,6 @@ export function EventsPage(props: Readonly<{
       <AdminNavigation activePage="events" onNavigate={props.onNavigate} />
 
       <section className="dashboard-section" data-testid="events-section">
-        <header className="dashboard-section-header">
-          <p className="dashboard-section-description">Every analytics event at every trust level, newest first, billing facts and cookieless visitor rows included. People the analytics exclusion rule drops from every report are listed too, dimmed, with the reason. Sorting, filters and pages apply to the whole history.</p>
-        </header>
         {loadState.status === "loading" ? <p className="report-state" aria-live="polite">Loading events…</p> : null}
         {loadState.status === "error" ? <div className="report-state report-state-error">
           <strong>Events query failed.</strong><span>{loadState.message}</span>

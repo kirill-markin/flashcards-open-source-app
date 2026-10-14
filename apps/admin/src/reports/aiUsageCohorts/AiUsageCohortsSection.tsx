@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type JSX } from "react";
 import type { AdminAppConfig } from "../../config";
+import { ExplanationTip } from "../../explanations/ExplanationTip";
 import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
 import {
   AiUsagePanels,
@@ -138,18 +139,7 @@ function AiUsageResults(props: Readonly<{ report: AiUsageCohortsReport }>): JSX.
       ) : null}
       <AiUsagePanels panels={panels} />
       <AiUsageSummaryTable panels={panels} />
-      <p className="funnel-disclosure">
-        Each dot is one person in one period, and every panel is drawn on the same pair of scales, so
-        the clouds are directly comparable. A review answered through the AI chat or the machine API
-        counts on the horizontal axis too, so somebody who has the assistant review their cards moves
-        right and up at once, and part of the correlation on screen is that rather than a habit. Both
-        rates are per week of that person's own exposure inside the period, so somebody who arrived
-        halfway through is not counted as idle. The vertical median is taken over everybody in the
-        panel, the horizontal one only over the people who reviewed at all, because the true median
-        review rate has been zero in every period so far and a line in the zero strip would say
-        nothing about how the people who study are studying.
-        Generated: {report.generatedAtUtc}.
-      </p>
+      <p className="report-generated-at">Generated: {report.generatedAtUtc}</p>
     </>
   );
 }
@@ -210,14 +200,58 @@ export function AiUsageCohortsSection(props: Readonly<{
     <section className="dashboard-section" data-testid="ai-usage-section">
       <header className="dashboard-section-header">
         <p className="eyebrow">Study vs AI</p>
-        <h2>How much people study against how much AI text they use</h2>
-        <p className="dashboard-section-description">
-          One scatter panel per equal-length period, one dot per person. Horizontal: reviews per week.
-          Vertical: characters of chat text per week — what the person typed plus what the model wrote
-          back, with attachments, file uploads, tool calls and reasoning summaries excluded. Admins,
-          example.com and +test email accounts and the actors on the analytics exclusion list are
-          left out, the same rule every section applies.
-        </p>
+        <div className="explained-heading-row">
+          <h2>How much people study against how much AI text they use</h2>
+          <ExplanationTip label="What Study vs AI shows" explanationId="ai-usage-explanation">
+            <ul>
+              <li>
+                <strong>What it shows:</strong> one scatter panel per period, one dot per person in that period, after the shared exclusions
+                <ul>
+                  <li>
+                    <strong>Horizontal:</strong> reviews per week
+                    <ul>
+                      <li>A review answered through the AI chat or the machine API counts too, so somebody who has the assistant review their cards moves right and up at once; part of the correlation on screen is that, not a habit</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <strong>Vertical:</strong> characters of chat text per week
+                    <ul>
+                      <li>What the person typed plus what the model wrote back</li>
+                      <li>Attachments, file uploads, tool calls and reasoning summaries excluded</li>
+                    </ul>
+                  </li>
+                  <li>Both rates are per week of that person&rsquo;s own exposure inside the period, so somebody who arrived halfway through is not counted as idle</li>
+                  <li>Every panel uses the same pair of scales, so the clouds are directly comparable</li>
+                  <li>
+                    <strong>Medians:</strong> vertical over everybody in the panel, horizontal only over the people who reviewed at all
+                    <ul>
+                      <li>The true median review rate has been zero in every period so far, and a line in the zero strip would say nothing about how the people who study are studying</li>
+                    </ul>
+                  </li>
+                </ul>
+              </li>
+              <li>
+                <strong>Periods</strong>
+                <ul>
+                  <li>Equal-length and anchored at the recent end of the range, so the most recent one is always whole and leftover days fall off the old end rather than forming a short panel</li>
+                  <li>
+                    A person is in a period when they have any review or chat message inside it
+                    <ul>
+                      <li>Left out of a period they had fewer than {minAiUsageExposureDays} days of exposure in, counted from their first ever review or chat message</li>
+                    </ul>
+                  </li>
+                  <li>No free period lengths: a length nobody else uses produces panels nobody can compare</li>
+                </ul>
+              </li>
+              <li>
+                <strong>Filters:</strong> the date range is the only shared one
+                <ul>
+                  <li>A chat message carries no platform, cohort, catalog click or locale of its own, and narrowing only the review half of every dot would move people across the chart instead of removing them</li>
+                </ul>
+              </li>
+            </ul>
+          </ExplanationTip>
+        </div>
       </header>
 
       <div className="ai-usage-controls">
@@ -247,18 +281,6 @@ export function AiUsageCohortsSection(props: Readonly<{
       <div className="funnel-filter-panel">
         <span>{props.filters.dateRange.from} to {props.filters.dateRange.to}, inclusive</span>
       </div>
-
-      <p className="funnel-disclosure">
-        Periods are equal-length and anchored at the recent end of the range, so the most recent one is
-        always whole and any leftover days fall off the old end rather than forming a short panel. A
-        person is in a period when they have any review or any chat message inside it, and is left out
-        of a period they had fewer than {minAiUsageExposureDays} days of exposure in, counted from
-        their first ever review or chat message. Free period lengths are deliberately not offered: a
-        length nobody else uses produces panels nobody can compare. The date range is the only shared
-        filter this area offers, because a chat message carries no platform, cohort, catalog click or
-        locale of its own, and narrowing only the review half of every dot would move people across the
-        chart instead of removing them.
-      </p>
 
       {props.isRangeLoading || loadState.status === "loading"
         ? <p className="report-state" aria-live="polite">Loading Study vs AI…</p>

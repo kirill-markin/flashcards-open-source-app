@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type JSX } from "react";
 import type { AdminAppConfig } from "../../config";
+import { ExplanationTip } from "../../explanations/ExplanationTip";
 import { AdminLink } from "../../navigation/AdminLink";
 import { getEventPath } from "../../routing";
 import { DataTable } from "../../table/DataTable";
@@ -165,11 +166,25 @@ export function ActivityTab(props: Readonly<{
 
   return (
     <div className="activity-tab" data-testid="user-activity">
-      <p className="dashboard-section-description">
-        Every analytics event credited to this person, every trust level included, plus their purchases, grants and feedback, newest first. Reviews, cards and AI chat appear as their analytics events.
-        Recorded as is the credential behind each event - guest, account, or visitor with no user at all - and where a server-made event carries none, whether its user id was still a guest at that moment.
-        Sorting, filters and pages apply to the whole history.
-      </p>
+      <div className="explained-heading-row">
+        <ExplanationTip label="What the Activity tab shows" explanationId="user-activity-explanation">
+          <ul>
+            <li>
+              <strong>What it shows:</strong> every analytics event credited to this person, every trust level included, plus their purchases, grants and feedback, newest first
+              <ul>
+                <li>Reviews, cards and AI chat appear as their analytics events</li>
+              </ul>
+            </li>
+            <li>
+              <strong>Recorded as:</strong> the credential behind each event: guest, account, or visitor with no user at all
+              <ul>
+                <li>Where a server-made event carries none: whether its user id was still a guest at that moment</li>
+              </ul>
+            </li>
+            <li>Sorting, filters and pages apply to the whole history</li>
+          </ul>
+        </ExplanationTip>
+      </div>
       {loadState.status === "loading" ? <p className="report-state" aria-live="polite">Loading activity…</p> : null}
       {loadState.status === "error" ? <div className="report-state report-state-error">
         <strong>User activity query failed.</strong><span>{loadState.message}</span>
