@@ -9,8 +9,9 @@
 //
 // Additional draw is not included in the synth guard:
 // - Secondary pools: session advisory locks (max 2), product analytics (max 4), and reporting
-//   (max 4) per environment that opens them. MCP sql_execute and submit_review reach the analytics
-//   writer after the main transaction commits; releasing that client does not close its connection.
+//   (max 2, destroyed after each callback/transaction) per environment that opens them.
+//   MCP sql_execute and submit_review reach the analytics writer after the main transaction commits;
+//   releasing that client does not close its connection.
 // - WebGuestReaperHandler, CommunityLeaderboardSnapshotHandler, StreakLeaderboardSnapshotHandler,
 //   ProgressActiveDaysBackfillHandler, ProbableAndroidBurstRefreshHandler, StoreAnalyticsImportHandler,
 //   MultipartCompletionReconciliationHandler and GeneratedMediaPromotionHandler use the main pool without reserved concurrency. Schedules are

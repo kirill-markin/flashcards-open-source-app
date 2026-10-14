@@ -74,6 +74,7 @@ export const boundaryDefinitions = Object.freeze([
     migrationFileName: "0181_store_analytics_schema.sql",
     expectedMigrationCount: 183,
     testFiles: Object.freeze([
+      "src/admin/reportingDb.postgres.integration.ts",
       "src/aiConsent/consent.postgres.integration.ts",
       "src/chat/cardImages/operation.postgres.integration.ts",
       "src/chat/runs/generatedImageAttemptBudget.postgres.integration.ts",
