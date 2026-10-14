@@ -11,6 +11,7 @@ import { backendNodejsProjectPaths, resolveFromRepoRoot } from "../nodejs-projec
 // A chat run waits for each sandbox call, so the chat worker's own reservation bounds normal use; the
 // rest absorbs invocations a transport retry left running.
 const chatSandboxReservedConcurrency = 10;
+const chatSandboxNodeModules = ["just-bash", "pdfjs-dist"] as const;
 
 /**
  * Runs model-written commands over one chat session's files and parses the files people attach
@@ -41,12 +42,21 @@ export function createChatSandboxFunction(scope: Construct): lambdaNodejs.Nodejs
     logGroup,
     ...backendStructuredLoggingProps,
     ...backendNodejsProjectPaths,
+    copiedAssetPaths: [resolveFromRepoRoot("apps", "backend", "scripts", "install-lambda-node-modules.mts")],
     bundling: {
       minify: true,
       sourceMap: true,
       // just-bash loads its workers and the Python runtime, and pdf.js its worker, font metrics and
       // character maps, from their own package directories, which a single-file bundle does not carry.
-      nodeModules: ["just-bash", "pdfjs-dist"],
+      externalModules: [...chatSandboxNodeModules],
+      commandHooks: {
+        beforeBundling: () => [],
+        beforeInstall: () => [],
+        // CDK's nodeModules manifest drops npm overrides before installing the locked graph.
+        afterBundling: (inputDir: string, outputDir: string) => [
+          `node "${inputDir}/scripts/install-lambda-node-modules.mts" "${inputDir}" "${outputDir}" ${chatSandboxNodeModules.join(" ")}`,
+        ],
+      },
     },
   });
 }
