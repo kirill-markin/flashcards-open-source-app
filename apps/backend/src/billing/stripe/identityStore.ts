@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type Stripe from "stripe";
 import { isDeletedSubjectInExecutor } from "../../auth/deletedSubjects";
-import { loadCognitoIdentityMappingInExecutor, lockCognitoIdentityLifecycleInExecutor } from "../../auth/userIdentities";
+import { loadCognitoIdentityMappingInExecutor, lockCognitoIdentityLifecycleInExecutor, lockAccountLifecyclesInExecutor } from "../../auth/userIdentities";
 import { applyUserDatabaseScopeInExecutor, type DatabaseExecutor } from "../../database";
 import { unsafeTransaction } from "../../database/unsafe";
 import { StripeBillingError, type StripeCheckoutAttempt, type StripeCheckoutStatus,
@@ -37,7 +37,7 @@ function storageConflict(): never {
     "Stripe billing ownership or operation state changed. Reconcile the stored identity and retry.");
 }
 
-// Order for creation/deletion/merge: Cognito subject lifecycle lock, user_settings rows (sorted
+// Order for creation/deletion/merge: Cognito subject lock, account locks, user_settings rows (sorted
 // for multi-person work), customer identities, Checkout rows, billing purchases/snapshot rows.
 // Hold the transaction across the external creation/cancellation call. A reservation must have
 // committed in an earlier transaction. Never acquire the lifecycle lock after locking billing rows.
@@ -46,6 +46,7 @@ export async function lockStripeAccountInExecutor(
 ): Promise<void> {
   await lockCognitoIdentityLifecycleInExecutor(executor, subject);
   const mapping = await loadCognitoIdentityMappingInExecutor(executor, subject);
+  await lockAccountLifecyclesInExecutor(executor, [userId]);
   if (await isDeletedSubjectInExecutor(executor, subject) || mapping?.userId !== userId) {
     throw new StripeBillingError("STRIPE_ACCOUNT_RETIRED", false,
       "Stripe billing requires a current authenticated account. Sign in again.");

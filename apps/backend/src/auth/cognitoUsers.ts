@@ -32,11 +32,12 @@ function getCognitoClient(): CognitoIdentityProviderClient {
   return cognitoClient;
 }
 
-export async function deleteCognitoUser(cognitoUsername: string): Promise<void> {
-  if (cognitoUsername.trim() === "") {
+/** Address the immutable local-user sub so a cleanup retry cannot delete a reused username. */
+export async function deleteCognitoUser(cognitoSubject: string): Promise<void> {
+  if (cognitoSubject.trim() === "") {
     throw new HttpError(
       500,
-      "Account deletion could not resolve the Cognito username for this user.",
+      "Account deletion could not resolve the immutable Cognito subject for this user.",
       "ACCOUNT_DELETE_IDENTITY_DELETE_FAILED",
     );
   }
@@ -44,7 +45,7 @@ export async function deleteCognitoUser(cognitoUsername: string): Promise<void> 
   try {
     await getCognitoClient().send(new AdminDeleteUserCommand({
       UserPoolId: getCognitoUserPoolId(),
-      Username: cognitoUsername,
+      Username: cognitoSubject,
     }));
   } catch (error) {
     if (error instanceof UserNotFoundException) {

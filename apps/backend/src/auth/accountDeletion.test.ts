@@ -94,10 +94,12 @@ test("deleteAccountForAuthenticatedUser locks shared workspace membership lifecy
 
       if (
         text === "DELETE FROM org.workspaces WHERE workspace_id = ANY($1::uuid[])"
+        || text === "SELECT auth.lock_account_lifecycle($1)"
+        || text.startsWith("SELECT provider_subject FROM auth.user_identities")
         || text === "SELECT auth.delete_user_auth_artifacts($1, $2)"
         || text === "DELETE FROM org.user_settings WHERE user_id = $1"
         || text === "INSERT INTO org.user_settings (user_id) VALUES ($1)"
-        || text.includes("INSERT INTO auth.user_identities")
+        || text === "SELECT auth.bind_cognito_account($1, $2)"
         || text.includes("FROM auth.guest_upgrade_history")
         || text.includes("UPDATE analytics.product_events")
         || text.includes("DELETE FROM analytics.identity_links")
@@ -160,7 +162,7 @@ test("deleteAccountForAuthenticatedUser locks shared workspace membership lifecy
     query.text === "INSERT INTO org.user_settings (user_id) VALUES ($1)"
   ));
   const identityRebindIndex = recordedQueries.findIndex((query) => (
-    query.text.includes("INSERT INTO auth.user_identities")
+    query.text === "SELECT auth.bind_cognito_account($1, $2)"
   ));
   const userSettingsRestoreQuery = recordedQueries[userSettingsRestoreIndex];
   const identityRebindQuery = recordedQueries[identityRebindIndex];
@@ -211,12 +213,14 @@ test("deleteAccountForAuthenticatedUser restores nothing for a review subject th
 
       if (
         text.includes("pg_advisory_xact_lock")
+        || text === "SELECT auth.lock_account_lifecycle($1)"
         || text.includes("set_config('app.user_id'")
         || text.includes("FROM auth.deleted_subjects")
         || text.includes("FROM auth.user_identities")
         || text.includes("FROM auth.guest_upgrade_history")
         || text === "SELECT email FROM org.user_settings WHERE user_id = $1 FOR UPDATE"
         || text === "SELECT workspace_id FROM org.workspace_memberships WHERE user_id = $1"
+        || text.startsWith("SELECT provider_subject FROM auth.user_identities")
         || text === "SELECT auth.delete_user_auth_artifacts($1, $2)"
         || text === "DELETE FROM org.user_settings WHERE user_id = $1"
         || text.includes("DELETE FROM analytics.installation_profiles")
@@ -262,7 +266,7 @@ test("deleteAccountForAuthenticatedUser restores nothing for a review subject th
     false,
   );
   assert.equal(
-    recordedQueries.some((query) => query.text.includes("INSERT INTO auth.user_identities")),
+    recordedQueries.some((query) => query.text === "SELECT auth.bind_cognito_account($1, $2)"),
     false,
   );
 });
@@ -272,7 +276,9 @@ test("deleteAccountForAuthenticatedUser rereads the mapping under the identity l
   const authoritativeUserId = "mapped-user";
   const mergedGuestUserId = "merged-guest-user";
   const recordedQueries: Array<RecordedQuery> = [];
-  let deletedCognitoUsername: string | null = null;
+  let deletedCognitoSubject: string | null = null;
+  let stagedDeletionId: string | null = null;
+  const stagedJobs: Array<Readonly<{ deletion_id: string; cognito_subject: string }>> = [];
   const executor: DatabaseExecutor = {
     query: async <Row extends pg.QueryResultRow>(
       text: string,
@@ -280,9 +286,28 @@ test("deleteAccountForAuthenticatedUser rereads the mapping under the identity l
     ): Promise<pg.QueryResult<Row>> => {
       recordedQueries.push({ text, params: [...params] });
 
+      if (text.startsWith("UPDATE auth.deleted_subjects")) {
+        stagedDeletionId = String(params[1]);
+        return createQueryResult<Row>([]);
+      }
+      if (text.startsWith("SELECT deletion_id FROM auth.deleted_subjects")) {
+        return createQueryResult<Row>([{ deletion_id: stagedDeletionId } as unknown as Row]);
+      }
+      if (text.startsWith("INSERT INTO auth.cognito_deletion_jobs")) {
+        stagedJobs.push({ deletion_id: String(params[0]), cognito_subject: String(params[1]) });
+        return createQueryResult<Row>([]);
+      }
+      if (text.startsWith("SELECT deletion_id, cognito_subject FROM auth.cognito_deletion_jobs")) {
+        return createQueryResult<Row>(stagedJobs.map((row) => row as unknown as Row));
+      }
+      if (text.includes("auth.verified_login_emails") || text.startsWith("DELETE FROM auth.cognito_")
+        || text.startsWith("INSERT INTO auth.deleted_accounts")) return createQueryResult<Row>([]);
+
       if (
         text.includes("pg_advisory_xact_lock")
+        || text === "SELECT auth.lock_account_lifecycle($1)"
         || text.includes("set_config('app.user_id'")
+        || text.startsWith("SELECT provider_subject FROM auth.user_identities")
         || text === "SELECT auth.delete_user_auth_artifacts($1, $2)"
         || text === "DELETE FROM org.user_settings WHERE user_id = $1"
         || text.includes("INSERT INTO auth.deleted_subjects")
@@ -343,8 +368,8 @@ test("deleteAccountForAuthenticatedUser rereads the mapping under the identity l
       unsafeTransaction: async <Result>(
         callback: (transactionExecutor: DatabaseExecutor) => Promise<Result>,
       ): Promise<Result> => callback(executor),
-      deleteCognitoUser: async (cognitoUsername) => {
-        deletedCognitoUsername = cognitoUsername;
+      deleteCognitoUser: async (cognitoSubject) => {
+        deletedCognitoSubject = cognitoSubject;
       },
       isConfiguredDemoEmail: () => false,
     },
@@ -384,7 +409,7 @@ test("deleteAccountForAuthenticatedUser rereads the mapping under the identity l
   assert.equal(scopeQuery?.params[0], authoritativeUserId);
   assert.equal(deleteUserQuery?.params[0], authoritativeUserId);
   assert.equal(tombstoneQuery?.params[0], hashDeletedSubject(subjectUserId));
-  assert.equal(deletedCognitoUsername, "cognito-username");
+  assert.equal(deletedCognitoSubject, subjectUserId);
   assert.ok(identityLockIndex < userSettingsLockIndex);
   // The exclusion table's delete guard raises while the account row still exists, and that raise
   // would abort the whole deletion transaction.
@@ -420,12 +445,14 @@ test("deleteAccountForAuthenticatedUser retries Cognito deletion for an existing
       params: ReadonlyArray<SqlValue>,
     ): Promise<pg.QueryResult<Row>> => {
       recordedQueries.push({ text, params: [...params] });
-      if (text.includes("pg_advisory_xact_lock")) {
+      if (text.includes("pg_advisory_xact_lock")
+        || text === "SELECT auth.lock_account_lifecycle($1)") {
         return createQueryResult<Row>([]);
       }
       if (text.includes("FROM auth.deleted_subjects")) {
         return createQueryResult<Row>([{
           subject_sha256: hashDeletedSubject(subjectUserId),
+          deletion_id: null,
         } as unknown as Row]);
       }
       throw new Error(`Unexpected query: ${text}`);
