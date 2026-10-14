@@ -139,9 +139,8 @@ configured public auth origin explicitly on a call no browser makes.
   - `signin_succeeded` and `signin_failed` with a `reason`: `verifyCode.ts` beside it, plus the
     demo-account and refusal branches of `sendCode.ts`.
   - Abandonment is the absence of the next step for an actor, not an event.
-  - Every step is gated on that marker and on the shared `analytics_visitor` cookie; lose either and
-    the funnel counts zero in silence. This service mints no visitor id and never writes that cookie,
-    so the marker is the only gate it owns — keep the audit beside `signInScreenMarker` complete.
+  - Every step requires the marker, shared visitor id and collection preference:
+    [analytics visitor and collection contract](analytics-visitor-identity.md#the-analytics-off-switch-is-a-second-separate-decision).
   - The producer — catalog mirror, cookie module, transport, report budgets, and the marker check
     that keeps non-funnel callers of these shared routes out — is `apps/auth/src/server/analytics/`.
 - Identity: the product domain's shared `anonymous_id`, read from the `analytics_visitor` cookie and

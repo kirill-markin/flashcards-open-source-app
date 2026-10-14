@@ -8,16 +8,13 @@
  * Nothing mints one on this origin: a browser holding none is not measured here at all, which is
  * also what keeps this surface inside the app origin's consent gate without a banner of its own.
  *
- * The rest of this module is the disposal of the `web` guest session this origin used to mint to
- * authenticate its own reports. It mints none now — the sign-in funnel posts to the credential-free
- * collector (`server/analytics/client.ts`) — so nothing writes that cookie any more, and what is
- * left is the one thing still owed to the browsers that already hold one.
  */
 import type { Context } from "hono";
 import { deleteCookie, getCookie } from "hono/cookie";
 
 /** The parent-domain cookie the backend mints, shared by every host under the product domain. */
 const sharedVisitorCookieName = "analytics_visitor";
+const sharedCollectionCookieName = "product_analytics_collection";
 
 /**
  * The host-only cookie a build from before the collector change wrote a guest bearer token into. No
@@ -27,7 +24,12 @@ const guestCookieName = "__Host-analytics_guest";
 
 const analyticsUuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u;
 
-/** The anonymous id every event of this surface is attributed to, or null where the browser has none. */
+/** Missing or invalid preference is unmeasured here; a caller hint can only deny collection. */
+export function isSharedProductAnalyticsCollectionEnabled(context: Context): boolean {
+  return getCookie(context, sharedCollectionCookieName) === "1"
+    && context.req.header("x-product-analytics-enabled") !== "0";
+}
+
 export function readSharedAnalyticsVisitorId(context: Context): string | null {
   const cookieValue = getCookie(context, sharedVisitorCookieName);
   if (cookieValue === undefined) {
