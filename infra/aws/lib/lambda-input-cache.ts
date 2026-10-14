@@ -16,7 +16,7 @@ interface CachedFunctionProps extends lambdaNodejs.NodejsFunctionProps {
 }
 
 const supportedBundlingOptions = new Set([
-  "minify", "sourceMap", "bundleAwsSDK", "nodeModules", "forceDockerBundling",
+  "minify", "sourceMap", "bundleAwsSDK", "nodeModules", "externalModules", "forceDockerBundling",
   "volumes", "environment", "commandHooks",
 ]);
 const repoRoot = resolveFromRepoRoot();
@@ -113,9 +113,12 @@ export function createCachedNodejsFunction(
   }
   const projectRoot = props.projectRoot ?? infraAwsNodejsProjectPaths.projectRoot;
   const depsLockFilePath = props.depsLockFilePath ?? infraAwsNodejsProjectPaths.depsLockFilePath;
-  const externalModules = bundling.bundleAwsSDK ? [] : [
-    "@aws-sdk/*",
-    ...(cdk.FeatureFlags.of(scope).isEnabled(LAMBDA_NODEJS_SDK_V3_EXCLUDE_SMITHY_PACKAGES) ? ["@smithy/*"] : []),
+  const externalModules = [
+    ...(bundling.bundleAwsSDK ? [] : [
+      "@aws-sdk/*",
+      ...(cdk.FeatureFlags.of(scope).isEnabled(LAMBDA_NODEJS_SDK_V3_EXCLUDE_SMITHY_PACKAGES) ? ["@smithy/*"] : []),
+    ]),
+    ...bundling.externalModules ?? [],
   ];
   // The graph uses the same resolver, version, target and externals as CDK's
   // bundler. write:false produces dependency metadata without staging an asset.
