@@ -317,6 +317,15 @@ hourly continuation or repeat the same invocation after the prior one ends.
 The log records `stripe_history_environment_import_completed` and
 `stripe_history_import_completed` report only sanitized scope/status/count fields.
 
+For `stripe_history_import_failed`, inspect `stage` and `validationCause` alongside
+the source and failure code. The stage distinguishes checkpoint reads, provider page
+reads, transaction setup, native persistence, checkpoint writes, completion and commit.
+`validationCause` retains only `BILLING_HISTORY_INVALID` fixed text or schema field
+paths, capped at 2,048 characters; other errors leave it null. No native payload,
+provider/customer identifiers or raw provider/SQL exception is logged. A page failure
+rolls back its native writes and checkpoint together, so zero committed records alone
+does not identify the failed stage. Use the deployed diagnostic before changing a schema.
+
 Through reporting SQL, inspect coverage before counting native objects:
 
 ```sql
