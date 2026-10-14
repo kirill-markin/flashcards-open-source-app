@@ -144,8 +144,8 @@ private suspend fun finalizePendingGuestUpgradeRecovery(
         completion = completion,
         appVersion = appVersion
     )
-    guestSessionStore.clearAllSessions()
     withContext(Dispatchers.IO) {
+        guestSessionStore.clearAllSessions()
         preferencesStore.clearPendingGuestUpgrade()
     }
     return completion.workspace

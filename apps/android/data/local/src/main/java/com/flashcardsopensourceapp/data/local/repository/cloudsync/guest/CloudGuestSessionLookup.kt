@@ -6,14 +6,16 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.ai.StoredGuestAiSession
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
-internal fun loadActiveGuestSessionOrNull(
+internal suspend fun loadActiveGuestSessionOrNull(
     preferencesStore: CloudPreferencesStore,
     guestSessionStore: GuestAiSessionStore,
     configuration: CloudServiceConfiguration
-): StoredGuestAiSession? {
+): StoredGuestAiSession? = withContext(Dispatchers.IO) {
     if (preferencesStore.loadCloudCredentialRecoveryState() != null) {
-        return null
+        return@withContext null
     }
 
     val cloudSettings: CloudSettings = preferencesStore.currentCloudSettings()
@@ -24,11 +26,11 @@ internal fun loadActiveGuestSessionOrNull(
             configuration = configuration
         )
         if (activeWorkspaceSession != null) {
-            return activeWorkspaceSession
+            return@withContext activeWorkspaceSession
         }
     }
 
-    return guestSessionStore.loadAnySession(configuration = configuration)
+    guestSessionStore.loadAnySession(configuration = configuration)
 }
 
 /**
@@ -40,9 +42,9 @@ internal fun loadActiveGuestSessionOrNull(
  * deliberately not [loadActiveGuestSessionOrNull], which prefers the session bound to the active
  * cloud workspace: with more than one stored session the two pick different credentials.
  */
-fun loadProductAnalyticsGuestSessionOrNull(
+suspend fun loadProductAnalyticsGuestSessionOrNull(
     guestSessionStore: GuestAiSessionStore,
     configuration: CloudServiceConfiguration
-): StoredGuestAiSession? {
-    return guestSessionStore.loadAnySession(configuration = configuration)
+): StoredGuestAiSession? = withContext(Dispatchers.IO) {
+    guestSessionStore.loadAnySession(configuration = configuration)
 }

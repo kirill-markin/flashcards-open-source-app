@@ -379,7 +379,7 @@ class LocalCloudAccountRepository(
      * away, the local answer survives the boundary and is still honored, and an owed opt-in is the
      * direction where a lost account copy collects less rather than more.
      */
-    private fun productAnalyticsAnswerFailureLocked(enabled: Boolean, cause: Exception?): Exception? {
+    private suspend fun productAnalyticsAnswerFailureLocked(enabled: Boolean, cause: Exception?): Exception? {
         if (preferencesStore.currentAccountPreferences().productAnalyticsEnabled != enabled) {
             return null
         }
@@ -422,7 +422,7 @@ class LocalCloudAccountRepository(
      * right now and would refresh an ID token over the network to say so, while the question here is
      * whether a later attempt has any chance at all.
      */
-    private fun productAnalyticsAnswerHasNowhereToLand(): Boolean {
+    private suspend fun productAnalyticsAnswerHasNowhereToLand(): Boolean {
         if (preferencesStore.currentCloudSettings().cloudState == CloudAccountState.LINKED) {
             return false
         }
@@ -855,7 +855,7 @@ class LocalCloudAccountRepository(
      * `AppAnalyticsSupport.onCredentialRefused`, and one dead token can be refused on both paths in
      * the same process — a flush and this push can each present it. Whichever runs second finds the
      * session already gone, or a replacement the check below rejects as not the refused one, and
-     * does nothing; retiring is idempotent that way rather than coordinated. Retiring it leaves the
+     * does nothing. Retiring it leaves the
      * answer owed. An owed opt-in is then delivered by the next process,
      * which mints a replacement session as soon as analytics needs a credential again; an owed
      * opt-out stays owed and undeliverable, because a client told to stop never flushes, so it
@@ -882,7 +882,7 @@ class LocalCloudAccountRepository(
      * `403`, `408` and `429` stay owed exactly as a transient failure does: they are authorization
      * and pressure, not a verdict on the answer.
      */
-    private fun handleRefusedProductAnalyticsPreferencePushLocked(
+    private suspend fun handleRefusedProductAnalyticsPreferencePushLocked(
         enabled: Boolean,
         session: AccountContextSession,
         error: CloudRemoteException
@@ -904,7 +904,7 @@ class LocalCloudAccountRepository(
         }
     }
 
-    private fun retireRefusedProductAnalyticsGuestSessionLocked(session: AccountContextSession) {
+    private suspend fun retireRefusedProductAnalyticsGuestSessionLocked(session: AccountContextSession) {
         val guestSession: StoredGuestAiSession = loadProductAnalyticsGuestSessionOrNull(
             guestSessionStore = guestSessionStore,
             configuration = preferencesStore.currentServerConfiguration()
@@ -926,7 +926,7 @@ class LocalCloudAccountRepository(
         // a restored preferences file could leave behind. Such a leftover is dropped with the
         // refused one rather than kept, which is why the cloud guest this path leaves alone is the
         // resolved credential and not every stored entry.
-        guestSessionStore.clearStoredSessions()
+        withContext(Dispatchers.IO) { guestSessionStore.clearStoredSessions() }
     }
 
     /**
