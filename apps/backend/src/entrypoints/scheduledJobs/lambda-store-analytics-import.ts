@@ -8,15 +8,18 @@ import {
   type BackendObservationScope,
 } from "../../observability/sentry";
 import { markCapturedBackendException } from "../../observability/reportedErrors";
+import type { AppleHistoryImportSummary } from "../../billing/history/appleImport";
 import type { AppleImportSummary } from "../../storeAnalytics/appleImport";
 import type { PlayImportSummary } from "../../storeAnalytics/playImport";
+import type { StripeHistoryImportSummary } from "../../billing/history/stripeImport";
 
 initializeBackendSentry("store-analytics-import");
 
-// App Store then Google Play share this budget. No new report instance or file starts after it; the
-// rest of the 15-minute Lambda timeout lets the one in flight finish. The next hourly run continues
-// with what remains.
+// The rest of the 15-minute Lambda timeout lets the request in flight finish.
 const importTimeBudgetMs = 12 * 60 * 1000;
+const stripeHistoryTimeBudgetMs = 3 * 60 * 1000;
+const appleHistoryTimeBudgetMs = 4 * 60 * 1000;
+const reportTimeBudgetMs = (importTimeBudgetMs - stripeHistoryTimeBudgetMs - appleHistoryTimeBudgetMs) / 2;
 
 // One run at a time: replacing a report date is check-then-delete-then-insert under READ
 // COMMITTED, so two overlapping runs (a duplicate scheduler delivery or a manual invoke) could
@@ -31,9 +34,11 @@ type StoreAnalyticsImportResponse = Readonly<{
   ok: true;
   appStore: AppleImportSummary;
   googlePlay: PlayImportSummary;
+  stripe: StripeHistoryImportSummary;
+  appleHistory: AppleHistoryImportSummary;
 }>;
 
-type ImportSource = "app_store" | "google_play";
+type ImportSource = "app_store" | "google_play" | "stripe_history" | "apple_history";
 
 type SourceOutcome<Summary> =
   | Readonly<{ ok: true; summary: Summary }>
@@ -42,9 +47,10 @@ type SourceOutcome<Summary> =
 type ImportOutcomes = Readonly<{
   appStore: SourceOutcome<AppleImportSummary>;
   googlePlay: SourceOutcome<PlayImportSummary>;
+  stripe: SourceOutcome<StripeHistoryImportSummary>;
+  appleHistory: SourceOutcome<AppleHistoryImportSummary>;
 }>;
 
-/** Reports a failed source and returns it, so one source failing never stops the other. */
 async function runSource<Summary>(
   scope: BackendObservationScope,
   source: ImportSource,
@@ -68,6 +74,8 @@ async function runImports(scope: BackendObservationScope, deadlineAtMs: number):
   const { withSessionAdvisoryLock } = await import("../../database");
   const { importAppleReports } = await import("../../storeAnalytics/appleImport");
   const { importPlayReports } = await import("../../storeAnalytics/playImport");
+  const { importStripeHistory } = await import("../../billing/history/stripeImport");
+  const { importAppleHistory } = await import("../../billing/history/appleImport");
   return withSessionAdvisoryLock(
     {
       lockName: importLockName,
@@ -76,10 +84,21 @@ async function runImports(scope: BackendObservationScope, deadlineAtMs: number):
       pollIntervalMs: importLockPollIntervalMs,
       signal: new AbortController().signal,
     },
-    async (signal) => ({
-      appStore: await runSource(scope, "app_store", () => importAppleReports(scope, deadlineAtMs, signal)),
-      googlePlay: await runSource(scope, "google_play", () => importPlayReports(scope, deadlineAtMs, signal)),
-    }),
+    async (signal) => {
+      const startedAtMs = Date.now();
+      // Start every source before awaiting any in-flight work that can overrun its turn.
+      const [stripe, appleHistory, appStore, googlePlay] = await Promise.all([
+        runSource(scope, "stripe_history", () => importStripeHistory(scope,
+          Math.min(deadlineAtMs, startedAtMs + stripeHistoryTimeBudgetMs), signal)),
+        runSource(scope, "apple_history", () => importAppleHistory(scope,
+          Math.min(deadlineAtMs, startedAtMs + appleHistoryTimeBudgetMs), signal)),
+        runSource(scope, "app_store", () => importAppleReports(scope,
+          Math.min(deadlineAtMs, startedAtMs + reportTimeBudgetMs), signal)),
+        runSource(scope, "google_play", () => importPlayReports(scope,
+          Math.min(deadlineAtMs, startedAtMs + reportTimeBudgetMs), signal)),
+      ]);
+      return { stripe, appleHistory, appStore, googlePlay };
+    },
   );
 }
 
@@ -115,9 +134,9 @@ const storeAnalyticsImportHandler: Handler<
     throw error;
   }
 
-  const { appStore, googlePlay } = outcomes;
-  if (!appStore.ok || !googlePlay.ok) {
-    const failures = [appStore, googlePlay].flatMap((outcome) => outcome.ok ? [] : [outcome]);
+  const { appStore, googlePlay, stripe, appleHistory } = outcomes;
+  if (!appStore.ok || !googlePlay.ok || !stripe.ok || !appleHistory.ok) {
+    const failures = [appStore, googlePlay, stripe, appleHistory].flatMap((outcome) => outcome.ok ? [] : [outcome]);
     const failure = new AggregateError(
       failures.map((outcome) => outcome.error),
       `Store analytics import failed: ${failures.map((outcome) => `${outcome.source}: ${outcome.error.message}`).join(" | ")}`,
@@ -126,7 +145,8 @@ const storeAnalyticsImportHandler: Handler<
     markCapturedBackendException(failure);
     throw failure;
   }
-  return { ok: true, appStore: appStore.summary, googlePlay: googlePlay.summary };
+  return { ok: true, appStore: appStore.summary, googlePlay: googlePlay.summary,
+    stripe: stripe.summary, appleHistory: appleHistory.summary };
 };
 
 export const handler = wrapBackendHandler(storeAnalyticsImportHandler);

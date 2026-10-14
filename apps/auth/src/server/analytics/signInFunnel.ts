@@ -56,6 +56,7 @@ import { postAnonymousAnalyticsEvent, type AuthAnalyticsCall } from "./client.js
 import {
   clearAuthAnalyticsGuestSession,
   hasAuthAnalyticsGuestSession,
+  isSharedProductAnalyticsCollectionEnabled,
   readSharedAnalyticsVisitorId,
 } from "./visitorSession.js";
 
@@ -106,13 +107,6 @@ import {
  * connection budget the same file documents as deliberately thin. Re-do the arithmetic above against
  * both before touching it.
  *
- * The ceiling has not moved, and what fits inside it has. It used to carry a guest-session mint and
- * then the post, which is why it was split — a mint share capped at 90 ms, a 25 ms floor below which
- * a call was not worth opening, a 10 ms margin so a late timer could not squeeze the post under that
- * floor, and 60 ms for the success event so the identity link behind it kept room. The whole 150 is
- * now one `fetch`, so the tightest case this producer had — a success event with 25 ms, the floor
- * exactly — is gone along with the mint that caused it, without spending a millisecond more of the
- * reservation.
  */
 const analyticsReportBudgetMs = 150;
 
@@ -147,12 +141,6 @@ const analyticsReportBudgetMs = 150;
  *   is why neither needs a cookie jar for this exchange in the first place. The live smoke scripts
  *   under `scripts/checks/` call both routes too, and are excluded the same way.
  *
- * The marker is now the whole gate, and that is what this origin gave up by joining the shared
- * visitor identity. The id it reports under is the product domain's `analytics_visitor` cookie,
- * minted by the backend for any browser and plantable by any sibling host
- * (`docs/analytics-visitor-identity.md`), so holding one no longer says a caller came through
- * `GET /login`. Keep the audit above complete: a caller that started sending the marker would now be
- * counted into the sign-in funnel with nothing else standing in the way.
  */
 const signInScreenMarker = "signin";
 
@@ -223,6 +211,10 @@ async function reportSignInFunnelEvent(
 ): Promise<void> {
   try {
     if (c.req.query("screen") !== signInScreenMarker) {
+      return;
+    }
+
+    if (isSharedProductAnalyticsCollectionEnabled(c) === false) {
       return;
     }
 

@@ -1,4 +1,5 @@
 import { getAppConfig } from "../config";
+import { isProductAnalyticsCollectionEnabled } from "../analytics/productAnalyticsCollection";
 import { getDefaultLocale, resolveSupportedLocale } from "../i18n/locales";
 import { readStoredLocalePreference, resolveLocaleState } from "../i18n/runtime";
 import type { Locale } from "../i18n/types";
@@ -14,14 +15,14 @@ export function getPreferredAuthUiLocale(): AuthUiLocale {
   return resolvedLocale ?? getDefaultLocale();
 }
 
-/**
- * Builds an auth login URL that preserves the exact in-app location the user
- * should return to after silent refresh or interactive sign-in completes.
- */
 export function buildLoginUrl(returnUrl: string, localeHint: string): string {
   const config = getAppConfig();
   const loginUrl = new URL(`${config.authBaseUrl}/login`);
   loginUrl.searchParams.set("redirect_uri", returnUrl);
+  // A denial also travels when browser policy prevents the shared preference cookie from updating.
+  if (isProductAnalyticsCollectionEnabled() === false) {
+    loginUrl.searchParams.set("analytics_collection", "off");
+  }
 
   const sanitizedLocaleHint = normalizeAuthUiLocale(localeHint);
   if (sanitizedLocaleHint !== null) {
