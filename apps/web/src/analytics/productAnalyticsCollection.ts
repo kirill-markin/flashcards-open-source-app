@@ -23,6 +23,11 @@ import {
   readStoredProductAnalyticsCollection,
   writeStoredProductAnalyticsCollection,
 } from "./identity";
+import { isAwaitingAnalyticsConsentDecision, subscribeToAnalyticsConsent } from "./consent";
+import {
+  readSharedProductAnalyticsCollection,
+  writeSharedProductAnalyticsCollection,
+} from "./sharedCollectionPreference";
 
 const collectionListeners = new Set<() => void>();
 
@@ -37,47 +42,76 @@ const collectionListeners = new Set<() => void>();
 let collectionDecision: boolean | null = null;
 let hasSeededCollectionDecision = false;
 let hasStartedCrossDocumentWatch = false;
+let lastStoredCollectionDecision: boolean | null = null;
+let lastSharedCollectionDecision: boolean | null = null;
+let hasPublishedInitialCollectionPreference = false;
 
-/**
- * The answer given in another tab, applied here. The cache above is per document and its writer runs
- * only in the document the switch was moved in, so without this a second open tab keeps collecting,
- * flushing and gating on an answer the person has already changed, for the whole life of that
- * document. Only this one key is watched, and only an answer written under it is taken: a bulk
- * storage clear arrives with a null key and is left alone, so it can never read as permission this
- * document did not have.
- */
+function notifyCollectionDecisionChange(previousDecision: boolean | null): void {
+  if (previousDecision === collectionDecision) {
+    return;
+  }
+
+  for (const listener of collectionListeners) {
+    listener();
+  }
+}
+
 function startCrossDocumentCollectionWatch(): void {
   if (hasStartedCrossDocumentWatch || typeof window === "undefined") {
     return;
   }
 
   hasStartedCrossDocumentWatch = true;
+  subscribeToAnalyticsConsent((): void => {
+    readProductAnalyticsCollectionDecision();
+  });
   window.addEventListener("storage", (event: StorageEvent): void => {
     if (event.key !== productAnalyticsCollectionStorageKey) {
       return;
     }
 
-    const storedDecision = readStoredProductAnalyticsCollection();
-    if (hasSeededCollectionDecision && storedDecision === collectionDecision) {
-      return;
-    }
-
-    collectionDecision = storedDecision;
-    hasSeededCollectionDecision = true;
-    for (const listener of collectionListeners) {
-      listener();
-    }
+    readProductAnalyticsCollectionDecision();
   });
 }
 
 /** The recorded answer, or null while nobody has given one on this browser. */
 export function readProductAnalyticsCollectionDecision(): boolean | null {
   startCrossDocumentCollectionWatch();
+  const previousDecision = collectionDecision;
+  const storedDecision = readStoredProductAnalyticsCollection();
+  const sharedDecision = readSharedProductAnalyticsCollection();
   if (hasSeededCollectionDecision === false) {
-    collectionDecision = readStoredProductAnalyticsCollection();
-    hasSeededCollectionDecision = true;
+    collectionDecision = storedDecision === false || sharedDecision === false ? false : storedDecision;
+  } else if (sharedDecision !== null && sharedDecision !== lastSharedCollectionDecision) {
+    collectionDecision = sharedDecision;
+  } else if (storedDecision !== null && storedDecision !== lastStoredCollectionDecision) {
+    collectionDecision = storedDecision;
   }
 
+  // Missing storage is not a new answer. Snapshot before notifying to make subscriber reads stable.
+  if (storedDecision !== null) {
+    lastStoredCollectionDecision = storedDecision;
+  }
+  if (sharedDecision !== null) {
+    lastSharedCollectionDecision = sharedDecision;
+  }
+  hasSeededCollectionDecision = true;
+  if (collectionDecision !== null && storedDecision !== collectionDecision
+    && (collectionDecision === false || isAwaitingAnalyticsConsentDecision() === false)) {
+    writeStoredProductAnalyticsCollection(collectionDecision);
+    lastStoredCollectionDecision = readStoredProductAnalyticsCollection();
+  }
+
+  if (hasPublishedInitialCollectionPreference === false
+    && (collectionDecision !== null || isAwaitingAnalyticsConsentDecision() === false)) {
+    hasPublishedInitialCollectionPreference = true;
+    if (sharedDecision === null) {
+      writeSharedProductAnalyticsCollection(collectionDecision !== false);
+      lastSharedCollectionDecision = readSharedProductAnalyticsCollection();
+    }
+  }
+
+  notifyCollectionDecisionChange(previousDecision);
   return collectionDecision;
 }
 
@@ -92,13 +126,16 @@ export function isProductAnalyticsCollectionEnabled(): boolean {
  */
 export function recordProductAnalyticsCollectionDecision(isCollectionEnabled: boolean): void {
   startCrossDocumentCollectionWatch();
+  const previousDecision = collectionDecision;
   // Before the store, so the answer holds for this browsing context even where the write goes nowhere.
   collectionDecision = isCollectionEnabled;
   hasSeededCollectionDecision = true;
+  writeSharedProductAnalyticsCollection(isCollectionEnabled);
   writeStoredProductAnalyticsCollection(isCollectionEnabled);
-  for (const listener of collectionListeners) {
-    listener();
-  }
+  lastSharedCollectionDecision = readSharedProductAnalyticsCollection();
+  lastStoredCollectionDecision = readStoredProductAnalyticsCollection();
+  hasPublishedInitialCollectionPreference = true;
+  notifyCollectionDecisionChange(previousDecision);
 }
 
 export function subscribeToProductAnalyticsCollection(listener: () => void): () => void {
