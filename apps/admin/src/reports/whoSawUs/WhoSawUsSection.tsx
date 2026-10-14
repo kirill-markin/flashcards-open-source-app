@@ -6,6 +6,7 @@ import { createTickDates, type MatrixChartEntry } from "../../charts/chartPrimit
 import { renderWhoSawUsChart } from "../../charts/chartRenderers";
 import { escapeHtml, formatGeneratedAt } from "../../charts/formatting";
 import type { AdminAppConfig } from "../../config";
+import { ExplanationTip } from "../../explanations/ExplanationTip";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import { formatCalendarDate } from "../reportValues";
 import {
@@ -80,7 +81,7 @@ function buildWhoSawUsChartModel(report: WhoSawUsReport): WhoSawUsChartModel {
   return {
     dates,
     tickDates: createTickDates(dates),
-    // A missing value is drawn as no bar, which is what the section description says it means.
+    // A missing value is drawn as no bar, which is what the section explanation says it means.
     matrix: report.days.map((day) => ({
       date: day.date,
       valuesByKey: Object.fromEntries(
@@ -166,10 +167,34 @@ export function WhoSawUsSection(
   return (
     <section className="dashboard-section" data-testid="who-saw-us-section">
       <header className="dashboard-section-header">
-        <h2>Who saw us</h2>
-        <p className="dashboard-section-description">
-          Approximate daily unique visitors of the marketing website, our App Store page and our Google Play listing, stacked. <strong>Web</strong> is the distinct identified visitors of the site after the shared exclusions, plus its distinct cookieless visitors, of whom only automated traffic is dropped, so an admin browsing without consent still counts. <strong>App Store</strong> is the product page views by unique count plus the browser views of the apps.apple.com page, which Apple reports without a unique count. <strong>Google Play</strong> is the store listing visitors. The stores count per breakdown row and the three surfaces overlap, so one person can be counted more than once. A day with no store row has no bar for that store, which means the data is missing rather than zero, and the tooltip says No data. Store numbers to the right of the dashed line are not final, and Google Play can lag up to a week. Dates are grouped in <strong>UTC</strong>.
-        </p>
+        <div className="explained-heading-row">
+          <h2>Who saw us</h2>
+          <ExplanationTip label="What Who saw us shows" explanationId="who-saw-us-explanation">
+            <ul>
+              <li>
+                <strong>What it shows:</strong> approximate daily unique visitors per surface, stacked, grouped by UTC day
+                <ul>
+                  <li>
+                    <strong>Web:</strong> identified site visitors after the shared exclusions, plus cookieless visitors (only automated traffic is dropped)
+                    <ul>
+                      <li>So an admin browsing without consent still counts</li>
+                    </ul>
+                  </li>
+                  <li><strong>App Store:</strong> product page views by unique count, plus apps.apple.com browser views (Apple reports those without a unique count)</li>
+                  <li><strong>Google Play:</strong> store listing visitors</li>
+                </ul>
+              </li>
+              <li>
+                <strong>Caveats</strong>
+                <ul>
+                  <li>Stores count per breakdown row, and the three surfaces overlap, so one person can be counted more than once</li>
+                  <li>No store bar on a day = data missing, not zero; the tooltip says No data</li>
+                  <li>Store numbers right of the dashed line are not final; Google Play can lag up to a week</li>
+                </ul>
+              </li>
+            </ul>
+          </ExplanationTip>
+        </div>
       </header>
 
       {loadState.status === "loading" ? (
