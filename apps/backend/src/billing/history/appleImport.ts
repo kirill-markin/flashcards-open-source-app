@@ -14,7 +14,6 @@ import { BillingHistoryError, historyScopeHash, parseHistoryFields } from "./sto
 
 const notificationDiscoveryKey = appleBundleId + ":notification-discovery";
 const discoveryScopeHash = historyScopeHash("provider:" + historyScopeHash(notificationDiscoveryKey));
-const retentionMs = 179 * 24 * 60 * 60 * 1000;
 const lookbackMs = 24 * 60 * 60 * 1000;
 const maximumPagesPerEnvironment = 120;
 const failedSubjectSchema = z.object({
@@ -52,9 +51,18 @@ async function loadAttempt(environment: AppleEnvironment): Promise<Attempt> {
       return { run: previous, checkpoint: parseHistoryFields(checkpointSchema, JSON.parse(previous.checkpoint)) };
     }
     const to = new Date();
+    const retentionMs = (environment === "production" ? 179 : 29) * lookbackMs;
     const previousCheckpoint = previous?.checkpoint == null ? null
       : parseHistoryFields(checkpointSchema, JSON.parse(previous.checkpoint));
-    if (previous?.status === "failed" && previousCheckpoint !== null) {
+    const invalidEmptySandboxDiscovery = environment === "sandbox" && previous?.record_count === "0"
+      && previousCheckpoint !== null && previousCheckpoint.stage === "notifications"
+      && Date.parse(previousCheckpoint.notificationTo) - Date.parse(previousCheckpoint.notificationFrom) > 30 * lookbackMs
+      && previousCheckpoint.notificationToken === null && previousCheckpoint.notificationTransactionIds.length === 0
+      && previousCheckpoint.afterSubject === null && previousCheckpoint.subject === null
+      && previousCheckpoint.subjectRunId === null && previousCheckpoint.revision === null
+      && previousCheckpoint.transactionIds.length === 0 && !previousCheckpoint.historyComplete
+      && previousCheckpoint.failedSubjects.length === 0;
+    if (previous?.status === "failed" && previousCheckpoint !== null && !invalidEmptySandboxDiscovery) {
       let checkpoint = previousCheckpoint;
       if (checkpoint.subject !== null) {
         const subjectRunId = await beginHistoryImportInExecutor(executor, {
