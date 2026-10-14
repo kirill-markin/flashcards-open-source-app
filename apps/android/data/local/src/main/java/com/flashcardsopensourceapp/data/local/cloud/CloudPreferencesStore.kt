@@ -31,6 +31,7 @@ import com.flashcardsopensourceapp.data.local.model.sync.SavedAppLocale
 import com.flashcardsopensourceapp.data.local.model.sync.defaultAccentColor
 import com.flashcardsopensourceapp.data.local.model.sync.defaultAccountPreferences
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -47,7 +48,6 @@ import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.coroutineContext
 
 private const val cloudMetadataPreferencesName: String = "flashcards-cloud-metadata"
-private const val cloudSecretPreferencesName: String = "flashcards-cloud-secrets"
 private const val installationIdKey: String = "installation-id"
 private const val cloudStateKey: String = "cloud-state"
 private const val linkedUserIdKey: String = "linked-user-id"
@@ -60,10 +60,6 @@ private const val accountDeletionFailureMessageKey: String = "account-deletion-f
 private const val accountDeletionFailureReportIdKey: String = "account-deletion-failure-report-id"
 private const val customOriginKey: String = "custom-origin"
 private const val cloudCredentialRecoveryStateKey: String = "cloud-credential-recovery-state"
-private const val refreshTokenKey: String = "refresh-token"
-private const val idTokenKey: String = "id-token"
-private const val idTokenExpiresAtMillisKey: String = "id-token-expires-at-millis"
-private const val pendingGuestUpgradeKey: String = "pending-guest-upgrade"
 private const val savedAppLocaleUserIdKey: String = "saved-app-locale-user-id"
 private const val savedAppLocaleKey: String = "saved-app-locale"
 private const val pendingGuestUpgradeLocalOutboxBlockReason: String =
@@ -86,10 +82,7 @@ class CloudPreferencesStore(
 ) {
     private val metadataPreferences: SharedPreferences =
         context.getSharedPreferences(cloudMetadataPreferencesName, Context.MODE_PRIVATE)
-    private val securePreferences: SharedPreferences = context.getSharedPreferences(
-        cloudSecretPreferencesName,
-        Context.MODE_PRIVATE
-    )
+    private val credentialStore = CloudCredentialStore(context = context)
 
     private val cloudSettingsState = MutableStateFlow(loadLegacyCloudSettingsEntity().toCloudSettings())
     private val accountPreferencesStore = CloudAccountPreferencesStore(metadataPreferences = metadataPreferences)
@@ -175,9 +168,10 @@ class CloudPreferencesStore(
     }
 
     fun loadCredentials(): StoredCloudCredentials? {
-        val refreshToken = securePreferences.getString(refreshTokenKey, null) ?: return null
-        val idToken = securePreferences.getString(idTokenKey, null) ?: return null
-        val idTokenExpiresAtMillis = securePreferences.getLong(idTokenExpiresAtMillisKey, 0L)
+        val secrets = credentialStore.load()
+        val refreshToken = secrets.refreshToken ?: return null
+        val idToken = secrets.idToken ?: return null
+        val idTokenExpiresAtMillis = secrets.idTokenExpiresAtMillis ?: return null
         if (idTokenExpiresAtMillis <= 0L) {
             return null
         }
@@ -190,26 +184,22 @@ class CloudPreferencesStore(
     }
 
     fun saveCredentials(credentials: StoredCloudCredentials) {
-        securePreferences.edit(commit = true) {
-            putString(refreshTokenKey, credentials.refreshToken)
-            putString(idTokenKey, credentials.idToken)
-            putLong(idTokenExpiresAtMillisKey, credentials.idTokenExpiresAtMillis)
+        credentialStore.update { secrets ->
+            secrets.copy(
+                refreshToken = credentials.refreshToken,
+                idToken = credentials.idToken,
+                idTokenExpiresAtMillis = credentials.idTokenExpiresAtMillis
+            )
         }
     }
 
     fun clearCredentials() {
-        securePreferences.edit(commit = true) {
-            remove(refreshTokenKey)
-            remove(idTokenKey)
-            remove(idTokenExpiresAtMillisKey)
-            remove(pendingGuestUpgradeKey)
-        }
+        credentialStore.clear()
     }
 
     fun updateIdToken(idToken: String, idTokenExpiresAtMillis: Long) {
-        securePreferences.edit(commit = true) {
-            putString(idTokenKey, idToken)
-            putLong(idTokenExpiresAtMillisKey, idTokenExpiresAtMillis)
+        credentialStore.update { secrets ->
+            secrets.copy(idToken = idToken, idTokenExpiresAtMillis = idTokenExpiresAtMillis)
         }
     }
 
@@ -260,7 +250,7 @@ class CloudPreferencesStore(
     }
 
     internal fun loadPendingGuestUpgrade(): PendingGuestUpgradeState? {
-        val rawValue = securePreferences.getString(pendingGuestUpgradeKey, null) ?: return null
+        val rawValue = credentialStore.load().pendingGuestUpgrade ?: return null
         return try {
             decodePendingGuestUpgrade(rawValue = rawValue)
         } catch (error: JSONException) {
@@ -273,17 +263,16 @@ class CloudPreferencesStore(
     }
 
     internal fun savePendingGuestUpgrade(pendingGuestUpgradeState: PendingGuestUpgradeState) {
-        securePreferences.edit(commit = true) {
-            putString(
-                pendingGuestUpgradeKey,
-                encodePendingGuestUpgrade(pendingGuestUpgradeState = pendingGuestUpgradeState).toString()
+        credentialStore.update { secrets ->
+            secrets.copy(
+                pendingGuestUpgrade = encodePendingGuestUpgrade(pendingGuestUpgradeState = pendingGuestUpgradeState).toString()
             )
         }
     }
 
     internal fun clearPendingGuestUpgrade() {
-        securePreferences.edit(commit = true) {
-            remove(pendingGuestUpgradeKey)
+        credentialStore.update { secrets ->
+            secrets.copy(pendingGuestUpgrade = null)
         }
     }
 
@@ -382,7 +371,7 @@ class CloudPreferencesStore(
         return coroutineContext[LocalOutboxMutationContextKey] != null
     }
 
-    private fun requireLocalOutboxWritesAllowedLocked() {
+    private suspend fun requireLocalOutboxWritesAllowedLocked() {
         if (hasPendingGuestUpgrade()) {
             throw IllegalStateException(pendingGuestUpgradeLocalOutboxBlockReason)
         }
@@ -390,8 +379,10 @@ class CloudPreferencesStore(
         throw IllegalStateException(blockedReason)
     }
 
-    private fun hasPendingGuestUpgrade(): Boolean {
-        return securePreferences.contains(pendingGuestUpgradeKey)
+    private suspend fun hasPendingGuestUpgrade(): Boolean {
+        return withContext(Dispatchers.IO) {
+            credentialStore.load().pendingGuestUpgrade != null
+        }
     }
 
     suspend fun hydrateCloudSettingsFromDatabase(): CloudSettings {

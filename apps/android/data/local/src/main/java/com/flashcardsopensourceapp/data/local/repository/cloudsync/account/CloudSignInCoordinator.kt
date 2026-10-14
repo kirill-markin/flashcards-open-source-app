@@ -24,6 +24,8 @@ import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.resumeP
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudOperationCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudSessionProvider
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.resolvePreferredPostAuthWorkspaceId
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 internal class CloudSignInCoordinator(
     private val database: AppDatabase,
@@ -201,8 +203,10 @@ internal class CloudSignInCoordinator(
         }
     }
 
-    private fun requirePendingGuestUpgradeStateIsDecodable() {
-        preferencesStore.loadPendingGuestUpgrade()
+    private suspend fun requirePendingGuestUpgradeStateIsDecodable() {
+        withContext(Dispatchers.IO) {
+            preferencesStore.loadPendingGuestUpgrade()
+        }
     }
 
     private suspend fun resumePendingGuestUpgradeIfNeeded(): CloudWorkspaceSummary? {

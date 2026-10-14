@@ -619,6 +619,7 @@ class AppGraph(
         preferencesStore = cloudPreferencesStore,
         cloudRemoteService = cloudRemoteService,
         cloudGuestSessionCoordinator = cloudGuestSessionCoordinator,
+        operationCoordinator = cloudOperationCoordinator,
         syncRepository = syncRepository,
         aiChatRemoteService = aiChatRemoteService,
         signedPutUploader = OkHttpSignedPutUploader(okHttpClient = okHttpClient),
