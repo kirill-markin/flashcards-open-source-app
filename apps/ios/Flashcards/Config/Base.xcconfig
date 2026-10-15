@@ -1,8 +1,8 @@
 APP_DISPLAY_NAME = Nibomo
 APP_BUNDLE_IDENTIFIER = com.flashcards-open-source-app.app
+GOOGLE_SIGN_IN_CLIENT_ID = 360001205059-q3ch9p412li6gh84hrb2590kgcm0o07u.apps.googleusercontent.com
+GOOGLE_SIGN_IN_REVERSED_CLIENT_ID = com.googleusercontent.apps.360001205059-q3ch9p412li6gh84hrb2590kgcm0o07u
 APP_MARKETING_VERSION = 1.34.0
-// Keep the repository default build number stable. Signed archives should
-// override this locally or in CI when a higher App Store Connect build number is required.
 APP_CURRENT_PROJECT_VERSION = 1
 FLASHCARDS_SENTRY_DSN =
 FLASHCARDS_SENTRY_ENVIRONMENT = local
