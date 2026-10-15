@@ -33,7 +33,7 @@ test("login page uses the explicit locale hint when it is supported", async () =
 
   assert.equal(response.status, 200);
   assert.match(html, /<html lang="es-MX" dir="ltr">/);
-  assert.match(html, />Iniciar sesión</);
+  assert.match(html, />Iniciar sesión o crear una cuenta</);
   assert.match(html, />Volver al sitio web</);
 });
 
@@ -132,7 +132,7 @@ test("login page falls back safely to English when locale inputs are unsupported
 
   assert.equal(response.status, 200);
   assert.match(html, /<html lang="en" dir="ltr">/);
-  assert.match(html, />Sign in</);
+  assert.match(html, />Sign in or create an account</);
   assert.match(html, />Back to website</);
 });
 
