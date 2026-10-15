@@ -1,6 +1,11 @@
 # Auth Service (`apps/auth/`)
 
-Email + OTP authentication via AWS Cognito (passwordless).
+Email OTP and Apple/Google authentication via the existing AWS Cognito service.
+
+Human-run acceptance: [browser](browser-sign-in-hints.md#manual-browser-acceptance),
+[iOS/iPadOS/Duo and Catalyst](native-apple-sign-in.md), and
+[Android](../apps/android/docs/native-sign-in-acceptance.md). These procedures distinguish source
+and cloud checks from actual provider, signed-device, mailbox and lifecycle results.
 
 - `AUTH_MODE`: `none` (local dev, no auth) or `cognito` (verify JWT from `Authorization: Bearer`)
 - Account identity: an account's `user_id` is a surrogate identifier the product owns, and
@@ -195,8 +200,8 @@ The app keeps its verifier; the browser receives only its public challenge. The 
 fixed `com.nibomo.app:/auth/social/apple` URI with a fragment containing `status` and either `completion`
 or `attempt`; a bound provider denial returns `status=denied` with the attempt. The app uses
 `/api/social/complete` with its verifier for mailbox continuation and one-use
-token redemption. The server transport does not establish support in installed Android clients; their
-Custom Tabs flow, receiver and verifier lifecycle are separate client work. Native transports consume
+token redemption. Installed Android Custom Tabs, receiver and verifier lifecycle acceptance follows
+the [native procedure](../apps/android/docs/native-sign-in-acceptance.md). Native transports consume
 no browser session cookies and still require guest upgrade before generic product provisioning.
 
 For relay delivery, register exact header From and envelope MAIL FROM sources and configure
@@ -211,7 +216,8 @@ Accept both `privaterelay.appleid.com` and `private.icloud.com`
 [Auth producers](../apps/auth/src/server/analytics/signInFunnel.ts) and the
 [UI fact route](../apps/auth/src/routes/browser/authFact.ts) reuse the
 [shared visitor and collection contract](analytics-visitor-identity.md). Their bounded catalog is
-[defined in source](../apps/auth/src/server/analytics/catalog.ts); request and provider
+[defined in source](../apps/auth/src/server/analytics/catalog.ts), mirroring the
+[backend inventory](../apps/backend/src/productAnalytics/catalog.ts); request and provider
 outcomes remain server-observed. [Browser acceptance](browser-sign-in-hints.md#manual-browser-acceptance)
 covers the auth UI and the web account-ready boundary. Querying caveats remain in
 [analytics database access](analytics-db-access.md).
@@ -277,7 +283,6 @@ The authenticated transport contract is defined in [public request/result types]
 share the existing attempt ledger. [Cloud consumers](../apps/auth/src/integration/accountMethodsGate.ts) exercise signed demo-session refusals and reachable transport guards on both auth hosts;
 non-demo management success, browser CSRF bootstrap, actual provider proof, mailbox delivery, and native SDK acceptance require the release acceptance flows.
 
-`GET /api/account/login-methods` also returns sorted, distinct `verifiedRecoveryEmails` from the current
-account's proved mailbox registry, excluding Apple relay, demo and deleted principals. An empty list
-means no stored proved non-relay address; email recovery remains `read_only` and is not disabled.
-Profile/provider emails and remembered sign-in hints are not recovery authority.
+The [recovery-email projection](../apps/auth/src/server/social/accountMethods.ts) and the
+[browser Settings procedure](browser-sign-in-hints.md#manual-settings-acceptance) cover read-only
+proved recovery addresses and the current-account management boundary.
