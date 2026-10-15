@@ -313,3 +313,8 @@ The authenticated transport contract is defined in [public request/result types]
 [Provider mutations](../apps/auth/src/server/social/accountMethods.ts) and [current-email reauthentication](../apps/auth/src/server/social/currentEmailReauth.ts)
 share the existing attempt ledger. [Cloud consumers](../apps/auth/src/integration/accountMethodsGate.ts) exercise signed demo-session refusals and reachable transport guards on both auth hosts;
 non-demo management success, browser CSRF bootstrap, actual provider proof, mailbox delivery, and native SDK acceptance require the release acceptance flows.
+
+`GET /api/account/login-methods` also returns sorted, distinct `verifiedRecoveryEmails` from the current
+account's proved mailbox registry, excluding Apple relay, demo and deleted principals. An empty list
+means no stored proved non-relay address; email recovery remains `read_only` and is not disabled.
+Profile/provider emails and remembered sign-in hints are not recovery authority.

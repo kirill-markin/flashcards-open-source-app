@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import test from "node:test";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
 import pg from "pg";
 
@@ -114,6 +116,11 @@ test("account provider management composes PostgreSQL receipts, fences, generati
     await contender.query("SET ROLE auth_app");
     await backend.query("SET ROLE backend_app");
     await reporting.query("SET ROLE reporting_readonly");
+    const moduleUrl = pathToFileURL(resolve(__dirname, "../../../auth/src/integration/accountMethodsGate.ts")).href;
+    const gate = await import(moduleUrl) as Readonly<{
+      checkAccountRecoveryEmailProjection: (runtime: pg.Client, owner: pg.Client) => Promise<void>;
+    }>;
+    await gate.checkAccountRecoveryEmailProjection(auth, owner);
     for (const id of accounts) await owner.query("INSERT INTO org.user_settings(user_id) VALUES ($1)", [id]);
     for (const [subject, targetAccount] of [[a, account], [b, account], [c, account], [other, otherAccount], [hidden, hiddenAccount]]) {
       await owner.query("SELECT auth.bind_cognito_account($1,$2)", [subject, targetAccount]);
