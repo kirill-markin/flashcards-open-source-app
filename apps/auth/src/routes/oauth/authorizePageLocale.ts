@@ -3,7 +3,6 @@ import type { LoginPageLocale } from "../browser/loginPageLocale.js";
 export type AuthorizeConsentCopy = Readonly<{
   pageTitle: string;
   checkingSession: string;
-  signInTitle: string;
   emailLabel: string;
   sendCode: string;
   sendingCode: string;
@@ -29,7 +28,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   bg: {
     pageTitle: "Разрешаване на достъп",
     checkingSession: "Проверка на сесията...",
-    signInTitle: "Влезте, за да продължите",
     emailLabel: "Имейл",
     sendCode: "Изпращане на код",
     sendingCode: "Изпращане...",
@@ -52,7 +50,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   bn: {
     pageTitle: "অ্যাক্সেস অনুমোদন করুন",
     checkingSession: "সেশন যাচাই করা হচ্ছে...",
-    signInTitle: "চালিয়ে যেতে সাইন ইন করুন",
     emailLabel: "ইমেইল",
     sendCode: "কোড পাঠান",
     sendingCode: "পাঠানো হচ্ছে...",
@@ -75,7 +72,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   ca: {
     pageTitle: "Autoritza l'accés",
     checkingSession: "S'està comprovant la sessió...",
-    signInTitle: "Inicia la sessió per continuar",
     emailLabel: "Correu electrònic",
     sendCode: "Envia el codi",
     sendingCode: "S'està enviant...",
@@ -98,7 +94,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   cs: {
     pageTitle: "Autorizovat přístup",
     checkingSession: "Kontrola relace...",
-    signInTitle: "Pokračujte přihlášením",
     emailLabel: "E-mail",
     sendCode: "Odeslat kód",
     sendingCode: "Odesílání...",
@@ -121,7 +116,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   da: {
     pageTitle: "Godkend adgang",
     checkingSession: "Kontrollerer session...",
-    signInTitle: "Log ind for at fortsætte",
     emailLabel: "E-mail",
     sendCode: "Send kode",
     sendingCode: "Sender...",
@@ -144,7 +138,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   el: {
     pageTitle: "Εξουσιοδότηση πρόσβασης",
     checkingSession: "Έλεγχος συνεδρίας...",
-    signInTitle: "Συνδεθείτε για να συνεχίσετε",
     emailLabel: "Email",
     sendCode: "Αποστολή κωδικού",
     sendingCode: "Αποστολή...",
@@ -167,7 +160,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   et: {
     pageTitle: "Juurdepääsu lubamine",
     checkingSession: "Seansi kontrollimine...",
-    signInTitle: "Jätkamiseks logi sisse",
     emailLabel: "E-post",
     sendCode: "Saada kood",
     sendingCode: "Saatmine...",
@@ -190,7 +182,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   fa: {
     pageTitle: "تأیید دسترسی",
     checkingSession: "در حال بررسی نشست...",
-    signInTitle: "برای ادامه وارد شوید",
     emailLabel: "ایمیل",
     sendCode: "ارسال کد",
     sendingCode: "در حال ارسال...",
@@ -213,7 +204,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   fi: {
     pageTitle: "Valtuuta käyttöoikeus",
     checkingSession: "Tarkistetaan istuntoa...",
-    signInTitle: "Jatka kirjautumalla sisään",
     emailLabel: "Sähköposti",
     sendCode: "Lähetä koodi",
     sendingCode: "Lähetetään...",
@@ -236,7 +226,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   gu: {
     pageTitle: "ઍક્સેસ અધિકૃત કરો",
     checkingSession: "સત્ર તપાસી રહ્યું છે...",
-    signInTitle: "આગળ વધવા સાઇન ઇન કરો",
     emailLabel: "ઇમેઇલ",
     sendCode: "કોડ મોકલો",
     sendingCode: "મોકલી રહ્યું છે...",
@@ -259,7 +248,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   he: {
     pageTitle: "אישור גישה",
     checkingSession: "בודקים את ההפעלה...",
-    signInTitle: "היכנסו כדי להמשיך",
     emailLabel: "דוא״ל",
     sendCode: "שליחת קוד",
     sendingCode: "שולחים...",
@@ -282,7 +270,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   hr: {
     pageTitle: "Odobri pristup",
     checkingSession: "Provjera sesije...",
-    signInTitle: "Prijavite se za nastavak",
     emailLabel: "E-pošta",
     sendCode: "Pošalji kod",
     sendingCode: "Slanje...",
@@ -305,7 +292,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   hu: {
     pageTitle: "Hozzáférés engedélyezése",
     checkingSession: "Munkamenet ellenőrzése...",
-    signInTitle: "A folytatáshoz jelentkezzen be",
     emailLabel: "E-mail",
     sendCode: "Kód küldése",
     sendingCode: "Küldés...",
@@ -328,7 +314,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   id: {
     pageTitle: "Otorisasi akses",
     checkingSession: "Memeriksa sesi...",
-    signInTitle: "Masuk untuk melanjutkan",
     emailLabel: "Email",
     sendCode: "Kirim kode",
     sendingCode: "Mengirim...",
@@ -351,7 +336,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   is: {
     pageTitle: "Heimila aðgang",
     checkingSession: "Athuga setu...",
-    signInTitle: "Skráðu þig inn til að halda áfram",
     emailLabel: "Netfang",
     sendCode: "Senda kóða",
     sendingCode: "Sendi...",
@@ -374,7 +358,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   it: {
     pageTitle: "Autorizza l'accesso",
     checkingSession: "Verifica della sessione...",
-    signInTitle: "Accedi per continuare",
     emailLabel: "Email",
     sendCode: "Invia codice",
     sendingCode: "Invio...",
@@ -397,7 +380,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   kn: {
     pageTitle: "ಪ್ರವೇಶವನ್ನು ಅಧಿಕೃತಗೊಳಿಸಿ",
     checkingSession: "ಸೆಷನ್ ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ...",
-    signInTitle: "ಮುಂದುವರಿಯಲು ಸೈನ್ ಇನ್ ಮಾಡಿ",
     emailLabel: "ಇಮೇಲ್",
     sendCode: "ಕೋಡ್ ಕಳುಹಿಸಿ",
     sendingCode: "ಕಳುಹಿಸಲಾಗುತ್ತಿದೆ...",
@@ -420,7 +402,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   ko: {
     pageTitle: "접근 권한 승인",
     checkingSession: "세션 확인 중...",
-    signInTitle: "계속하려면 로그인하세요",
     emailLabel: "이메일",
     sendCode: "코드 보내기",
     sendingCode: "전송 중...",
@@ -443,7 +424,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   lt: {
     pageTitle: "Suteikti prieigą",
     checkingSession: "Tikrinamas seansas...",
-    signInTitle: "Prisijunkite, kad tęstumėte",
     emailLabel: "El. paštas",
     sendCode: "Siųsti kodą",
     sendingCode: "Siunčiama...",
@@ -466,7 +446,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   lv: {
     pageTitle: "Atļaut piekļuvi",
     checkingSession: "Notiek sesijas pārbaude...",
-    signInTitle: "Pierakstieties, lai turpinātu",
     emailLabel: "E-pasts",
     sendCode: "Nosūtīt kodu",
     sendingCode: "Notiek sūtīšana...",
@@ -489,7 +468,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   ml: {
     pageTitle: "പ്രവേശനം അംഗീകരിക്കുക",
     checkingSession: "സെഷൻ പരിശോധിക്കുന്നു...",
-    signInTitle: "തുടരാൻ സൈൻ ഇൻ ചെയ്യുക",
     emailLabel: "ഇമെയിൽ",
     sendCode: "കോഡ് അയയ്ക്കുക",
     sendingCode: "അയയ്ക്കുന്നു...",
@@ -512,7 +490,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   mr: {
     pageTitle: "प्रवेश अधिकृत करा",
     checkingSession: "सत्र तपासत आहे...",
-    signInTitle: "पुढे जाण्यासाठी साइन इन करा",
     emailLabel: "ईमेल",
     sendCode: "कोड पाठवा",
     sendingCode: "पाठवत आहे...",
@@ -535,7 +512,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   nb: {
     pageTitle: "Godkjenn tilgang",
     checkingSession: "Kontrollerer økten...",
-    signInTitle: "Logg inn for å fortsette",
     emailLabel: "E-post",
     sendCode: "Send kode",
     sendingCode: "Sender...",
@@ -558,7 +534,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   nl: {
     pageTitle: "Toegang autoriseren",
     checkingSession: "Sessie controleren...",
-    signInTitle: "Log in om door te gaan",
     emailLabel: "E-mail",
     sendCode: "Code verzenden",
     sendingCode: "Verzenden...",
@@ -581,7 +556,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   pa: {
     pageTitle: "ਪਹੁੰਚ ਅਧਿਕਾਰਤ ਕਰੋ",
     checkingSession: "ਸੈਸ਼ਨ ਦੀ ਜਾਂਚ ਹੋ ਰਹੀ ਹੈ...",
-    signInTitle: "ਜਾਰੀ ਰੱਖਣ ਲਈ ਸਾਈਨ ਇਨ ਕਰੋ",
     emailLabel: "ਈਮੇਲ",
     sendCode: "ਕੋਡ ਭੇਜੋ",
     sendingCode: "ਭੇਜਿਆ ਜਾ ਰਿਹਾ ਹੈ...",
@@ -604,7 +578,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   pl: {
     pageTitle: "Autoryzuj dostęp",
     checkingSession: "Sprawdzanie sesji...",
-    signInTitle: "Zaloguj się, aby kontynuować",
     emailLabel: "E-mail",
     sendCode: "Wyślij kod",
     sendingCode: "Wysyłanie...",
@@ -627,7 +600,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   ro: {
     pageTitle: "Autorizează accesul",
     checkingSession: "Se verifică sesiunea...",
-    signInTitle: "Autentifică-te pentru a continua",
     emailLabel: "E-mail",
     sendCode: "Trimite codul",
     sendingCode: "Se trimite...",
@@ -650,7 +622,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   sk: {
     pageTitle: "Autorizovať prístup",
     checkingSession: "Kontrola relácie...",
-    signInTitle: "Ak chcete pokračovať, prihláste sa",
     emailLabel: "E-mail",
     sendCode: "Odoslať kód",
     sendingCode: "Odosielanie...",
@@ -673,7 +644,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   sl: {
     pageTitle: "Odobri dostop",
     checkingSession: "Preverjanje seje...",
-    signInTitle: "Za nadaljevanje se prijavite",
     emailLabel: "E-pošta",
     sendCode: "Pošlji kodo",
     sendingCode: "Pošiljanje...",
@@ -696,7 +666,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   sv: {
     pageTitle: "Godkänn åtkomst",
     checkingSession: "Kontrollerar session...",
-    signInTitle: "Logga in för att fortsätta",
     emailLabel: "E-post",
     sendCode: "Skicka kod",
     sendingCode: "Skickar...",
@@ -719,7 +688,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   sw: {
     pageTitle: "Idhinisha ufikiaji",
     checkingSession: "Inakagua kipindi...",
-    signInTitle: "Ingia ili uendelee",
     emailLabel: "Barua pepe",
     sendCode: "Tuma msimbo",
     sendingCode: "Inatuma...",
@@ -742,7 +710,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   ta: {
     pageTitle: "அணுகலை அங்கீகரிக்கவும்",
     checkingSession: "அமர்வைச் சரிபார்க்கிறது...",
-    signInTitle: "தொடர உள்நுழையவும்",
     emailLabel: "மின்னஞ்சல்",
     sendCode: "குறியீட்டை அனுப்பவும்",
     sendingCode: "அனுப்புகிறது...",
@@ -765,7 +732,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   te: {
     pageTitle: "యాక్సెస్‌ను అధీకరించండి",
     checkingSession: "సెషన్‌ను తనిఖీ చేస్తోంది...",
-    signInTitle: "కొనసాగించడానికి సైన్ ఇన్ చేయండి",
     emailLabel: "ఇమెయిల్",
     sendCode: "కోడ్ పంపండి",
     sendingCode: "పంపుతోంది...",
@@ -788,7 +754,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   th: {
     pageTitle: "อนุมัติการเข้าถึง",
     checkingSession: "กำลังตรวจสอบเซสชัน...",
-    signInTitle: "ลงชื่อเข้าใช้เพื่อดำเนินการต่อ",
     emailLabel: "อีเมล",
     sendCode: "ส่งรหัส",
     sendingCode: "กำลังส่ง...",
@@ -811,7 +776,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   tr: {
     pageTitle: "Erişimi yetkilendir",
     checkingSession: "Oturum kontrol ediliyor...",
-    signInTitle: "Devam etmek için giriş yapın",
     emailLabel: "E-posta",
     sendCode: "Kod gönder",
     sendingCode: "Gönderiliyor...",
@@ -834,7 +798,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   uk: {
     pageTitle: "Авторизація доступу",
     checkingSession: "Перевірка сеансу...",
-    signInTitle: "Увійдіть, щоб продовжити",
     emailLabel: "Електронна пошта",
     sendCode: "Надіслати код",
     sendingCode: "Надсилання...",
@@ -857,7 +820,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   ur: {
     pageTitle: "رسائی کی منظوری دیں",
     checkingSession: "سیشن کی جانچ ہو رہی ہے...",
-    signInTitle: "جاری رکھنے کے لیے سائن ان کریں",
     emailLabel: "ای میل",
     sendCode: "کوڈ بھیجیں",
     sendingCode: "بھیجا جا رہا ہے...",
@@ -880,7 +842,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   vi: {
     pageTitle: "Ủy quyền truy cập",
     checkingSession: "Đang kiểm tra phiên...",
-    signInTitle: "Đăng nhập để tiếp tục",
     emailLabel: "Email",
     sendCode: "Gửi mã",
     sendingCode: "Đang gửi...",
@@ -903,7 +864,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   zu: {
     pageTitle: "Gunyaza ukufinyelela",
     checkingSession: "Kuhlolwa iseshini...",
-    signInTitle: "Ngena ngemvume ukuze uqhubeke",
     emailLabel: "I-imeyili",
     sendCode: "Thumela ikhodi",
     sendingCode: "Iyathumela...",
@@ -926,7 +886,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   en: {
     pageTitle: "Authorize access",
     checkingSession: "Checking session...",
-    signInTitle: "Sign in to continue",
     emailLabel: "Email",
     sendCode: "Send code",
     sendingCode: "Sending...",
@@ -949,7 +908,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   ar: {
     pageTitle: "تفويض الوصول",
     checkingSession: "جارٍ التحقق من الجلسة...",
-    signInTitle: "سجّل الدخول للمتابعة",
     emailLabel: "البريد الإلكتروني",
     sendCode: "إرسال الرمز",
     sendingCode: "جارٍ الإرسال...",
@@ -972,7 +930,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   "zh-Hans": {
     pageTitle: "授权访问",
     checkingSession: "正在检查会话...",
-    signInTitle: "登录以继续",
     emailLabel: "电子邮件",
     sendCode: "发送验证码",
     sendingCode: "发送中...",
@@ -995,7 +952,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   fr: {
     pageTitle: "Autoriser l'accès",
     checkingSession: "Vérification de la session...",
-    signInTitle: "Connectez-vous pour continuer",
     emailLabel: "E-mail",
     sendCode: "Envoyer le code",
     sendingCode: "Envoi...",
@@ -1018,7 +974,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   de: {
     pageTitle: "Zugriff autorisieren",
     checkingSession: "Sitzung wird geprüft...",
-    signInTitle: "Zum Fortfahren anmelden",
     emailLabel: "E-Mail",
     sendCode: "Code senden",
     sendingCode: "Wird gesendet...",
@@ -1041,7 +996,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   hi: {
     pageTitle: "एक्सेस अधिकृत करें",
     checkingSession: "सेशन जांचा जा रहा है...",
-    signInTitle: "जारी रखने के लिए साइन इन करें",
     emailLabel: "ईमेल",
     sendCode: "कोड भेजें",
     sendingCode: "भेजा जा रहा है...",
@@ -1064,7 +1018,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   ja: {
     pageTitle: "アクセスを許可",
     checkingSession: "セッションを確認しています...",
-    signInTitle: "続行するにはサインイン",
     emailLabel: "メールアドレス",
     sendCode: "コードを送信",
     sendingCode: "送信中...",
@@ -1087,7 +1040,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   "pt-BR": {
     pageTitle: "Autorizar acesso",
     checkingSession: "Verificando a sessão...",
-    signInTitle: "Entre para continuar",
     emailLabel: "E-mail",
     sendCode: "Enviar código",
     sendingCode: "Enviando...",
@@ -1110,7 +1062,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   ru: {
     pageTitle: "Авторизация доступа",
     checkingSession: "Проверяем сеанс...",
-    signInTitle: "Войдите, чтобы продолжить",
     emailLabel: "Электронная почта",
     sendCode: "Отправить код",
     sendingCode: "Отправка...",
@@ -1133,7 +1084,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   "es-MX": {
     pageTitle: "Autorizar acceso",
     checkingSession: "Comprobando sesión...",
-    signInTitle: "Inicia sesión para continuar",
     emailLabel: "Correo electrónico",
     sendCode: "Enviar código",
     sendingCode: "Enviando...",
@@ -1156,7 +1106,6 @@ export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeC
   "es-ES": {
     pageTitle: "Autorizar acceso",
     checkingSession: "Comprobando la sesión...",
-    signInTitle: "Inicia sesión para continuar",
     emailLabel: "Correo electrónico",
     sendCode: "Enviar código",
     sendingCode: "Enviando...",
