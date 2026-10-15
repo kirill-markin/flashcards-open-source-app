@@ -160,10 +160,33 @@ Persist the returned credential after binding the proved identity, before issuin
 [Credential storage](../db/migrations/0185_apple_revocation_credentials.sql) survives principal erasure:
 the lifecycle caller must durably arrange revocation, retry failures, and remove only successfully
 revoked ciphertext. Retain the session secret until stored credentials have been re-encrypted for rotation.
-Configured native transports are described by `GET /api/auth-methods?client=<client>` on both auth
-hosts. Browser OAuth and Android Apple remain unavailable until their callback transports exist.
+Configured transports are described by `GET /api/auth-methods?client=<client>` on both auth hosts.
 Provider registration alone does not establish actual authentication, revocation or relay delivery;
 those require real configured-provider acceptance.
+
+Browser entrypoints are `GET /api/social/google/start?redirect_uri=<intended-url>` and
+`GET /api/social/apple/start?redirect_uri=<intended-url>`. The destination must use a configured product
+origin or this auth host's `/authorize` consent page. Both permanent auth hosts keep their own exact
+HTTPS callback, secure host-only cookie keyed by its state and one-use ledger claim. Mailbox continuation
+rotates that cookie key, so late callbacks cannot clear another attempt or phase. Google uses server-held
+PKCE; Apple's form POST returns a protected same-origin form continuation at `/api/social/apple/continue`
+before claiming proof or reporting facts with the current visitor and collection cookies. Callback fields
+stay in POST bodies, never URLs; consent is never snapshotted. Successful web sign-in sets the existing
+browser cookies and redirects.
+If mailbox proof is required, the callback returns `verification_required`, its `csrfToken` and the
+continuation endpoint. From that auth origin, POST JSON to `/api/social/browser/complete` with the cookie,
+`csrfToken`, `action: mailbox_send` and `email`; then `action: mailbox_verify` and the actual received
+`code`. Success sets cookies and returns `{ok, redirectUri, signInHint}` without tokens in the body.
+The shared login UI consumes this API separately.
+
+Android Apple starts at `/api/social/apple/start?client=android&codeChallenge=<S256-app-challenge>`.
+The app keeps its verifier; the browser receives only its public challenge. The callback returns to the
+fixed `com.nibomo.app:/auth/social/apple` URI with a fragment containing `status` and either `completion`
+or `attempt`; a bound provider denial returns `status=denied` with the attempt. The app uses
+`/api/social/complete` with its verifier for mailbox continuation and one-use
+token redemption. The server transport does not establish support in installed Android clients; their
+Custom Tabs flow, receiver and verifier lifecycle are separate client work. Native transports consume
+no browser session cookies and still require guest upgrade before generic product provisioning.
 
 For relay delivery, register exact header From and envelope MAIL FROM sources and configure
 aligned DKIM/SPF under [Apple's relay procedure](https://developer.apple.com/help/account/capabilities/configure-private-email-relay-service/).
@@ -214,7 +237,8 @@ configured public auth origin explicitly on a call no browser makes.
   is not reported at all (`readBrowserUserAgent` in `signInFunnel.ts`).
 - The accepted limitation: a browser holding no shared visitor id produces no funnel rows at all, and
   nothing here offers it one — a first-ever touch that is the sign-in page goes unmeasured.
-- The cost: one bounded call per reported step, and no rows of any other kind.
+- Reports of facts observed by one callback or verification run concurrently within the shared 150 ms
+  request budget, with their observed timestamps; delivery remains best-effort.
 - Deliberately not measured: the OAuth consent page at `GET /authorize`, and `app_version`.
 - Querying these rows: the caveats an analyst needs are in `docs/analytics-db-access.md`.
 
@@ -246,10 +270,12 @@ Cognito account-deletion jobs remain request-driven. This does not invalidate al
 application verification; that enforcement belongs to login-method management before API activation.
 
 [Signed notifications](../apps/auth/src/server/social/appleNotifications.ts) verify Apple signatures,
-issuer, configured audiences and event claims before any write. The service has no public HTTP mount
-in this slice. The later mount must accept only `{payload: string}`, enforce the body limit before
-parsing, acknowledge only after the database commit, and return retryable failures when persistence
-fails. No provider claims or unsigned internal calls may substitute for verification. Apple publishes
+issuer, configured audiences and event claims before lifecycle effects. The public endpoint is
+`POST /api/social/apple/notifications`, registered on `auth.nibomo.com`. Its JSON body is exactly
+`{payload: string}`, bounded to 24 KiB before parsing, with per-source rate limits. It acknowledges only
+after commit; exact signed replays return success and conflicting replay payloads are rejected.
+Persistence failures return retryable 5xx responses. No provider claims or unsigned internal calls may
+substitute for verification. Apple publishes
 [claim/event examples](https://developer.apple.com/documentation/signinwithapple/processing-changes-for-sign-in-with-apple-accounts),
 with [delivery observations](https://developer.apple.com/forums/thread/655485) for JSON-string events
 and millisecond timestamps; its Sign in with Apple docs specify no retry schedule guarantee.
