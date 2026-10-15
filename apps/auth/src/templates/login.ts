@@ -1286,6 +1286,8 @@ export const renderLoginPage = (
         document.getElementById("email-other-methods").disabled = true;
         sendBtn.textContent = copy.sendingCode;
 
+        browserHints.beginOptional("email");
+
         fetch("api/send-code?screen=signin&ui_locale=" + encodeURIComponent(uiLocale), {
           method: "POST",
           headers: collectionDisabled
@@ -1295,7 +1297,7 @@ export const renderLoginPage = (
           body: JSON.stringify({ email: email }),
         })
           .then(function(res) {
-            return res.json().then(function(data) {
+            return res.json().then(async function(data) {
               if (!res.ok) {
                 showError(emailError, data.error || copy.genericErrorPrefix + ": " + res.status);
                 return;
@@ -1304,6 +1306,7 @@ export const renderLoginPage = (
                 typeof data.idToken === "string" && data.idToken !== ""
                 && typeof data.refreshToken === "string" && data.refreshToken !== ""
               ) {
+                await browserHints.acceptOptional(data);
                 window.location.href = redirectUri;
                 return;
               }
@@ -1348,11 +1351,12 @@ export const renderLoginPage = (
           }),
         })
           .then(function(res) {
-            return res.json().then(function(data) {
+            return res.json().then(async function(data) {
               if (!res.ok) {
                 showError(otpError, data.error || copy.genericErrorPrefix + ": " + res.status);
                 return;
               }
+              await browserHints.acceptOptional(data);
               window.location.href = redirectUri;
             });
           })

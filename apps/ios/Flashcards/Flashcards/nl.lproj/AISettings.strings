@@ -922,3 +922,14 @@
 "ai.consent.withdrawalBody" = "Als je dit uitschakelt, stoppen nieuwe AI-verzoeken. Bestaande chats en gegevens die al naar OpenAI zijn gestuurd, worden niet verwijderd.";
 "ai.consent.withdrawalFailed" = "Gegevens delen met AI is uitgeschakeld op dit apparaat. Je keuze is nog niet gesynchroniseerd; probeer het opnieuw wanneer je verbinding hebt.";
 "ai.consent.retrySync" = "Keuze opnieuw opslaan";
+"settings.account.cloudSignIn.unifiedTitle" = "Log in of maak een account";
+"settings.account.cloudSignIn.remember" = "Deze aanmelding op dit apparaat onthouden";
+"settings.account.cloudSignIn.lastUsed" = "Laatst gebruikt";
+"settings.account.cloudSignIn.showEmail" = "E-mailadres tonen";
+"settings.account.cloudSignIn.forget" = "Deze aanmelding vergeten";
+"settings.account.cloudSignIn.signOutForget" = "Uitloggen en vergeten";
+"settings.account.cloudSignIn.mailboxPrompt" = "Bevestig toegang tot je e-mail. Voer de code van 6–8 cijfers in. Controleer zo nodig je spammap.";
+"settings.account.cloudSignIn.freshAttempt" = "Het inloggen is niet voltooid. Begin opnieuw om door te gaan.";
+"settings.account.cloudSignIn.restart" = "Opnieuw beginnen";
+"settings.account.cloudSignIn.rememberFailed" = "Ingelogd. De aanmeldherinnering kon niet worden opgeslagen. Probeer opnieuw of sluit.";
+"settings.account.cloudSignIn.hintFailed" = "De onthouden aanmelding kon niet worden bijgewerkt. Probeer opnieuw.";

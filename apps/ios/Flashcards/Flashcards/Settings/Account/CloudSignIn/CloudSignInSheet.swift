@@ -41,43 +41,52 @@ struct CloudSignInSheet: View {
                         }
                     }
 
-                    Section(aiSettingsLocalized("settings.account.cloudSignIn.section.cloudSync", "Cloud sync")) {
-                        Text(
-                            aiSettingsLocalized(
-                                "settings.account.cloudSignIn.description",
-                                "Sign in with email and continue through the code and workspace steps. Local data stays on this device until you choose a cloud workspace."
-                            )
-                        )
-                            .foregroundStyle(.secondary)
-                    }
+                    CloudNativeSignInOptions(
+                        screen: self.presentationContext.signInStepSurface,
+                        onVerified: { context in
+                            self.handleVerifiedAuthContext(context, attemptId: self.store.cloudSignInAttempt.id)
+                        }
+                    )
 
-                    Section(aiSettingsLocalized("common.email", "Email")) {
-                        TextField(aiSettingsLocalized("settings.account.cloudSignIn.emailPlaceholder", "Your email"), text: $store.cloudSignInAttempt.email)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                            .keyboardType(.emailAddress)
-                            .textContentType(.emailAddress)
-                            .submitLabel(.send)
-                            .focused(self.$isEmailFieldFocused)
-                            .accessibilityIdentifier(UITestIdentifier.cloudSignInEmailField)
-                            .onSubmit {
+                    if self.store.cloudSignInAttempt.isEmailSelected {
+                        Section {
+                            Button(aiSettingsLocalized("common.back", "Back")) {
+                                self.isEmailFieldFocused = false
+                                self.store.cloudSignInAttempt.isEmailSelected = false
+                            }
+                            .disabled(self.store.cloudSignInAttempt.isMethodChangeBlocked)
+                            .accessibilityIdentifier("cloudSignIn.anotherMethod")
+                        }
+
+                        Section(aiSettingsLocalized("common.email", "Email")) {
+                            TextField(aiSettingsLocalized("settings.account.cloudSignIn.emailPlaceholder", "Your email"), text: $store.cloudSignInAttempt.email)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                                .keyboardType(.emailAddress)
+                                .textContentType(.emailAddress)
+                                .submitLabel(.send)
+                                .focused(self.$isEmailFieldFocused)
+                                .accessibilityIdentifier(UITestIdentifier.cloudSignInEmailField)
+                                .onSubmit {
+                                    self.sendCode()
+                                }
+                        }
+                        .disabled(self.store.cloudSignInAttempt.isMethodChangeBlocked)
+
+                        Section {
+                            Button(aiSettingsLocalized("settings.account.cloudSignIn.sendOneTimeCode", "Send one-time code")) {
                                 self.sendCode()
                             }
-                    }
-
-                    Section {
-                        Button(aiSettingsLocalized("settings.account.cloudSignIn.sendOneTimeCode", "Send one-time code")) {
-                            self.sendCode()
+                            .disabled(
+                                self.store.cloudSignInAttempt.isMethodChangeBlocked
+                                    || isValidCloudEmail(self.store.cloudSignInAttempt.email) == false
+                            )
+                            .accessibilityIdentifier(UITestIdentifier.cloudSignInSendCodeButton)
                         }
-                        .disabled(
-                            self.store.cloudSignInAttempt.isSendingCode
-                                || isValidCloudEmail(self.store.cloudSignInAttempt.email) == false
-                        )
-                        .accessibilityIdentifier(UITestIdentifier.cloudSignInSendCodeButton)
                     }
                 }
             }
-            .navigationTitle(aiSettingsLocalized("settings.account.cloudSignIn.title", "Sign in"))
+            .navigationTitle(aiSettingsLocalized("settings.account.cloudSignIn.unifiedTitle", "Sign in or create an account"))
             .navigationBarTitleDisplayMode(.inline)
             .accessibilityIdentifier(UITestIdentifier.cloudSignInScreen)
             .interactiveDismissDisabled(self.store.cloudSignInAttempt.isPostAuthActionInFlight)
@@ -88,9 +97,23 @@ struct CloudSignInSheet: View {
                     }
                     .disabled(
                         self.store.cloudSignInAttempt.isSendingCode
+                            || self.store.cloudSignInAttempt.isNativeRequestInFlight
                             || self.store.cloudSignInAttempt.isPostAuthActionInFlight
                     )
                 }
+            }
+            .sheet(isPresented: $store.cloudSignInAttempt.isMailboxPresented, onDismiss: {
+                if !self.store.cloudSignInAttempt.usesNativeSession {
+                    self.store.cloudNativeSignIn.resetPendingSignIn()
+                }
+            }) {
+                let attemptId = self.store.cloudSignInAttempt.id
+                CloudMailboxVerificationSheet(
+                    attemptId: attemptId,
+                    screen: self.presentationContext.signInStepSurface,
+                    onVerified: { context in self.handleVerifiedAuthContext(context, attemptId: attemptId) }
+                )
+                .environment(self.store)
             }
             .sheet(item: $store.cloudSignInAttempt.otpSheetState) { otpState in
                 // The code step's requests outlive it exactly as `sendCode`'s do — the OTP sheet has
@@ -184,8 +207,16 @@ struct CloudSignInSheet: View {
             .alert(aiSettingsLocalized("settings.account.status.logoutAlertTitle", "Log out and clear this device?"), isPresented: self.$isLogoutConfirmationPresented) {
                 Button(aiSettingsLocalized("common.cancel", "Cancel"), role: .cancel) {}
                 Button(aiSettingsLocalized("settings.account.status.logOut", "Log out"), role: .destructive) {
-                    self.logoutAndDismiss()
+                    self.logoutAndDismiss {
+                        try await self.store.signOutCloudAccountFromPressedControl(screen: .signin)
+                    }
                 }
+                Button(aiSettingsLocalized("settings.account.cloudSignIn.signOutForget", "Sign out and forget"), role: .destructive) {
+                    self.logoutAndDismiss {
+                        try await self.store.signOutCloudAccountAndForgetFromPressedControl(screen: .signin)
+                    }
+                }
+                .accessibilityIdentifier("cloudSignIn.signOutForget")
             } message: {
                 Text(aiSettingsLocalized("settings.account.status.logoutAlertMessage", "All local workspaces and synced data will be removed from this device."))
             }
@@ -209,6 +240,9 @@ struct CloudSignInSheet: View {
             .onAppear {
                 self.recordSurfacePresenceIfNeeded()
                 self.scheduleEmailFieldFocusIfShowingEmailForm()
+            }
+            .onChange(of: self.store.cloudSignInAttempt.isEmailSelected) { _, selected in
+                if selected { self.scheduleEmailFieldFocusIfShowingEmailForm() }
             }
             .onDisappear {
                 self.clearSurfacePresenceIfNeeded()
@@ -291,7 +325,8 @@ struct CloudSignInSheet: View {
     }
 
     private func scheduleEmailFieldFocusIfShowingEmailForm() {
-        guard self.store.cloudSignInAttempt.isStepAboveEmailFormPresented == false else {
+        guard self.store.cloudSignInAttempt.isEmailSelected,
+              self.store.cloudSignInAttempt.isStepAboveEmailFormPresented == false else {
             return
         }
 
@@ -326,6 +361,8 @@ struct CloudSignInSheet: View {
     }
 
     private func sendCode() {
+        guard !self.store.cloudSignInAttempt.isMethodChangeBlocked,
+              self.store.cloudSignInAttempt.isEmailSelected else { return }
         self.isEmailFieldFocused = false
 
         guard isValidCloudEmail(self.store.cloudSignInAttempt.email) else {
@@ -374,7 +411,9 @@ struct CloudSignInSheet: View {
                     // reported too: the step guard below only decides what may be written into the
                     // code step on screen, and a step that replaced this one does not make the code
                     // the server sent untrue.
-                    Analytics.track(.signInCodeRequested(screen: self.presentationContext.signInStepSurface))
+                    Analytics.track(.authCodeRequestFinished(method: .email, action: .initial,
+                        outcome: .accepted, screen: self.presentationContext.signInStepSurface))
+                    Analytics.track(.signInCodeRequestedWithMethod(method: .email, screen: self.presentationContext.signInStepSurface))
 
                     guard self.store.cloudSignInAttempt.otpSheetState?.id == nextOtpSheetState.id else {
                         return
@@ -404,6 +443,8 @@ struct CloudSignInSheet: View {
                 if isRequestCancellationError(error: error) {
                     return
                 }
+                Analytics.track(.authCodeRequestFinished(method: .email, action: .initial,
+                    outcome: nativeCodeRequestOutcome(error), screen: self.presentationContext.signInStepSurface))
                 self.store.reportCloudSignInFailure(reason: analyticsSignInFailureReason(error: error))
                 self.presentAuthErrorPresentation(
                     makeCloudAuthInlineErrorPresentation(
@@ -473,6 +514,7 @@ struct CloudSignInSheet: View {
             return
         }
 
+        self.store.cloudSignInAttempt.verifiedMethod = self.store.cloudSignInAttempt.selectedMethod
         self.store.recordCloudSignInVerified(screen: self.presentationContext.signInStepSurface)
 
         let loadingState = CloudPostAuthLoadingState(verifiedContext: verifiedContext)
@@ -488,8 +530,16 @@ struct CloudSignInSheet: View {
     }
 
     private func prepareCloudLink(_ loadingState: CloudPostAuthLoadingState) async {
+        guard self.store.cloudSignInAttempt.postAuthLoadingState?.id == loadingState.id,
+              !Task.isCancelled else { return }
         do {
-            let linkContext = try await self.store.prepareCloudLink(verifiedContext: loadingState.verifiedContext)
+            self.store.cloudSignInAttempt.sessionConfiguration = try self.store.currentCloudServiceConfiguration()
+            let linkContext: CloudWorkspaceLinkContext
+            if self.store.cloudSignInAttempt.usesNativeSession {
+                linkContext = try await self.store.cloudNativeSignIn.prepareAccount(store: self.store)
+            } else {
+                linkContext = try await self.store.prepareCloudLink(verifiedContext: loadingState.verifiedContext)
+            }
             guard self.store.cloudSignInAttempt.postAuthLoadingState?.id == loadingState.id else {
                 return
             }
@@ -591,50 +641,104 @@ struct CloudSignInSheet: View {
     }
 
     private func runPostAuthSync(_ syncState: CloudPostAuthSyncState) async {
+        guard self.store.cloudSignInAttempt.postAuthSyncState?.id == syncState.id,
+              !Task.isCancelled else { return }
+        let attemptId = self.store.cloudSignInAttempt.id
+        let method = self.store.cloudSignInAttempt.selectedMethod.analyticsMethod
         let captureContext = self.store.beginTechnicalErrorCaptureContext()
         do {
-            switch syncState.operation {
-            case .completeLink(let linkContext, let selection):
-                try await self.store.completeCloudLink(
-                    linkContext: linkContext,
-                    selection: selection,
-                    technicalErrorCaptureContext: captureContext
-                )
-            case .completeGuestLink(let linkContext, let selection):
-                try await self.store.completeGuestCloudLink(
-                    linkContext: linkContext,
-                    selection: selection,
-                    technicalErrorCaptureContext: captureContext
-                )
-            case .syncOnly:
-                try await self.store.syncCloudNow(
-                    trigger: self.store.postAuthCloudSyncTrigger(
-                        now: Date(),
+            if self.store.cloudSignInAttempt.usesNativeSession {
+                if self.store.cloudNativeSignIn.completedAccount != nil {
+                    try self.store.cloudNativeSignIn.rememberAcceptedSession()
+                } else {
+                    let selection: CloudWorkspaceLinkSelection
+                    switch syncState.operation {
+                    case .completeLink(_, let value), .completeGuestLink(_, let value): selection = value
+                    case .syncOnly: throw LocalStoreError.validation("Native sign-in requires its prepared workspace selection")
+                    }
+                    _ = try await self.store.cloudNativeSignIn.completeAccount(
+                        store: self.store, selection: selection, captureContext: captureContext)
+                }
+            } else {
+                switch syncState.operation {
+                case .completeLink(let linkContext, let selection):
+                    try await self.store.completeCloudLink(
+                        linkContext: linkContext,
+                        selection: selection,
                         technicalErrorCaptureContext: captureContext
                     )
-                )
+                case .completeGuestLink(let linkContext, let selection):
+                    try await self.store.completeGuestCloudLink(
+                        linkContext: linkContext,
+                        selection: selection,
+                        technicalErrorCaptureContext: captureContext
+                    )
+                case .syncOnly:
+                    try await self.store.syncCloudNow(
+                        trigger: self.store.postAuthCloudSyncTrigger(
+                            now: Date(),
+                            technicalErrorCaptureContext: captureContext
+                        )
+                    )
+                }
             }
 
-            guard self.store.cloudSignInAttempt.postAuthSyncState?.id == syncState.id else {
+            guard self.store.cloudSignInAttempt.id == attemptId,
+                  self.store.cloudSignInAttempt.postAuthSyncState?.id == syncState.id else {
                 return
             }
 
+            self.recordStoredSessionIfNeeded(operation: syncState.operation, method: method)
             self.store.cloudSignInAttempt.postAuthFailureState = nil
             self.store.cloudSignInAttempt.postAuthSyncState = nil
+            if !self.store.cloudSignInAttempt.hasRecordedAccountReady {
+                self.store.cloudSignInAttempt.hasRecordedAccountReady = true
+                self.recordAccountCompletion(operation: syncState.operation, method: method)
+            }
             self.store.cloudSignInAttempt.isCompleted = true
         } catch {
-            guard self.store.cloudSignInAttempt.postAuthSyncState?.id == syncState.id else {
+            guard self.store.cloudSignInAttempt.id == attemptId,
+                  self.store.cloudSignInAttempt.postAuthSyncState?.id == syncState.id else {
                 return
             }
-            if isRequestCancellationError(error: error) {
+            if Task.isCancelled || isRequestCancellationError(error: error) {
                 self.store.cloudSignInAttempt.postAuthSyncState = nil
                 return
+            }
+            self.recordStoredSessionIfNeeded(operation: syncState.operation, method: method)
+            if self.store.cloudSignInAttempt.usesNativeSession,
+               self.store.cloudNativeSignIn.completedAccount != nil {
+                if !self.store.cloudSignInAttempt.hasRecordedAccountReady {
+                    self.store.cloudSignInAttempt.hasRecordedAccountReady = true
+                    self.recordAccountCompletion(operation: syncState.operation, method: method)
+                }
+                self.store.cloudSignInAttempt.postAuthSyncState = nil
+                self.presentPostAuthFailure(
+                    title: aiSettingsLocalized("settings.account.cloudSignIn.unifiedTitle", "Sign in or create an account"),
+                    message: aiSettingsLocalized("settings.account.cloudSignIn.rememberFailed", "Signed in. The sign-in hint could not be saved. Try again or close."),
+                    technicalError: self.store.makeTechnicalErrorAction(error: error, captureContext: captureContext),
+                    retryAction: .syncOnly, kind: .standard)
+                return
+            }
+            if case .completeGuestLink = syncState.operation {
+                Analytics.track(.authGuestUpgradeFinished(method: method,
+                    outcome: nativeGuestUpgradeOutcome(error), screen: self.presentationContext.signInStepSurface))
             }
 
             let failurePresentation = makeCloudPostAuthFailurePresentation(
                 operation: syncState.operation,
                 cloudState: self.store.cloudSettings?.cloudState
             )
+            let retryAction: CloudPostAuthRetryAction
+            if self.store.cloudSignInAttempt.usesNativeSession {
+                switch syncState.operation {
+                case .completeLink(let context, let selection): retryAction = .completeLink(linkContext: context, selection: selection)
+                case .completeGuestLink(let context, let selection): retryAction = .completeGuestLink(linkContext: context, selection: selection)
+                case .syncOnly: retryAction = .syncOnly
+                }
+            } else {
+                retryAction = failurePresentation.retryAction
+            }
 
             self.store.cloudSignInAttempt.postAuthSyncState = nil
             self.presentPostAuthFailure(
@@ -646,9 +750,35 @@ struct CloudSignInSheet: View {
                         error: error,
                         captureContext: captureContext
                     ),
-                retryAction: failurePresentation.retryAction,
+                retryAction: retryAction,
                 kind: failurePresentation.kind
             )
+        }
+    }
+
+    private func recordStoredSessionIfNeeded(operation: CloudPostAuthSyncOperation, method: AnalyticsAuthMethod) {
+        guard !self.store.cloudSignInAttempt.hasRecordedSessionAccepted,
+              let configuration = self.store.cloudSignInAttempt.sessionConfiguration else { return }
+        let context: CloudWorkspaceLinkContext
+        switch operation {
+        case .completeLink(let value, _), .completeGuestLink(let value, _): context = value
+        case .syncOnly: return
+        }
+        do {
+            guard try self.store.currentCloudServiceConfiguration() == configuration,
+                  context.apiBaseUrl == configuration.apiBaseUrl,
+                  let stored = try self.store.cloudRuntime.loadCredentials(),
+                  stored.refreshToken == context.credentials.refreshToken else { return }
+            self.store.cloudSignInAttempt.hasRecordedSessionAccepted = true
+            Analytics.track(.authSessionAccepted(method: method, screen: self.presentationContext.signInStepSurface))
+        } catch { self.store.presentTechnicalError(error) }
+    }
+
+    private func recordAccountCompletion(operation: CloudPostAuthSyncOperation, method: AnalyticsAuthMethod) {
+        let screen = self.presentationContext.signInStepSurface
+        Analytics.track(.authAccountReady(method: method, screen: screen))
+        if case .completeGuestLink = operation {
+            Analytics.track(.authGuestUpgradeFinished(method: method, outcome: .completed, screen: screen))
         }
     }
 
@@ -710,7 +840,7 @@ struct CloudSignInSheet: View {
         self.technicalErrorPresentation = self.store.makeTechnicalErrorPresentationIfNeeded(action: action)
     }
 
-    private func logoutAndDismiss() {
+    private func logoutAndDismiss(operation: @escaping @MainActor () async throws -> Void) {
         guard self.isLoggingOut == false else {
             return
         }
@@ -725,7 +855,7 @@ struct CloudSignInSheet: View {
             }
 
             do {
-                try await self.store.signOutCloudAccountFromPressedControl(screen: .signin)
+                try await operation()
             } catch {
                 self.store.cloudSignInAttempt.authErrorPresentation = CloudAuthInlineErrorPresentation(
                     message: Flashcards.errorMessage(error: error),

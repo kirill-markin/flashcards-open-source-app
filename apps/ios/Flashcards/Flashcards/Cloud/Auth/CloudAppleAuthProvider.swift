@@ -12,7 +12,8 @@ final class CloudAppleAuthProvider: NSObject, ASAuthorizationControllerDelegate 
     func authorize(
         login: CloudSocialLoginAttempt,
         methods: CloudAuthMethods,
-        presentation: CloudNativeAuthPresentation
+        presentation: CloudNativeAuthPresentation,
+        onRequested: () -> Void
     ) async throws -> CloudSocialProviderProof {
         guard self.controller == nil else { throw CloudNativeAuthError.alreadyInProgress }
         let metadata = try validateNativeProviderAttempt(login: login, methods: methods, provider: .apple)
@@ -47,6 +48,7 @@ final class CloudAppleAuthProvider: NSObject, ASAuthorizationControllerDelegate 
                 if Task.isCancelled {
                     self.finish(.failure(CloudNativeAuthError.cancelled(.apple)))
                 } else {
+                    onRequested()
                     controller.performRequests()
                 }
             }

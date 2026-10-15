@@ -922,3 +922,14 @@
 "ai.consent.withdrawalBody" = "Изключването спира новите заявки към ИИ. То не изтрива съществуващите чатове или данните, вече изпратени до OpenAI.";
 "ai.consent.withdrawalFailed" = "Споделянето с ИИ е изключено на това устройство. Изборът ви още не е синхронизиран; опитайте отново, когато имате връзка.";
 "ai.consent.retrySync" = "Повторно запазване на избора";
+"settings.account.cloudSignIn.unifiedTitle" = "Вход или създаване на акаунт";
+"settings.account.cloudSignIn.remember" = "Запомняне на този вход на устройството";
+"settings.account.cloudSignIn.lastUsed" = "Последно използвано";
+"settings.account.cloudSignIn.showEmail" = "Показване на имейла";
+"settings.account.cloudSignIn.forget" = "Забравяне на този вход";
+"settings.account.cloudSignIn.signOutForget" = "Изход и забравяне";
+"settings.account.cloudSignIn.mailboxPrompt" = "Потвърдете достъпа до имейла си. Въведете кода от 6–8 цифри. При нужда проверете спама.";
+"settings.account.cloudSignIn.freshAttempt" = "Входът не завърши. Започнете отново, за да продължите.";
+"settings.account.cloudSignIn.restart" = "Започване отново";
+"settings.account.cloudSignIn.rememberFailed" = "Влязохте успешно. Подсказката за вход не можа да бъде запазена. Опитайте пак или затворете.";
+"settings.account.cloudSignIn.hintFailed" = "Запомненият вход не можа да бъде обновен. Опитайте отново.";

@@ -922,3 +922,14 @@
 "ai.consent.withdrawalBody" = "När du stänger av detta stoppas nya AI-förfrågningar. Befintliga chattar och data som redan har skickats till OpenAI raderas inte.";
 "ai.consent.withdrawalFailed" = "Datadelning med AI är avstängd på den här enheten. Ditt val har ännu inte synkroniserats; försök igen när du har anslutning.";
 "ai.consent.retrySync" = "Försök spara valet igen";
+"settings.account.cloudSignIn.unifiedTitle" = "Logga in eller skapa ett konto";
+"settings.account.cloudSignIn.remember" = "Kom ihåg denna inloggning på enheten";
+"settings.account.cloudSignIn.lastUsed" = "Senast använd";
+"settings.account.cloudSignIn.showEmail" = "Visa e-postadress";
+"settings.account.cloudSignIn.forget" = "Glöm denna inloggning";
+"settings.account.cloudSignIn.signOutForget" = "Logga ut och glöm";
+"settings.account.cloudSignIn.mailboxPrompt" = "Bekräfta åtkomst till din e-post. Ange koden med 6–8 siffror. Kontrollera skräpposten vid behov.";
+"settings.account.cloudSignIn.freshAttempt" = "Inloggningen slutfördes inte. Börja om för att fortsätta.";
+"settings.account.cloudSignIn.restart" = "Börja om";
+"settings.account.cloudSignIn.rememberFailed" = "Du är inloggad. Inloggningsledtråden kunde inte sparas. Försök igen eller stäng.";
+"settings.account.cloudSignIn.hintFailed" = "Den sparade inloggningen kunde inte uppdateras. Försök igen.";

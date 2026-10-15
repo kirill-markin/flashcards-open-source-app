@@ -2,6 +2,7 @@ import { getLoginPageLocaleDirection, type LoginPageLocale } from "../routes/bro
 import type { BrowserLoginCompletion } from "../routes/social/browserCompletion.js";
 import { BROWSER_CONTINUATION_COPY } from "./browserContinuationCopy.js";
 import { getLoginPageCopy } from "./login.js";
+import { browserHintStorageScript } from "./browserHints.js";
 
 export function browserScriptJson(value: object): string {
   return JSON.stringify(value).replace(/</g, "\\u003c").replace(/>/g, "\\u003e")
@@ -15,7 +16,8 @@ export function browserHtml(value: string): string {
 
 // Both provider callback documents and mailbox JSON responses enter this consumer after acceptance.
 export const browserCompletionConsumerScript = `
-  function consumeBrowserCompletion(result) {
+  ${browserHintStorageScript}
+  async function consumeBrowserCompletion(result) {
     if (result === null || typeof result !== "object" || result.ok !== true
       || typeof result.redirectUri !== "string") throw new Error("AUTH_COMPLETION_INVALID");
     if (result.purpose === undefined) {
@@ -25,6 +27,7 @@ export const browserCompletionConsumerScript = `
     } else if (result.purpose !== "link" && result.purpose !== "reauth") {
       throw new Error("AUTH_COMPLETION_INVALID");
     }
+    if (result.purpose === undefined) await browserHints.acceptOptional(result);
     window.location.replace(result.redirectUri);
   }
 `;
@@ -66,5 +69,5 @@ export function renderBrowserCompletion(
     `<h1>${browserHtml(copy.completed)}</h1><a id="auth-continue" class="continue" href="${browserHtml(completion.redirectUri)}">${browserHtml(copy.continue)}</a>`,
     `${browserCompletionConsumerScript}
     const completion = ${browserScriptJson(completion)};
-    consumeBrowserCompletion(completion);`);
+    void consumeBrowserCompletion(completion);`);
 }

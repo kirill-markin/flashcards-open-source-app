@@ -922,3 +922,14 @@
 "ai.consent.withdrawalBody" = "Kuzima huku kunazuia maombi mapya ya AI. Hakufuti mazungumzo yaliyopo au data iliyotumwa tayari kwa OpenAI.";
 "ai.consent.withdrawalFailed" = "Kushiriki data na AI kumezimwa kwenye kifaa hiki. Chaguo lako bado halijasawazishwa; jaribu tena unapokuwa na muunganisho.";
 "ai.consent.retrySync" = "Jaribu kuhifadhi chaguo tena";
+"settings.account.cloudSignIn.unifiedTitle" = "Ingia au fungua akaunti";
+"settings.account.cloudSignIn.remember" = "Kumbuka kuingia huku kwenye kifaa hiki";
+"settings.account.cloudSignIn.lastUsed" = "Iliyotumika mwisho";
+"settings.account.cloudSignIn.showEmail" = "Onyesha barua pepe";
+"settings.account.cloudSignIn.forget" = "Sahau kuingia huku";
+"settings.account.cloudSignIn.signOutForget" = "Ondoka na usahau";
+"settings.account.cloudSignIn.mailboxPrompt" = "Thibitisha ufikiaji wa barua pepe yako. Weka msimbo wa tarakimu 6–8. Angalia barua taka ikihitajika.";
+"settings.account.cloudSignIn.freshAttempt" = "Kuingia hakukukamilika. Anza tena ili kuendelea.";
+"settings.account.cloudSignIn.restart" = "Anza tena";
+"settings.account.cloudSignIn.rememberFailed" = "Umeingia. Kidokezo cha kuingia hakikuhifadhiwa. Jaribu tena au funga.";
+"settings.account.cloudSignIn.hintFailed" = "Kuingia kulikokumbukwa hakukusasishwa. Jaribu tena.";

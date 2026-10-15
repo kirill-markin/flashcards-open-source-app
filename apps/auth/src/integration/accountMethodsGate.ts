@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
+import type pg from "pg";
+import type { DatabaseExecutor } from "../db.js";
+import { listAccountLoginMethodsInExecutor } from "../server/social/accountMethods.js";
 
 const origins = ["https://auth.nibomo.com", "https://auth.flashcards-open-source-app.com"];
 
-/** Demo principals cannot manage real methods or bootstrap a management CSRF context. */
 export async function checkDemoAccountMethodRefusals(sessionToken: string): Promise<void> {
   for (const origin of origins) {
     const verifier = randomBytes(32).toString("base64url");
@@ -54,5 +56,80 @@ export async function checkDemoAccountMethodRefusals(sessionToken: string): Prom
       assert.deepEqual(await crossOrigin.json(), { error: "Origin is not allowed" });
       assert.equal(crossOrigin.headers.get("set-cookie"), null);
     }
+  }
+}
+
+// Storage-boundary fixtures exercise the production projection as auth_app, without fabricated JWTs.
+export async function checkAccountRecoveryEmailProjection(runtime: pg.Client, owner: pg.Client): Promise<void> {
+  const account = randomUUID();
+  const otherAccount = randomUUID();
+  const current = randomUUID();
+  const alias = randomUUID();
+  const deleted = randomUUID();
+  const unproved = randomUUID();
+  const other = randomUUID();
+  const subjects = [current, alias, deleted, unproved, other];
+  const username = "current-" + randomUUID();
+  const suffix = randomUUID() + "@mail.test";
+  const first = "a-" + suffix;
+  const last = "z-" + suffix;
+  const foreign = "foreign-" + suffix;
+  const originalTime = Math.floor(Date.now() / 1_000) - 300;
+  const executor: DatabaseExecutor = { query: (text, parameters) => runtime.query(text, [...parameters]) };
+  const load = async (subject: string, immutableUsername: string, authTime: number | null) => {
+    await runtime.query("BEGIN");
+    try {
+      const result = await listAccountLoginMethodsInExecutor(executor, subject, immutableUsername, authTime);
+      await runtime.query("COMMIT");
+      return result;
+    } catch (error) {
+      await runtime.query("ROLLBACK");
+      throw error;
+    }
+  };
+  const record = (subject: string, email: string) =>
+    runtime.query("SELECT auth.record_verified_login_email($1,$2,clock_timestamp())", [subject, email]);
+  try {
+    for (const id of [account, otherAccount]) {
+      await owner.query("INSERT INTO org.user_settings(user_id,email) VALUES ($1,$2)", [id, "unproved-profile-" + suffix]);
+    }
+    for (const subject of subjects) {
+      await runtime.query("SELECT auth.register_cognito_principal($1,$2)", [subject, subject === current ? username : subject]);
+      await owner.query("SELECT auth.bind_cognito_account($1,$2)", [subject, subject === other ? otherAccount : account]);
+    }
+    await runtime.query("SELECT auth.bind_provider_identity('google',$1,$2)", ["unproved-provider-" + randomUUID(), unproved]);
+    await record(other, foreign);
+    assert.deepEqual(await load(current, username, originalTime), { methods: [], verifiedRecoveryEmails: [] });
+    assert.deepEqual((await load(other, other, originalTime)).verifiedRecoveryEmails, [foreign]);
+
+    await record(alias, last);
+    await record(alias, first);
+    await record(current, first);
+    await record(other, first);
+    await record(alias, randomUUID() + "@privaterelay.appleid.com");
+    await record(alias, randomUUID() + "@private.icloud.com");
+    await record(alias, randomUUID() + "@example.com");
+    await record(deleted, "deleted-" + suffix);
+    await owner.query("INSERT INTO auth.deleted_subjects(subject_sha256) VALUES ($1)", [createHash("sha256").update(deleted).digest("hex")]);
+    assert.deepEqual((await load(current, username, originalTime)).verifiedRecoveryEmails, [first, last]);
+    assert.deepEqual((await load(other, other, originalTime)).verifiedRecoveryEmails, [first, foreign]);
+    await assert.rejects(load(current, current, originalTime), { code: "23505" });
+    await assert.rejects(load(current, username, -1), { code: "23514" });
+
+    const minimum = Math.floor(Date.now() / 1_000);
+    await owner.query("INSERT INTO auth.principal_session_fences(subject_sha256,minimum_auth_time) VALUES ($1,$2)",
+      [createHash("sha256").update(current).digest("hex"), minimum]);
+    await assert.rejects(load(current, username, originalTime), { code: "23514" });
+    await assert.rejects(load(current, username, null), { code: "23514" });
+    assert.deepEqual((await load(current, username, minimum)).verifiedRecoveryEmails, [first, last]);
+    await owner.query("INSERT INTO auth.deleted_subjects(subject_sha256) VALUES ($1)", [createHash("sha256").update(current).digest("hex")]);
+    await assert.rejects(load(current, username, minimum), { code: "23514" });
+  } finally {
+    await owner.query("DELETE FROM auth.cognito_principals WHERE cognito_subject = ANY($1::text[])", [subjects]);
+    await owner.query("DELETE FROM auth.principal_session_fences WHERE subject_sha256 = ANY($1::text[])",
+      [subjects.map((subject) => createHash("sha256").update(subject).digest("hex"))]);
+    await owner.query("DELETE FROM auth.deleted_subjects WHERE subject_sha256 = ANY($1::text[])",
+      [subjects.map((subject) => createHash("sha256").update(subject).digest("hex"))]);
+    await owner.query("DELETE FROM org.user_settings WHERE user_id = ANY($1::text[])", [[account, otherAccount]]);
   }
 }
