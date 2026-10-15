@@ -98,12 +98,10 @@ export function authAttemptBindingHash(binding: AuthAttemptBinding): string {
   return authHandleHash(binding.codeVerifier);
 }
 
-/** Route code derives client/origin/current account from trusted context; none can be replaced at completion. */
-export async function createAuthAttempt(
-  request: AuthAttemptRequest, current: AuthCurrentAccount,
-  browser: Readonly<{ origin: string; secret: string }> | null, authOrigin: string,
-): Promise<AuthAttemptResponse> {
-  if (request.purpose !== current.purpose || !["apple", "google"].includes(request.provider)
+export function prepareAuthAttempt(
+  request: AuthAttemptRequest, browser: Readonly<{ origin: string; secret: string }> | null, authOrigin: string,
+): Readonly<{ handle: string; secrets: AttemptSecrets; binding: string; redirectUri: string | null }> {
+  if (!["apple", "google"].includes(request.provider)
     || !["web", "android", "ios", "ios-development", "macos", "macos-development"].includes(request.client)
     || !["login", "link", "reauth"].includes(request.purpose)) throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
   const browserBinding = request.client === "web";
@@ -120,8 +118,6 @@ export async function createAuthAttempt(
     // The app keeps its verifier. The server stores only its SHA-256 challenge.
     binding = Buffer.from(request.codeChallenge, "base64url").toString("hex");
   }
-  if (current.reauthCompletion !== null) requireAuthHandle(current.reauthCompletion);
-  if (current.purpose === "link" && current.reauthBinding.purpose !== "reauth") throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
   const redirectUri = browserBinding || (request.provider === "apple" && request.client === "android")
     ? `${authOrigin}/api/social/${request.provider}/callback` : null;
   if (redirectUri !== null) assertProviderCallback(request.provider, redirectUri);
@@ -129,6 +125,18 @@ export async function createAuthAttempt(
   const secrets: AttemptSecrets = {
     nonce: randomBytes(32).toString("base64url"), providerCodeVerifier: randomBytes(32).toString("base64url"), proof: null, mailbox: null,
   };
+  return { handle, secrets, binding, redirectUri };
+}
+
+/** Route code derives client/origin/current account from trusted context; none can be replaced at completion. */
+export async function createAuthAttempt(
+  request: AuthAttemptRequest, current: AuthCurrentAccount,
+  browser: Readonly<{ origin: string; secret: string }> | null, authOrigin: string,
+): Promise<AuthAttemptResponse> {
+  if (request.purpose !== current.purpose) throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
+  const { handle, secrets, binding, redirectUri } = prepareAuthAttempt(request, browser, authOrigin);
+  if (current.reauthCompletion !== null) requireAuthHandle(current.reauthCompletion);
+  if (current.purpose === "link" && current.reauthBinding.purpose !== "reauth") throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
   const result = await query<Readonly<{ expires_at: Date }>>(
     "SELECT auth.create_social_attempt($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) AS expires_at",
     [authHandleHash(handle), request.provider, request.client, request.purpose, binding,
