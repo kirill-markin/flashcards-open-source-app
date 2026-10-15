@@ -30,7 +30,11 @@ not authorize dispatch or publication.
    callback must remain replaceable until PKCE verification. Confirm one-use server redemption.
 5. Exercise callback storage failure. Expect a localized Retry/Close dialog, no opaque handle or
    raw error displayed, retry using the retained private callback, and a working fresh attempt
-   after Close. Close and reopen the app while an Apple attempt is pending.
+   after Close. Include an encrypted ownership-read IOException wrapped in IllegalStateException:
+   the same dialog must appear without navigating or resetting the current recovery step. Retry
+   must re-read protected ownership, including after it changes; unknown ownership never selects login.
+   Also fail saving the callback before and after its candidate record commits, then Retry the
+   same saved unproved completed candidate. Close and reopen the app while an Apple attempt is pending.
 6. Where the server requires secondary mailbox proof, send once, enter a real 6–8 digit code,
    and complete the same initiating provider journey. Another code requires an explicit fresh
    provider attempt; no replay/resend control is advertised. Test expiration, wrong code,
@@ -46,8 +50,10 @@ not authorize dispatch or publication.
 8. Cover empty guest, bound guest, merge-required guest, workspace choice, credential restoration,
    guest-local recovery, failed initial sync and restart during workspace completion. Existing
    cards/reviews/workspaces must survive; retry must retain the chosen workspace and use the
-   established protected credential recovery. An account-ready fact requires completion, not
-   merely credentials or a workspace-selection screen.
+   established protected credential recovery. Deliver duplicate/stale Apple callbacks while an
+   accepted session is waiting at workspace choice or POST_AUTH: preserve that screen and pending
+   recovery. Repeat after actual mailbox completion has been stored. An account-ready fact requires
+   completion, not merely credentials or a workspace-selection screen.
 9. Opt in to remembering and finish each method. Expect only a small top-right Last used badge
    on the existing successful method button, with fixed method order. Hover/focus shows only the
    actually known successful email; badge touch opens compact masked/reveal/copy/forget controls.
@@ -87,3 +93,50 @@ Actual signed Android `azp`, native Google/Apple success, cancellation, guest/re
 consent acceptance, and Play-delivered translations remain unproved until these checks run.
 The accepted existing rare interruption/final-storage gap after successful recovery may require
 a fresh attempt to finalize a hint; it does not establish an unusable account or data loss.
+
+## Internal account-method boundary
+
+The public Settings consumer is a separate change. After its source gate, an authorized native
+consumer uses `AppGraph.cloudAccountMethodsRepository`; these steps exercise the real module
+and deployed API, without demo identities or manufactured provider credentials.
+
+1. In a linked real account, call `loadMethods()`. Check actual active/disabled methods,
+   `revocationPending`, and read-only `verifiedRecoveryEmails`. Retain the exact target generation
+   string, including PostgreSQL spaces, timezone and microseconds. An empty email list does not
+   mean Email is disabled. No metadata or proof result may replace credentials, provision a
+   workspace, change a sign-in hint or report account ready.
+2. Call `beginReauthentication` with Google, Email or usable browser Apple, in Android order.
+   For Google, call `prepareProviderLaunch(localId)` immediately before the existing official
+   Credential Manager helper with that launch’s server audience and raw nonce. Observe its
+   actual `onRequested` callback; do not count preparing an attempt as an SDK launch. Submit only
+   the real returned token to that local ID. Email’s `onEmailCodeRequested` observes a successful server send before local persistence.
+   Email uses server-selected current-account OTP;
+   no caller email selects the principal. Apple opens the returned authenticated `browserStart`
+   URL through usable Custom Tabs. It must contain only client and opaque attempt parameters.
+   On both supported auth hosts, confirm genuine Apple reauth/link/re-enable begin responses
+   accept the selected HTTPS origin’s `/api/social/apple/callback` as the provider redirect.
+3. Return Apple through the exact hostless app URI. Protected management purpose is read before
+   decoding/dispatch, and `ManagementAccepted` is isolated from ordinary sign-in navigation.
+   Completed reauth is a PKCE candidate receipt; it is not itself credential-receipt evidence.
+   For `verification_required`, send once, then verify the actual mailbox code. Restore waiting
+   state after process death and exercise callback storage Retry with the private retained URI.
+4. After `PROOF_READY`, invoke `beginLink` or `beginReenable` and use its **new local ID**, new
+   nonce/PKCE and actual provider return. The original receipt/verifier remains separate.
+   Complete a normal link with `completeLink`; unlink uses the exact freshly listed target.
+   Check conflict, changed generation and last-usable-method refusals with the real server.
+5. Explicit Apple re-enable accepts only the matching `provider_proved` attempt and calls
+   `resumeAppleReenable` on that same bound attempt. Google never resumes: after actual cleanup
+   metadata becomes ready, start completely new reauthentication and new provider proof.
+   Lost/failed one-use requests restore `SUBMITTING` (expired proof becomes `RESTART_REQUIRED`),
+   disable replay, refresh `loadMethods()` and
+   show actual active results or require entirely fresh proof. Do not infer a nonexistent public
+   revocation-pending error code or poll by resubmitting receipts.
+6. Kill during begin, provider submission, mailbox send/verify, link redemption, unlink and
+   re-enable; interrupt after server success before disk completion too. Confirm no replay after
+   restart, no duplicate confirmed-mutation callback from restoration, and no hint/session writes.
+   Cancel or Forget during a suspended call; change account, server, workspace or installation;
+   sign out normally and sign out/forget. Deliver the late Apple return after each action: it
+   cannot restore the cancelled proof, dispatch to login, reopen sign-in or change recovery steps.
+   Repeat with no pending purpose and with a storage retry whose protected purpose changed.
+   Finally repeat ordinary Google/Apple/Email, guest recovery, hints and login callback storage
+   Retry. Signed-device acceptance and Play translation/publication remain unproved.
