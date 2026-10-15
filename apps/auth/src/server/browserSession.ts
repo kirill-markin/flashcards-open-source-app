@@ -123,6 +123,19 @@ export async function assertIssuedSessionToken(sessionToken: string): Promise<vo
   await assertVerifiedPrincipalSession(payload);
 }
 
+/** Internal management retains signed original authentication time, including unfenced legacy sessions. */
+export async function verifyCurrentAccountSession(sessionToken: string): Promise<Readonly<{
+  subject: string; username: string; email: string; emailVerified: boolean; authTime: number | null;
+}>> {
+  const payload = await getVerifier().verify(sessionToken);
+  await assertVerifiedPrincipalSession(payload);
+  const identity = extractVerifiedSessionIdentity(payload);
+  const username = payload["cognito:username"];
+  if (typeof username !== "string" || username.trim() === "") throw new Error("Cognito ID token is missing immutable username");
+  return { subject: payload.sub, username, email: identity.email, emailVerified: identity.emailVerified, authTime: typeof payload.auth_time === "number" && Number.isSafeInteger(payload.auth_time)
+    && payload.auth_time >= 0 && payload.auth_time <= Math.floor(Date.now() / 1_000) + 30 ? payload.auth_time : null };
+}
+
 export class IssuedSessionValidationError extends Error {
   constructor(cause: unknown) {
     super("Cognito returned tokens, but session validation could not complete.", { cause });
