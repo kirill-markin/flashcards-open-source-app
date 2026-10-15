@@ -1,3 +1,4 @@
+import { assertAppleRevocationClearInExecutor } from "./appleCredential.js";
 import type { DatabaseExecutor } from "../../db.js";
 import type { IdentityProvider } from "./identityStore.js";
 import type { CognitoEmailPrincipal } from "../cognito/cognitoAuth.js";
@@ -41,6 +42,7 @@ export async function loadProviderLoginMethodInExecutor(
   const result = await executor.query<ProviderMethodRow>(
     "SELECT * FROM auth.load_provider_login_method($1, $2)", [provider, providerSubject],
   );
+  if (provider === "apple" && result.rows[0] !== undefined) await assertAppleRevocationClearInExecutor(executor, providerSubject);
   return result.rows[0] === undefined ? null : toProviderMethod(result.rows[0]);
 }
 
