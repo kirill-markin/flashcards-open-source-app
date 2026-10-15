@@ -16,8 +16,17 @@ import { assertVerifiedPrincipalSession, PrincipalSessionError } from "./social/
 
 const SESSION_COOKIE_MAX_AGE_SECONDS = 3_024_000;
 
+export const verifiedBrowserSession = Symbol("verified browser session presentation");
+export type BrowserSessionPresentation = Readonly<{ subject: string; authTime: number }>;
+
+function sessionPresentation(payload: Readonly<{ sub: string; auth_time?: unknown }>): BrowserSessionPresentation | undefined {
+  return typeof payload.auth_time === "number" && Number.isSafeInteger(payload.auth_time)
+    && payload.auth_time >= 0 && payload.auth_time <= Math.floor(Date.now() / 1_000) + 30
+    ? { subject: payload.sub, authTime: payload.auth_time } : undefined;
+}
+
 type SessionTokenValidationResult =
-  | Readonly<{ status: "valid" }>
+  | Readonly<{ status: "valid"; presentation: BrowserSessionPresentation | undefined }>
   | Readonly<{ status: "invalid"; reason: string }>
   | Readonly<{ status: "error"; reason: string }>;
 
@@ -97,8 +106,7 @@ function getCookieOptions(context: Context): Readonly<{
 
 export async function validateSessionToken(sessionToken: string): Promise<SessionTokenValidationResult> {
   try {
-    await assertIssuedSessionToken(sessionToken);
-    return { status: "valid" };
+    return { status: "valid", presentation: await assertIssuedSessionToken(sessionToken) };
   } catch (error) {
     if (isTransientDatabaseError(error) || (error instanceof PrincipalSessionError && error.statusCode === 503)) throw error;
     const reason = error instanceof Error ? error.message : String(error);
@@ -118,9 +126,10 @@ export async function validateSessionToken(sessionToken: string): Promise<Sessio
   }
 }
 
-export async function assertIssuedSessionToken(sessionToken: string): Promise<void> {
+export async function assertIssuedSessionToken(sessionToken: string): Promise<BrowserSessionPresentation | undefined> {
   const payload = await getVerifier().verify(sessionToken);
   await assertVerifiedPrincipalSession(payload);
+  return sessionPresentation(payload);
 }
 
 /** Internal management retains signed original authentication time, including unfenced legacy sessions. */
@@ -144,9 +153,9 @@ export class IssuedSessionValidationError extends Error {
 }
 
 /** A failed check here follows successful Cognito authentication and may follow a consumed proof. */
-export async function assertNewlyIssuedSessionToken(sessionToken: string): Promise<void> {
+export async function assertNewlyIssuedSessionToken(sessionToken: string): Promise<BrowserSessionPresentation | undefined> {
   try {
-    await assertIssuedSessionToken(sessionToken);
+    return await assertIssuedSessionToken(sessionToken);
   } catch (error) {
     if (error instanceof PrincipalSessionError) throw error;
     log({ domain: "auth", action: "issued_session_validation_error",

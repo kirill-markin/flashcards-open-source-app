@@ -305,6 +305,9 @@ checks do not prove real Apple login, token revocation, or private-relay OTP rec
 
 ## Account sign-in methods
 
+Browser-local presentation metadata and manual bridge acceptance are described in
+[Browser sign-in hints](browser-sign-in-hints.md).
+
 The authenticated transport contract is defined in [public request/result types](../apps/auth/src/server/social/publicContract.ts),
 [configured endpoints](../apps/auth/src/server/social/publicMethods.ts), and [session/CSRF adapters](../apps/auth/src/routes/social/accountTransport.ts).
 [Provider mutations](../apps/auth/src/server/social/accountMethods.ts) and [current-email reauthentication](../apps/auth/src/server/social/currentEmailReauth.ts)
