@@ -10,7 +10,7 @@ import {
   getNormalizedCognitoErrorType,
   type CognitoOperation,
 } from "./cognitoErrors.js";
-import { assertNewlyIssuedSessionToken, IssuedSessionValidationError } from "../browserSession.js";
+import { assertNewlyIssuedSessionToken, IssuedSessionValidationError, verifiedBrowserSession, type BrowserSessionPresentation } from "../browserSession.js";
 import { PrincipalSessionError } from "../social/principalSessions.js";
 import { CognitoJwtVerifier } from "aws-jwt-verify";
 import { assertAppleRelayDeliveryAllowed } from "../social/appleNotifications.js";
@@ -32,6 +32,7 @@ type ChallengeResponse = Readonly<{
 }>;
 
 export type TokenResult = Readonly<{
+  [verifiedBrowserSession]?: BrowserSessionPresentation;
   idToken: string;
   accessToken: string;
   refreshToken: string;
@@ -410,8 +411,7 @@ export const verifyEmailOtp = async (
   log({ domain: "auth", action: "verify_code", maskedEmail: maskEmail(email) });
 
   const tokens = extractTokenResult(result, "Cognito RespondToAuthChallenge");
-  await assertNewlyIssuedSessionToken(tokens.idToken);
-  return tokens;
+  return { ...tokens, [verifiedBrowserSession]: await assertNewlyIssuedSessionToken(tokens.idToken) };
 };
 
 async function signInWithPasswordViaCognito(
@@ -486,8 +486,7 @@ export const signInWithPassword = async (
   password: string,
 ): Promise<TokenResult> => {
   const tokens = await signInWithPasswordViaCognito(cognitoFetch, email, password);
-  await assertNewlyIssuedSessionToken(tokens.idToken);
-  return tokens;
+  return { ...tokens, [verifiedBrowserSession]: await assertNewlyIssuedSessionToken(tokens.idToken) };
 };
 
 export const __internal = {
