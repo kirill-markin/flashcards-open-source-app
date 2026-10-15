@@ -187,7 +187,7 @@ fun CloudSignInEntryRoute(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CloudSignInMethodButton(
+internal fun CloudSignInMethodButton(
     method: CloudSignInMethod,
     hint: CloudSuccessfulSignInHint?,
     busy: Boolean,

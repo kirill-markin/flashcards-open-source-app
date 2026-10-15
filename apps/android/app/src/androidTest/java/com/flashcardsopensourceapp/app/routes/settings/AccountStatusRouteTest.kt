@@ -27,6 +27,7 @@ class AccountStatusRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.setContent {
             FlashcardsTheme {
                 AccountStatusRoute(
+                    onOpenMethods = {},
                     uiState = AccountStatusUiState(
                         workspaceName = "Personal",
                         cloudStatusTitle = "Linked",
