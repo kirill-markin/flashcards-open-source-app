@@ -1,5 +1,6 @@
 import {
   AdminCreateUserCommand,
+  AdminGetUserCommand,
   CognitoIdentityProviderClient,
   CognitoIdentityProviderServiceException,
 } from "@aws-sdk/client-cognito-identity-provider";
@@ -169,10 +170,10 @@ function getUserPoolId(): string {
   return userPoolId;
 }
 
-function rethrowProvisioningError(error: unknown): never {
+function rethrowProvisioningError(error: unknown, operation: "AdminCreateUser" | "AdminGetUser"): never {
   if (!(error instanceof CognitoIdentityProviderServiceException)) throw error;
   throw createCognitoTypedError({
-    operation: "AdminCreateUser",
+    operation,
     providerStatusCode: error.$metadata.httpStatusCode ?? 500,
     cognitoType: error.name,
     reasonCode: "reasonCode" in error && typeof error.reasonCode === "string" ? error.reasonCode : null,
@@ -187,11 +188,10 @@ async function createPasswordlessUser(email: string): Promise<void> {
       UserAttributes: [{ Name: "email", Value: email }, { Name: "email_verified", Value: "false" }],
     }));
   } catch (error) {
-    rethrowProvisioningError(error);
+    rethrowProvisioningError(error, "AdminCreateUser");
   }
 }
 
-/** Only freshly verified authoritative provider email may call this; collision grants no authority. */
 export async function createProvedEmailPrincipal(email: string): Promise<CognitoEmailPrincipal | null> {
   try {
     const result = await getProvisioningClient().send(new AdminCreateUserCommand({
@@ -210,7 +210,35 @@ export async function createProvedEmailPrincipal(email: string): Promise<Cognito
   } catch (error) {
     if (error instanceof CognitoIdentityProviderServiceException
       && (error.name === "UsernameExistsException" || error.name === "AliasExistsException")) return null;
-    rethrowProvisioningError(error);
+    rethrowProvisioningError(error, "AdminCreateUser");
+  }
+}
+
+/** Resolves identity only: fresh authoritative provider proof must supply mailbox ownership. */
+export async function loadExistingEmailPrincipal(email: string): Promise<CognitoEmailPrincipal | null> {
+  try {
+    const result = await getProvisioningClient().send(new AdminGetUserCommand({
+      UserPoolId: getUserPoolId(), Username: email,
+    }));
+    const subjects = result.UserAttributes?.filter((attribute) => attribute.Name === "sub") ?? [];
+    const emails = result.UserAttributes?.filter((attribute) => attribute.Name === "email") ?? [];
+    const subject = subjects[0]?.Value;
+    const actualEmail = emails[0]?.Value;
+    if (subjects.length !== 1 || emails.length !== 1 || typeof subject !== "string"
+      || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(subject)
+      || typeof result.Username !== "string" || result.Username.trim() === ""
+      || typeof actualEmail !== "string" || actualEmail.toLowerCase() !== email) {
+      throw new Error("Cognito AdminGetUser did not return the exact email and immutable principal");
+    }
+    if (result.Enabled !== true || result.UserStatus !== "CONFIRMED") {
+      throw createCognitoTypedError({ operation: "AdminGetUser", providerStatusCode: 400,
+        cognitoType: "NotAuthorizedException", reasonCode: null,
+        message: "Cognito email principal must be enabled and confirmed for provider sign-in" });
+    }
+    return { cognitoSubject: subject, cognitoUsername: result.Username, email };
+  } catch (error) {
+    if (error instanceof CognitoIdentityProviderServiceException && error.name === "UserNotFoundException") return null;
+    rethrowProvisioningError(error, "AdminGetUser");
   }
 }
 
