@@ -20,24 +20,23 @@ export function renderBrowserHintFeedback(locale: LoginPageLocale): string {
 
 export const browserHintControlsStyles = `
   .auth-method-option { position: relative; }
-  .auth-method-option.has-hint .auth-method { padding-top: 20px; }
-  .auth-last-used { position: absolute; top: 2px; right: 12px; width: auto; min-height: 24px;
+  .auth-last-used { position: absolute; top: 0; right: 12px; transform: translateY(-50%); width: auto; min-height: 24px;
     padding: 1px 6px; border: 0; border-radius: 8px; background: #3a3a3c; color: #fff;
     font: 500 10px/1.2 system-ui, sans-serif; cursor: pointer; }
   .auth-hint-popover { display: none; position: absolute; top: calc(100% - 2px); right: 0; z-index: 2;
-    max-width: 100%; padding: 12px; border: 1px solid #8e8e93; border-radius: 12px;
+    max-width: 100%; padding: 6px 8px; border: 1px solid #8e8e93; border-radius: 8px;
     background: #1c1c1e; color: #f6f6f8; font-size: 12px; overflow-wrap: anywhere; }
-  .has-hint:focus-within .auth-hint-popover, .has-hint[data-open] .auth-hint-popover { display: block; }
-  @media (hover: hover) { .has-hint:hover .auth-hint-popover { display: block; } }
+  .has-hint[data-keyboard-focus] .auth-hint-popover, .has-hint[data-open] .auth-hint-popover,
+  .has-hint[data-hover] .auth-hint-popover { display: block; }
   .auth-hint-popover:empty, .has-hint[data-dismissed] .auth-hint-popover { display: none !important; }
   .auth-hint-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; font-size: 12px; color: var(--text-secondary); }
   .auth-hint-controls label { display: flex; align-items: center; gap: 6px; }
   .auth-hint-controls input { width: auto; margin: 0; }
-  .auth-hint-controls button, .auth-hint-popover button, .auth-hint-feedback button { width: auto; min-height: 32px;
+  .auth-hint-controls button, .auth-hint-feedback button { width: auto; min-height: 32px;
     padding: 4px 8px; border: 1px solid #8e8e93; border-radius: 8px; background: #2c2c2e; color: #f6f6f8; font: inherit; cursor: pointer; }
-  .auth-hint-controls :focus-visible, .auth-last-used:focus-visible, .auth-hint-popover :focus-visible { outline: 2px solid #8e8e93; outline-offset: 2px; }
+  .auth-hint-controls :focus-visible, .auth-last-used:focus-visible { outline: 2px solid #8e8e93; outline-offset: 2px; }
   .auth-hint-feedback { font-size: 12px; color: #ff858b; overflow-wrap: anywhere; }
-  .auth-hint-feedback[hidden], .auth-last-used[hidden], .auth-hint-popover button[hidden] { display: none; }
+  .auth-hint-feedback[hidden], .auth-last-used[hidden] { display: none; }
 `;
 
 export const browserHintControlsScript = `
@@ -47,6 +46,7 @@ export const browserHintControlsScript = `
   var hintContinue = document.getElementById("signin-hint-continue");
   var hintBusy = false;
   var entrySessionAccepted = false;
+  var hintKeyboardNavigation = false;
 
   function hintError(error) {
     document.getElementById("signin-hint-error").textContent = error instanceof Error ? error.message : String(error);
@@ -67,6 +67,8 @@ export const browserHintControlsScript = `
         option.classList.toggle("has-hint", active);
         option.removeAttribute("data-open");
         option.removeAttribute("data-dismissed");
+        option.removeAttribute("data-keyboard-focus");
+        option.removeAttribute("data-hover");
         badge.hidden = !active;
         button.removeAttribute("aria-describedby");
         popover.replaceChildren();
@@ -78,23 +80,7 @@ export const browserHintControlsScript = `
         emailLabel.dir = "ltr";
         var masked = email.slice(0, 1) + "•••@" + email.split("@")[1];
         emailLabel.textContent = masked;
-        var reveal = document.createElement("button");
-        reveal.type = "button";
-        reveal.textContent = hintCopy.reveal;
-        reveal.setAttribute("aria-pressed", "false");
-        reveal.addEventListener("click", function() {
-          var shown = reveal.getAttribute("aria-pressed") !== "true";
-          emailLabel.textContent = shown ? email : masked;
-          reveal.textContent = shown ? hintCopy.hide : hintCopy.reveal;
-          reveal.setAttribute("aria-pressed", String(shown));
-        });
-        var copyEmail = document.createElement("button");
-        copyEmail.type = "button";
-        copyEmail.textContent = hintCopy.copy;
-        copyEmail.addEventListener("click", function() {
-          Promise.resolve().then(function() { return navigator.clipboard.writeText(email); }).catch(hintError);
-        });
-        popover.append(emailLabel, reveal, copyEmail);
+        popover.append(emailLabel);
       });
     } catch (error) { hintError(error); }
   }
@@ -127,14 +113,44 @@ export const browserHintControlsScript = `
       void updateRemembering(rememberSignIn.checked ? browserHints.enableRemembering : browserHints.forget);
     });
     forgetSignIn.addEventListener("click", function() { void updateRemembering(browserHints.forget); });
+    document.addEventListener("keydown", function(event) {
+      hintKeyboardNavigation = event.isTrusted && event.key === "Tab";
+    }, true);
+    document.addEventListener("focusin", function(event) {
+      var option = event.target.closest(".auth-method-option");
+      if (option && hintKeyboardNavigation) {
+        option.removeAttribute("data-dismissed");
+        option.setAttribute("data-keyboard-focus", "");
+      }
+      hintKeyboardNavigation = false;
+    });
+    document.addEventListener("pointerdown", function(event) {
+      stepMethods.querySelectorAll(".auth-method-option").forEach(function(option) {
+        if (!option.contains(event.target)) {
+          option.removeAttribute("data-open");
+          option.setAttribute("data-dismissed", "");
+        }
+      });
+    });
     stepMethods.querySelectorAll(".auth-last-used").forEach(function(badge) {
       badge.addEventListener("click", function() {
         var option = badge.closest(".auth-method-option");
-        option.removeAttribute("data-dismissed");
-        option.toggleAttribute("data-open");
+        var open = option.hasAttribute("data-open") && !option.hasAttribute("data-dismissed");
+        option.toggleAttribute("data-dismissed", open);
+        option.toggleAttribute("data-open", !open);
       });
-      badge.closest(".auth-method-option").addEventListener("focusin", function(event) { event.currentTarget.removeAttribute("data-dismissed"); });
-      badge.closest(".auth-method-option").addEventListener("pointerenter", function(event) { event.currentTarget.removeAttribute("data-dismissed"); });
+      badge.closest(".auth-method-option").addEventListener("focusout", function(event) {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          event.currentTarget.removeAttribute("data-keyboard-focus");
+          event.currentTarget.removeAttribute("data-open");
+        }
+      });
+      badge.closest(".auth-method-option").addEventListener("pointermove", function(event) {
+        if (event.pointerType !== "mouse") return;
+        event.currentTarget.removeAttribute("data-dismissed");
+        event.currentTarget.setAttribute("data-hover", "");
+      });
+      badge.closest(".auth-method-option").addEventListener("pointerleave", function(event) { event.currentTarget.removeAttribute("data-hover"); });
       badge.closest(".auth-method-option").addEventListener("keydown", function(event) {
         if (event.key === "Escape") {
           badge.focus();
