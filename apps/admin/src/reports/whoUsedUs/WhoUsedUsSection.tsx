@@ -72,6 +72,7 @@ export function WhoUsedUsSection(props: Readonly<{
               <li>New means first-ever recorded meaningful use within that window; returning means first use before it. Each resolved person appears once in exactly one bucket, including upgraded guests.</li>
               <li>The shared actor exclusions apply. Today and windows extending before retained source history are unavailable.</li>
               <li>Review analytics retain anonymized deletion history; deleted chats and reviews never recorded in analytics cannot be reconstructed. First use reads all retained history, regardless of this date selection.</li>
+              {state.status === "ready" ? <li>Generated {formatGeneratedAt(state.report.generatedAtUtc)}.</li> : null}
             </ul>
           </ExplanationTip>
         </div>
@@ -87,17 +88,17 @@ export function WhoUsedUsSection(props: Readonly<{
         <section className="chart-column">
           <div className="chart-shell">
             <div className="chart-meta">
-              <span>Rolling 7-day unique meaningful users · UTC</span>
-              <div className="chart-meta-right"><UniqueUserCohortKey /><span>Generated {formatGeneratedAt(state.report.generatedAtUtc)}</span></div>
+              <span>Rolling 7-day users · UTC</span>
+              <div className="chart-meta-right"><UniqueUserCohortKey /></div>
             </div>
-            <p className="activity-coverage-note">
-              {state.report.historyFrom === null ? "No retained meaningful-use history." : `Recorded source history starts ${state.report.historyFrom}. Complete UTC days through ${state.report.latestCompleteDate}.`}
-            </p>
             {state.report.days.every((day) => day.newUsers === null) ? <p className="report-state">No complete seven-day window is available in this range.</p> : null}
             {state.report.days.some((day) => day.newUsers !== null) && state.report.days.every((day) => (day.newUsers ?? 0) + (day.returningUsers ?? 0) === 0) ? <p className="report-state">No meaningful users in the available windows after exclusions.</p> : null}
             <div className="chart-scroll"><svg ref={chartRef} role="group" aria-label="Who used us: rolling seven-day unique meaningful users" /></div>
             <details className="activity-chart-table">
-              <summary>Show chart data</summary>
+              <summary>Chart data and coverage</summary>
+              <p className="activity-coverage-note">
+                {state.report.historyFrom === null ? "No retained meaningful-use history." : `Recorded source history starts ${state.report.historyFrom}. Complete UTC days through ${state.report.latestCompleteDate}.`}
+              </p>
               <div className="chart-scroll"><table>
                 <caption>Rolling seven-day unique meaningful users, UTC</caption>
                 <thead><tr><th scope="col">Window ending</th><th scope="col">New</th><th scope="col">Returning</th><th scope="col">Total / availability</th></tr></thead>

@@ -76,6 +76,7 @@ export function WhoCameBackSection(props: Readonly<{
               <li>A rate appears only after every possible first-use day of the cohort week has its full return window. Recent or uncovered cohorts are unavailable, never zero.</li>
               <li>The date range selects first-use dates; edge weeks include only selected days. Returns after the selection end count through the latest complete UTC day.</li>
               <li>First use reads the full retained source history. Deleted chat history and reviews never recorded in analytics cannot be reconstructed.</li>
+              {state.status === "ready" ? <li>Generated {formatGeneratedAt(state.report.generatedAtUtc)}.</li> : null}
             </ul>
           </ExplanationTip>
         </div>
@@ -91,19 +92,18 @@ export function WhoCameBackSection(props: Readonly<{
         <section className="chart-column">
           <div className="chart-shell">
             <div className="chart-meta">
-              <span>Weekly first-use cohorts · UTC</span>
+              <span>Weekly cohorts · UTC</span>
               <div className="chart-meta-right">
                 <ChartColorKey ariaLabel="Retention color key" keys={retentionSeries} getColor={(key) => retentionColors[key]} getLabel={(key) => retentionLabels[key]} />
-                <span>Generated {formatGeneratedAt(state.report.generatedAtUtc)}</span>
               </div>
             </div>
-            <p className="activity-coverage-note">
-              {state.report.historyFrom === null ? "No retained meaningful-use history." : `Recorded source history starts ${state.report.historyFrom}. Returns observed through ${state.report.latestCompleteDate} UTC.`}
-            </p>
             {state.report.weeks.every((week) => week.w1 === null && week.w4 === null) ? <p className="report-state">No non-empty, fully matured covered cohort is available in this range.</p> : null}
             <div className="chart-scroll"><svg ref={chartRef} role="group" aria-label="Who came back: W1 and W4 retention by first-use week" /></div>
             <details className="activity-chart-table">
-              <summary>Show chart data</summary>
+              <summary>Chart data and coverage</summary>
+              <p className="activity-coverage-note">
+                {state.report.historyFrom === null ? "No retained meaningful-use history." : `Recorded source history starts ${state.report.historyFrom}. Returns observed through ${state.report.latestCompleteDate} UTC.`}
+              </p>
               <div className="chart-scroll"><table>
                 <caption>Weekly first-use cohort retention, UTC; returned / base counts</caption>
                 <thead><tr><th scope="col">Week of</th><th scope="col">Selected first-use dates</th><th scope="col">Recorded users</th><th scope="col">W1</th><th scope="col">W4</th></tr></thead>
