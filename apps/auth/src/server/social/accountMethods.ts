@@ -3,7 +3,7 @@ import { query } from "../../db.js";
 import { verifyCurrentAccountSession } from "../browserSession.js";
 import {
   authAttemptBindingHash, authHandleHash, claimAuthAttempt, createAuthAttempt, prepareAuthAttempt,
-  sealAuthAttemptState, verifyClaimedAuthAttempt, type ClaimedAuthAttempt,
+  loadProvedAccountProviderReenable, sealAuthAttemptState, verifyClaimedAuthAttempt, type ClaimedAuthAttempt,
 } from "./attemptStore.js";
 import {
   AuthAttemptError, requireAuthHandle, type AuthAttemptBinding, type AuthAttemptRequest,
@@ -78,7 +78,6 @@ export async function beginAccountProviderLink(
     reauthCompletion: proof.completion, reauthBinding: proof.binding }, browser, authOrigin);
 }
 
-/** Metadata enrollment has committed before this bounded, unchanged identity-link composition. */
 export async function completeAccountProviderLink(
   sessionToken: string, completion: string, binding: AuthAttemptBinding,
 ): Promise<void> {
@@ -111,13 +110,20 @@ export async function beginAccountProviderReenable(
     redirectUri: prepared.redirectUri, expiresAt: expiry.toISOString() };
 }
 
-/** Provider verification still uses the persisted nonce, client and callback with the existing native verifiers. */
 export async function completeAccountProviderReenable(
   sessionToken: string, handle: string, binding: AuthAttemptBinding, submission: AuthProviderSubmission,
 ): Promise<void> {
   if (binding.purpose !== "link") throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
   const claimed = await claimAuthAttempt(handle, binding, "provider_ready");
   const proved = await verifyClaimedAuthAttempt(claimed, submission);
+  await completeProvedAccountProviderReenable(sessionToken, proved, binding);
+}
+
+export async function resumeAccountProviderReenable(
+  sessionToken: string, handle: string, binding: AuthAttemptBinding,
+): Promise<void> {
+  const current = await verifyCurrentAccountSession(sessionToken);
+  const proved = await loadProvedAccountProviderReenable(handle, binding, current);
   await completeProvedAccountProviderReenable(sessionToken, proved, binding);
 }
 
