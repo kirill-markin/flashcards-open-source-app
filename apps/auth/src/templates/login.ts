@@ -1,3 +1,5 @@
+import { AUTH_ENTRY_COPY } from "./authEntryCopy.js";
+import { authEntryScript, authEntryStyles, renderAuthMethods, renderOtherMethods } from "./authEntry.js";
 import { getLoginPageLocaleDirection, type LoginPageLocale } from "../routes/browser/loginPageLocale.js";
 
 const AUTH_FAVICON_URL =
@@ -6,7 +8,6 @@ const AUTH_FAVICON_URL =
 type LoginPageCopy = Readonly<{
   pageTitle: string;
   backToWebsite: string;
-  signInTitle: string;
   checkingSession: string;
   emailLabel: string;
   sendCode: string;
@@ -25,7 +26,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   bg: {
     pageTitle: "Вход",
     backToWebsite: "Назад към сайта",
-    signInTitle: "Вход",
     checkingSession: "Проверка на сесията...",
     emailLabel: "Имейл",
     sendCode: "Изпращане на код",
@@ -42,7 +42,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   bn: {
     pageTitle: "সাইন ইন",
     backToWebsite: "ওয়েবসাইটে ফিরে যান",
-    signInTitle: "সাইন ইন",
     checkingSession: "সেশন যাচাই করা হচ্ছে...",
     emailLabel: "ইমেইল",
     sendCode: "কোড পাঠান",
@@ -59,7 +58,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   ca: {
     pageTitle: "Inicia la sessió",
     backToWebsite: "Torna al lloc web",
-    signInTitle: "Inicia la sessió",
     checkingSession: "S'està comprovant la sessió...",
     emailLabel: "Correu electrònic",
     sendCode: "Envia el codi",
@@ -76,7 +74,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   cs: {
     pageTitle: "Přihlásit se",
     backToWebsite: "Zpět na web",
-    signInTitle: "Přihlásit se",
     checkingSession: "Kontrola relace...",
     emailLabel: "E-mail",
     sendCode: "Odeslat kód",
@@ -93,7 +90,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   da: {
     pageTitle: "Log ind",
     backToWebsite: "Tilbage til hjemmesiden",
-    signInTitle: "Log ind",
     checkingSession: "Kontrollerer session...",
     emailLabel: "E-mail",
     sendCode: "Send kode",
@@ -110,7 +106,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   el: {
     pageTitle: "Σύνδεση",
     backToWebsite: "Επιστροφή στον ιστότοπο",
-    signInTitle: "Σύνδεση",
     checkingSession: "Έλεγχος συνεδρίας...",
     emailLabel: "Email",
     sendCode: "Αποστολή κωδικού",
@@ -127,7 +122,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   et: {
     pageTitle: "Logi sisse",
     backToWebsite: "Tagasi veebilehele",
-    signInTitle: "Logi sisse",
     checkingSession: "Seansi kontrollimine...",
     emailLabel: "E-post",
     sendCode: "Saada kood",
@@ -144,7 +138,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   fa: {
     pageTitle: "ورود",
     backToWebsite: "بازگشت به وب‌سایت",
-    signInTitle: "ورود",
     checkingSession: "در حال بررسی نشست...",
     emailLabel: "ایمیل",
     sendCode: "ارسال کد",
@@ -161,7 +154,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   fi: {
     pageTitle: "Kirjaudu sisään",
     backToWebsite: "Takaisin verkkosivustolle",
-    signInTitle: "Kirjaudu sisään",
     checkingSession: "Tarkistetaan istuntoa...",
     emailLabel: "Sähköposti",
     sendCode: "Lähetä koodi",
@@ -178,7 +170,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   gu: {
     pageTitle: "સાઇન ઇન કરો",
     backToWebsite: "વેબસાઇટ પર પાછા જાઓ",
-    signInTitle: "સાઇન ઇન કરો",
     checkingSession: "સત્ર તપાસી રહ્યું છે...",
     emailLabel: "ઇમેઇલ",
     sendCode: "કોડ મોકલો",
@@ -195,7 +186,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   he: {
     pageTitle: "כניסה",
     backToWebsite: "חזרה לאתר",
-    signInTitle: "כניסה",
     checkingSession: "בודקים את ההפעלה...",
     emailLabel: "דוא״ל",
     sendCode: "שליחת קוד",
@@ -212,7 +202,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   hr: {
     pageTitle: "Prijava",
     backToWebsite: "Natrag na web-stranicu",
-    signInTitle: "Prijava",
     checkingSession: "Provjera sesije...",
     emailLabel: "E-pošta",
     sendCode: "Pošalji kod",
@@ -229,7 +218,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   hu: {
     pageTitle: "Bejelentkezés",
     backToWebsite: "Vissza a webhelyre",
-    signInTitle: "Bejelentkezés",
     checkingSession: "Munkamenet ellenőrzése...",
     emailLabel: "E-mail",
     sendCode: "Kód küldése",
@@ -246,7 +234,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   id: {
     pageTitle: "Masuk",
     backToWebsite: "Kembali ke situs web",
-    signInTitle: "Masuk",
     checkingSession: "Memeriksa sesi...",
     emailLabel: "Email",
     sendCode: "Kirim kode",
@@ -263,7 +250,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   is: {
     pageTitle: "Skrá inn",
     backToWebsite: "Til baka á vefsvæðið",
-    signInTitle: "Skrá inn",
     checkingSession: "Athuga setu...",
     emailLabel: "Netfang",
     sendCode: "Senda kóða",
@@ -280,7 +266,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   it: {
     pageTitle: "Accedi",
     backToWebsite: "Torna al sito",
-    signInTitle: "Accedi",
     checkingSession: "Verifica della sessione...",
     emailLabel: "Email",
     sendCode: "Invia codice",
@@ -297,7 +282,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   kn: {
     pageTitle: "ಸೈನ್ ಇನ್ ಮಾಡಿ",
     backToWebsite: "ವೆಬ್‌ಸೈಟ್‌ಗೆ ಹಿಂತಿರುಗಿ",
-    signInTitle: "ಸೈನ್ ಇನ್ ಮಾಡಿ",
     checkingSession: "ಸೆಷನ್ ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ...",
     emailLabel: "ಇಮೇಲ್",
     sendCode: "ಕೋಡ್ ಕಳುಹಿಸಿ",
@@ -314,7 +298,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   ko: {
     pageTitle: "로그인",
     backToWebsite: "웹사이트로 돌아가기",
-    signInTitle: "로그인",
     checkingSession: "세션 확인 중...",
     emailLabel: "이메일",
     sendCode: "코드 보내기",
@@ -331,7 +314,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   lt: {
     pageTitle: "Prisijungti",
     backToWebsite: "Grįžti į svetainę",
-    signInTitle: "Prisijungti",
     checkingSession: "Tikrinamas seansas...",
     emailLabel: "El. paštas",
     sendCode: "Siųsti kodą",
@@ -348,7 +330,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   lv: {
     pageTitle: "Pierakstīties",
     backToWebsite: "Atpakaļ uz vietni",
-    signInTitle: "Pierakstīties",
     checkingSession: "Notiek sesijas pārbaude...",
     emailLabel: "E-pasts",
     sendCode: "Nosūtīt kodu",
@@ -365,7 +346,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   ml: {
     pageTitle: "സൈൻ ഇൻ ചെയ്യുക",
     backToWebsite: "വെബ്‌സൈറ്റിലേക്ക് മടങ്ങുക",
-    signInTitle: "സൈൻ ഇൻ ചെയ്യുക",
     checkingSession: "സെഷൻ പരിശോധിക്കുന്നു...",
     emailLabel: "ഇമെയിൽ",
     sendCode: "കോഡ് അയയ്ക്കുക",
@@ -382,7 +362,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   mr: {
     pageTitle: "साइन इन करा",
     backToWebsite: "वेबसाइटवर परत जा",
-    signInTitle: "साइन इन करा",
     checkingSession: "सत्र तपासत आहे...",
     emailLabel: "ईमेल",
     sendCode: "कोड पाठवा",
@@ -399,7 +378,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   nb: {
     pageTitle: "Logg inn",
     backToWebsite: "Tilbake til nettstedet",
-    signInTitle: "Logg inn",
     checkingSession: "Kontrollerer økten...",
     emailLabel: "E-post",
     sendCode: "Send kode",
@@ -416,7 +394,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   nl: {
     pageTitle: "Inloggen",
     backToWebsite: "Terug naar de website",
-    signInTitle: "Inloggen",
     checkingSession: "Sessie controleren...",
     emailLabel: "E-mail",
     sendCode: "Code verzenden",
@@ -433,7 +410,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   pa: {
     pageTitle: "ਸਾਈਨ ਇਨ ਕਰੋ",
     backToWebsite: "ਵੈੱਬਸਾਈਟ 'ਤੇ ਵਾਪਸ ਜਾਓ",
-    signInTitle: "ਸਾਈਨ ਇਨ ਕਰੋ",
     checkingSession: "ਸੈਸ਼ਨ ਦੀ ਜਾਂਚ ਹੋ ਰਹੀ ਹੈ...",
     emailLabel: "ਈਮੇਲ",
     sendCode: "ਕੋਡ ਭੇਜੋ",
@@ -450,7 +426,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   pl: {
     pageTitle: "Zaloguj się",
     backToWebsite: "Powrót do witryny",
-    signInTitle: "Zaloguj się",
     checkingSession: "Sprawdzanie sesji...",
     emailLabel: "E-mail",
     sendCode: "Wyślij kod",
@@ -467,7 +442,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   ro: {
     pageTitle: "Autentificare",
     backToWebsite: "Înapoi la site",
-    signInTitle: "Autentificare",
     checkingSession: "Se verifică sesiunea...",
     emailLabel: "E-mail",
     sendCode: "Trimite codul",
@@ -484,7 +458,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   sk: {
     pageTitle: "Prihlásiť sa",
     backToWebsite: "Späť na web",
-    signInTitle: "Prihlásiť sa",
     checkingSession: "Kontrola relácie...",
     emailLabel: "E-mail",
     sendCode: "Odoslať kód",
@@ -501,7 +474,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   sl: {
     pageTitle: "Prijava",
     backToWebsite: "Nazaj na spletno mesto",
-    signInTitle: "Prijava",
     checkingSession: "Preverjanje seje...",
     emailLabel: "E-pošta",
     sendCode: "Pošlji kodo",
@@ -518,7 +490,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   sv: {
     pageTitle: "Logga in",
     backToWebsite: "Tillbaka till webbplatsen",
-    signInTitle: "Logga in",
     checkingSession: "Kontrollerar session...",
     emailLabel: "E-post",
     sendCode: "Skicka kod",
@@ -535,7 +506,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   sw: {
     pageTitle: "Ingia",
     backToWebsite: "Rudi kwenye tovuti",
-    signInTitle: "Ingia",
     checkingSession: "Inakagua kipindi...",
     emailLabel: "Barua pepe",
     sendCode: "Tuma msimbo",
@@ -552,7 +522,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   ta: {
     pageTitle: "உள்நுழையவும்",
     backToWebsite: "இணையதளத்திற்குத் திரும்பவும்",
-    signInTitle: "உள்நுழையவும்",
     checkingSession: "அமர்வைச் சரிபார்க்கிறது...",
     emailLabel: "மின்னஞ்சல்",
     sendCode: "குறியீட்டை அனுப்பவும்",
@@ -569,7 +538,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   te: {
     pageTitle: "సైన్ ఇన్ చేయండి",
     backToWebsite: "వెబ్‌సైట్‌కు తిరిగి వెళ్లండి",
-    signInTitle: "సైన్ ఇన్ చేయండి",
     checkingSession: "సెషన్‌ను తనిఖీ చేస్తోంది...",
     emailLabel: "ఇమెయిల్",
     sendCode: "కోడ్ పంపండి",
@@ -586,7 +554,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   th: {
     pageTitle: "ลงชื่อเข้าใช้",
     backToWebsite: "กลับไปที่เว็บไซต์",
-    signInTitle: "ลงชื่อเข้าใช้",
     checkingSession: "กำลังตรวจสอบเซสชัน...",
     emailLabel: "อีเมล",
     sendCode: "ส่งรหัส",
@@ -603,7 +570,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   tr: {
     pageTitle: "Giriş yap",
     backToWebsite: "Web sitesine dön",
-    signInTitle: "Giriş yap",
     checkingSession: "Oturum kontrol ediliyor...",
     emailLabel: "E-posta",
     sendCode: "Kod gönder",
@@ -620,7 +586,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   uk: {
     pageTitle: "Увійти",
     backToWebsite: "Повернутися на сайт",
-    signInTitle: "Увійти",
     checkingSession: "Перевірка сеансу...",
     emailLabel: "Електронна пошта",
     sendCode: "Надіслати код",
@@ -637,7 +602,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   ur: {
     pageTitle: "سائن ان کریں",
     backToWebsite: "ویب سائٹ پر واپس جائیں",
-    signInTitle: "سائن ان کریں",
     checkingSession: "سیشن کی جانچ ہو رہی ہے...",
     emailLabel: "ای میل",
     sendCode: "کوڈ بھیجیں",
@@ -654,7 +618,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   vi: {
     pageTitle: "Đăng nhập",
     backToWebsite: "Quay lại trang web",
-    signInTitle: "Đăng nhập",
     checkingSession: "Đang kiểm tra phiên...",
     emailLabel: "Email",
     sendCode: "Gửi mã",
@@ -671,7 +634,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   zu: {
     pageTitle: "Ngena ngemvume",
     backToWebsite: "Buyela kuwebhusayithi",
-    signInTitle: "Ngena ngemvume",
     checkingSession: "Kuhlolwa iseshini...",
     emailLabel: "I-imeyili",
     sendCode: "Thumela ikhodi",
@@ -688,7 +650,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   en: {
     pageTitle: "Sign in",
     backToWebsite: "Back to website",
-    signInTitle: "Sign in",
     checkingSession: "Checking session...",
     emailLabel: "Email",
     sendCode: "Send code",
@@ -707,7 +668,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   ar: {
     pageTitle: "تسجيل الدخول",
     backToWebsite: "العودة إلى الموقع",
-    signInTitle: "تسجيل الدخول",
     checkingSession: "جارٍ التحقق من الجلسة...",
     emailLabel: "البريد الإلكتروني",
     sendCode: "إرسال الرمز",
@@ -726,7 +686,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   "zh-Hans": {
     pageTitle: "登录",
     backToWebsite: "返回网站",
-    signInTitle: "登录",
     checkingSession: "正在检查会话...",
     emailLabel: "电子邮件",
     sendCode: "发送验证码",
@@ -745,7 +704,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   fr: {
     pageTitle: "Connexion",
     backToWebsite: "Retour au site",
-    signInTitle: "Connexion",
     checkingSession: "Vérification de la session...",
     emailLabel: "E-mail",
     sendCode: "Envoyer le code",
@@ -764,7 +722,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   de: {
     pageTitle: "Anmelden",
     backToWebsite: "Zur Website zurück",
-    signInTitle: "Anmelden",
     checkingSession: "Sitzung wird geprüft...",
     emailLabel: "E-Mail",
     sendCode: "Code senden",
@@ -783,7 +740,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   hi: {
     pageTitle: "साइन इन",
     backToWebsite: "वेबसाइट पर वापस जाएं",
-    signInTitle: "साइन इन",
     checkingSession: "सेशन जांचा जा रहा है...",
     emailLabel: "ईमेल",
     sendCode: "कोड भेजें",
@@ -802,7 +758,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   ja: {
     pageTitle: "サインイン",
     backToWebsite: "Webサイトに戻る",
-    signInTitle: "サインイン",
     checkingSession: "セッションを確認しています...",
     emailLabel: "メールアドレス",
     sendCode: "コードを送信",
@@ -821,7 +776,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   "pt-BR": {
     pageTitle: "Entrar",
     backToWebsite: "Voltar ao site",
-    signInTitle: "Entrar",
     checkingSession: "Verificando a sessão...",
     emailLabel: "E-mail",
     sendCode: "Enviar código",
@@ -840,7 +794,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   ru: {
     pageTitle: "Войти",
     backToWebsite: "Вернуться на сайт",
-    signInTitle: "Войти",
     checkingSession: "Проверяем сеанс...",
     emailLabel: "Электронная почта",
     sendCode: "Отправить код",
@@ -859,7 +812,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   "es-MX": {
     pageTitle: "Iniciar sesión",
     backToWebsite: "Volver al sitio web",
-    signInTitle: "Iniciar sesión",
     checkingSession: "Comprobando sesión...",
     emailLabel: "Correo electrónico",
     sendCode: "Enviar código",
@@ -878,7 +830,6 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   "es-ES": {
     pageTitle: "Iniciar sesión",
     backToWebsite: "Volver al sitio web",
-    signInTitle: "Iniciar sesión",
     checkingSession: "Comprobando la sesión...",
     emailLabel: "Correo electrónico",
     sendCode: "Enviar código",
@@ -906,6 +857,7 @@ export const renderLoginPage = (
   locale: LoginPageLocale,
 ): string => {
   const copy = LOGIN_PAGE_COPY[locale];
+  const entryCopy = AUTH_ENTRY_COPY[locale];
   const direction = getLoginPageLocaleDirection(locale);
 
   return `<!DOCTYPE html>
@@ -915,7 +867,7 @@ export const renderLoginPage = (
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
   <link rel="icon" href="${AUTH_FAVICON_URL}">
-  <title>${copy.pageTitle}</title>
+  <title>${entryCopy.title}</title>
   <style>
     :root {
       color-scheme: dark;
@@ -1154,6 +1106,7 @@ export const renderLoginPage = (
       margin: 0;
     }
 
+    ${authEntryStyles}
     .hidden { display: none; }
 
     @media (max-width: 768px) {
@@ -1178,36 +1131,42 @@ export const renderLoginPage = (
   <div class="login-page">
     <a class="login-back-link" href="${websiteHomeUrl}">${copy.backToWebsite}</a>
     <div class="login-card">
-      <h1 class="login-title">${copy.signInTitle}</h1>
+      <h1 class="login-title">${entryCopy.title}</h1>
 
       <div id="step-checking">
         <p class="login-status">${copy.checkingSession}</p>
       </div>
 
+      ${renderAuthMethods(locale)}
+
       <div id="step-email" class="hidden">
         <label class="login-label" for="login-email">${copy.emailLabel}</label>
-        <input id="login-email" class="login-input" type="email" autocomplete="email" autofocus>
-        <div id="email-error" class="login-error hidden"></div>
+        <input id="login-email" class="login-input" type="email" autocomplete="email">
+        <div id="email-error" class="login-error hidden" role="alert"></div>
         <button id="send-btn" class="login-btn" type="button">${copy.sendCode}</button>
+        ${renderOtherMethods(locale, "email-other-methods")}
       </div>
 
       <div id="step-otp" class="hidden">
         <p class="login-hint">${copy.checkEmailForCode}</p>
         <label class="login-label" for="login-otp">${copy.verificationCodeLabel}</label>
         <input id="login-otp" class="login-input" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="8">
-        <div id="otp-error" class="login-error hidden"></div>
+        <div id="otp-error" class="login-error hidden" role="alert"></div>
         <button id="verify-btn" class="login-btn" type="button">${copy.verify}</button>
+        ${renderOtherMethods(locale, "otp-other-methods")}
       </div>
     </div>
   </div>
 
   <script>
     (function() {
-      var redirectUri = ${JSON.stringify(redirectUri)};
+      var redirectUri = ${JSON.stringify(redirectUri).replace(/</g, "\\u003c")};
       var copy = ${JSON.stringify(copy)};
+      var entryCopy = ${JSON.stringify(entryCopy)};
       var uiLocale = ${JSON.stringify(locale)};
       var collectionDisabled = new URLSearchParams(window.location.search).get("analytics_collection") === "off";
 
+      ${authEntryScript}
       var csrfToken = "";
 
       var emailInput = document.getElementById("login-email");
@@ -1273,7 +1232,16 @@ export const renderLoginPage = (
         el.textContent = "";
       }
 
+      function showMethodsStep() {
+        stepChecking.classList.add("hidden");
+        stepEmail.classList.add("hidden");
+        stepOtp.classList.add("hidden");
+        stepMethods.classList.remove("hidden");
+        methodButtons[0].focus();
+      }
+
       function showEmailStep() {
+        stepMethods.classList.add("hidden");
         stepChecking.classList.add("hidden");
         stepOtp.classList.add("hidden");
         stepEmail.classList.remove("hidden");
@@ -1281,8 +1249,6 @@ export const renderLoginPage = (
       }
 
       function tryRefreshSession() {
-        // The screen marker tells the endpoint which of its callers this is; the audit of who may
-        // send it is in server/analytics/signInFunnel.ts.
         return fetch("api/refresh-session?screen=signin&ui_locale=" + encodeURIComponent(uiLocale), {
           method: "POST",
           headers: collectionDisabled ? { "X-Product-Analytics-Enabled": "0" } : {},
@@ -1293,9 +1259,9 @@ export const renderLoginPage = (
             return;
           }
 
-          showEmailStep();
+          showMethodsStep();
         }).catch(function() {
-          showEmailStep();
+          showMethodsStep();
         });
       }
 
@@ -1317,6 +1283,7 @@ export const renderLoginPage = (
 
         hideError(emailError);
         sendBtn.disabled = true;
+        document.getElementById("email-other-methods").disabled = true;
         sendBtn.textContent = copy.sendingCode;
 
         fetch("api/send-code?screen=signin&ui_locale=" + encodeURIComponent(uiLocale), {
@@ -1337,7 +1304,6 @@ export const renderLoginPage = (
                 typeof data.idToken === "string" && data.idToken !== ""
                 && typeof data.refreshToken === "string" && data.refreshToken !== ""
               ) {
-                // Configured review account emails can complete sign-in immediately.
                 window.location.href = redirectUri;
                 return;
               }
@@ -1356,6 +1322,7 @@ export const renderLoginPage = (
           })
           .finally(function() {
             sendBtn.disabled = false;
+            document.getElementById("email-other-methods").disabled = false;
             sendBtn.textContent = copy.sendCode;
           });
       });
@@ -1366,6 +1333,7 @@ export const renderLoginPage = (
 
         hideError(otpError);
         verifyBtn.disabled = true;
+        document.getElementById("otp-other-methods").disabled = true;
         verifyBtn.textContent = copy.verifying;
 
         fetch("api/verify-code?screen=signin&ui_locale=" + encodeURIComponent(uiLocale), {
@@ -1397,10 +1365,12 @@ export const renderLoginPage = (
           })
           .finally(function() {
             verifyBtn.disabled = false;
+            document.getElementById("otp-other-methods").disabled = false;
             verifyBtn.textContent = copy.verify;
           });
       });
 
+      configureAuthMethods(redirectUri, "signin");
       void tryRefreshSession();
     })();
   </script>

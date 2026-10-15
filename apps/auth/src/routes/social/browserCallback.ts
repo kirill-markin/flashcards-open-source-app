@@ -22,6 +22,7 @@ import { acceptBrowserCompletion } from "./browserCompletion.js";
 import { resolveLoginPageLocale } from "../browser/loginPageLocale.js";
 import { renderBrowserCompletion } from "../../templates/browserCompletion.js";
 import { renderBrowserMailboxContinuation } from "../../templates/browserMailboxContinuation.js";
+import { browserSignInErrorResponse, browserSignInRecovery, type BrowserSignInRecovery } from "./browserError.js";
 
 const app = new Hono<AuthAppEnv>();
 
@@ -72,6 +73,7 @@ function protectBrowserDocument(c: Context<AuthAppEnv>, nonce: string): void {
 async function providerCallback(c: Context<AuthAppEnv>): Promise<Response> {
   protectCallbackResponse(c);
   let claimedState: BrowserCallbackState | null = null;
+  let recovery: BrowserSignInRecovery | null = null;
   const events: ObservedAuthAnalyticsEvent[] = [];
   try {
     await requireSocialRequest(c, "callback");
@@ -91,6 +93,9 @@ async function providerCallback(c: Context<AuthAppEnv>): Promise<Response> {
     }
     const state = readBrowserState(c, oneParameter(parameters, "state", 43));
     if (state.provider !== provider || state.phase !== "provider") throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
+    if (state.client === "web" && state.intent === "login") {
+      recovery = browserSignInRecovery(c, state.redirectUri, state.locale);
+    }
     requireSignInProvider(provider, state.client);
     if (provider === "apple" && c.req.path.endsWith("/apple/callback")) {
       return appleCallbackContinuation(c, parameters, state);
@@ -104,7 +109,8 @@ async function providerCallback(c: Context<AuthAppEnv>): Promise<Response> {
       events.push({ createEvent: createAuthAnalyticsFactEventFactory({ eventName: "auth_provider_finished", method: provider,
         outcome: denied ? "denied" : "provider_error" }), occurredAt: Date.now() });
       if (state.client === "android") return c.redirect(androidReturn("denied", state.attempt), 303);
-      return jsonAuthError(c, 400, "PROVIDER_SIGN_IN_DENIED", "Provider authorization did not complete. Start a new provider sign-in.");
+      return browserSignInErrorResponse(c,
+        jsonAuthError(c, 400, "PROVIDER_SIGN_IN_DENIED", "Provider authorization did not complete. Start a new provider sign-in."), recovery);
     }
     const code = oneParameter(parameters, "code", 4096);
     const identityToken = provider === "apple" && parameters.has("id_token") ? oneParameter(parameters, "id_token", 16_384) : null;
@@ -130,7 +136,7 @@ async function providerCallback(c: Context<AuthAppEnv>): Promise<Response> {
         events.push({ createEvent: createSignInSucceededWithMethodEventFactory(response.signInHint.method), occurredAt: Date.now() });
         const nonce = randomBytes(32).toString("base64url");
         protectBrowserDocument(c, nonce);
-        return c.html(renderBrowserCompletion(response, resolveLoginPageLocale(undefined, c.req.header("accept-language")), nonce));
+        return c.html(renderBrowserCompletion(response, resolveLoginPageLocale(state.locale, c.req.header("accept-language")), nonce));
       }
       return c.redirect(response.redirectUri, 303);
     }
@@ -140,14 +146,14 @@ async function providerCallback(c: Context<AuthAppEnv>): Promise<Response> {
     const nonce = randomBytes(32).toString("base64url");
     protectBrowserDocument(c, nonce);
     const restartUri = state.intent === "login"
-      ? `/api/social/${state.provider}/start?${new URLSearchParams({ client: "web", redirect_uri: state.redirectUri })}`
+      ? `/api/social/${state.provider}/start?${new URLSearchParams({ client: "web", redirect_uri: state.redirectUri, ...(state.locale === undefined ? {} : { locale: state.locale }) })}`
       : state.redirectUri;
     return c.html(renderBrowserMailboxContinuation({ csrfToken: continuation.state,
       providerEmail: result.enrollment.providerEmail, expiresAt: state.expiresAt, restartUri },
-    resolveLoginPageLocale(undefined, c.req.header("accept-language")), nonce));
+    resolveLoginPageLocale(state.locale, c.req.header("accept-language")), nonce));
   } catch (error) {
     if (claimedState !== null) clearBrowserState(c, claimedState);
-    return socialErrorResponse(c, error);
+    return browserSignInErrorResponse(c, socialErrorResponse(c, error), recovery);
   } finally {
     if (claimedState !== null) await reportBrowserAuthEvents(c, events, claimedState.analytics);
   }
