@@ -4,6 +4,8 @@ package com.flashcardsopensourceapp.app.livesmoke.flows
 
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -16,6 +18,7 @@ import com.flashcardsopensourceapp.app.livesmoke.diagnostics.hasVisibleText
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.runWithInlineRawScreenStateOnFailure
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.tapBackIcon
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitForAppSnackbarToDisappear
+import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitUntilAtLeastOneExistsOrFail
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitUntilWithMitigation
 import com.flashcardsopensourceapp.app.livesmoke.support.LiveSmokeContext
 import com.flashcardsopensourceapp.app.livesmoke.support.appGraph
@@ -23,6 +26,7 @@ import com.flashcardsopensourceapp.app.livesmoke.support.captureVisibleWorkspace
 import com.flashcardsopensourceapp.app.livesmoke.support.cloudSyncChooserPrompt
 import com.flashcardsopensourceapp.app.livesmoke.support.currentCloudSettingsSummary
 import com.flashcardsopensourceapp.app.livesmoke.support.currentWorkspaceSummaryOrNull
+import com.flashcardsopensourceapp.app.livesmoke.support.externalUiTimeoutMillis
 import com.flashcardsopensourceapp.app.livesmoke.support.internalUiTimeoutMillis
 import com.flashcardsopensourceapp.feature.settings.cloud.cloudPostAuthExistingButtonTag
 import com.flashcardsopensourceapp.feature.settings.cloud.cloudPostAuthWorkspaceRowTag
@@ -52,6 +56,10 @@ private enum class CloudSignInSendCodeOutcome {
 internal fun LiveSmokeContext.signInWithReviewAccount(reviewEmail: String) {
     openSettingsRow(rowTag = settingsAccountStatusRowTag, rowLabel = "Account status")
     clickText(text = "Sign in or sign up", substring = false)
+    waitUntilAtLeastOneExistsOrFail(
+        matcher = hasTestTag("cloud_sign_in_method_email").and(isEnabled()),
+        timeoutMillis = externalUiTimeoutMillis
+    )
     clickTag(tag = "cloud_sign_in_method_email", label = "Email sign-in method")
     runWithInlineRawScreenStateOnFailure(action = "set_review_account_email") {
         clickTag(tag = cloudSignInEmailFieldTag, label = "Email")
