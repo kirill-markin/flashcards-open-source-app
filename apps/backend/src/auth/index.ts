@@ -20,6 +20,7 @@ import { authenticateGuestSession } from "../guestAuth/session/index";
 import type { AnalyticsConsentChoice } from "./ensureUser";
 import type { GuestSessionPlatform } from "../guestAuth/types";
 import { loadCognitoIdentityMapping } from "./userIdentities";
+import { assertVerifiedPrincipalSession, assertVerifiedAccountDeletionSession, type VerifiedPrincipalSessionClaims } from "./principalSessions";
 
 export type AuthTransport = "none" | "bearer" | "session" | "api_key" | "guest";
 
@@ -218,9 +219,11 @@ export function extractVerifiedIdTokenIdentity(payload: VerifiedIdTokenPayload):
 async function verifyIdTokenWithVerifier(
   token: string,
   tokenVerifier: ReturnType<typeof CognitoJwtVerifier.create>,
+  checkSession: (payload: VerifiedPrincipalSessionClaims) => Promise<void>,
 ): Promise<AuthenticatedUserIdentity> {
   try {
     const payload = await tokenVerifier.verify(token);
+    await checkSession(payload);
     return extractVerifiedIdTokenIdentity(payload as VerifiedIdTokenPayload);
   } catch (err) {
     const boundaryError = createJwtAuthBoundaryError(err);
@@ -233,7 +236,7 @@ async function verifyIdTokenWithVerifier(
 }
 
 async function verifyIdToken(token: string): Promise<AuthenticatedUserIdentity> {
-  return verifyIdTokenWithVerifier(token, getVerifier());
+  return verifyIdTokenWithVerifier(token, getVerifier(), assertVerifiedPrincipalSession);
 }
 
 async function verifyIdTokenForDirectRequest(
@@ -242,7 +245,7 @@ async function verifyIdTokenForDirectRequest(
 ): Promise<AuthenticatedUserIdentity> {
   return directAuthenticationAbortSignalStorage.run(
     abortSignal,
-    () => verifyIdTokenWithVerifier(token, getDirectRequestVerifier()),
+    () => verifyIdTokenWithVerifier(token, getDirectRequestVerifier(), assertVerifiedPrincipalSession),
   );
 }
 
@@ -439,6 +442,16 @@ export async function authenticateRequest(request: AuthRequest): Promise<AuthRes
       verifyIdTokenFn: verifyIdToken,
     },
   );
+}
+
+/** Reserved for POST /me/delete: a deleted JWT may retry cleanup, never enter a product route. */
+export async function authenticateAccountDeletionRequest(request: AuthRequest): Promise<AuthResult> {
+  return authenticateRequestWithDependencies(request, runAuthenticationOperation, {
+    authenticateAgentApiKeyFn: authenticateAgentApiKey,
+    authenticateGuestSessionFn: authenticateGuestSession,
+    loadCognitoIdentityMappingFn: loadCognitoIdentityMapping,
+    verifyIdTokenFn: (token) => verifyIdTokenWithVerifier(token, getVerifier(), assertVerifiedAccountDeletionSession),
+  });
 }
 
 export function authenticateRequestWithAbortSignalAndDependencies(

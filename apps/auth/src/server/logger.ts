@@ -10,6 +10,7 @@ type AuthAction =
   | "verify_code"
   | "verify_code_error"
   | "verify_code_locked"
+  | "issued_session_validation_error"
   | "sign_in_password"
   | "sign_in_password_error"
   | "agent_verify_code_error"

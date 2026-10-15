@@ -1,3 +1,4 @@
+import { assertNewlyIssuedSessionToken } from "../browserSession.js";
 import { cognitoFetch, extractTokenResult, getClientId, type TokenResult } from "../cognito/cognitoAuth.js";
 import {
   issueNativeProofGrant,
@@ -35,5 +36,7 @@ export async function exchangeVerifiedPrincipalForTokens(principal: NativeProofP
     ClientId: clientId, ChallengeName: "CUSTOM_CHALLENGE", Session: challenge.session,
     ChallengeResponses: { USERNAME: principal.cognitoUsername, ANSWER: proof },
   });
-  return extractTokenResult(result, "Cognito native proof bridge");
+  const tokens = extractTokenResult(result, "Cognito native proof bridge");
+  await assertNewlyIssuedSessionToken(tokens.idToken);
+  return tokens;
 }
