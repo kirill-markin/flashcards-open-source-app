@@ -198,6 +198,13 @@ class CloudPreferencesStore(
         credentialStore.clear()
     }
 
+    fun clearCredentialsRetainingSignInHint() {
+        credentialStore.update { secrets ->
+            secrets.copy(refreshToken = null, idToken = null, idTokenExpiresAtMillis = null,
+                pendingGuestUpgrade = null, pendingSocialSignIn = null)
+        }
+    }
+
     fun updateIdToken(idToken: String, idTokenExpiresAtMillis: Long) {
         credentialStore.update { secrets ->
             secrets.copy(idToken = idToken, idTokenExpiresAtMillis = idTokenExpiresAtMillis)
