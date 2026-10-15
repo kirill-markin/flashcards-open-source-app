@@ -217,8 +217,33 @@ export async function createProvedEmailPrincipal(email: string): Promise<Cognito
 let emailPrincipalVerifier: ReturnType<typeof CognitoJwtVerifier.create> | undefined;
 
 /** Called with the result of this request's real EMAIL_OTP challenge, never a caller-supplied token. */
-export async function verifyEmailOtpPrincipal(email: string, code: string, session: string): Promise<CognitoEmailPrincipal> {
-  const tokens = await verifyEmailOtp(email, code, session);
+export async function verifyEmailOtpPrincipal(
+  email: string, code: string, session: string,
+): Promise<CognitoEmailPrincipal & Readonly<{ authTime: number }>> {
+  return verifyOtpPrincipalTokens(email, await verifyEmailOtp(email, code, session));
+}
+
+/** Existing principal only: no provisioning, alias lookup or forced alias transfer. */
+export async function initiateCurrentEmailOtp(email: string, username: string): Promise<InitiateAuthResult> {
+  await assertAppleRelayDeliveryAllowed(email);
+  const result = await cognitoFetch("InitiateAuth", {
+    AuthFlow: "USER_AUTH", ClientId: getClientId(),
+    AuthParameters: { USERNAME: username, PREFERRED_CHALLENGE: "EMAIL_OTP" },
+  });
+  const challenge = extractChallengeResponse(result, "Cognito current-account reauthentication");
+  if (challenge.challengeName !== "EMAIL_OTP") throw new Error(`Unexpected Cognito email challenge: ${challenge.challengeName}`);
+  return { session: challenge.session };
+}
+
+export async function verifyCurrentEmailOtpPrincipal(
+  email: string, username: string, code: string, session: string,
+): Promise<CognitoEmailPrincipal & Readonly<{ authTime: number }>> {
+  return verifyOtpPrincipalTokens(email, await verifyEmailOtp(username, code, session));
+}
+
+async function verifyOtpPrincipalTokens(
+  email: string, tokens: TokenResult,
+): Promise<CognitoEmailPrincipal & Readonly<{ authTime: number }>> {
   try {
     if (emailPrincipalVerifier === undefined) {
       emailPrincipalVerifier = CognitoJwtVerifier.create({
@@ -234,7 +259,7 @@ export async function verifyEmailOtpPrincipal(email: string, code: string, sessi
       || (payload.auth_time as number) > now + 30) {
       throw new Error("Cognito EMAIL_OTP did not return a fresh verified mailbox principal");
     }
-    return { cognitoSubject: payload.sub, cognitoUsername: username, email };
+    return { cognitoSubject: payload.sub, cognitoUsername: username, email, authTime: payload.auth_time as number };
   } catch (error) {
     log({ domain: "auth", action: "issued_session_validation_error",
       error: error instanceof Error ? error.message : String(error) });
