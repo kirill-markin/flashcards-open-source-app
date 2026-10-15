@@ -1,3 +1,4 @@
+import GoogleSignIn
 import SwiftUI
 import UIKit
 
@@ -203,6 +204,9 @@ struct FlashcardsApp: App {
             RootTabView()
                 .tint(store.effectiveAccountAccentColor.color)
                 .accentColor(store.effectiveAccountAccentColor.color)
+                .onOpenURL { url in
+                    _ = GIDSignIn.sharedInstance.handle(url)
+                }
                 .environment(store)
                 .environment(self.appleSubscriptions)
                 .environment(navigation)
@@ -213,7 +217,6 @@ struct FlashcardsApp: App {
                 .onChange(of: scenePhase) { _, nextPhase in
                     if nextPhase == .active {
                         self.refreshLowPowerModeState()
-                        // Before the startup gate: the icon needs only the entitlement the store cached at init.
                         self.store.applyEffectiveAppIcon()
                     }
                     logAppLifecycleBreadcrumb(
