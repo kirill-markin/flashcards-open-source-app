@@ -2,28 +2,38 @@ package com.flashcardsopensourceapp.data.local.repository.cloudsync.account
 
 import android.util.Base64
 import com.flashcardsopensourceapp.data.local.cloud.CloudAcceptedSocialSession
+import com.flashcardsopensourceapp.data.local.cloud.CloudAppleBrowserBinding
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.CloudSocialAttemptBinding
 import com.flashcardsopensourceapp.data.local.cloud.PendingCloudSocialSignIn
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway
 import com.flashcardsopensourceapp.data.local.cloud.remote.auth.CloudSocialAuthGateway
 import com.flashcardsopensourceapp.data.local.model.cloud.AccountDeletionState
-import com.flashcardsopensourceapp.data.local.model.cloud.CloudAuthMethods
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAppleBrowserLaunch
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAppleBrowserReturn
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAppleBrowserStatus
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAuthMethods
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudEmailSession
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudPendingSocialSignIn
-import com.flashcardsopensourceapp.data.local.model.cloud.CloudProviderSignInHint
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSocialCredentialResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSocialProvider
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSocialProviderAvailability
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudSocialSignInPhase
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudSuccessfulSignInHint
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkContext
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSelection
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
+import com.flashcardsopensourceapp.data.local.model.cloud.cloudAppleReturnUri
 import com.flashcardsopensourceapp.data.local.model.cloud.shouldRefreshCloudIdToken
 import com.flashcardsopensourceapp.data.local.repository.CloudSocialSignInRepository
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudOperationCoordinator
+import java.net.URI
 import java.security.MessageDigest
 import java.security.SecureRandom
+import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
@@ -60,6 +70,7 @@ class LocalCloudSocialSignInRepository(
                 configuration = configuration,
                 provider = CloudSocialProvider.GOOGLE,
                 binding = CloudSocialAttemptBinding(attempt = attempt, codeVerifier = verifier),
+                appleBrowser = null,
                 originalReauthenticationBinding = null,
                 rememberSignIn = rememberSignIn,
                 mailboxReason = null,
@@ -74,6 +85,94 @@ class LocalCloudSocialSignInRepository(
             savePending(pending)
             pending.snapshot()
         }
+    }
+
+    override suspend fun beginAppleLogin(rememberSignIn: Boolean): CloudAppleBrowserLaunch {
+        return operationCoordinator.runExclusive {
+            requireAccountIsNotDeleting()
+            val configuration = preferencesStore.currentServerConfiguration()
+            val method = socialGateway.loadAuthMethods(configuration.authBaseUrl).apple
+            require(method is CloudSocialProviderAvailability.Browser &&
+                method.nativeReturnUri == cloudAppleReturnUri && method.start == "/api/social/apple/start") {
+                "Apple browser sign-in is unavailable on this server."
+            }
+            val origin = URI(configuration.authBaseUrl)
+            require(origin.toString() in setOf("https://auth.nibomo.com", "https://auth.flashcards-open-source-app.com")) {
+                "Apple sign-in requires a supported authentication origin."
+            }
+            val verifier = newSocialCodeVerifier()
+            val localId = UUID.randomUUID().toString()
+            val current = preferencesStore.currentCloudSettings()
+            val pending = PendingCloudSocialSignIn(
+                installationId = current.installationId,
+                linkedUserId = current.linkedUserId,
+                linkedWorkspaceId = current.linkedWorkspaceId,
+                activeWorkspaceId = current.activeWorkspaceId,
+                guestBinding = accountRepository.socialSignInGuestBinding(),
+                acceptedUserId = null,
+                configuration = configuration,
+                provider = CloudSocialProvider.APPLE,
+                binding = null,
+                appleBrowser = CloudAppleBrowserBinding(localId, verifier, null),
+                originalReauthenticationBinding = null,
+                rememberSignIn = rememberSignIn,
+                mailboxReason = null,
+                providerEmail = null,
+                completion = null,
+                acceptedSession = null,
+                preparedContext = null,
+                workspaceSelection = null,
+                completedWorkspace = null,
+                linkingWorkspace = null
+            )
+            savePending(pending)
+            CloudAppleBrowserLaunch(localId, configuration.authBaseUrl + method.start +
+                "?client=android&codeChallenge=" + socialCodeChallenge(verifier))
+        }
+    }
+
+    override suspend fun acceptAppleBrowserReturn(returned: CloudAppleBrowserReturn): CloudPendingSocialSignIn {
+        return operationCoordinator.runExclusive {
+            val pending = requireNotNull(withContext(Dispatchers.IO) { preferencesStore.socialAuthStore.loadPending() }) {
+                "Apple sign-in has no persisted browser launch. Start sign-in again."
+            }
+            val current = requirePending(pending.localId)
+            val browser = requireNotNull(current.appleBrowser) { "This sign-in did not launch the Apple browser." }
+            require(current.provider == CloudSocialProvider.APPLE && current.binding == null &&
+                current.acceptedSession == null && current.completion == null) {
+                "This Apple browser launch already has a verified result or is not a login."
+            }
+            com.flashcardsopensourceapp.data.local.cloud.wire.validateSocialHandle(returned.handle)
+            // A return has no local correlation ID; only the server can prove its PKCE binding.
+            val updated = current.copy(appleBrowser = browser.copy(returned = returned))
+            savePending(updated)
+            updated.snapshot()
+        }
+    }
+
+    override suspend fun verifyEmailCode(
+        challenge: CloudOtpChallenge,
+        code: String,
+        rememberSignIn: Boolean,
+        onVerified: () -> Unit
+    ): CloudWorkspaceLinkContext = operationCoordinator.runExclusive {
+        requireAccountIsNotDeleting()
+        val configuration = preferencesStore.currentServerConfiguration()
+        var accepted: CloudEmailSession? = null
+        val context = accountRepository.verifyEmailCodeSession(challenge, code) { session ->
+            accepted = session
+            onVerified()
+        }
+        accepted?.let { session ->
+            withContext(Dispatchers.IO) {
+                if (rememberSignIn && session.signInHint != null) {
+                    preferencesStore.socialAuthStore.rememberEmailSession(configuration, session.signInHint)
+                } else if (!rememberSignIn) {
+                    preferencesStore.socialAuthStore.forgetHint()
+                }
+            }
+        }
+        context
     }
 
     override suspend fun resumePendingSignIn(): CloudPendingSocialSignIn? = operationCoordinator.runExclusive {
@@ -95,8 +194,8 @@ class LocalCloudSocialSignInRepository(
             }
             val result = socialGateway.submitGoogleCredential(
                 authBaseUrl = pending.configuration.authBaseUrl,
-                attempt = pending.binding.attempt.attempt,
-                codeVerifier = pending.binding.codeVerifier,
+                attempt = pending.serverAttempt,
+                codeVerifier = pending.codeVerifier,
                 identityToken = identityToken
             )
             val updated = when (result) {
@@ -116,8 +215,8 @@ class LocalCloudSocialSignInRepository(
             val pending = requirePendingMailbox(attempt)
             socialGateway.requestSocialMailboxCode(
                 authBaseUrl = pending.configuration.authBaseUrl,
-                attempt = pending.binding.attempt.attempt,
-                codeVerifier = pending.binding.codeVerifier,
+                attempt = pending.serverAttempt,
+                codeVerifier = pending.codeVerifier,
                 email = email
             )
         }
@@ -128,8 +227,8 @@ class LocalCloudSocialSignInRepository(
             val pending = requirePendingMailbox(attempt)
             val completion = socialGateway.verifySocialMailboxCode(
                 authBaseUrl = pending.configuration.authBaseUrl,
-                attempt = pending.binding.attempt.attempt,
-                codeVerifier = pending.binding.codeVerifier,
+                attempt = pending.serverAttempt,
+                codeVerifier = pending.codeVerifier,
                 code = code
             )
             val updated = pending.copy(completion = completion)
@@ -180,7 +279,7 @@ class LocalCloudSocialSignInRepository(
                 val completed = requireNotNull(preferencesStore.socialAuthStore.loadPending()) {
                     "The completed social sign-in no longer has local attempt state."
                 }
-                check(completed.binding.attempt.attempt == attempt) { "The social sign-in attempt changed during completion." }
+                check(completed.localId == attempt) { "The social sign-in attempt changed during completion." }
                 val result = completed.copy(completedWorkspace = workspace)
                 preferencesStore.socialAuthStore.savePending(result)
                 preferencesStore.socialAuthStore.completeAcceptedSession(result)
@@ -193,13 +292,13 @@ class LocalCloudSocialSignInRepository(
         operationCoordinator.runExclusive {
             withContext(Dispatchers.IO) {
                 val pending = preferencesStore.socialAuthStore.loadPending() ?: return@withContext
-                require(pending.binding.attempt.attempt == attempt) { "A different social sign-in attempt is active." }
+                require(pending.localId == attempt) { "A different social sign-in attempt is active." }
                 preferencesStore.socialAuthStore.clearPending()
             }
         }
     }
 
-    override suspend fun rememberedSignIn(): CloudProviderSignInHint? = operationCoordinator.runExclusive {
+    override suspend fun rememberedSignIn(): CloudSuccessfulSignInHint? = operationCoordinator.runExclusive {
         withContext(Dispatchers.IO) {
             preferencesStore.socialAuthStore.loadHint(preferencesStore.currentServerConfiguration())
         }
@@ -213,17 +312,18 @@ class LocalCloudSocialSignInRepository(
 
     override suspend fun signOutAndForget() {
         operationCoordinator.runExclusive {
+            withContext(Dispatchers.IO) { preferencesStore.clearCredentials() }
             accountRepository.logout()
         }
     }
 
     private suspend fun acceptSession(pending: PendingCloudSocialSignIn): PendingCloudSocialSignIn {
         pending.acceptedSession?.let { return pending }
-        val completion = requireNotNull(pending.completion) { "The provider has not completed this sign-in attempt." }
+        val completion = requireNotNull(pending.completionHandle) { "The provider has not completed this sign-in attempt." }
         val session = socialGateway.redeemSocialLogin(
             authBaseUrl = pending.configuration.authBaseUrl,
-            completion = completion.completion,
-            codeVerifier = pending.binding.codeVerifier
+            completion = completion,
+            codeVerifier = pending.codeVerifier
         )
         require(session.signInHint.method == pending.provider) { "The accepted session belongs to a different sign-in method." }
         val accepted = pending.copy(acceptedSession = CloudAcceptedSocialSession(session.credentials, session.signInHint))
@@ -258,7 +358,7 @@ class LocalCloudSocialSignInRepository(
 
     private suspend fun requirePendingMailbox(attempt: String): PendingCloudSocialSignIn {
         val pending = requirePending(attempt)
-        require(pending.mailboxReason != null && pending.completion == null && pending.acceptedSession == null) {
+        require(pending.snapshot().phase == CloudSocialSignInPhase.MAILBOX) {
             "This social sign-in is not waiting for mailbox verification."
         }
         return pending
@@ -269,7 +369,7 @@ class LocalCloudSocialSignInRepository(
         val pending = requireNotNull(withContext(Dispatchers.IO) { preferencesStore.socialAuthStore.loadPending() }) {
             "No social sign-in attempt is stored. Start sign-in again."
         }
-        require(pending.binding.attempt.attempt == attempt) { "A different social sign-in attempt is active." }
+        require(pending.localId == attempt) { "A different social sign-in attempt is active." }
         requireCurrentBinding(pending)
         check(pending.isExpired().not()) { "The social sign-in attempt expired. Start sign-in again." }
         return pending
@@ -317,7 +417,7 @@ class LocalCloudSocialSignInRepository(
 
 private fun PendingCloudSocialSignIn.isExpired(): Boolean {
     return acceptedSession == null &&
-        (completion?.expiresAtMillis ?: binding.attempt.expiresAtMillis) <= System.currentTimeMillis()
+        (completion?.expiresAtMillis ?: binding?.attempt?.expiresAtMillis)?.let { it <= System.currentTimeMillis() } == true
 }
 
 private fun newSocialCodeVerifier(): String {

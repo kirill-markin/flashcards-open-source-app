@@ -10,6 +10,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryReason
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudEmailSession
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSendCodeResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
@@ -78,6 +79,12 @@ internal class CloudSignInCoordinator(
         challenge: CloudOtpChallenge,
         code: String,
         onVerified: () -> Unit
+    ): CloudWorkspaceLinkContext = verifyCodeSession(challenge, code) { onVerified() }
+
+    suspend fun verifyCodeSession(
+        challenge: CloudOtpChallenge,
+        code: String,
+        onVerified: (CloudEmailSession) -> Unit
     ): CloudWorkspaceLinkContext {
         return operationCoordinator.runExclusive {
             val recoveryState: CloudCredentialRecoveryState? = preferencesStore.loadCloudCredentialRecoveryState()
@@ -91,14 +98,14 @@ internal class CloudSignInCoordinator(
                 resumePendingGuestUpgradeIfNeeded()
             }
             val configuration: CloudServiceConfiguration = preferencesStore.currentServerConfiguration()
-            val credentials: StoredCloudCredentials = remoteService.verifyCode(
+            val session: CloudEmailSession = remoteService.verifyCodeSession(
                 challenge = challenge,
                 code = code,
                 authBaseUrl = configuration.authBaseUrl
             )
-            onVerified()
+            onVerified(session)
             val linkContext: CloudWorkspaceLinkContext = buildCloudWorkspaceLinkContext(
-                credentials = credentials,
+                credentials = session.credentials,
                 configuration = configuration
             )
             if (linkContext.guestUpgradeMode != null) {

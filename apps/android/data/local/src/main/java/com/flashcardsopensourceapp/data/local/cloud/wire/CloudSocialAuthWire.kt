@@ -1,5 +1,7 @@
 package com.flashcardsopensourceapp.data.local.cloud.wire
 
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudSignInMethod
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudSuccessfulSignInHint
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAuthMethods
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudEmailAuthMethod
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudProviderSignInHint
@@ -243,4 +245,13 @@ private fun socialContract(condition: Boolean, field: String) {
 
 private fun socialMismatch(field: String): CloudContractMismatchException {
     return CloudContractMismatchException("Cloud social auth contract mismatch for $field.")
+}
+
+internal fun parseCloudEmailSignInHint(response: JSONObject): CloudSuccessfulSignInHint? {
+    if (!response.has("signInHint") || response.isNull("signInHint")) return null
+    val hint = response.requireCloudObject("signInHint", "emailSession.signInHint")
+    if (hint.optString("method") != "email") return null
+    val email = hint.requireCloudString("email", "emailSession.signInHint.email")
+    socialContract(validSocialEmail(email), "emailSession.signInHint.email")
+    return CloudSuccessfulSignInHint(CloudSignInMethod.EMAIL, email, null, null)
 }

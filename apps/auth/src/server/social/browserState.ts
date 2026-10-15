@@ -1,4 +1,5 @@
 import { randomBytes, timingSafeEqual } from "node:crypto";
+import { normalizeSupportedLoginPageLocale, type LoginPageLocale } from "../../routes/browser/loginPageLocale.js";
 import type { Context } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { sign, verify } from "../crypto.js";
@@ -22,7 +23,7 @@ type BrowserStateFields = Readonly<{
   phase: "provider" | "mailbox";
   analytics: AuthAnalyticsContext;
   intent: "login" | "reauth" | "link" | "reenable";
-}> & (Readonly<{ client: "web"; browserSecret: string; redirectUri: string }>
+}> & (Readonly<{ client: "web"; browserSecret: string; redirectUri: string; locale?: LoginPageLocale }>
   | Readonly<{ client: "android"; codeChallenge: string }>);
 export type BrowserCallbackState = BrowserStateFields & Readonly<{ [browserStateBrand]: true }>;
 
@@ -47,7 +48,7 @@ export function requireBrowserRedirect(value: string, authOrigin: string): strin
 
 export function createBrowserState(
   authOrigin: string, provider: IdentityProvider, attempt: string, expiresAt: string,
-  binding: Readonly<{ client: "web"; browserSecret: string; redirectUri: string }> | Readonly<{ client: "android"; codeChallenge: string }>,
+  binding: Readonly<{ client: "web"; browserSecret: string; redirectUri: string; locale?: LoginPageLocale }> | Readonly<{ client: "android"; codeChallenge: string }>,
   analytics: AuthAnalyticsContext, intent: BrowserStateFields["intent"],
 ): BrowserStateFields {
   return { version: "social-browser-v1", authOrigin, provider, attempt, expiresAt: Date.parse(expiresAt),
@@ -81,6 +82,8 @@ export function readBrowserState(c: Context, token: string): BrowserCallbackStat
     requireAuthHandle(state.attempt);
     requireAuthHandle(state.state);
     if (state.client === "web") {
+      if (state.locale !== undefined && (typeof state.locale !== "string"
+        || normalizeSupportedLoginPageLocale(state.locale) !== state.locale)) throw new Error("Invalid callback locale");
       requireAuthHandle(state.browserSecret);
       requireBrowserRedirect(state.redirectUri, state.authOrigin);
     } else if (state.client !== "android" || state.provider !== "apple" || state.phase !== "provider"
