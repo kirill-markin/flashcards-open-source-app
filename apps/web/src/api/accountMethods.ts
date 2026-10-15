@@ -1,5 +1,6 @@
 import { getPreferredAuthUiLocale } from "./authUrls";
 import { getAppConfig } from "../config";
+import type { AnalyticsAuthCodeRequestOutcome, AnalyticsAuthCodeVerificationOutcome } from "../analytics/events";
 
 export type AccountProvider = "google" | "apple";
 export type ProviderTarget = Readonly<{ provider: AccountProvider; providerSubject: string; generation: string }>;
@@ -88,12 +89,48 @@ export async function beginProviderMethod(provider: AccountProvider, csrfToken: 
   }
   return { authorizationUrl: url.toString(), expiresAt: expiry(result.expiresAt) };
 }
-export async function beginEmailMethod(csrfToken: string, signal: AbortSignal): Promise<Readonly<{ attempt: string; expiresAt: number }>> {
-  const result = await request("/api/account/reauth/email", { action: "begin", client: "web", csrfToken }, signal);
+async function requestEmailMethod(fields: Readonly<Record<string, unknown>>, signal: AbortSignal,
+  observe: (outcome: AnalyticsAuthCodeRequestOutcome) => void): Promise<Readonly<Record<string, unknown>>> {
+  const emailRequest = new Request(getAppConfig().authBaseUrl + "/api/account/reauth/email", {
+    method: "POST", credentials: "include", cache: "no-store", signal,
+    headers: { "Content-Type": "application/json" }, body: JSON.stringify(fields),
+  });
+  let response: Response;
+  try {
+    response = await fetch(emailRequest);
+  } catch (failure) {
+    if (!signal.aborted && failure instanceof Error && failure.name !== "AbortError") {
+      if (failure.name === "TimeoutError") observe("timeout");
+      else if (failure instanceof TypeError && navigator.onLine === false) observe("offline");
+    }
+    throw failure;
+  }
+  // Record the service response before parsing or proof handling can fail.
+  if (response.ok) observe("accepted");
+  else if (response.status === 429) observe("rate_limited");
+  const result = object(await response.json());
+  if (!response.ok) {
+    const code = typeof result.code === "string" && /^[A-Z_]{1,64}$/.test(result.code) ? result.code : "AUTH_ATTEMPT_RESTART_REQUIRED";
+    if (response.status !== 429) {
+      if (code === "AUTH_RATE_LIMITED") observe("rate_limited");
+      else if (!["AUTH_ATTEMPT_RESTART_REQUIRED", "PRINCIPAL_SIGNOUT_PENDING", "SERVICE_UNAVAILABLE", "SESSION_REQUIRED", "SESSION_REVOKED", "ACCOUNT_DELETED"].includes(code)) {
+        if (response.status === 408 || response.status === 504) observe("timeout");
+        else if (response.status >= 500) observe("server_error");
+      }
+    }
+    throw new AccountMethodError(code);
+  }
+  return result;
+}
+export async function beginEmailMethod(csrfToken: string, signal: AbortSignal,
+  observe: (outcome: AnalyticsAuthCodeRequestOutcome) => void): Promise<Readonly<{ attempt: string; expiresAt: number }>> {
+  const result = await requestEmailMethod({ action: "begin", client: "web", csrfToken }, signal, observe);
   return { attempt: accountMethodHandle(result.attempt), expiresAt: expiry(result.expiresAt) };
 }
-export async function completeEmailMethod(csrfToken: string, attempt: string, code: string, signal: AbortSignal): Promise<Readonly<{ proof: MethodProof; expiresAt: number }>> {
-  const result = await request("/api/account/reauth/email", { action: "complete", client: "web", csrfToken, attempt, code }, signal);
+export async function completeEmailMethod(csrfToken: string, attempt: string, code: string, signal: AbortSignal,
+  observe: (outcome: AnalyticsAuthCodeVerificationOutcome) => void): Promise<Readonly<{ proof: MethodProof; expiresAt: number }>> {
+  const result = await requestEmailMethod({ action: "complete", client: "web", csrfToken, attempt, code }, signal,
+    (outcome) => observe(outcome === "accepted" ? "verified" : outcome));
   return { proof: { csrfToken, completion: accountMethodHandle(result.completion) }, expiresAt: expiry(result.expiresAt) };
 }
 export async function unlinkProviderMethod(csrfToken: string, target: ProviderTarget, proof: MethodProof, signal: AbortSignal): Promise<void> {
