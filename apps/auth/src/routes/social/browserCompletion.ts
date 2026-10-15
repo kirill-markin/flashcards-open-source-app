@@ -1,6 +1,6 @@
 import type { Context } from "hono";
 import type { AuthAppEnv } from "../../server/apiErrors.js";
-import { setBrowserSessionCookies } from "../../server/browserSession.js";
+import { setBrowserSessionCookies, verifiedBrowserSession, type BrowserSessionPresentation } from "../../server/browserSession.js";
 import { AuthAttemptError, type AuthCompletionResponse } from "../../server/social/attemptContract.js";
 import { completeAccountProviderLink } from "../../server/social/accountMethods.js";
 import { browserAttemptBinding, clearBrowserState, type BrowserCallbackState } from "../../server/social/browserState.js";
@@ -10,7 +10,7 @@ import { requireSocialRateLimit } from "../../server/social/rateLimit.js";
 import type { ProviderSignInHint } from "../../server/social/signInHint.js";
 import { requireAccountSession } from "./accountTransport.js";
 
-export type BrowserLoginCompletion = Readonly<{ ok: true; redirectUri: string; signInHint: ProviderSignInHint }>;
+export type BrowserLoginCompletion = Readonly<{ ok: true; redirectUri: string; signInHint: ProviderSignInHint; acceptedSession?: BrowserSessionPresentation }>;
 export type BrowserCompletion = BrowserLoginCompletion
   | Readonly<{ ok: true; purpose: "link"; redirectUri: string }>
   | Readonly<{ ok: true; purpose: "reauth"; redirectUri: string } & AuthCompletionResponse>;
@@ -40,5 +40,6 @@ export async function acceptBrowserCompletion(
   if (!("signInHint" in response)) throw new AuthAttemptError("AUTH_COMPLETION_INVALID");
   setBrowserSessionCookies(c, response.idToken, response.refreshToken);
   clearBrowserState(c, state);
-  return { ok: true, redirectUri: state.redirectUri, signInHint: response.signInHint };
+  return { ok: true, redirectUri: state.redirectUri, signInHint: response.signInHint,
+    acceptedSession: response[verifiedBrowserSession] };
 }
