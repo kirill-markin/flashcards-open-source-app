@@ -132,6 +132,11 @@ final class FlashcardsStore {
     /// What the presented sign-in sheet is showing and the work it started. Owned here because
     /// SwiftUI rebuilds that sheet's content within one presentation.
     var cloudSignInAttempt: CloudSignInAttemptState
+    let cloudNativeSignIn = CloudNativeSignInCoordinator(
+        social: CloudSocialAuthService(session: URLSession(configuration: .ephemeral)),
+        email: CloudAuthService(),
+        hintStore: CloudSignInHintStore(service: appBundleIdentifier() + ".sign-in-hint")
+    )
     var accountDeletionState: AccountDeletionState
     var accountDeletionSuccessMessage: String?
     var pendingStoreReviewRequestAttempt: StoreReviewRequestAttempt?

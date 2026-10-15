@@ -1,3 +1,5 @@
 #include "Base.xcconfig"
 #include? "Local.xcconfig"
 APP_BUNDLE_IDENTIFIER = com.flashcards-open-source-app.app.development
+GOOGLE_SIGN_IN_CLIENT_ID = 360001205059-91hr2ehlg2gsl2vbo96ol5ml6knt9p67.apps.googleusercontent.com
+GOOGLE_SIGN_IN_REVERSED_CLIENT_ID = com.googleusercontent.apps.360001205059-91hr2ehlg2gsl2vbo96ol5ml6knt9p67

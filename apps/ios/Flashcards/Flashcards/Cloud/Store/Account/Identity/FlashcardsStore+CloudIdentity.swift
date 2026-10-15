@@ -25,6 +25,8 @@ extension FlashcardsStore {
     /// The same reset without the onboarding demo card: every UI-test launch scenario builds its own
     /// starting content on top of an empty workspace.
     func resetLocalStateForUITestLaunch() throws {
+        self.cloudNativeSignIn.resetPendingSignIn()
+        try self.cloudNativeSignIn.forgetRememberedHint()
         _ = try self.clearLocalStateForCloudIdentityChange()
         try self.reloadAfterCloudIdentityReset()
     }
