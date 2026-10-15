@@ -17,6 +17,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecover
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudEntitlement
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudFriendInvitationCreateRequest
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudFriendInvitationCreateResponse
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudEmailSession
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSendCodeResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
@@ -460,6 +461,12 @@ class LocalCloudAccountRepository(
     suspend fun prepareSocialSignIn(credentials: StoredCloudCredentials): CloudWorkspaceLinkContext {
         return signInCoordinator.prepareSocialSignIn(credentials = credentials)
     }
+
+    suspend fun verifyEmailCodeSession(
+        challenge: CloudOtpChallenge,
+        code: String,
+        onVerified: (CloudEmailSession) -> Unit
+    ): CloudWorkspaceLinkContext = signInCoordinator.verifyCodeSession(challenge, code, onVerified)
 
     override suspend fun verifyCode(
         challenge: CloudOtpChallenge,

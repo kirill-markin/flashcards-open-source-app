@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.data.local.migrations
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.flashcardsopensourceapp.data.local.cloud.CloudAppleBrowserBinding
 import com.flashcardsopensourceapp.data.local.cloud.CloudAcceptedSocialSession
 import com.flashcardsopensourceapp.data.local.cloud.CloudCredentialStore
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
@@ -10,6 +11,12 @@ import com.flashcardsopensourceapp.data.local.cloud.CloudSocialAttemptBinding
 import com.flashcardsopensourceapp.data.local.cloud.CloudSocialGuestBinding
 import com.flashcardsopensourceapp.data.local.cloud.PendingCloudSocialSignIn
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAppleBrowserStatus
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudSignInMethod
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudSocialSignInPhase
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudSuccessfulSignInHint
+import com.flashcardsopensourceapp.data.local.model.cloud.parseCloudAppleBrowserReturn
+import com.flashcardsopensourceapp.data.local.model.cloud.successfulHint
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudProviderSignInHint
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSocialEmailRelationship
@@ -24,6 +31,9 @@ import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.cloud.makeOfficialCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.support.clearLocalDatabaseSharedPreferences
 import com.flashcardsopensourceapp.data.local.support.createInMemoryAppDatabase
+import android.util.Base64
+import java.security.SecureRandom
+import java.util.UUID
 import java.io.File
 import java.security.KeyStore
 import javax.crypto.Cipher
@@ -87,6 +97,75 @@ class CloudSocialAuthStorageContractTest {
     }
 
     @Test
+    fun genuineBrowserBindingAndTypedReturnSurviveEncryptedRestartWithoutServerMetadata() {
+        val store = CloudPreferencesStore(context, database)
+        val configuration = makeOfficialCloudServiceConfiguration()
+        val verifierBytes = ByteArray(32).also { SecureRandom().nextBytes(it) }
+        val verifier = Base64.encodeToString(verifierBytes, Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP)
+        val browser = CloudAppleBrowserBinding(UUID.randomUUID().toString(), verifier, null)
+        val origin = store.currentCloudSettings()
+        val pending = PendingCloudSocialSignIn(
+            installationId = origin.installationId,
+            linkedUserId = origin.linkedUserId,
+            linkedWorkspaceId = origin.linkedWorkspaceId,
+            activeWorkspaceId = origin.activeWorkspaceId,
+            guestBinding = null,
+            acceptedUserId = null,
+            configuration = configuration,
+            provider = CloudSocialProvider.APPLE,
+            binding = null,
+            appleBrowser = browser,
+            originalReauthenticationBinding = null,
+            rememberSignIn = true,
+            mailboxReason = null,
+            providerEmail = null,
+            completion = null,
+            acceptedSession = null,
+            preparedContext = null,
+            workspaceSelection = null,
+            completedWorkspace = null,
+            linkingWorkspace = null
+        )
+        store.socialAuthStore.savePending(pending)
+        val restarted = CloudPreferencesStore(context, database)
+        val restored = requireNotNull(restarted.socialAuthStore.loadPending())
+        assertEquals(browser, restored.appleBrowser)
+        assertNull(restored.binding)
+        assertNull(restored.snapshot().nonce)
+        assertNull(restored.snapshot().expiresAtMillis)
+        assertNull(restored.snapshot().mailboxReason)
+        assertNull(restored.snapshot().providerEmail)
+        assertEquals(browser.localId, restored.snapshot().localId)
+        assertNull(restored.snapshot().attempt)
+
+        // Opaque transport bytes exercise parsing/storage only; no provider or server proof is claimed.
+        val opaque = Base64.encodeToString(ByteArray(32).also { SecureRandom().nextBytes(it) },
+            Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP)
+        val returned = parseCloudAppleBrowserReturn(
+            "com.nibomo.app:/auth/social/apple#status=completed&completion=" + opaque
+        )
+        restarted.socialAuthStore.savePending(restored.copy(appleBrowser = browser.copy(returned = returned)))
+        val callback = requireNotNull(CloudPreferencesStore(context, database).socialAuthStore.loadPending())
+        assertEquals(CloudAppleBrowserStatus.COMPLETED, callback.appleBrowser?.returned?.status)
+        assertEquals(CloudSocialSignInPhase.COMPLETION, callback.snapshot().phase)
+        assertEquals(opaque, callback.completionHandle)
+        assertNull(callback.binding)
+        assertNull(callback.snapshot().attempt)
+        assertNull(callback.acceptedSession)
+
+        val emailHint = CloudSuccessfulSignInHint(CloudSignInMethod.EMAIL, "proved@example.com", null, null)
+        restarted.socialAuthStore.rememberEmailSession(configuration, emailHint)
+        restarted.saveCredentials(StoredCloudCredentials("session-refresh", "session-id", Long.MAX_VALUE))
+        restarted.clearCredentialsRetainingSignInHint()
+        val signedOut = CloudPreferencesStore(context, database)
+        assertNull(signedOut.loadCredentials())
+        assertNull(signedOut.socialAuthStore.loadPending())
+        assertEquals(emailHint, signedOut.socialAuthStore.loadHint(configuration))
+        signedOut.socialAuthStore.forgetHint()
+        assertNull(restarted.socialAuthStore.loadHint(configuration))
+    }
+
+    @Test
     fun encryptedAttemptAndAcceptedHintSurviveRestartWithoutReplacingInstalledCredentials() {
         val configuration = makeOfficialCloudServiceConfiguration()
         val store = CloudPreferencesStore(context, database)
@@ -117,6 +196,7 @@ class CloudSocialAuthStorageContractTest {
                 CloudSocialLoginAttempt("attempt", "nonce-secret", Long.MAX_VALUE, "com.nibomo.app:/auth/social/apple", "challenge"),
                 "new-verifier-secret"
             ),
+            appleBrowser = null,
             originalReauthenticationBinding = originalBinding,
             rememberSignIn = true,
             mailboxReason = null,
@@ -145,7 +225,7 @@ class CloudSocialAuthStorageContractTest {
         assertEquals(installed, restarted.loadCredentials())
         assertNull(restarted.socialAuthStore.loadHint(configuration))
         restarted.socialAuthStore.completeAcceptedSession(pending)
-        assertEquals(hint, store.socialAuthStore.loadHint(configuration))
+        assertEquals(hint.successfulHint(), store.socialAuthStore.loadHint(configuration))
 
         val ciphertext = File(context.filesDir, "flashcards-cloud-secrets-encrypted.bin").readBytes()
             .toString(Charsets.ISO_8859_1)
@@ -155,7 +235,7 @@ class CloudSocialAuthStorageContractTest {
 
         store.socialAuthStore.savePending(pending.copy(acceptedSession = null))
         store.socialAuthStore.clearPending()
-        assertEquals(hint, restarted.socialAuthStore.loadHint(configuration))
+        assertEquals(hint.successfulHint(), restarted.socialAuthStore.loadHint(configuration))
         store.socialAuthStore.savePending(pending)
         restarted.socialAuthStore.forgetHint()
         val forgotten = requireNotNull(store.socialAuthStore.loadPending())
