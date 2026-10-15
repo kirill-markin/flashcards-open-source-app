@@ -34,7 +34,9 @@ internal suspend fun resumePendingGuestUpgradeRecoveryIfNeeded(
     remoteService: CloudRemoteGateway,
     syncLocalStore: SyncLocalStore,
     guestSessionStore: GuestAiSessionStore,
-    appVersion: String
+    appVersion: String,
+    onGuestCompletionStarted: () -> Unit,
+    onGuestCompletionFinished: () -> Unit
 ): CloudWorkspaceSummary? {
     val pendingGuestUpgradeState: PendingGuestUpgradeState =
         withContext(Dispatchers.IO) { preferencesStore.loadPendingGuestUpgrade() } ?: return null
@@ -50,7 +52,9 @@ internal suspend fun resumePendingGuestUpgradeRecoveryIfNeeded(
         guestSessionStore = guestSessionStore,
         remoteService = remoteService,
         pendingGuestUpgradeState = refreshedGuestUpgradeState,
-        appVersion = appVersion
+        appVersion = appVersion,
+        onGuestCompletionStarted = onGuestCompletionStarted,
+        onGuestCompletionFinished = onGuestCompletionFinished
     )
 }
 
@@ -113,12 +117,16 @@ private suspend fun finalizePendingGuestUpgradeRecovery(
     guestSessionStore: GuestAiSessionStore,
     remoteService: CloudRemoteGateway,
     pendingGuestUpgradeState: PendingGuestUpgradeState,
-    appVersion: String
+    appVersion: String,
+    onGuestCompletionStarted: () -> Unit,
+    onGuestCompletionFinished: () -> Unit
 ): CloudWorkspaceSummary {
     val completion: CloudGuestUpgradeCompletion = completePendingGuestUpgradeIfNeeded(
         preferencesStore = preferencesStore,
         remoteService = remoteService,
-        pendingGuestUpgradeState = pendingGuestUpgradeState
+        pendingGuestUpgradeState = pendingGuestUpgradeState,
+        onGuestCompletionStarted = onGuestCompletionStarted,
+        onGuestCompletionFinished = onGuestCompletionFinished
     )
     applyPendingGuestUpgradeLinkedWorkspace(
         database = database,
@@ -145,6 +153,9 @@ private suspend fun finalizePendingGuestUpgradeRecovery(
         appVersion = appVersion
     )
     withContext(Dispatchers.IO) {
+        preferencesStore.socialAuthStore.completeEmailSession(
+            pendingGuestUpgradeState.configuration, pendingGuestUpgradeState.credentials.refreshToken
+        )
         // Retain the social result before startup recovery can discard its guest completion route.
         preferencesStore.socialAuthStore.retainCompletedGuestUpgrade(
             installationId = preferencesStore.currentCloudSettings().installationId,
@@ -160,13 +171,16 @@ private suspend fun finalizePendingGuestUpgradeRecovery(
 private suspend fun completePendingGuestUpgradeIfNeeded(
     preferencesStore: CloudPreferencesStore,
     remoteService: CloudRemoteGateway,
-    pendingGuestUpgradeState: PendingGuestUpgradeState
+    pendingGuestUpgradeState: PendingGuestUpgradeState,
+    onGuestCompletionStarted: () -> Unit,
+    onGuestCompletionFinished: () -> Unit
 ): CloudGuestUpgradeCompletion {
     val savedCompletion: CloudGuestUpgradeCompletion? = pendingGuestUpgradeState.completion
     if (savedCompletion != null) {
         return savedCompletion
     }
 
+    onGuestCompletionStarted()
     val completion: CloudGuestUpgradeCompletion = remoteService.completeGuestUpgrade(
         apiBaseUrl = pendingGuestUpgradeState.configuration.apiBaseUrl,
         bearerToken = pendingGuestUpgradeState.credentials.idToken,
@@ -175,6 +189,7 @@ private suspend fun completePendingGuestUpgradeIfNeeded(
         guestWorkspaceSyncedAndOutboxDrained = true,
         supportsDroppedEntities = pendingGuestUpgradeState.guestUpgradeMode == CloudGuestUpgradeMode.MERGE_REQUIRED
     )
+    onGuestCompletionFinished()
     withContext(Dispatchers.IO) {
         preferencesStore.savePendingGuestUpgrade(
             pendingGuestUpgradeState = pendingGuestUpgradeState.copy(completion = completion)

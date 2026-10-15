@@ -70,6 +70,7 @@ fun CloudSignInEmailRoute(
             item {
                 OutlinedTextField(
                     value = uiState.email,
+                    enabled = !uiState.isSendingCode,
                     onValueChange = onEmailChange,
                     label = {
                         Text(stringResource(R.string.settings_sign_in_email_title))

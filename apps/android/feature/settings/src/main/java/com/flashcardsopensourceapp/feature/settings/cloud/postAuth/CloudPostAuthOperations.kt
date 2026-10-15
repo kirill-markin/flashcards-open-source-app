@@ -14,12 +14,16 @@ internal data class CloudPostAuthWorkspaceCompletion(
 internal suspend fun completeCloudPostAuthWorkspaceSelection(
     cloudAccountRepository: CloudAccountRepository,
     linkContext: CloudWorkspaceLinkContext,
-    selection: CloudWorkspaceLinkSelection
+    selection: CloudWorkspaceLinkSelection,
+    onGuestCompletionStarted: () -> Unit,
+    onGuestCompletionFinished: () -> Unit
 ): CloudPostAuthWorkspaceCompletion {
     val workspace = if (requiresCloudGuestUpgrade(linkContext = linkContext)) {
         cloudAccountRepository.completeGuestUpgrade(
             linkContext = linkContext,
-            selection = selection
+            selection = selection,
+            onGuestCompletionStarted = onGuestCompletionStarted,
+            onGuestCompletionFinished = onGuestCompletionFinished
         )
     } else {
         cloudAccountRepository.completeCloudLink(

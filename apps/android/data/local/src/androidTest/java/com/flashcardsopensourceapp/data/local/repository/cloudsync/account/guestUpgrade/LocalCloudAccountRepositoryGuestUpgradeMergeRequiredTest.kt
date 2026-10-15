@@ -285,7 +285,9 @@ class LocalCloudAccountRepositoryGuestUpgradeMergeRequiredTest {
 
         repository.completeGuestUpgrade(
             linkContext = linkContext,
-            selection = CloudWorkspaceLinkSelection.Existing(workspaceId = selectedWorkspace.workspaceId)
+            selection = CloudWorkspaceLinkSelection.Existing(workspaceId = selectedWorkspace.workspaceId),
+            onGuestCompletionStarted = {},
+            onGuestCompletionFinished = {}
         )
 
         val pushedOperations = remoteGateway.pushBodies.single().getJSONArray("operations")
@@ -396,7 +398,9 @@ class LocalCloudAccountRepositoryGuestUpgradeMergeRequiredTest {
         try {
             repository.completeGuestUpgrade(
                 linkContext = linkContext,
-                selection = CloudWorkspaceLinkSelection.Existing(workspaceId = selectedWorkspace.workspaceId)
+                selection = CloudWorkspaceLinkSelection.Existing(workspaceId = selectedWorkspace.workspaceId),
+                onGuestCompletionStarted = {},
+                onGuestCompletionFinished = {}
             )
             throw AssertionError("Expected guest upgrade to stop while local outbox remains.")
         } catch (error: IllegalStateException) {
@@ -483,7 +487,9 @@ class LocalCloudAccountRepositoryGuestUpgradeMergeRequiredTest {
 
         repository.completeGuestUpgrade(
             linkContext = linkContext,
-            selection = CloudWorkspaceLinkSelection.Existing(workspaceId = selectedWorkspace.workspaceId)
+            selection = CloudWorkspaceLinkSelection.Existing(workspaceId = selectedWorkspace.workspaceId),
+            onGuestCompletionStarted = {},
+            onGuestCompletionFinished = {}
         )
 
         val pushedOperations = remoteGateway.pushBodies.single().getJSONArray("operations")
