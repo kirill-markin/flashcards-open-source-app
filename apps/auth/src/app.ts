@@ -13,6 +13,9 @@ import health from "./routes/health.js";
 import authMethods from "./routes/social/authMethods.js";
 import socialAttempt from "./routes/social/attempt.js";
 import socialComplete from "./routes/social/complete.js";
+import socialBrowserStart from "./routes/social/browserStart.js";
+import socialBrowserCallback from "./routes/social/browserCallback.js";
+import appleNotifications from "./routes/social/appleNotifications.js";
 import agentSendCode from "./routes/agent/agentSendCode.js";
 import agentVerifyCode from "./routes/agent/agentVerifyCode.js";
 import sendCode from "./routes/browser/sendCode.js";
@@ -144,7 +147,8 @@ export function registerAuthErrorHandler(app: Hono<AuthAppEnv>): void {
     const traceId = getTraceId(c);
     const logger = getRequestLogger(c);
     const routeKind = getApiRouteKind(c.req.path);
-    const socialCompletion = stripApiStagePrefix(c.req.path) === "/api/social/complete";
+    const socialCompletion = ["/api/social/complete", "/api/social/browser/complete",
+      "/api/social/google/callback", "/api/social/apple/callback", "/api/social/apple/continue"].includes(stripApiStagePrefix(c.req.path));
     if (isTransientDatabaseError(error)) {
       const statusCode = 503;
       const code = socialCompletion ? "AUTH_ATTEMPT_RESTART_REQUIRED" : "SERVICE_UNAVAILABLE";
@@ -268,6 +272,13 @@ function createMountedApp(basePath: string): Hono<AuthAppEnv> {
   // Deny cross-origin requests to cookie-authenticated, state-changing
   // endpoints (defense-in-depth). Shared by /api/* and the OAuth consent POST.
   const denyCrossOrigin: MiddlewareHandler<AuthAppEnv> = async (c, next) => {
+    const routePath = stripApiStagePrefix(c.req.path);
+    const providerCallback = (c.req.method === "GET" && routePath === "/api/social/google/callback")
+      || (c.req.method === "POST" && routePath === "/api/social/apple/callback"
+        && c.req.header("content-type")?.split(";")[0].trim().toLowerCase() === "application/x-www-form-urlencoded"
+        && (c.req.header("origin") === undefined || c.req.header("origin") === "https://appleid.apple.com"));
+    // Provider navigations have a one-use state and host-only callback cookie, never a CORS grant.
+    if (providerCallback) return next();
     const origin = c.req.header("origin");
     if (origin !== undefined) {
       const requestOrigin = new URL(c.req.url).origin;
@@ -307,6 +318,9 @@ function createMountedApp(basePath: string): Hono<AuthAppEnv> {
   app.route("/", authMethods);
   app.route("/", socialAttempt);
   app.route("/", socialComplete);
+  app.route("/", socialBrowserStart);
+  app.route("/", socialBrowserCallback);
+  app.route("/", appleNotifications);
   app.route("/", robots);
   app.route("/", agentSendCode);
   app.route("/", agentVerifyCode);

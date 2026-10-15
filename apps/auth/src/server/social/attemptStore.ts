@@ -4,6 +4,7 @@ import { exchangeAppleAuthorizationCode } from "./apple.js";
 import { exchangeGoogleAuthorizationCode, verifyGoogleIdentityToken } from "./google.js";
 import { beginEnrollmentMailboxOtp, normalizeEnrollmentEmail, type MailboxProofBinding } from "./mailboxProof.js";
 import type { ProviderEnrollmentProof } from "./principalEnrollment.js";
+import { browserAttemptBinding, type BrowserCallbackState } from "./browserState.js";
 import { appleRequestNonce, assertProviderCallback, socialAuthOrigins, SocialProofError } from "./providers.js";
 import {
   AuthAttemptError, requireAuthHandle, type AuthAttemptBinding, type AuthAttemptRequest,
@@ -145,6 +146,24 @@ export async function claimAuthAttempt(
   if (row === undefined) throw new AuthAttemptError("AUTH_ATTEMPT_RESTART_REQUIRED");
   return { [claimedAttemptBrand]: true, handle, claimId: row.claim_id, provider: row.provider_type, client: row.client_type, purpose: row.purpose,
     redirectUri: row.redirect_uri, secrets: openSecrets(handle, row.secret_ciphertext), phase: row.phase };
+}
+
+/** The callback cookie authenticates browser state; Android redemption still requires the app's verifier. */
+export async function claimBrowserAuthAttempt(state: BrowserCallbackState): Promise<ClaimedAuthAttempt> {
+  if (state.phase !== "provider") throw new AuthAttemptError("AUTH_ATTEMPT_RESTART_REQUIRED");
+  const binding = state.client === "web" ? authAttemptBindingHash(browserAttemptBinding(state))
+    : Buffer.from(state.codeChallenge, "base64url").toString("hex");
+  const result = await query<AttemptRow>("SELECT * FROM auth.claim_social_attempt($1,$2,$3,$4,$5,$6)", [
+    authHandleHash(state.attempt), binding, "login", state.client, state.client === "web" ? state.authOrigin : null, "provider_ready",
+  ]);
+  const row = result.rows[0];
+  if (row === undefined || row.provider_type !== state.provider || row.client_type !== state.client
+    || row.purpose !== "login" || row.redirect_uri !== `${state.authOrigin}/api/social/${state.provider}/callback`) {
+    throw new AuthAttemptError("AUTH_ATTEMPT_RESTART_REQUIRED");
+  }
+  return { [claimedAttemptBrand]: true, handle: state.attempt, claimId: row.claim_id, provider: row.provider_type,
+    client: row.client_type, purpose: row.purpose, redirectUri: row.redirect_uri,
+    secrets: openSecrets(state.attempt, row.secret_ciphertext), phase: row.phase };
 }
 
 export async function loadAuthAttemptForMailbox(handle: string, binding: AuthAttemptBinding): Promise<ClaimedAuthAttempt> {
