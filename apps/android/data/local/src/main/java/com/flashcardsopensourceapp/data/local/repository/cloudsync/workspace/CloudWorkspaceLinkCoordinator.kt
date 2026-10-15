@@ -90,7 +90,7 @@ internal class CloudWorkspaceLinkCoordinator(
                 )
             }
             val resumedGuestUpgrade: CloudWorkspaceSummary? = if (recoveryState == null) {
-                resumePendingGuestUpgradeIfNeeded()
+                resumePendingGuestUpgradeIfNeeded({}, {})
             } else {
                 null
             }
@@ -164,7 +164,9 @@ internal class CloudWorkspaceLinkCoordinator(
 
     suspend fun completeGuestUpgrade(
         linkContext: CloudWorkspaceLinkContext,
-        selection: CloudWorkspaceLinkSelection
+        selection: CloudWorkspaceLinkSelection,
+        onGuestCompletionStarted: () -> Unit,
+        onGuestCompletionFinished: () -> Unit
     ): CloudWorkspaceSummary {
         return operationCoordinator.runExclusive {
             require(linkContext.postAuthRoute == CloudWorkspacePostAuthRoute.NONE) {
@@ -174,7 +176,7 @@ internal class CloudWorkspaceLinkCoordinator(
             if (recoveryState != null) {
                 throw CloudCredentialRecoveryRequiredException(recoveryState = recoveryState)
             }
-            val resumedGuestUpgrade: CloudWorkspaceSummary? = resumePendingGuestUpgradeIfNeeded()
+            val resumedGuestUpgrade: CloudWorkspaceSummary? = resumePendingGuestUpgradeIfNeeded(onGuestCompletionStarted, onGuestCompletionFinished)
             if (resumedGuestUpgrade != null) {
                 return@runExclusive resumedGuestUpgrade
             }
@@ -225,7 +227,7 @@ internal class CloudWorkspaceLinkCoordinator(
                 withContext(Dispatchers.IO) {
                     preferencesStore.savePendingGuestUpgrade(pendingGuestUpgradeState = pendingGuestUpgradeState)
                 }
-                requireNotNull(resumePendingGuestUpgradeIfNeeded()) {
+                requireNotNull(resumePendingGuestUpgradeIfNeeded(onGuestCompletionStarted, onGuestCompletionFinished)) {
                     "Pending guest upgrade recovery did not find the saved upgrade state."
                 }
             }
@@ -243,7 +245,7 @@ internal class CloudWorkspaceLinkCoordinator(
         selection: CloudWorkspaceLinkSelection
     ): CloudWorkspaceSummary {
         return operationCoordinator.runExclusive {
-            val resumedGuestUpgrade: CloudWorkspaceSummary? = resumePendingGuestUpgradeIfNeeded()
+            val resumedGuestUpgrade: CloudWorkspaceSummary? = resumePendingGuestUpgradeIfNeeded({}, {})
             if (resumedGuestUpgrade != null) {
                 return@runExclusive resumedGuestUpgrade
             }
@@ -294,14 +296,19 @@ internal class CloudWorkspaceLinkCoordinator(
         }
     }
 
-    private suspend fun resumePendingGuestUpgradeIfNeeded(): CloudWorkspaceSummary? {
+    private suspend fun resumePendingGuestUpgradeIfNeeded(
+        onGuestCompletionStarted: () -> Unit,
+        onGuestCompletionFinished: () -> Unit
+    ): CloudWorkspaceSummary? {
         return resumePendingGuestUpgradeRecoveryIfNeeded(
             database = database,
             preferencesStore = preferencesStore,
             remoteService = remoteService,
             syncLocalStore = syncLocalStore,
             guestSessionStore = guestSessionStore,
-            appVersion = appVersion
+            appVersion = appVersion,
+            onGuestCompletionStarted = onGuestCompletionStarted,
+            onGuestCompletionFinished = onGuestCompletionFinished
         )
     }
 

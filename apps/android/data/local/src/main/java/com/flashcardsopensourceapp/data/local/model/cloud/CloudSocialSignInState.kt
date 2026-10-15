@@ -4,6 +4,7 @@ enum class CloudSocialSignInPhase {
     PROVIDER,
     DENIED,
     MAILBOX,
+    INTERRUPTED_MAILBOX,
     COMPLETION,
     ACCEPTED
 }
@@ -18,5 +19,7 @@ data class CloudPendingSocialSignIn(
     val expiresAtMillis: Long?,
     val phase: CloudSocialSignInPhase,
     val mailboxReason: CloudSocialMailboxReason?,
-    val providerEmail: String?
+    val mailboxCodeRequested: Boolean,
+    val providerEmail: String?,
+    val workspaceSelection: CloudWorkspaceLinkSelection?
 )
