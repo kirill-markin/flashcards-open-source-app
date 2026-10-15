@@ -12,6 +12,10 @@ export type AuthAppEnv = {
 };
 
 export type AuthPublicErrorCode =
+  | import("./social/attemptContract.js").AuthAttemptErrorCode
+  | import("./social/providers.js").SocialProofErrorCode
+  | import("./social/mailboxProof.js").EnrollmentErrorCode
+  | "APPLE_REVOCATION_PENDING"
   | "INVALID_REQUEST"
   | "INVALID_EMAIL"
   | "PASSWORD_SIGN_IN_FAILED"

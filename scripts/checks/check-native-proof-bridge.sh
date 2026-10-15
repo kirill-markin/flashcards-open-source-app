@@ -61,3 +61,5 @@ if result.get('passed') is not True or set(result.get('checks', [])) != expected
 print('Native proof bridge cloud gate passed: ' + ', '.join(sorted(expected)))
 print('This gate does not validate Apple/Google proofs or mailbox delivery')
 PY
+
+node "$(dirname "$0")/check-social-sign-in.mjs"
