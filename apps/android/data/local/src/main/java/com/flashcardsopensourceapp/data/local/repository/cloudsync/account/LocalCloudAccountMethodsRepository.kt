@@ -62,20 +62,25 @@ class LocalCloudAccountMethodsRepository(
         } else pending.snapshot()
     }
 
-    override suspend fun beginReauthentication(method: CloudSignInMethod, onEmailCodeRequested: () -> Unit): CloudPendingAccountMethod = operationCoordinator.runExclusive {
+    override suspend fun beginReauthentication(method: CloudSignInMethod, onEmailCodeRequestStarted: () -> Unit,
+        onEmailCodeRequested: () -> Unit): CloudPendingAccountMethod = operationCoordinator.runExclusive {
         val epoch = withContext(Dispatchers.IO) { preferencesStore.accountMethodStore.epoch() }
         val previous = load()
         val session = currentSession()
         val pending = newPending(session, method, epoch)
         save(previous, pending)
         if (method == CloudSignInMethod.EMAIL) {
-            val attempt = gateway.beginEmailReauthentication(session.transport(), challenge(pending.verifier))
+            val transport = session.transport()
+            val codeChallenge = challenge(pending.verifier)
+            onEmailCodeRequestStarted()
+            val attempt = gateway.beginEmailReauthentication(transport, codeChallenge)
             onEmailCodeRequested()
             update(pending, pending.copy(attempt = attempt, phase = CloudAccountMethodPhase.EMAIL_CODE))
-        } else beginProvider(pending, session)
+        } else beginProvider(pending, session) {}
     }
 
-    override suspend fun beginLink(localId: String, provider: CloudSocialProvider): CloudPendingAccountMethod = operationCoordinator.runExclusive {
+    override suspend fun beginLink(localId: String, provider: CloudSocialProvider,
+        onCurrentAccountProofConfirmed: () -> Unit): CloudPendingAccountMethod = operationCoordinator.runExclusive {
         val pending = requireProof(localId)
         val session = sessionFor(pending)
         val next = pending.copy(localId = UUID.randomUUID().toString(), method = provider.method(), intent = CloudAccountMethodIntent.LINK,
@@ -83,10 +88,11 @@ class LocalCloudAccountMethodsRepository(
             linkReceipt = null, googleAudience = null, mailboxReason = null, providerEmail = null, mailboxEmail = null,
             mailboxCodeRequested = false, target = null)
         save(pending, next)
-        beginProvider(next, session)
+        beginProvider(next, session, onCurrentAccountProofConfirmed)
     }
 
-    override suspend fun beginReenable(localId: String, target: CloudProviderMethodTarget): CloudPendingAccountMethod = operationCoordinator.runExclusive {
+    override suspend fun beginReenable(localId: String, target: CloudProviderMethodTarget,
+        onCurrentAccountProofConfirmed: () -> Unit): CloudPendingAccountMethod = operationCoordinator.runExclusive {
         val pending = requireProof(localId)
         val session = sessionFor(pending)
         require(!loadCurrentTarget(pending, session, target).active) { "Only a currently disabled method can be explicitly re-enabled." }
@@ -95,7 +101,7 @@ class LocalCloudAccountMethodsRepository(
             linkReceipt = null, googleAudience = null, mailboxReason = null, providerEmail = null, mailboxEmail = null,
             mailboxCodeRequested = false, target = target)
         save(pending, next)
-        beginProvider(next, session)
+        beginProvider(next, session, onCurrentAccountProofConfirmed)
     }
 
     override suspend fun prepareProviderLaunch(localId: String): CloudAccountMethodLaunch = operationCoordinator.runExclusive {
@@ -237,7 +243,8 @@ class LocalCloudAccountMethodsRepository(
         }
     }
 
-    private suspend fun beginProvider(pending: PendingCloudAccountMethod, session: AuthenticatedCloudSession): CloudPendingAccountMethod {
+    private suspend fun beginProvider(pending: PendingCloudAccountMethod, session: AuthenticatedCloudSession,
+        onAttemptAccepted: () -> Unit): CloudPendingAccountMethod {
         val methods = socialGateway.loadAuthMethods(pending.configuration.authBaseUrl)
         requireRetained(pending)
         val provider = pending.method.provider()
@@ -246,6 +253,7 @@ class LocalCloudAccountMethodsRepository(
             else availability is CloudSocialProviderAvailability.Browser) { "The requested account proof transport is unavailable." }
         val attempt = gateway.beginAccountProvider(session.transport(), provider, pending.intent, challenge(pending.verifier),
             pending.originalProof, pending.target)
+        onAttemptAccepted()
         return update(pending, pending.copy(attempt = attempt, phase = CloudAccountMethodPhase.PROVIDER,
             googleAudience = (availability as? CloudSocialProviderAvailability.Native)?.audience))
     }

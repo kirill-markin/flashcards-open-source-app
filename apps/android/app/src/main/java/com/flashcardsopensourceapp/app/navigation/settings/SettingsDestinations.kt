@@ -118,6 +118,10 @@ data object SettingsAccountServerDestination {
     const val route: String = "settings/server"
 }
 
+data object SettingsAccountMethodsDestination {
+    const val route: String = "settings/account-methods"
+}
+
 data object SettingsAccountStatusDestination {
     const val route: String = "settings/account-status"
 }

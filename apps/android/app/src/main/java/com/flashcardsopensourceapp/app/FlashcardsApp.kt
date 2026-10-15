@@ -78,6 +78,7 @@ import com.flashcardsopensourceapp.app.navigation.currentTopLevelDestination
 import com.flashcardsopensourceapp.app.navigation.isWithinRoutePrefix
 import com.flashcardsopensourceapp.app.navigation.navigateToTopLevelDestination
 import com.flashcardsopensourceapp.app.navigation.reviewReminderAttentionBadgeTag
+import com.flashcardsopensourceapp.app.navigation.settings.SettingsAccountMethodsDestination
 import com.flashcardsopensourceapp.app.navigation.settings.SettingsAccountSignInEmailDestination
 import com.flashcardsopensourceapp.app.navigation.topLevelDestinations
 import com.flashcardsopensourceapp.app.prompts.feedback.FeedbackPromptContext
@@ -338,6 +339,15 @@ fun FlashcardsApp(
                 updatedAtMillis = 0L
             )
         )
+        LaunchedEffect(appleReturn, cloudSettings.cloudState) {
+            val managementReturn = appleReturn is AppleSignInReturnState.ManagementAccepted ||
+                appleReturn == AppleSignInReturnState.ManagementRejected ||
+                appleReturn == AppleSignInReturnState.ManagementStorageFailed
+            if (managementReturn && cloudSettings.cloudState == CloudAccountState.LINKED &&
+                navController.currentDestination?.route != SettingsAccountMethodsDestination.route) {
+                navController.navigate(SettingsAccountMethodsDestination.route) { launchSingleTop = true }
+            }
+        }
         val premiumPresenter = remember(appGraph) { PremiumPresenter() }
         DisposableEffect(premiumPresenter) {
             onDispose { premiumPresenter.dismiss() }
