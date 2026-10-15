@@ -961,3 +961,19 @@
 "settings.account.cloudSignIn.restart" = "Volver a empezar";
 "settings.account.cloudSignIn.rememberFailed" = "Iniciaste sesión. No se pudo guardar el recordatorio. Inténtalo de nuevo o cierra.";
 "settings.account.cloudSignIn.hintFailed" = "No se pudo actualizar el inicio de sesión recordado. Inténtalo de nuevo.";
+
+"settings.account.methods.title" = "Métodos de acceso";
+"settings.account.methods.link" = "Vincular proveedor";
+"settings.account.methods.unlink" = "Desvincular proveedor";
+"settings.account.methods.reenable" = "Reactivar proveedor";
+"settings.account.methods.generation" = "Generación";
+"settings.account.methods.readOnly" = "Los correos de recuperación verificados son de solo lectura. Solo las direcciones de esta lista están acreditadas.";
+"settings.account.methods.cleanup" = "La limpieza está pendiente. Actualiza hasta que termine y empieza con una prueba nueva.";
+"settings.account.methods.confirmCurrent" = "Primero verifica tu cuenta actual con un método de acceso activo. Esto no cambia de cuenta.";
+"settings.account.methods.confirmNewProvider" = "Ahora verifica la cuenta del proveedor para el cambio. Usa la cuenta deseada.";
+"settings.account.methods.fresh" = "El cambio no terminó o la prueba venció. Actualiza los métodos y empieza con una prueba nueva.";
+"settings.account.methods.lastUsable" = "Antes de desvincular, conserva otro proveedor activo o un correo de recuperación verificado.";
+"settings.account.methods.conflict" = "Este proveedor pertenece a otra cuenta. Elige otra cuenta del proveedor.";
+"settings.account.methods.changed" = "Este método cambió. Actualiza los métodos y vuelve a empezar.";
+"settings.account.methods.demo" = "Las cuentas de demostración no pueden administrar métodos de acceso. Inicia sesión con tu cuenta.";
+"settings.account.methods.refreshFailed" = "No se pudieron actualizar los métodos. Actualiza antes de otro cambio.";

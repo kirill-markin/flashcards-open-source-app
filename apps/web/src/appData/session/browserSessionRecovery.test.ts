@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import "fake-indexeddb/auto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { forgetBrowserSignInInformation } from "../../api/browserHints";
 import {
   hasAccountDeletionAttemptDispatched,
   isAccountDeletionPending,
@@ -25,6 +26,11 @@ import {
   isBrowserReauthRequired,
   markBrowserReauthRequired,
 } from "./browserSessionRecovery";
+
+vi.mock("../../api/browserHints", async (importOriginal) => ({
+  ...await importOriginal<typeof import("../../api/browserHints")>(),
+  forgetBrowserSignInInformation: vi.fn(async (): Promise<void> => {}),
+}));
 
 const observabilityMocks = vi.hoisted(() => ({
   addWebBreadcrumbMock: vi.fn(),
@@ -154,6 +160,7 @@ beforeEach(async () => {
   window.localStorage.clear();
   clearBrowserReauthRequired();
   observabilityMocks.addWebBreadcrumbMock.mockReset();
+  vi.mocked(forgetBrowserSignInInformation).mockClear();
 });
 
 afterEach(async () => {
@@ -255,6 +262,7 @@ describe("browser session recovery", () => {
 
     await expect(clearAllLocalBrowserData("account_deletion_submit", ignoreIndexedDbOpenRecoveryFailure)).resolves.toBeUndefined();
 
+    expect(forgetBrowserSignInInformation).toHaveBeenCalledTimes(1);
     expect(isAccountDeletionPending()).toBe(true);
     expect(loadAccountDeletionCsrfToken()).toBe("csrf-token");
     expect(isAccountDeletionServerConfirmed()).toBe(true);
@@ -281,6 +289,7 @@ describe("browser session recovery", () => {
 
     await expect(clearAllLocalBrowserData("account_deletion_submit", ignoreIndexedDbOpenRecoveryFailure)).rejects.toThrow("Failed to open IndexedDB");
 
+    expect(forgetBrowserSignInInformation).toHaveBeenCalledTimes(1);
     expect(isAccountDeletionPending()).toBe(true);
     expect(loadAccountDeletionCsrfToken()).toBe("csrf-token");
     expect(isAccountDeletionServerConfirmed()).toBe(true);
@@ -299,6 +308,7 @@ describe("browser session recovery", () => {
 
     await expect(clearAllLocalBrowserData("account_deletion_submit", ignoreIndexedDbOpenRecoveryFailure)).rejects.toThrow("Failed to open IndexedDB");
 
+    expect(forgetBrowserSignInInformation).toHaveBeenCalledTimes(1);
     expect(isAccountDeletionPending()).toBe(true);
     expect(loadAccountDeletionCsrfToken()).toBe("csrf-token");
     expect(isAccountDeletionServerConfirmed()).toBe(true);

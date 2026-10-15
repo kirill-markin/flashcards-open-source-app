@@ -1512,6 +1512,12 @@ const lvCatalog: TranslationCatalog = {
       value: "Dzēst",
     },
   },
+  browserSignInPrivacy: {
+    forget: "Aizmirst pieteikšanās informāciju",
+    signOutForget: "Izrakstīties un aizmirst",
+    forgotten: "Pieteikšanās informācija ir aizmirsta.",
+    error: "Neizdevās mainīt pieteikšanās informāciju. Atļaujiet autentifikācijas vietnes datus un mēģiniet vēlreiz.",
+  },
   accountStatus: {
     title: "Konta statuss",
     subtitle: "Pārskatiet pašreizējo pierakstīto kontu un pārlūka sesiju.",

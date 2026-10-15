@@ -933,3 +933,19 @@
 "settings.account.cloudSignIn.restart" = "Sākt no jauna";
 "settings.account.cloudSignIn.rememberFailed" = "Esat pieteicies. Pieteikšanās norādi neizdevās saglabāt. Mēģiniet vēlreiz vai aizveriet.";
 "settings.account.cloudSignIn.hintFailed" = "Saglabāto pieteikšanos neizdevās atjaunināt. Mēģiniet vēlreiz.";
+
+"settings.account.methods.title" = "Pierakstīšanās veidi";
+"settings.account.methods.link" = "Piesaistīt pakalpojumu sniedzēju";
+"settings.account.methods.unlink" = "Atsaistīt pakalpojumu sniedzēju";
+"settings.account.methods.reenable" = "Atkal iespējot pakalpojumu sniedzēju";
+"settings.account.methods.generation" = "Paaudze";
+"settings.account.methods.readOnly" = "Apstiprinātie atkopšanas e-pasti ir tikai lasāmi. Pierādītas ir tikai norādītās adreses.";
+"settings.account.methods.cleanup" = "Tīrīšana gaida. Atsvaidziniet līdz beigām un sāciet ar jaunu pierādījumu.";
+"settings.account.methods.confirmCurrent" = "Vispirms apstipriniet pašreizējo kontu ar aktīvu pierakstīšanās veidu. Tas nemaina kontu.";
+"settings.account.methods.confirmNewProvider" = "Tagad apstipriniet sniedzēja kontu izmaiņai. Izmantojiet vēlamo kontu.";
+"settings.account.methods.fresh" = "Izmaiņa netika pabeigta vai pierādījums beidzās. Atsvaidziniet veidus un sāciet ar jaunu pierādījumu.";
+"settings.account.methods.lastUsable" = "Pirms atsaistīšanas saglabājiet citu aktīvu sniedzēju vai apstiprinātu atkopšanas e-pastu.";
+"settings.account.methods.conflict" = "Sniedzējs pieder citam kontam. Izvēlieties citu sniedzēja kontu.";
+"settings.account.methods.changed" = "Veids ir mainījies. Atsvaidziniet veidus un sāciet no jauna.";
+"settings.account.methods.demo" = "Demonstrācijas konti nevar pārvaldīt pierakstīšanās veidus. Pierakstieties savā kontā.";
+"settings.account.methods.refreshFailed" = "Neizdevās atsvaidzināt veidus. Atsvaidziniet pirms jaunas izmaiņas.";

@@ -170,7 +170,7 @@ struct CloudNativeSignInOptions: View {
     }
 }
 
-private struct CloudBrandedProviderButton: UIViewRepresentable {
+struct CloudBrandedProviderButton: UIViewRepresentable {
     let provider: CloudAuthProvider
     let onPress: (UIViewController) -> Void
 

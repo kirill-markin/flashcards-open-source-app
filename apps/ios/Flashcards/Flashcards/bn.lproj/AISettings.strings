@@ -933,3 +933,19 @@
 "settings.account.cloudSignIn.restart" = "আবার শুরু করুন";
 "settings.account.cloudSignIn.rememberFailed" = "সাইন ইন হয়েছে। সাইন ইনের ইঙ্গিত সংরক্ষণ করা যায়নি। আবার চেষ্টা করুন বা বন্ধ করুন।";
 "settings.account.cloudSignIn.hintFailed" = "মনে রাখা সাইন ইন আপডেট করা যায়নি। আবার চেষ্টা করুন।";
+
+"settings.account.methods.title" = "সাইন-ইন পদ্ধতি";
+"settings.account.methods.link" = "প্রদানকারী যুক্ত করুন";
+"settings.account.methods.unlink" = "প্রদানকারী বিচ্ছিন্ন করুন";
+"settings.account.methods.reenable" = "প্রদানকারী আবার চালু করুন";
+"settings.account.methods.generation" = "প্রজন্ম";
+"settings.account.methods.readOnly" = "যাচাইকৃত পুনরুদ্ধার ইমেল কেবল পড়া যায়। তালিকাভুক্ত ঠিকানাগুলিই প্রমাণিত।";
+"settings.account.methods.cleanup" = "প্রদানকারীর পরিষ্কারকরণ বাকি। শেষ পর্যন্ত রিফ্রেশ করুন, তারপর নতুন প্রমাণ দিয়ে শুরু করুন।";
+"settings.account.methods.confirmCurrent" = "আগে সক্রিয় সাইন-ইন পদ্ধতিতে বর্তমান অ্যাকাউন্ট যাচাই করুন। অ্যাকাউন্ট বদলাবে না।";
+"settings.account.methods.confirmNewProvider" = "এবার পরিবর্তনের জন্য প্রদানকারীর অ্যাকাউন্ট যাচাই করুন। কাঙ্ক্ষিত অ্যাকাউন্ট ব্যবহার করুন।";
+"settings.account.methods.fresh" = "পরিবর্তন শেষ হয়নি বা প্রমাণের মেয়াদ শেষ। পদ্ধতি রিফ্রেশ করে নতুন প্রমাণ দিয়ে শুরু করুন।";
+"settings.account.methods.lastUsable" = "বিচ্ছিন্ন করার আগে অন্য সক্রিয় প্রদানকারী বা যাচাইকৃত পুনরুদ্ধার ইমেল রাখুন।";
+"settings.account.methods.conflict" = "প্রদানকারী অন্য অ্যাকাউন্টের। প্রদানকারীর অন্য অ্যাকাউন্ট বেছে নিন।";
+"settings.account.methods.changed" = "পদ্ধতি বদলেছে। পদ্ধতি রিফ্রেশ করে আবার শুরু করুন।";
+"settings.account.methods.demo" = "ডেমো অ্যাকাউন্ট সাইন-ইন পদ্ধতি পরিচালনা করতে পারে না। নিজের অ্যাকাউন্টে সাইন ইন করুন।";
+"settings.account.methods.refreshFailed" = "পদ্ধতি রিফ্রেশ হয়নি। নতুন পরিবর্তনের আগে রিফ্রেশ করুন।";

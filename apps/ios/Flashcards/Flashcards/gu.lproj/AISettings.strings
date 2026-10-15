@@ -933,3 +933,19 @@
 "settings.account.cloudSignIn.restart" = "ફરી શરૂ કરો";
 "settings.account.cloudSignIn.rememberFailed" = "સાઇન ઇન થયું. સાઇન ઇનનો સંકેત સાચવી શકાયો નથી. ફરી પ્રયાસ કરો અથવા બંધ કરો.";
 "settings.account.cloudSignIn.hintFailed" = "યાદ રાખેલું સાઇન ઇન અપડેટ થઈ શક્યું નથી. ફરી પ્રયાસ કરો.";
+
+"settings.account.methods.title" = "સાઇન-ઇન પદ્ધતિઓ";
+"settings.account.methods.link" = "પ્રદાતા જોડો";
+"settings.account.methods.unlink" = "પ્રદાતા અલગ કરો";
+"settings.account.methods.reenable" = "પ્રદાતા ફરી સક્ષમ કરો";
+"settings.account.methods.generation" = "પેઢી";
+"settings.account.methods.readOnly" = "ચકાસેલા પુનઃપ્રાપ્તિ ઇમેલ માત્ર વાંચી શકાય છે. સૂચિબદ્ધ સરનામાં જ સાબિત છે.";
+"settings.account.methods.cleanup" = "સફાઈ બાકી છે. પૂરી થાય ત્યાં સુધી રિફ્રેશ કરો, પછી નવા પુરાવાથી શરૂ કરો.";
+"settings.account.methods.confirmCurrent" = "પહેલાં સક્રિય સાઇન-ઇન પદ્ધતિથી હાલનું ખાતું ચકાસો. ખાતું બદલાશે નહીં.";
+"settings.account.methods.confirmNewProvider" = "હવે ફેરફાર માટે પ્રદાતાનું ખાતું ચકાસો. ઇચ્છિત ખાતું વાપરો.";
+"settings.account.methods.fresh" = "ફેરફાર પૂરો થયો નથી અથવા પુરાવો સમાપ્ત થયો. પદ્ધતિઓ રિફ્રેશ કરી નવા પુરાવાથી શરૂ કરો.";
+"settings.account.methods.lastUsable" = "અલગ કરતાં પહેલાં અન્ય સક્રિય પ્રદાતા અથવા ચકાસેલો પુનઃપ્રાપ્તિ ઇમેલ રાખો.";
+"settings.account.methods.conflict" = "પ્રદાતા બીજા ખાતાનો છે. પ્રદાતાનું બીજું ખાતું પસંદ કરો.";
+"settings.account.methods.changed" = "પદ્ધતિ બદલાઈ છે. પદ્ધતિઓ રિફ્રેશ કરીને ફરી શરૂ કરો.";
+"settings.account.methods.demo" = "ડેમો ખાતાં સાઇન-ઇન પદ્ધતિઓ સંભાળી શકતાં નથી. તમારા ખાતામાં સાઇન ઇન કરો.";
+"settings.account.methods.refreshFailed" = "પદ્ધતિઓ રિફ્રેશ થઈ નથી. નવા ફેરફાર પહેલાં રિફ્રેશ કરો.";

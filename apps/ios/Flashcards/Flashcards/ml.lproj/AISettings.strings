@@ -933,3 +933,19 @@
 "settings.account.cloudSignIn.restart" = "വീണ്ടും ആരംഭിക്കുക";
 "settings.account.cloudSignIn.rememberFailed" = "സൈൻ ഇൻ ചെയ്തു. സൈൻ ഇൻ സൂചന സംരക്ഷിക്കാനായില്ല. വീണ്ടും ശ്രമിക്കുക അല്ലെങ്കിൽ അടയ്ക്കുക.";
 "settings.account.cloudSignIn.hintFailed" = "ഓർത്തുവച്ച സൈൻ ഇൻ പുതുക്കാനായില്ല. വീണ്ടും ശ്രമിക്കുക.";
+
+"settings.account.methods.title" = "സൈൻ-ഇൻ രീതികൾ";
+"settings.account.methods.link" = "ദാതാവിനെ ബന്ധിപ്പിക്കുക";
+"settings.account.methods.unlink" = "ദാതാവിന്റെ ബന്ധം നീക്കുക";
+"settings.account.methods.reenable" = "ദാതാവിനെ വീണ്ടും പ്രവർത്തനക്ഷമമാക്കുക";
+"settings.account.methods.generation" = "തലമുറ";
+"settings.account.methods.readOnly" = "സ്ഥിരീകരിച്ച വീണ്ടെടുക്കൽ ഇമെയിലുകൾ വായിക്കാൻ മാത്രം. പട്ടികയിലെ വിലാസങ്ങൾ മാത്രമാണ് തെളിയിക്കപ്പെട്ടത്.";
+"settings.account.methods.cleanup" = "വൃത്തിയാക്കൽ ബാക്കിയാണ്. പൂർത്തിയാകുന്നതുവരെ പുതുക്കി, പുതിയ തെളിവോടെ തുടങ്ങുക.";
+"settings.account.methods.confirmCurrent" = "ആദ്യം സജീവ സൈൻ-ഇൻ രീതിയിലൂടെ നിലവിലെ അക്കൗണ്ട് സ്ഥിരീകരിക്കുക. അക്കൗണ്ട് മാറില്ല.";
+"settings.account.methods.confirmNewProvider" = "ഇപ്പോൾ മാറ്റത്തിനായി ദാതാവിന്റെ അക്കൗണ്ട് സ്ഥിരീകരിക്കുക. ഉദ്ദേശിച്ച അക്കൗണ്ട് ഉപയോഗിക്കുക.";
+"settings.account.methods.fresh" = "മാറ്റം പൂർത്തിയായില്ല അല്ലെങ്കിൽ തെളിവ് കാലഹരണപ്പെട്ടു. രീതികൾ പുതുക്കി പുതിയ തെളിവോടെ തുടങ്ങുക.";
+"settings.account.methods.lastUsable" = "ബന്ധം നീക്കുന്നതിന് മുമ്പ് മറ്റൊരു സജീവ ദാതാവിനെയോ സ്ഥിരീകരിച്ച വീണ്ടെടുക്കൽ ഇമെയിലോ നിലനിർത്തുക.";
+"settings.account.methods.conflict" = "ഈ ദാതാവ് മറ്റൊരു അക്കൗണ്ടിന്റേതാണ്. ദാതാവിന്റെ മറ്റൊരു അക്കൗണ്ട് തിരഞ്ഞെടുക്കുക.";
+"settings.account.methods.changed" = "രീതി മാറി. രീതികൾ പുതുക്കി വീണ്ടും തുടങ്ങുക.";
+"settings.account.methods.demo" = "ഡെമോ അക്കൗണ്ടുകൾക്ക് സൈൻ-ഇൻ രീതികൾ നിയന്ത്രിക്കാനാവില്ല. സ്വന്തം അക്കൗണ്ടിൽ സൈൻ ഇൻ ചെയ്യുക.";
+"settings.account.methods.refreshFailed" = "രീതികൾ പുതുക്കാനായില്ല. പുതിയ മാറ്റത്തിന് മുമ്പ് പുതുക്കുക.";

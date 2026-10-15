@@ -1512,6 +1512,12 @@ const nbCatalog: TranslationCatalog = {
       value: "Slett",
     },
   },
+  browserSignInPrivacy: {
+    forget: "Glem innloggingsinformasjon",
+    signOutForget: "Logg ut og glem",
+    forgotten: "Innloggingsinformasjonen er glemt.",
+    error: "Kunne ikke endre innloggingsinformasjon. Tillat nettstedsdata for innloggingssiden og prøv igjen.",
+  },
   accountStatus: {
     title: "Kontostatus",
     subtitle: "Se kontoen du er logget inn med nå, og nettleserøkten.",

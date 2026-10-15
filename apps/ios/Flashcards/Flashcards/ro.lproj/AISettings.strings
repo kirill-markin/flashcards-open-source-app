@@ -933,3 +933,19 @@
 "settings.account.cloudSignIn.restart" = "Începe din nou";
 "settings.account.cloudSignIn.rememberFailed" = "Te-ai conectat. Indiciul de conectare nu a putut fi salvat. Reîncearcă sau închide.";
 "settings.account.cloudSignIn.hintFailed" = "Conectarea reținută nu a putut fi actualizată. Reîncearcă.";
+
+"settings.account.methods.title" = "Metode de conectare";
+"settings.account.methods.link" = "Asociază furnizorul";
+"settings.account.methods.unlink" = "Dezasociază furnizorul";
+"settings.account.methods.reenable" = "Reactivează furnizorul";
+"settings.account.methods.generation" = "Generație";
+"settings.account.methods.readOnly" = "Adresele de recuperare verificate pot fi doar citite. Doar adresele enumerate sunt dovedite.";
+"settings.account.methods.cleanup" = "Curățarea așteaptă. Reîmprospătează până se termină și începe cu o dovadă nouă.";
+"settings.account.methods.confirmCurrent" = "Mai întâi verifică contul actual cu o metodă activă. Aceasta nu schimbă contul.";
+"settings.account.methods.confirmNewProvider" = "Acum verifică contul furnizorului pentru modificare. Folosește contul dorit.";
+"settings.account.methods.fresh" = "Modificarea nu s-a încheiat sau dovada a expirat. Reîmprospătează metodele și începe cu o dovadă nouă.";
+"settings.account.methods.lastUsable" = "Păstrează alt furnizor activ sau adresă de recuperare verificată înainte de dezasociere.";
+"settings.account.methods.conflict" = "Furnizorul aparține altui cont. Alege alt cont al furnizorului.";
+"settings.account.methods.changed" = "Metoda s-a schimbat. Reîmprospătează metodele și începe din nou.";
+"settings.account.methods.demo" = "Conturile demonstrative nu gestionează metodele de conectare. Conectează-te cu propriul cont.";
+"settings.account.methods.refreshFailed" = "Metodele nu au putut fi reîmprospătate. Reîmprospătează înainte de o modificare nouă.";

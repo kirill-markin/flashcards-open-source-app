@@ -16,6 +16,7 @@ import {
   seedIndexedDbState,
   seededSession,
   seededWorkspace,
+  waitForBrowserSignInMethodConsumption,
   type HarnessActions,
   type HarnessSnapshot,
 } from "./useWorkspaceSessionTestSupport";
@@ -89,6 +90,7 @@ describe("useWorkspaceSession workspace deletion", () => {
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
       .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"))
       .mockResolvedValueOnce(buildWorkspacesResponse([seededWorkspace, unselectedReplacementWorkspace]))
+      .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"))
       .mockResolvedValueOnce(buildDeleteWorkspaceResponse("workspace-1", replacementWorkspace));
     vi.stubGlobal("fetch", fetchMock);
 
@@ -130,6 +132,7 @@ describe("useWorkspaceSession workspace deletion", () => {
       expect(runSyncForWorkspaceMock).toHaveBeenCalledTimes(1);
     });
     await flushEffects();
+    await waitForBrowserSignInMethodConsumption(1);
 
     if (latestActions === null) {
       throw new Error("Workspace session actions were not published");
@@ -163,6 +166,7 @@ describe("useWorkspaceSession workspace deletion", () => {
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
       .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"))
       .mockResolvedValueOnce(buildWorkspacesResponse([seededWorkspace]))
+      .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"))
       .mockResolvedValueOnce(buildWorkspaceDeleteErrorResponse(
         deleteErrorMessage,
         "WORKSPACE_DELETE_CONFIRMATION_INVALID",
@@ -207,6 +211,7 @@ describe("useWorkspaceSession workspace deletion", () => {
       expect(runSyncForWorkspaceMock).toHaveBeenCalledTimes(1);
     });
     await flushEffects();
+    await waitForBrowserSignInMethodConsumption(1);
 
     if (latestActions === null) {
       throw new Error("Workspace session actions were not published");
@@ -234,6 +239,7 @@ describe("useWorkspaceSession workspace deletion", () => {
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
       .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"))
       .mockResolvedValueOnce(buildWorkspacesResponse([seededWorkspace]))
+      .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"))
       .mockResolvedValueOnce(buildResetWorkspaceProgressResponse());
     vi.stubGlobal("fetch", fetchMock);
 
@@ -278,6 +284,7 @@ describe("useWorkspaceSession workspace deletion", () => {
       expect(runSyncForWorkspaceMock).toHaveBeenCalledTimes(1);
     });
     await flushEffects();
+    await waitForBrowserSignInMethodConsumption(1);
 
     if (latestActions === null) {
       throw new Error("Workspace session actions were not published");

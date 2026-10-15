@@ -1542,6 +1542,12 @@ const slCatalog: TranslationCatalog = {
       value: "Izbriši",
     },
   },
+  browserSignInPrivacy: {
+    forget: "Pozabi podatke o prijavi",
+    signOutForget: "Odjava in pozabi",
+    forgotten: "Podatki o prijavi so pozabljeni.",
+    error: "Podatkov o prijavi ni bilo mogoče spremeniti. Dovolite podatke spletnega mesta za prijavo in poskusite znova.",
+  },
   accountStatus: {
     title: "Stanje računa",
     subtitle: "Oglejte si trenutni prijavljeni račun in sejo brskalnika.",

@@ -933,3 +933,19 @@
 "settings.account.cloudSignIn.restart" = "Aloita uudelleen";
 "settings.account.cloudSignIn.rememberFailed" = "Olet kirjautunut. Kirjautumisvihjettä ei voitu tallentaa. Yritä uudelleen tai sulje.";
 "settings.account.cloudSignIn.hintFailed" = "Muistettua kirjautumista ei voitu päivittää. Yritä uudelleen.";
+
+"settings.account.methods.title" = "Kirjautumistavat";
+"settings.account.methods.link" = "Liitä palveluntarjoaja";
+"settings.account.methods.unlink" = "Poista palveluntarjoajan liitos";
+"settings.account.methods.reenable" = "Ota palveluntarjoaja uudelleen käyttöön";
+"settings.account.methods.generation" = "Sukupolvi";
+"settings.account.methods.readOnly" = "Vahvistetut palautussähköpostit ovat vain luettavissa. Vain luetellut osoitteet on todistettu.";
+"settings.account.methods.cleanup" = "Siivous odottaa. Päivitä loppuun asti ja aloita uudella todisteella.";
+"settings.account.methods.confirmCurrent" = "Vahvista ensin nykyinen tilisi aktiivisella kirjautumistavalla. Tämä ei vaihda tiliä.";
+"settings.account.methods.confirmNewProvider" = "Vahvista nyt muutoksen palveluntarjoajatili. Käytä haluamaasi tiliä.";
+"settings.account.methods.fresh" = "Muutos ei valmistunut tai todiste vanheni. Päivitä tavat ja aloita uudella todisteella.";
+"settings.account.methods.lastUsable" = "Säilytä toinen aktiivinen palveluntarjoaja tai vahvistettu palautussähköposti ennen liitoksen poistoa.";
+"settings.account.methods.conflict" = "Palveluntarjoaja kuuluu toiselle tilille. Valitse toinen palveluntarjoajatili.";
+"settings.account.methods.changed" = "Tapa muuttui. Päivitä tavat ja aloita uudelleen.";
+"settings.account.methods.demo" = "Demotilit eivät voi hallita kirjautumistapoja. Kirjaudu omalla tililläsi.";
+"settings.account.methods.refreshFailed" = "Tapoja ei voitu päivittää. Päivitä ennen uutta muutosta.";

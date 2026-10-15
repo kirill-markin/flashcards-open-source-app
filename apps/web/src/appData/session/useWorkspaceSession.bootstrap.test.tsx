@@ -19,6 +19,7 @@ import {
   seededCloudSettings,
   seededSession,
   seededWorkspace,
+  waitForBrowserSignInMethodConsumption,
   type HarnessSnapshot,
 } from "./useWorkspaceSessionTestSupport";
 import { act } from "react";
@@ -342,6 +343,7 @@ describe("useWorkspaceSession bootstrap", () => {
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
       .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"))
       .mockResolvedValueOnce(buildWorkspacesResponse([seededWorkspace]))
+      .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"))
       .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-interval"));
     vi.stubGlobal("fetch", fetchMock);
 
@@ -377,6 +379,8 @@ describe("useWorkspaceSession bootstrap", () => {
       expect(intervalHandler).not.toBeNull();
     });
 
+    await waitForBrowserSignInMethodConsumption(1);
+
     const visibleIntervalHandler = intervalHandler;
     if (visibleIntervalHandler === null) {
       throw new Error("Visible sync interval handler was not registered");
@@ -392,10 +396,10 @@ describe("useWorkspaceSession bootstrap", () => {
       expect(runSyncSilentlyMock).toHaveBeenCalledTimes(1);
     });
 
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
     expect(runSyncMock).not.toHaveBeenCalled();
     expect(runSyncSilentlyMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock.mock.invocationCallOrder[2]).toBeLessThan(
+    expect(fetchMock.mock.invocationCallOrder[3]).toBeLessThan(
       runSyncSilentlyMock.mock.invocationCallOrder[0] ?? 0,
     );
     expect(latestState?.session?.csrfToken).toBe("csrf-interval");
@@ -482,7 +486,8 @@ describe("useWorkspaceSession bootstrap", () => {
 
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
       .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"))
-      .mockResolvedValueOnce(buildWorkspacesResponse([seededWorkspace]));
+      .mockResolvedValueOnce(buildWorkspacesResponse([seededWorkspace]))
+      .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"));
     vi.stubGlobal("fetch", fetchMock);
 
     await act(async () => {
@@ -513,7 +518,9 @@ describe("useWorkspaceSession bootstrap", () => {
       expect(latestState?.sessionVerificationState).toBe("verified");
     });
 
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    await waitForBrowserSignInMethodConsumption(1);
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
     expect(deleteDatabaseSpy).not.toHaveBeenCalled();
     expect(window.localStorage.getItem(WARM_START_SNAPSHOT_STORAGE_KEY)).not.toBeNull();
     expect(window.localStorage.getItem("flashcards-chat-drafts::workspace-1")).not.toBeNull();
@@ -533,7 +540,8 @@ describe("useWorkspaceSession bootstrap", () => {
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
       .mockResolvedValueOnce(buildSessionResponseForUser("user-2", "workspace-1", "csrf-refresh"))
       .mockResolvedValueOnce(buildSessionResponseForUser("user-2", "workspace-1", "csrf-refresh"))
-      .mockResolvedValueOnce(buildWorkspacesResponse([seededWorkspace]));
+      .mockResolvedValueOnce(buildWorkspacesResponse([seededWorkspace]))
+      .mockResolvedValueOnce(buildSessionResponseForUser("user-2", "workspace-1", "csrf-refresh"));
     vi.stubGlobal("fetch", fetchMock);
 
     await act(async () => {
@@ -564,7 +572,9 @@ describe("useWorkspaceSession bootstrap", () => {
       expect(latestState?.sessionVerificationState).toBe("verified");
     });
 
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    await waitForBrowserSignInMethodConsumption(1);
+
+    expect(fetchMock).toHaveBeenCalledTimes(4);
     expect(deleteDatabaseSpy).toHaveBeenCalledTimes(1);
     expect(deleteDatabaseSpy.mock.invocationCallOrder[0]).toBeGreaterThan(
       fetchMock.mock.invocationCallOrder[0] ?? 0,
@@ -590,7 +600,8 @@ describe("useWorkspaceSession bootstrap", () => {
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
       .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"))
       .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"))
-      .mockResolvedValueOnce(buildWorkspacesResponse([seededWorkspace]));
+      .mockResolvedValueOnce(buildWorkspacesResponse([seededWorkspace]))
+      .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"));
     vi.stubGlobal("fetch", fetchMock);
 
     await act(async () => {
@@ -621,6 +632,8 @@ describe("useWorkspaceSession bootstrap", () => {
       expect(latestState?.sessionVerificationState).toBe("verified");
     });
 
+    await waitForBrowserSignInMethodConsumption(1);
+
     expect(deleteDatabaseSpy).toHaveBeenCalledTimes(1);
     expect(window.localStorage.getItem(WARM_START_SNAPSHOT_STORAGE_KEY)).toBeNull();
     expect(window.localStorage.getItem("flashcards-chat-drafts::workspace-1")).toBeNull();
@@ -641,7 +654,8 @@ describe("useWorkspaceSession bootstrap", () => {
       .mockResolvedValueOnce(new Response(null, { status: 200 }))
       .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"))
       .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-retry"))
-      .mockResolvedValueOnce(buildWorkspacesResponse([seededWorkspace]));
+      .mockResolvedValueOnce(buildWorkspacesResponse([seededWorkspace]))
+      .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-retry"));
     vi.stubGlobal("fetch", fetchMock);
 
     const initialLocalRefreshDeferred = createDeferredVoidPromise();
@@ -683,6 +697,7 @@ describe("useWorkspaceSession bootstrap", () => {
       expect(latestState?.sessionVerificationState).toBe("verified");
     });
     await flushEffects();
+    await waitForBrowserSignInMethodConsumption(1);
 
     expect(redirectedUrl).toBeNull();
     expect(latestState?.sessionErrorMessage).toBe("");

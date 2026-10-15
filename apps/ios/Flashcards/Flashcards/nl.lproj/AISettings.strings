@@ -933,3 +933,19 @@
 "settings.account.cloudSignIn.restart" = "Opnieuw beginnen";
 "settings.account.cloudSignIn.rememberFailed" = "Ingelogd. De aanmeldherinnering kon niet worden opgeslagen. Probeer opnieuw of sluit.";
 "settings.account.cloudSignIn.hintFailed" = "De onthouden aanmelding kon niet worden bijgewerkt. Probeer opnieuw.";
+
+"settings.account.methods.title" = "Aanmeldmethoden";
+"settings.account.methods.link" = "Provider koppelen";
+"settings.account.methods.unlink" = "Provider ontkoppelen";
+"settings.account.methods.reenable" = "Provider opnieuw inschakelen";
+"settings.account.methods.generation" = "Generatie";
+"settings.account.methods.readOnly" = "Geverifieerde hersteladressen zijn alleen-lezen. Alleen de vermelde adressen zijn bewezen.";
+"settings.account.methods.cleanup" = "Opschoning wacht. Vernieuw tot dit klaar is en begin met nieuw bewijs.";
+"settings.account.methods.confirmCurrent" = "Verifieer eerst je huidige account met een actieve aanmeldmethode. Dit wisselt niet van account.";
+"settings.account.methods.confirmNewProvider" = "Verifieer nu het provideraccount voor de wijziging. Gebruik het bedoelde account.";
+"settings.account.methods.fresh" = "De wijziging is niet voltooid of het bewijs is verlopen. Vernieuw de methoden en begin met nieuw bewijs.";
+"settings.account.methods.lastUsable" = "Behoud vóór ontkoppelen een andere actieve provider of geverifieerd hersteladres.";
+"settings.account.methods.conflict" = "Deze provider hoort bij een ander account. Kies een ander provideraccount.";
+"settings.account.methods.changed" = "De methode is gewijzigd. Vernieuw de methoden en begin opnieuw.";
+"settings.account.methods.demo" = "Demoaccounts kunnen geen aanmeldmethoden beheren. Meld je aan met je eigen account.";
+"settings.account.methods.refreshFailed" = "De methoden konden niet worden vernieuwd. Vernieuw vóór een nieuwe wijziging.";

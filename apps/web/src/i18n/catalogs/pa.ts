@@ -1512,6 +1512,12 @@ const paCatalog: TranslationCatalog = {
       value: "ਮਿਟਾਓ",
     },
   },
+  browserSignInPrivacy: {
+    forget: "ਸਾਈਨ ਇਨ ਜਾਣਕਾਰੀ ਭੁੱਲੋ",
+    signOutForget: "ਸਾਈਨ ਆਉਟ ਕਰੋ ਅਤੇ ਭੁੱਲੋ",
+    forgotten: "ਸਾਈਨ ਇਨ ਜਾਣਕਾਰੀ ਹਟਾ ਦਿੱਤੀ ਗਈ।",
+    error: "ਸਾਈਨ ਇਨ ਜਾਣਕਾਰੀ ਬਦਲੀ ਨਹੀਂ ਜਾ ਸਕੀ। ਪ੍ਰਮਾਣੀਕਰਨ ਸਾਈਟ ਦੇ ਡਾਟੇ ਦੀ ਆਗਿਆ ਦਿਓ ਅਤੇ ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ।",
+  },
   accountStatus: {
     title: "ਖਾਤੇ ਦੀ ਸਥਿਤੀ",
     subtitle: "ਮੌਜੂਦਾ ਸਾਈਨ ਇਨ ਕੀਤਾ ਖਾਤਾ ਅਤੇ ਬ੍ਰਾਊਜ਼ਰ ਸੈਸ਼ਨ ਵੇਖੋ.",
