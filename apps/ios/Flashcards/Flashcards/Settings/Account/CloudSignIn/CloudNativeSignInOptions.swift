@@ -70,6 +70,7 @@ struct CloudNativeSignInOptions: View {
             let id = self.store.cloudSignInAttempt.id
             do {
                 try self.store.cloudNativeSignIn.loadRememberedHint()
+                self.hintError = nil
                 if self.store.cloudNativeSignIn.rememberedHint != nil {
                     self.store.cloudSignInAttempt.rememberSignIn = true
                 }
@@ -82,6 +83,7 @@ struct CloudNativeSignInOptions: View {
                     client: .currentNative, authBaseUrl: configuration.authBaseUrl)
                 guard self.store.cloudSignInAttempt.id == id,
                       try self.store.currentCloudServiceConfiguration() == configuration else { return }
+                self.metadataError = nil
                 self.store.cloudSignInAttempt.nativeMethods = methods
             } catch {
                 guard self.store.cloudSignInAttempt.id == id,
