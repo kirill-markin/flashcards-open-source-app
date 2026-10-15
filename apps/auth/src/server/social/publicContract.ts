@@ -144,6 +144,7 @@ export type AccountProviderAttemptResult =
   | Readonly<{ authorizationUrl: string; expiresAt: string }>;
 export type AccountLoginMethodsResult = Readonly<{
   methods: ReadonlyArray<AccountProviderMethod>;
+  verifiedRecoveryEmails: ReadonlyArray<string>;
   emailRecovery: "read_only";
   csrfToken: string | null;
 }>;
