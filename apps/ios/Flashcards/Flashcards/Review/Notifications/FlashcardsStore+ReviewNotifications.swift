@@ -324,10 +324,10 @@ extension FlashcardsStore {
             || shouldClearDeliveredReviewNotifications
         if trigger == .workspaceChanged {
             clearPendingAppNotificationTap(userDefaults: self.userDefaults)
-            self.clearReviewReminderAttention()
             self.clearAppIconBadge()
         }
         if trigger == .workspaceChanged || self.reviewNotificationsSettings.isEnabled == false {
+            self.clearReviewReminderAttention()
             self.pendingReviewNotificationsAttentionClear = true
         }
         self.reviewNotificationsRescheduleGeneration += 1
