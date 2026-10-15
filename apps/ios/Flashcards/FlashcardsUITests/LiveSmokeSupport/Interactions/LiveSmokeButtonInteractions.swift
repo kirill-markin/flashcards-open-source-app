@@ -101,7 +101,13 @@ extension LiveSmokeTestCase {
                     return
                 }
 
-                try self.scrollSettingsRootContent(timeout: timeout)
+                let navigationBar = self.app.navigationBars.firstMatch
+                let viewportTop = max(settingsList.frame.minY, navigationBar.exists ? navigationBar.frame.maxY : settingsList.frame.minY)
+                if button.exists && button.frame.isEmpty == false && button.frame.minY < viewportTop {
+                    try self.scrollSettingsRootContentTowardEarlierRows(timeout: timeout)
+                } else {
+                    try self.scrollSettingsRootContent(timeout: timeout)
+                }
                 RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
             }
 
