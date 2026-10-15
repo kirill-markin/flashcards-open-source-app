@@ -12,8 +12,9 @@ import { deleteCookie, getCookie } from "hono/cookie";
 import { type AuthAppEnv, getRequestId, jsonAuthError } from "../../server/apiErrors.js";
 import type { AuthSignInFailureReason } from "../../server/analytics/catalog.js";
 import { reportSignInFailed, reportSignInSucceeded } from "../../server/analytics/signInFunnel.js";
+import { PrincipalSessionError } from "../../server/social/principalSessions.js";
 import { verifyEmailOtp } from "../../server/cognito/cognitoAuth.js";
-import { setBrowserSessionCookies } from "../../server/browserSession.js";
+import { IssuedSessionValidationError, setBrowserSessionCookies } from "../../server/browserSession.js";
 import { getNormalizedCognitoErrorType } from "../../server/cognito/cognitoErrors.js";
 import { verify } from "../../server/crypto.js";
 import { isTransientDatabaseError } from "../../server/databaseErrors.js";
@@ -237,6 +238,14 @@ export function createVerifyCodeApp(dependencies: VerifyCodeDependencies): Hono<
     try {
       tokens = await dependencies.verifyEmailOtp(payload.e, code, payload.s);
     } catch (err) {
+      if (err instanceof PrincipalSessionError) throw err;
+      if (err instanceof IssuedSessionValidationError) {
+        dependencies.clearOtpSessionCookie(c);
+        await reportSignInFailed(c, "server_error");
+        // The resend cache can return this consumed challenge for the remaining 180-second TTL.
+        return jsonAuthError(c, 503, "SERVICE_UNAVAILABLE",
+          "The code was accepted, but session validation could not complete. Wait 3 minutes, then reload the page and request a fresh code. Do not reuse this code.");
+      }
       const failure = classifyVerifyFailure(err);
       const message = err instanceof Error ? err.message : String(err);
 

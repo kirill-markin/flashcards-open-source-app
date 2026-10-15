@@ -376,7 +376,7 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
   const appleRevocationRule = new events.Rule(scope, "AppleRevocationDrainRule", {
     ruleName: appleRevocationRuleName,
     schedule: events.Schedule.rate(cdk.Duration.minutes(1)),
-    description: "Drain one durable Apple lifecycle step on the existing auth Lambda",
+    description: "Drain one durable principal signout or Apple credential step on the existing auth Lambda",
   });
   appleRevocationRule.addTarget(new eventTargets.LambdaFunction(authFn, {
     retryAttempts: 0,

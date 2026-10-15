@@ -9,6 +9,8 @@
  * flow may fold into the standard OAuth path.
  */
 import { Hono } from "hono";
+import { PrincipalSessionError } from "../../server/social/principalSessions.js";
+import { IssuedSessionValidationError } from "../../server/browserSession.js";
 import { type AuthAppEnv, getRequestId } from "../../server/apiErrors.js";
 import {
   createAgentApiKeyFromIdToken,
@@ -38,7 +40,7 @@ import { isTransientDatabaseError } from "../../server/databaseErrors.js";
 
 const CODE_RE = /^\d{8}$/;
 const DEMO_AGENT_PLACEHOLDER_CODE = "00000000";
-const POST_COGNITO_RESTART_INSTRUCTIONS = "Start a fresh auth flow by calling POST /api/agent/send-code again. Do not retry verify_code with the same code or otpSessionToken because the code may already be consumed.";
+const POST_COGNITO_RESTART_INSTRUCTIONS = "Wait 3 minutes, then start a fresh auth flow by calling POST /api/agent/send-code again. Do not retry verify_code with the same code or otpSessionToken because the code may already be consumed.";
 const INVALID_CODE_RECORD_FAILURE_INSTRUCTIONS = "Cognito rejected this code, and the invalid attempt could not be recorded. Do not retry verify_code with the same invalid code. Ask the user for the latest 8-digit email code and retry verify_code only with a newer code. If the latest code is unclear or expired, start a fresh flow with POST /api/agent/send-code.";
 
 type VerifyFailureResult = Readonly<{
@@ -222,6 +224,20 @@ export function createAgentVerifyCodeApp(dependencies: AgentVerifyCodeDependenci
         ? await dependencies.verifyEmailOtp(challenge.email, code, challenge.cognitoSession)
         : await dependencies.signInWithPassword(challenge.email, demoPassword);
     } catch (error) {
+      if (error instanceof PrincipalSessionError) throw error;
+      if (error instanceof IssuedSessionValidationError) {
+        log({ domain: "auth", action: "agent_verify_code_error", requestId, route: c.req.path,
+          statusCode: 503, code: "SERVICE_UNAVAILABLE", reasonCategory: "post_cognito_session_validation_error" });
+        // Resend can reissue a handle for this challenge until its 180-second expiry.
+        return c.json(createAgentErrorEnvelope(
+          c.req.url,
+          "SERVICE_UNAVAILABLE",
+          "Authentication succeeded, but session validation could not complete.",
+          demoPassword === null
+            ? POST_COGNITO_RESTART_INSTRUCTIONS
+            : "Start a fresh demo auth flow with POST /api/agent/send-code shortly. Use its new otpSessionToken.",
+        ), 503);
+      }
       const failure = classifyVerifyFailure(error);
       if (failure.code === "OTP_CODE_INVALID") {
         let result: OtpVerifyFailureRecordResult;
@@ -308,6 +324,7 @@ export function createAgentVerifyCodeApp(dependencies: AgentVerifyCodeDependenci
       await dependencies.markAgentOtpChallengeUsed(challenge.email, challenge.cognitoSession, dependencies.now());
       createdKey = await dependencies.createAgentApiKeyFromIdToken(tokens.idToken, label);
     } catch (error) {
+      if (error instanceof PrincipalSessionError) throw error;
       if (error instanceof DeletedSubjectError) {
         log({
           domain: "auth",

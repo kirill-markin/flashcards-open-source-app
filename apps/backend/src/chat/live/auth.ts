@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { HttpError } from "../../shared/errors";
 import type { BackendTraceCarrier } from "../../observability/sentry";
+import { assertAccountLiveSession } from "../../auth/principalSessions";
 import { getBackendChatLiveAuthSecret } from "../../aws/secrets";
 
 const CHAT_LIVE_AUTH_TOKEN_VERSION = 1;
@@ -137,6 +138,7 @@ export async function createChatLiveStreamEnvelope(
     expiresAt,
     traceContext,
   };
+  await assertAccountLiveSession(userId, Math.floor((expiresAt - CHAT_LIVE_AUTH_TTL_MS) / 1_000));
   const secret = await getBackendChatLiveAuthSecret(getBackendChatLiveAuthSecretArn());
   const encodedPayload = encodePayload(payload);
   const signature = signPayload(encodedPayload, secret);
@@ -191,6 +193,8 @@ export async function verifyChatLiveAuthorizationHeader(
   if (payload.runId !== runId) {
     throw new HttpError(401, "Chat live auth run mismatch", "CHAT_LIVE_AUTH_INVALID");
   }
+
+  await assertAccountLiveSession(payload.userId, Math.floor((payload.expiresAt - CHAT_LIVE_AUTH_TTL_MS) / 1_000));
 
   return {
     userId: payload.userId,

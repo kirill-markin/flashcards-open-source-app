@@ -6,6 +6,8 @@
  * Custom-domain auth traffic arrives without a stage prefix.
  */
 import { randomUUID } from "node:crypto";
+import { PrincipalSessionError } from "./server/social/principalSessions.js";
+import { IssuedSessionValidationError } from "./server/browserSession.js";
 import * as Sentry from "@sentry/aws-serverless";
 import { type Context, Hono } from "hono";
 import type { MiddlewareHandler } from "hono";
@@ -149,6 +151,21 @@ export function registerAuthErrorHandler(app: Hono<AuthAppEnv>): void {
     const routeKind = getApiRouteKind(c.req.path);
     const socialCompletion = ["/api/social/complete", "/api/social/browser/complete",
       "/api/social/google/callback", "/api/social/apple/callback", "/api/social/apple/continue"].includes(stripApiStagePrefix(c.req.path));
+    if (error instanceof PrincipalSessionError) {
+      if (error.statusCode === 503) c.header("Retry-After", "1");
+      if (routeKind === "agent") {
+        return c.json(createAgentErrorEnvelope(c.req.url, error.code, error.message,
+          error.statusCode === 410 ? "This account was deleted. Do not retry."
+            : "Start a fresh sign-in after pending session cleanup completes."), error.statusCode);
+      }
+      return jsonAuthError(c, error.statusCode, error.code, error.message);
+    }
+    if (error instanceof IssuedSessionValidationError) {
+      return jsonAuthError(c, 503, socialCompletion ? "AUTH_ATTEMPT_RESTART_REQUIRED" : "SERVICE_UNAVAILABLE",
+        socialCompletion
+          ? "Session validation could not complete after authentication. Start a new provider sign-in; the previous proof was consumed."
+          : "Session validation could not complete after Cognito returned tokens. Retry refreshing shortly.");
+    }
     if (isTransientDatabaseError(error)) {
       const statusCode = 503;
       const code = socialCompletion ? "AUTH_ATTEMPT_RESTART_REQUIRED" : "SERVICE_UNAVAILABLE";
