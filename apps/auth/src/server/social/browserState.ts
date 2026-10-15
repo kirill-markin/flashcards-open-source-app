@@ -21,6 +21,7 @@ type BrowserStateFields = Readonly<{
   expiresAt: number;
   phase: "provider" | "mailbox";
   analytics: AuthAnalyticsContext;
+  intent: "login" | "reauth" | "link" | "reenable";
 }> & (Readonly<{ client: "web"; browserSecret: string; redirectUri: string }>
   | Readonly<{ client: "android"; codeChallenge: string }>);
 export type BrowserCallbackState = BrowserStateFields & Readonly<{ [browserStateBrand]: true }>;
@@ -47,10 +48,10 @@ export function requireBrowserRedirect(value: string, authOrigin: string): strin
 export function createBrowserState(
   authOrigin: string, provider: IdentityProvider, attempt: string, expiresAt: string,
   binding: Readonly<{ client: "web"; browserSecret: string; redirectUri: string }> | Readonly<{ client: "android"; codeChallenge: string }>,
-  analytics: AuthAnalyticsContext,
+  analytics: AuthAnalyticsContext, intent: BrowserStateFields["intent"],
 ): BrowserStateFields {
   return { version: "social-browser-v1", authOrigin, provider, attempt, expiresAt: Date.parse(expiresAt),
-    state: randomBytes(32).toString("base64url"), phase: "provider", analytics, ...binding };
+    state: randomBytes(32).toString("base64url"), phase: "provider", analytics, intent, ...binding };
 }
 
 export function writeBrowserState(c: Context, state: BrowserStateFields): void {
@@ -71,9 +72,11 @@ export function readBrowserState(c: Context, token: string): BrowserCallbackStat
     const signed = getCookie(c, cookiePrefix + token);
     if (signed === undefined || signed.length > 4000) throw new Error("Missing callback cookie");
     state = JSON.parse(verify(signed)) as BrowserStateFields;
+    state = { ...state, intent: state.intent ?? "login" };
     if (state.version !== "social-browser-v1" || state.authOrigin !== browserAuthOrigin(c)
       || !Number.isSafeInteger(state.expiresAt) || state.expiresAt <= Date.now()
       || (state.provider !== "apple" && state.provider !== "google")
+      || !["login", "reauth", "link", "reenable"].includes(state.intent)
       || (state.phase !== "provider" && state.phase !== "mailbox")) throw new Error("Invalid callback cookie");
     requireAuthHandle(state.attempt);
     requireAuthHandle(state.state);
@@ -96,7 +99,7 @@ export function requireBrowserStateToken(state: BrowserCallbackState, supplied: 
   if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
 }
 
-export function browserAttemptBinding(state: BrowserCallbackState): AuthAttemptBinding & Readonly<{ client: "web"; purpose: "login" }> {
+export function browserAttemptBinding(state: BrowserCallbackState): AuthAttemptBinding & Readonly<{ client: "web" }> {
   if (state.client !== "web") throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
-  return { client: "web", purpose: "login", origin: state.authOrigin, browserSecret: state.browserSecret };
+  return { client: "web", purpose: state.intent === "reenable" ? "link" : state.intent, origin: state.authOrigin, browserSecret: state.browserSecret };
 }

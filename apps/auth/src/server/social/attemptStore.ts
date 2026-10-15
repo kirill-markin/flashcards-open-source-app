@@ -234,11 +234,11 @@ export async function claimBrowserAuthAttempt(state: BrowserCallbackState): Prom
   const binding = state.client === "web" ? authAttemptBindingHash(browserAttemptBinding(state))
     : Buffer.from(state.codeChallenge, "base64url").toString("hex");
   const result = await query<AttemptRow>("SELECT * FROM auth.claim_social_attempt($1,$2,$3,$4,$5,$6)", [
-    authHandleHash(state.attempt), binding, "login", state.client, state.client === "web" ? state.authOrigin : null, "provider_ready",
+    authHandleHash(state.attempt), binding, state.intent === "reenable" ? "link" : state.intent, state.client, state.client === "web" ? state.authOrigin : null, "provider_ready",
   ]);
   const row = result.rows[0];
   if (row === undefined || row.provider_type !== state.provider || row.client_type !== state.client
-    || row.purpose !== "login" || row.redirect_uri !== `${state.authOrigin}/api/social/${state.provider}/callback`) {
+    || row.purpose !== (state.intent === "reenable" ? "link" : state.intent) || row.redirect_uri !== `${state.authOrigin}/api/social/${state.provider}/callback`) {
     throw new AuthAttemptError("AUTH_ATTEMPT_RESTART_REQUIRED");
   }
   return { [claimedAttemptBrand]: true, handle: state.attempt, claimId: row.claim_id, provider: row.provider_type,

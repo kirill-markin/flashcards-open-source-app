@@ -1,10 +1,3 @@
-/**
- * Shared Hono app factory used by both local server (index.ts) and
- * Lambda handler (lambda.ts).
- *
- * basePath: "/" for local dev, "/v1" for Lambda execute-api stage paths.
- * Custom-domain auth traffic arrives without a stage prefix.
- */
 import { randomUUID } from "node:crypto";
 import { PrincipalSessionError } from "./server/social/principalSessions.js";
 import { IssuedSessionValidationError } from "./server/browserSession.js";
@@ -13,6 +6,10 @@ import { type Context, Hono } from "hono";
 import type { MiddlewareHandler } from "hono";
 import health from "./routes/health.js";
 import authMethods from "./routes/social/authMethods.js";
+import loginMethods from "./routes/social/loginMethods.js";
+import linkMethod from "./routes/social/linkMethod.js";
+import unlinkMethod from "./routes/social/unlinkMethod.js";
+import currentEmailReauth from "./routes/social/currentEmailReauth.js";
 import socialAttempt from "./routes/social/attempt.js";
 import socialComplete from "./routes/social/complete.js";
 import socialBrowserStart from "./routes/social/browserStart.js";
@@ -339,6 +336,10 @@ function createMountedApp(basePath: string): Hono<AuthAppEnv> {
 
   app.route("/", health);
   app.route("/", authMethods);
+  app.route("/", loginMethods);
+  app.route("/", linkMethod);
+  app.route("/", unlinkMethod);
+  app.route("/", currentEmailReauth);
   app.route("/", socialAttempt);
   app.route("/", socialComplete);
   app.route("/", socialBrowserStart);
