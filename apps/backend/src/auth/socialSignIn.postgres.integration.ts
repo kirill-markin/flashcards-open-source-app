@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import test from "node:test";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import pg from "pg";
 
 const opaque = (): string => randomBytes(32).toString("hex");
@@ -41,6 +43,11 @@ test("unbound provider proof storage enrolls, completes and redeems a one-use en
     await contender.query("SET ROLE auth_app");
     await backend.connect();
     await backend.query("SET ROLE backend_app");
+    const moduleUrl = pathToFileURL(resolve(__dirname, "../../../auth/src/integration/principalEnrollmentGate.ts")).href;
+    const gate = await import(moduleUrl) as Readonly<{
+      checkAtomicAuthoritativeLogin: (runtime: pg.Client, owner: pg.Client | pg.Pool) => Promise<void>;
+    }>;
+    await gate.checkAtomicAuthoritativeLogin(runtime, owner);
     // Exercise real storage authority, without supplying fabricated tokens to a provider verifier.
     const fresh = await proveStorage();
     const snapshot = await owner.query("SELECT snapshot_subject, snapshot_username, snapshot_account, snapshot_method_activated_at FROM auth.social_attempts WHERE attempt_sha256 = $1", [fresh.attempt]);
