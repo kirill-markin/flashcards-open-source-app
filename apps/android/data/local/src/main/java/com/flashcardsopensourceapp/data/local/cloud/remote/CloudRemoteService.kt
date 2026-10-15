@@ -7,6 +7,8 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.billing.CloudGoogleBi
 import com.flashcardsopensourceapp.data.local.cloud.remote.billing.GooglePurchaseIntent
 import com.flashcardsopensourceapp.data.local.cloud.remote.agent.CloudAgentConnectionRemoteApi
 import com.flashcardsopensourceapp.data.local.cloud.remote.auth.CloudAuthRemoteApi
+import com.flashcardsopensourceapp.data.local.cloud.remote.auth.CloudSocialAuthGateway
+import com.flashcardsopensourceapp.data.local.cloud.remote.auth.CloudSocialAuthRemoteApi
 import com.flashcardsopensourceapp.data.local.cloud.remote.community.CloudCommunityProfileRemoteApi
 import com.flashcardsopensourceapp.data.local.cloud.remote.feedback.CloudFeedbackRemoteApi
 import com.flashcardsopensourceapp.data.local.cloud.remote.guest.CloudGuestUpgradeRemoteApi
@@ -26,6 +28,11 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.transport.createCloud
 import com.flashcardsopensourceapp.data.local.cloud.remote.workspace.CloudAccountWorkspaceRemoteApi
 import com.flashcardsopensourceapp.data.local.cloud.remote.workspace.CloudWorkspacePackageRemoteApi
 import com.flashcardsopensourceapp.data.local.model.cloud.AgentApiKeyConnectionsResult
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAuthMethods
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudSocialCredentialResult
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudSocialLoginAttempt
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudSocialLoginCompletion
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudSocialLoginSession
 import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
 import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferencesUpdate
 import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
@@ -76,7 +83,7 @@ class CloudRemoteService private constructor(
     observationVersions: CloudHttpObservationVersions,
     isAutomation: Boolean,
     clientDeviceTypeProvider: () -> ClientDeviceType?
-) : CloudRemoteGateway, CloudGoogleBillingGateway {
+) : CloudRemoteGateway, CloudGoogleBillingGateway, CloudSocialAuthGateway {
     constructor(
         okHttpClient: OkHttpClient,
         observability: AppObservability,
@@ -118,6 +125,7 @@ class CloudRemoteService private constructor(
         observationVersions = observationVersions
     )
     private val authApi = CloudAuthRemoteApi(httpClient = httpClient)
+    private val socialAuthApi = CloudSocialAuthRemoteApi(httpClient = httpClient)
     private val googleBillingApi = CloudGoogleBillingRemoteApi(httpClient = httpClient)
     private val guestUpgradeApi = CloudGuestUpgradeRemoteApi(httpClient = httpClient)
     private val accountWorkspaceApi = CloudAccountWorkspaceRemoteApi(httpClient = httpClient)
@@ -132,6 +140,49 @@ class CloudRemoteService private constructor(
         clientDeviceTypeProvider = clientDeviceTypeProvider
     )
     private val workspacePackageApi = CloudWorkspacePackageRemoteApi(httpClient = httpClient)
+
+    override suspend fun loadAuthMethods(authBaseUrl: String): CloudAuthMethods {
+        return socialAuthApi.loadAuthMethods(authBaseUrl)
+    }
+
+    override suspend fun beginGoogleLogin(authBaseUrl: String, codeChallenge: String): CloudSocialLoginAttempt {
+        return socialAuthApi.beginGoogleLogin(authBaseUrl, codeChallenge)
+    }
+
+    override suspend fun submitGoogleCredential(
+        authBaseUrl: String,
+        attempt: String,
+        codeVerifier: String,
+        identityToken: String
+    ): CloudSocialCredentialResult {
+        return socialAuthApi.submitGoogleCredential(authBaseUrl, attempt, codeVerifier, identityToken)
+    }
+
+    override suspend fun requestSocialMailboxCode(
+        authBaseUrl: String,
+        attempt: String,
+        codeVerifier: String,
+        email: String
+    ) {
+        socialAuthApi.requestSocialMailboxCode(authBaseUrl, attempt, codeVerifier, email)
+    }
+
+    override suspend fun verifySocialMailboxCode(
+        authBaseUrl: String,
+        attempt: String,
+        codeVerifier: String,
+        code: String
+    ): CloudSocialLoginCompletion {
+        return socialAuthApi.verifySocialMailboxCode(authBaseUrl, attempt, codeVerifier, code)
+    }
+
+    override suspend fun redeemSocialLogin(
+        authBaseUrl: String,
+        completion: String,
+        codeVerifier: String
+    ): CloudSocialLoginSession {
+        return socialAuthApi.redeemSocialLogin(authBaseUrl, completion, codeVerifier)
+    }
 
     override suspend fun loadGoogleBillingAccount(apiBaseUrl: String, authorizationHeader: String): String {
         return googleBillingApi.loadGoogleBillingAccount(apiBaseUrl, authorizationHeader)
