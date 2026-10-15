@@ -294,6 +294,11 @@ function createMountedApp(basePath: string): Hono<AuthAppEnv> {
     }
 
     const secFetchSite = c.req.header("sec-fetch-site");
+    const providerStartNavigation = secFetchSite === "cross-site"
+      && c.req.method === "GET"
+      && (routePath === "/api/social/google/start" || routePath === "/api/social/apple/start")
+      && c.req.header("sec-fetch-mode") === "navigate"
+      && c.req.header("sec-fetch-dest") === "document";
     // `app.<domain>` refreshes the browser session through `auth.<domain>`,
     // which is cross-origin but still same-site and protected by browser cookies.
     if (
@@ -301,6 +306,7 @@ function createMountedApp(basePath: string): Hono<AuthAppEnv> {
       && secFetchSite !== "same-origin"
       && secFetchSite !== "same-site"
       && secFetchSite !== "none"
+      && !providerStartNavigation
     ) {
       return c.json({ error: "Cross-origin requests not allowed" }, 403);
     }
