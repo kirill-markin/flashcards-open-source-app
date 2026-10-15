@@ -139,7 +139,11 @@ async function browserTransport(origin, provider, parameters) {
     assert.match(denied.headers.get("content-type"), /^text\/html/);
     const policy = denied.headers.get("content-security-policy");
     assert.match(policy, /default-src 'none'/);
-    assert.match(policy, /form-action 'self'/);
+    const formActions = policy.split(";").map((directive) => directive.trim()).filter((directive) => directive.startsWith("form-action "));
+    const returnSource = parameters.client === "android" ? "com.nibomo.app:" : new URL(parameters.redirect_uri).origin;
+    assert.deepEqual(formActions, [`form-action 'self' ${returnSource}`]);
+    assert.match(policy, /base-uri 'none'/);
+    assert.match(policy, /frame-ancestors 'none'/);
     const nonce = /script-src 'nonce-([A-Za-z0-9_-]{43})'/.exec(policy)?.[1];
     assert.ok(nonce);
     const document = await denied.text();
