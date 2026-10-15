@@ -49,6 +49,9 @@ internal fun NavGraphBuilder.registerSettingsAccountNavGraph(
 
         AccountStatusRoute(
             uiState = uiState,
+            onConfirmLogoutAndForget = {
+                accountStatusViewModel.confirmLogoutAndForget(appGraph.cloudSocialSignInRepository)
+            },
             onOpenSignIn = {
                 navController.navigate(
                     route = SettingsAccountSignInEmailDestination.createRoute(origin = AnalyticsSurface.SETTINGS)

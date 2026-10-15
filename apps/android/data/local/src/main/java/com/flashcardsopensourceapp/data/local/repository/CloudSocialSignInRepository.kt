@@ -19,15 +19,18 @@ interface CloudSocialSignInRepository {
         challenge: CloudOtpChallenge,
         code: String,
         rememberSignIn: Boolean,
+        onVerificationStarted: () -> Unit,
         onVerified: () -> Unit
     ): CloudWorkspaceLinkContext
+    suspend fun completeEmailSignInHint(context: CloudWorkspaceLinkContext)
     suspend fun resumePendingSignIn(): CloudPendingSocialSignIn?
     // Pending operations use CloudPendingSocialSignIn.localId; Apple may not return a server attempt.
     suspend fun submitGoogleCredential(attempt: String, identityToken: String): CloudPendingSocialSignIn
-    suspend fun requestMailboxCode(attempt: String, email: String)
-    suspend fun verifyMailboxCode(attempt: String, code: String): CloudPendingSocialSignIn
-    suspend fun prepareSignIn(attempt: String): CloudWorkspaceLinkContext
-    suspend fun completeSignIn(attempt: String, selection: CloudWorkspaceLinkSelection): CloudWorkspaceSummary
+    suspend fun requestMailboxCode(attempt: String, email: String, onRequested: () -> Unit, onCredentialReceived: () -> Unit)
+    suspend fun verifyMailboxCode(attempt: String, code: String, onVerificationStarted: () -> Unit, onVerified: () -> Unit): CloudPendingSocialSignIn
+    suspend fun prepareSignIn(attempt: String, onCredentialReceived: () -> Unit, onSessionAccepted: () -> Unit): CloudWorkspaceLinkContext
+    suspend fun completeSignIn(attempt: String, selection: CloudWorkspaceLinkSelection, onGuestCompletionStarted: () -> Unit, onGuestCompletionFinished: () -> Unit): CloudWorkspaceSummary
+    suspend fun completeSignInHint(attempt: String)
     suspend fun cancelSignIn(attempt: String)
     suspend fun rememberedSignIn(): CloudSuccessfulSignInHint?
     suspend fun forgetRememberedSignIn()

@@ -326,7 +326,9 @@ internal class FakeCloudAccountRepository : CloudAccountRepository {
 
     override suspend fun completeGuestUpgrade(
         linkContext: CloudWorkspaceLinkContext,
-        selection: CloudWorkspaceLinkSelection
+        selection: CloudWorkspaceLinkSelection,
+        onGuestCompletionStarted: () -> Unit,
+        onGuestCompletionFinished: () -> Unit
     ): CloudWorkspaceSummary {
         throw UnsupportedOperationException()
     }

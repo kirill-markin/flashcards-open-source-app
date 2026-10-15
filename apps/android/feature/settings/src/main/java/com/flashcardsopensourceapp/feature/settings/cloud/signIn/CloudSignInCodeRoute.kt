@@ -10,8 +10,11 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.feature.settings.R
@@ -22,11 +25,13 @@ import com.flashcardsopensourceapp.feature.settings.settingsScreenContentPadding
 @Composable
 fun CloudSignInCodeRoute(
     uiState: CloudSignInUiState,
+    onShown: () -> Unit,
     onCodeChange: (String) -> Unit,
     onVerifyCode: () -> Unit,
     onShowTechnicalDetails: (String, String) -> Unit,
     onBack: () -> Unit
 ) {
+    LaunchedEffect(Unit) { onShown() }
     SettingsScreenScaffold(
         title = stringResource(R.string.settings_sign_in_verify_title),
         onBack = onBack,
@@ -72,19 +77,20 @@ fun CloudSignInCodeRoute(
             item {
                 OutlinedTextField(
                     value = uiState.code,
-                    onValueChange = onCodeChange,
+                    enabled = !uiState.isVerifyingCode,
+                    onValueChange = { onCodeChange(it.filter { character -> character in '0'..'9' }.take(8)) },
                     label = {
                         Text(stringResource(R.string.settings_sign_in_code_label))
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().testTag("cloud_sign_in_code_field")
                 )
             }
 
             item {
                 Button(
                     onClick = onVerifyCode,
-                    enabled = uiState.isVerifyingCode.not(),
-                    modifier = Modifier.fillMaxWidth()
+                    enabled = !uiState.isVerifyingCode && uiState.challengeEmail != null && uiState.code.length == 8,
+                    modifier = Modifier.fillMaxWidth().testTag("cloud_sign_in_verify_button")
                 ) {
                     Text(
                         if (uiState.isVerifyingCode) {
@@ -93,6 +99,12 @@ fun CloudSignInCodeRoute(
                             stringResource(R.string.settings_sign_in_verify_button)
                         }
                     )
+                }
+            }
+            item {
+                TextButton(onClick = onBack, enabled = !uiState.isVerifyingCode,
+                    modifier = Modifier.testTag("cloud_sign_in_new_code")) {
+                    Text(stringResource(R.string.settings_auth_new_email_code))
                 }
             }
         }

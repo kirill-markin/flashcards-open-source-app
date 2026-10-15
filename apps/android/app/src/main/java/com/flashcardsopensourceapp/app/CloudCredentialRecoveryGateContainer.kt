@@ -52,6 +52,7 @@ internal fun CloudCredentialRecoveryGateContainer(
         key = "cloud_credential_recovery_sign_in",
         factory = createCloudSignInViewModelFactory(
             cloudAccountRepository = appGraph.cloudAccountRepository,
+            cloudSocialSignInRepository = appGraph.cloudSocialSignInRepository,
             syncRepository = appGraph.syncRepository,
             messageController = appGraph.appMessageBus,
             analytics = appGraph.analytics,
@@ -69,6 +70,8 @@ internal fun CloudCredentialRecoveryGateContainer(
     )
     val signInUiState: CloudSignInUiState by signInViewModel.uiState.collectAsStateWithLifecycle()
     val postAuthUiState: CloudPostAuthUiState by signInViewModel.postAuthUiState.collectAsStateWithLifecycle()
+    val application = context.applicationContext as FlashcardsApplication
+    val appleReturn by application.appleSignInReturnState.collectAsStateWithLifecycle()
     var gateStep: CloudCredentialRecoveryGateStep by rememberSaveable {
         mutableStateOf(CloudCredentialRecoveryGateStep.OVERVIEW)
     }
@@ -115,6 +118,10 @@ internal fun CloudCredentialRecoveryGateContainer(
         }
     }
 
+    LaunchedEffect(appleReturn) {
+        if (appleReturn != AppleSignInReturnState.Idle) gateStep = CloudCredentialRecoveryGateStep.EMAIL
+    }
+
     fun returnToOverview() {
         // The only real cancel here: reachable only from the email, code and post-auth steps, so a
         // sign-in was genuinely in progress.
@@ -128,6 +135,26 @@ internal fun CloudCredentialRecoveryGateContainer(
         step = gateStep,
         signInUiState = signInUiState,
         postAuthUiState = postAuthUiState,
+        signInEntry = {
+            CloudSignInEntryContainer(
+                viewModel = signInViewModel,
+                onSendCode = {
+                    coroutineScope.launch {
+                        when (signInViewModel.sendCode()) {
+                            CloudSendCodeNavigationOutcome.OtpRequired -> gateStep = CloudCredentialRecoveryGateStep.CODE
+                            CloudSendCodeNavigationOutcome.Verified -> gateStep = CloudCredentialRecoveryGateStep.POST_AUTH
+                            CloudSendCodeNavigationOutcome.NoNavigation -> Unit
+                        }
+                    }
+                },
+                onPostAuth = { gateStep = CloudCredentialRecoveryGateStep.POST_AUTH },
+                onShowTechnicalDetails = { details, reportId ->
+                    appGraph.showTechnicalErrorDialog("cloud_credential_recovery", reportId,
+                        technicalErrorDialogTitle, technicalErrorDialogMessage, details)
+                },
+                onBack = ::returnToOverview
+            )
+        },
         isEraseConfirmationVisible = isEraseConfirmationVisible,
         isErasing = isErasing,
         eraseErrorMessage = eraseErrorMessage,
@@ -142,21 +169,8 @@ internal fun CloudCredentialRecoveryGateContainer(
             isEraseConfirmationVisible = false
             gateStep = CloudCredentialRecoveryGateStep.EMAIL
         },
-        onEmailChange = signInViewModel::updateEmail,
-        onSendCode = {
-            coroutineScope.launch {
-                when (signInViewModel.sendCode()) {
-                    CloudSendCodeNavigationOutcome.OtpRequired -> {
-                        gateStep = CloudCredentialRecoveryGateStep.CODE
-                    }
-                    CloudSendCodeNavigationOutcome.Verified -> {
-                        gateStep = CloudCredentialRecoveryGateStep.POST_AUTH
-                    }
-                    CloudSendCodeNavigationOutcome.NoNavigation -> Unit
-                }
-            }
-        },
         onCodeChange = signInViewModel::updateCode,
+        onCodeFormShown = signInViewModel::reportEmailCodeFormShown,
         onVerifyCode = {
             coroutineScope.launch {
                 if (signInViewModel.verifyCode()) {

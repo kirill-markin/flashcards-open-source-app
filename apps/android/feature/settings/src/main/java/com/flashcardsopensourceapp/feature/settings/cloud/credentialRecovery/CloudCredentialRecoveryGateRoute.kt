@@ -31,7 +31,6 @@ import com.flashcardsopensourceapp.feature.settings.cloud.postAuth.CloudPostAuth
 import com.flashcardsopensourceapp.feature.settings.cloud.postAuth.CloudPostAuthRoute
 import com.flashcardsopensourceapp.feature.settings.cloud.postAuth.CloudPostAuthUiState
 import com.flashcardsopensourceapp.feature.settings.cloud.signIn.CloudSignInCodeRoute
-import com.flashcardsopensourceapp.feature.settings.cloud.signIn.CloudSignInEmailRoute
 import com.flashcardsopensourceapp.feature.settings.cloud.signIn.CloudSignInErrorCard
 import com.flashcardsopensourceapp.feature.settings.cloud.signIn.CloudSignInUiState
 
@@ -59,16 +58,16 @@ fun CloudCredentialRecoveryGateRoute(
     step: CloudCredentialRecoveryGateStep,
     signInUiState: CloudSignInUiState,
     postAuthUiState: CloudPostAuthUiState,
+    signInEntry: @Composable () -> Unit,
     isEraseConfirmationVisible: Boolean,
     isErasing: Boolean,
     eraseErrorMessage: String,
     eraseErrorTechnicalDetails: String?,
     eraseErrorTechnicalDetailsReportId: String?,
     onSignIn: () -> Unit,
-    onEmailChange: (String) -> Unit,
-    onSendCode: () -> Unit,
     onCodeChange: (String) -> Unit,
     onVerifyCode: () -> Unit,
+    onCodeFormShown: () -> Unit,
     onAutoContinue: () -> Unit,
     onSelectWorkspace: (CloudWorkspaceLinkSelection) -> Unit,
     onRetryPostAuth: () -> Unit,
@@ -125,18 +124,13 @@ fun CloudCredentialRecoveryGateRoute(
         }
 
         CloudCredentialRecoveryGateStep.EMAIL -> {
-            CloudSignInEmailRoute(
-                uiState = signInUiState,
-                onEmailChange = onEmailChange,
-                onSendCode = onSendCode,
-                onShowTechnicalDetails = onShowTechnicalDetails,
-                onBack = onBackToOverview
-            )
+            signInEntry()
         }
 
         CloudCredentialRecoveryGateStep.CODE -> {
             CloudSignInCodeRoute(
                 uiState = signInUiState,
+                onShown = onCodeFormShown,
                 onCodeChange = onCodeChange,
                 onVerifyCode = onVerifyCode,
                 onShowTechnicalDetails = onShowTechnicalDetails,
