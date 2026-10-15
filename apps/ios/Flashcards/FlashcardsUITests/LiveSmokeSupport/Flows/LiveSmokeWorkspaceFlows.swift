@@ -436,7 +436,7 @@ extension LiveSmokeTestCase {
 
     @MainActor
     func logoutFromAccountStatus() throws {
-        try self.tapButton(
+        try self.tapButtonScrollingIntoView(
             identifier: LiveSmokeIdentifier.accountStatusLogoutButton,
             timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
         )
