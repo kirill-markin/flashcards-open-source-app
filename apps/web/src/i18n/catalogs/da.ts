@@ -1512,6 +1512,12 @@ const daCatalog: TranslationCatalog = {
       value: "Slet",
     },
   },
+  browserSignInPrivacy: {
+    forget: "Glem loginoplysninger",
+    signOutForget: "Log ud og glem",
+    forgotten: "Loginoplysninger er glemt.",
+    error: "Loginoplysninger kunne ikke ændres. Tillad webstedsdata for loginwebstedet, og prøv igen.",
+  },
   accountStatus: {
     title: "Kontostatus",
     subtitle: "Se den konto, du er logget ind med, og browsersessionen.",

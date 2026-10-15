@@ -961,3 +961,19 @@
 "settings.account.cloudSignIn.restart" = "Начать заново";
 "settings.account.cloudSignIn.rememberFailed" = "Вход выполнен. Подсказку для входа не удалось сохранить. Повторите попытку или закройте окно.";
 "settings.account.cloudSignIn.hintFailed" = "Не удалось обновить сохранённую подсказку для входа. Повторите попытку.";
+
+"settings.account.methods.title" = "Способы входа";
+"settings.account.methods.link" = "Привязать провайдера";
+"settings.account.methods.unlink" = "Отвязать провайдера";
+"settings.account.methods.reenable" = "Включить провайдера снова";
+"settings.account.methods.generation" = "Поколение";
+"settings.account.methods.readOnly" = "Подтверждённые адреса восстановления доступны только для чтения. Доказаны только адреса из списка.";
+"settings.account.methods.cleanup" = "Очистка ещё не завершена. Обновляйте до её окончания, затем начните с новым подтверждением.";
+"settings.account.methods.confirmCurrent" = "Сначала подтвердите текущий аккаунт активным способом входа. Это не переключает аккаунт.";
+"settings.account.methods.confirmNewProvider" = "Теперь подтвердите аккаунт провайдера для изменения. Используйте нужный аккаунт.";
+"settings.account.methods.fresh" = "Изменение не завершилось или подтверждение истекло. Обновите способы и начните с новым подтверждением.";
+"settings.account.methods.lastUsable" = "Перед отвязкой сохраните другого активного провайдера или подтверждённый адрес восстановления.";
+"settings.account.methods.conflict" = "Провайдер принадлежит другому аккаунту. Выберите другой аккаунт провайдера.";
+"settings.account.methods.changed" = "Способ изменился. Обновите способы и начните заново.";
+"settings.account.methods.demo" = "Демоаккаунты не могут управлять способами входа. Войдите в свой аккаунт.";
+"settings.account.methods.refreshFailed" = "Не удалось обновить способы. Обновите список перед новым изменением.";

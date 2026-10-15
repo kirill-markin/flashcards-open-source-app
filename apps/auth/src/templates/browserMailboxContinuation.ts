@@ -1,3 +1,5 @@
+import { browserAuthFactsScript } from "./browserAuthFacts.js";
+import { renderBrowserHintFeedback } from "./browserHintControls.js";
 import type { LoginPageLocale } from "../routes/browser/loginPageLocale.js";
 import { BROWSER_CONTINUATION_COPY } from "./browserContinuationCopy.js";
 import { browserCompletionConsumerScript, browserHtml, browserScriptJson, renderBrowserDocument } from "./browserCompletion.js";
@@ -5,6 +7,8 @@ import { getLoginPageCopy } from "./login.js";
 
 type BrowserMailboxView = Readonly<{
   csrfToken: string;
+  method: "apple" | "google";
+  analyticsScreen: "signin" | null;
   providerEmail: string | null;
   expiresAt: number;
   restartUri: string;
@@ -31,12 +35,21 @@ export function renderBrowserMailboxContinuation(
     </form>
     <p id="mailbox-error" class="error" role="alert" hidden></p>
     <p id="mailbox-status" role="status" aria-live="polite"></p>
+    <a id="mailbox-continue" class="continue" hidden>${browserHtml(copy.continue)}</a>
+    ${renderBrowserHintFeedback(locale)}
     <p><a id="mailbox-restart" href="${browserHtml(view.restartUri)}">${browserHtml(copy.restart)}</a></p>`;
   return renderBrowserDocument(locale, nonce, loginCopy.pageTitle, body, `
     ${browserCompletionConsumerScript}
     const view = ${browserScriptJson(view)};
     const copy = ${browserScriptJson(copy)};
     const loginCopy = ${browserScriptJson(loginCopy)};
+    const uiLocale = ${JSON.stringify(locale)};
+    const collectionDisabled = view.analyticsScreen !== "signin";
+    ${browserAuthFactsScript}
+    window.addEventListener("nibomo-auth-hint-error", function(event) {
+      document.getElementById("signin-hint-feedback").hidden = false;
+      document.getElementById("signin-hint-error").textContent = event.detail;
+    });
     const emailForm = document.getElementById("mailbox-email-form");
     const codeForm = document.getElementById("mailbox-code-form");
     const emailInput = document.getElementById("mailbox-email");
@@ -84,9 +97,10 @@ export function renderBrowserMailboxContinuation(
       emailForm.hidden = true;
       codeForm.hidden = false;
       codeInput.focus();
+      authFact("auth_code_form_shown", view.method);
     }
 
-    async function submit(fields, transportMessage) {
+    async function submit(fields) {
       let response;
       let result;
       try {
@@ -97,7 +111,7 @@ export function renderBrowserMailboxContinuation(
         });
         result = await response.json();
       } catch {
-        showError(transportMessage);
+        stop(copy.requestNewCode);
         return { kind: "transport_error" };
       }
       if (!response.ok) {
@@ -116,11 +130,8 @@ export function renderBrowserMailboxContinuation(
       setBusy(true);
       let sent = false;
       try {
-        const submission = await submit({ action: "mailbox_send", email: emailInput.value.trim() }, loginCopy.sendCodeTransportErrorMessage);
-        if (submission.kind !== "accepted") {
-          if (submission.kind === "transport_error" && !stopped) sent = true;
-          return;
-        }
+        const submission = await submit({ action: "mailbox_send", email: emailInput.value.trim() });
+        if (submission.kind !== "accepted") return;
         const result = submission.result;
         if (result === null || typeof result !== "object" || result.status !== "mailbox_code_sent") {
           stop(loginCopy.genericErrorPrefix + ": AUTH_COMPLETION_INVALID. " + copy.restart);
@@ -141,14 +152,18 @@ export function renderBrowserMailboxContinuation(
       event.preventDefault();
       if (busy || completed || checkExpiry() || !codeForm.reportValidity()) return;
       errorElement.hidden = true;
+      authFact("auth_code_submitted", view.method);
       setBusy(true);
       try {
-        const submission = await submit({ action: "mailbox_verify", code: codeInput.value }, loginCopy.verifyCodeTransportErrorMessage);
+        const submission = await submit({ action: "mailbox_verify", code: codeInput.value });
         if (submission.kind !== "accepted") return;
         try {
           completed = true;
           statusElement.textContent = copy.continue;
           await consumeBrowserCompletion(submission.result);
+          var continueLink = document.getElementById("mailbox-continue");
+          continueLink.href = submission.result.redirectUri;
+          continueLink.hidden = false;
         } catch {
           completed = false;
           stop(loginCopy.genericErrorPrefix + ": AUTH_COMPLETION_INVALID. " + copy.restart);
@@ -158,6 +173,12 @@ export function renderBrowserMailboxContinuation(
       }
     });
 
+    document.getElementById("mailbox-restart").addEventListener("click", function() {
+      if (new URL(view.restartUri, window.location.origin).pathname === "/api/social/" + view.method + "/start") {
+        browserHints.beginOptional(view.method);
+        authFact("auth_method_selected", view.method);
+      }
+    });
     if (!checkExpiry()) emailInput.focus();
     window.setInterval(checkExpiry, 1000);
     window.addEventListener("pageshow", checkExpiry);

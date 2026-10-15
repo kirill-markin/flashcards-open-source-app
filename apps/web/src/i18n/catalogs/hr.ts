@@ -1527,6 +1527,12 @@ const hrCatalog: TranslationCatalog = {
       value: "Izbriši",
     },
   },
+  browserSignInPrivacy: {
+    forget: "Zaboravi podatke o prijavi",
+    signOutForget: "Odjavi i zaboravi",
+    forgotten: "Podaci o prijavi su zaboravljeni.",
+    error: "Podaci o prijavi nisu promijenjeni. Dopustite podatke stranice za autentifikaciju i pokušajte ponovno.",
+  },
   accountStatus: {
     title: "Stanje računa",
     subtitle: "Pregledajte trenutačno prijavljeni račun i sesiju preglednika.",

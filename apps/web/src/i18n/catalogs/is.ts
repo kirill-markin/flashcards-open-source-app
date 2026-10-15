@@ -1512,6 +1512,12 @@ const isCatalog: TranslationCatalog = {
       value: "Eyða",
     },
   },
+  browserSignInPrivacy: {
+    forget: "Gleyma innskráningarupplýsingum",
+    signOutForget: "Skrá út og gleyma",
+    forgotten: "Innskráningarupplýsingum hefur verið gleymt.",
+    error: "Ekki tókst að breyta innskráningarupplýsingum. Leyfðu vefgögn fyrir auðkenningarsíðuna og reyndu aftur.",
+  },
   accountStatus: {
     title: "Staða aðgangs",
     subtitle: "Skoðaðu núverandi innskráðan aðgang og vafralotu.",

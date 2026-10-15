@@ -66,18 +66,24 @@ claims, Catalyst private Keychain access or these acceptance results.
    Collection off and live withdrawal must suppress emission through `Analytics`;
    never infer positive analytics acceptance from an automation run.
 
-Account-method transport/state is dormant until Settings mounts it. On the signed
-artifact that exposes it, use an authorized non-demo account and verify:
+Open Settings → Account Status → Sign-in methods on a separately authorized
+signed artifact. Use an authorized non-demo account and verify:
 
-1. Load actual active/disabled methods, generation, cleanup state and read-only
-   proved recovery addresses. Reauthenticate with Apple for a hidden-Apple account;
+1. Load actual active/disabled methods, exact generation, cleanup state and read-only
+   proved recovery addresses. An empty address list must not claim email is disabled.
+   Check the explicit demo-account refusal. On iPhone, iPad, both Duo displays and
+   Catalyst, inspect Dynamic Type, VoiceOver, RTL and translated copy; applicable
+   proof options retain official Apple → Google → Email/envelope order.
+   Reauthenticate with Apple for a hidden-Apple account;
    current-email OTP is offered only when that actual session mailbox appears in
    the proved recovery list. Never require a hidden relay OTP.
 2. Link through fresh current-account authority, then a separate new provider
    attempt. Exercise genuine server-required secondary mailbox send/verify;
    failed, expired or ambiguous sends/submissions require a fresh full attempt.
    Close during slow SDK/network work and change account/server: no late result
-   may update the replacement state or continue a mutation.
+   may update the replacement state or continue a mutation. Close must remain
+   available during loading. Start again must discard proofs and fetch new methods;
+   no failed send or consumed verification can be resubmitted.
 3. Unlink with a freshly listed exact subject/generation. Verify the server's last
    usable method and different-account conflict refusals. Email stays read-only.
 4. For explicit re-enable, wait until fresh metadata reports cleanup complete,
@@ -89,4 +95,9 @@ artifact that exposes it, use an authorized non-demo account and verify:
 5. Verify management never redeems login tokens, changes the protected session,
    provisions an account/workspace or changes the successful-login hint. Map only
    actual SDK and mutation observations to the existing fact catalog; keep all
-   subject, mailbox, token, nonce and receipt values out of analytics.
+   subject, mailbox, token, nonce and receipt values out of analytics. Link success
+   requires a server-confirmed mutation, even if the subsequent metadata refresh
+   fails; workspace completion is never identity-link evidence. The finite catalog
+   has no unlink/re-enable mutation event, so those do not emit link success.
+   Check collection off and live consent withdrawal independently; automation
+   suppresses product events and cannot establish positive analytics delivery.

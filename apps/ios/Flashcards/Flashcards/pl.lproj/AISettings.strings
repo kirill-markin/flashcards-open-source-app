@@ -933,3 +933,19 @@
 "settings.account.cloudSignIn.restart" = "Zacznij ponownie";
 "settings.account.cloudSignIn.rememberFailed" = "Zalogowano. Nie udało się zapisać wskazówki logowania. Spróbuj ponownie lub zamknij.";
 "settings.account.cloudSignIn.hintFailed" = "Nie udało się zaktualizować zapamiętanego logowania. Spróbuj ponownie.";
+
+"settings.account.methods.title" = "Metody logowania";
+"settings.account.methods.link" = "Połącz dostawcę";
+"settings.account.methods.unlink" = "Odłącz dostawcę";
+"settings.account.methods.reenable" = "Włącz dostawcę ponownie";
+"settings.account.methods.generation" = "Generacja";
+"settings.account.methods.readOnly" = "Zweryfikowane adresy odzyskiwania są tylko do odczytu. Potwierdzone są tylko wymienione adresy.";
+"settings.account.methods.cleanup" = "Czyszczenie trwa. Odświeżaj do końca, a potem zacznij z nowym potwierdzeniem.";
+"settings.account.methods.confirmCurrent" = "Najpierw zweryfikuj bieżące konto aktywną metodą logowania. To nie zmienia konta.";
+"settings.account.methods.confirmNewProvider" = "Teraz zweryfikuj konto dostawcy dla zmiany. Użyj zamierzonego konta.";
+"settings.account.methods.fresh" = "Zmiana nie została ukończona lub potwierdzenie wygasło. Odśwież metody i zacznij z nowym potwierdzeniem.";
+"settings.account.methods.lastUsable" = "Przed odłączeniem zachowaj innego aktywnego dostawcę lub zweryfikowany adres odzyskiwania.";
+"settings.account.methods.conflict" = "Dostawca należy do innego konta. Wybierz inne konto dostawcy.";
+"settings.account.methods.changed" = "Metoda się zmieniła. Odśwież metody i zacznij ponownie.";
+"settings.account.methods.demo" = "Konta demonstracyjne nie zarządzają metodami logowania. Zaloguj się na własne konto.";
+"settings.account.methods.refreshFailed" = "Nie udało się odświeżyć metod. Odśwież przed nową zmianą.";

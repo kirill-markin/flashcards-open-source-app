@@ -933,3 +933,19 @@
 "settings.account.cloudSignIn.restart" = "เริ่มใหม่";
 "settings.account.cloudSignIn.rememberFailed" = "ลงชื่อเข้าแล้ว แต่บันทึกคำใบ้การลงชื่อเข้าไม่ได้ โปรดลองอีกครั้งหรือปิด";
 "settings.account.cloudSignIn.hintFailed" = "อัปเดตการลงชื่อเข้าที่จำไว้ไม่ได้ โปรดลองอีกครั้ง";
+
+"settings.account.methods.title" = "วิธีเข้าสู่ระบบ";
+"settings.account.methods.link" = "เชื่อมโยงผู้ให้บริการ";
+"settings.account.methods.unlink" = "ยกเลิกการเชื่อมโยงผู้ให้บริการ";
+"settings.account.methods.reenable" = "เปิดใช้ผู้ให้บริการอีกครั้ง";
+"settings.account.methods.generation" = "รุ่น";
+"settings.account.methods.readOnly" = "อีเมลกู้คืนที่ยืนยันแล้วอ่านได้อย่างเดียว มีเพียงที่อยู่ในรายการที่พิสูจน์แล้ว";
+"settings.account.methods.cleanup" = "กำลังรอการล้างข้อมูล รีเฟรชจนเสร็จ แล้วเริ่มด้วยหลักฐานใหม่";
+"settings.account.methods.confirmCurrent" = "ยืนยันบัญชีปัจจุบันด้วยวิธีที่ใช้งานอยู่ก่อน ขั้นตอนนี้ไม่เปลี่ยนบัญชี";
+"settings.account.methods.confirmNewProvider" = "ตอนนี้ยืนยันบัญชีผู้ให้บริการสำหรับการเปลี่ยนแปลง ใช้บัญชีที่ต้องการ";
+"settings.account.methods.fresh" = "การเปลี่ยนแปลงไม่เสร็จหรือหลักฐานหมดอายุ รีเฟรชวิธีแล้วเริ่มด้วยหลักฐานใหม่";
+"settings.account.methods.lastUsable" = "ก่อนยกเลิกการเชื่อมโยง ให้คงผู้ให้บริการอื่นที่ใช้งานอยู่หรืออีเมลกู้คืนที่ยืนยันแล้วไว้";
+"settings.account.methods.conflict" = "ผู้ให้บริการนี้เป็นของบัญชีอื่น เลือกบัญชีผู้ให้บริการอื่น";
+"settings.account.methods.changed" = "วิธีเปลี่ยนไปแล้ว รีเฟรชวิธีแล้วเริ่มใหม่";
+"settings.account.methods.demo" = "บัญชีสาธิตจัดการวิธีเข้าสู่ระบบไม่ได้ เข้าสู่ระบบด้วยบัญชีของคุณ";
+"settings.account.methods.refreshFailed" = "รีเฟรชวิธีไม่ได้ โปรดรีเฟรชก่อนเปลี่ยนแปลงใหม่";

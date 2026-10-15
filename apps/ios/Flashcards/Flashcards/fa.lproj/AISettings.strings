@@ -933,3 +933,19 @@
 "settings.account.cloudSignIn.restart" = "شروع دوباره";
 "settings.account.cloudSignIn.rememberFailed" = "وارد شدید. راهنمای ورود ذخیره نشد. دوباره تلاش کنید یا ببندید.";
 "settings.account.cloudSignIn.hintFailed" = "ورود به‌خاطرسپرده‌شده به‌روزرسانی نشد. دوباره تلاش کنید.";
+
+"settings.account.methods.title" = "روش‌های ورود";
+"settings.account.methods.link" = "پیوند ارائه‌دهنده";
+"settings.account.methods.unlink" = "قطع پیوند ارائه‌دهنده";
+"settings.account.methods.reenable" = "فعال‌سازی دوباره ارائه‌دهنده";
+"settings.account.methods.generation" = "نسل";
+"settings.account.methods.readOnly" = "ایمیل‌های بازیابی تأییدشده فقط خواندنی‌اند. تنها نشانی‌های فهرست اثبات شده‌اند.";
+"settings.account.methods.cleanup" = "پاک‌سازی در انتظار است. تا پایان تازه‌سازی کنید، سپس با مدرک جدید شروع کنید.";
+"settings.account.methods.confirmCurrent" = "ابتدا حساب فعلی را با روش ورود فعال تأیید کنید. این کار حساب را عوض نمی‌کند.";
+"settings.account.methods.confirmNewProvider" = "اکنون حساب ارائه‌دهنده را برای تغییر تأیید کنید. از حساب موردنظر استفاده کنید.";
+"settings.account.methods.fresh" = "تغییر کامل نشد یا مدرک منقضی شد. روش‌ها را تازه‌سازی کرده و با مدرک جدید شروع کنید.";
+"settings.account.methods.lastUsable" = "پیش از قطع پیوند، ارائه‌دهنده فعال دیگر یا ایمیل بازیابی تأییدشده را نگه دارید.";
+"settings.account.methods.conflict" = "این ارائه‌دهنده متعلق به حساب دیگری است. حساب دیگری نزد ارائه‌دهنده انتخاب کنید.";
+"settings.account.methods.changed" = "روش تغییر کرده است. روش‌ها را تازه‌سازی کرده و دوباره شروع کنید.";
+"settings.account.methods.demo" = "حساب نمایشی نمی‌تواند روش‌های ورود را مدیریت کند. با حساب خود وارد شوید.";
+"settings.account.methods.refreshFailed" = "تازه‌سازی روش‌ها انجام نشد. پیش از تغییر جدید تازه‌سازی کنید.";

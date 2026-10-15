@@ -933,3 +933,19 @@
 "settings.account.cloudSignIn.restart" = "Start på nytt";
 "settings.account.cloudSignIn.rememberFailed" = "Du er logget inn. Innloggingshintet kunne ikke lagres. Prøv igjen eller lukk.";
 "settings.account.cloudSignIn.hintFailed" = "Den huskede innloggingen kunne ikke oppdateres. Prøv igjen.";
+
+"settings.account.methods.title" = "Innloggingsmetoder";
+"settings.account.methods.link" = "Koble til leverandør";
+"settings.account.methods.unlink" = "Koble fra leverandør";
+"settings.account.methods.reenable" = "Aktiver leverandør på nytt";
+"settings.account.methods.generation" = "Generasjon";
+"settings.account.methods.readOnly" = "Bekreftede gjenopprettingsadresser er skrivebeskyttet. Bare oppførte adresser er bevist.";
+"settings.account.methods.cleanup" = "Opprydding venter. Oppdater til den er ferdig og start med nytt bevis.";
+"settings.account.methods.confirmCurrent" = "Bekreft først gjeldende konto med en aktiv innloggingsmetode. Dette bytter ikke konto.";
+"settings.account.methods.confirmNewProvider" = "Bekreft nå leverandørkontoen for endringen. Bruk ønsket konto.";
+"settings.account.methods.fresh" = "Endringen ble ikke fullført, eller beviset utløp. Oppdater metodene og start med nytt bevis.";
+"settings.account.methods.lastUsable" = "Behold en annen aktiv leverandør eller bekreftet gjenopprettingsadresse før frakobling.";
+"settings.account.methods.conflict" = "Leverandøren tilhører en annen konto. Velg en annen leverandørkonto.";
+"settings.account.methods.changed" = "Metoden er endret. Oppdater metodene og start på nytt.";
+"settings.account.methods.demo" = "Demokontoer kan ikke administrere innloggingsmetoder. Logg inn med egen konto.";
+"settings.account.methods.refreshFailed" = "Metodene kunne ikke oppdateres. Oppdater før en ny endring.";

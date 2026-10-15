@@ -961,3 +961,19 @@
 "settings.account.cloudSignIn.restart" = "重新开始";
 "settings.account.cloudSignIn.rememberFailed" = "已登录，但无法保存登录提示。请重试或关闭。";
 "settings.account.cloudSignIn.hintFailed" = "无法更新已记住的登录信息。请重试。";
+
+"settings.account.methods.title" = "登录方式";
+"settings.account.methods.link" = "关联提供商";
+"settings.account.methods.unlink" = "取消关联提供商";
+"settings.account.methods.reenable" = "重新启用提供商";
+"settings.account.methods.generation" = "代次";
+"settings.account.methods.readOnly" = "已验证的恢复邮箱为只读。仅列出的地址已获证明。";
+"settings.account.methods.cleanup" = "清理尚未完成。请刷新直至完成，然后使用新的证明重新开始。";
+"settings.account.methods.confirmCurrent" = "请先通过有效的登录方式验证当前账户。此操作不会切换账户。";
+"settings.account.methods.confirmNewProvider" = "现在请验证更改所用的提供商账户。请使用预期的账户。";
+"settings.account.methods.fresh" = "更改未完成或证明已过期。请刷新登录方式，然后使用新的证明重新开始。";
+"settings.account.methods.lastUsable" = "取消关联前，请保留另一个有效的提供商或已验证的恢复邮箱。";
+"settings.account.methods.conflict" = "此提供商属于另一个账户。请选择其他提供商账户。";
+"settings.account.methods.changed" = "此方式已更改。请刷新登录方式并重新开始。";
+"settings.account.methods.demo" = "演示账户无法管理登录方式。请使用您自己的账户登录。";
+"settings.account.methods.refreshFailed" = "无法刷新登录方式。新的更改前请先刷新。";

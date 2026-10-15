@@ -1,3 +1,5 @@
+import { createAuthAnalyticsFactEventFactory } from "../../server/analytics/catalog.js";
+import { reportBrowserAuthEvents } from "../../server/analytics/signInFunnel.js";
 import type { Context } from "hono";
 import type { AuthAppEnv } from "../../server/apiErrors.js";
 import { setBrowserSessionCookies, verifiedBrowserSession, type BrowserSessionPresentation } from "../../server/browserSession.js";
@@ -25,8 +27,17 @@ export async function acceptBrowserCompletion(
   if (state.intent !== "login") {
     const session = await requireAccountSession(c, "web");
     if (state.intent === "link") {
-      await completeAccountProviderLink(session, completion.completion, binding);
+      try { await completeAccountProviderLink(session, completion.completion, binding); }
+      catch (error) {
+        await reportBrowserAuthEvents(c, [{ createEvent: createAuthAnalyticsFactEventFactory({
+          eventName: "auth_account_link_finished", method: state.provider, outcome: "server_error",
+        }), occurredAt: Date.now() }], state.analytics);
+        throw error;
+      }
       clearBrowserState(c, state);
+      await reportBrowserAuthEvents(c, [{ createEvent: createAuthAnalyticsFactEventFactory({
+        eventName: "auth_account_link_finished", method: state.provider, outcome: "linked",
+      }), occurredAt: Date.now() }], state.analytics);
       return { ok: true, purpose: "link", redirectUri: state.redirectUri };
     }
     if (state.intent !== "reauth") throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");

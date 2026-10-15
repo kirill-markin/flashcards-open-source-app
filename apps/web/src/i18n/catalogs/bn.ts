@@ -1512,6 +1512,12 @@ const bnCatalog: TranslationCatalog = {
       value: "মুছুন",
     },
   },
+  browserSignInPrivacy: {
+    forget: "সাইন ইন তথ্য ভুলে যান",
+    signOutForget: "সাইন আউট করে ভুলে যান",
+    forgotten: "সাইন ইন তথ্য মুছে দেওয়া হয়েছে।",
+    error: "সাইন ইন তথ্য বদলানো যায়নি। প্রমাণীকরণ সাইটের ডেটা অনুমতি দিয়ে আবার চেষ্টা করুন।",
+  },
   accountStatus: {
     title: "অ্যাকাউন্ট স্ট্যাটাস",
     subtitle: "বর্তমানে সাইন ইন করা অ্যাকাউন্ট ও ব্রাউজার সেশন দেখুন।",

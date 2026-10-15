@@ -1512,6 +1512,12 @@ const swCatalog: TranslationCatalog = {
       value: "Futa",
     },
   },
+  browserSignInPrivacy: {
+    forget: "Sahau taarifa za kuingia",
+    signOutForget: "Ondoka na usahau",
+    forgotten: "Taarifa za kuingia zimesahaulika.",
+    error: "Taarifa za kuingia hazikuweza kubadilishwa. Ruhusu data ya tovuti ya uthibitishaji na ujaribu tena.",
+  },
   accountStatus: {
     title: "Hali ya Akaunti",
     subtitle: "Kagua akaunti iliyoingia sasa na kipindi cha kivinjari.",

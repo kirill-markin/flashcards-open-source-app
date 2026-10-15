@@ -1512,6 +1512,12 @@ const faCatalog: TranslationCatalog = {
       value: "حذف",
     },
   },
+  browserSignInPrivacy: {
+    forget: "فراموش کردن اطلاعات ورود",
+    signOutForget: "خروج و فراموش کردن",
+    forgotten: "اطلاعات ورود فراموش شد.",
+    error: "اطلاعات ورود تغییر نکرد. ذخیرهٔ داده‌های سایت احراز هویت را مجاز کنید و دوباره تلاش کنید.",
+  },
   accountStatus: {
     title: "وضعیت حساب",
     subtitle: "حساب واردشدهٔ فعلی و نشست مرورگر را ببینید.",

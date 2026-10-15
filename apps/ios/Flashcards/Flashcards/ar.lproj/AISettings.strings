@@ -961,3 +961,19 @@
 "settings.account.cloudSignIn.restart" = "البدء من جديد";
 "settings.account.cloudSignIn.rememberFailed" = "تم تسجيل الدخول. تعذّر حفظ تلميح تسجيل الدخول. أعد المحاولة أو أغلق.";
 "settings.account.cloudSignIn.hintFailed" = "تعذّر تحديث تسجيل الدخول المحفوظ. أعد المحاولة.";
+
+"settings.account.methods.title" = "طرق تسجيل الدخول";
+"settings.account.methods.link" = "ربط المزوّد";
+"settings.account.methods.unlink" = "إلغاء ربط المزوّد";
+"settings.account.methods.reenable" = "إعادة تفعيل المزوّد";
+"settings.account.methods.generation" = "الجيل";
+"settings.account.methods.readOnly" = "بريد الاسترداد الموثّق للقراءة فقط. العناوين المدرجة فقط مُثبتة.";
+"settings.account.methods.cleanup" = "تنظيف المزوّد معلّق. حدّث حتى ينتهي، ثم ابدأ بإثبات جديد.";
+"settings.account.methods.confirmCurrent" = "أثبت حسابك الحالي أولًا بطريقة دخول نشطة. لن يتبدّل الحساب.";
+"settings.account.methods.confirmNewProvider" = "أثبت الآن حساب المزوّد لهذا التغيير. استخدم الحساب المقصود.";
+"settings.account.methods.fresh" = "لم يكتمل التغيير أو انتهت صلاحية الإثبات. حدّث الطرق وابدأ بإثبات جديد.";
+"settings.account.methods.lastUsable" = "احتفظ بمزوّد نشط آخر أو بريد استرداد موثّق قبل إلغاء الربط.";
+"settings.account.methods.conflict" = "هذا المزوّد لحساب آخر. اختر حساب مزوّد آخر.";
+"settings.account.methods.changed" = "تغيّرت الطريقة. حدّث الطرق وابدأ مجددًا.";
+"settings.account.methods.demo" = "لا تدير الحسابات التجريبية طرق الدخول. سجّل الدخول بحسابك.";
+"settings.account.methods.refreshFailed" = "تعذّر تحديث الطرق. حدّثها قبل تغيير جديد.";

@@ -933,3 +933,19 @@
 "settings.account.cloudSignIn.restart" = "మళ్లీ ప్రారంభించు";
 "settings.account.cloudSignIn.rememberFailed" = "సైన్ ఇన్ అయ్యారు. సైన్ ఇన్ సూచనను సేవ్ చేయలేకపోయాం. మళ్లీ ప్రయత్నించండి లేదా మూసివేయండి.";
 "settings.account.cloudSignIn.hintFailed" = "గుర్తుంచుకున్న సైన్ ఇన్‌ను అప్‌డేట్ చేయలేకపోయాం. మళ్లీ ప్రయత్నించండి.";
+
+"settings.account.methods.title" = "సైన్-ఇన్ పద్ధతులు";
+"settings.account.methods.link" = "ప్రొవైడర్‌ను లింక్ చేయండి";
+"settings.account.methods.unlink" = "ప్రొవైడర్ లింక్ తొలగించండి";
+"settings.account.methods.reenable" = "ప్రొవైడర్‌ను మళ్లీ ప్రారంభించండి";
+"settings.account.methods.generation" = "తరం";
+"settings.account.methods.readOnly" = "ధృవీకరించిన రికవరీ ఇమెయిల్‌లను చదవడం మాత్రమే సాధ్యం. జాబితాలోని చిరునామాలు మాత్రమే నిరూపితమైనవి.";
+"settings.account.methods.cleanup" = "శుభ్రపరచడం పెండింగ్‌లో ఉంది. పూర్తయ్యేవరకు రిఫ్రెష్ చేసి కొత్త రుజువుతో ప్రారంభించండి.";
+"settings.account.methods.confirmCurrent" = "మొదట క్రియాశీల పద్ధతితో ప్రస్తుత ఖాతాను ధృవీకరించండి. ఖాతా మారదు.";
+"settings.account.methods.confirmNewProvider" = "ఇప్పుడు మార్పు కోసం ప్రొవైడర్ ఖాతాను ధృవీకరించండి. ఉద్దేశించిన ఖాతాను వాడండి.";
+"settings.account.methods.fresh" = "మార్పు పూర్తి కాలేదు లేదా రుజువు గడువు ముగిసింది. పద్ధతులను రిఫ్రెష్ చేసి కొత్త రుజువుతో ప్రారంభించండి.";
+"settings.account.methods.lastUsable" = "లింక్ తొలగించే ముందు మరో క్రియాశీల ప్రొవైడర్ లేదా ధృవీకరించిన రికవరీ ఇమెయిల్‌ను ఉంచండి.";
+"settings.account.methods.conflict" = "ప్రొవైడర్ వేరే ఖాతాకు చెందినది. మరో ప్రొవైడర్ ఖాతాను ఎంచుకోండి.";
+"settings.account.methods.changed" = "పద్ధతి మారింది. పద్ధతులను రిఫ్రెష్ చేసి మళ్లీ ప్రారంభించండి.";
+"settings.account.methods.demo" = "డెమో ఖాతాలు సైన్-ఇన్ పద్ధతులను నిర్వహించలేవు. మీ ఖాతాలో సైన్ ఇన్ చేయండి.";
+"settings.account.methods.refreshFailed" = "పద్ధతులను రిఫ్రెష్ చేయలేకపోయాం. కొత్త మార్పుకు ముందు రిఫ్రెష్ చేయండి.";

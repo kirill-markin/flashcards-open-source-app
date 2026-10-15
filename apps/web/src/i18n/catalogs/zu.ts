@@ -1512,6 +1512,12 @@ const zuCatalog: TranslationCatalog = {
       value: "Susa",
     },
   },
+  browserSignInPrivacy: {
+    forget: "Khohlwa ulwazi lokungena",
+    signOutForget: "Phuma bese ukhohlwa",
+    forgotten: "Ulwazi lokungena selukhohliwe.",
+    error: "Ulwazi lokungena alukwazanga ukushintshwa. Vumela idatha yesayithi lokuqinisekisa bese uzama futhi.",
+  },
   accountStatus: {
     title: "Isimo se-akhawunti",
     subtitle: "Buyekeza i-akhawunti ongene ngayo manje neseshini yesiphequluli.",

@@ -1,3 +1,4 @@
+import { isCognitoTypedError } from "../../server/cognito/cognitoErrors.js";
 import { randomBytes } from "node:crypto";
 import { Hono, type Context } from "hono";
 import { html } from "hono/html";
@@ -146,10 +147,11 @@ async function providerCallback(c: Context<AuthAppEnv>): Promise<Response> {
     const nonce = randomBytes(32).toString("base64url");
     protectBrowserDocument(c, nonce);
     const restartUri = state.intent === "login"
-      ? `/api/social/${state.provider}/start?${new URLSearchParams({ client: "web", redirect_uri: state.redirectUri, ...(state.locale === undefined ? {} : { locale: state.locale }) })}`
+      ? `/api/social/${state.provider}/start?${new URLSearchParams({ client: "web", redirect_uri: state.redirectUri, ...(state.locale === undefined ? {} : { locale: state.locale }), ...(state.analytics.screen === "signin" ? { screen: "signin", ui_locale: state.analytics.uiLocale ?? "" } : {}) })}`
       : state.redirectUri;
     return c.html(renderBrowserMailboxContinuation({ csrfToken: continuation.state,
-      providerEmail: result.enrollment.providerEmail, expiresAt: state.expiresAt, restartUri },
+      providerEmail: result.enrollment.providerEmail, expiresAt: state.expiresAt, restartUri,
+      method: state.provider, analyticsScreen: state.analytics.screen },
     resolveLoginPageLocale(state.locale, c.req.header("accept-language")), nonce));
   } catch (error) {
     if (claimedState !== null) clearBrowserState(c, claimedState);
@@ -166,6 +168,7 @@ app.post("/api/social/apple/continue", providerCallback);
 app.post("/api/social/browser/complete", async (c) => {
   protectCallbackResponse(c);
   let analyticsState: BrowserCallbackState | null = null;
+  let mailboxAction: "mailbox_send" | "mailbox_verify" | null = null;
   const events: ObservedAuthAnalyticsEvent[] = [];
   try {
     const source = await requireSocialRequest(c, "complete");
@@ -183,6 +186,7 @@ app.post("/api/social/browser/complete", async (c) => {
         ? continueBrowserSignIn({ ...request, binding: { ...binding, purpose: "login" } }, source)
         : completeAccountProviderContinuation(request, source);
     if (fields.action === "mailbox_send" && typeof fields.email === "string" && fields.email.length <= 254) {
+      mailboxAction = "mailbox_send";
       await requireSocialRateLimit("mailbox_send", source);
       const { response, method } = await continuation({ action: "mailbox_send", attempt: state.attempt, binding, email: fields.email }, source);
       events.push({ createEvent: createAuthAnalyticsFactEventFactory({ eventName: "auth_code_request_finished", method,
@@ -192,6 +196,7 @@ app.post("/api/social/browser/complete", async (c) => {
     if (fields.action !== "mailbox_verify" || typeof fields.code !== "string" || !/^[0-9]{6,8}$/.test(fields.code)) {
       throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
     }
+    mailboxAction = "mailbox_verify";
     await requireSocialRateLimit("mailbox_verify", source);
     const { response, method } = await continuation({ action: "mailbox_verify", attempt: state.attempt, binding, code: fields.code }, source);
     if (!("status" in response) || response.status !== "completed") throw new AuthAttemptError("AUTH_COMPLETION_INVALID");
@@ -201,6 +206,18 @@ app.post("/api/social/browser/complete", async (c) => {
     if ("signInHint" in accepted) events.push({ createEvent: createSignInSucceededWithMethodEventFactory(accepted.signInHint.method), occurredAt: Date.now() });
     return c.json(accepted);
   } catch (error) {
+    if (analyticsState !== null && mailboxAction === "mailbox_send") {
+      events.push({ createEvent: createAuthAnalyticsFactEventFactory({ eventName: "auth_code_request_finished",
+        method: analyticsState.provider, action: "initial", outcome: error instanceof AuthAttemptError
+          && error.code === "AUTH_RATE_LIMITED" ? "rate_limited" : "server_error" }), occurredAt: Date.now() });
+    } else if (analyticsState !== null && mailboxAction === "mailbox_verify" && events.length === 0 && isCognitoTypedError(error)) {
+      const outcome = error.cognitoType === "CodeMismatchException" ? "invalid_code"
+        : error.cognitoType === "ExpiredCodeException" ? "expired_code"
+          : error.cognitoType === "TooManyRequestsException" || error.cognitoType === "LimitExceededException" ? "rate_limited" : null;
+      if (outcome !== null) events.push({ createEvent: createAuthAnalyticsFactEventFactory({
+        eventName: "auth_code_verification_finished", method: analyticsState.provider, outcome,
+      }), occurredAt: Date.now() });
+    }
     return socialErrorResponse(c, error);
   } finally {
     if (analyticsState !== null) await reportBrowserAuthEvents(c, events, analyticsState.analytics);

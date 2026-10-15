@@ -118,10 +118,6 @@ const analyticsReportBudgetMs = 150;
  * and the visitor cookie cannot tell them apart: it is the product domain's, so every browser that
  * holds one carries it onto all of them.
  *
- * This list is the audit of who can set the marker, so keep it complete. None of the callers below
- * sends it today except the login page itself, and one that started to would silently be counted
- * into the sign-in funnel.
- *
  *   `POST /api/refresh-session` has four callers, and a 401 means something different to each: the
  *   login page shows the sign-in form; the OAuth consent page shows its own form to agent and MCP
  *   clients; the web app's auth recovery on `app.<domain>` is a signed-in person whose session just
@@ -129,10 +125,7 @@ const analyticsReportBudgetMs = 150;
  *   operator. Only the first is a funnel entry.
  *
  *   `POST /api/send-code` and `POST /api/verify-code` have two browser callers, `templates/login.ts`
- *   and the OAuth consent page in `templates/authorize.ts`, which runs the same email-and-code
- *   exchange inside the consent flow. Those two are indistinguishable at the route without this
- *   marker — same origin, same cookies, same request shape — and the consent page is a different
- *   population that this measurement deliberately leaves out.
+ *   and the OAuth consent page in `templates/authorize.ts`.
  *
  *   Both routes have two non-browser callers as well, and they are listed because the marker is what
  *   a later change is checked against, not because either can be counted today. The iOS client
@@ -282,9 +275,8 @@ export async function reportSignInFailed(
  * left on this browser.
  *
  * The clear runs first and outside the marker gate, exactly as it did when this service minted that
- * cookie: a sign-in through the OAuth consent page carries the same cookie and reports nothing, and
- * a token left behind there is the one this service must never leave live. Nothing links it to this
- * account any more — that call is gone with the mint — so dropping it is the whole retirement, and
+ * cookie: a token left behind on the OAuth consent page is one this service must never leave live.
+ * Nothing links it to this account any more — that call is gone with the mint — so dropping it is the whole retirement, and
  * it is the right way round: `analytics.identity_links` is append-only and first-link-wins on the
  * guest user id, so a surviving token offered at the next sign-in on this browser, which need not be
  * the same person, would hand that browser's signed-out tail to the wrong account permanently. The

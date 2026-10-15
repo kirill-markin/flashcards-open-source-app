@@ -1,6 +1,9 @@
+import { browserAuthFactsScript } from "./browserAuthFacts.js";
 import type { LoginPageLocale } from "../routes/browser/loginPageLocale.js";
 import { getPublicAuthMethods } from "../server/social/publicMethods.js";
 import { browserHintStorageScript } from "./browserHints.js";
+import { BROWSER_HINT_COPY } from "./browserHintCopy.js";
+import { browserHintControlsScript, browserHintControlsStyles, renderBrowserHintControls, renderBrowserHintFeedback } from "./browserHintControls.js";
 import { AUTH_ENTRY_COPY } from "./authEntryCopy.js";
 
 const googleIcon = `<svg viewBox="0 0 48 48" aria-hidden="true" focusable="false">
@@ -36,17 +39,20 @@ export const authEntryStyles = `
   .auth-opening { color: var(--text-secondary); font-size: 13px; }
   .auth-opening:empty { display: none; }
   .auth-methods.hidden { display: none; }
+  ${browserHintControlsStyles}
 `;
 
 export function renderAuthMethods(locale: LoginPageLocale): string {
   const copy = AUTH_ENTRY_COPY[locale];
   const methods = getPublicAuthMethods("web").methods;
+  const hintCopy = BROWSER_HINT_COPY[locale];
+  const hint = (method: string): string => `<button type="button" class="auth-last-used" aria-controls="hint-${method}" hidden>${hintCopy.lastUsed}</button><div id="hint-${method}" class="auth-hint-popover"></div>`;
   const providers = (["google", "apple"] as const).map((provider) => {
     const method = methods[provider];
     if (!method.available || method.transport !== "browser") return "";
     // Navigation stays on this auth origin; only the server selects the provider destination.
     if (method.start !== `/api/social/${provider}/start`) throw new Error("Invalid browser provider start path");
-    return `<form class="auth-provider-form" action="${method.start}" method="get">
+    return `<div class="auth-method-option"><form class="auth-provider-form" action="${method.start}" method="get">
       <input type="hidden" name="client" value="web">
       <input type="hidden" name="redirect_uri" value="">
       <input type="hidden" name="locale" value="${locale}">
@@ -55,13 +61,14 @@ export function renderAuthMethods(locale: LoginPageLocale): string {
       <button id="signin-${provider}" class="auth-method auth-${provider}" type="submit">
         ${provider === "google" ? googleIcon : appleIcon}<span>${copy[provider]}</span>
       </button>
-    </form>`;
+    </form>${hint(provider)}</div>`;
   }).join("");
   return `<div id="step-methods" class="auth-methods hidden">
     ${providers}
-    <button id="signin-email" class="auth-method" type="button">${emailIcon}<span>${copy.email}</span></button>
+    <div class="auth-method-option"><button id="signin-email" class="auth-method" type="button">${emailIcon}<span>${copy.email}</span></button>${hint("email")}</div>
+    ${renderBrowserHintControls(locale)}
     <p id="provider-status" class="auth-opening" role="status" aria-live="polite"></p>
-  </div>`;
+  </div>${renderBrowserHintFeedback(locale)}`;
 }
 
 export function renderOtherMethods(locale: LoginPageLocale, id: string): string {
@@ -71,21 +78,30 @@ export function renderOtherMethods(locale: LoginPageLocale, id: string): string 
 // Uses native navigation so provider authorization stays in the current browser and its cookie context.
 export const authEntryScript = `
   ${browserHintStorageScript}
+  ${browserAuthFactsScript}
   var stepMethods = document.getElementById("step-methods");
   var methodButtons = stepMethods.querySelectorAll(".auth-method");
   var providerStatus = document.getElementById("provider-status");
 
+  ${browserHintControlsScript}
+
   function configureAuthMethods(returnUri, analyticsScreen) {
+    configureBrowserHints();
     stepMethods.querySelectorAll(".auth-provider-form").forEach(function(form) {
       form.elements.redirect_uri.value = returnUri;
       form.elements.screen.disabled = analyticsScreen !== "signin" || collectionDisabled;
       form.addEventListener("submit", function() {
-        browserHints.beginOptional(form.querySelector("button").id === "signin-google" ? "google" : "apple");
+        var method = form.querySelector("button").id === "signin-google" ? "google" : "apple";
+        authFact("auth_method_selected", method);
+        browserHints.beginOptional(method);
         stepMethods.setAttribute("aria-busy", "true");
         providerStatus.textContent = entryCopy.opening;
       });
     });
-    document.getElementById("signin-email").addEventListener("click", showEmailStep);
+    document.getElementById("signin-email").addEventListener("click", function() {
+      authFact("auth_method_selected", "email");
+      showEmailStep();
+    });
     document.getElementById("email-other-methods").addEventListener("click", showMethodsStep);
     document.getElementById("otp-other-methods").addEventListener("click", showMethodsStep);
     window.addEventListener("pageshow", function() {

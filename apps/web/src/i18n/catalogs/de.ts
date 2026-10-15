@@ -1512,6 +1512,12 @@ const deCatalog: TranslationCatalog = {
       value: "Löschen",
     },
   },
+  browserSignInPrivacy: {
+    forget: "Anmeldeinformationen vergessen",
+    signOutForget: "Abmelden und vergessen",
+    forgotten: "Anmeldeinformationen vergessen.",
+    error: "Anmeldeinformationen konnten nicht geändert werden. Erlaube Websitedaten für die Anmeldeseite und versuche es erneut.",
+  },
   accountStatus: {
     title: "Kontostatus",
     subtitle: "Prüfe das aktuell angemeldete Konto und die Browser-Sitzung.",

@@ -1512,6 +1512,12 @@ const trCatalog: TranslationCatalog = {
       value: "Sil",
     },
   },
+  browserSignInPrivacy: {
+    forget: "Giriş bilgilerini unut",
+    signOutForget: "Çıkış yap ve unut",
+    forgotten: "Giriş bilgileri unutuldu.",
+    error: "Giriş bilgileri değiştirilemedi. Kimlik doğrulama sitesi verilerine izin verip yeniden deneyin.",
+  },
   accountStatus: {
     title: "Hesap Durumu",
     subtitle: "Giriş yapılan geçerli hesabı ve tarayıcı oturumunu inceleyin.",

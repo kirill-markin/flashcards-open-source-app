@@ -1,3 +1,4 @@
+import { BROWSER_HINT_COPY } from "./browserHintCopy.js";
 import { AUTH_ENTRY_COPY } from "./authEntryCopy.js";
 import { authEntryScript, authEntryStyles, renderAuthMethods, renderOtherMethods } from "./authEntry.js";
 import { getLoginPageLocaleDirection, type LoginPageLocale } from "../routes/browser/loginPageLocale.js";
@@ -1153,6 +1154,7 @@ export const renderLoginPage = (
         <input id="login-otp" class="login-input" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="8">
         <div id="otp-error" class="login-error hidden" role="alert"></div>
         <button id="verify-btn" class="login-btn" type="button">${copy.verify}</button>
+        <button id="resend-btn" class="auth-other-methods" type="button">${copy.sendCode}</button>
         ${renderOtherMethods(locale, "otp-other-methods")}
       </div>
     </div>
@@ -1162,12 +1164,14 @@ export const renderLoginPage = (
     (function() {
       var redirectUri = ${JSON.stringify(redirectUri).replace(/</g, "\\u003c")};
       var copy = ${JSON.stringify(copy)};
+      var hintCopy = ${JSON.stringify(BROWSER_HINT_COPY[locale])};
       var entryCopy = ${JSON.stringify(entryCopy)};
       var uiLocale = ${JSON.stringify(locale)};
       var collectionDisabled = new URLSearchParams(window.location.search).get("analytics_collection") === "off";
 
       ${authEntryScript}
       var csrfToken = "";
+      var resendingCode = false;
 
       var emailInput = document.getElementById("login-email");
       var otpInput = document.getElementById("login-otp");
@@ -1277,18 +1281,30 @@ export const renderLoginPage = (
         if (e.key === "Enter") verifyBtn.click();
       });
 
+      document.getElementById("resend-btn").addEventListener("click", function() {
+        resendingCode = true;
+        authFact("auth_code_resend_requested", "email");
+        sendBtn.click();
+      });
+
       sendBtn.addEventListener("click", function() {
         var email = emailInput.value.trim();
-        if (!email) return;
+        if (!email || sendBtn.disabled || entrySessionAccepted) return;
+        var codeAction = resendingCode ? "resend" : "initial";
+        resendingCode = false;
+        document.getElementById("resend-btn").disabled = true;
 
-        hideError(emailError);
+        var requestError = codeAction === "resend" ? otpError : emailError;
+        hideError(requestError);
+        verifyBtn.disabled = true;
+        document.getElementById("otp-other-methods").disabled = true;
         sendBtn.disabled = true;
         document.getElementById("email-other-methods").disabled = true;
         sendBtn.textContent = copy.sendingCode;
 
         browserHints.beginOptional("email");
 
-        fetch("api/send-code?screen=signin&ui_locale=" + encodeURIComponent(uiLocale), {
+        fetch("api/send-code?screen=signin&ui_locale=" + encodeURIComponent(uiLocale) + "&action=" + codeAction, {
           method: "POST",
           headers: collectionDisabled
             ? { "Content-Type": "application/json", "X-Product-Analytics-Enabled": "0" }
@@ -1299,18 +1315,19 @@ export const renderLoginPage = (
           .then(function(res) {
             return res.json().then(async function(data) {
               if (!res.ok) {
-                showError(emailError, data.error || copy.genericErrorPrefix + ": " + res.status);
+                showError(requestError, data.error || copy.genericErrorPrefix + ": " + res.status);
                 return;
               }
               if (
                 typeof data.idToken === "string" && data.idToken !== ""
                 && typeof data.refreshToken === "string" && data.refreshToken !== ""
               ) {
-                await browserHints.acceptOptional(data);
-                window.location.href = redirectUri;
+                await acceptEntrySignIn(data, function() { window.location.href = redirectUri; });
                 return;
               }
               csrfToken = data.csrfToken || "";
+              if (stepOtp.classList.contains("hidden")) authFact("auth_code_form_shown", "email");
+              otpInput.value = "";
               stepEmail.classList.add("hidden");
               stepOtp.classList.remove("hidden");
               otpInput.focus();
@@ -1318,13 +1335,17 @@ export const renderLoginPage = (
           })
           .catch(function(err) {
             showErrorWithDetails(
-              emailError,
+              requestError,
               copy.sendCodeTransportErrorMessage,
               getTechnicalErrorDetails(err),
             );
           })
           .finally(function() {
+            if (entrySessionAccepted) return;
+            verifyBtn.disabled = false;
+            document.getElementById("otp-other-methods").disabled = false;
             sendBtn.disabled = false;
+            document.getElementById("resend-btn").disabled = false;
             document.getElementById("email-other-methods").disabled = false;
             sendBtn.textContent = copy.sendCode;
           });
@@ -1332,9 +1353,11 @@ export const renderLoginPage = (
 
       verifyBtn.addEventListener("click", function() {
         var code = otpInput.value.trim();
-        if (code.length !== 8) return;
+        if (code.length !== 8 || verifyBtn.disabled || sendBtn.disabled || entrySessionAccepted) return;
 
         hideError(otpError);
+        authFact("auth_code_submitted", "email");
+        document.getElementById("resend-btn").disabled = true;
         verifyBtn.disabled = true;
         document.getElementById("otp-other-methods").disabled = true;
         verifyBtn.textContent = copy.verifying;
@@ -1356,8 +1379,7 @@ export const renderLoginPage = (
                 showError(otpError, data.error || copy.genericErrorPrefix + ": " + res.status);
                 return;
               }
-              await browserHints.acceptOptional(data);
-              window.location.href = redirectUri;
+              await acceptEntrySignIn(data, function() { window.location.href = redirectUri; });
             });
           })
           .catch(function(err) {
@@ -1368,7 +1390,9 @@ export const renderLoginPage = (
             );
           })
           .finally(function() {
+            if (entrySessionAccepted) return;
             verifyBtn.disabled = false;
+            document.getElementById("resend-btn").disabled = false;
             document.getElementById("otp-other-methods").disabled = false;
             verifyBtn.textContent = copy.verify;
           });
