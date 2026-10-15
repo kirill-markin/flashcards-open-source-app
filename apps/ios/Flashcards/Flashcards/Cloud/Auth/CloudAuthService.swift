@@ -124,6 +124,7 @@ private struct AuthSuccessResponse: Decodable {
     let idToken: String
     let refreshToken: String
     let expiresIn: Int
+    let signInHint: CloudEmailSignInHint?
 }
 
 private struct RefreshTokenRequest: Encodable {
@@ -246,6 +247,10 @@ final class CloudAuthService {
     }
 
     func verifyCode(challenge: CloudOtpChallenge, code: String, authBaseUrl: String) async throws -> StoredCloudCredentials {
+        try await self.verifyCodeSession(challenge: challenge, code: code, authBaseUrl: authBaseUrl).credentials
+    }
+
+    func verifyCodeSession(challenge: CloudOtpChallenge, code: String, authBaseUrl: String) async throws -> CloudEmailSession {
         let normalizedCode = code.trimmingCharacters(in: .whitespacesAndNewlines)
         let envelope: CloudAuthResponseEnvelope<AuthSuccessResponse> = try await self.request(
             authBaseUrl: authBaseUrl,
@@ -259,10 +264,10 @@ final class CloudAuthService {
         )
         let response: AuthSuccessResponse = envelope.value
 
-        guard response.ok else {
+        guard response.ok, !response.idToken.isEmpty, !response.refreshToken.isEmpty, response.expiresIn > 0 else {
             throw makeCloudAuthResponseContractError(
                 phase: .authVerifyCode,
-                message: "verify-code did not return ok=true",
+                message: "verify-code did not return a successful nonempty session with a positive expiry",
                 diagnostics: envelope.diagnostics
             )
         }
@@ -272,11 +277,12 @@ final class CloudAuthService {
             outcome: "success",
             requestId: envelope.diagnostics.requestId
         )
-        return makeStoredCloudCredentials(
+        let credentials = makeStoredCloudCredentials(
             refreshToken: response.refreshToken,
             idToken: response.idToken,
             expiresIn: response.expiresIn
         )
+        return CloudEmailSession(credentials: credentials, signInHint: response.signInHint)
     }
 
     func refreshIdToken(refreshToken: String, authBaseUrl: String) async throws -> CloudIdentityToken {

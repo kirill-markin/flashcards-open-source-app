@@ -68,6 +68,8 @@ extension FlashcardsStore {
         }
 
         self.endCloudSignInAttempt()
+        self.cloudNativeSignIn.resetPendingSignIn()
+        try self.cloudNativeSignIn.forgetRememberedHint()
         try self.resetLocalStateForCloudIdentityChange()
     }
 

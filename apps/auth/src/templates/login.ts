@@ -896,6 +896,10 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
   },
 };
 
+export function getLoginPageCopy(locale: LoginPageLocale): LoginPageCopy {
+  return LOGIN_PAGE_COPY[locale];
+}
+
 export const renderLoginPage = (
   redirectUri: string,
   websiteHomeUrl: string,

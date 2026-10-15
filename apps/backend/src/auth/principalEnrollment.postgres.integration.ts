@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import pg from "pg";
 
 test("real email enrollment preserves immutable principals, provider state and the product boundary", async () => {
@@ -27,6 +29,11 @@ test("real email enrollment preserves immutable principals, provider state and t
     await contender.query("SET ROLE auth_app");
     await backend.connect();
     await backend.query("SET ROLE backend_app");
+    const moduleUrl = pathToFileURL(resolve(__dirname, "../../../auth/src/integration/principalEnrollmentGate.ts")).href;
+    const gate = await import(moduleUrl) as Readonly<{
+      checkAuthoritativePrincipalEnrollment: (runtime: pg.Client, owner: pg.Client | pg.Pool) => Promise<void>;
+    }>;
+    await gate.checkAuthoritativePrincipalEnrollment(runtime, owner);
     await owner.query("SELECT auth.register_cognito_principal($1, $2)", [provisionalSubject, provisionalSubject]);
     await assert.rejects(runtime.query(activate, [providerSubject, provisionalSubject, email]), { code: "23514" });
     assert.equal((await owner.query("SELECT 1 FROM auth.provider_identities WHERE provider_subject = $1", [providerSubject])).rowCount, 0);

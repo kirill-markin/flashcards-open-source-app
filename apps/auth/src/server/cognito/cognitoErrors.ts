@@ -2,7 +2,8 @@ export type CognitoOperation =
   | "InitiateAuth"
   | "RespondToAuthChallenge"
   | "RevokeToken"
-  | "AdminCreateUser";
+  | "AdminCreateUser"
+  | "AdminGetUser";
 
 export type CognitoErrorMetadata = Readonly<{
   operation: CognitoOperation;
@@ -32,7 +33,8 @@ function isCognitoOperation(value: unknown): value is CognitoOperation {
   return value === "InitiateAuth"
     || value === "RespondToAuthChallenge"
     || value === "RevokeToken"
-    || value === "AdminCreateUser";
+    || value === "AdminCreateUser"
+    || value === "AdminGetUser";
 }
 
 export function isCognitoTypedError(error: unknown): error is CognitoTypedError {
