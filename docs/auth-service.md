@@ -105,7 +105,18 @@ Email + OTP authentication via AWS Cognito (passwordless).
   the key a fresh valid token for that guest's user and workspace, so a key that is stable across
   attempts or guessable is a bearer credential for that guest identity.
 - Auth Lambda serves the auth UI/API on `auth.<domain>` and `/v1` execute-api stage paths
-- Backend Lambda verifies JWTs with `aws-jwt-verify`
+- Backend Lambda verifies JWTs with `aws-jwt-verify`. Authenticated Cognito requests, browser
+  sessions, and refreshed token results also consult the durable
+  [principal session fence](../db/migrations/0190_principal_session_invalidation.sql).
+  Invalidation covers every Cognito session of that principal, across login methods. It uses signed
+  original `auth_time`, never refreshed `iat`; missing original time is accepted only before that
+  principal has a fence. A pending signout prevents usable sessions until the existing scheduled
+  Auth Lambda completes its leased Cognito step. Fresh login from the next whole second after
+  completion remains usable; the completion second is conservatively fenced too.
+  Account-scoped Chat Live credentials are conservatively invalidated by any principal of that
+  account. API keys and OAuth connections have their own credential lifecycles.
+  The deletion endpoint alone accepts a signature-valid tombstoned subject to finish its existing
+  Cognito deletion inventory, with the same CSRF and confirmation requirements.
 - Key files:
   - `apps/auth/src/app.ts`: shared Hono app factory
   - `apps/auth/src/lambda.ts`: Lambda entry point
@@ -266,8 +277,8 @@ Lambda. [Schema](../db/migrations/0187_apple_provider_lifecycle.sql) fences comp
 jobs with capped backoff, and prevents credential replacement until cleanup finishes. Refresh-session
 revocation has its own completion receipt, so Apple retries do not repeatedly sign out email recovery
 sessions. A crash between Cognito success and its database receipt can repeat that step; existing
-Cognito account-deletion jobs remain request-driven. This does not invalidate already-issued JWTs in
-application verification; that enforcement belongs to login-method management before API activation.
+Cognito account-deletion jobs remain request-driven. The principal session fence above rejects
+already-issued JWTs and holds sign-in while that durable signout outcome remains pending.
 
 [Signed notifications](../apps/auth/src/server/social/appleNotifications.ts) verify Apple signatures,
 issuer, configured audiences and event claims before lifecycle effects. The public endpoint is

@@ -11,13 +11,13 @@ client.middlewareStack.add((next) => async (args) => {
   try {
     return await next(args);
   } catch (error) {
-    logWarning({ domain: "auth", action: "error", code: "APPLE_SESSION_REVOCATION_ATTEMPT_FAILED" });
+    logWarning({ domain: "auth", action: "error", code: "PRINCIPAL_SIGNOUT_ATTEMPT_FAILED" });
     throw error;
   }
-}, { step: "finalizeRequest", priority: "low", name: "appleSessionRevocationAttemptLogger" });
+}, { step: "finalizeRequest", priority: "low", name: "principalSessionRevocationAttemptLogger" });
 
 /** Consume the immutable subject from the leased lifecycle job, never notification or HTTP input. */
-export async function revokeApplePrincipalRefreshSessions(cognitoSubject: string): Promise<void> {
+export async function revokePrincipalRefreshSessions(cognitoSubject: string): Promise<void> {
   const userPoolId = process.env.COGNITO_USER_POOL_ID;
   if (userPoolId === undefined || userPoolId === "") throw new Error("Cognito user pool is not configured for session revocation");
   try {
@@ -26,6 +26,6 @@ export async function revokeApplePrincipalRefreshSessions(cognitoSubject: string
     });
   } catch (error) {
     if (error instanceof UserNotFoundException) return;
-    throw new Error("APPLE_SESSION_REVOCATION_FAILED");
+    throw new Error("PRINCIPAL_SIGNOUT_FAILED");
   }
 }

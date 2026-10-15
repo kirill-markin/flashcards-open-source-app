@@ -1,6 +1,6 @@
 import { transaction, type DatabaseExecutor } from "../../db.js";
 import { log, logWarning } from "../logger.js";
-import { revokeApplePrincipalRefreshSessions } from "./appleSessionRevocation.js";
+import { revokePrincipalRefreshSessions } from "./principalSessionRevocation.js";
 import { revokeAppleCredential } from "./apple.js";
 import type { EncryptedAppleCredential } from "./appleCredential.js";
 import { SocialProofError } from "./providers.js";
@@ -42,7 +42,7 @@ export type AppleRevocationDrainSummary = Readonly<{
 /** One external revocation per 30s Lambda invocation; expired leases are reclaimed on later ticks. */
 export async function drainAppleRevocations(requestId: string, getRemainingTimeMs: () => number): Promise<AppleRevocationDrainSummary> {
   if (getRemainingTimeMs() < 25_000) throw new Error("Apple revocation tick has insufficient remaining execution time");
-  const sessionSummary = await drainAppleSessionRevocation(requestId, getRemainingTimeMs);
+  const sessionSummary = await drainPrincipalSessionRevocation(requestId, getRemainingTimeMs);
   if (sessionSummary !== null) return sessionSummary;
   const job = await lifecycleTransaction(async (executor) => {
     const result = await executor.query<AppleRevocationJob>("SELECT * FROM auth.claim_apple_revocation()", []);
@@ -77,30 +77,30 @@ export async function drainAppleRevocations(requestId: string, getRemainingTimeM
   return summary;
 }
 
-type AppleSessionRevocationJob = Readonly<{ job_id: string; lease_id: string; cognito_subject: string }>;
+type PrincipalSessionRevocationJob = Readonly<{ job_id: string; lease_id: string; cognito_subject: string }>;
 
-async function drainAppleSessionRevocation(requestId: string, getRemainingTimeMs: () => number): Promise<AppleRevocationDrainSummary | null> {
+async function drainPrincipalSessionRevocation(requestId: string, getRemainingTimeMs: () => number): Promise<AppleRevocationDrainSummary | null> {
   const job = await lifecycleTransaction(async (executor) => {
-    const result = await executor.query<AppleSessionRevocationJob>("SELECT * FROM auth.claim_apple_session_revocation()", []);
+    const result = await executor.query<PrincipalSessionRevocationJob>("SELECT * FROM auth.claim_apple_session_revocation()", []);
     return result.rows[0] ?? null;
   });
   if (job === null) return null;
-  if (getRemainingTimeMs() < 12_000) throw new Error("Apple session revocation claim exhausted its execution budget; lease will be reclaimed");
+  if (getRemainingTimeMs() < 12_000) throw new Error("Principal signout claim exhausted its execution budget; lease will be reclaimed");
   try {
-    await revokeApplePrincipalRefreshSessions(job.cognito_subject);
+    await revokePrincipalRefreshSessions(job.cognito_subject);
   } catch {
     await lifecycleTransaction(async (executor) => {
       await executor.query("SELECT auth.retry_apple_session_revocation($1, $2)", [job.job_id, job.lease_id]);
     });
     const summary = { claimed: 1, completed: 0, failed: 1 };
     logWarning({ domain: "auth", action: "apple_revocation_drain", requestId,
-      reasonCategory: "refresh_sessions", code: "APPLE_SESSION_REVOCATION_FAILED", ...summary });
+      reasonCategory: "principal_sessions", code: "PRINCIPAL_SIGNOUT_FAILED", ...summary });
     return summary;
   }
   await lifecycleTransaction(async (executor) => {
     await executor.query("SELECT auth.complete_apple_session_revocation($1, $2)", [job.job_id, job.lease_id]);
   });
   const summary = { claimed: 1, completed: 1, failed: 0 };
-  log({ domain: "auth", action: "apple_revocation_drain", requestId, reasonCategory: "refresh_sessions", ...summary });
+  log({ domain: "auth", action: "apple_revocation_drain", requestId, reasonCategory: "principal_sessions", ...summary });
   return summary;
 }

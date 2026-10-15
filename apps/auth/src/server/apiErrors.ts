@@ -16,6 +16,9 @@ export type AuthPublicErrorCode =
   | import("./social/attemptContract.js").AuthAttemptErrorCode
   | import("./social/providers.js").SocialProofErrorCode
   | import("./social/mailboxProof.js").EnrollmentErrorCode
+  | "PRINCIPAL_SIGNOUT_PENDING"
+  | "SESSION_REVOKED"
+  | "ACCOUNT_DELETED"
   | "APPLE_REVOCATION_PENDING"
   | "APPLE_NOTIFICATION_INVALID"
   | "PROVIDER_SIGN_IN_DENIED"

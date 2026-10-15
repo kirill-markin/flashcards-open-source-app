@@ -9,6 +9,8 @@ import {
   getNormalizedCognitoErrorType,
   type CognitoOperation,
 } from "./cognitoErrors.js";
+import { assertNewlyIssuedSessionToken, IssuedSessionValidationError } from "../browserSession.js";
+import { PrincipalSessionError } from "../social/principalSessions.js";
 import { CognitoJwtVerifier } from "aws-jwt-verify";
 import { assertAppleRelayDeliveryAllowed } from "../social/appleNotifications.js";
 import { log, maskEmail } from "../logger.js";
@@ -217,21 +219,27 @@ let emailPrincipalVerifier: ReturnType<typeof CognitoJwtVerifier.create> | undef
 /** Called with the result of this request's real EMAIL_OTP challenge, never a caller-supplied token. */
 export async function verifyEmailOtpPrincipal(email: string, code: string, session: string): Promise<CognitoEmailPrincipal> {
   const tokens = await verifyEmailOtp(email, code, session);
-  if (emailPrincipalVerifier === undefined) {
-    emailPrincipalVerifier = CognitoJwtVerifier.create({
-      userPoolId: getUserPoolId(), tokenUse: "id", clientId: getClientId(), graceSeconds: 0,
-    });
+  try {
+    if (emailPrincipalVerifier === undefined) {
+      emailPrincipalVerifier = CognitoJwtVerifier.create({
+        userPoolId: getUserPoolId(), tokenUse: "id", clientId: getClientId(), graceSeconds: 0,
+      });
+    }
+    const payload = await emailPrincipalVerifier.verify(tokens.idToken);
+    const username = payload["cognito:username"];
+    const now = Math.floor(Date.now() / 1_000);
+    if (typeof payload.sub !== "string" || payload.sub === "" || typeof username !== "string" || username === ""
+      || typeof payload.email !== "string" || payload.email.toLowerCase() !== email || payload.email_verified !== true
+      || !Number.isSafeInteger(payload.auth_time) || (payload.auth_time as number) < now - 60
+      || (payload.auth_time as number) > now + 30) {
+      throw new Error("Cognito EMAIL_OTP did not return a fresh verified mailbox principal");
+    }
+    return { cognitoSubject: payload.sub, cognitoUsername: username, email };
+  } catch (error) {
+    log({ domain: "auth", action: "issued_session_validation_error",
+      error: error instanceof Error ? error.message : String(error) });
+    throw new IssuedSessionValidationError(error);
   }
-  const payload = await emailPrincipalVerifier.verify(tokens.idToken);
-  const username = payload["cognito:username"];
-  const now = Math.floor(Date.now() / 1_000);
-  if (typeof payload.sub !== "string" || payload.sub === "" || typeof username !== "string" || username === ""
-    || typeof payload.email !== "string" || payload.email.toLowerCase() !== email || payload.email_verified !== true
-    || !Number.isSafeInteger(payload.auth_time) || (payload.auth_time as number) < now - 60
-    || (payload.auth_time as number) > now + 30) {
-    throw new Error("Cognito EMAIL_OTP did not return a fresh verified mailbox principal");
-  }
-  return { cognitoSubject: payload.sub, cognitoUsername: username, email };
 }
 
 function extractRequiredStringField(
@@ -348,7 +356,9 @@ export const verifyEmailOtp = async (
 
   log({ domain: "auth", action: "verify_code", maskedEmail: maskEmail(email) });
 
-  return extractTokenResult(result, "Cognito RespondToAuthChallenge");
+  const tokens = extractTokenResult(result, "Cognito RespondToAuthChallenge");
+  await assertNewlyIssuedSessionToken(tokens.idToken);
+  return tokens;
 };
 
 async function signInWithPasswordViaCognito(
@@ -421,7 +431,11 @@ async function signInWithPasswordViaCognito(
 export const signInWithPassword = async (
   email: string,
   password: string,
-): Promise<TokenResult> => signInWithPasswordViaCognito(cognitoFetch, email, password);
+): Promise<TokenResult> => {
+  const tokens = await signInWithPasswordViaCognito(cognitoFetch, email, password);
+  await assertNewlyIssuedSessionToken(tokens.idToken);
+  return tokens;
+};
 
 export const __internal = {
   signInWithPasswordViaCognito,
@@ -438,10 +452,13 @@ export const refreshTokens = async (refreshToken: string): Promise<RefreshResult
 
   log({ domain: "auth", action: "refresh_token" });
 
-  return extractRefreshResult(result, "Cognito REFRESH_TOKEN_AUTH");
+  const tokens = extractRefreshResult(result, "Cognito REFRESH_TOKEN_AUTH");
+  await assertNewlyIssuedSessionToken(tokens.idToken);
+  return tokens;
 };
 
 export function isTerminalRefreshFailure(error: unknown): boolean {
+  if (error instanceof PrincipalSessionError) return error.statusCode !== 503;
   const normalizedType = getNormalizedCognitoErrorType(error);
   return normalizedType.includes("notauthorizedexception")
     || normalizedType.includes("refreshtokenreuseexception");
