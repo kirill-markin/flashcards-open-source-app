@@ -933,3 +933,19 @@
 "settings.account.cloudSignIn.restart" = "Újrakezdés";
 "settings.account.cloudSignIn.rememberFailed" = "Bejelentkeztél. A bejelentkezési emlékeztető nem menthető. Próbáld újra, vagy zárd be.";
 "settings.account.cloudSignIn.hintFailed" = "A megjegyzett bejelentkezés nem frissíthető. Próbáld újra.";
+
+"settings.account.methods.title" = "Bejelentkezési módok";
+"settings.account.methods.link" = "Szolgáltató kapcsolása";
+"settings.account.methods.unlink" = "Szolgáltató leválasztása";
+"settings.account.methods.reenable" = "Szolgáltató újbóli engedélyezése";
+"settings.account.methods.generation" = "Generáció";
+"settings.account.methods.readOnly" = "Az igazolt helyreállítási e-mail-címek csak olvashatók. Csak a felsorolt címek bizonyítottak.";
+"settings.account.methods.cleanup" = "A tisztítás függőben van. Frissíts a végéig, majd kezdj új igazolással.";
+"settings.account.methods.confirmCurrent" = "Először igazold jelenlegi fiókodat aktív bejelentkezési móddal. Ez nem vált fiókot.";
+"settings.account.methods.confirmNewProvider" = "Most igazold a módosítás szolgáltatói fiókját. A kívánt fiókot használd.";
+"settings.account.methods.fresh" = "A módosítás nem fejeződött be, vagy az igazolás lejárt. Frissítsd a módokat, és kezdj új igazolással.";
+"settings.account.methods.lastUsable" = "Leválasztás előtt tarts meg másik aktív szolgáltatót vagy igazolt helyreállítási e-mail-címet.";
+"settings.account.methods.conflict" = "A szolgáltató másik fiókhoz tartozik. Válassz másik szolgáltatói fiókot.";
+"settings.account.methods.changed" = "A mód megváltozott. Frissítsd a módokat, és kezdd újra.";
+"settings.account.methods.demo" = "A demófiókok nem kezelhetnek bejelentkezési módokat. Jelentkezz be saját fiókoddal.";
+"settings.account.methods.refreshFailed" = "Nem sikerült frissíteni a módokat. Új módosítás előtt frissíts.";

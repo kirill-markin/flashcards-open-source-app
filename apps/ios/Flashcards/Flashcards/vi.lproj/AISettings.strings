@@ -933,3 +933,19 @@
 "settings.account.cloudSignIn.restart" = "Bắt đầu lại";
 "settings.account.cloudSignIn.rememberFailed" = "Đã đăng nhập. Không lưu được gợi ý đăng nhập. Hãy thử lại hoặc đóng.";
 "settings.account.cloudSignIn.hintFailed" = "Không cập nhật được lần đăng nhập đã ghi nhớ. Hãy thử lại.";
+
+"settings.account.methods.title" = "Phương thức đăng nhập";
+"settings.account.methods.link" = "Liên kết nhà cung cấp";
+"settings.account.methods.unlink" = "Hủy liên kết nhà cung cấp";
+"settings.account.methods.reenable" = "Bật lại nhà cung cấp";
+"settings.account.methods.generation" = "Thế hệ";
+"settings.account.methods.readOnly" = "Email khôi phục đã xác minh chỉ có thể đọc. Chỉ các địa chỉ trong danh sách đã được chứng minh.";
+"settings.account.methods.cleanup" = "Đang chờ dọn dẹp. Làm mới đến khi xong rồi bắt đầu bằng bằng chứng mới.";
+"settings.account.methods.confirmCurrent" = "Trước hết xác minh tài khoản hiện tại bằng phương thức đang hoạt động. Việc này không đổi tài khoản.";
+"settings.account.methods.confirmNewProvider" = "Bây giờ xác minh tài khoản nhà cung cấp cho thay đổi. Dùng đúng tài khoản mong muốn.";
+"settings.account.methods.fresh" = "Thay đổi chưa hoàn tất hoặc bằng chứng hết hạn. Làm mới phương thức rồi bắt đầu bằng bằng chứng mới.";
+"settings.account.methods.lastUsable" = "Giữ nhà cung cấp khác đang hoạt động hoặc email khôi phục đã xác minh trước khi hủy liên kết.";
+"settings.account.methods.conflict" = "Nhà cung cấp thuộc tài khoản khác. Chọn tài khoản nhà cung cấp khác.";
+"settings.account.methods.changed" = "Phương thức đã thay đổi. Làm mới phương thức và bắt đầu lại.";
+"settings.account.methods.demo" = "Tài khoản dùng thử không thể quản lý phương thức đăng nhập. Đăng nhập bằng tài khoản của bạn.";
+"settings.account.methods.refreshFailed" = "Không thể làm mới phương thức. Làm mới trước thay đổi mới.";

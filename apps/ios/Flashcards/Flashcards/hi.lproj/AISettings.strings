@@ -961,3 +961,19 @@
 "settings.account.cloudSignIn.restart" = "फिर से शुरू करें";
 "settings.account.cloudSignIn.rememberFailed" = "साइन इन हो गया। साइन इन का संकेत सेव नहीं हो सका। फिर कोशिश करें या बंद करें।";
 "settings.account.cloudSignIn.hintFailed" = "याद रखा गया साइन इन अपडेट नहीं हो सका। फिर कोशिश करें।";
+
+"settings.account.methods.title" = "साइन-इन के तरीके";
+"settings.account.methods.link" = "प्रदाता जोड़ें";
+"settings.account.methods.unlink" = "प्रदाता अलग करें";
+"settings.account.methods.reenable" = "प्रदाता फिर चालू करें";
+"settings.account.methods.generation" = "पीढ़ी";
+"settings.account.methods.readOnly" = "सत्यापित रिकवरी ईमेल केवल पढ़े जा सकते हैं। सूची के पते ही प्रमाणित हैं।";
+"settings.account.methods.cleanup" = "सफाई लंबित है। पूरा होने तक रीफ़्रेश करें, फिर नए प्रमाण से शुरू करें।";
+"settings.account.methods.confirmCurrent" = "पहले सक्रिय साइन-इन तरीके से मौजूदा खाता सत्यापित करें। इससे खाता नहीं बदलता।";
+"settings.account.methods.confirmNewProvider" = "अब बदलाव के लिए प्रदाता का खाता सत्यापित करें। इच्छित खाता इस्तेमाल करें।";
+"settings.account.methods.fresh" = "बदलाव पूरा नहीं हुआ या प्रमाण समाप्त हो गया। तरीके रीफ़्रेश करके नए प्रमाण से शुरू करें।";
+"settings.account.methods.lastUsable" = "अलग करने से पहले दूसरा सक्रिय प्रदाता या सत्यापित रिकवरी ईमेल रखें।";
+"settings.account.methods.conflict" = "प्रदाता दूसरे खाते का है। प्रदाता का दूसरा खाता चुनें।";
+"settings.account.methods.changed" = "तरीका बदल गया है। तरीके रीफ़्रेश करके फिर शुरू करें।";
+"settings.account.methods.demo" = "डेमो खाते साइन-इन तरीके नहीं सँभाल सकते। अपने खाते में साइन इन करें।";
+"settings.account.methods.refreshFailed" = "तरीके रीफ़्रेश नहीं हुए। नए बदलाव से पहले रीफ़्रेश करें।";

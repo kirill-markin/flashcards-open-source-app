@@ -961,3 +961,19 @@
 "settings.account.cloudSignIn.restart" = "Começar de novo";
 "settings.account.cloudSignIn.rememberFailed" = "Você entrou. Não foi possível salvar o lembrete de acesso. Tente novamente ou feche.";
 "settings.account.cloudSignIn.hintFailed" = "Não foi possível atualizar o acesso lembrado. Tente novamente.";
+
+"settings.account.methods.title" = "Métodos de acesso";
+"settings.account.methods.link" = "Vincular provedor";
+"settings.account.methods.unlink" = "Desvincular provedor";
+"settings.account.methods.reenable" = "Reativar provedor";
+"settings.account.methods.generation" = "Geração";
+"settings.account.methods.readOnly" = "Os e-mails de recuperação verificados são somente leitura. Apenas os endereços listados estão comprovados.";
+"settings.account.methods.cleanup" = "A limpeza está pendente. Atualize até terminar e recomece com uma nova prova.";
+"settings.account.methods.confirmCurrent" = "Primeiro verifique sua conta atual com um método ativo. Isso não troca de conta.";
+"settings.account.methods.confirmNewProvider" = "Agora verifique a conta do provedor para a alteração. Use a conta desejada.";
+"settings.account.methods.fresh" = "A alteração não terminou ou a prova expirou. Atualize os métodos e recomece com uma nova prova.";
+"settings.account.methods.lastUsable" = "Antes de desvincular, mantenha outro provedor ativo ou e-mail de recuperação verificado.";
+"settings.account.methods.conflict" = "Este provedor pertence a outra conta. Escolha outra conta do provedor.";
+"settings.account.methods.changed" = "Este método mudou. Atualize os métodos e recomece.";
+"settings.account.methods.demo" = "Contas de demonstração não podem gerenciar métodos de acesso. Entre com sua conta.";
+"settings.account.methods.refreshFailed" = "Não foi possível atualizar os métodos. Atualize antes de uma nova alteração.";

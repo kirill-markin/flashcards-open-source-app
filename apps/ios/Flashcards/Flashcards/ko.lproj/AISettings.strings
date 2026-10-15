@@ -933,3 +933,19 @@
 "settings.account.cloudSignIn.restart" = "다시 시작";
 "settings.account.cloudSignIn.rememberFailed" = "로그인되었습니다. 로그인 힌트를 저장하지 못했습니다. 다시 시도하거나 닫으세요.";
 "settings.account.cloudSignIn.hintFailed" = "기억된 로그인을 업데이트하지 못했습니다. 다시 시도하세요.";
+
+"settings.account.methods.title" = "로그인 방법";
+"settings.account.methods.link" = "제공업체 연결";
+"settings.account.methods.unlink" = "제공업체 연결 해제";
+"settings.account.methods.reenable" = "제공업체 다시 활성화";
+"settings.account.methods.generation" = "세대";
+"settings.account.methods.readOnly" = "확인된 복구 이메일은 읽기 전용입니다. 나열된 주소만 입증되었습니다.";
+"settings.account.methods.cleanup" = "정리가 대기 중입니다. 완료될 때까지 새로 고친 후 새로운 증명으로 다시 시작하세요.";
+"settings.account.methods.confirmCurrent" = "먼저 활성 로그인 방법으로 현재 계정을 확인하세요. 계정이 전환되지 않습니다.";
+"settings.account.methods.confirmNewProvider" = "이제 변경에 사용할 제공업체 계정을 확인하세요. 원하는 계정을 사용하세요.";
+"settings.account.methods.fresh" = "변경이 완료되지 않았거나 증명이 만료되었습니다. 방법을 새로 고친 후 새로운 증명으로 다시 시작하세요.";
+"settings.account.methods.lastUsable" = "연결 해제 전에 다른 활성 제공업체나 확인된 복구 이메일을 유지하세요.";
+"settings.account.methods.conflict" = "이 제공업체는 다른 계정에 속합니다. 다른 제공업체 계정을 선택하세요.";
+"settings.account.methods.changed" = "방법이 변경되었습니다. 방법을 새로 고친 후 다시 시작하세요.";
+"settings.account.methods.demo" = "데모 계정은 로그인 방법을 관리할 수 없습니다. 본인 계정으로 로그인하세요.";
+"settings.account.methods.refreshFailed" = "방법을 새로 고칠 수 없습니다. 새 변경 전에 새로 고치세요.";

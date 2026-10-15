@@ -933,3 +933,19 @@
 "settings.account.cloudSignIn.restart" = "Anza tena";
 "settings.account.cloudSignIn.rememberFailed" = "Umeingia. Kidokezo cha kuingia hakikuhifadhiwa. Jaribu tena au funga.";
 "settings.account.cloudSignIn.hintFailed" = "Kuingia kulikokumbukwa hakukusasishwa. Jaribu tena.";
+
+"settings.account.methods.title" = "Njia za kuingia";
+"settings.account.methods.link" = "Unganisha mtoa huduma";
+"settings.account.methods.unlink" = "Tenganisha mtoa huduma";
+"settings.account.methods.reenable" = "Washa tena mtoa huduma";
+"settings.account.methods.generation" = "Kizazi";
+"settings.account.methods.readOnly" = "Barua pepe za urejeshaji zilizothibitishwa ni za kusoma tu. Anwani zilizoorodheshwa tu ndizo zimethibitishwa.";
+"settings.account.methods.cleanup" = "Usafishaji unasubiri. Onyesha upya hadi ukamilike, kisha anza kwa uthibitisho mpya.";
+"settings.account.methods.confirmCurrent" = "Kwanza thibitisha akaunti ya sasa kwa njia hai ya kuingia. Hii haibadilishi akaunti.";
+"settings.account.methods.confirmNewProvider" = "Sasa thibitisha akaunti ya mtoa huduma kwa mabadiliko. Tumia akaunti unayokusudia.";
+"settings.account.methods.fresh" = "Mabadiliko hayakukamilika au uthibitisho umeisha muda. Onyesha njia upya na anza kwa uthibitisho mpya.";
+"settings.account.methods.lastUsable" = "Weka mtoa huduma mwingine hai au barua pepe ya urejeshaji iliyothibitishwa kabla ya kutenganisha.";
+"settings.account.methods.conflict" = "Mtoa huduma ni wa akaunti nyingine. Chagua akaunti nyingine ya mtoa huduma.";
+"settings.account.methods.changed" = "Njia imebadilika. Onyesha njia upya na uanze tena.";
+"settings.account.methods.demo" = "Akaunti za majaribio haziwezi kudhibiti njia za kuingia. Ingia kwa akaunti yako.";
+"settings.account.methods.refreshFailed" = "Njia hazikuweza kuonyeshwa upya. Onyesha upya kabla ya mabadiliko mapya.";
