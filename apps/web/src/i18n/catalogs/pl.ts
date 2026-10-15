@@ -1527,6 +1527,12 @@ const plCatalog: TranslationCatalog = {
       value: "Usuń",
     },
   },
+  browserSignInPrivacy: {
+    forget: "Zapomnij informacje o logowaniu",
+    signOutForget: "Wyloguj i zapomnij",
+    forgotten: "Zapomniano informacje o logowaniu.",
+    error: "Nie można zmienić informacji o logowaniu. Zezwól na dane witryny uwierzytelniania i spróbuj ponownie.",
+  },
   accountStatus: {
     title: "Status konta",
     subtitle: "Sprawdź aktualnie zalogowane konto i sesję przeglądarki.",

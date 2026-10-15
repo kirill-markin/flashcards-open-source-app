@@ -1,3 +1,4 @@
+import { forgetBrowserSignInInformation } from "../../api/browserHints";
 import { clearEntitlementState } from "../../premium/entitlementStore";
 import { isAccountDeletionAttemptStorageKey } from "../../accountDeletion/accountDeletionAttempt";
 import { analyticsEnabledStorageKey, productAnalyticsCollectionStorageKey } from "../../analytics/identity";
@@ -246,6 +247,10 @@ export async function clearAllLocalBrowserData(
   reason: LocalBrowserDataCleanupReason,
   throwIfIndexedDbOpenRecoveryFailed: () => void,
 ): Promise<void> {
+  if (reason === "account_deletion_submit" || reason === "account_deleted_marker") {
+    await forgetBrowserSignInInformation();
+    throwIfIndexedDbOpenRecoveryFailed();
+  }
   clearEntitlementState();
   const browserStorage = getBrowserStorage();
   let indexedDbError: Error | null = null;
