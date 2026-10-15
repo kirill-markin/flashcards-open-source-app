@@ -1,5 +1,6 @@
 import { createCipheriv, createDecipheriv, createHash, hkdfSync, randomBytes } from "node:crypto";
 import { query, transaction, type DatabaseExecutor } from "../../db.js";
+import type { verifyCurrentAccountSession } from "../browserSession.js";
 import { exchangeAppleAuthorizationCode } from "./apple.js";
 import { exchangeGoogleAuthorizationCode, verifyGoogleIdentityToken } from "./google.js";
 import { beginEnrollmentMailboxOtp, normalizeEnrollmentEmail, type MailboxProofBinding } from "./mailboxProof.js";
@@ -39,6 +40,20 @@ type AttemptRow = Readonly<{
   redirect_uri: string | null;
   secret_ciphertext: string;
   phase: AttemptPhase;
+}>;
+export type AccountProviderBrowserLaunch = Readonly<{
+  attempt: string;
+  provider: "apple";
+  client: "android";
+  intent: "reauth" | "link" | "reenable";
+  nonce: string;
+  codeChallenge: string;
+  redirectUri: string;
+  expiresAt: string;
+}>;
+type AccountBrowserLaunchRow = Readonly<{
+  binding_sha256: string; purpose: "link" | "reauth"; redirect_uri: string;
+  secret_ciphertext: string; expires_at: Date; explicit_reenable: boolean;
 }>;
 
 export function authHandleHash(value: string): string {
@@ -165,6 +180,52 @@ export async function claimAuthAttempt(
   if (row === undefined) throw new AuthAttemptError("AUTH_ATTEMPT_RESTART_REQUIRED");
   return { [claimedAttemptBrand]: true, handle, claimId: row.claim_id, provider: row.provider_type, client: row.client_type, purpose: row.purpose,
     redirectUri: row.redirect_uri, secrets: openSecrets(handle, row.secret_ciphertext), phase: row.phase };
+}
+
+/** The opaque handle selects an existing app-authorized attempt, never a new browser authority. */
+export async function loadAccountProviderBrowserLaunch(handle: string, authOrigin: string): Promise<AccountProviderBrowserLaunch> {
+  requireAuthHandle(handle);
+  if (!socialAuthOrigins.includes(authOrigin)) throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
+  const result = await query<AccountBrowserLaunchRow>("SELECT * FROM auth.load_account_provider_browser_launch($1,$2)",
+    [authHandleHash(handle), authOrigin]);
+  const row = result.rows[0];
+  if (row === undefined || row.redirect_uri !== `${authOrigin}/api/social/apple/callback`
+    || !["link", "reauth"].includes(row.purpose) || !/^[0-9a-f]{64}$/.test(row.binding_sha256)
+    || (row.explicit_reenable && row.purpose !== "link")) throw new AuthAttemptError("AUTH_ATTEMPT_RESTART_REQUIRED");
+  const secrets = openSecrets(handle, row.secret_ciphertext);
+  if (secrets.proof !== null || secrets.mailbox !== null) throw new AuthAttemptError("AUTH_ATTEMPT_RESTART_REQUIRED");
+  return { attempt: handle, provider: "apple", client: "android",
+    intent: row.explicit_reenable ? "reenable" : row.purpose, nonce: appleRequestNonce(secrets.nonce),
+    codeChallenge: Buffer.from(row.binding_sha256, "hex").toString("base64url"),
+    redirectUri: row.redirect_uri, expiresAt: row.expires_at.toISOString() };
+}
+
+/** Current-session fields must come from verifyCurrentAccountSession, never request JSON. */
+export async function loadProvedAccountProviderReenable(
+  handle: string, binding: AuthAttemptBinding,
+  current: Pick<Awaited<ReturnType<typeof verifyCurrentAccountSession>>, "subject" | "username" | "authTime">,
+): Promise<ClaimedAuthAttempt> {
+  requireAuthHandle(handle);
+  if (binding.client !== "android" || binding.purpose !== "link") throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
+  const result = await query<AttemptRow & Readonly<{ provider_subject: string }>>(
+    "SELECT * FROM auth.load_proved_account_provider_reenable($1,$2,$3,$4,$5,$6,$7)",
+    [authHandleHash(handle), authAttemptBindingHash(binding), binding.client, null,
+      current.subject, current.username, current.authTime]);
+  const row = result.rows[0];
+  if (row === undefined || row.claim_id === null || row.provider_type !== "apple" || row.client_type !== "android"
+    || row.purpose !== "link" || row.phase !== "provider_proved" || row.redirect_uri === null) {
+    throw new AuthAttemptError("AUTH_ATTEMPT_RESTART_REQUIRED");
+  }
+  assertProviderCallback("apple", row.redirect_uri);
+  const secrets = openSecrets(handle, row.secret_ciphertext);
+  const proof = secrets.proof;
+  if (proof === null || proof.provider !== "apple" || proof.identity.provider !== "apple"
+    || proof.identity.subject !== row.provider_subject || proof.credential.providerSubject !== row.provider_subject
+    || proof.credential.clientId !== proof.identity.clientId || secrets.mailbox !== null) {
+    throw new AuthAttemptError("AUTH_ATTEMPT_RESTART_REQUIRED");
+  }
+  return { [claimedAttemptBrand]: true, handle, claimId: row.claim_id, provider: row.provider_type,
+    client: row.client_type, purpose: row.purpose, redirectUri: row.redirect_uri, secrets, phase: row.phase };
 }
 
 /** The callback cookie authenticates browser state; Android redemption still requires the app's verifier. */
