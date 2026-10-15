@@ -933,3 +933,19 @@
 "settings.account.cloudSignIn.restart" = "Byrja aftur";
 "settings.account.cloudSignIn.rememberFailed" = "Þú ert skráð inn. Ekki tókst að vista innskráningarábendinguna. Reyndu aftur eða lokaðu.";
 "settings.account.cloudSignIn.hintFailed" = "Ekki tókst að uppfæra vistuðu innskráninguna. Reyndu aftur.";
+
+"settings.account.methods.title" = "Innskráningaraðferðir";
+"settings.account.methods.link" = "Tengja þjónustuveitu";
+"settings.account.methods.unlink" = "Aftengja þjónustuveitu";
+"settings.account.methods.reenable" = "Virkja þjónustuveitu aftur";
+"settings.account.methods.generation" = "Kynslóð";
+"settings.account.methods.readOnly" = "Staðfest endurheimtarnetföng eru skrifvarin. Aðeins skráð netföng eru sönnuð.";
+"settings.account.methods.cleanup" = "Hreinsun bíður. Endurnýjaðu til loka og byrjaðu svo með nýrri sönnun.";
+"settings.account.methods.confirmCurrent" = "Staðfestu fyrst núverandi reikning með virkri innskráningaraðferð. Þetta skiptir ekki um reikning.";
+"settings.account.methods.confirmNewProvider" = "Staðfestu nú reikning þjónustuveitunnar fyrir breytinguna. Notaðu fyrirhugaðan reikning.";
+"settings.account.methods.fresh" = "Breytingunni lauk ekki eða sönnunin rann út. Endurnýjaðu aðferðir og byrjaðu með nýrri sönnun.";
+"settings.account.methods.lastUsable" = "Haltu annarri virkri þjónustuveitu eða staðfestu endurheimtarnetfangi áður en þú aftengir.";
+"settings.account.methods.conflict" = "Þjónustuveitan tilheyrir öðrum reikningi. Veldu annan reikning þjónustuveitunnar.";
+"settings.account.methods.changed" = "Aðferðin breyttist. Endurnýjaðu aðferðir og byrjaðu aftur.";
+"settings.account.methods.demo" = "Sýnisreikningar geta ekki stjórnað innskráningaraðferðum. Skráðu þig inn á eigin reikning.";
+"settings.account.methods.refreshFailed" = "Ekki tókst að endurnýja aðferðir. Endurnýjaðu fyrir nýja breytingu.";

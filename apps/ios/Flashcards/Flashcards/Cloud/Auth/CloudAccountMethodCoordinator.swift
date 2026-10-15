@@ -15,6 +15,8 @@ enum CloudAccountMethodObservation {
     case providerRequested(CloudAuthProvider)
     case providerFinished(CloudAuthProvider, AnalyticsAuthProviderOutcome)
     case mutationConfirmed(CloudAccountMethodMutation, CloudAuthProvider)
+    case codeVerified(CloudSignInMethod)
+    case linkFinished(CloudAuthProvider, AnalyticsAuthAccountLinkOutcome)
 }
 
 private struct AccountManagementContext {
@@ -136,6 +138,7 @@ final class CloudAccountMethodCoordinator {
             let completion = try await self.service.completeEmail(attempt: attempt, binding: binding, code: code,
                 authBaseUrl: context.configuration.authBaseUrl, bearer: context.credentials.idToken)
             _ = try self.checkCurrent(epoch)
+            self.onObservation?(.codeVerified(.email))
             self.receipt = CloudAccountReauthenticationReceipt(completion: completion.completion, binding: binding)
             self.stage = .proofReady
         }
@@ -165,11 +168,17 @@ final class CloudAccountMethodCoordinator {
             let context = try self.checkCurrent(epoch)
             self.mailboxChallenge = nil
             self.stage = .verifyingCode
-            let response = try await self.service.verifyMailbox(challenge: challenge, code: code,
-                authBaseUrl: context.configuration.authBaseUrl, bearer: context.credentials.idToken)
-            _ = try self.checkCurrent(epoch)
-            guard case .completed = response else { throw CloudAccountMethodError.freshAttemptRequired }
-            try await self.accept(response, attempt: challenge.attempt, epoch: epoch)
+            do {
+                let response = try await self.service.verifyMailbox(challenge: challenge, code: code,
+                    authBaseUrl: context.configuration.authBaseUrl, bearer: context.credentials.idToken)
+                _ = try self.checkCurrent(epoch)
+                guard case .completed = response else { throw CloudAccountMethodError.freshAttemptRequired }
+                self.onObservation?(.codeVerified(challenge.attempt.provider == .apple ? .apple : .google))
+                try await self.accept(response, attempt: challenge.attempt, epoch: epoch)
+            } catch {
+                try self.observeLinkFailure(error, purpose: challenge.attempt.purpose, provider: challenge.attempt.provider, epoch: epoch)
+                throw error
+            }
         }
     }
 
@@ -194,16 +203,21 @@ final class CloudAccountMethodCoordinator {
             let metadata = try await self.social.metadata(client: .currentNative, authBaseUrl: context.configuration.authBaseUrl)
             _ = try self.checkCurrent(epoch)
             let binding = try CloudAuthAttemptBinding.generate(client: .currentNative)
-            let attempt = try await self.service.beginProvider(provider: operation.provider, purpose: .link, binding: binding,
-                operation: operation, proof: receipt, authBaseUrl: context.configuration.authBaseUrl, bearer: context.credentials.idToken)
-            _ = try self.checkCurrent(epoch)
-            let proof = try await self.authorize(attempt: attempt, metadata: metadata, presentation: presentation, epoch: epoch)
-            self.stage = .mutating
-            let response = try await self.service.submitProvider(attempt: attempt, proof: proof, operation: operation,
-                authBaseUrl: context.configuration.authBaseUrl, bearer: context.credentials.idToken)
-            _ = try self.checkCurrent(epoch)
-            if let response { try await self.accept(response, attempt: attempt, epoch: epoch) }
-            else { try await self.finishMutation(operation, epoch: epoch) }
+            do {
+                let attempt = try await self.service.beginProvider(provider: operation.provider, purpose: .link, binding: binding,
+                    operation: operation, proof: receipt, authBaseUrl: context.configuration.authBaseUrl, bearer: context.credentials.idToken)
+                _ = try self.checkCurrent(epoch)
+                let proof = try await self.authorize(attempt: attempt, metadata: metadata, presentation: presentation, epoch: epoch)
+                self.stage = .mutating
+                let response = try await self.service.submitProvider(attempt: attempt, proof: proof, operation: operation,
+                    authBaseUrl: context.configuration.authBaseUrl, bearer: context.credentials.idToken)
+                _ = try self.checkCurrent(epoch)
+                if let response { try await self.accept(response, attempt: attempt, epoch: epoch) }
+                else { try await self.finishMutation(operation, epoch: epoch) }
+            } catch {
+                try self.observeLinkFailure(error, purpose: .link, provider: operation.provider, epoch: epoch)
+                throw error
+            }
         }
     }
 
@@ -277,6 +291,9 @@ final class CloudAccountMethodCoordinator {
         case .verificationRequired(let reason, let providerEmail):
             self.mailboxChallenge = CloudAccountMailboxChallenge(attempt: attempt, reason: reason, providerEmail: providerEmail)
             self.stage = .mailboxRequired
+            if attempt.purpose == .link, case .some(.link(let provider)) = self.operation, provider == attempt.provider {
+                self.onObservation?(.linkFinished(provider, .verificationRequired))
+            }
         case .completed(let completion, _):
             self.mailboxChallenge = nil
             if attempt.purpose == .reauth {
@@ -291,6 +308,15 @@ final class CloudAccountMethodCoordinator {
                 try await self.finishMutation(operation, epoch: epoch)
             }
         }
+    }
+
+    private func observeLinkFailure(_ error: Error, purpose: CloudAccountProofPurpose, provider: CloudAuthProvider, epoch: UUID) throws {
+        _ = try self.checkCurrent(epoch)
+        guard purpose == .link, case .some(.link(let selectedProvider)) = self.operation,
+              selectedProvider == provider, self.confirmedOperation == nil,
+              case CloudAuthError.invalidResponse(let details, _) = error,
+              details.code == "PROVIDER_ENROLLMENT_CONFLICT" else { return }
+        self.onObservation?(.linkFinished(provider, .conflict))
     }
 
     private func finishMutation(_ operation: CloudAccountMethodOperation, epoch: UUID) async throws {

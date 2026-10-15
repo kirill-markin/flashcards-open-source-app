@@ -961,3 +961,19 @@
 "settings.account.cloudSignIn.restart" = "最初からやり直す";
 "settings.account.cloudSignIn.rememberFailed" = "ログインしましたが、ログインのヒントを保存できませんでした。再試行するか閉じてください。";
 "settings.account.cloudSignIn.hintFailed" = "記憶したログイン情報を更新できませんでした。再試行してください。";
+
+"settings.account.methods.title" = "ログイン方法";
+"settings.account.methods.link" = "プロバイダーを連携";
+"settings.account.methods.unlink" = "プロバイダーの連携を解除";
+"settings.account.methods.reenable" = "プロバイダーを再有効化";
+"settings.account.methods.generation" = "世代";
+"settings.account.methods.readOnly" = "確認済みの復旧用メールは読み取り専用です。記載されたアドレスのみ証明済みです。";
+"settings.account.methods.cleanup" = "クリーンアップ待ちです。完了まで更新し、新しい証明でやり直してください。";
+"settings.account.methods.confirmCurrent" = "まず有効なログイン方法で現在のアカウントを確認してください。アカウントは切り替わりません。";
+"settings.account.methods.confirmNewProvider" = "次に変更に使うプロバイダーアカウントを確認してください。目的のアカウントを使用してください。";
+"settings.account.methods.fresh" = "変更が完了しなかったか、証明の期限が切れました。方法を更新し、新しい証明でやり直してください。";
+"settings.account.methods.lastUsable" = "連携解除前に別の有効なプロバイダーか確認済みの復旧用メールを残してください。";
+"settings.account.methods.conflict" = "このプロバイダーは別のアカウントに属しています。別のプロバイダーアカウントを選んでください。";
+"settings.account.methods.changed" = "この方法は変更されました。方法を更新してやり直してください。";
+"settings.account.methods.demo" = "デモアカウントではログイン方法を管理できません。ご自身のアカウントでログインしてください。";
+"settings.account.methods.refreshFailed" = "方法を更新できませんでした。新しい変更の前に更新してください。";

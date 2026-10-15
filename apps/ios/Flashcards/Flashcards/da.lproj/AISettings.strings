@@ -933,3 +933,19 @@
 "settings.account.cloudSignIn.restart" = "Start forfra";
 "settings.account.cloudSignIn.rememberFailed" = "Du er logget ind. Loginoplysningen kunne ikke gemmes. Prøv igen eller luk.";
 "settings.account.cloudSignIn.hintFailed" = "Det gemte login kunne ikke opdateres. Prøv igen.";
+
+"settings.account.methods.title" = "Loginmetoder";
+"settings.account.methods.link" = "Tilknyt udbyder";
+"settings.account.methods.unlink" = "Fjern udbydertilknytning";
+"settings.account.methods.reenable" = "Genaktivér udbyder";
+"settings.account.methods.generation" = "Generation";
+"settings.account.methods.readOnly" = "Bekræftede gendannelsesmails er skrivebeskyttede. Kun de anførte adresser er dokumenteret.";
+"settings.account.methods.cleanup" = "Udbyderoprydning afventer. Opdatér til den er færdig og start med nyt bevis.";
+"settings.account.methods.confirmCurrent" = "Bekræft først din nuværende konto med en aktiv loginmetode. Dette skifter ikke konto.";
+"settings.account.methods.confirmNewProvider" = "Bekræft nu udbyderkontoen til ændringen. Brug den ønskede konto.";
+"settings.account.methods.fresh" = "Ændringen blev ikke fuldført, eller beviset udløb. Opdatér metoderne og start med nyt bevis.";
+"settings.account.methods.lastUsable" = "Behold en anden aktiv udbyder eller bekræftet gendannelsesmail før fjernelse.";
+"settings.account.methods.conflict" = "Udbyderen tilhører en anden konto. Vælg en anden udbyderkonto.";
+"settings.account.methods.changed" = "Metoden er ændret. Opdatér metoderne og start igen.";
+"settings.account.methods.demo" = "Demokonti kan ikke administrere loginmetoder. Log ind med din egen konto.";
+"settings.account.methods.refreshFailed" = "Metoderne kunne ikke opdateres. Opdatér før en ny ændring.";

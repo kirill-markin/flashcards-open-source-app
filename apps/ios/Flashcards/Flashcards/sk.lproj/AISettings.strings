@@ -933,3 +933,19 @@
 "settings.account.cloudSignIn.restart" = "Začať znova";
 "settings.account.cloudSignIn.rememberFailed" = "Prihlásenie bolo úspešné. Pomôcku na prihlásenie sa nepodarilo uložiť. Skúste to znova alebo zatvorte.";
 "settings.account.cloudSignIn.hintFailed" = "Zapamätané prihlásenie sa nepodarilo aktualizovať. Skúste to znova.";
+
+"settings.account.methods.title" = "Spôsoby prihlásenia";
+"settings.account.methods.link" = "Prepojiť poskytovateľa";
+"settings.account.methods.unlink" = "Odpojiť poskytovateľa";
+"settings.account.methods.reenable" = "Znova povoliť poskytovateľa";
+"settings.account.methods.generation" = "Generácia";
+"settings.account.methods.readOnly" = "Overené e-maily na obnovu sú iba na čítanie. Preukázané sú len uvedené adresy.";
+"settings.account.methods.cleanup" = "Čistenie čaká. Obnovujte do konca a potom začnite s novým dôkazom.";
+"settings.account.methods.confirmCurrent" = "Najprv overte aktuálny účet aktívnym spôsobom prihlásenia. Účet sa tým neprepne.";
+"settings.account.methods.confirmNewProvider" = "Teraz overte účet poskytovateľa pre zmenu. Použite zamýšľaný účet.";
+"settings.account.methods.fresh" = "Zmena sa nedokončila alebo dôkaz vypršal. Obnovte spôsoby a začnite s novým dôkazom.";
+"settings.account.methods.lastUsable" = "Pred odpojením ponechajte iného aktívneho poskytovateľa alebo overený e-mail na obnovu.";
+"settings.account.methods.conflict" = "Poskytovateľ patrí inému účtu. Vyberte iný účet poskytovateľa.";
+"settings.account.methods.changed" = "Spôsob sa zmenil. Obnovte spôsoby a začnite znova.";
+"settings.account.methods.demo" = "Ukážkové účty nespravujú spôsoby prihlásenia. Prihláste sa vlastným účtom.";
+"settings.account.methods.refreshFailed" = "Spôsoby sa nepodarilo obnoviť. Pred novou zmenou ich obnovte.";

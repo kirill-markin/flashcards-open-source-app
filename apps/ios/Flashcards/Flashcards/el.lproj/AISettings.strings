@@ -933,3 +933,19 @@
 "settings.account.cloudSignIn.restart" = "Εκκίνηση ξανά";
 "settings.account.cloudSignIn.rememberFailed" = "Συνδεθήκατε. Δεν αποθηκεύτηκε η υπενθύμιση σύνδεσης. Δοκιμάστε ξανά ή κλείστε.";
 "settings.account.cloudSignIn.hintFailed" = "Δεν ήταν δυνατή η ενημέρωση της απομνημονευμένης σύνδεσης. Δοκιμάστε ξανά.";
+
+"settings.account.methods.title" = "Τρόποι σύνδεσης";
+"settings.account.methods.link" = "Σύνδεση παρόχου";
+"settings.account.methods.unlink" = "Αποσύνδεση παρόχου";
+"settings.account.methods.reenable" = "Επανενεργοποίηση παρόχου";
+"settings.account.methods.generation" = "Γενιά";
+"settings.account.methods.readOnly" = "Τα επαληθευμένα email ανάκτησης είναι μόνο για ανάγνωση. Μόνο οι διευθύνσεις της λίστας είναι αποδεδειγμένες.";
+"settings.account.methods.cleanup" = "Εκκρεμεί εκκαθάριση. Ανανεώστε μέχρι να ολοκληρωθεί και ξεκινήστε με νέα απόδειξη.";
+"settings.account.methods.confirmCurrent" = "Πρώτα επαληθεύστε τον τρέχοντα λογαριασμό με ενεργό τρόπο σύνδεσης. Αυτό δεν αλλάζει λογαριασμό.";
+"settings.account.methods.confirmNewProvider" = "Τώρα επαληθεύστε τον λογαριασμό παρόχου για την αλλαγή. Χρησιμοποιήστε τον επιθυμητό λογαριασμό.";
+"settings.account.methods.fresh" = "Η αλλαγή δεν ολοκληρώθηκε ή η απόδειξη έληξε. Ανανεώστε τους τρόπους και ξεκινήστε με νέα απόδειξη.";
+"settings.account.methods.lastUsable" = "Κρατήστε άλλον ενεργό πάροχο ή επαληθευμένο email ανάκτησης πριν την αποσύνδεση.";
+"settings.account.methods.conflict" = "Ο πάροχος ανήκει σε άλλον λογαριασμό. Επιλέξτε άλλον λογαριασμό παρόχου.";
+"settings.account.methods.changed" = "Ο τρόπος άλλαξε. Ανανεώστε τους τρόπους και ξεκινήστε ξανά.";
+"settings.account.methods.demo" = "Οι δοκιμαστικοί λογαριασμοί δεν διαχειρίζονται τρόπους σύνδεσης. Συνδεθείτε με τον δικό σας.";
+"settings.account.methods.refreshFailed" = "Δεν ήταν δυνατή η ανανέωση. Ανανεώστε πριν από νέα αλλαγή.";

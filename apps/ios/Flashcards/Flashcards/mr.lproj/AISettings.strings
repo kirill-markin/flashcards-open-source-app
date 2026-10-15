@@ -933,3 +933,19 @@
 "settings.account.cloudSignIn.restart" = "पुन्हा सुरू करा";
 "settings.account.cloudSignIn.rememberFailed" = "साइन इन झाले. साइन इनची खूण जतन करता आली नाही. पुन्हा प्रयत्न करा किंवा बंद करा.";
 "settings.account.cloudSignIn.hintFailed" = "लक्षात ठेवलेले साइन इन अपडेट करता आले नाही. पुन्हा प्रयत्न करा.";
+
+"settings.account.methods.title" = "साइन-इन पद्धती";
+"settings.account.methods.link" = "प्रदाता जोडा";
+"settings.account.methods.unlink" = "प्रदाता वेगळा करा";
+"settings.account.methods.reenable" = "प्रदाता पुन्हा सक्षम करा";
+"settings.account.methods.generation" = "पिढी";
+"settings.account.methods.readOnly" = "पडताळलेले पुनर्प्राप्ती ईमेल फक्त वाचता येतात. यादीतील पत्तेच सिद्ध आहेत.";
+"settings.account.methods.cleanup" = "साफसफाई प्रलंबित आहे. पूर्ण होईपर्यंत रिफ्रेश करा, मग नव्या पुराव्याने सुरू करा.";
+"settings.account.methods.confirmCurrent" = "आधी सक्रिय साइन-इन पद्धतीने सध्याचे खाते पडताळा. यामुळे खाते बदलत नाही.";
+"settings.account.methods.confirmNewProvider" = "आता बदलासाठी प्रदात्याचे खाते पडताळा. अपेक्षित खाते वापरा.";
+"settings.account.methods.fresh" = "बदल पूर्ण झाला नाही किंवा पुरावा कालबाह्य झाला. पद्धती रिफ्रेश करून नव्या पुराव्याने सुरुवात करा.";
+"settings.account.methods.lastUsable" = "वेगळे करण्यापूर्वी दुसरा सक्रिय प्रदाता किंवा पडताळलेला पुनर्प्राप्ती ईमेल ठेवा.";
+"settings.account.methods.conflict" = "प्रदाता दुसऱ्या खात्याचा आहे. प्रदात्याचे दुसरे खाते निवडा.";
+"settings.account.methods.changed" = "पद्धत बदलली आहे. पद्धती रिफ्रेश करून पुन्हा सुरुवात करा.";
+"settings.account.methods.demo" = "डेमो खाती साइन-इन पद्धती हाताळू शकत नाहीत. स्वतःच्या खात्यात साइन इन करा.";
+"settings.account.methods.refreshFailed" = "पद्धती रिफ्रेश करता आल्या नाहीत. नव्या बदलापूर्वी रिफ्रेश करा.";

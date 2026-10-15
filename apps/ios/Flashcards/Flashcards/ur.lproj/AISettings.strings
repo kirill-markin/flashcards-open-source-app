@@ -933,3 +933,19 @@
 "settings.account.cloudSignIn.restart" = "دوبارہ شروع کریں";
 "settings.account.cloudSignIn.rememberFailed" = "سائن ان ہو گیا۔ سائن ان کی یاد دہانی محفوظ نہیں ہو سکی۔ دوبارہ کوشش کریں یا بند کریں۔";
 "settings.account.cloudSignIn.hintFailed" = "یاد رکھا گیا سائن ان اپ ڈیٹ نہیں ہو سکا۔ دوبارہ کوشش کریں۔";
+
+"settings.account.methods.title" = "سائن ان کے طریقے";
+"settings.account.methods.link" = "فراہم کنندہ جوڑیں";
+"settings.account.methods.unlink" = "فراہم کنندہ الگ کریں";
+"settings.account.methods.reenable" = "فراہم کنندہ دوبارہ فعال کریں";
+"settings.account.methods.generation" = "نسل";
+"settings.account.methods.readOnly" = "تصدیق شدہ بحالی ای میل صرف پڑھی جا سکتی ہیں۔ فہرست کے پتے ہی ثابت شدہ ہیں۔";
+"settings.account.methods.cleanup" = "صفائی باقی ہے۔ مکمل ہونے تک تازہ کریں، پھر نئے ثبوت سے شروع کریں۔";
+"settings.account.methods.confirmCurrent" = "پہلے فعال طریقے سے موجودہ اکاؤنٹ کی تصدیق کریں۔ اکاؤنٹ نہیں بدلے گا۔";
+"settings.account.methods.confirmNewProvider" = "اب تبدیلی کے لیے فراہم کنندہ کے اکاؤنٹ کی تصدیق کریں۔ مطلوبہ اکاؤنٹ استعمال کریں۔";
+"settings.account.methods.fresh" = "تبدیلی مکمل نہیں ہوئی یا ثبوت کی میعاد ختم ہوگئی۔ طریقے تازہ کرکے نئے ثبوت سے شروع کریں۔";
+"settings.account.methods.lastUsable" = "الگ کرنے سے پہلے دوسرا فعال فراہم کنندہ یا تصدیق شدہ بحالی ای میل برقرار رکھیں۔";
+"settings.account.methods.conflict" = "فراہم کنندہ دوسرے اکاؤنٹ کا ہے۔ فراہم کنندہ کا دوسرا اکاؤنٹ چنیں۔";
+"settings.account.methods.changed" = "طریقہ بدل گیا ہے۔ طریقے تازہ کرکے دوبارہ شروع کریں۔";
+"settings.account.methods.demo" = "ڈیمو اکاؤنٹ سائن ان طریقے سنبھال نہیں سکتے۔ اپنے اکاؤنٹ میں سائن ان کریں۔";
+"settings.account.methods.refreshFailed" = "طریقے تازہ نہیں ہو سکے۔ نئی تبدیلی سے پہلے تازہ کریں۔";

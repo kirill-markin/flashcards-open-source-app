@@ -933,3 +933,19 @@
 "settings.account.cloudSignIn.restart" = "மீண்டும் தொடங்கு";
 "settings.account.cloudSignIn.rememberFailed" = "உள்நுழைந்துவிட்டீர்கள். உள்நுழைவுக் குறிப்பைச் சேமிக்க முடியவில்லை. மீண்டும் முயலவும் அல்லது மூடவும்.";
 "settings.account.cloudSignIn.hintFailed" = "நினைவில் வைத்த உள்நுழைவைப் புதுப்பிக்க முடியவில்லை. மீண்டும் முயலவும்.";
+
+"settings.account.methods.title" = "உள்நுழைவு முறைகள்";
+"settings.account.methods.link" = "வழங்குநரை இணை";
+"settings.account.methods.unlink" = "வழங்குநரின் இணைப்பை நீக்கு";
+"settings.account.methods.reenable" = "வழங்குநரை மீண்டும் இயக்கு";
+"settings.account.methods.generation" = "தலைமுறை";
+"settings.account.methods.readOnly" = "சரிபார்க்கப்பட்ட மீட்பு மின்னஞ்சல்களைப் படிக்க மட்டுமே முடியும். பட்டியலிட்ட முகவரிகள் மட்டுமே நிரூபிக்கப்பட்டவை.";
+"settings.account.methods.cleanup" = "சுத்தப்படுத்தல் நிலுவையில் உள்ளது. முடியும் வரை புதுப்பித்து, புதிய சான்றுடன் தொடங்கவும்.";
+"settings.account.methods.confirmCurrent" = "முதலில் செயலில் உள்ள முறையால் தற்போதைய கணக்கைச் சரிபார்க்கவும். கணக்கு மாறாது.";
+"settings.account.methods.confirmNewProvider" = "இப்போது மாற்றத்திற்கான வழங்குநர் கணக்கைச் சரிபார்க்கவும். வேண்டிய கணக்கைப் பயன்படுத்தவும்.";
+"settings.account.methods.fresh" = "மாற்றம் முடியவில்லை அல்லது சான்று காலாவதியானது. முறைகளைப் புதுப்பித்துப் புதிய சான்றுடன் தொடங்கவும்.";
+"settings.account.methods.lastUsable" = "இணைப்பை நீக்கும் முன் மற்றொரு செயலில் உள்ள வழங்குநர் அல்லது சரிபார்க்கப்பட்ட மீட்பு மின்னஞ்சலை வைத்திருக்கவும்.";
+"settings.account.methods.conflict" = "வழங்குநர் வேறொரு கணக்கைச் சேர்ந்தவர். வேறு வழங்குநர் கணக்கைத் தேர்ந்தெடுக்கவும்.";
+"settings.account.methods.changed" = "முறை மாறியுள்ளது. முறைகளைப் புதுப்பித்து மீண்டும் தொடங்கவும்.";
+"settings.account.methods.demo" = "மாதிரிக் கணக்குகளால் உள்நுழைவு முறைகளை நிர்வகிக்க முடியாது. உங்கள் கணக்கில் உள்நுழையவும்.";
+"settings.account.methods.refreshFailed" = "முறைகளைப் புதுப்பிக்க முடியவில்லை. புதிய மாற்றத்திற்கு முன் புதுப்பிக்கவும்.";
