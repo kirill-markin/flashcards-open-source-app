@@ -18,7 +18,7 @@ import com.flashcardsopensourceapp.app.observability.AndroidObservabilityStartup
 import com.flashcardsopensourceapp.app.observability.startAndroidObservability
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsLaunchType
-import com.flashcardsopensourceapp.data.local.model.cloud.CloudAppleBrowserReturn
+import com.flashcardsopensourceapp.data.local.model.cloud.parseCloudAppleBrowserReturn
 import com.flashcardsopensourceapp.data.local.notifications.appNotificationWorkLimit
 import java.io.IOException
 import java.util.concurrent.atomic.AtomicLong
@@ -43,49 +43,86 @@ class FlashcardsApplication : Application(), Configuration.Provider {
     private val appNotificationTapStateMutable = MutableStateFlow<AppNotificationTapHandoffRequest?>(value = null)
     private val appleSignInScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val appleSignInReturnStateMutable = MutableStateFlow<AppleSignInReturnState>(AppleSignInReturnState.Idle)
-    private var appleSignInReturnForRetry: CloudAppleBrowserReturn? = null
+    private var appleSignInReturnForRetry: String? = null
+    private var appleReturnManagementPurpose: Boolean? = null
     val appleSignInReturnState: StateFlow<AppleSignInReturnState>
         get() = appleSignInReturnStateMutable.asStateFlow()
 
-    fun reportAppleSignInReturnFailure() {
-        appleSignInReturnForRetry = null
-        appleSignInReturnStateMutable.value = AppleSignInReturnState.Rejected
-    }
-
     fun consumeAppleSignInReturn() {
         appleSignInReturnForRetry = null
+        appleReturnManagementPurpose = null
         appleSignInReturnStateMutable.value = AppleSignInReturnState.Idle
     }
 
-    fun acceptAppleSignInReturn(returned: CloudAppleBrowserReturn) {
-        appleSignInScope.launch { receiveAppleSignInReturn(returned) }
+    fun acceptAppleSignInReturn(returned: String) {
+        appleSignInScope.launch { receiveAppleSignInReturn(returned, null) }
     }
 
     fun retryAppleSignInReturn() {
-        if (appleSignInReturnStateMutable.value != AppleSignInReturnState.StorageFailed) return
+        if (appleSignInReturnStateMutable.value != AppleSignInReturnState.StorageFailed &&
+            appleSignInReturnStateMutable.value != AppleSignInReturnState.ManagementStorageFailed &&
+            appleSignInReturnStateMutable.value != AppleSignInReturnState.OwnershipStorageFailed) return
         val returned = requireNotNull(appleSignInReturnForRetry) {
             "Apple sign-in has no callback awaiting a storage retry."
         }
         appleSignInReturnStateMutable.value = AppleSignInReturnState.Idle
-        acceptAppleSignInReturn(returned)
+        appleSignInScope.launch { receiveAppleSignInReturn(returned, appleReturnManagementPurpose) }
     }
 
-    private suspend fun receiveAppleSignInReturn(returned: CloudAppleBrowserReturn) {
+    private suspend fun receiveAppleSignInReturn(value: String, expectedManagementPurpose: Boolean?) {
+        var managementPurpose: Boolean? = null
         try {
             val graph = appGraph
             graph.awaitStartup()
-            val pending = graph.cloudSocialSignInRepository.acceptAppleBrowserReturn(returned)
+            val hasManagementPurpose = graph.cloudAccountMethodsRepository.hasPendingManagementPurpose()
+            if (hasManagementPurpose) managementPurpose = true
+            val returned = parseCloudAppleBrowserReturn(value)
+            val protectedPurpose: Boolean? = when {
+                hasManagementPurpose -> true
+                graph.cloudSocialSignInRepository.canAcceptAppleBrowserReturn(returned) -> false
+                else -> null
+            }
+            managementPurpose = protectedPurpose.takeIf { expectedManagementPurpose == null || expectedManagementPurpose == it }
+            appleReturnManagementPurpose = managementPurpose
+            require(managementPurpose != null) {
+                "No current protected Apple callback purpose matches this return. Start a fresh attempt."
+            }
+            appleSignInReturnStateMutable.value = if (managementPurpose == true) {
+                AppleSignInReturnState.ManagementAccepted(graph.cloudAccountMethodsRepository.acceptAppleReturn(returned))
+            } else {
+                graph.cloudSocialSignInRepository.acceptAppleBrowserReturn(returned)
+                    ?.let { AppleSignInReturnState.Accepted(it) } ?: AppleSignInReturnState.Unowned
+            }
             appleSignInReturnForRetry = null
-            appleSignInReturnStateMutable.value = AppleSignInReturnState.Accepted(pending)
         } catch (error: CancellationException) {
             throw error
         } catch (_: IOException) {
-            appleSignInReturnForRetry = returned
-            appleSignInReturnStateMutable.value = AppleSignInReturnState.StorageFailed
+            retainAppleReturnForStorageRetry(value, managementPurpose)
         } catch (_: IllegalArgumentException) {
-            reportAppleSignInReturnFailure()
-        } catch (_: IllegalStateException) {
-            reportAppleSignInReturnFailure()
+            rejectAppleReturn(managementPurpose)
+        } catch (error: IllegalStateException) {
+            if (error.cause is IOException) retainAppleReturnForStorageRetry(value, null)
+            else rejectAppleReturn(managementPurpose)
+        }
+    }
+
+    private fun retainAppleReturnForStorageRetry(value: String, managementPurpose: Boolean?) {
+        appleSignInReturnForRetry = value
+        appleReturnManagementPurpose = managementPurpose
+        appleSignInReturnStateMutable.value = when (managementPurpose) {
+            true -> AppleSignInReturnState.ManagementStorageFailed
+            false -> AppleSignInReturnState.StorageFailed
+            null -> AppleSignInReturnState.OwnershipStorageFailed
+        }
+    }
+
+    private fun rejectAppleReturn(managementPurpose: Boolean?) {
+        appleSignInReturnForRetry = null
+        appleReturnManagementPurpose = null
+        appleSignInReturnStateMutable.value = when (managementPurpose) {
+            true -> AppleSignInReturnState.ManagementRejected
+            false -> AppleSignInReturnState.Rejected
+            null -> AppleSignInReturnState.Unowned
         }
     }
 

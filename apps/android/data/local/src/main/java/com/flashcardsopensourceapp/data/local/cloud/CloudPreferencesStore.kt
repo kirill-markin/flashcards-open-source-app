@@ -84,6 +84,7 @@ class CloudPreferencesStore(
         context.getSharedPreferences(cloudMetadataPreferencesName, Context.MODE_PRIVATE)
     private val credentialStore = CloudCredentialStore(context = context)
     internal val socialAuthStore = CloudSocialAuthStore(credentialStore = credentialStore)
+    internal val accountMethodStore = CloudAccountMethodStore(credentialStore)
 
     private val cloudSettingsState = MutableStateFlow(loadLegacyCloudSettingsEntity().toCloudSettings())
     private val accountPreferencesStore = CloudAccountPreferencesStore(metadataPreferences = metadataPreferences)
@@ -201,7 +202,7 @@ class CloudPreferencesStore(
     fun clearCredentialsRetainingSignInHint() {
         credentialStore.update { secrets ->
             secrets.copy(refreshToken = null, idToken = null, idTokenExpiresAtMillis = null,
-                pendingGuestUpgrade = null, pendingSocialSignIn = null, pendingEmailSignIn = null)
+                pendingGuestUpgrade = null, pendingSocialSignIn = null, pendingEmailSignIn = null, pendingAccountMethod = null)
         }
     }
 
