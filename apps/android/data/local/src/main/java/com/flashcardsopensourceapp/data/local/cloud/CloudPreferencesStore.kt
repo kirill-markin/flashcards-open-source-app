@@ -83,6 +83,7 @@ class CloudPreferencesStore(
     private val metadataPreferences: SharedPreferences =
         context.getSharedPreferences(cloudMetadataPreferencesName, Context.MODE_PRIVATE)
     private val credentialStore = CloudCredentialStore(context = context)
+    internal val socialAuthStore = CloudSocialAuthStore(credentialStore = credentialStore)
 
     private val cloudSettingsState = MutableStateFlow(loadLegacyCloudSettingsEntity().toCloudSettings())
     private val accountPreferencesStore = CloudAccountPreferencesStore(metadataPreferences = metadataPreferences)

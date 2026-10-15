@@ -1,5 +1,8 @@
 package com.flashcardsopensourceapp.data.local.model.cloud
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 enum class CloudSocialProvider {
     APPLE,
     GOOGLE
@@ -70,6 +73,7 @@ data class CloudSocialCompletionContract(
     val productAccountProvisioned: Boolean
 )
 
+@Serializable
 data class CloudSocialLoginAttempt(
     val attempt: String,
     val nonce: String,
@@ -78,11 +82,13 @@ data class CloudSocialLoginAttempt(
     val providerCodeChallenge: String
 )
 
+@Serializable
 data class CloudSocialLoginCompletion(
     val completion: String,
     val expiresAtMillis: Long
 )
 
+@Serializable
 enum class CloudSocialMailboxReason {
     MAILBOX_REQUIRED,
     EXISTING_EMAIL,
@@ -98,12 +104,14 @@ sealed interface CloudSocialCredentialResult {
     ) : CloudSocialCredentialResult
 }
 
+@Serializable
 enum class CloudSocialEmailRelationship {
     MATCHES_RECOVERY,
     DIFFERENT_FROM_RECOVERY,
     MISSING
 }
 
+@Serializable
 data class CloudProviderSignInHint(
     val method: CloudSocialProvider,
     val recoveryEmail: String,
