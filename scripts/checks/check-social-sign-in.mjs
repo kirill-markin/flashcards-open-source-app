@@ -1,8 +1,30 @@
 import assert from "node:assert/strict";
 import { createHash, randomBytes } from "node:crypto";
+import { request as httpsRequest } from "node:https";
 
 const origins = ["https://auth.nibomo.com", "https://auth.flashcards-open-source-app.com"];
 const clients = ["web", "android", "ios", "ios-development", "macos", "macos-development"];
+const navigationHeaders = { "Sec-Fetch-Site": "cross-site", "Sec-Fetch-Mode": "navigate", "Sec-Fetch-Dest": "document" };
+
+// Send Fetch Metadata verbatim without fetch's request-mode handling.
+async function browserHeaderRequest(url, method, headers) {
+  return new Promise((resolve, reject) => {
+    const request = httpsRequest(url, { method, headers, signal: AbortSignal.timeout(10_000) }, (response) => {
+      const chunks = [];
+      response.on("data", (chunk) => chunks.push(chunk));
+      response.on("error", reject);
+      response.on("end", () => {
+        const responseHeaders = new Headers();
+        for (let index = 0; index < response.rawHeaders.length; index += 2) {
+          responseHeaders.append(response.rawHeaders[index], response.rawHeaders[index + 1]);
+        }
+        resolve(new Response(Buffer.concat(chunks), { status: response.statusCode, headers: responseHeaders }));
+      });
+    });
+    request.on("error", reject);
+    request.end();
+  });
+}
 
 async function request(origin, path, body) {
   const response = await fetch(origin + path, {
@@ -18,10 +40,32 @@ async function request(origin, path, body) {
 }
 
 async function browserTransport(origin, provider, parameters) {
-  const response = await fetch(`${origin}/api/social/${provider}/start?${new URLSearchParams(parameters)}`, {
-    redirect: "manual", signal: AbortSignal.timeout(10_000),
-  });
+  const startPath = `/api/social/${provider}/start`;
+  const startUrl = `${origin}${startPath}?${new URLSearchParams(parameters)}`;
+  if (parameters.client !== "android") {
+    for (const [url, method, headers] of [
+      [startUrl, "GET", { "Sec-Fetch-Mode": "cors", "Sec-Fetch-Dest": "empty" }],
+      [startUrl, "GET", { "Sec-Fetch-Mode": "cors" }],
+      [startUrl, "GET", { "Sec-Fetch-Mode": "no-cors", "Sec-Fetch-Dest": "image" }],
+      [startUrl, "GET", { "Sec-Fetch-Dest": "iframe" }],
+      [startUrl, "GET", { Origin: "https://untrusted.invalid" }],
+      [startUrl, "POST", {}],
+      [`${origin}${startPath}/?${new URLSearchParams(parameters)}`, "GET", {}],
+      [`${origin}/api/auth-methods?client=web`, "GET", {}],
+    ]) {
+      const refused = await browserHeaderRequest(url, method, { ...navigationHeaders, ...headers });
+      assert.equal(refused.status, 403, `${method} ${url} ${JSON.stringify(headers)}`);
+      assert.equal((await refused.json()).error, headers.Origin === undefined ? "Cross-origin requests not allowed" : "Origin is not allowed");
+      assert.ok(refused.headers.get("x-request-id"));
+      assert.equal(refused.headers.get("set-cookie"), null);
+      assert.equal(refused.headers.get("location"), null);
+      assert.equal(refused.headers.get("access-control-allow-origin"), null);
+    }
+  }
+  const response = await browserHeaderRequest(startUrl, "GET", navigationHeaders);
   assert.equal(response.status, 302);
+  assert.ok(response.headers.get("x-request-id"));
+  assert.equal(response.headers.get("access-control-allow-origin"), null);
   assert.equal(response.headers.get("cache-control"), "no-store");
   assert.equal(response.headers.get("referrer-policy"), "no-referrer");
   const authorization = new URL(response.headers.get("location"));
@@ -206,4 +250,4 @@ for (const origin of origins) {
   });
   assert.equal(blockedOrigin.status, 403);
 }
-console.log("Social auth public API gate passed on both permanent hosts: configured metadata, native attempts, browser authorization/PKCE/cookies, browser and Android callback state binding/one-use claims, invalid notification refusal, unsupported native transports/purposes, unproved mailbox refusal, receipt refusal and origin denial. No provider authentication or mailbox delivery was simulated.");
+console.log("Social auth public API gate passed on both permanent hosts: configured metadata, native attempts, browser top-level navigation and fetch/subresource/origin/method/path guards, browser authorization/PKCE/cookies, browser and Android callback state binding/one-use claims, invalid notification refusal, unsupported native transports/purposes, unproved mailbox refusal, receipt refusal and origin denial. No provider authentication or mailbox delivery was simulated.");
