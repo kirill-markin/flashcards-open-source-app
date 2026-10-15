@@ -118,12 +118,13 @@ Email + OTP authentication via AWS Cognito (passwordless).
   - `infra/aws/lib/auth.ts`: CDK Cognito User Pool construct
   - `db/migrations/0002_user_settings.sql`: `user_settings` table
 
-The dormant native provider session bridge is implemented in
+The native provider session bridge is implemented in
 [`nativeProofBridge.ts`](../apps/auth/src/server/social/nativeProofBridge.ts),
 with [Cognito triggers](../apps/auth/src/triggers/nativeProof.ts) and
 [atomic grants](../db/migrations/0184_cognito_native_proof_grants.sql).
 Only server code that freshly verified a provider proof may call the bridge after registering its
-principal; no public route invokes it. Metadata registration and session issuance create no product
+principal. Native login routes compose [attempts and completion](../apps/auth/src/routes/social/)
+with the existing bridge. Metadata registration and session issuance create no product
 rows, so native guest prepare/complete must still precede generic account provisioning.
 The [private cloud gate](../scripts/checks/check-native-proof-bridge.sh) runs automatically in the AWS
 deployment job before release success. It uses the existing configured review account and tests the
@@ -131,8 +132,8 @@ Cognito/database boundary, not Apple/Google proof validation or email delivery.
 
 ## Provider proof setup
 
-The dormant [provider modules](../apps/auth/src/server/social/) verify proofs and exchange codes;
-no public route or login method invokes them. [Configuration](../apps/auth/src/server/social/config.ts)
+The [provider modules](../apps/auth/src/server/social/) verify proofs and exchange codes for native
+Apple and Google sign-in. [Configuration](../apps/auth/src/server/social/config.ts)
 requires each provider JSON and Secrets Manager ARN together; omitted providers remain unavailable.
 Use the four `CDK_GOOGLE_SIGN_IN_CONFIG`, `CDK_GOOGLE_SIGN_IN_SECRET_ARN`,
 `CDK_APPLE_SIGN_IN_CONFIG`, `CDK_APPLE_SIGN_IN_SECRET_ARN` GitHub variables. CI maps them through
@@ -159,8 +160,10 @@ Persist the returned credential after binding the proved identity, before issuin
 [Credential storage](../db/migrations/0185_apple_revocation_credentials.sql) survives principal erasure:
 the lifecycle caller must durably arrange revocation, retry failures, and remove only successfully
 revoked ciphertext. Retain the session secret until stored credentials have been re-encrypted for rotation.
-Registration is insufficient evidence for activation: verify real native proofs, code exchange,
-revocation and relay OTP receipt before exposing the methods.
+Configured native transports are described by `GET /api/auth-methods?client=<client>` on both auth
+hosts. Browser OAuth and Android Apple remain unavailable until their callback transports exist.
+Provider registration alone does not establish actual authentication, revocation or relay delivery;
+those require real configured-provider acceptance.
 
 For relay delivery, register exact header From and envelope MAIL FROM sources and configure
 aligned DKIM/SPF under [Apple's relay procedure](https://developer.apple.com/help/account/capabilities/configure-private-email-relay-service/).

@@ -216,7 +216,7 @@ const productAnalyticsBillingPeriodTypes = ["trial", "paid"] as const;
 // apps/backend/src/billing/limits.ts the same way the tiers above mirror theirs.
 const productAnalyticsAccountKinds = ["account", "guest"] as const;
 
-// Method is the selected authentication path, including its subsequent email-code proof.
+// Method is the initiating sign-in path: apple/google through secondary mailbox OTP, email for OTP-only.
 // Provider outcomes describe the observable callback, never provider-internal UI or an app session.
 const productAnalyticsAuthMethods = ["email", "apple", "google"] as const;
 const productAnalyticsAuthProviders = ["apple", "google"] as const;

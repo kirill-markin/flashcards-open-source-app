@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { createProviderSignInHint, encryptSignInHint, decryptSignInHint, type ProviderSignInHint } from "./signInHint.js";
 import { transaction, type DatabaseExecutor } from "../../db.js";
 import { verifyEnrollmentMailboxOtp } from "./mailboxProof.js";
 import {
@@ -16,12 +17,16 @@ async function persistCompletion(
   executor: DatabaseExecutor, attempt: ClaimedAuthAttempt, enrolled: EnrolledProviderPrincipal,
 ): Promise<AuthCompletionResponse> {
   const completion = randomBytes(32).toString("base64url");
-  const result = await executor.query<Readonly<{ expires_at: Date }>>(
-    "SELECT auth.complete_social_attempt($1,$2,$3,$4,$5) AS expires_at", [
-      authHandleHash(attempt.handle), attempt.claimId, enrolled.principal.cognitoSubject,
-      enrolled.principal.cognitoUsername, authHandleHash(completion),
-    ],
-  );
+  const parameters = [authHandleHash(attempt.handle), attempt.claimId, enrolled.principal.cognitoSubject,
+    enrolled.principal.cognitoUsername, authHandleHash(completion)];
+  const result = attempt.purpose === "login"
+    ? await executor.query<Readonly<{ expires_at: Date }>>(
+      "SELECT auth.complete_social_sign_in($1,$2,$3,$4,$5,$6) AS expires_at",
+      [...parameters, encryptSignInHint(completion, createProviderSignInHint(attempt.provider, enrolled))],
+    )
+    : await executor.query<Readonly<{ expires_at: Date }>>(
+      "SELECT auth.complete_social_attempt($1,$2,$3,$4,$5) AS expires_at", parameters,
+    );
   const expiry = result.rows[0]?.expires_at;
   if (expiry === undefined) throw new Error("Auth completion returned no expiry");
   return { completion, expiresAt: expiry.toISOString() };
@@ -93,4 +98,27 @@ export async function linkAndRedeemAuthCompletionInExecutor(
   if (row === undefined) throw new AuthAttemptError("AUTH_COMPLETION_INVALID");
   return { cognitoSubject: row.cognito_subject, cognitoUsername: row.cognito_username,
     currentSubject: row.current_subject, currentAccount: row.current_account, purpose: row.purpose };
+}
+
+export type RedeemedSocialSignIn = Readonly<{
+  cognitoSubject: string;
+  cognitoUsername: string;
+  signInHint: ProviderSignInHint;
+}>;
+
+export async function redeemSocialSignInInExecutor(
+  executor: DatabaseExecutor, completion: string, binding: AuthAttemptBinding,
+): Promise<RedeemedSocialSignIn> {
+  requireAuthHandle(completion);
+  if (binding.purpose !== "login") throw new AuthAttemptError("AUTH_COMPLETION_INVALID");
+  const result = await executor.query<Readonly<{
+    cognito_subject: string; cognito_username: string; result_ciphertext: string;
+  }>>("SELECT * FROM auth.redeem_social_sign_in($1,$2,$3,$4)", [
+    authHandleHash(completion), authAttemptBindingHash(binding), binding.client,
+    binding.client === "web" ? binding.origin : null,
+  ]);
+  const row = result.rows[0];
+  if (row === undefined) throw new AuthAttemptError("AUTH_COMPLETION_INVALID");
+  return { cognitoSubject: row.cognito_subject, cognitoUsername: row.cognito_username,
+    signInHint: decryptSignInHint(completion, row.result_ciphertext) };
 }

@@ -155,6 +155,7 @@ export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<Auth
         idToken: tokens.idToken,
         refreshToken: tokens.refreshToken,
         expiresIn: tokens.expiresIn,
+        signInHint: { method: "email", email },
       });
     }
 

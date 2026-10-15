@@ -1,13 +1,6 @@
-/**
- * Auth service entry point (local development / Docker).
- *
- * Standalone Hono service for email OTP authentication via Cognito.
- * Handles login page, OTP send/verify, browser session logout, and mobile
- * token refresh/revoke.
- * Runs on its own port, separate from the backend Lambda.
- */
 import { serve } from "@hono/node-server";
 import { createApp } from "./app.js";
+import { runWithSocialSourceIp } from "./server/social/requestSource.js";
 
 const validateEnv = (): void => {
   const errors: Array<string> = [];
@@ -30,6 +23,11 @@ const app = createApp("/");
 
 const port = parseInt(process.env.PORT ?? "8081", 10);
 
-serve({ fetch: app.fetch, port }, (info) => {
+serve({
+  fetch: (request, bindings) => runWithSocialSourceIp(
+    bindings.incoming.socket.remoteAddress ?? null, async () => app.fetch(request, bindings),
+  ),
+  port,
+}, (info) => {
   console.log(JSON.stringify({ domain: "auth", action: "start", port: info.port }));
 });

@@ -2,6 +2,7 @@ import * as Sentry from "@sentry/aws-serverless";
 import { handle } from "hono/aws-lambda";
 import { initializeAuthSentry } from "./server/sentry.js";
 import { createApp } from "./app.js";
+import { runWithSocialRequestSource } from "./server/social/requestSource.js";
 import { drainAppleRevocations } from "./server/social/appleLifecycle.js";
 import { isAppleRevocationScheduledEvent, type AppleRevocationScheduledEvent } from "./server/social/appleRevocationEvent.js";
 
@@ -20,5 +21,5 @@ export const handler = Sentry.wrapHandler(async (event: HttpEvent | AppleRevocat
   if (event === null || typeof event !== "object" || !("requestContext" in event)) {
     throw new Error("Unsupported auth Lambda event; expected API Gateway request or the configured revocation schedule");
   }
-  return httpHandler(event as HttpEvent, context);
+  return runWithSocialRequestSource(event as HttpEvent, () => httpHandler(event as HttpEvent, context));
 });
