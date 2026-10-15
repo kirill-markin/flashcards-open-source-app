@@ -124,6 +124,7 @@ struct CloudNativeSignInOptions: View {
         }
         self.store.cloudSignInAttempt.nativeTask = Task { @MainActor in
             guard self.store.cloudSignInAttempt.id == id, !Task.isCancelled else { return }
+            let captureContext = self.store.beginTechnicalErrorCaptureContext()
             defer {
                 if self.store.cloudSignInAttempt.id == id {
                     self.store.cloudSignInAttempt.isNativeRequestInFlight = false
@@ -159,7 +160,7 @@ struct CloudNativeSignInOptions: View {
                 self.store.reportCloudSignInFailure(reason: analyticsSignInFailureReason(error: error))
                 self.store.cloudSignInAttempt.authErrorPresentation = CloudAuthInlineErrorPresentation(
                     message: aiSettingsLocalized("settings.account.cloudSignIn.freshAttempt", "Sign-in did not finish. Start again to continue."),
-                    technicalError: self.store.makeTechnicalErrorAction(error: error))
+                    technicalError: self.store.makeTechnicalErrorAction(error: error, captureContext: captureContext))
             }
         }
     }
@@ -195,6 +196,7 @@ struct CloudBrandedProviderButton: UIViewRepresentable {
     }
     func makeCoordinator() -> Coordinator { Coordinator(onPress: self.onPress) }
 
+    @MainActor
     final class Coordinator: NSObject {
         var onPress: (UIViewController) -> Void
         init(onPress: @escaping (UIViewController) -> Void) { self.onPress = onPress }
