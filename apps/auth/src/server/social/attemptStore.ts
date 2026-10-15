@@ -52,14 +52,26 @@ function attemptKey(): Buffer {
 }
 
 function sealSecrets(handle: string, secrets: AttemptSecrets): string {
+  return sealAuthAttemptState(handle, JSON.stringify(secrets));
+}
+
+export function sealAuthAttemptState(handle: string, state: string): string {
   const iv = randomBytes(12);
   const cipher = createCipheriv("aes-256-gcm", attemptKey(), iv);
   cipher.setAAD(Buffer.from(authHandleHash(handle)));
-  const body = Buffer.concat([cipher.update(JSON.stringify(secrets), "utf8"), cipher.final()]);
+  const body = Buffer.concat([cipher.update(state, "utf8"), cipher.final()]);
   return ["v1", iv.toString("base64url"), cipher.getAuthTag().toString("base64url"), body.toString("base64url")].join(".");
 }
 
 function openSecrets(handle: string, ciphertext: string): AttemptSecrets {
+  try {
+    return JSON.parse(openAuthAttemptState(handle, ciphertext)) as AttemptSecrets;
+  } catch {
+    throw new AuthAttemptError("AUTH_ATTEMPT_RESTART_REQUIRED");
+  }
+}
+
+export function openAuthAttemptState(handle: string, ciphertext: string): string {
   const key = attemptKey();
   try {
     const [version, iv, tag, body, extra] = ciphertext.split(".");
@@ -69,8 +81,7 @@ function openSecrets(handle: string, ciphertext: string): AttemptSecrets {
     const decipher = createDecipheriv("aes-256-gcm", key, Buffer.from(iv, "base64url"));
     decipher.setAAD(Buffer.from(authHandleHash(handle)));
     decipher.setAuthTag(Buffer.from(tag, "base64url"));
-    // Only this module writes authenticated ciphertext; no request JSON is deserialized here.
-    return JSON.parse(Buffer.concat([decipher.update(Buffer.from(body, "base64url")), decipher.final()]).toString("utf8")) as AttemptSecrets;
+    return Buffer.concat([decipher.update(Buffer.from(body, "base64url")), decipher.final()]).toString("utf8");
   } catch {
     throw new AuthAttemptError("AUTH_ATTEMPT_RESTART_REQUIRED");
   }
