@@ -90,12 +90,12 @@ export function WhoPaidUsSection(props: Readonly<{
       getLabel: (date) => `${date} UTC. ${describeDay(getDay(date), state.report.today)}`,
       getTooltipHtml: (date) => {
         const day = getDay(date);
+        const unclassified = paymentProviders.reduce((sum, provider) => sum + day.providers[provider].unclassified, 0);
         return `<p class="tooltip-title">${escapeHtml(date)} UTC${date === state.report.today ? " · in progress" : ""}</p>
-          <table class="payment-tooltip-table"><thead><tr><th scope="col">Events</th><th scope="col">Recorded</th>${paymentProviders.map((provider) => `<th scope="col">${paymentProviderLabels[provider]}</th>`).join("")}</tr></thead>
-          <tbody>${paymentSeries.map((series) => `<tr><th scope="row">${paymentSeriesLabels[series]}</th><td>${formatNullableCount(getPaymentSeriesTotal(day, series))}</td>${paymentProviders.map((provider) => `<td>${formatNullableCount(day.providers[provider].counts[series])}</td>`).join("")}</tr>`).join("")}</tbody></table>
-          <p class="payment-tooltip-note">— means unavailable. Recorded counts; merchant total incomplete.</p>
-          <p class="payment-tooltip-note">${paymentProviders.map((provider) => `${paymentProviderLabels[provider]}: ${day.providers[provider].complete ? "complete catalog inventory" : "partial history"}`).join("; ")}.</p>
-          <p class="payment-tooltip-note">${escapeHtml(describeRecordedTotal(day))}</p>`;
+          <table class="payment-tooltip-table"><thead><tr><th scope="col">Events</th><th scope="col">Recorded</th></tr></thead>
+          <tbody>${paymentSeries.map((series) => `<tr><th scope="row">${paymentSeriesLabels[series]}</th><td>${formatNullableCount(getPaymentSeriesTotal(day, series))}</td></tr>`).join("")}</tbody></table>
+          ${unclassified > 0 ? `<p class="payment-tooltip-note">Unclassified paid periods: ${formatCount(unclassified)}</p>` : ""}
+          <p class="payment-tooltip-note">Partial history; — means unavailable.</p>`;
       },
       tooltipHandlers,
     });
@@ -111,6 +111,7 @@ export function WhoPaidUsSection(props: Readonly<{
             <li>New Google order roots and new Stripe subscriptions begin new histories. Apple PURCHASE after an earlier paid period stays recurring and is labeled separately in the data. Reactivations are not new globally unique customers.</li>
             <li>Refunds do not erase historical charges. Multiple Stripe invoice payments count once per paid invoice. Sandbox and gifts are excluded; real sales remain regardless of account attribution, erasure or analytics exclusions.</li>
             <li>Apple notification discovery and Google discoverable orders are partial merchant inventories. Known counts remain visible after an import failure; absent or unclassified history is unavailable. Stripe completed production catalog scans can prove zero inside their covered window.</li>
+            {state.status === "ready" ? <li>Generated {formatGeneratedAt(state.report.generatedAtUtc)}.</li> : null}
           </ul>
         </ExplanationTip>
       </div></header>
@@ -120,23 +121,23 @@ export function WhoPaidUsSection(props: Readonly<{
         <button className="filter-button" type="button" onClick={() => setRevision((value) => value + 1)}>Retry</button>
       </div> : null}
       {state.status === "ready" ? <section className="chart-column"><div className="chart-shell">
-        <div className="chart-meta"><span>Recorded subscription events · UTC · partial merchant history</span>
+        <div className="chart-meta"><span>Daily events · partial history</span>
           <div className="chart-meta-right"><ChartColorKey ariaLabel="Payment event color key" keys={paymentSeries}
             getColor={(series) => paymentColors[series]} getLabel={(series) => paymentSeriesLabels[series]} />
-          <span>Generated {formatGeneratedAt(state.report.generatedAtUtc)}</span></div>
+          </div>
         </div>
-        <p className="activity-coverage-note">Recorded counts are partial totals. Missing history is unavailable. Today ({state.report.today} UTC) is in progress; verified events are shown as they arrive.</p>
-        <ul className="activity-coverage-note">{state.report.sources.map((source) => <li key={source.source}>
-          {sourceLabels[source.source]}: {source.status}.
-          {source.failureCode === "GOOGLE_HISTORY_SALES_INVENTORY_INCOMPLETE" ? " Sales export discovery failed; verified native orders remain included." : null}
-          {source.failureCode !== null ? ` Failure: ${source.failureCode}.` : null}
-          {source.finishedAt !== null ? ` Finished ${formatGeneratedAt(source.finishedAt)}.` : source.startedAt !== null ? ` Started ${formatGeneratedAt(source.startedAt)}.` : " No import recorded."}
-          {source.requestedTo !== null ? ` Requested through ${formatGeneratedAt(source.requestedTo)}.` : null}
-        </li>)}</ul>
         {state.report.days.every((day) => paymentSeries.every((series) => getPaymentSeriesTotal(day, series) === null))
           ? <p className="report-state">No classified events are available in this range. Unclassified paid periods, if recorded, appear in the data table.</p> : null}
         <div className="chart-scroll"><svg ref={chartRef} role="group" aria-label="Who paid us: recorded daily trial starts, first payments and recurring payments" /></div>
-        <details className="activity-chart-table"><summary>Show chart data and coverage</summary>
+        <details className="activity-chart-table"><summary>Chart data and coverage</summary>
+          <p className="activity-coverage-note">Recorded counts are partial totals. Missing history is unavailable. Today ({state.report.today} UTC) is in progress; verified events are shown as they arrive.</p>
+          <ul className="activity-coverage-note">{state.report.sources.map((source) => <li key={source.source}>
+            {sourceLabels[source.source]}: {source.status}.
+            {source.failureCode === "GOOGLE_HISTORY_SALES_INVENTORY_INCOMPLETE" ? " Sales export discovery failed; verified native orders remain included." : null}
+            {source.failureCode !== null ? ` Failure: ${source.failureCode}.` : null}
+            {source.finishedAt !== null ? ` Finished ${formatGeneratedAt(source.finishedAt)}.` : source.startedAt !== null ? ` Started ${formatGeneratedAt(source.startedAt)}.` : " No import recorded."}
+            {source.requestedTo !== null ? ` Requested through ${formatGeneratedAt(source.requestedTo)}.` : null}
+          </li>)}</ul>
           <div className="chart-scroll"><table><caption>Recorded daily aggregates. Totals include unclassified paid periods; merchant history is incomplete.</caption>
             <thead><tr><th scope="col">Date</th>{paymentSeries.map((series) => <th scope="col" key={series}>{paymentSeriesLabels[series]}</th>)}<th scope="col">Recorded total / availability</th></tr></thead>
             <tbody>{state.report.days.map((day) => <tr key={day.date}>
