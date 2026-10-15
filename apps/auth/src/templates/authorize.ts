@@ -1,3 +1,5 @@
+import { AUTH_ENTRY_COPY } from "./authEntryCopy.js";
+import { authEntryScript, authEntryStyles, renderAuthMethods, renderOtherMethods } from "./authEntry.js";
 import { hasOAuthScope } from "../server/oauth/scopes.js";
 import {
   getLoginPageLocaleDirection,
@@ -49,6 +51,7 @@ export const renderAuthorizePage = (
   locale: LoginPageLocale,
 ): string => {
   const copy: AuthorizeConsentCopy = AUTHORIZE_CONSENT_COPY[locale];
+  const entryCopy = AUTH_ENTRY_COPY[locale];
   const direction = getLoginPageLocaleDirection(locale);
 
   return `<!DOCTYPE html>
@@ -206,6 +209,7 @@ export const renderAuthorizePage = (
     .consent-account { color: var(--text-secondary); font-size: 13px; margin: 0 0 16px; }
     .consent-account strong { color: var(--text); font-weight: 600; }
 
+    ${authEntryStyles}
     .hidden { display: none; }
 
     @media (max-width: 768px) {
@@ -221,21 +225,24 @@ export const renderAuthorizePage = (
         <p class="login-status">${copy.checkingSession}</p>
       </div>
 
+      <div id="signin-heading" class="hidden"><h1 class="login-title">${entryCopy.title}</h1></div>
+      ${renderAuthMethods(locale)}
+
       <div id="step-email" class="hidden">
-        <h1 class="login-title">${copy.signInTitle}</h1>
         <label class="login-label" for="login-email">${copy.emailLabel}</label>
-        <input id="login-email" class="login-input" type="email" autocomplete="email" autofocus>
+        <input id="login-email" class="login-input" type="email" autocomplete="email">
         <div id="email-error" class="login-error hidden"></div>
         <button id="send-btn" class="login-btn" type="button">${copy.sendCode}</button>
+        ${renderOtherMethods(locale, "email-other-methods")}
       </div>
 
       <div id="step-otp" class="hidden">
-        <h1 class="login-title">${copy.signInTitle}</h1>
         <p class="login-hint">${copy.checkEmailForCode}</p>
         <label class="login-label" for="login-otp">${copy.verificationCodeLabel}</label>
         <input id="login-otp" class="login-input" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="8">
         <div id="otp-error" class="login-error hidden"></div>
         <button id="verify-btn" class="login-btn" type="button">${copy.verify}</button>
+        ${renderOtherMethods(locale, "otp-other-methods")}
       </div>
 
       <div id="step-consent" class="hidden">
@@ -256,6 +263,10 @@ export const renderAuthorizePage = (
     (function() {
       var request = ${toScriptJson(request)};
       var copy = ${toScriptJson(copy)};
+      var entryCopy = ${toScriptJson(entryCopy)};
+      var uiLocale = ${toScriptJson(locale)};
+      var collectionDisabled = new URLSearchParams(window.location.search).get("analytics_collection") === "off";
+      ${authEntryScript}
 
       var csrfToken = "";
 
@@ -265,6 +276,7 @@ export const renderAuthorizePage = (
       var verifyBtn = document.getElementById("verify-btn");
       var approveBtn = document.getElementById("approve-btn");
       var denyBtn = document.getElementById("deny-btn");
+      var signInHeading = document.getElementById("signin-heading");
       var stepChecking = document.getElementById("step-checking");
       var stepEmail = document.getElementById("step-email");
       var stepOtp = document.getElementById("step-otp");
@@ -286,14 +298,24 @@ export const renderAuthorizePage = (
       }
 
       function hideAllSteps() {
+        stepMethods.classList.add("hidden");
+        signInHeading.classList.add("hidden");
         stepChecking.classList.add("hidden");
         stepEmail.classList.add("hidden");
         stepOtp.classList.add("hidden");
         stepConsent.classList.add("hidden");
       }
 
+      function showMethodsStep() {
+        hideAllSteps();
+        signInHeading.classList.remove("hidden");
+        stepMethods.classList.remove("hidden");
+        methodButtons[0].focus();
+      }
+
       function showEmailStep() {
         hideAllSteps();
+        signInHeading.classList.remove("hidden");
         stepEmail.classList.remove("hidden");
         emailInput.focus();
       }
@@ -310,17 +332,18 @@ export const renderAuthorizePage = (
       }
 
       function tryRefreshSession() {
-        return fetch("api/refresh-session", {
+        return fetch("api/refresh-session?ui_locale=" + encodeURIComponent(uiLocale), {
           method: "POST",
+          headers: collectionDisabled ? { "X-Product-Analytics-Enabled": "0" } : {},
           credentials: "same-origin",
         }).then(function(res) {
           if (res.ok) {
             showConsentStep("");
             return;
           }
-          showEmailStep();
+          showMethodsStep();
         }).catch(function() {
-          showEmailStep();
+          showMethodsStep();
         });
       }
 
@@ -342,11 +365,14 @@ export const renderAuthorizePage = (
 
         hideError(emailError);
         sendBtn.disabled = true;
+        document.getElementById("email-other-methods").disabled = true;
         sendBtn.textContent = copy.sendingCode;
 
-        fetch("api/send-code", {
+        fetch("api/send-code?ui_locale=" + encodeURIComponent(uiLocale), {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: collectionDisabled
+            ? { "Content-Type": "application/json", "X-Product-Analytics-Enabled": "0" }
+            : { "Content-Type": "application/json" },
           credentials: "same-origin",
           body: JSON.stringify({ email: email }),
         })
@@ -360,12 +386,12 @@ export const renderAuthorizePage = (
                 typeof data.idToken === "string" && data.idToken !== ""
                 && typeof data.refreshToken === "string" && data.refreshToken !== ""
               ) {
-                // Configured review account emails complete sign-in immediately.
                 showConsentStep(email);
                 return;
               }
               csrfToken = data.csrfToken || "";
               hideAllSteps();
+              signInHeading.classList.remove("hidden");
               stepOtp.classList.remove("hidden");
               otpInput.focus();
             });
@@ -375,6 +401,7 @@ export const renderAuthorizePage = (
           })
           .finally(function() {
             sendBtn.disabled = false;
+            document.getElementById("email-other-methods").disabled = false;
             sendBtn.textContent = copy.sendCode;
           });
       });
@@ -385,11 +412,14 @@ export const renderAuthorizePage = (
 
         hideError(otpError);
         verifyBtn.disabled = true;
+        document.getElementById("otp-other-methods").disabled = true;
         verifyBtn.textContent = copy.verifying;
 
-        fetch("api/verify-code", {
+        fetch("api/verify-code?ui_locale=" + encodeURIComponent(uiLocale), {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: collectionDisabled
+            ? { "Content-Type": "application/json", "X-Product-Analytics-Enabled": "0" }
+            : { "Content-Type": "application/json" },
           credentials: "same-origin",
           body: JSON.stringify({ code: code, csrfToken: csrfToken }),
         })
@@ -407,6 +437,7 @@ export const renderAuthorizePage = (
           })
           .finally(function() {
             verifyBtn.disabled = false;
+            document.getElementById("otp-other-methods").disabled = false;
             verifyBtn.textContent = copy.verify;
           });
       });
@@ -428,7 +459,9 @@ export const renderAuthorizePage = (
 
         fetch("authorize/consent", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: collectionDisabled
+            ? { "Content-Type": "application/json", "X-Product-Analytics-Enabled": "0" }
+            : { "Content-Type": "application/json" },
           credentials: "same-origin",
           body: JSON.stringify({
             client_id: request.clientId,
@@ -445,7 +478,7 @@ export const renderAuthorizePage = (
               if (!res.ok) {
                 if (res.status === 401) {
                   // Session expired between sign-in and approval; re-authenticate.
-                  showEmailStep();
+                  showMethodsStep();
                   return;
                 }
                 showError(consentError, data.error_description || data.error || copy.genericErrorPrefix + ": " + res.status);
@@ -466,6 +499,9 @@ export const renderAuthorizePage = (
           });
       });
 
+      var returnUri = new URL(window.location.href);
+      returnUri.searchParams.set("locale", uiLocale);
+      configureAuthMethods(returnUri.toString(), null);
       void tryRefreshSession();
     })();
   </script>

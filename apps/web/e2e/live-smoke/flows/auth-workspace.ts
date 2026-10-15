@@ -48,6 +48,7 @@ async function signInWithReviewAccount(session: LiveSmokeSession): Promise<void>
     buildLoginUrl(baseUrl),
     externalUiTimeoutMs,
   );
+  await trackedClick(diagnostics, "choose email sign-in", page.locator("#signin-email"));
   await trackedFill(diagnostics, `fill review account email ${reviewEmail}`, page.locator('input[type="email"]').first(), reviewEmail);
   await trackedClick(diagnostics, "submit review account email", page.locator("#send-btn"));
   await trackedWaitForUrl(

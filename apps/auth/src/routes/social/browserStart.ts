@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { normalizeSupportedLoginPageLocale } from "../browser/loginPageLocale.js";
 import { Hono } from "hono";
 import type { AuthAppEnv } from "../../server/apiErrors.js";
 import { createAuthAttempt, loadAccountProviderBrowserLaunch } from "../../server/social/attemptStore.js";
@@ -8,6 +9,7 @@ import { getPublicAuthMethods } from "../../server/social/publicMethods.js";
 import { SocialProofError } from "../../server/social/providers.js";
 import { readAuthAnalyticsContext, reportAuthFact } from "../../server/analytics/signInFunnel.js";
 import { requireSocialRequest, socialErrorResponse } from "./http.js";
+import { browserSignInErrorResponse, browserSignInRecovery } from "./browserError.js";
 
 export function providerAuthorizationUrl(
   provider: "apple" | "google", audience: string, state: string,
@@ -37,6 +39,9 @@ app.get("/api/social/:provider/start", async (c) => {
       || Array.from(new URL(c.req.url).searchParams.keys()).some((key) => c.req.queries(key)!.length !== 1)) {
       throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
     }
+    const localeHint = c.req.query("locale");
+    const locale = localeHint === undefined ? null : normalizeSupportedLoginPageLocale(localeHint);
+    if (localeHint !== undefined && locale === null) throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
     const method = getPublicAuthMethods(client).methods[provider];
     if (!method.available || method.transport !== "browser") throw new SocialProofError("PROVIDER_UNAVAILABLE");
     const authOrigin = browserAuthOrigin(c);
@@ -53,14 +58,17 @@ app.get("/api/social/:provider/start", async (c) => {
       { purpose: "login", subject: null, account: null, reauthCompletion: null },
       client === "web" ? { origin: authOrigin, secret: browserSecret } : null, authOrigin) : launch;
     const state = createBrowserState(authOrigin, provider, attempt.attempt, attempt.expiresAt,
-      client === "web" ? { client, browserSecret, redirectUri: redirectUri! } : { client, codeChallenge: codeChallenge! },
+      client === "web" ? { client, browserSecret, redirectUri: redirectUri!, ...(locale === null ? {} : { locale }) } : { client, codeChallenge: codeChallenge! },
       readAuthAnalyticsContext(c), launch?.intent ?? "login");
     writeBrowserState(c, state);
     const authorization = providerAuthorizationUrl(provider, method.audience, state.state, attempt);
     await reportAuthFact(c, { eventName: "auth_provider_requested", method: provider });
     return c.redirect(authorization, 302);
   } catch (error) {
-    return socialErrorResponse(c, error);
+    const response = socialErrorResponse(c, error);
+    const recovery = (c.req.query("client") ?? "web") === "web"
+      ? browserSignInRecovery(c, c.req.query("redirect_uri") ?? "", c.req.query("locale")) : null;
+    return browserSignInErrorResponse(c, response, recovery);
   }
 });
 export default app;
