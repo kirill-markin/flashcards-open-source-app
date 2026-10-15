@@ -1512,6 +1512,12 @@ const etCatalog: TranslationCatalog = {
       value: "Kustuta",
     },
   },
+  browserSignInPrivacy: {
+    forget: "Unusta sisselogimisteave",
+    signOutForget: "Logi välja ja unusta",
+    forgotten: "Sisselogimisteave on unustatud.",
+    error: "Sisselogimisteavet ei saanud muuta. Luba autentimissaidi andmed ja proovi uuesti.",
+  },
   accountStatus: {
     title: "Konto olek",
     subtitle: "Vaata praegust sisselogitud kontot ja brauseriseanssi.",

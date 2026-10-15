@@ -1512,6 +1512,12 @@ const huCatalog: TranslationCatalog = {
       value: "Törlés",
     },
   },
+  browserSignInPrivacy: {
+    forget: "Bejelentkezési adatok elfelejtése",
+    signOutForget: "Kijelentkezés és elfelejtés",
+    forgotten: "A bejelentkezési adatok törölve.",
+    error: "A bejelentkezési adatok nem módosíthatók. Engedélyezd a hitelesítési webhely adatait, és próbáld újra.",
+  },
   accountStatus: {
     title: "Fiókállapot",
     subtitle: "Nézd meg az aktuális bejelentkezett fiókot és a böngésző munkamenetét.",

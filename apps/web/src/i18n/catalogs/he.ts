@@ -1512,6 +1512,12 @@ const heCatalog: TranslationCatalog = {
       value: "מחיקה",
     },
   },
+  browserSignInPrivacy: {
+    forget: "שכח מידע על כניסה",
+    signOutForget: "יציאה ושכחה",
+    forgotten: "מידע הכניסה נשכח.",
+    error: "לא ניתן לשנות את פרטי הכניסה. יש לאפשר נתוני אתר עבור אתר האימות ולנסות שוב.",
+  },
   accountStatus: {
     title: "מצב החשבון",
     subtitle: "עיין בחשבון המחובר הנוכחי ובהפעלת הדפדפן.",

@@ -1512,6 +1512,12 @@ const nlCatalog: TranslationCatalog = {
       value: "Verwijderen",
     },
   },
+  browserSignInPrivacy: {
+    forget: "Inloggegevens vergeten",
+    signOutForget: "Uitloggen en vergeten",
+    forgotten: "Inloggegevens vergeten.",
+    error: "Inloggegevens konden niet worden gewijzigd. Sta websitegegevens voor de authenticatiesite toe en probeer opnieuw.",
+  },
   accountStatus: {
     title: "Accountstatus",
     subtitle: "Bekijk het huidige aangemelde account en de browsersessie.",

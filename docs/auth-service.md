@@ -27,7 +27,7 @@ Email + OTP authentication via AWS Cognito (passwordless).
   guest session is an analytics credential only, sent as `Authorization: Guest <token>` to
   `POST /v1/analytics/events` alone. It is requested by the browser, lazily on a signed-out
   visitor's first real interaction. This service requests none of its own: its sign-in funnel posts
-  to the credential-free collector instead (`Login funnel analytics` below).
+  to the credential-free collector instead (`Login facts` below).
   - The route's own ingest contract lives in the source:
     `apps/backend/src/routes/productAnalytics.ts` owns its HTTP surface, accepted transports,
     and the `accepted`/`rejected` envelope; `apps/backend/src/productAnalytics/validation.ts`
@@ -206,52 +206,15 @@ The production sender is `no-reply@mail.nibomo.com`, DKIM domain `mail.nibomo.co
 Accept both `privaterelay.appleid.com` and `private.icloud.com`
 ([Apple relay domain update](https://developer.apple.com/news/?id=1ptvdtcm)).
 
-## Login funnel analytics
+## Login facts
 
-`apps/auth` measures the web sign-in funnel itself, server-side, from its own route handlers. The
-login page runs no analytics script and posts no event; all it contributes is the `?screen=signin`
-query on the sign-in `fetch` calls it already makes (`apps/auth/src/templates/login.ts`). The events
-go one per request to the credential-free collector `POST /v1/analytics/anonymous-events`
-([anonymous client analytics](anonymous-client-analytics.md)), never to the `analytics` schema
-directly: the `auth_app` role has no grants there and must not be given any. That route reads no
-credential and authorizes the caller by `Origin` alone, which is why this service sends its
-configured public auth origin explicitly on a call no browser makes.
-
-- The steps, and the branch that observes each:
-  - `screen_viewed` with `screen = signin`: `POST /api/refresh-session`
-    (`apps/auth/src/routes/browser/refreshSession.ts`) on an absent `refresh` cookie — a first visit,
-    a sign-out and an expired cookie alike — and on a rejected refresh token. A non-terminal refresh
-    failure is rethrown as a `500` and reports nothing, so this page-view denominator is a floor.
-  - `signin_code_requested`: a `POST /api/send-code` that accepted the request
-    (`apps/auth/src/routes/browser/sendCode.ts`).
-  - `signin_succeeded` and `signin_failed` with a `reason`: `verifyCode.ts` beside it, plus the
-    demo-account and refusal branches of `sendCode.ts`.
-  - Abandonment is the absence of the next step for an actor, not an event.
-  - Every step requires the marker, shared visitor id and collection preference:
-    [analytics visitor and collection contract](analytics-visitor-identity.md#the-analytics-off-switch-is-a-second-separate-decision).
-  - The producer — catalog mirror, cookie module, transport, report budgets, and the marker check
-    that keeps non-funnel callers of these shared routes out — is `apps/auth/src/server/analytics/`.
-- Identity: the product domain's shared `anonymous_id`, read from the `analytics_visitor` cookie and
-  never written here ([analytics visitor identity](analytics-visitor-identity.md)), and nothing else.
-  This origin mints no identity of its own and writes no analytics cookie; the host-only
-  `__Host-analytics_guest` it used to write is now only deleted, from the browsers that still carry
-  one (`apps/auth/src/server/analytics/visitorSession.ts`).
-- The join: none is made here. These rows carry no `user_id`, so
-  `analytics.product_events_resolved` resolves them through `first_anonymous_link` to whichever
-  account the browser's shared visitor id is linked to, which the web app on the product domain is
-  what links. They land at `trust_level = 'anonymous_client'`, which the admin app's trusted-actor
-  filter excludes, so a report built over them must except that explicitly.
-- Mandatory on every call: the browser's own `User-Agent`, forwarded verbatim. The collector stamps
-  `automated_client` from that header and from nothing else, counts a missing one as automated, and
-  stores no `User-Agent` beside the row to recompute from — so a report that dropped automated
-  traffic would silently lose the whole funnel, permanently. A request that carries no `User-Agent`
-  is not reported at all (`readBrowserUserAgent` in `signInFunnel.ts`).
-- The accepted limitation: a browser holding no shared visitor id produces no funnel rows at all, and
-  nothing here offers it one — a first-ever touch that is the sign-in page goes unmeasured.
-- Reports of facts observed by one callback or verification run concurrently within the shared 150 ms
-  request budget, with their observed timestamps; delivery remains best-effort.
-- Deliberately not measured: the OAuth consent page at `GET /authorize`, and `app_version`.
-- Querying these rows: the caveats an analyst needs are in `docs/analytics-db-access.md`.
+[Auth producers](../apps/auth/src/server/analytics/signInFunnel.ts) and the
+[UI fact route](../apps/auth/src/routes/browser/authFact.ts) reuse the
+[shared visitor and collection contract](analytics-visitor-identity.md). Their bounded catalog is
+[defined in source](../apps/auth/src/server/analytics/catalog.ts); request and provider
+outcomes remain server-observed. [Browser acceptance](browser-sign-in-hints.md#manual-browser-acceptance)
+covers the auth UI and the web account-ready boundary. Querying caveats remain in
+[analytics database access](analytics-db-access.md).
 
 ## MCP identity
 

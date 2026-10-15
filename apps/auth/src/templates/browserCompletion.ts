@@ -1,3 +1,4 @@
+import { renderBrowserHintFeedback, browserHintControlsStyles } from "./browserHintControls.js";
 import { getLoginPageLocaleDirection, type LoginPageLocale } from "../routes/browser/loginPageLocale.js";
 import type { BrowserLoginCompletion } from "../routes/social/browserCompletion.js";
 import { BROWSER_CONTINUATION_COPY } from "./browserContinuationCopy.js";
@@ -27,7 +28,7 @@ export const browserCompletionConsumerScript = `
     } else if (result.purpose !== "link" && result.purpose !== "reauth") {
       throw new Error("AUTH_COMPLETION_INVALID");
     }
-    if (result.purpose === undefined) await browserHints.acceptOptional(result);
+    if (result.purpose === undefined && !await browserHints.acceptOptional(result)) return;
     window.location.replace(result.redirectUri);
   }
 `;
@@ -55,6 +56,7 @@ export function renderBrowserDocument(
       :focus-visible { outline: 2px solid #8e8e93; outline-offset: 3px; }
       .hint { color: #b9b9c1; font-size: .875rem; }
       .error { color: #ff858b; overflow-wrap: anywhere; }
+      ${browserHintControlsStyles}
       [hidden] { display: none !important; }
     </style></head><body><main><article>${body}</article></main>
     <script nonce="${nonce}">${script}</script></body></html>`;
@@ -66,8 +68,12 @@ export function renderBrowserCompletion(
   const copy = BROWSER_CONTINUATION_COPY[locale];
   const loginCopy = getLoginPageCopy(locale);
   return renderBrowserDocument(locale, nonce, loginCopy.pageTitle,
-    `<h1>${browserHtml(copy.completed)}</h1><a id="auth-continue" class="continue" href="${browserHtml(completion.redirectUri)}">${browserHtml(copy.continue)}</a>`,
+    `<h1>${browserHtml(copy.completed)}</h1><a id="auth-continue" class="continue" href="${browserHtml(completion.redirectUri)}">${browserHtml(copy.continue)}</a>${renderBrowserHintFeedback(locale)}`,
     `${browserCompletionConsumerScript}
+    window.addEventListener("nibomo-auth-hint-error", function(event) {
+      document.getElementById("signin-hint-feedback").hidden = false;
+      document.getElementById("signin-hint-error").textContent = event.detail;
+    });
     const completion = ${browserScriptJson(completion)};
     void consumeBrowserCompletion(completion);`);
 }
