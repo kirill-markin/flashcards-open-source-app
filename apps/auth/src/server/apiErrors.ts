@@ -17,11 +17,16 @@ export type AuthPublicErrorCode =
   | import("./social/providers.js").SocialProofErrorCode
   | import("./social/mailboxProof.js").EnrollmentErrorCode
   | "PRINCIPAL_SIGNOUT_PENDING"
+  | "SESSION_REQUIRED"
   | "SESSION_REVOKED"
   | "ACCOUNT_DELETED"
   | "APPLE_REVOCATION_PENDING"
   | "APPLE_NOTIFICATION_INVALID"
   | "PROVIDER_SIGN_IN_DENIED"
+  | "LAST_USABLE_METHOD"
+  | "PROVIDER_METHOD_CHANGED"
+  | "PROVIDER_METHOD_CLEANUP_REQUIRED"
+  | "FRESH_ACCOUNT_PROOF_REQUIRED"
   | "INVALID_REQUEST"
   | "INVALID_EMAIL"
   | "PASSWORD_SIGN_IN_FAILED"
