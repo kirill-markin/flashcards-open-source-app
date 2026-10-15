@@ -4,9 +4,9 @@ import { transaction } from "../../db.js";
 import { AuthAttemptError } from "./attemptContract.js";
 import { SocialProofError } from "./providers.js";
 
-export type SocialPublicAction = "capabilities" | "start" | "callback" | "complete" | "mailbox_send" | "mailbox_verify" | "redeem" | "manage";
+export type SocialPublicAction = "capabilities" | "start" | "callback" | "complete" | "mailbox_send" | "mailbox_verify" | "redeem" | "manage" | "notification";
 const limits: Readonly<Record<SocialPublicAction, number>> = {
-  capabilities: 120, start: 20, callback: 30, complete: 30, mailbox_send: 10, mailbox_verify: 20, redeem: 30, manage: 20,
+  capabilities: 120, start: 20, callback: 30, complete: 30, mailbox_send: 10, mailbox_verify: 20, redeem: 30, manage: 20, notification: 120,
 };
 
 function rateBucket(key: string, value: string): string {

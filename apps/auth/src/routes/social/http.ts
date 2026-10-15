@@ -18,13 +18,33 @@ export async function requireSocialRequest(c: Context<AuthAppEnv>, action: Socia
   return source;
 }
 
-/** Native calls consume no cookies. JSON plus app-held PKCE protects every state-changing operation. */
+export async function readSocialBody(c: Context<AuthAppEnv>): Promise<string> {
+  const reader = c.req.raw.body?.getReader();
+  if (reader === undefined) throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
+  const parts: Uint8Array[] = [];
+  let size = 0;
+  try {
+    while (true) {
+      const chunk = await reader.read();
+      if (chunk.done) break;
+      size += chunk.value.byteLength;
+      if (size > 24_576) {
+        await reader.cancel();
+        throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
+      }
+      parts.push(chunk.value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  return Buffer.concat(parts).toString("utf8");
+}
+
 export async function readSocialJson(c: Context<AuthAppEnv>): Promise<unknown> {
   if (c.req.header("content-type")?.split(";")[0].trim().toLowerCase() !== "application/json") {
     throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
   }
-  const body = await c.req.text();
-  if (Buffer.byteLength(body) > 24_576) throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
+  const body = await readSocialBody(c);
   try {
     return JSON.parse(body) as unknown;
   } catch {
@@ -39,7 +59,7 @@ export function socialErrorResponse(c: Context<AuthAppEnv>, error: unknown): Res
       return jsonAuthError(c, 429, error.code, "Too many authentication requests. Try again later.");
     }
     return jsonAuthError(c, error.code === "AUTH_ATTEMPT_INVALID" ? 400 : 409, error.code,
-      error.code === "AUTH_ATTEMPT_INVALID" ? "Invalid native sign-in request." : "This sign-in expired or was consumed. Start a new provider sign-in.");
+      error.code === "AUTH_ATTEMPT_INVALID" ? "Invalid provider sign-in request." : "This sign-in expired or was consumed. Start a new provider sign-in.");
   }
   if (error instanceof SocialProofError) {
     const status: ContentfulStatusCode = error.code === "PROVIDER_UNAVAILABLE" ? 409
