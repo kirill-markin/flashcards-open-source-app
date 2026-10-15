@@ -156,10 +156,11 @@ export function AccountMethods(): ReactElement {
     track({ name: "auth_method_selected", method: "email", screen: "settings" });
     setCode("");
     void run(async (signal) => {
-      const started = await beginEmailMethod(csrfToken, signal);
+      const started = await beginEmailMethod(csrfToken, signal, (outcome) => {
+        if (!signal.aborted) track({ name: "auth_code_request_finished", method: "email", screen: "settings", action: "initial", outcome });
+      });
       if (signal.aborted) return;
       setChallenge({ ...started, csrfToken });
-      track({ name: "auth_code_request_finished", method: "email", screen: "settings", action: "initial", outcome: "accepted" });
       track({ name: "auth_code_form_shown", method: "email", screen: "settings" });
     });
   }
@@ -169,9 +170,10 @@ export function AccountMethods(): ReactElement {
     setChallenge(null); setCode("");
     track({ name: "auth_code_submitted", method: "email", screen: "settings" });
     void run(async (signal) => {
-      const accepted = await completeEmailMethod(current.csrfToken, current.attempt, code, signal);
+      const accepted = await completeEmailMethod(current.csrfToken, current.attempt, code, signal, (outcome) => {
+        if (!signal.aborted) track({ name: "auth_code_verification_finished", method: "email", screen: "settings", outcome });
+      });
       if (signal.aborted) return;
-      track({ name: "auth_code_verification_finished", method: "email", screen: "settings", outcome: "verified" });
       setProof({ value: accepted.proof, expiresAt: accepted.expiresAt });
     });
   }
