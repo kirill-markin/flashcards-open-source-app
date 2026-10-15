@@ -147,6 +147,7 @@ final class LiveSmokeAIConsentTests: LiveSmokeTestCase {
             }
         )
         try self.tapFirstNavigationBackButton()
+        try self.scrollSettingsToCurrentWorkspaceRow()
         try self.openAIConsentLegalSettings()
         try self.tapButtonScrollingIntoView(identifier: LiveSmokeIdentifier.aiConsentReviewButton, timeout: 10)
         try self.assertElementExists(identifier: LiveSmokeIdentifier.aiConsentBody, timeout: 10)
