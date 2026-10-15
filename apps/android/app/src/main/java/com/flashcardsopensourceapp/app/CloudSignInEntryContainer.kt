@@ -35,24 +35,35 @@ internal fun CloudSignInEntryContainer(
     }
     CloudSignInEntryRoute(viewModel, onSendCode, onPostAuth, onShowTechnicalDetails, onBack)
     if (returned == AppleSignInReturnState.StorageFailed || returned == AppleSignInReturnState.Rejected) {
-        AlertDialog(
-            onDismissRequest = application::consumeAppleSignInReturn,
-            title = { Text(stringResource(SettingsR.string.settings_auth_return_title)) },
-            text = { Text(stringResource(if (returned == AppleSignInReturnState.StorageFailed)
-                SettingsR.string.settings_auth_return_storage_failed else SettingsR.string.settings_auth_return_rejected)) },
-            confirmButton = {
-                if (returned == AppleSignInReturnState.StorageFailed) TextButton(
-                    onClick = application::retryAppleSignInReturn,
-                    modifier = Modifier.testTag("cloud_apple_return_retry")) {
-                    Text(stringResource(SettingsR.string.settings_auth_retry))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = application::consumeAppleSignInReturn,
-                    modifier = Modifier.testTag("cloud_apple_return_close")) {
-                    Text(stringResource(SettingsR.string.settings_auth_close))
-                }
-            }
-        )
+        CloudAppleReturnErrorDialog(returned, application::retryAppleSignInReturn, application::consumeAppleSignInReturn)
     }
+}
+
+@Composable
+internal fun CloudAppleReturnErrorDialog(
+    returned: AppleSignInReturnState,
+    onRetry: () -> Unit,
+    onClose: () -> Unit
+) {
+    val storageFailed = returned == AppleSignInReturnState.StorageFailed ||
+        returned == AppleSignInReturnState.OwnershipStorageFailed
+    AlertDialog(
+        onDismissRequest = onClose,
+        title = { Text(stringResource(SettingsR.string.settings_auth_return_title)) },
+        text = { Text(stringResource(if (storageFailed)
+            SettingsR.string.settings_auth_return_storage_failed else SettingsR.string.settings_auth_return_rejected)) },
+        confirmButton = {
+            if (storageFailed) TextButton(
+                onClick = onRetry,
+                modifier = Modifier.testTag("cloud_apple_return_retry")) {
+                Text(stringResource(SettingsR.string.settings_auth_retry))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onClose,
+                modifier = Modifier.testTag("cloud_apple_return_close")) {
+                Text(stringResource(SettingsR.string.settings_auth_close))
+            }
+        }
+    )
 }

@@ -157,6 +157,13 @@ fun FlashcardsApp(
             defaultAccentColor
         }
         FlashcardsTheme(accentColor = Color(effectiveAccentColor.toColorInt())) {
+        val signInApplication = LocalContext.current.applicationContext as FlashcardsApplication
+        val appleReturn by signInApplication.appleSignInReturnState.collectAsStateWithLifecycle()
+        if (appleReturn == AppleSignInReturnState.OwnershipStorageFailed) {
+            CloudAppleReturnErrorDialog(
+                appleReturn, signInApplication::retryAppleSignInReturn, signInApplication::consumeAppleSignInReturn
+            )
+        }
         val startupState by appGraph.startupState.collectAsStateWithLifecycle(
             initialValue = AppStartupState.Loading
         )
@@ -295,10 +302,8 @@ fun FlashcardsApp(
         }
 
         val navController = rememberNavController()
-        val signInApplication = LocalContext.current.applicationContext as FlashcardsApplication
-        val appleReturn by signInApplication.appleSignInReturnState.collectAsStateWithLifecycle()
         LaunchedEffect(appleReturn) {
-            if (appleReturn != AppleSignInReturnState.Idle &&
+            if (appleReturn.isLoginReturn &&
                 navController.currentDestination?.route?.startsWith(SettingsAccountSignInEmailDestination.routePrefix) != true) {
                 navController.navigate(SettingsAccountSignInEmailDestination.createRoute(AnalyticsSurface.SETTINGS)) {
                     launchSingleTop = true

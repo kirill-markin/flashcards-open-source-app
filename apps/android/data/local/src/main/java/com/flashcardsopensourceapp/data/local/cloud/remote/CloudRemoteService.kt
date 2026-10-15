@@ -7,6 +7,18 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.billing.CloudGoogleBi
 import com.flashcardsopensourceapp.data.local.cloud.remote.billing.GooglePurchaseIntent
 import com.flashcardsopensourceapp.data.local.cloud.remote.agent.CloudAgentConnectionRemoteApi
 import com.flashcardsopensourceapp.data.local.cloud.remote.auth.CloudAuthRemoteApi
+import com.flashcardsopensourceapp.data.local.cloud.remote.auth.CloudAccountMethodsGateway
+import com.flashcardsopensourceapp.data.local.cloud.remote.auth.CloudAccountMethodsRemoteApi
+import com.flashcardsopensourceapp.data.local.cloud.remote.auth.CloudAccountMethodSession
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountMethods
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountMethodAttempt
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountMethodReceipt
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudSocialProvider
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountMethodIntent
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountMethodProof
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudProviderMethodTarget
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountMethodResult
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountMethodPurpose
 import com.flashcardsopensourceapp.data.local.cloud.remote.auth.CloudSocialAuthGateway
 import com.flashcardsopensourceapp.data.local.cloud.remote.auth.CloudSocialAuthRemoteApi
 import com.flashcardsopensourceapp.data.local.cloud.remote.community.CloudCommunityProfileRemoteApi
@@ -84,7 +96,7 @@ class CloudRemoteService private constructor(
     observationVersions: CloudHttpObservationVersions,
     isAutomation: Boolean,
     clientDeviceTypeProvider: () -> ClientDeviceType?
-) : CloudRemoteGateway, CloudGoogleBillingGateway, CloudSocialAuthGateway {
+) : CloudRemoteGateway, CloudGoogleBillingGateway, CloudSocialAuthGateway, CloudAccountMethodsGateway {
     constructor(
         okHttpClient: OkHttpClient,
         observability: AppObservability,
@@ -127,6 +139,7 @@ class CloudRemoteService private constructor(
     )
     private val authApi = CloudAuthRemoteApi(httpClient = httpClient)
     private val socialAuthApi = CloudSocialAuthRemoteApi(httpClient = httpClient)
+    private val accountMethodsApi = CloudAccountMethodsRemoteApi(httpClient)
     private val googleBillingApi = CloudGoogleBillingRemoteApi(httpClient = httpClient)
     private val guestUpgradeApi = CloudGuestUpgradeRemoteApi(httpClient = httpClient)
     private val accountWorkspaceApi = CloudAccountWorkspaceRemoteApi(httpClient = httpClient)
@@ -141,6 +154,24 @@ class CloudRemoteService private constructor(
         clientDeviceTypeProvider = clientDeviceTypeProvider
     )
     private val workspacePackageApi = CloudWorkspacePackageRemoteApi(httpClient = httpClient)
+
+    override suspend fun loadAccountMethods(session: CloudAccountMethodSession): CloudAccountMethods = accountMethodsApi.loadAccountMethods(session)
+    override suspend fun beginEmailReauthentication(session: CloudAccountMethodSession, codeChallenge: String): CloudAccountMethodAttempt =
+        accountMethodsApi.beginEmailReauthentication(session, codeChallenge)
+    override suspend fun completeEmailReauthentication(session: CloudAccountMethodSession, attempt: String, codeVerifier: String, code: String): CloudAccountMethodReceipt =
+        accountMethodsApi.completeEmailReauthentication(session, attempt, codeVerifier, code)
+    override suspend fun beginAccountProvider(session: CloudAccountMethodSession, provider: CloudSocialProvider, intent: CloudAccountMethodIntent,
+        codeChallenge: String, proof: CloudAccountMethodProof?, target: CloudProviderMethodTarget?): CloudAccountMethodAttempt =
+        accountMethodsApi.beginAccountProvider(session, provider, intent, codeChallenge, proof, target)
+    override suspend fun submitAccountGoogle(session: CloudAccountMethodSession, intent: CloudAccountMethodIntent, attempt: String,
+        codeVerifier: String, identityToken: String): CloudAccountMethodResult = accountMethodsApi.submitAccountGoogle(session, intent, attempt, codeVerifier, identityToken)
+    override suspend fun sendAccountMailbox(session: CloudAccountMethodSession, purpose: CloudAccountMethodPurpose, attempt: String, codeVerifier: String, email: String) =
+        accountMethodsApi.sendAccountMailbox(session, purpose, attempt, codeVerifier, email)
+    override suspend fun verifyAccountMailbox(session: CloudAccountMethodSession, purpose: CloudAccountMethodPurpose, attempt: String, codeVerifier: String, code: String): CloudAccountMethodReceipt =
+        accountMethodsApi.verifyAccountMailbox(session, purpose, attempt, codeVerifier, code)
+    override suspend fun redeemAccountLink(session: CloudAccountMethodSession, completion: String, codeVerifier: String) = accountMethodsApi.redeemAccountLink(session, completion, codeVerifier)
+    override suspend fun resumeAppleReenable(session: CloudAccountMethodSession, attempt: String, codeVerifier: String) = accountMethodsApi.resumeAppleReenable(session, attempt, codeVerifier)
+    override suspend fun unlinkAccountProvider(session: CloudAccountMethodSession, target: CloudProviderMethodTarget, proof: CloudAccountMethodProof) = accountMethodsApi.unlinkAccountProvider(session, target, proof)
 
     override suspend fun loadAuthMethods(authBaseUrl: String): CloudAuthMethods {
         return socialAuthApi.loadAuthMethods(authBaseUrl)

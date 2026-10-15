@@ -14,7 +14,8 @@ interface CloudSocialSignInRepository {
     suspend fun loadAuthMethods(): CloudAuthMethods
     suspend fun beginGoogleLogin(rememberSignIn: Boolean): CloudPendingSocialSignIn
     suspend fun beginAppleLogin(rememberSignIn: Boolean): CloudAppleBrowserLaunch
-    suspend fun acceptAppleBrowserReturn(returned: CloudAppleBrowserReturn): CloudPendingSocialSignIn
+    suspend fun canAcceptAppleBrowserReturn(returned: CloudAppleBrowserReturn): Boolean
+    suspend fun acceptAppleBrowserReturn(returned: CloudAppleBrowserReturn): CloudPendingSocialSignIn?
     suspend fun verifyEmailCode(
         challenge: CloudOtpChallenge,
         code: String,

@@ -119,7 +119,7 @@ internal fun CloudCredentialRecoveryGateContainer(
     }
 
     LaunchedEffect(appleReturn) {
-        if (appleReturn != AppleSignInReturnState.Idle) gateStep = CloudCredentialRecoveryGateStep.EMAIL
+        if (appleReturn.isLoginReturn) gateStep = CloudCredentialRecoveryGateStep.EMAIL
     }
 
     fun returnToOverview() {

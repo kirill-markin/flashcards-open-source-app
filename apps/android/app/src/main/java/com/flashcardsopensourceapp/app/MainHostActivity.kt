@@ -14,7 +14,6 @@ import androidx.lifecycle.LifecycleEventObserver
 import com.flashcardsopensourceapp.app.notifications.consumeAppNotificationTapRequest
 import com.flashcardsopensourceapp.core.ui.markHostActivityStarted
 import com.flashcardsopensourceapp.core.ui.markHostActivityStopped
-import com.flashcardsopensourceapp.data.local.model.cloud.parseCloudAppleBrowserReturn
 
 class MainHostActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -97,13 +96,7 @@ class MainHostActivity : ComponentActivity() {
         val uri = intent?.data
         if (intent?.action == Intent.ACTION_VIEW && uri?.scheme == "com.nibomo.app") {
             intent.data = null
-            val returned = try {
-                parseCloudAppleBrowserReturn(uri.toString())
-            } catch (_: IllegalArgumentException) {
-                application.reportAppleSignInReturnFailure()
-                return
-            }
-            application.acceptAppleSignInReturn(returned)
+            application.acceptAppleSignInReturn(uri.toString())
             return
         }
         val request = intent?.let(::consumeAppNotificationTapRequest) ?: return
