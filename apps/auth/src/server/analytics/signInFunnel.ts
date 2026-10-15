@@ -216,7 +216,7 @@ async function reportSignInFunnelEvents(
   context: AuthAnalyticsContext,
 ): Promise<void> {
   try {
-    if (context.screen !== signInScreenMarker || events.length === 0) {
+    if (context.screen === null || events.length === 0) {
       return;
     }
 
@@ -243,10 +243,13 @@ async function reportSignInFunnelEvents(
     if (remaining <= 0) return;
     const startedAt = performance.now();
     try {
-      await Promise.all(events.map(({ createEvent, occurredAt }) => postAnonymousAnalyticsEvent(
-        createReportCall(c, userAgent, remaining),
-        { ...createEvent(anonymousId, occurredAt, context.uiLocale), clientSentAt: new Date().toISOString() },
-      )));
+      await Promise.all(events.map(({ createEvent, occurredAt }) => {
+        const event = createEvent(anonymousId, occurredAt, context.uiLocale);
+        if (context.screen === "settings" && !event.eventName.startsWith("auth_")) return Promise.resolve();
+        return postAnonymousAnalyticsEvent(createReportCall(c, userAgent, remaining),
+          { ...event, screen: event.eventName.startsWith("auth_") ? context.screen : event.screen,
+            clientSentAt: new Date().toISOString() });
+      }));
     } finally {
       c.set("analyticsReportBudgetRemainingMs", Math.max(0, remaining - Math.max(1, Math.ceil(performance.now() - startedAt))));
     }
@@ -305,10 +308,10 @@ export async function reportSignInSucceededWithMethod(c: Context<AuthAppEnv>, me
   await reportSignInFunnelEvent(c, createSignInSucceededWithMethodEventFactory(method), readAuthAnalyticsContext(c));
 }
 
-export type AuthAnalyticsContext = Readonly<{ screen: "signin" | null; uiLocale: LoginPageLocale | null }>;
+export type AuthAnalyticsContext = Readonly<{ screen: "signin" | "settings" | null; uiLocale: LoginPageLocale | null }>;
 
 export function readAuthAnalyticsContext(c: Context<AuthAppEnv>): AuthAnalyticsContext {
-  return { screen: c.req.query("screen") === signInScreenMarker ? "signin" : null,
+  return { screen: c.req.query("screen") === signInScreenMarker ? "signin" : c.req.query("screen") === "settings" ? "settings" : null,
     uiLocale: normalizeSupportedLoginPageLocale(c.req.query("ui_locale") ?? "") };
 }
 
