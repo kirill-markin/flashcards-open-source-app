@@ -2,10 +2,9 @@ import { randomBytes } from "node:crypto";
 import { Hono, type Context } from "hono";
 import { html } from "hono/html";
 import { type AuthAppEnv, jsonAuthError } from "../../server/apiErrors.js";
-import { setBrowserSessionCookies } from "../../server/browserSession.js";
 import { reportBrowserAuthEvents, type ObservedAuthAnalyticsEvent } from "../../server/analytics/signInFunnel.js";
 import { createAuthAnalyticsFactEventFactory, createSignInSucceededWithMethodEventFactory } from "../../server/analytics/catalog.js";
-import { AuthAttemptError, type AuthCompletionResponse } from "../../server/social/attemptContract.js";
+import { AuthAttemptError } from "../../server/social/attemptContract.js";
 import { claimBrowserAuthAttempt, verifyClaimedAuthAttempt } from "../../server/social/attemptStore.js";
 import {
   androidAppleReturnUri, browserAttemptBinding, browserAuthOrigin, clearBrowserState, readBrowserState,
@@ -15,11 +14,14 @@ import { continueBrowserSignIn, completeAccountProviderContinuation } from "../.
 import { completeAuthoritativeAuthAttempt } from "../../server/social/completionStore.js";
 import { parseSocialObject } from "../../server/social/publicContract.js";
 import { requireSignInProvider } from "../../server/social/publicMethods.js";
-import { getSocialRequestSource } from "../../server/social/requestSource.js";
 import { requireSocialRateLimit } from "../../server/social/rateLimit.js";
 import { readSocialBody, readSocialJson, requireSocialRequest, socialErrorResponse } from "./http.js";
-import { completeAccountProviderLink, completeProvedAccountProviderReenable } from "../../server/social/accountMethods.js";
+import { completeProvedAccountProviderReenable } from "../../server/social/accountMethods.js";
 import { requireAccountSession } from "./accountTransport.js";
+import { acceptBrowserCompletion } from "./browserCompletion.js";
+import { resolveLoginPageLocale } from "../browser/loginPageLocale.js";
+import { renderBrowserCompletion } from "../../templates/browserCompletion.js";
+import { renderBrowserMailboxContinuation } from "../../templates/browserMailboxContinuation.js";
 
 const app = new Hono<AuthAppEnv>();
 
@@ -63,31 +65,8 @@ async function appleCallbackContinuation(c: Context<AuthAppEnv>, parameters: URL
     </body></html>`);
 }
 
-async function acceptBrowserCompletion(
-  c: Context<AuthAppEnv>, state: BrowserCallbackState, completion: AuthCompletionResponse,
-): Promise<Readonly<{ ok: true; redirectUri: string; signInHint?: import("../../server/social/signInHint.js").ProviderSignInHint; purpose?: "reauth" | "link"; completion?: string; expiresAt?: string }>> {
-  const binding = browserAttemptBinding(state);
-  const source = getSocialRequestSource();
-  await requireSocialRateLimit("redeem", source);
-  if (state.client !== "web") throw new AuthAttemptError("AUTH_COMPLETION_INVALID");
-  if (state.intent !== "login") {
-    const session = await requireAccountSession(c, "web");
-    if (state.intent === "link") {
-      await completeAccountProviderLink(session, completion.completion, binding);
-      clearBrowserState(c, state);
-      return { ok: true, purpose: "link", redirectUri: state.redirectUri };
-    }
-    if (state.intent !== "reauth") throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
-    clearBrowserState(c, state);
-    const destination = new URL(state.redirectUri);
-    destination.hash = new URLSearchParams({ status: "reauthenticated", completion: completion.completion }).toString();
-    return { ok: true, purpose: "reauth", ...completion, redirectUri: destination.toString() };
-  }
-  const { response } = await continueBrowserSignIn({ action: "redeem", completion: completion.completion, binding: { ...binding, purpose: "login" } }, source);
-  if (!("signInHint" in response) || state.client !== "web") throw new AuthAttemptError("AUTH_COMPLETION_INVALID");
-  setBrowserSessionCookies(c, response.idToken, response.refreshToken);
-  clearBrowserState(c, state);
-  return { ok: true, redirectUri: state.redirectUri, signInHint: response.signInHint };
+function protectBrowserDocument(c: Context<AuthAppEnv>, nonce: string): void {
+  c.header("Content-Security-Policy", `default-src 'none'; script-src 'nonce-${nonce}'; style-src 'nonce-${nonce}'; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'`);
 }
 
 async function providerCallback(c: Context<AuthAppEnv>): Promise<Response> {
@@ -147,14 +126,25 @@ async function providerCallback(c: Context<AuthAppEnv>): Promise<Response> {
     }
     if (result.status === "completed") {
       const response = await acceptBrowserCompletion(c, state, result.response);
-      if (response.signInHint !== undefined) events.push({ createEvent: createSignInSucceededWithMethodEventFactory(response.signInHint.method), occurredAt: Date.now() });
+      if ("signInHint" in response) {
+        events.push({ createEvent: createSignInSucceededWithMethodEventFactory(response.signInHint.method), occurredAt: Date.now() });
+        const nonce = randomBytes(32).toString("base64url");
+        protectBrowserDocument(c, nonce);
+        return c.html(renderBrowserCompletion(response, resolveLoginPageLocale(undefined, c.req.header("accept-language")), nonce));
+      }
       return c.redirect(response.redirectUri, 303);
     }
     const continuation = { ...state, phase: "mailbox" as const, state: randomBytes(32).toString("base64url") };
     writeBrowserState(c, continuation);
     clearBrowserState(c, state);
-    return c.json({ status: "verification_required", reason: result.enrollment.reason, providerEmail: result.enrollment.providerEmail,
-      csrfToken: continuation.state, expiresAt: new Date(state.expiresAt).toISOString(), endpoint: "/api/social/browser/complete" });
+    const nonce = randomBytes(32).toString("base64url");
+    protectBrowserDocument(c, nonce);
+    const restartUri = state.intent === "login"
+      ? `/api/social/${state.provider}/start?${new URLSearchParams({ client: "web", redirect_uri: state.redirectUri })}`
+      : state.redirectUri;
+    return c.html(renderBrowserMailboxContinuation({ csrfToken: continuation.state,
+      providerEmail: result.enrollment.providerEmail, expiresAt: state.expiresAt, restartUri },
+    resolveLoginPageLocale(undefined, c.req.header("accept-language")), nonce));
   } catch (error) {
     if (claimedState !== null) clearBrowserState(c, claimedState);
     return socialErrorResponse(c, error);
@@ -202,7 +192,7 @@ app.post("/api/social/browser/complete", async (c) => {
     events.push({ createEvent: createAuthAnalyticsFactEventFactory({ eventName: "auth_code_verification_finished", method,
       outcome: "verified" }), occurredAt: Date.now() });
     const accepted = await acceptBrowserCompletion(c, state, response);
-    if (accepted.signInHint !== undefined) events.push({ createEvent: createSignInSucceededWithMethodEventFactory(accepted.signInHint.method), occurredAt: Date.now() });
+    if ("signInHint" in accepted) events.push({ createEvent: createSignInSucceededWithMethodEventFactory(accepted.signInHint.method), occurredAt: Date.now() });
     return c.json(accepted);
   } catch (error) {
     return socialErrorResponse(c, error);
