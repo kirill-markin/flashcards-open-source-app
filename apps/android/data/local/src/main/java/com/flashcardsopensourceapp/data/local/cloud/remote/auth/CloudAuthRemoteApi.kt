@@ -3,9 +3,11 @@ package com.flashcardsopensourceapp.data.local.cloud.remote.auth
 import com.flashcardsopensourceapp.data.local.cloud.remote.transport.CloudJsonHttpClient
 import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudIntOrNull
 import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudStringOrNull
+import com.flashcardsopensourceapp.data.local.cloud.wire.parseCloudEmailSignInHint
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudBoolean
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudInt
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudString
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudEmailSession
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSendCodeResult
 import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
@@ -59,6 +61,10 @@ internal class CloudAuthRemoteApi(
     }
 
     suspend fun verifyCode(challenge: CloudOtpChallenge, code: String, authBaseUrl: String): StoredCloudCredentials {
+        return verifyCodeSession(challenge, code, authBaseUrl).credentials
+    }
+
+    suspend fun verifyCodeSession(challenge: CloudOtpChallenge, code: String, authBaseUrl: String): CloudEmailSession {
         val response = httpClient.postJson(
             baseUrl = authBaseUrl,
             path = "/api/verify-code",
@@ -85,10 +91,13 @@ internal class CloudAuthRemoteApi(
             "Cloud verify-code response is missing expiresIn."
         }
 
-        return buildStoredCloudCredentials(
-            refreshToken = refreshToken,
-            idToken = idToken,
-            expiresInSeconds = expiresIn
+        return CloudEmailSession(
+            credentials = buildStoredCloudCredentials(
+                refreshToken = refreshToken,
+                idToken = idToken,
+                expiresInSeconds = expiresIn
+            ),
+            signInHint = parseCloudEmailSignInHint(response)
         )
     }
 

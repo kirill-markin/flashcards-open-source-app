@@ -1,22 +1,30 @@
 package com.flashcardsopensourceapp.data.local.cloud
 
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAppleBrowserReturn
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAppleBrowserStatus
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudPendingSocialSignIn
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudProviderSignInHint
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudSignInMethod
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSocialLoginAttempt
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSocialLoginCompletion
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSocialMailboxReason
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSocialProvider
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSocialSignInPhase
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudSuccessfulSignInHint
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkContext
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSelection
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
+import com.flashcardsopensourceapp.data.local.model.cloud.successfulHint
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.decodeFromJsonElement
 
 @Serializable
 internal data class CloudSocialAttemptBinding(
@@ -37,6 +45,13 @@ internal data class CloudSocialGuestBinding(
 )
 
 @Serializable
+internal data class CloudAppleBrowserBinding(
+    val localId: String,
+    val codeVerifier: String,
+    val returned: CloudAppleBrowserReturn?
+)
+
+@Serializable
 internal data class PendingCloudSocialSignIn(
     val installationId: String,
     val linkedUserId: String?,
@@ -46,7 +61,8 @@ internal data class PendingCloudSocialSignIn(
     val acceptedUserId: String?,
     val configuration: CloudServiceConfiguration,
     val provider: CloudSocialProvider,
-    val binding: CloudSocialAttemptBinding,
+    val binding: CloudSocialAttemptBinding?,
+    val appleBrowser: CloudAppleBrowserBinding?,
     // Future management must retain original reauthentication separately from a new link proof.
     val originalReauthenticationBinding: CloudSocialAttemptBinding?,
     val rememberSignIn: Boolean,
@@ -59,17 +75,32 @@ internal data class PendingCloudSocialSignIn(
     val completedWorkspace: CloudWorkspaceSummary?,
     val linkingWorkspace: CloudWorkspaceSummary?
 ) {
+    init {
+        require((binding == null) != (appleBrowser == null)) { "Sign-in must have exactly one local proof binding." }
+        require(appleBrowser == null || provider == CloudSocialProvider.APPLE) { "Browser launch requires Apple." }
+    }
+
+    val localId: String get() = binding?.attempt?.attempt ?: requireNotNull(appleBrowser).localId
+    val codeVerifier: String get() = binding?.codeVerifier ?: requireNotNull(appleBrowser).codeVerifier
+    val serverAttempt: String get() = binding?.attempt?.attempt ?: requireNotNull(appleBrowser?.returned)
+        .also { require(it.status == CloudAppleBrowserStatus.VERIFICATION_REQUIRED) }.handle
+    val completionHandle: String? get() = completion?.completion ?: appleBrowser?.returned
+        ?.takeIf { it.status == CloudAppleBrowserStatus.COMPLETED }?.handle
+
     fun snapshot(): CloudPendingSocialSignIn {
         return CloudPendingSocialSignIn(
             provider = provider,
-            attempt = binding.attempt.attempt,
-            nonce = binding.attempt.nonce,
-            redirectUri = binding.attempt.redirectUri,
-            expiresAtMillis = completion?.expiresAtMillis ?: binding.attempt.expiresAtMillis,
+            localId = localId,
+            attempt = binding?.attempt?.attempt ?: appleBrowser?.returned
+                ?.takeIf { it.status != CloudAppleBrowserStatus.COMPLETED }?.handle,
+            nonce = binding?.attempt?.nonce,
+            redirectUri = binding?.attempt?.redirectUri,
+            expiresAtMillis = completion?.expiresAtMillis ?: binding?.attempt?.expiresAtMillis,
             phase = when {
                 acceptedSession != null -> CloudSocialSignInPhase.ACCEPTED
-                completion != null -> CloudSocialSignInPhase.COMPLETION
-                mailboxReason != null -> CloudSocialSignInPhase.MAILBOX
+                completionHandle != null -> CloudSocialSignInPhase.COMPLETION
+                appleBrowser?.returned?.status == CloudAppleBrowserStatus.DENIED -> CloudSocialSignInPhase.DENIED
+                mailboxReason != null || appleBrowser?.returned?.status == CloudAppleBrowserStatus.VERIFICATION_REQUIRED -> CloudSocialSignInPhase.MAILBOX
                 else -> CloudSocialSignInPhase.PROVIDER
             },
             mailboxReason = mailboxReason,
@@ -81,13 +112,13 @@ internal data class PendingCloudSocialSignIn(
 @Serializable
 internal data class StoredCloudSignInHint(
     val configuration: CloudServiceConfiguration,
-    val hint: CloudProviderSignInHint
+    val hint: CloudSuccessfulSignInHint
 )
 
 internal class CloudSocialAuthStore(private val credentialStore: CloudCredentialStore) {
     fun loadPending(): PendingCloudSocialSignIn? {
         val value = credentialStore.load().pendingSocialSignIn ?: return null
-        return decodeSocialAuthState { Json.decodeFromString<PendingCloudSocialSignIn>(value) }
+        return decodePending(value)
     }
 
     fun savePending(pending: PendingCloudSocialSignIn) {
@@ -118,7 +149,7 @@ internal class CloudSocialAuthStore(private val credentialStore: CloudCredential
         credentialStore.update { secrets -> secrets.copy(pendingSocialSignIn = null) }
     }
 
-    fun loadHint(configuration: CloudServiceConfiguration): CloudProviderSignInHint? {
+    fun loadHint(configuration: CloudServiceConfiguration): CloudSuccessfulSignInHint? {
         val value = credentialStore.load().successfulSignInHint ?: return null
         val stored = decodeSocialAuthState { Json.decodeFromString<StoredCloudSignInHint>(value) }
         return stored.hint.takeIf { stored.configuration == configuration }
@@ -130,17 +161,24 @@ internal class CloudSocialAuthStore(private val credentialStore: CloudCredential
         }
         credentialStore.update { secrets ->
             secrets.copy(pendingSocialSignIn = null, successfulSignInHint = if (pending.rememberSignIn) {
-                Json.encodeToString(StoredCloudSignInHint(pending.configuration, accepted.hint))
+                Json.encodeToString(StoredCloudSignInHint(pending.configuration, accepted.hint.successfulHint()))
             } else {
                 null
             })
         }
     }
 
+    fun rememberEmailSession(configuration: CloudServiceConfiguration, hint: CloudSuccessfulSignInHint) {
+        require(hint.method == CloudSignInMethod.EMAIL)
+        credentialStore.update { secrets ->
+            secrets.copy(successfulSignInHint = Json.encodeToString(StoredCloudSignInHint(configuration, hint)))
+        }
+    }
+
     fun forgetHint() {
         credentialStore.update { secrets ->
             val pending = secrets.pendingSocialSignIn?.let { value ->
-                decodeSocialAuthState { Json.decodeFromString<PendingCloudSocialSignIn>(value) }
+                decodePending(value)
             }
             secrets.copy(
                 successfulSignInHint = null,
@@ -159,4 +197,10 @@ private fun <Result> decodeSocialAuthState(decode: () -> Result): Result {
     } catch (_: IllegalArgumentException) {
         throw IllegalStateException("Encrypted social sign-in state is unsupported. Sign out and forget to clear it before trying again.")
     }
+}
+
+private fun decodePending(value: String): PendingCloudSocialSignIn = decodeSocialAuthState {
+    val fields = Json.parseToJsonElement(value) as? JsonObject
+        ?: throw SerializationException("Pending social sign-in must be an object.")
+    Json.decodeFromJsonElement<PendingCloudSocialSignIn>(JsonObject(mapOf("appleBrowser" to JsonNull) + fields))
 }

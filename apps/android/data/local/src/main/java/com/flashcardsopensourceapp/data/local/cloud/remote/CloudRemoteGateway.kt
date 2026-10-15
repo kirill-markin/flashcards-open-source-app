@@ -28,6 +28,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeSelec
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCommunityProfile
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudFriendInvitationCreateRequest
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudFriendInvitationCreateResponse
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudEmailSession
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboard
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardProfile
@@ -101,6 +102,9 @@ interface CloudRemoteGateway {
     suspend fun validateConfiguration(configuration: CloudServiceConfiguration)
     suspend fun sendCode(email: String, authBaseUrl: String): CloudSendCodeResult
     suspend fun verifyCode(challenge: CloudOtpChallenge, code: String, authBaseUrl: String): StoredCloudCredentials
+    suspend fun verifyCodeSession(challenge: CloudOtpChallenge, code: String, authBaseUrl: String): CloudEmailSession {
+        return CloudEmailSession(verifyCode(challenge, code, authBaseUrl), null)
+    }
     suspend fun refreshIdToken(refreshToken: String, authBaseUrl: String): StoredCloudCredentials
     suspend fun deleteGuestSession(apiBaseUrl: String, guestToken: String)
     suspend fun fetchCloudAccount(apiBaseUrl: String, authorizationHeader: String): CloudAccountSnapshot
