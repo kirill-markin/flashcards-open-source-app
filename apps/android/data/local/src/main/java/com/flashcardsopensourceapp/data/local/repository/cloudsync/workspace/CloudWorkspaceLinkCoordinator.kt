@@ -290,7 +290,7 @@ internal class CloudWorkspaceLinkCoordinator(
 
     suspend fun logout() {
         operationCoordinator.runExclusive {
-            resetCoordinator.resetLocalStateForCloudIdentityChange()
+            resetCoordinator.resetLocalStateForSignOut()
         }
     }
 

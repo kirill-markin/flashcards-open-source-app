@@ -53,6 +53,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeSelec
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCommunityProfile
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudFriendInvitationCreateRequest
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudFriendInvitationCreateResponse
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudEmailSession
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboard
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardProfile
@@ -217,6 +218,12 @@ class CloudRemoteService private constructor(
     override suspend fun sendCode(email: String, authBaseUrl: String): CloudSendCodeResult {
         return authApi.sendCode(email = email, authBaseUrl = authBaseUrl)
     }
+
+    override suspend fun verifyCodeSession(
+        challenge: CloudOtpChallenge,
+        code: String,
+        authBaseUrl: String
+    ): CloudEmailSession = authApi.verifyCodeSession(challenge, code, authBaseUrl)
 
     override suspend fun verifyCode(
         challenge: CloudOtpChallenge,

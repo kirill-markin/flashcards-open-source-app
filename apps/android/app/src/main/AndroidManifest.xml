@@ -58,9 +58,17 @@
 
         <activity
             android:name=".MainHostActivity"
+            android:launchMode="singleTop"
             android:exported="true"
             android:windowSoftInputMode="adjustResize"
-            android:theme="@style/Theme.FlashcardsOpenSourceApp.Starting" />
+            android:theme="@style/Theme.FlashcardsOpenSourceApp.Starting">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="com.nibomo.app" />
+            </intent-filter>
+        </activity>
 
         <!-- Launcher entries for the App icon style setting; LauncherAppIcon.kt enables exactly one.
              The Default entry keeps the `.MainActivity` component name so existing home-screen icons survive updates. -->
