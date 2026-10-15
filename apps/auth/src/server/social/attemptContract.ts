@@ -17,6 +17,13 @@ export type AuthAttemptRequest = Readonly<{
   purpose: AuthPurpose;
   codeChallenge: string | null;
 }>;
+export type EmailAuthAttemptRequest = Readonly<{
+  method: "email";
+  client: SocialClient;
+  purpose: "reauth";
+  codeChallenge: string | null;
+}>;
+export type EmailAuthAttemptResponse = Readonly<{ attempt: string; expiresAt: string }>;
 export type AuthAttemptResponse = Readonly<{
   attempt: string;
   nonce: string;

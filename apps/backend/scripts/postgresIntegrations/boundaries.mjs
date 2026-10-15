@@ -71,6 +71,13 @@ export const createdRolesByMigration = new Map([
 ]);
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
+    migrationFileName: "0191_email_auth_attempt_proofs.sql",
+    expectedMigrationCount: 193,
+    testFiles: Object.freeze([
+      "src/auth/emailAuthAttempt.postgres.integration.ts",
+    ]),
+  }),
+  Object.freeze({
     migrationFileName: "0190_principal_session_invalidation.sql",
     expectedMigrationCount: 192,
     testFiles: Object.freeze([
