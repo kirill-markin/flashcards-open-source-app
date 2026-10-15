@@ -933,3 +933,19 @@
 "settings.account.cloudSignIn.restart" = "Почати знову";
 "settings.account.cloudSignIn.rememberFailed" = "Вхід виконано. Підказку для входу не вдалося зберегти. Спробуйте ще раз або закрийте вікно.";
 "settings.account.cloudSignIn.hintFailed" = "Не вдалося оновити збережену підказку для входу. Спробуйте ще раз.";
+
+"settings.account.methods.title" = "Способи входу";
+"settings.account.methods.link" = "Прив’язати провайдера";
+"settings.account.methods.unlink" = "Відв’язати провайдера";
+"settings.account.methods.reenable" = "Увімкнути провайдера знову";
+"settings.account.methods.generation" = "Покоління";
+"settings.account.methods.readOnly" = "Підтверджені адреси відновлення доступні лише для читання. Доведені лише адреси зі списку.";
+"settings.account.methods.cleanup" = "Очищення ще триває. Оновлюйте до завершення, потім почніть із новим підтвердженням.";
+"settings.account.methods.confirmCurrent" = "Спершу підтвердьте поточний обліковий запис активним способом входу. Це не перемикає запис.";
+"settings.account.methods.confirmNewProvider" = "Тепер підтвердьте обліковий запис провайдера для зміни. Використовуйте потрібний запис.";
+"settings.account.methods.fresh" = "Зміну не завершено або підтвердження прострочено. Оновіть способи й почніть із новим підтвердженням.";
+"settings.account.methods.lastUsable" = "Перед відв’язуванням збережіть іншого активного провайдера або підтверджену адресу відновлення.";
+"settings.account.methods.conflict" = "Провайдер належить іншому обліковому запису. Виберіть інший запис провайдера.";
+"settings.account.methods.changed" = "Спосіб змінився. Оновіть способи й почніть знову.";
+"settings.account.methods.demo" = "Демоакаунти не можуть керувати способами входу. Увійдіть у власний обліковий запис.";
+"settings.account.methods.refreshFailed" = "Не вдалося оновити способи. Оновіть список перед новою зміною.";

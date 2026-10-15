@@ -933,3 +933,19 @@
 "settings.account.cloudSignIn.restart" = "Torna a començar";
 "settings.account.cloudSignIn.rememberFailed" = "Has iniciat sessió. No s’ha pogut desar el recordatori. Torna-ho a provar o tanca.";
 "settings.account.cloudSignIn.hintFailed" = "No s’ha pogut actualitzar l’inici de sessió recordat. Torna-ho a provar.";
+
+"settings.account.methods.title" = "Mètodes d’accés";
+"settings.account.methods.link" = "Vincula un proveïdor";
+"settings.account.methods.unlink" = "Desvincula el proveïdor";
+"settings.account.methods.reenable" = "Reactiva el proveïdor";
+"settings.account.methods.generation" = "Generació";
+"settings.account.methods.readOnly" = "Els correus de recuperació verificats són de només lectura. Només les adreces de la llista estan acreditades.";
+"settings.account.methods.cleanup" = "La neteja està pendent. Actualitza fins que acabi i comença amb una prova nova.";
+"settings.account.methods.confirmCurrent" = "Primer verifica el compte actual amb un mètode d’accés actiu. Això no canvia de compte.";
+"settings.account.methods.confirmNewProvider" = "Ara verifica el compte del proveïdor per al canvi. Fes servir el compte desitjat.";
+"settings.account.methods.fresh" = "El canvi no ha acabat o la prova ha caducat. Actualitza els mètodes i comença amb una prova nova.";
+"settings.account.methods.lastUsable" = "Abans de desvincular, mantén un altre proveïdor actiu o un correu de recuperació verificat.";
+"settings.account.methods.conflict" = "El proveïdor pertany a un altre compte. Tria un altre compte del proveïdor.";
+"settings.account.methods.changed" = "El mètode ha canviat. Actualitza els mètodes i torna a començar.";
+"settings.account.methods.demo" = "Els comptes de demostració no gestionen mètodes d’accés. Entra amb el teu compte.";
+"settings.account.methods.refreshFailed" = "No s’han pogut actualitzar els mètodes. Actualitza’ls abans d’un canvi nou.";

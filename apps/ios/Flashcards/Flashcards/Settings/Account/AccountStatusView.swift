@@ -33,6 +33,7 @@ struct SyncStatusIndicatorView: View {
 struct AccountStatusView: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
 
+    @State private var isAccountMethodsPresented = false
     @State private var isCloudSignInPresented: Bool = false
     @State private var isLogoutConfirmationPresented: Bool = false
     @State private var isLoggingOut: Bool = false
@@ -177,6 +178,10 @@ struct AccountStatusView: View {
                             }
                             .accessibilityIdentifier(UITestIdentifier.accountStatusSignInButton)
                         case .linked:
+                            Button(accountMethodCopy(.title)) { self.isAccountMethodsPresented = true }
+                                .disabled(self.isLoggingOut)
+                                .accessibilityIdentifier("accountStatus.methods")
+
                             Button(aiSettingsLocalized("settings.account.status.syncNow", "Sync now")) {
                                 self.syncNow()
                             }
@@ -190,10 +195,6 @@ struct AccountStatusView: View {
                             Button(aiSettingsLocalized("settings.account.status.switchAccount", "Switch account")) {
                                 self.isCloudSignInPresented = true
                             }
-                            // Closed for the length of the sign-out below, not only the Log out
-                            // button: this one opens the sign-in sheet, and starting a sign-in
-                            // while a sign-out that has already emitted its row is still draining
-                            // would run the two identity changes against each other.
                             .disabled(self.isLoggingOut)
                             .accessibilityIdentifier(UITestIdentifier.accountStatusSwitchAccountButton)
 
@@ -201,9 +202,6 @@ struct AccountStatusView: View {
                                 self.isLogoutConfirmationPresented = true
                             } label: {
                                 HStack(spacing: 8) {
-                                    // The log out this confirms drains the analytics queue before
-                                    // it clears the credentials, so the person who pressed it is
-                                    // waiting in front of this row and is shown so.
                                     if self.isLoggingOut {
                                         ProgressView()
                                     }
@@ -223,6 +221,9 @@ struct AccountStatusView: View {
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.accountStatusScreen)
         .navigationTitle(aiSettingsLocalized("settings.account.status.title", "Account Status"))
+        .sheet(isPresented: self.$isAccountMethodsPresented) {
+            NavigationStack { AccountMethodsView(store: self.store).environment(self.store) }
+        }
         .cloudSignInSheet(
             isPresented: self.$isCloudSignInPresented,
             presentationContext: .standard(originSurface: .settings)

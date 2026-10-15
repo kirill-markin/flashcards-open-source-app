@@ -933,3 +933,19 @@
 "settings.account.cloudSignIn.restart" = "Pradėti iš naujo";
 "settings.account.cloudSignIn.rememberFailed" = "Prisijungta. Prisijungimo užuominos nepavyko išsaugoti. Bandykite dar kartą arba uždarykite.";
 "settings.account.cloudSignIn.hintFailed" = "Nepavyko atnaujinti įsiminto prisijungimo. Bandykite dar kartą.";
+
+"settings.account.methods.title" = "Prisijungimo būdai";
+"settings.account.methods.link" = "Susieti teikėją";
+"settings.account.methods.unlink" = "Atsieti teikėją";
+"settings.account.methods.reenable" = "Vėl įjungti teikėją";
+"settings.account.methods.generation" = "Karta";
+"settings.account.methods.readOnly" = "Patvirtinti atkūrimo el. pašto adresai yra tik skaitomi. Įrodyti tik išvardyti adresai.";
+"settings.account.methods.cleanup" = "Valymas laukia. Atnaujinkite iki pabaigos, tada pradėkite su nauju įrodymu.";
+"settings.account.methods.confirmCurrent" = "Pirmiausia patvirtinkite dabartinę paskyrą aktyviu prisijungimo būdu. Paskyra nebus pakeista.";
+"settings.account.methods.confirmNewProvider" = "Dabar patvirtinkite pakeitimui skirtą teikėjo paskyrą. Naudokite norimą paskyrą.";
+"settings.account.methods.fresh" = "Pakeitimas nebaigtas arba įrodymas nebegalioja. Atnaujinkite būdus ir pradėkite su nauju įrodymu.";
+"settings.account.methods.lastUsable" = "Prieš atsiedami išlaikykite kitą aktyvų teikėją arba patvirtintą atkūrimo el. paštą.";
+"settings.account.methods.conflict" = "Teikėjas priklauso kitai paskyrai. Pasirinkite kitą teikėjo paskyrą.";
+"settings.account.methods.changed" = "Būdas pasikeitė. Atnaujinkite būdus ir pradėkite iš naujo.";
+"settings.account.methods.demo" = "Demonstracinės paskyros negali valdyti prisijungimo būdų. Prisijunkite savo paskyra.";
+"settings.account.methods.refreshFailed" = "Nepavyko atnaujinti būdų. Atnaujinkite prieš naują pakeitimą.";

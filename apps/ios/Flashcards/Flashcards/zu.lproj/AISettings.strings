@@ -933,3 +933,19 @@
 "settings.account.cloudSignIn.restart" = "Qala futhi";
 "settings.account.cloudSignIn.rememberFailed" = "Ungenile ngemvume. Icebo lokungena alikwazanga ukulondolozwa. Zama futhi noma uvale.";
 "settings.account.cloudSignIn.hintFailed" = "Ukungena okukhunjuliwe akukwazanga ukubuyekezwa. Zama futhi.";
+
+"settings.account.methods.title" = "Izindlela zokungena";
+"settings.account.methods.link" = "Xhumanisa umhlinzeki";
+"settings.account.methods.unlink" = "Nqamula umhlinzeki";
+"settings.account.methods.reenable" = "Vumela umhlinzeki futhi";
+"settings.account.methods.generation" = "Isizukulwane";
+"settings.account.methods.readOnly" = "Ama-imeyili okubuyisela aqinisekisiwe afundwa kuphela. Amakheli akulolu hlu kuphela afakazelwe.";
+"settings.account.methods.cleanup" = "Ukuhlanzwa kusalindile. Vuselela kuze kuphele bese uqala ngobufakazi obusha.";
+"settings.account.methods.confirmCurrent" = "Qala uqinisekise i-akhawunti yamanje ngendlela esebenzayo. Lokhu akushintshi i-akhawunti.";
+"settings.account.methods.confirmNewProvider" = "Manje qinisekisa i-akhawunti yomhlinzeki yoshintsho. Sebenzisa i-akhawunti oyifunayo.";
+"settings.account.methods.fresh" = "Ushintsho aluphelanga noma ubufakazi buphelelwe isikhathi. Vuselela izindlela bese uqala ngobufakazi obusha.";
+"settings.account.methods.lastUsable" = "Gcina omunye umhlinzeki osebenzayo noma i-imeyili yokubuyisela eqinisekisiwe ngaphambi kokunqamula.";
+"settings.account.methods.conflict" = "Umhlinzeki ungowenye i-akhawunti. Khetha enye i-akhawunti yomhlinzeki.";
+"settings.account.methods.changed" = "Indlela isishintshile. Vuselela izindlela bese uqala futhi.";
+"settings.account.methods.demo" = "Ama-akhawunti edemo awakwazi ukuphatha izindlela zokungena. Ngena nge-akhawunti yakho.";
+"settings.account.methods.refreshFailed" = "Izindlela azikwazanga ukuvuselelwa. Vuselela ngaphambi koshintsho olusha.";

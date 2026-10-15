@@ -933,3 +933,19 @@
 "settings.account.cloudSignIn.restart" = "Mulai lagi";
 "settings.account.cloudSignIn.rememberFailed" = "Anda sudah masuk. Petunjuk masuk tidak dapat disimpan. Coba lagi atau tutup.";
 "settings.account.cloudSignIn.hintFailed" = "Proses masuk yang diingat tidak dapat diperbarui. Coba lagi.";
+
+"settings.account.methods.title" = "Metode masuk";
+"settings.account.methods.link" = "Tautkan penyedia";
+"settings.account.methods.unlink" = "Lepas tautan penyedia";
+"settings.account.methods.reenable" = "Aktifkan kembali penyedia";
+"settings.account.methods.generation" = "Generasi";
+"settings.account.methods.readOnly" = "Email pemulihan terverifikasi hanya dapat dibaca. Hanya alamat dalam daftar yang terbukti.";
+"settings.account.methods.cleanup" = "Pembersihan tertunda. Segarkan hingga selesai, lalu mulai dengan bukti baru.";
+"settings.account.methods.confirmCurrent" = "Verifikasi akun saat ini dengan metode masuk aktif terlebih dahulu. Ini tidak mengganti akun.";
+"settings.account.methods.confirmNewProvider" = "Sekarang verifikasi akun penyedia untuk perubahan. Gunakan akun yang dimaksud.";
+"settings.account.methods.fresh" = "Perubahan belum selesai atau bukti kedaluwarsa. Segarkan metode, lalu mulai dengan bukti baru.";
+"settings.account.methods.lastUsable" = "Pertahankan penyedia aktif lain atau email pemulihan terverifikasi sebelum melepas tautan.";
+"settings.account.methods.conflict" = "Penyedia ini milik akun lain. Pilih akun penyedia lain.";
+"settings.account.methods.changed" = "Metode ini berubah. Segarkan metode dan mulai lagi.";
+"settings.account.methods.demo" = "Akun demo tidak dapat mengelola metode masuk. Masuk dengan akun Anda sendiri.";
+"settings.account.methods.refreshFailed" = "Metode tidak dapat disegarkan. Segarkan sebelum perubahan baru.";

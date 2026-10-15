@@ -933,3 +933,19 @@
 "settings.account.cloudSignIn.restart" = "ಮತ್ತೆ ಪ್ರಾರಂಭಿಸಿ";
 "settings.account.cloudSignIn.rememberFailed" = "ಸೈನ್ ಇನ್ ಆಗಿದೆ. ಸೈನ್ ಇನ್ ಸುಳಿವನ್ನು ಉಳಿಸಲಾಗಲಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ ಅಥವಾ ಮುಚ್ಚಿ.";
 "settings.account.cloudSignIn.hintFailed" = "ನೆನಪಿಟ್ಟ ಸೈನ್ ಇನ್ ಅನ್ನು ನವೀಕರಿಸಲಾಗಲಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.";
+
+"settings.account.methods.title" = "ಸೈನ್-ಇನ್ ವಿಧಾನಗಳು";
+"settings.account.methods.link" = "ಪೂರೈಕೆದಾರರನ್ನು ಲಿಂಕ್ ಮಾಡಿ";
+"settings.account.methods.unlink" = "ಪೂರೈಕೆದಾರರ ಲಿಂಕ್ ತೆಗೆದುಹಾಕಿ";
+"settings.account.methods.reenable" = "ಪೂರೈಕೆದಾರರನ್ನು ಮತ್ತೆ ಸಕ್ರಿಯಗೊಳಿಸಿ";
+"settings.account.methods.generation" = "ಪೀಳಿಗೆ";
+"settings.account.methods.readOnly" = "ಪರಿಶೀಲಿತ ಮರುಪಡೆಯುವ ಇಮೇಲ್‌ಗಳನ್ನು ಓದಲು ಮಾತ್ರ ಸಾಧ್ಯ. ಪಟ್ಟಿಯ ವಿಳಾಸಗಳು ಮಾತ್ರ ಸಾಬೀತಾಗಿವೆ.";
+"settings.account.methods.cleanup" = "ಸ್ವಚ್ಛಗೊಳಿಸುವಿಕೆ ಬಾಕಿಯಿದೆ. ಮುಗಿಯುವವರೆಗೆ ರಿಫ್ರೆಶ್ ಮಾಡಿ, ಹೊಸ ಪುರಾವೆಯೊಂದಿಗೆ ಪ್ರಾರಂಭಿಸಿ.";
+"settings.account.methods.confirmCurrent" = "ಮೊದಲು ಸಕ್ರಿಯ ಸೈನ್-ಇನ್ ವಿಧಾನದಿಂದ ಪ್ರಸ್ತುತ ಖಾತೆಯನ್ನು ಪರಿಶೀಲಿಸಿ. ಖಾತೆ ಬದಲಾಗುವುದಿಲ್ಲ.";
+"settings.account.methods.confirmNewProvider" = "ಈಗ ಬದಲಾವಣೆಗೆ ಪೂರೈಕೆದಾರರ ಖಾತೆಯನ್ನು ಪರಿಶೀಲಿಸಿ. ಉದ್ದೇಶಿತ ಖಾತೆ ಬಳಸಿ.";
+"settings.account.methods.fresh" = "ಬದಲಾವಣೆ ಮುಗಿದಿಲ್ಲ ಅಥವಾ ಪುರಾವೆ ಅವಧಿ ಮುಗಿದಿದೆ. ವಿಧಾನಗಳನ್ನು ರಿಫ್ರೆಶ್ ಮಾಡಿ ಹೊಸ ಪುರಾವೆಯೊಂದಿಗೆ ಪ್ರಾರಂಭಿಸಿ.";
+"settings.account.methods.lastUsable" = "ಲಿಂಕ್ ತೆಗೆಯುವ ಮೊದಲು ಮತ್ತೊಂದು ಸಕ್ರಿಯ ಪೂರೈಕೆದಾರ ಅಥವಾ ಪರಿಶೀಲಿತ ಮರುಪಡೆಯುವ ಇಮೇಲ್ ಉಳಿಸಿ.";
+"settings.account.methods.conflict" = "ಈ ಪೂರೈಕೆದಾರ ಮತ್ತೊಂದು ಖಾತೆಗೆ ಸೇರಿದ್ದಾರೆ. ಬೇರೆ ಪೂರೈಕೆದಾರರ ಖಾತೆ ಆಯ್ಕೆಮಾಡಿ.";
+"settings.account.methods.changed" = "ವಿಧಾನ ಬದಲಾಗಿದೆ. ವಿಧಾನಗಳನ್ನು ರಿಫ್ರೆಶ್ ಮಾಡಿ ಮತ್ತೆ ಪ್ರಾರಂಭಿಸಿ.";
+"settings.account.methods.demo" = "ಡೆಮೊ ಖಾತೆಗಳು ಸೈನ್-ಇನ್ ವಿಧಾನಗಳನ್ನು ನಿರ್ವಹಿಸಲಾರವು. ನಿಮ್ಮ ಖಾತೆಗೆ ಸೈನ್ ಇನ್ ಮಾಡಿ.";
+"settings.account.methods.refreshFailed" = "ವಿಧಾನಗಳನ್ನು ರಿಫ್ರೆಶ್ ಮಾಡಲಾಗಲಿಲ್ಲ. ಹೊಸ ಬದಲಾವಣೆಗೆ ಮೊದಲು ರಿಫ್ರೆಶ್ ಮಾಡಿ.";

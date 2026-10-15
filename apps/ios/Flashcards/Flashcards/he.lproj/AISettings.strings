@@ -933,3 +933,19 @@
 "settings.account.cloudSignIn.restart" = "התחלה מחדש";
 "settings.account.cloudSignIn.rememberFailed" = "הכניסה הצליחה. לא ניתן היה לשמור את רמז הכניסה. יש לנסות שוב או לסגור.";
 "settings.account.cloudSignIn.hintFailed" = "לא ניתן היה לעדכן את דרך הכניסה השמורה. יש לנסות שוב.";
+
+"settings.account.methods.title" = "שיטות כניסה";
+"settings.account.methods.link" = "קישור ספק";
+"settings.account.methods.unlink" = "ביטול קישור ספק";
+"settings.account.methods.reenable" = "הפעלה מחדש של ספק";
+"settings.account.methods.generation" = "דור";
+"settings.account.methods.readOnly" = "כתובות השחזור המאומתות הן לקריאה בלבד. רק הכתובות ברשימה הוכחו.";
+"settings.account.methods.cleanup" = "ניקוי הספק ממתין. יש לרענן עד לסיום ואז להתחיל עם הוכחה חדשה.";
+"settings.account.methods.confirmCurrent" = "תחילה יש לאמת את החשבון הנוכחי בשיטת כניסה פעילה. החשבון לא יוחלף.";
+"settings.account.methods.confirmNewProvider" = "כעת יש לאמת את חשבון הספק לשינוי. יש להשתמש בחשבון הרצוי.";
+"settings.account.methods.fresh" = "השינוי לא הסתיים או שההוכחה פגה. יש לרענן את השיטות ולהתחיל עם הוכחה חדשה.";
+"settings.account.methods.lastUsable" = "לפני ביטול הקישור יש לשמור ספק פעיל נוסף או כתובת שחזור מאומתת.";
+"settings.account.methods.conflict" = "הספק שייך לחשבון אחר. יש לבחור חשבון ספק אחר.";
+"settings.account.methods.changed" = "השיטה השתנתה. יש לרענן את השיטות ולהתחיל מחדש.";
+"settings.account.methods.demo" = "חשבונות הדגמה אינם יכולים לנהל שיטות כניסה. יש להיכנס לחשבון שלך.";
+"settings.account.methods.refreshFailed" = "לא ניתן לרענן את השיטות. יש לרענן לפני שינוי חדש.";

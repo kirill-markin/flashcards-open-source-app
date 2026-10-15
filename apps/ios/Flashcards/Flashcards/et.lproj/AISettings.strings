@@ -933,3 +933,19 @@
 "settings.account.cloudSignIn.restart" = "Alusta uuesti";
 "settings.account.cloudSignIn.rememberFailed" = "Oled sisse logitud. Sisselogimisvihjet ei saanud salvestada. Proovi uuesti või sulge.";
 "settings.account.cloudSignIn.hintFailed" = "Meelde jäetud sisselogimist ei saanud uuendada. Proovi uuesti.";
+
+"settings.account.methods.title" = "Sisselogimisviisid";
+"settings.account.methods.link" = "Seo teenusepakkuja";
+"settings.account.methods.unlink" = "Eemalda teenusepakkuja seos";
+"settings.account.methods.reenable" = "Luba teenusepakkuja uuesti";
+"settings.account.methods.generation" = "Põlvkond";
+"settings.account.methods.readOnly" = "Kinnitatud taasteaadressid on kirjutuskaitstud. Tõendatud on ainult loetletud aadressid.";
+"settings.account.methods.cleanup" = "Puhastus on ootel. Värskenda lõpuni ja alusta uue tõendiga.";
+"settings.account.methods.confirmCurrent" = "Esmalt kinnita praegune konto aktiivse sisselogimisviisiga. See ei vaheta kontot.";
+"settings.account.methods.confirmNewProvider" = "Nüüd kinnita muudatuse teenusepakkuja konto. Kasuta soovitud kontot.";
+"settings.account.methods.fresh" = "Muudatus ei lõppenud või tõend aegus. Värskenda viise ja alusta uue tõendiga.";
+"settings.account.methods.lastUsable" = "Enne seose eemaldamist säilita teine aktiivne teenusepakkuja või kinnitatud taasteaadress.";
+"settings.account.methods.conflict" = "Teenusepakkuja kuulub teisele kontole. Vali teine teenusepakkuja konto.";
+"settings.account.methods.changed" = "Viis on muutunud. Värskenda viise ja alusta uuesti.";
+"settings.account.methods.demo" = "Demokontod ei halda sisselogimisviise. Logi sisse oma kontoga.";
+"settings.account.methods.refreshFailed" = "Viise ei saanud värskendada. Värskenda enne uut muudatust.";

@@ -933,3 +933,19 @@
 "settings.account.cloudSignIn.restart" = "Yeniden başla";
 "settings.account.cloudSignIn.rememberFailed" = "Giriş yapıldı. Giriş hatırlatıcısı kaydedilemedi. Tekrar deneyin veya kapatın.";
 "settings.account.cloudSignIn.hintFailed" = "Hatırlanan giriş güncellenemedi. Tekrar deneyin.";
+
+"settings.account.methods.title" = "Giriş yöntemleri";
+"settings.account.methods.link" = "Sağlayıcıyı bağla";
+"settings.account.methods.unlink" = "Sağlayıcı bağlantısını kaldır";
+"settings.account.methods.reenable" = "Sağlayıcıyı yeniden etkinleştir";
+"settings.account.methods.generation" = "Nesil";
+"settings.account.methods.readOnly" = "Doğrulanmış kurtarma e-postaları salt okunurdur. Yalnızca listedeki adresler kanıtlanmıştır.";
+"settings.account.methods.cleanup" = "Temizlik bekliyor. Tamamlanana kadar yenileyin, ardından yeni kanıtla başlayın.";
+"settings.account.methods.confirmCurrent" = "Önce mevcut hesabınızı etkin bir giriş yöntemiyle doğrulayın. Bu, hesabı değiştirmez.";
+"settings.account.methods.confirmNewProvider" = "Şimdi değişiklik için sağlayıcı hesabını doğrulayın. İstediğiniz hesabı kullanın.";
+"settings.account.methods.fresh" = "Değişiklik tamamlanmadı veya kanıtın süresi doldu. Yöntemleri yenileyip yeni kanıtla başlayın.";
+"settings.account.methods.lastUsable" = "Bağlantıyı kaldırmadan önce başka etkin bir sağlayıcı veya doğrulanmış kurtarma e-postası tutun.";
+"settings.account.methods.conflict" = "Sağlayıcı başka bir hesaba ait. Başka bir sağlayıcı hesabı seçin.";
+"settings.account.methods.changed" = "Yöntem değişti. Yöntemleri yenileyip yeniden başlayın.";
+"settings.account.methods.demo" = "Demo hesaplar giriş yöntemlerini yönetemez. Kendi hesabınızla giriş yapın.";
+"settings.account.methods.refreshFailed" = "Yöntemler yenilenemedi. Yeni bir değişiklikten önce yenileyin.";

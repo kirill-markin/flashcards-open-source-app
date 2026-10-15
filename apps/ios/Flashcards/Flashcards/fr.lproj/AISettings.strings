@@ -961,3 +961,19 @@
 "settings.account.cloudSignIn.restart" = "Recommencer";
 "settings.account.cloudSignIn.rememberFailed" = "Connexion réussie. Le repère de connexion n’a pas pu être enregistré. Réessayez ou fermez.";
 "settings.account.cloudSignIn.hintFailed" = "La connexion mémorisée n’a pas pu être mise à jour. Réessayez.";
+
+"settings.account.methods.title" = "Méthodes de connexion";
+"settings.account.methods.link" = "Associer un fournisseur";
+"settings.account.methods.unlink" = "Dissocier un fournisseur";
+"settings.account.methods.reenable" = "Réactiver un fournisseur";
+"settings.account.methods.generation" = "Génération";
+"settings.account.methods.readOnly" = "Les adresses de récupération vérifiées sont en lecture seule. Seules les adresses affichées sont prouvées.";
+"settings.account.methods.cleanup" = "Le nettoyage est en attente. Actualisez jusqu’à la fin, puis recommencez avec une nouvelle preuve.";
+"settings.account.methods.confirmCurrent" = "Vérifiez d’abord votre compte actuel avec une méthode active. Cela ne change pas de compte.";
+"settings.account.methods.confirmNewProvider" = "Vérifiez maintenant le compte du fournisseur pour le changement. Utilisez le compte souhaité.";
+"settings.account.methods.fresh" = "Le changement n’a pas abouti ou la preuve a expiré. Actualisez les méthodes puis recommencez avec une nouvelle preuve.";
+"settings.account.methods.lastUsable" = "Gardez un autre fournisseur actif ou une adresse de récupération vérifiée avant de dissocier.";
+"settings.account.methods.conflict" = "Ce fournisseur appartient à un autre compte. Choisissez un autre compte chez ce fournisseur.";
+"settings.account.methods.changed" = "Cette méthode a changé. Actualisez les méthodes et recommencez.";
+"settings.account.methods.demo" = "Les comptes de démonstration ne peuvent pas gérer les méthodes de connexion. Connectez-vous avec votre compte.";
+"settings.account.methods.refreshFailed" = "Impossible d’actualiser les méthodes. Actualisez avant un nouveau changement.";
