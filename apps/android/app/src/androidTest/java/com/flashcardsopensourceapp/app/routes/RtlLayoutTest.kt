@@ -66,6 +66,7 @@ class RtlLayoutTest : FirebaseAppInstrumentationTimeoutTest() {
                 ),
                 onCodeChange = { _ -> },
                 onVerifyCode = {},
+                onShown = {},
                 onShowTechnicalDetails = { _, _ -> },
                 onBack = {}
             )

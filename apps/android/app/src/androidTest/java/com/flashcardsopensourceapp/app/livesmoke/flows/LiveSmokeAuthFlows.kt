@@ -52,6 +52,7 @@ private enum class CloudSignInSendCodeOutcome {
 internal fun LiveSmokeContext.signInWithReviewAccount(reviewEmail: String) {
     openSettingsRow(rowTag = settingsAccountStatusRowTag, rowLabel = "Account status")
     clickText(text = "Sign in or sign up", substring = false)
+    clickTag(tag = "cloud_sign_in_method_email", label = "Email sign-in method")
     runWithInlineRawScreenStateOnFailure(action = "set_review_account_email") {
         clickTag(tag = cloudSignInEmailFieldTag, label = "Email")
         composeRule.onNodeWithTag(cloudSignInEmailFieldTag).performTextReplacement(reviewEmail)

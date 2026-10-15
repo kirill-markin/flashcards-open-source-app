@@ -11,6 +11,7 @@ import com.flashcardsopensourceapp.core.ui.TransientMessageController
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSelection
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
+import com.flashcardsopensourceapp.data.local.repository.CloudSocialSignInRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.feature.settings.cloud.credentialRecovery.CloudCredentialRecoveryGateRoute as CloudCredentialRecoveryGateRouteImpl
 import com.flashcardsopensourceapp.feature.settings.cloud.postAuth.CloudPostAuthRoute as CloudPostAuthRouteImpl
@@ -77,6 +78,7 @@ fun CloudSignInEmailRoute(
 @Composable
 fun CloudSignInCodeRoute(
     uiState: CloudSignInUiState,
+    onShown: () -> Unit,
     onCodeChange: (String) -> Unit,
     onVerifyCode: () -> Unit,
     onShowTechnicalDetails: (String, String) -> Unit,
@@ -84,6 +86,7 @@ fun CloudSignInCodeRoute(
 ) {
     CloudSignInCodeRouteImpl(
         uiState = uiState,
+        onShown = onShown,
         onCodeChange = onCodeChange,
         onVerifyCode = onVerifyCode,
         onShowTechnicalDetails = onShowTechnicalDetails,
@@ -140,16 +143,16 @@ fun CloudCredentialRecoveryGateRoute(
     step: CloudCredentialRecoveryGateStep,
     signInUiState: CloudSignInUiState,
     postAuthUiState: CloudPostAuthUiState,
+    signInEntry: @Composable () -> Unit,
     isEraseConfirmationVisible: Boolean,
     isErasing: Boolean,
     eraseErrorMessage: String,
     eraseErrorTechnicalDetails: String?,
     eraseErrorTechnicalDetailsReportId: String?,
     onSignIn: () -> Unit,
-    onEmailChange: (String) -> Unit,
-    onSendCode: () -> Unit,
     onCodeChange: (String) -> Unit,
     onVerifyCode: () -> Unit,
+    onCodeFormShown: () -> Unit,
     onAutoContinue: () -> Unit,
     onSelectWorkspace: (CloudWorkspaceLinkSelection) -> Unit,
     onRetryPostAuth: () -> Unit,
@@ -166,16 +169,16 @@ fun CloudCredentialRecoveryGateRoute(
         step = step,
         signInUiState = signInUiState,
         postAuthUiState = postAuthUiState,
+        signInEntry = signInEntry,
         isEraseConfirmationVisible = isEraseConfirmationVisible,
         isErasing = isErasing,
         eraseErrorMessage = eraseErrorMessage,
         eraseErrorTechnicalDetails = eraseErrorTechnicalDetails,
         eraseErrorTechnicalDetailsReportId = eraseErrorTechnicalDetailsReportId,
         onSignIn = onSignIn,
-        onEmailChange = onEmailChange,
-        onSendCode = onSendCode,
         onCodeChange = onCodeChange,
         onVerifyCode = onVerifyCode,
+        onCodeFormShown = onCodeFormShown,
         onAutoContinue = onAutoContinue,
         onSelectWorkspace = onSelectWorkspace,
         onRetryPostAuth = onRetryPostAuth,
@@ -190,6 +193,7 @@ fun CloudCredentialRecoveryGateRoute(
 
 fun createCloudSignInViewModelFactory(
     cloudAccountRepository: CloudAccountRepository,
+    cloudSocialSignInRepository: CloudSocialSignInRepository,
     syncRepository: SyncRepository,
     messageController: TransientMessageController,
     analytics: Analytics,
@@ -200,6 +204,7 @@ fun createCloudSignInViewModelFactory(
 ): ViewModelProvider.Factory {
     return com.flashcardsopensourceapp.feature.settings.cloud.signIn.createCloudSignInViewModelFactory(
         cloudAccountRepository = cloudAccountRepository,
+        cloudSocialSignInRepository = cloudSocialSignInRepository,
         syncRepository = syncRepository,
         messageController = messageController,
         analytics = analytics,

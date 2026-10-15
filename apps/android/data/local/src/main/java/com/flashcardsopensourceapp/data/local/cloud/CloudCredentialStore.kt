@@ -42,6 +42,7 @@ internal data class CloudCredentialSecrets(
     val idTokenExpiresAtMillis: Long?,
     val pendingGuestUpgrade: String?,
     val pendingSocialSignIn: String?,
+    val pendingEmailSignIn: String?,
     val successfulSignInHint: String?
 )
 
@@ -72,6 +73,7 @@ internal class CloudCredentialStore(context: Context) {
                     idTokenExpiresAtMillis = null,
                     pendingGuestUpgrade = null,
                     pendingSocialSignIn = null,
+                    pendingEmailSignIn = null,
                     successfulSignInHint = null
                 )
             )
@@ -118,6 +120,7 @@ internal class CloudCredentialStore(context: Context) {
             },
             pendingGuestUpgrade = legacyPreferences.getString(pendingGuestUpgradeKey, null),
             pendingSocialSignIn = null,
+            pendingEmailSignIn = null,
             successfulSignInHint = null
         )
     }
@@ -184,7 +187,7 @@ internal class CloudCredentialStore(context: Context) {
             ?: throw SerializationException("Cloud credential storage must contain an object.")
         // Older encrypted records predate these optional fields; retain the existing cipher format.
         val fields = JsonObject(
-            mapOf("pendingSocialSignIn" to JsonNull, "successfulSignInHint" to JsonNull) + storedFields
+            mapOf("pendingSocialSignIn" to JsonNull, "pendingEmailSignIn" to JsonNull, "successfulSignInHint" to JsonNull) + storedFields
         )
         return Json.decodeFromJsonElement<CloudCredentialSecrets>(fields)
     }

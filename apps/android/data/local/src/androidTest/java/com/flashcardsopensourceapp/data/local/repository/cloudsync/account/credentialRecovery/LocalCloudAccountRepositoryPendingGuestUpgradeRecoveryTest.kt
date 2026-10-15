@@ -114,7 +114,9 @@ class LocalCloudAccountRepositoryPendingGuestUpgradeRecoveryTest {
         try {
             repository.completeGuestUpgrade(
                 linkContext = linkContext,
-                selection = CloudWorkspaceLinkSelection.Existing(workspaceId = selectedWorkspace.workspaceId)
+                selection = CloudWorkspaceLinkSelection.Existing(workspaceId = selectedWorkspace.workspaceId),
+                onGuestCompletionStarted = {},
+                onGuestCompletionFinished = {}
             )
             throw AssertionError("Expected guest upgrade finalization to fail during linked hydration.")
         } catch (error: IllegalStateException) {
@@ -229,7 +231,9 @@ class LocalCloudAccountRepositoryPendingGuestUpgradeRecoveryTest {
         try {
             repository.completeGuestUpgrade(
                 linkContext = linkContext,
-                selection = CloudWorkspaceLinkSelection.Existing(workspaceId = selectedWorkspace.workspaceId)
+                selection = CloudWorkspaceLinkSelection.Existing(workspaceId = selectedWorkspace.workspaceId),
+                onGuestCompletionStarted = {},
+                onGuestCompletionFinished = {}
             )
             throw AssertionError("Expected guest upgrade completion response loss.")
         } catch (error: IllegalStateException) {
