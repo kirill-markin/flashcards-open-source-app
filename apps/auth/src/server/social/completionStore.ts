@@ -1,10 +1,12 @@
 import { randomBytes } from "node:crypto";
+import type { CognitoEmailPrincipal } from "../cognito/cognitoAuth.js";
 import { createProviderSignInHint, encryptSignInHint, decryptSignInHint, type ProviderSignInHint } from "./signInHint.js";
 import { transaction, type DatabaseExecutor } from "../../db.js";
 import { verifyEnrollmentMailboxOtp } from "./mailboxProof.js";
 import {
   enrollAuthoritativeProviderPrincipal, enrollProviderPrincipalWithMailboxProofInExecutor,
-  type EnrolledProviderPrincipal, type PrincipalEnrollmentResult,
+  prepareAuthoritativeLoginPrincipal, enrollAuthoritativeLoginPrincipalInExecutor,
+  type EnrolledProviderPrincipal, type PrincipalEnrollmentResult, type ProviderEnrollmentProof,
 } from "./principalEnrollment.js";
 import {
   beginAuthAttemptEnrollment, beginAuthAttemptMailboxVerification, recordAuthAttemptMailboxRequired, authAttemptBindingHash, authHandleHash, type ClaimedAuthAttempt,
@@ -14,7 +16,8 @@ import {
 } from "./attemptContract.js";
 
 async function persistCompletion(
-  executor: DatabaseExecutor, attempt: ClaimedAuthAttempt, enrolled: EnrolledProviderPrincipal,
+  executor: DatabaseExecutor, attempt: Pick<ClaimedAuthAttempt, "handle" | "claimId" | "purpose" | "provider">,
+  enrolled: EnrolledProviderPrincipal,
 ): Promise<AuthCompletionResponse> {
   const completion = randomBytes(32).toString("base64url");
   const parameters = [authHandleHash(attempt.handle), attempt.claimId, enrolled.principal.cognitoSubject,
@@ -36,11 +39,31 @@ export type AuthoritativeAttemptResult =
   | Readonly<{ status: "completed"; response: AuthCompletionResponse }>
   | Readonly<{ status: "verification_required"; enrollment: Exclude<PrincipalEnrollmentResult, EnrolledProviderPrincipal>; attempt: ClaimedAuthAttempt }>;
 
-/** An ambiguous external success is restart-only: a fresh attempt must obtain actual mailbox proof on collision. */
+type AuthoritativeLoginResult =
+  | Readonly<{ status: "completed"; response: AuthCompletionResponse }>
+  | Readonly<{ status: "verification_required"; enrollment: Exclude<PrincipalEnrollmentResult, EnrolledProviderPrincipal> }>;
+
+/** Caller owns the transaction so a refused/expired completion rolls back new provider metadata. */
+export async function completeAuthoritativeLoginInExecutor(
+  executor: DatabaseExecutor, attempt: Pick<ClaimedAuthAttempt, "handle" | "claimId" | "provider">,
+  proof: ProviderEnrollmentProof, principal: CognitoEmailPrincipal | null,
+): Promise<AuthoritativeLoginResult> {
+  if (attempt.provider !== proof.provider) throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
+  const enrolled = await enrollAuthoritativeLoginPrincipalInExecutor(executor, proof, principal);
+  if (enrolled.status === "verification_required") return { status: "verification_required", enrollment: enrolled };
+  return { status: "completed", response: await persistCompletion(executor, { ...attempt, purpose: "login" }, enrolled) };
+}
+
 export async function completeAuthoritativeAuthAttempt(attempt: ClaimedAuthAttempt): Promise<AuthoritativeAttemptResult> {
   const proof = attempt.secrets.proof;
   if (proof === null) throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
   await beginAuthAttemptEnrollment(attempt);
+  if (attempt.purpose === "login") {
+    const principal = await prepareAuthoritativeLoginPrincipal(proof);
+    const result = await transaction((executor) => completeAuthoritativeLoginInExecutor(executor, attempt, proof, principal));
+    return result.status === "completed" ? result
+      : { ...result, attempt: await recordAuthAttemptMailboxRequired(attempt) };
+  }
   const enrolled = await enrollAuthoritativeProviderPrincipal(proof);
   if (enrolled.status === "verification_required") {
     return { status: "verification_required", enrollment: enrolled, attempt: await recordAuthAttemptMailboxRequired(attempt) };
