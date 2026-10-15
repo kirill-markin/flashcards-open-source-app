@@ -1,14 +1,20 @@
 # Native sign-in acceptance
 
 These checks require an authorized real account and a correctly registered, signed Android app.
-Source review and Android CI do not establish provider acceptance. No device checks below have
-been performed for this change. Keep account identifiers, email, codes, tokens, return handles,
-URLs and nonce values out of analytics and shared artifacts.
+Source review and Android CI do not establish provider acceptance. Record the exact SHA,
+package/signing identity, build, OS, device, locale, UTC window and actual results. Keep account
+identifiers, email, codes, tokens, return handles, URLs and nonce values out of analytics and shared artifacts.
 
-Use the full sequence on Android 17 / API 37. Repeat the essential chooser, Google, Apple return
-and email recovery checks on API 30, 31 and 33; the same implementation also supports API 32.
+Use the full sequence and existing full native smoke selection on Android 17 / API 37.
+Repeat the essential chooser, Google, Apple return and email recovery checks on API 30, 31 and 33;
+the same implementation also supports API 32.
 Use the existing release procedure for any later device run or Play draft; this checklist does
 not authorize dispatch or publication.
+For instrumentation, declare `isAutomation=true` and verify
+`automation_environment_resolved isAutomation=true` before interacting, using the existing
+[Android automation detector](../app/src/main/java/com/flashcardsopensourceapp/app/automation/AutomationEnvironment.kt).
+Automation suppresses client product facts and cannot establish their positive delivery; use a
+separately authorized real collection-enabled session for those observations.
 
 1. Open sign-in from Settings, review prompt, catalog import and the credential-recovery gate.
    Confirm one sign-in/create-account entry, Google first and primary, envelope Email second,
@@ -46,7 +52,11 @@ not authorize dispatch or publication.
 7. Sign out normally, choose Email, request a fresh 8-digit code and verify the same stable user
    and workspace as a previously proved open-email Google/Apple account. Hidden Apple returns
    through Apple; never infer or request its underlying personal email. Retain working relay
-   recovery without making hidden-relay OTP a prerequisite. Confirm the review demo still works.
+   recovery without making hidden-relay OTP a prerequisite. Fresh authoritative Gmail/verified
+   Workspace `hd` and verified Apple shared email must avoid redundant OTP; historical
+   `email_verified` or external Google email alone is not current mailbox authority. Never merge
+   different existing accounts or demo/real accounts. Personal-email add/change is deferred.
+   Confirm the review demo still works.
 8. Cover empty guest, bound guest, merge-required guest, workspace choice, credential restoration,
    guest-local recovery, failed initial sync and restart during workspace completion. Existing
    cards/reviews/workspaces must survive; retry must retain the chosen workspace and use the
@@ -54,10 +64,18 @@ not authorize dispatch or publication.
    accepted session is waiting at workspace choice or POST_AUTH: preserve that screen and pending
    recovery. Repeat after actual mailbox completion has been stored. An account-ready fact requires
    completion, not merely credentials or a workspace-selection screen.
-9. Opt in to remembering and finish each method. Expect only a small top-right Last used badge
-   on the existing successful method button, with fixed method order. Hover/focus shows only the
-   actually known successful email; badge touch opens compact masked/reveal/copy/forget controls.
-   Ordinary button taps still sign in. Unknown provider email has no invented email detail.
+   Refresh/relaunch, use cards/reviews/workspaces offline and sync after reconnecting; existing
+   purchases must remain attached to the intended account.
+9. Opt in to remembering and finish each method. Expect a small Last used badge floating
+   above/across the existing successful button's upper-right edge, without increasing button
+   height, shifting logo/label, reordering or duplicating methods. In the actual scrolling Column,
+   inspect and tap its upper half; the previous row's lower-right area must not intercept it or
+   activate the wrong method. Deliberate hover, keyboard navigation and badge tap/keyboard activation
+   show only compact masked known-email text, with no Show, Copy, Forget or other hint controls.
+   Initial/programmatic focus and focus restored after provider cancellation must not open it.
+   Check Back/Escape, outside dismissal and restored keyboard focus. Badge activation must not
+   authenticate; ordinary method taps must. Unknown email stays absent. Keep optional Remember
+   and explicit Forget outside the hint. Inspect narrow widths, large text, TalkBack and RTL.
    Cancel or fail at verification, workspace selection and initial sync: preserve the prior hint.
    Restart after Email credentials are installed but before initial sync finishes: the encrypted
    deferred hint retains only the actual verified identity, bound to that session and server.
@@ -68,6 +86,7 @@ not authorize dispatch or publication.
 10. Opt out and finish successfully: the previous hint clears only after completion. Ordinary
     sign-out retains an opted-in hint; Forget, Sign out and forget, account deletion and local
     erase clear it. Explicit Forget during pending completion must not be undone on resume.
+    Fail the protected clear: require an actionable error and no forgotten confirmation.
 11. With collection enabled, inspect the existing factual event stream for actual method selection,
     SDK/browser launch, verified provider result, code request/submission/result, accepted stored
     session, guest upgrade and account ready. Ordinary workspace completion must not emit an
@@ -96,8 +115,8 @@ a fresh attempt to finalize a hint; it does not establish an unusable account or
 
 ## Internal account-method boundary
 
-The public Settings consumer is a separate change. After its source gate, an authorized native
-consumer uses `AppGraph.cloudAccountMethodsRepository`; these steps exercise the real module
+The [Settings consumer](../feature/settings/src/main/java/com/flashcardsopensourceapp/feature/settings/account/methods/AccountMethodsRoute.kt)
+uses `AppGraph.cloudAccountMethodsRepository`; these steps exercise the real module
 and deployed API, without demo identities or manufactured provider credentials.
 
 1. In a linked real account, call `loadMethods()`. Check actual active/disabled methods,
@@ -164,6 +183,10 @@ operator-authorized real account; the demo must show its explicit management ref
    Apple last-usable refusals. Metadata refresh must show the actual server result. During
    revocation cleanup, refresh without submitting proof. After cleanup use entirely fresh current
    and new Google proof. Only Apple’s matching APPLE_PROVED browser attempt offers Resume.
+   Repeat same-provider linking and require the explicit already-linked outcome with unchanged
+   generation. For authorized lifecycle changes, check actual Apple revocation/cleanup and refusal
+   of old principal JWT/refresh credentials, then fresh usable sign-in after cleanup completes.
+   Cloud checks and scheduled cleanup alone do not prove real provider revocation.
 4. Exercise genuine mailbox send/verify, wrong code, timeout, cancellation, denied Apple return,
    duplicate/foreign return, and killed-process restoration at every protected phase. A failed or
    ambiguous one-use request disables replay, refreshes metadata and offers Start again. If the
