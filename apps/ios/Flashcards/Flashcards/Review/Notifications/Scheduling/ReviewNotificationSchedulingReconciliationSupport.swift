@@ -83,7 +83,6 @@ extension FlashcardsStore {
                 return
             }
             if shouldClearReviewReminderAttention {
-                self.clearReviewReminderAttention()
                 do {
                     try await center.setBadgeCount(0)
                 } catch {
