@@ -950,3 +950,14 @@
 "ai.consent.withdrawalBody" = "关闭后将停止新的 AI 请求，但不会删除现有聊天或已发送给 OpenAI 的数据。";
 "ai.consent.withdrawalFailed" = "此设备上的 AI 数据共享已关闭。你的选择尚未同步，请在联网后重试。";
 "ai.consent.retrySync" = "重试保存选择";
+"settings.account.cloudSignIn.unifiedTitle" = "登录或创建账户";
+"settings.account.cloudSignIn.remember" = "在此设备上记住此次登录";
+"settings.account.cloudSignIn.lastUsed" = "上次使用";
+"settings.account.cloudSignIn.showEmail" = "显示电子邮箱";
+"settings.account.cloudSignIn.forget" = "忘记此次登录";
+"settings.account.cloudSignIn.signOutForget" = "退出并忘记";
+"settings.account.cloudSignIn.mailboxPrompt" = "请验证邮箱访问权限。输入 6–8 位数字验证码，必要时检查垃圾邮件。";
+"settings.account.cloudSignIn.freshAttempt" = "登录未完成。请重新开始以继续。";
+"settings.account.cloudSignIn.restart" = "重新开始";
+"settings.account.cloudSignIn.rememberFailed" = "已登录，但无法保存登录提示。请重试或关闭。";
+"settings.account.cloudSignIn.hintFailed" = "无法更新已记住的登录信息。请重试。";

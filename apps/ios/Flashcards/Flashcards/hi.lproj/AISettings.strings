@@ -950,3 +950,14 @@
 "ai.consent.withdrawalBody" = "इसे बंद करने से नए AI अनुरोध रुक जाते हैं। मौजूदा चैट या OpenAI को पहले भेजा गया डेटा मिटाया नहीं जाता।";
 "ai.consent.withdrawalFailed" = "इस डिवाइस पर AI के साथ डेटा साझा करना बंद है। आपका चयन अभी सिंक नहीं हुआ है; कनेक्शन मिलने पर फिर कोशिश करें।";
 "ai.consent.retrySync" = "चयन सहेजने की फिर कोशिश करें";
+"settings.account.cloudSignIn.unifiedTitle" = "साइन इन करें या खाता बनाएँ";
+"settings.account.cloudSignIn.remember" = "इस डिवाइस पर यह साइन इन याद रखें";
+"settings.account.cloudSignIn.lastUsed" = "पिछली बार इस्तेमाल किया";
+"settings.account.cloudSignIn.showEmail" = "ईमेल दिखाएँ";
+"settings.account.cloudSignIn.forget" = "यह साइन इन भूलें";
+"settings.account.cloudSignIn.signOutForget" = "साइन आउट करें और भूलें";
+"settings.account.cloudSignIn.mailboxPrompt" = "अपने ईमेल का ऐक्सेस सत्यापित करें। 6–8 अंकों का कोड डालें। ज़रूरत हो तो स्पैम देखें।";
+"settings.account.cloudSignIn.freshAttempt" = "साइन इन पूरा नहीं हुआ। जारी रखने के लिए फिर से शुरू करें।";
+"settings.account.cloudSignIn.restart" = "फिर से शुरू करें";
+"settings.account.cloudSignIn.rememberFailed" = "साइन इन हो गया। साइन इन का संकेत सेव नहीं हो सका। फिर कोशिश करें या बंद करें।";
+"settings.account.cloudSignIn.hintFailed" = "याद रखा गया साइन इन अपडेट नहीं हो सका। फिर कोशिश करें।";

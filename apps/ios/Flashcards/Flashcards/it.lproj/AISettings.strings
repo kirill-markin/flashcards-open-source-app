@@ -922,3 +922,14 @@
 "ai.consent.withdrawalBody" = "La disattivazione blocca le nuove richieste di IA. Non elimina le chat esistenti né i dati già inviati a OpenAI.";
 "ai.consent.withdrawalFailed" = "La condivisione con l’IA è disattivata su questo dispositivo. La tua scelta non è ancora sincronizzata; riprova quando hai una connessione.";
 "ai.consent.retrySync" = "Riprova a salvare la scelta";
+"settings.account.cloudSignIn.unifiedTitle" = "Accedi o crea un account";
+"settings.account.cloudSignIn.remember" = "Ricorda questo accesso sul dispositivo";
+"settings.account.cloudSignIn.lastUsed" = "Ultimo utilizzo";
+"settings.account.cloudSignIn.showEmail" = "Mostra e-mail";
+"settings.account.cloudSignIn.forget" = "Dimentica questo accesso";
+"settings.account.cloudSignIn.signOutForget" = "Esci e dimentica";
+"settings.account.cloudSignIn.mailboxPrompt" = "Verifica l’accesso alla tua e-mail. Inserisci il codice di 6–8 cifre. Controlla lo spam se necessario.";
+"settings.account.cloudSignIn.freshAttempt" = "L’accesso non è stato completato. Ricomincia per continuare.";
+"settings.account.cloudSignIn.restart" = "Ricomincia";
+"settings.account.cloudSignIn.rememberFailed" = "Accesso effettuato. Impossibile salvare il promemoria di accesso. Riprova o chiudi.";
+"settings.account.cloudSignIn.hintFailed" = "Impossibile aggiornare l’accesso memorizzato. Riprova.";

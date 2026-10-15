@@ -922,3 +922,14 @@
 "ai.consent.withdrawalBody" = "Izslēgšana aptur jaunus MI pieprasījumus. Tā neizdzēš esošās sarunas vai datus, kas jau nosūtīti uz OpenAI.";
 "ai.consent.withdrawalFailed" = "Datu kopīgošana ar MI šajā ierīcē ir izslēgta. Jūsu izvēle vēl nav sinhronizēta; mēģiniet vēlreiz, kad ir savienojums.";
 "ai.consent.retrySync" = "Mēģināt vēlreiz saglabāt izvēli";
+"settings.account.cloudSignIn.unifiedTitle" = "Piesakieties vai izveidojiet kontu";
+"settings.account.cloudSignIn.remember" = "Atcerēties šo pieteikšanos ierīcē";
+"settings.account.cloudSignIn.lastUsed" = "Pēdējoreiz izmantots";
+"settings.account.cloudSignIn.showEmail" = "Rādīt e-pasta adresi";
+"settings.account.cloudSignIn.forget" = "Aizmirst šo pieteikšanos";
+"settings.account.cloudSignIn.signOutForget" = "Izrakstīties un aizmirst";
+"settings.account.cloudSignIn.mailboxPrompt" = "Apstipriniet piekļuvi e-pastam. Ievadiet 6–8 ciparu kodu. Vajadzības gadījumā pārbaudiet mēstules.";
+"settings.account.cloudSignIn.freshAttempt" = "Pieteikšanās netika pabeigta. Lai turpinātu, sāciet no jauna.";
+"settings.account.cloudSignIn.restart" = "Sākt no jauna";
+"settings.account.cloudSignIn.rememberFailed" = "Esat pieteicies. Pieteikšanās norādi neizdevās saglabāt. Mēģiniet vēlreiz vai aizveriet.";
+"settings.account.cloudSignIn.hintFailed" = "Saglabāto pieteikšanos neizdevās atjaunināt. Mēģiniet vēlreiz.";

@@ -332,7 +332,7 @@ struct RootTabView: View {
 
     var body: some View {
         Group {
-            if let recoveryState = store.cloudCredentialRecoveryState {
+            if let recoveryState = store.cloudCredentialRecoveryState ?? store.cloudSignInAttempt.credentialRecoveryPresentation {
                 CloudCredentialRecoveryGateView(recoveryState: recoveryState)
                     .environment(store)
                     .overlay {

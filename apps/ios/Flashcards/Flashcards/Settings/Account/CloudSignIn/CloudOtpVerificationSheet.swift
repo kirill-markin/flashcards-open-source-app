@@ -87,11 +87,13 @@ struct CloudOtpVerificationSheet: View {
                                     .keyboardType(.numberPad)
                                     .textContentType(.oneTimeCode)
                                     .focused(self.$isCodeFieldFocused)
+                                    .accessibilityIdentifier("cloudSignIn.otpCode")
 
                                 Button(aiSettingsLocalized("common.continue", "Continue")) {
                                     self.verifyCode()
                                 }
                                 .disabled(self.isRequestInFlight || normalizedOtpCode(self.store.cloudSignInAttempt.otpCode).isEmpty)
+                                .accessibilityIdentifier("cloudSignIn.verifyCode")
                             } else {
                                 Button(aiSettingsLocalized("settings.account.cloudSignIn.resendCode", "Resend code")) {
                                     self.resendCode()
@@ -109,6 +111,7 @@ struct CloudOtpVerificationSheet: View {
                     return
                 }
 
+                Analytics.track(.authCodeFormShown(method: .email, screen: self.signInStepSurface))
                 self.scheduleCodeFieldFocus()
             }
             .onChange(of: self.store.cloudSignInAttempt.otpChallengeState) { _, nextChallengeState in
@@ -125,6 +128,9 @@ struct CloudOtpVerificationSheet: View {
             // `CloudSignInSheet` does for the email field; neither `onChange` above fires for a
             // rebuild, because nothing about the attempt changed.
             .onAppear {
+                if self.currentChallenge != nil, self.store.cloudSignInAttempt.otpChallengeState == .active {
+                    Analytics.track(.authCodeFormShown(method: .email, screen: self.signInStepSurface))
+                }
                 self.scheduleCodeFieldFocusIfCodeEntryVisible()
             }
             .toolbar {
@@ -235,16 +241,18 @@ struct CloudOtpVerificationSheet: View {
         self.store.cloudSignInAttempt.isVerifyingOtpCode = true
 
         Task { @MainActor in
+            guard self.store.cloudSignInAttempt.id == self.attemptId else { return }
             let captureContext = self.store.beginTechnicalErrorCaptureContext()
             defer {
                 self.finishVerifyingCode()
             }
 
             do {
-                let verifiedContext = try await self.store.verifyCloudOtp(
-                    challenge: currentChallenge,
-                    code: nextCode,
-                    captureContext: captureContext
+                Analytics.track(.authCodeSubmitted(method: .email, screen: self.signInStepSurface))
+                let verifiedContext = try await self.store.cloudNativeSignIn.verifyEmailCode(
+                    challenge: currentChallenge, code: nextCode,
+                    configuration: try self.store.currentCloudServiceConfiguration(),
+                    remember: self.store.cloudSignInAttempt.rememberSignIn
                 )
                 // The verify request outlives this sheet, so its result belongs to the attempt it was
                 // started for and is spent against neither the screen state nor the post-auth work of
@@ -264,6 +272,8 @@ struct CloudOtpVerificationSheet: View {
                     self.store.cloudSignInAttempt.otpAuthErrorPresentation = nil
                 }
 
+                self.store.cloudSignInAttempt.usesNativeSession = true
+                Analytics.track(.authCodeVerificationFinished(method: .email, outcome: .verified, screen: self.signInStepSurface))
                 self.onVerified(verifiedContext)
             } catch {
                 // Its failure belongs to that same attempt, and is neither reported nor settled
@@ -274,6 +284,8 @@ struct CloudOtpVerificationSheet: View {
                 if isRequestCancellationError(error: error) {
                     return
                 }
+                Analytics.track(.authCodeVerificationFinished(method: .email,
+                    outcome: nativeCodeVerificationOutcome(error), screen: self.signInStepSurface))
                 self.store.reportCloudSignInFailure(reason: analyticsSignInFailureReason(error: error))
                 // What the challenge has left, and the message the person reads about it, belong to
                 // the code step this verify was started for. Without this a superseded challenge's
@@ -316,6 +328,7 @@ struct CloudOtpVerificationSheet: View {
         }
 
         let currentEmail = self.currentEmail
+        Analytics.track(.authCodeResendRequested(method: .email, screen: self.signInStepSurface))
         // Raised before the task for the same reason `verifyCode` raises its flag there.
         self.store.cloudSignInAttempt.isResendingOtpCode = true
 
@@ -339,7 +352,9 @@ struct CloudOtpVerificationSheet: View {
 
                     // Another code was sent, which is another `signin_code_requested`. Reported at
                     // attempt level, where this request's failure is reported too.
-                    Analytics.track(.signInCodeRequested(screen: self.signInStepSurface))
+                    Analytics.track(.signInCodeRequestedWithMethod(method: .email, screen: self.signInStepSurface))
+                    Analytics.track(.authCodeRequestFinished(method: .email, action: .resend,
+                        outcome: .accepted, screen: self.signInStepSurface))
 
                     // The challenge and the empty entry state it comes with belong to the code step
                     // this resend was started for. A step that replaced it is holding a newer
@@ -363,6 +378,8 @@ struct CloudOtpVerificationSheet: View {
                 if isRequestCancellationError(error: error) {
                     return
                 }
+                Analytics.track(.authCodeRequestFinished(method: .email, action: .resend,
+                    outcome: nativeCodeRequestOutcome(error), screen: self.signInStepSurface))
                 self.store.reportCloudSignInFailure(reason: analyticsSignInFailureReason(error: error))
                 // And out of a code step that replaced the one this resend was started for, which is
                 // showing a challenge this failure says nothing about.

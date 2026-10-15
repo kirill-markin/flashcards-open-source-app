@@ -922,3 +922,14 @@
 "ai.consent.withdrawalBody" = "Вимкнення зупиняє нові запити до ШІ. Воно не видаляє наявні чати чи дані, уже надіслані до OpenAI.";
 "ai.consent.withdrawalFailed" = "Передавання даних ШІ вимкнено на цьому пристрої. Ваш вибір ще не синхронізовано; спробуйте знову, коли з’явиться з’єднання.";
 "ai.consent.retrySync" = "Повторити збереження вибору";
+"settings.account.cloudSignIn.unifiedTitle" = "Увійти або створити обліковий запис";
+"settings.account.cloudSignIn.remember" = "Запам’ятати цей вхід на пристрої";
+"settings.account.cloudSignIn.lastUsed" = "Останній вхід";
+"settings.account.cloudSignIn.showEmail" = "Показати пошту";
+"settings.account.cloudSignIn.forget" = "Забути цей вхід";
+"settings.account.cloudSignIn.signOutForget" = "Вийти й забути";
+"settings.account.cloudSignIn.mailboxPrompt" = "Підтвердьте доступ до пошти. Введіть код із 6–8 цифр. За потреби перевірте спам.";
+"settings.account.cloudSignIn.freshAttempt" = "Вхід не завершено. Почніть знову, щоб продовжити.";
+"settings.account.cloudSignIn.restart" = "Почати знову";
+"settings.account.cloudSignIn.rememberFailed" = "Вхід виконано. Підказку для входу не вдалося зберегти. Спробуйте ще раз або закрийте вікно.";
+"settings.account.cloudSignIn.hintFailed" = "Не вдалося оновити збережену підказку для входу. Спробуйте ще раз.";
