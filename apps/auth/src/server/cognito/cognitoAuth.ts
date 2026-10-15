@@ -9,6 +9,7 @@ import {
   getNormalizedCognitoErrorType,
   type CognitoOperation,
 } from "./cognitoErrors.js";
+import { CognitoJwtVerifier } from "aws-jwt-verify";
 import { log, maskEmail } from "../logger.js";
 
 type CognitoErrorResponse = Readonly<{
@@ -153,36 +154,83 @@ function getProvisioningClient(): CognitoIdentityProviderClient {
   return provisioningClient;
 }
 
-async function createPasswordlessUser(email: string): Promise<void> {
+export type CognitoEmailPrincipal = Readonly<{
+  cognitoSubject: string;
+  cognitoUsername: string;
+  email: string;
+}>;
+
+function getUserPoolId(): string {
   const userPoolId = process.env.COGNITO_USER_POOL_ID ?? "";
   if (userPoolId === "") throw new Error("COGNITO_USER_POOL_ID is not configured");
+  return userPoolId;
+}
 
+function rethrowProvisioningError(error: unknown): never {
+  if (!(error instanceof CognitoIdentityProviderServiceException)) throw error;
+  throw createCognitoTypedError({
+    operation: "AdminCreateUser",
+    providerStatusCode: error.$metadata.httpStatusCode ?? 500,
+    cognitoType: error.name,
+    reasonCode: "reasonCode" in error && typeof error.reasonCode === "string" ? error.reasonCode : null,
+    message: error.message,
+  });
+}
+
+async function createPasswordlessUser(email: string): Promise<void> {
   try {
-    // SUPPRESS prevents an invitation; EMAIL_OTP delivers the only sign-in message.
-    // With passwordless enabled, omitting TemporaryPassword creates no password:
-    // https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_AdminCreateUser.html
     await getProvisioningClient().send(new AdminCreateUserCommand({
-      UserPoolId: userPoolId,
-      Username: email,
-      MessageAction: "SUPPRESS",
-      ForceAliasCreation: false,
-      UserAttributes: [
-        { Name: "email", Value: email },
-        { Name: "email_verified", Value: "false" },
-      ],
+      UserPoolId: getUserPoolId(), Username: email, MessageAction: "SUPPRESS", ForceAliasCreation: false,
+      UserAttributes: [{ Name: "email", Value: email }, { Name: "email_verified", Value: "false" }],
     }));
   } catch (error) {
-    if (!(error instanceof CognitoIdentityProviderServiceException)) throw error;
-    throw createCognitoTypedError({
-      operation: "AdminCreateUser",
-      providerStatusCode: error.$metadata.httpStatusCode ?? 500,
-      cognitoType: error.name,
-      reasonCode: "reasonCode" in error && typeof error.reasonCode === "string"
-        ? error.reasonCode
-        : null,
-      message: error.message,
+    rethrowProvisioningError(error);
+  }
+}
+
+/** Only freshly verified authoritative provider email may call this; collision grants no authority. */
+export async function createProvedEmailPrincipal(email: string): Promise<CognitoEmailPrincipal | null> {
+  try {
+    const result = await getProvisioningClient().send(new AdminCreateUserCommand({
+      UserPoolId: getUserPoolId(), Username: email, MessageAction: "SUPPRESS", ForceAliasCreation: false,
+      UserAttributes: [{ Name: "email", Value: email }, { Name: "email_verified", Value: "true" }],
+    }));
+    const user = result.User;
+    const subject = user?.Attributes?.find((attribute) => attribute.Name === "sub")?.Value;
+    const actualEmail = user?.Attributes?.find((attribute) => attribute.Name === "email")?.Value;
+    const verified = user?.Attributes?.find((attribute) => attribute.Name === "email_verified")?.Value;
+    if (typeof subject !== "string" || subject === "" || typeof user?.Username !== "string" || user.Username === ""
+      || typeof actualEmail !== "string" || actualEmail.toLowerCase() !== email || verified !== "true") {
+      throw new Error("Cognito AdminCreateUser did not return the proved email and immutable principal");
+    }
+    return { cognitoSubject: subject, cognitoUsername: user.Username, email };
+  } catch (error) {
+    if (error instanceof CognitoIdentityProviderServiceException
+      && (error.name === "UsernameExistsException" || error.name === "AliasExistsException")) return null;
+    rethrowProvisioningError(error);
+  }
+}
+
+let emailPrincipalVerifier: ReturnType<typeof CognitoJwtVerifier.create> | undefined;
+
+/** Called with the result of this request's real EMAIL_OTP challenge, never a caller-supplied token. */
+export async function verifyEmailOtpPrincipal(email: string, code: string, session: string): Promise<CognitoEmailPrincipal> {
+  const tokens = await verifyEmailOtp(email, code, session);
+  if (emailPrincipalVerifier === undefined) {
+    emailPrincipalVerifier = CognitoJwtVerifier.create({
+      userPoolId: getUserPoolId(), tokenUse: "id", clientId: getClientId(), graceSeconds: 0,
     });
   }
+  const payload = await emailPrincipalVerifier.verify(tokens.idToken);
+  const username = payload["cognito:username"];
+  const now = Math.floor(Date.now() / 1_000);
+  if (typeof payload.sub !== "string" || payload.sub === "" || typeof username !== "string" || username === ""
+    || typeof payload.email !== "string" || payload.email.toLowerCase() !== email || payload.email_verified !== true
+    || !Number.isSafeInteger(payload.auth_time) || (payload.auth_time as number) < now - 60
+    || (payload.auth_time as number) > now + 30) {
+    throw new Error("Cognito EMAIL_OTP did not return a fresh verified mailbox principal");
+  }
+  return { cognitoSubject: payload.sub, cognitoUsername: username, email };
 }
 
 function extractRequiredStringField(
