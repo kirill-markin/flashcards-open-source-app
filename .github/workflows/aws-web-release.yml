@@ -184,8 +184,10 @@ jobs:
           cache: npm
           cache-dependency-path: apps/backend/package-lock.json
 
-      - name: Install backend dependencies
-        run: npm ci --prefix apps/backend
+      - name: Install PostgreSQL integration dependencies
+        run: |
+          npm ci --prefix apps/backend
+          npm ci --prefix apps/auth
 
       # A service container would pull before any step could log in, and
       # anonymous ECR Public pulls hit a shared data limit.

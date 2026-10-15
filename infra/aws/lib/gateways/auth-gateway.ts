@@ -366,7 +366,7 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
   });
 
   authFn.addToRolePolicy(new cdk.aws_iam.PolicyStatement({
-    actions: ["cognito-idp:AdminCreateUser", "cognito-idp:AdminUserGlobalSignOut"],
+    actions: ["cognito-idp:AdminCreateUser", "cognito-idp:AdminGetUser", "cognito-idp:AdminUserGlobalSignOut"],
     resources: [cdk.Stack.of(scope).formatArn({
       service: "cognito-idp",
       resource: "userpool",
