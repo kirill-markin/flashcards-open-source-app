@@ -1,3 +1,4 @@
+import { normalizeSupportedLoginPageLocale } from "../browser/loginPageLocale.js";
 import { randomBytes } from "node:crypto";
 import { Hono } from "hono";
 import type { AuthAppEnv } from "../../server/apiErrors.js";
@@ -6,7 +7,6 @@ import { AuthAttemptError, type AuthAttemptResponse } from "../../server/social/
 import { browserAuthOrigin, createBrowserState, requireBrowserRedirect, writeBrowserState } from "../../server/social/browserState.js";
 import { parseCompletionHandle, parseProviderTarget } from "../../server/social/publicContract.js";
 import { getPublicAuthMethods, requireSignInProvider } from "../../server/social/publicMethods.js";
-import { readAuthAnalyticsContext, reportAuthFact } from "../../server/analytics/signInFunnel.js";
 import { accountAttempt, accountBinding, accountProof, accountTransport } from "./accountTransport.js";
 import { providerAuthorizationUrl } from "./browserStart.js";
 import { readSocialJson, requireSocialRequest, socialErrorResponse } from "./http.js";
@@ -47,10 +47,11 @@ app.post("/api/account/provider-methods/link", async (c) => {
     }
     const method = getPublicAuthMethods("web").methods[request.provider];
     if (!method.available || method.transport !== "browser") throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
+    const locale = typeof fields.locale === "string" ? normalizeSupportedLoginPageLocale(fields.locale) : null;
+    if (fields.locale !== undefined && locale === null) throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
     const state = createBrowserState(authOrigin, request.provider, response.attempt, response.expiresAt,
-      { client: "web", browserSecret: browser.secret, redirectUri: redirectUri! }, readAuthAnalyticsContext(c), intent);
+      { client: "web", browserSecret: browser.secret, redirectUri: redirectUri!, ...(locale === null ? {} : { locale }) }, { screen: "settings", uiLocale: locale }, intent);
     writeBrowserState(c, state);
-    await reportAuthFact(c, { eventName: "auth_provider_requested", method: request.provider });
     return c.json({ authorizationUrl: providerAuthorizationUrl(request.provider, method.audience, state.state, response),
       expiresAt: response.expiresAt });
   } catch (error) {
