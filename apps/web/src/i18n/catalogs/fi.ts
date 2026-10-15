@@ -1512,6 +1512,12 @@ const fiCatalog: TranslationCatalog = {
       value: "Poista",
     },
   },
+  browserSignInPrivacy: {
+    forget: "Unohda kirjautumistiedot",
+    signOutForget: "Kirjaudu ulos ja unohda",
+    forgotten: "Kirjautumistiedot on unohdettu.",
+    error: "Kirjautumistietoja ei voitu muuttaa. Salli kirjautumissivuston tiedot ja yritä uudelleen.",
+  },
   accountStatus: {
     title: "Tilin tila",
     subtitle: "Tarkastele nykyistä kirjautunutta tiliä ja selainistuntoa.",

@@ -1,3 +1,4 @@
+import { forgetBrowserSignInInformation } from "../api/browserHints";
 import { useCallback, useEffect, useState, type ReactElement } from "react";
 import { useAppData } from "../appData";
 import { clearAllLocalBrowserData } from "../appData/session/browserSessionRecovery";
@@ -148,6 +149,8 @@ export function AccountDeletionRecoveryGate(props: AccountDeletionRecoveryGatePr
               primeSessionCsrfToken(persistedCsrfToken);
             }
 
+            await forgetBrowserSignInInformation();
+            indexedDbOpenRecoveryState.throwIfFailed();
             markAccountDeletionAttemptDispatched();
             try {
               await deleteMyAccount(deleteAccountConfirmationText);

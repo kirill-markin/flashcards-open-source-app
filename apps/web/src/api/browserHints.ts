@@ -2,6 +2,7 @@ import { getAppConfig } from "../config";
 
 export const browserHintsBridgePath = "/browser-hints";
 export type AcceptedBrowserSignInMethod = "email" | "google" | "apple";
+let informationGeneration = 0;
 type BridgeOperation = "consume" | "forget";
 type BridgeReply = Readonly<{ protocol: "nibomo-auth-hints-v1"; requestId: string }> & (
   | Readonly<{ status: "accepted"; method: AcceptedBrowserSignInMethod }>
@@ -83,9 +84,15 @@ function requireSuccess(reply: BridgeReply): void {
     : "The current sign-in session could not be verified. Check connectivity, refresh the session, and retry.");
 }
 
+export function readBrowserSignInInformationGeneration(): number {
+  return informationGeneration;
+}
+
 /** Call only after the real account/workspace acceptance completes. Missing historical context has no attribution. */
 export async function consumeAcceptedBrowserSignInMethod(): Promise<AcceptedBrowserSignInMethod | null> {
+  const generation = informationGeneration;
   const reply = await requestBridge("consume");
+  if (generation !== informationGeneration) return null;
   requireSuccess(reply);
   if (reply.status === "accepted") return reply.method;
   if (reply.status === "absent") return null;
@@ -94,6 +101,7 @@ export async function consumeAcceptedBrowserSignInMethod(): Promise<AcceptedBrow
 
 /** Also works after logout: it clears presentation data without requiring a session. */
 export async function forgetBrowserSignInInformation(): Promise<void> {
+  informationGeneration += 1;
   const reply = await requestBridge("forget");
   requireSuccess(reply);
   if (reply.status !== "forgotten") throw new Error("Browser sign-in hint bridge did not confirm forgetting. Reload and retry.");

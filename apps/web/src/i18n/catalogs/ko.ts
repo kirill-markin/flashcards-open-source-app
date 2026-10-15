@@ -1512,6 +1512,12 @@ const koCatalog: TranslationCatalog = {
       value: "삭제",
     },
   },
+  browserSignInPrivacy: {
+    forget: "로그인 정보 잊기",
+    signOutForget: "로그아웃하고 잊기",
+    forgotten: "로그인 정보를 삭제했습니다.",
+    error: "로그인 정보를 변경할 수 없습니다. 인증 사이트의 데이터 저장을 허용하고 다시 시도하세요.",
+  },
   accountStatus: {
     title: "계정 상태",
     subtitle: "현재 로그인한 계정과 브라우저 세션을 확인하세요.",

@@ -1512,6 +1512,12 @@ const guCatalog: TranslationCatalog = {
       value: "કાઢી નાખો",
     },
   },
+  browserSignInPrivacy: {
+    forget: "સાઇન ઇન માહિતી ભૂલી જાઓ",
+    signOutForget: "સાઇન આઉટ કરો અને ભૂલી જાઓ",
+    forgotten: "સાઇન ઇન માહિતી ભૂલી દેવામાં આવી છે.",
+    error: "સાઇન ઇન માહિતી બદલી શકાઈ નથી. પ્રમાણીકરણ સાઇટનો ડેટા મંજૂર કરો અને ફરી પ્રયાસ કરો.",
+  },
   accountStatus: {
     title: "ખાતાની સ્થિતિ",
     subtitle: "વર્તમાન સાઇન-ઇન કરેલું ખાતું અને બ્રાઉઝર સત્ર જુઓ.",

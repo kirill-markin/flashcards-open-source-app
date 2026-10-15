@@ -1512,6 +1512,12 @@ const urCatalog: TranslationCatalog = {
       value: "حذف کریں",
     },
   },
+  browserSignInPrivacy: {
+    forget: "سائن ان معلومات بھولیں",
+    signOutForget: "سائن آؤٹ کریں اور بھولیں",
+    forgotten: "سائن ان معلومات بھلا دی گئیں۔",
+    error: "سائن ان معلومات تبدیل نہیں ہو سکیں۔ تصدیقی سائٹ کے ڈیٹا کی اجازت دیں اور دوبارہ کوشش کریں۔",
+  },
   accountStatus: {
     title: "اکاؤنٹ کی حالت",
     subtitle: "موجودہ سائن اِن اکاؤنٹ اور براؤزر کا سیشن دیکھیں۔",

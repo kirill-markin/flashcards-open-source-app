@@ -81,6 +81,8 @@ export const browserHintStorageScript = `
       return copyHint(stored.hint);
     }
 
+    function isRemembering() { return read(local(), preferenceKey) === generation(); }
+
     function enableRemembering() {
       return exclusive(function() { write(local(), preferenceKey, generation()); });
     }
@@ -168,9 +170,9 @@ export const browserHintStorageScript = `
     }
 
     async function acceptOptional(result) {
-      try { await accept(result); } catch (error) { reportFailure(error); }
+      try { await accept(result); return true; } catch (error) { reportFailure(error); return false; }
     }
 
-    return { readHint, enableRemembering, beginAttempt, accept, consume, forget, beginOptional, acceptOptional };
+    return { readHint, isRemembering, enableRemembering, beginAttempt, accept, consume, forget, beginOptional, acceptOptional };
   })();
 `;

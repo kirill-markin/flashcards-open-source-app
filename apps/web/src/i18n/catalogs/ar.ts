@@ -1512,6 +1512,12 @@ const arCatalog: TranslationCatalog = {
       value: "حذف",
     },
   },
+  browserSignInPrivacy: {
+    forget: "نسيان معلومات تسجيل الدخول",
+    signOutForget: "تسجيل الخروج والنسيان",
+    forgotten: "تم نسيان معلومات تسجيل الدخول.",
+    error: "تعذّر تحديث معلومات الدخول. اسمح ببيانات موقع المصادقة وأعد المحاولة.",
+  },
   accountStatus: {
     title: "حالة الحساب",
     subtitle: "راجع الحساب الحالي المسجّل دخوله وجلسة المتصفح.",
