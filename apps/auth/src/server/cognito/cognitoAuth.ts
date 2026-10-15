@@ -10,6 +10,7 @@ import {
   type CognitoOperation,
 } from "./cognitoErrors.js";
 import { CognitoJwtVerifier } from "aws-jwt-verify";
+import { assertAppleRelayDeliveryAllowed } from "../social/appleNotifications.js";
 import { log, maskEmail } from "../logger.js";
 
 type CognitoErrorResponse = Readonly<{
@@ -291,6 +292,7 @@ function extractChallengeResponse(
 }
 
 export const initiateEmailOtp = async (email: string): Promise<InitiateAuthResult> => {
+  await assertAppleRelayDeliveryAllowed(email);
   const clientId = getClientId();
 
   const initiateAuth = async (): Promise<Record<string, unknown>> =>

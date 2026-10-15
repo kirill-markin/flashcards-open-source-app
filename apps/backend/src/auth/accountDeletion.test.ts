@@ -300,7 +300,8 @@ test("deleteAccountForAuthenticatedUser rereads the mapping under the identity l
       if (text.startsWith("SELECT deletion_id, cognito_subject FROM auth.cognito_deletion_jobs")) {
         return createQueryResult<Row>(stagedJobs.map((row) => row as unknown as Row));
       }
-      if (text.includes("auth.verified_login_emails") || text.startsWith("DELETE FROM auth.cognito_")
+      if (text.includes("auth.verified_login_emails") || text === "SELECT auth.stage_deleted_apple_revocations($1)"
+        || text.startsWith("DELETE FROM auth.cognito_")
         || text.startsWith("INSERT INTO auth.deleted_accounts")) return createQueryResult<Row>([]);
 
       if (

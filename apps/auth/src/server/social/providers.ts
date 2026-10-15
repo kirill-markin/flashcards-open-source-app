@@ -54,8 +54,8 @@ class ProviderJwksFetcher implements Fetcher {
 // Shared cache coalesces refreshes and retains the library's ten-second unknown-kid penalty box.
 export const providerJwksCache = new SimpleJwksCache({ fetcher: new ProviderJwksFetcher() });
 
-export function createProviderVerifier(issuer: string, audience: string, jwksUri: string) {
-  return JwtVerifier.create({ issuer, audience, jwksUri, graceSeconds: 0,
+export function createProviderVerifier(issuer: string, audience: string | ReadonlyArray<string>, jwksUri: string) {
+  return JwtVerifier.create({ issuer, audience: typeof audience === "string" ? audience : [...audience], jwksUri, graceSeconds: 0,
     customJwtCheck: ({ header }) => {
       if (header.alg !== "RS256") throw new SocialProofError("PROVIDER_PROOF_INVALID");
     },
