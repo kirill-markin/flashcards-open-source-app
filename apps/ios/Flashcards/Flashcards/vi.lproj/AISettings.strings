@@ -922,3 +922,14 @@
 "ai.consent.withdrawalBody" = "Tắt tính năng này sẽ dừng các yêu cầu AI mới. Các cuộc trò chuyện hiện có và dữ liệu đã gửi tới OpenAI sẽ không bị xóa.";
 "ai.consent.withdrawalFailed" = "Chia sẻ dữ liệu với AI đã tắt trên thiết bị này. Lựa chọn của bạn chưa được đồng bộ; hãy thử lại khi có kết nối.";
 "ai.consent.retrySync" = "Thử lưu lựa chọn lại";
+"settings.account.cloudSignIn.unifiedTitle" = "Đăng nhập hoặc tạo tài khoản";
+"settings.account.cloudSignIn.remember" = "Ghi nhớ lần đăng nhập này trên thiết bị";
+"settings.account.cloudSignIn.lastUsed" = "Dùng lần cuối";
+"settings.account.cloudSignIn.showEmail" = "Hiện email";
+"settings.account.cloudSignIn.forget" = "Quên lần đăng nhập này";
+"settings.account.cloudSignIn.signOutForget" = "Đăng xuất và quên";
+"settings.account.cloudSignIn.mailboxPrompt" = "Xác minh quyền truy cập email. Nhập mã gồm 6–8 chữ số. Kiểm tra thư rác nếu cần.";
+"settings.account.cloudSignIn.freshAttempt" = "Chưa hoàn tất đăng nhập. Hãy bắt đầu lại để tiếp tục.";
+"settings.account.cloudSignIn.restart" = "Bắt đầu lại";
+"settings.account.cloudSignIn.rememberFailed" = "Đã đăng nhập. Không lưu được gợi ý đăng nhập. Hãy thử lại hoặc đóng.";
+"settings.account.cloudSignIn.hintFailed" = "Không cập nhật được lần đăng nhập đã ghi nhớ. Hãy thử lại.";

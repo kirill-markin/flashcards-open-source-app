@@ -8,7 +8,8 @@ final class CloudGoogleAuthProvider {
     func authorize(
         login: CloudSocialLoginAttempt,
         methods: CloudAuthMethods,
-        presentation: CloudNativeAuthPresentation
+        presentation: CloudNativeAuthPresentation,
+        onRequested: () -> Void
     ) async throws -> CloudSocialProviderProof {
         guard !Self.isAuthorizing else { throw CloudNativeAuthError.alreadyInProgress }
         let metadata = try validateNativeProviderAttempt(login: login, methods: methods, provider: .google)
@@ -28,6 +29,7 @@ final class CloudGoogleAuthProvider {
             Self.isAuthorizing = false
         }
         let token: String = try await withCheckedThrowingContinuation { continuation in
+            onRequested()
             signIn.signIn(withPresenting: presentation.viewController,
                 hint: nil, additionalScopes: nil, nonce: login.response.nonce) { result, error in
                 if let error {

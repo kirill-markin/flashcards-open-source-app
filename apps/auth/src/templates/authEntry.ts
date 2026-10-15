@@ -1,5 +1,6 @@
 import type { LoginPageLocale } from "../routes/browser/loginPageLocale.js";
 import { getPublicAuthMethods } from "../server/social/publicMethods.js";
+import { browserHintStorageScript } from "./browserHints.js";
 import { AUTH_ENTRY_COPY } from "./authEntryCopy.js";
 
 const googleIcon = `<svg viewBox="0 0 48 48" aria-hidden="true" focusable="false">
@@ -69,6 +70,7 @@ export function renderOtherMethods(locale: LoginPageLocale, id: string): string 
 
 // Uses native navigation so provider authorization stays in the current browser and its cookie context.
 export const authEntryScript = `
+  ${browserHintStorageScript}
   var stepMethods = document.getElementById("step-methods");
   var methodButtons = stepMethods.querySelectorAll(".auth-method");
   var providerStatus = document.getElementById("provider-status");
@@ -78,6 +80,7 @@ export const authEntryScript = `
       form.elements.redirect_uri.value = returnUri;
       form.elements.screen.disabled = analyticsScreen !== "signin" || collectionDisabled;
       form.addEventListener("submit", function() {
+        browserHints.beginOptional(form.querySelector("button").id === "signin-google" ? "google" : "apple");
         stepMethods.setAttribute("aria-busy", "true");
         providerStatus.textContent = entryCopy.opening;
       });

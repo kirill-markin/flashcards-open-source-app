@@ -120,6 +120,10 @@ extension LiveSmokeTestCase {
                 identifier: LiveSmokeIdentifier.cloudSignInScreen,
                 timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
             )
+            try self.tapButton(
+                identifier: LiveSmokeIdentifier.cloudSignInEmailMethodButton,
+                timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+            )
             try self.typeTextSafely(
                 reviewEmail,
                 intoElementWithIdentifier: LiveSmokeIdentifier.cloudSignInEmailField,

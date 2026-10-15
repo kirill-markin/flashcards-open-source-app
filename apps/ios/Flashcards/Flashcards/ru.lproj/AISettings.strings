@@ -950,3 +950,14 @@
 "ai.consent.withdrawalBody" = "Отключение остановит новые запросы к ИИ. Оно не удалит существующие чаты или данные, уже отправленные в OpenAI.";
 "ai.consent.withdrawalFailed" = "Передача данных ИИ отключена на этом устройстве. Ваш выбор ещё не синхронизирован; попробуйте снова, когда появится соединение.";
 "ai.consent.retrySync" = "Повторить сохранение выбора";
+"settings.account.cloudSignIn.unifiedTitle" = "Войти или создать аккаунт";
+"settings.account.cloudSignIn.remember" = "Запомнить этот вход на устройстве";
+"settings.account.cloudSignIn.lastUsed" = "Последний вход";
+"settings.account.cloudSignIn.showEmail" = "Показать почту";
+"settings.account.cloudSignIn.forget" = "Забыть этот вход";
+"settings.account.cloudSignIn.signOutForget" = "Выйти и забыть";
+"settings.account.cloudSignIn.mailboxPrompt" = "Подтвердите доступ к почте. Введите код из 6–8 цифр. При необходимости проверьте спам.";
+"settings.account.cloudSignIn.freshAttempt" = "Вход не завершён. Начните заново, чтобы продолжить.";
+"settings.account.cloudSignIn.restart" = "Начать заново";
+"settings.account.cloudSignIn.rememberFailed" = "Вход выполнен. Подсказку для входа не удалось сохранить. Повторите попытку или закройте окно.";
+"settings.account.cloudSignIn.hintFailed" = "Не удалось обновить сохранённую подсказку для входа. Повторите попытку.";

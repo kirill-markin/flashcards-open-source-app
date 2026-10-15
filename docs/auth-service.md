@@ -305,8 +305,16 @@ checks do not prove real Apple login, token revocation, or private-relay OTP rec
 
 ## Account sign-in methods
 
+Browser-local presentation metadata and manual bridge acceptance are described in
+[Browser sign-in hints](browser-sign-in-hints.md).
+
 The authenticated transport contract is defined in [public request/result types](../apps/auth/src/server/social/publicContract.ts),
 [configured endpoints](../apps/auth/src/server/social/publicMethods.ts), and [session/CSRF adapters](../apps/auth/src/routes/social/accountTransport.ts).
 [Provider mutations](../apps/auth/src/server/social/accountMethods.ts) and [current-email reauthentication](../apps/auth/src/server/social/currentEmailReauth.ts)
 share the existing attempt ledger. [Cloud consumers](../apps/auth/src/integration/accountMethodsGate.ts) exercise signed demo-session refusals and reachable transport guards on both auth hosts;
 non-demo management success, browser CSRF bootstrap, actual provider proof, mailbox delivery, and native SDK acceptance require the release acceptance flows.
+
+`GET /api/account/login-methods` also returns sorted, distinct `verifiedRecoveryEmails` from the current
+account's proved mailbox registry, excluding Apple relay, demo and deleted principals. An empty list
+means no stored proved non-relay address; email recovery remains `read_only` and is not disabled.
+Profile/provider emails and remembered sign-in hints are not recovery authority.

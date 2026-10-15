@@ -34,7 +34,11 @@ private struct CloudPendingNativeSession {
 @MainActor
 @Observable
 final class CloudNativeSignInCoordinator {
-    private(set) var stage: CloudNativeSignInStage = .idle
+    private(set) var stage: CloudNativeSignInStage = .idle {
+        didSet { self.onStageChanged?(self.stage) }
+    }
+    @ObservationIgnored var onStageChanged: ((CloudNativeSignInStage) -> Void)?
+    @ObservationIgnored var onProviderRequested: ((CloudAuthProvider) -> Void)?
     private(set) var isWorking = false
     private(set) var mailboxChallenge: CloudSocialMailboxChallenge?
     private(set) var linkContext: CloudWorkspaceLinkContext?
@@ -101,12 +105,15 @@ final class CloudNativeSignInCoordinator {
             let login = try await self.social.beginLogin(provider: provider, methods: methods, authBaseUrl: configuration.authBaseUrl)
             try self.checkCurrent(epoch)
             self.stage = .requestingProviderCredential(provider)
+            let onProviderRequested = self.onProviderRequested
             let proof: CloudSocialProviderProof
             switch provider {
             case .apple:
-                proof = try await self.apple.authorize(login: login, methods: methods, presentation: presentation)
+                proof = try await self.apple.authorize(login: login, methods: methods, presentation: presentation,
+                    onRequested: { onProviderRequested?(provider) })
             case .google:
-                proof = try await self.google.authorize(login: login, methods: methods, presentation: presentation)
+                proof = try await self.google.authorize(login: login, methods: methods, presentation: presentation,
+                    onRequested: { onProviderRequested?(provider) })
             }
             try self.checkCurrent(epoch)
             self.stage = .credentialReceived(provider)

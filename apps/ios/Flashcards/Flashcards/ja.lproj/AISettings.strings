@@ -950,3 +950,14 @@
 "ai.consent.withdrawalBody" = "オフにすると、新しいAIリクエストが停止します。既存のチャットや、すでにOpenAIに送信したデータは削除されません。";
 "ai.consent.withdrawalFailed" = "AIとのデータ共有はこのデバイスでオフになっています。選択はまだ同期されていません。接続時にもう一度お試しください。";
 "ai.consent.retrySync" = "選択の保存を再試行";
+"settings.account.cloudSignIn.unifiedTitle" = "ログインまたはアカウント作成";
+"settings.account.cloudSignIn.remember" = "このデバイスでログイン方法を記憶";
+"settings.account.cloudSignIn.lastUsed" = "前回使用";
+"settings.account.cloudSignIn.showEmail" = "メールアドレスを表示";
+"settings.account.cloudSignIn.forget" = "このログイン情報を忘れる";
+"settings.account.cloudSignIn.signOutForget" = "ログアウトして忘れる";
+"settings.account.cloudSignIn.mailboxPrompt" = "メールへのアクセスを確認してください。6～8桁のコードを入力し、必要に応じて迷惑メールも確認してください。";
+"settings.account.cloudSignIn.freshAttempt" = "ログインが完了しませんでした。続行するには最初からやり直してください。";
+"settings.account.cloudSignIn.restart" = "最初からやり直す";
+"settings.account.cloudSignIn.rememberFailed" = "ログインしましたが、ログインのヒントを保存できませんでした。再試行するか閉じてください。";
+"settings.account.cloudSignIn.hintFailed" = "記憶したログイン情報を更新できませんでした。再試行してください。";

@@ -20,6 +20,7 @@ import agentVerifyCode from "./routes/agent/agentVerifyCode.js";
 import sendCode from "./routes/browser/sendCode.js";
 import verifyCode from "./routes/browser/verifyCode.js";
 import loginPage from "./routes/browser/loginPage.js";
+import browserHints from "./routes/browser/browserHints.js";
 import refreshSession from "./routes/browser/refreshSession.js";
 import refreshToken from "./routes/browser/refreshToken.js";
 import revokeToken from "./routes/browser/revokeToken.js";
@@ -351,6 +352,7 @@ function createMountedApp(basePath: string): Hono<AuthAppEnv> {
   app.route("/", sendCode);
   app.route("/", verifyCode);
   app.route("/", loginPage);
+  app.route("/", browserHints);
   app.route("/", refreshSession);
   app.route("/", refreshToken);
   app.route("/", revokeToken);

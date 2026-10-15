@@ -193,6 +193,11 @@ async function browserTransport(origin, provider, parameters) {
 
 for (const origin of origins) {
   for (const client of clients) {
+    const accountMethods = await request(origin, `/api/account/login-methods?client=${client}`, null);
+    assert.equal(accountMethods.status, 401);
+    assert.equal(accountMethods.body.code, "SESSION_REQUIRED");
+    assert.equal("verifiedRecoveryEmails" in accountMethods.body, false);
+
     const metadata = await request(origin, `/api/auth-methods?client=${client}`, null);
     assert.equal(metadata.status, 200);
     assert.equal(metadata.body.client, client);
