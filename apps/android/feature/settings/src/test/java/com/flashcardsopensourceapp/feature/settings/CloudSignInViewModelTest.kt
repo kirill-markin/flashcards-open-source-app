@@ -94,6 +94,8 @@ class CloudSignInViewModelTest {
         }
         advanceUntilIdle()
 
+        viewModel.cancelSignIn()
+        viewModel.startSignIn()
         viewModel.updateEmail("second@example.com")
         val secondOutcome = viewModel.sendCode()
         advanceUntilIdle()

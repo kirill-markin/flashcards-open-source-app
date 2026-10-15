@@ -208,6 +208,15 @@ class LocalSyncRepository(
                     syncLocalStore = syncLocalStore,
                     workspaceForkRecoveryMode = CloudWorkspaceForkRecoveryMode.ENABLED
                 )
+                if (preferencesStore.currentCloudSettings().cloudState == CloudAccountState.LINKED) {
+                    withContext(Dispatchers.IO) {
+                        preferencesStore.loadCredentials()?.let { credentials ->
+                            preferencesStore.socialAuthStore.completeEmailSession(
+                                preferencesStore.currentServerConfiguration(), credentials.refreshToken
+                            )
+                        }
+                    }
+                }
                 syncStatusState.value = SyncStatusSnapshot(
                     status = SyncStatus.Idle,
                     lastSuccessfulSyncAtMillis = System.currentTimeMillis(),

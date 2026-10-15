@@ -7,7 +7,6 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.flashcardsopensourceapp.core.ui.TransientMessageController
-import com.flashcardsopensourceapp.core.ui.isHostActivityStarted
 import com.flashcardsopensourceapp.core.ui.nextAppTechnicalErrorReportId
 import com.flashcardsopensourceapp.core.ui.renderTechnicalErrorDetails
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
@@ -17,6 +16,12 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkCont
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSelection
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspacePostAuthRoute
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
+import com.flashcardsopensourceapp.data.local.repository.CloudSocialSignInRepository
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsAuthMethod
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsAuthCodeRequestAction
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsAuthCodeRequestOutcome
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsAuthCodeVerificationOutcome
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsAuthGuestUpgradeOutcome
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.feature.settings.R
 import com.flashcardsopensourceapp.feature.settings.SettingsStringResolver
@@ -109,6 +114,27 @@ class CloudSignInViewModel(
      */
     private val pendingSignOutReport: PendingSignOutReport = PendingSignOutReport()
 ) : ViewModel() {
+    private var socialRepository: CloudSocialSignInRepository? = null
+    private var socialAttemptId: String? = null
+    private var initiatingMethod: AnalyticsAuthMethod = AnalyticsAuthMethod.EMAIL
+    private var sessionAcceptedReported: Boolean = false
+    private var emailAttemptOpen: Boolean = false
+    lateinit var providerSignIn: CloudProviderSignInController
+        private set
+
+    fun attachSocialRepository(repository: CloudSocialSignInRepository) {
+        check(socialRepository == null)
+        socialRepository = repository
+        providerSignIn = CloudProviderSignInController(repository, viewModelScope, analytics, signInStepSurface, originSurface, strings) {
+                attempt, method, context, selection ->
+            socialAttemptId = attempt
+            initiatingMethod = method
+            val id = nextAuthAttemptId(draftState.value)
+            draftState.update { startCloudVerifyCodeAttempt(it, id) }
+            publishVerifiedLinkContext(id, context, false, false)
+            if (selection != null) draftState.update { it.copy(pendingSelection = selection) }
+        }
+    }
     private val draftState = MutableStateFlow(
         value = initialCloudSignInDraftState()
     )
@@ -315,10 +341,16 @@ class CloudSignInViewModel(
             )
         }
         isSignInAttemptOpen = false
+        emailAttemptOpen = false
         return true
     }
 
     suspend fun sendCode(): CloudSendCodeNavigationOutcome {
+        if (draftState.value.isSendingCode || draftState.value.isVerifyingCode) return CloudSendCodeNavigationOutcome.NoNavigation
+        initiatingMethod = AnalyticsAuthMethod.EMAIL
+        sessionAcceptedReported = false
+        emailAttemptOpen = true
+        socialAttemptId = null
         val authAttemptId = nextAuthAttemptId(draftState.value)
         draftState.update { state ->
             startCloudSendCodeAttempt(state = state, authAttemptId = authAttemptId)
@@ -331,8 +363,10 @@ class CloudSignInViewModel(
                     }
                     trackSignInStep(
                         authAttemptId = authAttemptId,
-                        event = AnalyticsEvent.SignInCodeRequested(screen = signInStepSurface)
+                        event = AnalyticsEvent.SignInCodeRequestedWithMethod(initiatingMethod, signInStepSurface)
                     )
+                    analytics.track(AnalyticsEvent.AuthCodeRequestFinished(initiatingMethod,
+                        AnalyticsAuthCodeRequestAction.INITIAL, AnalyticsAuthCodeRequestOutcome.ACCEPTED, signInStepSurface))
                     draftState.update { state ->
                         acceptCloudOtpChallenge(
                             state = state,
@@ -346,7 +380,7 @@ class CloudSignInViewModel(
                 is CloudSendCodeResult.Verified -> {
                     trackSignInStep(
                         authAttemptId = authAttemptId,
-                        event = AnalyticsEvent.SignInSucceeded(screen = signInStepSurface)
+                        event = AnalyticsEvent.SignInSucceededWithMethod(initiatingMethod, signInStepSurface)
                     )
                     val linkContext = cloudAccountRepository.prepareVerifiedSignIn(result.credentials)
                     val didPublish = publishVerifiedLinkContext(
@@ -372,6 +406,8 @@ class CloudSignInViewModel(
                 return CloudSendCodeNavigationOutcome.NoNavigation
             }
             trackSignInFailed(reason = analyticsSignInFailureReason(error = error))
+            analytics.track(AnalyticsEvent.AuthCodeRequestFinished(initiatingMethod,
+                AnalyticsAuthCodeRequestAction.INITIAL, cloudCodeRequestOutcome(error), signInStepSurface))
             val errorPresentation = createSendCodeErrorPresentation(
                 error = error,
                 strings = strings
@@ -388,7 +424,9 @@ class CloudSignInViewModel(
     }
 
     suspend fun verifyCode(): Boolean {
+        if (draftState.value.isSendingCode || draftState.value.isVerifyingCode) return false
         val challenge = draftState.value.challenge
+        val method = AnalyticsAuthMethod.EMAIL
         val authAttemptId = nextAuthAttemptId(draftState.value)
         draftState.update { state ->
             startCloudVerifyCodeAttempt(state = state, authAttemptId = authAttemptId)
@@ -407,16 +445,28 @@ class CloudSignInViewModel(
             }
             return false
         }
+        var proofVerified = false
+        var verificationInvoked = false
         return try {
-            val linkContext = cloudAccountRepository.verifyCode(
+            analytics.track(AnalyticsEvent.AuthCodeSubmitted(method, signInStepSurface))
+            val verified: () -> Unit = {
+                proofVerified = true
+                emailAttemptOpen = false
+                trackSignInStep(authAttemptId, AnalyticsEvent.SignInSucceededWithMethod(method, signInStepSurface))
+                analytics.track(AnalyticsEvent.AuthCodeVerificationFinished(method,
+                    AnalyticsAuthCodeVerificationOutcome.VERIFIED, signInStepSurface))
+            }
+            val repository = socialRepository
+            val linkContext = if (repository != null) repository.verifyEmailCode(
                 challenge = challenge,
                 code = draftState.value.code,
-                onVerified = {
-                    trackSignInStep(
-                        authAttemptId = authAttemptId,
-                        event = AnalyticsEvent.SignInSucceeded(screen = signInStepSurface)
-                    )
-                }
+                rememberSignIn = providerSignIn.uiState.value.remember,
+                onVerificationStarted = { verificationInvoked = true },
+                onVerified = verified
+            ) else cloudAccountRepository.verifyCode(
+                challenge = challenge,
+                code = draftState.value.code,
+                onVerified = verified
             )
             publishVerifiedLinkContext(
                 authAttemptId = authAttemptId,
@@ -434,19 +484,30 @@ class CloudSignInViewModel(
                 return false
             }
             trackSignInFailed(reason = analyticsSignInFailureReason(error = error))
+            if (verificationInvoked && !proofVerified) cloudCodeVerificationOutcome(error)?.let { outcome ->
+                analytics.track(AnalyticsEvent.AuthCodeVerificationFinished(initiatingMethod, outcome, signInStepSurface))
+            }
             val errorPresentation = createVerifyCodeErrorPresentation(
                 error = error,
                 strings = strings
             ).withTechnicalDetailsReportId(source = "cloud-sign-in-verify-code")
             draftState.update { state ->
-                failCloudVerifyCode(
+                val failed = failCloudVerifyCode(
                     state = state,
                     authAttemptId = authAttemptId,
                     errorPresentation = errorPresentation
                 )
+                if (socialRepository != null &&
+                    (proofVerified || (error as? CloudRemoteException)?.errorCode != "OTP_CODE_INVALID")) {
+                    failed.copy(challenge = null, code = "", errorMessage = strings.get(R.string.settings_auth_fresh_email_code))
+                } else failed
             }
             false
         }
+    }
+
+    fun reportEmailCodeFormShown() {
+        analytics.track(AnalyticsEvent.AuthCodeFormShown(AnalyticsAuthMethod.EMAIL, signInStepSurface))
     }
 
     suspend fun completePendingPostAuthIfNeeded() {
@@ -611,12 +672,13 @@ class CloudSignInViewModel(
         }
     }
 
-    /**
-     * The person deliberately backed out of a sign-in they had started. This and [onCleared] are the
-     * only paths that record `signin_failed(cancelled)`, so `cancelled` keeps meaning an abandonment.
-     */
     fun cancelSignIn() {
-        reportSignInAbandonment()
+        if (emailAttemptOpen) {
+            analytics.track(AnalyticsEvent.SignInFailedWithMethod(
+                AnalyticsAuthMethod.EMAIL, AnalyticsSignInFailureReason.CANCELLED, originSurface
+            ))
+            emailAttemptOpen = false
+        } else if (socialRepository == null) reportSignInAbandonment()
         isSignInSurfacePresent = false
         clearPostAuthState()
     }
@@ -626,6 +688,7 @@ class CloudSignInViewModel(
      * fresh attempt starts on a clean draft.
      */
     fun startSignIn() {
+        if (socialRepository != null) providerSignIn.resetEntry()
         clearPostAuthState()
         isSignInAttemptOpen = true
         isSignInSurfacePresent = true
@@ -647,25 +710,6 @@ class CloudSignInViewModel(
         clearPostAuthState()
         isSignInAttemptOpen = false
         isSignInSurfacePresent = false
-    }
-
-    override fun onCleared() {
-        // The sign-in graph leaving the back stack: the back arrow, the system back gesture and
-        // predictive back all end here, and none of them reaches a route callback. It does **not**
-        // fire on a configuration change, and a process kill never runs it at all.
-        //
-        // It does fire, with the process alive, when the system destroys the hosting Activity while
-        // the app is backgrounded — the "Don't keep activities" developer setting and some OEM
-        // background-destroy behaviour — because `ComponentActivity` clears the `ViewModelStore`
-        // that owns every back stack entry. That is not a dismissal the person made, and the
-        // Activity is stopped for it while a real back press needs it started, so the check below
-        // separates the two. Switching tabs is the remaining departure and saves this entry rather
-        // than clearing it, so it reports nothing here and nothing on the later restore either.
-        if (isHostActivityStarted()) {
-            reportSignInAbandonment()
-        }
-        isSignInSurfacePresent = false
-        super.onCleared()
     }
 
     private fun reportSignInAbandonment() {
@@ -699,8 +743,10 @@ class CloudSignInViewModel(
         }
 
         isSignInAttemptOpen = false
+        emailAttemptOpen = false
         analytics.track(
-            event = AnalyticsEvent.SignInFailed(
+            event = AnalyticsEvent.SignInFailedWithMethod(
+                method = initiatingMethod,
                 reason = reason,
                 screen = originSurface
             )
@@ -726,7 +772,7 @@ class CloudSignInViewModel(
             return
         }
 
-        if (linkContext.postAuthRoute == CloudWorkspacePostAuthRoute.GUEST_LOCAL_RECOVERY) {
+        if (socialAttemptId == null && linkContext.postAuthRoute == CloudWorkspacePostAuthRoute.GUEST_LOCAL_RECOVERY) {
             require(selection == CloudWorkspaceLinkSelection.CreateNew) {
                 "Guest local recovery must create the recovered linked workspace."
             }
@@ -751,12 +797,33 @@ class CloudSignInViewModel(
             return
         }
 
+        var guestCompletionInvoked = false
         try {
-            val completion = completeCloudPostAuthWorkspaceSelection(
-                cloudAccountRepository = cloudAccountRepository,
-                linkContext = linkContext,
-                selection = selection
-            )
+            val socialId = socialAttemptId
+            val completion = if (socialId != null) {
+                val workspace = requireNotNull(socialRepository).completeSignIn(socialId, selection,
+                    onGuestCompletionStarted = { guestCompletionInvoked = true },
+                    onGuestCompletionFinished = {
+                        guestCompletionInvoked = false
+                        if (isCurrentAuthAttempt(authAttemptId)) reportGuestUpgradeCompleted()
+                    })
+                com.flashcardsopensourceapp.feature.settings.cloud.postAuth.CloudPostAuthWorkspaceCompletion(
+                    workspace.name, linkContext.postAuthRoute == CloudWorkspacePostAuthRoute.NONE
+                )
+            } else {
+                val completed = completeCloudPostAuthWorkspaceSelection(
+                    cloudAccountRepository = cloudAccountRepository,
+                    linkContext = linkContext,
+                    selection = selection,
+                    onGuestCompletionStarted = { guestCompletionInvoked = true },
+                    onGuestCompletionFinished = {
+                        guestCompletionInvoked = false
+                        if (isCurrentAuthAttempt(authAttemptId)) reportGuestUpgradeCompleted()
+                    }
+                )
+                completed
+            }
+            reportAcceptedEmailSession()
             if (completion.requiresInitialSync) {
                 runPostAuthSyncOnly(
                     authAttemptId = authAttemptId,
@@ -781,6 +848,19 @@ class CloudSignInViewModel(
         } catch (error: Exception) {
             if (isCurrentAuthAttempt(authAttemptId = authAttemptId).not()) {
                 return
+            }
+            if (guestCompletionInvoked) {
+                analytics.track(AnalyticsEvent.AuthGuestUpgradeFinished(initiatingMethod,
+                    when {
+                        error is SocketTimeoutException -> AnalyticsAuthGuestUpgradeOutcome.TIMEOUT
+                        error is android.database.sqlite.SQLiteException ||
+                            error is java.io.FileNotFoundException ||
+                            error is IOException && error.message?.startsWith("Encrypted cloud") == true ->
+                            AnalyticsAuthGuestUpgradeOutcome.STORAGE_ERROR
+                        error is IOException -> AnalyticsAuthGuestUpgradeOutcome.OFFLINE
+                        error is CloudRemoteException && error.statusCode == 409 -> AnalyticsAuthGuestUpgradeOutcome.CONFLICT
+                        else -> AnalyticsAuthGuestUpgradeOutcome.SERVER_ERROR
+                    }, signInStepSurface))
             }
             val recoveryError = error as? CloudCredentialRecoveryRequiredException
             val errorPresentation = if (recoveryError != null) {
@@ -847,7 +927,9 @@ class CloudSignInViewModel(
             val completion = completeCloudPostAuthWorkspaceSelection(
                 cloudAccountRepository = cloudAccountRepository,
                 linkContext = linkContext,
-                selection = CloudWorkspaceLinkSelection.CreateNew
+                selection = CloudWorkspaceLinkSelection.CreateNew,
+                onGuestCompletionStarted = {},
+                onGuestCompletionFinished = {}
             )
             finishPostAuthSuccess(
                 authAttemptId = authAttemptId,
@@ -995,13 +1077,21 @@ class CloudSignInViewModel(
         }
     }
 
-    private fun finishPostAuthSuccess(
+    private suspend fun finishPostAuthSuccess(
         authAttemptId: Long,
         workspaceTitle: String
     ) {
         if (isCurrentAuthAttempt(authAttemptId = authAttemptId).not()) {
             return
         }
+        val socialId = socialAttemptId
+        if (socialId != null) {
+            requireNotNull(socialRepository).completeSignInHint(socialId)
+        } else {
+            draftState.value.linkContext?.let { context -> socialRepository?.completeEmailSignInHint(context) }
+        }
+        reportAcceptedEmailSession()
+        analytics.track(AnalyticsEvent.AuthAccountReady(initiatingMethod, signInStepSurface))
         draftState.update { state ->
             finishCloudPostAuthSuccess(
                 state = state,
@@ -1015,8 +1105,25 @@ class CloudSignInViewModel(
     }
 
     private fun clearPostAuthState() {
+        emailAttemptOpen = false
+        socialAttemptId = null
+        initiatingMethod = AnalyticsAuthMethod.EMAIL
+        sessionAcceptedReported = false
         draftState.update { state ->
             clearCloudPostAuthDraftState(state = state)
+        }
+    }
+
+    private fun reportGuestUpgradeCompleted() {
+        analytics.track(AnalyticsEvent.AuthGuestUpgradeFinished(
+            initiatingMethod, AnalyticsAuthGuestUpgradeOutcome.COMPLETED, signInStepSurface
+        ))
+    }
+
+    private fun reportAcceptedEmailSession() {
+        if (socialAttemptId == null && !sessionAcceptedReported) {
+            analytics.track(AnalyticsEvent.AuthSessionAccepted(initiatingMethod, signInStepSurface))
+            sessionAcceptedReported = true
         }
     }
 }
@@ -1123,6 +1230,7 @@ private fun technicalDetailsFor(error: Exception): String {
 
 fun createCloudSignInViewModelFactory(
     cloudAccountRepository: CloudAccountRepository,
+    cloudSocialSignInRepository: CloudSocialSignInRepository,
     syncRepository: SyncRepository,
     messageController: TransientMessageController,
     analytics: Analytics,
@@ -1142,7 +1250,7 @@ fun createCloudSignInViewModelFactory(
                 signInStepSurface = signInStepSurface,
                 strings = createSettingsStringResolver(context = applicationContext),
                 pendingSignOutReport = pendingSignOutReport
-            )
+            ).also { it.attachSocialRepository(cloudSocialSignInRepository) }
         }
     }
 }

@@ -121,7 +121,9 @@ internal class CloudAccountDeletionCoordinator(
             remoteService = remoteService,
             syncLocalStore = syncLocalStore,
             guestSessionStore = guestSessionStore,
-            appVersion = appVersion
+            appVersion = appVersion,
+            onGuestCompletionStarted = {},
+            onGuestCompletionFinished = {}
         )
     }
 }

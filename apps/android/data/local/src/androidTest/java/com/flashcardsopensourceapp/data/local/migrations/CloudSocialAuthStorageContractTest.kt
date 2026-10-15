@@ -9,6 +9,8 @@ import com.flashcardsopensourceapp.data.local.cloud.CloudCredentialStore
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.CloudSocialAttemptBinding
 import com.flashcardsopensourceapp.data.local.cloud.CloudSocialGuestBinding
+import com.flashcardsopensourceapp.data.local.cloud.PendingCloudEmailSignIn
+import com.flashcardsopensourceapp.data.local.cloud.wire.parseCloudEmailSignInHint
 import com.flashcardsopensourceapp.data.local.cloud.PendingCloudSocialSignIn
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAppleBrowserStatus
@@ -118,6 +120,9 @@ class CloudSocialAuthStorageContractTest {
             originalReauthenticationBinding = null,
             rememberSignIn = true,
             mailboxReason = null,
+            mailboxCodeRequested = false,
+            mailboxRequestInFlight = false,
+            providerCredentialObserved = false,
             providerEmail = null,
             completion = null,
             acceptedSession = null,
@@ -153,15 +158,40 @@ class CloudSocialAuthStorageContractTest {
         assertNull(callback.snapshot().attempt)
         assertNull(callback.acceptedSession)
 
-        val emailHint = CloudSuccessfulSignInHint(CloudSignInMethod.EMAIL, "proved@example.com", null, null)
-        restarted.socialAuthStore.rememberEmailSession(configuration, emailHint)
+        val emailHint = requireNotNull(parseCloudEmailSignInHint(JSONObject().put("signInHint",
+            JSONObject().put("method", "email").put("email", "proved@example.com"))))
+        restarted.socialAuthStore.stageEmailSession(PendingCloudEmailSignIn(
+            configuration, "session-refresh", emailHint, true
+        ))
+        val emailRestarted = CloudPreferencesStore(context, database)
+        assertNull(emailRestarted.socialAuthStore.loadHint(configuration))
+        emailRestarted.socialAuthStore.completeEmailSession(configuration, "session-refresh")
+        assertNull(emailRestarted.socialAuthStore.loadHint(configuration))
         restarted.saveCredentials(StoredCloudCredentials("session-refresh", "session-id", Long.MAX_VALUE))
+        emailRestarted.socialAuthStore.completeEmailSession(configuration, "foreign-refresh")
+        assertNull(emailRestarted.socialAuthStore.loadHint(configuration))
+        emailRestarted.socialAuthStore.completeEmailSession(configuration, "session-refresh")
+        assertEquals(emailHint, restarted.socialAuthStore.loadHint(configuration))
+        restarted.socialAuthStore.stageEmailSession(PendingCloudEmailSignIn(
+            configuration, "session-refresh", emailHint, false
+        ))
+        emailRestarted.socialAuthStore.completeEmailSession(configuration, "session-refresh")
+        assertNull(restarted.socialAuthStore.loadHint(configuration))
+        restarted.socialAuthStore.stageEmailSession(PendingCloudEmailSignIn(
+            configuration, "session-refresh", emailHint, true
+        ))
+        emailRestarted.socialAuthStore.completeEmailSession(configuration, "session-refresh")
         restarted.clearCredentialsRetainingSignInHint()
         val signedOut = CloudPreferencesStore(context, database)
         assertNull(signedOut.loadCredentials())
         assertNull(signedOut.socialAuthStore.loadPending())
         assertEquals(emailHint, signedOut.socialAuthStore.loadHint(configuration))
+        signedOut.socialAuthStore.stageEmailSession(PendingCloudEmailSignIn(
+            configuration, "session-refresh", emailHint, true
+        ))
         signedOut.socialAuthStore.forgetHint()
+        signedOut.saveCredentials(StoredCloudCredentials("session-refresh", "session-id", Long.MAX_VALUE))
+        restarted.socialAuthStore.completeEmailSession(configuration, "session-refresh")
         assertNull(restarted.socialAuthStore.loadHint(configuration))
     }
 
@@ -200,6 +230,9 @@ class CloudSocialAuthStorageContractTest {
             originalReauthenticationBinding = originalBinding,
             rememberSignIn = true,
             mailboxReason = null,
+            mailboxCodeRequested = false,
+            mailboxRequestInFlight = false,
+            providerCredentialObserved = false,
             providerEmail = null,
             completion = CloudSocialLoginCompletion("completion-secret", Long.MAX_VALUE),
             acceptedSession = CloudAcceptedSocialSession(

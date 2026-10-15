@@ -295,6 +295,16 @@ fun FlashcardsApp(
         }
 
         val navController = rememberNavController()
+        val signInApplication = LocalContext.current.applicationContext as FlashcardsApplication
+        val appleReturn by signInApplication.appleSignInReturnState.collectAsStateWithLifecycle()
+        LaunchedEffect(appleReturn) {
+            if (appleReturn != AppleSignInReturnState.Idle &&
+                navController.currentDestination?.route?.startsWith(SettingsAccountSignInEmailDestination.routePrefix) != true) {
+                navController.navigate(SettingsAccountSignInEmailDestination.createRoute(AnalyticsSurface.SETTINGS)) {
+                    launchSingleTop = true
+                }
+            }
+        }
         val currentBackStackEntry by navController.currentBackStackEntryAsState()
         val currentRoute: String? = currentBackStackEntry?.destination?.route
         val applicationContext = LocalContext.current.applicationContext
