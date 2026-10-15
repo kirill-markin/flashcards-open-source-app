@@ -11,9 +11,9 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudAppleBrowserRetur
 interface CloudAccountMethodsRepository {
     suspend fun loadMethods(): CloudAccountMethods
     suspend fun resume(): CloudPendingAccountMethod?
-    suspend fun beginReauthentication(method: CloudSignInMethod, onEmailCodeRequested: () -> Unit): CloudPendingAccountMethod
-    suspend fun beginLink(localId: String, provider: CloudSocialProvider): CloudPendingAccountMethod
-    suspend fun beginReenable(localId: String, target: CloudProviderMethodTarget): CloudPendingAccountMethod
+    suspend fun beginReauthentication(method: CloudSignInMethod, onEmailCodeRequestStarted: () -> Unit, onEmailCodeRequested: () -> Unit): CloudPendingAccountMethod
+    suspend fun beginLink(localId: String, provider: CloudSocialProvider, onCurrentAccountProofConfirmed: () -> Unit): CloudPendingAccountMethod
+    suspend fun beginReenable(localId: String, target: CloudProviderMethodTarget, onCurrentAccountProofConfirmed: () -> Unit): CloudPendingAccountMethod
     suspend fun prepareProviderLaunch(localId: String): CloudAccountMethodLaunch
     suspend fun submitGoogleCredential(localId: String, identityToken: String, onProviderReturned: () -> Unit, onMutationConfirmed: () -> Unit): CloudPendingAccountMethod
     suspend fun requestMailboxCode(localId: String, email: String, onRequested: () -> Unit): CloudPendingAccountMethod

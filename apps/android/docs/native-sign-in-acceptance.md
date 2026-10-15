@@ -109,7 +109,9 @@ and deployed API, without demo identities or manufactured provider credentials.
    For Google, call `prepareProviderLaunch(localId)` immediately before the existing official
    Credential Manager helper with that launch’s server audience and raw nonce. Observe its
    actual `onRequested` callback; do not count preparing an attempt as an SDK launch. Submit only
-   the real returned token to that local ID. Email’s `onEmailCodeRequested` observes a successful server send before local persistence.
+   the real returned token to that local ID. Email’s `onEmailCodeRequestStarted` observes gateway
+   invocation after protected state/session preparation; `onEmailCodeRequested` observes a successful
+   server send before local persistence.
    Email uses server-selected current-account OTP;
    no caller email selects the principal. Apple opens the returned authenticated `browserStart`
    URL through usable Custom Tabs. It must contain only client and opaque attempt parameters.
@@ -140,3 +142,48 @@ and deployed API, without demo identities or manufactured provider credentials.
    Repeat with no pending purpose and with a storage retry whose protected purpose changed.
    Finally repeat ordinary Google/Apple/Email, guest recovery, hints and login callback storage
    Retry. Signed-device acceptance and Play translation/publication remain unproved.
+
+## Settings sign-in methods
+
+Source and CI checks do not establish the following device acceptance. Use a signed app and an
+operator-authorized real account; the demo must show its explicit management refusal.
+
+1. Open Settings → Account status → Sign-in methods. Check active/disabled providers, pending
+   cleanup, the unchanged opaque generation string, and the actual read-only recovery email list.
+   An empty list must not advertise disabled Email or infer a hidden Apple personal address.
+   Open the supported review demo: expect its explicit management refusal, working Back, and no
+   refresh/proof/restart loop. A real-account restart or provider denial must never be labeled Demo.
+2. Verify the current account using an active native Google method, server-selected Email OTP,
+   or usable browser Apple. Check fixed Google → envelope Email → Apple ordering, official
+   branding, immediate loading, large text, TalkBack and a small keyboard-visible phone.
+   Google uses Credential Manager with the server audience and raw nonce; verify actual signed
+   Android azp through the existing secure procedure. Stop on a real presenter rejection.
+3. After current-account proof, link a new provider, unlink an exact listed method after its
+   confirmation dialog, or explicitly re-enable a disabled provider. Confirm the intended new
+   provider account and fresh proof; check conflict, changed-generation, expiry and sole hidden
+   Apple last-usable refusals. Metadata refresh must show the actual server result. During
+   revocation cleanup, refresh without submitting proof. After cleanup use entirely fresh current
+   and new Google proof. Only Apple’s matching APPLE_PROVED browser attempt offers Resume.
+4. Exercise genuine mailbox send/verify, wrong code, timeout, cancellation, denied Apple return,
+   duplicate/foreign return, and killed-process restoration at every protected phase. A failed or
+   ambiguous one-use request disables replay, refreshes metadata and offers Start again. If the
+   server already completed it, show its actual active status; never infer failure from lost local
+   persistence. Apple callback storage failure exposes Retry/Close with retained private callback.
+5. Leave via toolbar/system Back, change account/server/workspace, sign out, delete or erase, then
+   deliver a late callback. Cancelled proof must stay cancelled, ordinary login must not reopen,
+   and neither session/workspace nor Last used hints may change. Repeat ordinary sign-in afterward.
+6. Inspect actual existing consent-gated facts: provider request at SDK/browser launch, Google
+   credential return, Apple credential only after a PKCE-validated response, code request/verify
+   callbacks before later persistence, and LINK success only after server mutation. Unlink and
+   re-enable do not invent events absent from the finite inventory. Restoring pending state emits
+   no new provider receipt, session accepted, account ready or guest-upgrade facts. Withdraw consent
+   mid-flow and repeat with collection off. Keep emails, generations, handles and raw errors out
+   of analytics. Verify new English keys in a later authorized Play-translated draft.
+   With current-account Email proof, fail the actual request with timeout, offline, rate limit and
+   server errors: expect the corresponding code-request outcome. Fail protected load/save or session
+   preparation before invocation: expect no send outcome. Accept the send, then fail encrypted
+   persistence: retain only Accepted, without a failure fact.
+   Complete Apple current-account proof, then link Google or explicitly re-enable a provider:
+   observe Apple Credential received at the first successful server proof-validation response,
+   even if later encrypted persistence or new-provider launch fails. Repeat after mailbox proof
+   and killed-process restoration: a previously observed mailbox receipt must not be duplicated.

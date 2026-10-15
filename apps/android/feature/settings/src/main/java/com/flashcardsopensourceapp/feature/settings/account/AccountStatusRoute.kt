@@ -37,6 +37,7 @@ const val accountStatusScreenTag: String = "account_status_screen"
 fun AccountStatusRoute(
     uiState: AccountStatusUiState,
     onOpenSignIn: () -> Unit,
+    onOpenMethods: () -> Unit,
     onSyncNow: () -> Unit,
     onRequestLogout: () -> Unit,
     onDismissLogoutConfirmation: () -> Unit,
@@ -157,6 +158,10 @@ fun AccountStatusRoute(
                             }
                         }
                         if (uiState.isLinked) {
+                            OutlinedButton(onClick = onOpenMethods, enabled = !uiState.isSubmitting,
+                                modifier = Modifier.fillMaxWidth().testTag("account_open_methods")) {
+                                Text(stringResource(R.string.settings_methods_title))
+                            }
                             Button(
                                 onClick = onSyncNow,
                                 enabled = uiState.isSubmitting.not() && uiState.isSyncBlocked.not(),

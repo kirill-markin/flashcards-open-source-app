@@ -8,6 +8,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
+import com.flashcardsopensourceapp.app.AccountMethodsContainer
+import com.flashcardsopensourceapp.feature.settings.account.methods.AccountMethodsViewModel
+import com.flashcardsopensourceapp.feature.settings.account.methods.createAccountMethodsViewModelFactory
 import com.flashcardsopensourceapp.app.R
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
@@ -49,6 +52,7 @@ internal fun NavGraphBuilder.registerSettingsAccountNavGraph(
 
         AccountStatusRoute(
             uiState = uiState,
+            onOpenMethods = { navController.navigate(SettingsAccountMethodsDestination.route) },
             onConfirmLogoutAndForget = {
                 accountStatusViewModel.confirmLogoutAndForget(appGraph.cloudSocialSignInRepository)
             },
@@ -64,14 +68,23 @@ internal fun NavGraphBuilder.registerSettingsAccountNavGraph(
             },
             onRequestLogout = accountStatusViewModel::requestLogoutConfirmation,
             onDismissLogoutConfirmation = accountStatusViewModel::dismissLogoutConfirmation,
-            // Not launched on `coroutineScope`: the sign-out emits an analytics row and then waits
-            // for a bounded drain before it clears the credential, and that scope dies with the
-            // composition on any configuration change. The ViewModel owns the coroutine instead.
             onConfirmLogout = accountStatusViewModel::confirmLogout,
             onBack = {
                 navController.popBackStack()
             }
         )
+    }
+
+    composable(route = SettingsAccountMethodsDestination.route) {
+        val context = LocalContext.current
+        val methodsViewModel = viewModel<AccountMethodsViewModel>(factory = createAccountMethodsViewModelFactory(
+            repository = appGraph.cloudAccountMethodsRepository,
+            socialRepository = appGraph.cloudSocialSignInRepository,
+            accountRepository = appGraph.cloudAccountRepository,
+            analytics = appGraph.analytics,
+            applicationContext = context.applicationContext
+        ))
+        AccountMethodsContainer(methodsViewModel) { navController.popBackStack() }
     }
 
     composable(route = SettingsAccountServerDestination.route) {
@@ -180,8 +193,6 @@ internal fun NavGraphBuilder.registerSettingsAccountNavGraph(
             onRequestDeleteConfirmation = accountDangerZoneViewModel::requestDeleteConfirmation,
             onDismissDeleteConfirmation = accountDangerZoneViewModel::dismissDeleteConfirmation,
             onConfirmationTextChange = accountDangerZoneViewModel::updateConfirmationText,
-            // Owned by the ViewModel for the same reason as the sign-out above: a configuration
-            // change must not cancel the drain between it and the deletion request.
             onDeleteAccount = accountDangerZoneViewModel::deleteAccount,
             onShowTechnicalDetails = { technicalDetails, reportId ->
                 appGraph.showTechnicalErrorDialog(
