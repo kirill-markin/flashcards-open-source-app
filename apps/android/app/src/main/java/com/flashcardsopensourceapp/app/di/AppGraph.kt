@@ -103,6 +103,8 @@ import com.flashcardsopensourceapp.data.local.repository.FeedbackRepository
 import com.flashcardsopensourceapp.data.local.repository.ai.LocalAiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.LocalCloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.LocalCloudSocialSignInRepository
+import com.flashcardsopensourceapp.data.local.repository.CloudAccountMethodsRepository
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.LocalCloudAccountMethodsRepository
 import com.flashcardsopensourceapp.data.local.repository.CloudSocialSignInRepository
 import com.flashcardsopensourceapp.data.local.repository.cards.LocalCardsRepository
 import com.flashcardsopensourceapp.data.local.repository.decks.LocalDecksRepository
@@ -508,6 +510,14 @@ class AppGraph(
         remoteGateway = cloudRemoteService,
         accountRepository = localCloudAccountRepository,
         operationCoordinator = cloudOperationCoordinator
+    )
+    val cloudAccountMethodsRepository: CloudAccountMethodsRepository = LocalCloudAccountMethodsRepository(
+        preferencesStore = cloudPreferencesStore,
+        gateway = cloudRemoteService,
+        socialGateway = cloudRemoteService,
+        remoteGateway = cloudRemoteService,
+        operationCoordinator = cloudOperationCoordinator,
+        resetCoordinator = cloudIdentityResetCoordinator
     )
     val accentColorViewModelStoreOwner: ViewModelStoreOwner = object : ViewModelStoreOwner {
         override val viewModelStore: ViewModelStore = ViewModelStore()

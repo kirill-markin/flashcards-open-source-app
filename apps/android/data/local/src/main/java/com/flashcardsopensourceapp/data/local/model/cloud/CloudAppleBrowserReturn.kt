@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 const val cloudAppleReturnUri: String = "com.nibomo.app:/auth/social/apple"
 
 @Serializable
-enum class CloudAppleBrowserStatus { COMPLETED, VERIFICATION_REQUIRED, DENIED }
+enum class CloudAppleBrowserStatus { COMPLETED, VERIFICATION_REQUIRED, PROVIDER_PROVED, DENIED }
 
 @Serializable
 data class CloudAppleBrowserReturn(val status: CloudAppleBrowserStatus, val handle: String)
@@ -37,8 +37,9 @@ fun parseCloudAppleBrowserReturn(value: String): CloudAppleBrowserReturn {
     val status = when (parameters["status"]) {
         "completed" -> CloudAppleBrowserStatus.COMPLETED
         "verification_required" -> CloudAppleBrowserStatus.VERIFICATION_REQUIRED
+        "provider_proved" -> CloudAppleBrowserStatus.PROVIDER_PROVED
         "denied" -> CloudAppleBrowserStatus.DENIED
-        else -> throw IllegalArgumentException("Apple sign-in return has an unsupported login status.")
+        else -> throw IllegalArgumentException("Apple sign-in return has an unsupported status.")
     }
     val key = if (status == CloudAppleBrowserStatus.COMPLETED) "completion" else "attempt"
     require(parameters.keys == setOf("status", key)) { "Apple sign-in return contains unexpected fields." }
