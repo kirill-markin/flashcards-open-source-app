@@ -11,11 +11,7 @@
 import { randomBytes } from "node:crypto";
 import type { LoginPageLocale } from "../../routes/browser/loginPageLocale.js";
 
-/**
- * The only surface this service reports. `signin` is the sign-in screen itself, whatever steps the
- * page splits it into: the email step, the code step and the workspace choice are one screen.
- */
-export type AuthAnalyticsSurface = "signin";
+export type AuthAnalyticsSurface = "signin" | "settings";
 
 export type AuthAnalyticsEventName =
   | "screen_viewed"
