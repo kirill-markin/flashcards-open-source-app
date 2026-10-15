@@ -18,6 +18,7 @@ import okhttp3.Request
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
+import okio.BufferedSink
 import org.json.JSONException
 import org.json.JSONObject
 import java.io.IOException
@@ -104,6 +105,28 @@ internal class CloudJsonHttpClient(
             method = CloudHttpMethod.POST,
             authorizationHeader = authorizationHeader,
             body = body
+        )
+    }
+
+    suspend fun postJsonOnce(
+        baseUrl: String,
+        path: String,
+        authorizationHeader: String,
+        body: JSONObject
+    ): JSONObject {
+        val encodedBody = body.toString().toRequestBody(cloudJsonMediaType)
+        val oneUseBody = object : RequestBody() {
+            override fun contentType() = encodedBody.contentType()
+            override fun contentLength(): Long = encodedBody.contentLength()
+            override fun isOneShot(): Boolean = true
+            override fun writeTo(sink: BufferedSink) = encodedBody.writeTo(sink)
+        }
+        return executeBuiltJsonRequest(
+            request = buildCloudRequest(baseUrl, path, CloudHttpMethod.POST, authorizationHeader,
+                oneUseBody, "application/json"),
+            path = path,
+            method = CloudHttpMethod.POST,
+            retryEligible = false
         )
     }
 

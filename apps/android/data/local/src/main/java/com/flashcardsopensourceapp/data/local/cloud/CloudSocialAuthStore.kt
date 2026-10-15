@@ -64,7 +64,6 @@ internal data class PendingCloudSocialSignIn(
     val provider: CloudSocialProvider,
     val binding: CloudSocialAttemptBinding?,
     val appleBrowser: CloudAppleBrowserBinding?,
-    // Future management must retain original reauthentication separately from a new link proof.
     val originalReauthenticationBinding: CloudSocialAttemptBinding?,
     val rememberSignIn: Boolean,
     val mailboxReason: CloudSocialMailboxReason?,
@@ -138,7 +137,7 @@ internal class CloudSocialAuthStore(private val credentialStore: CloudCredential
 
     fun savePending(pending: PendingCloudSocialSignIn) {
         credentialStore.update { secrets ->
-            secrets.copy(pendingSocialSignIn = Json.encodeToString(pending))
+            secrets.copy(pendingSocialSignIn = Json.encodeToString(pending), pendingAccountMethod = null, accountMethodEpoch = java.util.UUID.randomUUID().toString())
         }
     }
 
@@ -186,7 +185,7 @@ internal class CloudSocialAuthStore(private val credentialStore: CloudCredential
     fun stageEmailSession(pending: PendingCloudEmailSignIn) {
         require(pending.hint == null || pending.hint.method == CloudSignInMethod.EMAIL)
         credentialStore.update { secrets ->
-            secrets.copy(pendingEmailSignIn = Json.encodeToString(pending))
+            secrets.copy(pendingEmailSignIn = Json.encodeToString(pending), pendingAccountMethod = null, accountMethodEpoch = java.util.UUID.randomUUID().toString())
         }
     }
 
@@ -213,6 +212,8 @@ internal class CloudSocialAuthStore(private val credentialStore: CloudCredential
             }
             secrets.copy(
                 successfulSignInHint = null,
+                pendingAccountMethod = null,
+                accountMethodEpoch = java.util.UUID.randomUUID().toString(),
                 pendingEmailSignIn = null,
                 pendingSocialSignIn = pending?.let { Json.encodeToString(it.copy(rememberSignIn = false)) }
             )

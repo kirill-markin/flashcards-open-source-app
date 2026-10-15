@@ -138,17 +138,22 @@ class LocalCloudSocialSignInRepository(
         }
     }
 
-    override suspend fun acceptAppleBrowserReturn(returned: CloudAppleBrowserReturn): CloudPendingSocialSignIn {
+    override suspend fun canAcceptAppleBrowserReturn(returned: CloudAppleBrowserReturn): Boolean = operationCoordinator.runExclusive {
+        val pending = withContext(Dispatchers.IO) { preferencesStore.socialAuthStore.loadPending() }
+            ?: return@runExclusive false
+        if (!pending.canAcceptAppleBrowserReturn(returned)) return@runExclusive false
+        requireAccountIsNotDeleting()
+        requireCurrentBinding(pending)
+        !pending.isExpired()
+    }
+
+    override suspend fun acceptAppleBrowserReturn(returned: CloudAppleBrowserReturn): CloudPendingSocialSignIn? {
         return operationCoordinator.runExclusive {
-            val pending = requireNotNull(withContext(Dispatchers.IO) { preferencesStore.socialAuthStore.loadPending() }) {
-                "Apple sign-in has no persisted browser launch. Start sign-in again."
-            }
+            val pending = withContext(Dispatchers.IO) { preferencesStore.socialAuthStore.loadPending() }
+                ?: return@runExclusive null
+            if (!pending.canAcceptAppleBrowserReturn(returned)) return@runExclusive null
             val current = requirePending(pending.localId)
             val browser = requireNotNull(current.appleBrowser) { "This sign-in did not launch the Apple browser." }
-            require(current.provider == CloudSocialProvider.APPLE && current.binding == null &&
-                current.acceptedSession == null && current.completion == null) {
-                "This Apple browser launch already has a verified result or is not a login."
-            }
             com.flashcardsopensourceapp.data.local.cloud.wire.validateSocialHandle(returned.handle)
             // A return has no local correlation ID; only the server can prove its PKCE binding.
             val updated = current.copy(appleBrowser = browser.copy(returned = returned))
@@ -455,6 +460,12 @@ class LocalCloudSocialSignInRepository(
     private suspend fun savePending(pending: PendingCloudSocialSignIn) {
         withContext(Dispatchers.IO) { preferencesStore.socialAuthStore.savePending(pending) }
     }
+}
+
+private fun PendingCloudSocialSignIn.canAcceptAppleBrowserReturn(returned: CloudAppleBrowserReturn): Boolean {
+    return appleBrowser != null && provider == CloudSocialProvider.APPLE && binding == null &&
+        originalReauthenticationBinding == null && acceptedSession == null && completion == null &&
+        returned.status != CloudAppleBrowserStatus.PROVIDER_PROVED
 }
 
 private fun PendingCloudSocialSignIn.isExpired(): Boolean {

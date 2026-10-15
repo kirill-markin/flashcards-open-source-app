@@ -43,7 +43,9 @@ internal data class CloudCredentialSecrets(
     val pendingGuestUpgrade: String?,
     val pendingSocialSignIn: String?,
     val pendingEmailSignIn: String?,
-    val successfulSignInHint: String?
+    val successfulSignInHint: String?,
+    val pendingAccountMethod: String?,
+    val accountMethodEpoch: String?
 )
 
 internal class CloudCredentialStore(context: Context) {
@@ -74,7 +76,9 @@ internal class CloudCredentialStore(context: Context) {
                     pendingGuestUpgrade = null,
                     pendingSocialSignIn = null,
                     pendingEmailSignIn = null,
-                    successfulSignInHint = null
+                    successfulSignInHint = null,
+                    pendingAccountMethod = null,
+                    accountMethodEpoch = null
                 )
             )
             clearLegacySecrets()
@@ -121,7 +125,9 @@ internal class CloudCredentialStore(context: Context) {
             pendingGuestUpgrade = legacyPreferences.getString(pendingGuestUpgradeKey, null),
             pendingSocialSignIn = null,
             pendingEmailSignIn = null,
-            successfulSignInHint = null
+            successfulSignInHint = null,
+            pendingAccountMethod = null,
+            accountMethodEpoch = null
         )
     }
 
@@ -187,7 +193,7 @@ internal class CloudCredentialStore(context: Context) {
             ?: throw SerializationException("Cloud credential storage must contain an object.")
         // Older encrypted records predate these optional fields; retain the existing cipher format.
         val fields = JsonObject(
-            mapOf("pendingSocialSignIn" to JsonNull, "pendingEmailSignIn" to JsonNull, "successfulSignInHint" to JsonNull) + storedFields
+            mapOf("pendingSocialSignIn" to JsonNull, "pendingEmailSignIn" to JsonNull, "successfulSignInHint" to JsonNull, "pendingAccountMethod" to JsonNull, "accountMethodEpoch" to JsonNull) + storedFields
         )
         return Json.decodeFromJsonElement<CloudCredentialSecrets>(fields)
     }
