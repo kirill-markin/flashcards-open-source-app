@@ -71,8 +71,10 @@ func recordAccountMethodObservation(_ observation: CloudAccountMethodObservation
         Analytics.track(.authProviderRequested(method: provider == .apple ? .apple : .google, screen: .settings))
     case .providerFinished(let provider, let outcome):
         Analytics.track(.authProviderFinished(method: provider == .apple ? .apple : .google, outcome: outcome, screen: .settings))
-    case .codeVerified(let method):
-        Analytics.track(.authCodeVerificationFinished(method: method.analyticsMethod, outcome: .verified, screen: .settings))
+    case .codeRequestFinished(let method, let outcome):
+        Analytics.track(.authCodeRequestFinished(method: method.analyticsMethod, action: .initial, outcome: outcome, screen: .settings))
+    case .codeVerificationFinished(let method, let outcome):
+        Analytics.track(.authCodeVerificationFinished(method: method.analyticsMethod, outcome: outcome, screen: .settings))
     case .linkFinished(let provider, let outcome):
         Analytics.track(.authAccountLinkFinished(method: provider.analyticsMethod, outcome: outcome, screen: .settings))
     case .mutationConfirmed(let mutation, let provider):

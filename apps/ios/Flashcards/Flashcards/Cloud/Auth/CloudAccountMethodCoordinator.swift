@@ -15,7 +15,8 @@ enum CloudAccountMethodObservation {
     case providerRequested(CloudAuthProvider)
     case providerFinished(CloudAuthProvider, AnalyticsAuthProviderOutcome)
     case mutationConfirmed(CloudAccountMethodMutation, CloudAuthProvider)
-    case codeVerified(CloudSignInMethod)
+    case codeRequestFinished(CloudSignInMethod, AnalyticsAuthCodeRequestOutcome)
+    case codeVerificationFinished(CloudSignInMethod, AnalyticsAuthCodeVerificationOutcome)
     case linkFinished(CloudAuthProvider, AnalyticsAuthAccountLinkOutcome)
 }
 
@@ -118,9 +119,16 @@ final class CloudAccountMethodCoordinator {
             guard self.canReauthenticateWithCurrentEmail else { throw CloudAccountMethodError.currentEmailUnavailable }
             let context = try self.checkCurrent(epoch)
             let binding = try CloudAuthAttemptBinding.generate(client: .currentNative)
-            let attempt = try await self.service.beginEmail(binding: binding,
-                authBaseUrl: context.configuration.authBaseUrl, bearer: context.credentials.idToken)
+            let attempt: CloudAccountEmailAttempt
+            do {
+                attempt = try await self.service.beginEmail(binding: binding,
+                    authBaseUrl: context.configuration.authBaseUrl, bearer: context.credentials.idToken)
+            } catch {
+                try self.observeCodeRequestFailure(error, method: .email, epoch: epoch)
+                throw error
+            }
             _ = try self.checkCurrent(epoch)
+            self.onObservation?(.codeRequestFinished(.email, .accepted))
             self.emailAttempt = (attempt, binding)
             self.stage = .currentEmailCodeSent
         }
@@ -135,10 +143,16 @@ final class CloudAccountMethodCoordinator {
             let context = try self.checkCurrent(epoch)
             self.emailAttempt = nil
             self.stage = .verifyingCode
-            let completion = try await self.service.completeEmail(attempt: attempt, binding: binding, code: code,
-                authBaseUrl: context.configuration.authBaseUrl, bearer: context.credentials.idToken)
+            let completion: CloudAccountProofCompletion
+            do {
+                completion = try await self.service.completeEmail(attempt: attempt, binding: binding, code: code,
+                    authBaseUrl: context.configuration.authBaseUrl, bearer: context.credentials.idToken)
+            } catch {
+                try self.observeCodeVerificationFailure(error, method: .email, epoch: epoch)
+                throw error
+            }
             _ = try self.checkCurrent(epoch)
-            self.onObservation?(.codeVerified(.email))
+            self.onObservation?(.codeVerificationFinished(.email, .verified))
             self.receipt = CloudAccountReauthenticationReceipt(completion: completion.completion, binding: binding)
             self.stage = .proofReady
         }
@@ -152,9 +166,16 @@ final class CloudAccountMethodCoordinator {
             try requireCloudSocialContract(cloudAccountMailboxIsValid(email), "Enter a valid mailbox for verification")
             let context = try self.checkCurrent(epoch)
             self.stage = .sendingMailboxCode
-            try await self.service.sendMailbox(challenge: challenge, email: email,
-                authBaseUrl: context.configuration.authBaseUrl, bearer: context.credentials.idToken)
+            let method: CloudSignInMethod = challenge.attempt.provider == .apple ? .apple : .google
+            do {
+                try await self.service.sendMailbox(challenge: challenge, email: email,
+                    authBaseUrl: context.configuration.authBaseUrl, bearer: context.credentials.idToken)
+            } catch {
+                try self.observeCodeRequestFailure(error, method: method, epoch: epoch)
+                throw error
+            }
             _ = try self.checkCurrent(epoch)
+            self.onObservation?(.codeRequestFinished(method, .accepted))
             self.stage = .mailboxCodeSent
         }
     }
@@ -168,12 +189,19 @@ final class CloudAccountMethodCoordinator {
             let context = try self.checkCurrent(epoch)
             self.mailboxChallenge = nil
             self.stage = .verifyingCode
+            let method: CloudSignInMethod = challenge.attempt.provider == .apple ? .apple : .google
             do {
-                let response = try await self.service.verifyMailbox(challenge: challenge, code: code,
-                    authBaseUrl: context.configuration.authBaseUrl, bearer: context.credentials.idToken)
+                let response: CloudSocialContinuationResponse
+                do {
+                    response = try await self.service.verifyMailbox(challenge: challenge, code: code,
+                        authBaseUrl: context.configuration.authBaseUrl, bearer: context.credentials.idToken)
+                } catch {
+                    try self.observeCodeVerificationFailure(error, method: method, epoch: epoch)
+                    throw error
+                }
                 _ = try self.checkCurrent(epoch)
                 guard case .completed = response else { throw CloudAccountMethodError.freshAttemptRequired }
-                self.onObservation?(.codeVerified(challenge.attempt.provider == .apple ? .apple : .google))
+                self.onObservation?(.codeVerificationFinished(method, .verified))
                 try await self.accept(response, attempt: challenge.attempt, epoch: epoch)
             } catch {
                 try self.observeLinkFailure(error, purpose: challenge.attempt.purpose, provider: challenge.attempt.provider, epoch: epoch)
@@ -308,6 +336,48 @@ final class CloudAccountMethodCoordinator {
                 try await self.finishMutation(operation, epoch: epoch)
             }
         }
+    }
+
+    private func observeCodeRequestFailure(_ error: Error, method: CloudSignInMethod, epoch: UUID) throws {
+        _ = try self.checkCurrent(epoch)
+        guard self.isKnownCodeServiceFailure(error) else { return }
+        self.onObservation?(.codeRequestFinished(method, self.isCodeServiceHTTPTimeout(error) ? .timeout : nativeCodeRequestOutcome(error)))
+    }
+
+    private func observeCodeVerificationFailure(_ error: Error, method: CloudSignInMethod, epoch: UUID) throws {
+        _ = try self.checkCurrent(epoch)
+        guard !isRequestCancellationError(error: error) else { return }
+        if self.isKnownCodeServiceFailure(error) {
+            self.onObservation?(.codeVerificationFinished(method, self.isCodeServiceHTTPTimeout(error) ? .timeout : nativeCodeVerificationOutcome(error)))
+            return
+        }
+        guard case CloudAuthError.invalidResponse(let details, _) = error else { return }
+        switch details.code {
+        case "OTP_CODE_INVALID", "OTP_SESSION_EXPIRED", "OTP_CHALLENGE_CONSUMED", "OTP_TOO_MANY_ATTEMPTS":
+            self.onObservation?(.codeVerificationFinished(method, nativeCodeVerificationOutcome(error)))
+        default: break
+        }
+    }
+
+    private func isKnownCodeServiceFailure(_ error: Error) -> Bool {
+        guard !isRequestCancellationError(error: error) else { return false }
+        if let error = error as? URLError {
+            return error.code == .timedOut || error.code == .notConnectedToInternet || error.code == .networkConnectionLost
+        }
+        if case CloudAuthError.invalidResponse(let details, let status) = error {
+            switch details.code {
+            case "AUTH_ATTEMPT_RESTART_REQUIRED", "SERVICE_UNAVAILABLE", "PRINCIPAL_SIGNOUT_PENDING",
+                 "SESSION_REQUIRED", "SESSION_REVOKED", "ACCOUNT_DELETED": return false
+            default: break
+            }
+            return self.isCodeServiceHTTPTimeout(error) || status == 429 || (status == 500 && details.code == "INTERNAL_ERROR")
+        }
+        return false
+    }
+
+    private func isCodeServiceHTTPTimeout(_ error: Error) -> Bool {
+        if case CloudAuthError.invalidResponse(_, let status) = error { return status == 408 || status == 504 }
+        return false
     }
 
     private func observeLinkFailure(_ error: Error, purpose: CloudAccountProofPurpose, provider: CloudAuthProvider, epoch: UUID) throws {

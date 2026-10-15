@@ -253,7 +253,6 @@ struct AccountMethodsView: View {
         self.run {
             try await action()
             guard self.epoch == epoch, self.identity == identity else { throw CancellationError() }
-            Analytics.track(.authCodeRequestFinished(method: method, action: .initial, outcome: .accepted, screen: .settings))
             Analytics.track(.authCodeFormShown(method: method, screen: .settings))
         }
     }
