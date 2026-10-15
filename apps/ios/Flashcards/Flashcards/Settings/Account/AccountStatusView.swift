@@ -230,9 +230,17 @@ struct AccountStatusView: View {
         .alert(aiSettingsLocalized("settings.account.status.logoutAlertTitle", "Log out and clear this device?"), isPresented: self.$isLogoutConfirmationPresented) {
             Button(aiSettingsLocalized("common.cancel", "Cancel"), role: .cancel) {}
             Button(aiSettingsLocalized("settings.account.status.logOut", "Log out"), role: .destructive) {
-                self.logoutCloudAccount()
+                self.logoutCloudAccount {
+                    try await self.store.signOutCloudAccountFromPressedControl(screen: .settings)
+                }
             }
             .accessibilityIdentifier(UITestIdentifier.accountStatusLogoutConfirmButton)
+            Button(aiSettingsLocalized("settings.account.cloudSignIn.signOutForget", "Sign out and forget"), role: .destructive) {
+                self.logoutCloudAccount {
+                    try await self.store.signOutCloudAccountAndForgetFromPressedControl(screen: .settings)
+                }
+            }
+            .accessibilityIdentifier("accountStatus.signOutForget")
         } message: {
             Text(
                 aiSettingsLocalized(
@@ -243,7 +251,7 @@ struct AccountStatusView: View {
         }
     }
 
-    private func logoutCloudAccount() {
+    private func logoutCloudAccount(operation: @escaping @MainActor () async throws -> Void) {
         guard self.isLoggingOut == false else {
             return
         }
@@ -255,7 +263,7 @@ struct AccountStatusView: View {
             }
 
             do {
-                try await store.signOutCloudAccountFromPressedControl(screen: .settings)
+                try await operation()
             } catch {
                 self.store.presentTechnicalError(error)
             }

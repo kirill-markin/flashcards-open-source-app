@@ -922,3 +922,14 @@
 "ai.consent.withdrawalBody" = "এটি বন্ধ করলে নতুন এআই অনুরোধ বন্ধ হয়। বিদ্যমান চ্যাট বা OpenAI-তে আগেই পাঠানো ডেটা মুছে যায় না।";
 "ai.consent.withdrawalFailed" = "এই ডিভাইসে এআইয়ের সঙ্গে ডেটা শেয়ার করা বন্ধ আছে। আপনার পছন্দ এখনও সিঙ্ক হয়নি; সংযোগ পেলে আবার চেষ্টা করুন।";
 "ai.consent.retrySync" = "পছন্দ সংরক্ষণ করতে আবার চেষ্টা করুন";
+"settings.account.cloudSignIn.unifiedTitle" = "সাইন ইন করুন বা অ্যাকাউন্ট তৈরি করুন";
+"settings.account.cloudSignIn.remember" = "এই ডিভাইসে এই সাইন ইন মনে রাখুন";
+"settings.account.cloudSignIn.lastUsed" = "শেষ ব্যবহার";
+"settings.account.cloudSignIn.showEmail" = "ইমেল দেখান";
+"settings.account.cloudSignIn.forget" = "এই সাইন ইন ভুলে যান";
+"settings.account.cloudSignIn.signOutForget" = "সাইন আউট করে ভুলে যান";
+"settings.account.cloudSignIn.mailboxPrompt" = "আপনার ইমেলে প্রবেশাধিকার যাচাই করুন। ৬–৮ সংখ্যার কোড লিখুন। প্রয়োজনে স্প্যাম দেখুন।";
+"settings.account.cloudSignIn.freshAttempt" = "সাইন ইন সম্পূর্ণ হয়নি। চালিয়ে যেতে আবার শুরু করুন।";
+"settings.account.cloudSignIn.restart" = "আবার শুরু করুন";
+"settings.account.cloudSignIn.rememberFailed" = "সাইন ইন হয়েছে। সাইন ইনের ইঙ্গিত সংরক্ষণ করা যায়নি। আবার চেষ্টা করুন বা বন্ধ করুন।";
+"settings.account.cloudSignIn.hintFailed" = "মনে রাখা সাইন ইন আপডেট করা যায়নি। আবার চেষ্টা করুন।";

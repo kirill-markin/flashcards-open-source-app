@@ -922,3 +922,14 @@
 "ai.consent.withdrawalBody" = "Išjungus sustabdomos naujos DI užklausos. Esami pokalbiai ir OpenAI jau išsiųsti duomenys neištrinami.";
 "ai.consent.withdrawalFailed" = "Duomenų bendrinimas su DI šiame įrenginyje išjungtas. Jūsų pasirinkimas dar nesinchronizuotas; bandykite dar kartą, kai prisijungsite.";
 "ai.consent.retrySync" = "Bandyti išsaugoti pasirinkimą dar kartą";
+"settings.account.cloudSignIn.unifiedTitle" = "Prisijunkite arba sukurkite paskyrą";
+"settings.account.cloudSignIn.remember" = "Prisiminti šį prisijungimą įrenginyje";
+"settings.account.cloudSignIn.lastUsed" = "Naudota paskutinį kartą";
+"settings.account.cloudSignIn.showEmail" = "Rodyti el. pašto adresą";
+"settings.account.cloudSignIn.forget" = "Pamiršti šį prisijungimą";
+"settings.account.cloudSignIn.signOutForget" = "Atsijungti ir pamiršti";
+"settings.account.cloudSignIn.mailboxPrompt" = "Patvirtinkite prieigą prie el. pašto. Įveskite 6–8 skaitmenų kodą. Jei reikia, patikrinkite šlamštą.";
+"settings.account.cloudSignIn.freshAttempt" = "Prisijungimas nebaigtas. Norėdami tęsti, pradėkite iš naujo.";
+"settings.account.cloudSignIn.restart" = "Pradėti iš naujo";
+"settings.account.cloudSignIn.rememberFailed" = "Prisijungta. Prisijungimo užuominos nepavyko išsaugoti. Bandykite dar kartą arba uždarykite.";
+"settings.account.cloudSignIn.hintFailed" = "Nepavyko atnaujinti įsiminto prisijungimo. Bandykite dar kartą.";

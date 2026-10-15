@@ -922,3 +922,14 @@
 "ai.consent.withdrawalBody" = "ਇਸ ਨੂੰ ਬੰਦ ਕਰਨ ਨਾਲ ਨਵੀਆਂ ਏਆਈ ਬੇਨਤੀਆਂ ਰੁਕ ਜਾਂਦੀਆਂ ਹਨ। ਮੌਜੂਦਾ ਚੈਟਾਂ ਜਾਂ OpenAI ਨੂੰ ਪਹਿਲਾਂ ਭੇਜਿਆ ਡਾਟਾ ਮਿਟਾਇਆ ਨਹੀਂ ਜਾਂਦਾ।";
 "ai.consent.withdrawalFailed" = "ਇਸ ਡਿਵਾਈਸ ਉੱਤੇ ਏਆਈ ਨਾਲ ਡਾਟਾ ਸਾਂਝਾ ਕਰਨਾ ਬੰਦ ਹੈ। ਤੁਹਾਡੀ ਚੋਣ ਅਜੇ ਸਿੰਕ ਨਹੀਂ ਹੋਈ; ਕਨੈਕਸ਼ਨ ਮਿਲਣ ਉੱਤੇ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।";
 "ai.consent.retrySync" = "ਚੋਣ ਸੰਭਾਲਣ ਦੀ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ";
+"settings.account.cloudSignIn.unifiedTitle" = "ਸਾਈਨ ਇਨ ਕਰੋ ਜਾਂ ਖਾਤਾ ਬਣਾਓ";
+"settings.account.cloudSignIn.remember" = "ਇਸ ਡਿਵਾਈਸ ਉੱਤੇ ਇਹ ਸਾਈਨ ਇਨ ਯਾਦ ਰੱਖੋ";
+"settings.account.cloudSignIn.lastUsed" = "ਆਖਰੀ ਵਾਰ ਵਰਤਿਆ";
+"settings.account.cloudSignIn.showEmail" = "ਈਮੇਲ ਦਿਖਾਓ";
+"settings.account.cloudSignIn.forget" = "ਇਹ ਸਾਈਨ ਇਨ ਭੁੱਲ ਜਾਓ";
+"settings.account.cloudSignIn.signOutForget" = "ਸਾਈਨ ਆਉਟ ਕਰੋ ਅਤੇ ਭੁੱਲ ਜਾਓ";
+"settings.account.cloudSignIn.mailboxPrompt" = "ਆਪਣੀ ਈਮੇਲ ਤੱਕ ਪਹੁੰਚ ਦੀ ਪੁਸ਼ਟੀ ਕਰੋ। 6–8 ਅੰਕਾਂ ਦਾ ਕੋਡ ਭਰੋ। ਲੋੜ ਹੋਵੇ ਤਾਂ ਸਪੈਮ ਵੇਖੋ।";
+"settings.account.cloudSignIn.freshAttempt" = "ਸਾਈਨ ਇਨ ਪੂਰਾ ਨਹੀਂ ਹੋਇਆ। ਜਾਰੀ ਰੱਖਣ ਲਈ ਮੁੜ ਸ਼ੁਰੂ ਕਰੋ।";
+"settings.account.cloudSignIn.restart" = "ਮੁੜ ਸ਼ੁਰੂ ਕਰੋ";
+"settings.account.cloudSignIn.rememberFailed" = "ਸਾਈਨ ਇਨ ਹੋ ਗਿਆ। ਸਾਈਨ ਇਨ ਦਾ ਸੰਕੇਤ ਸੰਭਾਲਿਆ ਨਹੀਂ ਜਾ ਸਕਿਆ। ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ ਜਾਂ ਬੰਦ ਕਰੋ।";
+"settings.account.cloudSignIn.hintFailed" = "ਯਾਦ ਰੱਖਿਆ ਸਾਈਨ ਇਨ ਅੱਪਡੇਟ ਨਹੀਂ ਹੋ ਸਕਿਆ। ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।";

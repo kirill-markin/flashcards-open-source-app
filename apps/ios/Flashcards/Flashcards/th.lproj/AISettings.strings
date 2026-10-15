@@ -922,3 +922,14 @@
 "ai.consent.withdrawalBody" = "การปิดจะหยุดคำขอ AI ใหม่ แต่จะไม่ลบแชทที่มีอยู่หรือข้อมูลที่ส่งไปยัง OpenAI แล้ว";
 "ai.consent.withdrawalFailed" = "การแชร์ข้อมูลกับ AI ปิดอยู่บนอุปกรณ์นี้ การเลือกของคุณยังไม่ซิงค์ โปรดลองอีกครั้งเมื่อเชื่อมต่อแล้ว";
 "ai.consent.retrySync" = "ลองบันทึกการเลือกอีกครั้ง";
+"settings.account.cloudSignIn.unifiedTitle" = "ลงชื่อเข้าหรือสร้างบัญชี";
+"settings.account.cloudSignIn.remember" = "จำการลงชื่อเข้านี้บนอุปกรณ์นี้";
+"settings.account.cloudSignIn.lastUsed" = "ใช้ล่าสุด";
+"settings.account.cloudSignIn.showEmail" = "แสดงอีเมล";
+"settings.account.cloudSignIn.forget" = "ลืมการลงชื่อเข้านี้";
+"settings.account.cloudSignIn.signOutForget" = "ออกจากระบบและลืม";
+"settings.account.cloudSignIn.mailboxPrompt" = "ยืนยันการเข้าถึงอีเมลของคุณ ป้อนรหัส 6–8 หลัก และตรวจสอบสแปมหากจำเป็น";
+"settings.account.cloudSignIn.freshAttempt" = "ลงชื่อเข้าไม่สำเร็จ โปรดเริ่มใหม่เพื่อดำเนินการต่อ";
+"settings.account.cloudSignIn.restart" = "เริ่มใหม่";
+"settings.account.cloudSignIn.rememberFailed" = "ลงชื่อเข้าแล้ว แต่บันทึกคำใบ้การลงชื่อเข้าไม่ได้ โปรดลองอีกครั้งหรือปิด";
+"settings.account.cloudSignIn.hintFailed" = "อัปเดตการลงชื่อเข้าที่จำไว้ไม่ได้ โปรดลองอีกครั้ง";
