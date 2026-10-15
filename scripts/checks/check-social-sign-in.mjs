@@ -216,7 +216,7 @@ for (const origin of origins) {
   assert.equal(attempt.body.redirectUri, null);
   assert.equal(Number.isFinite(Date.parse(attempt.body.expiresAt)), true);
   for (const purpose of ["link", "reauth"]) {
-    assert.equal((await request(origin, "/api/social/attempt", { ...parameters, purpose })).status, 400);
+    assert.equal((await request(origin, "/api/social/attempt", { ...parameters, purpose })).status, 401);
   }
   assert.equal((await request(origin, "/api/social/attempt", { ...parameters, provider: "apple", client: "android" })).status, 409);
   const redirectUri = `${origin.replace("//auth.", "//app.")}/`;
@@ -254,4 +254,4 @@ for (const origin of origins) {
   });
   assert.equal(blockedOrigin.status, 403);
 }
-console.log("Social auth public API gate passed on both permanent hosts: configured metadata, native attempts, browser top-level navigation and fetch/subresource/origin/method/path guards, browser authorization/PKCE/cookies, browser and Android callback state binding/one-use claims, invalid notification refusal, unsupported native transports/purposes, unproved mailbox refusal, receipt refusal and origin denial. No provider authentication or mailbox delivery was simulated.");
+console.log("Social auth public API gate passed on both permanent hosts: configured metadata, native attempts, browser top-level navigation and fetch/subresource/origin/method/path guards, browser authorization/PKCE/cookies, browser and Android callback state binding/one-use claims, invalid notification refusal, unsupported native transports and unsigned account purposes, unproved mailbox refusal, receipt refusal and origin denial. No provider authentication or mailbox delivery was simulated.");

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
 import { setTimeout } from "node:timers/promises";
 import { CognitoJwtVerifier } from "aws-jwt-verify";
+import { checkDemoAccountMethodRefusals } from "./accountMethodsGate.js";
 import { query } from "../db.js";
 import { getDemoEmailAccessConfig, getDemoEmailPassword } from "../server/demoEmailAccess.js";
 import { cognitoFetch, extractTokenResult, getClientId, refreshTokens, revokeToken, signInWithPassword } from "../server/cognito/cognitoAuth.js";
@@ -48,6 +49,8 @@ export async function handler(): Promise<Readonly<{ passed: true; checks: Readon
     if (typeof username !== "string" || username === "") throw new Error("Review JWT omitted its Cognito username");
     const principal = { cognitoSubject: claims.sub, cognitoUsername: username };
     await query("SELECT auth.register_cognito_principal($1, $2)", [principal.cognitoSubject, principal.cognitoUsername]);
+
+    await checkDemoAccountMethodRefusals(passwordTokens.idToken);
 
     const forged = await initiateNativeProofChallenge(principal);
     await expectRefused(answer(principal, forged, randomBytes(32).toString("hex")));
@@ -103,7 +106,7 @@ export async function handler(): Promise<Readonly<{ passed: true; checks: Readon
     return { passed: true, checks: [
       "USER_AUTH/PASSWORD", "CUSTOM_AUTH", "forged-metadata", "wrong-client", "wrong-nonce",
       "expired-grant", "SQL-wrong-principal/username", "atomic-redemption", "session-and-grant-replay",
-      "REFRESH_TOKEN_AUTH", "internal-bridge", "signed-original-auth-time",
+      "REFRESH_TOKEN_AUTH", "internal-bridge", "signed-original-auth-time", "account-method-demo-transport-refusals",
     ] };
   } catch (error) {
     primaryError = error;
