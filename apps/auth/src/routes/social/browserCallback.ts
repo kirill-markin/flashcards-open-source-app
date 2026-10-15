@@ -48,8 +48,10 @@ async function appleCallbackContinuation(c: Context<AuthAppEnv>, parameters: URL
     if (parameters.has("id_token")) fields.set("id_token", oneParameter(parameters, "id_token", 16_384));
   }
   const nonce = randomBytes(32).toString("base64url");
+  // Form-action also constrains the final redirect; CSP can express a hostless return only by scheme.
+  const returnSource = state.client === "web" ? new URL(state.redirectUri).origin : new URL(androidAppleReturnUri).protocol;
   c.header("Referrer-Policy", "same-origin");
-  c.header("Content-Security-Policy", `default-src 'none'; script-src 'nonce-${nonce}'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'`);
+  c.header("Content-Security-Policy", `default-src 'none'; script-src 'nonce-${nonce}'; form-action 'self' ${returnSource}; base-uri 'none'; frame-ancestors 'none'`);
   // A document on the auth origin makes the next POST carry current SameSite=Lax consent cookies.
   return c.html(html`<!doctype html><html><head><meta charset="utf-8"></head><body>
     <form id="social-continuation" method="post" action="/api/social/apple/continue">
