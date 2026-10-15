@@ -17,6 +17,7 @@ extension FlashcardsStore {
     }
 
     func logoutCloudAccount() throws {
+        self.cloudNativeSignIn.resetPendingSignIn()
         try self.resetLocalStateForCloudIdentityChange()
     }
 
@@ -599,6 +600,8 @@ extension FlashcardsStore {
     }
 
     func completeLocalAccountDeletion() throws {
+        self.cloudNativeSignIn.resetPendingSignIn()
+        try self.cloudNativeSignIn.forgetRememberedHint()
         try self.aiConsent.eraseDeletedAccountReceipts(userId: self.cloudSettings?.linkedUserId)
         self.userDefaults.removeObject(forKey: accountDeletionPendingUserDefaultsKey)
         try self.resetLocalStateForCloudIdentityChange()
